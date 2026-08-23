@@ -37,13 +37,15 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    let policy = prepared.target_state.graph().runtime_policy();
-    let artifact_retention = SnapshotArtifactRetentionPolicy::from_runtime_policy(policy);
+    let installed = prepared.target_state.graph().installed_runtime_policy();
+    let request_metadata = installed.requested_policy();
+    let artifact_retention =
+        SnapshotArtifactRetentionPolicy::from_retention_budget(installed.retention_budget());
     let meta = prepared
         .target_state
         .graph_mut()
         .diagnostics_state_mut()
-        .allocate_snapshot_meta(policy, artifact_retention);
+        .allocate_snapshot_meta(request_metadata, artifact_retention);
     prepared
         .target_state
         .graph_mut()

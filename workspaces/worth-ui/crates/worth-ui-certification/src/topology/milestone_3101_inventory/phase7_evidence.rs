@@ -163,8 +163,9 @@ fn validate_mechanism(id: &str, observed: &str) -> Result<(), String> {
 
 fn validate_target_budget(inventory: &WorkspaceSourceInventory) -> Result<(), String> {
     let product = integration_targets(inventory.text("crates/worth-ui/Cargo.toml"))?;
-    let certification =
-        integration_targets(inventory.text("crates/worth-ui-certification/Cargo.toml"))?;
+    let certification_manifest = inventory.text("crates/worth-ui-certification/Cargo.toml");
+    let certification = integration_targets(certification_manifest)?;
+    validate_certification_binary_budget(certification_manifest)?;
     validate_target_counts(product, certification)
 }
 
@@ -187,6 +188,23 @@ fn integration_targets(manifest: &str) -> Result<usize, String> {
         .get("test")
         .and_then(toml::Value::as_array)
         .map_or(0, Vec::len))
+}
+
+fn binary_targets(manifest: &str) -> Result<usize, String> {
+    let parsed = manifest
+        .parse::<toml::Value>()
+        .map_err(|error| format!("Cargo manifest should parse: {error}"))?;
+    Ok(parsed
+        .get("bin")
+        .and_then(toml::Value::as_array)
+        .map_or(0, Vec::len))
+}
+
+fn validate_certification_binary_budget(manifest: &str) -> Result<(), String> {
+    if binary_targets(manifest)? != 0 {
+        return Err("certification package must not add executable binary targets".to_owned());
+    }
+    Ok(())
 }
 
 fn validate_executable_fixtures(

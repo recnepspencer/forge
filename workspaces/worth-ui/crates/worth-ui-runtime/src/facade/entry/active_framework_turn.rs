@@ -16,12 +16,15 @@ pub struct WorthUiActiveFrameworkTurnCompletion<'session> {
     pub(super) visual_trace_source:
         crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource,
     pub(super) graph: crate::graph::UiGraphAuthority<'session>,
+    pub(super) font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
     pub(super) active_plan_digest: u64,
     pub(super) host_session_identity: crate::facade::WorthUiHostSessionIdentity,
     pub(super) completion: WorthUiFrameworkTurnCompletion<'session>,
     pub(super) mounted: &'session mut crate::mounting::WorthUiMountedSessionState,
     pub(super) host_session: &'session crate::facade::WorthUiHostSessionAuthority,
     pub(super) host_exchange: &'session mut crate::host_exchange::WorthUiHostExchangeSessionState,
+    pub(super) presentation:
+        &'session mut crate::runtime::presentation_state::UiApplicationPresentationState,
 }
 
 /// Executable framework-turn authority lent by one active application session.
@@ -30,11 +33,14 @@ pub struct WorthUiActiveFrameworkTurnExecution<'session> {
     pub(super) visual_trace_source:
         crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource,
     pub(super) graph: crate::graph::UiGraphAuthority<'session>,
+    pub(super) font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
     pub(super) host_session_identity: crate::facade::WorthUiHostSessionIdentity,
     pub(super) execution: crate::runtime::WorthUiFrameworkTurnExecution<'session>,
     pub(super) mounted: &'session mut crate::mounting::WorthUiMountedSessionState,
     pub(super) host_session: &'session crate::facade::WorthUiHostSessionAuthority,
     pub(super) host_exchange: &'session mut crate::host_exchange::WorthUiHostExchangeSessionState,
+    pub(super) presentation:
+        &'session mut crate::runtime::presentation_state::UiApplicationPresentationState,
     pub(super) host_protocol: worth_ui_host_contract::UiHostProtocolAgreement,
     pub(super) host_capability_generation:
         worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
@@ -57,12 +63,14 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
             generation_identity,
             visual_trace_source,
             graph,
+            font_collection,
             active_plan_digest,
             host_session_identity,
             completion,
             mounted,
             host_session,
             host_exchange,
+            presentation,
         } = self;
         let host_protocol = host_session.protocol();
         let capability_report = host_session.capability_report();
@@ -71,11 +79,13 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
                 generation_identity,
                 visual_trace_source,
                 graph,
+                font_collection: std::sync::Arc::clone(&font_collection),
                 host_session_identity,
                 execution,
                 mounted,
                 host_session,
                 host_exchange,
+                presentation,
                 host_protocol,
                 host_capability_generation: capability_report.observation_generation(),
                 host_capability_profile_digest: capability_report.profile_identity_digest(),
@@ -84,12 +94,14 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
                 generation_identity,
                 visual_trace_source,
                 graph,
+                font_collection,
                 active_plan_digest,
                 host_session_identity,
                 completion: *completion,
                 mounted,
                 host_session,
                 host_exchange,
+                presentation,
             })),
         }
     }

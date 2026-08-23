@@ -68,6 +68,21 @@ impl WorthQueryCanonicalWorkEvidence {
         }
     }
 
+    /// Record an explicit diagnostic, publication, provider-wire, or support
+    /// rendering of an already-derived fixed-width digest.
+    pub const fn with_digest_text_materializations(self, count: u32) -> Self {
+        Self {
+            basis_preparations: self.basis_preparations,
+            digest_derivations: self.digest_derivations,
+            canonical_entries: self.canonical_entries,
+            canonical_encoded_bytes: self.canonical_encoded_bytes,
+            canonical_material_allocation_bytes: self.canonical_material_allocation_bytes,
+            sha256_input_bytes: self.sha256_input_bytes,
+            sha256_compression_blocks: self.sha256_compression_blocks,
+            digest_text_materializations: self.digest_text_materializations.saturating_add(count),
+        }
+    }
+
     pub const fn basis_preparations(self) -> u32 {
         self.basis_preparations
     }

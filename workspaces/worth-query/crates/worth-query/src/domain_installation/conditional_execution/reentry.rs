@@ -64,7 +64,7 @@ impl WorthQueryConditionalSemanticObservation<'_> {
         self.bridge.previous()
     }
 
-    pub fn current(&self) -> &worth_foundational::facade::ContractValidatedAspectArtifact {
+    pub fn current(&self) -> Option<&worth_foundational::facade::ContractValidatedAspectArtifact> {
         self.bridge.current()
     }
 }
@@ -89,6 +89,11 @@ impl WorthQueryConditionalProvenance {
     }
     pub const fn class(&self) -> WorthQueryConditionalOutcomeClass {
         self.class
+    }
+    pub(crate) fn bridge_evidence(
+        &self,
+    ) -> &worth_runtime_bridge::facade::BridgeConditionalDecisionEvidence {
+        &self.bridge
     }
     pub fn signal_projection(
         &self,
@@ -320,7 +325,7 @@ pub(crate) fn admit_conditional_authority<D, O, F, L: BasisOperationLane>(
     })
 }
 
-fn classify_signal_decision(
+pub(crate) fn classify_signal_decision(
     class: worth_signal::facade::SignalConditionalDecisionClass,
 ) -> WorthQueryConditionalOutcomeClass {
     match class {

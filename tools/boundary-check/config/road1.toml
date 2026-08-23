@@ -108,25 +108,31 @@ guidance = "Milestone 3.10.1: DSL owns authored language meaning and may not imp
 [[source_dependency_allowlists]]
 workspace_manifest = "workspaces/worth-ui/Cargo.toml"
 sources = ["worth-ui-platform-pulse"]
-allowed_targets = ["eframe", "notify", "serde", "serde_json", "uiautomation", "winsafe", "worth-query-decl", "worth-query-host", "worth-ui", "worth-ui-host-egui", "xcap"]
-guidance = "Milestone 3.13: the permanent Pulse remains a downstream application composition root. It may assemble Query declarations and a host only through worth-query-decl and worth-query-host, then pass audience-safe references through worth-ui. Raw Query, binding-owner, runtime, DSL, certification, test-support, replay, and convenience dependencies remain forbidden."
+allowed_targets = ["eframe", "notify", "serde", "serde_json", "uiautomation", "win32job", "winsafe", "worth-query-decl", "worth-query-host", "worth-ui", "worth-ui-host-egui", "worth-ui-native-platform", "xcap"]
+guidance = "Milestones 3.13 and 3.14.1: the permanent Pulse remains a downstream application composition root. It may assemble Query declarations through worth-query-decl and worth-query-host, consume application meaning through worth-ui, and enter native effects only through worth-ui-native-platform. Raw Query, binding-owner, runtime, DSL, host-native mechanics, certification, test-support, replay, and convenience dependencies remain forbidden."
 
 [[source_dependency_allowlists.dependency_contracts]]
 target = "eframe"
 version_requirement = "=0.35.0"
 uses_default_features = false
-features = ["default_fonts", "glow", "wayland", "wgpu", "x11"]
+features = ["default_fonts", "wgpu_no_default_features"]
 
 [[source_dependency_allowlists.dependency_contracts]]
 target = "uiautomation"
 version_requirement = "=0.25.0"
 uses_default_features = false
-features = ["control", "input"]
+features = ["control", "input", "screenshot"]
+
+[[source_dependency_allowlists.dependency_contracts]]
+target = "win32job"
+version_requirement = "=2.0.3"
+uses_default_features = true
+features = []
 
 [[source_dependency_allowlists.dependency_contracts]]
 target = "winsafe"
 version_requirement = "=0.0.28"
-uses_default_features = true
+uses_default_features = false
 features = ["dwm", "kernel", "user"]
 
 [[source_dependency_allowlists.dependency_contracts]]
@@ -138,8 +144,6 @@ features = ["wgc"]
 [[source_identifier_denials]]
 root = "workspaces/worth-ui/apps/platform-pulse/tests/executable_world"
 forbidden_identifiers = [
-  "Screenshot",
-  "capture_as_image",
   "eframe",
   "egui",
   "worth_ui_certification",
@@ -148,7 +152,7 @@ forbidden_identifiers = [
   "worth_ui_test_support",
 ]
 forbidden_identifier_fragments = []
-guidance = "Milestone 3.10.3 Phase 3: the executable runner observes the Cargo-built product through typed stdout, PID-bound native APIs, and independent pixels; it cannot import product internals, certification authority, adapter mechanics, or desktop-screenshot shortcuts"
+guidance = "Milestones 3.10.3 and 3.14.1: the executable runner observes the Cargo-built product through typed stdout, PID-bound native APIs, and independently qualified pixel adapters; it cannot import product internals, certification authority, or adapter mechanics"
 
 [[source_identifier_denials]]
 root = "workspaces/worth-ui/apps/platform-pulse/src"
@@ -453,8 +457,18 @@ internal_packages = [
 ]
 
 [[rule_contracts.query_audience.facade_surfaces]]
-label = "worth-query-host::installed"
+label = "worth-query-host::primary_graph"
 source = "workspaces/worth-query/crates/worth-query-host/src/facade.rs"
+reexport = "worth_query_execution::facade::primary_graph"
+owner_source = "workspaces/worth-query/crates/worth-query-execution/src/facade.rs"
+namespace = "primary_graph"
+
+[[rule_contracts.query_audience.facade_surfaces]]
+label = "worth-query-host::provisional_aftermath"
+source = "workspaces/worth-query/crates/worth-query-host/src/facade.rs"
+reexport = "worth_query_execution::facade::provisional_aftermath"
+owner_source = "workspaces/worth-query/crates/worth-query-execution/src/facade.rs"
+namespace = "provisional_aftermath"
 
 [[rule_contracts.query_audience.audiences]]
 package = "worth-query-decl"

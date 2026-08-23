@@ -77,6 +77,7 @@ fn source_backed_membership_identity_uses_full_module_path_not_same_stem_heurist
 fn same_file_source_backed_declarations_do_not_collapse_into_one_mosaic_membership() {
     let support_app = two_component_source_backed_builder()
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let submission = runtime_from_artifact(empty_artifact())
         .source_event_ingress(
@@ -106,6 +107,7 @@ component workspace.component.source_backed_boundary.peer {
     let app = two_component_source_backed_builder()
         .with_candidate_submission(submission)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("complete same-file composition should prepare");
     let left_name =
         mosaic_membership_name_for_provenance(&app, "app/source_backed_same_file.wui", 0);
@@ -136,6 +138,7 @@ component workspace.component.source_backed_boundary.peer {
 fn same_file_equivalent_declaration_reorder_preserves_membership_identity_set() {
     let support_app = two_component_source_backed_builder()
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let first = runtime_from_artifact(empty_artifact())
         .source_event_ingress(
@@ -190,10 +193,12 @@ component workspace.component.source_backed_boundary {
     let first = two_component_source_backed_builder()
         .with_candidate_submission(first)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("first complete composition should prepare");
     let second = two_component_source_backed_builder()
         .with_candidate_submission(second)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("second complete composition should prepare");
 
     assert_eq!(
@@ -219,6 +224,7 @@ fn unconstrained_source_backed_sizing_does_not_synthesize_bounded_measurement_po
         .register_mosaic_region_kind(source_backed_boundary_region())
         .register_mosaic_sizing_contract(source_backed_unconstrained_sizing())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let node = graph_node_identity_for_provenance(&app, "app/source_backed_unconstrained.wui", 0);
     let graph_node = app

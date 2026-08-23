@@ -1,11 +1,10 @@
 use worth_query_host::facade::publication::application_aftermath::{
     WorthQueryPublishedApplicationAftermath, WorthQueryPublishedApplicationCommitBoundaryEvidence,
-    WorthQueryPublishedCanonicalWork, WorthQueryPublishedExternalEffectPosture,
+    WorthQueryPublishedExternalEffectPosture,
 };
 use worth_query_host::facade::publication::domain_computation::{
-    WorthQueryApplicationCommitPublicationReceipt, WorthQueryApplicationQueryPublicationReceipt,
-    WorthQueryPublishedApplicationDisclosure, WorthQueryPublishedApplicationDisclosureIdentity,
-    WorthQueryPublishedApplicationDisclosurePosture,
+    WorthQueryApplicationCommitPublicationReceipt, WorthQueryPublishedApplicationDisclosure,
+    WorthQueryPublishedApplicationDisclosureIdentity, WorthQueryPublishedApplicationDisclosurePosture,
     WorthQueryPublishedApplicationQueryReleasePosture,
     WorthQueryPublishedApplicationQueryResultBufferRelease,
     WorthQueryPublishedApplicationQueryTerminalRelease,
@@ -18,22 +17,6 @@ fn forge_commit_receipt(
     WorthQueryApplicationCommitPublicationReceipt {
         aftermath,
         boundary_evidence,
-    }
-}
-
-fn forge_query_receipt(
-    result_count: usize,
-    ordinary_work_units: usize,
-    disclosure: WorthQueryPublishedApplicationDisclosure,
-    publication_work: WorthQueryPublishedCanonicalWork,
-    terminal_release: WorthQueryPublishedApplicationQueryTerminalRelease,
-) -> WorthQueryApplicationQueryPublicationReceipt {
-    WorthQueryApplicationQueryPublicationReceipt {
-        result_count,
-        ordinary_work_units,
-        disclosure,
-        publication_work,
-        terminal_release,
     }
 }
 

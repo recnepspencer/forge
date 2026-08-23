@@ -11,15 +11,13 @@ use worth_ui::facade::{
     rebind::{UiRebindExecutionPolicy, UiRebindExecutionRequest},
 };
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
+use worth_ui_host_headless::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder};
 use worth_ui_runtime::{
     certification_support::{
         UiIntentExecutionCapacityCertificationProfile,
         WorthUiIntentExecutionReservationCertificationExt,
     },
-    facade::{
-        host::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder},
-        measurement_exchange::UiViewportExtentObservation,
-    },
+    facade::measurement_exchange::UiViewportExtentObservation,
 };
 
 use super::{

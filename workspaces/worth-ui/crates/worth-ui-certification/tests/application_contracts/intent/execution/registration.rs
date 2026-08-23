@@ -20,6 +20,8 @@ use worth_ui::facade::{
 use worth_ui_dsl::{WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule};
 use worth_ui_runtime::certification_support::WorthUiIntentExecutionBindingCertificationExt;
 
+type BoundBuilder = worth_ui_certification::scenario::application_authority_closure::FixedCertificationApplicationBuilder;
+
 struct EmptyPayload;
 
 impl UiIntentPayload for EmptyPayload {
@@ -201,9 +203,7 @@ fn single_application<I: UiIntent, const VERSION: u16>() -> WorthUiApp {
         .unwrap()
 }
 
-fn application_with_tracked_provider(
-    drops: Arc<AtomicUsize>,
-) -> worth_ui::facade::app::WorthUiApplicationBuilder {
+fn application_with_tracked_provider(drops: Arc<AtomicUsize>) -> BoundBuilder {
     base_builder()
         .register_intent_definition(UiIntentDefinition::<AlphaIntent>::application_effect())
         .unwrap()
@@ -221,9 +221,7 @@ fn two_applications(reverse: bool) -> WorthUiApp {
     builder.freeze().unwrap()
 }
 
-fn register_alpha(
-    builder: worth_ui::facade::app::WorthUiApplicationBuilder,
-) -> worth_ui::facade::app::WorthUiApplicationBuilder {
+fn register_alpha(builder: BoundBuilder) -> BoundBuilder {
     builder
         .register_intent_definition(UiIntentDefinition::<AlphaIntent>::application_effect())
         .unwrap()
@@ -231,9 +229,7 @@ fn register_alpha(
         .unwrap()
 }
 
-fn register_beta(
-    builder: worth_ui::facade::app::WorthUiApplicationBuilder,
-) -> worth_ui::facade::app::WorthUiApplicationBuilder {
+fn register_beta(builder: BoundBuilder) -> BoundBuilder {
     builder
         .register_intent_definition(UiIntentDefinition::<BetaIntent>::application_effect())
         .unwrap()
@@ -241,8 +237,9 @@ fn register_beta(
         .unwrap()
 }
 
-fn base_builder() -> worth_ui::facade::app::WorthUiApplicationBuilder {
-    WorthUi::app().with_change_profile(UiChangeProfile::platform_pulse())
+fn base_builder() -> BoundBuilder {
+    let builder = WorthUi::app().with_change_profile(UiChangeProfile::platform_pulse());
+    BoundBuilder::new(builder, worth_ui_host_headless::WorthUiHeadlessHost)
 }
 
 fn assert_registration_metrics(application: &WorthUiApp, expected: usize) {

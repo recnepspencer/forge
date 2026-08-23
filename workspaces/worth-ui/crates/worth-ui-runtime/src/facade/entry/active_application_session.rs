@@ -8,6 +8,8 @@ use super::{
     WorthUiActiveFrameworkTurnCompletion, WorthUiApp,
 };
 
+mod shutdown;
+
 /// The one ordinary owner of a running Worth UI application generation.
 pub struct WorthUiActiveApplicationSession {
     pub(super) identity: WorthUiActiveApplicationSessionIdentity,
@@ -22,6 +24,7 @@ pub struct WorthUiActiveApplicationSession {
     pub(super) intent_admission: crate::runtime::intent::UiIntentAdmissionState,
     pub(super) intent_confirmation: crate::runtime::intent::UiIntentConfirmationState,
     pub(super) intent_postures: crate::mounting::UiIntentPostureTable,
+    pub(super) presentation: crate::runtime::presentation_state::UiApplicationPresentationState,
     pub(super) visual_inspection:
         crate::inspection::visual_snapshot::WorthUiVisualInspectionAuthority,
     pub(super) next_visual_capture_identity: u64,
@@ -33,7 +36,7 @@ pub struct WorthUiActiveApplicationSession {
 
 impl WorthUiActiveApplicationSession {
     pub(super) fn new(
-        app: WorthUiApp,
+        mut app: WorthUiApp,
         runtime: WorthUiRuntime,
         host_session: crate::facade::WorthUiHostSessionAuthority,
     ) -> Result<Self, crate::runtime::WorthUiRuntimeLaunchDenial> {
@@ -44,15 +47,21 @@ impl WorthUiActiveApplicationSession {
         let host_observation_capacity = app.host_observation_capacity();
         let visual_policy = app.visual_inspection_policy();
         let rebind_profile = app.prepared_authority().change_profile().rebind();
+        let presentation_async = app.take_presentation_async_owner();
         let intent_application_facts =
             crate::runtime::intent::UiIntentApplicationFactState::activate(
                 app.prepared_authority().intent_application_fact_plan(),
+            );
+        let presentation =
+            crate::runtime::presentation_state::UiApplicationPresentationState::activate(
+                app.capabilities(),
             );
         let application =
             crate::runtime::session::WorthUiApplicationSessionState::new(app, runtime);
         let mounted = crate::mounting::WorthUiMountedSessionState::new(
             host_session.identity(),
             mounted_frame_retention_budget,
+            presentation_async,
         )
         .map_err(|_| crate::runtime::WorthUiRuntimeLaunchDenial::MountedIdentityExhausted)?;
         let visual_inspection =
@@ -77,6 +86,7 @@ impl WorthUiActiveApplicationSession {
             intent_admission: crate::runtime::intent::UiIntentAdmissionState::new(),
             intent_confirmation: crate::runtime::intent::UiIntentConfirmationState::new(),
             intent_postures: crate::mounting::UiIntentPostureTable::new(),
+            presentation,
             visual_inspection,
             next_visual_capture_identity: 1,
             next_visual_overlay_identity: 1,
@@ -238,6 +248,7 @@ impl WorthUiActiveApplicationSession {
             return Err(crate::mounting::UiMountedPublicationLeaseDenial::PresentationInFlight);
         }
         let host_session_identity = self.host_session.identity();
+        let font_collection = std::sync::Arc::clone(self.application.font_collection());
         let turn = self.application.execute_framework_turn(collect_sources);
         let (generation_identity, visual_trace_source, graph, active_plan_digest, completion) =
             turn.into_parts();
@@ -245,12 +256,14 @@ impl WorthUiActiveApplicationSession {
             generation_identity,
             visual_trace_source,
             graph,
+            font_collection,
             active_plan_digest,
             host_session_identity,
             completion,
             mounted: &mut self.mounted,
             host_session: &self.host_session,
             host_exchange: &mut self.host_exchange,
+            presentation: &mut self.presentation,
         })
     }
 
@@ -356,42 +369,26 @@ impl WorthUiActiveApplicationSession {
         self.host_session.measurement_capability()
     }
 
-    pub fn shutdown(mut self) -> WorthUiRuntimeShutdownReceipt {
-        let rebind = self.rebind.shutdown();
-        let visual_capture = self.visual_captures.shutdown();
-        let visual_overlay = self.visual_overlays.shutdown();
-        let interaction = self.interaction.shutdown();
-        let confirmation = self.intent_confirmation.shutdown();
-        let (admission, execution) = self.intent_admission.shutdown(&mut self.intent_execution);
-        let observation_resources = self.application.retire_observation_resources(
-            crate::runtime::observation::UiObservationResourceRetirementCause::ApplicationShutdown,
-        );
-        let intent_evidence = self
-            .intent_evidence
-            .retire(worth_ui_inspection::UiIntentEvidenceRetirementCause::ApplicationShutdown);
-        let final_intent_resource_census = self.intent_resource_census();
-        debug_assert!(final_intent_resource_census.is_empty());
-        let (mounted_presentation, outcomes) =
-            self.mounted.shutdown_presentation(&self.host_session);
-        for outcome in outcomes {
-            let _ = self.finish_mounted_presentation(outcome);
-        }
-        self.mounted.assert_shutdown_resolved();
-        self.host_exchange.shutdown();
-        let host_session_release = self.host_session.release_adapter_session();
-        self.application
-            .shutdown()
-            .bind_visual_capture(visual_capture)
-            .bind_visual_overlay(visual_overlay)
-            .bind_mounted_presentation(mounted_presentation)
-            .bind_host_session_release(host_session_release)
-            .bind_interaction(interaction)
-            .bind_intent_confirmation(confirmation)
-            .bind_intent_admission(admission)
-            .bind_intent_execution(execution)
-            .bind_observation_resources(observation_resources)
-            .bind_intent_evidence(intent_evidence)
-            .bind_intent_resource_census(final_intent_resource_census)
-            .bind_rebind(rebind)
+    pub(crate) fn register_application_semantic_text(
+        &mut self,
+        authored_identity: Box<str>,
+        graph_node: crate::graph::UiGraphNodeIdentity,
+    ) -> Result<(), ()> {
+        self.presentation
+            .register_semantic_text(authored_identity, graph_node)
+    }
+
+    pub(crate) fn admit_application_semantic_text(
+        &mut self,
+        changes: &[super::UiNativeComponentSemanticTextChange],
+    ) -> Result<(), ()> {
+        self.presentation.admit_semantic_text(changes)
+    }
+
+    pub(crate) fn admit_application_theme_values(
+        &mut self,
+        changes: &[super::UiNativeThemeTokenValueChange],
+    ) -> Result<(), ()> {
+        self.presentation.admit_theme_values(changes)
     }
 }

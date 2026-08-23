@@ -156,6 +156,9 @@ fn touch_app(world_profile: UiGraphWorldProfile) -> worth_ui::facade::app::Worth
             .with_semantic_artifact_spec(control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed")
 }
 

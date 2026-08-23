@@ -51,7 +51,7 @@ pub struct UiMountedHitTestCompletionInput {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiMountedHitTestTable {
-    rows: Box<[UiMountedHitTestMechanic]>,
+    rows: std::sync::Arc<[UiMountedHitTestMechanic]>,
 }
 
 impl UiMountedHitTestOrder {
@@ -142,15 +142,13 @@ impl UiMountedHitTestTable {
 
     pub fn empty() -> Self {
         Self {
-            rows: Vec::new().into_boxed_slice(),
+            rows: std::sync::Arc::from([]),
         }
     }
 
     #[doc(hidden)]
     pub fn from_runtime_mounting(rows: Vec<UiMountedHitTestMechanic>) -> Option<Self> {
-        (rows.len() <= Self::MAX_ROWS).then(|| Self {
-            rows: rows.into_boxed_slice(),
-        })
+        (rows.len() <= Self::MAX_ROWS).then(|| Self { rows: rows.into() })
     }
 
     pub fn rows(&self) -> &[UiMountedHitTestMechanic] {

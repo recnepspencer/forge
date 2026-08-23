@@ -29,11 +29,19 @@ pub(crate) struct WorthUiRuntimeLaunchAuthority {
     pub(crate) change_profile: crate::runtime::rebind::UiChangeProfile,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum WorthUiRuntimeLaunchDenial {
     HostSessionIdentityExhausted,
     HostProtocol(worth_ui_host_contract::UiHostProtocolDenial),
-    HostMountedPresentationLease(worth_ui_host_contract::UiMountedPresentationLeaseDenial),
+    HostMountedPresentationLease,
+    HostSessionReleaseIndeterminate {
+        cause: Box<WorthUiRuntimeLaunchDenial>,
+        recovery: crate::facade::WorthUiHostSessionReleaseRecovery,
+    },
+    HostSessionReleaseMismatch {
+        cause: Box<WorthUiRuntimeLaunchDenial>,
+        released_surface_count: usize,
+    },
     MountedIdentityExhausted,
     InitialAllocationGraphAuthorityMismatch,
     InitialAllocationObligationsUnsettled {
@@ -63,6 +71,23 @@ pub enum WorthUiRuntimeLaunchDenial {
         candidate_snapshot_digest: u64,
         app_snapshot_digest: u64,
     },
+}
+
+impl WorthUiRuntimeLaunchDenial {
+    pub(crate) fn retry_host_session_cleanup(
+        self,
+    ) -> Result<WorthUiRuntimeLaunchDenial, WorthUiRuntimeLaunchDenial> {
+        if matches!(&self, Self::HostSessionReleaseMismatch { .. }) {
+            return Err(self);
+        }
+        let Self::HostSessionReleaseIndeterminate { cause, recovery } = self else {
+            return Ok(self);
+        };
+        match recovery.retry() {
+            Ok(_) => Ok(*cause),
+            Err(recovery) => Err(Self::HostSessionReleaseIndeterminate { cause, recovery }),
+        }
+    }
 }
 
 impl WorthUiRuntimeLaunch {

@@ -30,13 +30,15 @@ pub(crate) fn validate_and_index(
     observed: &[worth_ui_host_contract::UiHostRealizedRegion],
     transform: worth_ui_host_contract::UiHostCoordinateTransform,
 ) -> Result<UiValidatedSpatialIndexes, UiSpatialValidationDenial> {
-    if expected.paint().len() + expected.hit_test().len() != observed.len() {
+    let expected_paint_rows = expected.paint();
+    let expected_hit_rows = expected.hit_test();
+    if expected_paint_rows.len() + expected_hit_rows.len() != observed.len() {
         return Err(UiSpatialValidationDenial::ProtocolMismatch);
     }
-    let mut expected_paint = paint_rows_by_key(expected.paint());
-    let mut expected_hit = hit_rows_by_key(expected.hit_test());
-    let mut visible = Vec::with_capacity(expected.paint().len());
-    let mut hit_test = Vec::with_capacity(expected.hit_test().len());
+    let mut expected_paint = paint_rows_by_key(&expected_paint_rows);
+    let mut expected_hit = hit_rows_by_key(&expected_hit_rows);
+    let mut visible = Vec::with_capacity(expected_paint_rows.len());
+    let mut hit_test = Vec::with_capacity(expected_hit_rows.len());
     for region in observed {
         match region.participation() {
             worth_ui_host_contract::UiHostRealizedRegionParticipation::Paint => {

@@ -1,5 +1,9 @@
 # Milestone 3.8 Engineering Spec: Allocation Receipts, Incremental Replanning, Scroll, Portal, And Continuous Interaction Measurement
 
+> Terminology: ledger lifecycle and receipt ledgers in this specification are
+> product-domain runtime behavior, not QA, proof, closure, or phase ledgers.
+> The historical-ledger retirement policy does not apply to them.
+
 > **Status:** Closed — Phases 1-22 implemented and milestone-native hostile
 > certification complete
 >

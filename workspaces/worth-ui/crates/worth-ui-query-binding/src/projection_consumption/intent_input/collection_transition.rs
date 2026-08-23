@@ -33,6 +33,7 @@ enum UiCollectionProjectionInputChange {
     Insert(UiProjectionInputCollectionRow),
     Remove(super::UiCollectionProjectionRowReference),
     Move(super::UiCollectionProjectionRowReference),
+    Regroup(super::UiCollectionProjectionRowReference),
     Update(UiProjectionInputCollectionRow),
     WindowShift,
 }
@@ -100,6 +101,9 @@ impl UiCollectionProjectionInputPatch {
                     catalog.remove(row.query_identity())
                 }
                 UiCollectionProjectionInputChange::Move(row) => {
+                    catalog.require(row.query_identity())
+                }
+                UiCollectionProjectionInputChange::Regroup(row) => {
                     catalog.require(row.query_identity())
                 }
                 UiCollectionProjectionInputChange::Update(row) => catalog.update(row.clone()),
@@ -239,6 +243,9 @@ fn prepare_changes(
             }
             super::UiCollectionProjectionChange::Move { row, .. } => {
                 Some(UiCollectionProjectionInputChange::Move(row.clone()))
+            }
+            super::UiCollectionProjectionChange::Regroup { row, .. } => {
+                Some(UiCollectionProjectionInputChange::Regroup(row.clone()))
             }
             super::UiCollectionProjectionChange::Update { row } => changed_rows
                 .remove(&UiProjectionOptionKey::new(row.query_identity().clone()))

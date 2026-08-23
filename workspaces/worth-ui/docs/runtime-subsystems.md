@@ -14,6 +14,7 @@ should start with [Application lifecycle](./application-lifecycle.md).
 | intent admission | route, payload, operability, confirmation, and admission registries | typed candidates, affine challenges, concurrency, bounded admission slots, and settlement |
 | intent execution | definition/provider bindings and attempt registries | destination dispatch, versioned providers, polling, cancellation, terminal posture, and recovery |
 | mounting | `WorthUiMountedSessionState` | mounted identities, frame assembly, retention, reconciliation, and mounted publication |
+| presentation producer | `UiMountedPresentationState` | receipt-keyed retained commands, initial/delta/unchanged work, total order, damage, and post-settlement candidate commit |
 | host exchange | `WorthUiHostExchangeSessionState` | structural host reports, measurement exchange, quarantine, and transport evidence |
 | visual inspection | `WorthUiVisualInspectionAuthority` plus capture/overlay registries | grants, retained snapshots, comparison, overlays, and visual resource bounds |
 | rebind lifecycle | `UiRebindRuntimeState` | plan, receipt, completion, recovery, terminal-decision, and causal-evidence capacity |
@@ -69,6 +70,8 @@ More exactly:
 - intent execution consumes one move-only admission and the exact typed
   destination binding; provider completion still cannot publish directly;
 - mounting may consume application, graph, and sealed planning output;
+- the presentation producer derives host work from mounted authority; hosts do
+  not rediscover deltas from a complete projection;
 - host exchange may observe mounted transport but cannot publish;
 - rebind may coordinate owner-issued observation, plan, application, mounting,
   and host outcomes but does not absorb their source truth;
@@ -130,6 +133,9 @@ duplicate totals.
 - source acquisition and DSL compile are reconstructive source cost;
 - classification/scope/planning use `O + F + A + C + R + G + M + B`;
 - mounting and adapter effects report physical presentation cost;
+- delta carriage, draw-list/order mutation, damage-index/replay work, pixels,
+  GPU writes, passes, copies, acquisitions, submissions, and presents remain
+  separately named counters;
 - reconciliation reports recovery cost separately; and
 - rich inspection/report materialization is explicit diagnostic cost outside
   measured executor intervals.

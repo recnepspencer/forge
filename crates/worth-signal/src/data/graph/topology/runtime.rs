@@ -27,6 +27,46 @@ impl SignalGraph {
         self.raw_dependencies_of(node)
     }
 
+    pub(crate) fn has_current_unsettled_upstream(
+        &self,
+        target: NodeId,
+    ) -> Result<bool, SignalError> {
+        let dependencies = self.current_runtime_dependencies_of(target)?;
+        if dependencies.is_empty() {
+            return Ok(false);
+        }
+        let mut visited = vec![false; self.arena_capacity()];
+        let mut stack = dependencies
+            .iter()
+            .map(|edge| edge.source())
+            .collect::<Vec<_>>();
+        while let Some(node) = stack.pop() {
+            let index = node.index() as usize;
+            if visited.get(index).copied().unwrap_or(false) {
+                continue;
+            }
+            if index >= visited.len() {
+                return Err(SignalError::invalid_input(format!(
+                    "dependency path references unavailable node {node}"
+                )));
+            }
+            visited[index] = true;
+            self.invalidation_performed_counter_state().add(
+                crate::data::telemetry::InvalidationPerformedCounter::NonSemanticNodeVisits,
+                1,
+            );
+            if self.get_state(node)? != crate::data::node::NodeState::Clean {
+                return Ok(true);
+            }
+            stack.extend(
+                self.current_runtime_dependencies_of(node)?
+                    .iter()
+                    .map(|edge| edge.source()),
+            );
+        }
+        Ok(false)
+    }
+
     pub(crate) fn refresh_runtime_subscribers_of(
         &mut self,
         node: NodeId,

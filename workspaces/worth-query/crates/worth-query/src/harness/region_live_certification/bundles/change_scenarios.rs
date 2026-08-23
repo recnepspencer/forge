@@ -1,4 +1,4 @@
-use crate::facade::foundation::{BridgeChangeSummary, BridgeFieldDelta, BridgeRelationDelta};
+use crate::live::{BridgeChangeSummary, BridgeFieldDelta, BridgeRelationDelta};
 
 pub(super) fn detail_in_region_change() -> BridgeChangeSummary {
     BridgeChangeSummary::default()

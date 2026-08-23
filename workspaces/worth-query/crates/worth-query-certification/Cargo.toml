@@ -56,5 +56,14 @@ name = "installed_audience_journey"
 path = "tests/pass/installed_audience_journey.rs"
 harness = false
 
+[[test]]
+name = "temporal_conditional_oracle_parity"
+path = "tests/temporal_conditional_oracle_parity.rs"
+
+[[test]]
+name = "granular_invalidation"
+path = "tests/granular_invalidation.rs"
+
+
 [lints]
 workspace = true

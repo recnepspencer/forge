@@ -32,8 +32,11 @@ pub(crate) enum UiDraftProcessingOutcome {
 
 pub(crate) struct UiDraftRuntimeState {
     pub(super) next_identity: Option<u64>,
+    pub(super) next_recipient_generation: Option<u64>,
     pub(super) sessions: BTreeMap<UiDraftSessionIdentity, UiDraftSession>,
     pub(super) active: Option<UiActiveLocalRecipient>,
+    pub(super) active_affinity:
+        Option<super::recipient_affinity::UiLocalInputRecipientAffinityLease>,
     pub(super) counters: UiDraftLifecycleCounters,
 }
 

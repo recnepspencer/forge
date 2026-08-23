@@ -1,14 +1,15 @@
 use std::marker::PhantomData;
 
+use super::decisions::availability_decision;
 use super::inventory::surface_inventory;
+use super::observation::FoundationalObservationDisposition;
 use super::vocabulary::{
     FoundationalDescriptiveElisionProfile, FoundationalDescriptiveSurface,
     FoundationalSurfaceAbsenceCause, FoundationalSurfaceAvailabilityDecision,
 };
 use crate::profiles::{
-    CompatibilityPostureProfile, DiagnosticRichnessProfile,
     FoundationalProfileAttachmentTargetKind, FoundationalProfileAttachmentTargetMarker,
-    MaterializedFoundationalProfileSet, RetentionDeliveryProfile, SupportPostureProfile,
+    MaterializedFoundationalProfileSet, ObservationActivationProfile,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -54,6 +55,7 @@ impl FoundationalMaterializationCost {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FoundationalProfileMaterializationPlan<Target> {
     target_kind: FoundationalProfileAttachmentTargetKind,
+    observation_disposition: FoundationalObservationDisposition,
     decisions: Vec<FoundationalSurfaceAvailabilityDecision>,
     cost: FoundationalMaterializationCost,
     marker: PhantomData<Target>,
@@ -63,7 +65,10 @@ impl<Target> FoundationalProfileMaterializationPlan<Target>
 where
     Target: FoundationalProfileAttachmentTargetMarker,
 {
-    fn new(decisions: Vec<FoundationalSurfaceAvailabilityDecision>) -> Self {
+    fn new(
+        observation_disposition: FoundationalObservationDisposition,
+        decisions: Vec<FoundationalSurfaceAvailabilityDecision>,
+    ) -> Self {
         let available_surface_count = decisions
             .iter()
             .filter(|entry| entry.is_available())
@@ -72,6 +77,7 @@ where
 
         Self {
             target_kind: Target::kind(),
+            observation_disposition,
             cost: FoundationalMaterializationCost::new(
                 decisions.len() as u32,
                 decisions
@@ -91,6 +97,10 @@ where
 
     pub const fn target_kind(&self) -> FoundationalProfileAttachmentTargetKind {
         self.target_kind
+    }
+
+    pub const fn observation_disposition(&self) -> FoundationalObservationDisposition {
+        self.observation_disposition
     }
 
     pub fn decisions(&self) -> &[FoundationalSurfaceAvailabilityDecision] {
@@ -117,11 +127,12 @@ pub enum FoundationalMaterializationPlanningDenial {
     EmptySelectedSurfaceSet,
     DuplicateSelectedSurface,
     SurfaceIllegalForTarget,
+    ObservationDispositionRequired,
 }
 
 pub fn plan_foundational_profile_materialization<Target>(
     profile: &MaterializedFoundationalProfileSet,
-) -> FoundationalProfileMaterializationPlan<Target>
+) -> Result<FoundationalProfileMaterializationPlan<Target>, FoundationalMaterializationPlanningDenial>
 where
     Target: FoundationalProfileAttachmentTargetMarker,
 {
@@ -131,14 +142,14 @@ where
         inventory.target_kind(),
         inventory.surfaces(),
         inventory.surfaces(),
+        profile_default_observation_disposition(profile)?,
     )
-    .expect("closed target inventories are always legal and non-empty")
 }
 
 pub fn plan_foundational_profile_materialization_with_elision<Target>(
     profile: &MaterializedFoundationalProfileSet,
     elision: FoundationalDescriptiveElisionProfile,
-) -> FoundationalProfileMaterializationPlan<Target>
+) -> Result<FoundationalProfileMaterializationPlan<Target>, FoundationalMaterializationPlanningDenial>
 where
     Target: FoundationalProfileAttachmentTargetMarker,
 {
@@ -148,8 +159,8 @@ where
         inventory.target_kind(),
         inventory.surfaces(),
         elision_selected_surfaces::<Target>(elision),
+        profile_default_observation_disposition(profile)?,
     )
-    .expect("named elision profiles resolve to legal non-empty target inventories")
 }
 
 pub fn plan_selected_foundational_profile_materialization<Target>(
@@ -165,6 +176,25 @@ where
         inventory.target_kind(),
         inventory.surfaces(),
         selected,
+        profile_default_observation_disposition(profile)?,
+    )
+}
+
+pub fn plan_selected_foundational_profile_materialization_with_disposition<Target>(
+    profile: &MaterializedFoundationalProfileSet,
+    selected: &[FoundationalDescriptiveSurface],
+    disposition: FoundationalObservationDisposition,
+) -> Result<FoundationalProfileMaterializationPlan<Target>, FoundationalMaterializationPlanningDenial>
+where
+    Target: FoundationalProfileAttachmentTargetMarker,
+{
+    let inventory = surface_inventory::<Target>();
+    build_materialization_plan(
+        profile,
+        inventory.target_kind(),
+        inventory.surfaces(),
+        selected,
+        disposition,
     )
 }
 
@@ -196,11 +226,25 @@ where
     }
 }
 
+fn profile_default_observation_disposition(
+    profile: &MaterializedFoundationalProfileSet,
+) -> Result<FoundationalObservationDisposition, FoundationalMaterializationPlanningDenial> {
+    match profile.materialized().observation_activation() {
+        ObservationActivationProfile::Continuous => {
+            Ok(FoundationalObservationDisposition::Continuous)
+        }
+        ObservationActivationProfile::OnDemand => {
+            Err(FoundationalMaterializationPlanningDenial::ObservationDispositionRequired)
+        }
+    }
+}
+
 fn build_materialization_plan<Target>(
     profile: &MaterializedFoundationalProfileSet,
     target_kind: FoundationalProfileAttachmentTargetKind,
     inventory: &[FoundationalDescriptiveSurface],
     selected: &[FoundationalDescriptiveSurface],
+    disposition: FoundationalObservationDisposition,
 ) -> Result<FoundationalProfileMaterializationPlan<Target>, FoundationalMaterializationPlanningDenial>
 where
     Target: FoundationalProfileAttachmentTargetMarker,
@@ -208,10 +252,13 @@ where
     validate_selected_surfaces(inventory, selected)?;
 
     Ok(FoundationalProfileMaterializationPlan::new(
+        disposition,
         inventory
             .iter()
             .copied()
-            .map(|surface| availability_decision(profile, target_kind, surface, selected))
+            .map(|surface| {
+                availability_decision(profile, target_kind, surface, selected, disposition)
+            })
             .collect(),
     ))
 }
@@ -236,142 +283,4 @@ fn validate_selected_surfaces(
     }
 
     Ok(())
-}
-
-fn availability_decision(
-    profile: &MaterializedFoundationalProfileSet,
-    target_kind: FoundationalProfileAttachmentTargetKind,
-    surface: FoundationalDescriptiveSurface,
-    selected: &[FoundationalDescriptiveSurface],
-) -> FoundationalSurfaceAvailabilityDecision {
-    if !selected.contains(&surface) {
-        return FoundationalSurfaceAvailabilityDecision::unavailable(
-            surface,
-            FoundationalSurfaceAbsenceCause::DeniedByBudget,
-        );
-    }
-
-    let materialized = profile.materialized();
-    match surface {
-        FoundationalDescriptiveSurface::History => history_decision(materialized, surface),
-        FoundationalDescriptiveSurface::Replay => replay_decision(materialized, surface),
-        FoundationalDescriptiveSurface::Lineage => lineage_decision(materialized, surface),
-        FoundationalDescriptiveSurface::Provenance => {
-            provenance_decision(materialized, target_kind, surface)
-        }
-        FoundationalDescriptiveSurface::ForensicDiagnostics => {
-            forensic_decision(materialized, target_kind, surface)
-        }
-    }
-}
-
-fn history_decision(
-    materialized: &crate::profiles::FoundationalProfileSet,
-    surface: FoundationalDescriptiveSurface,
-) -> FoundationalSurfaceAvailabilityDecision {
-    if materialized.diagnostic_richness() == DiagnosticRichnessProfile::OperationalMinimal {
-        FoundationalSurfaceAvailabilityDecision::unavailable(
-            surface,
-            FoundationalSurfaceAbsenceCause::OmittedByActiveRichness,
-        )
-    } else if materialized.retention_delivery() == RetentionDeliveryProfile::Ephemeral {
-        FoundationalSurfaceAvailabilityDecision::unavailable(
-            surface,
-            FoundationalSurfaceAbsenceCause::NotRetained,
-        )
-    } else {
-        FoundationalSurfaceAvailabilityDecision::available(surface)
-    }
-}
-
-fn replay_decision(
-    materialized: &crate::profiles::FoundationalProfileSet,
-    surface: FoundationalDescriptiveSurface,
-) -> FoundationalSurfaceAvailabilityDecision {
-    if materialized.diagnostic_richness() == DiagnosticRichnessProfile::OperationalMinimal {
-        FoundationalSurfaceAvailabilityDecision::unavailable(
-            surface,
-            FoundationalSurfaceAbsenceCause::OmittedByActiveRichness,
-        )
-    } else if materialized.retention_delivery() == RetentionDeliveryProfile::Ephemeral {
-        FoundationalSurfaceAvailabilityDecision::unavailable(
-            surface,
-            FoundationalSurfaceAbsenceCause::NotRetained,
-        )
-    } else if materialized.retention_delivery() == RetentionDeliveryProfile::Retained
-        || materialized.compatibility_posture() == CompatibilityPostureProfile::NativeOnly
-    {
-        FoundationalSurfaceAvailabilityDecision::unavailable(
-            surface,
-            FoundationalSurfaceAbsenceCause::NotReconstructable,
-        )
-    } else {
-        FoundationalSurfaceAvailabilityDecision::available(surface)
-    }
-}
-
-fn lineage_decision(
-    materialized: &crate::profiles::FoundationalProfileSet,
-    surface: FoundationalDescriptiveSurface,
-) -> FoundationalSurfaceAvailabilityDecision {
-    if materialized.diagnostic_richness() == DiagnosticRichnessProfile::OperationalMinimal {
-        FoundationalSurfaceAvailabilityDecision::unavailable(
-            surface,
-            FoundationalSurfaceAbsenceCause::OmittedByActiveRichness,
-        )
-    } else if materialized.retention_delivery() == RetentionDeliveryProfile::Ephemeral {
-        FoundationalSurfaceAvailabilityDecision::unavailable(
-            surface,
-            FoundationalSurfaceAbsenceCause::NotRetained,
-        )
-    } else {
-        FoundationalSurfaceAvailabilityDecision::available(surface)
-    }
-}
-
-fn provenance_decision(
-    materialized: &crate::profiles::FoundationalProfileSet,
-    target_kind: FoundationalProfileAttachmentTargetKind,
-    surface: FoundationalDescriptiveSurface,
-) -> FoundationalSurfaceAvailabilityDecision {
-    if target_kind == FoundationalProfileAttachmentTargetKind::SupportArtifact
-        && materialized.support_posture() != SupportPostureProfile::CertificationReady
-    {
-        FoundationalSurfaceAvailabilityDecision::unavailable(
-            surface,
-            FoundationalSurfaceAbsenceCause::DeferredBySupportPosture,
-        )
-    } else if target_kind != FoundationalProfileAttachmentTargetKind::ProofBearingArtifact
-        && materialized.retention_delivery() == RetentionDeliveryProfile::Ephemeral
-    {
-        FoundationalSurfaceAvailabilityDecision::unavailable(
-            surface,
-            FoundationalSurfaceAbsenceCause::NotRetained,
-        )
-    } else {
-        FoundationalSurfaceAvailabilityDecision::available(surface)
-    }
-}
-
-fn forensic_decision(
-    materialized: &crate::profiles::FoundationalProfileSet,
-    target_kind: FoundationalProfileAttachmentTargetKind,
-    surface: FoundationalDescriptiveSurface,
-) -> FoundationalSurfaceAvailabilityDecision {
-    if materialized.diagnostic_richness() != DiagnosticRichnessProfile::Forensic {
-        FoundationalSurfaceAvailabilityDecision::unavailable(
-            surface,
-            FoundationalSurfaceAbsenceCause::OmittedByActiveRichness,
-        )
-    } else if target_kind == FoundationalProfileAttachmentTargetKind::SupportArtifact
-        && materialized.certification_posture()
-            != crate::profiles::CertificationPostureProfile::ProductionCertified
-    {
-        FoundationalSurfaceAvailabilityDecision::unavailable(
-            surface,
-            FoundationalSurfaceAbsenceCause::UncertifiedForRequestedPosture,
-        )
-    } else {
-        FoundationalSurfaceAvailabilityDecision::available(surface)
-    }
 }

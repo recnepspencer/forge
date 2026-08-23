@@ -42,7 +42,7 @@ impl WorthUiCollectionTextNativeRequest {
             .iter()
             .map(|field| {
                 builder
-                    .select_display_native_field_name(field.declared_name())
+                    .select_display_native_field_name(field.native_key())
                     .map_err(WorthUiCollectionTextNativeRequestDenial::ProjectionRequest)
             })
             .collect::<Result<Vec<_>, _>>()?;

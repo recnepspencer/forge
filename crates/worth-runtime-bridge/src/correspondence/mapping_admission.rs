@@ -47,7 +47,7 @@ pub(super) fn admit_mapping(
         return Err(BridgeCorrespondenceDenialKind::MappingSemanticMismatch);
     }
     use crate::mapping::BridgeMappingWideningClass as Class;
-    let widening_class = widening_class_for(scope, dependency);
+    let widening_class = widening_class_for(scope);
     let admitted = match (mapping.widening_policy(), widening_class) {
         (SliceWideningPolicy::Disallow, None) => return Ok(BridgeCorrespondencePrecision::Exact),
         (SliceWideningPolicy::RegisteredEntityCoarseWidening, Some(Class::Entity))
@@ -64,19 +64,78 @@ pub(super) fn admit_mapping(
         .ok_or(BridgeCorrespondenceDenialKind::MappingSemanticMismatch)
 }
 
+pub(crate) fn unique_mapping_id_for_dependency(
+    runtime: &RuntimeBridge,
+    dependency: &BridgeSemanticDependencyCandidate,
+) -> Result<crate::mapping::BridgeAspectRegistrationId, BridgeCorrespondenceDenialKind> {
+    let source_record_identity = dependency
+        .source_record_identity
+        .map(|identity| identity.bridge_entity_identity());
+    let targets = target_selectors_for_dependency(dependency);
+    let candidates = runtime.aspect_registry.semantic_candidates(
+        source_record_identity.as_deref(),
+        dependency.contract.key(),
+        &targets,
+    );
+    let mut matches = candidates
+        .into_iter()
+        .filter(|mapping| admit_mapping(mapping, dependency).is_ok());
+    let first = matches
+        .next()
+        .ok_or(BridgeCorrespondenceDenialKind::MissingMapping)?;
+    if matches.next().is_some() {
+        return Err(BridgeCorrespondenceDenialKind::AmbiguousMapping);
+    }
+    Ok(first.registration_id().clone())
+}
+
+fn target_selectors_for_dependency(
+    dependency: &BridgeSemanticDependencyCandidate,
+) -> Vec<TruthPatchTargetSelector> {
+    use worth_foundational::facade::AspectBinding;
+    match &dependency.binding {
+        AspectBinding::EntityField { field } | AspectBinding::RelationField { field }
+            if dependency.projection_mask.is_whole_aspect()
+                && matches!(
+                    dependency.contract.shape(),
+                    worth_foundational::facade::AspectShape::Scalar(_)
+                ) =>
+        {
+            vec![TruthPatchTargetSelector::entity_field(field.clone())]
+        }
+        AspectBinding::EntityField { .. } | AspectBinding::RelationField { .. }
+            if dependency.projection_mask.is_whole_aspect() =>
+        {
+            vec![TruthPatchTargetSelector::AuthoritativeAspect]
+        }
+        AspectBinding::EntityField { .. } | AspectBinding::RelationField { .. } => dependency
+            .projection_mask
+            .paths()
+            .iter()
+            .cloned()
+            .map(TruthPatchTargetSelector::EntityField)
+            .collect(),
+        AspectBinding::RelationSourceEndpoint | AspectBinding::RelationTargetEndpoint => {
+            vec![TruthPatchTargetSelector::EntityRelationEndpoint]
+        }
+        AspectBinding::StructuralRegion => vec![TruthPatchTargetSelector::EntityRegion],
+        AspectBinding::StructuralPartition => vec![TruthPatchTargetSelector::EntityPartition],
+        AspectBinding::StructuralFacet => vec![TruthPatchTargetSelector::EntityFacet],
+        AspectBinding::LifecycleTransition => vec![TruthPatchTargetSelector::LifecycleTransition],
+        _ => Vec::new(),
+    }
+}
+
 fn widening_class_for(
     scope: &crate::mapping::TruthPatchScope,
-    dependency: &BridgeSemanticDependencyCandidate,
 ) -> Option<crate::mapping::BridgeMappingWideningClass> {
     use crate::mapping::BridgeMappingWideningClass as Class;
 
-    // An entity wildcard broadens only a record-scoped dependency. Partition-
-    // and graph-scoped truth has no entity identity to discard.
-    let entity = matches!(scope.entity_selector(), MappingSelector::Any)
-        && matches!(
-            dependency.locality,
-            super::BridgeSemanticLocality::SourceRecord
-        );
+    // Correspondence mappings select an installed schema field family; they
+    // do not grant invalidation locality. The separately admitted semantic
+    // dependency owns record/partition/whole-graph narrowing and is checked
+    // again against each delivered change before Signal execution.
+    let entity = false;
     let aspect = matches!(scope.aspect_selector(), AspectKeySelector::Any);
     let surface = matches!(scope.target_selector(), TruthPatchTargetSelector::Any);
     match (entity, aspect, surface) {
@@ -101,7 +160,8 @@ fn target_matches(
             dependency.projection_mask.is_whole_aspect()
         }
         TruthPatchTargetSelector::EntityField(path) => {
-            dependency.projection_mask.paths() == std::slice::from_ref(path)
+            (dependency.projection_mask.paths() == std::slice::from_ref(path)
+                || scalar_field_binding_matches(path, dependency))
                 && matches!(
                     dependency.binding,
                     AspectBinding::EntityField { .. } | AspectBinding::RelationField { .. }
@@ -126,17 +186,41 @@ fn target_matches(
     }
 }
 
+fn scalar_field_binding_matches(
+    path: &worth_foundational::facade::CanonicalFieldPath,
+    dependency: &BridgeSemanticDependencyCandidate,
+) -> bool {
+    dependency.projection_mask.is_whole_aspect()
+        && matches!(
+            dependency.contract.shape(),
+            worth_foundational::facade::AspectShape::Scalar(_)
+        )
+        && matches!(
+            &dependency.binding,
+            AspectBinding::EntityField { field } | AspectBinding::RelationField { field }
+                if path.fields() == std::slice::from_ref(field)
+        )
+}
+
 fn dependency_surface(
     dependency: &BridgeSemanticDependencyCandidate,
 ) -> Option<TruthDeltaSurfaceKind> {
     match dependency.binding {
-        AspectBinding::EntityField { .. } | AspectBinding::RelationField { .. } => {
-            Some(if dependency.projection_mask.is_whole_aspect() {
+        AspectBinding::EntityField { .. } | AspectBinding::RelationField { .. } => Some(
+            if dependency.projection_mask.is_whole_aspect()
+                && (!matches!(
+                    dependency.contract.shape(),
+                    worth_foundational::facade::AspectShape::Scalar(_)
+                ) || !matches!(
+                    dependency.locality,
+                    super::BridgeSemanticLocality::ManagedSourceRecord
+                ))
+            {
                 TruthDeltaSurfaceKind::AuthoritativeAspect
             } else {
                 TruthDeltaSurfaceKind::EntityField
-            })
-        }
+            },
+        ),
         AspectBinding::RelationSourceEndpoint | AspectBinding::RelationTargetEndpoint => {
             Some(TruthDeltaSurfaceKind::EntityRelationEndpoint)
         }

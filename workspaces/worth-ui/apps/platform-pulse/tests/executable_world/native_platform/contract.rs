@@ -2,6 +2,8 @@ use std::fmt;
 use std::time::Instant;
 
 #[cfg(target_os = "windows")]
+use super::windows::WindowsInputEnvironmentDenial;
+#[cfg(target_os = "windows")]
 use crate::external_observation::{
     NativeClientPixelCapture, NativeClientPixelPoint, NativeInputDeliveryObservation,
     NativeInputProbeKind, NormalNativeCloseRequestObservation,
@@ -18,8 +20,10 @@ pub(crate) enum NativePlatformPosture {
 #[derive(Debug)]
 pub(crate) enum NativePlatformFailure {
     DpiAwareness(String),
+    EnvironmentQualification(String),
     WindowEnumeration(String),
     WindowLookupDeadline,
+    ExternalObservationDeadline,
     AmbiguousProcessWindows(usize),
     ClientCapture(String),
     ClientExposure(String),
@@ -35,6 +39,8 @@ pub(crate) enum NativePlatformFailure {
         client: crate::external_observation::NativeClientAreaBounds,
     },
     NormalClose(String),
+    #[cfg(target_os = "windows")]
+    InputEnvironment(WindowsInputEnvironmentDenial),
     InputDelivery(String),
     ProcessWindowResidue(usize),
 }
@@ -45,11 +51,17 @@ impl fmt::Display for NativePlatformFailure {
             Self::DpiAwareness(error) => {
                 write!(formatter, "establish process DPI awareness: {error}")
             }
+            Self::EnvironmentQualification(error) => {
+                write!(formatter, "qualify native environment: {error}")
+            }
             Self::WindowEnumeration(error) => {
                 write!(formatter, "enumerate process windows: {error}")
             }
             Self::WindowLookupDeadline => {
                 formatter.write_str("process-bound native window lookup deadline elapsed")
+            }
+            Self::ExternalObservationDeadline => {
+                formatter.write_str("owner-issued external observation readiness deadline elapsed")
             }
             Self::AmbiguousProcessWindows(count) => {
                 write!(formatter, "found {count} visible process windows")
@@ -85,6 +97,10 @@ impl fmt::Display for NativePlatformFailure {
             Self::NormalClose(error) => {
                 write!(formatter, "request normal native-window close: {error}")
             }
+            #[cfg(target_os = "windows")]
+            Self::InputEnvironment(denial) => {
+                write!(formatter, "native input environment denied: {denial}")
+            }
             Self::InputDelivery(error) => write!(formatter, "deliver native input: {error}"),
             Self::ProcessWindowResidue(count) => {
                 write!(formatter, "{count} process window(s) remained after exit")
@@ -108,6 +124,12 @@ pub(crate) trait NativePlatformContract: sealed::Sealed {
         bound: &Self::BoundClientArea,
     ) -> Result<ProcessBoundNativeClientAreaObservation, NativePlatformFailure>;
 
+    fn await_external_observation_ready(
+        &self,
+        bound: &Self::BoundClientArea,
+        deadline: Instant,
+    ) -> Result<ProcessBoundNativeClientAreaObservation, NativePlatformFailure>;
+
     fn capture_client_area(
         &self,
         bound: &Self::BoundClientArea,
@@ -124,6 +146,8 @@ pub(crate) trait NativePlatformContract: sealed::Sealed {
         bound: &Self::BoundClientArea,
         point: NativeClientPixelPoint,
     ) -> Result<NativeInputDeliveryObservation, NativePlatformFailure>;
+
+    fn move_cursor(&self, screen_point: (i32, i32)) -> Result<(), NativePlatformFailure>;
 
     fn request_normal_close(
         &self,

@@ -8,8 +8,11 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+
+from worth_ui_compile_contract_evidence import compile_source_snapshot, result_artifact
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -55,6 +58,7 @@ def fixture_targets() -> dict[Path, str]:
         "metadata",
         "--manifest-path",
         str(FIXTURE),
+        "--locked",
         "--no-deps",
         "--format-version",
         "1",
@@ -98,6 +102,7 @@ def cargo_check(cases: list[Case]) -> tuple[int, dict[str, list[dict[str, object
     command = [
         "cargo",
         "check",
+        "--locked",
         "--keep-going",
         "--manifest-path",
         str(FIXTURE),
@@ -270,12 +275,56 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="replace executed compile-fail snapshots with current canonical diagnostics",
     )
+    parser.add_argument(
+        "--artifact",
+        help="retain a machine-readable successful two-session result",
+    )
     return parser.parse_args()
+
+
+def governed_snapshot_changed(
+    before: dict[str, object], after: dict[str, object]
+) -> bool:
+    return before != after
+
+
+def write_artifact(identity: str, payload: dict[str, object]) -> None:
+    destination = (ROOT / identity).resolve()
+    destination.relative_to(ROOT)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary = tempfile.mkstemp(
+        prefix=f".{destination.name}.", dir=destination.parent
+    )
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as output:
+            json.dump(payload, output, indent=2)
+            output.write("\n")
+        os.replace(temporary, destination)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def publish_artifact_if_unchanged(
+    identity: str | None,
+    payload: dict[str, object] | None,
+    before: dict[str, object],
+    after: dict[str, object],
+) -> bool:
+    if governed_snapshot_changed(before, after):
+        return False
+    if identity and payload is not None:
+        write_artifact(identity, payload)
+    return True
 
 
 def main() -> int:
     arguments = parse_args()
+    if arguments.bless and arguments.artifact:
+        print("--bless cannot publish a result artifact", file=sys.stderr)
+        return 2
     cases = load_cases()
+    source_snapshot = compile_source_snapshot(cases, arguments.bless)
     failing = [case for case in cases if case.kind == "fail"]
     passing = [case for case in cases if case.kind == "pass"]
     fail_status, fail_diagnostics = cargo_check(failing)
@@ -297,6 +346,15 @@ def main() -> int:
                     )
     if failures:
         print("\n\n".join(failures), file=sys.stderr)
+        return 1
+    payload = result_artifact(cases, source_snapshot) if arguments.artifact else None
+    if not publish_artifact_if_unchanged(
+        arguments.artifact,
+        payload,
+        source_snapshot,
+        compile_source_snapshot(cases, arguments.bless),
+    ):
+        print("compile-contract governed sources changed during execution", file=sys.stderr)
         return 1
     print(
         f"Worth UI compile contracts passed: {len(failing)} fail targets, "

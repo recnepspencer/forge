@@ -3,10 +3,8 @@ use worth_ui::facade::measurement_exchange::{
     UiMeasurementRequestFamily, UiMeasurementRequestIdentity, UiViewportExtentObservation,
     UiViewportExtentRequest, WorthUiMeasurementHostAdapter,
 };
-use worth_ui_runtime::facade::host::{
-    UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder, WorthUiHostCapability,
-    WorthUiOperationalHostAdapter,
-};
+use worth_ui_host_headless::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder};
+use worth_ui_runtime::facade::host::{WorthUiHostCapability, WorthUiOperationalHostAdapter};
 
 #[test]
 fn default_recorder_remains_measurement_free() {

@@ -13,4 +13,8 @@ impl PendingCauseSetId {
         index: None,
         generation: 0,
     };
+
+    pub(crate) const fn generation(self) -> u32 {
+        self.generation
+    }
 }

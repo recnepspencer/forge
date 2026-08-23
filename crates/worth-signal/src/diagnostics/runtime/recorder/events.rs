@@ -9,6 +9,11 @@ pub(crate) fn record_transaction_semantic_event(
     execution_record_id: Option<u64>,
     semantic_segment_id: Option<u64>,
 ) {
+    if !graph.captures_observation_surface(
+        crate::logic::transaction::SignalObservationSurface::ReplayDetail,
+    ) {
+        return;
+    }
     let cursor = graph.diagnostics_state_mut().allocate_replay_cursor();
     let branch_id = graph.observe().current_branch().id;
     graph
@@ -35,6 +40,11 @@ pub(crate) fn record_snapshot_event(
     snapshot_id: Option<SignalSnapshotId>,
     detail: impl Into<String>,
 ) {
+    if !graph.captures_observation_surface(
+        crate::logic::transaction::SignalObservationSurface::ReplayDetail,
+    ) {
+        return;
+    }
     let cursor = graph.diagnostics_state_mut().allocate_replay_cursor();
     let branch_id = graph.observe().current_branch().id;
     graph

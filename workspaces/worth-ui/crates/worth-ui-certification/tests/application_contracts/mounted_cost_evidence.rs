@@ -42,13 +42,10 @@ fn one_instance_delta_names_its_order_batch_without_rescanning_semantic_truth() 
     let comparison_cost = comparison.cost_report();
     assert_eq!(
         comparison_cost.work_class(),
-        UiMountWorkClass::ComparisonRequired
+        UiMountWorkClass::UnchangedReuse
     );
     assert_eq!(comparison_cost.changed_mounted_instances(), 0);
-    assert!(
-        comparison_cost.named().considered() >= INITIAL_INSTANCES as u64,
-        "absence of an exact reuse witness must expose comparison work"
-    );
+    assert_eq!(comparison_cost.named().considered(), 0);
     drop(comparison);
 
     session.mount_instance(node, surface).unwrap();

@@ -3,10 +3,16 @@ use serde::{Deserialize, Serialize};
 use crate::data::resource::{ResourceBoundaryPerformanceEnvelope, ResourceDensityStrategy};
 
 mod execution;
+mod invalidation_performed;
 mod transaction;
+
+pub use super::telemetry_mutation::RuntimeTelemetryMutation;
 
 pub use execution::{
     EvaluationTelemetry, ExecutionTelemetry, InvalidationTelemetry, PlannerTelemetry,
+};
+pub use invalidation_performed::{
+    InvalidationPerformedCounter, SignalInvalidationRealizedCounters,
 };
 pub use transaction::TransactionTelemetry;
 

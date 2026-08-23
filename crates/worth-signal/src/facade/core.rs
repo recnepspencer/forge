@@ -1,11 +1,13 @@
 mod invalidation;
 
 pub use crate::data::aspect::{
-    apply_installed_aspect_changes, Aspect, AspectMask, AspectVersion,
+    apply_installed_scoped_changes, Aspect, AspectMask, AspectVersion,
     InstalledSignalAspectCapability, InstalledSignalAspectLoweringAuthority,
     InstalledSignalAspectSetCapability, InstalledSignalGraphCapability,
-    InstalledSignalNodeCapability, SignalAspectCapabilityDenial, SignalAspectLoweringOwner,
-    SignalAspectLoweringOwnershipDenial, MAX_ASPECTS,
+    InstalledSignalNodeCapability, InstalledSignalScopedChange, InstalledSignalScopedChangeSet,
+    InstalledSignalScopedChangeView, SignalAspectCapabilityDenial, SignalAspectLoweringOwner,
+    SignalAspectLoweringOwnershipDenial, SignalInstalledScopedChangeDenial,
+    SignalInstalledScopedChangeOutcome, MAX_ASPECTS,
 };
 pub use crate::data::async_node::{
     async_node_compile_time_boundary_proof, async_node_milestone_d_certification_run,
@@ -76,7 +78,7 @@ pub use crate::data::conditional_execution::{
 pub use crate::data::core_profile::CORE_STORAGE_PROFILE_ID;
 pub use crate::data::dependency::DependencyEdge;
 pub use crate::data::error::SignalError;
-pub use crate::data::graph::{NodeBuilder, SignalGraph};
+pub use crate::data::graph::{NodeBuilder, SignalGraph, SignalGraphLifecycleProbe};
 pub use crate::data::handle::NodeId;
 pub use crate::data::host_computed::{
     AdmittedHostComputedReadSet, CommittedHostComputedArtifact, DeniedHostComputedEvaluation,

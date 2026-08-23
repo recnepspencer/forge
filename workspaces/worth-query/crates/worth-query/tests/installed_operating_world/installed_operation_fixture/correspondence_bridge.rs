@@ -126,13 +126,17 @@ pub(crate) fn correspondence_bridge(
                 role.clone(),
             )
         }
-        BridgeSemanticLocality::SourceRecord | BridgeSemanticLocality::WholeLogicalGraph => {
+        BridgeSemanticLocality::SourceRecord
+        | BridgeSemanticLocality::ManagedSourceRecord
+        | BridgeSemanticLocality::WholeLogicalGraph => {
             RuntimeBridgeRelationalSource::for_graph_role(Arc::new(relational), "model")
         }
     }
     .expect("model is a valid graph role");
     let locality = match dependency.locality() {
-        BridgeSemanticLocality::SourceRecord => FixtureLocality::Record,
+        BridgeSemanticLocality::SourceRecord | BridgeSemanticLocality::ManagedSourceRecord => {
+            FixtureLocality::Record
+        }
         BridgeSemanticLocality::SourcePartition(_) => FixtureLocality::Partition,
         BridgeSemanticLocality::WholeLogicalGraph => FixtureLocality::Graph,
     };
@@ -220,10 +224,17 @@ fn build_bridge(
     } else {
         TruthDeltaSurfaceKind::EntityField
     };
+    let entity_selector = match locality {
+        FixtureLocality::Record => MappingSelector::exact(
+            worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts::entity(0, 0, 1)
+                .terminal_projection_for_reporting(),
+        ),
+        FixtureLocality::Partition | FixtureLocality::Graph => MappingSelector::any(),
+    };
     let mapping = BridgeMappingRegistration::new(
         BridgeMappingId::from_stable_name("conditional-identity"),
         TruthPatchScope::new(
-            MappingSelector::any(),
+            entity_selector,
             AspectKeySelector::exact(contract.key().clone()),
             target,
         ),
@@ -237,8 +248,8 @@ fn build_bridge(
             SliceWideningPolicy::RegisteredPartitionWidening,
         ),
         FixtureLocality::Record => (
-            SubscriptionSliceKind::RegisteredCoarseWidening,
-            SliceWideningPolicy::RegisteredEntityCoarseWidening,
+            SubscriptionSliceKind::SignalField,
+            SliceWideningPolicy::Disallow,
         ),
         FixtureLocality::Graph => (
             SubscriptionSliceKind::SignalField,

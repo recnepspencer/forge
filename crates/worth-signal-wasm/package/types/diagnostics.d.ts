@@ -17,6 +17,8 @@ export type SnapshotRestoreLineageMode = "CompactGlobal" | "PerNode";
 export type FrontierTracingPolicy = "SummaryOnly" | "RetainWaveRecords" | "FullForensic";
 export type FrontierPropagationPolicy = "CanonicalFrontier";
 export type FrontierCyclePolicy = "ReachableCycleCheck";
+export type ExecutionObjectiveProfile = "LatencyBounded" | "Balanced" | "Throughput";
+export type ObservationActivationProfile = "OnDemand" | "Continuous";
 export type HostCapabilityCompatibility =
   | "LiveOnly"
   | "Reattachable"
@@ -57,14 +59,16 @@ export interface ReconstructionBudgetSummary {
 }
 
 export interface ParallelAdmissionPolicySummary {
-  operational_min_parallel_tasks: number;
-  development_min_parallel_tasks: number;
-  forensic_min_parallel_tasks: number;
+  throughput_min_parallel_tasks: number;
+  balanced_min_parallel_tasks: number;
+  latency_bounded_min_parallel_tasks: number;
   full_parallel_min_tasks: number;
 }
 
 export interface SignalRuntimePolicySummary {
   tier: DiagnosticsTier;
+  execution_objective: ExecutionObjectiveProfile;
+  observation_activation: ObservationActivationProfile;
   retention_budget: RetentionBudgetSummary;
   reconstruction_budget: ReconstructionBudgetSummary;
   snapshot_restore_lineage_mode: SnapshotRestoreLineageMode;
@@ -1064,12 +1068,17 @@ export interface FrontierWaveSummary {
   entries: ReadonlyArray<FrontierWaveEntrySummary>;
 }
 
-export interface FrontierExecutionSummary {
+export interface InvalidationPlanningEstimate {
   seed_count: number;
-  direct_waves: ReadonlyArray<FrontierWaveSummary>;
-  transitive_waves: ReadonlyArray<FrontierWaveSummary>;
-  touched_scope_summary: TouchedScopeSummary;
-  counters: FrontierExecutionCounters;
+  group_count: number;
+  direct_wave_count: number;
+  transitive_wave_count: number;
+  direct_dirty_count: number;
+  maybe_stale_count: number;
+  partition_scoped_checks: number;
+  partition_match_count: number;
+  detail_match_count: number;
+  cycle_check_candidate_count: number;
 }
 
 export interface InvalidationTraceRecord {

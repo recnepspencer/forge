@@ -8,7 +8,7 @@ use worth_ui_dsl::{
     WorthUiIntentInteractionFamily, WorthUiIntentInteractionRoute,
     WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
 };
-use worth_ui_runtime::facade::host::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder};
+use worth_ui_host_headless::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder};
 use worth_ui_runtime::facade::measurement_exchange::UiViewportExtentObservation;
 
 use super::facts::OperabilityFacts;

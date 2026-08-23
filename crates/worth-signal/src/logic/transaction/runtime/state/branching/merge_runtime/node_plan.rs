@@ -159,7 +159,9 @@ where
                     .family(),
                 BranchMergeRequestScopeFamily::FullBranch
             ) {
-                runtime.telemetry.transaction.scoped_merge_denial_count += 1;
+                runtime.with_telemetry(|telemetry| {
+                    telemetry.transaction.scoped_merge_denial_count += 1
+                });
                 return Err(scoped_admission_outcome_to_signal_error(
                     deny_selected_node_non_adoptable(input.lowered_request, *source_node),
                 ));
@@ -227,7 +229,7 @@ where
             .family(),
         BranchMergeRequestScopeFamily::FullBranch
     ) {
-        runtime.telemetry.transaction.scoped_merge_denial_count += 1;
+        runtime.with_telemetry(|telemetry| telemetry.transaction.scoped_merge_denial_count += 1);
         return scoped_admission_outcome_to_signal_error(
             deny_selected_target_rejected_by_declaration(lowered_request, source_node),
         );

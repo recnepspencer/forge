@@ -1,0 +1,106 @@
+use worth_query_installation::facade::{
+    ApplicationFieldUnit, ApplicationSchema, OperationReads, OperationWrites,
+    TypedApplicationReadableValue, WorthQueryTemporalIntentCandidate,
+    WorthQueryTemporalIntentRevisionValue, WritableCapability, WritePosture,
+};
+
+use super::{
+    admitted_projection::WorthQueryAdmittedTemporalProjection, isolate_invoker,
+    temporal_idempotency::WorthQueryPreparedTemporalIdempotency, WorthQueryTemporalReentryOutcome,
+};
+use crate::domain_computation::primary_graph::conditional_operation::operation_invocation::{
+    WorthQueryCurrentTemporalIntent, WorthQueryTemporalOperationExecution,
+    WorthQueryTemporalOperationInvoker,
+};
+use crate::domain_computation::primary_graph::{
+    WorthQueryApplicationCommitOutcome, WorthQueryPrimaryGraphApplicationRuntime,
+};
+
+#[rustfmt::skip]
+impl<Schema, Operation, Input, Scope, Invoker, IntentEntity, IdentityAspect, IdentityField, IdentityValue, IdentityWrite, IdentityUnit, RevisionAspect, RevisionField, RevisionValue, RevisionWrite, RevisionEquality, RevisionUnit, LifecycleAspect, LifecycleField, LifecycleValue, LifecycleWrite, LifecycleEquality, LifecycleUnit, Authorization>
+    WorthQueryTemporalOperationExecution<Schema, Operation, Input, Scope, Invoker, IntentEntity, IdentityAspect, IdentityField, IdentityValue, IdentityWrite, IdentityUnit, RevisionAspect, RevisionField, RevisionValue, RevisionWrite, RevisionEquality, RevisionUnit, LifecycleAspect, LifecycleField, LifecycleValue, LifecycleWrite, LifecycleEquality, LifecycleUnit, Authorization>
+where
+    Schema: ApplicationSchema,
+    Input: Clone + Send + Sync + 'static,
+    Invoker: WorthQueryTemporalOperationInvoker<Schema, Operation, Input, Scope>,
+    IdentityValue: TypedApplicationReadableValue,
+    IdentityWrite: WritePosture,
+    IdentityUnit: ApplicationFieldUnit,
+    RevisionField: OperationWrites<Operation>,
+    RevisionValue: WorthQueryTemporalIntentRevisionValue,
+    RevisionWrite: WritableCapability,
+    RevisionUnit: ApplicationFieldUnit,
+    LifecycleField: OperationWrites<Operation>,
+    LifecycleValue: worth_query_installation::facade::TypedApplicationValue,
+    LifecycleWrite: WritableCapability,
+    LifecycleUnit: ApplicationFieldUnit,
+{
+    pub(super) fn commit_projected_temporal_effect<Clock>(
+        &self,
+        runtime: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
+        candidate: &WorthQueryTemporalIntentCandidate<Clock, Input>,
+        current: WorthQueryCurrentTemporalIntent<Schema, IntentEntity, IdentityValue, RevisionValue>,
+        projected: WorthQueryAdmittedTemporalProjection<Schema, Operation, Input, Scope, Invoker::Projection>,
+        idempotency: &WorthQueryPreparedTemporalIdempotency,
+    ) -> Result<WorthQueryTemporalReentryOutcome, String>
+    where
+        RevisionField: OperationReads<Operation>,
+        RevisionValue: TypedApplicationReadableValue + Clone,
+        LifecycleField: OperationReads<Operation>,
+        LifecycleValue: TypedApplicationReadableValue + Clone,
+    {
+        let reads = runtime
+            .begin_projected_application_read_attempt(projected.admission, projected.projection)
+            .map_err(|denial| denial.to_string())?;
+        let mut effects = reads
+            .complete_projected_dependencies()
+            .map_err(|denial| denial.to_string())?
+            .begin_effect_program();
+        isolate_invoker(|| {
+            self.invoker
+                .apply(candidate.input().clone(), projected.host_projection, &mut effects)
+        })
+        .map_err(|detail| format!("temporal operation invocation failed: {detail}"))?
+        .map_err(|failure| format!("{:?}: {}", failure.kind(), failure.detail()))?;
+        let target = effects
+            .existing_entity(&current.entity)
+            .map_err(|denial| denial.to_string())?;
+        let next_revision = candidate
+            .revision()
+            .checked_add(1)
+            .and_then(RevisionValue::from_revision)
+            .ok_or_else(|| "temporal intent revision cannot advance".to_string())?;
+        effects
+            .write_field(&target, self.revision_field, next_revision)
+            .map_err(|denial| denial.to_string())?;
+        effects
+            .write_field(
+                &target,
+                self.lifecycle_field,
+                self.completed_lifecycle.clone(),
+            )
+            .map_err(|denial| denial.to_string())?;
+        let program = effects.finish().map_err(|denial| denial.to_string())?;
+        Ok(classify_commit(
+            runtime.compare_and_commit_application(program, idempotency.binding()),
+        ))
+    }
+}
+
+fn classify_commit(
+    outcome: WorthQueryApplicationCommitOutcome,
+) -> WorthQueryTemporalReentryOutcome {
+    match outcome {
+        WorthQueryApplicationCommitOutcome::Committed(_) => {
+            WorthQueryTemporalReentryOutcome::Committed
+        }
+        WorthQueryApplicationCommitOutcome::AlreadyCommitted(_) => {
+            WorthQueryTemporalReentryOutcome::AlreadyCommitted
+        }
+        WorthQueryApplicationCommitOutcome::PartialEffect(evidence)
+        | WorthQueryApplicationCommitOutcome::Indeterminate(evidence) => {
+            WorthQueryTemporalReentryOutcome::Indeterminate(evidence.detail().to_string())
+        }
+        other => WorthQueryTemporalReentryOutcome::RetryableFailure(format!("{other:?}")),
+    }
+}

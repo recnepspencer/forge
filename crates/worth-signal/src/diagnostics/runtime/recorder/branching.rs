@@ -15,6 +15,11 @@ pub(crate) fn record_branch_fork_lineage(
     created_branch_display_name: impl Into<String>,
     parent_branch_display_name: impl Into<String>,
 ) {
+    if !graph.captures_observation_surface(
+        crate::logic::transaction::SignalObservationSurface::DescriptiveLineage,
+    ) {
+        return;
+    }
     let sequence = graph.diagnostics_state_mut().allocate_lineage_sequence();
     let emitted_on_branch_id = graph.observe().current_branch().id;
     graph
@@ -36,6 +41,11 @@ pub(crate) fn record_branch_switch_lineage(
     from_branch_display_name: impl Into<String>,
     to_branch_display_name: impl Into<String>,
 ) {
+    if !graph.captures_observation_surface(
+        crate::logic::transaction::SignalObservationSurface::DescriptiveLineage,
+    ) {
+        return;
+    }
     let sequence = graph.diagnostics_state_mut().allocate_lineage_sequence();
     let emitted_on_branch_id = graph.observe().current_branch().id;
     graph
@@ -56,6 +66,15 @@ pub(crate) fn record_branch_merge_summary(
     source_branch_display_name: impl Into<String> + Clone,
     target_branch_display_name: impl Into<String> + Clone,
 ) {
+    let captures_lineage = graph.captures_observation_surface(
+        crate::logic::transaction::SignalObservationSurface::DescriptiveLineage,
+    );
+    let captures_replay = graph.captures_observation_surface(
+        crate::logic::transaction::SignalObservationSurface::ReplayDetail,
+    );
+    if !captures_lineage && !captures_replay {
+        return;
+    }
     let source_branch_display_name = source_branch_display_name.into();
     let target_branch_display_name = target_branch_display_name.into();
     let resolved_requirements = summary
@@ -78,17 +97,21 @@ pub(crate) fn record_branch_merge_summary(
         summary.reconciliation_policy,
         resolved_requirements
     );
-    let cursor = graph.diagnostics_state_mut().allocate_replay_cursor();
     let branch_id = graph.observe().current_branch().id;
-    record_branch_merge_replay_event(graph, summary, detail, cursor, branch_id);
+    if captures_replay {
+        let cursor = graph.diagnostics_state_mut().allocate_replay_cursor();
+        record_branch_merge_replay_event(graph, summary, detail, cursor, branch_id);
+    }
 
-    record_branch_merge_lineage(
-        graph,
-        summary,
-        branch_id,
-        source_branch_display_name,
-        target_branch_display_name,
-    );
+    if captures_lineage {
+        record_branch_merge_lineage(
+            graph,
+            summary,
+            branch_id,
+            source_branch_display_name,
+            target_branch_display_name,
+        );
+    }
 }
 
 fn record_branch_merge_replay_event(
@@ -128,6 +151,11 @@ fn record_branch_merge_lineage(
     source_branch_display_name: String,
     target_branch_display_name: String,
 ) {
+    if !graph.captures_observation_surface(
+        crate::logic::transaction::SignalObservationSurface::DescriptiveLineage,
+    ) {
+        return;
+    }
     let sequence = graph.diagnostics_state_mut().allocate_lineage_sequence();
     record_branch_merge_lineage_record(
         graph,
@@ -205,25 +233,35 @@ pub(crate) fn record_branch_merge_failure(
     source_branch: Option<crate::state::SignalBranchHandle>,
     target_branch: Option<crate::state::SignalBranchHandle>,
 ) {
-    let detail = branch_merge_failure_detail(error, source_branch.as_ref(), target_branch.as_ref());
-
-    DiagnosticsRecorder::new(graph).record_failure(ExecutionFailureContext::new(
-        crate::diagnostics::ExecutionFailurePhase::Planning,
-        None,
-        None,
-        None,
-        None,
-        None,
-        detail.clone(),
-    ));
-
-    events::record_transaction_semantic_event(
-        graph,
-        ReplayEventKind::FailureRecorded,
-        detail,
-        None,
-        None,
+    let captures_failure = graph.captures_failure_diagnostics();
+    let captures_replay = graph.captures_observation_surface(
+        crate::logic::transaction::SignalObservationSurface::ReplayDetail,
     );
+    if !captures_failure && !captures_replay {
+        graph.clear_pending_diagnostics_input();
+        return;
+    }
+    let detail = branch_merge_failure_detail(error, source_branch.as_ref(), target_branch.as_ref());
+    if captures_failure {
+        DiagnosticsRecorder::new(graph).record_failure(ExecutionFailureContext::new(
+            crate::diagnostics::ExecutionFailurePhase::Planning,
+            None,
+            None,
+            None,
+            None,
+            None,
+            detail.clone(),
+        ));
+    }
+    if captures_replay {
+        events::record_transaction_semantic_event(
+            graph,
+            ReplayEventKind::FailureRecorded,
+            detail,
+            None,
+            None,
+        );
+    }
 }
 
 fn branch_merge_failure_detail(

@@ -52,7 +52,7 @@ pub struct UiPortalAnchorObservationGeometryEvidence {
 impl UiCommittedAllocationGeometryEvidence {
     pub(super) fn from_candidate(candidate: &super::UiAllocationCandidate) -> Self {
         let portal_anchor_observation = portal_anchor_observation(candidate);
-        let bounds = viewport_contract_bounds(candidate)
+        let bounds = declared_contract_bounds(candidate)
             .map(UiAllocationGeometryKnowledge::Known)
             .unwrap_or(UiAllocationGeometryKnowledge::NotKnownAtAllocation);
         Self {
@@ -102,11 +102,22 @@ impl UiCommittedAllocationGeometryEvidence {
     }
 }
 
-fn viewport_contract_bounds(
+fn declared_contract_bounds(
     candidate: &super::UiAllocationCandidate,
 ) -> Option<UiAllocationAxisAlignedBounds> {
     let basis = candidate.measurement_basis();
     let policy = basis.declared_measurement_policy();
+    if let Some(crate::declaration::UiDeclaredMeasurementMode::FixedLogicalSize { width, height }) =
+        policy.mode()
+    {
+        return Some(UiAllocationAxisAlignedBounds {
+            x: 0.0,
+            y: 0.0,
+            width: f32::from(width),
+            height: f32::from(height),
+            coordinate_space: crate::evidence::UiMeasurementCoordinateSpace::GraphNodeLocal,
+        });
+    }
     if policy.basis_source()
         != Some(crate::declaration::UiDeclaredMeasurementBasisSource::ViewportExtent)
     {
@@ -135,6 +146,9 @@ fn viewport_contract_bounds(
                 (horizontal, vertical, width, height)
             }
             crate::declaration::UiDeclaredMeasurementMode::HugHeight => return None,
+            crate::declaration::UiDeclaredMeasurementMode::FixedLogicalSize { .. } => {
+                unreachable!("fixed logical bounds do not require host evidence")
+            }
         };
         Some(UiAllocationAxisAlignedBounds {
             x,

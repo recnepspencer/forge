@@ -17,6 +17,7 @@ fn equivalent_file_event_bursts_debounce_to_equivalent_candidates() {
     let snapshot = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let provider = file_import_provider();
     let first = lower_file_submission(
@@ -94,6 +95,7 @@ fn partial_write_and_atomic_rename_emit_one_ordered_candidate() {
     let snapshot = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let submission = lower_file_submission(
         file_import_provider(),
@@ -130,6 +132,7 @@ fn in_memory_source_provider_uses_same_candidate_admission() {
     let snapshot = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let file_submission = lower_file_submission(
         file_import_provider(),
@@ -170,6 +173,7 @@ fn mixed_file_and_rust_composition_provider_is_denied_before_candidate_selection
     let snapshot = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let mut session = runtime_from_artifact(empty_artifact())
         .source_event_ingress(file_import_provider().with_rust_authored_input(rust_import_input()))
@@ -191,6 +195,7 @@ fn multiple_rust_compositions_are_denied_instead_of_first_composition_winning() 
     let snapshot = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let mut session = runtime_from_artifact(empty_artifact())
         .source_event_ingress(
@@ -239,6 +244,7 @@ fn duplicate_source_modules_report_source_package_rejection() {
     let snapshot = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let provider = WorthUiSourceProvider::in_memory("duplicate-source")
         .with_file("app/main.wui", "")
@@ -263,6 +269,7 @@ fn malformed_source_reports_parse_rejection_not_missing_material() {
     let snapshot = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let provider = WorthUiSourceProvider::in_memory("malformed-source")
         .with_file("app/main.wui", "component MissingBrace {");
@@ -283,6 +290,7 @@ fn ordering_receipt_sequence_drift_is_denied_before_candidate_lowering() {
     let snapshot = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let mut session = runtime_from_artifact(empty_artifact())
         .source_event_ingress(file_import_provider())

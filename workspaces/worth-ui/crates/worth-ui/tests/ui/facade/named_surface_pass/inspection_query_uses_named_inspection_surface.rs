@@ -5,8 +5,12 @@ use worth_ui::facade::inspection::{
 };
 
 fn main() {
-    let app = WorthUi::app().with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
+    let app = WorthUi::app()
+        .with_change_profile(worth_ui_runtime::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let query = UiInspectionQuery::new(
         UiInspectionTarget::product_root(),

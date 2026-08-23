@@ -16,10 +16,13 @@ pub(super) struct BridgeManagedTemporalIntentRecord {
     revision: u64,
     due_coordinate: u64,
     idempotency_identity: Arc<str>,
+    source_record_identity: crate::relational_identity::RelationalBridgeRecordIdentityParts,
     wake_id: TemporalWakeId,
 }
 
 pub(in crate::conditional_execution) struct BridgeManagedClockLane {
+    pub(in crate::conditional_execution) lifecycle_token: Arc<()>,
+    lowering: Arc<super::super::BridgeInstalledConditionalLowering>,
     pub(super) source_identity: Arc<str>,
     pub(super) timeline_identity: Arc<str>,
     pub(super) lease: Arc<BridgeManagedClockLease>,
@@ -33,6 +36,7 @@ pub(in crate::conditional_execution) struct BridgeManagedClockLane {
 
 impl BridgeManagedClockLane {
     pub(super) fn new(
+        lowering: Arc<super::super::BridgeInstalledConditionalLowering>,
         source_identity: Arc<str>,
         timeline_identity: Arc<str>,
         lease: Arc<BridgeManagedClockLease>,
@@ -40,6 +44,8 @@ impl BridgeManagedClockLane {
         maximum_due_wakes_per_observation: NonZeroUsize,
     ) -> Self {
         Self {
+            lifecycle_token: Default::default(),
+            lowering,
             source_identity,
             timeline_identity,
             lease,
@@ -52,6 +58,28 @@ impl BridgeManagedClockLane {
             intents: BTreeMap::new(),
             wake_to_intent: BTreeMap::new(),
         }
+    }
+
+    pub(in crate::conditional_execution) fn retains_due_wake(
+        &self,
+        lowering: &Arc<super::super::BridgeInstalledConditionalLowering>,
+        wake: &BridgeManagedDueWake,
+    ) -> bool {
+        if !Arc::ptr_eq(&self.lowering, lowering) {
+            return false;
+        }
+        let Some(identity) = self.wake_to_intent.get(&wake.signal_wake_id) else {
+            return false;
+        };
+        let Some(intent) = self.intents.get(identity) else {
+            return false;
+        };
+        identity == &wake.intent_identity
+            && intent.wake_id == wake.signal_wake_id
+            && intent.revision == wake.revision
+            && intent.due_coordinate == wake.due_coordinate
+            && intent.idempotency_identity == wake.idempotency_identity
+            && intent.source_record_identity == wake.source_record_identity
     }
 
     pub(super) fn last_observation(&self) -> Option<(u64, u64)> {
@@ -81,6 +109,7 @@ impl BridgeManagedClockLane {
         revision: u64,
         due_coordinate: u64,
         idempotency_identity: Arc<str>,
+        source_record_identity: crate::relational_identity::RelationalBridgeRecordIdentityParts,
     ) -> Result<BridgeManagedTemporalIntentReconciliation, BridgeManagedTemporalDenial> {
         let Some(existing) = self.intents.get(&identity) else {
             return self.install_new_intent(
@@ -88,6 +117,7 @@ impl BridgeManagedClockLane {
                 revision,
                 due_coordinate,
                 idempotency_identity,
+                source_record_identity,
             );
         };
         if revision < existing.revision {
@@ -96,6 +126,7 @@ impl BridgeManagedClockLane {
         if revision == existing.revision {
             return if existing.due_coordinate == due_coordinate
                 && existing.idempotency_identity == idempotency_identity
+                && existing.source_record_identity == source_record_identity
             {
                 Ok(BridgeManagedTemporalIntentReconciliation::Duplicate)
             } else {
@@ -124,6 +155,7 @@ impl BridgeManagedClockLane {
                 revision,
                 due_coordinate,
                 idempotency_identity,
+                source_record_identity,
                 wake_id: replacement.scheduled().id(),
             },
         );
@@ -136,6 +168,7 @@ impl BridgeManagedClockLane {
         revision: u64,
         due_coordinate: u64,
         idempotency_identity: Arc<str>,
+        source_record_identity: crate::relational_identity::RelationalBridgeRecordIdentityParts,
     ) -> Result<BridgeManagedTemporalIntentReconciliation, BridgeManagedTemporalDenial> {
         if self.intents.len() >= self.maximum_active_intents {
             return Err(BridgeManagedTemporalDenial::new(
@@ -157,6 +190,7 @@ impl BridgeManagedClockLane {
                 revision,
                 due_coordinate,
                 idempotency_identity,
+                source_record_identity,
                 wake_id: wake.id(),
             },
         );
@@ -250,6 +284,7 @@ impl BridgeManagedClockLane {
             intent_identity: identity.clone(),
             revision: intent.revision,
             idempotency_identity: Arc::clone(&intent.idempotency_identity),
+            source_record_identity: intent.source_record_identity,
             due_coordinate: intent.due_coordinate,
             ready_coordinate: wake.ready_tick().get(),
             signal_wake_id: wake.id(),

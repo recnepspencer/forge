@@ -3,6 +3,13 @@
 This folder documents the Milestone 8 performance surface in
 `worth-foundational`.
 
+Milestone 10 adds optional observation work disclosure. Structural counters,
+diagnostic facts, descriptive lineage maintenance, provenance facts, and replay
+sidecars are distinct work classes. A claim that includes one must carry an
+observation context containing the canonical profile identity and an active
+observation disposition; an inactive context cannot be used to certify that
+work as ordinary hot-path execution.
+
 Use these docs when you need to answer questions like:
 
 - How do I describe a performance claim without faking executed truth?
@@ -25,6 +32,7 @@ Read the docs in this order if you are new to the surface:
 6. [Certified And Readmitted Performance Bundles](./certified-and-readmitted-performance-bundles.md)
 7. [Grouped Public Lanes And Stronger Readiness](./grouped-public-lanes-and-stronger-readiness.md)
 8. [Performance Production Readiness](./performance-production-readiness.md)
+9. [Throughput And Observation Activation](../profiles-and-policy-vocabulary/throughput-and-observation-activation.md)
 
 Capability order matters.
 

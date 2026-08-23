@@ -17,13 +17,30 @@ impl SignalApp {
         if !self.computed.contains_key(&node) && !self.pending_input_versions.contains_key(&node) {
             return Ok(BTreeSet::new());
         }
-        let plan = self.graph.build_evaluation_plan(
-            &[node],
-            crate::logic::evaluation::EvaluationRequestMode::Default,
-        )?;
         let staged_values = Mutex::new(HashMap::<NodeId, Box<dyn Any + Send + Sync>>::new());
         let meaningful_nodes = Mutex::new(BTreeSet::new());
-        self.execute_easy_plan(&plan, &staged_values, &meaningful_nodes)?;
+        let max_passes = self.graph.active_node_count().saturating_add(1);
+        let mut settled = false;
+        for _ in 0..max_passes {
+            let mut scheduled_tasks = 0_u32;
+            for target in self.requested_dependency_order(node)? {
+                let plan = self.graph.build_evaluation_plan(
+                    &[target],
+                    crate::logic::evaluation::EvaluationRequestMode::Default,
+                )?;
+                scheduled_tasks = scheduled_tasks.saturating_add(plan.summary.task_count);
+                self.execute_easy_plan(&plan, &staged_values, &meaningful_nodes)?;
+            }
+            if scheduled_tasks == 0 {
+                settled = true;
+                break;
+            }
+        }
+        if !settled {
+            return Err(SignalError::internal(
+                "easy path dependency settlement did not converge",
+            ));
+        }
         for (node, value) in mutex_value(staged_values, "staged value")? {
             self.values.insert(node, value);
         }
@@ -33,6 +50,27 @@ impl SignalApp {
                 .map_or(true, |committed| committed != *candidate)
         });
         mutex_value(meaningful_nodes, "meaningful-change")
+    }
+
+    fn requested_dependency_order(&self, target: NodeId) -> Result<Vec<NodeId>, SignalError> {
+        let mut discovered = BTreeSet::new();
+        let mut order = Vec::new();
+        let mut stack = vec![(target, false)];
+        while let Some((node, expanded)) = stack.pop() {
+            if expanded {
+                order.push(node);
+                continue;
+            }
+            if !discovered.insert(node) {
+                continue;
+            }
+            stack.push((node, true));
+            let dependencies = self.graph.dependencies_of(node)?;
+            for dependency in dependencies.iter().rev() {
+                stack.push((dependency.source(), false));
+            }
+        }
+        Ok(order)
     }
 
     fn execute_easy_plan(
@@ -94,15 +132,18 @@ impl SignalApp {
         else {
             return Ok(());
         };
+        let mut telemetry_guard = self.graph.telemetry_mut();
+        let telemetry = telemetry_guard.as_deref_mut();
         let Ok(admitted) = admit_or_error(
             HostComputedApiFamily::EasyClosure,
             node,
             &dependencies,
             prepared,
-            self.graph.telemetry_mut(),
+            telemetry,
         ) else {
             return Ok(());
         };
+        drop(telemetry_guard);
         let (prepared, reads, patch) = admitted.into_parts();
         self.values.insert(node, value);
         let mut snapshot = crate::data::dependency::DependencySnapshot::empty();

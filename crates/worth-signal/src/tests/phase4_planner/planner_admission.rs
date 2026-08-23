@@ -53,14 +53,17 @@ fn build_evaluation_plan_prunes_dirty_target_when_contract_reads_do_not_intersec
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().reads_aspects(mask_a()).build();
+    let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
+    evaluate(&mut graph, source, &mut source_v1).unwrap();
     graph
         .append_dependency(dependent, source, ASPECT_B)
         .unwrap();
 
-    let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
-    evaluate(&mut graph, source, &mut compute).unwrap();
-    evaluate(&mut graph, dependent, &mut compute).unwrap();
+    let mut dependent_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
+    evaluate(&mut graph, dependent, &mut dependent_v1).unwrap();
     mark_dirty(&mut graph, source, ASPECT_B).unwrap();
+    let mut source_v2 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 1));
+    evaluate(&mut graph, source, &mut source_v2).unwrap();
 
     let plan = graph
         .build_evaluation_plan(&[dependent], EvaluationRequestMode::Default)

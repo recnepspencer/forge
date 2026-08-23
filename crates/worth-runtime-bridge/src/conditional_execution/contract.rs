@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use worth_proof::TransitionOutcome;
-use worth_signal::facade::SignalGraph;
+use worth_signal::facade::{SignalGraph, SignalRuntime};
 
 use super::{
     BridgeConditionalDenial, BridgeConditionalDenialKind, BridgeConditionalProviderSet,
@@ -33,19 +33,38 @@ struct AdmittedConditionalInstallationRequest {
 /// graph; Query never receives a raw graph or a detached node capability.
 pub struct BridgeOwnedSignalRuntime {
     pub(super) bridge: RuntimeBridge,
-    baseline_semantic_dependency_registry:
+    pub(super) baseline_semantic_dependency_registry:
         crate::correspondence::AdmittedSemanticDependencyRegistry,
-    pub(super) graph: SignalGraph,
+    pub(super) baseline_correspondence_allocations:
+        crate::correspondence::CorrespondenceAllocationRegistry,
+    pub(super) signal_runtime: SignalRuntime<(), (), (), (), ()>,
+    pub(super) async_declarations: crate::source::BridgeAsyncDeclarationRegistry,
+    pub(super) async_observation_authority: Arc<()>,
     pub(super) conditional_lowerings:
         BTreeMap<worth_signal::facade::NodeId, Arc<BridgeInstalledConditionalLowering>>,
+    pub(super) owned_conditional_targets:
+        super::owned_target_index::BridgeOwnedConditionalTargetIndex,
     pub(super) conditional_observations: std::collections::BTreeMap<
-        (worth_signal::facade::NodeId, usize),
+        (
+            worth_signal::facade::NodeId,
+            usize,
+            Option<crate::relational_identity::RelationalBridgeRecordIdentityParts>,
+        ),
         worth_foundational::facade::ContractValidatedAspectArtifact,
     >,
     pub(super) managed_clock_lanes: BTreeMap<Arc<str>, super::managed_time::BridgeManagedClockLane>,
+    pub(super) next_owned_semantic_publication: u64,
+    pub(super) reconstitution_report: Option<super::BridgeConditionalRuntimeReconstitutionReport>,
 }
 
 impl BridgeOwnedSignalRuntime {
+    pub fn owned_signal_graph_instance_id(&self) -> u64 {
+        self.signal_runtime
+            .graph()
+            .installed_graph_capability()
+            .graph_instance_id()
+    }
+
     /// Owns a fresh Signal graph behind the Bridge boundary.
     ///
     /// Callers that do not already own a topology-specific Signal graph use
@@ -59,12 +78,13 @@ impl BridgeOwnedSignalRuntime {
         mut graph: SignalGraph,
     ) -> Result<Self, BridgeConditionalDenial> {
         let baseline_semantic_dependency_registry = bridge.semantic_dependency_registry.clone();
-        crate::correspondence::isolate_allocation_state(&mut bridge).map_err(|_| {
-            BridgeConditionalDenial::new(
-                BridgeConditionalDenialKind::CorrespondenceAdmission,
-                "conditional runtime could not isolate its authoritative allocation state",
-            )
-        })?;
+        let baseline_correspondence_allocations =
+            crate::correspondence::isolate_allocation_state(&mut bridge).map_err(|_| {
+                BridgeConditionalDenial::new(
+                    BridgeConditionalDenialKind::CorrespondenceAdmission,
+                    "conditional runtime could not isolate its authoritative allocation state",
+                )
+            })?;
         graph
             .claim_aspect_lowering_owner(&bridge.signal_aspect_lowering_owner)
             .map_err(|_| {
@@ -76,10 +96,16 @@ impl BridgeOwnedSignalRuntime {
         Ok(Self {
             bridge,
             baseline_semantic_dependency_registry,
-            graph,
+            baseline_correspondence_allocations,
+            signal_runtime: SignalRuntime::builder(graph).with_kernel_defaults().build(),
+            async_declarations: Default::default(),
+            async_observation_authority: Arc::new(()),
             conditional_lowerings: BTreeMap::new(),
+            owned_conditional_targets: Default::default(),
             conditional_observations: std::collections::BTreeMap::new(),
             managed_clock_lanes: BTreeMap::new(),
+            next_owned_semantic_publication: 0,
+            reconstitution_report: None,
         })
     }
 
@@ -90,8 +116,10 @@ impl BridgeOwnedSignalRuntime {
         let admitted = self.admit_conditional_installation_request(request)?;
         let mut counters = admitted.counters;
         counters.signal_node_admissions += 1;
-        let TransitionOutcome::Success(node_capability) =
-            self.graph.admit_installed_node(admitted.node)
+        let TransitionOutcome::Success(node_capability) = self
+            .signal_runtime
+            .graph_mut()
+            .admit_installed_node(admitted.node)
         else {
             return Err(BridgeConditionalDenial::new(
                 BridgeConditionalDenialKind::SignalContractInstallation,
@@ -103,7 +131,7 @@ impl BridgeOwnedSignalRuntime {
         let prepared = crate::correspondence::prepare_registered_correspondence_batch(
             &self.bridge,
             admitted.dependency_extension.registrations(),
-            &self.graph,
+            self.signal_runtime.graph(),
         )
         .map_err(|error| {
             BridgeConditionalDenial::new(
@@ -125,7 +153,8 @@ impl BridgeOwnedSignalRuntime {
         )
         .map_err(|denial| denial.with_lowering_counters(counters))?;
         let signal_contract = self
-            .graph
+            .signal_runtime
+            .graph_mut()
             .install_conditional_contract(
                 &self.bridge.signal_aspect_lowering_owner,
                 node_capability,
@@ -191,7 +220,13 @@ impl BridgeOwnedSignalRuntime {
         registrations.sort_by_key(|registration| registration.dependency().dependency_ordinal());
         let (graph_instance_id, node) = declared_signal_node(registrations, counters)?;
         counters.signal_graph_checks += 1;
-        if graph_instance_id != self.graph.installed_graph_capability().graph_instance_id() {
+        if graph_instance_id
+            != self
+                .signal_runtime
+                .graph()
+                .installed_graph_capability()
+                .graph_instance_id()
+        {
             return Err(BridgeConditionalDenial::new(
                 BridgeConditionalDenialKind::ForeignSignalGraph,
                 "conditional target registrations belong to another Signal graph",
@@ -275,15 +310,10 @@ impl BridgeOwnedSignalRuntime {
             lease: Arc::new(super::liveness::BridgeConditionalLoweringLease::issue()),
             counters,
         });
+        self.owned_conditional_targets.register(&lowering);
         self.conditional_lowerings
             .insert(admitted.node, Arc::clone(&lowering));
         Ok(lowering)
-    }
-
-    pub fn successor_installation_runtime(&self) -> Result<Self, BridgeConditionalDenial> {
-        let mut bridge = self.bridge.clone();
-        bridge.semantic_dependency_registry = self.baseline_semantic_dependency_registry.clone();
-        Self::new(bridge, self.graph.clone())
     }
 
     pub fn baseline_semantic_dependency_count(&self) -> usize {
@@ -307,12 +337,14 @@ impl BridgeOwnedSignalRuntime {
         &self,
         target: &BridgeSignalAspectTargetDeclaration,
     ) -> Result<BridgeSignalAspectTargetDeclaration, BridgeConditionalDenial> {
-        target.rebind_to_graph(&self.graph).ok_or_else(|| {
-            BridgeConditionalDenial::new(
-                BridgeConditionalDenialKind::ForeignSignalGraph,
-                "conditional target cannot be admitted into the successor Signal graph",
-            )
-        })
+        target
+            .rebind_to_graph(self.signal_runtime.graph())
+            .ok_or_else(|| {
+                BridgeConditionalDenial::new(
+                    BridgeConditionalDenialKind::ForeignSignalGraph,
+                    "conditional target cannot be admitted into the successor Signal graph",
+                )
+            })
     }
 }
 

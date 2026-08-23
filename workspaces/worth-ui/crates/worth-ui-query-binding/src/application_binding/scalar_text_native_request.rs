@@ -33,11 +33,11 @@ impl WorthUiScalarTextNativeRequest {
             crate::WorthUiScalarTextProjectionFamily,
             ObservationLaneWitness,
         >,
-        selected_field: &str,
+        selected_field: &crate::UiProjectionFieldRequirement,
     ) -> Result<Self, WorthUiScalarTextNativeRequestDenial> {
         let mut builder = consumer.projection_request();
         let selection = builder
-            .select_display_native_field_name(selected_field)
+            .select_display_native_field_name(selected_field.native_key())
             .map_err(WorthUiScalarTextNativeRequestDenial::ProjectionRequest)?;
         let request = builder
             .build()

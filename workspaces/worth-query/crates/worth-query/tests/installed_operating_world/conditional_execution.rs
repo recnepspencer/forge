@@ -2,7 +2,13 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 use worth_proof::TransitionOutcome;
-use worth_query::facade::{domain, read};
+use worth_query::facade::{
+    certification::{
+        host_conditional_signal_for_certification,
+        WorthQueryHostConditionalSignalDecisionForCertification as HostDecision,
+    },
+    domain, read,
+};
 
 use super::conditional_node_contract::{conditional_node_result, dependency, GeometryCondition};
 use super::installed_operation_fixture::conditional_workspace::conditional_workspace_without_lowering;
@@ -275,6 +281,10 @@ fn suppressed_decision_runs_no_query_graph_or_domain_work() {
     assert_eq!(
         deferred.conditional_provenance()[0].class(),
         domain::WorthQueryConditionalOutcomeClass::Suppressed
+    );
+    assert_eq!(
+        host_conditional_signal_for_certification(&deferred.conditional_provenance()[0]),
+        HostDecision::Suppressed
     );
     assert_eq!(deferred.counters().conditional_compute_contacts, 0);
     assert_eq!(deferred.counters().graph_provider_contacts, 0);

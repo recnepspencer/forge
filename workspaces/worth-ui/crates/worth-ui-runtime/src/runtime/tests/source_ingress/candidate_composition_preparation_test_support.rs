@@ -1,4 +1,4 @@
-use crate::facade::{WorthUi, WorthUiApp, WorthUiApplicationBuilder};
+use crate::facade::{WorthUi, WorthUiApp};
 use crate::runtime::tests::source_ingress_boundary_test_support::{
     lower_file_submission, lower_rust_submission, source_backed_package_component,
     source_backed_package_region, source_backed_package_sizing,
@@ -13,6 +13,7 @@ pub(super) fn convergence_submissions() -> (
 ) {
     let snapshot = convergence_builder()
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("convergence snapshot should prepare");
     let file_submission = lower_file_submission(
         WorthUiSourceProvider::in_memory("phase6-file").with_file(
@@ -42,10 +43,12 @@ pub(super) fn prepare_convergence_apps(
     let file_app = convergence_builder()
         .with_candidate_submission(file_submission)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("file composition should prepare");
     let rust_app = convergence_builder()
         .with_candidate_submission(rust_submission)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("Rust composition should prepare");
     (file_app, rust_app)
 }
@@ -53,6 +56,7 @@ pub(super) fn prepare_convergence_apps(
 pub(super) fn prepare_file_authored_package_app() -> WorthUiApp {
     let snapshot = source_backed_package_builder()
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let submission = lower_file_submission(
         WorthUiSourceProvider::in_memory("source-backed-package")
@@ -65,10 +69,11 @@ pub(super) fn prepare_file_authored_package_app() -> WorthUiApp {
     source_backed_package_builder()
         .with_candidate_submission(submission)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("the complete watched composition should prepare")
 }
 
-fn convergence_builder() -> WorthUiApplicationBuilder {
+fn convergence_builder() -> crate::facade::entry::WorthUiCertificationApplicationBuilder {
     WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(source_backed_package_component(
@@ -76,7 +81,7 @@ fn convergence_builder() -> WorthUiApplicationBuilder {
         ))
 }
 
-fn source_backed_package_builder() -> WorthUiApplicationBuilder {
+fn source_backed_package_builder() -> crate::facade::entry::WorthUiCertificationApplicationBuilder {
     WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(source_backed_package_component(

@@ -21,6 +21,8 @@ pub(super) fn geometry_session(
     policy: SignalRuntimePolicy,
     executor: StageExecutor,
 ) -> (SignalAdversarialHarness, ReplaySlice, Vec<LineageRecord>) {
+    let policy = policy
+        .with_observation_activation(worth_foundational::ObservationActivationProfile::Continuous);
     if !matches!(executor, StageExecutor::Serial) {
         trace_adv(format!(
             "[geometry {:?} seed={}] setup:start",

@@ -15,10 +15,6 @@ impl WorthQueryRuntime {
         schema_view: QuerySchemaView,
         bridge_request: &AdmittedBridgeAsyncRequestIdentity,
     ) -> Result<WorthQueryLiveView<T>, WorthQueryRuntimeError> {
-        self.reap_abandoned_managed_live_resources()?;
-        self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Live)?;
-        let name = name.into();
-        admit_live_view_declaration_receipt(&*self.backend, &name, &request, &schema_view)?;
         let future_selection =
             crate::subscription::QuerySubscriptionFutureSelection::async_resource_with_identity(
                 true,
@@ -35,6 +31,55 @@ impl WorthQueryRuntime {
                     ),
                 ],
             );
+        self.declare_bridge_async_live_view_with_selection(
+            name,
+            request,
+            schema_view,
+            future_selection,
+            bridge_request,
+        )
+    }
+
+    pub fn declare_bridge_async_live_view_with_typed_identity<T>(
+        &mut self,
+        name: impl Into<String>,
+        request: DeclarativeLiveQueryRequest,
+        schema_view: QuerySchemaView,
+        typed_request_identity: &[crate::application::WorthQueryAsyncRequestIdentityPart],
+        bridge_request: &AdmittedBridgeAsyncRequestIdentity,
+    ) -> Result<WorthQueryLiveView<T>, WorthQueryRuntimeError> {
+        let future_selection = crate::subscription::QuerySubscriptionFutureSelection::
+            async_resource_with_identity(
+                true,
+                typed_request_identity
+                    .iter()
+                    .map(
+                        crate::subscription::QuerySubscriptionAsyncRequestIdentityPart::
+                            from_async_identity_part,
+                    )
+                    .collect(),
+            );
+        self.declare_bridge_async_live_view_with_selection(
+            name,
+            request,
+            schema_view,
+            future_selection,
+            bridge_request,
+        )
+    }
+
+    fn declare_bridge_async_live_view_with_selection<T>(
+        &mut self,
+        name: impl Into<String>,
+        request: DeclarativeLiveQueryRequest,
+        schema_view: QuerySchemaView,
+        future_selection: crate::subscription::QuerySubscriptionFutureSelection,
+        bridge_request: &AdmittedBridgeAsyncRequestIdentity,
+    ) -> Result<WorthQueryLiveView<T>, WorthQueryRuntimeError> {
+        self.reap_abandoned_managed_live_resources()?;
+        self.admit_facade_family(WorthQueryRuntimeFacadeFamily::Live)?;
+        let name = name.into();
+        admit_live_view_declaration_receipt(&*self.backend, &name, &request, &schema_view)?;
         let activation = self.install_live_subscription_for_request(
             &name,
             &request,

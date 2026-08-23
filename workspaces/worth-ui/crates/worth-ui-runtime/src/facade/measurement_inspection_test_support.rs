@@ -70,6 +70,7 @@ pub(super) fn measurement_app_in_world(
     }
     builder
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 
@@ -97,6 +98,7 @@ pub(super) fn repeated_instance_app() -> WorthUiApp {
         .with_rust_authored_declaration_fixture(host_measurement_package())
         .with_runtime_instance_basis_admissions(runtime_bases)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("typed repeated-instance input should prepare one complete app authority")
 }
 

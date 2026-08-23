@@ -9,7 +9,7 @@ use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::output::PartitionSubscription;
 use crate::diagnostics::{replay_slices_equivalent, ReplayEventKind};
-use crate::facade::{DiagnosticsTier, SignalRuntimePolicy};
+use crate::facade::{DiagnosticsTier, NodeState, SignalRuntimePolicy};
 
 use super::super::{
     FinancialEconomicSnapshot, FinancialSemanticProjection, FinancialWorldDefinition, InstrumentId,
@@ -123,7 +123,10 @@ impl CompiledFinancialWorld {
         self.runtime.set_runtime_policy(
             SignalRuntimePolicy::for_tier(diagnostics_tier)
                 .with_history_limit(8)
-                .with_detail_limit(4),
+                .with_detail_limit(4)
+                .with_observation_activation(
+                    worth_foundational::ObservationActivationProfile::Continuous,
+                ),
         );
         let risk = self.handles.position(instrument).risk;
         self.runtime
@@ -137,27 +140,28 @@ impl CompiledFinancialWorld {
         self.runtime.switch_branch(analysis.clone())?;
         self.stage_factor_change(analysis_definition.clone(), analysis_factor)?;
         let valuation = self.handles.position(instrument).valuation;
+        self.settle_valuation_wave()?;
         let analysis_causes_before_capture =
-            cause_fingerprints(self.runtime.graph().pending_causes(valuation)?);
-        let async_report = self
-            .runtime
-            .admit_async_node_request(AsyncNodeRequestIntent::new(risk))?;
+            cause_fingerprints(self.runtime.graph().pending_causes(risk)?);
+        let async_report = self.runtime.admit_async_node_request(
+            AsyncNodeRequestIntent::new(risk).require_clean_dependencies(),
+        )?;
         let async_dependency_blocked = async_report.classification().class()
             == AsyncNodeAdmissionClass::BlockedByCondition
             && async_report.classification().condition_block_class()
                 == Some(AsyncNodeConditionBlockClass::DependencyNotReady)
             && async_report.resource_admission().is_none();
+        let analysis_work_before_capture = self.ledger.observed_work();
         let analysis_snapshot = self.runtime.capture_snapshot()?;
         self.settle_current_definition()?;
 
         self.runtime.switch_branch(main.clone())?;
         self.install_definition_state(&base, base.clone());
         self.stage_factor_change(main_definition, main_factor)?;
-        let main_causes = cause_fingerprints(self.runtime.graph().pending_causes(valuation)?);
-        let main_pending_isolated = !main_causes.is_empty()
-            && main_causes
-                .iter()
-                .all(|cause| cause.producer == self.handles.factor(main_factor).0);
+        self.settle_valuation_wave()?;
+        let main_causes = cause_fingerprints(self.runtime.graph().pending_causes(risk)?);
+        let main_pending_isolated =
+            !main_causes.is_empty() && main_causes.iter().all(|cause| cause.producer == valuation);
         self.runtime.capture_snapshot()?;
 
         self.runtime
@@ -165,18 +169,19 @@ impl CompiledFinancialWorld {
         self.runtime.switch_branch(analysis.clone())?;
         self.install_definition_state(&base, analysis_definition);
         let analysis_causes_after_restore =
-            cause_fingerprints(self.runtime.graph().pending_causes(valuation)?);
-        let post_restore_async = self
-            .runtime
-            .admit_async_node_request(AsyncNodeRequestIntent::new(risk))?;
+            cause_fingerprints(self.runtime.graph().pending_causes(risk)?);
+        let post_restore_async = self.runtime.admit_async_node_request(
+            AsyncNodeRequestIntent::new(risk).require_clean_dependencies(),
+        )?;
         let async_after_restore_blocked = dependency_not_ready(&post_restore_async);
         self.ledger.clear();
-        self.ledger
-            .record(SemanticOutputKey::Factor(analysis_factor));
+        for key in analysis_work_before_capture {
+            self.ledger.record(key);
+        }
         self.settle_current_definition()?;
-        let settled_async = self
-            .runtime
-            .admit_async_node_request(AsyncNodeRequestIntent::new(risk))?;
+        let settled_async = self.runtime.admit_async_node_request(
+            AsyncNodeRequestIntent::new(risk).require_clean_dependencies(),
+        )?;
         let async_after_settlement_admitted = settled_async.resource_admission().is_some()
             && settled_async.classification().class()
                 != AsyncNodeAdmissionClass::BlockedByCondition;
@@ -194,12 +199,12 @@ impl CompiledFinancialWorld {
         let committed_values = self.committed_financial_values()?;
         let diagnostics_profile_observed = self.runtime.observe().diagnostics_profile();
         let summary = self.runtime.observe().diagnostics_summary(diagnostics_tier);
-        let expected_producer = self.handles.factor(analysis_factor).0;
-        let expected_aspect = self.factor_slot(analysis_factor);
+        let expected_producer = valuation;
+        let expected_aspect = super::super::super::aspects::PRICE;
         if analysis_causes_before_capture.is_empty()
             || analysis_causes_before_capture != analysis_causes_after_restore
             || analysis_causes_before_capture.iter().any(|cause| {
-                cause.consumer != valuation
+                cause.consumer != risk
                     || cause.producer != expected_producer
                     || cause.aspect != expected_aspect
             })
@@ -248,20 +253,71 @@ impl CompiledFinancialWorld {
             self.ledger.clone(),
         );
         let evaluator = program.evaluator();
-        let consumers = self
+        let valuation_wave = self
+            .definition
+            .positions()
+            .iter()
+            .map(|position| self.handles.position(position.instrument).valuation)
+            .collect::<Vec<_>>();
+        let risk_wave = self
+            .definition
+            .positions()
+            .iter()
+            .map(|position| self.handles.position(position.instrument).risk)
+            .collect::<Vec<_>>();
+        let consumer_wave = self
             .handles
             .consumers
             .values()
             .map(|handle| handle.0)
             .collect::<Vec<_>>();
-        self.runtime
-            .transaction(&mut (), |tx| {
-                for consumer in &consumers {
-                    tx.read(*consumer, &evaluator)?;
+        for wave in [valuation_wave, risk_wave, consumer_wave] {
+            let dirty = wave
+                .into_iter()
+                .filter(|node| {
+                    self.runtime
+                        .graph()
+                        .get_state(*node)
+                        .is_ok_and(|state| !matches!(state, NodeState::Clean))
+                })
+                .collect::<Vec<_>>();
+            self.runtime.transaction(&mut (), |tx| {
+                for node in &dirty {
+                    tx.read(*node, &evaluator)?;
                 }
                 Ok(())
+            })?;
+        }
+        Ok(())
+    }
+
+    fn settle_valuation_wave(&mut self) -> Result<(), SignalError> {
+        let program = FinancialEvaluationProgram::new(
+            self.definition.clone(),
+            self.projection.clone(),
+            self.handles.clone(),
+            self.ledger.clone(),
+        );
+        let evaluator = program.evaluator();
+        let valuations = self
+            .definition
+            .positions()
+            .iter()
+            .map(|position| self.handles.position(position.instrument).valuation)
+            .filter(|node| {
+                self.runtime
+                    .graph()
+                    .get_state(*node)
+                    .is_ok_and(|state| !matches!(state, NodeState::Clean))
             })
-            .map(|_| ())
+            .collect::<Vec<_>>();
+        self.runtime.transaction(&mut (), |tx| {
+            for valuation in &valuations {
+                tx.read(*valuation, &evaluator)?;
+            }
+            Ok(())
+        })?;
+        Ok(())
     }
 }
 

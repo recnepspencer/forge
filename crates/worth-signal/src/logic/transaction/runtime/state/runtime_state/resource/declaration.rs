@@ -13,14 +13,19 @@ where
         declaration: ResourceNodeDeclaration,
     ) -> Result<ResourceDeclarationReport, crate::data::error::SignalError> {
         if !self.graph.is_alive(declaration.node().node()) {
-            self.telemetry.resource.resource_non_live_owner_denial_count += 1;
+            self.with_resource_telemetry(|telemetry| {
+                telemetry.resource_non_live_owner_denial_count += 1
+            });
             return Err(crate::data::error::SignalError::invalid_input(format!(
                 "cannot declare resource node for non-live owner {}",
                 declaration.node().node()
             )));
         }
 
-        self.resource
-            .declare_resource_node(declaration, &mut self.telemetry.resource)
+        let captures_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
+        let telemetry = captures_telemetry.then_some(&mut self.telemetry.resource);
+        self.resource.declare_resource_node(declaration, telemetry)
     }
 }

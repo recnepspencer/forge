@@ -176,7 +176,8 @@ impl PlatformPulseLifecycleObservationStream {
             }
             UiMountedFrameOutcome::Published(_)
             | UiMountedFrameOutcome::Unchanged(_)
-            | UiMountedFrameOutcome::Reconciled(_) => {
+            | UiMountedFrameOutcome::Reconciled(_)
+            | UiMountedFrameOutcome::Superseded(_) => {
                 Err(PlatformPulseLifecycleObservationProjectionDenial::OutcomeIsNotFailure)
             }
         }

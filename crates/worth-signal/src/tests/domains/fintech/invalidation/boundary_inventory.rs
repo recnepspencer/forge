@@ -11,12 +11,9 @@ const BOUNDARIES: &[DirtyEvidenceBoundary] = &[
         required_symbols: &["dirty_aspects", "dirty_partition_scope_count"],
     },
     DirtyEvidenceBoundary {
-        owner: "root and transitive invalidation routing",
+        owner: "source-only invalidation routing",
         source: include_str!("../../../../logic/invalidation/routing/application.rs"),
-        required_symbols: &[
-            "execute_transitive_wave",
-            "transition_node_pending_revalidation",
-        ],
+        required_symbols: &["execute_invalidation_frontier", "mark_source_seed"],
     },
     DirtyEvidenceBoundary {
         owner: "planner topology admission",

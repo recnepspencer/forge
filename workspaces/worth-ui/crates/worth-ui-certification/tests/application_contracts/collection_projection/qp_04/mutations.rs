@@ -1,5 +1,6 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
+use worth_query::facade::runtime::WorthQueryEvidenceIdentityKey;
 use worth_ui_query_binding::{
     UiCollectionCompleteness, UiCollectionProjectionChange, UiProjectionAvailability,
     UiProjectionFactStopKind, WorthUiCollectionResetReason,
@@ -47,6 +48,7 @@ pub(crate) fn complete_partial_and_continuation_postures_come_from_real_query_re
 #[test]
 fn exact_insert_update_reorder_and_remove_keep_query_row_identity() {
     let (mut world, initial) = CollectionProjectionWorld::open(3, 4, WorldPosture::Complete, false);
+    let initial_order = world.identities().to_vec();
     let initial_expected = world.expected().selected(world.identities());
     world
         .expected()
@@ -60,7 +62,7 @@ fn exact_insert_update_reorder_and_remove_keep_query_row_identity() {
     assert!(matches!(
         updated.changes(),
         [UiCollectionProjectionChange::Update { row }]
-            if row.reporting_projection().as_str() == changed[0]
+            if row.query_identity().operational_key() == changed[0]
     ));
 
     let inserted_identity = world.insert("pulse.00000a", "Inserted");
@@ -71,71 +73,64 @@ fn exact_insert_update_reorder_and_remove_keep_query_row_identity() {
             .expected()
             .selected(std::slice::from_ref(&inserted_identity)),
     );
-    assert!(inserted.changes().iter().any(|change| matches!(
-        change,
-        UiCollectionProjectionChange::Insert { row, .. }
-            if row.reporting_projection().as_str() == inserted_identity
-    )));
+    assert_eq!(
+        exact_changes(&inserted),
+        vec![
+            ExactChange::Insert(inserted_identity, 1),
+            ExactChange::Move(initial_order[1], 1, 2),
+            ExactChange::Move(initial_order[2], 2, 3),
+        ]
+    );
 
     let stable_identity = world.reorder(0, "pulse.zzzzz");
     let reordered = world.refresh();
     world
         .expected()
         .assert_fact_rows(&reordered, &BTreeMap::new());
-    assert_stable_move(&reordered, &stable_identity);
+    assert_eq!(stable_identity, initial_order[0]);
+    assert_eq!(
+        exact_changes(&reordered),
+        vec![
+            ExactChange::Move(inserted_identity, 1, 0),
+            ExactChange::Move(initial_order[1], 2, 1),
+            ExactChange::Move(initial_order[2], 3, 2),
+            ExactChange::Move(initial_order[0], 0, 3),
+        ]
+    );
 
     let removed_identity = world.remove(3);
     let removed = world.refresh();
     world
         .expected()
         .assert_fact_rows(&removed, &BTreeMap::new());
-    assert_removed(&removed, &removed_identity);
+    assert_eq!(removed_identity, inserted_identity);
+    assert_eq!(
+        exact_changes(&removed),
+        vec![
+            ExactChange::Remove(inserted_identity, 0),
+            ExactChange::Move(initial_order[1], 1, 0),
+            ExactChange::Move(initial_order[2], 2, 1),
+            ExactChange::Move(initial_order[0], 3, 2),
+        ]
+    );
     world.close();
-}
-
-fn assert_stable_move(
-    fact: &worth_ui_query_binding::UiCollectionProjectionFactReceipt,
-    stable_identity: &str,
-) {
-    let moved = fact
-        .changes()
-        .iter()
-        .filter_map(|change| match change {
-            UiCollectionProjectionChange::Move { row, .. } => {
-                Some(row.reporting_projection().as_str().to_owned())
-            }
-            _ => None,
-        })
-        .collect::<BTreeSet<_>>();
-    assert!(moved.contains(stable_identity));
-}
-
-fn assert_removed(
-    fact: &worth_ui_query_binding::UiCollectionProjectionFactReceipt,
-    removed_identity: &str,
-) {
-    assert!(fact.changes().iter().any(|change| matches!(
-        change,
-        UiCollectionProjectionChange::Remove { row, .. }
-            if row.reporting_projection().as_str() == removed_identity
-    )));
 }
 
 #[test]
 pub(crate) fn continuation_completion_and_explicit_reset_are_preserved() {
     let (mut world, initial) = CollectionProjectionWorld::open(2, 1, WorldPosture::Complete, false);
+    let initial_order = world.identities().to_vec();
     assert!(present(&initial).continuation().is_some());
     world.remove(0);
     let completed = world.refresh();
     assert!(present(&completed).continuation().is_none());
-    assert!(completed
-        .changes()
-        .iter()
-        .any(|change| matches!(change, UiCollectionProjectionChange::Remove { .. })));
-    assert!(completed
-        .changes()
-        .iter()
-        .any(|change| matches!(change, UiCollectionProjectionChange::Insert { .. })));
+    assert_eq!(
+        exact_changes(&completed),
+        vec![
+            ExactChange::Remove(initial_order[0], 0),
+            ExactChange::Insert(initial_order[1], 0),
+        ]
+    );
     world.close();
 
     let (mut reset_world, _) =
@@ -154,4 +149,50 @@ pub(crate) fn continuation_completion_and_explicit_reset_are_preserved() {
             if stop.kind() == UiProjectionFactStopKind::ResetRequired
     ));
     reset_world.close();
+}
+
+#[derive(Debug, Eq, PartialEq)]
+enum ExactChange {
+    Insert(WorthQueryEvidenceIdentityKey, usize),
+    Remove(WorthQueryEvidenceIdentityKey, usize),
+    Move(WorthQueryEvidenceIdentityKey, usize, usize),
+    Regroup(
+        WorthQueryEvidenceIdentityKey,
+        Option<Box<[String]>>,
+        Option<Box<[String]>>,
+    ),
+    Update(WorthQueryEvidenceIdentityKey),
+    WindowShift,
+    ResetRequired(WorthUiCollectionResetReason),
+}
+
+fn exact_changes(
+    fact: &worth_ui_query_binding::UiCollectionProjectionFactReceipt,
+) -> Vec<ExactChange> {
+    fact.changes()
+        .iter()
+        .map(|change| match change {
+            UiCollectionProjectionChange::Insert { row, at } => {
+                ExactChange::Insert(row.query_identity().operational_key(), *at)
+            }
+            UiCollectionProjectionChange::Remove { row, from } => {
+                ExactChange::Remove(row.query_identity().operational_key(), *from)
+            }
+            UiCollectionProjectionChange::Move { row, from, to } => {
+                ExactChange::Move(row.query_identity().operational_key(), *from, *to)
+            }
+            UiCollectionProjectionChange::Regroup { row, from, to } => ExactChange::Regroup(
+                row.query_identity().operational_key(),
+                from.clone(),
+                to.clone(),
+            ),
+            UiCollectionProjectionChange::Update { row } => {
+                ExactChange::Update(row.query_identity().operational_key())
+            }
+            UiCollectionProjectionChange::WindowShift => ExactChange::WindowShift,
+            UiCollectionProjectionChange::ResetRequired { reason } => {
+                ExactChange::ResetRequired(*reason)
+            }
+        })
+        .collect()
 }

@@ -110,6 +110,7 @@ fn rebuilding_authored_index_from_authority_preserves_public_lookup_answers() {
             .with_semantic_artifact_spec(control_spec()),
         )
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let control = control_artifact(&app);
     let declaration_identity = control.identity().inspection_identity();
@@ -237,6 +238,7 @@ fn repeated_instance_app() -> WorthUiApp {
         .with_change_profile(crate::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(dsl_package.clone())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let control_handoff = control_artifact(&baseline)
         .graph_handoff()
@@ -252,6 +254,7 @@ fn repeated_instance_app() -> WorthUiApp {
         .with_rust_authored_declaration_fixture(dsl_package)
         .with_runtime_instance_basis_admissions(runtime_bases)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("typed repeated-instance input should prepare one complete app authority")
 }
 

@@ -1,6 +1,6 @@
 use crate::graph::UiGraphNodeIdentity;
 use worth_ui_host_contract::{
-    UiHostSurfaceBaselineReceipt, UiHostSurfaceIdentity, UiHostSurfacePresentationMode,
+    UiHostSurfaceBaselineIdentity, UiHostSurfaceIdentity, UiHostSurfacePresentationMode,
     UiHostSurfaceRegistrationRequest, UiMountIncarnation, UiMountedFrameIdentity,
     UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity, UiSemanticSurfaceIdentity,
     UiSurfaceBindingGeneration, WorthUiHostCapabilityObservationGeneration,
@@ -23,7 +23,7 @@ pub struct UiSurfaceBindingIdentityView {
     capability_profile_digest: u64,
     presentation_mode: UiHostSurfacePresentationMode,
     profile: UiSurfaceBindingProfile,
-    baseline: UiHostSurfaceBaselineReceipt,
+    baseline: UiHostSurfaceBaselineIdentity,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -45,7 +45,7 @@ pub(super) struct UiSurfaceBindingConstruction {
     pub(super) request: UiHostSurfaceRegistrationRequest,
     pub(super) binding_generation: UiSurfaceBindingGeneration,
     pub(super) profile: UiSurfaceBindingProfile,
-    pub(super) baseline: UiHostSurfaceBaselineReceipt,
+    pub(super) baseline: UiHostSurfaceBaselineIdentity,
 }
 
 impl UiMountedInstanceIdentityView {
@@ -112,7 +112,7 @@ impl UiSurfaceBindingIdentityView {
         self.profile
     }
 
-    pub fn baseline(self) -> UiHostSurfaceBaselineReceipt {
+    pub fn baseline(self) -> UiHostSurfaceBaselineIdentity {
         self.baseline
     }
 }

@@ -1,10 +1,10 @@
 use worth_ui::facade::app::WorthUiVisibleRange;
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
-use worth_ui_runtime::facade::host::{
+use worth_ui_host_headless::{
     UiHeadlessNodePaintMechanic, UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder,
-    WorthUiHostCapability, WorthUiOperationalHostAdapter,
 };
+use worth_ui_runtime::facade::host::{WorthUiHostCapability, WorthUiOperationalHostAdapter};
 use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode, UiMountedAllocationProjection,
     UiMountedEffectFamily, UiMountedFrameOutcome, UiMountedFrameRequest, UiMountedOmissionReason,
@@ -27,6 +27,8 @@ use super::mounted_application_lifecycle::known_empty_surface_world::{
 mod capacity;
 #[path = "mounted_headless_recorder/measurement.rs"]
 mod measurement;
+#[path = "mounted_headless_recorder/reconstruction.rs"]
+mod reconstruction;
 
 #[test]
 fn real_wui_record_only_presentation_emits_post_translation_mechanics() {
@@ -64,7 +66,7 @@ fn real_wui_record_only_presentation_emits_post_translation_mechanics() {
 }
 
 fn assert_ordinary_transcript(
-    transcript: &worth_ui_runtime::facade::host::UiHeadlessMountedFrameTranscript,
+    transcript: &worth_ui_host_headless::UiHeadlessMountedFrameTranscript,
     publication: &worth_ui_runtime::facade::mounted::UiMountedFramePublicationReceipt,
     binding: worth_ui_runtime::facade::mounted::UiSurfaceBindingGeneration,
     mounted_instance: worth_ui_runtime::facade::mounted::UiMountedInstanceIdentity,
@@ -93,7 +95,7 @@ fn assert_ordinary_transcript(
         .all(|pair| paint_order(&pair[0]) <= paint_order(&pair[1])));
     assert_eq!(
         transcript.unperformed_effects()[0],
-        worth_ui_runtime::facade::host::UiHeadlessUnperformedEffect::NativePaint {
+        worth_ui_host_headless::UiHeadlessUnperformedEffect::NativePaint {
             filled_rect_count: transcript.filled_rects().len() as u32,
             semantic_text_count: transcript.semantic_text().len() as u32,
             preview_node_count: 0,
@@ -130,6 +132,10 @@ fn real_cross_lane_recording_preserves_exact_unperformed_external_mechanics() {
         UiHostSurfacePresentationDenial::UnsupportedEffect(UiMountedEffectFamily::CanvasSpatial),
     );
     assert_eq!(recorder.observed_transcripts().len(), 1);
+    println!(
+        "WORTH_UI_LEDGER_COUNTERS={{\"P1-HEADLESS-01\":{}}}",
+        recorder.observed_transcripts().len()
+    );
     let _ = session.shutdown();
     workspace.close();
 }
@@ -214,7 +220,7 @@ fn execute_cross_lane_frame(
 }
 
 fn assert_exact_external_mechanics(
-    transcript: &worth_ui_runtime::facade::host::UiHeadlessMountedFrameTranscript,
+    transcript: &worth_ui_host_headless::UiHeadlessMountedFrameTranscript,
 ) {
     let effects = transcript.unperformed_effects();
     assert!(transcript.paint_batches().iter().any(|batch| {
@@ -226,7 +232,7 @@ fn assert_exact_external_mechanics(
             == worth_ui_runtime::facade::mounted::UiMountedPaintPrimitiveKind::RealtimeBatch
     }));
     assert!(effects.contains(
-        &worth_ui_runtime::facade::host::UiHeadlessUnperformedEffect::CanvasSpatial {
+        &worth_ui_host_headless::UiHeadlessUnperformedEffect::CanvasSpatial {
             batch_index: 0,
             primitive_count: 64,
             hit_region_count: 0,
@@ -235,7 +241,7 @@ fn assert_exact_external_mechanics(
         }
     ));
     assert!(effects.contains(
-        &worth_ui_runtime::facade::host::UiHeadlessUnperformedEffect::Realtime {
+        &worth_ui_host_headless::UiHeadlessUnperformedEffect::Realtime {
             batch_index: 0,
             overlay_row_count: 2,
         }
@@ -263,14 +269,12 @@ fn assert_rejected(outcome: UiMountedFrameOutcome, expected: UiHostSurfacePresen
     assert_eq!(rejected.rejections()[0].denial(), expected);
 }
 
-fn paint_order(
-    batch: &worth_ui_runtime::facade::host::UiHeadlessPaintBatchMechanic,
-) -> (u8, u32, u16) {
+fn paint_order(batch: &worth_ui_host_headless::UiHeadlessPaintBatchMechanic) -> (u8, u32, u16) {
     match batch.layer() {
-        worth_ui_runtime::facade::host::UiHeadlessLayerMechanic::Ordered {
-            semantic_order, ..
-        } => (0, semantic_order, batch.batch_index()),
-        worth_ui_runtime::facade::host::UiHeadlessLayerMechanic::Omitted(_) => {
+        worth_ui_host_headless::UiHeadlessLayerMechanic::Ordered { semantic_order, .. } => {
+            (0, semantic_order, batch.batch_index())
+        }
+        worth_ui_host_headless::UiHeadlessLayerMechanic::Omitted(_) => {
             (1, u32::MAX, batch.batch_index())
         }
     }

@@ -90,20 +90,24 @@ where
         scoped_merge_proof: Option<ScopedMergeProofPacket>,
         strategy_witness: Option<SignalMergeStrategyWitness>,
     ) -> SignalMergeCompatibilityOutcome {
-        self.telemetry.transaction.merge_compatibility_build_count += 1;
+        self.with_telemetry(|telemetry| telemetry.transaction.merge_compatibility_build_count += 1);
         let validated_basis = match branch_basis_validation_to_denial(
             self.validate_branch_basis_artifact(branch_basis, branch.clone()),
             &branch,
         ) {
             Ok(artifact) => artifact,
             Err(denial) => {
-                self.telemetry.transaction.merge_compatibility_denial_count += 1;
+                self.with_telemetry(|telemetry| {
+                    telemetry.transaction.merge_compatibility_denial_count += 1
+                });
                 return TransitionOutcome::denied(denial);
             }
         };
 
         let Some(scoped_merge_proof) = scoped_merge_proof else {
-            self.telemetry.transaction.merge_compatibility_denial_count += 1;
+            self.with_telemetry(|telemetry| {
+                telemetry.transaction.merge_compatibility_denial_count += 1
+            });
             return TransitionOutcome::denied(
                 SignalMergeCompatibilityDenial::MissingScopedMergeProof {
                     branch_id: branch.id,
@@ -111,7 +115,9 @@ where
             );
         };
         let Some(strategy_witness) = strategy_witness else {
-            self.telemetry.transaction.merge_compatibility_denial_count += 1;
+            self.with_telemetry(|telemetry| {
+                telemetry.transaction.merge_compatibility_denial_count += 1
+            });
             return TransitionOutcome::denied(
                 SignalMergeCompatibilityDenial::MissingStrategyWitness {
                     branch_id: branch.id,
@@ -136,7 +142,9 @@ where
         plan: &LoweredMergePlan,
     ) -> SignalMergeCompatibilityOutcome {
         if branch.id != plan.target_branch_id() {
-            self.telemetry.transaction.merge_compatibility_denial_count += 1;
+            self.with_telemetry(|telemetry| {
+                telemetry.transaction.merge_compatibility_denial_count += 1
+            });
             return TransitionOutcome::denied(SignalMergeCompatibilityDenial::CrossBasisMismatch {
                 expected_branch_id: plan.target_branch_id(),
                 observed_branch_id: branch.id,
@@ -157,7 +165,9 @@ where
         result: &BranchMergeResult,
     ) -> SignalMergeCompatibilityOutcome {
         if branch.id != result.target_branch {
-            self.telemetry.transaction.merge_compatibility_denial_count += 1;
+            self.with_telemetry(|telemetry| {
+                telemetry.transaction.merge_compatibility_denial_count += 1
+            });
             return TransitionOutcome::denied(SignalMergeCompatibilityDenial::CrossBasisMismatch {
                 expected_branch_id: result.target_branch,
                 observed_branch_id: branch.id,
@@ -178,7 +188,9 @@ where
         summary: &BranchMergeExecutionSummary,
     ) -> SignalMergeCompatibilityOutcome {
         if branch.id != summary.target_branch_id {
-            self.telemetry.transaction.merge_compatibility_denial_count += 1;
+            self.with_telemetry(|telemetry| {
+                telemetry.transaction.merge_compatibility_denial_count += 1
+            });
             return TransitionOutcome::denied(SignalMergeCompatibilityDenial::CrossBasisMismatch {
                 expected_branch_id: summary.target_branch_id,
                 observed_branch_id: branch.id,
@@ -199,7 +211,9 @@ where
         replay_event: &ReplayEvent,
     ) -> SignalMergeCompatibilityOutcome {
         if branch.id != replay_event.branch_id {
-            self.telemetry.transaction.merge_compatibility_denial_count += 1;
+            self.with_telemetry(|telemetry| {
+                telemetry.transaction.merge_compatibility_denial_count += 1
+            });
             return TransitionOutcome::denied(SignalMergeCompatibilityDenial::CrossBasisMismatch {
                 expected_branch_id: replay_event.branch_id,
                 observed_branch_id: branch.id,
@@ -232,26 +246,30 @@ where
         scoped_merge_proof: Option<ScopedMergeProofPacket>,
         strategy_witness: Option<SignalMergeStrategyWitness>,
     ) -> SignalMergeCompatibilityOutcome {
-        self.telemetry
-            .transaction
-            .merge_compatibility_readmission_count += 1;
+        self.with_telemetry(|telemetry| {
+            telemetry.transaction.merge_compatibility_readmission_count += 1;
+        });
         let validated_basis = match branch_basis_validation_to_denial(
             self.validate_branch_basis_artifact(branch_basis, branch.clone()),
             &branch,
         ) {
             Ok(artifact) => artifact,
             Err(denial) => {
-                self.telemetry
-                    .transaction
-                    .merge_compatibility_readmission_denial_count += 1;
+                self.with_telemetry(|telemetry| {
+                    telemetry
+                        .transaction
+                        .merge_compatibility_readmission_denial_count += 1;
+                });
                 return TransitionOutcome::denied(denial);
             }
         };
 
         let Some(scoped_merge_proof) = scoped_merge_proof else {
-            self.telemetry
-                .transaction
-                .merge_compatibility_readmission_denial_count += 1;
+            self.with_telemetry(|telemetry| {
+                telemetry
+                    .transaction
+                    .merge_compatibility_readmission_denial_count += 1;
+            });
             return TransitionOutcome::denied(
                 SignalMergeCompatibilityDenial::MissingScopedMergeProof {
                     branch_id: branch.id,
@@ -259,9 +277,11 @@ where
             );
         };
         let Some(strategy_witness) = strategy_witness else {
-            self.telemetry
-                .transaction
-                .merge_compatibility_readmission_denial_count += 1;
+            self.with_telemetry(|telemetry| {
+                telemetry
+                    .transaction
+                    .merge_compatibility_readmission_denial_count += 1;
+            });
             return TransitionOutcome::denied(
                 SignalMergeCompatibilityDenial::MissingStrategyWitness {
                     branch_id: branch.id,
@@ -271,9 +291,11 @@ where
 
         let expected_facts = bridged.payload().fact_inventory();
         if expected_facts.branch_basis_digest() != validated_basis.payload().basis_digest() {
-            self.telemetry
-                .transaction
-                .merge_compatibility_readmission_denial_count += 1;
+            self.with_telemetry(|telemetry| {
+                telemetry
+                    .transaction
+                    .merge_compatibility_readmission_denial_count += 1;
+            });
             return TransitionOutcome::denied(
                 SignalMergeCompatibilityDenial::ReadmissionBasisMismatch {
                     expected_branch_basis_digest: expected_facts.branch_basis_digest().to_owned(),
@@ -287,9 +309,11 @@ where
         if let Err(denial) =
             compare_retained_inputs(expected_facts, &scoped_merge_proof, &strategy_witness)
         {
-            self.telemetry
-                .transaction
-                .merge_compatibility_readmission_denial_count += 1;
+            self.with_telemetry(|telemetry| {
+                telemetry
+                    .transaction
+                    .merge_compatibility_readmission_denial_count += 1;
+            });
             return TransitionOutcome::denied(denial);
         }
 

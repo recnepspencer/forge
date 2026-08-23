@@ -106,6 +106,12 @@ Good for:
 - general application runtimes
 - most integration and pre-production use
 
+These named profiles lower to the Foundational objective/activation axes.  The
+lowering is compiler-visible: a profile request is admitted, resolved, and
+installed before planning, and the planner reads only the installed policy.
+Tier labels remain descriptive compatibility presets rather than a second
+execution authority.
+
 ### Profile B â€” `Introspective`
 
 Diagnostics-heavy profile.

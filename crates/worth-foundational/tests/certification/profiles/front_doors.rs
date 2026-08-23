@@ -15,6 +15,8 @@ fn profile_front_doors_expose_compose_progress_attach_materialize_and_strengthen
         .admission_readiness(AdmissionReadinessProfile::ProductionGateReady)
         .retention_delivery(RetentionDeliveryProfile::Durable)
         .certification_posture(CertificationPostureProfile::ProductionCertified)
+        .execution_objective(worth_foundational::ExecutionObjectiveProfile::Balanced)
+        .observation_activation(worth_foundational::ObservationActivationProfile::Continuous)
         .request()
         .expect("requested profile");
 

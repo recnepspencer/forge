@@ -57,6 +57,8 @@ pub(crate) struct NodeWarmData {
     pub(crate) direct_invalidation_basis:
         Option<crate::data::proof::invalidation::source_seed::DirectInvalidationBasis>,
     #[serde(default)]
+    pub(crate) direct_invalidation_generation: u64,
+    #[serde(default)]
     pub(crate) aspect_version_overrides: PartitionVersionOverrides,
     #[serde(default)]
     pub(crate) dirty_partition_scope_payload: SmallVec<

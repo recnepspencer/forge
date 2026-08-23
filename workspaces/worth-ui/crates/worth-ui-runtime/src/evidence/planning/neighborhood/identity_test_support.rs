@@ -110,6 +110,7 @@ pub(super) fn equivalent_contract_app(
             )),
         )
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 
@@ -135,6 +136,7 @@ pub(super) fn distinct_operator_kind_app(
                 )),
         )
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

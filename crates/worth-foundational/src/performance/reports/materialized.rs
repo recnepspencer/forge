@@ -2,6 +2,7 @@ use crate::performance::basis::{
     FoundationalPerformanceContractName, FoundationalPerformanceCounterRow,
     FoundationalPerformanceCounterSpec, FoundationalPerformanceSupportingEvidenceRow,
 };
+use crate::performance::claims::FoundationalPerformanceObservationContext;
 use crate::performance::layouts::FoundationalLayoutIntentClaim;
 use crate::performance::policy::FoundationalPerformanceBudgetDecision;
 use crate::performance::primitives::FoundationalPerformanceWorkClass;
@@ -36,6 +37,7 @@ pub struct FoundationalMaterializedPerformanceReport<Source> {
     decisions: Vec<FoundationalPerformanceReportSectionDecision>,
     included_work: Vec<FoundationalPerformanceWorkClass>,
     excluded_work: Vec<FoundationalPerformanceWorkClass>,
+    observation_context: Option<FoundationalPerformanceObservationContext>,
     layout_intent_claim: Option<FoundationalLayoutIntentClaim>,
     contract_names: Vec<FoundationalPerformanceContractName>,
     counter_specs: Vec<FoundationalPerformanceCounterSpec>,
@@ -105,6 +107,10 @@ impl<Source> FoundationalMaterializedPerformanceReport<Source> {
         &self.excluded_work
     }
 
+    pub fn observation_context(&self) -> Option<&FoundationalPerformanceObservationContext> {
+        self.observation_context.as_ref()
+    }
+
     pub const fn layout_intent_claim(&self) -> Option<&FoundationalLayoutIntentClaim> {
         self.layout_intent_claim.as_ref()
     }
@@ -164,6 +170,7 @@ where
         let fallback_debt = source.fallback_debt();
         let included_work = source.included_work().to_vec();
         let excluded_work = source.excluded_work().to_vec();
+        let observation_context = source.observation_context().cloned();
         let layout_intent_claim = if include(FoundationalPerformanceReportSection::LayoutIntent) {
             source.layout_intent_claim().cloned()
         } else {
@@ -229,6 +236,7 @@ where
             source,
             included_work,
             excluded_work,
+            observation_context,
             layout_intent_claim,
             contract_names,
             counter_specs,

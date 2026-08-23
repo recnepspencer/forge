@@ -2,7 +2,8 @@ use worth_foundational::canonicalization_api::lower_lane::basis::Canonicalizatio
 use worth_foundational::{
     derive_foundational_profile_identity, profiles, AdmissionReadinessProfile,
     CertificationPostureProfile, CompatibilityPostureProfile, DiagnosticRichnessProfile,
-    FoundationalProfileIdentity, FoundationalProfileSet, MaterializedFoundationalProfileArtifact,
+    ExecutionObjectiveProfile, FoundationalProfileIdentity, FoundationalProfileSet,
+    MaterializedFoundationalProfileArtifact, ObservationActivationProfile,
     RetentionDeliveryProfile, SupportPostureProfile,
 };
 use worth_proof::TransitionOutcome;
@@ -26,6 +27,8 @@ impl BlobHarnessMaterializedProfile {
             .admission_readiness(admission_readiness(blob_profile))
             .retention_delivery(retention_delivery(blob_profile))
             .certification_posture(CertificationPostureProfile::EvidenceBacked)
+            .execution_objective(execution_objective(blob_profile))
+            .observation_activation(observation_activation(blob_profile))
             .request()
             .expect("S.7 blob harness profile families are complete");
         let admitted_profile = *requested.payload().requested();
@@ -111,5 +114,22 @@ const fn retention_delivery(profile: BlobHarnessProfile) -> RetentionDeliveryPro
         BlobHarnessProfile::Local => RetentionDeliveryProfile::Retained,
         BlobHarnessProfile::CiMemoryEnvelopeExceeding => RetentionDeliveryProfile::Retained,
         BlobHarnessProfile::HeavyMultiGb => RetentionDeliveryProfile::Durable,
+    }
+}
+
+const fn execution_objective(profile: BlobHarnessProfile) -> ExecutionObjectiveProfile {
+    match profile {
+        BlobHarnessProfile::Local | BlobHarnessProfile::CiMemoryEnvelopeExceeding => {
+            ExecutionObjectiveProfile::Balanced
+        }
+        BlobHarnessProfile::HeavyMultiGb => ExecutionObjectiveProfile::Throughput,
+    }
+}
+
+const fn observation_activation(profile: BlobHarnessProfile) -> ObservationActivationProfile {
+    match profile {
+        BlobHarnessProfile::Local
+        | BlobHarnessProfile::CiMemoryEnvelopeExceeding
+        | BlobHarnessProfile::HeavyMultiGb => ObservationActivationProfile::Continuous,
     }
 }

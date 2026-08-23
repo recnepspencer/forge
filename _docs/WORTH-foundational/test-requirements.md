@@ -484,8 +484,8 @@ Must prove:
 
 - profile identity is typed and canonical
 - richness, support, compatibility, admission/readiness, delivery, retention,
-  and certification posture profiles remain distinct where they carry distinct
-  meaning
+  certification, execution-objective, and observation-activation profiles
+  remain distinct where they carry distinct meaning
 - profile composition accepts compatible combinations and rejects incompatible
   ones
 - reduced-richness profiles remove only optional descriptive materialization
@@ -495,6 +495,9 @@ Must prove:
   artifacts without string-label drift
 - requested, admitted, and materialized profile meaning remain mechanically
   distinct and cannot collapse into one mutable "effective profile" record
+- requested-to-admitted and admitted-to-materialized adjustments can carry
+  every changed family canonically; one optional narrowing record cannot hide
+  simultaneous objective, activation, richness, or retention changes
 - target-aware profile legality is enforced mechanically where the target is
   statically known, not only documented or logged at runtime
 - unnamed default profile construction, partial profile composition, duplicate
@@ -632,6 +635,36 @@ Must prove:
 - APIs that require expensive materialization make the boundary visible in the
   type or method shape
 
+### Throughput And On-Demand Observation Vocabulary
+
+Must prove:
+
+- `LatencyBounded`, `Balanced`, and `Throughput` are distinct execution
+  objectives rather than diagnostic richness, evidence strength, durability,
+  or measured-performance verdicts
+- `OnDemand` and `Continuous` observation activation remain independent of
+  execution objective, diagnostic richness, retention, support, and
+  certification posture
+- both new axes participate in complete profile construction, canonical basis,
+  profile identity, comparison, progression, materialization, and readiness
+- changing only one new axis changes canonical profile identity and produces a
+  family-specific difference
+- actual inactive, continuous, and explicitly activated observation
+  dispositions remain distinguishable to a blind consumer
+- evidence absent because observation was not activated remains distinct from
+  richness omission, budget denial, non-retention, non-reconstructability,
+  support deferral, certification denial, and redaction
+- structural counter capture, diagnostic fact capture, descriptive lineage
+  record maintenance, provenance fact capture, and replay-sidecar maintenance
+  can be included or excluded independently in a performance claim
+- correctness-required identity, validation, replay linkage, receipt, security,
+  and durability work cannot be classified as optional observation
+- Foundational vocabulary describes observation activation but cannot authorize
+  a runtime observation, execute policy, or mint a performed receipt
+- a real adopting runtime proves that the new vocabulary can remove optional
+  work before Milestone 10 closes; a synthetic Foundational runtime double is
+  not adoption evidence
+
 ## Cross-Surface Composition Tests
 
 The crate must include scenario-style tests that compose surfaces across
@@ -666,11 +699,22 @@ Required scenario families:
 - diagnostics canonical-basis parity plus blind-consumer interpretation over
   independently produced row and bundle shapes, including locality mismatch,
   widened fallout, and evidence-posture pressure
+- throughput objective plus inactive on-demand observation over one canonical
+  boundary, proving optional observation work is excluded while authoritative
+  meaning remains identical to a continuously observed twin
+- explicitly activated observation over that same profile, proving requested
+  optional work becomes available prospectively without fabricating historical
+  evidence
 
 These tests must use small synthetic fixtures or `worth-harness` adapters. They
 must not depend on `worth-relational`, `worth-query`, `worth-signal`, or
 `worth-store` behavior. The point is to certify the shared language before
 migration pressure begins.
+
+Milestone 10 adds a separate closure dependency on real `worth-signal`
+adoption. That evidence lives in Signal's own production-root test topology and
+is consumed by the Milestone 10 closure ledger; it must not be copied into
+Foundational tests or used to replace the synthetic local proof above.
 
 The synthetic fixtures must be intentionally adversarial. They should vary
 local ordering, internal ids, materialization richness, stale/candidate status,
@@ -852,6 +896,16 @@ The test suite must fail if any of these become possible:
   families while still presenting itself as complete
 - locality mismatch, widened fallout, repeated rediscovery, or broad fallback
   can shape diagnostic meaning without becoming explicit row or bundle evidence
+- execution objective can be inferred from diagnostic richness or vice versa
+- Throughput can be interpreted as weaker correctness, authority, security, or
+  durability
+- inactive on-demand observation constructs optional evidence and merely drops
+  it later
+- a performed observation receipt can be minted without pre-execution runtime
+  admission and completed execution
+- missing on-demand evidence can appear as an empty but complete report
+- correctness-required identity, replay linkage, WAL, MVCC, recovery, integrity,
+  or custody work can be reported as optional observation
 - a foundational test requires a real adopting runtime to discover whether a
   boundary category is valid
 - a local test double grows into an unowned generic runtime, scheduler, storage

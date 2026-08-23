@@ -16,16 +16,26 @@ where
         &mut self,
         handle: ResourceRequestHandle,
     ) -> Option<&InFlightResourceRequest> {
-        self.resource
-            .in_flight_request(handle, &mut self.telemetry.resource)
+        let capture_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
+        self.resource.in_flight_request_optional(
+            handle,
+            capture_telemetry.then_some(&mut self.telemetry.resource),
+        )
     }
 
     pub fn observe_resource_safe_point(
         &mut self,
         binding: &ResourceManagedQueueBinding,
     ) -> Result<ResourceSafePointObservationReport, ResourceSafePointObservationDenial> {
-        self.resource
-            .observe_safe_point(binding, &mut self.telemetry.resource)
+        let capture_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
+        self.resource.observe_safe_point(
+            binding,
+            capture_telemetry.then_some(&mut self.telemetry.resource),
+        )
     }
 
     pub fn bind_resource_managed_queue(
@@ -33,8 +43,14 @@ where
         admitted: AdmittedResourceRequest,
         queue_capacity: u64,
     ) -> Result<ResourceManagedQueueBinding, ResourceManagedQueueDenial> {
-        self.resource
-            .bind_managed_queue(admitted, queue_capacity, &mut self.telemetry.resource)
+        let capture_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
+        self.resource.bind_managed_queue(
+            admitted,
+            queue_capacity,
+            capture_telemetry.then_some(&mut self.telemetry.resource),
+        )
     }
 
     pub fn enqueue_resource_managed_queue(
@@ -42,8 +58,14 @@ where
         binding: &ResourceManagedQueueBinding,
         width: u64,
     ) -> Result<ResourceManagedQueueMutationReport, ResourceManagedQueueDenial> {
-        self.resource
-            .enqueue_managed_queue(binding, width, &mut self.telemetry.resource)
+        let capture_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
+        self.resource.enqueue_managed_queue(
+            binding,
+            width,
+            capture_telemetry.then_some(&mut self.telemetry.resource),
+        )
     }
 
     pub fn dequeue_resource_managed_queue(
@@ -51,7 +73,13 @@ where
         binding: &ResourceManagedQueueBinding,
         width: u64,
     ) -> Result<ResourceManagedQueueMutationReport, ResourceManagedQueueDenial> {
-        self.resource
-            .dequeue_managed_queue(binding, width, &mut self.telemetry.resource)
+        let capture_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
+        self.resource.dequeue_managed_queue(
+            binding,
+            width,
+            capture_telemetry.then_some(&mut self.telemetry.resource),
+        )
     }
 }

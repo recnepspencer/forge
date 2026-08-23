@@ -28,6 +28,7 @@ pub(super) fn canvas_spatial_frame_receipt() -> WorthUiCanvasSpatialFrameReceipt
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .register_component(descriptor())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("canvas fixture capabilities freeze");
     let submission = lower_file_submission(
         WorthUiSourceProvider::in_memory("lane-frame-cost.canvas")
@@ -42,6 +43,7 @@ pub(super) fn canvas_spatial_frame_receipt() -> WorthUiCanvasSpatialFrameReceipt
         .register_component(descriptor())
         .with_candidate_submission(submission)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("canvas fixture application freezes")
         .launch()
         .expect("canvas fixture application launches");

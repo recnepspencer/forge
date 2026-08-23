@@ -25,6 +25,32 @@ pub(crate) use batching::{
     ApplyCommitPacket, OutputCommitPacket, PreparedParallelApplyCommitPacket,
 };
 
+/// Effect-owner capability proving that direct invalidation preparation was
+/// reached through the output-commit packet builder.
+#[derive(Debug)]
+pub(crate) struct DirectInvalidationPreparationReceipt {
+    _private: (),
+}
+
+impl DirectInvalidationPreparationReceipt {
+    pub(in crate::data::graph::runtime::effect) const fn after_preparation() -> Self {
+        Self { _private: () }
+    }
+}
+
+/// Effect-owner capability minted only after every atomic publication write
+/// has completed.
+#[derive(Debug)]
+pub(crate) struct OutputCommitPublicationReceipt {
+    _private: (),
+}
+
+impl OutputCommitPublicationReceipt {
+    pub(in crate::data::graph::runtime::effect) const fn after_atomic_publication() -> Self {
+        Self { _private: () }
+    }
+}
+
 impl SignalGraph {
     fn transition_effect_state(
         &mut self,
@@ -44,16 +70,17 @@ impl SignalGraph {
         let Some(write) = artifact_write else {
             return PreparedEffectArtifactWrite::default();
         };
-        self.telemetry_mut()
-            .storage
-            .hot_write_runtime_artifact_count += u64::from(write.runtime.is_some());
+        if let Some(mut telemetry) = self.telemetry_mut() {
+            telemetry.storage.hot_write_runtime_artifact_count +=
+                u64::from(write.runtime.is_some());
+        }
         let retained = if write.cold_intent.is_none()
             && vocabulary::runtime_policy_omits_cold_artifacts(self)
         {
-            self.telemetry_mut().storage.hot_write_cold_bypass_count += 1;
-            self.telemetry_mut()
-                .storage
-                .deferred_cold_artifact_bypass_count += 1;
+            if let Some(mut telemetry) = self.telemetry_mut() {
+                telemetry.storage.hot_write_cold_bypass_count += 1;
+                telemetry.storage.deferred_cold_artifact_bypass_count += 1;
+            }
             None
         } else {
             self.materialize_retained_artifact(write.cold_intent)

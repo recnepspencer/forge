@@ -11,6 +11,8 @@ use worth_ui_test_support::draft_recipient_contract_for_certification;
 use super::super::super::interaction_world::InteractionWorld;
 use super::super::assertions::{applied, take_pointer_activation};
 
+mod recipient_affinity;
+
 #[test]
 fn installed_native_translators_feed_bound_draft_and_ignore_repeat_metadata() {
     let mut world = InteractionWorld::native();
@@ -192,6 +194,16 @@ fn completed_activation(
         UiHostPointerButtonTransition::Released,
         [20, 20],
     ))
+}
+
+fn native_activation(
+    world: &mut InteractionWorld,
+) -> worth_ui::facade::interaction::UiActivateInteraction {
+    let ingress = world.native_input(vec![
+        pointer_button([20.0, 20.0], true),
+        pointer_button([20.0, 20.0], false),
+    ]);
+    take_pointer_activation(ingress.into_runtime().into_vec().remove(0))
 }
 
 fn pointer_button(position: [f32; 2], pressed: bool) -> egui::Event {

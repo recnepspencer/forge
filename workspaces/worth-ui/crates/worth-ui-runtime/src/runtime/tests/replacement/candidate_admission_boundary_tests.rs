@@ -26,6 +26,7 @@ fn same_candidate_and_same_active_basis_admit_equivalently() {
     let app = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let left = replacement_candidate(&app, ["app/panels/inspector.wui"]);
     let right = replacement_candidate(&app, ["app/panels/inspector.wui"]);
@@ -48,6 +49,7 @@ fn snapshot_mismatch_rejected_before_equivalence_comparison() {
     let app = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let active_basis = runtime.replacement_admission_basis();
@@ -80,6 +82,7 @@ fn deferred_runtime_posture_rejected_before_plan_lowering() {
     let app = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let active_basis = runtime
@@ -107,6 +110,7 @@ fn unsupported_runtime_posture_rejected_before_plan_lowering() {
     let app = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let active_basis = runtime

@@ -19,7 +19,7 @@ where
         expected: &ReconstructabilityRecord,
         replayed: &ReconstructabilityRecord,
     ) -> TemporalReplayParityReport {
-        self.telemetry.temporal.temporal_replay_parity_check_count += 1;
+        self.with_telemetry(|telemetry| telemetry.temporal.temporal_replay_parity_check_count += 1);
         temporal_replay_parity_report(&expected.temporal, &replayed.temporal)
     }
 
@@ -39,7 +39,7 @@ where
         expected: &TemporalCertificationBundle,
         replayed: &TemporalCertificationBundle,
     ) -> TemporalCertificationBundleParityReport {
-        self.telemetry.temporal.temporal_replay_parity_check_count += 1;
+        self.with_telemetry(|telemetry| telemetry.temporal.temporal_replay_parity_check_count += 1);
         temporal_certification_bundle_parity_report(expected, replayed)
     }
 }

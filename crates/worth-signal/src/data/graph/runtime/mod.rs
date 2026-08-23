@@ -6,8 +6,11 @@ pub(crate) mod scratch;
 pub(crate) mod strategy;
 
 pub(crate) use effect::{ApplyCommitPacket, PreparedParallelApplyCommitPacket};
-pub use graph::SignalGraph;
 pub(crate) use graph::{BranchMutationRecord, BranchStructuralDelta};
+pub use graph::{
+    SignalGraph, SignalGraphLifecycleProbe, SignalGraphReconstitution,
+    SignalGraphReconstitutionReport,
+};
 pub use observer::{GraphMaterializer, GraphObserver};
 pub use scratch::ScratchLeaseKind;
 pub(crate) use scratch::TraversalScratch;

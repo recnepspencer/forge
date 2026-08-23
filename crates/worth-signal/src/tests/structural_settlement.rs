@@ -111,3 +111,51 @@ fn structural_recompute_precedes_the_consumers_ordinary_gate() {
     assert_eq!(consumer_calls, 1);
     assert_eq!(graph.get_state(consumer).unwrap(), NodeState::Clean);
 }
+
+#[test]
+fn stable_producer_settlement_resolves_but_does_not_erase_structural_work() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().build();
+    let consumer = graph.node().build();
+    graph
+        .set_dependencies(consumer, [DependencyEdge::new(source, ASPECT_A)])
+        .unwrap();
+
+    evaluate(&mut graph, source, &mut |_id, _graph| Ok(version_ab(0, 0))).unwrap();
+
+    let pending = graph
+        .pending_dependency_revalidation(consumer)
+        .unwrap()
+        .expect("structural posture must survive stable predecessor settlement");
+    assert!(pending.is_resolved());
+    assert!(pending.requires_structural_recompute());
+    assert_eq!(graph.get_state(consumer).unwrap(), NodeState::Dirty);
+    let mut calls = 0;
+    evaluate(&mut graph, consumer, &mut |_id, _graph| {
+        calls += 1;
+        Ok(version_ab(1, 0))
+    })
+    .unwrap();
+    assert_eq!(calls, 1);
+}
+
+#[test]
+fn unrelated_aspect_commit_still_resolves_the_immediate_structural_waiter() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().build();
+    let consumer = graph.node().build();
+    graph
+        .set_dependencies(consumer, [DependencyEdge::new(source, ASPECT_A)])
+        .unwrap();
+
+    evaluate(&mut graph, source, &mut |_id, _graph| Ok(version_ab(0, 1))).unwrap();
+
+    assert!(graph.pending_causes(consumer).unwrap().is_empty());
+    let pending = graph
+        .pending_dependency_revalidation(consumer)
+        .unwrap()
+        .expect("producer settlement is independent from aspect cause admission");
+    assert!(pending.is_resolved());
+    assert!(pending.requires_structural_recompute());
+    assert_eq!(graph.get_state(consumer).unwrap(), NodeState::Dirty);
+}

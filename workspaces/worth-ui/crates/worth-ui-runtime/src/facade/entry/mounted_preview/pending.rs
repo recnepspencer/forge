@@ -11,18 +11,21 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
             generation_identity,
             visual_trace_source,
             graph,
+            font_collection,
             active_plan_digest,
             host_session_identity,
             completion,
             mounted,
             host_session,
             host_exchange,
+            presentation,
         } = self;
         match completion.into_pending_mounted_preview() {
             Ok((transition, planning_counters)) => Ok(WorthUiPendingMountedPreview {
                 generation: generation_identity,
                 visual_trace_source,
                 graph,
+                font_collection,
                 plan_digest: active_plan_digest,
                 transition,
                 planning_counters,
@@ -36,12 +39,14 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
                 generation_identity,
                 visual_trace_source,
                 graph,
+                font_collection,
                 active_plan_digest,
                 host_session_identity,
                 completion: *completion,
                 mounted,
                 host_session,
                 host_exchange,
+                presentation,
             })),
         }
     }
@@ -147,6 +152,7 @@ impl<'session> WorthUiPendingMountedPreview<'session> {
                 }),
                 visual_overlay: None,
                 semantic_content: crate::mounting::UiMountedSemanticContentInput::empty(),
+                font_collection: std::sync::Arc::clone(&self.font_collection),
                 reuse_contract,
             })
             .map_err(WorthUiMountedPreviewPreparationDenial::Frame)?;

@@ -100,9 +100,11 @@ fn repeated_memoized_execution_retains_bounded_diagnostics() {
     let mut runtime = SignalRuntime::builder(SignalGraph::new())
         .with_kernel_defaults()
         .build();
-    runtime
-        .graph_mut()
-        .reset_runtime_policy_to_tier(DiagnosticsTier::Operational);
+    runtime.graph_mut().set_runtime_policy(
+        SignalRuntimePolicy::for_tier(DiagnosticsTier::Operational).with_observation_activation(
+            worth_foundational::ObservationActivationProfile::Continuous,
+        ),
+    );
     let family = define_keyed_computation(&mut runtime, "projection", ());
     let keyed = family.keyed("bulkhead");
     let node = keyed.node(&mut runtime);
@@ -193,7 +195,7 @@ fn repeated_partition_heavy_invalidation_retains_bounded_diagnostics() {
     assert_eq!(
         flow.invalidation.invalidated_direct_subscribers
             + flow.invalidation.maybe_stale_direct_subscribers,
-        2
+        0
     );
     assert_eq!(
         flow.invalidation.frontier_seed_count as u64,

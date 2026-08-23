@@ -2,7 +2,13 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use worth_proof::TransitionOutcome;
-use worth_query::facade::{domain, foundation};
+use worth_query::facade::{
+    certification::{
+        host_conditional_signal_for_certification,
+        WorthQueryHostConditionalSignalDecisionForCertification as HostDecision,
+    },
+    domain, foundation,
+};
 
 use super::conditional_node_contract::{
     conditional_node_result, dependency, GeometryCondition, ManualRefresh,
@@ -46,6 +52,10 @@ fn eligible_temporal_wake_is_checked_even_when_dependencies_are_unchanged() {
     assert_eq!(
         stopped.conditional_provenance()[0].class(),
         domain::WorthQueryConditionalOutcomeClass::ComputedRevertedClean
+    );
+    assert_eq!(
+        host_conditional_signal_for_certification(&stopped.conditional_provenance()[0]),
+        HostDecision::RevertedClean
     );
     assert_eq!(stopped.counters().conditional_condition_checks, 1);
     assert_eq!(stopped.counters().conditional_compute_contacts, 1);
@@ -136,6 +146,10 @@ fn domain_predicate_deferral_is_not_reported_as_temporal_or_on_demand() {
     assert_eq!(
         stopped.conditional_provenance()[0].class(),
         domain::WorthQueryConditionalOutcomeClass::DeferredByCondition
+    );
+    assert_eq!(
+        host_conditional_signal_for_certification(&stopped.conditional_provenance()[0]),
+        HostDecision::Deferred
     );
     assert_eq!(stopped.counters().conditional_condition_deferrals, 1);
     assert_eq!(stopped.counters().conditional_temporal_deferrals, 0);

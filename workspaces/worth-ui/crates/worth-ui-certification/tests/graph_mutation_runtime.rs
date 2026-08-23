@@ -92,6 +92,9 @@ fn public_freeze_denies_graph_commit_before_publishing_graph_authority() {
             .with_semantic_artifact_spec(control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
     {
         Ok(_) => panic!("invalid root topology must deny application preparation"),
         Err(denial) => denial,
@@ -121,6 +124,9 @@ fn mutation_app() -> worth_ui::facade::app::WorthUiApp {
                 .with_semantic_artifact_spec(control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed")
 }
 

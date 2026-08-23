@@ -92,7 +92,7 @@ fn quote_to_risk_aspect_translation_matches_fresh_truth_and_necessity() {
     let result =
         run_quote_to_risk_scenario().expect("financial quote-to-risk scenario should execute");
     assert_eq!(result.reproduction.seed, SCENARIO_SEED);
-    assert!(result.structural_visits >= result.observed_work.len() as u64);
+    assert_eq!(result.structural_visits, 0);
     assert_eq!(result.matched_state, NodeState::Clean);
     assert!(result.matched_dirty_aspects.is_empty());
     assert!(result

@@ -16,6 +16,7 @@ pub struct UiMountedPresentationReceipt {
     attempt: UiMountedPresentationAttemptIdentity,
     frame: UiMountedFrameIdentity,
     surfaces: Box<[UiMountedSurfacePresentationReceipt]>,
+    semantic_requests: Box<[worth_ui_query_binding::WorthUiPresentationRequestBasis]>,
     cost: super::super::UiMountCostReport,
 }
 
@@ -45,6 +46,7 @@ pub struct UiMountedSurfacePresentationRejection {
 pub struct UiPresentationIndeterminateReport {
     attempt: UiMountedPresentationAttemptIdentity,
     affected_bindings: Box<[UiSurfaceBindingGeneration]>,
+    physical_recovery_bindings: Box<[UiSurfaceBindingGeneration]>,
 }
 
 pub struct UiMountedPresentedFrame {
@@ -67,10 +69,17 @@ pub struct UiMountedIndeterminateFrame {
     cost: super::super::UiMountCostReport,
 }
 
+pub struct UiMountedSupersededFrame {
+    attempt: UiMountedPresentationAttemptIdentity,
+    frame: UiPreparedMountedFrame,
+    cost: super::super::UiMountCostReport,
+}
+
 pub enum UiMountedPresentationOutcome {
     RejectedBeforeEffects(UiMountedRejectedFrame),
     InFlight(super::UiMountedPresentationInFlight),
     Presented(UiMountedPresentedFrame),
+    Superseded(UiMountedSupersededFrame),
     PresentationIndeterminate(UiMountedIndeterminateFrame),
 }
 
@@ -80,11 +89,13 @@ impl UiMountedPresentationReceipt {
         frame: UiMountedFrameIdentity,
         cost: super::super::UiMountCostReport,
         surfaces: Vec<UiMountedSurfacePresentationReceipt>,
+        semantic_requests: Vec<worth_ui_query_binding::WorthUiPresentationRequestBasis>,
     ) -> Self {
         Self {
             attempt,
             frame,
             surfaces: surfaces.into_boxed_slice(),
+            semantic_requests: semantic_requests.into_boxed_slice(),
             cost,
         }
     }
@@ -104,6 +115,22 @@ impl UiMountedPresentationReceipt {
         mounting_cost.with_adapter(adapter_cost)
     }
 
+    pub(super) fn compose_cost_with_additional(
+        mounting_cost: super::super::UiMountCostReport,
+        surfaces: &[UiMountedSurfacePresentationReceipt],
+        additional: &[worth_ui_host_contract::UiHostPresentationCostReport],
+    ) -> Result<super::super::UiMountCostReport, super::super::UiMountCostOverflow> {
+        let adapter_cost = additional.iter().try_fold(
+            worth_ui_host_contract::UiHostPresentationCostReport::default(),
+            |total, cost| {
+                total
+                    .checked_add(*cost)
+                    .map_err(|_| super::super::UiMountCostOverflow)
+            },
+        )?;
+        Self::compose_cost(mounting_cost.with_adapter(adapter_cost)?, surfaces)
+    }
+
     pub fn attempt(&self) -> UiMountedPresentationAttemptIdentity {
         self.attempt
     }
@@ -114,6 +141,10 @@ impl UiMountedPresentationReceipt {
 
     pub fn surfaces(&self) -> &[UiMountedSurfacePresentationReceipt] {
         &self.surfaces
+    }
+
+    pub fn semantic_requests(&self) -> &[worth_ui_query_binding::WorthUiPresentationRequestBasis] {
+        &self.semantic_requests
     }
 
     pub fn cost_report(&self) -> super::super::UiMountCostReport {
@@ -199,12 +230,16 @@ impl UiPresentationIndeterminateReport {
     pub(super) fn new(
         attempt: UiMountedPresentationAttemptIdentity,
         mut affected_bindings: Vec<UiSurfaceBindingGeneration>,
+        mut physical_recovery_bindings: Vec<UiSurfaceBindingGeneration>,
     ) -> Self {
         affected_bindings.sort();
         affected_bindings.dedup();
+        physical_recovery_bindings.sort();
+        physical_recovery_bindings.dedup();
         Self {
             attempt,
             affected_bindings: affected_bindings.into_boxed_slice(),
+            physical_recovery_bindings: physical_recovery_bindings.into_boxed_slice(),
         }
     }
 
@@ -214,6 +249,14 @@ impl UiPresentationIndeterminateReport {
 
     pub fn affected_bindings(&self) -> &[UiSurfaceBindingGeneration] {
         &self.affected_bindings
+    }
+
+    pub fn awaits_physical_recovery(&self) -> bool {
+        !self.physical_recovery_bindings.is_empty()
+    }
+
+    pub fn physical_recovery_bindings(&self) -> &[UiSurfaceBindingGeneration] {
+        &self.physical_recovery_bindings
     }
 }
 
@@ -313,6 +356,32 @@ impl UiMountedIndeterminateFrame {
 
     pub fn report(&self) -> &UiPresentationIndeterminateReport {
         &self.report
+    }
+
+    pub fn cost_report(&self) -> super::super::UiMountCostReport {
+        self.cost
+    }
+}
+
+impl UiMountedSupersededFrame {
+    pub(crate) fn new(
+        attempt: UiMountedPresentationAttemptIdentity,
+        frame: UiPreparedMountedFrame,
+        cost: super::super::UiMountCostReport,
+    ) -> Self {
+        Self {
+            attempt,
+            frame,
+            cost,
+        }
+    }
+
+    pub fn attempt(&self) -> UiMountedPresentationAttemptIdentity {
+        self.attempt
+    }
+
+    pub fn frame(&self) -> &UiPreparedMountedFrame {
+        &self.frame
     }
 
     pub fn cost_report(&self) -> super::super::UiMountCostReport {

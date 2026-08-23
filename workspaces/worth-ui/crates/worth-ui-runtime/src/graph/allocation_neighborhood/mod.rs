@@ -121,8 +121,8 @@ pub use replan_selection::{
     UiReplanWidenReason,
 };
 pub(crate) use replan_selection::{
-    UiGraphReplanConsequences, UiGraphReplanTransactionBasis, UiPortalReplanConsequence,
-    UiQueryMeasurementReplanConsequence, UiScrollReplanConsequence,
+    UiGraphReplanConsequences, UiGraphReplanTransactionBasis, UiHostMeasurementReplanConsequence,
+    UiPortalReplanConsequence, UiQueryMeasurementReplanConsequence, UiScrollReplanConsequence,
 };
 #[path = "activation_handoff/activation_lifecycle.rs"]
 mod activation_lifecycle;

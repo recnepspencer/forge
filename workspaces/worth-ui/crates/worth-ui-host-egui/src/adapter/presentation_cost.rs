@@ -1,69 +1,70 @@
 use worth_ui_host_contract::{
     UiHostPresentationCostInput, UiHostPresentationCostReport, UiHostSurfacePresentationDenial,
-    UiMountedProjectionView,
+    UiMountedPresentationWorkView,
 };
 
-pub(super) fn for_projection(
-    projection: &UiMountedProjectionView,
+pub(super) fn for_work(
+    work: UiMountedPresentationWorkView<'_>,
 ) -> Result<UiHostPresentationCostReport, UiHostSurfacePresentationDenial> {
-    let identity_overlays = projection
-        .nodes()
-        .iter()
-        .filter(|node| {
-            matches!(
-                node.diagnostic(),
-                worth_ui_host_contract::UiMountedDiagnosticProjection::IdentityOverlay(_)
-            )
-        })
-        .count();
-    let rows = [
-        projection.nodes().len(),
-        projection.clips().rows().len(),
-        projection.layers().rows().len(),
-        projection.filled_rects().rows().len(),
-        projection.semantic_text().rows().len(),
-        projection.hit_tests().rows().len(),
-        projection.paint_batches().rows().len(),
-        projection.spatial_batches().rows().len(),
-        projection.realtime_batches().rows().len(),
-        projection.resources().entries().len(),
-        identity_overlays,
-    ]
-    .into_iter()
-    .try_fold(0usize, usize::checked_add)
-    .ok_or(UiHostSurfacePresentationDenial::CapacityExceeded)?;
-    let structural_bytes = [
-        std::mem::size_of_val(projection.nodes()),
-        std::mem::size_of_val(projection.clips().rows()),
-        std::mem::size_of_val(projection.layers().rows()),
-        std::mem::size_of_val(projection.filled_rects().rows()),
-        std::mem::size_of_val(projection.semantic_text().rows()),
-        std::mem::size_of_val(projection.hit_tests().rows()),
-        std::mem::size_of_val(projection.paint_batches().rows()),
-        std::mem::size_of_val(projection.spatial_batches().rows()),
-        std::mem::size_of_val(projection.realtime_batches().rows()),
-        std::mem::size_of_val(projection.resources().entries()),
-        identity_overlays
-            .checked_mul(std::mem::size_of::<
-                worth_ui_host_contract::UiMountedIdentityOverlayMechanic,
-            >())
-            .ok_or(UiHostSurfacePresentationDenial::CapacityExceeded)?,
-    ]
-    .into_iter()
-    .try_fold(0usize, usize::checked_add)
-    .ok_or(UiHostSurfacePresentationDenial::CapacityExceeded)?;
-    let text_bytes = projection
-        .semantic_text()
-        .rows()
-        .iter()
-        .try_fold(0usize, |total, row| total.checked_add(row.text().len()))
-        .ok_or(UiHostSurfacePresentationDenial::CapacityExceeded)?;
-    let bytes = structural_bytes
-        .checked_add(text_bytes)
-        .ok_or(UiHostSurfacePresentationDenial::CapacityExceeded)?;
+    let (presented_surfaces, rows, bytes, delta_rows, draw_mutations, order_mutations, damage) =
+        match work {
+            UiMountedPresentationWorkView::Initial(initial) => {
+                let rows = initial
+                    .commands()
+                    .len()
+                    .checked_add(initial.order().len())
+                    .and_then(|value| value.checked_add(initial.damage().len()))
+                    .ok_or(UiHostSurfacePresentationDenial::CapacityExceeded)?;
+                (
+                    1,
+                    rows,
+                    std::mem::size_of_val(initial.commands()),
+                    0,
+                    0,
+                    0,
+                    initial.damage().len(),
+                )
+            }
+            UiMountedPresentationWorkView::Delta(delta) => {
+                let rows = delta
+                    .changes()
+                    .len()
+                    .checked_add(delta.nodes().len())
+                    .and_then(|value| value.checked_add(delta.order().len()))
+                    .and_then(|value| value.checked_add(delta.damage().len()))
+                    .ok_or(UiHostSurfacePresentationDenial::CapacityExceeded)?;
+                (
+                    1,
+                    rows,
+                    std::mem::size_of_val(delta.changes()) + std::mem::size_of_val(delta.nodes()),
+                    rows,
+                    delta.changes().len(),
+                    delta.order().len(),
+                    delta.damage().len(),
+                )
+            }
+            UiMountedPresentationWorkView::Reconstruction(work) => {
+                let rows = work
+                    .commands()
+                    .len()
+                    .checked_add(work.order().len())
+                    .and_then(|value| value.checked_add(work.damage().len()))
+                    .ok_or(UiHostSurfacePresentationDenial::CapacityExceeded)?;
+                (
+                    1,
+                    rows,
+                    std::mem::size_of_val(work.commands()),
+                    rows,
+                    work.commands().len(),
+                    work.order().len(),
+                    work.damage().len(),
+                )
+            }
+            UiMountedPresentationWorkView::Unchanged(_) => (0, 0, 0, 0, 0, 0, 0),
+        };
     Ok(UiHostPresentationCostReport::from_adapter(
         UiHostPresentationCostInput {
-            presented_surfaces: 1,
+            presented_surfaces,
             translated_rows: u64::try_from(rows)
                 .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
             translated_bytes: u64::try_from(bytes)
@@ -71,6 +72,15 @@ pub(super) fn for_projection(
             native_resource_cache_hits: 0,
             native_resource_cache_misses: 0,
             asynchronous_handoffs: 0,
+            delta_rows_carried: u64::try_from(delta_rows)
+                .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
+            draw_list_mutations: u64::try_from(draw_mutations)
+                .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
+            order_mutations: u64::try_from(order_mutations)
+                .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
+            logical_damage_regions: u64::try_from(damage)
+                .map_err(|_| UiHostSurfacePresentationDenial::CapacityExceeded)?,
+            ..Default::default()
         },
     ))
 }

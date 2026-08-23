@@ -131,7 +131,7 @@ pub(crate) fn admit_or_error(
     node: NodeId,
     previous_dependencies: &[DependencyEdge],
     prepared: PreparedEvaluation,
-    telemetry: &mut RuntimeTelemetry,
+    telemetry: Option<&mut RuntimeTelemetry>,
 ) -> Result<PreparedHostComputedEvaluation, SignalError> {
     let mut evaluator = PreparedResponseEvaluator { prepared };
     let mut ctx = ();
@@ -151,17 +151,21 @@ pub(crate) fn evaluate_with_or_error<E>(
     previous_dependencies: &[DependencyEdge],
     evaluator: &mut E,
     ctx: &mut E::Context,
-    telemetry: &mut RuntimeTelemetry,
+    mut telemetry: Option<&mut RuntimeTelemetry>,
 ) -> Result<PreparedHostComputedEvaluation, SignalError>
 where
     E: HostComputedEvaluator,
 {
-    telemetry.host_computed.descriptor_registration_count += 1;
+    if let Some(telemetry) = telemetry.as_deref_mut() {
+        telemetry.host_computed.descriptor_registration_count += 1;
+    }
     let request = HostComputedEvaluationRequest::new(
         HostComputedDescriptor::for_node(node, api_family),
         previous_dependencies,
     );
-    telemetry.host_computed.evaluation_request_admission_count += 1;
+    if let Some(telemetry) = telemetry.as_deref_mut() {
+        telemetry.host_computed.evaluation_request_admission_count += 1;
+    }
     let response = evaluator.evaluate(&request, ctx).unwrap_or_else(|err| {
         HostComputedEvaluationResponse::failed(
             super::outcome::HostComputedFailureClass::RuntimeInvariantViolation,
@@ -238,7 +242,7 @@ mod tests {
             node,
             &[],
             prepared,
-            &mut telemetry,
+            Some(&mut telemetry),
         )
         .unwrap();
 
@@ -274,7 +278,7 @@ mod tests {
             &[],
             &mut evaluator,
             &mut ctx,
-            &mut telemetry,
+            Some(&mut telemetry),
         )
         .unwrap();
 
@@ -298,7 +302,7 @@ mod tests {
             &[],
             &mut evaluator,
             &mut ctx,
-            &mut telemetry,
+            Some(&mut telemetry),
         )
         .unwrap_err();
 

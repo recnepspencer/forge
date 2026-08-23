@@ -1,5 +1,6 @@
 use crate::facade::{
-    ClockAdvanceOrdinal, ClockAdvanceRequest, ClockDomain, ClockTick, SignalGraph, SignalRuntime,
+    ClockAdvanceOrdinal, ClockAdvanceRequest, ClockDomain, ClockTick, SignalGraph,
+    SignalObservationCompletion, SignalObservationRequest, SignalRuntime, SignalRuntimePolicy,
     TemporalCondition, TemporalReconstructabilityArtifact, TemporalWakeId,
     TemporalWakeRetirementReason, WakeOrdinal,
 };
@@ -147,6 +148,89 @@ fn active_temporal_snapshot_restore_counts_restore_and_reinstates_frontier() {
             .temporal
             .branch_local_temporal_restore_count,
         1
+    );
+}
+
+#[test]
+fn on_demand_snapshot_restore_does_not_capture_optional_restore_telemetry() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    runtime.set_runtime_policy(SignalRuntimePolicy::operational());
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("snapshot capture should succeed without managed queue bindings");
+    assert!(
+        snapshot.runtime_telemetry.is_none(),
+        "OnDemand snapshot must carry typed absence for optional runtime telemetry"
+    );
+
+    runtime
+        .restore_snapshot_with_intent(
+            &snapshot,
+            crate::state::SnapshotRestoreIntent::restore_runtime_truth_with_active_policy(),
+        )
+        .unwrap();
+
+    assert_eq!(
+        runtime
+            .telemetry()
+            .temporal
+            .branch_local_temporal_restore_count,
+        0,
+        "OnDemand restore must not write optional temporal telemetry"
+    );
+    assert_eq!(
+        runtime
+            .telemetry()
+            .temporal
+            .branch_restore_temporal_rebuild_denial_count,
+        0,
+        "OnDemand restore must not write optional rebuild telemetry"
+    );
+}
+
+#[test]
+fn on_demand_restore_does_not_rehydrate_continuous_snapshot_telemetry() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let session = runtime
+        .begin_observation_session(SignalObservationRequest::telemetry())
+        .unwrap();
+    let _basis = runtime.current_branch_basis_artifact();
+    let snapshot = runtime
+        .capture_snapshot()
+        .expect("continuous snapshot should capture runtime telemetry");
+    assert!(snapshot.runtime_telemetry.is_some());
+    assert!(
+        runtime
+            .telemetry()
+            .transaction
+            .branch_basis_production_count
+            > 0
+    );
+    assert_eq!(
+        runtime.graph().last_observation_completion(),
+        Some(SignalObservationCompletion::InterruptedByBoundary)
+    );
+    assert!(runtime.finish_observation_session(&session).is_err());
+    runtime.set_runtime_policy(SignalRuntimePolicy::operational());
+
+    runtime
+        .restore_snapshot_with_intent(
+            &snapshot,
+            crate::state::SnapshotRestoreIntent::restore_runtime_truth_with_active_policy(),
+        )
+        .unwrap();
+
+    assert_eq!(
+        runtime
+            .telemetry()
+            .transaction
+            .branch_basis_production_count,
+        0,
+        "OnDemand restore must not rehydrate optional telemetry from a rich snapshot"
     );
 }
 

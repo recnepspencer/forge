@@ -97,7 +97,7 @@
     }
   },
   "structural_inventory": {
-    "certification_audience_source_files": 80,
+    "certification_audience_source_files": 82,
     "product_integration_targets": 2,
     "certification_integration_targets": 7,
     "total_integration_targets": 9,

@@ -24,7 +24,7 @@ impl WorthQueryAsyncResourceRequestIdentity {
         let request_identity = admit_identity_parts(request_identity)?;
         let encoded_parts = request_identity
             .iter()
-            .map(|part| format!("{}={}", part.key(), part.value()))
+            .map(WorthQueryAsyncRequestIdentityPart::evidence_component)
             .collect::<Vec<_>>();
         let evidence_identity = WorthQueryEvidenceIdentity::compose(
             WorthQueryEvidenceScope::AsyncResourceRequestIdentity,
@@ -98,7 +98,7 @@ fn admit_identity_parts(
         if key.is_empty() {
             return Err(WorthQueryAsyncResourceRequestIdentityError::BlankIdentityKey);
         }
-        if part.value().trim().is_empty() {
+        if part.has_blank_text_value() {
             return Err(
                 WorthQueryAsyncResourceRequestIdentityError::BlankIdentityValue {
                     key: key.to_string(),

@@ -122,7 +122,7 @@ impl<'session> WorthUiMountedContentRebindInFlight<'session> {
             mounted,
             publication,
         } = *self;
-        let outcome = session.cancel_mounted_presentation(mounted);
+        let outcome = session.supersede_mounted_presentation(mounted);
         finish(session, outcome, publication)
     }
 }
@@ -185,6 +185,9 @@ fn finish<'session>(
             WorthUiMountedContentRebindOutcome::PresentationIndeterminate(Box::new(
                 WorthUiMountedContentRebindIndeterminate { session, frame },
             ))
+        }
+        crate::mounting::UiMountedFrameOutcome::Superseded(_) => {
+            unreachable!("ordinary content rebind cannot overlap a superseding frame")
         }
         crate::mounting::UiMountedFrameOutcome::RetentionDenied(rejection) => {
             WorthUiMountedContentRebindOutcome::RetentionDenied {

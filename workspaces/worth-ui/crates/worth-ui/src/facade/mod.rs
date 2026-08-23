@@ -1,5 +1,8 @@
 pub mod admission;
 pub mod app;
+#[cfg(feature = "certification-support")]
+#[doc(hidden)]
+pub mod certification;
 pub mod declaration;
 pub mod diagnostics;
 mod entry {}

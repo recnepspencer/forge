@@ -63,7 +63,7 @@ fn runtime_component_measurement_claims(
 ) -> BTreeMap<
     RuntimeStructuralClaimKey,
     (
-        UiDeclaredMeasurementBasisSource,
+        Option<UiDeclaredMeasurementBasisSource>,
         crate::declaration::UiDeclaredMeasurementMode,
     ),
 > {
@@ -81,18 +81,28 @@ fn runtime_component_measurement_claims(
             };
             let (basis, mode) = match contract {
                 crate::capability::ComponentAllocationMeasurementContract::FillViewport => (
-                    UiDeclaredMeasurementBasisSource::ViewportExtent,
+                    Some(UiDeclaredMeasurementBasisSource::ViewportExtent),
                     crate::declaration::UiDeclaredMeasurementMode::FillViewport,
                 ),
                 crate::capability::ComponentAllocationMeasurementContract::ViewportInset(inset) => {
                     (
-                        UiDeclaredMeasurementBasisSource::ViewportExtent,
+                        Some(UiDeclaredMeasurementBasisSource::ViewportExtent),
                         crate::declaration::UiDeclaredMeasurementMode::ViewportInset {
                             horizontal_logical_points: inset.horizontal_logical_points(),
                             vertical_logical_points: inset.vertical_logical_points(),
                         },
                     )
                 }
+                crate::capability::ComponentAllocationMeasurementContract::FixedLogicalSize {
+                    width,
+                    height,
+                } => (
+                    None,
+                    crate::declaration::UiDeclaredMeasurementMode::FixedLogicalSize {
+                        width,
+                        height,
+                    },
+                ),
             };
             claims.insert(
                 (
@@ -111,7 +121,7 @@ fn admit_component_measurement_claims(
     claims: &BTreeMap<
         RuntimeStructuralClaimKey,
         (
-            UiDeclaredMeasurementBasisSource,
+            Option<UiDeclaredMeasurementBasisSource>,
             crate::declaration::UiDeclaredMeasurementMode,
         ),
     >,
@@ -124,7 +134,7 @@ fn admit_component_measurement_claims(
         );
         if let Some((basis, mode)) = claims.get(&key).copied() {
             artifact.admit_source_backed_measurement_mode(Some(mode));
-            artifact.admit_source_backed_measurement_basis_source(Some(basis));
+            artifact.admit_source_backed_measurement_basis_source(basis);
         }
     }
 }

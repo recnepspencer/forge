@@ -197,16 +197,19 @@ Relational commit
   -> schema-aware authoritative aspect change
   -> Bridge semantic change envelope
   -> installed semantic correspondence lookup
-  -> exact or declared-widening Signal target delivery
-  -> Signal aspect version update
-  -> Signal-owned condition and evaluation decision
-  -> Query conditional provenance and consequence
+  -> exact or declared-widening delivery
+     -> direct truth admitted by Query when no Signal work is required
+     -> or producer-local Signal invalidation and performed execution evidence
+  -> Query impact admission and query-shaped maintenance
+  -> current consumer publication
 ```
 
 Relational does not allocate Signal slots. Signal does not interpret
 Relational field paths. Query does not decide whether a Signal computation is
 semantically clean. Runtime Bridge is the only place where the installed
-relationship is admitted and retained.
+relationship is admitted and retained. A direct Bridge truth delivery and a
+performed Signal consequence are distinct facts; neither may impersonate the
+other.
 
 ## Exact And Widened Correspondence
 
@@ -339,7 +342,8 @@ Relational, Bridge, and Signal surfaces. They are never optional decoration.
   authority.
 - Relational publication owns committed change interpretation.
 - Runtime Bridge owns correspondence and delivery precision.
-- Signal owns local aspect versions and evaluation decisions.
+- Signal owns producer-local scoped invalidation, readiness, local aspect
+  versions, evaluation decisions, and performed execution receipts.
 - Ordinary computed and effect surfaces use the same aspect/authority
   distinction without requiring installed operation identity.
 
@@ -379,14 +383,17 @@ and aspect contract.
 - Runtime-local Signal slot allocation is intentionally non-portable.
 - Correspondence is installed before runtime publication and is tied to the
   exact Query runtime generation and Signal graph instance.
-- Future replay, sharing, invalidation-delta, and patch surfaces must preserve
-  the same semantic identities and decision provenance when they are added.
+- Current sharing, granular invalidation, and query-shaped patch surfaces
+  preserve the same semantic identities and decision provenance. Replay and
+  reconstruction remain separate certification or recovery lanes rather than
+  ordinary maintenance authority.
 
 ## Related Docs
 
 - [Runtime-Installed Domains And Operations](../domain-capabilities/runtime-installed-domains.md)
 - [Conditional Installed Operations](../domain-capabilities/conditional-installed-operations.md)
 - [Downstream Runtime Integration](../foundations/downstream-runtime-integration.md)
+- [Granular Live Invalidation](../runtime-surfaces/granular-live-invalidation.md)
 - [Native Aspect Values](../capabilities/native-aspect-values.md)
 - [Computed](../runtime-surfaces/computed.md)
 - [Effects](../execution/effects.md)

@@ -1174,7 +1174,7 @@ digest parity, replay stability, support comparability, or migration readiness.
 - Milestone 8 performance/layout vocabulary needs cost-visible
   materialization boundaries before performance reports can attach to canonical
   artifacts honestly.
-- Milestone 9 migrations need canonical basis parity before crate-local
+- Milestone 11 migrations need canonical basis parity before crate-local
   dialects can converge with confidence.
 
 ## Explicit Non-Goals

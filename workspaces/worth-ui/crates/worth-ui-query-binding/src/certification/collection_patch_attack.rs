@@ -22,8 +22,8 @@ pub enum WorthUiCollectionPatchAttack {
 pub struct WorthUiCollectionPatchAttackReport {
     attack: WorthUiCollectionPatchAttack,
     denial: WorthQueryCollectionDeliveryDenialKind,
-    rows_before_denial: Vec<String>,
-    rows_after_denial: Vec<String>,
+    state_preserved: bool,
+    follow_up_delivery_succeeded: bool,
     successful_facts: Box<[UiCollectionProjectionFactReceipt]>,
     closed_resources: usize,
     terminal_owners: usize,
@@ -38,12 +38,12 @@ impl WorthUiCollectionPatchAttackReport {
         self.denial
     }
 
-    pub fn rows_before_denial(&self) -> &[String] {
-        &self.rows_before_denial
+    pub fn state_preserved(&self) -> bool {
+        self.state_preserved
     }
 
-    pub fn rows_after_denial(&self) -> &[String] {
-        &self.rows_after_denial
+    pub fn follow_up_delivery_succeeded(&self) -> bool {
+        self.follow_up_delivery_succeeded
     }
 
     pub fn successful_facts(&self) -> &[UiCollectionProjectionFactReceipt] {
@@ -75,8 +75,8 @@ pub fn certify_collection_patch_attack(
 
 struct PatchAttackOutcome {
     denial: WorthQueryCollectionDeliveryDenialKind,
-    rows_before_denial: Vec<String>,
-    rows_after_denial: Vec<String>,
+    state_preserved: bool,
+    follow_up_delivery_succeeded: bool,
     successful_facts: Vec<UiCollectionProjectionFactReceipt>,
 }
 
@@ -120,7 +120,7 @@ impl PatchAttackWorld {
             .certification_apply_patch(accepted)
             .expect("first duplicate twin applies");
         let fact = self.subject().certification_derive_fact(&receipt);
-        self.denied_outcome(duplicate, vec![fact], false)
+        self.denied_outcome(duplicate, vec![fact], false, true)
     }
 
     fn reordered(&mut self) -> PatchAttackOutcome {
@@ -139,7 +139,7 @@ impl PatchAttackWorld {
             .certification_apply_patch(second)
             .expect("second ordered patch applies");
         let second_fact = self.subject().certification_derive_fact(&second);
-        self.denied_outcome(reordered, vec![first_fact, second_fact], false)
+        self.denied_outcome(reordered, vec![first_fact, second_fact], false, true)
     }
 
     fn superseded(&mut self) -> PatchAttackOutcome {
@@ -149,7 +149,7 @@ impl PatchAttackWorld {
         self.update("Alpha superseded two");
         let (reset, unused_reset) = self.subject_patch_twins();
         drop(unused_reset);
-        let mut outcome = self.denied_outcome(superseded, Vec::new(), false);
+        let mut outcome = self.denied_outcome(superseded, Vec::new(), false, false);
         let receipt = self
             .subject_mut()
             .certification_apply_patch(reset)
@@ -157,6 +157,7 @@ impl PatchAttackWorld {
         outcome
             .successful_facts
             .push(self.subject().certification_derive_fact(&receipt));
+        outcome.follow_up_delivery_succeeded = true;
         outcome
     }
 
@@ -172,7 +173,7 @@ impl PatchAttackWorld {
         let candidate_fact = self
             .candidate()
             .certification_derive_fact(&candidate_receipt);
-        let mut outcome = self.denied_outcome(subject_attack, vec![candidate_fact], true);
+        let mut outcome = self.denied_outcome(subject_attack, vec![candidate_fact], true, true);
         let subject_receipt = self
             .subject_mut()
             .certification_apply_patch(subject_success)
@@ -185,7 +186,7 @@ impl PatchAttackWorld {
 
     fn wrong_window(&mut self) -> PatchAttackOutcome {
         self.update("Alpha wrong window");
-        let (subject_success, wrong_window) = {
+        let (subject_success, wrong_window, target_success) = {
             let Self {
                 workspace,
                 subject,
@@ -205,7 +206,19 @@ impl PatchAttackWorld {
             .certification_apply_patch(subject_success)
             .expect("wide-window patch applies to its owner");
         let fact = self.subject().certification_derive_fact(&receipt);
-        self.denied_outcome(wrong_window, vec![fact], true)
+        let mut outcome = self.denied_outcome(wrong_window, vec![fact], true, false);
+        let receipt = self
+            .candidate_mut()
+            .certification_apply_patch(target_success)
+            .expect("wrong-window denial must preserve the target's valid pending patch");
+        let follow_up = self.candidate().certification_derive_fact(&receipt);
+        super::collection_patch_recovery::assert_exact_update(
+            &follow_up,
+            &self.changed,
+            "Alpha wrong window",
+        );
+        outcome.follow_up_delivery_succeeded = true;
+        outcome
     }
 
     fn denied_outcome(
@@ -213,8 +226,9 @@ impl PatchAttackWorld {
         patch: worth_query::facade::installed::collection::WorthQueryCollectionPatch,
         successful_facts: Vec<UiCollectionProjectionFactReceipt>,
         candidate_target: bool,
+        prove_follow_up: bool,
     ) -> PatchAttackOutcome {
-        let rows_before_denial = self.target(candidate_target).certification_row_identities();
+        let state_before_denial = self.target(candidate_target).certification_state_snapshot();
         let denial = match self
             .target_mut(candidate_target)
             .certification_apply_patch(patch)
@@ -222,11 +236,13 @@ impl PatchAttackWorld {
             Err(denial) => denial,
             Ok(_) => panic!("hostile patch must be denied"),
         };
-        let rows_after_denial = self.target(candidate_target).certification_row_identities();
+        let state_after_denial = self.target(candidate_target).certification_state_snapshot();
+        let follow_up_delivery_succeeded =
+            !prove_follow_up || self.prove_follow_up_delivery(candidate_target);
         PatchAttackOutcome {
             denial: denial.kind(),
-            rows_before_denial,
-            rows_after_denial,
+            state_preserved: state_before_denial == state_after_denial,
+            follow_up_delivery_succeeded,
             successful_facts,
         }
     }
@@ -253,8 +269,8 @@ impl PatchAttackWorld {
         WorthUiCollectionPatchAttackReport {
             attack,
             denial: outcome.denial,
-            rows_before_denial: outcome.rows_before_denial,
-            rows_after_denial: outcome.rows_after_denial,
+            state_preserved: outcome.state_preserved,
+            follow_up_delivery_succeeded: outcome.follow_up_delivery_succeeded,
             successful_facts: outcome.successful_facts.into_boxed_slice(),
             closed_resources,
             terminal_owners,
@@ -263,6 +279,30 @@ impl PatchAttackWorld {
 
     fn update(&mut self, value: &str) {
         super::update_projection_status(&mut self.workspace, self.changed.clone(), value);
+    }
+
+    fn prove_follow_up_delivery(&mut self, candidate_target: bool) -> bool {
+        const FOLLOW_UP_VALUE: &str = "Alpha after denial";
+        self.update(FOLLOW_UP_VALUE);
+        let (patch, unused_twin) = if candidate_target {
+            self.candidate_patch_twins()
+        } else {
+            self.subject_patch_twins()
+        };
+        drop(unused_twin);
+        let receipt = self
+            .target_mut(candidate_target)
+            .certification_apply_patch(patch)
+            .expect("a denied hostile patch must not poison the next valid delivery");
+        let fact = self
+            .target(candidate_target)
+            .certification_derive_fact(&receipt);
+        super::collection_patch_recovery::assert_exact_update(
+            &fact,
+            &self.changed,
+            FOLLOW_UP_VALUE,
+        );
+        true
     }
 
     fn subject(&self) -> &UiLiveCollectionProjection {

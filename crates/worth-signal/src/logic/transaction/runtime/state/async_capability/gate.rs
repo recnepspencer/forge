@@ -22,9 +22,9 @@ where
     ) -> Result<AsyncNodeGateStateReport, SignalError> {
         self.ensure_live_async_node_owner(node, "read async node gate state")?;
         if self.async_node_capability_bundle_for_node(node).is_none() {
-            self.telemetry
-                .resource
-                .resource_undeclared_owner_denial_count += 1;
+            self.with_resource_telemetry(|telemetry| {
+                telemetry.resource_undeclared_owner_denial_count += 1
+            });
             return Err(SignalError::invalid_input(format!(
                 "cannot read async node gate state for undeclared node {node}"
             )));
@@ -75,9 +75,9 @@ where
             upstream_dependency_count,
             downstream_subscriber_count,
         );
-        self.telemetry
-            .resource
-            .record_boundary_performance_envelope(performance);
+        self.with_resource_telemetry(|telemetry| {
+            telemetry.record_boundary_performance_envelope(performance)
+        });
         Ok(AsyncNodeGateStateReport::new(
             node,
             upstream_dependency_count,

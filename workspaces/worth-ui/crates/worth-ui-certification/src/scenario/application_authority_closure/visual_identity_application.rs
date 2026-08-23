@@ -1,4 +1,6 @@
-use worth_ui::facade::app::{WorthUi, WorthUiApplicationBuilder};
+use super::fixed_application_builder::FixedCertificationApplicationBuilder;
+use super::fixed_host::FixedCertificationHostBinding;
+use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::{
     ComponentAllocationMeasurementContract, ComponentChildPolicy, ComponentDescriptor,
     ComponentHitTestContract, ComponentHitTestInset, ComponentHitTestOrder, ComponentId,
@@ -8,7 +10,8 @@ use worth_ui::facade::declaration::{
     ThemeColorValue, ThemeTokenAlias, ThemeTokenDescriptor, ThemeTokenFamily, ThemeTokenId,
     ThemeTokenSource, ThemeTokenValue,
 };
-use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
+
+type WorthUiApplicationBuilder = FixedCertificationApplicationBuilder;
 
 pub(crate) const VISUAL_PAINT_ONLY_COMPONENT: &str = "visual.identity.component.paint_only";
 pub(crate) const VISUAL_HIT_ONLY_COMPONENT: &str = "visual.identity.component.hit_only";
@@ -20,12 +23,17 @@ pub(crate) const VISUAL_PAINT_ONLY_TOKEN: &str = "theme.visual_identity.paint_on
 pub(crate) const VISUAL_PAINT_AND_HIT_TOKEN: &str = "theme.visual_identity.paint_and_hit";
 pub(crate) const VISUAL_RED_TOKEN: &str = "theme.visual_identity.red";
 pub(crate) const VISUAL_PURPLE_TOKEN: &str = "theme.visual_identity.purple";
+pub(crate) const PHASE5_CANCELLATION_BACKGROUND: &str = "phase5.cancel.background";
+pub(crate) const PHASE5_CANCELLATION_COMPONENT: &str = "phase5.cancel.component";
+pub(crate) const PHASE5_CANCELLATION_SURFACE: &str = "phase5.cancel.surface";
+pub(crate) const PHASE5_CANCELLATION_TOKEN: &str = "theme.phase5.cancel.foreground";
+pub(crate) const PHASE5_CANCELLATION_COLOR_TOKEN: &str = "theme.phase5.cancel.color";
 
 pub(crate) fn visual_identity_application_builder_with_host<Host>(
     host: Host,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
     visual_identity_builder(
         host,
@@ -40,7 +48,7 @@ pub(crate) fn duplicate_hit_order_application_builder_with_host<Host>(
     host: Host,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
     visual_identity_builder(
         host,
@@ -55,7 +63,7 @@ pub(crate) fn region_identity_application_builder_with_host<Host>(
     host: Host,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
     visual_identity_builder(
         host,
@@ -70,7 +78,7 @@ pub(crate) fn clipped_visual_identity_application_builder_with_host<Host>(
     host: Host,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
     visual_identity_builder(
         host,
@@ -85,7 +93,7 @@ pub(crate) fn clipped_semantic_text_action_application_builder_with_host<Host>(
     host: Host,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
     visual_identity_builder(
         host,
@@ -96,12 +104,58 @@ where
     )
 }
 
+pub(crate) fn single_semantic_text_application_builder_with_host<Host>(
+    host: Host,
+) -> WorthUiApplicationBuilder
+where
+    Host: FixedCertificationHostBinding,
+{
+    let text_component = component(PHASE5_CANCELLATION_COMPONENT)
+        .with_static_paint(
+            ComponentStaticPaintContract::opaque_fill(
+                token_id(PHASE5_CANCELLATION_TOKEN),
+                ComponentStaticPaintOrder::back_to_front(1),
+            ),
+            ComponentAllocationMeasurementContract::viewport_inset(
+                ComponentViewportInset::symmetric(24, 16),
+            ),
+        )
+        .with_semantic_text(ComponentSemanticTextContract::body_default(
+            token_id(PHASE5_CANCELLATION_TOKEN),
+            2,
+        ));
+    let builder = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
+        .register_component(component(PHASE5_CANCELLATION_BACKGROUND).with_static_paint(
+            ComponentStaticPaintContract::opaque_fill(
+                token_id(PHASE5_CANCELLATION_TOKEN),
+                ComponentStaticPaintOrder::back_to_front(0),
+            ),
+            ComponentAllocationMeasurementContract::fill_viewport(),
+        ))
+        .register_component(text_component)
+        .register_surface(SurfaceDescriptor::new(
+            SurfaceId::new(PHASE5_CANCELLATION_SURFACE).expect("valid cancellation surface id"),
+            SurfaceKind::primary_content(),
+            ComponentId::new(PHASE5_CANCELLATION_BACKGROUND)
+                .expect("valid cancellation background id"),
+            SurfacePlacementClass::primary_region(),
+            SurfaceStateClass::ephemeral(),
+        ))
+        .register_theme_token(color_token(PHASE5_CANCELLATION_COLOR_TOKEN, "#d8e8ff"))
+        .register_theme_token(alias_token(
+            PHASE5_CANCELLATION_TOKEN,
+            PHASE5_CANCELLATION_COLOR_TOKEN,
+        ));
+    FixedCertificationApplicationBuilder::new(builder, host)
+}
+
 pub(crate) fn clipped_semantic_text_action_application_builder_with_host_and_profile<Host>(
     host: Host,
     profile: worth_ui::facade::rebind::UiChangeProfile,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
     visual_identity_builder_with_profile(
         host,
@@ -121,7 +175,7 @@ fn visual_identity_builder<Host>(
     paint_and_hit_semantic_text: bool,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
     visual_identity_builder_with_profile(
         host,
@@ -142,7 +196,7 @@ fn visual_identity_builder_with_profile<Host>(
     profile: worth_ui::facade::rebind::UiChangeProfile,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
     let hit_only_allocation = inset_allocation(8, 8);
     let paint_and_hit_allocation = inset_allocation(16, 12);
@@ -177,9 +231,8 @@ where
     } else {
         paint_and_hit
     };
-    WorthUi::app()
+    let builder = WorthUi::app()
         .with_change_profile(profile)
-        .with_host(host)
         .register_component(component(VISUAL_PAINT_ONLY_COMPONENT).with_static_paint(
             ComponentStaticPaintContract::opaque_fill(
                 token_id(VISUAL_PAINT_ONLY_TOKEN),
@@ -201,7 +254,8 @@ where
         .register_theme_token(color_token(VISUAL_RED_TOKEN, "#cf222e"))
         .register_theme_token(color_token(VISUAL_PURPLE_TOKEN, "#8250df"))
         .register_theme_token(alias_token(VISUAL_PAINT_ONLY_TOKEN, VISUAL_RED_TOKEN))
-        .register_theme_token(alias_token(VISUAL_PAINT_AND_HIT_TOKEN, VISUAL_PURPLE_TOKEN))
+        .register_theme_token(alias_token(VISUAL_PAINT_AND_HIT_TOKEN, VISUAL_PURPLE_TOKEN));
+    FixedCertificationApplicationBuilder::new(builder, host)
 }
 
 fn component(id: &str) -> ComponentDescriptor {

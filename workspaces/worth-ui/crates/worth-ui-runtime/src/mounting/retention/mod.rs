@@ -14,6 +14,7 @@ mod successor_admission;
 mod visual_capture_basis;
 mod visual_lease;
 
+pub(crate) use authority::UiMountedRetentionReservationIdentity;
 pub(crate) use budget::DEFAULT_OBSERVATION_FRAME_CAPACITY;
 pub use budget::{
     UiMountedFrameRetentionBudget, UiMountedFrameRetentionBudgetInput,
@@ -38,7 +39,9 @@ pub(crate) use lease::{
 pub(crate) use lease::{UiMountedVisualLease, UiMountedVisualLeaseClass};
 pub(crate) use observation_basis::UiMountedObservationBasisRetentionDenial;
 pub use rejection::UiMountedFrameRetentionRejection;
-pub(crate) use reservation::{UiMountedRetentionReservation, UiRetentionPreparedMountedFrame};
+pub(crate) use reservation::{
+    UiMountedRetentionCommitDenial, UiMountedRetentionReservation, UiRetentionPreparedMountedFrame,
+};
 pub(crate) use snapshot::{UiMountedFrameRetentionSnapshot, UiMountedRetentionUsageSnapshot};
 pub(crate) use visual_capture_basis::UiMountedVisualCaptureBasis;
 pub(crate) use visual_lease::UiMountedVisualRetentionDenial;

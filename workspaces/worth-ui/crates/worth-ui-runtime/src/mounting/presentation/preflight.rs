@@ -63,10 +63,6 @@ fn validate_surface(
         != authority.capability_report().profile_identity_digest()
     {
         Some(UiHostSurfacePresentationDenial::CapabilityProfileChanged)
-    } else if surface.projection().surface() != requirement.semantic_surface()
-        || surface.projection().binding() != requirement.binding()
-    {
-        Some(UiHostSurfacePresentationDenial::SurfaceBindingChanged)
     } else {
         unsupported_effect(surface, capabilities)
     };
@@ -82,12 +78,10 @@ fn unsupported_effect(
     surface: &super::super::UiMountedSurfaceReceipt,
     capabilities: &WorthUiHostCapabilityReport,
 ) -> Option<UiHostSurfacePresentationDenial> {
-    let effects = super::effect_requirements::required_effects(
-        surface.requirement().presentation_mode(),
-        surface.projection(),
-    );
+    let effects = surface.presentation_effects();
     effects
-        .into_iter()
+        .iter()
+        .copied()
         .find(|effect| !supports_effect(capabilities, *effect))
         .map(UiHostSurfacePresentationDenial::UnsupportedEffect)
 }

@@ -33,4 +33,6 @@ pub struct SignalSnapshotDiagnostics {
     pub next_branch_id: u64,
     pub next_lineage_artifact_id: u64,
     pub next_lineage_sequence: u64,
+    #[serde(default)]
+    pub observation_activation_mask: u8,
 }

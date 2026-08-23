@@ -221,7 +221,7 @@ export function createReactiveRawSignals(options = {}) {
         latestRollback() {
           return null;
         },
-        latestFrontierExecution() {
+        latestInvalidationPlanningEstimate() {
           return null;
         },
         latestInvalidationTraceRecords() {

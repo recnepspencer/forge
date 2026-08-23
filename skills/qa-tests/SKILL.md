@@ -1,78 +1,77 @@
 ---
 name: qa-tests
-description: Review and correct WORTH tests and test harnesses as production evidence. Use when auditing fixture realism, integration or end-to-end claims, oracle independence, adversarial strength, redundant tests, compile-test inflation, or test cost.
+description: Review and correct WORTH tests and test harnesses for honest, proportionate evidence. Use when auditing fixture realism, boundary claims, oracle independence, adversarial value, redundancy, compile cost, or whether tests adequately protect a specification.
 ---
 
 # QA Tests
 
-Attempt to falsify the suite's proof claims. A green test is evidence only for
-the production defect it can independently expose.
+Review whether the tests are credible evidence for the behavior they claim to
+protect. Test adequacy is a code-review judgment; tests do not need a second
+evidence system that certifies their adequacy.
 
-## Establish the proof surface
+Read the governing specification, relevant production code,
+`_docs/coding_guidelines/testing_laws.md`, and
+`_docs/coding_guidelines/qa_review_guide.md`. Trace setup, action, observation,
+and teardown rather than trusting test names.
 
-Read the repository instructions, governing specification and test
-requirements, `testing_laws.md`, the relevant production paths, and all fixture,
-harness, and assertion code involved.
+## Choose the execution lane
 
-For each material production guarantee, identify:
+- **Focused:** the reproducer, affected owner tests, and the smallest honest
+  boundary smoke during development.
+- **CI:** the accepted requirement tests and mandatory repository gates for the
+  final change.
+- **Scheduled:** expensive mutation, fuzz, soak, compatibility, maximum-scale,
+  destructive-recovery, and environment-specific suites.
 
-- the plausible defect the suite must expose
-- the real authority or integration boundary implicated by that defect
-- the world and causal preconditions required to reach it
-- the observation that distinguishes correct behavior independently
+Run an expensive lane during ordinary development only when it is the actual
+reproducer or materially affected evidence. Run cheap discovery, configuration,
+fixture, exact-name, and harness checks before expensive worlds.
 
-## Review
+## Independent review
 
-Trace setup, action, observation, and teardown rather than trusting test names.
-Apply these lenses where relevant:
+Use the test reviewer selected by the user or repository. Do not hard-code a
+review model or require a fresh instance after every correction. A persistent
+reviewer may follow the work but must inspect the final production and test diff
+and current results before clearing it.
 
-- **World honesty:** Valid identities, authority, relationships, revisions, and
-  persisted facts have causal provenance. Canonical worlds and isolated deltas
-  reuse expensive setup without shared mutable fate.
-- **Boundary honesty:** Integration and end-to-end labels match the production
-  composition, authority, persistence, protocol, and observation paths actually
-  exercised.
-- **Oracle independence:** Expected results do not reuse the semantics under
-  test, and failures are shown to occur for the intended cause.
-- **Fault pressure:** Tests cover the dangerous semantic classes and relevant
-  denial, cancellation, concurrency, exhaustion, recovery, migration, and
-  partial-effect paths rather than multiplying cooperative examples.
-- **Proof economy:** Every test owns distinct evidence. Local tests, mocks,
-  snapshots, and compile-fail cases exist only where they are the cheapest
-  honest proof of a real contract.
-- **Harness integrity:** Test support preserves production invariants, exposes
-  phase failures, and obeys production composition and domain structure.
-- **Cost honesty:** Cargo targets, compiler sessions, fixture construction,
-  external startup, retries, and retained artifacts are intentional and
-  proportionate to the evidence produced.
+Give the reviewer the specification, relevant laws, current diff, fixtures,
+harnesses, assertions, production boundary, commands, results, timings, and
+known environment constraints. Verify every finding directly.
 
-Do not reject a test merely because it is local or synthetic. Reject it when
-its boundary, fixture, oracle, or cost cannot support the claim made for it.
+## Review lenses
 
-## Findings
+- **World honesty:** Authority, identity, relationships, revisions, and state
+  relevant to the claim have credible causal provenance.
+- **Boundary honesty:** Integration and end-to-end labels match the real
+  production boundaries exercised.
+- **Oracle independence:** Expected results do not merely repeat the disputed
+  production semantics.
+- **Intended-cause failure:** Setup, routing, rejection, cleanup, and
+  observation failures cannot counterfeit the expected result.
+- **Risk pressure:** Denial, cancellation, exhaustion, concurrency, recovery,
+  migration, and partial effects are tested when the production risk warrants
+  them.
+- **Proof economy:** Each test or parameterized family contributes meaningful,
+  nonredundant evidence at an appropriate boundary.
+- **Harness integrity:** Test support preserves relevant production invariants
+  without introducing a test-only authority path.
+- **Cost honesty:** Targets, compiler sessions, setup, external startup,
+  retries, and retained artifacts are proportionate to the evidence produced.
 
-Report findings before summaries. For each finding state:
+Mutation probes, negative twins, and fault injection are optional tools for
+high-risk or ambiguous claims. Do not require them when a test's sensitivity is
+already clear. Do not expand test support into a compiler, API analyzer, source
+fingerprint system, or proof ledger to guard hypothetical future mistakes.
 
-1. affected production claim
-2. concrete weakness and evidence
-3. whether the defect belongs to production, fixture, harness, or test
-4. required correction
-5. stronger proof that would close the finding
+## Correct and complete
 
-Do not report coverage percentage, assertion count, or stylistic preference as
-proof weakness by itself.
+Fix production defects in production. Repair fixture provenance and harness
+boundaries before adding assertions. Consolidate redundant scenarios and
+compiler sessions instead of accumulating green artifacts.
 
-## Correct and repeat
-
-Fix production weakness in production rather than padding the test. Repair
-fixture provenance and reuse architecture before counterfeiting inputs.
-Consolidate redundant scenarios and compiler sessions instead of accumulating
-more green artifacts.
-
-After correction, rerun the relevant evidence, verify that the test fails under
-the named fault where practical, and reassess the affected proof family.
-Continue until no meaningful test or harness findings remain.
-
-Completion requires causally valid worlds, honest boundary labels, independent
-observations, intended-cause failures, adversarial evidence proportionate to
-risk, and justified compile plus execution cost.
+After correction, rerun the affected evidence and confirm the test reaches the
+intended behavior. Review is complete when the relevant tests are honest,
+appropriately scoped, reasonably economical, pass on the final change, and the
+assigned reviewer finds them adequate. Report material findings, corrections,
+tests run, expensive or environment-dependent checks not run, and accepted
+residual risk.

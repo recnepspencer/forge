@@ -41,6 +41,7 @@ pub(crate) mod observation;
 pub(crate) mod persistent_index;
 pub(crate) mod planning;
 mod portal_anchored_allocation;
+pub(crate) mod presentation_state;
 pub(crate) mod rebind;
 pub mod replacement;
 pub(crate) mod scroll_owned_allocation;

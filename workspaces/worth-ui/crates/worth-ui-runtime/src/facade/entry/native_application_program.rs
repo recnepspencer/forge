@@ -1,0 +1,373 @@
+const MAXIMUM_FRAMES: usize = 32;
+const MAXIMUM_CHANGES_PER_FRAME: usize = 4_096;
+
+#[cfg(test)]
+#[path = "native_application_program_tests.rs"]
+mod tests;
+
+#[must_use]
+pub struct UiNativeApplicationProgram {
+    frames: Box<[UiNativeApplicationFrame]>,
+    close_after_program: bool,
+}
+
+#[must_use]
+pub struct UiNativeApplicationFrame {
+    component_presence: Box<[UiNativeComponentPresenceChange]>,
+    semantic_text: Box<[UiNativeComponentSemanticTextChange]>,
+    theme_values: Box<[UiNativeThemeTokenValueChange]>,
+    start: UiNativeApplicationFrameStart,
+    completion: UiNativeApplicationFrameCompletion,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum UiNativeApplicationFrameStart {
+    AfterPriorSettlement,
+    SupersedingPriorPending,
+    AfterHostSurfaceBasisSuccessor,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum UiNativeApplicationFrameCompletion {
+    Settle,
+    CancelAfterExternalSubmission,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UiNativeComponentPresenceChange {
+    authored_semantic_identity: Box<str>,
+    present: bool,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UiNativeComponentSemanticTextChange {
+    authored_semantic_identity: Box<str>,
+    text: Box<str>,
+    expected_revision: u64,
+    spans: Option<Box<[crate::facade::registry::descriptor::ComponentSemanticTextSpanContract]>>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UiNativeThemeTokenValueChange {
+    token: crate::facade::registry::descriptor::ThemeTokenId,
+    value: crate::facade::registry::descriptor::ThemeTokenValue,
+    expected_revision: u64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiNativeApplicationProgramDenial {
+    Empty,
+    FrameCapacityExceeded,
+    ChangeCapacityExceeded,
+    InvalidComponentIdentity,
+    InvalidSemanticTextSpans,
+    InvalidThemeTokenValue,
+    SemanticTextUpdateRejected,
+}
+
+impl UiNativeApplicationProgram {
+    pub fn new(
+        frames: impl IntoIterator<Item = UiNativeApplicationFrame>,
+    ) -> Result<Self, UiNativeApplicationProgramDenial> {
+        let mut frames = frames.into_iter().collect::<Vec<_>>();
+        if frames.is_empty() {
+            return Err(UiNativeApplicationProgramDenial::Empty);
+        }
+        if frames.len() > MAXIMUM_FRAMES {
+            return Err(UiNativeApplicationProgramDenial::FrameCapacityExceeded);
+        }
+        let mut revisions = std::collections::HashMap::<Box<str>, u64>::new();
+        let mut theme_revisions = std::collections::BTreeMap::new();
+        for frame in &mut frames {
+            for change in &mut frame.semantic_text {
+                let revision = revisions
+                    .entry(change.authored_semantic_identity.clone())
+                    .or_default();
+                change.expected_revision = *revision;
+                *revision = revision
+                    .checked_add(1)
+                    .ok_or(UiNativeApplicationProgramDenial::ChangeCapacityExceeded)?;
+            }
+            for change in &mut frame.theme_values {
+                let revision = theme_revisions.entry(change.token.clone()).or_insert(0_u64);
+                change.expected_revision = *revision;
+                *revision = revision
+                    .checked_add(1)
+                    .ok_or(UiNativeApplicationProgramDenial::ChangeCapacityExceeded)?;
+            }
+        }
+        Ok(Self {
+            frames: frames.into_boxed_slice(),
+            close_after_program: true,
+        })
+    }
+
+    pub fn single_frame() -> Self {
+        Self {
+            frames: Box::new([UiNativeApplicationFrame::present_current()]),
+            close_after_program: true,
+        }
+    }
+
+    pub fn remain_open_until_external_close(mut self) -> Self {
+        self.close_after_program = false;
+        self
+    }
+
+    pub(crate) fn frames(&self) -> &[UiNativeApplicationFrame] {
+        &self.frames
+    }
+
+    pub(crate) const fn closes_after_program(&self) -> bool {
+        self.close_after_program
+    }
+}
+
+impl UiNativeApplicationFrame {
+    pub fn present_current() -> Self {
+        Self {
+            component_presence: Box::new([]),
+            semantic_text: Box::new([]),
+            theme_values: Box::new([]),
+            start: UiNativeApplicationFrameStart::AfterPriorSettlement,
+            completion: UiNativeApplicationFrameCompletion::Settle,
+        }
+    }
+
+    pub fn with_component_presence(
+        changes: impl IntoIterator<Item = UiNativeComponentPresenceChange>,
+    ) -> Result<Self, UiNativeApplicationProgramDenial> {
+        let changes = changes.into_iter().collect::<Vec<_>>();
+        if changes.len() > MAXIMUM_CHANGES_PER_FRAME {
+            return Err(UiNativeApplicationProgramDenial::ChangeCapacityExceeded);
+        }
+        Ok(Self {
+            component_presence: changes.into_boxed_slice(),
+            semantic_text: Box::new([]),
+            theme_values: Box::new([]),
+            start: UiNativeApplicationFrameStart::AfterPriorSettlement,
+            completion: UiNativeApplicationFrameCompletion::Settle,
+        })
+    }
+
+    pub fn with_semantic_text(
+        changes: impl IntoIterator<Item = UiNativeComponentSemanticTextChange>,
+    ) -> Result<Self, UiNativeApplicationProgramDenial> {
+        let changes = changes.into_iter().collect::<Vec<_>>();
+        if changes.len() > MAXIMUM_CHANGES_PER_FRAME {
+            return Err(UiNativeApplicationProgramDenial::ChangeCapacityExceeded);
+        }
+        Ok(Self {
+            component_presence: Box::new([]),
+            semantic_text: changes.into_boxed_slice(),
+            theme_values: Box::new([]),
+            start: UiNativeApplicationFrameStart::AfterPriorSettlement,
+            completion: UiNativeApplicationFrameCompletion::Settle,
+        })
+    }
+
+    pub fn with_component_presence_and_semantic_text(
+        presence: impl IntoIterator<Item = UiNativeComponentPresenceChange>,
+        semantic_text: impl IntoIterator<Item = UiNativeComponentSemanticTextChange>,
+    ) -> Result<Self, UiNativeApplicationProgramDenial> {
+        let presence = presence.into_iter().collect::<Vec<_>>();
+        let semantic_text = semantic_text.into_iter().collect::<Vec<_>>();
+        if presence.len().saturating_add(semantic_text.len()) > MAXIMUM_CHANGES_PER_FRAME {
+            return Err(UiNativeApplicationProgramDenial::ChangeCapacityExceeded);
+        }
+        Ok(Self {
+            component_presence: presence.into_boxed_slice(),
+            semantic_text: semantic_text.into_boxed_slice(),
+            theme_values: Box::new([]),
+            start: UiNativeApplicationFrameStart::AfterPriorSettlement,
+            completion: UiNativeApplicationFrameCompletion::Settle,
+        })
+    }
+
+    /// Start this logical successor after its predecessor has entered the
+    /// pending presentation phase, without waiting for physical settlement.
+    /// The Query presentation owner adjudicates the exact supersession.
+    pub fn superseding_pending(mut self) -> Self {
+        self.start = UiNativeApplicationFrameStart::SupersedingPriorPending;
+        self
+    }
+
+    /// Hold this frame until the native host publishes a successor readiness
+    /// generation for its surface basis.
+    pub fn after_host_surface_basis_successor(mut self) -> Self {
+        self.start = UiNativeApplicationFrameStart::AfterHostSurfaceBasisSuccessor;
+        self
+    }
+
+    /// Request cancellation only after the ordinary native owner has returned
+    /// an in-flight presentation capability for a real external submission.
+    pub fn cancel_after_external_submission(mut self) -> Self {
+        self.completion = UiNativeApplicationFrameCompletion::CancelAfterExternalSubmission;
+        self
+    }
+
+    pub fn with_theme_token_values(
+        changes: impl IntoIterator<Item = UiNativeThemeTokenValueChange>,
+    ) -> Result<Self, UiNativeApplicationProgramDenial> {
+        let changes = changes.into_iter().collect::<Vec<_>>();
+        if changes.len() > MAXIMUM_CHANGES_PER_FRAME {
+            return Err(UiNativeApplicationProgramDenial::ChangeCapacityExceeded);
+        }
+        Ok(Self {
+            component_presence: Box::new([]),
+            semantic_text: Box::new([]),
+            theme_values: changes.into_boxed_slice(),
+            start: UiNativeApplicationFrameStart::AfterPriorSettlement,
+            completion: UiNativeApplicationFrameCompletion::Settle,
+        })
+    }
+
+    pub(crate) fn component_presence(&self) -> &[UiNativeComponentPresenceChange] {
+        &self.component_presence
+    }
+
+    pub(crate) fn semantic_text(&self) -> &[UiNativeComponentSemanticTextChange] {
+        &self.semantic_text
+    }
+
+    pub(crate) fn theme_values(&self) -> &[UiNativeThemeTokenValueChange] {
+        &self.theme_values
+    }
+
+    pub(crate) const fn starts_by_superseding_pending(&self) -> bool {
+        matches!(
+            self.start,
+            UiNativeApplicationFrameStart::SupersedingPriorPending
+        )
+    }
+
+    pub(crate) const fn awaits_host_surface_basis_successor(&self) -> bool {
+        matches!(
+            self.start,
+            UiNativeApplicationFrameStart::AfterHostSurfaceBasisSuccessor
+        )
+    }
+
+    pub(crate) const fn cancels_after_external_submission(&self) -> bool {
+        matches!(
+            self.completion,
+            UiNativeApplicationFrameCompletion::CancelAfterExternalSubmission
+        )
+    }
+}
+
+impl UiNativeComponentPresenceChange {
+    pub fn new(
+        authored_semantic_identity: impl Into<Box<str>>,
+        present: bool,
+    ) -> Result<Self, UiNativeApplicationProgramDenial> {
+        let identity = authored_semantic_identity.into();
+        if !identity.starts_with("component:") || identity.len() == "component:".len() {
+            return Err(UiNativeApplicationProgramDenial::InvalidComponentIdentity);
+        }
+        Ok(Self {
+            authored_semantic_identity: identity,
+            present,
+        })
+    }
+
+    pub(crate) fn authored_semantic_identity(&self) -> &str {
+        &self.authored_semantic_identity
+    }
+
+    pub(crate) const fn present(&self) -> bool {
+        self.present
+    }
+}
+
+impl UiNativeComponentSemanticTextChange {
+    pub fn new(
+        authored_semantic_identity: impl Into<Box<str>>,
+        text: impl Into<Box<str>>,
+    ) -> Result<Self, UiNativeApplicationProgramDenial> {
+        let identity = authored_semantic_identity.into();
+        let text = text.into();
+        if !identity.starts_with("component:")
+            || identity.len() == "component:".len()
+            || text.is_empty()
+        {
+            return Err(UiNativeApplicationProgramDenial::InvalidComponentIdentity);
+        }
+        Ok(Self {
+            authored_semantic_identity: identity,
+            text,
+            expected_revision: 0,
+            spans: None,
+        })
+    }
+
+    pub(crate) fn authored_semantic_identity(&self) -> &str {
+        &self.authored_semantic_identity
+    }
+
+    pub(crate) fn text(&self) -> &str {
+        &self.text
+    }
+
+    pub(crate) const fn expected_revision(&self) -> u64 {
+        self.expected_revision
+    }
+
+    pub fn with_spans(
+        mut self,
+        spans: impl IntoIterator<
+            Item = crate::facade::registry::descriptor::ComponentSemanticTextSpanContract,
+        >,
+    ) -> Result<Self, UiNativeApplicationProgramDenial> {
+        let spans = spans.into_iter().collect::<Vec<_>>();
+        if spans.is_empty()
+            || spans.len() > worth_ui_text::UiGlobalTextProfile::MAX_RUNS_PER_PARAGRAPH
+        {
+            return Err(UiNativeApplicationProgramDenial::InvalidSemanticTextSpans);
+        }
+        self.spans = Some(spans.into_boxed_slice());
+        Ok(self)
+    }
+
+    pub(crate) fn spans(
+        &self,
+    ) -> Option<&[crate::facade::registry::descriptor::ComponentSemanticTextSpanContract]> {
+        self.spans.as_deref()
+    }
+}
+
+impl UiNativeThemeTokenValueChange {
+    pub fn new(
+        token: crate::facade::registry::descriptor::ThemeTokenId,
+        value: crate::facade::registry::descriptor::ThemeTokenValue,
+    ) -> Result<Self, UiNativeApplicationProgramDenial> {
+        Self::successor(token, 0, value)
+    }
+
+    pub fn successor(
+        token: crate::facade::registry::descriptor::ThemeTokenId,
+        expected_revision: u64,
+        value: crate::facade::registry::descriptor::ThemeTokenValue,
+    ) -> Result<Self, UiNativeApplicationProgramDenial> {
+        if !value.is_valid() {
+            return Err(UiNativeApplicationProgramDenial::InvalidThemeTokenValue);
+        }
+        Ok(Self {
+            token,
+            value,
+            expected_revision,
+        })
+    }
+
+    pub(crate) const fn token(&self) -> &crate::facade::registry::descriptor::ThemeTokenId {
+        &self.token
+    }
+
+    pub(crate) const fn value(&self) -> &crate::facade::registry::descriptor::ThemeTokenValue {
+        &self.value
+    }
+
+    pub(crate) const fn expected_revision(&self) -> u64 {
+        self.expected_revision
+    }
+}

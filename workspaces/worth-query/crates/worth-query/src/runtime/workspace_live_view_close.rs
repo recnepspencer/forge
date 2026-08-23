@@ -22,6 +22,13 @@ impl WorthQueryWorkspace {
     ) -> Result<WorthQueryLiveViewCloseReceipt, WorthQueryRuntimeError> {
         self.runtime.close_bridge_async_live_view(&view)
     }
+
+    pub fn close_owned_bridge_async_live_view<T>(
+        &mut self,
+        view: &WorthQueryLiveView<T>,
+    ) -> Result<WorthQueryLiveViewCloseReceipt, WorthQueryRuntimeError> {
+        self.runtime.close_bridge_async_live_view(view)
+    }
 }
 
 impl WorthQueryRuntime {

@@ -109,23 +109,38 @@ pub mod primary_graph {
         WorthQueryApplicationResultBufferObservation, WorthQueryApplicationResultBufferObserver,
         WorthQueryApplicationStaleAttempt, WorthQueryApplicationUnresolvedCommitEvidence,
         WorthQueryApprovedElevation, WorthQueryAuthenticatedPrincipal, WorthQueryBoundedLaneDenial,
-        WorthQueryBoundedLaneDenialKind, WorthQueryCapabilityRevocationProgram,
-        WorthQueryCompleteApplicationReadSet, WorthQueryCompletedInvariantProjection,
-        WorthQueryCompletedOperationInvariantProjection,
+        WorthQueryBoundedLaneDenialKind, WorthQueryBridgeGranularDeliveryCounters,
+        WorthQueryCapabilityRevocationProgram, WorthQueryCompleteApplicationReadSet,
+        WorthQueryCompletedInvariantProjection, WorthQueryCompletedOperationInvariantProjection,
         WorthQueryConditionalApplicationRuntimeInstallation, WorthQueryConditionalClockHandle,
+        WorthQueryConditionalClockObservationDenial,
+        WorthQueryConditionalClockObservationDenialKind,
+        WorthQueryConditionalClockObservationFailure,
+        WorthQueryConditionalClockObservationFailureKind,
+        WorthQueryConditionalClockObservationOutcome, WorthQueryConditionalClockObservationPort,
+        WorthQueryConditionalClockObservationReceipt, WorthQueryConditionalExecutionProvenance,
+        WorthQueryConditionalExecutionTerminal, WorthQueryConditionalRuntimeInspection,
         WorthQueryConditionalRuntimeInstallationDenial,
-        WorthQueryConditionalRuntimeInstallationDenialKind, WorthQueryDelegationActivationProgram,
-        WorthQueryElevationApprovalAuthorizationDenial, WorthQueryElevationApprovalOutcome,
-        WorthQueryElevationApprovalProgram, WorthQueryElevationCloseAuthorizationDenial,
-        WorthQueryElevationCloseOutcome, WorthQueryElevationCloseProgram,
-        WorthQueryElevationClosureKind, WorthQueryElevationRequestOutcome,
-        WorthQueryElevationRequestProgram, WorthQueryEntityResolutionDenial,
-        WorthQueryEntityResolutionDenialKind, WorthQueryExternalDispatchPreparationDenial,
-        WorthQueryExternalRedispatchDenial, WorthQueryExternalTransportInstallationDenial,
+        WorthQueryConditionalRuntimeInstallationDenialKind,
+        WorthQueryConditionalRuntimeLifecycleProbe,
+        WorthQueryConditionalRuntimeReinstallationReceipt, WorthQueryConditionalSignalDecision,
+        WorthQueryDelegationActivationProgram, WorthQueryElevationApprovalAuthorizationDenial,
+        WorthQueryElevationApprovalOutcome, WorthQueryElevationApprovalProgram,
+        WorthQueryElevationCloseAuthorizationDenial, WorthQueryElevationCloseOutcome,
+        WorthQueryElevationCloseProgram, WorthQueryElevationClosureKind,
+        WorthQueryElevationRequestOutcome, WorthQueryElevationRequestProgram,
+        WorthQueryEntityResolutionDenial, WorthQueryEntityResolutionDenialKind,
+        WorthQueryExternalDispatchPreparationDenial, WorthQueryExternalRedispatchDenial,
+        WorthQueryExternalTransportInstallationDenial,
+        WorthQueryGovernedTemporalOperationAuthorization,
+        WorthQueryGovernedTemporalQueryAuthorization, WorthQueryGranularInvalidationDeliveryBatch,
+        WorthQueryGranularInvalidationInstallation, WorthQueryGranularInvalidationObservation,
+        WorthQueryGranularSourceReadBasis, WorthQueryGranularTransportMergeDenial,
         WorthQueryInspectedOperationInvariantProjection, WorthQueryInvariantAggregate,
         WorthQueryInvariantAggregateDenial, WorthQueryInvariantAggregateDenialKind,
         WorthQueryInvariantDecisionPlanDenial, WorthQueryInvariantDecisionPlanDenialKind,
-        WorthQueryInvariantEntityIdentity, WorthQueryInvariantProjectionTraversalDenial,
+        WorthQueryInvariantEntityIdentity, WorthQueryInvariantMutationTarget,
+        WorthQueryInvariantProjectionTraversalDenial,
         WorthQueryInvariantProjectionTraversalDenialKind, WorthQueryInvariantProjectionWork,
         WorthQueryInvariantRelation, WorthQueryMandatoryReview,
         WorthQueryMandatoryReviewAuthorizationDenial, WorthQueryMandatoryReviewOutcome,
@@ -142,14 +157,22 @@ pub mod primary_graph {
         WorthQueryPrimaryGraphPublication, WorthQueryPrimaryMutationWorkEvidence,
         WorthQueryPrincipalResolutionDenial, WorthQueryPrincipalResolutionDenialKind,
         WorthQueryPrincipalResolutionMode, WorthQueryProjectedApplicationMutation,
+        WorthQueryPublicTemporalOperationAuthorization, WorthQueryPublicTemporalQueryAuthorization,
         WorthQueryRequestedElevation, WorthQueryReviewedElevation, WorthQueryRuntimeTimeSource,
-        WorthQueryRuntimeTimeSourceDenial, WorthQueryTouchedRecordIdentity,
+        WorthQueryRuntimeTimeSourceDenial, WorthQueryTemporalInvocationFailure,
+        WorthQueryTemporalInvocationFailureKind, WorthQueryTemporalOperationAuthorization,
+        WorthQueryTemporalOperationExecution, WorthQueryTemporalOperationInvoker,
+        WorthQueryTemporalPrincipalAdmission, WorthQueryTemporalPrincipalFailure,
+        WorthQueryTemporalPrincipalFailureKind, WorthQueryTemporalPrincipalSource,
+        WorthQueryTemporalQueryAuthorization, WorthQueryTemporalReconstructionAccess,
+        WorthQueryTouchedRecordIdentity,
     };
     pub use crate::domain_computation::primary_graph::{
         WorthQueryCommittedDispatchOutboxObservation, WorthQueryCommittedDispatchOutboxReadDenial,
         WorthQueryCommittedDispatchOutboxReadWork,
     };
     pub use crate::domain_computation::runtime_time::WorthQueryRuntimeTimeSample;
+    pub use worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts;
 }
 
 /// Compatibility surface for the current undo/redo experiment.
@@ -235,6 +258,13 @@ pub mod integration {
         Schema: ApplicationSchema,
     {
         bootstrap.publish(runtime, authority)
+    }
+
+    #[doc(hidden)]
+    pub fn classify_conditional_signal_for_certification(
+        evidence: &worth_runtime_bridge::facade::BridgeConditionalDecisionEvidence,
+    ) -> crate::domain_computation::primary_graph::WorthQueryConditionalSignalDecision {
+        crate::domain_computation::primary_graph::classify_bridge_signal(evidence)
     }
 
     #[doc(hidden)]

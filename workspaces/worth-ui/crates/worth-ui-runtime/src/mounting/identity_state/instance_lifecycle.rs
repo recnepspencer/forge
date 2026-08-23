@@ -8,7 +8,7 @@ use worth_ui_host_contract::{
 use super::{MountedInstanceRecord, UiMountedIdentityState};
 use crate::mounting::{UiMountedGraphNodeHandle, UiMountedIdentityBasis, UiMountedIdentityDenial};
 
-const MOUNTED_CLOSURE_LIMIT: usize = 2_048;
+const MOUNTED_CLOSURE_LIMIT: usize = 4_097;
 const GRAPH_NODE_MOUNT_LIMIT: usize = 1_024;
 
 impl UiMountedIdentityState {
@@ -75,7 +75,8 @@ impl UiMountedIdentityState {
             instances.remove(&identity);
         }
         self.visible_order
-            .retain(|candidate| *candidate != identity);
+            .remove(identity)
+            .expect("mounted identity belongs to authored order");
         let removed = self
             .mounted_instance_membership
             .remove_with_work(&identity)
@@ -101,8 +102,9 @@ impl UiMountedIdentityState {
             return Err(UiMountedIdentityDenial::ReorderMembershipMismatch);
         }
         let semantic_revision = super::next(&super::NEXT_STATE_REVISION)?;
-        self.visible_order.clear();
-        self.visible_order.extend_from_slice(order);
+        self.visible_order
+            .replace_all(order)
+            .map_err(|_| UiMountedIdentityDenial::ReorderMembershipMismatch)?;
         self.pending_projection_changes.mark_order_changed(order);
         self.semantic_revision = semantic_revision;
         Ok(())
@@ -143,7 +145,9 @@ impl UiMountedIdentityState {
             .entry(graph_node)
             .or_default()
             .insert(identity);
-        self.visible_order.push(identity);
+        self.visible_order
+            .append(identity)
+            .expect("mounted order capacity follows identity capacity");
         let inserted = self.mounted_instance_membership.insert(identity);
         debug_assert!(inserted);
     }

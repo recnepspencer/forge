@@ -29,6 +29,9 @@ fn support_snapshot_keeps_supported_unsupported_deferred_and_wrong_world_separat
             .with_semantic_artifact_spec(diagnostic_only_surface_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let foreign_app = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
@@ -39,6 +42,9 @@ fn support_snapshot_keeps_supported_unsupported_deferred_and_wrong_world_separat
             .with_semantic_artifact_spec(foreign_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let boundary = app.admission();
 

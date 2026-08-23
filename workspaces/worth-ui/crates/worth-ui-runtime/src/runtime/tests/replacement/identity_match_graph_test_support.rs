@@ -34,6 +34,7 @@ pub(super) fn identity_match_app() -> WorthUiApp {
             "workspace.component.dashboard",
         ))
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

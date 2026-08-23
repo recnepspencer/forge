@@ -4,11 +4,13 @@ use worth_ui::facade::measurement_exchange::{
     UiMeasurementEvidenceFamily, UiViewportExtentObservation, UiViewportExtentRequest,
 };
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
+use worth_ui_certification::scenario::application_authority_closure::fixed_host::FixedCertificationHostBinding;
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
+use worth_ui_host_headless::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder};
 use worth_ui_runtime::facade::entry::UiMountedAllocationMeasurementRequest;
 use worth_ui_runtime::facade::host::{
-    UiHeadlessRecorderCapacity, UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed,
-    UiHostMeasurementNormalizationContext, WorthUiHeadlessRecorder, WorthUiOperationalHostAdapter,
+    UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed,
+    UiHostMeasurementNormalizationContext,
 };
 use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationMode, UiMountedFramePreparationDenial, UiMountedFrameRequest,
@@ -89,7 +91,7 @@ pub(super) fn launch_native_world<Host>(
     host: Host,
 ) -> worth_ui::facade::app::WorthUiActiveApplicationSession
 where
-    Host: WorthUiOperationalHostAdapter + Clone + 'static,
+    Host: FixedCertificationHostBinding + Clone + 'static,
 {
     launch_world_with_host(
         VisualWorldProfile::Canonical,
@@ -104,7 +106,7 @@ pub(super) fn launch_native_world_with_policy<Host>(
     policy: worth_ui::facade::inspection::UiVisualInspectionPolicy,
 ) -> worth_ui::facade::app::WorthUiActiveApplicationSession
 where
-    Host: WorthUiOperationalHostAdapter + Clone + 'static,
+    Host: FixedCertificationHostBinding + Clone + 'static,
 {
     let application = prepare_filesystem_application(
         VisualWorldProfile::Canonical,
@@ -124,7 +126,7 @@ pub(super) fn launch_native_region_world<Host>(
     host: Host,
 ) -> worth_ui::facade::app::WorthUiActiveApplicationSession
 where
-    Host: WorthUiOperationalHostAdapter + Clone + 'static,
+    Host: FixedCertificationHostBinding + Clone + 'static,
 {
     launch_world_with_host(
         VisualWorldProfile::FrontmostInset,
@@ -139,7 +141,7 @@ pub(super) fn launch_native_region_world_with_policy<Host>(
     policy: worth_ui::facade::inspection::UiVisualInspectionPolicy,
 ) -> worth_ui::facade::app::WorthUiActiveApplicationSession
 where
-    Host: WorthUiOperationalHostAdapter + Clone + 'static,
+    Host: FixedCertificationHostBinding + Clone + 'static,
 {
     let application = prepare_filesystem_application(
         VisualWorldProfile::FrontmostInset,
@@ -162,7 +164,7 @@ fn launch_world_with_host<Host>(
     mode: UiHostSurfacePresentationMode,
 ) -> worth_ui::facade::app::WorthUiActiveApplicationSession
 where
-    Host: WorthUiOperationalHostAdapter + Clone + 'static,
+    Host: FixedCertificationHostBinding + Clone + 'static,
 {
     let application = prepare_filesystem_application(world_profile, responsibility, host, None);
     let component_nodes = component_graph_nodes(&application);
@@ -176,7 +178,7 @@ fn prepare_filesystem_application<Host>(
     policy: Option<worth_ui::facade::inspection::UiVisualInspectionPolicy>,
 ) -> worth_ui::facade::app::WorthUiApp
 where
-    Host: WorthUiOperationalHostAdapter + Clone + 'static,
+    Host: FixedCertificationHostBinding + Clone + 'static,
 {
     let scenario = FilesystemApplicationLifecycleScenario::new(responsibility);
     let workspace = FilesystemContractWorkspace::new(responsibility);

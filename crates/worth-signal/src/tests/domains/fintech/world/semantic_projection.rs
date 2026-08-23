@@ -6,7 +6,7 @@ use super::{
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub(in crate::tests::domains::fintech) enum SemanticOutputKey {
+pub(crate) enum SemanticOutputKey {
     Factor(MarketFactorKey),
     Valuation(InstrumentId),
     Risk(InstrumentId),
@@ -21,7 +21,7 @@ pub(in crate::tests::domains::fintech) struct ProjectedSemanticOutput {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(in crate::tests::domains::fintech) struct FinancialEconomicSnapshot {
+pub(crate) struct FinancialEconomicSnapshot {
     factors: BTreeMap<MarketFactorKey, i64>,
     positions: BTreeMap<InstrumentId, PositionFinancialResult>,
     consumers: BTreeMap<FinancialConsumerRole, FinancialAmount>,
@@ -90,9 +90,7 @@ impl FinancialEconomicSnapshot {
             }))
     }
 
-    pub(in crate::tests::domains::fintech) fn semantic_value_map(
-        &self,
-    ) -> BTreeMap<SemanticOutputKey, i64> {
+    pub(crate) fn semantic_value_map(&self) -> BTreeMap<SemanticOutputKey, i64> {
         self.semantic_values()
             .map(|(key, _, value)| (key, value))
             .collect()
@@ -100,7 +98,7 @@ impl FinancialEconomicSnapshot {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(in crate::tests::domains::fintech) struct FinancialSemanticProjection {
+pub(crate) struct FinancialSemanticProjection {
     outputs: BTreeMap<SemanticOutputKey, ProjectedSemanticOutput>,
 }
 

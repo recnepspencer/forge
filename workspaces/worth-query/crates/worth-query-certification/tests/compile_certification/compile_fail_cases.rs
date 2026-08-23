@@ -47,6 +47,7 @@ pub(crate) fn register(cases: &TestCases) {
         "tests/ui/installed_domain/public_facade/cursor_authority_cannot_be_extracted.rs",
         "tests/ui/installed_domain/public_facade/patch_authority_cannot_be_extracted.rs",
         "tests/ui/installed_domain/public_facade/execution_cannot_skip_publication.rs",
+        "tests/ui/installed_domain/public_facade/coarse_bridge_summary_is_not_public.rs",
         "tests/ui/installed_domain/resource_admission/raw_bound_cannot_execute.rs",
         "tests/ui/installed_domain/resource_admission/raw_bound_cannot_start_workflow.rs",
         "tests/ui/installed_domain/resource_admission/provider_session_constructor_private.rs",

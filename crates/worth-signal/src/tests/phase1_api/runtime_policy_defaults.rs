@@ -49,11 +49,11 @@ fn runtime_policy_maps_into_s9_contract_and_strategy_defaults() {
     );
     assert_eq!(
         forensic.default_execution_strategy(),
-        ResolvedExecutionStrategy::DenseStageBatched
+        ResolvedExecutionStrategy::SparseIncremental
     );
     assert_eq!(
         forensic.default_maintenance_strategy(),
-        ResolvedMaintenanceStrategy::Rebuild
+        ResolvedMaintenanceStrategy::Incremental
     );
     assert_eq!(
         forensic.default_authority_policy(),

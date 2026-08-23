@@ -15,6 +15,7 @@ use worth_ui::facade::declaration::{
 use worth_ui::facade::source::{
     WorthUiFilesystemSourceProvider, WorthUiWatchedCandidateSubmission,
 };
+use worth_ui_certification::scenario::application_authority_closure::fixed_host::FixedCertificationHostBinding;
 use worth_ui_query_binding::WorthUiInstalledLiveQueryView;
 use worth_ui_query_binding::{
     worth_ui_domain_package, worth_ui_native_aspect_contracts, WorthUiInstalledQueryView,
@@ -23,8 +24,13 @@ use worth_ui_query_binding::{
 use worth_ui_query_binding::{
     WorthUiAdmittedQueryBindingReference, WorthUiQueryBindingPlan, WorthUiQueryViewShape,
 };
-use worth_ui_runtime::facade::host::WorthUiOperationalHostAdapter;
 use worth_ui_test_support::WorthUiApplicationBuilderCertificationExt;
+
+type BoundBuilder = worth_ui_certification::scenario::application_authority_closure::FixedCertificationApplicationBuilder;
+type UnboundBuilder = worth_ui::facade::app::WorthUiApplicationBuilder<
+    worth_ui::facade::app::UiChangeProfileInstalled,
+    worth_ui::facade::app::UiIntentWiringSatisfied,
+>;
 
 use crate::filesystem_contract_workspace::FilesystemContractWorkspace;
 
@@ -79,14 +85,16 @@ pub(super) fn application_with_submission_and_host<Host>(
     workspace: &mut runtime::WorthQueryWorkspace,
 ) -> worth_ui::facade::app::WorthUiApp
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding + 'static,
 {
     let binding_reference = settled_binding_reference(first.clone().into(), workspace);
-    builder(first.into(), second.into(), &binding_reference)
-        .with_host(host)
-        .with_candidate_submission(submission)
-        .freeze()
-        .expect("source-backed Query application")
+    BoundBuilder::new(
+        unbound_builder(first.into(), second.into(), &binding_reference),
+        host,
+    )
+    .with_candidate_submission(submission)
+    .freeze()
+    .expect("source-backed Query application")
 }
 
 pub(crate) fn snapshot_application(
@@ -239,7 +247,18 @@ fn builder(
     first: WorthUiInstalledQueryView,
     second: WorthUiInstalledQueryView,
     binding_reference: &WorthUiAdmittedQueryBindingReference,
-) -> worth_ui::facade::app::WorthUiApplicationBuilder {
+) -> BoundBuilder {
+    BoundBuilder::new(
+        unbound_builder(first, second, binding_reference),
+        worth_ui_host_headless::WorthUiHeadlessHost,
+    )
+}
+
+fn unbound_builder(
+    first: WorthUiInstalledQueryView,
+    second: WorthUiInstalledQueryView,
+    binding_reference: &WorthUiAdmittedQueryBindingReference,
+) -> UnboundBuilder {
     let graph_world = worth_ui::facade::graph::UiGraphWorldProfile::settled_query_binding(
         worth_ui::facade::declaration::ViewBindingId::new(FIRST_VIEW).unwrap(),
         binding_reference,

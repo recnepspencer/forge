@@ -1,4 +1,4 @@
-use worth_ui::facade::app::{WorthUi, WorthUiApplicationBuilder};
+use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::declaration::{
     CommandDescriptor, CommandId, ComponentCanvasSpatialContract, ComponentChildPolicy,
     ComponentDescriptor, ComponentId, ComponentPropSchema, ComponentRealtimeOverlayContract,
@@ -17,9 +17,14 @@ use worth_ui::facade::declaration::{
 };
 use worth_ui::facade::graph::UiGraphWorldProfile;
 use worth_ui::facade::query_binding::WorthUiQueryViewRegistration;
+use worth_ui_host_headless::WorthUiHeadlessHost;
 use worth_ui_query_binding::certification::WorthUiInstalledQueryTestFixture;
-use worth_ui_runtime::facade::host::{WorthUiHeadlessHost, WorthUiOperationalHostAdapter};
 use worth_ui_test_support::WorthUiApplicationBuilderCertificationExt;
+
+use super::fixed_application_builder::FixedCertificationApplicationBuilder;
+use super::fixed_host::FixedCertificationHostBinding;
+
+type WorthUiApplicationBuilder = FixedCertificationApplicationBuilder;
 
 pub(crate) const CURRENT_COMPONENT: &str = "workspace.component.authority_current";
 pub(crate) const CANDIDATE_COMPONENT: &str = "workspace.component.authority_candidate";
@@ -71,7 +76,7 @@ pub(crate) fn application_builder_with_host<Host>(
     host: Host,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
     application_builder_with_host_and_change_profile(
         query,
@@ -86,11 +91,10 @@ fn application_builder_with_host_and_change_profile<Host>(
     profile: worth_ui::facade::rebind::UiChangeProfile,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
-    WorthUi::app()
+    let builder = WorthUi::app()
         .with_change_profile(profile)
-        .with_host(host)
         .with_graph_world_profile(UiGraphWorldProfile::settled_query_binding(
             ViewBindingId::new(QUERY_BINDING).expect("valid Query view binding id"),
             query.binding_reference(),
@@ -131,7 +135,8 @@ where
         .register_mosaic_sizing_contract(sizing())
         .register_mosaic_state_slot(state_slot())
         .register_query_view(WorthUiQueryViewRegistration::new(query.installed_view()))
-        .expect("installed Query view should register through the production builder")
+        .expect("installed Query view should register through the production builder");
+    FixedCertificationApplicationBuilder::new(builder, host)
 }
 
 pub(crate) fn cross_lane_application_builder_with_host<Host>(
@@ -139,7 +144,7 @@ pub(crate) fn cross_lane_application_builder_with_host<Host>(
     host: Host,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
     application_builder_with_host(query, host)
         .register_component(
@@ -166,7 +171,7 @@ pub(crate) fn preview_application_builder_with_host<Host>(
     host: Host,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
     register_preview_contracts(application_builder_with_host(query, host))
 }
@@ -176,7 +181,7 @@ pub(crate) fn preview_cross_lane_application_builder_with_host<Host>(
     host: Host,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
     register_preview_contracts(cross_lane_application_builder_with_host(query, host))
 }
@@ -203,7 +208,7 @@ pub(crate) fn scaled_canvas_application_builder_with_host<Host>(
     canvas_count: usize,
 ) -> WorthUiApplicationBuilder
 where
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding,
 {
     let mut builder = application_builder_with_host(query, host);
     for index in 0..canvas_count {

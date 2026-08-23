@@ -75,9 +75,11 @@ impl ResourceRuntimeState {
         scheduled_delay: crate::data::temporal::TemporalDuration,
         retry_decision_digest: crate::data::resource::ResourcePolicyDigest,
         retry_budget_charge: Option<ResourceRetryBudgetCharge>,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceRetryScheduleReport {
-        telemetry.resource_hot_in_flight_lookup_count += 1;
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_hot_in_flight_lookup_count += 1;
+        }
         let input = ResourceRetryScheduleInput {
             handle,
             reason,
@@ -95,15 +97,15 @@ impl ResourceRuntimeState {
                     denial.class,
                     input.retry_decision_digest,
                     denial.retry_budget_charge,
-                    telemetry,
+                    telemetry.as_deref_mut(),
                 )
             }
         };
         self.consume_retry_schedule_budget(&candidate);
         let prepared = self.prepare_resource_retry_schedule(input, candidate);
-        let installed = self.install_resource_retry_schedule(prepared, telemetry);
-        let performance = Self::record_boundary_performance(
-            telemetry,
+        let installed = self.install_resource_retry_schedule(prepared, telemetry.as_deref_mut());
+        let performance = Self::record_boundary_performance_optional(
+            telemetry.as_deref_mut(),
             ResourceBoundaryPerformanceEnvelope::retry_schedule(
                 1,
                 0,
@@ -198,7 +200,7 @@ impl ResourceRuntimeState {
     fn install_resource_retry_schedule(
         &mut self,
         prepared: PreparedResourceRetrySchedule,
-        telemetry: &mut ResourceTelemetry,
+        telemetry: Option<&mut ResourceTelemetry>,
     ) -> InstalledResourceRetrySchedule {
         let PreparedResourceRetrySchedule {
             request_id,
@@ -211,10 +213,12 @@ impl ResourceRuntimeState {
         self.pending_retry_by_wake
             .insert(scheduled.backoff_wake_id(), request_id);
         self.pending_retry_by_node.insert(node, scheduled.clone());
-        telemetry.resource_retry_schedule_count += 1;
-        telemetry.resource_retry_temporal_wake_footprint = telemetry
-            .resource_retry_temporal_wake_footprint
-            .saturating_add(1);
+        if let Some(telemetry) = telemetry {
+            telemetry.resource_retry_schedule_count += 1;
+            telemetry.resource_retry_temporal_wake_footprint = telemetry
+                .resource_retry_temporal_wake_footprint
+                .saturating_add(1);
+        }
         InstalledResourceRetrySchedule {
             scheduled,
             budget_charged,
@@ -224,16 +228,18 @@ impl ResourceRuntimeState {
         &mut self,
         handle: ResourceRequestHandle,
         ready_wake: &ReadyTemporalWake,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<PreparedScheduledResourceRetry, ResourceRetryAdmissionReport> {
-        telemetry.resource_hot_in_flight_lookup_count += 1;
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_hot_in_flight_lookup_count += 1;
+        }
         let request_id = handle.request_id();
         let Some(scheduled) = self.pending_retry_by_request.get(&request_id).cloned() else {
             return Err(self.deny_retry_admission(
                 request_id,
                 ResourceRetryDenialClass::MissingRetryBackoffWake,
                 self.retry_policy_decision_digest_for_request(request_id),
-                telemetry,
+                telemetry.as_deref_mut(),
             ));
         };
         if scheduled.previous() != handle {
@@ -241,7 +247,7 @@ impl ResourceRuntimeState {
                 request_id,
                 ResourceRetryDenialClass::UnknownOrStaleRequest,
                 scheduled.policy_decision_digest().clone(),
-                telemetry,
+                telemetry.as_deref_mut(),
             ));
         }
         if scheduled.backoff_wake_id() != ready_wake.id() {
@@ -249,7 +255,7 @@ impl ResourceRuntimeState {
                 request_id,
                 ResourceRetryDenialClass::WakeMismatch,
                 scheduled.policy_decision_digest().clone(),
-                telemetry,
+                telemetry.as_deref_mut(),
             ));
         }
 
@@ -258,7 +264,7 @@ impl ResourceRuntimeState {
                 request_id,
                 ResourceRetryDenialClass::UnknownOrStaleRequest,
                 scheduled.policy_decision_digest().clone(),
-                telemetry,
+                telemetry.as_deref_mut(),
             ));
         };
         if previous.handle() != handle {
@@ -266,7 +272,7 @@ impl ResourceRuntimeState {
                 request_id,
                 ResourceRetryDenialClass::UnknownOrStaleRequest,
                 scheduled.policy_decision_digest().clone(),
-                telemetry,
+                telemetry.as_deref_mut(),
             ));
         }
         if self

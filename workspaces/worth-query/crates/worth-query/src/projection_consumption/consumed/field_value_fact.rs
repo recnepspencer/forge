@@ -88,6 +88,10 @@ impl ConsumedFieldValueFact {
         self.value.canonical_identity_basis()
     }
 
+    pub(crate) fn cloned_native_value(&self) -> ConsumedNativeValue {
+        self.value.clone()
+    }
+
     pub(crate) fn new(
         contract: &MaterializedProjectionContract,
         source_row_identity: impl Into<String>,

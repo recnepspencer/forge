@@ -43,13 +43,20 @@ fn whole_partition_invalidates_partition_detail_subscribers() {
 
     assert_eq!(
         graph.get_state(dependent).unwrap(),
-        NodeState::MaybeStale,
-        "source seeds must leave detail subscribers pending until a committed delta exists"
+        NodeState::Clean,
+        "source seeds must not assign subscriber state before a committed delta exists"
     );
+
+    evaluate(&mut graph, source, &mut |_id, _graph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(2, 0))
+            .with_changed_region(ChangedRegion::new("wing")))
+    })
+    .unwrap();
+    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::Dirty);
 }
 
 #[test]
-fn frontier_execution_summary_exposes_direct_dirty_and_maybe_stale_entries() {
+fn source_frontier_summary_excludes_uncommitted_subscriber_classifications() {
     let mut graph = SignalGraph::new();
     graph.set_runtime_policy(SignalRuntimePolicy::development());
     let source = graph.node().partitioned_output().build();
@@ -62,6 +69,8 @@ fn frontier_execution_summary_exposes_direct_dirty_and_maybe_stale_entries() {
     graph
         .append_partition_detail_dependency(maybe_stale, source, ASPECT_A, "wing", "rib-13")
         .unwrap();
+    let direct_dirty_before = graph.get_state(direct_dirty).unwrap();
+    let maybe_stale_before = graph.get_state(maybe_stale).unwrap();
 
     mark_dirty_with_regions(
         &mut graph,
@@ -76,34 +85,22 @@ fn frontier_execution_summary_exposes_direct_dirty_and_maybe_stale_entries() {
         .latest_frontier_execution_summary()
         .cloned()
         .expect("frontier execution summary should be retained");
-    let wave = summary
-        .direct_waves
-        .iter()
-        .find(|wave| wave.aspect == ASPECT_A)
-        .expect("expected aspect wave");
-
-    assert!(wave.entries.iter().any(|entry| {
-        entry.node == direct_dirty
-            && matches!(
-                entry.classification,
-                FrontierEntryClassification::DirectDirty
-            )
-            && matches!(
-                entry.inclusion_basis,
-                FrontierInclusionBasis::DetailScopeOverlap
-            )
-    }));
-    assert!(wave.entries.iter().any(|entry| {
-        entry.node == maybe_stale
-            && matches!(
-                entry.classification,
-                FrontierEntryClassification::MaybeStale
-            )
-            && matches!(
-                entry.inclusion_basis,
-                FrontierInclusionBasis::DirectSubscriptionMatch
-            )
-    }));
+    let estimate = graph
+        .observe()
+        .latest_invalidation_planning_estimate()
+        .cloned()
+        .expect("the runtime should retain its latest caller-visible planning estimate");
+    assert_eq!(estimate.seed_count(), 1);
+    assert_eq!(estimate.direct_candidate_count(), 0);
+    assert_eq!(estimate.partition_scoped_check_count(), 0);
+    assert!(summary.direct_waves.is_empty());
+    assert!(summary.transitive_waves.is_empty());
+    assert_eq!(
+        summary.touched_scope_summary.touched_nodes.as_slice(),
+        &[source]
+    );
+    assert_eq!(graph.get_state(direct_dirty).unwrap(), direct_dirty_before);
+    assert_eq!(graph.get_state(maybe_stale).unwrap(), maybe_stale_before);
 }
 
 #[test]
@@ -195,8 +192,20 @@ fn frontier_tracing_policy_changes_retained_richness_not_invalidation_truth() {
     development.set_runtime_policy(SignalRuntimePolicy::development());
 
     let changed = &[ChangedRegion::new("wing").with_detail("rib-12")];
+    let operational_observation = operational
+        .begin_observation_session(SignalObservationRequest::frontier())
+        .unwrap();
+    let development_observation = development
+        .begin_observation_session(SignalObservationRequest::frontier())
+        .unwrap();
     mark_dirty_with_regions(&mut operational, source, ASPECT_A, changed).unwrap();
     mark_dirty_with_regions(&mut development, source, ASPECT_A, changed).unwrap();
+    operational
+        .finish_optional_invalidation_execution_observation(&operational_observation)
+        .unwrap();
+    development
+        .finish_optional_invalidation_execution_observation(&development_observation)
+        .unwrap();
 
     let operational_summary = operational
         .observe()
@@ -229,15 +238,15 @@ fn frontier_tracing_policy_changes_retained_richness_not_invalidation_truth() {
         operational_summary.counters.frontier_trace_retained_count,
         0
     );
-    assert!(
-        development_summary.counters.frontier_trace_retained_count
-            > operational_summary.counters.frontier_trace_retained_count
+    assert_eq!(
+        development_summary.counters.frontier_trace_retained_count,
+        0
     );
     assert!(operational
         .observe()
         .latest_invalidation_trace_records()
         .is_empty());
-    assert!(!development
+    assert!(development
         .observe()
         .latest_invalidation_trace_records()
         .is_empty());

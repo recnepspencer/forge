@@ -11,7 +11,10 @@ use super::outcome::{
 pub(super) struct UiIndeterminatePresentationEvidence {
     affected: Vec<UiSurfaceBindingGeneration>,
     completed: Vec<UiMountedSurfacePresentationReceipt>,
+    semantic_receipts: Vec<worth_ui_query_binding::WorthUiPresentationRecoveryReceipt>,
+    recovery_required: Vec<worth_ui_query_binding::WorthUiPresentationRecoveryRequiredReceipt>,
     additional_adapter_cost: Option<worth_ui_host_contract::UiHostPresentationCostReport>,
+    physical_recovery_bindings: Vec<UiSurfaceBindingGeneration>,
 }
 
 impl UiIndeterminatePresentationEvidence {
@@ -22,8 +25,35 @@ impl UiIndeterminatePresentationEvidence {
         Self {
             affected,
             completed,
+            semantic_receipts: Vec::new(),
+            recovery_required: Vec::new(),
             additional_adapter_cost: None,
+            physical_recovery_bindings: Vec::new(),
         }
+    }
+
+    pub(super) fn with_recovery_required(
+        mut self,
+        recovery_required: Vec<worth_ui_query_binding::WorthUiPresentationRecoveryRequiredReceipt>,
+    ) -> Self {
+        self.recovery_required = recovery_required;
+        self
+    }
+
+    pub(super) fn with_physical_recovery_bindings(
+        mut self,
+        bindings: Vec<UiSurfaceBindingGeneration>,
+    ) -> Self {
+        self.physical_recovery_bindings.extend(bindings);
+        self
+    }
+
+    pub(super) fn with_semantic_receipts(
+        mut self,
+        semantic_receipts: Vec<worth_ui_query_binding::WorthUiPresentationRecoveryReceipt>,
+    ) -> Self {
+        self.semantic_receipts = semantic_receipts;
+        self
     }
 
     pub(super) fn with_additional_adapter_cost(
@@ -40,6 +70,9 @@ impl UiIndeterminatePresentationEvidence {
     ) -> (
         Vec<UiSurfaceBindingGeneration>,
         super::super::UiMountCostReport,
+        Vec<worth_ui_query_binding::WorthUiPresentationRecoveryReceipt>,
+        Vec<worth_ui_query_binding::WorthUiPresentationRecoveryRequiredReceipt>,
+        Vec<UiSurfaceBindingGeneration>,
     ) {
         let composed = UiMountedPresentationReceipt::compose_cost(mounting_cost, &self.completed)
             .and_then(|cost| match self.additional_adapter_cost {
@@ -56,7 +89,13 @@ impl UiIndeterminatePresentationEvidence {
                     .with_cost_overflow()
                     .expect("one cost overflow marker fits accounting")
             });
-        (self.affected, cost)
+        (
+            self.affected,
+            cost,
+            self.semantic_receipts,
+            self.recovery_required,
+            self.physical_recovery_bindings,
+        )
     }
 }
 
@@ -100,14 +139,68 @@ pub(super) fn frame_rejections(
 
 pub(super) fn completion_satisfies(
     surface: &super::super::UiMountedSurfaceReceipt,
+    expected_effects: &[worth_ui_host_contract::UiMountedEffectFamily],
     completion: &UiMountedSurfacePresentationCompletion,
 ) -> bool {
     if completion.mode() != surface.requirement().presentation_mode() {
         return false;
     }
-    let required = super::effect_requirements::required_effects(
-        surface.requirement().presentation_mode(),
-        surface.projection(),
-    );
-    completion.effects().families() == required
+    completion_effects_satisfy(
+        expected_effects,
+        completion.effects().families(),
+        completion.cost(),
+    )
+}
+
+fn completion_effects_satisfy(
+    expected: &[worth_ui_host_contract::UiMountedEffectFamily],
+    observed: &[worth_ui_host_contract::UiMountedEffectFamily],
+    cost: worth_ui_host_contract::UiHostPresentationCostReport,
+) -> bool {
+    if observed == expected {
+        return true;
+    }
+    let expected_without_paint = expected
+        .iter()
+        .copied()
+        .filter(|effect| *effect != worth_ui_host_contract::UiMountedEffectFamily::NativePaint)
+        .collect::<Vec<_>>();
+    observed == expected_without_paint
+        && expected.len() == observed.len() + 1
+        && cost.presented_surfaces() == 0
+        && cost.presented_pixels() == 0
+        && cost.gpu_writes() == 0
+        && cost.render_passes() == 0
+        && cost.surface_copies() == 0
+        && cost.surface_acquisitions() == 0
+        && cost.queue_submissions() == 0
+        && cost.presents() == 0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::completion_effects_satisfy;
+    use worth_ui_host_contract::{
+        UiHostPresentationCostInput, UiHostPresentationCostReport, UiMountedEffectFamily,
+    };
+
+    #[test]
+    fn offscreen_delta_may_advance_without_counterfeit_native_paint() {
+        let expected = [UiMountedEffectFamily::NativePaint];
+        assert!(completion_effects_satisfy(
+            &expected,
+            &[],
+            UiHostPresentationCostReport::default(),
+        ));
+        let copied = UiHostPresentationCostReport::from_adapter(UiHostPresentationCostInput {
+            surface_copies: 1,
+            ..Default::default()
+        });
+        assert!(!completion_effects_satisfy(&expected, &[], copied));
+        assert!(!completion_effects_satisfy(
+            &[UiMountedEffectFamily::IdentityOverlay],
+            &[],
+            UiHostPresentationCostReport::default(),
+        ));
+    }
 }

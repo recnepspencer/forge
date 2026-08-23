@@ -27,6 +27,7 @@ pub(super) fn query_bound_app() -> WorthUiApp {
         .register_query_view(query_view(&installed, "workspace.view_binding.detail"))
         .expect("installed detail view registers")
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 
@@ -60,6 +61,7 @@ pub(super) fn query_bound_surface_app() -> WorthUiApp {
         .register_query_view(query_view(&installed, "workspace.view_binding.selection"))
         .expect("installed selection view registers")
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

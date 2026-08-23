@@ -191,6 +191,18 @@ impl UiAllocationReceiptLedger {
             {
                 verdict = UiAllocationReuseVerdict::NewCommit;
             }
+            if mode.admits_host_measurement_successor(selected.identity())
+                && matches!(
+                    verdict,
+                    UiAllocationReuseVerdict::Denied(
+                        super::UiAllocationReuseDenial::GenerationMismatch
+                            | super::UiAllocationReuseDenial::EquivalenceBasisMismatch
+                            | super::UiAllocationReuseDenial::UnsupportedPartialReuse
+                    )
+                )
+            {
+                verdict = UiAllocationReuseVerdict::NewCommit;
+            }
             if candidate.portal_allocation_input().is_some()
                 && matches!(verdict, UiAllocationReuseVerdict::Denied(_))
             {

@@ -96,6 +96,12 @@ What the runtime tracks automatically:
 Relevant writes produce live patch batches only when the changed meaning touches
 the declared projection or grouping basis.
 
+When that write originates in a bound Relational/Bridge/Signal runtime, use the
+granular invalidation entry points rather than translating the lower-runtime
+notification yourself. Query revalidates the current source basis and retained
+live owner before it derives the same query-shaped patch meaning described
+here.
+
 If the live surface includes declared traversal relations, the runtime keeps
 that traversal posture attached to the admitted query identity instead of
 asking downstream domain code to reconstruct it later.
@@ -264,5 +270,6 @@ not affect it.
 - [Workspace Overview](../foundations/workspace-overview.md)
 - [Computed](computed.md)
 - [Effects](../execution/effects.md)
+- [Granular Live Invalidation](./granular-live-invalidation.md)
 
 

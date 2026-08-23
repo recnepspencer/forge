@@ -185,14 +185,16 @@ impl RuntimeCore {
         Ok(self.runtime.diagnostics().latest_rollback().cloned())
     }
 
-    pub fn latest_frontier_execution(
+    pub fn latest_invalidation_planning_estimate(
         &self,
-    ) -> Result<Option<worth_signal::facade::adapters::FrontierExecutionSummary>, WorthSignalJsError>
-    {
+    ) -> Result<
+        Option<worth_signal::facade::adapters::InvalidationPlanningEstimate>,
+        WorthSignalJsError,
+    > {
         Ok(self
             .runtime
             .diagnostics()
-            .latest_frontier_execution()
+            .latest_invalidation_planning_estimate()
             .cloned())
     }
 

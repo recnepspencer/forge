@@ -5,6 +5,9 @@ pub enum UiLocalInputRecipientBindingStopReason {
     TargetNoLongerCurrent(crate::runtime::interaction::UiInteractionTargetingDenial),
     DraftCapacityExceeded { limit: usize },
     IdentityExhausted,
+    RecipientGenerationExhausted,
+    MissingTextProfile,
+    HostAffinityInstallationDenied,
 }
 
 #[derive(Debug)]

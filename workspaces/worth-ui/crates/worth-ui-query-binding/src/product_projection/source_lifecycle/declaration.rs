@@ -14,7 +14,7 @@ use worth_signal::facade::{
 
 use crate::{
     UiProjectionFieldRequirement, UiScalarProjectionBinding, UiScalarProjectionBindingAdmission,
-    UiScalarProjectionRegistration, WorthUiQueryWorkspaceExt,
+    UiScalarProjectionRegistration, WorthUiQueryHost,
 };
 
 use super::super::WorthUiScalarProjectionInstallationError;
@@ -30,9 +30,11 @@ pub(super) fn scalar_binding(
     (UiScalarProjectionBinding, UiScalarProjectionRegistration),
     WorthUiScalarProjectionInstallationError,
 > {
-    let installed = workspace.worth_ui().map_err(|error| {
-        WorthUiScalarProjectionInstallationError::SourceLifecycle(format!("{error:?}"))
-    })?;
+    let installed = WorthUiQueryHost::from_workspace(workspace)
+        .installed_domain()
+        .map_err(|error| {
+            WorthUiScalarProjectionInstallationError::SourceLifecycle(format!("{error:?}"))
+        })?;
     let view = installed
         .projection_view("platform.pulse.status")
         .map_err(|error| {
@@ -40,9 +42,7 @@ pub(super) fn scalar_binding(
         })?;
     let registration = UiScalarProjectionRegistration::text(
         view,
-        UiProjectionFieldRequirement::declared("status").map_err(|error| {
-            WorthUiScalarProjectionInstallationError::SourceLifecycle(format!("{error:?}"))
-        })?,
+        UiProjectionFieldRequirement::query_text_status(),
     );
     match registration.clone().admit(workspace) {
         UiScalarProjectionBindingAdmission::Ready(binding) => Ok((binding, registration)),

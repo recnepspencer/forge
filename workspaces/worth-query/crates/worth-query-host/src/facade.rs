@@ -2,6 +2,11 @@
 
 pub use worth_query_admission::facade as admission;
 pub use worth_query_declaration::facade as declaration;
+pub use worth_query_declaration::{
+    worth_query_application_query, worth_query_application_schema, worth_query_aspect,
+    worth_query_entity, worth_query_field, worth_query_operation, worth_query_operation_reads,
+    worth_query_operation_writes, worth_query_principal_binding, worth_query_relation,
+};
 pub use worth_query_execution::facade::convergence_epoch;
 pub use worth_query_execution::facade::installed;
 pub use worth_query_execution::facade::primary_graph;

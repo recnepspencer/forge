@@ -10,10 +10,11 @@ creating a specialist query language or authorization path.
 
 ## Roadmap Placement
 
-Milestones 9.17 and 9.18 settle exact composite product-world truth and
-tree-based semantic aftermath before advanced computation begins. This
-milestone is the first advanced vertical slice formerly described by Milestone
-9.17 Phases 1 through 3.
+The completed Milestone 9.17 umbrella and Milestone 9.18 settle exact composite
+product-world truth and tree-based semantic aftermath before advanced
+computation begins. This milestone is the first advanced vertical slice after
+that branch/history foundation and remains independently governed by its access
+product and verified-footprint authority.
 
 ```text
 installed application query

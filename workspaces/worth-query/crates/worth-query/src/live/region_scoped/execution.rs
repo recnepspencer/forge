@@ -8,7 +8,6 @@ use crate::live::{
     RegionScopedReplayBundle, RegionSliceMatch, SuppressionReason,
 };
 
-#[cfg(test)]
 fn classify_locality_match(
     plan: &RegionScopedLivePlan,
     change: &BridgeChangeSummary,
@@ -110,8 +109,7 @@ fn classify_locality_match(
     Err(RegionScopedLiveError::BridgeSliceIncompatibility)
 }
 
-#[cfg(test)]
-pub(crate) fn execute_region_scoped_live_change(
+pub fn execute_region_scoped_live_change(
     plan: &RegionScopedLivePlan,
     change: &BridgeChangeSummary,
 ) -> Result<RegionScopedLiveExecutionEnvelope, RegionScopedLiveError> {

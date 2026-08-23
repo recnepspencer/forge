@@ -13,6 +13,8 @@ mod semantic_text;
 mod static_paint;
 
 pub use denial::UiMountedProjectionDenial;
+pub(in crate::mounting) use frame_storage::diagnostic_source::UiMountedDiagnosticSource;
+pub(crate) use frame_storage::presentation_sources::compile as compile_presentation_sources;
 pub use frame_storage::UiMountedProjectionFrame;
 pub(in crate::mounting) use frame_storage::UiMountedSemanticProjection;
 pub use node_receipt::UiMountedNodeReceipt;
@@ -24,4 +26,11 @@ pub(crate) use intent_posture::{
 pub(crate) use lowering::{
     prepare_projection, UiMountedPreviewProjectionInput, UiMountedProjectionInput,
 };
-pub(crate) use prepared_projection::UiPreparedMountedProjection;
+pub(crate) use prepared_projection::{
+    UiMountedPresentationDeltaSource, UiPreparedMountedProjection,
+};
+
+#[cfg(test)]
+pub(in crate::mounting) fn prove_paint_only_mechanic_locality() {
+    frame_storage::mechanic_source_tests::mechanic_source_routes_paint_only_work_through_current_mounted_authority();
+}

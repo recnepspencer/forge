@@ -1,0 +1,191 @@
+pub(super) fn host_shutdown_observation(
+    query_close: &crate::facade::entry::UiNativeApplicationQueryCloseObservation,
+) -> worth_ui_host_native::UiNativeClientShutdownObservation {
+    worth_ui_host_native::UiNativeClientShutdownObservation::from_client_with_presentation_evidence(
+        query_close.closed_query_resources(),
+        query_close.complete(),
+        map_transition_observations(query_close.transitions()),
+        query_close.complete(),
+        map_semantic_frontier_observations(query_close.semantic_frontiers()),
+        query_close.semantic_frontier_trace_complete(),
+    )
+    .with_text_presentation_work(
+        map_text_presentation_work(query_close.text_presentation_work()),
+        query_close.text_presentation_work_trace_complete(),
+    )
+    .with_authored_mounted_instances(
+        query_close
+            .authored_mounted_instances()
+            .to_vec()
+            .into_boxed_slice(),
+    )
+    .with_resources(client_resource_observation(
+        query_close.client_resource_peaks(),
+    ))
+}
+
+pub(super) fn client_resource_observation(
+    peaks: [usize; 2],
+) -> worth_ui_host_native::UiNativeClientResourceObservation {
+    worth_ui_host_native::UiNativeClientResourceObservation::reported(peaks[0], peaks[1], 0, 0)
+}
+
+pub(super) fn map_text_presentation_work(
+    observations: &[crate::native_platform::text_presentation::UiNativeTextPresentationWorkObservation],
+) -> Box<[worth_ui_host_native::UiNativeClientTextPresentationWorkObservation]> {
+    observations
+        .iter()
+        .map(|observation| {
+            worth_ui_host_native::UiNativeClientTextPresentationWorkObservation::reported(
+                observation.identity(),
+                observation.work_counts(),
+                observation.transcript_digests(),
+                observation.intrinsic_glyph_runs(),
+                observation.mechanic_identity_digests(),
+                observation.binding_pin_identities().iter().copied(),
+                observation
+                    .active_mechanics()
+                    .iter()
+                    .map(|mechanic| client_mechanic_identity(*mechanic)),
+                observation
+                    .removed_mechanics()
+                    .iter()
+                    .map(|mechanic| client_mechanic_identity(*mechanic)),
+            )
+        })
+        .collect::<Vec<_>>()
+        .into_boxed_slice()
+}
+
+fn client_mechanic_identity(
+    observation: crate::native_platform::text_presentation::UiNativeTextPresentationMechanicObservation,
+) -> worth_ui_host_native::UiNativeClientPresentationMechanicIdentityObservation {
+    let mechanic = observation.mechanic();
+    let (slot, row) = mechanic
+        .semantic_text_identity_parts()
+        .expect("text presentation work retains only semantic-text mechanics");
+    worth_ui_host_native::UiNativeClientPresentationMechanicIdentityObservation::reported(
+        mechanic.mounted_instance().diagnostic_value(),
+        slot,
+        row,
+        observation.layout_digest(),
+        observation.raster_key_set_digest(),
+    )
+}
+
+pub(super) fn map_semantic_frontier_observations(
+    observations: &[worth_ui_query_binding::WorthUiPresentationSemanticFrontierObservation],
+) -> Box<[worth_ui_host_native::UiNativeClientPresentationSemanticFrontierObservation]> {
+    observations
+        .iter()
+        .map(|observation| {
+            worth_ui_host_native::UiNativeClientPresentationSemanticFrontierObservation::reported(
+                map_semantic_change(observation.change()),
+                observation.subscribers().iter().map(|subscriber| {
+                    let identity = subscriber
+                        .mechanic()
+                        .and_then(|mechanic| mechanic.semantic_text_identity_parts());
+                    worth_ui_host_native::UiNativeClientPresentationSemanticSubscriberObservation::reported(
+                        subscriber
+                            .mounted_instance()
+                            .map(|identity| identity.diagnostic_value()),
+                        identity.map(|(slot, _)| slot),
+                        identity.and_then(|(_, row)| row),
+                        subscriber.mounted_frame().diagnostic_value(),
+                        subscriber.removal(),
+                        subscriber.content_digest(),
+                        subscriber.layout_digest(),
+                        subscriber.foreground_digest(),
+                        subscriber.raster_key_set_digest(),
+                        subscriber.source_digest(),
+                        subscriber.immediate_dependency_digest(observation.change()),
+                        [
+                            subscriber.attempt().diagnostic_value(),
+                            subscriber.semantic_surface().diagnostic_value(),
+                            subscriber.host_surface().diagnostic_value(),
+                            subscriber.binding().diagnostic_value(),
+                            subscriber.host_lineage().diagnostic_value(),
+                        ],
+                    )
+                }),
+                observation.source_deliveries(),
+                observation.outcome_classes().map(map_conditional_outcome),
+                observation
+                    .performed()
+                    .iter()
+                    .map(|summary| summary.realized_counters().values()),
+                observation.scope_rejections().values(),
+            )
+        })
+        .collect::<Vec<_>>()
+        .into_boxed_slice()
+}
+
+fn map_semantic_change(
+    change: worth_ui_query_binding::WorthUiPresentationSemanticChange,
+) -> worth_ui_host_native::UiNativeClientPresentationSemanticChange {
+    use worth_ui_host_native::UiNativeClientPresentationSemanticChange as Host;
+    use worth_ui_query_binding::WorthUiPresentationSemanticChange as Query;
+    match change {
+        Query::Content => Host::Content,
+        Query::Width => Host::Width,
+        Query::PaintValue => Host::PaintValue,
+        Query::PaintBoundary => Host::PaintBoundary,
+        Query::Dpi => Host::Dpi,
+        Query::UploadCompletion => Host::UploadCompletion,
+        Query::PinRelease => Host::PinRelease,
+        Query::Currentness => Host::Currentness,
+    }
+}
+
+fn map_conditional_outcome(
+    outcome: worth_ui_query_binding::WorthUiPresentationConditionalOutcomeClass,
+) -> worth_ui_host_native::UiNativeClientConditionalOutcome {
+    use worth_ui_host_native::UiNativeClientConditionalOutcome as Host;
+    use worth_ui_query_binding::WorthUiPresentationConditionalOutcomeClass as Query;
+    match outcome {
+        Query::ComputedChanged => Host::ComputedChanged,
+        Query::ComputedRevertedClean => Host::ComputedRevertedClean,
+        Query::DependencyUnchanged => Host::DependencyUnchanged,
+        Query::Suppressed => Host::Suppressed,
+        Query::DeferredByCondition => Host::DeferredByCondition,
+        Query::DeferredTemporal => Host::DeferredTemporal,
+        Query::DeferredOnDemand => Host::DeferredOnDemand,
+    }
+}
+
+pub(super) fn map_transition_observations(
+    observations: &[worth_ui_query_binding::WorthUiPresentationTransitionObservation],
+) -> Box<[worth_ui_host_native::UiNativeClientPresentationTransitionObservation]> {
+    observations
+        .iter()
+        .copied()
+        .map(|observation| {
+            worth_ui_host_native::UiNativeClientPresentationTransitionObservation::reported(
+                map_transition_kind(observation.kind()),
+                observation.attempt().diagnostic_value(),
+                observation.binding().diagnostic_value(),
+            )
+        })
+        .collect::<Vec<_>>()
+        .into_boxed_slice()
+}
+
+fn map_transition_kind(
+    kind: worth_ui_query_binding::WorthUiPresentationTransitionKind,
+) -> worth_ui_host_native::UiNativeClientPresentationTransitionKind {
+    use worth_ui_host_native::UiNativeClientPresentationTransitionKind as Host;
+    use worth_ui_query_binding::WorthUiPresentationTransitionKind as Query;
+    match kind {
+        Query::Pending => Host::Pending,
+        Query::Superseded => Host::Superseded,
+        Query::StaleCompletionRejected => Host::StaleCompletionRejected,
+        Query::Completed => Host::Completed,
+        Query::DuplicateCompletionRejected => Host::DuplicateCompletionRejected,
+        Query::Cancelled => Host::Cancelled,
+        Query::Unresolved => Host::Unresolved,
+        Query::RecoveryRequired => Host::RecoveryRequired,
+        Query::ReconstructionCurrent => Host::ReconstructionCurrent,
+        Query::TerminalClosed => Host::TerminalClosed,
+    }
+}

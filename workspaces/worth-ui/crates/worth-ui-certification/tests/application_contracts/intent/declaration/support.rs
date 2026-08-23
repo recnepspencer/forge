@@ -191,6 +191,9 @@ pub(super) fn freeze_module(
         .expect("test operability fact should register")
         .with_rust_authored_input(WorthUiRustAuthoredArtifactInput::from_modules([module]))
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
 }
 
 pub(super) fn declaration(

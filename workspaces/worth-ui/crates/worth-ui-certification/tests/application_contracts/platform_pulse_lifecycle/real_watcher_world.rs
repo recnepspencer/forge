@@ -22,6 +22,7 @@ pub(super) struct RealWatcherPulseWorld {
     scenario: FilesystemApplicationLifecycleScenario,
     workspace: Option<FilesystemContractWorkspace>,
     watcher: Option<WorthUiFilesystemSourceWatcher>,
+    host: Option<WorthUiHostEgui>,
 }
 
 impl RealWatcherPulseWorld {
@@ -40,11 +41,13 @@ impl RealWatcherPulseWorld {
             scenario: FilesystemApplicationLifecycleScenario::new("platform-pulse-real-lifecycle"),
             workspace: Some(workspace),
             watcher: Some(watcher),
+            host: None,
         }
     }
 
     pub(super) fn launch(&mut self) -> InitialPulsePublication {
         let host = WorthUiHostEgui::new(self.context.clone());
+        self.host = Some(host.clone());
         let capabilities = self
             .scenario
             .platform_pulse_capability_application(host.clone());
@@ -147,6 +150,11 @@ impl RealWatcherPulseWorld {
         assert!(!receipt.report().diagnostics().is_empty());
         assert_eq!(receipt.basis().source_revision(), &source);
         let generation = shell.generation_identity().clone();
+        let host = self
+            .host
+            .as_ref()
+            .expect("launched egui host remains retained")
+            .clone();
         let native = self.context.run_ui(raw_input(), |_| {
             assert!(matches!(
                 shell.present_frame(30, 21),
@@ -154,6 +162,7 @@ impl RealWatcherPulseWorld {
                     | Ok(UiMountedFrameOutcome::Published(_))
                     | Ok(UiMountedFrameOutcome::Reconciled(_))
             ));
+            host.repaint_retained_surfaces();
         });
         assert_background_and_target(&native.shapes, GREEN);
         assert_eq!(shell.generation_identity(), &generation);

@@ -1,5 +1,8 @@
 use std::marker::PhantomData;
 
+use worth_foundational::facade::AspectValue;
+use worth_query_declaration::facade::application_schema::TypedApplicationValue;
+
 use super::WorthQueryClockCoordinate;
 
 type TemporalIntentMarker<Clock, Input> = fn(Input) -> Clock;
@@ -84,6 +87,19 @@ impl WorthQueryTemporalIntentIdempotencyRelation {
     }
 }
 
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct WorthQueryTemporalOperationInputIdentity(String);
+
+impl WorthQueryTemporalOperationInputIdentity {
+    pub fn declare(identity: impl Into<String>) -> Result<Self, &'static str> {
+        validated_intent_identity(identity).map(Self)
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryTemporalIntentLifecycle {
     Active,
@@ -94,63 +110,77 @@ pub enum WorthQueryTemporalIntentLifecycle {
 /// Typed durable-intent meaning reconstructed from one installed query row.
 pub struct WorthQueryTemporalIntentCandidate<Clock, Input> {
     identity: WorthQueryTemporalIntentIdentity,
+    record_identity: AspectValue,
     revision: u64,
     due: WorthQueryClockCoordinate<Clock>,
     input: Input,
+    input_identity: WorthQueryTemporalOperationInputIdentity,
     idempotency: WorthQueryTemporalIntentIdempotencyRelation,
     lifecycle: WorthQueryTemporalIntentLifecycle,
     marker: PhantomData<TemporalIntentMarker<Clock, Input>>,
 }
 
 impl<Clock, Input> WorthQueryTemporalIntentCandidate<Clock, Input> {
-    pub fn active(
+    pub fn active<RecordIdentity: TypedApplicationValue>(
         identity: WorthQueryTemporalIntentIdentity,
+        record_identity: RecordIdentity,
         revision: u64,
         due: WorthQueryClockCoordinate<Clock>,
         input: Input,
+        input_identity: WorthQueryTemporalOperationInputIdentity,
         idempotency: WorthQueryTemporalIntentIdempotencyRelation,
     ) -> Self {
         Self {
             identity,
+            record_identity: record_identity.into_foundational_value(),
             revision,
             due,
             input,
+            input_identity,
             idempotency,
             lifecycle: WorthQueryTemporalIntentLifecycle::Active,
             marker: PhantomData,
         }
     }
 
-    pub fn cancelled(
+    pub fn cancelled<RecordIdentity: TypedApplicationValue>(
         identity: WorthQueryTemporalIntentIdentity,
+        record_identity: RecordIdentity,
         revision: u64,
         due: WorthQueryClockCoordinate<Clock>,
         input: Input,
+        input_identity: WorthQueryTemporalOperationInputIdentity,
         idempotency: WorthQueryTemporalIntentIdempotencyRelation,
     ) -> Self {
         Self {
             identity,
+            record_identity: record_identity.into_foundational_value(),
             revision,
             due,
             input,
+            input_identity,
             idempotency,
             lifecycle: WorthQueryTemporalIntentLifecycle::Cancelled,
             marker: PhantomData,
         }
     }
 
-    pub fn completed(
+    pub fn completed<RecordIdentity: TypedApplicationValue>(
         identity: WorthQueryTemporalIntentIdentity,
+        record_identity: RecordIdentity,
         revision: u64,
         due: WorthQueryClockCoordinate<Clock>,
         input: Input,
+        input_identity: WorthQueryTemporalOperationInputIdentity,
         idempotency: WorthQueryTemporalIntentIdempotencyRelation,
     ) -> Self {
         Self {
             identity,
+            record_identity: record_identity.into_foundational_value(),
             revision,
             due,
             input,
+            input_identity,
             idempotency,
             lifecycle: WorthQueryTemporalIntentLifecycle::Completed,
             marker: PhantomData,
@@ -165,12 +195,20 @@ impl<Clock, Input> WorthQueryTemporalIntentCandidate<Clock, Input> {
         self.revision
     }
 
+    pub fn record_identity(&self) -> &AspectValue {
+        &self.record_identity
+    }
+
     pub fn due(&self) -> WorthQueryClockCoordinate<Clock> {
         WorthQueryClockCoordinate::from_nanoseconds(self.due.nanoseconds())
     }
 
     pub fn input(&self) -> &Input {
         &self.input
+    }
+
+    pub fn input_identity(&self) -> &WorthQueryTemporalOperationInputIdentity {
+        &self.input_identity
     }
 
     pub fn idempotency(&self) -> &WorthQueryTemporalIntentIdempotencyRelation {
@@ -235,6 +273,18 @@ pub trait WorthQueryTemporalIntentProjector<Node, Clock, QueryResult, Input>:
         WorthQueryTemporalIntentCandidate<Clock, Input>,
         WorthQueryTemporalIntentProjectionFailure,
     >;
+}
+
+/// Application scalar conversion for the authoritative intent revision field.
+/// This is value meaning only and grants no mutation authority.
+pub trait WorthQueryTemporalIntentRevisionValue: TypedApplicationValue {
+    fn from_revision(revision: u64) -> Option<Self>;
+}
+
+impl WorthQueryTemporalIntentRevisionValue for u64 {
+    fn from_revision(revision: u64) -> Option<Self> {
+        Some(revision)
+    }
 }
 
 fn validated_intent_identity(identity: impl Into<String>) -> Result<String, &'static str> {

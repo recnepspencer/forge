@@ -26,14 +26,23 @@ impl SignalGraph {
         let Some(epoch_plan) = self.arena.plan_compaction_epoch(should_run, family_budget) else {
             return;
         };
-        let gc_start = RuntimeInstant::now();
+        let gc_start = self
+            .captures_observation_surface(
+                crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+            )
+            .then(RuntimeInstant::now);
         for family in epoch_plan.families() {
             self.compact_storage_family(family);
         }
         self.arena
             .complete_compaction_epoch(epoch_plan.family_budget());
-        self.observation.telemetry.storage.gc_epoch_count += 1;
-        self.observation.telemetry.storage.gc_epoch_nanos += gc_start.elapsed().as_nanos();
+        if let Some(gc_start) = gc_start {
+            let elapsed_nanos = gc_start.elapsed().as_nanos();
+            if let Some(mut telemetry) = self.telemetry_mut() {
+                telemetry.storage.gc_epoch_count += 1;
+                telemetry.storage.gc_epoch_nanos += elapsed_nanos;
+            }
+        }
     }
 
     #[cfg(test)]

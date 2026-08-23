@@ -213,6 +213,7 @@ fn graph_identity_app() -> WorthUiApp {
             )),
         )
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

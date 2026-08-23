@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use worth_ui_host_contract::{
-    UiHostSurfaceBaselineReceipt, UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
+    UiHostSurfaceBaselineIdentity, UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
 };
 
 use super::registration_attempt::{
@@ -10,7 +10,10 @@ use super::registration_attempt::{
 
 #[derive(Default)]
 pub(crate) struct UiMountedHostTruthCoordinator {
-    pub(super) known_empty: BTreeMap<UiSurfaceBindingGeneration, UiHostSurfaceBaselineReceipt>,
+    pub(super) known_empty: BTreeMap<
+        UiSurfaceBindingGeneration,
+        super::surface_lifecycle::UiMountedSurfaceBaselineReceipt,
+    >,
     pub(super) blocked: BTreeMap<UiSurfaceBindingGeneration, UiHostTruthIndeterminateObligations>,
 }
 
@@ -29,6 +32,16 @@ impl UiMountedHostTruthCoordinator {
         self.blocked
             .values()
             .any(|record| record.semantic_surface() == surface)
+    }
+
+    pub(crate) fn has_live_baseline(
+        &self,
+        binding: UiSurfaceBindingGeneration,
+        baseline: UiHostSurfaceBaselineIdentity,
+    ) -> bool {
+        self.known_empty
+            .get(&binding)
+            .is_some_and(|receipt| receipt.identity() == baseline)
     }
 
     pub(super) fn surface_has_indeterminate_native_lifecycle(

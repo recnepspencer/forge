@@ -9,6 +9,9 @@ fn bootstrap_app_exposes_milestone34_obligation_closeout_report() {
     let app = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let report = app.obligation_closeout_report();
 

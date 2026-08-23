@@ -483,11 +483,11 @@ Captured after the Milestone 2 hot/cold and compact reuse-authority pass with th
 
 ```bash
 cargo test -p worth-signal
-WORTH_SIGNAL_PERF_SAMPLES=3 cargo test -p worth-signal tests::performance_profiles::perf_dependency_reconciliation_stable_shape_staged_serial -- --ignored --nocapture --test-threads=1
-WORTH_SIGNAL_PERF_SAMPLES=3 cargo test -p worth-signal tests::performance_profiles::perf_dependency_reconciliation_rotating_window_staged_serial -- --ignored --nocapture --test-threads=1
-WORTH_SIGNAL_PERF_SAMPLES=3 cargo test -p worth-signal tests::performance_profiles::perf_dependency_reconciliation_rotating_window_serial -- --ignored --nocapture --test-threads=1
-WORTH_SIGNAL_PERF_SAMPLES=3 cargo test -p worth-signal tests::performance_profiles::perf_topology_rewiring_rotating_window_serial -- --ignored --nocapture --test-threads=1
-WORTH_SIGNAL_PERF_SAMPLES=3 cargo test -p worth-signal tests::performance_profiles::perf_fintech_mixed_fanout_profile_matrix -- --ignored --nocapture --test-threads=1
+WORTH_SIGNAL_PERF_SAMPLES=3 cargo test -p worth-signal --lib tests::performance_profiles::dependency_reconciliation_stable_shape::perf_dependency_reconciliation_stable_shape_staged_serial -- --ignored --nocapture --test-threads=1
+WORTH_SIGNAL_PERF_SAMPLES=3 cargo test -p worth-signal --lib tests::performance_profiles::dependency_reconciliation_staged::perf_dependency_reconciliation_rotating_window_staged_serial -- --ignored --nocapture --test-threads=1
+WORTH_SIGNAL_PERF_SAMPLES=3 cargo test -p worth-signal --lib tests::performance_profiles::dependency_reconciliation_rotating::perf_dependency_reconciliation_rotating_window_serial -- --ignored --nocapture --test-threads=1
+WORTH_SIGNAL_PERF_SAMPLES=3 cargo test -p worth-signal --lib tests::performance_profiles::topology_rewiring::perf_topology_rewiring_rotating_window_serial -- --ignored --nocapture --test-threads=1
+WORTH_SIGNAL_PERF_SAMPLES=3 cargo test -p worth-signal --lib tests::performance_profiles::fintech_fanout::perf_fintech_mixed_fanout_profile_matrix -- --ignored --nocapture --test-threads=1
 ```
 
 This section supersedes earlier March 24 notes when the goal is to answer "what is the most recent validated reference on this machine/code state?"

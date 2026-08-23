@@ -26,6 +26,9 @@ fn publication_projection_cases(cases: &trybuild::TestCases) {
         "tests/ui/application_aftermath/publication_closed_projection_fields_are_private.rs",
     );
     cases.compile_fail(
+        "tests/ui/application_aftermath/publication_query_receipt_fields_are_private.rs",
+    );
+    cases.compile_fail(
         "tests/ui/application_aftermath/publication_query_has_no_execution_terminal.rs",
     );
     cases.compile_fail(

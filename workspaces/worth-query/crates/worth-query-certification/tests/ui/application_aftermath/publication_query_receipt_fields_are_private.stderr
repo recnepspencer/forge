@@ -1,0 +1,28 @@
+error: cannot construct `WorthQueryApplicationQueryPublicationReceipt` with struct literal syntax due to private fields
+  --> tests/ui/application_aftermath/publication_query_receipt_fields_are_private.rs:14:5
+   |
+14 |     WorthQueryApplicationQueryPublicationReceipt {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+15 |         result_count,
+   |         ------------ private field
+16 |         ordinary_work_units,
+   |         ------------------- private field
+17 |         disclosure,
+   |         ---------- private field
+18 |         publication_work,
+   |         ---------------- private field
+19 |         terminal_release,
+   |         ---------------- private field
+   |
+   = note: ...and other private fields `query_identity`, `parameter_binding_identity` and `basis` that were not provided
+help: you might have meant to use the `from_terminal` associated function
+   |
+14 -     WorthQueryApplicationQueryPublicationReceipt {
+15 -         result_count,
+16 -         ordinary_work_units,
+17 -         disclosure,
+18 -         publication_work,
+19 -         terminal_release,
+20 -     }
+14 +     WorthQueryApplicationQueryPublicationReceipt::from_terminal(_)
+   |

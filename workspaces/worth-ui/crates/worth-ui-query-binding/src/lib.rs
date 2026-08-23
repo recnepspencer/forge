@@ -22,6 +22,7 @@ mod inspection;
 mod installed_domain;
 mod native_aspect_contracts;
 mod operation_live;
+mod presentation_async;
 mod product_projection;
 #[cfg(test)]
 mod product_projection_tests;
@@ -82,15 +83,19 @@ pub use collection_delivery::{
     WorthUiCollectionResetConsequence, WorthUiCollectionResetReason,
     WorthUiCollectionResultPosture, WorthUiCollectionRowReference, WorthUiCollectionWarningPosture,
 };
+pub use declaration::WorthUiProjectionField;
 pub use declaration::{
+    IdentityAspect, IdentityIdField, MeasurementAspect, MeasurementValueField, QueryRevisionAspect,
+    QueryRevisionValueField, QueryTextAspect, QueryTextStatusField, SizeAspect, SizeValueField,
     UiCollectionProjectionRegistration, UiCollectionSchemaRequirement,
-    UiCollectionSchemaRequirementError, UiInstalledProjectionView, UiProjectionFieldRequirement,
-    UiProjectionFieldRequirementError, UiProjectionLifecycleRequirement, UiProjectionNativeFamily,
-    UiProjectionShape, UiScalarProjectionRegistration, UiScalarSchemaRequirement,
-    WorthUiInstalledLiveQueryView, WorthUiInstalledQueryView, WorthUiInstalledSnapshotQueryView,
-    WorthUiQueryViewDeclarationDenial, WorthUiQueryViewDefinition,
-    WorthUiQueryViewDefinitionDigest, WorthUiQueryViewIdentity, WorthUiQueryViewIdentityError,
-    WorthUiQueryViewLifecycle, WorthUiQueryViewShape,
+    UiCollectionSchemaRequirementError, UiInstalledProjectionView, UiMeasurementValue,
+    UiProjectionFieldRequirement, UiProjectionFieldRequirementError,
+    UiProjectionLifecycleRequirement, UiProjectionNativeFamily, UiProjectionShape,
+    UiScalarProjectionRegistration, UiScalarSchemaRequirement, UiSizeValue,
+    WorthUiApplicationSchema, WorthUiInstalledLiveQueryView, WorthUiInstalledQueryView,
+    WorthUiInstalledSnapshotQueryView, WorthUiNativeField, WorthUiQueryViewDeclarationDenial,
+    WorthUiQueryViewDefinition, WorthUiQueryViewDefinitionDigest, WorthUiQueryViewIdentity,
+    WorthUiQueryViewIdentityError, WorthUiQueryViewLifecycle, WorthUiQueryViewShape, WorthUiRecord,
 };
 pub use domain_marker::WorthUiDomainEntry;
 pub use domain_package::worth_ui_domain_package;
@@ -110,12 +115,13 @@ pub use inspection::{
     WorthUiQueryInspectionEvidencePolicy, WorthUiQueryInspectionMaterializationCounters,
     WorthUiSettledSnapshotInspection, WorthUiSettledSnapshotRichEvidence,
 };
+pub(crate) use installed_domain::WorthUiQueryHost;
 pub use installed_domain::{
     install_worth_ui_operation_executors, WorthUiInstalledQueryDomain, WorthUiMeasurementRecording,
     WorthUiMeasurementRecordingFamily, WorthUiQueryDomainRebindDenial,
     WorthUiQueryDomainRebindDenialKind, WorthUiQueryDomainRebindNextAction,
     WorthUiQueryDomainRebindReceipt, WorthUiQueryInstallationDenial,
-    WorthUiQueryInstallationDenialKind, WorthUiQueryWorkspaceExt, WorthUiScalarTextProjection,
+    WorthUiQueryInstallationDenialKind, WorthUiScalarTextProjection,
     WorthUiScalarTextProjectionFamily, WorthUiSnapshotMeasurement,
     WorthUiSnapshotMeasurementFamily,
 };
@@ -123,6 +129,7 @@ pub use installed_domain::{
 pub use installed_domain::{
     install_worth_ui_partial_collection_test_operation_executors,
     install_worth_ui_partial_test_operation_executors, install_worth_ui_test_operation_executors,
+    WorthUiQueryWorkspaceExt,
 };
 pub use native_aspect_contracts::worth_ui_native_aspect_contracts;
 pub use operation_live::{
@@ -141,6 +148,33 @@ pub use operation_live::{
     WorthUiOperationLiveRetirementCloseReceipt, WorthUiOperationLiveRetirementStop,
     WorthUiOperationLiveSourceRefreshOutcome, WorthUiOperationLiveSourceRefreshStop,
     WorthUiValidatedCollectionChangeObservation,
+};
+pub use presentation_async::{
+    WorthUiPresentationAdmissionRecovery, WorthUiPresentationAdmissionStop,
+    WorthUiPresentationAsyncCloseDenial, WorthUiPresentationAsyncCloseReceipt,
+    WorthUiPresentationAsyncHostCompletion, WorthUiPresentationAsyncHostPlan,
+    WorthUiPresentationAsyncInstallation, WorthUiPresentationAsyncInstallationError,
+    WorthUiPresentationAsyncObservation, WorthUiPresentationAsyncOwner,
+    WorthUiPresentationAsyncPosture, WorthUiPresentationAsyncTerminalProjection,
+    WorthUiPresentationCancellationEffectsObservation, WorthUiPresentationCleanupProgress,
+    WorthUiPresentationCleanupRecovery, WorthUiPresentationConditionalOutcomeClass,
+    WorthUiPresentationCorrespondenceIssuanceDenial, WorthUiPresentationCorrespondenceIssuer,
+    WorthUiPresentationEffectsIndeterminateObservation, WorthUiPresentationIncompleteAdmission,
+    WorthUiPresentationMechanicBasis, WorthUiPresentationMechanicBasisInput,
+    WorthUiPresentationPaintSpanBasis, WorthUiPresentationPendingAdmissionDenial,
+    WorthUiPresentationPendingReceipt, WorthUiPresentationPinBasis,
+    WorthUiPresentationPresentedReceipt, WorthUiPresentationQueryHostInstallationRequest,
+    WorthUiPresentationRasterKeySetBasis, WorthUiPresentationRecoveryReceipt,
+    WorthUiPresentationRecoveryRequiredReceipt, WorthUiPresentationRequestBasis,
+    WorthUiPresentationRequestBasisDenial, WorthUiPresentationRequestBasisInput,
+    WorthUiPresentationRuntimeCleanupStop, WorthUiPresentationRuntimeCorrespondence,
+    WorthUiPresentationScopeRejectionCounters, WorthUiPresentationSemanticChange,
+    WorthUiPresentationSemanticFrontierObservation, WorthUiPresentationSemanticSubscriberIdentity,
+    WorthUiPresentationSettlementDenial, WorthUiPresentationSettlementStop,
+    WorthUiPresentationSupersededPhysicalObservation, WorthUiPresentationTransitionKind,
+    WorthUiPresentationTransitionObservation, WorthUiPresentationUnresolvedReceipt,
+    WorthUiPresentationValidatedCompletion, WORTH_UI_PRESENTATION_PENDING_CAPACITY,
+    WORTH_UI_PRESENTATION_TRANSITION_CAPACITY,
 };
 pub use product_projection::{
     WorthUiQueryHostInstallationRequest, WorthUiScalarProjectionActionAdvance,

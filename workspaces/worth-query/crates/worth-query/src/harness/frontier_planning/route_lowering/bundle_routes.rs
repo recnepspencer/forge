@@ -8,7 +8,7 @@ use crate::planning::{
     FrontierSurfaceDigest, ParallelAdmissionEvidence, SerialFallbackEvidence, SerialFallbackReason,
 };
 
-use super::super::fixtures::{sample_signal_frontier_plan, sample_signal_frontier_summary};
+use super::super::fixtures::{sample_signal_execution_receipt, sample_signal_planning_estimate};
 
 #[test]
 fn denied_by_drift_blocks_parallel_and_serial_route_lowering() {
@@ -177,11 +177,11 @@ fn route_posture_digest_binds_frontier_evidence() {
 }
 
 #[test]
-fn signal_frontier_plan_adapter_produces_stable_surface_digest() {
-    let plan = sample_signal_frontier_plan();
+fn signal_planning_estimate_adapter_produces_stable_surface_digest() {
+    let estimate = sample_signal_planning_estimate();
 
-    let first = SignalFrontierSurfaceEvidence::from_frontier_plan(&plan);
-    let second = SignalFrontierSurfaceEvidence::from_frontier_plan(&plan);
+    let first = SignalFrontierSurfaceEvidence::from_planning_estimate(&estimate);
+    let second = SignalFrontierSurfaceEvidence::from_planning_estimate(&estimate);
 
     assert_eq!(first.surface_digest(), second.surface_digest());
     assert_eq!(first.predicted_breadth(), second.predicted_breadth());
@@ -194,9 +194,8 @@ fn signal_frontier_surface_evidence_lowers_into_route_evidence() {
         crate::harness::fixtures::execution_preflights::ordered_collection_without_traversal_preflight();
     let admitted = admit_ordered_collection_frontier_preflight(preflight.clone())
         .expect("ordered collection should admit on the ordered frontier lane");
-    let signal_surface = SignalFrontierSurfaceEvidence::from_frontier_execution_summary(
-        &sample_signal_frontier_summary(),
-    );
+    let signal_surface =
+        SignalFrontierSurfaceEvidence::from_execution_receipt(&sample_signal_execution_receipt());
     let evidence = signal_surface.to_parallel_admission_evidence(
         preflight.basis().proof().digest().as_str(),
         FrontierDisjointnessClass::CollectionWindowSurface,

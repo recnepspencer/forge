@@ -8,7 +8,7 @@ use worth_ui::facade::observation_report::{
 };
 use worth_ui::facade::source::{WorthUiFilesystemSourceProvider, WorthUiFilesystemSourceWatcher};
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
-use worth_ui_runtime::facade::host::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder};
+use worth_ui_host_headless::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder};
 use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode, UiMountedAllocationProjection,
     UiMountedEffectFamily, UiMountedFrameOutcome, UiMountedOmissionReason,

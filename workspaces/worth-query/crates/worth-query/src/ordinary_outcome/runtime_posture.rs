@@ -15,6 +15,7 @@ pub enum WorthQueryOrdinaryRuntimePostureKind {
     Revalidating,
     Superseded,
     Denied,
+    Unresolved,
     Unsupported,
 }
 
@@ -31,6 +32,7 @@ impl WorthQueryOrdinaryRuntimePostureKind {
             Self::Revalidating => "revalidating",
             Self::Superseded => "superseded",
             Self::Denied => "denied",
+            Self::Unresolved => "unresolved",
             Self::Unsupported => "unsupported",
         }
     }
@@ -64,6 +66,7 @@ pub enum WorthQueryOrdinaryRuntimeAsyncPostureKind {
     Revalidating,
     Superseded,
     Denied,
+    Unresolved,
 }
 
 impl WorthQueryOrdinaryRuntimeAsyncPostureKind {
@@ -78,6 +81,7 @@ impl WorthQueryOrdinaryRuntimeAsyncPostureKind {
             Self::Revalidating => "revalidating",
             Self::Superseded => "superseded",
             Self::Denied => "denied",
+            Self::Unresolved => "unresolved",
         }
     }
 }

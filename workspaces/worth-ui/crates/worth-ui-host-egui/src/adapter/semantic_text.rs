@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use worth_ui_host_contract::{
     UiHostSurfacePresentationDenial, UiMountedAllocationProjection, UiMountedCoordinateSpace,
     UiMountedGeometryPosture, UiMountedParticipationStatus, UiMountedSemanticTextMechanic,
@@ -7,23 +5,25 @@ use worth_ui_host_contract::{
     UiSemanticTextSlot, UiSemanticTextWrapPosture,
 };
 
-#[derive(Clone)]
-pub(super) struct UiEguiPreparedSemanticText {
-    pub(super) origin: egui::Pos2,
-    pub(super) clip_rect: egui::Rect,
-    pub(super) text: Arc<str>,
-    pub(super) color: egui::Color32,
-    pub(super) font: egui::FontId,
-    pub(super) layer_semantic_order: u32,
-}
-
+#[cfg(test)]
 pub(super) fn prepare(
     view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
-) -> Result<Vec<UiEguiPreparedSemanticText>, UiHostSurfacePresentationDenial> {
-    let projection = view.projection();
+) -> Result<(), UiHostSurfacePresentationDenial> {
+    let worth_ui_host_contract::UiMountedPresentationWorkView::Initial(initial) =
+        view.presentation_work()
+    else {
+        return Err(UiHostSurfacePresentationDenial::MalformedProjection);
+    };
+    let projection = initial.projection();
+    validate_projection(view, projection)
+}
+
+pub(super) fn validate_projection(
+    view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
+    projection: &worth_ui_host_contract::UiMountedProjectionView,
+) -> Result<(), UiHostSurfacePresentationDenial> {
     let rows = projection.semantic_text().rows();
     let mut visited = vec![false; rows.len()];
-    let mut prepared = Vec::with_capacity(rows.len());
     for node in projection.nodes() {
         for reference in node.semantic_text() {
             let index = usize::from(reference.index());
@@ -39,22 +39,21 @@ pub(super) fn prepare(
             ) {
                 return Err(UiHostSurfacePresentationDenial::MalformedProjection);
             }
-            validate_row(view, node, row)?;
-            prepared.push(translate(row));
+            validate_row(view, projection, node, row)?;
         }
     }
     if visited.iter().any(|visited| !visited) {
         return Err(UiHostSurfacePresentationDenial::MalformedProjection);
     }
-    Ok(prepared)
+    Ok(())
 }
 
 fn validate_row(
     view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
+    projection: &worth_ui_host_contract::UiMountedProjectionView,
     node: &worth_ui_host_contract::UiMountedNodeProjectionView,
     row: &UiMountedSemanticTextMechanic,
 ) -> Result<(), UiHostSurfacePresentationDenial> {
-    let projection = view.projection();
     if row.schema() != UiMountedTextSchemaVersion::current()
         || row.frame() != projection.frame()
         || row.surface() != projection.surface()
@@ -74,7 +73,9 @@ fn validate_row(
         || row.profile() != UiSemanticTextProfile::BodyDefault
         || row.profile().wrap() != UiSemanticTextWrapPosture::Clip
         || row.profile().baseline() != UiSemanticTextBaselinePosture::Alphabetic
+        || row.foregrounds().len() != 1
         || !matching_collection_identity(row)
+        || view.qualified_text_layout(row).is_none()
     {
         return Err(UiHostSurfacePresentationDenial::MalformedProjection);
     }
@@ -105,26 +106,6 @@ fn matching_allocation(
         UiMountedAllocationProjection::Known { bounds, basis }
             if bounds == row.bounds() && basis == row.allocation_basis()
     )
-}
-
-fn translate(row: &UiMountedSemanticTextMechanic) -> UiEguiPreparedSemanticText {
-    let channels = row.color().channels();
-    UiEguiPreparedSemanticText {
-        origin: egui::pos2(row.origin_x(), row.origin_y()),
-        clip_rect: super::native_paint::egui_rect(row.clip_bounds()),
-        text: Arc::from(row.text()),
-        color: egui::Color32::from_rgba_unmultiplied(
-            channels[0],
-            channels[1],
-            channels[2],
-            channels[3],
-        ),
-        font: egui::FontId::new(
-            f32::from(row.profile().size_millipoints()) / 1_000.0,
-            egui::FontFamily::Proportional,
-        ),
-        layer_semantic_order: row.layer_semantic_order(),
-    }
 }
 
 #[cfg(test)]

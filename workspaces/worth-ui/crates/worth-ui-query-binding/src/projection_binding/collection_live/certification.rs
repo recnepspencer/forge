@@ -1,5 +1,6 @@
+use worth_foundational::facade::{AspectValue, InternedString};
 use worth_query::facade::{
-    installed::{collection, observation},
+    installed::{collection, observation, operation},
     runtime,
 };
 
@@ -7,6 +8,17 @@ use super::UiLiveCollectionProjection;
 
 type QueryPatch = collection::WorthQueryCollectionPatch;
 type QueryReceipt = collection::WorthQueryCollectionPatchApplicationReceipt;
+
+#[derive(Debug, Eq, PartialEq)]
+pub(crate) struct CollectionProjectionStateSnapshot {
+    rows: Vec<(runtime::WorthQueryEvidenceIdentityKey, Box<[String]>)>,
+    result_state: operation::WorthQueryOperationResultState,
+    continuation: Option<runtime::WorthQueryEvidenceIdentityKey>,
+    source_generation: runtime::WorthQueryEvidenceIdentityKey,
+    result_generation: runtime::WorthQueryEvidenceIdentityKey,
+    warnings: Box<[collection::WorthQueryCollectionWindowWarning]>,
+    reset_pending: bool,
+}
 
 impl UiLiveCollectionProjection {
     pub(crate) fn certification_plan_patch_twins(
@@ -43,7 +55,7 @@ impl UiLiveCollectionProjection {
         &mut self,
         target: &mut Self,
         workspace: &mut runtime::WorthQueryWorkspace,
-    ) -> (QueryPatch, QueryPatch) {
+    ) -> (QueryPatch, QueryPatch, QueryPatch) {
         let delivery = self
             .lease
             .drain(workspace)
@@ -71,6 +83,7 @@ impl UiLiveCollectionProjection {
         (
             required_patch(&mut self.consumer, &admitted, workspace),
             required_patch(&mut self.consumer, &admitted, workspace),
+            required_patch(&mut target.consumer, &admitted, workspace),
         )
     }
 
@@ -100,18 +113,55 @@ impl UiLiveCollectionProjection {
         )
     }
 
-    pub(crate) fn certification_row_identities(&self) -> Vec<String> {
-        self.consumer
-            .rows()
-            .iter()
-            .map(|row| {
-                crate::UiQueryIdentityReportingProjection::from_query_identity(
-                    &row.entity_identity().evidence_identity(),
-                )
-                .as_str()
-                .to_owned()
-            })
-            .collect()
+    pub(crate) fn certification_state_snapshot(&self) -> CollectionProjectionStateSnapshot {
+        let rows =
+            self.consumer
+                .rows()
+                .iter()
+                .map(|row| {
+                    let values =
+                        self.accesses
+                            .iter()
+                            .map(|access| {
+                                let fact = self.consumer.native_value(row, access.key()).expect(
+                                    "certification state snapshot uses admitted native access",
+                                );
+                                match fact.native_value().scalar() {
+                                    Some(AspectValue::String(InternedString::Raw(value))) => {
+                                        value.to_string()
+                                    }
+                                    other => panic!(
+                                        "certification collection value is not raw text: {other:?}"
+                                    ),
+                                }
+                            })
+                            .collect::<Vec<_>>()
+                            .into_boxed_slice();
+                    (
+                        row.entity_identity().evidence_identity().operational_key(),
+                        values,
+                    )
+                })
+                .collect();
+        CollectionProjectionStateSnapshot {
+            rows,
+            result_state: self.consumer.result_state(),
+            continuation: self
+                .consumer
+                .continuation()
+                .identity_evidence()
+                .map(|identity| identity.operational_key()),
+            source_generation: self
+                .consumer
+                .source_generation_identity_evidence()
+                .operational_key(),
+            result_generation: self
+                .consumer
+                .result_generation_identity_evidence()
+                .operational_key(),
+            warnings: self.consumer.warnings().into(),
+            reset_pending: self.consumer.reset_pending(),
+        }
     }
 }
 

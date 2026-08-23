@@ -21,6 +21,9 @@ use worth_ui_certification::topology::{
     expected_phase3_lifecycle_subsystems,
 };
 
+#[path = "topology_audit/immutable_inspection.rs"]
+mod immutable_inspection;
+
 fn workspace_root() -> &'static worth_ui_certification::topology::WorkspaceSourceInventory {
     super::workspace_source_inventory()
 }
@@ -293,6 +296,9 @@ fn lifecycle_inventories_match_phase3_closure_inventory() {
     let app = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let expected = expected_phase3_lifecycle_subsystems();
 
@@ -361,40 +367,4 @@ fn lifecycle_inventories_match_phase3_closure_inventory() {
 
     assert_eq!(runtime_rows, expected);
     assert_eq!(inspection_rows, expected_inspection_rows);
-}
-
-#[test]
-fn facade_inspection_from_immutable_app_reference_uses_lifecycle_owned_support_posture() {
-    let app = WorthUi::app()
-        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
-        .freeze()
-        .expect("application preparation should succeed");
-    let app_ref = &app;
-    let scope = UiInspectionScope::graph();
-    let support_report = app_ref.inspection_support_report(scope);
-    let receipt = app_ref.inspect(UiInspectionQuery::new(
-        UiInspectionTarget::product_root(),
-        scope,
-    ));
-
-    assert_eq!(receipt.query().scope(), UiInspectionScope::Graph);
-    assert_eq!(
-        support_report.status(),
-        UiInspectionSupportStatus::Unsupported
-    );
-    assert_eq!(
-        receipt.relevance_outcome(),
-        worth_ui::facade::inspection::UiInspectionRelevanceOutcome::UnsupportedScope {
-            scope: UiInspectionScope::Graph,
-        }
-    );
-    assert_eq!(receipt.support_report(), Some(support_report));
-    assert_eq!(app_ref.inspection_support_report(scope), support_report);
-    assert_eq!(
-        receipt.posture(),
-        Some(UiInspectionPosture::deferred(
-            Some(UiInspectionMilestoneExpectation::Milestone31),
-            UiInspectionSupportWorld::Authoritative,
-        ))
-    );
 }

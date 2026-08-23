@@ -6,6 +6,10 @@ pub enum UiDeclaredMeasurementMode {
         horizontal_logical_points: u16,
         vertical_logical_points: u16,
     },
+    FixedLogicalSize {
+        width: u16,
+        height: u16,
+    },
 }
 
 pub(crate) fn measurement_mode_claim(claim: &str) -> Option<UiDeclaredMeasurementMode> {

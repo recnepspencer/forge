@@ -68,6 +68,7 @@ where
             source @ WorthQueryApplicationHistoricalReadSource::BridgeSelector(_) => {
                 let evaluation = self
                     .bridge
+                    .ordinary()
                     .evaluate(source.into_evaluation_request())
                     .map_err(|error| {
                         denial(

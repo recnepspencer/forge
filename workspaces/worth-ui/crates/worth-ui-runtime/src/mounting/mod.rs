@@ -10,10 +10,12 @@ mod identity_overlay;
 mod identity_state;
 mod identity_trace_basis;
 mod identity_view;
-mod presentation;
+pub(crate) mod presentation;
 mod projection;
 mod projection_changes;
 mod publication;
+#[cfg(any(test, feature = "certification-support"))]
+pub(crate) mod qualified_text_test_support;
 mod receipt_basis;
 mod retention;
 mod reuse;
@@ -52,16 +54,20 @@ pub use presentation::{
     UiMountedPresentationInFlight, UiMountedPresentationOutcome, UiMountedPresentationReceipt,
     UiMountedPresentationShutdownAttempt, UiMountedPresentationShutdownDisposition,
     UiMountedPresentationShutdownReport, UiMountedPresentationWitness, UiMountedPresentedFrame,
-    UiMountedRejectedFrame, UiMountedSurfacePresentationReceipt,
+    UiMountedRejectedFrame, UiMountedSupersededFrame, UiMountedSurfacePresentationReceipt,
     UiMountedSurfacePresentationRejection, UiMountedSurfaceReconciliationBinding,
     UiPresentationIndeterminateReport,
 };
 pub(crate) use presentation::{
     UiMountedHostPresentationAuthority, UiMountedPresentationCoordinator,
+    UiMountedSupersedingPresentationBasis,
 };
+#[allow(unused_imports)]
+pub(crate) use projection::compile_presentation_sources;
 pub(crate) use projection::{
     prepare_projection, UiIntentPostureCommit, UiIntentPostureObservation, UiIntentPostureTable,
-    UiMountedPreviewProjectionInput, UiMountedProjectionInput, UiPreparedMountedProjection,
+    UiMountedPresentationDeltaSource, UiMountedPreviewProjectionInput, UiMountedProjectionInput,
+    UiPreparedMountedProjection,
 };
 pub use projection::{
     UiMountedNodeReceipt, UiMountedProjectionDenial, UiMountedProjectionFrame,
@@ -74,7 +80,8 @@ pub use publication::{
     UiMountedFrameOutcome, UiMountedFramePublicationReceipt, UiMountedPublicationLeaseDenial,
 };
 pub(crate) use publication::{
-    UiMountedFramePublicationCandidate, UiMountedFrameReconciliationCandidate,
+    UiMountedFramePublicationCandidate, UiMountedFramePublicationCommit,
+    UiMountedFrameReconciliationCandidate,
 };
 pub(crate) use receipt_basis::UiMountedNodeReceiptBasis;
 pub(crate) use retention::{
@@ -103,7 +110,8 @@ pub(crate) use semantic_content::{
     UiMountedCollectionRowIdentity, UiMountedCollectionSemanticTextContent,
     UiMountedCollectionTextChange, UiMountedCollectionTextDirective, UiMountedCollectionTextRow,
     UiMountedScalarSemanticTextContent, UiMountedSemanticContentInput,
-    UiMountedSemanticTextContent, UiMountedSemanticTextValueDirective,
+    UiMountedSemanticTextContent, UiMountedSemanticTextFormattingDirective,
+    UiMountedSemanticTextValueDirective,
 };
 pub(crate) use session_state::{
     UiMountedGraphReplacementAdmission, UiMountedGraphReplacementInFlight,
@@ -120,8 +128,13 @@ pub use assembly::{
     UiMountedSurfaceReceipt, UiPreparedMountedFrame,
 };
 pub use worth_ui_host_contract::{
-    UiHostSurfaceBaselineReceipt, UiHostSurfaceIdentity, UiHostSurfacePresentationMode,
+    UiHostSurfaceBaselineIdentity, UiHostSurfaceIdentity, UiHostSurfacePresentationMode,
     UiMountIncarnation, UiMountedFrameIdentity, UiMountedInstanceIdentity,
     UiMountedNodeReceiptIdentity, UiMountedProjectionAudience, UiSemanticSurfaceIdentity,
     UiSurfaceBindingGeneration,
 };
+
+#[cfg(test)]
+pub(crate) fn prove_paint_only_mechanic_locality() {
+    projection::prove_paint_only_mechanic_locality();
+}

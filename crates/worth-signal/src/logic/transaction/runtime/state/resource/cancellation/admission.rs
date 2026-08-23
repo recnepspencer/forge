@@ -14,12 +14,16 @@ impl ResourceRuntimeState {
         &mut self,
         handle: ResourceRequestHandle,
         reason: ResourceCancellationReason,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> ResourceCancellationReport {
-        telemetry.resource_hot_in_flight_lookup_count += 1;
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_hot_in_flight_lookup_count += 1;
+        }
         let admission = match self.classify_resource_cancellation(handle) {
             Ok(admission) => admission,
-            Err(class) => return self.deny_cancellation(handle.request_id(), class, telemetry),
+            Err(class) => {
+                return self.deny_cancellation(handle.request_id(), class, telemetry.as_deref_mut())
+            }
         };
         let handle = admission.handle;
 
@@ -28,7 +32,7 @@ impl ResourceRuntimeState {
                 admission.request_id,
                 reason,
                 &mut BTreeSet::new(),
-                telemetry,
+                telemetry.as_deref_mut(),
             )
             .expect("active cancellation should resolve through the runtime");
         let cancelled_width = 1u32.saturating_add(applied.propagated_dependents.len() as u32);
@@ -48,9 +52,11 @@ impl ResourceRuntimeState {
                     != ResourceOutputContinuity::NoPriorOutput
             })
             .count() as u32;
-        telemetry.resource_in_flight_request_count = self.in_flight_by_request.len() as u64;
-        let performance = Self::record_boundary_performance(
-            telemetry,
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_in_flight_request_count = self.in_flight_by_request.len() as u64;
+        }
+        let performance = Self::record_boundary_performance_optional(
+            telemetry.as_deref_mut(),
             ResourceBoundaryPerformanceEnvelope::cancellation(cancelled_width, 0)
                 .with_output_continuity_classification_width(cancellation_visibility_width),
         );

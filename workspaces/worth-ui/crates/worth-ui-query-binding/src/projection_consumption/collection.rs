@@ -123,6 +123,11 @@ pub enum UiCollectionProjectionChange {
         from: usize,
         to: usize,
     },
+    Regroup {
+        row: UiCollectionProjectionRowReference,
+        from: Option<Box<[String]>>,
+        to: Option<Box<[String]>>,
+    },
     Update {
         row: UiCollectionProjectionRowReference,
     },

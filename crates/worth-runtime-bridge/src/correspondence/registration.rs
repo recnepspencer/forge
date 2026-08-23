@@ -54,4 +54,51 @@ impl BridgeSemanticCorrespondenceRegistration {
     pub(crate) fn signal_graph_instance_id(&self) -> u64 {
         self.targets[0].graph_instance_id()
     }
+
+    pub(crate) fn rebind_to_graph(
+        &self,
+        graph: &worth_signal::facade::SignalGraph,
+    ) -> Option<Self> {
+        let targets = self
+            .targets
+            .iter()
+            .map(|target| target.rebind_to_graph(graph))
+            .collect::<Option<Vec<_>>>()?;
+        Self::new(self.dependency.clone(), targets).ok()
+    }
+
+    pub(crate) fn has_new_targets(&self, extension: &Self) -> bool {
+        extension.targets.iter().any(|candidate| {
+            self.targets
+                .binary_search_by_key(
+                    &candidate.canonical_registration_key(),
+                    BridgeSignalAspectTargetDeclaration::canonical_registration_key,
+                )
+                .is_err()
+        })
+    }
+
+    pub(crate) fn extend_targets(
+        &mut self,
+        extension: &Self,
+    ) -> Result<(), BridgeCorrespondenceDenial> {
+        if self.dependency != extension.dependency
+            || self.signal_graph_instance_id() != extension.signal_graph_instance_id()
+        {
+            return Err(BridgeCorrespondenceDenial::without_admission(
+                BridgeCorrespondenceDenialKind::InvalidPortableDependency,
+            ));
+        }
+        for target in &extension.targets {
+            let key = target.canonical_registration_key();
+            match self.targets.binary_search_by_key(
+                &key,
+                BridgeSignalAspectTargetDeclaration::canonical_registration_key,
+            ) {
+                Ok(_) => {}
+                Err(position) => self.targets.insert(position, target.clone()),
+            }
+        }
+        Ok(())
+    }
 }

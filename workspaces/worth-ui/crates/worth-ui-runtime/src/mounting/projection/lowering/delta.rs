@@ -34,7 +34,9 @@ pub(super) fn build(
 ) -> Result<Option<UiMountedProjectionBuild>, UiMountedProjectionDenial> {
     let scope = UiMountedDeltaScope::derive(&input)?;
     if !scope.has_work() {
-        return Ok(None);
+        return UiMountedDeltaApplication::begin(&input, &scope)
+            .finish(&input, &scope, 0, 0)
+            .map(Some);
     }
     let mut application = UiMountedDeltaApplication::begin(&input, &scope);
     application.apply_retired(&scope)?;
@@ -99,7 +101,9 @@ impl UiMountedDeltaScope {
     }
 
     fn work_class(&self) -> super::super::super::UiMountWorkClass {
-        if self.declared_semantic_changed {
+        if !self.has_work() {
+            super::super::super::UiMountWorkClass::UnchangedReuse
+        } else if self.declared_semantic_changed {
             super::super::super::UiMountWorkClass::SemanticDelta
         } else if self.allocation_delta_observed {
             super::super::super::UiMountWorkClass::BatchDelta
@@ -238,10 +242,18 @@ impl UiMountedDeltaApplication {
         if !input.changes.order_changed() && !self.membership_changed {
             return 0;
         }
+        if let Some(order) = input
+            .state
+            .projection_order_snapshot(input.requested_surfaces)
+        {
+            let declared_rows = usize::from(input.changes.order_changed()) * order.len();
+            self.semantic.replace_order_snapshot(order);
+            return declared_rows;
+        }
         let order = input.state.projection_order(input.requested_surfaces);
-        let count = order.len();
+        let copied_rows = order.len();
         self.semantic.replace_order(order);
-        count
+        copied_rows
     }
 
     fn finish(
@@ -280,8 +292,19 @@ impl UiMountedDeltaApplication {
                 overflowed: input.changes.overflowed(),
             },
             replaced_order_rows,
+            presentation_changed_instances: presentation_changed_instances(scope),
         })
     }
+}
+
+fn presentation_changed_instances(
+    scope: &UiMountedDeltaScope,
+) -> std::rc::Rc<[worth_ui_host_contract::UiMountedInstanceIdentity]> {
+    let mut instances = scope.changed.clone();
+    instances.extend_from_slice(&scope.retired);
+    instances.sort_unstable();
+    instances.dedup();
+    instances.into()
 }
 
 fn add_mutation_work(

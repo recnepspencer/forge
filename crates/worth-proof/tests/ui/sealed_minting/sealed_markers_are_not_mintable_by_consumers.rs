@@ -1,4 +1,3 @@
-
 //! The live witness door, held to its contract.
 //!
 //! `witnesses_are_not_publicly_mintable.rs` covers `AuthorityWitness::mint`,
@@ -25,8 +24,8 @@ mod outsider {
         AuthorityWitness::from_authority_marker(authority)
     }
 
-    pub fn attempt_capability_struct_literal(
-    ) -> CapabilityWitness<super::owner::SealedCapability> {
+    pub fn attempt_capability_struct_literal() -> CapabilityWitness<super::owner::SealedCapability>
+    {
         let capability = super::owner::SealedCapability(::core::marker::PhantomData);
         CapabilityWitness::from_capability_marker(capability)
     }
@@ -47,4 +46,3 @@ fn main() {
     let _ = outsider::attempt_private_witness();
 }
 // sealed-minting-case
-

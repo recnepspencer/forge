@@ -9,7 +9,7 @@ impl ResourceRuntimeState {
         node: ResourceNodeId,
         replacing: ResourceRequestHandle,
         replacing_descriptor_id: ResourceDescriptorId,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> Option<ResourceSupersessionRecord> {
         let request_id = self.active_request_by_node.get(&node).copied()?;
         let (supersession_digest, permits_overlap_admission, requests_old_host_work_cancel) = {
@@ -25,27 +25,31 @@ impl ResourceRuntimeState {
         };
         let ordinal = self.issue_lifecycle_ordinal();
         let supersession_ordinal = self.issue_supersession_ordinal();
-        let (output_continuity, _) = self.classify_terminal_output_continuity_for_node(
+        let (output_continuity, _) = self.classify_terminal_output_continuity_for_node_optional(
             node,
             replacing_descriptor_id,
             ResourceTerminalVisibilityCause::Supersession,
-            telemetry,
+            telemetry.as_deref_mut(),
         );
         let in_flight = self.in_flight_by_request.get_mut(&request_id)?;
         let previous = in_flight.handle();
         in_flight.supersede(ordinal, replacing);
         self.mark_terminal_in_flight(request_id);
-        telemetry.resource_supersession_policy_decision_count += 1;
-        telemetry.resource_superseded_in_flight_count += 1;
-        telemetry.resource_supersession_record_count += 1;
-        telemetry.resource_supersession_lineage_width =
-            telemetry.resource_supersession_lineage_width.max(2);
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_supersession_policy_decision_count += 1;
+            telemetry.resource_superseded_in_flight_count += 1;
+            telemetry.resource_supersession_record_count += 1;
+            telemetry.resource_supersession_lineage_width =
+                telemetry.resource_supersession_lineage_width.max(2);
+        }
         let overlap_admission = if permits_overlap_admission {
-            telemetry.resource_overlapping_generation_admission_count += 1;
-            if requests_old_host_work_cancel {
-                telemetry.resource_old_host_work_advisory_cancelled_count += 1;
-            } else {
-                telemetry.resource_old_host_work_retained_count += 1;
+            if let Some(telemetry) = telemetry.as_deref_mut() {
+                telemetry.resource_overlapping_generation_admission_count += 1;
+                if requests_old_host_work_cancel {
+                    telemetry.resource_old_host_work_advisory_cancelled_count += 1;
+                } else {
+                    telemetry.resource_old_host_work_retained_count += 1;
+                }
             }
             Some(ResourceOverlappingGenerationAdmission::new(
                 previous,

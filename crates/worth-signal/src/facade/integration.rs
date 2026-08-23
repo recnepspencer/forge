@@ -10,20 +10,23 @@ pub use crate::data::node::{
     PathClass, PerformanceCounterSurface, PerformanceEnforcementLayer, ResolvedPerformancePolicy,
     SuppressionBasis,
 };
+pub use crate::data::proof::{
+    attach_foundational_invalidation_performance_receipt,
+    FoundationalInvalidationPerformanceReceipt, InvalidationExecutionSummary,
+    InvalidationFoundationalReceiptDenial, InvalidationPlanningEstimate,
+    SignalInvalidationExecutionObservation, SignalInvalidationExecutionReceipt,
+};
 #[allow(deprecated)]
 pub use crate::data::proof::{
     CanonicalForm, DedupedNodeBatch, DeltaForm, DependencyBatchEdit, DependencySetEdit,
     DesiredState, DirtyBatch, DirtyBatchEntry, DirtyDelta, FrontierEntryClassification,
-    FrontierExecutionCounters, FrontierExecutionSummary, FrontierInclusionBasis, FrontierPlan,
-    FrontierPredictedCounters, FrontierSeedCause, FrontierWaveEntryPlan, FrontierWaveEntrySummary,
-    FrontierWavePlan, FrontierWaveSummary, InvalidationSeed, InvalidationSeedBatch,
+    FrontierInclusionBasis, FrontierSeedCause, InvalidationSeed, InvalidationSeedBatch,
     InvalidationTraceRecord, LocalityFootprint, LocallyOrderedShard, LoweredForm,
     MergeableOrderedStream, MixedSnapshotBatchCommit, OrderedStreamItem, OrderedStreamMergeError,
     PartitionScopeSet, PatchPlan, PendingSnapshotBatch, ResolvedForm, SemanticBatchCommit,
     SingleConsumer, SnapshotBatchCommit, SortedSourceBatch, SourceRecomputeAdmission,
     StableShapeSnapshotBatchCommit, StructuralDelta, SubscriberRepair, SubscriberRepairBatch,
-    SummaryForm, TouchedScopeSummary, TransitiveFrontierEntrySummary,
-    TransitiveFrontierWaveSummary,
+    SummaryForm, TouchedScopeSummary,
 };
 pub use crate::data::reuse::{
     ArtifactEquivalenceContract, ArtifactSemanticBoundary, PersistentCorrespondenceEvidence,
@@ -33,7 +36,12 @@ pub use crate::data::reuse::{
     ReuseStrategyBoundaryAuthority,
 };
 pub use crate::data::subscriber_context::{SubscriberContext, SubscriberContextError};
-pub use crate::data::telemetry::{HostComputedTelemetry, ResourceTelemetry, RuntimeTelemetry};
+pub use crate::data::telemetry::{
+    HostComputedTelemetry, ResourceTelemetry, RuntimeTelemetry, RuntimeTelemetryMutation,
+};
+pub use crate::data::telemetry::{
+    InvalidationPerformedCounter, SignalInvalidationRealizedCounters,
+};
 pub use crate::data::tier_policy_table::TierPolicyTable;
 pub use crate::logic::planner::{
     FrontierRouteEvidenceReason, FrontierRouteEvidenceReceipt, FrontierRouteEvidenceReceiptError,

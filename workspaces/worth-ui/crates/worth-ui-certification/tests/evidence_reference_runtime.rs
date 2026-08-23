@@ -219,6 +219,9 @@ fn graph_ref_from_unrelated_same_generation_app_is_not_reported_as_available() {
     let unrelated = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("unrelated empty application should prepare");
     assert_eq!(
         unrelated.graph().generation(),

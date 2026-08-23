@@ -7,10 +7,27 @@ use worth_ui_host_contract::{
 
 use super::UiMountedProjectionDenial;
 
+pub(in crate::mounting) mod diagnostic_source;
+mod drawable_order;
+mod lane_recording;
+mod layout_reconstruction;
+mod mechanic_source;
+#[cfg(test)]
+pub(crate) mod mechanic_source_tests;
+mod node_changes;
+mod presentation_effects;
+pub(crate) mod presentation_sources;
 mod rebind;
+mod semantic_mechanics;
 mod semantic_projection;
 mod view;
 
+use diagnostic_source::UiMountedDiagnosticSource;
+use lane_recording::require_once;
+use mechanic_source::{UiMountedMechanicCompletion, UiMountedMechanicSource};
+use presentation_effects::{
+    UiMountedPresentationEffectCompletion, UiMountedPresentationEffectSource,
+};
 pub(in crate::mounting) use semantic_projection::UiMountedSemanticProjection;
 pub(super) use semantic_projection::{UiMountedProjectionNodeRecord, UiMountedProjectionSurface};
 use view::{UiMountedOrdinaryPaintSelector, UiMountedPlanIndexPaintSelector};
@@ -25,9 +42,13 @@ pub struct UiMountedProjectionFrame {
     receipt_basis: super::super::UiMountedNodeReceiptBasis,
     plan_digest: u64,
     semantic: UiMountedSemanticProjection,
-    filled_rects: Vec<worth_ui_host_contract::UiMountedFilledRectMechanic>,
-    semantic_text: Vec<worth_ui_host_contract::UiMountedSemanticTextMechanic>,
-    hit_tests: Vec<worth_ui_host_contract::UiMountedHitTestMechanic>,
+    mechanics: UiMountedMechanicSource,
+    presentation_effects: UiMountedPresentationEffectSource,
+    diagnostics: UiMountedDiagnosticSource,
+    changed_instances: std::rc::Rc<[worth_ui_host_contract::UiMountedInstanceIdentity]>,
+    precise_command_instances: std::rc::Rc<[worth_ui_host_contract::UiMountedInstanceIdentity]>,
+    presentation_command_changes:
+        std::rc::Rc<[worth_ui_host_contract::UiMountedPaintCommandChange]>,
     paint_batches: Vec<UiMountedPaintBatchRow>,
     layers: Vec<UiMountedLayerRow>,
     spatial_batches: Vec<UiMountedSpatialBatchRow>,
@@ -44,6 +65,9 @@ pub struct UiMountedProjectionFrame {
     counters: super::super::UiMountStageCounters,
     capability_generation: worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
     capability_profile_digest: u64,
+    font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
+    text_profile_generation: worth_ui_host_contract::UiTextProfileGeneration,
+    materialized_projection_rows: std::rc::Rc<std::cell::Cell<u64>>,
 }
 
 pub(super) struct UiMountedProjectionFrameInput {
@@ -55,6 +79,11 @@ pub(super) struct UiMountedProjectionFrameInput {
     pub counters: super::super::UiMountStageCounters,
     pub capability_generation: worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
     pub capability_profile_digest: u64,
+    pub font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
+    pub mechanics: UiMountedMechanicSource,
+    pub presentation_effects: UiMountedPresentationEffectSource,
+    pub diagnostics: UiMountedDiagnosticSource,
+    pub changed_instances: std::rc::Rc<[worth_ui_host_contract::UiMountedInstanceIdentity]>,
 }
 
 impl UiMountedProjectionFrame {
@@ -65,9 +94,12 @@ impl UiMountedProjectionFrame {
             receipt_basis: input.receipt_basis,
             plan_digest: input.plan_digest,
             semantic: input.semantic,
-            filled_rects: Vec::new(),
-            semantic_text: Vec::new(),
-            hit_tests: Vec::new(),
+            mechanics: input.mechanics,
+            presentation_effects: input.presentation_effects,
+            diagnostics: input.diagnostics,
+            changed_instances: input.changed_instances,
+            precise_command_instances: std::rc::Rc::from([]),
+            presentation_command_changes: std::rc::Rc::from([]),
             paint_batches: Vec::new(),
             layers: Vec::new(),
             spatial_batches: Vec::new(),
@@ -84,11 +116,19 @@ impl UiMountedProjectionFrame {
             counters: input.counters,
             capability_generation: input.capability_generation,
             capability_profile_digest: input.capability_profile_digest,
+            font_collection: input.font_collection,
+            text_profile_generation: super::semantic_text::current_text_profile_generation(),
+            materialized_projection_rows: std::rc::Rc::new(std::cell::Cell::new(0)),
         }
     }
 
     pub fn frame_identity(&self) -> worth_ui_host_contract::UiMountedFrameIdentity {
         self.frame
+    }
+    pub(in crate::mounting) fn content_generation(
+        &self,
+    ) -> worth_ui_host_contract::UiMountedContentGeneration {
+        self.content_generation
     }
     pub fn plan_digest(&self) -> u64 {
         self.plan_digest
@@ -103,14 +143,26 @@ impl UiMountedProjectionFrame {
         self.counters.finish()
     }
 
-    pub(crate) fn static_paint_rows(
-        &self,
-    ) -> Box<[worth_ui_host_contract::UiMountedFilledRectMechanic]> {
-        self.filled_rects.clone().into_boxed_slice()
+    pub(in crate::mounting) fn table_range_digest(&self) -> u64 {
+        [
+            self.semantic.node_count() as u64,
+            self.layers.len() as u64,
+            self.paint_batches.len() as u64,
+            self.spatial_batches.len() as u64,
+            self.realtime_batches.len() as u64,
+            self.resources.len() as u64,
+            self.mechanics.table_digest(),
+        ]
+        .into_iter()
+        .fold(0x7461_626c_6572_616e_u64, |digest, value| {
+            digest.rotate_left(11) ^ value
+        })
     }
 
-    pub(crate) fn hit_test_rows(&self) -> Box<[worth_ui_host_contract::UiMountedHitTestMechanic]> {
-        self.hit_tests.clone().into_boxed_slice()
+    pub(in crate::mounting) fn visual_region_basis(
+        &self,
+    ) -> super::super::UiMountedVisualRegionBasis {
+        self.mechanics.visual_region_basis()
     }
 
     pub(in crate::mounting) fn identity_trace_basis(
@@ -140,143 +192,105 @@ impl UiMountedProjectionFrame {
         Ok(())
     }
 
-    pub(super) fn complete_static_paint(&mut self) -> Result<(), UiMountedProjectionDenial> {
-        let rows = super::static_paint::complete_static_filled_rects(
-            self.frame,
-            &self.receipt_basis,
-            &self.semantic,
+    pub(super) fn complete_mechanics(&mut self) -> Result<(), UiMountedProjectionDenial> {
+        let mutation = self.mechanics.apply(UiMountedMechanicCompletion {
+            frame: self.frame,
+            content: self.content_generation,
+            receipts: &self.receipt_basis,
+            semantic: &self.semantic,
+            changed: &self.changed_instances,
+            capability_generation: self.capability_generation,
+            capability_profile_digest: self.capability_profile_digest,
+            font_collection: &self.font_collection,
+        })?;
+        self.record_rows::<worth_ui_host_contract::UiMountedFilledRectMechanic>(
+            mutation.filled_rects,
         )?;
-        self.record_rows::<worth_ui_host_contract::UiMountedFilledRectMechanic>(rows.len())?;
-        self.filled_rects.extend(rows);
+        self.record_rows::<worth_ui_host_contract::UiMountedSemanticTextMechanic>(
+            mutation.semantic_text,
+        )?;
+        self.record_rows::<worth_ui_host_contract::UiMountedHitTestMechanic>(mutation.hit_tests)?;
+        self.precise_command_instances = mutation.precise_instances.into();
+        self.presentation_command_changes = mutation.command_changes.into();
         Ok(())
     }
 
-    pub(super) fn complete_semantic_text(&mut self) -> Result<(), UiMountedProjectionDenial> {
-        let rows = super::semantic_text::complete_semantic_text(
-            super::semantic_text::UiMountedSemanticTextCompletionContext {
-                frame: self.frame,
-                content_generation: self.content_generation,
-                receipt_basis: &self.receipt_basis,
+    pub(super) fn mechanic_source(&self) -> UiMountedMechanicSource {
+        self.mechanics.clone()
+    }
+
+    pub(in crate::mounting) fn input_text_profile(
+        &self,
+    ) -> worth_ui_host_contract::UiTextProfileGeneration {
+        self.text_profile_generation
+    }
+
+    pub(super) fn presentation_effect_source(&self) -> UiMountedPresentationEffectSource {
+        self.presentation_effects.clone()
+    }
+
+    pub(super) fn complete_presentation_effects(&mut self) {
+        self.presentation_effects
+            .apply(UiMountedPresentationEffectCompletion {
                 semantic: &self.semantic,
-                capability_generation: self.capability_generation,
-                capability_profile_digest: self.capability_profile_digest,
-            },
-        )?;
-        self.record_rows::<worth_ui_host_contract::UiMountedSemanticTextMechanic>(rows.len())?;
-        self.semantic_text.extend(rows);
-        Ok(())
+                mechanics: &self.mechanics,
+                changed: &self.changed_instances,
+                preview: self.preview.as_ref(),
+                overlay: self.visual_overlay.as_ref(),
+                canvas: !self.spatial_batches.is_empty(),
+                realtime: !self.realtime_batches.is_empty(),
+            });
     }
 
-    pub(super) fn complete_hit_tests(&mut self) -> Result<(), UiMountedProjectionDenial> {
-        let rows =
-            super::hit_test::complete_hit_tests(self.frame, &self.receipt_basis, &self.semantic)?;
-        self.record_rows::<worth_ui_host_contract::UiMountedHitTestMechanic>(rows.len())?;
-        self.hit_tests.extend(rows);
-        Ok(())
+    pub(super) fn complete_diagnostics(&mut self) {
+        self.diagnostics
+            .apply(&self.semantic, &self.changed_instances);
     }
 
-    pub(super) fn record_virtualized(
-        &mut self,
-        receipt: &crate::runtime::WorthUiVirtualizedDataFrameReceipt,
-    ) -> Result<(), UiMountedProjectionDenial> {
-        require_once(&mut self.virtualized_recorded)?;
-        let range = receipt.visible_range();
-        let count = range
-            .row_count()
-            .checked_mul(range.column_count())
-            .ok_or(UiMountedProjectionDenial::TableCapacityExceeded)?;
-        let batch = self.push_lane_batch(
-            count,
-            1,
-            None,
-            UiMountedPaintPrimitiveKind::VirtualizedLaneSummary,
-        )?;
-        self.push_plan_index_selector([receipt.touched_plan_index()], batch);
-        Ok(())
+    pub(in crate::mounting) fn presentation_commands_for_instance(
+        &self,
+        instance: worth_ui_host_contract::UiMountedInstanceIdentity,
+        surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
+        binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
+    ) -> std::sync::Arc<[worth_ui_host_contract::UiMountedPaintCommand]> {
+        self.mechanics
+            .commands_for_instance(instance, surface, binding)
     }
 
-    pub(super) fn record_canvas(
-        &mut self,
-        receipt: &crate::runtime::WorthUiCanvasSpatialFrameReceipt,
-        resource_content_identity: u64,
-    ) -> Result<(), UiMountedProjectionDenial> {
-        require_once(&mut self.canvas_recorded)?;
-        if self.spatial_batches.len() >= TABLE_LIMIT {
-            return Err(UiMountedProjectionDenial::TableCapacityExceeded);
+    pub(in crate::mounting) fn has_precise_command_delta(
+        &self,
+        instance: worth_ui_host_contract::UiMountedInstanceIdentity,
+    ) -> bool {
+        self.precise_command_instances.contains(&instance)
+    }
+
+    pub(in crate::mounting) fn presentation_command_changes(
+        &self,
+    ) -> &[worth_ui_host_contract::UiMountedPaintCommandChange] {
+        if self.precise_command_instances.len() == self.changed_instances.len() {
+            &self.presentation_command_changes
+        } else {
+            &[]
         }
-        self.record_rows::<UiMountedSpatialBatchRow>(1)?;
-        self.spatial_batches.push(UiMountedSpatialBatchRow::new(
-            receipt.visible_primitive_count(),
-            receipt.queried_hit_test_region_count(),
-            receipt.touched_overlay_row_count(),
-            receipt.touched_tool_state_row_count(),
-        ));
-        let resource = self.intern_canvas_resource(resource_content_identity)?;
-        let batch = self.push_lane_batch(
-            receipt.visible_primitive_count(),
-            2,
-            Some(resource),
-            UiMountedPaintPrimitiveKind::CanvasSpatialBatch,
-        )?;
-        self.push_plan_index_selector(receipt.touched_plan_indexes().iter().copied(), batch);
-        Ok(())
     }
 
-    pub(super) fn record_realtime(
-        &mut self,
-        receipt: &crate::runtime::WorthUiRealtimeFrameReceipt,
-    ) -> Result<(), UiMountedProjectionDenial> {
-        require_once(&mut self.realtime_recorded)?;
-        if self.realtime_batches.len() >= TABLE_LIMIT {
-            return Err(UiMountedProjectionDenial::TableCapacityExceeded);
-        }
-        self.record_rows::<UiMountedRealtimeBatchRow>(1)?;
-        self.realtime_batches.push(UiMountedRealtimeBatchRow::new(
-            receipt.touched_overlay_row_count(),
-        ));
-        let batch = self.push_lane_batch(
-            u32::from(receipt.touched_overlay_row_count()),
-            3,
-            None,
-            UiMountedPaintPrimitiveKind::RealtimeBatch,
-        )?;
-        self.push_plan_index_selector(receipt.touched_plan_indexes().iter().copied(), batch);
-        Ok(())
+    pub(in crate::mounting) fn presentation_order_position(
+        &self,
+        instance: worth_ui_host_contract::UiMountedInstanceIdentity,
+    ) -> Option<u64> {
+        self.semantic.order.position(instance)
     }
 
-    pub(super) fn record_preview(
-        &mut self,
-        preview: super::lowering::UiMountedPreviewProjectionInput,
-    ) -> Result<(), UiMountedProjectionDenial> {
-        let node = self
-            .semantic
-            .nodes
-            .get(&preview.mounted_instance)
-            .ok_or(UiMountedProjectionDenial::PreviewInstanceMismatch)?;
-        if node.receipt.graph_node() != preview.graph_node {
-            return Err(UiMountedProjectionDenial::PreviewInstanceMismatch);
-        }
-        self.preview = Some(preview);
-        Ok(())
+    pub(in crate::mounting) fn presentation_instance_order(
+        &self,
+    ) -> crate::runtime::persistent_index::UiPersistentOrder<
+        worth_ui_host_contract::UiMountedInstanceIdentity,
+    > {
+        self.semantic.order.clone()
     }
 
-    pub(super) fn record_visual_overlay(
-        &mut self,
-        overlay: Option<super::super::UiMountedVisualOverlayProjectionInput>,
-    ) -> Result<(), UiMountedProjectionDenial> {
-        if let Some(overlay) = overlay {
-            let instance = overlay.target_receipt.mounted_instance();
-            let target = self
-                .semantic
-                .nodes
-                .get(&instance)
-                .ok_or(UiMountedProjectionDenial::VisualOverlayTargetMissing)?;
-            if target.receipt.semantic_surface() != overlay.surface {
-                return Err(UiMountedProjectionDenial::VisualOverlaySurfaceMismatch);
-            }
-            self.visual_overlay = Some(overlay);
-        }
-        Ok(())
+    pub(in crate::mounting) fn materialized_projection_rows(&self) -> u64 {
+        self.materialized_projection_rows.get()
     }
 
     pub(in crate::mounting) fn semantic_projection(&self) -> &UiMountedSemanticProjection {
@@ -377,12 +391,4 @@ impl UiMountedProjectionFrame {
             .replace_rows::<Row>(count)
             .map_err(|_| UiMountedProjectionDenial::CostCounterOverflow)
     }
-}
-
-fn require_once(recorded: &mut bool) -> Result<(), UiMountedProjectionDenial> {
-    if *recorded {
-        return Err(UiMountedProjectionDenial::DuplicateLaneContribution);
-    }
-    *recorded = true;
-    Ok(())
 }

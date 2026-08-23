@@ -4,23 +4,26 @@ use super::{
     WorthQueryAuthoritativeMutationEvidenceSupport, WorthQueryBranchOptions,
     WorthQueryBranchSession, WorthQueryComputedBuilder, WorthQueryDerivedViewHandle,
     WorthQueryDerivedViewMaintainer, WorthQueryEffectBuilder, WorthQueryEffectHandle,
-    WorthQueryEffectIntentReceipt, WorthQueryGraphIndexInventory,
-    WorthQueryGraphReadAccessAdmission, WorthQueryGraphReadAccessAuthorityContext,
-    WorthQueryGraphReadAccessShapeExplanationError, WorthQueryGraphReadMaterializationRuntime,
-    WorthQueryHandleContract, WorthQueryIntentDeclaration, WorthQueryIntentReceipt,
-    WorthQueryLiveView, WorthQueryLiveViewBuilder, WorthQueryMutationSurfaceReport,
-    WorthQueryPreviewOptions, WorthQueryPreviewSession, WorthQueryReadFamily, WorthQueryRuntime,
-    WorthQueryRuntimeError, WorthQueryRuntimeFacadeFamily, WorthQueryRuntimePublicApiContract,
-    WorthQueryRuntimePublicApiFamilyContract, WorthQueryRuntimePublicSupportMatrix,
-    WorthQueryRuntimeStateSnapshot, WorthQueryRuntimeStateTarget,
-    WorthQueryWorkspaceLiveViewDeclaration,
+    WorthQueryEffectIntentReceipt, WorthQueryHandleContract, WorthQueryIntentDeclaration,
+    WorthQueryIntentReceipt, WorthQueryLiveView, WorthQueryLiveViewBuilder,
+    WorthQueryMutationSurfaceReport, WorthQueryPreviewOptions, WorthQueryPreviewSession,
+    WorthQueryRuntime, WorthQueryRuntimeError, WorthQueryRuntimeFacadeFamily,
+    WorthQueryRuntimePublicApiContract, WorthQueryRuntimePublicApiFamilyContract,
+    WorthQueryRuntimePublicSupportMatrix, WorthQueryRuntimeStateSnapshot,
+    WorthQueryRuntimeStateTarget, WorthQueryWorkspaceLiveViewDeclaration,
 };
 use crate::memory_workspace::WorthQuerySnapshotIdentity;
 use crate::program::WorthQueryDerivedView;
 use crate::session_label::WorthQuerySessionLabel;
 
 mod conditional_execution;
-
+mod graph_read_access;
+mod invalidation_attachment;
+mod invalidation_maintenance;
+mod owned_async_source;
+mod owned_conditional_instance;
+mod primary_source_rebind;
+pub use primary_source_rebind::WorthQueryPrimaryGraphSourceRebindReceipt;
 pub struct WorthQueryWorkspace {
     pub(super) name: String,
     pub(super) runtime: WorthQueryRuntime,
@@ -207,32 +210,6 @@ impl WorthQueryWorkspace {
 
     pub fn public_support_matrix(&self) -> WorthQueryRuntimePublicSupportMatrix {
         self.runtime.public_support_matrix()
-    }
-
-    pub fn graph_index_inventory(&self) -> WorthQueryGraphIndexInventory {
-        self.runtime.graph_index_inventory()
-    }
-
-    pub fn graph_read_materializations(&mut self) -> WorthQueryGraphReadMaterializationRuntime<'_> {
-        WorthQueryGraphReadMaterializationRuntime::new(&mut self.runtime)
-    }
-
-    pub(crate) fn admit_graph_read_access_for_family(
-        &self,
-        family: &WorthQueryReadFamily,
-    ) -> Result<WorthQueryGraphReadAccessAdmission, WorthQueryGraphReadAccessShapeExplanationError>
-    {
-        self.runtime.admit_graph_read_access_for_family(family)
-    }
-
-    pub(crate) fn admit_graph_read_access_for_family_in_authority(
-        &self,
-        family: &WorthQueryReadFamily,
-        authority: &WorthQueryGraphReadAccessAuthorityContext,
-    ) -> Result<WorthQueryGraphReadAccessAdmission, WorthQueryGraphReadAccessShapeExplanationError>
-    {
-        self.runtime
-            .admit_graph_read_access_for_family_in_authority(family, authority)
     }
 
     pub fn public_mutation_surface_report(&self) -> WorthQueryMutationSurfaceReport {

@@ -17,7 +17,7 @@ pub struct UiMountedResourceEntry {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMountedResourceTable {
-    entries: Box<[UiMountedResourceEntry]>,
+    entries: std::sync::Arc<[UiMountedResourceEntry]>,
 }
 
 impl UiMountedResourceReference {
@@ -51,7 +51,7 @@ impl UiMountedResourceEntry {
 impl UiMountedResourceTable {
     pub fn new(entries: Vec<UiMountedResourceEntry>) -> Self {
         Self {
-            entries: entries.into_boxed_slice(),
+            entries: entries.into(),
         }
     }
     pub fn entries(&self) -> &[UiMountedResourceEntry] {

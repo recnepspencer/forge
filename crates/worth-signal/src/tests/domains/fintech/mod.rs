@@ -33,6 +33,25 @@ mod world_handles;
 mod world_setup;
 mod world_shape;
 
+pub(crate) use certification::invalidation::{
+    verify_locality_case, verify_locality_case_with_policy, FreshFinancialRecompute,
+};
 pub(crate) use regimes::MarketRegime;
 pub(crate) use scales::FintechScale;
 pub(crate) use scenarios::setup_seeded_world_with;
+pub(crate) use world::FinancialWorldDefinition;
+pub(crate) use world::{
+    compile_financial_locality_world_at_tier, compile_financial_locality_world_with_policy,
+    compile_financial_world, compile_financial_world_with_policy, CompiledFinancialWorld,
+    DensityRatio, FinancialPerformanceBatchReport, LocalityOptionalObservationInventory,
+};
+
+pub(crate) fn restore_lifecycle_definition(seed: u64) -> FinancialWorldDefinition {
+    let case = world::ordinary_locality_cases()
+        .into_iter()
+        .find(|case| {
+            case.scenario() == world::FinancialLocalityScenario::BranchRestoreLocalityReplay
+        })
+        .expect("restore lifecycle case is registered");
+    FinancialWorldDefinition::locality_case(seed, case)
+}

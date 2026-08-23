@@ -10,11 +10,11 @@ use worth_ui::facade::source::{
     WorthUiSourceEventIngress, WorthUiSourceProvider, WorthUiWatcherEvent,
 };
 use worth_ui_dsl::WorthUiRustAuthoredArtifactInput;
+use worth_ui_host_headless::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder};
 use worth_ui_query_binding::{
     UiCollectionProjectionBindingAdmission, UiCollectionProjectionBudget,
     UiCollectionProjectionOpenOutcome, UiProjectionObservation, WorthUiQueryWorkspaceExt,
 };
-use worth_ui_runtime::facade::host::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder};
 
 use crate::host_observation_fixture::{batch, report, source};
 use crate::mounted_application_lifecycle::published_mounted_world::{

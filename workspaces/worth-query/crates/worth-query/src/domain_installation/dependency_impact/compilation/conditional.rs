@@ -84,7 +84,9 @@ impl SemanticAspectDependencyCompilation {
         use worth_query_installation::facade::WorthQueryConditionalConditionClass as ConditionClass;
         let plan_bearing = matches!(
             installed.condition().class(),
-            ConditionClass::DeltaThreshold | ConditionClass::DomainSpecific
+            ConditionClass::DeltaThreshold
+                | ConditionClass::Temporal
+                | ConditionClass::DomainSpecific
         );
         let expected_observations =
             if plan_bearing && conditional.bridge.bridge_snapshot_identity().is_some() {
@@ -127,7 +129,7 @@ impl SemanticAspectDependencyCompilation {
                     previous: observation
                         .as_ref()
                         .and_then(|item| item.previous().cloned()),
-                    current: observation.map(|item| item.current().clone()),
+                    current: observation.and_then(|item| item.current().cloned()),
                 }
             })
             .collect::<Vec<_>>();

@@ -23,6 +23,22 @@ impl WorthQueryRuntimeBuilder {
         let mut backend = self
             .backend
             .ok_or(WorthQueryRuntimeError::MissingBackend)??;
+        let primary_runtime_invalidation_installation =
+            self.primary_runtime_invalidation_installation.take();
+        if let Some(primary) = primary_runtime_invalidation_installation.as_ref() {
+            if !backend.readmits_primary_graph_source(primary) {
+                return Err(WorthQueryRuntimeError::Workspace(
+                    WorthQueryWorkspaceError::new(
+                        "primary granular invalidation and source adapters do not retain the same current runtime",
+                    ),
+                ));
+            }
+            backend
+                .attach_primary_graph_runtime(WorthQueryPrimaryGraphBackendHandle::new(
+                    primary.retain_primary_graph_integration_handle(),
+                ))
+                .map_err(WorthQueryRuntimeError::Workspace)?;
+        }
         let consumer_support_profile =
             crate::domain_installation::WorthQueryConsumerSupportProfile::from_runtime(
                 &backend.support_profile(),
@@ -119,6 +135,7 @@ impl WorthQueryRuntimeBuilder {
             execution_runtime,
             execution_installation_authority,
             primary_graph_publication,
+            primary_runtime_invalidation_installation,
             domain_installation_registry,
             domain_operation_executor_registry,
             workflow_stage_executor_registry,
@@ -135,6 +152,7 @@ impl WorthQueryRuntimeBuilder {
             branch_session_labels: BTreeSet::new(),
             active_subscriptions: ActiveSubscriptionRuntime::new(),
             live_subscriptions: BTreeMap::new(),
+            granular_projection_states: BTreeMap::new(),
             materialized_read_views: BTreeMap::new(),
             live_subscription_index: Default::default(),
             installed_programs: BTreeMap::new(),

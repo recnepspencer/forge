@@ -137,8 +137,8 @@ fn milestone_314_phase5_query_mutation_requires_the_product_owner_fact() {
     assert!(product_action.contains(".execute_current_action("));
     let publication = inventory.text("apps/platform-pulse/src/native_frame/intent/execution.rs");
     assert!(publication.contains("release_scalar_projection_observation()"));
-    assert!(publication.contains(".admit_publication(fact)"));
+    assert!(publication.contains(".admit_publication(observation)"));
     let query_owner = inventory.text("apps/platform-pulse/src/query_source/lifecycle.rs");
-    assert!(query_owner.contains("fact: UiScalarProjectionFactReceipt"));
-    assert!(query_owner.contains("completion.admit_publication(fact)"));
+    assert!(query_owner.contains("observation: UiScalarProjectionObservation"));
+    assert!(query_owner.contains("completion.admit_publication(observation)"));
 }

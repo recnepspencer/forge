@@ -132,8 +132,8 @@ class WorkerRuntimeBridge {
     return this.#request("latestRollback");
   }
 
-  latestFrontierExecution() {
-    return this.#request("latestFrontierExecution");
+  latestInvalidationPlanningEstimate() {
+    return this.#request("latestInvalidationPlanningEstimate");
   }
 
   latestInvalidationTraceRecords() {

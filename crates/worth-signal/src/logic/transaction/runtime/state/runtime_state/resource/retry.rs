@@ -21,18 +21,21 @@ where
         handle: ResourceRequestHandle,
         reason: ResourceRetryReason,
     ) -> Result<ResourceRetryScheduleReport, crate::data::error::SignalError> {
+        let capture_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
         let (delay, next_attempt, retry_decision_digest, retry_budget_charge) =
             match self.resource.retry_backoff_delay_for_handle(
                 handle,
                 self.clock_basis().current_tick(),
-                &mut self.telemetry.resource,
+                capture_telemetry.then_some(&mut self.telemetry.resource),
             ) {
                 Ok(delay) => delay,
                 Err(class) => {
                     return Ok(self.resource.deny_resource_retry_schedule(
                         handle,
                         class,
-                        &mut self.telemetry.resource,
+                        capture_telemetry.then_some(&mut self.telemetry.resource),
                     ));
                 }
             };
@@ -42,7 +45,10 @@ where
             crate::data::temporal::ClockTick::new(current_tick.get().saturating_add(delay.get()));
         let node = self
             .resource
-            .in_flight_request(handle, &mut self.telemetry.resource)
+            .in_flight_request_optional(
+                handle,
+                capture_telemetry.then_some(&mut self.telemetry.resource),
+            )
             .map(|in_flight| in_flight.node())
             .ok_or_else(|| {
                 crate::data::error::SignalError::invalid_input(format!(
@@ -63,7 +69,7 @@ where
             delay,
             retry_decision_digest,
             retry_budget_charge,
-            &mut self.telemetry.resource,
+            capture_telemetry.then_some(&mut self.telemetry.resource),
         );
         if report.denied_retry().is_some() {
             let _ = self.retire_temporal_wake(wake.id(), TemporalWakeRetirementReason::Disposed);
@@ -76,10 +82,13 @@ where
         handle: ResourceRequestHandle,
         ready_wake: ReadyTemporalWake,
     ) -> Result<ResourceRetryAdmissionReport, crate::data::error::SignalError> {
+        let capture_telemetry = self.graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        );
         let prepared_retry = match self.resource.prepare_scheduled_resource_retry(
             handle,
             &ready_wake,
-            &mut self.telemetry.resource,
+            capture_telemetry.then_some(&mut self.telemetry.resource),
         ) {
             Ok(prepared) => prepared,
             Err(report) => return Ok(report),
@@ -138,7 +147,7 @@ where
             return Ok(self.resource.deny_resource_retry_admission_for_report(
                 handle,
                 ResourceRetryDenialClass::RetryTimeoutWindowExhausted,
-                &mut self.telemetry.resource,
+                capture_telemetry.then_some(&mut self.telemetry.resource),
             ));
         }
 
@@ -161,7 +170,7 @@ where
             self.graph.current_branch().id,
             current_tick,
             scheduled_timeout_admission,
-            &mut self.telemetry.resource,
+            capture_telemetry.then_some(&mut self.telemetry.resource),
         );
 
         if report.denied_retry().is_some() {

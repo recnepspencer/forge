@@ -91,6 +91,16 @@ impl ResourceRuntimeState {
         envelope
     }
 
+    pub(in crate::logic::transaction::runtime::state::resource) fn record_boundary_performance_optional(
+        telemetry: Option<&mut ResourceTelemetry>,
+        envelope: ResourceBoundaryPerformanceEnvelope,
+    ) -> ResourceBoundaryPerformanceEnvelope {
+        if let Some(telemetry) = telemetry {
+            telemetry.record_boundary_performance_envelope(envelope);
+        }
+        envelope
+    }
+
     pub(in crate::logic::transaction::runtime::state::resource) fn mark_terminal_in_flight(
         &mut self,
         request_id: ResourceRequestId,
@@ -140,7 +150,17 @@ impl ResourceRuntimeState {
         handle: ResourceRequestHandle,
         telemetry: &mut ResourceTelemetry,
     ) -> Option<&InFlightResourceRequest> {
-        telemetry.resource_hot_in_flight_lookup_count += 1;
+        self.in_flight_request_optional(handle, Some(telemetry))
+    }
+
+    pub fn in_flight_request_optional(
+        &self,
+        handle: ResourceRequestHandle,
+        telemetry: Option<&mut ResourceTelemetry>,
+    ) -> Option<&InFlightResourceRequest> {
+        if let Some(telemetry) = telemetry {
+            telemetry.resource_hot_in_flight_lookup_count += 1;
+        }
         self.in_flight_by_request
             .get(&handle.request_id())
             .filter(|in_flight| in_flight.handle() == handle)

@@ -79,6 +79,9 @@ mod evidence_expansion_tests {
         let app = WorthUi::app()
             .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
             .freeze()
+            .map(
+                crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host,
+            )
             .expect("application preparation should succeed");
         let stale_generation =
             UiEvidenceAuthorityGeneration::new(app.graph().generation().as_u64() + 1);
@@ -116,6 +119,9 @@ mod evidence_expansion_tests {
         let app = WorthUi::app()
             .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
             .freeze()
+            .map(
+                crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host,
+            )
             .expect("application preparation should succeed");
         let current_generation =
             UiEvidenceAuthorityGeneration::new(app.graph().generation().as_u64());

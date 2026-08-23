@@ -169,6 +169,7 @@ fn foreign_indexed_app() -> crate::facade::WorthUiApp {
                 .with_semantic_artifact_spec(appearance_consumer_spec()),
         )
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("foreign fact-index fixture should prepare")
 }
 
@@ -263,6 +264,7 @@ fn indexed_app(package: &str) -> crate::facade::WorthUiApp {
                 .with_semantic_artifact_spec(appearance_consumer_spec()),
         )
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("fact-index fixture should prepare")
 }
 
@@ -303,6 +305,7 @@ fn static_paint_app() -> crate::facade::WorthUiApp {
                 ),
         )
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("static-paint fact-index fixture should prepare")
 }
 

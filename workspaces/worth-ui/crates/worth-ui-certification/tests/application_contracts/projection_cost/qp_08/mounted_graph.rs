@@ -1,7 +1,7 @@
 use worth_ui::facade::app::{UiMountedFrameOutcome, UiMountedFrameRequest, UiPresentationDeadline};
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
-use worth_ui_runtime::facade::host::WorthUiHeadlessRecorder;
+use worth_ui_host_headless::WorthUiHeadlessRecorder;
 use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationMode, UiMountCostReport, UiMountedFrameRetentionBudget,
     UiMountedFrameRetentionBudgetInput, UiMountedRetentionClassBudget,
@@ -137,6 +137,7 @@ fn require_published(
         }
         UiMountedFrameOutcome::AdmissionDenied(_) => panic!("initial frame admission was denied"),
         UiMountedFrameOutcome::CompletionDenied(_) => panic!("initial frame completion was denied"),
+        UiMountedFrameOutcome::Superseded(_) => panic!("initial frame was superseded"),
     }
 }
 

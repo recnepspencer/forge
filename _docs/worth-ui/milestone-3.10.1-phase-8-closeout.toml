@@ -72,7 +72,7 @@ allows_removed_routes = true
 
 [[document]]
 path = "workspaces/worth-ui/docs/query-binding.md"
-required_headings = ["# Query-Backed UI Views", "## Stable Entry Points", "## Register A Projection", "## Anti-Patterns"]
+required_headings = ["# Query-Backed UI Views", "## Stable Entry Points", "## Small Example", "### Register A Projection", "## Anti-Patterns"]
 allows_removed_routes = false
 
 [[document]]

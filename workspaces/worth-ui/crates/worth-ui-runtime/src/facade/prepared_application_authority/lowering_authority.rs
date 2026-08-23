@@ -1,7 +1,7 @@
 use std::fmt;
 use std::rc::Rc;
 
-use super::{WorthUiHostSessionPlan, WorthUiPreparedApplicationGenerationIdentity};
+use super::WorthUiPreparedApplicationGenerationIdentity;
 use crate::facade::registry::snapshot::CapabilitySnapshot;
 use crate::runtime::{
     WorthUiAdmittedReplacementCandidate, WorthUiExecutionLaneSupport,
@@ -16,7 +16,6 @@ struct WorthUiPreparedApplicationLoweringFacts {
     graph_authority_identity: crate::graph::UiGraphAuthorityIdentity,
     capability_snapshot: Rc<CapabilitySnapshot>,
     query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
-    host_session_plan: WorthUiHostSessionPlan,
     execution_lane_support: WorthUiExecutionLaneSupport,
 }
 
@@ -27,7 +26,6 @@ pub(super) struct WorthUiPreparedApplicationLoweringInput {
     pub(super) graph_authority_identity: crate::graph::UiGraphAuthorityIdentity,
     pub(super) capability_snapshot: Rc<CapabilitySnapshot>,
     pub(super) query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
-    pub(super) host_session_plan: WorthUiHostSessionPlan,
 }
 
 /// Retained exact authority for every prepared constituent that can affect
@@ -47,10 +45,8 @@ impl WorthUiPreparedApplicationLoweringAuthority {
             graph_authority_identity,
             capability_snapshot,
             query_binding_plan,
-            host_session_plan,
         } = input;
         let execution_lane_support = WorthUiExecutionLaneSupport::for_prepared_application(
-            host_session_plan.host_kind(),
             !query_binding_plan.is_query_free(),
         );
         Self {
@@ -62,7 +58,6 @@ impl WorthUiPreparedApplicationLoweringAuthority {
                 graph_authority_identity,
                 capability_snapshot,
                 query_binding_plan,
-                host_session_plan,
                 execution_lane_support,
             }),
         }
@@ -128,7 +123,6 @@ impl WorthUiPreparedApplicationLoweringAuthority {
             graph_authority_identity: self.facts.graph_authority_identity,
             capability_snapshot: Rc::clone(&self.facts.capability_snapshot),
             query_binding_plan: self.facts.query_binding_plan.clone(),
-            host_session_plan: self.facts.host_session_plan.clone(),
         })
     }
 
@@ -145,7 +139,6 @@ impl WorthUiPreparedApplicationLoweringAuthority {
             graph_authority_identity: self.facts.graph_authority_identity,
             capability_snapshot: Rc::clone(&self.facts.capability_snapshot),
             query_binding_plan: self.facts.query_binding_plan.clone(),
-            host_session_plan: self.facts.host_session_plan.clone(),
         })
     }
 }
@@ -164,7 +157,6 @@ impl fmt::Debug for WorthUiPreparedApplicationLoweringAuthority {
                 &self.facts.capability_snapshot.digest(),
             )
             .field("query_binding_plan", &self.facts.query_binding_plan)
-            .field("host_session_plan", &self.facts.host_session_plan)
             .finish_non_exhaustive()
     }
 }

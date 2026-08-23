@@ -86,33 +86,53 @@ fn semantic_change_matches_basis(
     change: &crate::input::envelope::BridgeSemanticAspectChange,
     counters: &mut CorrespondenceDeliveryCounters,
 ) -> bool {
-    basis.dependency.contract.key() == change.aspect_key()
-        && basis.dependency.contract.identity() == change.aspect_identity()
-        && basis.dependency.contract.revision() == change.contract_revision()
-        && &basis.dependency.binding == change.binding()
-        && change_meaning_matches(&basis.dependency.relevant_changes, change.kind(), counters)
-        && locality_matches(
-            &basis.dependency.locality,
-            basis.dependency.source_record_identity,
-            basis.record,
-            basis.source_partition,
+    if basis.dependency.contract.key() != change.aspect_key()
+        || basis.dependency.contract.identity() != change.aspect_identity()
+        || basis.dependency.contract.revision() != change.contract_revision()
+    {
+        counters.aspect_rejections += 1;
+        return false;
+    }
+    if &basis.dependency.binding != change.binding() {
+        counters.binding_rejections += 1;
+        return false;
+    }
+    if !basis.dependency.relevant_changes.iter().any(|candidate| {
+        counters.relevant_change_checks += 1;
+        change.intersects_relevant_change(*candidate)
+    }) {
+        counters.change_kind_rejections += 1;
+        return false;
+    }
+    if !locality_matches(
+        &basis.dependency.locality,
+        basis.dependency.source_record_identity,
+        basis.record,
+        basis.source_partition,
+    ) {
+        counters.locality_rejections += 1;
+        return false;
+    }
+    let projection_matches = basis.dependency.projection_mask.is_whole_aspect()
+        || matches!(
+            change.kind(),
+            Change::WholeAspectSet | Change::WholeAspectClear
         )
-        && (basis.dependency.projection_mask.is_whole_aspect()
-            || matches!(
-                change.kind(),
-                Change::WholeAspectSet | Change::WholeAspectClear
-            )
-            || change.field_path().is_some_and(|path| {
-                basis
-                    .dependency
-                    .projection_mask
-                    .paths()
-                    .iter()
-                    .any(|candidate| {
-                        counters.projection_paths_inspected += 1;
-                        candidate == path
-                    })
-            }))
+        || change.effective_field_path().is_none_or(|path| {
+            basis
+                .dependency
+                .projection_mask
+                .paths()
+                .iter()
+                .any(|candidate| {
+                    counters.projection_paths_inspected += 1;
+                    canonical_paths_overlap(candidate, path)
+                })
+        });
+    if !projection_matches {
+        counters.projection_rejections += 1;
+    }
+    projection_matches
 }
 
 fn match_structural_changes(
@@ -135,18 +155,12 @@ fn match_structural_changes(
     changes
 }
 
-fn change_meaning_matches(
-    admitted: &[Change],
-    authoritative: Change,
-    counters: &mut CorrespondenceDeliveryCounters,
+fn canonical_paths_overlap(
+    left: &worth_foundational::facade::CanonicalFieldPath,
+    right: &worth_foundational::facade::CanonicalFieldPath,
 ) -> bool {
-    contains_change(admitted, authoritative, counters)
-        || matches!(
-            authoritative,
-            Change::WholeAspectSet | Change::WholeAspectClear
-                if contains_change(admitted, Change::FieldSet, counters)
-                    || contains_change(admitted, Change::FieldClear, counters)
-        )
+    let shared = left.fields().len().min(right.fields().len());
+    left.fields()[..shared] == right.fields()[..shared]
 }
 
 fn contains_change(
@@ -166,7 +180,21 @@ fn structural_change_matches(
     source_partition: Option<&worth_foundational::facade::TruthPartitionRole>,
     counters: &mut CorrespondenceDeliveryCounters,
 ) -> bool {
-    let meaning = match (&dependency.binding, change.kind()) {
+    let meaning = structural_change_kind(&dependency.binding, change.kind());
+    meaning.is_some_and(|meaning| contains_change(&dependency.relevant_changes, meaning, counters))
+        && locality_matches(
+            &dependency.locality,
+            dependency.source_record_identity,
+            Some(change.record_identity()),
+            source_partition,
+        )
+}
+
+pub(crate) fn structural_change_kind(
+    binding: &AspectBinding,
+    kind: BridgeCommittedRecordChangeKind,
+) -> Option<Change> {
+    match (binding, kind) {
         (
             AspectBinding::StructuralRegion
             | AspectBinding::StructuralPartition
@@ -201,14 +229,37 @@ fn structural_change_matches(
             Some(Change::LifecycleRetainForAudit)
         }
         _ => None,
-    };
-    meaning.is_some_and(|meaning| contains_change(&dependency.relevant_changes, meaning, counters))
-        && locality_matches(
-            &dependency.locality,
-            dependency.source_record_identity,
-            Some(change.record_identity()),
-            source_partition,
-        )
+    }
+}
+
+#[cfg(test)]
+mod structural_kind_tests {
+    use super::*;
+
+    #[test]
+    fn record_changes_retain_binding_aware_semantic_kinds() {
+        assert_eq!(
+            structural_change_kind(
+                &AspectBinding::StructuralRegion,
+                BridgeCommittedRecordChangeKind::Created,
+            ),
+            Some(Change::StructuralCreate)
+        );
+        assert_eq!(
+            structural_change_kind(
+                &AspectBinding::LifecycleTransition,
+                BridgeCommittedRecordChangeKind::Deleted,
+            ),
+            Some(Change::LifecycleDelete)
+        );
+        assert_eq!(
+            structural_change_kind(
+                &AspectBinding::LifecycleTransition,
+                BridgeCommittedRecordChangeKind::Updated,
+            ),
+            None
+        );
+    }
 }
 
 fn locality_matches(
@@ -223,6 +274,36 @@ fn locality_matches(
             (source_record_identity, record),
             (Some(expected), Some(actual)) if expected == actual
         ),
-        super::BridgeSemanticLocality::SourcePartition(role) => source_partition == Some(role),
+        super::BridgeSemanticLocality::ManagedSourceRecord => record.is_some(),
+        super::BridgeSemanticLocality::SourcePartition(role) => {
+            source_partition == Some(role)
+                && source_record_identity.is_none_or(|expected| record == Some(expected))
+        }
+    }
+}
+
+#[cfg(test)]
+mod path_overlap_tests {
+    use super::canonical_paths_overlap;
+    use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
+
+    fn path(fields: &[&str]) -> CanonicalFieldPath {
+        CanonicalFieldPath::new(
+            fields
+                .iter()
+                .map(|field| FieldKey::new(*field).unwrap())
+                .collect::<Vec<_>>(),
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn semantic_delivery_uses_parent_child_overlap_but_rejects_siblings() {
+        let parent = path(&["profile"]);
+        let child = path(&["profile", "name"]);
+        let sibling = path(&["status"]);
+        assert!(canonical_paths_overlap(&parent, &child));
+        assert!(canonical_paths_overlap(&child, &parent));
+        assert!(!canonical_paths_overlap(&child, &sibling));
     }
 }

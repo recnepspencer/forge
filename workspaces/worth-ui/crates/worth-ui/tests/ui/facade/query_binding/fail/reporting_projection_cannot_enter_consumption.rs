@@ -1,12 +1,15 @@
 use worth_ui::facade::query_binding::{
-    UiProjectionConsumptionBudget, UiScalarProjectionBinding,
+    UiProjectionConsumptionBudget, UiQueryObservationReportingProjection,
+    UiScalarProjectionBinding,
 };
 
-fn readmit_reporting_projection(reporting: &str) {
-    UiScalarProjectionBinding::consume_async_result_batch(
-        panic!("compile-only binding"),
+fn readmit_reporting_projection(
+    binding: &mut UiScalarProjectionBinding,
+    reporting: UiQueryObservationReportingProjection,
+) {
+    binding.consume_async_result_batch(
         panic!("compile-only workspace"),
-        reporting,
+        reporting.into(),
         None,
         UiProjectionConsumptionBudget::platform_pulse(),
     );

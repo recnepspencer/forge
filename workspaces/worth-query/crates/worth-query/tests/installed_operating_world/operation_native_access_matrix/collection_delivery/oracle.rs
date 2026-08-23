@@ -76,6 +76,7 @@ impl CollectionMountOracle {
                     .expect("updated mounted row must exist");
                 self.rows[slot] = row.clone();
             }
+            domain::WorthQueryCollectionPatchOperation::Regroup { .. } => {}
             domain::WorthQueryCollectionPatchOperation::WindowShift { .. } => {}
             domain::WorthQueryCollectionPatchOperation::ResultState { state } => {
                 self.result_state = *state;

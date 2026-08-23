@@ -1,6 +1,8 @@
 use std::collections::VecDeque;
 
-use crate::data::proof::{FrontierExecutionSummary, InvalidationTraceRecord};
+use crate::data::proof::{
+    FrontierDiagnosticsSidecar, InvalidationPlanningEstimate, InvalidationTraceRecord,
+};
 use crate::diagnostics::failure::{FailureSummary, RollbackDiagnostic};
 use crate::diagnostics::flow::FlowSummary;
 use crate::diagnostics::profile::DiagnosticsTier;
@@ -15,7 +17,7 @@ impl<'a> GraphHealthDiagnostics<'a> {
     }
 
     pub fn summary_now(&self) -> GraphSummary {
-        self.summary(self.graph.runtime_policy().tier)
+        self.summary(self.graph.installed_runtime_policy().tier())
     }
 
     pub fn current(&self, profile: DiagnosticsTier) -> GraphSummary {
@@ -42,8 +44,14 @@ impl<'a> GraphHealthDiagnostics<'a> {
         self.graph.observe().latest_observation_summary()
     }
 
-    pub fn latest_frontier_execution(&self) -> Option<&'a FrontierExecutionSummary> {
+    pub(crate) fn latest_frontier_execution(&self) -> Option<&'a FrontierDiagnosticsSidecar> {
         self.graph.observe().latest_frontier_execution_summary()
+    }
+
+    pub fn latest_invalidation_planning_estimate(
+        &self,
+    ) -> Option<&'a InvalidationPlanningEstimate> {
+        self.graph.observe().latest_invalidation_planning_estimate()
     }
 
     pub fn latest_invalidation_trace_records(&self) -> &'a [InvalidationTraceRecord] {

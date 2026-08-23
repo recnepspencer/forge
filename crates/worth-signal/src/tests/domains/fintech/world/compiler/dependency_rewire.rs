@@ -1,5 +1,6 @@
 use crate::data::dependency::DependencyEdge;
 use crate::data::error::SignalError;
+use crate::facade::NodeState;
 
 use super::super::{FinancialWorldDefinition, InstrumentId, MarketFactorKey, SemanticOutputKey};
 use super::evaluation::FinancialEvaluationProgram;
@@ -14,6 +15,15 @@ pub(in crate::tests::domains::fintech) struct FinancialDependencyRewireEvidence 
     final_revision: u64,
     stale_cause_rejected: bool,
     cycle_rejected: bool,
+}
+
+struct StaleRewirePosture {
+    valuation: crate::data::handle::NodeId,
+    risk: crate::data::handle::NodeId,
+    topology_owner: SemanticOutputKey,
+    baseline_revision: u64,
+    stale_revision: u64,
+    stale_cause_rejected: bool,
 }
 
 impl FinancialDependencyRewireEvidence {
@@ -51,6 +61,24 @@ impl CompiledFinancialWorld {
         instrument: InstrumentId,
     ) -> Result<FinancialDependencyRewireEvidence, SignalError> {
         self.stage_factor_change(cause_definition, cause_factor)?;
+        let stale = self.establish_stale_rewire_posture(instrument)?;
+        let (final_revision, cycle_rejected) =
+            self.apply_current_rewire(&final_definition, instrument, stale.valuation, stale.risk)?;
+        self.settle_current_rewire(final_definition)?;
+        Ok(FinancialDependencyRewireEvidence {
+            topology_owner: stale.topology_owner,
+            baseline_revision: stale.baseline_revision,
+            stale_revision: stale.stale_revision,
+            final_revision,
+            stale_cause_rejected: stale.stale_cause_rejected,
+            cycle_rejected,
+        })
+    }
+
+    fn establish_stale_rewire_posture(
+        &mut self,
+        instrument: InstrumentId,
+    ) -> Result<StaleRewirePosture, SignalError> {
         let valuation = self.handles.position(instrument).valuation;
         let risk = self.handles.position(instrument).risk;
         let topology_owner = SemanticOutputKey::Valuation(instrument);
@@ -75,7 +103,23 @@ impl CompiledFinancialWorld {
             .graph_mut()
             .replace_pending_causes(valuation, [stale])
             .is_err();
+        Ok(StaleRewirePosture {
+            valuation,
+            risk,
+            topology_owner,
+            baseline_revision,
+            stale_revision,
+            stale_cause_rejected,
+        })
+    }
 
+    fn apply_current_rewire(
+        &mut self,
+        final_definition: &FinancialWorldDefinition,
+        instrument: InstrumentId,
+        valuation: crate::data::handle::NodeId,
+        risk: crate::data::handle::NodeId,
+    ) -> Result<(u64, bool), SignalError> {
         let next_edges = final_definition
             .position(instrument)
             .subscriptions
@@ -117,7 +161,13 @@ impl CompiledFinancialWorld {
         );
         let cycle_rejected =
             cycle_result.is_err() && self.runtime.graph().dependencies_of(new_source)?.is_empty();
+        Ok((final_revision, cycle_rejected))
+    }
 
+    fn settle_current_rewire(
+        &mut self,
+        final_definition: FinancialWorldDefinition,
+    ) -> Result<(), SignalError> {
         let next_snapshot = runtime_financial_snapshot(&final_definition);
         let next_projection = self.projection.advance(&next_snapshot);
         let program = FinancialEvaluationProgram::new(
@@ -127,7 +177,17 @@ impl CompiledFinancialWorld {
             self.ledger.clone(),
         );
         let evaluator = program.evaluator();
-        let consumers = self
+        let valuation_wave = final_definition
+            .positions()
+            .iter()
+            .map(|position| self.handles.position(position.instrument).valuation)
+            .collect::<Vec<_>>();
+        let risk_wave = final_definition
+            .positions()
+            .iter()
+            .map(|position| self.handles.position(position.instrument).risk)
+            .collect::<Vec<_>>();
+        let consumer_wave = self
             .handles
             .consumers
             .values()
@@ -135,26 +195,30 @@ impl CompiledFinancialWorld {
             .collect::<Vec<_>>();
         let staged_work = self.ledger.observed_work();
         self.ledger.clear();
-        self.runtime.transaction(&mut (), |tx| {
-            for consumer in &consumers {
-                tx.read(*consumer, &evaluator)?;
-            }
-            Ok(())
-        })?;
+        for wave in [valuation_wave, risk_wave, consumer_wave] {
+            let dirty = wave
+                .into_iter()
+                .filter(|node| {
+                    self.runtime
+                        .graph()
+                        .get_state(*node)
+                        .is_ok_and(|state| !matches!(state, NodeState::Clean))
+                })
+                .collect::<Vec<_>>();
+            self.runtime.transaction(&mut (), |tx| {
+                for node in &dirty {
+                    tx.read(*node, &evaluator)?;
+                }
+                Ok(())
+            })?;
+        }
         for key in staged_work {
             self.ledger.record(key);
         }
         self.definition = final_definition;
         self.economic_snapshot = next_snapshot;
         self.projection = next_projection;
-        Ok(FinancialDependencyRewireEvidence {
-            topology_owner,
-            baseline_revision,
-            stale_revision,
-            final_revision,
-            stale_cause_rejected,
-            cycle_rejected,
-        })
+        Ok(())
     }
 
     pub(super) fn stage_factor_change(
@@ -172,9 +236,10 @@ impl CompiledFinancialWorld {
         );
         let source = self.handles.factor(factor).0;
         let result = source_result(&program, factor);
+        let ledger = self.ledger.clone();
         self.runtime.transaction(&mut (), |tx| {
             tx.mark_changed(source, factor_signal_aspect(&next_definition, factor))?;
-            self.ledger.record(SemanticOutputKey::Factor(factor));
+            ledger.record(SemanticOutputKey::Factor(factor));
             tx.target(source)
                 .on_demand()
                 .read(&move |view| Ok(view.finish(result.clone())))?;

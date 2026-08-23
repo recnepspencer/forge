@@ -1,0 +1,84 @@
+use std::rc::Rc;
+
+use super::{
+    UiNativeEventLoopClient, UiNativeEventLoopClientCleanup, UiNativeEventLoopClientClose,
+    UiNativeEventLoopDirective, UiNativeObservationReadinessGrant, UiNativeReadinessGrant,
+};
+use crate::native::presentation::UiNativePendingExternalObligation;
+
+#[path = "tests/readiness_progress.rs"]
+mod readiness_progress;
+#[path = "tests/terminal_cleanup.rs"]
+mod terminal_cleanup;
+#[path = "tests/thread_posture.rs"]
+mod thread_posture;
+
+struct CleanupClient {
+    completes: bool,
+}
+
+struct PendingProbe {
+    dropped: Rc<std::cell::Cell<bool>>,
+    settles: Rc<std::cell::Cell<bool>>,
+}
+
+impl UiNativePendingExternalObligation for PendingProbe {
+    fn poll_observation(
+        &mut self,
+        basis: crate::native::physical_work_signal::UiNativePhysicalSignalExternalBasis,
+        _device: Option<&wgpu::Device>,
+    ) -> crate::native::physical_work_signal::UiNativePhysicalSignalExternalObservation {
+        basis.observe(if self.settles.get() {
+            crate::native::physical_work_signal::UiNativePhysicalSignalStatus::Completed
+        } else {
+            crate::native::physical_work_signal::UiNativePhysicalSignalStatus::Pending
+        })
+    }
+}
+
+impl Drop for PendingProbe {
+    fn drop(&mut self) {
+        self.dropped.set(true);
+    }
+}
+
+impl UiNativeEventLoopClient for CleanupClient {
+    fn native_surface_ready(
+        &mut self,
+        _grant: super::UiNativeReadinessGrant,
+    ) -> Result<UiNativeEventLoopDirective, ()> {
+        unreachable!("cleanup proof never enters callbacks")
+    }
+
+    fn redraw_ready(
+        &mut self,
+        _grant: UiNativeReadinessGrant,
+    ) -> Result<UiNativeEventLoopDirective, ()> {
+        unreachable!("cleanup proof never enters callbacks")
+    }
+
+    fn native_observations_ready(
+        &mut self,
+        _grant: UiNativeObservationReadinessGrant,
+    ) -> Result<UiNativeEventLoopDirective, ()> {
+        unreachable!("cleanup proof never enters callbacks")
+    }
+
+    fn presentation_attribution(&self) -> Option<super::UiNativeClientPresentationAttribution> {
+        None
+    }
+
+    fn close(self) -> UiNativeEventLoopClientClose {
+        if self.completes {
+            UiNativeEventLoopClientClose::Complete
+        } else {
+            UiNativeEventLoopClientClose::Incomplete(Box::new(self))
+        }
+    }
+}
+
+impl UiNativeEventLoopClientCleanup for CleanupClient {
+    fn retry(self: Box<Self>) -> UiNativeEventLoopClientClose {
+        UiNativeEventLoopClientClose::Incomplete(self)
+    }
+}

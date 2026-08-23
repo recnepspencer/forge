@@ -36,6 +36,9 @@ fn public_freeze_exposes_bootstrap_page_family_authority() {
     let app = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let artifact = &app.declaration_artifacts()[0];
 
@@ -69,6 +72,9 @@ fn caller_authored_freeze_distinguishes_standalone_and_attached_query_binding_ro
             .with_semantic_artifact_spec(attached_query_binding_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let attached = artifact_from_file_provenance(&attached_app, "app/query_binding_roles.wui", 0);
 
@@ -106,6 +112,9 @@ fn caller_authored_freeze_distinguishes_standalone_and_attached_query_binding_ro
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(standalone_fixture)
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("standalone Query declarations coexist without graph authority");
     let standalone = artifact_from_file_provenance(
         &standalone_app,
@@ -191,6 +200,9 @@ fn freeze_denial(
                 .with_semantic_artifact_spec(spec),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
     {
         Ok(_) => panic!("invalid declaration authority must deny application preparation"),
         Err(denial) => denial,

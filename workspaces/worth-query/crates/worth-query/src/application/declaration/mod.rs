@@ -14,7 +14,8 @@ pub use artifact::{
 pub use async_resource::{
     WorthQueryAsyncDeclarationClause, WorthQueryAsyncDeclarationSupport,
     WorthQueryAsyncFailurePosture, WorthQueryAsyncLoadingPosture,
-    WorthQueryAsyncRequestIdentityPart, WorthQueryAsyncSourceFamily,
+    WorthQueryAsyncRequestIdentityPart, WorthQueryAsyncRequestIdentityValue,
+    WorthQueryAsyncSourceFamily,
 };
 pub use async_resource_identity::{
     WorthQueryAsyncResourceRequestIdentity, WorthQueryAsyncResourceRequestIdentityError,

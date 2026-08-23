@@ -1,5 +1,15 @@
 # Milestone 3.14: Intent, Operability, and Interaction Substrate
 
+> Historical QA policy (2026-08-22): proof, closure, migration, acceptance,
+> and phase ledgers described below are frozen historical records. They are not
+> active implementation or release gates, are not updated or reopened, and a
+> ledger-only failure does not block current work. Current evidence follows
+> [the QA review guide](../coding_guidelines/qa_review_guide.md) and
+> [testing laws](../coding_guidelines/testing_laws.md): specifications state QA
+> considerations in prose, tests and repository checks run against the current
+> commit, and code review decides whether the evidence is adequate. This note
+> does not retire product-domain ledgers that are part of runtime behavior.
+
 ## Status and Placement
 
 Status: Closed on 2026-08-01. Phases 1 through 5 and all thirteen interaction
@@ -186,7 +196,7 @@ target.
 | `IA-12` | Trace host sequence -> presentation -> target -> interaction -> intent -> payload revision -> operability -> admission -> attempt -> completion -> consequence -> mounted posture -> pixels. Substitute equal diagnostic IDs, digests, stale receipts, and reporting projections. | The causal trace remains complete, bounded, and non-authoritative; every substitute stops at its owning boundary. |
 | `IA-13` | Existing two-session compile owner attempts raw-host-to-intent admission, authority construction/clone/reuse, string-key intent authority, renderer/adapter execution, transient allocation state as semantic intent, payload-shape crossover, diagnostic confirmation/completion, and WUI-to-Query mutation authority. | Valid twins compile; every invalid twin fails for the intended public type or dependency reason. Placeholder/callback residue is mechanically absent. |
 
-Each row is independently ledgered and mutation-sensitive. Parameterization
+Each case receives independent, risk-proportionate review. Parameterization
 may share a process or model only when each verdict can fail independently.
 `IA-01` cannot be replaced by an in-process facade call.
 
@@ -759,9 +769,9 @@ path.
 
 ### Phase 5: Platform Pulse, cost, documentation, and deletion
 
-Pass `IA-01` in the inherited executable world, then close `IA-10`-`IA-13`,
-all ledgers, cost lanes, continuing docs, placeholder/callback deletion, and
-constitutional gates on final source. Keep the ordinary warm lane below 60
+Pass the inherited executable world, cost and lifecycle tests, continuing docs,
+placeholder/callback deletion checks, and constitutional gates on the final
+commit. Keep the ordinary warm lane below 60
 seconds and the Pulse journey at or below 45 seconds. Put 65,536-control/input
 storms and long pressure schedules in the named closure-stress lane when they
 would damage ordinary iteration; do not add a target, binary, nested Cargo
@@ -795,11 +805,13 @@ and the single Pulse/test/compile topology.
 
 ## Acceptance and Successor Handoff
 
-Milestone 3.14 closes only when every `IA-01`-`IA-13` ledger row has
-independent, mutation-sensitive evidence; every governed resource reaches zero;
-public examples compile; continuing docs agree; and format, strict lint,
-line-cap, topology, boundary, agent-context, ordinary certification,
-compile-contract, and executable-world gates are green on exact final source.
+Milestone 3.14 is complete when its interaction, intent, lifecycle, recovery,
+cost, inspection, and anti-bypass behaviors have honest, risk-proportionate
+tests; every governed resource reaches zero; public examples compile;
+continuing docs agree; format, strict lint, line-cap, topology, boundary,
+agent-context, ordinary certification, compile-contract, and executable-world
+checks are green on the final commit; and code review finds the evidence
+adequate.
 
 It does not implement a portal/dialog system, focus traversal, command
 shortcuts/routing, motion, broad selection/scroll services, rich appearance,

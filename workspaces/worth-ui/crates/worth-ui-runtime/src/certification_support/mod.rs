@@ -8,6 +8,7 @@ mod active_session_observation;
 mod application_builder;
 mod application_graph;
 mod application_replacement;
+mod builder_host;
 mod framework_turn_execution;
 mod identity_overlay_projection;
 mod intent_evidence;
@@ -21,9 +22,13 @@ mod layout_admission;
 mod local_interaction_recipient;
 mod mounted_frame_execution;
 mod planning;
+mod presentation_async_installation;
+mod presentation_mechanics;
 mod rebind_identity_lifecycle;
 mod runtime_launch;
+mod scripted_presentation_host;
 mod semantic_text_projection;
+mod semantic_text_resolver;
 mod touch_origin;
 mod touch_origin_source;
 
@@ -52,6 +57,7 @@ pub use application_graph::{
     UiRepeatedInstanceIdentityCertificationRow, WorthUiApplicationGraphCertificationExt,
 };
 pub use application_replacement::WorthUiApplicationReplacementCertificationExt;
+pub(crate) use builder_host::UiCertificationBuilderHost;
 pub use framework_turn_execution::WorthUiFrameworkTurnCertificationExt;
 pub use identity_overlay_projection::{
     identity_overlay_projection_for_certification, UiIdentityOverlayProjectionCertificationMutation,
@@ -82,16 +88,30 @@ pub use mounted_frame_execution::{
     WorthUiMountedPublicationCertificationExt,
 };
 pub use planning::planning_pair_for_certification_suite;
+pub use presentation_async_installation::{
+    WorthUiPresentationAsyncInstallationCertificationDenial,
+    WorthUiPresentationAsyncInstallationCertificationExt,
+};
+pub use presentation_mechanics::initial_presentation_mechanics_for_certification;
+
 pub use rebind_identity_lifecycle::{
     identity_lifecycle_decision_for_certification, UiIdentityLifecyclePresence,
     UiRebindPlanningBasisMutation, UiResolvedIdentityLifecycleCertificationExt,
     WorthUiNodeLifecycleTransition,
 };
 pub use runtime_launch::launch_empty_runtime_for_certification;
+pub use scripted_presentation_host::{
+    presented_completion, recorded_effects, scripted_presentation_epoch, ScriptedPresentationHost,
+    ScriptedSurfaceCompletion,
+};
 pub use semantic_text_projection::{
-    semantic_text_projection_for_certification,
+    empty_projection_for_certification, semantic_text_projection_for_certification,
     semantic_text_projection_for_certification_with_capability,
+    semantic_text_projection_for_certification_with_text,
     UiSemanticTextProjectionCertificationMutation,
+};
+pub use semantic_text_resolver::{
+    semantic_text_layout_resolver_for_certification, UiCertificationQualifiedTextResolver,
 };
 pub use touch_origin::{
     runtime_origin_fixture, WorthUiTouchOriginCertificationFixture,

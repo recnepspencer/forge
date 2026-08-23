@@ -13,11 +13,11 @@ use worth_foundational::{
     foundational_boundary_current_basis_readmission_authority, request_foundational_profile_set,
     AdmissionReadinessProfile, CanonicalBasisDomain, CanonicalizationRuleVersion,
     CertificationPostureProfile, CompatibilityPostureProfile, DiagnosticRichnessProfile,
-    FoundationalBoundaryArtifactCategory, FoundationalBoundaryArtifactRole,
-    FoundationalBoundaryCurrentBasisAuthority, FoundationalBoundaryCurrentBasisCertified,
-    FoundationalBoundaryMaterializationSeam, FoundationalBoundaryMaterializationSource,
-    FoundationalProfileSet, FoundationalProfileSetInput, RetentionDeliveryProfile,
-    SupportPostureProfile,
+    ExecutionObjectiveProfile, FoundationalBoundaryArtifactCategory,
+    FoundationalBoundaryArtifactRole, FoundationalBoundaryCurrentBasisAuthority,
+    FoundationalBoundaryCurrentBasisCertified, FoundationalBoundaryMaterializationSeam,
+    FoundationalBoundaryMaterializationSource, FoundationalProfileSet, FoundationalProfileSetInput,
+    ObservationActivationProfile, RetentionDeliveryProfile, SupportPostureProfile,
 };
 use worth_proof::Proof;
 use worth_proof::TransitionOutcome;
@@ -185,6 +185,8 @@ fn materialized_profile() -> worth_foundational::MaterializedFoundationalProfile
         admission_readiness: AdmissionReadinessProfile::Admitted,
         retention_delivery: RetentionDeliveryProfile::Durable,
         certification_posture: CertificationPostureProfile::EvidenceBacked,
+        execution_objective: ExecutionObjectiveProfile::Balanced,
+        observation_activation: ObservationActivationProfile::Continuous,
     })
     .expect("coherent profile");
     let requested = request_foundational_profile_set(profile);

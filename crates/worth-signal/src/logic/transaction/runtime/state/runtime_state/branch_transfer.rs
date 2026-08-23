@@ -15,7 +15,7 @@ where
         packet: AuthorityTransferPacket<D, I, T>,
         count_temporal_restore: bool,
     ) -> Result<(), crate::data::error::SignalError> {
-        let preserved_transaction = self.telemetry.transaction;
+        let preserved_transaction = self.telemetry_snapshot().transaction;
         let branch_id = packet.branch_id();
         let state = packet.into_state();
         if branch_id != state.ancestry().branch_id() {
@@ -27,6 +27,10 @@ where
         }
         Self::ensure_managed_queue_branch_transfer_allowed(&self.resource)?;
         Self::ensure_managed_queue_branch_transfer_allowed(state.resource())?;
+        let count_temporal_restore = count_temporal_restore
+            && self.graph.captures_observation_surface(
+                crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+            );
         self.branches.restore_active_state(
             state,
             &mut self.graph,
@@ -48,7 +52,7 @@ where
         &mut self,
         packet: RestoreTransferPacket<D, I, T>,
     ) -> Result<(), crate::data::error::SignalError> {
-        self.telemetry.transaction.restore_transfer_count += 1;
+        self.with_telemetry(|telemetry| telemetry.transaction.restore_transfer_count += 1);
         self.load_branch_state(
             AuthorityTransferPacket::new(packet.branch_id(), packet.into_state()),
             true,

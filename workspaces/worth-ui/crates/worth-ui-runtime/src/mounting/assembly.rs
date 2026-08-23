@@ -5,6 +5,11 @@ use worth_ui_host_contract::{
 
 use crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity;
 
+#[path = "assembly/prepared_frame.rs"]
+mod prepared_frame;
+
+pub(crate) use prepared_frame::binding_requirement;
+
 #[derive(Clone, Debug)]
 pub struct UiMountedFrameRequest {
     surfaces: UiMountedSurfaceSelection,
@@ -36,10 +41,11 @@ pub enum UiMountedFramePreparationDenial {
     IntegrityMismatch,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone)]
 pub struct UiMountedSurfaceReceipt {
     requirement: UiMountedSurfaceBindingRequirement,
-    projection: UiMountedProjectionView,
+    projection_frame: std::sync::Arc<super::UiMountedProjectionFrame>,
+    projection: std::cell::OnceCell<UiMountedProjectionView>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -189,7 +195,40 @@ impl UiMountedSurfaceReceipt {
     }
 
     pub fn projection(&self) -> &UiMountedProjectionView {
-        &self.projection
+        self.projection.get_or_init(|| {
+            self.projection_frame
+                .view_for(self.requirement.binding())
+                .expect("admitted surface binding remains present in mounted authority")
+        })
+    }
+
+    pub(crate) fn projection_owner(&self) -> std::sync::Arc<super::UiMountedProjectionFrame> {
+        std::sync::Arc::clone(&self.projection_frame)
+    }
+
+    pub(crate) fn presentation_effects(
+        &self,
+    ) -> Box<[worth_ui_host_contract::UiMountedEffectFamily]> {
+        self.projection_frame.presentation_effects(
+            self.requirement.presentation_mode(),
+            self.requirement.binding(),
+        )
+    }
+}
+
+impl std::fmt::Debug for UiMountedSurfaceReceipt {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("UiMountedSurfaceReceipt")
+            .field("requirement", &self.requirement)
+            .field("projection_materialized", &self.projection.get().is_some())
+            .finish()
+    }
+}
+
+impl PartialEq for UiMountedSurfaceReceipt {
+    fn eq(&self, other: &Self) -> bool {
+        self.requirement == other.requirement && self.projection() == other.projection()
     }
 }
 
@@ -213,185 +252,6 @@ impl UiMountedFrameReceipt {
     pub fn delta(&self) -> super::UiMountedFrameDelta {
         super::UiMountedFrameDelta::from_cost(self.cost)
     }
-}
-
-impl UiPreparedMountedFrame {
-    pub(crate) fn admit(
-        admission: UiPreparedMountedFrameAdmission,
-    ) -> Result<Self, UiMountedFramePreparationDenial> {
-        let UiPreparedMountedFrameAdmission {
-            candidate,
-            generation,
-            manifest,
-            graph_world,
-            allocation_truth_revision,
-            trace_source,
-            reuse_contract,
-        } = admission;
-        if trace_source.generation() != &generation {
-            return Err(UiMountedFramePreparationDenial::TraceSourceGenerationMismatch);
-        }
-        super::validate_manifest(&manifest)?;
-        let surfaces = manifest
-            .surfaces()
-            .iter()
-            .map(|requirement| {
-                let projection = candidate
-                    .frame()
-                    .view_for(requirement.binding())
-                    .expect("validated manifest binding is present in finalized projection");
-                Ok(UiMountedSurfaceReceipt {
-                    requirement: *requirement,
-                    projection,
-                })
-            })
-            .collect::<Result<Vec<_>, UiMountedFramePreparationDenial>>()?;
-        let canonical_core = UiMountedFrameCanonicalCore::new(
-            candidate.frame().frame_identity(),
-            candidate.frame().plan_digest(),
-            graph_world,
-            allocation_truth_revision,
-            table_range_digest(&surfaces),
-        );
-        let integrity = UiMountedFrameIntegrity::derive(canonical_core, &manifest);
-        if !integrity.verifies(canonical_core, &manifest) {
-            return Err(UiMountedFramePreparationDenial::IntegrityMismatch);
-        }
-        let cost = candidate.frame().cost_report();
-        let identity_trace_basis = candidate.frame().identity_trace_basis(trace_source);
-        Ok(Self {
-            candidate,
-            generation,
-            manifest,
-            canonical_core,
-            integrity,
-            surfaces: surfaces.into_boxed_slice(),
-            identity_trace_basis,
-            cost,
-            reuse_contract,
-        })
-    }
-
-    pub fn generation(&self) -> &WorthUiPreparedApplicationGenerationIdentity {
-        &self.generation
-    }
-
-    pub fn manifest(&self) -> &UiMountedFrameManifest {
-        &self.manifest
-    }
-
-    pub fn canonical_core(&self) -> UiMountedFrameCanonicalCore {
-        self.canonical_core
-    }
-
-    pub fn integrity(&self) -> UiMountedFrameIntegrity {
-        self.integrity
-    }
-
-    pub fn surfaces(&self) -> &[UiMountedSurfaceReceipt] {
-        &self.surfaces
-    }
-
-    pub fn receipt(&self) -> UiMountedFrameReceipt {
-        UiMountedFrameReceipt {
-            canonical_core: self.canonical_core,
-            integrity: self.integrity,
-            surface_count: self.surfaces.len(),
-            cost: self.cost,
-        }
-    }
-
-    pub fn cost_report(&self) -> super::UiMountCostReport {
-        self.cost
-    }
-
-    pub fn reuse_contract(&self) -> &super::UiMountedFrameReuseContract {
-        &self.reuse_contract
-    }
-
-    pub(crate) fn visual_region_basis(&self) -> super::UiMountedVisualRegionBasis {
-        super::UiMountedVisualRegionBasis::new(
-            self.candidate.frame().static_paint_rows(),
-            self.candidate.frame().hit_test_rows(),
-        )
-    }
-
-    pub(crate) fn identity_trace_basis(&self) -> &super::UiMountedIdentityTraceBasis {
-        &self.identity_trace_basis
-    }
-
-    pub fn is_unpublished(&self) -> bool {
-        self.candidate.is_unpublished()
-    }
-
-    pub(crate) fn presented_receipt_basis(&self) -> &super::UiMountedNodeReceiptBasis {
-        self.candidate.presented_receipt_basis()
-    }
-
-    pub(crate) fn into_publication_parts(
-        self,
-    ) -> (
-        super::UiProjectedMountedFrameCandidate,
-        UiMountedFrameManifest,
-        UiMountedFrameCanonicalCore,
-        super::UiMountedFrameReuseContract,
-    ) {
-        (
-            self.candidate,
-            self.manifest,
-            self.canonical_core,
-            self.reuse_contract,
-        )
-    }
-}
-
-fn table_range_digest(surfaces: &[UiMountedSurfaceReceipt]) -> u64 {
-    surfaces.iter().fold(0_u64, |digest, receipt| {
-        let view = receipt.projection();
-        [
-            view.nodes().len(),
-            view.clips().rows().len(),
-            view.layers().rows().len(),
-            view.hit_tests().rows().len(),
-            view.paint_batches().rows().len(),
-            view.spatial_batches().rows().len(),
-            view.realtime_batches().rows().len(),
-            view.resources().entries().len(),
-        ]
-        .into_iter()
-        .fold(
-            digest ^ view.binding().diagnostic_value(),
-            |value, length| value.rotate_left(7) ^ u64::try_from(length).unwrap_or(u64::MAX),
-        )
-        .rotate_left(11)
-            ^ view
-                .filled_rects()
-                .rows()
-                .iter()
-                .fold(0_u64, |paint_digest, row| {
-                    paint_digest.rotate_left(9) ^ row.semantic_digest()
-                })
-            ^ view
-                .hit_tests()
-                .rows()
-                .iter()
-                .fold(0_u64, |hit_digest, row| {
-                    hit_digest.rotate_left(9) ^ row.semantic_digest()
-                })
-    })
-}
-
-pub(crate) fn binding_requirement(
-    binding: super::UiSurfaceBindingIdentityView,
-) -> UiMountedSurfaceBindingRequirement {
-    UiMountedSurfaceBindingRequirement::new(
-        binding.semantic_surface_identity(),
-        binding.host_surface_identity(),
-        binding.binding_generation(),
-        binding.capability_observation_generation(),
-        binding.capability_profile_digest(),
-        binding.presentation_mode(),
-    )
 }
 
 #[cfg(test)]

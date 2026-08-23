@@ -2,12 +2,13 @@ use worth_runtime_bridge::facade::BridgeMixedCauseOrderingInput;
 use worth_signal::facade::NodeId;
 use worth_ui_query_binding::{
     UiProjectionConsumptionBudget, UiProjectionConsumptionLimits, UiProjectionFactStopKind,
-    UiProjectionUnavailableKind, UiScalarProjectionBindingAdmission,
+    UiProjectionObservation, UiProjectionUnavailableKind, UiQueryObservationReportingProjection,
+    UiScalarProjectionBindingAdmission,
 };
 
 use super::support::{
     assert_current, assert_stop, assert_unavailable, assert_zero_native_work, completion_batch,
-    consume_batch, initial_fact, reporting_projection, ScalarLifecycleWorld,
+    consume_batch, initial_fact, ScalarLifecycleWorld,
 };
 
 const SHARED_VALUE: &str = "Authority Ready";
@@ -138,13 +139,15 @@ fn reporting_projections_remain_observations_not_operational_inputs() {
         BridgeMixedCauseOrderingInput::AsyncCompletion(completion),
         Some(pending),
     );
-    let reporting = reporting_projection(&current);
+    assert_eq!(current.work().native_indexed_accesses(), 1);
+    let (fact, _) = current.into_fact_and_predecessor();
+    let observation = UiProjectionObservation::Scalar(fact.into_observation());
+    let reporting = UiQueryObservationReportingProjection::from_observation(&observation);
 
     assert!(!reporting.query_world().is_empty());
     assert!(!reporting.binding().is_empty());
     assert!(!reporting.source_generation().is_empty());
     assert!(!reporting.result_generation().is_empty());
-    assert_eq!(current.work().native_indexed_accesses(), 1);
 }
 
 fn assert_equal_printable_controls(local: &ScalarLifecycleWorld, foreign: &ScalarLifecycleWorld) {

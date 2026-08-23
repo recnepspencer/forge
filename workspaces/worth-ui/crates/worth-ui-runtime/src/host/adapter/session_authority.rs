@@ -9,7 +9,7 @@ impl worth_proof::AuthorityMarker for UiHostAdapterSessionGrant {}
 pub struct UiHostAdapterSessionAuthority {
     host_session_identity: u64,
     _authority: worth_proof::AuthorityWitness<UiHostAdapterSessionGrant>,
-    presentation_lease_gate: worth_ui_host_contract::UiMountedPresentationLeaseGate,
+    presentation_lease_gate: crate::mounting::presentation::UiMountedPresentationLeaseGate,
 }
 
 impl UiHostAdapterSessionAuthority {
@@ -52,8 +52,8 @@ impl UiHostAdapterSessionAuthority {
     pub(crate) fn claim_mounted_presentation_lease(
         &self,
     ) -> Result<
-        worth_ui_host_contract::UiMountedPresentationLease,
-        worth_ui_host_contract::UiMountedPresentationLeaseDenial,
+        crate::mounting::presentation::UiMountedPresentationLease,
+        crate::mounting::presentation::UiMountedPresentationLeaseDenial,
     > {
         self.presentation_lease_gate.claim()
     }

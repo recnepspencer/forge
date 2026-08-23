@@ -14,9 +14,14 @@ pub(super) struct ConditionAdapter<'a> {
         &'a crate::snapshot::AdmittedSnapshotContext<Box<dyn crate::snapshot::TruthSnapshotReader>>,
     >,
     previous: &'a std::collections::BTreeMap<
-        (worth_signal::facade::NodeId, usize),
+        (
+            worth_signal::facade::NodeId,
+            usize,
+            Option<crate::relational_identity::RelationalBridgeRecordIdentityParts>,
+        ),
         worth_foundational::facade::ContractValidatedAspectArtifact,
     >,
+    managed_source_record: Option<crate::relational_identity::RelationalBridgeRecordIdentityParts>,
     truth_branch_identity: Option<&'a str>,
     truth_snapshot_identity: &'a str,
     observations: std::sync::Arc<[BridgeConditionalSemanticObservation]>,
@@ -32,8 +37,15 @@ impl<'a> ConditionAdapter<'a> {
             >,
         >,
         previous: &'a std::collections::BTreeMap<
-            (worth_signal::facade::NodeId, usize),
+            (
+                worth_signal::facade::NodeId,
+                usize,
+                Option<crate::relational_identity::RelationalBridgeRecordIdentityParts>,
+            ),
             worth_foundational::facade::ContractValidatedAspectArtifact,
+        >,
+        managed_source_record: Option<
+            crate::relational_identity::RelationalBridgeRecordIdentityParts,
         >,
         truth_branch_identity: Option<&'a str>,
         truth_snapshot_identity: &'a str,
@@ -42,6 +54,7 @@ impl<'a> ConditionAdapter<'a> {
             lowering,
             snapshot,
             previous,
+            managed_source_record,
             truth_branch_identity,
             truth_snapshot_identity,
             observations: std::sync::Arc::from([]),
@@ -83,6 +96,7 @@ impl worth_signal::facade::InstalledSignalConditionResolver for ConditionAdapter
             self.snapshot,
             self.lowering,
             self.previous,
+            self.managed_source_record,
         ) {
             Ok(observations) => observations.into(),
             Err(denial) => {
@@ -106,7 +120,11 @@ impl worth_signal::facade::InstalledSignalConditionResolver for ConditionAdapter
                     "installed semantic threshold retained no admitted observation",
                 )
             })?;
-            let current = scalar_value(observation.current())?;
+            let current = scalar_value(observation.current().ok_or_else(|| {
+                worth_signal::facade::SignalError::invalid_input(
+                    "installed semantic threshold observed an absent current value",
+                )
+            })?)?;
             let previous = observation.previous().map(scalar_value).transpose()?;
             return worth_signal::facade::resolve_signal_delta_threshold(
                 threshold, previous, current,

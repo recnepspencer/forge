@@ -132,6 +132,9 @@ fn typed_definition_freezes_once_into_application_generation_meaning() {
         .register_intent_provider(WorthUiCertificationBeforeEffectProvider::<AdvanceStatus>::new())
         .expect("one typed provider should register")
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("typed definition should prepare");
 
     let definitions = app.capabilities().intent_definitions();
@@ -210,6 +213,9 @@ fn frozen_application_digest<I: UiIntent>(definition: UiIntentDefinition<I>) -> 
         .register_intent_provider(WorthUiCertificationBeforeEffectProvider::<I>::new())
         .expect("provider should register")
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("definition should prepare")
         .capabilities()
         .digest()
@@ -231,6 +237,9 @@ where
         .register_intent_transition_definition(definition)
         .expect("transition definition should register")
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("transition definition should prepare")
         .capabilities()
         .digest()

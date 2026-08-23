@@ -1,0 +1,22 @@
+world_identity = "mounted-presentation-world"
+world_version = 1
+width = 160
+height = 96
+maximum_rectangles = 2048
+transparent_baseline = [0, 0, 0, 0]
+
+[[filled_rect]]
+x = 0
+y = 0
+width = 160
+height = 96
+rgba = [47, 129, 247, 255]
+order = 0
+
+[[filled_rect]]
+x = 48
+y = 24
+width = 64
+height = 48
+rgba = [242, 204, 96, 255]
+order = 1

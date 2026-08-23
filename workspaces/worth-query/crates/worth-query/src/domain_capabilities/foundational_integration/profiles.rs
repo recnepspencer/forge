@@ -171,6 +171,8 @@ fn with_support_posture(
         admission_readiness: profile.admission_readiness(),
         retention_delivery: profile.retention_delivery(),
         certification_posture: profile.certification_posture(),
+        execution_objective: profile.execution_objective(),
+        observation_activation: profile.observation_activation(),
     })
     .expect("support posture narrowing should preserve profile legality")
 }
@@ -186,6 +188,8 @@ fn with_richness(
         admission_readiness: profile.admission_readiness(),
         retention_delivery: profile.retention_delivery(),
         certification_posture: profile.certification_posture(),
+        execution_objective: profile.execution_objective(),
+        observation_activation: profile.observation_activation(),
     })
     .expect("richness narrowing should preserve profile legality")
 }

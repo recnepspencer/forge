@@ -2,7 +2,9 @@ use super::baseline::compare_exact_sets;
 use super::commit::commit_snapshot_pair;
 use super::crate_dag::crate_dag_document;
 use super::document::{CrateDagDocument, FacadeDocument};
-use super::facade_surface_observation::{observe_facade_document, ObservedFacadeExports};
+use super::facade_surface_observation::{
+    observe_facade_document, ConfiguredFacadeSurface, ObservedFacadeExports,
+};
 use crate::diagnostics::Diagnostic;
 use crate::manifest_types::Road1Package;
 use std::path::{Path, PathBuf};
@@ -15,7 +17,7 @@ pub(crate) struct ConstitutionSnapshots {
 impl ConstitutionSnapshots {
     pub(crate) fn observe(
         packages: &[Road1Package],
-        configured_surfaces: &[(String, PathBuf)],
+        configured_surfaces: &[ConfiguredFacadeSurface],
     ) -> Result<Self, String> {
         Ok(Self {
             dag: crate_dag_document(packages),

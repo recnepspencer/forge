@@ -15,6 +15,9 @@ artifact, orchestration, grouping, continuation, and typed-stop model.
 
 ## Start Here
 
+- [Ordinary Application Front Door](./foundations/ordinary-application-front-door.md)
+  The supported declaration, host installation, request admission, execution,
+  recovery, conditional-operation, and publication journey.
 - [AI Agent Orientation](./AI_README.md)
   Canonical runtime, substrate, authority, facade, and support model for AI
   agents and contributors.
@@ -40,6 +43,8 @@ artifact, orchestration, grouping, continuation, and typed-stop model.
 
 ## Best Starting Points
 
+- if you are building an application through the supported Query entry crates:
+  [Ordinary Application Front Door](./foundations/ordinary-application-front-door.md)
 - if you are building domain workflows with Query:
   [Domain Capabilities](./domain-capabilities/README.md)
 - if you are installing typed operations and executing them through one bound
@@ -93,6 +98,9 @@ artifact, orchestration, grouping, continuation, and typed-stop model.
   [authoring/graph-read-access-planning.md](./authoring/graph-read-access-planning.md)
 - if you need lower-runtime routing (not direct crate imports):
   [domain-capabilities/lower-runtime-capability-routing.md](./domain-capabilities/lower-runtime-capability-routing.md)
+- if a committed truth change should update only the affected live projection,
+  collection role, or consumer:
+  [Granular Live Invalidation](./runtime-surfaces/granular-live-invalidation.md)
 - if you need contribution lane map:
   [domain-capabilities/contributions/README.md](./domain-capabilities/contributions/README.md)
 - if you need aspect and authority semantics first:
@@ -103,6 +111,7 @@ artifact, orchestration, grouping, continuation, and typed-stop model.
 
 ## Foundations (feature docs)
 
+- [Ordinary Application Front Door](./foundations/ordinary-application-front-door.md)
 - [Workspace Overview](./foundations/workspace-overview.md)
 - [Operational Identity Authority](./foundations/operational-identity-authority.md)
 - [Branches And Previews](./foundations/branches-and-previews.md)
@@ -127,6 +136,7 @@ artifact, orchestration, grouping, continuation, and typed-stop model.
 
 ## Runtime surfaces (feature docs)
 
+- [Granular live invalidation](./runtime-surfaces/granular-live-invalidation.md)
 - [Region-scoped live invalidation and stream contracts](./runtime-surfaces/region-scoped-live-invalidation-and-stream-contracts.md)
 
 ## Capabilities (feature docs)

@@ -2,7 +2,8 @@ use worth_ui::facade::app::{
     UiMountedFrameOutcome, UiMountedFramePublicationReceipt, UiMountedFrameRequest,
     UiMountedFrameRetentionRejection, UiMountedIndeterminateFrame,
     UiMountedPresentationAdmissionRejection, UiMountedPresentationCompletionDenial,
-    UiMountedPresentationInFlight, UiMountedRejectedFrame, UiPresentationDeadline, WorthUi,
+    UiMountedPresentationInFlight, UiMountedRejectedFrame, UiMountedSupersededFrame,
+    UiPresentationDeadline, WorthUi, WorthUiLegacyEguiApplicationTransition,
     WorthUiMountedFrameExecutionStop,
 };
 
@@ -14,6 +15,12 @@ pub fn run() {
     let app = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(|application| {
+            WorthUiLegacyEguiApplicationTransition::activate(
+                application,
+                worth_ui_host_egui::WorthUiHostEgui::new(egui::Context::default()),
+            )
+        })
         .expect("empty application preparation should succeed");
     let mut session = app.launch().expect("empty application should launch");
     let outcome = match session.execute_mounted_frame(
@@ -51,12 +58,14 @@ pub fn run() {
             observe_admission_denial(&rejection);
         }
         UiMountedFrameOutcome::CompletionDenied(denial) => observe_completion_denial(&denial),
+        UiMountedFrameOutcome::Superseded(superseded) => observe_superseded(&superseded),
     }
 }
 
 fn observe_stop(stop: &WorthUiMountedFrameExecutionStop<'_>) {
     match stop {
         WorthUiMountedFrameExecutionStop::PublicationLease(_) => {}
+        WorthUiMountedFrameExecutionStop::HostMeasurement(_) => {}
         WorthUiMountedFrameExecutionStop::FrameworkTransition(transition) => {
             let _ = transition.generation_identity();
         }
@@ -89,3 +98,7 @@ fn observe_admission_denial(rejection: &UiMountedPresentationAdmissionRejection)
 }
 
 fn observe_completion_denial(_denial: &UiMountedPresentationCompletionDenial) {}
+
+fn observe_superseded(superseded: &UiMountedSupersededFrame) {
+    let _ = superseded.cost_report();
+}

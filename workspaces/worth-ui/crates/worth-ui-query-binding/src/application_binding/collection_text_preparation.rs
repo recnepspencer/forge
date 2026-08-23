@@ -74,7 +74,7 @@ fn validate_collection_contract(
         return Err(WorthUiCollectionTextConsumerPreparationDenial::ProjectionShapeMismatch);
     };
     let declared = worth_query::facade::domain::WorthQueryOperationCollectionField::from_dotted(
-        requirement.row_identity_field().declared_name(),
+        requirement.row_identity_field().native_key(),
     )
     .ok_or(WorthUiCollectionTextConsumerPreparationDenial::RowIdentityMismatch)?;
     if &declared != row_identity_field {

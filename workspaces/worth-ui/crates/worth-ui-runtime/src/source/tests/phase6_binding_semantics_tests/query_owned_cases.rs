@@ -203,6 +203,7 @@ fn token_target_app() -> WorthUiApp {
             ThemeTokenAlias::to(ThemeTokenId::new("theme.test.blue").expect("valid blue token")),
         ))
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("token target app should freeze")
 }
 

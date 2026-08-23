@@ -33,6 +33,12 @@ pub(super) fn translate_state(
     }
     use WorthQueryRuntimeAsyncResultStateKind as Kind;
     match context.state.kind() {
+        Kind::Unresolved => unavailable(
+            context,
+            predecessor,
+            UiProjectionUnavailableKind::Unresolved,
+            false,
+        ),
         Kind::Current => current(context, predecessor),
         Kind::Stale => retained(context, predecessor, UiProjectionRetainedActivityKind::Idle),
         Kind::Revalidating => retained(
@@ -153,11 +159,7 @@ fn prepared_for_current(
     if let Some(prepared) = binding.take_prepared() {
         return Ok(prepared);
     }
-    let selected_field = binding
-        .requirement()
-        .selected_field()
-        .declared_name()
-        .to_owned();
+    let selected_field = binding.requirement().selected_field().clone();
     let gateway = binding
         .reference()
         .enter_attempt(workspace)

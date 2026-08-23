@@ -1,7 +1,8 @@
 use crate::facade::foundation::{
-    promote_preflight_bundle_to_live, replay_live_sequence, BridgeChangeSummary, BridgeFieldDelta,
-    LiveChangeOrdinal, LiveReplayStepInput, MilestoneFiveLiveAdapter, RefreshAdmissionClass,
+    promote_preflight_bundle_to_live, replay_live_sequence, LiveChangeOrdinal, LiveReplayStepInput,
+    MilestoneFiveLiveAdapter, RefreshAdmissionClass,
 };
+use crate::live::{BridgeChangeSummary, BridgeFieldDelta};
 
 use super::super::super::profiles::CertificationProfile;
 use super::super::model::LiveCertificationBundle;

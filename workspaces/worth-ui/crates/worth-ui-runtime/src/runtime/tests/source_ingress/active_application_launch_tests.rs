@@ -77,6 +77,7 @@ fn query_free_and_installed_query_apps_share_the_active_session_lifecycle() {
         .expect("installed Query view should register again")
         .with_candidate_submission(submission)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("Query-installed source app should prepare")
         .launch()
         .expect("Query-installed source app should launch");

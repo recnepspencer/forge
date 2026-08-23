@@ -101,7 +101,7 @@ do not claim authentication, policy admission, execution, or commit authority.
 let summary = runtime
     .query(queries::account_summary(account))
     .as_principal(&principal)
-    .controls(BankReadControls::current(read_request, 32)?)
+    .controls(BankReadControls::current(read_request, 32, 20_000)?)
     .execute();
 
 let transfer = runtime
@@ -235,7 +235,11 @@ Milestone 9.18 experiments rather than a Bank Phase 5 product contract.
 Bank Phase 5 is closed. The Docker-backed Authentik courtroom executed the
 complete separate-process failure matrix through the production Bank server and
 independent user-node binaries; its evidence is recorded in
-`front-door-closure-ledger.md`. Runtime Phase 9 is the next milestone frontier.
+`front-door-closure-ledger.md`. Runtime Phases 9 and 10 are also closed: the
+host conditional-operation surface is complete, the audience facades are
+contracted, and public cutover residue is enforced. Bank Phase 6 is the next
+milestone frontier and must compose the complete consumer journeys through this
+same public contract.
 
 ## Prohibitions
 

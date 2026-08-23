@@ -36,6 +36,9 @@ fn freeze_artifacts(package: WorthUiRustAuthoredDeclarationFixture) -> Vec<UiDec
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .with_rust_authored_declaration_fixture(package)
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed")
         .declaration_artifacts()
         .to_vec()

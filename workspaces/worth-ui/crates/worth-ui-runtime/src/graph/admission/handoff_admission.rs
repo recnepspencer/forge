@@ -104,6 +104,9 @@ mod tests {
                 .with_semantic_artifact_spec(control_graph_input_spec()),
             )
             .freeze()
+            .map(
+                crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host,
+            )
             .expect("application preparation should succeed");
         let handoff = artifact_from_file_provenance(&app, "app/graph_instantiation.wui", 0)
             .graph_handoff()
@@ -136,6 +139,9 @@ mod tests {
                 .with_semantic_artifact_spec(control_graph_input_spec()),
             )
             .freeze()
+            .map(
+                crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host,
+            )
             .expect("application preparation should succeed");
         let handoff = artifact_from_file_provenance(&app, "app/graph_instantiation.wui", 0)
             .graph_handoff()
@@ -160,6 +166,9 @@ mod tests {
                 .with_semantic_artifact_spec(control_graph_input_spec()),
             )
             .freeze()
+            .map(
+                crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host,
+            )
             .expect("application preparation should succeed");
         let handoff = artifact_from_file_provenance(&app, "app/graph_instantiation.wui", 0)
             .graph_handoff()
@@ -173,6 +182,9 @@ mod tests {
                 .with_semantic_artifact_spec(other_control_spec()),
             )
             .freeze()
+            .map(
+                crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host,
+            )
             .expect("application preparation should succeed");
         let unrelated_handoff =
             artifact_from_file_provenance(&unrelated_app, "app/graph_instantiation_other.wui", 0)
@@ -213,6 +225,9 @@ mod tests {
                 .with_semantic_artifact_spec(control_graph_input_without_non_graph_obligations()),
             )
             .freeze()
+            .map(
+                crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host,
+            )
             .expect("application preparation should succeed");
         let enriched = WorthUi::app()
             .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
@@ -223,6 +238,9 @@ mod tests {
                 .with_semantic_artifact_spec(control_graph_input_spec()),
             )
             .freeze()
+            .map(
+                crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host,
+            )
             .expect("application preparation should succeed");
         let baseline_handoff =
             artifact_from_file_provenance(&baseline, "app/graph_instantiation.wui", 0)

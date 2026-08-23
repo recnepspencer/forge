@@ -56,7 +56,7 @@ identifiers, or equivalent-looking reports.
 | Foundational | Exact canonical values, keys, paths, portable bases, provenance, receipts, and shared boundary vocabulary | Proof progression, application permission, or relational truth |
 | Relational | Entities, relations, aspects, versions, snapshots, transactions, graph observations, and commit mechanics | Product authorization or application operation meaning |
 | Runtime Bridge | Installed correspondence and lawful lowering between Query and lower runtimes | Relational facts, Signal decisions, or application policy |
-| Signal | Policy evaluation, decision evidence, local evaluation slots, and condition outcomes | Application capability admission or relational mutation |
+| Signal | Policy evaluation, producer-local scoped invalidation, readiness and scheduling, performed execution receipts, local evaluation slots, and condition outcomes | Application capability admission, Query maintenance authority, or relational mutation |
 | Query | Installed application meaning, authority composition, admission, typed progression, execution products, idempotency/outbox meaning, runtime-local recovery, and publication | Authentication truth, graph truth, policy truth, external completion, or durable reconstruction |
 | Store | Durable persistence, journals, restart checkpoints, and reconstructive state | Ordinary Query admission, live recovery authority, or external completion |
 | External effect owner | Whether an escaping consequence was accepted or completed | Query commit, application authorization, or recovery authority |
@@ -164,6 +164,13 @@ not expose raw primary-graph handles that would let a consumer bypass Query.
 Stable application aftermath and recovery enter through `primary_graph` and
 `publication::application_aftermath`. Do not teach
 `facade::provisional_aftermath` as stable undo/redo support.
+
+The facade route is part of the contract, not just the final list of names.
+Boundary enforcement verifies that `worth-query-host` re-exports the exact
+installed owner namespace and snapshots that namespace recursively. Retargeting
+an alias to a broader implementation namespace is a contract change even when
+some existing imports still compile. Do not preserve an obsolete path by
+re-exporting the same types from a second authority lane.
 
 ### Certification audience
 
@@ -658,6 +665,80 @@ Node evaluation and effect execution are distinct:
 A Signal boolean, slot value, or diagnostic explanation cannot authorize an
 application effect by itself.
 
+Primary-graph temporal operations add one crucial ownership rule: durable
+temporal intent remains authoritative Relational/domain truth, while Signal's
+wake table is volatile derived state. The host supplies a typed predicate, a
+named clock source, a bounded reconstruction projection, and an ordinary
+application-operation invoker through `worth-query-host`. A clock reading is
+time evidence only. Signal decides eligibility, and Query then performs fresh
+principal, capability, purpose, invariant, idempotency, and compare-and-commit
+progression. The effect and the intent's completed posture commit atomically.
+
+Bridge decision evidence enters Query as one of five public postures:
+eligible, dependency-unchanged, reverted-clean, suppressed, or deferred. Only
+eligible evidence can reach fresh application-operation admission.
+Dependency-unchanged, suppressed, and deferred wakes remain non-invoking;
+reverted-clean retains the completed compute cost but creates no new
+application consequence. Query classifies the real Bridge evidence rather than
+re-running the host predicate or copying Signal's decision into a local
+boolean.
+
+Temporal identity follows the same canonical seam as the rest of Query. The
+portable binding identity covers the installed node authority, clock, source,
+timeline, reconstruction query and projector, principal source, and invoker.
+Publication derives a second runtime-qualified identity that adds the exact
+runtime, installation generation, provider, and branch. Both use Foundational
+canonical-basis preparation and typed canonical digests; Query does not own a
+private byte grammar or direct hashing lane. The binding and runtime identities
+are derived at installation and carried forward.
+
+A due wake derives its idempotency key and intent identity once during fresh
+application admission from the carried runtime binding plus the authoritative
+intent identity, revision, input, and host idempotency value. Compare-and-commit
+consumes that prepared binding. No later phase of that attempt regenerates it.
+If a later re-entry lawfully performs another fresh admission, its derivation
+is reported again as admission work, never as retry, recovery, provider,
+projection, live-delivery, or publication work.
+
+Commit publication refreshes the derived temporal-intent index before it
+returns. Cancellation, completion, or an active successor revision is therefore
+reconciled before predicate and operation contact; ordinary clock observation
+uses that derived index and never performs reconstruction. Relevant changes are
+retained on route-local exact-record journals; unrelated global commits neither
+consume the route's retention nor create false overrun. Dependency observations
+expose authoritative snapshot absence and only the declared projection fields.
+Absence is an explicit `Option` posture throughout snapshot materialization;
+there is no present-only accessor that can panic on a lawful missing record or
+aspect. Same-installation conditional-runtime reinstallation
+discards Bridge/Signal state and reconstructs active work from current
+authoritative intent records; completed or cancelled work does not return, and
+an already committed effect cannot be repeated. A successor installation must
+either be rebound through fresh typed host bindings or fails closed with a typed
+rebind requirement.
+
+Each accepted clock receipt also exposes descriptive `execution_provenance()`:
+the stable intent and revision, derived wake ordinals, Signal decision,
+application-attempt presence, and terminal posture. This is inspection
+evidence, not replay data or a reusable authority token.
+
+Clock receipts report relevant authoritative-commit work separately from due
+wake fan-out. Reinstallation receipts separately report reconstructed binding
+and intent counts together with examined candidates, projected records/fields,
+and total query work, so ordinary and reconstructive costs cannot be conflated.
+Canonical work is equally phase-exact: the clock handle exposes base binding
+work, runtime inspection exposes complete installation work, and each
+execution-provenance row exposes the fresh admission work in its admission
+slot. Later execution, retry, recovery, and publication slots remain zero.
+These counters describe where canonical work occurred; they do not reveal a
+digest basis or authorize another attempt.
+
+`conditional_runtime_lifecycle_probe()` captures weak liveness observations of
+the actual Query binding, lease, wake, intent, and attempt owners plus the
+Bridge provider, managed-clock, and owned-Signal-graph owners. Retain it outside
+the application runtime and call `live_inventory()` after ordinary Rust `Drop`;
+zero means those concrete owners were released, not that a Drop hook published
+an expected answer. The probe carries no close or execution authority.
+
 See [Conditional Installed Operations](./domain-capabilities/conditional-installed-operations.md)
 and [Signal Compatibility Orchestration](./domain-capabilities/signal-compatibility-orchestration.md).
 
@@ -709,6 +790,7 @@ Async result state describes pending, completed, stopped, or denied managed
 work. It does not prove that an unrelated command is safe to execute.
 
 See [Live Views](./runtime-surfaces/live-views.md),
+[Granular Live Invalidation](./runtime-surfaces/granular-live-invalidation.md),
 [Region-Scoped Live Invalidation And Stream Contracts](./runtime-surfaces/region-scoped-live-invalidation-and-stream-contracts.md),
 [Subscription Selection And Diagnostics](./capabilities/subscription-selection-and-diagnostics.md),
 and [Async Resources And Result State](./capabilities/async-resources-and-result-state.md).
@@ -880,6 +962,21 @@ published query result
 
 A notification never bypasses revalidation or result-shape semantics.
 
+### Granular live invalidation
+
+The supported production path is committed Relational truth, installed Runtime
+Bridge correspondence, optional performed Signal work, Query impact admission,
+Query-owned maintenance, and current consumer publication. Direct truth and
+performed Signal evidence are deliberately separate. Bind a live owner through
+`bind_primary_runtime_granular_invalidations` (or the shared equivalent), then
+consume the runtime-owned observation or batch through the matching `maintain_*`
+entry point. Never reconstruct this authority from raw CDC, copied aspect/scope
+fields, or a prior installation identity.
+
+See [Granular Live Invalidation](./runtime-surfaces/granular-live-invalidation.md)
+for the entry points, examples, stale/rebind behavior, owner counters, and the
+future semantic-hierarchy and physical-placement boundary.
+
 ## Lower-Runtime Routing
 
 Use this table when deciding where a change belongs.
@@ -889,6 +986,9 @@ Use this table when deciding where a change belongs.
 | What entities, relations, fields, or versions exist? | Relational |
 | What transaction committed and at which version? | Relational |
 | How does installed Query meaning correspond to lower-runtime structures? | Runtime Bridge |
+| Which installed semantic dependencies match one committed change? | Runtime Bridge candidate selection followed by Query admission |
+| Which scoped recomputation did the lower runtime actually perform? | Signal performed execution receipt |
+| Which projection, membership, ordering, group, or window consequence is required? | Query impact admission and maintenance |
 | What did an installed policy condition evaluate to? | Signal |
 | What generic proof progression or readmission law applies? | `worth-proof` |
 | What exact canonical value, provenance, receipt, or portable basis represents this meaning? | Foundational |
@@ -930,6 +1030,15 @@ Do not:
 - import replay into ordinary code;
 - read Relational directly to bypass graph obligations or access planning;
 - accept a Signal decision as effect authority;
+- treat direct Bridge truth as proof that Signal executed, or require a Signal
+  receipt for a direct Query consequence that performs no Signal work;
+- copy a producer-local aspect or semantic scope through transitive Signal
+  descendants instead of deriving each immediate dependency cause;
+- treat a reverse-index lookup key such as `ProducerAspectKey`, a semantic
+  scope path, or a shard, region, or worker identifier as authority;
+- reuse a granular invalidation binding, delivery batch, source-read basis, or
+  consumer lease after runtime restore, reinstallation, or rebind;
+- construct Query patches directly from raw CDC or copied Bridge/Signal fields;
 - dispatch an external effect without its co-committed local outbox and
   idempotency fact;
 - treat acknowledgement, silence, timeout, disconnect, or lost response as
@@ -953,6 +1062,7 @@ Do not:
 
 Start with the guide that owns the concept you are changing:
 
+- [Ordinary Application Front Door](./foundations/ordinary-application-front-door.md)
 - [Documentation Index](./README.md)
 - [Application Authorization And Emergency Elevation](./capabilities/application-authorization-and-emergency-elevation.md)
 - [Query Operating Modes](./foundations/query-operating-modes.md)
@@ -966,6 +1076,7 @@ Start with the guide that owns the concept you are changing:
 - [Application Aftermath, External Effects, And Recovery](./execution/application-aftermath-and-recovery.md)
 - [Lower-Runtime Capability Routing](./domain-capabilities/lower-runtime-capability-routing.md)
 - [Projection Consumption](./capabilities/projection-consumption.md)
+- [Granular Live Invalidation](./runtime-surfaces/granular-live-invalidation.md)
 - [Inspection](./capabilities/inspection.md)
 - [Hard Prohibitions](./foundations/hard-prohibitions.md)
 - [Operational Identity Authority](./foundations/operational-identity-authority.md)

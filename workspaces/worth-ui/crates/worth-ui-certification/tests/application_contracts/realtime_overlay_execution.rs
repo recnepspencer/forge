@@ -1,20 +1,16 @@
-use worth_ui::facade::app::{WorthUi, WorthUiApp, WorthUiApplicationBuilder};
+use worth_ui::facade::app::{WorthUi, WorthUiApp};
+
+type BoundBuilder = worth_ui_certification::scenario::application_authority_closure::FixedCertificationApplicationBuilder;
 use worth_ui::facade::declaration::{
     ComponentChildPolicy, ComponentDescriptor, ComponentId, ComponentPropSchema,
     ComponentRealtimeOverlayContract, ComponentRealtimeOverlayPriority, ComponentStateOwnership,
 };
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
-use worth_ui_host_contract::{
-    UiHostMeasurementObservationValue, UiHostMeasurementRequest, WorthUiHostCapability,
-    WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiMeasurementHostAdapter,
-};
+use worth_ui_certification::scenario::application_authority_closure::fixed_host::FixedCertificationHostBinding;
+use worth_ui_host_headless::{WorthUiHeadlessCapabilityProfileHost, WorthUiHeadlessHost};
 use worth_ui_runtime::facade::execution::{
     WorthUiHandleResolutionOutcome, WorthUiHudPlanDenialReason, WorthUiRealtimeFrameDenialReason,
     WorthUiRealtimeFrameTarget, WorthUiRealtimePlanAvailability,
-};
-use worth_ui_runtime::facade::host::{
-    UiHostAdapterSessionAuthority, UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt,
-    WorthUiHeadlessHost, WorthUiOperationalHostAdapter,
 };
 use worth_ui_runtime::facade::runtime_handoff::WorthUiRuntimeLaunchDenial;
 use worth_ui_test_support::{
@@ -138,7 +134,12 @@ fn over_budget_or_unsupported_host_denies_before_active_publication() {
 
     let host_workspace = FilesystemContractWorkspace::new("realtime-host-denial");
     let host_app = file_app(&host_workspace, &format!("component {HUD} {{}}\n"), || {
-        hud_builder_with_policy(8, 4, 16, MissingRealtimeHookHost)
+        hud_builder_with_policy(
+            8,
+            4,
+            16,
+            WorthUiHeadlessCapabilityProfileHost::missing_realtime_hook(),
+        )
     });
     let host_denial = match host_app.launch() {
         Ok(_) => panic!("host without exact realtime hook support cannot publish"),
@@ -275,7 +276,7 @@ fn execute_scaled_target(
     work
 }
 
-fn hud_builder() -> WorthUiApplicationBuilder {
+fn hud_builder() -> BoundBuilder {
     hud_builder_with_policy(8, 4, 16, WorthUiHeadlessHost)
 }
 
@@ -283,18 +284,19 @@ fn hud_builder_with_policy(
     rows: u16,
     cost: u16,
     budget: u32,
-    host: impl WorthUiOperationalHostAdapter + 'static,
-) -> WorthUiApplicationBuilder {
-    WorthUi::app()
-        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
-        .register_component(realtime_component(HUD, rows, cost, budget))
-        .with_host(host)
+    host: impl FixedCertificationHostBinding,
+) -> BoundBuilder {
+    BoundBuilder::new(
+        WorthUi::app()
+            .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
+            .register_component(realtime_component(HUD, rows, cost, budget)),
+        host,
+    )
 }
 
-fn scaled_builder(hud_count: usize, ordinary_count: usize) -> WorthUiApplicationBuilder {
+fn scaled_builder(hud_count: usize, ordinary_count: usize) -> BoundBuilder {
     let mut builder = WorthUi::app()
-        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
-        .with_host(WorthUiHeadlessHost);
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse());
     for index in 0..hud_count {
         builder = builder.register_component(realtime_component(
             format!("workspace.component.hud_{index:04}"),
@@ -308,7 +310,7 @@ fn scaled_builder(hud_count: usize, ordinary_count: usize) -> WorthUiApplication
             "workspace.component.ordinary_{index:04}"
         )));
     }
-    builder
+    BoundBuilder::new(builder, WorthUiHeadlessHost)
 }
 
 fn realtime_component(
@@ -341,7 +343,7 @@ fn ordinary_component(id: impl Into<String>) -> ComponentDescriptor {
 fn file_app(
     workspace: &FilesystemContractWorkspace,
     source: &str,
-    builder: impl Fn() -> WorthUiApplicationBuilder,
+    builder: impl Fn() -> BoundBuilder,
 ) -> WorthUiApp {
     workspace.write("app/main.wui", source);
     let capabilities = builder().freeze().expect("capabilities freeze");
@@ -355,39 +357,4 @@ fn file_app(
         .with_candidate_submission(submission)
         .freeze()
         .expect("file-authored application prepares")
-}
-
-#[derive(Clone, Copy, Default)]
-struct MissingRealtimeHookHost;
-
-impl WorthUiMeasurementHostAdapter for MissingRealtimeHookHost {
-    fn observe_measurement(
-        &self,
-        _request: &UiHostMeasurementRequest,
-    ) -> UiHostMeasurementObservationValue {
-        unreachable!("missing host capabilities deny before observation")
-    }
-}
-
-impl WorthUiOperationalHostAdapter for MissingRealtimeHookHost {
-    fn operational_host_contract(&self) -> WorthUiHostContract {
-        WorthUiHostContract::headless()
-    }
-
-    fn operational_capability_report(&self) -> WorthUiHostCapabilityReport {
-        WorthUiHostCapabilityReport::available(vec![
-            WorthUiHostCapability::RealtimeOverlayDraw,
-            WorthUiHostCapability::RealtimeOverlaySurface,
-        ])
-    }
-
-    fn release_host_session(
-        &self,
-        authority: &UiHostAdapterSessionAuthority,
-    ) -> UiHostSessionReleaseOutcome {
-        UiHostSessionReleaseOutcome::Released(UiHostSessionReleaseReceipt::released(
-            authority.host_session_identity(),
-            0,
-        ))
-    }
 }

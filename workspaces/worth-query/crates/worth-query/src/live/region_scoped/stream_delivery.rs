@@ -7,8 +7,7 @@ use crate::live::{
     StreamMemberProjection, StreamWindowCompatibility,
 };
 
-#[cfg(test)]
-pub(crate) fn lower_region_scoped_execution_to_stream_contract(
+pub fn lower_region_scoped_execution_to_stream_contract(
     plan: &RegionScopedLivePlan,
     execution: &RegionScopedLiveExecutionEnvelope,
     consumer_shape: StreamConsumerShape,
@@ -161,7 +160,6 @@ pub(crate) fn lower_region_scoped_execution_to_stream_contract(
     })
 }
 
-#[cfg(test)]
 fn stream_contract_widths(
     payload: &LivePatchPayload,
     locality_outcome: &DeliveryLocalityOutcome,

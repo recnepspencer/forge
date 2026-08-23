@@ -1,7 +1,9 @@
 use std::collections::VecDeque;
 
 use crate::data::handle::NodeId;
-use crate::data::proof::{FrontierExecutionSummary, InvalidationTraceRecord};
+use crate::data::proof::{
+    FrontierDiagnosticsSidecar, InvalidationPlanningEstimate, InvalidationTraceRecord,
+};
 use crate::diagnostics::compare::{
     explanations_semantically_equivalent, graphs_semantically_equivalent,
     plans_semantically_equivalent, repeat_run_summaries_equal, reports_semantically_equivalent,
@@ -62,7 +64,7 @@ impl<'a> GraphDiagnostics<'a> {
     }
 
     pub fn summary_now(&self) -> GraphSummary {
-        self.summary(self.graph.runtime_policy().tier)
+        self.summary(self.graph.installed_runtime_policy().tier())
     }
 
     pub fn history(&self, profile: DiagnosticsTier) -> ExecutionHistorySummary {
@@ -70,7 +72,7 @@ impl<'a> GraphDiagnostics<'a> {
     }
 
     pub fn history_now(&self) -> ExecutionHistorySummary {
-        self.history(self.graph.runtime_policy().tier)
+        self.history(self.graph.installed_runtime_policy().tier())
     }
 
     pub fn health(&self, profile: DiagnosticsTier) -> GraphSummary {
@@ -97,8 +99,14 @@ impl<'a> GraphDiagnostics<'a> {
         self.graph.observe().latest_observation_summary()
     }
 
-    pub fn latest_frontier_execution(&self) -> Option<&'a FrontierExecutionSummary> {
+    pub(crate) fn latest_frontier_execution(&self) -> Option<&'a FrontierDiagnosticsSidecar> {
         self.graph.observe().latest_frontier_execution_summary()
+    }
+
+    pub fn latest_invalidation_planning_estimate(
+        &self,
+    ) -> Option<&'a InvalidationPlanningEstimate> {
+        self.graph.observe().latest_invalidation_planning_estimate()
     }
 
     pub fn latest_invalidation_trace_records(&self) -> &'a [InvalidationTraceRecord] {

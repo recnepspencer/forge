@@ -25,6 +25,35 @@ use crate::relational_identity::RelationalBridgeRecordIdentityParts;
 use crate::truth_identity_fixtures::{truth_branch, truth_commit, truth_patch, truth_snapshot};
 
 #[test]
+fn managed_record_mapping_family_preserves_delivered_record_locality_without_widening() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mapping = widened_mapping();
+    let aspect_mapping = BridgeAspectRegistration::new(
+        BridgeAspectRegistrationId::admit_bridge_owned("profile-name"),
+        mapping.truth_scope().clone(),
+        mapping.snapshot_read_contract().clone(),
+        TruthDeltaSurfaceKind::EntityField,
+        SubscriptionSliceKind::SignalField,
+        SliceWideningPolicy::Disallow,
+    );
+    let dependency = semantic_dependencies::managed_record_dependency("query:managed");
+    let runtime = runtime_with_aspect_mapping(
+        mapping,
+        aspect_mapping,
+        vec![registration(dependency.clone(), vec![target(&graph, node)])],
+    );
+
+    let TransitionOutcome::Success(installed) =
+        runtime.install_semantic_correspondence(dependency, &graph)
+    else {
+        panic!("managed record should use the mapping family without semantic widening");
+    };
+    assert_eq!(installed.admission_counters().exact_matches(), 1);
+    assert_eq!(installed.admission_counters().entity_widened_matches(), 0);
+}
+
+#[test]
 fn foreign_runtime_and_cloned_graph_require_distinct_recovery_paths() {
     let mut graph = SignalGraph::new();
     let node = graph.node().build();
@@ -181,7 +210,7 @@ fn derived_only_signal_slot_cannot_be_promoted_into_truth_correspondence() {
 }
 
 #[test]
-fn many_to_one_requires_an_observable_declared_widening() {
+fn removed_entity_coarse_lane_cannot_authorize_many_to_one_correspondence() {
     let mut graph = SignalGraph::new();
     let node = graph.node().build();
     let widened_runtime = runtime(
@@ -197,42 +226,14 @@ fn many_to_one_requires_an_observable_declared_widening() {
             ),
         ],
     );
-    let TransitionOutcome::Success(first_widened) =
-        widened_runtime.install_semantic_correspondence(dependency("query:first"), &graph)
-    else {
-        panic!("declared widening should admit first source");
-    };
-    let TransitionOutcome::Success(second_widened) =
-        widened_runtime.install_semantic_correspondence(dependency("query:second"), &graph)
-    else {
-        panic!("declared widening should admit shared source");
-    };
-    assert_eq!(first_widened.admission_counters().widened_matches(), 1);
-    assert_eq!(second_widened.admission_counters().widened_matches(), 1);
-    assert!(matches!(
-        widened_runtime.deliver_installed_correspondence_envelope(
-            &first_widened,
-            &mut graph,
-            &field_change_envelope(),
-        ),
-        TransitionOutcome::RebindRequired(
-            crate::facade::BridgeCorrespondenceRebindRequired::AllocationSourceSet
-        )
-    ));
-    let TransitionOutcome::Success(readmitted_first) =
-        widened_runtime.install_semantic_correspondence(dependency("query:first"), &graph)
-    else {
-        panic!("the prior owner can readmit against the complete shared source set");
-    };
-    assert_eq!(
-        readmitted_first
-            .targets()
-            .next()
-            .unwrap()
-            .allocation_sources()
-            .len(),
-        2
-    );
+    for dependency in [dependency("query:first"), dependency("query:second")] {
+        assert!(matches!(
+            widened_runtime.install_semantic_correspondence(dependency, &graph),
+            TransitionOutcome::Denied(denial)
+                if denial.kind()
+                    == crate::facade::BridgeCorrespondenceDenialKind::MappingSemanticMismatch
+        ));
+    }
 
     let exact_runtime = runtime(
         exact_mapping(),

@@ -1,11 +1,11 @@
 use crate::facade::foundation::{
-    LiveExecutionEnvelope, LivePatchPayload, LiveQueryFamily, RegionScopedLiveExecutionEnvelope,
-    StreamLoweredDeliveryContract,
+    LiveExecutionEnvelope, LivePatchPayload, LiveQueryFamily, StreamLoweredDeliveryContract,
 };
 use crate::harness::live_certification::{
     LiveBundleFamily, LiveCertificationBundle, LiveOutcomeKind,
 };
 use crate::harness::profiles::CertificationProfile;
+use crate::live::RegionScopedLiveExecutionEnvelope;
 
 pub(super) fn bundle_from_live_execution(
     profile: CertificationProfile,

@@ -83,7 +83,7 @@ pub fn audit_non_owner_code_does_not_reopen_declaration_source(
         .collect::<Vec<_>>();
 
     for source_file in files {
-        audit_non_owner_declaration_source_file(inventory, &source_file, &mut violations);
+        audit_non_owner_declaration_source_file(inventory, source_file, &mut violations);
     }
 
     violations.sort();

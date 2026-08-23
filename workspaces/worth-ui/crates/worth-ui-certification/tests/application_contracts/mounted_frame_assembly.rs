@@ -1,4 +1,4 @@
-use worth_ui_runtime::facade::host::WorthUiHeadlessHost;
+use worth_ui_host_headless::WorthUiHeadlessHost;
 use worth_ui_runtime::facade::mounted::{
     UiMountedFrameCanonicalCore, UiMountedFrameManifest, UiMountedFramePreparationDenial,
     UiMountedFrameRequest, UiMountedLaneParticipation, UiRequiredLaneContributionStatus,

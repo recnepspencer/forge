@@ -15,6 +15,7 @@ pub struct WorthQueryCompiledSemanticAspectDependencyClosure {
     impact_index: super::impact_index::WorthQuerySemanticImpactIndex,
     closure_evidence: super::closure_evidence::WorthQuerySemanticDependencyClosureEvidence,
     workflow_edges: Vec<super::closure_evidence::WorthQuerySemanticDependencyEdge>,
+    invalidation_manifest: super::WorthQueryInstalledInvalidationManifest,
 }
 
 impl WorthQueryCompiledSemanticAspectDependencyClosure {
@@ -29,6 +30,11 @@ impl WorthQueryCompiledSemanticAspectDependencyClosure {
     ) -> Self {
         let impact_index =
             super::impact_index::WorthQuerySemanticImpactIndex::compile(dependencies.as_slice());
+        let invalidation_manifest = super::WorthQueryInstalledInvalidationManifest::compile(
+            &affinity,
+            dependencies.as_slice(),
+            &impact_index,
+        );
         counters.impact_index_entries = impact_index.entry_count();
         counters.impact_index_dependency_visits = dependencies.as_slice().len();
         counters.impact_mask_propagation_edges = impact_index.mask_propagation_edges();
@@ -41,6 +47,7 @@ impl WorthQueryCompiledSemanticAspectDependencyClosure {
             impact_index,
             closure_evidence,
             workflow_edges,
+            invalidation_manifest,
         }
     }
 
@@ -75,6 +82,10 @@ impl WorthQueryCompiledSemanticAspectDependencyClosure {
 
     pub fn bound_operation_identity(&self) -> &str {
         &self.affinity.operation_identity
+    }
+
+    pub const fn invalidation_manifest(&self) -> &super::WorthQueryInstalledInvalidationManifest {
+        &self.invalidation_manifest
     }
 
     pub const fn installation_generation(&self) -> u64 {

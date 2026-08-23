@@ -49,9 +49,10 @@ fn dirty_direct_dependent() {
     evaluate(&mut graph, dependent, &mut compute).unwrap();
 
     mark_dirty(&mut graph, source, ASPECT_B).unwrap();
-
-    let state = graph.get_state(dependent).unwrap();
-    assert_eq!(state, NodeState::MaybeStale);
+    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::Clean);
+    let mut source_v2 = |_id, _g: &SignalGraph| Ok(version_ab(1, 2));
+    evaluate(&mut graph, source, &mut source_v2).unwrap();
+    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::Dirty);
 }
 
 #[test]
@@ -70,11 +71,17 @@ fn maybe_stale_transitive_dependent() {
     evaluate(&mut graph, c, &mut compute).unwrap();
 
     mark_dirty(&mut graph, a, ASPECT_B).unwrap();
+    assert_eq!(graph.get_state(b).unwrap(), NodeState::Clean);
+    assert_eq!(graph.get_state(c).unwrap(), NodeState::Clean);
 
-    let state_b = graph.get_state(b).unwrap();
-    let state_c = graph.get_state(c).unwrap();
-    assert_eq!(state_b, NodeState::MaybeStale);
-    assert_eq!(state_c, NodeState::MaybeStale);
+    let mut compute_a_v2 = |_id, _g: &SignalGraph| Ok(version_ab(1, 2));
+    evaluate(&mut graph, a, &mut compute_a_v2).unwrap();
+    assert_eq!(graph.get_state(b).unwrap(), NodeState::Dirty);
+    assert_eq!(graph.get_state(c).unwrap(), NodeState::Clean);
+
+    let mut compute_b_v2 = |_id, _g: &SignalGraph| Ok(version_ab(1, 2));
+    evaluate(&mut graph, b, &mut compute_b_v2).unwrap();
+    assert_eq!(graph.get_state(c).unwrap(), NodeState::Dirty);
 }
 
 #[test]

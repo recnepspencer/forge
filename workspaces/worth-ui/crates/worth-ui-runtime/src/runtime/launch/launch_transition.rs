@@ -32,27 +32,53 @@ impl WorthUiRuntime {
             host_session_plan,
             change_profile,
         } = admission;
-        let host_session = crate::facade::WorthUiHostSessionAuthority::activate(&host_session_plan)
-            .map_err(host_session_launch_denial)?;
+        let mut host_session =
+            crate::facade::WorthUiHostSessionAuthority::activate(&host_session_plan)
+                .map_err(host_session_launch_denial)?;
         let host_plan_binding = host_session.plan_binding();
-        let runtime = Self::launch(
-            WorthUiRuntimeLaunch {
-                artifact,
-                frame_epoch: crate::runtime::WorthUiRuntimeFrameEpoch::initial(),
-                diagnostic_policy,
-                candidate_snapshot_digest: Some(snapshot_digest.as_u64()),
-                candidate_artifact_digest: Some(artifact_digest),
-            },
-            WorthUiRuntimeLaunchAuthority {
-                lowering_authority,
-                initial_allocation_commit,
-                snapshot_digest,
-                retained_allocation_planning_evidence,
-                query_binding,
-                host_plan_binding,
-                change_profile,
-            },
-        )?;
+        let runtime =
+            match Self::launch(
+                WorthUiRuntimeLaunch {
+                    artifact,
+                    frame_epoch: crate::runtime::WorthUiRuntimeFrameEpoch::initial(),
+                    diagnostic_policy,
+                    candidate_snapshot_digest: Some(snapshot_digest.as_u64()),
+                    candidate_artifact_digest: Some(artifact_digest),
+                },
+                WorthUiRuntimeLaunchAuthority {
+                    lowering_authority,
+                    initial_allocation_commit,
+                    snapshot_digest,
+                    retained_allocation_planning_evidence,
+                    query_binding,
+                    host_plan_binding,
+                    change_profile,
+                },
+            ) {
+                Ok(runtime) => runtime,
+                Err(cause) => {
+                    return match host_session.release_adapter_session() {
+                    worth_ui_host_contract::UiHostSessionReleaseOutcome::Released(receipt)
+                        if receipt.released_surface_count() == 0 => Err(cause),
+                    worth_ui_host_contract::UiHostSessionReleaseOutcome::Released(receipt) => {
+                        Err(WorthUiRuntimeLaunchDenial::HostSessionReleaseMismatch {
+                            cause: Box::new(cause),
+                            released_surface_count: receipt.released_surface_count(),
+                        })
+                    }
+                    worth_ui_host_contract::UiHostSessionReleaseOutcome::ReleaseIndeterminate(
+                        _,
+                    ) => Err(
+                        WorthUiRuntimeLaunchDenial::HostSessionReleaseIndeterminate {
+                            cause: Box::new(cause),
+                            recovery: crate::facade::WorthUiHostSessionReleaseRecovery::retain(
+                                host_session,
+                            ),
+                        },
+                    ),
+                };
+                }
+            };
         Ok((runtime, host_session))
     }
 
@@ -170,8 +196,8 @@ fn host_session_launch_denial(
         crate::facade::WorthUiHostSessionActivationDenial::Protocol(denial) => {
             WorthUiRuntimeLaunchDenial::HostProtocol(denial)
         }
-        crate::facade::WorthUiHostSessionActivationDenial::MountedPresentationLease(denial) => {
-            WorthUiRuntimeLaunchDenial::HostMountedPresentationLease(denial)
+        crate::facade::WorthUiHostSessionActivationDenial::MountedPresentationLease(_) => {
+            WorthUiRuntimeLaunchDenial::HostMountedPresentationLease
         }
     }
 }

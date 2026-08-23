@@ -110,7 +110,7 @@ impl WorthUiScalarTextOperatingWorldGateway<'_> {
     )]
     pub(crate) fn prepare_consumer(
         self,
-        selected_field: &str,
+        selected_field: &crate::UiProjectionFieldRequirement,
     ) -> Result<WorthUiPreparedScalarTextConsumer, WorthUiScalarTextConsumerPreparationDenial> {
         let (reference, bound) = self
             .bind()

@@ -22,6 +22,8 @@ mod frame_lifecycle;
 mod graph_replacement;
 mod instance_lifecycle;
 mod interaction_affinity;
+mod layout_reconstruction;
+mod presentation_attribution;
 pub(crate) mod surface_lifecycle;
 
 pub(crate) use interaction_affinity::{
@@ -63,12 +65,12 @@ pub(crate) struct UiMountedIdentityState {
     retired_instances: BTreeSet<UiMountedInstanceIdentity>,
     retirement_order: VecDeque<UiMountedInstanceIdentity>,
     by_graph: BTreeMap<UiGraphNodeIdentity, BTreeSet<UiMountedInstanceIdentity>>,
-    visible_order: Vec<UiMountedInstanceIdentity>,
+    visible_order: crate::runtime::persistent_index::UiPersistentOrder<UiMountedInstanceIdentity>,
     mounted_instance_membership:
         crate::runtime::persistent_index::UiPersistentOrdSet<UiMountedInstanceIdentity>,
     current_frame: Option<UiMountedFrameIdentity>,
     current_receipt_basis: Option<super::UiMountedNodeReceiptBasis>,
-    current_projection: Option<super::UiMountedProjectionFrame>,
+    current_projection: Option<std::sync::Arc<super::UiMountedProjectionFrame>>,
     current_manifest: Option<worth_ui_host_contract::UiMountedFrameManifest>,
     current_core: Option<worth_ui_host_contract::UiMountedFrameCanonicalCore>,
     current_publication: Option<super::UiMountedFramePublicationReceipt>,
@@ -76,6 +78,7 @@ pub(crate) struct UiMountedIdentityState {
         Option<crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource>,
     current_reuse_contract: Option<super::UiMountedFrameReuseContract>,
     pending_projection_changes: super::UiMountedProjectionChanges,
+    peak_qualified_layouts: usize,
     semantic_revision: u64,
     binding_revision: u64,
 }
@@ -99,7 +102,7 @@ impl UiMountedIdentityState {
             retired_instances: BTreeSet::new(),
             retirement_order: VecDeque::new(),
             by_graph: BTreeMap::new(),
-            visible_order: Vec::new(),
+            visible_order: Default::default(),
             mounted_instance_membership: Default::default(),
             current_frame: None,
             current_receipt_basis: None,
@@ -110,6 +113,7 @@ impl UiMountedIdentityState {
             current_trace_source: None,
             current_reuse_contract: None,
             pending_projection_changes: Default::default(),
+            peak_qualified_layouts: 0,
             semantic_revision,
             binding_revision,
         })
@@ -189,7 +193,7 @@ impl UiMountedIdentityState {
     }
 
     pub(crate) fn current_projection(&self) -> Option<&super::UiMountedProjectionFrame> {
-        self.current_projection.as_ref()
+        self.current_projection.as_deref()
     }
 
     pub(crate) fn current_allocation_truth_revision(&self) -> Option<u64> {
@@ -250,6 +254,18 @@ impl UiMountedIdentityState {
                 })
             })
             .collect()
+    }
+
+    pub(crate) fn projection_order_snapshot(
+        &self,
+        surfaces: &[UiSemanticSurfaceIdentity],
+    ) -> Option<crate::runtime::persistent_index::UiPersistentOrder<UiMountedInstanceIdentity>>
+    {
+        (surfaces.len() == self.semantic_surfaces.len()
+            && surfaces
+                .iter()
+                .all(|surface| self.semantic_surfaces.contains_key(surface)))
+        .then(|| self.visible_order.clone())
     }
 
     pub(crate) fn projection_surface(

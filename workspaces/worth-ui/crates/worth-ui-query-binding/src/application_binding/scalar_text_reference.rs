@@ -1,7 +1,7 @@
 use worth_query::facade::{foundation::ObservationLaneWitness, installed, runtime};
 
 use crate::{
-    WorthUiInstalledQueryDomain, WorthUiQueryOperationAttemptDenial, WorthUiQueryWorkspaceExt,
+    WorthUiInstalledQueryDomain, WorthUiQueryHost, WorthUiQueryOperationAttemptDenial,
     WorthUiScalarTextProjection, WorthUiScalarTextProjectionFamily,
 };
 
@@ -38,8 +38,8 @@ impl WorthUiInstalledScalarTextOperationReference {
         workspace: &'runtime runtime::WorthQueryWorkspace,
     ) -> Result<WorthUiScalarTextOperatingWorldGateway<'runtime>, WorthUiQueryOperationAttemptDenial>
     {
-        let current = workspace
-            .worth_ui()
+        let current = WorthUiQueryHost::from_workspace(workspace)
+            .installed_domain()
             .map_err(WorthUiQueryOperationAttemptDenial::Installation)?;
         if !current.shares_authority_with(&self.installed_domain) {
             return Err(WorthUiQueryOperationAttemptDenial::InstalledDomainAuthorityMismatch);

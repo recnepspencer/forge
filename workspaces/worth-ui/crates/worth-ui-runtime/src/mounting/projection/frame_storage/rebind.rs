@@ -4,14 +4,26 @@ use super::UiMountedProjectionFrame;
 use crate::mounting::projection::UiMountedProjectionDenial;
 
 impl UiMountedProjectionFrame {
+    pub(in crate::mounting) fn rebind_retained_mechanics(
+        &mut self,
+        replacements: &[(
+            UiSurfaceBindingGeneration,
+            crate::mounting::UiSurfaceBindingIdentityView,
+        )],
+    ) -> Result<(), UiMountedProjectionDenial> {
+        self.mechanics.rebind(replacements)
+    }
+
     pub(crate) fn rebound(
         &self,
+        successor: worth_ui_host_contract::UiMountedFrameIdentity,
         replacements: &[(
             UiSurfaceBindingGeneration,
             crate::mounting::UiSurfaceBindingIdentityView,
         )],
     ) -> Result<Self, UiMountedProjectionDenial> {
         let mut rebound = self.clone();
+        rebound.frame = successor;
         for (affected, replacement) in replacements {
             let mut surface = rebound
                 .semantic
@@ -26,12 +38,7 @@ impl UiMountedProjectionFrame {
             surface.binding = replacement.binding_generation();
             rebound.semantic.surfaces.insert(surface.binding, surface);
         }
-        super::super::static_paint::rebind_filled_rects(&mut rebound.filled_rects, replacements)?;
-        super::super::semantic_text::rebind_semantic_text(
-            &mut rebound.semantic_text,
-            replacements,
-        )?;
-        super::super::hit_test::rebind_hit_tests(&mut rebound.hit_tests, replacements)?;
+        rebound.mechanics.rebind(replacements)?;
         Ok(rebound)
     }
 }

@@ -123,22 +123,30 @@ where
     let mut graph =
         publish_application_graph(bootstrap, runtime, authority, &installed_schema, fault_port)
             .map_err(super::super::conditional_operation::publication_denial)?;
-    let conditional_operations = super::super::conditional_operation::install_pending_bindings(
+    let mut conditional_operations = super::super::conditional_operation::install_pending_bindings(
         bindings,
         &mut graph.bridge,
+        &graph.primary_graph_authority,
         graph.runtime.authority_identity().as_u64(),
         graph.runtime.installed_packages().runtime_ordinal(),
         graph.runtime.installed_packages().generation().ordinal(),
         graph.primary_graph_authority.provider_identity(),
         super::super::application_branch::PRIMARY_APPLICATION_BRANCH,
     )?;
-    Ok(assemble_application_runtime(
+    let mut application = assemble_application_runtime(
         graph,
         installed_schema,
         authorization,
         authorization_clock,
-        conditional_operations,
-    ))
+        Default::default(),
+    );
+    conditional_operations.reconstruct_all(&application)?;
+    conditional_operations.reconcile_all(application.bridge.conditional_mut())?;
+    *application
+        .conditional_operations
+        .get_mut()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = conditional_operations;
+    Ok(application)
 }
 
 struct PublishedApplicationGraph {
@@ -198,6 +206,7 @@ fn publish_application_graph<Schema>(
 where
     Schema: ApplicationSchema,
 {
+    let bridge_layout = std::sync::Arc::clone(&bootstrap.graph.layout);
     let publication = bootstrap.publish(&mut runtime, &authority)?;
     let graph = runtime
         .retain_primary_graph_integration_handle()
@@ -206,12 +215,14 @@ where
     let execution_basis_source = graph.relational_execution_basis_source();
     let bridge = super::super::managed_bridge::install_application_bridge(
         installed_schema,
+        &bridge_layout,
         relational_source.clone(),
     )?;
+    let truth_partition_role = graph.truth_partition_role().cloned();
     let (provider_anchor, primary_provider) =
         WorthQueryPrimaryGraphProvider::install(graph, fault_port);
     let primary_graph_authority =
-        install_graph_participation_authority(&authority, provider_anchor)?;
+        install_graph_participation_authority(&authority, truth_partition_role, provider_anchor)?;
     Ok(PublishedApplicationGraph {
         runtime,
         publication,
@@ -225,17 +236,19 @@ where
 
 fn install_graph_participation_authority(
     authority: &WorthQueryExecutionInstallationAuthority,
+    truth_partition_role: Option<worth_foundational::facade::TruthPartitionRole>,
     provider_anchor: std::sync::Arc<
         crate::domain_computation::provider_session::graph_provider::bounded_step::provider_anchor::WorthQueryGraphProviderAnchor,
     >,
 ) -> Result<WorthQueryInstalledGraphParticipationAuthority, WorthQueryPrimaryGraphInstallationDenial>
 {
-    WorthQueryInstalledGraphParticipationAuthority::install(
+    WorthQueryInstalledGraphParticipationAuthority::install_with_truth_partition(
         authority.installation_runtime(),
         "primary",
         provider_anchor.provider_identity(),
         true,
         Some("primary"),
+        truth_partition_role,
         provider_anchor,
     )
     .map_err(|detail| {
@@ -253,8 +266,15 @@ fn assemble_application_runtime<Schema>(
     authorization_clock: WorthQueryRuntimeClock,
     conditional_operations:
         super::super::conditional_operation::WorthQueryConditionalOperationRegistry<Schema>,
-) -> WorthQueryPrimaryGraphApplicationRuntime<Schema> {
+) -> WorthQueryPrimaryGraphApplicationRuntime<Schema>
+where
+    Schema: worth_query_installation::facade::ApplicationSchema,
+{
     let runtime_authority = graph.runtime.authority_identity();
+    let granular_invalidation = super::super::WorthQueryGranularInvalidationInstallation::new(
+        installed_schema.binding_identity().clone(),
+        graph.primary_provider.graph.clone(),
+    );
     // One clock, shared. The registry hands it back to any handle that needs to
     // re-check its own deadline, which is why no recovery transition takes a
     // clock argument (R8.31).
@@ -275,7 +295,8 @@ fn assemble_application_runtime<Schema>(
         relational_source: graph.relational_source,
         execution_basis_source: graph.execution_basis_source,
         bridge: graph.bridge,
-        conditional_operations,
+        granular_invalidation,
+        conditional_operations: std::sync::Mutex::new(conditional_operations),
         primary_provider: graph.primary_provider,
         primary_graph_authority: graph.primary_graph_authority,
         result_buffers: Default::default(),

@@ -91,6 +91,7 @@ pub(super) fn app_with_view_binding_descriptor(
             ThemeTokenAlias::to(ThemeTokenId::new("theme.text.primary").unwrap()),
         ))
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

@@ -58,9 +58,46 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
         let virtualized_range = request.virtualized_range();
         let plan = self.execution.runtime.active.active_plan_ref();
         let lanes = mounted_lanes(plan, request.virtualized_range().is_some());
-        let mut projection = self.begin_mounted_projection(request, lanes, semantic_content)?;
+        let mut projection =
+            self.begin_mounted_projection(request, lanes, semantic_content, None)?;
         projection.execute_requested_lanes(lanes, virtualized_range)?;
         projection.finish()
+    }
+
+    pub(crate) fn prepare_mounted_superseding_frame_with_content_internal(
+        &self,
+        request: crate::mounting::UiMountedFrameRequest,
+        semantic_content: crate::mounting::UiMountedSemanticContentInput,
+        predecessor: &crate::mounting::UiPreparedMountedFrame,
+    ) -> Result<
+        crate::mounting::UiPreparedMountedFrame,
+        crate::mounting::UiMountedFramePreparationDenial,
+    > {
+        let virtualized_range = request.virtualized_range();
+        let plan = self.execution.runtime.active.active_plan_ref();
+        let lanes = mounted_lanes(plan, request.virtualized_range().is_some());
+        let mut projection =
+            self.begin_mounted_projection(request, lanes, semantic_content, Some(predecessor))?;
+        projection.execute_requested_lanes(lanes, virtualized_range)?;
+        projection.finish()
+    }
+
+    pub(crate) fn prepare_mounted_reconciliation_frame_with_content_internal(
+        &self,
+        request: crate::mounting::UiMountedFrameRequest,
+        semantic_content: crate::mounting::UiMountedSemanticContentInput,
+        replacements: &[crate::mounting::UiMountedSurfaceReconciliationBinding],
+    ) -> Result<
+        crate::mounting::UiPreparedMountedFrame,
+        crate::mounting::UiMountedFramePreparationDenial,
+    > {
+        let virtualized_range = request.virtualized_range();
+        let plan = self.execution.runtime.active.active_plan_ref();
+        let lanes = mounted_lanes(plan, request.virtualized_range().is_some());
+        let mut projection =
+            self.begin_mounted_projection(request, lanes, semantic_content, None)?;
+        projection.execute_requested_lanes(lanes, virtualized_range)?;
+        projection.finish_for_reconciliation(replacements)
     }
 
     fn begin_mounted_projection<'frame>(
@@ -68,6 +105,7 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
         request: crate::mounting::UiMountedFrameRequest,
         lanes: crate::mounting::UiMountedLaneAssembly,
         semantic_content: crate::mounting::UiMountedSemanticContentInput,
+        predecessor: Option<&'frame crate::mounting::UiPreparedMountedFrame>,
     ) -> Result<
         WorthUiActiveMountedProjectionFrame<'frame, 'session>,
         crate::mounting::UiMountedFramePreparationDenial,
@@ -86,23 +124,28 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
             .allocation_receipt_ledger
             .mounted_projection_source(self.mounted.current_allocation_truth_revision());
         let reuse_contract = self.reuse_contract(&request, lanes, allocation_truth_revision);
-        let assembler =
-            self.mounted
-                .begin_frame_assembly(crate::mounting::UiMountedFrameAssemblyInput {
-                    graph: self.graph,
-                    generation: self.generation_identity.clone(),
-                    trace_source: self.visual_trace_source.clone(),
-                    plan_digest: plan.digest().as_u64(),
-                    plan: crate::mounting::UiMountedPlanProjectionSource::Executed(plan),
-                    allocation_source,
-                    allocation_truth_revision,
-                    request,
-                    lanes,
-                    preview: None,
-                    visual_overlay,
-                    semantic_content,
-                    reuse_contract,
-                })?;
+        let input = crate::mounting::UiMountedFrameAssemblyInput {
+            graph: self.graph,
+            generation: self.generation_identity.clone(),
+            trace_source: self.visual_trace_source.clone(),
+            plan_digest: plan.digest().as_u64(),
+            plan: crate::mounting::UiMountedPlanProjectionSource::Executed(plan),
+            allocation_source,
+            allocation_truth_revision,
+            request,
+            lanes,
+            preview: None,
+            visual_overlay,
+            semantic_content,
+            font_collection: std::sync::Arc::clone(&self.font_collection),
+            reuse_contract,
+        };
+        let assembler = match predecessor {
+            Some(predecessor) => self
+                .mounted
+                .begin_superseding_frame_assembly(predecessor, input)?,
+            None => self.mounted.begin_frame_assembly(input)?,
+        };
         Ok(WorthUiActiveMountedProjectionFrame {
             execution: &self.execution,
             assembler,
@@ -331,5 +374,15 @@ impl WorthUiActiveMountedProjectionFrame<'_, '_> {
         crate::mounting::UiMountedFramePreparationDenial,
     > {
         self.assembler.finish()
+    }
+
+    pub(crate) fn finish_for_reconciliation(
+        self,
+        replacements: &[crate::mounting::UiMountedSurfaceReconciliationBinding],
+    ) -> Result<
+        crate::mounting::UiPreparedMountedFrame,
+        crate::mounting::UiMountedFramePreparationDenial,
+    > {
+        self.assembler.finish_for_reconciliation(replacements)
     }
 }

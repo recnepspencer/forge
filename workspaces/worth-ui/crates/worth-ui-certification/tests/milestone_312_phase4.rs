@@ -44,13 +44,13 @@ fn milestone_312_phase4_native_source_rebind_is_the_only_ordinary_mutation_root(
 }
 
 #[test]
-fn milestone_312_phase4_protocol_guarantees_survive_current_v5_evolution() {
+fn milestone_312_phase4_protocol_guarantees_survive_current_v9_evolution() {
     let envelope = workspace_source_inventory()
         .text("apps/platform-pulse/src/observation_contract/envelope.rs");
-    assert!(envelope.contains("PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION: u16 = 5"));
-    assert!(envelope.contains("CompleteV5"));
+    assert!(envelope.contains("PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION: u16 = 9"));
+    assert!(envelope.contains("CompleteV9"));
     assert!(envelope.contains("InheritedLifecycleOnly"));
-    assert!(envelope.contains("schema_version @ 2..=4"));
+    assert!(envelope.contains("schema_version @ 2..=8"));
     assert!(!envelope.contains("failure-artifact.v1"));
     let failure = workspace_source_inventory()
         .text("apps/platform-pulse/tests/executable_world/failure_teardown/retained_artifact.rs");

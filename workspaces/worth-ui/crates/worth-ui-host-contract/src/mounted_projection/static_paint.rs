@@ -59,7 +59,7 @@ pub struct UiMountedFilledRectCompletionInput {
 #[derive(Clone, Debug, PartialEq)]
 pub struct UiMountedFilledRectTable {
     schema: UiMountedStaticPaintSchemaVersion,
-    rows: Box<[UiMountedFilledRectMechanic]>,
+    rows: std::sync::Arc<[UiMountedFilledRectMechanic]>,
 }
 
 impl UiMountedStaticPaintSchemaVersion {
@@ -103,7 +103,7 @@ impl UiMountedFilledRectMechanic {
         if input.bounds.posture() != super::UiMountedGeometryPosture::Area {
             return Err(UiMountedFilledRectCompletionDenial::NonAreaGeometry);
         }
-        if input.clip_bounds != input.bounds {
+        if input.clip_bounds.coordinate_space() != input.bounds.coordinate_space() {
             return Err(UiMountedFilledRectCompletionDenial::ClipMismatch);
         }
         if input.node_receipt.frame() != input.frame {
@@ -184,7 +184,7 @@ impl UiMountedFilledRectTable {
     pub fn empty() -> Self {
         Self {
             schema: UiMountedStaticPaintSchemaVersion::current(),
-            rows: Box::new([]),
+            rows: std::sync::Arc::from([]),
         }
     }
 
@@ -197,7 +197,7 @@ impl UiMountedFilledRectTable {
         }
         Ok(Self {
             schema: UiMountedStaticPaintSchemaVersion::current(),
-            rows: rows.into_boxed_slice(),
+            rows: rows.into(),
         })
     }
 

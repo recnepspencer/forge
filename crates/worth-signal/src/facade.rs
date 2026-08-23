@@ -14,6 +14,13 @@ pub mod runtime;
 pub mod schema;
 pub mod specialist;
 
+pub use crate::runtime_policy::{
+    compile_signal_runtime_policy, AdmittedSignalRuntimePolicy, InstalledSignalRuntimePolicy,
+    ParallelAdmissionPolicy, ResolvedSignalRuntimePolicy, SignalObservationCapturePlan,
+    SignalRuntimePolicy, SignalRuntimePolicyAdmissionDenial, SignalRuntimePolicyCompilationDenial,
+    SignalRuntimePolicyRequest,
+};
+
 #[cfg(test)]
 pub mod advanced;
 #[cfg(test)]
@@ -25,7 +32,7 @@ pub use self::adapters::*;
 pub use self::core::*;
 #[cfg(not(test))]
 pub use self::core::{
-    apply_installed_aspect_changes, mark_changed, mark_changed_with_regions, mark_dirty,
+    apply_installed_scoped_changes, mark_changed, mark_changed_with_regions, mark_dirty,
     mark_dirty_with_regions, resolve_signal_delta_threshold, AdmittedHostComputedReadSet,
     AfterCondition, Aspect, AspectMask, AspectVersion, AtOrAfterCondition,
     BoundedTemporalReadyPromotionSummary, CanonicalChangedRegions, ChangedRegion,
@@ -43,7 +50,8 @@ pub use self::core::{
     InstalledSignalComparatorUse, InstalledSignalConditionDecision,
     InstalledSignalConditionIdentity, InstalledSignalConditionResolver,
     InstalledSignalConditionalContract, InstalledSignalGraphCapability,
-    InstalledSignalNodeCapability, IntervalAnchor, IntervalCondition, IntervalPeriod,
+    InstalledSignalNodeCapability, InstalledSignalScopedChange, InstalledSignalScopedChangeSet,
+    InstalledSignalScopedChangeView, IntervalAnchor, IntervalCondition, IntervalPeriod,
     LoweredTemporalEligibility, MissedTickPolicy, NodeBuilder, NodeEvaluationResult, NodeId,
     NodeState, OutputChange, OutputIdentity, PartitionMatchMode, PartitionSubscription,
     PartitionToken, PreparedHostComputedEvaluation, ReadyTemporalEligibility, RuntimeClockBasis,
@@ -68,12 +76,13 @@ pub use self::core::{
     SignalConditionalExecutionRequest, SignalConditionalSemanticComparisonMismatch,
     SignalConditionalSemanticContinuity, SignalConditionalSemanticMismatch,
     SignalConditionalVersionComparator, SignalDeltaThresholdContract, SignalError, SignalGraph,
-    SignalThresholdBoundary, SignalThresholdComparisonDomain, SignalThresholdValueFamily,
-    StagedHostComputedArtifact, StaleAfterCondition, TemporalClockAdvanceSummary,
-    TemporalCondition, TemporalDuration, TemporalEligibilityAuthority, TemporalExecutionSummary,
-    TemporalReadyPromotionSummary, TemporalWakeAdmissionSummary, TemporalWakeOwner,
-    TemporalWakeRetirementBatch, ThrottleCondition, ValidatedClockAdvance, VersionComparatorPolicy,
-    VersionComparatorResolver, CORE_STORAGE_PROFILE_ID, MAX_ASPECTS,
+    SignalGraphLifecycleProbe, SignalInstalledScopedChangeDenial,
+    SignalInstalledScopedChangeOutcome, SignalThresholdBoundary, SignalThresholdComparisonDomain,
+    SignalThresholdValueFamily, StagedHostComputedArtifact, StaleAfterCondition,
+    TemporalClockAdvanceSummary, TemporalCondition, TemporalDuration, TemporalEligibilityAuthority,
+    TemporalExecutionSummary, TemporalReadyPromotionSummary, TemporalWakeAdmissionSummary,
+    TemporalWakeOwner, TemporalWakeRetirementBatch, ThrottleCondition, ValidatedClockAdvance,
+    VersionComparatorPolicy, VersionComparatorResolver, CORE_STORAGE_PROFILE_ID, MAX_ASPECTS,
 };
 
 #[cfg(test)]
@@ -111,10 +120,12 @@ pub use self::runtime::{
     SignalBranchHeadPosture, SignalBranchRestorePosture, SignalBranchRetirementBatchDenial,
     SignalBranchRetirementBatchReceipt, SignalBranchRetirementBatchRequest,
     SignalBranchRetirementDenial, SignalBranchRetirementReason, SignalBranchRetirementReceipt,
-    SignalBranchRetirementRequest, SignalBranchTransactionHead, SignalRuntime, SignalTransaction,
-    TemporalFrontierSnapshot, TemporalPreviousValueAccess, TemporalPreviousValueReference,
-    TemporalWakeId, TemporalWakeReschedule, TemporalWakeRetirementReason, TemporalWakeReuse,
-    TemporalWakeSummary, TransactionOutcome, TransactionResult, TransactionTiming,
+    SignalBranchRetirementRequest, SignalBranchTransactionHead, SignalObservationAdmissionDenial,
+    SignalObservationCompletion, SignalObservationRequest, SignalObservationSession,
+    SignalObservationSurface, SignalRuntime, SignalTransaction, TemporalFrontierSnapshot,
+    TemporalPreviousValueAccess, TemporalPreviousValueReference, TemporalWakeId,
+    TemporalWakeReschedule, TemporalWakeRetirementReason, TemporalWakeReuse, TemporalWakeSummary,
+    TransactionOutcome, TransactionResult, TransactionTiming,
     ValidatedBranchTargetedTransactionRequest, WakeOrdinal,
 };
 #[cfg(test)]
@@ -124,9 +135,8 @@ pub use self::runtime::{
     KeyedRecipe as KeyedComputation, KeyedRecipeInstance as DefinedKeyedComputation,
     RecipeFamily as ComputationFamily, RecipeInstance as DefinedComputation,
     RunSummary as EvaluationSummary, RuntimeCheckpointPolicy as CheckpointPolicy,
-    RuntimeConfig as SignalRuntimeConfig, RuntimePolicy as SignalRuntimePolicy,
-    RuntimeRunRequest as RuntimeExecutionRequest, RuntimeTierPolicy as TierPolicy,
-    TransactionRunRequest as TransactionExecutionRequest,
+    RuntimeConfig as SignalRuntimeConfig, RuntimeRunRequest as RuntimeExecutionRequest,
+    RuntimeTierPolicy as TierPolicy, TransactionRunRequest as TransactionExecutionRequest,
 };
 #[cfg(all(feature = "parallel", not(test)))]
 pub use self::specialist::ParallelExecutionPolicy;

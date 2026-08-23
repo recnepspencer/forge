@@ -69,13 +69,26 @@ fn audit_phase3_successor_test_surface(manifest: &toml::Value) -> Result<(), Str
     let features = manifest["features"]
         .as_table()
         .ok_or_else(|| "pulse should declare the Phase 3 executable-world feature".to_owned())?;
-    if features.len() != 1
-        || features
-            .get("executable-world")
-            .and_then(toml::Value::as_array)
-            .is_none_or(|members| !members.is_empty())
-    {
-        return Err("pulse should declare only an empty `executable-world` feature".to_owned());
+    let expected_members = [
+        "worth-ui/certification-support",
+        "worth-ui-native-platform/certification-support",
+    ]
+    .into_iter()
+    .collect::<BTreeSet<_>>();
+    let observed_members = features
+        .get("executable-world")
+        .and_then(toml::Value::as_array)
+        .map(|members| {
+            members
+                .iter()
+                .filter_map(toml::Value::as_str)
+                .collect::<BTreeSet<_>>()
+        });
+    if features.len() != 1 || observed_members.as_ref() != Some(&expected_members) {
+        return Err(
+            "pulse should declare only the exact `executable-world` certification feature"
+                .to_owned(),
+        );
     }
     let tests = manifest["test"]
         .as_array()
@@ -101,7 +114,7 @@ fn audit_phase3_successor_test_surface(manifest: &toml::Value) -> Result<(), Str
         .ok_or_else(|| {
             "pulse should declare Windows-only native courtroom dependencies".to_owned()
         })?;
-    let expected = ["uiautomation", "winsafe", "xcap"]
+    let expected = ["uiautomation", "win32job", "winsafe", "xcap"]
         .into_iter()
         .collect::<BTreeSet<_>>();
     let observed = windows.keys().map(String::as_str).collect::<BTreeSet<_>>();
@@ -114,7 +127,11 @@ fn audit_phase3_successor_test_surface(manifest: &toml::Value) -> Result<(), Str
         let table = dependency.as_table().ok_or_else(|| {
             format!("pulse Windows dev dependency `{name}` should use workspace inheritance")
         })?;
-        let features = if name == "xcap" { &["wgc"][..] } else { &[] };
+        let features = match name.as_str() {
+            "winsafe" => &["dwm", "kernel", "user"][..],
+            "xcap" => &["wgc"][..],
+            _ => &[],
+        };
         audit_workspace_dependency(name, table, features, "Windows dev dependency")?;
     }
     Ok(())
@@ -133,6 +150,7 @@ fn audit_dependencies(manifest: &toml::Value) -> Result<(), String> {
         "worth-query-host",
         "worth-ui",
         "worth-ui-host-egui",
+        "worth-ui-native-platform",
     ]
     .into_iter()
     .collect::<BTreeSet<_>>();
@@ -149,7 +167,11 @@ fn audit_dependencies(manifest: &toml::Value) -> Result<(), String> {
         let table = dependency
             .as_table()
             .ok_or_else(|| format!("pulse dependency `{name}` should use workspace inheritance"))?;
-        let features = if name == "eframe" { &["wgpu"][..] } else { &[] };
+        let features = match name.as_str() {
+            "eframe" => &["wgpu_no_default_features"][..],
+            "worth-ui" => &["legacy-egui-migration"][..],
+            _ => &[],
+        };
         audit_workspace_dependency(name, table, features, "dependency")?;
     }
     Ok(())

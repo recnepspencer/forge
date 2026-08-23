@@ -3,19 +3,19 @@ use worth_foundational::{
     foundational_diagnostic_scope, materialize_diagnostic_support_report,
     AdmissionReadinessProfile, BoundaryArtifactField, BoundaryArtifactId, BoundaryArtifactLocator,
     CertificationPostureProfile, CompatibilityPostureProfile, DiagnosticRichnessProfile,
-    FoundationalDiagnosticAbsenceCause, FoundationalDiagnosticCertifiedCoverageClass,
-    FoundationalDiagnosticCounterSnapshot, FoundationalDiagnosticDeliveryClass,
-    FoundationalDiagnosticGapClass, FoundationalDiagnosticGapClosurePosture,
-    FoundationalDiagnosticGapTarget, FoundationalDiagnosticLocalityClaim,
-    FoundationalDiagnosticNamedGap, FoundationalDiagnosticOutcomeKind,
-    FoundationalDiagnosticPartiality, FoundationalDiagnosticRow,
+    ExecutionObjectiveProfile, FoundationalDiagnosticAbsenceCause,
+    FoundationalDiagnosticCertifiedCoverageClass, FoundationalDiagnosticCounterSnapshot,
+    FoundationalDiagnosticDeliveryClass, FoundationalDiagnosticGapClass,
+    FoundationalDiagnosticGapClosurePosture, FoundationalDiagnosticGapTarget,
+    FoundationalDiagnosticLocalityClaim, FoundationalDiagnosticNamedGap,
+    FoundationalDiagnosticOutcomeKind, FoundationalDiagnosticPartiality, FoundationalDiagnosticRow,
     FoundationalDiagnosticSemanticLabelSet, FoundationalDiagnosticSeverity,
     FoundationalDiagnosticSubject, FoundationalDiagnosticSupportClaimStrength,
     FoundationalDiagnosticSupportEvidencePosture, FoundationalDiagnosticSupportInput,
     FoundationalDiagnosticSupportReport, FoundationalDiagnosticSupportRow,
     FoundationalDiagnosticSurfaceAvailability, FoundationalDiagnosticWidenedFalloutPosture,
-    FoundationalProfileSet, FoundationalProfileSetInput, RetentionDeliveryProfile,
-    SupportPostureProfile,
+    FoundationalProfileSet, FoundationalProfileSetInput, ObservationActivationProfile,
+    RetentionDeliveryProfile, SupportPostureProfile,
 };
 
 use super::{CoverageGapDenial, CoverageSurfaceKind, HarnessCoverageStage};
@@ -150,6 +150,8 @@ fn diagnostic_profile() -> FoundationalProfileSet {
         admission_readiness: AdmissionReadinessProfile::Admitted,
         retention_delivery: RetentionDeliveryProfile::Retained,
         certification_posture: CertificationPostureProfile::EvidenceBacked,
+        execution_objective: ExecutionObjectiveProfile::Balanced,
+        observation_activation: ObservationActivationProfile::Continuous,
     })
     .expect("coverage diagnostic profile is support-ready and evidence-backed")
 }

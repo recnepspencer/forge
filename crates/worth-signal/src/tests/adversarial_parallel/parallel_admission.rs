@@ -1,12 +1,14 @@
 use std::num::NonZeroUsize;
 
 use crate::facade::{
-    mark_dirty, EvaluationRequestMode, ParallelAdmissionReason, ParallelApplyMode,
-    ParallelExecutionPolicy, SignalGraph, StageExecutionOutcome, StageExecutor,
+    mark_dirty, EvaluationRequestMode, ParallelAdmissionPolicy, ParallelAdmissionReason,
+    ParallelApplyMode, ParallelExecutionPolicy, SignalGraph, SignalRuntimePolicy,
+    StageExecutionOutcome, StageExecutor,
 };
 use crate::tests::support::{version_ab, GraphDependencyBatchExt, ASPECT_A};
 
 use super::executor_policy::aggressive_parallel_runtime_policy;
+use crate::logic::planner::types::ApplyPlanSerialFallbackReason;
 
 #[test]
 fn many_thin_stages_remain_serial_under_parallel_threshold() {
@@ -143,4 +145,57 @@ fn full_parallel_splits_wide_stage_into_deterministic_apply_groups() {
     assert_eq!(stage.apply_group_count, 2);
     assert_eq!(stage.serial_fallback_group_count, 0);
     assert_eq!(stage.concurrent_apply_task_count, requested.len() as u32);
+}
+
+#[test]
+fn full_parallel_stays_serial_below_installed_policy_threshold() {
+    let mut graph = SignalGraph::new();
+    graph.set_runtime_policy(SignalRuntimePolicy::operational().with_parallel_admission(
+        ParallelAdmissionPolicy {
+            throughput_min_parallel_tasks: 1,
+            balanced_min_parallel_tasks: 1,
+            latency_bounded_min_parallel_tasks: 1,
+            full_parallel_min_tasks: 8,
+        },
+    ));
+    let requested: Vec<_> = (0..2).map(|_| graph.node().build()).collect();
+    let bootstrap = graph
+        .build_evaluation_plan(&requested, EvaluationRequestMode::ForceOnDemand)
+        .unwrap();
+    graph
+        .execute_prepared_plan(&bootstrap, &(), &|ctx| Ok(ctx.finish(version_ab(1, 0))))
+        .unwrap();
+    for &node in &requested {
+        mark_dirty(&mut graph, node, ASPECT_A).unwrap();
+    }
+
+    let plan = graph
+        .build_evaluation_plan(&requested, EvaluationRequestMode::Default)
+        .unwrap();
+    let executor_policy = ParallelExecutionPolicy::new(NonZeroUsize::new(1).unwrap())
+        .with_apply_group_min_width(1)
+        .with_max_concurrent_apply_groups(2);
+    let before_dispatch = graph.telemetry().execution.parallel_stage_dispatch_count;
+    let report = graph
+        .execute_prepared_plan_with_executor(
+            &plan,
+            &(),
+            &|ctx| Ok(ctx.finish(version_ab(2, 0))),
+            StageExecutor::full_parallel(1).with_parallel_policy(executor_policy),
+        )
+        .unwrap();
+
+    assert_eq!(
+        graph.telemetry().execution.parallel_stage_dispatch_count,
+        before_dispatch,
+        "full-parallel execution must honor the installed threshold"
+    );
+    assert!(report
+        .stages
+        .iter()
+        .all(|stage| matches!(stage.outcome, StageExecutionOutcome::CompletedSerial)));
+    assert!(report.stages.iter().any(|stage| {
+        stage.serial_apply_rejection_reason
+            == Some(ApplyPlanSerialFallbackReason::BelowFullParallelThreshold)
+    }));
 }

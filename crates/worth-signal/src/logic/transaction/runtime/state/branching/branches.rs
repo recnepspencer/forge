@@ -69,6 +69,13 @@ where
         graph: SignalGraph,
         runtime_telemetry: Option<RuntimeTelemetry>,
     ) -> BranchState<D, I, T> {
+        let telemetry = if graph.captures_observation_surface(
+            crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+        ) {
+            runtime_telemetry.unwrap_or(self.derived.telemetry)
+        } else {
+            RuntimeTelemetry::default()
+        };
         BranchState::new(
             AuthorityState {
                 graph,
@@ -78,7 +85,7 @@ where
                 checkpoint: self.derived.checkpoint,
                 resource: self.derived.resource,
                 temporal: self.derived.temporal,
-                telemetry: runtime_telemetry.unwrap_or(self.derived.telemetry),
+                telemetry,
             },
             self.ancestry,
             self.mutation_ledger,

@@ -1,8 +1,7 @@
 use super::{
-    WorthUiHostSessionPlan, WorthUiPreparedApplicationArtifact,
-    WorthUiPreparedApplicationArtifactPosture, WorthUiPreparedApplicationGenerationIdentity,
-    WorthUiPreparedApplicationLoweringAuthority, WorthUiPreparedDeclarationSourceIdentity,
-    WorthUiPreparedVisualTraceSource,
+    WorthUiPreparedApplicationArtifact, WorthUiPreparedApplicationArtifactPosture,
+    WorthUiPreparedApplicationGenerationIdentity, WorthUiPreparedApplicationLoweringAuthority,
+    WorthUiPreparedDeclarationSourceIdentity, WorthUiPreparedVisualTraceSource,
 };
 use crate::declaration::{UiDeclarationArtifact, UiDeclarationAuthoredEvidenceIndex};
 use crate::facade::lifecycle::{build_graph_evidence_indexes, WorthUiFacadeLifecycleBootstrap};
@@ -35,7 +34,6 @@ pub(crate) struct WorthUiPreparedApplicationAuthorityInput {
     pub(crate) intent_application_facts: crate::declaration::UiIntentApplicationFactPlan,
     pub(crate) intent_execution_bindings:
         crate::runtime::intent_execution::FrozenIntentExecutionBindings,
-    pub(crate) host_session_plan: WorthUiHostSessionPlan,
     pub(crate) visual_inspection_policy: worth_ui_inspection::UiVisualInspectionPolicy,
     pub(crate) runtime_instance_basis_admissions:
         Box<[crate::graph::UiRuntimeInstanceBasisAdmission]>,
@@ -73,7 +71,6 @@ pub struct WorthUiPreparedApplicationAuthority {
     query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
     intent_application_facts: crate::declaration::UiIntentApplicationFactPlan,
     intent_execution_bindings: crate::runtime::intent_execution::FrozenIntentExecutionBindings,
-    host_session_plan: WorthUiHostSessionPlan,
     visual_inspection_policy: worth_ui_inspection::UiVisualInspectionPolicy,
     runtime_instance_basis_admissions: Box<[crate::graph::UiRuntimeInstanceBasisAdmission]>,
     measurement_inspection_evidence:
@@ -98,7 +95,6 @@ impl WorthUiPreparedApplicationAuthority {
             query_binding_plan,
             intent_application_facts,
             intent_execution_bindings,
-            host_session_plan,
             visual_inspection_policy,
             runtime_instance_basis_admissions,
             measurement_inspection_evidence,
@@ -151,7 +147,6 @@ impl WorthUiPreparedApplicationAuthority {
             query_binding_plan,
             intent_application_facts,
             intent_execution_bindings,
-            host_session_plan,
             visual_inspection_policy,
             runtime_instance_basis_admissions,
             measurement_inspection_evidence,
@@ -185,10 +180,6 @@ impl WorthUiPreparedApplicationAuthority {
 
     pub fn declaration_artifacts(&self) -> &[UiDeclarationArtifact] {
         self.declaration_artifacts.as_ref()
-    }
-
-    pub fn host_session_plan(&self) -> &WorthUiHostSessionPlan {
-        &self.host_session_plan
     }
 
     pub const fn visual_inspection_policy(&self) -> worth_ui_inspection::UiVisualInspectionPolicy {
@@ -287,6 +278,7 @@ impl WorthUiPreparedApplicationAuthority {
 
     pub(crate) fn admit_launch(
         &self,
+        host_session_plan: super::WorthUiHostSessionPlan,
         diagnostic_policy: crate::runtime::WorthUiRuntimeDiagnosticPolicy,
     ) -> Result<super::WorthUiPreparedLaunchAdmission, crate::runtime::WorthUiRuntimeLaunchDenial>
     {
@@ -300,7 +292,7 @@ impl WorthUiPreparedApplicationAuthority {
             snapshot_digest: self.capability_snapshot.digest(),
             diagnostic_policy,
             query_binding: self.query_binding_plan.prepare_downstream_state(),
-            host_session_plan: self.host_session_plan.clone(),
+            host_session_plan,
             change_profile: self.change_profile,
         })
     }

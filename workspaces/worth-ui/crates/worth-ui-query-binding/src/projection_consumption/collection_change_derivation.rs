@@ -58,6 +58,13 @@ fn translate_operation<'a>(
                 to: *to,
             });
         }
+        WorthQueryCollectionPatchOperation::Regroup { entity, from, to } => {
+            changes.push(UiCollectionProjectionChange::Regroup {
+                row: row_reference(entity),
+                from: from.clone().map(Vec::into_boxed_slice),
+                to: to.clone().map(Vec::into_boxed_slice),
+            });
+        }
         WorthQueryCollectionPatchOperation::Update { row } => {
             changed_rows.insert(row.entity_identity().clone(), row);
             changes.push(UiCollectionProjectionChange::Update {
@@ -82,4 +89,33 @@ fn row_reference(
     identity: &worth_query::facade::foundation::WorthQueryEntityIdentity,
 ) -> UiCollectionProjectionRowReference {
     UiCollectionProjectionRowReference::query_issued(identity.evidence_identity())
+}
+
+#[test]
+fn regroup_preserves_query_row_identity_and_exact_group_paths() {
+    let mut workspace = crate::scalar_text_projection_fixture::collection_projection_workspace();
+    let entity = crate::scalar_text_projection_fixture::insert_collection_status(
+        &mut workspace,
+        "pulse.alpha",
+        "Alpha",
+    );
+    let operation = WorthQueryCollectionPatchOperation::Regroup {
+        entity: entity.clone(),
+        from: Some(vec!["prior".to_owned()]),
+        to: Some(vec!["successor".to_owned(), "nested".to_owned()]),
+    };
+    let mut changed_rows = BTreeMap::new();
+    let mut changes = Vec::new();
+
+    translate_operation(&operation, &mut changed_rows, &mut changes);
+
+    assert!(changed_rows.is_empty());
+    assert!(matches!(
+        changes.as_slice(),
+        [UiCollectionProjectionChange::Regroup { row, from, to }]
+            if row.query_identity() == &entity.evidence_identity()
+                && from.as_deref() == Some(["prior".to_owned()].as_slice())
+                && to.as_deref()
+                    == Some(["successor".to_owned(), "nested".to_owned()].as_slice())
+    ));
 }

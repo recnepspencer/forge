@@ -26,7 +26,7 @@ fn output_identity_unchanged_suppresses_downstream_propagation() {
     evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
 
     mark_dirty(&mut graph, source, ASPECT_A).unwrap();
-    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::MaybeStale);
+    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::Clean);
 
     evaluate(&mut graph, source, &mut source_v2_same_identity).unwrap();
 
@@ -35,14 +35,7 @@ fn output_identity_unchanged_suppresses_downstream_propagation() {
     let explanation = graph.observe().explain(source).unwrap();
     assert_eq!(explanation.output_change, Some(OutputChange::Unchanged));
     assert!(explanation.propagation_suppressed);
-    assert_eq!(
-        graph
-            .observe()
-            .metrics()
-            .evaluation
-            .suppressed_downstream_propagations,
-        1
-    );
+    assert!(graph.pending_causes(dependent).unwrap().is_empty());
 }
 
 #[test]

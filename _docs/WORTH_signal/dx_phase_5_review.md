@@ -45,7 +45,9 @@ The main ownership rule is now explicit:
 
 - `set_runtime_policy(...)` owns full runtime policy changes
 - `reset_runtime_policy_to_tier(...)` is the stock reset back to a named tier
-- `set_diagnostics_profile(...)` remains only as a deprecated transition path
+- Phase 8 removed the deprecated `set_diagnostics_profile(...)` transition
+  path; stock changes use `reset_runtime_policy_to_tier(...)` and full policy
+  changes use `set_runtime_policy(...)`.
 
 This removes the old ambiguity where a caller could think they were only
 changing diagnostics detail while actually replacing the full policy bundle.

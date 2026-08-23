@@ -142,6 +142,9 @@ pub(super) fn stale_dependency_candidate_denial() -> WorthUiReplacementCandidate
         WorthUi::app()
             .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
             .freeze()
+            .map(
+                crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host,
+            )
             .expect("application preparation should succeed")
             .capabilities()
             .digest(),

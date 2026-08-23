@@ -10,10 +10,11 @@ Canonical reading order:
 2. [Authored composition](./docs/authored-composition.md)
 3. [Interaction and intents](./docs/interaction-and-intents.md)
 4. [Application lifecycle](./docs/application-lifecycle.md)
-5. [Application inspection](./docs/inspection.md)
-6. [Runtime subsystem map](./docs/runtime-subsystems.md)
-7. [Query-backed UI views](./docs/query-binding.md)
-8. [Milestone 3.10.1 migration](./docs/migration-3.10.1.md)
+5. [Native host platform](./docs/native-host-platform.md)
+6. [Application inspection](./docs/inspection.md)
+7. [Runtime subsystem map](./docs/runtime-subsystems.md)
+8. [Query-backed UI views](./docs/query-binding.md)
+9. [Milestone 3.10.1 migration](./docs/migration-3.10.1.md)
 
 The longer contributor orientation remains in
 [worth-ui-readme.md](./docs/worth-ui-readme.md).
@@ -21,38 +22,24 @@ The longer contributor orientation remains in
 ## Ordinary Product Path
 
 ```text
-WorthUi::app()
--> WorthUiApplicationBuilder
--> freeze()
+WorthUiNativePlatform::prepare(profile)
+-> UiPreparedNativePlatform
+-> run(UiNativeApplicationDefinition)
+-> UiNativeApplicationPreparation
+-> complete()
 -> WorthUiApp
--> launch()
--> WorthUiActiveApplicationSession
--> execute_mounted_frame(...)
--> typed outcome
+-> UiPreparedNativeApplication
+-> Phase 1 typed stop before native effects
 ```
 
 `WorthUiApp` is one prepared generation. Launch consumes it. The active session
 keeps application, graph, planning, Query, host, mounted publication, and
 inspection identities coherent.
 
-```rust
-use worth_ui::facade::app::{
-    UiMountedFrameRequest, UiPresentationDeadline, WorthUi,
-};
-
-let app = WorthUi::app()
-    .freeze()
-    .expect("application preparation should succeed");
-let mut session = app.launch().expect("application should launch");
-let outcome = session
-    .execute_mounted_frame(
-        UiMountedFrameRequest::all_bound_surfaces(),
-        UiPresentationDeadline::at_tick(1),
-        0,
-        |_sources| {},
-    )
-    .expect("mounted-frame transition should start");
-```
+The platform supplies the only native host binding. An unbound
+`WorthUi::app()` cannot freeze, and a bound builder cannot bind a second host.
+See [Native host platform](./docs/native-host-platform.md) for the compiled
+Phase 1 progression.
 
 Treat the returned mounted-frame outcome exhaustively. Do not import an
 intermediate runtime phase to skip a denial or recover a raw executor.
@@ -101,6 +88,8 @@ diagnostic or visible posture cannot be promoted into either.
   Query-to-UI product route.
 - `worth-ui-host-contract` and host adapters own native mechanics, not UI
   meaning.
+- `worth-ui-native-platform` owns native application admission and the affine
+  platform-binding grant; product code cannot extract or replace that grant.
 - `facade::inspection` exposes read-only queries and receipts. It cannot mutate
   or reconstruct operational state.
 

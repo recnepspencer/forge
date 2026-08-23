@@ -4,10 +4,21 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::handle::NodeId;
 use crate::data::output::PartitionInterner;
+use crate::data::proof::invalidation::progression::InvalidationWorkBindingAxes;
 use crate::data::telemetry::RuntimeTelemetry;
 use crate::diagnostics::state::DiagnosticsState;
+use crate::logic::transaction::{
+    SignalObservationCompletion, SignalObservationDropCleanup, SignalObservationRequest,
+    SignalObservationSurface,
+};
+use crate::runtime_policy::InstalledSignalRuntimePolicy;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
 
-use super::{BranchMutationRecord, ReconstructionCounters};
+use super::{
+    BranchMutationRecord, InvalidationPerformedCounterState, PerformedWorkCaptureState,
+    ReconstructionCounters, SignalGraph,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub(crate) struct RuntimeObservation {
@@ -23,14 +34,95 @@ pub(crate) struct RuntimeObservation {
     pub(in crate::data::graph) branch_mutation_records: BTreeMap<NodeId, BranchMutationRecord>,
     #[serde(skip, default)]
     pub(in crate::data::graph) diagnostics: DiagnosticsState,
+    #[serde(default)]
+    pub(in crate::data::graph) installed_policy: InstalledSignalRuntimePolicy,
+}
+
+#[derive(Debug)]
+pub(crate) struct ObservationCaptureCleanup {
+    counters: Arc<[AtomicU64; 24]>,
+    bindings: Arc<Mutex<Vec<InvalidationWorkBindingAxes>>>,
+    completed_execution_boundaries: Arc<AtomicU64>,
+    last_completion: Arc<AtomicU64>,
+}
+
+impl ObservationCaptureCleanup {
+    pub(crate) fn new(
+        counters: Arc<[AtomicU64; 24]>,
+        bindings: Arc<Mutex<Vec<InvalidationWorkBindingAxes>>>,
+        completed_execution_boundaries: Arc<AtomicU64>,
+        last_completion: Arc<AtomicU64>,
+    ) -> Self {
+        Self {
+            counters,
+            bindings,
+            completed_execution_boundaries,
+            last_completion,
+        }
+    }
+}
+
+impl SignalObservationDropCleanup for ObservationCaptureCleanup {
+    fn clear(&self, request: SignalObservationRequest) {
+        if request.includes(SignalObservationSurface::PerformedCounters) {
+            for value in self.counters.iter() {
+                value.store(0, Ordering::Release);
+            }
+        }
+        if request.includes(SignalObservationSurface::PerformedWork) {
+            self.bindings
+                .lock()
+                .expect("performed work observation poisoned")
+                .clear();
+        }
+        self.completed_execution_boundaries
+            .store(0, Ordering::Release);
+        self.last_completion.store(
+            u64::from(SignalObservationCompletion::Abandoned.code()),
+            Ordering::Release,
+        );
+    }
 }
 
 impl RuntimeObservation {
-    pub(crate) fn telemetry_mut(&mut self) -> &mut RuntimeTelemetry {
-        &mut self.telemetry
-    }
-
     pub(crate) fn partition_interner_mut(&mut self) -> &mut PartitionInterner {
         &mut self.partition_interner
+    }
+
+    pub(crate) fn partition_interner(&self) -> &PartitionInterner {
+        &self.partition_interner
+    }
+
+    pub(crate) fn installed_policy(&self) -> InstalledSignalRuntimePolicy {
+        self.installed_policy
+    }
+
+    pub(crate) fn install_policy(&mut self, policy: InstalledSignalRuntimePolicy) {
+        self.installed_policy = policy;
+    }
+}
+
+impl SignalGraph {
+    /// Rebuild the runtime-only observation bundle after graph construction or
+    /// deserialization. All optional stores must share this exact session gate
+    /// so continuous defaults and explicit sessions select the same surfaces.
+    pub(crate) fn rebind_observation_capture_state(&mut self) {
+        self.observation_sessions.set_default_surface_mask(
+            self.installed_runtime_policy()
+                .observation_capture_plan()
+                .default_surface_mask(),
+        );
+        let capture_gate = self.observation_sessions.capture_gate();
+        self.invalidation_performed_counters =
+            InvalidationPerformedCounterState::with_capture_gate(capture_gate.clone());
+        self.invalidation_performed_work =
+            PerformedWorkCaptureState::with_capture_gate(capture_gate);
+        self.observation_capture_cleanup = Some(Arc::new(ObservationCaptureCleanup::new(
+            self.invalidation_performed_counters.shared_values(),
+            self.invalidation_performed_work.shared_bindings(),
+            self.observation_sessions
+                .shared_completed_execution_boundaries(),
+            self.observation_sessions.shared_last_completion(),
+        )));
     }
 }

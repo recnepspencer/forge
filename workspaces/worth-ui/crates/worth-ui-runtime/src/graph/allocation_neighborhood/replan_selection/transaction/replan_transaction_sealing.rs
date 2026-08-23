@@ -1,5 +1,9 @@
 use super::{UiAdmittedAllocationInvalidationTarget, UiGraphReplanTargetDisposition};
 
+mod invalidation_sources;
+
+use invalidation_sources::{query_source_of, scroll_bindings_of, target_sets_of};
+
 impl super::UiGraphReplanAuthority {
     pub(crate) fn seal_transaction_basis(
         &self,
@@ -9,6 +13,7 @@ impl super::UiGraphReplanAuthority {
         let mut targets = Vec::<&UiAdmittedAllocationInvalidationTarget>::new();
         let mut scroll_consequences = Vec::<super::UiScrollReplanConsequence>::new();
         let mut query_consequences = Vec::<super::UiQueryMeasurementReplanConsequence>::new();
+        let mut host_consequences = Vec::<super::UiHostMeasurementReplanConsequence>::new();
         let mut portal_consequences = Vec::<super::UiPortalReplanConsequence>::new();
         for invalidation in plan.narrowed_invalidations() {
             counters.visit()?;
@@ -31,6 +36,28 @@ impl super::UiGraphReplanAuthority {
                         }
                     } else {
                         query_consequences.push(consequence);
+                    }
+                }
+            }
+            if let crate::runtime::UiAllocationInvalidationTarget::HostMeasurement {
+                measurement,
+                ..
+            } = invalidation.target()
+            {
+                for target in &causal_target_sets {
+                    let consequence =
+                        super::UiHostMeasurementReplanConsequence::seal(target, measurement)?;
+                    if let Some(existing) = host_consequences.iter().find(|existing| {
+                        existing.neighborhood_identity_digest()
+                            == consequence.neighborhood_identity_digest()
+                    }) {
+                        if existing != &consequence {
+                            return Err(
+                                super::UiReplanLocalityDenial::HostMeasurementSuccessorDenied,
+                            );
+                        }
+                    } else {
+                        host_consequences.push(consequence);
                     }
                 }
             }
@@ -85,56 +112,11 @@ impl super::UiGraphReplanAuthority {
             super::UiGraphReplanConsequences::seal(
                 scroll_consequences,
                 query_consequences,
+                host_consequences,
                 portal_consequences,
             ),
         ))
     }
-}
-
-fn query_source_of(
-    target: &crate::runtime::UiAllocationInvalidationTarget,
-) -> Option<(
-    &crate::capability::ViewBindingId,
-    &worth_ui_query_binding::WorthUiSettledSnapshotFact,
-)> {
-    match target {
-        crate::runtime::UiAllocationInvalidationTarget::SettledQueryFact {
-            view_binding_id,
-            fact,
-            ..
-        }
-        | crate::runtime::UiAllocationInvalidationTarget::ScrollOwnedContentExtent {
-            view_binding_id,
-            fact,
-            ..
-        } => Some((view_binding_id, fact)),
-        _ => None,
-    }
-}
-
-fn scroll_bindings_of(
-    target: &crate::runtime::UiAllocationInvalidationTarget,
-) -> &[crate::runtime::UiAdmittedScrollInvalidationBinding] {
-    match target {
-        crate::runtime::UiAllocationInvalidationTarget::ScrollOwnedContentExtent {
-            bindings,
-            ..
-        }
-        | crate::runtime::UiAllocationInvalidationTarget::ScrollOwnedExtent { bindings, .. } => {
-            bindings
-        }
-        _ => &[],
-    }
-}
-
-fn target_sets_of(
-    target: &crate::runtime::UiAllocationInvalidationTarget,
-) -> Vec<&crate::graph::UiAdmittedAllocationInvalidationTargetSet> {
-    let bindings = scroll_bindings_of(target);
-    if !bindings.is_empty() {
-        return bindings.iter().map(|binding| binding.target()).collect();
-    }
-    vec![targets_of(target)]
 }
 
 fn admit_target<'a>(
@@ -358,23 +340,4 @@ fn classify_root_posture(
                 super::UiReplanRootPosture::NotRoot
             }
         })
-}
-
-fn targets_of(
-    target: &crate::runtime::UiAllocationInvalidationTarget,
-) -> &super::UiAdmittedAllocationInvalidationTargetSet {
-    match target {
-        crate::runtime::UiAllocationInvalidationTarget::Graph(target)
-        | crate::runtime::UiAllocationInvalidationTarget::ResizePreview { target, .. }
-        | crate::runtime::UiAllocationInvalidationTarget::SettledQueryFact { target, .. }
-        | crate::runtime::UiAllocationInvalidationTarget::HostMeasurement { target, .. }
-        | crate::runtime::UiAllocationInvalidationTarget::DurableResize { target, .. } => target,
-        crate::runtime::UiAllocationInvalidationTarget::PortalAnchor { movement } => {
-            movement.target()
-        }
-        crate::runtime::UiAllocationInvalidationTarget::ScrollOwnedContentExtent { .. }
-        | crate::runtime::UiAllocationInvalidationTarget::ScrollOwnedExtent { .. } => {
-            unreachable!("scroll bindings expose their own target sets")
-        }
-    }
 }

@@ -1,5 +1,11 @@
 use super::WorthUiPreparedApplicationActivation;
 
+impl WorthUiPreparedApplicationActivation {
+    fn font_collection(&self) -> &std::sync::Arc<worth_ui_text::UiGlobalFontCollection> {
+        &self.font_collection
+    }
+}
+
 pub(super) struct UiMountedReplacementReuseBasis {
     pub(super) generation:
         crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
@@ -55,6 +61,7 @@ pub(super) fn prepare_candidate_mounted_frame(
             preview: None,
             visual_overlay,
             semantic_content,
+            font_collection: std::sync::Arc::clone(application.font_collection()),
             reuse_contract,
         })?;
     execute_candidate_lanes(application, &mut assembler, lanes, range)?;

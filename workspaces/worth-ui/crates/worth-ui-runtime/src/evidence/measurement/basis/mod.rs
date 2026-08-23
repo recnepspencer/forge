@@ -8,6 +8,7 @@ mod certification_scenario;
 mod certification_tests;
 mod denial;
 mod evidence_index;
+mod host_measurement_successor;
 mod host_result_slots;
 #[cfg(test)]
 mod hostile_tests;

@@ -144,6 +144,7 @@ fn page_root_app(world_profile: UiGraphWorldProfile) -> crate::facade::WorthUiAp
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(world_profile)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

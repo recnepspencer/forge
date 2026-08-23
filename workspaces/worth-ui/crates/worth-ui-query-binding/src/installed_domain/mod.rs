@@ -28,4 +28,6 @@ pub use rebind::{
 };
 pub use scalar_text_projection::{WorthUiScalarTextProjection, WorthUiScalarTextProjectionFamily};
 pub use snapshot_measurement::{WorthUiSnapshotMeasurement, WorthUiSnapshotMeasurementFamily};
+pub(crate) use workspace::WorthUiQueryHost;
+#[cfg(any(test, feature = "certification-construction"))]
 pub use workspace::WorthUiQueryWorkspaceExt;

@@ -3,6 +3,7 @@ use super::WorthUiMountedSessionState;
 pub(crate) struct UiMountedGraphReplacementSuccessor {
     identity: Box<crate::mounting::UiMountedIdentityState>,
     semantic_predecessor: Option<Box<crate::mounting::projection::UiMountedSemanticProjection>>,
+    presentation_predecessor: Option<worth_ui_host_contract::UiMountedFrameIdentity>,
 }
 
 pub(crate) struct UiMountedGraphReplacementAdmission {
@@ -74,6 +75,7 @@ impl UiMountedGraphReplacementSuccessor {
         crate::mounting::UiMountedFrameAssembler::begin_graph_replacement(
             &self.identity,
             self.semantic_predecessor.as_deref(),
+            self.presentation_predecessor,
             input,
         )
     }
@@ -94,11 +96,13 @@ impl WorthUiMountedSessionState {
             .identity
             .current_projection()
             .map(|frame| Box::new(frame.semantic_projection().clone()));
+        let presentation_predecessor = self.identity.current_frame_identity();
         self.identity
             .prepare_graph_replacement_successor(graph)
             .map(|identity| UiMountedGraphReplacementSuccessor {
                 identity: Box::new(identity),
                 semantic_predecessor,
+                presentation_predecessor,
             })
     }
 
@@ -225,7 +229,7 @@ impl WorthUiMountedSessionState {
     ) -> Result<UiMountedGraphReplacementPresentation, UiMountedGraphReplacementCompletionRejection>
     {
         let observed = in_flight.handle.clone();
-        let outcome = match self.presentation.cancel(observed, host.effect_port()) {
+        let outcome = match self.presentation.supersede(observed, host.effect_port()) {
             Ok(outcome) => outcome,
             Err(denial) => {
                 return Err(UiMountedGraphReplacementCompletionRejection {
@@ -249,8 +253,14 @@ fn settle_graph_replacement(
 ) -> UiMountedGraphReplacementPresentation {
     match outcome {
         crate::mounting::UiMountedPresentationOutcome::Presented(presented) => {
-            let receipt = publication.commit_presented(presented, successor.identity.as_mut());
-            UiMountedGraphReplacementPresentation::Published { successor, receipt }
+            match publication.commit_presented(presented, successor.identity.as_mut()) {
+                crate::mounting::UiMountedFramePublicationCommit::Current(receipt) => {
+                    UiMountedGraphReplacementPresentation::Published { successor, receipt }
+                }
+                crate::mounting::UiMountedFramePublicationCommit::Superseded(_) => {
+                    unreachable!("ordinary graph replacement cannot overlap a successor")
+                }
+            }
         }
         crate::mounting::UiMountedPresentationOutcome::RejectedBeforeEffects(rejected) => {
             let observation = crate::mounting::UiMountedHostObservationTransition::Rejected(
@@ -268,6 +278,9 @@ fn settle_graph_replacement(
                 publication,
                 handle,
             })
+        }
+        crate::mounting::UiMountedPresentationOutcome::Superseded(_) => {
+            unreachable!("ordinary graph replacement cannot settle as superseded")
         }
         crate::mounting::UiMountedPresentationOutcome::PresentationIndeterminate(frame) => {
             let observation = super::publication::indeterminate_observation(&frame);

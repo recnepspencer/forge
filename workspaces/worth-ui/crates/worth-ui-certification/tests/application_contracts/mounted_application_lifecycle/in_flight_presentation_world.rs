@@ -89,8 +89,23 @@ pub(crate) fn mounted_session_with_retention_budget(
 }
 
 fn mount_surfaces(
+    session: worth_ui::facade::app::WorthUiActiveApplicationSession,
+    surface_count: usize,
+) -> (
+    worth_ui::facade::app::WorthUiActiveApplicationSession,
+    Vec<worth_ui_runtime::facade::mounted::UiSurfaceBindingGeneration>,
+) {
+    mount_surfaces_with_mode(
+        session,
+        surface_count,
+        UiHostSurfacePresentationMode::RecordOnly,
+    )
+}
+
+fn mount_surfaces_with_mode(
     mut session: worth_ui::facade::app::WorthUiActiveApplicationSession,
     surface_count: usize,
+    mode: UiHostSurfacePresentationMode,
 ) -> (
     worth_ui::facade::app::WorthUiActiveApplicationSession,
     Vec<worth_ui_runtime::facade::mounted::UiSurfaceBindingGeneration>,
@@ -100,11 +115,7 @@ fn mount_surfaces(
     for epoch in 0..surface_count {
         let surface = session.create_semantic_surface().unwrap();
         let binding = session
-            .register_host_surface(
-                surface,
-                UiHostSurfacePresentationMode::RecordOnly,
-                profile(u64::try_from(epoch + 1).unwrap()),
-            )
+            .register_host_surface(surface, mode, profile(u64::try_from(epoch + 1).unwrap()))
             .unwrap()
             .binding_generation();
         session.mount_instance(node, surface).unwrap();

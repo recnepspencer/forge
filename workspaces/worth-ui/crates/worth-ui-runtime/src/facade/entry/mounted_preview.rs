@@ -8,6 +8,7 @@ pub struct WorthUiPendingMountedPreview<'session> {
     visual_trace_source:
         crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource,
     graph: crate::graph::UiGraphAuthority<'session>,
+    font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
     plan_digest: u64,
     transition: crate::runtime::UiPendingMountedPreviewTransition<'session>,
     planning_counters: crate::runtime::UiFrameworkTransitionPlanningCounters,

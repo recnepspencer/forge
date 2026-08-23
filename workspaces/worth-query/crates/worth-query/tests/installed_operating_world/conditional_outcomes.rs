@@ -2,7 +2,13 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use worth_proof::TransitionOutcome;
-use worth_query::facade::{domain, read};
+use worth_query::facade::{
+    certification::{
+        host_conditional_signal_for_certification,
+        WorthQueryHostConditionalSignalDecisionForCertification as HostDecision,
+    },
+    domain, read,
+};
 
 mod installation_denials;
 mod provider_fixtures;
@@ -49,6 +55,10 @@ fn unchanged_correspondence_versions_stop_before_condition_and_compute() {
     assert_eq!(first.counters().conditional_compute_contacts, 1);
     assert_eq!(first.counters().conditional_semantic_changes, 1);
     assert_eq!(first.counters().conditional_decisions_delivered, 1);
+    assert_eq!(
+        host_conditional_signal_for_certification(&first.conditional_provenance()[0]),
+        HostDecision::Eligible
+    );
     drop(first);
 
     let world = workspace.observe_operating_world().unwrap();
@@ -72,6 +82,10 @@ fn unchanged_correspondence_versions_stop_before_condition_and_compute() {
     assert_eq!(
         second.conditional_provenance()[0].class(),
         domain::WorthQueryConditionalOutcomeClass::DependencyUnchanged
+    );
+    assert_eq!(
+        host_conditional_signal_for_certification(&second.conditional_provenance()[0]),
+        HostDecision::DependencyUnchanged
     );
     assert!(second.conditional_provenance()[0].artifact_reuse_admitted());
     assert_eq!(second.counters().conditional_dependency_checks, 1);
@@ -191,6 +205,10 @@ fn unrequested_on_demand_node_defers_without_compute_or_query_work() {
         deferred.conditional_provenance()[0].class(),
         domain::WorthQueryConditionalOutcomeClass::DeferredOnDemand
     );
+    assert_eq!(
+        host_conditional_signal_for_certification(&deferred.conditional_provenance()[0]),
+        HostDecision::Deferred
+    );
     assert_eq!(deferred.counters().conditional_compute_contacts, 0);
     assert_eq!(deferred.counters().conditional_condition_checks, 1);
     assert_eq!(deferred.counters().conditional_on_demand_deferrals, 1);
@@ -250,6 +268,10 @@ fn temporal_wake_defers_without_compute_or_query_work() {
     assert_eq!(
         deferred.conditional_provenance()[0].class(),
         domain::WorthQueryConditionalOutcomeClass::DeferredTemporal
+    );
+    assert_eq!(
+        host_conditional_signal_for_certification(&deferred.conditional_provenance()[0]),
+        HostDecision::Deferred
     );
     assert_eq!(deferred.counters().conditional_compute_contacts, 0);
     assert_eq!(deferred.counters().conditional_condition_checks, 1);

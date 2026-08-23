@@ -1,21 +1,32 @@
 use crate::data::aspect::Aspect;
 use crate::data::handle::NodeId;
 use crate::data::output::ChangedRegion;
-use crate::data::proof::{FrontierExecutionSummary, InvalidationTraceRecord};
+use crate::data::proof::{
+    FrontierDiagnosticsSidecar, InvalidationPlanningEstimate, InvalidationTraceRecord,
+};
 use crate::diagnostics::epochs::EventEpochSummary;
 use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
 use crate::diagnostics::failure::{FailureSummary, RollbackDiagnostic};
 use crate::diagnostics::flow::{ChangeInputSummary, FlowSummary, InvalidationSummary};
-use crate::diagnostics::policy::{FrontierTracingPolicy, SignalRuntimePolicy};
+use crate::diagnostics::policy::FrontierTracingPolicy;
 use crate::diagnostics::profile::DiagnosticsTier;
 use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
 use crate::logic::transaction::ObservationBoundarySummary;
+use crate::runtime_policy::{InstalledSignalRuntimePolicy, SignalRuntimePolicy};
 
 use super::{DiagnosticsState, PendingFlowInput};
 
 impl DiagnosticsState {
+    pub(crate) fn record_observation_activation(&mut self, surface_mask: u8) {
+        self.observation_activation_mask |= surface_mask;
+    }
+
+    pub(crate) fn has_observation_activation(&self, surface_bit: u8) -> bool {
+        self.observation_activation_mask & surface_bit != 0
+    }
+
     pub fn profile(&self) -> DiagnosticsTier {
-        self.policy.tier
+        self.installed_tier
     }
 
     pub fn tier(&self) -> DiagnosticsTier {
@@ -23,24 +34,37 @@ impl DiagnosticsState {
     }
 
     pub fn set_profile(&mut self, profile: DiagnosticsTier) {
-        self.policy = SignalRuntimePolicy::for_tier(profile);
-        self.trim_history();
+        self.request_mirror = SignalRuntimePolicy::for_tier(profile);
     }
 
-    pub fn policy(&self) -> SignalRuntimePolicy {
-        self.policy
+    /// The caller-authored request mirror.  Runtime decisions must use the
+    /// installed policy projection instead.
+    pub fn request_mirror(&self) -> SignalRuntimePolicy {
+        self.request_mirror
     }
 
-    pub fn set_policy(&mut self, policy: SignalRuntimePolicy) {
-        self.policy = policy;
-        if !self.policy.retains_explanation_facts() {
+    pub fn set_request_mirror(&mut self, policy: SignalRuntimePolicy) {
+        self.request_mirror = policy;
+    }
+
+    pub fn set_installed_policy(&mut self, policy: InstalledSignalRuntimePolicy) {
+        self.installed_retention_budget = policy.retention_budget();
+        self.installed_tier = policy.tier();
+        self.installed_frontier_tracing_policy = policy.frontier_tracing_policy();
+        if !policy.retains_explanation_facts() {
             self.explanation_facts.clear();
         }
-        if !self.policy.retains_provenance_facts() {
+        if !policy.retains_provenance_facts() {
             self.provenance_facts.clear();
         }
+        if !policy.retention_budget().retain_latest_failure_context {
+            self.latest_failure = None;
+        }
+        if !policy.retention_budget().retain_history_details {
+            self.latest_rollback = None;
+        }
         if matches!(
-            self.policy.frontier_tracing_policy,
+            self.installed_frontier_tracing_policy,
             FrontierTracingPolicy::SummaryOnly
         ) {
             self.latest_invalidation_trace_records.clear();
@@ -72,8 +96,12 @@ impl DiagnosticsState {
         self.pending_graph_summary.as_ref()
     }
 
-    pub fn latest_frontier_execution(&self) -> Option<&FrontierExecutionSummary> {
+    pub fn latest_frontier_execution(&self) -> Option<&FrontierDiagnosticsSidecar> {
         self.latest_frontier_execution.as_ref()
+    }
+
+    pub fn latest_invalidation_planning_estimate(&self) -> Option<&InvalidationPlanningEstimate> {
+        self.latest_invalidation_planning_estimate.as_ref()
     }
 
     pub fn latest_invalidation_trace_records(&self) -> &[InvalidationTraceRecord] {
@@ -115,9 +143,11 @@ impl DiagnosticsState {
 
     pub fn record_frontier_execution(
         &mut self,
-        summary: FrontierExecutionSummary,
+        planning_estimate: InvalidationPlanningEstimate,
+        summary: FrontierDiagnosticsSidecar,
         trace_records: Vec<InvalidationTraceRecord>,
     ) {
+        self.latest_invalidation_planning_estimate = Some(planning_estimate);
         self.latest_frontier_execution = Some(summary);
         self.latest_invalidation_trace_records = trace_records;
     }
@@ -151,11 +181,19 @@ impl DiagnosticsState {
     }
 
     pub fn record_failure(&mut self, failure: FailureSummary) {
+        if !self
+            .installed_retention_budget
+            .retain_latest_failure_context
+        {
+            return;
+        }
         self.latest_failure = Some(failure);
     }
 
     pub fn record_rollback(&mut self, rollback: RollbackDiagnostic) {
-        self.latest_rollback = Some(rollback);
+        if self.installed_retention_budget.retain_history_details {
+            self.latest_rollback = Some(rollback);
+        }
     }
 
     pub fn record_observation(&mut self, observation: ObservationBoundarySummary) {
@@ -169,6 +207,7 @@ impl DiagnosticsState {
         self.pending_input = None;
         self.pending_graph_summary = None;
         self.latest_frontier_execution = None;
+        self.latest_invalidation_planning_estimate = None;
         self.latest_invalidation_trace_records.clear();
     }
 
@@ -179,13 +218,17 @@ impl DiagnosticsState {
     }
 
     pub fn record_explanation_fact(&mut self, fact: ExplanationFact) {
-        if self.policy.retains_explanation_facts() {
+        if self.installed_retention_budget.explanation_retention
+            == crate::diagnostics::policy::ArtifactRetentionPolicy::Retain
+        {
             self.explanation_facts.insert(fact.node, fact);
         }
     }
 
     pub fn record_provenance_fact(&mut self, fact: ProvenanceFact) {
-        if self.policy.retains_provenance_facts() {
+        if self.installed_retention_budget.provenance_retention
+            == crate::diagnostics::policy::ArtifactRetentionPolicy::Retain
+        {
             self.provenance_facts.insert(fact.node, fact);
         }
     }
@@ -217,7 +260,7 @@ impl DiagnosticsState {
     }
 
     pub(super) fn trim_history(&mut self) {
-        let limit = self.policy.retention_budget.history_limit;
+        let limit = self.installed_retention_budget.history_limit;
         while self.recent_history.len() > limit {
             self.recent_history.pop_front();
         }

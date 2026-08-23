@@ -22,7 +22,7 @@ pub(crate) fn settle_async_dependency_baseline(
     graph: &mut SignalGraph,
     nodes: impl IntoIterator<Item = NodeId>,
 ) {
-    let mut evaluator = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 0));
+    let mut evaluator = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     for node in nodes {
         evaluate_on_demand(&mut *graph, node, &mut evaluator)
             .expect("async dependency baseline should settle before lifecycle admission");

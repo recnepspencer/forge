@@ -193,8 +193,15 @@ impl WorthUiAuthoredProjectionRequirement {
 }
 
 fn declared_field(field: &str) -> worth_ui_query_binding::UiProjectionFieldRequirement {
-    worth_ui_query_binding::UiProjectionFieldRequirement::declared(field)
-        .expect("sealed DSL projection field remains valid")
+    match field {
+        "status" => worth_ui_query_binding::UiProjectionFieldRequirement::query_text_status(),
+        "value" => worth_ui_query_binding::UiProjectionFieldRequirement::measurement_value(),
+        "id" | "identity" | "identity.id" => {
+            worth_ui_query_binding::UiProjectionFieldRequirement::identity_id()
+        }
+        "revision" => worth_ui_query_binding::UiProjectionFieldRequirement::query_revision(),
+        other => panic!("sealed DSL projection field is not in WorthUiApplicationSchema: {other}"),
+    }
 }
 
 impl WorthUiProjectionContentEdge {

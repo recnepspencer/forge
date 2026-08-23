@@ -13,6 +13,7 @@ pub(super) type BridgeAsyncCompletionDenialIdentity =
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BridgeAsyncCompletionClass {
     Fulfilled,
+    EffectsIndeterminate,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -66,6 +67,18 @@ impl BridgeAsyncCompletionAdmissionReport {
         match &self.outcome {
             BridgeAsyncCompletionAdmissionOutcome::Admitted(_) => None,
             BridgeAsyncCompletionAdmissionOutcome::Denied(denied) => Some(denied),
+        }
+    }
+
+    pub(crate) fn from_owner_effects_indeterminate(
+        self,
+        observation: super::BridgeAsyncEffectsIndeterminateCompletion,
+    ) -> Self {
+        match self.outcome {
+            BridgeAsyncCompletionAdmissionOutcome::Admitted(completion) => {
+                Self::admitted(completion.from_owner_effects_indeterminate(observation))
+            }
+            BridgeAsyncCompletionAdmissionOutcome::Denied(completion) => Self::denied(completion),
         }
     }
 }

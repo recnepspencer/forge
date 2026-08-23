@@ -18,6 +18,23 @@ impl WorthUiActiveApplicationSession {
         finish_mounted_transition(&mut self.host_exchange, transition)
     }
 
+    pub(crate) fn present_prepared_superseding_mounted_frame_internal(
+        &mut self,
+        frame: crate::mounting::UiPreparedMountedFrame,
+        predecessor: crate::mounting::UiMountedSupersedingPresentationBasis,
+        deadline: worth_ui_host_contract::UiPresentationDeadline,
+        now: u64,
+    ) -> UiMountedFrameOutcome {
+        let transition = self.mounted.present_prepared_superseding_frame(
+            &self.host_session,
+            frame,
+            predecessor,
+            deadline,
+            now,
+        );
+        finish_mounted_transition(&mut self.host_exchange, transition)
+    }
+
     pub fn present_current_mounted_frame_for_reconciliation(
         &mut self,
         replacements: &[crate::mounting::UiMountedSurfaceReconciliationBinding],
@@ -26,6 +43,26 @@ impl WorthUiActiveApplicationSession {
     ) -> Result<UiMountedFrameOutcome, crate::mounting::UiMountedIdentityDenial> {
         let transition = self.mounted.present_current_for_reconciliation(
             &self.host_session,
+            replacements,
+            deadline,
+            now,
+        )?;
+        Ok(finish_mounted_transition(
+            &mut self.host_exchange,
+            transition,
+        ))
+    }
+
+    pub(crate) fn present_prepared_mounted_frame_for_reconciliation(
+        &mut self,
+        frame: crate::mounting::UiPreparedMountedFrame,
+        replacements: &[crate::mounting::UiMountedSurfaceReconciliationBinding],
+        deadline: worth_ui_host_contract::UiPresentationDeadline,
+        now: u64,
+    ) -> Result<UiMountedFrameOutcome, crate::mounting::UiMountedIdentityDenial> {
+        let transition = self.mounted.present_prepared_for_reconciliation(
+            &self.host_session,
+            frame,
             replacements,
             deadline,
             now,
@@ -55,6 +92,24 @@ impl WorthUiActiveApplicationSession {
             .mounted
             .cancel_presentation(&self.host_session, in_flight);
         finish_mounted_transition(&mut self.host_exchange, transition)
+    }
+
+    pub(crate) fn supersede_mounted_presentation(
+        &mut self,
+        in_flight: UiMountedPresentationInFlight,
+    ) -> UiMountedFrameOutcome {
+        let transition = self
+            .mounted
+            .supersede_presentation(&self.host_session, in_flight);
+        finish_mounted_transition(&mut self.host_exchange, transition)
+    }
+
+    pub(crate) fn admit_duplicate_native_presentation_observation(
+        &mut self,
+        presentation: worth_ui_host_native::UiNativePhysicalPresentationCorrelation,
+    ) -> Result<(), ()> {
+        self.mounted
+            .admit_duplicate_native_presentation_observation(presentation)
     }
 
     pub fn current_mounted_publication(&self) -> Option<&UiMountedFramePublicationReceipt> {

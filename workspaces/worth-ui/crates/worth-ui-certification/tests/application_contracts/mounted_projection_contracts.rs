@@ -5,7 +5,7 @@ use worth_ui_host_contract::{UiMountedParticipationInput, WorthUiHeadlessMounted
 use worth_ui_host_egui::{
     WorthUiEguiMountedProjectionPreparation, WorthUiEguiMountedResourceCache,
 };
-use worth_ui_runtime::facade::host::WorthUiHeadlessHost;
+use worth_ui_host_headless::WorthUiHeadlessHost;
 use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationMode, UiMountedAccessibilityProjection, UiMountedDiagnosticProjection,
     UiMountedFrameRequest, UiMountedOmissionReason, UiMountedParticipation,

@@ -174,7 +174,7 @@ fn condition_outcome_and_observation_drift_are_semantic() {
     assert_conditional_drift(&original, outcome_drift);
 
     let mut observation_drift = original.clone();
-    observation_drift.observations[0].current = validated_truth("truth-b");
+    observation_drift.observations[0].current = Some(validated_truth("truth-b"));
     assert_conditional_drift(&original, observation_drift);
 }
 
@@ -214,7 +214,7 @@ fn conditional_meaning(
         observations: vec![WorthQueryConditionalObservationMeaning {
             dependency_ordinal: 0,
             previous: None,
-            current: validated_truth(truth),
+            current: Some(validated_truth(truth)),
         }],
     }
 }

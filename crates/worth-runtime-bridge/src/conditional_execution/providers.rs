@@ -59,19 +59,25 @@ impl BridgeConditionalResolverContext {
 pub struct BridgeConditionalSemanticObservation {
     dependency_ordinal: usize,
     previous: Option<worth_foundational::facade::ContractValidatedAspectArtifact>,
-    current: worth_foundational::facade::ContractValidatedAspectArtifact,
+    current: Option<worth_foundational::facade::ContractValidatedAspectArtifact>,
+    projection_mask:
+        worth_foundational::facade::AspectMask<worth_foundational::facade::ProjectionMask>,
 }
 
 impl BridgeConditionalSemanticObservation {
     pub(super) fn new(
         dependency_ordinal: usize,
         previous: Option<worth_foundational::facade::ContractValidatedAspectArtifact>,
-        current: worth_foundational::facade::ContractValidatedAspectArtifact,
+        current: Option<worth_foundational::facade::ContractValidatedAspectArtifact>,
+        projection_mask: worth_foundational::facade::AspectMask<
+            worth_foundational::facade::ProjectionMask,
+        >,
     ) -> Self {
         Self {
             dependency_ordinal,
             previous,
             current,
+            projection_mask,
         }
     }
 
@@ -83,8 +89,14 @@ impl BridgeConditionalSemanticObservation {
         self.previous.as_ref()
     }
 
-    pub fn current(&self) -> &worth_foundational::facade::ContractValidatedAspectArtifact {
-        &self.current
+    pub fn current(&self) -> Option<&worth_foundational::facade::ContractValidatedAspectArtifact> {
+        self.current.as_ref()
+    }
+
+    pub fn projection_mask(
+        &self,
+    ) -> &worth_foundational::facade::AspectMask<worth_foundational::facade::ProjectionMask> {
+        &self.projection_mask
     }
 }
 

@@ -92,6 +92,20 @@ pub(super) fn exact_mapping() -> BridgeMappingRegistration {
     )
 }
 
+pub(super) fn sibling_field_mapping() -> BridgeMappingRegistration {
+    BridgeMappingRegistration::new(
+        BridgeMappingId::admit_bridge_owned("profile-status"),
+        TruthPatchScope::new(
+            MappingSelector::exact("relational-record:entity:0:1:1"),
+            crate::mapping::AspectKeySelector::exact(aspect_key()),
+            TruthPatchTargetSelector::entity_field(FieldKey::new("status").unwrap()),
+        ),
+        SnapshotReadContract::new(contract_with_extra_field()),
+        SignalInvalidationScope::admit_bridge_owned("signal.profile.status"),
+        CoarseRoutingMode::Direct,
+    )
+}
+
 pub(super) fn widened_mapping() -> BridgeMappingRegistration {
     mapping(
         MappingSelector::any(),

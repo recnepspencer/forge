@@ -129,7 +129,7 @@ fn window_resolution_cost_is_independent_of_total_collection_width() {
 }
 
 #[test]
-fn unsupported_grouping_denies_instead_of_degrading_to_an_offset_window() {
+fn grouped_collection_requires_native_access_instead_of_degrading_to_an_offset_window() {
     use crate::suite::installed_operation_fixture::collection_impact::{
         impact_collection_workspace, ImpactCollectionRead,
     };
@@ -166,13 +166,13 @@ fn unsupported_grouping_denies_instead_of_degrading_to_an_offset_window() {
         .unwrap();
     let stop = match settled.into_bound_collection() {
         TransitionOutcome::Denied(stop) => stop,
-        _ => panic!("grouped collection degraded into an ordinary offset window"),
+        _ => panic!("grouped collection without native access degraded into an offset window"),
     };
     assert_eq!(
         stop.denial().kind(),
-        domain::WorthQueryCollectionCapabilityDenialKind::UnsupportedGrouping
+        domain::WorthQueryCollectionCapabilityDenialKind::NativeAccessNotBound
     );
-    assert_eq!(stop.denial().counters().native_layout_checks, 0);
+    assert_eq!(stop.denial().counters().native_layout_checks, 1);
     assert_eq!(stop.denial().counters().identity_rows_indexed, 0);
     assert!(!stop.into_projection().identity().is_empty());
 }

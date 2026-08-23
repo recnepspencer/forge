@@ -21,6 +21,8 @@ pub(super) struct PreparedConditionalAttempt {
     pub(super) dependencies: PreparedDependencyCapture,
     pub(super) dependency_changed: bool,
     pub(super) passive_dependency_hit: bool,
+    pub(super) ready_invalidation:
+        Option<crate::data::proof::invalidation::progression::ReadyInvalidationBatch>,
 }
 
 pub(super) fn prepare_conditional_attempt(
@@ -40,9 +42,10 @@ pub(super) fn prepare_conditional_attempt(
     let dependencies = capture_dependencies(graph, node, counters)?;
     let invalidation = graph.node_invalidation_input(node)?;
     let pending_invalidation = matches!(
-        invalidation,
+        &invalidation,
         crate::data::proof::invalidation::revalidation::NodeInvalidationInput::Pending(_)
     );
+    let ready_invalidation = prepare_current_invalidation(graph, node, invalidation)?;
     let dependency_changed =
         dependency_change_is_meaningful(graph, request.contract, comparator, counters)?;
     let has_dependencies =
@@ -68,7 +71,33 @@ pub(super) fn prepare_conditional_attempt(
             && !dependency_changed
             && has_dependencies
             && !external_trigger_requested,
+        ready_invalidation,
     })
+}
+
+fn prepare_current_invalidation(
+    graph: &mut SignalGraph,
+    node: crate::data::handle::NodeId,
+    invalidation: crate::data::proof::invalidation::revalidation::NodeInvalidationInput,
+) -> Result<
+    Option<crate::data::proof::invalidation::progression::ReadyInvalidationBatch>,
+    SignalError,
+> {
+    let crate::data::proof::invalidation::revalidation::NodeInvalidationInput::Resolved(input) =
+        invalidation
+    else {
+        return Ok(None);
+    };
+    let epoch = graph.begin_invalidation_readiness_epoch();
+    let order = crate::data::proof::invalidation::progression::InvalidationStageOrder {
+        stage: 0,
+        order: 0,
+    };
+    let lowered = crate::logic::invalidation::scheduling::lower_current_work(
+        graph, node, input, epoch, order,
+    )?;
+    crate::logic::invalidation::scheduling::admit_current_readiness(graph, lowered, epoch, order)
+        .map(Some)
 }
 
 fn validate_request(

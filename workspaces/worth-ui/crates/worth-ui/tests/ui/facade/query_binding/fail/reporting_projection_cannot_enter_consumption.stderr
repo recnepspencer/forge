@@ -1,4 +1,4 @@
-error[E0308]: mismatched types
+error[E0277]: the trait bound `WorthQueryAsyncResultTransitionBatch: From<...>` is not satisfied
  --> $WORKSPACE/crates/worth-ui/tests/ui/facade/query_binding/fail/reporting_projection_cannot_enter_consumption.rs
- note: expected `WorthQueryAsyncResultTransitionBatch`, found `&str`
- note: method defined here
+ help: the trait `From<UiQueryObservationReportingProjection>` is not implemented for `worth_query::runtime::async_source_binding::WorthQueryAsyncResultTransitionBatch`
+ note: required for `UiQueryObservationReportingProjection` to implement `Into<worth_query::runtime::async_source_binding::WorthQueryAsyncResultTransitionBatch>`

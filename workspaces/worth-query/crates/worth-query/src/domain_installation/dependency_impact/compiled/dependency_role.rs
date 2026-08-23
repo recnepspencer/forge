@@ -19,7 +19,7 @@ impl WorthQuerySemanticDependencyRole {
         self as usize
     }
 
-    pub(crate) const fn canonical_name(self) -> &'static str {
+    pub const fn canonical_name(self) -> &'static str {
         match self {
             Self::OperationalIdentity => "operational-identity",
             Self::SelectionOrMembership => "selection-or-membership",

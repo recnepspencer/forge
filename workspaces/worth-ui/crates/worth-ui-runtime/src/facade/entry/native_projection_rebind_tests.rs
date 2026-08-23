@@ -7,13 +7,8 @@ use super::native_identity_trace_host::NativeIdentityTraceHost;
 fn native_projection_rebind_returns_the_exact_fact_to_its_query_owner() {
     let plan = worth_ui_query_binding::WorthUiScalarProjectionHostPlan::prepare()
         .expect("product Query plan prepares");
-    let (request, completion) = plan.into_parts();
-    let installation =
-        worth_query_host::facade::runtime::WorthQueryExecutionRuntimeInstaller::new()
-            .install(request.generation(), request.into_packages())
-            .expect("host installs the exact product Query packages");
-    let installed = completion
-        .complete(installation)
+    let installed = plan
+        .install_for_certification()
         .expect("binding completion opens the product Query owner");
     let (registration, initial) = installed.into_parts();
     let mut shell = source_backed_component_app_with_host_and_scalar_projection(

@@ -78,7 +78,7 @@ fn settled_projection_promotes_refreshes_and_closes_on_drop() {
     let updated = refreshed.native_value(&native_key, 0).unwrap();
     assert_eq!(
         updated.fact().as_interned_string(),
-        Ok(&InternedString::Raw("synthetic-anchor".into()))
+        Ok(&InternedString::Raw("live-update".into()))
     );
     assert_eq!(updated.counters().row_scans, 0);
     let inserted_identity = inserted.deltas()[0].entity_identity().clone();

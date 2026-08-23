@@ -26,8 +26,13 @@ fn human_consumer(app: &WorthUiApp) -> UiInspectionReceipt {
 }
 
 fn main() {
-    let app = WorthUi::app().with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
-        .freeze().expect("application preparation should succeed");
+    let app = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
+        .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
+        .expect("application preparation should succeed");
 
     let _ = ai_consumer(&app);
     let _ = human_consumer(&app);

@@ -13,6 +13,8 @@ use super::{precompute_stage_serial, StageExecutionData, TemporalLoweringContext
 pub(in crate::logic::planner) fn dispatch_stage_precompute(
     graph: &mut SignalGraph,
     tasks: &[EligibleTask],
+    stage_index: u32,
+    readiness_epoch: crate::data::proof::invalidation::progression::InvalidationReadinessEpoch,
     precompute: &(impl Fn(
         crate::data::handle::NodeId,
         &crate::logic::prepared::ExecutionReadView<'_>,
@@ -31,6 +33,8 @@ pub(in crate::logic::planner) fn dispatch_stage_precompute(
         return dispatch_stage_precompute_parallel(
             graph,
             tasks,
+            stage_index,
+            readiness_epoch,
             precompute,
             comparator_resolver,
             temporal_lowering,
@@ -41,6 +45,8 @@ pub(in crate::logic::planner) fn dispatch_stage_precompute(
     dispatch_stage_precompute_serial(
         graph,
         tasks,
+        stage_index,
+        readiness_epoch,
         precompute,
         comparator_resolver,
         temporal_lowering,
@@ -50,6 +56,8 @@ pub(in crate::logic::planner) fn dispatch_stage_precompute(
 fn dispatch_stage_precompute_serial(
     graph: &mut SignalGraph,
     tasks: &[EligibleTask],
+    stage_index: u32,
+    readiness_epoch: crate::data::proof::invalidation::progression::InvalidationReadinessEpoch,
     precompute: &(impl Fn(
         crate::data::handle::NodeId,
         &crate::logic::prepared::ExecutionReadView<'_>,
@@ -62,6 +70,8 @@ fn dispatch_stage_precompute_serial(
         precompute_stage_serial(
             graph,
             tasks,
+            stage_index,
+            readiness_epoch,
             precompute,
             comparator_resolver,
             temporal_lowering,
@@ -73,6 +83,8 @@ fn dispatch_stage_precompute_serial(
 fn dispatch_stage_precompute_parallel(
     graph: &mut SignalGraph,
     tasks: &[EligibleTask],
+    stage_index: u32,
+    readiness_epoch: crate::data::proof::invalidation::progression::InvalidationReadinessEpoch,
     precompute: &(impl Fn(
         crate::data::handle::NodeId,
         &crate::logic::prepared::ExecutionReadView<'_>,
@@ -87,6 +99,8 @@ fn dispatch_stage_precompute_parallel(
             build_parallel_stage_patches(
                 graph,
                 tasks,
+                stage_index,
+                readiness_epoch,
                 precompute,
                 executor
                     .parallel_policy()
@@ -99,6 +113,8 @@ fn dispatch_stage_precompute_parallel(
             SingleConsumer::new(precompute_stage_parallel(
                 graph,
                 tasks,
+                stage_index,
+                readiness_epoch,
                 precompute,
                 executor
                     .parallel_policy()
@@ -110,6 +126,8 @@ fn dispatch_stage_precompute_parallel(
         StageExecutor::Serial => dispatch_stage_precompute_serial(
             graph,
             tasks,
+            stage_index,
+            readiness_epoch,
             precompute,
             comparator_resolver,
             temporal_lowering,

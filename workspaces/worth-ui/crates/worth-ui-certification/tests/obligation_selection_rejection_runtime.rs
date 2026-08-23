@@ -29,6 +29,9 @@ fn unsupported_deferred_and_wrong_world_posture_do_not_enter_ordinary_selection(
             .with_semantic_artifact_spec(deferred_surface_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let foreign_app = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
@@ -39,6 +42,9 @@ fn unsupported_deferred_and_wrong_world_posture_do_not_enter_ordinary_selection(
             .with_semantic_artifact_spec(foreign_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let preview_app = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
@@ -53,6 +59,9 @@ fn unsupported_deferred_and_wrong_world_posture_do_not_enter_ordinary_selection(
             .with_semantic_artifact_spec(supported_control_spec()),
         )
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
 
     let supported_artifact =

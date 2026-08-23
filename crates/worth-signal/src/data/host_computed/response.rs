@@ -87,7 +87,7 @@ impl HostComputedEvaluationResponse {
     pub(crate) fn admit(
         self,
         request: HostComputedEvaluationRequest,
-        telemetry: &mut RuntimeTelemetry,
+        telemetry: Option<&mut RuntimeTelemetry>,
     ) -> HostComputedEvaluationOutcome {
         match self.inner {
             HostComputedEvaluationResponseKind::Prepared(prepared) => {
@@ -96,37 +96,43 @@ impl HostComputedEvaluationResponse {
                     prepared.into_prepared(),
                 ) {
                     Ok(admitted) => {
-                        telemetry.host_computed.read_set_admission_count += 1;
-                        telemetry.host_computed.dependency_patch_count += 1;
-                        telemetry.host_computed.committed_artifact_count += 1;
-                        telemetry.host_computed.dependency_patch_added_count +=
-                            admitted.dependency_patch().added_dependencies().len() as u64;
-                        telemetry.host_computed.dependency_patch_removed_count +=
-                            admitted.dependency_patch().removed_dependencies().len() as u64;
-                        telemetry.host_computed.dependency_patch_retained_count +=
-                            admitted.dependency_patch().retained_dependency_count() as u64;
-                        telemetry
-                            .host_computed
-                            .dependency_patch_touched_subscriber_index_count +=
-                            admitted.request().previous_dependency_count() as u64
-                                + admitted.next_dependencies().len() as u64;
+                        if let Some(telemetry) = telemetry {
+                            telemetry.host_computed.read_set_admission_count += 1;
+                            telemetry.host_computed.dependency_patch_count += 1;
+                            telemetry.host_computed.committed_artifact_count += 1;
+                            telemetry.host_computed.dependency_patch_added_count +=
+                                admitted.dependency_patch().added_dependencies().len() as u64;
+                            telemetry.host_computed.dependency_patch_removed_count +=
+                                admitted.dependency_patch().removed_dependencies().len() as u64;
+                            telemetry.host_computed.dependency_patch_retained_count +=
+                                admitted.dependency_patch().retained_dependency_count() as u64;
+                            telemetry
+                                .host_computed
+                                .dependency_patch_touched_subscriber_index_count +=
+                                admitted.request().previous_dependency_count() as u64
+                                    + admitted.next_dependencies().len() as u64;
+                        }
                         HostComputedEvaluationOutcome::committed(admitted)
                     }
                     Err(denial) => {
-                        telemetry.host_computed.denied_outcome_count += 1;
-                        telemetry.host_computed.evaluation_request_denial_count += 1;
-                        if matches!(
-                            denial.class(),
-                            super::denial::HostComputedDenialClass::SelfRead
-                        ) {
-                            telemetry.host_computed.self_read_denial_count += 1;
+                        if let Some(telemetry) = telemetry {
+                            telemetry.host_computed.denied_outcome_count += 1;
+                            telemetry.host_computed.evaluation_request_denial_count += 1;
+                            if matches!(
+                                denial.class(),
+                                super::denial::HostComputedDenialClass::SelfRead
+                            ) {
+                                telemetry.host_computed.self_read_denial_count += 1;
+                            }
                         }
                         HostComputedEvaluationOutcome::denied(request, denial)
                     }
                 }
             }
             HostComputedEvaluationResponseKind::Failed { class, message } => {
-                telemetry.host_computed.failed_outcome_count += 1;
+                if let Some(telemetry) = telemetry {
+                    telemetry.host_computed.failed_outcome_count += 1;
+                }
                 HostComputedEvaluationOutcome::failed(request.descriptor().clone(), class, message)
             }
         }
@@ -135,7 +141,7 @@ impl HostComputedEvaluationResponse {
     pub(crate) fn admit_or_error(
         self,
         request: HostComputedEvaluationRequest,
-        telemetry: &mut RuntimeTelemetry,
+        telemetry: Option<&mut RuntimeTelemetry>,
     ) -> Result<PreparedHostComputedEvaluation, SignalError> {
         match self.admit(request, telemetry) {
             HostComputedEvaluationOutcome::Committed(committed) => {
@@ -187,7 +193,7 @@ mod tests {
         let mut telemetry = RuntimeTelemetry::default();
 
         let outcome =
-            HostComputedEvaluationResponse::prepared(prepared).admit(request, &mut telemetry);
+            HostComputedEvaluationResponse::prepared(prepared).admit(request, Some(&mut telemetry));
 
         let HostComputedEvaluationOutcome::Committed(committed) = outcome else {
             panic!("expected committed outcome");
@@ -212,7 +218,7 @@ mod tests {
             HostComputedFailureClass::HostAdapterRejected,
             "missing callback",
         )
-        .admit(request, &mut telemetry);
+        .admit(request, Some(&mut telemetry));
 
         let HostComputedEvaluationOutcome::Failed(failure) = outcome else {
             panic!("expected failed outcome");
@@ -244,7 +250,7 @@ mod tests {
         let mut telemetry = RuntimeTelemetry::default();
 
         let err = HostComputedEvaluationResponse::prepared(prepared)
-            .admit_or_error(request, &mut telemetry)
+            .admit_or_error(request, Some(&mut telemetry))
             .unwrap_err();
 
         assert!(format!("{err}").contains("host-computed read admission denied"));

@@ -6,10 +6,11 @@ use worth_foundational::{
     foundational_performance_certified_readmission_authority, plan_performance_report, profiles,
     readmit_certified_performance_bundle_after_boundary, AdmissionReadinessProfile,
     CertificationPostureProfile, CompatibilityPostureProfile, DiagnosticRichnessProfile,
-    FoundationalCertifiedPerformanceClass, FoundationalCertifiedPerformanceSourceDigest,
-    FoundationalPerformanceAttachmentTargetKind,
+    ExecutionObjectiveProfile, FoundationalCertifiedPerformanceClass,
+    FoundationalCertifiedPerformanceSourceDigest, FoundationalPerformanceAttachmentTargetKind,
     FoundationalPerformanceReportMaterializationBoundary, FoundationalPerformanceReportRequest,
-    FoundationalPerformanceReportSection, RetentionDeliveryProfile, SupportPostureProfile,
+    FoundationalPerformanceReportSection, ObservationActivationProfile, RetentionDeliveryProfile,
+    SupportPostureProfile,
 };
 use worth_proof::TransitionOutcome;
 use worth_store_layout_indexes::LayoutAccessPerformanceReceipt;
@@ -141,6 +142,8 @@ fn closeout_profile() -> worth_foundational::FoundationalProfileSet {
         .admission_readiness(AdmissionReadinessProfile::Admitted)
         .retention_delivery(RetentionDeliveryProfile::Retained)
         .certification_posture(CertificationPostureProfile::Uncertified)
+        .execution_objective(ExecutionObjectiveProfile::Balanced)
+        .observation_activation(ObservationActivationProfile::Continuous)
         .compose()
         .expect("layout closeout profile is coherent")
 }

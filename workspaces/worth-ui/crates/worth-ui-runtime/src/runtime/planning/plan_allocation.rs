@@ -109,13 +109,14 @@ pub(crate) fn plan_allocation_for_projection(
 pub(crate) fn replan_admitted_candidate(
     selected: &crate::graph::UiAdmittedReplanNeighborhood,
 ) -> Result<UiAllocationCandidate, WorthUiAllocationReplanDenial> {
-    replan_admitted_candidate_with_sources(selected, None, None)
+    replan_admitted_candidate_with_sources(selected, None, None, None)
 }
 
 fn replan_admitted_candidate_with_sources(
     selected: &crate::graph::UiAdmittedReplanNeighborhood,
     portal: Option<crate::runtime::UiPortalAllocationPlanningBasis>,
     query: Option<&crate::graph::UiQueryMeasurementReplanConsequence>,
+    host: Option<&crate::graph::UiHostMeasurementReplanConsequence>,
 ) -> Result<UiAllocationCandidate, WorthUiAllocationReplanDenial> {
     let previous = selected.allocation_candidate();
     let mut measurement_basis = Cow::Borrowed(previous.measurement_basis());
@@ -130,6 +131,18 @@ fn replan_admitted_candidate_with_sources(
                 .measurement_basis()
                 .succeed_settled_query_receipt(query.receipt())
                 .map_err(|_| WorthUiAllocationReplanDenial::QueryMeasurementBasisMismatch)?,
+        );
+    }
+    if let Some(host) = host {
+        if host.predecessor_basis_identity_digest()
+            != previous.measurement_basis().identity_digest()
+        {
+            return Err(WorthUiAllocationReplanDenial::HostMeasurementBasisMismatch);
+        }
+        measurement_basis = Cow::Owned(
+            measurement_basis
+                .succeed_host_measurement_result(host.measurement())
+                .map_err(|_| WorthUiAllocationReplanDenial::HostMeasurementBasisMismatch)?,
         );
     }
     if let Some(portal) = portal.as_ref() {
@@ -227,7 +240,18 @@ pub(crate) fn replan_selected_candidates_with_portal(
             if query.is_some() && matching_query.next().is_some() {
                 return Err(ordinal as u16);
             }
-            replan_admitted_candidate_with_sources(selected, portal, query)
+            let mut matching_host = consequences
+                .host_measurements()
+                .iter()
+                .filter(|consequence| {
+                    consequence.neighborhood_identity_digest()
+                        == selected.identity().identity_digest()
+                });
+            let host = matching_host.next();
+            if host.is_some() && matching_host.next().is_some() {
+                return Err(ordinal as u16);
+            }
+            replan_admitted_candidate_with_sources(selected, portal, query, host)
                 .map_err(|_| ordinal as u16)
         })
         .collect()

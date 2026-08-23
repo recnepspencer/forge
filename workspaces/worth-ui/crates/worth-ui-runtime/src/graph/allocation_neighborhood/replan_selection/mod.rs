@@ -1,3 +1,4 @@
+mod host_measurement_consequence;
 mod neighborhood_selection;
 mod portal_consequence;
 mod query_measurement_consequence;
@@ -6,6 +7,7 @@ mod scroll_consequence;
 mod selector;
 
 pub(crate) use consequences::UiGraphReplanConsequences;
+pub(crate) use host_measurement_consequence::UiHostMeasurementReplanConsequence;
 pub(crate) use neighborhood_selection::UiGraphReplanTransactionBasis;
 pub use neighborhood_selection::{
     UiAdmittedReplanNeighborhood, UiAdmittedReplanNeighborhoodSet, UiReplanLocalityDenial,

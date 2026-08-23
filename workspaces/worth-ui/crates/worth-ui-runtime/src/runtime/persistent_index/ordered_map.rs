@@ -56,10 +56,49 @@ impl<K: Ord + Clone, V> UiPersistentOrdMap<K, V> {
             match key.cmp(&node.key) {
                 Ordering::Less => cursor = node.left.as_deref(),
                 Ordering::Greater => cursor = node.right.as_deref(),
-                Ordering::Equal => return (Some(node.value.as_ref()), probes),
+                Ordering::Equal => {
+                    #[cfg(test)]
+                    super::test_observation::observe_lookup(
+                        std::ptr::from_ref(self).cast(),
+                        probes,
+                    );
+                    return (Some(node.value.as_ref()), probes);
+                }
             }
         }
+        #[cfg(test)]
+        super::test_observation::observe_lookup(std::ptr::from_ref(self).cast(), probes);
         (None, probes)
+    }
+
+    pub(crate) fn predecessor(&self, key: &K) -> Option<(&K, &V)> {
+        let mut cursor = self.root.as_deref();
+        let mut predecessor = None;
+        while let Some(node) = cursor {
+            match key.cmp(&node.key) {
+                Ordering::Less | Ordering::Equal => cursor = node.left.as_deref(),
+                Ordering::Greater => {
+                    predecessor = Some((&node.key, node.value.as_ref()));
+                    cursor = node.right.as_deref();
+                }
+            }
+        }
+        predecessor
+    }
+
+    pub(crate) fn successor(&self, key: &K) -> Option<(&K, &V)> {
+        let mut cursor = self.root.as_deref();
+        let mut successor = None;
+        while let Some(node) = cursor {
+            match key.cmp(&node.key) {
+                Ordering::Less => {
+                    successor = Some((&node.key, node.value.as_ref()));
+                    cursor = node.left.as_deref();
+                }
+                Ordering::Equal | Ordering::Greater => cursor = node.right.as_deref(),
+            }
+        }
+        successor
     }
 
     pub(crate) fn insert(&mut self, key: K, value: V) {
@@ -89,7 +128,11 @@ impl<K: Ord + Clone, V> UiPersistentOrdMap<K, V> {
     }
 
     pub(crate) fn iter(&self) -> UiPersistentOrdMapIter<'_, K, V> {
-        UiPersistentOrdMapIter::new(self.root.as_deref())
+        UiPersistentOrdMapIter::new(
+            self.root.as_deref(),
+            #[cfg(test)]
+            super::test_observation::observes(std::ptr::from_ref(self).cast()),
+        )
     }
 
     pub(crate) fn retained_structural_bytes(&self) -> Option<usize> {
@@ -152,11 +195,19 @@ pub(super) fn node_len<K, V>(node: &Link<K, V>) -> usize {
 
 pub(crate) struct UiPersistentOrdMapIter<'a, K, V> {
     stack: Vec<&'a Node<K, V>>,
+    remaining: usize,
+    #[cfg(test)]
+    observed: bool,
 }
 
 impl<'a, K, V> UiPersistentOrdMapIter<'a, K, V> {
-    fn new(root: Option<&'a Node<K, V>>) -> Self {
-        let mut iter = Self { stack: Vec::new() };
+    fn new(root: Option<&'a Node<K, V>>, #[cfg(test)] observed: bool) -> Self {
+        let mut iter = Self {
+            stack: Vec::new(),
+            remaining: root.map_or(0, |node| node.len),
+            #[cfg(test)]
+            observed,
+        };
         iter.push_left(root);
         iter
     }
@@ -174,10 +225,19 @@ impl<'a, K, V> Iterator for UiPersistentOrdMapIter<'a, K, V> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let node = self.stack.pop()?;
+        #[cfg(test)]
+        super::test_observation::observe_iteration(self.observed);
+        self.remaining -= 1;
         self.push_left(node.right.as_deref());
         Some((&node.key, node.value.as_ref()))
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.remaining, Some(self.remaining))
+    }
 }
+
+impl<K, V> ExactSizeIterator for UiPersistentOrdMapIter<'_, K, V> {}
 
 impl<K: fmt::Debug + Ord + Clone, V: fmt::Debug> fmt::Debug for UiPersistentOrdMap<K, V> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {

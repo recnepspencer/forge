@@ -1,4 +1,3 @@
-
 use worth_proof::{AuthorityMarker, AuthorityProves, AuthorityWitness, CanonicalOrder, Proof};
 
 struct SourceAuthority;
@@ -18,4 +17,3 @@ fn main() {
     requires_target_authority(source_scoped_proof);
 }
 // sealed-minting-case
-

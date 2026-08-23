@@ -78,6 +78,9 @@ fn classify_reason(
     if matches!(state, NodeState::MaybeStale) {
         return Ok(TaskReason::MaybeStaleValidation);
     }
+    if matches!(state, NodeState::Clean) {
+        return Ok(TaskReason::DependencyRequired);
+    }
 
     if graph.node_dirty_partition_scopes_present(node)? {
         return Ok(TaskReason::PartitionScopedDependency);

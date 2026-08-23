@@ -4,7 +4,7 @@ use crate::{
     installed_domain::collection_text_projection::{
         WorthUiCollectionTextProjection, WorthUiCollectionTextProjectionFamily,
     },
-    WorthUiInstalledQueryDomain, WorthUiQueryOperationAttemptDenial, WorthUiQueryWorkspaceExt,
+    WorthUiInstalledQueryDomain, WorthUiQueryHost, WorthUiQueryOperationAttemptDenial,
 };
 
 pub(crate) type WorthUiBoundCollectionTextProjection<L> = installed::WorthQueryBoundDomainOperation<
@@ -42,8 +42,8 @@ impl WorthUiInstalledCollectionTextOperationReference {
         WorthUiCollectionTextOperatingWorldGateway<'runtime>,
         WorthUiQueryOperationAttemptDenial,
     > {
-        let current = workspace
-            .worth_ui()
+        let current = WorthUiQueryHost::from_workspace(workspace)
+            .installed_domain()
             .map_err(WorthUiQueryOperationAttemptDenial::Installation)?;
         if !current.shares_authority_with(&self.installed_domain) {
             return Err(WorthUiQueryOperationAttemptDenial::InstalledDomainAuthorityMismatch);

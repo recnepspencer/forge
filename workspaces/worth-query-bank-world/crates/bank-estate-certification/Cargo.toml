@@ -10,7 +10,9 @@ publish = false
 bank-domain.workspace = true
 bank-server.workspace = true
 worth-foundational.workspace = true
+worth-query-decl.workspace = true
 worth-query-host.workspace = true
+serde_json.workspace = true
 
 [lints]
 workspace = true

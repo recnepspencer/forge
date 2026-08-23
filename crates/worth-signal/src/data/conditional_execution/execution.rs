@@ -125,6 +125,7 @@ where
         dependencies,
         dependency_changed,
         passive_dependency_hit,
+        ready_invalidation,
     } = prepared;
     let class = if passive_dependency_hit {
         counters.application_contacts += 1;
@@ -137,6 +138,7 @@ where
             request: &request,
             providers: &mut providers,
             dependencies,
+            ready_invalidation,
             counters,
         }
         .resolve()?
@@ -207,6 +209,7 @@ fn finalize_conditional_attempt(
             artifact_reuse_admitted,
             dependency_versions: completion.dependency_versions,
             executed,
+            output_aspect: completion.output_aspect,
         },
     ))
 }
@@ -240,6 +243,7 @@ struct ConditionalDecisionOutcome {
     artifact_reuse_admitted: bool,
     dependency_versions: Vec<SignalConditionalDependencyVersion>,
     executed: SignalConditionalExecutedRecipe,
+    output_aspect: crate::data::aspect::Aspect,
 }
 
 fn mint_evidence(
@@ -264,6 +268,7 @@ fn mint_evidence(
         class: outcome.class,
         counters: outcome.counters,
         artifact_reuse_admitted: outcome.artifact_reuse_admitted,
+        output_aspect: outcome.output_aspect,
         _dependency_versions: outcome.dependency_versions,
         _execution: outcome.executed,
     }

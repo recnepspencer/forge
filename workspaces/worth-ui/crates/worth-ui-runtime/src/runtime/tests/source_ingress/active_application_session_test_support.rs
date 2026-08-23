@@ -27,15 +27,23 @@ pub(crate) fn source_backed_scaled_component_session(
 }
 
 pub(crate) fn source_backed_component_app() -> WorthUiApp {
-    let builder = component_builder();
-    source_backed_component_app_from_builder(builder)
+    source_backed_component_app_from_builder(component_builder(), |application| {
+        crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host(
+            application,
+        )
+    })
 }
 
 pub(crate) fn source_backed_component_app_with_host<Host>(host: Host) -> WorthUiApp
 where
     Host: crate::facade::host::WorthUiHostAdapter + 'static,
 {
-    source_backed_component_app_from_builder(component_builder().with_host(host))
+    source_backed_component_app_from_builder(component_builder(), move |application| {
+        crate::facade::entry::WorthUiCertificationApplicationTransition::activate_test_host(
+            application,
+            host,
+        )
+    })
 }
 
 pub(crate) fn source_backed_component_app_with_host_and_scalar_projection<Host>(
@@ -46,17 +54,23 @@ where
     Host: crate::facade::host::WorthUiHostAdapter + 'static,
 {
     let builder = component_builder()
-        .with_host(host)
         .register_scalar_projection(registration)
         .expect("test projection registration should match its installed Query view");
-    source_backed_component_app_from_builder(builder)
+    source_backed_component_app_from_builder(builder, move |application| {
+        crate::facade::entry::WorthUiCertificationApplicationTransition::activate_test_host(
+            application,
+            host,
+        )
+    })
 }
 
 fn source_backed_component_app_from_builder(
-    builder: crate::facade::entry::WorthUiApplicationBuilder,
+    builder: crate::facade::entry::WorthUiCertificationApplicationBuilder,
+    activate: impl FnOnce(crate::facade::entry::WorthUiHostNeutralApp) -> WorthUiApp,
 ) -> WorthUiApp {
     let snapshot = component_builder()
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("component snapshot should prepare");
     builder
         .with_candidate_submission(component_submission(
@@ -65,6 +79,7 @@ fn source_backed_component_app_from_builder(
             snapshot.capabilities(),
         ))
         .freeze()
+        .map(activate)
         .expect("component source application should prepare")
 }
 
@@ -74,6 +89,24 @@ pub(crate) fn component_candidate_submission(
     component_id: &str,
 ) -> WorthUiWatchedCandidateSubmission {
     component_submission(source_name, component_id, session.capabilities())
+}
+
+pub(crate) fn component_candidate_submission_with_removal_token(
+    session: &WorthUiActiveApplicationSession,
+    source_name: &str,
+    component_id: &str,
+) -> WorthUiWatchedCandidateSubmission {
+    lower_file_submission(
+        WorthUiSourceProvider::in_memory(source_name).with_file(
+            "app/main.wui",
+            format!(
+                "{}\ntoken theme.removal_only = \"theme.removal_only\";",
+                component_declaration(component_id)
+            ),
+        ),
+        [WorthUiWatcherEvent::provider_revision(source_name)],
+        session.capabilities(),
+    )
 }
 
 pub(crate) fn scaled_component_candidate_submission(
@@ -143,6 +176,7 @@ fn source_backed_scaled_component_app(unrelated_component_count: usize) -> Worth
     let builder = scaled_component_builder(unrelated_component_count);
     let snapshot = scaled_component_builder(unrelated_component_count)
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("scaled component snapshot should prepare");
     builder
         .with_candidate_submission(scaled_component_submission(
@@ -152,12 +186,13 @@ fn source_backed_scaled_component_app(unrelated_component_count: usize) -> Worth
             snapshot.capabilities(),
         ))
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("scaled component source application should prepare")
 }
 
 fn scaled_component_builder(
     unrelated_component_count: usize,
-) -> crate::facade::entry::WorthUiApplicationBuilder {
+) -> crate::facade::entry::WorthUiCertificationApplicationBuilder {
     let (_, _, world_profile) =
         crate::evidence::measurement::projection::fact_test_support::display_field_projection_context(
             "scaled-active-application-session",

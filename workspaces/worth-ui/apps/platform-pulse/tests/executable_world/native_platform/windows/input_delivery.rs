@@ -1,7 +1,7 @@
-use uiautomation::inputs::Mouse;
+use uiautomation::inputs::{Mouse, MouseButton};
 use uiautomation::types::{Handle, Point};
 use uiautomation::UIAutomation;
-use winsafe::HWND;
+use winsafe::{co, HWND, POINT};
 
 use crate::external_observation::{
     NativeClientPixelPoint, NativeInputDeliveryObservation, NativeInputProbeKind,
@@ -74,8 +74,19 @@ fn deliver_at(
             "focus process-bound automation element: {error}"
         ))
     })?;
+    if kind == NativeInputProbeKind::Pointer {
+        super::input_environment::qualify_pointer_world(
+            window,
+            observed.process_id(),
+            (screen_x, screen_y),
+        )
+        .map_err(NativePlatformFailure::InputEnvironment)?;
+    }
     match kind {
-        NativeInputProbeKind::Pointer => Mouse::default().click(&Point::new(screen_x, screen_y)),
+        NativeInputProbeKind::Pointer => {
+            move_pointer_to((screen_x, screen_y))?;
+            Mouse::default().click_button(MouseButton::LEFT)
+        }
         NativeInputProbeKind::Keyboard => {
             let result = element.send_keys("A", 0);
             if !element.has_keyboard_focus().map_err(input_failure)? {
@@ -87,11 +98,7 @@ fn deliver_at(
         }
     }
     .map_err(input_failure)?;
-    if HWND::GetForegroundWindow().as_ref() != Some(window) {
-        return Err(NativePlatformFailure::InputDelivery(
-            "process-bound child window was not the foreground input target".to_owned(),
-        ));
-    }
+    require_point_hit_target(window, (screen_x, screen_y))?;
     let delivered_point = Mouse::get_cursor_pos().map_err(input_failure)?;
     if pointer_tolerance.is_some_and(|tolerance| {
         delivered_point.get_x().abs_diff(screen_x) > tolerance
@@ -118,6 +125,31 @@ fn deliver_at(
         (delivered_point.get_x(), delivered_point.get_y()),
         2,
     ))
+}
+
+fn move_pointer_to(screen_point: (i32, i32)) -> Result<(), NativePlatformFailure> {
+    Mouse::set_cursor_pos(&Point::new(screen_point.0, screen_point.1)).map_err(input_failure)
+}
+
+fn require_point_hit_target(
+    window: &HWND,
+    screen_point: (i32, i32),
+) -> Result<(), NativePlatformFailure> {
+    let hit = HWND::WindowFromPoint(POINT {
+        x: screen_point.0,
+        y: screen_point.1,
+    });
+    let root = hit
+        .as_ref()
+        .and_then(|child| child.GetAncestor(co::GA::ROOT));
+    if root.as_ref() == Some(window) {
+        return Ok(());
+    }
+    Err(NativePlatformFailure::InputDelivery(format!(
+        "native pointer hit window {} instead of bound window {}",
+        hit.map_or(0, |handle| handle.ptr() as usize),
+        window.ptr() as usize,
+    )))
 }
 
 fn input_failure(error: uiautomation::Error) -> NativePlatformFailure {

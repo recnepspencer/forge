@@ -10,6 +10,26 @@ use crate::structural::{
 use super::StructuralFingerprint;
 
 #[test]
+fn fingerprint_value_evidence_canonicalizes_authoritative_absence_without_panicking() {
+    let read = crate::snapshot::SnapshotReadRequest::for_coarse(
+        "absent-fingerprint-fixture",
+        crate::snapshot::SnapshotReadContract::scalar(
+            worth_foundational::facade::AspectKey::new("status").unwrap(),
+            worth_foundational::facade::ScalarAspectType::String,
+        ),
+    );
+    let record =
+        crate::snapshot::ValidatedSnapshotReadRecord::absent(read.correlation_id().clone());
+
+    let evidence = super::StructuralFingerprintRecordValueEvidence::from_validated_record(&record);
+
+    assert!(evidence.canonical_basis().contains("correlation="));
+    assert!(evidence
+        .aspect_value_digest()
+        .starts_with("structural-record-aspect-value:sha256:"));
+}
+
+#[test]
 fn fingerprint_is_canonical_for_same_contract_and_read_packet() {
     let declaration = StructuralIdentityDeclaration::advisory_remap(
         StructuralIdentityDeclarationIdentity::admit_bridge_owned("structural:geometry"),

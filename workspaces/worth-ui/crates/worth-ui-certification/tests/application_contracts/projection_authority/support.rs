@@ -75,31 +75,3 @@ pub(super) fn assert_zero_native_work(work: UiScalarProjectionWorkCounters) {
     assert_eq!(work.native_indexed_accesses(), 0);
     assert_eq!(work.native_access_scan_work(), 0);
 }
-
-pub(super) fn reporting_tuple(
-    receipt: &UiScalarProjectionTransitionReceipt,
-) -> (String, String, String, String) {
-    let core = receipt.fact().core();
-    (
-        worth_ui_query_binding::UiQueryIdentityReportingProjection::from_query_identity(
-            core.query_world_identity(),
-        )
-        .as_str()
-        .to_owned(),
-        worth_ui_query_binding::UiQueryIdentityReportingProjection::from_query_identity(
-            core.binding_identity(),
-        )
-        .as_str()
-        .to_owned(),
-        worth_ui_query_binding::UiQueryIdentityReportingProjection::from_query_identity(
-            core.source_generation_identity(),
-        )
-        .as_str()
-        .to_owned(),
-        worth_ui_query_binding::UiQueryIdentityReportingProjection::from_query_identity(
-            core.result_generation_identity(),
-        )
-        .as_str()
-        .to_owned(),
-    )
-}

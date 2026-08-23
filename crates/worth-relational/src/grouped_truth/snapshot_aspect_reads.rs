@@ -16,9 +16,11 @@ impl SnapshotAspectReadValue {
 
 pub(super) fn decode_snapshot_aspect_read_value(
     record: &SnapshotReadRecord,
-) -> Result<SnapshotAspectReadValue, RelationalGroupedTruthError> {
-    let value = record.read_value().clone();
-    Ok(SnapshotAspectReadValue { value })
+) -> Result<Option<SnapshotAspectReadValue>, RelationalGroupedTruthError> {
+    Ok(record
+        .read_value_posture()
+        .cloned()
+        .map(|value| SnapshotAspectReadValue { value }))
 }
 
 pub fn encode_snapshot_aspect_read_value(value: &AspectValue) -> AspectValue {

@@ -3,6 +3,29 @@ Purpose
 
 S9.9 closeout note
 
+## M10 profile-policy boundary
+
+The M10 policy vocabulary is a contract boundary, not a benchmark label.  The
+Signal tests must prove that:
+
+- objective and observation activation are independently represented and
+  canonically carried from Foundational profile input;
+- requests progress through admitted, resolved, and installed Signal policy
+  phases before planner use;
+- a `Throughput + Continuous` request is admitted as an independent objective
+  and activation combination, while a valid throughput/on-demand preset changes
+  strategy through the installed policy;
+- planner behavior does not read a caller-supplied diagnostics tier as a
+  second authority;
+- optional observation work names its active disposition and included/excluded
+  work, with inactive observation represented by typed absence;
+- these policy choices do not alter semantic output, invalidation truth,
+  deterministic ordering, durability, or stable lineage.
+
+These tests are focused boundary and adversarial tests.  They do not claim
+zero-work or completed throughput evidence until a later runtime measurement
+phase supplies performed counters and independent workload slopes.
+
 Proof-safe grouped concurrent apply must now be certified at crate scope
 alongside honest serial fallback for ineligible full-parallel stages. The
 required owning lanes are `tests::adversarial_parallel` and
@@ -822,20 +845,101 @@ Milestone 13 must own these scale-sensitive scenario families:
 - `branch_restore_locality_replay`: the narrow and dense traces repeat after
   capture, restore, replay, and deterministic rerun
 
-For increasing aspect- or partition-disjoint financial fanout, report and
-assert realized:
+Every Milestone 13 runner is compiled from a production-valid
+`FinancialWorldDefinition`. Scale is expressed as books, desks, positions,
+factors, owned regions, models, and subscriptions. Appending raw graph nodes,
+edges, aspects, scopes, revisions, dirty state, queue entries, or counters in a
+scenario is forbidden. Disconnected node padding cannot satisfy a fanout or
+scale axis. Baseline sealing must prove that compiler-generated dependencies
+and snapshots still match the economic declarations before the mutation runs.
 
+Before invoking production invalidation, the independent locality oracle must
+derive and freeze:
+
+- `Q`: exact reverse-index bucket keys implied by the performed deltas
+- `C`: authoritative direct dependency declarations in those buckets
+- `K`: canonical distinct M12 dependency causes expected after admission
+- `U`: canonical target/revision/epoch/stage work identities after merge
+- `E`: exact economically necessary evaluations
+- `S`: exact unchanged-output propagation stops
+- `P`: exact peak ready width under the declared hostile release schedule
+
+The oracle may consume only the immutable financial definition, named
+mutation, and declared execution posture. It may not consume the production
+reverse index, router, scheduler, dirty state, queue, trace, counters, or
+receipt. Small decisive cases compare the exact identities in `Q/C/K/U/E/S`,
+not only their counts. Scheduled cases may compare canonical digests and
+cardinalities only when an ordinary-size twin proves the identical generator
+and expectation rules with full identities.
+
+For each complete trace, report and assert realized:
+
+- reverse-index bucket probes and candidates returned
 - dependency edges examined
-- candidates rejected before enqueue
+- candidates rejected by aspect, scope, or comparator before mutation/enqueue
+- canonical causes admitted and work identities merged
 - work items enqueued and popped
 - nodes visited and evaluated
 - produced deltas and unchanged-output stops
 - non-semantic traversal visits
 - maximum ready-frontier width
+- stale/rebind denials, topology revalidation work, batch allocations, and peak
+  batch memory where measurable
 
-The pass condition is semantic-frontier scaling. Increasing irrelevant
-reachable fanout must not cause proportional dirty mutation, enqueue, or node
-visits. Planned/predicted counters cannot satisfy this requirement.
+The receipt and declared phase checkpoints must satisfy exact manifest
+equations: bucket probes equal `|Q|`; candidates returned and edges examined
+equal `|C|`; rejection rows partition `C - K`; performed admission evidence
+and the pre-settlement storage checkpoint contain `K`; the
+post-lowering/pre-execution checkpoint and later performed execution identity
+contain `U`; evaluation identity equals `E`; stop identity equals `S`; and peak
+ready width equals `P`. Other performed rows must equal the scenario-owned
+expectation, not a tolerance selected from the observed run. `K` may be
+lawfully released after settlement and `U` consumed by execution, so observing
+either at an undeclared earlier/later point is not evidence. Planned/predicted
+counters cannot satisfy any equation.
+
+Three slopes are separate verdicts:
+
+- adding `x` valid dependencies outside `Q` while holding `E` fixed produces
+  exact zero delta in candidate, visit, dirty, queue, and evaluation rows
+- adding `x` valid rejecting dependencies inside a queried bucket produces
+  exactly `+x` candidates, examinations, and the applicable rejection row, with
+  zero admitted-cause, ready-work, and evaluation delta
+- adding economically affected declarations expands causes, work, and
+  evaluations by the exact independent `K/U/E` delta; dense work may not be
+  dropped to preserve a cheap slope
+
+Wall-clock measurements are supplemental and an aggregate "fanout" slope
+cannot replace these three structural verdicts.
+
+The scenario-specific red controls are normative:
+
+- `sparse_book_fanout` must fail for closure walking, producer-wide scans,
+  late filtering, omitted rejected-candidate rows, or disconnected padding
+- `partitioned_curve_universe` must fail for all-region scans, aspect/scope
+  cross-products, unrelated detail enumeration, last-detail loss, late scope
+  rejection, or trusting a drifted derived index
+- `convergent_factor_batch` must fail for node/slot-only deduplication,
+  last-cause-wins, duplicate evaluation, reconstructed provenance, or
+  seed-order-dependent canonicalization
+- `dense_market_close` must fail for sparse-only shortcuts, fixed work caps,
+  dropped necessary work, reachability relabeled as evaluation, omitted
+  width/allocation rows, or strategy comparison over different work streams
+- `portfolio_dependency_churn` must fail for stale work execution, edge-shape
+  identity without revision, revision change on rejected cycles, topology-order
+  reuse, uncounted revalidation, or work emitted by a rejected mutation
+- `branch_restore_locality_replay` must fail for restored ready authority,
+  stale binding reuse, same-count cause substitution, recovery/replay charged
+  as hot work, or parity that compares only final values/event kinds/counts
+
+The full construction, independent observations, and exact slope laws for each
+family are normative in `milestone-13-plan.md` section 3.1. A scenario must fail
+when its baseline provenance is false; setup failure cannot be counted as a
+successful red mutation. Section 3.1.4's ordinary and scheduled scale tuples
+are mandatory case-identity data: runners may add smaller debugging cases but
+may not resize, round, substitute, or silently skip a required tuple. A typed
+incomplete/resource-denied scheduled outcome remains in the report and does
+not count as a passing scale.
 
 Every Milestone 13 implementation phase must name and pass its assigned
 financial scenarios before it closes. Correctness and locality are separate
@@ -844,6 +948,202 @@ and `FinancialFrontierLocalityCertificationRun` rejects missing, duplicate,
 stale, or mismatched evidence. The ordinary gate includes a small instance of
 every scenario plus sparse/dense slopes; scheduled lanes own broad seeds and
 the largest scales, but no correctness claim may exist only there.
+
+Milestone 13 phase/progression evidence must additionally prove:
+
+- Signal owner wrappers retain admitted source, prepared/committed dependency,
+  and admitted structural origins, converge them into resolved work, then
+  progress through lowered, ready, and executed forms backed by `worth-proof`;
+  the executor accepts only ready work and evidence packaging accepts only
+  performed execution
+- root source seeds/raw direct bases, topology intents/raw structural bases, raw
+  producer deltas, prepared output packets, raw cause sets, stale/boundary-
+  bridged work, Foundational receipts, and canonical digests cannot substitute
+  for a required stronger Signal phase
+- an internal lawful progression fixture type-checks without exposing a
+  test-only facade; construction/export inventories prove stronger forms and
+  witnesses are not publicly constructible; QA compiler-failure mutations
+  cover internal phase skips
+- committed UI compile-fail cases are limited to genuine caller-visible
+  impossibilities with positive twins; private import failure is not accepted
+  as proof of internal phase topology
+- executable-work binding axes cover graph instance, target node, dependency
+  revision, origin generation or dependency commit ordinals, readiness epoch, and
+  stage/order, with a positive case and one-axis drift denial for each
+- output/cause publication retains Milestone 12 atomicity; scheduling never
+  republishes or reconstructs causes
+- ready queues are absent from checkpoint authority and post-restore work is
+  rebuilt from readmitted source bases, canonical causes, node state, and
+  current topology
+- direct adjacency examinations are reported separately from admitted semantic
+  work; exact changes use producer-local aspect and partition/detail reverse
+  buckets rather than scanning all producer subscribers, and rejected
+  transitive fanout beyond returned candidates creates no descendant visit
+- reverse-index destruction/rebuild proves dependency topology is authoritative;
+  index drift is detected or repaired before ordinary admission, and index hits
+  still pass authoritative edge/snapshot/revision/cause validation
+- `FinancialLocalityExpectationManifest` derives expected counter contracts
+  from the financial definition/topology without importing production routing,
+  queue, counter, or scheduling code
+- Signal performed receipts supply observed rows; Foundational performance
+  bundles supply portable work disclosure and counter-backed attachment only;
+  neither expected rows nor Foundational evidence can mint operational work
+- public facade tests prove `InvalidationPlanningEstimate` cannot substitute
+  for `SignalInvalidationExecutionReceipt`; removed reachability/transitive-wave
+  constructors have no operational compatibility alias
+- ordinary hot-path receipts explicitly exclude replay/reconstruction,
+  support-report assembly, and forensic parity work
+- each locality scenario owns an opaque completion created only by its real
+  runner after semantic, necessity, receipt, slope, lifecycle, and mutation
+  checks; a generic scenario-plus-boolean completion is forbidden
+- the sealed run derives case/report identities and rejects paired tampering of
+  expected/actual fields, all-same wrong seeds, work-stream relabeling, and
+  missing/duplicate scenario completions
+
+#### Milestone 13 phase evidence map
+
+| Phase | Evidence required before the phase closes |
+|---|---|
+| Phase 1 - Boundary Inventory, Red Slopes, And Proof Contract Freeze | authentic sparse/partition red slopes; current-boundary inventory; frozen typed scale tuples and `Q/C/K/U/E/S/P` contracts for all six scenarios; separate index-disjoint, queried-candidate, and semantic-frontier slope verdicts; independent locality expectation core; Proof compile-pass progression prototype and compiler-failure prepared-to-executor mutation without widened visibility |
+| Phase 2 - Owner-Specific Proof Progression And Atomic Promotion | construction/export inventory plus phase-skip compiler mutations; private authorities/capabilities; performed output promotion only; every work-binding drift twin; prepublication failure exposes no committed work |
+| Phase 3 - Direct-Hop Routing Cutover | transitive pre-mark/walk removed; sparse fanout and partition universe green; pre-mutation/pre-enqueue rejection; restored closure-walk and late-filter mutations red |
+| Phase 4 - Topology Lowering, Readiness, And Causal Deduplication | convergent factor permutations and sparse/medium/dense small worlds; exact cause-preserving merge; performed enqueue/pop/dedup rows; pending-first condition and async families green |
+| Phase 5 - Rewire, Restore, And Trust-Boundary Reconstitution | dependency churn and branch/restore/replay; stale work denial; no serialized ready authority; rebuilt current binding; cycle rejection creates no work |
+| Phase 6 - Realized Counters And Foundational Evidence Cutover | predicted/realized type and public-facade separation; reachability-plan/wave constructor removal; performed Signal rows; Foundational canonical identity and counter-backed receipt; wrong/missing/duplicate/unexpected row denials; diagnostic-tier equality with cold-work separation |
+| Phase 7 - Scale Courtroom, Strategy Decision, And Closeout | all six scenario families at ordinary/scheduled lanes; sparse/dense slopes; identical admitted work for strategy comparisons; complete sealed locality run; historical mutations red; M14 handoff frozen |
+
+### Milestone 13.1 cross-runtime granular invalidation binding addendum
+
+Milestone 13.1 must prove that the locality and performed-work contract sealed
+by Milestone 13 survives the real Relational -> Runtime Bridge -> Signal ->
+Runtime Bridge -> Query -> Query Host path. A direct `SignalGraph` test, a
+Query-local `BridgeChangeSummary`, a count-only invalidation sink, or a test-only
+region executor cannot close this milestone.
+
+The real cross-runtime courtroom must own these scenario families:
+
+- `curve_detail_to_live_risk`: one exact curve partition/detail reaches the
+  matching detail, whole-partition, and unscoped consumers while sibling detail,
+  unrelated aspect, audit, and unrelated Query consumers perform zero work
+- `suppressed_quote_no_query_patch`: below- and above-tolerance quote twins
+  separate admitted direct truth from performed Signal-derived consequence and
+  prove comparator suppression emits no false derived Query patch
+- `ordered_portfolio_membership`: projection-only, predicate-membership,
+  ordering, and window-boundary changes select distinct Query maintenance
+  consequences without whole-query re-execution
+- `shared_lease_disclosure_noninterference`: equivalent maintenance is shared,
+  consumer delivery remains separately authorized, and revocation after impact
+  selection prevents protected publication without leaking scope or timing
+- `correspondence_rebind_restore`: destroyed derived indexes, fresh runtime
+  identities, delayed old delivery, duplicate/reordered delivery, and current
+  delivery prove owner-specific readmission and convergence
+- `opaque_region_platform_twin`: non-financial opaque partition/detail tokens
+  and a WASM-supported lane prove that domain meaning and host-only assumptions
+  did not enter Signal, Proof, or Foundational authority
+
+Every scenario is compiled through production-valid Relational, Bridge, Signal,
+Query installation, managed-live, and Query-host composition. The world issues
+semantic handles and authority-bearing products. Scenarios may not author raw
+Signal nodes/aspects/dirty state, Bridge receipt bindings, Query admitted
+impacts, ready queues, performed counters, or publication authority.
+
+Before the committed mutation enters production routing, an independent
+`CrossRuntimeInvalidationNecessityManifest` must freeze:
+
+- `R`: exact authoritative Relational changes and locality
+- `B`: exact installed Bridge correspondence and widening outcomes
+- `S`: exact installed Signal scoped seeds and performed work
+- `I`: exact Query dependency impacts by semantic role
+- `M`: exact distinct Query maintenance operations after lawful sharing
+- `D`: exact per-consumer query-shaped deliveries after current disclosure
+- `X`: exact suppressions, denials, stale/rebind outcomes, and terminations
+
+The manifest consumes only immutable world declarations, installed semantic
+contracts, and the named mutation. It may not consume Bridge matching, Signal
+routing, Query impact indexes, queues, receipts, diagnostics, or observed
+counters. Ordinary cases compare full identities. Scheduled cases may compare
+canonical digests and cardinalities only when an ordinary-size twin proves the
+same generator and expectation rules with full identities.
+
+Direct truth and Signal-derived consequence are separate proof obligations:
+
+- a Bridge-admitted authoritative truth change may drive a Query dependency
+  that directly consumes that truth without fabricating Signal execution
+- a Query dependency that declares a Signal-derived or conditional consequence
+  requires a performed `SignalInvalidationExecutionReceipt`
+- a Signal receipt proves performed Signal work only; it cannot authorize Query
+  impact, maintenance, disclosure, or publication
+- zero-work and count-only Signal receipts are forbidden
+- comparator suppression must remain distinguishable from no Signal
+  participation and from a performed meaningful output change
+
+Focused transition evidence must prove:
+
+- installed Signal scoped change admission preserves exact aspect-correlated
+  partition/detail pairs; a bare detail, aspect/scope swap, foreign capability,
+  duplicate capability, or stale graph is denied
+- unknown or newly introduced partitions still reach an explicitly unscoped
+  consumer while scoped siblings remain disjoint
+- Runtime Bridge exact whole-aspect, record, whole-partition, and
+  partition/detail lowering, declared widening, suppression, stale, defer,
+  denial, failure, and rebind outcomes are typed
+- source runtime, source installation generation, source authority binding,
+  commit, snapshot/branch, aspect contract revision, correspondence revision,
+  Signal graph instance, and target generation each have one-axis drift denials
+- Query candidate selection and current admission are separate; index hits do
+  not bypass purpose, tenant, disclosure, branch, basis, installation, lease,
+  or lifecycle revalidation
+- projection, membership, ordering, grouping, window, relation, conditional or
+  workflow, authorization/disclosure, and structural dependency roles choose
+  their declared maintenance consequence
+- publication consumes Query-performed maintenance or a typed lawful
+  suppression/terminal outcome, never Bridge or Signal evidence directly
+- Query public callers can use the granular path without importing lower-runtime
+  internals; predicted Signal estimates, descriptive bridge summaries, raw
+  Signal receipts, Foundational reports, and stale/foreign owner products cannot
+  substitute for the required next phase
+- destroyed Bridge, Signal, and Query indexes rebuild from authority; ready and
+  candidate queues do not survive as checkpoint authority
+- duplicate, delayed, and reordered delivery converges without duplicate
+  maintenance or publication
+- ordinary receipts exclude replay, reconstruction, diagnostic, support, and
+  forensic work
+
+The structural scale verdicts are independent:
+
+- increasing Bridge correspondences outside queried semantic keys changes no
+  downstream candidate, seed, impact, maintenance, or publication row
+- increasing returned-but-rejected Bridge candidates changes only Bridge
+  candidate, examination, and rejection rows
+- increasing unrelated Signal subscribers changes no Signal or Query work row
+- increasing unrelated installed queries changes no admitted impact,
+  maintenance, or publication row
+- increasing equivalent shared consumers changes authorized delivery count but
+  not maintenance count
+- increasing result rows outside the affected region changes no maintenance row
+- increasing the actual semantic frontier expands every owner row by the exact
+  independent `B/S/I/M/D` delta; dense necessary work is never dropped
+
+Each owner reports its own performed counters. A Bridge target count cannot
+stand in for Signal work, and an end-to-end total cannot hide a broad scan in
+one runtime. Wall-clock evidence is supplemental to exact structural counters.
+
+#### Milestone 13.1 phase evidence map
+
+| Phase | Evidence required before the phase closes |
+|---|---|
+| Phase 1 - Boundary Freeze And End-To-End Red Courtroom | real composed financial and opaque-region worlds; current coarse/count-only and test-only boundary inventory; independent `R/B/S/I/M/D/X` core; inherited 5y/10y locality-loss and direct-vs-derived red controls |
+| Phase 2 - Signal Installed Scoped Invalidation Contract | installed capability plus exact region admission; partition+detail correlation; unknown-partition unscoped twin; performed receipt from actual execution; predicted/performed and foreign/stale denials; default/parallel/WASM parity |
+| Phase 3 - Runtime Bridge Exact Lowering And Performed Delivery | every exact/widened/suppressed locality outcome; direct truth versus performed Signal product; every Bridge binding drift twin; failure seams expose no false performed delivery |
+| Phase 4 - Query Installed Invalidation Manifest And Admission | complete dependency-role manifest; exact indexed selection; current Query admission; index destruction/rebuild; authority drift denials; public phase-skip compile evidence |
+| Phase 5 - Production Maintenance, Sharing, And Facade Cutover | curve, suppression, ordered membership, and shared-disclosure scenarios through real host observation; production region execution; query-shaped outcomes; coarse/count-only path and descriptive authority lane removed |
+| Phase 6 - Rebind, Restore, Branch, And Lifecycle Closure | destroyed derived state, fresh-runtime rebind, stale/delayed/duplicate/reordered delivery, revocation before publication, no serialized ready/candidate authority, cert-only replay separation |
+| Phase 7 - Structural Slopes, Certification, Documentation, And Handoff | all six scenarios, seven independent slopes, sealed cross-runtime run, owner-separated performed rows, default/parallel/WASM/constitutional gates, executable documentation, frozen M14 handoff |
+
+The sealed cross-runtime run rejects missing, duplicate, stale, wrong-scenario,
+wrong-seed, wrong-policy, wrong-diagnostics-tier, mixed-runtime,
+wrong-direct-versus-derived, and mismatched-manifest evidence. Coordinated
+caller-supplied expected/actual values cannot construct completion evidence.
 
 ### Milestones 14-17 binding addendum
 
@@ -863,6 +1163,17 @@ Milestone 14 must prove:
 - cancellation, deadline, and failure at each precompute/apply/publication
   boundary expose exact typed progress and preserve precommit atomicity
 - a serial-only target consumes the same lowered plan without semantic drift
+- M13 partition/detail behavior is preserved exactly as the two-segment case of
+  a bounded opaque scope hierarchy
+- exact-leaf, ancestor-subtree, unscoped, and sibling-disjoint mutations produce
+  the exact independent candidate/work sets at path depths `1`, `2`, `4`, and
+  `8`
+- `ProducerAspectKey`, scope paths, subscriber buckets, and physical shard keys
+  cannot substitute for current edge, snapshot, cause, readiness, or commit
+  authority
+- worker-count and epoch-bounded shard-placement changes preserve admitted
+  semantic work and canonical outputs while exposing occupancy, imbalance,
+  migration, and resident-byte evidence
 
 Milestone 15 must combine wide antichains, long critical chains, reconvergence,
 dynamic rewiring, overlapping mutation footprints, and bounded ready queues.
@@ -871,12 +1182,25 @@ mutation-footprint axis, or atomic epoch publication is removed. Serial and
 graph-parallel mutation histories must agree step by step, not only at one
 final output.
 
+The same graph courtroom must include deep hierarchical subscriptions,
+cross-shard diamonds, hot-subtree skew, shard-boundary rewiring, and
+epoch-bounded rebalancing. A sibling-disjoint subtree must contribute zero
+candidates and work. Every cross-shard dependency must remain readiness-ordered,
+and placement changes must leave causes, dependency revisions, work identity,
+history, replay, and explanation unchanged.
+
 Milestone 16 must certify map, reduce, scan, fork/join, and synchronous rounds
 using stable partition identity and explicit read/write sets. The test matrix
 must vary worker count, partition count, skew, grain size, numerical reducer,
 nesting depth, cancellation point, and serial-only capability. Floating-point
 bitwise claims require fixed partition and join order; approximate equality
 cannot certify a bitwise contract.
+
+The partition matrix must distinguish semantic scope path, stable work
+partition, and physical shard. It must cover hierarchy-aligned and deliberately
+misaligned placements, explicit boundary/halo reads, hot-subtree splitting, and
+rebalancing. Each placement must preserve partition/access/result identity and
+must report boundary reads, cross-shard bytes, residency, and migrations.
 
 Milestone 17 must cross real external boundaries:
 
@@ -891,6 +1215,12 @@ Milestone 17 must cross real external boundaries:
 - stable idempotency identity, typed indeterminate outcomes, and recovery
   handles
 - explicit worker-unavailable and product-declared WASM fallback behavior
+- separate wire identities for admitted semantic locality and replaceable
+  physical shard placement
+- backend-specific shard layouts and reordered physical arrival that preserve
+  semantic work and canonical publication
+- missing, stale, or mismatched locality/partition/shard-plan/boundary-read/epoch
+  result packets rejected before publication
 
 An accelerator backend may be claimed only from a real adapter on named
 hardware running the common conformance suite. A trait, mock device, or CPU

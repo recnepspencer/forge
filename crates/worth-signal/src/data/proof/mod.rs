@@ -18,11 +18,15 @@ pub use dependency_batch::{DependencyBatchEdit, DependencySetEdit};
 #[allow(deprecated)]
 pub use dirty_batch::{DirtyBatch, DirtyBatchEntry, SemanticBatchCommit, SourceRecomputeAdmission};
 pub use invalidation::{
-    FrontierEntryClassification, FrontierExecutionCounters, FrontierExecutionSummary,
-    FrontierInclusionBasis, FrontierPlan, FrontierPredictedCounters, FrontierSeedCause,
-    FrontierValidationDecision, FrontierWaveEntryPlan, FrontierWaveEntrySummary, FrontierWavePlan,
-    FrontierWaveSummary, InvalidationSeed, InvalidationSeedBatch, InvalidationTraceRecord,
-    TransitiveFrontierEntrySummary, TransitiveFrontierWaveSummary,
+    attach_foundational_invalidation_performance_receipt,
+    FoundationalInvalidationPerformanceReceipt, FrontierEntryClassification,
+    FrontierInclusionBasis, FrontierSeedCause, FrontierValidationDecision,
+    InvalidationExecutionSummary, InvalidationFoundationalReceiptDenial,
+    InvalidationPlanningEstimate, InvalidationSeed, InvalidationSeedBatch, InvalidationTraceRecord,
+    SignalInvalidationExecutionObservation, SignalInvalidationExecutionReceipt,
+};
+pub(crate) use invalidation::{
+    FrontierDiagnosticsProjection, FrontierDiagnosticsSidecar, FrontierPlan,
 };
 pub use locality::{
     DedupedNodeBatch, LocalityFootprint, PartitionScopeSet, SortedSourceBatch, TouchedScopeSummary,

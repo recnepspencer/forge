@@ -1,6 +1,12 @@
 use crate::topology::WorkspaceSourceInventory;
 
 const RUNNER_ROOT: &str = "apps/platform-pulse/tests";
+const PHASE4_COURTROOM_SOURCES: [&str; 4] = [
+    "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_lifecycle.rs",
+    "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_journey.rs",
+    "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_journey/open.rs",
+    "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_cleanup.rs",
+];
 
 #[derive(Clone)]
 pub(super) struct Phase4RunnerSources {
@@ -52,6 +58,7 @@ fn audit_required_files(inventory: &WorkspaceSourceInventory) -> Result<(), Stri
         "apps/platform-pulse/tests/executable_world/product_process/watched_observation.rs",
         "apps/platform-pulse/tests/executable_world/product_process/watched_native_observation.rs",
         "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_cleanup.rs",
+        "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_lifecycle.rs",
         "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_journey.rs",
         "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_journey/open.rs",
     ] {
@@ -307,11 +314,16 @@ impl Phase4RunnerSources {
             failure_report: text(
                 "apps/platform-pulse/tests/executable_world/failure_teardown/report.rs",
             ),
-            courtroom: inventory
-                .rust_files_under("apps/platform-pulse/tests/executable_world/courtroom")
-                .map(|source| source.text())
+            courtroom: PHASE4_COURTROOM_SOURCES
+                .iter()
+                .map(|path| inventory.text(path))
                 .collect::<Vec<_>>()
                 .join("\n"),
         }
     }
+}
+
+#[cfg(test)]
+pub(super) fn phase4_courtroom_paths() -> &'static [&'static str] {
+    &PHASE4_COURTROOM_SOURCES
 }

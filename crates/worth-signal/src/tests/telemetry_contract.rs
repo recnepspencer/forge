@@ -48,13 +48,16 @@ fn full_parallel_honest_serial_apply_emits_group_local_packet_and_reduction_coun
 
     let mut graph = SignalGraph::new();
     graph.set_runtime_policy(SignalRuntimePolicy::operational().with_parallel_admission(
-        ParallelAdmissionPolicy {
-            operational_min_parallel_tasks: 1,
-            development_min_parallel_tasks: 1,
-            forensic_min_parallel_tasks: 1,
+        crate::runtime_policy::ParallelAdmissionPolicy {
+            throughput_min_parallel_tasks: 1,
+            balanced_min_parallel_tasks: 1,
+            latency_bounded_min_parallel_tasks: 1,
             full_parallel_min_tasks: 1,
         },
     ));
+    let telemetry_session = graph
+        .begin_observation_session(SignalObservationRequest::telemetry())
+        .unwrap();
     let requested: Vec<_> = (0..4).map(|_| graph.node().build()).collect();
 
     let bootstrap = graph
@@ -104,6 +107,9 @@ fn full_parallel_honest_serial_apply_emits_group_local_packet_and_reduction_coun
             >= 4,
         "reducer publication breadth should at least cover one semantic publication per task"
     );
+    graph
+        .finish_observation_session(&telemetry_session)
+        .unwrap();
 }
 
 #[cfg(feature = "parallel")]
@@ -167,9 +173,10 @@ fn serial_staged_apply_telemetry_tracks_executed_batch_width_not_planned_groups(
 }
 
 #[test]
-fn direct_whole_partition_changes_are_counted_as_partition_matches() {
+fn direct_whole_partition_commit_admits_matching_partition_causes() {
     let mut graph = SignalGraph::new();
     let source = graph.node().partitioned_output().build();
+    evaluate(&mut graph, source, &mut |_id, _graph| Ok(version_ab(1, 0))).unwrap();
     let whole = graph.node().build();
     let detail = graph.node().build();
     graph
@@ -178,6 +185,8 @@ fn direct_whole_partition_changes_are_counted_as_partition_matches() {
     graph
         .append_partition_detail_dependency(detail, source, ASPECT_A, "wing", "rib-12")
         .unwrap();
+    evaluate(&mut graph, whole, &mut |_id, _graph| Ok(version_ab(10, 0))).unwrap();
+    evaluate(&mut graph, detail, &mut |_id, _graph| Ok(version_ab(20, 0))).unwrap();
 
     mark_dirty_with_regions(
         &mut graph,
@@ -186,17 +195,27 @@ fn direct_whole_partition_changes_are_counted_as_partition_matches() {
         &[crate::data::output::ChangedRegion::new("wing")],
     )
     .unwrap();
+    assert_eq!(graph.get_state(whole).unwrap(), NodeState::Clean);
+    assert_eq!(graph.get_state(detail).unwrap(), NodeState::Clean);
 
-    let metrics = graph.observe().metrics();
-    assert_eq!(metrics.invalidation.partition_match_dirty_count, 1);
-    assert_eq!(metrics.invalidation.detail_match_dirty_count, 1);
+    evaluate(&mut graph, source, &mut |_id, _graph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(2, 0))
+            .with_changed_region(crate::data::output::ChangedRegion::new("wing")))
+    })
+    .unwrap();
+
+    assert_eq!(graph.get_state(whole).unwrap(), NodeState::Dirty);
+    assert_eq!(graph.get_state(detail).unwrap(), NodeState::Dirty);
+    assert_eq!(graph.pending_causes(whole).unwrap().len(), 1);
+    assert_eq!(graph.pending_causes(detail).unwrap().len(), 1);
 }
 
 #[test]
-fn frontier_cycle_check_counters_reflect_planned_roots_and_reachability() {
+fn source_seed_planning_estimate_does_not_walk_diamond_reachability() {
     let mut graph = SignalGraph::new();
     graph.set_runtime_policy(SignalRuntimePolicy::development());
     let source = graph.node().build();
+    evaluate(&mut graph, source, &mut |_id, _graph| Ok(version_ab(1, 0))).unwrap();
     let left = graph.node().build();
     let right = graph.node().build();
     let downstream = graph.node().build();
@@ -207,29 +226,21 @@ fn frontier_cycle_check_counters_reflect_planned_roots_and_reachability() {
     graph
         .append_dependency(downstream, right, ASPECT_A)
         .unwrap();
+    for node in [left, right, downstream] {
+        evaluate(&mut graph, node, &mut |_id, _graph| Ok(version_ab(10, 0))).unwrap();
+    }
 
     mark_dirty(&mut graph, source, ASPECT_A).unwrap();
 
-    let frontier = graph
+    let estimate = graph
         .observe()
-        .latest_frontier_execution_summary()
-        .expect("frontier execution summary should be retained");
-    let metrics = graph.observe().metrics();
-
-    assert_eq!(frontier.counters.frontier_cycle_check_candidate_count, 2);
-    assert_eq!(
-        metrics.invalidation.frontier_cycle_check_candidate_count,
-        frontier.counters.frontier_cycle_check_candidate_count
-    );
-    assert!(
-        frontier.counters.frontier_cycle_check_visited_count
-            >= frontier.counters.frontier_cycle_check_candidate_count,
-        "cycle preflight visited breadth should cover at least the planned roots"
-    );
-    assert_eq!(
-        metrics.invalidation.frontier_cycle_check_visited_count,
-        frontier.counters.frontier_cycle_check_visited_count
-    );
+        .latest_invalidation_planning_estimate()
+        .expect("source seed should retain its planning estimate");
+    assert_eq!(estimate.seed_count(), 1);
+    assert_eq!(estimate.direct_candidate_count(), 0);
+    assert!(graph.get_state(left).unwrap() == NodeState::Clean);
+    assert!(graph.get_state(right).unwrap() == NodeState::Clean);
+    assert!(graph.get_state(downstream).unwrap() == NodeState::Clean);
 }
 
 #[test]

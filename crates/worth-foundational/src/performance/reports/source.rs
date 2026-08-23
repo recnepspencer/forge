@@ -2,7 +2,9 @@ use crate::performance::basis::{
     FoundationalPerformanceContractName, FoundationalPerformanceCounterRow,
     FoundationalPerformanceCounterSpec, FoundationalPerformanceSupportingEvidenceRow,
 };
-use crate::performance::claims::FoundationalPerformanceClaimSurface;
+use crate::performance::claims::{
+    FoundationalPerformanceClaimSurface, FoundationalPerformanceObservationContext,
+};
 use crate::performance::layouts::FoundationalLayoutIntentClaim;
 use crate::performance::policy::FoundationalPerformanceBudgetDecision;
 use crate::performance::primitives::FoundationalPerformanceWorkClass;
@@ -30,6 +32,7 @@ pub trait FoundationalPerformanceReportSource: Clone {
     fn fallback_debt(&self) -> FoundationalPerformanceFallbackDebtPosture;
     fn included_work(&self) -> &[FoundationalPerformanceWorkClass];
     fn excluded_work(&self) -> &[FoundationalPerformanceWorkClass];
+    fn observation_context(&self) -> Option<&FoundationalPerformanceObservationContext>;
     fn layout_intent_claim(&self) -> Option<&FoundationalLayoutIntentClaim>;
     fn contract_names(&self) -> &[FoundationalPerformanceContractName];
     fn counter_specs(&self) -> &[FoundationalPerformanceCounterSpec];
@@ -82,6 +85,10 @@ where
 
     fn excluded_work(&self) -> &[FoundationalPerformanceWorkClass] {
         self.bundle().claim().excluded_work()
+    }
+
+    fn observation_context(&self) -> Option<&FoundationalPerformanceObservationContext> {
+        self.bundle().claim().observation_context()
     }
 
     fn layout_intent_claim(&self) -> Option<&FoundationalLayoutIntentClaim> {
@@ -156,6 +163,10 @@ impl FoundationalPerformanceReportSource for FoundationalAttachedPolicyAdmission
 
     fn excluded_work(&self) -> &[FoundationalPerformanceWorkClass] {
         self.receipt().claim().excluded_work()
+    }
+
+    fn observation_context(&self) -> Option<&FoundationalPerformanceObservationContext> {
+        self.receipt().claim().observation_context()
     }
 
     fn layout_intent_claim(&self) -> Option<&FoundationalLayoutIntentClaim> {
@@ -234,6 +245,10 @@ where
 
     fn excluded_work(&self) -> &[FoundationalPerformanceWorkClass] {
         self.receipt().bundle().claim().excluded_work()
+    }
+
+    fn observation_context(&self) -> Option<&FoundationalPerformanceObservationContext> {
+        self.receipt().bundle().claim().observation_context()
     }
 
     fn layout_intent_claim(&self) -> Option<&FoundationalLayoutIntentClaim> {

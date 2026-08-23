@@ -8,19 +8,22 @@ use worth_ui_dsl::{
     WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
 };
 use worth_ui_host_contract::UiSemanticTextSlot;
+use worth_ui_host_headless::{
+    UiHeadlessRecorderCapacity, UiHeadlessUnperformedEffect, WorthUiHeadlessRecorder,
+};
 use worth_ui_query_binding::{
     UiCollectionProjectionBindingAdmission, UiCollectionProjectionBudget,
     UiCollectionProjectionOpenOutcome, UiCollectionProjectionRegistration,
     UiProjectionFieldRequirement, UiProjectionObservation, WorthUiQueryWorkspaceExt,
-};
-use worth_ui_runtime::facade::host::{
-    UiHeadlessRecorderCapacity, UiHeadlessUnperformedEffect, WorthUiHeadlessRecorder,
 };
 
 use super::scalar_query_only::{
     component_descriptor, mount_and_allocate, status_region_descriptor, text_token_descriptor,
     ACTIVE_COMPONENT, PROJECTION, STATUS_REGION, TEXT_COLOR,
 };
+
+#[path = "collection_query/locality.rs"]
+mod locality;
 
 #[test]
 fn real_query_collection_snapshot_and_patch_publish_keyed_semantic_text() {
@@ -46,70 +49,173 @@ fn real_query_collection_snapshot_and_patch_publish_keyed_semantic_text() {
         .expect("collection projection application launches");
     let mounted_instances = mount_and_allocate(&mut session);
     let generation = session.generation_identity().clone();
-
-    let binding = match registration.admit(&workspace) {
-        UiCollectionProjectionBindingAdmission::Ready(binding) => binding,
-        UiCollectionProjectionBindingAdmission::Stopped(stop) => {
-            panic!("real collection binding admits: {stop:?}")
-        }
-    };
-    let opened = match binding.open(
-        UiCollectionProjectionBudget::new(2, 2, 0, 1024).unwrap(),
-        &mut workspace,
-    ) {
-        UiCollectionProjectionOpenOutcome::Opened(opened) => opened,
-        UiCollectionProjectionOpenOutcome::Stopped(stop) => {
-            panic!("real collection projection opens: {stop:?}")
-        }
-    };
+    let opened = open_live_collection(registration, &mut workspace);
     let (mut live, snapshot) = opened.into_parts();
     publish_collection_fact(&mut session, snapshot.into_observation(), 3131);
-
-    worth_ui_query_binding::certification::update_projection_status(
+    let (inserted, analyzed_bytes) = exercise_membership_shifts(
         &mut workspace,
+        &entities,
+        &mut live,
+        &mut session,
+        &recorder,
+    );
+    assert_membership_shift_transcripts(
+        &recorder.observed_transcripts(),
+        &mounted_instances,
+        &entities,
+        inserted,
+    );
+    let production = recorder
+        .latest_production_cost()
+        .expect("the public headless boundary observes the final successor cost");
+    assert_eq!(production.retained_command_scans(), 0);
+    assert_eq!(production.retained_command_clones(), 0);
+    assert_eq!(production.projection_rows_materialized(), 0);
+    assert_eq!(analyzed_bytes, "Bravo updated".len());
+    assert!(session.generation_identity() == &generation);
+    close_collection(live, &mut workspace);
+    let shutdown = session.shutdown();
+    assert!(shutdown.rebind().is_empty());
+    assert!(shutdown.mounted_presentation().is_empty());
+    println!(
+        "WORTH_UI_LEDGER_COUNTERS={{\"P4-TEXT-CONTENT-LOCALITY-01\":{analyzed_bytes},\"P4-TEXT-COST-01\":0}}"
+    );
+}
+
+fn exercise_membership_shifts(
+    workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace,
+    entities: &[worth_query::facade::foundation::WorthQueryEntityIdentity],
+    live: &mut worth_ui_query_binding::UiLiveCollectionProjection,
+    session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
+    recorder: &WorthUiHeadlessRecorder,
+) -> (
+    worth_query::facade::foundation::WorthQueryEntityIdentity,
+    usize,
+) {
+    worth_ui_query_binding::certification::remove_projection_entity(workspace, entities[0].clone());
+    refresh_and_publish(live, workspace, session, 3132, "removed Query row");
+    let before_content_update = recorder
+        .observed_transcripts()
+        .last()
+        .cloned()
+        .expect("removal transcript");
+    worth_ui_query_binding::certification::update_projection_status(
+        workspace,
         entities[1].clone(),
         "Bravo updated",
     );
-    let patch = match live.refresh(&mut workspace).unwrap() {
+    refresh_and_publish(live, workspace, session, 3133, "changed Query row");
+    let after_content_update = recorder
+        .observed_transcripts()
+        .last()
+        .cloned()
+        .expect("content transcript");
+    locality::assert_content_update_is_local(&before_content_update, &after_content_update);
+    let inserted = worth_ui_query_binding::certification::insert_projection_status(
+        workspace,
+        "pulse.aaron",
+        "Aaron",
+    );
+    refresh_and_publish(live, workspace, session, 3134, "inserted Query row");
+    worth_ui_query_binding::certification::update_projection_status(
+        workspace,
+        entities[1].clone(),
+        "Bravo final",
+    );
+    refresh_and_publish(live, workspace, session, 3135, "shifted Query row");
+    (inserted, "Bravo updated".len())
+}
+
+fn refresh_and_publish(
+    live: &mut worth_ui_query_binding::UiLiveCollectionProjection,
+    workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace,
+    session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
+    request: u64,
+    expectation: &str,
+) {
+    let fact = match live.refresh(workspace).unwrap() {
         worth_ui_query_binding::UiCollectionProjectionRefreshOutcome::Applied(receipt) => {
             receipt.into_fact()
         }
         worth_ui_query_binding::UiCollectionProjectionRefreshOutcome::NoSemanticDelivery => {
-            panic!("the changed Query row produces one exact patch")
+            panic!("the {expectation} produces one exact patch")
         }
     };
-    publish_collection_fact(&mut session, patch.into_observation(), 3132);
+    publish_collection_fact(session, fact.into_observation(), request);
+}
 
-    let transcripts = recorder.observed_transcripts();
-    assert_eq!(transcripts.len(), 2);
+fn assert_membership_shift_transcripts(
+    transcripts: &[worth_ui_host_headless::UiHeadlessMountedFrameTranscript],
+    mounted_instances: &[worth_ui_runtime::facade::mounted::UiMountedInstanceIdentity],
+    entities: &[worth_query::facade::foundation::WorthQueryEntityIdentity],
+    inserted: worth_query::facade::foundation::WorthQueryEntityIdentity,
+) {
+    assert_eq!(transcripts.len(), 5);
     assert_collection_transcript(
         &transcripts[0],
         &mounted_instances,
         &entities,
-        ["Alpha", "Bravo"],
+        &["Alpha", "Bravo"],
     );
     assert_collection_transcript(
         &transcripts[1],
         &mounted_instances,
-        &entities,
-        ["Alpha", "Bravo updated"],
+        &entities[1..],
+        &["Bravo"],
     );
-    assert_ne!(transcripts[0].frame(), transcripts[1].frame());
-    assert_ne!(
-        transcripts[0].semantic_text()[0].content_generation(),
-        transcripts[1].semantic_text()[0].content_generation()
+    assert_collection_transcript(
+        &transcripts[2],
+        &mounted_instances,
+        &entities[1..],
+        &["Bravo updated"],
     );
-    assert!(session.generation_identity() == &generation);
+    let inserted_entities = [inserted, entities[1].clone()];
+    assert_collection_transcript(
+        &transcripts[3],
+        &mounted_instances,
+        &inserted_entities,
+        &["Aaron", "Bravo updated"],
+    );
+    assert_collection_transcript(
+        &transcripts[4],
+        &mounted_instances,
+        &inserted_entities,
+        &["Aaron", "Bravo final"],
+    );
+    assert_ne!(transcripts[3].frame(), transcripts[4].frame());
+}
 
-    match live.close(&mut workspace) {
+fn close_collection(
+    live: worth_ui_query_binding::UiLiveCollectionProjection,
+    workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace,
+) {
+    match live.close(workspace) {
         worth_ui_query_binding::UiLiveCollectionProjectionCloseOutcome::Closed(_) => {}
         worth_ui_query_binding::UiLiveCollectionProjectionCloseOutcome::Stopped(stop) => {
             panic!("live collection closes: {:?}", stop.query_error())
         }
     }
-    let shutdown = session.shutdown();
-    assert!(shutdown.rebind().is_empty());
-    assert!(shutdown.mounted_presentation().is_empty());
+}
+
+fn open_live_collection(
+    registration: UiCollectionProjectionRegistration,
+    workspace: &mut worth_query::facade::runtime::WorthQueryWorkspace,
+) -> worth_ui_query_binding::UiCollectionProjectionOpenReceipt {
+    let binding = match registration.admit(&*workspace) {
+        UiCollectionProjectionBindingAdmission::Ready(binding) => binding,
+        UiCollectionProjectionBindingAdmission::Stopped(stop) => {
+            panic!("real collection binding admits: {stop:?}")
+        }
+    };
+    match binding.open(
+        UiCollectionProjectionBudget::new(2, 2, 0, 1024).unwrap(),
+        workspace,
+    ) {
+        UiCollectionProjectionOpenOutcome::Opened(opened) => opened,
+        UiCollectionProjectionOpenOutcome::Stopped(stop) => {
+            panic!("real collection projection opens: {stop:?}")
+        }
+    }
 }
 
 fn publish_collection_fact(
@@ -120,7 +226,9 @@ fn publish_collection_fact(
     let plan = collection_plan(session, observation);
     let prepared = session
         .prepare_rebind(plan, UiRebindExecutionRequest::new(request))
-        .expect("collection content prepares against exact mounted authority");
+        .unwrap_or_else(|error| {
+            panic!("collection request {request} prepares against mounted authority: {error:?}")
+        });
     match prepared.execute(request) {
         UiRebindOutcome::Published(receipt) => {
             assert!(receipt.application_publication().is_none());
@@ -153,12 +261,12 @@ pub(crate) fn collection_plan(
 }
 
 fn assert_collection_transcript(
-    transcript: &worth_ui_runtime::facade::host::UiHeadlessMountedFrameTranscript,
+    transcript: &worth_ui_host_headless::UiHeadlessMountedFrameTranscript,
     mounted_instances: &[worth_ui_runtime::facade::mounted::UiMountedInstanceIdentity],
     entities: &[worth_query::facade::foundation::WorthQueryEntityIdentity],
-    expected_values: [&str; 2],
+    expected_values: &[&str],
 ) {
-    assert_eq!(transcript.semantic_text().len(), 3);
+    assert_eq!(transcript.semantic_text().len(), expected_values.len() + 1);
     let values = transcript
         .semantic_text()
         .iter()
@@ -199,7 +307,8 @@ fn assert_collection_transcript(
         transcript.unperformed_effects(),
         &[UiHeadlessUnperformedEffect::NativePaint {
             filled_rect_count: 1,
-            semantic_text_count: 3,
+            semantic_text_count: u32::try_from(expected_values.len() + 1)
+                .expect("certification row count fits the host contract"),
             preview_node_count: 0,
         }]
     );
@@ -219,8 +328,13 @@ pub(crate) fn collection_app(
         .with_rust_authored_input(WorthUiRustAuthoredArtifactInput::from_modules([
             collection_module(false),
         ]))
-        .with_host(recorder)
         .freeze()
+        .map(|application| {
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_recorder(
+                application,
+                recorder,
+            )
+        })
         .expect("collection content application freezes")
 }
 

@@ -80,9 +80,17 @@ pub(crate) fn scalar_async_view(
     workspace: &mut runtime::WorthQueryWorkspace,
     request: &AdmittedBridgeAsyncRequestIdentity,
 ) -> runtime::WorthQueryLiveView<runtime::WorthQueryUnrefinedLiveShape> {
+    scalar_async_view_named(workspace, request, "platform.pulse.status")
+}
+
+pub(crate) fn scalar_async_view_named(
+    workspace: &mut runtime::WorthQueryWorkspace,
+    request: &AdmittedBridgeAsyncRequestIdentity,
+    identity: &str,
+) -> runtime::WorthQueryLiveView<runtime::WorthQueryUnrefinedLiveShape> {
     workspace
         .declare_bridge_async_live_view(
-            "platform.pulse.status",
+            identity,
             foundation::DeclarativeLiveQueryRequest::new(
                 "WorthUiProjectionText",
                 foundation::DeclarativeLiveViewShape::table(),

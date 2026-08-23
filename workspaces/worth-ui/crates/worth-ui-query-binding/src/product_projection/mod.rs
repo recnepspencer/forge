@@ -27,6 +27,5 @@ pub(crate) use backend::{
     configure_product_projection_backend, shared_source_state, SharedSourceState,
 };
 pub(crate) use bridge::platform_pulse_bridge;
-#[cfg(any(test, feature = "certification-construction"))]
 pub(crate) use installation::projection_runtime_builder;
 pub(crate) use support_contract::evaluate_product_projection_support;

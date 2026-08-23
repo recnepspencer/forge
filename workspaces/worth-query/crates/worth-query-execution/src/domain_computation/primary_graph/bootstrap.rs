@@ -28,6 +28,8 @@ use super::{
     WorthQueryPrimaryGraphInstallationDenial, WorthQueryPrimaryGraphInstallationDenialKind,
 };
 
+mod truth_partition;
+
 pub(super) struct WorthQueryPrincipalBootstrapRow {
     pub(super) binding: String,
     pub(super) principal_key: String,

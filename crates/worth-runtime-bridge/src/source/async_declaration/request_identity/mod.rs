@@ -4,9 +4,11 @@ mod counters;
 mod identity;
 mod identity_assembly;
 mod rejection;
+mod rollback;
 pub(crate) mod state;
 mod subscription_instance;
 mod truth_basis;
+mod validation;
 
 pub(crate) use admission::admit_from_existing_signal_request;
 pub use binding::{

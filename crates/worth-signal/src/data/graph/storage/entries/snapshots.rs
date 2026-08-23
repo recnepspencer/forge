@@ -63,19 +63,17 @@ impl SignalGraph {
         }
         match update.storage_strategy() {
             SnapshotStorageStrategy::SharedReplacement => {
-                self.telemetry_mut()
-                    .storage
-                    .shared_snapshot_replacement_count += 1;
-                self.telemetry_mut()
-                    .storage
-                    .structural_replace_batch_commit_count += 1;
+                self.with_telemetry(|telemetry| {
+                    telemetry.storage.shared_snapshot_replacement_count += 1;
+                    telemetry.storage.structural_replace_batch_commit_count += 1;
+                });
             }
             SnapshotStorageStrategy::VersionOnlyDelta => {
-                self.telemetry_mut()
-                    .storage
-                    .version_only_snapshot_update_count += 1;
-                self.telemetry_mut().storage.stable_shape_batch_commit_count += 1;
-                self.telemetry_mut().storage.snapshot_shape_reuse_count += 1;
+                self.with_telemetry(|telemetry| {
+                    telemetry.storage.version_only_snapshot_update_count += 1;
+                    telemetry.storage.stable_shape_batch_commit_count += 1;
+                    telemetry.storage.snapshot_shape_reuse_count += 1;
+                });
             }
         }
         let snapshot_id =
@@ -109,19 +107,17 @@ impl SignalGraph {
         };
         match update.storage_strategy() {
             SnapshotStorageStrategy::SharedReplacement => {
-                self.telemetry_mut()
-                    .storage
-                    .shared_snapshot_replacement_count += 1;
-                self.telemetry_mut()
-                    .storage
-                    .structural_replace_batch_commit_count += 1;
+                self.with_telemetry(|telemetry| {
+                    telemetry.storage.shared_snapshot_replacement_count += 1;
+                    telemetry.storage.structural_replace_batch_commit_count += 1;
+                });
             }
             SnapshotStorageStrategy::VersionOnlyDelta => {
-                self.telemetry_mut()
-                    .storage
-                    .version_only_snapshot_update_count += 1;
-                self.telemetry_mut().storage.stable_shape_batch_commit_count += 1;
-                self.telemetry_mut().storage.snapshot_shape_reuse_count += 1;
+                self.with_telemetry(|telemetry| {
+                    telemetry.storage.version_only_snapshot_update_count += 1;
+                    telemetry.storage.stable_shape_batch_commit_count += 1;
+                    telemetry.storage.snapshot_shape_reuse_count += 1;
+                });
             }
         }
         if !delta.changed() {
@@ -145,8 +141,11 @@ impl SignalGraph {
         if commit.is_empty() {
             return Ok(());
         }
-        self.telemetry_mut().storage.snapshot_batch_size += commit.pending().len() as u64;
-        self.telemetry_mut().storage.stable_shape_batch_commit_count += 1;
+        let batch_size = commit.pending().len() as u64;
+        self.with_telemetry(|telemetry| {
+            telemetry.storage.snapshot_batch_size += batch_size;
+            telemetry.storage.stable_shape_batch_commit_count += 1;
+        });
 
         for snapshot in commit.pending() {
             self.validate_handle(snapshot.node())?;
@@ -156,11 +155,11 @@ impl SignalGraph {
             if !snapshot.delta().changed() {
                 continue;
             }
-            self.telemetry_mut().storage.patch_application_breadth += 1;
-            self.telemetry_mut()
-                .storage
-                .version_only_snapshot_update_count += 1;
-            self.telemetry_mut().storage.snapshot_shape_reuse_count += 1;
+            self.with_telemetry(|telemetry| {
+                telemetry.storage.patch_application_breadth += 1;
+                telemetry.storage.version_only_snapshot_update_count += 1;
+                telemetry.storage.snapshot_shape_reuse_count += 1;
+            });
             let previous = self.get_dep_snapshot(snapshot.node())?.clone();
             let next_snapshot = CommittedSnapshotUpdate::VersionOnly(snapshot.update().clone())
                 .apply_to(&previous)
@@ -184,11 +183,11 @@ impl SignalGraph {
         if commit.is_empty() {
             return Ok(());
         }
-        self.telemetry_mut().storage.snapshot_batch_size +=
-            (commit.stable_shape().len() + commit.replacements().len()) as u64;
-        self.telemetry_mut()
-            .storage
-            .structural_replace_batch_commit_count += 1;
+        let batch_size = (commit.stable_shape().len() + commit.replacements().len()) as u64;
+        self.with_telemetry(|telemetry| {
+            telemetry.storage.snapshot_batch_size += batch_size;
+            telemetry.storage.structural_replace_batch_commit_count += 1;
+        });
 
         for snapshot in commit.stable_shape() {
             self.validate_handle(snapshot.node())?;
@@ -201,11 +200,11 @@ impl SignalGraph {
             if !snapshot.delta().changed() {
                 continue;
             }
-            self.telemetry_mut().storage.patch_application_breadth += 1;
-            self.telemetry_mut()
-                .storage
-                .version_only_snapshot_update_count += 1;
-            self.telemetry_mut().storage.snapshot_shape_reuse_count += 1;
+            self.with_telemetry(|telemetry| {
+                telemetry.storage.patch_application_breadth += 1;
+                telemetry.storage.version_only_snapshot_update_count += 1;
+                telemetry.storage.snapshot_shape_reuse_count += 1;
+            });
             let previous = self.get_dep_snapshot(snapshot.node())?.clone();
             let next_snapshot = CommittedSnapshotUpdate::VersionOnly(snapshot.update().clone())
                 .apply_to(&previous)
@@ -222,10 +221,10 @@ impl SignalGraph {
             if !snapshot.delta().changed() {
                 continue;
             }
-            self.telemetry_mut().storage.patch_application_breadth += 1;
-            self.telemetry_mut()
-                .storage
-                .shared_snapshot_replacement_count += 1;
+            self.with_telemetry(|telemetry| {
+                telemetry.storage.patch_application_breadth += 1;
+                telemetry.storage.shared_snapshot_replacement_count += 1;
+            });
             let next_snapshot = CommittedSnapshotUpdate::Replace(snapshot.update().clone())
                 .apply_to(self.get_dep_snapshot(snapshot.node())?)
                 .into_snapshot();
@@ -245,7 +244,11 @@ impl SignalGraph {
         &mut self,
         commit: ClassifiedSnapshotBatchCommit,
     ) -> Result<(), SignalError> {
-        let commit_start = RuntimeInstant::now();
+        let commit_start = self
+            .captures_observation_surface(
+                crate::logic::transaction::SignalObservationSurface::OptionalTelemetry,
+            )
+            .then(RuntimeInstant::now);
         let result = match commit {
             ClassifiedSnapshotBatchCommit::StableShape(commit) => {
                 self.apply_stable_shape_snapshot_batch_commit(commit)
@@ -254,8 +257,12 @@ impl SignalGraph {
                 self.apply_mixed_snapshot_batch_commit(commit)
             }
         };
-        self.telemetry_mut().storage.snapshot_batch_commit_nanos +=
-            commit_start.elapsed().as_nanos();
+        if let Some(commit_start) = commit_start {
+            let elapsed_nanos = commit_start.elapsed().as_nanos();
+            self.with_telemetry(|telemetry| {
+                telemetry.storage.snapshot_batch_commit_nanos += elapsed_nanos;
+            });
+        }
         result
     }
 

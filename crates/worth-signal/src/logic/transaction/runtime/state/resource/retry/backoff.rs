@@ -8,7 +8,7 @@ impl ResourceRuntimeState {
         &self,
         handle: ResourceRequestHandle,
         current_tick: crate::data::temporal::ClockTick,
-        telemetry: &mut ResourceTelemetry,
+        mut telemetry: Option<&mut ResourceTelemetry>,
     ) -> Result<
         (
             crate::data::temporal::TemporalDuration,
@@ -18,7 +18,9 @@ impl ResourceRuntimeState {
         ),
         ResourceRetryDenialClass,
     > {
-        telemetry.resource_retry_policy_decision_count += 1;
+        if let Some(telemetry) = telemetry.as_deref_mut() {
+            telemetry.resource_retry_policy_decision_count += 1;
+        }
         let in_flight = self
             .in_flight_by_request
             .get(&handle.request_id())
@@ -54,7 +56,9 @@ impl ResourceRuntimeState {
             return Err(ResourceRetryDenialClass::RetryAttemptLimitReached);
         }
         if retry_plan.max_jitter().is_some() {
-            telemetry.resource_retry_jitter_decision_count += 1;
+            if let Some(telemetry) = telemetry.as_deref_mut() {
+                telemetry.resource_retry_jitter_decision_count += 1;
+            }
         }
         let retry_budget_charge = self.retry_budget_ledger.charge_for(
             &in_flight,

@@ -6,19 +6,33 @@ use uiautomation::patterns::UIWindowPattern;
 use uiautomation::types::Handle;
 use uiautomation::UIAutomation;
 use winsafe::{self as win, co, HwndPlace, HWND, POINT, SIZE};
-use xcap::{Monitor, Window};
+use xcap::Window;
 
 use crate::external_observation::{
-    NativeClientAreaBounds, NativeClientPixelCapture, NativeClientPixelPoint,
-    NativeInputDeliveryObservation, NativeInputProbeKind, NativeWindowIdentity,
-    NormalNativeCloseRequestObservation, ProcessBoundNativeClientAreaObservation,
+    NativeClientPixelCapture, NativeClientPixelPoint, NativeInputDeliveryObservation,
+    NativeInputProbeKind, NativeWindowIdentity, NormalNativeCloseRequestObservation,
+    ProcessBoundNativeClientAreaObservation,
 };
 
 use super::contract::sealed::Sealed;
 use super::{NativePlatformContract, NativePlatformFailure};
 
+mod capture_consistency;
+mod capture_region;
 mod client_capture;
+mod environment;
+mod gdi_capture;
 mod input_delivery;
+mod input_environment;
+mod observation_readiness;
+mod process_windows;
+
+pub(super) use input_environment::WindowsInputEnvironmentDenial;
+
+use capture_consistency::{require_matching_capture_sources, require_matching_composited_sources};
+use capture_region::{
+    capture_bound_client_area, client_bounds, monitor_capture_region, monitor_for_client,
+};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub(crate) struct WindowsNativePlatform {
@@ -31,33 +45,34 @@ pub(crate) struct WindowsProcessBoundNativeClientArea {
     observation: ProcessBoundNativeClientAreaObservation,
 }
 
-struct ProcessWindowCandidate {
-    window: HWND,
-    bounds: NativeClientAreaBounds,
-}
-
 struct WindowsCaptureExposure<'bound> {
     bound: &'bound WindowsProcessBoundNativeClientArea,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct NativeMonitorCaptureRegion {
-    x: u32,
-    y: u32,
-    width: u32,
-    height: u32,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct NativeMonitorPhysicalBounds {
-    left: i32,
-    top: i32,
-    width: u32,
-    height: u32,
+impl Drop for WindowsCaptureExposure<'_> {
+    fn drop(&mut self) {
+        let restoration = self.bound.window.SetWindowPos(
+            HwndPlace::Place(co::HWND_PLACE::NOTOPMOST),
+            POINT::default(),
+            SIZE::default(),
+            co::SWP::NOMOVE | co::SWP::NOSIZE | co::SWP::NOACTIVATE,
+        );
+        if let Err(error) = restoration {
+            assert!(
+                !self.bound.window.IsWindow(),
+                "capture exposure must restore ordinary z-order for a live window: {error}"
+            );
+        }
+    }
 }
 
 impl WindowsNativePlatform {
     pub(crate) fn certified() -> Result<Self, NativePlatformFailure> {
+        if std::env::consts::ARCH != "x86_64" {
+            return Err(NativePlatformFailure::EnvironmentQualification(
+                std::env::consts::ARCH.to_owned(),
+            ));
+        }
         static DPI_AWARENESS: OnceLock<Result<(), String>> = OnceLock::new();
         match DPI_AWARENESS
             .get_or_init(|| win::SetProcessDPIAware().map_err(|error| error.to_string()))
@@ -67,28 +82,20 @@ impl WindowsNativePlatform {
         }
     }
 
-    fn process_windows(
-        process_id: u32,
-    ) -> Result<Vec<ProcessWindowCandidate>, NativePlatformFailure> {
-        let mut candidates = Vec::new();
-        win::EnumWindows(|window| {
-            let (_, owner_process_id) = window.GetWindowThreadProcessId();
-            if owner_process_id == process_id && window.IsWindowVisible() && !window.IsIconic() {
-                if let Ok(client) = client_bounds(&window) {
-                    if let Some(bounds) = NativeClientAreaBounds::new(
-                        client.left(),
-                        client.top(),
-                        client.right(),
-                        client.bottom(),
-                    ) {
-                        candidates.push(ProcessWindowCandidate { window, bounds });
-                    }
-                }
-            }
-            true
-        })
-        .map_err(|error| NativePlatformFailure::WindowEnumeration(error.to_string()))?;
-        Ok(candidates)
+    pub(crate) fn observed_os_version(&self) -> Result<String, NativePlatformFailure> {
+        let output = std::process::Command::new("cmd")
+            .args(["/c", "ver"])
+            .output()
+            .map_err(|error| NativePlatformFailure::EnvironmentQualification(error.to_string()))?;
+        let version = String::from_utf8(output.stdout)
+            .map_err(|error| NativePlatformFailure::EnvironmentQualification(error.to_string()))?
+            .trim()
+            .to_owned();
+        if output.status.success() && environment::qualified_windows_11_version(&version) {
+            Ok(version)
+        } else {
+            Err(NativePlatformFailure::EnvironmentQualification(version))
+        }
     }
 
     fn expose_bound_client_area<'bound>(
@@ -99,7 +106,7 @@ impl WindowsNativePlatform {
         bound
             .window
             .SetWindowPos(
-                HwndPlace::Place(co::HWND_PLACE::TOP),
+                HwndPlace::Place(co::HWND_PLACE::TOPMOST),
                 POINT::default(),
                 SIZE::default(),
                 co::SWP::NOMOVE | co::SWP::NOSIZE | co::SWP::NOACTIVATE | co::SWP::SHOWWINDOW,
@@ -116,23 +123,28 @@ impl WindowsNativePlatform {
     ) -> Result<NativeClientPixelCapture, NativePlatformFailure> {
         let bound = exposure.bound;
         let client = bound.observation.bounds();
-        let rgba = client_capture::capture_client(&bound.capture_window, client)?;
-        NativeClientPixelCapture::new(
-            bound.observation.process_id(),
-            client.width(),
-            client.height(),
-            rgba,
-        )
-        .ok_or(NativePlatformFailure::InvalidClientCapture {
-            image_width: client.width(),
-            image_height: client.height(),
-            outer: client,
+        let monitor = monitor_for_client(client)?;
+        let region = monitor_capture_region(&monitor, client)?;
+        let monitor_capture =
+            capture_bound_client_area(&monitor, region, bound.observation.process_id())?;
+        let window_capture = client_capture::capture_client_area(
+            &bound.capture_window,
             client,
-        })
+            bound.observation.process_id(),
+        )?;
+        require_matching_capture_sources(&monitor_capture, &window_capture)?;
+        let gdi_capture = gdi_capture::capture_client_area(client, bound.observation.process_id())?;
+        require_matching_composited_sources(&monitor_capture, &gdi_capture)?;
+        Ok(monitor_capture)
     }
 }
 
 impl Sealed for WindowsNativePlatform {}
+
+#[test]
+fn independent_window_capture_rejects_monitor_pixel_substitution() {
+    capture_consistency::independent_window_capture_rejects_monitor_pixel_substitution();
+}
 
 impl NativePlatformContract for WindowsNativePlatform {
     type BoundClientArea = WindowsProcessBoundNativeClientArea;
@@ -143,9 +155,11 @@ impl NativePlatformContract for WindowsNativePlatform {
         deadline: Instant,
     ) -> Result<Self::BoundClientArea, NativePlatformFailure> {
         let mut lookup_count = 0_u32;
+        let mut prior_candidate = None;
+        let mut stable_observations = 0_u8;
         loop {
             lookup_count = lookup_count.saturating_add(1);
-            let mut candidates = Self::process_windows(process_id)?;
+            let mut candidates = process_windows::enumerate(process_id)?;
             match candidates.len() {
                 0 if Instant::now() < deadline => {
                     thread::sleep(Duration::from_millis(20));
@@ -153,9 +167,20 @@ impl NativePlatformContract for WindowsNativePlatform {
                 0 => return Err(NativePlatformFailure::WindowLookupDeadline),
                 1 => {
                     let candidate = candidates.pop().expect("one process window");
-                    let window_identity =
-                        NativeWindowIdentity::from_native_value(candidate.window.ptr() as usize)
-                            .expect("enumerated HWND is non-null");
+                    let identity = candidate.window.ptr() as usize;
+                    let posture = (identity, candidate.bounds);
+                    if prior_candidate == Some(posture) {
+                        stable_observations = stable_observations.saturating_add(1);
+                    } else {
+                        prior_candidate = Some(posture);
+                        stable_observations = 1;
+                    }
+                    if stable_observations < 3 && Instant::now() < deadline {
+                        thread::sleep(Duration::from_millis(20));
+                        continue;
+                    }
+                    let window_identity = NativeWindowIdentity::from_native_value(identity)
+                        .expect("enumerated HWND is non-null");
                     let capture_monitor = monitor_for_client(candidate.bounds)?;
                     let _capture_region =
                         monitor_capture_region(&capture_monitor, candidate.bounds)?;
@@ -190,10 +215,23 @@ impl NativePlatformContract for WindowsNativePlatform {
         if owner_process_id != bound.observation.process_id() {
             return Err(NativePlatformFailure::BoundWindowOwnerChanged);
         }
+        if bound.capture_window.pid().ok() != Some(owner_process_id)
+            || bound.capture_window.id().ok() != Some(bound.window.ptr() as u32)
+        {
+            return Err(NativePlatformFailure::BoundWindowOwnerChanged);
+        }
         if client_bounds(&bound.window)? != bound.observation.bounds() {
             return Err(NativePlatformFailure::BoundClientAreaChanged);
         }
         Ok(bound.observation)
+    }
+
+    fn await_external_observation_ready(
+        &self,
+        bound: &Self::BoundClientArea,
+        deadline: Instant,
+    ) -> Result<ProcessBoundNativeClientAreaObservation, NativePlatformFailure> {
+        observation_readiness::await_ready(self, bound, deadline)
     }
 
     fn capture_client_area(
@@ -222,6 +260,11 @@ impl NativePlatformContract for WindowsNativePlatform {
         input_delivery::deliver_pointer(&bound.window, observed, point)
     }
 
+    fn move_cursor(&self, screen_point: (i32, i32)) -> Result<(), NativePlatformFailure> {
+        input_environment::actuate_and_observe_cursor(screen_point)
+            .map_err(NativePlatformFailure::InputEnvironment)
+    }
+
     fn request_normal_close(
         &self,
         bound: &Self::BoundClientArea,
@@ -240,160 +283,11 @@ impl NativePlatformContract for WindowsNativePlatform {
     }
 
     fn verify_process_window_released(&self, process_id: u32) -> Result<(), NativePlatformFailure> {
-        let windows = Self::process_windows(process_id)?;
+        let windows = process_windows::enumerate(process_id)?;
         if windows.is_empty() {
             Ok(())
         } else {
             Err(NativePlatformFailure::ProcessWindowResidue(windows.len()))
         }
-    }
-}
-
-fn client_bounds(window: &HWND) -> Result<NativeClientAreaBounds, NativePlatformFailure> {
-    let client = window
-        .GetClientRect()
-        .and_then(|rect| window.ClientToScreenRc(rect))
-        .map_err(|error| NativePlatformFailure::WindowEnumeration(error.to_string()))?;
-    NativeClientAreaBounds::new(client.left, client.top, client.right, client.bottom)
-        .ok_or(NativePlatformFailure::InvalidCaptureWindowBounds)
-}
-
-fn monitor_for_client(client: NativeClientAreaBounds) -> Result<Monitor, NativePlatformFailure> {
-    let center_x = client
-        .left()
-        .checked_add_unsigned(client.width() / 2)
-        .ok_or(NativePlatformFailure::InvalidCaptureWindowBounds)?;
-    let center_y = client
-        .top()
-        .checked_add_unsigned(client.height() / 2)
-        .ok_or(NativePlatformFailure::InvalidCaptureWindowBounds)?;
-    Monitor::from_point(center_x, center_y)
-        .map_err(|error| NativePlatformFailure::ClientCapture(error.to_string()))
-}
-
-fn monitor_capture_region(
-    monitor: &Monitor,
-    client: NativeClientAreaBounds,
-) -> Result<NativeMonitorCaptureRegion, NativePlatformFailure> {
-    let left = monitor
-        .x()
-        .map_err(|error| NativePlatformFailure::ClientCapture(error.to_string()))?;
-    let top = monitor
-        .y()
-        .map_err(|error| NativePlatformFailure::ClientCapture(error.to_string()))?;
-    let width = monitor
-        .width()
-        .map_err(|error| NativePlatformFailure::ClientCapture(error.to_string()))?;
-    let height = monitor
-        .height()
-        .map_err(|error| NativePlatformFailure::ClientCapture(error.to_string()))?;
-    monitor_capture_region_from_bounds(
-        NativeMonitorPhysicalBounds {
-            left,
-            top,
-            width,
-            height,
-        },
-        client,
-    )
-}
-
-fn monitor_capture_region_from_bounds(
-    monitor: NativeMonitorPhysicalBounds,
-    client: NativeClientAreaBounds,
-) -> Result<NativeMonitorCaptureRegion, NativePlatformFailure> {
-    let monitor_right = monitor
-        .left
-        .checked_add_unsigned(monitor.width)
-        .ok_or(NativePlatformFailure::ClientOutsideCaptureMonitor)?;
-    let monitor_bottom = monitor
-        .top
-        .checked_add_unsigned(monitor.height)
-        .ok_or(NativePlatformFailure::ClientOutsideCaptureMonitor)?;
-    if client.left() < monitor.left
-        || client.top() < monitor.top
-        || client.right() > monitor_right
-        || client.bottom() > monitor_bottom
-    {
-        return Err(NativePlatformFailure::ClientOutsideCaptureMonitor);
-    }
-    Ok(NativeMonitorCaptureRegion {
-        x: u32::try_from(client.left() - monitor.left)
-            .map_err(|_| NativePlatformFailure::ClientOutsideCaptureMonitor)?,
-        y: u32::try_from(client.top() - monitor.top)
-            .map_err(|_| NativePlatformFailure::ClientOutsideCaptureMonitor)?,
-        width: client.width(),
-        height: client.height(),
-    })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{
-        monitor_capture_region_from_bounds, NativeClientAreaBounds, NativeMonitorCaptureRegion,
-        NativeMonitorPhysicalBounds, NativePlatformFailure,
-    };
-
-    #[test]
-    fn fractional_dpi_client_extent_is_captured_without_resampling() {
-        let client = NativeClientAreaBounds::new(87, 121, 327, 265).unwrap();
-        assert_eq!(
-            monitor_capture_region_from_bounds(
-                NativeMonitorPhysicalBounds {
-                    left: 0,
-                    top: 0,
-                    width: 3_840,
-                    height: 2_160,
-                },
-                client,
-            )
-            .unwrap(),
-            NativeMonitorCaptureRegion {
-                x: 87,
-                y: 121,
-                width: 240,
-                height: 144,
-            }
-        );
-    }
-
-    #[test]
-    fn negative_monitor_origin_projects_to_monitor_local_physical_pixels() {
-        let client = NativeClientAreaBounds::new(-1_700, 140, -1_460, 284).unwrap();
-        assert_eq!(
-            monitor_capture_region_from_bounds(
-                NativeMonitorPhysicalBounds {
-                    left: -1_920,
-                    top: 0,
-                    width: 1_920,
-                    height: 1_080,
-                },
-                client,
-            )
-            .unwrap(),
-            NativeMonitorCaptureRegion {
-                x: 220,
-                y: 140,
-                width: 240,
-                height: 144,
-            }
-        );
-    }
-
-    #[test]
-    fn client_crossing_a_monitor_edge_is_rejected_without_partial_capture() {
-        let client = NativeClientAreaBounds::new(1_800, 140, 2_040, 284).unwrap();
-        assert!(matches!(
-            monitor_capture_region_from_bounds(
-                NativeMonitorPhysicalBounds {
-                    left: 0,
-                    top: 0,
-                    width: 1_920,
-                    height: 1_080,
-                },
-                client,
-            ),
-            Err(NativePlatformFailure::ClientOutsideCaptureMonitor)
-        ));
     }
 }

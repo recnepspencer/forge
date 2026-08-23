@@ -109,6 +109,7 @@ pub(super) fn impact_test_app() -> WorthUiApp {
         .register_theme_token(theme_token("theme.text.primary", "#101820"))
         .register_theme_token(theme_token("theme.text.secondary", "#C7492A"))
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed")
 }
 

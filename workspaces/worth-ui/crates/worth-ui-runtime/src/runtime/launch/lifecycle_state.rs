@@ -122,6 +122,8 @@ pub struct WorthUiRuntimeShutdownReceipt {
     final_frame_epoch: WorthUiRuntimeFrameEpoch,
     query_retirement: worth_ui_query_binding::WorthUiOperationLiveRetirement,
     mounted_presentation: crate::mounting::UiMountedPresentationShutdownReport,
+    presentation_async_cleanup:
+        Option<crate::native_platform::text_presentation::UiPresentationAsyncTerminalCleanup>,
     visual_capture: crate::inspection::visual_snapshot::UiVisualCaptureShutdownReport,
     visual_overlay: crate::inspection::visual_snapshot::UiVisualOverlayShutdownReport,
     interaction: crate::runtime::interaction::UiInteractionShutdownReport,
@@ -133,6 +135,7 @@ pub struct WorthUiRuntimeShutdownReceipt {
     intent_resource_census: crate::runtime::session::UiIntentResourceCensus,
     rebind: crate::runtime::rebind::UiRebindShutdownReport,
     host_session_release: Option<crate::host::adapter::UiHostSessionReleaseOutcome>,
+    host_session_recovery: Option<crate::facade::WorthUiHostSessionReleaseRecovery>,
 }
 
 impl WorthUiRuntimeShutdownReceipt {
@@ -145,6 +148,7 @@ impl WorthUiRuntimeShutdownReceipt {
             final_frame_epoch,
             query_retirement,
             mounted_presentation: Default::default(),
+            presentation_async_cleanup: None,
             visual_capture: Default::default(),
             visual_overlay: Default::default(),
             interaction: Default::default(),
@@ -156,6 +160,7 @@ impl WorthUiRuntimeShutdownReceipt {
             intent_resource_census: crate::runtime::session::UiIntentResourceCensus::EMPTY,
             rebind: Default::default(),
             host_session_release: None,
+            host_session_recovery: None,
         }
     }
 
@@ -171,6 +176,12 @@ impl WorthUiRuntimeShutdownReceipt {
 
     pub fn mounted_presentation(&self) -> &crate::mounting::UiMountedPresentationShutdownReport {
         &self.mounted_presentation
+    }
+
+    pub(crate) fn take_presentation_async_cleanup(
+        &mut self,
+    ) -> Option<crate::native_platform::text_presentation::UiPresentationAsyncTerminalCleanup> {
+        self.presentation_async_cleanup.take()
     }
 
     pub const fn visual_capture(
@@ -229,11 +240,27 @@ impl WorthUiRuntimeShutdownReceipt {
         self.host_session_release
     }
 
+    pub(crate) fn take_host_session_recovery(
+        &mut self,
+    ) -> Option<crate::facade::WorthUiHostSessionReleaseRecovery> {
+        self.host_session_recovery.take()
+    }
+
     pub(crate) fn bind_mounted_presentation(
         mut self,
         report: crate::mounting::UiMountedPresentationShutdownReport,
     ) -> Self {
         self.mounted_presentation = report;
+        self
+    }
+
+    pub(crate) fn bind_presentation_async_cleanup(
+        mut self,
+        cleanup: Option<
+            crate::native_platform::text_presentation::UiPresentationAsyncTerminalCleanup,
+        >,
+    ) -> Self {
+        self.presentation_async_cleanup = cleanup;
         self
     }
 
@@ -258,6 +285,14 @@ impl WorthUiRuntimeShutdownReceipt {
         outcome: crate::host::adapter::UiHostSessionReleaseOutcome,
     ) -> Self {
         self.host_session_release = Some(outcome);
+        self
+    }
+
+    pub(crate) fn bind_host_session_recovery(
+        mut self,
+        recovery: Option<crate::facade::WorthUiHostSessionReleaseRecovery>,
+    ) -> Self {
+        self.host_session_recovery = recovery;
         self
     }
 

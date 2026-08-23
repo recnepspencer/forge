@@ -137,21 +137,21 @@ pub(crate) fn public_hierarchy_branch_workload() -> PublicHierarchyBranchWorkloa
         feature_gate.payload_contract_digest().clone(),
         88,
     );
-    let feature_parent_request = runtime
-        .admit_async_node_request(feature_parent.request_intent())
-        .expect("feature parent request should admit")
-        .resource_admission()
-        .expect("feature parent request should lower into resource admission")
-        .admitted_request();
+    runtime
+        .admit_async_node_request(feature_grandchild.request_intent())
+        .expect("feature grandchild request should admit");
     let feature_child_request = runtime
         .admit_async_node_request(feature_child.request_intent())
         .expect("feature child request should admit")
         .resource_admission()
         .expect("feature child request should lower into resource admission")
         .admitted_request();
-    runtime
-        .admit_async_node_request(feature_grandchild.request_intent())
-        .expect("feature grandchild request should admit");
+    let feature_parent_request = runtime
+        .admit_async_node_request(feature_parent.request_intent())
+        .expect("feature parent request should admit")
+        .resource_admission()
+        .expect("feature parent request should lower into resource admission")
+        .admitted_request();
     admit_and_commit_async_node_completion(
         &mut runtime,
         feature_parent_request.handle(),
@@ -235,18 +235,18 @@ pub(crate) fn public_hierarchy_branch_workload() -> PublicHierarchyBranchWorkloa
         sibling_gate.payload_contract_digest().clone(),
         88,
     );
+    runtime
+        .admit_async_node_request(sibling_grandchild.request_intent())
+        .expect("sibling grandchild request should admit");
+    runtime
+        .admit_async_node_request(sibling_child.request_intent())
+        .expect("sibling child request should admit");
     let sibling_parent_request = runtime
         .admit_async_node_request(sibling_parent.request_intent())
         .expect("sibling parent request should admit")
         .resource_admission()
         .expect("sibling parent request should lower into resource admission")
         .admitted_request();
-    runtime
-        .admit_async_node_request(sibling_child.request_intent())
-        .expect("sibling child request should admit");
-    runtime
-        .admit_async_node_request(sibling_grandchild.request_intent())
-        .expect("sibling grandchild request should admit");
     admit_and_commit_async_node_completion(
         &mut runtime,
         sibling_parent_request.handle(),

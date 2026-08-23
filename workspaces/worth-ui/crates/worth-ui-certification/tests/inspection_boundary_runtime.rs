@@ -8,6 +8,9 @@ fn repeated_unsupported_inspection_queries_stay_typed_and_equivalent() {
     let app = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("application preparation should succeed");
     let query = UiInspectionQuery::new(
         UiInspectionTarget::product_root(),

@@ -1,4 +1,4 @@
-use crate::facade::foundation::{BridgeChangeSummary, BridgeFieldDelta, BridgeRelationDelta};
+use crate::live::{BridgeChangeSummary, BridgeFieldDelta, BridgeRelationDelta};
 
 pub(super) fn detail_patch_change() -> BridgeChangeSummary {
     BridgeChangeSummary::default().with_field_delta(BridgeFieldDelta::new(

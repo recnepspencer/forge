@@ -8,11 +8,13 @@ mod authentication_clock;
 mod bootstrap;
 mod bootstrap_publication;
 mod conditional_operation;
+pub(crate) use conditional_operation::classify_bridge_signal;
 mod denial;
 mod entity_key;
 mod entity_resolution;
 mod entity_resolution_denial;
 mod freshness;
+mod granular_invalidation;
 mod index_refresh;
 mod invariant_projection;
 mod live_delivery;
@@ -83,7 +85,6 @@ pub use application_attempt::{
     WorthQueryRequestedElevation, WorthQueryReviewedElevation,
 };
 pub(in crate::domain_computation) use application_branch::primary_relational_branch_id;
-#[cfg(test)]
 pub(in crate::domain_computation) use application_branch::primary_truth_branch_identity;
 pub use application_query::{
     WorthQueryAdmittedApplicationQueryControls, WorthQueryAdmittedApplicationQueryPlan,
@@ -131,8 +132,28 @@ pub use bootstrap::{WorthQueryPrimaryGraphBootstrap, WorthQueryPrimaryGraphPubli
 pub use conditional_operation::{
     WorthQueryConditionalApplicationRuntimeInstallation,
     WorthQueryConditionalClockHandle,
+    WorthQueryConditionalClockObservationDenial,
+    WorthQueryConditionalClockObservationDenialKind,
+    WorthQueryConditionalClockObservationFailure,
+    WorthQueryConditionalClockObservationFailureKind,
+    WorthQueryConditionalClockObservationOutcome,
+    WorthQueryConditionalClockObservationPort,
+    WorthQueryConditionalClockObservationReceipt,
+    WorthQueryConditionalExecutionProvenance,
+    WorthQueryConditionalExecutionTerminal, WorthQueryConditionalSignalDecision,
     WorthQueryConditionalRuntimeInstallationDenial,
     WorthQueryConditionalRuntimeInstallationDenialKind,
+    WorthQueryConditionalRuntimeInspection, WorthQueryConditionalRuntimeLifecycleProbe,
+    WorthQueryConditionalRuntimeReinstallationReceipt,
+    WorthQueryGovernedTemporalOperationAuthorization,
+    WorthQueryGovernedTemporalQueryAuthorization,
+    WorthQueryPublicTemporalOperationAuthorization, WorthQueryPublicTemporalQueryAuthorization,
+    WorthQueryTemporalPrincipalAdmission, WorthQueryTemporalPrincipalFailure,
+    WorthQueryTemporalPrincipalFailureKind, WorthQueryTemporalPrincipalSource,
+    WorthQueryTemporalReconstructionAccess, WorthQueryTemporalInvocationFailure,
+    WorthQueryTemporalInvocationFailureKind, WorthQueryTemporalOperationExecution,
+    WorthQueryTemporalOperationInvoker,
+    WorthQueryTemporalOperationAuthorization, WorthQueryTemporalQueryAuthorization,
 };
 pub use denial::{
     WorthQueryPrimaryGraphInstallationDenial, WorthQueryPrimaryGraphInstallationDenialKind,
@@ -149,6 +170,12 @@ pub use entity_resolution_denial::{
 pub(in crate::domain_computation) use freshness::{
     validate_freshness_at_snapshot, WorthQueryPrincipalFreshnessEvidence,
 };
+pub use granular_invalidation::{
+    WorthQueryGranularInvalidationDeliveryBatch, WorthQueryGranularSourceReadBasis,
+    WorthQueryGranularTransportMergeDenial,
+    WorthQueryGranularInvalidationInstallation,
+    WorthQueryBridgeGranularDeliveryCounters, WorthQueryGranularInvalidationObservation,
+};
 pub use index_refresh::{
     WorthQueryPrimaryGraphIndexRefreshDenial, WorthQueryPrimaryGraphIndexRefreshDenialKind,
 };
@@ -162,7 +189,8 @@ pub use invariant_projection::{
     WorthQueryInspectedOperationInvariantProjection, WorthQueryInvariantAggregate,
     WorthQueryInvariantAggregateDenial, WorthQueryInvariantAggregateDenialKind,
     WorthQueryInvariantDecisionPlanDenial, WorthQueryInvariantDecisionPlanDenialKind,
-    WorthQueryInvariantEntityIdentity, WorthQueryInvariantProjectionTraversalDenial,
+    WorthQueryInvariantEntityIdentity, WorthQueryInvariantMutationTarget,
+    WorthQueryInvariantProjectionTraversalDenial,
     WorthQueryInvariantProjectionTraversalDenialKind, WorthQueryInvariantProjectionWork,
     WorthQueryInvariantRelation, WorthQueryOperationProjectionDenial,
     WorthQueryOperationProjectionDenialKind,

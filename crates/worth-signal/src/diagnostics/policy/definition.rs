@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 use super::materialization::ArtifactRetentionPolicy;
-use crate::diagnostics::profile::DiagnosticsTier;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ReplayDetailPolicy {
@@ -166,27 +165,4 @@ pub enum FrontierPropagationPolicy {
 pub enum FrontierCyclePolicy {
     #[default]
     ReachableCycleCheck,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ParallelAdmissionPolicy {
-    pub operational_min_parallel_tasks: usize,
-    pub development_min_parallel_tasks: usize,
-    pub forensic_min_parallel_tasks: usize,
-    pub full_parallel_min_tasks: usize,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SignalRuntimePolicy {
-    pub tier: DiagnosticsTier,
-    pub retention_budget: RetentionBudget,
-    pub reconstruction_budget: ReconstructionBudget,
-    pub snapshot_restore_lineage_mode: SnapshotRestoreLineageMode,
-    #[serde(default)]
-    pub frontier_tracing_policy: FrontierTracingPolicy,
-    #[serde(default)]
-    pub frontier_propagation_policy: FrontierPropagationPolicy,
-    #[serde(default)]
-    pub frontier_cycle_policy: FrontierCyclePolicy,
-    pub parallel_admission: ParallelAdmissionPolicy,
 }

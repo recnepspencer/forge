@@ -7,7 +7,7 @@ use worth_ui_host_contract::{
 
 use super::authority::{
     UiMountedFrameRetentionAuthority, UiMountedRetainedFrameLookup,
-    UiMountedRetentionPinAdmissionDenial,
+    UiMountedRetentionPinAdmissionDenial, UiMountedRetentionReservationIdentity,
 };
 use super::successor_admission::admit_successor;
 use super::{
@@ -35,14 +35,22 @@ impl UiMountedFrameRetentionCoordinator {
         &mut self,
         admitted: super::super::UiAuthorityAdmittedMountedFrame,
     ) -> Result<UiRetentionPreparedMountedFrame, UiMountedFrameRetentionRejection> {
-        self.prepare(admitted.into_frame(), false)
+        self.prepare(admitted.into_frame(), false, None)
+    }
+
+    pub(crate) fn prepare_superseding_publication(
+        &mut self,
+        admitted: super::super::UiAuthorityAdmittedMountedFrame,
+        predecessor: UiMountedRetentionReservationIdentity,
+    ) -> Result<UiRetentionPreparedMountedFrame, UiMountedFrameRetentionRejection> {
+        self.prepare(admitted.into_frame(), false, Some(predecessor))
     }
 
     pub(crate) fn prepare_reconciliation(
         &mut self,
         admitted: super::super::UiAuthorityAdmittedMountedFrame,
     ) -> Result<UiRetentionPreparedMountedFrame, UiMountedFrameRetentionRejection> {
-        self.prepare(admitted.into_frame(), true)
+        self.prepare(admitted.into_frame(), true, None)
     }
 
     pub(crate) fn classify(
@@ -86,9 +94,7 @@ impl UiMountedFrameRetentionCoordinator {
         evidence.classify(presentation, None, None)?;
         let rows = evidence
             .visual_region_basis(presentation.binding())
-            .hit_test()
-            .to_vec()
-            .into_boxed_slice();
+            .hit_test();
         Ok(UiPresentedHitTestBasis::new(presentation, relation, rows))
     }
 
@@ -112,7 +118,7 @@ impl UiMountedFrameRetentionCoordinator {
     ) -> Result<UiMountedObservationBasisLease, UiMountedObservationBasisRetentionDenial> {
         let structural_bytes = {
             let authority = self.authority.borrow();
-            if authority.reservation_active {
+            if !authority.reservations.is_empty() {
                 return Err(UiMountedObservationBasisRetentionDenial::FrameTransitionInFlight);
             }
             match authority.frame(frame) {
@@ -148,25 +154,42 @@ impl UiMountedFrameRetentionCoordinator {
         &mut self,
         frame: super::super::UiPreparedMountedFrame,
         reconciliation: bool,
+        superseding: Option<UiMountedRetentionReservationIdentity>,
     ) -> Result<UiRetentionPreparedMountedFrame, UiMountedFrameRetentionRejection> {
         let admission = {
             let mut authority = self.authority.borrow_mut();
-            let admission = admit_successor(&authority, &frame, reconciliation);
-            if let Ok(admission) = &admission {
-                authority.reservation_active = true;
-                authority.in_flight_structural_bytes = admission.structural_bytes();
-            }
-            admission
+            let admission = admit_successor(&authority, &frame, reconciliation, superseding);
+            let identity = if let Ok(admission) = &admission {
+                let identity = UiMountedRetentionReservationIdentity::mint()
+                    .expect("retention reservation identity space is not exhausted");
+                let replaced = authority
+                    .reservations
+                    .insert(identity, admission.structural_bytes());
+                assert!(
+                    replaced.is_none(),
+                    "retention reservation identities are unique"
+                );
+                authority.in_flight_structural_bytes = authority
+                    .in_flight_structural_bytes
+                    .checked_add(admission.structural_bytes())
+                    .expect("admitted in-flight retention bytes fit usize");
+                Some(identity)
+            } else {
+                None
+            };
+            (admission, identity)
         };
         match admission {
-            Ok(admission) => {
+            (Ok(admission), Some(identity)) => {
                 let reservation = super::UiMountedRetentionReservation::new(
                     admission,
+                    identity,
                     Rc::clone(&self.authority),
                 );
                 Ok(UiRetentionPreparedMountedFrame::new(frame, reservation))
             }
-            Err(denial) => Err(UiMountedFrameRetentionRejection::new(frame, denial)),
+            (Err(denial), None) => Err(UiMountedFrameRetentionRejection::new(frame, denial)),
+            _ => unreachable!("retention reservation identity follows successful admission"),
         }
     }
 }

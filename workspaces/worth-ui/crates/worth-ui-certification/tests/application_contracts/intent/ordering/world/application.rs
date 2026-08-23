@@ -5,7 +5,10 @@ use worth_ui::facade::intent::{
 };
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
 use worth_ui_dsl::{
-    WorthUiIntentInteractionFamily, WorthUiIntentInteractionRoute, WorthUiRustAuthoredArtifactInput,
+    WorthUiArtifactInputBodyAtom, WorthUiIntentInteractionFamily, WorthUiIntentInteractionRoute,
+    WorthUiProjectionCollectionPolicy, WorthUiProjectionCollectionSelection,
+    WorthUiProjectionLifecycle, WorthUiRustAuthoredArtifactInput,
+    WorthUiRustAuthoredArtifactInputModule,
 };
 
 use crate::{
@@ -13,16 +16,15 @@ use crate::{
         execution::lifecycle::ScriptedProvider,
         operability::{OperabilityFacts, PrimaryIntent},
     },
-    projection_presentation::{
-        collection_query::collection_module,
-        scalar_query_only::{
-            component_descriptor, status_region_descriptor, text_token_descriptor, ACTIVE_COMPONENT,
-        },
+    projection_presentation::scalar_query_only::{
+        component_descriptor, status_region_descriptor, text_token_descriptor, ACTIVE_COMPONENT,
+        STATUS_REGION, TEXT_COLOR,
     },
 };
 
 const DECLARATION: &str = "phase4.ia09.intent";
 const CONTROL: &str = "visual.identity.component.hit_only";
+const PROJECTION: &str = "platform.pulse.status";
 
 pub(super) fn build(
     registration: worth_ui_query_binding::UiCollectionProjectionRegistration,
@@ -60,7 +62,7 @@ pub(super) fn source_input(
     with_region: bool,
     facts: &OperabilityFacts,
 ) -> WorthUiRustAuthoredArtifactInput {
-    let module = collection_module(with_region)
+    let module = ordering_collection_module(with_region)
         .with_control_routes_and_authored_identity(
             CONTROL,
             "phase4-ia09-control",
@@ -93,6 +95,36 @@ pub(super) fn source_input(
                 .into_dsl_spec(),
         );
     WorthUiRustAuthoredArtifactInput::from_modules([module])
+}
+
+fn ordering_collection_module(with_region: bool) -> WorthUiRustAuthoredArtifactInputModule {
+    let mut body = Vec::new();
+    if with_region {
+        body.extend([
+            WorthUiArtifactInputBodyAtom::Identifier("region".to_owned()),
+            WorthUiArtifactInputBodyAtom::Identifier(STATUS_REGION.to_owned()),
+            WorthUiArtifactInputBodyAtom::LeftBrace,
+            WorthUiArtifactInputBodyAtom::RightBrace,
+        ]);
+    }
+    WorthUiRustAuthoredArtifactInputModule::new("app/main.wui")
+        .with_component_body_atoms_and_authored_identity(
+            ACTIVE_COMPONENT,
+            "phase4-ia09-ordering-component",
+            body,
+        )
+        .with_token(TEXT_COLOR, "#ffffff")
+        .try_with_query_collection_text(
+            PROJECTION,
+            PROJECTION,
+            "identity.id",
+            WorthUiProjectionCollectionSelection::new(
+                ["status"],
+                WorthUiProjectionLifecycle::Live,
+                WorthUiProjectionCollectionPolicy::new(false, false),
+            ),
+        )
+        .expect("the IA-09 ordering world declares its Query collection without painting it")
 }
 
 pub(super) fn successor_candidate(

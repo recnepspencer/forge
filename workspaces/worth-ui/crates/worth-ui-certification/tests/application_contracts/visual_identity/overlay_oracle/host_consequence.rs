@@ -116,7 +116,19 @@ fn capture_current_geometry(
     });
     match poll.expect("egui settles the overlay geometry capture") {
         UiVisualCapturePoll::Completed(UiVisualSnapshotOutcome::Captured(receipt)) => receipt,
-        _ => panic!("overlay geometry capture must complete with a captured receipt"),
+        UiVisualCapturePoll::Completed(UiVisualSnapshotOutcome::Superseded(value)) => {
+            panic!("overlay geometry capture was superseded: {value:?}")
+        }
+        UiVisualCapturePoll::Completed(UiVisualSnapshotOutcome::Omitted(value)) => {
+            panic!("overlay geometry capture was omitted: {value:?}")
+        }
+        UiVisualCapturePoll::Completed(UiVisualSnapshotOutcome::Denied(value)) => {
+            panic!("overlay geometry capture was denied: {value:?}")
+        }
+        UiVisualCapturePoll::Completed(UiVisualSnapshotOutcome::Indeterminate(value)) => {
+            panic!("overlay geometry capture was indeterminate: {value:?}")
+        }
+        UiVisualCapturePoll::Pending(_) => panic!("overlay geometry capture remained pending"),
     }
 }
 

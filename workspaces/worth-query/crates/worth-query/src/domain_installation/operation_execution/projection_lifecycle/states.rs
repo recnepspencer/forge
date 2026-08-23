@@ -284,6 +284,10 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryLiveBoundDomainProjection<D, O, F
         self.owner.handle().name()
     }
 
+    pub(crate) fn maintenance_owner_identity(&self) -> &str {
+        self.owner.handle().resource_identity().as_str()
+    }
+
     pub fn receipt(&self) -> &WorthQueryLiveProjectionReceipt {
         self.owner.receipt()
     }

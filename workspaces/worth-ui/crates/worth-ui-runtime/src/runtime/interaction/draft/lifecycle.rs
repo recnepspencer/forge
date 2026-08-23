@@ -15,6 +15,12 @@ impl UiDraftRuntimeState {
         }
     }
 
+    pub(crate) fn active_input_binding(
+        &self,
+    ) -> Option<worth_ui_host_contract::UiHostInputRecipientBindingReceipt> {
+        self.active_affinity.map(|lease| lease.binding())
+    }
+
     pub(crate) fn cancel_binding(
         &mut self,
         binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
@@ -39,7 +45,9 @@ impl UiDraftRuntimeState {
         &mut self,
         reason: UiLocalInputStopReason,
     ) -> Option<UiLocalInputStop> {
-        match self.active.take()? {
+        let active = self.active.take()?;
+        self.active_affinity = None;
+        match active {
             UiActiveLocalRecipient::Draft(session) => self.cancel_session(session, reason),
             UiActiveLocalRecipient::Activation(context)
             | UiActiveLocalRecipient::Submit(context) => {
@@ -58,6 +66,7 @@ impl UiDraftRuntimeState {
         reason: UiLocalInputStopReason,
     ) -> Option<UiLocalInputStop> {
         let active = self.active.take()?;
+        self.active_affinity = None;
         self.counters.stop_outcomes = next(self.counters.stop_outcomes);
         Some(match active {
             UiActiveLocalRecipient::Draft(session) => {
@@ -89,6 +98,7 @@ impl UiDraftRuntimeState {
         let draft = self.sessions.remove(&session)?;
         if matches!(self.active, Some(UiActiveLocalRecipient::Draft(active)) if active == session) {
             self.active = None;
+            self.active_affinity = None;
         }
         self.counters.sessions_settled = next(self.counters.sessions_settled);
         self.counters.stop_outcomes = next(self.counters.stop_outcomes);
@@ -120,6 +130,7 @@ impl UiDraftRuntimeState {
             .collect::<Vec<_>>();
         if let Some(context) = active_ephemeral {
             self.active = None;
+            self.active_affinity = None;
             self.counters.stop_outcomes = next(self.counters.stop_outcomes);
             stops.push(UiLocalInputStop::for_settled_recipient(
                 context.target.surface(),

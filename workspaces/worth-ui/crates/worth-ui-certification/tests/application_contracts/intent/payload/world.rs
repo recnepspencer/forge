@@ -6,16 +6,15 @@ use worth_ui::facade::intent::{
     UiIntentDefinition, UiIntentMutabilitySource, UiIntentOperabilityContract,
     UiIntentPolicySource, UiIntentReadinessSource, UiIntentText, UiIntentUnsigned64,
 };
+use worth_ui_certification::scenario::application_authority_closure::fixed_host::FixedCertificationHostBinding;
 use worth_ui_dsl::{
     WorthUiIntentInteractionFamily, WorthUiIntentInteractionRoute,
     WorthUiRustAuthoredArtifactInput, WorthUiRustAuthoredArtifactInputModule,
 };
+use worth_ui_host_headless::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder};
 use worth_ui_query_binding::{
     UiCollectionProjectionRegistration, UiProjectionInputSlot, UiScalarProjectionRegistration,
     WorthUiQueryBindingPlan,
-};
-use worth_ui_runtime::facade::host::{
-    UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder, WorthUiOperationalHostAdapter,
 };
 use worth_ui_runtime::facade::measurement_exchange::UiViewportExtentObservation;
 use worth_ui_runtime::facade::mounted::UiHostSurfacePresentationMode;
@@ -25,6 +24,8 @@ use super::super::super::filesystem_mounted_world::{
 };
 use super::super::interaction_world::InteractionWorld;
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
+
+type BoundBuilder = worth_ui_certification::scenario::application_authority_closure::FixedCertificationApplicationBuilder;
 
 pub(in crate::intent) const DECLARATION: &str = "phase3.payload.route";
 const PAINT_ONLY: &str = "visual.identity.component.paint_only";
@@ -146,22 +147,6 @@ pub(super) fn launch_native<I: UiIntent>(
     }
 }
 
-pub(super) fn launch_with_host<I, Host>(
-    input: WorthUiRustAuthoredArtifactInput,
-    projection: PayloadProjectionRegistration,
-    facts: PayloadApplicationFacts,
-    host: Host,
-) -> PayloadWorld
-where
-    I: UiIntent,
-    Host: WorthUiOperationalHostAdapter + 'static,
-{
-    let projection_slot = projection_slot(&projection);
-    let application = prepare_with_host::<I, _>(input, projection, facts, host)
-        .expect("payload world compiles through production application preparation");
-    launch_prepared(application, projection_slot)
-}
-
 fn prepare_with_host<I, Host>(
     input: WorthUiRustAuthoredArtifactInput,
     projection: PayloadProjectionRegistration,
@@ -173,7 +158,7 @@ fn prepare_with_host<I, Host>(
 >
 where
     I: UiIntent,
-    Host: WorthUiOperationalHostAdapter + 'static,
+    Host: FixedCertificationHostBinding + 'static,
 {
     let scenario = FilesystemApplicationLifecycleScenario::new("phase-3-payload-world");
     let builder = scenario
@@ -245,9 +230,9 @@ fn projection_slot(projection: &PayloadProjectionRegistration) -> Option<UiProje
 }
 
 fn register_projection(
-    builder: worth_ui::facade::app::WorthUiApplicationBuilder,
+    builder: BoundBuilder,
     projection: PayloadProjectionRegistration,
-) -> worth_ui::facade::app::WorthUiApplicationBuilder {
+) -> BoundBuilder {
     match projection {
         PayloadProjectionRegistration::None => builder,
         PayloadProjectionRegistration::Scalar(registration) => builder
@@ -259,10 +244,7 @@ fn register_projection(
     }
 }
 
-fn register_facts(
-    mut builder: worth_ui::facade::app::WorthUiApplicationBuilder,
-    facts: PayloadApplicationFacts,
-) -> worth_ui::facade::app::WorthUiApplicationBuilder {
+fn register_facts(mut builder: BoundBuilder, facts: PayloadApplicationFacts) -> BoundBuilder {
     builder = builder
         .register_intent_boolean_fact(facts.operability.0, facts.operability.1)
         .expect("payload operability fact registers");

@@ -18,6 +18,7 @@ use crate::snapshot::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SnapshotReadRequest {
     correlation_id: SnapshotReadCorrelationId,
+    correlation_discriminator: Option<Arc<str>>,
     entity_identity: Arc<str>,
     relational_record_identity: Option<RelationalBridgeRecordIdentityParts>,
     target: SnapshotReadTarget,
@@ -39,11 +40,12 @@ impl SnapshotReadRequest {
         let target = SnapshotReadTarget::whole_aspect(contract);
         let shape = SnapshotReadShape::Coarse;
         let canonical_basis =
-            snapshot_read_request_canonical_basis(entity_identity.as_ref(), &target, &shape);
+            snapshot_read_request_canonical_basis(entity_identity.as_ref(), &target, &shape, None);
         Self {
             correlation_id: SnapshotReadCorrelationId::from_native_request_basis(
                 canonical_basis.as_ref(),
             ),
+            correlation_discriminator: None,
             entity_identity,
             relational_record_identity: None,
             target,
@@ -96,11 +98,12 @@ impl SnapshotReadRequest {
         );
         let shape = SnapshotReadShape::SubscriptionSlice { slice_kind };
         let canonical_basis =
-            snapshot_read_request_canonical_basis(entity_identity.as_ref(), &target, &shape);
+            snapshot_read_request_canonical_basis(entity_identity.as_ref(), &target, &shape, None);
         Self {
             correlation_id: SnapshotReadCorrelationId::from_native_request_basis(
                 canonical_basis.as_ref(),
             ),
+            correlation_discriminator: None,
             entity_identity,
             relational_record_identity: None,
             target,
@@ -127,6 +130,16 @@ impl SnapshotReadRequest {
         );
         request.relational_record_identity = Some(relational_record_identity);
         request
+    }
+
+    pub(crate) fn with_correlation_discriminator(
+        mut self,
+        correlation_discriminator: impl Into<Arc<str>>,
+    ) -> Self {
+        self.correlation_discriminator = Some(correlation_discriminator.into());
+        self.correlation_id =
+            SnapshotReadCorrelationId::from_native_request_basis(self.canonical_basis().as_ref());
+        self
     }
 
     pub fn correlation_id(&self) -> &SnapshotReadCorrelationId {
@@ -165,7 +178,12 @@ impl SnapshotReadRequest {
     }
 
     pub(crate) fn canonical_basis(&self) -> Arc<str> {
-        snapshot_read_request_canonical_basis(self.entity_identity(), &self.target, &self.shape)
+        snapshot_read_request_canonical_basis(
+            self.entity_identity(),
+            &self.target,
+            &self.shape,
+            self.correlation_discriminator.as_deref(),
+        )
     }
 }
 
@@ -264,9 +282,14 @@ fn validate_snapshot_read_record(
             )
         })?;
 
+    let Some(read_value) = record.read_value_posture() else {
+        return Ok(ValidatedSnapshotReadRecord::absent(
+            record.correlation_id().clone(),
+        ));
+    };
     let validation = validate_aspect_value(
         read.target().contract().aspect_contract(),
-        record.read_value().clone().into_validation_input(),
+        read_value.clone().into_validation_input(),
     );
     match validation {
         TransitionOutcome::Success(validated) => Ok(ValidatedSnapshotReadRecord::new(
@@ -291,17 +314,24 @@ fn snapshot_read_request_canonical_basis(
     entity_identity: &str,
     target: &SnapshotReadTarget,
     shape: &SnapshotReadShape,
+    correlation_discriminator: Option<&str>,
 ) -> Arc<str> {
-    match shape {
-        SnapshotReadShape::Coarse => Arc::from(format!(
+    let basis = match shape {
+        SnapshotReadShape::Coarse => format!(
             "snapshot-read-request|entity={entity_identity}|target={}|shape=coarse",
             target.target_identity().as_str(),
-        )),
-        SnapshotReadShape::SubscriptionSlice { slice_kind } => Arc::from(format!(
+        ),
+        SnapshotReadShape::SubscriptionSlice { slice_kind } => format!(
             "snapshot-read-request|entity={entity_identity}|target={}|shape=subscription-slice|slice-kind={}",
             target.target_identity().as_str(),
             canonical_subscription_slice_kind_label(slice_kind),
-        )),
+        ),
+    };
+    match correlation_discriminator {
+        Some(discriminator) => {
+            Arc::from(format!("{basis}|correlation-discriminator={discriminator}"))
+        }
+        None => Arc::from(basis),
     }
 }
 

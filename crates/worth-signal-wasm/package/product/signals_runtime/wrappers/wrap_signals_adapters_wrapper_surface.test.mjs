@@ -110,7 +110,7 @@ test("wrapSignals adapters wrapper marks same-runtime exact restore while preser
           latestRollback() {
             return null;
           },
-          latestFrontierExecution() {
+          latestInvalidationPlanningEstimate() {
             return null;
           },
           latestInvalidationTraceRecords() {

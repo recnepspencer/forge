@@ -1,9 +1,10 @@
 use super::WorthUiMountedSessionState;
 use crate::mounting::{
-    UiHostSurfacePresentationMode, UiMountedFrameIdentity, UiMountedGraphNodeHandle,
-    UiMountedIdentityDenial, UiMountedIdentityView, UiMountedInstanceIdentity,
-    UiMountedNodeReceiptIdentity, UiMountedProjectionAudience, UiSemanticSurfaceIdentity,
-    UiSurfaceBindingGeneration, UiSurfaceBindingIdentityView, UiSurfaceBindingProfile,
+    UiHostSurfaceIdentity, UiHostSurfacePresentationMode, UiMountedFrameIdentity,
+    UiMountedGraphNodeHandle, UiMountedIdentityDenial, UiMountedIdentityView,
+    UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity, UiMountedProjectionAudience,
+    UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration, UiSurfaceBindingIdentityView,
+    UiSurfaceBindingProfile,
 };
 
 impl WorthUiMountedSessionState {
@@ -59,18 +60,89 @@ impl WorthUiMountedSessionState {
         host: &crate::facade::WorthUiHostSessionAuthority,
         binding: UiSurfaceBindingGeneration,
     ) -> Result<UiSemanticSurfaceIdentity, UiMountedIdentityDenial> {
+        self.deregister_host_surface_with_retention(host, binding, false)
+    }
+
+    pub(crate) fn deregister_host_surface_for_rebind(
+        &mut self,
+        host: &crate::facade::WorthUiHostSessionAuthority,
+        binding: UiSurfaceBindingGeneration,
+    ) -> Result<(UiSemanticSurfaceIdentity, UiHostSurfaceIdentity), UiMountedIdentityDenial> {
+        let host_surface = self
+            .identity
+            .surface_binding(binding)
+            .ok_or(UiMountedIdentityDenial::UnknownSurfaceBinding)?
+            .host_surface_identity();
+        self.deregister_host_surface_with_retention(host, binding, true)
+            .map(|semantic| (semantic, host_surface))
+    }
+
+    pub(crate) fn register_rebound_host_surface(
+        &mut self,
+        host: &crate::facade::WorthUiHostSessionAuthority,
+        prior_binding: UiSurfaceBindingGeneration,
+        semantic_surface: UiSemanticSurfaceIdentity,
+        host_surface: UiHostSurfaceIdentity,
+        mode: UiHostSurfacePresentationMode,
+        profile: UiSurfaceBindingProfile,
+    ) -> Result<UiSurfaceBindingIdentityView, UiMountedIdentityDenial> {
+        self.ensure_identity_mutation_available()?;
+        let candidate = match self.identity.prepare_surface_rebind_registration(
+            host.protocol(),
+            host.capability_report(),
+            semantic_surface,
+            host_surface,
+            mode,
+            profile,
+        ) {
+            Ok(candidate) => candidate,
+            Err(denial) => {
+                self.presentation.abandon_surface_rebind(prior_binding);
+                return Err(denial);
+            }
+        };
+        let baseline = match self
+            .presentation
+            .host_truth_mut()
+            .register_surface(host.effect_port(), candidate.request())
+        {
+            Ok(baseline) => baseline,
+            Err(denial) => {
+                self.presentation.abandon_surface_rebind(prior_binding);
+                return Err(denial);
+            }
+        };
+        let view = self
+            .identity
+            .commit_surface_registration(candidate, baseline);
+        self.presentation.commit_surface_rebind(prior_binding, view);
+        Ok(view)
+    }
+
+    fn deregister_host_surface_with_retention(
+        &mut self,
+        host: &crate::facade::WorthUiHostSessionAuthority,
+        binding: UiSurfaceBindingGeneration,
+        preserve_for_rebind: bool,
+    ) -> Result<UiSemanticSurfaceIdentity, UiMountedIdentityDenial> {
         self.ensure_identity_mutation_available()?;
         let requires_reconciliation = self.presentation.binding_requires_reconciliation(binding);
         let required_by_current = self.identity.current_requires_binding(binding);
         let has_published_predecessor = self.identity.publication_receipt().is_some();
-        let preserve_published_frame =
-            has_published_predecessor && (requires_reconciliation || !required_by_current);
+        let preserve_published_frame = has_published_predecessor
+            && (preserve_for_rebind || requires_reconciliation || !required_by_current);
         let candidate = self
             .identity
             .prepare_surface_deregistration(binding, preserve_published_frame)?;
+        let text_pin_candidate = self.presentation.prepare_text_pin_deregistration(binding);
         self.presentation
             .host_truth_mut()
             .deregister_surface(host.effect_port(), candidate.request())?;
+        self.presentation.commit_surface_deregistration(
+            binding,
+            text_pin_candidate,
+            preserve_for_rebind,
+        );
         let semantic_surface = self.identity.commit_surface_deregistration(candidate);
         if has_published_predecessor && requires_reconciliation && !required_by_current {
             self.presentation

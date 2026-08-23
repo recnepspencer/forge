@@ -1,6 +1,19 @@
 use worth_proof::{Artifact, AuthorityMarker, AuthorityWitness, PhaseMarker, TransitionOutcome};
 
+use super::progression_resolution::{
+    admit_requested_foundational_profile_with_resolutions,
+    materialize_admitted_foundational_profile_with_resolutions,
+};
+use super::resolution::{
+    changed_resolution_families, FoundationalProfileResolutionFamily,
+    FoundationalProfileResolutionLedger,
+};
 use super::FoundationalProfileSet;
+
+mod narrowing;
+use narrowing::classify_profile_narrowing;
+pub(super) use narrowing::classify_profile_narrowing_for_resolution;
+pub use narrowing::{FoundationalProfileNarrowingKind, FoundationalProfileNarrowingRecord};
 
 pub type FoundationalProfileProgressionOutcome<S> = TransitionOutcome<
     S,
@@ -10,35 +23,6 @@ pub type FoundationalProfileProgressionOutcome<S> = TransitionOutcome<
     FoundationalProfileProgressionRebindRequired,
     FoundationalProfileProgressionFailure,
 >;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FoundationalProfileNarrowingKind {
-    RichnessReduced,
-    RetentionNarrowed,
-    SupportPostureReduced,
-    CertificationPostureReduced,
-    CompatibilityRestricted,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct FoundationalProfileNarrowingRecord {
-    kind: FoundationalProfileNarrowingKind,
-    reason: &'static str,
-}
-
-impl FoundationalProfileNarrowingRecord {
-    pub const fn new(kind: FoundationalProfileNarrowingKind, reason: &'static str) -> Self {
-        Self { kind, reason }
-    }
-
-    pub const fn kind(&self) -> FoundationalProfileNarrowingKind {
-        self.kind
-    }
-
-    pub const fn reason(&self) -> &'static str {
-        self.reason
-    }
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RequestedFoundationalProfilePhase;
@@ -65,9 +49,9 @@ impl RequestedFoundationalProfileSet {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AdmittedFoundationalProfileSet {
-    requested: FoundationalProfileSet,
-    admitted: FoundationalProfileSet,
-    requested_to_admitted_narrowing: Option<FoundationalProfileNarrowingRecord>,
+    pub(super) requested: FoundationalProfileSet,
+    pub(super) admitted: FoundationalProfileSet,
+    pub(super) requested_to_admitted_resolutions: FoundationalProfileResolutionLedger,
 }
 
 impl AdmittedFoundationalProfileSet {
@@ -79,20 +63,22 @@ impl AdmittedFoundationalProfileSet {
         &self.admitted
     }
 
-    pub const fn requested_to_admitted_narrowing(
-        &self,
-    ) -> Option<FoundationalProfileNarrowingRecord> {
-        self.requested_to_admitted_narrowing
+    pub fn requested_to_admitted_narrowing(&self) -> Option<FoundationalProfileNarrowingRecord> {
+        narrowing::legacy_narrowing_projection(self.requested_to_admitted_resolutions)
+    }
+
+    pub const fn requested_to_admitted_resolutions(&self) -> FoundationalProfileResolutionLedger {
+        self.requested_to_admitted_resolutions
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MaterializedFoundationalProfileSet {
-    requested: FoundationalProfileSet,
-    admitted: FoundationalProfileSet,
-    materialized: FoundationalProfileSet,
-    requested_to_admitted_narrowing: Option<FoundationalProfileNarrowingRecord>,
-    admitted_to_materialized_narrowing: Option<FoundationalProfileNarrowingRecord>,
+    pub(super) requested: FoundationalProfileSet,
+    pub(super) admitted: FoundationalProfileSet,
+    pub(super) materialized: FoundationalProfileSet,
+    pub(super) requested_to_admitted_resolutions: FoundationalProfileResolutionLedger,
+    pub(super) admitted_to_materialized_resolutions: FoundationalProfileResolutionLedger,
 }
 
 impl MaterializedFoundationalProfileSet {
@@ -108,16 +94,22 @@ impl MaterializedFoundationalProfileSet {
         &self.materialized
     }
 
-    pub const fn requested_to_admitted_narrowing(
-        &self,
-    ) -> Option<FoundationalProfileNarrowingRecord> {
-        self.requested_to_admitted_narrowing
+    pub fn requested_to_admitted_narrowing(&self) -> Option<FoundationalProfileNarrowingRecord> {
+        narrowing::legacy_narrowing_projection(self.requested_to_admitted_resolutions)
     }
 
-    pub const fn admitted_to_materialized_narrowing(
+    pub fn admitted_to_materialized_narrowing(&self) -> Option<FoundationalProfileNarrowingRecord> {
+        narrowing::legacy_narrowing_projection(self.admitted_to_materialized_resolutions)
+    }
+
+    pub const fn requested_to_admitted_resolutions(&self) -> FoundationalProfileResolutionLedger {
+        self.requested_to_admitted_resolutions
+    }
+
+    pub const fn admitted_to_materialized_resolutions(
         &self,
-    ) -> Option<FoundationalProfileNarrowingRecord> {
-        self.admitted_to_materialized_narrowing
+    ) -> FoundationalProfileResolutionLedger {
+        self.admitted_to_materialized_resolutions
     }
 }
 
@@ -153,6 +145,8 @@ pub enum FoundationalProfileProgressionDenial {
     RequestedAndAdmittedProfilesMayDifferInOnlyOneFamily,
     RequestedAndAdmittedProfilesMayOnlyNarrow,
     AdmissionReadinessCannotChangeAcrossProfileProgression,
+    ResolutionLedgerDoesNotMatchProfileChange,
+    ResolutionRelationMismatch(FoundationalProfileResolutionFamily),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -225,134 +219,63 @@ pub fn admit_requested_foundational_profile(
     requested: RequestedFoundationalProfileArtifact,
     admitted: FoundationalProfileSet,
     narrowing: Option<FoundationalProfileNarrowingRecord>,
-    _authority: AuthorityWitness<FoundationalProfileProgressionAuthority>,
+    authority: AuthorityWitness<FoundationalProfileProgressionAuthority>,
 ) -> FoundationalProfileProgressionOutcome<AdmittedFoundationalProfileArtifact> {
     let requested_profile = *requested.payload().requested();
-    let admitted_narrowing =
-        match classify_profile_narrowing(requested_profile, admitted, narrowing) {
-            Ok(narrowing) => narrowing,
-            Err(denial) => return TransitionOutcome::denied(denial),
-        };
-
-    TransitionOutcome::success(Artifact::new(AdmittedFoundationalProfileSet {
-        requested: requested_profile,
+    if let Err(denial) = classify_profile_narrowing(requested_profile, admitted, narrowing) {
+        return TransitionOutcome::denied(denial);
+    }
+    admit_requested_foundational_profile_with_resolutions(
+        requested,
         admitted,
-        requested_to_admitted_narrowing: admitted_narrowing,
-    }))
+        legacy_resolution_ledger(requested_profile, admitted, narrowing),
+        authority,
+    )
 }
 
 pub fn materialize_admitted_foundational_profile(
     admitted: AdmittedFoundationalProfileArtifact,
     materialized: FoundationalProfileSet,
     narrowing: Option<FoundationalProfileNarrowingRecord>,
-    _authority: AuthorityWitness<FoundationalProfileProgressionAuthority>,
+    authority: AuthorityWitness<FoundationalProfileProgressionAuthority>,
 ) -> FoundationalProfileProgressionOutcome<MaterializedFoundationalProfileArtifact> {
-    let admitted_payload = admitted.payload();
-    let materialized_narrowing =
-        match classify_profile_narrowing(*admitted_payload.admitted(), materialized, narrowing) {
-            Ok(narrowing) => narrowing,
-            Err(denial) => return TransitionOutcome::denied(denial),
-        };
-
-    TransitionOutcome::success(Artifact::new(MaterializedFoundationalProfileSet {
-        requested: *admitted_payload.requested(),
-        admitted: *admitted_payload.admitted(),
+    let admitted_profile = *admitted.payload().admitted();
+    if let Err(denial) = classify_profile_narrowing(admitted_profile, materialized, narrowing) {
+        return TransitionOutcome::denied(denial);
+    }
+    materialize_admitted_foundational_profile_with_resolutions(
+        admitted,
         materialized,
-        requested_to_admitted_narrowing: admitted_payload.requested_to_admitted_narrowing(),
-        admitted_to_materialized_narrowing: materialized_narrowing,
-    }))
+        legacy_resolution_ledger(admitted_profile, materialized, narrowing),
+        authority,
+    )
 }
 
-fn classify_profile_narrowing(
+fn legacy_resolution_ledger(
     stronger: FoundationalProfileSet,
     weaker: FoundationalProfileSet,
     narrowing: Option<FoundationalProfileNarrowingRecord>,
-) -> Result<Option<FoundationalProfileNarrowingRecord>, FoundationalProfileProgressionDenial> {
-    let Some(expected_kind) = detect_profile_narrowing_kind(stronger, weaker)? else {
-        return Ok(None);
-    };
-
-    let Some(record) = narrowing else {
-        return Err(FoundationalProfileProgressionDenial::MissingExplicitNarrowingRecord);
-    };
-
-    if record.kind() != expected_kind {
-        return Err(FoundationalProfileProgressionDenial::NarrowingRecordKindMismatch);
+) -> FoundationalProfileResolutionLedger {
+    let mut ledger = changed_resolution_families(stronger, weaker);
+    if let Some(narrowing) = narrowing {
+        let family = match narrowing.kind() {
+            FoundationalProfileNarrowingKind::RichnessReduced => {
+                FoundationalProfileResolutionFamily::DiagnosticRichness
+            }
+            FoundationalProfileNarrowingKind::RetentionNarrowed => {
+                FoundationalProfileResolutionFamily::RetentionDelivery
+            }
+            FoundationalProfileNarrowingKind::SupportPostureReduced => {
+                FoundationalProfileResolutionFamily::SupportPosture
+            }
+            FoundationalProfileNarrowingKind::CertificationPostureReduced => {
+                FoundationalProfileResolutionFamily::CertificationPosture
+            }
+            FoundationalProfileNarrowingKind::CompatibilityRestricted => {
+                FoundationalProfileResolutionFamily::CompatibilityPosture
+            }
+        };
+        ledger.replace_descriptive_reason(family, narrowing.reason());
     }
-
-    Ok(Some(record))
-}
-
-fn detect_profile_narrowing_kind(
-    stronger: FoundationalProfileSet,
-    weaker: FoundationalProfileSet,
-) -> Result<Option<FoundationalProfileNarrowingKind>, FoundationalProfileProgressionDenial> {
-    if stronger.admission_readiness() != weaker.admission_readiness() {
-        return Err(
-            FoundationalProfileProgressionDenial::AdmissionReadinessCannotChangeAcrossProfileProgression,
-        );
-    }
-
-    let mut changed_kind = None;
-
-    record_family_narrowing(
-        stronger.diagnostic_richness(),
-        weaker.diagnostic_richness(),
-        FoundationalProfileNarrowingKind::RichnessReduced,
-        &mut changed_kind,
-    )?;
-    record_family_narrowing(
-        stronger.retention_delivery(),
-        weaker.retention_delivery(),
-        FoundationalProfileNarrowingKind::RetentionNarrowed,
-        &mut changed_kind,
-    )?;
-    record_family_narrowing(
-        stronger.support_posture(),
-        weaker.support_posture(),
-        FoundationalProfileNarrowingKind::SupportPostureReduced,
-        &mut changed_kind,
-    )?;
-    record_family_narrowing(
-        stronger.certification_posture(),
-        weaker.certification_posture(),
-        FoundationalProfileNarrowingKind::CertificationPostureReduced,
-        &mut changed_kind,
-    )?;
-    record_family_narrowing(
-        stronger.compatibility_posture(),
-        weaker.compatibility_posture(),
-        FoundationalProfileNarrowingKind::CompatibilityRestricted,
-        &mut changed_kind,
-    )?;
-
-    Ok(changed_kind)
-}
-
-fn record_family_narrowing<T>(
-    stronger: T,
-    weaker: T,
-    kind: FoundationalProfileNarrowingKind,
-    changed_kind: &mut Option<FoundationalProfileNarrowingKind>,
-) -> Result<(), FoundationalProfileProgressionDenial>
-where
-    T: Copy + Ord,
-{
-    if stronger == weaker {
-        return Ok(());
-    }
-
-    if weaker > stronger {
-        return Err(
-            FoundationalProfileProgressionDenial::RequestedAndAdmittedProfilesMayOnlyNarrow,
-        );
-    }
-
-    if changed_kind.replace(kind).is_some() {
-        return Err(
-            FoundationalProfileProgressionDenial::RequestedAndAdmittedProfilesMayDifferInOnlyOneFamily,
-        );
-    }
-
-    Ok(())
+    ledger
 }

@@ -3,9 +3,12 @@ mod delivery;
 mod execution;
 mod identity;
 mod locality;
+mod maintenance;
 mod patches;
 mod promotion;
 mod refresh;
+#[cfg(test)]
+mod region_scoped;
 mod relevance;
 mod telemetry;
 
@@ -15,8 +18,6 @@ pub(crate) use execution::{
     LivePatchConstructionBasis,
 };
 
-#[cfg(test)]
-mod region_scoped;
 #[cfg(test)]
 pub(crate) use region_scoped::{
     admit_region_scoped_live_plan, execute_region_scoped_live_change,
@@ -28,6 +29,7 @@ pub use delivery::*;
 pub use execution::*;
 pub use identity::*;
 pub use locality::*;
+pub use maintenance::*;
 pub use patches::*;
 pub use promotion::*;
 pub use refresh::*;

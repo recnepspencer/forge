@@ -47,7 +47,7 @@ impl UiProjectionBinding {
     pub(crate) fn query_issued(binding_identity_for_reporting: &str) -> Self {
         Self {
             query_binding_reporting_projection:
-                crate::UiQueryIdentityReportingProjection::from_terminal_projection_for_reporting(
+                crate::UiQueryIdentityReportingProjection::from_query_reporting_text(
                     binding_identity_for_reporting,
                 ),
         }

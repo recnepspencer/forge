@@ -1,5 +1,5 @@
 use worth_ui_host_contract::{
-    UiHostSurfaceBaselineReceipt, UiHostSurfaceIdentity, UiHostSurfacePresentationMode,
+    UiHostSurfaceBaselineIdentity, UiHostSurfaceIdentity, UiHostSurfacePresentationMode,
     UiHostSurfaceRegistrationDenial, UiHostSurfaceRegistrationInput,
     UiHostSurfaceRegistrationRequest, UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
     WorthUiHostCapabilityReport,
@@ -25,6 +25,16 @@ pub(crate) struct UiMountedSurfaceDeregistrationCandidate {
 }
 
 impl UiMountedIdentityState {
+    pub(crate) fn surface_binding(
+        &self,
+        binding: UiSurfaceBindingGeneration,
+    ) -> Option<crate::mounting::UiSurfaceBindingIdentityView> {
+        self.bindings
+            .values()
+            .find(|record| record.view.binding_generation() == binding)
+            .map(|record| record.view)
+    }
+
     pub(crate) fn prepare_surface_registration(
         &self,
         protocol: worth_ui_host_contract::UiHostProtocolAgreement,
@@ -33,11 +43,50 @@ impl UiMountedIdentityState {
         mode: UiHostSurfacePresentationMode,
         profile: UiSurfaceBindingProfile,
     ) -> Result<UiMountedSurfaceRegistrationCandidate, UiMountedIdentityDenial> {
+        self.prepare_surface_registration_with_identity(
+            protocol,
+            capability_report,
+            semantic_surface,
+            mode,
+            profile,
+            None,
+        )
+    }
+
+    pub(crate) fn prepare_surface_rebind_registration(
+        &self,
+        protocol: worth_ui_host_contract::UiHostProtocolAgreement,
+        capability_report: &WorthUiHostCapabilityReport,
+        semantic_surface: UiSemanticSurfaceIdentity,
+        host_surface: UiHostSurfaceIdentity,
+        mode: UiHostSurfacePresentationMode,
+        profile: UiSurfaceBindingProfile,
+    ) -> Result<UiMountedSurfaceRegistrationCandidate, UiMountedIdentityDenial> {
+        self.prepare_surface_registration_with_identity(
+            protocol,
+            capability_report,
+            semantic_surface,
+            mode,
+            profile,
+            Some(host_surface),
+        )
+    }
+
+    fn prepare_surface_registration_with_identity(
+        &self,
+        protocol: worth_ui_host_contract::UiHostProtocolAgreement,
+        capability_report: &WorthUiHostCapabilityReport,
+        semantic_surface: UiSemanticSurfaceIdentity,
+        mode: UiHostSurfacePresentationMode,
+        profile: UiSurfaceBindingProfile,
+        retained_host_surface: Option<UiHostSurfaceIdentity>,
+    ) -> Result<UiMountedSurfaceRegistrationCandidate, UiMountedIdentityDenial> {
         self.require_surface(semantic_surface)?;
         if self.bindings.contains_key(&semantic_surface) {
             return Err(UiMountedIdentityDenial::SurfaceAlreadyBound);
         }
-        let host_surface = UiHostSurfaceIdentity::mint_unbound()
+        let host_surface = retained_host_surface
+            .map_or_else(UiHostSurfaceIdentity::mint_unbound, Ok)
             .map_err(|_| UiMountedIdentityDenial::IdentityExhausted)?;
         let binding_generation = UiSurfaceBindingGeneration::mint_unbound()
             .map_err(|_| UiMountedIdentityDenial::IdentityExhausted)?;
@@ -63,10 +112,10 @@ impl UiMountedIdentityState {
     pub(crate) fn commit_surface_registration(
         &mut self,
         candidate: UiMountedSurfaceRegistrationCandidate,
-        baseline: UiHostSurfaceBaselineReceipt,
+        baseline: UiHostSurfaceBaselineIdentity,
     ) -> UiSurfaceBindingIdentityView {
         let request = candidate.request;
-        debug_assert_eq!(baseline.registration(), request);
+        debug_assert_eq!(baseline.binding_generation(), request.binding_generation());
         debug_assert!(!self
             .bindings
             .contains_key(&request.semantic_surface_identity()));

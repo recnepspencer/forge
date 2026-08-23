@@ -7,6 +7,7 @@ mod derivation;
 mod foundational_identity;
 mod foundational_materialization;
 mod foundational_projection;
+mod granular_publication;
 mod meaning;
 mod readmission;
 mod semantic_projection;
@@ -27,6 +28,9 @@ pub use foundational_materialization::{
 };
 pub use foundational_projection::{
     WorthQueryFoundationalInvalidationProjection, WorthQueryFoundationalInvalidationScope,
+};
+pub use granular_publication::{
+    WorthQueryConsumerGranularMaintenanceStop, WorthQueryPublishedConsumerInvalidation,
 };
 pub use meaning::{
     WorthQueryConsumerInvalidationCause, WorthQueryConsumerInvalidationContinuation,

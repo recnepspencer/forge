@@ -295,6 +295,7 @@ fn planning_graph_fixture(label: &str, operator_token: &str) -> (WorthUiApp, UiG
                 )),
         )
         .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("application preparation should succeed");
     let root_node = graph_node_identity_for_provenance(&app);
     (app, root_node)

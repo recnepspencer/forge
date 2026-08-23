@@ -9,5 +9,9 @@ autotests = false
 name = "worth_ui_host_contract"
 path = "src/lib.rs"
 
+[features]
+default = []
+certification-construction = []
+
 [lints]
 workspace = true

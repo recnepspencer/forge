@@ -19,6 +19,9 @@ before CPU/GPU or other device support can be claimed.
 
 Backends execute proof-bearing work. They do not own graph semantics, node
 meaning, dependency admission, determinism policy, authority, or commit.
+Semantic scope paths and physical shard placement cross the boundary as
+separate identities: the first describes admitted meaning, while the second is
+replaceable execution layout.
 
 ## 2. Current Boundary
 
@@ -54,6 +57,7 @@ Execute the same versioned prepared workload through:
 The workload must combine:
 
 - graph antichains and structured partition patterns
+- deep hierarchical scope paths, cross-shard dependencies, and boundary reads
 - canonical and contract-equivalent reductions
 - large immutable inputs and large worker-local outputs
 - dynamic graph work that remains host-owned and therefore cannot be exported
@@ -66,6 +70,8 @@ The workload must combine:
   host authority loss
 - branch capture, restore, replay, and deterministic rerun
 - main-thread-hosted callbacks that are unavailable in a worker
+- backend-specific shard layouts, including a placement different from the
+  native reference plan and reordered physical result arrival
 
 Required result:
 
@@ -78,6 +84,8 @@ Required result:
 - backend crash leaves authoritative graph truth intact
 - WASM worker unavailability follows the existing explicit fallback policy
 - transport, device, and worker scheduling never become replay meaning
+- a backend may change physical placement but cannot change the admitted scope
+  path, work identity, or canonical publication
 
 The courtroom must convict:
 
@@ -89,6 +97,8 @@ The courtroom must convict:
   identity does not match the admitted work
 - claiming distributed execution from an in-memory fake
 - claiming accelerator support from a trait with no real conformance evidence
+- conflating `ScopePath` with `ExecutionShardKey`, or accepting a result whose
+  semantic locality matches but shard-plan/epoch binding does not
 
 ## 4. Product Decision Lock
 
@@ -175,6 +185,20 @@ WORTH claims support for a device family only after a real adapter passes
 semantic, numerical, cancellation, memory-transfer, and failure certification.
 The existence of a backend trait is not device support.
 
+### 4.9 Portable Locality And Placement Remain Separate
+
+Portable work carries the admitted semantic `ScopePath` identity needed for
+readmission and a distinct non-authoritative shard assignment used for transfer
+and execution. A backend may lawfully choose a different physical assignment
+when capability, memory, or topology requires it, but the host must record and
+validate that derived plan against the request epoch.
+
+Returned packets identify both the semantic work they answer and the physical
+plan that produced them. Readmission rejects missing, stale, or mismatched
+semantic locality, partition, shard-plan, boundary-read, computation, or epoch
+identity. Neither a remote host nor a worker may reinterpret path segments or
+mint new semantic work from placement.
+
 ## 5. Required Boundary Forms And Caller DX
 
 The implementation must establish canonical equivalents of:
@@ -189,6 +213,8 @@ pub struct BackendResultEnvelope { /* output, disposition, cost, integrity */ }
 pub struct BackendResultReadmission { /* sealed validation proof */ }
 pub struct RemoteExecutionRecoveryHandle { /* inspect/retrieve/reconcile */ }
 pub struct BackendConformanceReport { /* semantic and operational evidence */ }
+pub struct PortableSemanticLocality { /* admitted scope-path identity */ }
+pub struct PortableShardPlacement { /* replaceable physical layout */ }
 ```
 
 Ordinary callers continue to express posture rather than mechanism:
@@ -227,6 +253,8 @@ crates/worth-signal-execution-protocol/ [created boundary-schema crate]
     capability.rs                      [versioned capability wire form]
     submission.rs                      [prepared batch envelope]
     result.rs                          [result/disposition envelope]
+    locality.rs                        [semantic scope-path wire identity]
+    placement.rs                       [physical shard-plan wire identity]
     recovery.rs                        [idempotency and recovery protocol]
     integrity.rs                       [digest and schema identity]
 
@@ -281,6 +309,8 @@ or adapter code re-exported as core authority.
 - identify which existing computation forms are portable and which remain host
   only
 - make unsupported crossing fail before serialization
+- freeze separate semantic-locality and physical-placement identities in every
+  submission/result lane
 
 ### M17.1 - Serial And Native Conformance
 
@@ -288,12 +318,15 @@ or adapter code re-exported as core authority.
   adapters
 - prove the boundary form does not change local semantics
 - install the common conformance suite
+- prove alternative native shard layouts preserve the same admitted work and
+  canonical result
 
 ### M17.2 - WASM Worker Integration
 
 - adapt the existing placement/lowering and worker boundary proofs
 - preserve worker-first and declared fallback postures
 - certify worker/main-thread/serial truth parity and callback unavailability
+- preserve semantic scope identity while allowing worker-specific placement
 
 ### M17.3 - Remote Submission And Recovery
 
@@ -301,6 +334,8 @@ or adapter code re-exported as core authority.
 - establish idempotent submission, durable disposition, result retention,
   deadline/cancellation, duplicate delivery, and recovery handles
 - validate results through core readmission before publication
+- report cross-shard transfer, boundary reads, migrations, and retained result
+  residency separately from semantic work
 
 ### M17.4 - Accelerator Conformance Boundary
 
@@ -344,6 +379,7 @@ Must ship:
 - real remote-process execution with idempotency and recovery
 - accelerator conformance contract without an unearned support claim
 - cross-backend certification artifacts and structural cost reports
+- separate portable semantic-locality and replaceable shard-placement forms
 
 Must preserve:
 
@@ -363,6 +399,8 @@ Milestone 17 does not:
 - serialize arbitrary closures, callbacks, pointers, or runtime authority
 - put Web Worker, GPU, network, or geometry vocabulary in core computation
   meaning
+- make backend placement, machine topology, or transport routing part of
+  invalidation or replay meaning
 - claim a device backend without real adapter certification
 - hide network/device transfer or indeterminate recovery behind a synchronous
   property-shaped API
@@ -380,9 +418,11 @@ Milestone 17 closes only when:
 - authoritative graph state survives every backend crash and lost response
 - WASM worker fallback occurs only under declared product policy and is visible
 - main-thread-only callbacks are never exported as portable computation
+- backend-specific shard layouts preserve scope/work identity and reject every
+  stale or mismatched semantic-locality/placement/epoch combination
 - reports expose serialization bytes, transfer bytes, queueing, execution work,
-  peak memory, retries, duplicate results, recovery actions, and publication
-  breadth by named lane
+  peak memory, retries, duplicate results, recovery actions, publication
+  breadth, cross-shard traffic, migrations, and residency by named lane
 - protocol and adapter mutation probes turn conformance evidence red
 - focused tests, complete affected suites, real WASM/browser or worker proof,
   real process-boundary proof, boundary checks, context checks, formatting, and
