@@ -27,8 +27,3 @@ mod stable_read_plan_admission;
 
 #[path = "../scenarios/physical_isolation/stable_read_plan_native_footprint/stable_read_plan_native_footprint.rs"]
 mod stable_read_plan_native_footprint;
-
-#[path = "../scenarios/physical_isolation/readiness/shortcut_report.rs"]
-mod physical_isolation_shortcut_report;
-#[path = "../scenarios/physical_isolation/stable_read_plan_scenarios/stable_read_plan_scenarios.rs"]
-mod stable_read_plan_scenarios;

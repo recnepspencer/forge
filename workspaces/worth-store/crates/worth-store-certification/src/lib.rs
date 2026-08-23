@@ -1,15 +1,12 @@
 #![doc = include_str!("courtroom/cross_cutting/certification_compile_fail_proofs.md")]
 #![forbid(unsafe_code)]
 
-//! Store certification courtroom: evidence, replay, scenario, and closeout surfaces.
-//!
-//! Public API follows lifecycle order: authority, evidence, scenario, replay, and closeout.
+//! Store certification: focused owner checks and direct boundary evidence.
 
-pub mod authority;
 pub mod courtroom;
 pub mod evidence;
+#[cfg(test)]
 mod physical_fixture_encoding;
-mod scenario;
 
 include!("internal_modules.rs");
 mod public_api;

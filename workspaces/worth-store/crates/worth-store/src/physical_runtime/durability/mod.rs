@@ -49,8 +49,7 @@ pub(in crate::physical_runtime) use closeout::PhysicalIdempotencyCloseoutDenial;
 pub use closeout::{
     PhysicalArtifactResidueClassification, PhysicalBackendDurabilityCloseoutEvidence,
     PhysicalDurabilityCloseoutDenial, PhysicalDurabilityCloseoutOutcome,
-    PhysicalDurabilityRecoveryHandoff, PhysicalDurabilitySourceIdentity,
-    PhysicalDurabilitySourceProfileIdentity, PhysicalRecoveryAllocationAdmission,
+    PhysicalDurabilityRecoveryHandoff, PhysicalRecoveryAllocationAdmission,
     PhysicalRecoveryAttemptBindingFact, PhysicalRecoveryCheckpointBasis,
     PhysicalRecoveryCompletedMutationFact, PhysicalRecoveryOperationFact,
     PhysicalRecoveryOperationFate, PhysicalRecoveryOperationFateCounts,

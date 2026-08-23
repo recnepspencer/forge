@@ -7,22 +7,6 @@ use worth_store_physical_integrity::{
 };
 use worth_store_test_support::harness::physical_residency::PhysicalResidencyStoreWorld;
 
-use crate::{
-    PhysicalProofOracleKind, PhysicalScenarioDefinition, PhysicalStoryStep, PhysicalSubstrateLane,
-};
-
-pub(super) fn planned_work_scenario_definition() -> crate::PhysicalScenarioDefinition {
-    PhysicalScenarioDefinition::story("phase_13_planned_work_scenario")
-        .physical_substrate_lane(PhysicalSubstrateLane::HappyAuthority)
-        .proves_law("scenario plans remain planned work before execution")
-        .step(PhysicalStoryStep::GivenCleanPhysicalStore)
-        .step(PhysicalStoryStep::WhenAuthoritativeRecordIsAppended)
-        .step(PhysicalStoryStep::ThenRecordLocatesByPhysicalReference)
-        .requires_oracle(PhysicalProofOracleKind::ScenarioPlanOwnsStrategy)
-        .define()
-        .unwrap()
-}
-
 pub(super) fn with_scrub_plan_authority(
     run: impl FnOnce(ScrubPhysicalAllocation<'_>, ScrubPlanPolicy),
 ) {

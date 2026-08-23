@@ -2,10 +2,6 @@ use worth_store_formal_models::{
     map_checkpoint_selection, map_failed_wal_fence, map_recovery_completion, map_redo_execution,
     map_redo_generation_denial, DurabilityRecoveryAction,
 };
-#[cfg(not(windows))]
-use worth_store_physical_backend::PosixFileFsyncDirFsyncProfile;
-#[cfg(windows)]
-use worth_store_physical_backend::WindowsFlushFileBuffersProfile;
 use worth_store_physical_backend::{
     BackendDurabilityProfile, SimulatedStrictDurableProfile, WalAppendFailureObservation,
     WalAppendObservationScope, WalAppendReceipt, WalDurabilityBarrier, WalDurabilityObservation,
@@ -18,16 +14,6 @@ use worth_store_wal::{LogSequenceNumber, WalLsnRange, WalSegmentGeneration, WalS
 
 use super::map_physical_mutation_acknowledgment;
 use super::redo_fixture;
-
-#[cfg(not(windows))]
-type HostDurabilityProfile = PosixFileFsyncDirFsyncProfile;
-#[cfg(windows)]
-type HostDurabilityProfile = WindowsFlushFileBuffersProfile;
-
-pub(in crate::courtroom::protocol_models) const fn ordinary_durability_profile(
-) -> worth_store_physical_backend::BackendDurabilityProfileId {
-    HostDurabilityProfile::ID
-}
 
 pub(in crate::courtroom::protocol_models) fn execute_ordinary_durability_recovery(
 ) -> Vec<DurabilityRecoveryAction> {

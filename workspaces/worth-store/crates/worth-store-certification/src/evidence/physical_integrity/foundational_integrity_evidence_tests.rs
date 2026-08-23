@@ -9,15 +9,13 @@ use worth_store_physical_integrity::{
     StorePlannedWorkBoundaryKind, StorePlannedWorkBoundaryReport,
 };
 
+use super::foundational_integrity_evidence_support::{
+    seal_intact_page_report, with_scrub_plan_authority,
+};
 use crate::courtroom::harness::test_support::physical_container_integrity_test_support::{
     inspect_page_report, page_payload_with_record,
 };
 use crate::courtroom::layout::derived_index_damage_tests::inspect_damaged_derived_index_with_authority;
-use crate::{PhysicalScenarioPlannedWorkBoundaryReport, PhysicalScenarioQualityHarness};
-
-use super::foundational_integrity_evidence_support::{
-    planned_work_scenario_definition, seal_intact_page_report, with_scrub_plan_authority,
-};
 
 #[test]
 fn executed_findings_materialize_same_foundational_basis_through_independent_constructors() {
@@ -198,37 +196,6 @@ fn planned_work_role_is_derived_from_a_real_pre_execution_scrub_plan() {
                 .basis()
         );
     });
-}
-
-#[test]
-fn planned_work_role_is_derived_from_a_real_pre_execution_scenario_plan() {
-    let harness = PhysicalScenarioQualityHarness::cross_cutting_scenario();
-    let plan = harness.lower(planned_work_scenario_definition()).unwrap();
-    let report = PhysicalScenarioPlannedWorkBoundaryReport::from_scenario_plan(&plan);
-
-    assert_eq!(report.kind(), StorePlannedWorkBoundaryKind::ScenarioPlan);
-    assert_eq!(
-        report.mapping().role(),
-        FoundationalBoundaryArtifactRole::PlannedWork
-    );
-    assert_eq!(
-        report.mapping().category(),
-        FoundationalBoundaryArtifactCategory::Summary
-    );
-    assert_eq!(report.plan_identity(), plan.identity());
-    assert_eq!(report.planned_step_count(), plan.story_steps().len() as u64);
-    assert_eq!(
-        report.required_oracle_count(),
-        plan.required_oracles().len() as u64
-    );
-    assert_eq!(
-        report.expected_counter_count(),
-        plan.expected_counters().len() as u64
-    );
-    assert_eq!(
-        report.basis(),
-        PhysicalScenarioPlannedWorkBoundaryReport::from_scenario_plan(&plan).basis()
-    );
 }
 
 #[test]

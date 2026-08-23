@@ -12,14 +12,8 @@ pub(crate) mod integrity_readiness_test_support;
 #[cfg(test)]
 pub(crate) mod physical_container_integrity_test_support;
 #[cfg(test)]
-#[cfg(test)]
-pub(crate) mod physical_integrity_closeout_line_cap_test_support;
-#[cfg(test)]
-#[cfg(test)]
 pub(crate) mod physical_scope_admission_test_support;
 #[cfg(test)]
 pub(crate) mod pre_decode_physical_admission_test_support;
 #[cfg(test)]
 pub(crate) mod recovery_blocking_damage_test_support;
-#[cfg(test)]
-pub(crate) mod recovery_memory_allocation_test_support;

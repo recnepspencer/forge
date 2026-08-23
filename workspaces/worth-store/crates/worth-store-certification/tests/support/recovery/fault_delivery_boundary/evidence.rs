@@ -32,6 +32,7 @@ fn recovered_runtime_report() -> RecoveryReportEnvelope {
     bytes.extend_from_slice(&0_u64.to_le_bytes());
     bytes.extend_from_slice(&0_u64.to_le_bytes());
     bytes.extend_from_slice(&0_u64.to_le_bytes());
+    bytes.extend_from_slice(&0_u64.to_le_bytes());
     let digest: [u8; 32] = Sha256::digest(&bytes).into();
     bytes.extend_from_slice(&digest);
     RecoveryReportEnvelope::decode(&bytes).unwrap()

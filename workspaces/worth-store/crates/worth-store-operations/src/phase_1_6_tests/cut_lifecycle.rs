@@ -2,32 +2,6 @@ use super::current_root_fixture::*;
 use super::support::*;
 
 #[test]
-fn phase_one_ledger_is_inert_complete_and_records_the_hard_cutover() {
-    let ledger = OperationalRecoveryBoundaryLedger::current();
-    assert!(
-        ledger
-            .entries()
-            .iter()
-            .all(|entry| !entry.authority_owner.is_empty()
-                && !entry.construction_authority.is_empty())
-    );
-    assert!(ledger
-        .entries()
-        .iter()
-        .any(|entry| entry.artifact == "blob custody"
-            && entry.mutation_owner == "worth-store-blob-chunks"));
-    assert!(ledger
-        .shared_vocabulary()
-        .entries()
-        .iter()
-        .all(|entry| !entry.reverse_flow_denial.is_empty()));
-    assert!(CurrentRecoverySurfaceGapReport::current()
-        .gaps()
-        .iter()
-        .any(|gap| gap.surface == "behavioral operations vocabulary"));
-}
-
-#[test]
 fn production_current_root_source_protects_one_page_allocation_for_multiple_slots() {
     let scenario = BackupScenario::new("runtime-root-closure");
     let fixture = current_root_fixture_with_shared_page();

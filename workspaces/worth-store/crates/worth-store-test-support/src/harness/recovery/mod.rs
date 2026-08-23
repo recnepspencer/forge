@@ -1,10 +1,8 @@
 pub mod closeout;
 #[cfg(feature = "certification-world")]
 pub mod counter_evidence;
-#[cfg(feature = "certification-world")]
-pub mod coverage;
 pub mod memory_budget;
-#[cfg(feature = "certification-world")]
+#[cfg(feature = "physical-isolation-fixtures")]
 mod physical_source;
 #[path = "drivers/fault_scheduler.rs"]
 mod s4_fault_scheduler;
@@ -24,7 +22,7 @@ mod s4_storage_interposer;
 pub mod wal_durability;
 pub mod wal_tail;
 
-#[cfg(feature = "certification-world")]
+#[cfg(feature = "physical-isolation-fixtures")]
 pub use physical_source::{
     deterministic_checkpoint_plus_tail_source, deterministic_selected_compaction_product,
 };

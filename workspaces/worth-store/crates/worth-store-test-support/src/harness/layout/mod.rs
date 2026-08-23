@@ -22,7 +22,8 @@ pub use btree::{
     DeterministicBTreeReplayWorld,
 };
 pub use integrity::{
-    authoritative_layout_quarantine_record, layout_integrity_authority,
-    unresolved_layout_authority_record, LayoutIntegrityAuthorityFixture,
+    audit_retained_layout_quarantine_record, authoritative_layout_quarantine_record,
+    layout_integrity_authority, unresolved_layout_authority_record,
+    LayoutIntegrityAuthorityFixture,
 };
 pub use rebuild::execute_root_manifest_rebuild_source;

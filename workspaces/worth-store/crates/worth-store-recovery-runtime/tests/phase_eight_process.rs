@@ -12,9 +12,5 @@ mod process_lane;
 mod production;
 #[path = "phase_eight_process/support_binaries.rs"]
 mod support_binaries;
-#[path = "phase_eight_process/support_binary_feature_sets.rs"]
-mod support_binary_feature_sets;
-#[path = "phase_eight_process/support_binary_freshness.rs"]
-mod support_binary_freshness;
 #[path = "phase_eight_process/terminal_profiles.rs"]
 mod terminal_profiles;

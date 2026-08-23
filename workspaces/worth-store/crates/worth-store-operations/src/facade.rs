@@ -12,12 +12,6 @@ pub use crate::backup::export::{
 };
 pub use crate::backup::import::BackupImportCustodyReadmission;
 pub use crate::backup_export_custody_scheduler_demand::backup_prep_background_pressure_shape;
-pub use crate::boundary_ledger::{
-    CurrentRecoverySurfaceGapReport, OperationalBoundaryDirection, OperationalCostClass,
-    OperationalProofLane, OperationalRecoveryBoundaryEntry, OperationalRecoveryBoundaryLedger,
-    RecoverySurfaceGap, RecoverySurfaceGapPosture, SharedVocabularyAdoptionEntry,
-    SharedVocabularyAdoptionLedger,
-};
 pub use crate::boundary_projection::{
     ExecutedRepairBoundaryProjection, RepairBoundaryProjectionDenial,
 };

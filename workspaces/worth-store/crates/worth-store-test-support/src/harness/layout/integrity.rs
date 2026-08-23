@@ -6,7 +6,7 @@ use worth_store_physical_format::{
 };
 use worth_store_physical_integrity::{
     AuthorityDamageBoundary, ExecutedQuarantineFinding, PhysicalQuarantineAuthority,
-    QuarantineRecord, QuarantineSealRequest,
+    QuarantineHandoffPosture, QuarantineRecord, QuarantineSealRequest,
 };
 use worth_store_security::{
     admit_store_security_scope, StoreAdmittedSecurityScope, StoreAuthenticityRequirement,
@@ -63,6 +63,16 @@ pub fn authoritative_layout_quarantine_record(seed: &str) -> QuarantineRecord {
     seal(ExecutedQuarantineFinding::authoritative_quarantine(scope(
         seed,
     )))
+}
+
+pub fn audit_retained_layout_quarantine_record(seed: &str) -> QuarantineRecord {
+    PhysicalQuarantineAuthority::seal(
+        QuarantineSealRequest::from_executed_finding(
+            ExecutedQuarantineFinding::authoritative_quarantine(scope(seed)),
+        )
+        .with_handoff_posture(QuarantineHandoffPosture::AuditRetentionOwnerRequired),
+    )
+    .expect("audit-retained physical finding must seal through quarantine authority")
 }
 
 pub fn unresolved_layout_authority_record(seed: &str) -> QuarantineRecord {

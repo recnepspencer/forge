@@ -43,9 +43,8 @@ impl CheckpointCrashStage {
 const SCENARIO_COUNT: usize = 16;
 
 // The release matrix is an explicit manifest of sixteen replayable scenario
-// identities. Each entry names its production seam and receives an independent
-// source-closure-derived schedule and perturbation seed; no modulo-derived
-// second pass can silently erase a scenario identity.
+// identities. Each entry names its production seam and receives independent,
+// versioned schedule and perturbation seeds derived from that identity.
 const SCENARIOS: [CheckpointCrashScenario; SCENARIO_COUNT] = [
     CheckpointCrashScenario {
         id: "c8-checkpoint-candidate-creation-a",
@@ -120,19 +119,10 @@ struct ScenarioSeeds {
 }
 
 fn scenario_seeds() -> [ScenarioSeeds; SCENARIO_COUNT] {
-    let closure_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(
-        "../../../../_docs/worth-store/physical-reconstruction-c8-phase-8-source-closure.csv",
-    );
-    let closure = std::fs::read(&closure_path).expect("read Phase 8 source closure for seeds");
-    let closure = String::from_utf8_lossy(&closure)
-        .replace("\r\n", "\n")
-        .into_bytes();
-    let closure_digest: [u8; 32] = Sha256::digest(closure).into();
     std::array::from_fn(|index| {
         let mut digest = Sha256::new();
         digest.update(b"worth.store.c8.checkpoint-scenario.v2");
-        digest.update(closure_digest);
-        digest.update((index as u64).to_le_bytes());
+        digest.update(SCENARIOS[index].id.as_bytes());
         let digest: [u8; 32] = digest.finalize().into();
         let schedule = u64::from_le_bytes(digest[..8].try_into().unwrap());
         let perturbation = u64::from_le_bytes(digest[8..16].try_into().unwrap());

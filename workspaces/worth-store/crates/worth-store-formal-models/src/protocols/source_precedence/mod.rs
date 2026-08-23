@@ -1,5 +1,7 @@
 mod action;
 mod selection;
+#[cfg(test)]
+mod tests;
 
 pub use action::{
     ModeledSourceCandidateRole, SourcePrecedenceAction, SourcePrecedenceActionKind,

@@ -266,14 +266,19 @@ jobs:
         run: cargo store-ci --partition owner-unit
       - name: Integration scenarios
         run: cargo store-ci --partition scenario
+      - name: Phase 8 fresh-process recovery
+        run: cargo store-ci --partition process-scenario
       - name: Compiler boundaries
         run: cargo store-ci --partition ui
       - name: Formal models
         if: matrix.formal
         run: cargo store-ci --partition formal
+      - name: Direct formal protocol check
+        if: matrix.formal
+        run: bash "$GITHUB_WORKSPACE/scripts/ci/verify_worth_store_formal_toolchain.sh"
 
   worth-store-release-scale:
-    name: WORTH Store release-scale backup
+    name: WORTH Store release-scale and crash recovery
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -288,157 +293,16 @@ jobs:
         working-directory: workspaces/worth-store
         shell: bash
         run: |
+          cargo build --locked -j 1 --no-default-features -p worth-store --bin physical_store_c8_writer
+          cargo build --locked -j 1 --no-default-features -p worth-store-offline-verifier --bin physical_store_offline_observer
+          cargo build --locked -j 1 --no-default-features -p worth-store-recovery-runtime --bin physical_store_recover --features worth-store-recovery-runtime/certification-test-authority
+          export WORTH_STORE_PHASE8_WRITER="$PWD/target/debug/physical_store_c8_writer"
+          export WORTH_STORE_PHASE8_OBSERVER="$PWD/target/debug/physical_store_offline_observer"
+          export WORTH_STORE_PHASE8_RECOVERY="$PWD/target/debug/physical_store_recover"
           cargo test -p worth-store-operations --lib phase_1_6_tests::release_scale_backup::two_gib_owner_bundle_stays_bounded_through_materialization_and_independent_verification -- --ignored --exact --nocapture --test-threads=1
-          cargo test -p worth-store-physical-certification --lib harness::blob::tests::replay_bundle_is_stable_and_carries_exact_blob_counter_evidence -- --ignored --exact --nocapture --test-threads=1
-          cargo test -p worth-store-physical-certification --lib harness::blob::heavy_qualification_tests::heavy_replay_bundle_carries_evidence_oracles -- --ignored --exact --nocapture --test-threads=1
-          cargo test -p worth-store-physical-certification --lib harness::blob::tests::real_multi_gb_temp_file_fixture_emits_heavy_topology_evidence -- --ignored --exact --nocapture --test-threads=1
-          cargo test -p worth-store-certification --lib courtroom::blobs::closeout::tests::blob_closeout_binds_executed_harness_evidence -- --ignored --exact --nocapture --test-threads=1
-          cargo test -p worth-store-certification --test durability_recovery s10_operational_world::a_scenario_cannot_be_relabelled_as_another_owner_topology -- --ignored --exact --nocapture --test-threads=1
-          cargo test -p worth-store-certification --test durability_recovery s10_operational_world::a_small_real_repair_receipt_cannot_claim_the_hundreds_region_program -- --ignored --exact --nocapture --test-threads=1
-          cargo test -p worth-store-certification --test durability_recovery s10_operational_world::ci_and_release_profiles_preserve_the_scenario_topology -- --ignored --exact --nocapture --test-threads=1
-          cargo test -p worth-store-certification --test durability_recovery s10_operational_world::ci_and_release_suites_join_all_three_scenarios -- --ignored --exact --nocapture --test-threads=1
-          cargo test -p worth-store-certification --test durability_recovery s10_operational_world::reached_yieldpoint_labels_cannot_close_s10_without_fresh_process_crash_evidence -- --ignored --exact --nocapture --test-threads=1
-
-  worth-store-mutation-campaign:
-    name: WORTH Store causal mutation campaign
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    timeout-minutes: 180
-    defaults:
-      run:
-        working-directory: workspaces/worth-store
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: workspaces/worth-store -> target
-          shared-key: worth-store-mutants
-      - name: Execute every source-bound causal mutant
-        shell: bash
-        run: cargo run -q -p store-test-runner -- mutants | tee "${RUNNER_TEMP}/worth-store-mutants.jsonl"
-      - name: Preserve mutation evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: worth-store-mutants-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/worth-store-mutants.jsonl
-          if-no-files-found: error
-          retention-days: 30
-
-  worth-store-bounded-residency-evidence:
-    name: WORTH Store bounded-residency mutation evidence
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    timeout-minutes: 180
-    defaults:
-      run:
-        working-directory: workspaces/worth-store
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: workspaces/worth-store -> target
-          shared-key: worth-store-bounded-residency
-      - name: Certify the bounded-residency mutation corpus
-        shell: bash
-        run: >-
-          cargo run -q -p store-test-runner --
-          mutants
-          --mutation-scope bounded-residency
-          --report "${RUNNER_TEMP}/worth-store-bounded-residency-mutants.json"
-      - name: Preserve bounded-residency mutation evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: worth-store-bounded-residency-mutants-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/worth-store-bounded-residency-mutants.json
-          if-no-files-found: error
-          retention-days: 30
-
-  worth-store-bounded-residency-schedules:
-    name: WORTH Store bounded-residency schedule lane ${{ matrix.schedule-lane }}
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    needs: worth-store-bounded-residency-evidence
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
-    strategy:
-      fail-fast: false
-      matrix:
-        schedule-lane: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
-    defaults:
-      run:
-        working-directory: workspaces/worth-store
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: workspaces/worth-store -> target
-          shared-key: worth-store-bounded-residency
-      - name: Restore bounded-residency mutation evidence
-        uses: actions/download-artifact@v4
-        with:
-          name: worth-store-bounded-residency-mutants-${{ github.run_attempt }}
-          path: ${{ runner.temp }}
-      - name: Execute the revision-derived schedule lane
-        shell: bash
-        run: >-
-          cargo run -q -p store-test-runner
-          --features physical-work-evidence --
-          courtrooms
-          --courtroom c
-          --mutant-report "${RUNNER_TEMP}/worth-store-bounded-residency-mutants.json"
-          --report "${RUNNER_TEMP}/worth-store-courtroom-c-lane-${{ matrix.schedule-lane }}.json"
-          --ci-schedule-lane "${{ matrix.schedule-lane }}"
-      - name: Preserve the lane report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: worth-store-courtroom-c-lane-${{ matrix.schedule-lane }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/worth-store-courtroom-c-lane-${{ matrix.schedule-lane }}.json
-          if-no-files-found: error
-          retention-days: 30
-
-  worth-store-bounded-residency-release:
-    name: WORTH Store bounded-residency release certification
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    needs: worth-store-bounded-residency-evidence
-    runs-on: ubuntu-latest
-    timeout-minutes: 90
-    defaults:
-      run:
-        working-directory: workspaces/worth-store
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: workspaces/worth-store -> target
-          shared-key: worth-store-bounded-residency
-      - name: Restore complete bounded-residency mutation evidence
-        uses: actions/download-artifact@v4
-        with:
-          name: worth-store-bounded-residency-mutants-${{ github.run_attempt }}
-          path: ${{ runner.temp }}
-      - name: Execute the canonical hostile release schedule
-        shell: bash
-        run: >-
-          cargo run -q -p store-test-runner
-          --features physical-work-evidence --
-          courtrooms
-          --courtroom c
-          --mutant-report "${RUNNER_TEMP}/worth-store-bounded-residency-mutants.json"
-          --report "${RUNNER_TEMP}/worth-store-courtroom-c-release.json"
-      - name: Preserve the canonical release report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: worth-store-courtroom-c-release-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/worth-store-courtroom-c-release.json
-          if-no-files-found: error
-          retention-days: 30
+          cargo test -p worth-store-recovery-runtime --test phase_eight_process --features certification-test-authority checkpoint_crash::killed_checkpoint_writer_reopens_and_observes_each_persisted_effect_frontier -- --exact --nocapture --test-threads=1
+          cargo test -p worth-store-recovery-runtime --test phase_eight_process --features certification-test-authority production::recovery_crash::killed_recovery_process_reopens_after_each_named_c8_seam -- --exact --nocapture --test-threads=1
+          cargo test -p worth-store-recovery-runtime --test phase_eight_process --features certification-test-authority production::size_independence::recovery_work_is_independent_of_unrelated_persisted_store_size -- --exact --nocapture --test-threads=1
 
   worth_ui_quality:
     name: WORTH UI Quality and Topology

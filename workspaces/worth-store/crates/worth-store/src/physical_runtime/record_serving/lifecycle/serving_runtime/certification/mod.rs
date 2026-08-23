@@ -52,17 +52,6 @@ impl ServingPhysicalRuntime {
         )
     }
 
-    pub fn certification_physical_work_courtroom_binding(
-        &self,
-    ) -> crate::physical_runtime::record_serving::PhysicalWorkCourtroomBinding {
-        crate::physical_runtime::record_serving::PhysicalWorkCourtroomBinding::new(
-            self.store_identity(),
-            self.runtime_identity(),
-            self.parts.core.lifecycle_generation(),
-            self.physical_work_observer(),
-        )
-    }
-
     pub fn certification_begin_lifecycle_termination(&self) {
         self.parts.termination.begin_for_certification();
     }

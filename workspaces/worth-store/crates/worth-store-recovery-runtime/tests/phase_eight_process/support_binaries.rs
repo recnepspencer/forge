@@ -1,9 +1,9 @@
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
-use worth_store_process_bundle::{
-    FINALIZED_OBSERVER_ENV, FINALIZED_RECOVERY_ENV, FINALIZED_WRITER_ENV,
-};
+const WRITER_ENV: &str = "WORTH_STORE_PHASE8_WRITER";
+const OBSERVER_ENV: &str = "WORTH_STORE_PHASE8_OBSERVER";
+const RECOVERY_ENV: &str = "WORTH_STORE_PHASE8_RECOVERY";
 
 static PHASE_EIGHT_BINARIES: OnceLock<PhaseEightProcessBinaries> = OnceLock::new();
 
@@ -39,9 +39,9 @@ impl PhaseEightProcessBinaries {
 
 pub(super) fn phase_eight_process_binaries() -> &'static PhaseEightProcessBinaries {
     PHASE_EIGHT_BINARIES.get_or_init(|| {
-        let writer = provided(FINALIZED_WRITER_ENV);
-        let observer = provided(FINALIZED_OBSERVER_ENV);
-        let recovery = provided(FINALIZED_RECOVERY_ENV);
+        let writer = provided(WRITER_ENV);
+        let observer = provided(OBSERVER_ENV);
+        let recovery = provided(RECOVERY_ENV);
         assert_ne!(writer.path, observer.path, "writer and observer alias");
         assert_ne!(writer.path, recovery.path, "writer and recovery alias");
         assert_ne!(observer.path, recovery.path, "observer and recovery alias");

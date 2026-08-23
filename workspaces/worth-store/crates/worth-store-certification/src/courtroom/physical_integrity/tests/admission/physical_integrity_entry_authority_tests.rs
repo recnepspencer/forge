@@ -7,8 +7,6 @@ use worth_store_physical_integrity::{
 };
 use worth_store_test_support::harness::physical_residency::PhysicalResidencyStoreWorld;
 
-use crate::{ExecutedIntegrityBoundaryDenialEvidence, IntegrityCloseoutDenialBoundary};
-
 #[test]
 fn entry_basis_is_derived_from_the_store_chunk_and_exact_verification_allocation() {
     let world = PhysicalResidencyStoreWorld::initialize("integrity-entry-authority").unwrap();
@@ -82,13 +80,6 @@ fn verification_allocation_from_another_store_is_denied_before_witness_minting()
                         IntegrityEntryDenialKind::VerificationStoreMismatch
                     );
                     assert_eq!(
-                        ExecutedIntegrityBoundaryDenialEvidence::from_integrity_entry_denial(
-                            denial
-                        )
-                        .boundary(),
-                        IntegrityCloseoutDenialBoundary::StoreAuthorityMismatch,
-                    );
-                    assert_eq!(
                         allocating_runtime
                             .residency_observation()
                             .counters()
@@ -130,13 +121,6 @@ fn verification_allocation_smaller_than_the_protected_view_is_denied_and_release
                     allocation_bytes,
                 }
             );
-            assert_eq!(
-                ExecutedIntegrityBoundaryDenialEvidence::from_integrity_entry_denial(denial)
-                    .boundary(),
-                IntegrityCloseoutDenialBoundary::VerificationAllocationCoverage,
-            );
-            assert!(IntegrityCloseoutDenialBoundary::ALL
-                .contains(&IntegrityCloseoutDenialBoundary::VerificationAllocationCoverage));
             assert_eq!(
                 serving
                     .residency_observation()

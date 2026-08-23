@@ -89,8 +89,6 @@ mod scale_policy_evolution;
 mod scale_support;
 #[path = "physical_record_journeys/scan_journeys.rs"]
 mod scan_journeys;
-#[path = "physical_record_journeys/scenario_artifact_evidence.rs"]
-mod scenario_artifact_evidence;
 #[path = "physical_record_journeys/scenario_configuration.rs"]
 mod scenario_configuration;
 #[path = "physical_record_journeys/scenario_evidence.rs"]

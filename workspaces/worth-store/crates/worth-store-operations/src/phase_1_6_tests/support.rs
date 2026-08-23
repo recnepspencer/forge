@@ -3,12 +3,11 @@ pub(super) use crate::{
     admit_backup_for_production_restore, inspect_control_store_copies, qualify_backup_custody,
     record_independent_backup_verification, recover_online_backups, BackupMaterializationDenial,
     ConfiguredFailureDomainId, ControlStoreAvailabilityDenial, ControlStoreTrustPosture,
-    CurrentRecoverySurfaceGapReport, OnlineBackupAdmissionDenial, OnlineBackupIntent,
-    OnlineBackupReadmissionFailure, OperationalControlAppendDenial, OperationalControlLocation,
-    OperationalControlRecord, OperationalControlReplayBudget, OperationalControlReplayResource,
-    OperationalControlStore, OperationalControlStoreOpenDenial, OperationalControlStorePort,
-    OperationalOperationId, OperationalRecoveryBoundaryLedger, OperationalTransitionId,
-    OperationalWorkflowKind, ProtectedOperationalMediaLocation,
+    OnlineBackupAdmissionDenial, OnlineBackupIntent, OnlineBackupReadmissionFailure,
+    OperationalControlAppendDenial, OperationalControlLocation, OperationalControlRecord,
+    OperationalControlReplayBudget, OperationalControlReplayResource, OperationalControlStore,
+    OperationalControlStoreOpenDenial, OperationalControlStorePort, OperationalOperationId,
+    OperationalTransitionId, OperationalWorkflowKind, ProtectedOperationalMediaLocation,
 };
 pub(super) use worth_store_authority::{
     BackupRestoreAdmissionPolicy, ControlStoreFencingAuthority, ControlStoreGeneration,

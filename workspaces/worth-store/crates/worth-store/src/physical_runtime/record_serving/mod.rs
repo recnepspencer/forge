@@ -68,33 +68,6 @@ pub use evidence::performance_evidence::{
     RecordPerformanceEvidenceDenial, RecordScanPerformanceExpectation,
     RecordTransferPerformanceExpectation, StoreRecordPerformanceReceipt,
 };
-#[cfg(feature = "certification-test-authority")]
-pub use evidence::physical_work::{
-    PhysicalWorkArtifactBinding, PhysicalWorkBackendEvidenceClass,
-    PhysicalWorkBackendProfileEvidence, PhysicalWorkCausalEvidence, PhysicalWorkCounterEvidence,
-    PhysicalWorkCounterStageEvidence, PhysicalWorkCourtroomBinding, PhysicalWorkCourtroomEvidence,
-    PhysicalWorkCourtroomFinding, PhysicalWorkCourtroomFinishDenial,
-    PhysicalWorkCourtroomRunBinding, PhysicalWorkCourtroomVerdict, PhysicalWorkEffectFateEvidence,
-    PhysicalWorkEvidenceBindingDenial, PhysicalWorkEvidenceDigest, PhysicalWorkExecutionContext,
-    PhysicalWorkFamilyEvidence, PhysicalWorkFeatureGraphEvidence, PhysicalWorkFeatureNodeEvidence,
-    PhysicalWorkFilesystemCapabilityEvidence, PhysicalWorkFilesystemCapabilityObservation,
-    PhysicalWorkFilesystemLocationEvidence, PhysicalWorkFilesystemProfileEvidence,
-    PhysicalWorkFilesystemProfileParts, PhysicalWorkFilesystemSupportEvidence,
-    PhysicalWorkFreshReopenEvidence, PhysicalWorkFreshReopenIdentity,
-    PhysicalWorkFreshReopenPosture, PhysicalWorkHostileArtifactEvidence,
-    PhysicalWorkHostileCurrentTruth, PhysicalWorkHostileProcessEvidence,
-    PhysicalWorkHostileTruthCampaignEvidence, PhysicalWorkHostileTruthCaseBinding,
-    PhysicalWorkHostileTruthCaseEvidence, PhysicalWorkHostileTruthComparison,
-    PhysicalWorkHostileTruthEvidenceDenial, PhysicalWorkHostileTruthFinding,
-    PhysicalWorkHostileTruthScenario, PhysicalWorkHostileTruthVerdict, PhysicalWorkMutantBinding,
-    PhysicalWorkMutantExecutionContext, PhysicalWorkMutantLocalization, PhysicalWorkMutantOutcome,
-    PhysicalWorkMutantSubject, PhysicalWorkOracleEvidence, PhysicalWorkPlatformEvidence,
-    PhysicalWorkPressureEvidence, PhysicalWorkProcessEvidence, PhysicalWorkProcessFateEvidence,
-    PhysicalWorkRecoveryEvidence, PhysicalWorkRerunEvidence, PhysicalWorkRunEnvironmentEvidence,
-    PhysicalWorkRunProvenanceDenial, PhysicalWorkScheduleSeed, PhysicalWorkSchedulerEvidence,
-    PhysicalWorkShutdownEvidence, PhysicalWorkSignalSettlementEvidence, PhysicalWorkSourceBinding,
-    PhysicalWorkWorkloadSeed,
-};
 pub use identity::{ExternalPhysicalRecordLocator, PhysicalRecordId};
 pub use lifecycle::record_lifecycle::RecordServingCounterSnapshot;
 pub(in crate::physical_runtime) use lifecycle::record_lifecycle::RecordServingOwner;
