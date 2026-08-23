@@ -3,6 +3,7 @@ use worth_query_declaration::facade::application_aftermath::DeclaredApplicationA
 use worth_query_declaration::facade::application_schema::{
     ApplicationExternalEffectProtocol, ApplicationOperationRef, ApplicationSchema,
     ApplicationSchemaDeclaration, ApplicationSchemaDeclarationBuilder, ApplicationSchemaMember,
+    WorthQueryExternalEffectCorrelationFamily,
 };
 
 use super::{
@@ -71,7 +72,8 @@ fn external_effect(operation: &str, effect: &str) -> ApplicationSchemaMember {
             BoundaryProtocolVersion::new(1),
         ),
         maximum_payload_bytes: 64,
-        correlation_family: "external-family".to_owned(),
+        correlation_family: WorthQueryExternalEffectCorrelationFamily::new("external-family")
+            .unwrap(),
     }
 }
 

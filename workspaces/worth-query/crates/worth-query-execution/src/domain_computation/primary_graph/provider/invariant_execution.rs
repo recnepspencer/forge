@@ -73,7 +73,17 @@ impl WorthQueryInvariantExecutionProvider for Arc<WorthQueryPrimaryGraphProvider
             material.batch,
             &material.branch,
             material.expected_branch_head,
+            &material.application_touches,
         )?;
+        let touch_admission =
+            super::application_touch_admission::admit_validated_application_touches(
+                &candidate,
+                &self.graph.layout,
+                &material.application_graph_reads,
+                &material.application_touches,
+                &material.application_read_touch_overlap,
+            )
+            .map_err(|()| touch_failure())?;
         let summary = candidate.invariant_evidence().summary();
         let work = super::mutation_work::WorthQueryPrimaryMutationWorkCounters::new(
             WorthQueryInvariantWorkMint { _private: () },
@@ -83,6 +93,7 @@ impl WorthQueryInvariantExecutionProvider for Arc<WorthQueryPrimaryGraphProvider
             owner_work,
             summary.execution_count,
             summary.result_count,
+            touch_admission,
         );
         self.retain_validated_candidate(session, candidate, work)?;
         let evidence = WorthQueryInvariantVerdictEvidence::new(
@@ -102,6 +113,10 @@ struct ApplicationInvariantCandidateMaterial {
     branch: worth_relational::facade::history::BranchId,
     decision_facts: usize,
     expected_branch_head: Option<worth_relational::facade::transactions::ExpectedBranchHead>,
+    application_graph_reads: worth_query_installation::facade::WorthQueryOperationGraphReadContract,
+    application_touches: worth_query_installation::facade::WorthQueryOperationTouchContract,
+    application_read_touch_overlap:
+        worth_query_installation::facade::WorthQueryOperationReadTouchOverlapIndex,
 }
 
 impl ApplicationInvariantCandidateMaterial {
@@ -146,6 +161,18 @@ impl WorthQueryPrimaryGraphProvider {
             branch: staged.branch().clone(),
             decision_facts: staged.decision_fact_count(),
             expected_branch_head: staged.expected_branch_head(),
+            application_graph_reads: staged
+                .application_graph_reads()
+                .cloned()
+                .ok_or_else(touch_failure)?,
+            application_touches: staged
+                .application_touches()
+                .cloned()
+                .ok_or_else(touch_failure)?,
+            application_read_touch_overlap: staged
+                .application_read_touch_overlap()
+                .cloned()
+                .ok_or_else(touch_failure)?,
         })
     }
 
@@ -154,12 +181,24 @@ impl WorthQueryPrimaryGraphProvider {
         batch: worth_relational::facade::transactions::WorkerIntentBatch,
         branch: &worth_relational::facade::history::BranchId,
         expected_branch_head: Option<worth_relational::facade::transactions::ExpectedBranchHead>,
+        application_touches: &worth_query_installation::facade::WorthQueryOperationTouchContract,
     ) -> Result<
         worth_relational::facade::transactions::ValidatedRelationalMutation,
         WorthQueryInvariantExecutionFailure,
     > {
+        #[cfg(not(test))]
+        let _ = application_touches;
         let batch = if self.take_relational_invariant_violation() {
             batch.push(invariant_violation_probe())
+        } else {
+            batch
+        };
+        #[cfg(test)]
+        let batch = if self.take_undeclared_application_touch() {
+            batch.push(undeclared_application_touch_probe(
+                &self.graph.layout,
+                application_touches,
+            )?)
         } else {
             batch
         };
@@ -256,6 +295,29 @@ fn invariant_violation_probe() -> worth_relational::facade::transactions::Mutati
     ))
 }
 
+#[cfg(test)]
+fn undeclared_application_touch_probe(
+    layout: &super::super::schema_layout::WorthQueryPrimaryGraphLayout,
+    touches: &worth_query_installation::facade::WorthQueryOperationTouchContract,
+) -> Result<
+    worth_relational::facade::transactions::MutationIntent,
+    WorthQueryInvariantExecutionFailure,
+> {
+    use worth_relational::facade::{identity::PartitionId, symbols::ClientKey, transactions};
+
+    let kind = layout
+        .application_entity_kind_without_create_scope(touches)
+        .ok_or_else(touch_failure)?;
+    Ok(transactions::MutationIntent::Create(
+        transactions::CreateIntent::Entity(transactions::EntitySpec {
+            partition_id: PartitionId::main(),
+            kind_id: kind,
+            client_key: ClientKey::raw("undeclared-application-touch-probe"),
+            fields: transactions::AspectFieldPatch::default(),
+        }),
+    ))
+}
+
 fn closure_failure(detail: &'static str) -> WorthQueryInvariantExecutionFailure {
     WorthQueryInvariantExecutionFailure::new(
         WorthQueryInvariantExecutionDenialKind::StateLoadClosureMismatch,
@@ -267,5 +329,12 @@ fn owner_failure() -> WorthQueryInvariantExecutionFailure {
     WorthQueryInvariantExecutionFailure::new(
         WorthQueryInvariantExecutionDenialKind::ProviderRejected,
         "Relational rejected the installed proposed-state invariant",
+    )
+}
+
+fn touch_failure() -> WorthQueryInvariantExecutionFailure {
+    WorthQueryInvariantExecutionFailure::new(
+        WorthQueryInvariantExecutionDenialKind::ProviderRejected,
+        "Relational validated candidate touches exceed the installed application contract",
     )
 }

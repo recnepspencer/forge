@@ -1,12 +1,12 @@
 error[E0599]: no method named `external_effect` found for struct `ApplicationOperationDefinitionBuilder<Schema, Operation, Input, true, false>` in the current scope
-  --> tests/ui/application_schema/operation_definition_rejects_duplicate_external_effect.rs:39:10
+  --> tests/ui/application_schema/operation_definition_rejects_duplicate_external_effect.rs:40:10
    |
-36 |       let _ = Operation::reference()
+37 |       let _ = Operation::reference()
    |  _____________-
-37 | |         .definition()
+38 | |         .definition()
    | |          ------------ method `external_effect` is available on `ApplicationOperationDefinitionBuilder<Schema, Operation, Input, false, false>`
-38 | |         .no_external_effect()
-39 | |         .external_effect(Effect::reference(), "rail");
+39 | |         .no_external_effect()
+40 | |         .external_effect(
    | |         -^^^^^^^^^^^^^^^ private field, not a method
    | |_________|
    |

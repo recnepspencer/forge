@@ -3,7 +3,9 @@ use worth_query_installation::facade::{
     WorthQueryInstalledAftermathContract,
 };
 
-pub(super) fn reversal_posture(contract: Option<&WorthQueryInstalledAftermathContract>) -> String {
+pub(in super::super) fn reversal_posture(
+    contract: Option<&WorthQueryInstalledAftermathContract>,
+) -> String {
     let Some(contract) = contract else {
         return "none".to_owned();
     };

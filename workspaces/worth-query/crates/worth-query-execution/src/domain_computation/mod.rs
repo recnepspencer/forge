@@ -1,4 +1,5 @@
 pub(crate) mod application_aftermath;
+pub(crate) mod application_contract_admission;
 mod application_outcome_identity;
 mod artifact_identity;
 pub(crate) mod artifact_owner;

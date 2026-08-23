@@ -59,6 +59,7 @@ pub(super) fn register_provider_attempt<'run, Schema, Operation, Input, Scope>(
 ) -> Result<WorthQueryRegisteredProviderAttempt<'run>, WorthQueryProviderProgressionOutcome> {
     let inspection = WorthQueryProviderRegistrationInspectionPermit::mint();
     let WorthQueryPreparedApplicationProviderAttempt {
+        installed_read_scopes,
         facts,
         effects,
         preimage_demand,
@@ -67,7 +68,7 @@ pub(super) fn register_provider_attempt<'run, Schema, Operation, Input, Scope>(
         Ok(affinity) => affinity,
         Err(()) => return abort_registration(staged, DenialStage::ProviderPlan),
     };
-    let decision_facts = match authorization.bind_application_facts(facts) {
+    let decision_facts = match authorization.bind_application_facts(installed_read_scopes, facts) {
         Ok(bound) => bound,
         Err(()) => {
             return abort_registration(staged, DenialStage::DecisionReadSet);

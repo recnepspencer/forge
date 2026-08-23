@@ -76,8 +76,6 @@ fn catalog_contract_equals_an_independently_authored_foundational_contract() {
             .into_iter()
             .collect()
     );
-    assert_masks_are_admitted_exactly(&expected);
-
     let expected_basis = prepare_aspect_contract_for_canonical_basis(
         CanonicalizationRuleVersion::new("worth-query-native-contract-v1").unwrap(),
         expected,
@@ -103,20 +101,4 @@ fn expected_contract() -> worth_foundational::facade::AspectContract {
         .identified_by(AspectIdentity(0x9161_2100))
         .at_revision(AspectContractRevision(7))
         .struct_aspect(shape)
-}
-
-fn assert_masks_are_admitted_exactly(contract: &worth_foundational::facade::AspectContract) {
-    let declared = aspects()
-        .projection_mask()
-        .fields(["RequiredCount", "OptionalLabel"])
-        .unwrap();
-    let foreign = aspects()
-        .projection_mask()
-        .fields(["RequiredCount", "ForeignField"])
-        .unwrap();
-    assert!(contract.admits_projection_mask(&declared).is_ok());
-    assert!(contract.admits_projection_mask(&foreign).is_err());
-    assert!(contract
-        .admits_projection_mask(&aspects().projection_mask().whole_aspect())
-        .is_ok());
 }

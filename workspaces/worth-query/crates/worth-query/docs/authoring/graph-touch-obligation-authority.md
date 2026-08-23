@@ -26,13 +26,20 @@ or invariant execution.
 - Inspect `installed_query.graph_obligations()` or
   `installed_operation.graph_obligations()` through
   `worth_query_host::facade::domain`.
+- Inspect an operation's exact declared graph ceiling through
+  `installed_operation.contracts().touches().scopes()`.
+- Inspect its declared in-process effect emissions through
+  `installed_operation.contracts().emissions().emissions()`; this does not by
+  itself grant external dispatch authority.
 - Produce downstream read-only evidence with
   `worth_query_host::facade::inspect_installed_graph_obligations(...)`.
 - Execute through the ordinary application runtime, which owns selection,
   planning, session progression, and terminal construction.
 
 There is no public obligation registry, executor, manual invariant callback,
-or caller-created dispatch envelope.
+or caller-created dispatch envelope. An emitted application effect is installed
+separately from graph touches, and only an explicit external-effect declaration
+opens the escaping dispatch lane.
 
 ## Core Mental Model
 
@@ -56,6 +63,13 @@ The current kinds are:
 Selection is deterministic installed lookup. It carries no execution
 authority. A terminal exists only after the selected row reaches its real
 owner and the session consumes that owner's evidence.
+
+Application-operation touches are structural values, not strings. The public
+`WorthQueryOperationTouchScope` variants are `CreateEntity`, `DeleteEntity`,
+`WriteField`, `LinkRelation`, and `UnlinkRelation`. Each carries its exact
+schema binding and locus; field writes also carry the installed aspect contract
+and canonical field path. `DeclaredDomain` belongs to portable domain-operation
+contracts and is not emitted by application-operation compilation.
 
 ## How It Executes
 
@@ -93,6 +107,44 @@ for row in proof.rows() {
 The returned proof is an inspection snapshot. It cannot select, plan, execute,
 validate, commit, or publish.
 
+Inspect application touch meaning by matching the typed variants:
+
+```rust
+use worth_query_host::facade::domain::WorthQueryOperationTouchScope;
+
+for scope in installed_operation.contracts().touches().scopes() {
+    match scope {
+        WorthQueryOperationTouchScope::CreateEntity(entity) => {
+            inspect_entity_create(entity.schema(), entity.entity());
+        }
+        WorthQueryOperationTouchScope::DeleteEntity(entity) => {
+            inspect_entity_delete(entity.schema(), entity.entity());
+        }
+        WorthQueryOperationTouchScope::WriteField(field) => {
+            inspect_field_write(
+                field.schema(),
+                field.entity(),
+                field.contract(),
+                field.field_path(),
+            );
+        }
+        WorthQueryOperationTouchScope::LinkRelation(relation) => {
+            inspect_link(relation.schema(), relation.relation(), relation.from(), relation.to());
+        }
+        WorthQueryOperationTouchScope::UnlinkRelation(relation) => {
+            inspect_unlink(relation.schema(), relation.relation(), relation.from(), relation.to());
+        }
+        WorthQueryOperationTouchScope::DeclaredDomain(_) => unreachable!(
+            "application operation compilation does not create domain-only scopes"
+        ),
+    }
+}
+```
+
+This contract says what execution may touch. Only the exact Relational
+performed-touch evidence says what execution did touch. Query compares the
+two; callers must not promote the declaration into a completion claim.
+
 ## Real Example
 
 An application query with one installed graph read produces one `GraphRead`
@@ -108,6 +160,11 @@ An application mutation may install several rows. Query must obtain the
 complete authorization facts, build proposed state, execute every selected
 installed invariant through its real provider, and compare-and-commit before a
 commit publication receipt can exist.
+
+An emit-only operation has no graph touch merely because it emits. Ordinary
+typed emission targets remain in the sealed installed emission contract; the
+one escaping external-effect correlation family is a separate installed
+aftermath and dispatch contract.
 
 ## How It Relates To Other Features
 
@@ -145,6 +202,9 @@ formatted receipt.
 - Public constructors for requirement, review, plan, session, or terminal
   products.
 - Treating branch, preview, and current evidence as interchangeable.
+- Encoding `write:Entity/Aspect/Field` or `link:Relation:From->To` and parsing
+  that private grammar in a compiler or consumer.
+- Treating `Emit` as graph mutation or a declared touch as performed evidence.
 
 ## Current Limits
 

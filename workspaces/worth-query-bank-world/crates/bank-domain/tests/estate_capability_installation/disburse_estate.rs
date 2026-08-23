@@ -1,14 +1,12 @@
 use std::collections::BTreeSet;
 
 use bank_domain::schema::DisburseEstateOperation;
-use worth_query_host::facade::{
-    declaration::application_schema::{
-        ApplicationOperationDecisionReadTarget, ApplicationOperationProgramTarget,
-    },
-    domain::WorthQueryInstallationRuntimeIdentity,
-};
+use worth_query_host::facade::domain::WorthQueryInstallationRuntimeIdentity;
 
-use super::installed_bank;
+use super::{
+    installed_bank, installed_program_targets, installed_read_targets, InstalledProgramTarget,
+    InstalledReadTarget,
+};
 
 #[test]
 fn disbursement_installs_exact_effect_integrity_reads_and_money_program() {
@@ -20,18 +18,16 @@ fn disbursement_installs_exact_effect_integrity_reads_and_money_program() {
     assert_eq!(operation.contracts().decision_fact_budget(), 64);
     assert_eq!(operation.contracts().projection_work_budget(), 192);
     assert_eq!(
-        operation
-            .contracts()
-            .decision_reads()
-            .iter()
-            .cloned()
-            .collect::<BTreeSet<_>>(),
+        installed_read_targets(operation.contracts()),
         expected_reads()
     );
-    assert_eq!(operation.contracts().program(), expected_program());
+    assert_eq!(
+        installed_program_targets(operation.contracts()),
+        expected_program()
+    );
 }
 
-fn expected_reads() -> BTreeSet<ApplicationOperationDecisionReadTarget> {
+fn expected_reads() -> BTreeSet<InstalledReadTarget> {
     [
         field("EstateCase", "EstateCaseRecord", "EstateCaseIdentityField"),
         field("EstateCase", "EstateCaseRecord", "EstateCaseStatusField"),
@@ -73,14 +69,10 @@ fn expected_reads() -> BTreeSet<ApplicationOperationDecisionReadTarget> {
     .collect()
 }
 
-fn expected_program() -> Vec<ApplicationOperationProgramTarget> {
-    let mut expected = vec![
-        ApplicationOperationProgramTarget::Create {
-            entity: "JournalEntry".to_owned(),
-        },
-        ApplicationOperationProgramTarget::Create {
-            entity: "Posting".to_owned(),
-        },
+fn expected_program() -> BTreeSet<InstalledProgramTarget> {
+    [
+        InstalledProgramTarget::Create("JournalEntry".to_owned()),
+        InstalledProgramTarget::Create("Posting".to_owned()),
         write("Account", "AccountState", "AccountingRevision"),
         write("JournalEntry", "JournalIdentity", "JournalIdentityField"),
         write("JournalEntry", "JournalState", "JournalPurpose"),
@@ -88,44 +80,48 @@ fn expected_program() -> Vec<ApplicationOperationProgramTarget> {
         write("Posting", "PostingValue", "PostingAmount"),
         write("Posting", "PostingValue", "PostingAccountSequence"),
         write("Posting", "PostingValue", "Purpose"),
-        ApplicationOperationProgramTarget::Link {
+        InstalledProgramTarget::Link {
             relation: "JournalPosting".to_owned(),
             from: "JournalEntry".to_owned(),
             to: "Posting".to_owned(),
         },
-        ApplicationOperationProgramTarget::Link {
+        InstalledProgramTarget::Link {
             relation: "PostingAccount".to_owned(),
             from: "Posting".to_owned(),
             to: "Account".to_owned(),
         },
-        ApplicationOperationProgramTarget::Emit {
-            effect: "AccountActivityEffect".to_owned(),
-        },
-    ];
-    expected.sort();
-    expected
+        InstalledProgramTarget::Emit("AccountActivityEffect".to_owned()),
+    ]
+    .into_iter()
+    .collect()
 }
 
-fn field(entity: &str, aspect: &str, field: &str) -> ApplicationOperationDecisionReadTarget {
-    ApplicationOperationDecisionReadTarget::Field {
+fn field(entity: &str, aspect: &str, field: &str) -> InstalledReadTarget {
+    InstalledReadTarget::Field {
         entity: entity.to_owned(),
         aspect: aspect.to_owned(),
-        field: field.to_owned(),
+        path: path(field),
     }
 }
 
-fn relation(relation: &str, from: &str, to: &str) -> ApplicationOperationDecisionReadTarget {
-    ApplicationOperationDecisionReadTarget::Relation {
+fn relation(relation: &str, from: &str, to: &str) -> InstalledReadTarget {
+    InstalledReadTarget::Relation {
         relation: relation.to_owned(),
         from: from.to_owned(),
         to: to.to_owned(),
     }
 }
 
-fn write(entity: &str, aspect: &str, field: &str) -> ApplicationOperationProgramTarget {
-    ApplicationOperationProgramTarget::Write {
+fn write(entity: &str, aspect: &str, field: &str) -> InstalledProgramTarget {
+    InstalledProgramTarget::Write {
         entity: entity.to_owned(),
         aspect: aspect.to_owned(),
-        field: field.to_owned(),
+        path: path(field),
     }
+}
+
+fn path(field: &str) -> worth_foundational::facade::CanonicalFieldPath {
+    worth_foundational::facade::CanonicalFieldPath::single(
+        worth_foundational::facade::FieldKey::new(field).unwrap(),
+    )
 }

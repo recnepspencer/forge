@@ -43,6 +43,11 @@ pub struct WorthQueryProviderExecutionPlanContract {
     resource_envelope_identity: Arc<str>,
     read_closure: Arc<[String]>,
     touch_closure: Arc<[String]>,
+    application_graph_reads:
+        Option<worth_query_installation::facade::WorthQueryOperationGraphReadContract>,
+    application_touches: Option<worth_query_installation::facade::WorthQueryOperationTouchContract>,
+    application_read_touch_overlap:
+        Option<worth_query_installation::facade::WorthQueryOperationReadTouchOverlapIndex>,
     effect_closure: Arc<[String]>,
     invariant_closure: Arc<[String]>,
     artifact_closure: Arc<[String]>,
@@ -102,6 +107,9 @@ impl WorthQueryProviderExecutionPlanContract {
             resource_envelope_identity: execution.resource_envelope_identity().into(),
             read_closure: closure.read.into(),
             touch_closure: closure.touch.into(),
+            application_graph_reads: declarations.application_graph_reads().cloned(),
+            application_touches: declarations.application_touches().cloned(),
+            application_read_touch_overlap: declarations.application_read_touch_overlap().cloned(),
             effect_closure: closure.effect.into(),
             invariant_closure: closure.invariant.into(),
             artifact_closure: artifact_closure.into(),
@@ -215,6 +223,24 @@ impl WorthQueryProviderExecutionPlanContract {
         &self.touch_closure
     }
 
+    pub const fn application_graph_reads(
+        &self,
+    ) -> Option<&worth_query_installation::facade::WorthQueryOperationGraphReadContract> {
+        self.application_graph_reads.as_ref()
+    }
+
+    pub const fn application_touches(
+        &self,
+    ) -> Option<&worth_query_installation::facade::WorthQueryOperationTouchContract> {
+        self.application_touches.as_ref()
+    }
+
+    pub const fn application_read_touch_overlap(
+        &self,
+    ) -> Option<&worth_query_installation::facade::WorthQueryOperationReadTouchOverlapIndex> {
+        self.application_read_touch_overlap.as_ref()
+    }
+
     pub fn effect_closure(&self) -> &[String] {
         &self.effect_closure
     }
@@ -256,8 +282,21 @@ impl WorthQueryProviderExecutionPlanContract {
     }
 
     pub(super) fn closure_width(&self) -> usize {
+        let application_read_width = self.application_graph_reads.as_ref().map_or(0, |reads| {
+            reads
+                .roles()
+                .iter()
+                .map(|role| role.read_scopes().len())
+                .sum()
+        });
+        let application_touch_width = self
+            .application_touches
+            .as_ref()
+            .map_or(0, |touches| touches.scopes().len());
         self.read_closure.len()
             + self.touch_closure.len()
+            + application_read_width
+            + application_touch_width
             + self.effect_closure.len()
             + self.invariant_closure.len()
             + self.artifact_closure.len()

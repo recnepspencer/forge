@@ -3,9 +3,9 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 
 use worth_query_installation::facade::{
-    ApplicationFieldRef, ApplicationFieldUnit, ApplicationOperationDecisionReadTarget,
-    ApplicationRelationRef, ApplicationSchema, EqualityPredicate, OperationReads,
-    TypedApplicationReadableValue, TypedApplicationValue, WritePosture,
+    ApplicationFieldRef, ApplicationFieldUnit, ApplicationRelationRef, ApplicationSchema,
+    EqualityPredicate, OperationReads, TypedApplicationReadableValue, TypedApplicationValue,
+    WorthQueryOperationGraphReadContract, WritePosture,
 };
 
 mod decision_plan;
@@ -36,7 +36,7 @@ pub struct WorthQueryApplicationOperationInvariantProjectionReader<
     Operation,
 > {
     reader: &'reader mut WorthQueryApplicationInvariantProjectionReader<'runtime, Schema>,
-    admitted_decision_reads: Option<&'reader [ApplicationOperationDecisionReadTarget]>,
+    admitted_graph_reads: Option<&'reader WorthQueryOperationGraphReadContract>,
     decision_facts: &'reader mut BTreeSet<WorthQueryApplicationFactKey>,
     _operation: PhantomData<fn() -> Operation>,
 }
@@ -95,7 +95,7 @@ where
             let mut decision_facts = BTreeSet::new();
             let mut operation_reader = WorthQueryApplicationOperationInvariantProjectionReader {
                 reader,
-                admitted_decision_reads: None,
+                admitted_graph_reads: None,
                 decision_facts: &mut decision_facts,
                 _operation: PhantomData,
             };
@@ -131,8 +131,8 @@ where
                     let mut operation_reader =
                         WorthQueryApplicationOperationInvariantProjectionReader {
                             reader,
-                            admitted_decision_reads: Some(
-                                admission.allowed_graph_contract().decision_reads(),
+                            admitted_graph_reads: Some(
+                                admission.allowed_graph_contract().graph_reads(),
                             ),
                             decision_facts: &mut decision_facts,
                             _operation: PhantomData,

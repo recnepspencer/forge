@@ -1,5 +1,5 @@
 use worth_query_installation::facade::{
-    ApplicationOperationDecisionReadTarget, ApplicationRelationRef, OperationReads,
+    ApplicationRelationRef, OperationReads, WorthQueryOperationGraphReadScope,
 };
 use worth_relational::facade::runtime::ProjectionAspectScope;
 use worth_relational::facade::storage::RecordLifecycleState;
@@ -44,7 +44,8 @@ impl<Schema, Operation, Input, Scope>
             )
         })?;
         for key in expected {
-            let fact = self.observe_projected_fact(&key)?;
+            let (read_scope, fact) = self.observe_projected_fact(&key)?;
+            self.installed_read_scopes.insert(key.clone(), read_scope);
             self.facts.insert(key, fact);
         }
         self.complete()
@@ -53,14 +54,20 @@ impl<Schema, Operation, Input, Scope>
     fn observe_projected_fact(
         &self,
         key: &WorthQueryApplicationFactKey,
-    ) -> Result<WorthQueryApplicationObservedFact, WorthQueryApplicationAttemptDenial> {
+    ) -> Result<
+        (
+            WorthQueryOperationGraphReadScope,
+            WorthQueryApplicationObservedFact,
+        ),
+        WorthQueryApplicationAttemptDenial,
+    > {
         if !key_entities_are_in_scope(key, &self.read_scope) {
             return Err(denial(
                 WorthQueryApplicationAttemptDenialKind::OutsideRealizedReadScope,
                 self.admission.operation(),
             ));
         }
-        let target = self.projected_target(key)?;
+        let read_scope = self.projected_read_scope(key)?;
         match key {
             WorthQueryApplicationFactKey::Entity { entity, entity_id } => {
                 let kind = self.layout.entity_kind(entity).ok_or_else(|| {
@@ -93,11 +100,13 @@ impl<Schema, Operation, Input, Scope>
                         entity,
                     ));
                 }
-                Ok(WorthQueryApplicationObservedFact::Entity {
-                    target,
-                    entity_id: *entity_id,
-                    kind,
-                })
+                Ok((
+                    read_scope,
+                    WorthQueryApplicationObservedFact::Entity {
+                        entity_id: *entity_id,
+                        kind,
+                    },
+                ))
             }
             WorthQueryApplicationFactKey::Field {
                 entity,
@@ -128,13 +137,15 @@ impl<Schema, Operation, Input, Scope>
                             entity,
                         )
                     })?;
-                Ok(WorthQueryApplicationObservedFact::Field {
-                    target,
-                    entity_id: *entity_id,
-                    kind,
-                    locator: locator.clone(),
-                    value,
-                })
+                Ok((
+                    read_scope,
+                    WorthQueryApplicationObservedFact::Field {
+                        entity_id: *entity_id,
+                        kind,
+                        locator: locator.clone(),
+                        value,
+                    },
+                ))
             }
             WorthQueryApplicationFactKey::Relation { relation, from, to } => {
                 let layout = self.layout.relation(relation).ok_or_else(|| {
@@ -152,13 +163,15 @@ impl<Schema, Operation, Input, Scope>
                         *to,
                     )
                 })?;
-                Ok(WorthQueryApplicationObservedFact::Relation {
-                    target,
-                    relation_kind: layout.kind,
-                    from: *from,
-                    to: *to,
-                    matching_relations,
-                })
+                Ok((
+                    read_scope,
+                    WorthQueryApplicationObservedFact::Relation {
+                        relation_kind: layout.kind,
+                        from: *from,
+                        to: *to,
+                        matching_relations,
+                    },
+                ))
             }
             WorthQueryApplicationFactKey::Adjacency {
                 relation,
@@ -188,27 +201,31 @@ impl<Schema, Operation, Input, Scope>
                         relation,
                     )
                 })?;
-                Ok(WorthQueryApplicationObservedFact::Adjacency {
-                    target,
-                    relation_kind: layout.kind,
-                    anchor: *anchor,
-                    direction: *direction,
-                    maximum_work_units: *maximum_work_units,
-                    relations,
-                })
+                Ok((
+                    read_scope,
+                    WorthQueryApplicationObservedFact::Adjacency {
+                        relation_kind: layout.kind,
+                        anchor: *anchor,
+                        direction: *direction,
+                        maximum_work_units: *maximum_work_units,
+                        relations,
+                    },
+                ))
             }
         }
     }
 
-    fn projected_target(
+    fn projected_read_scope(
         &self,
         key: &WorthQueryApplicationFactKey,
-    ) -> Result<ApplicationOperationDecisionReadTarget, WorthQueryApplicationAttemptDenial> {
+    ) -> Result<WorthQueryOperationGraphReadScope, WorthQueryApplicationAttemptDenial> {
         self.admission
             .allowed_graph_contract()
-            .decision_reads()
+            .graph_reads()
+            .roles()
             .iter()
-            .find(|target| target_matches_key(target, key))
+            .flat_map(|role| role.read_scopes())
+            .find(|scope| super::observation_admission::graph_read_scope_matches_key(scope, key))
             .cloned()
             .ok_or_else(|| {
                 denial(
@@ -313,43 +330,5 @@ fn key_entities_are_in_scope(
             scope.admits(*from) && scope.admits(*to)
         }
         WorthQueryApplicationFactKey::Adjacency { anchor, .. } => scope.admits(*anchor),
-    }
-}
-
-fn target_matches_key(
-    target: &ApplicationOperationDecisionReadTarget,
-    key: &WorthQueryApplicationFactKey,
-) -> bool {
-    match (target, key) {
-        (
-            ApplicationOperationDecisionReadTarget::Entity { entity: declared },
-            WorthQueryApplicationFactKey::Entity { entity, .. },
-        ) => declared == entity,
-        (
-            ApplicationOperationDecisionReadTarget::Field {
-                entity: declared_entity,
-                aspect: declared_aspect,
-                field: declared_field,
-            },
-            WorthQueryApplicationFactKey::Field {
-                entity, locator, ..
-            },
-        ) => {
-            declared_entity == entity
-                && declared_aspect == locator.aspect().aspect_key().as_str()
-                && locator
-                    .field_path()
-                    .fields()
-                    .first()
-                    .is_some_and(|field| declared_field == field.as_str())
-        }
-        (
-            ApplicationOperationDecisionReadTarget::Relation {
-                relation: declared, ..
-            },
-            WorthQueryApplicationFactKey::Relation { relation, .. }
-            | WorthQueryApplicationFactKey::Adjacency { relation, .. },
-        ) => declared == relation,
-        _ => false,
     }
 }

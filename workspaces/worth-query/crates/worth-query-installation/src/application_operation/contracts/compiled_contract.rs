@@ -1,7 +1,4 @@
 use worth_foundational::facade::CanonicalDigestWorkBudget;
-use worth_query_declaration::facade::application_schema::{
-    ApplicationOperationDecisionReadTarget, ApplicationOperationProgramTarget,
-};
 
 use crate::application_aftermath::{
     InstalledExternalEffectContract, WorthQueryInstalledAftermathContract,
@@ -9,7 +6,7 @@ use crate::application_aftermath::{
 use crate::application_operation::{
     WorthQueryInstalledAbilityRequirement, WorthQueryInstalledApplicationOperationAuthorization,
     WorthQueryInstalledApplicationOperationExecutionPosture,
-    WorthQueryInstalledMutationPrecondition,
+    WorthQueryInstalledMutationPrecondition, WorthQueryOperationEmissionContract,
 };
 use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
 use crate::domain_computation::{
@@ -28,13 +25,12 @@ pub struct WorthQueryCompiledApplicationOperationContracts {
     pub(super) ability_requirements: Vec<WorthQueryInstalledAbilityRequirement>,
     pub(super) graph_reads: WorthQueryOperationGraphReadContract,
     pub(super) touches: WorthQueryOperationTouchContract,
+    pub(super) emissions: WorthQueryOperationEmissionContract,
     pub(super) effects: WorthQueryOperationEffectContract,
     pub(super) invariants: WorthQueryOperationInvariantContract,
     pub(super) decision_facts: WorthQueryOperationDecisionFactContract,
     pub(super) invariant_execution: WorthQueryInvariantExecutionContract,
     pub(super) resources: WorthQueryExecutionResourceContract,
-    pub(super) program: Vec<ApplicationOperationProgramTarget>,
-    pub(super) decision_reads: Vec<ApplicationOperationDecisionReadTarget>,
     pub(super) decision_fact_budget: usize,
     pub(super) projection_work_budget: usize,
     pub(super) additional_authorization_fact_count: usize,
@@ -74,7 +70,10 @@ impl WorthQueryCompiledApplicationOperationContracts {
         if !self.execution_posture.requires_delegation_activation() {
             return None;
         }
-        let width = u32::try_from(self.program.len()).ok()?;
+        let width = u32::try_from(
+            self.touches.scopes().len() + usize::from(self.external_effect.is_declared()),
+        )
+        .ok()?;
         let entries = width.checked_mul(6)?.checked_add(16)?;
         CanonicalDigestWorkBudget::new(entries, 256 * 1_024)
     }
@@ -107,6 +106,10 @@ impl WorthQueryCompiledApplicationOperationContracts {
         &self.touches
     }
 
+    pub const fn emissions(&self) -> &WorthQueryOperationEmissionContract {
+        &self.emissions
+    }
+
     pub const fn read_touch_overlap(&self) -> &WorthQueryOperationReadTouchOverlapIndex {
         &self.overlap_index
     }
@@ -136,14 +139,6 @@ impl WorthQueryCompiledApplicationOperationContracts {
             return None;
         };
         Some(strategy)
-    }
-
-    pub fn program(&self) -> &[ApplicationOperationProgramTarget] {
-        &self.program
-    }
-
-    pub fn decision_reads(&self) -> &[ApplicationOperationDecisionReadTarget] {
-        &self.decision_reads
     }
 
     pub const fn decision_fact_budget(&self) -> usize {

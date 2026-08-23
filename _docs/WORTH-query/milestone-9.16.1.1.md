@@ -1,13 +1,10 @@
 # Milestone 9.16.1.1: Installed Graph Contract Integrity Repair
 
-> **Status:** Proposed — required before Milestone 9.16.2
+> **Status:** Closed on 2026-08-23 — required predecessor for Milestone 9.16.2
 >
-> **Historical posture:** Milestone 9.16.1 remains closed with its recorded
-> evidence. This append-only corrective sub-milestone records and repairs a
-> later-discovered mismatch between the installed application-operation
-> contract promised by that milestone and the public contract currently
-> emitted by `worth-query-installation`. It does not rewrite the 9.16.1 ledger
-> or revoke evidence that remains true.
+> **Historical posture:** Milestone 9.16.1 remains historical. This corrective
+> sub-milestone repairs the current installed application-operation contract;
+> it does not reopen, amend, validate, or depend on the 9.16.1 closure record.
 
 ## Goal
 
@@ -21,7 +18,8 @@ For one exact installed application operation, Query must expose and carry:
 - the exact Foundational native aspect contract and projection mask for every
   declared field or whole-aspect projection;
 - the exact typed graph mutation scopes it may perform;
-- graph mutation and external-effect emission as distinct effect families;
+- graph mutation, application-effect emission, and escaping external-effect
+  dispatch as distinct contract families;
 - the exact installed reconciliation procedure and typed external-effect
   correlation family when those facts are declared; and
 - one canonical installed contract consumed unchanged by graph-obligation
@@ -46,7 +44,7 @@ No runtime component may recreate, parse, widen, or guess the installed
 meaning. No public inspection value grants read, mutation, correction,
 dispatch, or recovery authority.
 
-## Roadmap Placement And Append-Only Rule
+## Roadmap Placement
 
 Milestone 9.16.1.1 consumes:
 
@@ -61,9 +59,8 @@ Milestone 9.16.1.1 consumes:
 - the existing `worth-query-declaration`, `worth-query-installation`,
   `worth-query-execution`, and `worth-query-host` package direction.
 
-Milestone 9.16.1 remains historically closed. Its closure ledger receives an
-append-only post-closure finding that points here; previously proved session,
-execution, lifecycle, publication, facade, and warm-cost rows remain inputs.
+Milestone 9.16.1 remains historical. Current tests and review protect the
+repaired contract without reopening or certifying its prior closure artifacts.
 The finding corrects the narrower claim that installed application-operation
 read and touch meaning was completely inspectable and typed.
 
@@ -193,7 +190,7 @@ execution-owned runtime schema because they describe provider storage and have
 a different lifecycle, authority, and replacement fate. They do not move into
 the application schema catalog.
 
-## Adversarial Courtroom
+## Verification Scenario
 
 ### Production boundary
 
@@ -225,15 +222,9 @@ The schema contains:
 - one external-owner aftermath contract with a reconciliation procedure and
   correlation family.
 
-The same logical declaration is installed twice with deliberately permuted
-member and operation declaration order. A hostile twin changes exactly one
-field read, one touch variant, one aspect revision, one correlation family, or
-one reconciliation procedure at a time. A cross-splice twin supplies
-same-rendered-name loci from the other entity, schema binding, or runtime
-generation.
-
-The scale twin adds 128 unrelated fields and 4,096 unrelated operations while
-selecting and executing the same subject operation.
+The test world includes enough same-named and sibling loci to catch accidental
+string matching or projection widening without constructing an exhaustive
+mutant matrix.
 
 ### Required observations
 
@@ -244,50 +235,36 @@ The public Host inspection must show:
   exact contract and whose mask contains exactly the declared field path;
 - one typed relation read scope with exact endpoint kinds;
 - one typed sibling-field write scope and one typed link scope;
-- no graph touch for the emit-only operation;
-- an external-effect contract for the emit-only operation;
+- no graph touch for either in-process or external emit-only operations;
+- an installed application-effect emission contract for every emit target;
+- an external-effect contract only when the emitted effect is also declared to
+  escape the process;
 - the exact installed reconciliation procedure; and
 - the exact typed correlation family shared by the operation external-effect
   and aftermath views.
 
-Independent runtime evidence must show that execution registered the same
-application aspect contract identity and revision, observed the declared read
-facts, performed only admitted mutations, and produced actual touched-scope
-evidence that is a subset of the installed declared scopes.
+### QA considerations
 
-Equivalent declaration order must produce equal installed schema catalogs,
-operation contracts, obligation identities, and canonical artifacts. Every
-single-semantic mutant must change the relevant canonical artifact and either
-install as a distinct compatible package or deny under the existing
-compatibility law. Cross-schema, cross-entity, and cross-generation
-substitutions must deny before graph work.
+Focused tests should exercise the repaired product contracts directly:
 
-Warm selection and execution in the scale twin must perform no application
-contract reconstruction, declaration scan, canonical encoding, SHA work, or
-digest-text materialization. Work may scale with selected read scopes, selected
-touch scopes, actual traversal, and actual mutation only.
+- installation retains the declared aspect identity, revision, contract, and
+  exact partial-versus-whole projection mask;
+- an installed operation exposes typed entity, projection, and relation reads
+  plus typed create, delete, write, link, and unlink scopes;
+- an emit-only operation exposes its installed emission without claiming a
+  graph mutation, while only an escaping emission exposes external-effect
+  authority;
+- declared touch scope remains distinct from actual performed-touch evidence;
+- reconciliation and external-effect correlation family are inspectable through
+  `worth_query_host::facade::domain`; and
+- the ordinary execution integration uses the installed native contract rather
+  than reconstructing it or parsing a private string grammar.
 
-### Mutation sensitivity
-
-The court must turn red if implementation:
-
-- restores the empty read vector;
-- maps every field read to a whole-aspect mask;
-- drops schema or entity binding from a native projection;
-- assigns application aspect identities inside execution;
-- compares a touch through formatted text;
-- treats `Emit` as a graph mutation;
-- accepts declared touch scope as performed evidence;
-- canonicalizes a sorted string rendering instead of the typed variants;
-- hashes reconciliation without retaining it;
-- copies correlation-family text into a second untyped authority lane;
-- scans unrelated schema members or operations during warm selection; or
-- exposes a public constructor that can insert a forged scope into an
-  installed operation or obligation set.
-
-The proof must include direct semantic assertions against independent owner
-evidence. Getter-only tests, snapshots produced by the same formatter, and an
-in-memory imitation of the Host boundary are insufficient.
+Compiler tests are appropriate for the few public construction boundaries that
+must be mechanically closed. Tests need not exhaust every constructor, encode
+one mutant per field, prove pointer identity, or maintain a second ledger about
+the accepted test suite. Repository checks and review decide whether the final
+set is adequate for the changed boundary.
 
 ## Product Decision Lock
 
@@ -417,12 +394,14 @@ scope as one validated atomic semantic identity. Its representation contains
 no separators or parseable substructure and cannot impersonate an application
 entity, field, or relation locus.
 
-`ApplicationOperationProgramTarget::Emit` compiles into the operation's effect
-and external-effect contracts, never into a graph touch. `NotRequired` is used
-when an operation has no graph mutation targets even if it emits an external
-effect. Mutation effect posture is derived from graph mutation targets; an
-external-effect family is derived independently from the installed external-
-effect contract.
+`ApplicationOperationProgramTarget::Emit` compiles into the sealed installed
+application-effect emission contract, never into a graph touch. When the
+operation definition also declares that effect external, the same effect
+additionally carries the external correlation and protocol contract.
+`NotRequired` is used when an operation has no graph mutation targets even if
+it emits an effect. Mutation effect posture is derived from graph mutation
+targets; external-effect authority is derived independently from the installed
+external-effect contract.
 
 Declared touch scope is the installed legal ceiling. Actual Relational touched
 scope is performed evidence. Query compares them through typed schema binding,
@@ -528,96 +507,7 @@ and index IDs. Those runtime values are not portable meaning and cannot mint or
 modify the installed catalog. Rebuilding the layout from the same installed
 catalog must retain exact application aspect contracts.
 
-## Destination Directory And Module Skeleton
-
-Status markers:
-
-- `[E]` existing and retained;
-- `[C]` created;
-- `[M]` existing responsibility moved to the named destination;
-- `[R]` existing file replaced after its responsibilities move;
-- `[X]` removed after cutover; and
-- `[S]` committed successor destination documented here but not created empty.
-
-```text
-workspaces/worth-query/crates/
-├── worth-query-declaration/src/
-│   ├── application_schema_macro.rs                         [E, narrow]
-│   ├── application_aspect_macro.rs                         [C]
-│   ├── application_schema/
-│   │   ├── aspect_contract_identity.rs                    [C]
-│   │   ├── canonical_identity.rs                          [E, narrow]
-│   │   ├── canonical_identity/member.rs                   [C]
-│   │   ├── declaration.rs                                 [E, modify]
-│   │   ├── external_effect_correlation_family.rs          [C]
-│   │   ├── field_reference.rs                             [E, narrow]
-│   │   ├── references.rs                                  [E, modify]
-│   │   └── schema_member.rs                               [E, modify]
-├── worth-query-installation/src/
-│   ├── application_schema.rs                              [E, facade]
-│   ├── application_schema/
-│   │   ├── installed.rs                                   [C]
-│   │   ├── compilation.rs                                 [E, orchestrator]
-│   │   └── native_contract/
-│   │       ├── mod.rs                                     [C]
-│   │       ├── catalog.rs                                 [C]
-│   │       ├── aspect_contract.rs                         [C]
-│   │       ├── compilation.rs                             [C]
-│   │       ├── locus.rs                                   [C]
-│   │       ├── denial.rs                                  [C]
-│   │       └── canonical_basis.rs                         [C]
-│   ├── installed_index/
-│   │   ├── application_schema_record.rs                   [C]
-│   │   ├── application_schema.rs                          [E, facade]
-│   │   ├── application_schema/binding.rs                  [C]
-│   │   ├── application_schema/validation.rs               [C]
-│   │   ├── application_schema/denial_mapping.rs           [C]
-│   │   └── construction/application_schema_records.rs     [C]
-│   ├── application_operation.rs                           [E, facade]
-│   ├── application_operation/
-│   │   ├── contracts.rs                                   [R]
-│   │   └── contracts/
-│   │       ├── mod.rs                                     [C]
-│   │       ├── compilation.rs                             [M]
-│   │       ├── graph_reads.rs                             [C]
-│   │       ├── graph_touches.rs                           [C]
-│   │       └── effect_posture.rs                          [C]
-│   ├── domain_operation.rs                                [E, facade]
-│   ├── domain_operation/
-│   │   ├── semantic_contracts.rs                          [R]
-│   │   ├── graph_read/
-│   │   │   ├── mod.rs                                     [C]
-│   │   │   ├── contract.rs                                [M]
-│   │   │   ├── role.rs                                    [M]
-│   │   │   ├── scope.rs                                   [C]
-│   │   │   └── native_projection.rs                       [M]
-│   │   └── touch/
-│   │       ├── mod.rs                                     [C]
-│   │       ├── contract.rs                                [M]
-│   │       ├── scope.rs                                   [C]
-│   │       └── overlap.rs                                 [C]
-│   ├── graph_obligation/
-│   │   ├── contract.rs                                    [E, modify]
-│   │   ├── identity/contract_encoding.rs                  [E, modify]
-│   │   └── operation_binding.rs                           [E, modify]
-│   ├── application_aftermath/
-│   │   ├── install.rs                                     [E, modify]
-│   │   ├── reconciliation.rs                              [C]
-│   │   ├── external_effect_contract.rs                    [E, modify]
-│   │   └── canonical_basis.rs                             [E, modify]
-│   └── package/
-│       └── portable_records/                              [S, 9.16.2 consumer]
-├── worth-query-execution/src/domain_computation/primary_graph/
-│   ├── schema_layout.rs                                   [E, modify]
-│   └── schema_layout/
-│       ├── registry_lowering.rs                           [E, narrow]
-│       ├── provider_identity_allocator.rs                 [C]
-│       ├── provider_idempotency.rs                        [E, retained]
-│       ├── provider_dispatch_outbox.rs                    [E, retained]
-│       └── provider_aftermath_causality.rs                [E, retained]
-├── worth-query-host/src/facade.rs                         [E, re-export only]
-└── worth-query-package-archive/src/                       [S, 9.16.2 consumer]
-```
+## Placement
 
 The dominant axes are:
 
@@ -640,10 +530,9 @@ scope parsing to graph obligation, retaining new logic in a Host facade,
 placing effect emission in graph touch, or combining read, touch, aftermath,
 and canonical encoding back into one `contracts.rs` bag.
 
-The `contracts.rs` and `semantic_contracts.rs` replacements are required
-composition work, not optional cleanup: both files are already near the
-400-line cap and currently combine responsibilities that acquire distinct
-authority and proof obligations in this milestone.
+This repair extracts the new read and touch families from the legacy semantic
+contract module but does not require decomposition of unrelated pre-existing
+families. Destination-only placeholder files are not created.
 
 ## Ordered Phase Plan
 
@@ -656,8 +545,8 @@ shape closure, field membership, and Foundational mask/contract admission.
 
 Move only application aspect-contract construction out of execution. Keep
 provider-internal schema aspects with their execution owner. Installation
-order-equivalence, semantic-mutant, collision, and compile-fail evidence lets
-Phase 2 trust one exact native contract per installed entity/aspect locus.
+validates one exact native contract per installed entity/aspect locus before
+operation contracts consume it.
 
 This phase also performs the minimal atomic execution cutover required to make
 that move honest: primary-graph bootstrap passes the sealed catalog into
@@ -686,24 +575,21 @@ touch and derive mutation/effect posture from the correct target families.
 
 Bind the typed values into graph-obligation identity and selection. Add the
 comparison-ready overlap index and remove the structured-string scope
-function. Exact-mask, same-name-cross-locus, emit-only, canonical-order,
-semantic-mutant, and public-construction evidence lets Phase 3 trust that the
-sealed obligation exposes the same exact meaning as the installed operation.
+function. The sealed obligation exposes the same exact typed meaning as the
+installed operation without a parallel string or summary representation.
 
 This phase mechanically forbids empty installed read scope for a non-empty
 decision-read declaration, string parsing, inferred whole-aspect posture, and
 declared-scope promotion to performed evidence.
 
-### Phase 3: Execution Consumption And Performed-Evidence Closure
+### Phase 3: Execution Consumption And Performed Touches
 
 Consume the Phase 1 registered application contracts and compare runtime
 read/touch evidence against the Phase 2 typed contract. Cut over every
 remaining ordinary operation and capability-operation consumer atomically.
 
-Real owner-bound execution, layout reconstruction, cross-generation
-substitution, exact subset/intersection, sibling-field precision, relation
-endpoint, cancellation, conflict, and lifecycle evidence lets Phase 4 trust
-that inspection and runtime behavior share one installed authority.
+Runtime registration, read admission, and performed-touch comparison consume
+the installed typed contracts through their existing owner boundaries.
 
 Application `AspectIdentity` allocation and application `AspectContract`
 construction were already removed from execution in Phase 1. This phase may
@@ -717,25 +603,22 @@ reconciliation procedure, derive aftermath external-effect posture from the
 operation's installed external-effect contract, and expose the complete typed
 surface through `worth_query_host::facade::domain`.
 
-Canonical identity, external-owner, not-correctable, no-effect, wrong-family,
-wrong-reconciliation, compile-fail construction, and public Host consumer
-evidence lets Phase 5 trust that package and NCR consumers need no private
-imports or string interpretation.
+Package and NCR consumers need no private imports or string interpretation.
 
 This phase does not add correction execution, durable recovery, or external-
 effect completion authority.
 
-### Phase 5: Courtroom, Cutover, Documentation, And Residue
+### Phase 5: Integration, Documentation, And Residue
 
-Run the complete public Host courtroom, scale twin, full affected consumer
-parity, dependency enforcement, line-cap audit, and warm-work evidence. Remove
-the old aspect macro form, structured scope rendering as authority, application
-contract reconstruction, public untyped scope exposure, and any compatibility
-re-export that can preserve the defective contract.
+Run the focused owner and integration tests for the changed boundaries plus the
+required repository checks. Remove the old aspect macro form, structured scope
+rendering as authority, application contract reconstruction, public untyped
+scope exposure, and any compatibility re-export that can preserve the defective
+contract.
 
-Revise the durable feature documents and append the 9.16.1 closure finding.
-Only after all acceptance evidence closes may Milestone 9.16.2 begin and trust
-the repaired installed contract for stable package records and NCR adoption.
+Revise the durable feature documents. Once the implementation, focused tests,
+and required repository checks pass review, Milestone 9.16.2 may trust the
+repaired installed contract for stable package records and NCR adoption.
 
 ## Caller DX Target
 
@@ -859,17 +742,16 @@ No new guide duplicates the canonical graph-obligation document.
 - exact typed create, delete, field-write, relation-link, and relation-unlink
   declared touch scopes;
 - exact Foundational projection masks with explicit whole-aspect posture;
-- graph mutation separated from external-effect emission;
+- graph mutation, application-effect emission, and external dispatch separated
+  into their own installed contracts;
 - one typed read/touch overlap path and one canonical contract basis;
 - execution registration from the exact installed application contracts;
 - actual Relational touched evidence kept distinct from declared scope;
 - typed retained reconciliation and correlation-family inspection;
 - complete `worth_query_host::facade::domain` re-export;
-- exact-zero warm contract reconstruction and canonical/SHA work;
-- public hostile-consumer, independent owner, scale, compile-fail, dependency,
-  facade, residue, and mutation-sensitive evidence; and
-- the append-only roadmap, closure-ledger, durable-documentation, and 9.16.2
-  handoff updates.
+- focused owner, Host-consumer, compile-boundary, and execution integration
+  tests; and
+- durable documentation, roadmap, and 9.16.2 handoff updates.
 
 ## Must Preserve
 
@@ -915,53 +797,25 @@ No new guide duplicates the canonical graph-obligation document.
 - preserving source compatibility for the defective aspect macro or structured
   string touch surface after covered consumers migrate.
 
-## Acceptance Evidence
+## Acceptance
 
-Milestone 9.16.1.1 closes only when:
+Milestone 9.16.1.1 is complete when:
 
-1. every installed application aspect carries declaration-owned identity and
-   revision, and installation denies collision, incompatibility, missing
-   closure, and invalid revision;
-2. one exact installed native application-schema catalog supplies operation
-   projection contracts, graph obligations, execution registration, Host
-   inspection, and the 9.16.2 package handoff;
-3. every operation decision-read target appears as the correct typed entity,
-   native projection, or relation scope with no widening or omission;
-4. field reads sharing an aspect produce one exact mask, sibling-field and
-   whole-aspect behavior are distinguished, and same-name foreign loci deny;
-5. graph mutation targets appear as typed touch variants, emit-only operations
-   declare no graph touch, and no structured scope string or parser remains;
-6. installed declared touch scope and actual performed touch evidence remain
-   distinct and are compared through exact typed binding;
-7. application aspect contracts are no longer constructed or assigned identity
-   in execution, while provider-internal execution schema remains intact;
-8. installed schema, operation, and graph-obligation canonical artifacts agree,
-   order permutations remain equal, and every single-semantic mutant changes
-   or denies at the correct boundary;
-9. reconciliation and typed correlation family are retained, canonical, and
-   inspectable through `worth_query_host::facade::domain` without granting
-   correction, dispatch, or recovery authority;
-10. public construction, raw-scope insertion, cross-schema, cross-entity,
-    cross-generation, wrong-revision, wrong-family, and wrong-procedure
-    substitutions fail mechanically or with typed denial before owner work;
-11. the real Host courtroom executes through the ordinary composition root and
-    independently confirms the exact Relational contracts, reads, mutations,
-    and touched evidence;
-12. the 128-field and 4,096-operation scale twin preserves bounded indexed
-    selection and exact-zero warm reconstruction, canonicalization, SHA, and
-    digest-text work;
-13. deletion or inversion of the disputed read, touch, identity, effect, or
-    aftermath mechanism turns targeted evidence red;
-14. every covered consumer uses the new aspect declaration and typed public
-    contracts, and no compatibility representation, parser, old macro form, or
-    private facade import remains;
-15. the canonical product docs, AI README, declaration docs, Host docs,
-    roadmap, 9.16.1 post-closure finding, and 9.16.2 handoff agree with the real
-    implementation and their public examples compile or run; and
-16. focused owner tests, affected integration and consumer suites, formatting,
-    dirty line-cap enforcement, boundary check, generated context check,
-    dependency/residue checks, strict Clippy, and workspace lanes proportional
-    to the touched boundary all pass.
+1. installed application aspects retain declaration-owned identity, revision,
+   and exact Foundational contracts;
+2. installed operations expose exact typed entity, projection, and relation
+   reads plus typed graph touches, while emit-only operations declare no graph
+   mutation;
+3. declared touch scope remains distinct from actual performed-touch evidence;
+4. execution and graph obligations consume the installed contracts without
+   reconstructing application aspect meaning or parsing private strings;
+5. reconciliation and typed correlation family are inspectable through
+   `worth_query_host::facade::domain` without granting operational authority;
+6. covered consumers use the typed public contracts with no compatibility
+   representation, parser, old macro form, or private facade import; and
+7. focused owner and integration tests plus formatting, dirty line-cap,
+   boundary, generated-context, dependency, Clippy, and proportionate workspace
+   checks pass review.
 
 ## Successor Handoff
 

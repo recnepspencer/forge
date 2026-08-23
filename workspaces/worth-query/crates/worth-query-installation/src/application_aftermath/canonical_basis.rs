@@ -15,6 +15,7 @@ use super::denial::{
     WorthQueryAftermathInstallationDenial, WorthQueryAftermathInstallationDenialKind,
 };
 use super::external_effect_contract::InstalledExternalEffectContract;
+use super::reconciliation::WorthQueryInstalledReconciliationProcedure;
 use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
 
 const DOMAIN: CanonicalBasisDomain =
@@ -75,6 +76,7 @@ pub(super) fn prepare_aftermath_basis(
     binding: &ApplicationSchemaBindingIdentity,
     operation_slot: &str,
     portable: &PortableApplicationAftermathContract,
+    reconciliation: Option<&WorthQueryInstalledReconciliationProcedure>,
     external_effect: &InstalledExternalEffectContract,
 ) -> Result<WorthQueryAftermathCanonicalArtifact, WorthQueryAftermathInstallationDenial> {
     let mut builder = AftermathBasisBuilder::new(operation_slot);
@@ -83,7 +85,7 @@ pub(super) fn prepare_aftermath_basis(
     builder.digest("schema-or-domain", binding.schema_identity());
     builder.text("operation", operation_slot);
     builder.text("authority", authority_label(portable.authority()));
-    push_correction_contract(&mut builder, portable);
+    push_correction_contract(&mut builder, portable, reconciliation);
     push_external_effect(&mut builder, external_effect);
     builder.finish()
 }
@@ -91,6 +93,7 @@ pub(super) fn prepare_aftermath_basis(
 fn push_correction_contract(
     builder: &mut AftermathBasisBuilder,
     portable: &PortableApplicationAftermathContract,
+    reconciliation: Option<&WorthQueryInstalledReconciliationProcedure>,
 ) {
     match portable.mechanism() {
         Some(PortableCorrectionMechanism::RecordedInverse(inverse)) => {
@@ -126,7 +129,7 @@ fn push_correction_contract(
             builder.text("mechanism", "none");
         }
     }
-    if let Some(reconciliation) = portable.reconciliation() {
+    if let Some(reconciliation) = reconciliation {
         builder.text("reconciliation", reconciliation.procedure_slot());
     } else {
         builder.text("reconciliation", "none");
@@ -147,7 +150,7 @@ fn push_external_effect(
             maximum_payload_bytes,
         } => {
             builder.text("external-effect", "declared");
-            builder.text("external-correlation", correlation_family);
+            builder.text("external-correlation", correlation_family.as_str());
             builder.text("external-emission", effect);
             builder.text("external-rust-payload-type", rust_payload_type);
             builder.text("external-protocol-identity", protocol.identity().as_str());

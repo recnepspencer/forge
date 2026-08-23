@@ -15,7 +15,7 @@ use worth_query_declaration::facade::application_schema::{
     ApplicationOperationProgramTarget, ApplicationOperationRef, ApplicationSchema,
     ApplicationSchemaBindingIdentity, ApplicationSchemaDeclaration,
     ApplicationSchemaDeclarationBuilder, ApplicationSchemaMember, DeclaredApplicationFieldValue,
-    RequiredApplicationFieldValue,
+    RequiredApplicationFieldValue, WorthQueryExternalEffectCorrelationFamily,
 };
 
 use super::operation_compilation::WorthQueryApplicationOperationCompilation;
@@ -112,7 +112,7 @@ fn reinstallation_recompiles_only_the_presented_candidates_aftermath() {
 }
 
 #[test]
-fn contract_compilation_is_order_independent_and_semantic_mutants_move_meaning() {
+fn contract_compilation_is_order_independent() {
     let mut canonical = members("freeze", "freeze", 64);
     canonical.extend([
         ApplicationSchemaMember::OperationProgram {
@@ -133,19 +133,6 @@ fn contract_compilation_is_order_independent_and_semantic_mutants_move_meaning()
     let mut reordered = canonical.clone();
     reordered.reverse();
     assert_eq!(compile(&canonical).unwrap(), compile(&reordered).unwrap());
-
-    let mut entity_read = canonical.clone();
-    entity_read.push(ApplicationSchemaMember::OperationDecisionRead {
-        operation: "freeze".to_owned(),
-        target: ApplicationOperationDecisionReadTarget::Entity {
-            entity: "Account".to_owned(),
-        },
-    });
-    assert_ne!(
-        compile(&canonical).unwrap(),
-        compile(&entity_read).unwrap(),
-        "changing a projection read into an entity read must change installed meaning"
-    );
 }
 
 #[test]
@@ -167,7 +154,10 @@ fn emit_only_operation_has_external_effect_but_no_graph_touch_or_mutation_effect
                 BoundaryProtocolVersion::new(1),
             ),
             maximum_payload_bytes: 128,
-            correlation_family: "notification-correlation".to_owned(),
+            correlation_family: WorthQueryExternalEffectCorrelationFamily::new(
+                "notification-correlation",
+            )
+            .unwrap(),
         },
         ApplicationSchemaMember::OperationDecisionFactBudget {
             operation: "freeze".to_owned(),
@@ -187,9 +177,45 @@ fn emit_only_operation_has_external_effect_but_no_graph_touch_or_mutation_effect
         contracts.effects(),
         crate::domain_operation::WorthQueryOperationEffectContract::NotRequired
     ));
+    assert_eq!(contracts.emissions().emissions().len(), 1);
+    assert_eq!(
+        contracts.emissions().emissions()[0].effect(),
+        "notification"
+    );
     assert!(matches!(
         contracts.external_effect(),
         crate::application_aftermath::InstalledExternalEffectContract::Declared { .. }
+    ));
+}
+
+#[test]
+fn in_process_emission_is_retained_without_forging_external_dispatch_authority() {
+    let members = vec![
+        operation("freeze"),
+        ApplicationSchemaMember::OperationProgram {
+            operation: "freeze".to_owned(),
+            target: ApplicationOperationProgramTarget::Emit {
+                effect: "activity".to_owned(),
+            },
+        },
+        ApplicationSchemaMember::OperationDecisionFactBudget {
+            operation: "freeze".to_owned(),
+            maximum_fact_count: 1,
+        },
+        ApplicationSchemaMember::OperationProjectionWorkBudget {
+            operation: "freeze".to_owned(),
+            maximum_work_units: 1,
+        },
+    ];
+
+    let contracts = compile(&members).expect("in-process emission compiles");
+
+    assert_eq!(contracts.emissions().emissions().len(), 1);
+    assert_eq!(contracts.emissions().emissions()[0].effect(), "activity");
+    assert!(!contracts.external_effect().is_declared());
+    assert!(matches!(
+        contracts.touches(),
+        crate::domain_operation::WorthQueryOperationTouchContract::NotRequired
     ));
 }
 

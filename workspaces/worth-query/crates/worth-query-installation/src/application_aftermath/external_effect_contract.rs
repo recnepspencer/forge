@@ -1,13 +1,15 @@
 //! Installed external-effect contract for aftermath classification.
 
-use worth_query_declaration::facade::application_schema::ApplicationExternalEffectProtocol;
+use worth_query_declaration::facade::application_schema::{
+    ApplicationExternalEffectProtocol, WorthQueryExternalEffectCorrelationFamily,
+};
 
 /// Installed external-effect posture bound into an aftermath contract.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum InstalledExternalEffectContract {
     None,
     Declared {
-        correlation_family: String,
+        correlation_family: WorthQueryExternalEffectCorrelationFamily,
         effect: String,
         rust_payload_type: String,
         protocol: ApplicationExternalEffectProtocol,
@@ -21,11 +23,18 @@ impl InstalledExternalEffectContract {
     }
 
     /// The correlation family this operation escapes through, if any.
-    pub fn correlation_family(&self) -> Option<&str> {
+    pub const fn correlation_family(&self) -> Option<&WorthQueryExternalEffectCorrelationFamily> {
         match self {
             Self::Declared {
                 correlation_family, ..
             } => Some(correlation_family),
+            Self::None => None,
+        }
+    }
+
+    pub fn effect(&self) -> Option<&str> {
+        match self {
+            Self::Declared { effect, .. } => Some(effect),
             Self::None => None,
         }
     }
@@ -55,14 +64,16 @@ impl InstalledExternalEffectContract {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum InstalledExternalEffectPosture {
     None,
-    Declared { correlation_family: String },
+    Declared {
+        correlation_family: WorthQueryExternalEffectCorrelationFamily,
+    },
 }
 
 impl InstalledExternalEffectPosture {
     pub(crate) fn from_operation_contract(contract: &InstalledExternalEffectContract) -> Self {
         match contract.correlation_family() {
             Some(correlation_family) => Self::Declared {
-                correlation_family: correlation_family.to_owned(),
+                correlation_family: correlation_family.clone(),
             },
             None => Self::None,
         }
@@ -70,5 +81,12 @@ impl InstalledExternalEffectPosture {
 
     pub const fn is_declared(&self) -> bool {
         matches!(self, Self::Declared { .. })
+    }
+
+    pub const fn correlation_family(&self) -> Option<&WorthQueryExternalEffectCorrelationFamily> {
+        match self {
+            Self::Declared { correlation_family } => Some(correlation_family),
+            Self::None => None,
+        }
     }
 }

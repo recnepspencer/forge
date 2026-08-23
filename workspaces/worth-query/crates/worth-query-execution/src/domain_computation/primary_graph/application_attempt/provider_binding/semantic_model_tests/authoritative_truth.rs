@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 
 use worth_foundational::facade::{AspectFieldLocator, AspectValue};
-use worth_query_installation::facade::ApplicationOperationDecisionReadTarget;
 use worth_relational::facade::identity::{EntityId, KindId, PartitionId, RelationId};
 use worth_relational::facade::runtime::RelationalRuntime;
 use worth_relational::facade::symbols::ClientKey;
@@ -224,16 +223,10 @@ fn observed_facts(
         field_fact(runtime, snapshot, axes.update, locators.alpha),
         field_fact(runtime, snapshot, axes.update, locators.beta),
         WorthQueryApplicationObservedFact::Entity {
-            target: ApplicationOperationDecisionReadTarget::Entity {
-                entity: "DecoyArchivedAccount".to_owned(),
-            },
             entity_id: axes.decoy_deleted,
             kind: KindId::new(12),
         },
         WorthQueryApplicationObservedFact::Entity {
-            target: ApplicationOperationDecisionReadTarget::Entity {
-                entity: "ArchivedAccount".to_owned(),
-            },
             entity_id: axes.deleted,
             kind: KindId::new(12),
         },
@@ -241,7 +234,6 @@ fn observed_facts(
             runtime,
             snapshot,
             RelationObservation {
-                relation: "DecoyObservedEdge",
                 from: axes.decoy_from,
                 to: axes.decoy_to,
                 expected: axes.decoy_relation,
@@ -251,7 +243,6 @@ fn observed_facts(
             runtime,
             snapshot,
             RelationObservation {
-                relation: "ObservedEdge",
                 from: axes.from,
                 to: axes.to,
                 expected: axes.relation,
@@ -279,11 +270,6 @@ fn relation_fact(
     .expect("committed relation observation succeeds");
     assert_eq!(matching_relations, vec![observation.expected]);
     WorthQueryApplicationObservedFact::Relation {
-        target: ApplicationOperationDecisionReadTarget::Relation {
-            relation: observation.relation.to_owned(),
-            from: "Source".to_owned(),
-            to: "Target".to_owned(),
-        },
         relation_kind: KindId::new(31),
         from: observation.from,
         to: observation.to,
@@ -292,7 +278,6 @@ fn relation_fact(
 }
 
 struct RelationObservation {
-    relation: &'static str,
     from: EntityId,
     to: EntityId,
     expected: RelationId,
@@ -305,17 +290,6 @@ fn field_fact(
     locator: &AspectFieldLocator,
 ) -> WorthQueryApplicationObservedFact {
     WorthQueryApplicationObservedFact::Field {
-        target: ApplicationOperationDecisionReadTarget::Field {
-            entity: "Account".to_owned(),
-            aspect: locator.aspect().aspect_key().as_str().to_owned(),
-            field: locator
-                .field_path()
-                .fields()
-                .first()
-                .expect("fixture locator has one field")
-                .as_str()
-                .to_owned(),
-        },
         entity_id: entity,
         kind: KindId::new(11),
         locator: locator.clone(),

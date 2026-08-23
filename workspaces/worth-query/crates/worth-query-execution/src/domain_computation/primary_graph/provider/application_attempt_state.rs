@@ -304,6 +304,36 @@ impl WorthQueryStagedApplicationAttempt<'_> {
             .aftermath_causality()
             .map(|causality| causality.expected_head())
     }
+
+    pub(super) fn application_graph_reads(
+        &self,
+    ) -> Option<&worth_query_installation::facade::WorthQueryOperationGraphReadContract> {
+        self.attempt
+            .affinity()
+            .provider_session()
+            .plan()
+            .application_graph_reads()
+    }
+
+    pub(super) fn application_touches(
+        &self,
+    ) -> Option<&worth_query_installation::facade::WorthQueryOperationTouchContract> {
+        self.attempt
+            .affinity()
+            .provider_session()
+            .plan()
+            .application_touches()
+    }
+
+    pub(super) fn application_read_touch_overlap(
+        &self,
+    ) -> Option<&worth_query_installation::facade::WorthQueryOperationReadTouchOverlapIndex> {
+        self.attempt
+            .affinity()
+            .provider_session()
+            .plan()
+            .application_read_touch_overlap()
+    }
 }
 
 #[cfg(test)]

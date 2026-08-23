@@ -4,9 +4,6 @@ mod reinstallation_match;
 pub(in crate::application_operation) use operation_compilation::WorthQuerySealedOperationContractCompilation;
 
 #[cfg(test)]
-pub(super) use operation_compilation::compile_contract_projection_fixture;
-
-#[cfg(test)]
 pub(crate) mod aftermath_install_fixture;
 
 #[cfg(test)]

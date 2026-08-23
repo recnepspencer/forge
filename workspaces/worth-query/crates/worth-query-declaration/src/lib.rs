@@ -3,6 +3,32 @@
 //! This package owns authored intent, canonicalization, schema-visible
 //! validation, binding grammar, result shapes, and collection declarations.
 //! Runtime installation, execution, publication, and replay are downstream.
+//!
+//! Application aspects are declaration-owned identities. The stable
+//! [`worth_query_aspect!`] form requires both an explicit
+//! [`facade::application_schema::AspectIdentity`] and
+//! [`facade::application_schema::AspectContractRevision`]; installation retains
+//! that exact contract rather than deriving identity from a display name.
+//!
+//! ```
+//! use worth_query_declaration::{worth_query_aspect, facade::application_schema::{
+//!     AspectContractRevision, AspectIdentity,
+//! }};
+//!
+//! # pub struct ExampleSchema;
+//! # pub struct Account;
+//! worth_query_aspect!(
+//!     pub AccountFacts in ExampleSchema, Account;
+//!     identity = AspectIdentity(0x9161_1001),
+//!     revision = AspectContractRevision(1),
+//! );
+//!
+//! assert_eq!(AccountFacts::reference().identity(), AspectIdentity(0x9161_1001));
+//! assert_eq!(
+//!     AccountFacts::reference().revision(),
+//!     AspectContractRevision(1),
+//! );
+//! ```
 
 #![forbid(unsafe_code)]
 

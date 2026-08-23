@@ -43,7 +43,11 @@ impl WorthQueryExternalEffectTransport for CompletingTransport {
 
 fn outbox_for(operation_slot: &str) -> WorthQueryDispatchOutboxRecord {
     let correlation = derive_external_effect_correlation_identity(ExternalEffectCorrelationBasis {
-        correlation_family: "estate-death-notice-rail",
+        correlation_family:
+            worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily::new(
+                "estate-death-notice-rail",
+            )
+            .unwrap(),
         operation_slot,
         operation_version: 1,
         outcome_identity: 1,
@@ -54,7 +58,11 @@ fn outbox_for(operation_slot: &str) -> WorthQueryDispatchOutboxRecord {
     WorthQueryDispatchOutboxRecord::from_installed_contract(
         correlation,
         &InstalledExternalEffectContract::Declared {
-            correlation_family: "estate-death-notice-rail".to_owned(),
+            correlation_family:
+                worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily::new(
+                    "estate-death-notice-rail",
+                )
+                .unwrap(),
             effect: "notify-death-effect".to_owned(),
             rust_payload_type: "fixture::NotifyDeathPayload".to_owned(),
             protocol: ApplicationExternalEffectProtocol::new(

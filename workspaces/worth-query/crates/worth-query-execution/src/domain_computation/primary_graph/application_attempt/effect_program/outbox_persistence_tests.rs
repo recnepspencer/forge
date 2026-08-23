@@ -224,7 +224,9 @@ fn an_undeclared_lane_derives_and_persists_nothing() {
 
 fn installed_contract() -> InstalledExternalEffectContract {
     InstalledExternalEffectContract::Declared {
-        correlation_family: FAMILY.to_owned(),
+        correlation_family:
+            worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily::new(FAMILY)
+                .unwrap(),
         effect: EFFECT.to_owned(),
         rust_payload_type: std::any::type_name::<DeathNotice>().to_owned(),
         protocol: EXTERNAL_PROTOCOL,

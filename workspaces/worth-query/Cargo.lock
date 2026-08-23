@@ -706,7 +706,9 @@ dependencies = [
 name = "worth-query-host"
 version = "0.1.0"
 dependencies = [
+ "worth-foundational",
  "worth-query-admission",
+ "worth-query-decl",
  "worth-query-declaration",
  "worth-query-execution",
  "worth-query-installation",

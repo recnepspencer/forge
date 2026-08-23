@@ -9,11 +9,11 @@ use bank_domain::{
 };
 use worth_query_host::facade::declaration::{
     application_capability::ApplicationCapabilityDelegationRequest,
-    application_schema::{ApplicationOperationProgramTarget, TypedApplicationValue},
+    application_schema::TypedApplicationValue,
 };
 use worth_query_host::facade::domain::WorthQueryInstallationRuntimeIdentity;
 
-use super::installed_bank;
+use super::{installed_bank, installed_program_targets, InstalledProgramTarget};
 
 #[test]
 fn delegation_activation_installs_exact_bank_context_relations() {
@@ -48,9 +48,9 @@ fn delegation_activation_installs_the_complete_framework_owned_effect_program() 
     let operation = bank
         .installed_operation(DelegateEstateCapabilityOperation::reference())
         .expect("delegation activation must compile as an executable specialized operation");
-    let mut expected = vec![ApplicationOperationProgramTarget::Create {
-        entity: "CapabilityGrant".to_owned(),
-    }];
+    let mut expected = [InstalledProgramTarget::Create("CapabilityGrant".to_owned())]
+        .into_iter()
+        .collect::<std::collections::BTreeSet<_>>();
     expected.extend(
         [
             "CapabilityGrantIdentityField",
@@ -76,9 +76,7 @@ fn delegation_activation_installs_the_complete_framework_owned_effect_program() 
         link("CapabilityBranch", "CapabilityGrant", "Branch"),
         link("CapabilityParent", "CapabilityGrant", "CapabilityGrant"),
     ]);
-    expected.sort();
-
-    assert_eq!(operation.contracts().program(), expected);
+    assert_eq!(installed_program_targets(operation.contracts()), expected);
 }
 
 #[test]
@@ -144,16 +142,18 @@ fn delegation_request_projects_exact_typed_bank_context_selectors() {
     );
 }
 
-fn write(field: &str) -> ApplicationOperationProgramTarget {
-    ApplicationOperationProgramTarget::Write {
+fn write(field: &str) -> InstalledProgramTarget {
+    InstalledProgramTarget::Write {
         entity: "CapabilityGrant".to_owned(),
         aspect: "CapabilityGrantRecord".to_owned(),
-        field: field.to_owned(),
+        path: worth_foundational::facade::CanonicalFieldPath::single(
+            worth_foundational::facade::FieldKey::new(field).unwrap(),
+        ),
     }
 }
 
-fn link(relation: &str, from: &str, to: &str) -> ApplicationOperationProgramTarget {
-    ApplicationOperationProgramTarget::Link {
+fn link(relation: &str, from: &str, to: &str) -> InstalledProgramTarget {
+    InstalledProgramTarget::Link {
         relation: relation.to_owned(),
         from: from.to_owned(),
         to: to.to_owned(),

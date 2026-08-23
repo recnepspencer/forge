@@ -1,6 +1,7 @@
 //! Pre-image coverage, residue, owner identity, and R8.9 lowering denials.
 
 use worth_query_declaration::facade::application_aftermath::DeclaredApplicationAftermathContract;
+use worth_query_declaration::facade::application_schema::WorthQueryExternalEffectCorrelationFamily;
 
 use super::super::{
     AftermathLoweringCorrespondenceCatalog, InstalledLoweringCorrespondence,
@@ -189,8 +190,17 @@ fn the_installed_external_posture_follows_the_operation_lane() {
     assert_eq!(
         escaping.external_effect(),
         &InstalledExternalEffectPosture::Declared {
-            correlation_family: "escaped-rail".to_owned()
+            correlation_family: WorthQueryExternalEffectCorrelationFamily::new("escaped-rail")
+                .unwrap()
         }
+    );
+    assert_eq!(
+        escaping
+            .external_effect()
+            .correlation_family()
+            .expect("escaping posture retains its typed family")
+            .as_str(),
+        "escaped-rail"
     );
     assert_ne!(
         quiet.identity().bytes(),

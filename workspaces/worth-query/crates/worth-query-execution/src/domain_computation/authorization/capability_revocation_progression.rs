@@ -6,12 +6,13 @@ use worth_query_declaration::facade::{
         ApplicationCapabilityRequest, ApplicationCapabilityRevocationRequest,
         ErasedApplicationCapabilityEntitySelector,
     },
-    application_schema::{ApplicationOperationProgramTarget, TypedMutationPreconditions},
+    application_schema::TypedMutationPreconditions,
 };
 use worth_query_installation::facade::{
     derive_capability_revocation_proposal_identity, ApplicationSchema,
     WorthQueryCanonicalWorkEvidence, WorthQueryCapabilityRevocationProposalBasis,
     WorthQueryInstalledApplicationCapability, WorthQueryInstalledApplicationOperation,
+    WorthQueryOperationFieldTouchScope, WorthQueryOperationTouchScope,
 };
 use worth_relational::facade::identity::{EntityId, KindId};
 
@@ -26,7 +27,7 @@ use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationR
 
 pub(in crate::domain_computation) struct WorthQueryCapabilityRevocationBinding {
     proposal_identity: [u8; 32],
-    required_program_target: ApplicationOperationProgramTarget,
+    required_field_touch: WorthQueryOperationFieldTouchScope,
     target_kind: KindId,
     target_entity: String,
     resource: EntityId,
@@ -42,10 +43,10 @@ impl WorthQueryCapabilityRevocationBinding {
     pub(in crate::domain_computation) const fn proposal_identity(&self) -> &[u8; 32] {
         &self.proposal_identity
     }
-    pub(in crate::domain_computation) const fn required_program_target(
+    pub(in crate::domain_computation) const fn required_field_touch(
         &self,
-    ) -> &ApplicationOperationProgramTarget {
-        &self.required_program_target
+    ) -> &WorthQueryOperationFieldTouchScope {
+        &self.required_field_touch
     }
     pub(in crate::domain_computation) const fn target_kind(&self) -> KindId {
         self.target_kind
@@ -118,12 +119,15 @@ where
             .ok_or_else(|| rejected(capability.contract().name()))?;
         validate_operation::<Operation, Input>(revocation, operation)?;
         validate_selector(projection.target(), capability, &revocation.identity)?;
-        let required_program_target = operation
+        let required_field_touch = operation
             .contracts()
-            .program()
+            .touches()
+            .scopes()
             .iter()
-            .find(|target| matches!(target, ApplicationOperationProgramTarget::Write { .. }))
-            .cloned()
+            .find_map(|scope| match scope {
+                WorthQueryOperationTouchScope::WriteField(scope) => Some(scope.clone()),
+                _ => None,
+            })
             .ok_or_else(|| rejected(operation.operation()))?;
         let budget = operation
             .contracts()
@@ -153,7 +157,7 @@ where
         admitted.bind_capability_revocation(
             WorthQueryCapabilityRevocationBinding {
                 proposal_identity,
-                required_program_target,
+                required_field_touch,
                 target_kind: installed.grant_kind(),
                 target_entity,
                 resource,

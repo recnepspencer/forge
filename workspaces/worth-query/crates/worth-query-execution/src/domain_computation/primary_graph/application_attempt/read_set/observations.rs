@@ -28,7 +28,7 @@ impl<Schema, Operation, Input, Scope, Phase>
         let target = ApplicationOperationDecisionReadTarget::Entity {
             entity: entity.name().to_string(),
         };
-        self.admit_target(&target)?;
+        let read_scope = self.admit_target(&target)?;
         self.validate_identity_authority(entity.name(), identity)?;
         let key = WorthQueryApplicationFactKey::Entity {
             entity: entity.name().to_string(),
@@ -36,10 +36,10 @@ impl<Schema, Operation, Input, Scope, Phase>
         };
         self.admit_fact_key(&key)?;
         self.validate_identity_freshness(entity.name(), identity)?;
+        self.installed_read_scopes.insert(key.clone(), read_scope);
         self.facts.insert(
             key,
             WorthQueryApplicationObservedFact::Entity {
-                target,
                 entity_id: identity.entity_id(),
                 kind: identity.entity_kind(),
             },
@@ -63,7 +63,7 @@ impl<Schema, Operation, Input, Scope, Phase>
             aspect: field.aspect().to_string(),
             field: field.field().to_string(),
         };
-        self.admit_target(&target)?;
+        let read_scope = self.admit_target(&target)?;
         self.validate_identity_authority(field.entity(), identity)?;
         let graph_layout = self.field_layout(field.entity(), field.aspect(), field.field())?;
         let key = WorthQueryApplicationFactKey::Field {
@@ -97,10 +97,10 @@ impl<Schema, Operation, Input, Scope, Phase>
                 field.field(),
             )
         })?;
+        self.installed_read_scopes.insert(key.clone(), read_scope);
         self.facts.insert(
             key,
             WorthQueryApplicationObservedFact::Field {
-                target,
                 entity_id: identity.entity_id(),
                 kind: identity.entity_kind(),
                 locator: graph_layout,
@@ -127,7 +127,7 @@ impl<Schema, Operation, Input, Scope, Phase>
             from: relation.from().to_string(),
             to: relation.to().to_string(),
         };
-        self.admit_target(&target)?;
+        let read_scope = self.admit_target(&target)?;
         self.validate_identity_authority(relation.from(), from)?;
         self.validate_identity_authority(relation.to(), to)?;
         let layout = self
@@ -165,10 +165,10 @@ impl<Schema, Operation, Input, Scope, Phase>
         }
         let count = matching_relations.len();
         let retained_relations = matching_relations.clone();
+        self.installed_read_scopes.insert(key.clone(), read_scope);
         self.facts.insert(
             key,
             WorthQueryApplicationObservedFact::Relation {
-                target,
                 relation_kind: layout.kind,
                 from: from.entity_id(),
                 to: to.entity_id(),

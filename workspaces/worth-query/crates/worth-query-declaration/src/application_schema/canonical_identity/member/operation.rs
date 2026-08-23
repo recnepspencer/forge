@@ -53,7 +53,7 @@ pub(super) fn append_operation_member(
                 rust_payload_type,
                 protocol,
                 maximum_payload_bytes: *maximum_payload_bytes,
-                correlation_family,
+                correlation_family: correlation_family.as_str(),
             },
         ),
         ApplicationSchemaMember::OperationAftermath {

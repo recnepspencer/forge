@@ -14,6 +14,7 @@ use worth_query_declaration::facade::application_schema::{
     ApplicationOperationDecisionReadTarget, ApplicationOperationProgramTarget,
     ApplicationOperationRef, ApplicationSchema, ApplicationSchemaBindingIdentity,
     ApplicationSchemaDeclaration, ApplicationSchemaDeclarationBuilder, ApplicationSchemaMember,
+    WorthQueryExternalEffectCorrelationFamily,
 };
 
 use crate::application_aftermath::{
@@ -221,7 +222,8 @@ impl AftermathInstall {
                 rust_payload_type: external_effect.rust_payload_type.clone(),
                 protocol: external_effect.protocol.clone(),
                 maximum_payload_bytes: 64,
-                correlation_family: "escaped-rail".to_owned(),
+                correlation_family: WorthQueryExternalEffectCorrelationFamily::new("escaped-rail")
+                    .unwrap(),
             });
         }
         let source = FixtureAftermathInstallationSource {

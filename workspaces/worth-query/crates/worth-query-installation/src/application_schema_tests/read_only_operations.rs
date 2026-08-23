@@ -83,8 +83,17 @@ fn read_only_operation_installs_without_an_effect_program() {
         >::from_schema_identifier("ReadOnlyOperation"))
         .unwrap();
 
-    assert!(installed.contracts().program().is_empty());
-    assert_eq!(installed.contracts().decision_reads().len(), 1);
+    assert!(installed.contracts().touches().scopes().is_empty());
+    assert_eq!(
+        installed
+            .contracts()
+            .graph_reads()
+            .roles()
+            .iter()
+            .map(|role| role.read_scopes().len())
+            .sum::<usize>(),
+        1
+    );
     assert!(matches!(
         installed.contracts().effects(),
         crate::facade::WorthQueryOperationEffectContract::NotRequired

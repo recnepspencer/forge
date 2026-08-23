@@ -1,6 +1,7 @@
 use worth_query_decl::facade::application_schema::{
     ApplicationEffectPayload, ApplicationSchema, ApplicationSchemaDeclaration,
     ApplicationSchemaDeclarationBuilder, ApplicationSchemaDeclarationDenial,
+    WorthQueryExternalEffectCorrelationFamily,
 };
 use worth_query_decl::facade::{
     worth_query_effect, worth_query_operation, worth_query_operation_emits,
@@ -32,7 +33,10 @@ impl ApplicationSchema for Schema {
             .operation(
                 Operation::reference()
                     .definition()
-                    .external_effect(ExternalEffect::reference(), "external-family")
+                    .external_effect(
+                        ExternalEffect::reference(),
+                        WorthQueryExternalEffectCorrelationFamily::new("external-family").unwrap(),
+                    )
                     .no_aftermath()
                     .finish(),
             )

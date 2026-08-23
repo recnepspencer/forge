@@ -153,6 +153,7 @@ worth_query_operation_writes!(MultiFieldRetentionOperation => [AccountStatus, Ac
 // Deliberately wider than the installed contract so authority-ceiling tests
 // prove that compile-time capability cannot widen installed authority.
 worth_query_operation_writes!(MultiTouchOperation => [AccountStatus, AccountLabel]);
+worth_query_operation_emits!(MultiTouchOperation => [AccountActivityEffect]);
 worth_query_operation_emits!(
     TouchAccountOperation => [AccountActivityEffect, LiveActivityEffect]
 );

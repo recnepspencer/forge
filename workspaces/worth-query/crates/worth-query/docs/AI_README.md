@@ -165,6 +165,16 @@ Stable application aftermath and recovery enter through `primary_graph` and
 `publication::application_aftermath`. Do not teach
 `facade::provisional_aftermath` as stable undo/redo support.
 
+Installed application meaning is inspectable without importing an owner crate.
+Through `facade::domain`, use `installed_schema.native_contracts()` for the
+sealed native aspect catalog, and use an installed operation's
+`contracts().graph_reads()`, `contracts().touches()`, and
+`contracts().aftermath()` for exact typed scopes and aftermath meaning. The
+aftermath view includes correction authority, recovery posture, exact
+reconciliation procedure, canonical evidence, and the typed external-effect
+correlation family. These are borrowed inspection values, not operational
+authority.
+
 The facade route is part of the contract, not just the final list of names.
 Boundary enforcement verifies that `worth-query-host` re-exports the exact
 installed owner namespace and snapshots that namespace recursively. Retargeting
@@ -238,10 +248,15 @@ Installed products include the exact identities and contracts needed by
 admission:
 
 - application schema and operation identity;
+- one sealed native application-aspect catalog retaining each declaration-owned
+  `AspectIdentity`, `AspectContractRevision`, contract, and field closure;
 - query and result-shape identity;
 - capability and purpose requirements;
 - principal binding;
-- graph obligations;
+- typed entity, native-projection, and relation read scopes;
+- typed create, delete, field-write, relation-link, and relation-unlink
+  declared touch scopes;
+- graph obligations derived from those same exact scopes;
 - graph-read access requirements;
 - effect and invariant contracts;
 - external-effect protocol, correlation, payload-bound, and outbox contracts;
@@ -259,6 +274,12 @@ either `aftermath(...)` or `no_aftermath()`, before `finish()` is available.
 Installation derives the accepted aftermath posture as `Reversible`,
 `Compensatable`, `Reconcilable`, or `Irreversible`; an escaping external effect
 cannot be reversible.
+
+Do not recover any of this meaning by parsing rendered scope strings or by
+rebuilding application aspect contracts in execution. Declared touches are the
+legal ceiling; only Relational's performed-touch evidence says what a committed
+attempt actually changed. An ordinary typed `Emit` target is not a graph touch,
+and the one escaping external-effect lane remains a separate contract.
 
 ## Request, Authentication, And Principal Resolution
 
