@@ -10,7 +10,7 @@ use worth_query_decl::facade::{
 struct Schema;
 struct Input;
 worth_query_entity!(Account in Schema);
-worth_query_aspect!(State in Schema, Account);
+worth_query_aspect!(State in Schema, Account; identity = AspectIdentity(0x91611024), revision = AspectContractRevision(1),);
 worth_query_field!(Status in Schema, Account, State: u64, read_only, no_equality);
 worth_query_operation!(Operation(Input) in Schema);
 

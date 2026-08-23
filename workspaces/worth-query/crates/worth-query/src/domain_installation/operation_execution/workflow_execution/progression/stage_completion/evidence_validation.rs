@@ -133,7 +133,7 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
             .definition()
             .semantics()
             .graph_reads
-            .roles()
+            .domain_roles()
             .iter()
             .filter(|read| {
                 stage.semantics().graph_read_roles.contains(&read.role)

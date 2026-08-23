@@ -95,7 +95,7 @@ string_value!(CapabilityDisclosure, {
 });
 
 worth_query_entity!(pub CapabilityGrant in IdentityExecutionSchema);
-worth_query_aspect!(pub CapabilityFacts in IdentityExecutionSchema, CapabilityGrant);
+worth_query_aspect!(pub CapabilityFacts in IdentityExecutionSchema, CapabilityGrant; identity = AspectIdentity(0x91611036), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub CapabilityIdentity in IdentityExecutionSchema, CapabilityGrant, CapabilityFacts:
     String, read_only, equality
@@ -137,10 +137,8 @@ worth_query_field!(
     u64, read_write, no_equality
 );
 worth_query_entity!(pub CapabilityActionRecord in IdentityExecutionSchema);
-worth_query_aspect!(
-    pub CapabilityActionRecordFacts in IdentityExecutionSchema,
-    CapabilityActionRecord
-);
+worth_query_aspect!(pub CapabilityActionRecordFacts in IdentityExecutionSchema,
+    CapabilityActionRecord; identity = AspectIdentity(0x91611037), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub CapabilityActionRecordIdentity in IdentityExecutionSchema,
     CapabilityActionRecord, CapabilityActionRecordFacts:

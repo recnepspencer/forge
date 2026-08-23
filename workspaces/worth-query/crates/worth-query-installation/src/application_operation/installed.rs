@@ -13,6 +13,7 @@ pub(crate) mod aftermath_install_fixture;
 mod operation_compilation_tests;
 
 use std::marker::PhantomData;
+use std::sync::Arc;
 
 use worth_query_declaration::facade::application_schema::{
     ApplicationSchema, ApplicationSchemaBindingIdentity,
@@ -73,6 +74,8 @@ pub struct WorthQueryInstalledApplicationOperation<Schema, Operation, Input> {
     operation: String,
     input_type: String,
     contracts: WorthQueryCompiledApplicationOperationContracts,
+    native_contracts:
+        Arc<crate::application_schema::WorthQueryInstalledApplicationSchemaContractCatalog>,
     obligations: WorthQueryInstalledGraphObligationSet,
     authority_identity: AuthoritySeal,
     _marker: PhantomData<fn(Input) -> (Schema, Operation)>,
@@ -193,7 +196,7 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
                 operation,
                 input_type,
             )?;
-        let contracts = compilation.compile_contracts(abilities)?;
+        let contracts = compilation.compile_contracts(abilities, schema.native_contracts())?;
         let authorization = contracts.authorization();
         let capability_requirements =
             operation_capability_requirements(schema, operation, input_type);
@@ -228,6 +231,7 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
             operation: operation.to_string(),
             input_type: input_type.to_string(),
             contracts,
+            native_contracts: schema.retain_native_contracts(),
             obligations,
             authority_identity,
             _marker: PhantomData,

@@ -141,6 +141,12 @@ fn canonicalize_semantics(semantics: &mut WorthQueryDomainOperationSemanticClosu
     if let super::WorthQueryOperationGraphReadContract::Declared { roles } =
         &mut semantics.graph_reads
     {
+        roles.sort_by(|left, right| left.role().cmp(right.role()));
+        roles.dedup();
+    }
+    if let super::WorthQueryOperationGraphReadContract::DeclaredDomain { roles } =
+        &mut semantics.graph_reads
+    {
         for role in roles.iter_mut() {
             role.semantic_reads
                 .sort_by(super::WorthQueryOperationNativeProjectionContract::canonical_order);
@@ -210,7 +216,7 @@ fn canonicalize_touch_contract(contract: &mut super::WorthQueryOperationTouchCon
     {
         graph_roles.sort();
         graph_roles.dedup();
-        scopes.sort();
+        scopes.sort_by(super::WorthQueryOperationTouchScope::canonical_order);
         scopes.dedup();
     }
 }

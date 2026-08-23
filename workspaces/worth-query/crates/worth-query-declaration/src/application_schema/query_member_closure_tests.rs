@@ -109,6 +109,8 @@ fn dependencies() -> Vec<ApplicationSchemaMember> {
         ApplicationSchemaMember::Aspect {
             entity: "Account".to_string(),
             aspect: "AccountFacts".to_string(),
+            identity: worth_foundational::facade::AspectIdentity(0x91613005),
+            revision: worth_foundational::facade::AspectContractRevision(1),
         },
         ApplicationSchemaMember::Field {
             entity: "Account".to_string(),

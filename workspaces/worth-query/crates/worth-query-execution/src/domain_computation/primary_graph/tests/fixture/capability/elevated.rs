@@ -71,14 +71,14 @@ string_value!(CapabilityReviewKind, {
 });
 
 worth_query_entity!(pub CapabilityElevation in IdentityExecutionSchema);
-worth_query_aspect!(pub CapabilityElevationFacts in IdentityExecutionSchema, CapabilityElevation);
+worth_query_aspect!(pub CapabilityElevationFacts in IdentityExecutionSchema, CapabilityElevation; identity = AspectIdentity(0x91611038), revision = AspectContractRevision(1),);
 worth_query_field!(pub CapabilityElevationIdentity in IdentityExecutionSchema, CapabilityElevation, CapabilityElevationFacts: String, read_only, equality);
 worth_query_field!(pub CapabilityElevationReason in IdentityExecutionSchema, CapabilityElevation, CapabilityElevationFacts: String, read_only, no_equality);
 worth_query_field!(pub CapabilityElevationStatusField in IdentityExecutionSchema, CapabilityElevation, CapabilityElevationFacts: CapabilityElevationStatus, read_write, no_equality);
 worth_query_field!(pub CapabilityElevationNotBefore in IdentityExecutionSchema, CapabilityElevation, CapabilityElevationFacts: u64, read_write, no_equality);
 worth_query_field!(pub CapabilityElevationNotAfter in IdentityExecutionSchema, CapabilityElevation, CapabilityElevationFacts: u64, read_write, no_equality);
 worth_query_entity!(pub CapabilityReview in IdentityExecutionSchema);
-worth_query_aspect!(pub CapabilityReviewFacts in IdentityExecutionSchema, CapabilityReview);
+worth_query_aspect!(pub CapabilityReviewFacts in IdentityExecutionSchema, CapabilityReview; identity = AspectIdentity(0x91611039), revision = AspectContractRevision(1),);
 worth_query_field!(pub CapabilityReviewIdentity in IdentityExecutionSchema, CapabilityReview, CapabilityReviewFacts: String, read_only, equality);
 worth_query_field!(pub CapabilityReviewKindField in IdentityExecutionSchema, CapabilityReview, CapabilityReviewFacts: CapabilityReviewKind, read_only, equality);
 worth_query_field!(pub CapabilityReviewStatusField in IdentityExecutionSchema, CapabilityReview, CapabilityReviewFacts: CapabilityReviewStatus, read_write, no_equality);

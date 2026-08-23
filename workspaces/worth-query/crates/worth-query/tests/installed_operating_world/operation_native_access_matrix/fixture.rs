@@ -322,8 +322,8 @@ pub(super) fn matrix_semantics(
         true,
     );
     semantics.native_projection = native_projection.clone();
-    semantics.graph_reads = domain::WorthQueryOperationGraphReadContract::Declared {
-        roles: vec![domain::WorthQueryOperationGraphReadRole {
+    semantics.graph_reads = domain::WorthQueryOperationGraphReadContract::DeclaredDomain {
+        roles: vec![domain::WorthQueryDomainOperationGraphReadRole {
             role: "matrix".into(),
             participation: domain::WorthQueryOperationGraphParticipation::PrimaryLogicalGraph,
             access: domain::WorthQueryOperationGraphAccess::Project,

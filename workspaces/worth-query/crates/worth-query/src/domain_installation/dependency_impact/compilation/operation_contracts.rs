@@ -110,11 +110,19 @@ impl SemanticAspectDependencyCompilation {
             self.counters.touch_edges += 1;
         }
         for (scope_ordinal, scope) in scopes.iter().enumerate() {
+            let worth_query_installation::facade::WorthQueryOperationTouchScope::DeclaredDomain(
+                identity,
+            ) = scope
+            else {
+                continue;
+            };
             self.dependencies
                 .push(WorthQueryCompiledSemanticAspectDependency::new(
                     WorthQuerySemanticAspectDependencyLocus::TouchScope { scope_ordinal },
                     WorthQuerySemanticDependencyRole::SelectionOrMembership,
-                    WorthQuerySemanticAspectDependencySource::TouchScope(scope.clone()),
+                    WorthQuerySemanticAspectDependencySource::TouchScope(
+                        identity.as_str().to_owned(),
+                    ),
                 ));
             self.counters.touch_edges += 1;
         }

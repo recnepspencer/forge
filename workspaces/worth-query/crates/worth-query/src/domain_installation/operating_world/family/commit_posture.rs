@@ -53,7 +53,7 @@ fn primary_graph_mutation(
         return true;
     }
     touched_roles.iter().any(|touched_role| {
-        semantics.graph_reads.roles().iter().any(|read| {
+        semantics.graph_reads.domain_roles().iter().any(|read| {
             counters.graph_read_role_checks += 1;
             read.role == *touched_role
                 && read.participation == WorthQueryOperationGraphParticipation::PrimaryLogicalGraph

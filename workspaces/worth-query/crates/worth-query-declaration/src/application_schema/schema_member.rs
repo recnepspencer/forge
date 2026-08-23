@@ -1,4 +1,4 @@
-use worth_foundational::facade::ScalarAspectType;
+use worth_foundational::facade::{AspectContractRevision, AspectIdentity, ScalarAspectType};
 
 use crate::application_aftermath::PortableApplicationAftermathContract;
 use crate::application_capability::ErasedApplicationCapabilityContract;
@@ -60,6 +60,8 @@ pub enum ApplicationSchemaMember {
     Aspect {
         entity: String,
         aspect: String,
+        identity: AspectIdentity,
+        revision: AspectContractRevision,
     },
     Field {
         entity: String,

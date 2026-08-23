@@ -85,8 +85,8 @@ pub(crate) fn presentation_async_definition() -> domain::WorthQueryDomainOperati
             workflow: domain::WorthQueryOperationWorkflowContract::NotRequired,
             evidence: domain::WorthQueryDomainEvidenceContract::not_required(),
             conditional_nodes: vec![conditional_node(&dependencies)],
-            graph_reads: domain::WorthQueryOperationGraphReadContract::Declared {
-                roles: vec![domain::WorthQueryOperationGraphReadRole {
+            graph_reads: domain::WorthQueryOperationGraphReadContract::DeclaredDomain {
+                roles: vec![domain::WorthQueryDomainOperationGraphReadRole {
                     role: "presentation".into(),
                     participation:
                         domain::WorthQueryOperationGraphParticipation::PrimaryLogicalGraph,

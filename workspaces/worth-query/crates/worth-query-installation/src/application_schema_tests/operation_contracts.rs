@@ -1,5 +1,6 @@
 use super::*;
 
+use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
 use worth_query_declaration::facade::application_aftermath::{
     DeclaredAftermathPostcondition, DeclaredCorrectionMechanism, DeclaredLoweringCorrespondenceRef,
     DeclaredPreImageDemand, DeclaredPreImageLocus, DeclaredRecordedInverse,
@@ -7,7 +8,7 @@ use worth_query_declaration::facade::application_aftermath::{
 use worth_query_declaration::facade::application_schema::{
     ApplicationAspectMarkerIdentity, ApplicationEntityMarkerIdentity,
     ApplicationFieldMarkerIdentity, ApplicationOperationDecisionReadTarget,
-    ApplicationSchemaMember,
+    ApplicationSchemaMember, OperationDeletes, OperationLinks, OperationUnlinks, OperationWrites,
 };
 
 struct OtherEntity;
@@ -26,6 +27,11 @@ impl ApplicationAspectMarkerIdentity for OtherEntityAspect {
     type Schema = TestSchema;
     type Entity = OtherEntity;
     const IDENTIFIER: &'static str = "IdentityAspect";
+    const ASPECT_IDENTITY: worth_query_declaration::facade::application_schema::AspectIdentity =
+        worth_query_declaration::facade::application_schema::AspectIdentity(0x9161200d);
+    const CONTRACT_REVISION:
+        worth_query_declaration::facade::application_schema::AspectContractRevision =
+        worth_query_declaration::facade::application_schema::AspectContractRevision(1);
 }
 
 impl ApplicationFieldMarkerIdentity for OtherEntityField {
@@ -39,6 +45,11 @@ impl ApplicationAspectMarkerIdentity for OtherAspect {
     type Schema = TestSchema;
     type Entity = TestEntity;
     const IDENTIFIER: &'static str = "OtherAspect";
+    const ASPECT_IDENTITY: worth_query_declaration::facade::application_schema::AspectIdentity =
+        worth_query_declaration::facade::application_schema::AspectIdentity(0x9161200e);
+    const CONTRACT_REVISION:
+        worth_query_declaration::facade::application_schema::AspectContractRevision =
+        worth_query_declaration::facade::application_schema::AspectContractRevision(1);
 }
 
 impl ApplicationFieldMarkerIdentity for OtherAspectField {
@@ -54,6 +65,14 @@ impl ApplicationFieldMarkerIdentity for OtherField {
     type Aspect = FixtureIdentityAspect<TestSchema>;
     const IDENTIFIER: &'static str = "OtherField";
 }
+
+impl OperationReads<TestOperation> for FixtureExternalIdentityField<TestSchema> {}
+impl OperationReads<TestOperation> for FixtureEntity<TestSchema> {}
+impl OperationReads<TestOperation> for MappingTarget {}
+impl OperationDeletes<TestOperation> for FixtureEntity<TestSchema> {}
+impl OperationWrites<TestOperation> for FixtureMappingStatusField<TestSchema> {}
+impl OperationLinks<TestOperation> for MappingTarget {}
+impl OperationUnlinks<TestOperation> for MappingTarget {}
 
 #[test]
 fn installed_application_operation_compiles_existing_authority_contract_families() {
@@ -94,12 +113,56 @@ fn installed_application_operation_compiles_existing_authority_contract_families
     assert!(matches!(
         operation.contracts().graph_reads(),
         crate::facade::WorthQueryOperationGraphReadContract::Declared { roles }
-            if roles.len() == 1 && roles[0].role == "primary"
+            if roles.len() == 1 && roles[0].role() == "primary"
     ));
+    let read = &operation.contracts().graph_reads().roles()[0].read_scopes()[0];
+    let crate::facade::WorthQueryOperationGraphReadScope::NativeProjection(projection) = read
+    else {
+        panic!("the declared field read must compile to a native projection")
+    };
+    assert_eq!(projection.schema(), operation.binding_identity());
+    assert_eq!(projection.entity().semantic_key(), "TestEntity");
+    assert_eq!(projection.aspect().as_str(), "IdentityAspect");
+    assert_eq!(projection.projection().contract().identity().0, 0x9161200c);
+    assert!(!projection.projection().mask().is_whole_aspect());
+    assert_eq!(
+        projection.projection().mask().paths(),
+        &[CanonicalFieldPath::single(
+            FieldKey::new("PrincipalIdentityField").unwrap()
+        )]
+    );
     assert!(matches!(
         operation.contracts().touches(),
         crate::facade::WorthQueryOperationTouchContract::Declared { scopes, .. }
-            if scopes == &["create:TestEntity"]
+            if matches!(scopes.as_slice(), [crate::facade::WorthQueryOperationTouchScope::CreateEntity(scope)] if scope.entity() == "TestEntity")
+    ));
+    assert!(!operation.contracts().read_touch_overlap().intersects(
+        read,
+        &crate::facade::WorthQueryOperationTouchScope::WriteField(
+            crate::facade::WorthQueryOperationFieldTouchScope::new(
+                operation.binding_identity().clone(),
+                "TestEntity".to_owned(),
+                schema
+                    .native_contracts()
+                    .aspect("TestEntity", "IdentityAspect")
+                    .unwrap(),
+                CanonicalFieldPath::single(FieldKey::new("OtherField").unwrap()),
+            )
+        )
+    ));
+    assert!(!operation.contracts().read_touch_overlap().intersects(
+        read,
+        &crate::facade::WorthQueryOperationTouchScope::WriteField(
+            crate::facade::WorthQueryOperationFieldTouchScope::new(
+                operation.binding_identity().clone(),
+                "OtherEntity".to_owned(),
+                schema
+                    .native_contracts()
+                    .aspect("TestEntity", "IdentityAspect")
+                    .unwrap(),
+                CanonicalFieldPath::single(FieldKey::new("PrincipalIdentityField").unwrap()),
+            )
+        )
     ));
     assert_eq!(operation.contracts().decision_reads().len(), 1);
     let [precondition] = operation.contracts().mutation_preconditions() else {
@@ -126,6 +189,99 @@ fn installed_application_operation_compiles_existing_authority_contract_families
             .as_str(),
         "primary-application-atomic"
     );
+}
+
+#[test]
+fn installed_contracts_group_exact_reads_and_retain_every_typed_graph_touch() {
+    let entity =
+        ApplicationEntityRef::<TestSchema, TestEntity>::from_schema_identifier("TestEntity");
+    let operation =
+        ApplicationOperationRef::<TestSchema, TestOperation, TestInput>::from_schema_identifier(
+            "TestOperation",
+        );
+    let relation = ApplicationRelationRef::<
+        TestSchema,
+        MappingTarget,
+        TestEntity,
+        TestEntity,
+    >::from_schema_identifiers("MappingTarget", "TestEntity", "TestEntity");
+    let declaration = test_schema_members::<TestSchema>(None)
+        .operation_read_field(
+            operation,
+            ApplicationFieldRef::<
+                TestSchema,
+                TestEntity,
+                FixtureIdentityAspect<TestSchema>,
+                FixtureExternalIdentityField<TestSchema>,
+                WorthQueryExternalPrincipalIdentity,
+                ReadOnly,
+                EqualityPredicate,
+            >::from_schema_types(),
+        )
+        .operation_read_entity(operation, entity)
+        .operation_read_relation(operation, relation)
+        .operation_delete(operation, entity)
+        .operation_write(
+            operation,
+            ApplicationFieldRef::<
+                TestSchema,
+                TestEntity,
+                FixtureIdentityAspect<TestSchema>,
+                FixtureMappingStatusField<TestSchema>,
+                WorthQueryPrincipalMappingStatus,
+                ReadWrite,
+                NoEqualityPredicate,
+            >::from_schema_types(),
+        )
+        .operation_link(operation, relation)
+        .operation_unlink(operation, relation)
+        .build()
+        .unwrap();
+    let index = installed_index_for(declaration.clone());
+    let schema = index.bind_application_schema(declaration).unwrap();
+    let installed = schema.installed_operation(operation).unwrap();
+
+    let scopes = installed.contracts().graph_reads().roles()[0].read_scopes();
+    assert_eq!(
+        scopes.len(),
+        3,
+        "two field reads share one projection scope"
+    );
+    let projection = scopes
+        .iter()
+        .find_map(|scope| match scope {
+            crate::facade::WorthQueryOperationGraphReadScope::NativeProjection(scope) => {
+                Some(scope)
+            }
+            crate::facade::WorthQueryOperationGraphReadScope::Entity(_)
+            | crate::facade::WorthQueryOperationGraphReadScope::Relation(_) => None,
+        })
+        .unwrap();
+    assert!(!projection.projection().mask().is_whole_aspect());
+    assert_eq!(projection.projection().mask().paths().len(), 2);
+
+    let touches = installed.contracts().touches().scopes();
+    assert_eq!(touches.len(), 5);
+    assert!(touches.iter().any(|scope| matches!(
+        scope,
+        crate::facade::WorthQueryOperationTouchScope::CreateEntity(_)
+    )));
+    assert!(touches.iter().any(|scope| matches!(
+        scope,
+        crate::facade::WorthQueryOperationTouchScope::DeleteEntity(_)
+    )));
+    assert!(touches.iter().any(|scope| matches!(
+        scope,
+        crate::facade::WorthQueryOperationTouchScope::WriteField(_)
+    )));
+    assert!(touches.iter().any(|scope| matches!(
+        scope,
+        crate::facade::WorthQueryOperationTouchScope::LinkRelation(_)
+    )));
+    assert!(touches.iter().any(|scope| matches!(
+        scope,
+        crate::facade::WorthQueryOperationTouchScope::UnlinkRelation(_)
+    )));
 }
 
 #[test]

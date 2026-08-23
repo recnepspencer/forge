@@ -1,17 +1,21 @@
 //! Hostile evidence for whole-candidate operation compilation.
 
-use worth_foundational::facade::CanonicalDigestId;
+use worth_foundational::facade::{
+    BoundaryProtocolIdentity, BoundaryProtocolVersion, CanonicalDigestId,
+};
 use worth_query_declaration::facade::application_aftermath::{
     DeclaredAftermathPostcondition, DeclaredApplicationAftermathContract,
     DeclaredCorrectionMechanism, DeclaredLoweringCorrespondenceRef, DeclaredPreImageDemand,
     DeclaredPreImageLocus, DeclaredRecordedInverse,
 };
 use worth_query_declaration::facade::application_schema::{
-    ApplicationAspectMarkerIdentity, ApplicationEntityMarkerIdentity,
-    ApplicationFieldMarkerIdentity, ApplicationFieldRef, ApplicationOperationDecisionReadTarget,
+    ApplicationAspectMarkerIdentity, ApplicationAspectRef, ApplicationEntityMarkerIdentity,
+    ApplicationEntityRef, ApplicationExternalEffectProtocol, ApplicationFieldMarkerIdentity,
+    ApplicationFieldPresence, ApplicationFieldRef, ApplicationOperationDecisionReadTarget,
     ApplicationOperationProgramTarget, ApplicationOperationRef, ApplicationSchema,
     ApplicationSchemaBindingIdentity, ApplicationSchemaDeclaration,
-    ApplicationSchemaDeclarationBuilder, ApplicationSchemaMember,
+    ApplicationSchemaDeclarationBuilder, ApplicationSchemaMember, DeclaredApplicationFieldValue,
+    RequiredApplicationFieldValue,
 };
 
 use super::operation_compilation::WorthQueryApplicationOperationCompilation;
@@ -35,7 +39,21 @@ impl ApplicationSchema for Schema {
         ApplicationSchemaDeclaration<Self>,
         worth_query_declaration::facade::application_schema::ApplicationSchemaDeclarationDenial,
     > {
-        ApplicationSchemaDeclarationBuilder::<Self>::for_schema().build()
+        ApplicationSchemaDeclarationBuilder::<Self>::for_schema()
+            .entity(
+                ApplicationEntityRef::<Self, Entity>::from_schema_identifier(Entity::IDENTIFIER),
+            )
+            .aspect(
+                ApplicationEntityRef::<Self, Entity>::from_schema_identifier(Entity::IDENTIFIER),
+                ApplicationAspectRef::<Self, Entity, Aspect>::from_schema_identifier(
+                    Aspect::IDENTIFIER,
+                ),
+            )
+            .field(
+                ApplicationEntityRef::<Self, Entity>::from_schema_identifier(Entity::IDENTIFIER),
+                ApplicationFieldRef::<Self, Entity, Aspect, Field, u64>::from_schema_types(),
+            )
+            .build()
     }
 }
 
@@ -48,6 +66,11 @@ impl ApplicationAspectMarkerIdentity for Aspect {
     type Schema = Schema;
     type Entity = Entity;
     const IDENTIFIER: &'static str = "State";
+    const ASPECT_IDENTITY: worth_query_declaration::facade::application_schema::AspectIdentity =
+        worth_query_declaration::facade::application_schema::AspectIdentity(0x9161200b);
+    const CONTRACT_REVISION:
+        worth_query_declaration::facade::application_schema::AspectContractRevision =
+        worth_query_declaration::facade::application_schema::AspectContractRevision(1);
 }
 
 impl ApplicationFieldMarkerIdentity for Field {
@@ -56,6 +79,13 @@ impl ApplicationFieldMarkerIdentity for Field {
     type Aspect = Aspect;
     const IDENTIFIER: &'static str = "balance";
 }
+
+impl DeclaredApplicationFieldValue for Field {
+    type Value = u64;
+    const PRESENCE: ApplicationFieldPresence = ApplicationFieldPresence::Required;
+}
+
+impl RequiredApplicationFieldValue for Field {}
 
 #[test]
 fn initial_installation_cannot_borrow_a_sibling_operations_exact_read() {
@@ -81,24 +111,113 @@ fn reinstallation_recompiles_only_the_presented_candidates_aftermath() {
     assert_ne!(baseline, bound_drift);
 }
 
+#[test]
+fn contract_compilation_is_order_independent_and_semantic_mutants_move_meaning() {
+    let mut canonical = members("freeze", "freeze", 64);
+    canonical.extend([
+        ApplicationSchemaMember::OperationProgram {
+            operation: "freeze".to_owned(),
+            target: ApplicationOperationProgramTarget::Delete {
+                entity: "Account".to_owned(),
+            },
+        },
+        ApplicationSchemaMember::OperationProgram {
+            operation: "freeze".to_owned(),
+            target: ApplicationOperationProgramTarget::Write {
+                entity: "Account".to_owned(),
+                aspect: "State".to_owned(),
+                field: "balance".to_owned(),
+            },
+        },
+    ]);
+    let mut reordered = canonical.clone();
+    reordered.reverse();
+    assert_eq!(compile(&canonical).unwrap(), compile(&reordered).unwrap());
+
+    let mut entity_read = canonical.clone();
+    entity_read.push(ApplicationSchemaMember::OperationDecisionRead {
+        operation: "freeze".to_owned(),
+        target: ApplicationOperationDecisionReadTarget::Entity {
+            entity: "Account".to_owned(),
+        },
+    });
+    assert_ne!(
+        compile(&canonical).unwrap(),
+        compile(&entity_read).unwrap(),
+        "changing a projection read into an entity read must change installed meaning"
+    );
+}
+
+#[test]
+fn emit_only_operation_has_external_effect_but_no_graph_touch_or_mutation_effect() {
+    let members = vec![
+        operation("freeze"),
+        ApplicationSchemaMember::OperationProgram {
+            operation: "freeze".to_owned(),
+            target: ApplicationOperationProgramTarget::Emit {
+                effect: "notification".to_owned(),
+            },
+        },
+        ApplicationSchemaMember::OperationExternalEffect {
+            operation: "freeze".to_owned(),
+            effect: "notification".to_owned(),
+            rust_payload_type: "NotificationPayload".to_owned(),
+            protocol: ApplicationExternalEffectProtocol::new(
+                BoundaryProtocolIdentity::new("test.notification"),
+                BoundaryProtocolVersion::new(1),
+            ),
+            maximum_payload_bytes: 128,
+            correlation_family: "notification-correlation".to_owned(),
+        },
+        ApplicationSchemaMember::OperationDecisionFactBudget {
+            operation: "freeze".to_owned(),
+            maximum_fact_count: 1,
+        },
+        ApplicationSchemaMember::OperationProjectionWorkBudget {
+            operation: "freeze".to_owned(),
+            maximum_work_units: 1,
+        },
+    ];
+    let contracts = compile(&members).expect("emit-only operation compiles");
+    assert!(matches!(
+        contracts.touches(),
+        crate::domain_operation::WorthQueryOperationTouchContract::NotRequired
+    ));
+    assert!(matches!(
+        contracts.effects(),
+        crate::domain_operation::WorthQueryOperationEffectContract::NotRequired
+    ));
+    assert!(matches!(
+        contracts.external_effect(),
+        crate::application_aftermath::InstalledExternalEffectContract::Declared { .. }
+    ));
+}
+
 fn compile(
     members: &[ApplicationSchemaMember],
 ) -> Result<
     WorthQueryCompiledApplicationOperationContracts,
     WorthQueryApplicationOperationInstallationDenial,
 > {
-    WorthQueryApplicationOperationCompilation::resolve(
-        ApplicationSchemaBindingIdentity::from_installed_parts(
-            1,
-            1,
-            CanonicalDigestId::new([1; 32]),
-            CanonicalDigestId::new([2; 32]),
-        ),
-        members,
-        "freeze",
-        "FixtureInput",
-    )?
-    .compile_contracts(Vec::new())
+    let binding = ApplicationSchemaBindingIdentity::from_installed_parts(
+        1,
+        1,
+        CanonicalDigestId::new([1; 32]),
+        CanonicalDigestId::new([2; 32]),
+    );
+    let declaration = Schema::declaration().expect("fixture schema is valid");
+    let (_, schema_work) = crate::application_schema::derive_installed_schema_identity(
+        declaration.erased().identity(),
+    )
+    .expect("fixture schema identity is canonical");
+    let catalog = crate::application_schema::compile_native_contract_catalog(
+        &binding,
+        declaration.erased(),
+        schema_work,
+    )
+    .expect("fixture native catalog compiles");
+    WorthQueryApplicationOperationCompilation::resolve(binding, members, "freeze", "FixtureInput")?
+        .compile_contracts(Vec::new(), &catalog)
 }
 
 fn members(

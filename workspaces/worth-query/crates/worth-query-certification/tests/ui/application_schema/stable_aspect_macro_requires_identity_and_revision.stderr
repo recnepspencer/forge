@@ -1,0 +1,11 @@
+error: unexpected end of macro invocation
+ --> tests/ui/application_schema/stable_aspect_macro_requires_identity_and_revision.rs:6:67
+  |
+6 | worth_query_aspect!(pub StableAspect in StableSchema, StableEntity);
+  |                                                                   ^ missing tokens in macro arguments
+  |
+note: while trying to match `;`
+ --> $WORKSPACE/crates/worth-query-declaration/src/application_aspect_macro.rs
+  |
+  |         $vis:vis $Aspect:ident in $Schema:ty, $Entity:ty;
+  |                                                         ^

@@ -36,7 +36,7 @@ fn validate_node_graph_closure(
         }
         let Some(role) = semantics
             .graph_reads
-            .roles()
+            .domain_roles()
             .iter()
             .find(|role| role.role == role_name)
         else {
@@ -102,7 +102,13 @@ fn validate_conditional_consequences(
                     return Err("conditional-output-uses-undeclared-touch-role");
                 };
                 if !graph_roles.iter().any(|role| role == touch.graph_role())
-                    || !scopes.iter().any(|scope| scope == touch.scope())
+                    || !scopes.iter().any(|scope| {
+                        matches!(
+                            scope,
+                            WorthQueryOperationTouchScope::DeclaredDomain(identity)
+                                if identity.as_str() == touch.scope()
+                        )
+                    })
                 {
                     return Err("conditional-output-uses-undeclared-touch-role");
                 }

@@ -22,9 +22,10 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
         ) else {
             return false;
         };
-        let Ok(candidate_contracts) =
-            compilation.compile_contracts(self.contracts.ability_requirements().to_vec())
-        else {
+        let Ok(candidate_contracts) = compilation.compile_contracts(
+            self.contracts.ability_requirements().to_vec(),
+            self.native_contracts.as_ref(),
+        ) else {
             return false;
         };
         candidate_contracts == self.contracts

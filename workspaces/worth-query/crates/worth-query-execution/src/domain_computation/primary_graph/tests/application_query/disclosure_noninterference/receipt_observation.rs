@@ -124,6 +124,7 @@ struct StableInstallationCanonicalWork {
     digest_derivations: u32,
     canonical_entries: u32,
     encoded_material_present: bool,
+    prepared_only_encoded_bytes: usize,
     sha256_compression_blocks: usize,
     digest_text_materializations: u32,
 }
@@ -347,7 +348,10 @@ impl StableInstallationCanonicalWork {
             work.canonical_encoded_bytes(),
             work.canonical_material_allocation_bytes()
         );
-        assert_eq!(work.canonical_encoded_bytes(), work.sha256_input_bytes());
+        let prepared_only_encoded_bytes = work
+            .canonical_encoded_bytes()
+            .checked_sub(work.sha256_input_bytes())
+            .expect("installation cannot hash more bytes than it canonically encodes");
         Self {
             basis_preparations: work.basis_preparations(),
             digest_derivations: work.digest_derivations(),
@@ -355,6 +359,9 @@ impl StableInstallationCanonicalWork {
             // Separate installations carry process-local ordinal encodings whose decimal width
             // is unrelated to the protected application value under comparison.
             encoded_material_present: work.canonical_encoded_bytes() > 0,
+            // The installed native-contract catalog deliberately retains prepared canonical
+            // bases without deriving substitute digest authority from them.
+            prepared_only_encoded_bytes,
             sha256_compression_blocks: work.sha256_compression_blocks(),
             digest_text_materializations: work.digest_text_materializations(),
         }

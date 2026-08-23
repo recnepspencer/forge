@@ -106,6 +106,7 @@ impl WorthQueryExecutionInstallationAuthority {
             })?;
         let (layout, additions) = WorthQueryPrimaryGraphLayout::lower(
             installed_schema.installed_declaration(),
+            installed_schema.native_contracts(),
             &relational_runtime.config().schema.registry,
         )?;
         relational_runtime

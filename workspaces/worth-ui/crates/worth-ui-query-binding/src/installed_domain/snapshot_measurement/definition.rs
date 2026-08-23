@@ -56,8 +56,8 @@ fn semantic_closure(
         workflow: domain::WorthQueryOperationWorkflowContract::NotRequired,
         evidence: domain::WorthQueryDomainEvidenceContract::not_required(),
         conditional_nodes: Vec::new(),
-        graph_reads: domain::WorthQueryOperationGraphReadContract::Declared {
-            roles: vec![domain::WorthQueryOperationGraphReadRole {
+        graph_reads: domain::WorthQueryOperationGraphReadContract::DeclaredDomain {
+            roles: vec![domain::WorthQueryDomainOperationGraphReadRole {
                 role: "measurements".into(),
                 participation: domain::WorthQueryOperationGraphParticipation::PrimaryLogicalGraph,
                 access: domain::WorthQueryOperationGraphAccess::Project,

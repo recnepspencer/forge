@@ -351,7 +351,12 @@ impl<D: 'static, O: 'static, F: 'static, L: BasisOperationLane> WorthQueryWorkfl
                 effect_workflow_binding,
                 basis: self.bound.basis().normalized().family(),
                 installed_read: self.executor.installed_read.as_ref(),
-                operation_graph_reads: self.bound.definition().semantics().graph_reads.roles(),
+                operation_graph_reads: self
+                    .bound
+                    .definition()
+                    .semantics()
+                    .graph_reads
+                    .domain_roles(),
                 graph_receipts,
                 resources,
                 resource_evidence,

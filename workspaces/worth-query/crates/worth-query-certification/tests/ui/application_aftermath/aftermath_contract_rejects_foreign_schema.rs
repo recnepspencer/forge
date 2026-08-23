@@ -12,7 +12,7 @@ mod schema_a {
     pub struct Schema;
     pub struct Input;
     worth_query_entity!(pub Account in Schema);
-    worth_query_aspect!(pub State in Schema, Account);
+    worth_query_aspect!(pub State in Schema, Account; identity = AspectIdentity(0x91611025), revision = AspectContractRevision(1),);
     worth_query_field!(pub Status in Schema, Account, State: u64, read_only, no_equality);
     worth_query_operation!(pub Operation(Input) in Schema);
 }
@@ -22,7 +22,7 @@ mod schema_b {
 
     pub struct Schema;
     worth_query_entity!(pub Account in Schema);
-    worth_query_aspect!(pub State in Schema, Account);
+    worth_query_aspect!(pub State in Schema, Account; identity = AspectIdentity(0x91611026), revision = AspectContractRevision(1),);
     worth_query_field!(pub Status in Schema, Account, State: u64, read_only, no_equality);
 }
 

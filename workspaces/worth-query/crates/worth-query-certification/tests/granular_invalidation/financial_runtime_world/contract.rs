@@ -98,8 +98,8 @@ pub fn operation_definition(
                 portfolio_node("portfolio-risk"),
                 portfolio_node("portfolio-sibling-risk"),
             ],
-            graph_reads: domain::WorthQueryOperationGraphReadContract::Declared {
-                roles: vec![domain::WorthQueryOperationGraphReadRole {
+            graph_reads: domain::WorthQueryOperationGraphReadContract::DeclaredDomain {
+                roles: vec![domain::WorthQueryDomainOperationGraphReadRole {
                     role: "primary".into(),
                     participation:
                         domain::WorthQueryOperationGraphParticipation::PrimaryLogicalGraph,

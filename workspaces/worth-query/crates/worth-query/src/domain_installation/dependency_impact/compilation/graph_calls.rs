@@ -67,7 +67,7 @@ pub(super) fn realized_calls_match<D, O, F, L: BasisOperationLane>(
         .definition()
         .semantics()
         .graph_reads
-        .roles()
+        .domain_roles()
         .iter()
         .filter(|read| {
             matches!(
@@ -88,7 +88,7 @@ pub(super) fn realized_calls_match<D, O, F, L: BasisOperationLane>(
         .definition()
         .semantics()
         .graph_reads
-        .roles()
+        .domain_roles()
         .iter()
         .filter(|read| {
             touch_roles.contains(&read.role)

@@ -209,7 +209,7 @@ fn admit_basis_execution<D, O, F, L: BasisOperationLane>(
     counters: WorthQueryOperationBindingCounters,
 ) -> Result<(), WorthQueryOperationBindingDenial> {
     let semantics = operation.definition().semantics();
-    let requires_primary_read = semantics.graph_reads.roles().iter().any(|read| {
+    let requires_primary_read = semantics.graph_reads.domain_roles().iter().any(|read| {
         read.participation
             == crate::domain_installation::WorthQueryOperationGraphParticipation::PrimaryLogicalGraph
     });

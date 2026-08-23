@@ -172,7 +172,11 @@ fn validate_graph_topology(
     }) {
         return Err(WorthQueryExecutionOperationBindingDenial::ForeignGraphRuntime);
     }
-    let roles = operation.definition().semantics().graph_reads.roles();
+    let roles = operation
+        .definition()
+        .semantics()
+        .graph_reads
+        .domain_roles();
     let declared = roles
         .iter()
         .map(|read| read.role.as_str())

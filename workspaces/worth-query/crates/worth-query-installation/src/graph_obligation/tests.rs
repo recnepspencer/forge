@@ -6,12 +6,14 @@ use worth_query_declaration::facade::application_schema::ApplicationSchemaBindin
 use crate::application_operation::WorthQueryInstalledApplicationOperationAuthorization;
 use crate::domain_computation::WorthQueryExecutionResourceContract;
 use crate::domain_operation::{
-    WorthQueryInstalledInvariantExecutionRequirement, WorthQueryInvariantEnforcement,
-    WorthQueryInvariantExecutionContract, WorthQueryOperationEffectContract,
-    WorthQueryOperationEffectFamily, WorthQueryOperationGraphAccess,
+    WorthQueryDeclaredDomainTouchScopeIdentity, WorthQueryInstalledInvariantExecutionRequirement,
+    WorthQueryInvariantEnforcement, WorthQueryInvariantExecutionContract,
+    WorthQueryOperationEffectContract, WorthQueryOperationEffectFamily,
+    WorthQueryOperationEntityReadScope, WorthQueryOperationGraphAccess,
     WorthQueryOperationGraphParticipation, WorthQueryOperationGraphReadContract,
-    WorthQueryOperationGraphReadRole, WorthQueryOperationInvariantContract,
-    WorthQueryOperationTouchContract,
+    WorthQueryOperationGraphReadRole, WorthQueryOperationGraphReadScope,
+    WorthQueryOperationInvariantContract, WorthQueryOperationTouchContract,
+    WorthQueryOperationTouchScope,
 };
 
 use super::identity::derive_set_identity;
@@ -27,7 +29,9 @@ fn installed_mutation_matrix_names_only_real_semantic_owners() {
     let graph_reads = graph_reads();
     let touches = WorthQueryOperationTouchContract::Declared {
         graph_roles: vec!["primary".to_owned()],
-        scopes: vec!["entity:Account".to_owned()],
+        scopes: vec![WorthQueryOperationTouchScope::DeclaredDomain(
+            WorthQueryDeclaredDomainTouchScopeIdentity::new("account-entity").unwrap(),
+        )],
     };
     let effects = WorthQueryOperationEffectContract::Declared {
         effect_families: vec![WorthQueryOperationEffectFamily::Mutation],
@@ -88,7 +92,9 @@ fn mismatched_invariant_contract_is_denied_before_identity_minting() {
     let graph_reads = graph_reads();
     let touches = WorthQueryOperationTouchContract::Declared {
         graph_roles: vec!["primary".to_owned()],
-        scopes: vec!["entity:Account".to_owned()],
+        scopes: vec![WorthQueryOperationTouchScope::DeclaredDomain(
+            WorthQueryDeclaredDomainTouchScopeIdentity::new("account-entity").unwrap(),
+        )],
     };
     let effects = WorthQueryOperationEffectContract::Declared {
         effect_families: vec![WorthQueryOperationEffectFamily::Mutation],
@@ -159,14 +165,55 @@ fn installed_identity_enforces_entry_and_encoded_byte_budgets() {
     ));
 }
 
+#[test]
+fn graph_obligation_identity_binds_the_exact_typed_read_scope() {
+    let account = read_only_obligations("Account");
+    let ledger = read_only_obligations("Ledger");
+    assert_ne!(
+        account.identity().bytes(),
+        ledger.identity().bytes(),
+        "a typed read-locus mutant must move the sealed obligation identity"
+    );
+}
+
+fn read_only_obligations(entity: &str) -> super::WorthQueryInstalledGraphObligationSet {
+    let graph_reads = WorthQueryOperationGraphReadContract::Declared {
+        roles: vec![WorthQueryOperationGraphReadRole::new(
+            "primary".to_owned(),
+            WorthQueryOperationGraphParticipation::PrimaryLogicalGraph,
+            WorthQueryOperationGraphAccess::Project,
+            vec![WorthQueryOperationGraphReadScope::Entity(
+                WorthQueryOperationEntityReadScope::new(binding(), entity.to_owned()),
+            )],
+        )],
+    };
+    bind_operation_obligations(
+        &binding(),
+        "Inspect",
+        "InspectInput",
+        WorthQueryApplicationOperationObligationSource {
+            authorization: WorthQueryInstalledApplicationOperationAuthorization::Principal,
+            ability_requirements: &[],
+            capability_requirements: &[],
+            graph_reads: &graph_reads,
+            touches: &WorthQueryOperationTouchContract::NotRequired,
+            effects: &WorthQueryOperationEffectContract::NotRequired,
+            invariants: &WorthQueryOperationInvariantContract::NotRequired,
+            invariant_execution: &WorthQueryInvariantExecutionContract::NotRequired,
+            resources: &WorthQueryExecutionResourceContract::default(),
+        },
+    )
+    .unwrap()
+}
+
 fn graph_reads() -> WorthQueryOperationGraphReadContract {
     WorthQueryOperationGraphReadContract::Declared {
-        roles: vec![WorthQueryOperationGraphReadRole {
-            role: "primary".to_owned(),
-            participation: WorthQueryOperationGraphParticipation::PrimaryLogicalGraph,
-            access: WorthQueryOperationGraphAccess::Project,
-            semantic_reads: Vec::new(),
-        }],
+        roles: vec![WorthQueryOperationGraphReadRole::new(
+            "primary".to_owned(),
+            WorthQueryOperationGraphParticipation::PrimaryLogicalGraph,
+            WorthQueryOperationGraphAccess::Project,
+            Vec::new(),
+        )],
     }
 }
 

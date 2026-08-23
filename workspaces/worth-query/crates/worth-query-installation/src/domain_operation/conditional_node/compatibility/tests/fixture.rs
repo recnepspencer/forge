@@ -149,8 +149,8 @@ pub(super) fn operation_definition(
         ),
         evidence: WorthQueryDomainEvidenceContract::not_required(),
         conditional_nodes,
-        graph_reads: WorthQueryOperationGraphReadContract::Declared {
-            roles: vec![WorthQueryOperationGraphReadRole {
+        graph_reads: WorthQueryOperationGraphReadContract::DeclaredDomain {
+            roles: vec![WorthQueryDomainOperationGraphReadRole {
                 role: "model".into(),
                 participation: WorthQueryOperationGraphParticipation::PrimaryLogicalGraph,
                 access: WorthQueryOperationGraphAccess::Project,

@@ -100,7 +100,9 @@ fn workspace_for(
         Scenario::TouchClosure => {
             semantics.touches = domain::WorthQueryOperationTouchContract::Declared {
                 graph_roles: vec!["model".into()],
-                scopes: vec!["vertex".into()],
+                scopes: vec![domain::WorthQueryOperationTouchScope::DeclaredDomain(
+                    domain::WorthQueryDeclaredDomainTouchScopeIdentity::new("vertex").unwrap(),
+                )],
             };
         }
         Scenario::EffectClosure => {

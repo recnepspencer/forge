@@ -1,5 +1,6 @@
 mod application_capability_authoring;
 mod application_query_authoring;
+mod aspect_contract_identity;
 mod authoring_context;
 mod authorization_path_components;
 mod authorization_policy;
@@ -56,7 +57,10 @@ mod field_presence_tests;
 mod operation_contract_cardinality_tests;
 #[cfg(test)]
 mod preimage_canonical_identity_tests;
+#[cfg(test)]
+mod stable_aspect_identity_tests;
 
+pub use aspect_contract_identity::ApplicationAspectMarkerIdentity;
 pub use authoring_context::{
     ApplicationSchemaAuthoringContext, ApplicationSchemaAuthoringDenial,
     ApplicationSchemaAuthoringDenialKind,
@@ -88,8 +92,7 @@ pub use effect_payload::{ApplicationEffectPayload, ApplicationExternalEffectPayl
 pub use external_effect_protocol::ApplicationExternalEffectProtocol;
 pub use field_presence::ApplicationFieldPresence;
 pub use field_reference::{
-    ApplicationAspectMarkerIdentity, ApplicationEntityMarkerIdentity,
-    ApplicationFieldMarkerIdentity, ApplicationFieldRef,
+    ApplicationEntityMarkerIdentity, ApplicationFieldMarkerIdentity, ApplicationFieldRef,
 };
 pub use mutation_authoring::{
     TypedMutationIntent, TypedMutationIntentBuilder, TypedMutationWrite, TypedOperationBuilder,
@@ -126,3 +129,4 @@ pub use values::{
     TypedApplicationIdentityValue, TypedApplicationReadableValue,
     TypedApplicationSignedAggregateValue, TypedApplicationValue, TypedUnitApplicationValue,
 };
+pub use worth_foundational::facade::{AspectContractRevision, AspectIdentity};

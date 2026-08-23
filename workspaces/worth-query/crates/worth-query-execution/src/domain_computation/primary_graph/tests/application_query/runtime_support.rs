@@ -14,9 +14,14 @@ use worth_query_admission::integration::{
 use worth_query_declaration::facade::{
     application_query::ApplicationQueryParameterSet, application_schema::ApplicationSchema,
 };
+use worth_query_installation::facade::{
+    WorthQueryInstallationAdmissionProfile, WorthQueryInstallationGeneration,
+    WorthQueryPortableDomainIdentity, WorthQueryPortableDomainPackage,
+};
 use worth_relational::facade::schema::RelationalSchemaRegistry;
 
 use super::super::fixture::{installed_authorization_world, live_account_parameters};
+use crate::domain_computation::execution_runtime::WorthQueryExecutionRuntimeInstaller;
 use crate::domain_computation::primary_graph::{
     application_query::primary_graph_support_inventory, schema_layout::WorthQueryPrimaryGraphLayout,
 };
@@ -277,9 +282,33 @@ fn lower_layout<Schema: ApplicationSchema>(
         Schema,
     >,
 ) -> WorthQueryPrimaryGraphLayout {
-    WorthQueryPrimaryGraphLayout::lower(declaration.erased(), &RelationalSchemaRegistry::new())
-        .unwrap()
-        .0
+    let owner = declaration.erased().owner().to_string();
+    let package = WorthQueryPortableDomainPackage::new(WorthQueryPortableDomainIdentity::new(
+        owner,
+        declaration.erased().major(),
+        declaration.erased().minor(),
+    ))
+    .application_schema(declaration.clone())
+    .validate()
+    .unwrap();
+    let admitted = WorthQueryInstallationAdmissionProfile::new("support", "configuration")
+        .admit(package)
+        .unwrap();
+    let installation = WorthQueryExecutionRuntimeInstaller::new()
+        .install(WorthQueryInstallationGeneration::initial(), [admitted])
+        .unwrap();
+    let (runtime, _) = installation.into_parts();
+    let installed = runtime
+        .installed_packages()
+        .bind_application_schema(declaration)
+        .unwrap();
+    WorthQueryPrimaryGraphLayout::lower(
+        installed.installed_declaration(),
+        installed.native_contracts(),
+        &RelationalSchemaRegistry::new(),
+    )
+    .unwrap()
+    .0
 }
 
 macro_rules! hostile_live_index_schema {
@@ -307,12 +336,12 @@ macro_rules! hostile_live_index_schema {
             }
             worth_query_entity!(pub Account in $schema);
             worth_query_entity!(pub Activity in $schema);
-            worth_query_aspect!(pub AccountPolicy in $schema, Account);
+            worth_query_aspect!(pub AccountPolicy in $schema, Account; identity = AspectIdentity(0x91611034), revision = AspectContractRevision(1),);
             worth_query_field!(
                 pub AccountIdentity in $schema, Account, AccountPolicy:
                 String, read_only, $scope_equality
             );
-            worth_query_aspect!(pub ActivityFacts in $schema, Activity);
+            worth_query_aspect!(pub ActivityFacts in $schema, Activity; identity = AspectIdentity(0x91611035), revision = AspectContractRevision(1),);
             worth_query_field!(
                 pub ActivityIdentity in $schema, Activity, ActivityFacts:
                 String, read_only, $target_equality

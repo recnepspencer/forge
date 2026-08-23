@@ -1,0 +1,46 @@
+use worth_query_declaration::facade::canonicalization::CanonicalQueryBundle;
+
+use super::{
+    WorthQueryDomainEvidenceContract, WorthQueryInvariantExecutionContract,
+    WorthQueryOperationCapabilityRequirement, WorthQueryOperationCollectionContract,
+    WorthQueryOperationCostContract, WorthQueryOperationDecisionFactContract,
+    WorthQueryOperationEffectContract, WorthQueryOperationGraphReadContract,
+    WorthQueryOperationInvariantContract, WorthQueryOperationLineageContract,
+    WorthQueryOperationLoweringContract, WorthQueryOperationNativeProjectionContract,
+    WorthQueryOperationParameterContract, WorthQueryOperationProjectionConsumptionContract,
+    WorthQueryOperationPromotionContract, WorthQueryOperationPublicationContract,
+    WorthQueryOperationReplayContract, WorthQueryOperationRequiredDomainRole,
+    WorthQueryOperationSupportRequirements, WorthQueryOperationTerminalContract,
+    WorthQueryOperationTouchContract, WorthQueryOperationWorkflowContract,
+    WorthQueryPortableConditionalNodeDeclaration,
+};
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryDomainOperationSemanticClosure {
+    pub parameters: WorthQueryOperationParameterContract,
+    pub native_projection: WorthQueryOperationNativeProjectionContract,
+    pub canonical_query: CanonicalQueryBundle,
+    pub collection: WorthQueryOperationCollectionContract,
+    pub required_capabilities: Vec<WorthQueryOperationCapabilityRequirement>,
+    pub required_domains: Vec<WorthQueryOperationRequiredDomainRole>,
+    pub workflow: WorthQueryOperationWorkflowContract,
+    pub evidence: WorthQueryDomainEvidenceContract,
+    pub conditional_nodes: Vec<WorthQueryPortableConditionalNodeDeclaration>,
+    pub graph_reads: WorthQueryOperationGraphReadContract,
+    pub decision_facts: WorthQueryOperationDecisionFactContract,
+    pub touches: WorthQueryOperationTouchContract,
+    pub effects: WorthQueryOperationEffectContract,
+    pub invariants: WorthQueryOperationInvariantContract,
+    pub invariant_execution: WorthQueryInvariantExecutionContract,
+    pub replay: WorthQueryOperationReplayContract,
+    pub aftermath: Option<crate::application_aftermath::WorthQueryInstalledAftermathContract>,
+    pub lineage: WorthQueryOperationLineageContract,
+    pub promotion: WorthQueryOperationPromotionContract,
+    pub publication: WorthQueryOperationPublicationContract,
+    pub projection_consumption: WorthQueryOperationProjectionConsumptionContract,
+    pub terminal: WorthQueryOperationTerminalContract,
+    pub cost: WorthQueryOperationCostContract,
+    pub resources: crate::domain_computation::WorthQueryOperationExecutionResourceContract,
+    pub support: WorthQueryOperationSupportRequirements,
+    pub lowering: WorthQueryOperationLoweringContract,
+}

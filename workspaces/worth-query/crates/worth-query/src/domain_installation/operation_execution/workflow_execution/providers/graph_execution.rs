@@ -34,7 +34,7 @@ pub(super) fn invoke_stage_graphs<D, O, F, L: BasisOperationLane>(
             .definition()
             .semantics()
             .graph_reads
-            .roles()
+            .domain_roles()
             .iter()
             .find(|read| {
                 read.role == participation.role

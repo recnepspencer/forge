@@ -1,14 +1,14 @@
 error[E0277]: the trait bound `UsdCurrency: ApplicationUnitMarker<EUR>` is not satisfied
-  --> tests/ui/application_schema/wrong_unit_value.rs:62:9
+  --> tests/ui/application_schema/wrong_unit_value.rs:66:9
    |
-62 |     > = ApplicationFieldRef::from_schema_types();
+66 |     > = ApplicationFieldRef::from_schema_types();
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
    |
 help: the trait `ApplicationUnitMarker<EUR>` is not implemented for `UsdCurrency`
       but trait `ApplicationUnitMarker<USD>` is implemented for it
-  --> tests/ui/application_schema/wrong_unit_value.rs:36:1
+  --> tests/ui/application_schema/wrong_unit_value.rs:40:1
    |
-36 | impl ApplicationUnitMarker<USD> for UsdCurrency {
+40 | impl ApplicationUnitMarker<USD> for UsdCurrency {
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = help: for that trait implementation, expected `USD`, found `EUR`
    = note: required for `DeclaredApplicationUnit<UsdCurrency, EUR>` to implement `ApplicationFieldUnit`

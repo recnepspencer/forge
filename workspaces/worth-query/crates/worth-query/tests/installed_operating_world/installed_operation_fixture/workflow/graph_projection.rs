@@ -156,10 +156,10 @@ fn workflow_graph_projection_package() -> domain::WorthQueryDomainPackage<Geomet
         domain::WorthQuerySupportRequirement::Required,
         true,
     );
-    if let domain::WorthQueryOperationGraphReadContract::Declared { roles } =
+    if let domain::WorthQueryOperationGraphReadContract::DeclaredDomain { roles } =
         &mut semantics.graph_reads
     {
-        roles.push(domain::WorthQueryOperationGraphReadRole {
+        roles.push(domain::WorthQueryDomainOperationGraphReadRole {
             role: "remote-a".into(),
             participation: domain::WorthQueryOperationGraphParticipation::SeparateAuthority {
                 role: "remote-a".into(),

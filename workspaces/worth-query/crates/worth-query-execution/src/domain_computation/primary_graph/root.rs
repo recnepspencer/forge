@@ -7,6 +7,9 @@ use worth_relational::facade::runtime::RelationalRuntime;
 
 use super::schema_layout::WorthQueryPrimaryGraphLayout;
 
+#[cfg(test)]
+mod test_inspection;
+
 /// Execution-owned primary logical graph for one installed application schema.
 ///
 /// This surface exposes graph identity rather than raw Relational access.

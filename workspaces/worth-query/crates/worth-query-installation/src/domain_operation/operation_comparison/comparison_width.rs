@@ -45,11 +45,15 @@ pub(super) fn collection(contract: &WorthQueryOperationCollectionContract) -> us
 }
 
 pub(super) fn graph_reads(contract: &WorthQueryOperationGraphReadContract) -> usize {
-    contract
-        .roles()
-        .iter()
-        .map(|role| 1 + role.semantic_reads.len())
-        .sum()
+    match contract {
+        WorthQueryOperationGraphReadContract::NotRequired => 0,
+        WorthQueryOperationGraphReadContract::Declared { roles } => {
+            roles.iter().map(|role| 1 + role.read_scopes().len()).sum()
+        }
+        WorthQueryOperationGraphReadContract::DeclaredDomain { roles } => {
+            roles.iter().map(|role| 1 + role.semantic_reads.len()).sum()
+        }
+    }
 }
 
 pub(super) fn touches(contract: &WorthQueryOperationTouchContract) -> usize {
