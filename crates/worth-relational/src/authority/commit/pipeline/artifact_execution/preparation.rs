@@ -41,6 +41,7 @@ pub(super) struct PublicationPreparationInput<'a> {
     pub(super) merge_parent_branches: &'a [crate::history::data::BranchId],
     pub(super) merge_base_commits: &'a [crate::history::data::CommitId],
     pub(super) merged_plan: &'a MergedCommitPlan,
+    pub(super) record_allocations: &'a [crate::history::data::CanonicalRecordAllocation],
     pub(super) strategy_artifacts:
         Option<crate::commit_strategies::data::StrategyCommitArtifactBundle>,
     pub(super) merge_execution_authority: Option<PublishedMergeExecutionAuthority>,
@@ -62,6 +63,7 @@ pub(super) fn prepare_publication_artifacts(
         merge_parent_branches,
         merge_base_commits,
         merged_plan,
+        record_allocations,
         strategy_artifacts,
         merge_execution_authority,
         schema_continuity,
@@ -90,6 +92,7 @@ pub(super) fn prepare_publication_artifacts(
             merge_parent_branches,
             merge_base_commits,
             merged_plan,
+            record_allocations,
             strategy_artifacts,
             merge_execution_authority,
             schema_continuity,
@@ -159,6 +162,7 @@ struct PublicationAuthorityInput<'a> {
     merge_parent_branches: &'a [crate::history::data::BranchId],
     merge_base_commits: &'a [crate::history::data::CommitId],
     merged_plan: &'a MergedCommitPlan,
+    record_allocations: &'a [crate::history::data::CanonicalRecordAllocation],
     strategy_artifacts: Option<crate::commit_strategies::data::StrategyCommitArtifactBundle>,
     merge_execution_authority: Option<PublishedMergeExecutionAuthority>,
     schema_continuity: &'a SchemaContinuityPlan,
@@ -189,7 +193,7 @@ fn prepare_authoritative_publication(
         input.changed_records,
     );
     let lineage_event_count = lineage_artifact.event_batch().counters().event_batch_width;
-    let canonical_commit_envelope = canonical_commit_envelope(
+    let mut canonical_commit_envelope = canonical_commit_envelope(
         runtime,
         input.commit_reference,
         input.branch_id,
@@ -205,6 +209,7 @@ fn prepare_authoritative_publication(
         crate::indexes::data::DerivedIndexArtifacts::default(),
         input.schema_continuity,
     )?;
+    canonical_commit_envelope.install_record_allocations(input.record_allocations.to_vec());
     Ok(PreparedPublicationAuthority {
         artifacts,
         canonical_commit_envelope,
@@ -286,18 +291,6 @@ impl PublicationPreparation {
         &self,
     ) -> &crate::snapshots::data::SnapshotHandle {
         &self.finalize.artifacts.bundle.snapshot
-    }
-
-    pub(in crate::authority::commit::pipeline) fn canonical_commit_envelope(
-        &self,
-    ) -> &crate::history::data::CanonicalCommitEnvelope {
-        &self.finalize.canonical_commit_envelope
-    }
-
-    pub(in crate::authority::commit::pipeline) fn patch_position(
-        &self,
-    ) -> crate::publication::patch::data::PatchStreamPosition {
-        self.finalize.canonical_commit_envelope.patch.position
     }
 
     pub(in crate::authority::commit::pipeline) fn into_finalize(

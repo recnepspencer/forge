@@ -16,6 +16,10 @@ impl AuthoritativeFieldComparisonKey {
     pub fn canonical_value_bytes(&self) -> &[u8] {
         &self.canonical_value_bytes
     }
+
+    pub fn owned_allocation_capacity_bytes(&self) -> u64 {
+        self.canonical_value_bytes.capacity() as u64
+    }
 }
 
 pub fn authoritative_aspect_value_field_comparison_key(
@@ -45,6 +49,23 @@ mod tests {
         assert_ne!(
             int_key.canonical_value_bytes(),
             string_key.canonical_value_bytes()
+        );
+    }
+
+    #[test]
+    fn comparison_key_reports_owned_capacity_instead_of_initialized_length() {
+        let mut canonical_value_bytes = Vec::with_capacity(128);
+        canonical_value_bytes.extend_from_slice(b"small");
+        let key = AuthoritativeFieldComparisonKey {
+            canonical_value_bytes,
+        };
+
+        assert_eq!(key.canonical_value_bytes().len(), 5);
+        assert_eq!(key.owned_allocation_capacity_bytes(), 128);
+        assert_ne!(
+            key.owned_allocation_capacity_bytes(),
+            key.canonical_value_bytes().len() as u64,
+            "initialized length cannot stand in for an owned allocation's capacity"
         );
     }
 }

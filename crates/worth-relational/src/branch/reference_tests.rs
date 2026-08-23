@@ -39,7 +39,7 @@ fn truth_version_overflow_denies_before_reference_effect() {
 #[test]
 fn generation_overflow_denies_before_truth_effect() {
     let mut cell = empty_cell();
-    cell.observation = RelationalBranchObservation::new(
+    cell.observation = RelationalBranchReferenceObservation::new(
         cell.observation.branch_id().clone(),
         FoundationalBranchTarget::empty(),
         FoundationalBranchReferenceGeneration::new(u64::MAX),
@@ -55,7 +55,7 @@ fn generation_overflow_denies_before_truth_effect() {
 #[test]
 fn metadata_generation_overflow_denies_before_reference_effect() {
     let mut cell = empty_cell();
-    cell.observation = RelationalBranchObservation::new(
+    cell.observation = RelationalBranchReferenceObservation::new(
         cell.observation.branch_id().clone(),
         FoundationalBranchTarget::empty(),
         FoundationalBranchReferenceGeneration::new(u64::MAX),

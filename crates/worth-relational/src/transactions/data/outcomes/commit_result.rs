@@ -20,7 +20,7 @@ use super::{
     CommitValidationSummary,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CommitOutcome {
     pub transaction_id: TransactionId,
     pub commit: crate::history::data::RelationalCommitReceipt,

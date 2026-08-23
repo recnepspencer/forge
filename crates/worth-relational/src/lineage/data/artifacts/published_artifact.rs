@@ -117,6 +117,17 @@ impl PublishedLineageArtifact {
         !self.lineage_events.is_empty() || !self.lineage_decision_log.is_empty()
     }
 
+    pub(crate) fn owned_allocation_capacity_bytes(&self) -> u64 {
+        self.branch_id
+            .0
+            .capacity()
+            .try_into()
+            .unwrap_or(u64::MAX)
+            .saturating_add(vector_capacity_bytes(&self.lineage_event_ids))
+            .saturating_add(vector_capacity_bytes(&self.lineage_events))
+            .saturating_add(vector_capacity_bytes(&self.lineage_decision_log))
+    }
+
     #[cfg(test)]
     pub(crate) fn lineage_events_mut(&mut self) -> &mut Vec<LineageEventRecord> {
         &mut self.lineage_events
@@ -126,4 +137,8 @@ impl PublishedLineageArtifact {
     pub(crate) fn lineage_decision_log_mut(&mut self) -> &mut Vec<LineageDecisionRecord> {
         &mut self.lineage_decision_log
     }
+}
+
+fn vector_capacity_bytes<T>(values: &Vec<T>) -> u64 {
+    (values.capacity() as u64).saturating_mul(std::mem::size_of::<T>() as u64)
 }

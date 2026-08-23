@@ -1,0 +1,85 @@
+use std::collections::BTreeMap;
+
+use crate::durability::data::{DurabilityError, DurableCheckpoint};
+use crate::history::data::CommitId;
+use crate::runtime::RelationalRuntime;
+
+use super::partition_images::{
+    reject_duplicate_partition_images, restore_unique_partition_images_with_schema,
+    RestoredPartitions,
+};
+use super::root_schema_readmission::RootSchemaReadmissionCatalog;
+
+pub(super) struct RestoredBranchRootImages {
+    pub(super) partitions: BTreeMap<CommitId, RestoredPartitions>,
+    pub(super) schema_authorities:
+        BTreeMap<CommitId, std::sync::Arc<crate::branch::RelationalBranchRootSchemaAuthority>>,
+}
+
+pub(super) fn restore_branch_root_images(
+    restored: &RelationalRuntime,
+    checkpoint: &DurableCheckpoint,
+) -> Result<RestoredBranchRootImages, DurabilityError> {
+    let mut schema_catalog = RootSchemaReadmissionCatalog::readmit(checkpoint)?;
+    let mut partitions = BTreeMap::new();
+    let mut schema_authorities = BTreeMap::new();
+    for image in &checkpoint.branch_roots {
+        let envelope = checkpoint
+            .envelopes
+            .iter()
+            .find(|envelope| envelope.commit.commit_id == image.commit_id)
+            .ok_or_else(|| {
+                corrupt_checkpoint(format!(
+                    "branch-root image names missing commit envelope `{}`",
+                    image.commit_id.0
+                ))
+            })?;
+        let owner = format!("branch-root image `{}`", image.commit_id.0);
+        reject_duplicate_partition_images(&image.partition_images, &owner)?;
+        let observed_digest =
+            crate::durability::data::branch_root_partition_image_digest(&image.partition_images)
+                .map_err(|error| {
+                    corrupt_checkpoint(format!(
+                        "branch-root image `{}` integrity encoding failed: {error}",
+                        image.commit_id.0
+                    ))
+                })?;
+        if observed_digest != image.partition_image_digest {
+            return Err(corrupt_checkpoint(format!(
+                "branch-root image `{}` partition integrity mismatch",
+                image.commit_id.0
+            )));
+        }
+        let schema_authority = schema_catalog.readmit_root(restored, image, envelope)?;
+        let root_contracts = crate::durability::checkpoints::aspect_state_images::CheckpointAspectContractCatalog::from_contracts(
+            schema_authority.retained_aspect_contracts(),
+        )?;
+        let restored_partitions = restore_unique_partition_images_with_schema(
+            &image.partition_images,
+            schema_authority.aspect_plans(),
+            &root_contracts,
+            &owner,
+        )?;
+        if partitions
+            .insert(image.commit_id, restored_partitions)
+            .is_some()
+        {
+            return Err(corrupt_checkpoint(format!(
+                "duplicate branch-root image `{}`",
+                image.commit_id.0
+            )));
+        }
+        schema_authorities.insert(image.commit_id, schema_authority);
+    }
+    Ok(RestoredBranchRootImages {
+        partitions,
+        schema_authorities,
+    })
+}
+
+fn corrupt_checkpoint(detail: String) -> DurabilityError {
+    DurabilityError::new(
+        crate::durability::data::RecoveryFailureClass::CorruptCheckpoint,
+        detail,
+    )
+}

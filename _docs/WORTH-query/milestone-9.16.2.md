@@ -26,8 +26,12 @@ The milestone establishes:
 - a Relational-owned pluggable canonical durability boundary;
 - a production `worth-runtime-postgres` physical-adapter crate with distinct
   Query-package, Relational, dispatch, connection, and operations boundaries;
-- a `worth-query-host` restart barrier above Query and Relational that invokes
-  owner recovery and rebinds fresh host authority before traffic is admitted;
+- four narrow provider-neutral persistence contracts for canonical Relational
+  durability, immutable release storage, runtime-stream lifecycle, and dispatch
+  coordination;
+- a Query-execution-owned persistent opening and restart barrier that invokes
+  owner recovery and rebinds fresh host authority before traffic is admitted,
+  reexported by the leaf `worth-query-host` audience facade;
 - restart-stable dispatch of existing Query outbox rows using their existing
   correlation and idempotency meaning; and
 - committed successor contracts through which 9.17.1 adds Signal and
@@ -87,6 +91,9 @@ The claim is false if:
 - a release name selects "latest" instead of the expected semantic identity;
 - Query, Relational, Signal, or Runtime Bridge owns SQL, migrations, pools,
   tables, indexes, leases, or retry policy;
+- any upstream owner or `worth-query-host` depends on `worth-runtime-postgres`;
+- one generic database trait erases the distinct authority, atomicity, and
+  lifecycle contracts of owner durability, release storage, and dispatch;
 - PostgreSQL owns workflow semantics, validation, closure, or package digest;
 - operators cannot index exact releases or pending dispatch work; or
 - archive, recovery-scan, or global pending-work cost appears on warm execution.
@@ -118,6 +125,10 @@ a package codec:
 - operation/effect references lack declaration-minted membership provenance;
 - Relational durability has no narrow public backend implementation port;
 - no PostgreSQL implementation of canonical append, checkpoints, and recovery;
+- no store-neutral immutable release repository contract separated from host
+  release trust and activation choice;
+- no Query-execution-owned dispatch coordination contract for discovery,
+  claiming, fencing, attempts, outcomes, and reconciliation;
 - no public Query install path over a freshly recovered Relational runtime;
 - existing outbox observation is bound to the live
   `relational_runtime_instance_id` and commit receipt, so a new process cannot
@@ -143,12 +154,15 @@ claimable; it does not replace it.
 | Composite commits, product branch heads, product currentness, coordinated publication, durable artifact, and recovery law beginning in 9.17.2 | Runtime Bridge |
 | SQL, migrations, transactions, rows, indexes, pools, retention operations, and database diagnostics | `worth-runtime-postgres` owner-specific adapters |
 | Recovery dependency contract | Each semantic owner; Runtime Bridge owns component-before-composite ordering after 9.17.2 |
-| Recovery invocation, fresh host binding, readiness, and lifecycle | `worth-query-host` as audience composition facade consuming owner recovery facades |
+| Persistent opening, recovery invocation, fresh host binding, readiness, and lifecycle | Query execution; reexported without implementation by `worth-query-host` |
+| Stable caller audience for persistent Query runtime opening | Leaf `worth-query-host` facade; reexports only and owns no runtime module |
 | Release signatures, signer trust, Git provenance, registry revision, and activation policy | Host release system |
 | Store-neutral release archive bytes and compatibility | `worth-query-package-archive` |
+| Immutable exact-identity archive repository contract | `worth-query-package-archive`; descriptive storage only |
 | Physical snapshot completeness | PostgreSQL adapter |
 | Fresh acceptance of reconstructed package meaning | Query |
-| Dispatch lease, fencing epoch, attempt ledger, retry schedule, and work index | PostgreSQL dispatch adapter under Query-issued admission |
+| Dispatch candidate, admission, claim/fence progression, retry/outcome meaning, and coordination port | Query execution |
+| SQL realization of release repository and dispatch coordination | PostgreSQL adapter beneath the owner contracts |
 | External outcome and idempotency behavior | External-effect owner under Query's effect contract |
 | Future graph topology, replication, and distributed capabilities | Worth Store adapter and Store |
 
@@ -169,20 +183,229 @@ PostgreSQL artifacts -> adapter proves ordered recovery input
 
 No proof in one layer substitutes for another.
 
+## Public Contract And Dependency Lock
+
+Database portability is a contract property, not a promise to generalize the
+PostgreSQL schema later. This milestone freezes four separate ports because
+they have different authorities, truth classes, atomicity needs, and replacement
+fates:
+
+1. Relational defines a canonical durability port for append, checkpoint, and
+   ordered recovery input. Only a Relational-issued append request can enter
+   it, and successful physical storage still cannot mint publication authority.
+2. `worth-query-package-archive` defines an immutable exact-identity archive
+   repository port. It stores and returns descriptive signed envelopes; Query
+   reconstruction and current host trust still decide whether bytes may run.
+3. Query execution defines a runtime-stream lifecycle port for
+   generation-qualified activation, exact package/owner-format/schema/provider
+   binding, and conditional compatibility transitions. It consumes concrete
+   host release authority but never chooses host policy or validates a package.
+4. Query execution defines a persistent dispatch coordination port for bounded
+   candidate discovery, conditional claim/fence progression, attempts,
+   outcomes, and reconciliation. It consumes Query-issued admission and never
+   accepts an adapter-authored payload or adapter-decided eligibility.
+
+There is no `DatabaseBackend`, generic key-value bag, shared transaction object,
+SQL-shaped upstream request, or adapter callback into private authority. The
+composition root supplies four implementations explicitly. A future database
+adapter implements only the contracts it can satisfy and may use transactions,
+compare-and-swap, conditional writes, or an equivalent primitive internally.
+It must report capabilities and fail before readiness when durable append,
+atomic claim-and-fence, conditional current-fence outcome recording, ordered
+recovery, or namespace isolation cannot be honored. Portability never means
+weakening the contract to the least capable database.
+
+The Rust-facing contracts have this semantic shape:
+
+```rust
+trait RelationalDurabilityBackend {
+    fn append(
+        &self,
+        request: RelationalDurableAppendRequest,
+    ) -> RelationalDurableAppendResult;
+
+    fn store_checkpoint(
+        &self,
+        request: RelationalCheckpointStoreRequest,
+    ) -> RelationalCheckpointStoreOutcome;
+
+    fn read_recovery_artifacts(
+        &self,
+        request: RelationalRecoveryReadRequest,
+    ) -> RelationalRecoveryReadOutcome;
+}
+
+trait QueryPackageArchiveRepository {
+    fn store_exact(
+        &self,
+        record: SignedQueryPackageArchiveRecord,
+    ) -> QueryPackageArchiveStoreOutcome;
+
+    fn load_exact(
+        &self,
+        request: ExactQueryPackageArchiveRequest,
+    ) -> QueryPackageArchiveLoadOutcome;
+}
+
+trait PersistentRuntimeStreamCatalog {
+    fn record_activation(
+        &self,
+        request: AuthorizedExactReleaseActivation,
+    ) -> QueryPackageActivationOutcome;
+
+    fn bind_stream(
+        &self,
+        request: AdmittedPersistentRuntimeStreamBinding,
+    ) -> PersistentRuntimeStreamBindingOutcome;
+
+    fn load_binding(
+        &self,
+        request: ExactPersistentRuntimeStreamRequest,
+    ) -> PersistentRuntimeStreamBindingLoadOutcome;
+}
+
+trait PersistentDispatchCoordinator {
+    fn discover(
+        &self,
+        request: BoundedPendingDispatchDiscovery,
+    ) -> PendingDispatchDiscoveryOutcome;
+
+    fn claim(
+        &self,
+        request: QueryAdmittedDispatchClaim,
+    ) -> DispatchClaimOutcome;
+
+    fn record_attempt(
+        &self,
+        request: CurrentFencedDispatchAttempt,
+    ) -> DispatchAttemptOutcome;
+
+    fn record_outcome(
+        &self,
+        request: CurrentFencedExternalOutcome,
+    ) -> DispatchOutcomeRecording;
+}
+```
+
+Requests are owner-constructed constrained values, not public field bags.
+Recovery reads return descriptive owner artifacts for owner readmission.
+Archive reads return untrusted bytes. Runtime-stream activation consumes the
+concrete `HostReleaseActivationAuthority` without deciding host policy or Query
+validity. Dispatch discovery returns descriptive candidates; only `claim`
+consumes Query admission, and only current-fenced
+attempt/outcome requests can advance operational lifecycle state. Lease renewal
+and reconciliation follow the same fence-qualified contract and may be split
+into responsibility-named traits if implementation evidence shows distinct
+lifecycle owners; they may not collapse into a generic persistence method.
+
+The public outcome of an append whose client loses the response around commit
+is typed. It distinguishes:
+
+```rust
+enum RelationalCommitOutcome {
+    Performed(PerformedRelationalPublication),
+    AlreadyPerformed(PerformedRelationalPublication),
+    Rejected(RelationalCommitDenial),
+    Conflict(RelationalCommitConflict),
+    Indeterminate(DurableCommitRecoveryLocator),
+}
+```
+
+The physical backend returns only a private append confirmation, duplicate,
+conflict, rejection, or indeterminate locator. Relational verifies that result
+against its issued request and is the only layer that constructs the public
+`RelationalCommitOutcome` and performed publication.
+
+`AlreadyPerformed` is available only for the same stable request identity and
+same canonical artifact. `Indeterminate` carries a bounded recovery locator and
+never invites a retry under a new identity. The exact public names may align
+with existing owner vocabulary, but no ordinary failure variant may falsely
+mean "safe to try again as new work."
+
+Dependency direction is mechanical:
+
+```text
+Relational facade -----------------------> owner durability port
+Query package archive facade ------------> immutable archive repository port
+Query execution facade ------------------> stream lifecycle + dispatch + opening
+worth-query-host ------------------------> reexports Query audience surfaces
+worth-runtime-postgres ------------------> implements the four owner ports
+application composition root ------------> selects PostgreSQL implementations
+```
+
+None of Relational, Query installation, Query execution, package archive, or
+`worth-query-host` may import `worth-runtime-postgres`. `worth-query-host` stays
+facade-only under Road 1; adding `src/runtime`, a private recovery engine, SQL,
+or adapter lifecycle there is a boundary failure.
+
+Important authority and non-authority artifacts are frozen as follows:
+
+| Artifact | Constructed by / proves | Authorizes | Cannot authorize |
+|---|---|---|---|
+| Declaration-minted operation/effect reference | Owning Query declaration; exact membership and provenance | Entry into package validation for that declaration | Installation, execution, persistence, or dispatch |
+| Untrusted package record set/candidate | Archive decoder and Query reconstruction progression; bounded descriptive closure | Fresh Query validation only | Installed meaning or runtime opening |
+| Validated package and semantic identity | Query installation after fresh validation | Query installation under current runtime construction | Host trust, database access, or dispatch |
+| Signed release envelope | Host release build/signing system; byte provenance under a named signer | Host trust evaluation only | Query validation or activation by itself |
+| `HostReleaseActivationAuthority` | Concrete platform authority from `worth-proof`, minted under host release policy | Recording one exact generation-qualified activation | Query validation, owner recovery, or cross-namespace activation |
+| Relational durable append request | Relational publication progression; exact canonical artifact and request identity | One backend append attempt | Publication authority merely because storage succeeds |
+| Performed Relational publication | Relational after admitted durable append outcome | Current Relational owner use and the 9.16.2 publication carrier | Future Bridge composite currentness |
+| Performed product publication carrier | Query execution, privately retaining current owner-performed evidence | Fresh dispatch-admission evaluation | Caller-selected publication or payload creation |
+| Dispatch admission and current fence | Query execution after exact outbox/publication/binding checks and conditional claim | One current external-send/outcome progression | Another occurrence, namespace, runtime, or expired fence |
+| Persistent runtime readiness | Query execution after the complete opening progression | Ordinary traffic admission | Any owner authority omitted from that progression |
+
+Exact type names may be reconciled with existing vocabulary, but the concrete
+platform authority placement and who can construct each state may not drift.
+The activation surface cannot fall back to a generic `AuthorityMarker` bound.
+
+## Persisted Truth And Lifecycle Ledger
+
+Every persisted family has exactly one truth class. Implementation planning
+must maintain this ledger down to tables and record families; an unclassified
+row cannot ship.
+
+| Persisted family | Truth class | Authority and rebuild posture |
+|---|---|---|
+| Signed package envelope and exact archive bytes | Canonical descriptive artifact | Package archive owns byte compatibility; host trust and fresh Query validation are still required |
+| Host-selected active package identity and activation generation | Authoritative operational lifecycle state | Host release system decides; a row records but cannot choose or validate a release |
+| Query package record projections and lookup catalogs | Rebuildable derived projection | Rebuilt from exact archive bytes; deletion cannot alter executable meaning |
+| Relational commit envelopes and checkpoint artifacts | Canonical semantic-owner artifact | Relational defines format, ordering, validation, and recovery |
+| Co-committed Query outbox occurrence, payload, correlation, and idempotency identity | Canonical owner artifact within Relational publication | Query creates the outbox meaning; adapter may only locate the exact occurrence |
+| Pending-work locator and projection high-water marks | Rebuildable derived projection | Reconstructed from retained canonical outbox occurrences and owner publications |
+| Current claim, lease, fence, attempt, next-attempt, and terminal/unresolved outcome | Authoritative operational lifecycle state | Query execution defines transitions; physical adapter performs conditional persistence |
+| Readiness, health snapshots, counters, metrics, and diagnostics | Diagnostic sidecar | Open no authority and may be discarded without changing runtime truth |
+| Migration ledger and physical compatibility version | Authoritative physical lifecycle state | Adapter-owned; cannot reinterpret an owner artifact or package archive |
+
+Only rows classified as rebuildable derived projections may be destructively
+rebuilt. Tests and operator tools must name the class they delete. Unresolved
+outbox occurrence, exact source publication, payload, correlation, and
+idempotency identity must remain reconstructible through checkpointing,
+compaction, retention, backup, and restore. The implementation may carry that
+closure in a checkpoint or retain its canonical source history, but it may not
+prune the last authoritative source while work remains unresolved.
+
 ## Decisive Failure Court
 
-Before any facade is accepted, one real PostgreSQL test starts an NCR mutation,
-kills the process at controlled points around canonical commit and notification
-dispatch, deletes every process-local receipt and handle, and starts a competing
-fresh runtime. The milestone fails if the new runtime cannot reconstruct the
-exact expected package and acknowledged NCR state, if mutation and outbox tear,
-if pending work requires the old runtime id, if two claimants can hold a current
-fence, or if a stale claimant can send or acknowledge.
+Before any facade is accepted, the production persistent Bank world starts a
+transfer that produces both double-entry state and an external payment-notice
+outbox occurrence. The court checkpoints and compacts while that notice remains
+pending, kills the application or PostgreSQL at controlled commit and dispatch
+boundaries, deletes every process-local receipt, handle, and rebuildable
+pending-work projection, and starts competing fresh runtimes against the same
+durable stream. The milestone fails if the new runtime cannot reconstruct the
+exact expected package and acknowledged balances, if ledger mutation and outbox
+tear, if pending work requires an old runtime id, if the unresolved notice was
+pruned, if two claimants can hold a current fence, or if a stale claimant can
+send or acknowledge.
 
 This court forces the implementation to put PostgreSQL in Relational's commit
 path, reuse Query's existing outbox fact, and create fresh runtime authority.
-A package codec, host-side dual write, shadow queue, serialized receipt, or
-happy-path restart demo cannot pass it.
+A package codec, host-side dual write, shadow queue, serialized receipt,
+PostgreSQL-status eligibility check, or happy-path restart demo cannot pass it.
+
+NCR remains a separate final reference-consumer cutover proof. It must install
+the same public release and persistence surfaces and prove its state plus
+notification journey, but it does not substitute for the Bank court's stronger
+ledger/outbox oracle, compaction, contention, and external-rail adversity.
 
 The committed successor mutation repeats the same court after 9.17.3 while
 forcing a Relational owner commit followed by failed Signal preparation or a
@@ -211,6 +434,26 @@ pool of synchronous PostgreSQL connections for append and recovery. Async hosts
 run Query on an explicit bounded blocking executor at the host edge. This does
 not make Query or Relational accidentally async and does not allow one unbounded
 blocking task per request.
+
+The PostgreSQL adapter declares an admitted durability profile before readiness.
+For the profile allowed to acknowledge durable publication, startup verifies at
+least `fsync`, `full_page_writes`, and `synchronous_commit`, or an explicitly
+documented equivalent or stronger posture for the supported deployment. An
+incompatible posture is rejected or exposed as a typed downgraded profile that
+cannot produce the durable acknowledgement claimed by this milestone.
+
+Failure claims are separated rather than hidden behind "machine loss":
+
+- application-process death with PostgreSQL still running;
+- PostgreSQL-process death and restart;
+- operating-system restart with the same durable storage;
+- machine replacement from a verified backup/restore artifact; and
+- permanent storage loss, whose admitted recovery-point and recovery-time
+  limits must be stated rather than called lossless recovery.
+
+The first four have explicit courts and operator procedures. The last has an
+honest documented RPO/RTO posture; this milestone does not claim recovery from
+destroyed canonical storage without a usable backup.
 
 ### Canonical artifacts and queryable projections are distinct
 
@@ -243,6 +486,13 @@ Package and outbox projections are derived or operational indexes. They do not
 replace Query validation or any component/composition owner's recovery
 authority and must be rebuildable from canonical owner artifacts. This makes
 PostgreSQL queryable without making its topology platform meaning.
+
+Checkpoint, compaction, and retention may remove only owner history already
+covered by the checkpoint and not needed to reconstruct unresolved outbox work.
+Before pruning, the operation proves that every unresolved outbox occurrence
+and exact source-publication/idempotency binding remains in retained canonical
+history or is carried canonically by the checkpoint. Backup and restore preserve
+the same closure.
 
 ### Existing outbox, new restart claimant
 
@@ -295,7 +545,7 @@ is claimed only when the external owner honors the stable idempotency key. A
 crash after send but before acknowledgement retries with the same key. A stale
 claimant cannot acknowledge or begin a new send after its fence expires.
 
-### Recovery barrier
+### Execution-owned recovery barrier
 
 `WorthQueryHost::open_persistent` admits no traffic until it:
 
@@ -310,14 +560,17 @@ claimant cannot acknowledge or begin a new send after its fence expires.
 9. after 9.17.2, additionally recovers Signal owner state and Runtime Bridge
    composite history/product heads only after referenced component bases exist;
 10. installs the package through Query's recovered-runtime constructor;
-11. rebinds current providers, clock, authorizer, transport, and secrets;
-12. rebuilds or verifies package and pending-outbox projections;
-13. joins pending outboxes to performed product publications and enables fresh
+11. verifies that the selected package's declared provider capabilities and
+    binding contracts are supported by the supplied host bindings;
+12. rebinds current providers, clock, authorizer, transport, and secrets;
+13. rebuilds or verifies package and pending-outbox projections;
+14. joins pending outboxes to performed product publications and enables fresh
    fenced claim admission; and
-14. publishes readiness.
+15. publishes readiness.
 
 Any failure leaves the runtime unready. Providers and secrets are never
-deserialized from storage. The host facade invokes owner calls but cannot
+deserialized from storage. Query execution owns this progression and its typed
+opening states. The host facade only reexports the audience surface; it cannot
 validate component bases, mint composite currentness, or bypass Query dispatch
 admission. `worth-runtime-postgres` supplies physical implementations and does
 not own the recovery progression.
@@ -329,6 +582,14 @@ Package identity, not a mutable name, selects executable meaning. Multiple
 releases coexist. Activation is a host-governed pointer updated transactionally
 after the release is stored and freshly validated. One namespace cannot scan,
 claim, replay, checkpoint, or activate another through the public API.
+
+A durable runtime stream is bound to an exact package semantic identity,
+owner-artifact format versions, required schema contracts, and descriptive host
+provider-binding requirements. Activation may not reinterpret an existing
+stream under different package meaning or incompatible provider contracts.
+Opening an incompatible release yields a typed migration-required or
+unsupported-compatibility outcome before readiness; a pointer flip cannot
+silently migrate owner state.
 
 One database/schema per environment and shared-table namespace isolation are
 both deployable. Database roles and row-level security are options; API-level
@@ -362,11 +623,76 @@ a fresh proof/digest and the caller separately supplies expected identity.
 `worth-query-package-archive` deterministically encodes the manifest and typed
 record stream, is bounded and self-versioned, and contains no proof-bearing
 type. The host signs an envelope containing archive bytes, expected Query
-identity, compiler/toolchain metadata, release metadata, and provenance.
+identity, compiler/toolchain metadata, release metadata, provenance, and the
+descriptive provider-capability/binding requirements needed to install the
+package. It never contains provider instances, credentials, or secrets.
+
+The contract freezes independent envelope, manifest, and record protocol
+versions; canonical field and record ordering; integer and text encodings;
+duplicate/unknown-field posture; maximum bytes, records, nesting, and declared
+work; checksum/signature coverage; and downgrade behavior. Golden byte vectors
+and cross-version fixtures are authoritative compatibility evidence. An
+unsupported required record or version fails closed before candidate creation.
+Unknown optional data is accepted only when its versioned compatibility rule
+proves that ignoring it cannot change package meaning. No decoder may silently
+upgrade, reinterpret, or partially accept an archive.
 
 Git tags and GitHub releases label human releases. Query's semantic digest
 labels executable meaning. Neither is manually incremented in workflow source,
 and neither substitutes for the other.
+
+## Certified Persistent Bank World
+
+The existing Bank world is extended through a new persistence-specific layer;
+tests do not reuse its imperative seed values or hard-coded numeric identities
+as authority. The fixture progression is explicit:
+
+```text
+BankPersistenceWorldDefinition
+    -> CompiledBankPersistenceRelease
+    -> ProductionSeededPersistentBankWorld
+    -> CertifiedPersistentBankBaseline
+```
+
+Each arrow crosses the production declaration, package, installation, execution,
+and persistence facades for that stage. The certified baseline exposes semantic
+handles such as `world.alice`, `world.accounts.alice_checking`,
+`world.operations.transfer`, `world.effects.payment_notice`,
+`world.pending_notice`, and `world.runtime_stream`; scenario code never repeats
+raw ids, digests, ordinals, database keys, or package identities.
+
+The world supplies six named valid baselines:
+
+- an empty persistent installation with one exact installed release;
+- an ordinary operating bank with balanced double-entry accounts;
+- a bank with one committed transfer and pending external payment notice;
+- that pending-notice bank after checkpoint and lawful compaction;
+- coexisting compatible and incompatible releases bound to distinct streams;
+- a bank restored into a separate PostgreSQL database from a verified backup.
+
+Corruption, cross-spliced releases, stale fences, and partial restores are named
+invalid fixtures, never alternate valid baselines. Tests derive small causal
+deltas such as submit transfer, commit notification-bearing transition, expire
+claim, supersede fence, acknowledge external effect, checkpoint, compact, and
+restore. Environment start, release installation, domain seeding, baseline
+audit, scenario action, independent observation, and teardown are separately
+diagnosable stages.
+
+The oracle reads the external payment rail and an independently decoded
+Relational durable artifact or owner-supported audit export. It does not use a
+Query read result, a pending-work projection, adapter status row, or the code
+path that produced the claimed outcome as its only evidence. It verifies exact
+double-entry conservation, occurrence count, payload identity, idempotency key,
+current fence, and absence of cross-namespace effects.
+
+Cost is layered. Immutable release compilation and a supported PostgreSQL image
+may be suite-scoped; each ordinary test receives an isolated database or schema
+namespace and durable stream. Application-process crash cases may share the
+server. PostgreSQL-process, storage, migration, and backup/restore cases receive
+a dedicated cold container or runner lane. Authentik and full HTTP nodes are
+used only by the final Bank/NCR product courts that make authentication or
+cross-process consumer claims; phase-local durability proofs do not pay for
+irrelevant services.
 
 ## Adversarial Courtroom
 
@@ -380,28 +706,44 @@ each meaningful boundary and proves:
    and illegally ordered records fail closed;
 4. archive, digest, signature, old proof, receipt, or physical snapshot cannot
    mint Query authority;
-5. a kill before PostgreSQL commit yields no acknowledged mutation;
-6. a kill after commit but before response recovers complete mutation and outbox
-   or neither, never torn state;
-7. checkpoint plus tail equals uninterrupted Relational state;
-8. corrupt, missing, duplicated, forked, or out-of-order artifacts fail before
+5. incompatible PostgreSQL durability settings or missing conditional-write
+   capability cannot enter durable-ready posture;
+6. a kill before PostgreSQL commit yields no acknowledged mutation;
+7. a kill after commit but before response recovers complete mutation and outbox
+   or neither, never torn state, and reports commit ambiguity honestly;
+8. checkpoint plus tail equals uninterrupted Relational state;
+9. pending outbox work survives checkpoint, compaction, projection destruction,
+   backup, and separate-database restore with the same payload and idempotency;
+10. corrupt, missing, duplicated, forked, or out-of-order artifacts fail before
    readiness;
-9. missing/wrong package fails instead of installing latest by name;
-10. pending existing outbox work is found after all old handles are gone;
-11. racing workers yield at most one current fence;
-12. an expired worker cannot send or acknowledge after a higher fence exists;
-13. crashes before send, after send, and before acknowledgement converge under
+11. missing/wrong package, owner-artifact version, schema contract, or provider
+    binding fails instead of installing latest by name or reinterpreting a stream;
+12. pending existing outbox work is found after all old handles are gone;
+13. racing workers yield at most one current fence;
+14. an expired worker cannot send or acknowledge after a higher fence exists;
+15. crashes before send, after send, and before acknowledgement converge under
     the same idempotency identity without a second outbox payload;
-14. poison work reaches existing unresolved/terminal posture without blocking
+16. poison work reaches existing unresolved/terminal posture without blocking
     unrelated work;
-15. namespaces cannot access one another's release, history, or work;
-16. derived indexes can be dropped and rebuilt without changing meaning;
-17. unsupported migrations refuse startup without partial canonical mutation;
-18. 4,096 unrelated packages and long history do not make exact lookup or claim
+17. namespaces cannot access one another's release, history, or work;
+18. derived indexes can be dropped and rebuilt without changing meaning;
+19. unsupported migrations refuse startup without partial canonical mutation;
+20. 4,096 unrelated packages and long history do not make exact lookup or claim
     globally linear;
-19. warm execution performs no archive/decomposition/recovery scan; and
-20. a fresh process runs an NCR workflow, commits state and notification outbox,
+21. warm execution performs no archive/decomposition/recovery scan;
+22. application, PostgreSQL, operating-system-storage, and verified-restore
+    crash models close under their stated durability/RPO posture;
+23. the persistent Bank transfer and payment notice survive the complete hostile
+    sequence under an independent ledger/external-rail oracle; and
+24. a fresh process runs an NCR workflow, commits state and notification outbox,
     dies, recovers, resumes notification, and serves exact resulting state.
+
+Each numbered claim has a named sabotage mutation. At minimum, acknowledgement
+before durable append, trust of claimed package identity, latest-by-name
+selection, shadow outbox payload, database-status dispatch eligibility, stale
+fence send/outcome, readiness before provider rebinding, pruning the final
+pending-outbox source, partial incompatible migration, and warm global scans
+must each be made to fail their owning proof.
 
 Testcontainers or the repository Docker harness must use a real supported
 PostgreSQL version. An in-memory fake cannot close the milestone.
@@ -411,6 +753,9 @@ PostgreSQL version. An in-memory fake cannot close the milestone.
 Exact leaf names may align with existing laws, but ownership may not drift:
 
 ```text
+crates/worth-proof/src/release/
+  activation_authority.rs          # created; concrete host release authority
+
 crates/worth-relational/src/durability/
   backend/
     contract.rs              # implementable ports; owner-issued append authority
@@ -439,20 +784,36 @@ workspaces/worth-query/crates/worth-query-installation/src/package/
     denial.rs
     expected_identity.rs
 
-workspaces/worth-query/crates/worth-query-execution/src/domain_computation/
-  primary_graph/persistent_runtime.rs
-  application_aftermath/committed_dispatch_claim/
-    candidate.rs
-    admission.rs
-    fence.rs
-    denial.rs
+workspaces/worth-query/crates/worth-query-execution/src/
+  domain_computation/
+    primary_graph/persistent_runtime.rs
+    application_aftermath/committed_dispatch_claim/
+      candidate.rs
+      admission.rs
+      fence.rs
+      denial.rs
+  persistent_runtime/                    # created; execution-owned lifecycle
+    opening.rs
+    owner_progression.rs
+    provider_rebinding.rs
+    stream_catalog/
+      contract.rs
+      binding.rs
+      activation.rs
+      compatibility.rs
+      denial.rs
+    readiness.rs
+    dispatch_coordination/               # owner port, not SQL mechanics
+      contract.rs
+      discovery.rs
+      claim.rs
+      attempt.rs
+      outcome.rs
+      reconciliation.rs
+      denial.rs
 
-workspaces/worth-query/crates/worth-query-host/src/runtime/recovery/
-  opening.rs
-  owner_progression.rs
-  provider_rebinding.rs
-  dispatch_reconciliation.rs
-  readiness.rs
+workspaces/worth-query/crates/worth-query-host/src/
+  facade.rs                              # existing; reexports only
 
 workspaces/worth-query/crates/worth-query-package-archive/src/
   facade.rs
@@ -461,6 +822,10 @@ workspaces/worth-query/crates/worth-query-package-archive/src/
   decoding.rs
   limits.rs
   denial.rs
+  repository/                            # created; descriptive archive port
+    contract.rs
+    record.rs
+    denial.rs
 
 crates/worth-runtime-postgres/
   migrations/
@@ -508,31 +873,71 @@ crates/worth-runtime-postgres/
       diagnostics.rs
     denial.rs
 
+crates/worth-runtime-persistence-certification/src/
+  facade.rs
+  relational_durability.rs
+  package_archive_repository.rs
+  runtime_stream_catalog.rs
+  dispatch_coordination.rs
+  capability_profile.rs
+
 crates/worth-runtime-postgres-certification/tests/
-  fresh_process_recovery.rs
-  commit_crash_matrix.rs
-  dispatch_crash_matrix.rs
-  namespace_isolation.rs
-  migration_compatibility.rs
-  projection_rebuild.rs
-  ncr_restart_journey.rs
-  composite_publication_gate.rs   # committed successor: 9.17.3
+  postgres_runtime_certification.rs      # one intentional integration target
+  postgres_runtime_certification/
+    postgres_environment.rs
+    physical_artifact_oracle.rs
+    fresh_process_recovery.rs
+    commit_crash_matrix.rs
+    dispatch_crash_matrix.rs
+    namespace_isolation.rs
+    migration_compatibility.rs
+    projection_rebuild.rs
+    ncr_restart_journey.rs
+    composite_publication_gate.rs        # committed successor: 9.17.3
+
+workspaces/worth-query-bank-world/crates/bank-courtroom/tests/
+  persistent_runtime_courtroom.rs        # one intentional integration target
+  persistent_runtime_courtroom/
+    definition.rs
+    compilation.rs
+    production_seed.rs
+    baseline.rs
+    handles.rs
+    oracle.rs
+    environment.rs
+    commit_crashes.rs
+    pending_notice_restart.rs
+    dispatch_fencing.rs
+    compaction_restore.rs
+    release_coexistence.rs
 ```
 
-The `owner` axis separates physical implementations by semantic authority.
-`connection` owns only PostgreSQL resource lifecycle. `dispatch` owns
-operational indexing, fencing, and attempts beneath Query admission. The
+Unmarked Relational, declaration, installation, execution-domain, archive, and
+PostgreSQL paths are existing or populated according to the phase that owns
+them; comments identify newly created and committed-successor destinations.
+No committed-successor file is created empty. The `owner` axis separates
+physical implementations by semantic authority. `connection` owns only
+PostgreSQL resource lifecycle. `dispatch` implements operational indexing,
+fencing, and attempts beneath the Query-execution coordination port. The
 adapter facade and the `worth-query-host` audience facade remain stable through
 9.17; successors add populated owner siblings and stronger owner recovery
-without moving either.
+without moving either. The certification trees use one integration crate per
+intentional court rather than compiling every scenario module as a separate
+integration target. `worth-runtime-persistence-certification` is cert-band only:
+it owns reusable provider-conformance cases for the four public ports and may
+never become an ordinary runtime dependency. PostgreSQL certification
+instantiates every case; a future database adapter closes the same kit plus its
+own physical crash and operations courts.
 
 Committed-successor paths document destination topology and are not created as
 empty production placeholders. Query, Relational, Signal, and Runtime Bridge do
 not depend on `worth-runtime-postgres`; each defines its owner port and the
-adapter depends through that facade. Forbidden placements include a Query-owned
-physical runtime, generic artifact bags, SQL inside owner crates, Bridge
-currentness inside the Relational adapter, physical recovery ordering presented
-as semantic authority, or dispatch eligibility decided by a database row.
+adapter depends through that facade. `worth-query-host` cannot gain an owned
+runtime subtree. Forbidden placements include a Query-owned physical runtime,
+generic artifact bags, generic database-provider bags, SQL inside owner crates,
+Bridge currentness inside the Relational adapter, physical recovery ordering
+presented as semantic authority, or dispatch eligibility decided by a database
+row.
 
 ## Ordered Phase Plan
 
@@ -596,10 +1001,12 @@ implementation already proves acknowledgement and recovery semantics.
 
 Create the stable `worth-runtime-postgres` facade, configuration, connection
 lifecycle, bounded blocking/pool posture, namespace boundary, migration ledger,
-compatibility refusal, and transaction mechanics. This phase exposes honest
+compatibility refusal, durability-profile admission, provider capability report,
+and transaction mechanics. This phase exposes honest
 database readiness only; it does not claim package installation, Relational
 recovery, or dispatch readiness. Real-PostgreSQL migration, rollback-refusal,
-pool-exhaustion, namespace-isolation, and dependency-enforcement evidence lets
+durability-setting, pool-exhaustion, namespace-isolation, and
+dependency-enforcement evidence lets
 owner adapters enter beneath the facade without moving it or leaking SQL
 upstream.
 
@@ -607,10 +1014,14 @@ upstream.
 
 Populate the Query-package PostgreSQL owner boundary with archive storage,
 exact semantic-identity lookup, normalized derived projections, provenance,
-and generation-qualified activation records. Store multiple same-named and
+generation-qualified activation records, and exact runtime-stream compatibility
+bindings. Store multiple same-named and
 incompatible releases without latest-name selection; activation records report
-host policy choice but never bypass Query reconstruction or validation.
-Destroy/rebuild projections, racing activation, wrong-identity, namespace, and
+host policy choice only when consuming the concrete
+`HostReleaseActivationAuthority`; they never bypass Query reconstruction or
+validation.
+Destroy/rebuild projections, racing activation, wrong-identity, wrong provider
+contract, incompatible stream binding, namespace, and
 4,096-package lookup courts let Phase 9 select one exact release without a
 catalog scan or physical row becoming semantic authority.
 
@@ -620,15 +1031,20 @@ Implement the Phase 5 backend contract in the Relational PostgreSQL owner
 boundary. Atomically persist each canonical Relational commit and its existing
 co-committed Query outbox facts before acknowledgement; add versioned
 checkpoints, bounded replay tails, recovery cursors, retention posture, and
-rebuildable indexes. Kill-before-commit, kill-after-commit-before-response,
-torn-write, corruption, ordering, checkpoint-plus-tail, and backend-conformance
+rebuildable indexes. Preserve every unresolved outbox occurrence and source
+publication through checkpoint, compaction, backup, and restore. Return the
+typed performed/already-performed/rejected/conflict/indeterminate outcome around
+ambiguous commit responses. Kill-before-commit,
+kill-after-commit-before-response, torn-write, corruption, ordering,
+checkpoint-plus-tail, pending-after-compaction, and backend-conformance
 evidence lets Phase 9 recover owner truth without SQL rows acquiring
 publication authority.
 
-### Phase 9: Owner-First Host Recovery, Rebinding, And Readiness
+### Phase 9: Execution-Owned Owner-First Recovery, Rebinding, And Readiness
 
-Ship Query's recovered-runtime installer and the `worth-query-host` persistent
-recovery barrier. Consume the exact Phase 7 release, reconstruct and freshly
+Ship Query's recovered-runtime installer and Query execution's persistent
+recovery barrier, reexported through `worth-query-host`. Consume the exact Phase
+7 release, reconstruct and freshly
 validate it, ask Relational to readmit Phase 8 owner truth, create a new runtime
 generation, rebind current providers/secrets/clock/authorizer, reconcile
 derived indexes, and expose readiness only after closure. Startup failure must
@@ -651,8 +1067,9 @@ authorizing dispatch and lets Phase 11 claim only Query-admitted work.
 
 ### Phase 11: PostgreSQL Discovery, Claiming, Leasing, And Fencing
 
-Build the derived pending-work index, bounded discovery, transactional claim,
-lease renewal, monotonically increasing fencing epoch, and current-fence
+Define Query execution's persistent dispatch coordination contract, then build
+its PostgreSQL derived pending-work index, bounded discovery, transactional
+claim, lease renewal, monotonically increasing fencing epoch, and current-fence
 verification beneath Query admission. SQL transactions must end before any
 network send, and deleting the index must permit exact rebuild from canonical
 Relational history. Contention, lease expiry, stale worker, index destruction,
@@ -679,7 +1096,8 @@ execution: projection destruction/rebuild, checkpoint and retention operations,
 supported schema upgrades, incompatible-version refusal, backup, restore into
 a separate database, and recovery from the restored artifacts. Every operation
 is bounded, reports progress and failure posture, and cannot silently activate
-another release or weaken durability. Migration fault injection, corrupt
+another release, prune unresolved outbox source truth, or weaken durability.
+Migration fault injection, corrupt
 backup, partial restore, derived-state deletion, and separately restored
 representative workflow history evidence lets operators trust recovery without
 using diagnostic state as authority.
@@ -696,18 +1114,20 @@ sidecars; deleting them cannot alter package, Relational, outbox, or dispatch
 truth. Phase 15 may trust an operable production composition rather than a
 correct but unmanageable library.
 
-### Phase 15: NCR Vertical Certification And Workflow-Editor Cutover
+### Phase 15: Persistent Bank And NCR Certification, Then Workflow-Editor Cutover
 
-Exercise the real composition root from one signed GitHub NCR release through
-exact installation, submit and transition execution, atomic state plus existing
-notification outbox commit, process death, fresh recovery, provider rebinding,
-fenced notification dispatch, observable outcome, backup/restore, and release
-coexistence. Compile/run caller and operator documentation against the public
-facades; run dependency, facade, mutation, scale, crash, and residue courts;
-then cut Workflow Editor to the signed archive plus PostgreSQL runtime. This
-phase integrates already-proved boundaries and may not absorb unfinished work
-from Phases 1 through 14 or substitute an in-memory reenactment for the real
-PostgreSQL fresh-process court.
+First exercise the certified persistent Bank world through exact release
+installation, double-entry transfer, atomic state plus existing payment-notice
+outbox commit, checkpoint/compaction, process and database death, projection
+destruction, competing fresh recovery, provider rebinding, fenced external-rail
+dispatch, coexistence, and separate-database backup/restore. Then exercise the
+real composition root from one signed GitHub NCR release through its complete
+state and notification restart journey. Compile/run caller and operator
+documentation against the public facades; run dependency, facade, mutation,
+scale, crash, and residue courts; then cut Workflow Editor to the signed archive
+plus PostgreSQL runtime. This phase integrates already-proved boundaries and may
+not absorb unfinished work from Phases 1 through 14 or substitute an in-memory
+reenactment for either real PostgreSQL fresh-process court.
 
 Each phase ends with a closure ledger. Later work cannot hide an unmet
 authority or crash-consistency guarantee.
@@ -732,8 +1152,15 @@ let persistence = WorthRuntimePostgres::connect(
         .build()?,
 )?;
 
+let providers = PersistentQueryRuntimeProviders::new(
+    persistence.relational_durability(),
+    persistence.query_package_archives(),
+    persistence.runtime_stream_catalog(),
+    persistence.dispatch_coordination(),
+)?;
+
 let runtime = WorthQueryHost::open_persistent(
-    persistence,
+    providers,
     release,
     HostRuntimeBindings::builder()
         .principal_provider(principals)
@@ -760,13 +1187,15 @@ This milestone gives Workflow Editor:
 - Git/GitHub provenance outside Query semantics;
 - signed deterministic coexisting releases and exact rollback selection;
 - PostgreSQL durability for workflow facts from the first production release;
-- recovery after host or machine restart;
+- recovery under each admitted application, database, operating-system, and
+  backup/restore crash model;
 - durable NCR transitions plus co-committed notification intent;
 - restart-safe notification dispatch using the existing outbox;
 - queryable release, commit, and pending-work indexes; and
-- runtime-level PostgreSQL adapter and persistent Query-host facades that 9.17
-  extend without moving NCR host integration; and
-- contracts a later Worth Store adapter can implement without changing
+- runtime-level PostgreSQL adapter and Query-execution persistent surface,
+  reexported by the leaf Query-host facade, that 9.17 extends without moving NCR
+  host integration; and
+- contracts that a later Worth Store adapter can implement without changing
   authored workflow definitions.
 
 It does not define the Workflow Editor DSL/UI, NCR rules, notification templates,
@@ -783,6 +1212,9 @@ or host authorization policy. Those consumers use this durable runtime.
 - Claim is one bounded transaction; SQL transactions never remain open during
   external dispatch.
 - Checkpoint/projection rebuild work is explicit and bounded.
+- Each physical adapter reports required durability, ordered-recovery,
+  conditional-write/fencing, and namespace-isolation capabilities before
+  readiness; absence is a typed refusal, not a slower fallback.
 - Warm execution has zero archive, decomposition, recovery-catalog, or global
   work-scan cost.
 - Pools, blocking capacity, retries, leases, recovery, and retention limits are
@@ -790,20 +1222,40 @@ or host authorization policy. Those consumers use this durable runtime.
 
 ## Documentation Deliverables
 
-Document:
+- Revise
+  `workspaces/worth-query/crates/worth-query/docs/AI_README.md` for ordinary
+  Query callers. It must route portable export, exact release selection,
+  persistent opening, readiness, and dispatch through the public audience
+  facades and show typed compatibility and indeterminate-commit outcomes.
+- Create
+  `workspaces/worth-query/crates/worth-query/docs/portable-packages.md` as the
+  developer authority for semantic identity, complete records, reconstruction,
+  archive versions, expected identity, provider requirements, Git/GitHub
+  provenance, coexistence, and downgrade refusal.
+- Create
+  `workspaces/worth-query/crates/worth-query/docs/persistent-runtime.md` for host
+  integrators. It must explain the four provider-neutral ports, execution-owned
+  opening progression, runtime-stream binding, readiness, fresh authority,
+  fencing/idempotency, and the 9.17 product-publication handoff.
+- Create `crates/worth-runtime-postgres/docs/operator-runbook.md` for operators.
+  It must cover supported PostgreSQL versions, required durability settings,
+  migrations, roles and namespace isolation, capacity, poison work, checkpoint
+  and compaction safety, backup/restore, crash models, RPO/RTO, diagnostics, and
+  incompatible-startup recovery.
+- Create
+  `workspaces/worth-query-bank-world/crates/bank-courtroom/docs/persistent-bank-world.md`
+  for certification maintainers. It must explain definitions, semantic handles,
+  baselines, scenario deltas, independent oracles, cost lanes, and how to add a
+  causal persistence case without raw fixture identities.
+- Revise the continuing Workflow Editor/NCR deployment guide chosen during
+  Phase 15; if no authoritative guide exists, create
+  `_docs/WORTH-query/workflow-editor-postgres-deployment.md`. It must contain one
+  complete signed-release deployment, kill/restart, notification recovery,
+  rollback/coexistence, and backup/restore walkthrough.
 
-- package identity, records, reconstruction, archives, and Git/GitHub versioning;
-- PostgreSQL setup, migrations, compatibility, backup/restore, and recovery;
-- durable acknowledgement and readiness guarantees;
-- existing outbox meaning, fencing, retry/idempotency, poison work, and operator
-  intervention;
-- activation, coexistence, rollback, namespace isolation, metrics, and capacity;
-- Query/Relational/Signal/Runtime-Bridge/PostgreSQL-composition/host/external-
-  owner/future-Store boundaries and their 9.17 succession; and
-- a complete NCR deployment and kill/restart walkthrough.
-
-Examples and compile-fail tests are support contract. AI README and coding docs
-must route callers through public facades, never direct SQL/private workarounds.
+Every code example is compiled or exercised by its named owner/certification
+target. Documentation residue checks reject direct SQL, host-owned recovery,
+serialized authority, latest-by-name selection, or a generic database backend.
 
 ## Must Ship
 
@@ -813,17 +1265,22 @@ must route callers through public facades, never direct SQL/private workarounds.
 - deterministic neutral archive;
 - Relational pluggable canonical durability port and versioned durable artifact
   representation;
-- stable `worth-runtime-postgres` adapter facade, `worth-query-host` persistent
-  recovery facade, PostgreSQL Relational commit/checkpoint backend, and exact-
-  identity package registry;
+- stable `worth-runtime-postgres` adapter facade, Query-execution persistent
+  opening/recovery surface reexported by `worth-query-host`, PostgreSQL
+  Relational commit/checkpoint backend, and exact-identity package registry;
+- separate Relational durability, immutable archive repository, Query runtime-
+  stream lifecycle, and Query dispatch coordination ports with physical-
+  capability admission;
+- one cert-only reusable conformance kit covering all four ports, instantiated
+  by PostgreSQL and required of future physical adapters;
 - Query recovered-runtime installation and provider rebinding;
 - startup recovery/readiness barrier;
 - restart discovery and fenced claiming of Query's existing outbox through a
   performed-product-publication carrier;
 - durable attempts/outcomes with stable idempotency;
 - migrations, configuration, health, metrics, backup/restore, and operator docs;
-- real-PostgreSQL crash, scale, isolation, migration, projection, outbox, and NCR
-  certification; and
+- real-PostgreSQL crash, scale, isolation, migration, projection, outbox,
+  persistent Bank, and NCR certification; and
 - facade, dependency, docs, and residue proof.
 
 ## Must Preserve
@@ -837,8 +1294,10 @@ must route callers through public facades, never direct SQL/private workarounds.
 - host ownership of providers, secrets, release trust, Git, and activation;
 - Signal ownership of Signal component truth and Runtime Bridge ownership of
   composite product currentness when those committed successors land;
-- runtime-level adapter ownership of SQL, migrations, leases, indexes, and
-  physical recovery mechanics without semantic authority;
+- runtime-level adapter ownership of SQL, migrations, indexes, pools, and
+  physical conditional-write mechanics without semantic authority;
+- Query-execution ownership of claim/fence/attempt/outcome transitions and
+  persistent opening, with the host facade remaining a leaf reexport;
 - external-owner responsibility for exactly-once behavior via idempotency;
 - cold/warm work separation; and
 - future Worth Store reuse without PostgreSQL topology leakage.
@@ -885,8 +1344,11 @@ The closure ledger contains:
 - archive determinism, corruption, compatibility, and budget evidence;
 - local filesystem and PostgreSQL backend conformance;
 - transactional append, checkpoint, and fresh-process recovery evidence;
-- client acknowledgement and commit crash matrix;
+- client acknowledgement and typed commit-ambiguity crash matrix;
+- admitted PostgreSQL durability-profile and physical-capability evidence;
 - outbox crash, contention, fencing, retry, poison, and idempotency matrix;
+- pending-outbox survival after checkpoint, compaction, projection deletion,
+  backup, and restore;
 - proof no shadow payload or dual write exists;
 - proof the current publication carrier cannot be caller-minted and that the
   9.17 Bridge-performed source enters without changing its stable Query meaning;
@@ -894,7 +1356,8 @@ The closure ledger contains:
   enter as owner siblings without moving the facade;
 - namespace, release coexistence, migration, and projection-rebuild proof;
 - scale/work-counter evidence;
-- complete NCR submit/transition/notification/restart journey;
+- complete persistent Bank transfer/notice/compaction/restart journey plus the
+  independent NCR submit/transition/notification/restart consumer journey;
 - backup/restore into a separately restored database;
 - operational health/diagnostic examples;
 - docs/facade examples; and

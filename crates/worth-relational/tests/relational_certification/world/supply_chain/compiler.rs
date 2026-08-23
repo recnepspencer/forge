@@ -3,8 +3,10 @@ use super::production_world::ProductionSeededSupplyChainWorld;
 use super::program::CompiledSupplyChainProgram;
 use std::collections::BTreeMap;
 use worth_relational::facade::config::PublicationConfig;
+use worth_relational::facade::runtime::CustomInvariantRegistration;
 use worth_relational::facade::runtime::{
-    RelationalInitialSchemaInstallationDenial, RelationalRuntime, RelationalRuntimeApi,
+    InvariantCatalog, RelationIntegrityScopeBudget, RelationalInitialSchemaInstallationDenial,
+    RelationalRuntime, RelationalRuntimeApi,
 };
 use worth_relational::facade::transactions::{
     BulkEntityCreateIntent, BulkRelationCreateIntent, CreateIntent, MutationIntent,
@@ -25,6 +27,7 @@ pub(crate) enum SupplyChainCompilationError {
     SchemaInstallation(RelationalInitialSchemaInstallationDenial),
     Transaction(TransactionCommitError),
     HandleBinding(HandleBindingError),
+    BranchBasis(worth_relational::facade::branch::RelationalBranchBasisDenial),
 }
 
 const SUPPLY_CHAIN_BASELINE_PATCH_BUDGET: usize = 16_384;
@@ -39,13 +42,144 @@ pub(crate) fn compile_supply_chain_baseline_with_budget(
     program: CompiledSupplyChainProgram,
     max_patch_records_per_commit: usize,
 ) -> Result<ProductionSeededSupplyChainWorld, SupplyChainCompilationError> {
-    let mut runtime = RelationalRuntimeApi::builder()
+    compile_supply_chain_baseline_with_limits(
+        program,
+        max_patch_records_per_commit,
+        RelationIntegrityScopeBudget {
+            max_relation_kinds: 128,
+            max_touched_entities: 131_072,
+            max_deleted_entities: 131_072,
+            max_scanned_relations: 131_072,
+            max_planned_edges: 131_072,
+        },
+    )
+}
+
+pub(crate) fn compile_supply_chain_baseline_with_limits(
+    program: CompiledSupplyChainProgram,
+    max_patch_records_per_commit: usize,
+    relation_integrity_scope_budget: RelationIntegrityScopeBudget,
+) -> Result<ProductionSeededSupplyChainWorld, SupplyChainCompilationError> {
+    compile_supply_chain_baseline_with_limits_and_custom_invariant(
+        program,
+        max_patch_records_per_commit,
+        relation_integrity_scope_budget,
+        None,
+    )
+}
+
+pub(crate) fn compile_supply_chain_baseline_with_custom_invariant(
+    program: CompiledSupplyChainProgram,
+    custom_invariant: CustomInvariantRegistration,
+) -> Result<ProductionSeededSupplyChainWorld, SupplyChainCompilationError> {
+    compile_supply_chain_baseline_with_limits_and_custom_invariant(
+        program,
+        SUPPLY_CHAIN_BASELINE_PATCH_BUDGET,
+        RelationIntegrityScopeBudget {
+            max_relation_kinds: 128,
+            max_touched_entities: 131_072,
+            max_deleted_entities: 131_072,
+            max_scanned_relations: 131_072,
+            max_planned_edges: 131_072,
+        },
+        Some(custom_invariant),
+    )
+}
+
+pub(crate) fn compile_supply_chain_baseline_with_invariant_catalog(
+    program: CompiledSupplyChainProgram,
+    invariant_catalog: InvariantCatalog,
+) -> Result<ProductionSeededSupplyChainWorld, SupplyChainCompilationError> {
+    compile_supply_chain_baseline_with_limits_and_catalog_and_custom_invariant(
+        program,
+        SUPPLY_CHAIN_BASELINE_PATCH_BUDGET,
+        RelationIntegrityScopeBudget {
+            max_relation_kinds: 128,
+            max_touched_entities: 131_072,
+            max_deleted_entities: 131_072,
+            max_scanned_relations: 131_072,
+            max_planned_edges: 131_072,
+        },
+        Some(invariant_catalog),
+        None,
+    )
+}
+
+pub(crate) fn compile_supply_chain_baseline_with_budget_and_invariant_catalog_and_custom_invariants(
+    program: CompiledSupplyChainProgram,
+    max_patch_records_per_commit: usize,
+    invariant_catalog: InvariantCatalog,
+    custom_invariants: Vec<CustomInvariantRegistration>,
+) -> Result<ProductionSeededSupplyChainWorld, SupplyChainCompilationError> {
+    compile_supply_chain_baseline_with_limits_and_catalog_and_custom_invariants(
+        program,
+        max_patch_records_per_commit,
+        RelationIntegrityScopeBudget {
+            max_relation_kinds: 128,
+            max_touched_entities: 131_072,
+            max_deleted_entities: 131_072,
+            max_scanned_relations: 131_072,
+            max_planned_edges: 131_072,
+        },
+        Some(invariant_catalog),
+        custom_invariants,
+    )
+}
+
+fn compile_supply_chain_baseline_with_limits_and_custom_invariant(
+    program: CompiledSupplyChainProgram,
+    max_patch_records_per_commit: usize,
+    relation_integrity_scope_budget: RelationIntegrityScopeBudget,
+    custom_invariant: Option<CustomInvariantRegistration>,
+) -> Result<ProductionSeededSupplyChainWorld, SupplyChainCompilationError> {
+    compile_supply_chain_baseline_with_limits_and_catalog_and_custom_invariant(
+        program,
+        max_patch_records_per_commit,
+        relation_integrity_scope_budget,
+        None,
+        custom_invariant,
+    )
+}
+
+fn compile_supply_chain_baseline_with_limits_and_catalog_and_custom_invariant(
+    program: CompiledSupplyChainProgram,
+    max_patch_records_per_commit: usize,
+    relation_integrity_scope_budget: RelationIntegrityScopeBudget,
+    invariant_catalog: Option<InvariantCatalog>,
+    custom_invariant: Option<CustomInvariantRegistration>,
+) -> Result<ProductionSeededSupplyChainWorld, SupplyChainCompilationError> {
+    compile_supply_chain_baseline_with_limits_and_catalog_and_custom_invariants(
+        program,
+        max_patch_records_per_commit,
+        relation_integrity_scope_budget,
+        invariant_catalog,
+        custom_invariant.into_iter().collect(),
+    )
+}
+
+fn compile_supply_chain_baseline_with_limits_and_catalog_and_custom_invariants(
+    program: CompiledSupplyChainProgram,
+    max_patch_records_per_commit: usize,
+    relation_integrity_scope_budget: RelationIntegrityScopeBudget,
+    invariant_catalog: Option<InvariantCatalog>,
+    custom_invariants: Vec<CustomInvariantRegistration>,
+) -> Result<ProductionSeededSupplyChainWorld, SupplyChainCompilationError> {
+    let mut builder = RelationalRuntimeApi::builder()
         .publication(PublicationConfig {
             coherent_publication_required: true,
             max_patch_records_per_commit,
             max_published_snapshot_handles: 256,
         })
-        .build();
+        .runtime_setup(|setup| {
+            setup.relation_integrity_scope_budget(relation_integrity_scope_budget);
+        });
+    if let Some(invariant_catalog) = invariant_catalog {
+        builder = builder.invariant_catalog(invariant_catalog);
+    }
+    for custom_invariant in custom_invariants {
+        builder = builder.custom_invariant(custom_invariant);
+    }
+    let mut runtime = builder.build();
     let schema_receipt = runtime
         .prepare_initial_schema_installation()
         .map_err(SupplyChainCompilationError::SchemaInstallation)?
@@ -53,12 +187,20 @@ pub(crate) fn compile_supply_chain_baseline_with_budget(
         .map_err(SupplyChainCompilationError::SchemaInstallation)?;
 
     let commit_result = commit_definition(&mut runtime, &program)?;
-    let snapshot = commit_result.snapshot.clone();
+    let identity = runtime.main_branch_identity();
+    let (_, basis) = runtime
+        .observe_branch(&identity)
+        .map_err(SupplyChainCompilationError::BranchBasis)?;
+    let snapshot = runtime
+        .snapshots()
+        .snapshot_for_observation(&basis.observation())
+        .map_err(SupplyChainCompilationError::BranchBasis)?;
     let handles = SupplyChainSemanticHandles::bind(&program, &commit_result, snapshot)
         .map_err(SupplyChainCompilationError::HandleBinding)?;
 
     Ok(ProductionSeededSupplyChainWorld {
         runtime,
+        basis,
         program,
         handles,
         commit: commit_result.commit.clone(),

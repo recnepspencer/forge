@@ -32,10 +32,10 @@ fn facade_namespaces_expose_domain_groupings() {
     let _entity: facade::identity::EntityId =
         facade::identity::EntityId::new(facade::identity::PartitionId::main(), 1, 0);
     let _config = facade::config::RelationalRuntimeProfile::CertificationCore;
-    let _runtime = facade::runtime::RelationalRuntimeApi::builder()
+    let runtime = facade::runtime::RelationalRuntimeApi::builder()
         .schema_registry(facade::schema::RelationalSchemaRegistry::new())
         .build();
-    let _txn_options = crate::tests::support::test_owner_transaction_options_for_main(&_runtime);
+    let _txn_options = crate::tests::support::test_owner_transaction_options_for_main(&runtime);
     let _durability_mode = facade::durability::DurabilityMode::InMemoryCanonical;
     let _diagnostics_scope = facade::diagnostics::DiagnosticsScope::Transaction;
     let _patch_mode = facade::publication::PatchPublicationMode::CommitNative;
@@ -46,170 +46,76 @@ fn facade_namespaces_expose_domain_groupings() {
 }
 
 #[test]
-fn relational_owner_mints_move_only_execution_basis_lease() {
+fn admitted_observation_opens_its_selected_root_after_branch_movement() {
     let mut runtime = public_api_runtime();
-    let committed =
-        crate::tests::support::create_entity_outcome(&mut runtime, "execution-basis-world");
-    let version_id = committed.snapshot.version_id;
-    let branch_id = committed.snapshot.branch_id.clone();
-    assert!(runtime.snapshots().release_snapshot(&committed.snapshot));
+    let first = crate::tests::support::create_entity_outcome(&mut runtime, "observed");
+    let first_version = first.version_id;
+    let identity = runtime.main_branch_identity();
+    let (_, basis) = runtime.observe_branch(&identity).unwrap();
+    let observation = basis.observation();
+    assert!(runtime.snapshots().release_snapshot(&first.snapshot));
 
-    let lease = runtime
+    let second = crate::tests::support::create_entity_outcome(&mut runtime, "later");
+    let observed = runtime
         .snapshots()
-        .admit_execution_basis(&branch_id, version_id)
-        .expect("owned reconstructible version should admit an execution basis");
-    let handle = lease.snapshot_handle().clone();
+        .snapshot_for_observation(&observation)
+        .expect("admitted observation keeps its exact immutable root");
 
-    assert_eq!(handle.version_id, version_id);
-    assert_eq!(lease.counters().version_availability_check_count(), 1);
-    assert_eq!(lease.counters().branch_affinity_check_count(), 1);
-    assert_eq!(lease.counters().snapshot_identity_allocation_count(), 1);
-    assert_eq!(lease.counters().lease_registry_insert_count(), 1);
-    assert!(runtime.read_truth().read_snapshot(&handle).is_some());
-
-    let receipt = lease.release();
-    assert!(receipt.released());
-    assert!(runtime.read_truth().read_snapshot(&handle).is_none());
+    assert_eq!(observed.version_id, first_version);
+    assert_eq!(observed.branch_id, *identity.branch_id());
+    assert!(runtime.read_truth().read_snapshot(&observed).is_some());
+    assert!(runtime.snapshots().release_snapshot(&observed));
+    assert!(runtime.snapshots().release_snapshot(&second.snapshot));
 }
 
 #[test]
-fn execution_basis_lease_drop_closes_snapshot_authority() {
-    let mut runtime = public_api_runtime();
-    let committed =
-        crate::tests::support::create_entity_outcome(&mut runtime, "drop-execution-basis");
-    let version_id = committed.snapshot.version_id;
-    let branch_id = committed.snapshot.branch_id.clone();
-    assert!(runtime.snapshots().release_snapshot(&committed.snapshot));
-    let lease = runtime
-        .snapshots()
-        .admit_execution_basis(&branch_id, version_id)
-        .expect("reconstructible version should admit");
-    let identity = lease.identity().clone();
-    assert!(runtime.snapshots().execution_basis_is_live(&identity));
-
-    drop(lease);
-
-    assert!(!runtime.snapshots().execution_basis_is_live(&identity));
-}
-
-#[test]
-fn foreign_runtime_cannot_observe_an_execution_basis_as_live() {
-    let mut runtime = public_api_runtime();
-    let mut foreign = public_api_runtime();
-    let committed =
-        crate::tests::support::create_entity_outcome(&mut runtime, "foreign-execution-basis");
-    let version_id = committed.snapshot.version_id;
-    let branch_id = committed.snapshot.branch_id.clone();
-    assert!(runtime.snapshots().release_snapshot(&committed.snapshot));
-    let lease = runtime
-        .snapshots()
-        .admit_execution_basis(&branch_id, version_id)
-        .expect("owned reconstructible version should admit");
-    let identity = lease.identity().clone();
-
-    assert!(runtime.snapshots().execution_basis_is_live(&identity));
-    assert!(!foreign.snapshots().execution_basis_is_live(&identity));
-}
-
-#[test]
-fn foreign_runtime_branch_identity_cannot_admit_execution_basis() {
-    let mut runtime = public_api_runtime();
+fn foreign_runtime_identity_cannot_admit_a_branch_observation() {
+    let runtime = public_api_runtime();
     let foreign = public_api_runtime();
-    let committed =
-        crate::tests::support::create_entity_outcome(&mut runtime, "foreign-identity-basis");
-    let version_id = committed.snapshot.version_id;
-    assert!(runtime.snapshots().release_snapshot(&committed.snapshot));
     let foreign_identity = foreign.main_branch_identity();
 
-    let denial = match runtime
-        .snapshots()
-        .admit_execution_basis_for_identity(&foreign_identity, version_id)
-    {
-        Ok(_) => panic!("a foreign owner identity must not cross the runtime boundary"),
-        Err(denial) => denial,
-    };
-
-    assert_eq!(
-        denial.kind(),
-        facade::runtime::RelationalExecutionBasisDenialKind::BranchMismatch
-    );
-    assert_eq!(denial.counters().version_availability_check_count(), 0);
-    assert_eq!(denial.counters().branch_affinity_check_count(), 0);
-    assert_eq!(denial.counters().snapshot_identity_allocation_count(), 0);
-    assert_eq!(denial.counters().lease_registry_insert_count(), 0);
+    assert!(matches!(
+        runtime.observe_branch(&foreign_identity),
+        Err(facade::branch::RelationalBranchBasisDenial::ForeignRuntime { .. })
+    ));
 }
 
 #[test]
-fn independently_admitted_execution_bases_release_independently() {
+fn admitted_basis_clones_share_one_descriptor_and_observation_root() {
     let mut runtime = public_api_runtime();
-    let committed =
-        crate::tests::support::create_entity_outcome(&mut runtime, "shared-execution-version");
-    let version_id = committed.snapshot.version_id;
-    let branch_id = committed.snapshot.branch_id.clone();
-    assert!(runtime.snapshots().release_snapshot(&committed.snapshot));
-    let first = runtime
-        .snapshots()
-        .admit_execution_basis(&branch_id, version_id)
-        .expect("first basis should admit");
-    let second = runtime
-        .snapshots()
-        .admit_execution_basis(&branch_id, version_id)
-        .expect("second basis should admit");
-    let first_handle = first.snapshot_handle().clone();
-    let second_handle = second.snapshot_handle().clone();
+    let committed = crate::tests::support::create_entity_outcome(&mut runtime, "shared-basis");
+    let identity = runtime.main_branch_identity();
+    let (descriptor, basis) = runtime.observe_branch(&identity).unwrap();
+    let cloned = basis.clone();
 
-    drop(first);
-    assert!(runtime.read_truth().read_snapshot(&first_handle).is_none());
-    assert!(runtime.read_truth().read_snapshot(&second_handle).is_some());
-    drop(second);
-    assert!(runtime.read_truth().read_snapshot(&second_handle).is_none());
+    assert_eq!(basis.descriptor(), cloned.descriptor());
+    assert_eq!(descriptor, *basis.descriptor());
+    assert_eq!(basis.observation().version_id(), committed.version_id);
+    assert_eq!(
+        basis.observation().selected_root_identity(),
+        cloned.observation().selected_root_identity()
+    );
 }
 
 #[test]
-fn unavailable_version_cannot_mint_execution_basis() {
+fn main_movement_does_not_change_an_inherited_child_observation() {
     let mut runtime = public_api_runtime();
-    let unavailable = facade::identity::VersionId(u64::MAX);
-    let branch_id = runtime.config().history.main_branch.clone();
-    let denial = match runtime
-        .snapshots()
-        .admit_execution_basis(&branch_id, unavailable)
-    {
-        Ok(_) => panic!("unavailable version admitted an execution basis"),
-        Err(denial) => denial,
-    };
-    assert_eq!(
-        denial.kind(),
-        facade::runtime::RelationalExecutionBasisDenialKind::VersionUnavailable
-    );
-    assert_eq!(denial.counters().version_availability_check_count(), 1);
-    assert_eq!(denial.counters().snapshot_identity_allocation_count(), 0);
-    assert_eq!(denial.counters().lease_registry_insert_count(), 0);
-}
+    let baseline = crate::tests::support::create_entity_outcome(&mut runtime, "child-baseline");
+    let baseline_version = baseline.snapshot.version_id;
+    let main = runtime.main_branch_identity();
+    let (_, source_basis) = runtime
+        .observe_fork_source(main.branch_id())
+        .expect("main exposes an owner-issued fork basis");
+    let child_id = facade::history::BranchId("observation-child".to_owned());
+    runtime
+        .fork_branch(child_id.clone(), source_basis)
+        .expect("child retains the inherited immutable root");
+    crate::tests::support::create_entity_outcome(&mut runtime, "main-advances");
+    let child = runtime.branch_identity(&child_id).unwrap();
+    let (_, child_basis) = runtime.observe_branch(&child).unwrap();
 
-#[test]
-fn execution_basis_rejects_a_typed_branch_that_does_not_own_the_version() {
-    let mut runtime = public_api_runtime();
-    let committed =
-        crate::tests::support::create_entity_outcome(&mut runtime, "branch-bound-basis");
-    let version_id = committed.snapshot.version_id;
-    assert!(runtime.snapshots().release_snapshot(&committed.snapshot));
-
-    let denial = match runtime
-        .snapshots()
-        .admit_execution_basis(&facade::history::BranchId("foreign".to_owned()), version_id)
-    {
-        Ok(_) => panic!("another branch admitted execution authority for the version"),
-        Err(denial) => denial,
-    };
-
-    assert_eq!(
-        denial.kind(),
-        facade::runtime::RelationalExecutionBasisDenialKind::BranchMismatch
-    );
-    assert_eq!(denial.counters().version_availability_check_count(), 1);
-    assert_eq!(denial.counters().branch_affinity_check_count(), 1);
-    assert_eq!(denial.counters().snapshot_identity_allocation_count(), 0);
-    assert_eq!(denial.counters().lease_registry_insert_count(), 0);
+    assert_eq!(child_basis.observation().version_id(), baseline_version);
+    assert_eq!(child_basis.identity().branch_id(), &child_id);
 }
 
 fn public_api_runtime() -> facade::runtime::RelationalRuntime {

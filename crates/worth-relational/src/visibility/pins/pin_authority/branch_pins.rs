@@ -1,12 +1,24 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::visibility::snapshot_states::build_partition_pins_for_version;
+use crate::visibility::snapshot_states::{
+    build_partition_pins_for_branch_head, build_partition_pins_for_version,
+};
 
 use super::*;
 
 impl<'runtime> VisibilityPinAuthority<'runtime> {
     pub(crate) fn pin_branch_version(&mut self, version_id: crate::identity::data::VersionId) {
         let pinned_partitions = build_partition_pins_for_version(self.runtime, version_id);
+        self.pin_branch_partitions(pinned_partitions);
+    }
+
+    fn pin_branch_partitions(
+        &mut self,
+        pinned_partitions: BTreeMap<
+            crate::identity::data::PartitionId,
+            crate::storage::overlay::SnapshotPartitionPins,
+        >,
+    ) {
         for (partition_id, pins) in pinned_partitions {
             for slot in pins.entity_slots.iter_set_slots() {
                 self.pin_branch_entity(crate::identity::data::EntityId::new(
@@ -138,9 +150,21 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
         self.runtime
             .storage_authority()
             .clear_named_pins(PinClass::Branch);
-        let head_versions = self.runtime.history().branch_head_versions();
-        for version_id in head_versions {
-            self.pin_branch_version(version_id);
+        let branch_heads = self
+            .runtime
+            .history
+            .branch_ids_snapshot()
+            .into_iter()
+            .filter_map(|branch_id| {
+                self.runtime
+                    .history()
+                    .branch_head(&branch_id)
+                    .map(|head| (branch_id, head.version_id))
+            })
+            .collect::<Vec<_>>();
+        for (branch_id, version_id) in branch_heads {
+            let pins = build_partition_pins_for_branch_head(self.runtime, &branch_id, version_id);
+            self.pin_branch_partitions(pins);
         }
     }
 

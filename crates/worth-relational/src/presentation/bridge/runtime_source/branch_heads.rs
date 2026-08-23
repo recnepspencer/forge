@@ -4,43 +4,15 @@ use worth_runtime_bridge::facade::{
 };
 
 use super::RuntimeBridgeRelationalSource;
-use crate::capabilities::CommitEnvelopeSource;
 
 impl TruthBranchHeadSource for RuntimeBridgeRelationalSource {
     fn load_branch_head_patch(
         &self,
         branch_identity: &TruthBranchIdentity,
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
-        let branch_id = crate::history::data::BranchId(
-            branch_identity
-                .relational_branch_id()
-                .ok_or_else(|| {
-                    RelationalBridgeSourceError::new(
-                        "unsupported relational bridge branch identity",
-                    )
-                })?
-                .to_string(),
-        );
-        let commit_id = self.runtime.with_runtime(|runtime| {
-            let history = runtime.history();
-            let head = history.branch_head(&branch_id).ok_or_else(|| {
-                RelationalBridgeSourceError::new(format!(
-                    "relational runtime has no branch head for `{}`",
-                    branch_id.0
-                ))
-            })?;
-            runtime
-                .commit_envelope(head.commit_id)
-                .map(|envelope| envelope.commit.commit_id)
-                .ok_or_else(|| {
-                    RelationalBridgeSourceError::new(format!(
-                        "relational runtime has no authoritative commit envelope for branch head `{}` on `{}`",
-                        head.commit_id.0, branch_id.0
-                    ))
-                })
-        })?;
+        let (commit_id, snapshot_identity) = self.branch_head_bindings.resolve(branch_identity)?;
 
-        match self.publish_commit(commit_id) {
+        match self.publish_commit_at_snapshot(commit_id, snapshot_identity) {
             worth_proof::TransitionOutcome::Success(publication) => {
                 Ok(publication.into_bridge_envelope())
             }

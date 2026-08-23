@@ -11,6 +11,7 @@ pub struct RelationalInitialSchemaInstallation<'runtime> {
 pub enum RelationalInitialSchemaInstallationDenialKind {
     RuntimeAlreadyCommitted,
     SchemaRejected,
+    BranchTransitionRejected,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -93,6 +94,10 @@ impl RelationalInitialSchemaInstallation<'_> {
             .clone()
             .extend(additions)
             .map_err(schema_denial)?;
+        self.runtime
+            .history
+            .transition_empty_branches_to_initial_schema(&merged)
+            .map_err(branch_transition_denial)?;
         self.runtime.config.schema.registry = merged;
         rebuild_schema_contract_runtime(self.runtime);
         Ok(RelationalInitialSchemaInstallationReceipt {
@@ -120,5 +125,14 @@ fn schema_denial(error: SchemaRegistryError) -> RelationalInitialSchemaInstallat
     RelationalInitialSchemaInstallationDenial::new(
         RelationalInitialSchemaInstallationDenialKind::SchemaRejected,
         error.detail,
+    )
+}
+
+fn branch_transition_denial(
+    denial: crate::branch::RelationalBranchCellDenial,
+) -> RelationalInitialSchemaInstallationDenial {
+    RelationalInitialSchemaInstallationDenial::new(
+        RelationalInitialSchemaInstallationDenialKind::BranchTransitionRejected,
+        format!("empty branch schema transition failed: {denial:?}"),
     )
 }

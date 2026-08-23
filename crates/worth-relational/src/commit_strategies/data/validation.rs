@@ -5,6 +5,7 @@ use super::LoweredStrategyCommitPlan;
 
 #[derive(Debug, Clone)]
 pub(crate) struct PreparedStrategyAuthorityScope {
+    pub(crate) selected_branch_state: crate::branch::SelectedRelationalBranchState,
     pub(crate) structural_summary:
         crate::authority::commit::structural_summary::CommitStructuralSummary,
     pub(crate) working_state: crate::runtime::WorkingState,
@@ -16,6 +17,8 @@ pub struct ValidatedStrategyCommitPlan {
     validated_against_commit_id: Option<crate::history::data::CommitId>,
     validated_against_version_id: crate::identity::data::VersionId,
     prepared_scope: PreparedStrategyAuthorityScope,
+    proposed_working_state: crate::runtime::WorkingState,
+    proposal_identity: crate::transactions::RelationalMutationProposalIdentity,
     commit_boundary_invariants: InvariantExecutionResult,
     preview_mutation_sensitive_invariants: InvariantExecutionResult,
     preview_publication_invariants: InvariantExecutionResult,
@@ -83,6 +86,8 @@ impl ValidatedStrategyCommitPlan {
         validated_against_commit_id: Option<crate::history::data::CommitId>,
         validated_against_version_id: crate::identity::data::VersionId,
         prepared_scope: PreparedStrategyAuthorityScope,
+        proposed_working_state: crate::runtime::WorkingState,
+        proposal_identity: crate::transactions::RelationalMutationProposalIdentity,
         commit_boundary_invariants: InvariantExecutionResult,
         preview_mutation_sensitive_invariants: InvariantExecutionResult,
         preview_publication_invariants: InvariantExecutionResult,
@@ -94,6 +99,8 @@ impl ValidatedStrategyCommitPlan {
             validated_against_commit_id,
             validated_against_version_id,
             prepared_scope,
+            proposed_working_state,
+            proposal_identity,
             commit_boundary_invariants,
             preview_mutation_sensitive_invariants,
             preview_publication_invariants,
@@ -116,6 +123,16 @@ impl ValidatedStrategyCommitPlan {
 
     pub fn commit_boundary_invariants(&self) -> &InvariantExecutionResult {
         &self.commit_boundary_invariants
+    }
+
+    pub(crate) fn proposed_working_state(&self) -> &crate::runtime::WorkingState {
+        &self.proposed_working_state
+    }
+
+    pub(crate) fn proposal_identity(
+        &self,
+    ) -> &crate::transactions::RelationalMutationProposalIdentity {
+        &self.proposal_identity
     }
 
     pub fn validation_summary(&self) -> CommitValidationSummary {

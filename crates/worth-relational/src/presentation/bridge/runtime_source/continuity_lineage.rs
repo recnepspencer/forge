@@ -4,7 +4,6 @@ use worth_runtime_bridge::facade::{
     BridgeLineageSourceError, BridgeLineageSourceErrorKind, ContinuityLineageSource,
 };
 
-use super::snapshot_authority::resolve_snapshot_version;
 use super::RuntimeBridgeRelationalSource;
 use crate::lineage::data::{HistoricalResolutionBoundednessBasis, RecordHistoryRequest};
 use crate::presentation::bridge::identities::{
@@ -61,6 +60,15 @@ impl ContinuityLineageSource for RuntimeBridgeRelationalSource {
             "entity:{}:{}:{}",
             entity_id.partition_id.0, entity_id.local_slot.0, entity_id.generation.0
         );
+        let observation = self
+            .observation_bindings
+            .resolve(request.authority_basis().snapshot_identity())
+            .map_err(|error| {
+                BridgeLineageSourceError::new(
+                    BridgeLineageSourceErrorKind::HistoricalResolutionFailure,
+                    error.to_string(),
+                )
+            })?;
         let (resolution, visible_entities) = self.runtime.with_runtime(|runtime| {
                 let resolution = runtime
                     .lineage_access()
@@ -78,21 +86,11 @@ impl ContinuityLineageSource for RuntimeBridgeRelationalSource {
                             ),
                         )
                     })?;
-                let snapshot_version_id = resolve_snapshot_version(
-                    runtime,
-                    request.authority_basis().snapshot_identity(),
-                )
-                .map_err(|error| {
-                    BridgeLineageSourceError::new(
-                        BridgeLineageSourceErrorKind::HistoricalResolutionFailure,
-                        error.to_string(),
-                    )
-                })?;
                 let visible_entities = runtime
                     .lineage_access()
-                    .visible_entity_ids_for_lineages_at_version(
+                    .visible_entity_ids_for_lineages_for_observation(
                         &resolution.resolved,
-                        snapshot_version_id,
+                        &observation,
                     );
                 Ok((resolution, visible_entities))
             })?;

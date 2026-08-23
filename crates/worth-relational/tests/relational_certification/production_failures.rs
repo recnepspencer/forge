@@ -1,3 +1,4 @@
+use super::world::supply_chain::relation_kind_id;
 use super::world::supply_chain::{
     audit_supply_chain_baseline, compile_supply_chain_baseline,
     compile_supply_chain_baseline_with_budget, entity_kind_id, BaselineAuditError,
@@ -9,10 +10,8 @@ use super::world::supply_chain::{
     ComparisonMismatch, EntityKey, EntityKind, EntityRecord, RelationKind,
 };
 use worth_relational::facade::identity::{EntityId, PartitionId};
-use worth_relational::facade::runtime::{
-    RelationalInitialSchemaInstallationDenialKind, RelationalRuntimeApi,
-};
-use worth_relational::facade::snapshots::SnapshotId;
+use worth_relational::facade::runtime::RelationalRuntimeApi;
+use worth_relational::facade::schema::{RelationalSchemaRegistry, SchemaRegistryErrorClass};
 use worth_relational::facade::symbols::ClientKey;
 use worth_relational::facade::transactions::{
     EntityReference, TransactionCommitError, WorkerIntentBatch,
@@ -28,37 +27,30 @@ pub(super) fn court_program() -> CompiledSupplyChainProgram {
 
 #[test]
 fn production_schema_installation_failure_is_typed_before_mutation() {
-    let mut program = court_program();
-    let entity_kind = *program
-        .schema_registry_mut_for_test()
-        .entity_kinds
-        .keys()
-        .next()
-        .expect("compiled schema has an entity kind");
+    let program = court_program();
+    let entity_kind = entity_kind_id(EntityKind::Port);
     let mut relation = program
         .schema_registry()
-        .relation_kinds
-        .values()
-        .next()
+        .relation_registration(relation_kind_id(RelationKind::TerminalAtPort))
         .expect("compiled schema has a relation kind")
         .clone();
     relation.kind_id = entity_kind;
-    program
-        .schema_registry_mut_for_test()
-        .relation_kinds
-        .insert(entity_kind, relation);
+    let entity = program
+        .schema_registry()
+        .entity_registration(entity_kind)
+        .expect("compiled schema has an entity kind")
+        .clone();
 
-    let error = match compile_supply_chain_baseline(program) {
-        Ok(_) => panic!("cross-domain schema kind collision must fail installation"),
-        Err(error) => error,
-    };
-    match error {
-        SupplyChainCompilationError::SchemaInstallation(denial) => assert_eq!(
-            denial.kind(),
-            RelationalInitialSchemaInstallationDenialKind::SchemaRejected
-        ),
-        other => panic!("expected typed schema installation failure, got {other:?}"),
-    }
+    let error = RelationalSchemaRegistry::new()
+        .register_entity_kind(entity)
+        .expect("entity registration is valid")
+        .register_relation_kind(relation)
+        .expect_err("cross-domain schema kind collision must fail registration");
+
+    assert!(matches!(
+        error.class,
+        SchemaRegistryErrorClass::EntityRelationKindCollision(found) if found == entity_kind
+    ));
 }
 
 #[test]
@@ -116,8 +108,13 @@ fn foreign_snapshot_observation_is_typed_and_does_not_cross_runtime() {
         .is_none());
     world.handles.snapshot = foreign_snapshot;
 
-    let error = super::world::supply_chain::observe_supply_chain(&world)
-        .expect_err("a foreign runtime snapshot must not be observed");
+    let error = super::world::supply_chain::observe_supply_chain_snapshot(
+        &world.program,
+        &world.handles,
+        &world.runtime,
+        &world.handles.snapshot,
+    )
+    .expect_err("a foreign runtime snapshot must not be observed");
     assert!(matches!(
         error,
         super::world::supply_chain::ObservationError::SnapshotUnavailable
@@ -333,9 +330,18 @@ fn semantic_relation_binding_rejects_duplicate_correspondence() {
 fn observation_rejects_missing_snapshot_and_unbound_record_identities() {
     let mut missing_snapshot =
         compile_supply_chain_baseline(court_program()).expect("Court world compiles");
-    missing_snapshot.handles.snapshot.snapshot_id = SnapshotId(u64::MAX);
-    let missing_error = super::world::supply_chain::observe_supply_chain(&missing_snapshot)
-        .expect_err("an unknown snapshot must not fall back to current state");
+    let released_snapshot = missing_snapshot.handles.snapshot.clone();
+    assert!(missing_snapshot
+        .runtime
+        .snapshots()
+        .release_snapshot(&released_snapshot));
+    let missing_error = super::world::supply_chain::observe_supply_chain_snapshot(
+        &missing_snapshot.program,
+        &missing_snapshot.handles,
+        &missing_snapshot.runtime,
+        &released_snapshot,
+    )
+    .expect_err("an unknown snapshot must not fall back to current state");
     assert!(matches!(
         missing_error,
         super::world::supply_chain::ObservationError::SnapshotUnavailable

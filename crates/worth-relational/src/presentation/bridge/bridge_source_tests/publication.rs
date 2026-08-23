@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use crate::facade::identity::PartitionId;
 use crate::facade::transactions::{CreateIntent, EntitySpec, MutationIntent, WorkerIntentBatch};
@@ -13,7 +13,7 @@ use worth_runtime_bridge::facade::{
     SnapshotReadPacket, SnapshotReadRequest, SnapshotReadSource, TruthCommitIdentity,
 };
 
-use super::super::{bridge_snapshot_identity_for_commit, RuntimeBridgeRelationalSource};
+use super::super::RuntimeBridgeRelationalSource;
 use super::support::{
     exact_aspect_registration, exact_registration, register_remaining_patch_items,
     runtime_with_test_schema, TestSink,
@@ -29,8 +29,9 @@ fn runtime_bridge_relational_source_exposes_latest_publication_bundle_authoritat
         .latest_bundle()
         .expect("runtime publication bundle")
         .clone();
-    let expected_snapshot_identity =
-        bridge_snapshot_identity_for_commit(bundle.commit.commit_id, bundle.commit.version_id);
+    let branch_identity = runtime
+        .branch_identity(&bundle.commit.branch_id)
+        .expect("committed branch identity");
     let expected_commit_identity =
         worth_runtime_bridge::facade::RelationalCommittedPatchRequest::new(
             TruthCommitIdentity::from_relational_commit_id(bundle.commit.commit_id.0),
@@ -38,6 +39,13 @@ fn runtime_bridge_relational_source_exposes_latest_publication_bundle_authoritat
 
     let source = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(runtime), "model")
         .expect("test graph role");
+    let (_, basis) = source
+        .observe_branch_basis(&branch_identity)
+        .expect("owner-admitted publication basis");
+    let lease = source
+        .retain_branch_basis_for_bridge(&basis)
+        .expect("retained publication observation");
+    let expected_snapshot_identity = lease.snapshot_identity().clone();
     let envelope = source
         .load_committed_patch(expected_commit_identity)
         .expect("runtime bridge committed patch");
@@ -100,6 +108,9 @@ fn partition_source_filters_the_real_commit_and_retains_exact_partition_provenan
         .unwrap();
     let truth_partition =
         worth_foundational::facade::TruthPartitionRole::new("model-main").unwrap();
+    let branch_identity = runtime
+        .branch_identity(&committed.commit.branch_id)
+        .expect("committed branch identity");
     let source = RuntimeBridgeRelationalSource::for_graph_partition(
         Arc::new(runtime),
         "model",
@@ -107,6 +118,12 @@ fn partition_source_filters_the_real_commit_and_retains_exact_partition_provenan
         truth_partition.clone(),
     )
     .unwrap();
+    let (_, basis) = source
+        .observe_branch_basis(&branch_identity)
+        .expect("owner-admitted partition basis");
+    let _lease = source
+        .retain_branch_basis_for_bridge(&basis)
+        .expect("retained partition observation");
     let envelope = source
         .load_committed_patch(RelationalCommittedPatchRequest::new(
             TruthCommitIdentity::from_relational_commit_id(committed.commit.commit_id.0),
@@ -203,11 +220,19 @@ fn runtime_bridge_relational_source_drives_public_bridge_delivery_with_canonical
         .expect("runtime publication bundle")
         .clone();
     let commit_identity = TruthCommitIdentity::from_relational_commit_id(bundle.commit.commit_id.0);
-    let expected_snapshot_identity =
-        bridge_snapshot_identity_for_commit(bundle.commit.commit_id, bundle.commit.version_id);
+    let branch_identity = runtime
+        .branch_identity(&bundle.commit.branch_id)
+        .expect("committed branch identity");
 
     let source = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(runtime), "model")
         .expect("test graph role");
+    let (_, basis) = source
+        .observe_branch_basis(&branch_identity)
+        .expect("owner-admitted delivery basis");
+    let lease = source
+        .retain_branch_basis_for_bridge(&basis)
+        .expect("retained delivery observation");
+    let expected_snapshot_identity = lease.snapshot_identity().clone();
     let envelope = source
         .load_committed_patch(RelationalCommittedPatchRequest::new(
             commit_identity.clone(),
@@ -254,36 +279,48 @@ fn runtime_bridge_relational_source_drives_public_bridge_delivery_with_canonical
 
 #[test]
 fn runtime_bridge_replays_historical_commit_after_newer_publication_arrives() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "alice");
-    let historical_commit_id = runtime
-        .publication()
-        .latest_bundle()
-        .expect("first runtime publication bundle")
-        .commit
-        .commit_id;
+    let runtime = Arc::new(Mutex::new(runtime_with_test_schema()));
+    let source =
+        RuntimeBridgeRelationalSource::for_shared_graph_role(Arc::clone(&runtime), "model")
+            .expect("test graph role");
+    let historical_commit = {
+        let mut runtime = runtime.lock().expect("test runtime lock");
+        create_entity_outcome(&mut runtime, "alice").commit.clone()
+    };
+    let branch_identity = runtime
+        .lock()
+        .expect("test runtime lock")
+        .branch_identity(&historical_commit.branch_id)
+        .expect("historical branch identity");
+    let (_, historical_basis) = source
+        .observe_branch_basis(&branch_identity)
+        .expect("owner-admitted historical basis");
+    let historical_lease = source
+        .retain_branch_basis_for_bridge(&historical_basis)
+        .expect("retained historical observation");
+    let historical_commit_id = historical_commit.commit_id;
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    txn.push_batch(
-        WorkerIntentBatch::new("update").push(MutationIntent::Create(
-            crate::transactions::data::CreateIntent::Entity(
-                crate::transactions::data::EntitySpec {
-                    partition_id: PartitionId::main(),
-                    kind_id: crate::facade::identity::KindId(1),
-                    client_key: crate::symbols::data::ClientKey::raw("bob"),
-                    fields: single_string_aspect_field_patch(
-                        crate::tests::support::aspect_key("name"),
-                        field_key("name"),
-                        "bob",
-                    ),
-                },
-            ),
-        )),
-    );
-    txn.commit().expect("second commit should publish");
-
-    let source = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(runtime), "model")
-        .expect("test graph role");
+    {
+        let mut runtime = runtime.lock().expect("test runtime lock");
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+        txn.push_batch(
+            WorkerIntentBatch::new("update").push(MutationIntent::Create(
+                crate::transactions::data::CreateIntent::Entity(
+                    crate::transactions::data::EntitySpec {
+                        partition_id: PartitionId::main(),
+                        kind_id: crate::facade::identity::KindId(1),
+                        client_key: crate::symbols::data::ClientKey::raw("bob"),
+                        fields: single_string_aspect_field_patch(
+                            crate::tests::support::aspect_key("name"),
+                            field_key("name"),
+                            "bob",
+                        ),
+                    },
+                ),
+            )),
+        );
+        txn.commit().expect("second commit should publish");
+    }
     let historical_commit_identity = RelationalCommittedPatchRequest::new(
         TruthCommitIdentity::from_relational_commit_id(historical_commit_id.0),
     );
@@ -291,6 +328,10 @@ fn runtime_bridge_replays_historical_commit_after_newer_publication_arrives() {
         .load_committed_patch(historical_commit_identity.clone())
         .expect("historical bridge committed patch");
     let expected_snapshot_identity = envelope.snapshot_identity().clone();
+    assert_eq!(
+        &expected_snapshot_identity,
+        historical_lease.snapshot_identity(),
+    );
     let first_patch_item = envelope
         .patch_body()
         .canonical_items()

@@ -95,8 +95,8 @@ fn stale_entity_id_does_not_materialize_reused_slot_at_current_version() {
             relation_overlay_is_sparse: false,
             entity_arena,
             relation_arena: crate::storage::substrate::RelationArena::with_capacity(0),
-            adjacency: vec![AdjacencySet::new(&adjacency_policy)],
-            reverse_adjacency: vec![AdjacencySet::new(&adjacency_policy)],
+            adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
+            reverse_adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
         },
     );
 
@@ -143,19 +143,28 @@ fn historical_entity_kind_reads_follow_visible_metadata_not_current_slot_kind() 
             relation_overlay_is_sparse: false,
             entity_arena,
             relation_arena: crate::storage::substrate::RelationArena::with_capacity(0),
-            adjacency: vec![AdjacencySet::new(&adjacency_policy)],
-            reverse_adjacency: vec![AdjacencySet::new(&adjacency_policy)],
+            adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
+            reverse_adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
         },
     );
 
+    let state = runtime.storage_access().current_state();
     let historical_records = runtime
         .read_truth()
-        .project_version(VersionId(1))
-        .authoritative_entity_records(KindId(11));
+        .visible_entities_of_kind_in_partition_from_state(
+            &state,
+            partition_id,
+            KindId(11),
+            VersionId(1),
+        );
     let reused_kind_records = runtime
         .read_truth()
-        .project_version(VersionId(1))
-        .authoritative_entity_records(KindId(12));
+        .visible_entities_of_kind_in_partition_from_state(
+            &state,
+            partition_id,
+            KindId(12),
+            VersionId(1),
+        );
 
     assert_eq!(historical_records.len(), 1);
     assert_eq!(
@@ -213,19 +222,28 @@ fn historical_relation_kind_reads_follow_visible_metadata_not_current_slot_kind(
             relation_overlay_is_sparse: false,
             entity_arena: crate::storage::substrate::EntityArena::with_capacity(0),
             relation_arena,
-            adjacency: vec![AdjacencySet::new(&adjacency_policy)],
-            reverse_adjacency: vec![AdjacencySet::new(&adjacency_policy)],
+            adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
+            reverse_adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
         },
     );
 
+    let state = runtime.storage_access().current_state();
     let historical_records = runtime
         .read_truth()
-        .project_version(VersionId(1))
-        .authoritative_relation_records(KindId(21));
+        .visible_relations_of_kind_in_partition_from_state(
+            &state,
+            partition_id,
+            KindId(21),
+            VersionId(1),
+        );
     let reused_kind_records = runtime
         .read_truth()
-        .project_version(VersionId(1))
-        .authoritative_relation_records(KindId(22));
+        .visible_relations_of_kind_in_partition_from_state(
+            &state,
+            partition_id,
+            KindId(22),
+            VersionId(1),
+        );
 
     assert_eq!(historical_records.len(), 1);
     assert_eq!(

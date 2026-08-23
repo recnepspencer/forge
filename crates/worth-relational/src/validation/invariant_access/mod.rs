@@ -1,10 +1,11 @@
 mod execution;
 mod metadata;
 #[cfg(test)]
-mod test_support;
+pub(crate) mod test_support;
 #[cfg(test)]
 mod tests;
 
+use crate::branch::SelectedRelationalBranchState;
 use crate::runtime::RelationalRuntime;
 use crate::transactions::data::MergedCommitPlan;
 #[cfg(test)]
@@ -36,11 +37,13 @@ impl<'runtime> InvariantAccess<'runtime> {
                     InvariantRequestProfile::HarnessAudit,
                     crate::validation::engine::InvariantObservationKind::Committed,
                     self.runtime.current_version_id(),
+                    self.runtime.current_version_id(),
                     None,
                     None,
                     crate::validation::data::InvariantGroupSet::empty(),
                     crate::validation::data::InvariantCostClass::Global,
                     crate::validation::engine::InvariantExecutionDisposition::SkippedByMayBreakMask,
+                    None,
                 ))
             },
             |profile| self.execute_for_runtime(profile),
@@ -59,50 +62,73 @@ impl<'runtime> InvariantAccess<'runtime> {
         self.execute_for_runtime(InvariantRequestProfile::CertificationBoundary)
     }
 
-    pub(crate) fn mutation_sensitive_for_state(
+    pub(crate) fn mutation_sensitive_for_state_with_proposal<'state>(
         &self,
-        state: crate::storage::overlay::OverlayStateView<'runtime, crate::runtime::WorkingState>,
+        state: crate::storage::overlay::OverlayStateView<'state, crate::runtime::WorkingState>,
         version_id: crate::identity::data::VersionId,
-        merged_plan: Option<&MergedCommitPlan>,
+        merged_plan: Option<&'state MergedCommitPlan>,
+        proposal_identity: Option<&crate::transactions::RelationalMutationProposalIdentity>,
     ) -> InvariantExecutionResult {
         self.execute_for_state(
             InvariantRequestProfile::MutationSensitive,
-            InvariantObservation::speculative(state),
+            InvariantObservation::speculative_with_proposal(state, proposal_identity.cloned()),
             version_id,
             merged_plan,
         )
     }
 
-    pub(crate) fn commit_boundary(
+    pub(crate) fn commit_boundary_for_selected_branch(
         &self,
+        selected_state: &SelectedRelationalBranchState,
+        proposed_working_state: &crate::storage::overlay::WorkingState,
+        proposed_version_id: crate::identity::data::VersionId,
         merged_plan: &'runtime MergedCommitPlan,
+        proposal_identity: Option<&crate::transactions::RelationalMutationProposalIdentity>,
     ) -> InvariantExecutionResult {
-        self.execute_for_runtime_plan(InvariantRequestProfile::CommitBoundary, merged_plan)
+        self.execute_for_selected_branch_plan(
+            InvariantRequestProfile::CommitBoundary,
+            selected_state,
+            proposed_working_state,
+            proposed_version_id,
+            merged_plan,
+            proposal_identity,
+        )
     }
 
-    pub fn commit_boundary_plan(
+    pub(crate) fn commit_boundary_for_selected_branch_plan(
         &self,
-        merged_plan: &'runtime MergedCommitPlan,
+        selected_state: &SelectedRelationalBranchState,
+        merged_plan: &MergedCommitPlan,
     ) -> InvariantExecutionResult {
-        self.commit_boundary(merged_plan)
+        self.execute_for_selected_branch_committed_plan(
+            InvariantRequestProfile::CommitBoundary,
+            selected_state,
+            merged_plan,
+        )
     }
 
-    pub fn graph_composition_plan(
+    pub(crate) fn graph_composition_for_selected_branch_plan(
         &self,
-        merged_plan: &'runtime MergedCommitPlan,
+        selected_state: &SelectedRelationalBranchState,
+        merged_plan: &MergedCommitPlan,
     ) -> InvariantExecutionResult {
-        self.execute_for_runtime_plan(InvariantRequestProfile::GraphComposition, merged_plan)
+        self.execute_for_selected_branch_committed_plan(
+            InvariantRequestProfile::GraphComposition,
+            selected_state,
+            merged_plan,
+        )
     }
 
-    pub(crate) fn snapshot_publication_for_state(
+    pub(crate) fn snapshot_publication_for_state_with_proposal<'state>(
         &self,
-        state: crate::storage::overlay::OverlayStateView<'runtime, crate::runtime::WorkingState>,
+        state: crate::storage::overlay::OverlayStateView<'state, crate::runtime::WorkingState>,
         version_id: crate::identity::data::VersionId,
-        merged_plan: Option<&MergedCommitPlan>,
+        merged_plan: Option<&'state MergedCommitPlan>,
+        proposal_identity: Option<&crate::transactions::RelationalMutationProposalIdentity>,
     ) -> InvariantExecutionResult {
         self.execute_for_state(
             InvariantRequestProfile::SnapshotPublication,
-            InvariantObservation::speculative(state),
+            InvariantObservation::speculative_with_proposal(state, proposal_identity.cloned()),
             version_id,
             merged_plan,
         )

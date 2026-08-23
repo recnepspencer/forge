@@ -1,3 +1,4 @@
+use crate::branch::SelectedRelationalBranchState;
 use crate::transactions::data::MergedCommitPlan;
 use crate::validation::data::{
     InvariantFailureEffect, InvariantGroup, InvariantGroupSet, InvariantPlanContract,
@@ -22,29 +23,86 @@ impl<'runtime> InvariantAccess<'runtime> {
         )
     }
 
-    pub(super) fn execute_for_runtime_plan(
+    pub(super) fn execute_for_selected_branch_committed_plan<'state>(
         &self,
         profile: InvariantRequestProfile,
-        merged_plan: &'runtime MergedCommitPlan,
-    ) -> InvariantExecutionResult {
-        self.execute_for_state(
+        selected_state: &'state SelectedRelationalBranchState,
+        merged_plan: &'state MergedCommitPlan,
+    ) -> InvariantExecutionResult
+    where
+        'runtime: 'state,
+    {
+        let version_id = selected_state.version_id();
+        self.execute_for_state_with_current_version(
             profile,
-            InvariantObservation::committed(self.runtime.storage_access().current_state()),
-            self.runtime.current_version_id(),
+            InvariantObservation::committed_branch(selected_state.state()),
+            version_id,
+            version_id,
             Some(merged_plan),
         )
     }
 
-    pub(super) fn execute_for_state(
+    pub(super) fn execute_for_selected_branch_plan<'state>(
         &self,
         profile: InvariantRequestProfile,
-        observation: InvariantObservation<'runtime>,
+        selected_state: &'state SelectedRelationalBranchState,
+        proposed_working_state: &'state crate::storage::overlay::WorkingState,
+        proposed_version_id: crate::identity::data::VersionId,
+        merged_plan: &'runtime MergedCommitPlan,
+        proposal_identity: Option<&crate::transactions::RelationalMutationProposalIdentity>,
+    ) -> InvariantExecutionResult
+    where
+        'runtime: 'state,
+    {
+        let version_id = selected_state.version_id();
+        self.execute_for_state_with_current_version(
+            profile,
+            InvariantObservation::committed_branch_with_proposed(
+                selected_state.state(),
+                proposed_working_state,
+                proposed_version_id,
+                proposal_identity.cloned(),
+            ),
+            version_id,
+            version_id,
+            Some(merged_plan),
+        )
+    }
+
+    pub(super) fn execute_for_state<'state>(
+        &self,
+        profile: InvariantRequestProfile,
+        observation: InvariantObservation<'state>,
         version_id: crate::identity::data::VersionId,
-        merged_plan: Option<&'runtime MergedCommitPlan>,
-    ) -> InvariantExecutionResult {
+        merged_plan: Option<&'state MergedCommitPlan>,
+    ) -> InvariantExecutionResult
+    where
+        'runtime: 'state,
+    {
+        self.execute_for_state_with_current_version(
+            profile,
+            observation,
+            version_id,
+            self.runtime.current_version_id(),
+            merged_plan,
+        )
+    }
+
+    fn execute_for_state_with_current_version<'state>(
+        &self,
+        profile: InvariantRequestProfile,
+        observation: InvariantObservation<'state>,
+        version_id: crate::identity::data::VersionId,
+        current_version_id: crate::identity::data::VersionId,
+        merged_plan: Option<&'state MergedCommitPlan>,
+    ) -> InvariantExecutionResult
+    where
+        'runtime: 'state,
+    {
         let plan_contract = merged_plan.map(InvariantPlanContract::from_merged_plan);
         let consumed_groups = profile.consumed_groups();
         let observation_kind = observation.kind();
+        let proposal_identity = observation.proposal_identity().cloned();
         if plan_contract
             .is_some_and(|contract| !contract.intersects_consumed_groups(consumed_groups))
         {
@@ -52,19 +110,22 @@ impl<'runtime> InvariantAccess<'runtime> {
                 profile,
                 observation_kind,
                 version_id,
+                current_version_id,
                 merged_plan,
                 plan_contract,
                 InvariantGroupSet::empty(),
                 crate::validation::data::InvariantCostClass::Global,
                 InvariantExecutionDisposition::SkippedByPlanContract,
+                proposal_identity.as_ref(),
             ));
         }
 
-        let request = InvariantExecutionRequest::from_profile_with_contract(
+        let request = InvariantExecutionRequest::from_profile_with_contract_at_current_version(
             profile,
             self.runtime,
             observation,
             version_id,
+            current_version_id,
             merged_plan,
             plan_contract,
         );
@@ -73,6 +134,7 @@ impl<'runtime> InvariantAccess<'runtime> {
                 profile,
                 observation_kind,
                 version_id,
+                current_version_id,
                 merged_plan,
                 plan_contract,
                 &request,
@@ -84,36 +146,44 @@ impl<'runtime> InvariantAccess<'runtime> {
                 profile,
                 observation_kind,
                 version_id,
+                current_version_id,
                 merged_plan,
                 plan_contract,
                 request.applicable_groups(),
                 request.max_cost(),
                 InvariantExecutionDisposition::SkippedByMayBreakMask,
+                request.proposal_identity(),
             ));
         }
         InvariantEngine::new(self.runtime).execute(request)
     }
 
-    fn preparation_violation_result(
+    fn preparation_violation_result<'state>(
         &self,
         profile: InvariantRequestProfile,
         observation_kind: crate::validation::engine::InvariantObservationKind,
         version_id: crate::identity::data::VersionId,
-        merged_plan: Option<&'runtime MergedCommitPlan>,
+        current_version_id: crate::identity::data::VersionId,
+        merged_plan: Option<&'state MergedCommitPlan>,
         plan_contract: Option<InvariantPlanContract>,
-        request: &InvariantExecutionRequest<'runtime>,
+        request: &InvariantExecutionRequest<'state>,
         preparation_violation: crate::validation::data::InvariantViolation,
-    ) -> InvariantExecutionResult {
+    ) -> InvariantExecutionResult
+    where
+        'runtime: 'state,
+    {
         InvariantExecutionResult::executed(
             self.execution_metadata(
                 profile,
                 observation_kind,
                 version_id,
+                current_version_id,
                 merged_plan,
                 plan_contract,
                 request.applicable_groups(),
                 request.max_cost(),
                 InvariantExecutionDisposition::Executed,
+                request.proposal_identity(),
             ),
             vec![crate::validation::data::InvariantCheckResult {
                 execution_point: profile.execution_point(),

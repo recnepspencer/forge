@@ -1,9 +1,13 @@
 mod adjacency_checkpoint;
 mod branch_and_aspect_history;
+mod branch_root_checkpoint;
+mod branch_root_content_binding;
+mod branch_root_schema_binding;
 mod checkpoint_recovery;
 mod descriptor_continuity;
 mod fork_provenance_checkpoint;
 mod merge_replay_continuity;
+mod record_allocation_recovery;
 mod rejected_and_parent_closure;
 mod retention_inspection_store;
 mod schema_transition_continuity;

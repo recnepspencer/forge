@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Weak};
 
 use crate::history::data::{CanonicalCommitEnvelope, CommitId};
 use crate::identity::data::VersionId;
@@ -17,7 +17,11 @@ pub(crate) struct RelationalCommitArtifact {
     identity: RelationalCommitIdentity,
     parentage: RelationalCommitParentage,
     roots: RelationalCommitRootDescriptor,
+    /// Non-owning linkage to the branch root. The branch reference cell owns
+    /// the live root; the catalog must not pin every ancestor forever.
+    branch_root: Option<Weak<crate::branch::RelationalBranchRoot>>,
     envelope: Arc<CanonicalCommitEnvelope>,
+    canonical_payload: Arc<[u8]>,
 }
 
 // The Phase-4 fork path may share an immutable catalog handle, but it may
@@ -37,6 +41,28 @@ impl<T: Clone> RelationalCommitArtifactCloneTripwire for T {}
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RelationalCommitArtifactDenial {
     Parentage,
+    RootLinkage,
+    CanonicalPayloadEncoding,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) enum RelationalCommitAuthoritativeAllocationKind {
+    ArtifactObject,
+    CanonicalPayload,
+    EnvelopeObject,
+    EnvelopeNestedOwnerStorage,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct RelationalCommitAuthoritativeAllocationObservation {
+    pub(crate) kind: RelationalCommitAuthoritativeAllocationKind,
+    pub(crate) authoritative_bytes: u64,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct RelationalCommitExcludedAllocationInventory {
+    pub(crate) diagnostic_bytes: u64,
+    pub(crate) optional_cache_bytes: u64,
 }
 
 impl RelationalCommitArtifact {
@@ -45,12 +71,14 @@ impl RelationalCommitArtifact {
     ) -> Result<(), RelationalCommitArtifactDenial> {
         RelationalCommitParentage::from_ordered(envelope.commit.parents.clone())
             .map(|_| ())
-            .map_err(|_| RelationalCommitArtifactDenial::Parentage)
+            .map_err(|_| RelationalCommitArtifactDenial::Parentage)?;
+        encode_canonical_payload(envelope).map(|_| ())
     }
 
     pub(super) fn from_envelope(
         envelope: Arc<CanonicalCommitEnvelope>,
     ) -> Result<Self, RelationalCommitArtifactDenial> {
+        let canonical_payload = encode_canonical_payload(&envelope)?;
         let identity = RelationalCommitIdentity::new(
             envelope.commit.commit_id,
             envelope.commit.version_id,
@@ -61,9 +89,49 @@ impl RelationalCommitArtifact {
         Ok(Self {
             identity,
             parentage,
-            roots: crate::branch::RelationalBranchTarget::roots_for_commit(&envelope.commit),
+            roots: crate::branch::RelationalBranchRootDescriptor::new(
+                *crate::branch::RelationalBranchTarget::roots_for_commit(&envelope.commit)
+                    .truth_root(),
+                crate::schema::data::schema_authority_snapshot_digest_bytes(
+                    &envelope.schema_authority,
+                ),
+            ),
+            branch_root: None,
             envelope,
+            canonical_payload,
         })
+    }
+
+    pub(crate) fn from_envelope_with_root(
+        envelope: Arc<CanonicalCommitEnvelope>,
+        branch_root: Arc<crate::branch::RelationalBranchRoot>,
+    ) -> Result<Self, RelationalCommitArtifactDenial> {
+        if !branch_root.links_envelope(&envelope) {
+            return Err(RelationalCommitArtifactDenial::RootLinkage);
+        }
+        let mut artifact = Self::from_envelope(envelope)?;
+        artifact.roots = branch_root
+            .descriptor()
+            .cloned()
+            .ok_or(RelationalCommitArtifactDenial::RootLinkage)?;
+        artifact.branch_root = Some(Arc::downgrade(&branch_root));
+        Ok(artifact)
+    }
+
+    pub(super) fn from_envelope_with_descriptor(
+        envelope: Arc<CanonicalCommitEnvelope>,
+        roots: RelationalCommitRootDescriptor,
+    ) -> Result<Self, RelationalCommitArtifactDenial> {
+        if roots.schema_root()
+            != &crate::schema::data::schema_authority_snapshot_digest_bytes(
+                &envelope.schema_authority,
+            )
+        {
+            return Err(RelationalCommitArtifactDenial::RootLinkage);
+        }
+        let mut artifact = Self::from_envelope(envelope)?;
+        artifact.roots = roots;
+        Ok(artifact)
     }
 
     pub fn identity(&self) -> &RelationalCommitIdentity {
@@ -82,6 +150,67 @@ impl RelationalCommitArtifact {
         &self.envelope
     }
 
+    pub(crate) fn canonical_payload_bytes(&self) -> u64 {
+        self.canonical_payload.len() as u64
+    }
+
+    pub(crate) fn canonical_payload_digest(&self) -> [u8; 32] {
+        use sha2::{Digest, Sha256};
+
+        Sha256::digest(self.canonical_payload.as_ref()).into()
+    }
+
+    pub(crate) fn authoritative_allocation_observations(
+        &self,
+    ) -> [RelationalCommitAuthoritativeAllocationObservation; 4] {
+        [
+            RelationalCommitAuthoritativeAllocationObservation {
+                kind: RelationalCommitAuthoritativeAllocationKind::ArtifactObject,
+                authoritative_bytes: std::mem::size_of::<Self>() as u64,
+            },
+            RelationalCommitAuthoritativeAllocationObservation {
+                kind: RelationalCommitAuthoritativeAllocationKind::CanonicalPayload,
+                authoritative_bytes: self.canonical_payload_bytes(),
+            },
+            RelationalCommitAuthoritativeAllocationObservation {
+                kind: RelationalCommitAuthoritativeAllocationKind::EnvelopeObject,
+                authoritative_bytes: std::mem::size_of::<CanonicalCommitEnvelope>() as u64,
+            },
+            RelationalCommitAuthoritativeAllocationObservation {
+                kind: RelationalCommitAuthoritativeAllocationKind::EnvelopeNestedOwnerStorage,
+                authoritative_bytes: self
+                    .envelope
+                    .allocation_inventory()
+                    .authoritative_nested_bytes,
+            },
+        ]
+    }
+
+    pub(crate) fn excluded_allocation_inventory(
+        &self,
+    ) -> RelationalCommitExcludedAllocationInventory {
+        let inventory = self.envelope.allocation_inventory();
+        RelationalCommitExcludedAllocationInventory {
+            diagnostic_bytes: inventory.diagnostic_bytes,
+            optional_cache_bytes: inventory.optional_cache_bytes,
+        }
+    }
+
+    pub(crate) fn links_root(&self, root: &Arc<crate::branch::RelationalBranchRoot>) -> bool {
+        self.branch_root
+            .as_ref()
+            .and_then(Weak::upgrade)
+            .is_some_and(|linked| {
+                Arc::ptr_eq(&linked, root)
+                    && root.descriptor() == Some(&self.roots)
+                    && root.links_envelope(&self.envelope)
+            })
+    }
+
+    pub(crate) fn linked_root(&self) -> Option<Arc<crate::branch::RelationalBranchRoot>> {
+        self.branch_root.as_ref().and_then(Weak::upgrade)
+    }
+
     pub(crate) fn commit_id(&self) -> CommitId {
         self.identity.commit_id()
     }
@@ -90,3 +219,16 @@ impl RelationalCommitArtifact {
         self.identity.version_id()
     }
 }
+
+fn encode_canonical_payload(
+    envelope: &CanonicalCommitEnvelope,
+) -> Result<Arc<[u8]>, RelationalCommitArtifactDenial> {
+    envelope
+        .encode_authoritative_payload()
+        .map(Arc::from)
+        .map_err(|_| RelationalCommitArtifactDenial::CanonicalPayloadEncoding)
+}
+
+#[cfg(test)]
+#[path = "artifact_tests.rs"]
+mod tests;

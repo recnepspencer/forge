@@ -104,7 +104,7 @@ pub(super) fn certify_final_recovery(
     );
     let recovered_revalidated_planning =
         planning_for(&recovered, controller_branch.clone(), main_branch.clone());
-    assert_exact_shared_truth(
+    assert_converged_strategy_overlap(
         &recovered_revalidated_planning,
         entity,
         "recovered revalidated shared truth",
@@ -136,12 +136,9 @@ pub(super) fn certify_final_recovery(
         &recovered_rebroadened_intent_replay,
         "recovered rebroadened intent",
     );
-    let recovered_current = recovered
-        .read_truth()
-        .read_version(recovered.current_version_id());
     assert_eq!(
         planning_evidence(&recovered_revalidated_planning),
-        live_bundle.revalidated_shared_truth
+        live_bundle.revalidated_converged_overlap
     );
     let recovered_revalidation_envelope = recovered
         .replay()
@@ -193,13 +190,10 @@ pub(super) fn certify_final_recovery(
         },
         live_bundle.branch_heads
     );
-    let recovered_entity = recovered_current
-        .get_entity(entity)
-        .expect("recovered entity visible");
     assert_eq!(
-        KubernetesVisibleTruthEvidence {
-            entity_name: read_entity_name(recovered_entity),
-            replicas_canonical_bytes: replicas_canonical_bytes(recovered_entity),
+        KubernetesBranchVisibleTruthEvidence {
+            main: visible_truth_for_branch(&mut recovered, &main_branch, entity),
+            controller: visible_truth_for_branch(&mut recovered, &controller_branch, entity),
         },
         live_bundle.visible_truth
     );

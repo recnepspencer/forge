@@ -9,6 +9,7 @@ mod authoritative_aspect_source_locator;
 mod entity_authoritative_aspect_state_denial;
 mod entity_authoritative_aspect_state_presentation;
 mod mutation_state_inconsistency;
+mod record_allocation_denial;
 mod record_aspect_patch_denial;
 pub use aspect_field_target_rejection::AspectFieldTargetRejectionReason;
 pub use entity_authoritative_aspect_state_denial::EntityAuthoritativeAspectStateDenial;
@@ -16,6 +17,7 @@ pub use mutation_state_inconsistency::{
     BulkMutationAdmissionDenial, EntityCascadeDeleteMissingState,
     MutationStateInconsistencyEvidence,
 };
+pub use record_allocation_denial::RecordAllocationDenial;
 pub use record_aspect_patch_denial::{RecordAspectPatchDenial, RecordAspectPatchTarget};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -128,6 +130,9 @@ pub enum ConflictClass {
     MutationStateInconsistency {
         detail: String,
         evidence: MutationStateInconsistencyEvidence,
+    },
+    RecordAllocationDenied {
+        denial: RecordAllocationDenial,
     },
     EntityUpdateStateInconsistency {
         entity_id: crate::identity::data::EntityId,

@@ -46,7 +46,10 @@ pub(super) fn evaluate_max_snapshot_entities(
             context
                 .metrics()
                 .count_entity_slot_scans(partition.entity_arena.slot_count());
-            visible_entities += (0..partition.entity_arena.slot_count())
+            visible_entities += partition
+                .entity_arena
+                .occupied_slots()
+                .into_iter()
                 .filter(|slot| state_view.entity_visible_at_version(&partition.entity_arena, *slot))
                 .count();
         }

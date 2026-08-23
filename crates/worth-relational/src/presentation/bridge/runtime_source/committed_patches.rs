@@ -20,7 +20,7 @@ impl CommittedPatchSource for RuntimeBridgeRelationalSource {
         request: RelationalCommittedPatchRequest,
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         let commit_id = parse_bridge_commit_identity(request.commit_identity())?;
-        match self.publish_commit(commit_id) {
+        match self.publish_commit(commit_id)? {
             worth_proof::TransitionOutcome::Success(publication) => {
                 Ok(publication.into_bridge_envelope())
             }

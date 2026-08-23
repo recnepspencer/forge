@@ -13,7 +13,38 @@ use crate::schema::data::{
     SymmetryContractDeclaration, SymmetryMode,
 };
 use crate::symbols::data::ClientKey;
+use crate::transactions::data::MergedCommitPlan;
 use crate::transactions::data::{EntitySpec, MutationIntent};
+use crate::validation::engine::InvariantExecutionResult;
+
+pub(crate) fn evaluate_main_commit_boundary_plan(
+    runtime: &RelationalRuntime,
+    plan: &MergedCommitPlan,
+) -> InvariantExecutionResult {
+    let selected = selected_main_branch_state(runtime);
+    runtime
+        .validation()
+        .commit_boundary_for_selected_branch_plan(&selected, plan)
+}
+
+pub(crate) fn evaluate_main_graph_composition_plan(
+    runtime: &RelationalRuntime,
+    plan: &MergedCommitPlan,
+) -> InvariantExecutionResult {
+    let selected = selected_main_branch_state(runtime);
+    runtime
+        .validation()
+        .graph_composition_for_selected_branch_plan(&selected, plan)
+}
+
+fn selected_main_branch_state(
+    runtime: &RelationalRuntime,
+) -> crate::branch::SelectedRelationalBranchState {
+    let options = crate::tests::support::test_owner_transaction_options_for_main(runtime);
+    runtime
+        .selected_branch_state(options.branch_binding())
+        .expect("owner-issued main binding selects its exact current branch state")
+}
 
 pub(super) fn runtime_with_invariants(
     invariant_catalog: InvariantCatalog,

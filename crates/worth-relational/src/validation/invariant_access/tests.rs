@@ -1,9 +1,9 @@
 use super::test_support::{
-    create_entity, relation_cardinality_runtime, relation_integrity_runtime,
+    create_entity, evaluate_main_commit_boundary_plan, evaluate_main_graph_composition_plan,
+    relation_cardinality_runtime, relation_integrity_runtime,
     relation_integrity_runtime_with_scope_budget, relation_symmetry_runtime,
     runtime_with_invariants,
 };
-use super::InvariantAccess;
 use crate::authority::commit::preparation::planning::strategy::PreparationStrategySelection;
 use crate::facade::identity::PartitionId;
 use crate::facade::runtime::{
@@ -44,7 +44,7 @@ fn commit_boundary_short_circuits_when_plan_contract_cannot_touch_profile_groups
         ))],
     };
 
-    let results = InvariantAccess::new(&runtime).commit_boundary(&plan);
+    let results = evaluate_main_commit_boundary_plan(&runtime, &plan);
 
     assert!(results.results().is_empty());
 }
@@ -65,7 +65,7 @@ fn graph_composition_plan_uses_graph_composition_execution_profile() {
         }))],
     };
 
-    let results = InvariantAccess::new(&runtime).graph_composition_plan(&plan);
+    let results = evaluate_main_graph_composition_plan(&runtime, &plan);
 
     assert_eq!(
         results.metadata().execution_point(),
@@ -108,8 +108,8 @@ fn staged_parallel_commit_boundary_matches_serial_reference_results() {
         }))],
     };
 
-    let serial = InvariantAccess::new(&serial_runtime).commit_boundary(&plan);
-    let staged = InvariantAccess::new(&staged_runtime).commit_boundary(&plan);
+    let serial = evaluate_main_commit_boundary_plan(&serial_runtime, &plan);
+    let staged = evaluate_main_commit_boundary_plan(&staged_runtime, &plan);
 
     assert_eq!(serial.results(), staged.results());
     assert_eq!(
@@ -148,7 +148,7 @@ fn commit_boundary_metadata_exposes_proof_boundary_summary_for_packet_backed_exe
         ))],
     };
 
-    let result = InvariantAccess::new(&runtime).commit_boundary(&plan);
+    let result = evaluate_main_commit_boundary_plan(&runtime, &plan);
     let summary = result
         .metadata()
         .proof_boundary()
@@ -182,7 +182,7 @@ fn commit_boundary_symmetry_failure_fields_localize_missing_twin_endpoints() {
         ))],
     };
 
-    let result = InvariantAccess::new(&runtime).commit_boundary(&plan);
+    let result = evaluate_main_commit_boundary_plan(&runtime, &plan);
     let failure = result
         .summary()
         .blocking_failure()
@@ -255,7 +255,7 @@ fn commit_boundary_cardinality_failure_fields_localize_nonmanifold_like_overflow
         ))],
     };
 
-    let result = InvariantAccess::new(&runtime).commit_boundary(&overflow_plan);
+    let result = evaluate_main_commit_boundary_plan(&runtime, &overflow_plan);
     let failure = result
         .summary()
         .blocking_failure()
@@ -330,7 +330,7 @@ fn commit_boundary_reports_relation_integrity_scope_budget_violation_as_blocking
         ))],
     };
 
-    let result = InvariantAccess::new(&runtime).commit_boundary(&plan);
+    let result = evaluate_main_commit_boundary_plan(&runtime, &plan);
     let failure = result
         .summary()
         .blocking_failure()

@@ -7,7 +7,7 @@ use crate::inspection::data::{
     InspectionOrigin, InspectionScope,
 };
 use crate::storage::data::{RelationalReadView, RetentionPlan};
-use crate::visibility::cache_state::cached_state_for_version;
+use crate::visibility::cache_state::cached_historical_state_for_version;
 
 use super::InspectionAccess;
 
@@ -45,7 +45,7 @@ impl<'runtime> InspectionAccess<'runtime> {
         match scope {
             InspectionScope::Current => InspectionAccessPath::DirectLookup,
             InspectionScope::Version(_)
-                if cached_state_for_version(self.runtime, version_id).is_some() =>
+                if cached_historical_state_for_version(self.runtime, version_id).is_some() =>
             {
                 InspectionAccessPath::HistoricalRetainedRead
             }
@@ -62,7 +62,7 @@ impl<'runtime> InspectionAccess<'runtime> {
         match scope {
             InspectionScope::Current => InspectionAvailability::Direct,
             InspectionScope::Version(_)
-                if cached_state_for_version(self.runtime, version_id).is_some() =>
+                if cached_historical_state_for_version(self.runtime, version_id).is_some() =>
             {
                 InspectionAvailability::Direct
             }

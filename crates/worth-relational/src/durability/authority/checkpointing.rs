@@ -1,28 +1,24 @@
 use std::fs;
 
+use super::diagnostics::{
+    durable_segment_append_succeeded, durable_store_compacted, in_memory_checkpoint_created,
+    persisted_checkpoint_created,
+};
+use super::DurabilityAuthority;
 use crate::capabilities::{
     DurabilityRead, RuntimeConfigSource, RuntimeIdentitySource, SchemaVersionSource,
 };
 use crate::diagnostics::data::{DiagnosticsArtifactKind, DiagnosticsScope};
-use crate::durability::checkpoints::images::partition_to_image;
 use crate::durability::data::{
-    CheckpointCoverage, CompactionOutcome, CompactionPlan, DurabilityError, DurabilityMode,
-    DurableCheckpoint, DurableCheckpointId, DurableCheckpointManifest, DurableIntegrityStatus,
-    DurableSegmentId, DurableSegmentManifest,
+    CompactionOutcome, CompactionPlan, DurabilityError, DurabilityMode, DurableCheckpoint,
+    DurableCheckpointId, DurableCheckpointManifest, DurableIntegrityStatus, DurableSegmentId,
+    DurableSegmentManifest,
 };
 use crate::durability::log::local_store::{
     append_segment_entry, checkpoint_file_path, current_segment_ids, ensure_loaded_store,
     persist_store_manifest, segment_file_path, DurableCheckpointFile,
 };
 use crate::durability::log::native_file_codec::write_checkpoint_file;
-use crate::lineage::data::{LineageCheckpointArtifact, LineageCheckpointDigestBasis};
-
-use super::super::derived_index_artifacts::checkpoint_derived_index_artifacts;
-use super::diagnostics::{
-    durable_segment_append_succeeded, durable_store_compacted, in_memory_checkpoint_created,
-    persisted_checkpoint_created,
-};
-use super::DurabilityAuthority;
 
 impl<'runtime> DurabilityAuthority<'runtime> {
     pub fn checkpoint(&mut self) -> Result<DurableCheckpoint, DurabilityError> {
@@ -258,76 +254,6 @@ impl<'runtime> DurabilityAuthority<'runtime> {
         self.runtime.durability.remove_log_commit(commit_id)
     }
 
-    fn build_checkpoint_image(&self) -> Result<DurableCheckpoint, DurabilityError> {
-        let envelopes = self.runtime.history().commit_envelopes_snapshot();
-        let published_lineage_commit_count = envelopes
-            .iter()
-            .filter(|envelope| envelope.has_lineage_authority())
-            .count();
-        let canonical_published_event_ids = envelopes
-            .iter()
-            .flat_map(|envelope| {
-                envelope
-                    .lineage_digest_basis()
-                    .canonical_event_ids()
-                    .iter()
-                    .copied()
-            })
-            .collect();
-        let published_lineage_event_count = envelopes
-            .iter()
-            .map(|envelope| envelope.lineage_digest_basis().lineage_event_count())
-            .sum();
-        let published_lineage_decision_count = envelopes
-            .iter()
-            .map(|envelope| envelope.lineage_digest_basis().lineage_decision_count())
-            .sum();
-        Ok(DurableCheckpoint {
-            coverage: CheckpointCoverage {
-                up_to_commit: self.runtime.history().latest_commit().cloned(),
-                up_to_version: self
-                    .runtime
-                    .history()
-                    .latest_commit()
-                    .map(|commit| commit.version_id),
-            },
-            branch_cells: self.runtime.history().branch_cells_snapshot(),
-            envelopes,
-            partition_images: self
-                .runtime
-                .partitions
-                .values()
-                .cloned()
-                .map(|partition| {
-                    partition_to_image(
-                        partition,
-                        &self.runtime.schema_contract_runtime.aspect_contract_plans,
-                    )
-                })
-                .collect::<Result<Vec<_>, _>>()?,
-            aspect_contracts: checkpoint_aspect_contracts(
-                &self.runtime.schema_contract_runtime.aspect_contract_plans,
-            )?,
-            lineage: LineageCheckpointArtifact::new(
-                LineageCheckpointDigestBasis::new(
-                    published_lineage_commit_count,
-                    canonical_published_event_ids,
-                    published_lineage_event_count,
-                    published_lineage_decision_count,
-                ),
-                self.runtime.lineage_access().nodes_snapshot(),
-                self.runtime
-                    .lineage_access()
-                    .correspondence_candidates_snapshot(),
-                self.runtime.lineage_access().rejected_decisions_snapshot(),
-            ),
-            index_definitions: self.runtime.index_access().definitions_snapshot(),
-            derived_index_artifacts: checkpoint_derived_index_artifacts(self.runtime),
-            symbol_table: self.runtime.services.symbols.snapshot(),
-            runtime_name: self.runtime.runtime_name().to_string(),
-        })
-    }
-
     fn persist_checkpoint_file(
         &mut self,
         checkpoint: &DurableCheckpoint,
@@ -363,35 +289,4 @@ impl<'runtime> DurabilityAuthority<'runtime> {
         self.runtime.durability.store = Some(store);
         Ok(manifest)
     }
-}
-
-fn checkpoint_aspect_contracts(
-    plans: &crate::schema::data::AspectContractPlanCatalog,
-) -> Result<Vec<worth_foundational::facade::PortableAspectContract>, DurabilityError> {
-    let mut contracts = std::collections::BTreeMap::new();
-    for binding in plans
-        .entity_plans
-        .values()
-        .chain(plans.relation_plans.values())
-        .flat_map(|plan| plan.executable_bindings.iter())
-    {
-        let candidate =
-            worth_foundational::facade::PortableAspectContract::from_contract(&binding.contract);
-        match contracts.get(candidate.key()) {
-            Some(existing) if existing == &candidate => continue,
-            Some(_) => {
-                return Err(DurabilityError::new(
-                    crate::durability::data::RecoveryFailureClass::SchemaMismatch,
-                    format!(
-                        "checkpoint has conflicting active contracts for aspect `{}`",
-                        candidate.key().as_str()
-                    ),
-                ));
-            }
-            None => {
-                contracts.insert(candidate.key().clone(), candidate);
-            }
-        }
-    }
-    Ok(contracts.into_values().collect())
 }

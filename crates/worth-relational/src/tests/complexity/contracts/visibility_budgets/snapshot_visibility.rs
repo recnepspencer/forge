@@ -114,20 +114,37 @@ fn complexity_contract_visibility_scans_are_explicitly_measured() {
 
     runtime.performance_access().reset_counters();
     let _ = runtime.read_truth().read_version(historical_version);
+    let historical_version_counters = runtime.performance_access().counters();
+
+    assert_eq!(historical_version_counters.visibility_entity_slot_scans, 2);
+    assert_eq!(
+        historical_version_counters.visibility_relation_slot_scans,
+        1
+    );
+    assert_eq!(
+        historical_version_counters.visibility_cache_miss_reconstructions,
+        1
+    );
+    assert_eq!(
+        historical_version_counters.visibility_exact_state_materializations,
+        0
+    );
+    assert!(historical_version_counters.visible_authoritative_entity_records_materialized >= 2);
+    assert!(historical_version_counters.visible_authoritative_relation_records_materialized >= 1);
+
+    runtime.performance_access().reset_counters();
+    let _ = runtime.read_truth().read_version(current_version);
     let current_version_counters = runtime.performance_access().counters();
 
     assert_eq!(current_version_counters.visibility_entity_slot_scans, 0);
     assert_eq!(current_version_counters.visibility_relation_slot_scans, 0);
-    assert!(current_version_counters.visible_authoritative_entity_records_materialized >= 2);
-    assert!(current_version_counters.visible_authoritative_relation_records_materialized >= 1);
-
-    runtime.performance_access().reset_counters();
-    let _ = runtime.read_truth().read_version(current_version);
-    let historical_version_counters = runtime.performance_access().counters();
-
-    assert_eq!(historical_version_counters.visibility_entity_slot_scans, 0);
     assert_eq!(
-        historical_version_counters.visibility_relation_slot_scans,
+        current_version_counters.visibility_cache_miss_reconstructions,
+        1
+    );
+    assert_eq!(
+        current_version_counters.visibility_exact_state_materializations,
         0
     );
+    assert_eq!(current_version_counters.visibility_cache_hits, 0);
 }

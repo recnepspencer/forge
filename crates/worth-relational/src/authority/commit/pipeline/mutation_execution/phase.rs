@@ -1,7 +1,6 @@
 use super::super::rejection::{attach_rejection, elapsed_micros};
 use crate::authority::commit::phases::mutation::branch_local_delete_allowance_for_plan;
 use crate::authority::mutation::{apply_plan_to_working_state, MutationApplyOutcome};
-use crate::history::data::BranchId;
 use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{
     AuthoritativeApplyPlan, CommitLog, CommitPhase, CommitPhaseTiming, MergedCommitPlan,
@@ -14,6 +13,7 @@ pub(super) struct MutationPhaseOutput {
     invariant_results: crate::validation::engine::InvariantExecutionResult,
     created_entities: crate::transactions::data::CommitCreatedEntityBindings,
     created_relations: crate::transactions::data::CommitCreatedRelationBindings,
+    record_allocations: crate::runtime::PendingRecordAllocations,
 }
 
 impl MutationPhaseOutput {
@@ -29,6 +29,7 @@ impl MutationPhaseOutput {
         crate::validation::engine::InvariantExecutionResult,
         crate::transactions::data::CommitCreatedEntityBindings,
         crate::transactions::data::CommitCreatedRelationBindings,
+        crate::runtime::PendingRecordAllocations,
     ) {
         (
             self.version_id,
@@ -36,6 +37,7 @@ impl MutationPhaseOutput {
             self.invariant_results,
             self.created_entities,
             self.created_relations,
+            self.record_allocations,
         )
     }
 }
@@ -46,7 +48,9 @@ pub(super) struct MutationPhaseInput<'a> {
     pub(super) transaction_id: TransactionId,
     pub(super) working_state: &'a mut crate::storage::overlay::WorkingState,
     pub(super) merged_plan: &'a MergedCommitPlan,
-    pub(super) target_branch: Option<&'a BranchId>,
+    pub(super) selected_branch_state: &'a crate::branch::SelectedRelationalBranchState,
+    pub(super) proposed_version_id: crate::identity::data::VersionId,
+    pub(super) proposal_identity: &'a crate::transactions::RelationalMutationProposalIdentity,
 }
 
 pub(super) fn run_authoritative_mutation_phase(
@@ -59,7 +63,9 @@ pub(super) fn run_authoritative_mutation_phase(
         transaction_id,
         working_state,
         merged_plan,
-        target_branch,
+        selected_branch_state,
+        proposed_version_id,
+        proposal_identity,
     } = input;
     commit_log.begin_phase(CommitPhase::AuthoritativeMutation);
     let phase_started = std::time::Instant::now();
@@ -68,7 +74,9 @@ pub(super) fn run_authoritative_mutation_phase(
         transaction_id,
         working_state,
         merged_plan,
-        target_branch,
+        selected_branch_state,
+        proposed_version_id,
+        proposal_identity,
     )
     .map_err(|error| attach_rejection(commit_log, CommitPhase::AuthoritativeMutation, error))?;
     commit_log.record_invariant_outcomes(mutation.invariant_results());
@@ -82,9 +90,11 @@ fn run_authoritative_mutation_for_runtime(
     transaction_id: TransactionId,
     working_state: &mut crate::runtime::WorkingState,
     merged_plan: &MergedCommitPlan,
-    target_branch: Option<&BranchId>,
+    selected_branch_state: &crate::branch::SelectedRelationalBranchState,
+    proposed_version_id: crate::identity::data::VersionId,
+    proposal_identity: &crate::transactions::RelationalMutationProposalIdentity,
 ) -> Result<MutationPhaseOutput, TransactionCommitError> {
-    let version_id = runtime.history().preview_next_version_id();
+    let version_id = proposed_version_id;
     let apply_plan = AuthoritativeApplyPlan {
         transaction_id,
         version_id,
@@ -97,7 +107,11 @@ fn run_authoritative_mutation_for_runtime(
         execution_model: runtime.config.execution.execution_model,
     };
     let branch_local_delete_allowance =
-        branch_local_delete_allowance_for_plan(runtime, merged_plan, target_branch);
+        branch_local_delete_allowance_for_plan(selected_branch_state, working_state, merged_plan);
+    let mut record_allocations = runtime.record_identity.begin_allocations();
+    let schema_registry = &runtime.config.schema.registry;
+    let aspect_plans = &runtime.schema_contract_runtime.aspect_contract_plans;
+    let services = &mut runtime.services;
     let MutationApplyOutcome {
         effect,
         preparation_telemetry,
@@ -107,10 +121,11 @@ fn run_authoritative_mutation_for_runtime(
         working_state,
         &apply_plan,
         &mutation_config,
-        &runtime.config.schema.registry,
-        &runtime.schema_contract_runtime.aspect_contract_plans,
-        &mut runtime.services.symbols,
+        schema_registry,
+        aspect_plans,
+        &mut services.symbols,
         branch_local_delete_allowance,
+        &mut record_allocations,
     )
     .map_err(TransactionCommitError::conflict)?;
     record_preparation_telemetry(runtime, preparation_telemetry);
@@ -118,7 +133,13 @@ fn run_authoritative_mutation_for_runtime(
 
     let invariant_results = runtime
         .invariant_authority()
-        .enforce_mutation_sensitive_for_working_state(working_state, version_id, merged_plan)
+        .enforce_mutation_sensitive_for_working_state(
+            selected_branch_state,
+            working_state,
+            version_id,
+            merged_plan,
+            Some(proposal_identity),
+        )
         .map_err(TransactionCommitError::conflict)?;
 
     Ok(MutationPhaseOutput {
@@ -127,6 +148,7 @@ fn run_authoritative_mutation_for_runtime(
         invariant_results,
         created_entities,
         created_relations,
+        record_allocations,
     })
 }
 

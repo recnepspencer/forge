@@ -1,38 +1,43 @@
-use crate::capabilities::AspectPlanSource;
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
 use crate::runtime::RelationalRuntime;
 use crate::snapshots::data::SnapshotHandle;
-use crate::storage::data::{EntityReadRecord, RelationReadRecord};
 
+use super::super::reader::VisibilityReadContext;
 use super::contracts::{assert_declared_projection_aspects, ProjectionAspectScope};
 use super::projection_records::{
     EntityProjectionRecord, EntityRecordProjection, RelationProjectionRecord,
     RelationRecordProjection,
 };
-use super::read_record_identity_ordering::{
-    authoritative_entity_records_are_identity_ordered,
-    authoritative_relation_records_are_identity_ordered,
-};
-use crate::visibility::snapshot_states::resolve_snapshot_handle;
 
-use super::super::reader::VisibilityReadContext;
-
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct VisibilityProjectionView<'runtime> {
-    runtime: &'runtime RelationalRuntime,
-    version_id: VersionId,
+    pub(super) runtime: &'runtime RelationalRuntime,
+    pub(super) basis: crate::visibility::snapshot_states::SnapshotStateBasis,
 }
 
 impl<'runtime> VisibilityProjectionView<'runtime> {
-    pub(crate) const fn new(runtime: &'runtime RelationalRuntime, version_id: VersionId) -> Self {
-        Self {
-            runtime,
-            version_id,
-        }
+    pub(crate) fn new(
+        runtime: &'runtime RelationalRuntime,
+        basis: crate::visibility::snapshot_states::SnapshotStateBasis,
+    ) -> Self {
+        Self { runtime, basis }
     }
 
     pub const fn version_id(&self) -> VersionId {
-        self.version_id
+        self.basis.version_id()
+    }
+
+    pub(crate) fn is_exact_basis(&self) -> bool {
+        matches!(
+            self.basis,
+            crate::visibility::snapshot_states::SnapshotStateBasis::Exact(_)
+        )
+    }
+
+    pub(crate) fn selected_schema_authority(
+        &self,
+    ) -> Option<&crate::branch::RelationalBranchRootSchemaAuthority> {
+        self.basis.root().map(|root| root.schema_authority())
     }
 
     pub fn entities<T: EntityRecordProjection>(&self) -> Vec<T> {
@@ -159,77 +164,7 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
         project(RelationProjectionRecord::new(&record, &projection_scope))
     }
 
-    pub(crate) fn authoritative_entity_records(&self, kind_id: KindId) -> Vec<EntityReadRecord> {
-        self.reader()
-            .visible_entities_of_kind(kind_id, self.version_id)
-    }
-
-    pub(crate) fn authoritative_entity_record(
-        &self,
-        entity_id: EntityId,
-    ) -> Option<EntityReadRecord> {
-        self.reader()
-            .authoritative_entity_record_at_version(entity_id, self.version_id)
-    }
-
-    pub(crate) fn entity_record_kind_id(&self, entity_id: EntityId) -> Option<KindId> {
-        self.authoritative_entity_record(entity_id)
-            .map(|record| record.kind.kind_id)
-    }
-
-    pub(crate) fn all_authoritative_entity_records(&self) -> Vec<EntityReadRecord> {
-        let records = self
-            .reader()
-            .all_authoritative_entity_records_at_version(self.version_id);
-        debug_assert!(authoritative_entity_records_are_identity_ordered(&records));
-        records
-    }
-
-    pub(crate) fn authoritative_entity_records_in(
-        &self,
-        partition_id: PartitionId,
-        kind_id: KindId,
-    ) -> Vec<EntityReadRecord> {
-        self.reader()
-            .visible_entities_of_kind_in_partition(partition_id, kind_id, self.version_id)
-    }
-
-    pub(crate) fn authoritative_relation_records(
-        &self,
-        kind_id: KindId,
-    ) -> Vec<RelationReadRecord> {
-        self.reader()
-            .visible_relations_of_kind(kind_id, self.version_id)
-    }
-
-    pub(crate) fn authoritative_relation_record(
-        &self,
-        relation_id: RelationId,
-    ) -> Option<RelationReadRecord> {
-        self.reader()
-            .authoritative_relation_record_at_version(relation_id, self.version_id)
-    }
-
-    pub(crate) fn all_authoritative_relation_records(&self) -> Vec<RelationReadRecord> {
-        let records = self
-            .reader()
-            .all_authoritative_relation_records_at_version(self.version_id);
-        debug_assert!(authoritative_relation_records_are_identity_ordered(
-            &records
-        ));
-        records
-    }
-
-    pub(crate) fn authoritative_relation_records_in(
-        &self,
-        partition_id: PartitionId,
-        kind_id: KindId,
-    ) -> Vec<RelationReadRecord> {
-        self.reader()
-            .visible_relations_of_kind_in_partition(partition_id, kind_id, self.version_id)
-    }
-
-    fn reader(&self) -> VisibilityReadContext<'runtime> {
+    pub(super) fn reader(&self) -> VisibilityReadContext<'runtime> {
         VisibilityReadContext::new(self.runtime)
     }
 
@@ -239,7 +174,7 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
         let projection_scope = T::projection_scope();
         assert_declared_projection_aspects(
             &projection_scope,
-            self.runtime.entity_aspect_plan(T::KIND),
+            self.entity_aspect_plan(T::KIND),
             "entity",
             T::KIND,
         );
@@ -252,7 +187,7 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
         let projection_scope = T::projection_scope();
         assert_declared_projection_aspects(
             &projection_scope,
-            self.runtime.relation_aspect_plan(T::KIND),
+            self.relation_aspect_plan(T::KIND),
             "relation",
             T::KIND,
         );
@@ -266,7 +201,7 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
     ) {
         assert_declared_projection_aspects(
             projection_scope,
-            self.runtime.entity_aspect_plan(kind_id),
+            self.entity_aspect_plan(kind_id),
             "entity",
             kind_id,
         );
@@ -279,26 +214,85 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
     ) {
         assert_declared_projection_aspects(
             projection_scope,
-            self.runtime.relation_aspect_plan(kind_id),
+            self.relation_aspect_plan(kind_id),
             "relation",
             kind_id,
         );
     }
+
+    fn entity_aspect_plan(
+        &self,
+        kind_id: KindId,
+    ) -> Option<&crate::schema::data::LoweredAspectContractPlan> {
+        match &self.basis {
+            crate::visibility::snapshot_states::SnapshotStateBasis::Exact(basis) => {
+                basis.root().schema_authority().entity_aspect_plan(kind_id)
+            }
+            crate::visibility::snapshot_states::SnapshotStateBasis::Historical(_) => self
+                .basis
+                .root()
+                .and_then(|root| root.schema_authority().entity_aspect_plan(kind_id)),
+        }
+    }
+
+    fn relation_aspect_plan(
+        &self,
+        kind_id: KindId,
+    ) -> Option<&crate::schema::data::LoweredAspectContractPlan> {
+        match &self.basis {
+            crate::visibility::snapshot_states::SnapshotStateBasis::Exact(basis) => basis
+                .root()
+                .schema_authority()
+                .relation_aspect_plan(kind_id),
+            crate::visibility::snapshot_states::SnapshotStateBasis::Historical(_) => self
+                .basis
+                .root()
+                .and_then(|root| root.schema_authority().relation_aspect_plan(kind_id)),
+        }
+    }
 }
 
 impl<'runtime> VisibilityReadContext<'runtime> {
-    pub fn project_version(&self, version_id: VersionId) -> VisibilityProjectionView<'runtime> {
-        VisibilityProjectionView::new(self.runtime(), version_id)
+    pub(crate) fn project_branch_head(
+        &self,
+        branch_id: &crate::history::data::BranchId,
+        version_id: VersionId,
+    ) -> Option<VisibilityProjectionView<'runtime>> {
+        let basis = crate::visibility::snapshot_states::VisibilitySnapshotBasis::capture_current(
+            self.runtime(),
+            branch_id,
+            version_id,
+        )?;
+        Some(VisibilityProjectionView::new(
+            self.runtime(),
+            crate::visibility::snapshot_states::SnapshotStateBasis::Exact(basis),
+        ))
+    }
+
+    pub(crate) fn project_historical_version(
+        &self,
+        version_id: VersionId,
+    ) -> VisibilityProjectionView<'runtime> {
+        let basis = crate::visibility::cache_state::historical_basis_for_retained_version(
+            self.runtime(),
+            version_id,
+        )
+        .expect("internal historical projection requires retained MVCC coverage");
+        VisibilityProjectionView::new(
+            self.runtime(),
+            crate::visibility::snapshot_states::SnapshotStateBasis::Historical(basis),
+        )
     }
 
     pub fn project_snapshot(
         &self,
         handle: &SnapshotHandle,
     ) -> Option<VisibilityProjectionView<'runtime>> {
-        let snapshot = resolve_snapshot_handle(self.runtime(), handle)?;
+        let basis =
+            crate::visibility::snapshot_states::resolve_snapshot_basis(self.runtime(), handle)?;
         Some(VisibilityProjectionView::new(
             self.runtime(),
-            snapshot.version_id,
+            crate::visibility::snapshot_states::SnapshotStateBasis::Exact(basis),
         ))
     }
 }

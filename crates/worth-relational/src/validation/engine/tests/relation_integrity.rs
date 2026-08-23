@@ -147,7 +147,9 @@ fn prepared_acyclicity_scope_rejects_visible_graphs_that_exceed_scan_budget() {
     };
 
     let result =
-        crate::validation::invariant_access::InvariantAccess::new(&runtime).commit_boundary(&plan);
+        crate::validation::invariant_access::test_support::evaluate_main_commit_boundary_plan(
+            &runtime, &plan,
+        );
     let failure = result
         .summary()
         .blocking_failure()

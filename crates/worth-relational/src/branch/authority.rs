@@ -2,9 +2,9 @@ use std::marker::PhantomData;
 
 use worth_proof::{AuthorityProves, AuthorityWitness, Proof, ProofMarker};
 
-use super::basis::AdmittedRelationalForkSourceBasis;
+use super::fork_source_basis::AdmittedRelationalForkSourceBasis;
 use super::identity::RelationalBranchIdentity;
-use super::reference::RelationalBranchObservation;
+use super::reference::RelationalBranchReferenceObservation;
 use super::version::RelationalBranchVersion;
 
 worth_proof::authority_marker!(pub RelationalBranchObservationAuthorityMarker);
@@ -20,6 +20,13 @@ impl Clone for RelationalLegacyBranchBindingAuthorityMarker {
 impl Copy for RelationalLegacyBranchBindingAuthorityMarker {}
 
 pub type RelationalForkSourceAuthority = AuthorityWitness<RelationalForkSourceAuthorityMarker>;
+pub type RelationalBranchObservationAuthority =
+    AuthorityWitness<RelationalBranchObservationAuthorityMarker>;
+
+pub(super) fn issue_relational_branch_observation_authority() -> RelationalBranchObservationAuthority
+{
+    RelationalBranchObservationAuthorityMarker::witness()
+}
 
 /// Concrete proof that the Relational owner checked and issued one legacy
 /// transaction binding.  The proof names the authority kind; the binding's
@@ -76,7 +83,7 @@ impl From<super::RelationalBranchIdentityDenial> for RelationalLegacyBranchBindi
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct RelationalLegacyBranchBinding {
     identity: RelationalBranchIdentity,
-    observation: RelationalBranchObservation,
+    observation: RelationalBranchReferenceObservation,
     truth_version: RelationalBranchVersion,
     _proof: RelationalLegacyBranchBindingProof,
 }
@@ -84,7 +91,7 @@ pub(crate) struct RelationalLegacyBranchBinding {
 impl RelationalLegacyBranchBinding {
     pub(crate) fn new(
         identity: RelationalBranchIdentity,
-        observation: RelationalBranchObservation,
+        observation: RelationalBranchReferenceObservation,
         truth_version: RelationalBranchVersion,
     ) -> Self {
         Self {
@@ -101,7 +108,7 @@ impl RelationalLegacyBranchBinding {
         &self.identity
     }
 
-    pub(crate) fn observation(&self) -> &RelationalBranchObservation {
+    pub(crate) fn observation(&self) -> &RelationalBranchReferenceObservation {
         &self.observation
     }
 
@@ -111,7 +118,7 @@ impl RelationalLegacyBranchBinding {
 }
 
 pub(crate) fn admit_relational_fork_source(
-    descriptor: super::basis::RelationalForkSourceDescriptor,
+    descriptor: super::fork_source_basis::RelationalForkSourceDescriptor,
 ) -> AdmittedRelationalForkSourceBasis {
     AdmittedRelationalForkSourceBasis::new(
         descriptor,

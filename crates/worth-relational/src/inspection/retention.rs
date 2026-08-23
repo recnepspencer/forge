@@ -151,10 +151,10 @@ impl<'runtime> InspectionAccess<'runtime> {
         let mut relation_slot_scans = 0_u64;
         let mut work_units = 0_u64;
         for partition_id in self.current_partition_ids() {
-            for slot in 0..self
+            for slot in self
                 .runtime
                 .storage_access()
-                .record_slot_count::<crate::storage::substrate::EntityRecordKind>(partition_id)
+                .record_slots::<crate::storage::substrate::EntityRecordKind>(partition_id)
             {
                 entity_slot_scans += 1;
                 work_units += 1;
@@ -197,12 +197,11 @@ impl<'runtime> InspectionAccess<'runtime> {
                     }
                 }
             }
-            for slot in 0..self
+            for slot in self
                 .runtime
                 .storage_access()
-                .record_slot_count::<crate::storage::substrate::RelationRecordKind>(
-                partition_id,
-            ) {
+                .record_slots::<crate::storage::substrate::RelationRecordKind>(partition_id)
+            {
                 relation_slot_scans += 1;
                 work_units += 1;
                 if work_units > request.max_work_units {

@@ -38,7 +38,8 @@ fn durability_contract_recovery_rejects_tail_target_without_immutable_artifact()
         .recover(plan)
         .expect_err("tail admission must validate its target artifact");
     assert_eq!(error.class, RecoveryFailureClass::CorruptCheckpoint);
-    assert!(error.detail.contains("references missing commit artifact"));
+    assert!(error.detail.contains("recovery root"));
+    assert!(error.detail.contains("is unavailable"));
     assert!(recovered.history().immutable_commit_count() <= 1);
     assert_ne!(
         recovered

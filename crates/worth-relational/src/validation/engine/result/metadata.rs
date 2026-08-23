@@ -105,6 +105,8 @@ pub struct InvariantExecutionMetadata {
     preparation_strategy: Option<PreparationStrategy>,
     preparation_failures: Vec<PreparationFailureClass>,
     proof_boundary: Option<InvariantProofBoundarySummary>,
+    #[serde(skip)]
+    proposal_identity: Option<crate::transactions::RelationalMutationProposalIdentity>,
 }
 
 impl InvariantExecutionMetadata {
@@ -124,6 +126,7 @@ impl InvariantExecutionMetadata {
         preparation_strategy: Option<PreparationStrategy>,
         preparation_failures: Vec<PreparationFailureClass>,
         proof_boundary: Option<InvariantProofBoundarySummary>,
+        proposal_identity: Option<crate::transactions::RelationalMutationProposalIdentity>,
     ) -> Self {
         Self {
             execution_point,
@@ -140,6 +143,7 @@ impl InvariantExecutionMetadata {
             preparation_strategy,
             preparation_failures,
             proof_boundary,
+            proposal_identity,
         }
     }
 
@@ -157,6 +161,7 @@ impl InvariantExecutionMetadata {
         preparation_strategy: PreparationStrategy,
         preparation_failures: Vec<PreparationFailureClass>,
         proof_boundary: Option<InvariantProofBoundarySummary>,
+        proposal_identity: Option<crate::transactions::RelationalMutationProposalIdentity>,
     ) -> Self {
         Self::new(
             execution_point,
@@ -180,6 +185,7 @@ impl InvariantExecutionMetadata {
             Some(preparation_strategy),
             preparation_failures,
             proof_boundary,
+            proposal_identity,
         )
     }
 
@@ -233,6 +239,12 @@ impl InvariantExecutionMetadata {
 
     pub fn proof_boundary(&self) -> Option<&InvariantProofBoundarySummary> {
         self.proof_boundary.as_ref()
+    }
+
+    pub fn proposal_identity(
+        &self,
+    ) -> Option<&crate::transactions::RelationalMutationProposalIdentity> {
+        self.proposal_identity.as_ref()
     }
 
     pub(crate) fn preparation_failures(&self) -> &[PreparationFailureClass] {

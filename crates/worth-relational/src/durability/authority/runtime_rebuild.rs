@@ -2,6 +2,8 @@ mod checkpoint_restore;
 mod envelope_replay;
 mod history_parity;
 mod merge_plan;
+mod recovered_schema_basis;
+mod root_inventory;
 
 use std::collections::BTreeSet;
 
@@ -13,6 +15,7 @@ use checkpoint_restore::{
     restore_checkpoint_state,
 };
 use envelope_replay::replay_durable_envelope;
+use root_inventory::RecoveredRootInventory;
 
 pub(super) fn rebuild_runtime_from_plan(
     admitted: super::recovery::admission::AdmittedRecoveryPlan,
@@ -38,11 +41,19 @@ pub(super) fn rebuild_runtime_from_plan(
         .copied()
         .chain(plan.tail_log.iter().map(|entry| entry.commit.commit_id))
         .collect::<BTreeSet<_>>();
+    let mut recovered_roots = RecoveredRootInventory::capture(&restored)?;
 
     for envelope in &plan.tail_log {
-        replay_durable_envelope(&mut restored, envelope, &available_commit_ids, &plan)?;
+        replay_durable_envelope(
+            &mut restored,
+            envelope,
+            &available_commit_ids,
+            &plan,
+            &mut recovered_roots,
+        )?;
     }
 
     finalize_restored_runtime(&mut restored, original_durability_mode);
+    recovered_roots.finish();
     Ok(restored)
 }

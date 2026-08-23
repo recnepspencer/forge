@@ -46,6 +46,15 @@ impl AspectBinding {
             Self::LifecycleTransition => "lifecycle-transition".to_string(),
         }
     }
+
+    pub fn owned_allocation_capacity_bytes(&self) -> usize {
+        match self {
+            Self::EntityField { field } | Self::RelationField { field } => {
+                field.owned_allocation_capacity_bytes()
+            }
+            _ => 0,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]

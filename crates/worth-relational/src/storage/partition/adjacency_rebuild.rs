@@ -10,7 +10,7 @@ pub(crate) fn rebuild_adjacency_kind_buckets(
     let mut relation_kinds = BTreeMap::<RelationId, KindId>::new();
     let mut historical = Vec::new();
     for (partition_id, partition) in partitions.iter() {
-        for slot in 0..partition.relation_arena.slot_count() {
+        for slot in partition.relation_arena.occupied_slots() {
             for metadata in partition
                 .relation_arena
                 .metadata_history_at(slot)
@@ -25,16 +25,15 @@ pub(crate) fn rebuild_adjacency_kind_buckets(
                     metadata.endpoints.target,
                 ));
             }
-            let Some(kind_id) = partition.relation_arena.kind_ids[slot] else {
+            let Some(slot_view) = partition.relation_arena.get_slot(slot) else {
                 continue;
             };
-            let relation_id = RelationId::new(
-                *partition_id,
-                slot as u64,
-                partition.relation_arena.generations[slot],
-            );
+            let Some(kind_id) = slot_view.kind_id() else {
+                continue;
+            };
+            let relation_id = RelationId::new(*partition_id, slot as u64, slot_view.generation());
             relation_kinds.insert(relation_id, kind_id);
-            if let Some(endpoints) = partition.relation_arena.extra[slot].endpoints.as_ref() {
+            if let Some(endpoints) = slot_view.extra().endpoints.as_ref() {
                 historical.push((relation_id, kind_id, endpoints.source, endpoints.target));
             }
         }
@@ -42,7 +41,7 @@ pub(crate) fn rebuild_adjacency_kind_buckets(
 
     let mut current = Vec::new();
     for (partition_id, partition) in partitions.iter_mut() {
-        for (slot, adjacency) in partition.adjacency.iter_mut().enumerate() {
+        for (&slot, adjacency) in partition.adjacency.iter_mut() {
             current.extend(
                 adjacency
                     .as_slice()
@@ -52,7 +51,7 @@ pub(crate) fn rebuild_adjacency_kind_buckets(
             );
             adjacency.reset_kind_buckets();
         }
-        for (slot, adjacency) in partition.reverse_adjacency.iter_mut().enumerate() {
+        for (&slot, adjacency) in partition.reverse_adjacency.iter_mut() {
             current.extend(
                 adjacency
                     .as_slice()

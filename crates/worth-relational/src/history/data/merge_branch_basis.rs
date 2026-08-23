@@ -28,6 +28,8 @@ pub struct RelationalMergeBranchBasis {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RelationalMergeBranchBasisDenial {
+    SourceObservationDenied(crate::branch::RelationalBranchBasisDenial),
+    TargetObservationDenied(crate::branch::RelationalBranchBasisDenial),
     MissingSourceHead {
         branch_id: BranchId,
     },

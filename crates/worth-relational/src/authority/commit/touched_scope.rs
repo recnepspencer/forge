@@ -129,8 +129,8 @@ mod tests {
                 relation_overlay_is_sparse: false,
                 entity_arena: EntityArena::with_capacity(1),
                 relation_arena: RelationArena::with_capacity(0),
-                adjacency: vec![source_adjacency],
-                reverse_adjacency: vec![AdjacencySet::new(&adjacency_policy)],
+                adjacency: vec![source_adjacency].into(),
+                reverse_adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
             },
         );
         partitions.insert(
@@ -141,8 +141,8 @@ mod tests {
                 relation_overlay_is_sparse: false,
                 entity_arena: EntityArena::with_capacity(0),
                 relation_arena,
-                adjacency: Vec::new(),
-                reverse_adjacency: Vec::new(),
+                adjacency: Default::default(),
+                reverse_adjacency: Default::default(),
             },
         );
         partitions.insert(
@@ -153,8 +153,8 @@ mod tests {
                 relation_overlay_is_sparse: false,
                 entity_arena: EntityArena::with_capacity(1),
                 relation_arena: RelationArena::with_capacity(0),
-                adjacency: vec![AdjacencySet::new(&adjacency_policy)],
-                reverse_adjacency: vec![AdjacencySet::new(&adjacency_policy)],
+                adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
+                reverse_adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
             },
         );
 
@@ -214,8 +214,8 @@ mod tests {
                 relation_overlay_is_sparse: false,
                 entity_arena: EntityArena::with_capacity(1),
                 relation_arena: RelationArena::with_capacity(0),
-                adjacency: vec![source_adjacency],
-                reverse_adjacency: vec![AdjacencySet::new(&adjacency_policy)],
+                adjacency: vec![source_adjacency].into(),
+                reverse_adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
             },
         );
         partitions.insert(
@@ -226,8 +226,8 @@ mod tests {
                 relation_overlay_is_sparse: false,
                 entity_arena: EntityArena::with_capacity(0),
                 relation_arena,
-                adjacency: Vec::new(),
-                reverse_adjacency: Vec::new(),
+                adjacency: Default::default(),
+                reverse_adjacency: Default::default(),
             },
         );
         partitions.insert(
@@ -238,8 +238,8 @@ mod tests {
                 relation_overlay_is_sparse: false,
                 entity_arena: EntityArena::with_capacity(1),
                 relation_arena: RelationArena::with_capacity(0),
-                adjacency: vec![AdjacencySet::new(&adjacency_policy)],
-                reverse_adjacency: vec![AdjacencySet::new(&adjacency_policy)],
+                adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
+                reverse_adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
             },
         );
 

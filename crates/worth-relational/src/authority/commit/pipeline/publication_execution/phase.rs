@@ -36,7 +36,8 @@ impl FinalizedPublicationPhase {
 pub(super) struct DurableAppendPhaseInput<'a> {
     pub(super) commit_log: &'a mut CommitLog,
     pub(super) phase_timing: &'a mut CommitPhaseTiming,
-    pub(super) publication: &'a PublicationPreparation,
+    pub(super) canonical_commit_envelope: &'a CanonicalCommitEnvelope,
+    pub(super) patch_position: crate::publication::patch::data::PatchStreamPosition,
     pub(super) append_authority: crate::durability::authority::DurableAppendAuthority,
     pub(super) commit_id: CommitId,
     pub(super) branch_id: &'a BranchId,
@@ -49,24 +50,17 @@ pub(super) fn append_durable_commit_phase(
     let DurableAppendPhaseInput {
         commit_log,
         phase_timing,
-        publication,
+        canonical_commit_envelope,
+        patch_position,
         append_authority,
         commit_id,
         branch_id,
     } = input;
     commit_log.begin_phase(CommitPhase::DurableAppend);
     let phase_started = std::time::Instant::now();
-    commit_log.record_durable_append_prepared(
-        commit_id,
-        &branch_id.0,
-        publication.patch_position(),
-    );
-    append_durable_commit(
-        runtime,
-        append_authority,
-        publication.canonical_commit_envelope(),
-    )
-    .map_err(|error| attach_rejection(commit_log, CommitPhase::DurableAppend, error))?;
+    commit_log.record_durable_append_prepared(commit_id, &branch_id.0, patch_position);
+    append_durable_commit(runtime, append_authority, canonical_commit_envelope)
+        .map_err(|error| attach_rejection(commit_log, CommitPhase::DurableAppend, error))?;
     commit_log.complete_phase(CommitPhase::DurableAppend);
     phase_timing.durable_append_micros = elapsed_micros(phase_started);
     Ok(())
@@ -76,6 +70,8 @@ pub(super) struct FinalizePublicationPhaseInput<'a> {
     pub(super) commit_log: &'a mut CommitLog,
     pub(super) phase_timing: &'a mut CommitPhaseTiming,
     pub(super) working_state: crate::storage::overlay::WorkingState,
+    pub(super) record_allocations: crate::runtime::PendingRecordAllocations,
+    pub(super) selected_branch_state: &'a crate::branch::SelectedRelationalBranchState,
     pub(super) publication: PublicationPreparation,
     pub(super) version_id: VersionId,
     pub(super) previous_branch_head_version: Option<VersionId>,
@@ -95,6 +91,8 @@ pub(super) fn finalize_publication_phase(
         commit_log,
         phase_timing,
         working_state,
+        record_allocations,
+        selected_branch_state,
         publication,
         version_id,
         previous_branch_head_version,
@@ -105,36 +103,83 @@ pub(super) fn finalize_publication_phase(
         merge_base_commits,
         merge_parent_branches,
     } = input;
-    commit_log.begin_phase(CommitPhase::Publication);
-    let phase_started = std::time::Instant::now();
     let (artifacts, changed_records, canonical_commit_envelope, adjacency_deltas) =
         publication.into_finalize().into_parts();
     let canonical_commit_envelope = Arc::new(canonical_commit_envelope);
-    let publication_phase_timing = finalize_commit_publication(
+    let mut working_state = working_state;
+    apply_adjacency_deltas(&mut working_state, &adjacency_deltas);
+    let clone_mode = working_state.clone_mode();
+    let committed_partitions = working_state.into_partition_commits().1;
+    runtime
+        .history
+        .validate_branch_root_capture(committed_partitions.len())
+        .map_err(|denial| {
+            TransactionCommitError::publication(PublicationError::new(
+                PublicationStage::BundleAssembly,
+                format!("branch-root capture preflight denied: {denial:?}"),
+            ))
+            .with_commit_log(commit_log.clone())
+        })?;
+    let published_partition_delta =
+        crate::storage::RelationalPublishedPartitionDelta::from_committed_partitions(
+            &committed_partitions,
+        );
+    let prepared_history = runtime
+        .mvcc_publication_authority()
+        .prepare_commit(
+            commit_id,
+            commit_reference.clone(),
+            branch_binding,
+            selected_branch_state,
+            published_partition_delta,
+            canonical_commit_envelope.patch.position,
+            Arc::clone(&canonical_commit_envelope),
+        )
+        .map_err(|detail| {
+            TransactionCommitError::publication(PublicationError::new(
+                PublicationStage::BundleAssembly,
+                detail,
+            ))
+            .with_commit_log(commit_log.clone())
+        })?;
+    let append_authority = crate::durability::authority::DurableAppendAuthority::from_commit(
+        super::CommitDurableAppendAdmission::new(runtime, commit_id, branch_id),
+    );
+    append_durable_commit_phase(
         runtime,
-        working_state,
-        FinalizeCommitInput {
+        DurableAppendPhaseInput {
+            commit_log,
+            phase_timing,
+            canonical_commit_envelope: canonical_commit_envelope.as_ref(),
+            patch_position: canonical_commit_envelope.patch.position,
+            append_authority,
+            commit_id,
+            branch_id,
+        },
+    )?;
+    commit_log.begin_phase(CommitPhase::Publication);
+    let phase_started = std::time::Instant::now();
+    let mut publication_phase_timing =
+        crate::authority::commit::phases::finalize::PublicationPhaseTiming::default();
+    record_allocations.commit();
+    finalize_published_commit(
+        runtime,
+        FinalizationInput {
+            clone_mode,
+            committed_partitions,
+            prepared_history,
             changed_records: &changed_records,
             version_id,
             previous_branch_head_version,
             commit_id,
             commit_reference,
-            branch_binding,
-            canonical_commit_envelope: canonical_commit_envelope.clone(),
             branch_id,
             merge_base_commits,
             artifacts,
             merge_parent_branches,
-            adjacency_deltas,
+            phase_timing: &mut publication_phase_timing,
         },
-    )
-    .map_err(|detail| {
-        TransactionCommitError::publication(PublicationError::new(
-            PublicationStage::BundleAssembly,
-            detail,
-        ))
-        .with_commit_log(commit_log.clone())
-    })?;
+    );
     commit_log.record_commit_published(commit_id, &commit_reference.branch_id.0);
     commit_log.complete_phase(CommitPhase::Publication);
     phase_timing.publication_micros = elapsed_micros(phase_started);
@@ -154,53 +199,4 @@ pub(super) fn finalize_publication_phase(
         canonical_commit_envelope,
         changed_records,
     })
-}
-
-struct FinalizeCommitInput<'a> {
-    changed_records: &'a [crate::transactions::data::RecordRef],
-    version_id: VersionId,
-    previous_branch_head_version: Option<VersionId>,
-    commit_id: CommitId,
-    commit_reference: &'a RelationalCommitReceipt,
-    branch_binding: &'a crate::branch::RelationalLegacyBranchBinding,
-    canonical_commit_envelope: Arc<CanonicalCommitEnvelope>,
-    branch_id: &'a BranchId,
-    merge_base_commits: &'a [CommitId],
-    artifacts: crate::storage::overlay::PublicationArtifacts,
-    merge_parent_branches: &'a [BranchId],
-    adjacency_deltas: Vec<crate::authority::mutation::AdjacencyDelta>,
-}
-
-fn finalize_commit_publication(
-    runtime: &mut RelationalRuntime,
-    mut working_state: crate::storage::overlay::WorkingState,
-    input: FinalizeCommitInput<'_>,
-) -> Result<crate::authority::commit::phases::finalize::PublicationPhaseTiming, String> {
-    let mut phase_timing =
-        crate::authority::commit::phases::finalize::PublicationPhaseTiming::default();
-    let phase_started = std::time::Instant::now();
-    apply_adjacency_deltas(&mut working_state, &input.adjacency_deltas);
-    phase_timing.storage_commit_micros = phase_started.elapsed().as_micros() as u64;
-    let clone_mode = working_state.clone_mode();
-    let committed_partitions = working_state.into_partition_commits().1;
-    finalize_published_commit(
-        runtime,
-        FinalizationInput {
-            clone_mode,
-            committed_partitions,
-            changed_records: input.changed_records,
-            version_id: input.version_id,
-            previous_branch_head_version: input.previous_branch_head_version,
-            commit_id: input.commit_id,
-            commit_reference: input.commit_reference,
-            branch_binding: input.branch_binding,
-            canonical_commit_envelope: input.canonical_commit_envelope,
-            branch_id: input.branch_id,
-            merge_base_commits: input.merge_base_commits,
-            artifacts: input.artifacts,
-            merge_parent_branches: input.merge_parent_branches,
-            phase_timing: &mut phase_timing,
-        },
-    )?;
-    Ok(phase_timing)
 }

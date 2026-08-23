@@ -37,6 +37,14 @@ impl PortableAspectContract {
         &self.key
     }
 
+    pub fn identity(&self) -> AspectIdentity {
+        self.identity
+    }
+
+    pub fn revision(&self) -> AspectContractRevision {
+        self.revision
+    }
+
     pub fn readmit(&self) -> Result<AspectContract, PortableAspectContractDenial> {
         let masks = self.masks.readmit()?;
         let step = aspects()

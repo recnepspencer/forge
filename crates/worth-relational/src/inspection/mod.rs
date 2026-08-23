@@ -5,6 +5,7 @@ pub mod data;
 mod graph;
 mod historical;
 mod merge_support;
+pub mod mvcc;
 mod retention;
 mod structural_identity;
 

@@ -50,7 +50,7 @@ pub struct RelationReadRecord {
     pub authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RelationalReadView {
     pub(crate) snapshot: SnapshotHandle,
     pub(crate) entities: Vec<EntityReadRecord>,

@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn complexity_budget_unique_entity_invariant_uses_changed_set_lookup() {
+fn complexity_budget_unique_entity_invariant_scans_the_selected_state() {
     let mut runtime = runtime_with_declared_aspect_schema_and_invariants(InvariantCatalog {
         registrations: vec![InvariantRegistration::mutation_sensitive_blocking(
             InvariantRule::unique_entity_aspect_field(aspect_key("name"), field_key("name")),
@@ -36,7 +36,10 @@ fn complexity_budget_unique_entity_invariant_uses_changed_set_lookup() {
         TransactionCommitError::Conflict { error: ref conflict, .. }
             if conflict.code == DiagnosticCode::InvariantViolation
     ));
-    assert_eq!(counters.invariant_entity_slot_scans, 1);
+    assert_eq!(
+        counters.invariant_entity_slot_scans, 2,
+        "global uniqueness scans both selected entity slots before reducing the duplicate"
+    );
     assert_eq!(
         counters.invariant_authoritative_entity_records_materialized,
         0
@@ -44,7 +47,7 @@ fn complexity_budget_unique_entity_invariant_uses_changed_set_lookup() {
 }
 
 #[test]
-fn complexity_budget_commit_boundary_unique_invariant_uses_merged_plan_lookup() {
+fn complexity_budget_commit_boundary_unique_invariant_applies_the_selected_plan() {
     let mut runtime = runtime_with_declared_aspect_schema_and_invariants(InvariantCatalog {
         registrations: vec![InvariantRegistration::commit_boundary_blocking(
             InvariantRule::unique_entity_aspect_field(aspect_key("name"), field_key("name")),
@@ -79,7 +82,34 @@ fn complexity_budget_commit_boundary_unique_invariant_uses_merged_plan_lookup() 
         TransactionCommitError::Conflict { error: ref conflict, .. }
             if conflict.code == DiagnosticCode::InvariantViolation
     ));
-    assert_eq!(counters.invariant_entity_slot_scans, 1);
+    assert_eq!(counters.invariant_entity_slot_scans, 2);
+    assert_eq!(
+        counters.invariant_authoritative_entity_records_materialized,
+        0
+    );
+}
+
+#[test]
+fn complexity_budget_unique_entity_scan_grows_with_selected_unrelated_state() {
+    let mut runtime = runtime_with_declared_aspect_schema_and_invariants(InvariantCatalog {
+        registrations: vec![InvariantRegistration::mutation_sensitive_blocking(
+            InvariantRule::unique_entity_aspect_field(aspect_key("name"), field_key("name")),
+        )],
+        ..InvariantCatalog::default()
+    });
+    let target = create_entity(&mut runtime, "target");
+    let _other_a = create_entity(&mut runtime, "other-a");
+    let _other_b = create_entity(&mut runtime, "other-b");
+    let _other_c = create_entity(&mut runtime, "other-c");
+    runtime.performance_access().reset_counters();
+
+    update_entity(&mut runtime, target, "fresh-value");
+    let counters = runtime.performance_access().counters();
+
+    assert_eq!(
+        counters.invariant_entity_slot_scans, 4,
+        "the selected-state scan must account for every selected entity slot"
+    );
     assert_eq!(
         counters.invariant_authoritative_entity_records_materialized,
         0

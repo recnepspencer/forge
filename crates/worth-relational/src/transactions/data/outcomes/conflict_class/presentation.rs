@@ -14,6 +14,7 @@ impl ConflictClass {
             Self::InvariantViolation { code, .. } => *code,
             Self::KindSchemaMismatch { .. } => DiagnosticCode::InvariantViolation,
             Self::MutationStateInconsistency { .. } => DiagnosticCode::StorageInconsistencyDetected,
+            Self::RecordAllocationDenied { .. } => DiagnosticCode::StorageInconsistencyDetected,
             Self::EntityUpdateStateInconsistency { .. } => {
                 DiagnosticCode::StorageInconsistencyDetected
             }
@@ -67,6 +68,7 @@ impl ConflictClass {
             | Self::TypeContinuityDeniedSchemaTransition { detail }
             | Self::StructuralContinuityDeniedSchemaTransition { detail }
             | Self::DirectionalityMismatchUnderCanonicalReconciliation { detail } => detail.clone(),
+            Self::RecordAllocationDenied { denial } => denial.detail(),
             Self::InvariantViolation { detail, .. } => detail.clone(),
             Self::InvalidSchemaTransitionShape { detail } => detail.clone(),
             Self::EntityUpdateStateInconsistency { missing, .. } => format!(

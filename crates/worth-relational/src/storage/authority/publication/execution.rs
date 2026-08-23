@@ -25,6 +25,7 @@ fn execute_partition(
             if let Some(layout) = entity_layout {
                 record_entity_replacement(authority.runtime, &publication, layout);
             }
+            publication.partition_state.clear_runtime_pin_counters();
             authority
                 .runtime
                 .partitions
@@ -70,7 +71,6 @@ fn merge_entity_slots(
                 &mut publication.partition_state.entity_arena,
                 &publication.journal.entity_slots,
                 chunk_width,
-                publication.journal.entity_free_list_changed,
             );
             Some(published.max(chunk_plan.chunk_count))
         }
@@ -78,7 +78,6 @@ fn merge_entity_slots(
             base.entity_arena.merge_slots_from_owned(
                 &mut publication.partition_state.entity_arena,
                 &publication.journal.entity_slots,
-                publication.journal.entity_free_list_changed,
             );
             None
         }
@@ -127,11 +126,15 @@ fn publish_hybrid_partition(
         base.relation_arena.merge_slots_from_owned(
             &mut publication.partition_state.relation_arena,
             &publication.journal.relation_slots,
-            publication.journal.relation_free_list_changed,
         );
         publication.partition_state.relation_arena = base.relation_arena;
     } else if publication.journal.relation_slots.is_empty() {
         publication.partition_state.relation_arena = base.relation_arena;
+    } else {
+        publication
+            .partition_state
+            .relation_arena
+            .preserve_runtime_pins_from(&base.relation_arena);
     }
     if publication.journal.adjacency_slots.is_empty() {
         publication.partition_state.adjacency = base.adjacency;
@@ -151,9 +154,19 @@ fn publish_whole_partition(
 ) {
     if publication.journal.entity_slots.is_empty() {
         publication.partition_state.entity_arena = base.entity_arena;
+    } else {
+        publication
+            .partition_state
+            .entity_arena
+            .preserve_runtime_pins_from(&base.entity_arena);
     }
     if publication.journal.relation_slots.is_empty() {
         publication.partition_state.relation_arena = base.relation_arena;
+    } else {
+        publication
+            .partition_state
+            .relation_arena
+            .preserve_runtime_pins_from(&base.relation_arena);
     }
     if publication.journal.adjacency_slots.is_empty() {
         publication.partition_state.adjacency = base.adjacency;

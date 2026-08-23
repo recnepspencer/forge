@@ -50,6 +50,7 @@ fn evaluate_native_registration(
         runtime,
         packet.observation.clone(),
         packet.version_id,
+        packet.current_version_id,
         packet.merged_plan,
         packet.relation_integrity_scopes.clone(),
     );
@@ -88,6 +89,7 @@ fn evaluate_custom_registration(
         runtime,
         packet.observation,
         packet.version_id,
+        packet.current_version_id,
         prepared_scope,
     );
     let verdicts = match prepared_execution.evaluate(&context) {

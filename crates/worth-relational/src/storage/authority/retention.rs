@@ -54,6 +54,7 @@ impl<'runtime> StorageAuthority<'runtime> {
 
     pub(crate) fn reclaim_record_if_reclaimable<K: RecordKind>(
         &mut self,
+        class: crate::history::data::RecordAllocationClass,
         partition_id: PartitionId,
         slot: usize,
     ) -> bool {
@@ -69,6 +70,8 @@ impl<'runtime> StorageAuthority<'runtime> {
         }
         arena.set_lifecycle_for_slot(slot, RecordLifecycleState::Reusable);
         arena.reset_slot(slot);
+        let reclaimed = crate::runtime::ReclaimedRecordSlot::new(class, partition_id, slot);
+        self.runtime.record_identity.admit_reclaimed(reclaimed);
         true
     }
 

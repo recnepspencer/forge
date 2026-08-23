@@ -79,6 +79,9 @@ pub(super) fn commit_error_to_harness_error(
             error: publication,
             ..
         } => RelationalHarnessError(publication.detail),
+        crate::facade::transactions::TransactionCommitError::Preparation { error, .. } => {
+            RelationalHarnessError(error.detail())
+        }
     }
 }
 

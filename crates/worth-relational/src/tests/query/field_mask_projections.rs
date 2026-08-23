@@ -127,7 +127,7 @@ fn entity_field_mask_projection_reads_only_declared_struct_field() {
 
     let projected = runtime
         .read_truth()
-        .project_version(runtime.current_version_id())
+        .project_historical_version(runtime.current_version_id())
         .entities::<SummaryTitleFieldProjection>();
 
     assert_eq!(projected.len(), 1);
@@ -149,7 +149,7 @@ fn whole_aspect_projection_still_reads_full_struct_aspect() {
 
     let projected = runtime
         .read_truth()
-        .project_version(runtime.current_version_id())
+        .project_historical_version(runtime.current_version_id())
         .entities::<SummaryWholeAspectProjection>();
 
     assert_eq!(projected.len(), 1);
@@ -165,7 +165,7 @@ fn scalar_aspect_rejects_field_mask_projection_at_use_boundary() {
 
     let _ = runtime
         .read_truth()
-        .project_version(runtime.current_version_id())
+        .project_historical_version(runtime.current_version_id())
         .entities::<NameFieldMaskProjection>();
 }
 
@@ -185,7 +185,7 @@ fn relation_field_mask_projection_reads_only_declared_struct_field() {
 
     let projected = runtime
         .read_truth()
-        .project_version(runtime.current_version_id())
+        .project_historical_version(runtime.current_version_id())
         .relations::<RelationSummaryTitleFieldProjection>();
 
     assert_eq!(projected.len(), 1);

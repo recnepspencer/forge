@@ -17,8 +17,7 @@ pub(crate) fn admissible_access_path(
         return QueryAccessPath::AuthoritativeStorage;
     }
 
-    let branch_id = branch_id_for_version(runtime, plan.snapshot.version_id)
-        .unwrap_or_else(|| runtime.config.history.main_branch.clone());
+    let branch_id = plan.snapshot.branch_id().clone();
     let Some(generation) = candidate_generation_for_packet(runtime, &plan.packet, &branch_id)
     else {
         return QueryAccessPath::DerivedIndexRejectedStorageRead {
@@ -54,18 +53,6 @@ pub(crate) fn should_verify_sampled_parity(
         ^ ((generation_id.0 as u128) << 64)
         ^ (plan.snapshot.version_id.0 as u128);
     sample_key % SAMPLED_PARITY_MODULUS == SAMPLED_PARITY_REMAINDER
-}
-
-fn branch_id_for_version(
-    runtime: &RelationalRuntime,
-    version_id: crate::identity::data::VersionId,
-) -> Option<BranchId> {
-    runtime
-        .history
-        .commit_graph
-        .values()
-        .find(|node| node.commit.version_id == version_id)
-        .map(|node| node.commit.branch_id.clone())
 }
 
 fn index_rejection_for_packet(

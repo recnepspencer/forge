@@ -55,6 +55,7 @@ pub(crate) struct InvariantWorkPacket<'runtime> {
     pub(crate) planning_context: Arc<PreparationPlanningContext>,
     pub(crate) observation: &'runtime InvariantObservation<'runtime>,
     pub(crate) version_id: crate::identity::data::VersionId,
+    pub(crate) current_version_id: crate::identity::data::VersionId,
     pub(crate) merged_plan: Option<&'runtime MergedCommitPlan>,
     pub(crate) relation_integrity_scopes: Option<PreparedRelationIntegrityScopes>,
 }

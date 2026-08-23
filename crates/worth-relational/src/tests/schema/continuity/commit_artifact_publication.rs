@@ -97,6 +97,20 @@ fn explicit_schema_transition_is_lowered_into_canonical_commit_artifacts() {
         .envelope()
         .schema_reconciliation_descriptor
         .is_some());
+    let populated_nested_bytes = outcome
+        .envelope()
+        .allocation_inventory()
+        .authoritative_nested_bytes;
+    let mut omitted_schema_authority = outcome.envelope().clone();
+    omitted_schema_authority.schema_transition = None;
+    omitted_schema_authority.schema_continuation_descriptor = None;
+    omitted_schema_authority.schema_reconciliation_descriptor = None;
+    assert!(
+        populated_nested_bytes
+            > omitted_schema_authority
+                .allocation_inventory()
+                .authoritative_nested_bytes
+    );
     assert!(outcome.diagnostics().iter().any(|artifact| artifact.scope
         == DiagnosticsScope::Schema
         && artifact

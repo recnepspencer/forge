@@ -10,6 +10,82 @@ use crate::facade::transactions::{CreateIntent, EntitySpec, MutationIntent, Work
 use crate::facade::{identity::PartitionId, symbols::ClientKey};
 
 #[test]
+fn initial_schema_installation_moves_empty_exact_basis_without_revoking_retained_reads() {
+    let mut runtime = RelationalRuntimeApi::builder().build();
+    let identity = runtime.main_branch_identity();
+    let (old_descriptor, old_basis) = runtime.observe_branch(&identity).unwrap();
+    let old_observation = old_basis.observation();
+    let old_snapshot = runtime
+        .snapshots()
+        .snapshot_for_observation(&old_observation)
+        .unwrap();
+    assert_eq!(
+        runtime
+            .read_truth()
+            .observation_schema_version(&old_observation)
+            .unwrap(),
+        SchemaVersionId(0)
+    );
+
+    install_entity_kind(&mut runtime, KindId(7), "installed");
+
+    let retained = runtime.readmit_branch_basis(&old_descriptor).unwrap();
+    let (new_descriptor, new_basis) = runtime.observe_branch(&identity).unwrap();
+    let new_observation = new_basis.observation();
+    let new_snapshot = runtime
+        .snapshots()
+        .snapshot_for_observation(&new_observation)
+        .unwrap();
+    assert_ne!(
+        old_descriptor.schema_commitment(),
+        new_descriptor.schema_commitment()
+    );
+    assert_ne!(
+        old_descriptor.reference().generation(),
+        new_descriptor.reference().generation()
+    );
+    assert_eq!(
+        runtime.read_truth().snapshot_schema_version(&old_snapshot),
+        Some(SchemaVersionId(0))
+    );
+    assert_eq!(
+        runtime.read_truth().snapshot_schema_version(&new_snapshot),
+        Some(SchemaVersionId(1))
+    );
+    assert!(runtime
+        .read_truth()
+        .read_version(crate::identity::data::VersionId(0))
+        .entities()
+        .is_empty());
+
+    drop(retained);
+    drop(old_observation);
+    drop(old_basis);
+    assert!(matches!(
+        runtime.readmit_branch_basis(&old_descriptor),
+        Err(crate::branch::RelationalBranchBasisDenial::StaleReferenceGeneration)
+    ));
+    assert!(runtime.snapshots().release_snapshot(&old_snapshot));
+    assert!(runtime.snapshots().release_snapshot(&new_snapshot));
+}
+
+fn install_entity_kind(
+    runtime: &mut crate::runtime::RelationalRuntime,
+    kind_id: KindId,
+    name: &str,
+) {
+    runtime
+        .prepare_initial_schema_installation()
+        .unwrap()
+        .install(
+            RelationalSchemaRegistry::new()
+                .register_entity_kind(entity(kind_id, name))
+                .unwrap(),
+        )
+        .unwrap();
+}
+
+#[test]
 fn initial_schema_installation_retains_existing_kinds_and_rejects_duplicates() {
     let initial = RelationalSchemaRegistry::new()
         .register_entity_kind(entity(KindId(4), "existing"))

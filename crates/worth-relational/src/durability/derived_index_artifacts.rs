@@ -9,12 +9,11 @@ pub(crate) fn checkpoint_derived_index_artifacts(
 }
 
 pub(crate) fn restore_checkpoint_derived_index_artifacts(
-    runtime: &mut RelationalRuntime,
+    indexes: &mut crate::runtime::IndexingSubsystem,
     artifacts: &DerivedIndexArtifacts,
 ) {
     for generation in artifacts.generations() {
-        runtime
-            .indexes
+        indexes
             .generations
             .entry(generation.index_id)
             .or_default()

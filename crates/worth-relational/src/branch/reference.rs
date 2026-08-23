@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use worth_foundational::{
     FoundationalBranchComparisonBasis, FoundationalBranchForkBasis, FoundationalBranchId,
     FoundationalBranchIdConstructionDenial, FoundationalBranchReferenceGeneration,
@@ -10,11 +11,9 @@ use super::target::RelationalBranchTarget;
 use super::RelationalBranchVersion;
 use crate::history::data::BranchId;
 
-/// Exact Phase-4 reference observation. This is not the later Phase-6
-/// repeatable-read `RelationalBranchObservation` artifact.
+/// Exact descriptive branch-reference observation, not a repeatable-read artifact.
 pub type RelationalBranchReferenceObservation =
     FoundationalBranchReferenceObservation<RelationalBranchTarget>;
-pub(crate) type RelationalBranchObservation = RelationalBranchReferenceObservation;
 pub type RelationalBranchForkBasis = FoundationalBranchForkBasis<RelationalBranchTarget>;
 pub type RelationalBranchComparisonBasis =
     FoundationalBranchComparisonBasis<RelationalBranchTarget>;
@@ -40,7 +39,7 @@ pub fn relational_branch_observation(
     branch_name: impl AsRef<str>,
     target: FoundationalBranchTarget<RelationalBranchTarget>,
     generation: FoundationalBranchReferenceGeneration,
-) -> Result<RelationalBranchObservation, RelationalBranchObservationConstructionDenial> {
+) -> Result<RelationalBranchReferenceObservation, RelationalBranchObservationConstructionDenial> {
     let branch_name = branch_name.as_ref();
     if branch_name.trim().is_empty() {
         return Err(RelationalBranchObservationConstructionDenial::EmptyBranchName);
@@ -57,7 +56,7 @@ pub fn relational_branch_observation(
     }
     let branch_id =
         FoundationalBranchId::new(format!("relational/{runtime_instance_id}/{branch_name}"))?;
-    Ok(RelationalBranchObservation::new(
+    Ok(RelationalBranchReferenceObservation::new(
         branch_id, target, generation,
     ))
 }
@@ -70,18 +69,19 @@ impl From<FoundationalBranchIdConstructionDenial>
     }
 }
 
-/// Mutable owner cell for one branch reference. The exact Foundational
-/// observation is the sole target/generation observation; the version counter
-/// is owner-local truth movement and is deliberately not duplicated in the
-/// target descriptor.
+/// Mutable owner cell for one branch reference. The exact Foundational observation
+/// owns target/generation; owner-local truth movement stays in the version counter.
 #[derive(Debug, Clone)]
 pub(crate) struct RelationalBranchReferenceCell {
     identity: RelationalBranchIdentity,
-    observation: RelationalBranchObservation,
+    observation: RelationalBranchReferenceObservation,
     truth_version: RelationalBranchVersion,
     head_retention_obligations: u32,
-    fork_provenance: Option<RelationalBranchObservation>,
+    fork_provenance: Option<RelationalBranchReferenceObservation>,
     fork_source_branch_id: Option<BranchId>,
+    root: Option<Arc<super::RelationalBranchRoot>>,
+    basis_registry: super::RelationalBranchBasisRegistry,
+    coordination: Arc<super::coordination::RelationalBranchCoordinationCell>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -94,6 +94,7 @@ pub enum RelationalBranchCellDenial {
     CheckpointRuntimeMismatch,
     CheckpointObservationMismatch,
     CheckpointForkProvenanceMismatch,
+    CheckpointRootReadmissionRequired,
 }
 
 /// Read-only owner observation of one mutable branch-reference cell.
@@ -105,10 +106,10 @@ pub enum RelationalBranchCellDenial {
 pub struct RelationalBranchReferenceState {
     runtime_instance_id: u64,
     branch_id: BranchId,
-    observation: RelationalBranchObservation,
+    observation: RelationalBranchReferenceObservation,
     truth_version: RelationalBranchVersion,
     head_retention_obligations: u32,
-    fork_provenance: Option<RelationalBranchObservation>,
+    fork_provenance: Option<RelationalBranchReferenceObservation>,
     fork_source_branch_id: Option<BranchId>,
 }
 
@@ -121,7 +122,7 @@ impl RelationalBranchReferenceState {
         &self.branch_id
     }
 
-    pub fn observation(&self) -> &RelationalBranchObservation {
+    pub fn observation(&self) -> &RelationalBranchReferenceObservation {
         &self.observation
     }
 
@@ -133,7 +134,7 @@ impl RelationalBranchReferenceState {
         self.head_retention_obligations
     }
 
-    pub fn fork_provenance(&self) -> Option<&RelationalBranchObservation> {
+    pub fn fork_provenance(&self) -> Option<&RelationalBranchReferenceObservation> {
         self.fork_provenance.as_ref()
     }
 
@@ -150,10 +151,10 @@ impl RelationalBranchReferenceState {
 pub(crate) struct RelationalBranchCellCheckpoint {
     pub(crate) runtime_instance_id: u64,
     pub(crate) branch_id: BranchId,
-    pub(crate) observation: RelationalBranchObservation,
+    pub(crate) observation: RelationalBranchReferenceObservation,
     pub(crate) truth_version: RelationalBranchVersion,
     pub(crate) head_retention_obligations: u32,
-    pub(crate) fork_provenance: Option<RelationalBranchObservation>,
+    pub(crate) fork_provenance: Option<RelationalBranchReferenceObservation>,
     pub(crate) fork_source_branch_id: Option<BranchId>,
 }
 
@@ -169,20 +170,43 @@ impl RelationalBranchReferenceCell {
             FoundationalBranchReferenceGeneration::initial(),
         )?;
         Ok(Self {
-            identity: RelationalBranchIdentity::new(runtime_instance_id, branch_id),
+            identity: RelationalBranchIdentity::new(runtime_instance_id, branch_id.clone()),
             observation,
             truth_version: RelationalBranchVersion::initial(),
             head_retention_obligations: 0,
             fork_provenance: None,
             fork_source_branch_id: None,
+            root: None,
+            basis_registry: super::RelationalBranchBasisRegistry::default(),
+            coordination: super::coordination::RelationalBranchCoordinationCell::fresh(
+                runtime_instance_id,
+                &branch_id,
+            ),
         })
     }
 
+    #[cfg(test)]
     pub(crate) fn from_source(
         runtime_instance_id: u64,
         branch_id: BranchId,
         source_branch_id: BranchId,
-        source: &RelationalBranchObservation,
+        source: &RelationalBranchReferenceObservation,
+    ) -> Result<Self, RelationalBranchObservationConstructionDenial> {
+        Self::from_source_with_root(
+            runtime_instance_id,
+            branch_id,
+            source_branch_id,
+            source,
+            super::RelationalBranchRoot::empty(),
+        )
+    }
+
+    pub(crate) fn from_source_with_root(
+        runtime_instance_id: u64,
+        branch_id: BranchId,
+        source_branch_id: BranchId,
+        source: &RelationalBranchReferenceObservation,
+        source_root: Arc<super::RelationalBranchRoot>,
     ) -> Result<Self, RelationalBranchObservationConstructionDenial> {
         let target = match source.target() {
             FoundationalBranchTarget::Empty => FoundationalBranchTarget::empty(),
@@ -197,12 +221,18 @@ impl RelationalBranchReferenceCell {
             FoundationalBranchReferenceGeneration::initial(),
         )?;
         Ok(Self {
-            identity: RelationalBranchIdentity::new(runtime_instance_id, branch_id),
+            identity: RelationalBranchIdentity::new(runtime_instance_id, branch_id.clone()),
             observation,
             truth_version: RelationalBranchVersion::initial(),
             head_retention_obligations: 1,
             fork_provenance: Some(source.clone()),
             fork_source_branch_id: Some(source_branch_id),
+            root: Some(source_root),
+            basis_registry: super::RelationalBranchBasisRegistry::default(),
+            coordination: super::coordination::RelationalBranchCoordinationCell::fresh(
+                runtime_instance_id,
+                &branch_id,
+            ),
         })
     }
 
@@ -261,6 +291,12 @@ impl RelationalBranchReferenceCell {
             head_retention_obligations: self.head_retention_obligations,
             fork_provenance,
             fork_source_branch_id: self.fork_source_branch_id.clone(),
+            root: self.root.clone(),
+            basis_registry: super::RelationalBranchBasisRegistry::default(),
+            coordination: super::coordination::RelationalBranchCoordinationCell::fresh(
+                runtime_instance_id,
+                self.identity.branch_id(),
+            ),
         })
     }
 
@@ -292,7 +328,7 @@ impl RelationalBranchReferenceCell {
         }
     }
 
-    pub(crate) fn observation(&self) -> &RelationalBranchObservation {
+    pub(crate) fn observation(&self) -> &RelationalBranchReferenceObservation {
         &self.observation
     }
 
@@ -300,7 +336,7 @@ impl RelationalBranchReferenceCell {
         self.truth_version
     }
 
-    pub(crate) fn fork_provenance(&self) -> Option<&RelationalBranchObservation> {
+    pub(crate) fn fork_provenance(&self) -> Option<&RelationalBranchReferenceObservation> {
         self.fork_provenance.as_ref()
     }
 
@@ -308,21 +344,8 @@ impl RelationalBranchReferenceCell {
         self.fork_source_branch_id.as_ref()
     }
 
-    pub(crate) fn retain_head(&mut self) -> Result<(), RelationalBranchCellDenial> {
-        self.head_retention_obligations = self
-            .head_retention_obligations
-            .checked_add(1)
-            .ok_or(RelationalBranchCellDenial::RetentionOverflow)?;
-        Ok(())
-    }
-
-    #[cfg(test)]
-    pub(crate) fn set_head_retention_obligations_for_test(&mut self, obligations: u32) {
-        self.head_retention_obligations = obligations;
-    }
-
     pub(crate) fn advance_metadata(&mut self) -> Result<(), RelationalBranchCellDenial> {
-        self.observation = RelationalBranchObservation::new(
+        self.observation = RelationalBranchReferenceObservation::new(
             self.observation.branch_id().clone(),
             self.observation.target().clone(),
             self.observation
@@ -346,7 +369,7 @@ impl RelationalBranchReferenceCell {
             .truth_version
             .checked_advance()
             .ok_or(RelationalBranchCellDenial::TruthVersionOverflow)?;
-        let candidate = RelationalBranchObservation::new(
+        let candidate = RelationalBranchReferenceObservation::new(
             self.observation.branch_id().clone(),
             target,
             generation,
@@ -368,3 +391,9 @@ mod tests;
 
 #[path = "reference_checkpoint.rs"]
 mod checkpoint;
+#[path = "reference_coordination_access.rs"]
+mod coordination_access;
+#[path = "reference_head_retention.rs"]
+mod head_retention;
+#[path = "reference_root_access.rs"]
+mod root_access;

@@ -1,8 +1,70 @@
 use super::*;
 use crate::facade::indexes::{
-    BoundedIndexParityMode, BoundedRelatedEntityOrderedLookupRequest, RelatedEntityEndpoint,
+    BoundedIndexParityMode, BoundedRelatedEntityOrderedLookupDenialKind,
+    BoundedRelatedEntityOrderedLookupRequest, DerivedIndexEntries, RelatedEntityEndpoint,
     RelatedEntityOrderingDirection, RelatedEntityOrderingField,
 };
+
+#[test]
+fn related_ordering_certification_rejects_a_missing_candidate() {
+    let mut runtime = runtime_with_index_field_aspects();
+    let parent = changed_entities(&create_entity_outcome(&mut runtime, "parent"))[0];
+    let alpha = changed_entities(&create_entity_outcome(&mut runtime, "alpha"))[0];
+    let beta = changed_entities(&create_entity_outcome(&mut runtime, "beta"))[0];
+    create_relation_outcome(&mut runtime, parent, alpha, "owns-alpha");
+    create_relation_outcome(&mut runtime, parent, beta, "owns-beta");
+    let index = register_related_name_index(&mut runtime);
+    let source_commit_id = runtime.history().latest_commit().unwrap().commit_id;
+    runtime
+        .index_authority()
+        .build_for_commit(DerivedIndexBuildRequest {
+            source_commit_id,
+            branch_id: BranchId("main".to_owned()),
+            index_ids: vec![index.index_id],
+        });
+    let generation = runtime
+        .indexes
+        .generations
+        .get_mut(&index.index_id)
+        .and_then(|generations| generations.last_mut())
+        .unwrap();
+    let DerivedIndexEntries::RelatedEntityOrdering(entries) = &mut generation.entries else {
+        panic!("related-ordering generation expected");
+    };
+    entries.get_mut(&parent).unwrap().remove(0);
+    let snapshot = runtime.visibility_authority().snapshot();
+    let request = || {
+        BoundedRelatedEntityOrderedLookupRequest::new(
+            snapshot.clone(),
+            index.index_id,
+            parent,
+            KindId(1),
+            None,
+            2,
+        )
+        .unwrap()
+    };
+
+    let production = runtime
+        .index_access()
+        .execute_bounded_related_entity_ordered_lookup(
+            request(),
+            BoundedIndexParityMode::Production,
+        )
+        .unwrap();
+    assert_eq!(production.child_entity_ids().len(), 1);
+    let denial = runtime
+        .index_access()
+        .execute_bounded_related_entity_ordered_lookup(
+            request(),
+            BoundedIndexParityMode::Certification,
+        )
+        .unwrap_err();
+    assert_eq!(
+        denial.kind(),
+        BoundedRelatedEntityOrderedLookupDenialKind::StorageParityMismatch
+    );
+}
 
 #[test]
 fn related_entity_pages_seek_exact_order_with_identity_ties() {

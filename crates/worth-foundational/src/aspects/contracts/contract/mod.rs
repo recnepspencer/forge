@@ -70,4 +70,15 @@ impl AspectContract {
             .saturating_add(20)
             .saturating_add(shape)
     }
+
+    /// Allocator capacity retained exclusively by this contract, excluding
+    /// its inline `AspectContract` storage.
+    pub fn owned_allocation_capacity_bytes(&self) -> usize {
+        self.key
+            .owned_allocation_capacity_bytes()
+            .saturating_add(match &self.shape {
+                AspectShape::Struct(shape) => shape.owned_allocation_capacity_bytes(),
+                _ => 0,
+            })
+    }
 }

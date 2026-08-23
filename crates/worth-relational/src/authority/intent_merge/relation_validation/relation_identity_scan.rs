@@ -141,14 +141,15 @@ mod tests {
                 relation_overlay_is_sparse: false,
                 entity_arena,
                 relation_arena,
-                adjacency,
+                adjacency: adjacency.into(),
                 reverse_adjacency: vec![
                     AdjacencySet::new(&AdjacencyPolicy {
                         backend: AdjacencyBackend::InlineSmallDegreeAdjacency,
                         small_degree_inline_capacity: 4,
                     });
                     3
-                ],
+                ]
+                .into(),
             },
         );
         let state = WorkingState::new(

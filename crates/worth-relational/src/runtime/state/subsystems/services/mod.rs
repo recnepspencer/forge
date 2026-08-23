@@ -37,6 +37,10 @@ impl RuntimeServices {
         self.sequence.next_savepoint_id()
     }
 
+    pub(crate) fn next_proposal_ordinal(&mut self) -> Option<u64> {
+        self.sequence.next_proposal_ordinal()
+    }
+
     pub(crate) fn runtime_instance_id(&self) -> u64 {
         self.sequence.runtime_instance_id()
     }

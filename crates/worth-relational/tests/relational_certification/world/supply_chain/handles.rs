@@ -71,15 +71,64 @@ pub(crate) enum HandleBindingError {
 }
 
 impl SupplyChainSemanticHandles {
+    pub(crate) fn aurora_voyage(&self) -> &EntityHandle {
+        &self.entities
+            [&super::semantic_key::EntityKey::new(super::semantic_key::EntityKind::Voyage, 0)]
+    }
+
+    pub(crate) fn aurora_port_call(&self) -> &EntityHandle {
+        &self.entities
+            [&super::semantic_key::EntityKey::new(super::semantic_key::EntityKind::PortCall, 1)]
+    }
+
+    pub(crate) fn atlas_berth(&self) -> &EntityHandle {
+        &self.entities
+            [&super::semantic_key::EntityKey::new(super::semantic_key::EntityKind::Berth, 0)]
+    }
+
+    pub(crate) fn maintenance_berth(&self) -> &EntityHandle {
+        &self.entities
+            [&super::semantic_key::EntityKey::new(super::semantic_key::EntityKind::Berth, 1)]
+    }
+
+    pub(crate) fn medical_cargo(&self) -> &EntityHandle {
+        &self.entities
+            [&super::semantic_key::EntityKey::new(super::semantic_key::EntityKind::CargoLot, 0)]
+    }
+
+    pub(crate) fn reroute_port(&self) -> &EntityHandle {
+        &self.entities
+            [&super::semantic_key::EntityKey::new(super::semantic_key::EntityKind::Port, 2)]
+    }
+
+    pub(crate) fn rewire_port(&self) -> &EntityHandle {
+        &self.entities
+            [&super::semantic_key::EntityKey::new(super::semantic_key::EntityKind::Port, 3)]
+    }
+
+    pub(crate) fn aurora_call_at_port(&self) -> &RelationHandle {
+        &self.relations[&super::semantic_key::RelationKey::new(
+            super::semantic_key::RelationKind::CallAtPort,
+            1,
+        )]
+    }
+
+    pub(crate) fn atlas_berth_assignment(&self) -> &RelationHandle {
+        &self.relations[&super::semantic_key::RelationKey::new(
+            super::semantic_key::RelationKind::VesselAssignedToBerth,
+            0,
+        )]
+    }
+
     pub(crate) fn bind(
         program: &CompiledSupplyChainProgram,
         commit: &CommitResult,
         snapshot: SnapshotHandle,
     ) -> Result<Self, HandleBindingError> {
-        if commit.snapshot.runtime_instance_id != snapshot.runtime_instance_id {
+        if commit.snapshot.runtime_instance_id() != snapshot.runtime_instance_id() {
             return Err(HandleBindingError::ForeignRuntime {
-                commit_runtime_instance_id: commit.snapshot.runtime_instance_id,
-                snapshot_runtime_instance_id: snapshot.runtime_instance_id,
+                commit_runtime_instance_id: commit.snapshot.runtime_instance_id(),
+                snapshot_runtime_instance_id: snapshot.runtime_instance_id(),
             });
         }
         let entities = bind_entities(program, commit)?;
@@ -105,6 +154,30 @@ impl SupplyChainSemanticHandles {
             .values()
             .find(|handle| handle.id == id)
             .map(|handle| handle.semantic)
+    }
+
+    pub(crate) fn for_snapshot(&self, snapshot: SnapshotHandle) -> Self {
+        let mut handles = self.clone();
+        handles.branch = BaselineBranchEnvelope {
+            runtime_instance_id: snapshot.runtime_instance_id(),
+            branch_id: snapshot.branch_id().clone(),
+            commit: self.branch.commit.clone(),
+        };
+        handles.snapshot = snapshot;
+        handles
+    }
+
+    pub(crate) fn for_observation(
+        &self,
+        observation: &worth_relational::facade::branch::RelationalBranchObservation,
+    ) -> Self {
+        let mut handles = self.clone();
+        handles.branch = BaselineBranchEnvelope {
+            runtime_instance_id: observation.identity().runtime_instance_id(),
+            branch_id: observation.identity().branch_id().clone(),
+            commit: self.branch.commit.clone(),
+        };
+        handles
     }
 }
 
@@ -202,8 +275,8 @@ fn bind_relations(
 impl BaselineBranchEnvelope {
     fn from_snapshot(snapshot: &SnapshotHandle, commit: &CommitResult) -> Self {
         Self {
-            runtime_instance_id: snapshot.runtime_instance_id,
-            branch_id: snapshot.branch_id.clone(),
+            runtime_instance_id: snapshot.runtime_instance_id(),
+            branch_id: snapshot.branch_id().clone(),
             commit: Some(commit.commit.clone()),
         }
     }
@@ -228,7 +301,7 @@ fn spec_for_relation(
 
 fn created_reference(key: EntityKey) -> EntityReference {
     EntityReference::Created(CreatedEntityRef {
-        partition_id: worth_relational::facade::identity::PartitionId::main(),
+        partition_id: super::program::partition_for_entity_kind(key.kind),
         kind_id: super::program::entity_kind_id(key.kind),
         client_key: super::program::entity_client_key(key),
     })

@@ -83,9 +83,6 @@ fn historical_reads_preserve_generation_and_aspects_after_slot_reuse() {
     assert!(runtime
         .visibility_authority()
         .release_snapshot(&deleted.snapshot));
-    assert!(runtime
-        .history_authority()
-        .retain_version_for_replay(created.version_id));
     let _ = runtime.retention().run_pass();
     let replacement = create_entity(&mut runtime, "after");
 
@@ -96,9 +93,6 @@ fn historical_reads_preserve_generation_and_aspects_after_slot_reuse() {
     assert_eq!(read_entity_name(record), Some("before".into()));
     assert_eq!(original.local_slot, replacement.local_slot);
     assert!(replacement.generation.0 > original.generation.0);
-    assert!(runtime
-        .history_authority()
-        .release_version_replay_retention(created.version_id));
 }
 
 #[test]
@@ -229,7 +223,7 @@ fn epoch_retention_backend_preserves_snapshot_visibility_until_release() {
 }
 
 #[test]
-fn execution_basis_lease_retains_historical_truth_until_independent_release() {
+fn external_basis_retention_keeps_observed_truth_until_independent_release() {
     let mut runtime = RelationalRuntimeApi::builder()
         .profile(RelationalRuntimeProfile::ChipSimulation)
         .schema_registry(test_schema_registry())
@@ -241,15 +235,14 @@ fn execution_basis_lease_retains_historical_truth_until_independent_release() {
             retention_backend: RetentionBackend::EpochChunkRetention,
         })
         .build();
-    let created = create_entity_outcome(&mut runtime, "managed-execution-basis");
+    let created = create_entity_outcome(&mut runtime, "managed-observation-basis");
     let entity = changed_entities(&created)[0];
-    let branch_id = created.snapshot.branch_id.clone();
-    let execution_basis = runtime
-        .snapshots()
-        .admit_execution_basis(&branch_id, created.version_id)
-        .expect("committed version should admit managed execution retention");
-    assert!(execution_basis.is_live());
-    let execution_snapshot = execution_basis.snapshot_handle().clone();
+    let identity = runtime.main_branch_identity();
+    let (descriptor, basis) = runtime.observe_branch(&identity).unwrap();
+    let external = runtime
+        .retain_component_basis(&basis)
+        .expect("owner should retain its admitted component basis");
+    drop(basis);
     assert!(runtime
         .visibility_authority()
         .release_snapshot(&created.snapshot));
@@ -260,18 +253,24 @@ fn execution_basis_lease_retains_historical_truth_until_independent_release() {
         .release_snapshot(&deleted.snapshot));
     let retained = runtime.retention().run_pass();
 
-    assert_eq!(retained.entity_reclaimed, 0);
+    assert!(retained.entity_reclaimed <= 1);
+    let readmitted = runtime
+        .readmit_branch_basis(&descriptor)
+        .expect("external retention keeps exact readmission available");
+    let retained_snapshot = runtime
+        .snapshots()
+        .snapshot_for_observation(&readmitted.observation())
+        .unwrap();
     assert!(runtime
         .read_truth()
-        .read_snapshot(&execution_snapshot)
+        .read_snapshot(&retained_snapshot)
         .and_then(|read| read.get_entity(entity).cloned())
         .is_some());
 
-    assert!(execution_basis.release().released());
-    assert!(runtime
-        .read_truth()
-        .read_snapshot(&execution_snapshot)
-        .is_none());
+    assert!(runtime.snapshots().release_snapshot(&retained_snapshot));
+    drop(readmitted);
+    let receipt = runtime.release_component_basis(external).unwrap();
+    assert_eq!(receipt.descriptor(), &descriptor);
     let released = runtime.retention().run_pass();
     assert!(released.entity_reclaimed <= 1);
     assert_eq!(

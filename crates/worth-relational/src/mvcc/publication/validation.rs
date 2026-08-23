@@ -9,6 +9,7 @@ use worth_foundational::FoundationalBranchTarget;
 #[derive(Debug, Clone, Copy)]
 pub(crate) enum PublicationSequence {
     Truth,
+    RecoveryTruth,
     Metadata,
 }
 
@@ -54,18 +55,27 @@ pub(crate) fn validate_publication(
     if !runtime.legacy_branch_binding_is_current(request.binding) {
         return Err("publication owner binding is foreign or stale".to_owned());
     }
-    if matches!(request.sequence, PublicationSequence::Truth)
-        && runtime.history.next_version_id.checked_add(1).is_none()
+    if matches!(
+        request.sequence,
+        PublicationSequence::Truth | PublicationSequence::RecoveryTruth
+    ) && runtime.history.next_version_id.checked_add(1).is_none()
     {
         return Err("version id sequence overflow".to_owned());
     }
     if runtime.history.next_commit_id.checked_add(1).is_none() {
         return Err("commit id sequence overflow".to_owned());
     }
-    runtime
-        .history
-        .commit_catalog
-        .validate_envelope(request.envelope)
+    let catalog_admission = match request.sequence {
+        PublicationSequence::Truth => runtime
+            .history
+            .commit_catalog
+            .validate_new_envelope(request.envelope),
+        PublicationSequence::RecoveryTruth | PublicationSequence::Metadata => runtime
+            .history
+            .commit_catalog
+            .validate_envelope(request.envelope),
+    };
+    catalog_admission
         .map_err(|denial| format!("publication catalog admission denied: {denial:?}"))?;
     let mut cell = runtime
         .history
@@ -78,7 +88,7 @@ pub(crate) fn validate_publication(
             )
         })?;
     match request.sequence {
-        PublicationSequence::Truth => {
+        PublicationSequence::Truth | PublicationSequence::RecoveryTruth => {
             let roots = RelationalBranchTarget::roots_for_commit(request.commit_reference);
             let target = RelationalBranchTarget::from_commit_receipt(
                 runtime.history.runtime_instance_id,

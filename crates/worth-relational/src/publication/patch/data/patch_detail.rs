@@ -11,6 +11,12 @@ impl PatchDetail {
             Self::DenseBitset(bits) => Self::DenseBitset(bits.clone()),
         }
     }
+
+    pub(crate) fn owned_allocation_capacity_bytes(&self) -> u64 {
+        match self {
+            Self::DenseBitset(bits) => (bits.capacity() * std::mem::size_of::<u64>()) as u64,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -40,13 +40,6 @@ impl AdjacencySet {
         })
     }
 
-    pub(crate) fn clear(&mut self) {
-        let entries = self.entries_mut();
-        entries.current.clear();
-        entries.current_by_kind = None;
-        entries.historical_by_kind = None;
-    }
-
     pub(crate) fn insert(&mut self, kind_id: KindId, relation_id: RelationId) {
         let entries = self.entries_mut();
         insert_sorted(&mut entries.current, relation_id);
@@ -128,6 +121,40 @@ impl AdjacencySet {
 
     pub(crate) fn extend_into(&self, target: &mut std::collections::BTreeSet<RelationId>) {
         target.extend(self.as_slice().iter().copied())
+    }
+
+    pub(crate) fn authoritative_allocation_bytes(&self) -> u64 {
+        let entries = self.entries();
+        (entries.current.capacity() as u64).saturating_mul(std::mem::size_of::<RelationId>() as u64)
+    }
+
+    pub(crate) fn optional_cache_allocation_bytes(&self) -> u64 {
+        let entries = self.entries();
+        let mut bytes = 0_u64;
+        for buckets in [&entries.current_by_kind, &entries.historical_by_kind] {
+            if let Some(buckets) = buckets.as_deref() {
+                bytes = bytes
+                    .saturating_add(std::mem::size_of::<BTreeMap<KindId, Vec<RelationId>>>() as u64)
+                    .saturating_add((buckets.len() as u64).saturating_mul(std::mem::size_of::<(
+                        KindId,
+                        Vec<RelationId>,
+                    )>()
+                        as u64));
+                bytes = bytes.saturating_add(
+                    buckets
+                        .values()
+                        .map(|relations| {
+                            (relations.capacity() as u64).saturating_mul(std::mem::size_of::<
+                                RelationId,
+                            >(
+                            )
+                                as u64)
+                        })
+                        .sum::<u64>(),
+                );
+            }
+        }
+        bytes
     }
 }
 

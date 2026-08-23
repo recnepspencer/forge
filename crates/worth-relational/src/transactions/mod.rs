@@ -8,6 +8,7 @@ mod validated_mutation_footprint;
 mod validation;
 
 pub use transaction::RelationalTransaction;
+pub use validation::proposal_identity::RelationalMutationProposalIdentity;
 pub use validation::validated_mutation::{
     RelationalMutationInvariantEvidence, ValidatedRelationalMutation,
 };

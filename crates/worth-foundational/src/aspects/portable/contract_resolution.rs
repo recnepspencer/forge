@@ -9,7 +9,7 @@ pub(super) fn contract_for_readmission(
     contracts: &impl PortableAspectContractLookup,
 ) -> Result<AspectContract, PortableAspectReadmissionDenial> {
     let contract = contracts
-        .contract_for(basis.key())
+        .exact_contract_for(basis.key(), basis.identity(), basis.revision())
         .ok_or_else(|| PortableAspectReadmissionDenial::MissingContract(basis.key().clone()))?;
 
     if contract.identity() != basis.identity() {
@@ -37,7 +37,7 @@ pub(super) fn contract_for_export(
     contracts: &impl PortableAspectContractLookup,
 ) -> Result<AspectContract, PortableAspectExportDenial> {
     let contract = contracts
-        .contract_for(key)
+        .exact_contract_for(key, identity, revision)
         .ok_or_else(|| PortableAspectExportDenial::MissingContract(key.clone()))?;
     if contract.identity() != identity {
         return Err(PortableAspectExportDenial::ContractIdentityDrift {

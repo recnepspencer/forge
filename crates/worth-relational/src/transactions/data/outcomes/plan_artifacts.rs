@@ -27,6 +27,15 @@ impl LoweredCommitPlan {
             Self::Strategy(plan) => plan.merged_plan(),
         }
     }
+
+    pub(crate) fn selected_branch_state(
+        &self,
+    ) -> Option<&crate::branch::SelectedRelationalBranchState> {
+        match self {
+            Self::Mutation(_) => None,
+            Self::Strategy(plan) => Some(plan.selected_branch_state()),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

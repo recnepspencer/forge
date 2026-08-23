@@ -81,6 +81,23 @@ impl ContractValidatedAspectValue {
             }
         }
     }
+
+    /// Allocator capacity reachable only through this validated value,
+    /// excluding its inline representation in the owning collection.
+    pub fn owned_allocation_capacity_bytes(&self) -> usize {
+        let value_bytes = match &self.kind {
+            ContractValidatedAspectValueKind::Scalar(value) => {
+                value.owned_allocation_capacity_bytes()
+            }
+            ContractValidatedAspectValueKind::Struct(value) => {
+                value.owned_allocation_capacity_bytes()
+            }
+        };
+        self.key
+            .owned_allocation_capacity_bytes()
+            .saturating_add(self.contract.owned_allocation_capacity_bytes())
+            .saturating_add(value_bytes)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

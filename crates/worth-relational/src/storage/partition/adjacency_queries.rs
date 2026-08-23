@@ -1,5 +1,28 @@
 use crate::runtime::RelationalRuntime;
+use crate::storage::overlay::PartitionAccess;
 use std::collections::BTreeSet;
+
+pub(crate) fn outgoing_relation_candidates_from_state(
+    state: &dyn PartitionAccess,
+    entity_id: crate::identity::data::EntityId,
+) -> Vec<crate::identity::data::RelationId> {
+    state
+        .get_partition(entity_id.partition_id)
+        .and_then(|partition| partition.adjacency.get(entity_id.slot_index()))
+        .map(|relations| relations.as_slice().to_vec())
+        .unwrap_or_default()
+}
+
+pub(crate) fn incoming_relation_candidates_from_state(
+    state: &dyn PartitionAccess,
+    entity_id: crate::identity::data::EntityId,
+) -> Vec<crate::identity::data::RelationId> {
+    state
+        .get_partition(entity_id.partition_id)
+        .and_then(|partition| partition.reverse_adjacency.get(entity_id.slot_index()))
+        .map(|relations| relations.as_slice().to_vec())
+        .unwrap_or_default()
+}
 
 pub(crate) fn outgoing_relations_for_entity(
     runtime: &RelationalRuntime,

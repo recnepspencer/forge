@@ -5,7 +5,6 @@ use crate::identity::data::{EntityId, KindId, PartitionId, RelationId};
 use crate::schema::data::RelationalSchemaRegistry;
 use crate::storage::overlay::WorkingState;
 use crate::storage::overlay::{PartitionAccess, PartitionState};
-use crate::storage::partition::AdjacencySet;
 use crate::storage::substrate::{
     EntityExtra, EntityRecordKind, RecordKind, RelationEndpoints, RelationExtra, RelationRecordKind,
 };
@@ -24,61 +23,58 @@ pub(super) use relation_lifecycle::{delete_relation, retain_relation_dangling_fo
 
 pub(super) fn allocate_entity_with_extra(
     state: &mut WorkingState,
+    allocations: &mut crate::runtime::PendingRecordAllocations,
     version_id: crate::identity::data::VersionId,
     partition_id: PartitionId,
     kind_id: KindId,
     extra: EntityExtra,
-) -> EntityId {
-    let (slot, generation, reused) =
-        allocate_record::<EntityRecordKind>(state, partition_id, kind_id, version_id, extra);
-    if reused {
-        state.mark_entity_free_list_changed(partition_id);
-    }
+) -> Result<EntityId, CommitConflict> {
+    let (slot, generation) = allocate_record::<EntityRecordKind>(
+        state,
+        allocations,
+        crate::history::data::RecordAllocationClass::Entity,
+        partition_id,
+        kind_id,
+        version_id,
+        extra,
+    )?;
     let partition = ensure_partition_state(state, partition_id);
-    if reused {
-        let idx = slot;
-        while partition.adjacency.len() <= idx {
-            partition
-                .adjacency
-                .push(AdjacencySet::new(&partition.adjacency_policy));
-        }
-        while partition.reverse_adjacency.len() <= idx {
-            partition
-                .reverse_adjacency
-                .push(AdjacencySet::new(&partition.adjacency_policy));
-        }
-        partition.adjacency[idx].clear();
-        partition.reverse_adjacency[idx].clear();
-    } else {
-        partition
-            .adjacency
-            .push(AdjacencySet::new(&partition.adjacency_policy));
-        partition
-            .reverse_adjacency
-            .push(AdjacencySet::new(&partition.adjacency_policy));
-    }
-    EntityId::new(partition_id, slot as u64, generation)
+    let adjacency_policy = partition.adjacency_policy.clone();
+    partition.adjacency.clear_slot(slot, &adjacency_policy);
+    partition
+        .reverse_adjacency
+        .clear_slot(slot, &adjacency_policy);
+    let entity_id = EntityId::new(partition_id, slot as u64, generation);
+    allocations.record(crate::transactions::data::RecordRef::Entity(entity_id));
+    Ok(entity_id)
 }
 
 pub(super) fn allocate_relation(
     state: &mut WorkingState,
+    allocations: &mut crate::runtime::PendingRecordAllocations,
     version_id: crate::identity::data::VersionId,
     partition_id: PartitionId,
     kind_id: KindId,
     source: EntityId,
     target: EntityId,
     authoritative_aspect_state: Option<worth_foundational::facade::AuthoritativeRecordAspectState>,
-) -> RelationId {
+) -> Result<RelationId, CommitConflict> {
     let extra = RelationExtra {
         endpoints: Some(RelationEndpoints { source, target }),
         authoritative_aspect_state,
     };
-    let (slot, generation, reused) =
-        allocate_record::<RelationRecordKind>(state, partition_id, kind_id, version_id, extra);
-    if reused {
-        state.mark_relation_free_list_changed(partition_id);
-    }
-    RelationId::new(partition_id, slot as u64, generation)
+    let (slot, generation) = allocate_record::<RelationRecordKind>(
+        state,
+        allocations,
+        crate::history::data::RecordAllocationClass::Relation,
+        partition_id,
+        kind_id,
+        version_id,
+        extra,
+    )?;
+    let relation_id = RelationId::new(partition_id, slot as u64, generation);
+    allocations.record(crate::transactions::data::RecordRef::Relation(relation_id));
+    Ok(relation_id)
 }
 
 pub(super) fn delete_entity_with_cascade(
@@ -175,7 +171,9 @@ pub(crate) fn apply_adjacency_deltas(state: &mut WorkingState, deltas: &[Adjacen
         ensure_entity_adjacency_capacity(source_partition, source.slot_index());
         match delta.kind {
             AdjacencyDeltaKind::Created { .. } => {
-                source_partition.adjacency[source.slot_index()]
+                source_partition
+                    .adjacency
+                    .ensure(source.slot_index(), &source_partition.adjacency_policy)
                     .insert(delta.kind_id, delta.relation_id);
             }
             AdjacencyDeltaKind::Deleted { .. } => {
@@ -189,7 +187,9 @@ pub(crate) fn apply_adjacency_deltas(state: &mut WorkingState, deltas: &[Adjacen
         ensure_entity_adjacency_capacity(target_partition, target.slot_index());
         match delta.kind {
             AdjacencyDeltaKind::Created { .. } => {
-                target_partition.reverse_adjacency[target.slot_index()]
+                target_partition
+                    .reverse_adjacency
+                    .ensure(target.slot_index(), &target_partition.adjacency_policy)
                     .insert(delta.kind_id, delta.relation_id);
             }
             AdjacencyDeltaKind::Deleted { .. } => {
@@ -209,12 +209,7 @@ pub(super) fn reserve_bulk_entity_capacity(
     partition_id: PartitionId,
     requested_slots: usize,
 ) {
-    let reusable_slots = state
-        .get_partition(partition_id)
-        .map(|partition| partition.entity_arena.free_list.len())
-        .unwrap_or(0);
-    let additional = requested_slots.saturating_sub(reusable_slots);
-    state.reserve_entity_slots(partition_id, additional);
+    state.reserve_entity_slots(partition_id, requested_slots);
 }
 
 pub(super) fn reserve_bulk_relation_capacity(
@@ -222,12 +217,7 @@ pub(super) fn reserve_bulk_relation_capacity(
     partition_id: PartitionId,
     requested_slots: usize,
 ) {
-    let reusable_slots = state
-        .get_partition(partition_id)
-        .map(|partition| partition.relation_arena.free_list.len())
-        .unwrap_or(0);
-    let additional = requested_slots.saturating_sub(reusable_slots);
-    state.reserve_relation_slots(partition_id, additional);
+    state.reserve_relation_slots(partition_id, requested_slots);
 }
 
 fn ensure_partition_state(
@@ -239,33 +229,52 @@ fn ensure_partition_state(
 
 fn allocate_record<K: RecordKind>(
     state: &mut WorkingState,
+    allocations: &mut crate::runtime::PendingRecordAllocations,
+    class: crate::history::data::RecordAllocationClass,
     partition_id: PartitionId,
     kind_id: KindId,
     version_id: crate::identity::data::VersionId,
     extra: K::Extra,
-) -> (usize, u32, bool) {
+) -> Result<(usize, u32), CommitConflict> {
     let partition = ensure_partition_state(state, partition_id);
     let arena = K::arena_mut(partition);
-    let (slot, generation, reused) = arena.push_slot(crate::storage::substrate::SlotInit {
-        partition_id,
-        kind_id,
-        version_id,
-        extra,
-    });
-    (slot, generation, reused)
+    let reserved = allocations
+        .reserve(class, partition_id)
+        .map_err(record_allocation_conflict)?;
+    arena
+        .write_reserved_slot(
+            crate::storage::substrate::SlotInit {
+                partition_id,
+                kind_id,
+                version_id,
+                extra,
+            },
+            reserved.slot,
+            reserved.generation,
+        )
+        .map_err(|detail| {
+            record_allocation_conflict(
+                crate::transactions::data::RecordAllocationDenial::ArenaWriteDenied {
+                    class,
+                    partition_id,
+                    slot: reserved.slot,
+                    detail: detail.to_owned(),
+                },
+            )
+        })?;
+    Ok((reserved.slot, reserved.generation))
+}
+
+fn record_allocation_conflict(
+    denial: crate::transactions::data::RecordAllocationDenial,
+) -> CommitConflict {
+    CommitConflict::new(ConflictClass::RecordAllocationDenied { denial })
 }
 
 fn ensure_entity_adjacency_capacity(partition: &mut PartitionState, slot: usize) {
-    while partition.adjacency.len() <= slot {
-        partition
-            .adjacency
-            .push(AdjacencySet::new(&partition.adjacency_policy));
-    }
-    while partition.reverse_adjacency.len() <= slot {
-        partition
-            .reverse_adjacency
-            .push(AdjacencySet::new(&partition.adjacency_policy));
-    }
+    let policy = partition.adjacency_policy.clone();
+    partition.adjacency.ensure(slot, &policy);
+    partition.reverse_adjacency.ensure(slot, &policy);
 }
 
 fn mutation_state_inconsistency(

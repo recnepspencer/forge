@@ -12,8 +12,9 @@ use crate::config::data::{AdjacencyBackend, AdjacencyPolicy};
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
 use crate::storage::overlay::PartitionState;
 use crate::storage::overlay::{
-    EntityWorkingSetLayout, OverlayStateView, PartitionCloneMode, WorkingState,
+    EntityWorkingSetLayout, OverlayStateView, PartitionAccess, PartitionCloneMode, WorkingState,
 };
+use crate::storage::partition::AdjacencySet;
 use crate::storage::substrate::{EntityArena, RelationArena, SlotInit};
 use crate::storage::substrate::{EntityRecordKind, RecordKind, RelationEndpoints, RelationExtra};
 
@@ -32,8 +33,8 @@ fn sparse_speculative_overlay_reads_untouched_entity_truth_from_base_partition()
         relation_overlay_is_sparse: false,
         entity_arena: EntityArena::with_capacity(2),
         relation_arena: RelationArena::with_capacity(0),
-        adjacency: Vec::new(),
-        reverse_adjacency: Vec::new(),
+        adjacency: Default::default(),
+        reverse_adjacency: Default::default(),
     };
     let name_contract = scalar_string_contract(AspectKey::new("name").unwrap(), 1);
     let _ = base_partition.entity_arena.push_slot(SlotInit {
@@ -52,7 +53,7 @@ fn sparse_speculative_overlay_reads_untouched_entity_truth_from_base_partition()
     let mut base = BTreeMap::new();
     base.insert(partition_id, base_partition);
     let sparse_slots = BTreeMap::from([(partition_id, [1usize].into_iter().collect())]);
-    let staged = WorkingState::from_touched_partitions_with_layout_and_sparse_slots(
+    let mut staged = WorkingState::from_touched_partitions_with_layout_and_sparse_slots(
         &base,
         [partition_id],
         policy,
@@ -61,6 +62,7 @@ fn sparse_speculative_overlay_reads_untouched_entity_truth_from_base_partition()
         Some(&sparse_slots),
         None,
     );
+    staged.mark_entity_slot_touched(partition_id, 1);
     let overlay = OverlayStateView::new(&base, &staged);
     let state_view = InvariantStateView::new(&overlay, VersionId(1));
 
@@ -75,6 +77,32 @@ fn sparse_speculative_overlay_reads_untouched_entity_truth_from_base_partition()
     assert!(aspect_state.get(name_contract.key()).is_some());
     assert_eq!(metadata.kind_id, KindId(1));
     assert_eq!(metadata.entity_id, untouched_entity);
+
+    let guarded = NoWorldPartitionEnumeration { state: &overlay };
+    let guarded_view = InvariantStateView::new(&guarded, VersionId(1));
+    assert_eq!(guarded_view.touched_visible_entity_ids().unwrap().len(), 1);
+}
+
+struct NoWorldPartitionEnumeration<'a> {
+    state: &'a OverlayStateView<'a, WorkingState>,
+}
+
+impl PartitionAccess for NoWorldPartitionEnumeration<'_> {
+    fn get_partition(&self, partition_id: PartitionId) -> Option<&PartitionState> {
+        self.state.get_partition(partition_id)
+    }
+
+    fn partition_ids(&self) -> Vec<PartitionId> {
+        panic!("touched-scope discovery must not enumerate all partitions")
+    }
+
+    fn touched_partition_ids(&self) -> Option<Vec<PartitionId>> {
+        self.state.touched_partition_ids()
+    }
+
+    fn touched_entity_slots(&self, partition_id: PartitionId) -> Option<Vec<usize>> {
+        self.state.touched_entity_slots(partition_id)
+    }
 }
 
 #[test]
@@ -90,8 +118,8 @@ fn sparse_speculative_overlay_reads_untouched_relation_truth_from_base_partition
         relation_overlay_is_sparse: false,
         entity_arena: EntityArena::with_capacity(2),
         relation_arena: RelationArena::with_capacity(1),
-        adjacency: Vec::new(),
-        reverse_adjacency: Vec::new(),
+        adjacency: Default::default(),
+        reverse_adjacency: Default::default(),
     };
     let relation_kind_contract =
         scalar_string_contract(AspectKey::new("relation.kind").unwrap(), 2);
@@ -126,6 +154,11 @@ fn sparse_speculative_overlay_reads_untouched_relation_truth_from_base_partition
             },
         });
     let relation_id = RelationId::new(partition_id, relation_slot as u64, relation_generation);
+    base_partition.adjacency = vec![AdjacencySet::new(&policy), AdjacencySet::new(&policy)].into();
+    base_partition.reverse_adjacency =
+        vec![AdjacencySet::new(&policy), AdjacencySet::new(&policy)].into();
+    base_partition.adjacency[left_slot].insert(KindId(9), relation_id);
+    base_partition.reverse_adjacency[right_slot].insert(KindId(9), relation_id);
 
     let mut base = BTreeMap::new();
     base.insert(partition_id, base_partition);
@@ -155,6 +188,16 @@ fn sparse_speculative_overlay_reads_untouched_relation_truth_from_base_partition
     assert_eq!(metadata.relation_id, relation_id);
     assert_eq!(metadata.source, left);
     assert_eq!(metadata.target, right);
+    assert_eq!(
+        state_view.outgoing_relations_for_entity(left),
+        [relation_id]
+    );
+    assert_eq!(
+        state_view.incoming_relations_for_entity(right),
+        [relation_id]
+    );
+    assert_eq!(state_view.all_relations_for_entity(left), [relation_id]);
+    assert_eq!(state_view.all_relations_for_entity(right), [relation_id]);
 }
 
 fn scalar_string_contract(aspect_key: AspectKey, identity: u64) -> AspectContract {

@@ -17,7 +17,10 @@ pub(super) fn write_aspect_versions_for_delta(
         RecordRef::Entity(entity_id) => {
             let slot = slot_of::<EntityRecordKind>(&entity_id);
             let partition = staged.get_partition_mut(partition_of::<EntityRecordKind>(&entity_id));
-            let versions = &mut partition.entity_arena.aspect_versions[slot];
+            let versions = partition
+                .entity_arena
+                .aspect_versions_at_mut(slot)
+                .expect("entity aspect version update requires a materialized slot");
             for aspect in delta.changed_aspects.iter() {
                 versions.insert(symbols.intern(aspect.as_str()), version_id.0);
             }
@@ -26,7 +29,10 @@ pub(super) fn write_aspect_versions_for_delta(
             let slot = slot_of::<RelationRecordKind>(&relation_id);
             let partition =
                 staged.get_partition_mut(partition_of::<RelationRecordKind>(&relation_id));
-            let versions = &mut partition.relation_arena.aspect_versions[slot];
+            let versions = partition
+                .relation_arena
+                .aspect_versions_at_mut(slot)
+                .expect("relation aspect version update requires a materialized slot");
             for aspect in delta.changed_aspects.iter() {
                 versions.insert(symbols.intern(aspect.as_str()), version_id.0);
             }

@@ -207,8 +207,12 @@ pub(super) fn run_kubernetes_style_certification() -> KubernetesIntentCertificat
     );
     let revalidated_planning =
         planning_for(&runtime, controller_branch.clone(), main_branch.clone());
-    assert_exact_shared_truth(&revalidated_planning, entity, "revalidated shared truth");
-    let revalidated_shared_truth = planning_evidence(&revalidated_planning);
+    assert_converged_strategy_overlap(
+        &revalidated_planning,
+        entity,
+        "revalidated converged strategy overlap",
+    );
+    let revalidated_converged_overlap = planning_evidence(&revalidated_planning);
     let revalidation_replay = replay_commit(
         &mut runtime,
         revalidation_commit.commit.commit_id,
@@ -235,15 +239,15 @@ pub(super) fn run_kubernetes_style_certification() -> KubernetesIntentCertificat
     assert_strategy_replay_clean(&first_converge_replay, "first converge");
     assert_strategy_replay_clean(&rebroadened_intent_replay, "rebroadened intent");
 
-    let current = runtime
-        .read_truth()
-        .read_version(runtime.current_version_id());
-    let current_entity = current.get_entity(entity).expect("entity visible");
+    let visible_truth = KubernetesBranchVisibleTruthEvidence {
+        main: visible_truth_for_branch(&mut runtime, &main_branch, entity),
+        controller: visible_truth_for_branch(&mut runtime, &controller_branch, entity),
+    };
     let live_bundle = KubernetesIntentCertificationBundle {
         overlap_conflict,
         narrowed_non_conflict,
         rebroadened_conflict,
-        revalidated_shared_truth,
+        revalidated_converged_overlap,
         revalidation_noop: KubernetesNoopEvidence {
             strategy_artifacts: revalidation_commit
                 .publication()
@@ -270,10 +274,7 @@ pub(super) fn run_kubernetes_style_certification() -> KubernetesIntentCertificat
             main: runtime.history().branch_head(&main_branch).cloned(),
             controller: runtime.history().branch_head(&controller_branch).cloned(),
         },
-        visible_truth: KubernetesVisibleTruthEvidence {
-            entity_name: read_entity_name(current_entity),
-            replicas_canonical_bytes: replicas_canonical_bytes(current_entity),
-        },
+        visible_truth,
     };
 
     final_recovery::certify_final_recovery(final_recovery::FinalRecoveryCertificationInput {

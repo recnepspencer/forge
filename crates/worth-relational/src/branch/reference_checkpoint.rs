@@ -6,9 +6,38 @@ use super::{
 };
 
 impl RelationalBranchReferenceCell {
+    /// Replace the descriptive target prepared during preflight with the
+    /// storage owner's content-backed target. Generation/truth progression
+    /// was already checked and advanced by `advance_truth`.
+    pub(crate) fn replace_truth_target(
+        &mut self,
+        target: FoundationalBranchTarget<super::RelationalBranchTarget>,
+    ) {
+        if let FoundationalBranchTarget::Basis(target) = &target {
+            assert_eq!(
+                target.runtime_instance_id(),
+                self.identity.runtime_instance_id(),
+                "owner-produced content target remains runtime-affine"
+            );
+        }
+        self.observation = super::RelationalBranchReferenceObservation::new(
+            self.observation.branch_id().clone(),
+            target,
+            self.observation.generation(),
+        );
+    }
+
     pub(crate) fn from_checkpoint(
         expected_runtime_instance_id: u64,
         checkpoint: RelationalBranchCellCheckpoint,
+    ) -> Result<Self, RelationalBranchCellDenial> {
+        Self::from_checkpoint_with_root(expected_runtime_instance_id, checkpoint, None)
+    }
+
+    pub(crate) fn from_checkpoint_with_root(
+        expected_runtime_instance_id: u64,
+        checkpoint: RelationalBranchCellCheckpoint,
+        root: Option<std::sync::Arc<super::super::RelationalBranchRoot>>,
     ) -> Result<Self, RelationalBranchCellDenial> {
         if checkpoint.observation.branch_id().as_str()
             != format!(
@@ -47,13 +76,19 @@ impl RelationalBranchReferenceCell {
         let cell = Self {
             identity: RelationalBranchIdentity::new(
                 checkpoint.runtime_instance_id,
-                checkpoint.branch_id,
+                checkpoint.branch_id.clone(),
             ),
             observation: checkpoint.observation,
             truth_version: checkpoint.truth_version,
             head_retention_obligations: checkpoint.head_retention_obligations,
             fork_provenance: checkpoint.fork_provenance,
             fork_source_branch_id: checkpoint.fork_source_branch_id,
+            root,
+            basis_registry: crate::branch::RelationalBranchBasisRegistry::default(),
+            coordination: crate::branch::coordination::RelationalBranchCoordinationCell::fresh(
+                checkpoint.runtime_instance_id,
+                &checkpoint.branch_id,
+            ),
         };
         cell.rebind_runtime(expected_runtime_instance_id)
             .map_err(|denial| match denial {

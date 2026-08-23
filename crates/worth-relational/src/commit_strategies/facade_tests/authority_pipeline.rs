@@ -28,6 +28,19 @@ fn execute_lowered_commit_routes_strategy_plan_through_authoritative_pipeline() 
     assert_eq!(runtime.current_version_id().0, 1);
     assert!(commit.publication().strategy_artifacts.is_some());
     assert!(commit.publication().envelope.strategy_artifacts.is_some());
+    let populated_nested_bytes = commit
+        .publication()
+        .envelope
+        .allocation_inventory()
+        .authoritative_nested_bytes;
+    let mut omitted_strategy = commit.publication().envelope.as_ref().clone();
+    omitted_strategy.strategy_artifacts = None;
+    assert!(
+        populated_nested_bytes
+            > omitted_strategy
+                .allocation_inventory()
+                .authoritative_nested_bytes
+    );
     assert_eq!(
         commit
             .publication()
@@ -85,6 +98,73 @@ fn validate_lowered_plan_preserves_strategy_provenance_and_commit_boundary_summa
         .preview_mutation_sensitive_invariants()
         .metadata()
         .has_merged_plan());
+}
+
+#[test]
+fn strategy_proposal_uses_global_next_version_when_branch_lags_sibling() {
+    let mut runtime = RelationalRuntimeBuilder::new()
+        .schema_registry(strategy_schema_registry())
+        .commit_strategy(strategy_registration())
+        .build();
+
+    for client_key in ["main-before-fork", "main-after-fork"] {
+        let mut transaction =
+            crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+        transaction.push_batch(
+            WorkerIntentBatch::new(client_key).push(MutationIntent::Create(CreateIntent::Entity(
+                EntitySpec {
+                    partition_id: PartitionId(1),
+                    kind_id: KindId(1),
+                    client_key: ClientKey::from(client_key),
+                    fields: strategy_name_and_replicas_patch(client_key, 1),
+                },
+            ))),
+        );
+        if client_key == "main-before-fork" {
+            transaction.commit().expect("pre-fork main commit");
+            let (_, basis) = runtime
+                .observe_fork_source(&BranchId("main".to_owned()))
+                .expect("main remains forkable");
+            runtime
+                .fork_branch(BranchId("strategy-version-child".to_owned()), basis)
+                .expect("child branch installs from main");
+        } else {
+            transaction.commit().expect("sibling main commit");
+        }
+    }
+
+    let request = canonical_request();
+    let execution = execution_draft(&request);
+    let child = BranchId("strategy-version-child".to_owned());
+    let validated = {
+        let (transaction_options, mut authority) =
+            crate::tests::support::test_owner_strategy_authority(&mut runtime, Some(child));
+        let lowered = authority
+            .lower_execution(&request, &execution, transaction_options)
+            .expect("child strategy lowers against its selected root");
+        authority
+            .validate_lowered_plan(lowered)
+            .expect("child strategy validates after sibling advance")
+    };
+
+    assert_eq!(
+        validated.proposal_identity().proposed_version_id(),
+        runtime.history().preview_next_version_id(),
+        "strategy identity must use the global next version owner"
+    );
+    assert_ne!(
+        validated.proposal_identity().proposed_version_id(),
+        validated.validated_against_version_id(),
+        "the lagging branch version must not be used as the proposal version"
+    );
+
+    let commit = {
+        let mut authority = CommitStrategiesAuthorityFacade::new(&mut runtime);
+        authority
+            .execute_validated_commit(validated)
+            .expect("branch-local strategy progress remains admissible")
+    };
+    assert_eq!(commit.version_id, runtime.current_version_id());
 }
 
 #[test]

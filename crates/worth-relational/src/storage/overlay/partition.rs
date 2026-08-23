@@ -1,9 +1,9 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 use crate::config::data::AdjacencyPolicy;
 use crate::identity::data::PartitionId;
 
-use crate::storage::partition::{AdjacencySet, DenseSlotBitSet};
+use crate::storage::partition::DenseSlotBitSet;
 use crate::storage::substrate::{EntityArena, RelationArena};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -51,11 +51,63 @@ pub(crate) struct PartitionState {
     pub(crate) relation_overlay_is_sparse: bool,
     pub(crate) entity_arena: EntityArena,
     pub(crate) relation_arena: RelationArena,
-    pub(crate) adjacency: Vec<AdjacencySet>,
-    pub(crate) reverse_adjacency: Vec<AdjacencySet>,
+    pub(crate) adjacency: crate::storage::partition::SparseAdjacencyTable,
+    pub(crate) reverse_adjacency: crate::storage::partition::SparseAdjacencyTable,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct RelationalPartitionAllocationInventory {
+    pub(crate) authoritative_bytes: u64,
+    pub(crate) diagnostic_bytes: u64,
+    pub(crate) retention_metadata_bytes: u64,
+    pub(crate) allocator_bookkeeping_bytes: u64,
+    pub(crate) optional_cache_bytes: u64,
 }
 
 impl PartitionState {
+    pub(crate) fn clear_runtime_pin_counters(&mut self) {
+        self.entity_arena.clear_all_pins();
+        self.relation_arena.clear_all_pins();
+    }
+
+    /// Storage-owner accounting for one immutable region.  This is a
+    /// capacity/layout metric, not a semantic slot estimate; callers must
+    /// label it as authoritative allocation bytes.
+    pub(crate) fn authoritative_allocation_bytes(&self) -> u64 {
+        self.allocation_inventory().authoritative_bytes
+    }
+
+    pub(crate) fn allocation_inventory(&self) -> RelationalPartitionAllocationInventory {
+        let adjacency_bytes = self
+            .adjacency
+            .iter()
+            .chain(self.reverse_adjacency.iter())
+            .map(|(_, set)| set.authoritative_allocation_bytes())
+            .sum::<u64>();
+        let adjacency_cache_bytes = self
+            .adjacency
+            .iter()
+            .chain(self.reverse_adjacency.iter())
+            .map(|(_, set)| set.optional_cache_allocation_bytes())
+            .sum::<u64>();
+        let arenas = self
+            .entity_arena
+            .allocation_inventory()
+            .saturating_add(self.relation_arena.allocation_inventory());
+        let authoritative_bytes = arenas
+            .authoritative_bytes
+            .saturating_add(self.adjacency.allocation_bytes())
+            .saturating_add(self.reverse_adjacency.allocation_bytes())
+            .saturating_add(adjacency_bytes);
+        RelationalPartitionAllocationInventory {
+            authoritative_bytes,
+            diagnostic_bytes: arenas.diagnostic_bytes,
+            retention_metadata_bytes: arenas.retention_metadata_bytes,
+            allocator_bookkeeping_bytes: arenas.allocator_bookkeeping_bytes,
+            optional_cache_bytes: adjacency_cache_bytes,
+        }
+    }
+
     pub(crate) fn clone_for_overlay(&self, mode: PartitionCloneMode) -> Self {
         match mode {
             PartitionCloneMode::Full => self.clone(),
@@ -65,8 +117,8 @@ impl PartitionState {
                 relation_overlay_is_sparse: false,
                 entity_arena: self.entity_arena.clone(),
                 relation_arena: RelationArena::with_capacity(0),
-                adjacency: Vec::new(),
-                reverse_adjacency: Vec::new(),
+                adjacency: Default::default(),
+                reverse_adjacency: Default::default(),
             },
             PartitionCloneMode::GraphSparseEntities => Self {
                 partition_id: self.partition_id,
@@ -92,8 +144,8 @@ impl PartitionState {
                 .entity_arena
                 .sparse_clone_slots_for_overlay(touched_entity_slots),
             relation_arena: RelationArena::with_capacity(0),
-            adjacency: Vec::new(),
-            reverse_adjacency: Vec::new(),
+            adjacency: Default::default(),
+            reverse_adjacency: Default::default(),
         }
     }
 
@@ -142,6 +194,39 @@ impl PartitionState {
             reverse_adjacency: self.reverse_adjacency.clone(),
         }
     }
+
+    /// Apply one storage-owner overlay to an immutable branch-region copy.
+    ///
+    /// Branch roots cannot consult the runtime-wide partition map: a sibling
+    /// branch may have published a different current partition there.  The
+    /// publication journal therefore travels with the overlay and this
+    /// operation reconstructs the exact branch-local partition from the prior
+    /// region.  Empty journal axes deliberately retain the prior arena/graph.
+    pub(crate) fn merge_overlay_from_owned(
+        &mut self,
+        overlay: &mut Self,
+        journal: &PartitionMutationJournal,
+    ) {
+        if !journal.entity_slots.is_empty() {
+            self.entity_arena
+                .merge_slots_from_owned(&mut overlay.entity_arena, &journal.entity_slots);
+        }
+        if !journal.relation_slots.is_empty() {
+            if overlay.relation_overlay_is_sparse {
+                self.relation_arena
+                    .merge_slots_from_owned(&mut overlay.relation_arena, &journal.relation_slots);
+            } else {
+                self.relation_arena = overlay.relation_arena.clone();
+            }
+        }
+        if !journal.adjacency_slots.is_empty() {
+            self.adjacency = overlay.adjacency.clone();
+        }
+        if !journal.reverse_adjacency_slots.is_empty() {
+            self.reverse_adjacency = overlay.reverse_adjacency.clone();
+        }
+        self.relation_overlay_is_sparse = false;
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -150,8 +235,6 @@ pub(crate) struct PartitionMutationJournal {
     pub(crate) relation_slots: BTreeSet<usize>,
     pub(crate) adjacency_slots: BTreeSet<usize>,
     pub(crate) reverse_adjacency_slots: BTreeSet<usize>,
-    pub(crate) entity_free_list_changed: bool,
-    pub(crate) relation_free_list_changed: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -159,12 +242,4 @@ pub(crate) struct SnapshotPartitionPins {
     pub(crate) entity_slots: DenseSlotBitSet,
     pub(crate) relation_slots: DenseSlotBitSet,
     pub(crate) retained_relation_slots: DenseSlotBitSet,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct SnapshotState {
-    pub(crate) handle: crate::snapshots::data::SnapshotHandle,
-    pub(crate) pinned_partitions: BTreeMap<PartitionId, SnapshotPartitionPins>,
-    pub(crate) pinned_entity_count: usize,
-    pub(crate) pinned_relation_count: usize,
 }

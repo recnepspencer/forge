@@ -10,6 +10,7 @@ use crate::transactions::data::{
 pub(super) struct AdmittedCommitExecution {
     transaction_id: TransactionId,
     options: TransactionOptions,
+    selected_branch_state: crate::branch::SelectedRelationalBranchState,
     phase_timing: CommitPhaseTiming,
     commit_log: CommitLog,
     authority_input: super::authority_context::CommitAuthorityInput,
@@ -61,11 +62,19 @@ impl<'a> AdmittedCommitPhaseView<'a> {
 }
 
 impl AdmittedCommitExecution {
+    pub(super) fn transaction_id(&self) -> TransactionId {
+        self.transaction_id
+    }
+
     pub(super) fn merged_plan(&self) -> &MergedCommitPlan {
         match &self.authority_input {
             super::authority_context::CommitAuthorityInput::Lowered(plan) => plan.merged_plan(),
             super::authority_context::CommitAuthorityInput::Merge(plan) => &plan.merged_plan,
         }
+    }
+
+    pub(super) fn selected_branch_state(&self) -> &crate::branch::SelectedRelationalBranchState {
+        &self.selected_branch_state
     }
 
     pub(super) fn merge_history_plan(
@@ -164,19 +173,49 @@ pub(super) fn admit_commit_execution(
             .expect("complexity counter lock poisoned")
             .clone()
     });
-    if let Some(telemetry) = context.bulk_mutation_telemetry.as_ref() {
-        record_bulk_mutation_telemetry(runtime, telemetry);
-    }
     enforce_validated_strategy_basis(
         runtime,
+        context.transaction_id,
         &context.options,
         context.validated_against_commit_id,
         context.validated_against_version_id,
         context.validated_against_branch_version,
+        context
+            .prepared_scope
+            .as_ref()
+            .and_then(|scope| scope.proposal_identity.as_ref()),
     )?;
+    let selected_branch_state = context
+        .prepared_scope
+        .as_ref()
+        .map(|scope| scope.selected_branch_state.clone())
+        .or_else(|| match &context.authority_input {
+            super::authority_context::CommitAuthorityInput::Lowered(plan) => {
+                plan.selected_branch_state().cloned()
+            }
+            super::authority_context::CommitAuthorityInput::Merge(_) => None,
+        })
+        .map(Ok)
+        .unwrap_or_else(|| {
+            runtime
+                .selected_branch_state(context.options.branch_binding())
+                .map_err(TransactionCommitError::preparation)
+        })?;
+    if let Some(telemetry) = context.bulk_mutation_telemetry.as_ref() {
+        record_bulk_mutation_telemetry(runtime, telemetry);
+    }
+    if matches!(
+        context.options.branch_binding().observation().target(),
+        worth_foundational::FoundationalBranchTarget::Basis(_)
+    ) {
+        runtime
+            .history
+            .record_retained_history_head_lookup(context.options.target_branch());
+    }
     Ok(AdmittedCommitExecution {
         transaction_id: context.transaction_id,
         options: context.options,
+        selected_branch_state,
         phase_timing: context.phase_timing,
         commit_log: CommitLog::new(),
         authority_input: context.authority_input,
@@ -192,16 +231,34 @@ pub(super) fn admit_commit_execution(
 
 fn enforce_validated_strategy_basis(
     runtime: &RelationalRuntime,
+    transaction_id: TransactionId,
     options: &crate::transactions::data::TransactionOptions,
     validated_against_commit_id: Option<crate::history::data::CommitId>,
     validated_against_version_id: Option<crate::identity::data::VersionId>,
     validated_against_branch_version: Option<crate::branch::RelationalBranchVersion>,
+    proposal_identity: Option<&crate::transactions::RelationalMutationProposalIdentity>,
 ) -> Result<(), TransactionCommitError> {
     let branch = options.target_branch().clone();
     if options.branch_binding().identity().runtime_instance_id() != runtime.runtime_instance_id() {
         return Err(stale_strategy_validation_basis(
             "transaction branch binding belongs to another Relational runtime",
         ));
+    }
+    if let Some(identity) = proposal_identity {
+        if identity.runtime_instance_id() != runtime.runtime_instance_id()
+            || identity.transaction_id() != transaction_id
+            || identity.branch_observation() != options.branch_binding().observation()
+            || identity.branch_version() != options.branch_binding().truth_version()
+        {
+            return Err(stale_strategy_validation_basis(
+                "proposal identity does not match the owner-issued transaction basis",
+            ));
+        }
+        if identity.proposed_version_id() != runtime.history().preview_next_version_id() {
+            return Err(stale_strategy_validation_basis(
+                "proposal identity no longer names the next runtime version",
+            ));
+        }
     }
     if !runtime.legacy_branch_binding_is_current(options.branch_binding()) {
         return Err(stale_strategy_validation_basis(

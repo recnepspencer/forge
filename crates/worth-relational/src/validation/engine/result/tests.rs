@@ -55,6 +55,7 @@ fn skipped_result_retains_execution_metadata_without_checks() {
             1,
             0,
         )),
+        None,
     );
 
     let result = crate::validation::engine::InvariantExecutionResult::skipped(metadata);
@@ -83,6 +84,7 @@ fn executed_result_builds_decision_log_from_results() {
         crate::config::data::RelationalExecutionModel::SerialAuthority,
         None,
         Vec::new(),
+        None,
         None,
     );
     let result = crate::validation::engine::InvariantExecutionResult::executed(
@@ -128,6 +130,7 @@ fn proof_boundary_artifact_uses_typed_diagnostic_labels() {
             3,
             2,
         )),
+        None,
     );
     let result =
         crate::validation::engine::InvariantExecutionResult::executed(metadata, Vec::new());
@@ -169,6 +172,7 @@ fn failure_artifact_preserves_failure_effect_and_nested_proof_boundary() {
             1,
             1,
         )),
+        None,
     );
     let violation = InvariantViolation {
         class: InvariantClass::CommitBoundary,

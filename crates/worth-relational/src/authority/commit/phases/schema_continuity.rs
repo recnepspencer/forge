@@ -1,4 +1,3 @@
-use crate::capabilities::{SchemaSource, SchemaVersionSource};
 use crate::history::data::CanonicalCommitEnvelope;
 use crate::schema::data::{
     DescriptorSemanticsVersion, LoweredSchemaTransitionPlan, SchemaContinuationDescriptor,
@@ -18,6 +17,8 @@ use diagnostics::{
 
 #[derive(Debug, Clone)]
 pub(crate) struct SchemaContinuityPlan {
+    pub(crate) target_schema_version: crate::schema::data::SchemaVersionId,
+    pub(crate) target_schema_authority: crate::schema::data::SchemaAuthoritySnapshot,
     pub(crate) descriptor_semantics_version: DescriptorSemanticsVersion,
     pub(crate) schema_transition: Option<SchemaTransitionArtifact>,
     pub(crate) schema_continuation_descriptor: Option<SchemaContinuationDescriptor>,
@@ -25,13 +26,23 @@ pub(crate) struct SchemaContinuityPlan {
 }
 
 impl SchemaContinuityPlan {
-    pub(crate) fn current(descriptor_semantics_version: DescriptorSemanticsVersion) -> Self {
+    pub(crate) fn current(input: &crate::schema::SchemaContinuityAuthorityInput) -> Self {
         Self {
-            descriptor_semantics_version,
+            target_schema_version: input.target_schema_version(),
+            target_schema_authority: input.target_schema_authority().clone(),
+            descriptor_semantics_version: input.descriptor_semantics_version(),
             schema_transition: None,
             schema_continuation_descriptor: None,
             schema_reconciliation_descriptor: None,
         }
+    }
+
+    pub(crate) const fn target_schema_version(&self) -> crate::schema::data::SchemaVersionId {
+        self.target_schema_version
+    }
+
+    pub(crate) fn target_schema_authority(&self) -> &crate::schema::data::SchemaAuthoritySnapshot {
+        &self.target_schema_authority
     }
 }
 
@@ -41,28 +52,16 @@ pub(crate) fn resolve_schema_continuity(
     options: &crate::transactions::data::TransactionOptions,
 ) -> Result<SchemaContinuityPlan, TransactionCommitError> {
     let descriptor_policy = runtime.config.schema.descriptor_semantics_policy.clone();
-    let current_descriptor_semantics_version = descriptor_policy.current_write_version();
-    let current_descriptor_canonical_basis_version = runtime
-        .config
-        .schema
-        .descriptor_canonical_basis_policy
-        .current_write_version();
-    let current_schema_version = runtime.primary_schema_version_id();
-    let current_schema_registry = runtime.schema_registry().clone();
-    let current_schema_authority = current_schema_registry.authority_snapshot();
-    let current_schema_basis = current_schema_registry
-        .authoritative_schema_basis()
-        .map_err(|error| {
-            schema_continuity_conflict(
-                runtime,
-                branch_id,
-                options.proposed_schema_transition(),
-                None,
-                ConflictClass::InvalidSchemaTransitionShape {
-                    detail: error.detail,
-                },
-            )
-        })?;
+    let authority_input = match options.schema_authority_input() {
+        Some(input) => input.clone(),
+        None => crate::schema::SchemaContinuityAuthorityInput::from_runtime(runtime),
+    };
+    let current_descriptor_semantics_version = authority_input.descriptor_semantics_version();
+    let current_descriptor_canonical_basis_version =
+        authority_input.descriptor_canonical_basis_version();
+    let current_schema_version = authority_input.target_schema_version();
+    let current_schema_authority = authority_input.target_schema_authority().clone();
+    let current_schema_basis = authority_input.target_schema_basis();
     let previous_head = {
         let history = runtime.history();
         history.branch_head(branch_id).cloned()
@@ -79,20 +78,17 @@ pub(crate) fn resolve_schema_continuity(
                 None,
                 current_schema_basis,
                 current_schema_version,
+                &authority_input,
             );
         }
-        return Ok(SchemaContinuityPlan::current(
-            current_descriptor_semantics_version,
-        ));
+        return Ok(SchemaContinuityPlan::current(&authority_input));
     };
     let previous_envelope = {
         let history = runtime.history();
         history.commit_envelope(previous_head.commit_id).cloned()
     };
     let Some(previous_envelope) = previous_envelope.as_ref() else {
-        return Ok(SchemaContinuityPlan::current(
-            current_descriptor_semantics_version,
-        ));
+        return Ok(SchemaContinuityPlan::current(&authority_input));
     };
 
     if !descriptor_policy.supports(previous_envelope.descriptor_semantics_version) {
@@ -125,6 +121,7 @@ pub(crate) fn resolve_schema_continuity(
             Some(previous_envelope),
             current_schema_basis,
             current_schema_version,
+            &authority_input,
         ),
         None if drift_detected => Err(schema_continuity_conflict(
             runtime,
@@ -139,9 +136,7 @@ pub(crate) fn resolve_schema_continuity(
                 current_descriptor_semantics_version,
             },
         )),
-        None => Ok(SchemaContinuityPlan::current(
-            current_descriptor_semantics_version,
-        )),
+        None => Ok(SchemaContinuityPlan::current(&authority_input)),
     }
 }
 
@@ -158,6 +153,7 @@ fn materialize_declared_transition(
         crate::schema::data::SchemaVersionId,
     )>,
     current_schema_version: crate::schema::data::SchemaVersionId,
+    authority_input: &crate::schema::SchemaContinuityAuthorityInput,
 ) -> Result<SchemaContinuityPlan, TransactionCommitError> {
     if let Some(previous_envelope) = previous_envelope {
         let previous_schema_basis = previous_envelope
@@ -293,6 +289,7 @@ fn materialize_declared_transition(
         lowered,
         descriptor_semantics_version,
         branch_id,
+        authority_input,
     ))
 }
 
@@ -301,6 +298,7 @@ fn schema_continuity_plan_from_lowered(
     lowered: LoweredSchemaTransitionPlan,
     descriptor_semantics_version: DescriptorSemanticsVersion,
     branch_id: &crate::history::data::BranchId,
+    authority_input: &crate::schema::SchemaContinuityAuthorityInput,
 ) -> SchemaContinuityPlan {
     let continuation_descriptor = lowered.continuation_descriptor.clone();
     let mut reconciliation_descriptor = lowered.reconciliation_descriptor.clone();
@@ -316,6 +314,8 @@ fn schema_continuity_plan_from_lowered(
     );
 
     SchemaContinuityPlan {
+        target_schema_version: authority_input.target_schema_version(),
+        target_schema_authority: authority_input.target_schema_authority().clone(),
         descriptor_semantics_version,
         schema_transition: Some(schema_transition),
         schema_continuation_descriptor: Some(continuation_descriptor),

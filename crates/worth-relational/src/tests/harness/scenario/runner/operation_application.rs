@@ -8,7 +8,7 @@ use crate::facade::transactions::{
 };
 use crate::tests::harness::scenario::operation::ScenarioOperation;
 use crate::tests::harness::scenario::seed::DeterministicGenerator;
-use crate::tests::support::{create_relation_in_partition, update_entity_on_branch, KindId};
+use crate::tests::support::{create_relation_in_partition, try_update_entity_on_branch, KindId};
 
 use super::{scenario_branch_main, ActiveRelation};
 
@@ -44,7 +44,7 @@ pub(super) fn apply_operation(
             let branch = branches[(*branch_slot).min(branches.len() - 1)].clone();
             let name = format!("seed-{seed}-update-{step}-{name_counter}");
             *name_counter += 1;
-            let _ = update_entity_on_branch(runtime, entities[index], &name, branch);
+            let _ = try_update_entity_on_branch(runtime, entities[index], &name, branch);
         }
         ScenarioOperation::ReplaceEntity {
             entity_slot,

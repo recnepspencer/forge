@@ -1,3 +1,4 @@
+mod branch_heads;
 mod lineage;
 mod publication;
 mod publication_operation_parity;

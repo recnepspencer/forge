@@ -123,7 +123,7 @@ impl SupplyChainScale {
     pub(crate) const fn court() -> Self {
         Self {
             name: ScaleName::Court,
-            seed: 9_17_1,
+            seed: 9_171,
             regions: 2,
             ports: 4,
             terminals: 8,
@@ -147,7 +147,7 @@ impl SupplyChainScale {
     pub(crate) const fn standard() -> Self {
         Self {
             name: ScaleName::Standard,
-            seed: 9_17_2,
+            seed: 9_172,
             regions: 4,
             ports: 16,
             terminals: 32,
@@ -171,7 +171,7 @@ impl SupplyChainScale {
     pub(crate) const fn scale() -> Self {
         Self {
             name: ScaleName::Scale,
-            seed: 9_17_3,
+            seed: 9_173,
             regions: 8,
             ports: 64,
             terminals: 128,

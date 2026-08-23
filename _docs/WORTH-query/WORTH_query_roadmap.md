@@ -360,9 +360,10 @@ cross-feature proof gates before final certification:
 - `Milestone 9.16.2` establishes portable packages and an immediate
   PostgreSQL-backed durability foundation without importing physical topology
   into an authority owner: stable package reconstruction, a neutral archive,
-  the runtime-level PostgreSQL adapter plus persistent host facade, canonical
-  Relational recovery, and
-  restart-safe use of Query's existing co-committed outbox
+  four narrow provider-neutral persistence ports, the runtime-level PostgreSQL
+  adapter, Query-execution-owned persistent opening reexported by the leaf host
+  facade, canonical Relational recovery, and restart-safe use of Query's
+  existing co-committed outbox
 - the `Milestone 9.17` umbrella closes through `9.17.1`, `9.17.2`, and
   `9.17.3`: first durable exact owner component bases and Relational branch-
   local MVCC, then durable Runtime Bridge composite history/currentness, then
@@ -4938,19 +4939,21 @@ Let an exact signed Query workflow release cross process and storage boundaries,
 start a PostgreSQL-backed runtime, durably acknowledge Relational mutations,
 recover in a fresh process, and resume Query's existing co-committed outbox
 through fresh fenced claims. Ship the typed package bridge, neutral archive,
-and stable runtime-level PostgreSQL adapter/host facades that 9.17 extend with
-Signal, Runtime Bridge, and composite dispatch admission without moving
-ownership.
+four narrow provider-neutral persistence ports, the stable runtime-level
+PostgreSQL adapter, and Query-execution persistent opening reexported by the
+leaf host facade. Milestone 9.17 extends this destination with Signal, Runtime
+Bridge, and composite dispatch admission without moving ownership.
 
 ### Adversarial Constraint
 
 A hostile host corrupts or cross-splices package records, trusts claimed
-identity, selects latest by name, kills the writer around PostgreSQL commit,
-kills dispatch before or after external send, races claimants, reuses stale
-fences, and removes every old receipt and runtime handle. A fresh process must
-recover the exact acknowledged state and existing Query outbox, install only the
-independently expected package, and resume safely with bounded work. No adapter
-artifact may mint Query or Relational authority.
+identity, selects latest by name, weakens database durability, kills the writer
+around PostgreSQL commit, compacts while outbox work remains pending, kills
+dispatch before or after external send, races claimants, reuses stale fences,
+and removes every old receipt, runtime handle, and derived pending-work index. A
+fresh process must recover the exact acknowledged state and existing Query
+outbox, install only the independently expected package, and resume safely with
+bounded work. No adapter artifact may mint Query or Relational authority.
 
 ### Specification
 
@@ -4960,11 +4963,12 @@ The governing milestone spec is
 Implementation closes through fifteen independently reviewable gates: stable
 identity; typed export; bounded reconstruction; neutral archive; Relational
 durability authority; PostgreSQL lifecycle/migrations; package
-registry/coexistence; PostgreSQL Relational commit/recovery; owner-first host
+registry/coexistence; PostgreSQL Relational commit/recovery; execution-owned
+owner-first
 readiness; fresh outbox admission; claiming/leasing/fencing; external dispatch
 and reconciliation; operational reconstruction/disaster recovery;
-observability/capacity/isolation; and the final NCR vertical certification plus
-Workflow Editor cutover. The final court aggregates these proofs; it cannot
+observability/capacity/isolation; and the final persistent Bank plus NCR
+certification and Workflow Editor cutover. The final court aggregates these proofs; it cannot
 retroactively close an unfinished earlier boundary.
 
 ### Must Ship
@@ -4980,16 +4984,23 @@ retroactively close an unfinished earlier boundary.
   versioned, bounded encoding and decoding
 - a Relational-owned pluggable canonical durability boundary preserving the
   durable-before-publication and recovery laws
+- separate immutable archive-repository, Query-execution runtime-stream
+  lifecycle, and Query-execution dispatch-coordination ports; no generic
+  database backend erases their contracts
+- a cert-only reusable four-port conformance kit instantiated by PostgreSQL and
+  required of future physical adapters
 - a production `worth-runtime-postgres` physical-adapter facade with distinct
   Query-package, Relational-owner, dispatch, connection, migration, and
-  operations axes plus a `worth-query-host` persistent recovery facade
-- a runtime-level fresh-owner recovery/rebind barrier
+  operations axes
+- a Query-execution-owned fresh-owner recovery/rebind barrier reexported by the
+  leaf `worth-query-host` audience facade
 - restart-stable discovery and fenced claiming of Query's existing
   co-committed outbox through a private performed-product-publication carrier,
   with no shadow payload
-- fresh-process, commit-crash, dispatch-crash, coexisting-release,
-  namespace-isolation, migration, projection-rebuild, scale, NCR, docs, and
-  residue proof against real PostgreSQL
+- fresh-process, application/database/restore crash, commit-ambiguity,
+  dispatch-crash, pending-after-compaction, coexisting-release,
+  namespace-isolation, migration, projection-rebuild, scale, persistent Bank,
+  NCR, docs, and residue proof against real PostgreSQL
 
 ### Must Preserve
 
@@ -5000,7 +5011,10 @@ retroactively close an unfinished earlier boundary.
 - committed Signal and Runtime Bridge ownership of their own durable
   component/composite artifacts in 9.17.1/9.17.2
 - runtime-level PostgreSQL-adapter ownership of physical schema, migrations,
-  indexes, pools, leases, and recovery mechanics without semantic authority
+  indexes, pools, conditional writes, and recovery mechanics without semantic
+  authority
+- Query-execution ownership of persistent opening and claim/fence/outcome
+  progression while `worth-query-host` remains a facade-only reexport
 - host ownership of Git provenance, signing, registry revision, and activation
 - private validation proofs and runtime authority
 - the ordinary/reconstructive work boundary
@@ -5010,8 +5024,9 @@ retroactively close an unfinished earlier boundary.
 ### Handoff
 
 Workflow Editor uses the neutral archive as the Query member of its signed
-release and `worth-runtime-postgres` as its immediate durable runtime. NCR is
-the first complete durable-state and restart-safe-notification consumer.
+release and `worth-runtime-postgres` as its immediate durable runtime. The Bank
+world is the decisive provider-neutral durability/outbox courtroom; NCR is the
+separate complete durable-state and restart-safe-notification consumer.
 9.17.1 adds durable component owners, 9.17.2 adds durable Bridge product
 currentness, and 9.17.3 gates the same outbox on performed composite
 publication. Future adapters may implement the same owner contracts without
@@ -5590,7 +5605,7 @@ answer is "store-gated" or "shared with another subsystem."
 | Installed operation semantics, semantic aspect correspondence, conditional Signal authority, and bound downstream authority | Milestone 9.14 | Complete installed operation semantic closures, one installed operating-world root, typed borrowed operation-family facades, sealed graph-participation adapters, atomic multi-domain and admitted multi-graph operation capabilities, portable Query-authored semantic truth dependencies and conditional-node declarations, aspect-precise Relational publication, installed truth-to-Signal aspect correspondences, pair-bound runtime-bridge lowerings, installed Signal node contracts, Signal-minted decision evidence, Query re-entry receipts, installed workflow DAGs, Query-minted run/stage traces, ordinary re-execution and cert-only replay results, typed reversal/compensation posture, derived-publication receipts, trace-bound lineage and promotion evidence, runtime-affine bound projections, Query-minted consumer support contracts, proof-bearing execution/consumption states, declaration-indexed native access keys, pair-bound compatibility witnesses, compiled dependency-impact closures, shared execution owners and consumer leases, capability-bound invalidation deltas, bound collection/window capabilities, query-shaped patches, managed lifecycle states, opaque operational identities, and exact counter snapshots | Stable domain operations, semantic truth dependencies, aspect publication, installed aspect correspondence, entry authority, graph participation, workflow progression, conditional authoring, lowering, Signal decisions, Query re-entry, replay, reversal, publication, promotion, and lineage cannot be reconstructed locally and independently valid authority ingredients cannot be recombined; Query owns portable semantic dependency and conditional intent, Relational owns authoritative aspect-change meaning, the runtime bridge owns exact installed correspondence and lowering, and Signal owns local aspect slots and evaluation truth; node evaluation and effect conditions remain distinct; skipped, deferred, and reverted-clean outcomes cannot masquerade as new computed delivery; one logical graph is the default; separate graphs bind atomically only with shared commit authority and otherwise expose compensation; ordinary downstream work consumes typed publications while replay remains cert-only; native access remains Foundational-exact and bounded; Query alone binds operation authority, advances workflow, mints traces and publications, admits replay, binds aftermath and lineage, compiles impact, admits sharing and compatibility/lifecycle, mints leases and support, states invalidation meaning, and preserves collection identity, ordering, cursors, continuation, and patch semantics; reporting representations and derived indexes have zero operational power | Milestone 9.14 operation-definition, single-root, graph-adapter, atomic/compensated multi-graph, semantic-dependency canonicality, Relational publication precision, aspect-correspondence/slot-capacity admission, conditional-authoring canonicality, bridge-lowering admission, Signal-decision authority, conditional outcome/counter matrix, Query re-entry, workflow-graph convergence/conflict, stage-progression, publication-consumption, replay-fence/equivalence/divergence, reversal-posture, lineage/promotion/persistent-naming, construction, support-spoofing, mix-and-match, native parity, dependency-impact replay, sharing-equivalence/lease lifecycle, collision, invalidation replay, collection-window identity, shared patch/fresh-execution parity, exact-counter, facade, residue, sabotage, reusable-certification-kit, and reference-consumer certification + Milestone 13 provider-independent bound-projection parity |
 | Managed pre-commit domain computation | Milestone 9.15 | Installed artifact/counter/decision/invariant contracts, occurrence and reproducibility identity, move-only managed artifacts, resource reservations, managed runs and continuations, sealed provider plans and sessions, basis-complete decision read-sets, provisional post-state attempts, and real invariant-execution results | Large products cross stages without blobs; actual provider work is bounded, cancellable, yieldable, resumable in memory, and backpressured; proposals remain isolated; selected obligations cannot masquerade as executed invariants; prepared work has no commit power | Milestone 9.15 artifact/occurrence, native-memory, resource-saturation, lifecycle, provider-session, read-set, proposed-state, invariant-execution, facade, residue, and hostile-provider certification |
 | Authenticated ordinary Query front door | Milestone 9.16 | Schema-derived typed references, installed application queries and Query-owned continuations, Authentik principal proof, capability/purpose/disclosure/conflict/elevation authority, Milestone 9.10-bound filter/sort/traversal access plans, touched-graph admission, double-entry and estate effects, provider compare-and-commit, actionable recovery, accepted aftermath/external-effect publication, ordinary read/mutation/workflow/history/live facades, host-installed conditional providers and named clocks, reconstructible temporal wakes, cross-process HTTP adaptation, and explicitly provisional linear undo/redo implementation evidence | Authentication cannot imply authorization; roles cannot imply unconstrained capability; entity visibility cannot imply field disclosure; break-glass cannot become superuser or self-benefit authority; policy composes through Relational facts, runtime-bridge lowering, Signal decision evidence, and Query admission; application queries cannot bypass graph-read planning or fabricate no-N+1 proof; host predicates cannot return raw Signal decisions; hosts cannot own Signal graphs or temporal schedulers; wake eligibility cannot imply application-operation authority; cursors carry no authority; compensation preserves history; provisional undo/redo owns no canonical history; concurrent money movement commits once or returns an honest outcome | Milestone 9.16 OIDC, capability/touched-graph, conflict-of-interest, disclosure, break-glass, canonical-query/cursor/basis, graph-access/no-N+1, accounting, concurrency, idempotency, recovery, aftermath, conditional host/reinstall, live-revocation, cross-process consumer, facade, residue, and certification-only replay parity; Milestone 9.18 for tree-based undo/redo product acceptance |
-| Portable packages and PostgreSQL runtime durability foundation | Milestone 9.16.2 | Stable identities and declaration-minted references; typed package records; bounded reconstruction/fresh validation; neutral archive; stable `worth-runtime-postgres` adapter and persistent `worth-query-host` facade; Relational durability/recovery; existing-outbox discovery, performed-product-publication admission, fenced claims, attempts, and outcomes; committed Signal/Runtime-Bridge adapter topology | PostgreSQL is in the owner commit path before acknowledgement; Query's co-committed outbox remains the only payload; the host facade invokes owner recovery but mints no authority; the adapter owns physical mechanics only; old proofs, handles, rows, and leases mint nothing; 9.17 adds owner siblings without moving facades; warm execution performs no package/recovery/global-work scan | Real-PostgreSQL commit/dispatch crash matrices; package mutants; checkpoint/tail fresh-process equality; coexisting releases; isolation; migrations; projection rebuild; stable-idempotency/stale-fence hostility; destination-topology enforcement; NCR state/notification/restart journey; backup/restore, facade, docs, boundary, and residue certification |
+| Portable packages and PostgreSQL runtime durability foundation | Milestone 9.16.2 | Stable identities and declaration-minted references; typed package records; bounded reconstruction/fresh validation; versioned neutral archive and immutable repository port; Relational durability port; Query-execution persistent opening, runtime-stream lifecycle port, and dispatch-coordination port reexported by leaf `worth-query-host`; stable `worth-runtime-postgres` implementations; exact runtime-stream/package/provider binding; canonical outbox plus operational fenced claims, attempts, and outcomes; committed Signal/Runtime-Bridge adapter topology | PostgreSQL is in the owner commit path before acknowledgement under an admitted durability profile; ambiguous commit outcomes remain typed; unresolved outbox source truth survives checkpoint/compaction/restore; Query's co-committed outbox remains the only payload; Query execution owns recovery progression and dispatch meaning; the host facade reexports and mints no authority; the adapter owns physical mechanics only; future databases must meet the same capability-gated ports; old proofs, handles, rows, and leases mint nothing; 9.17 adds owner siblings without moving facades; warm execution performs no package/recovery/global-work scan | Fifteen phase-aligned proof families with sabotage mutations; real-PostgreSQL application/database/restore and commit/dispatch crash matrices; archive golden vectors and package mutants; checkpoint/tail and pending-after-compaction fresh-process equality; stream/release/provider coexistence; isolation; durability settings; migrations; projection rebuild; stable-idempotency/stale-fence hostility; destination/dependency enforcement; certified persistent Bank ledger/payment-rail journey plus NCR consumer restart; backup/restore, facade, docs, boundary, and residue certification |
 | Composite runtime branching, continuous durability, and branch-local MVCC | Milestone 9.17 umbrella: 9.17.1 owner bases/MVCC/component recovery, 9.17.2 durable composite history/publication, 9.17.3 Query carriage/recovery/outbox cutover/facade/certification | Owner-issued durable Relational/Signal bases; branch-local MVCC; Runtime Bridge-owned correspondence, single-parent composite commits, durable product-head CAS and recovery; Query-carried product-world affinity; existing-outbox admission bound to performed composite publication | Branch identities remain distinct; components and Bridge recover through their own authority; SQL rows mint nothing; unrelated branches progress; partial preparation never becomes product-current; an owner-local outbox never dispatches after failed composite publication; the stable runtime facade admits traffic only after owner-first recovery and reconciliation | 9.17.1 real-PostgreSQL component recovery and independent progress + 9.17.2 product-head crash/CAS/owner-first recovery + 9.17.3 end-to-end composite restart and dispatch crash matrix + shared-basis, component-divergence, same-head-race, substitution, lifecycle, facade, compiler, docs, residue, and later cross-runtime semantic merge suites |
 | Tree-based semantic undo and redo | Milestone 9.18 | Exact source composite commit and target product branch/head, explicit per-component correction posture, installed inverse/compensation/reconciliation/reapplication contracts, applicability against intervening history, fresh Query admission, owner-local preparation, Runtime Bridge coordinated publication, correction causality, and typed next actions | Reversal and reapplication create new composite commits; unchanged components retain exact bases; Signal reconciliation remains Signal-owned; history and alternatives remain intact; copied receipts and prior authority open no door; stale/conflicting divergence is typed before effects; external effects retain honest compensation/irreversibility posture; Query owns no history head | Milestone 9.18 composite-divergence, stale-head, component-basis, Signal-reconciliation, authority, compensation, external-effect, partial-preparation, zero-ordinary-work, facade, documentation, and residue certification + later cross-runtime merge/rebase/recovery suites |
 | Managed advanced access and verified footprints | Milestone 9.19 | Installed-query-bound search and access products, Milestone 9.10 requirement/inventory/plan extensions, lifecycle products, coverage/membership witnesses, exact refinement, and verified realized footprints | Search preserves capability, purpose, exact composite product-world basis, disclosure, cursor, recovery, and aftermath; membership remains complete under negative-space change; protected candidates do not leak; footprints narrow but never widen authority | Milestone 9.19 bank/geometry search, disclosure, no-N+1, membership, footprint, lifecycle, memory, alternate-provider, facade/docs, and prohibition certification + Milestone 13 parity |

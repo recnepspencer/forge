@@ -1,8 +1,59 @@
 use super::*;
 use crate::facade::indexes::{
     BoundedEntityFieldLookupDenialKind, BoundedEntityFieldLookupRequest, BoundedIndexParityMode,
-    MAX_BOUNDED_INDEX_CANDIDATES,
+    DerivedIndexEntries, MAX_BOUNDED_INDEX_CANDIDATES,
 };
+
+#[test]
+fn entity_field_certification_rejects_a_missing_candidate() {
+    let mut runtime = runtime_with_index_field_aspects();
+    let created = create_entity_outcome(&mut runtime, "parity-candidate");
+    let entity_id = changed_entities(&created)[0];
+    let field_locator = aspect_field_locator(aspect_key("name"), field_key("name"));
+    let index = runtime.index_authority().register(DerivedIndexDefinition {
+        index_id: DerivedIndexId(75),
+        name: "entity.name.parity-red-control".to_owned(),
+        kind: DerivedIndexKind::EntityField {
+            field_locator: field_locator.clone(),
+        },
+        branch_scoped: false,
+    });
+    build_entity_field_generation(&mut runtime, index.index_id);
+    let generation = runtime
+        .indexes
+        .generations
+        .get_mut(&index.index_id)
+        .and_then(|generations| generations.last_mut())
+        .unwrap();
+    let DerivedIndexEntries::EntityField(entries) = &mut generation.entries else {
+        panic!("entity-field generation expected");
+    };
+    entries.clear();
+    let snapshot = runtime.visibility_authority().snapshot();
+    let request = || {
+        entity_field_request(
+            snapshot.clone(),
+            index.index_id,
+            field_locator.clone(),
+            string_aspect_value("parity-candidate"),
+        )
+    };
+
+    let production = runtime
+        .index_access()
+        .execute_bounded_entity_field_lookup(request(), BoundedIndexParityMode::Production)
+        .unwrap();
+    assert!(production.candidate_entity_ids().is_empty());
+    assert_ne!(production.candidate_entity_ids(), &[entity_id]);
+    let denial = runtime
+        .index_access()
+        .execute_bounded_entity_field_lookup(request(), BoundedIndexParityMode::Certification)
+        .unwrap_err();
+    assert_eq!(
+        denial.kind(),
+        BoundedEntityFieldLookupDenialKind::StorageParityMismatch
+    );
+}
 
 #[test]
 fn bounded_lookup_caps_ordinary_work_and_certifies_storage_parity() {
@@ -179,4 +230,109 @@ fn bounded_lookup_rebuilds_exact_historical_generation_after_truth_advances() {
 
     assert_eq!(result.candidate_entity_ids(), &[entity_id]);
     assert!(!result.overflowed());
+}
+
+#[test]
+fn exact_entity_field_lookup_uses_one_branch_root_after_both_heads_diverge() {
+    let mut runtime = runtime_with_index_field_aspects();
+    let created = create_entity_outcome(&mut runtime, "exact-field");
+    let entity_id = changed_entities(&created)[0];
+    let field_locator = aspect_field_locator(aspect_key("name"), field_key("name"));
+    let exact_value = string_aspect_value("exact-field");
+    let index = runtime.index_authority().register(DerivedIndexDefinition {
+        index_id: DerivedIndexId(74),
+        name: "entity.name.branch-root".to_owned(),
+        kind: DerivedIndexKind::EntityField {
+            field_locator: field_locator.clone(),
+        },
+        branch_scoped: true,
+    });
+    build_entity_field_generation(&mut runtime, index.index_id);
+    let main_snapshot = snapshot_for_owner_branch(&mut runtime, &BranchId("main".to_owned()));
+
+    runtime
+        .history_authority()
+        .fork_branch_from(
+            BranchId("field-sibling".to_owned()),
+            &BranchId("main".to_owned()),
+        )
+        .unwrap();
+    let sibling_snapshot =
+        snapshot_for_owner_branch(&mut runtime, &BranchId("field-sibling".to_owned()));
+    update_entity_on_branch(
+        &mut runtime,
+        entity_id,
+        "sibling-field",
+        BranchId("field-sibling".to_owned()),
+    );
+    update_entity(&mut runtime, entity_id, "main-field");
+    build_entity_field_generation(&mut runtime, index.index_id);
+
+    let current_main = snapshot_for_owner_branch(&mut runtime, &BranchId("main".to_owned()));
+    let current = runtime
+        .index_access()
+        .execute_bounded_entity_field_lookup(
+            entity_field_request(
+                current_main,
+                index.index_id,
+                field_locator.clone(),
+                exact_value.clone(),
+            ),
+            BoundedIndexParityMode::Certification,
+        )
+        .unwrap();
+    assert!(current.candidate_entity_ids().is_empty());
+
+    for parity in [
+        BoundedIndexParityMode::Production,
+        BoundedIndexParityMode::Certification,
+    ] {
+        let outcome = runtime
+            .index_access()
+            .execute_bounded_entity_field_lookup(
+                entity_field_request(
+                    main_snapshot.clone(),
+                    index.index_id,
+                    field_locator.clone(),
+                    exact_value.clone(),
+                ),
+                parity,
+            )
+            .unwrap();
+        assert_eq!(outcome.candidate_entity_ids(), &[entity_id]);
+    }
+
+    let sibling_denial = runtime
+        .index_access()
+        .execute_bounded_entity_field_lookup(
+            entity_field_request(sibling_snapshot, index.index_id, field_locator, exact_value),
+            BoundedIndexParityMode::Certification,
+        )
+        .unwrap_err();
+    assert_eq!(
+        sibling_denial.kind(),
+        BoundedEntityFieldLookupDenialKind::ExactGenerationUnavailable
+    );
+}
+
+fn build_entity_field_generation(runtime: &mut RelationalRuntime, index_id: DerivedIndexId) {
+    let source_commit_id = runtime.history().latest_commit().unwrap().commit_id;
+    let build = runtime
+        .index_authority()
+        .build_for_commit(DerivedIndexBuildRequest {
+            source_commit_id,
+            branch_id: BranchId("main".to_owned()),
+            index_ids: vec![index_id],
+        });
+    assert!(build.failed_indexes.is_empty());
+}
+
+fn entity_field_request(
+    snapshot: crate::facade::snapshots::SnapshotHandle,
+    index_id: DerivedIndexId,
+    field_locator: worth_foundational::facade::AspectFieldLocator,
+    value: worth_foundational::facade::AspectValue,
+) -> BoundedEntityFieldLookupRequest {
+    BoundedEntityFieldLookupRequest::new(snapshot, index_id, KindId(1), field_locator, value, 2)
+        .unwrap()
 }

@@ -23,6 +23,10 @@ impl<'a> RelationalTransaction<'a> {
     /// Any failure before publication discards the touched-partition overlay without making the
     /// commit visible.
     pub fn commit(mut self) -> Result<CommitResult, TransactionCommitError> {
+        let branch_id = self.options.branch_binding().identity().branch_id().clone();
+        self.runtime
+            .history
+            .record_transaction_validation_attempt(&branch_id);
         let draft_started = Instant::now();
         let mut draft_preparation_log = CommitLog::new();
         draft_preparation_log.begin_phase(CommitPhase::DraftPreparation);
@@ -33,8 +37,12 @@ impl<'a> RelationalTransaction<'a> {
                 error,
             )
         })?;
+        self.runtime
+            .history
+            .record_candidate_preparation(&branch_id);
         let bulk_mutation_telemetry =
             summarize_bulk_mutation_telemetry(&prepared.merged_plan, self.batches.len());
+        self.runtime.history.record_publication_attempt(&branch_id);
         execute_authoritative_commit(
             self.runtime,
             AuthoritativeCommitContext::from_mutation(

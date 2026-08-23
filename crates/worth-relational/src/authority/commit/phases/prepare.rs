@@ -1,4 +1,5 @@
 use crate::authority::commit::structural_summary::CommitStructuralSummary;
+use crate::branch::SelectedRelationalBranchState;
 use crate::runtime::RelationalRuntime;
 use crate::storage::overlay::summarize_entity_chunk_plan;
 use crate::storage::overlay::EntityWorkingSetLayout;
@@ -7,14 +8,15 @@ use crate::storage::overlay::PartitionCloneMode;
 use crate::storage::overlay::WorkingState;
 use crate::transactions::data::CommitPhaseTiming;
 use crate::transactions::data::{
-    CommitTopology, CreateIntent, EntityMutationIntent, MergedCommitPlan, MutationIntent,
-    TransactionCommitError,
+    CommitConflict, CommitTopology, ConflictClass, CreateIntent, EntityMutationIntent,
+    MergedCommitPlan, MutationIntent, TransactionCommitError,
 };
 use crate::transactions::RelationalTransaction;
 use std::collections::{BTreeMap, BTreeSet};
 use std::time::Instant;
 
 pub(crate) struct PreparedWorkingStateScope {
+    pub(crate) selected_branch_state: SelectedRelationalBranchState,
     pub(crate) merged_plan: MergedCommitPlan,
     pub(crate) structural_summary: CommitStructuralSummary,
     pub(crate) working_state: WorkingState,
@@ -115,23 +117,45 @@ fn sparse_relation_overlay_partitions_for_plan(
 pub(crate) fn prepare_working_state_scope(
     transaction: &mut RelationalTransaction<'_>,
 ) -> Result<PreparedWorkingStateScope, TransactionCommitError> {
+    let binding = transaction.options.branch_binding();
+    if binding.identity().runtime_instance_id() != transaction.runtime.runtime_instance_id() {
+        return Err(TransactionCommitError::conflict(CommitConflict::new(
+            ConflictClass::StaleValidationBasis {
+                detail: "branch binding belongs to another Relational runtime".to_owned(),
+            },
+        )));
+    }
+    if !transaction
+        .runtime
+        .legacy_branch_binding_is_current(binding)
+    {
+        return Err(TransactionCommitError::conflict(CommitConflict::new(
+            ConflictClass::StaleValidationBasis {
+                detail: "owner-issued branch binding is no longer current".to_owned(),
+            },
+        )));
+    }
+    let selected_branch_state = transaction
+        .runtime
+        .selected_branch_state(transaction.options.branch_binding())
+        .map_err(TransactionCommitError::preparation)?;
     let mut phase_timing = CommitPhaseTiming::default();
     let normalization_started = Instant::now();
     let intents = transaction.normalized_intents_for_merge();
     phase_timing.draft_intent_normalization_micros =
         normalization_started.elapsed().as_micros() as u64;
-    let planning_state = transaction.runtime.storage_access().current_state();
     let merge_plan_started = Instant::now();
     let (merged_plan, merged_plan_timing) = transaction
-        .build_merged_plan_for_state_with_timing(&planning_state, intents)
+        .build_merged_plan_for_state_with_timing(selected_branch_state.state(), intents)
         .map_err(TransactionCommitError::conflict)?;
     phase_timing.draft_merge_plan_micros = merge_plan_started.elapsed().as_micros() as u64;
     phase_timing.draft_intent_validation_micros = merged_plan_timing.validation_micros;
     phase_timing.draft_intent_sort_micros = merged_plan_timing.sort_micros;
     phase_timing.draft_conflict_detection_micros = merged_plan_timing.conflict_detection_micros;
     let (structural_summary, working_state, prepare_phase_timing) =
-        prepare_authoritative_working_state_scope(
+        prepare_authoritative_working_state_scope_for_base(
             transaction.runtime,
+            selected_branch_state.state(),
             &merged_plan,
             transaction.options.merge_parent_bindings().len(),
         );
@@ -141,6 +165,7 @@ pub(crate) fn prepare_working_state_scope(
         prepare_phase_timing.draft_working_state_clone_micros;
 
     Ok(PreparedWorkingStateScope {
+        selected_branch_state,
         merged_plan,
         structural_summary,
         working_state,
@@ -148,20 +173,16 @@ pub(crate) fn prepare_working_state_scope(
     })
 }
 
-pub(crate) fn prepare_authoritative_working_state_scope(
-    runtime: &mut RelationalRuntime,
+pub(crate) fn prepare_authoritative_working_state_scope_for_base(
+    runtime: &RelationalRuntime,
+    base_state: &impl PartitionAccess,
     merged_plan: &MergedCommitPlan,
     merge_parent_count: usize,
 ) -> (CommitStructuralSummary, WorkingState, CommitPhaseTiming) {
     let mut phase_timing = CommitPhaseTiming::default();
-    let current_state = runtime.storage_access().current_state();
     let summary_started = Instant::now();
-    let structural_summary = CommitStructuralSummary::derive(
-        &current_state,
-        &current_state,
-        merged_plan,
-        merge_parent_count,
-    );
+    let structural_summary =
+        CommitStructuralSummary::derive(base_state, base_state, merged_plan, merge_parent_count);
     phase_timing.draft_structural_summary_micros = summary_started.elapsed().as_micros() as u64;
     let clone_mode = match structural_summary.commit_topology {
         CommitTopology::FlatEntityBatch => PartitionCloneMode::EntityOnly,
@@ -173,7 +194,7 @@ pub(crate) fn prepare_authoritative_working_state_scope(
         .touched_partitions
         .iter()
         .map(|partition_id| {
-            current_state
+            base_state
                 .get_partition(*partition_id)
                 .map(|partition| partition.entity_arena.slot_count())
                 .unwrap_or(0)
@@ -184,7 +205,7 @@ pub(crate) fn prepare_authoritative_working_state_scope(
             .touched_partitions
             .iter()
             .map(|partition_id| {
-                current_state
+                base_state
                     .get_partition(*partition_id)
                     .map(|partition| partition.relation_arena.slot_count())
                     .unwrap_or(0)
@@ -216,15 +237,15 @@ pub(crate) fn prepare_authoritative_working_state_scope(
         entity_working_set_layout,
     );
     let clone_started = Instant::now();
-    let working_state = runtime
-        .storage_authority()
-        .working_state_for_touched_partitions(
-            structural_summary.touched_partitions.iter().copied(),
-            clone_mode,
-            entity_working_set_layout,
-            sparse_entity_slots.as_ref(),
-            sparse_relation_overlay_partitions.as_ref(),
-        );
+    let working_state = WorkingState::from_touched_partitions_with_layout_and_sparse_slots(
+        base_state,
+        structural_summary.touched_partitions.iter().copied(),
+        runtime.config.storage.adjacency_policy.clone(),
+        clone_mode,
+        entity_working_set_layout,
+        sparse_entity_slots.as_ref(),
+        sparse_relation_overlay_partitions.as_ref(),
+    );
     phase_timing.draft_working_state_clone_micros = clone_started.elapsed().as_micros() as u64;
     if matches!(clone_mode, PartitionCloneMode::Full) {
         runtime.performance_access().count_working_state_clone(

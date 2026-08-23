@@ -7,6 +7,7 @@ use worth_relational::facade::transactions::CommitResult;
 
 pub(crate) struct ProductionSeededSupplyChainWorld {
     pub(crate) runtime: RelationalRuntime,
+    pub(crate) basis: worth_relational::facade::branch::AdmittedRelationalBranchBasis,
     pub(crate) program: CompiledSupplyChainProgram,
     pub(crate) handles: SupplyChainSemanticHandles,
     pub(crate) commit: RelationalCommitReceipt,

@@ -6,8 +6,8 @@ use crate::commit_strategies::{
 };
 use crate::runtime::{
     CommitStrategiesSubsystem, DurabilitySubsystem, HistorySubsystem, IndexingSubsystem,
-    LineageSubsystem, PublicationSubsystem, RuntimeServices, RuntimeSubsystem,
-    SchemaContractRuntimeSubsystem, VisibilitySubsystem,
+    LineageSubsystem, PublicationSubsystem, RecordIdentitySubsystem, RuntimeServices,
+    RuntimeSubsystem, SchemaContractRuntimeSubsystem, VisibilitySubsystem,
 };
 use crate::validation::data::CustomInvariantRegistration;
 use crate::validation::FrozenCustomInvariantRegistry;
@@ -131,6 +131,7 @@ impl RelationalRuntime {
             indexes: <IndexingSubsystem as RuntimeSubsystem>::new(&()),
             lineage: <LineageSubsystem as RuntimeSubsystem>::new(&()),
             durability: <DurabilitySubsystem as RuntimeSubsystem>::new(&config),
+            record_identity: <RecordIdentitySubsystem as RuntimeSubsystem>::new(&()),
             services,
             partitions: BTreeMap::new(),
             visibility: <VisibilitySubsystem as RuntimeSubsystem>::new(&config),
@@ -153,6 +154,7 @@ impl RelationalRuntime {
             indexes: RuntimeSubsystem::fork(&self.indexes),
             lineage: RuntimeSubsystem::fork(&self.lineage),
             durability: RuntimeSubsystem::fork(&self.durability),
+            record_identity: RuntimeSubsystem::fork(&self.record_identity),
             services,
         }
     }

@@ -715,47 +715,178 @@ projection, proof-forging, replay-readmission, or consumer-residue findings.
 ## Milestone 9.16.2 Required Suite
 
 `Portable Package And PostgreSQL Runtime Durability Certification` is required
-for Milestone 9.16.2. It begins at the production package and persistent
-`worth-query-host` facades, uses production `worth-runtime-postgres` adapters
-against a real PostgreSQL server, and crosses fresh process boundaries.
+for Milestone 9.16.2. It starts at production package and
+`worth-query-host` audience facades, crosses Query execution's production
+persistent-opening surface, supplies the production `worth-runtime-postgres`
+implementations of owner-defined ports, and uses a real supported PostgreSQL
+server across fresh application and database process boundaries. An in-memory
+adapter, SQL fixture mutation, or test-only recovery branch cannot close a
+production claim.
 
-This suite is the aggregate Milestone 9.16.2 court, not a substitute for phase
-closure. The fifteen-phase plan in
-[milestone-9.16.2.md](./milestone-9.16.2.md) must retain phase-local evidence
-for identity/provenance, typed export, reconstruction, archive trust,
-Relational backend conformance, PostgreSQL migration/lifecycle, release
-coexistence, Relational commit/replay, owner-first readiness, Query outbox
-admission, claim/fencing, dispatch/reconciliation, disaster recovery,
-capacity/isolation, and the NCR cutover. An aggregate green result cannot close
-an earlier boundary whose own authority, crash, mutation, or cost evidence is
-missing.
+This suite is the aggregate court, not a substitute for phase closure. Every
+proof family records:
 
-The suite must run these named scenarios:
+- the production claim and the plausible defective implementation it convicts;
+- the causal world, semantic handles, and authority provenance;
+- the real public entry surface and physical composition root;
+- the exact fault, crash point, concurrency schedule, version boundary, or
+  resource limit;
+- the required typed result and states/effects that must and must not survive;
+- an independent observation that does not merely read the producer's output;
+- exact work, scan, retry, pool, replay-tail, and amplification counters where
+  cost is part of the claim;
+- at least one sabotage mutation whose disputed bypass, inversion, deletion,
+  stale reuse, or scope widening must turn the proof red; and
+- its ordinary, PostgreSQL, process-crash, database-crash, or disaster-recovery
+  cost lane.
 
-- `portable_release_round_trips_by_exact_identity`: deterministic archive,
-  independently expected semantic identity, hostile records, coexisting
-  releases, and fresh Query validation agree without serialized authority
-- `acknowledged_relational_commit_survives_restart`: kill before commit, after
-  durable commit before response, and during checkpoint/tail recovery; a fresh
-  host observes either the complete mutation plus outbox or neither
-- `existing_outbox_restarts_without_shadow_payload`: destroy every receipt,
-  runtime id, and handle; reconciliation rediscovers the canonical outbox fact,
-  competing fenced workers preserve one current claim, and retries retain one
-  idempotency identity
-- `persistent_host_readiness_is_owner_driven`: package validation, Relational
-  recovery, provider rebinding, projection reconciliation, and claim admission
-  must all close before readiness; adapter rows cannot mint owner authority
-- `postgres_topology_admits_committed_owners`: dependency and destination-tree
-  checks prove Signal and Runtime Bridge enter as owner siblings in 9.17 without
-  moving the PostgreSQL adapter or persistent Query-host facades
-- `ncr_state_and_notification_recover`: the real NCR journey commits workflow
-  state and the existing notification outbox, restarts, dispatches safely, and
-  serves the exact resulting state through the ordinary host path
+Fault control uses production boundary telemetry, a process supervisor, network
+fault proxy, database lifecycle control, and process termination. A substitute
+owner port may isolate a local state-machine property, but the same guarantee
+must close against the real PostgreSQL adapter whenever physical atomicity,
+durability, migration, isolation, or recovery is claimed.
 
-Milestone 9.16.2 may report closed only when package portability, acknowledged
-state durability, existing-outbox restart, host readiness, owner/adapter
-dependency direction, scale/work counters, backup/restore, executable docs, and
-residue evidence agree.
+The cert-only `worth-runtime-persistence-certification` kit owns reusable
+conformance cases for Relational durability, immutable package archives,
+runtime-stream lifecycle, dispatch coordination, and the required capability
+profile. PostgreSQL certification instantiates all of them. The kit cannot be a
+production dependency, cannot provide a fake passing implementation, and must
+be reusable unchanged by a future physical adapter except for adapter-supplied
+fixtures and independently required crash/operations evidence.
+
+### Required world and independent oracle
+
+The suite extends the Bank world through
+`BankPersistenceWorldDefinition -> CompiledBankPersistenceRelease ->
+ProductionSeededPersistentBankWorld -> CertifiedPersistentBankBaseline`.
+Scenarios receive semantic handles for actors, accounts, operations, effects,
+pending notices, releases, namespaces, and runtime streams; raw ids, digests,
+ordinals, and database keys do not appear in scenario setup.
+
+Required valid baselines are empty persistent installation, ordinary balanced
+bank, pending payment notice, pending notice after checkpoint and compaction,
+coexisting release/version boundary, and separately restored bank. Corrupt,
+cross-spliced, partially restored, or stale-fence worlds are explicitly invalid
+fixtures. Each scenario applies a small causal delta to one audited baseline.
+
+The independent oracle checks a separately decoded Relational owner artifact or
+owner-supported audit export plus the external payment rail. Query reads,
+pending-work projections, adapter status rows, and production result assembly
+cannot be the only oracle for the claim they produced. The final NCR consumer
+court independently proves Workflow Editor adoption and does not replace the
+Bank world's ledger/outbox adversity.
+
+### Required phase proof families
+
+1. `stable_identity_and_declared_provenance` proves module moves preserve
+   identity, semantic changes alter it, collisions/blank ids fail, and only the
+   declaration can mint operation/effect membership. It includes compiler
+   denial and a mutation that restores package-canonical `type_name` or accepts
+   a same-spelled forged reference.
+2. `complete_typed_package_export` inventories every package-relevant family,
+   proves deterministic canonical ordering and declared work bounds, and fails
+   for omitted, duplicated, reordered, cross-package, callback, provider,
+   secret, or authority-bearing material. Removing one record-family export
+   must fail closure evidence.
+3. `bounded_reconstruction_and_fresh_validation` starts only from untrusted
+   records, enforces byte/count/nesting/work limits, reconstructs a candidate,
+   and obtains fresh Query validation against an independently supplied expected
+   identity. Trusting the claimed digest, accepting trailing required meaning,
+   or skipping fresh validation must fail.
+4. `neutral_archive_and_trust_compatibility` proves golden canonical bytes,
+   exact envelope/manifest/record versions, signature coverage, downgrade and
+   unknown-field posture, tamper refusal, store-neutral round trip, and
+   coexisting same-named releases. Selecting latest-by-name or treating a valid
+   signature as Query authority must fail.
+5. `relational_durability_port_conformance` runs the local filesystem and
+   PostgreSQL implementations against the same owner contract for authorized
+   append, durable-before-publication, checkpoint, ordered recovery, corruption,
+   duplicates, forks, and bounded work. Allowing a successful backend write to
+   mint publication or accepting an unissued append request must fail.
+6. `postgres_lifecycle_capability_and_migration` proves bounded connection and
+   shutdown behavior, namespace qualification, supported migrations,
+   incompatible/partial migration refusal, and admitted durability settings
+   including `fsync`, `full_page_writes`, and `synchronous_commit` or the
+   admitted equivalent. Readiness under an incapable or downgraded profile and
+   partial canonical mutation on migration failure must fail.
+7. `release_coexistence_stream_binding_and_activation` stores exact immutable
+   archives, rebuilds only derived projections, races generation-qualified host
+   activation, and binds each runtime stream to exact package, owner-artifact,
+   schema, and provider requirements. Latest-name selection, cross-package
+   stream reinterpretation, caller-forged/generic activation authority,
+   missing/wrong provider binding, and pointer-flip migration must fail with
+   typed compatibility posture.
+8. `commit_acknowledgement_checkpoint_tail_crash_matrix` kills before database
+   commit, after durable commit before response, during checkpoint, and during
+   tail recovery. Fresh recovery observes complete mutation plus canonical
+   outbox or neither and returns performed, already-performed, rejected,
+   conflict, or indeterminate-with-locator honestly. Treating an ambiguous
+   response as safe new work, acknowledging before append, or tearing state and
+   outbox must fail.
+9. `owner_first_opening_recovery_and_readiness` destroys all live ids, receipts,
+   proofs, and handles; then proves exact release trust, fresh validation,
+   Relational recovery, runtime generation, provider rebinding, projection
+   repair, and dispatch reconciliation all close before readiness. Adapter rows,
+   a physical snapshot, old authority, or readiness-before-rebinding must open
+   no door. The host crate remains a reexport-only leaf.
+10. `performed_publication_outbox_admission` rediscovers the exact canonical
+    Query outbox occurrence and admits it only through the current performed
+    product publication, runtime, package/effect contract, correlation,
+    provider binding, and source commit. A copied/shadow payload, database
+    status alone, stale runtime, wrong release, or caller-forged publication
+    carrier must fail; the 9.17 Bridge source substitution must not move the
+    stable Query meaning or facade.
+11. `claim_lease_and_fence_coordination` races claimants, expires and renews
+    leases, supersedes fences, isolates namespaces, and proves bounded indexed
+    polling through Query execution's provider-neutral coordination port. At
+    most one fence is current. Starting a send or accepting an outcome under a
+    stale fence, holding a database transaction across network I/O, or scanning
+    global history must fail.
+12. `dispatch_ambiguity_retry_and_reconciliation` crashes before send, after
+    send, after external acceptance before local outcome, during backoff, and
+    after fence replacement. Every retry uses the one canonical payload and
+    stable idempotency identity; terminal, unresolved, poison, and cancelled
+    postures remain typed. A second outbox payload, new retry identity, stale
+    acknowledgement, or direct sideband workflow mutation must fail.
+13. `compaction_projection_rebuild_backup_and_restore` checkpoints and compacts
+    with unresolved work, deletes all and only derived projections, rebuilds,
+    backs up, restores into a separate database, and opens from restored owner
+    artifacts. The exact pending occurrence, source publication, payload, and
+    idempotency identity survive. Pruning their last canonical source, using
+    diagnostics as truth, partial restore activation, or unsupported migration
+    mutation must fail.
+14. `isolation_saturation_scale_and_warm_path` proves hostile cross-namespace
+    denial, bounded pool/blocking/queue/retry posture, exact lookup among at
+    least 4,096 unrelated packages, bounded pending polling over long history,
+    checkpoint-tail bounds, and zero archive/reconstruction/recovery/global-work
+    scans during warm execution. Removing an index, qualification predicate,
+    admission bound, or counter assertion must fail rather than pass slowly.
+15. `persistent_bank_and_ncr_product_courts` runs the production Bank transfer,
+    payment-notice, checkpoint/compaction, crash, competing recovery, fenced
+    dispatch, coexistence, and separate-database restore journey, then runs the
+    signed NCR state/notification restart and Workflow Editor cutover through
+    the same public surfaces. Both use real PostgreSQL and fresh processes;
+    replacing either with an in-memory reenactment or a direct private facade
+    call must fail certification.
+
+### Cost topology and closure
+
+Immutable release compilation and a supported PostgreSQL image may be
+suite-scoped. Ordinary cases receive per-test isolated databases or schemas and
+streams. Application-process crash cases may share a database server; database
+process, storage, migration, and backup/restore cases use a dedicated cold lane.
+Authentik, HTTP nodes, and the external rail appear only where the product claim
+requires them. Test topology uses one intentional integration target with
+responsibility-named modules per certification crate, plus at most one
+separately justified cold process/Docker target for each genuinely distinct
+process-lifecycle court; scenario files do not become dozens of integration
+crates.
+
+Milestone 9.16.2 may report closed only when all fifteen proof families and
+their sabotage cases agree with the truth-class ledger, public dependency
+direction, executable documentation, destination topology, and residue search.
+An aggregate green result cannot close an earlier authority, crash, retention,
+compatibility, or work guarantee whose phase-local evidence is absent.
 
 ## Milestone 9.17.1 Required Suite
 
@@ -938,6 +1069,41 @@ focused evidence targets are `merge_replay_continuity`, the foreign-runtime
 owner-admission case, the local-empty-basis case, the branch-reference
 contract/UI suites, and the full `relational_certification` target (currently
 91 cases).
+
+### Phase 5 ordinary and scheduled certification lanes
+
+The ordinary certification lane must keep fast mutation-sensitive evidence in
+the common path. The real Scale admission court is mandatory evidence but is
+scheduled because its honest production installation constructs more than
+100,000 live records. The ordinary lane therefore runs:
+
+```text
+cargo test -p worth-relational --test relational_certification --no-fail-fast
+```
+
+It must report **130 passed, 0 failed, 1 ignored** for the current Phase 5
+packet. The single ignored case is not weakened or removed; it is the exact
+Scale court below. The scheduled/manual lane runs it on the same source
+fingerprint:
+
+```text
+cargo test -p worth-relational --test relational_certification \
+  scale_invariant_admission::large_runtime_keeps_global_enforcement_and_filters_graph_planning \
+  -- --ignored --exact --nocapture --test-threads=1
+```
+
+The scheduled court must continue to prove the Scale definition is above the
+Large threshold, the installed live snapshot matches the causal definition,
+commit and baseline publication retain `Global` enforcement, direct
+GraphComposition returns a `Touched` ceiling and invokes its probe exactly
+once, ordinary follow-up publication lowers to `Partition`, ordinary commits
+do not execute graph probes, and rejected duplicate uniqueness leaves no value,
+branch-reference, catalog, or snapshot residue. The scheduled lane is required
+before Phase 5 closure and after changes to Scale construction, invariant scale
+classification, admission policy, GraphComposition routing, selected-state
+uniqueness, or baseline publication. CI owns this lane in the
+`worth-relational-scale-certification` scheduled/manual job; CI scheduling
+mints no runtime or branch authority.
 
 ### Required branch-local MVCC scenarios
 

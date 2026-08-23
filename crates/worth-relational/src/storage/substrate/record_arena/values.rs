@@ -7,7 +7,7 @@ pub(crate) struct LifecycleCounts {
     pub(crate) reusable: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub(crate) struct VersionedEntityMetadata {
     pub(crate) effective_at: VersionId,
     pub(crate) retired_at: Option<VersionId>,
@@ -18,20 +18,20 @@ pub(crate) struct VersionedEntityMetadata {
         Option<worth_foundational::facade::AuthoritativeRecordAspectState>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub(crate) struct RelationEndpoints {
     pub(crate) source: EntityId,
     pub(crate) target: EntityId,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize)]
 pub(crate) struct RelationExtra {
     pub(crate) endpoints: Option<RelationEndpoints>,
     pub(crate) authoritative_aspect_state:
         Option<worth_foundational::facade::AuthoritativeRecordAspectState>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub(crate) struct VersionedRelationMetadata {
     pub(crate) effective_at: VersionId,
     pub(crate) retired_at: Option<VersionId>,
@@ -42,7 +42,7 @@ pub(crate) struct VersionedRelationMetadata {
         Option<worth_foundational::facade::AuthoritativeRecordAspectState>,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize)]
 pub(crate) struct EntityExtra {
     pub(crate) structural_fingerprint: Option<StructuralFingerprint>,
     pub(crate) lineage_id: Option<LineageId>,

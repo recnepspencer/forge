@@ -68,13 +68,15 @@ impl<'runtime> PublicationAuthority<'runtime> {
     ) -> SnapshotId {
         let PublicationArtifacts { bundle } = artifacts;
         let snapshot_id = bundle.snapshot.snapshot_id;
+        let basis = crate::visibility::snapshot_states::VisibilitySnapshotBasis::capture_current(
+            self.runtime,
+            &bundle.snapshot.branch_id,
+            version_id,
+        )
+        .expect("published snapshot is bound to the installed complete branch root");
         self.runtime.visibility.insert_published_handle(
             snapshot_id,
-            crate::runtime::SnapshotHandleBinding::new(
-                bundle.snapshot.branch_id.clone(),
-                version_id,
-                bundle.snapshot.read_policy,
-            ),
+            crate::runtime::SnapshotHandleBinding::new(basis, bundle.snapshot.read_policy),
         );
         self.push_diagnostic_artifact(bundle.diagnostics_summary.clone());
         self.runtime.publication.replace_latest_bundle(bundle);

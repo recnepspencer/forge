@@ -37,10 +37,24 @@ impl PortableAspectContractBasis {
     pub fn revision(&self) -> AspectContractRevision {
         self.revision
     }
+
+    pub fn owned_allocation_capacity_bytes(&self) -> usize {
+        self.key.owned_allocation_capacity_bytes()
+    }
 }
 
 pub trait PortableAspectContractLookup {
     fn contract_for(&self, key: &AspectKey) -> Option<AspectContract>;
+
+    fn exact_contract_for(
+        &self,
+        key: &AspectKey,
+        identity: AspectIdentity,
+        revision: AspectContractRevision,
+    ) -> Option<AspectContract> {
+        self.contract_for(key)
+            .filter(|contract| contract.identity() == identity && contract.revision() == revision)
+    }
 }
 
 impl<F> PortableAspectContractLookup for F

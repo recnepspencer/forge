@@ -13,7 +13,7 @@ use worth_runtime_bridge::facade::{
     RelationalCommittedPatchRequest, TruthBranchIdentity, TruthCommitIdentity,
 };
 
-use super::super::{bridge_snapshot_identity_for_commit, RuntimeBridgeRelationalSource};
+use super::super::RuntimeBridgeRelationalSource;
 use super::support::{runtime_bridge_for_envelope, runtime_with_test_schema};
 
 #[test]
@@ -46,13 +46,12 @@ fn runtime_bridge_lineage_source_resolves_real_relational_history() {
         .latest_bundle()
         .expect("runtime publication bundle")
         .clone();
-    let expected_snapshot_identity = bridge_snapshot_identity_for_commit(
-        latest_bundle.commit.commit_id,
-        latest_bundle.commit.version_id,
-    );
+    let branch_identity = runtime
+        .branch_identity(&latest_bundle.commit.branch_id)
+        .expect("lineage branch identity");
     let expected_successor_record_identities = runtime
         .read_truth()
-        .project_version(latest_bundle.commit.version_id)
+        .project_historical_version(latest_bundle.commit.version_id)
         .all_authoritative_entity_records()
         .into_iter()
         .filter_map(|record| {
@@ -69,6 +68,13 @@ fn runtime_bridge_lineage_source_resolves_real_relational_history() {
     let runtime = Arc::new(runtime);
     let source = RuntimeBridgeRelationalSource::for_graph_role(Arc::clone(&runtime), "model")
         .expect("test graph role");
+    let (_, basis) = source
+        .observe_branch_basis(&branch_identity)
+        .expect("owner-admitted lineage basis");
+    let lease = source
+        .retain_branch_basis_for_bridge(&basis)
+        .expect("retained lineage observation");
+    let expected_snapshot_identity = lease.snapshot_identity().clone();
     let latest_commit_identity = RelationalCommittedPatchRequest::new(
         TruthCommitIdentity::from_relational_commit_id(latest_bundle.commit.commit_id.0),
     );

@@ -2,10 +2,10 @@
 
 Milestone 9.17.1 uses **Supply Chain** as its canonical semantic world. This
 document describes the Phase 2 pure world/oracle, the Phase 3 causal
-production adapter, and the landed Phase 4 fork-only reference slice. It is
-deliberately not a complete branch-local MVCC guide: visible roots, general
-read bases, detached transactions, retention, publication, and production
-history/replay certification remain later phases.
+production adapter, and the landed Phase 4-6 branch root and exact-observation
+slices. It is deliberately not a complete branch-local MVCC guide: detached
+transactions, candidate preparation, publication, lifecycle reclamation, and
+production history/replay certification remain later phases.
 
 ## Authority split
 
@@ -55,8 +55,12 @@ owner-issued snapshot, but that envelope is not an admitted branch basis and
 cannot authorize a transaction. The Phase 4 fork-only source token and exact
 fork provenance are now exercised by the production Supply Chain target; the
 Phase 3 descriptive envelope remains non-operational. General branch-basis
-admission/readmission, visible-root currentness, and branch-local MVCC begin
-only in their later phases. Phase 4 currently certifies runtime-clone
+admission/readmission and visible-root currentness are owner-issued Phase-6
+operations: `observe_branch` returns a non-operational serializable descriptor
+and an admitted basis, while reads consume only its
+`RelationalBranchObservation`. Transported descriptors must pass owner
+`readmit_branch_basis`, and external retention is represented by an explicit
+lease. Phase 4 certifies runtime-clone
 affinity, singular immutable catalog identity, exact source/target fork
 provenance, typed empty/duplicate/stale/foreign denials, and constant
 *logical* metadata-only fork deltas at 1/64/512 fan-outs. The probe does not
@@ -252,6 +256,32 @@ covered by direct comparator/application courts. Production mutations such as
 eager fork cloning, latest-root reads, global publication locks, and partial
 root swaps are later MVCC release-court obligations, not Phase 2 claims.
 
+## Phase 5 ordinary and scheduled evidence commands
+
+The ordinary Phase 5 certification command is:
+
+```text
+cargo test -p worth-relational --test relational_certification --no-fail-fast
+```
+
+It intentionally reports the real Scale admission court as one ignored
+scheduled test, keeping the common path at **130 passed, 0 failed, 1 ignored**.
+The mandatory scheduled command is:
+
+```text
+cargo test -p worth-relational --test relational_certification \
+  scale_invariant_admission::large_runtime_keeps_global_enforcement_and_filters_graph_planning \
+  -- --ignored --exact --nocapture --test-threads=1
+```
+
+Scale is scheduled because its production installation is the complete
+106,563-record causal world, not a reduced substitute. The scheduled test
+retains the independent definition/live-snapshot count, Global commit and
+baseline-publication ceilings, direct GraphComposition `Touched` result and
+one-call counters, ordinary publication lowering, ordinary graph exclusion,
+and duplicate-rejection residue proofs. The CI job and the Phase 5 closure
+ledger must record both lanes against the same source fingerprint.
+
 ## Phase 2 and Phase 3 evidence commands
 
 The shared target is `cargo test -p worth-relational --test
@@ -303,14 +333,16 @@ maps, and guessed ids are not valid oracles. Every failure must be typed and
 must compare branch-cell checkpoints, catalog length, and artifact identity
 before and after the attempted operation.
 
-Existing public historical-read, Bridge, application-commit, and replay APIs
-are compatibility surfaces for later phases. The Phase-4 target must not call
-them. The residue checker enforces this by rejecting
+The Phase-4 target does not call the then-existing historical-read, Bridge,
+application-commit, or replay compatibility surfaces. Its residue checker
+enforces this by rejecting
 `admit_application_commit`, Bridge lease admission, `project_version`, replay
 entry points, and replay-retention calls under `tests/relational_certification`.
 The application-commit compatibility proof additionally confirms that exact
-lease admission does not move branch currentness. Later phases own the
-consumer-facing exact-basis cutover and removal of this bounded inventory.
+lease admission does not move branch currentness. Phase 6 has now removed the
+consumer-facing current/latest adapters: snapshot, history, merge-basis, and
+Bridge reads require an admitted exact observation, while replay remains a
+separate cert-only lane.
 
 The current Phase-4 evidence commands are:
 

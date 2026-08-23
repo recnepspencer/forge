@@ -122,6 +122,17 @@ fn durability_contract_replays_merge_from_typed_authority_when_diagnostics_are_a
         .find(|entry| entry.commit.commit_id == merge.commit.commit.commit_id)
         .expect("merge entry in durable segment");
     assert!(merge_entry.merge_execution_authority.is_some());
+    let populated_nested_bytes = merge_entry
+        .allocation_inventory()
+        .authoritative_nested_bytes;
+    let mut omitted_merge_authority = merge_entry.clone();
+    omitted_merge_authority.merge_execution_authority = None;
+    assert!(
+        populated_nested_bytes
+            > omitted_merge_authority
+                .allocation_inventory()
+                .authoritative_nested_bytes
+    );
     merge_entry.diagnostics_summary.entries.clear();
     crate::durability::log::native_file_codec::write_segment_file(&segment_path, &file).unwrap();
 

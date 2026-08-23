@@ -27,12 +27,28 @@ fn prepared_scope(
     observation: &InvariantObservation<'_>,
     merged_plan: Option<&MergedCommitPlan>,
 ) -> PreparedCustomInvariantScope {
-    PreparedCustomInvariantScope::capture(
-        runtime,
-        observation,
-        runtime.current_version_id(),
-        merged_plan,
-    )
+    PreparedCustomInvariantScope::capture(observation, runtime.current_version_id(), merged_plan)
+}
+
+#[test]
+fn custom_scope_planner_preserves_owner_selected_current_version() {
+    let runtime = RelationalRuntimeApi::builder()
+        .schema_registry(RelationalSchemaRegistry::new())
+        .build();
+    let observation = InvariantObservation::committed(runtime.storage_access().current_state());
+    let prepared_scope = prepared_scope(&runtime, &observation, None);
+    let selected_version = crate::identity::data::VersionId(77);
+    let planner = CustomInvariantScopePlanner::new_at_current_version(
+        &runtime,
+        &observation,
+        selected_version,
+        selected_version,
+        &prepared_scope,
+    );
+
+    assert_eq!(planner.version_id(), selected_version);
+    assert_eq!(planner.current_version_id(), selected_version);
+    assert_ne!(planner.current_version_id(), runtime.current_version_id());
 }
 
 impl CustomInvariantRule for TestRule {
@@ -134,6 +150,7 @@ fn traversal_budget_is_session_wide() {
     let context = CustomInvariantExecutionContext::new(
         &runtime,
         &observation,
+        runtime.current_version_id(),
         runtime.current_version_id(),
         &prepared_scope,
     );

@@ -1,3 +1,4 @@
+mod admission;
 mod construction;
 mod filtering;
 mod relation_integrity_scopes;
@@ -18,7 +19,8 @@ use crate::{
 };
 
 use super::observation::InvariantObservation;
-use super::policy::{cost_allowed, RelationalInvariantRuntime};
+use super::policy::RelationalInvariantRuntime;
+pub(crate) use admission::InvariantRegistrationAdmission;
 pub(crate) use scope_types::{
     PlannedRelationEdge, PreparedRelationEndpointKey, PreparedRelationIntegrityScope,
     PreparedRelationIntegrityScopes, PreparedRelationPairKey, PreparedVisibleRelationEdge,
@@ -42,6 +44,7 @@ pub(crate) struct InvariantExecutionRequest<'runtime> {
     merged_plan: Option<&'runtime MergedCommitPlan>,
     relation_integrity_scopes: Option<PreparedRelationIntegrityScopes>,
     preparation_violation: Option<InvariantViolation>,
+    proposal_identity: Option<crate::transactions::RelationalMutationProposalIdentity>,
 }
 
 impl<'runtime> InvariantExecutionRequest<'runtime> {
@@ -89,6 +92,12 @@ impl<'runtime> InvariantExecutionRequest<'runtime> {
         self.preparation_violation.as_ref()
     }
 
+    pub(crate) fn proposal_identity(
+        &self,
+    ) -> Option<&crate::transactions::RelationalMutationProposalIdentity> {
+        self.proposal_identity.as_ref()
+    }
+
     pub(crate) fn should_execute_anything(&self) -> bool {
         self.merged_plan.is_none() || !self.applicable_groups.is_empty()
     }
@@ -101,10 +110,7 @@ impl<'runtime> InvariantExecutionRequest<'runtime> {
                 .plan_contract
                 .is_none_or(|contract| contract.applies_to_rule(&registration.rule))
             && filtering::rule_matches_plan_scope(self, &registration.rule)
-            && cost_allowed(
-                self.runtime_policy.max_cost_at(self.checkpoint),
-                registration.cost(),
-            )
+            && self.registration_admission(registration).is_admitted()
     }
 
     pub(crate) fn includes_custom_registration(
@@ -115,10 +121,25 @@ impl<'runtime> InvariantExecutionRequest<'runtime> {
         registration.execution_point() == self.checkpoint
             && self.runtime_policy.should_run(rule_groups, self.checkpoint)
             && (self.applicable_groups.is_empty() || self.applicable_groups.intersects(rule_groups))
-            && cost_allowed(
-                self.runtime_policy.max_cost_at(self.checkpoint),
+            && admission::for_failure_effect(
+                &self.runtime_policy,
+                self.checkpoint,
+                registration.failure_effect(),
                 registration.cost_class(),
             )
+            .is_admitted()
+    }
+
+    pub(crate) fn registration_admission(
+        &self,
+        registration: &InvariantRegistration,
+    ) -> InvariantRegistrationAdmission {
+        admission::for_failure_effect(
+            &self.runtime_policy,
+            self.checkpoint,
+            registration.failure_effect,
+            registration.cost(),
+        )
     }
 
     #[cfg(test)]

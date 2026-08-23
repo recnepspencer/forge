@@ -25,7 +25,7 @@ pub use materialized_aspect_values::{
     MergeValueSourceSide,
 };
 
-use crate::branch::{RelationalBranchObservation, RelationalBranchVersion};
+use crate::branch::{RelationalBranchReferenceObservation, RelationalBranchVersion};
 use crate::history::data::{CommitId, RelationalMergeBranchBasis};
 use crate::merge::data::{
     BranchTouchedRecordDelta, LoweredMergePlanRecord, LoweredRecordDecision,
@@ -50,8 +50,8 @@ pub struct MergeExecutionAuthorityBinding {
     pub runtime_instance_id: RuntimeInstanceId,
     pub(crate) target_head_commit_id: CommitId,
     pub(crate) source_head_commit_id: CommitId,
-    pub(crate) target_reference: RelationalBranchObservation,
-    pub(crate) source_reference: RelationalBranchObservation,
+    pub(crate) target_reference: RelationalBranchReferenceObservation,
+    pub(crate) source_reference: RelationalBranchReferenceObservation,
     pub(crate) target_truth_version: RelationalBranchVersion,
     pub(crate) source_truth_version: RelationalBranchVersion,
     pub merge_base_commit_id: CommitId,

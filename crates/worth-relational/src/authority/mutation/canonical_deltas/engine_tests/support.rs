@@ -47,6 +47,7 @@ pub(super) fn empty_workspace<'a>(
         aspect_plans,
         VersionId(1),
         crate::authority::mutation::BranchLocalDeleteAllowance::default(),
+        None,
     )
 }
 

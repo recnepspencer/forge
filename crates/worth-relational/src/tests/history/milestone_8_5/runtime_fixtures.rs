@@ -229,7 +229,10 @@ pub(super) fn execute_strategy_commit(
         .commit_strategies()
         .canonicalize_request(&request)
         .expect("canonical strategy request");
-    let snapshot = runtime.visibility_authority().snapshot();
+    let snapshot = target_branch
+        .as_ref()
+        .map(|branch| crate::tests::support::snapshot_for_owner_branch(runtime, branch))
+        .unwrap_or_else(|| runtime.visibility_authority().snapshot());
     let execution = runtime
         .commit_strategies()
         .execute(&request, &snapshot)

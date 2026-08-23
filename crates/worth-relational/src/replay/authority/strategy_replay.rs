@@ -3,12 +3,16 @@ use crate::commit_strategies::data::StrategyCommitArtifactBundle;
 use crate::commit_strategies::data::StrategyExecutionDraft;
 use crate::history::data::{BranchId, CommitId};
 use crate::replay::data::{
-    CanonicalCommitEnvelope, ReplayMismatch, ReplayMismatchClass, ReplayObservableSurface,
-    ReplayVerificationLayer, ReplayVerificationMode,
+    CanonicalCommitEnvelope, ReplayMismatch, ReplayMismatchClass, ReplayVerificationLayer,
+    ReplayVerificationMode,
 };
 use crate::runtime::RelationalRuntime;
 
 use super::super::planning::replay_commit_closure_by_commit_id_order;
+
+mod mismatch;
+
+use mismatch::strategy_mismatch;
 
 pub(super) fn verify_strategy_reexecution_surface(
     runtime: &mut RelationalRuntime,
@@ -302,6 +306,18 @@ fn lower_strategy_replay(
         || expected_artifacts.preview_validation_cost().is_some()
         || expected_artifacts.validated_against_version_id().is_some()
     {
+        if let Err(detail) = basis_runtime
+            .history
+            .prepare_replay_target_sequence(envelope.commit.commit_id, envelope.commit.version_id)
+        {
+            mismatches.push(strategy_mismatch(
+                ReplayMismatchClass::StrategyLoweringDrift,
+                detail.to_string(),
+                expected_artifacts,
+                None,
+            ));
+            return None;
+        }
         match basis_runtime
             .commit_strategies_authority()
             .validate_lowered_plan(lowered.clone())
@@ -371,21 +387,4 @@ fn ensure_strategy_replay_basis_branch(
                 envelope.branch_context, source_branch
             )
         })
-}
-
-fn strategy_mismatch(
-    class: ReplayMismatchClass,
-    detail: String,
-    expected_artifacts: &StrategyCommitArtifactBundle,
-    observed: Option<String>,
-) -> ReplayMismatch {
-    ReplayMismatch {
-        class,
-        history_drift_class: None,
-        surface: ReplayObservableSurface::Strategy,
-        verification_layer: ReplayVerificationLayer::DeepArtifactParity,
-        detail,
-        expected: Some(format!("{:?}", expected_artifacts.replay_descriptor())),
-        observed,
-    }
 }

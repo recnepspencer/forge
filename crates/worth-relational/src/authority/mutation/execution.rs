@@ -25,6 +25,7 @@ pub(crate) fn apply_plan_to_working_state(
     aspect_plans: &AspectContractPlanCatalog,
     symbols: &mut StringInterner,
     branch_local_delete_allowance: BranchLocalDeleteAllowance,
+    record_allocations: &mut crate::runtime::PendingRecordAllocations,
 ) -> Result<MutationApplyOutcome, CommitConflict> {
     let mut workspace = MutationWorkspace::new(
         state,
@@ -34,6 +35,7 @@ pub(crate) fn apply_plan_to_working_state(
         aspect_plans,
         apply_plan.version_id,
         branch_local_delete_allowance,
+        Some(record_allocations),
     );
     let (expected_change_count, expected_event_count) =
         estimated_mutation_effect_shape(&apply_plan.merged_intents);
@@ -46,12 +48,21 @@ pub(crate) fn apply_plan_to_working_state(
 
     let preparation_telemetry = workspace.preparation_telemetry();
     let (created_entities, created_relations) = workspace.into_created_bindings();
+    record_allocations
+        .finish_mutation()
+        .map_err(record_allocation_conflict)?;
     Ok(MutationApplyOutcome {
         effect,
         preparation_telemetry,
         created_entities,
         created_relations,
     })
+}
+
+fn record_allocation_conflict(
+    denial: crate::transactions::data::RecordAllocationDenial,
+) -> CommitConflict {
+    CommitConflict::new(crate::transactions::data::ConflictClass::RecordAllocationDenied { denial })
 }
 
 fn estimated_mutation_effect_shape(

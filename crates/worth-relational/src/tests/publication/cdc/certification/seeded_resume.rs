@@ -68,6 +68,7 @@ fn cdc_certification_seeded_matrix_is_deterministic_and_resume_exact() {
 }
 
 #[test]
+#[ignore = "scheduled hostile CDC certification; run explicitly in the scheduled relational lane"]
 fn cdc_certification_thousand_step_random_resume_matrix_converges() {
     for seed in 0_u64..3 {
         let world = run_seeded_scenario(SeededScenarioConfig::geometry_kernel(
@@ -141,6 +142,7 @@ fn cdc_certification_explicit_dependency_graph_resume_is_exact() {
 }
 
 #[test]
+#[ignore = "scheduled hostile CDC certification; run explicitly in the scheduled relational lane"]
 fn cdc_certification_rewrite_storm_preserves_exact_suffix_under_tiny_windows() {
     let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
     let entity = create_entity_in_partition(&mut runtime, "rewrite-storm-0", PartitionId(7));

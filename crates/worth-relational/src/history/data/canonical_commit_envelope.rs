@@ -37,6 +37,8 @@ pub struct CanonicalCommitEnvelope {
     pub schema_version: SchemaVersionId,
     pub schema_authority: SchemaAuthoritySnapshot,
     pub merged_plan: MergedCommitPlan,
+    #[serde(default)]
+    pub(crate) record_allocations: Vec<crate::history::data::CanonicalRecordAllocation>,
     pub patch: PublishedAuthoritativePatchEnvelope,
     pub diagnostics_summary: RelationalDiagnosticArtifact,
     lineage: PublishedLineageArtifact,
@@ -93,6 +95,7 @@ impl CanonicalCommitEnvelope {
             schema_version,
             schema_authority,
             merged_plan,
+            record_allocations: Vec::new(),
             patch,
             diagnostics_summary,
             lineage,
@@ -108,14 +111,22 @@ impl CanonicalCommitEnvelope {
         self.lineage.lineage_event_ids()
     }
 
+    pub(crate) fn install_record_allocations(
+        &mut self,
+        allocations: Vec<crate::history::data::CanonicalRecordAllocation>,
+    ) {
+        self.record_allocations = allocations;
+    }
+
+    pub(crate) fn record_allocations(&self) -> &[crate::history::data::CanonicalRecordAllocation] {
+        &self.record_allocations
+    }
     pub fn lineage_events(&self) -> &[LineageEventRecord] {
         self.lineage.lineage_events()
     }
-
     pub fn lineage_decision_log(&self) -> &[LineageDecisionRecord] {
         self.lineage.lineage_decision_log()
     }
-
     pub fn lineage_decisions_for_candidate(
         &self,
         candidate_id: crate::lineage::data::CorrespondenceCandidateId,
@@ -139,7 +150,6 @@ impl CanonicalCommitEnvelope {
     pub fn lineage_digest_basis(&self) -> &LineageDigestBasis {
         self.lineage.digest_basis()
     }
-
     pub fn event_batch_digest_basis(&self) -> &LineageEventBatchDigestBasis {
         self.lineage.event_batch_digest_basis()
     }
@@ -181,6 +191,35 @@ impl CanonicalCommitEnvelope {
             }
         }
         touched
+    }
+
+    /// Canonical bytes for owner truth only. Diagnostics and optional derived
+    /// indexes have distinct lifecycle lanes and cannot perturb commit-byte
+    /// accounting.
+    pub(crate) fn encode_authoritative_payload(&self) -> Result<Vec<u8>, rmp_serde::encode::Error> {
+        let identity_and_authority = (
+            &self.commit,
+            &self.branch_context,
+            &self.branch_cell_checkpoint,
+            &self.authority_kind,
+            &self.strategy_artifacts,
+            &self.merge_execution_authority,
+            &self.merge_parent_branches,
+            &self.merge_base_commits,
+        );
+        let canonical_semantics = (
+            &self.schema_version,
+            &self.schema_authority,
+            &self.merged_plan,
+            &self.record_allocations,
+            &self.patch,
+            &self.lineage,
+            &self.schema_transition,
+            &self.schema_continuation_descriptor,
+            &self.schema_reconciliation_descriptor,
+            &self.descriptor_semantics_version,
+        );
+        rmp_serde::to_vec_named(&(identity_and_authority, canonical_semantics))
     }
 
     pub(crate) fn committed_record_changes(

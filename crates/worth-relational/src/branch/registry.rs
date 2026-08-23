@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use crate::history::data::BranchId;
 
@@ -10,14 +10,14 @@ use super::{RelationalBranchCellCheckpoint, RelationalBranchReferenceCell};
 /// immutable commit catalog is a sibling owner and cannot mint a cell.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct RelationalBranchReferenceRegistry {
-    cells: BTreeMap<BranchId, RelationalBranchReferenceCell>,
+    cells: HashMap<BranchId, RelationalBranchReferenceCell>,
 }
 
 impl RelationalBranchReferenceRegistry {
     pub(crate) fn from_main(main: RelationalBranchReferenceCell) -> Self {
         let branch_id = main.identity().branch_id().clone();
         Self {
-            cells: BTreeMap::from([(branch_id, main)]),
+            cells: HashMap::from([(branch_id, main)]),
         }
     }
 
@@ -48,18 +48,25 @@ impl RelationalBranchReferenceRegistry {
         self.cells.keys()
     }
 
+    pub(crate) fn values(&self) -> impl Iterator<Item = &RelationalBranchReferenceCell> {
+        self.cells.values()
+    }
+
     pub(crate) fn take_all(&mut self) -> BTreeMap<BranchId, RelationalBranchReferenceCell> {
-        std::mem::take(&mut self.cells)
+        std::mem::take(&mut self.cells).into_iter().collect()
     }
 
     pub(crate) fn restore_all(&mut self, cells: BTreeMap<BranchId, RelationalBranchReferenceCell>) {
-        self.cells = cells;
+        self.cells = cells.into_iter().collect();
     }
 
     pub(crate) fn checkpoints(&self) -> Vec<RelationalBranchCellCheckpoint> {
-        self.cells
+        let mut checkpoints = self
+            .cells
             .values()
             .map(RelationalBranchReferenceCell::checkpoint)
-            .collect()
+            .collect::<Vec<_>>();
+        checkpoints.sort_by(|left, right| left.branch_id.cmp(&right.branch_id));
+        checkpoints
     }
 }

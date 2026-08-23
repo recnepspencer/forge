@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use worth_foundational::FoundationalBranchTarget;
 
 use crate::history::data::{BranchCreateError, BranchId, CommitId};
@@ -5,9 +7,9 @@ use crate::history::HistoryAuthority;
 use crate::runtime::RelationalRuntime;
 
 use super::authority::admit_relational_fork_source;
-use super::basis::{AdmittedRelationalForkSourceBasis, RelationalForkSourceDescriptor};
+use super::fork_source_basis::{AdmittedRelationalForkSourceBasis, RelationalForkSourceDescriptor};
 use super::identity::RelationalBranchIdentity;
-use super::reference::{RelationalBranchCellDenial, RelationalBranchObservation};
+use super::reference::{RelationalBranchCellDenial, RelationalBranchReferenceObservation};
 use super::RelationalBranchVersion;
 
 /// Typed denials for the Phase-4 fork transition.
@@ -27,9 +29,9 @@ pub enum RelationalForkDenial {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RelationalForkOutcome {
     target_identity: RelationalBranchIdentity,
-    source_observation: RelationalBranchObservation,
-    target_observation: RelationalBranchObservation,
-    fork_provenance: RelationalBranchObservation,
+    source_observation: RelationalBranchReferenceObservation,
+    target_observation: RelationalBranchReferenceObservation,
+    fork_provenance: RelationalBranchReferenceObservation,
     source_truth_version: RelationalBranchVersion,
     target_truth_version: RelationalBranchVersion,
     shared_commit_id: Option<CommitId>,
@@ -40,15 +42,15 @@ impl RelationalForkOutcome {
         &self.target_identity
     }
 
-    pub fn source_observation(&self) -> &RelationalBranchObservation {
+    pub fn source_observation(&self) -> &RelationalBranchReferenceObservation {
         &self.source_observation
     }
 
-    pub fn target_observation(&self) -> &RelationalBranchObservation {
+    pub fn target_observation(&self) -> &RelationalBranchReferenceObservation {
         &self.target_observation
     }
 
-    pub fn fork_provenance(&self) -> &RelationalBranchObservation {
+    pub fn fork_provenance(&self) -> &RelationalBranchReferenceObservation {
         &self.fork_provenance
     }
 
@@ -173,11 +175,18 @@ impl RelationalRuntime {
         source: &ValidatedForkSource,
     ) -> Result<PreparedForkTarget, RelationalForkDenial> {
         let target_branch_id = target_branch.clone();
-        let target_cell = crate::branch::RelationalBranchReferenceCell::from_source(
+        let source_root = self
+            .history
+            .branch_cell(source.descriptor.source_branch())
+            .and_then(|cell| cell.root())
+            .cloned()
+            .ok_or(RelationalForkDenial::MissingArtifact)?;
+        let target_cell = crate::branch::RelationalBranchReferenceCell::from_source_with_root(
             self.runtime_instance_id(),
             target_branch,
             source.descriptor.source_branch().clone(),
             &source.source_observation,
+            source_root.clone(),
         )
         .map_err(|_| RelationalForkDenial::InvalidTarget(BranchCreateError::invalid_target()))?;
         let target_observation = target_cell.observation().clone();
@@ -205,6 +214,7 @@ impl RelationalRuntime {
         Ok(PreparedForkTarget {
             target_cell,
             target_branch: target_branch_id,
+            source_root,
             target_observation,
             fork_provenance,
             target_truth_version,
@@ -224,6 +234,23 @@ impl RelationalRuntime {
             .expect("source branch cell remains registered")
             .retain_head()
             .map_err(RelationalForkDenial::Cell)?;
+        let fork_materialized_authoritative_bytes = target
+            .target_cell
+            .root()
+            .filter(|target_root| !Arc::ptr_eq(target_root, &target.source_root))
+            .map(|target_root| target_root.logical_partition_payload_bytes())
+            .unwrap_or(0);
+        let copied_commit_envelopes = target
+            .target_cell
+            .root()
+            .filter(|target_root| !target_root.shares_canonical_envelope_with(&target.source_root))
+            .map_or(0, |_| 1);
+        let materialization_cost = crate::runtime::RelationalForkMaterializationCost {
+            entity_count: 0,
+            relation_count: 0,
+            authoritative_bytes: fork_materialized_authoritative_bytes,
+            copied_commit_envelopes,
+        };
         self.history.phase4_costs.reference_allocations = self
             .history
             .phase4_costs
@@ -235,9 +262,17 @@ impl RelationalRuntime {
             .branch_cell_contacts
             .saturating_add(1);
         self.history.insert_branch_cell(target.target_cell);
+        self.history
+            .record_fork_root_acquisition(&target.target_branch);
+        self.history
+            .record_fork_materialization(&target.target_branch, materialization_cost);
         if let Some(source_head_version) = target.source_head_version {
             self.visibility_pins()
-                .move_branch_head_visibility_residency(None, Some(source_head_version));
+                .move_branch_head_visibility_residency(
+                    &target.target_branch,
+                    None,
+                    Some(source_head_version),
+                );
             self.visibility_pins()
                 .pin_branch_version(source_head_version);
         }
@@ -260,15 +295,16 @@ impl RelationalRuntime {
 
 struct ValidatedForkSource {
     descriptor: RelationalForkSourceDescriptor,
-    source_observation: RelationalBranchObservation,
+    source_observation: RelationalBranchReferenceObservation,
     source_truth_version: RelationalBranchVersion,
 }
 
 struct PreparedForkTarget {
     target_cell: crate::branch::RelationalBranchReferenceCell,
     target_branch: BranchId,
-    target_observation: RelationalBranchObservation,
-    fork_provenance: RelationalBranchObservation,
+    source_root: Arc<crate::branch::RelationalBranchRoot>,
+    target_observation: RelationalBranchReferenceObservation,
+    fork_provenance: RelationalBranchReferenceObservation,
     target_truth_version: RelationalBranchVersion,
     shared_commit_id: Option<CommitId>,
     source_head_version: Option<crate::identity::data::VersionId>,

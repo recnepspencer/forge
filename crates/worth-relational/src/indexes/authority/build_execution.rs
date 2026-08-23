@@ -10,6 +10,7 @@ use crate::runtime::RelationalRuntime;
 use super::super::projected_field_values::{
     build_entity_aspect_field_index, build_related_entity_ordering_index,
     build_relation_aspect_field_index, build_relation_join_index, IndexProjectionSource,
+    RelatedEntityOrderingProjection,
 };
 
 #[derive(Debug, Clone)]
@@ -83,7 +84,6 @@ pub(super) fn execute_index_packets(
                     *reduction_key,
                     *index_id,
                     DerivedIndexEntries::EntityField(build_entity_aspect_field_index(
-                        runtime,
                         projection,
                         field_locator,
                     )),
@@ -97,7 +97,6 @@ pub(super) fn execute_index_packets(
                     *reduction_key,
                     *index_id,
                     DerivedIndexEntries::EntityField(build_entity_aspect_field_index(
-                        runtime,
                         projection,
                         field_locator,
                     )),
@@ -114,7 +113,6 @@ pub(super) fn execute_index_packets(
                     *reduction_key,
                     *index_id,
                     DerivedIndexEntries::RelationField(build_relation_aspect_field_index(
-                        runtime,
                         projection,
                         field_locator,
                     )),
@@ -128,7 +126,6 @@ pub(super) fn execute_index_packets(
                     *reduction_key,
                     *index_id,
                     DerivedIndexEntries::RelationField(build_relation_aspect_field_index(
-                        runtime,
                         projection,
                         field_locator,
                     )),
@@ -153,12 +150,13 @@ pub(super) fn execute_index_packets(
                         *index_id,
                         DerivedIndexEntries::RelatedEntityOrdering(
                             build_related_entity_ordering_index(
-                                runtime,
                                 projection,
-                                *relation_kind,
-                                *parent_endpoint,
-                                *child_kind,
-                                ordering,
+                                &RelatedEntityOrderingProjection::new(
+                                    *relation_kind,
+                                    *parent_endpoint,
+                                    *child_kind,
+                                    ordering,
+                                ),
                             ),
                         ),
                     )
@@ -181,12 +179,13 @@ pub(super) fn execute_index_packets(
                         *index_id,
                         DerivedIndexEntries::RelatedEntityOrdering(
                             build_related_entity_ordering_index(
-                                runtime,
                                 projection,
-                                *relation_kind,
-                                *parent_endpoint,
-                                *child_kind,
-                                ordering,
+                                &RelatedEntityOrderingProjection::new(
+                                    *relation_kind,
+                                    *parent_endpoint,
+                                    *child_kind,
+                                    ordering,
+                                ),
                             ),
                         ),
                     )

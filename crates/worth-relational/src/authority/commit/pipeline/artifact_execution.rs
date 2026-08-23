@@ -8,12 +8,14 @@ use preparation::PublicationPreparation;
 
 pub(super) struct AssembledCommitExecution {
     admitted: super::execution_admission::AdmittedCommitExecution,
+    selected_branch_state: crate::branch::SelectedRelationalBranchState,
     public_structural_summary: crate::transactions::data::CommitStructuralSummary,
     working_state: crate::storage::overlay::WorkingState,
     invariant_executions: Vec<crate::validation::engine::InvariantExecutionResult>,
     version_id: crate::identity::data::VersionId,
     created_entities: crate::transactions::data::CommitCreatedEntityBindings,
     created_relations: crate::transactions::data::CommitCreatedRelationBindings,
+    record_allocations: crate::runtime::PendingRecordAllocations,
     history: crate::authority::commit::phases::history::ResolvedCommitHistory,
     merge_parent_branches: Vec<crate::history::data::BranchId>,
     publication: PublicationPreparation,
@@ -28,12 +30,14 @@ impl AssembledCommitExecution {
         self,
     ) -> (
         super::execution_admission::AdmittedCommitExecution,
+        crate::branch::SelectedRelationalBranchState,
         crate::transactions::data::CommitStructuralSummary,
         crate::storage::overlay::WorkingState,
         Vec<crate::validation::engine::InvariantExecutionResult>,
         crate::identity::data::VersionId,
         crate::transactions::data::CommitCreatedEntityBindings,
         crate::transactions::data::CommitCreatedRelationBindings,
+        crate::runtime::PendingRecordAllocations,
         crate::authority::commit::phases::history::ResolvedCommitHistory,
         Vec<crate::history::data::BranchId>,
         PublicationPreparation,
@@ -43,36 +47,20 @@ impl AssembledCommitExecution {
     ) {
         (
             self.admitted,
+            self.selected_branch_state,
             self.public_structural_summary,
             self.working_state,
             self.invariant_executions,
             self.version_id,
             self.created_entities,
             self.created_relations,
+            self.record_allocations,
             self.history,
             self.merge_parent_branches,
             self.publication,
             self.publication_snapshot,
             self.aspect_evaluation_traces,
             self.aspect_emission_traces,
-        )
-    }
-
-    pub(super) fn append_parts(
-        &mut self,
-    ) -> (
-        &mut super::execution_admission::AdmittedCommitExecution,
-        &PublicationPreparation,
-        crate::history::data::CommitId,
-        &crate::history::data::BranchId,
-        &crate::branch::RelationalLegacyBranchBinding,
-    ) {
-        (
-            &mut self.admitted,
-            &self.publication,
-            self.history.commit_id,
-            &self.history.branch_id,
-            &self.history.branch_binding,
         )
     }
 }
@@ -83,6 +71,7 @@ pub(super) fn assemble_commit_artifacts(
 ) -> Result<AssembledCommitExecution, crate::transactions::data::TransactionCommitError> {
     let (
         mut admitted,
+        selected_branch_state,
         public_structural_summary,
         mut working_state,
         invariant_executions,
@@ -90,6 +79,7 @@ pub(super) fn assemble_commit_artifacts(
         effect,
         created_entities,
         created_relations,
+        record_allocations,
         history,
         merge_parent_branches,
         additional_diagnostics_entries,
@@ -111,6 +101,7 @@ pub(super) fn assemble_commit_artifacts(
             merge_parent_branches: &merge_parent_branches,
             merge_base_commits: &history.merge_base_commits,
             merged_plan,
+            record_allocations: record_allocations.canonical(),
             strategy_commit_artifacts: strategy_artifacts,
             merge_execution_authority,
             schema_continuity: &schema_continuity,
@@ -122,12 +113,14 @@ pub(super) fn assemble_commit_artifacts(
     let publication_snapshot = publication.snapshot().clone();
     Ok(AssembledCommitExecution {
         admitted,
+        selected_branch_state,
         public_structural_summary,
         working_state,
         invariant_executions,
         version_id,
         created_entities,
         created_relations,
+        record_allocations,
         history,
         merge_parent_branches,
         publication,

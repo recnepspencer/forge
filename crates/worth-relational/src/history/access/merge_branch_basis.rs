@@ -10,48 +10,43 @@ use worth_foundational::FoundationalBranchTarget;
 use super::HistoryAccess;
 
 impl<'runtime> HistoryAccess<'runtime> {
-    /// Transitional immutable merge-history projection for existing Query
-    /// consumers. Both descriptive branch names are owner-bound before the
-    /// basis is resolved; no raw id can select a transaction target.
-    pub fn historical_merge_branch_basis(
+    /// Resolve merge ancestry from two owner-admitted exact observations.
+    pub fn merge_branch_basis_for_observations(
         &self,
-        source_branch: &BranchId,
-        target_branch: &BranchId,
+        source: &crate::mvcc::RelationalBranchObservation,
+        target: &crate::mvcc::RelationalBranchObservation,
     ) -> Result<RelationalMergeBranchBasis, RelationalMergeBranchBasisDenial> {
-        let source_identity = self.runtime.branch_identity(source_branch).map_err(|_| {
-            RelationalMergeBranchBasisDenial::MissingSourceHead {
-                branch_id: source_branch.clone(),
-            }
-        })?;
-        let target_identity = self.runtime.branch_identity(target_branch).map_err(|_| {
-            RelationalMergeBranchBasisDenial::MissingTargetHead {
-                branch_id: target_branch.clone(),
-            }
-        })?;
-        let source_binding = self
-            .runtime
-            .legacy_branch_binding_for_identity(&source_identity)
-            .map_err(|_| RelationalMergeBranchBasisDenial::MissingSourceHead {
+        let source_branch = source.identity().branch_id().clone();
+        let target_branch = target.identity().branch_id().clone();
+        let source_head = self
+            .branch_head_for_observation(source)
+            .map_err(RelationalMergeBranchBasisDenial::SourceObservationDenied)?
+            .cloned()
+            .ok_or_else(|| RelationalMergeBranchBasisDenial::MissingSourceHead {
                 branch_id: source_branch.clone(),
             })?;
-        let target_binding = self
-            .runtime
-            .legacy_branch_binding_for_identity(&target_identity)
-            .map_err(|_| RelationalMergeBranchBasisDenial::MissingTargetHead {
+        let target_head = self
+            .branch_head_for_observation(target)
+            .map_err(RelationalMergeBranchBasisDenial::TargetObservationDenied)?
+            .cloned()
+            .ok_or_else(|| RelationalMergeBranchBasisDenial::MissingTargetHead {
                 branch_id: target_branch.clone(),
             })?;
-        self.resolve_merge_branch_basis_from_bindings(&source_binding, &target_binding)
+        self.resolve_merge_branch_basis_from_heads(
+            source_branch,
+            target_branch,
+            source_head,
+            target_head,
+        )
     }
 
-    pub(crate) fn resolve_merge_branch_basis_from_bindings(
+    fn resolve_merge_branch_basis_from_heads(
         &self,
-        source_binding: &RelationalLegacyBranchBinding,
-        target_binding: &RelationalLegacyBranchBinding,
+        source_branch: BranchId,
+        target_branch: BranchId,
+        source_head: crate::history::data::RelationalCommitReceipt,
+        target_head: crate::history::data::RelationalCommitReceipt,
     ) -> Result<RelationalMergeBranchBasis, RelationalMergeBranchBasisDenial> {
-        let source_head = self.commit_receipt_for_binding(source_binding, false)?;
-        let target_head = self.commit_receipt_for_binding(target_binding, true)?;
-        let source_branch = source_binding.identity().branch_id().clone();
-        let target_branch = target_binding.identity().branch_id().clone();
         let left_ancestors = self.ancestor_closure_by_commit_id_order(target_head.commit_id);
         let right_ancestors = self.ancestor_closure_by_commit_id_order(source_head.commit_id);
         let merge_base_commit_id = self
@@ -76,6 +71,21 @@ impl<'runtime> HistoryAccess<'runtime> {
                 supporting_right_ancestors: Arc::from(right_ancestors),
             },
         })
+    }
+
+    pub(crate) fn resolve_merge_branch_basis_from_bindings(
+        &self,
+        source_binding: &RelationalLegacyBranchBinding,
+        target_binding: &RelationalLegacyBranchBinding,
+    ) -> Result<RelationalMergeBranchBasis, RelationalMergeBranchBasisDenial> {
+        let source_head = self.commit_receipt_for_binding(source_binding, false)?;
+        let target_head = self.commit_receipt_for_binding(target_binding, true)?;
+        self.resolve_merge_branch_basis_from_heads(
+            source_binding.identity().branch_id().clone(),
+            target_binding.identity().branch_id().clone(),
+            source_head,
+            target_head,
+        )
     }
 
     fn commit_receipt_for_binding(
@@ -131,30 +141,11 @@ impl<'runtime> HistoryAccess<'runtime> {
             }
         })?;
 
-        let left_ancestors = self.ancestor_closure_by_commit_id_order(target_head.commit_id);
-        let right_ancestors = self.ancestor_closure_by_commit_id_order(source_head.commit_id);
-        let merge_base_commit_id = self
-            .max_commit_id_common_ancestor(target_head.commit_id, source_head.commit_id)
-            .ok_or_else(|| RelationalMergeBranchBasisDenial::MissingMergeBase {
-                source_branch: source_branch.clone(),
-                target_branch: target_branch.clone(),
-            })?;
-        let merge_base = self
-            .commit_envelope(merge_base_commit_id)
-            .map(|envelope| envelope.commit.clone())
-            .ok_or(RelationalMergeBranchBasisDenial::MissingMergeBaseEnvelope {
-                commit_id: merge_base_commit_id,
-            })?;
-
-        Ok(RelationalMergeBranchBasis {
+        self.resolve_merge_branch_basis_from_heads(
+            source_branch.clone(),
+            target_branch.clone(),
             source_head,
             target_head,
-            merge_base: ResolvedMergeBase {
-                rule: MergeBaseSelectionRule::MaxCommitIdCommonAncestor,
-                commit: merge_base,
-                supporting_left_ancestors: Arc::from(left_ancestors),
-                supporting_right_ancestors: Arc::from(right_ancestors),
-            },
-        })
+        )
     }
 }

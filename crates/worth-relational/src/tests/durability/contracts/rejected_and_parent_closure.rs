@@ -68,6 +68,9 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
         TransactionCommitError::Publication { .. } => {
             panic!("expected relation-integrity conflict, got publication error")
         }
+        TransactionCommitError::Preparation { error, .. } => {
+            panic!("expected relation-integrity conflict, got preparation error: {error:?}")
+        }
     }
 
     assert_eq!(

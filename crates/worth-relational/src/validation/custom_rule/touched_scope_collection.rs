@@ -1,7 +1,6 @@
 use std::collections::BTreeSet;
 
 use crate::identity::data::{EntityId, PartitionId};
-use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{
     CreateIntent, EntityMutationIntent, EntityReference, MergedCommitPlan, MutationIntent,
     RelationMutationIntent,
@@ -13,7 +12,6 @@ use crate::validation::data::{
 };
 
 pub(crate) fn collect_touched_structural_set(
-    runtime: &RelationalRuntime,
     state_view: &InvariantStateView<'_>,
     merged_plan: Option<&MergedCommitPlan>,
 ) -> TouchedStructuralSet {
@@ -31,6 +29,17 @@ pub(crate) fn collect_touched_structural_set(
     }
     if let Some(ids) = state_view.touched_visible_relation_ids() {
         visible_relations.extend(ids);
+    }
+
+    // A sparse relation overlay can materialize a touched relation without
+    // materializing either endpoint's partition.  Seed the structural scope
+    // from the relation metadata before walking adjacency so custom rules see
+    // the complete selected relation boundary without enumerating the root.
+    let touched_relation_ids = visible_relations.iter().copied().collect::<Vec<_>>();
+    for relation_id in touched_relation_ids {
+        if let Some(metadata) = state_view.relation_metadata(relation_id) {
+            include_relation_metadata(&mut visible_entities, &mut touched_partitions, metadata);
+        }
     }
 
     if let Some(plan) = merged_plan {
@@ -155,10 +164,7 @@ pub(crate) fn collect_touched_structural_set(
 
     let seed_entities = visible_entities.iter().copied().collect::<Vec<_>>();
     for entity_id in seed_entities {
-        for relation_id in runtime
-            .storage_access()
-            .all_relations_for_entity(entity_id, state_view.version_id())
-        {
+        for relation_id in state_view.all_relations_for_entity(entity_id) {
             visible_relations.insert(relation_id);
             if let Some(metadata) = state_view.relation_metadata(relation_id) {
                 include_relation_metadata(&mut visible_entities, &mut touched_partitions, metadata);

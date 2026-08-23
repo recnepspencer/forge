@@ -326,6 +326,7 @@ fn custom_provenance_with_visible_records(
             remaining_steps: 4,
             max_depth: 5,
         },
+        proposal_identity: None,
     }
 }
 
@@ -353,6 +354,7 @@ fn execution_result_with_proof_boundary(
                 1,
                 1,
             )),
+            None,
         ),
         check_results,
     )

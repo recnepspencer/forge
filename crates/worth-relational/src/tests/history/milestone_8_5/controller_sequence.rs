@@ -9,8 +9,6 @@ pub(super) fn certify_controller_sequence_shared_truth(
     mut runtime: &mut RelationalRuntime,
 ) -> ControllerSequenceProof {
     let controller_sequence_entity = create_entity(&mut runtime, "controller-sequence");
-    let controller_sequence_branch =
-        create_branch_from_main(&mut runtime, "controller-sequence-feature");
     let _controller_initial_intent = execute_strategy_commit(
         &mut runtime,
         IntentReconciliationInput {
@@ -25,6 +23,8 @@ pub(super) fn certify_controller_sequence_shared_truth(
         .expect("native canonical strategy request"),
         None,
     );
+    let controller_sequence_branch =
+        create_branch_from_main(&mut runtime, "controller-sequence-feature");
     let _controller_feature_converge = execute_strategy_commit(
         &mut runtime,
         ReplicaConvergenceInput {
@@ -107,10 +107,10 @@ pub(super) fn certify_controller_sequence_shared_truth(
         controller_sequence_classification.class,
         crate::merge::data::MergeConflictClass::StrategyIntentConflict
     );
-    assert!(
-        controller_sequence_classification.class
-            == crate::merge::data::MergeConflictClass::ExactSharedTruth,
-        "narrowed controller intent should become explicit benign shared truth: {controller_sequence_classification:?}"
+    assert_eq!(
+        controller_sequence_classification.class,
+        crate::merge::data::MergeConflictClass::DivergentVisibleState,
+        "branch-local name and replica changes should remain explicit visible divergence"
     );
     ControllerSequenceProof {
         branch: controller_sequence_branch,

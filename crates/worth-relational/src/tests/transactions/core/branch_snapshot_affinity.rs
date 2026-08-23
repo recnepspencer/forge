@@ -12,14 +12,8 @@ fn current_branch_snapshot_never_substitutes_another_branch_head() {
         .unwrap();
     update_entity_on_branch(&mut runtime, entity, "feature", feature.clone());
 
-    let main_snapshot = runtime
-        .snapshots()
-        .snapshot_for_branch(&main)
-        .expect("main has an exact current snapshot");
-    let feature_snapshot = runtime
-        .snapshots()
-        .snapshot_for_branch(&feature)
-        .expect("feature has an exact current snapshot");
+    let main_snapshot = snapshot_for_owner_branch(&mut runtime, &main);
+    let feature_snapshot = snapshot_for_owner_branch(&mut runtime, &feature);
 
     assert_eq!(main_snapshot.branch_id, main);
     assert_eq!(feature_snapshot.branch_id, feature);
@@ -35,7 +29,6 @@ fn current_branch_snapshot_never_substitutes_another_branch_head() {
     assert!(runtime.snapshots().release_snapshot(&main_snapshot));
     assert!(runtime.snapshots().release_snapshot(&feature_snapshot));
     assert!(runtime
-        .snapshots()
-        .snapshot_for_branch(&BranchId("missing".to_owned()))
-        .is_none());
+        .branch_identity(&BranchId("missing".to_owned()))
+        .is_err());
 }

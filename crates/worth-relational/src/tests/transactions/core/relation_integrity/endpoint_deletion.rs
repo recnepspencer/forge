@@ -22,7 +22,8 @@ fn relation_integrity_commit_boundary_rejects_endpoint_delete_with_live_relation
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(
                 error.code(),
-                DiagnosticCode::RelationEndpointDeletionIntegrityViolation
+                DiagnosticCode::RelationEndpointDeletionIntegrityViolation,
+                "unexpected relation-integrity denial: {error:?}"
             );
             match error.class {
                 crate::transactions::data::ConflictClass::InvariantViolation {
@@ -72,11 +73,7 @@ fn relation_integrity_commit_boundary_rejects_replace_when_retained_relation_kee
                     partition_id: PartitionId::main(),
                     kind_id: KindId(1),
                     client_key: crate::symbols::data::ClientKey::raw("source-replacement"),
-                    fields: crate::tests::support::single_string_aspect_field_patch(
-                        crate::tests::support::aspect_key("name"),
-                        crate::tests::support::field_key("name"),
-                        "source-replacement",
-                    ),
+                    fields: crate::transactions::data::AspectFieldPatch::default(),
                 },
             }),
         )),
@@ -87,7 +84,8 @@ fn relation_integrity_commit_boundary_rejects_replace_when_retained_relation_kee
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(
                 error.code(),
-                DiagnosticCode::RelationEndpointDeletionIntegrityViolation
+                DiagnosticCode::RelationEndpointDeletionIntegrityViolation,
+                "unexpected replace denial: {error:?}"
             );
         }
         other => panic!("expected conflict, got {:?}", other),
@@ -165,6 +163,85 @@ fn relation_integrity_commit_boundary_allows_relation_retirement_when_policy_ret
         relation.lifecycle,
         RecordLifecycleState::RetainedDanglingForAudit
     );
+}
+
+#[test]
+fn historical_relation_lifecycle_does_not_reveal_future_audit_retention_after_recovery() {
+    let mut runtime = endpoint_deletion_runtime(
+        crate::schema::data::EndpointDeletionIntegrityMode::RequireRelationRetirement,
+        CascadeDeletePolicy::RetainDanglingForAudit,
+    );
+    let (source, _target, relation) =
+        create_endpoint_deletion_relation_fixture(&mut runtime, "historical-lifecycle");
+    let live_version = runtime.current_version_id();
+    let retired = delete_entity(&mut runtime, source);
+    create_entity(&mut runtime, "after-audit-retirement");
+    let post_retirement_version = runtime.current_version_id();
+
+    assert_relation_lifecycle_at_version(
+        &runtime,
+        relation,
+        live_version,
+        RecordLifecycleState::Live,
+        None,
+    );
+    assert_relation_lifecycle_at_version(
+        &runtime,
+        relation,
+        retired.version_id,
+        RecordLifecycleState::RetainedDanglingForAudit,
+        Some(retired.version_id),
+    );
+    assert_relation_lifecycle_at_version(
+        &runtime,
+        relation,
+        post_retirement_version,
+        RecordLifecycleState::RetainedDanglingForAudit,
+        Some(retired.version_id),
+    );
+
+    let (_, recovered) = checkpoint_and_recover_with(&mut runtime, || {
+        endpoint_deletion_runtime(
+            crate::schema::data::EndpointDeletionIntegrityMode::RequireRelationRetirement,
+            CascadeDeletePolicy::RetainDanglingForAudit,
+        )
+    });
+    assert_relation_lifecycle_at_version(
+        &recovered,
+        relation,
+        live_version,
+        RecordLifecycleState::Live,
+        None,
+    );
+    assert_relation_lifecycle_at_version(
+        &recovered,
+        relation,
+        retired.version_id,
+        RecordLifecycleState::RetainedDanglingForAudit,
+        Some(retired.version_id),
+    );
+    assert_relation_lifecycle_at_version(
+        &recovered,
+        relation,
+        post_retirement_version,
+        RecordLifecycleState::RetainedDanglingForAudit,
+        Some(retired.version_id),
+    );
+}
+
+fn assert_relation_lifecycle_at_version(
+    runtime: &crate::runtime::RelationalRuntime,
+    relation: crate::identity::data::RelationId,
+    version: crate::identity::data::VersionId,
+    lifecycle: RecordLifecycleState,
+    retired_at: Option<crate::identity::data::VersionId>,
+) {
+    let view = runtime.read_truth().read_version(version);
+    let record = view
+        .get_relation(relation)
+        .expect("audit-retained relation remains materialized");
+    assert_eq!(record.lifecycle, lifecycle);
+    assert_eq!(record.retired_at_version, retired_at);
 }
 
 #[test]

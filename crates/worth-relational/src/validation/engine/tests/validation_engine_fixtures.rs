@@ -273,6 +273,30 @@ pub(super) fn runtime_with_summary_title_uniqueness() -> RelationalRuntime {
         .build()
 }
 
+pub(super) fn runtime_with_summary_title_commit_boundary_uniqueness() -> RelationalRuntime {
+    RelationalRuntimeApi::builder()
+        .schema_registry(
+            AspectSchemaFixture {
+                entity_aspects: vec![
+                    entity_field_aspect(aspect_key("name"), field_key("name")),
+                    entity_summary_struct_aspect(aspect_key("summary"), field_key("summary")),
+                ],
+                ..AspectSchemaFixture::default()
+            }
+            .build_registry(),
+        )
+        .invariant_catalog(InvariantCatalog {
+            registrations: vec![InvariantRegistration::commit_boundary_blocking(
+                InvariantRule::unique_entity_aspect_field(
+                    aspect_key("summary"),
+                    field_key("title"),
+                ),
+            )],
+            ..InvariantCatalog::default()
+        })
+        .build()
+}
+
 pub(super) fn commit_entity_with_summary(
     mut runtime: &mut RelationalRuntime,
     client_key: &str,

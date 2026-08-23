@@ -201,18 +201,19 @@ fn apply_staged_relation_row(
     let relation_id = workspace.with_context(|context| {
         let relation_id = allocate_relation(
             context.state,
+            context.record_allocations,
             version_id,
             intent.partition_id,
             intent.kind_id,
             source_id,
             target_id,
             authoritative_aspect_state,
-        );
+        )?;
         context
             .state
             .mark_relation_slot_touched(relation_id.partition_id, relation_id.slot_index());
-        relation_id
-    });
+        Ok(relation_id)
+    })?;
     if let Some(client_key) = client_key {
         workspace.register_created_relation(
             CreatedRelationRef {

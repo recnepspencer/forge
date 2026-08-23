@@ -20,9 +20,18 @@ pub(crate) struct MergedPlanPreparationTiming {
 impl<'a> RelationalTransaction<'a> {
     pub fn merged_plan(&mut self) -> Result<&MergedCommitPlan, CommitConflict> {
         if self.last_merged_plan.is_none() {
+            let selected_state = self
+                .runtime
+                .selected_branch_state(self.options.branch_binding())
+                .map_err(|error| {
+                    CommitConflict::new(
+                        crate::transactions::data::ConflictClass::StaleValidationBasis {
+                            detail: error.detail(),
+                        },
+                    )
+                })?;
             let intents = self.normalized_intents_for_merge();
-            let current_state = self.runtime.storage_access().current_state();
-            let plan = self.build_merged_plan_for_state(&current_state, intents)?;
+            let plan = self.build_merged_plan_for_state(selected_state.state(), intents)?;
             self.last_merged_plan = Some(plan);
         }
         Ok(self.last_merged_plan.as_ref().expect("merged plan"))
@@ -206,7 +215,7 @@ impl<'a> RelationalTransaction<'a> {
 }
 
 pub(crate) fn bulk_reservations_for_plan(
-    state: &impl PartitionAccess,
+    _state: &impl PartitionAccess,
     plan: &MergedCommitPlan,
 ) -> (usize, usize) {
     let mut entity_requests = BTreeMap::new();
@@ -220,25 +229,7 @@ pub(crate) fn bulk_reservations_for_plan(
         }
     }
 
-    let entity_reserved = entity_requests
-        .into_iter()
-        .map(|(partition_id, requested)| {
-            let reusable = state
-                .get_partition(partition_id)
-                .map(|partition| partition.entity_arena.free_list.len())
-                .unwrap_or(0);
-            requested.saturating_sub(reusable)
-        })
-        .sum();
-    let relation_reserved = relation_requests
-        .into_iter()
-        .map(|(partition_id, requested)| {
-            let reusable = state
-                .get_partition(partition_id)
-                .map(|partition| partition.relation_arena.free_list.len())
-                .unwrap_or(0);
-            requested.saturating_sub(reusable)
-        })
-        .sum();
+    let entity_reserved = entity_requests.into_values().sum();
+    let relation_reserved = relation_requests.into_values().sum();
     (entity_reserved, relation_reserved)
 }

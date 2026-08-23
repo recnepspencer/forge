@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::transactions::data::{
-    CommitConflict, MergedCommitPlan, ProvenanceCompleteBulkMutationBatch, TransactionId,
-    TransactionOptions,
+    CommitConflict, CommitPreparationError, MergedCommitPlan, ProvenanceCompleteBulkMutationBatch,
+    TransactionId, TransactionOptions,
 };
 
 use super::{
@@ -15,11 +15,16 @@ use super::{
 pub enum StrategyLoweringError {
     RequestExecutionMismatch { detail: String },
     MutationConflict(CommitConflict),
+    Preparation(CommitPreparationError),
 }
 
 impl StrategyLoweringError {
     pub(crate) fn mutation_conflict(conflict: CommitConflict) -> Self {
         Self::MutationConflict(conflict)
+    }
+
+    pub(crate) fn preparation(error: CommitPreparationError) -> Self {
+        Self::Preparation(error)
     }
 }
 
@@ -149,6 +154,7 @@ pub struct LoweredStrategyCommitPlan {
     transaction_id: TransactionId,
     options: TransactionOptions,
     bulk_mutation_batch: Option<ProvenanceCompleteBulkMutationBatch>,
+    selected_branch_state: crate::branch::SelectedRelationalBranchState,
     merged_plan: MergedCommitPlan,
     lowering_provenance: StrategyLoweringProvenance,
     lowering_summary: StrategyLoweringSummary,
@@ -162,6 +168,7 @@ impl LoweredStrategyCommitPlan {
         transaction_id: TransactionId,
         options: TransactionOptions,
         bulk_mutation_batch: Option<ProvenanceCompleteBulkMutationBatch>,
+        selected_branch_state: crate::branch::SelectedRelationalBranchState,
         merged_plan: MergedCommitPlan,
         lowering_provenance: StrategyLoweringProvenance,
         lowering_summary: StrategyLoweringSummary,
@@ -172,6 +179,7 @@ impl LoweredStrategyCommitPlan {
             transaction_id,
             options,
             bulk_mutation_batch,
+            selected_branch_state,
             merged_plan,
             lowering_provenance,
             lowering_summary,
@@ -201,6 +209,10 @@ impl LoweredStrategyCommitPlan {
 
     pub fn merged_plan(&self) -> &MergedCommitPlan {
         &self.merged_plan
+    }
+
+    pub(crate) fn selected_branch_state(&self) -> &crate::branch::SelectedRelationalBranchState {
+        &self.selected_branch_state
     }
 
     pub fn lowering_provenance(&self) -> StrategyLoweringProvenance {

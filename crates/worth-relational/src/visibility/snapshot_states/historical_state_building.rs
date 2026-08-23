@@ -1,0 +1,83 @@
+use std::collections::BTreeMap;
+
+use crate::runtime::RelationalRuntime;
+use crate::snapshots::data::{SnapshotHandle, SnapshotId, SnapshotReadPolicy};
+use crate::storage::overlay::PartitionAccess;
+use crate::storage::partition::DenseSlotBitSet;
+
+use super::pin_assembly::{assemble_snapshot_state, SelectedRelationSlots};
+use super::{HistoricalVisibilityBasis, SnapshotState, SnapshotStateBasis};
+
+pub(crate) fn build_historical_visibility_state(
+    runtime: &RelationalRuntime,
+    basis: HistoricalVisibilityBasis,
+    snapshot_id: SnapshotId,
+    read_policy: SnapshotReadPolicy,
+) -> SnapshotState {
+    debug_assert!(basis.source_version().as_u64() >= basis.version_id().as_u64());
+    let handle = SnapshotHandle {
+        runtime_instance_id: runtime.runtime_instance_id(),
+        branch_id: basis.branch_id().clone(),
+        snapshot_id,
+        version_id: basis.version_id(),
+        read_policy,
+    };
+    if let Some(root) = basis.root().cloned() {
+        return build_from_retained_state(runtime, basis, handle, root.as_ref());
+    }
+    build_from_retained_state(runtime, basis, handle, &BTreeMap::new())
+}
+
+fn build_from_retained_state(
+    runtime: &RelationalRuntime,
+    basis: HistoricalVisibilityBasis,
+    handle: SnapshotHandle,
+    state: &impl PartitionAccess,
+) -> SnapshotState {
+    let version_id = basis.version_id();
+    let reader = runtime.read_truth();
+    let entities = reader.visible_entity_slots_from_state(state, version_id);
+    let relations = reader
+        .visible_relation_slots_from_state(state, version_id)
+        .into_iter()
+        .map(|(partition_id, visible)| SelectedRelationSlots {
+            retained: retained_historical_relations(
+                runtime,
+                state,
+                partition_id,
+                &visible,
+                version_id,
+            ),
+            partition_id,
+            visible,
+        })
+        .collect();
+    assemble_snapshot_state(
+        handle,
+        SnapshotStateBasis::Historical(basis),
+        entities,
+        relations,
+    )
+}
+
+fn retained_historical_relations(
+    runtime: &RelationalRuntime,
+    state: &impl PartitionAccess,
+    partition_id: crate::identity::data::PartitionId,
+    visible: &DenseSlotBitSet,
+    version_id: crate::identity::data::VersionId,
+) -> DenseSlotBitSet {
+    let reader = runtime.read_truth();
+    let mut retained = DenseSlotBitSet::with_capacity(visible.represented_slot_capacity());
+    for slot in visible.iter_set_slots() {
+        let relation_id = crate::identity::data::RelationId::new(partition_id, slot as u64, 0);
+        let record =
+            reader.authoritative_relation_record_for_id_at_version(state, relation_id, version_id);
+        if record.is_some_and(|record| {
+            record.lifecycle == crate::storage::data::RecordLifecycleState::RetainedDanglingForAudit
+        }) {
+            retained.set(slot, true);
+        }
+    }
+    retained
+}

@@ -4,6 +4,7 @@ use crate::publication::data::PublicationError;
 use crate::transactions::data::CommitLog;
 use serde::{Deserialize, Serialize};
 
+use super::CommitPreparationError;
 use super::ConflictClass;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -51,6 +52,10 @@ pub enum TransactionCommitError {
         error: PublicationError,
         commit_log: CommitLog,
     },
+    Preparation {
+        error: CommitPreparationError,
+        commit_log: CommitLog,
+    },
 }
 
 impl TransactionCommitError {
@@ -68,10 +73,18 @@ impl TransactionCommitError {
         }
     }
 
+    pub fn preparation(error: CommitPreparationError) -> Self {
+        Self::Preparation {
+            error,
+            commit_log: CommitLog::new(),
+        }
+    }
+
     pub fn with_commit_log(self, commit_log: CommitLog) -> Self {
         match self {
             Self::Conflict { error, .. } => Self::Conflict { error, commit_log },
             Self::Publication { error, .. } => Self::Publication { error, commit_log },
+            Self::Preparation { error, .. } => Self::Preparation { error, commit_log },
         }
     }
 
@@ -79,6 +92,7 @@ impl TransactionCommitError {
         match self {
             Self::Conflict { error, .. } => &error.context,
             Self::Publication { error, .. } => &error.context,
+            Self::Preparation { error, .. } => error.context(),
         }
     }
 
@@ -86,6 +100,7 @@ impl TransactionCommitError {
         match self {
             Self::Conflict { error, .. } => error.detail(),
             Self::Publication { error, .. } => error.detail.clone(),
+            Self::Preparation { error, .. } => error.detail(),
         }
     }
 
@@ -93,6 +108,7 @@ impl TransactionCommitError {
         match self {
             Self::Conflict { commit_log, .. } => commit_log,
             Self::Publication { commit_log, .. } => commit_log,
+            Self::Preparation { commit_log, .. } => commit_log,
         }
     }
 

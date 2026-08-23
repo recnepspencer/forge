@@ -1,13 +1,14 @@
-use crate::runtime::RelationalRuntime;
+use crate::schema::data::RelationalSchemaRegistry;
 use crate::storage::data::{EntityReadRecord, RecordLifecycleState};
 use crate::storage::overlay::PartitionState;
 use crate::storage::substrate::HistoricalMetadata;
 
 use super::super::visibility::{
-    entity_visible_in_partition_at_version, historical_lifecycle, visible_metadata,
+    entity_visible_in_partition_at_version, historical_created_at, historical_lifecycle,
+    historical_retired_at, visible_metadata,
 };
 pub(in super::super) fn materialize_current_authoritative_entity_record(
-    runtime: &RelationalRuntime,
+    registry: &RelationalSchemaRegistry,
     partition: &PartitionState,
     partition_id: crate::identity::data::PartitionId,
     slot: usize,
@@ -17,12 +18,7 @@ pub(in super::super) fn materialize_current_authoritative_entity_record(
         return None;
     }
     let kind_id = entity_slot.kind_id()?;
-    let kind = runtime
-        .config
-        .schema
-        .registry
-        .resolve_entity(kind_id)
-        .ok()?;
+    let kind = registry.resolve_entity(kind_id).ok()?;
     Some(EntityReadRecord {
         entity_id: crate::identity::data::EntityId::new(
             partition_id,
@@ -32,14 +28,17 @@ pub(in super::super) fn materialize_current_authoritative_entity_record(
         lineage_id: entity_slot.extra().lineage_id,
         kind,
         lifecycle: entity_slot.lifecycle(),
-        created_at_version: partition.entity_arena.created_at[slot],
+        created_at_version: partition
+            .entity_arena
+            .created_at_for_slot(slot)
+            .expect("visible entity slot has creation metadata"),
         retired_at_version: entity_slot.retired_at(),
         authoritative_aspect_state: entity_slot.extra().authoritative_aspect_state.clone(),
     })
 }
 
 pub(in super::super) fn materialize_authoritative_entity_record_at_version(
-    runtime: &RelationalRuntime,
+    registry: &RelationalSchemaRegistry,
     partition: &PartitionState,
     partition_id: crate::identity::data::PartitionId,
     slot: usize,
@@ -48,16 +47,11 @@ pub(in super::super) fn materialize_authoritative_entity_record_at_version(
     if !entity_visible_in_partition_at_version(partition, slot, version_id) {
         return None;
     }
-    let metadata = visible_metadata(
-        partition.entity_arena.metadata_history_at(slot)?,
-        version_id,
-    )?;
-    let kind = runtime
-        .config
-        .schema
-        .registry
-        .resolve_entity(metadata.kind_id)
-        .ok()?;
+    let history = partition.entity_arena.metadata_history_at(slot)?;
+    let metadata = visible_metadata(history, version_id)?;
+    let current = partition.entity_arena.get_slot(slot)?;
+    let kind = registry.resolve_entity(metadata.kind_id).ok()?;
+    let retired_at = historical_retired_at(metadata.retired_at(), version_id);
     Some(EntityReadRecord {
         entity_id: crate::identity::data::EntityId::new(
             partition_id,
@@ -66,9 +60,14 @@ pub(in super::super) fn materialize_authoritative_entity_record_at_version(
         ),
         lineage_id: metadata.lineage_id,
         kind,
-        lifecycle: historical_lifecycle(metadata.retired_at(), version_id),
-        created_at_version: metadata.effective_at(),
-        retired_at_version: metadata.retired_at(),
+        lifecycle: historical_lifecycle(retired_at, version_id),
+        created_at_version: historical_created_at(
+            history,
+            metadata,
+            current.generation(),
+            partition.entity_arena.created_at_for_slot(slot)?,
+        ),
+        retired_at_version: retired_at,
         authoritative_aspect_state: metadata.authoritative_aspect_state.clone(),
     })
 }

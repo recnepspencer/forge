@@ -1,7 +1,6 @@
 use worth_foundational::facade::AuthoritativeRecordAspectState;
 
 use crate::identity::data::{EntityId, KindId, RelationId};
-use crate::runtime::RelationalRuntime;
 use crate::validation::engine::state_view::InvariantStateView;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -39,19 +38,12 @@ impl<'runtime> StructuralAspectStateView<'runtime> {
 
 #[derive(Clone, Copy)]
 pub struct StructuralRelationView<'runtime> {
-    runtime: &'runtime RelationalRuntime,
     state_view: InvariantStateView<'runtime>,
 }
 
 impl<'runtime> StructuralRelationView<'runtime> {
-    pub(crate) fn new(
-        runtime: &'runtime RelationalRuntime,
-        state_view: InvariantStateView<'runtime>,
-    ) -> Self {
-        Self {
-            runtime,
-            state_view,
-        }
+    pub(crate) fn new(state_view: InvariantStateView<'runtime>) -> Self {
+        Self { state_view }
     }
 
     pub fn entity_kind(&self, entity_id: EntityId) -> Option<KindId> {
@@ -72,20 +64,14 @@ impl<'runtime> StructuralRelationView<'runtime> {
     }
 
     pub fn outgoing_relations_for_entity(&self, entity_id: EntityId) -> Vec<RelationId> {
-        self.runtime
-            .storage_access()
-            .outgoing_relations_for_entity(entity_id, self.state_view.version_id())
+        self.state_view.outgoing_relations_for_entity(entity_id)
     }
 
     pub fn incoming_relations_for_entity(&self, entity_id: EntityId) -> Vec<RelationId> {
-        self.runtime
-            .storage_access()
-            .incoming_relations_for_entity(entity_id, self.state_view.version_id())
+        self.state_view.incoming_relations_for_entity(entity_id)
     }
 
     pub fn all_relations_for_entity(&self, entity_id: EntityId) -> Vec<RelationId> {
-        self.runtime
-            .storage_access()
-            .all_relations_for_entity(entity_id, self.state_view.version_id())
+        self.state_view.all_relations_for_entity(entity_id)
     }
 }

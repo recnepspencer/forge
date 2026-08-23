@@ -5,14 +5,14 @@ pub(super) struct KubernetesIntentCertificationBundle {
     pub(super) overlap_conflict: KubernetesPlanningEvidence,
     pub(super) narrowed_non_conflict: KubernetesPlanningEvidence,
     pub(super) rebroadened_conflict: KubernetesPlanningEvidence,
-    pub(super) revalidated_shared_truth: KubernetesPlanningEvidence,
+    pub(super) revalidated_converged_overlap: KubernetesPlanningEvidence,
     pub(super) revalidation_noop: KubernetesNoopEvidence,
     pub(super) broad_intent_replay: RelationalReplayOutcome,
     pub(super) first_converge_replay: RelationalReplayOutcome,
     pub(super) rebroadened_intent_replay: RelationalReplayOutcome,
     pub(super) revalidation_noop_replay: RelationalReplayOutcome,
     pub(super) branch_heads: KubernetesBranchHeadEvidence,
-    pub(super) visible_truth: KubernetesVisibleTruthEvidence,
+    pub(super) visible_truth: KubernetesBranchVisibleTruthEvidence,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -54,4 +54,10 @@ pub(super) struct KubernetesBranchHeadEvidence {
 pub(super) struct KubernetesVisibleTruthEvidence {
     pub(super) entity_name: Option<String>,
     pub(super) replicas_canonical_bytes: Option<Vec<u8>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct KubernetesBranchVisibleTruthEvidence {
+    pub(super) main: KubernetesVisibleTruthEvidence,
+    pub(super) controller: KubernetesVisibleTruthEvidence,
 }

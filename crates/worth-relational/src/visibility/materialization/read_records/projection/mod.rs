@@ -1,4 +1,7 @@
+mod basis_reads;
 mod contracts;
+mod exact_basis_reads;
+mod historical_basis_reads;
 mod projection_records;
 mod query_locus_projection;
 mod read_record_identity_ordering;

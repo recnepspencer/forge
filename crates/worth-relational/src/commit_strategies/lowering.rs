@@ -13,6 +13,9 @@ pub(crate) fn lower_execution(
 ) -> Result<LoweredStrategyCommitPlan, StrategyLoweringError> {
     validate_execution_binding(request, execution)?;
 
+    let selected_branch_state = runtime
+        .selected_branch_state(options.branch_binding())
+        .map_err(StrategyLoweringError::preparation)?;
     let mut transaction = runtime.begin_transaction(options.clone());
     for worker_batch in execution
         .mutation_program()
@@ -27,10 +30,10 @@ pub(crate) fn lower_execution(
     let bulk_mutation_batch = transaction
         .admit_provenance_complete_bulk_mutation_batch()
         .map_err(StrategyLoweringError::mutation_conflict)?;
+    let intents = transaction.normalized_intents_for_merge();
     let merged_plan = transaction
-        .merged_plan()
-        .map_err(StrategyLoweringError::mutation_conflict)?
-        .clone();
+        .build_merged_plan_for_state(selected_branch_state.state(), intents)
+        .map_err(StrategyLoweringError::mutation_conflict)?;
     let owner_bound_options = transaction.options.clone();
     let lowering_provenance =
         StrategyLoweringProvenance::from_request_and_execution(request, execution);
@@ -42,6 +45,7 @@ pub(crate) fn lower_execution(
         transaction_id,
         owner_bound_options,
         bulk_mutation_batch,
+        selected_branch_state,
         merged_plan,
         lowering_provenance,
         lowering_summary,
@@ -114,6 +118,7 @@ mod tests {
         StrategyExecutionSummary, StrategyInputSchemaName, StrategyInputSchemaVersion,
         StrategyMutationProgram, StrategyOutputSchemaName, StrategyRequestOrigin,
     };
+    use crate::facade::history::BranchId;
     use crate::facade::transactions::{CreateIntent, MutationIntent, WorkerIntentBatch};
     use crate::identity::data::{KindId, PartitionId};
     use crate::runtime::builder::RelationalRuntimeBuilder;
@@ -227,5 +232,45 @@ mod tests {
             error,
             crate::commit_strategies::data::StrategyLoweringError::RequestExecutionMismatch { .. }
         ));
+    }
+
+    #[test]
+    fn lower_execution_denies_missing_root_before_raw_key_normalization() {
+        let mut runtime = crate::tests::support::runtime_with_test_schema();
+        crate::tests::support::create_entity_outcome(&mut runtime, "strategy-root-source");
+        let source = BranchId("main".to_owned());
+        let (_, basis) = runtime
+            .observe_fork_source(&source)
+            .expect("committed main remains forkable");
+        let child = BranchId("strategy-root-child".to_owned());
+        runtime
+            .fork_branch(child.clone(), basis)
+            .expect("child branch installs a committed root");
+        runtime
+            .history
+            .branch_cell_mut(&child)
+            .expect("child remains registered")
+            .clear_root_for_test();
+        let options = runtime
+            .owner_transaction_options_for_branch(&child)
+            .expect("child transaction options are owner-issued");
+        let symbols_before = runtime.services.symbols.clone();
+        let symbol_table_before = runtime.config().identity.symbol_table.clone();
+        let request = canonical_request();
+        let execution = execution_draft(&request);
+
+        let error = lower_execution(&mut runtime, &request, &execution, options)
+            .expect_err("strategy lowering must fail before planning");
+
+        assert!(matches!(
+            error,
+            crate::commit_strategies::data::StrategyLoweringError::Preparation(error)
+                if error.reason()
+                    == crate::facade::transactions::CommitPreparationReason::SelectedBranchRoot(
+                        crate::facade::transactions::SelectedBranchRootDenialReason::Unavailable,
+                    )
+        ));
+        assert_eq!(runtime.services.symbols, symbols_before);
+        assert_eq!(runtime.config().identity.symbol_table, symbol_table_before);
     }
 }

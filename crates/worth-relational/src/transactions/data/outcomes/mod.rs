@@ -1,5 +1,6 @@
 mod aspect_delta_failure_fields;
 mod commit_conflict;
+mod commit_preparation;
 mod commit_result;
 mod commit_validation;
 mod conflict_class;
@@ -13,6 +14,9 @@ pub use aspect_delta_failure_fields::{
     AspectDeltaRecordClass,
 };
 pub use commit_conflict::{CommitConflict, TransactionCommitError};
+pub use commit_preparation::{
+    CommitPreparationError, CommitPreparationReason, SelectedBranchRootDenialReason,
+};
 pub use commit_result::{
     CommitExecution, CommitOutcome, CommitPhaseTiming, CommitPublication, CommitResult,
     CommitSchemaSummary, CommitStructuralSummary,
@@ -24,8 +28,8 @@ pub use conflict_class::{
     AspectFieldTargetRejectionReason, BulkImportRowDomain, BulkImportStage,
     BulkMutationAdmissionDenial, ConflictClass, EntityAuthoritativeAspectStateDenial,
     EntityCascadeDeleteMissingState, EntityFieldUpdateMissingState,
-    MutationStateInconsistencyEvidence, RecordAspectPatchDenial, RecordAspectPatchTarget,
-    RelationEndpointUpdateMissingState,
+    MutationStateInconsistencyEvidence, RecordAllocationDenial, RecordAspectPatchDenial,
+    RecordAspectPatchTarget, RelationEndpointUpdateMissingState,
 };
 pub(crate) use created_entity_bindings::CommitCreatedEntityBindings;
 pub(crate) use created_relation_bindings::CommitCreatedRelationBindings;

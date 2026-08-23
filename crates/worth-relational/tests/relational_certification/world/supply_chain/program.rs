@@ -4,7 +4,7 @@ use super::definition::{DefinitionError, SupplyChainWorldDefinition};
 use super::program_schema::schema_registry;
 use super::schema::EntityRecord;
 pub(crate) use super::schema_vocabulary::{entity_kind_id, relation_kind_id};
-use super::semantic_key::{EntityKey, RelationKey};
+use super::semantic_key::{EntityKey, EntityKind, RelationKey};
 use worth_foundational::facade::{
     AspectFieldLocator, AspectKey, AspectValue, FieldKey, InternedString,
 };
@@ -84,12 +84,16 @@ impl CompiledSupplyChainProgram {
         &mut self.definition
     }
 
-    pub(crate) fn schema_registry_mut_for_test(&mut self) -> &mut RelationalSchemaRegistry {
-        &mut self.schema_registry
-    }
-
     pub(crate) fn relation_specs_mut_for_test(&mut self) -> &mut Vec<RelationSpec> {
         &mut self.relation_specs
+    }
+
+    pub(crate) fn with_schema_registry_for_test(
+        mut self,
+        schema_registry: RelationalSchemaRegistry,
+    ) -> Self {
+        self.schema_registry = schema_registry;
+        self
     }
 }
 
@@ -103,7 +107,7 @@ pub(crate) fn relation_client_key(key: RelationKey) -> ClientKey {
 
 fn entity_spec(key: EntityKey, record: &EntityRecord) -> EntitySpec {
     EntitySpec {
-        partition_id: PartitionId::main(),
+        partition_id: partition_for_entity_kind(key.kind),
         kind_id: entity_kind_id(key.kind),
         client_key: entity_client_key(key),
         fields: entity_fields(record),
@@ -112,20 +116,31 @@ fn entity_spec(key: EntityKey, record: &EntityRecord) -> EntitySpec {
 
 fn relation_spec(key: RelationKey, source: EntityKey, target: EntityKey) -> RelationSpec {
     RelationSpec {
-        partition_id: PartitionId::main(),
+        partition_id: partition_for_entity_kind(source.kind),
         kind_id: relation_kind_id(key.kind),
         client_key: relation_client_key(key),
         source: EntityReference::Created(CreatedEntityRef {
-            partition_id: PartitionId::main(),
+            partition_id: partition_for_entity_kind(source.kind),
             kind_id: entity_kind_id(source.kind),
             client_key: entity_client_key(source),
         }),
         target: EntityReference::Created(CreatedEntityRef {
-            partition_id: PartitionId::main(),
+            partition_id: partition_for_entity_kind(target.kind),
             kind_id: entity_kind_id(target.kind),
             client_key: entity_client_key(target),
         }),
         fields: AspectFieldPatch::new(BTreeMap::new()),
+    }
+}
+
+/// The certification world intentionally spans two production storage
+/// regions.  Cargo/inspection data lives in region one while operational
+/// assets remain in the main region, giving Phase 5 a real untouched-region
+/// COW oracle rather than a single-region fixture.
+pub(crate) const fn partition_for_entity_kind(kind: EntityKind) -> PartitionId {
+    match kind {
+        EntityKind::CargoLot | EntityKind::Inspection => PartitionId::new(1),
+        _ => PartitionId::main(),
     }
 }
 

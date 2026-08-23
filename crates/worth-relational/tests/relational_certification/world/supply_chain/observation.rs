@@ -2,11 +2,15 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::comparison::ObservedSupplyChainState;
 use super::handles::SupplyChainSemanticHandles;
+use super::observation_debug::{
+    debug_booking, debug_class, debug_hazard, debug_posture, debug_region, debug_result,
+    debug_status,
+};
 use super::production_world::ProductionSeededSupplyChainWorld;
 use super::program::CompiledSupplyChainProgram;
 use super::schema::{
-    BookingStatus, CargoLotRecord, EntityRecord, InspectionRecord, InspectionResult,
-    PortCallRecord, PortRecord, RelationEdge, TerminalRecord, VesselRecord, VoyageRecord,
+    CargoLotRecord, EntityRecord, InspectionRecord, PortCallRecord, PortRecord, RelationEdge,
+    TerminalRecord, VesselRecord, VoyageRecord,
 };
 use super::semantic_key::{BranchLabel, EntityKey, EntityKind, RelationKey};
 use worth_foundational::facade::{
@@ -14,11 +18,14 @@ use worth_foundational::facade::{
     InternedString,
 };
 use worth_relational::facade::identity::{EntityId, KindId, RelationId};
-use worth_relational::facade::runtime::RelationalReadView;
+use worth_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
+use worth_relational::facade::snapshots::SnapshotHandle;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum ObservationError {
     SnapshotUnavailable,
+    BranchBasis(worth_relational::facade::branch::RelationalBranchBasisDenial),
+    UnknownBranch(worth_relational::facade::history::BranchId),
     UnknownEntityIdentity(EntityId),
     UnknownRelationIdentity(RelationId),
     MissingEntity(EntityKey),
@@ -41,38 +48,147 @@ pub(crate) enum ObservationError {
         name: String,
         detail: String,
     },
+    UnsupportedSchemaVersion(worth_relational::facade::schema::SchemaVersionId),
 }
 
 pub(crate) fn observe(
     world: &ProductionSeededSupplyChainWorld,
 ) -> Result<ObservedSupplyChainState, ObservationError> {
-    if world.handles.snapshot.runtime_instance_id != world.handles.branch.runtime_instance_id
-        || world.handles.snapshot.branch_id != world.handles.branch.branch_id
+    let observation = world.basis.observation();
+    if observation.identity().runtime_instance_id() != world.handles.branch.runtime_instance_id
+        || observation.identity().branch_id() != &world.handles.branch.branch_id
     {
         return Err(ObservationError::SnapshotUnavailable);
     }
-    let Some(view) = world
-        .runtime
+    observe_observation(&world.program, &world.handles, &world.runtime, &observation)
+}
+
+/// Observe the immutable root carried by an owner-admitted branch observation.
+pub(crate) fn observe_observation(
+    program: &CompiledSupplyChainProgram,
+    handles: &SupplyChainSemanticHandles,
+    runtime: &RelationalRuntime,
+    observation: &worth_relational::facade::branch::RelationalBranchObservation,
+) -> Result<ObservedSupplyChainState, ObservationError> {
+    if observation.identity().runtime_instance_id() != handles.branch.runtime_instance_id {
+        return Err(ObservationError::SnapshotUnavailable);
+    }
+    let view = runtime
         .read_truth()
-        .read_snapshot(&world.handles.snapshot)
-    else {
+        .read_observation(observation)
+        .map_err(ObservationError::BranchBasis)?;
+    let schema = runtime
+        .read_truth()
+        .observation_schema_version(observation)
+        .map_err(ObservationError::BranchBasis)
+        .and_then(schema_version)?;
+    assemble_observation(
+        program,
+        handles,
+        runtime,
+        observation.identity().branch_id(),
+        schema,
+        &view,
+    )
+}
+
+/// Observe one owner-selected branch snapshot without rebuilding a world or
+/// consulting the global latest partition set.  The caller must supply the
+/// exact branch-qualified handle issued by `VisibilityAuthority`.
+pub(crate) fn observe_snapshot(
+    program: &CompiledSupplyChainProgram,
+    handles: &SupplyChainSemanticHandles,
+    runtime: &RelationalRuntime,
+    snapshot: &SnapshotHandle,
+) -> Result<ObservedSupplyChainState, ObservationError> {
+    if snapshot.runtime_instance_id() != handles.branch.runtime_instance_id
+        || snapshot.branch_id() != &handles.branch.branch_id
+    {
+        return Err(ObservationError::SnapshotUnavailable);
+    }
+    let Some(view) = runtime.read_truth().read_snapshot(snapshot) else {
         return Err(ObservationError::SnapshotUnavailable);
     };
-    let entities = observe_entities(&world.program, &world.handles, &view)?;
-    let relations = observe_relations(&world.handles, &view)?;
+    let schema = observe_schema_version(runtime, snapshot)?;
+    assemble_observation(
+        program,
+        handles,
+        runtime,
+        snapshot.branch_id(),
+        schema,
+        &view,
+    )
+}
+
+fn assemble_observation(
+    program: &CompiledSupplyChainProgram,
+    handles: &SupplyChainSemanticHandles,
+    runtime: &RelationalRuntime,
+    branch_id: &worth_relational::facade::history::BranchId,
+    schema: super::schema::SchemaVersion,
+    view: &RelationalReadView,
+) -> Result<ObservedSupplyChainState, ObservationError> {
+    let entities = observe_entities(program, handles, &view)?;
+    let relations = observe_relations(handles, &view)?;
+    let branch = branch_label(branch_id)?;
+    let parent = runtime
+        .branch_reference_state(branch_id)
+        .and_then(|state| state.fork_source_branch_id().cloned())
+        .map(|branch_id| branch_label(&branch_id))
+        .transpose()?;
+    let lineage = parent.map_or_else(|| vec![branch], |parent| vec![parent, branch]);
     Ok(ObservedSupplyChainState {
-        schema: world.program.definition().schema.version,
+        schema,
         relation_vector: relations.values().copied().collect(),
         entities,
         relations,
         absent_entities: BTreeSet::new(),
         absent_relations: BTreeSet::new(),
-        branch: BranchLabel::Operating,
-        parent: None,
-        lineage: vec![BranchLabel::Operating],
+        branch,
+        parent,
+        lineage,
         accepted: Vec::new(),
         history: Vec::new(),
     })
+}
+
+fn observe_schema_version(
+    runtime: &RelationalRuntime,
+    snapshot: &SnapshotHandle,
+) -> Result<super::schema::SchemaVersion, ObservationError> {
+    let observed = runtime
+        .read_truth()
+        .snapshot_schema_version(snapshot)
+        .ok_or(ObservationError::SnapshotUnavailable)?;
+    schema_version(observed)
+}
+
+fn schema_version(
+    observed: worth_relational::facade::schema::SchemaVersionId,
+) -> Result<super::schema::SchemaVersion, ObservationError> {
+    match observed.0 {
+        1 => Ok(super::schema::SchemaVersion::V1),
+        2 => Ok(super::schema::SchemaVersion::V2),
+        _ => Err(ObservationError::UnsupportedSchemaVersion(observed)),
+    }
+}
+
+fn branch_label(
+    branch_id: &worth_relational::facade::history::BranchId,
+) -> Result<BranchLabel, ObservationError> {
+    match branch_id.0.as_str() {
+        "main" => Ok(BranchLabel::Operating),
+        "storm" => Ok(BranchLabel::Storm),
+        "maintenance" => Ok(BranchLabel::Maintenance),
+        "customs" => Ok(BranchLabel::Customs),
+        "medical-hold" => Ok(BranchLabel::MedicalHold),
+        "southpoint-expansion" => Ok(BranchLabel::SouthpointExpansion),
+        "competing-arrival" => Ok(BranchLabel::CompetingArrival),
+        "inspection" => Ok(BranchLabel::Inspection),
+        "rewire" => Ok(BranchLabel::Rewire),
+        "hazard-v2" => Ok(BranchLabel::HazardV2),
+        _ => Err(ObservationError::UnknownBranch(branch_id.clone())),
+    }
 }
 
 fn observe_entities(
@@ -222,7 +338,7 @@ fn value<'a>(
     }
 }
 
-fn string_value(
+pub(super) fn string_value(
     key: EntityKey,
     state: &AuthoritativeRecordAspectState,
     name: &str,
@@ -259,115 +375,10 @@ fn u32_value(
     }
 }
 
-fn invalid(key: EntityKey, name: &str, detail: &str) -> ObservationError {
+pub(super) fn invalid(key: EntityKey, name: &str, detail: &str) -> ObservationError {
     ObservationError::InvalidAspect {
         entity: key,
         name: name.to_owned(),
         detail: detail.to_owned(),
-    }
-}
-
-fn debug_text(
-    key: EntityKey,
-    state: &AuthoritativeRecordAspectState,
-    name: &str,
-) -> Result<String, ObservationError> {
-    string_value(key, state, name)
-}
-
-fn debug_region(
-    key: EntityKey,
-    state: &AuthoritativeRecordAspectState,
-    name: &str,
-) -> Result<super::schema::Region, ObservationError> {
-    match debug_text(key, state, name)?.as_str() {
-        "NorthReach" => Ok(super::schema::Region::NorthReach),
-        "SouthReach" => Ok(super::schema::Region::SouthReach),
-        other => other
-            .strip_prefix("Generated(")
-            .and_then(|v| v.strip_suffix(')'))
-            .and_then(|v| v.parse().ok())
-            .map(super::schema::Region::Generated)
-            .ok_or_else(|| invalid(key, name, "unknown region")),
-    }
-}
-
-fn debug_posture(
-    key: EntityKey,
-    state: &AuthoritativeRecordAspectState,
-    name: &str,
-) -> Result<super::schema::OperatingPosture, ObservationError> {
-    match debug_text(key, state, name)?.as_str() {
-        "Open" => Ok(super::schema::OperatingPosture::Open),
-        "Maintenance" => Ok(super::schema::OperatingPosture::Maintenance),
-        "Retired" => Ok(super::schema::OperatingPosture::Retired),
-        _ => Err(invalid(key, name, "unknown operating posture")),
-    }
-}
-
-fn debug_class(
-    key: EntityKey,
-    state: &AuthoritativeRecordAspectState,
-    name: &str,
-) -> Result<super::schema::VesselClass, ObservationError> {
-    match debug_text(key, state, name)?.as_str() {
-        "Feeder" => Ok(super::schema::VesselClass::Feeder),
-        "Panamax" => Ok(super::schema::VesselClass::Panamax),
-        "HeavyLift" => Ok(super::schema::VesselClass::HeavyLift),
-        _ => Err(invalid(key, name, "unknown vessel class")),
-    }
-}
-
-fn debug_status(
-    key: EntityKey,
-    state: &AuthoritativeRecordAspectState,
-    name: &str,
-) -> Result<super::schema::VoyageStatus, ObservationError> {
-    match debug_text(key, state, name)?.as_str() {
-        "Planned" => Ok(super::schema::VoyageStatus::Planned),
-        "Delayed" => Ok(super::schema::VoyageStatus::Delayed),
-        "Rerouted" => Ok(super::schema::VoyageStatus::Rerouted),
-        "Held" => Ok(super::schema::VoyageStatus::Held),
-        _ => Err(invalid(key, name, "unknown voyage status")),
-    }
-}
-
-fn debug_hazard(
-    key: EntityKey,
-    state: &AuthoritativeRecordAspectState,
-    name: &str,
-) -> Result<super::schema::HazardClass, ObservationError> {
-    match debug_text(key, state, name)?.as_str() {
-        "General" => Ok(super::schema::HazardClass::General),
-        "Medical" => Ok(super::schema::HazardClass::Medical),
-        "Industrial" => Ok(super::schema::HazardClass::Industrial),
-        "HazardousV2" => Ok(super::schema::HazardClass::HazardousV2),
-        _ => Err(invalid(key, name, "unknown hazard class")),
-    }
-}
-
-fn debug_booking(
-    key: EntityKey,
-    state: &AuthoritativeRecordAspectState,
-    name: &str,
-) -> Result<BookingStatus, ObservationError> {
-    match debug_text(key, state, name)?.as_str() {
-        "Available" => Ok(BookingStatus::Available),
-        "Booked" => Ok(BookingStatus::Booked),
-        "Held" => Ok(BookingStatus::Held),
-        _ => Err(invalid(key, name, "unknown booking status")),
-    }
-}
-
-fn debug_result(
-    key: EntityKey,
-    state: &AuthoritativeRecordAspectState,
-    name: &str,
-) -> Result<InspectionResult, ObservationError> {
-    match debug_text(key, state, name)?.as_str() {
-        "Pending" => Ok(InspectionResult::Pending),
-        "Passed" => Ok(InspectionResult::Passed),
-        "Flagged" => Ok(InspectionResult::Flagged),
-        _ => Err(invalid(key, name, "unknown inspection result")),
     }
 }

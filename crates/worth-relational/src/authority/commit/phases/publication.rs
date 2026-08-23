@@ -1,8 +1,5 @@
 use crate::authority::commit::phases::schema_continuity::validate_schema_continuity_publication;
-use crate::capabilities::{
-    DiagnosticArtifactSink, DurabilityWrite, PublicationPolicySource, SchemaSource,
-    SchemaVersionSource,
-};
+use crate::capabilities::{DiagnosticArtifactSink, DurabilityWrite, PublicationPolicySource};
 use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsScope, RelationalDiagnosticFields, RelationalDiagnosticValue,
 };
@@ -83,8 +80,8 @@ pub(crate) fn canonical_commit_envelope(
         merge_execution_authority,
         merge_parent_branches.to_vec(),
         merge_base_commits.to_vec(),
-        runtime.primary_schema_version_id(),
-        runtime.schema_registry().authority_snapshot(),
+        schema_continuity.target_schema_version(),
+        schema_continuity.target_schema_authority().clone(),
         merged_plan.clone(),
         patch,
         diagnostics_summary,

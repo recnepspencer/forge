@@ -45,6 +45,7 @@ pub struct RuntimeComplexityCounters {
     pub bulk_mutation_lineage_transition_count: usize,
     pub bulk_mutation_provenance_record_count: usize,
     pub visibility_cache_hits: usize,
+    pub visibility_exact_state_materializations: usize,
     pub visibility_cache_miss_reconstructions: usize,
     pub visibility_cache_recent_evictions: usize,
     pub visibility_cache_branch_head_promotions: usize,

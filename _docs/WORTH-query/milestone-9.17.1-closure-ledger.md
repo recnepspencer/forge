@@ -2,7 +2,7 @@
 
 This ledger is the durable handoff for the phase gates in
 `milestone-9.17.1.md`. A phase remains open until its row has production
-evidence, focused proof, an independent Luna review, and a final Sol review.
+evidence, focused proof, the required independent QA reviews, and a final Sol review.
 Evidence is scoped to the implementation surface; a green unrelated suite does
 not close a row.
 
@@ -14,6 +14,8 @@ not close a row.
 | 2 | Supply Chain semantic world and independent oracle | Closed — Luna and Sol certified | Phase 3 plan and two plan critics |
 | 3 | Production-backed Supply Chain compiler and baseline audit | Closed — Luna and Sol certified | Phase 4 plan and two plan critics |
 | 4 | Relational immutable commit/reference split and branch-local MVCC foundation | Closed — independent qa-loop, qa-tests, and code-quality-qa certified `7cbeb3a8645809890143b28117b5e6fc87aeb3cc` | Hand off to Phase 5/6 without widening the compatibility inventory |
+| 5 | Immutable branch roots, persistent COW, branch-qualified inspection/traversal, and sharing/cost evidence | Closed — corrected packet `20452f29...`; fresh Sol-high qa-loop, qa-tests, and code-quality trio CLEAN; separate final Sol-high gate CLEAN | Phase 6 Sol-high plan-implementation review |
+| 6 | Exact owner observations, descriptor readmission, repeatable reads, explicit external retention, and exact-root read cutover | Open — first Sol-high trio reopened exact-root joins, registry cost proof, Bridge binding races, and composition; corrected packet and local evidence green | New fresh separate qa-loop, qa-tests, and code-quality-qa critics, then a separate Sol-high final gate |
 
 ## Phase 1 evidence ledger
 
@@ -1198,3 +1200,1353 @@ immutable roots, repeatable-read bases, detached transactions, prepared
 candidates, compare-and-publish, physical copy-on-write, external
 retention/reclamation, broad merge publication, crash atomicity, or complete
 product MVCC.
+
+## Phase 5 implementation and evidence record (current dirty tree)
+
+Phase 5 is the immutable-root and structural-sharing slice. The implementation
+uses owner-issued branch identities and exact root-selected `PartitionAccess`
+through the Relational production facade. It does not promote the fork-only
+Phase-4 basis into general readmission, retention, publication, or recovery
+authority.
+
+| Claim | Implementation surface | Proof artifact | Expected counter/result | Observed result | Mutation that must fail | Mutation result | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Fork retains one immutable root and one canonical ancestor envelope | `branch/root.rs`, `branch/fork.rs`, `runtime/state/subsystems/history_root_capture.rs` | `root/sharing/{fork,observation}.rs` | Court/Standard forks report one shared root, one canonical artifact, zero copied truth/envelopes, and distinct coordination cells | 1 shared root/artifact; copied truth/envelopes/entities/relations/bytes all 0; cells distinct | eager per-fork truth/envelope clone or one global coordination cell | eager-clone and global-cell mutants are rejected by independent byte/cell assertions | Current evidence green on packet `20452f29...`; Sol-high trio CLEAN; final Sol-high gate CLEAN |
+| Persistent COW replaces only the declared touched regions | `branch/root_capture.rs`, `branch/root_regions.rs`, `storage/overlay/partition.rs` | `root/copy_on_write/{branch,region_reuse,named_delta}.rs` | declared entity/relation footprint matches touched regions; untouched region locators and sibling roots remain exact | Court delta touched/reused counts and locator sets match the declared footprint; sibling/ancestor roots unchanged | rebuild the complete world or omit a touched partition | whole-world and omitted-partition mutants produce mismatched bytes/locators | Current evidence green on packet `20452f29...`; Sol-high trio CLEAN; final Sol-high gate CLEAN |
+| Persistent radix path retention is observable and no-residue | `branch/root_regions.rs`, owner allocation inspection | `root/accounting/persistent_path.rs` | pre/post locator sets show one touched region and 33 new/retired path nodes, exact untouched-node reuse, and no-op identity preservation | 1 touched region; 33 new and 33 retired path nodes; all other locators intersect exactly; no-op set identical | drop one retained ancestor path node or rebuild all nodes | dropped-ancestor, wrong-path-count, and no-op-rebuild mutants fail locator assertions | Current evidence green on packet `20452f29...`; Sol-high trio CLEAN; final Sol-high gate CLEAN |
+| Schema axis is canonical owner schema authority, including relation admission/delete policies | `schema/data/authority_snapshot.rs`, `schema/data/mod.rs`, `branch/root.rs`, `branch/root_readmission.rs` | root schema mutation/readmission unit proofs, V2 length-boundary/policy digest proofs, and content-binding contracts | root schema digest equals the versioned, length-prefixed `schema_authority_snapshot_digest_bytes` over all entity/relation fields, including `cross_context_policy` and `cascade_delete_policy`, and is recomputed on completeness/readmission | 4/4 schema digest/root mutation proofs pass; variable-boundary and both policy mutations produce distinct digests; corrupted digest denies | mutate a schema name/registry boundary or either relation policy while retaining the old digest | boundary, cross-context, cascade-policy, schema mutation/readmission, and content-binding mutants deny before admission | Current evidence green on packet `20452f29...`; Sol-high trio CLEAN; final Sol-high gate CLEAN |
+| Visibility is a consumed typed commitment, not a label | `branch/root_visibility.rs`, root completeness/readmission, sharing inspection facade | root visibility tuple-mutation/corruption proofs and `root/inspection/boundaries.rs` | commitment binds storage, schema, correctness posture, canonical identity, branch context, and patch position; incomplete roots deny inspection | 3/3 root commitment tests pass; sharing exposes nonzero commitment and rejects incomplete root | mutate any commitment axis or report an incomplete root | tuple mutation, corrupted commitment, and incomplete-root mutants are rejected | Current evidence green on packet `20452f29...`; Sol-high trio CLEAN; final Sol-high gate CLEAN |
+| Branch-qualified reads and traversal use the selected root | snapshot/query root selection, `query_traversal.rs`, `storage/partition/adjacency_queries.rs` | `root/selection/{branch_isolation,traversal}.rs`, independent Supply Chain oracle | child retains ancestor entity/relation and traversal edges after main rewiring; sibling-only edges are absent | adversarial traversal 1/0; focused planned-query/traversal 7/0; full certification 130/0/1 | route traversal through runtime-global adjacency | old-global adjacency sabotage fails retained-child assertion | Current evidence green on packet `20452f29...`; Sol-high trio CLEAN; final Sol-high gate CLEAN |
+| Owner allocation accounting is complete and cache lanes stay excluded | `inspection/mvcc/{sharing,cost}.rs`, owner allocation ledger, derived-index accounting | `root/accounting/{authoritative,derived_cache}.rs`, `root/inspection/boundaries.rs` | independently summed authoritative locators/bytes match production; optional cache growth is recursive and excluded from authority | full accounting, recursive cache, and inspection evidence green; cache growth matches owner ledger while authoritative bytes remain unchanged | omit root/reachability/envelope allocation or promote diagnostics/cache bytes | omitted-allocation and cache-promotion mutants fail independent sums | Current evidence green on packet `20452f29...`; Sol-high trio CLEAN; final Sol-high gate CLEAN |
+| Inspection is read-only and cannot mint authority | `facade/inspection.rs`, private observation fields/accessors | `root/inspection/boundaries.rs`, `tests/ui/branch_reference/inspection_artifacts_cannot_open_authority.rs` | foreign/rootless/duplicate identities deny; all 21 branch-reference UI cases remain green | foreign/rootless/duplicate denials pass; UI authority suite 21/21 green | use sharing/allocation/cost/visibility observations as fork, transaction, publication, or retention authority | all four forged-use call sites fail type checking with typed argument mismatches | Current evidence green on packet `20452f29...`; Sol-high trio CLEAN; final Sol-high gate CLEAN |
+| Commit-boundary and graph invariants consume the selected branch root and version | `validation/invariant_access/execution.rs`, `validation/engine/{context.rs,request}`, invariant packet planning/worker, `custom_rule/scope_planner.rs`, `invariant_access/metadata.rs` | `root/selection/branch_invariant.rs`, `invariants/admission/standard_graph_composition.rs`, `invariants/admission/graph_selected_state_probe.rs`; custom scope-planner owner proof; relation-integrity replay regression | after main advances, child planning and evaluation retain child state/version; stale branch bases deny before execution | Supply Chain child commit succeeds; the Court graph probe violates on main-only state and passes on the pre-divergence child; custom planner preserves selected version; focused and full certification green | route invariant observation, planner, context, or metadata through runtime-global currentness or retain an ambient test seam | selected-state, custom-version, stale-basis, and seam searches fail the mutant | Current evidence green on packet `20452f29...`; Sol-high trio CLEAN; final Sol-high gate CLEAN |
+
+### Phase 5 command evidence
+
+- `cargo test -p worth-relational --test relational_certification
+  --no-fail-fast --quiet` — final corrective run reported **130 passed, 0
+  failed, 1 ignored** in **50.93 seconds**; the ignored case is the explicitly
+  scheduled true-Scale profile.
+- Scheduled true-Scale profile — **1 passed, 0 failed** in **505.42 seconds**
+  via the live `scale_invariant_admission::large_runtime...` route.
+- Focused root, content-binding, persistent-path, inspection, density, and
+  traversal proofs are green; the final adversarial branch traversal test is
+  **1 passed**, the native and custom branch-root invariant selection proofs
+  are **2 passed**, and the focused planned-query/traversal lane is **7
+  passed**.
+- `cargo test -p worth-relational --lib
+  custom_scope_planner_preserves_owner_selected_current_version -- --nocapture`
+  — **1 passed**; the custom planning lane preserves the selected branch
+  current version independently of the runtime-global version.
+- `cargo test -p worth-relational --test branch_reference_compile_time
+  --no-fail-fast` — **21/21 UI cases passed**, including inspection artifacts
+  passed to fork, transaction, bridge publication, and retention doors.
+- `cargo run --manifest-path tools/boundary-check/Cargo.toml -- --root .` —
+  `Road 1 Cargo topology is valid`.
+- `cargo run --manifest-path tools/agent-context/Cargo.toml -- check` — green.
+- `cargo fmt --all -- --check` and `git diff --check` — green.
+- `cargo clippy -p worth-relational --lib --no-deps -- -D warnings` — exit 0
+  after removing the redundant closure in the owner allocation accounting
+  path; the command still prints unrelated pre-existing `worth-signal`
+  warnings because that dependency is compiled in the same lane.
+- `cargo test -p worth-relational --lib durability --no-fail-fast` — **60
+  passed, 14 failed, 1 ignored**. The failures are the inherited historical
+  snapshot-root, retention/replay-pin, visibility-cache, and schema-transition
+  recovery family. They are explicitly outside the Phase-5 claim rows and are
+  not promoted as Phase-5 evidence; Phase 6–10 observation/readmission and
+  lifecycle/recovery work owns their closure.
+- Current dirty-source fingerprint for this evidence record: `HEAD
+  08a79b079499602a374a2c09986bbd50e62f1700`; sorted dirty-Rust path SHA-256
+  `20452f29a59457d1aa074a2c3f0ae7f82992a4503d892634fd8c8f8ce08d4422`;
+  **284 dirty Rust files**, **42,219 nonblank lines**, maximum **400** lines
+  (`tests/relational_certification/invariants/uniqueness/global.rs`), zero
+  over-cap files. Reviewers must cite
+  this fingerprint or a newer one rather than an unqualified inventory count.
+- Dirty Rust line-cap guard — all 284 dirty Rust files are at or below 400
+  lines; the repository Bash script passes through the installed Git Bash
+  runtime.
+
+### Phase 5 independent review history
+
+- `phase5_final_luna_qaloop` — **BLOCKED, historical first pass; later source
+  review clear but ledger freshness blocked**. Reviewer: fresh Codex agent,
+  model `gpt-5.6-luna` (max), read-only. Source fingerprint: `HEAD
+  08a79b079499602a374a2c09986bbd50e62f1700` plus the then-current dirty
+  Phase-5 source. Scope/prompt: audit Phase-5 implementation, root-qualified
+  traversal, COW, allocation/cost evidence, and closure-ledger completeness
+  against the milestone requirements. Complete findings: source and cited
+  evidence were clear; closure was withheld because the Phase-5 row was absent
+  at first and then lacked per-row observed/mutation outcomes and reviewer
+  metadata. Those ledger defects are retained as history and corrected in the
+  current table/record; a fresh recheck is required.
+- `phase5_final_luna_qatests` — **PASS** for the declared Phase-5 scope.
+  Reviewer: fresh Codex agent, model `gpt-5.6-luna` (max), read-only. Source
+  fingerprint: `HEAD 08a79b079499602a374a2c09986bbd50e62f1700` plus the dirty
+  Phase-5 source. Scope/prompt: apply `qa-tests` to the Supply Chain public
+  world, independent oracle, root-qualified reads/traversal, COW/accounting,
+  and authority-denial proofs, looking for tests that pass for the wrong
+  reason. Complete findings/disposition: no supported test-world, oracle,
+  boundary, adversarial, or cost defect; the reviewer explicitly did not
+  promote true Scale, fresh-process/PostgreSQL, retention, merge, or Phase-9
+  claims.
+- `phase5_final_luna_codequality` — **PASS** for the declared Phase-5 scope.
+  Reviewer: fresh Codex agent, model `gpt-5.6-luna` (max), read-only. Source
+  fingerprint: `HEAD 08a79b079499602a374a2c09986bbd50e62f1700` plus the dirty
+  Phase-5 source before this ledger-only metadata repair. Scope/prompt: apply
+  `code-quality-qa` to the complete dirty set, branch/root/schema/visibility/
+  traversal/facade topology, dependency direction, and the 400-line cap.
+  Complete findings/disposition: 187 dirty paths (181 Rust), maximum 399
+  lines, and 89 advisory candidates were inspected; no structural blocker,
+  dishonest facade, misplaced authority, or boundary violation was supported.
+  Boundary/context/format/diff checks were green.
+- `phase5_ledger_luna_qaloop_recheck` — **BLOCKED, historical metadata-only
+  pass**. Reviewer: fresh Codex agent, model `gpt-5.6-luna` (max), read-only,
+  source fingerprint `HEAD 08a79b079499602a374a2c09986bbd50e62f1700`. Scope/
+  prompt: verify the Phase-5 closure table against the governing requirement
+  for expected, observed, and mutation results and verify independent-review
+  identity/scope metadata. Complete findings: source/traversal/root/COW/
+  accounting evidence was clear, but the table and review history were missing
+  the required observed/mutation columns and reviewer metadata. The current
+  record adds those columns and this expanded history; the finding is closed
+  by re-review below.
+- `phase5_ledger_luna_quick` — **BLOCKED, historical pre-repair pass**.
+  Reviewer: fresh Codex agent, model `gpt-5.6-luna` (max), read-only. Source
+  fingerprint: `HEAD 08a79b079499602a374a2c09986bbd50e62f1700` before this
+  metadata repair. Scope/prompt: inspect each Phase-5 row and cited proof
+  artifact, then check review-history identity/model/revision/scope/prompt/
+  findings. Complete findings: all nine rows and cited source/tests supported
+  their claims, but closure metadata was incomplete. This is the final
+  pre-repair finding; a new reviewer must audit the repaired record.
+- `phase5_ledger_luna_closure` — **BLOCKED, historical self-reference
+  placeholder**. Reviewer: fresh Codex agent, model `gpt-5.6-luna` (max),
+  read-only. Source fingerprint: `HEAD
+  08a79b079499602a374a2c09986bbd50e62f1700` plus the dirty Phase-5 source.
+  Scope/prompt: concise QA-loop closure check of the repaired Phase-5 table,
+  cited artifacts, and review-history metadata. Complete findings: all nine
+  rows had the required eight columns and cited artifacts supported their
+  claims; the only blocker was the still-present `phase5_ledger_luna_final`
+  pending placeholder at the moment of review. No source or evidence defect
+   was found. The placeholder is replaced by this historical record and a new
+   fresh closure pass below.
+- `phase5_ledger_luna_clean_pass` — **PASS**, fresh final ledger closure.
+  Reviewer: fresh Codex agent, model `gpt-5.6-luna` (max), read-only. Source
+  fingerprint: `HEAD 08a79b079499602a374a2c09986bbd50e62f1700` plus the dirty
+  Phase-5 source and repaired ledger. Scope/prompt: verify the nine current
+  Phase-5 rows, cited artifacts, required expected/observed/mutation fields,
+  command evidence, explicit nonclaims, and complete independent-review
+  metadata; treat historical BLOCK entries as history and reject only current
+  open or unsupported claims. Complete findings/disposition: 9/9 rows had
+  all required fields and cited artifacts; sharing, COW/path accounting,
+  schema/visibility bindings, selected-root traversal, accounting/cache
+  exclusion, inspection boundaries, and cost claims were supported; evidence
+  inventory matched 119/0/1 certification and 21/21 UI cases; no Phase-5
+  evidence defect remained. The sole remaining gate was the final Sol review.
+- `phase5_final_sol_certification` — **BLOCKED**, fresh Sol 5.6 high
+  read-only audit. Source fingerprint: `HEAD
+  08a79b079499602a374a2c09986bbd50e62f1700` plus the pre-correction dirty
+  Phase-5 source. Scope/prompt: certify the exact Phase-5 root/COW/schema/
+  visibility/traversal/accounting/cost claims, cited commands, nonclaims, and
+  all Luna metadata without promoting Phases 6–9 or true Scale. Complete
+  findings/disposition: the reviewer reproduced a variable-length schema
+  digest preimage ambiguity and found that synchronous finalization retention
+  enumerated all branch heads while the cost row hid that work in a flat
+  invocation counter. Both findings were accepted; the source/test/ledger
+  corrections are recorded in the corrective reopening below, and all affected
+  rows are reopened for fresh closure critics.
+- `phase5_finalcorrected_luna_qaloop` — **PASS**, fresh final-source
+  qa-loop closure. Reviewer: fresh Codex agent, model `gpt-5.6-luna` (max),
+  read-only. Source fingerprint: current `HEAD
+  08a79b079499602a374a2c09986bbd50e62f1700` plus corrected dirty source and
+  ledger. Scope/prompt: attack the complete Phase-5 requirement/evidence
+  ledger, especially injective schema framing with both relation policies and
+  the explicit retention-maintenance cost nonclaim. Complete findings:
+  schema V2 framing and registry projection include all authoritative fields;
+  completeness/readmission recompute the digest; policy/boundary tests pass;
+  selected tuple and separate maintenance scan are honestly scoped; all other
+  Phase-5 rows and nonclaims remain supported. Disposition: no current
+  OPEN/DEFECT or unsupported claim; PASS, with only final Sol pending.
+- `phase5_finalcorrected_luna_qatests` — **PASS**, fresh final-source
+  qa-tests closure. Reviewer: fresh Codex agent, model `gpt-5.6-luna` (max),
+  read-only. Source fingerprint: current `HEAD
+  08a79b079499602a374a2c09986bbd50e62f1700` plus corrected dirty source and
+  tests. Scope/prompt: falsify the schema adversary, relation-policy mutation,
+  root/readmission denial, Supply Chain public world/oracle, selected-root
+  COW/traversal/accounting/authority, and maintenance-lane cost assertions.
+  Complete findings/disposition: adversarial former-collision fixture is
+  distinguished by V2 framing; both policy mutations change the digest and
+  production snapshots carry them; root denial, independent oracle, selected
+  traversal/COW/accounting, authority UI, and cost-lane evidence are causal
+  and honest. True Scale, fresh process/PostgreSQL, retention/reclamation,
+  merge, and later-phase claims remain excluded. PASS.
+- `phase5_finalcorrected_luna_codequality` — **PASS**, fresh final-source
+  code-quality closure. Reviewer: fresh Codex agent, model `gpt-5.6-luna`
+  (max), read-only. Source fingerprint: current `HEAD
+  08a79b079499602a374a2c09986bbd50e62f1700` plus corrected dirty source.
+  Scope/prompt: enumerate every dirty path/function against composition/domain
+  laws, schema digest ownership, relation-policy placement, maintenance cost
+  separation, branch/root/traversal topology, authority direction, future
+  insertion, and line caps. Complete findings/disposition: 188 paths (182
+  Rust), 89 advisory candidates, max 399 lines, no structural blocker;
+  schema digest has one owner, cost maintenance is separate, facades remain
+  aggregation-only, authority direction and Phase 6–9 insertion are sound.
+  Boundary/context/format checks are green. PASS.
+
+### Phase 5 explicit nonclaims
+
+The 65,536-cargo Scale profile remains ignored only in the ordinary lane and
+is instead proved by its separately scheduled `1/0` resource run. Phase 5 does
+not claim an independently measured Scale fork slope or process-memory bound,
+fresh-process/PostgreSQL durability, retention/reclamation, detached
+transactions/readmission, compare-and-publish concurrency, merge behavior,
+Phase-9 facade topology, or broad legacy version-only adjacency cutover. Those
+remain later-phase gates and are not silently promoted by the bounded
+Court/Standard evidence or the scheduled semantic Scale court.
+
+Phase 5 also does not claim that the existing synchronous retention
+`branch_head_versions()` enumeration is O(1) or branch-population-flat. The
+cost facade reports that global maintenance lane separately from the selected
+branch tuple; Phase 10 owns its lifecycle/retention cutover and must either
+make acquisition local or certify the scan as maintenance with its own slope.
+
+### Phase 5 corrective reopening (post-Sol audit)
+
+The first final Sol review blocked closure on two supported findings. First,
+the schema authority digest concatenated variable-length names and identifiers
+without lengths or collection counts; distinct registry snapshots could share
+the same preimage. `authority_snapshot.rs` now uses a versioned,
+length-prefixed encoding for every variable field plus explicit option and
+collection boundaries. The adversarial boundary test constructs the previously
+ambiguous byte shape and proves distinct digests.
+
+Second, finalization synchronously invokes retention, whose branch-head
+enumeration is population-dependent. The selected Phase-5 tuple is now
+explicitly limited to ordinary selected-branch counters; `branch_population_scans`
+is reported as a separate maintenance lane and is not represented as O(1)
+ordinary branch work. The cost certification asserts that separation, and the
+ledger records the retention scan as a Phase-10-owned nonclaim rather than
+silently calling it flat.
+
+Correction evidence:
+
+- schema digest boundary and relation-policy unit proofs — **2 passed**;
+- relational certification after correction — **119 passed, 0 failed, 1
+  ignored** (the Scale case remained intentionally ignored in that ordinary
+  run);
+- the cost-scope assertions prove the selected tuple remains stable while
+  synchronous maintenance is exposed separately;
+- formatting, boundary/context, UI authority, and dirty-file mechanical gates
+  remain required closure checks below.
+
+The Sol blocker is retained as audit history. The affected schema and cost rows
+are reopened until fresh independent Luna qa-loop, qa-tests, and
+code-quality-qa critics, followed by a new Sol-high reviewer, certify this
+corrected source and record.
+
+### Phase 5 corrective reopening (branch-local invariant proof)
+
+The fresh post-correction qa-tests pass found a proof gap in the commit
+boundary: the branch-specific routing existed, but the production
+certification suite did not independently force a divergent main root and
+child root to produce different invariant outcomes. It also identified that
+the invariant execution context still reported the runtime-global current
+version. The finding was accepted and the Phase-5 rows were reopened.
+
+Correction evidence:
+
+- `phase5_branch_invariant_selection.rs` now builds a production Supply Chain
+  world with a source-cardinality contract, forks `storm`, advances main with
+  an assignment absent from the child root, and proves the child accepts a
+  distinct assignment. A mutation routing invariant evaluation back to the
+  global main root rejects the child commit.
+- `InvariantWorkPacket` carries `current_version_id`; native and custom
+  execution contexts consume it; custom scope planning receives the same
+  selected version; skipped/preparation-failure metadata records it rather
+  than reading runtime-global currentness.
+- `custom_scope_planner_preserves_owner_selected_current_version` — **1
+  passed**; Supply Chain native and production custom branch-root selection —
+  **2 passed**; relation-integrity filter — **48 passed, 0 failed**; full
+  relational certification after the production custom-rule correction —
+  **121 passed, 0 failed, 1 ignored**.
+- UI authority suite — **21/21**; boundary checker, generated context,
+  formatting, diff check, and dirty Rust line-cap equivalent remain green
+  (`206` dirty Rust files, maximum `399` lines; 146 tracked and 60
+  untracked Rust files in the current dirty scope).
+
+The production custom-rule correction closes the last proof gap in this row:
+`compile_supply_chain_baseline_with_custom_invariant` installs a real custom
+registration through the Supply Chain production builder, and the child commit
+asserts both `InvariantExecutionMetadata.current_version_id` and
+`CustomInvariantProvenance.current_version_id` against the fork basis after
+main advances. A custom packet/context or metadata fallback to runtime-global
+currentness therefore fails the branch certification rather than only a unit
+planner test.
+
+Review history for this reopening:
+
+- `phase5_qatests_source_verdict_luna` — **BLOCKED**, fresh Luna-max
+  qa-tests. It passed fixture/oracle, COW/traversal/accounting, authority
+  denial, and ledger metadata, but required the divergent-root Supply Chain
+  invariant proof and a selected current-version assertion. No source edits
+  were made by the reviewer.
+- `phase5_final_qatests_luna_fast` — **BLOCKED**, fresh Luna-max qa-tests
+  after the native correction. It confirmed the native child-root proof and
+  packet propagation, then found custom planner and skipped/preparation
+  metadata still reading runtime-global currentness. The finding is closed by
+  the correction evidence above; a new Luna trio is required.
+- `phase5_custom_version_luna_qatests` — **PASS**, fresh Luna-max qa-tests
+  after custom-version propagation. It confirmed source threading through
+  branch execution, packets, native/custom contexts, and metadata, but its
+  review predates the production custom-rule proof added below; it is retained
+  as historical evidence, not the current gate.
+- `phase5_ledgerfresh_luna_codequality` — **PASS**, fresh Luna-max
+  code-quality-qa after the ledger inventory correction. It inspected the
+  current dirty scope of 206 Rust files (146 tracked, 60 untracked), measured
+  a 368-line maximum, and found no topology, authority, decomposition, or
+  line-cap blocker across the Phase-5 source and nine claim rows.
+- `phase5_ledgerfresh_luna_qatests` — **BLOCKED**, fresh Luna-max qa-tests
+  after the ledger inventory correction. It found the branch-local native
+  proof and source propagation sound, but required a production-facade custom
+  registration with metadata/provenance assertions; the custom-rule proof
+  correction above closes that finding and requires a new fresh trio.
+
+Current final-source Phase-5 gate reviews:
+
+- `phase5_ledgercorrected_qaloop_luna` — **PASS**, fresh independent Luna-max
+  qa-loop. Read-only review of the current dirty source and ledger verified
+  all nine rows, the production custom-invariant selected-version proof,
+  121/0/1 certification, UI 21/21, boundary/context/format/diff, clippy exit
+  0, and the 206-file/399-line cap. The reviewer accepted the explicit
+  Phase-10 durability nonclaim and found no current Phase-5 defect.
+- `phase5_ledgercorrected_qatests_luna` — **PASS**, fresh independent
+  Luna-max qa-tests. Read-only review found the Supply Chain production
+  builder, owner-issued handles, independent oracle/comparator, mutation
+  probes, selected-root/COW/accounting/authority/schema/custom-version tests,
+  and the 121/0/1 and 21/21 evidence causal. No test-world or evidence
+  blocker was supported; true Scale, retention/reclamation, fresh-process,
+  CAS/merge, and later-phase claims remain excluded.
+- `phase5_final_custom_codequality_luna_retry` — **PASS**, fresh independent
+  Luna-max code-quality-qa. It found no topology, authority, facade,
+  decomposition, dependency-direction, or line-cap defect in the current
+  dirty set; the production custom test is correctly placed and the current
+  ledger evidence is coherent.
+- `phase5_final_sol_high` — **BLOCKED, historical metadata-only review**.
+  Fresh Sol 5.6-high reproduced the implementation and all Phase-5 commands:
+  121/0/1 certification, UI 21/21, boundary/context/fmt/diff/clippy, and the
+  60/14/1 durability nonclaim. Its only finding was that its first inventory
+  sample reported 200 files (140 tracked + 60 untracked), while the
+  deterministic current-tree inventory above is 206 files (146 tracked + 60
+  untracked). No implementation or evidence claim was rejected; the ledger
+  now records a path fingerprint and the fresh Luna trio is being rerun
+  against it before Sol re-certification.
+- `phase5_code_quality_luna6` — **BLOCKED, historical review**. It identified
+  a redundant allocation-accounting closure and the inherited durability
+  failure family. The closure was removed and the focused relational clippy
+  command now exits 0; the 60/14/1 durability result is recorded above as a
+  Phase-10-owned nonclaim. A fresh code-quality retry on the corrected tree
+  independently returned PASS, so neither finding remains a current
+  Phase-5 blocker.
+
+The previous Luna qa-loop, qa-tests, and code-quality gates were PASS, but the
+Sol inventory reconciliation reopened the current-source metadata gate. A
+fresh Luna trio must now cite the deterministic fingerprint above; final Sol
+5.6-high certification remains closed until that trio is green again.
+
+Fingerprint-reconciliation rechecks:
+
+- `phase5_fingerprint_qaloop_luna` — **PASS**, fresh independent Luna-max
+  qa-loop. It cited `HEAD 08a79b079499602a374a2c09986bbd50e62f1700`, sorted
+  dirty-Rust path SHA-256
+  `dcc5a8098d5fa7f30ad88e75f311cdee8989766e599ff316fa1e19d92bb57c38`,
+  146 tracked + 60 untracked = 206, and max 399. All nine rows, 121/0/1,
+  UI 21/21, production custom provenance, mechanical checks, and the
+  durability nonclaim were verified with no finding.
+- `phase5_fingerprint_qatests_luna` — **PASS**, fresh independent Luna-max
+  qa-tests. It cited the same HEAD, path fingerprint, 206-file inventory, and
+  max 399; confirmed the production Supply Chain builder/oracle boundary,
+  native and custom selected-version mutation probes, 121/0/1, UI 21/21, and
+  all mechanical gates. No test or evidence blocker was supported.
+- `phase5_fingerprint_codequality_luna` — **PASS**, fresh independent
+  Luna-max code-quality-qa. It cited the same HEAD, sorted dirty-Rust path
+  fingerprint, 206-file inventory, and max 399; scrutinized 206 files with
+  109 advisory candidates and zero scan errors. Topology, authority direction,
+  facade honesty, decomposition, schema ownership, maintenance-cost
+  separation, custom test placement, and mechanical gates were all clear.
+
+### Phase 5 corrective reopening (selected-root structural adjacency)
+
+The first fresh Luna trio after the branch-local invariant correction found a
+supported P1 in the custom invariant structural path. `StructuralRelationView`
+and touched-scope expansion combined selected-root metadata with adjacency
+enumerated from `runtime.storage_access()`. A forked child could therefore
+observe main or sibling edges under child metadata after a main-branch rewire.
+The finding reopened the Phase 5 structural-selection row and is corrected
+before the current review gate.
+
+Correction evidence:
+
+- `storage/partition/adjacency_queries.rs` now exposes selected-state candidate
+  enumeration over `PartitionAccess`; `InvariantStateView` owns the
+  direction-filtered, metadata-validated, canonical outgoing/incoming/all
+  relation views in `validation/engine/state_view/structural_adjacency.rs`.
+- `StructuralRelationView` and `collect_touched_structural_set` consume only
+  the selected `InvariantStateView`. Runtime authority remains available to
+  the custom path only as `PerformanceAccess` for traversal counters and
+  execution cost; it no longer supplies structural storage truth.
+- The production Supply Chain Court proof
+  `phase5_custom_invariant_structural_selection.rs` forks a child, rewires a
+  relation on main, then commits an entity-only child action through the public
+  facade. Its independent oracle and custom probe assert selected metadata,
+  touched relation/endpoints, directional adjacency, bounded traversal,
+  selected version, provenance, and exclusion of main-only endpoints.
+- Full relational certification — **122 passed, 0 failed, 1 ignored**;
+  focused custom structural proof — **1 passed**; custom-rule unit lane —
+  **8 passed**; state-view unit lane — **2 passed**; native/custom branch
+  invariant selection — **2 passed**; branch traversal isolation — **1
+  passed**; UI authority suite remains **21/21**.
+- Causal mutations are sensitive and restored: routing
+  `StructuralRelationView` adjacency through global storage fails at the
+  retained-child outgoing-edge assertion; routing touched-scope expansion
+  through global storage fails at the retained relation-ID assertion. The
+  restored source passes the focused and full certification proofs.
+- `cargo check -p worth-relational --all-targets`, owner-scoped library
+  Clippy with `-D warnings`, boundary topology, generated context,
+  formatting, diff check, Git-Bash dirty line-cap guard, and the Rust
+  function-structure scraper pass. The all-target test Clippy lane still
+  reports 160 pre-existing lints in unrelated historical/support test files;
+  that repository debt is not promoted as Phase 5 evidence.
+- The broad relational library lane is recorded honestly as **1000 passed,
+  86 failed, 25 ignored**. Its failures are the inherited historical,
+  recovery, retention, merge, query, and later-phase owner-root family; this
+  phase claims neither those later lanes nor their closure.
+- Current deterministic inventory: `HEAD
+  08a79b079499602a374a2c09986bbd50e62f1700`; path-sorted
+  `path<TAB>sha256(raw bytes)` fingerprint, with no trailing newline,
+  `d0ef80b353499caa4f3fb1d6f7067082e7dc0de61bff46bfb0015876eb07a363`;
+  **152 tracked + 62 untracked = 214 dirty Rust files**, maximum **399
+  physical lines** (**368 nonblank**) at
+  `crates/worth-relational/src/branch/reference.rs`.
+
+The corrected source remains open until a new, separate Luna-max qa-loop,
+qa-tests, and code-quality-qa trio independently clears this exact packet;
+only then may a fresh Sol-high gate certify Phase 5. Historical reviewer
+verdicts above are not reused for this correction.
+
+### Phase 5 evidence reconciliation (current packet)
+
+The historical counts and inventories in the earlier reopening sections are
+retained as audit history, but they are not the active gate. In particular,
+the earlier `121 passed`, `119 passed`, `206`-file, `dcc5`, and older inventory
+rows predate the selected-root adjacency correction or its current proof
+updates. The active packet for the next fresh reviewer trio is:
+
+- relational certification — **122 passed, 0 failed, 1 ignored**;
+- focused selected-root structural proof — **1 passed**;
+- custom-rule unit lane — **8 passed**; state-view lane — **2 passed**;
+- native/custom branch-invariant selection — **2 passed**; branch traversal
+  isolation — **1 passed**; UI authority suite — **21/21**;
+- current dirty Rust inventory — **152 tracked + 62 untracked = 214**;
+  path-sorted `path<TAB>sha256(raw bytes)` fingerprint with no trailing
+  newline —
+  `1d23f8d3799dee0d4532fd046258613646555d3f104153a6422be05702d684f`;
+  dirty maximum — **399 physical lines** at
+  `crates/worth-relational/src/branch/reference.rs` (**368 nonblank**);
+- boundary checker, generated-context check, formatting, dirty line-cap
+  guard, and Rust function scraper — **PASS** (`214` files, `114` advisory
+  candidates, `0` scan errors); owner-scoped library Clippy remains **PASS**.
+
+The broad relational library lane remains a deliberately separate debt
+report: **1000 passed, 86 failed, 25 ignored**, with failures in inherited
+historical, recovery, retention, merge, query, and later-phase owner-root
+families. All-target test Clippy still reports the unrelated legacy/support
+test-module lint debt. Neither lane is silently promoted into the Phase-5
+claim.
+
+The two evidence gaps from the fresh qa-tests reviewer are now closed in the
+production certification tests. The structural probe asserts the exact
+sorted visible entity set `[source, target]`, the exact selected relation,
+the exact deduplicated touched-partition set, and negative membership for the
+main-only moved endpoints. The branch invariant proof records native
+cardinality execution on the first main commit, rejects the second main
+assignment while asserting the main head is unchanged, and records native
+cardinality execution on the child commit that succeeds from the child root.
+The structural test also records the selected version and provenance; its
+bounded traversal assertion checks that both directional walks charge the
+selected relation without over-specifying incident relation fan-out.
+
+#### Retained mutation evidence
+
+The mutation probes were run against the exact current-source correction and
+reverted before the current packet was measured. Their patches and outputs
+are retained here so the evidence is reproducible rather than only narrated.
+
+Mutation A — restore global adjacency in `StructuralRelationView`:
+
+```diff
+ struct StructuralRelationView<'runtime> {
++    runtime: &'runtime RelationalRuntime,
+     state_view: InvariantStateView<'runtime>,
+ }
+
+-pub(crate) fn new(state_view: InvariantStateView<'runtime>) -> Self {
+-    Self { state_view }
++pub(crate) fn new(
++    runtime: &'runtime RelationalRuntime,
++    state_view: InvariantStateView<'runtime>,
++) -> Self {
++    Self { runtime, state_view }
+ }
+
+ pub fn outgoing_relations_for_entity(&self, entity_id: EntityId) -> Vec<RelationId> {
+-    self.state_view.outgoing_relations_for_entity(entity_id)
++    self.runtime.storage_access().outgoing_relations_for_entity(
++        entity_id,
++        self.state_view.version_id(),
++    )
+ }
+ // The incoming/all methods were changed by the same substitution.
+```
+
+The two constructor call sites in `scope_planner.rs` and
+`execution_context.rs` were changed to pass `runtime`. Command and retained
+failure:
+
+```text
+cargo test -p worth-relational --test relational_certification phase5_custom_invariant_structural_selection -- --nocapture
+assertion failed: relations.outgoing_relations_for_entity(expected.source).contains(&expected.relation)
+```
+
+Mutation B — restore global touched-scope expansion:
+
+```diff
+-pub(crate) fn collect_touched_structural_set(
+-    state_view: &InvariantStateView<'_>,
++pub(crate) fn collect_touched_structural_set(
++    runtime: &RelationalRuntime,
++    state_view: &InvariantStateView<'_>,
+     merged_plan: Option<&MergedCommitPlan>,
+ ) -> TouchedStructuralSet {
+     // ...
+-    for relation_id in state_view.all_relations_for_entity(entity_id) {
++    for relation_id in runtime.storage_access().all_relations_for_entity(
++        entity_id,
++        state_view.version_id(),
++    ) {
+         visible_relations.insert(relation_id);
+         // ...
+     }
+```
+
+The capture and packet/test call sites were changed to pass `runtime` for the
+mutant. Command and retained failure:
+
+```text
+cargo test -p worth-relational --test relational_certification phase5_custom_invariant_structural_selection -- --nocapture
+assertion failed: touched.visible_relation_ids().contains(&expected.relation)
+```
+
+Both mutants were reverted; the current selected-state implementation and
+the focused structural test pass. These retained mutations are causal
+negative controls, not source changes or additional compatibility lanes.
+
+The current Phase-5 row remains **open** pending a new, separate Luna-max
+qa-loop, qa-tests, and code-quality-qa trio against the exact packet above.
+Only after all three report clean may a fresh Sol-high final gate certify and
+close Phase 5.
+
+### Phase 5 fresh Luna trio (selected-root architecture audit)
+
+The corrected current packet was independently reviewed by three fresh
+`gpt-5.6-luna` max-reasoning critics. The qa-loop critic — `Singer`, fresh
+read-only instance — returned **PASS** for the nine requirements, selected-root
+structural adjacency/invariant execution, causal mutation evidence, and
+explicit exclusions. The qa-tests critic — `Ampere`, fresh read-only instance
+— returned **PASS** for fixture realism, production-facade boundaries,
+independent oracle, exact structural scope, native/custom controls, mutation
+sensitivity, and ledger causality. Both verified the active `1d23…` packet,
+214-file inventory, 399/368 line counts, and 122/0/1 certification.
+
+The code-quality critic — `Laplace`, fresh read-only instance — returned
+**BLOCK** with two P1 findings requiring architectural correction before Phase
+5 can close:
+
+1. `validation/invariant_access/execution.rs:44-45` and
+   `authority/commit/phases/prepare.rs:123-151` can fall back from a missing
+   branch root to runtime/global validation. A branch-bound commit could then
+   validate against the wrong selected root. The reviewer requires fail-closed
+   typed branch-root-unavailable behavior and a missing-root negative proof.
+2. `validation/engine/state_view.rs:36-46,238-246` iterates every partition,
+   delegating through `branch/root.rs:355-357` and `branch/root_regions.rs:114-122`
+   to materialize the complete selected root. The reviewer judged this
+   incompatible with Phase-5 touched-footprint preparation/cost claims and
+   requires carried touched-partition scope or indexed selected-root lookup,
+   plus fixed-delta/growing-unrelated-partition cost evidence.
+
+These are accepted as supported findings pending source verification and a
+Sol-high plan-implementation review. Phase 5 remains open; no later phase is
+permitted to start.
+
+### Phase 5 corrective reopening (fail-closed root selection and bounded touched scope)
+
+The fresh code-quality finding was independently reviewed by `Meitner`, a
+fresh `gpt-5.6-sol` max-reasoning plan-implementation agent. Sol confirmed both
+findings as in-scope P1 defects: branch-bound preparation could fall back to
+global state when a committed root was unavailable, and touched-scope
+discovery could enumerate/materialize every selected-root partition. Sol's
+plan required a proof-backed selected-root resolver, typed preparation denial,
+carried selected state through commit and invariant phases, and touched
+partition discovery from the mutation journal rather than root enumeration.
+
+The plan was implemented as follows:
+
+- `branch/root_selection.rs` now resolves the exact owner-issued binding into
+  a carried `SelectedRelationalBranchState`. Explicit empty branches receive a
+  real zero-state root; committed branches require the binding cell, runtime,
+  commit catalog artifact, root commit identity, version, truth/schema roots,
+  and parentage to agree. Missing roots return
+  `CommitPreparationError::SelectedBranchRootUnavailable`; mismatched axes
+  return the distinct reference-mismatch reason. The resolver does not use
+  completeness reconstruction as an authority shortcut.
+- Commit preparation resolves this state after the existing stale-binding
+  admission check and before merge planning, then uses it for structural
+  summary, working-state preparation, invariant execution, and publication
+  context. The previous `None => runtime.storage_access().current_state()`
+  branches were removed. The stale foreign-runtime binding contract remains a
+  stale-validation conflict, preserving its prior boundary behavior.
+- `PartitionAccess::touched_partition_ids` carries overlay mutation-journal
+  keys. `InvariantStateView::touched_visible_entity_ids` and
+  `touched_visible_relation_ids` probe only those keys and their touched slots;
+  they no longer call `partition_ids()` on a selected root. Full-root
+  materialization remains available only to explicitly global/root-wide paths.
+- `branch_root_selection_denials.rs` proves unavailable committed roots fail
+  before planning/effects, mismatched roots receive a distinct typed denial,
+  the catalog count is unchanged, and empty and committed selected states stay
+  distinct. The state-view unit proof wraps `partition_ids()` with a panic and
+  passes only because touched discovery uses journal keys.
+
+Exact correction evidence:
+
+- full relational certification — **122 passed, 0 failed, 1 ignored**;
+- Phase 5 certification filter — **27 passed, 0 failed, 1 ignored**; selected
+  root denials — **3 passed**; state-view unit lane — **2 passed**;
+- `cargo check -p worth-relational --all-targets`, owner-scoped library
+  Clippy with `-D warnings`, `cargo fmt --all -- --check`, boundary topology,
+  generated context, dirty line-cap guard, and the Rust function scraper —
+  **PASS**. The scraper reports **229 Rust files, 122 advisory candidates,
+  0 scan errors**. Existing all-target test-Clippy lints and the broad
+  relational-library historical failure family remain separate repository
+  debt/nonclaims.
+- Causal mutation 1 replaced journal-key discovery with `partition_ids()`;
+  `cargo test -p worth-relational state_view::tests --quiet` failed at the
+  no-world-enumeration assertion, then the mutant was restored and the lane
+  passed (**2/2**).
+- Causal mutation 2 replaced unavailable-root denial with an empty-root
+  fallback; `cargo test -p worth-relational branch_root_selection_denials
+  --quiet` failed because the transaction committed instead of returning the
+  typed preparation error, then the mutant was restored and the lane passed
+  (**3/3**).
+- Current deterministic dirty-Rust packet: `HEAD
+  08a79b079499602a374a2c09986bbd50e62f1700`; path-sorted
+  `path<TAB>sha256(raw bytes)` fingerprint with no trailing newline —
+  `d75b9435a20de421dfc0d91345473e607d587c5421f0c42fc1d04c4ceea9ade4`;
+  **164 tracked + 65 untracked = 229 files**; maximum **399 physical lines**
+  (**368 nonblank**) at `crates/worth-relational/src/branch/reference.rs`.
+
+This correction packet is open pending a new, separate Luna-max qa-loop,
+qa-tests, and code-quality-qa trio against this exact fingerprint. Only after
+all three report clean may a fresh Sol-high final gate certify and close Phase
+5. No later phase may start before that closure.
+
+### Phase 5 corrective reopening (selected-state propagation, publication base, and global uniqueness)
+
+The second fresh Luna-max trio found three additional authority defects after
+the fail-closed root correction. `Mendel` (qa-loop), `Ampere2` (qa-tests), and
+`Nash` (code-quality-qa) independently required selected branch state to remain
+carried after preparation, through strategy lowering/admission, all invariant
+observations, mutation/snapshot overlays, artifact and publication preparation;
+normalization had to remain after root selection; publication had to use the
+selected root as its previous/base authority; and uniqueness could not claim a
+touched lookup while performing a selected-state scan. `Poincare`, a fresh
+Sol-high plan-implementation agent, confirmed the findings and supplied the
+correction plan.
+
+The plan is now implemented. Selected state is carried in prepared and admitted
+execution packets, strategy lowering resolves it before transaction creation,
+overlay/invariant/snapshot paths require it, branch-local deletion allowance and
+publication root capture use it, and uniqueness is explicitly `Global` until a
+branch-qualified authoritative index exists. The uniqueness evaluator scans the
+selected state and applies the pending entity delta at committed observation;
+the mutation-sensitive policy admits that global scan. The committed scan's
+duplicate witness selection is ordered through the authoritative comparison key.
+The raw-key strategy-lowering denial proof and the prior no-side-effect root
+denial proof remain active.
+
+Fresh focused evidence after this correction is green: full Relational
+certification is **122 passed, 0 failed, 1 ignored**; uniqueness complexity is
+**3/3**; selected-root denials are **3/3**; the state-view lane is **2/2**; and
+the branch-reference UI authority suite is **21/21**. `cargo check` all targets,
+owner library Clippy with `-D warnings`, formatting, boundary topology,
+generated context, dirty line caps, diff check, and Rust function scrutiny all
+pass. The current scrutiny reports **244 Rust files, 131 advisory candidates,
+0 scan errors**. The exact deterministic dirty-Rust packet is `HEAD
+08a79b079499602a374a2c09986bbd50e62f1700`; fingerprint
+`1b11d7e0e2d689fed3f6607060c01f45429687bb53c6ac52c4794c53660a3c08`; **179
+tracked + 65 untracked = 244 files**; maximum **400 physical lines** (**364
+nonblank**) at `crates/worth-relational/src/branch/root.rs`.
+
+The causal mutation suite was rerun and every temporary source mutation was
+reverted: moving root selection after raw-key normalization failed the
+interner side-effect assertion; replacing carried selected invariant state with
+an empty root failed the child structural commit; dropping the selected
+previous publication root failed the copy-on-write breadth proof; and changing
+the mutation-sensitive global ceiling to `Touched` skipped the uniqueness
+violations and scan-cost proofs. This packet remains open pending a new,
+separate Luna-max qa-loop, qa-tests, and code-quality-qa trio, followed only by
+the required fresh Sol-high final gate. No later phase may start before that
+review chain closes Phase 5 in this ledger.
+
+### Phase 5 certification packet after the second corrective slice
+
+The second corrective slice is now verified against the exact dirty source
+packet. The owner-issued proposal identity has a dedicated typed ordinal
+exhaustion reason and issues its proposed version from the runtime-global
+history sequence. Strategy validation uses that identity rather than a
+branch-local `validated_against_version + 1`. Validated mutations fail closed
+against a stale same-branch reference before revalidation, proposal issuance,
+or invariant work; the owner test proves the stale denial consumes no proposal
+ordinal. Invariant metadata receives the exact identity on normal execution,
+plan-contract skips, may-break skips, and preparation-violation results.
+
+The custom proposed-state proof now reads both committed and proposed views
+during preparation and evaluation: the committed snapshot remains `Planned`,
+the proposed state is `Held`, and the published snapshot becomes `Held` only
+after the commit. The native uniqueness packet includes sibling-divergence
+oracle agreement, one-branch rejection residue checks, and two colliding
+creates in one transaction. Those rejection proofs preserve values, branch
+reference state, commit catalog count, and snapshot version. The Large proof
+uses the real Scale definition and selected production snapshot, asserts the
+installed live record count is the causal definition count above 100,000,
+proves global commit and baseline publication ceilings, proves the ordinary
+post-baseline publication transition to `Partition`, excludes the
+GraphComposition probe from commit execution, and checks branch-reference
+residue on a rejected duplicate. The removed ignored singleton Scale-fork
+profile remains an explicit nonclaim: fork slope and memory at Scale are
+deferred to the later performance phase; active Scale invariant correctness
+remains claimed.
+
+Exact current evidence:
+
+- complete `cargo test -p worth-relational --test relational_certification
+  --quiet` — **128 passed, 0 failed, 0 ignored**, including the real Large
+  proof; elapsed **564.52 seconds**;
+- owner invariant-access unit filter — **9 passed, 0 failed**;
+- `cargo check -p worth-relational --all-targets --quiet` — **PASS**;
+  owner library Clippy with `-D warnings` — **PASS** (the output contains
+  the pre-existing 53 `worth-signal` warnings, with no owner failure);
+- `cargo fmt --all -- --check`, `git diff --check`, boundary topology,
+  generated agent context, dirty Rust line-cap equivalent, and
+  `scrutinize_rust_functions.py --dirty .` — **PASS**; scrutiny covered 263
+  dirty Rust files, 152 advisory candidates, and 0 scan errors;
+- current dirty Rust inventory — **191 tracked + 72 untracked = 263**;
+  path-sorted `path<TAB>sha256(raw bytes)` fingerprint with no trailing
+  newline —
+  `cbf152bf76923ac70fac3f1492ed91eb4f06ac2dd3e60470a0fc84e4edfe967b`;
+  maximum — **400 physical lines** (**380 nonblank**) at
+  `crates/worth-relational/tests/relational_certification/phase5_global_uniqueness.rs`;
+  `crates/worth-relational/src/branch/root.rs` is also **400 physical lines**
+  (**364 nonblank**).
+
+The current packet is open pending three separate fresh Luna-max critics —
+qa-loop, qa-tests, and code-quality-qa — followed, only if all three report
+clean, by the required fresh Sol-high final gate. No later phase may start
+before that review chain closes Phase 5 in this ledger.
+
+### Phase 5 certification packet after GraphComposition ceiling assertion
+
+The first fresh qa-tests critic found one remaining evidence gap: the direct
+GraphComposition proof counted one preparation and one evaluation, but did not
+assert the returned execution metadata's admitted cost ceiling. The correction
+adds that result-level assertion. A policy widening from `Touched` to `Global`
+now fails the test even if the probe still executes. This is a narrow evidence
+correction; it does not change the runtime authority model or claim ordinary
+commit GraphComposition execution.
+
+Exact post-correction evidence:
+
+- focused real-Scale GraphComposition admission proof — **1 passed, 0 failed**;
+  the >100,000-record path completed in **371.62 seconds**;
+- complete `cargo test -p worth-relational --test relational_certification
+  --quiet` — **128 passed, 0 failed, 0 ignored**; elapsed **377.87 seconds**;
+- owner invariant-access unit filter — **9 passed, 0 failed**;
+- `cargo check -p worth-relational --all-targets --quiet`, owner library
+  Clippy with `-D warnings`, formatting, boundary topology, generated context,
+  `git diff --check`, scrutiny, and the PowerShell-equivalent dirty Rust
+  line-cap guard — **PASS**. Scrutiny covered **265 dirty Rust files**, **152
+  advisory candidates**, and **0 scan errors**. The line-cap check reports
+  **265 files**, maximum **400** physical lines at
+  `crates/worth-relational/src/branch/root.rs`, with no violation; the Bash
+  wrapper remains unavailable because this Windows host has no `/bin/bash`;
+- current dirty Rust inventory — **191 tracked + 74 untracked = 265**;
+  path-sorted `path<TAB>sha256(raw bytes)` fingerprint with no trailing
+  newline —
+  `d18f9d75b9cb90c8d7b262c9de92d0104b797c8965153dd52c490fe92be48a20`;
+  maximum **380 nonblank lines** at
+  `crates/worth-relational/tests/relational_certification/phase5_global_uniqueness.rs`.
+
+The preceding fresh chain therefore has one resolved substantive BLOCK
+(qa-tests) and one CLEAN qa-loop result; its code-quality critic returned no
+verdict before the bounded wait and was closed as a procedural non-result.
+Those reports do not certify this new fingerprint. A new, separate Luna-max
+qa-loop, qa-tests, and code-quality-qa trio is required now. Only after all
+three report clean may a fresh Sol-high final gate certify and close Phase 5;
+no later phase may start before that review chain closes the phase in this
+ledger.
+
+### Phase 5 certification packet after GraphComposition admission correction
+
+The fresh qa-tests critic identified a proof gap in the prior Large invariant
+packet: it proved only that the GraphComposition probe was absent from an
+ordinary commit result, without directly invoking the public graph facade or
+proving that the probe would run when the graph profile admitted it. The
+correction is narrow and test-only. The Large test now registers separate
+Global commit/publication probes and a Touched-cost GraphComposition probe,
+constructs an owner-issued real Scale transaction plan, invokes
+`runtime.validation().graph_composition_plan(&plan)`, and records exactly one
+preparation and one evaluation for that direct graph admission. Baseline and
+post-baseline ordinary commits still assert zero graph calls; the test makes
+no claim that GraphComposition is part of ordinary commit admission. The
+snapshot-observation helpers were split into a named module so the corrected
+test remains within the 400-line cap.
+
+Exact current evidence:
+
+- focused real-Scale GraphComposition admission proof — **1 passed, 0 failed**;
+  the >100,000-record path completed in **383.47 seconds**;
+- complete `cargo test -p worth-relational --test relational_certification
+  --quiet` — **128 passed, 0 failed, 0 ignored**, including the corrected
+  Large proof; elapsed **401.25 seconds**;
+- owner invariant-access unit filter — **9 passed, 0 failed**;
+- `cargo check -p worth-relational --all-targets --quiet` — **PASS**;
+  owner library Clippy with `-D warnings` — **PASS** (the output contains
+  only the pre-existing 53 `worth-signal` warnings);
+- `cargo fmt --all -- --check`, `git diff --check`, boundary topology,
+  generated agent context, the PowerShell-equivalent dirty Rust line-cap
+  guard, and `scrutinize_rust_functions.py --dirty .` — **PASS**; scrutiny
+  covered **265 dirty Rust files**, **152 advisory candidates**, and **0 scan
+  errors**. The repository Bash wrapper could not run because Windows has no
+  `/bin/bash`; the equivalent checks all 265 paths and reports no violations;
+- current dirty Rust inventory — **191 tracked + 74 untracked = 265**;
+  path-sorted `path<TAB>sha256(raw bytes)` fingerprint with no trailing
+  newline —
+  `fe8064fc38d78a2c3e3cf00a59034dd1c8a80382b0f02ff4ca372a2aa18620c6`;
+  maximum — **400 physical lines** at
+  `crates/worth-relational/src/branch/root.rs`; maximum **380 nonblank lines**
+  at `crates/worth-relational/tests/relational_certification/phase5_global_uniqueness.rs`.
+
+The previous fresh Luna-max trio was closed after its substantive findings
+were recorded: the qa-tests critic required the direct GraphComposition proof;
+the code-quality critic also noted destination-topology concerns (certification
+module placement, the eventual HistorySubsystem split, and the eventual
+plural branch facade). Those broader destination moves belong to the later
+Phase 6–9 architecture unless the final Sol gate adjudicates otherwise; no
+unbounded topology rewrite is being smuggled into this Phase 5 evidence
+correction. Two fresh Sol-high planning attempts were requested for this
+narrow adjudication but timed out before returning a plan. This packet remains
+open pending a new, separate Luna-max qa-loop, qa-tests, and code-quality-qa
+trio against the exact fingerprint above. Only after all three report clean
+may a fresh Sol-high final gate certify and close Phase 5. No later phase may
+start before that review chain closes Phase 5 in this ledger.
+
+### Phase 5 certification packet after scheduled Scale lane and semantic test topology
+
+The Sol-high plan-implementation review identified the remaining test-lane
+problem: the real Scale world is the correct causal evidence but is too
+expensive for the ordinary certification path. The correction keeps that
+world unchanged and marks only its Scale certification test ignored, adds a
+mandatory scheduled CI lane that runs the exact ignored test, and adds a
+small Standard-world GraphComposition court to the ordinary lane. The common
+court uses the production compiler and public validation facade, proves that
+ordinary commit admission does not call the GraphComposition probe, then
+directly admits the owner-issued graph plan with the `Touched` ceiling and
+exactly one preparation and one evaluation. The Scale proof retains the
+stronger real-world assertions: more than 100,000 live records, global
+commit and baseline publication enforcement, the ordinary post-baseline
+`Partition` transition, direct `Touched` GraphComposition admission with
+one preparation and one evaluation, ordinary graph exclusion, and duplicate
+rejection residue.
+
+The certification integration test was also moved into semantic physical
+topology (`reference/`, `root/`, `invariants/`, and `preservation/` paths)
+without compatibility wrappers or a second test target. The root integration
+module remains the sole owner of the test target; existing module identities
+are retained only to keep the test authority and names stable while their
+physical files now follow domain meaning. CI and both testing documents now
+state the ordinary and scheduled commands and the Scale nonclaim for fork
+slope and memory.
+
+Exact current evidence:
+
+- ordinary certification command
+  `cargo test -p worth-relational --test relational_certification
+  --no-fail-fast --quiet` — **128 passed, 0 failed, 1 ignored**; elapsed
+  **50.04 seconds**;
+- ordinary Standard GraphComposition court — **1 passed, 0 failed**;
+  elapsed **4.39 seconds**; the direct result retains `Touched` as its
+  admitted maximum and records exactly one preparation and one evaluation;
+- mandatory scheduled Scale command
+  `cargo test -p worth-relational --test relational_certification
+  phase5_large_invariant_admission::large_runtime_keeps_global_enforcement_and_filters_graph_planning
+  -- --ignored --exact --nocapture --test-threads=1` — **1 passed, 0
+  failed, 0 ignored**; elapsed **411.59 seconds**;
+- `cargo check -p worth-relational --all-targets` — **PASS**;
+  owner invariant-authority unit filter — **4 passed, 0 failed**;
+  `cargo clippy -p worth-relational --lib --no-deps -- -D warnings` —
+  **PASS**;
+- `cargo fmt --all -- --check`, `git diff --check`, boundary topology,
+  generated agent context, the PowerShell-equivalent dirty Rust line-cap
+  guard, and Rust function scrutiny — **PASS**; the line-cap inventory is
+  **271 dirty Rust files**, with no violation and a maximum of **400 physical
+  lines** at `crates/worth-relational/src/branch/root.rs`;
+- current deterministic dirty-Rust packet: `HEAD
+  08a79b079499602a374a2c09986bbd50e62f1700`; path-sorted
+  `path<TAB>sha256(raw bytes)` fingerprint with no trailing newline —
+  `5c38faae32f7e0db118cd5ed548e85b22b968c7c97efe1c81758d0b63e3fdec8`;
+  **271 files**; **40,347 nonblank lines**.
+
+The workspace-wide all-targets check and broad Clippy command still expose
+pre-existing failures in untouched `worth-signal`, `worth-math`, and
+`worth-harness` code (including the unchanged `worth-signal` test import
+failure and existing warning-denied lint debt). `git status` and `git show
+HEAD` confirm those files are outside this Phase 5 dirty slice. They are
+recorded repository debt under the governing scope rule; the affected
+Relational package gates above are green.
+
+This packet remains open pending a new, separate Luna-max qa-loop, qa-tests,
+and code-quality-qa trio against this exact fingerprint. Only after all three
+report clean may a fresh Sol-high final gate certify and close Phase 5. No
+later phase may start before that review chain closes Phase 5 in this ledger.
+
+### Phase 5 independent-review attempt record for the current packet
+
+The required fresh Luna Max outside-eyes chain was attempted with separate
+instances and remains procedural, not a certification:
+
+- fresh qa-loop instance `Linnaeus` returned **BLOCK — procedural
+  non-result** because the Luna reviewer was unavailable;
+- fresh qa-tests instance `McClintock` returned **BLOCK — procedural
+  non-result** after reproducing the pinned `HEAD`, 271-file inventory,
+  40,347 nonblank lines, and exact fingerprint, but without a source verdict;
+- fresh code-quality-qa instance `Sagan` returned **BLOCK — procedural
+  non-result** because `luna-max` was unsupported for the account. Its
+  primary checks matched the fingerprint, inventory, and 400-line maximum.
+
+Two earlier fresh three-agent attempts also stalled without verdicts and were
+closed as procedural non-results. No reviewer reported a substantive source
+defect, but no reviewer reported CLEAN. Therefore this packet is not
+certified, Sol-high final gating has not been requested, and Phase 5 remains
+open. No later phase may start until a functioning fresh Luna Max trio
+returns three substantive CLEAN verdicts followed by the required Sol-high
+final gate.
+
+### Phase 5 resumed independent-review audit
+
+After the goal resumed, a new separate Luna Max retry was performed against
+the unchanged fingerprint. Fresh qa-loop instance `Volta`, qa-tests instance
+`Aristotle`, and code-quality-qa instance `Faraday` each returned a
+procedural **BLOCK** because Luna Max/service was unavailable. The QA-tests
+instance explicitly asserted that no substantive test finding was made; the
+other two likewise did not certify the packet. No files were edited by any
+reviewer. The phase remains open and the required Sol-high final gate remains
+unrequested.
+
+### Phase 5 evidence rerun and reused-Luna review result
+
+At the user's direction, the existing Luna Max QA-loop instance `Raman` was
+reused instead of launching another reviewer. Its first current-packet review
+found an evidence gap because its ordinary certification run had been
+interrupted at 87/129; it found no source defect. The ordinary lane was then
+rerun to completion:
+
+- `cargo test -p worth-relational --test relational_certification
+  --no-fail-fast --quiet` — **128 passed, 0 failed, 1 ignored** in
+  **75.56 seconds**;
+- the reused Raman instance rechecked that completed result and returned
+  **CLEAN** for the QA-loop closure review;
+- the existing QA-tests instance confirmed that the former GraphComposition
+  gap is fixed and the current Standard court passed, but returned a
+  procedural BLOCK because it could not obtain an independent Luna verdict;
+- Raman was asked to combine the remaining QA-tests and code-quality
+  dimensions per the user's reuse instruction, but it produced no bounded
+  verdict and was closed as a procedural non-result.
+
+The ordinary evidence gap is repaired, but the required independent QA-tests
+and code-quality CLEAN verdicts are still absent. Phase 5 remains open;
+Sol-high final gating and all later phases remain prohibited.
+
+The reused existing code-quality Luna instance verified the pinned fingerprint,
+HEAD, 271-file inventory, and zero over-limit files, but was interrupted before
+its exhaustive structural pass and returned a procedural non-result. It found
+no substantive defect, but did not certify CLEAN.
+
+### Phase 5 Sol-high corrective reopening
+
+Fresh Sol-high qa-loop, qa-tests, and code-quality critics reviewed the frozen
+pre-correction Rust packet `5c38faae32f7e0db118cd5ed548e85b22b968c7c97efe1c81758d0b63e3fdec8`.
+Their supported findings reopen only these Phase 5 guarantees:
+
+- public invariant-plan admission is branch-bound and never selects ambient
+  main/global state;
+- `publication_new_authoritative_bytes` covers every newly owned authoritative
+  allocation family rather than partition payload alone;
+- every visibility-commitment axis has mutation-sensitive evidence;
+- Supply Chain observation derives schema from the owner-selected production
+  snapshot, and Scale receives full independent semantic comparison;
+- the scheduled Scale flow includes its required zero-copy fork proof;
+- certification modules expose semantic ownership rather than phase-numbered
+  aliases or generic support bags; and
+- branch-sharing inspection is decomposed into named admission, inventory, and
+  assembly responsibilities.
+
+The broad `HistorySubsystem` destination split is retained as a Phase 7/9
+obligation: it is real architecture work but is not causal to this Phase 5
+corrective slice. Unchanged sharing, traversal, schema-digest, cache-exclusion,
+and authority-denial evidence remains retained until a correction changes its
+source or assumptions. The scheduled Scale result must rerun after this slice
+because branch-bound graph routing, production observation, and Scale fork
+evidence all change. Phase 5 remains open.
+
+### Phase 5 Sol-high corrective implementation evidence
+
+The reopened guarantees above are implemented and locally re-proved on one
+post-correction source packet. Invariant planning now enters through a
+transaction-owned branch binding and rejects stale branch bases; publication
+accounting carries the complete newly owned root, reachability,
+partition-state, payload, and canonical-artifact allocation delta; visibility
+mutation evidence covers every committed tuple axis; Supply Chain schema
+observation comes from the selected production snapshot; and the Scale court
+performs a complete semantic audit plus a zero-copy fork proof. Test support
+and sharing inspection now use semantic physical responsibilities. The root
+identity issuer and persistent-region tests were split when the dirty line-cap
+guard exposed two correction-caused overages.
+
+Exact post-correction evidence:
+
+- `cargo test -p worth-relational --test relational_certification
+  --no-fail-fast --quiet` — **130 passed, 0 failed, 1 ignored** in **50.93
+  seconds**;
+- scheduled Scale command
+  `cargo test -p worth-relational --test relational_certification
+  scale_invariant_admission::large_runtime_keeps_global_enforcement_and_filters_graph_planning
+  -- --ignored --exact --nocapture --test-threads=1` — **1 passed, 0
+  failed, 0 ignored** in **505.42 seconds**;
+- root/visibility owner units — **6 passed**; canonical-artifact accounting
+  units — **2 passed**; invariant-access owner units — **9 passed**;
+- branch-bound graph, production-snapshot schema, named-delta accounting,
+  branch accounting, fork-sharing, and 4,096-fork focused proofs — **PASS**;
+- `cargo check -p worth-relational --all-targets`,
+  `cargo clippy -p worth-relational --lib --no-deps -- -D warnings`,
+  `cargo fmt --all -- --check`, `git diff --check`, boundary topology,
+  generated agent context, dirty Rust line-cap enforcement, and Rust function
+  scrutiny — **PASS**;
+- branch-reference compile-time authority suite — **21/21 compile-fail cases
+  passed**;
+- deterministic dirty-Rust packet: `HEAD
+  08a79b079499602a374a2c09986bbd50e62f1700`; path-sorted
+  `path<TAB>sha256(raw bytes)` fingerprint with no trailing newline —
+  `351a4883a4fad12ecf526d4f3044220fb8165ebf8f50955eae39b64fb4daaf96`;
+  **278 files**, **41,111 nonblank lines**, no line-cap violation, maximum
+  **400 physical lines** at
+  `tests/relational_certification/invariants/uniqueness/global.rs`.
+
+An additional exploratory all-target Clippy run reports **162** existing
+test/example advisory failures across the broad dirty milestone packet. This
+is not the established Phase 5 production-library Clippy gate and did not
+invalidate unrelated green proof lanes. Its output is retained for the
+code-quality critic to classify; the required production-library Clippy gate
+is clean.
+
+This packet remains open pending three separate fresh Sol-high qa-loop,
+qa-tests, and code-quality verdicts against the exact fingerprint above. A
+separate fresh Sol-high final gate may run only after all three are CLEAN.
+
+### Phase 5 Sol-high review findings and delta correction
+
+The first substantive fresh Sol-high trio reviewed the `351a4883...` packet
+and reopened three narrow surfaces. The qa-loop critic found that the Standard
+child-graph proof asserted metadata and staleness but did not make its custom
+GraphComposition verdict depend on selected committed state; it also found the
+stale ordinary count in `TESTING_WORLDS.md` and the stale reviewer-model label
+in this ledger. The qa-tests critic found test-only ambient
+`InvariantAccess` entrypoints that could bypass production branch selection.
+The code-quality critic found milestone chronology embedded in the public and
+internal branch-sharing cost vocabulary.
+
+The corrections are delta-scoped:
+
+- test support now resolves the owner-issued main binding through the same
+  selected-branch state path as production; the ambient invariant-plan seams
+  and every owner-test use of them are removed;
+- a Court-profile GraphComposition probe in the ordinary lane now reads committed aspect state and
+  proves the main branch sees a main-only entity while the pre-divergence child
+  does not, before independently proving stale child-plan denial;
+- branch-sharing counters, accessors, recorders, and state use semantic names
+  with no remaining Phase 5 chronology in production vocabulary;
+- the live ordinary count, scheduled Scale route, and reviewer-model ledger
+  text are corrected.
+
+Only branch-selection test support, its Court-profile graph proof, branch-sharing
+naming, and directly dependent documentation were invalidated. The completed
+130-test ordinary lane and 505.42-second Scale lane remain retained: the
+correction did not change production execution, Scale construction, Scale
+observation, or their assumptions. Focused post-correction evidence is green:
+
+- the state-sensitive Court child/main GraphComposition proof — **1 passed,
+  0 failed**;
+- invariant-access owner tests — **9 passed, 0 failed**;
+- root-cost scopes, named-delta copy-on-write, branch copy-on-write, persistent
+  path accounting, root-region reuse, and exact fork-sharing observations —
+  **PASS**;
+- `cargo check -p worth-relational --all-targets`, production-library
+  warning-denied Clippy, formatting, diff integrity, boundary topology,
+  generated agent context, and dirty Rust line-cap enforcement — **PASS**;
+- dirty function scrutiny — **284 Rust files**, **157 advisory candidates**,
+  **0 scan errors**; the correction-introduced 66-line graph test was split
+  into named selected-state and stale-binding responsibilities and no longer
+  appears as an advisory.
+
+The current deterministic dirty-Rust packet is `HEAD
+08a79b079499602a374a2c09986bbd50e62f1700`; path-sorted
+`path<TAB>sha256(raw bytes)` fingerprint with no trailing newline —
+`20452f29a59457d1aa074a2c3f0ae7f82992a4503d892634fd8c8f8ce08d4422`;
+**284 files**, **42,219 nonblank lines**, no line-cap violation, maximum **400
+physical lines** at
+`crates/worth-relational/tests/relational_certification/invariants/uniqueness/global.rs`.
+
+This corrected packet remains open pending a new separate fresh Sol-high
+qa-loop, qa-tests, and code-quality trio. A separate Sol-high final gate may
+run only after all three return CLEAN.
+
+### Phase 5 independent Sol-high certification trio
+
+Three separate fresh Sol-high critics reproduced the exact `20452f29...`
+Rust packet and completed their independent dimensions:
+
+- qa-loop critic `Averroes` — **CLEAN** after a documentation-only delta
+  correction brought the active per-guarantee table, command evidence, and
+  Court-profile labels forward to the current packet;
+- qa-tests critic `Curie` — **CLEAN**; it independently reran the
+  state-sensitive child/main GraphComposition proof (**1 passed**) and the
+  invariant-access owner tests (**9 passed**), listed exactly 131
+  certification tests with Scale as the sole ignored case, and retained the
+  completed ordinary and Scale lanes;
+- code-quality critic `Mencius` — **CLEAN**; it found the branch-sharing
+  vocabulary semantic and consistent, the selected-state support/probe
+  topology responsibility-honest, all 157 advisories classified, and no
+  correction-introduced composition or line-cap defect.
+
+The QA-loop corrections changed documentation only. By the critics' explicit
+causal rulings, the Rust fingerprint, ordinary `130/0/1`, scheduled Scale
+`1/0`, and the qa-tests/code-quality verdicts remained valid. At that
+checkpoint Phase 5 was still open pending one separate fresh Sol-high final
+gate against the ledger and frozen packet.
+
+### Phase 5 final Sol-high certification and closure
+
+Fresh final-gate critic `Cicero` returned **CLEAN** after independently
+checking the corrected active status, guarantee rows, packet evidence, Scale
+claim boundary, trio record, and complete Phase 5 closure honesty. Its two
+predecessor passes found documentation-only stale statements; each prescribed
+the narrow ledger correction and explicitly retained the Rust fingerprint,
+ordinary `130/0/1`, scheduled Scale `1/0`, and all three independent CLEAN
+verdicts. No production or test source changed during those ledger-only
+corrections.
+
+Phase 5 is therefore **CLOSED** on Rust packet
+`20452f29a59457d1aa074a2c3f0ae7f82992a4503d892634fd8c8f8ce08d4422`
+at `HEAD 08a79b079499602a374a2c09986bbd50e62f1700`: **284 dirty Rust files**,
+**42,219 nonblank lines**, maximum **400 physical lines**, ordinary
+certification **130 passed / 0 failed / 1 ignored**, separately scheduled
+Scale **1 passed / 0 failed**, fresh qa-loop/qa-tests/code-quality trio
+**CLEAN**, and separate final Sol-high gate **CLEAN**. Phase 6 may now begin
+with its required Sol-high plan-implementation review.
+
+## Phase 6 working closure ledger
+
+Phase 6 was planned by a fresh Sol-high plan-implementation agent before
+coding. A second Sol-high architecture pass corrected the durable root-schema
+boundary when exact observations exposed that a recovered old root could not
+lawfully borrow the runtime's current registry. The implementation now carries
+one versioned, digest-bound root schema carrier through checkpoint and
+readmission instead of reconstructing historical meaning from ambient state.
+
+| Claim | Implementation surface | Proof artifact | Expected counter/result | Red control or mutation that must fail | Status |
+| --- | --- | --- | --- | --- | --- |
+| Owner observation admits one exact complete branch basis | `branch/{basis,observation,reference}.rs`; owner facade observation entrypoints | `basis_observation::admitted_supply_chain_observation_is_repeatable_after_branch_moves`; `production_failures::foreign_snapshot_observation_is_typed_and_does_not_cross_runtime` | observation remains bound to runtime, branch, generation, target, and exact immutable root | substitute a foreign runtime or resolve the moved current head | Local evidence green; independent review pending |
+| Descriptors are transport values and cannot operate without owner readmission | branch descriptor/readmission authority and branch-reference UI cases | `basis_readmission::{transported_descriptor_requires_owner_readmission,unretained_descriptor_cannot_follow_a_moved_reference}`; 26-case `branch_reference_compile_time` suite | copied/serialized description opens no snapshot, retention, or publication door; snapshot handles cannot be constructed or deserialized | accept a descriptor directly or restore a public authority constructor | Local evidence green; independent review pending |
+| Explicit external retention is the final readmission obligation | visibility retention/pin authority and admitted-basis lifecycle | `basis_retention::external_component_pin_is_the_last_readmission_obligation`; `reference_compatibility::admitted_observation_reads_do_not_move_branch_cells` | retained exact basis remains readable without moving its branch cell; unretained stale basis denies | remove the last external pin or let a read mutate the branch reference | Local evidence green; independent review pending |
+| Current snapshots, visibility, history, presentation, indexes, and Bridge select the reference-selected root | `visibility/.../projection/basis_reads.rs`; structurally distinct exact and historical snapshot builders/read views and cache-key variants; history merge-basis access; observation-qualified index routing; presentation Bridge observation-binding index | `basis_read_cutover::{history_visibility_and_bridge_read_the_observation_selected_root,merge_history_resolves_from_two_exact_observations}`; exact branch-scoped entity-field and relation-join proofs after both heads diverge; 29 Bridge tests including replacement, collision, and barrier-ordered release | exact cache identity structurally requires a root; exact reads, bounded index verification, generation selection, and parity all project one selected immutable root; historical reads remain explicitly reconstructive; exact Bridge publication has no commit-derived fallback | construct an exact key without a root, move a sibling/current head after admission, release an overwritten branch lease, retain two observations for one commit, or erase the exact observation binding | Corrected local evidence green; new independent review pending |
+| Exact root schema meaning survives schema movement and fresh-process recovery | `branch/root_schema.rs`; durable root schema image/carrier; checkpoint export and recovery readmission | hostile commit replay equivalence; four branch-root schema binding tests; seven root content-binding tests | same schema carriers deduplicate; missing, tampered, and swapped carriers deny; old contracts remain readable | delete, alter, or cross-bind the carrier, or decode old state with the live registry | Local evidence green; independent review pending |
+| Root schema authority is physically and operationally accounted | root publication cost, allocation inventory, sharing accounting, and independently assembled owner allocation ledger | schema publication-cost unit; corrected authoritative accounting certification; `basis_cost::basis_and_external_retention_work_is_counted_exactly` | new authority charges bytes once, reused authority charges zero new bytes, shared roots deduplicate by runtime-issued allocation id; the certification byte sum does not reuse the sharing observation walk | omit `RootSchemaAuthority` from the independent ledger sum, reuse the production accounting iterator as the oracle, or assign identity from pointer/hash coincidence | Local evidence green; independent review pending |
+| Historical visibility cannot leak future retirement state | generation-aware historical metadata and lifecycle projection | full relational unit lane plus exact historical replay/read-cutover proofs | historical creation/retirement is selected by record generation at the exact basis | use the latest retirement column for an earlier generation | Local evidence green; independent review pending |
+| Exact observation remains ordinary O(1) owner lookup plus requested read work | hash-indexed branch/retention registries, owner-wide atomic registry gauge/work counters, and structurally distinct exact/historical visibility builders | `complexity_contract_visibility_scans_are_explicitly_measured`; exact index observation proof; registry lookup/cleanup proof at 1, 64, and 4,096 branches | one readmission performs one key lookup and zero registry mutations at every population; the public counter performs no branch-population scan; final lease drops remove every entry exactly once | resolve through history/current-global root, scan branch cells to report registry size, collapse exact into reconstruction, or retain dead weak-map entries | Corrected local evidence green; new independent review pending |
+
+### Phase 6 implementation and verification packet
+
+The current implementation evidence is:
+
+- `cargo test -p worth-relational --lib` — **1,128 passed, 0 failed, 27
+  ignored** on the final corrected source;
+- `cargo test -p worth-relational --test relational_certification` — **140
+  passed, 0 failed, 1 scheduled Scale test ignored** on the final corrected
+  source;
+- focused Phase 6 `basis_` certification — **10 passed, 0 failed**; exact
+  index-observation proofs include same-branch and sibling reference movement;
+  Bridge unit suite — **29 passed, 0 failed**; Foundational units — **22 passed,
+  0 failed**;
+- durable schema red controls — missing, tampered, swapped, and shared-carrier
+  cases **4 passed**; branch-root content binding **7 passed**; hostile replay
+  equivalence **passed**;
+- branch-reference compile-time authority suite — **26/26 compile-fail cases
+  passed**, including denial of snapshot-handle construction and
+  deserialization;
+- exact visibility complexity proof, all-target compilation, formatting,
+  dirty Rust line cap, boundary topology, generated agent context, and diff
+  whitespace integrity — **PASS**;
+- `cargo clippy -p worth-relational --lib --no-deps -- -D warnings` — **PASS**.
+  Warning-denied dependency-inclusive Clippy remains blocked by the inherited
+  `worth-signal` advisory backlog (123 errors under the workspace lint policy);
+  this does not widen Phase 6.
+
+The critic correction pass sealed operational snapshot handles, made external
+retention terminal accounting explicit, preserved merge observation denials,
+split exact materialization from historical reconstruction, qualified index
+proof by the admitted observation, replaced ordered registries with bounded
+hash-indexed owner registries and exact drop cleanup, separated the allocation
+oracle from production sharing observations, proved recovered old/new roots
+execute their own schema contracts, split checkpoint recovery into fallible
+prepare and infallible install phases, and decomposed the branch admission bag
+into responsibility-named modules. The full unit lane found and corrected the
+remaining genesis exact-root assertion before this packet was frozen.
+
+The first frozen pre-review Rust packet was `HEAD
+08a79b079499602a374a2c09986bbd50e62f1700`. It is generated by
+`scripts/ci/fingerprint_dirty_rust.ps1`: repository-relative paths are slash
+normalized and Unicode NFC normalized, ordered by their UTF-8 bytes, and
+represented as `FILE<TAB>path<TAB>sha256(raw bytes)` or
+`DELETE<TAB>path`. The manifest is UTF-8 without BOM, uses one LF between rows,
+and has no trailing LF. Its SHA-256 is
+`5b7bfb043ed9e164309ad67160928f585c888bd68f46308f7ef9f459e90c91b3`:
+**519 entries** (**503 files**, **16 deletions**), **71,942 nonblank lines**,
+maximum **400 physical lines** at `crates/worth-relational/src/branch/root.rs`.
+
+### Phase 6 first Sol-high review findings and correction
+
+The first three separate fresh Sol-high critics reviewed the `5b7bfb...`
+packet and all returned supported reopening findings:
+
+- qa-loop critic `phase6_qaloop_sol_fresh` found that bounded relation-join
+  generation selection and verification mixed an exact snapshot with ambient
+  commit-graph/current-state authority, and that the public registry-entry
+  counter scanned the whole branch population without accounting for it;
+- qa-tests critic `phase6_qatests_sol_fresh` found missing same-branch Bridge
+  replacement, shared-commit collision, barrier-controlled release, and
+  1/64/4,096 registry scale evidence; and
+- code-quality critic `phase6_codequality_sol_fresh` found the exact Bridge
+  adapter's commit-derived fallback, boolean/optional exact-versus-historical
+  visibility assembly, mixed partition/schema recovery responsibility, the
+  broad root-capture preparation function, and the expanded Bridge publication
+  file responsibility/line-cap pressure.
+
+The correction is causal and direct. Relation-join generation, candidate
+verification, and certification parity now use the same exact snapshot root
+and branch. Exact Bridge publication requires a retained owner observation;
+historical commit-derived identity is a separately typed direct-publication
+posture. Branch-head registrations use binding identities so delayed old
+release cannot remove a replacement, while the commit index rejects two live
+observations and resolves after one remains. Owner-wide atomic registry
+metrics replace population scans and expose exact lookup/mutation work.
+Visibility has distinct exact and historical builders/materializers, and an
+exact basis structurally carries a root. Recovery separates schema-carrier
+readmission from partition decoding. Root capture uses prepared region/schema
+values, and Bridge publication outcomes and snapshot-basis selection have
+separate named modules.
+
+The post-correction evidence is:
+
+- full Relational library — **1,127 passed, 0 failed, 27 ignored**;
+- full `relational_certification` — **140 passed, 0 failed, 1 scheduled Scale
+  ignored**;
+- Bridge — **29 passed, 0 failed**; branch-reference UI — **26/26 compile-fail
+  cases passed**;
+- fixed registry work and exact cleanup at **1, 64, and 4,096 branches**;
+  exact branch-scoped relation-join production/certification after main and
+  sibling head movement; same-branch Bridge replacement, delayed old release,
+  shared-commit collision/sole resolution, and barrier-ordered release —
+  **PASS**;
+- all-target compilation, production-library warning-denied Clippy,
+  formatting, diff integrity, dirty Rust line-cap enforcement, boundary
+  topology, and generated agent context — **PASS**;
+- dirty Rust function scrutiny on the final corrected packet — **510 files**,
+  **284 advisory candidates**, **0 scan errors**; the correction-introduced
+  70-line registry scale helper was decomposed and no longer appears as an
+  advisory.
+
+The corrected Rust packet is `HEAD
+08a79b079499602a374a2c09986bbd50e62f1700`; deterministic fingerprint
+`892e5da396f24239257e6ac41272f2833a7d6ba962639bc91f3e12c0f6be6960`;
+**530 entries** (**513 files**, **17 deletions**), **72,676 nonblank lines**,
+maximum **399 physical lines** at
+`crates/worth-relational/src/branch/reference.rs`.
+
+### Phase 6 second Sol-high review findings and correction
+
+The next three separate fresh Sol-high critics reviewed `892e5da...` and all
+returned supported findings. The qa-loop critic found the same ambient-current
+authority shortcut in bounded entity-field verification. The qa-tests critic
+found that the relation-join movement proof changed only unrelated data and
+therefore would not kill a current-state verification mutant. The code-quality
+critic found that exact visibility cache identity was still represented as a
+lane plus optional root, permitting an exact key without root identity.
+
+The final correction makes visibility cache identity a variant-specific enum:
+`Exact` requires a concrete owner root id and only `Historical` permits an
+optional source root. Bounded entity-field verification and certification now
+share one exact snapshot projection, with no ambient current-version or
+current-state shortcut. The relation-join red control deletes a participating
+relation from current main, rebuilds the current generation, proves the join is
+absent there, and then proves the retained old snapshot still returns it in
+Production and Certification. An equivalent entity-field main/sibling
+divergence proof was added. A residue audit found and corrected the adjacent
+bounded related-entity ordered lane so all bounded exact index verification and
+parity use concrete exact projections. Its orchestration now carries a named
+prepared lookup and typed verification contract rather than a broad argument
+list.
+
+Final local evidence on the new packet is:
+
+- full Relational library — **1,128 passed, 0 failed, 27 ignored**;
+- full `relational_certification` — **140 passed, 0 failed, 1 scheduled Scale
+  ignored**;
+- focused index family — **37 passed, 0 failed**; Bridge — **29 passed, 0
+  failed**; branch-reference UI — **26/26 compile-fail cases passed**;
+- all-target compilation, production-library warning-denied Clippy,
+  formatting, diff integrity, dirty Rust line-cap enforcement, boundary
+  topology, and generated agent context — **PASS**; and
+- dirty Rust function scrutiny — **512 files**, **283 advisory candidates**,
+  **0 scan errors**; the newly decomposed bounded entity-field and ordered
+  lookup production paths contribute no advisories.
+
+The final frozen Rust packet is `HEAD
+08a79b079499602a374a2c09986bbd50e62f1700`; deterministic fingerprint
+`56d1f05473e9de76874742872429c597a8f8f919f4b067f669dc4547d9c7af03`;
+**532 entries** (**515 files**, **17 deletions**), **73,131 nonblank lines**,
+maximum **399 physical lines** at
+`crates/worth-relational/src/branch/reference.rs`.
+
+The refreshed qa-loop/qa-tests/code-quality skills reference
+`_docs/coding_guidelines/qa_review_guide.md`, which is absent from this
+worktree; no substitute rules were invented.
+
+Phase 6 remains **OPEN** pending a new trio of separate fresh Sol-high critics
+for qa-loop, qa-tests, and code-quality-qa against the exact final packet above.
+A separate fresh Sol-high final gate may run only after all three critics are
+CLEAN; only then may this ledger close Phase 6 and permit Phase 7 planning.

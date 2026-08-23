@@ -18,6 +18,7 @@ pub struct TransactionOptions {
     pub(crate) merge_parent_bindings: Vec<RelationalLegacyBranchBinding>,
     pub(crate) proposed_schema_transition: Option<ProposedSchemaTransition>,
     pub(crate) schema_reconciliation_policy: Option<SchemaReconciliationPolicy>,
+    pub(crate) schema_authority_input: Option<crate::schema::SchemaContinuityAuthorityInput>,
 }
 
 impl TransactionOptions {
@@ -30,6 +31,7 @@ impl TransactionOptions {
             merge_parent_bindings: Vec::new(),
             proposed_schema_transition: None,
             schema_reconciliation_policy: None,
+            schema_authority_input: None,
         }
     }
 
@@ -74,6 +76,20 @@ impl TransactionOptions {
 
     pub(crate) fn schema_reconciliation_policy(&self) -> Option<&SchemaReconciliationPolicy> {
         self.schema_reconciliation_policy.as_ref()
+    }
+
+    pub(crate) fn schema_authority_input(
+        &self,
+    ) -> Option<&crate::schema::SchemaContinuityAuthorityInput> {
+        self.schema_authority_input.as_ref()
+    }
+
+    pub(crate) fn with_schema_authority_input(
+        mut self,
+        input: crate::schema::SchemaContinuityAuthorityInput,
+    ) -> Self {
+        self.schema_authority_input = Some(input);
+        self
     }
 
     pub fn with_schema_transition(

@@ -6,21 +6,101 @@ use crate::history::data::{BranchId, CommitId};
 use crate::history::RelationalCommitCatalog;
 use worth_foundational::FoundationalBranchTarget;
 
+use super::history_recovery_lineage::{
+    validate_branch_target_lineage, validate_target_authoring_lineage,
+};
 use super::HistorySubsystem;
 
 impl HistorySubsystem {
     pub(crate) fn restore_branch_cells(
         &mut self,
         checkpoints: &[RelationalBranchCellCheckpoint],
+        root_partitions: &std::collections::BTreeMap<
+            CommitId,
+            std::collections::BTreeMap<
+                crate::identity::data::PartitionId,
+                crate::storage::overlay::PartitionState,
+            >,
+        >,
+        root_schema_authorities: &std::collections::BTreeMap<
+            CommitId,
+            Arc<crate::branch::RelationalBranchRootSchemaAuthority>,
+        >,
+        symbols: &crate::symbols::data::StringInterner,
     ) -> Result<(), String> {
         if checkpoints.is_empty() {
             return Err("durable checkpoint omitted exact branch-cell state".to_owned());
         }
         let mut cells = std::collections::BTreeMap::new();
+        let mut readmitted_roots: std::collections::BTreeMap<
+            CommitId,
+            Arc<crate::branch::RelationalBranchRoot>,
+        > = std::collections::BTreeMap::new();
         for checkpoint in checkpoints.iter().cloned() {
-            let cell = RelationalBranchReferenceCell::from_checkpoint(
+            let root = match checkpoint.observation.target() {
+                FoundationalBranchTarget::Empty => None,
+                FoundationalBranchTarget::Basis(target) => {
+                    let commit_id = CommitId(target.commit_id());
+                    validate_branch_target_envelope(
+                        &self.commit_envelopes,
+                        &checkpoint.branch_id,
+                        checkpoint.observation.target(),
+                    )?;
+                    if let Some(root) = readmitted_roots.get(&commit_id) {
+                        Some(root.clone())
+                    } else {
+                        let partitions = root_partitions.get(&commit_id).ok_or_else(|| {
+                            format!(
+                                "durable branch cell references missing branch-root image `{}`",
+                                commit_id.0
+                            )
+                        })?;
+                        let envelope =
+                            self.commit_envelopes
+                                .get(&commit_id)
+                                .cloned()
+                                .ok_or_else(|| {
+                                    format!(
+                                    "durable branch cell references missing commit envelope `{}`",
+                                    commit_id.0
+                                )
+                                })?;
+                        let schema_authority = root_schema_authorities
+                            .get(&commit_id)
+                            .cloned()
+                            .ok_or_else(|| {
+                                format!(
+                                    "durable branch cell references missing root schema authority `{}`",
+                                    commit_id.0
+                                )
+                            })?;
+                        let root = self
+                            .readmit_branch_root(
+                                partitions,
+                                envelope,
+                                target.roots().clone(),
+                                schema_authority,
+                                symbols,
+                            )
+                            .map_err(|denial| {
+                                format!("durable branch root readmission denied: {denial:?}")
+                            })?;
+                        if root.descriptor() != Some(target.roots()) {
+                            return Err(format!(
+                                "durable branch-root image does not match target `{}`",
+                                commit_id.0
+                            ));
+                        }
+                        self.root_identity_issuer.observe_root(&root);
+                        readmitted_roots.insert(commit_id, root.clone());
+                        Some(root)
+                    }
+                }
+            };
+            let cell = RelationalBranchReferenceCell::from_checkpoint_with_root(
                 self.runtime_instance_id,
                 checkpoint,
+                root,
             )
             .map_err(|denial| format!("invalid durable branch-cell state: {denial:?}"))?;
             let branch_id = cell.identity().branch_id().clone();
@@ -34,14 +114,27 @@ impl HistorySubsystem {
         if !cells.contains_key(&self.main_branch) {
             return Err("durable checkpoint omitted the configured main branch cell".to_owned());
         }
-        for (branch_id, cell) in &cells {
+        self.branch_cells.restore_all(cells);
+        self.rebuild_catalog_with_checkpoint_targets(checkpoints, symbols)?;
+        for (branch_id, cell) in self
+            .branch_cells
+            .values()
+            .map(|cell| (cell.identity().branch_id().clone(), cell))
+        {
             validate_branch_target_artifact(
                 &self.commit_catalog,
-                branch_id,
+                &branch_id,
                 cell.observation().target(),
             )?;
+            validate_branch_target_lineage(
+                self,
+                &branch_id,
+                cell.observation().target(),
+                cell.fork_source_branch_id(),
+                cell.fork_provenance(),
+            )?;
             if let Some(source_branch_id) = cell.fork_source_branch_id() {
-                let source_cell = cells.get(source_branch_id).ok_or_else(|| {
+                let source_cell = self.branch_cell(source_branch_id).ok_or_else(|| {
                     format!(
                         "branch cell `{}` names missing fork source `{}`",
                         branch_id.0, source_branch_id.0
@@ -69,9 +162,10 @@ impl HistorySubsystem {
                 }
                 validate_branch_target_artifact(
                     &self.commit_catalog,
-                    branch_id,
+                    &branch_id,
                     provenance.target(),
                 )?;
+                validate_target_authoring_lineage(self, source_branch_id, provenance.target())?;
             } else if cell.fork_provenance().is_some() {
                 return Err(format!(
                     "branch cell `{}` carries provenance without a fork source",
@@ -79,143 +173,7 @@ impl HistorySubsystem {
                 ));
             }
         }
-        self.branch_cells.restore_all(cells);
         Ok(())
-    }
-
-    pub(crate) fn rebuild_catalog_from_durable_envelopes(&mut self) {
-        self.commit_catalog = RelationalCommitCatalog::default();
-        let envelopes = self
-            .commit_envelopes
-            .values()
-            .cloned()
-            .collect::<Vec<Arc<CanonicalCommitEnvelope>>>();
-        for envelope in envelopes {
-            let _ = self
-                .commit_catalog
-                .append_envelope(envelope)
-                .expect("durable commit parentage must be ordered and unique");
-        }
-    }
-
-    pub(crate) fn record_recovered_commit(
-        &mut self,
-        envelope: &CanonicalCommitEnvelope,
-        allow_reconstructed_replacement: bool,
-        advance_branch_currentness: bool,
-    ) -> Result<(), String> {
-        let catalog_artifact = self.commit_catalog.get(envelope.commit.commit_id);
-        if catalog_artifact.is_some_and(|artifact| artifact.envelope().as_ref() != envelope) {
-            if !allow_reconstructed_replacement {
-                return Err(format!(
-                    "recovery commit artifact conflicts for commit {}",
-                    envelope.commit.commit_id.0
-                ));
-            }
-            let mut catalog = RelationalCommitCatalog::default();
-            for candidate in self.commit_envelopes.values().cloned() {
-                catalog
-                    .append_envelope(candidate)
-                    .map_err(|denial| format!("recovery catalog replacement denied: {denial:?}"))?;
-            }
-            self.commit_catalog = catalog;
-        } else if catalog_artifact.is_none() {
-            self.commit_catalog
-                .append_envelope(Arc::new(envelope.clone()))
-                .map_err(|denial| {
-                    format!(
-                        "recovery commit artifact could not be admitted for commit {}: {denial:?}",
-                        envelope.commit.commit_id.0
-                    )
-                })?;
-        }
-        self.require_recovered_branch(&envelope.branch_context)
-            .map_err(|detail| detail.to_owned())?;
-        if !advance_branch_currentness {
-            return Ok(());
-        }
-        if is_metadata_only_envelope(envelope) {
-            let metadata_already_applied = envelope
-                .branch_cell_checkpoint
-                .as_ref()
-                .and_then(|checkpoint| {
-                    let checkpoint = RelationalBranchReferenceCell::from_checkpoint(
-                        self.runtime_instance_id,
-                        checkpoint.clone(),
-                    )
-                    .ok()?
-                    .checkpoint();
-                    let cell = self.branch_cell(&envelope.branch_context)?;
-                    let expected_generation =
-                        checkpoint.observation.generation().checked_advance().ok()?;
-                    (cell.observation().branch_id() == checkpoint.observation.branch_id()
-                        && cell.observation().target() == checkpoint.observation.target()
-                        && cell.observation().generation() == expected_generation
-                        && cell.truth_version() == checkpoint.truth_version
-                        && cell.fork_provenance() == checkpoint.fork_provenance.as_ref()
-                        && cell.fork_source_branch_id()
-                            == checkpoint.fork_source_branch_id.as_ref())
-                    .then_some(())
-                })
-                .is_some();
-            if !metadata_already_applied {
-                self.branch_cell_mut(&envelope.branch_context)
-                    .ok_or_else(|| {
-                        format!(
-                            "recovered branch cell missing for `{}`",
-                            envelope.branch_context.0
-                        )
-                    })?
-                    .advance_metadata()
-                    .map_err(|denial| format!("recovered metadata reference denied: {denial:?}"))?;
-            }
-            return Ok(());
-        }
-        let roots = self
-            .commit_catalog
-            .get(envelope.commit.commit_id)
-            .map(|artifact| artifact.roots().clone())
-            .ok_or_else(|| "recovered commit must have a catalog artifact".to_owned())?;
-        let target = crate::branch::RelationalBranchTarget::from_commit_receipt(
-            self.runtime_instance_id,
-            &envelope.commit,
-            roots,
-        );
-        let already_points_at_commit = self
-            .branch_cell(&envelope.branch_context)
-            .and_then(|cell| match cell.observation().target() {
-                FoundationalBranchTarget::Basis(current)
-                    if current.commit_id() == envelope.commit.commit_id.0
-                        && current.version_id() == envelope.commit.version_id.0 =>
-                {
-                    Some(())
-                }
-                _ => None,
-            })
-            .is_some();
-        if !already_points_at_commit {
-            self.branch_cell_mut(&envelope.branch_context)
-                .ok_or_else(|| {
-                    format!(
-                        "recovered branch cell missing for `{}`",
-                        envelope.branch_context.0
-                    )
-                })?
-                .advance_truth(FoundationalBranchTarget::basis(target))
-                .map_err(|denial| format!("recovered branch reference denied: {denial:?}"))?;
-        }
-        Ok(())
-    }
-
-    #[cfg(test)]
-    pub(crate) fn replace_catalog_from_legacy_for_test(&mut self) {
-        let mut catalog = RelationalCommitCatalog::default();
-        for envelope in self.commit_envelopes.values().cloned() {
-            catalog
-                .append_envelope(envelope)
-                .expect("test envelopes retain ordered unique parentage");
-        }
-        self.commit_catalog = catalog;
     }
 }
 
@@ -234,6 +192,38 @@ pub(super) fn branch_cell_truth_matches(
         && existing.fork_source_branch_id == incoming.fork_source_branch_id
 }
 
+pub(super) fn replayed_branch_cell_accepts_canonical_target(
+    replayed: &RelationalBranchCellCheckpoint,
+    canonical: &RelationalBranchCellCheckpoint,
+) -> bool {
+    replayed.runtime_instance_id == canonical.runtime_instance_id
+        && replayed.branch_id == canonical.branch_id
+        && replayed.observation.branch_id() == canonical.observation.branch_id()
+        && replayed.observation.generation() == canonical.observation.generation()
+        && target_commit_shape_matches(
+            replayed.observation.target(),
+            canonical.observation.target(),
+        )
+        && replayed.truth_version == canonical.truth_version
+        && replayed.fork_provenance == canonical.fork_provenance
+        && replayed.fork_source_branch_id == canonical.fork_source_branch_id
+}
+
+fn target_commit_shape_matches(
+    replayed: &FoundationalBranchTarget<crate::branch::RelationalBranchTarget>,
+    canonical: &FoundationalBranchTarget<crate::branch::RelationalBranchTarget>,
+) -> bool {
+    match (replayed, canonical) {
+        (FoundationalBranchTarget::Empty, FoundationalBranchTarget::Empty) => true,
+        (FoundationalBranchTarget::Basis(replayed), FoundationalBranchTarget::Basis(canonical)) => {
+            replayed.commit_id() == canonical.commit_id()
+                && replayed.version_id() == canonical.version_id()
+                && replayed.parent_commit_ids() == canonical.parent_commit_ids()
+        }
+        _ => false,
+    }
+}
+
 /// Validate a branch-cell checkpoint admitted while replay is extending an
 /// already restored checkpoint. Tail admission must use the same artifact and
 /// fork-provenance court as the complete checkpoint restore; structural
@@ -247,6 +237,13 @@ pub(super) fn validate_tail_branch_cell(
         &history.commit_catalog,
         branch_id,
         cell.observation().target(),
+    )?;
+    validate_branch_target_lineage(
+        history,
+        branch_id,
+        cell.observation().target(),
+        cell.fork_source_branch_id(),
+        cell.fork_provenance(),
     )?;
     match (cell.fork_source_branch_id(), cell.fork_provenance()) {
         (Some(source_branch_id), Some(provenance)) => {
@@ -273,6 +270,7 @@ pub(super) fn validate_tail_branch_cell(
                 branch_id,
                 provenance.target(),
             )?;
+            validate_target_authoring_lineage(history, source_branch_id, provenance.target())?;
             Ok(())
         }
         (None, None) => Ok(()),
@@ -287,7 +285,7 @@ pub(super) fn validate_tail_branch_cell(
     }
 }
 
-fn validate_branch_target_artifact(
+pub(super) fn validate_branch_target_artifact(
     catalog: &RelationalCommitCatalog,
     branch_id: &BranchId,
     target: &FoundationalBranchTarget<crate::branch::RelationalBranchTarget>,
@@ -312,15 +310,84 @@ fn validate_branch_target_artifact(
             != target.parent_commit_ids()
         || artifact.roots() != target.roots()
     {
+        let root_shape = artifact.linked_root().map(|root| {
+            root.partition_ids()
+                .into_iter()
+                .filter_map(|partition_id| {
+                    root.partition_state(partition_id).map(|partition| {
+                        (
+                            partition_id,
+                            partition.entity_arena.generations.clone(),
+                            partition.entity_arena.lifecycle.clone(),
+                            partition.relation_arena.generations.clone(),
+                            partition.relation_arena.lifecycle.clone(),
+                        )
+                    })
+                })
+                .collect::<Vec<_>>()
+        });
         return Err(format!(
-            "branch cell `{}` target does not match immutable commit artifact `{}`",
+            "branch cell `{}` target does not match immutable commit artifact `{}`: target version/parents/roots = {}/{:?}/{:?}, artifact = {}/{:?}/{:?}, root shape = {:?}",
+            branch_id.0,
+            commit_id.0,
+            target.version_id(),
+            target.parent_commit_ids(),
+            target.roots(),
+            artifact.version_id().0,
+            artifact.parentage().as_slice(),
+            artifact.roots(),
+            root_shape,
+        ));
+    }
+    Ok(())
+}
+
+pub(super) fn require_branch_target_artifact(
+    catalog: &RelationalCommitCatalog,
+    branch_id: &BranchId,
+    target: &FoundationalBranchTarget<crate::branch::RelationalBranchTarget>,
+) -> Result<(), String> {
+    let FoundationalBranchTarget::Basis(target) = target else {
+        return Ok(());
+    };
+    let commit_id = CommitId(target.commit_id());
+    if catalog.get(commit_id).is_none() {
+        return Err(format!(
+            "branch cell `{}` references missing commit artifact `{}`",
             branch_id.0, commit_id.0
         ));
     }
     Ok(())
 }
 
-fn is_metadata_only_envelope(envelope: &CanonicalCommitEnvelope) -> bool {
-    envelope.authority_kind
-        == crate::history::data::CanonicalCommitAuthorityKind::MetadataOnlyLineage
+fn validate_branch_target_envelope(
+    envelopes: &std::collections::BTreeMap<CommitId, Arc<CanonicalCommitEnvelope>>,
+    branch_id: &BranchId,
+    target: &FoundationalBranchTarget<crate::branch::RelationalBranchTarget>,
+) -> Result<(), String> {
+    let FoundationalBranchTarget::Basis(target) = target else {
+        return Ok(());
+    };
+    let commit_id = CommitId(target.commit_id());
+    let envelope = envelopes.get(&commit_id).ok_or_else(|| {
+        format!(
+            "branch cell `{}` references missing commit artifact `{}`",
+            branch_id.0, commit_id.0
+        )
+    })?;
+    if envelope.commit.version_id.0 != target.version_id()
+        || envelope
+            .commit
+            .parents
+            .iter()
+            .map(|parent| parent.0)
+            .collect::<Vec<_>>()
+            != target.parent_commit_ids()
+    {
+        return Err(format!(
+            "branch cell `{}` target does not match commit envelope `{}`",
+            branch_id.0, commit_id.0
+        ));
+    }
+    Ok(())
 }

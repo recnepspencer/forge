@@ -177,6 +177,47 @@ jobs:
       - name: Benchmarks compile
         run: cargo bench --workspace --no-run
 
+  worth-relational-scale-certification:
+    name: WORTH Relational scheduled certification
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry and build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-relational-scale-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-relational-scale-
+
+      - name: Run mandatory ignored Scale admission proof
+        run: >-
+          cargo test -p worth-relational --test relational_certification
+          scale_invariant_admission::large_runtime_keeps_global_enforcement_and_filters_graph_planning
+          -- --ignored --exact --nocapture --test-threads=1
+
+      - name: Run hostile CDC rewrite-storm certification
+        run: >-
+          cargo test -p worth-relational --lib
+          tests::publication::cdc::certification::seeded_resume::cdc_certification_rewrite_storm_preserves_exact_suffix_under_tiny_windows
+          -- --ignored --exact --nocapture --test-threads=1
+
+      - name: Run hostile CDC thousand-step certification
+        run: >-
+          cargo test -p worth-relational --lib
+          tests::publication::cdc::certification::seeded_resume::cdc_certification_thousand_step_random_resume_matrix_converges
+          -- --ignored --exact --nocapture --test-threads=1
+
   miri:
     name: Miri (worth-math)
     runs-on: ubuntu-latest

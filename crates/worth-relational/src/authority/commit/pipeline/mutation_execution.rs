@@ -10,6 +10,7 @@ pub(super) struct MutatedCommitExecution {
     effect: crate::authority::mutation::MutationEffect,
     created_entities: crate::transactions::data::CommitCreatedEntityBindings,
     created_relations: crate::transactions::data::CommitCreatedRelationBindings,
+    record_allocations: crate::runtime::PendingRecordAllocations,
 }
 
 impl MutatedCommitExecution {
@@ -29,6 +30,7 @@ impl MutatedCommitExecution {
         crate::authority::mutation::MutationEffect,
         crate::transactions::data::CommitCreatedEntityBindings,
         crate::transactions::data::CommitCreatedRelationBindings,
+        crate::runtime::PendingRecordAllocations,
     ) {
         (
             self.validated,
@@ -36,6 +38,7 @@ impl MutatedCommitExecution {
             self.effect,
             self.created_entities,
             self.created_relations,
+            self.record_allocations,
         )
     }
 }
@@ -44,10 +47,12 @@ pub(super) fn mutate_commit_execution(
     runtime: &mut crate::runtime::RelationalRuntime,
     mut validated: BoundaryValidatedCommitExecution,
 ) -> Result<MutatedCommitExecution, crate::transactions::data::TransactionCommitError> {
+    let selected_branch_state = validated.prepared_mut().selected_branch_state().clone();
+    let proposed_version_id = validated.prepared_mut().proposed_version_id();
+    let proposal_identity = validated.prepared_mut().proposal_identity().clone();
     let (admitted, working_state) = validated.prepared_mut().mutation_parts();
-    let (transaction_id, options, merged_plan, _, commit_log, phase_timing) =
+    let (transaction_id, _options, merged_plan, _, commit_log, phase_timing) =
         admitted.phase_view().into_parts();
-    let target_branch = Some(options.target_branch());
     let mutation = run_authoritative_mutation_phase(
         runtime,
         MutationPhaseInput {
@@ -56,11 +61,19 @@ pub(super) fn mutate_commit_execution(
             transaction_id,
             working_state,
             merged_plan,
-            target_branch,
+            selected_branch_state: &selected_branch_state,
+            proposed_version_id,
+            proposal_identity: &proposal_identity,
         },
     )?;
-    let (version_id, effect, invariant_results, created_entities, created_relations) =
-        mutation.into_parts();
+    let (
+        version_id,
+        effect,
+        invariant_results,
+        created_entities,
+        created_relations,
+        record_allocations,
+    ) = mutation.into_parts();
     validated.push_invariant(invariant_results);
     Ok(MutatedCommitExecution {
         validated,
@@ -68,5 +81,6 @@ pub(super) fn mutate_commit_execution(
         effect,
         created_entities,
         created_relations,
+        record_allocations,
     })
 }

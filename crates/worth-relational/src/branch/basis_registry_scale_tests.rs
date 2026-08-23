@@ -1,0 +1,106 @@
+use crate::history::data::BranchId;
+fn prove_registry_lookup_work_is_population_independent(branch_population: usize) {
+    let mut runtime = crate::tests::support::runtime_with_test_schema();
+    crate::tests::support::create_entity_outcome(&mut runtime, "basis-scale-root");
+    populate_branches(&mut runtime, branch_population);
+    let (target, retained) = retain_one_basis_per_branch(&runtime, branch_population);
+    let after = prove_single_readmission_is_fixed_work(&runtime, &target, branch_population);
+    drop(retained);
+    assert_exact_registry_cleanup(&runtime, after, branch_population);
+}
+
+fn populate_branches(runtime: &mut crate::runtime::RelationalRuntime, branch_population: usize) {
+    for index in 1..branch_population {
+        runtime
+            .history_authority()
+            .fork_branch_from(
+                BranchId(format!("basis-scale-{index}")),
+                &BranchId("main".to_owned()),
+            )
+            .unwrap();
+    }
+}
+
+fn retain_one_basis_per_branch(
+    runtime: &crate::runtime::RelationalRuntime,
+    branch_population: usize,
+) -> (
+    super::RelationalBranchBasisDescriptor,
+    Vec<super::AdmittedRelationalBranchBasis>,
+) {
+    let mut retained = Vec::with_capacity(branch_population);
+    let mut target = None;
+    for index in 0..branch_population {
+        let branch_id = if index == 0 {
+            BranchId("main".to_owned())
+        } else {
+            BranchId(format!("basis-scale-{index}"))
+        };
+        let identity = runtime.branch_identity(&branch_id).unwrap();
+        let (descriptor, basis) = runtime.observe_branch(&identity).unwrap();
+        target.get_or_insert(descriptor);
+        retained.push(basis);
+    }
+    (target.unwrap(), retained)
+}
+
+fn prove_single_readmission_is_fixed_work(
+    runtime: &crate::runtime::RelationalRuntime,
+    target: &super::RelationalBranchBasisDescriptor,
+    branch_population: usize,
+) -> super::RelationalBranchBasisCostCounters {
+    let before = runtime.branch_basis_cost_counters();
+    let population_scans_before = runtime
+        .phase4_reference_cost_counters()
+        .branch_population_scans;
+    let readmitted = runtime.readmit_branch_basis(target).unwrap();
+    let after = runtime.branch_basis_cost_counters();
+    let population_scans_after = runtime
+        .phase4_reference_cost_counters()
+        .branch_population_scans;
+
+    assert_eq!(
+        before.retained_basis_registry_entries,
+        branch_population as u64
+    );
+    assert_eq!(
+        after.retained_basis_registry_entries,
+        branch_population as u64
+    );
+    assert_eq!(
+        after.retained_basis_registry_key_lookups,
+        before.retained_basis_registry_key_lookups + 1
+    );
+    assert_eq!(
+        after.retained_basis_registry_mutations,
+        before.retained_basis_registry_mutations
+    );
+    assert_eq!(population_scans_after, population_scans_before);
+
+    drop(readmitted);
+    after
+}
+
+fn assert_exact_registry_cleanup(
+    runtime: &crate::runtime::RelationalRuntime,
+    after_readmission: super::RelationalBranchBasisCostCounters,
+    branch_population: usize,
+) {
+    let cleaned = runtime.branch_basis_cost_counters();
+    assert_eq!(cleaned.retained_basis_registry_entries, 0);
+    assert_eq!(
+        cleaned.retained_basis_registry_key_lookups,
+        after_readmission.retained_basis_registry_key_lookups + branch_population as u64
+    );
+    assert_eq!(
+        cleaned.retained_basis_registry_mutations,
+        after_readmission.retained_basis_registry_mutations + branch_population as u64
+    );
+}
+
+#[test]
+fn retained_basis_registry_cost_is_fixed_at_one_sixty_four_and_four_thousand_ninety_six_branches() {
+    for branch_population in [1, 64, 4_096] {
+        prove_registry_lookup_work_is_population_independent(branch_population);
+    }
+}

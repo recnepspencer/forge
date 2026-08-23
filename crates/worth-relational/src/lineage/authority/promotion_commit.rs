@@ -110,11 +110,7 @@ impl<'runtime> LineageAuthority<'runtime> {
             artifact.clone(),
             crate::indexes::data::DerivedIndexArtifacts::default(),
             &SchemaContinuityPlan::current(
-                self.runtime
-                    .config
-                    .schema
-                    .descriptor_semantics_policy
-                    .current_write_version(),
+                &crate::schema::SchemaContinuityAuthorityInput::from_runtime(self.runtime),
             ),
         )
         .map_err(|_| CorrespondencePromotionExecutionFailureClass::AuthorityPublicationFailed)?;

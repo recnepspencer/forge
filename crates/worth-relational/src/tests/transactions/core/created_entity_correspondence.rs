@@ -45,7 +45,7 @@ fn committed_create_references_resolve_their_own_distinct_persisted_meanings() {
 
     let records = runtime
         .read_truth()
-        .project_version(committed.version_id)
+        .project_historical_version(committed.version_id)
         .all_authoritative_entity_records();
     let first_record = records
         .iter()

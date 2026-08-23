@@ -10,9 +10,9 @@ pub mod config {
         CommitStrategiesConfig, CompiledLanePolicy, ConfigProvenance, ConfigProvenanceEntry,
         ConfigValueSource, CrossContextPolicy, DiagnosticsBoundary, DurabilityPolicy,
         DurableLogPolicy, DurableLogRetentionMode, MvccConfig, PublicationConfig,
-        RelationalConfigOverride, RelationalRuntimeProfile, RetentionBackend, RetentionPolicy,
-        RuntimeExecutionLane, RuntimeProfileBoundaryPolicy, SnapshotReleasePolicy,
-        StorageLayoutConfig, VisibilityCachePolicy,
+        RelationIntegrityScopeBudget, RelationalConfigOverride, RelationalRuntimeProfile,
+        RetentionBackend, RetentionPolicy, RuntimeExecutionLane, RuntimeProfileBoundaryPolicy,
+        SnapshotReleasePolicy, StorageLayoutConfig, VisibilityCachePolicy,
     };
 }
 pub mod grouped_truth {
@@ -101,7 +101,7 @@ pub mod history {
         HistoryAspectQueryTarget, HistoryDriftClass, HistoryRetentionClass,
         HistoryShapeClassification, LineageAspectHistory, LineageAspectHistoryQueryResult,
         LineageAspectResolutionDigest, MergeConflictRecord, MergeInspection, OrderedParentList,
-        RelationalCommitReceipt, VersionGraphPolicy,
+        RelationalCommitReceipt, RelationalMergeBranchBasisDenial, VersionGraphPolicy,
     };
     pub use crate::history::{HistoryAccess, HistoryAuthority};
     pub use crate::history::{
@@ -118,30 +118,8 @@ pub mod identity_authority {
     pub use crate::identity_authority::*;
 }
 
-pub mod inspection {
-    pub use crate::inspection::data::{
-        CommitInspection, ConnectivityComponentSummary, ConnectivityInspectionBudget,
-        ConnectivityInspectionRequest, ConnectivityInspectionSummary, GraphInspectionBudget,
-        GraphInspectionRequest, GraphInspectionSummary, HistoricalAspectObservation,
-        HistoricalAvailabilityObservation, HistoricalInspectionMode, HistoricalOpenResult,
-        HistoricalRecordInspection, HistoricalRecordObservation, HistoricalRecordValue,
-        HistoricalSnapshotView, InspectionAccessPath, InspectionAvailability,
-        InspectionDegradation, InspectionOrigin, InspectionRecordClass,
-        InspectionResolutionContext, InspectionScope, KindInspectionRequest, KindInspectionSummary,
-        NeighborInspectionResult, PinStateObservation, RecentCommitInspectionRequest,
-        RecentCommitInspectionWindow, ReclaimEligibility, RecordRetentionInspection,
-        RelationalMergeSupportInspectionAbsenceKind,
-        RelationalMergeSupportInspectionCompatibilityPosture,
-        RelationalMergeSupportInspectionDenial, RelationalMergeSupportInspectionRow,
-        RelationalMergeSupportInspectionRowKind, RelationalMergeSupportInspectionSurface,
-        RelationalMergeSupportInspectionWitness, RetentionExecutionInspection,
-        RetentionInspectionRequest, RetentionInspectionSummary, RetentionStateObservation,
-        SavepointInspectionSurface, SnapshotPinInspection, StructuralIdentityComparison,
-        StructuralIdentityComparisonVerdict, StructuralIdentityEvidence,
-        StructuralIdentityQueryRequest, TransactionInspectionSurface, TransactionIntentCounts,
-    };
-    pub use crate::inspection::InspectionAccess;
-}
+#[path = "facade/inspection.rs"]
+pub mod inspection;
 
 #[path = "facade/indexes.rs"]
 pub mod indexes;
@@ -222,7 +200,8 @@ pub mod merge {
 pub mod runtime {
     pub use super::runtime_validation_exports::*;
     pub use crate::config::data::{
-        CommitAuthorityContract, PlanningContract, RelationalExecutionModel,
+        CommitAuthorityContract, PlanningContract, RelationIntegrityScopeBudget,
+        RelationalExecutionModel,
     };
     pub use crate::presentation::facade::runtime::{
         ImmutableReadContract, RelationalBoundaryContract, RelationalRuntimeApi,
@@ -254,12 +233,6 @@ pub mod runtime {
         RelationalRetainedCommitEntityProjection, RelationalRetainedCommitProjectionWork,
         RelationalRetainedCommitSnapshot, RelationalRetainedCommitSnapshotDenial,
         RelationalRetainedCommitSnapshotDenialKind,
-    };
-    pub use crate::visibility::execution_basis::{
-        RelationalApplicationCommitBasisDenial, RelationalApplicationCommitBasisSource,
-        RelationalExecutionBasisCounters, RelationalExecutionBasisDenial,
-        RelationalExecutionBasisDenialKind, RelationalExecutionBasisIdentity,
-        RelationalExecutionBasisLease, RelationalExecutionBasisReleaseReceipt,
     };
     pub use crate::visibility::materialization::read_records::{
         AdjacencyTruthReadLimitExceeded, BoundedAdjacencyTruthRead,

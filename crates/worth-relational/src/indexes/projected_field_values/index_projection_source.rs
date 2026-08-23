@@ -1,33 +1,58 @@
+use crate::branch::RelationalBranchRootSchemaAuthority;
 use crate::identity::data::{EntityId, KindId, RelationId};
 use crate::runtime::VisibilityProjectionView;
-use crate::storage::data::{
-    EntityReadRecord, RecordLifecycleState, RelationReadRecord, RelationalReadView,
-};
+use crate::schema::data::{AspectContractPlanCatalog, LoweredAspectContractPlan, SchemaVersionId};
+use crate::storage::data::{EntityReadRecord, RelationReadRecord};
 
-pub(in crate::indexes) enum IndexProjectionSource<'view, 'runtime> {
-    Current(&'view VisibilityProjectionView<'runtime>),
-    Reconstructed(&'view RelationalReadView),
+/// Schema-qualified storage projection used to derive or certify an index.
+///
+/// Construction is private to this module so a caller cannot pair records
+/// with an ambient or unrelated schema authority.
+pub(in crate::indexes) struct IndexProjectionSource<'view, 'runtime> {
+    projection: &'view VisibilityProjectionView<'runtime>,
 }
 
-impl IndexProjectionSource<'_, '_> {
+impl<'view, 'runtime> IndexProjectionSource<'view, 'runtime> {
+    pub(in crate::indexes) fn exact(
+        projection: &'view VisibilityProjectionView<'runtime>,
+    ) -> Option<Self> {
+        projection.is_exact_basis().then_some(Self { projection })
+    }
+
+    pub(in crate::indexes) fn historical(
+        projection: &'view VisibilityProjectionView<'runtime>,
+    ) -> Option<Self> {
+        (!projection.is_exact_basis()).then_some(Self { projection })
+    }
+
+    fn schema_authority(&self) -> Option<&RelationalBranchRootSchemaAuthority> {
+        self.projection.selected_schema_authority()
+    }
+
+    pub(in crate::indexes) fn schema_version(&self) -> Option<SchemaVersionId> {
+        self.schema_authority()
+            .map(RelationalBranchRootSchemaAuthority::schema_version)
+    }
+
+    pub(in crate::indexes) fn aspect_plans(&self) -> Option<&AspectContractPlanCatalog> {
+        self.schema_authority()
+            .map(RelationalBranchRootSchemaAuthority::aspect_plans)
+    }
+
+    pub(in crate::indexes) fn entity_aspect_plan(
+        &self,
+        kind_id: KindId,
+    ) -> Option<&LoweredAspectContractPlan> {
+        self.schema_authority()?.entity_aspect_plan(kind_id)
+    }
+
     pub(in crate::indexes) fn for_each_entity(
         &self,
         kind_id: KindId,
         mut visit: impl FnMut(&EntityReadRecord),
     ) {
-        match self {
-            Self::Current(projection) => {
-                for record in projection.authoritative_entity_records(kind_id) {
-                    visit(&record);
-                }
-            }
-            Self::Reconstructed(read) => {
-                for record in read.entities().iter().filter(|record| {
-                    record.kind.kind_id == kind_id && record.lifecycle == RecordLifecycleState::Live
-                }) {
-                    visit(record);
-                }
-            }
+        for record in self.projection.authoritative_entity_records(kind_id) {
+            visit(&record);
         }
     }
 
@@ -36,19 +61,8 @@ impl IndexProjectionSource<'_, '_> {
         kind_id: KindId,
         mut visit: impl FnMut(&RelationReadRecord),
     ) {
-        match self {
-            Self::Current(projection) => {
-                for record in projection.authoritative_relation_records(kind_id) {
-                    visit(&record);
-                }
-            }
-            Self::Reconstructed(read) => {
-                for record in read.relations().iter().filter(|record| {
-                    record.kind.kind_id == kind_id && record.lifecycle == RecordLifecycleState::Live
-                }) {
-                    visit(record);
-                }
-            }
+        for record in self.projection.authoritative_relation_records(kind_id) {
+            visit(&record);
         }
     }
 
@@ -57,13 +71,10 @@ impl IndexProjectionSource<'_, '_> {
         entity_id: EntityId,
         inspect: impl FnOnce(&EntityReadRecord) -> T,
     ) -> Option<T> {
-        match self {
-            Self::Current(projection) => projection
-                .authoritative_entity_record(entity_id)
-                .as_ref()
-                .map(inspect),
-            Self::Reconstructed(read) => read.get_entity(entity_id).map(inspect),
-        }
+        self.projection
+            .authoritative_entity_record(entity_id)
+            .as_ref()
+            .map(inspect)
     }
 
     pub(in crate::indexes) fn with_relation<T>(
@@ -71,12 +82,9 @@ impl IndexProjectionSource<'_, '_> {
         relation_id: RelationId,
         inspect: impl FnOnce(&RelationReadRecord) -> T,
     ) -> Option<T> {
-        match self {
-            Self::Current(projection) => projection
-                .authoritative_relation_record(relation_id)
-                .as_ref()
-                .map(inspect),
-            Self::Reconstructed(read) => read.get_relation(relation_id).map(inspect),
-        }
+        self.projection
+            .authoritative_relation_record(relation_id)
+            .as_ref()
+            .map(inspect)
     }
 }

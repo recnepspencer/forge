@@ -66,7 +66,7 @@ fn collect_historical_entities(
     entities: &mut Vec<EntityReference>,
 ) {
     let state_view = context.state_view();
-    for slot in 0..partition.entity_arena.slot_count() {
+    for slot in partition.entity_arena.occupied_slots() {
         let Some(metadata) =
             state_view.entity_metadata_at(&partition.entity_arena, partition_id, slot)
         else {

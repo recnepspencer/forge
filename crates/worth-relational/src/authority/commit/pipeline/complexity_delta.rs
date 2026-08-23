@@ -58,6 +58,7 @@ pub(super) fn complexity_delta(
         bulk_mutation_lineage_transition_count,
         bulk_mutation_provenance_record_count,
         visibility_cache_hits,
+        visibility_exact_state_materializations,
         visibility_cache_miss_reconstructions,
         visibility_cache_recent_evictions,
         visibility_cache_branch_head_promotions,

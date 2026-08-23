@@ -1,6 +1,31 @@
 use crate::world::supply_chain::*;
 
 #[test]
+fn production_snapshot_schema_ignores_program_descriptor_mutation() {
+    let definition = SupplyChainWorldDefinition::operating(SupplyChainScale::court()).unwrap();
+    let program = CompiledSupplyChainProgram::compile(definition).unwrap();
+    let world = compile_supply_chain_baseline(program).unwrap();
+    let mut altered_program = world.program.clone();
+    altered_program.definition_mut_for_test().schema =
+        SupplyChainSchema::canonical(SchemaVersion::V2);
+
+    let observed = observe_supply_chain_snapshot(
+        &altered_program,
+        &world.handles,
+        &world.runtime,
+        &world.handles.snapshot,
+    )
+    .expect("the owner-selected production snapshot remains observable");
+
+    assert_eq!(observed.schema, SchemaVersion::V1);
+    assert_ne!(
+        observed.schema,
+        altered_program.definition().schema.version,
+        "schema observation must not copy the caller's program descriptor"
+    );
+}
+
+#[test]
 fn expected_observation_is_distinct_from_oracle_state() {
     let baseline = SupplyChainBaseline::operating(SupplyChainScale::court());
     let expected = ExpectedSupplyChainObservation::from_branch(&baseline.branch);

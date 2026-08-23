@@ -1,14 +1,14 @@
-use crate::runtime::RelationalRuntime;
+use crate::schema::data::RelationalSchemaRegistry;
 use crate::storage::data::{RecordLifecycleState, RelationReadRecord};
 use crate::storage::overlay::PartitionState;
 use crate::storage::substrate::HistoricalMetadata;
 
 use super::super::visibility::{
-    historical_lifecycle, lifecycle_storage_visible, relation_visible_in_partition_at_version,
-    visible_metadata,
+    historical_created_at, historical_lifecycle, historical_retired_at, lifecycle_storage_visible,
+    relation_visible_in_partition_at_version, visible_relation_metadata,
 };
 pub(in super::super) fn materialize_current_authoritative_relation_record(
-    runtime: &RelationalRuntime,
+    registry: &RelationalSchemaRegistry,
     partition: &PartitionState,
     partition_id: crate::identity::data::PartitionId,
     slot: usize,
@@ -19,12 +19,7 @@ pub(in super::super) fn materialize_current_authoritative_relation_record(
         return None;
     }
     let kind_id = relation_slot.kind_id()?;
-    let kind = runtime
-        .config
-        .schema
-        .registry
-        .resolve_relation(kind_id)
-        .ok()?;
+    let kind = registry.resolve_relation(kind_id).ok()?;
     let endpoints = relation_slot.extra().endpoints.as_ref()?;
     Some(RelationReadRecord {
         relation_id: crate::identity::data::RelationId::new(
@@ -34,7 +29,10 @@ pub(in super::super) fn materialize_current_authoritative_relation_record(
         ),
         kind,
         lifecycle,
-        created_at_version: partition.relation_arena.created_at[slot],
+        created_at_version: partition
+            .relation_arena
+            .created_at_for_slot(slot)
+            .expect("visible relation slot has creation metadata"),
         retired_at_version: relation_slot.retired_at(),
         source: endpoints.source,
         target: endpoints.target,
@@ -43,7 +41,7 @@ pub(in super::super) fn materialize_current_authoritative_relation_record(
 }
 
 pub(in super::super) fn materialize_authoritative_relation_record_at_version(
-    runtime: &RelationalRuntime,
+    registry: &RelationalSchemaRegistry,
     partition: &PartitionState,
     partition_id: crate::identity::data::PartitionId,
     slot: usize,
@@ -52,16 +50,11 @@ pub(in super::super) fn materialize_authoritative_relation_record_at_version(
     if !relation_visible_in_partition_at_version(partition, slot, version_id) {
         return None;
     }
-    let metadata = visible_metadata(
-        partition.relation_arena.metadata_history_at(slot)?,
-        version_id,
-    )?;
-    let kind = runtime
-        .config
-        .schema
-        .registry
-        .resolve_relation(metadata.kind_id)
-        .ok()?;
+    let history = partition.relation_arena.metadata_history_at(slot)?;
+    let metadata = visible_relation_metadata(partition, slot, version_id)?;
+    let current = partition.relation_arena.get_slot(slot)?;
+    let kind = registry.resolve_relation(metadata.kind_id).ok()?;
+    let retired_at = historical_retired_at(metadata.retired_at(), version_id);
     Some(RelationReadRecord {
         relation_id: crate::identity::data::RelationId::new(
             partition_id,
@@ -69,19 +62,25 @@ pub(in super::super) fn materialize_authoritative_relation_record_at_version(
             metadata.generation,
         ),
         kind,
-        lifecycle: if partition
-            .relation_arena
-            .get_slot(slot)
-            .is_some_and(|slot_view| {
-                slot_view.generation() == metadata.generation
-                    && slot_view.lifecycle() == RecordLifecycleState::RetainedDanglingForAudit
-            }) {
+        lifecycle: if retired_at.is_some()
+            && partition
+                .relation_arena
+                .get_slot(slot)
+                .is_some_and(|slot_view| {
+                    slot_view.generation() == metadata.generation
+                        && slot_view.lifecycle() == RecordLifecycleState::RetainedDanglingForAudit
+                }) {
             RecordLifecycleState::RetainedDanglingForAudit
         } else {
-            historical_lifecycle(metadata.retired_at(), version_id)
+            historical_lifecycle(retired_at, version_id)
         },
-        created_at_version: metadata.effective_at(),
-        retired_at_version: metadata.retired_at(),
+        created_at_version: historical_created_at(
+            history,
+            metadata,
+            current.generation(),
+            partition.relation_arena.created_at_for_slot(slot)?,
+        ),
+        retired_at_version: retired_at,
         source: metadata.endpoints.source,
         target: metadata.endpoints.target,
         authoritative_aspect_state: metadata.authoritative_aspect_state.clone(),

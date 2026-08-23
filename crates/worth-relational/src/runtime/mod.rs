@@ -29,14 +29,16 @@ pub use initial_schema_installation::{
     RelationalInitialSchemaInstallation, RelationalInitialSchemaInstallationDenial,
     RelationalInitialSchemaInstallationDenialKind, RelationalInitialSchemaInstallationReceipt,
 };
-pub use state::RelationalPhase4ReferenceCostCounters;
+pub use state::{RelationalBranchSharingCostCounters, RelationalPhase4ReferenceCostCounters};
 
 pub(crate) use crate::storage::overlay::{PartitionAccess, WorkingState};
 pub(crate) use construction::RuntimeExtensions;
 pub use state::RelationalRuntime;
 pub(crate) use state::{
-    CommitStrategiesSubsystem, DurabilitySubsystem, ExecutionBasisRegistry, HistorySubsystem,
-    IndexingSubsystem, LineageSubsystem, PublicationSubsystem, ReplayRetentionState,
-    RuntimeInstrumentation, RuntimeServices, RuntimeSubsystem, SchemaContractRuntimeSubsystem,
-    SnapshotHandleBinding, VisibilityResidency, VisibilitySubsystem,
+    CommitStrategiesSubsystem, DurabilitySubsystem, HistorySubsystem, IndexingSubsystem,
+    LineageSubsystem, PendingRecordAllocations, PreparedVersionedArtifactPublication,
+    PublicationSubsystem, ReclaimedRecordSlot, RecordIdentitySubsystem,
+    RelationalForkMaterializationCost, ReplayRetentionState, RuntimeInstrumentation,
+    RuntimeServices, RuntimeSubsystem, SchemaContractRuntimeSubsystem, SnapshotHandleBinding,
+    VisibilityResidency, VisibilitySubsystem,
 };

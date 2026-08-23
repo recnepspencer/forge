@@ -60,7 +60,7 @@ pub(super) fn milestone_8_5_kubernetes_style_intent_commit_certification_proves_
         .records
         .is_empty());
     assert!(!certification
-        .revalidated_shared_truth
+        .revalidated_converged_overlap
         .lowered_plan
         .records
         .is_empty());
@@ -84,13 +84,29 @@ pub(super) fn milestone_8_5_kubernetes_style_intent_commit_certification_proves_
     assert!(certification.branch_heads.main.is_some());
     assert!(certification.branch_heads.controller.is_some());
     assert_eq!(
-        certification.visible_truth.entity_name.as_deref(),
+        certification.visible_truth.main.entity_name.as_deref(),
         Some("svc-v2")
     );
     assert!(certification
         .visible_truth
+        .main
         .replicas_canonical_bytes
         .is_some());
+    assert_eq!(
+        certification
+            .visible_truth
+            .controller
+            .entity_name
+            .as_deref(),
+        Some("kube-service")
+    );
+    assert_eq!(
+        certification.visible_truth.main.replicas_canonical_bytes,
+        certification
+            .visible_truth
+            .controller
+            .replicas_canonical_bytes
+    );
     assert_ne!(
         certification.overlap_conflict,
         certification.narrowed_non_conflict
@@ -101,6 +117,6 @@ pub(super) fn milestone_8_5_kubernetes_style_intent_commit_certification_proves_
     );
     assert_ne!(
         certification.rebroadened_conflict,
-        certification.revalidated_shared_truth
+        certification.revalidated_converged_overlap
     );
 }

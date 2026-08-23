@@ -44,6 +44,7 @@ pub(crate) struct MutationWorkspace<'a> {
     preparation_telemetry: MutationPreparationTelemetry,
     created_entities: BTreeMap<CreatedEntityRef, EntityId>,
     created_relations: BTreeMap<CreatedRelationRef, RelationId>,
+    record_allocations: Option<&'a mut crate::runtime::PendingRecordAllocations>,
 }
 
 impl<'a> MutationWorkspace<'a> {
@@ -55,6 +56,7 @@ impl<'a> MutationWorkspace<'a> {
         aspect_plans: &'a AspectContractPlanCatalog,
         version_id: VersionId,
         branch_local_delete_allowance: BranchLocalDeleteAllowance,
+        record_allocations: Option<&'a mut crate::runtime::PendingRecordAllocations>,
     ) -> Self {
         Self {
             state,
@@ -67,14 +69,20 @@ impl<'a> MutationWorkspace<'a> {
             preparation_telemetry: MutationPreparationTelemetry::default(),
             created_entities: BTreeMap::new(),
             created_relations: BTreeMap::new(),
+            record_allocations,
         }
     }
 
     pub(crate) fn with_context<R>(&mut self, f: impl FnOnce(MutationContext<'_>) -> R) -> R {
+        let record_allocations = self
+            .record_allocations
+            .as_deref_mut()
+            .expect("authoritative record creation requires allocation authority");
         f(MutationContext {
             state: self.state,
             symbols: self.symbols,
             schema: self.schema,
+            record_allocations,
         })
     }
 

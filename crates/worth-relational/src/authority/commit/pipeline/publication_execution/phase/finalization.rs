@@ -7,14 +7,12 @@ pub(super) struct FinalizationInput<'a> {
             crate::storage::overlay::PartitionMutationJournal,
         ),
     >,
+    pub(super) prepared_history: crate::mvcc::PreparedRelationalPublication,
     pub(super) changed_records: &'a [crate::transactions::data::RecordRef],
     pub(super) version_id: crate::identity::data::VersionId,
     pub(super) previous_branch_head_version: Option<crate::identity::data::VersionId>,
     pub(super) commit_id: crate::history::data::CommitId,
     pub(super) commit_reference: &'a crate::history::data::RelationalCommitReceipt,
-    pub(super) branch_binding: &'a crate::branch::RelationalLegacyBranchBinding,
-    pub(super) canonical_commit_envelope:
-        std::sync::Arc<crate::history::data::CanonicalCommitEnvelope>,
     pub(super) branch_id: &'a crate::history::data::BranchId,
     pub(super) merge_base_commits: &'a [crate::history::data::CommitId],
     pub(super) artifacts: crate::storage::overlay::PublicationArtifacts,
@@ -26,35 +24,39 @@ pub(super) struct FinalizationInput<'a> {
 pub(super) fn finalize_published_commit(
     runtime: &mut crate::runtime::RelationalRuntime,
     input: FinalizationInput<'_>,
-) -> Result<(), String> {
+) {
     let FinalizationInput {
         clone_mode,
         committed_partitions,
+        prepared_history,
         changed_records,
         version_id,
         previous_branch_head_version,
         commit_id,
         commit_reference,
-        branch_binding,
-        canonical_commit_envelope,
         branch_id,
         merge_base_commits,
         artifacts,
         merge_parent_branches,
         phase_timing,
     } = input;
-    publish_storage(runtime, clone_mode, committed_partitions, phase_timing);
-    refresh_indexes(runtime, changed_records, version_id, phase_timing);
-    publish_history(
+    let index_refresh_basis = prepared_history.index_refresh_basis();
+    publish_storage(
         runtime,
-        commit_id,
-        commit_reference,
-        branch_binding,
-        canonical_commit_envelope,
+        branch_id,
+        clone_mode,
+        committed_partitions,
         phase_timing,
-    )?;
+    );
+    refresh_indexes(runtime, changed_records, &index_refresh_basis, phase_timing);
+    let started = std::time::Instant::now();
+    prepared_history.install(runtime);
+    phase_timing.history_publish_micros = phase_timing
+        .history_publish_micros
+        .saturating_add(started.elapsed().as_micros() as u64);
     advance_visibility(
         runtime,
+        branch_id,
         previous_branch_head_version,
         version_id,
         changed_records,
@@ -76,11 +78,11 @@ pub(super) fn finalize_published_commit(
         },
         phase_timing,
     );
-    Ok(())
 }
 
 fn publish_storage(
     runtime: &mut crate::runtime::RelationalRuntime,
+    branch_id: &crate::history::data::BranchId,
     clone_mode: crate::storage::overlay::PartitionCloneMode,
     committed_partitions: std::collections::BTreeMap<
         crate::identity::data::PartitionId,
@@ -94,45 +96,28 @@ fn publish_storage(
     let started = std::time::Instant::now();
     runtime
         .storage_authority()
-        .publish_partition_commits(clone_mode, committed_partitions);
+        .publish_branch_partition_commits(branch_id, clone_mode, committed_partitions);
     timing.storage_commit_micros = started.elapsed().as_micros() as u64;
 }
 
 fn refresh_indexes(
     runtime: &mut crate::runtime::RelationalRuntime,
     changed_records: &[crate::transactions::data::RecordRef],
-    version_id: crate::identity::data::VersionId,
+    basis: &crate::mvcc::PreparedIndexRefreshBasis,
     timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
 ) {
     let started = std::time::Instant::now();
-    runtime
-        .index_authority()
-        .refresh_unique_entity_aspect_field_index_for_records(changed_records, version_id);
+    if basis.branch_id() == &runtime.history.main_branch {
+        runtime
+            .index_authority()
+            .refresh_unique_entity_aspect_field_index_for_records(changed_records, basis);
+    }
     timing.index_refresh_micros = started.elapsed().as_micros() as u64;
-}
-
-fn publish_history(
-    runtime: &mut crate::runtime::RelationalRuntime,
-    commit_id: crate::history::data::CommitId,
-    commit_reference: &crate::history::data::RelationalCommitReceipt,
-    branch_binding: &crate::branch::RelationalLegacyBranchBinding,
-    envelope: std::sync::Arc<crate::history::data::CanonicalCommitEnvelope>,
-    timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
-) -> Result<(), String> {
-    let started = std::time::Instant::now();
-    let result = runtime.mvcc_publication_authority().publish_commit(
-        commit_id,
-        commit_reference.clone(),
-        branch_binding,
-        envelope.patch.position,
-        envelope,
-    );
-    timing.history_publish_micros = started.elapsed().as_micros() as u64;
-    result
 }
 
 fn advance_visibility(
     runtime: &mut crate::runtime::RelationalRuntime,
+    branch_id: &crate::history::data::BranchId,
     previous_branch_head_version: Option<crate::identity::data::VersionId>,
     version_id: crate::identity::data::VersionId,
     changed_records: &[crate::transactions::data::RecordRef],
@@ -141,7 +126,11 @@ fn advance_visibility(
     let started = std::time::Instant::now();
     runtime
         .visibility_pins()
-        .move_branch_head_visibility_residency(previous_branch_head_version, Some(version_id));
+        .move_branch_head_visibility_residency(
+            branch_id,
+            previous_branch_head_version,
+            Some(version_id),
+        );
     runtime
         .visibility_pins()
         .advance_branch_pins_for_changed_records(
@@ -159,9 +148,9 @@ fn run_retention(
     timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
 ) {
     let started = std::time::Instant::now();
-    runtime
-        .retention()
-        .trim_live_history_for_records(changed_records, version_id);
+    let mut retention = runtime.retention();
+    retention.reconcile_changed_record_states(changed_records, version_id);
+    retention.trim_live_history_for_records(changed_records, version_id);
     timing.retention_trim_micros = started.elapsed().as_micros() as u64;
 }
 

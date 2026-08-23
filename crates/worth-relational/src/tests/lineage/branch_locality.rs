@@ -68,11 +68,15 @@ fn historical_lineage_resolution_is_branch_local_under_divergent_replacements() 
         "feature-target",
         BranchId("feature".to_string()),
     );
+    let feature_target_id = changed_entities(&feature_target)[0];
     let feature_target_lineage = runtime
-        .lineage_access()
-        .for_record(changed_entities(&feature_target)[0])
+        .read_truth()
+        .read_snapshot(&feature_target.snapshot)
         .unwrap()
-        .lineage_id;
+        .get_entity(feature_target_id)
+        .unwrap()
+        .lineage_id
+        .unwrap();
 
     let main_candidate = runtime.lineage_authority().record_correspondence_candidate(
         BranchId("main".to_string()),

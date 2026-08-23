@@ -1,12 +1,11 @@
-use crate::authority::commit::phases::mutation::branch_local_delete_allowance_for_plan;
-use crate::authority::commit::phases::prepare::prepare_authoritative_working_state_scope;
-use crate::authority::mutation::apply_plan_to_working_state;
+use crate::authority::commit::phases::prepare::prepare_authoritative_working_state_scope_for_base;
+use crate::authority::commit::phases::proposed_invariant_state::prepare_proposed_invariant_state;
 use crate::commit_strategies::data::{
     PreparedStrategyAuthorityScope, StrategyPreviewValidationCostSummary,
     ValidatedStrategyCommitPlan,
 };
 use crate::runtime::RelationalRuntime;
-use crate::transactions::data::{AuthoritativeApplyPlan, CommitValidation, TransactionCommitError};
+use crate::transactions::data::{CommitValidation, TransactionCommitError};
 
 pub(crate) fn validate_lowered_plan(
     runtime: &mut RelationalRuntime,
@@ -27,22 +26,42 @@ pub(crate) fn validate_lowered_plan(
                 },
             ))
         })?;
-    let (structural_summary, working_state, _) = prepare_authoritative_working_state_scope(
+    let selected_branch_state = runtime
+        .selected_branch_state(lowered.options().branch_binding())
+        .map_err(TransactionCommitError::preparation)?;
+    let (structural_summary, working_state, _) = prepare_authoritative_working_state_scope_for_base(
         runtime,
+        selected_branch_state.state(),
         lowered.merged_plan(),
         lowered.options().merge_parent_bindings().len(),
     );
-    let preview_validation_version_id =
-        crate::identity::data::VersionId(validated_against_version_id.0.saturating_add(1));
+    let proposal_identity =
+        runtime.issue_mutation_proposal_identity(lowered.transaction_id(), lowered.options())?;
+    let preview_validation_version_id = proposal_identity.proposed_version_id();
+    let proposed_working_state = prepare_proposed_invariant_state(
+        runtime,
+        &selected_branch_state,
+        &working_state,
+        lowered.merged_plan(),
+        preview_validation_version_id,
+    )?;
     let commit_boundary_invariants = runtime
         .invariant_authority()
-        .enforce_commit_boundary(lowered.merged_plan())?;
+        .enforce_commit_boundary_for_selected_branch(
+            &selected_branch_state,
+            &proposed_working_state,
+            preview_validation_version_id,
+            lowered.merged_plan(),
+            Some(&proposal_identity),
+        )?;
     let (preview_mutation_sensitive_invariants, preview_publication_invariants) =
         preview_strategy_post_mutation_validation(
             runtime,
             &lowered,
-            &working_state,
+            &selected_branch_state,
+            &proposed_working_state,
             preview_validation_version_id,
+            Some(&proposal_identity),
         )?;
     let validation_summary = CommitValidation::summarize(&[
         commit_boundary_invariants.clone(),
@@ -63,9 +82,12 @@ pub(crate) fn validate_lowered_plan(
         validated_against_commit_id,
         validated_against_version_id,
         PreparedStrategyAuthorityScope {
+            selected_branch_state,
             structural_summary,
             working_state,
         },
+        proposed_working_state,
+        proposal_identity,
         commit_boundary_invariants,
         preview_mutation_sensitive_invariants,
         preview_publication_invariants,
@@ -77,8 +99,10 @@ pub(crate) fn validate_lowered_plan(
 fn preview_strategy_post_mutation_validation(
     runtime: &mut RelationalRuntime,
     lowered: &crate::commit_strategies::data::LoweredStrategyCommitPlan,
-    working_state: &crate::runtime::WorkingState,
+    selected_branch_state: &crate::branch::SelectedRelationalBranchState,
+    proposed_working_state: &crate::runtime::WorkingState,
     preview_version_id: crate::identity::data::VersionId,
+    proposal_identity: Option<&crate::transactions::RelationalMutationProposalIdentity>,
 ) -> Result<
     (
         crate::validation::engine::InvariantExecutionResult,
@@ -86,49 +110,24 @@ fn preview_strategy_post_mutation_validation(
     ),
     TransactionCommitError,
 > {
-    let apply_plan = AuthoritativeApplyPlan {
-        transaction_id: lowered.transaction_id(),
-        version_id: preview_version_id,
-        merged_intents: lowered.merged_plan().merged_intents.clone(),
-    };
-    let mutation_config = crate::config::data::MutationConfig {
-        cascade_delete_policy: runtime.config().storage.cascade_delete_policy,
-        adjacency_policy: runtime.config().storage.adjacency_policy.clone(),
-        cross_context_policy: runtime.config().storage.cross_context_policy,
-        execution_model: runtime.config().execution.execution_model,
-    };
-    let mut preview_working_state = working_state.clone();
-    let branch_local_delete_allowance = branch_local_delete_allowance_for_plan(
-        runtime,
-        lowered.merged_plan(),
-        Some(lowered.options().target_branch()),
-    );
-    let mut preview_symbols = runtime.services.symbols.clone();
-    apply_plan_to_working_state(
-        &mut preview_working_state,
-        &apply_plan,
-        &mutation_config,
-        &runtime.config().schema.registry,
-        &runtime.schema_contract_runtime.aspect_contract_plans,
-        &mut preview_symbols,
-        branch_local_delete_allowance,
-    )
-    .map_err(TransactionCommitError::conflict)?;
-
     let mutation_sensitive = runtime
         .invariant_authority()
         .enforce_mutation_sensitive_for_working_state(
-            &preview_working_state,
+            selected_branch_state,
+            proposed_working_state,
             preview_version_id,
             lowered.merged_plan(),
+            proposal_identity,
         )
         .map_err(TransactionCommitError::conflict)?;
     let publication = runtime
         .invariant_authority()
         .enforce_snapshot_publication_for_working_state(
-            &preview_working_state,
+            selected_branch_state,
+            proposed_working_state,
             preview_version_id,
             lowered.merged_plan(),
+            proposal_identity,
         )
         .map_err(TransactionCommitError::publication)?;
 

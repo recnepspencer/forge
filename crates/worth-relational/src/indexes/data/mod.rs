@@ -1,3 +1,4 @@
+mod allocation_accounting;
 mod bounded_entity_field_lookup;
 mod bounded_related_entity_ordered_lookup;
 mod bounded_relation_join_lookup;
@@ -145,6 +146,10 @@ impl DerivedIndexArtifacts {
         }
         self.generations
             .sort_by_key(|generation| (generation.index_id.0, generation.generation_id.0));
+    }
+
+    pub(crate) fn owned_allocation_capacity_bytes(&self) -> u64 {
+        self.recursive_owned_allocation_capacity_bytes()
     }
 
     #[cfg(test)]

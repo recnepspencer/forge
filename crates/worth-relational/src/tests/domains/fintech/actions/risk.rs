@@ -33,7 +33,7 @@ pub(crate) fn shock_market_on_branch(
                             crate::tests::support::aspect_key("mid"),
                             crate::tests::support::field_key("mid"),
                             crate::tests::support::fixture_i64_number_aspect_value(
-                                102_00 + (idx as i64 * 40),
+                                10_200 + (idx as i64 * 40),
                             ),
                         ),
                         (
@@ -124,7 +124,7 @@ pub(crate) fn stress_seeded_intraday_risk(
                         (
                             crate::tests::support::aspect_key("mid"),
                             crate::tests::support::field_key("mid"),
-                            crate::tests::support::u64_aspect_value(103_75),
+                            crate::tests::support::u64_aspect_value(10_375),
                         ),
                         (
                             crate::tests::support::aspect_key("stress_regime"),

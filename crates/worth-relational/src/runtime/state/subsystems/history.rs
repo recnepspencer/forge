@@ -1,22 +1,40 @@
 use std::collections::BTreeMap;
+#[cfg(test)]
+use std::sync::atomic::AtomicBool;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use crate::branch::{
-    RelationalBranchCellCheckpoint, RelationalBranchReferenceCell,
-    RelationalBranchReferenceRegistry,
+    RelationalBranchBasisRegistryMetrics, RelationalBranchReferenceCell,
+    RelationalBranchReferenceRegistry, RelationalBranchRootIdentityIssuer,
 };
 use crate::history::data::CanonicalCommitEnvelope;
 use crate::history::data::{BranchId, CommitId, VersionNode};
 use crate::history::RelationalCommitCatalog;
 use crate::identity::data::VersionId;
 use crate::publication::patch::data::PatchStreamPosition;
-use crate::runtime::state::subsystems::RuntimeSubsystem;
 
+#[path = "history_branch_cells.rs"]
+mod history_branch_cells;
+#[path = "history_catalog_recovery.rs"]
+mod history_catalog_recovery;
+#[path = "history_construction.rs"]
+mod history_construction;
+#[path = "history_cost_recording.rs"]
+mod history_cost_recording;
+#[path = "history_costs.rs"]
+mod history_costs;
 #[path = "history_publication.rs"]
 mod history_publication;
 #[path = "history_recovery.rs"]
 mod history_recovery;
+#[path = "history_recovery_lineage.rs"]
+mod history_recovery_lineage;
+#[path = "history_root_capture.rs"]
+mod history_root_capture;
+pub use history_costs::RelationalBranchSharingCostCounters;
+pub(crate) use history_costs::RelationalForkMaterializationCost;
+pub(crate) use history_publication::PreparedVersionedArtifactPublication;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct RelationalPhase4ReferenceCostCounters {
@@ -41,11 +59,18 @@ pub(crate) struct HistorySubsystem {
     branch_cells: RelationalBranchReferenceRegistry,
     pub(crate) commit_catalog: RelationalCommitCatalog,
     pub(crate) phase4_costs: RelationalPhase4ReferenceCostCounters,
+    pub(crate) sharing_costs: RelationalBranchSharingCostCounters,
+    branch_sharing_costs:
+        BTreeMap<crate::branch::RelationalBranchIdentity, RelationalBranchSharingCostCounters>,
+    root_identity_issuer: RelationalBranchRootIdentityIssuer,
     /// Population-wide reference traversal is deliberately hidden behind
     /// named diagnostics/checkpoint methods.  Keeping the counter separate
     /// lets those shared-`&self` methods record a scan without making the
     /// operational counters interior-mutable.
     branch_population_scans: Arc<AtomicU64>,
+    basis_registry_metrics: Arc<RelationalBranchBasisRegistryMetrics>,
+    #[cfg(test)]
+    root_capture_sabotage: Arc<AtomicBool>,
     /// Durable recovery/diagnostic sidecar. Currentness and fork identity
     /// read the catalog, not this map.
     pub(crate) commit_graph: BTreeMap<crate::history::data::CommitId, VersionNode>,
@@ -59,16 +84,24 @@ pub(crate) struct HistorySubsystem {
 }
 
 impl HistorySubsystem {
-    fn build_with_main_branch(main_branch: BranchId) -> Self {
-        let main_cell = RelationalBranchReferenceCell::empty(0, main_branch.clone())
+    pub(super) fn build_with_main_branch(main_branch: BranchId) -> Self {
+        let basis_registry_metrics = Arc::new(RelationalBranchBasisRegistryMetrics::default());
+        let mut main_cell = RelationalBranchReferenceCell::empty(0, main_branch.clone())
             .expect("configured main branch must have a valid identity");
+        main_cell.bind_basis_registry_metrics(Arc::clone(&basis_registry_metrics));
         Self {
             runtime_instance_id: 0,
             main_branch: main_branch.clone(),
             branch_cells: RelationalBranchReferenceRegistry::from_main(main_cell),
             commit_catalog: RelationalCommitCatalog::default(),
             phase4_costs: RelationalPhase4ReferenceCostCounters::default(),
+            sharing_costs: RelationalBranchSharingCostCounters::default(),
+            branch_sharing_costs: BTreeMap::new(),
+            root_identity_issuer: RelationalBranchRootIdentityIssuer::default(),
             branch_population_scans: Arc::new(AtomicU64::new(0)),
+            basis_registry_metrics,
+            #[cfg(test)]
+            root_capture_sabotage: Arc::new(AtomicBool::new(false)),
             commit_graph: BTreeMap::new(),
             commit_envelopes: BTreeMap::new(),
             patch_stream_index: BTreeMap::new(),
@@ -114,17 +147,32 @@ impl HistorySubsystem {
         self.next_version_id = self.next_version_id.max(version_id.0);
     }
 
+    pub(crate) fn prepare_replay_target_sequence(
+        &mut self,
+        commit_id: CommitId,
+        version_id: VersionId,
+    ) -> Result<(), &'static str> {
+        if self.next_commit_id > commit_id.0 || self.next_version_id > version_id.0 {
+            return Err("replay basis sequence has advanced beyond the committed target");
+        }
+        self.next_commit_id = commit_id.0;
+        self.next_version_id = version_id.0;
+        Ok(())
+    }
+
     pub(crate) fn set_runtime_instance_id(&mut self, runtime_instance_id: u64) {
         self.runtime_instance_id = runtime_instance_id;
+        self.basis_registry_metrics = Arc::new(RelationalBranchBasisRegistryMetrics::default());
         self.record_branch_population_scan();
         let cells = self.branch_cells.take_all();
         self.branch_cells.restore_all(
             cells
                 .into_values()
                 .map(|cell| {
-                    let rebound = cell
+                    let mut rebound = cell
                         .rebind_runtime(runtime_instance_id)
                         .expect("existing branch identities must remain valid when rebound");
+                    rebound.bind_basis_registry_metrics(Arc::clone(&self.basis_registry_metrics));
                     (rebound.identity().branch_id().clone(), rebound)
                 })
                 .collect(),
@@ -133,10 +181,11 @@ impl HistorySubsystem {
 
     pub(crate) fn fork_for_runtime(&self, runtime_instance_id: u64) -> Self {
         let mut fork = self.clone();
-        fork.branch_population_scans = Arc::new(AtomicU64::new(
-            self.branch_population_scans.load(Ordering::Relaxed),
-        ));
         fork.set_runtime_instance_id(runtime_instance_id);
+        fork.phase4_costs = RelationalPhase4ReferenceCostCounters::default();
+        fork.sharing_costs = RelationalBranchSharingCostCounters::default();
+        fork.branch_sharing_costs.clear();
+        fork.branch_population_scans = Arc::new(AtomicU64::new(0));
         fork
     }
 
@@ -154,6 +203,10 @@ impl HistorySubsystem {
         costs
     }
 
+    pub(crate) fn branch_population_scan_count(&self) -> u64 {
+        self.branch_population_scans.load(Ordering::Relaxed)
+    }
+
     pub(crate) fn branch_count(&self) -> usize {
         self.branch_cells.len()
     }
@@ -169,8 +222,13 @@ impl HistorySubsystem {
         self.branch_cells.get_mut(branch_id)
     }
 
-    pub(crate) fn insert_branch_cell(&mut self, cell: RelationalBranchReferenceCell) {
+    pub(crate) fn insert_branch_cell(&mut self, mut cell: RelationalBranchReferenceCell) {
+        cell.bind_basis_registry_metrics(Arc::clone(&self.basis_registry_metrics));
         self.branch_cells.insert(cell);
+    }
+
+    pub(crate) fn basis_registry_metrics(&self) -> (u64, u64, u64) {
+        self.basis_registry_metrics.snapshot()
     }
 
     pub(crate) fn has_branch(&self, branch_id: &BranchId) -> bool {
@@ -183,65 +241,5 @@ impl HistorySubsystem {
         self.has_branch(branch_id)
             .then_some(())
             .ok_or_else(|| format!("recovery checkpoint omitted branch cell `{}`", branch_id.0))
-    }
-
-    pub(crate) fn admit_recovered_branch_cell(
-        &mut self,
-        checkpoint: RelationalBranchCellCheckpoint,
-        expected_branch_id: &BranchId,
-    ) -> Result<(), String> {
-        let cell =
-            RelationalBranchReferenceCell::from_checkpoint(self.runtime_instance_id, checkpoint)
-                .map_err(|denial| format!("invalid durable branch-cell state: {denial:?}"))?;
-        let branch_id = cell.identity().branch_id().clone();
-        if &branch_id != expected_branch_id {
-            return Err(format!(
-                "recovery branch-cell `{}` does not match envelope branch `{}`",
-                branch_id.0, expected_branch_id.0
-            ));
-        }
-        history_recovery::validate_tail_branch_cell(self, &cell)?;
-        if let Some(existing) = self.branch_cell(&branch_id) {
-            let existing_checkpoint = existing.checkpoint();
-            let incoming_checkpoint = cell.checkpoint();
-            if !history_recovery::branch_cell_truth_matches(
-                &existing_checkpoint,
-                &incoming_checkpoint,
-            ) {
-                return Err(format!(
-                    "recovery branch-cell state conflicts for `{}`",
-                    branch_id.0
-                ));
-            }
-            return Ok(());
-        }
-        self.insert_branch_cell(cell);
-        Ok(())
-    }
-
-    pub(crate) fn branch_cells_snapshot(&self) -> Vec<RelationalBranchCellCheckpoint> {
-        self.record_branch_population_scan();
-        self.branch_cells.checkpoints()
-    }
-
-    pub(crate) fn branch_ids_snapshot(&self) -> Vec<BranchId> {
-        self.record_branch_population_scan();
-        self.branch_cells.keys().cloned().collect()
-    }
-
-    fn record_branch_population_scan(&self) {
-        self.branch_population_scans.fetch_add(1, Ordering::Relaxed);
-    }
-}
-
-impl RuntimeSubsystem for HistorySubsystem {
-    type Config = BranchId;
-
-    fn new(config: &Self::Config) -> Self {
-        Self::build_with_main_branch(config.clone())
-    }
-
-    fn fork(&self) -> Self {
-        self.clone()
     }
 }

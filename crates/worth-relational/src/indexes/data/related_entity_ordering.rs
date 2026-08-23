@@ -83,6 +83,17 @@ impl RelatedEntityOrderingEntry {
     pub const fn relation_id(&self) -> RelationId {
         self.relation_id
     }
+
+    pub(super) fn owned_allocation_capacity_bytes(&self) -> u64 {
+        (self.ordering_values.capacity() as u64)
+            .saturating_mul(std::mem::size_of::<RelatedEntityOrderingValue>() as u64)
+            .saturating_add(
+                self.ordering_values
+                    .iter()
+                    .map(|value| value.value.owned_allocation_capacity_bytes() as u64)
+                    .sum(),
+            )
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

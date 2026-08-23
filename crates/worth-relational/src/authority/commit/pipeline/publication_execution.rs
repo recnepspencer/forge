@@ -2,10 +2,7 @@ use super::artifact_execution::AssembledCommitExecution;
 
 mod phase;
 
-use phase::{
-    append_durable_commit_phase, finalize_publication_phase, DurableAppendPhaseInput,
-    FinalizePublicationPhaseInput,
-};
+use phase::{finalize_publication_phase, FinalizePublicationPhaseInput};
 
 pub(crate) struct CommitDurableAppendAdmission {
     runtime_instance_id: u64,
@@ -14,7 +11,7 @@ pub(crate) struct CommitDurableAppendAdmission {
 }
 
 impl CommitDurableAppendAdmission {
-    fn new(
+    pub(crate) fn new(
         runtime: &crate::runtime::RelationalRuntime,
         commit_id: crate::history::data::CommitId,
         branch_id: &crate::history::data::BranchId,
@@ -35,10 +32,6 @@ impl CommitDurableAppendAdmission {
     ) {
         (self.runtime_instance_id, self.commit_id, self.branch_id)
     }
-}
-
-pub(super) struct DurableCommitExecution {
-    assembled: AssembledCommitExecution,
 }
 
 pub(super) struct PublishedCommitExecution {
@@ -91,64 +84,27 @@ impl PublishedCommitExecution {
     }
 }
 
-pub(super) fn append_commit_durably(
-    runtime: &mut crate::runtime::RelationalRuntime,
-    mut assembled: AssembledCommitExecution,
-) -> Result<DurableCommitExecution, crate::transactions::data::TransactionCommitError> {
-    let (admitted, publication, commit_id, branch_id, branch_binding) = assembled.append_parts();
-    let append_authority = crate::durability::authority::DurableAppendAuthority::from_commit(
-        CommitDurableAppendAdmission::new(runtime, commit_id, branch_id),
-    );
-    runtime
-        .mvcc_publication_authority()
-        .validate_versioned_publication(
-            commit_id,
-            &publication.canonical_commit_envelope().commit,
-            branch_binding,
-            publication.canonical_commit_envelope(),
-        )
-        .map_err(|detail| {
-            crate::transactions::data::TransactionCommitError::publication(
-                crate::publication::data::PublicationError::new(
-                    crate::publication::bundle::PublicationStage::BundleAssembly,
-                    detail,
-                ),
-            )
-        })?;
-    let (_, _, _, _, commit_log, phase_timing) = admitted.phase_view().into_parts();
-    append_durable_commit_phase(
-        runtime,
-        DurableAppendPhaseInput {
-            commit_log,
-            phase_timing,
-            publication,
-            append_authority,
-            commit_id,
-            branch_id,
-        },
-    )?;
-    Ok(DurableCommitExecution { assembled })
-}
-
 pub(super) fn publish_commit_execution(
     runtime: &mut crate::runtime::RelationalRuntime,
-    durable: DurableCommitExecution,
+    assembled: AssembledCommitExecution,
 ) -> Result<PublishedCommitExecution, crate::transactions::data::TransactionCommitError> {
     let (
         mut admitted,
+        selected_branch_state,
         public_structural_summary,
         working_state,
         invariant_executions,
         version_id,
         created_entities,
         created_relations,
+        record_allocations,
         history,
         merge_parent_branches,
         publication,
         publication_snapshot,
         aspect_evaluation_traces,
         aspect_emission_traces,
-    ) = durable.assembled.into_parts();
+    ) = assembled.into_parts();
     let (_, _, _, _, commit_log, phase_timing) = admitted.phase_view().into_parts();
     let finalized = finalize_publication_phase(
         runtime,
@@ -156,6 +112,8 @@ pub(super) fn publish_commit_execution(
             commit_log,
             phase_timing,
             working_state,
+            record_allocations,
+            selected_branch_state: &selected_branch_state,
             publication,
             version_id,
             previous_branch_head_version: history.previous_branch_head_version,

@@ -5,12 +5,8 @@ use crate::storage::data::{
     ChunkDiagnostics, ChunkedStorageSummary, PartitionStorageStats, RecordLifecycleState,
     StorageStats,
 };
-use crate::storage::overlay::{
-    BorrowedWorkingState, OverlayStateView, PartitionState, WorkingState,
-};
-use crate::storage::partition::DenseSlotBitSet;
+use crate::storage::overlay::{BorrowedWorkingState, PartitionState};
 use crate::storage::substrate::RecordKind;
-use std::collections::BTreeMap;
 
 pub struct StorageAccess<'runtime> {
     runtime: &'runtime RelationalRuntime,
@@ -36,13 +32,6 @@ impl<'runtime> StorageAccess<'runtime> {
         partition_id: crate::identity::data::PartitionId,
     ) -> Option<&'runtime PartitionState> {
         self.runtime.partitions.get(&partition_id)
-    }
-
-    pub(crate) fn overlay_state_view<'overlay>(
-        &'overlay self,
-        staged: &'overlay WorkingState,
-    ) -> OverlayStateView<'overlay, WorkingState> {
-        OverlayStateView::new(&self.runtime.partitions, staged)
     }
 
     pub(crate) fn entity_slot_count(&self) -> usize {
@@ -74,57 +63,15 @@ impl<'runtime> StorageAccess<'runtime> {
             .max(1)
     }
 
-    pub(crate) fn current_version_partition_pins(
-        &self,
-    ) -> BTreeMap<crate::identity::data::PartitionId, crate::storage::overlay::SnapshotPartitionPins>
-    {
-        let mut pinned_partitions = BTreeMap::new();
-        for (partition_id, partition) in &self.runtime.partitions {
-            let mut entity_slots =
-                DenseSlotBitSet::with_capacity(partition.entity_arena.slot_count());
-            for slot in partition.entity_arena.live_bitset.iter_set_slots() {
-                entity_slots.set(slot, true);
-            }
-            let mut relation_slots =
-                DenseSlotBitSet::with_capacity(partition.relation_arena.slot_count());
-            let mut retained_relation_slots =
-                DenseSlotBitSet::with_capacity(partition.relation_arena.slot_count());
-            for slot in partition.relation_arena.live_bitset.iter_set_slots() {
-                relation_slots.set(slot, true);
-                if partition
-                    .relation_arena
-                    .get_slot(slot)
-                    .is_some_and(|slot_view| {
-                        slot_view.lifecycle()
-                            == crate::storage::data::RecordLifecycleState::RetainedDanglingForAudit
-                    })
-                {
-                    retained_relation_slots.set(slot, true);
-                }
-            }
-            if entity_slots.count_ones() > 0 || relation_slots.count_ones() > 0 {
-                pinned_partitions.insert(
-                    *partition_id,
-                    crate::storage::overlay::SnapshotPartitionPins {
-                        entity_slots,
-                        relation_slots,
-                        retained_relation_slots,
-                    },
-                );
-            }
-        }
-        pinned_partitions
-    }
-
-    pub(crate) fn record_slot_count<K: RecordKind>(
+    pub(crate) fn record_slots<K: RecordKind>(
         &self,
         partition_id: crate::identity::data::PartitionId,
-    ) -> usize {
+    ) -> Vec<usize> {
         self.runtime
             .partitions
             .get(&partition_id)
-            .map(|partition| K::arena(partition).slot_count())
-            .unwrap_or(0)
+            .map(|partition| K::arena(partition).occupied_slots())
+            .unwrap_or_default()
     }
 
     pub(crate) fn record_slot_surface<K: RecordKind>(

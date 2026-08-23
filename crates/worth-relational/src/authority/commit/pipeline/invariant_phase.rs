@@ -8,7 +8,11 @@ pub(super) fn enforce_commit_boundary_phase(
     runtime: &mut RelationalRuntime,
     commit_log: &mut CommitLog,
     phase_timing: &mut CommitPhaseTiming,
+    selected_branch_state: &crate::branch::SelectedRelationalBranchState,
+    proposed_working_state: &crate::storage::overlay::WorkingState,
+    proposed_version_id: crate::identity::data::VersionId,
     merged_plan: &MergedCommitPlan,
+    proposal_identity: Option<&crate::transactions::RelationalMutationProposalIdentity>,
     prevalidated_commit_boundary: Option<InvariantExecutionResult>,
 ) -> Result<InvariantExecutionResult, crate::transactions::data::TransactionCommitError> {
     commit_log.begin_phase(CommitPhase::InvariantPreCheck);
@@ -17,7 +21,13 @@ pub(super) fn enforce_commit_boundary_phase(
         Some(result) => result,
         None => runtime
             .invariant_authority()
-            .enforce_commit_boundary(merged_plan)
+            .enforce_commit_boundary_for_selected_branch(
+                selected_branch_state,
+                proposed_working_state,
+                proposed_version_id,
+                merged_plan,
+                proposal_identity,
+            )
             .map_err(|error| attach_rejection(commit_log, CommitPhase::InvariantPreCheck, error))?,
     };
     commit_log.record_invariant_outcomes(&pre_commit_invariants);
@@ -30,15 +40,23 @@ pub(super) fn enforce_snapshot_publication_phase(
     runtime: &mut RelationalRuntime,
     commit_log: &mut CommitLog,
     phase_timing: &mut CommitPhaseTiming,
+    selected_branch_state: &crate::branch::SelectedRelationalBranchState,
     working_state: &crate::storage::overlay::WorkingState,
     version_id: VersionId,
     merged_plan: &MergedCommitPlan,
+    proposal_identity: Option<&crate::transactions::RelationalMutationProposalIdentity>,
 ) -> Result<InvariantExecutionResult, crate::transactions::data::TransactionCommitError> {
     commit_log.begin_phase(CommitPhase::InvariantPostCheck);
     let phase_started = std::time::Instant::now();
     let post_invariants = runtime
         .invariant_authority()
-        .enforce_snapshot_publication_for_working_state(working_state, version_id, merged_plan)
+        .enforce_snapshot_publication_for_working_state(
+            selected_branch_state,
+            working_state,
+            version_id,
+            merged_plan,
+            proposal_identity,
+        )
         .map_err(crate::transactions::data::TransactionCommitError::publication)
         .map_err(|error| attach_rejection(commit_log, CommitPhase::InvariantPostCheck, error))?;
     commit_log.record_invariant_outcomes(&post_invariants);

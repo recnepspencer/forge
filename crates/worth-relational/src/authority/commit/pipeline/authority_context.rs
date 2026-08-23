@@ -37,9 +37,12 @@ pub(crate) struct AuthoritativeCommitContext {
 
 #[derive(Debug)]
 pub(super) struct PreparedAuthorityScope {
+    pub(super) selected_branch_state: crate::branch::SelectedRelationalBranchState,
     pub(super) structural_summary:
         crate::authority::commit::structural_summary::CommitStructuralSummary,
     pub(super) working_state: crate::storage::overlay::WorkingState,
+    pub(super) proposed_working_state: Option<crate::storage::overlay::WorkingState>,
+    pub(super) proposal_identity: Option<crate::transactions::RelationalMutationProposalIdentity>,
     pub(super) phase_timing: CommitPhaseTiming,
 }
 
@@ -57,7 +60,9 @@ impl AuthoritativeCommitContext {
             transaction_id,
             options,
             prepared,
+            proposed_working_state,
             commit_boundary,
+            proposal_identity,
             validated_against_commit,
             validated_against_version,
             validated_against_branch_version,
@@ -77,8 +82,11 @@ impl AuthoritativeCommitContext {
                 prepared.merged_plan,
             )),
             prepared_scope: Some(PreparedAuthorityScope {
+                selected_branch_state: prepared.selected_branch_state.clone(),
                 structural_summary: prepared.structural_summary,
                 working_state: prepared.working_state,
+                proposed_working_state: Some(proposed_working_state),
+                proposal_identity: Some(proposal_identity),
                 phase_timing: prepared.phase_timing,
             }),
             merge_execution_accounting: None,
@@ -108,8 +116,11 @@ impl AuthoritativeCommitContext {
                 prepared.merged_plan,
             )),
             prepared_scope: Some(PreparedAuthorityScope {
+                selected_branch_state: prepared.selected_branch_state,
                 structural_summary: prepared.structural_summary,
                 working_state: prepared.working_state,
+                proposed_working_state: None,
+                proposal_identity: None,
                 phase_timing,
             }),
             merge_execution_accounting: None,
@@ -228,8 +239,14 @@ impl AuthoritativeCommitContext {
                 validated_plan.lowered_plan().clone(),
             )),
             prepared_scope: Some(PreparedAuthorityScope {
+                selected_branch_state: validated_plan
+                    .prepared_scope()
+                    .selected_branch_state
+                    .clone(),
                 structural_summary: validated_plan.prepared_scope().structural_summary.clone(),
                 working_state: validated_plan.prepared_scope().working_state.clone(),
+                proposed_working_state: Some(validated_plan.proposed_working_state().clone()),
+                proposal_identity: Some(validated_plan.proposal_identity().clone()),
                 phase_timing: CommitPhaseTiming::default(),
             }),
             merge_execution_accounting: None,
