@@ -6,21 +6,17 @@ import secrets
 from pathlib import Path
 from typing import Any
 
-from worth_ui_ledger_durable_receipts import (
-    cache_receipt_identity,
-    read_durable_envelope,
-)
-from worth_ui_ledger_execution_cache import (
-    artifact_bindings,
-    artifact_bindings_match,
-    causal_artifact_dependencies,
-    digest_json,
+from worth_ui_ledger_execution_observation_migration import migrate_payload
+from worth_ui_ledger_execution_reference_validation import (
+    ExecutionExpectation,
+    validate_available_execution,
+    validate_execution,
 )
 from worth_ui_ledger_row_cache import source_artifact_bindings
 from worth_ui_ledger_runner_authentication import authentication_tag, authenticates
 
 
-SCHEMA = "worth-ui-ledger-causal-reuse-v1"
+SCHEMA = "worth-ui-ledger-causal-reuse-v2"
 
 
 def revalidate_row_payload(
@@ -47,6 +43,8 @@ def revalidate_row_payload(
         current = dict(retained)
         current["artifact_sha256"] = artifact_sha256
         return current
+    if row["requirement"].startswith("P6-"):
+        return None
     return reissue_payload(
         root,
         row,
@@ -58,7 +56,6 @@ def revalidate_row_payload(
         sources,
         current_source_digest,
     )
-
 
 def revalidate_joined_predecessor_payload(
     root: Path,
@@ -106,6 +103,14 @@ def revalidate_joined_predecessor_payload(
         and authenticated_receipt_keys(root, retained, fail_closed=False) is not None
     ):
         return None
+    if (
+        row["requirement"].startswith("P6-")
+        and (
+            retained.get("source_revision") != revision
+            or retained.get("source_state_digest") != state_digest
+        )
+    ):
+        return None
     return reissue_payload(
         root,
         row,
@@ -130,7 +135,7 @@ def reissue_payload(
     sources: list[str],
     current_source_digest: str,
 ) -> dict[str, Any]:
-    receipt_keys = authenticated_receipt_keys(root, payload)
+    observation_ids = authenticated_receipt_keys(root, payload)
     reused = {
         "schema": SCHEMA,
         "predecessor_artifact_sha256": artifact_sha256,
@@ -143,7 +148,7 @@ def reissue_payload(
         "source_artifact_bindings": source_artifact_bindings(
             root, row["exact_command"], row["requirement"]
         ),
-        "execution_receipt_keys": receipt_keys,
+        "execution_observation_ids": sorted(set(observation_ids)),
     }
     current = dict(payload)
     current.update(
@@ -194,6 +199,10 @@ def reusable_payload(
         and isinstance(receipts, list)
         and receipts
         and authenticated_receipt_keys(root, payload, fail_closed=False) is not None
+        and (
+            payload.get("causal_reuse") is not None
+            or receipts_match_payload_source(root, payload)
+        )
     )
 
 
@@ -206,6 +215,10 @@ def validate_causal_reuse(
     reuse = payload.get("causal_reuse")
     if reuse is None:
         return None
+    if not isinstance(reuse, dict):
+        raise RuntimeError("retained row has malformed causal-reuse evidence")
+    migrate_payload(root, payload)
+    reuse = payload.get("causal_reuse")
     if not isinstance(reuse, dict) or reuse.get("schema") != SCHEMA:
         raise RuntimeError("retained row has malformed causal-reuse evidence")
     sources = payload.get("mapping_source_identity")
@@ -224,19 +237,26 @@ def validate_causal_reuse(
         raise RuntimeError("retained row causal reuse is not current-source bound")
     current_digest = source_digest_at(root, tuple(sources))
     expected_bindings = source_artifact_bindings(root, command, requirement)
-    receipt_keys = authenticated_receipt_keys(root, payload)
+    inherited = reuse.get("execution_observation_ids")
+    if (
+        not isinstance(inherited, list)
+        or not inherited
+        or not all(valid_hex(key, 64) for key in inherited)
+    ):
+        raise RuntimeError("retained row causal reuse differs from its causal binding")
+    observation_ids = authenticated_receipt_keys(root, payload)
     if (
         payload.get("source_digest") != current_digest
         or reuse.get("source_artifact_bindings") != expected_bindings
         or reuse.get("claim_digest") != payload.get("claim_digest")
         or reuse.get("exact_command") != command
-        or reuse.get("execution_receipt_keys") != receipt_keys
+        or not set(inherited).issubset(observation_ids)
         or not valid_hex(reuse.get("predecessor_artifact_sha256"), 64)
         or not valid_hex(reuse.get("predecessor_source_digest"), 64)
         or not valid_hex(reuse.get("predecessor_run_nonce"), 32)
     ):
         raise RuntimeError("retained row causal reuse differs from its causal binding")
-    return set(receipt_keys)
+    return set(inherited)
 
 
 def authenticated_receipt_keys(
@@ -245,88 +265,82 @@ def authenticated_receipt_keys(
     *,
     fail_closed: bool = True,
 ) -> list[str] | None:
-    receipts = payload.get("execution_receipts")
-    if not isinstance(receipts, list) or not receipts:
-        return receipt_failure("retained row omits execution receipts", fail_closed)
-    keys: list[str] = []
     try:
-        for receipt in receipts:
-            if not isinstance(receipt, dict):
-                raise RuntimeError("retained row has a malformed execution receipt")
-            key = receipt.get("key")
-            role = receipt.get("role")
-            if not valid_hex(key, 64) or not isinstance(role, str):
-                raise RuntimeError("retained row has a malformed execution receipt")
-            envelope = receipt_envelope(root, payload, key)
-            record = envelope.get("record")
-            if not isinstance(record, dict):
-                raise RuntimeError("retained execution receipt is absent")
-            command = record.get("command")
-            if not isinstance(command, list) or not all(
-                isinstance(part, str) for part in command
-            ):
-                raise RuntimeError("retained execution receipt has no exact command")
-            binding = {
-                field: record.get(field)
-                for field in (
-                    "schema",
-                    "command",
-                    "source_revision",
-                    "source_state_digest",
-                    "artifact_bindings",
-                )
-            }
-            expected_dependencies = artifact_bindings(
+        migrate_payload(root, payload)
+        receipts = payload.get("execution_receipts")
+        if not isinstance(receipts, list) or not receipts:
+            return receipt_failure("retained row omits execution receipts", fail_closed)
+        identities: list[str] = []
+        reuse = payload.get("causal_reuse")
+        inherited = set(
+            reuse.get("execution_observation_ids", [])
+            if isinstance(reuse, dict) else []
+        )
+        for reference in receipts:
+            if not isinstance(reference, dict) or not isinstance(reference.get("role"), str):
+                raise RuntimeError("retained row has a malformed execution reference")
+            observation = reference.get("observation_sha256")
+            expectation = ExecutionExpectation(
                 root,
-                command,
-                causal_artifact_dependencies(command, role),
+                str(payload.get("source_revision", "")),
+                str(payload.get("source_state_digest", "")),
+                reference["role"],
                 str(payload.get("requirement", "")),
+                observation in inherited,
             )
-            unsigned = record
-            if (
-                envelope.get("receipt_sha256") != digest_json(record)
-                or not authenticates(
-                    unsigned, envelope.get("runner_authentication"), root
-                )
-                or record.get("key") != key
-                or digest_json(binding) != key
-                or not artifact_bindings_match(
-                    record.get("artifact_bindings"), expected_dependencies, command
-                )
-                or record.get("returncode") != 0
-                or record.get("duration_ms") != receipt.get("duration_ms")
-                or digest_json(command) != receipt.get("command_sha256")
-            ):
-                raise RuntimeError(
-                    "retained execution receipt differs from its authenticated dependency binding"
-                )
-            keys.append(key)
+            validated = validate_execution(reference, expectation)
+            identities.append(validated.observation_sha256)
     except (OSError, RuntimeError, TypeError, ValueError):
         if fail_closed:
             raise
         return None
-    return sorted(keys)
+    return sorted(identities)
 
 
-def receipt_envelope(
-    root: Path, payload: dict[str, Any], key: str
-) -> dict[str, Any]:
+def receipts_match_payload_source(root: Path, payload: dict[str, Any]) -> bool:
+    return receipts_match_payload_source_with(root, payload, validate_execution)
+
+
+def available_receipts_match_payload_source(
+    root: Path, payload: dict[str, Any]
+) -> bool:
+    return receipts_match_payload_source_with(
+        root, payload, validate_available_execution
+    )
+
+
+def receipts_match_payload_source_with(
+    root: Path, payload: dict[str, Any], validator: Any
+) -> bool:
+    revision = payload.get("source_revision")
+    state_digest = payload.get("source_state_digest")
+    receipts = payload.get("execution_receipts")
+    if not isinstance(revision, str) or not isinstance(state_digest, str):
+        return False
+    if not isinstance(receipts, list) or not receipts:
+        return False
     try:
-        return read_durable_envelope(root, key)
-    except RuntimeError:
-        reuse = payload.get("causal_reuse")
-        states = [payload.get("source_state_digest")]
-        if isinstance(reuse, dict):
-            states.append(reuse.get("predecessor_source_state_digest"))
-        for state in states:
-            if not isinstance(state, str):
-                continue
-            identity = cache_receipt_identity(root, state, key)
-            try:
-                return json.loads(identity.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
-                continue
-        raise RuntimeError("retained execution receipt is absent")
+        migrate_payload(root, payload)
+        receipts = payload["execution_receipts"]
+        for reference in receipts:
+            if not isinstance(reference, dict) or not isinstance(reference.get("role"), str):
+                return False
+            execution = validator(
+                reference,
+                ExecutionExpectation(
+                    root, revision, state_digest, reference["role"],
+                    str(payload.get("requirement", "")), False,
+                ),
+            )
+            binding = execution.record["execution_binding"]
+            if (
+                binding.get("source_revision") != revision
+                or binding.get("source_state_digest") != state_digest
+            ):
+                return False
+    except (OSError, RuntimeError, TypeError, ValueError, json.JSONDecodeError):
+        return False
+    return True
 
 
 def receipt_failure(message: str, fail_closed: bool) -> None:

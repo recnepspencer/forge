@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -17,6 +16,11 @@ ATLAS_REQUIREMENT = "P5-ATLAS-01"
 ATLAS_ARTIFACT = "_docs/worth-ui/milestone-3.14.1-evidence/p5-atlas-01.json"
 
 
+def require_result_dependency_schema(artifact: dict[str, Any], label: str) -> None:
+    if artifact.get("schema_version") not in {5, 7}:
+        raise ValueError(f"{label} has wrong schema_version")
+
+
 def validate_supporting_dependency(
     test: Any, revision: str, state_digest: str, root: Path
 ) -> dict[str, Any] | None:
@@ -30,8 +34,8 @@ def validate_supporting_dependency(
     path = (root / identity).resolve()
     artifact = json.loads(path.read_text(encoding="utf-8"))
     proved_digest = require_proved_artifact(root, MIXED_REQUIREMENT, identity, artifact)
+    require_result_dependency_schema(artifact, "HP-02 mixed-carrier artifact")
     expected = {
-        "schema_version": 5,
         "requirement": MIXED_REQUIREMENT,
         "package": "worth-ui-certification",
         "target_kind": "test",
@@ -83,8 +87,8 @@ def validate_phase5_atlas_dependency(
         raise ValueError("pinning proof omits its atlas producer artifact")
     artifact = json.loads((root / identity).read_text(encoding="utf-8"))
     digest = require_proved_artifact(root, ATLAS_REQUIREMENT, identity, artifact)
+    require_result_dependency_schema(artifact, "pinning atlas dependency")
     required = {
-        "schema_version": 5,
         "requirement": ATLAS_REQUIREMENT,
         "exit_posture": "passed",
         "executed_test_count": 1,

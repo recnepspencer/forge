@@ -3,7 +3,9 @@ use worth_ui_host_contract::{
 };
 
 use super::world::{rect_spec, MountedPresentationWorld};
-use crate::mounting::presentation::work_producer::UiMountedPresentationState;
+use crate::mounting::presentation::work_producer::{
+    SuccessorIssueRequest, UiMountedPresentationState,
+};
 
 #[test]
 fn precise_replacement_carries_vacated_and_successor_bounds() {
@@ -29,17 +31,15 @@ fn precise_replacement_carries_vacated_and_successor_bounds() {
         .unwrap();
 
     let work = predecessor_state
-        .issue_successor(
+        .issue_successor(SuccessorIssueRequest::new(
             &successor_state,
             &[world.first_instance],
             &[UiMountedPaintCommandChange::replacement(
                 predecessor.retained_paint_commands()[0].identity(),
                 replacement,
             )],
-            false,
-            Some(predecessor.frame()),
             &lease,
-        )
+        ))
         .unwrap();
     let UiMountedPresentationWorkView::Delta(delta) = work.view() else {
         panic!("precise replacement must issue delta work");

@@ -123,7 +123,7 @@ impl Phase5LocalityCase {
     }
 
     pub(super) fn qualification(self) -> UiNativeQualificationPlan {
-        match self.axis {
+        let qualification = match self.axis {
             Phase5LocalityAxis::Width => UiNativeQualificationPlan::ordinary()
                 .with_client_width_delta_after_presentation(1, 24)
                 .expect("bounded width successor"),
@@ -131,7 +131,8 @@ impl Phase5LocalityCase {
                 .with_dpi_scale_multiplier_after_presentation(1, 1_250)
                 .expect("bounded DPI successor"),
             _ => UiNativeQualificationPlan::ordinary(),
-        }
+        };
+        qualification.with_certification_worker_event_loop()
     }
 
     fn initial_frame(self) -> UiNativeApplicationFrame {

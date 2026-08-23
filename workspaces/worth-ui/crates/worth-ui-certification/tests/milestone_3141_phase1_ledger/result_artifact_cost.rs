@@ -8,7 +8,7 @@ pub(super) fn validate(requirement: &str, artifact: &Value) -> Result<(), String
         .unwrap_or(0);
     if matches!(
         requirement,
-        "P3-PREDECESSOR-01" | "P4-PREDECESSOR-01" | "P5-PREDECESSOR-01"
+        "P3-PREDECESSOR-01" | "P4-PREDECESSOR-01" | "P5-PREDECESSOR-01" | "P6-PREDECESSOR-01"
     ) {
         return validate_predecessor(requirement, artifact, control_tests);
     }
@@ -17,6 +17,9 @@ pub(super) fn validate(requirement: &str, artifact: &Value) -> Result<(), String
     }
     if requirement == "P5-ATLAS-PINNING-01" {
         return validate_gate_d_pin_world(artifact, control_tests);
+    }
+    if requirement == "P6-WINDOWS-WORLD-01" {
+        return validate_phase_six_windows_world(artifact, control_tests);
     }
     let p2 = requirement.starts_with("P2-");
     let phase_five_product_world = matches!(
@@ -213,12 +216,38 @@ fn validate_predecessor(
             "operational predecessor cost is not derived from its governed rerun".to_owned(),
         );
     }
-    if matches!(requirement, "P4-PREDECESSOR-01" | "P5-PREDECESSOR-01")
-        && (!records_operational_cost
-            || artifact["construction_cost"].as_str() != Some(&construction)
-            || artifact["execution_cost"].as_str() != Some(&execution))
+    if matches!(
+        requirement,
+        "P4-PREDECESSOR-01" | "P5-PREDECESSOR-01" | "P6-PREDECESSOR-01"
+    ) && (!records_operational_cost
+        || artifact["construction_cost"].as_str() != Some(&construction)
+        || artifact["execution_cost"].as_str() != Some(&execution))
     {
         return Err("current predecessor claim does not own its operational cost".to_owned());
+    }
+    Ok(())
+}
+
+fn validate_phase_six_windows_world(artifact: &Value, control_tests: u64) -> Result<(), String> {
+    let observation = &artifact["boundary_observation"];
+    if observation["schema"] != "worth-ui-native-phase6-boundary-observation-v1"
+        || observation["terminal_zero"] != true
+        || observation["product_processes"] != 1
+        || observation["input"]["retained_events"]
+            .as_u64()
+            .is_none_or(|count| count == 0)
+    {
+        return Err("Phase 6 Windows world omits retained native input evidence".to_owned());
+    }
+    let construction = format!(
+        "main-tests=1;hostile-controls={control_tests};product-processes=1;compile-sessions=0;courtroom-worlds=1"
+    );
+    let execution = "executed-tests=2;presentations=1";
+    if control_tests != 1
+        || artifact["construction_cost"].as_str() != Some(&construction)
+        || artifact["execution_cost"].as_str() != Some(execution)
+    {
+        return Err("Phase 6 Windows world cost is not bound to native input evidence".to_owned());
     }
     Ok(())
 }

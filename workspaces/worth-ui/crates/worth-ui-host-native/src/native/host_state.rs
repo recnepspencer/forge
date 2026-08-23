@@ -62,6 +62,7 @@ pub(crate) struct UiNativeHostState {
     pub(crate) text_atlas_model_frame_digests: Vec<[u8; 32]>,
     pub(crate) text_atlas_plan_observations:
         Vec<super::text_atlas::UiNativeTextAtlasPlanObservation>,
+    pub(crate) lifecycle_protocol: super::UiNativeLifecycleProtocol,
     pub(crate) observation_history_overflowed: bool,
     #[cfg(feature = "certification-support")]
     pub(crate) qualification: UiNativeQualificationState,
@@ -115,6 +116,7 @@ impl UiNativeHostState {
             text_pin_frame_observations: Vec::new(),
             text_atlas_model_frame_digests: Vec::new(),
             text_atlas_plan_observations: Vec::new(),
+            lifecycle_protocol: super::UiNativeLifecycleProtocol::new(),
             observation_history_overflowed: false,
             #[cfg(feature = "certification-support")]
             qualification: UiNativeQualificationState::ordinary(),
@@ -213,6 +215,7 @@ impl UiNativeHostState {
 
     pub(crate) fn close(&mut self) -> UiNativeResourceCensus {
         self.last_presentation = None;
+        self.lifecycle_protocol.close();
         let _ = self.physical_signal.shutdown();
         if self.pending_presentations.is_empty() {
             if self

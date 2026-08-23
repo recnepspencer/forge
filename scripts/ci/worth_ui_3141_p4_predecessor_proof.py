@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from worth_ui_3141_closure_sources import PREDECESSOR_EXECUTION_SOURCES
+
 
 CERT_ROOT = "workspaces/worth-ui/crates/worth-ui-certification/tests"
 
@@ -21,6 +23,7 @@ def predecessor_proof(
             validator,
             f"{CERT_ROOT}/milestone_3141_phase1_ledger/predecessor_artifact/causal_reuse.rs",
             f"{CERT_ROOT}/milestone_3141_phase1_ledger/predecessor_artifact/mapping_digest.rs",
+            f"{CERT_ROOT}/milestone_3141_phase1_ledger/predecessor_artifact/ledger_basis.rs",
             f"{CERT_ROOT}/milestone_3141_phase1_ledger/runner_artifact_authentication.rs",
             handoff,
             "scripts/ci/worth_ui_3141_p4_predecessor_proof.py",
@@ -28,19 +31,25 @@ def predecessor_proof(
             "scripts/ci/worth_ui_predecessor_causal_refresh.py",
             "scripts/ci/worth_ui_predecessor_candidate.py",
             "scripts/ci/worth_ui_predecessor_refresh_order.py",
+            "scripts/ci/worth_ui_predecessor_refresh_runtime.py",
             "scripts/ci/worth_ui_ledger_causal_revalidation.py",
-            "scripts/ci/worth_ui_ledger_durable_receipts.py",
-            "scripts/ci/worth_ui_ledger_execution_cache.py",
+            "scripts/ci/worth_ui_ledger_candidate_basis.py",
+            "scripts/ci/worth_ui_ledger_execution_observation_retention.py",
+            "scripts/ci/worth_ui_ledger_execution_runner.py",
             "scripts/ci/worth_ui_ledger_governed_snapshot.py",
+            "scripts/ci/worth_ui_predecessor_handoff_currentness.py",
+            "scripts/ci/worth_ui_ledger_execution_identity.py",
             "scripts/ci/worth_ui_ledger_portfolio_snapshot.py",
             "scripts/ci/worth_ui_ledger_row_cache.py",
             "scripts/ci/worth_ui_ledger_runner_authentication.py",
-            "scripts/ci/worth_ui_ledger_phase_two_portfolio.py",
+            "scripts/ci/worth_ui_ledger_atomic_closure.py",
+            "scripts/ci/worth_ui_ledger_phase_two_closure.py",
             "scripts/ci/worth_ui_ledger_phase_three_portfolio.py",
             "scripts/ci/worth_ui_ledger_phase_four_portfolio.py",
             "scripts/ci/worth_ui_ledger_operational_successors.py",
             "scripts/ci/worth_ui_predecessor_handoff.py",
             "scripts/ci/worth_ui_ledger_source_state.py",
+            *PREDECESSOR_EXECUTION_SOURCES,
             predecessor_artifact,
         ),
         control=control_type(

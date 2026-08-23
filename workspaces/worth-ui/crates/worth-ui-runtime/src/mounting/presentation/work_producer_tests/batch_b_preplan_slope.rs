@@ -113,14 +113,12 @@ fn prepare_one_changed_text(
         .claim()
         .unwrap();
     let work = predecessor_state
-        .issue_successor(
+        .issue_successor(super::super::work_producer::SuccessorIssueRequest::new(
             &successor_state,
             &[instances[changed_index]],
             &[],
-            false,
-            Some(predecessor.frame()),
             &lease,
-        )
+        ))
         .unwrap();
     let producer_cost = match work.view() {
         UiMountedPresentationWorkView::Delta(delta) => delta.production_cost(),

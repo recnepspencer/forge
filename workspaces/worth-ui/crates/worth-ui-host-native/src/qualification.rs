@@ -13,6 +13,7 @@ pub struct UiNativeQualificationPlan {
     derived_state_loss: Option<crate::UiNativeDerivedStateLossClass>,
     derived_state_loss_after_completed_presentation: Option<u64>,
     surface_basis_successor: Option<UiNativeQualificationSurfaceBasisSuccessor>,
+    event_loop_thread_posture: crate::native::UiNativeEventLoopThreadPosture,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -43,6 +44,8 @@ impl UiNativeQualificationPlan {
             derived_state_loss: None,
             derived_state_loss_after_completed_presentation: None,
             surface_basis_successor: None,
+            event_loop_thread_posture:
+                crate::native::UiNativeEventLoopThreadPosture::MainThreadRequired,
         }
     }
 
@@ -59,6 +62,8 @@ impl UiNativeQualificationPlan {
             derived_state_loss: None,
             derived_state_loss_after_completed_presentation: None,
             surface_basis_successor: None,
+            event_loop_thread_posture:
+                crate::native::UiNativeEventLoopThreadPosture::MainThreadRequired,
         })
     }
 
@@ -73,6 +78,8 @@ impl UiNativeQualificationPlan {
             derived_state_loss: None,
             derived_state_loss_after_completed_presentation: None,
             surface_basis_successor: None,
+            event_loop_thread_posture:
+                crate::native::UiNativeEventLoopThreadPosture::MainThreadRequired,
         })
     }
 
@@ -88,6 +95,8 @@ impl UiNativeQualificationPlan {
             derived_state_loss: Some(derived_state_loss),
             derived_state_loss_after_completed_presentation: None,
             surface_basis_successor: None,
+            event_loop_thread_posture:
+                crate::native::UiNativeEventLoopThreadPosture::MainThreadRequired,
         })
     }
 
@@ -103,6 +112,8 @@ impl UiNativeQualificationPlan {
             derived_state_loss: Some(derived_state_loss),
             derived_state_loss_after_completed_presentation: Some(one_based_presentation_ordinal),
             surface_basis_successor: None,
+            event_loop_thread_posture:
+                crate::native::UiNativeEventLoopThreadPosture::MainThreadRequired,
         })
     }
 
@@ -178,6 +189,12 @@ impl UiNativeQualificationPlan {
         Ok(self)
     }
 
+    pub fn with_certification_worker_event_loop(mut self) -> Self {
+        self.event_loop_thread_posture =
+            crate::native::UiNativeEventLoopThreadPosture::CertificationWorker;
+        self
+    }
+
     pub(crate) const fn deferred_presentations(self) -> [Option<u64>; 3] {
         self.deferred_presentations
     }
@@ -202,6 +219,12 @@ impl UiNativeQualificationPlan {
         self,
     ) -> Option<UiNativeQualificationSurfaceBasisSuccessor> {
         self.surface_basis_successor
+    }
+
+    pub(crate) const fn event_loop_thread_posture(
+        self,
+    ) -> crate::native::UiNativeEventLoopThreadPosture {
+        self.event_loop_thread_posture
     }
 }
 

@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from worth_ui_ledger_command import CLAIM_FIELDS
+from worth_ui_ledger_command import claim_digest_for_row
 from worth_ui_ledger_runner_authentication import authenticates
 
 
@@ -21,6 +21,7 @@ REBINDABLE_SOURCE_IDENTITIES = {
     "_docs/worth-ui/milestone-3.14.1-evidence/p3-predecessor-handoff.json",
     "_docs/worth-ui/milestone-3.14.1-evidence/p4-predecessor-handoff.json",
     "_docs/worth-ui/milestone-3.14.1-evidence/p5-predecessor-handoff.json",
+    "_docs/worth-ui/milestone-3.14.1-evidence/p6-predecessor-handoff.json",
     "_docs/worth-ui/milestone-3.14.1-evidence/p5-atlas-01.json",
 }
 
@@ -50,13 +51,7 @@ def require_proved_artifact(
     }
     if not authenticates(unsigned, artifact.get("runner_authentication"), root):
         raise ValueError(f"dependency producer {requirement} lacks runner provenance")
-    claim = hashlib.sha256()
-    for field in CLAIM_FIELDS:
-        claim.update(field.encode("utf-8"))
-        claim.update(b"\0")
-        claim.update(row[field].encode("utf-8"))
-        claim.update(b"\0")
-    if artifact.get("claim_digest") != claim.hexdigest():
+    if artifact.get("claim_digest") != claim_digest_for_row(row):
         raise ValueError(f"dependency producer {requirement} drifted claim_digest")
     for column, field in [
         ("source_revision", "source_revision"),

@@ -17,7 +17,7 @@ if str(CI) not in sys.path:
 
 import close_worth_ui_3141_ledger as ledger_closer
 from worth_ui_3141_ledger_contracts import EXPECTED_IGNORED
-from worth_ui_3141_proof_plan import proofs
+from worth_ui_3141_proof_plan import proofs, source_inventory
 from worth_ui_ledger_command import GovernedTest, control_budget_ms, execution_budget_ms
 from worth_ui_ledger_observation import observed_costs
 import worth_ui_ledger_phase_five_portfolio as phase_five_portfolio
@@ -47,7 +47,7 @@ class PhaseFiveReadinessTests(unittest.TestCase):
                     "requirement": row["requirement"],
                     "production_entry": proof.production_entry,
                     "independent_oracle": proof.oracle_entry,
-                    "mapping_source_identity": proof.sources,
+                    "mapping_source_identity": source_inventory(proof),
                 })
             expected[name] = mapping_digest(observations)
 
@@ -224,15 +224,17 @@ class PhaseFiveReadinessTests(unittest.TestCase):
 
     def test_gate_batches_close_atomically_without_claiming_phase_closure(self) -> None:
         selected = [{"requirement": "P5-ATLAS-01"}]
-        with mock.patch.object(ledger_closer, "close_selected_atomically") as close:
+        with mock.patch.object(ledger_closer, "close_atomically") as close:
             ledger_closer.close_phase_five([], [], selected)
-        close.assert_called_once_with([], [], selected, verify_phase=None)
+        plan = close.call_args.args[2]
+        self.assertEqual((list(plan.selected), plan.verify_phase), (selected, None))
 
     def test_gate_g_close_runs_the_full_phase_verifier(self) -> None:
         selected = [{"requirement": "P5-CLOSE-01"}]
-        with mock.patch.object(ledger_closer, "close_selected_atomically") as close:
+        with mock.patch.object(ledger_closer, "close_atomically") as close:
             ledger_closer.close_phase_five([], [], selected)
-        close.assert_called_once_with([], [], selected, verify_phase=5)
+        plan = close.call_args.args[2]
+        self.assertEqual((list(plan.selected), plan.verify_phase), (selected, 5))
 
     def test_reopening_drops_stale_execution_truth_and_retains_lineage(self) -> None:
         row = {

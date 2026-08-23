@@ -7,8 +7,10 @@ mod native_gate_d_application;
 mod native_phase2_evidence;
 #[cfg(feature = "executable-world")]
 mod native_phase3_application;
+mod native_phase6_evidence;
 #[cfg(feature = "executable-world")]
 mod native_phase_f_application;
+#[cfg(feature = "executable-world")]
 mod native_phase_f_cancellation_world;
 #[cfg(feature = "executable-world")]
 mod native_phase_f_deferred_completion_world;
@@ -42,6 +44,9 @@ fn main() -> ExitCode {
     }
     if std::env::args_os().any(|argument| argument == "--worth-ui-native-phase2-world") {
         return run_native_phase2_world();
+    }
+    if std::env::args_os().any(|argument| argument == "--worth-ui-native-phase6-world") {
+        return run_native_phase6_world();
     }
     #[cfg(feature = "executable-world")]
     if std::env::args_os().any(|argument| argument == "--worth-ui-native-phase3-world") {
@@ -304,6 +309,43 @@ fn run_native_phase2_world() -> ExitCode {
         }
         outcome => {
             eprintln!("worth-ui-native-phase2 stopped: {outcome:?}");
+            ExitCode::from(3)
+        }
+    }
+}
+
+fn run_native_phase6_world() -> ExitCode {
+    use worth_ui_native_platform::{
+        UiNativePlatformOutcome, UiNativePlatformProfile, UiNativeWindowSpec, WorthUiNativePlatform,
+    };
+    let profile = UiNativePlatformProfile::single_window(UiNativeWindowSpec::new(
+        "WORTH UI Platform Pulse Phase 6",
+        [160, 96],
+    ));
+    let Ok(platform) = WorthUiNativePlatform::prepare(profile) else {
+        return ExitCode::from(2);
+    };
+    match platform.run(worth_ui_platform_pulse::PlatformPulseNativeSeedApplication::new()) {
+        UiNativePlatformOutcome::Closed(receipt)
+            if receipt.terminal_census().is_zero()
+                && receipt.input_observations().retained_event_count() > 0
+                && receipt.input_observations().last_pointer_button().is_some()
+                && receipt.client_shutdown().is_some_and(|shutdown| {
+                    let counts = shutdown.observation_ingress().counts();
+                    counts[0] > 0
+                        && counts[4] == 0
+                        && counts[..4].iter().sum::<u64>()
+                            >= receipt.input_observations().retained_batch_count()
+                }) =>
+        {
+            println!(
+                "{}",
+                native_phase6_evidence::native_phase6_evidence(&receipt)
+            );
+            ExitCode::SUCCESS
+        }
+        outcome => {
+            eprintln!("worth-ui-native-phase6 stopped: {outcome:?}");
             ExitCode::from(3)
         }
     }

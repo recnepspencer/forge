@@ -7,30 +7,6 @@ use serde_json::Value;
 
 const CLOSING_PATH: &str = "_docs/worth-ui/milestone-3.10.1-phase-7-closing-evidence.json";
 const OPENING_PATH: &str = "_docs/worth-ui/milestone-3.10.1-opening-baseline.json";
-const EXACT_SOURCE_EXCLUSIONS: [&str; 4] = [
-    "crates/worth-ui-certification/src/topology/milestone_3101_inventory/phase8_closeout.rs",
-    "crates/worth-ui-certification/src/topology/milestone_3101_inventory/phase8_closeout_tests.rs",
-    "crates/worth-ui-certification/src/intent_execution_provider.rs",
-    "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle/scaled_canvas.rs",
-];
-const SUCCESSOR_MILESTONE_SOURCE_PREFIXES: [&str; 16] = [
-    "crates/worth-ui-certification/src/scenario/application_authority_closure/platform_pulse_application.rs",
-    "crates/worth-ui-certification/src/scenario/application_authority_closure/visual_identity_application.rs",
-    "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle/platform_pulse.rs",
-    "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle/authored_identity.rs",
-    "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle/post_classification_cost.rs",
-    "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle/rebind_profile.rs",
-    "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle/scaled_canvas.rs",
-    "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle/visual_identity.rs",
-    "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle/visual_inspection.rs",
-    "crates/worth-ui-certification/src/topology/inspection_topology_audit/",
-    "crates/worth-ui-certification/src/topology/milestone_3102_pulse_seed/",
-    "crates/worth-ui-certification/src/topology/milestone_3103_executable_world/",
-    "crates/worth-ui-certification/src/topology/milestone_3103_product_contract/",
-    "crates/worth-ui-certification/src/topology/milestone_3103_external_world/",
-    "crates/worth-ui-certification/src/topology/milestone_3103_watched_replacement/",
-    "crates/worth-ui-certification/src/topology/milestone_3103_cost_closure/",
-];
 const REQUIRED_OPERATION_CATEGORIES: &[&str] = &[
     "initial_file_acquisition_and_dsl_lowering",
     "rust_authored_canonicalization",
@@ -317,7 +293,7 @@ fn validate_inventory_budget(
         .rust_files_under("crates/worth-ui-certification/src")
         .filter(|source| {
             let path = source.relative_path().to_string_lossy().replace('\\', "/");
-            belongs_to_phase7_inventory(&path)
+            super::phase7_historical_source_scope::belongs_to_phase7_inventory(&path)
         })
         .count();
     if integer(budget, "certification_audience_source_files")? as usize != certification_files
@@ -326,13 +302,6 @@ fn validate_inventory_budget(
         return Err("Phase 7 closing structural inventory changed".to_owned());
     }
     Ok(())
-}
-
-fn belongs_to_phase7_inventory(path: &str) -> bool {
-    !EXACT_SOURCE_EXCLUSIONS.contains(&path)
-        && !SUCCESSOR_MILESTONE_SOURCE_PREFIXES
-            .iter()
-            .any(|prefix| path.starts_with(prefix))
 }
 
 fn named_rows(rows: &[Value]) -> Result<BTreeMap<&str, &Value>, String> {

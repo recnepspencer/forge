@@ -47,17 +47,18 @@ def execution_claim_row(
     artifact: str,
     exact_command: str | None = None,
     sources: object | None = None,
+    preserve_claim: bool = False,
 ) -> dict[str, str]:
     current = dict(row)
     proof = proofs().get(row["requirement"])
-    if proof is not None:
+    if proof is not None and not preserve_claim:
         prepare_claim(current, proof)
     if exact_command is None:
         words = current["exact_command"].split()
         words[words.index("--artifact") + 1] = artifact
         exact_command = " ".join(words)
     current["exact_command"] = exact_command
-    if sources is not None:
+    if sources is not None and not preserve_claim:
         if not isinstance(sources, list) or not all(
             isinstance(source, str) for source in sources
         ):
@@ -71,7 +72,12 @@ def execution_claim_row(
 
 
 def stage_execution_claim(
-    candidate: Path, row: dict[str, str], artifact: str, command: list[str]
+    candidate: Path,
+    row: dict[str, str],
+    artifact: str,
+    command: list[str],
+    *,
+    preserve_claim: bool = False,
 ) -> None:
     with candidate.open(encoding="utf-8", newline="") as stream:
         reader = csv.DictReader(stream)
@@ -81,7 +87,13 @@ def stage_execution_claim(
     if len(matches) != 1:
         raise RuntimeError("candidate ledger omits the exact staged requirement")
     sources = [command[index + 1] for index, word in enumerate(command) if word == "--source"]
-    staged = execution_claim_row(row, artifact, " ".join(command), sources)
+    staged = execution_claim_row(
+        row,
+        artifact,
+        " ".join(command),
+        sources,
+        preserve_claim=preserve_claim,
+    )
     with candidate.open("w", encoding="utf-8", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
@@ -137,9 +149,11 @@ def predecessor_observations(
         raise RuntimeError("predecessor handoff is outside the operational portfolio") from error
     payload = json.loads(identity.read_text(encoding="utf-8"))
     rows = payload.get("rows")
+    through_phase = payload.get("through_phase")
+    expected_schema = "worth-ui-phase-predecessor-handoff-v4"
     if (
-        payload.get("schema") != "worth-ui-phase-predecessor-handoff-v1"
-        or payload.get("through_phase") != 2
+        payload.get("schema") != expected_schema
+        or through_phase != 2
         or payload.get("source_revision") != observation.get("source_revision")
         or payload.get("source_state_digest") != observation.get("source_state_digest")
         or not isinstance(rows, list)

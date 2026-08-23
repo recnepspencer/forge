@@ -53,7 +53,11 @@ impl UiNativeHostState {
                 Some(observation) => ready.pending.mark_presented(observation),
                 None => {
                     if let Some(settlement) = ready.pending.take_settlement() {
-                        settlement.abandon(self, ready.pending.physical_basis());
+                        settlement.abandon(
+                            self,
+                            ready.pending.physical_basis(),
+                            ready.pending.completion_identity(),
+                        );
                     }
                     ready.pending.mark_indeterminate();
                 }
@@ -71,13 +75,61 @@ impl UiNativeHostState {
         mut ready: ReadyPresentation,
     ) -> UiNativePresentationPhysicalProgress {
         if let Some(observation) = ready.pending.take_presented_observation() {
+            self.resolve_superseded_settlement(&mut ready.pending);
             ready.pending.mark_superseded(observation);
         } else {
+            if let Some(settlement) = ready.pending.take_settlement() {
+                settlement.abandon(
+                    self,
+                    ready.pending.physical_basis(),
+                    ready.pending.completion_identity(),
+                );
+            }
             ready.pending.mark_indeterminate();
         }
         ready.pending.release_external(&mut self.resources);
         self.retain_if_completion_pending(ready);
         UiNativePresentationPhysicalProgress::Superseded
+    }
+
+    fn resolve_superseded_settlement(
+        &mut self,
+        predecessor: &mut crate::native::UiNativePendingPresentation,
+    ) {
+        let Some(mut settlement) = predecessor.take_settlement() else {
+            return;
+        };
+        let basis = predecessor.physical_basis();
+        let predecessor_attempt = basis.attempt().diagnostic_value();
+        for successor in &mut self.pending_presentations {
+            let successor_basis = successor.physical_basis();
+            if successor_basis.binding() != basis.binding()
+                || successor_basis.attempt().diagnostic_value() <= predecessor_attempt
+            {
+                continue;
+            }
+            match successor.inherit_predecessor_settlement(settlement) {
+                Ok(()) => {
+                    predecessor.replace_settlement(
+                        crate::native::presentation::UiNativePendingSurfaceSettlement::SupersededDeltaResolved,
+                    );
+                    return;
+                }
+                Err(returned) => settlement = returned,
+            }
+        }
+        let committed_successor = self
+            .presentation_epochs
+            .get(&basis.binding().diagnostic_value())
+            .is_some_and(|epoch| epoch.diagnostic_value() > predecessor_attempt);
+        if committed_successor {
+            settlement.commit_superseded_predecessor();
+        } else {
+            settlement.rollback_superseded_predecessor(self, basis);
+        }
+        predecessor.replace_settlement(
+            crate::native::presentation::UiNativePendingSurfaceSettlement::SupersededDeltaResolved,
+        );
     }
 
     fn schedule_presentation_recovery(
@@ -95,7 +147,11 @@ impl UiNativeHostState {
                 .commit_presentation_poll_override(identity);
         }
         if let Some(settlement) = ready.pending.take_settlement() {
-            settlement.abandon(self, ready.pending.physical_basis());
+            settlement.abandon(
+                self,
+                ready.pending.physical_basis(),
+                ready.pending.completion_identity(),
+            );
         }
         #[cfg(feature = "certification-support")]
         if let Some(class) = self.qualification.take_derived_state_loss() {
@@ -122,7 +178,11 @@ impl UiNativeHostState {
         mut ready: ReadyPresentation,
     ) -> UiNativePresentationPhysicalProgress {
         if let Some(settlement) = ready.pending.take_settlement() {
-            settlement.abandon(self, ready.pending.physical_basis());
+            settlement.abandon(
+                self,
+                ready.pending.physical_basis(),
+                ready.pending.completion_identity(),
+            );
         }
         ready.pending.mark_indeterminate();
         ready.pending.release_external(&mut self.resources);

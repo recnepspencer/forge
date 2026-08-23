@@ -1,4 +1,4 @@
-pub(super) const EXPECTED_REQUIREMENTS: [&str; 80] = [
+pub(super) const EXPECTED_REQUIREMENTS: [&str; 90] = [
     "P1-AFFINITY-01",
     "P1-AUTHORITY-01",
     "P1-BACKEND-FEATURES-01",
@@ -79,6 +79,16 @@ pub(super) const EXPECTED_REQUIREMENTS: [&str; 80] = [
     "P5-TEXT-COST-01",
     "P5-TEXT-ASYNC-PRESENTATION-01",
     "P5-CLOSE-01",
+    "P6-PREDECESSOR-01",
+    "P6-INPUT-AFFINITY-01",
+    "P6-IME-01",
+    "P6-POINTER-TIME-01",
+    "P6-PROFILE-ORDER-01",
+    "P6-READINESS-01",
+    "P6-SETTLEMENT-01",
+    "P6-PROTOCOL-WORLD-01",
+    "P6-WINDOWS-WORLD-01",
+    "P6-CLOSE-01",
 ];
 
 pub(super) const HEADER: [&str; 41] = [

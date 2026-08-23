@@ -7,6 +7,7 @@ pub(super) fn predecessor_requirements(count: usize) -> BTreeSet<&'static str> {
         30 => b'2',
         47 => b'3',
         68 => b'4',
+        80 => b'5',
         _ => 0,
     };
     schema::EXPECTED_REQUIREMENTS

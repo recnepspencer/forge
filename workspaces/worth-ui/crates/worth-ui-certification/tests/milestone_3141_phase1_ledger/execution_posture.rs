@@ -64,6 +64,16 @@ pub(crate) fn counter_amount(requirement: &str) -> Option<u64> {
         "P5-TEXT-COST-01" => 32,
         "P5-TEXT-ASYNC-PRESENTATION-01" => 10,
         "P5-CLOSE-01" => 12,
+        "P6-PREDECESSOR-01" => 80,
+        "P6-INPUT-AFFINITY-01" => 2,
+        "P6-IME-01" => 3,
+        "P6-POINTER-TIME-01" => 1,
+        "P6-PROFILE-ORDER-01" => 1,
+        "P6-READINESS-01" => 2,
+        "P6-SETTLEMENT-01" => 1,
+        "P6-PROTOCOL-WORLD-01" => 177,
+        "P6-WINDOWS-WORLD-01" => 1,
+        "P6-CLOSE-01" => 10,
         _ if main_for(requirement).is_some() => 1,
         _ => return None,
     })
@@ -101,6 +111,16 @@ pub(crate) fn fault_boundary(requirement: &str) -> Option<&'static str> {
         | "P5-TEXT-SPAN-PAINT-01" => "before-effects",
         "P5-TEXT-ASYNC-PRESENTATION-01" => "after-effects-may-have-begun",
         requirement if requirement.starts_with("P5-") => "not-applicable",
+        "P6-PREDECESSOR-01" => "predecessor-handoff-source-binding",
+        "P6-INPUT-AFFINITY-01" => "input-admission-presentation-affinity",
+        "P6-IME-01" => "ime-phase-classification",
+        "P6-POINTER-TIME-01" => "pointer-event-time-witness",
+        "P6-PROFILE-ORDER-01" => "profile-transition-admission",
+        "P6-READINESS-01" => "readiness-commit-signal-consume",
+        "P6-SETTLEMENT-01" => "typed-settlement-outcome-mapping",
+        "P6-PROTOCOL-WORLD-01" => "protocol-production-oracle-comparison",
+        "P6-WINDOWS-WORLD-01" => "windows-message-position-witness",
+        "P6-CLOSE-01" => "phase-six-closure-source-prefix",
         _ => return None,
     })
 }
@@ -125,6 +145,8 @@ pub(crate) fn main_budget_ms(requirement: &str) -> u64 {
         570_000
     } else if requirement == "P5-TEXT-RECONSTRUCTION-01" {
         570_000
+    } else if requirement == "P6-WINDOWS-WORLD-01" {
+        300_000
     } else if matches!(
         requirement,
         "P5-TEXT-PIXELS-01" | "P5-TEXT-ASYNC-PRESENTATION-01"
@@ -178,6 +200,10 @@ pub(crate) fn expected_declared_ignored(requirement: &str) -> bool {
                 | "P5-TEXT-ASYNC-PRESENTATION-01"
                 | "P5-CLOSE-01"
         )
+        || matches!(
+            requirement,
+            "P6-PREDECESSOR-01" | "P6-WINDOWS-WORLD-01" | "P6-CLOSE-01"
+        )
 }
 
 pub(crate) fn is_shared_main(requirement: &str) -> bool {
@@ -226,6 +252,9 @@ pub(crate) fn control_budget_ms(requirement: &str) -> u64 {
     }
     if requirement == "P5-TEXT-COST-01" {
         return 120_000;
+    }
+    if requirement == "P6-WINDOWS-WORLD-01" {
+        return 60_000;
     }
     if matches!(
         requirement,

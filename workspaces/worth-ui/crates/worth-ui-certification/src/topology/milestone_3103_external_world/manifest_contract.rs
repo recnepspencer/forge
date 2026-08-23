@@ -16,13 +16,25 @@ fn audit_test_target(manifest: &toml::Value) -> Result<(), String> {
     let features = manifest["features"]
         .as_table()
         .ok_or_else(|| "pulse executable-world feature should exist".to_owned())?;
-    if features.len() != 1
-        || features
-            .get("executable-world")
-            .and_then(toml::Value::as_array)
-            .is_none_or(|members| !members.is_empty())
-    {
-        return Err("pulse should expose only the empty executable-world feature".to_owned());
+    let expected_members = [
+        "worth-ui/certification-support",
+        "worth-ui-native-platform/certification-support",
+    ]
+    .into_iter()
+    .collect::<BTreeSet<_>>();
+    let observed_members = features
+        .get("executable-world")
+        .and_then(toml::Value::as_array)
+        .map(|members| {
+            members
+                .iter()
+                .filter_map(toml::Value::as_str)
+                .collect::<BTreeSet<_>>()
+        });
+    if features.len() != 1 || observed_members.as_ref() != Some(&expected_members) {
+        return Err(
+            "pulse should expose only the exact executable-world certification feature".to_owned(),
+        );
     }
     let tests = manifest["test"]
         .as_array()
@@ -66,12 +78,19 @@ fn audit_windows_dev_dependencies(manifest: &toml::Value) -> Result<(), String> 
         let table = dependency
             .as_table()
             .ok_or_else(|| format!("`{name}` should inherit from the workspace"))?;
-        let expected_keys = if name == "xcap" {
+        let expected_features = match name.as_str() {
+            "winsafe" => ["dwm", "kernel", "user"]
+                .into_iter()
+                .collect::<BTreeSet<_>>(),
+            "xcap" => ["wgc"].into_iter().collect::<BTreeSet<_>>(),
+            _ => BTreeSet::new(),
+        };
+        let expected_keys = if expected_features.is_empty() {
+            ["workspace"].into_iter().collect::<BTreeSet<_>>()
+        } else {
             ["features", "workspace"]
                 .into_iter()
                 .collect::<BTreeSet<_>>()
-        } else {
-            ["workspace"].into_iter().collect::<BTreeSet<_>>()
         };
         let observed_keys = table.keys().map(String::as_str).collect::<BTreeSet<_>>();
         let observed_features = table
@@ -84,11 +103,6 @@ fn audit_windows_dev_dependencies(manifest: &toml::Value) -> Result<(), String> 
                     .collect::<BTreeSet<_>>()
             })
             .unwrap_or_default();
-        let expected_features = if name == "xcap" {
-            ["wgc"].into_iter().collect::<BTreeSet<_>>()
-        } else {
-            BTreeSet::new()
-        };
         if table.get("workspace").and_then(toml::Value::as_bool) != Some(true)
             || observed_keys != expected_keys
             || observed_features != expected_features
@@ -122,13 +136,7 @@ fn audit_workspace_native_contracts(workspace: &toml::Value) -> Result<(), Strin
     if win32job != "=2.0.3" {
         return Err("workspace dependency `win32job` contract drifted".to_owned());
     }
-    audit_dependency(
-        dependencies,
-        "winsafe",
-        "=0.0.28",
-        Some(false),
-        &["dwm", "kernel", "user"],
-    )?;
+    audit_dependency(dependencies, "winsafe", "=0.0.28", Some(false), &[])?;
     audit_dependency(dependencies, "xcap", "=0.9.7", Some(false), &[])
 }
 

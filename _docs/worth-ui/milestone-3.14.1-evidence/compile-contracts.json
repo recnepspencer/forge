@@ -1,9 +1,9 @@
 {
   "schema": "worth-ui-compile-contract-result-v1",
   "exit_posture": "passed",
-  "run_nonce": "d8479556dfbf4a70e6c5d2b555de3774",
-  "source_revision": "dec3ed3ab6aee904e2e575b8c841265ade8db5cd",
-  "source_state_digest": "c36105bb603622263024a953067f3b23714ce74b84b8e131047831af1b7baf8e",
+  "run_nonce": "651c56bdb84735765c749d976961ea61",
+  "source_revision": "ef56a3d58523baa15ae4c253455a01ef16623e06",
+  "source_state_digest": "2adb5b50291c0fcd8e34e18d93bd56e4f4cf5b95adab5ad53a04b5490bd715e6",
   "cargo_sessions": 2,
   "fail_targets": 78,
   "pass_targets": 25,
@@ -490,7 +490,7 @@
       "kind": "fail",
       "target": "product-native-event-loop-client-substitution",
       "source": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/construction/host_binding/product_cannot_substitute_native_event_loop_client.rs",
-      "source_sha256": "40bb23db610e3deee54886c3f33e4113df5e001905a5b15b49b3df2198d193e9",
+      "source_sha256": "f10950e465784065557888aef1fa6c39bbf31180fc00d0704ab6a68a6d8995dc",
       "snapshot": "workspaces/worth-ui/crates/worth-ui/tests/ui/facade/construction/host_binding/product_cannot_substitute_native_event_loop_client.stderr",
       "snapshot_sha256": "07c80dc4b78282ef2d2b0789e669b007d62452ed1346f84fcaed1bda37cd06c6"
     },

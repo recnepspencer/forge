@@ -6,7 +6,8 @@ import json
 from pathlib import Path
 
 from worth_ui_3141_proof_plan import prepare_claim, proofs
-from worth_ui_ledger_command import CLAIM_FIELDS, source_digest
+from worth_ui_ledger_artifact_identity import requirement_phase
+from worth_ui_ledger_command import CLAIM_FIELDS, claim_digest_for_row, source_digest
 from worth_ui_ledger_causal_revalidation import reusable_payload, validate_causal_reuse
 
 
@@ -16,6 +17,7 @@ ROW_EVIDENCE_DEPENDENCIES = {
     "P5-PREDECESSOR-01": ("P5-TEXT-ASYNC-PRESENTATION-01",),
     "P5-ATLAS-PINNING-01": ("P5-ATLAS-01",),
 }
+CURRENT_SOURCE_PHASE = 6
 
 
 def reopen_claim(row: dict[str, str], proof: object) -> None:
@@ -27,6 +29,10 @@ def reopen_claim(row: dict[str, str], proof: object) -> None:
 def reopen_prepared_claim(
     row: dict[str, str], previous_artifact: str | None
 ) -> None:
+    lineage = row.get("reopen_lineage", "none")
+    if previous_artifact and previous_artifact != "not-bound":
+        successor = f"supersedes:{previous_artifact}"
+        lineage = successor if lineage == "none" else f"{lineage};{successor}"
     row.update(
         {
             "matched_test_count": "0",
@@ -38,11 +44,7 @@ def reopen_prepared_claim(
             "result_artifact_digest": "not-bound",
             "result": "OPEN",
             "final_source": "false",
-            "reopen_lineage": (
-                f"supersedes:{previous_artifact}"
-                if previous_artifact and previous_artifact != "not-bound"
-                else row.get("reopen_lineage", "none")
-            ),
+            "reopen_lineage": lineage,
         }
     )
 
@@ -58,7 +60,7 @@ def phase_proofs(phase: int) -> dict[str, object]:
     return {
         requirement: proof
         for requirement, proof in proofs().items()
-        if int(requirement[1]) == phase
+        if requirement_phase(requirement) == phase
     }
 
 
@@ -111,6 +113,11 @@ def phase_rows_to_prepare(
 def row_has_current_causal_binding(
     row: dict[str, str], proof: object, current_state: str | None, prepare: object = prepare_claim
 ) -> bool:
+    if (
+        int(row["phase"]) == CURRENT_SOURCE_PHASE
+        and (current_state is None or row.get("source_state_digest") != current_state)
+    ):
+        return False
     expected = dict(row)
     prepare(expected, proof)
     exact_fields = (*CLAIM_FIELDS, "exact_command", "retained_result_artifact")
@@ -133,30 +140,28 @@ def row_has_current_causal_binding(
             ROOT,
             expected,
             payload,
-            row_claim_digest(expected),
+            claim_digest_for_row(expected),
             sources,
             current_source_digest,
         ):
             return False
-        validate_causal_reuse(
+        causal_reuse = validate_causal_reuse(
             ROOT,
             payload,
             str(payload.get("source_revision", "")),
             str(payload.get("source_state_digest", "")),
         )
+        if (
+            current_state is None
+            or (
+                payload.get("source_state_digest") != current_state
+                and causal_reuse is None
+            )
+        ):
+            return False
         return True
     except (OSError, RuntimeError, TypeError, ValueError, json.JSONDecodeError):
         return False
-
-
-def row_claim_digest(row: dict[str, str]) -> str:
-    result = hashlib.sha256()
-    for field in CLAIM_FIELDS:
-        result.update(field.encode("utf-8"))
-        result.update(b"\0")
-        result.update(row[field].encode("utf-8"))
-        result.update(b"\0")
-    return result.hexdigest()
 
 
 def include_phase_close_dependency(

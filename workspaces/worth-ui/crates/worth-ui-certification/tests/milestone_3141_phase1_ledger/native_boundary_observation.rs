@@ -188,6 +188,11 @@ fn validate_native_graphics(observation: &Value) -> Result<(), String> {
         "event_loop_thread_matches_launch",
         &Value::Bool(true),
     )?;
+    require_str(
+        graphics,
+        "event_loop_thread_posture",
+        "main-thread-required",
+    )?;
     if graphics
         .get("max_texture_dimension_2d")
         .and_then(Value::as_u64)

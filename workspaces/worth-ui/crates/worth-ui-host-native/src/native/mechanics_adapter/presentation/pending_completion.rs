@@ -38,6 +38,14 @@ pub(crate) fn complete_pending(
             observation,
         ) => complete_superseded(state, pending, observation),
         crate::native::presentation::UiNativePendingPresentationCompletion::Indeterminate => {
+            let completion_identity = pending.completion_identity();
+            if let Some(settlement) = pending.take_settlement() {
+                settlement.abandon(state, pending.physical_basis(), completion_identity);
+            }
+            state.lifecycle_protocol.abandon_pending_presentation(
+                pending.physical_basis().binding(),
+                completion_identity,
+            );
             pending.consume_completion_identity();
             if pending.has_active_external() {
                 state.pending_presentations.insert(index, pending);
@@ -54,12 +62,25 @@ fn complete_superseded(
     mut pending: crate::native::presentation::UiNativePendingPresentation,
     observation: crate::native::presentation::UiNativePresentationPortObservation,
 ) -> worth_ui_host_contract::UiHostSurfaceInFlightCompletion {
+    state.lifecycle_protocol.abandon_pending_presentation(
+        pending.physical_basis().binding(),
+        pending.completion_identity(),
+    );
     let Some(settlement) = pending.take_settlement() else {
         pending.release(&mut state.resources);
         state.effect_posture = UiNativeEffectPosture::PresentationIndeterminate;
         return worth_ui_host_contract::UiHostSurfaceInFlightCompletion::PresentationIndeterminate;
     };
-    drop(settlement);
+    if !settlement.is_resolved_supersession() {
+        settlement.abandon(
+            state,
+            pending.physical_basis(),
+            pending.completion_identity(),
+        );
+        pending.release(&mut state.resources);
+        state.effect_posture = UiNativeEffectPosture::PresentationIndeterminate;
+        return worth_ui_host_contract::UiHostSurfaceInFlightCompletion::PresentationIndeterminate;
+    }
     let cost = observation.into_superseded_cost();
     pending.release(&mut state.resources);
     worth_ui_host_contract::UiHostSurfaceInFlightCompletion::Superseded(
@@ -72,9 +93,17 @@ fn complete_presented(
     mut pending: crate::native::presentation::UiNativePendingPresentation,
     observation: crate::native::presentation::UiNativePresentationPortObservation,
 ) -> worth_ui_host_contract::UiHostSurfaceInFlightCompletion {
-    let completion = pending
-        .take_settlement()
-        .and_then(|settlement| settlement.complete(state, pending.physical_basis(), observation));
+    let completion_identity = pending
+        .completion_identity()
+        .expect("presented pending work retains its completion identity");
+    let completion = pending.take_settlement().and_then(|settlement| {
+        settlement.complete(
+            state,
+            pending.physical_basis(),
+            completion_identity,
+            observation,
+        )
+    });
     pending.release(&mut state.resources);
     match completion {
         Some(completion) => {
@@ -100,12 +129,20 @@ pub(crate) fn stop_pending(
         return worth_ui_host_contract::UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun;
     };
     let mut pending = state.pending_presentations.remove(index);
+    state.lifecycle_protocol.abandon_pending_presentation(
+        pending.physical_basis().binding(),
+        pending.completion_identity(),
+    );
     let recovery = state
         .physical_signal
         .cancel_presentation_to_recovery(pending.physical_work())
         .expect("retained pending presentation owns its physical Signal request");
     if let Some(settlement) = pending.take_settlement() {
-        settlement.abandon(state, pending.physical_basis());
+        settlement.abandon(
+            state,
+            pending.physical_basis(),
+            pending.completion_identity(),
+        );
     }
     pending.consume_completion_identity();
     assert!(pending.refresh_physical_token(recovery));

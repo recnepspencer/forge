@@ -22,13 +22,19 @@ pub(super) fn assert_qualified_dependencies() {
     let workspace = workspace_manifest["workspace"]["dependencies"]
         .as_table()
         .expect("workspace dependency declarations");
+    let windows = crate_manifest["target"]["cfg(windows)"]["dependencies"]
+        .as_table()
+        .expect("Windows dependency declarations");
     for &(name, version) in QUALIFIED_DEPENDENCIES {
         assert_exact_pin(name, version, qualified, declarations, workspace);
     }
+    assert_exact_pin("winsafe", "0.0.28", qualified, windows, workspace);
     for entries in [declarations, workspace] {
         assert_dependency_features(entries, "winit", &["rwh_06"]);
         assert_dependency_features(entries, "wgpu", &["std", "parking_lot", "dx12", "wgsl"]);
     }
+    assert_dependency_features(workspace, "winsafe", &[]);
+    assert_dependency_features(windows, "winsafe", &["user"]);
     assert_eq!(qualified["winit-features"].as_str(), Some("rwh_06"));
     assert_eq!(
         qualified["wgpu-features"].as_str(),
@@ -71,12 +77,16 @@ fn assert_dependency_features(
 ) {
     let dependency = &declarations[name];
     assert_eq!(dependency["default-features"].as_bool(), Some(false));
-    let features = dependency["features"]
-        .as_array()
-        .expect("qualified dependency feature list")
-        .iter()
-        .map(|feature| feature.as_str().expect("feature string"))
-        .collect::<Vec<_>>();
+    let features = dependency
+        .get("features")
+        .and_then(toml::Value::as_array)
+        .map(|features| {
+            features
+                .iter()
+                .map(|feature| feature.as_str().expect("feature string"))
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
     assert_eq!(features, expected, "{name} feature posture drifted");
 }
 

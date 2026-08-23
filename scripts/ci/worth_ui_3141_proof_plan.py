@@ -18,6 +18,7 @@ from worth_ui_3141_p2_proofs import build_p2_proofs
 from worth_ui_3141_p3_proofs import build_p3_proofs
 from worth_ui_3141_p4_proofs import build_p4_proofs
 from worth_ui_3141_p5_proofs import build_p5_proofs
+from worth_ui_3141_p6_proofs import build_p6_proofs
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -30,6 +31,7 @@ P3_MIXED_WORLD_ARTIFACT = f"{EVIDENCE}/p3-delta-source-01.json"
 P3_PREDECESSOR_HANDOFF = f"{EVIDENCE}/p3-predecessor-handoff.json"
 P4_PREDECESSOR_HANDOFF = f"{EVIDENCE}/p4-predecessor-handoff.json"
 P5_PREDECESSOR_HANDOFF = f"{EVIDENCE}/p5-predecessor-handoff.json"
+P6_PREDECESSOR_HANDOFF = f"{EVIDENCE}/p6-predecessor-handoff.json"
 COMPILE_TEST_SOURCE = (
     "workspaces/worth-ui/crates/worth-ui-certification/tests/"
     "milestone_3141_phase1_topology/compile_contract_artifact.rs"
@@ -69,6 +71,9 @@ class Proof:
     control: Control | None = None
     shared_main: bool = False
 
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "sources", tuple(dict.fromkeys(self.sources)))
+
 
 def proofs() -> dict[str, Proof]:
     result = build_p1_proofs(compile_proof, rust_lib, rust_test)
@@ -91,6 +96,7 @@ def proofs() -> dict[str, Proof]:
     result.update(shared_phase_three_proofs())
     result.update(build_p4_proofs(Proof, Control, P4_PREDECESSOR_HANDOFF))
     result.update(build_p5_proofs(Proof, Control, P5_PREDECESSOR_HANDOFF))
+    result.update(build_p6_proofs(Proof, Control, P6_PREDECESSOR_HANDOFF))
     return result
 
 
@@ -238,7 +244,7 @@ def command(requirement: str, proof: Proof, artifact: str) -> str:
     words.extend(["--test-name", proof.test_name])
     add_control(words, proof.control)
     words.extend(["--requirement", requirement])
-    for source in proof.sources:
+    for source in source_inventory(proof):
         words.extend(["--source", source])
     words.extend(["--artifact", artifact])
     return " ".join(words)
@@ -277,11 +283,10 @@ def prepare_claim(row: dict[str, str], proof: Proof) -> None:
         "platform_versions": platform_versions(requirement),
         "exact_command": command(requirement, proof, artifact),
         "retained_result_artifact": artifact,
-        "source_identity": ";".join(proof.sources),
+        "source_identity": ";".join(source_inventory(proof)),
         "structural_counters": f"{counter}={amount}",
         "presented_source_readback": presented_source_posture(requirement),
         "client_area_observation": client_area_posture(requirement),
-        "reopen_lineage": "none",
     })
     if requirement.startswith(("P4-", "P5-")):
         text_profile = (
@@ -289,6 +294,30 @@ def prepare_claim(row: dict[str, str], proof: Proof) -> None:
         )
         row["font_profile_identity"] = "worth-ui-global-text-v2"
         row["font_profile_digest"] = digest(text_profile)
+    if requirement.startswith("P6-"):
+        native_profile = (
+            ROOT
+            / "workspaces/worth-ui/crates/worth-ui-host-native/profiles/"
+            "worth-ui-windows-dx12-v1.toml"
+        )
+        row["native_profile_identity"] = "worth-ui-windows-dx12-v1"
+        row["native_profile_digest"] = digest(native_profile)
+
+
+def source_inventory(proof: Proof) -> tuple[str, ...]:
+    sources = list(proof.sources)
+    if proof.control is not None:
+        sources.append(proof.control.source)
+    producer = (
+        "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/"
+        "work_producer.rs"
+    )
+    if producer in sources:
+        sources.append(
+            "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/"
+            "work_producer/successor_issue.rs"
+        )
+    return tuple(dict.fromkeys(sources))
 
 
 def digest(path: Path) -> str:

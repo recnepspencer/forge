@@ -4,6 +4,8 @@ use worth_ui_certification::scenario::phase5_locality_matrix::{
     cost_hostile_cases_for_axis, COST_HOSTILE_CASES,
 };
 
+use crate::phase5_locality_worker::invocation;
+
 const EVIDENCE_PREFIX: &str = "WORTH_UI_PHASE5_PRODUCTION_LOCALITY=";
 
 #[test]
@@ -16,7 +18,10 @@ fn exact_owner_cost_mutants_are_convicted_by_performed_small_worlds() {
     ];
     let mut convictions = Vec::new();
     for case in cases {
-        let output = Command::new(env!("CARGO_BIN_EXE_worth-ui-phase5-locality-matrix"))
+        let (executable, arguments) = invocation();
+        let output = Command::new(executable)
+            .args(arguments)
+            .env("WORTH_UI_PHASE5_MATRIX_MODE", "case")
             .env("WORTH_UI_PHASE5_MATRIX_CASE", case)
             .stderr(Stdio::inherit())
             .output()

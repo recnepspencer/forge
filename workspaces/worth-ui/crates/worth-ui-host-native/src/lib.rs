@@ -10,7 +10,8 @@ mod text_profile;
 pub use native::{
     UiNativeClientAuthoredMountedInstanceObservation, UiNativeClientConditionalOutcome,
     UiNativeClientDerivedStateLossClass, UiNativeClientDerivedStateReconstructionObservation,
-    UiNativeClientPresentationAttribution, UiNativeClientPresentationMechanicIdentityObservation,
+    UiNativeClientObservationIngressObservation, UiNativeClientPresentationAttribution,
+    UiNativeClientPresentationMechanicIdentityObservation,
     UiNativeClientPresentationSemanticChange,
     UiNativeClientPresentationSemanticFrontierObservation,
     UiNativeClientPresentationSemanticSubscriberObservation,
@@ -20,14 +21,29 @@ pub use native::{
     UiNativeDerivedStateReconstructionObservation, UiNativeEffectPosture, UiNativeEventLoopCleanup,
     UiNativeEventLoopClient, UiNativeEventLoopClientCleanup, UiNativeEventLoopClientClose,
     UiNativeEventLoopDirective, UiNativeEventLoopRunDenial, UiNativeEventLoopRunReport,
-    UiNativeEventLoopStopReport, UiNativeGlyphObservation, UiNativeGraphicsObservation,
-    UiNativePhysicalPresentationCorrelation, UiNativePhysicalProgressClass,
-    UiNativePhysicalProgressGrant, UiNativePhysicalSignalExternalStatusClass,
-    UiNativePhysicalSignalLifecycleObservation, UiNativePhysicalSignalObservationOriginClass,
-    UiNativePhysicalSignalSettlementClass, UiNativePhysicalSignalTransitionObservation,
-    UiNativePhysicalSignalWorkClass, UiNativePresentationObservation, UiNativePresentationWorkKind,
-    UiNativeReadinessGrant, UiNativeResourceCensus, UiNativeRetainedFrameObservation,
-    UiNativeTextAtlasPlanObservation, UiNativeTextPinObservation, WorthUiNativeEventLoop,
+    UiNativeEventLoopStopReport, UiNativeEventLoopThreadPosture, UiNativeGlyphObservation,
+    UiNativeGraphicsObservation, UiNativeInputObservationEventFamily,
+    UiNativeInputObservationReport, UiNativeInputObservationStop,
+    UiNativeObservationReadinessGrant, UiNativePhysicalPresentationCorrelation,
+    UiNativePhysicalProgressClass, UiNativePhysicalProgressGrant,
+    UiNativePhysicalSignalExternalStatusClass, UiNativePhysicalSignalLifecycleObservation,
+    UiNativePhysicalSignalObservationOriginClass, UiNativePhysicalSignalSettlementClass,
+    UiNativePhysicalSignalTransitionObservation, UiNativePhysicalSignalWorkClass,
+    UiNativePointerButtonObservation, UiNativePresentationObservation,
+    UiNativePresentationWorkKind, UiNativeReadinessGrant, UiNativeResourceCensus,
+    UiNativeRetainedFrameObservation, UiNativeTextAtlasPlanObservation, UiNativeTextPinObservation,
+    WorthUiNativeEventLoop,
+};
+#[cfg(feature = "certification-support")]
+pub use native::{UiNativeInputObservationContract, UiNativeInputObservationContractDisposition};
+#[cfg(feature = "certification-support")]
+pub use native::{
+    UiNativeLifecycleEffect, UiNativeLifecyclePhase, UiNativeLifecycleProtocol,
+    UiNativeLifecycleRequiredAction, UiNativeLifecycleTransition,
+};
+#[cfg(feature = "certification-support")]
+pub use native::{
+    UiNativeReadinessContract, UiNativeReadinessContractOutcome, UiNativeReadinessContractWork,
 };
 pub use native_profile::{
     UiNativeMechanicsCapacities, UiNativePlatformProfileIdentity, WORTH_UI_NATIVE_PROFILE_MANIFEST,

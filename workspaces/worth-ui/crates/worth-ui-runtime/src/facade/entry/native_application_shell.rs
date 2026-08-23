@@ -5,6 +5,8 @@ use crate::facade::mounted::{
 };
 use std::collections::HashMap;
 
+use super::native_observation_settlement::UiNativeObservationIngressSettlement;
+
 #[path = "native_application_shell/component_presence.rs"]
 mod component_presence;
 #[path = "native_application_shell/launch.rs"]
@@ -55,6 +57,12 @@ pub enum WorthUiNativeApplicationShellLaunchDenial {
 }
 
 impl WorthUiNativeApplicationShell {
+    pub(crate) fn admit_native_observation_batches(
+        &mut self,
+    ) -> UiNativeObservationIngressSettlement {
+        self.session.drain_and_admit_host_observation_batches()
+    }
+
     pub(crate) fn cancel_mounted_presentation(
         &mut self,
         in_flight: crate::mounting::UiMountedPresentationInFlight,

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import contextlib
 import csv
+import hashlib
 import io
+import json
 import os
 import tempfile
 from pathlib import Path
@@ -81,6 +83,31 @@ def serialize_row(row: dict[str, str], fields: list[str]) -> str:
 
 def csv_rows(content: str):
     return csv.DictReader(io.StringIO(content))
+
+
+def synchronize_historical_rows(candidate: Path, root: Path, through_phase: int = 5) -> None:
+    with candidate.open(encoding="utf-8", newline="") as stream:
+        reader = csv.DictReader(stream)
+        fields = list(reader.fieldnames or ())
+        rows = list(reader)
+    for row in rows:
+        if int(row["phase"]) > through_phase or row["result"] != "PROVED":
+            continue
+        identity = root / row["retained_result_artifact"]
+        content = identity.read_bytes()
+        payload = json.loads(content.decode("utf-8"))
+        if payload.get("requirement") != row["requirement"]:
+            raise RuntimeError("historical artifact requirement does not match its ledger row")
+        for field in ("source_revision", "source_digest", "source_state_digest", "run_nonce"):
+            value = payload.get(field)
+            if not isinstance(value, str):
+                raise RuntimeError(f"historical artifact omits {field}")
+            row[field] = value
+        row["result_artifact_digest"] = hashlib.sha256(content).hexdigest()
+    with candidate.open("w", encoding="utf-8", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=fields, lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(rows)
 
 
 def transaction_extra_identities(

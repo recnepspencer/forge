@@ -27,6 +27,8 @@ mod delta_transaction_tests;
 mod reconstruction_tests;
 #[path = "retained_draw_list/replay_tests.rs"]
 mod replay_tests;
+#[path = "retained_draw_list/superseded_transaction_tests.rs"]
+mod superseded_transaction_tests;
 
 #[test]
 fn unchanged_advances_exact_affinity_without_draw_order_or_damage_work() {

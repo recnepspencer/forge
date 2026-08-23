@@ -258,6 +258,10 @@ fn assert_exact_graphics(graphics: &serde_json::Value) {
     assert_eq!(graphics["alpha_mode"], "PreMultiplied");
     assert_eq!(graphics["retained_format"], "Rgba8UnormSrgb");
     assert_eq!(graphics["event_loop_thread_matches_launch"], true);
+    assert_eq!(
+        graphics["event_loop_thread_posture"],
+        "main-thread-required"
+    );
     assert!(graphics["max_texture_dimension_2d"]
         .as_u64()
         .is_some_and(|limit| limit >= 16_384));

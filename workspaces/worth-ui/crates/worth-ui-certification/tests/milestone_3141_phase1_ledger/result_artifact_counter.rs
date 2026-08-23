@@ -16,6 +16,9 @@ pub(super) fn validate(requirement: &str, artifact: &Value, expected: u64) -> Re
     if requirement.starts_with("P5-") {
         return validate_stdout_counter(requirement, artifact, expected, "Phase 5");
     }
+    if requirement.starts_with("P6-") {
+        return validate_stdout_counter(requirement, artifact, expected, "Phase 6");
+    }
     let observation = &artifact["boundary_observation"];
     let observed = match requirement {
         "P2-APPLICATION-01" => value(observation, &["peak", "application_drivers"]),

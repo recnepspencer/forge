@@ -45,6 +45,7 @@ struct WorthUiHeadlessRecorderState {
         worth_ui_host_contract::UiSurfaceBindingGeneration,
         UiHeadlessRetainedPresentation,
     >,
+    input_recipients: BTreeMap<u64, worth_ui_host_contract::UiHostInputRecipientBindingReceipt>,
     latest_production_cost: Option<UiMountedPresentationProductionCost>,
 }
 
@@ -101,6 +102,7 @@ impl WorthUiHeadlessRecorder {
                 transcripts: VecDeque::new(),
                 transcript_checkpoints: BTreeMap::new(),
                 retained_presentations: BTreeMap::new(),
+                input_recipients: BTreeMap::new(),
                 latest_production_cost: None,
             })),
         }
@@ -247,6 +249,29 @@ impl WorthUiHostMechanicsAdapter for WorthUiHeadlessRecorder {
         self.state.borrow().measurement.report()
     }
 
+    fn install_mechanical_input_recipient(
+        &self,
+        binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+    ) -> bool {
+        self.state
+            .borrow_mut()
+            .input_recipients
+            .insert(binding.host_session(), binding);
+        true
+    }
+
+    fn clear_mechanical_input_recipient(
+        &self,
+        binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+    ) -> bool {
+        let mut state = self.state.borrow_mut();
+        if state.input_recipients.get(&binding.host_session()) != Some(&binding) {
+            return false;
+        }
+        state.input_recipients.remove(&binding.host_session());
+        true
+    }
+
     fn perform_surface_registration(
         &self,
         request: UiHostSurfaceRegistrationRequest,
@@ -350,6 +375,7 @@ impl WorthUiHostMechanicsAdapter for WorthUiHeadlessRecorder {
         state
             .registrations
             .retain(|_, request| request.host_session_identity() != host_session_identity);
+        state.input_recipients.remove(&host_session_identity);
         for binding in released_bindings {
             state.retained_presentations.remove(&binding);
             state.transcript_checkpoints.remove(&binding);

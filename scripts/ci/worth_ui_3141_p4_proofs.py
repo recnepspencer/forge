@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from worth_ui_3141_closure_sources import CLOSURE_PROTOCOL_SOURCES
+
 from worth_ui_3141_p4_predecessor_proof import predecessor_proof
 from worth_ui_3141_p4_proof_builder import (
     CERT_ROOT,
@@ -341,5 +343,8 @@ def consumer_and_locality_proofs(proof_type: Any, control_type: Any) -> dict[str
         close_source,
         "milestone_3141_phase1_ledger::mutation_tests::phase_closure_mode_rejects_open_rows_at_or_before_its_gate",
         f"{CERT_ROOT}/milestone_3141_phase1_ledger/mutation_tests.rs",
+        "scripts/ci/worth_ui_3141_p4_proofs.py",
+        "scripts/ci/worth_ui_3141_p4_predecessor_proof.py",
+        *CLOSURE_PROTOCOL_SOURCES,
     )
     return result

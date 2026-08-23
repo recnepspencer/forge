@@ -1,8 +1,7 @@
 use serde_json::Value;
 
-use super::{
-    belongs_to_phase7_inventory, load_json, validate_closing_evidence, CLOSING_PATH, OPENING_PATH,
-};
+use super::{load_json, validate_closing_evidence, CLOSING_PATH, OPENING_PATH};
+use crate::topology::milestone_3101_inventory::phase7_historical_source_scope::belongs_to_phase7_inventory;
 use crate::topology::WorkspaceSourceInventory;
 
 fn documents() -> (WorkspaceSourceInventory, Value, Value) {

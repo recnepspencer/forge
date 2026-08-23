@@ -32,7 +32,6 @@ use std::rc::Rc;
 
 #[path = "app_presentation_async.rs"]
 mod presentation_async;
-pub use presentation_async::WorthUiPresentationAsyncInstallationDenial;
 
 /// Runtime facade entrypoint for building Worth UI applications.
 pub struct WorthUi {

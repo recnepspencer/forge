@@ -138,7 +138,7 @@
   "package": "worth-ui-text",
   "passed_test_count": 1,
   "requirement": "P4-CAPACITY-01",
-  "run_nonce": "4b0510eac28b70085ddea1b96236bfef",
+  "run_nonce": "a4ec3826f93fb01ad993defc153fc2d0",
   "schema_version": 5,
   "source_digest": "f892b0fc3c2cbd5195e25b43e1962ff73d2d56fe7c486822ebbe1beb116997c5",
   "source_identity": [
@@ -147,8 +147,8 @@
     "workspaces/worth-ui/crates/worth-ui-text/src/font_collection/admission.rs",
     "workspaces/worth-ui/crates/worth-ui-text/src/language.rs"
   ],
-  "source_revision": "dec3ed3ab6aee904e2e575b8c841265ade8db5cd",
-  "source_state_digest": "c36105bb603622263024a953067f3b23714ce74b84b8e131047831af1b7baf8e",
+  "source_revision": "ef56a3d58523baa15ae4c253455a01ef16623e06",
+  "source_state_digest": "b51de7a501e15a402b769927b6de45024be04b58a34fbf2df55b9a932b55239f",
   "structural_counter": "denied-before-analysis=3",
   "supporting_world": null,
   "target_kind": "lib",
@@ -201,10 +201,9 @@
     "execution_receipt_keys": [
       "039b93495db67a7bd7e1303b4444a9109552d32d7c8fd090ee3ce01f3f2ae6e0",
       "5bbb5b7f4497f4c1bb4977d5d7e3e2619f4c53dc4e2e937430f94321b4f8b1dd",
-      "5bbb5b7f4497f4c1bb4977d5d7e3e2619f4c53dc4e2e937430f94321b4f8b1dd",
       "b3743f5a6beedd58dc08ded8d3e87b6ab907f906489f3bd47a0d1137cc3ce58a",
       "c85156d261633690ad666f1c068916e767be10c47539827e828b4aefc1b51a75"
     ]
   },
-  "runner_authentication": "7eb60bb680a9522088214e259b8024acd1675e562a55c8f5d511ee914f9e28ec"
+  "runner_authentication": "9c447fb4cac4fa8483d541c37c2940d6a53afa12b8ca622ffba4bbdb39824997"
 }

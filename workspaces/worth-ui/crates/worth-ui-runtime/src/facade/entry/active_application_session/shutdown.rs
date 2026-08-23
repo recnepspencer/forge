@@ -5,7 +5,9 @@ impl WorthUiActiveApplicationSession {
         let rebind = self.rebind.shutdown();
         let visual_capture = self.visual_captures.shutdown();
         let visual_overlay = self.visual_overlays.shutdown();
+        let previous_input = self.interaction.active_input_binding();
         let interaction = self.interaction.shutdown();
+        self.clear_displaced_input_recipient(previous_input);
         let confirmation = self.intent_confirmation.shutdown();
         let (admission, execution) = self.intent_admission.shutdown(&mut self.intent_execution);
         let observation_resources = self.application.retire_observation_resources(

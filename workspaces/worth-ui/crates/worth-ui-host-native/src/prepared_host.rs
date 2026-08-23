@@ -16,6 +16,7 @@ pub struct WorthUiPreparedNativeMechanics {
 pub struct WorthUiPreparedNativeHost {
     state: Rc<RefCell<UiNativeHostState>>,
     profile: super::UiNativePlatformProfileIdentity,
+    event_loop_thread_posture: crate::native::UiNativeEventLoopThreadPosture,
 }
 
 impl WorthUiPreparedNativeHost {
@@ -23,6 +24,8 @@ impl WorthUiPreparedNativeHost {
         Self {
             state: Rc::new(RefCell::new(UiNativeHostState::new())),
             profile: super::UiNativePlatformProfileIdentity::WORTH_UI_WINDOWS_DX12_V1,
+            event_loop_thread_posture:
+                crate::native::UiNativeEventLoopThreadPosture::MainThreadRequired,
         }
     }
 
@@ -30,9 +33,11 @@ impl WorthUiPreparedNativeHost {
     /// control. Available only to certification compositions.
     #[cfg(feature = "certification-support")]
     pub fn prepare_qualified_for_certification(plan: crate::UiNativeQualificationPlan) -> Self {
+        let event_loop_thread_posture = plan.event_loop_thread_posture();
         Self {
             state: Rc::new(RefCell::new(UiNativeHostState::new_for_certification(plan))),
             profile: super::UiNativePlatformProfileIdentity::WORTH_UI_WINDOWS_DX12_V1,
+            event_loop_thread_posture,
         }
     }
 
@@ -50,7 +55,11 @@ impl WorthUiPreparedNativeHost {
             WorthUiNativeMechanicsAdapter::from_preparation(Rc::clone(&self.state), self.profile);
         (
             WorthUiPreparedNativeMechanics { adapter },
-            WorthUiNativeEventLoop::from_preparation(self.state, window),
+            WorthUiNativeEventLoop::from_preparation(
+                self.state,
+                window,
+                self.event_loop_thread_posture,
+            ),
         )
     }
 }
@@ -72,9 +81,64 @@ impl worth_ui_host_contract::WorthUiHostMechanicsAdapter for WorthUiPreparedNati
         worth_ui_host_contract::WorthUiHostMechanicsAdapter::mechanical_host_contract(&self.adapter)
     }
 
+    fn mechanical_protocol_contract(&self) -> worth_ui_host_contract::UiHostProtocolContract {
+        worth_ui_host_contract::WorthUiHostMechanicsAdapter::mechanical_protocol_contract(
+            &self.adapter,
+        )
+    }
+
     fn mechanical_capability_report(&self) -> worth_ui_host_contract::WorthUiHostCapabilityReport {
         worth_ui_host_contract::WorthUiHostMechanicsAdapter::mechanical_capability_report(
             &self.adapter,
+        )
+    }
+
+    fn mechanical_measurement_environment_report(
+        &self,
+    ) -> worth_ui_host_contract::UiHostMeasurementEnvironmentReport {
+        worth_ui_host_contract::WorthUiHostMechanicsAdapter::mechanical_measurement_environment_report(
+            &self.adapter,
+        )
+    }
+
+    fn mechanical_visual_capture_capability(
+        &self,
+    ) -> worth_ui_host_contract::UiHostCaptureCapability {
+        worth_ui_host_contract::WorthUiHostMechanicsAdapter::mechanical_visual_capture_capability(
+            &self.adapter,
+        )
+    }
+
+    fn drain_mechanical_host_observations(
+        &self,
+        host_session_identity: u64,
+    ) -> Result<
+        worth_ui_host_contract::UiHostObservationDrain,
+        worth_ui_host_contract::UiHostObservationDrainDenial,
+    > {
+        worth_ui_host_contract::WorthUiHostMechanicsAdapter::drain_mechanical_host_observations(
+            &self.adapter,
+            host_session_identity,
+        )
+    }
+
+    fn perform_visual_capture(
+        &self,
+        request: worth_ui_host_contract::UiHostVisualCaptureRequest,
+    ) -> worth_ui_host_contract::UiHostCaptureObservationOutcome {
+        worth_ui_host_contract::WorthUiHostMechanicsAdapter::perform_visual_capture(
+            &self.adapter,
+            request,
+        )
+    }
+
+    fn perform_visual_capture_cancellation(
+        &self,
+        request: worth_ui_host_contract::UiHostVisualCaptureRequest,
+    ) -> worth_ui_host_contract::UiHostCaptureCancellationOutcome {
+        worth_ui_host_contract::WorthUiHostMechanicsAdapter::perform_visual_capture_cancellation(
+            &self.adapter,
+            request,
         )
     }
 
@@ -140,6 +204,10 @@ impl worth_ui_host_contract::WorthUiHostMechanicsAdapter for WorthUiPreparedNati
         )
     }
 }
+
+#[cfg(test)]
+#[path = "prepared_host_tests.rs"]
+mod tests;
 
 /// Vendor-free window configuration consumed by the native event-loop owner.
 #[derive(Clone, Debug, Eq, PartialEq)]

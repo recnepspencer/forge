@@ -53,6 +53,9 @@ mod native_intent_evidence;
 mod native_intent_execution;
 mod native_intent_posture;
 mod native_intent_terminal_posture;
+mod native_observation_settlement;
+#[cfg(test)]
+mod native_observation_tests;
 mod native_projection_rebind;
 #[cfg(test)]
 mod native_projection_rebind_tests;
@@ -76,7 +79,7 @@ pub use active_framework_turn::{
     WorthUiActiveRealtimeFrameCompletion, WorthUiActiveVirtualizedDataFrameCompletion,
     WorthUiMountedLaneProjectionDenial,
 };
-pub use app::{WorthUi, WorthUiApp, WorthUiPresentationAsyncInstallationDenial};
+pub use app::{WorthUi, WorthUiApp};
 #[cfg(test)]
 pub(crate) use app_builder::WorthUiCertificationApplicationBuilder;
 pub use app_builder::{

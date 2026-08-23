@@ -168,7 +168,13 @@ fn native_owner(inventory: &WorkspaceSourceInventory) -> String {
     [
         inventory.text("apps/platform-pulse/tests/executable_world/native_platform/windows.rs"),
         inventory.text(
+            "apps/platform-pulse/tests/executable_world/native_platform/windows/process_windows.rs",
+        ),
+        inventory.text(
             "apps/platform-pulse/tests/executable_world/native_platform/windows/capture_region.rs",
+        ),
+        inventory.text(
+            "apps/platform-pulse/tests/executable_world/native_platform/windows/client_capture.rs",
         ),
     ]
     .join("\n")

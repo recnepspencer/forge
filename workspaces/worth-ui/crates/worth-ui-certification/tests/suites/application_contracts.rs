@@ -104,6 +104,14 @@ mod mounted_static_paint;
 mod multi_removal_filesystem;
 #[path = "../application_contracts/observation_rebind.rs"]
 mod observation_rebind;
+#[path = "../application_contracts/phase5_locality_closure.rs"]
+mod phase5_locality_closure;
+#[path = "../application_contracts/phase5_locality_hostile_control.rs"]
+mod phase5_locality_hostile_control;
+#[path = "../application_contracts/phase5_locality_worker.rs"]
+mod phase5_locality_worker;
+#[path = "../application_contracts/phase6_native_lifecycle.rs"]
+mod phase6_native_lifecycle;
 #[path = "../application_contracts/phase7_adapter_parity.rs"]
 mod phase7_adapter_parity;
 #[path = "../application_contracts/phase7_denial_preservation.rs"]

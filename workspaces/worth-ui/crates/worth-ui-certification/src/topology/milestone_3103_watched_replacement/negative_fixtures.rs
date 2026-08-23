@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::topology::WorkspaceSourceInventory;
 
-use super::runner_contract::{self, Phase4RunnerSources};
+use super::runner_contract::{self, phase4_courtroom_paths, Phase4RunnerSources};
 use super::visual_identity_contract::{self, VisualIdentityRunnerSources};
 
 #[test]
@@ -15,6 +15,25 @@ fn live_phase4_watched_replacement_satisfies_the_runner_contract() {
 fn live_phase4_visual_identity_sources_satisfy_the_runner_contract() {
     let inventory = WorkspaceSourceInventory::capture(workspace_root());
     visual_identity_contract::audit(&inventory).expect("live Phase 4 visual identity runner");
+}
+
+#[test]
+fn phase4_courtroom_scope_excludes_ignored_successors_but_keeps_predecessor_edges() {
+    let inventory = WorkspaceSourceInventory::capture(workspace_root());
+    let successor = "apps/platform-pulse/tests/executable_world/courtroom/native_phase2.rs";
+    assert!(inventory.text(successor).contains("#[ignore"));
+    assert!(!phase4_courtroom_paths().contains(&successor));
+
+    let mut sources = Phase4RunnerSources::capture(&inventory);
+    assert!(!sources.courtroom.contains("#[ignore"));
+    sources.courtroom = mutate_required_edge(
+        &sources.courtroom,
+        "close_recovered(self.recovered)",
+        "drop(self.recovered)",
+    );
+    let error = runner_contract::audit_sources(&sources)
+        .expect_err("a required predecessor edge must remain governed");
+    assert!(error.contains("close_recovered(self.recovered)"), "{error}");
 }
 
 #[test]

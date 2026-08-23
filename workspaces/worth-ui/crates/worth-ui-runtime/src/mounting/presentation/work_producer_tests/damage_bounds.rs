@@ -33,14 +33,12 @@ fn removal_damage_follows_authored_order_after_identity_replacement() {
         .unwrap();
 
     let work = predecessor_state
-        .issue_successor(
+        .issue_successor(super::super::work_producer::SuccessorIssueRequest::new(
             &successor_state,
             &[world.first_instance, remounted_first],
             &[],
-            false,
-            Some(predecessor.frame()),
             &lease,
-        )
+        ))
         .unwrap();
     let UiMountedPresentationWorkView::Delta(delta) = work.view() else {
         panic!("removal must produce delta work");
@@ -81,14 +79,12 @@ fn replacement_damage_is_clipped_to_predecessor_and_successor_visibility() {
         .unwrap();
 
     let work = predecessor_state
-        .issue_successor(
+        .issue_successor(super::super::work_producer::SuccessorIssueRequest::new(
             &successor_state,
             &[world.first_instance],
             &[],
-            false,
-            Some(predecessor.frame()),
             &lease,
-        )
+        ))
         .unwrap();
     let UiMountedPresentationWorkView::Delta(delta) = work.view() else {
         panic!("changed visible rectangle must produce delta work");

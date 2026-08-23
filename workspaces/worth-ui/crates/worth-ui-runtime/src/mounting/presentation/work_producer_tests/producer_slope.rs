@@ -9,10 +9,21 @@ use super::world::{rect_spec, MountedPresentationWorld};
 
 #[test]
 fn admitted_sources_leave_only_local_work_inside_delta_issuance() {
-    run_locality_cases(&[(1, 0), (32, 0), (32, 16), (32, 31)]);
+    run_locality_cases(&[(1, 0), (32, 16), (2_048, 1_024), (4_096, 2_048)]);
     println!("WORTH_UI_LEDGER_COUNTERS={{\"P3-DELTA-SOURCE-01\":1,\"P3-PRODUCER-SLOPE-01\":0}}");
     println!(
         "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-DELTA-SOURCE-01\":\"successor-rediscovery\",\"P3-PRODUCER-SLOPE-01\":\"complete-successor-scan\",\"P5-TEXT-COST-01\":\"complete-document-rescan\"}}"
+    );
+}
+
+#[test]
+fn complete_retained_scan_and_clone_mutant_is_rejected_by_the_local_oracle() {
+    let (actual, _) = exercise_one_change(32, 16, None, ProducerPath::RetainedScanMutant);
+    assert_eq!(actual[4], 32);
+    assert_eq!(actual[5], 32);
+    assert!(!is_local_cost(actual, 32));
+    println!(
+        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-PRODUCER-SLOPE-01\":\"complete-successor-scan\"}}"
     );
 }
 
@@ -35,14 +46,25 @@ fn run_locality_cases(cases: &[(usize, usize)]) {
             retained,
             changed_index,
             text_layout.as_ref().map(|layout| layout.view()),
+            ProducerPath::Ordinary,
         );
-        assert_eq!(actual, expected_local_cost(retained));
+        assert!(is_local_cost(actual, retained));
         report_timing(retained, changed_index, timing);
     }
 }
 
 fn expected_local_cost(retained: usize) -> [u64; 7] {
     [1, 1, 2, 2, 0, 0, u64::try_from(retained * 2).unwrap()]
+}
+
+fn is_local_cost(actual: [u64; 7], retained: usize) -> bool {
+    actual == expected_local_cost(retained)
+}
+
+#[derive(Clone, Copy)]
+enum ProducerPath {
+    Ordinary,
+    RetainedScanMutant,
 }
 
 #[derive(Clone, Copy)]
@@ -58,6 +80,7 @@ fn exercise_one_change(
     retained: usize,
     changed_index: usize,
     text_layout: Option<worth_ui_host_contract::UiQualifiedTextLayoutView<'_>>,
+    path: ProducerPath,
 ) -> ([u64; 7], FixtureTiming) {
     let identities_started = Instant::now();
     let world = MountedPresentationWorld::new();
@@ -119,16 +142,26 @@ fn exercise_one_change(
     let lease = super::super::UiMountedPresentationLeaseGate::default()
         .claim()
         .unwrap();
-    let work = predecessor_state
-        .issue_successor(
-            &successor_state,
-            std::slice::from_ref(&instances[changed_index]),
-            &[],
-            false,
-            Some(predecessor.frame()),
-            &lease,
-        )
-        .unwrap();
+    let work = match path {
+        ProducerPath::Ordinary => predecessor_state.issue_successor(
+            super::super::work_producer::SuccessorIssueRequest::new(
+                &successor_state,
+                std::slice::from_ref(&instances[changed_index]),
+                &[],
+                &lease,
+            ),
+        ),
+        ProducerPath::RetainedScanMutant => predecessor_state
+            .issue_successor_with_complete_retained_scan_mutant(
+                super::super::work_producer::SuccessorIssueRequest::new(
+                    &successor_state,
+                    std::slice::from_ref(&instances[changed_index]),
+                    &[],
+                    &lease,
+                ),
+            ),
+    }
+    .unwrap();
     let delta_issuance = delta_started.elapsed();
     let UiMountedPresentationWorkView::Delta(delta) = work.view() else {
         panic!("one changed command must issue delta work");

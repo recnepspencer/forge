@@ -22,7 +22,10 @@ path = "src/lib.rs"
 name = "worth-ui-platform-pulse"
 path = "src/main.rs"
 [features]
-executable-world = []
+executable-world = [
+    "worth-ui/certification-support",
+    "worth-ui-native-platform/certification-support",
+]
 [[test]]
 name = "executable_world"
 path = "tests/executable_world.rs"
@@ -40,7 +43,7 @@ worth-ui-native-platform = { workspace = true }
 [target.'cfg(windows)'.dev-dependencies]
 uiautomation = { workspace = true }
 win32job = { workspace = true }
-winsafe = { workspace = true }
+winsafe = { workspace = true, features = ["dwm", "kernel", "user"] }
 xcap = { workspace = true, features = ["wgc"] }
 "#;
 
@@ -63,10 +66,7 @@ fn manifest_rejects_a_forbidden_product_dependency() {
 
 #[test]
 fn manifest_rejects_an_extra_workflow_feature() {
-    let mutated = MANIFEST.replace(
-        "executable-world = []",
-        "executable-world = []\nshortcut-world = []",
-    );
+    let mutated = MANIFEST.replace("[features]", "[features]\nshortcut-world = []");
     let error = manifest_contract::audit(WORKSPACE, &mutated)
         .expect_err("extra workflow feature must fail");
     assert!(error.contains("only"));
@@ -108,6 +108,21 @@ fn product_source_rejects_an_executable_world_feature_branch() {
     )
     .expect_err("product source feature branch must fail");
     assert!(error.contains("cannot branch"));
+}
+
+#[test]
+fn product_source_rejects_certification_worker_event_loop_posture() {
+    for marker in [
+        "with_certification_worker_event_loop",
+        "CertificationWorker",
+    ] {
+        let error = source_contract::audit_source_posture(
+            Path::new("apps/platform-pulse/src/application.rs"),
+            &format!("fn counterfeit() {{ {marker}; }}"),
+        )
+        .expect_err("product source cannot select certification event-loop posture");
+        assert!(error.contains(marker), "{error}");
+    }
 }
 
 #[test]

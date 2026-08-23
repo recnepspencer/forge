@@ -138,7 +138,7 @@
   "package": "worth-ui-text",
   "passed_test_count": 1,
   "requirement": "P4-EMOJI-SEQUENCE-01",
-  "run_nonce": "e5a65944779702c5cd52e2dce197b2f0",
+  "run_nonce": "47505ebc30b11ef62d8d5243f954e52c",
   "schema_version": 5,
   "source_digest": "34e37c8a597c564a8912a0da9801de3ef38ee26ec26c01a7c2e7522ab98565f8",
   "source_identity": [
@@ -147,8 +147,8 @@
     "workspaces/worth-ui/crates/worth-ui-text/src/fallback.rs",
     "workspaces/worth-ui/crates/worth-ui-text/src/layout.rs"
   ],
-  "source_revision": "dec3ed3ab6aee904e2e575b8c841265ade8db5cd",
-  "source_state_digest": "c36105bb603622263024a953067f3b23714ce74b84b8e131047831af1b7baf8e",
+  "source_revision": "ef56a3d58523baa15ae4c253455a01ef16623e06",
+  "source_state_digest": "b51de7a501e15a402b769927b6de45024be04b58a34fbf2df55b9a932b55239f",
   "structural_counter": "rgi-sequences=3953",
   "supporting_world": null,
   "target_kind": "lib",
@@ -201,10 +201,9 @@
     "execution_receipt_keys": [
       "26cda9461ac9a3f19e0bb1e0c73c874d22018d92a3f2ff71653df283fbc778ab",
       "5bbb5b7f4497f4c1bb4977d5d7e3e2619f4c53dc4e2e937430f94321b4f8b1dd",
-      "5bbb5b7f4497f4c1bb4977d5d7e3e2619f4c53dc4e2e937430f94321b4f8b1dd",
       "876e9e59add78e15364777cd2d46dc95c9463445b0b614c54c80befce437f7da",
       "b3743f5a6beedd58dc08ded8d3e87b6ab907f906489f3bd47a0d1137cc3ce58a"
     ]
   },
-  "runner_authentication": "c0670b889ae8d20ab9e021cc01ea2f0890e3fe782af8da7f605075277293f80b"
+  "runner_authentication": "1de5faa3a84e09959f68798262f18a82ff01e19a68389be9b0d9b467556b5dec"
 }

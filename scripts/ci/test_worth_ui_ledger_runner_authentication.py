@@ -36,6 +36,18 @@ class RunnerAuthenticationTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "outside the repository"):
                     authentication.authentication_tag({}, repository)
 
+    def test_validation_does_not_provision_a_missing_runner_key(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            repository = base / "repository"
+            repository.mkdir()
+            identity = base / "authority" / authentication.KEY_FILE
+            with patch.object(authentication, "machine_key_identity", return_value=identity):
+                with self.assertRaises(authentication.RunnerProvenanceUnavailable):
+                    authentication.existing_runner_key_fingerprint(repository)
+                self.assertFalse(identity.exists())
+                self.assertFalse(identity.parent.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

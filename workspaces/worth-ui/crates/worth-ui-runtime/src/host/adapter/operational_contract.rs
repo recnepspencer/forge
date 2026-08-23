@@ -31,6 +31,22 @@ pub trait WorthUiOperationalHostAdapter:
         Ok(worth_ui_host_contract::UiHostObservationDrain::empty())
     }
 
+    fn install_input_recipient(
+        &self,
+        _authority: &UiHostAdapterSessionAuthority,
+        _binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+    ) -> bool {
+        false
+    }
+
+    fn clear_input_recipient(
+        &self,
+        _authority: &UiHostAdapterSessionAuthority,
+        _binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+    ) -> bool {
+        false
+    }
+
     fn capture_visual_presentation(
         &self,
         _authority: &UiHostAdapterSessionAuthority,
@@ -141,6 +157,24 @@ where
         worth_ui_host_contract::UiHostObservationDrainDenial,
     > {
         self.drain_mechanical_host_observations(authority.host_session_identity())
+    }
+
+    fn install_input_recipient(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+        binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+    ) -> bool {
+        binding.host_session() == authority.host_session_identity()
+            && self.install_mechanical_input_recipient(binding)
+    }
+
+    fn clear_input_recipient(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+        binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+    ) -> bool {
+        binding.host_session() == authority.host_session_identity()
+            && self.clear_mechanical_input_recipient(binding)
     }
 
     fn capture_visual_presentation(

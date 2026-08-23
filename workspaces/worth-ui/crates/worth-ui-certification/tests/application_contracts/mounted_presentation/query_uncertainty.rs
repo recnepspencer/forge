@@ -1,5 +1,6 @@
 use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
+use worth_ui_runtime::certification_support::WorthUiPresentationAsyncInstallationCertificationExt;
 use worth_ui_runtime::facade::mounted::{UiHostSurfaceCancellationOutcome, UiMountedFrameOutcome};
 
 use super::super::filesystem_contract_workspace::FilesystemContractWorkspace;
@@ -95,7 +96,7 @@ fn install_presentation_async(application: &mut worth_ui::facade::app::WorthUiAp
         .install(request.generation(), request.into_packages())
         .unwrap();
     application
-        .install_presentation_async(completion.complete(query).unwrap())
+        .install_presentation_async_for_certification(completion.complete(query).unwrap())
         .unwrap();
 }
 

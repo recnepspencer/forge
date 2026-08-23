@@ -1,4 +1,7 @@
-use super::{audit, validate_required_cost_categories, validate_target_counts};
+use super::{
+    audit, validate_certification_binary_budget, validate_required_cost_categories,
+    validate_target_counts,
+};
 use crate::topology::WorkspaceSourceInventory;
 
 fn inventory() -> WorkspaceSourceInventory {
@@ -107,6 +110,14 @@ fn phase7_rejects_a_tenth_integration_target() {
     let error =
         validate_target_counts(3, 7).expect_err("a proposed product target must exceed budget");
     assert!(error.contains("total=10"));
+}
+
+#[test]
+fn phase7_rejects_a_certification_binary() {
+    let manifest = "[package]\nname = \"fixture\"\nversion = \"0.1.0\"\n\n[[bin]]\nname = \"runner\"\npath = \"src/bin/runner.rs\"\n";
+    let error = validate_certification_binary_budget(manifest)
+        .expect_err("a certification runner binary must fail the budget");
+    assert!(error.contains("binary targets"));
 }
 
 fn claim_mut<'a>(manifest: &'a mut toml::Value, id: &str) -> &'a mut toml::Value {

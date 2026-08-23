@@ -218,7 +218,7 @@ impl WorthUiActiveApplicationSession {
         );
         self.mounted
             .commit_graph_replacement_successor(mounted_successor);
-        self.interaction.cancel_all(
+        self.cancel_all_interactions(
             crate::runtime::interaction::UiInteractionLifecycleStopReason::ApplicationRebound,
         );
         let observation_resources = self.application.retire_observation_resources(

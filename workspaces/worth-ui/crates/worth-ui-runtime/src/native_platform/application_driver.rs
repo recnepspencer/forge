@@ -1,7 +1,8 @@
 use crate::facade::{WorthUiApp, WorthUiNativeApplicationShell};
 use worth_ui_host_native::{
     UiNativeEventLoopClient, UiNativeEventLoopClientCleanup, UiNativeEventLoopClientClose,
-    UiNativeEventLoopDirective, UiNativeReadinessGrant, WorthUiNativeEventLoop,
+    UiNativeEventLoopDirective, UiNativeObservationReadinessGrant, UiNativeReadinessGrant,
+    WorthUiNativeEventLoop,
 };
 
 #[path = "application_driver/physical_recovery_tracker.rs"]
@@ -24,6 +25,8 @@ pub(crate) struct UiNativeApplicationDriver {
     application: Option<WorthUiApp>,
     shell: Option<WorthUiNativeApplicationShell>,
     last_ready_generation: u64,
+    last_observation_ready_generation: u64,
+    observation_ingress_counts: [u64; 5],
     scale_factor_milli: Option<u32>,
     consumed_application_cleanup_complete: bool,
     pending_cleanup: Option<UiNativeApplicationDriverCleanup>,
@@ -49,6 +52,8 @@ impl UiNativeApplicationDriver {
             application: Some(application),
             shell: None,
             last_ready_generation: 0,
+            last_observation_ready_generation: 0,
+            observation_ingress_counts: [0; 5],
             scale_factor_milli: None,
             consumed_application_cleanup_complete: false,
             pending_cleanup: None,
@@ -154,6 +159,33 @@ impl UiNativeEventLoopClient for UiNativeApplicationDriver {
         Ok(self.next_directive())
     }
 
+    fn native_observations_ready(
+        &mut self,
+        grant: UiNativeObservationReadinessGrant,
+    ) -> Result<UiNativeEventLoopDirective, ()> {
+        if grant.generation() <= self.last_observation_ready_generation {
+            return Err(());
+        }
+        let shell = self.shell.as_mut().ok_or(())?;
+        let settlement = shell.admit_native_observation_batches();
+        let (applied, duplicate, quarantined, denied) = settlement.counts();
+        for (total, observed) in self.observation_ingress_counts[..4].iter_mut().zip([
+            applied,
+            duplicate,
+            quarantined,
+            denied,
+        ]) {
+            *total = total.saturating_add(observed as u64);
+        }
+        if settlement.drain_denial().is_some() {
+            self.observation_ingress_counts[4] =
+                self.observation_ingress_counts[4].saturating_add(1);
+            return Err(());
+        }
+        self.last_observation_ready_generation = grant.generation();
+        Ok(self.next_directive())
+    }
+
     fn external_close_requested(&mut self) -> Result<UiNativeEventLoopDirective, ()> {
         self.progress.request_external_close();
         Ok(self.next_directive())
@@ -203,6 +235,11 @@ impl UiNativeEventLoopClient for UiNativeApplicationDriver {
             shutdown.authored_mounted_instances().to_vec().into_boxed_slice(),
         ).with_derived_state_reconstruction(runtime_derived_state_reconstruction)
         .with_resources(client_resource_observation(shutdown.client_resource_peaks()));
+        let close_observation = close_observation.with_observation_ingress(
+            worth_ui_host_native::UiNativeClientObservationIngressObservation::reported(
+                self.observation_ingress_counts,
+            ),
+        );
         if shutdown.host_session_released()
             && shutdown.released_surface_count() == 1
             && shutdown.query_close_complete()

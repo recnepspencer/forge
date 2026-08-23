@@ -171,11 +171,12 @@ fn exact_delta_updates_draw_order_damage_and_replay_without_retained_scans() {
         ),
         crate::native::physical_work_signal::UiNativePhysicalSignalSettlement::Completed
     ));
-    let Some(UiNativePendingSurfaceSettlement::Delta(undo)) = pending.take_settlement() else {
+    let Some(UiNativePendingSurfaceSettlement::Delta(settlement)) = pending.take_settlement()
+    else {
         panic!("the pending delta retains its exact rollback authority");
     };
-    retained
-        .rollback_delta(undo)
+    settlement
+        .rollback(&mut retained)
         .expect("completion without a physical observation restores the predecessor");
     pending.release(&mut resources);
     assert!(resources.current().is_zero());

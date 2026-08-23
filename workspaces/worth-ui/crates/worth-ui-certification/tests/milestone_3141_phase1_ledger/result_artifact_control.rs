@@ -1,4 +1,5 @@
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 
 use super::command_binding::ControlBinding;
 use super::result_artifact_binding::{require_array, require_i64, require_str, require_u64};
@@ -36,7 +37,7 @@ pub(super) fn validate(
     require_duration(control, "test_duration_ms", observed_budget)?;
     require_array(control, "list_command", &cargo_command(expected, true))?;
     require_array(control, "test_command", &cargo_command(expected, false))?;
-    validate_mutation_control(control, requirement)
+    validate_mutation_control(control, artifact, requirement)
 }
 
 fn validate_budget(control: &Value, requirement: &str, current: u64) -> Result<u64, String> {
@@ -52,10 +53,15 @@ fn validate_budget(control: &Value, requirement: &str, current: u64) -> Result<u
         .ok_or_else(|| "result artifact has wrong test_budget_ms".to_owned())
 }
 
-fn validate_mutation_control(control: &Value, requirement: &str) -> Result<(), String> {
+fn validate_mutation_control(
+    control: &Value,
+    artifact: &Value,
+    requirement: &str,
+) -> Result<(), String> {
     if !requirement.starts_with("P3-")
         && !requirement.starts_with("P4-")
         && !requirement.starts_with("P5-")
+        && !requirement.starts_with("P6-")
     {
         return Ok(());
     }
@@ -66,7 +72,120 @@ fn validate_mutation_control(control: &Value, requirement: &str) -> Result<(), S
         .filter(|value| value.is_object())
         .ok_or_else(|| "hostile control omits mutation-control evidence".to_owned())?;
     require_str(observed, "requirement", requirement)?;
-    require_str(observed, "case", expected)
+    require_str(observed, "case", expected)?;
+    if requirement.starts_with("P6-") {
+        validate_mutation_receipt(control, artifact, requirement, expected)?;
+    }
+    Ok(())
+}
+
+fn validate_mutation_receipt(
+    control: &Value,
+    artifact: &Value,
+    requirement: &str,
+    expected_case: &str,
+) -> Result<(), String> {
+    let receipt = control
+        .get("mutation_receipt")
+        .filter(|value| value.is_object())
+        .ok_or_else(|| "Phase 6 hostile control omits mutation receipt".to_owned())?;
+    require_str(receipt, "schema", "worth-ui-native-mutation-receipt-v2")?;
+    require_str(receipt, "requirement", requirement)?;
+    require_str(receipt, "case", expected_case)?;
+    require_str(receipt, "schedule_id", expected_case)?;
+    require_str(
+        receipt,
+        "mutation_identity",
+        &format!("{requirement}:{expected_case}"),
+    )?;
+    if receipt.get("observed_failure") != Some(&Value::Bool(true)) {
+        return Err("mutation receipt does not record an observed failure".to_owned());
+    }
+    let source_identity = receipt
+        .get("source_identity")
+        .filter(|value| value.is_object())
+        .ok_or_else(|| "mutation receipt omits source identity".to_owned())?;
+    require_str(
+        source_identity,
+        "revision",
+        artifact["source_revision"]
+            .as_str()
+            .ok_or_else(|| "result artifact omits source_revision".to_owned())?,
+    )?;
+    require_str(
+        source_identity,
+        "state_digest",
+        artifact["source_state_digest"]
+            .as_str()
+            .ok_or_else(|| "result artifact omits source_state_digest".to_owned())?,
+    )?;
+    for side in ["baseline", "mutant"] {
+        let state = receipt
+            .get(side)
+            .filter(|value| value.is_object())
+            .ok_or_else(|| format!("mutation receipt omits {side} state"))?;
+        let posture = state
+            .get("posture")
+            .and_then(Value::as_str)
+            .filter(|value| !value.is_empty())
+            .ok_or_else(|| format!("mutation receipt has empty {side} posture"))?;
+        let terminal_state = state
+            .get("terminal_state")
+            .and_then(Value::as_str)
+            .filter(|value| !value.is_empty())
+            .ok_or_else(|| format!("mutation receipt omits {side} terminal state"))?;
+        let trace = state
+            .get("trace")
+            .and_then(Value::as_array)
+            .filter(|trace| trace.len() == 2)
+            .ok_or_else(|| format!("mutation receipt has invalid {side} trace"))?;
+        if trace[0] != Value::String(posture.to_owned())
+            || trace[1] != Value::String(terminal_state.to_owned())
+        {
+            return Err(format!("mutation receipt has inconsistent {side} trace"));
+        }
+        let trace_digest = state
+            .get("trace_sha256")
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("mutation receipt omits {side} trace digest"))?;
+        if trace_digest.len() != 64
+            || !trace_digest
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        {
+            return Err(format!("mutation receipt has invalid {side} trace digest"));
+        }
+        let expected_digest = format!(
+            "{:x}",
+            Sha256::digest(format!("{posture}\0{terminal_state}").as_bytes())
+        );
+        if trace_digest != expected_digest {
+            return Err(format!("mutation receipt has stale {side} trace digest"));
+        }
+    }
+    if receipt["baseline"]["trace_sha256"] == receipt["mutant"]["trace_sha256"] {
+        return Err("mutation receipt does not diverge between baseline and mutant".to_owned());
+    }
+    if receipt
+        .get("denial")
+        .and_then(Value::as_str)
+        .is_none_or(str::is_empty)
+    {
+        return Err("mutation receipt omits denial".to_owned());
+    }
+    let divergence = receipt
+        .get("first_divergence")
+        .filter(|value| value.is_object())
+        .ok_or_else(|| "mutation receipt omits first_divergence".to_owned())?;
+    if divergence.get("index").and_then(Value::as_u64).is_none()
+        || divergence
+            .get("description")
+            .and_then(Value::as_str)
+            .is_none_or(str::is_empty)
+    {
+        return Err("mutation receipt has invalid first_divergence".to_owned());
+    }
+    Ok(())
 }
 
 fn require_duration(value: &Value, field: &str, maximum: u64) -> Result<(), String> {

@@ -135,10 +135,12 @@ impl WorthUiActiveApplicationSession {
         );
         self.intent_admission
             .cancel_binding(&mut self.intent_execution, binding);
+        let previous_input = self.interaction.active_input_binding();
         self.interaction.cancel_binding(
             binding,
             crate::runtime::interaction::UiInteractionLifecycleStopReason::SurfaceRebound,
         );
+        self.clear_displaced_input_recipient(previous_input);
         Ok(semantic_surface)
     }
 

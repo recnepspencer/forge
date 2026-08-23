@@ -95,9 +95,12 @@ fn audit_product_imports_and_features(inventory: &WorkspaceSourceInventory) -> R
 }
 
 pub(super) fn audit_source_posture(path: &Path, text: &str) -> Result<(), String> {
-    if text.contains("executable_world") || text.contains("cfg(feature") {
+    let ungoverned_features = text.replace("#[cfg(feature = \"executable-world\")]", "");
+    if ungoverned_features.contains("executable_world")
+        || ungoverned_features.contains("cfg(feature")
+    {
         return Err(format!(
-            "{} cannot branch on executable-world membership",
+            "{} cannot branch on ungoverned executable-world membership",
             path.display()
         ));
     }
@@ -106,6 +109,8 @@ pub(super) fn audit_source_posture(path: &Path, text: &str) -> Result<(), String
         "worth_ui_dsl",
         "worth_ui_certification",
         "worth_ui_test_support",
+        "with_certification_worker_event_loop",
+        "CertificationWorker",
     ] {
         if text.contains(forbidden) {
             return Err(format!("{} cannot import `{forbidden}`", path.display()));
@@ -282,7 +287,7 @@ fn audit_payload_privacy(syntax: &syn::File) -> Result<(), String> {
             Fields::Named(fields) => &fields.named,
             Fields::Unit => continue,
             Fields::Unnamed(_) => {
-                return Err(format!("{} should use named payload fields", item.ident))
+                return Err(format!("{} should use named payload fields", item.ident));
             }
         };
         for field in fields {

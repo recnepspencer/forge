@@ -2,7 +2,7 @@ use worth_ui_host_contract::UiMountedFrameIdentity;
 
 use super::{rect_spec, MountedPresentationWorld};
 use crate::mounting::presentation::work_producer::{
-    UiMountedPresentationState, UiMountedPresentationWorkProductionDenial,
+    SuccessorIssueRequest, UiMountedPresentationState, UiMountedPresentationWorkProductionDenial,
 };
 
 #[test]
@@ -33,34 +33,21 @@ fn stale_successor_affinity_is_denied_before_work_issuance() {
         .unwrap();
 
     assert!(matches!(
-        predecessor_state.issue_successor(
+        predecessor_state.issue_successor(SuccessorIssueRequest::new(
             &stale_state,
             &[],
             &[],
-            false,
-            Some(predecessor.frame()),
             &lease,
-        ),
+        )),
         Err(UiMountedPresentationWorkProductionDenial::StalePredecessor)
     ));
     assert!(predecessor_state
-        .issue_successor(
-            &current_state,
-            &[],
-            &[],
-            false,
-            Some(predecessor.frame()),
-            &lease,
-        )
+        .issue_successor(SuccessorIssueRequest::new(&current_state, &[], &[], &lease,))
         .is_ok());
     assert!(matches!(
         predecessor_state.issue_successor(
-            &current_state,
-            &[],
-            &[],
-            false,
-            Some(UiMountedFrameIdentity::mint_unbound().unwrap()),
-            &lease,
+            SuccessorIssueRequest::new(&current_state, &[], &[], &lease,)
+                .with_source_predecessor(Some(UiMountedFrameIdentity::mint_unbound().unwrap()))
         ),
         Err(UiMountedPresentationWorkProductionDenial::StalePredecessor)
     ));

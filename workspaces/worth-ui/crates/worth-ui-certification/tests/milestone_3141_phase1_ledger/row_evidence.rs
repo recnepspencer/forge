@@ -63,11 +63,7 @@ pub(super) fn validate_execution(row: &Row) -> Result<(), String> {
             structural_counter: &row["structural_counters"],
             construction_cost: &row["construction_cost"],
             execution_cost: &row["execution_cost"],
-            source_validation: if current_source {
-                result_artifact::SourceValidationPosture::CurrentSource
-            } else {
-                source_validation_posture(&row["phase"])
-            },
+            source_validation: source_validation_posture(&row["phase"]),
         },
         &command,
     )
@@ -121,17 +117,29 @@ fn validate_historical_named_entry(value: &str, revision: &str) -> Result<(), St
 }
 
 pub(super) fn source_validation_posture(phase: &str) -> result_artifact::SourceValidationPosture {
-    if matches!(phase, "1" | "2" | "3" | "4") {
-        result_artifact::SourceValidationPosture::HistoricalArtifactOnly
-    } else {
+    if phase == "6" {
         result_artifact::SourceValidationPosture::CurrentSource
+    } else {
+        result_artifact::SourceValidationPosture::HistoricalArtifactOnly
     }
 }
 
 pub(super) fn validate_observations(row: &Row) -> Result<(), String> {
     if !matches!(
         row["fault_injection_boundary"].as_str(),
-        "before-effects" | "after-effects-may-have-begun" | "not-applicable"
+        "before-effects"
+            | "after-effects-may-have-begun"
+            | "not-applicable"
+            | "predecessor-handoff-source-binding"
+            | "input-admission-presentation-affinity"
+            | "ime-phase-classification"
+            | "pointer-event-time-witness"
+            | "profile-transition-admission"
+            | "readiness-commit-signal-consume"
+            | "typed-settlement-outcome-mapping"
+            | "protocol-production-oracle-comparison"
+            | "windows-message-position-witness"
+            | "phase-six-closure-source-prefix"
     ) {
         return Err("invalid fault injection boundary".to_owned());
     }

@@ -12,7 +12,7 @@ CI = Path(__file__).resolve().parent
 if str(CI) not in sys.path:
     sys.path.insert(0, str(CI))
 
-import worth_ui_ledger_acceptance as acceptance
+import worth_ui_ledger_shared_execution_lineage as shared_execution_lineage
 
 from worth_ui_ledger_causal_revalidation import (
     digest,
@@ -21,18 +21,28 @@ from worth_ui_ledger_causal_revalidation import (
     source_digest_at,
     validate_causal_reuse,
 )
-from worth_ui_ledger_durable_receipts import persist_envelope
-from worth_ui_ledger_execution_cache import (
+from worth_ui_ledger_execution_binding import (
     CANDIDATE_LEDGER_ENV,
+    GovernedExecutionSnapshot,
     causal_artifact_dependencies,
     digest_json,
-    execution_binding,
+    execution_binding as build_execution_binding,
 )
+from worth_ui_ledger_execution_observation_migration import migrate_payload
+from worth_ui_ledger_artifact_transaction import ArtifactTransaction
 from worth_ui_ledger_runner_authentication import authentication_tag, authenticates
 
 
+def execution_binding(
+    command: list[str], root: Path, revision: str, state_digest: str
+) -> dict[str, object]:
+    return build_execution_binding(
+        command, root, GovernedExecutionSnapshot(revision, state_digest)
+    )
+
+
 class CausalRevalidationTests(unittest.TestCase):
-    def test_p2_non_reader_reuses_authenticated_legacy_ledger_receipt(self) -> None:
+    def test_p2_non_reader_reuses_published_observation(self) -> None:
         root = CI.parents[1]
         ledger = root / "_docs/worth-ui/milestone-3.14.1-proof-ledger.csv"
         with ledger.open(encoding="utf-8", newline="") as stream:
@@ -48,13 +58,13 @@ class CausalRevalidationTests(unittest.TestCase):
             for receipt in payload["execution_receipts"]
             if receipt["role"] == "control-test"
         )
+        observation = control["observation_sha256"]
         envelope_path = root / (
-            "_docs/worth-ui/milestone-3.14.1-evidence/executions/"
-            f"{control['key'][:2]}/{control['key']}.json"
+            "_docs/worth-ui/milestone-3.14.1-evidence/execution-observations/"
+            f"{observation[:2]}/{observation}.json"
         )
-        command = json.loads(envelope_path.read_text(encoding="utf-8"))["record"][
-            "command"
-        ]
+        record = json.loads(envelope_path.read_text(encoding="utf-8"))["record"]
+        command = record["execution_binding"]["command"]
         self.assertNotIn(
             CANDIDATE_LEDGER_ENV,
             causal_artifact_dependencies(command, control["role"]),
@@ -85,6 +95,11 @@ class CausalRevalidationTests(unittest.TestCase):
                         "causal_reuse": {
                             "predecessor_source_state_digest": "e" * 64,
                         },
+                        "execution_receipts": [
+                            reference("main-discovery", "1" * 64),
+                            reference("ignored-discovery", "2" * 64),
+                            reference("main-test", "3" * 64),
+                        ],
                     }
                 ),
                 encoding="utf-8",
@@ -96,24 +111,46 @@ class CausalRevalidationTests(unittest.TestCase):
             payload = {
                 "shared_main_artifact": "shared.json",
                 "shared_main_artifact_digest": "f" * 64,
-                "execution_receipts": [{"key": "1" * 64}],
+                "execution_receipts": [
+                    reference("main-discovery", "1" * 64),
+                    reference("ignored-discovery", "2" * 64),
+                    reference("main-test", "3" * 64),
+                    reference("control-test", "4" * 64),
+                ],
             }
             with (
                 patch.object(
-                    acceptance, "validate_causal_reuse", return_value={"1" * 64}
+                    shared_execution_lineage,
+                    "validate_causal_reuse",
+                    return_value={"1" * 64, "2" * 64, "3" * 64},
                 ),
                 patch.object(
-                    acceptance,
+                    shared_execution_lineage,
+                    "available_receipts_match_payload_source",
+                    return_value=True,
+                ),
+                patch.object(
+                    shared_execution_lineage,
                     "source_artifact_bindings",
                     return_value={"source.rs": "2" * 64},
                 ),
             ):
-                acceptance.inherit_shared_receipt_lineage(
-                    row, payload, root, "a" * 40, "b" * 64, "3" * 64
+                shared_execution_lineage.inherit_shared_receipt_lineage(
+                    shared_execution_lineage.SharedExecutionLineageRequest(
+                        row=row,
+                        payload=payload,
+                        root=root,
+                        revision="a" * 40,
+                        state_digest="b" * 64,
+                        current_claim="3" * 64,
+                    )
                 )
             reuse = payload["causal_reuse"]
             self.assertEqual(reuse["predecessor_source_state_digest"], "e" * 64)
-            self.assertEqual(reuse["execution_receipt_keys"], ["1" * 64])
+            self.assertEqual(
+                reuse["execution_observation_ids"],
+                ["1" * 64, "2" * 64, "3" * 64],
+            )
             self.assertEqual(reuse["claim_digest"], "3" * 64)
 
     def test_current_evidence_keeps_its_exact_nonce(self) -> None:
@@ -141,7 +178,7 @@ class CausalRevalidationTests(unittest.TestCase):
             self.assertEqual(current["source_state_digest"], "e" * 64)
             self.assertEqual(
                 validate_causal_reuse(root, current, "d" * 40, "e" * 64),
-                {payload["execution_receipts"][0]["key"]},
+                {current["execution_receipts"][0]["observation_sha256"]},
             )
             unsigned = {
                 key: value
@@ -206,7 +243,7 @@ class CausalRevalidationTests(unittest.TestCase):
                 root, row, payload, digest(artifact), "c" * 64, "d" * 40, "e" * 64
             )
             assert current is not None
-            current["causal_reuse"]["execution_receipt_keys"] = []
+            current["causal_reuse"]["execution_observation_ids"] = []
             with self.assertRaisesRegex(RuntimeError, "differs from its causal binding"):
                 validate_causal_reuse(root, current, "d" * 40, "e" * 64)
 
@@ -214,13 +251,15 @@ class CausalRevalidationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             row, payload, artifact = fixture(root)
-            key = payload["execution_receipts"][0]["key"]
+            key = payload["execution_receipts"][0]["observation_sha256"]
             envelope_path = root / (
-                f"_docs/worth-ui/milestone-3.14.1-evidence/executions/"
+                f"_docs/worth-ui/milestone-3.14.1-evidence/execution-observations/"
                 f"{key[:2]}/{key}.json"
             )
             envelope = json.loads(envelope_path.read_text(encoding="utf-8"))
-            envelope["record"]["artifact_bindings"] = {"changed": {"sha256": "0" * 64}}
+            envelope["record"]["execution_binding"]["artifact_bindings"] = {
+                "changed": {"sha256": "0" * 64}
+            }
             envelope_path.write_text(json.dumps(envelope), encoding="utf-8")
             self.assertIsNone(
                 revalidate_row_payload(
@@ -282,6 +321,7 @@ def fixture(root: Path) -> tuple[dict[str, str], dict[str, object], bytes]:
     }
     command_parts = command.split()
     binding = execution_binding(command_parts, root, "a" * 40, "b" * 64)
+    binding["schema"] = "worth-ui-ledger-execution-receipt-v2"
     key = digest_json(binding)
     record = {
         **binding,
@@ -296,7 +336,7 @@ def fixture(root: Path) -> tuple[dict[str, str], dict[str, object], bytes]:
         "receipt_sha256": digest_json(record),
         "runner_authentication": authentication_tag(record, root),
     }
-    persist_envelope(root, key, envelope)
+    persist_legacy_envelope(root, key, envelope)
     payload["execution_receipts"] = [
         {
             "role": "main-test",
@@ -305,9 +345,38 @@ def fixture(root: Path) -> tuple[dict[str, str], dict[str, object], bytes]:
             "duration_ms": 7,
         }
     ]
+    ledger = root / "ledger.csv"
+    ledger.write_text("phase,requirement\n", encoding="utf-8")
+    transaction = ArtifactTransaction(root, ledger, [])
+    migrate_payload(root, payload, materialize=True)
+    transaction.prepare_commit(ledger.read_bytes())
+    transaction.commit()
     payload["runner_authentication"] = authentication_tag(payload, root)
     artifact = (json.dumps(payload, indent=2) + "\n").encode("utf-8")
     return row, payload, artifact
+
+
+def persist_legacy_envelope(
+    root: Path, key: str, envelope: dict[str, object]
+) -> None:
+    identity = (
+        root / "_docs/worth-ui/milestone-3.14.1-evidence/executions"
+        / key[:2] / f"{key}.json"
+    )
+    identity.parent.mkdir(parents=True, exist_ok=True)
+    identity.write_text(json.dumps(envelope, sort_keys=True), encoding="utf-8")
+
+
+def reference(role: str, observation: str) -> dict[str, object]:
+    return {
+        "schema": "worth-ui-ledger-execution-reference-v1",
+        "role": role,
+        "execution_binding_key": "a" * 64,
+        "observation_sha256": observation,
+        "command_sha256": "b" * 64,
+        "duration_ms": 1,
+        "acquisition": "reused",
+    }
 
 
 if __name__ == "__main__":

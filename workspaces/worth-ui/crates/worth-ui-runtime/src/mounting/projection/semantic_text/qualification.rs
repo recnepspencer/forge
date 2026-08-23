@@ -33,8 +33,7 @@ pub(super) fn qualify_layout(
     let input = worth_ui_text::UiTextParagraphAdmissionInput {
         source: Arc::clone(source),
         constraints,
-        profile_generation: worth_ui_host_contract::UiTextProfileGeneration::new(1)
-            .expect("qualified profile generation"),
+        profile_generation: super::current_text_profile_generation(),
         font_collection_generation: context.font_collection.generation(),
         text_scale_generation: worth_ui_host_contract::UiTextScaleGeneration::new(1)
             .expect("initial text scale generation"),

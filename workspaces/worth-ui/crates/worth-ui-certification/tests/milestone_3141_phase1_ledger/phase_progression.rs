@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use super::Row;
 
 pub(super) fn validate(rows: &BTreeMap<String, Row>) -> Result<(), String> {
-    for phase in 2_u8..=5 {
+    for phase in 2_u8..=6 {
         reject_predecessor_bypass(rows, phase)?;
     }
     require_phase_gate(rows, "3", "P3-PREDECESSOR-01", &[])?;
@@ -12,9 +12,13 @@ pub(super) fn validate(rows: &BTreeMap<String, Row>) -> Result<(), String> {
     if rows.contains_key("P5-PREDECESSOR-01") {
         require_phase_gate(rows, "5", "P5-PREDECESSOR-01", &[])?;
     }
+    if rows.contains_key("P6-PREDECESSOR-01") {
+        require_phase_gate(rows, "6", "P6-PREDECESSOR-01", &[])?;
+    }
     require_close_last(rows, "3", "P3-CLOSE-01")?;
     require_close_last(rows, "4", "P4-CLOSE-01")?;
-    require_close_last(rows, "5", "P5-CLOSE-01")
+    require_close_last(rows, "5", "P5-CLOSE-01")?;
+    require_close_last(rows, "6", "P6-CLOSE-01")
 }
 
 pub(super) fn validate_closure(

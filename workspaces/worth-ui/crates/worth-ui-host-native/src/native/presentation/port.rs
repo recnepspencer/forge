@@ -68,6 +68,11 @@ impl UiNativePresentationPortObservation {
     pub(crate) fn into_superseded_cost(self) -> UiHostPresentationCostReport {
         self.cost
     }
+
+    #[cfg(test)]
+    pub(crate) fn test() -> Self {
+        Self::from_async_readback([[0; 4]; 2], UiHostPresentationCostReport::default())
+    }
 }
 
 impl UiNativePresentationPort for UiWgpuNativePresentationPort {

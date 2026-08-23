@@ -64,6 +64,20 @@ boundaries with `UiHostImeRangeConversionReceipt`. Empty, reversed,
 out-of-range, and overflowing preedit coordinates are typed denials. Preedit is
 draft state; only commit can produce committed edit meaning.
 
+### Event-time affinity and settlement
+
+Native input is admitted against the last completed presentation and the
+event-time profile. A successor may be pending while observations remain bound
+to that completed predecessor; a profile or scale transition blocks input until
+its profile evidence is completed. Resize and scale evidence uses the actual
+client size and event tick, without writing through a resize-event writer or
+feeding back a synthetic size.
+
+Readiness is level-triggered by retained batches. The event loop rearms the
+signal only after the runtime callback has drained through the authorized
+interaction owner. Close waits for retained observations to settle, and typed
+denials remain observable instead of being collapsed into a generic failure.
+
 ### Gestures and drafts
 
 A pointer gesture binds its press to the exact presented mounted incarnation.

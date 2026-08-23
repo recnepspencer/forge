@@ -23,6 +23,9 @@ pollster = "=0.4.0"
 rustybuzz = "=0.20.1"
 swash = "=0.2.10"
 
+[target.'cfg(windows)'.dependencies]
+winsafe = { version = "=0.0.28", default-features = false, features = ["user"] }
+
 [dev-dependencies]
 sha2 = "=0.10.9"
 toml = "=0.8.23"
@@ -37,3 +40,4 @@ winit-features = "rwh_06"
 wgpu-features = "std,parking_lot,dx12,wgsl"
 wgpu-device-features = "empty"
 wgpu-limits = "wgpu-29.0.4-Limits::downlevel_defaults().using_resolution(adapter.limits())"
+winsafe = "0.0.28"

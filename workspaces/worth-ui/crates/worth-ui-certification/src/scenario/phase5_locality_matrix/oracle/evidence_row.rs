@@ -30,6 +30,8 @@ pub(super) fn assemble(
         "axis": case.axis().label(),
         "target_index": case.target_index(),
         "world_elapsed_ms": evidence.world_elapsed_millis(),
+        "event_loop_thread_posture": receipt.event_loop_thread_posture().label(),
+        "event_loop_thread_matches_launch": receipt.event_loop_thread_matches_launch(),
         "timing_us": timing_row(&timing),
         "query_completed": completed,
         "semantic_frontiers": semantic_frontier_rows(shutdown, expected),

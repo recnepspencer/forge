@@ -66,6 +66,7 @@ pub struct UiMountedProjectionFrame {
     capability_generation: worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
     capability_profile_digest: u64,
     font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
+    text_profile_generation: worth_ui_host_contract::UiTextProfileGeneration,
     materialized_projection_rows: std::rc::Rc<std::cell::Cell<u64>>,
 }
 
@@ -116,6 +117,7 @@ impl UiMountedProjectionFrame {
             capability_generation: input.capability_generation,
             capability_profile_digest: input.capability_profile_digest,
             font_collection: input.font_collection,
+            text_profile_generation: super::semantic_text::current_text_profile_generation(),
             materialized_projection_rows: std::rc::Rc::new(std::cell::Cell::new(0)),
         }
     }
@@ -215,6 +217,12 @@ impl UiMountedProjectionFrame {
 
     pub(super) fn mechanic_source(&self) -> UiMountedMechanicSource {
         self.mechanics.clone()
+    }
+
+    pub(in crate::mounting) fn input_text_profile(
+        &self,
+    ) -> worth_ui_host_contract::UiTextProfileGeneration {
+        self.text_profile_generation
     }
 
     pub(super) fn presentation_effect_source(&self) -> UiMountedPresentationEffectSource {

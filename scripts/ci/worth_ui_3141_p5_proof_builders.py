@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 from typing import Any
+from worth_ui_3141_p5_closure_proof_builders import (
+    phase_five_close_proof,
+    predecessor_proof,
+)
 from worth_ui_3141_p5_source_owners import (
     ATLAS_TRANSACTION_SOURCES,
     CERT_ROOT,
     COLOR_RASTER_SOURCES,
     DPI_REPLACEMENT_SOURCES,
     GLYPH_RASTER_SOURCES,
-    LEDGER,
     NATIVE,
     P5_CASE_AUTHORITY_SOURCES,
     PHYSICAL_SIGNAL_SOURCES,
@@ -211,14 +214,14 @@ def locality_cost_proof(proof_type: Any, control_type: Any) -> Any:
     oracle = "workspaces/worth-ui/crates/worth-ui-certification/tests/application_contracts/phase5_locality_closure.rs"
     return proof_type(
         "worth-ui-certification",
-        ("test", "phase5_closure"),
+        ("test", "application_contracts"),
         "phase5_locality_closure::all_32_fresh_native_locality_worlds_retain_owner_issued_evidence",
         f"{RUNTIME}/mounting/presentation/coordinator/semantic_text_raster.rs::present",
         f"{oracle}::all_32_fresh_native_locality_worlds_retain_owner_issued_evidence",
-        LOCALITY_MATRIX_SOURCES + P5_CASE_AUTHORITY_SOURCES,
+        unique_sources(*LOCALITY_MATRIX_SOURCES, *P5_CASE_AUTHORITY_SOURCES),
         control=control_type(
             "worth-ui-certification",
-            ("test", "phase5_closure"),
+            ("test", "application_contracts"),
             "phase5_locality_hostile_control::exact_owner_cost_mutants_are_convicted_by_performed_small_worlds",
             "workspaces/worth-ui/crates/worth-ui-certification/tests/application_contracts/phase5_locality_hostile_control.rs",
         ),
@@ -281,120 +284,5 @@ def async_presentation_proof(proof_type: Any, control_type: Any) -> Any:
             ("lib", "lib"),
             "presentation_async::host_owner::hostile_control_tests::typed_async_hostile_family_matches_the_independent_transition_adjudicator",
             f"{QUERY_BINDING}/host_owner_hostile_control_tests.rs",
-        ),
-    )
-
-
-def phase_five_close_proof(proof_type: Any, control_type: Any) -> Any:
-    ledger = f"{CERT_ROOT}/milestone_3141_phase1_ledger.rs"
-    mutation = f"{LEDGER}/mutation_tests.rs"
-    return proof_type(
-        "worth-ui-certification",
-        ("test", "topology_contracts"),
-        "milestone_3141_phase1_ledger::phase_five_closure_requires_every_predecessor_and_phase_five_row",
-        f"{ledger}::validate_phase_closure",
-        f"{ledger}::phase_five_closure_requires_every_predecessor_and_phase_five_row",
-        (
-            ledger,
-            f"{LEDGER}/phase_progression.rs",
-            mutation,
-            "workspaces/worth-ui/docs/text-platform.md",
-            "workspaces/worth-ui/crates/worth-ui/examples/text_platform.rs",
-            "workspaces/worth-ui/crates/worth-ui/src/lib.rs",
-            "workspaces/worth-ui/crates/worth-ui/src/facade/app.rs",
-            "workspaces/worth-ui/crates/worth-ui/src/facade/declaration.rs",
-            "scripts/ci/worth_ui_3141_p5_proofs.py",
-            "scripts/ci/worth_ui_3141_p5_proof_builders.py",
-            "scripts/ci/worth_ui_3141_p5_source_owners.py",
-            "scripts/ci/worth_ui_3141_p5_source_worlds.py",
-            "scripts/ci/close_worth_ui_3141_ledger.py",
-            "scripts/ci/worth_ui_ledger_acceptance.py",
-            "scripts/ci/worth_ui_ledger_closure_selection.py",
-            "scripts/ci/verify_worth_ui_3141_ledger.py",
-            "scripts/ci/worth_ui_3141_proof_plan.py",
-            "scripts/ci/worth_ui_ledger_command.py",
-            "scripts/ci/worth_ui_ledger_artifact_transaction.py",
-            "scripts/ci/worth_ui_ledger_causal_revalidation.py",
-            "scripts/ci/worth_ui_ledger_closure_storage.py",
-            "scripts/ci/worth_ui_ledger_durable_receipts.py",
-            "scripts/ci/worth_ui_ledger_runner_authentication.py",
-            "scripts/ci/worth_ui_ledger_row_cache.py",
-            "scripts/ci/worth_ui_ledger_row_execution.py",
-            "scripts/ci/worth_ui_ledger_execution_cache.py",
-            "scripts/ci/worth_ui_ledger_governed_snapshot.py",
-            "scripts/ci/worth_ui_ledger_portfolio_snapshot.py",
-            "scripts/ci/worth_ui_ledger_portfolio_executions.py",
-            "scripts/ci/worth_ui_ledger_retained_portfolio.py",
-            "scripts/ci/worth_ui_ledger_source_state.py",
-            "scripts/ci/worth_ui_predecessor_causal_refresh.py",
-            "scripts/ci/worth_ui_predecessor_candidate.py",
-            "scripts/ci/worth_ui_predecessor_refresh_order.py",
-            "scripts/ci/worth_ui_predecessor_handoff.py",
-            "scripts/ci/worth_ui_ledger_public_example.py",
-            "scripts/ci/worth_ui_ledger_phase_five_portfolio.py",
-            "scripts/ci/test_worth_ui_ledger_causal_revalidation.py",
-            "scripts/ci/test_worth_ui_ledger_phase_selection.py",
-            "scripts/ci/test_worth_ui_ledger_retained_portfolio.py",
-            "scripts/ci/test_worth_ui_predecessor_causal_refresh.py",
-            f"{LEDGER}/result_artifact_cost.rs",
-            "_docs/worth-ui/milestone-3.14.1.md",
-            "_docs/worth-ui/milestone-3.14.1-phase-5.md",
-            "_docs/worth-ui/milestone-3.14.1-phase-5-implementation-plan.md",
-            "_docs/worth-ui/worth_ui_roadmap.md",
-        ),
-        control=control_type(
-            "worth-ui-certification",
-            ("test", "topology_contracts"),
-            "milestone_3141_phase1_ledger::mutation_tests::phase_closure_mode_rejects_open_rows_at_or_before_its_gate",
-            mutation,
-        ),
-    )
-
-def predecessor_proof(
-    proof_type: Any, control_type: Any, predecessor_artifact: str
-) -> Any:
-    validator = f"{LEDGER}/predecessor_artifact.rs"
-    causal_validator = f"{LEDGER}/predecessor_artifact/causal_reuse.rs"
-    mapping_validator = f"{LEDGER}/predecessor_artifact/mapping_digest.rs"
-    handoff = f"{LEDGER}/predecessor_handoff.rs"
-    return proof_type(
-        "worth-ui-certification",
-        ("test", "topology_contracts"),
-        "milestone_3141_phase1_ledger::predecessor_handoff::phase_five_predecessor_handoff_is_current",
-        f"{validator}::validate",
-        f"{handoff}::phase_five_predecessor_handoff_is_current",
-        (
-            validator,
-            causal_validator,
-            mapping_validator,
-            handoff,
-            f"{LEDGER}/runner_artifact_authentication.rs",
-            "scripts/ci/worth_ui_3141_p5_proofs.py",
-            "scripts/ci/worth_ui_3141_p5_proof_builders.py",
-            "scripts/ci/worth_ui_3141_p5_source_owners.py",
-            "scripts/ci/worth_ui_3141_p5_source_worlds.py",
-            "scripts/ci/worth_ui_predecessor_handoff.py",
-            "scripts/ci/worth_ui_predecessor_causal_refresh.py",
-            "scripts/ci/worth_ui_predecessor_candidate.py",
-            "scripts/ci/worth_ui_predecessor_refresh_order.py",
-            "scripts/ci/worth_ui_ledger_causal_revalidation.py",
-            "scripts/ci/worth_ui_ledger_durable_receipts.py",
-            "scripts/ci/worth_ui_ledger_execution_cache.py",
-            "scripts/ci/worth_ui_ledger_governed_snapshot.py",
-            "scripts/ci/worth_ui_ledger_portfolio_snapshot.py",
-            "scripts/ci/worth_ui_ledger_row_cache.py",
-            "scripts/ci/worth_ui_ledger_runner_authentication.py",
-            "scripts/ci/verify_worth_ui_3141_ledger.py",
-            "scripts/ci/worth_ui_ledger_operational_successors.py",
-            "scripts/ci/worth_ui_ledger_phase_five_portfolio.py",
-            "scripts/ci/worth_ui_ledger_portfolio_row.py",
-            "scripts/ci/worth_ui_ledger_source_state.py",
-            predecessor_artifact,
-        ),
-        control=control_type(
-            "worth-ui-certification",
-            ("test", "topology_contracts"),
-            "milestone_3141_phase1_ledger::predecessor_artifact::tests::phase_five_stale_source_or_missing_row_is_rejected",
-            validator,
         ),
     )

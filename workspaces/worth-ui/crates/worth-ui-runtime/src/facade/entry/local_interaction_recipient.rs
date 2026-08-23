@@ -12,8 +12,17 @@ impl WorthUiActiveApplicationSession {
         contract: UiLocalInputRecipientContract,
     ) -> Result<UiLocalInputRecipientAdmission, UiLocalInputRecipientBindingStop> {
         let generation = self.active_generation_identity();
+        let context = crate::runtime::interaction::draft::UiLocalInputRecipientBindingContext::new(
+            self.host_session.identity().as_u64(),
+            self.interaction.application_generation(),
+            &generation,
+            &self.mounted,
+        );
+        let host = &self.host_session;
         self.interaction
-            .bind_local_recipient(activation, &generation, contract, &self.mounted)
+            .bind_local_recipient(activation, context, contract, |binding| {
+                host.install_input_recipient(binding)
+            })
     }
 }
 

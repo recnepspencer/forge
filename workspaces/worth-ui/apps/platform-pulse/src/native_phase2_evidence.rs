@@ -73,6 +73,7 @@ fn graphics_evidence(
     serde_json::json!({
         "event_loop_thread": receipt.event_loop_thread(),
         "event_loop_thread_matches_launch": receipt.event_loop_thread_matches_launch(),
+        "event_loop_thread_posture": receipt.event_loop_thread_posture().label(),
         "adapter": receipt.graphics().adapter_name(),
         "vendor": receipt.graphics().vendor(),
         "device": receipt.graphics().device(),
