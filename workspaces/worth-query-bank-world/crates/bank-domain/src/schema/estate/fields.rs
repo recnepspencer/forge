@@ -15,13 +15,13 @@ use super::entities::{
     MandatoryReview,
 };
 
-worth_query_aspect!(pub BranchIdentity in BankSchema, Branch);
-worth_query_aspect!(pub DeathNoticeRecord in BankSchema, DeathNotice);
-worth_query_aspect!(pub EstateCaseRecord in BankSchema, EstateCase);
-worth_query_aspect!(pub LegalAuthorityRecord in BankSchema, LegalAuthority);
-worth_query_aspect!(pub CapabilityGrantRecord in BankSchema, CapabilityGrant);
-worth_query_aspect!(pub EmergencyAccessRecord in BankSchema, EmergencyAccess);
-worth_query_aspect!(pub MandatoryReviewRecord in BankSchema, MandatoryReview);
+worth_query_aspect!(pub BranchIdentity in BankSchema, Branch; identity = AspectIdentity(0x91611003), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub DeathNoticeRecord in BankSchema, DeathNotice; identity = AspectIdentity(0x91611004), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub EstateCaseRecord in BankSchema, EstateCase; identity = AspectIdentity(0x91611005), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub LegalAuthorityRecord in BankSchema, LegalAuthority; identity = AspectIdentity(0x91611006), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub CapabilityGrantRecord in BankSchema, CapabilityGrant; identity = AspectIdentity(0x91611007), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub EmergencyAccessRecord in BankSchema, EmergencyAccess; identity = AspectIdentity(0x91611008), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub MandatoryReviewRecord in BankSchema, MandatoryReview; identity = AspectIdentity(0x91611009), revision = AspectContractRevision(1),);
 
 worth_query_field!(
     pub BranchIdentityField in BankSchema, Branch, BranchIdentity:

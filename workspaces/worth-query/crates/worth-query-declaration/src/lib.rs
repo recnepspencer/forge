@@ -13,6 +13,8 @@ mod application_schema;
 mod authentication;
 mod authoring;
 #[macro_use]
+mod application_aspect_macro;
+#[macro_use]
 mod application_capability_macro;
 #[macro_use]
 mod application_schema_macro;

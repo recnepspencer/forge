@@ -32,7 +32,7 @@ worth_query_application_schema! {
 }
 
 worth_query_entity!(pub Record in HostileConsumerSchema);
-worth_query_aspect!(pub RecordFacts in HostileConsumerSchema, Record);
+worth_query_aspect!(pub RecordFacts in HostileConsumerSchema, Record; identity = AspectIdentity(0x91611041), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub RecordIdentity in HostileConsumerSchema, Record, RecordFacts:
     u64, read_only, equality

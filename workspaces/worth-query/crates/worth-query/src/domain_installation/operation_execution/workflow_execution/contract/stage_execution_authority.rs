@@ -5,7 +5,7 @@ pub(crate) struct WorthQueryWorkflowStageExecutionAuthority<'a> {
     pub(crate) basis: crate::basis_lifecycle::BasisFamily,
     pub(crate) installed_read: Option<&'a crate::ordinary::read::WorthQueryReadDeclaration>,
     pub(crate) operation_graph_reads:
-        &'a [worth_query_installation::facade::WorthQueryOperationGraphReadRole],
+        &'a [worth_query_installation::facade::WorthQueryDomainOperationGraphReadRole],
     pub(crate) graph_receipts: &'a [WorthQueryBoundGraphExecutionReceipt],
     pub(crate) resources: &'a super::WorthQueryAdmittedExecutionResourcePlan,
     pub(crate) resource_evidence: &'a super::WorthQueryExecutionResourceAttemptEvidence,

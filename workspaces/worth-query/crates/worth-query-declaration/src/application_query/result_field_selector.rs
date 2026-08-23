@@ -24,7 +24,7 @@ use crate::application_schema::{
 /// struct Query;
 /// struct Slot;
 /// worth_query_declaration::worth_query_entity!(pub Record in Schema);
-/// worth_query_declaration::worth_query_aspect!(pub Facts in Schema, Record);
+/// worth_query_declaration::worth_query_aspect!(pub Facts in Schema, Record; identity = AspectIdentity(0x9161102b), revision = AspectContractRevision(1),);
 /// worth_query_declaration::worth_query_field!(
 ///     pub OptionalText in Schema, Record, Facts:
 ///     optional String, read_write, equality
@@ -69,7 +69,7 @@ pub struct ApplicationQueryResultFieldRef<
 /// struct Query;
 /// struct Slot;
 /// worth_query_declaration::worth_query_entity!(pub Record in Schema);
-/// worth_query_declaration::worth_query_aspect!(pub Facts in Schema, Record);
+/// worth_query_declaration::worth_query_aspect!(pub Facts in Schema, Record; identity = AspectIdentity(0x9161102c), revision = AspectContractRevision(1),);
 /// worth_query_declaration::worth_query_field!(
 ///     pub RequiredText in Schema, Record, Facts:
 ///     String, read_write, equality

@@ -32,6 +32,8 @@ fn every_application_schema_member_family_changes_identity() {
         ApplicationSchemaMember::Aspect {
             entity: "Entity".to_string(),
             aspect: "Aspect".to_string(),
+            identity: worth_foundational::facade::AspectIdentity(0x91613001),
+            revision: worth_foundational::facade::AspectContractRevision(1),
         },
         field((ScalarAspectType::UInt64, "u64", None, false, false)),
         ApplicationSchemaMember::Relation {

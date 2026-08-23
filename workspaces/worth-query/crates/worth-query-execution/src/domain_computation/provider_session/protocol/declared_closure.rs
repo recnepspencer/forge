@@ -1,12 +1,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use worth_query_installation::facade::{
-    InstalledAftermathPostcondition, InstalledCorrectionMechanism, PublishedAftermathPosture,
-    WorthQueryDomainOperationSemanticClosure, WorthQueryInstalledAftermathContract,
-    WorthQueryOperationEffectContract, WorthQueryOperationGraphAccess,
-    WorthQueryOperationInvariantContract, WorthQueryOperationTouchContract,
+    WorthQueryDomainOperationSemanticClosure, WorthQueryOperationEffectContract,
+    WorthQueryOperationGraphAccess, WorthQueryOperationInvariantContract,
+    WorthQueryOperationTouchContract, WorthQueryOperationTouchScope,
     WorthQueryOperationWorkflowContract,
 };
+
+mod aftermath_posture;
 
 #[derive(Clone, Debug)]
 pub(crate) struct WorthQueryProviderPlanDeclarations {
@@ -43,7 +44,9 @@ impl WorthQueryProviderPlanDeclarations {
         let mut declarations = Self {
             decision_fact_families: semantics.decision_facts.required_families().to_vec(),
             invariant_requirements: semantics.invariant_execution.requirements().to_vec(),
-            reconciliation_posture: reversal_posture(semantics.aftermath.as_ref()),
+            reconciliation_posture: aftermath_posture::reversal_posture(
+                semantics.aftermath.as_ref(),
+            ),
             ..Self::default()
         };
         declarations.bind_direct(semantics);
@@ -59,7 +62,9 @@ impl WorthQueryProviderPlanDeclarations {
             ..WorthQueryProviderPlanDeclaredClosure::default()
         };
         if let WorthQueryOperationTouchContract::Declared { scopes, .. } = contracts.touches() {
-            closure.touch.extend(scopes.iter().cloned());
+            closure
+                .touch
+                .extend(scopes.iter().map(application_touch_diagnostic));
         }
         bind_direct_role_closure(
             &mut closure,
@@ -125,7 +130,7 @@ impl WorthQueryProviderPlanDeclarations {
 
     fn bind_direct(&mut self, semantics: &WorthQueryDomainOperationSemanticClosure) {
         let mut roles = BTreeSet::new();
-        for read in semantics.graph_reads.roles() {
+        for read in semantics.graph_reads.domain_roles() {
             roles.insert(read.role.clone());
             self.direct
                 .entry(read.role.clone())
@@ -140,11 +145,14 @@ impl WorthQueryProviderPlanDeclarations {
         {
             for role in graph_roles {
                 roles.insert(role.clone());
-                self.direct
-                    .entry(role.clone())
-                    .or_default()
-                    .touch
-                    .extend(scopes.iter().cloned());
+                self.direct.entry(role.clone()).or_default().touch.extend(
+                    scopes.iter().filter_map(|scope| match scope {
+                        WorthQueryOperationTouchScope::DeclaredDomain(identity) => {
+                            Some(identity.as_str().to_owned())
+                        }
+                        _ => None,
+                    }),
+                );
             }
         }
         let effects = effect_families(&semantics.effects);
@@ -288,6 +296,18 @@ impl WorthQueryProviderPlanDeclarations {
     }
 }
 
+fn application_touch_diagnostic(scope: &WorthQueryOperationTouchScope) -> String {
+    match scope {
+        WorthQueryOperationTouchScope::CreateEntity(_) => "create-entity",
+        WorthQueryOperationTouchScope::DeleteEntity(_) => "delete-entity",
+        WorthQueryOperationTouchScope::WriteField(_) => "write-field",
+        WorthQueryOperationTouchScope::LinkRelation(_) => "link-relation",
+        WorthQueryOperationTouchScope::UnlinkRelation(_) => "unlink-relation",
+        WorthQueryOperationTouchScope::DeclaredDomain(_) => "declared-domain",
+    }
+    .to_owned()
+}
+
 impl WorthQueryProviderPlanDeclaredClosure {
     fn canonicalize(&mut self) {
         for values in [
@@ -338,58 +358,6 @@ fn invariant_slots(contract: &WorthQueryOperationInvariantContract) -> Vec<Strin
         WorthQueryOperationInvariantContract::NotRequired => Vec::new(),
         WorthQueryOperationInvariantContract::Declared { invariant_slots } => {
             invariant_slots.clone()
-        }
-    }
-}
-
-pub(super) fn reversal_posture(contract: Option<&WorthQueryInstalledAftermathContract>) -> String {
-    let Some(contract) = contract else {
-        return "none".to_owned();
-    };
-    match (contract.published_posture(), contract.mechanism()) {
-        (PublishedAftermathPosture::Irreversible, _) => "irreversible".to_owned(),
-        (
-            PublishedAftermathPosture::Reversible,
-            Some(InstalledCorrectionMechanism::RecordedInverse(inverse)),
-        ) => format!(
-            "exact-inverse:{}:{}:{}",
-            inverse.inverse_operation_slot(),
-            inverse.lowering_correspondence().correspondence_slot(),
-            aftermath_postcondition(inverse.postcondition())
-        ),
-        (
-            PublishedAftermathPosture::Compensatable,
-            Some(InstalledCorrectionMechanism::Compensation(compensation)),
-        ) => format!(
-            "compensation:{}:{}",
-            compensation.compensating_operation_slot(),
-            aftermath_postcondition(compensation.postcondition())
-        ),
-        (PublishedAftermathPosture::Reconcilable, mechanism) => match mechanism {
-            Some(InstalledCorrectionMechanism::RecordedInverse(inverse)) => format!(
-                "reconcilable-exact-inverse:{}:{}",
-                inverse.inverse_operation_slot(),
-                aftermath_postcondition(inverse.postcondition())
-            ),
-            Some(InstalledCorrectionMechanism::Compensation(compensation)) => format!(
-                "reconcilable-compensation:{}:{}",
-                compensation.compensating_operation_slot(),
-                aftermath_postcondition(compensation.postcondition())
-            ),
-            None => "reconcilable".to_owned(),
-        },
-        _ => "declaration-incomplete".to_owned(),
-    }
-}
-
-fn aftermath_postcondition(postcondition: &InstalledAftermathPostcondition) -> String {
-    match postcondition {
-        InstalledAftermathPostcondition::ExactPriorTruth => "exact-prior-truth".to_owned(),
-        InstalledAftermathPostcondition::InvariantRestored { invariant } => {
-            format!("invariant-restored:{invariant}")
-        }
-        InstalledAftermathPostcondition::BusinessPostcondition { identity } => {
-            format!("business-postcondition:{identity}")
         }
     }
 }

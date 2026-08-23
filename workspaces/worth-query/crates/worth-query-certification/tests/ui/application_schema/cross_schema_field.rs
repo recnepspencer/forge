@@ -20,6 +20,10 @@ impl ApplicationAspectMarkerIdentity for Aspect {
     type Schema = SecondSchema;
     type Entity = SecondEntity;
     const IDENTIFIER: &'static str = "Aspect";
+    const ASPECT_IDENTITY: worth_query_decl::facade::application_schema::AspectIdentity =
+        worth_query_decl::facade::application_schema::AspectIdentity(0x91612001);
+    const CONTRACT_REVISION: worth_query_decl::facade::application_schema::AspectContractRevision =
+        worth_query_decl::facade::application_schema::AspectContractRevision(1);
 }
 
 impl ApplicationFieldMarkerIdentity for Field {

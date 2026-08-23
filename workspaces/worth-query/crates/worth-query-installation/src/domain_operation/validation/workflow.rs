@@ -195,7 +195,7 @@ fn validate_stage_operation_closure(
     if semantics.graph_read_roles.iter().any(|role| {
         !operation
             .graph_reads
-            .roles()
+            .domain_roles()
             .iter()
             .any(|read| &read.role == role)
     }) {
@@ -269,7 +269,7 @@ fn validate_aggregate_workflow_closure(
         .collect::<BTreeSet<_>>();
     let operation_graph_reads = operation
         .graph_reads
-        .roles()
+        .domain_roles()
         .iter()
         .map(|read| read.role.as_str())
         .collect::<BTreeSet<_>>();

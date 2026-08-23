@@ -66,7 +66,7 @@ impl SemanticAspectDependencyCompilation {
         );
         self.push_collection_contract(&definition.semantics().collection);
         self.push_installed_semantic_contracts(definition.semantics());
-        for graph_read in definition.semantics().graph_reads.roles() {
+        for graph_read in definition.semantics().graph_reads.domain_roles() {
             self.counters.graph_read_role_visits += 1;
             let role = super::graph_read_access::WorthQueryCompiledGraphReadAccess::from_declared(
                 graph_read.access,

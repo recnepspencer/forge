@@ -196,7 +196,7 @@ fn conditional_package_with_access(
 ) -> domain::WorthQueryDomainPackage<GeometryDomain> {
     let base = read_vertex_definition(domain::WorthQuerySupportRequirement::Required);
     let mut semantics = base.semantics().clone();
-    if let domain::WorthQueryOperationGraphReadContract::Declared { roles } =
+    if let domain::WorthQueryOperationGraphReadContract::DeclaredDomain { roles } =
         &mut semantics.graph_reads
     {
         let model = roles

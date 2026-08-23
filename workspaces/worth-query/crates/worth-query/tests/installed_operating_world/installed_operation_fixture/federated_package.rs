@@ -25,9 +25,9 @@ fn federated_package_with_drift<G1: 'static, G2: 'static>(
     let mut semantics = read_vertex_definition(domain::WorthQuerySupportRequirement::Required)
         .semantics()
         .clone();
-    semantics.graph_reads = domain::WorthQueryOperationGraphReadContract::Declared {
+    semantics.graph_reads = domain::WorthQueryOperationGraphReadContract::DeclaredDomain {
         roles: vec![
-            domain::WorthQueryOperationGraphReadRole {
+            domain::WorthQueryDomainOperationGraphReadRole {
                 role: "remote-a".into(),
                 participation: domain::WorthQueryOperationGraphParticipation::SeparateAuthority {
                     role: "remote-a".into(),
@@ -35,7 +35,7 @@ fn federated_package_with_drift<G1: 'static, G2: 'static>(
                 access: domain::WorthQueryOperationGraphAccess::Project,
                 semantic_reads: Vec::new(),
             },
-            domain::WorthQueryOperationGraphReadRole {
+            domain::WorthQueryDomainOperationGraphReadRole {
                 role: "remote-b".into(),
                 participation: domain::WorthQueryOperationGraphParticipation::SeparateAuthority {
                     role: "remote-b".into(),

@@ -56,7 +56,7 @@ fn admit_access_contract<D, O, F>(
         .definition()
         .semantics()
         .graph_reads
-        .roles()
+        .domain_roles()
         .iter()
         .find(|read| {
             counters.graph_read_role_checks += 1;

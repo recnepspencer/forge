@@ -1,20 +1,21 @@
 use std::collections::BTreeMap;
 
-use worth_foundational::facade::{
-    canonicalization, prepare_canonical_basis_sequence, CanonicalBasisDomain, CanonicalBasisEntry,
-    CanonicalBasisEntryKind, CanonicalBasisLocus, CanonicalBasisValue, CanonicalDigestAlgorithmId,
-    CanonicalDigestDerivationDenial, CanonicalDigestId, CanonicalDigestWorkBudget,
-    CanonicalIntegerWidth, CanonicalizationRuleVersion,
+use super::{
+    application_schema_record::WorthQueryInstalledApplicationSchemaRecord,
+    WorthQueryInstalledPackageRecord,
 };
-use worth_query_declaration::facade::application_schema::ErasedApplicationSchemaDeclaration;
-
-use super::WorthQueryInstalledPackageRecord;
 use crate::application_operation::WorthQueryPortableApplicationConditionalOperationBinding;
 use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
 use crate::domain_computation::WorthQueryPortableArtifactContract;
 use crate::domain_operation::WorthQueryValidatedDomainOperation;
 use crate::generation::{WorthQueryInstallationGeneration, WorthQueryInstallationRuntimeIdentity};
 use crate::package::{WorthQueryPortableDefinition, WorthQueryPortableDefinitionKind};
+use worth_foundational::facade::{
+    canonicalization, prepare_canonical_basis_sequence, CanonicalBasisDomain, CanonicalBasisEntry,
+    CanonicalBasisEntryKind, CanonicalBasisLocus, CanonicalBasisValue, CanonicalDigestAlgorithmId,
+    CanonicalDigestDerivationDenial, CanonicalDigestId, CanonicalDigestWorkBudget,
+    CanonicalIntegerWidth, CanonicalizationRuleVersion,
+};
 
 const DOMAIN: CanonicalBasisDomain = CanonicalBasisDomain::Future("worth-query.installed-index");
 const RULE_VERSION: &str = "worth-query-installed-index-v3";
@@ -59,7 +60,8 @@ pub(super) struct IndexIdentityInput<'a> {
     pub domain_operations: &'a BTreeMap<(String, String), WorthQueryValidatedDomainOperation>,
     pub artifact_contracts:
         &'a BTreeMap<(String, String, u32, u32), WorthQueryPortableArtifactContract>,
-    pub application_schemas: &'a BTreeMap<(String, String), ErasedApplicationSchemaDeclaration>,
+    pub application_schemas:
+        &'a BTreeMap<(String, String), WorthQueryInstalledApplicationSchemaRecord>,
     pub conditional_application_operations: &'a BTreeMap<
         (String, String, String),
         WorthQueryPortableApplicationConditionalOperationBinding,
@@ -216,9 +218,10 @@ fn append_artifact_contracts(
 
 fn append_application_schemas(
     entries: &mut Vec<CanonicalBasisEntry>,
-    schemas: &BTreeMap<(String, String), ErasedApplicationSchemaDeclaration>,
+    schemas: &BTreeMap<(String, String), WorthQueryInstalledApplicationSchemaRecord>,
 ) {
-    for (index, ((owner, name), schema)) in schemas.iter().enumerate() {
+    for (index, ((owner, name), record)) in schemas.iter().enumerate() {
+        let schema = record.declaration();
         let prefix = format!("application-schema[{index}]");
         entries.extend([
             text(format!("{prefix}.owner"), owner),

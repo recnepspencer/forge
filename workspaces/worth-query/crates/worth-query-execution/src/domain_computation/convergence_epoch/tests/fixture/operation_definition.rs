@@ -11,13 +11,13 @@ use worth_query_declaration::facade::binding::QueryBindingDescriptor;
 use worth_query_declaration::facade::canonicalization::canonicalize_request;
 use worth_query_installation::facade::{
     WorthQueryArtifactContractReference, WorthQueryDomainEvidenceContract,
-    WorthQueryDomainOperationDefinition, WorthQueryDomainOperationIdentity,
-    WorthQueryDomainOperationSemanticClosure, WorthQueryInvariantExecutionContract,
-    WorthQueryOperationCollectionContract, WorthQueryOperationCostClass,
-    WorthQueryOperationCostContract, WorthQueryOperationDecisionFactContract,
-    WorthQueryOperationEffectContract, WorthQueryOperationGraphAccess,
-    WorthQueryOperationGraphParticipation, WorthQueryOperationGraphReadContract,
-    WorthQueryOperationGraphReadRole, WorthQueryOperationInvariantContract,
+    WorthQueryDomainOperationDefinition, WorthQueryDomainOperationGraphReadRole,
+    WorthQueryDomainOperationIdentity, WorthQueryDomainOperationSemanticClosure,
+    WorthQueryInvariantExecutionContract, WorthQueryOperationCollectionContract,
+    WorthQueryOperationCostClass, WorthQueryOperationCostContract,
+    WorthQueryOperationDecisionFactContract, WorthQueryOperationEffectContract,
+    WorthQueryOperationGraphAccess, WorthQueryOperationGraphParticipation,
+    WorthQueryOperationGraphReadContract, WorthQueryOperationInvariantContract,
     WorthQueryOperationLineageContract, WorthQueryOperationLoweringContract,
     WorthQueryOperationNativeProjectionContract, WorthQueryOperationParameterContract,
     WorthQueryOperationProjectionConsumptionContract, WorthQueryOperationPromotionContract,
@@ -83,8 +83,8 @@ pub(super) fn direct_operation(
         workflow: WorthQueryOperationWorkflowContract::NotRequired,
         evidence: WorthQueryDomainEvidenceContract::installed_artifact(reference),
         conditional_nodes: Vec::new(),
-        graph_reads: WorthQueryOperationGraphReadContract::Declared {
-            roles: vec![WorthQueryOperationGraphReadRole {
+        graph_reads: WorthQueryOperationGraphReadContract::DeclaredDomain {
+            roles: vec![WorthQueryDomainOperationGraphReadRole {
                 role: GRAPH_ROLE.into(),
                 participation: WorthQueryOperationGraphParticipation::SeparateAuthority {
                     role: GRAPH_ROLE.into(),

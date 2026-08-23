@@ -14,21 +14,21 @@ use super::governance::UsdCurrency;
 use super::values::{AccountKind, AccountStatus, PaymentStatus, PostingPurpose};
 use super::BankSchema;
 
-worth_query_aspect!(pub Identity in BankSchema, Account);
-worth_query_aspect!(pub InstitutionIdentity in BankSchema, Institution);
-worth_query_aspect!(pub BusinessIdentity in BankSchema, Business);
-worth_query_aspect!(pub PaymentIdentity in BankSchema, PaymentIntent);
-worth_query_aspect!(pub AccountProfile in BankSchema, Account);
-worth_query_aspect!(pub AccountState in BankSchema, Account);
-worth_query_aspect!(pub AuthorizationScope in BankSchema, AccountAuthorization);
-worth_query_aspect!(pub AuthorizationIdentity in BankSchema, AccountAuthorization);
-worth_query_aspect!(pub EmployeeScope in BankSchema, EmployeeAssignment);
-worth_query_aspect!(pub PostingValue in BankSchema, Posting);
-worth_query_aspect!(pub PostingIdentity in BankSchema, Posting);
-worth_query_aspect!(pub JournalIdentity in BankSchema, JournalEntry);
-worth_query_aspect!(pub JournalState in BankSchema, JournalEntry);
-worth_query_aspect!(pub PaymentState in BankSchema, PaymentIntent);
-worth_query_aspect!(pub PaymentValue in BankSchema, PaymentIntent);
+worth_query_aspect!(pub Identity in BankSchema, Account; identity = AspectIdentity(0x9161100a), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub InstitutionIdentity in BankSchema, Institution; identity = AspectIdentity(0x9161100b), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub BusinessIdentity in BankSchema, Business; identity = AspectIdentity(0x9161100c), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub PaymentIdentity in BankSchema, PaymentIntent; identity = AspectIdentity(0x9161100d), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub AccountProfile in BankSchema, Account; identity = AspectIdentity(0x9161100e), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub AccountState in BankSchema, Account; identity = AspectIdentity(0x9161100f), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub AuthorizationScope in BankSchema, AccountAuthorization; identity = AspectIdentity(0x91611010), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub AuthorizationIdentity in BankSchema, AccountAuthorization; identity = AspectIdentity(0x91611011), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub EmployeeScope in BankSchema, EmployeeAssignment; identity = AspectIdentity(0x91611012), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub PostingValue in BankSchema, Posting; identity = AspectIdentity(0x91611013), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub PostingIdentity in BankSchema, Posting; identity = AspectIdentity(0x91611014), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub JournalIdentity in BankSchema, JournalEntry; identity = AspectIdentity(0x91611015), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub JournalState in BankSchema, JournalEntry; identity = AspectIdentity(0x91611016), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub PaymentState in BankSchema, PaymentIntent; identity = AspectIdentity(0x91611017), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub PaymentValue in BankSchema, PaymentIntent; identity = AspectIdentity(0x91611018), revision = AspectContractRevision(1),);
 
 worth_query_field!(
     pub AccountIdentity in BankSchema, Account, Identity:

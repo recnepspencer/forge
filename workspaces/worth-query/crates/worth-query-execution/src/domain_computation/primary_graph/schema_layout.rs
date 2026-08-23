@@ -3,6 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use worth_foundational::facade::{AspectContract, AspectFieldLocator, AspectKey, FieldKey};
 use worth_query_installation::facade::{
     ApplicationSchemaMember, ErasedApplicationSchemaDeclaration,
+    WorthQueryInstalledApplicationSchemaContractCatalog,
 };
 use worth_relational::facade::identity::KindId;
 use worth_relational::facade::indexes::DerivedIndexId;
@@ -17,6 +18,7 @@ mod principal_binding;
 mod provider_aftermath_causality;
 mod provider_dispatch_outbox;
 mod provider_idempotency;
+mod provider_identity_allocator;
 mod registry_lowering;
 
 use crate::domain_computation::application_aftermath::WorthQueryDispatchOutboxLayout;
@@ -36,8 +38,9 @@ pub(super) use provider_aftermath_causality::{
 use provider_dispatch_outbox::lower_provider_dispatch_outbox;
 use provider_idempotency::lower_provider_idempotency;
 pub(super) use provider_idempotency::WorthQueryProviderIdempotencyLayout;
+use provider_identity_allocator::allocate_provider_aspect_identities;
 use registry_lowering::{
-    lower_entity_aspects, lower_kind_ids, next_provider_kind_id, register_entity,
+    lower_application_contract_bindings, lower_kind_ids, next_provider_kind_id, register_entity,
     register_relation, relational_schema_basis,
 };
 
@@ -74,16 +77,18 @@ pub(in crate::domain_computation) struct WorthQueryPrimaryFieldLayout {
 impl WorthQueryPrimaryGraphLayout {
     pub(super) fn lower(
         schema: &ErasedApplicationSchemaDeclaration,
+        native_contracts: &WorthQueryInstalledApplicationSchemaContractCatalog,
         existing_registry: &RelationalSchemaRegistry,
     ) -> Result<(Self, RelationalSchemaRegistry), WorthQueryPrimaryGraphInstallationDenial> {
         let (entity_kinds, relation_kinds) = lower_kind_ids(schema, existing_registry)?;
         let (schema_id, schema_version_id) = relational_schema_basis(schema, existing_registry)?;
         let mut registry = RelationalSchemaRegistry::new();
-        let mut contract_ordinal = 1_u64;
         let mut aspect_contracts = BTreeMap::new();
+        let lowered_contracts = lower_application_contract_bindings(native_contracts);
+        let mut contracts_by_entity = lowered_contracts.by_entity;
 
         for (entity, kind_id) in &entity_kinds {
-            let aspects = lower_entity_aspects(schema, entity, &mut contract_ordinal)?;
+            let aspects = contracts_by_entity.remove(entity).unwrap_or_default();
             for binding in &aspects {
                 aspect_contracts.insert(
                     (entity.clone(), binding.aspect_key()),
@@ -108,12 +113,13 @@ impl WorthQueryPrimaryGraphLayout {
             entity_kinds.values().copied(),
             relation_kinds.values().copied(),
         )?;
+        let provider_identities = allocate_provider_aspect_identities(native_contracts)?;
         let (registry, provider_idempotency) = lower_provider_idempotency(
             registry,
             &schema_id,
             schema_version_id,
             provider_kind,
-            &mut contract_ordinal,
+            provider_identities[0],
         )?;
         let dispatch_outbox_kind = KindId(
             provider_kind
@@ -126,7 +132,7 @@ impl WorthQueryPrimaryGraphLayout {
             &schema_id,
             schema_version_id,
             dispatch_outbox_kind,
-            &mut contract_ordinal,
+            provider_identities[1],
         )?;
         let aftermath_causality_kind = KindId(
             dispatch_outbox_kind
@@ -139,7 +145,7 @@ impl WorthQueryPrimaryGraphLayout {
             &schema_id,
             schema_version_id,
             aftermath_causality_kind,
-            &mut contract_ordinal,
+            provider_identities[2],
         )?;
         let principal_bindings = lower_principal_bindings(schema, &entity_kinds, &relation_kinds)?;
         let relation_layouts = lower_relation_layouts(schema, &entity_kinds, &relation_kinds)?;

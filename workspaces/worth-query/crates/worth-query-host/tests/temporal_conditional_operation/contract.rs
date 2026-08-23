@@ -61,8 +61,8 @@ pub fn operation_definition() -> domain::WorthQueryDomainOperationDefinition<
             workflow: domain::WorthQueryOperationWorkflowContract::NotRequired,
             evidence: domain::WorthQueryDomainEvidenceContract::not_required(),
             conditional_nodes: vec![temporal_node()],
-            graph_reads: domain::WorthQueryOperationGraphReadContract::Declared {
-                roles: vec![domain::WorthQueryOperationGraphReadRole {
+            graph_reads: domain::WorthQueryOperationGraphReadContract::DeclaredDomain {
+                roles: vec![domain::WorthQueryDomainOperationGraphReadRole {
                     role: "primary".into(),
                     participation:
                         domain::WorthQueryOperationGraphParticipation::PrimaryLogicalGraph,

@@ -8,8 +8,8 @@ use worth_relational::facade::schema::{
 use crate::domain_computation::application_aftermath::WorthQueryDispatchOutboxLayout;
 
 use super::{
-    contract_space_exhausted, planned_field_locator, register_entity, valid_aspect_key,
-    valid_field_key, WorthQueryPrimaryGraphInstallationDenial,
+    planned_field_locator, register_entity, valid_aspect_key, valid_field_key,
+    WorthQueryPrimaryGraphInstallationDenial,
 };
 
 const ENTITY: &str = "worth-query-dispatch-outbox";
@@ -31,7 +31,7 @@ pub(super) fn lower_provider_dispatch_outbox(
     schema_id: &SchemaId,
     schema_version_id: SchemaVersionId,
     entity_kind: KindId,
-    contract_ordinal: &mut u64,
+    identity: AspectIdentity,
 ) -> Result<
     (RelationalSchemaRegistry, WorthQueryDispatchOutboxLayout),
     WorthQueryPrimaryGraphInstallationDenial,
@@ -56,10 +56,6 @@ pub(super) fn lower_provider_dispatch_outbox(
         .required(OUTCOME_IDENTITY_FIELD, ScalarAspectType::UInt64)
         .finish()
         .map_err(|_| super::invalid_member(ASPECT))?;
-    let identity = AspectIdentity(*contract_ordinal);
-    *contract_ordinal = contract_ordinal
-        .checked_add(1)
-        .ok_or_else(contract_space_exhausted)?;
     let contract = aspects()
         .contract()
         .for_key(valid_aspect_key(ASPECT)?)

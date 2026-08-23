@@ -48,8 +48,8 @@ worth_query_application_schema! {
 
 worth_query_entity!(pub Parent in CardinalitySchema);
 worth_query_entity!(pub Child in CardinalitySchema);
-worth_query_aspect!(pub ParentFacts in CardinalitySchema, Parent);
-worth_query_aspect!(pub ChildFacts in CardinalitySchema, Child);
+worth_query_aspect!(pub ParentFacts in CardinalitySchema, Parent; identity = AspectIdentity(0x91611048), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub ChildFacts in CardinalitySchema, Child; identity = AspectIdentity(0x91611049), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub ParentId in CardinalitySchema, Parent, ParentFacts:
     u64, read_only, equality

@@ -103,8 +103,8 @@ fn direct_package_with_graph(
 
 pub(super) fn add_evidence_graph_read(reads: &mut domain::WorthQueryOperationGraphReadContract) {
     match reads {
-        domain::WorthQueryOperationGraphReadContract::Declared { roles } => {
-            roles.push(domain::WorthQueryOperationGraphReadRole {
+        domain::WorthQueryOperationGraphReadContract::DeclaredDomain { roles } => {
+            roles.push(domain::WorthQueryDomainOperationGraphReadRole {
                 role: "evidence-graph".into(),
                 participation: domain::WorthQueryOperationGraphParticipation::SeparateAuthority {
                     role: "evidence-graph".into(),
@@ -115,6 +115,9 @@ pub(super) fn add_evidence_graph_read(reads: &mut domain::WorthQueryOperationGra
         }
         domain::WorthQueryOperationGraphReadContract::NotRequired => {
             unreachable!("evidence operations retain the primary graph read")
+        }
+        domain::WorthQueryOperationGraphReadContract::Declared { .. } => {
+            unreachable!("portable domain operations cannot carry application read scopes")
         }
     }
 }

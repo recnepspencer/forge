@@ -1,11 +1,12 @@
 use crate::facade::application_schema::{
-    ApplicationAspectRef, ApplicationEntityRef, ApplicationFieldPresence, ApplicationFieldRef,
-    ApplicationOperationRef, ApplicationSchema, ApplicationSchemaAuthoringContext,
-    ApplicationSchemaAuthoringDenialKind, ApplicationSchemaBindingIdentity,
-    ApplicationSchemaDeclaration, ApplicationSchemaDeclarationBuilder,
-    ApplicationSchemaDeclarationDenial, ApplicationUnitMarker, DeclaredApplicationFieldValue,
-    DeclaredApplicationUnit, EqualityPredicate, OperationCreates, OperationExpectsFact, ReadOnly,
-    TypedApplicationValue, TypedOperationBuilder, TypedUnitApplicationValue,
+    ApplicationAspectMarkerIdentity, ApplicationAspectRef, ApplicationEntityRef,
+    ApplicationFieldPresence, ApplicationFieldRef, ApplicationOperationRef, ApplicationSchema,
+    ApplicationSchemaAuthoringContext, ApplicationSchemaAuthoringDenialKind,
+    ApplicationSchemaBindingIdentity, ApplicationSchemaDeclaration,
+    ApplicationSchemaDeclarationBuilder, ApplicationSchemaDeclarationDenial, ApplicationUnitMarker,
+    DeclaredApplicationFieldValue, DeclaredApplicationUnit, EqualityPredicate, OperationCreates,
+    OperationExpectsFact, ReadOnly, TypedApplicationValue, TypedOperationBuilder,
+    TypedUnitApplicationValue,
 };
 use worth_foundational::facade::{AspectValue, ScalarAspectType};
 
@@ -26,6 +27,17 @@ struct NamespacedSchema;
 struct InvalidOwnerSchema;
 struct DottedMemberSchema;
 struct IdentifierEntity;
+
+impl ApplicationAspectMarkerIdentity for Aspect {
+    type Schema = Schema;
+    type Entity = Entity;
+
+    const IDENTIFIER: &'static str = "Aspect";
+    const ASPECT_IDENTITY: worth_foundational::facade::AspectIdentity =
+        worth_foundational::facade::AspectIdentity(0x9161_2301);
+    const CONTRACT_REVISION: worth_foundational::facade::AspectContractRevision =
+        worth_foundational::facade::AspectContractRevision(2);
+}
 
 impl DeclaredApplicationFieldValue for Field {
     type Value = u64;

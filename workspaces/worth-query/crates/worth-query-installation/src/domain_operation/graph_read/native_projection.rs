@@ -10,13 +10,15 @@ use worth_foundational::facade::{
     CanonicalizationRuleVersion, ProjectionMask,
 };
 
+use worth_query_declaration::facade::application_schema::ApplicationSchemaBindingIdentity;
+
 #[derive(Clone)]
 pub struct WorthQueryOperationNativeProjectionContract {
     contract: AspectContract,
-    canonical_contract_basis: CanonicalBasisReadyArtifact,
+    canonical_contract_basis: Arc<CanonicalBasisReadyArtifact>,
     canonical_mask_basis: CanonicalBasisReadyArtifact,
     canonical_export: Arc<CanonicalExportReadyArtifact>,
-    canonical_contract_material: String,
+    canonical_contract_material: Arc<str>,
     mask: AspectMask<ProjectionMask>,
 }
 
@@ -60,10 +62,51 @@ impl WorthQueryOperationNativeProjectionContract {
             canonical_basis_sequence_material(canonical_contract_basis.payload());
         Ok(Self {
             contract,
-            canonical_contract_basis,
+            canonical_contract_basis: Arc::new(canonical_contract_basis),
             canonical_mask_basis,
             canonical_export: Arc::new(canonical_export),
-            canonical_contract_material,
+            canonical_contract_material: Arc::from(canonical_contract_material),
+            mask,
+        })
+    }
+
+    pub(crate) fn from_installed(
+        installed: &crate::application_schema::WorthQueryInstalledApplicationAspectContract,
+        mask: AspectMask<ProjectionMask>,
+    ) -> Result<Self, worth_foundational::facade::MaskAdmissibilityDenial> {
+        installed.contract().admits_projection_mask(&mask)?;
+        let version = CanonicalizationRuleVersion::new("worth-query-native-contract-v1")
+            .expect("the fixed Query native-contract canonicalization version is valid");
+        let canonical_mask_basis = prepare_aspect_mask_for_canonical_basis(
+            version.clone(),
+            installed.contract().key().clone(),
+            mask.clone(),
+        )
+        .into_result()
+        .expect("an admitted Foundational projection mask has canonical material");
+        let canonical_bundle = prepare_canonical_basis_bundle(
+            version,
+            [
+                installed.canonical_contract_basis().clone(),
+                canonical_mask_basis.clone(),
+            ],
+        )
+        .into_result()
+        .expect("the installed native contract and mask form a coherent canonical bundle");
+        let canonical_export = prepare_canonical_export_bundle(
+            "worth-query-installed-native-projection-v1",
+            CanonicalProducerShape::NativeFoundational,
+            CanonicalEquivalenceBasis::ExactCanonicalBasis,
+            canonical_bundle,
+        )
+        .into_result()
+        .expect("the coherent native projection bundle is export-ready");
+        Ok(Self {
+            contract: installed.contract().clone(),
+            canonical_contract_basis: installed.retain_canonical_contract_basis(),
+            canonical_mask_basis,
+            canonical_export: Arc::new(canonical_export),
+            canonical_contract_material: installed.retain_canonical_contract_material(),
             mask,
         })
     }
@@ -77,7 +120,7 @@ impl WorthQueryOperationNativeProjectionContract {
     }
 
     pub(crate) fn canonical_contract_basis(&self) -> &CanonicalBasisReadyArtifact {
-        &self.canonical_contract_basis
+        self.canonical_contract_basis.as_ref()
     }
 
     pub(crate) fn canonical_mask_basis(&self) -> &CanonicalBasisReadyArtifact {
@@ -89,7 +132,7 @@ impl WorthQueryOperationNativeProjectionContract {
     }
 
     pub(crate) fn canonical_contract_material(&self) -> &str {
-        &self.canonical_contract_material
+        self.canonical_contract_material.as_ref()
     }
 
     pub(crate) fn canonical_order(&self, candidate: &Self) -> Ordering {
@@ -128,3 +171,44 @@ impl PartialEq for WorthQueryOperationNativeProjectionContract {
 }
 
 impl Eq for WorthQueryOperationNativeProjectionContract {}
+
+/// Schema-bound application projection compiled from one installed catalog locus.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryOperationApplicationProjectionScope {
+    schema: ApplicationSchemaBindingIdentity,
+    entity: String,
+    aspect: worth_foundational::facade::AspectKey,
+    projection: WorthQueryOperationNativeProjectionContract,
+}
+
+impl WorthQueryOperationApplicationProjectionScope {
+    pub(crate) fn new(
+        schema: ApplicationSchemaBindingIdentity,
+        entity: String,
+        aspect: worth_foundational::facade::AspectKey,
+        projection: WorthQueryOperationNativeProjectionContract,
+    ) -> Self {
+        Self {
+            schema,
+            entity,
+            aspect,
+            projection,
+        }
+    }
+
+    pub const fn schema(&self) -> &ApplicationSchemaBindingIdentity {
+        &self.schema
+    }
+
+    pub fn entity(&self) -> super::WorthQueryOperationEntityReadScopeRef<'_> {
+        super::WorthQueryOperationEntityReadScopeRef::new(&self.schema, &self.entity)
+    }
+
+    pub const fn aspect(&self) -> &worth_foundational::facade::AspectKey {
+        &self.aspect
+    }
+
+    pub const fn projection(&self) -> &WorthQueryOperationNativeProjectionContract {
+        &self.projection
+    }
+}

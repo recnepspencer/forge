@@ -39,6 +39,22 @@ impl WorthQueryCanonicalWorkEvidence {
         }
     }
 
+    pub(crate) const fn one_basis_preparation(
+        canonical_entries: u32,
+        canonical_encoded_bytes: usize,
+    ) -> Self {
+        Self {
+            basis_preparations: 1,
+            digest_derivations: 0,
+            canonical_entries,
+            canonical_encoded_bytes,
+            canonical_material_allocation_bytes: canonical_encoded_bytes,
+            sha256_input_bytes: 0,
+            sha256_compression_blocks: 0,
+            digest_text_materializations: 0,
+        }
+    }
+
     pub const fn combine(self, other: Self) -> Self {
         Self {
             basis_preparations: self

@@ -189,7 +189,7 @@ fn direct_support_snapshot(
     let semantics = definition.semantics();
     let mut graph_roles = semantics
         .graph_reads
-        .roles()
+        .domain_roles()
         .iter()
         .map(|read| read.role.as_str())
         .collect::<BTreeSet<_>>();

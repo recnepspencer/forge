@@ -3,7 +3,8 @@ use worth_foundational::facade::CanonicalDigestDerivationDenial;
 use crate::canonical_digest_derivation::InstallationCanonicalIdentityBasis;
 use crate::domain_operation::{
     WorthQueryOperationGraphAccess, WorthQueryOperationGraphParticipation,
-    WorthQueryOperationTouchContract,
+    WorthQueryOperationGraphReadScope, WorthQueryOperationTouchContract,
+    WorthQueryOperationTouchScope,
 };
 
 use super::super::{
@@ -23,8 +24,8 @@ pub(super) fn encode_contract(
         }
         WorthQueryInstalledGraphObligationContract::OperationGraphRead { role } => {
             basis.text(format!("{prefix}.kind"), "operation-graph-read")?;
-            basis.text(format!("{prefix}.role"), &role.role)?;
-            match &role.participation {
+            basis.text(format!("{prefix}.role"), role.role())?;
+            match role.participation() {
                 WorthQueryOperationGraphParticipation::PrimaryLogicalGraph => {
                     basis.text(format!("{prefix}.participation"), "primary")?;
                 }
@@ -35,24 +36,17 @@ pub(super) fn encode_contract(
             }
             basis.text(
                 format!("{prefix}.access"),
-                match role.access {
+                match role.access() {
                     WorthQueryOperationGraphAccess::Observe => "observe",
                     WorthQueryOperationGraphAccess::Project => "project",
                 },
             )?;
             basis.unsigned_usize(
                 format!("{prefix}.semantic-read-count"),
-                role.semantic_reads.len(),
+                role.read_scopes().len(),
             )?;
-            for (read_index, read) in role.semantic_reads.iter().enumerate() {
-                basis.embedded_basis(
-                    &format!("{prefix}.semantic-read[{read_index}].contract"),
-                    read.canonical_contract_basis(),
-                )?;
-                basis.embedded_basis(
-                    &format!("{prefix}.semantic-read[{read_index}].mask"),
-                    read.canonical_mask_basis(),
-                )?;
+            for (read_index, read) in role.read_scopes().iter().enumerate() {
+                encode_read_scope(basis, &format!("{prefix}.read[{read_index}]"), read)?;
             }
         }
         WorthQueryInstalledGraphObligationContract::PrincipalAuthorization => {
@@ -166,7 +160,108 @@ fn encode_touch(
     }
     basis.unsigned_usize(format!("{prefix}.scope-count"), scopes.len())?;
     for (index, scope) in scopes.iter().enumerate() {
-        basis.text(format!("{prefix}.scope[{index}]"), scope)?;
+        encode_touch_scope(basis, &format!("{prefix}.scope[{index}]"), scope)?;
     }
+    Ok(())
+}
+
+fn encode_read_scope(
+    basis: &mut InstallationCanonicalIdentityBasis,
+    prefix: &str,
+    scope: &WorthQueryOperationGraphReadScope,
+) -> Result<(), CanonicalDigestDerivationDenial> {
+    match scope {
+        WorthQueryOperationGraphReadScope::Entity(entity) => {
+            basis.text(format!("{prefix}.kind"), "entity")?;
+            encode_binding(basis, prefix, entity.schema())?;
+            basis.text(format!("{prefix}.entity"), entity.semantic_key())?;
+        }
+        WorthQueryOperationGraphReadScope::NativeProjection(projection) => {
+            basis.text(format!("{prefix}.kind"), "native-projection")?;
+            encode_binding(basis, prefix, projection.schema())?;
+            basis.text(
+                format!("{prefix}.entity"),
+                projection.entity().semantic_key(),
+            )?;
+            basis.text(format!("{prefix}.aspect"), projection.aspect().as_str())?;
+            basis.embedded_basis(
+                &format!("{prefix}.contract"),
+                projection.projection().canonical_contract_basis(),
+            )?;
+            basis.embedded_basis(
+                &format!("{prefix}.mask"),
+                projection.projection().canonical_mask_basis(),
+            )?;
+        }
+        WorthQueryOperationGraphReadScope::Relation(relation) => {
+            basis.text(format!("{prefix}.kind"), "relation")?;
+            encode_binding(basis, prefix, relation.schema())?;
+            basis.text(format!("{prefix}.relation"), relation.relation())?;
+            basis.text(format!("{prefix}.from"), relation.from())?;
+            basis.text(format!("{prefix}.to"), relation.to())?;
+        }
+    }
+    Ok(())
+}
+
+fn encode_touch_scope(
+    basis: &mut InstallationCanonicalIdentityBasis,
+    prefix: &str,
+    scope: &WorthQueryOperationTouchScope,
+) -> Result<(), CanonicalDigestDerivationDenial> {
+    match scope {
+        WorthQueryOperationTouchScope::CreateEntity(entity)
+        | WorthQueryOperationTouchScope::DeleteEntity(entity) => {
+            let kind = if matches!(scope, WorthQueryOperationTouchScope::CreateEntity(_)) {
+                "create-entity"
+            } else {
+                "delete-entity"
+            };
+            basis.text(format!("{prefix}.kind"), kind)?;
+            encode_binding(basis, prefix, entity.schema())?;
+            basis.text(format!("{prefix}.entity"), entity.entity())?;
+        }
+        WorthQueryOperationTouchScope::WriteField(field) => {
+            basis.text(format!("{prefix}.kind"), "write-field")?;
+            encode_binding(basis, prefix, field.schema())?;
+            basis.text(format!("{prefix}.entity"), field.entity())?;
+            basis.embedded_basis(
+                &format!("{prefix}.contract"),
+                field.canonical_contract_basis(),
+            )?;
+            for (index, part) in field.field_path().fields().iter().enumerate() {
+                basis.text(format!("{prefix}.field[{index}]"), part.as_str())?;
+            }
+        }
+        WorthQueryOperationTouchScope::LinkRelation(relation)
+        | WorthQueryOperationTouchScope::UnlinkRelation(relation) => {
+            let kind = if matches!(scope, WorthQueryOperationTouchScope::LinkRelation(_)) {
+                "link-relation"
+            } else {
+                "unlink-relation"
+            };
+            basis.text(format!("{prefix}.kind"), kind)?;
+            encode_binding(basis, prefix, relation.schema())?;
+            basis.text(format!("{prefix}.relation"), relation.relation())?;
+            basis.text(format!("{prefix}.from"), relation.from())?;
+            basis.text(format!("{prefix}.to"), relation.to())?;
+        }
+        WorthQueryOperationTouchScope::DeclaredDomain(identity) => {
+            basis.text(format!("{prefix}.kind"), "declared-domain")?;
+            basis.text(format!("{prefix}.identity"), identity.as_str())?;
+        }
+    }
+    Ok(())
+}
+
+fn encode_binding(
+    basis: &mut InstallationCanonicalIdentityBasis,
+    prefix: &str,
+    binding: &worth_query_declaration::facade::application_schema::ApplicationSchemaBindingIdentity,
+) -> Result<(), CanonicalDigestDerivationDenial> {
+    basis.unsigned_u64(format!("{prefix}.runtime"), binding.runtime_ordinal())?;
+    basis.unsigned_u64(format!("{prefix}.generation"), binding.generation())?;
+    basis.digest(format!("{prefix}.package"), *binding.package_identity())?;
+    basis.digest(format!("{prefix}.schema"), *binding.schema_identity())?;
     Ok(())
 }

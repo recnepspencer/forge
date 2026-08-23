@@ -39,7 +39,7 @@ pub(super) fn validate_member_identifiers(
     for member in members {
         match member {
             ApplicationSchemaMember::Entity { entity } => validate_simple_identifier(entity)?,
-            ApplicationSchemaMember::Aspect { entity, aspect } => {
+            ApplicationSchemaMember::Aspect { entity, aspect, .. } => {
                 validate_identifiers([entity, aspect])?;
             }
             ApplicationSchemaMember::Field {

@@ -53,20 +53,16 @@ worth_query_application_schema! {
 
 worth_query_entity!(pub(super) ExternalMapping in PrimaryGraphCompositionSchema);
 worth_query_entity!(pub(super) Principal in PrimaryGraphCompositionSchema);
-worth_query_aspect!(
-    pub(super) ExternalIdentity in PrimaryGraphCompositionSchema,
-    ExternalMapping
-);
+worth_query_aspect!(pub(super) ExternalIdentity in PrimaryGraphCompositionSchema,
+    ExternalMapping; identity = AspectIdentity(0x91611054), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub(super) ExternalIdentityField in PrimaryGraphCompositionSchema,
     ExternalMapping,
     ExternalIdentity:
     WorthQueryExternalPrincipalIdentity, read_only, equality
 );
-worth_query_aspect!(
-    pub(super) PrincipalIdentity in PrimaryGraphCompositionSchema,
-    Principal
-);
+worth_query_aspect!(pub(super) PrincipalIdentity in PrimaryGraphCompositionSchema,
+    Principal; identity = AspectIdentity(0x91611055), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub(super) PrincipalIdentityField in PrimaryGraphCompositionSchema,
     Principal,

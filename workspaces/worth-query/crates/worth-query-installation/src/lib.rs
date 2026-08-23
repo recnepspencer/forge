@@ -180,8 +180,10 @@ pub mod facade {
         WorthQueryReadGraphRelationDirection, WorthQueryReadGraphRelationView,
     };
     pub use crate::application_schema::{
-        WorthQueryInstalledApplicationSchema, WorthQueryInstalledApplicationSchemaDenial,
-        WorthQueryInstalledApplicationSchemaDenialKind,
+        WorthQueryInstalledApplicationAspectContract, WorthQueryInstalledApplicationAspectLocus,
+        WorthQueryInstalledApplicationSchema, WorthQueryInstalledApplicationSchemaContractCatalog,
+        WorthQueryInstalledApplicationSchemaContractCatalogCounters,
+        WorthQueryInstalledApplicationSchemaDenial, WorthQueryInstalledApplicationSchemaDenialKind,
     };
     pub use crate::canonical_work::{
         WorthQueryCanonicalWorkEvidence, WorthQueryCanonicalWorkPhases,

@@ -13,12 +13,12 @@ worth_query_entity!(pub ExternalMapping in IdentityExecutionSchema);
 worth_query_entity!(pub Principal in IdentityExecutionSchema);
 worth_query_entity!(pub Account in IdentityExecutionSchema);
 worth_query_entity!(pub Activity in IdentityExecutionSchema);
-worth_query_aspect!(pub ExternalIdentity in IdentityExecutionSchema, ExternalMapping);
+worth_query_aspect!(pub ExternalIdentity in IdentityExecutionSchema, ExternalMapping; identity = AspectIdentity(0x9161103a), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub ExternalIdentityField in IdentityExecutionSchema, ExternalMapping, ExternalIdentity:
     WorthQueryExternalPrincipalIdentity, read_only, equality
 );
-worth_query_aspect!(pub PrincipalIdentity in IdentityExecutionSchema, Principal);
+worth_query_aspect!(pub PrincipalIdentity in IdentityExecutionSchema, Principal; identity = AspectIdentity(0x9161103b), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub PrincipalIdentityField in IdentityExecutionSchema, Principal, PrincipalIdentity:
     u64, read_only, equality
@@ -40,7 +40,7 @@ worth_query_principal_binding!(
         principal_identity: PrincipalIdentityField
     }
 );
-worth_query_aspect!(pub AccountPolicy in IdentityExecutionSchema, Account);
+worth_query_aspect!(pub AccountPolicy in IdentityExecutionSchema, Account; identity = AspectIdentity(0x9161103c), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub AccountIdentity in IdentityExecutionSchema, Account, AccountPolicy:
     String, read_only, equality
@@ -57,7 +57,7 @@ worth_query_field!(
     pub AccountNote in IdentityExecutionSchema, Account, AccountPolicy:
     optional String, read_write, equality
 );
-worth_query_aspect!(pub ActivityFacts in IdentityExecutionSchema, Activity);
+worth_query_aspect!(pub ActivityFacts in IdentityExecutionSchema, Activity; identity = AspectIdentity(0x9161103d), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub ActivityIdentity in IdentityExecutionSchema, Activity, ActivityFacts:
     String, read_only, equality

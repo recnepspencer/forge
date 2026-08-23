@@ -63,7 +63,7 @@ pub(super) fn operation_execution_descriptors(
                         .definition()
                         .semantics()
                         .graph_reads
-                        .roles()
+                        .domain_roles()
                         .iter()
                         .any(|read| {
                             read.participation
@@ -160,7 +160,7 @@ fn requires_primary_mutation(
             graph_roles,
             ..
         } => graph_roles.iter().any(|role| {
-            semantics.graph_reads.roles().iter().any(|read| {
+            semantics.graph_reads.domain_roles().iter().any(|read| {
                 read.role == *role
                     && read.participation
                         == worth_query_installation::facade::WorthQueryOperationGraphParticipation::PrimaryLogicalGraph
@@ -206,7 +206,7 @@ pub(super) fn workflow_execution_descriptors(
                         .definition()
                         .semantics()
                         .graph_reads
-                        .roles()
+                        .domain_roles()
                         .iter()
                         .any(|read| {
                             read.participation

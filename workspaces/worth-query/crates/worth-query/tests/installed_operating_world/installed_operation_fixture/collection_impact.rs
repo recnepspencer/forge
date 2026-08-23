@@ -253,7 +253,7 @@ fn collection_package(
 ) -> domain::WorthQueryDomainPackage<GeometryDomain> {
     let dependency = &node.dependencies()[0];
     let mut semantics = collection_semantics();
-    if let domain::WorthQueryOperationGraphReadContract::Declared { roles } =
+    if let domain::WorthQueryOperationGraphReadContract::DeclaredDomain { roles } =
         &mut semantics.graph_reads
     {
         roles[0].semantic_reads.push(

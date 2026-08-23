@@ -34,12 +34,12 @@ worth_query_application_schema! {
 
 worth_query_entity!(pub ExternalMapping in IdentitySchema);
 worth_query_entity!(pub Principal in IdentitySchema);
-worth_query_aspect!(pub ExternalIdentity in IdentitySchema, ExternalMapping);
+worth_query_aspect!(pub ExternalIdentity in IdentitySchema, ExternalMapping; identity = AspectIdentity(0x9161102d), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub ExternalIdentityField in IdentitySchema, ExternalMapping, ExternalIdentity:
     WorthQueryExternalPrincipalIdentity, read_only, equality
 );
-worth_query_aspect!(pub PrincipalIdentity in IdentitySchema, Principal);
+worth_query_aspect!(pub PrincipalIdentity in IdentitySchema, Principal; identity = AspectIdentity(0x9161102e), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub PrincipalIdentityField in IdentitySchema, Principal, PrincipalIdentity:
     u64, read_only, equality

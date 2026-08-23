@@ -24,6 +24,7 @@ use crate::facade::{
 mod aftermath_coverage;
 mod conditional_application_operation;
 mod field_references;
+mod native_contract_catalog;
 mod operation_contracts;
 mod package_schema_identity;
 mod principal_binding;
