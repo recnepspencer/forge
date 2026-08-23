@@ -17,6 +17,8 @@ use crate::physical_runtime::{
 
 mod accessors;
 mod failure;
+#[cfg(test)]
+mod merge_tests;
 mod wal_payload;
 
 pub use failure::StoreRecoveryBindingSampleFailure;
@@ -357,6 +359,9 @@ fn merge_evidence(
         {
             return Err(StoreRecoveryBindingSampleDenial::ConflictingOperationEvidence);
         }
+        if conflicting_terminal_fates(existing.fate, evidence.fate) {
+            return Err(StoreRecoveryBindingSampleDenial::ConflictingOperationEvidence);
+        }
         if existing.fate == StoreRecoveryOperationFate::Indeterminate
             && evidence.fate != StoreRecoveryOperationFate::Indeterminate
         {
@@ -369,4 +374,13 @@ fn merge_evidence(
     }
     operations.insert(key, evidence);
     Ok(())
+}
+
+fn conflicting_terminal_fates(
+    existing: StoreRecoveryOperationFate,
+    incoming: StoreRecoveryOperationFate,
+) -> bool {
+    existing != StoreRecoveryOperationFate::Indeterminate
+        && incoming != StoreRecoveryOperationFate::Indeterminate
+        && existing != incoming
 }

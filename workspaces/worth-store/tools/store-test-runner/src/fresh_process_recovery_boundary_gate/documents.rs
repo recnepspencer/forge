@@ -81,3 +81,90 @@ fn roadmap_and_specification_share_exact_fates_and_entry_inputs() {
     assert!(trace.contains("entry-input,physical-recovery-limits,"));
     assert!(roadmap.contains("platform authority is minted inside"));
 }
+
+#[test]
+fn public_recovery_docs_name_the_exact_terminal_variant() {
+    for path in [
+        "_docs/worth-store/physical-recovery-and-reopen.md",
+        "workspaces/worth-store/crates/worth-store-recovery-runtime/README.md",
+    ] {
+        let document = read_repository_document(path).expect("read recovery documentation");
+        assert!(
+            document.contains("PublicationIndeterminate"),
+            "{path} must name the public PublicationIndeterminate terminal"
+        );
+    }
+}
+
+#[test]
+fn documented_recovery_and_observer_commands_are_extractable() {
+    let document = read_repository_document("_docs/worth-store/physical-recovery-and-reopen.md")
+        .expect("read operator recovery guide");
+    let commands = extract_real_example_commands(&document);
+    assert_eq!(commands.len(), 2);
+    assert_eq!(commands[0].program, "physical_store_recover");
+    assert_eq!(commands[1].program, "physical_store_offline_observer");
+    assert!(commands[0]
+        .arguments
+        .iter()
+        .any(|argument| argument == "--bounded-profile=c8-phase2-admission-v1"));
+    assert!(commands[1]
+        .arguments
+        .iter()
+        .any(|argument| argument == "c8-recovery-observe"));
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct DocumentedCommand {
+    program: String,
+    arguments: Vec<String>,
+}
+
+fn extract_real_example_commands(document: &str) -> Vec<DocumentedCommand> {
+    let start = document
+        .find("## Real Example")
+        .expect("operator guide real example heading")
+        + "## Real Example".len();
+    let end = document[start..]
+        .find("## How It Relates To Other Features")
+        .map(|offset| start + offset)
+        .expect("operator guide real example boundary");
+    let mut commands = Vec::new();
+    let mut logical = String::new();
+    let mut in_code_block = false;
+    for line in document[start..end].lines() {
+        let line = line.trim();
+        if line == "```text" {
+            in_code_block = true;
+            continue;
+        }
+        if line == "```" {
+            in_code_block = false;
+            continue;
+        }
+        if !in_code_block || line.is_empty() {
+            continue;
+        }
+        let continued = line.ends_with('\\');
+        let fragment = line.strip_suffix('\\').unwrap_or(line).trim_end();
+        if !logical.is_empty() {
+            logical.push(' ');
+        }
+        logical.push_str(fragment);
+        if !continued {
+            let mut fields = logical.split_whitespace();
+            let Some(program) = fields.next() else {
+                logical.clear();
+                continue;
+            };
+            commands.push(DocumentedCommand {
+                program: program.to_owned(),
+                arguments: fields.map(str::to_owned).collect(),
+            });
+            logical.clear();
+        }
+    }
+    assert!(!in_code_block, "unterminated documented code block");
+    assert!(logical.is_empty(), "unterminated documented command");
+    commands
+}

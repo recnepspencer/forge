@@ -22,6 +22,8 @@ mod allocation;
 mod artifact_policy;
 #[path = "oracle/c7_campaign.rs"]
 mod c7_campaign;
+#[path = "oracle/c8_recovery.rs"]
+mod c8_recovery;
 #[path = "oracle/cancellation.rs"]
 mod cancellation;
 #[path = "oracle/digest.rs"]

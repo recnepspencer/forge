@@ -35,6 +35,7 @@ fn session_publishes_one_report_without_a_companion_artifact_directory() {
         &report,
         source.clone(),
         MutationCampaignScope::BoundedResidency,
+        temporary.path(),
     )
     .unwrap();
     session.publish(&[observation(15)], &source).unwrap();
@@ -61,6 +62,7 @@ fn abandoned_session_leaves_neither_report_nor_pending_file() {
             &report,
             source_binding(),
             MutationCampaignScope::PhysicalWork,
+            temporary.path(),
         )
         .unwrap();
         pending = session.pending.clone();
@@ -80,6 +82,7 @@ fn source_drift_rejects_publication_and_removes_pending_evidence() {
         &report,
         source.clone(),
         MutationCampaignScope::PhysicalWork,
+        temporary.path(),
     )
     .unwrap();
     let pending = session.pending.clone();
@@ -121,5 +124,6 @@ fn observation(id: u8) -> MutationObservation {
             std::time::Duration::from_millis(12),
         )
         .unwrap(),
+        transcript: None,
     }
 }

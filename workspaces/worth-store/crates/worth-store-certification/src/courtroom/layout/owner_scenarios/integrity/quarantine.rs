@@ -1,4 +1,6 @@
-use worth_store_layout_indexes::integrity::{layout_corruption, quarantine_readmission};
+use worth_store_layout_indexes::integrity::{
+    layout_corruption, layout_readmission, quarantine_readmission,
+};
 use worth_store_layout_indexes::ObserveOwnerCase;
 use worth_store_test_support::harness::layout::authoritative_layout_quarantine_record;
 
@@ -19,7 +21,7 @@ pub(super) fn record(ledger: &mut LayoutOwnerObservationLedger) {
             .into_quarantine_readmission_requirement()
             .unwrap()
     };
-    let admitted = worth_store_recovery_physics::layout_readmission()
+    let admitted = layout_readmission()
         .admit_quarantine(
             family.family_id(),
             &record,
@@ -29,7 +31,7 @@ pub(super) fn record(ledger: &mut LayoutOwnerObservationLedger) {
         .expect("physical quarantine evidence must readmit through recovery");
     let imported = import_witness(family, &fixture, "integrity-quarantine-import");
     let other_record = authoritative_layout_quarantine_record("integrity-quarantine-other");
-    let other = worth_store_recovery_physics::layout_readmission()
+    let other = layout_readmission()
         .admit_quarantine(
             family.family_id(),
             &other_record,

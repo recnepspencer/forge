@@ -1,5 +1,6 @@
 use sha2::{Digest, Sha256};
 use worth_proof::NonEmpty;
+use worth_store::physical_runtime::production::PhysicalMutationPauseGate;
 use worth_store::physical_runtime::{
     certification::CertificationDurableMutationInput, CompletedPhysicalRootPublication,
     PhysicalDataDispatchOutcome, PhysicalDurabilityGroupBasis, PhysicalManifestCapacityTransition,
@@ -63,7 +64,8 @@ struct PausedEvidenceInput<'evidence> {
 pub(super) fn execute(
     serving: &ServingPhysicalRuntime,
     configuration: BoundedResidencyConfiguration,
-    gate: MediaPauseGate,
+    media_gate: MediaPauseGate,
+    mutation_gate: PhysicalMutationPauseGate,
 ) -> Result<OrdinaryAppendPressure, String> {
     let [primary_ordinal, denied_ordinal] = configuration.serving_append_ordinals();
     let (_, placement, _) = super::super::super::configuration::record_configuration();
@@ -79,19 +81,36 @@ pub(super) fn execute(
         placement,
         [primary_ordinal, denied_ordinal],
     )?;
+    let gates = dispatch_coordination::PressureGates::new(media_gate, mutation_gate);
     let (primary_thread, primary_receiver) = dispatch_coordination::spawn(serving, group.primary);
-    let dispatch = match dispatch_coordination::await_backend_gate(&gate, &primary_receiver) {
+    let dispatch = match gates.await_backend_gate(&primary_receiver) {
         Ok(context) => context,
         Err(error) => {
-            gate.release();
+            gates.release_all();
             let _ = primary_thread.join();
             return Err(error);
         }
     };
+    gates.release_media();
+    if let Err(error) = gates.await_mutation_gate() {
+        gates.release_all();
+        let _ = primary_thread.join();
+        return Err(error);
+    }
     let at_dispatch = serving.residency_observation().counters();
     let (denied_thread, denied_receiver) = dispatch_coordination::spawn(serving, group.competing);
-    let denial =
-        dispatch_coordination::receive_pressure_denial(&gate, denied_receiver, denied_thread)?;
+    let denial = match dispatch_coordination::receive_pressure_denial(
+        &gates,
+        denied_receiver,
+        denied_thread,
+    ) {
+        Ok(denial) => denial,
+        Err(error) => {
+            gates.release_all();
+            let _ = primary_thread.join();
+            return Err(error);
+        }
+    };
     let pressure = denial.evidence;
     let paused_result = paused_evidence(PausedEvidenceInput {
         serving,
@@ -100,7 +119,7 @@ pub(super) fn execute(
         at_dispatch,
         baseline: &baseline,
     });
-    gate.release();
+    gates.release_mutation();
     let primary_result = dispatch_coordination::receive_dispatched(
         primary_receiver,
         primary_thread,
@@ -260,8 +279,8 @@ fn paused_evidence(input: PausedEvidenceInput<'_>) -> Result<PausedAppendPressur
         || paused.active_writeback_claims() != 1
         || paused.active_speculative_frames(kind) != 1
         || paused.peak_speculative_frames(kind) != 1
-        || writebehind_attempts != 2
-        || writebehind_admissions != 1
+        || writebehind_attempts != 3
+        || writebehind_admissions != 2
         || writebehind_denials != 1
         || positioned_write_delta
             != super::CANDIDATE_WRITEBACK_POSITIONED_WRITE_ORDINAL.saturating_add(1)
@@ -272,7 +291,7 @@ fn paused_evidence(input: PausedEvidenceInput<'_>) -> Result<PausedAppendPressur
         || !pressure_basis_exact
         || !pressure_retry_after_settlement
         || !cleanup_complete
-        || candidate_publications_at_dispatch != 1
+        || candidate_publications_at_dispatch != 2
         || candidate_publications_after_denial
             != candidate_publications_at_dispatch.saturating_add(1)
     {

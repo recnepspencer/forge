@@ -1,5 +1,5 @@
 use super::*;
-use worth_store_physical_certification::ScheduleOrderingAuthorityKind;
+use worth_store_physical_certification::{ScheduleOrderingAuthorityKind, SchedulePerturbationSeed};
 use worth_store_test_support::deterministic_developer_smoke_schedule;
 
 #[test]
@@ -26,7 +26,10 @@ fn same_plan_seed_profile_actors_and_budget_reproduce_schedule_identity() {
         first.identity().digest_bytes(),
         second.identity().digest_bytes()
     );
-    assert_eq!(first.seed(), ReplaySeed::from_u64(0x005e_ed45));
+    assert_eq!(
+        first.seed(),
+        SchedulePerturbationSeed::from_u64(0x005e_ed45)
+    );
     assert_eq!(first.profile(), PhysicalSimulationProfile::DeveloperSmoke);
     assert_eq!(
         first.ordering_authority().kind(),
@@ -59,7 +62,7 @@ fn replay_identity_changes_when_seed_budget_scenario_profile_or_actors_change() 
         PhysicalSimulationProfile::DeveloperSmoke,
         PhysicalScenarioActor::maintenance_reclaimer("reclaimer"),
         PhysicalScenarioActor::foreground_reader("reader"),
-        ReplaySeed::from_u64(0x005e_ed45),
+        SchedulePerturbationSeed::from_u64(0x005e_ed45),
         developer_smoke_state_space_budget(),
     );
     let variants = [
@@ -69,7 +72,7 @@ fn replay_identity_changes_when_seed_budget_scenario_profile_or_actors_change() 
             PhysicalSimulationProfile::DeveloperSmoke,
             PhysicalScenarioActor::maintenance_reclaimer("reclaimer"),
             PhysicalScenarioActor::foreground_reader("reader"),
-            ReplaySeed::from_u64(0x005e_ed46),
+            SchedulePerturbationSeed::from_u64(0x005e_ed46),
             developer_smoke_state_space_budget(),
         ),
         schedule(
@@ -78,7 +81,7 @@ fn replay_identity_changes_when_seed_budget_scenario_profile_or_actors_change() 
             PhysicalSimulationProfile::DeveloperSmoke,
             PhysicalScenarioActor::maintenance_reclaimer("reclaimer"),
             PhysicalScenarioActor::foreground_reader("reader"),
-            ReplaySeed::from_u64(0x005e_ed45),
+            SchedulePerturbationSeed::from_u64(0x005e_ed45),
             StateSpaceBudget::bounded_steps(64).unwrap(),
         ),
         schedule(
@@ -87,7 +90,7 @@ fn replay_identity_changes_when_seed_budget_scenario_profile_or_actors_change() 
             PhysicalSimulationProfile::DeveloperSmoke,
             PhysicalScenarioActor::maintenance_reclaimer("reclaimer"),
             PhysicalScenarioActor::foreground_reader("reader"),
-            ReplaySeed::from_u64(0x005e_ed45),
+            SchedulePerturbationSeed::from_u64(0x005e_ed45),
             developer_smoke_state_space_budget(),
         ),
         schedule(
@@ -96,7 +99,7 @@ fn replay_identity_changes_when_seed_budget_scenario_profile_or_actors_change() 
             PhysicalSimulationProfile::CiCertification,
             PhysicalScenarioActor::maintenance_reclaimer("reclaimer"),
             PhysicalScenarioActor::foreground_reader("reader"),
-            ReplaySeed::from_u64(0x005e_ed45),
+            SchedulePerturbationSeed::from_u64(0x005e_ed45),
             developer_smoke_state_space_budget(),
         ),
         schedule(
@@ -105,7 +108,7 @@ fn replay_identity_changes_when_seed_budget_scenario_profile_or_actors_change() 
             PhysicalSimulationProfile::DeveloperSmoke,
             PhysicalScenarioActor::maintenance_reclaimer("reclaimer"),
             PhysicalScenarioActor::foreground_reader("reader-2"),
-            ReplaySeed::from_u64(0x005e_ed45),
+            SchedulePerturbationSeed::from_u64(0x005e_ed45),
             developer_smoke_state_space_budget(),
         ),
         schedule(
@@ -114,7 +117,7 @@ fn replay_identity_changes_when_seed_budget_scenario_profile_or_actors_change() 
             PhysicalSimulationProfile::DeveloperSmoke,
             PhysicalScenarioActor::maintenance_reclaimer("reclaimer"),
             PhysicalScenarioActor::foreground_writer("reader"),
-            ReplaySeed::from_u64(0x005e_ed45),
+            SchedulePerturbationSeed::from_u64(0x005e_ed45),
             developer_smoke_state_space_budget(),
         ),
     ];

@@ -1,5 +1,9 @@
 use std::io::Read;
 
+use super::checkpoint_backup_verification::{
+    verify_bounded_checkpoint_backup_artifact_from_reader,
+    BoundedCheckpointBackupVerificationRequest,
+};
 use worth_store_blob_chunks::{
     verify_bounded_blob_backup_artifact_from_reader, BoundedBlobBackupVerificationRequest,
 };
@@ -11,10 +15,7 @@ use worth_store_physical_format::{
     verify_bounded_extent_artifact_from_reader, verify_bounded_page_artifact_from_reader,
     verify_bounded_root_manifest_artifact_from_reader, BackupBundleArtifactCoverage,
     BackupBundleArtifactFormat, BackupBundleArtifactManifestRow, PhysicalGenerationAuthority,
-};
-use worth_store_recovery_physics::{
-    verify_bounded_checkpoint_backup_artifact_from_reader,
-    BoundedCheckpointBackupVerificationRequest, RecoveryCandidateObservation,
+    RootPublicationCell,
 };
 use worth_store_wal::artifact_store::{
     verify_bounded_wal_segment_from_reader, BoundedWalSegmentVerificationRequest,
@@ -25,6 +26,7 @@ use super::owner_denial_classification::{
     classify_physical_denial, classify_wal_denial,
 };
 use super::BackupArtifactSemanticDefectKind;
+use crate::truth_composition::RecoveryCandidateObservation;
 
 #[derive(Debug, Clone, Copy)]
 pub(super) struct OwnerObservation {
@@ -36,6 +38,7 @@ pub(super) struct OwnerObservation {
 pub(super) struct VerifiedOwnerArtifact {
     observation: OwnerObservation,
     recovery_candidate: Option<RecoveryCandidateObservation>,
+    root_publication: Option<RootPublicationCell>,
 }
 
 impl VerifiedOwnerArtifact {
@@ -43,6 +46,7 @@ impl VerifiedOwnerArtifact {
         Self {
             observation,
             recovery_candidate: None,
+            root_publication: None,
         }
     }
 
@@ -53,12 +57,16 @@ impl VerifiedOwnerArtifact {
     pub(super) fn into_recovery_candidate(self) -> Option<RecoveryCandidateObservation> {
         self.recovery_candidate
     }
+
+    pub(super) const fn root_publication(&self) -> Option<RootPublicationCell> {
+        self.root_publication
+    }
 }
 
 pub(super) fn verify_owner_artifact(
     reader: &mut impl Read,
     actual_bytes: u64,
-    root_generation: u64,
+    expected_root: Option<RootPublicationCell>,
     row: &BackupBundleArtifactManifestRow,
     max_buffer_bytes: usize,
 ) -> Result<VerifiedOwnerArtifact, BackupArtifactSemanticDefectKind> {
@@ -96,6 +104,7 @@ pub(super) fn verify_owner_artifact(
                     recovery_candidate: Some(
                         RecoveryCandidateObservation::from_verified_root_manifest(verified),
                     ),
+                    root_publication: Some(cell),
                 }
             })
             .map_err(classify_physical_denial)
@@ -161,10 +170,16 @@ pub(super) fn verify_owner_artifact(
                 checkpoint_identity,
                 manifest_generation,
                 durable_checkpoint_lsn,
+                authority_fingerprint,
+                frontier_digest,
             } = row.coverage()
             else {
                 return Err(BackupArtifactSemanticDefectKind::CoverageMismatch);
             };
+            // This read-only owner verifier rechecks the persisted row-to-bytes
+            // commitment. Live authority equality is admitted by the physical
+            // cut owner before materialization; this layer must not mint or
+            // infer current Store authority from a bundle row.
             verify_bounded_checkpoint_backup_artifact_from_reader(
                 reader,
                 actual_bytes,
@@ -172,7 +187,10 @@ pub(super) fn verify_owner_artifact(
                     checkpoint_identity,
                     manifest_generation: *manifest_generation,
                     durable_checkpoint_lsn: *durable_checkpoint_lsn,
-                    root_generation,
+                    expected_authority_fingerprint: *authority_fingerprint,
+                    expected_frontier_digest: *frontier_digest,
+                    expected_root: expected_root
+                        .ok_or(BackupArtifactSemanticDefectKind::OwnerBindingMismatch)?,
                     expected_bytes: row.bytes(),
                     expected_digest: row.content_digest(),
                     max_buffer_bytes,
@@ -187,6 +205,7 @@ pub(super) fn verify_owner_artifact(
                 recovery_candidate: Some(RecoveryCandidateObservation::from_verified_checkpoint(
                     observed,
                 )),
+                root_publication: None,
             })
             .map_err(classify_checkpoint_denial)
         }
@@ -221,6 +240,7 @@ pub(super) fn verify_owner_artifact(
                     recovery_candidate: Some(
                         RecoveryCandidateObservation::from_verified_wal_segment(observed),
                     ),
+                    root_publication: None,
                 })
                 .map_err(classify_wal_denial)
         }

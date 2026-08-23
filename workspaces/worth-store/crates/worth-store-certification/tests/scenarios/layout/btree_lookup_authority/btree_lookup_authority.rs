@@ -19,7 +19,7 @@ use worth_store_security::{
 };
 use worth_store_test_support::harness::physical_isolation::epoch_scope as physical_support;
 use worth_store_test_support::harness::physical_isolation::read_plan as plan_admission;
-use worth_store_test_support::harness::recovery::source_precedence as source_precedence_fixture;
+use worth_store_test_support::harness::recovery::wal_tail as source_precedence_fixture;
 use worth_store_test_support::{
     admitted_layout_bootstrap_catalog, baseline_btree_probe_slot,
     deterministic_baseline_btree_read_preflight, deterministic_corrupt_leaf_btree_read_preflight,

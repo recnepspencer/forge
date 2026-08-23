@@ -100,12 +100,19 @@ fn displaced_wal_executors_are_absent_from_default_facades() {
         !displaced_recovery_wal.exists(),
         "the recovery-owned WAL execution directory must remain deleted"
     );
-    let recovery_wal_basis = read(
+    let recovery_wal_basis = crates
+        .join("worth-store-recovery-physics")
+        .join("src")
+        .join("wal_recovery_basis");
+    assert!(
+        !recovery_wal_basis.join("mod.rs").exists(),
+        "recovery physics must not retain a WAL durability observation module"
+    );
+    let backend_facade = read(
         &crates
-            .join("worth-store-recovery-physics")
+            .join("worth-store-physical-backend")
             .join("src")
-            .join("wal_recovery_basis")
-            .join("mod.rs"),
+            .join("facade.rs"),
     );
     for displaced in [
         "execute_wal_durability",
@@ -113,14 +120,14 @@ fn displaced_wal_executors_are_absent_from_default_facades() {
         "WalDurabilityExecutionError",
     ] {
         assert!(!recovery_root.contains(displaced));
-        assert!(!recovery_wal_basis.contains(displaced));
+        assert!(!backend_facade.contains(displaced));
     }
     for descriptive in [
         "WalAppendReceipt",
         "WalDurabilityObservation",
-        "WalDurabilityCrashBasis",
+        "WalDurabilityObservationBasis",
     ] {
-        assert!(recovery_wal_basis.contains(descriptive));
+        assert!(backend_facade.contains(descriptive));
     }
 
     let wal_root = read(&crates.join("worth-store-wal").join("src").join("lib.rs"));

@@ -27,23 +27,23 @@ pub(super) fn current() -> Vec<OwnerBoundaryBinding> {
             ReopenedObservedReceipt,
         ),
         OwnerBoundaryBinding::to_polymorphic::<
-            worth_store_recovery_physics::WalAppendReceipt<
+            worth_store_physical_backend::WalAppendReceipt<
                 worth_store_physical_backend::PosixFileFsyncDirFsyncProfile,
             >,
         >(
             DurabilityRecovery,
-            RecoveryPhysics,
+            PhysicalBackend,
             WalAppendObservation,
             ReopenedObservedReceipt,
             OwnerSourcePolymorphism::AcrossBackendDurabilityProfiles,
         ),
         OwnerBoundaryBinding::to_polymorphic::<
-            worth_store_recovery_physics::WalDurabilityObservation<
+            worth_store_physical_backend::WalDurabilityObservation<
                 worth_store_physical_backend::PosixFileFsyncDirFsyncProfile,
             >,
         >(
             DurabilityRecovery,
-            RecoveryPhysics,
+            PhysicalBackend,
             WalDurabilityObservation,
             ReopenedObservedReceipt,
             OwnerSourcePolymorphism::AcrossBackendDurabilityProfiles,

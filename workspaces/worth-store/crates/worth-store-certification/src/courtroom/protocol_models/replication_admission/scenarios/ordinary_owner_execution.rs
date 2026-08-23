@@ -7,12 +7,12 @@ use worth_store_formal_models::{
     ReplicationAdmissionAction,
 };
 use worth_store_physical_backend::BackendTargetProfile;
-use worth_store_recovery_physics::{DurabilityReplayIdentity, DurabilityReplayKind};
 use worth_store_replication::{
     admit_replication_publication_readiness, admit_replication_source, AdmittedReplicationSource,
     ReplicationAdmissionRuntime, ReplicationCapsuleId, ReplicationPeerCapacity,
     ReplicationProgressDenial, ReplicationProgressOutcomeView, ReplicationSourceDeclaration,
 };
+use worth_store_replication::{DurabilityReplayIdentity, DurabilityReplayKind};
 #[cfg(test)]
 use worth_store_replication::{ObserveReplicationAdmission, ReplicationAdmissionObservation};
 use worth_store_security::{

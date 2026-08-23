@@ -24,14 +24,54 @@ pub(crate) struct MutationSourceBinding {
     pub(crate) sha256: String,
 }
 
+pub(super) struct MutationSourceInventory {
+    repository: PathBuf,
+    workspace_relative: PathBuf,
+    sources: Vec<PathBuf>,
+    binding: MutationSourceBinding,
+}
+
+impl MutationSourceInventory {
+    pub(super) fn repository(&self) -> &Path {
+        &self.repository
+    }
+
+    pub(super) fn workspace_relative(&self) -> &Path {
+        &self.workspace_relative
+    }
+
+    pub(super) fn sources(&self) -> &[PathBuf] {
+        &self.sources
+    }
+
+    pub(super) fn binding(&self) -> &MutationSourceBinding {
+        &self.binding
+    }
+}
+
 pub(super) fn bind(workspace: &Path) -> Result<MutationSourceBinding, String> {
+    capture(workspace).map(|inventory| inventory.binding)
+}
+
+pub(super) fn capture(workspace: &Path) -> Result<MutationSourceInventory, String> {
     let workspace = workspace
         .canonicalize()
         .map_err(|error| format!("cannot canonicalize Store workspace: {error}"))?;
     let repository = repository_root(&workspace)?;
     let package_roots = local_package_roots(&workspace, &repository)?;
     let build_inputs = build_inputs(&workspace, &repository)?;
-    bind_inventory(&repository, &package_roots, &build_inputs)
+    let sources = inventory_sources(&package_roots, &build_inputs)?;
+    let binding = bind_sources(&repository, &sources)?;
+    let workspace_relative = workspace
+        .strip_prefix(&repository)
+        .map_err(|_| "Store workspace escaped repository source ownership".to_owned())?
+        .to_path_buf();
+    Ok(MutationSourceInventory {
+        repository,
+        workspace_relative,
+        sources,
+        binding,
+    })
 }
 
 fn repository_root(workspace: &Path) -> Result<PathBuf, String> {
@@ -119,16 +159,23 @@ fn run_bounded(command: &mut Command, timeout: Duration, label: &str) -> Result<
         .map_err(|error| format!("cannot spawn {label}: {error}"))?;
     let deadline = Instant::now() + timeout;
     let status = loop {
-        if let Some(status) = child
-            .try_wait()
-            .map_err(|error| format!("cannot inspect {label}: {error}"))?
-        {
+        let poll = child.try_wait();
+        if let Err(error) = poll {
+            return Err(terminate_after_error(
+                &mut child,
+                format!("cannot inspect {label}: {error}"),
+                label,
+            ));
+        }
+        if let Some(status) = poll.unwrap() {
             break status;
         }
         if Instant::now() >= deadline {
-            let _ = child.kill();
-            let _ = child.wait();
-            return Err(format!("{label} exceeded {}ms", timeout.as_millis()));
+            return Err(terminate_after_error(
+                &mut child,
+                format!("{label} exceeded {}ms", timeout.as_millis()),
+                label,
+            ));
         }
         std::thread::sleep(Duration::from_millis(5));
     };
@@ -143,6 +190,22 @@ fn run_bounded(command: &mut Command, timeout: Duration, label: &str) -> Result<
             String::from_utf8_lossy(&stderr)
         ))
     }
+}
+
+fn terminate_after_error(child: &mut std::process::Child, primary: String, label: &str) -> String {
+    let kill = child
+        .kill()
+        .err()
+        .map(|error| format!("kill {label}: {error}"));
+    let wait = child
+        .wait()
+        .err()
+        .map(|error| format!("reap {label}: {error}"));
+    [Some(primary), kill, wait]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>()
+        .join("; ")
 }
 
 fn read_captured(file: &mut std::fs::File, label: &str, stream: &str) -> Result<Vec<u8>, String> {
@@ -177,17 +240,30 @@ fn build_inputs(workspace: &Path, repository: &Path) -> Result<Vec<PathBuf>, Str
         .collect()
 }
 
+#[cfg(test)]
 fn bind_inventory(
     repository: &Path,
     package_roots: &[PathBuf],
     build_inputs: &[PathBuf],
 ) -> Result<MutationSourceBinding, String> {
+    let sources = inventory_sources(package_roots, build_inputs)?;
+    bind_sources(repository, &sources)
+}
+
+fn inventory_sources(
+    package_roots: &[PathBuf],
+    build_inputs: &[PathBuf],
+) -> Result<Vec<PathBuf>, String> {
     let mut sources = build_inputs.to_vec();
     for root in package_roots {
         collect_package_tree(root, &mut sources)?;
     }
     sources.sort();
     sources.dedup();
+    Ok(sources)
+}
+
+fn bind_sources(repository: &Path, sources: &[PathBuf]) -> Result<MutationSourceBinding, String> {
     let digest = crate::local_source_fingerprint::hash_sources(repository, &sources)?;
     Ok(MutationSourceBinding {
         binding: SOURCE_BINDING.to_owned(),
@@ -280,5 +356,24 @@ mod tests {
         let after = bind_inventory(repository.path(), &[], &[configuration]).unwrap();
 
         assert_ne!(before.sha256, after.sha256);
+    }
+
+    #[test]
+    fn retained_evidence_outside_source_roots_does_not_redefine_source_identity() {
+        let repository = tempfile::tempdir().unwrap();
+        let package = repository.path().join("package");
+        let documentation = repository.path().join("_docs");
+        std::fs::create_dir_all(&package).unwrap();
+        std::fs::create_dir_all(&documentation).unwrap();
+        std::fs::write(package.join("lib.rs"), b"source").unwrap();
+        let report = documentation.join("retained-mutants.json");
+        std::fs::write(&report, b"first report").unwrap();
+        let before =
+            bind_inventory(repository.path(), std::slice::from_ref(&package), &[]).unwrap();
+
+        std::fs::write(report, b"second report").unwrap();
+        let after = bind_inventory(repository.path(), &[package], &[]).unwrap();
+
+        assert_eq!(before, after);
     }
 }

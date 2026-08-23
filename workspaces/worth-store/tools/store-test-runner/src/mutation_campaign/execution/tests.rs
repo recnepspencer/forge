@@ -1,8 +1,9 @@
 use super::{
-    actual_failing_predicate, compiler_diagnostics, executed_test_count, execution_class,
-    nested_executable, test_binary, MutationExecutionClass,
+    actual_failing_predicate, build_command, compiler_diagnostics, executed_test_count,
+    execution_class, nested_executable, test_binary, MutationExecutionClass,
 };
-use crate::mutation_campaign::catalog::MutationTarget;
+use crate::mutation_campaign::catalog::{ControlledMutation, MutationTarget};
+use crate::mutation_campaign::target_directory::MutationCampaignTarget;
 
 #[test]
 fn mutation_causality_requires_one_runtime_predicate_marker() {
@@ -105,8 +106,15 @@ fn execution_cost_class_is_closed_over_target_topology() {
         MutationTarget::Binary("proof"),
         MutationTarget::Integration("journey"),
     ] {
-        assert_eq!(execution_class(target), MutationExecutionClass::Ordinary);
+        assert_eq!(
+            execution_class(target),
+            MutationExecutionClass::IsolatedCampaign
+        );
     }
+    assert_eq!(
+        execution_class(MutationTarget::Integration("phase_eight_process")),
+        MutationExecutionClass::FreshProcessCold
+    );
 }
 
 #[test]
@@ -130,4 +138,65 @@ fn cargo_json_diagnostic_extraction_ignores_malformed_and_empty_messages() {
 {"reason":"compiler-message","message":{"message":"","rendered":""}}
 {"reason":"build-finished","success":false}"#;
     assert!(compiler_diagnostics(output).is_none());
+}
+
+#[test]
+fn mutation_execution_receives_the_campaign_target_instead_of_workspace_target() {
+    let workspace = std::env::temp_dir().join(format!(
+        "worth-store-mutation-command-test-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&workspace);
+    std::fs::create_dir(&workspace).unwrap();
+    let target = MutationCampaignTarget::allocate_at(&workspace.join("target")).unwrap();
+    assert!(target.path().starts_with(workspace.join("target")));
+    assert_ne!(target.path(), workspace.join("target").as_path());
+    let path = target.path().to_owned();
+    target.close().unwrap();
+    assert!(!path.exists());
+    std::fs::remove_dir_all(workspace).unwrap();
+}
+
+#[test]
+fn mutation_command_binds_the_exclusive_campaign_target_environment() {
+    let workspace = std::env::temp_dir().join(format!(
+        "worth-store-mutation-command-environment-test-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&workspace);
+    std::fs::create_dir(&workspace).unwrap();
+    let target = MutationCampaignTarget::allocate_at(&workspace.join("target")).unwrap();
+    let mutation = ControlledMutation {
+        id: 156,
+        predicate: "target-environment",
+        source: "fixture.rs",
+        needle: "before",
+        replacement: "after",
+        package: "store-test-runner",
+        target: MutationTarget::Library,
+        selector: "mutation_campaign::execution::tests::mutation_command_binds_the_exclusive_campaign_target_environment",
+    };
+
+    let command = build_command(&workspace, &mutation, &target);
+    let target_environment = command
+        .get_envs()
+        .find(|(key, _)| *key == std::ffi::OsStr::new("CARGO_TARGET_DIR"))
+        .and_then(|(_, value)| value)
+        .unwrap_or_else(|| {
+            panic!("MUTANT_PREDICATE:c8-mutation-target-isolation missing target environment")
+        });
+
+    if target_environment != target.path().as_os_str()
+        || target_environment == workspace.join("target").as_os_str()
+    {
+        panic!(
+            "MUTANT_PREDICATE:c8-mutation-target-isolation bound {:?}, expected {:?}",
+            target_environment,
+            target.path()
+        );
+    }
+    let target_path = target.path().to_owned();
+    target.close().unwrap();
+    assert!(!target_path.exists());
+    std::fs::remove_dir_all(workspace).unwrap();
 }

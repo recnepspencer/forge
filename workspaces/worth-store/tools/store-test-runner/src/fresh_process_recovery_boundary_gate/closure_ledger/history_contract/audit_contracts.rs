@@ -8,6 +8,29 @@ pub(super) struct AuditContract {
     pub(super) verification: &'static str,
 }
 
+pub(super) const PHASE_EIGHT_AUDIT_SCOPES: &[(&str, &str, &str)] = &[
+    (
+        "fresh current-tree Phase 8 QA-loop after repair",
+        "gpt-5.6-luna",
+        "/root/c8_phase8_qa_loop_",
+    ),
+    (
+        "fresh current-tree Phase 8 QA-tests after repair",
+        "gpt-5.6-luna",
+        "/root/c8_phase8_qa_tests_",
+    ),
+    (
+        "fresh current-tree Phase 8 code-quality after repair",
+        "gpt-5.6-luna",
+        "/root/c8_phase8_code_quality_",
+    ),
+    (
+        "fresh current-tree Phase 8 Sol-high gate after all Luna reviews",
+        "gpt-5.6-sol high",
+        "/root/c8_phase8_sol_gate_",
+    ),
+];
+
 pub(super) const AUDIT_CONTRACTS: &[AuditContract] = &[
     AuditContract {
         reviewer: "/root/c8_phase1_critic",

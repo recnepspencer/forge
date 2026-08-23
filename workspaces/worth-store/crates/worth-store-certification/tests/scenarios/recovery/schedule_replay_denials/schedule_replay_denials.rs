@@ -3,8 +3,9 @@ use worth_store_physical_certification::{
     PhysicalInterleavingSchedule, PhysicalScenarioActor, PhysicalScenarioExpectation,
     PhysicalScenarioIntent, PhysicalScenarioSchedule, PhysicalSimulationCapabilitySet,
     PhysicalSimulationProfile, PhysicalSimulationProfileSet, PhysicalSimulationScenarioFamily,
-    ReplaySeed, ScheduleOrderingAuthorityAttempt, ScheduleReplayDenial, SimulationEvidencePolicy,
-    SimulationPlanningContext, StateSpaceBudget, SupportedObserverSet, SupportedOracleFamilySet,
+    ScheduleOrderingAuthorityAttempt, SchedulePerturbationSeed, ScheduleReplayDenial,
+    SimulationEvidencePolicy, SimulationPlanningContext, StateSpaceBudget, SupportedObserverSet,
+    SupportedOracleFamilySet,
 };
 use worth_store_test_support::{
     admitted_developer_smoke_driver_contracts, developer_smoke_state_space_budget,
@@ -43,7 +44,7 @@ fn budget_too_small_for_plan_actor_steps_denies() {
         lower_physical_simulation_plan(physical_isolation_scenario(), complete_context()).unwrap();
     let denial = PhysicalInterleavingSchedule::from_lowered_plan(
         &plan,
-        ReplaySeed::from_u64(7),
+        SchedulePerturbationSeed::from_u64(7),
         StateSpaceBudget::bounded_steps(1).unwrap(),
     )
     .unwrap_err();

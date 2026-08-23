@@ -247,8 +247,9 @@ impl SelectedPhysicalWalTail {
 #[cfg(test)]
 mod tests {
     use worth_store_wal::{
-        inspect_verified_wal_active_tail, inspect_verified_wal_segment, prepare_wal_frame_append,
-        WalSegmentArtifactIdentity, WalSegmentGeneration, WalSegmentId,
+        inspect_verified_wal_active_tail, inspect_verified_wal_segment, plan_wal_frame_append,
+        LogSequenceNumber, WalAppendFrontier, WalLsnRange, WalSegmentArtifactIdentity,
+        WalSegmentGeneration, WalSegmentId,
     };
 
     use super::*;
@@ -310,14 +311,16 @@ mod tests {
                 10,
                 vec![complete_candidate(1, 10, 20), complete_candidate(3, 20, 30)],
             ),
-            Err(SelectedPhysicalWalTailDenial::SegmentGap)
+            Err(SelectedPhysicalWalTailDenial::SegmentGap),
+            "MUTANT_PREDICATE:c8-wal-segment-gap-accepted"
         );
         assert_eq!(
             admit_physical_wal_tail(
                 10,
                 vec![complete_candidate(1, 10, 20), complete_candidate(2, 21, 30)],
             ),
-            Err(SelectedPhysicalWalTailDenial::LsnGap)
+            Err(SelectedPhysicalWalTailDenial::LsnGap),
+            "MUTANT_PREDICATE:c8-wal-lsn-gap-accepted"
         );
     }
 
@@ -328,24 +331,16 @@ mod tests {
         assert!(terminal.segments()[0].interrupted_tail().is_some());
         assert_eq!(
             admit_physical_wal_tail(10, vec![interrupted, complete_candidate(2, 20, 30)],),
-            Err(SelectedPhysicalWalTailDenial::InterruptedMiddleSegment)
+            Err(SelectedPhysicalWalTailDenial::InterruptedMiddleSegment),
+            "MUTANT_PREDICATE:c8-interrupted-middle-wal-accepted"
         );
     }
 
     fn complete_candidate(segment: u64, start: u64, end: u64) -> PhysicalWalSegmentCandidate {
-        let directory = tempfile::tempdir().unwrap();
-        let plan = prepare_wal_frame_append(
-            directory.path(),
-            segment,
-            1,
-            start,
-            end,
-            "test-frame",
-            b"payload",
-        )
-        .unwrap();
         let identity = identity(segment);
-        let verified = inspect_verified_wal_segment(identity, plan.encoded_frame()).unwrap();
+        let plan = plan_frame(identity, start, end, "test-frame", b"payload");
+        let verified =
+            inspect_verified_wal_segment(identity, plan.frame().encoded_frame()).unwrap();
         PhysicalWalSegmentCandidate::verified_with_artifact(verified.to_owned_artifact(), None)
     }
 
@@ -355,33 +350,22 @@ mod tests {
         first_end: u64,
         second_end: u64,
     ) -> PhysicalWalSegmentCandidate {
-        let directory = tempfile::tempdir().unwrap();
-        let first = prepare_wal_frame_append(
-            directory.path(),
-            segment,
-            1,
-            start,
-            first_end,
-            "first-frame",
-            b"first",
-        )
-        .unwrap();
-        let path = directory.path().join(first.relative_path());
-        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-        std::fs::write(&path, first.encoded_frame()).unwrap();
-        let second = prepare_wal_frame_append(
-            directory.path(),
-            segment,
-            1,
-            first_end,
-            second_end,
+        let identity = identity(segment);
+        let first = plan_frame(identity, start, first_end, "first-frame", b"first");
+        let second = plan_wal_frame_append(
+            first.resulting_frontier(),
+            WalLsnRange::new(
+                LogSequenceNumber::new(first_end),
+                LogSequenceNumber::new(second_end),
+            )
+            .unwrap(),
             "second-frame",
             b"second",
         )
         .unwrap();
-        let mut bytes = first.encoded_frame().to_vec();
-        bytes.extend_from_slice(&second.encoded_frame()[..20]);
-        let active = inspect_verified_wal_active_tail(identity(segment), &bytes).unwrap();
+        let mut bytes = first.frame().encoded_frame().to_vec();
+        bytes.extend_from_slice(&second.frame().encoded_frame()[..20]);
+        let active = inspect_verified_wal_active_tail(identity, &bytes).unwrap();
         let interruption = active.interrupted_tail();
         let verified = active.into_verified_prefix();
         PhysicalWalSegmentCandidate::verified_with_artifact(
@@ -395,5 +379,21 @@ mod tests {
             WalSegmentId::new(segment).unwrap(),
             WalSegmentGeneration::new(1).unwrap(),
         )
+    }
+
+    fn plan_frame(
+        identity: WalSegmentArtifactIdentity,
+        start: u64,
+        end: u64,
+        declared_identity: &str,
+        payload: &[u8],
+    ) -> worth_store_wal::PlannedWalFrameAppend {
+        plan_wal_frame_append(
+            WalAppendFrontier::empty(identity.segment(), identity.generation()),
+            WalLsnRange::new(LogSequenceNumber::new(start), LogSequenceNumber::new(end)).unwrap(),
+            declared_identity,
+            payload,
+        )
+        .unwrap()
     }
 }

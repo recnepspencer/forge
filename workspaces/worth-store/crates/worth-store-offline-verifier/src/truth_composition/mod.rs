@@ -1,3 +1,4 @@
+mod candidate_evaluation;
 mod interruptible_sort;
 mod operational_region_composition;
 mod operational_truth_report;
@@ -7,6 +8,11 @@ mod truth_evidence;
 mod truth_region;
 mod truth_report_identity;
 
+pub use candidate_evaluation::{
+    discover_recovery_candidates, ObservedRecoveryFrontier, RecoveryCandidate,
+    RecoveryCandidateConfidence, RecoveryCandidateDiscoveryDenial, RecoveryCandidateObservation,
+    RecoveryCandidateSet,
+};
 pub(crate) use operational_truth_report::compose_operational_truth_with_owner_candidates;
 pub use operational_truth_report::{
     compose_operational_truth, CanonicalPhysicalCoverageProof, OperationalTruthCompositionBudget,

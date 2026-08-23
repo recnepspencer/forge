@@ -174,6 +174,13 @@ pub use crate::placement_observation::{
     StoreOwnedBlobPhysicalManifestTraversal, StoreOwnedExternalPlacementCleanup,
     StoreOwnedExternalPlacementRecoveryProbe,
 };
+#[cfg(feature = "certification-test-authority")]
+pub use crate::recovery_durability::wal_recovery_basis::WalAppendFailureObservation;
+pub use crate::recovery_durability::wal_recovery_basis::{
+    WalAppendObservationScope, WalAppendReceipt, WalDurabilityObservation,
+    WalDurabilityObservationBasis, WalDurabilityObservationDenial,
+    WalDurabilityObservationDenialKind, WalFrameDigest,
+};
 #[cfg(all(feature = "recovery-runtime-owner", feature = "store-runtime-owner"))]
 pub use crate::recovery_media::{
     execute_recovery_cleanup_removal, BackendCompletedRecoveryCleanupRemoval,
@@ -195,8 +202,8 @@ pub use crate::recovery_media::{
     RecoveryDiscoveryCounters, RecoveryDiscoveryFailure, RecoveryFilesystemQualificationError,
     RecoveryMediaHandleObservation, RecoveryReopenReadOutcome,
     RecoveryRootProtocolPublicationDenial, RecoveryRootProtocolPublicationPlan,
-    RecoveryStagingSynchronizationOutcome, RecoveryStagingWriteDisposition,
-    RecoveryStagingWriteOutcome,
+    RecoveryStagingIndeterminatePhysical, RecoveryStagingSynchronizationOutcome,
+    RecoveryStagingWriteDisposition, RecoveryStagingWriteOutcome,
 };
 pub use crate::recovery_staging::{
     ClosedNonCurrentStagingMedia, ClosedStagingArtifactVerificationDenial,

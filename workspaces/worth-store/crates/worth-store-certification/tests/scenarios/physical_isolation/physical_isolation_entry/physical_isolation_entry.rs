@@ -7,32 +7,32 @@ use worth_foundational::{
 };
 use worth_proof::{RecipeStageDxExt, RecipeStageKind};
 use worth_store_physical_certification::{
-    fixture_label_oracle_attempt, register_physical_isolation_certification_lane,
+    admit_physical_isolation_entry, fixture_label_oracle_attempt,
+    register_physical_isolation_certification_lane,
+    reject_copied_recovery_fields_as_physical_isolation_entry,
     reject_copied_simulation_harness_readiness_rows_as_physical_isolation_lane_registration,
+    reject_foundational_or_proof_projection_as_physical_isolation_entry,
     reject_generic_runner_as_physical_isolation_lane_registration,
     reject_harness_projection_as_physical_isolation_lane_registration,
-    reject_loose_log_evidence_attempt, reject_raw_json_scenario_authority_attempt,
-    reject_same_run_self_comparison_evidence_attempt, reject_terminal_json_evidence_attempt,
-    reject_unresolved_simulation_plan_recipe, shortcut_denial_from_evidence_bundle_denial,
-    shortcut_denial_from_fault_delivery_denial, shortcut_denial_from_oracle_denial,
-    shortcut_denial_from_plan_denial, shortcut_denial_from_scenario_denial,
-    shortcut_denial_from_terminal_projection_denial, shortcut_denial_from_transcript_denial,
-    test_support_oracle_verdict_attempt, CoverageGapDenial, FaultDeliveryAttempt,
-    ForbiddenShortcutKind, OracleFamilyKind, PhysicalCertificationEvidenceBundle,
-    PhysicalDriverKind, PhysicalIsolationCorrectnessNonClaimEvidence,
+    reject_json_authority_as_physical_isolation_entry,
+    reject_live_runtime_state_as_physical_isolation_entry, reject_loose_log_evidence_attempt,
+    reject_raw_json_scenario_authority_attempt, reject_same_run_self_comparison_evidence_attempt,
+    reject_semantic_snapshot_as_physical_isolation_entry,
+    reject_stale_recovery_readiness_as_physical_isolation_entry,
+    reject_terminal_json_evidence_attempt, reject_terminal_projection_as_physical_isolation_entry,
+    reject_unresolved_simulation_plan_recipe,
+    require_rebound_recovery_readiness_for_physical_isolation_entry,
+    shortcut_denial_from_evidence_bundle_denial, shortcut_denial_from_fault_delivery_denial,
+    shortcut_denial_from_oracle_denial, shortcut_denial_from_plan_denial,
+    shortcut_denial_from_scenario_denial, shortcut_denial_from_terminal_projection_denial,
+    shortcut_denial_from_transcript_denial, test_support_oracle_verdict_attempt, CoverageGapDenial,
+    FaultDeliveryAttempt, ForbiddenShortcutKind, OracleFamilyKind,
+    PhysicalCertificationEvidenceBundle, PhysicalDriverKind,
+    PhysicalIsolationCorrectnessNonClaimEvidence, PhysicalIsolationEntryCheckedOutcome,
+    PhysicalIsolationEntryDenial, PhysicalIsolationEntryRequest,
     PhysicalIsolationHarnessReadinessDenial, PhysicalIsolationHarnessReadinessReceipt,
     PhysicalIsolationLaneRegistrationDenial, ShortcutRejectionBoundary, SimulationPlanDenial,
     SyntheticHarnessShortcutDenialReceipt, SyntheticHarnessShortcutRejectionReport,
-};
-use worth_store_physical_isolation::{
-    admit_physical_isolation_entry, reject_copied_recovery_fields_as_physical_isolation_entry,
-    reject_foundational_or_proof_projection_as_physical_isolation_entry,
-    reject_json_authority_as_physical_isolation_entry,
-    reject_live_runtime_state_as_physical_isolation_entry,
-    reject_semantic_snapshot_as_physical_isolation_entry,
-    reject_stale_recovery_readiness_as_physical_isolation_entry,
-    reject_terminal_projection_as_physical_isolation_entry, PhysicalIsolationEntryCheckedOutcome,
-    PhysicalIsolationEntryDenial, PhysicalIsolationEntryRequest,
 };
 
 #[test]
@@ -100,8 +100,8 @@ fn independently_executed_recovery_has_same_entry_identity_and_root_epoch_basis(
 }
 
 fn admit_recovery_completion_entry(
-    completion: &worth_store_recovery_physics::RecoveryCompletion,
-) -> worth_store_physical_isolation::PhysicalIsolationEntryAdmission {
+    completion: &worth_store_recovery_runtime::RecoveryCompletion,
+) -> worth_store_physical_certification::PhysicalIsolationEntryAdmission {
     admit_physical_isolation_entry(PhysicalIsolationEntryRequest::from_recovery_completion(
         completion,
     ))
@@ -109,7 +109,7 @@ fn admit_recovery_completion_entry(
 }
 
 fn assert_entry_proof_progression_is_store_authorized(
-    entry: &worth_store_physical_isolation::PhysicalIsolationEntryAdmission,
+    entry: &worth_store_physical_certification::PhysicalIsolationEntryAdmission,
 ) {
     let progression = entry.evidence().proof_progression();
     assert_eq!(
@@ -183,7 +183,7 @@ fn physical_isolation_entry_rejects_copied_runtime_semantic_projection_and_json_
         )
     );
     assert!(matches!(
-        worth_store_physical_isolation::require_rebound_recovery_readiness_for_physical_isolation_entry(),
+        require_rebound_recovery_readiness_for_physical_isolation_entry(),
         PhysicalIsolationEntryCheckedOutcome::RebindRequired(_)
     ));
 }

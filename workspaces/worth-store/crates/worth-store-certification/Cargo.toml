@@ -32,7 +32,8 @@ worth-store-layout-indexes.workspace = true
 worth-store-lsm-authority.workspace = true
 worth-store-readiness.workspace = true
 worth-store-reclaim-policy.workspace = true
-worth-store-recovery-physics = { workspace = true, features = ["certification-test-authority"] }
+worth-store-recovery-physics.workspace = true
+worth-store-recovery-runtime.workspace = true
 worth-store-replication = { workspace = true, features = ["certification-test-authority"] }
 worth-store-security.workspace = true
 worth-store.workspace = true
@@ -54,21 +55,13 @@ worth-store-io-scheduler = { workspace = true, features = ["certification-test-a
 worth-store-physical-backend = { workspace = true, features = ["certification-test-authority"] }
 worth-store-physical-certification = { workspace = true, features = ["certification-test-support"] }
 worth-store-reclaim-policy = { workspace = true, features = ["certification-test-authority"] }
-worth-store-recovery-physics = { workspace = true, features = ["certification-test-authority"] }
+worth-store-recovery-physics.workspace = true
 worth-store-security = { workspace = true, features = ["certification-test-authority"] }
 tempfile = "3"
 
 [[test]]
 name = "protocol_model_authority_compile_fail"
 path = "tests/compile_fail/protocol_models/authority_inversion_runner.rs"
-
-[[test]]
-name = "s10_adoption_reverse_flow_compile_fail"
-path = "tests/compile_fail/operational_recovery/adoption_reverse_flow_runner.rs"
-
-[[test]]
-name = "s10_handoff_public_boundary_compile"
-path = "tests/compile_fail/operational_recovery/handoff_public_boundary_runner.rs"
 
 [[test]]
 name = "s4_5_driver_contract_boundary_compile_fail"

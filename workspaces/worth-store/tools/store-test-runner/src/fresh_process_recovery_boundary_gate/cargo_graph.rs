@@ -34,12 +34,9 @@ fn delivered_phase_dependency_direction_is_honest() {
     assert!(!edges.iter().any(|edge| {
         edge.package == "worth-store" && edge.dependency == PHYSICS && edge.kind == "normal"
     }));
-    assert!(
-        edges.iter().any(|edge| {
-            edge.package == PHYSICS && edge.dependency == "worth-store" && edge.kind == "normal"
-        }),
-        "Phase 1 must account for the old reverse edge before Phase 8 removes it"
-    );
+    assert!(!edges
+        .iter()
+        .any(|edge| { edge.package == PHYSICS && edge.dependency == "worth-store" }));
     let metadata = metadata().expect("read workspace packages");
     let runtime = metadata
         .packages
@@ -106,11 +103,6 @@ fn expected_disposition(package: &str, dependency: &str) -> (&'static str, Strin
         return ("narrow", format!("{package}/c8-import-cutover"), "phase-8");
     }
     match dependency {
-        "worth-store" => (
-            "replace",
-            "worth-store-recovery-runtime/composition-root".into(),
-            "phase-8",
-        ),
         "worth-foundational" => (
             "replace",
             "worth-store-recovery-runtime/observation-protocol".into(),

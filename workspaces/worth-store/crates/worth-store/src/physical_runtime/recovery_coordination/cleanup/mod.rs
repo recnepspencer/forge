@@ -33,7 +33,7 @@ use crate::physical_runtime::{
 };
 
 impl PhysicalRecoveryCoordination {
-    pub fn admit_cleanup_plan<'e>(
+    pub fn admit_cleanup_plan(
         &self,
         media: &worth_store_physical_backend::AdmittedRecoveryFilesystemMedia,
         reopened: CompletedPhysicalRecoveryFreshReopen,

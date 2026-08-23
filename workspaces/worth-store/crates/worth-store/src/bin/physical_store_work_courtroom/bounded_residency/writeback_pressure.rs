@@ -3,6 +3,7 @@ mod append_pressure;
 mod data_effects;
 mod dispatch_coordination;
 
+use worth_store::physical_runtime::production::PhysicalMutationPauseGate;
 use worth_store::physical_runtime::{PhysicalSpeculativeWorkKind, ServingPhysicalRuntime};
 use worth_store_physical_backend::{MediaOperationRole, MediaPauseGate};
 
@@ -57,9 +58,10 @@ pub(super) struct BoundedDirtyWritebackEvidence {
 pub(super) fn prove(
     serving: &ServingPhysicalRuntime,
     configuration: BoundedResidencyConfiguration,
-    gate: MediaPauseGate,
+    media_gate: MediaPauseGate,
+    mutation_gate: PhysicalMutationPauseGate,
 ) -> Result<BoundedDirtyWritebackEvidence, String> {
-    let run = append_pressure::execute(serving, configuration, gate)?;
+    let run = append_pressure::execute(serving, configuration, media_gate, mutation_gate)?;
     build_evidence(serving, run)
 }
 

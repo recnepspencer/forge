@@ -3,6 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use worth_store::physical_runtime::production::PhysicalMutationPauseGate;
 use worth_store::physical_runtime::{
     DataDispatchedPhysicalMutation, PhysicalDataDispatchOutcome, PhysicalRecordPressureEvidence,
     ServingPhysicalRuntime, WalDurablePhysicalMutation,
@@ -10,6 +11,63 @@ use worth_store::physical_runtime::{
 use worth_store_physical_backend::{MediaOperationContext, MediaPauseGate};
 
 type DispatchResult = PhysicalDataDispatchOutcome;
+
+const PRESSURE_DENIAL_TIMEOUT: Duration = Duration::from_secs(5);
+
+pub(super) struct PressureGates {
+    media: MediaPauseGate,
+    mutation: PhysicalMutationPauseGate,
+}
+
+impl PressureGates {
+    pub(super) fn new(media: MediaPauseGate, mutation: PhysicalMutationPauseGate) -> Self {
+        Self { media, mutation }
+    }
+
+    pub(super) fn await_backend_gate(
+        &self,
+        receiver: &mpsc::Receiver<DispatchResult>,
+    ) -> Result<MediaOperationContext, String> {
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while self.media.reached_context().is_none() && Instant::now() < deadline {
+            match receiver.try_recv() {
+                Ok(_) => return Err("primary mutation settled before backend dispatch".to_owned()),
+                Err(mpsc::TryRecvError::Disconnected) => {
+                    return Err("primary canonical mutation disconnected before dispatch".to_owned())
+                }
+                Err(mpsc::TryRecvError::Empty) => std::thread::yield_now(),
+            }
+        }
+        self.media
+            .reached_context()
+            .ok_or_else(|| "primary canonical mutation did not reach its backend gate".to_owned())
+    }
+
+    pub(super) fn await_mutation_gate(&self) -> Result<(), String> {
+        self.mutation.await_arrival().then_some(()).ok_or_else(|| {
+            "primary canonical mutation did not reach post-admission checkpoint".to_owned()
+        })
+    }
+
+    pub(super) fn release_media(&self) {
+        self.media.release();
+    }
+
+    pub(super) fn release_mutation(&self) {
+        self.mutation.release();
+    }
+
+    pub(super) fn release_all(&self) {
+        self.mutation.release();
+        self.media.release();
+    }
+}
+
+impl Drop for PressureGates {
+    fn drop(&mut self) {
+        self.release_all();
+    }
+}
 
 pub(super) struct PressureDeniedDispatch {
     pub(super) durable: WalDurablePhysicalMutation,
@@ -28,33 +86,16 @@ pub(super) fn spawn(
     (thread, receiver)
 }
 
-pub(super) fn await_backend_gate(
-    gate: &MediaPauseGate,
-    receiver: &mpsc::Receiver<DispatchResult>,
-) -> Result<MediaOperationContext, String> {
-    let deadline = Instant::now() + Duration::from_secs(5);
-    while gate.reached_context().is_none() && Instant::now() < deadline {
-        match receiver.try_recv() {
-            Ok(_) => return Err("primary mutation settled before backend dispatch".to_owned()),
-            Err(mpsc::TryRecvError::Disconnected) => {
-                return Err("primary canonical mutation disconnected before dispatch".to_owned())
-            }
-            Err(mpsc::TryRecvError::Empty) => std::thread::yield_now(),
-        }
-    }
-    gate.reached_context()
-        .ok_or_else(|| "primary canonical mutation did not reach its backend gate".to_owned())
-}
-
 pub(super) fn receive_pressure_denial(
-    gate: &MediaPauseGate,
+    gates: &PressureGates,
     receiver: mpsc::Receiver<DispatchResult>,
     thread: std::thread::JoinHandle<()>,
 ) -> Result<PressureDeniedDispatch, String> {
-    let result = match receiver.recv_timeout(Duration::from_secs(5)) {
+    let result = match receiver.recv_timeout(PRESSURE_DENIAL_TIMEOUT) {
         Ok(result) => result,
         Err(_) => {
-            gate.release();
+            gates.release_all();
+            let _ = thread.join();
             return Err("competing canonical mutation did not deny before effects".to_owned());
         }
     };
@@ -63,7 +104,7 @@ pub(super) fn receive_pressure_denial(
         .map_err(|_| "competing canonical mutation panicked".to_owned())?;
     match result {
         PhysicalDataDispatchOutcome::Dispatched(_) => {
-            gate.release();
+            gates.release_all();
             Err("competing canonical mutation bypassed pressure".to_owned())
         }
         PhysicalDataDispatchOutcome::RetryableAfterCleanup(retry) => {

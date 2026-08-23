@@ -92,10 +92,6 @@ impl ResolvedDependencyCause {
             changed_scopes,
         }
     }
-
-    pub(crate) fn binding(&self) -> worth_proof::Binding<DependencyCauseBindingAxes> {
-        worth_proof::Binding::new(self.binding_axes.clone())
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

@@ -163,9 +163,9 @@ pub fn shortcut_denial_from_harness_boundary_denial(
     denial: SimulationHarnessBoundaryDenial,
 ) -> Option<SyntheticHarnessShortcutDenialReceipt> {
     let (shortcut, boundary) = match denial {
-        SimulationHarnessBoundaryDenial::CopiedS4ReportCannotAdmitEntry => (
+        SimulationHarnessBoundaryDenial::CopiedRecoveryReportCannotAdmitEntry => (
             ForbiddenShortcutKind::CopiedDigestAuthority,
-            ShortcutRejectionBoundary::HarnessBoundaryCopiedS4Report,
+            ShortcutRejectionBoundary::HarnessBoundaryCopiedRecoveryReport,
         ),
         SimulationHarnessBoundaryDenial::LogOutputCannotAdmitEntry => (
             ForbiddenShortcutKind::LogsAsProof,

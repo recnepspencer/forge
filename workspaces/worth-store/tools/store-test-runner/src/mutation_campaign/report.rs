@@ -13,6 +13,10 @@ use super::{
     evidence::MutationObservation, source_inventory::MutationSourceBinding, MutationCampaignScope,
 };
 
+mod c8_record {
+    pub(super) use crate::mutation_campaign::c8_retained_record::*;
+}
+
 #[cfg(feature = "physical-work-evidence")]
 mod reader;
 
@@ -33,6 +37,7 @@ pub(super) struct MutationEvidenceSession {
     pending: PathBuf,
     source: MutationSourceBinding,
     scope: MutationCampaignScope,
+    c8_source_closure: Option<String>,
     published: bool,
 }
 
@@ -41,6 +46,7 @@ impl MutationEvidenceSession {
         path: &Path,
         source: MutationSourceBinding,
         scope: MutationCampaignScope,
+        workspace: &Path,
     ) -> Result<Self, String> {
         let report = normalized_report(path)?;
         remove_prior_report(&report)?;
@@ -50,6 +56,9 @@ impl MutationEvidenceSession {
             pending,
             source,
             scope,
+            c8_source_closure: matches!(scope, MutationCampaignScope::C8Closure)
+                .then(|| c8_record::phase_eight_source_closure(workspace))
+                .transpose()?,
             published: false,
         })
     }
@@ -69,7 +78,10 @@ impl MutationEvidenceSession {
         if identities.len() != observations.len() {
             return Err("mutation report contains duplicate mutant identities".into());
         }
-        let encoded = encode(self.scope, &self.source, observations)?;
+        let encoded = match self.c8_source_closure.as_deref() {
+            Some(source_closure) => c8_record::encode(&self.source, source_closure, observations)?,
+            None => encode(self.scope, &self.source, observations)?,
+        };
         let mut file = std::fs::OpenOptions::new()
             .write(true)
             .create_new(true)
@@ -197,6 +209,15 @@ pub(super) fn load_bounded_residency_evidence(
     workspace: &Path,
 ) -> Result<Vec<worth_store::physical_runtime::PhysicalWorkMutantLocalization>, String> {
     reader::load_evidence(report, workspace, MutationCampaignScope::BoundedResidency)
+}
+
+#[cfg(feature = "physical-work-evidence")]
+#[allow(dead_code)]
+pub(super) fn load_c8_closure_record(
+    report: &Path,
+    workspace: &Path,
+) -> Result<super::c8_retained_record::RetainedC8CampaignRecord, String> {
+    c8_record::load(report, workspace, super::catalog::c8_closure_mutations())
 }
 
 #[cfg(test)]

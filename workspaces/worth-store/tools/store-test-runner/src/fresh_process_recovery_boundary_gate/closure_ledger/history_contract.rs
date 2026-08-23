@@ -6,178 +6,8 @@ mod finding_inventory;
 
 use super::super::documents::{read_repository_document, split_csv, QA_AUDITS};
 use super::audit_source_manifest::validate_source_manifests;
-use audit_contracts::{AuditContract, AUDIT_CONTRACTS};
-use finding_inventory::REQUIRED_FINDINGS;
-
-const FINDING_GUARANTEES: &[(&str, &str)] = &[
-    (
-        "C8-P1-F01",
-        "C8-P1-API-01 C8-P1-CUTOVER-01 C8-P1-DEPENDENCY-01",
-    ),
-    (
-        "C8-P1-F02",
-        "C8-P1-AUTHORITY-01 C8-P1-SESSION-01 C8-P1-PROTOCOL-01",
-    ),
-    ("C8-P1-F03", "C8-P1-LEDGER-01 C8-P1-LEDGER-02"),
-    ("C8-P1-F04", "C8-P1-TRUTH-01 C8-P1-ENTRY-01"),
-    ("C8-P1-F05", "C8-P1-AUTHORITY-01 C8-P1-CUTOVER-01"),
-    ("C8-P1-F06", "C8-P1-API-01 C8-P1-CLEANUP-01"),
-    ("C8-P1-F07", "C8-P1-CUTOVER-01 C8-P1-CLEANUP-01"),
-    ("C8-P1-F08", "C8-P1-TOPOLOGY-01 C8-P1-SESSION-01"),
-    (
-        "C8-P1-F09",
-        "C8-P1-AUTHORITY-01 C8-P1-EFFECT-01 C8-P1-FRESHNESS-01",
-    ),
-    (
-        "C8-P1-F10",
-        "C8-P1-TRUTH-01 C8-P1-PERSISTED-01 C8-P1-LEDGER-02",
-    ),
-    ("C8-P1-F11", "C8-P1-LEDGER-01 C8-P1-LEDGER-02"),
-    ("C8-P1-F12", "C8-P1-COMPILE-01 C8-P1-TRUTH-01"),
-    ("C8-P1-F13", "C8-P1-DOCUMENTATION-01"),
-    (
-        "C8-P1-F14",
-        "C8-P1-TRUTH-01 C8-P1-ENTRY-01 C8-P1-PERSISTED-01 C8-P1-LEDGER-02",
-    ),
-    ("C8-P1-F15", "C8-P1-CUTOVER-01 C8-P1-CLEANUP-01"),
-    ("C8-P1-F16", "C8-P1-TOPOLOGY-01"),
-    ("C8-P1-F17", "C8-P1-API-01 C8-P1-CLEANUP-01"),
-    ("C8-P1-F18", "C8-P1-LEDGER-01 C8-P1-LEDGER-02"),
-    (
-        "C8-P1-F19",
-        "C8-P1-TRUTH-01 C8-P1-PERSISTED-01 C8-P1-LEDGER-02",
-    ),
-    ("C8-P1-F20", "C8-P1-TOPOLOGY-01 C8-P1-LEDGER-02"),
-    ("C8-P1-F21", "C8-P1-API-01 C8-P1-CLEANUP-01"),
-    ("C8-P1-F22", "C8-P1-CUTOVER-01 C8-P1-CLEANUP-01"),
-    ("C8-P1-F23", "C8-P1-LEDGER-02"),
-    ("C8-P1-F24", "C8-P1-LEDGER-01 C8-P1-LEDGER-02"),
-    ("C8-P1-F25", "C8-P1-DOCUMENTATION-01"),
-    ("C8-P1-F26", "C8-P1-API-01 C8-P1-CLEANUP-01 C8-P1-LEDGER-02"),
-    ("C8-P1-F27", "C8-P1-CUTOVER-01 C8-P1-CLEANUP-01"),
-    ("C8-P1-F28", "C8-P1-LEDGER-01 C8-P1-LEDGER-02"),
-    ("C8-P1-F29", "C8-P1-API-01 C8-P1-CLEANUP-01"),
-    (
-        "C8-P1-F30",
-        "C8-P1-TRUTH-01 C8-P1-PERSISTED-01 C8-P1-LEDGER-02",
-    ),
-    ("C8-P1-F31", "C8-P1-TOPOLOGY-01 C8-P1-EFFECT-01"),
-    ("C8-P1-F32", "C8-P1-LEDGER-01 C8-P1-LEDGER-02"),
-    (
-        "C8-P1-F33",
-        "C8-P1-TRUTH-01 C8-P1-PERSISTED-01 C8-P1-LEDGER-02",
-    ),
-    ("C8-P1-F34", "C8-P1-LEDGER-01 C8-P1-LEDGER-02"),
-    (
-        "C8-P1-F35",
-        "C8-P1-TRUTH-01 C8-P1-PERSISTED-01 C8-P1-LEDGER-02",
-    ),
-    (
-        "C8-P1-F36",
-        "C8-P1-TRUTH-01 C8-P1-PERSISTED-01 C8-P1-LEDGER-02",
-    ),
-    (
-        "C8-P1-F37",
-        "C8-P1-FRESHNESS-01 C8-P1-TOPOLOGY-01 C8-P1-LEDGER-02",
-    ),
-    ("C8-P1-F38", "C8-P1-API-01 C8-P1-LEDGER-02"),
-    ("C8-P1-F39", "C8-P1-LEDGER-01 C8-P1-LEDGER-02"),
-    (
-        "C8-P1-F40",
-        "C8-P1-TRUTH-01 C8-P1-PERSISTED-01 C8-P1-LEDGER-02",
-    ),
-    (
-        "C8-P1-F41",
-        "C8-P1-API-01 C8-P1-FRESHNESS-01 C8-P1-TOPOLOGY-01 C8-P1-LEDGER-02",
-    ),
-    ("C8-P1-F42", "C8-P1-LEDGER-01 C8-P1-LEDGER-02"),
-    (
-        "C8-P1-F43",
-        "C8-P1-API-01 C8-P1-TOPOLOGY-01 C8-P1-LEDGER-02",
-    ),
-    ("C8-P1-F44", "C8-P1-LEDGER-01 C8-P1-LEDGER-02"),
-    (
-        "C8-P1-F45",
-        "C8-P1-API-01 C8-P1-TOPOLOGY-01 C8-P1-ENTRY-01 C8-P1-LEDGER-02",
-    ),
-    ("C8-P1-F46", "C8-P1-LEDGER-01 C8-P1-LEDGER-02"),
-    (
-        "C8-P1-F47",
-        "C8-P1-DEPENDENCY-01 C8-P1-LEDGER-01 C8-P1-LEDGER-02",
-    ),
-    (
-        "C8-P1-F48",
-        "C8-P1-API-01 C8-P1-AUTHORITY-01 C8-P1-TOPOLOGY-01 C8-P1-ENTRY-01 C8-P1-LEDGER-01 C8-P1-LEDGER-02",
-    ),
-    (
-        "C8-P1-F49",
-        "C8-P1-API-01 C8-P1-EFFECT-01 C8-P1-FRESHNESS-01 C8-P1-TOPOLOGY-01 C8-P1-DEPENDENCY-01 C8-P1-CUTOVER-01 C8-P1-CLEANUP-01 C8-P1-LEDGER-01 C8-P1-LEDGER-02",
-    ),
-    (
-        "C8-P1-F50",
-        "C8-P1-API-01 C8-P1-AUTHORITY-01 C8-P1-SESSION-01 C8-P1-EFFECT-01 C8-P1-FRESHNESS-01 C8-P1-TOPOLOGY-01 C8-P1-DEPENDENCY-01 C8-P1-CUTOVER-01 C8-P1-CLEANUP-01 C8-P1-DOCUMENTATION-01 C8-P1-LEDGER-01 C8-P1-LEDGER-02",
-    ),
-    (
-        "C8-P1-F51",
-        "C8-P1-TRUTH-01 C8-P1-PERSISTED-01 C8-P1-LEDGER-01 C8-P1-LEDGER-02",
-    ),
-    (
-        "C8-P1-F52",
-        "C8-P1-TRUTH-01 C8-P1-PERSISTED-01 C8-P1-LEDGER-01 C8-P1-LEDGER-02",
-    ),
-    (
-        "C8-P1-F53",
-        "C8-P1-DOCUMENTATION-01 C8-P1-LEDGER-01 C8-P1-LEDGER-02",
-    ),
-    (
-        "C8-P1-F54",
-        "C8-P1-API-01 C8-P1-AUTHORITY-01 C8-P1-SESSION-01 C8-P1-EFFECT-01 C8-P1-TOPOLOGY-01 C8-P1-CLEANUP-01 C8-P1-DOCUMENTATION-01 C8-P1-LEDGER-01 C8-P1-LEDGER-02",
-    ),
-    (
-        "C8-P1-F55",
-        "C8-P1-API-01 C8-P1-TOPOLOGY-01 C8-P1-CUTOVER-01 C8-P1-CLEANUP-01 C8-P1-DOCUMENTATION-01 C8-P1-LEDGER-01 C8-P1-LEDGER-02",
-    ),
-    (
-        "C8-P1-F56",
-        "C8-P1-API-01 C8-P1-DOCUMENTATION-01 C8-P1-LEDGER-01 C8-P1-LEDGER-02",
-    ),
-    (
-        "C8-P1-F57",
-        "C8-P1-API-01 C8-P1-LEDGER-01 C8-P1-LEDGER-02",
-    ),
-    (
-        "C8-P1-F58",
-        "C8-P1-TRUTH-01 C8-P1-API-01 C8-P1-TOPOLOGY-01 C8-P1-CUTOVER-01 C8-P1-CLEANUP-01 C8-P1-DOCUMENTATION-01 C8-P1-PERSISTED-01 C8-P1-LEDGER-01 C8-P1-LEDGER-02",
-    ),
-    (
-        "C8-P1-F59",
-        "C8-P1-TRUTH-01 C8-P1-API-01 C8-P1-TOPOLOGY-01 C8-P1-CUTOVER-01 C8-P1-CLEANUP-01 C8-P1-PERSISTED-01 C8-P1-LEDGER-01 C8-P1-LEDGER-02",
-    ),
-    (
-        "C8-P1-F60",
-        "C8-P1-TRUTH-01 C8-P1-API-01 C8-P1-CUTOVER-01 C8-P1-DOCUMENTATION-01 C8-P1-PERSISTED-01 C8-P1-LEDGER-01 C8-P1-LEDGER-02",
-    ),
-    (
-        "C8-P1-F61",
-        "C8-P1-TRUTH-01 C8-P1-API-01 C8-P1-AUTHORITY-01 C8-P1-SESSION-01 C8-P1-EFFECT-01 C8-P1-TOPOLOGY-01 C8-P1-CUTOVER-01 C8-P1-PERSISTED-01 C8-P1-LEDGER-01 C8-P1-LEDGER-02",
-    ),
-    (
-        "C8-P1-F62",
-        "C8-P1-API-01 C8-P1-LEDGER-01 C8-P1-LEDGER-02",
-    ),
-    (
-        "C8-P1-F63",
-        "C8-P1-TRUTH-01 C8-P1-TOPOLOGY-01 C8-P1-CUTOVER-01 C8-P1-DOCUMENTATION-01 C8-P1-PERSISTED-01 C8-P1-LEDGER-01 C8-P1-LEDGER-02",
-    ),
-    (
-        "C8-P1-F64",
-        "C8-P1-API-01 C8-P1-AUTHORITY-01 C8-P1-EFFECT-01 C8-P1-FRESHNESS-01 C8-P1-TOPOLOGY-01 C8-P1-CUTOVER-01 C8-P1-CLEANUP-01 C8-P1-LEDGER-01 C8-P1-LEDGER-02",
-    ),
-    (
-        "C8-P1-F65",
-        "C8-P1-TRUTH-01 C8-P1-CUTOVER-01 C8-P1-CLEANUP-01 C8-P1-PERSISTED-01 C8-P1-LEDGER-01 C8-P1-LEDGER-02",
-    ),
-];
+use audit_contracts::{AuditContract, AUDIT_CONTRACTS, PHASE_EIGHT_AUDIT_SCOPES};
+use finding_inventory::{FINDING_GUARANTEES, REQUIRED_FINDINGS};
 
 pub(super) type AuditRecord = (
     String,
@@ -189,6 +19,9 @@ pub(super) type AuditRecord = (
     String,
     String,
 );
+
+const PHASE_EIGHT_LEDGER: &str =
+    "_docs/worth-store/physical-reconstruction-c8-phase-8-closure-ledger.md";
 
 pub(super) fn validate_finding_history(
     document: &str,
@@ -283,18 +116,69 @@ pub(super) fn validate_audit_records(audit_document: &str, document: &str) -> Re
     {
         return Err("C.8 QA audit artifact has an invalid schema".into());
     }
-    let mut audits = BTreeSet::new();
-    let mut audit_count = 0;
+    let mut parsed = Vec::new();
     for line in lines.filter(|line| !line.trim().is_empty()) {
-        audit_count += 1;
-        audits.insert(parse_audit_row(line)?);
+        parsed.push(parse_audit_row(line)?);
     }
+    let phase_one = parsed
+        .iter()
+        .filter(|audit| audit.0.starts_with("/root/c8_phase1_"))
+        .cloned()
+        .collect::<BTreeSet<_>>();
     let expected = expected_audit_records();
-    if audits != expected || audit_count != expected.len() {
+    if phase_one != expected
+        || parsed
+            .iter()
+            .filter(|audit| audit.0.starts_with("/root/c8_phase1_"))
+            .count()
+            != expected.len()
+    {
         return Err("C.8 structured QA audit history is incomplete or altered".into());
     }
-    validate_source_manifests(&audits)?;
+    let phase_eight = parsed
+        .into_iter()
+        .filter(|audit| !audit.0.starts_with("/root/c8_phase1_"))
+        .collect::<Vec<_>>();
+    validate_phase_eight_audits(&phase_eight)?;
+    validate_source_manifests(&phase_one)?;
     validate_audit_summary(document, &expected)
+}
+
+fn validate_phase_eight_audits(audits: &[AuditRecord]) -> Result<(), String> {
+    if audits.len() != PHASE_EIGHT_AUDIT_SCOPES.len() {
+        return Err("C.8 Phase 8 audit certification set is incomplete or duplicated".into());
+    }
+    let ledger = read_repository_document(PHASE_EIGHT_LEDGER)?;
+    let snapshot = ledger
+        .lines()
+        .find_map(|line| line.strip_prefix("Source closure SHA-256: "))
+        .map(str::to_owned)
+        .filter(|value| value.len() == 64 && value.chars().all(|ch| ch.is_ascii_hexdigit()))
+        .ok_or_else(|| "C.8 Phase 8 ledger has no valid source closure digest".to_owned())?;
+    let mut reviewers = BTreeSet::new();
+    let mut scopes = BTreeSet::new();
+    for audit in audits {
+        let (scope, model, reviewer_prefix) = PHASE_EIGHT_AUDIT_SCOPES
+            .iter()
+            .find(|(candidate, _, _)| audit.4 == *candidate)
+            .ok_or_else(|| format!("unknown C.8 Phase 8 audit scope `{}`", audit.4))?;
+        if audit.1 != *model
+            || !audit.0.starts_with(reviewer_prefix)
+            || audit.0.len() == reviewer_prefix.len()
+            || audit.3 != snapshot
+            || audit.5 != BTreeSet::from(["none".to_owned()])
+            || audit.6 != "clean current-tree certification"
+            || audit.7.is_empty()
+        {
+            return Err(format!(
+                "C.8 Phase 8 audit `{scope}` is not source-bound clean evidence"
+            ));
+        }
+        if !reviewers.insert(audit.0.clone()) || !scopes.insert(audit.4.clone()) {
+            return Err("C.8 Phase 8 audits must use distinct reviewers and scopes".into());
+        }
+    }
+    Ok(())
 }
 
 pub(super) fn parse_audit_row(line: &str) -> Result<AuditRecord, String> {

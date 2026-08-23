@@ -43,6 +43,7 @@ pub use staging::{
     CompletedRecoveryStagingWrite, CompletedScheduledRecoveryStagingSynchronization,
     CompletedScheduledRecoveryStagingWrite, DeniedScheduledRecoveryStagingWrite,
     IndeterminateRecoveryStagingWrite, IndeterminateScheduledRecoveryStagingSynchronization,
-    IndeterminateScheduledRecoveryStagingWrite, RecoveryStagingSynchronizationOutcome,
-    RecoveryStagingWriteDisposition, RecoveryStagingWriteOutcome,
+    IndeterminateScheduledRecoveryStagingWrite, RecoveryStagingIndeterminatePhysical,
+    RecoveryStagingSynchronizationOutcome, RecoveryStagingWriteDisposition,
+    RecoveryStagingWriteOutcome,
 };

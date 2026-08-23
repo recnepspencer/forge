@@ -5,11 +5,11 @@ use std::process::{Command, Output};
 
 use super::phase_three_support::{limit_declaration, recovery_request_with_limits};
 use worth_proof::TransitionOutcome;
+use worth_store::physical_runtime::recovery_wal::WalSegmentArtifactIdentity;
 use worth_store::physical_runtime::{
     PhysicalCheckpointDeadline, PhysicalCheckpointIdempotencyKey, PhysicalCheckpointOutcome,
     PhysicalCheckpointRequest,
 };
-use worth_store_recovery_physics::WalSegmentArtifactIdentity;
 use worth_store_recovery_runtime::{
     PhysicalRecoveryLimits, PhysicalRecoveryOutcome, RecoveryCleanupTarget,
 };

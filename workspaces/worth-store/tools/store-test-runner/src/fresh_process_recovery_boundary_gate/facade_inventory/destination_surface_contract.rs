@@ -1,4 +1,5 @@
 mod backend_recovery;
+mod backend_recovery_evidence;
 mod backend_recovery_publication;
 mod store_recovery_coordination;
 mod store_recovery_publication;
@@ -7,6 +8,8 @@ mod tests;
 
 pub(super) const BACKEND_RECOVERY_SURFACES: &[(&str, &str, &str)] =
     backend_recovery::BACKEND_RECOVERY_SURFACES;
+pub(super) const BACKEND_RECOVERY_EVIDENCE_SURFACES: &[(&str, &str, &str)] =
+    backend_recovery_evidence::BACKEND_RECOVERY_EVIDENCE_SURFACES;
 pub(super) const BACKEND_RECOVERY_PUBLICATION_SURFACES: &[(&str, &str, &str)] =
     backend_recovery_publication::BACKEND_RECOVERY_PUBLICATION_SURFACES;
 pub(super) const STORE_RECOVERY_COORDINATION_SURFACES: &[(&str, &str, &str)] =

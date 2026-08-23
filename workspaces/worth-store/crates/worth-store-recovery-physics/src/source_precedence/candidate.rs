@@ -1,6 +1,5 @@
 use worth_store_physical_format::{
-    store_namespace::StableStoreIdentity, DurablePhysicalRootManifest, DurableRootSelector,
-    RootManifestDenial, RootSelectorDecodeDenial, RootSelectorRole,
+    DurablePhysicalRootManifest, DurableRootSelector, RootManifestDenial, RootSelectorDecodeDenial,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -43,18 +42,10 @@ pub enum PhysicalRootCandidateDenial {
 
 impl PhysicalRootSourceCandidate {
     pub(super) fn admit(
-        store: StableStoreIdentity,
-        role: RootSelectorRole,
         selector: DurableRootSelector,
         manifest: DurablePhysicalRootManifest,
         manifest_format: worth_store_physical_format::PhysicalRecordFormatDeclaration,
     ) -> Result<Self, PhysicalRootCandidateDenial> {
-        if selector.store_identity() != store {
-            return Err(PhysicalRootCandidateDenial::ForeignStore);
-        }
-        if selector.role() != role {
-            return Err(PhysicalRootCandidateDenial::WrongRole);
-        }
         if selector.format() != manifest_format {
             return Err(PhysicalRootCandidateDenial::RootFormatMismatch);
         }

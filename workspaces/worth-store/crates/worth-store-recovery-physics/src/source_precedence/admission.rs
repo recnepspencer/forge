@@ -42,7 +42,7 @@ pub fn admit_physical_root_slot(
                 return rejected(selector, PhysicalRootCandidateDenial::RootFormat(denial))
             }
         };
-    match PhysicalRootSourceCandidate::admit(store, role, selector, manifest, format) {
+    match PhysicalRootSourceCandidate::admit(selector, manifest, format) {
         Ok(candidate) => PhysicalRootSlotObservation::Admitted(candidate),
         Err(denial) => rejected(selector, denial),
     }

@@ -157,8 +157,12 @@ fn validate_declared_binding(
 #[cfg(test)]
 mod tests {
     use super::{
-        load_evidence, require_campaign_source, MutationCampaignScope, MutationSourceBinding,
-        MUTATION_EVIDENCE_REPORT_SCHEMA,
+        load_evidence, require_campaign_source, validate_observation, MutationCampaignScope,
+        MutationSourceBinding, MUTATION_EVIDENCE_REPORT_SCHEMA,
+    };
+    use crate::mutation_campaign::{
+        catalog::{ControlledMutation, MutationTarget},
+        evidence::{MutationExecutionClass, MutationExecutionEvidence, MutationObservation},
     };
 
     #[test]
@@ -249,5 +253,46 @@ mod tests {
             require_campaign_source(&expected, &current).unwrap_err(),
             "mutation campaign source is stale"
         );
+    }
+
+    #[test]
+    fn report_reader_rejects_an_observation_after_its_source_hash_drifts() {
+        let temporary = tempfile::tempdir().unwrap();
+        std::fs::write(temporary.path().join("source.rs"), b"bound needle").unwrap();
+        let mutation = ControlledMutation {
+            id: 154,
+            predicate: "predicate",
+            source: "source.rs",
+            needle: "bound needle",
+            replacement: "mutated seam",
+            package: "package",
+            target: MutationTarget::Library,
+            selector: "scenario",
+        };
+        let observation = MutationObservation {
+            id: 154,
+            source_binding: "source.rs".into(),
+            source_sha256: "11".repeat(32),
+            mutant_sha256: "22".repeat(32),
+            binary_binding: "proof.exe".into(),
+            binary_sha256: "33".repeat(32),
+            profile_binding: "test".into(),
+            scenario_binding: "scenario".into(),
+            expected_failing_predicate: "predicate".into(),
+            actual_failing_predicate: "predicate".into(),
+            localization: "proof.rs:1".into(),
+            execution: MutationExecutionEvidence::bind(
+                MutationExecutionClass::Ordinary,
+                std::time::Duration::from_millis(1),
+            )
+            .unwrap(),
+            transcript: None,
+        };
+
+        let error = validate_observation(observation, &mutation, temporary.path())
+            .err()
+            .unwrap();
+
+        assert_eq!(error, "mutant 154 source is stale");
     }
 }

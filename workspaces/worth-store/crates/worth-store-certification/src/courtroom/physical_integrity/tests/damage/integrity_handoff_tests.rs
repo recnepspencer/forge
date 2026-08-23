@@ -8,8 +8,8 @@ use crate::{
         assert_all_recovery_blocking_sources, recovery_blocking_damage_fixture,
     },
 };
+use worth_store_physical_integrity::IntegrityHandoffDenialKind;
 use worth_store_physical_integrity::{ChecksumAlgorithmId, WalFrameDamageDenialKind};
-use worth_store_recovery_physics::IntegrityHandoffDenialKind;
 
 #[test]
 fn intact_inputs_publish_stable_recovery_handoff_identity_across_independent_runs() {

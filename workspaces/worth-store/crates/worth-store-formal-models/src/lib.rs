@@ -8,6 +8,8 @@
 //! invokes checked artifacts. Nothing exported here carries runtime authority.
 
 pub mod assumptions;
+#[path = "protocols/import_publication/mod.rs"]
+mod import_publication;
 mod model_contract;
 pub mod protocol_bindings;
 pub mod protocols;
@@ -17,6 +19,10 @@ pub use model_contract::{
     protocol_model_contract, FiniteAbstractionRule, ProtocolLivenessContract, ProtocolModelContract,
 };
 
+pub use import_publication::{
+    ImportPublicationAction, ImportPublicationModel, ImportPublicationModelDenial,
+    ImportPublicationState,
+};
 pub use protocol_bindings::{
     classify_owner_observation_omission, current_compaction_visibility_mappings,
     current_compaction_visibility_owner_cases, current_protocol_binding_manifest,
@@ -38,18 +44,11 @@ pub use protocols::compaction_visibility::{
     ModeledOutcome,
 };
 pub use protocols::durability_recovery::{
-    map_checkpoint_cutover, map_checkpoint_selection, map_failed_wal_fence,
-    map_recovery_completion, map_redo_execution, map_redo_generation_denial,
-    map_reopened_physical_recovery, CheckpointFrontierState, DirectorySyncFrontierState,
-    DurabilityOwnerMappingDenial, DurabilityRecoveryAction, DurabilityRecoveryDenial,
-    DurabilityRecoveryFrontier, PageFrontierState, RecoveredRootFrontierState, ReplayFrontierState,
-    WalFrontierState,
-};
-pub use protocols::import_publication::{
-    map_import_publication_crash_attempt, map_import_publication_denial,
-    map_import_publication_readiness, map_published_import, ImportPublicationAction,
-    ImportPublicationCrashMappingDenial, ImportPublicationModel, ImportPublicationModelDenial,
-    ImportPublicationReadinessObservation, ImportPublicationState, PublishedImportObservation,
+    map_checkpoint_selection, map_failed_wal_fence, map_recovery_completion, map_redo_execution,
+    map_redo_generation_denial, map_reopened_physical_recovery, CheckpointFrontierState,
+    DirectorySyncFrontierState, DurabilityOwnerMappingDenial, DurabilityRecoveryAction,
+    DurabilityRecoveryDenial, DurabilityRecoveryFrontier, PageFrontierState,
+    RecoveredRootFrontierState, ReplayFrontierState, WalFrontierState,
 };
 pub use protocols::lease_reclaim::{
     map_active_lease, map_expiry, map_identity_reuse_attempt, map_owned_copy,
@@ -82,6 +81,6 @@ pub use protocols::shared_frontiers::{
     SharedReachabilityFrontier, SharedVisibilityFrontier,
 };
 pub use protocols::source_precedence::{
-    map_recovery_source_decision_trace, require_selectable_source, SourceAuthorityPosture,
+    require_selectable_source, ModeledSourceCandidateRole, SourceAuthorityPosture,
     SourcePrecedenceAction, SourcePrecedenceActionKind, SourcePrecedenceDenial,
 };

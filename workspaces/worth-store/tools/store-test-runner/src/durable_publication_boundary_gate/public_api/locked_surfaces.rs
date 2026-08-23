@@ -11,19 +11,15 @@ pub(super) const INHERITED_SURFACES: [&str; 10] = [
     "WalDurabilityBarrierReceipt",
 ];
 
-pub(super) const PHASE_NINE_SURFACES: [&str; 17] = [
+pub(super) const PHASE_NINE_SURFACES: [&str; 13] = [
     "DurabilityReplayIdentity",
     "DurabilityReplayIdentityDenial",
     "DurabilityReplayKind",
     "PhysicalCheckpointDeadline::after_milliseconds",
     "PhysicalMutationDeadline::after_milliseconds",
-    "ReopenedWalDurabilityCrashRecord",
     "WalAppendFailureObservation",
     "WalAppendObservationScope",
     "WalAppendReceipt",
-    "WalDurabilityCrashBasis",
-    "WalDurabilityCrashPosture",
-    "WalDurabilityCrashRecord",
     "WalDurabilityObservation",
     "WalDurabilityObservationBasis",
     "WalDurabilityObservationDenial",

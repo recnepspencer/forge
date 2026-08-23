@@ -13,7 +13,7 @@ use worth_store_physical_integrity::{
     QuarantineRecord, QuarantineSealRequest, ScopedPhysicalValidatorInput,
     WalFrameIntegrityAuthority, WalFrameIntegrityInspectionRequest,
 };
-use worth_store_recovery_physics::{
+use worth_store_physical_integrity::{
     IntegrityDamageMap, IntegrityHandoffDenialKind, RecoveryBlockedByIntegrityDamage,
 };
 

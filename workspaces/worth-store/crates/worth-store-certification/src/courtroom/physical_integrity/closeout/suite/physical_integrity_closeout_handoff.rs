@@ -1,5 +1,5 @@
 use worth_store_contracts::StableDigest;
-use worth_store_recovery_physics::{AdmittedRecoveryIntegrityInput, IntegrityHandoffCounters};
+use worth_store_physical_integrity::{AdmittedRecoveryIntegrityInput, IntegrityHandoffCounters};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IntegrityRecoveryHandoffCloseoutEvidence {

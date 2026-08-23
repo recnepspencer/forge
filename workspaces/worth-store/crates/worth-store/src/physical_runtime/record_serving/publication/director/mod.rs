@@ -185,11 +185,18 @@ impl RecordPublicationDirector {
         self.root_owner.snapshot()
     }
 
+    pub(in crate::physical_runtime) fn pause_mutation_at(
+        &self,
+        checkpoint: crate::physical_runtime::durability::PhysicalMutationCheckpoint,
+    ) -> crate::physical_runtime::durability::PhysicalMutationPauseGate {
+        self.mutations.pause_at(checkpoint)
+    }
+
     #[cfg(feature = "certification-test-authority")]
     pub(in crate::physical_runtime) fn pause_mutation_at_for_certification(
         &self,
         checkpoint: crate::physical_runtime::durability::CertificationPhysicalMutationCheckpoint,
     ) -> crate::physical_runtime::durability::CertificationPhysicalMutationPauseGate {
-        self.mutations.pause_at_for_certification(checkpoint)
+        self.mutations.pause_at(checkpoint)
     }
 }

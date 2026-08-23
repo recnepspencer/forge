@@ -6,12 +6,12 @@ use worth_store_physical_format::{
     CheckpointAdjacencyPosture, PhysicalReferenceScope, RootManifestIntegrityPosture,
 };
 use worth_store_physical_integrity::{
+    IntegrityDamageMap, RecoveryBlockedByIntegrityDamage, RecoveryBlockingIntegritySource,
+};
+use worth_store_physical_integrity::{
     ManifestIntegrityAuthority, ManifestIntegrityInspectionRequest, PhysicalScopeAdmission,
     PhysicalScopeAdmissionRequest, ScopedPhysicalValidatorInput, WalFrameDamageDenialKind,
     WalFrameIntegrityAuthority, WalFrameIntegrityInspectionRequest,
-};
-use worth_store_recovery_physics::{
-    IntegrityDamageMap, RecoveryBlockedByIntegrityDamage, RecoveryBlockingIntegritySource,
 };
 
 pub(crate) struct RecoveryBlockingDamageFixture {

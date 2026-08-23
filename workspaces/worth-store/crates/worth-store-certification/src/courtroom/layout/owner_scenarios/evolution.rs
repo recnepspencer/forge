@@ -9,20 +9,8 @@ pub(super) fn execute(ledger: &mut LayoutOwnerObservationLedger) {
     for case in observed.migration_planning() {
         ledger.record_migration_planning(case);
     }
-    for case in observed.migration_execution() {
-        ledger.record_migration_execution(case);
-    }
-    for case in observed.migration_interruption() {
-        ledger.record_migration_interruption(case);
-    }
     for case in observed.rollback_planning() {
         ledger.record_rollback_planning(case);
-    }
-    for case in observed.rollback_execution() {
-        ledger.record_rollback_execution(case);
-    }
-    for case in observed.rollback_interruption() {
-        ledger.record_rollback_interruption(case);
     }
     for case in observed.backward_read() {
         ledger.record_backward_read_compatibility(case);

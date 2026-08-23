@@ -89,6 +89,7 @@ pub enum PhysicalRecoveryLimitDimension {
     RedoTargets,
     RedoBytes,
     StagingBytes,
+    RecoveryMemoryBytes,
     DirtyFrames,
     PublicationEffects,
 }

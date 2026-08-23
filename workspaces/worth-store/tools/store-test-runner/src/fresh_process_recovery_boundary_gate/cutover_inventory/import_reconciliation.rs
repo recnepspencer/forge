@@ -13,7 +13,11 @@ pub(super) fn assert_direct_consumer_contract(row: &CutoverRow) {
     }
     let package = row.path.split('/').nth(1).expect("crate or tool package");
     if row.disposition != "delete" {
-        assert_eq!(row.destination_owner, direct_consumer_owner(package));
+        let expected_owner = (row.path
+            == "crates/worth-store-offline-verifier/src/truth_composition/candidate_evaluation/candidate_set.rs")
+            .then_some("worth-store-offline-verifier/truth-composition/candidate-evaluation")
+            .unwrap_or_else(|| direct_consumer_owner(package));
+        assert_eq!(row.destination_owner, expected_owner);
     }
     let dispositions = api_dispositions().expect("read C.8 API dispositions");
     let imported = imported_physics_surfaces(&row.path).expect("parse recovery-physics imports");

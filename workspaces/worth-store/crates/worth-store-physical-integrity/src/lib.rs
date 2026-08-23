@@ -19,6 +19,8 @@ mod quarantine;
 mod scrub;
 mod wal_frames;
 
+mod recovery_handoff;
+
 pub use admission::entry::entry_admission::IntegrityEntryAdmission;
 pub use admission::entry::entry_basis::IntegrityEntryBasis;
 pub use admission::entry::entry_denial::{IntegrityEntryDenial, IntegrityEntryDenialKind};
@@ -193,6 +195,21 @@ pub use quarantine::quarantine_posture::{QuarantineHandoffPosture, QuarantineLif
 pub use quarantine::quarantine_receipt::{FoundationalQuarantineReceiptBasis, QuarantineReceipt};
 pub use quarantine::quarantine_record::QuarantineRecord;
 pub use quarantine::quarantine_request::QuarantineSealRequest;
+pub use recovery_handoff::{
+    admit_recovery_corruption_readmission, classify_recovery_blocking_damage,
+    classify_recovery_repair_capability, verify_quarantine_handoff_for_readmission,
+    verify_store_authority_for_readmission, AdmittedRecoveryIntegrityInput,
+    BoundedInspectionEnvelopeEvidence, ChecksumAlgorithmScopeBasis, IntegrityDamageMap,
+    IntegrityHandoffAdmission, IntegrityHandoffCounters, IntegrityHandoffDeclaration,
+    IntegrityHandoffDenial, IntegrityHandoffDenialKind, IntegrityHandoffPayload,
+    IntegrityVettedCheckpointRecord, IntegrityVettedPageFrameKind, IntegrityVettedPageFrameRecord,
+    IntegrityVettedRootManifestRecord, IntegrityVettedSegmentManifestRecord,
+    IntegrityVettedWalFrame, QuarantineSummary, RawBytesExcludedFromRecoveryHandoff,
+    RecoveryBlockedByIntegrityDamage, RecoveryBlockingIntegritySource,
+    RecoveryCorruptionReadmissionDenial, RecoveryCorruptionReadmissionHandoff,
+    RecoveryCorruptionRepairCapability, RecoveryIntegrityHandoffReceipt,
+    RecoveryPhysicsIntegrityInput, StoreAuthorityReadmissionDenial,
+};
 pub use scrub::execution::{
     PausedScrubExecution, ScrubExecution, ScrubExecutionOutcome, ScrubExecutionReceipt,
     ScrubIntegrityFinding, ScrubProgressReport,

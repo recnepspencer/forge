@@ -15,6 +15,7 @@ use super::{
 
 mod checkpoint;
 mod process_accounting;
+pub(in crate::courtroom_campaign::bounded_residency_siege) mod recovery;
 mod timing;
 
 const CHILD_TIMEOUT: Duration = Duration::from_secs(300);
@@ -74,6 +75,7 @@ pub(super) struct C7CrashSeamEvidence {
     baseline: offline_protocol::OfflineObservation,
     observed: offline_protocol::OfflineObservation,
     reopen: PhysicalWorkFreshReopenEvidence,
+    recovery: recovery::C8RecoveryEvidence,
     checkpoint: Box<str>,
     rerun: PhysicalWorkRerunEvidence,
     timing: timing::C7CaseTiming,
@@ -113,6 +115,10 @@ impl C7CrashSeamEvidence {
 
     pub(super) const fn reopen(&self) -> PhysicalWorkFreshReopenEvidence {
         self.reopen
+    }
+
+    pub(super) const fn recovery(&self) -> &recovery::C8RecoveryEvidence {
+        &self.recovery
     }
 
     pub(super) fn checkpoint(&self) -> &str {
@@ -210,6 +216,7 @@ fn execute_case(
         },
         case_started.elapsed(),
     )?;
+    let c8_recovery = recovery::execute(&world, request.binaries, seam)?;
     Ok(ExecutedC7Case {
         evidence: C7CrashSeamEvidence {
             seam,
@@ -217,6 +224,7 @@ fn execute_case(
             baseline,
             observed,
             reopen,
+            recovery: c8_recovery,
             checkpoint: checkpoint.into_boxed_str(),
             rerun,
             timing,

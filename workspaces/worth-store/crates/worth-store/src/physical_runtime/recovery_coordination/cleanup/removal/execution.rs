@@ -66,6 +66,19 @@ pub(in crate::physical_runtime::recovery_coordination::cleanup) fn execute(
                     command.artifact,
                     *completed,
                 );
+            let wait = coordination
+                .pause_at(crate::physical_runtime::PhysicalRecoveryYieldpointStage::CleanupRemoval);
+            if wait.is_interrupted() {
+                let settlement =
+                    settle_completed_removal(coordination, &command, execution, physical);
+                return PhysicalRecoveryCleanupRemovalOutcome::Indeterminate(
+                    PhysicalRecoveryCleanupRemovalIndeterminate::Yieldpoint {
+                        revalidation: settlement.revalidation,
+                        physical: settlement.physical,
+                        wait,
+                    },
+                );
+            }
             complete_removal(coordination, command, execution, physical)
         }
         worth_store_physical_backend::BackendRecoveryCleanupRemovalOutcome::DeniedBeforeEffect(

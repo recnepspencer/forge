@@ -3,7 +3,8 @@ use worth_store_physical_certification::{
     CounterContractKind, CounterExpectationKind, CounterMismatchEvidence,
     CounterStrengthJustification, CounterStrengthPosture, HostileCounterEvidenceRow,
     HostileResourceEnvelopeObservation, PhysicalCounterContract, PhysicalCounterExpectation,
-    PhysicalExecutedCounterEvidence, PhysicalInterleavingSchedule, ReplaySeed, StateSpaceBudget,
+    PhysicalExecutedCounterEvidence, PhysicalInterleavingSchedule, SchedulePerturbationSeed,
+    StateSpaceBudget,
 };
 
 use worth_store_test_support::harness::recovery::counter_evidence as support;
@@ -122,7 +123,7 @@ fn executed_counter_sources_deny_mixed_plan_schedule_identity() {
     let other_plan = lower_physical_isolation_shortcut_plan();
     let other_schedule = PhysicalInterleavingSchedule::from_lowered_plan(
         &other_plan,
-        ReplaySeed::required(Some(8)).unwrap(),
+        SchedulePerturbationSeed::required(Some(8)).unwrap(),
         StateSpaceBudget::bounded_steps(8).unwrap(),
     )
     .unwrap();

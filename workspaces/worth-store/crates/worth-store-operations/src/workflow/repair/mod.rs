@@ -4,7 +4,7 @@ mod authority_affecting_readiness;
 mod authority_owner_dag;
 mod authority_receipt_persistence;
 mod authority_staging_artifacts;
-#[cfg(feature = "certification-test-authority")]
+#[cfg(any(test, feature = "certification-test-authority"))]
 mod certification_control_store;
 mod execution;
 mod execution_control;
@@ -32,7 +32,7 @@ pub use execution_control::{
     RepairExecutionBoundary, RepairExecutionBoundaryMoment, RepairExecutionControlPort,
     RepairExecutionInterrupted, RepairExecutionInterruptionCause, UninterruptedRepairExecution,
 };
-#[cfg(feature = "certification-test-authority")]
+#[cfg(any(test, feature = "certification-test-authority"))]
 pub(crate) use intent::{
     certification_authority_repair_candidates_from_backup_observation,
     certification_authority_repair_from_backup_observation,

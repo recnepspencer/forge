@@ -8,7 +8,7 @@ fn cleaned_phase_boundaries_respect_the_workspace_line_cap() {
         DirectoryBoundary::new("workspaces/worth-store/crates/worth-store-blob-chunks/src"),
         DirectoryBoundary::new("workspaces/worth-store/crates/worth-store-physical-format/src"),
         DirectoryBoundary::new(
-            "workspaces/worth-store/crates/worth-store-recovery-physics/src/integrity_handoff",
+            "workspaces/worth-store/crates/worth-store-physical-integrity/src/recovery_handoff/integrity_handoff",
         ),
         DirectoryBoundary::new("workspaces/worth-store/crates/worth-store-test-support/src"),
     ] {
@@ -23,7 +23,7 @@ fn aggregation_files_remain_aggregation_only() {
         "workspaces/worth-store/crates/worth-store-blob-chunks/src/lib.rs",
         "workspaces/worth-store/crates/worth-store-blob-chunks/src/exports/mod.rs",
         "workspaces/worth-store/crates/worth-store-physical-format/src/lib.rs",
-        "workspaces/worth-store/crates/worth-store-recovery-physics/src/integrity_handoff/mod.rs",
+        "workspaces/worth-store/crates/worth-store-physical-integrity/src/recovery_handoff/integrity_handoff/mod.rs",
         "workspaces/worth-store/crates/worth-store-test-support/src/lib.rs",
     ] {
         assert_aggregation_only(&repo_root.join(relative_path));

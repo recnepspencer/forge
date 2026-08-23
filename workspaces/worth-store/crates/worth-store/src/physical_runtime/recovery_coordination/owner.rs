@@ -43,6 +43,7 @@ pub struct PhysicalRecoveryCoordination {
     pub(super) construction: crate::physical_runtime::PhysicalRecoveryConstructionAuthority,
     pub(super) cleanup_capacity: PhysicalRecoveryCoordinationCapacity,
     runtime: RuntimeIdentity,
+    yieldpoint: Option<crate::physical_runtime::PhysicalRecoveryProcessYieldpoint>,
     #[cfg(feature = "certification-test-authority")]
     certification_faults: RecoveryCoordinationCertificationFaults,
 }
@@ -61,6 +62,7 @@ impl PhysicalRecoveryCoordination {
         media: &AdmittedRecoveryFilesystemMedia,
         session: PhysicalRecoveryRegisteredSessionAuthority,
         capacity: PhysicalRecoveryCoordinationCapacity,
+        yieldpoint: Option<crate::physical_runtime::PhysicalRecoveryProcessYieldpoint>,
     ) -> Result<Self, PhysicalRecoveryCoordinationAdmissionError> {
         let freshness = session.freshness();
         if !freshness.matches_media_generation(media.media_generation()) {
@@ -123,6 +125,7 @@ impl PhysicalRecoveryCoordination {
             construction,
             cleanup_capacity,
             runtime,
+            yieldpoint,
             #[cfg(feature = "certification-test-authority")]
             certification_faults: RecoveryCoordinationCertificationFaults::new(),
         })
@@ -214,6 +217,16 @@ impl PhysicalRecoveryCoordination {
 
     pub(in crate::physical_runtime) const fn runtime_identity(&self) -> RuntimeIdentity {
         self.runtime
+    }
+
+    pub fn pause_at(
+        &self,
+        stage: crate::physical_runtime::PhysicalRecoveryYieldpointStage,
+    ) -> crate::physical_runtime::PhysicalRecoveryYieldpointWaitResult {
+        if let Some(yieldpoint) = &self.yieldpoint {
+            return yieldpoint.pause_after(stage);
+        }
+        crate::physical_runtime::PhysicalRecoveryYieldpointWaitResult::NotArmed
     }
 
     pub(in crate::physical_runtime) const fn construction_authority(
@@ -326,8 +339,9 @@ impl PhysicalRecoveryRegisteredSessionAuthority {
         self,
         media: &AdmittedRecoveryFilesystemMedia,
         capacity: PhysicalRecoveryCoordinationCapacity,
+        yieldpoint: Option<crate::physical_runtime::PhysicalRecoveryProcessYieldpoint>,
     ) -> Result<PhysicalRecoveryCoordination, PhysicalRecoveryCoordinationAdmissionError> {
-        PhysicalRecoveryCoordination::admit(media, self, capacity)
+        PhysicalRecoveryCoordination::admit(media, self, capacity, yieldpoint)
     }
 }
 

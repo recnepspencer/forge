@@ -259,7 +259,8 @@ impl PhysicalWalArtifactCorruption {
 #[cfg(test)]
 mod tests {
     use worth_store_wal::{
-        prepare_wal_frame_append, WalSegmentArtifactIdentity, WalSegmentGeneration, WalSegmentId,
+        plan_wal_frame_append, LogSequenceNumber, WalAppendFrontier, WalLsnRange,
+        WalSegmentArtifactIdentity, WalSegmentGeneration, WalSegmentId,
     };
 
     use super::*;
@@ -337,7 +338,8 @@ mod tests {
 
     #[test]
     fn interrupted_first_frame_is_rejected_when_it_is_not_terminal() {
-        let interrupted = encoded_frame(1, 10, 20)[..37].to_vec();
+        let mut interrupted = encoded_frame(1, 10, 20);
+        interrupted.extend_from_slice(&encoded_frame(1, 20, 30)[..37]);
         let complete = encoded_frame(2, 20, 30);
         let inspected = inspect_physical_wal_artifacts(
             vec![
@@ -347,22 +349,26 @@ mod tests {
             u64::MAX,
         )
         .unwrap();
-        assert!(inspected.rejected());
+        assert!(
+            inspected.rejected(),
+            "MUTANT_PREDICATE:c8-middle-corruption-accepted-as-terminal-suffix"
+        );
         assert!(inspected.residue().is_empty());
     }
 
     fn encoded_frame(segment: u64, start: u64, end: u64) -> Vec<u8> {
-        let directory = tempfile::tempdir().unwrap();
-        prepare_wal_frame_append(
-            directory.path(),
-            segment,
-            1,
-            start,
-            end,
+        let segment = WalSegmentId::new(segment).unwrap();
+        let generation = WalSegmentGeneration::new(1).unwrap();
+        let range =
+            WalLsnRange::new(LogSequenceNumber::new(start), LogSequenceNumber::new(end)).unwrap();
+        plan_wal_frame_append(
+            WalAppendFrontier::empty(segment, generation),
+            range,
             "phase-three-wal-artifact",
             b"payload",
         )
         .unwrap()
+        .frame()
         .encoded_frame()
         .to_vec()
     }

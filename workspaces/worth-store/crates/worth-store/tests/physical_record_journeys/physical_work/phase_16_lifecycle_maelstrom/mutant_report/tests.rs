@@ -4,8 +4,8 @@ use sha2::{Digest, Sha256};
 
 use super::{
     complete_mutant_count, expectation, validate_campaign_shape, validate_observation,
-    ArtifactPolicy, MutationObservation, ARTIFACT_OWNER_MARKER, ARTIFACT_OWNER_SCHEMA,
-    FIRST_MUTANT, LAST_MUTANT,
+    ArtifactPolicy, MutationExecutionClass, MutationExecutionEvidence, MutationObservation,
+    ARTIFACT_OWNER_MARKER, ARTIFACT_OWNER_SCHEMA, FIRST_MUTANT, LAST_MUTANT,
 };
 
 #[test]
@@ -71,7 +71,7 @@ impl Fixture {
     fn new() -> Self {
         let temporary = tempfile::tempdir().unwrap();
         let workspace = temporary.path().join("workspace");
-        let expected = expectation(FIRST_MUTANT);
+        let expected = expectation::for_id(FIRST_MUTANT);
         let source = workspace.join(expected.source);
         std::fs::create_dir_all(source.parent().unwrap()).unwrap();
         std::fs::write(&source, Self::SOURCE).unwrap();
@@ -96,7 +96,7 @@ impl Fixture {
     }
 
     fn observation(&self) -> MutationObservation {
-        let expected = expectation(FIRST_MUTANT);
+        let expected = expectation::for_id(FIRST_MUTANT);
         MutationObservation {
             id: FIRST_MUTANT,
             source_binding: expected.source.into(),
@@ -109,6 +109,11 @@ impl Fixture {
             expected_failing_predicate: expected.predicate.into(),
             actual_failing_predicate: expected.predicate.into(),
             localization: "courtroom.rs:1".into(),
+            execution: MutationExecutionEvidence {
+                class: MutationExecutionClass::Ordinary,
+                elapsed_ms: 1,
+                budget_ms: 180_000,
+            },
         }
     }
 
@@ -118,7 +123,7 @@ impl Fixture {
     ) -> Result<worth_store::physical_runtime::PhysicalWorkMutantLocalization, String> {
         validate_observation(
             observation,
-            expectation(FIRST_MUTANT),
+            expectation::for_id(FIRST_MUTANT),
             &self.workspace,
             &self.policy,
         )
@@ -145,5 +150,10 @@ fn empty_observation(id: u8) -> MutationObservation {
         expected_failing_predicate: String::new(),
         actual_failing_predicate: String::new(),
         localization: String::new(),
+        execution: MutationExecutionEvidence {
+            class: MutationExecutionClass::Ordinary,
+            elapsed_ms: 0,
+            budget_ms: 180_000,
+        },
     }
 }

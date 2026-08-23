@@ -24,6 +24,7 @@ fn observer_collects_facts_and_certification_oracle_judges_verdict() {
         .observe_plan(&plan)
         .unwrap()
         .with_runtime_trace(developer_smoke_production_trace())
+        .with_compaction_interlock_observation(compaction_interlock_observation())
         .complete()
         .unwrap();
 
@@ -56,6 +57,7 @@ fn independent_verifier_oracle_requires_independent_observation() {
         .observe_plan(&plan)
         .unwrap()
         .with_runtime_trace(developer_smoke_production_trace())
+        .with_compaction_interlock_observation(compaction_interlock_observation())
         .complete()
         .unwrap();
 
@@ -75,6 +77,7 @@ fn independent_verifier_oracle_requires_independent_observation() {
                 independent_verifier_observation::RuntimeComparisonFixture::Equivalent,
             ),
         )
+        .with_compaction_interlock_observation(compaction_interlock_observation())
         .complete()
         .unwrap();
 
@@ -109,6 +112,7 @@ fn independent_verifier_disagreement_is_typed_failed_verdict_evidence() {
                 independent_verifier_observation::RuntimeComparisonFixture::ArtifactDigestMismatch,
             ),
         )
+        .with_compaction_interlock_observation(compaction_interlock_observation())
         .complete()
         .unwrap();
 
@@ -140,6 +144,7 @@ fn oracle_family_admission_is_plan_bound_not_fixture_label_bound() {
         .observe_plan(&plan)
         .unwrap()
         .with_runtime_trace(developer_smoke_production_trace())
+        .with_compaction_interlock_observation(compaction_interlock_observation())
         .complete()
         .unwrap();
 
@@ -188,6 +193,7 @@ fn physical_isolation_readiness_family_is_reusable_without_claiming_physical_iso
         .observe_plan(&plan)
         .unwrap()
         .with_runtime_trace(developer_smoke_production_trace())
+        .with_compaction_interlock_observation(compaction_interlock_observation())
         .complete()
         .unwrap();
 
@@ -267,4 +273,13 @@ fn developer_smoke_production_trace(
         .iter()
         .find_map(|driver| driver.production_boundary_trace())
         .unwrap()
+}
+
+fn compaction_interlock_observation(
+) -> worth_store_physical_certification::CompactionInterlockObservation {
+    worth_store_physical_certification::CompactionInterlockObservation::from_store_interlock_evidence(
+        worth_store_test_support::harness::physical_isolation::compaction::
+            compaction_interlock_foundational_evidence_for_seed(17),
+    )
+    .expect("executed compaction publication provides interlock evidence")
 }

@@ -239,6 +239,13 @@ fn executed_trace(
         .observe_boundary_observation(plan, &execution)
         .unwrap()
         .with_shortcut_rejection_observation(ShortcutRejectionObservation::private_mutation_denied())
+        .with_compaction_interlock_observation(
+            worth_store_physical_certification::CompactionInterlockObservation::from_store_interlock_evidence(
+                worth_store_test_support::harness::physical_isolation::compaction::
+                    compaction_interlock_foundational_evidence_for_seed(17),
+            )
+            .expect("executed compaction publication provides interlock evidence"),
+        )
         .complete()
         .unwrap()
 }

@@ -36,18 +36,18 @@ pub(super) fn current() -> Vec<OwnerBoundaryBinding> {
             ForbiddenAuthoritySubstitute,
         ),
         OwnerBoundaryBinding::to::<
-            worth_store_recovery_physics::RecoveryCorruptionReadmissionHandoff,
+            worth_store_physical_integrity::RecoveryCorruptionReadmissionHandoff,
         >(
             QuarantineReadmission,
-            RecoveryPhysics,
+            PhysicalIntegrity,
             CorruptionReadmission,
             ReopenedObservedReceipt,
         ),
         OwnerBoundaryBinding::to::<
-            worth_store_recovery_physics::RecoveryLayoutReadmissionOutcomeView<'static>,
+            worth_store_layout_indexes::integrity::RecoveryLayoutReadmissionOutcomeView<'static>,
         >(
             QuarantineReadmission,
-            RecoveryPhysics,
+            LayoutIndexes,
             LayoutReadmission,
             ReopenedObservedReceipt,
         ),

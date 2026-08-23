@@ -9,6 +9,7 @@ use super::super::{
 use super::artifact_policy::{
     verify_durability_artifact_manifest, DurabilityArtifactManifestStage,
 };
+use super::c8_recovery;
 
 pub(super) fn verify(
     campaign: &C7CrashCampaignEvidence,
@@ -57,6 +58,7 @@ fn verify_case(
         case.observed().recovery_obligations(),
         case.reopen(),
     )?;
+    c8_recovery::verify(case)?;
     verify_rerun(case.rerun(), schedule.seed().value(), case.seam())
 }
 

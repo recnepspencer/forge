@@ -133,7 +133,7 @@ const PHASE_THREE_WAL_SOURCE_FILES: &[&str] = &[
     "workspaces/worth-store/tools/store-test-runner/src/durable_publication_boundary_gate/closure_ledger/source_identity.rs",
 ];
 const PHASE_THREE_WAL_SOURCE_TREES: &[&str] = &[
-    "workspaces/worth-store/crates/worth-store-recovery-physics/src/wal_recovery_basis",
+    "workspaces/worth-store/crates/worth-store-physical-backend/src/recovery_durability/wal_recovery_basis",
     "workspaces/worth-store/crates/worth-store-wal/src/append",
     "workspaces/worth-store/crates/worth-store/src/physical_runtime/durability/mutation/admission",
     "workspaces/worth-store/crates/worth-store/src/physical_runtime/durability/mutation/progression",

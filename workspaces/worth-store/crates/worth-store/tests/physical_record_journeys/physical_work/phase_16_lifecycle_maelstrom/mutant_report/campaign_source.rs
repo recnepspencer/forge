@@ -9,7 +9,7 @@ use std::{
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
-const SOURCE_BINDING: &str = "worth.store.c5_1.mutation-source-closure.v1";
+const SOURCE_BINDING: &str = "worth.store.controlled-mutation-source-closure.v3";
 const METADATA_TIMEOUT: Duration = Duration::from_secs(30);
 const REQUIRED_PACKAGES: [&str; 4] = [
     "store-test-runner",
@@ -135,16 +135,23 @@ fn run_bounded(command: &mut Command, timeout: Duration, label: &str) -> Result<
         .map_err(|error| format!("cannot spawn {label}: {error}"))?;
     let deadline = Instant::now() + timeout;
     let status = loop {
-        if let Some(status) = child
-            .try_wait()
-            .map_err(|error| format!("cannot inspect {label}: {error}"))?
-        {
+        let poll = child.try_wait();
+        if let Err(error) = poll {
+            return Err(terminate_after_error(
+                &mut child,
+                format!("cannot inspect {label}: {error}"),
+                label,
+            ));
+        }
+        if let Some(status) = poll.unwrap() {
             break status;
         }
         if Instant::now() >= deadline {
-            let _ = child.kill();
-            let _ = child.wait();
-            return Err(format!("{label} exceeded {}ms", timeout.as_millis()));
+            return Err(terminate_after_error(
+                &mut child,
+                format!("{label} exceeded {}ms", timeout.as_millis()),
+                label,
+            ));
         }
         std::thread::sleep(Duration::from_millis(5));
     };
@@ -159,6 +166,22 @@ fn run_bounded(command: &mut Command, timeout: Duration, label: &str) -> Result<
             String::from_utf8_lossy(&stderr)
         ))
     }
+}
+
+fn terminate_after_error(child: &mut std::process::Child, primary: String, label: &str) -> String {
+    let kill = child
+        .kill()
+        .err()
+        .map(|error| format!("kill {label}: {error}"));
+    let wait = child
+        .wait()
+        .err()
+        .map(|error| format!("reap {label}: {error}"));
+    [Some(primary), kill, wait]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>()
+        .join("; ")
 }
 
 fn read_captured(file: &mut std::fs::File, label: &str, stream: &str) -> Result<Vec<u8>, String> {

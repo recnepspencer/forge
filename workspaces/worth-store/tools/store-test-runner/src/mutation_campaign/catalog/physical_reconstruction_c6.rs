@@ -120,7 +120,7 @@ pub(super) const MUTATIONS: &[ControlledMutation] = &[
     ControlledMutation {
         id: 56,
         predicate: "offline-foreign-successor-scope-accepted",
-        source: "crates/worth-store-offline-verifier/src/bin/physical_store_offline_observer/bounded_residency_verification/configuration.rs",
+        source: "crates/worth-store-offline-verifier/src/bin/physical_store_offline_observer/c5_c7_observation/bounded_residency_verification/configuration.rs",
         needle: "    (\"scope-recovery-bytes\", 2_359_296),\n    (\"scope-scrub-bytes\", 1_835_008),",
         replacement: "    (\"scope-recovery-bytes\", 1_835_008),\n    (\"scope-scrub-bytes\", 2_359_296),",
         package: "worth-store-offline-verifier",

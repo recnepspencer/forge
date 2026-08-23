@@ -14,18 +14,15 @@ const HEADER: &str = "path,responsibility,destination_owner,disposition,last_con
 const PHYSICS_ROOT: &str = "crates/worth-store-recovery-physics";
 const SEMANTIC_CUTOVER_MODULES: &[&str] = &[
     "source_precedence",
-    "candidate_evaluation",
     "checkpoint_cutover",
     "partial_publication",
     "redo_replay",
     "page_redo",
     "recovery_budget",
-    "wal_recovery_basis",
     "entry",
     "memory_allocation",
     "staged_wal_application",
     "staged_wal_replay_source",
-    "publication",
     "recovery_completion",
     "offline_verifier",
     "recovery_evidence",
@@ -35,15 +32,6 @@ const SEMANTIC_CUTOVER_MODULES: &[&str] = &[
     "replica_bootstrap_source",
     "blob_replay",
     "btree_replay",
-    "layout_readmission",
-    "layout_projection",
-    "corruption_readmission",
-    "integrity_damage_map",
-    "integrity_handoff",
-    "integrity_input",
-    "integrity_vetted_records",
-    "recovery_blocking_integrity",
-    "recovery_integrity_handoff_receipt",
     "security_metadata_admission",
     "security_scope_propagation",
 ];
@@ -51,16 +39,53 @@ const EXPLICIT_WORKSPACE_PATHS: &[&str] = &[
     "crates/worth-store/src/physical_runtime/durability/closeout/handoff.rs",
     "crates/worth-store/src/physical_runtime/durability/closeout/operation_fates/fact.rs",
     "crates/worth-store-offline-verifier/src/bin/physical_store_offline_observer.rs",
-    "crates/worth-store-offline-verifier/src/bin/physical_store_offline_observer/bounded_residency_verification.rs",
-    "crates/worth-store-offline-verifier/src/bin/physical_store_offline_observer/bounded_residency_verification/configuration.rs",
-    "crates/worth-store-offline-verifier/src/bin/physical_store_offline_observer/bounded_residency_verification/expectation.rs",
-    "crates/worth-store-offline-verifier/src/bin/physical_store_offline_observer/current_manifest.rs",
-    "crates/worth-store-offline-verifier/src/bin/physical_store_offline_observer/hostile_physical_truth.rs",
+    "crates/worth-store-offline-verifier/src/bin/physical_store_offline_observer/c5_c7_observation/bounded_residency_verification.rs",
+    "crates/worth-store-offline-verifier/src/bin/physical_store_offline_observer/c5_c7_observation/bounded_residency_verification/configuration.rs",
+    "crates/worth-store-offline-verifier/src/bin/physical_store_offline_observer/c5_c7_observation/bounded_residency_verification/expectation.rs",
+    "crates/worth-store-offline-verifier/src/bin/physical_store_offline_observer/c5_c7_observation/current_manifest.rs",
+    "crates/worth-store-offline-verifier/src/bin/physical_store_offline_observer/c5_c7_observation/hostile_physical_truth.rs",
+    "crates/worth-store-operations/src/certification_scenario/recovery_staging.rs",
+    "crates/worth-store-operations/src/certification_scenario/repair_cancellation_recovery.rs",
+    "crates/worth-store-operations/src/certification_scenario/staging.rs",
+    "crates/worth-store-operations/src/certification_scenario/staging_resume.rs",
+    "crates/worth-store-operations/src/phase_7_13_tests/authorization_boundary.rs",
+    "crates/worth-store-operations/src/phase_7_13_tests/pitr_recovery.rs",
+    "crates/worth-store-operations/src/phase_7_13_tests/rollback_recovery.rs",
+    "crates/worth-store-operations/src/phase_7_13_tests/staging_crash_matrix.rs",
+    "crates/worth-store-operations/src/phase_7_13_tests/staging_recovery.rs",
+    "crates/worth-store-operations/src/phase_7_13_tests/staging_runtime.rs",
+    "crates/worth-store-operations/src/workflow/point_in_time_recovery/execution.rs",
+    "crates/worth-store-operations/src/workflow/point_in_time_recovery/intent.rs",
+    "crates/worth-store-operations/src/workflow/point_in_time_recovery/lowering.rs",
+    "crates/worth-store-operations/src/workflow/owner_receipt_persistence.rs",
+    "crates/worth-store-operations/src/workflow/repair/authority_affecting.rs",
+    "crates/worth-store-operations/src/workflow/repair/authority_affecting_execution.rs",
+    "crates/worth-store-operations/src/workflow/repair/authority_affecting_readiness.rs",
+    "crates/worth-store-operations/src/workflow/repair/authority_owner_dag.rs",
+    "crates/worth-store-operations/src/workflow/repair/authority_receipt_persistence.rs",
+    "crates/worth-store-operations/src/workflow/restore/execution.rs",
+    "crates/worth-store-operations/src/workflow/restore/lowering.rs",
+    "crates/worth-store-operations/src/workflow/rollback/execution.rs",
+    "crates/worth-store-operations/src/workflow/rollback/intent.rs",
+    "crates/worth-store-operations/src/workflow/rollback/lowering.rs",
+    "crates/worth-store-test-support/src/harness/recovery/wal_durability.rs",
+    "crates/worth-store-physical-isolation/src/publication/crash_matrix.rs",
+    "crates/worth-store-test-support/src/harness/physical_isolation/publication.rs",
+    "crates/worth-store-certification/tests/scenarios/physical_isolation/copy_on_write_publication/copy_on_write_publication.rs",
+    "crates/worth-store-certification/tests/scenarios/physical_isolation/copy_on_write_publication/crash_recovery.rs",
 ];
 const AUTHORITATIVE_DOCUMENTS: &[&str] = &[
     "_docs/worth-store/physical-reconstruction-c8-fresh-process-recovery-and-reopen.md",
     "_docs/worth-store/physical-foundation-reconstruction-roadmap.md",
     "_docs/worth-store/storage-foundation-s4.md",
+];
+const RETIRED_CHECKPOINT_PATHS: &[&str] = &[
+    "crates/worth-store-recovery-physics/src/checkpoint_cutover/cutover_recovery/mod.rs",
+    "crates/worth-store-recovery-physics/src/checkpoint_cutover/cutover_recovery/recovered_checkpoint_evidence.rs",
+    "crates/worth-store-recovery-physics/src/checkpoint_cutover/cutover_recovery/recovered_cutover_state.rs",
+    "crates/worth-store-recovery-physics/src/checkpoint_cutover/cutover_recovery/recovery_selection.rs",
+    "crates/worth-store-recovery-physics/src/checkpoint_cutover/backup_artifact.rs",
+    "crates/worth-store-certification/tests/scenarios/recovery/checkpoint_cutover/checkpoint_cutover.rs",
 ];
 
 #[test]
@@ -95,7 +120,7 @@ fn cutover_rows_have_exact_dispositions_and_non_generic_owners() {
             row.disposition.as_str(),
             "preserve" | "narrow" | "replace" | "delete"
         ));
-        assert_eq!(row.status, "inventory-open");
+        assert_eq!(row.status, "closed");
         assert!(!matches!(
             row.responsibility.as_str(),
             "recovery" | "physics" | "support" | "evidence" | "utility"
@@ -115,6 +140,35 @@ fn cutover_rows_have_exact_dispositions_and_non_generic_owners() {
         assert_ne!(row.last_consumer, "unknown");
         assert_direct_consumer_contract(&row);
         assert_semantic_disposition(&row);
+    }
+}
+
+#[test]
+fn retired_checkpoint_paths_remain_absent() {
+    let workspace = workspace_root();
+    for path in RETIRED_CHECKPOINT_PATHS {
+        assert!(
+            !workspace.join(path).exists(),
+            "retired checkpoint path was reintroduced: {path}"
+        );
+    }
+}
+
+#[test]
+fn replaced_and_deleted_inventory_paths_remain_absent() {
+    let document = read_repository_document(CUTOVER_INVENTORY).expect("read C.8 cutover inventory");
+    let rows = parse_inventory(&document).expect("parse C.8 cutover inventory");
+    let workspace = workspace_root();
+    for row in rows
+        .iter()
+        .filter(|row| matches!(row.disposition.as_str(), "replace" | "delete"))
+    {
+        assert!(
+            !workspace.join(&row.path).exists(),
+            "{} source still exists after {} disposition",
+            row.path,
+            row.disposition
+        );
     }
 }
 

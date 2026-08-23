@@ -1,3 +1,4 @@
+use super::readmission::RecoveryLayoutReadmissionWitness;
 use worth_foundational::{aspects, AspectContract, AspectValue, InternedString, ScalarAspectType};
 use worth_proof::TransitionOutcome;
 use worth_store_aspect_native::{
@@ -14,7 +15,6 @@ use worth_store_physical_integrity::{
     AuthorityDamageBoundary, ExecutedQuarantineFinding, PhysicalQuarantineAuthority,
     QuarantineRecord, QuarantineSealRequest,
 };
-use worth_store_recovery_physics::RecoveryLayoutReadmissionWitness;
 use worth_store_security::{
     admit_store_security_scope, StoreAdmittedSecurityScope, StoreAuthenticityRequirement,
     StoreCustodyPosture, StoreKeyScope, StoreKeyVersionPosture,
@@ -28,7 +28,7 @@ pub(super) fn import_witness(
     let record = unresolved_authority_record(seed);
     let authority = current_authority("store.new.strategy", seed);
     let security = current_security_scope("store.new.strategy", seed);
-    worth_store_recovery_physics::layout_readmission()
+    super::readmission::layout_readmission()
         .admit_import(family.id(), &record, &authority, security.witnesses())
         .expect("record-backed import witness should admit")
 }
@@ -75,7 +75,7 @@ pub(super) fn record_backed_witness_for_scope(
 ) -> RecoveryLayoutReadmissionWitness {
     let authority = current_authority(store_authority_key, seed);
     let security = current_security_scope_with(store_authority_key, seed, key_scope, tenant_scope);
-    worth_store_recovery_physics::layout_readmission()
+    super::readmission::layout_readmission()
         .admit_quarantine(family.id(), record, &authority, security.witnesses())
         .expect("record-backed quarantine witness should admit")
 }

@@ -7,7 +7,10 @@ use worth_store::physical_runtime::{
 use super::{configuration::BoundedResidencyConfiguration, workload::record_payload};
 
 const INLINE_BATCH_WIDTH: usize = 64;
-const EXTENT_BATCH_WIDTH: usize = 4;
+// Each extent frame carries enough WAL metadata that four 1-MiB records can
+// exceed the admitted 8-MiB segment as one atomic group. Keep producer groups
+// below that physical admission boundary so rotation remains a valid outcome.
+const EXTENT_BATCH_WIDTH: usize = 2;
 
 pub(super) fn run(
     invocation: super::super::arguments::BoundedResidencyProducerInvocation,

@@ -52,6 +52,7 @@ pub enum PhysicalRecoveryFreshReopenDenialKind {
     Media(ArtifactTreeFailure),
     SchedulerSettlement(crate::physical_runtime::PhysicalWorkSchedulerPosture),
     SignalSettlement(crate::physical_runtime::PhysicalSignalSettlementOutcome),
+    Yieldpoint(crate::physical_runtime::PhysicalRecoveryYieldpointWaitResult),
     InvalidSelector,
     InvalidRoot,
     BindingMismatch,

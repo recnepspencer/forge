@@ -8,6 +8,7 @@ use crate::physical_work_evidence::{hex, mutant_value, run_environment_value, so
 
 mod allocation;
 mod c7_crash_campaign;
+mod c8_recovery;
 mod campaign;
 mod cancellation;
 mod dirty_writeback;

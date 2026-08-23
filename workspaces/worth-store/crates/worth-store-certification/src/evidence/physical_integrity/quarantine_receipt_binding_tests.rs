@@ -14,7 +14,7 @@ use worth_store_physical_integrity::{
     ScopedPhysicalValidatorInput, StoreExecutedIntegrityEvidence, WalFrameDamageDenial,
     WalFrameIntegrityAuthority, WalFrameIntegrityInspectionRequest,
 };
-use worth_store_recovery_physics::{
+use worth_store_physical_integrity::{
     IntegrityHandoffDenialKind, IntegrityVettedWalFrame, QuarantineSummary,
     RecoveryBlockedByIntegrityDamage, RecoveryIntegrityHandoffReceipt,
 };

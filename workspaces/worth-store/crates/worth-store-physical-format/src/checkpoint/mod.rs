@@ -1,3 +1,5 @@
+mod backup_artifact;
+mod backup_artifact_decode;
 mod binding_compaction;
 mod compaction_cutover_record;
 mod dirty_basis;
@@ -24,6 +26,12 @@ pub use stream::{
 
 #[cfg(test)]
 mod tests;
+pub use backup_artifact::{CheckpointBackupArtifact, CheckpointBackupArtifactInput};
+pub use backup_artifact_decode::{
+    decode_checkpoint_backup_artifact_from_reader, CheckpointBackupArtifactDecodeDenial,
+    CheckpointBackupArtifactDecodeObservation, CheckpointBackupArtifactDecodeRequest,
+    DecodedCheckpointBackupArtifact,
+};
 pub use binding_compaction::{
     decode_checkpoint_binding_record, CheckpointBindingCompactionHeader,
     CheckpointBindingRecordFrameLength, CHECKPOINT_BINDING_COMPACTION_HEADER_RECORD_BYTES,

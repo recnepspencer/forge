@@ -172,7 +172,7 @@ fn owner_localization_spec(
 ) {
     match mutant {
         ControlledProtocolMutant::DurabilityAcknowledgmentBeforeFence => (
-            OwnerOperationFamily::DurableAcknowledgement,
+            OwnerOperationFamily::WalDurabilityObservation,
             ModelActionFamily::DurabilityFrontier,
             AbstractionFunctionIdentity::DurabilityOwnerMapping,
             ProtocolFrontierIdentity::Durability,

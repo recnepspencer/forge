@@ -15,14 +15,6 @@ const CURRENT_MODULE_DISPOSITIONS: &[(&str, Disposition)] = &[
         ),
     ),
     (
-        "candidate_evaluation",
-        (
-            "narrow",
-            "worth-store-recovery-physics/source-precedence",
-            "phase-3",
-        ),
-    ),
-    (
         "checkpoint_cutover",
         (
             "narrow",
@@ -35,14 +27,6 @@ const CURRENT_MODULE_DISPOSITIONS: &[(&str, Disposition)] = &[
         (
             "narrow",
             "worth-store-recovery-physics/source-precedence",
-            "phase-3",
-        ),
-    ),
-    (
-        "wal_recovery_basis",
-        (
-            "narrow",
-            "worth-store-recovery-physics/wal-prefix",
             "phase-3",
         ),
     ),
@@ -196,78 +180,6 @@ const CURRENT_MODULE_DISPOSITIONS: &[(&str, Disposition)] = &[
         (
             "replace",
             "worth-store-layout-indexes/btree-replay",
-            "phase-8",
-        ),
-    ),
-    (
-        "layout_readmission",
-        (
-            "replace",
-            "worth-store-layout-indexes/integrity-readmission",
-            "phase-8",
-        ),
-    ),
-    (
-        "layout_projection",
-        (
-            "replace",
-            "worth-store-offline-verifier/c8-layout-observation",
-            "phase-8",
-        ),
-    ),
-    (
-        "corruption_readmission",
-        (
-            "replace",
-            "worth-store-physical-integrity/recovery-readmission",
-            "phase-8",
-        ),
-    ),
-    (
-        "integrity_damage_map",
-        (
-            "replace",
-            "worth-store-physical-integrity/damage-classification",
-            "phase-8",
-        ),
-    ),
-    (
-        "integrity_handoff",
-        (
-            "replace",
-            "worth-store-physical-integrity/recovery-handoff",
-            "phase-8",
-        ),
-    ),
-    (
-        "integrity_input",
-        (
-            "replace",
-            "worth-store-physical-integrity/recovery-handoff",
-            "phase-8",
-        ),
-    ),
-    (
-        "recovery_integrity_handoff_receipt",
-        (
-            "replace",
-            "worth-store-physical-integrity/recovery-handoff",
-            "phase-8",
-        ),
-    ),
-    (
-        "integrity_vetted_records",
-        (
-            "replace",
-            "worth-store-physical-integrity/recovery-records",
-            "phase-8",
-        ),
-    ),
-    (
-        "recovery_blocking_integrity",
-        (
-            "replace",
-            "worth-store-physical-integrity/recovery-blocking",
             "phase-8",
         ),
     ),

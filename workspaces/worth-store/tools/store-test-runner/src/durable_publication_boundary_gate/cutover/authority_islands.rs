@@ -9,11 +9,10 @@ const FORBIDDEN_PATHS: &[&str] = &[
     "crates/worth-store-recovery-physics/src/wal_durability/ack_receipt.rs",
 ];
 
-const REQUIRED_RECOVERY_BASIS_PATHS: &[&str] = &[
-    "crates/worth-store-recovery-physics/src/wal_recovery_basis/mod.rs",
-    "crates/worth-store-recovery-physics/src/wal_recovery_basis/append_receipt.rs",
-    "crates/worth-store-recovery-physics/src/wal_recovery_basis/crash_basis.rs",
-    "crates/worth-store-recovery-physics/src/wal_recovery_basis/durability_observation.rs",
+const REQUIRED_WAL_DURABILITY_PATHS: &[&str] = &[
+    "crates/worth-store-physical-backend/src/recovery_durability/wal_recovery_basis/mod.rs",
+    "crates/worth-store-physical-backend/src/recovery_durability/wal_recovery_basis/append_receipt.rs",
+    "crates/worth-store-physical-backend/src/recovery_durability/wal_recovery_basis/durability_observation.rs",
 ];
 
 const FORBIDDEN_SOURCE_FRAGMENTS: &[&str] = &[
@@ -32,7 +31,7 @@ fn displaced_executor_and_false_acknowledgment_islands_are_absent() {
 #[test]
 fn authority_island_gate_rejects_path_vocabulary_and_destination_mutants() {
     for forbidden in FORBIDDEN_PATHS {
-        inspect_path_inventory([*forbidden], REQUIRED_RECOVERY_BASIS_PATHS.iter().copied())
+        inspect_path_inventory([*forbidden], REQUIRED_WAL_DURABILITY_PATHS.iter().copied())
             .expect_err("a displaced authority path must fail the cutover gate");
     }
 
@@ -43,7 +42,7 @@ fn authority_island_gate_rejects_path_vocabulary_and_destination_mutants() {
 
     inspect_path_inventory(
         std::iter::empty::<&str>(),
-        ["crates/worth-store-recovery-physics/src/wal_recovery_basis/mod.rs"],
+        ["crates/worth-store-physical-backend/src/recovery_durability/wal_recovery_basis/mod.rs"],
     )
     .expect_err("an incomplete recovery-basis destination must fail the cutover gate");
 }
@@ -54,7 +53,7 @@ fn inspect_cutover(root: &Path) -> Result<(), String> {
             .iter()
             .copied()
             .filter(|path| root.join(path).exists()),
-        REQUIRED_RECOVERY_BASIS_PATHS
+        REQUIRED_WAL_DURABILITY_PATHS
             .iter()
             .copied()
             .filter(|path| root.join(path).exists()),
@@ -70,7 +69,7 @@ fn inspect_path_inventory<'path>(
         return Err(format!("displaced authority path remains: {path}"));
     }
     let required = required_paths.into_iter().collect::<BTreeSet<_>>();
-    let expected = REQUIRED_RECOVERY_BASIS_PATHS
+    let expected = REQUIRED_WAL_DURABILITY_PATHS
         .iter()
         .copied()
         .collect::<BTreeSet<_>>();

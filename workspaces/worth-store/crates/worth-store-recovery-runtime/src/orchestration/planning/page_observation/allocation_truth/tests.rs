@@ -1,5 +1,6 @@
 use sha2::{Digest, Sha256};
 use worth_proof::TransitionOutcome;
+use worth_store::physical_runtime::recovery_wal::{LogSequenceNumber, WalLsnRange};
 use worth_store::physical_runtime::{
     PhysicalCheckpointDeadline, PhysicalCheckpointIdempotencyKey, PhysicalCheckpointOutcome,
     PhysicalCheckpointRequest,
@@ -12,9 +13,7 @@ use worth_store_physical_format::{
     PhysicalRecordSlot, PhysicalSegmentId, RecordAllocationClass, RecordArtifactFile,
     RecordFrameCoordinate, RecordFreeSpaceManifestEntry, RecordSegmentPageManifestEntry,
 };
-use worth_store_recovery_physics::{
-    decode_physical_redo_records, LogSequenceNumber, PhysicalRedoTarget, WalLsnRange,
-};
+use worth_store_recovery_physics::{decode_physical_redo_records, PhysicalRedoTarget};
 use worth_store_test_support::harness::physical_residency::{
     canonical_physical_mutation_acknowledgment, PhysicalResidencyStoreWorld,
 };
@@ -167,6 +166,7 @@ fn admitted_recovery(root: &std::path::Path) -> crate::AdmittedPhysicalRecovery 
         distinct_pages_and_extents: 64,
         operation_bindings: 64,
         staging_bytes: 4 * 1024 * 1024,
+        recovery_memory_bytes: 64 * 1024 * 1024,
         dirty_frames: 64,
         concurrent_commands: 8,
         publication_effects: 4,

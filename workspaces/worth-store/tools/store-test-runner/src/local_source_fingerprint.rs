@@ -5,46 +5,9 @@ use std::{
 
 use sha2::{Digest, Sha256};
 
-#[cfg(feature = "physical-work-evidence")]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct LocalSourceFingerprint {
-    digest: [u8; 32],
-    source_files: u64,
-    source_bytes: u64,
-}
-
-#[cfg(feature = "physical-work-evidence")]
-impl LocalSourceFingerprint {
-    pub(crate) const fn digest(self) -> [u8; 32] {
-        self.digest
-    }
-
-    pub(crate) const fn source_files(self) -> u64 {
-        self.source_files
-    }
-
-    pub(crate) const fn source_bytes(self) -> u64 {
-        self.source_bytes
-    }
-}
-
 pub(crate) fn hash_sources(repository: &Path, sources: &[PathBuf]) -> Result<[u8; 32], String> {
     let workers = source_hashing_workers();
     hash_sources_with_workers(repository, sources, workers)
-}
-
-#[cfg(feature = "physical-work-evidence")]
-pub(crate) fn fingerprint_sources(
-    repository: &Path,
-    sources: &[PathBuf],
-) -> Result<LocalSourceFingerprint, String> {
-    let (digest, source_files, source_bytes) =
-        fingerprint_components_with_workers(repository, sources, source_hashing_workers())?;
-    Ok(LocalSourceFingerprint {
-        digest,
-        source_files,
-        source_bytes,
-    })
 }
 
 fn hash_sources_with_workers(

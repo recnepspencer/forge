@@ -2,12 +2,6 @@ use super::{record_layout_observation, LayoutOwnerObservationLedger};
 use crate::courtroom::layout::executed_evidence::LayoutExecutedEvidenceKind as Evidence;
 
 impl LayoutOwnerObservationLedger {
-    record_layout_observation!(
-        record_exact_btree_publication,
-        ExactBTreePublication,
-        worth_store_layout_indexes::ExactBTreePublicationCaseId,
-        as_str
-    );
     pub fn record_live_maintenance_posture(
         &mut self,
         observed: worth_store_layout_indexes::OwnerCaseObservation<
@@ -27,18 +21,6 @@ impl LayoutOwnerObservationLedger {
         record_layout_mutation_admission,
         LayoutMutationAdmission,
         worth_store_layout_indexes::LayoutMutationAdmissionCaseId,
-        as_str
-    );
-    record_layout_observation!(
-        record_copy_on_write_mutation_execution,
-        CopyOnWriteMutationExecution,
-        worth_store_layout_indexes::CopyOnWriteLayoutMutationExecutionCaseId,
-        as_str
-    );
-    record_layout_observation!(
-        record_live_exact_maintenance,
-        LiveExactMaintenance,
-        worth_store_layout_indexes::LiveExactMaintenanceCaseId,
         as_str
     );
     record_layout_observation!(

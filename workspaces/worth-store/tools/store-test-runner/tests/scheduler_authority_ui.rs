@@ -8,3 +8,10 @@ fn scheduler_policy_cannot_promote_to_cross_domain_authority() {
         cases.compile_fail(format!("tests/scheduler_authority_ui/{denied}"));
     }
 }
+
+#[cfg(feature = "physical-work-evidence")]
+#[test]
+fn process_bundle_roles_cannot_be_swapped() {
+    let cases = trybuild::TestCases::new();
+    cases.compile_fail("tests/scheduler_authority_ui/process_bundle_roles_cannot_be_swapped.rs");
+}

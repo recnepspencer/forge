@@ -182,7 +182,11 @@ impl ParsedArguments {
         if matches!(product, TestProduct::Mutants) && self.report.is_some() {
             if !matches!(
                 self.mutation_scope,
-                Some(MutationCampaignScope::PhysicalWork | MutationCampaignScope::BoundedResidency)
+                Some(
+                    MutationCampaignScope::PhysicalWork
+                        | MutationCampaignScope::BoundedResidency
+                        | MutationCampaignScope::C8Closure
+                )
             ) {
                 return Err("mutation reports require a bounded mutation scope".into());
             }

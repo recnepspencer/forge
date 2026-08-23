@@ -16,6 +16,7 @@ use super::{
     CompletedPhysicalWalReclamationAction,
 };
 
+mod backend_role;
 mod classification;
 mod durability;
 mod result;
@@ -195,35 +196,6 @@ impl PhysicalWorkSettlement {
 }
 
 impl PhysicalWorkSettlementEvidence {
-    pub(in crate::physical_runtime) const fn backend_role(&self) -> Option<MediaOperationRole> {
-        match self {
-            Self::NoEffect(_) | Self::StaleOrForeign => None,
-            Self::Metadata { .. } => Some(MediaOperationRole::ReadMetadata),
-            Self::Read { .. } => Some(MediaOperationRole::PositionedRead),
-            Self::Write { .. } | Self::Publication { .. } | Self::NewArtifact { .. } => {
-                Some(MediaOperationRole::PositionedWrite)
-            }
-            #[cfg(feature = "recovery-runtime-owner")]
-            Self::RecoveryStaging { physical, .. } => {
-                if physical.created().is_some() {
-                    Some(MediaOperationRole::PositionedWrite)
-                } else {
-                    Some(MediaOperationRole::PositionedRead)
-                }
-            }
-            Self::WalAppend { .. } | Self::WalSegmentCreate { .. } => {
-                Some(MediaOperationRole::PositionedWrite)
-            }
-            Self::WalBarrier { .. } => Some(MediaOperationRole::SynchronizeFileState),
-            Self::Checkpoint { physical, .. } => Some(physical.role()),
-            Self::WalReclamation { physical, .. } => Some(physical.role()),
-            Self::PublicationEffect { physical, .. } => {
-                Some(classification::publication::effect_role(physical.effect()))
-            }
-            Self::TerminalFailure(failure) => Some(failure.backend_role),
-        }
-    }
-
     pub const fn fate(&self) -> PhysicalWorkEffectFate {
         match self {
             Self::NoEffect(_) => PhysicalWorkEffectFate::ProvenNoEffect,

@@ -43,6 +43,10 @@ pub(super) fn run(
         ),
         "bounded-residency serving open",
     )?;
+    let mutation_gate = serving.pause_physical_mutation_at(
+        worth_store::physical_runtime::production::PhysicalMutationCheckpoint::
+            AfterWritebackAdmissionBeforeEffect,
+    );
     let identity = PhysicalWorkCourtroomWorldIdentity::new(
         serving.store_identity(),
         serving.runtime_identity(),
@@ -50,7 +54,7 @@ pub(super) fn run(
     );
     let work_reconciliation_window =
         super::work_reconciliation::PhysicalWorkReconciliationWindow::begin(&serving)?;
-    let dirty = super::writeback_pressure::prove(&serving, configuration, gate)?;
+    let dirty = super::writeback_pressure::prove(&serving, configuration, gate, mutation_gate)?;
     let records = record_inventory::discover(&serving, configuration)?;
     let speculation =
         super::speculative_pressure::prove(&serving, &records, configuration, schedule_plan)?;
@@ -133,7 +137,11 @@ fn dirty_pause_schedule() -> Result<
             .rule(
                 MediaOperationRole::PositionedWrite,
                 super::writeback_pressure::CANDIDATE_WRITEBACK_POSITIONED_WRITE_ORDINAL,
-                MediaFaultDirective::PauseBefore(gate.clone()),
+                // Hold the primary writeback claim after its backend effect
+                // completes. A pre-effect pause would also hold the backend
+                // interposer while the competing mutation is trying to reach
+                // its independent residency denial.
+                MediaFaultDirective::PauseAfter(gate.clone()),
             )
             .for_identified_operation_ordinal()])
         .map_err(|denial| format!("bounded-residency dirty pause schedule denied: {denial:?}"))?;

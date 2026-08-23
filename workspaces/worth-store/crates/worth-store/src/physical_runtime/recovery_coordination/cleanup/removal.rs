@@ -72,6 +72,11 @@ pub enum PhysicalRecoveryCleanupRemovalIndeterminate {
         posture: PhysicalWorkSchedulerPosture,
         outcome: crate::physical_runtime::PhysicalSignalSettlementOutcome,
     },
+    Yieldpoint {
+        physical: crate::physical_runtime::CompletedRecoveryCleanupPhysicalRemoval,
+        revalidation: crate::physical_runtime::RecoveryCleanupArtifactRevalidationProgress,
+        wait: crate::physical_runtime::PhysicalRecoveryYieldpointWaitResult,
+    },
 }
 
 pub enum PhysicalRecoveryCleanupRemovalOutcome {
@@ -151,9 +156,9 @@ impl PhysicalRecoveryCleanupRemovalIndeterminate {
     ) -> crate::physical_runtime::RecoveryCleanupArtifactRevalidationProgress {
         match self {
             Self::Media { physical, .. } => physical.revalidation(),
-            Self::Scheduler { revalidation, .. } | Self::Signal { revalidation, .. } => {
-                *revalidation
-            }
+            Self::Scheduler { revalidation, .. }
+            | Self::Signal { revalidation, .. }
+            | Self::Yieldpoint { revalidation, .. } => *revalidation,
         }
     }
 }

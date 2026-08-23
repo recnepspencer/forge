@@ -1,8 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use worth_store_recovery_physics::RecoverySourceApplicationRole;
-
-use crate::SourcePrecedenceAction;
+use crate::{ModeledSourceCandidateRole, SourcePrecedenceAction};
 
 use super::{CanonicalProtocolAction, ProtocolTraceValidationDenial};
 
@@ -37,7 +35,7 @@ pub(super) fn validate(
 
 #[derive(Default)]
 struct SourceTraceModel {
-    discovered: BTreeMap<u64, RecoverySourceApplicationRole>,
+    discovered: BTreeMap<u64, ModeledSourceCandidateRole>,
     admitted: BTreeSet<u64>,
     quarantined: bool,
 }
@@ -57,8 +55,8 @@ impl SourceTraceModel {
                 self.require_role(discovery_order, |role| {
                     matches!(
                         role,
-                        RecoverySourceApplicationRole::CheckpointBase
-                            | RecoverySourceApplicationRole::WalTailRedo
+                        ModeledSourceCandidateRole::CheckpointBase
+                            | ModeledSourceCandidateRole::WalTailRedo
                     )
                 })?;
                 self.admitted.insert(discovery_order);
@@ -67,8 +65,8 @@ impl SourceTraceModel {
                 self.require_role(discovery_order, |role| {
                     matches!(
                         role,
-                        RecoverySourceApplicationRole::PageSkipApply
-                            | RecoverySourceApplicationRole::CompactionVisibility
+                        ModeledSourceCandidateRole::PageSkipApply
+                            | ModeledSourceCandidateRole::CompactionVisibility
                     )
                 })?;
             }
@@ -76,8 +74,8 @@ impl SourceTraceModel {
                 self.require_role(discovery_order, |role| {
                     matches!(
                         role,
-                        RecoverySourceApplicationRole::ResidueDiscoveryOnly
-                            | RecoverySourceApplicationRole::CompactionVisibility
+                        ModeledSourceCandidateRole::ResidueDiscoveryOnly
+                            | ModeledSourceCandidateRole::CompactionVisibility
                     )
                 })?;
             }
@@ -95,7 +93,7 @@ impl SourceTraceModel {
                 if !self
                     .discovered
                     .values()
-                    .any(|role| *role == RecoverySourceApplicationRole::RecoveryBlocked)
+                    .any(|role| *role == ModeledSourceCandidateRole::RecoveryBlocked)
                 {
                     return Err(SourceTraceDenial::NoQuarantinedSource);
                 }
@@ -113,7 +111,7 @@ impl SourceTraceModel {
     fn require_role(
         &self,
         discovery_order: u64,
-        predicate: impl FnOnce(RecoverySourceApplicationRole) -> bool,
+        predicate: impl FnOnce(ModeledSourceCandidateRole) -> bool,
     ) -> Result<(), SourceTraceDenial> {
         let role = self
             .discovered

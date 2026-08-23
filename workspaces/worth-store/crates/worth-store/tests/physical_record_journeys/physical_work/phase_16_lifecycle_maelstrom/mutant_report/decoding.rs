@@ -22,10 +22,10 @@ mod tests {
     use super::require_supported_schema;
 
     #[test]
-    fn legacy_schema_is_rejected_before_v2_body_decoding() {
+    fn unsupported_schema_is_rejected_before_body_decoding() {
         let error = require_supported_schema(
             br#"{"schema":"worth.store.c5_1.mutation-evidence.v1","observations":[]}"#,
-            "worth.store.c5_1.mutation-evidence.v2",
+            "worth.store.controlled-mutation-evidence.v5",
         )
         .unwrap_err();
 

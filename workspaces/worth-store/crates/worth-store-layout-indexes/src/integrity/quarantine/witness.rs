@@ -49,8 +49,8 @@ impl LayoutQuarantineWitness {
 
     pub fn readmission_identity(
         &self,
-    ) -> worth_store_recovery_physics::RecoveryLayoutReadmissionIdentity {
-        worth_store_recovery_physics::RecoveryLayoutReadmissionIdentity::QuarantineReceipt(
+    ) -> super::super::readmission::RecoveryLayoutReadmissionIdentity {
+        super::super::readmission::RecoveryLayoutReadmissionIdentity::QuarantineReceipt(
             self.record()
                 .receipt()
                 .foundational_basis()

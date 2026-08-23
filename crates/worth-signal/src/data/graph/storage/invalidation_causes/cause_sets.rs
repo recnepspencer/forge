@@ -119,31 +119,6 @@ impl CanonicalCauseSetStore {
             .ok_or_else(|| SignalError::invalid_input("unknown pending cause-set handle"))
     }
 
-    pub(crate) fn replace(
-        &mut self,
-        current: PendingCauseSetId,
-        updates: impl IntoIterator<Item = ResolvedDependencyCause>,
-    ) -> Result<PendingCauseSetId, SignalError> {
-        let mut causes = self.get(current)?.to_vec();
-        for update in updates {
-            if let Some(existing) = causes.iter_mut().find(|cause| cause.key == update.key) {
-                let scopes = existing
-                    .changed_scopes
-                    .as_slice()
-                    .iter()
-                    .cloned()
-                    .chain(update.changed_scopes.as_slice().iter().cloned())
-                    .collect::<Vec<_>>();
-                let mut merged = update;
-                merged.changed_scopes = crate::data::proof::PartitionScopeSet::new(scopes);
-                *existing = merged;
-            } else {
-                causes.push(update);
-            }
-        }
-        self.replace_set(current, causes)
-    }
-
     pub(crate) fn replace_set(
         &mut self,
         current: PendingCauseSetId,

@@ -12,11 +12,13 @@ use worth_store::physical_runtime::{
     PhysicalRuntimeAdmission, PhysicalStore, PhysicalWalPolicy, RecordServingAdmissionOutcome,
     RetainedWalTailLimit, ServingPhysicalRuntime, WalSegmentByteLimit, WalSegmentInventoryLimit,
 };
-use worth_store_physical_backend::{FilesystemAccessPosture, MediaFaultSchedule};
+use worth_store_physical_backend::FilesystemAccessPosture;
+#[cfg(feature = "certification-test-authority")]
+use worth_store_physical_backend::MediaFaultSchedule;
 
 pub(super) fn admit_media(
     root: &Path,
-    fault_schedule: Option<MediaFaultSchedule>,
+    #[cfg(feature = "certification-test-authority")] fault_schedule: Option<MediaFaultSchedule>,
 ) -> Result<MediaOwnedPhysicalRuntime, String> {
     let runtime = PhysicalStore::admit(
         PhysicalRuntimeAdmission::new(root)
@@ -25,6 +27,7 @@ pub(super) fn admit_media(
     .map_err(|denial| format!("courtroom runtime denied: {denial:?}"))?;
     let admission =
         FilesystemMediaAdmission::production(FilesystemAccessPosture::CoordinatedServiceAccount);
+    #[cfg(feature = "certification-test-authority")]
     let admission = match fault_schedule {
         Some(schedule) => admission.with_fault_schedule(schedule),
         None => admission,

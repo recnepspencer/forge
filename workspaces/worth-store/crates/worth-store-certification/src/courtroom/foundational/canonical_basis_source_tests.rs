@@ -62,12 +62,12 @@ fn source_map_covers_scanned_store_workspace_family_surfaces() {
     assert!(scanned.iter().any(|family| {
         family.family_name() == "RecoveryBlockingIntegritySource"
             && family.source_path()
-                == "workspaces/worth-store/crates/worth-store-recovery-physics/src/recovery_blocking_integrity.rs"
+                == "workspaces/worth-store/crates/worth-store-physical-integrity/src/recovery_handoff/recovery_blocking_integrity.rs"
     }));
     assert!(scanned.iter().any(|family| {
         family.family_name() == "RecoveryPhysicsIntegrityInput"
             && family.source_path()
-                == "workspaces/worth-store/crates/worth-store-recovery-physics/src/integrity_input.rs"
+                == "workspaces/worth-store/crates/worth-store-physical-integrity/src/recovery_handoff/integrity_input.rs"
     }));
 
     certify_scanned_store_canonical_basis_source_inventory(workspace_root, &scope_roots)

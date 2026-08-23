@@ -42,6 +42,7 @@ members = [
     "crates/worth-store-test-support",
     "crates/worth-store-tiering",
     "crates/worth-store-wal",
+    "tools/store-process-bundle",
     "tools/store-test-runner",
 ]
 
@@ -92,6 +93,7 @@ worth-store-subscription-support = { path = "crates/worth-store-subscription-sup
 worth-store-test-support = { path = "crates/worth-store-test-support", default-features = false }
 worth-store-tiering = { path = "crates/worth-store-tiering" }
 worth-store-wal = { path = "crates/worth-store-wal" }
+worth-store-process-bundle = { path = "tools/store-process-bundle" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

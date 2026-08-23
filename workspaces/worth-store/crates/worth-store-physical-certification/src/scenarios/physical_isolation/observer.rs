@@ -1,12 +1,13 @@
 use crate::{
-    CheckpointInterlockObservation, CoverageGapDenial, IndependentVerifierObservation,
-    ObservedPhysicalTrace, PhysicalInterleavingSchedule, PhysicalSimulationBoundaryObservation,
-    PhysicalSimulationObserver, PhysicalSimulationPlan, PhysicalSimulationScenarioFamily,
-    ShortcutRejectionObservation,
+    CheckpointInterlockObservation, CompactionInterlockObservation, CoverageGapDenial,
+    IndependentVerifierObservation, ObservedPhysicalTrace, PhysicalInterleavingSchedule,
+    PhysicalSimulationBoundaryObservation, PhysicalSimulationObserver, PhysicalSimulationPlan,
+    PhysicalSimulationScenarioFamily, ShortcutRejectionObservation,
 };
 
 pub struct PhysicalIsolationTraceFixtures {
     checkpoint_interlock: Option<CheckpointInterlockObservation>,
+    compaction_interlock: Option<CompactionInterlockObservation>,
     independent_verifier: Option<IndependentVerifierObservation>,
 }
 
@@ -17,6 +18,7 @@ impl PhysicalIsolationTraceFixtures {
     ) -> Self {
         Self {
             checkpoint_interlock: Some(checkpoint_interlock),
+            compaction_interlock: None,
             independent_verifier: Some(independent_verifier),
         }
     }
@@ -30,6 +32,14 @@ impl PhysicalIsolationTraceFixtures {
 
     pub fn without_checkpoint_interlock(mut self) -> Self {
         self.checkpoint_interlock = None;
+        self
+    }
+
+    pub fn with_compaction_interlock_observation(
+        mut self,
+        observation: CompactionInterlockObservation,
+    ) -> Self {
+        self.compaction_interlock = Some(observation);
         self
     }
 
@@ -55,6 +65,11 @@ pub fn observe_physical_isolation_trace(
         .with_shortcut_rejection_observation(
             ShortcutRejectionObservation::private_mutation_denied(),
         );
+    let builder = if let Some(observation) = fixtures.compaction_interlock {
+        builder.with_compaction_interlock_observation(observation)
+    } else {
+        builder
+    };
     let trace = match plan.scenario_family() {
         PhysicalSimulationScenarioFamily::PhysicalIsolationCheckpointPublicationInterlock
         | PhysicalSimulationScenarioFamily::PhysicalIsolationRestartDuringCutover => {

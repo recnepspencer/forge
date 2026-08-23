@@ -5,19 +5,20 @@ use std::sync::OnceLock;
 use crate::independent_verifier_observation;
 use crate::physical_isolation_shortcut_report as shortcut_report;
 use worth_store_test_support::harness::physical_isolation::interleaving_resources as resources;
-use worth_store_test_support::harness::recovery::checkpoint_publication as checkpoint_support;
 use worth_store_test_support::harness::recovery::closeout as closeout_fixture;
 use worth_store_test_support::harness::recovery::coverage as coverage_support;
 
 use worth_store_physical_certification::{
-    lower_physical_simulation_plan, register_physical_isolation_certification_lane,
-    CheckpointInterlockObservation, HarnessCoverageStage, IndependentVerifierObservation,
+    admit_physical_isolation_entry, lower_physical_simulation_plan,
+    register_physical_isolation_certification_lane, CheckpointInterlockObservation,
+    CompactionInterlockObservation, HarnessCoverageStage, IndependentVerifierObservation,
     PhysicalCertificationEvidenceBundle, PhysicalInterleavingSchedule,
     PhysicalIsolationCertificationLaneRegistration, PhysicalIsolationCorrectnessNonClaimEvidence,
-    PhysicalIsolationHarnessReadinessReceipt, PhysicalSimulationPlan, SimulationPlanningContext,
+    PhysicalIsolationEntryRequest, PhysicalIsolationHarnessReadinessReceipt,
+    PhysicalSimulationPlan, SimulationPlanningContext,
 };
 use worth_store_physical_isolation::{
-    admit_physical_isolation_entry, PhysicalIsolationEntryRequest,
+    read_during_checkpoint_verdict_for_certification_test, CheckpointInterlockFoundationalEvidence,
 };
 
 pub(crate) fn complete_context() -> SimulationPlanningContext {
@@ -80,6 +81,7 @@ pub(crate) fn trace_fixtures(
         checkpoint_interlock_observation(),
         independent_verifier_observation(),
     )
+    .with_compaction_interlock_observation(compaction_interlock_observation())
 }
 
 pub(crate) fn schedule(plan: &PhysicalSimulationPlan) -> PhysicalInterleavingSchedule {
@@ -88,9 +90,19 @@ pub(crate) fn schedule(plan: &PhysicalSimulationPlan) -> PhysicalInterleavingSch
 
 pub(crate) fn checkpoint_interlock_observation() -> CheckpointInterlockObservation {
     CheckpointInterlockObservation::from_store_interlock_evidence(
-        checkpoint_support::checkpoint_evidence(),
+        CheckpointInterlockFoundationalEvidence::after_executed_interlock(
+            &read_during_checkpoint_verdict_for_certification_test(),
+        ),
     )
     .unwrap()
+}
+
+pub(crate) fn compaction_interlock_observation() -> CompactionInterlockObservation {
+    CompactionInterlockObservation::from_store_interlock_evidence(
+        worth_store_test_support::harness::physical_isolation::compaction::
+            compaction_interlock_foundational_evidence_for_seed(17),
+    )
+    .expect("executed compaction publication provides interlock evidence")
 }
 
 pub(crate) fn independent_verifier_observation() -> IndependentVerifierObservation {

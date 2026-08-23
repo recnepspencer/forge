@@ -4,7 +4,9 @@ use worth_store_formal_models::runner::{
 };
 use worth_store_formal_models::{compose_compaction_action, compose_lease_action};
 use worth_store_physical_backend::BackendDurabilityProfileId;
-use worth_store_physical_certification::{ReplaySeed, ScheduleReplayIdentity, ScheduleShrinkTrace};
+use worth_store_physical_certification::{
+    SchedulePerturbationSeed, ScheduleReplayIdentity, ScheduleShrinkTrace,
+};
 
 use super::mapped_guard::require_mapped_guard;
 use super::scheduled_shrink::shrink_mapped_counterexample_schedule;
@@ -40,7 +42,7 @@ pub enum ConcreteCounterexampleGuard {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CounterexamplePhysicalReplayEvidence {
     mutant: ControlledProtocolMutant,
-    seed: ReplaySeed,
+    seed: SchedulePerturbationSeed,
     backend_profile: Option<BackendDurabilityProfileId>,
     illegal_edge: &'static str,
     owner: CounterexampleOwnerIdentity,
@@ -53,7 +55,7 @@ pub struct CounterexamplePhysicalReplayEvidence {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CounterexampleReplayEvidenceIdentity {
     mutant: ControlledProtocolMutant,
-    seed: ReplaySeed,
+    seed: SchedulePerturbationSeed,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -120,7 +122,7 @@ fn expected_owner(mutant: ControlledProtocolMutant) -> CounterexampleOwnerIdenti
     use OwnerOperationFamily as Owner;
     let owner = match mutant {
         ControlledProtocolMutant::DurabilityAcknowledgmentBeforeFence => {
-            Owner::DurableAcknowledgement
+            Owner::WalDurabilityObservation
         }
         ControlledProtocolMutant::RecoveryQuarantinedSourceSelected => {
             Owner::RecoverySourceSelection
@@ -143,7 +145,7 @@ fn expected_owner(mutant: ControlledProtocolMutant) -> CounterexampleOwnerIdenti
     CounterexampleOwnerIdentity::BoundOperation(owner)
 }
 
-fn replay_seed(mutant: ControlledProtocolMutant) -> ReplaySeed {
+fn replay_seed(mutant: ControlledProtocolMutant) -> SchedulePerturbationSeed {
     let ordinal = match mutant {
         ControlledProtocolMutant::DurabilityAcknowledgmentBeforeFence => 1,
         ControlledProtocolMutant::RecoveryQuarantinedSourceSelected => 2,
@@ -154,12 +156,12 @@ fn replay_seed(mutant: ControlledProtocolMutant) -> ReplaySeed {
         ControlledProtocolMutant::ReplicationDivergenceAcceptedAsResume => 7,
         ControlledProtocolMutant::SharedReachableAuthorityReclaimed => 8,
     };
-    ReplaySeed::from_u64(0x53_39_00_00 + ordinal)
+    SchedulePerturbationSeed::from_u64(0x53_39_00_00 + ordinal)
 }
 
 fn execute_guarded_owner_scenario(
     mutant: ControlledProtocolMutant,
-    seed: ReplaySeed,
+    seed: SchedulePerturbationSeed,
 ) -> (
     ProtocolFrontierIdentity,
     ConcreteCounterexampleGuard,
@@ -260,7 +262,7 @@ impl CounterexamplePhysicalReplayEvidence {
         }
     }
 
-    pub const fn seed(&self) -> ReplaySeed {
+    pub const fn seed(&self) -> SchedulePerturbationSeed {
         self.seed
     }
 
@@ -319,7 +321,7 @@ impl CounterexampleReplayEvidenceIdentity {
         self.mutant
     }
 
-    pub const fn seed(self) -> ReplaySeed {
+    pub const fn seed(self) -> SchedulePerturbationSeed {
         self.seed
     }
 }

@@ -4,16 +4,13 @@ use worth_store_physical_format::{
     PhysicalReferenceValidationWitness, RootManifestIntegrityPosture,
 };
 use worth_store_physical_integrity::{
-    ChecksumAlgorithmDeclaration, ChecksumAlgorithmId, ChecksumScopeDeclaration,
-    DeclaredPhysicalChecksum, ManifestExpectedReference, ManifestIntegrityAuthority,
-    ManifestIntegrityInspectionRequest, PhysicalContainerIntegrity,
+    BoundedInspectionEnvelopeEvidence, ChecksumAlgorithmDeclaration, ChecksumAlgorithmId,
+    ChecksumScopeDeclaration, DeclaredPhysicalChecksum, ManifestExpectedReference,
+    ManifestIntegrityAuthority, ManifestIntegrityInspectionRequest, PhysicalContainerIntegrity,
     PhysicalIntegrityAdmissionRequest, PhysicalIntegrityAdmissionSeed,
     PhysicalIntegrityEvidenceAuthority, PhysicalIntegrityEvidenceProfile, PhysicalScopeAdmission,
-    PhysicalScopeAdmissionRequest, ScopedPhysicalValidatorInput, StoreExecutedIntegrityEvidence,
-    WalFrameIntegrityAuthority, WalFrameIntegrityInspectionRequest,
-};
-use worth_store_recovery_physics::{
-    BoundedInspectionEnvelopeEvidence, RecoveryIntegrityHandoffReceipt,
+    PhysicalScopeAdmissionRequest, RecoveryIntegrityHandoffReceipt, ScopedPhysicalValidatorInput,
+    StoreExecutedIntegrityEvidence, WalFrameIntegrityAuthority, WalFrameIntegrityInspectionRequest,
 };
 
 use super::s4_recovery_physical_fixture::{

@@ -39,10 +39,11 @@ pub use checkpoint::{
     PhysicalBindingCompactionReopenFailure, PhysicalCheckpointCancellationOutcome,
     PhysicalCheckpointCaptureBasis, PhysicalCheckpointCaptureFailureKind,
     PhysicalCheckpointDeadline, PhysicalCheckpointDisposal, PhysicalCheckpointHandle,
-    PhysicalCheckpointIdempotencyKey, PhysicalCheckpointOutcome, PhysicalCheckpointPoll,
-    PhysicalCheckpointProgress, PhysicalCheckpointProgressPhase,
+    PhysicalCheckpointIdempotencyKey, PhysicalCheckpointOutcome, PhysicalCheckpointPauseGate,
+    PhysicalCheckpointPoll, PhysicalCheckpointProgress, PhysicalCheckpointProgressPhase,
     PhysicalCheckpointProvenNoEffectCause, PhysicalCheckpointRequest, PhysicalCheckpointShutdown,
-    PhysicalCheckpointSubmission, ProvenNoEffectPhysicalCheckpoint, RetainedWalSegment,
+    PhysicalCheckpointStep, PhysicalCheckpointSubmission, ProvenNoEffectPhysicalCheckpoint,
+    RetainedWalSegment,
 };
 pub(in crate::physical_runtime) use closeout::PhysicalIdempotencyCloseoutDenial;
 pub use closeout::{
@@ -104,9 +105,11 @@ pub(in crate::physical_runtime) use grouping::{
     PhysicalWalGroupBarrierPort,
 };
 pub use lifecycle::PhysicalMutationShutdown;
+pub use lifecycle::{PhysicalMutationCheckpoint, PhysicalMutationPauseGate};
 #[cfg(feature = "certification-test-authority")]
 pub use lifecycle::{
-    CertificationPhysicalMutationCheckpoint, CertificationPhysicalMutationPauseGate,
+    PhysicalMutationCheckpoint as CertificationPhysicalMutationCheckpoint,
+    PhysicalMutationPauseGate as CertificationPhysicalMutationPauseGate,
 };
 pub(in crate::physical_runtime) use lifecycle::{
     PhysicalMutationCostSnapshot, PhysicalMutationRuntimeOwner, PhysicalMutationStartPort,

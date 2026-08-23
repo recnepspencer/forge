@@ -1,41 +1,195 @@
 pub(super) const PHASE_EIGHT_DELIVERY_SURFACES: &[(&str, &str, &str)] = &[
-    ("RecoveryReportEnvelope", "observation/report", "phase-8"),
+    ("production", "worth-store/mod", "phase-8"),
+    (
+        "production::PhysicalCheckpointPauseGate",
+        "worth-store/durability/checkpoint/yieldpoint",
+        "phase-8",
+    ),
+    (
+        "production::PhysicalCheckpointPauseGate::await_arrival",
+        "worth-store/durability/checkpoint/yieldpoint",
+        "phase-8",
+    ),
+    (
+        "production::PhysicalCheckpointPauseGate::release",
+        "worth-store/durability/checkpoint/yieldpoint",
+        "phase-8",
+    ),
+    (
+        "production::PhysicalCheckpointPauseGate::step",
+        "worth-store/durability/checkpoint/yieldpoint",
+        "phase-8",
+    ),
+    (
+        "production::PhysicalCheckpointStep",
+        "worth-store/durability/checkpoint/yieldpoint",
+        "phase-8",
+    ),
+    (
+        "production::PhysicalMutationCheckpoint",
+        "worth-store/durability/lifecycle/yieldpoint",
+        "phase-8",
+    ),
+    (
+        "production::PhysicalMutationPauseGate",
+        "worth-store/durability/lifecycle/yieldpoint",
+        "phase-8",
+    ),
+    (
+        "production::PhysicalMutationPauseGate::await_arrival",
+        "worth-store/durability/lifecycle/yieldpoint",
+        "phase-8",
+    ),
+    (
+        "production::PhysicalMutationPauseGate::checkpoint",
+        "worth-store/durability/lifecycle/yieldpoint",
+        "phase-8",
+    ),
+    (
+        "production::PhysicalMutationPauseGate::release",
+        "worth-store/durability/lifecycle/yieldpoint",
+        "phase-8",
+    ),
+    (
+        "ServingPhysicalRuntime::pause_physical_checkpoint_at",
+        "worth-store/record-serving/lifecycle/serving-runtime",
+        "phase-8",
+    ),
+    (
+        "ServingPhysicalRuntime::pause_physical_mutation_at",
+        "worth-store/record-serving/lifecycle/serving-runtime",
+        "phase-8",
+    ),
+    (
+        "PhysicalRecoveryCoordination::pause_at",
+        "worth-store/recovery-coordination/owner",
+        "phase-8",
+    ),
+    (
+        "PhysicalRecoveryProcessYieldpoint",
+        "worth-store/recovery-yieldpoint",
+        "phase-8",
+    ),
+    (
+        "PhysicalRecoveryProcessYieldpoint::new",
+        "worth-store/recovery-yieldpoint",
+        "phase-8",
+    ),
+    (
+        "PhysicalRecoveryProcessYieldpoint::new_with_wait_deadline",
+        "worth-store/recovery-yieldpoint",
+        "phase-8",
+    ),
+    (
+        "PhysicalRecoveryProcessYieldpoint::pause_after",
+        "worth-store/recovery-yieldpoint",
+        "phase-8",
+    ),
+    (
+        "PhysicalRecoveryProcessYieldpoint::stage",
+        "worth-store/recovery-yieldpoint",
+        "phase-8",
+    ),
+    (
+        "PhysicalRecoveryYieldpointWaitResult",
+        "worth-store/recovery-yieldpoint",
+        "phase-8",
+    ),
+    (
+        "PhysicalRecoveryYieldpointWaitResult::partial_effect_possible",
+        "worth-store/recovery-yieldpoint",
+        "phase-8",
+    ),
+    (
+        "PhysicalRecoveryYieldpointWaitResult::is_interrupted",
+        "worth-store/recovery-yieldpoint",
+        "phase-8",
+    ),
+    (
+        "PhysicalRecoveryYieldpointStage",
+        "worth-store/recovery-yieldpoint",
+        "phase-8",
+    ),
+    (
+        "PhysicalRecoveryYieldpointStage::from_label",
+        "worth-store/recovery-yieldpoint",
+        "phase-8",
+    ),
+    (
+        "PhysicalRecoveryYieldpointStage::label",
+        "worth-store/recovery-yieldpoint",
+        "phase-8",
+    ),
+    (
+        "WorthStoreRecovery::recover_with_process_yieldpoint",
+        "lib",
+        "phase-8",
+    ),
+    (
+        "RecoveryReportEnvelope",
+        "observation/report/model",
+        "phase-8",
+    ),
+    (
+        "RecoveryReportBlockCause",
+        "observation/report/model",
+        "phase-8",
+    ),
+    (
+        "RecoveryReportDenialCause",
+        "observation/report/model",
+        "phase-8",
+    ),
+    (
+        "RecoveryReportRefusalCause",
+        "observation/report/model",
+        "phase-8",
+    ),
     (
         "RecoveryReportEnvelope::from_outcome",
-        "observation/report",
+        "observation/report/model",
         "phase-8",
     ),
     (
         "RecoveryReportEnvelope::encode",
-        "observation/report",
+        "observation/report/codec",
         "phase-8",
     ),
     (
         "RecoveryReportEnvelope::decode",
-        "observation/report",
+        "observation/report/codec",
         "phase-8",
     ),
     (
         "RecoveryReportEnvelope::outcome",
-        "observation/report",
+        "observation/report/model",
         "phase-8",
     ),
     (
         "RecoveryReportEnvelope::store_identity",
-        "observation/report",
+        "observation/report/model",
         "phase-8",
     ),
     (
         "RecoveryReportEnvelope::root_generation",
-        "observation/report",
+        "observation/report/model",
         "phase-8",
     ),
     (
         "RecoveryReportEnvelope::counters",
-        "observation/report",
+        "observation/report/model",
         "phase-8",
     ),
-    ("RecoveryReportOutcome", "observation/report", "phase-8"),
+    (
+        "RecoveryReportEnvelope::denial_cause",
+        "observation/report/model",
+        "phase-8",
+    ),
+    (
+        "RecoveryReportOutcome",
+        "observation/report/model",
+        "phase-8",
+    ),
     ("RecoveryReportCounters", "observation/counters", "phase-8"),
     (
         "RecoveryReportCounters::recovery_effects",
@@ -49,6 +203,11 @@ pub(super) const PHASE_EIGHT_DELIVERY_SURFACES: &[(&str, &str, &str)] = &[
     ),
     (
         "RecoveryReportCounters::cleanup_deferred",
+        "observation/counters",
+        "phase-8",
+    ),
+    (
+        "RecoveryReportCounters::peak_recovery_bytes",
         "observation/counters",
         "phase-8",
     ),

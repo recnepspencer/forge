@@ -2,25 +2,12 @@ use super::{LayoutOwnerCaseDeclarations, LayoutOwnerFamily};
 
 pub(super) fn register(declarations: &mut LayoutOwnerCaseDeclarations) {
     declarations.insert(
-        LayoutOwnerFamily::ExactBTreePublication,
-        worth_store_layout_indexes::exact_btree_publication_cases().map(|case| case.as_str()),
-    );
-    declarations.insert(
         LayoutOwnerFamily::LiveMaintenancePosture,
         worth_store_layout_indexes::live_maintenance_posture_cases().map(|case| case.as_str()),
     );
     declarations.insert(
         LayoutOwnerFamily::LayoutMutationAdmission,
         worth_store_layout_indexes::layout_mutation_admission_cases().map(|case| case.as_str()),
-    );
-    declarations.insert(
-        LayoutOwnerFamily::CopyOnWriteMutationExecution,
-        worth_store_layout_indexes::copy_on_write_layout_mutation_execution_cases()
-            .map(|case| case.as_str()),
-    );
-    declarations.insert(
-        LayoutOwnerFamily::LiveExactMaintenance,
-        worth_store_layout_indexes::live_exact_maintenance_cases().map(|case| case.as_str()),
     );
     declarations.insert(
         LayoutOwnerFamily::DerivedIndexParity,

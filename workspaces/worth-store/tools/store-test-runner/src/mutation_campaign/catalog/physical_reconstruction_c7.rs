@@ -308,7 +308,7 @@ pub(super) const MUTATIONS: &[ControlledMutation] = &[
     ControlledMutation {
         id: 104,
         predicate: "c7-offline-bounded-schema-v3-rejected",
-        source: "crates/worth-store-offline-verifier/src/bin/physical_store_offline_observer/bounded_residency_verification/configuration.rs",
+        source: "crates/worth-store-offline-verifier/src/bin/physical_store_offline_observer/c5_c7_observation/bounded_residency_verification/configuration.rs",
         needle: "const SCHEMA: &str = \"worth.store.physical-work-courtroom.bounded-residency.configuration.v3\";",
         replacement: "const SCHEMA: &str = \"worth.store.physical-work-courtroom.bounded-residency.configuration.v2\";",
         package: "worth-store-offline-verifier",
@@ -328,7 +328,7 @@ pub(super) const MUTATIONS: &[ControlledMutation] = &[
     ControlledMutation {
         id: 106,
         predicate: "c7-offline-empty-prefix-ambiguous",
-        source: "crates/worth-store-offline-verifier/src/bin/physical_store_offline_observer/hostile_physical_truth.rs",
+        source: "crates/worth-store-offline-verifier/src/bin/physical_store_offline_observer/c5_c7_observation/hostile_physical_truth.rs",
         needle: "        \"-\".to_owned()",
         replacement: "        super::hex(prefix)",
         package: "worth-store-offline-verifier",

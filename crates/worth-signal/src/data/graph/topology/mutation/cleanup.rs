@@ -1,4 +1,6 @@
+#[cfg(any(test, debug_assertions))]
 use crate::data::error::SignalError;
+#[cfg(any(test, debug_assertions))]
 use crate::data::handle::NodeId;
 
 use crate::data::graph::signal_graph::SignalGraph;

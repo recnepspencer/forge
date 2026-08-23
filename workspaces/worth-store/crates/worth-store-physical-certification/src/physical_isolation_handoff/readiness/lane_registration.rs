@@ -1,9 +1,9 @@
 use crate::PhysicalIsolationHarnessReadinessDenial;
-use worth_store_physical_isolation::PhysicalIsolationEntryAdmission;
 
 use super::{
     accept_store_owned_physical_isolation_harness_readiness,
-    AcceptedPhysicalIsolationHarnessReadiness, PhysicalIsolationHarnessReadinessReceipt,
+    AcceptedPhysicalIsolationHarnessReadiness, PhysicalIsolationEntryAdmission,
+    PhysicalIsolationHarnessReadinessReceipt,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

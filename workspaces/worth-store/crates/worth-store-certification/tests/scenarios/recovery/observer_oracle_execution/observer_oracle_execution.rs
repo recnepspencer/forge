@@ -25,6 +25,7 @@ fn declared_driver_shape_observation_feeds_convergent_oracle_verdicts() {
     let runtime_trace = PhysicalSimulationObserver::independent_physical_trace()
         .observe_boundary_observation(&plan, &execution)
         .unwrap()
+        .with_compaction_interlock_observation(compaction_interlock_observation())
         .complete()
         .unwrap();
     assert_eq!(
@@ -39,6 +40,7 @@ fn declared_driver_shape_observation_feeds_convergent_oracle_verdicts() {
                 independent_verifier_observation::RuntimeComparisonFixture::Equivalent,
             ),
         )
+        .with_compaction_interlock_observation(compaction_interlock_observation())
         .complete()
         .unwrap();
 
@@ -98,6 +100,7 @@ fn public_scenario_composes_multiple_reusable_oracle_families() {
             .with_shortcut_rejection_observation(
                 ShortcutRejectionObservation::json_authority_denied(),
             )
+            .with_compaction_interlock_observation(compaction_interlock_observation())
             .complete()
             .unwrap();
 
@@ -241,4 +244,13 @@ fn multifamily_scenario() -> worth_store_physical_certification::CertifiedPhysic
         )
         .certify_definition()
         .unwrap()
+}
+
+fn compaction_interlock_observation(
+) -> worth_store_physical_certification::CompactionInterlockObservation {
+    worth_store_physical_certification::CompactionInterlockObservation::from_store_interlock_evidence(
+        worth_store_test_support::harness::physical_isolation::compaction::
+            compaction_interlock_foundational_evidence_for_seed(17),
+    )
+    .expect("executed compaction publication provides interlock evidence")
 }

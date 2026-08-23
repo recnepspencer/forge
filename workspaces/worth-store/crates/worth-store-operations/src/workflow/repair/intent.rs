@@ -11,11 +11,11 @@ use crate::{
     OperationalOperationId, OperationalSecurityScope, ProductionRestoreAdmissibleBackupBundle,
 };
 
-#[cfg(feature = "certification-test-authority")]
+#[cfg(any(test, feature = "certification-test-authority"))]
 mod certification_fixtures;
 mod physical_target;
 mod region_class;
-#[cfg(feature = "certification-test-authority")]
+#[cfg(any(test, feature = "certification-test-authority"))]
 pub(crate) use certification_fixtures::{
     certification_authority_repair_candidates_from_backup_observation,
     certification_authority_repair_from_backup_observation,

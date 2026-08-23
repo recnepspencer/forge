@@ -145,9 +145,9 @@ A recovery design is false if it can pass by:
 
 The courtroom uses four real process roles:
 
-1. The existing `physical_store_work_courtroom` executable runs in its C.8
-   writer mode, using the canonical C.7 ordinary Store facade and only
-   production C.4 effects.
+1. The dedicated `physical_store_c8_writer` executable uses the canonical
+   ordinary Store facade and only production C.4 effects. It is a shipped
+   production binary with no certification authority or replay import.
 2. `physical_store_recover` uses the C.8 recovery composition facade.
 3. The existing `physical_store_offline_observer` executable runs in its C.8
    observation mode, opens the dead store read-only, and interprets stable
@@ -178,6 +178,40 @@ intervals and two WAL rotations. The history includes:
 
 The parent records submitted identities and expected semantic record values in
 its own history model. Neither the recoverer nor observer receives that model.
+
+The Phase 8 checkpoint-crash fixture uses an independently modeled C8 v1 dirty
+record whose payload is `2 * (16 KiB - 112 bytes) + 1 = 32,545` bytes. That
+record produces one new-artifact extent frame followed by existing-artifact
+writebacks, so the parent must observe the real pre-effect writeback boundary.
+The C8 writer requires an explicit sealed `--writer-durability-profile` before
+record-store initialization. Checkpoint and ordinary writeback worlds use
+`c8-phase8-checkpoint-writeback-v1`, whose local WAL segment limit is 128 KiB;
+the workspace runtime admission and WAL rotation rules remain unchanged, and
+the checkpoint fixture still crosses multiple physical WAL segments. Cleanup
+seam worlds use the distinct `c8-phase8-cleanup-rotation-v1` profile, whose
+24 KiB segment limit fits each cleanup durability group while forcing the
+checkpoint group and its durable-unacknowledged tail into separate physical
+segments. The parent cleanup-world owner independently parses those raw WAL
+frames and refuses to enter a cleanup seam unless it proves one complete
+checkpoint-covered segment, one retained tail segment, contiguous LSN/segment
+topology, and no torn suffix. No arbitrary numeric WAL limit is accepted from
+the process boundary.
+
+The separate durable-before-ack process world intentionally uses the ordinary
+8 KiB mutation payload and fate `2`; its parent expectation and writer profile
+are selected by that semantic launcher profile rather than by overriding the
+checkpoint fixture's 32,545-byte payload or fate `4`.
+
+### Recovery profiles and memory budgets
+
+Ordinary Phase 8 recovery uses the named `c8-phase2-admission-v1` profile and
+its admitted 512 KiB recovery-memory budget. The checkpoint-fate and recovery-
+yieldpoint campaigns use the explicitly named
+`c8-phase8-fate-coverage-v1` profile with a separate 4 MiB admission because
+their deliberately oversized multi-checkpoint fixture must retain enough
+physical evidence to cross every named boundary. Those campaigns assert their
+own 4 MiB bound; they are additional crash-composition evidence and do not
+substitute for the ordinary 512 KiB budget proof.
 
 ### Hostile sequence
 
@@ -529,7 +563,7 @@ filename order, or highest-generation heuristic may select authority.
 | valid current selector names an invalid/missing root | block with exact current-root denial unless the persisted selector protocol itself authorizes the retained previous slot | silently demote current because previous opens |
 | several checkpoint files are present | admit only the checkpoint selected by the chosen root/selector chain and exact Store/generation binding | choose the newest enumerated checkpoint |
 | selected checkpoint plus older valid checkpoint | use the selected checkpoint; retain the older one only as declared fallback/cleanup evidence | merge their page or binding contents |
-| checkpoint redo frontier plus retained WAL | require the first tail LSN to be exactly contiguous with the checkpoint frontier | search later segments for a convenient start |
+| checkpoint redo frontier plus retained WAL | require the first selected complete tail-frame LSN to be exactly contiguous with the checkpoint frontier, even when that frame is inside a retained physical segment | search later segments for a convenient start or treat the containing segment's physical first LSN as the logical tail start |
 | incomplete final WAL frame/suffix after a valid prefix | admit the prefix, classify and exclude the torn suffix, preserve evidence until safe cleanup | reject the prefix or decode partial payload |
 | invalid frame followed by required/later valid material | block as middle corruption or missing required range | truncate it as a torn tail |
 | pageLSN at or above redo LSN with matching generation | skip the frame and record the skip | reapply because WAL is newer in enumeration order |
@@ -553,7 +587,10 @@ unsupported physical scope instead of inventing repair.
 
 The selected checkpoint contributes the base physical image and exact covered
 LSN frontier. The retained WAL contributes only the contiguous suffix after
-that frontier.
+that frontier. “First tail LSN” means the first selected complete frame, not
+necessarily the first frame in the physical segment that contains it; frames
+covered by the checkpoint remain physical evidence but are excluded from the
+logical recovery basis.
 
 Before effects, C.8 must prove:
 
@@ -1076,16 +1113,20 @@ workspaces/worth-store/crates/
 │       │   ├── authority.rs                              [C]
 │       │   ├── runtime_identity.rs                       [C]
 │       │   └── handoff.rs                                [C]
+│       ├── bin/physical_store_c8_writer.rs               [C]
 │       └── bin/physical_store_work_courtroom/            [E]
-│           └── c8_recovery_writer.rs                     [C]
 ├── worth-store-offline-verifier/
-│   └── src/c8_recovery_observation/                      [C]
-│       ├── mod.rs                                        [C]
-│       ├── artifact_walk.rs                              [C]
-│       ├── physical_format.rs                            [C]
-│       ├── conclusion.rs                                 [C]
-│       ├── report_protocol.rs                            [C]
-│       └── report.rs                                     [C]
+│   └── src/
+│       ├── c8_recovery_observation/                      [C]
+│       │   ├── mod.rs                                    [C]
+│       │   ├── artifact_walk.rs                          [C]
+│       │   ├── physical_format.rs                        [C]
+│       │   ├── conclusion.rs                             [C]
+│       │   ├── report_protocol.rs                        [C]
+│       │   └── report.rs                                 [C]
+│       └── truth_composition/candidate_evaluation/        [C]
+│           ├── mod.rs                                    [C]
+│           └── candidate_set.rs                          [C]
 └── worth-store-physical-certification/
     └── src/c8_fresh_process_recovery/                    [C]
         ├── mod.rs                                        [C]
@@ -1124,6 +1165,7 @@ force later structural churn.
 | `recovery_freshness` | Store physical freshness ownership | owner-sampled selected-checkpoint and published-root generations, sealed bases, and concrete policies | pure classification, caller samples, or replay | exact authority-trace-to-topology owner equality and substitution tests |
 | `recovery_construction` | Store physical runtime construction | new identity, fresh handles, quiescent handoff | replay and semantic serving | reconstruction-only feature/dependency gate |
 | `c8_recovery_observation` | independent read-only evidence | stable format interpretation and observer report protocol | recovery decisions, authority types, and Store format admission | import/dependency, protocol-window, and controlled-defect gates |
+| `truth_composition/candidate_evaluation` | offline candidate projection | owner-verified frontier observations, canonical candidate ordering, confidence, and conflict denial | source precedence, Store admission, media effects, and execution selection | exact candidate facade, bounded allocation, and independent identity/digest assertions |
 
 The destination forbids `recovery_manager.rs`, `helpers.rs`, `common.rs`,
 `util.rs`, generic evidence bags, flat phase-state files, and any module that
@@ -1384,6 +1426,31 @@ then regenerate source-bound evidence.
 A campaign may resume after interruption only when source, configuration,
 profile, scenario set, and harness identity are unchanged. Any relevant source
 change correctly invalidates prior source-bound results.
+
+The Phase 8 process lane has one source-bound support-binary bundle authority.
+It resolves the Cargo metadata graph, walks every normal and build-time local
+path dependency reachable from the writer, observer, and recovery targets,
+captures one repository-local source closure before and after the bundle, and
+builds each target through its own locked Cargo invocation so recovery
+certification features cannot unify into ordinary writer or observer artifacts.
+Each exact compiler-emitted artifact is bound by package identity and binary
+target together with Cargo's emitted feature graph and the lane's authority
+contract. A dependency-only source edit must change that closure and rebuild
+every support executable; timestamp freshness and separately built support
+processes are not acceptance evidence. Mutation cases consume this same
+bundle authority rather than running a parallel support prebuild.
+
+The bounded-residency courtroom's writeback-pressure proof carries two distinct
+coordination gates. The backend `PauseAfter` media gate captures the exact
+positioned-write context and is released before the production
+`AfterWritebackAdmissionBeforeEffect` checkpoint is released. That production
+checkpoint holds the next admitted writeback while its lifecycle claim and
+scheduler admission are live, immediately before the physical effect, but does
+not hold a process-global writer mutex. The competing arrival can therefore
+reach the real residency-pressure denial and cleanup path while the primary
+claim remains active. This preserves the ordinary two-arrival prefetch proof,
+keeps `DuringDataSettlement` single-meaning, and makes the causal ordering
+explicit in both the runtime and courtroom source closures.
 
 ## Documentation Deliverables
 
@@ -1739,8 +1806,10 @@ decode, reports admitted as Store truth, stale docs, and dead dependencies.
 
 **Evidence:** exact API and reachability gates, dependency/feature checks,
 scoped inventory reconciliation, report identity/version/window tests, wrong-
-family and future-version twins, compiled and executed documentation, warnings-
-denied all-target checks, and zero stale source/dependency rows.
+family and future-version twins, compiled and executed documentation, one
+source-bound bundle of feature-isolated builds for every process support
+binary with a dependency-only rebuild proof, warnings-denied all-target checks,
+and zero stale source/dependency rows.
 
 **Next may trust:** only the destination authority path and continuing
 successor-owned surfaces remain.

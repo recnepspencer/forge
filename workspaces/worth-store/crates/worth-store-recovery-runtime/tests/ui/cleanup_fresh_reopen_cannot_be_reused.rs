@@ -3,7 +3,7 @@ use worth_store::physical_runtime::{
     PhysicalRecoveryCoordination,
 };
 use worth_store_physical_format::VerifiedCheckpointStream;
-use worth_store_recovery_physics::VerifiedWalArtifact;
+use worth_store::physical_runtime::recovery_wal::VerifiedWalArtifact;
 
 fn reuse_fresh_reopen(
     coordination: &PhysicalRecoveryCoordination,

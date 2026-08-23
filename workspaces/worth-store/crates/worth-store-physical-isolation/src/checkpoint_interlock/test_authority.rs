@@ -8,35 +8,30 @@ use crate::{
     CheckpointPublicationIdentity, CheckpointPublicationRoot, CheckpointPublicationRootBasis,
     CurrentPhysicalRoot, CurrentPhysicalRootBasis, PhysicalOrderingContract,
 };
+use std::num::NonZeroU64;
 use worth_store_physical_format::{
-    PhysicalGeneration, PhysicalGenerationAuthority, PhysicalReferenceAuthority,
-    PhysicalRootReference,
-};
-use worth_store_recovery_physics::{
-    CheckpointCoveredLsnRange, CheckpointCutoverReceipt, CheckpointManifest,
-    CheckpointPageLsnFrontier, CheckpointRedoBoundary, CheckpointRootPosture, CheckpointValidation,
-    IntegrityDamageMap, LocatedCheckpointCandidate, LogSequenceNumber, PageLsn,
-    SharpCheckpointCertificationMode,
+    inspect_checkpoint_stream, store_namespace::ProposedStoreIdentity,
+    store_namespace::StoreNamespaceIdentityRecord, store_namespace::StoreNamespaceVersion,
+    CheckpointBindingCompactionHeader, CheckpointRootBasis, CheckpointStreamEncoder,
+    CheckpointWalSourceRange, PhysicalCheckpointIdentity, PhysicalCheckpointSource,
+    VerifiedCheckpointStream,
 };
 
 pub fn read_during_checkpoint_verdict_for_certification_test() -> ReadDuringCheckpointVerdict {
     let old_root = current_root_for_certification_test(41);
     let new_root = current_root_for_certification_test(42);
-    let validation = checkpoint_validation_for_certification_test();
+    let checkpoint = checkpoint_for_certification_test();
     let checkpoint_root = CheckpointPublicationRoot::from_checkpoint_publication(
         CheckpointPublicationRootBasis::new(new_root.epoch()),
         PhysicalOrderingContract::root_swap_acquire_release(),
-        CheckpointPublicationIdentity::from_checkpoint_id(validation.checkpoint_id()),
+        CheckpointPublicationIdentity::from_physical_checkpoint_identity(
+            checkpoint.source().identity(),
+        ),
     )
     .expect("certification checkpoint root should admit");
-    let cutover_receipt = CheckpointCutoverReceipt::for_certification_test(&validation);
-    let readmission = CheckpointPublicationReadmission::admit(
-        checkpoint_root,
-        new_root,
-        &validation,
-        cutover_receipt,
-    )
-    .expect("certification checkpoint readmission should admit");
+    let readmission =
+        CheckpointPublicationReadmission::admit(checkpoint_root, new_root, &checkpoint)
+            .expect("certification checkpoint readmission should admit");
     let transition = CheckpointRootEpochTransition::admit(old_root, readmission)
         .expect("certification checkpoint transition should admit");
     let pre_read = stable_physical_read_receipt_for_certification_root(old_root, 64);
@@ -50,45 +45,29 @@ pub fn read_during_checkpoint_verdict_for_certification_test() -> ReadDuringChec
         .expect("certification checkpoint verdict should admit")
 }
 
-fn checkpoint_validation_for_certification_test() -> CheckpointValidation {
-    let manifest = CheckpointManifest::sharp(
-        CheckpointRootPosture::root_present(
-            PhysicalReferenceAuthority::for_canonical_physical_format()
-                .admit_root_publication(
-                    PhysicalGenerationAuthority::for_canonical_physical_format()
-                        .root_publication_cell(
-                            PhysicalRootReference::from_raw(1).expect("root reference"),
-                        )
-                        .with_root_publication_generation(
-                            PhysicalGeneration::from_raw(1).expect("generation"),
-                        ),
-                )
-                .reference(),
+fn checkpoint_for_certification_test() -> VerifiedCheckpointStream {
+    let store_identity = StoreNamespaceIdentityRecord::new(
+        StoreNamespaceVersion::CURRENT,
+        ProposedStoreIdentity::from_nonzero_bytes([7; 16]).expect("store identity"),
+    )
+    .published_identity();
+    let source = PhysicalCheckpointSource::concurrent(
+        PhysicalCheckpointIdentity::new(
+            store_identity,
+            NonZeroU64::new(1).expect("checkpoint sequence"),
         ),
-        CheckpointPageLsnFrontier::from_pages([(
-            worth_store_physical_format::PhysicalGenerationAuthority::for_canonical_physical_format()
-                .page_cell(
-                    worth_store_physical_format::PhysicalSegmentId::from_raw(1).expect("segment"),
-                    worth_store_physical_format::PhysicalPageId::from_raw(1).expect("page"),
-                )
-                .with_page_generation(
-                    worth_store_physical_format::PhysicalGeneration::from_raw(1)
-                        .expect("generation"),
-                ),
-            PageLsn::from_lsn(LogSequenceNumber::new(12)),
-        )])
-        .expect("page lsn frontier"),
-        CheckpointCoveredLsnRange::new(LogSequenceNumber::new(10), LogSequenceNumber::new(20))
-            .expect("covered range"),
-        CheckpointRedoBoundary::from_page_lsn(PageLsn::from_lsn(LogSequenceNumber::new(12))),
-        SharpCheckpointCertificationMode::certified(),
-    )
-    .expect("certification checkpoint manifest should admit");
-    CheckpointValidation::validate_located_checkpoint(
-        LocatedCheckpointCandidate::from_manifest_for_certification_test(manifest),
-        &IntegrityDamageMap::new(),
-    )
-    .expect("certification checkpoint validation should admit")
+        CheckpointWalSourceRange::new(10, 20).expect("checkpoint WAL range"),
+        CheckpointRootBasis::new(1, 1),
+        1,
+    );
+    let (encoder, mut bytes) = CheckpointStreamEncoder::begin(source);
+    let (encoder, compaction_header) = encoder.begin_binding_compaction(
+        CheckpointBindingCompactionHeader::new(1, 12).expect("compaction binding header"),
+    );
+    bytes.extend(compaction_header);
+    let (_footer, footer) = encoder.finish();
+    bytes.extend(footer);
+    inspect_checkpoint_stream(&bytes, 0, 0).expect("certification checkpoint stream")
 }
 
 fn current_root_for_certification_test(seed: u64) -> CurrentPhysicalRoot {

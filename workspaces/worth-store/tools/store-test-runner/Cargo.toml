@@ -12,11 +12,14 @@ sha2 = "0.10"
 tempfile = "3"
 worth-store = { workspace = true, optional = true }
 worth-store-physical-certification = { workspace = true, optional = true }
+worth-store-recovery-runtime = { workspace = true, optional = true }
+worth-store-process-bundle.workspace = true
 
 [features]
 physical-work-evidence = [
     "dep:worth-store",
     "dep:worth-store-physical-certification",
+    "dep:worth-store-recovery-runtime",
     "worth-store/certification-test-authority",
 ]
 

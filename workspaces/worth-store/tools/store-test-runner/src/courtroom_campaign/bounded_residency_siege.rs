@@ -32,7 +32,6 @@ pub(super) struct BoundedResidencySiegeRequest<'path> {
 }
 
 struct BoundedResidencyScheduleSelection {
-    source: worth_store::physical_runtime::PhysicalWorkSourceBinding,
     source_schedule: schedule::SourceClosureScheduleSeeds,
     schedule: schedule::SchedulePerturbationPlan,
     termination_points: Vec<schedule::C7DurabilityCrashSeam>,
@@ -64,13 +63,13 @@ impl<'path> PreparedBoundedResidencySiege<'path> {
         workspace: &Path,
         request: BoundedResidencySiegeRequest<'path>,
     ) -> Result<Self, String> {
-        let selection = BoundedResidencyScheduleSelection::derive(workspace, request)?;
         let campaign_started = Instant::now();
         let report_session = report_publication::CourtroomReportSession::begin(request.report)?;
         let mut timings = timing::BoundedResidencySiegeTimings::new();
         let controlled_cases = load_controlled_cases(workspace, request, &mut timings)?;
         let world = create_world(request.target_root, &mut timings)?;
-        let binaries = build_binaries(workspace, &selection.source, &mut timings)?;
+        let binaries = build_binaries(workspace, &mut timings)?;
+        let selection = BoundedResidencyScheduleSelection::derive(binaries.source(), request)?;
         let rerun = bind_rerun(request, &selection, &mut timings)?;
         print_replay(&selection, &rerun);
         Ok(Self {
@@ -140,8 +139,10 @@ impl<'path> PreparedBoundedResidencySiege<'path> {
 }
 
 impl BoundedResidencyScheduleSelection {
-    fn derive(workspace: &Path, request: BoundedResidencySiegeRequest<'_>) -> Result<Self, String> {
-        let source = binary_binding::bind_source_closure(workspace)?;
+    fn derive(
+        source: &worth_store::physical_runtime::PhysicalWorkSourceBinding,
+        request: BoundedResidencySiegeRequest<'_>,
+    ) -> Result<Self, String> {
         let source_schedule = schedule::SourceClosureScheduleSeeds::derive(source.digest().bytes())
             .map_err(|denial| format!("source-closure schedule derivation denied: {denial:?}"))?;
         let schedule = match (request.schedule_seed, request.ci_schedule_lane) {
@@ -164,7 +165,6 @@ impl BoundedResidencyScheduleSelection {
             request.termination_point,
         )?;
         Ok(Self {
-            source,
             source_schedule,
             schedule,
             termination_points,
@@ -201,11 +201,9 @@ fn create_world(
 
 fn build_binaries(
     workspace: &Path,
-    source: &worth_store::physical_runtime::PhysicalWorkSourceBinding,
     timings: &mut timing::BoundedResidencySiegeTimings,
 ) -> Result<binary_binding::BuiltCourtroomExecutables, String> {
     let binaries = binary_binding::BuiltCourtroomExecutables::build(workspace)?;
-    binaries.require_source_binding(source)?;
     timings.record(
         timing::BoundedResidencySiegePhase::BinaryBuild,
         binaries.cargo_build_elapsed(),

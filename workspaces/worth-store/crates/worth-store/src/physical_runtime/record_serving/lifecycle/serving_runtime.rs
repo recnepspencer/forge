@@ -150,6 +150,25 @@ impl ServingPhysicalRuntime {
         )
     }
 
+    /// Installs a bounded production C4 pause at one physical mutation seam.
+    ///
+    /// The gate controls scheduling of the ordinary mutation worker; it does
+    /// not mint an alternate publication or residency authority.
+    pub fn pause_physical_mutation_at(
+        &self,
+        checkpoint: crate::physical_runtime::production::PhysicalMutationCheckpoint,
+    ) -> crate::physical_runtime::production::PhysicalMutationPauseGate {
+        self.parts.publication.pause_mutation_at(checkpoint)
+    }
+
+    /// Installs a bounded production C4 pause at one checkpoint effect seam.
+    pub fn pause_physical_checkpoint_at(
+        &self,
+        step: crate::physical_runtime::production::PhysicalCheckpointStep,
+    ) -> crate::physical_runtime::production::PhysicalCheckpointPauseGate {
+        self.parts.checkpoint.pause_at(step)
+    }
+
     pub fn observer(&self) -> PhysicalRecordObserver {
         let (lifecycle, lease) = self.parts.core.media_observation_parts();
         let media = PhysicalMediaObserver::for_record_serving(

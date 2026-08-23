@@ -21,11 +21,8 @@ pub enum LayoutOwnerFamily {
     LsmLookupReadiness,
     LsmLookupExecution,
     ImportedBlobReadAdmission,
-    ExactBTreePublication,
     LiveMaintenancePosture,
     LayoutMutationAdmission,
-    CopyOnWriteMutationExecution,
-    LiveExactMaintenance,
     DerivedIndexParity,
     DerivedIndexRebuildAdmission,
     DerivedIndexRebuildExecution,
@@ -34,11 +31,7 @@ pub enum LayoutOwnerFamily {
     LsmCompactionAdmission,
     LayoutBindingAdmission,
     MigrationPlanning,
-    MigrationExecution,
-    MigrationInterruption,
     RollbackPlanning,
-    RollbackExecution,
-    RollbackInterruption,
     BackwardReadCompatibility,
     CorruptionClassification,
     QuarantineReadmission,
@@ -57,7 +50,7 @@ pub enum LayoutOwnerFamily {
 }
 
 impl LayoutOwnerFamily {
-    pub const fn all() -> [Self; 54] {
+    pub const fn all() -> [Self; 47] {
         [
             Self::ArtifactFamilyAdmission,
             Self::PhysicalKeyDomainAdmission,
@@ -80,11 +73,8 @@ impl LayoutOwnerFamily {
             Self::LsmLookupReadiness,
             Self::LsmLookupExecution,
             Self::ImportedBlobReadAdmission,
-            Self::ExactBTreePublication,
             Self::LiveMaintenancePosture,
             Self::LayoutMutationAdmission,
-            Self::CopyOnWriteMutationExecution,
-            Self::LiveExactMaintenance,
             Self::DerivedIndexParity,
             Self::DerivedIndexRebuildAdmission,
             Self::DerivedIndexRebuildExecution,
@@ -93,11 +83,7 @@ impl LayoutOwnerFamily {
             Self::LsmCompactionAdmission,
             Self::LayoutBindingAdmission,
             Self::MigrationPlanning,
-            Self::MigrationExecution,
-            Self::MigrationInterruption,
             Self::RollbackPlanning,
-            Self::RollbackExecution,
-            Self::RollbackInterruption,
             Self::BackwardReadCompatibility,
             Self::CorruptionClassification,
             Self::QuarantineReadmission,

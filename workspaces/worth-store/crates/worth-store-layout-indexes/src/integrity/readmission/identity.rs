@@ -1,5 +1,5 @@
+use super::authority::RecoveryLayoutReadmissionIdentity;
 use sha2::{Digest, Sha256};
-use worth_store_recovery_physics::RecoveryLayoutReadmissionIdentity;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LayoutReadmissionIdentity([u8; 32]);

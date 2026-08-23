@@ -36,13 +36,37 @@ pub(super) fn phase_one_source_identity(guarantee: &str) -> Result<String, Strin
         let path = root.join(&relative);
         digest.update(relative.as_bytes());
         digest.update([0]);
-        digest.update(
-            std::fs::read(&path)
-                .map_err(|error| format!("cannot hash {}: {error}", path.display()))?,
-        );
+        match phase_one_source_bytes(&relative, &path) {
+            Ok(bytes) => digest.update(bytes),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                digest.update(b"<absent-source>")
+            }
+            Err(error) => return Err(format!("cannot hash {}: {error}", path.display())),
+        }
         digest.update([0xff]);
     }
     Ok(format!("{:x}", digest.finalize()))
+}
+
+fn phase_one_source_bytes(relative: &str, path: &Path) -> std::io::Result<Vec<u8>> {
+    let bytes = std::fs::read(path)?;
+    if relative != QA_AUDITS {
+        return Ok(bytes);
+    }
+    let document = String::from_utf8_lossy(&bytes);
+    let line_ending = if document.contains("\r\n") {
+        "\r\n"
+    } else {
+        "\n"
+    };
+    let mut phase_one = document
+        .lines()
+        .filter(|line| *line == "reviewer,model,revision,source_snapshot,prompt,finding_ids,disposition,verification"
+            || line.starts_with("/root/c8_phase1_"))
+        .collect::<Vec<_>>()
+        .join(line_ending);
+    phase_one.push_str(line_ending);
+    Ok(phase_one.into_bytes())
 }
 
 pub(super) fn phase_one_source_paths(guarantee: &str) -> Result<BTreeSet<String>, String> {

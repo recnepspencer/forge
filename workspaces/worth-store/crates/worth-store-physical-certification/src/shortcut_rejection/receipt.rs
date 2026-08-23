@@ -42,7 +42,7 @@ pub enum ShortcutRejectionBoundary {
     EvidenceSameRunTranscript,
     EvidenceLooseLogTranscript,
     EvidenceTerminalJsonTranscript,
-    HarnessBoundaryCopiedS4Report,
+    HarnessBoundaryCopiedRecoveryReport,
     HarnessBoundaryLogOutput,
     HarnessBoundarySameRunSelfComparison,
     HarnessBoundaryTerminalProjection,

@@ -1,4 +1,5 @@
 mod admitted;
+mod completion;
 mod discovered;
 mod namespace_durable;
 mod planned;
@@ -12,6 +13,9 @@ pub(crate) use planned::{
 };
 
 pub use admitted::AdmittedPhysicalRecovery;
+pub use completion::RecoveryCompletion;
+#[cfg(feature = "certification-test-authority")]
+pub use completion::{complete_recovery, RecoveryCompletionDenial};
 pub use discovered::{DiscoveredPhysicalRecovery, PhysicalRecoveryDiscoveryCounters};
 pub use namespace_durable::NamespaceDurablePhysicalRecovery;
 pub(crate) use namespace_durable::NamespaceDurableState;

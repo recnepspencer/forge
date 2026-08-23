@@ -11,6 +11,7 @@ sha2 = "0.10"
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-proof = { path = "../../../../crates/worth-proof" }
 worth-store.workspace = true
+worth-store-authority.workspace = true
 worth-store-contracts.workspace = true
 worth-store-aspect-native.workspace = true
 worth-store-physical-format.workspace = true

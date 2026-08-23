@@ -1,7 +1,7 @@
-use worth_store_physical_integrity::{QuarantineHandoffPosture, QuarantineRecord};
-use worth_store_recovery_physics::{
+use worth_store_layout_indexes::integrity::{
     RecoveryLayoutReadmissionAdmissionDenial, RecoveryLayoutReadmissionOutcomeView,
 };
+use worth_store_physical_integrity::{QuarantineHandoffPosture, QuarantineRecord};
 
 use super::QuarantineReadmissionState;
 

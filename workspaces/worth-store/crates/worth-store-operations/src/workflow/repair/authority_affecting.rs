@@ -1,5 +1,9 @@
 use std::path::{Path, PathBuf};
 
+use crate::workflow::restore::{
+    BackupRestoreReplayDenial, BackupRestoreReplayOwner, BackupRestoreReplayPlan,
+    BackupRestoreReplayRequest,
+};
 use worth_store_authority::StoreCurrentAuthorityWitness;
 use worth_store_physical_backend::{
     LoweredNonCurrentStagingPlan, NonCurrentStagingLoweringDenial, NonCurrentStagingPlanRequest,
@@ -8,10 +12,6 @@ use worth_store_physical_backend::{
 use worth_store_physical_integrity::{
     IntegrityOperationalRepairOwner, IntegrityRepairClassificationDenial,
     IntegrityRepairClassificationPlan,
-};
-use worth_store_recovery_physics::{
-    BackupRestoreReplayDenial, BackupRestoreReplayPlan, BackupRestoreReplayRequest,
-    RecoveryPhysicsBackupRestoreOwner,
 };
 
 use crate::authorization::{
@@ -94,14 +94,13 @@ impl AuthorityAffectingStagedRepairPlan {
             .structural()
             .materialized()
             .manifest_digest();
-        let recovery = RecoveryPhysicsBackupRestoreOwner::lower(
-            BackupRestoreReplayRequest::from_verified_backup(
+        let recovery =
+            BackupRestoreReplayOwner::lower(BackupRestoreReplayRequest::from_verified_backup(
                 manifest,
                 source_identity,
                 backend.binding(),
-            ),
-        )
-        .map_err(AuthorityAffectingRepairLoweringDenial::Recovery)?;
+            ))
+            .map_err(AuthorityAffectingRepairLoweringDenial::Recovery)?;
         let layout = worth_store_layout_indexes::LayoutRepairConsequenceOwner::lower(
             integrity.regions(),
             backend.binding(),

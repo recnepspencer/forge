@@ -14,18 +14,6 @@ impl LayoutOwnerObservationLedger {
         worth_store_layout_indexes::evolution::migration::MigrationPlanningCaseId,
         as_str
     );
-    record_layout_observation!(
-        record_migration_execution,
-        MigrationExecution,
-        worth_store_layout_indexes::evolution::migration::LayoutMigrationExecutionCaseId,
-        as_str
-    );
-    record_layout_observation!(
-        record_migration_interruption,
-        MigrationInterruption,
-        worth_store_layout_indexes::evolution::migration::LayoutMigrationInterruptionCaseId,
-        as_str
-    );
     pub fn record_rollback_planning(
         &mut self,
         observed: worth_store_layout_indexes::OwnerCaseObservation<
@@ -39,27 +27,6 @@ impl LayoutOwnerObservationLedger {
         self.record(super::LayoutOwnerFamily::RollbackPlanning, case.as_str());
     }
 
-    pub fn record_rollback_execution(
-        &mut self,
-        observed: worth_store_layout_indexes::OwnerCaseObservation<
-            worth_store_layout_indexes::evolution::migration::LayoutRollbackExecutionCaseId,
-        >,
-    ) {
-        use worth_store_layout_indexes::evolution::migration::{
-            LayoutEvolutionDenialKind as Denial, LayoutRollbackExecutionCaseId as Case,
-        };
-        let case = observed.case_id();
-        if case == Case::Denied(Denial::PhysicalPublicationSourceMismatch) {
-            self.record_executed_evidence(Evidence::RollbackPublicationSourceDenied);
-        }
-        self.record(super::LayoutOwnerFamily::RollbackExecution, case.as_str());
-    }
-    record_layout_observation!(
-        record_rollback_interruption,
-        RollbackInterruption,
-        worth_store_layout_indexes::evolution::migration::LayoutRollbackInterruptionCaseId,
-        as_str
-    );
     pub fn record_backward_read_compatibility(
         &mut self,
         observed: worth_store_layout_indexes::OwnerCaseObservation<

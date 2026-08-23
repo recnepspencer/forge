@@ -1,6 +1,5 @@
 mod exploration;
 mod identity;
-mod owner_execution;
 
 use worth_store_physical_certification::{
     lower_physical_simulation_plan, physical_scenario, ForbiddenShortcutSet,
@@ -8,8 +7,8 @@ use worth_store_physical_certification::{
     PhysicalScenarioActor, PhysicalScenarioActorRole, PhysicalScenarioExpectation,
     PhysicalScenarioIntent, PhysicalScenarioSchedule, PhysicalSimulationCapabilitySet,
     PhysicalSimulationProfile, PhysicalSimulationProfileSet, PhysicalSimulationScenarioFamily,
-    ReplaySeed, SimulationEvidencePolicy, SimulationPlanningContext, StateSpaceBudget,
-    SupportedObserverSet, SupportedOracleFamilySet,
+    SchedulePerturbationSeed, SimulationEvidencePolicy, SimulationPlanningContext,
+    StateSpaceBudget, SupportedObserverSet, SupportedOracleFamilySet,
 };
 use worth_store_test_support::{
     admitted_developer_smoke_driver_contracts, developer_smoke_state_space_budget,
@@ -24,7 +23,7 @@ fn schedule_for(
     profile: PhysicalSimulationProfile,
     first_actor: PhysicalScenarioActor,
     second_actor: PhysicalScenarioActor,
-    seed: ReplaySeed,
+    seed: SchedulePerturbationSeed,
     budget: StateSpaceBudget,
 ) -> PhysicalInterleavingSchedule {
     let plan = lower_physical_simulation_plan(

@@ -30,7 +30,7 @@ pub(crate) fn line_cap_module_evidence() -> Vec<IntegrityModuleCompositionEviden
         ),
         checked_module(
             IntegrityCloseoutModuleKind::Handoff,
-            recovery_physics("integrity_handoff/mod.rs"),
+            physical_integrity("recovery_handoff/integrity_handoff/mod.rs"),
             cap,
         ),
         checked_module(
@@ -111,8 +111,4 @@ fn certification_scenario_dir() -> PathBuf {
 
 fn physical_integrity(file: &str) -> PathBuf {
     store_crate_source("worth-store-physical-integrity").join(file)
-}
-
-fn recovery_physics(file: &str) -> PathBuf {
-    store_crate_source("worth-store-recovery-physics").join(file)
 }

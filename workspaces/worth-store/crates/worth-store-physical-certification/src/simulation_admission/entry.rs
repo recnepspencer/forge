@@ -1,4 +1,5 @@
-use worth_store_recovery_physics::{PageLsn, RecoveryCounterSnapshot};
+use worth_store_recovery_physics::PageLsn;
+use worth_store_recovery_runtime::RecoveryCompletion;
 
 use super::inventory::ExistingSimulationHarnessInventory;
 use super::non_claims::{SimulationHarnessNonClaim, REQUIRED_S45_ENTRY_NON_CLAIMS};
@@ -46,7 +47,7 @@ pub struct SimulationHarnessEntry {
     recovered_root: String,
     admitted_page_lsn_frontier: Option<PageLsn>,
     source_decision_digest: String,
-    recovery_counters: RecoveryCounterSnapshot,
+    recovery_completion: RecoveryCompletion,
     roadmap_requirements: SimulationHarnessRoadmapRequirementSet,
     inventory: ExistingSimulationHarnessInventory,
     non_claims: Vec<SimulationHarnessNonClaim>,
@@ -55,8 +56,7 @@ pub struct SimulationHarnessEntry {
 impl SimulationHarnessEntry {
     pub(crate) fn from_admitted_request(
         request: SimulationHarnessEntryRequest,
-        admitted_page_lsn_frontier: Option<PageLsn>,
-        recovery_counters: RecoveryCounterSnapshot,
+        recovery_completion: RecoveryCompletion,
     ) -> Self {
         let (recovered_root, source_decision_digest, roadmap_requirements, inventory) =
             request.into_admitted_parts();
@@ -68,9 +68,9 @@ impl SimulationHarnessEntry {
         Self {
             identity,
             recovered_root,
-            admitted_page_lsn_frontier,
+            admitted_page_lsn_frontier: recovery_completion.admitted_page_lsn_frontier(),
             source_decision_digest,
-            recovery_counters,
+            recovery_completion,
             roadmap_requirements,
             inventory,
             non_claims: REQUIRED_S45_ENTRY_NON_CLAIMS.to_vec(),
@@ -93,8 +93,16 @@ impl SimulationHarnessEntry {
         &self.source_decision_digest
     }
 
-    pub const fn recovery_counters(&self) -> RecoveryCounterSnapshot {
-        self.recovery_counters
+    pub const fn recovery_completion(&self) -> &RecoveryCompletion {
+        &self.recovery_completion
+    }
+
+    pub const fn replayed_frames(&self) -> usize {
+        self.recovery_completion.replayed_frames()
+    }
+
+    pub const fn source_candidate_count(&self) -> usize {
+        self.recovery_completion.source_candidate_count()
     }
 
     pub const fn roadmap_requirements(&self) -> &SimulationHarnessRoadmapRequirementSet {
@@ -109,7 +117,7 @@ impl SimulationHarnessEntry {
         &self.non_claims
     }
 
-    pub fn accepts_recovery_receipt_and_harness_evidence(&self) -> bool {
+    pub fn accepts_recovery_completion_and_harness_evidence(&self) -> bool {
         self.roadmap_requirements.is_complete()
             && self
                 .non_claims

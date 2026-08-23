@@ -1,6 +1,6 @@
 use super::*;
 use worth_store_physical_certification::{
-    explore_physical_interleavings, ScheduleExplorationCompletion,
+    explore_physical_interleavings, ScheduleExplorationCompletion, SchedulePerturbationSeed,
 };
 
 #[test]
@@ -12,7 +12,7 @@ fn exploration_enumerates_real_actor_orders_and_reports_bound_exhaustion() {
     .unwrap();
     let complete = explore_physical_interleavings(
         &plan,
-        ReplaySeed::from_u64(11),
+        SchedulePerturbationSeed::from_u64(11),
         StateSpaceBudget::bounded_steps(18).unwrap(),
     )
     .unwrap();
@@ -38,7 +38,7 @@ fn exploration_enumerates_real_actor_orders_and_reports_bound_exhaustion() {
 
     let bounded = explore_physical_interleavings(
         &plan,
-        ReplaySeed::from_u64(11),
+        SchedulePerturbationSeed::from_u64(11),
         StateSpaceBudget::bounded_steps(9).unwrap(),
     )
     .unwrap();

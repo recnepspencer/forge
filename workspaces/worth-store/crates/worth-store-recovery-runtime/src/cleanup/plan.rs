@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 
+use worth_store::physical_runtime::recovery_wal::WalSegmentArtifactIdentity;
 use worth_store_physical_format::{PhysicalCheckpointIdentity, RecordArtifactFile};
-use worth_store_recovery_physics::{PhysicalSourceSelection, WalSegmentArtifactIdentity};
+use worth_store_recovery_physics::PhysicalSourceSelection;
 
 use crate::entry::PhysicalRecoveryLimitDeclaration;
 use crate::handoff::RecoveryOperationFateSet;

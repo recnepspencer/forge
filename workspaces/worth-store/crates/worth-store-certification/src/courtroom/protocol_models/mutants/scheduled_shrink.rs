@@ -24,7 +24,7 @@ pub(super) struct ScheduledCounterexampleShrink {
 
 pub(super) fn shrink_mapped_counterexample_schedule(
     mutant: ControlledProtocolMutant,
-    seed: worth_store_physical_certification::ReplaySeed,
+    seed: worth_store_physical_certification::SchedulePerturbationSeed,
     concrete_guard: ConcreteCounterexampleGuard,
     transcript: &CanonicalProtocolTrace,
     mut rerun_guard: impl FnMut() -> ConcreteCounterexampleGuard,
@@ -97,7 +97,7 @@ fn is_admitted_subsequence(
 
 fn counterexample_schedule(
     mutant: ControlledProtocolMutant,
-    seed: worth_store_physical_certification::ReplaySeed,
+    seed: worth_store_physical_certification::SchedulePerturbationSeed,
 ) -> Result<PhysicalInterleavingSchedule, CounterexamplePhysicalReplayDenial> {
     let actor = scheduled_actor(mutant);
     let scenario = physical_scenario(format!("store.protocol.counterexample.{mutant:?}"))
@@ -228,7 +228,7 @@ mod tests {
     fn admitted_schedule_dispatches_the_owner_once() {
         let schedule = counterexample_schedule(
             MUTANT,
-            worth_store_physical_certification::ReplaySeed::from_u64(1),
+            worth_store_physical_certification::SchedulePerturbationSeed::from_u64(1),
         )
         .expect("counterexample schedule should lower");
         let mut executions = 0;
@@ -249,7 +249,7 @@ mod tests {
     fn deleting_either_required_actor_prevents_owner_execution() {
         let schedule = counterexample_schedule(
             MUTANT,
-            worth_store_physical_certification::ReplaySeed::from_u64(1),
+            worth_store_physical_certification::SchedulePerturbationSeed::from_u64(1),
         )
         .expect("counterexample schedule should lower");
         for removed_actor in [SCHEDULE_BOUNDARY_ACTOR, COUNTEREXAMPLE_OWNER_ACTOR] {

@@ -1,20 +1,27 @@
 use serde::{Deserialize, Serialize};
 
 const ORDINARY_EXECUTION_LIMIT_MS: u64 = 180_000;
+const ISOLATED_CAMPAIGN_LIMIT_MS: u64 = 300_000;
 const NESTED_EXECUTABLE_COLD_LIMIT_MS: u64 = 300_000;
+const FRESH_PROCESS_COLD_LIMIT_MS: u64 = 600_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub(super) enum MutationExecutionClass {
+pub(crate) enum MutationExecutionClass {
+    /// Retained only to decode earlier bounded campaign records.
     Ordinary,
+    IsolatedCampaign,
     NestedExecutableCold,
+    FreshProcessCold,
 }
 
 impl MutationExecutionClass {
     pub(super) const fn limit_ms(self) -> u64 {
         match self {
             Self::Ordinary => ORDINARY_EXECUTION_LIMIT_MS,
+            Self::IsolatedCampaign => ISOLATED_CAMPAIGN_LIMIT_MS,
             Self::NestedExecutableCold => NESTED_EXECUTABLE_COLD_LIMIT_MS,
+            Self::FreshProcessCold => FRESH_PROCESS_COLD_LIMIT_MS,
         }
     }
 
@@ -72,6 +79,19 @@ pub(crate) struct MutationObservation {
     pub(crate) actual_failing_predicate: String,
     pub(crate) localization: String,
     pub(crate) execution: MutationExecutionEvidence,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) transcript: Option<MutationExecutionTranscript>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct MutationExecutionTranscript {
+    pub(crate) exit_code: Option<i32>,
+    pub(crate) stdout_sha256: String,
+    pub(crate) stdout_bytes: u64,
+    pub(crate) stderr_sha256: String,
+    pub(crate) stderr_bytes: u64,
+    pub(crate) causal_lines: Vec<String>,
 }
 
 pub(super) fn encode(observation: &MutationObservation) -> Result<String, String> {
@@ -174,6 +194,26 @@ mod tests {
         assert_eq!(MutationExecutionClass::Ordinary.limit_ms(), 180_000);
         assert!(MutationExecutionEvidence::bind(
             MutationExecutionClass::NestedExecutableCold,
+            std::time::Duration::from_millis(240_000),
+        )
+        .is_ok());
+    }
+
+    #[test]
+    fn fresh_process_cases_retain_process_build_headroom() {
+        assert_eq!(MutationExecutionClass::FreshProcessCold.limit_ms(), 600_000);
+        assert!(MutationExecutionEvidence::bind(
+            MutationExecutionClass::FreshProcessCold,
+            std::time::Duration::from_millis(480_000),
+        )
+        .is_ok());
+    }
+
+    #[test]
+    fn isolated_campaign_cases_include_their_first_cold_compile() {
+        assert_eq!(MutationExecutionClass::IsolatedCampaign.limit_ms(), 300_000);
+        assert!(MutationExecutionEvidence::bind(
+            MutationExecutionClass::IsolatedCampaign,
             std::time::Duration::from_millis(240_000),
         )
         .is_ok());

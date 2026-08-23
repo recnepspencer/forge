@@ -56,7 +56,7 @@ fn same_shortcut_kind_from_wrong_boundary_cannot_satisfy_required_boundary() {
         .retain(|receipt| receipt.boundary() != ShortcutRejectionBoundary::TranscriptCopiedFields);
     receipts.push(
         shortcut_denial_from_harness_boundary_denial(
-            SimulationHarnessBoundaryDenial::CopiedS4ReportCannotAdmitEntry,
+            SimulationHarnessBoundaryDenial::CopiedRecoveryReportCannotAdmitEntry,
         )
         .unwrap(),
     );
@@ -194,7 +194,7 @@ fn complete_shortcut_denial_receipts() -> Vec<SyntheticHarnessShortcutDenialRece
 #[test]
 fn harness_boundary_denials_can_feed_shortcut_receipts_without_owning_evidence() {
     let copied = shortcut_denial_from_harness_boundary_denial(
-        SimulationHarnessBoundaryDenial::CopiedS4ReportCannotAdmitEntry,
+        SimulationHarnessBoundaryDenial::CopiedRecoveryReportCannotAdmitEntry,
     )
     .unwrap();
     let log = shortcut_denial_from_oracle_denial(log_only_oracle_attempt().unwrap_err()).unwrap();

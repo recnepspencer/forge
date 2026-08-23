@@ -151,14 +151,20 @@ mod tests {
     };
 
     use super::*;
-    use crate::{admit_physical_root_slot, PhysicalRootSlotObservation};
+    use crate::{
+        admit_physical_root_slot, PhysicalRootCandidateDenial, PhysicalRootSlotObservation,
+    };
 
     #[test]
     fn current_role_wins_even_when_previous_has_the_higher_generation() {
         let current = slot(RootSelectorRole::Current, 20, 2, Some((19, 9)));
         let previous = slot(RootSelectorRole::Previous, 19, 9, Some((20, 2)));
         let selected = select_current_previous_root(current, previous, None).unwrap();
-        assert_eq!(selected.role(), SelectedPhysicalRootRole::Current);
+        assert_eq!(
+            selected.role(),
+            SelectedPhysicalRootRole::Current,
+            "MUTANT_PREDICATE:c8-current-selector-outranks-higher-generation"
+        );
         assert_eq!(selected.selected().manifest().generation(), 2);
         assert_eq!(
             selected
@@ -224,6 +230,65 @@ mod tests {
     }
 
     #[test]
+    fn root_generation_mismatch_is_rejected() {
+        let selector = selector(RootSelectorRole::Current, 20, 2, None);
+        let manifest = manifest(3).encode(format());
+        let observed = admit_physical_root_slot(
+            store(),
+            RootSelectorRole::Current,
+            Some(&selector.encode()),
+            Some(&manifest),
+            4,
+        );
+        assert_eq!(
+            observed.rejection().map(|(denial, _)| denial),
+            Some(PhysicalRootCandidateDenial::RootGenerationMismatch),
+            "MUTANT_PREDICATE:c8-root-generation-binding-ignored"
+        );
+    }
+
+    #[test]
+    fn foreign_store_root_is_rejected() {
+        let foreign = StoreNamespaceIdentityRecord::new(
+            StoreNamespaceVersion::CURRENT,
+            ProposedStoreIdentity::from_nonzero_bytes([8; 16]).unwrap(),
+        )
+        .published_identity();
+        let selector = selector_for_store(foreign, RootSelectorRole::Current, 20, 2, None);
+        let manifest = manifest(2).encode(format());
+        let observed = admit_physical_root_slot(
+            store(),
+            RootSelectorRole::Current,
+            Some(&selector.encode()),
+            Some(&manifest),
+            4,
+        );
+        assert_eq!(
+            observed.rejection().map(|(denial, _)| denial),
+            Some(PhysicalRootCandidateDenial::ForeignStore),
+            "MUTANT_PREDICATE:c8-store-incarnation-binding-ignored"
+        );
+    }
+
+    #[test]
+    fn wrong_role_root_is_rejected() {
+        let selector = selector(RootSelectorRole::Previous, 20, 2, None);
+        let manifest = manifest(2).encode(format());
+        let observed = admit_physical_root_slot(
+            store(),
+            RootSelectorRole::Current,
+            Some(&selector.encode()),
+            Some(&manifest),
+            4,
+        );
+        assert_eq!(
+            observed.rejection().map(|(denial, _)| denial),
+            Some(PhysicalRootCandidateDenial::WrongRole),
+            "MUTANT_PREDICATE:c8-root-selector-role-binding-ignored"
+        );
+    }
+
+    #[test]
     fn previous_only_publication_prefix_keeps_the_old_current_authoritative() {
         let old_current = slot(RootSelectorRole::Current, 10, 1, None);
         let newly_published_previous = slot(RootSelectorRole::Previous, 19, 1, Some((20, 2)));
@@ -252,8 +317,18 @@ mod tests {
         generation: u64,
         linked: Option<(u64, u64)>,
     ) -> DurableRootSelector {
+        selector_for_store(store(), role, identity, generation, linked)
+    }
+
+    fn selector_for_store(
+        store: StableStoreIdentity,
+        role: RootSelectorRole,
+        identity: u64,
+        generation: u64,
+        linked: Option<(u64, u64)>,
+    ) -> DurableRootSelector {
         DurableRootSelector::new(
-            store(),
+            store,
             format(),
             RootSelectorIdentity::new(identity).unwrap(),
             role,

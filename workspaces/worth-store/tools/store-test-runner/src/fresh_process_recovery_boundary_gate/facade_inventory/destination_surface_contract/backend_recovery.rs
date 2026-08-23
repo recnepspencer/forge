@@ -340,11 +340,6 @@ pub(super) const BACKEND_RECOVERY_SURFACES: &[(&str, &str, &str)] = &[
         "phase-5",
     ),
     (
-        "IndeterminateRecoveryStagingWrite::physical",
-        "worth-store-physical-backend/recovery-media/staging",
-        "phase-5",
-    ),
-    (
         "IndeterminateScheduledRecoveryStagingSynchronization",
         "worth-store-physical-backend/recovery-media/staging",
         "phase-5",

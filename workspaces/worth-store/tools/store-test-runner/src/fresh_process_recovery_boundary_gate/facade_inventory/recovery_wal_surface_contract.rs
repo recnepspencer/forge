@@ -1,0 +1,33 @@
+pub(super) const RECOVERY_WAL_DESTINATION_SURFACES: &[(&str, &str, &str)] = &[
+    ("recovery_wal", "worth-store/recovery-wal", "phase-7"),
+    (
+        "recovery_wal::LogSequenceNumber",
+        "worth-store-wal/wal-topology/lsn",
+        "phase-3",
+    ),
+    (
+        "recovery_wal::VerifiedWalArtifact",
+        "worth-store-wal/artifact-store/segment-inventory/segment-inspection/owned-artifact",
+        "phase-7",
+    ),
+    (
+        "recovery_wal::WalLsnRange",
+        "worth-store-wal/wal-topology/lsn-range",
+        "phase-3",
+    ),
+    (
+        "recovery_wal::WalSegmentArtifactIdentity",
+        "worth-store-wal/artifact-store/segment-inventory/artifact-name",
+        "phase-3",
+    ),
+    (
+        "recovery_wal::WalSegmentGeneration",
+        "worth-store-wal/wal-topology/segment-identity",
+        "phase-3",
+    ),
+    (
+        "recovery_wal::WalSegmentId",
+        "worth-store-wal/wal-topology/segment-identity",
+        "phase-3",
+    ),
+];

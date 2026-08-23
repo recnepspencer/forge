@@ -13,7 +13,6 @@ certification-test-authority = [
     "worth-store-physical-integrity/test-support",
     "worth-store-physical-isolation/certification-authority",
     "worth-store-reclaim-policy/certification-test-authority",
-    "worth-store-recovery-physics/certification-test-authority",
     "worth-store-tiering/certification-test-authority",
     "worth-store-test-support/physical-compaction-fixtures",
 ]
@@ -32,7 +31,6 @@ worth-store-physical-format.workspace = true
 worth-store-physical-integrity.workspace = true
 worth-store-physical-isolation.workspace = true
 worth-store-reclaim-policy.workspace = true
-worth-store-recovery-physics.workspace = true
 worth-store-retention.workspace = true
 worth-store-security.workspace = true
 worth-store-tiering.workspace = true
@@ -48,7 +46,6 @@ worth-store-physical-backend = { workspace = true, features = ["certification-te
 worth-store-io-scheduler = { workspace = true, features = ["certification-test-authority"] }
 worth-store-physical-isolation = { workspace = true, features = ["certification-authority"] }
 worth-store-reclaim-policy = { workspace = true, features = ["certification-test-authority"] }
-worth-store-recovery-physics = { workspace = true, features = ["certification-test-authority"] }
 worth-store-tiering = { workspace = true, features = ["certification-test-authority"] }
 worth-store-test-support = { workspace = true, default-features = false, features = ["physical-isolation-fixtures"] }
 

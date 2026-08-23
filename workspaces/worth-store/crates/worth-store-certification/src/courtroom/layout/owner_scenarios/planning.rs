@@ -1,5 +1,5 @@
 use worth_store_budgets::{PreExecutionBudgetEnvelope, PreExecutionBudgetScope};
-use worth_store_contracts::DurableArtifactFamilyId;
+use worth_store_contracts::{DurableArtifactFamilyId, WalRecordFamily};
 use worth_store_layout_indexes::{
     access_planning, access_shapes, AccessLaneClassification, AccessPlanSelector,
     DegradedExactScanRequest, ObserveOwnerCase, PhysicalMutationShape,
@@ -30,6 +30,20 @@ pub(super) fn execute(ledger: &mut LayoutOwnerObservationLedger) {
     let page_materialization = access_planning()
         .admit_current_catalog_root_materialization(page_family, &catalog)
         .expect("catalog root must admit page materialization");
+    let wal_security = security_scope(
+        SecurityScopeFixtureAuthority::Current,
+        StoreKeyScope::WalCheckpointEnvelope,
+        StoreTenantScope::StoreInternal,
+        StoreAuthenticityRequirement::required(
+            StoreAuthenticityRequirementClass::AuthenticatedWalRecord,
+        ),
+        StoreCustodyPosture::InternalStoreCustody,
+    );
+    let wal_family = admit_family(DurableArtifactFamilyId::PublicationWalIntent, &wal_security);
+    let wal_domain = admit_key_domain(wal_family, &wal_security);
+    let wal_materialization = access_planning()
+        .admit_current_catalog_root_materialization(wal_family, &catalog)
+        .expect("catalog root must admit WAL materialization");
     let page_key = || {
         worth_store_layout_indexes::declarations::layout_declarations()
             .admit_page_key(

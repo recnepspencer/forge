@@ -341,6 +341,7 @@ pub(crate) fn limit_declaration(
         distinct_pages_and_extents: 8,
         operation_bindings: 8,
         staging_bytes: 32 * 1024,
+        recovery_memory_bytes: 1024 * 1024,
         dirty_frames: 8,
         concurrent_commands: 8,
         publication_effects: 4,

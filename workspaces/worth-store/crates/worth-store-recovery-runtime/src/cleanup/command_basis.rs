@@ -114,7 +114,7 @@ impl RecoveryCleanupCommandBasis {
         &self,
         coordination: &worth_store::physical_runtime::PhysicalRecoveryCoordination,
         media: &worth_store::physical_runtime::AdmittedRecoveryFilesystemMedia,
-        artifact: worth_store_recovery_physics::WalSegmentArtifactIdentity,
+        artifact: worth_store::physical_runtime::recovery_wal::WalSegmentArtifactIdentity,
     ) -> StoreCleanupCommandExecution {
         match &self.state {
             RecoveryCleanupCommandState::Active(plan) => StoreCleanupCommandExecution::Attempt(

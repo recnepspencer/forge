@@ -2,6 +2,8 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 
+use worth_store_formal_models::protocol_bindings::OwnerOperationFamily;
+use worth_store_formal_models::protocol_bindings::ProductionOwner;
 use worth_store_formal_models::{
     classify_owner_observation_omission, current_compaction_visibility_mappings,
     current_compaction_visibility_owner_cases, current_protocol_binding_manifest,
@@ -38,19 +40,29 @@ fn every_protocol_is_directly_bound_gapped_or_composed() {
 }
 
 #[test]
-fn replication_model_replaces_the_last_staged_binding_gap() {
+fn retired_import_model_is_explicitly_gapped_while_replication_remains_bound() {
     let manifest = current_protocol_binding_manifest();
     let gaps = manifest
         .gaps()
         .map(|gap| (gap.protocol(), gap.reason()))
         .collect::<BTreeSet<_>>();
-    assert!(gaps.is_empty());
-    assert!(!gaps
-        .iter()
-        .any(|(protocol, _)| *protocol == ProtocolFamily::ImportPublication));
+    assert_eq!(
+        gaps,
+        BTreeSet::from([(
+            ProtocolFamily::ImportPublication,
+            worth_store_formal_models::OwnerBoundaryGapKind::CheckedProtocolModelPending,
+        )])
+    );
     assert!(manifest
         .bindings()
         .any(|binding| binding.protocol() == ProtocolFamily::ImportPublication));
+    assert!(!manifest.bindings().any(|binding| {
+        matches!(
+            binding.operation(),
+            OwnerOperationFamily::ImportPublicationReadiness
+                | OwnerOperationFamily::ImportPublicationCompletion
+        )
+    }));
     assert!(manifest
         .bindings()
         .any(|binding| binding.protocol() == ProtocolFamily::ReplicationAdmission));
@@ -75,12 +87,22 @@ fn staged_models_are_not_exported_before_their_checked_artifacts_exist() {
             "gapped protocol {module_name} must not be exported"
         );
         assert!(
-            !protocols_root.join(module_name).join("model.tla").exists(),
-            "gapped protocol {module_name} must not contain a checked model"
+            !protocol_exports.contains(&format!("pub use {module_name}")),
+            "gapped protocol {module_name} must not be re-exported by the checked facade"
         );
         assert!(
-            !protocols_root.join(module_name).join("model.cfg").exists(),
-            "gapped protocol {module_name} must not contain a model configuration"
+            protocols_root
+                .join(module_name)
+                .join("ImportPublication.tla")
+                .exists(),
+            "gapped protocol {module_name} must retain its staged model source"
+        );
+        assert!(
+            protocols_root
+                .join(module_name)
+                .join("ImportPublication.cfg")
+                .exists(),
+            "gapped protocol {module_name} must retain its staged model configuration"
         );
     }
 }
@@ -178,6 +200,85 @@ fn source_manifest_is_compiler_bound_to_owner_types() {
     assert!(manifest.bindings().all(|binding| {
         let source = binding.source().rust_type();
         source.starts_with("worth_store_") && !source.contains("formal_models")
+    }));
+}
+
+#[test]
+fn recovery_bindings_use_current_owner_facades() {
+    let manifest = current_protocol_binding_manifest();
+    let sources = manifest
+        .bindings()
+        .filter(|binding| {
+            matches!(
+                binding.owner(),
+                ProductionOwner::RecoveryPhysics
+                    | ProductionOwner::RecoveryRuntime
+                    | ProductionOwner::OfflineVerifier
+            )
+        })
+        .map(|binding| binding.source().rust_type())
+        .collect::<BTreeSet<_>>();
+
+    for current in [
+        "worth_store_recovery_physics::source_precedence::candidate::PhysicalRootSourceCandidate",
+        "worth_store_recovery_physics::source_precedence::selection::PhysicalSourceSelection",
+        "worth_store_recovery_physics::source_precedence::checkpoint_base::PhysicalCheckpointBase",
+        "worth_store_recovery_physics::source_precedence::wal_tail::SelectedPhysicalWalTail",
+        "worth_store_recovery_physics::redo_replay::plan::ImmutablePhysicalRedoPlan",
+        "worth_store_recovery_physics::page_redo::eligibility::PageRedoEligibility",
+        "worth_store_recovery_physics::operation_reconciliation::evidence_join::ReconciledOperationFates",
+        "worth_store_recovery_runtime::handoff::recovered::RecoveredPhysicalRuntimeHandoff",
+        "worth_store_recovery_runtime::observation::report::model::RecoveryReportEnvelope",
+        "worth_store_offline_verifier::c8_recovery_observation::report::RecoveryObserverReport",
+    ] {
+        assert!(sources.contains(current), "missing current owner {current}");
+    }
+}
+
+#[test]
+fn physical_recovery_bindings_have_exact_owner_source_tuples() {
+    let manifest = current_protocol_binding_manifest();
+    let expected = BTreeSet::from([
+        (
+            ProductionOwner::PhysicalBackend,
+            OwnerOperationFamily::WalAppendObservation,
+        ),
+        (
+            ProductionOwner::PhysicalBackend,
+            OwnerOperationFamily::WalDurabilityObservation,
+        ),
+        (
+            ProductionOwner::PhysicalIntegrity,
+            OwnerOperationFamily::CorruptionReadmission,
+        ),
+        (
+            ProductionOwner::LayoutIndexes,
+            OwnerOperationFamily::LayoutReadmission,
+        ),
+    ]);
+    let actual = manifest
+        .bindings()
+        .filter(|binding| {
+            matches!(
+                binding.operation(),
+                OwnerOperationFamily::WalAppendObservation
+                    | OwnerOperationFamily::WalDurabilityObservation
+                    | OwnerOperationFamily::CorruptionReadmission
+                    | OwnerOperationFamily::LayoutReadmission
+            )
+        })
+        .map(|binding| (binding.owner(), binding.operation()))
+        .collect::<BTreeSet<_>>();
+
+    assert_eq!(actual, expected);
+    assert!(!manifest.bindings().any(|binding| {
+        matches!(
+            binding.operation(),
+            OwnerOperationFamily::WalAppendObservation
+                | OwnerOperationFamily::WalDurabilityObservation
+                | OwnerOperationFamily::CorruptionReadmission
+                | OwnerOperationFamily::LayoutReadmission
+        ) && binding.owner() == ProductionOwner::RecoveryPhysics
     }));
 }
 

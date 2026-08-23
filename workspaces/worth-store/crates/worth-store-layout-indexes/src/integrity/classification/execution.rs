@@ -1,8 +1,8 @@
-use worth_store_authority::StoreCurrentAuthorityWitness;
-use worth_store_recovery_physics::{
+use super::super::readmission::{
     RecoveryLayoutReadmissionAdmissionDenial, RecoveryLayoutReadmissionClass,
     RecoveryLayoutReadmissionWitness,
 };
+use worth_store_authority::StoreCurrentAuthorityWitness;
 
 use crate::LayoutCorruptionClassification;
 
@@ -94,7 +94,7 @@ fn require_quarantine_readmission(
             current: current_security_identity,
         });
     }
-    match worth_store_recovery_physics::layout_readmission()
+    match super::super::readmission::layout_readmission()
         .admit_quarantine(
             admitted_family.family_id(),
             record,

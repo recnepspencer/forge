@@ -7,7 +7,7 @@ mod semantic_tests;
 use super::documents::{
     read_repository_document, split_csv, AUTHORITY_TRACE, DESTINATION_TOPOLOGY,
 };
-use semantic_contract::{expected_phase, expected_responsibility};
+use semantic_contract::{destinations, expected_destination, DestinationTopologyContract};
 
 const HEADER: &str = "path,owner,responsibility,dependency_posture,phase,status";
 use required_destinations::REQUIRED_DESTINATIONS;
@@ -25,6 +25,26 @@ fn destination_topology_has_one_exact_semantic_home_per_c8_axis() {
         actual,
         REQUIRED_DESTINATIONS.iter().copied().collect(),
         "C.8 destination topology is incomplete or contains a competing home"
+    );
+    let contracts = destinations().collect::<Vec<_>>();
+    let contract_paths = contracts
+        .iter()
+        .map(|contract| contract.path)
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        contracts.len(),
+        contract_paths.len(),
+        "duplicate compiled path"
+    );
+    assert_eq!(contract_paths, actual, "compiled topology path drifted");
+    let responsibilities = contracts
+        .iter()
+        .map(|contract| contract.responsibility)
+        .collect::<BTreeSet<_>>();
+    assert_eq!(
+        contracts.len(),
+        responsibilities.len(),
+        "destination responsibilities must be domain-specific"
     );
 }
 
@@ -157,13 +177,9 @@ fn topology_rows_have_specific_owners_and_phase_honest_status() {
             "recovery" | "physics" | "support" | "evidence" | "utility"
         ));
         assert!(!row.responsibility.contains(" and "));
-        assert_eq!(row.responsibility, expected_responsibility(&row.path));
-        assert_eq!(
-            row.phase,
-            expected_phase(&row.path),
-            "phase mismatch for {}",
-            row.path
-        );
+        let expected = expected_destination(&row.path)
+            .unwrap_or_else(|| panic!("uncontracted destination {}", row.path));
+        assert_matches_contract(&row, expected);
         assert!(matches!(
             row.phase.as_str(),
             "phase-2"
@@ -180,6 +196,27 @@ fn topology_rows_have_specific_owners_and_phase_honest_status() {
             "create" | "preserve" | "narrow" | "replace"
         ));
     }
+}
+
+fn assert_matches_contract(row: &TopologyRow, expected: &DestinationTopologyContract) {
+    assert_eq!(row.path, expected.path);
+    assert_eq!(row.owner, expected.owner, "owner mismatch for {}", row.path);
+    assert_eq!(
+        row.responsibility, expected.responsibility,
+        "responsibility mismatch for {}",
+        row.path
+    );
+    assert_eq!(
+        row.dependency_posture, expected.dependency_posture,
+        "dependency posture mismatch for {}",
+        row.path
+    );
+    assert_eq!(row.phase, expected.phase, "phase mismatch for {}", row.path);
+    assert_eq!(
+        row.status, expected.status,
+        "status mismatch for {}",
+        row.path
+    );
 }
 
 fn row<'a>(rows: &'a [TopologyRow], path: &str) -> &'a TopologyRow {

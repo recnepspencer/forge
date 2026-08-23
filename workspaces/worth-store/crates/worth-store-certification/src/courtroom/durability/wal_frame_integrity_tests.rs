@@ -5,13 +5,13 @@ use worth_store_physical_format::{
     CheckpointAdjacencyPosture, PhysicalReferenceScope, RootManifestIntegrityPosture,
 };
 use worth_store_physical_integrity::{
+    IntegrityVettedWalFrame, RecoveryIntegrityHandoffReceipt, RecoveryPhysicsIntegrityInput,
+};
+use worth_store_physical_integrity::{
     PhysicalIntegrityEvidenceAuthority, PhysicalIntegrityEvidenceProfile, PhysicalScopeAdmission,
     PhysicalScopeAdmissionRequest, ScopedPhysicalValidatorInput, StoreExecutedIntegrityEvidence,
     WalFrameDamageDenialKind, WalFrameIntegrityAuthority, WalFrameIntegrityInspectionRequest,
     WalFrameIntegrityReport, WalTailIntegrityPosture,
-};
-use worth_store_recovery_physics::{
-    IntegrityVettedWalFrame, RecoveryIntegrityHandoffReceipt, RecoveryPhysicsIntegrityInput,
 };
 
 #[test]

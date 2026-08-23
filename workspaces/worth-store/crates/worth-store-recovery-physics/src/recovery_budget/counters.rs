@@ -10,6 +10,7 @@ pub struct RecoveryPlanningCounters {
     freshness_retained: u64,
     freshness_expired: u64,
     fate_counts: [u64; 4],
+    peak_recovery_bytes: u64,
 }
 
 impl RecoveryPlanningCounters {
@@ -32,6 +33,7 @@ impl RecoveryPlanningCounters {
             freshness_retained,
             freshness_expired,
             fate_counts,
+            peak_recovery_bytes: 0,
         }
     }
     pub const fn page_extent_reads(self) -> u64 {
@@ -63,5 +65,12 @@ impl RecoveryPlanningCounters {
     }
     pub const fn fate_counts(self) -> [u64; 4] {
         self.fate_counts
+    }
+    pub const fn peak_recovery_bytes(self) -> u64 {
+        self.peak_recovery_bytes
+    }
+    pub const fn with_peak_recovery_bytes(mut self, peak_recovery_bytes: u64) -> Self {
+        self.peak_recovery_bytes = peak_recovery_bytes;
+        self
     }
 }

@@ -30,6 +30,7 @@ pub struct PhysicalRecoveryPlatformAuthority {
 
 #[cfg(test)]
 mod binding_contract_tests {
+    use crate::entry::authority_binding::AdmittedRecoveryWorldBindingDrift;
     use worth_proof::Binding;
     use worth_proof::TransitionOutcome;
     use worth_store::physical_runtime::{
@@ -81,7 +82,7 @@ mod binding_contract_tests {
         let mut axes = base.clone();
         axes.static_configuration[0] ^= 1;
         candidates.push((axes, PhysicalRecoveryEntryBindingDrift::StaticConfiguration));
-        let mut axes = base;
+        let mut axes = base.clone();
         axes.recovery_limits = other.recovery_limits;
         candidates.push((axes, PhysicalRecoveryEntryBindingDrift::RecoveryLimits));
 
@@ -91,8 +92,63 @@ mod binding_contract_tests {
                 Err(expected)
             );
         }
-        primary.refuse();
-        alternate.refuse();
+        assert_eq!(primary.binding.axes(), &base);
+
+        let primary_admission = primary
+            .into_admitted()
+            .unwrap_or_else(|_| panic!("primary admitted world"));
+        let alternate_admission = alternate
+            .into_admitted()
+            .unwrap_or_else(|_| panic!("alternate admitted world"));
+        let admitted_base = primary_admission.authority._world_binding.axes().clone();
+        let admitted_other = alternate_admission.authority._world_binding.axes();
+        assert_ne!(admitted_base.stable_store, admitted_other.stable_store);
+
+        let mut admitted_candidates = Vec::new();
+        let mut axes = admitted_base.clone();
+        axes.root_ownership = admitted_other.root_ownership.clone();
+        admitted_candidates.push((axes, AdmittedRecoveryWorldBindingDrift::RootOwnership));
+        let mut axes = admitted_base.clone();
+        axes.stable_store = admitted_other.stable_store;
+        admitted_candidates.push((axes, AdmittedRecoveryWorldBindingDrift::StableStore));
+        let mut axes = admitted_base.clone();
+        axes.recovery_session = admitted_other.recovery_session;
+        admitted_candidates.push((axes, AdmittedRecoveryWorldBindingDrift::RecoverySession));
+        let mut axes = admitted_base.clone();
+        axes.backend_profile = admitted_other.backend_profile.clone();
+        admitted_candidates.push((axes, AdmittedRecoveryWorldBindingDrift::BackendProfile));
+        let mut axes = admitted_base.clone();
+        axes.qualified_media_generation = admitted_other.qualified_media_generation;
+        admitted_candidates.push((
+            axes,
+            AdmittedRecoveryWorldBindingDrift::QualifiedMediaGeneration,
+        ));
+        let mut axes = admitted_base.clone();
+        axes.static_configuration[0] ^= 1;
+        admitted_candidates.push((axes, AdmittedRecoveryWorldBindingDrift::StaticConfiguration));
+        let mut axes = admitted_base.clone();
+        axes.recovery_limits[0] ^= 1;
+        admitted_candidates.push((axes, AdmittedRecoveryWorldBindingDrift::RecoveryLimits));
+
+        for (axes, expected) in admitted_candidates {
+            assert_eq!(
+                primary_admission
+                    .authority
+                    ._world_binding
+                    .ensure_matches(&Binding::new(axes)),
+                Err(expected)
+            );
+        }
+        assert_eq!(
+            primary_admission.authority._world_binding.axes(),
+            &admitted_base
+        );
+        assert_eq!(
+            alternate_admission.authority._world_binding.axes(),
+            admitted_other
+        );
+        primary_admission.authority.refuse();
+        alternate_admission.authority.refuse();
     }
 
     fn initialize_store(root: &std::path::Path) {
@@ -124,6 +180,7 @@ mod binding_contract_tests {
             distinct_pages_and_extents: scale,
             operation_bindings: scale,
             staging_bytes: scale * 4096,
+            recovery_memory_bytes: scale * 1024 * 1024,
             dirty_frames: scale,
             concurrent_commands: scale,
             publication_effects: 2,

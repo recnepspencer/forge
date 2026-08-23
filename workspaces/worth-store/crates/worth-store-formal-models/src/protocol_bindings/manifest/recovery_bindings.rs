@@ -3,78 +3,77 @@ use crate::protocol_bindings::OwnerEvidenceClass;
 
 pub(super) fn current() -> Vec<OwnerBoundaryBinding> {
     use OwnerEvidenceClass::{
-        DurableAuthoritativeReceipt, EphemeralDiagnosticTrace, ForbiddenAuthoritySubstitute,
-        ReopenedObservedReceipt,
+        EphemeralDiagnosticTrace, ForbiddenAuthoritySubstitute, ReopenedObservedReceipt,
     };
     use OwnerOperationFamily::*;
-    use ProductionOwner::RecoveryPhysics;
+    use ProductionOwner::{OfflineVerifier, RecoveryPhysics, RecoveryRuntime};
     use ProtocolFamily::{DurabilityRecovery, RecoverySourcePrecedence};
 
     vec![
-        OwnerBoundaryBinding::to::<worth_store_recovery_physics::RecoveryCandidateDiscoveryTrace>(
+        OwnerBoundaryBinding::to::<worth_store_recovery_physics::PhysicalRootSourceCandidate>(
             RecoverySourcePrecedence,
             RecoveryPhysics,
             RecoveryCandidateDiscovery,
-            EphemeralDiagnosticTrace,
+            ReopenedObservedReceipt,
         ),
-        OwnerBoundaryBinding::to::<worth_store_recovery_physics::RecoverySourceDecisionTrace>(
+        OwnerBoundaryBinding::to::<worth_store_recovery_physics::PhysicalSourceSelection>(
             RecoverySourcePrecedence,
             RecoveryPhysics,
             RecoverySourceSelection,
-            EphemeralDiagnosticTrace,
-        ),
-        OwnerBoundaryBinding::to::<worth_store_recovery_physics::AdmittedRecoverySource>(
-            RecoverySourcePrecedence,
-            RecoveryPhysics,
-            RecoverySourceAdmission,
             ReopenedObservedReceipt,
         ),
-        OwnerBoundaryBinding::to::<worth_store_recovery_physics::CheckpointBaseAdmission>(
+        OwnerBoundaryBinding::to::<worth_store_recovery_physics::PhysicalCheckpointBase>(
             RecoverySourcePrecedence,
             RecoveryPhysics,
             RecoveryCheckpointBase,
             ReopenedObservedReceipt,
         ),
-        OwnerBoundaryBinding::to::<worth_store_recovery_physics::WalTailRedoSource>(
+        OwnerBoundaryBinding::to::<worth_store_recovery_physics::SelectedPhysicalWalTail>(
             RecoverySourcePrecedence,
             RecoveryPhysics,
             RecoveryWalTailSource,
             ReopenedObservedReceipt,
         ),
-        OwnerBoundaryBinding::to::<worth_store_recovery_physics::RecoveryRedoPlan>(
+        OwnerBoundaryBinding::to::<worth_store_recovery_physics::ImmutablePhysicalRedoPlan>(
             DurabilityRecovery,
             RecoveryPhysics,
             RecoveryRedoPlanning,
             ForbiddenAuthoritySubstitute,
         ),
-        OwnerBoundaryBinding::to::<worth_store_recovery_physics::RedoExecutionReceipt>(
+        OwnerBoundaryBinding::to::<worth_store_recovery_physics::PageRedoEligibility>(
             DurabilityRecovery,
             RecoveryPhysics,
             RedoExecution,
             EphemeralDiagnosticTrace,
         ),
-        OwnerBoundaryBinding::to::<worth_store_recovery_physics::RecoveryCompletion>(
+        OwnerBoundaryBinding::to::<worth_store_recovery_physics::ReconciledOperationFates>(
             DurabilityRecovery,
             RecoveryPhysics,
-            RecoveryCompletion,
-            DurableAuthoritativeReceipt,
+            RecoveryDeterminism,
+            ReopenedObservedReceipt,
         ),
         OwnerBoundaryBinding::to::<worth_store_recovery_runtime::ReopenedPhysicalRecovery>(
             DurabilityRecovery,
-            ProductionOwner::RecoveryRuntime,
+            RecoveryRuntime,
             RecoveryReopenObservation,
+            ReopenedObservedReceipt,
+        ),
+        OwnerBoundaryBinding::to::<worth_store_recovery_runtime::RecoveredPhysicalRuntimeHandoff>(
+            DurabilityRecovery,
+            RecoveryRuntime,
+            RecoveryCompletion,
             ReopenedObservedReceipt,
         ),
         OwnerBoundaryBinding::to::<worth_store_offline_verifier::RecoveryObserverReport>(
             RecoverySourcePrecedence,
-            ProductionOwner::OfflineVerifier,
+            OfflineVerifier,
             RecoveryDeterminism,
             EphemeralDiagnosticTrace,
         ),
         OwnerBoundaryBinding::to::<worth_store_recovery_runtime::RecoveryReportEnvelope>(
             DurabilityRecovery,
-            ProductionOwner::RecoveryRuntime,
-            RecoveryCompletion,
+            RecoveryRuntime,
+            RecoveryDeterminism,
             EphemeralDiagnosticTrace,
         ),
     ]

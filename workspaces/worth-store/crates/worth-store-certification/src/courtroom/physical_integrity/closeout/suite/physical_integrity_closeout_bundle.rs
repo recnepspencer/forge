@@ -11,8 +11,8 @@ use crate::{
     SyntheticCloseoutShortcutAttempt, SyntheticCloseoutShortcutInput,
     SyntheticCloseoutShortcutRejectionReport,
 };
+use worth_store_physical_integrity::AdmittedRecoveryIntegrityInput;
 use worth_store_readiness::PhysicalIntegrityReadiness;
-use worth_store_recovery_physics::AdmittedRecoveryIntegrityInput;
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct PhysicalIntegrityCloseoutRequest {

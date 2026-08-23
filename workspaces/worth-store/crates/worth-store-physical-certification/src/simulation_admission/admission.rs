@@ -1,4 +1,4 @@
-use worth_store_recovery_physics::BoundedRecoveryReceipt;
+use worth_store_recovery_runtime::RecoveryCompletion;
 
 use super::denial::SimulationHarnessBoundaryDenial;
 use super::entry::SimulationHarnessEntry;
@@ -8,32 +8,29 @@ use super::request::SimulationHarnessEntryRequest;
 use super::requirement_set::SimulationHarnessRoadmapRequirementSet;
 
 pub fn admit_simulation_harness_entry(
-    recovery: &BoundedRecoveryReceipt,
+    recovery: &RecoveryCompletion,
     roadmap_requirements: SimulationHarnessRoadmapRequirementSet,
     inventory: ExistingSimulationHarnessInventory,
 ) -> Result<SimulationHarnessEntry, SimulationHarnessBoundaryDenial> {
     require_roadmap_harness_requirements(&roadmap_requirements)?;
     inventory.validate_for_simulation_harness_entry()?;
-    let recovered_state = recovery.execution().recovered_state();
-
     let request = SimulationHarnessEntryRequest::new(
-        recovered_state.recovered_physical_root(),
-        recovered_state.source_decision_digest(),
+        recovery.recovered_root(),
+        recovery.source_decision_digest(),
         roadmap_requirements,
         inventory,
     );
     let request = admit_entry_request(request)?;
     Ok(SimulationHarnessEntry::from_admitted_request(
         request,
-        recovered_state.page_lsn_frontier(),
-        recovery.counters(),
+        recovery.clone(),
     ))
 }
 
 pub const fn reject_simulation_harness_copied_recovery_report(
     _: &str,
 ) -> SimulationHarnessBoundaryDenial {
-    SimulationHarnessBoundaryDenial::CopiedS4ReportCannotAdmitEntry
+    SimulationHarnessBoundaryDenial::CopiedRecoveryReportCannotAdmitEntry
 }
 
 pub const fn reject_simulation_harness_log_output(_: &str) -> SimulationHarnessBoundaryDenial {

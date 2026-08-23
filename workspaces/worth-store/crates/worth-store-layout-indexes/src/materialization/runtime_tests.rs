@@ -3,8 +3,9 @@ use crate::observation::AccessShape;
 use crate::{
     access_planning, AccessAuthorityPosture, AccessStaleDisposition, ExpectedCounterClass,
 };
+use worth_store_physical_format::CheckpointWalSourceRange;
 use worth_store_physical_format::PhysicalEpoch;
-use worth_store_recovery_physics::{CheckpointCoveredLsnRange, LogSequenceNumber};
+use worth_store_wal::LogSequenceNumber;
 
 fn format_family() -> &'static crate::PhysicalArtifactFamilyDeclaration {
     crate::layout_declarations().seed_family()
@@ -42,8 +43,7 @@ fn checkpoint_exactness_preserves_full_range_identity() {
             crate::bootstrap::test_support::bootstrap_exact_materialization(
                 format_family().family(),
             ),
-            CheckpointCoveredLsnRange::new(LogSequenceNumber::new(21), LogSequenceNumber::new(29))
-                .expect("left checkpoint fixture should be valid"),
+            CheckpointWalSourceRange::new(21, 29).expect("left checkpoint fixture should be valid"),
         )
         .expect("left checkpoint coverage should admit");
     let right = access_planning()
@@ -51,7 +51,7 @@ fn checkpoint_exactness_preserves_full_range_identity() {
             crate::bootstrap::test_support::bootstrap_exact_materialization(
                 format_family().family(),
             ),
-            CheckpointCoveredLsnRange::new(LogSequenceNumber::new(24), LogSequenceNumber::new(29))
+            CheckpointWalSourceRange::new(24, 29)
                 .expect("right checkpoint fixture should be valid"),
         )
         .expect("right checkpoint coverage should admit");
@@ -121,8 +121,7 @@ fn lagged_and_quarantined_states_deny_exact_completeness() {
             format_family(),
             LogSequenceNumber::new(49),
             LogSequenceNumber::new(53),
-            CheckpointCoveredLsnRange::new(LogSequenceNumber::new(50), LogSequenceNumber::new(52))
-                .expect("quarantine fixture should be valid"),
+            CheckpointWalSourceRange::new(50, 52).expect("quarantine fixture should be valid"),
         )
         .expect("quarantined coverage should build");
     assert_eq!(

@@ -14,6 +14,7 @@ impl RecoveryCoordination {
         media: &mut AdmittedRecoveryFilesystemMedia,
         session: PhysicalRecoveryRegisteredSessionAuthority,
         limits: PhysicalRecoveryLimits,
+        yieldpoint: Option<worth_store::physical_runtime::PhysicalRecoveryProcessYieldpoint>,
     ) -> Result<Self, PhysicalRecoveryCoordinationAdmissionError> {
         let limits = limits.declaration();
         let capacity = PhysicalRecoveryCoordinationCapacity::admit(
@@ -23,13 +24,20 @@ impl RecoveryCoordination {
             limits.cleanup_bytes,
         )
         .expect("admitted recovery limits are nonzero and fit the platform");
-        let owner = session.admit_coordination(media, capacity)?;
+        let owner = session.admit_coordination(media, capacity, yieldpoint)?;
         record_coordinator_created();
         Ok(Self { owner })
     }
 
     pub(crate) fn is_ready(&self) -> bool {
         self.owner.is_ready()
+    }
+
+    pub(crate) fn pause_at(
+        &self,
+        stage: worth_store::physical_runtime::PhysicalRecoveryYieldpointStage,
+    ) -> worth_store::physical_runtime::PhysicalRecoveryYieldpointWaitResult {
+        self.owner.pause_at(stage)
     }
 
     pub(crate) fn quiescence_observation(

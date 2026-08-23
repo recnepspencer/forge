@@ -610,6 +610,8 @@ dependencies = [
  "worth-store-io-scheduler",
  "worth-store-physical-certification",
  "worth-store-physical-isolation",
+ "worth-store-process-bundle",
+ "worth-store-recovery-runtime",
 ]
 
 [[package]]
@@ -1259,7 +1261,6 @@ dependencies = [
  "worth-store-physical-integrity",
  "worth-store-physical-isolation",
  "worth-store-reclaim-policy",
- "worth-store-recovery-physics",
  "worth-store-retention",
  "worth-store-security",
  "worth-store-test-support",
@@ -1335,6 +1336,7 @@ dependencies = [
  "worth-store-readiness",
  "worth-store-reclaim-policy",
  "worth-store-recovery-physics",
+ "worth-store-recovery-runtime",
  "worth-store-replication",
  "worth-store-security",
  "worth-store-subscription-support",
@@ -1499,7 +1501,6 @@ dependencies = [
  "worth-store-physical-format",
  "worth-store-physical-integrity",
  "worth-store-physical-isolation",
- "worth-store-recovery-physics",
  "worth-store-replication",
  "worth-store-security",
  "worth-store-wal",
@@ -1555,6 +1556,7 @@ dependencies = [
  "worth-store-contracts",
  "worth-store-physical-format",
  "worth-store-security",
+ "worth-store-wal",
 ]
 
 [[package]]
@@ -1615,6 +1617,7 @@ dependencies = [
  "worth-proof",
  "worth-store",
  "worth-store-aspect-native",
+ "worth-store-authority",
  "worth-store-contracts",
  "worth-store-physical-format",
  "worth-store-security",
@@ -1639,6 +1642,15 @@ dependencies = [
  "worth-store-recovery-physics",
  "worth-store-security",
  "worth-store-wal",
+]
+
+[[package]]
+name = "worth-store-process-bundle"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "sha2",
+ "tempfile",
 ]
 
 [[package]]
@@ -1671,20 +1683,7 @@ name = "worth-store-recovery-physics"
 version = "0.1.0"
 dependencies = [
  "sha2",
- "tempfile",
- "worth-foundational",
- "worth-proof",
- "worth-store",
- "worth-store-aspect-native",
- "worth-store-authority",
- "worth-store-budgets",
- "worth-store-contracts",
- "worth-store-physical-backend",
  "worth-store-physical-format",
- "worth-store-physical-integrity",
- "worth-store-readiness",
- "worth-store-security",
- "worth-store-test-support",
  "worth-store-wal",
 ]
 
@@ -1692,6 +1691,7 @@ dependencies = [
 name = "worth-store-recovery-runtime"
 version = "0.1.0"
 dependencies = [
+ "serde_json",
  "sha2",
  "syn",
  "tempfile",
@@ -1702,6 +1702,7 @@ dependencies = [
  "worth-store-authority",
  "worth-store-offline-verifier",
  "worth-store-physical-format",
+ "worth-store-process-bundle",
  "worth-store-recovery-physics",
  "worth-store-test-support",
 ]
@@ -1717,7 +1718,6 @@ dependencies = [
  "worth-store-authority",
  "worth-store-physical-backend",
  "worth-store-physical-isolation",
- "worth-store-recovery-physics",
  "worth-store-security",
  "worth-store-wal",
 ]
@@ -1798,6 +1798,7 @@ dependencies = [
  "worth-store-physical-integrity",
  "worth-store-physical-isolation",
  "worth-store-recovery-physics",
+ "worth-store-recovery-runtime",
  "worth-store-security",
  "worth-store-wal",
 ]

@@ -11,8 +11,8 @@ use worth_store_physical_certification::{
     ObservedPhysicalTrace, PhysicalArtifactFaultLocus, PhysicalCertificationEvidenceBundle,
     PhysicalFaultEvent, PhysicalFixtureBuilder, PhysicalInterleavingSchedule,
     PhysicalProofOracleKind, PhysicalSimulationObserver, PhysicalSimulationPlan,
-    ProductionBackedPhysicalFixture, ReusablePhysicalOracleFamily, SimulationReplayBundle,
-    StateSpaceBudget, TranscriptReplayDenial,
+    ProductionBackedPhysicalFixture, ReusablePhysicalOracleFamily, SchedulePerturbationSeed,
+    SimulationReplayBundle, StateSpaceBudget, TranscriptReplayDenial,
 };
 use worth_store_test_support::{
     developer_smoke_replay_seed, production_backed_physical_fixture_materialization,
@@ -97,9 +97,7 @@ fn detached_replay_admission_denies_copied_schedule_authority() {
         .unwrap();
     let copied_schedule = schedule(
         &alternate_plan,
-        worth_store_physical_certification::ReplaySeed::from_u64(
-            developer_smoke_replay_seed().value() + 1,
-        ),
+        SchedulePerturbationSeed::from_u64(developer_smoke_replay_seed().value() + 1),
     );
     let detached = DetachedSimulationReplayParts::from_transcript(&transcript)
         .with_replayed_schedule_candidate(copied_schedule);
@@ -116,9 +114,7 @@ fn transcript_identity_changes_when_replay_seed_changes() {
     let first = replay_bundle_for_seed(&plan, developer_smoke_replay_seed());
     let second = replay_bundle_for_seed(
         &plan,
-        worth_store_physical_certification::ReplaySeed::from_u64(
-            developer_smoke_replay_seed().value() + 1,
-        ),
+        SchedulePerturbationSeed::from_u64(developer_smoke_replay_seed().value() + 1),
     );
 
     assert_ne!(
@@ -203,7 +199,7 @@ fn boundary_bridged_foundational_evidence_requires_explicit_store_readmission() 
 
 fn replay_bundle_for_seed(
     plan: &PhysicalSimulationPlan,
-    seed: worth_store_physical_certification::ReplaySeed,
+    seed: SchedulePerturbationSeed,
 ) -> SimulationReplayBundle {
     replay_bundle_from_parts(executed_parts_for_seed(plan, seed))
 }
@@ -225,7 +221,7 @@ fn executed_parts(plan: &PhysicalSimulationPlan) -> ExecutedTranscriptParts {
 
 fn executed_parts_for_seed(
     plan: &PhysicalSimulationPlan,
-    seed: worth_store_physical_certification::ReplaySeed,
+    seed: SchedulePerturbationSeed,
 ) -> ExecutedTranscriptParts {
     let trace = counter_support::observed_trace(plan);
     let counter_receipt = counter_support::counter_receipt(plan, trace.clone());
@@ -243,7 +239,7 @@ fn executed_parts_for_seed(
 
 fn executed_parts_for_seed_with_trace(
     plan: &PhysicalSimulationPlan,
-    seed: worth_store_physical_certification::ReplaySeed,
+    seed: SchedulePerturbationSeed,
     trace: ObservedPhysicalTrace,
 ) -> ExecutedTranscriptParts {
     let counter_receipt = counter_support::counter_receipt(plan, trace.clone());
@@ -278,6 +274,13 @@ fn observed_trace_with_verifier(plan: &PhysicalSimulationPlan) -> ObservedPhysic
     PhysicalSimulationObserver::independent_physical_trace()
         .observe_boundary_observation(plan, &execution)
         .unwrap()
+        .with_compaction_interlock_observation(
+            worth_store_physical_certification::CompactionInterlockObservation::from_store_interlock_evidence(
+                worth_store_test_support::harness::physical_isolation::compaction::
+                    compaction_interlock_foundational_evidence_for_seed(17),
+            )
+            .expect("executed compaction publication provides interlock evidence"),
+        )
         .with_independent_verifier_observation(
             independent_verifier_observation::observed_runtime_comparison(
                 independent_verifier_observation::RuntimeComparisonFixture::Equivalent,
@@ -303,7 +306,7 @@ fn storage_no_fault_control(artifact_id: u64) -> PhysicalFaultEvent {
 
 fn schedule(
     plan: &PhysicalSimulationPlan,
-    seed: worth_store_physical_certification::ReplaySeed,
+    seed: SchedulePerturbationSeed,
 ) -> PhysicalInterleavingSchedule {
     PhysicalInterleavingSchedule::from_lowered_plan(
         plan,

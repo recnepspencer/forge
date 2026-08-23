@@ -15,13 +15,15 @@ fn certification_observes_owner_executions_without_a_generic_execution_receipt()
         "src/access/execution/ready_plan.rs",
         "src/access/execution/outcomes/mod.rs",
         "src/layout_counters.rs",
-        "src/layout_readmission.rs",
         "src/compile_fail",
     ] {
         assert!(!std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join(removed)
             .exists());
     }
+    assert!(std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("src/integrity/readmission/authority.rs")
+        .exists());
     assert!(observation.contains("pub enum ExecutedLayoutOperation"));
     assert!(observation.contains("BTreeLookup(Box<crate::BaselineBTreeLookupExecution>)"));
     assert!(observation.contains("LsmLookup(Box<crate::BaselineLsmLookupExecution>)"));
@@ -79,7 +81,7 @@ fn selection_outcomes_expose_exact_capabilities_through_an_ordinary_owner_facade
 }
 
 #[test]
-fn btree_traversal_plan_and_replay_source_share_store_authority() {
+fn btree_traversal_plan_and_replay_source_share_store_authority_and_source_lease_owner() {
     let read_source = source("src/strategy/btree/execution/read_source.rs");
     let physical_root = std::fs::read_to_string(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -88,7 +90,7 @@ fn btree_traversal_plan_and_replay_source_share_store_authority() {
     .unwrap();
     let isolation_request = std::fs::read_to_string(
         std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../worth-store-physical-isolation/src/readiness/request.rs"),
+            .join("../worth-store-physical-isolation/src/recovery_source_lease/request.rs"),
     )
     .unwrap();
 
@@ -99,6 +101,7 @@ fn btree_traversal_plan_and_replay_source_share_store_authority() {
     assert!(physical_root.contains(
         "store_authority_identity: worth_store_authority::StoreCurrentAuthorityIdentity"
     ));
-    assert!(isolation_request.contains("pub fn for_store("));
-    assert!(isolation_request.contains("store_identity.authority_identity()"));
+    assert!(isolation_request.contains("pub struct RecoverySourceLeaseRequest"));
+    assert!(isolation_request.contains("pub fn new("));
+    assert!(isolation_request.contains("source_identity: [u8; 32]"));
 }

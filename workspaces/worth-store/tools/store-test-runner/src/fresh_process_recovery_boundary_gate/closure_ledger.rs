@@ -87,7 +87,7 @@ fn per_guarantee_source_closures_are_causal() {
     assert!(api
         .iter()
         .any(|path| path
-            .ends_with("worth-store-recovery-physics/src/publication/recovery_replay.rs")));
+            .ends_with("worth-store-physical-isolation/src/publication/recovery_replay.rs")));
     for phase_seven_contract in [
         "runtime_phase_seven_surface_contract.rs",
         "runtime_phase_seven_surface_contract/backend.rs",

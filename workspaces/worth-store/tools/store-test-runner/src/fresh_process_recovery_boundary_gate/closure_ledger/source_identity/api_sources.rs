@@ -17,7 +17,15 @@ pub(super) fn add(
         root,
         "workspaces/worth-store/crates/worth-store-recovery-physics/src",
         paths,
-    )
+    )?;
+    for destination in [
+        "workspaces/worth-store/crates/worth-store-offline-verifier/src/truth_composition/candidate_evaluation/mod.rs",
+        "workspaces/worth-store/crates/worth-store-offline-verifier/src/truth_composition/candidate_evaluation/candidate_set.rs",
+        "workspaces/worth-store/crates/worth-store-physical-isolation/src/publication/recovery_replay.rs",
+    ] {
+        insert(paths, destination);
+    }
+    Ok(())
 }
 
 fn collect_rust_sources(

@@ -15,8 +15,8 @@ pub fn map_operational_control_record(
         kind,
         owner_tag: match record.kind() {
             OperationalControlRecordKind::OperationalOwnerReceiptPersisted {
-                owner_tag, ..
-            } => Some(*owner_tag),
+                owner_kind, ..
+            } => Some(owner_kind.tag()),
             _ => None,
         },
         binding: binding_from_record(record.kind()),
@@ -70,18 +70,6 @@ fn map_operational_kind(kind: &OperationalControlRecordKind) -> OperationalRecov
             OperationalRecoveryActionKind::DispositionRecorded
         }
         Record::RecoveryStagingCompleted { .. } => OperationalRecoveryActionKind::StagingCompleted,
-        Record::RecoveryPublicationPrepared { .. } => {
-            OperationalRecoveryActionKind::PublicationPrepared
-        }
-        Record::RecoveryPublicationPending { .. } => {
-            OperationalRecoveryActionKind::PublicationPending
-        }
-        Record::RecoveryPublicationDisposition { .. } => {
-            OperationalRecoveryActionKind::PublicationDisposition
-        }
-        Record::RecoveryPublicationFenceReleased { .. } => {
-            OperationalRecoveryActionKind::FenceReleased
-        }
         Record::ReplicaBootstrapTransferRecorded { .. } => {
             OperationalRecoveryActionKind::ReplicaBootstrapTransferRecorded
         }

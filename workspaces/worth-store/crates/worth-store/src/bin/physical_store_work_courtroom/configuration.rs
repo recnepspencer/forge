@@ -1,10 +1,9 @@
 use std::path::Path;
 
-use worth_store::physical_runtime::{
-    AdmittedPhysicalRecordFormat, AdmittedRecordAccessPolicy, AdmittedRecordPlacementPolicy,
-    ManifestEntryCapacity, PhysicalRecordAccessPolicy, PhysicalRecordFormatDeclaration,
-    PhysicalRecordPlacementPolicy, RecordByteLimit,
-};
+#[path = "record_configuration.rs"]
+mod record_configuration_impl;
+
+pub(super) use record_configuration_impl::record_configuration;
 
 const CONFIGURATION_SCHEMA: &str = "worth.store.c5_1.physical-work-courtroom.configuration.v1";
 pub(super) const BOUNDED_RESIDENCY_CONFIGURATION_SCHEMA: &str =
@@ -45,27 +44,6 @@ impl CourtroomConfiguration {
     pub(super) const fn payload_bytes(&self) -> usize {
         self.payload_bytes
     }
-}
-
-pub(super) fn record_configuration() -> (
-    AdmittedPhysicalRecordFormat,
-    AdmittedRecordPlacementPolicy,
-    AdmittedRecordAccessPolicy,
-) {
-    let format = AdmittedPhysicalRecordFormat::admit(
-        PhysicalRecordFormatDeclaration::builder()
-            .admit()
-            .expect("canonical v1 format declaration"),
-    );
-    let placement = PhysicalRecordPlacementPolicy::builder()
-        .manifest_capacity(ManifestEntryCapacity::new(64).expect("nonzero capacity"))
-        .extent_threshold(RecordByteLimit::new(8_192).expect("nonzero threshold"))
-        .admit(format)
-        .expect("courtroom placement is compatible");
-    let access = PhysicalRecordAccessPolicy::builder()
-        .admit(format)
-        .expect("courtroom access is compatible");
-    (format, placement, access)
 }
 
 impl ReopenConfiguration {

@@ -7,8 +7,8 @@ use worth_store_physical_format::PhysicalRecordSlot;
 use worth_store_test_support::{
     admitted_layout_bootstrap_catalog, advanced_admitted_layout_bootstrap_catalog,
     baseline_btree_probe_slot, deterministic_baseline_btree_read_source,
-    deterministic_btree_replay_world, deterministic_corrupt_leaf_btree_read_source,
-    deterministic_cross_store_btree_read_source,
+    deterministic_btree_replay_world, deterministic_checkpoint_plus_tail_source,
+    deterministic_corrupt_leaf_btree_read_source, deterministic_cross_store_btree_read_source,
     deterministic_left_partition_violation_btree_read_source,
     deterministic_noncanonical_leaf_btree_read_source,
     deterministic_right_partition_violation_btree_read_source,
@@ -71,8 +71,7 @@ fn replay_source(
         root,
         world.replay_artifact().clone(),
         expected_store,
-        worth_store_test_support::harness::recovery::redo_replay::
-            checkpoint_plus_tail_source_for_root(20, 30, root),
+        deterministic_checkpoint_plus_tail_source(),
     )
 }
 

@@ -2,6 +2,9 @@ use worth_store_contracts::DurableArtifactFamilyId;
 use worth_store_formal_models::{
     map_quarantine_readmission_outcome, map_quarantine_record, QuarantineReadmissionState,
 };
+use worth_store_layout_indexes::integrity::{
+    layout_readmission, RecoveryLayoutReadmissionOutcomeView,
+};
 use worth_store_physical_format::{
     PhysicalGeneration, PhysicalGenerationAuthority, PhysicalPageId, PhysicalReferenceScope,
     PhysicalSegmentId,
@@ -10,7 +13,6 @@ use worth_store_physical_integrity::{
     ExecutedQuarantineFinding, PhysicalQuarantineAuthority, QuarantineHandoffPosture,
     QuarantineSealRequest,
 };
-use worth_store_recovery_physics::layout_readmission;
 use worth_store_test_support::harness::layout::{
     authoritative_layout_quarantine_record, layout_integrity_authority,
     unresolved_layout_authority_record,
@@ -85,7 +87,7 @@ pub(in crate::courtroom::protocol_models) fn replay_unverified_readmission_guard
     );
     assert!(matches!(
         denied.view(),
-        worth_store_recovery_physics::RecoveryLayoutReadmissionOutcomeView::Denied(_)
+        RecoveryLayoutReadmissionOutcomeView::Denied(_)
     ));
     map_quarantine_readmission_outcome(denied.view())
         .states()

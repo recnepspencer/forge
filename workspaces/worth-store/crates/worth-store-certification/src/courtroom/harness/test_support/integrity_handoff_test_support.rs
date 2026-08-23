@@ -13,19 +13,19 @@ use worth_store_physical_format::{
     CheckpointAdjacencyPosture, PhysicalReferenceScope, RootManifestIntegrityPosture,
 };
 use worth_store_physical_integrity::{
-    ExecutedQuarantineFinding, ManifestExpectedReference, ManifestIntegrityAuthority,
-    ManifestIntegrityInspectionRequest, PhysicalIntegrityEvidenceAuthority,
-    PhysicalIntegrityEvidenceProfile, PhysicalQuarantineAuthority, PhysicalScopeAdmission,
-    PhysicalScopeAdmissionRequest, QuarantineRecord, QuarantineSealRequest,
-    ScopedPhysicalValidatorInput, StoreExecutedIntegrityEvidence, WalFrameIntegrityAuthority,
-    WalFrameIntegrityInspectionRequest,
-};
-use worth_store_recovery_physics::{
     AdmittedRecoveryIntegrityInput, BoundedInspectionEnvelopeEvidence, IntegrityHandoffAdmission,
     IntegrityHandoffDenialKind, IntegrityHandoffPayload, IntegrityVettedCheckpointRecord,
     IntegrityVettedPageFrameRecord, IntegrityVettedRootManifestRecord,
     IntegrityVettedSegmentManifestRecord, IntegrityVettedWalFrame,
     RecoveryBlockedByIntegrityDamage, RecoveryIntegrityHandoffReceipt,
+};
+use worth_store_physical_integrity::{
+    ExecutedQuarantineFinding, IntegrityDamageMap, ManifestExpectedReference,
+    ManifestIntegrityAuthority, ManifestIntegrityInspectionRequest,
+    PhysicalIntegrityEvidenceAuthority, PhysicalIntegrityEvidenceProfile,
+    PhysicalQuarantineAuthority, PhysicalScopeAdmission, PhysicalScopeAdmissionRequest,
+    QuarantineRecord, QuarantineSealRequest, ScopedPhysicalValidatorInput,
+    StoreExecutedIntegrityEvidence, WalFrameIntegrityAuthority, WalFrameIntegrityInspectionRequest,
 };
 
 pub(crate) const CERTIFICATION_INSPECTION_BYTE_LIMIT: u64 = 256;
@@ -119,7 +119,7 @@ fn intact_handoff_payload(label: &str) -> IntegrityHandoffPayload {
         .wal_frame(wal_record)
         .checkpoint_record(checkpoint_record)
         .damage_map(
-            worth_store_recovery_physics::IntegrityDamageMap::new()
+            IntegrityDamageMap::new()
                 .with_recovery_blocking_quarantine(
                     &quarantine_record,
                     quarantine_receipt,

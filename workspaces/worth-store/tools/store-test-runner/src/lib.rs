@@ -12,6 +12,7 @@ mod execution;
 mod fresh_process_recovery_boundary_gate;
 mod local_source_fingerprint;
 mod mutation_campaign;
+mod phase_eight_process_suite;
 #[cfg(test)]
 mod physical_residency_boundary_gate;
 #[cfg(feature = "physical-work-evidence")]
@@ -32,6 +33,12 @@ pub fn run_from_environment() -> Result<(), String> {
     if arguments::help_requested(&arguments) {
         println!("{}", arguments::usage());
         return Ok(());
+    }
+    if matches!(
+        arguments.first().map(String::as_str),
+        Some("phase-eight-process")
+    ) {
+        return phase_eight_process_suite::run(&workspace_root(), &arguments[1..]);
     }
     let arguments = Arguments::parse(arguments)?;
     run(arguments, &workspace_root())

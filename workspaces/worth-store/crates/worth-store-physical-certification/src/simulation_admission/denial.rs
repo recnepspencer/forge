@@ -2,13 +2,13 @@ use super::requirement_set::SimulationHarnessRoadmapRequirement;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SimulationHarnessBoundaryDenial {
-    CopiedS4ReportCannotAdmitEntry,
+    CopiedRecoveryReportCannotAdmitEntry,
     LogOutputCannotAdmitEntry,
     OldSemanticHarnessContextCannotAdmitEntry,
     SameRunSelfComparisonCannotAdmitEntry,
     TerminalProjectionCannotAdmitEntry,
     MissingRoadmapHarnessRequirement(SimulationHarnessRoadmapRequirement),
-    IncompleteS4Closeout,
+    IncompleteRecoveryCloseout,
     RecoveryCloseoutDoesNotRejectSyntheticShortcuts,
     RecoveryCloseoutMissingPhysicalIsolationReadiness,
     PhysicalIsolationAuthorityCannotBeMintedByHarnessEntry,

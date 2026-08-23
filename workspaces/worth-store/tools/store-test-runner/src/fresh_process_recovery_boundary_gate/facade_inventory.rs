@@ -1,10 +1,23 @@
+mod api_inventory;
+mod backend_wal_durability_surface_contract;
+mod blob_replay_surface_contract;
 mod bounded_decode_surface_contract;
+mod checkpoint_backup_surface_contract;
 mod cross_file_surface_contract;
 mod delivered_api;
 mod destination_surface_contract;
 pub(super) mod disposition_contract;
 mod inventory_disposition;
+mod moved_integrity_surface_contract;
+mod offline_verifier_candidate_surface_contract;
+mod operations_recovery_surface_contract;
+mod phase_eight_owner_surface_contract;
+mod physical_isolation_publication_surface_contract;
+mod physical_isolation_recovery_source_surface_contract;
+mod preserved_destination_surfaces;
 mod reachable_api;
+mod recovery_physics_destination_surfaces;
+mod recovery_wal_surface_contract;
 mod runtime_phase_eight_surface_contract;
 mod runtime_phase_five_surface_contract;
 mod runtime_phase_four_plan_surface_contract;
@@ -13,19 +26,36 @@ mod runtime_phase_four_surface_contract;
 mod runtime_phase_seven_surface_contract;
 mod runtime_phase_six_surface_contract;
 mod runtime_phase_three_surface_contract;
+mod runtime_progression_completion_surface_contract;
 mod supporting_delivery_surface_contract;
 
 use std::collections::BTreeSet;
 
-use super::documents::{read_repository_document, split_csv, API_INVENTORY};
+use super::documents::{read_repository_document, API_INVENTORY};
+use api_inventory::parse_inventory;
+use backend_wal_durability_surface_contract::{
+    BACKEND_WAL_DURABILITY_CERTIFICATION_SURFACES, BACKEND_WAL_DURABILITY_DESTINATION_SURFACES,
+};
+use blob_replay_surface_contract::BLOB_REPLAY_DESTINATION_SURFACES;
 use bounded_decode_surface_contract::BOUNDED_DECODE_SURFACES;
+use checkpoint_backup_surface_contract::CHECKPOINT_BACKUP_DESTINATION_SURFACES;
 use cross_file_surface_contract::assert_cross_file_surfaces;
 use delivered_api::assert_exact_inventory;
 use destination_surface_contract::{
-    BACKEND_RECOVERY_PUBLICATION_SURFACES, BACKEND_RECOVERY_SURFACES,
-    STORE_RECOVERY_COORDINATION_SURFACES, STORE_RECOVERY_PUBLICATION_SURFACES,
+    BACKEND_RECOVERY_EVIDENCE_SURFACES, BACKEND_RECOVERY_PUBLICATION_SURFACES,
+    BACKEND_RECOVERY_SURFACES, STORE_RECOVERY_COORDINATION_SURFACES,
+    STORE_RECOVERY_PUBLICATION_SURFACES,
 };
+use moved_integrity_surface_contract::MOVED_INTEGRITY_DESTINATION_SURFACES;
+use offline_verifier_candidate_surface_contract::OFFLINE_VERIFIER_CANDIDATE_DESTINATION_SURFACES;
+use operations_recovery_surface_contract::operations_recovery_destination_surfaces;
+use phase_eight_owner_surface_contract::PHASE_EIGHT_OWNER_DESTINATION_SURFACES;
+use physical_isolation_publication_surface_contract::PHYSICAL_ISOLATION_PUBLICATION_DESTINATION_SURFACES;
+use physical_isolation_recovery_source_surface_contract::PHYSICAL_ISOLATION_RECOVERY_SOURCE_DESTINATION_SURFACES;
+use preserved_destination_surfaces::PRESERVED_WAL_DESTINATION_SURFACES;
 use reachable_api::current_facade;
+use recovery_physics_destination_surfaces::DESTINATION_SURFACES;
+use recovery_wal_surface_contract::RECOVERY_WAL_DESTINATION_SURFACES;
 use runtime_phase_eight_surface_contract::PHASE_EIGHT_DELIVERY_SURFACES;
 use runtime_phase_five_surface_contract::PHASE_FIVE_DELIVERY_SURFACES;
 use runtime_phase_four_plan_surface_contract::PHASE_FOUR_PLAN_SURFACES;
@@ -34,219 +64,9 @@ use runtime_phase_four_surface_contract::PHASE_FOUR_DELIVERY_SURFACES;
 use runtime_phase_seven_surface_contract::phase_seven_delivery_surfaces;
 use runtime_phase_six_surface_contract::PHASE_SIX_DELIVERY_SURFACES;
 use runtime_phase_three_surface_contract::RUNTIME_PHASE_THREE_SURFACES;
+use runtime_progression_completion_surface_contract::RUNTIME_PROGRESSION_COMPLETION_DESTINATION_SURFACES;
 use supporting_delivery_surface_contract::SUPPORTING_DELIVERY_SURFACES;
-const HEADER: &str = "scope,surface,source_owner,disposition,destination_owner,phase";
 const FACADE: &str = "workspaces/worth-store/crates/worth-store-recovery-physics/src/lib.rs";
-
-const DESTINATION_SURFACES: &[(&str, &str, &str)] = &[
-    ("PhysicalRecoveryOpenRequest", "entry/request", "phase-2"),
-    (
-        "PhysicalRecoveryOpenRequest::declare",
-        "entry/request",
-        "phase-2",
-    ),
-    (
-        "PhysicalRecoveryOpenRequest::admit",
-        "entry/request",
-        "phase-2",
-    ),
-    (
-        "PhysicalRecoveryStaticConfiguration",
-        "entry/configuration",
-        "phase-2",
-    ),
-    (
-        "PhysicalRecoveryStaticConfiguration::current",
-        "entry/configuration",
-        "phase-2",
-    ),
-    (
-        "PhysicalRecoveryLimitDeclaration",
-        "entry/limits",
-        "phase-2",
-    ),
-    ("PhysicalRecoveryLimits", "entry/limits", "phase-2"),
-    ("PhysicalRecoveryLimits::admit", "entry/limits", "phase-2"),
-    ("PhysicalRecoveryLimitDenial", "entry/limits", "phase-2"),
-    (
-        "PhysicalRecoveryAdmissionCounters",
-        "entry/counters",
-        "phase-2",
-    ),
-    (
-        "PhysicalRecoverySessionIdentity",
-        "entry/session",
-        "phase-2",
-    ),
-    (
-        "PhysicalRecoveryEntryBindingDrift",
-        "entry/authority-binding",
-        "phase-2",
-    ),
-    (
-        "PhysicalRecoveryPlatformAuthority",
-        "entry/authority",
-        "phase-2",
-    ),
-    (
-        "PhysicalRecoveryPlatformAuthority::acquire",
-        "entry/authority",
-        "phase-2",
-    ),
-    (
-        "PhysicalRecoveryPlatformAuthority::qualified_backend_profile",
-        "entry/authority",
-        "phase-2",
-    ),
-    (
-        "PhysicalRecoveryPlatformAuthority::session_identity",
-        "entry/authority",
-        "phase-2",
-    ),
-    (
-        "PhysicalRecoveryPlatformAuthority::process_counters",
-        "entry/authority",
-        "phase-2",
-    ),
-    (
-        "PhysicalRecoveryPlatformAdmissionError",
-        "entry/authority",
-        "phase-2",
-    ),
-    ("PhysicalRecoveryOutcome", "entry/outcome", "phase-2"),
-    ("WorthStoreRecovery", "lib", "phase-6"),
-    ("WorthStoreRecovery::recover", "lib", "phase-6"),
-    (
-        "AdmittedPhysicalRecovery",
-        "progression/admitted",
-        "phase-2",
-    ),
-    (
-        "AdmittedPhysicalRecovery::store_identity",
-        "progression/admitted",
-        "phase-2",
-    ),
-    (
-        "AdmittedPhysicalRecovery::session_identity",
-        "progression/admitted",
-        "phase-2",
-    ),
-    (
-        "AdmittedPhysicalRecovery::limits",
-        "progression/admitted",
-        "phase-2",
-    ),
-    (
-        "AdmittedPhysicalRecovery::counters",
-        "progression/admitted",
-        "phase-2",
-    ),
-    (
-        "AdmittedPhysicalRecovery::cancel_before_discovery",
-        "progression/admitted",
-        "phase-2",
-    ),
-    ("PlannedPhysicalRecovery", "progression/planned", "phase-4"),
-    (
-        "NamespaceDurablePhysicalRecovery",
-        "progression/namespace_durable",
-        "phase-6",
-    ),
-    (
-        "ReopenedPhysicalRecovery",
-        "progression/reopened",
-        "phase-6",
-    ),
-    (
-        "RecoveredPhysicalRuntimeHandoff",
-        "handoff/recovered",
-        "phase-6",
-    ),
-    (
-        "PhysicalRecoveryConstructionPort",
-        "worth-store/recovery-construction/port",
-        "phase-6",
-    ),
-    (
-        "PhysicalRecoveryFreshnessAuthority",
-        "worth-store/recovery-freshness/authority",
-        "phase-2",
-    ),
-    (
-        "PhysicalRecoveryFreshnessAuthority::register_session",
-        "worth-store/recovery-freshness/registration",
-        "phase-2",
-    ),
-    (
-        "PhysicalRecoveryRegisteredSessionAuthority",
-        "worth-store/recovery-freshness/registration",
-        "phase-2",
-    ),
-    (
-        "PhysicalRecoveryRegisteredSessionAuthority::session_identity_bytes",
-        "worth-store/recovery-freshness/registration",
-        "phase-2",
-    ),
-    (
-        "PhysicalRecoveryFreshnessPort",
-        "worth-store/recovery-freshness/port",
-        "phase-2",
-    ),
-    (
-        "PhysicalRecoveryFreshnessPort::admit",
-        "worth-store/recovery-freshness/port",
-        "phase-2",
-    ),
-    (
-        "PhysicalRecoveryFreshnessPort::sample_binding",
-        "worth-store/recovery-freshness/port",
-        "phase-4",
-    ),
-    (
-        "PhysicalRecoveryConstructionAuthority",
-        "worth-store/recovery-construction/authority",
-        "phase-6",
-    ),
-    ("PhysicalRecoveryRefusal", "entry/outcome", "phase-2"),
-    (
-        "PhysicalRecoveryRefusal::recovery_effects",
-        "entry/outcome",
-        "phase-2",
-    ),
-    ("PhysicalRecoveryRefusalKind", "entry/outcome", "phase-2"),
-    ("PhysicalRecoveryBlock", "entry/outcome", "phase-3"),
-    (
-        "PhysicalRecoveryPublicationIndeterminate",
-        "entry/outcome",
-        "phase-6",
-    ),
-    (
-        "RecoveryOperationFateSet",
-        "handoff/operation_fates",
-        "phase-4",
-    ),
-    (
-        "RecoveryCleanupPosture",
-        "handoff/cleanup_posture",
-        "phase-7",
-    ),
-    ("RecoveryReportEnvelope", "observation/report", "phase-8"),
-    (
-        "RecoveryObserverReport",
-        "worth-store-offline-verifier/c8-recovery-observation/report",
-        "phase-8",
-    ),
-    (
-        "StoreRecoveryBindingFreshnessSample",
-        "worth-store/recovery-freshness/binding",
-        "phase-4",
-    ),
-    (
-        "StoreRecoveryCleanupFreshnessSample",
-        "worth-store/recovery-freshness/cleanup",
-        "phase-7",
-    ),
-];
 
 #[test]
 fn current_facade_and_destination_contract_have_exact_inventory_rows() {
@@ -313,10 +133,22 @@ fn current_facade_and_destination_contract_have_exact_inventory_rows() {
         .chain(phase_seven_delivery_surfaces())
         .chain(PHASE_EIGHT_DELIVERY_SURFACES)
         .chain(BACKEND_RECOVERY_SURFACES)
+        .chain(BACKEND_RECOVERY_EVIDENCE_SURFACES)
         .chain(BACKEND_RECOVERY_PUBLICATION_SURFACES)
+        .chain(BACKEND_WAL_DURABILITY_DESTINATION_SURFACES)
         .chain(STORE_RECOVERY_COORDINATION_SURFACES)
         .chain(STORE_RECOVERY_PUBLICATION_SURFACES)
         .chain(SUPPORTING_DELIVERY_SURFACES)
+        .chain(PHASE_EIGHT_OWNER_DESTINATION_SURFACES)
+        .chain(BLOB_REPLAY_DESTINATION_SURFACES)
+        .chain(CHECKPOINT_BACKUP_DESTINATION_SURFACES)
+        .chain(operations_recovery_destination_surfaces())
+        .chain(OFFLINE_VERIFIER_CANDIDATE_DESTINATION_SURFACES)
+        .chain(PHYSICAL_ISOLATION_PUBLICATION_DESTINATION_SURFACES)
+        .chain(PHYSICAL_ISOLATION_RECOVERY_SOURCE_DESTINATION_SURFACES)
+        .chain(RECOVERY_WAL_DESTINATION_SURFACES)
+        .chain(RUNTIME_PROGRESSION_COMPLETION_DESTINATION_SURFACES)
+        .chain(MOVED_INTEGRITY_DESTINATION_SURFACES)
         .copied()
         .collect::<BTreeSet<_>>();
     let omitted = contract.difference(&destination).collect::<Vec<_>>();
@@ -333,6 +165,91 @@ fn current_facade_and_destination_contract_have_exact_inventory_rows() {
             !row.source_owner
                 .starts_with("worth-store-offline-verifier/")
         })
+        // These Phase 8 owner surfaces are validated by the destination
+        // contract above. Layout-indexes and security metadata are deliberately
+        // not members of the existing shipped facade families, while the
+        // format-native checkpoint wire surface is part of the physical-format
+        // facade and remains in the delivered inventory.
+        .filter(|row| {
+            if row.source_owner.starts_with("worth-store-physical-format/") {
+                return true;
+            }
+            !PHASE_EIGHT_OWNER_DESTINATION_SURFACES
+                .iter()
+                .any(|(surface, source_owner, phase)| {
+                    row.surface == *surface
+                        && row.source_owner == *source_owner
+                        && row.phase == *phase
+                })
+        })
+        .filter(|row| {
+            !operations_recovery_destination_surfaces().any(|(surface, source_owner, phase)| {
+                row.surface == *surface && row.source_owner == *source_owner && row.phase == *phase
+            })
+        })
+        .filter(|row| {
+            !OFFLINE_VERIFIER_CANDIDATE_DESTINATION_SURFACES.iter().any(
+                |(surface, source_owner, phase)| {
+                    row.surface == *surface
+                        && row.source_owner == *source_owner
+                        && row.phase == *phase
+                },
+            )
+        })
+        .filter(|row| {
+            !PHYSICAL_ISOLATION_PUBLICATION_DESTINATION_SURFACES
+                .iter()
+                .any(|(surface, source_owner, phase)| {
+                    row.surface == *surface
+                        && row.source_owner == *source_owner
+                        && row.phase == *phase
+                })
+        })
+        .filter(|row| {
+            !PHYSICAL_ISOLATION_RECOVERY_SOURCE_DESTINATION_SURFACES
+                .iter()
+                .any(|(surface, source_owner, phase)| {
+                    row.surface == *surface
+                        && row.source_owner == *source_owner
+                        && row.phase == *phase
+                })
+        })
+        .filter(|row| {
+            !MOVED_INTEGRITY_DESTINATION_SURFACES
+                .iter()
+                .any(|(surface, source_owner, phase)| {
+                    row.surface == *surface
+                        && row.source_owner == *source_owner
+                        && row.phase == *phase
+                })
+        })
+        .filter(|row| {
+            !matches!(
+                row.surface.as_str(),
+                "RecoveryCompletionDenial" | "complete_recovery"
+            )
+        })
+        .filter(|row| {
+            !BLOB_REPLAY_DESTINATION_SURFACES
+                .iter()
+                .any(|(surface, source_owner, phase)| {
+                    row.surface == *surface
+                        && row.source_owner == *source_owner
+                        && row.phase == *phase
+                })
+        })
+        .filter(|row| {
+            !BACKEND_WAL_DURABILITY_CERTIFICATION_SURFACES.contains(&row.surface.as_str())
+        })
+        .filter(|row| {
+            !PRESERVED_WAL_DESTINATION_SURFACES
+                .iter()
+                .any(|(surface, source_owner, phase)| {
+                    row.surface == *surface
+                        && row.source_owner == *source_owner
+                        && row.phase == *phase
+                })
+        })
         .filter(|row| {
             matches!(
                 row.phase.as_str(),
@@ -342,36 +259,4 @@ fn current_facade_and_destination_contract_have_exact_inventory_rows() {
         .map(|row| (row.surface.clone(), row.source_owner.clone()))
         .collect::<BTreeSet<_>>();
     assert_exact_inventory(delivered_inventory).expect("exact delivered C.8 facade inventory");
-}
-
-fn parse_inventory(document: &str) -> Result<Vec<ApiRow>, String> {
-    let mut lines = document.lines();
-    if lines.next() != Some(HEADER) {
-        return Err("C.8 API inventory has an invalid schema".into());
-    }
-    lines
-        .filter(|line| !line.trim().is_empty())
-        .enumerate()
-        .map(|(index, line)| {
-            let columns = split_csv(line, 6)
-                .map_err(|error| format!("C.8 API row {}: {error}", index + 2))?;
-            Ok(ApiRow {
-                scope: columns[0].to_owned(),
-                surface: columns[1].to_owned(),
-                source_owner: columns[2].to_owned(),
-                disposition: columns[3].to_owned(),
-                destination_owner: columns[4].to_owned(),
-                phase: columns[5].to_owned(),
-            })
-        })
-        .collect()
-}
-
-pub(super) struct ApiRow {
-    scope: String,
-    surface: String,
-    source_owner: String,
-    disposition: String,
-    destination_owner: String,
-    phase: String,
 }

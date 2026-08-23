@@ -40,6 +40,7 @@ pub(super) fn value(campaign: &C7CrashCampaignEvidence) -> Value {
                     "inspection_required": reopen.posture().inspection_required(),
                     "recovery_obligations": reopen.posture().recovery_obligations(),
                 },
+                "c8_recovery": super::c8_recovery::value(case.recovery()),
                 "exact_rerun": {
                     "program": rerun.program(),
                     "arguments": rerun.arguments(),

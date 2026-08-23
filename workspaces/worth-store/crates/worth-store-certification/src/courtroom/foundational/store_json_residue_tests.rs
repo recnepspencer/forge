@@ -318,7 +318,7 @@ fn current_inventory_classifies_real_legacy_json_digest_surfaces() {
     );
     assert_real_legacy_json_digest_surface(
         &inventory,
-        "crates/worth-store/src/storage_foundation/s0/migration.rs",
+        "crates/worth-store/src/storage_foundation/s0/migration/artifact.rs",
         "to_canonical_json_bytes",
         "legacy S0 compatibility residue",
     );

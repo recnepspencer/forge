@@ -51,6 +51,24 @@ fn complete(
     input: RecoveryStagingInput,
     execution: execution::StagingExecution,
 ) -> Result<StagedPhysicalRecovery, PhysicalRecoveryOutcome> {
+    if input
+        .coordination
+        .pause_at(
+            worth_store::physical_runtime::PhysicalRecoveryYieldpointStage::StagingMaterialization,
+        )
+        .is_interrupted()
+    {
+        return Err(block(input, execution));
+    }
+    if input
+        .coordination
+        .pause_at(
+            worth_store::physical_runtime::PhysicalRecoveryYieldpointStage::StagingSynchronization,
+        )
+        .is_interrupted()
+    {
+        return Err(block(input, execution));
+    }
     let base = input.staging.into_base_image();
     Ok(StagedPhysicalRecovery::new(
         input.authority,

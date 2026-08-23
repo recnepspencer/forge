@@ -8,7 +8,6 @@ pub(crate) mod foundational;
 pub mod harness;
 pub(crate) mod layout;
 pub(crate) mod memory;
-pub mod operational_recovery;
 pub(crate) mod physical_integrity;
 pub(crate) mod physical_isolation;
 pub(crate) mod physical_substrate;

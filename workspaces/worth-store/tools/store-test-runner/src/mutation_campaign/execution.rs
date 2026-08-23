@@ -1,20 +1,31 @@
+use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use sha2::{Digest, Sha256};
-
 use super::catalog::{ControlledMutation, MutationTarget};
-use super::evidence::{MutationExecutionClass, MutationExecutionEvidence, MutationObservation};
+use super::evidence::{
+    MutationExecutionClass, MutationExecutionEvidence, MutationExecutionTranscript,
+    MutationObservation,
+};
 use super::source_replacement::InstalledSourceMutation;
+use super::target_directory::MutationCampaignTarget;
 
-const NESTED_EXECUTABLE_MARKER: &str = "CONTROLLED_MUTATION_EXECUTABLE ";
+#[path = "execution/artifact_evidence.rs"]
+mod artifact_evidence;
+
+#[cfg(all(test, feature = "physical-work-evidence"))]
+pub(crate) use artifact_evidence::emit_nested_executable;
+use artifact_evidence::{compiler_diagnostics, executed_binary, tail};
+#[cfg(test)]
+use artifact_evidence::{nested_executable, test_binary};
 
 pub(super) fn execute(
     workspace: &Path,
     mutation: &ControlledMutation,
+    target: &MutationCampaignTarget,
 ) -> Result<MutationObservation, String> {
     let mut installed = InstalledSourceMutation::apply(workspace, mutation)?;
-    let result = run_test(workspace, mutation);
+    let result = run_test(workspace, mutation, target);
     installed.restore_exact(mutation)?;
     let failure = classify_failure(result?, mutation)?;
     build_observation(&installed, mutation, failure)
@@ -22,6 +33,7 @@ pub(super) fn execute(
 
 struct ControlledFailure {
     combined: String,
+    transcript: MutationExecutionTranscript,
     binary: PathBuf,
     predicate: String,
     execution_class: MutationExecutionClass,
@@ -76,6 +88,7 @@ fn classify_failure(
         ));
     }
     Ok(ControlledFailure {
+        transcript: execution_transcript(&output, &combined, mutation),
         combined,
         binary,
         predicate,
@@ -145,7 +158,35 @@ fn build_observation(
         actual_failing_predicate: failure.predicate,
         localization: panic_localization(&failure.combined),
         execution,
+        transcript: Some(failure.transcript),
     })
+}
+
+fn execution_transcript(
+    output: &std::process::Output,
+    combined: &str,
+    mutation: &ControlledMutation,
+) -> MutationExecutionTranscript {
+    let causal_lines = combined
+        .lines()
+        .filter(|line| {
+            line.contains(mutation.selector)
+                || line.contains(mutation.predicate)
+                || line.contains("panicked at")
+                || line.contains("test result: FAILED")
+        })
+        .take(32)
+        .map(str::trim)
+        .map(str::to_owned)
+        .collect();
+    MutationExecutionTranscript {
+        exit_code: output.status.code(),
+        stdout_sha256: hash(&output.stdout),
+        stdout_bytes: output.stdout.len().try_into().unwrap_or(u64::MAX),
+        stderr_sha256: hash(&output.stderr),
+        stderr_bytes: output.stderr.len().try_into().unwrap_or(u64::MAX),
+        causal_lines,
+    }
 }
 
 fn actual_failing_predicate(output: &str, mutant: u8) -> Result<String, String> {
@@ -180,8 +221,50 @@ fn actual_failing_predicate(output: &str, mutant: u8) -> Result<String, String> 
 fn run_test(
     workspace: &Path,
     mutation: &ControlledMutation,
+    target: &MutationCampaignTarget,
 ) -> Result<ExecutedControlledCase, String> {
     let class = execution_class(mutation.target);
+    let mut command = build_command(workspace, mutation, target);
+    if matches!(
+        mutation.target,
+        MutationTarget::Integration("phase_eight_process")
+    ) {
+        let repository = workspace
+            .parent()
+            .and_then(Path::parent)
+            .ok_or_else(|| "mutation snapshot omitted repository ancestors".to_owned())?;
+        let parent = target
+            .path()
+            .parent()
+            .ok_or_else(|| "mutation target omitted its parent".to_owned())?;
+        let finalized =
+            worth_store_process_bundle::FreshRecoveryProcessBundle::build_production_finalized_at(
+                workspace, repository, parent,
+            )?;
+        finalized.install_environment(&mut command);
+        let execution =
+            super::process_execution::run(&mut command, mutation.id, class).map(|executed| {
+                ExecutedControlledCase {
+                    output: executed.output,
+                    class,
+                    elapsed: executed.elapsed,
+                }
+            });
+        return finalized.finish(execution);
+    }
+    let executed = super::process_execution::run(&mut command, mutation.id, class)?;
+    Ok(ExecutedControlledCase {
+        output: executed.output,
+        class,
+        elapsed: executed.elapsed,
+    })
+}
+
+fn build_command(
+    workspace: &Path,
+    mutation: &ControlledMutation,
+    target: &MutationCampaignTarget,
+) -> Command {
     let mut command = Command::new("cargo");
     command.args(["test", "-j", "1", "-p", mutation.package]);
     match mutation.target {
@@ -214,86 +297,23 @@ fn run_test(
             "--nocapture",
         ])
         .current_dir(workspace)
-        .env("CARGO_TARGET_DIR", workspace.join("target"));
-    let executed = super::process_execution::run(&mut command, mutation.id, class)?;
-    Ok(ExecutedControlledCase {
-        output: executed.output,
-        class,
-        elapsed: executed.elapsed,
-    })
+        .env("CARGO_TARGET_DIR", target.path());
+    command
 }
 
-const fn execution_class(target: MutationTarget) -> MutationExecutionClass {
+fn execution_class(target: MutationTarget) -> MutationExecutionClass {
     match target {
         MutationTarget::NestedExecutableLibrary { .. } => {
             MutationExecutionClass::NestedExecutableCold
         }
         MutationTarget::Library
         | MutationTarget::LibraryWithFeatures { .. }
-        | MutationTarget::Binary(_)
-        | MutationTarget::Integration(_) => MutationExecutionClass::Ordinary,
-    }
-}
-
-fn executed_binary(
-    cargo_stdout: &[u8],
-    combined: &str,
-    mutation: &ControlledMutation,
-) -> Result<PathBuf, String> {
-    let binary = match mutation.target {
-        MutationTarget::NestedExecutableLibrary { .. } => nested_executable(combined)?,
-        MutationTarget::Library
-        | MutationTarget::LibraryWithFeatures { .. }
-        | MutationTarget::Binary(_)
-        | MutationTarget::Integration(_) => test_binary(cargo_stdout).ok_or_else(|| {
-            format!(
-                "mutant {} runtime failure omitted the executed test binary path",
-                mutation.id
-            )
-        })?,
-    };
-    if !binary.is_file() {
-        return Err(format!(
-            "mutant {} named an absent executed binary {}",
-            mutation.id,
-            binary.display()
-        ));
-    }
-    Ok(binary)
-}
-
-fn nested_executable(output: &str) -> Result<PathBuf, String> {
-    let markers = output
-        .lines()
-        .filter_map(|line| line.strip_prefix(NESTED_EXECUTABLE_MARKER))
-        .collect::<Vec<_>>();
-    let [encoded] = markers.as_slice() else {
-        return Err(format!(
-            "nested mutation execution emitted {} executable bindings:\n{}",
-            markers.len(),
-            tail(output, 24)
-        ));
-    };
-    serde_json::from_str::<String>(encoded)
-        .map(PathBuf::from)
-        .map_err(|error| format!("nested mutation executable binding was malformed: {error}"))
-}
-
-#[cfg(all(test, feature = "physical-work-evidence"))]
-pub(crate) fn emit_nested_executable(path: &Path) {
-    let encoded = serde_json::to_string(&path.display().to_string())
-        .expect("nested mutation executable path must encode");
-    println!("{NESTED_EXECUTABLE_MARKER}{encoded}");
-}
-
-fn test_binary(output: &[u8]) -> Option<PathBuf> {
-    output.split(|byte| *byte == b'\n').find_map(|line| {
-        let message: serde_json::Value = serde_json::from_slice(line).ok()?;
-        if message.get("reason")?.as_str()? != "compiler-artifact" {
-            return None;
+        | MutationTarget::Binary(_) => MutationExecutionClass::IsolatedCampaign,
+        MutationTarget::Integration("phase_eight_process") => {
+            MutationExecutionClass::FreshProcessCold
         }
-        message.get("executable")?.as_str().map(PathBuf::from)
-    })
+        MutationTarget::Integration(_) => MutationExecutionClass::IsolatedCampaign,
+    }
 }
 
 fn panic_localization(output: &str) -> String {
@@ -316,39 +336,6 @@ fn hash(bytes: &[u8]) -> String {
         .iter()
         .map(|byte| format!("{byte:02x}"))
         .collect()
-}
-
-fn tail(value: &str, lines: usize) -> String {
-    value
-        .lines()
-        .rev()
-        .take(lines)
-        .collect::<Vec<_>>()
-        .into_iter()
-        .rev()
-        .collect::<Vec<_>>()
-        .join("\n")
-}
-
-fn compiler_diagnostics(output: &str) -> Option<String> {
-    let diagnostics = output
-        .lines()
-        .filter_map(|line| serde_json::from_str::<serde_json::Value>(line).ok())
-        .filter(|message| {
-            message.get("reason").and_then(|value| value.as_str()) == Some("compiler-message")
-        })
-        .filter_map(|message| {
-            let diagnostic = message.get("message")?;
-            diagnostic
-                .get("rendered")
-                .and_then(|value| value.as_str())
-                .or_else(|| diagnostic.get("message").and_then(|value| value.as_str()))
-                .map(str::trim)
-                .filter(|rendered| !rendered.is_empty())
-                .map(str::to_owned)
-        })
-        .collect::<Vec<_>>();
-    (!diagnostics.is_empty()).then(|| diagnostics.join("\n"))
 }
 
 #[cfg(test)]

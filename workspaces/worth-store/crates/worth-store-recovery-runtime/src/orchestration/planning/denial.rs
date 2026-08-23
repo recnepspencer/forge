@@ -109,6 +109,11 @@ pub(super) fn plan_cost_limit(
             cost.staging_bytes(),
             limits.staging_bytes(),
         ),
+        RecoveryPlanCostDenial::RecoveryMemoryBytes => (
+            PhysicalRecoveryLimitDimension::RecoveryMemoryBytes,
+            cost.peak_recovery_bytes(),
+            limits.recovery_memory_bytes(),
+        ),
         RecoveryPlanCostDenial::DirtyFrames => (
             PhysicalRecoveryLimitDimension::DirtyFrames,
             cost.dirty_frames(),

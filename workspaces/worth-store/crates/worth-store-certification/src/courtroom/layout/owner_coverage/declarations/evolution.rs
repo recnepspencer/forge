@@ -11,24 +11,8 @@ pub(super) fn register(declarations: &mut LayoutOwnerCaseDeclarations) {
         migration::migration_planning_cases().map(|case| case.as_str()),
     );
     declarations.insert(
-        LayoutOwnerFamily::MigrationExecution,
-        migration::layout_migration_execution_cases().map(|case| case.as_str()),
-    );
-    declarations.insert(
-        LayoutOwnerFamily::MigrationInterruption,
-        migration::layout_migration_interruption_cases().map(|case| case.as_str()),
-    );
-    declarations.insert(
         LayoutOwnerFamily::RollbackPlanning,
         migration::rollback_planning_cases().map(|case| case.as_str()),
-    );
-    declarations.insert(
-        LayoutOwnerFamily::RollbackExecution,
-        migration::layout_rollback_execution_cases().map(|case| case.as_str()),
-    );
-    declarations.insert(
-        LayoutOwnerFamily::RollbackInterruption,
-        migration::layout_rollback_interruption_cases().map(|case| case.as_str()),
     );
     declarations.insert(
         LayoutOwnerFamily::BackwardReadCompatibility,

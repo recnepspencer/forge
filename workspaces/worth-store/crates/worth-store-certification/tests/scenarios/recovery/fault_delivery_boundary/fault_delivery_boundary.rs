@@ -1,11 +1,19 @@
-#[path = "../../../support/recovery/fault_delivery_boundary/support.rs"]
-mod support;
+#[path = "../../../support/recovery/fault_delivery_boundary/delivery.rs"]
+mod delivery;
+#[path = "../../../support/recovery/fault_delivery_boundary/drivers.rs"]
+mod drivers;
+#[path = "../../../support/recovery/fault_delivery_boundary/evidence.rs"]
+mod evidence;
+#[path = "../../../support/recovery/fault_delivery_boundary/scenarios.rs"]
+mod scenarios;
 
-use support::{
-    alternate_production_trace, complete_context, deliver_storage_event,
-    developer_smoke_production_trace, fresh_runtime_crash_evidence,
-    production_driver_with_all_seams, readiness_scenario, readiness_scenario_scheduled_at,
-    recovery_scenario, storage_fault_delivery_cases,
+use delivery::{deliver_storage_event, storage_fault_delivery_cases};
+use drivers::{
+    alternate_production_trace, developer_smoke_production_trace, production_driver_with_all_seams,
+};
+use evidence::fresh_runtime_crash_evidence;
+use scenarios::{
+    complete_context, readiness_scenario, readiness_scenario_scheduled_at, recovery_scenario,
 };
 use worth_foundational::FoundationalBoundaryEvidenceLocality;
 use worth_store_physical_backend::ProductionStorageBoundarySeam;

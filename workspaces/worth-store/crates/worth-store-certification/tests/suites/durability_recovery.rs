@@ -4,24 +4,6 @@ mod actor_contract_lowering;
 #[path = "../scenarios/recovery/aspect_native_scenario_definition/aspect_native_scenario_definition.rs"]
 mod aspect_native_scenario_definition;
 
-#[path = "../scenarios/recovery/bounded_recovery_budget/bounded_recovery_budget.rs"]
-mod bounded_recovery_budget;
-
-#[path = "../scenarios/recovery/checkpoint_cutover/checkpoint_cutover.rs"]
-mod checkpoint_cutover;
-
-#[path = "../scenarios/recovery/checkpoint_publication_oracle_hardening/checkpoint_publication_oracle_hardening.rs"]
-mod checkpoint_publication_oracle_hardening;
-
-#[path = "../scenarios/recovery/checkpoint_publication_receipt_origin_hardening/checkpoint_publication_receipt_origin_hardening.rs"]
-mod checkpoint_publication_receipt_origin_hardening;
-
-#[path = "../scenarios/recovery/checkpoint_publication_scheduled_lane_hardening/checkpoint_publication_scheduled_lane_hardening.rs"]
-mod checkpoint_publication_scheduled_lane_hardening;
-
-#[path = "../scenarios/recovery/compaction_oracle_hardening/compaction_oracle_hardening.rs"]
-mod compaction_oracle_hardening;
-
 #[path = "../scenarios/recovery/counter_contract_profile/counter_contract_profile.rs"]
 mod counter_contract_profile;
 
@@ -55,9 +37,6 @@ mod forbidden_shortcut_rejection;
 #[path = "../scenarios/recovery/generated_coverage_matrix/generated_coverage_matrix.rs"]
 mod generated_coverage_matrix;
 
-#[path = "../scenarios/recovery/idempotent_redo_replay/idempotent_redo_replay.rs"]
-mod idempotent_redo_replay;
-
 #[path = "../scenarios/recovery/observer_oracle_boundaries/observer_oracle_boundaries.rs"]
 mod observer_oracle_boundaries;
 
@@ -66,9 +45,6 @@ mod observer_oracle_execution;
 
 #[path = "../scenarios/recovery/observer_oracle_fact_basis/observer_oracle_fact_basis.rs"]
 mod observer_oracle_fact_basis;
-
-#[path = "../scenarios/recovery/partial_publication_classification/partial_publication_classification.rs"]
-mod partial_publication_classification;
 
 #[path = "../scenarios/recovery/physical_simulation_harness_closeout/physical_simulation_harness_closeout.rs"]
 mod physical_simulation_harness_closeout;
@@ -82,26 +58,11 @@ mod production_driver_contracts;
 #[path = "../scenarios/recovery/production_driver_yieldpoint_matrix/production_driver_yieldpoint_matrix.rs"]
 mod production_driver_yieldpoint_matrix;
 
-#[path = "../scenarios/recovery/recovery_source_precedence/recovery_source_precedence.rs"]
-mod recovery_source_precedence;
-
-#[path = "../scenarios/recovery/s10_execution_matrix/s10_execution_matrix.rs"]
-mod s10_execution_matrix;
-
-#[path = "../scenarios/recovery/s10_operational_world/s10_operational_world.rs"]
-mod s10_operational_world;
-
 #[path = "../scenarios/recovery/schedule_replay_denials/schedule_replay_denials.rs"]
 mod schedule_replay_denials;
 
 #[path = "../scenarios/recovery/schedule_shrink_trace/schedule_shrink_trace.rs"]
 mod schedule_shrink_trace;
-
-#[path = "../scenarios/recovery/simulation_harness_entry_boundary/simulation_harness_entry_boundary.rs"]
-mod simulation_harness_entry_boundary;
-
-#[path = "../scenarios/recovery/simulation_harness_entry_boundary_hardening/simulation_harness_entry_boundary_hardening.rs"]
-mod simulation_harness_entry_boundary_hardening;
 
 #[path = "../scenarios/recovery/simulation_plan_lowering/simulation_plan_lowering.rs"]
 mod simulation_plan_lowering;

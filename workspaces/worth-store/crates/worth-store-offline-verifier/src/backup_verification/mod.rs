@@ -1,4 +1,7 @@
 mod backup_cut_source_verification;
+#[cfg(test)]
+mod checkpoint_backup_tests;
+mod checkpoint_backup_verification;
 mod manifest_semantic_validation;
 mod owner_artifact_verification;
 mod owner_denial_classification;
@@ -16,6 +19,11 @@ mod verify_backup;
 pub use backup_cut_source_verification::{
     verify_backup_cut_sources, verify_backup_cut_sources_with_cancellation,
     BackupCutSourceVerificationDenial, BackupCutSourceVerificationReport,
+};
+pub use checkpoint_backup_verification::{
+    checkpoint_backup_frontier_digest, verify_bounded_checkpoint_backup_artifact_from_reader,
+    BoundedCheckpointBackupDenial, BoundedCheckpointBackupObservation,
+    BoundedCheckpointBackupVerificationRequest,
 };
 pub use structurally_verified_bundle::StructurallyVerifiedBackupBundle;
 pub use verification_budget::BackupVerificationBudget;

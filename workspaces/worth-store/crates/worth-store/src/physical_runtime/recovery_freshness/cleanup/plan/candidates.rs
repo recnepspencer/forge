@@ -124,7 +124,7 @@ fn admit_terminal_bindings(
     })?;
     super::super::wal_members_are_terminal(&binding)
         .then_some(terminal_binding_evaluations)
-        .ok_or_else(|| StoreRecoveryCleanupFreshnessFailure {
+        .ok_or(StoreRecoveryCleanupFreshnessFailure {
             denial: StoreRecoveryCleanupFreshnessDenial::InvalidCleanupEligibility,
             sample: None,
             read: None,

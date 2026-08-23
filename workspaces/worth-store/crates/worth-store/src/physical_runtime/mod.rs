@@ -18,6 +18,9 @@ mod recovery_construction;
 mod recovery_coordination;
 #[cfg(feature = "recovery-runtime-owner")]
 mod recovery_freshness;
+pub mod recovery_wal;
+#[cfg(feature = "recovery-runtime-owner")]
+mod recovery_yieldpoint;
 mod resource_lifecycle;
 mod root_admission;
 mod runtime;
@@ -203,6 +206,11 @@ pub use recovery_freshness::{
     StoreRecoveryCleanupPlanAdmissionFailure, StoreRecoveryOperationEvidence,
     StoreRecoveryOperationFate, StoreRecoveryWalMember,
 };
+#[cfg(feature = "recovery-runtime-owner")]
+pub use recovery_yieldpoint::{
+    PhysicalRecoveryProcessYieldpoint, PhysicalRecoveryYieldpointStage,
+    PhysicalRecoveryYieldpointWaitResult,
+};
 pub use runtime::AdmittedPhysicalRuntime;
 pub use shutdown::{AbortedRuntime, ClosedRuntime};
 pub use work::{
@@ -253,7 +261,8 @@ pub use worth_store_physical_backend::{
     RecoveryDiscoveryByteLimitScope, RecoveryDiscoveryCounters, RecoveryDiscoveryFailure,
     RecoveryFilesystemQualificationError, RecoveryReopenReadOutcome,
     RecoveryRootProtocolPublicationDenial, RecoveryRootProtocolPublicationPlan,
-    RecoveryStagingWriteDisposition, RecoveryStagingWriteOutcome,
+    RecoveryStagingIndeterminatePhysical, RecoveryStagingWriteDisposition,
+    RecoveryStagingWriteOutcome,
 };
 
 pub(in crate::physical_runtime) use work::{
@@ -292,5 +301,12 @@ pub mod certification {
         CertificationMediaFaultActivation, CertificationMediaFaultAuthority, MediaFaultDirective,
         MediaFaultRule, MediaFaultSchedule, MediaFaultScheduleDenial, MediaOperationRole,
         MediaPauseGate,
+    };
+}
+
+pub mod production {
+    pub use super::durability::{
+        PhysicalCheckpointPauseGate, PhysicalCheckpointStep, PhysicalMutationCheckpoint,
+        PhysicalMutationPauseGate,
     };
 }

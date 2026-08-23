@@ -81,11 +81,47 @@ fn add_c7_campaign(digest: &mut Sha256, campaign: &C7CrashCampaignEvidence) {
             u8::from(reopen.posture().recovery_evidence_damaged()),
         ]);
         digest.update(reopen.posture().recovery_obligations().to_le_bytes());
+        add_c8_recovery(digest, case);
         add_text(digest, case.rerun().program());
         digest.update((case.rerun().arguments().len() as u64).to_le_bytes());
         for argument in case.rerun().arguments() {
             add_text(digest, argument);
         }
+    }
+}
+
+fn add_c8_recovery(
+    digest: &mut Sha256,
+    case: &super::super::c7_crash_campaign::C7CrashSeamEvidence,
+) {
+    let recovery = case.recovery();
+    let marker = recovery.marker();
+    digest.update(marker.store());
+    digest.update(marker.runtime().to_le_bytes());
+    digest.update(marker.root_generation().to_le_bytes());
+    digest.update(
+        recovery
+            .report()
+            .counters()
+            .recovery_effects()
+            .to_le_bytes(),
+    );
+    digest.update(
+        recovery
+            .report()
+            .counters()
+            .peak_recovery_bytes()
+            .to_le_bytes(),
+    );
+    digest.update([recovery_outcome_code(recovery.report().outcome())]);
+}
+
+const fn recovery_outcome_code(outcome: worth_store_recovery_runtime::RecoveryReportOutcome) -> u8 {
+    match outcome {
+        worth_store_recovery_runtime::RecoveryReportOutcome::Recovered => 1,
+        worth_store_recovery_runtime::RecoveryReportOutcome::Refused => 2,
+        worth_store_recovery_runtime::RecoveryReportOutcome::Blocked => 3,
+        worth_store_recovery_runtime::RecoveryReportOutcome::PublicationIndeterminate => 4,
     }
 }
 

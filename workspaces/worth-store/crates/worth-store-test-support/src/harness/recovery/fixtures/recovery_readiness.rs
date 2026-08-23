@@ -18,7 +18,3 @@ pub(super) fn physical_integrity_model_payload() -> PhysicalIntegrityReadinessPa
         BufferPoolAuthorityRecap::physical_substrate_authority(true, true, true, true).unwrap(),
     )
 }
-
-pub(super) fn physical_authority() -> PhysicalAuthorityRecap {
-    PhysicalAuthorityRecap::from_physical_format_authority(3, 2, 1).unwrap()
-}

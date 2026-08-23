@@ -4,7 +4,7 @@ use crate::{
     PhysicalScenarioObserverKind, PhysicalScenarioPlanIdentity, RoadmapLaneFamily,
 };
 use worth_store_contracts::StableDigest;
-use worth_store_recovery_physics::IntegrityHandoffCounters;
+use worth_store_physical_integrity::IntegrityHandoffCounters;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PhysicalIntegrityCloseoutReport {

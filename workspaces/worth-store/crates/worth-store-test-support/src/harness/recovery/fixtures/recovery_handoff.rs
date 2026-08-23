@@ -1,23 +1,18 @@
-use worth_store_physical_format::CheckpointAdjacencyPosture;
-use worth_store_physical_integrity::{QuarantineRecord, StoreExecutedIntegrityEvidence};
-use worth_store_recovery_physics::{
-    IntegrityDamageMap, IntegrityHandoffPayload, IntegrityVettedCheckpointRecord,
-    IntegrityVettedPageFrameRecord, IntegrityVettedRootManifestRecord,
-    IntegrityVettedSegmentManifestRecord, IntegrityVettedWalFrame,
-    PartialPublicationBeforeWalReplayRead, RecoveryBlockedByIntegrityDamage,
-    RecoveryIntegrityHandoffReceipt,
-};
-
 use super::s4_recovery_integrity_fixture::{
     inspect_checkpoint_record, inspect_manifest, inspect_page_report, inspect_wal_damage,
-    inspect_wal_frame, inspection_envelope, receipt, with_checked_frame,
+    inspect_wal_frame, inspection_envelope, receipt,
 };
-use super::s4_recovery_physical_fixture::{page_payload_with_record, validation};
+use super::s4_recovery_physical_fixture::page_payload_with_record;
+use worth_store_physical_format::CheckpointAdjacencyPosture;
+use worth_store_physical_integrity::{
+    IntegrityDamageMap, IntegrityHandoffPayload, IntegrityVettedCheckpointRecord,
+    IntegrityVettedPageFrameRecord, IntegrityVettedRootManifestRecord,
+    IntegrityVettedSegmentManifestRecord, IntegrityVettedWalFrame, QuarantineRecord,
+    RecoveryBlockedByIntegrityDamage, RecoveryIntegrityHandoffReceipt,
+    StoreExecutedIntegrityEvidence,
+};
 
-pub(super) fn intact_payload(
-    label: &str,
-    include_partial_publication_replay_read: bool,
-) -> IntegrityHandoffPayload {
+pub(super) fn intact_payload(label: &str) -> IntegrityHandoffPayload {
     let page_payload = page_payload_with_record(label.as_bytes());
     let page = inspect_page_report(&page_payload);
     let wal = inspect_wal_frame(CheckpointAdjacencyPosture::NotCheckpointAdjacent);
@@ -28,7 +23,7 @@ pub(super) fn intact_payload(
         &manifest,
     ));
 
-    let mut declaration = IntegrityHandoffPayload::declare()
+    let declaration = IntegrityHandoffPayload::declare()
         .root_manifest(
             IntegrityVettedRootManifestRecord::from_manifest_report(
                 &manifest,
@@ -75,11 +70,6 @@ pub(super) fn intact_payload(
                 .unwrap(),
         )
         .inspection_envelope(inspection_envelope(&page_payload));
-    if include_partial_publication_replay_read {
-        declaration = declaration.partial_publication_before_wal_replay_read(
-            partial_publication_before_wal_replay_read(label),
-        );
-    }
     declaration.seal().unwrap()
 }
 
@@ -108,36 +98,7 @@ fn quarantine_binding() -> (
             )
             .unwrap();
     let receipt =
-        worth_store_recovery_physics::RecoveryIntegrityHandoffReceipt::from_quarantine_receipt_evidence(
-            &evidence,
-        )
-        .unwrap();
-    let damage = worth_store_recovery_physics::RecoveryBlockedByIntegrityDamage::damaged_wal_frame(
-        &wal_damage,
-    );
+        RecoveryIntegrityHandoffReceipt::from_quarantine_receipt_evidence(&evidence).unwrap();
+    let damage = RecoveryBlockedByIntegrityDamage::damaged_wal_frame(&wal_damage);
     (record, receipt, damage)
-}
-
-fn partial_publication_before_wal_replay_read(
-    operation_digest: &str,
-) -> PartialPublicationBeforeWalReplayRead {
-    let bytes = partial_publication_before_wal_bytes(operation_digest);
-    let mut replay_read = None;
-    with_checked_frame(&bytes, validation(1, 2, 3, 7), |checked| {
-        replay_read = Some(
-            PartialPublicationBeforeWalReplayRead::from_integrity_checked_frame(checked)
-                .expect("protected fixture bytes encode before-WAL partial publication replay"),
-        );
-    });
-    replay_read.unwrap()
-}
-
-fn partial_publication_before_wal_bytes(operation_digest: &str) -> Vec<u8> {
-    [
-        "worth-store.partial-publication.v1",
-        "before-wal-append",
-        operation_digest,
-    ]
-    .join("\n")
-    .into_bytes()
 }

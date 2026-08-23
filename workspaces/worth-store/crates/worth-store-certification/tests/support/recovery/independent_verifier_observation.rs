@@ -22,13 +22,15 @@ pub fn observed_runtime_comparison(
         RecoveryObserverLimits::new(1, 1, 1, 8).unwrap(),
     )
     .unwrap();
-    IndependentVerifierObservation::from_reports(&recovered_runtime_report(), observer)
+    let runtime_report = recovered_runtime_report();
+    IndependentVerifierObservation::from_reports(&runtime_report, observer)
 }
 
 fn recovered_runtime_report() -> RecoveryReportEnvelope {
-    let family = worth_store_recovery_runtime::RECOVERY_REPORT_PROTOCOL
+    let family_text = worth_store_recovery_runtime::RECOVERY_REPORT_PROTOCOL
         .as_str()
-        .as_bytes();
+        .to_owned();
+    let family = family_text.as_bytes();
     let mut bytes = Vec::new();
     bytes.extend_from_slice(&(family.len() as u64).to_le_bytes());
     bytes.extend_from_slice(family);

@@ -10,18 +10,18 @@ pub enum SimulationHarnessSurfaceClassification {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum RegisteredSimulationHarnessSurface {
-    TestSupportS4RecoveryPhysics,
+    TestSupportRecoveryMechanics,
     TestSupportNativeAspectFixtures,
     TestSupportTerminalProjectionJsonFixtures,
     TestSupportHostileReadmissionJsonFixtures,
-    CertificationS4RecoveryHarness,
+    CertificationRecoveryMeaning,
     ObsoleteSemanticHarness,
 }
 
 impl RegisteredSimulationHarnessSurface {
     pub const fn path(self) -> &'static str {
         match self {
-            Self::TestSupportS4RecoveryPhysics => "worth-store-test-support::s4_recovery_physics",
+            Self::TestSupportRecoveryMechanics => "worth-store-test-support::harness::recovery",
             Self::TestSupportNativeAspectFixtures => {
                 "worth-store-test-support::native_aspect_fixtures"
             }
@@ -31,23 +31,21 @@ impl RegisteredSimulationHarnessSurface {
             Self::TestSupportHostileReadmissionJsonFixtures => {
                 "worth-store-test-support::hostile_readmission_json_fixtures"
             }
-            Self::CertificationS4RecoveryHarness => {
-                "worth-store-certification::s4_recovery_harness"
-            }
+            Self::CertificationRecoveryMeaning => "worth-store-physical-certification::scenario",
             Self::ObsoleteSemanticHarness => "crates/worth-store/src/tests/harness",
         }
     }
 
     pub const fn classification(self) -> SimulationHarnessSurfaceClassification {
         match self {
-            Self::TestSupportS4RecoveryPhysics | Self::TestSupportNativeAspectFixtures => {
+            Self::TestSupportRecoveryMechanics | Self::TestSupportNativeAspectFixtures => {
                 SimulationHarnessSurfaceClassification::ReusableMechanics
             }
             Self::TestSupportTerminalProjectionJsonFixtures
             | Self::TestSupportHostileReadmissionJsonFixtures => {
                 SimulationHarnessSurfaceClassification::MilestoneLocalMechanics
             }
-            Self::CertificationS4RecoveryHarness => {
+            Self::CertificationRecoveryMeaning => {
                 SimulationHarnessSurfaceClassification::CertificationMeaning
             }
             Self::ObsoleteSemanticHarness => {
@@ -219,11 +217,11 @@ fn registered_surface(
 
 fn required_registered_surfaces() -> &'static [RegisteredSimulationHarnessSurface] {
     &[
-        RegisteredSimulationHarnessSurface::TestSupportS4RecoveryPhysics,
+        RegisteredSimulationHarnessSurface::TestSupportRecoveryMechanics,
         RegisteredSimulationHarnessSurface::TestSupportNativeAspectFixtures,
         RegisteredSimulationHarnessSurface::TestSupportTerminalProjectionJsonFixtures,
         RegisteredSimulationHarnessSurface::TestSupportHostileReadmissionJsonFixtures,
-        RegisteredSimulationHarnessSurface::CertificationS4RecoveryHarness,
+        RegisteredSimulationHarnessSurface::CertificationRecoveryMeaning,
         RegisteredSimulationHarnessSurface::ObsoleteSemanticHarness,
     ]
 }

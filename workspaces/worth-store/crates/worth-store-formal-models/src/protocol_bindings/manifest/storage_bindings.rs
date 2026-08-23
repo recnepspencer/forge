@@ -7,7 +7,7 @@ pub(super) fn current() -> Vec<OwnerBoundaryBinding> {
     };
     use OwnerOperationFamily::*;
     use ProductionOwner::*;
-    use ProtocolFamily::{CompactionVisibility, ImportPublication, LeaseReclaim};
+    use ProtocolFamily::{CompactionVisibility, LeaseReclaim};
 
     vec![
         OwnerBoundaryBinding::to::<worth_store_lsm_authority::LsmMembershipOwnerCaseObservation>(
@@ -92,18 +92,6 @@ pub(super) fn current() -> Vec<OwnerBoundaryBinding> {
             LeaseReclaim,
             PhysicalIsolation,
             GenerationAdvance,
-            DurableAuthoritativeReceipt,
-        ),
-        OwnerBoundaryBinding::to::<worth_store_operations::ImportPublicationReadiness>(
-            ImportPublication,
-            Operations,
-            ImportPublicationReadiness,
-            EphemeralDiagnosticTrace,
-        ),
-        OwnerBoundaryBinding::to::<worth_store_operations::PublishedImportedLayout>(
-            ImportPublication,
-            Operations,
-            ImportPublicationCompletion,
             DurableAuthoritativeReceipt,
         ),
     ]

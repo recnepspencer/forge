@@ -21,7 +21,7 @@ use worth_store_physical_integrity::{
     ProtectedPhysicalByteView, ScopedPhysicalValidatorInput, WalFrameDamageDenial,
     WalFrameIntegrityAuthority, WalFrameIntegrityInspectionRequest, WalFrameIntegrityReport,
 };
-use worth_store_recovery_physics::WalLsnRange;
+use worth_store_wal::WalLsnRange;
 
 use crate::harness::physical_residency::PhysicalResidencyStoreWorld;
 
@@ -247,7 +247,7 @@ fn generation(value: u64) -> PhysicalGeneration {
 #[cfg(test)]
 mod tests {
     use super::{inspect_wal_payload, intact_wal_payload, torn_wal_payload, wal_payload};
-    use worth_store_recovery_physics::{LogSequenceNumber, WalLsnRange};
+    use worth_store_wal::{LogSequenceNumber, WalLsnRange};
 
     #[test]
     fn intact_wal_frame_checksum_covers_header_and_payload() {

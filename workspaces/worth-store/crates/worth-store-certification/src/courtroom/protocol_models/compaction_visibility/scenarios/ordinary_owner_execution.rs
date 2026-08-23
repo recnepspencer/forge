@@ -4,10 +4,14 @@ use worth_store_formal_models::{
 };
 use worth_store_physical_isolation::{
     CompactionCutoverDelta, CompactionOwnerCaseObservation, CompactionReadInterlockPlan,
+    CompactionRewritePublication,
 };
 use worth_store_test_support::harness::{
     observe_lsm_owner_cases,
-    physical_isolation::compaction::{admitted_compaction_plan, admitted_compaction_plan_for_seed},
+    physical_isolation::{
+        compaction::{admitted_compaction_plan, admitted_compaction_plan_for_seed},
+        publication,
+    },
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -44,11 +48,21 @@ pub(in crate::courtroom::protocol_models) fn execute_compaction_visibility_owner
 pub(in crate::courtroom::protocol_models) fn replay_compaction_publication_guard(
     seed: u64,
 ) -> Vec<worth_store_formal_models::CompactionVisibilityAction> {
-    lower_compaction_observations(admitted_compaction_plan_for_seed(seed))
-        .into_iter()
-        .map(map_compaction_observation)
-        .map(|mapped| mapped.action())
-        .collect()
+    let seed = seed.max(1);
+    let plan = admitted_compaction_plan_for_seed(seed);
+    let publication_inputs = publication::publication_inputs_with_root_generation(seed);
+    let delta = CompactionCutoverDelta::lower_to_manifest(
+        plan,
+        publication_inputs.new_root.manifest_epoch().get(),
+    )
+    .expect("admitted compaction plan lowers to the publication manifest");
+    let lowered = map_compaction_observation(delta.owner_case_observation()).action();
+    let publication_receipt =
+        publication::admitted_copy_on_write_plan(&publication_inputs).complete();
+    let published = CompactionRewritePublication::publish_rewrite(delta, publication_receipt)
+        .expect("lowered compaction rewrite binds to the executed publication");
+    let published = map_compaction_observation(published.owner_case_observation()).action();
+    vec![lowered, published]
 }
 
 pub(in crate::courtroom::protocol_models) fn execute_compaction_visibility_legal_traces(

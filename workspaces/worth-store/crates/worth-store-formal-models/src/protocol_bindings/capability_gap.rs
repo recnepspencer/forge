@@ -12,6 +12,10 @@ pub struct OwnerBoundaryGap {
 }
 
 impl OwnerBoundaryGap {
+    pub(crate) const fn new(protocol: ProtocolFamily, reason: OwnerBoundaryGapKind) -> Self {
+        Self { protocol, reason }
+    }
+
     pub const fn protocol(self) -> ProtocolFamily {
         self.protocol
     }

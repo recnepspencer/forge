@@ -1,4 +1,4 @@
-use worth_store_recovery_physics::{
+use super::authority::{
     RecoveryLayoutReadmissionClass, RecoveryLayoutReadmissionIdentity,
     RecoveryLayoutReadmissionWitness,
 };

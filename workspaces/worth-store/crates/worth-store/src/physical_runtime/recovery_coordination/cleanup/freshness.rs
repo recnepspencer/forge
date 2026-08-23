@@ -47,6 +47,7 @@ pub enum PhysicalRecoveryCleanupFreshnessReadDenialKind {
     Media,
     SchedulerSettlement(PhysicalWorkSchedulerPosture),
     SignalSettlement(crate::physical_runtime::PhysicalSignalSettlementOutcome),
+    Yieldpoint(crate::physical_runtime::PhysicalRecoveryYieldpointWaitResult),
     InvalidSelector,
 }
 
@@ -159,6 +160,19 @@ fn complete_read(
         return denied(
             PhysicalRecoveryCleanupFreshnessReadDenialKind::InvalidSelector,
             settlement.into_progress(),
+        );
+    }
+    let wait = coordination
+        .pause_at(crate::physical_runtime::PhysicalRecoveryYieldpointStage::CleanupFreshnessRead);
+    if wait.is_interrupted() {
+        return denied(
+            PhysicalRecoveryCleanupFreshnessReadDenialKind::Yieldpoint(wait),
+            completed_progress(
+                settlement.physical.clone(),
+                settlement.work,
+                settlement.posture,
+                settlement.signal,
+            ),
         );
     }
     PhysicalRecoveryCleanupFreshnessReadOutcome::Completed(

@@ -1,4 +1,6 @@
-use worth_store_layout_indexes::integrity::{import_readmission, layout_corruption};
+use worth_store_layout_indexes::integrity::{
+    import_readmission, layout_corruption, layout_readmission,
+};
 use worth_store_layout_indexes::ObserveOwnerCase;
 use worth_store_test_support::harness::layout::authoritative_layout_quarantine_record;
 
@@ -16,7 +18,7 @@ pub(super) fn record(ledger: &mut LayoutOwnerObservationLedger) {
     };
     let other = import_witness(family, &fixture, "integrity-import-other");
     let quarantine_record = authoritative_layout_quarantine_record("integrity-import-quarantine");
-    let quarantine = worth_store_recovery_physics::layout_readmission()
+    let quarantine = layout_readmission()
         .admit_quarantine(
             family.family_id(),
             &quarantine_record,

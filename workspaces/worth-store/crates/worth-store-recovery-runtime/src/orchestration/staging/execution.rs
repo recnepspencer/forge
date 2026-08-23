@@ -186,7 +186,8 @@ fn close_staging(
         progress
             .counters
             .artifacts_created
-            .saturating_add(progress.counters.artifacts_converged),
+            .saturating_add(progress.counters.artifacts_converged)
+            .saturating_add(progress.counters.artifacts_completed_from_prefix),
         progress
             .counters
             .bytes_written

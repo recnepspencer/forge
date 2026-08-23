@@ -1,18 +1,15 @@
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::process::Command;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use sha2::{Digest, Sha256};
 use worth_store::physical_runtime::{
-    PhysicalWorkEvidenceDigest, PhysicalWorkFeatureGraphEvidence, PhysicalWorkSourceBinding,
+    PhysicalWorkEvidenceDigest, PhysicalWorkFeatureGraphEvidence, PhysicalWorkFeatureNodeEvidence,
+    PhysicalWorkSourceBinding,
 };
-
-use super::process_execution;
-
-mod source_inventory;
-
-const BUILD_TIMEOUT: Duration = Duration::from_secs(300);
+use worth_store_process_bundle::{
+    target_parent, FreshProcessCargoTarget, FreshRecoveryProcessBundle,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) struct SourceClosureWorkload {
@@ -35,12 +32,6 @@ impl SourceClosureWorkload {
     pub(super) const fn source_bytes(self) -> u64 {
         self.source_bytes
     }
-}
-
-pub(super) fn bind_source_closure(workspace: &Path) -> Result<PhysicalWorkSourceBinding, String> {
-    Ok(source_inventory::LocalSourceInventory::discover(workspace)?
-        .bind()?
-        .into_binding())
 }
 
 pub(super) struct BoundBinary {
@@ -77,85 +68,59 @@ impl BoundBinary {
 }
 
 pub(super) struct BuiltCourtroomExecutables {
-    source_inventory: source_inventory::LocalSourceInventory,
-    source: source_inventory::BoundLocalSourceClosure,
+    bundle: FreshRecoveryProcessBundle,
+    _target: FreshProcessCargoTarget,
+    source: PhysicalWorkSourceBinding,
+    feature_graph: PhysicalWorkFeatureGraphEvidence,
     runner: BoundBinary,
     writer: BoundBinary,
     observer: BoundBinary,
+    recovery: BoundBinary,
     cargo_build_elapsed: Duration,
     binding_timings: ExecutableBindingTimings,
 }
 
 impl BuiltCourtroomExecutables {
     pub(super) fn build(workspace: &Path) -> Result<Self, String> {
-        let inventory_started = Instant::now();
-        let source_inventory = source_inventory::LocalSourceInventory::discover(workspace)?;
-        let source_inventory_elapsed = inventory_started.elapsed();
-        let binding_started = Instant::now();
-        let source_before_build = source_inventory.bind()?;
-        let prebuild_source_binding_elapsed = binding_started.elapsed();
-        let mut command = Command::new(std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into()));
-        command.current_dir(workspace).args([
-            "build",
-            "--quiet",
-            "--release",
-            "--package",
-            "worth-store",
-            "--features",
-            "worth-store/certification-test-authority",
-            "--bin",
-            "physical_store_work_courtroom",
-            "--package",
-            "worth-store-offline-verifier",
-            "--bin",
-            "physical_store_offline_observer",
-        ]);
-        let build_started = Instant::now();
-        process_execution::run_success(&mut command, BUILD_TIMEOUT, "courtroom binary build")?;
-        let cargo_build_elapsed = build_started.elapsed();
-        let binding_started = Instant::now();
-        let target = target_directory(workspace).join("release");
+        let repository = workspace
+            .join("../..")
+            .canonicalize()
+            .map_err(|error| format!("canonicalize courtroom repository: {error}"))?;
+        let target = FreshProcessCargoTarget::allocate(&target_parent(workspace))?;
+        let bundle =
+            FreshRecoveryProcessBundle::build_bounded_residency(workspace, &repository, &target)?;
+        let source = source_binding(bundle.source())?;
+        let feature_graph = feature_graph(&bundle)?;
         let runner = bind_current_binary()?;
-        let writer = bind_binary(&target, "physical_store_work_courtroom")?;
-        let observer = bind_binary(&target, "physical_store_offline_observer")?;
-        let postbuild_binary_binding_elapsed = binding_started.elapsed();
-        let binding_started = Instant::now();
-        let source_after_build = source_inventory.bind()?;
-        let source = require_stable_source(source_before_build, source_after_build)?;
-        let postbuild_source_binding_elapsed = binding_started.elapsed();
+        let writer = bind_artifact(bundle.writer())?;
+        let observer = bind_artifact(bundle.observer())?;
+        let recovery = bind_artifact(bundle.recovery())?;
+        let timings = bundle.timings();
         Ok(Self {
-            source_inventory,
+            bundle,
+            _target: target,
             source,
+            feature_graph,
             runner,
             writer,
             observer,
-            cargo_build_elapsed,
+            recovery,
+            cargo_build_elapsed: timings.cargo_build(),
             binding_timings: ExecutableBindingTimings {
-                source_inventory: source_inventory_elapsed,
-                prebuild_source_binding: prebuild_source_binding_elapsed,
-                postbuild_binary_binding: postbuild_binary_binding_elapsed,
-                postbuild_source_binding: postbuild_source_binding_elapsed,
+                source_inventory: timings.source_discovery(),
+                prebuild_source_binding: timings.source_before(),
+                postbuild_binary_binding: timings.artifact_binding(),
+                postbuild_source_binding: timings.source_after(),
             },
         })
     }
 
     pub(super) const fn source(&self) -> &PhysicalWorkSourceBinding {
-        self.source.binding()
-    }
-
-    pub(super) fn require_source_binding(
-        &self,
-        expected: &PhysicalWorkSourceBinding,
-    ) -> Result<(), String> {
-        if self.source.binding() == expected {
-            Ok(())
-        } else {
-            Err("courtroom source closure changed after schedule-seed derivation".into())
-        }
+        &self.source
     }
 
     pub(super) const fn feature_graph(&self) -> &PhysicalWorkFeatureGraphEvidence {
-        self.source_inventory.feature_graph()
+        &self.feature_graph
     }
 
     pub(super) const fn writer(&self) -> &BoundBinary {
@@ -170,14 +135,19 @@ impl BuiltCourtroomExecutables {
         &self.observer
     }
 
+    pub(super) const fn recovery(&self) -> &BoundBinary {
+        &self.recovery
+    }
+
     pub(super) fn verify_source_unchanged(&self) -> Result<SourceClosureWorkload, String> {
-        require_campaign_source(&self.source, self.source_inventory.bind()?)
+        self.bundle.verify_source_unchanged().map(|workload| {
+            SourceClosureWorkload::new(workload.source_files(), workload.source_bytes())
+        })
     }
 
     pub(super) fn verify_executables_unchanged(&self) -> Result<(), String> {
         self.runner.verify_unchanged()?;
-        self.writer.verify_unchanged()?;
-        self.observer.verify_unchanged()
+        self.bundle.verify_executables_unchanged()
     }
 
     pub(super) const fn cargo_build_elapsed(&self) -> Duration {
@@ -188,8 +158,11 @@ impl BuiltCourtroomExecutables {
         self.binding_timings
     }
 
-    pub(super) const fn source_workload(&self) -> SourceClosureWorkload {
-        self.source.workload()
+    pub(super) fn source_workload(&self) -> SourceClosureWorkload {
+        SourceClosureWorkload::new(
+            self.bundle.source().workload().source_files(),
+            self.bundle.source().workload().source_bytes(),
+        )
     }
 }
 
@@ -211,35 +184,48 @@ impl ExecutableBindingTimings {
     }
 }
 
-fn require_campaign_source(
-    expected: &source_inventory::BoundLocalSourceClosure,
-    current: source_inventory::BoundLocalSourceClosure,
-) -> Result<SourceClosureWorkload, String> {
-    if expected != &current {
-        return Err("courtroom source changed during the campaign".to_owned());
-    }
-    Ok(current.workload())
+fn source_binding(
+    source: &worth_store_process_bundle::BoundSource,
+) -> Result<PhysicalWorkSourceBinding, String> {
+    let digest = evidence_digest(source.digest(), "courtroom source closure")?;
+    PhysicalWorkSourceBinding::new(
+        format!(
+            "{}#c8-process-bundle-source-closure",
+            source.repository().display()
+        ),
+        digest,
+    )
+    .map_err(|denial| format!("source evidence binding denied: {denial:?}"))
 }
 
-fn require_stable_source(
-    before: source_inventory::BoundLocalSourceClosure,
-    after: source_inventory::BoundLocalSourceClosure,
-) -> Result<source_inventory::BoundLocalSourceClosure, String> {
-    if before != after {
-        return Err(
-            "courtroom source changed while its evidence binaries were being built".to_owned(),
-        );
-    }
-    Ok(after)
+fn feature_graph(
+    bundle: &FreshRecoveryProcessBundle,
+) -> Result<PhysicalWorkFeatureGraphEvidence, String> {
+    let nodes = bundle
+        .feature_graph()
+        .iter()
+        .map(|node| {
+            PhysicalWorkFeatureNodeEvidence::new(
+                node.package_id().to_owned(),
+                node.features().iter().cloned(),
+                node.dependencies().iter().cloned(),
+            )
+            .map_err(|denial| format!("process-bundle feature node denied: {denial:?}"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    PhysicalWorkFeatureGraphEvidence::new(bundle.feature_roots().iter().cloned(), nodes)
+        .map_err(|denial| format!("process-bundle feature graph denied: {denial:?}"))
 }
 
-fn bind_binary(target: &Path, name: &str) -> Result<BoundBinary, String> {
-    let path = target.join(format!("{name}{}", std::env::consts::EXE_SUFFIX));
-    let path = path
-        .canonicalize()
-        .map_err(|error| format!("cannot locate built binary {}: {error}", path.display()))?;
-    let binding = PhysicalWorkSourceBinding::new(path.display().to_string(), hash_file(&path)?)
-        .map_err(|denial| format!("binary evidence binding denied: {denial:?}"))?;
+fn bind_artifact<R>(
+    artifact: &worth_store_process_bundle::BoundArtifact<R>,
+) -> Result<BoundBinary, String> {
+    let path = artifact.path().to_owned();
+    let binding = PhysicalWorkSourceBinding::new(
+        path.display().to_string(),
+        evidence_digest(artifact.digest(), &path.display().to_string())?,
+    )
+    .map_err(|denial| format!("binary evidence binding denied: {denial:?}"))?;
     Ok(BoundBinary { path, binding })
 }
 
@@ -253,12 +239,15 @@ fn bind_current_binary() -> Result<BoundBinary, String> {
     Ok(BoundBinary { path, binding })
 }
 
-fn target_directory(workspace: &Path) -> PathBuf {
-    match std::env::var_os("CARGO_TARGET_DIR") {
-        Some(target) if Path::new(&target).is_absolute() => PathBuf::from(target),
-        Some(target) => workspace.join(target),
-        None => workspace.join("target"),
-    }
+#[cfg(test)]
+fn bind_binary(target: &Path, name: &str) -> Result<BoundBinary, String> {
+    let path = target.join(format!("{name}{}", std::env::consts::EXE_SUFFIX));
+    let path = path
+        .canonicalize()
+        .map_err(|error| format!("cannot locate built binary {}: {error}", path.display()))?;
+    let binding = PhysicalWorkSourceBinding::new(path.display().to_string(), hash_file(&path)?)
+        .map_err(|denial| format!("binary evidence binding denied: {denial:?}"))?;
+    Ok(BoundBinary { path, binding })
 }
 
 fn hash_file(path: &Path) -> Result<PhysicalWorkEvidenceDigest, String> {
@@ -285,40 +274,7 @@ fn evidence_digest(bytes: [u8; 32], subject: &str) -> Result<PhysicalWorkEvidenc
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        bind_binary, require_campaign_source, require_stable_source,
-        source_inventory::BoundLocalSourceClosure, SourceClosureWorkload,
-    };
-    use worth_store::physical_runtime::{PhysicalWorkEvidenceDigest, PhysicalWorkSourceBinding};
-
-    #[test]
-    fn stable_source_manifest_is_accepted_across_the_build_interval() {
-        let before = source_binding(7);
-        let after = source_binding(7);
-
-        assert_eq!(
-            require_stable_source(before.clone(), after).unwrap(),
-            before
-        );
-    }
-
-    #[test]
-    fn source_drift_during_the_build_interval_is_rejected() {
-        let before = source_binding(7);
-        let after = source_binding(8);
-
-        let error = require_stable_source(before, after).unwrap_err();
-        assert!(error.contains("source changed"), "{error}");
-    }
-
-    #[test]
-    fn source_drift_after_the_build_interval_is_rejected() {
-        let bound = source_binding(7);
-        let current = source_binding(8);
-
-        let error = require_campaign_source(&bound, current).unwrap_err();
-        assert!(error.contains("during the campaign"), "{error}");
-    }
+    use super::bind_binary;
 
     #[test]
     fn bound_runner_replacement_during_the_campaign_is_rejected() {
@@ -332,16 +288,5 @@ mod tests {
 
         let error = bound.verify_unchanged().unwrap_err();
         assert!(error.contains("executable changed"), "{error}");
-    }
-
-    fn source_binding(byte: u8) -> BoundLocalSourceClosure {
-        BoundLocalSourceClosure::new(
-            PhysicalWorkSourceBinding::new(
-                "test-source",
-                PhysicalWorkEvidenceDigest::new([byte; 32]).unwrap(),
-            )
-            .unwrap(),
-            SourceClosureWorkload::new(3, 1_024),
-        )
     }
 }

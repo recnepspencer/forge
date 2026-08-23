@@ -9,6 +9,7 @@ mod request;
 mod retained_wal_tail;
 mod runtime_owner;
 mod work_port;
+mod yieldpoint;
 
 pub use capture::PhysicalCheckpointCaptureBasis;
 pub(in crate::physical_runtime) use capture::PhysicalCheckpointCaptureFoundation;
@@ -41,3 +42,5 @@ pub use runtime_owner::{PhysicalCheckpointShutdown, PhysicalCheckpointSubmission
 pub(in crate::physical_runtime) use work_port::{
     PhysicalCheckpointActionFailure, PhysicalCheckpointWorkPort,
 };
+pub(in crate::physical_runtime) use yieldpoint::PhysicalCheckpointYieldpointOwner;
+pub use yieldpoint::{PhysicalCheckpointPauseGate, PhysicalCheckpointStep};

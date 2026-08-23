@@ -23,9 +23,9 @@ pub(super) fn import_witness(
     family: worth_store_layout_indexes::AdmittedPhysicalArtifactFamily,
     fixture: &LayoutIntegrityAuthorityFixture,
     seed: &str,
-) -> worth_store_recovery_physics::RecoveryLayoutReadmissionWitness {
+) -> worth_store_layout_indexes::integrity::RecoveryLayoutReadmissionWitness {
     let record = unresolved_layout_authority_record(seed);
-    worth_store_recovery_physics::layout_readmission()
+    worth_store_layout_indexes::integrity::layout_readmission()
         .admit_import(
             family.family_id(),
             &record,

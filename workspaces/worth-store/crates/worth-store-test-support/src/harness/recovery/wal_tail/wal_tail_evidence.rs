@@ -3,19 +3,9 @@ use worth_store_physical_integrity::{
     PhysicalIntegrityEvidenceAuthority, PhysicalIntegrityEvidenceBundle,
     PhysicalIntegrityEvidenceProfile, StoreExecutedIntegrityEvidence, WalFrameIntegrityReport,
 };
-use worth_store_recovery_physics::{
-    IntegrityVettedWalFrame, LogSequenceNumber, RecoveryIntegrityHandoffReceipt, WalLsnRange,
-};
+use worth_store_wal::{LogSequenceNumber, WalLsnRange};
 
 use super::construction::{inspect_wal_payload, inspect_wal_payload_for_owner, intact_wal_payload};
-
-pub(super) fn vetted_wal_frame(range: WalLsnRange) -> IntegrityVettedWalFrame {
-    let payload = intact_wal_payload(range);
-    let report = inspect_wal_payload(&payload).unwrap();
-    let evidence = integrity_evidence_from_report(&report);
-    let receipt = RecoveryIntegrityHandoffReceipt::from_executed_evidence(&evidence).unwrap();
-    IntegrityVettedWalFrame::from_integrity_report(&report, receipt).unwrap()
-}
 
 pub fn intact_wal_integrity_evidence() -> PhysicalIntegrityEvidenceBundle {
     let range = WalLsnRange::new(LogSequenceNumber::new(40), LogSequenceNumber::new(50)).unwrap();

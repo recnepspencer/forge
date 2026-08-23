@@ -1,47 +1,10 @@
 use worth_store_physical_integrity::{
-    ExecutedQuarantineFinding, PhysicalIntegrityEvidenceAuthority,
-    PhysicalIntegrityEvidenceProfile, PhysicalQuarantineAuthority, QuarantineRecord,
-    QuarantineSealRequest, StoreExecutedIntegrityEvidence,
+    ExecutedQuarantineFinding, PhysicalQuarantineAuthority, QuarantineRecord,
+    QuarantineSealRequest, RecoveryBlockedByIntegrityDamage,
 };
-use worth_store_recovery_physics::{
-    RecoveryBlockedByIntegrityDamage, RecoveryIntegrityHandoffReceipt, WalLsnRange,
-    WalOnlyTailProof, WalOnlyTailProofDenial, WalSegmentGeneration, WalSegmentId,
-    WalTailIntegrityQuarantineHandoff,
-};
-use worth_store_wal::{admit_replay_cursor, WalSegmentScanRecord, WalTopologyScan};
+use worth_store_wal::WalLsnRange;
 
 use super::construction::{inspect_wal_payload, torn_wal_payload, wal_payload};
-
-pub fn wal_only_tail_denial_from_torn_frame(range: WalLsnRange) -> WalOnlyTailProofDenial {
-    let cursor = admit_replay_cursor(
-        WalTopologyScan::from_segment_scan([WalSegmentScanRecord::current(
-            WalSegmentId::new(100).unwrap(),
-            WalSegmentGeneration::new(1).unwrap(),
-            range,
-        )]),
-        WalSegmentGeneration::new(1).unwrap(),
-    )
-    .unwrap();
-    let handoff = quarantined_torn_wal_tail_handoff(range);
-    WalOnlyTailProof::from_quarantined_wal_tail(&handoff, &cursor).unwrap_err()
-}
-
-pub fn quarantined_torn_wal_tail_handoff(range: WalLsnRange) -> WalTailIntegrityQuarantineHandoff {
-    let denial = inspect_wal_payload(&torn_wal_payload(range)).unwrap_err();
-    let record = wal_tail_quarantine_record(range);
-    let evidence = PhysicalIntegrityEvidenceAuthority::store_local()
-        .materialize(
-            StoreExecutedIntegrityEvidence::receipt_evidence(&record),
-            PhysicalIntegrityEvidenceProfile::full(),
-        )
-        .unwrap();
-    WalTailIntegrityQuarantineHandoff::from_wal_tail_damage_quarantine(
-        &denial,
-        &record,
-        RecoveryIntegrityHandoffReceipt::from_quarantine_receipt_evidence(&evidence).unwrap(),
-    )
-    .unwrap()
-}
 
 pub fn wal_tail_quarantine_record(range: WalLsnRange) -> QuarantineRecord {
     let denial = inspect_wal_payload(&torn_wal_payload(range)).unwrap_err();
