@@ -240,13 +240,40 @@ impl<'state> UiMountedFrameAssembler<'state> {
     }
 
     pub(crate) fn finish(self) -> Result<UiPreparedMountedFrame, UiMountedFramePreparationDenial> {
+        self.finish_with_reconciliation(None)
+    }
+
+    pub(crate) fn finish_for_reconciliation(
+        self,
+        replacements: &[super::UiMountedSurfaceReconciliationBinding],
+    ) -> Result<UiPreparedMountedFrame, UiMountedFramePreparationDenial> {
+        self.finish_with_reconciliation(Some(replacements))
+    }
+
+    fn finish_with_reconciliation(
+        self,
+        replacements: Option<&[super::UiMountedSurfaceReconciliationBinding]>,
+    ) -> Result<UiPreparedMountedFrame, UiMountedFramePreparationDenial> {
         if self.recorded != self.required {
             return Err(UiMountedFramePreparationDenial::IncompleteManifest);
         }
-        let candidate = self
+        let mut candidate = self
             .projection
             .finish(self.state, self.presentation_predecessor)
             .map_err(UiMountedFramePreparationDenial::Projection)?;
+        if let Some(replacements) = replacements {
+            let views = self
+                .state
+                .resolve_reconciliation_bindings(replacements)
+                .map_err(|denial| {
+                    UiMountedFramePreparationDenial::Projection(
+                        super::UiMountedProjectionDenial::Identity(denial),
+                    )
+                })?;
+            candidate
+                .prepare_surface_reconstruction(&views)
+                .map_err(UiMountedFramePreparationDenial::Projection)?;
+        }
         UiPreparedMountedFrame::admit(UiPreparedMountedFrameAdmission {
             candidate,
             generation: self.generation,

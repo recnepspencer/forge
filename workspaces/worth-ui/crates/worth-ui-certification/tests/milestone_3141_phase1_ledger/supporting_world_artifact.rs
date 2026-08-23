@@ -1,7 +1,10 @@
 use serde_json::Value;
 
 use super::command_binding::CommandBinding;
-use super::result_artifact_binding::{read_artifact, require_i64, require_str, require_u64};
+use super::result_artifact::SourceValidationPosture;
+use super::result_artifact_binding::{
+    read_artifact, require_i64, require_result_schema, require_str, require_u64,
+};
 
 const HP02: &str = "P3-HP02-WORLD-01";
 const MIXED_REQUIREMENT: &str = "P3-DELTA-SOURCE-01";
@@ -16,9 +19,16 @@ pub(super) fn validate(
     command: &CommandBinding,
     source_revision: &str,
     source_state_digest: &str,
+    source_validation: SourceValidationPosture,
 ) -> Result<(), String> {
     match command.requirement.as_str() {
-        HP02 => validate_hp02(artifact, command, source_revision, source_state_digest),
+        HP02 => validate_hp02(
+            artifact,
+            command,
+            source_revision,
+            source_state_digest,
+            source_validation,
+        ),
         PINNING => validate_atlas(artifact, command, source_revision, source_state_digest),
         _ => artifact
             .get("supporting_world")
@@ -33,6 +43,7 @@ fn validate_hp02(
     command: &CommandBinding,
     source_revision: &str,
     source_state_digest: &str,
+    source_validation: SourceValidationPosture,
 ) -> Result<(), String> {
     let binding = artifact
         .get("supporting_world")
@@ -54,7 +65,12 @@ fn validate_hp02(
         &expected_digest,
         &supporting,
     )?;
-    validate_content(&supporting, source_revision, source_state_digest)
+    validate_content(
+        &supporting,
+        source_revision,
+        source_state_digest,
+        source_validation,
+    )
 }
 
 fn validate_atlas(
@@ -100,7 +116,7 @@ fn validate_atlas_content(
     source_revision: &str,
     source_state_digest: &str,
 ) -> Result<(), String> {
-    require_u64(supporting, "schema_version", 5)?;
+    require_result_schema(supporting, 5)?;
     require_str(supporting, "requirement", ATLAS_REQUIREMENT)?;
     require_str(supporting, "package", "worth-ui-host-native")?;
     require_str(supporting, "target_kind", "lib")?;
@@ -125,8 +141,9 @@ fn validate_content(
     supporting: &Value,
     source_revision: &str,
     source_state_digest: &str,
+    _source_validation: SourceValidationPosture,
 ) -> Result<(), String> {
-    require_u64(supporting, "schema_version", 5)?;
+    require_result_schema(supporting, 5)?;
     require_str(supporting, "requirement", MIXED_REQUIREMENT)?;
     require_str(supporting, "package", "worth-ui-certification")?;
     require_str(supporting, "target_kind", "test")?;
@@ -169,7 +186,21 @@ fn validate_content(
 #[test]
 fn hp02_support_rejects_substituted_world_identity_and_incomplete_execution() {
     let mut supporting = fixture();
-    validate_content(&supporting, "revision", "state").unwrap();
+    validate_content(
+        &supporting,
+        "revision",
+        "state",
+        SourceValidationPosture::CurrentSource,
+    )
+    .unwrap();
+    supporting["schema_version"] = Value::from(7);
+    validate_content(
+        &supporting,
+        "revision",
+        "state",
+        SourceValidationPosture::CurrentSource,
+    )
+    .unwrap();
     for (field, value) in [
         ("requirement", Value::from("P3-HP02-WORLD-01")),
         ("test_name", Value::from("cooperative_substitute")),
@@ -179,7 +210,13 @@ fn hp02_support_rejects_substituted_world_identity_and_incomplete_execution() {
     ] {
         let original = supporting[field].clone();
         supporting[field] = value;
-        assert!(validate_content(&supporting, "revision", "state").is_err());
+        assert!(validate_content(
+            &supporting,
+            "revision",
+            "state",
+            SourceValidationPosture::CurrentSource,
+        )
+        .is_err());
         supporting[field] = original;
     }
 }

@@ -1,9 +1,8 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
 
 use worth_ui_host_contract::{
-    UiMountedCanonicalBox, UiMountedLogicalDamage, UiMountedPaintCommand,
-    UiMountedPaintCommandChange, UiMountedPaintCommandIdentity, UiMountedPaintOrderEdit,
-    UiMountedPaintOrderIdentity, UiMountedPresentationDelta,
+    UiMountedLogicalDamage, UiMountedPaintCommand, UiMountedPaintCommandIdentity,
+    UiMountedPaintOrderIdentity,
 };
 
 use super::damage_index::{UiNativeDamageIndex, UiNativeDamageIndexDenial};
@@ -19,6 +18,8 @@ mod delta_transaction;
 mod denial;
 #[path = "retained_draw_list/lifecycle.rs"]
 mod lifecycle;
+#[path = "retained_draw_list/mutation.rs"]
+mod mutation;
 #[path = "retained_draw_list/replay.rs"]
 mod replay;
 
@@ -34,6 +35,17 @@ pub(crate) struct UiNativeRetainedDrawList {
     order: UiNativeRetainedOrder<UiMountedPaintOrderIdentity>,
     order_integrity: worth_ui_host_contract::UiMountedPaintOrderIntegrity,
     damage: UiNativeDamageIndex<UiMountedPaintCommandIdentity>,
+    glyph_runs:
+        HashMap<UiMountedPaintCommandIdentity, Box<[worth_ui_host_contract::UiGlyphRunView]>>,
+    last_paint_attribution: Option<(usize, UiNativeRetainedPresentationAttribution)>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(super) struct UiNativeRetainedPresentationAttribution {
+    pub(super) color: worth_ui_host_contract::UiMountedRgba8,
+    pub(super) bounds: worth_ui_host_contract::UiMountedCanonicalBox,
+    pub(super) mounted_instance: worth_ui_host_contract::UiMountedInstanceIdentity,
+    pub(super) node_receipt: worth_ui_host_contract::UiMountedNodeReceiptIdentity,
 }
 
 #[derive(Debug, PartialEq)]
@@ -69,12 +81,16 @@ pub(super) struct UiNativeRetainedMutationCounters {
 }
 
 impl UiNativeRetainedDrawList {
+    pub(crate) const fn frame(&self) -> worth_ui_host_contract::UiMountedFrameIdentity {
+        self.frame
+    }
+
     #[cfg(test)]
     pub(super) fn apply_delta(
         &mut self,
-        delta: &UiMountedPresentationDelta,
+        delta: &worth_ui_host_contract::UiMountedPresentationDelta,
     ) -> Result<UiNativeRetainedReplayPlan, UiNativeRetainedDrawListDenial> {
-        let (plan, _) = self.stage_delta(delta)?;
+        let (plan, _) = self.stage_delta(delta, &[])?;
         Ok(plan)
     }
 
@@ -85,275 +101,60 @@ impl UiNativeRetainedDrawList {
         self.commands.get(&identity)
     }
 
-    pub(super) fn top_filled_rect(
-        &self,
-    ) -> Option<(usize, worth_ui_host_contract::UiMountedFilledRectMechanic)> {
-        let (ordinal, identity) = self.order.last()?;
-        match self.commands.get(&identity.command())? {
-            UiMountedPaintCommand::FilledRect { mechanic, .. } => Some((ordinal, *mechanic)),
-            UiMountedPaintCommand::SemanticText { .. } => None,
-        }
-    }
-
-    fn validate_affinity(
-        &self,
-        delta: &UiMountedPresentationDelta,
-    ) -> Result<(), UiNativeRetainedDrawListDenial> {
-        let affinity = delta.affinity();
-        if affinity.predecessor() != Some(self.frame)
-            || affinity.surface() != self.surface
-            || affinity.binding() != self.binding
-            || affinity.baseline() != self.baseline
-        {
-            return Err(UiNativeRetainedDrawListDenial::AffinityMismatch);
-        }
-        Ok(())
-    }
-
-    fn validate_changes(
-        &self,
-        changes: &[UiMountedPaintCommandChange],
-    ) -> Result<DeltaMembership, UiNativeRetainedDrawListDenial> {
-        let mut membership = DeltaMembership::default();
-        let mut seen = HashSet::new();
-        for change in changes {
-            let identity = change_identity(change);
-            if !seen.insert(identity) {
-                return Err(UiNativeRetainedDrawListDenial::CommandMismatch);
-            }
-            match change {
-                UiMountedPaintCommandChange::Insert(_) if !self.commands.contains(&identity) => {
-                    membership.inserted.insert(identity);
-                }
-                UiMountedPaintCommandChange::Replace(_) if self.commands.contains(&identity) => {}
-                UiMountedPaintCommandChange::Remove(_) if self.commands.contains(&identity) => {
-                    membership.removed.insert(identity);
-                }
-                _ => return Err(UiNativeRetainedDrawListDenial::CommandMismatch),
-            }
-        }
-        Ok(membership)
-    }
-
-    fn validate_damage(
-        &self,
-        changes: &[UiMountedPaintCommandChange],
-        regions: &[UiMountedLogicalDamage],
-    ) -> Result<(), UiNativeRetainedDrawListDenial> {
-        for change in changes {
-            if let UiMountedPaintCommandChange::Insert(command)
-            | UiMountedPaintCommandChange::Replace(command) = change
-            {
-                if let Some(bounds) = visible_bounds(command) {
-                    self.damage.validate_bounds(bounds)?;
-                }
-            }
-        }
-        for region in regions {
-            self.damage.validate_bounds(region.bounds())?;
-        }
-        Ok(())
-    }
-
-    fn validate_order_edits(
-        &self,
-        edits: &[UiMountedPaintOrderEdit],
-        membership: &DeltaMembership,
-    ) -> Result<(), UiNativeRetainedDrawListDenial> {
-        let mut removals = HashSet::new();
-        let mut placements = HashSet::new();
-        for edit in edits {
-            let identity = edit.identity();
-            if edit.is_removal() {
-                if !self.order.contains(identity)
-                    || !membership.removed.contains(&identity.command())
-                    || !removals.insert(identity.command())
-                {
-                    return Err(UiNativeRetainedDrawListDenial::OrderMismatch);
-                }
-            } else {
-                if !self.final_command_exists(identity.command(), membership)
-                    || !placements.insert(identity.command())
-                {
-                    return Err(UiNativeRetainedDrawListDenial::OrderMismatch);
-                }
-                if edit.predecessor().is_some_and(|predecessor| {
-                    predecessor == identity
-                        || !self.final_command_exists(predecessor.command(), membership)
-                }) {
-                    return Err(UiNativeRetainedDrawListDenial::OrderMismatch);
-                }
-            }
-        }
-        if removals != membership.removed
-            || !membership
-                .inserted
-                .iter()
-                .all(|identity| placements.contains(identity))
-        {
-            return Err(UiNativeRetainedDrawListDenial::OrderMismatch);
-        }
-        Ok(())
-    }
-
-    fn final_command_exists(
+    pub(super) fn glyph_runs(
         &self,
         identity: UiMountedPaintCommandIdentity,
-        membership: &DeltaMembership,
-    ) -> bool {
-        !membership.removed.contains(&identity)
-            && (membership.inserted.contains(&identity) || self.commands.contains(&identity))
-    }
-
-    fn apply_changes(
-        &mut self,
-        changes: &[UiMountedPaintCommandChange],
-    ) -> Result<(), UiNativeRetainedDrawListDenial> {
-        // Release predecessor membership before claiming successor membership.
-        // A lawful full-capacity swap must not depend on producer vector order.
-        for change in changes {
-            if let UiMountedPaintCommandChange::Remove(identity) = change {
-                self.remove(*identity)?;
-            }
-        }
-        for change in changes {
-            match change {
-                UiMountedPaintCommandChange::Insert(command) => self.insert(command.clone())?,
-                UiMountedPaintCommandChange::Replace(command) => self.replace(command.clone())?,
-                UiMountedPaintCommandChange::Remove(_) => {}
-            }
-        }
-        Ok(())
-    }
-
-    fn insert(
-        &mut self,
-        command: UiMountedPaintCommand,
-    ) -> Result<(), UiNativeRetainedDrawListDenial> {
-        if let Some(bounds) = visible_bounds(&command) {
-            self.damage.insert(command.identity(), bounds)?;
-        }
-        self.commands.insert(command.identity(), command);
-        Ok(())
-    }
-
-    fn replace(
-        &mut self,
-        command: UiMountedPaintCommand,
-    ) -> Result<(), UiNativeRetainedDrawListDenial> {
-        let identity = command.identity();
-        let old = self
-            .commands
+    ) -> &[worth_ui_host_contract::UiGlyphRunView] {
+        self.glyph_runs
             .get(&identity)
-            .ok_or(UiNativeRetainedDrawListDenial::CommandMismatch)?;
-        update_damage(
-            &mut self.damage,
-            identity,
-            visible_bounds(old),
-            visible_bounds(&command),
-        )?;
-        self.commands.insert(identity, command);
-        Ok(())
+            .map(Box::as_ref)
+            .unwrap_or_default()
     }
 
-    fn remove(
-        &mut self,
-        identity: UiMountedPaintCommandIdentity,
-    ) -> Result<(), UiNativeRetainedDrawListDenial> {
-        let command = self
-            .commands
-            .remove(&identity)
-            .ok_or(UiNativeRetainedDrawListDenial::CommandMismatch)?;
-        if visible_bounds(&command).is_some() {
-            self.damage.remove(identity)?;
-        }
-        Ok(())
+    pub(super) fn all_glyph_runs(&self) -> Vec<worth_ui_host_contract::UiGlyphRunView> {
+        self.glyph_runs
+            .values()
+            .flat_map(|runs| runs.iter().copied())
+            .collect()
     }
 
-    fn apply_order_edits(
-        &mut self,
-        edits: &[UiMountedPaintOrderEdit],
-    ) -> Result<(), UiNativeRetainedDrawListDenial> {
-        // As with command membership, removals release bounded index capacity
-        // before any placement claims it. Placement order remains authored.
-        for edit in edits.iter().filter(|edit| edit.is_removal()) {
-            let (predecessor, successor) = self.order.neighbors(edit.identity())?;
-            self.order_integrity = self
-                .order_integrity
-                .remove_edge(predecessor, edit.identity(), successor)
-                .ok_or(UiNativeRetainedDrawListDenial::OrderMismatch)?;
-            self.order.remove(edit.identity())?;
-        }
-        for edit in edits {
-            if !edit.is_removal() {
-                if self.order.contains(edit.identity()) {
-                    let (predecessor, successor) = self.order.neighbors(edit.identity())?;
-                    self.order_integrity = self
-                        .order_integrity
-                        .remove_edge(predecessor, edit.identity(), successor)
-                        .ok_or(UiNativeRetainedDrawListDenial::OrderMismatch)?;
-                    self.order.remove(edit.identity())?;
+    pub(super) fn top_paint_attribution(
+        &self,
+    ) -> Option<(usize, UiNativeRetainedPresentationAttribution)> {
+        self.current_top_paint_attribution()
+            .or(self.last_paint_attribution)
+    }
+
+    fn current_top_paint_attribution(
+        &self,
+    ) -> Option<(usize, UiNativeRetainedPresentationAttribution)> {
+        let (ordinal, identity) = self.order.ordered().enumerate().last()?;
+        let attribution = match self.commands.get(&identity.command())? {
+            UiMountedPaintCommand::FilledRect { mechanic, .. } => {
+                UiNativeRetainedPresentationAttribution {
+                    color: mechanic.color(),
+                    bounds: mechanic.bounds(),
+                    mounted_instance: mechanic.mounted_instance(),
+                    node_receipt: mechanic.node_receipt(),
                 }
-                let successor = self.order.successor_after(edit.predecessor())?;
-                self.order_integrity = self
-                    .order_integrity
-                    .insert_edge(edit.predecessor(), edit.identity(), successor)
-                    .ok_or(UiNativeRetainedDrawListDenial::OrderMismatch)?;
-                self.order
-                    .place_after(edit.identity(), edit.predecessor())?;
             }
+            UiMountedPaintCommand::SemanticText { mechanic, .. } => {
+                UiNativeRetainedPresentationAttribution {
+                    color: mechanic.foregrounds().first()?.color(),
+                    bounds: mechanic.bounds(),
+                    mounted_instance: mechanic.mounted_instance(),
+                    node_receipt: mechanic.node_receipt(),
+                }
+            }
+        };
+        Some((ordinal, attribution))
+    }
+
+    fn retain_current_paint_attribution(&mut self) {
+        if let Some(attribution) = self.current_top_paint_attribution() {
+            self.last_paint_attribution = Some(attribution);
         }
-        Ok(())
     }
-}
-
-#[derive(Default)]
-struct DeltaMembership {
-    inserted: HashSet<UiMountedPaintCommandIdentity>,
-    removed: HashSet<UiMountedPaintCommandIdentity>,
-}
-
-fn change_identity(change: &UiMountedPaintCommandChange) -> UiMountedPaintCommandIdentity {
-    match change {
-        UiMountedPaintCommandChange::Insert(command)
-        | UiMountedPaintCommandChange::Replace(command) => command.identity(),
-        UiMountedPaintCommandChange::Remove(identity) => *identity,
-    }
-}
-
-fn visible_bounds(command: &UiMountedPaintCommand) -> Option<UiMountedCanonicalBox> {
-    let bounds = command.bounds();
-    let clip = command.clip_bounds();
-    if bounds.coordinate_space() != clip.coordinate_space() {
-        return None;
-    }
-    let x = bounds.x().max(clip.x());
-    let y = bounds.y().max(clip.y());
-    let right = (bounds.x() + bounds.width()).min(clip.x() + clip.width());
-    let bottom = (bounds.y() + bounds.height()).min(clip.y() + clip.height());
-    UiMountedCanonicalBox::canonicalize(worth_ui_host_contract::UiMountedCanonicalBoxInput {
-        x,
-        y,
-        width: right - x,
-        height: bottom - y,
-        coordinate_space: bounds.coordinate_space(),
-    })
-    .ok()
-}
-
-fn update_damage(
-    index: &mut UiNativeDamageIndex<UiMountedPaintCommandIdentity>,
-    identity: UiMountedPaintCommandIdentity,
-    old: Option<UiMountedCanonicalBox>,
-    new: Option<UiMountedCanonicalBox>,
-) -> Result<(), UiNativeRetainedDrawListDenial> {
-    match (old, new) {
-        (Some(_), Some(bounds)) => index.replace(identity, bounds)?,
-        (Some(_), None) => index.remove(identity)?,
-        (None, Some(bounds)) => index.insert(identity, bounds)?,
-        (None, None) => {}
-    }
-    Ok(())
 }
 
 #[cfg(test)]

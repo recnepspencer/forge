@@ -21,17 +21,37 @@ REQUIREMENT = b",P5-TEXT-ASYNC-PRESENTATION-01,"
 CLOSE = b",P5-CLOSE-01,"
 
 
-def ledger_without_async_row() -> bytes:
+def phase_five_ledger_without_async_row() -> bytes:
     return b"".join(
         line
-        for line in LEDGER.read_bytes().splitlines(keepends=True)
+        for line in open_phase_five_ledger().splitlines(keepends=True)
         if REQUIREMENT not in line
     )
 
 
+def open_phase_five_ledger() -> bytes:
+    phase_five = b"".join(
+        line
+        for line in LEDGER.read_bytes().splitlines(keepends=True)
+        if not line.startswith(b"6,")
+    )
+    reader = csv.DictReader(io.StringIO(phase_five.decode(), newline=""))
+    fields = list(reader.fieldnames or ())
+    rows = list(reader)
+    for row in rows:
+        if row["phase"] == "5":
+            row["result"] = "OPEN"
+            row["final_source"] = "false"
+    stream = io.StringIO(newline="")
+    writer = csv.DictWriter(stream, fieldnames=fields, lineterminator="\n")
+    writer.writeheader()
+    writer.writerows(rows)
+    return stream.getvalue().encode()
+
+
 class PhaseFiveLedgerAppendTests(unittest.TestCase):
     def test_open_row_is_inserted_before_close_without_rewriting_prefix(self) -> None:
-        original = ledger_without_async_row()
+        original = phase_five_ledger_without_async_row()
         close_line = next(
             line for line in original.splitlines(keepends=True) if CLOSE in line
         )
@@ -56,7 +76,7 @@ class PhaseFiveLedgerAppendTests(unittest.TestCase):
         self.assertEqual(rows[-1]["requirement"], "P5-CLOSE-01")
 
     def test_failed_candidate_validation_never_rewrites_ledger(self) -> None:
-        original = ledger_without_async_row()
+        original = phase_five_ledger_without_async_row()
         with tempfile.TemporaryDirectory() as directory:
             ledger = Path(directory) / "ledger.csv"
             ledger.write_bytes(original)
@@ -73,7 +93,7 @@ class PhaseFiveLedgerAppendTests(unittest.TestCase):
             self.assertEqual(ledger.read_bytes(), original)
 
     def test_open_contract_refresh_preserves_the_historical_prefix(self) -> None:
-        original = LEDGER.read_bytes()
+        original = open_phase_five_ledger()
         first_phase_five = next(
             line
             for line in original.splitlines(keepends=True)
@@ -108,7 +128,7 @@ class PhaseFiveLedgerAppendTests(unittest.TestCase):
             if row["requirement"] == "P5-TEXT-COST-01"
         )
         self.assertEqual(refreshed["owner"], "worth-ui-certification")
-        self.assertEqual(refreshed["structural_counters"], "ui-locality-worlds=open")
+        self.assertEqual(refreshed["structural_counters"], "ui-locality-worlds=32")
 
 
 if __name__ == "__main__":

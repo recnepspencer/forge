@@ -5,14 +5,23 @@ use crate::evidence_identity::{
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct QuerySubscriptionAsyncRequestIdentityPart {
     key: String,
-    value: String,
+    value: crate::application::WorthQueryAsyncRequestIdentityValue,
 }
 
 impl QuerySubscriptionAsyncRequestIdentityPart {
     pub fn new(key: impl Into<String>, value: impl Into<String>) -> Self {
         Self {
             key: key.into(),
-            value: value.into(),
+            value: crate::application::WorthQueryAsyncRequestIdentityValue::Text(value.into()),
+        }
+    }
+
+    pub(crate) fn from_async_identity_part(
+        part: &crate::application::WorthQueryAsyncRequestIdentityPart,
+    ) -> Self {
+        Self {
+            key: part.key().to_owned(),
+            value: part.value().clone(),
         }
     }
 
@@ -20,7 +29,7 @@ impl QuerySubscriptionAsyncRequestIdentityPart {
         &self.key
     }
 
-    pub fn value(&self) -> &str {
+    pub fn value(&self) -> &crate::application::WorthQueryAsyncRequestIdentityValue {
         &self.value
     }
 }
@@ -127,9 +136,13 @@ impl QuerySubscriptionFutureSelection {
             WorthQueryEvidenceTag::new("async_keys"),
             async_request_identity.iter().map(|part| part.key()),
         );
+        let async_values = async_request_identity
+            .iter()
+            .map(|part| part.value().reporting_value())
+            .collect::<Vec<_>>();
         projection_identity = projection_identity.field_value_sequence(
             WorthQueryEvidenceTag::new("async_values"),
-            async_request_identity.iter().map(|part| part.value()),
+            async_values.iter().map(String::as_str),
         );
         let projection_identity = projection_identity.seal();
         Self {
@@ -164,7 +177,7 @@ impl QuerySubscriptionFutureSelection {
             format!(
                 "future-selection-async-request-identity:{}={}",
                 part.key(),
-                part.value()
+                part.value().reporting_value()
             )
         }));
         facts

@@ -42,7 +42,8 @@ pub(super) fn observe_raw_input(
         state::UiEguiPresentedInputSelection::Unique(basis) => basis,
     };
     let transaction = state.transaction_state(basis);
-    let translated = match translators.translate(raw_input, basis, transaction) {
+    let recipient = state.input_recipient(basis);
+    let translated = match translators.translate(raw_input, basis, recipient, transaction) {
         Ok(translated) => translated,
         Err(stop) => return UiEguiRawInputIngressOutcome::Stopped(stop),
     };
@@ -64,6 +65,26 @@ pub(super) fn observe_raw_input(
         core.sequences(),
         core.report_count(),
     ))
+}
+
+pub(super) fn install_input_recipient(
+    state: &std::sync::Mutex<UiEguiInputObservationState>,
+    binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+) -> bool {
+    state
+        .lock()
+        .expect("egui input observation state poisoned")
+        .install_input_recipient(binding)
+}
+
+pub(super) fn clear_input_recipient(
+    state: &std::sync::Mutex<UiEguiInputObservationState>,
+    binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+) -> bool {
+    state
+        .lock()
+        .expect("egui input observation state poisoned")
+        .clear_input_recipient(binding)
 }
 
 pub(super) fn record_completed_presentation(

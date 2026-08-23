@@ -120,7 +120,9 @@ fn shared_pins_release_only_after_the_last_binding_is_deregistered() {
     assert!(!release_last.releases().is_empty());
     owner.commit_presented(release_last);
     assert!(owner.committed(second_binding).is_empty());
-    println!("WORTH_UI_LEDGER_MUTATION_CASES={{\"P5-ATLAS-PINNING-01\":[\"shared-owner-preservation\",\"last-owner-release\"]}}");
+    println!(
+        "WORTH_UI_LEDGER_MUTATION_CASES={{\"P5-ATLAS-PINNING-01\":[\"shared-owner-preservation\",\"last-owner-release\"]}}"
+    );
     println!("WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P5-ATLAS-PINNING-01\":\"live-layout-unpin\"}}");
 }
 
@@ -271,7 +273,8 @@ fn partial_delta_replaces_only_its_command_and_preserves_unchanged_shared_pins()
         binding,
         content: affinity.content(),
         baseline: affinity.baseline(),
-        changes: vec![UiMountedPaintCommandChange::Replace(
+        changes: vec![UiMountedPaintCommandChange::replacement(
+            first_initial.commands()[0].identity(),
             first_initial.commands()[0].clone(),
         )],
         nodes: Vec::new(),

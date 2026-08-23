@@ -1,91 +1,74 @@
 use std::rc::Rc;
 
+use super::completion_report::UiNativeEventLoopCompletionEvidence;
 use super::{
-    terminal_cleanup_complete, UiNativeEventLoopApplication, UiNativeEventLoopCleanup,
+    finish_capture, finish_cleanup, UiNativeEventLoopApplication, UiNativeEventLoopCleanup,
     UiNativeEventLoopClient, UiNativeEventLoopRunDenial, UiNativeEventLoopRunReport,
     UiNativeEventLoopStopReport,
 };
-use crate::native::UiNativeGraphicsObservation;
 
 impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
     pub(super) fn finish(
         mut self,
     ) -> Result<UiNativeEventLoopRunReport, UiNativeEventLoopStopReport> {
-        let presentation = self.shared.borrow().last_presentation.clone();
-        let retained_frames = self.shared.borrow().retained_frame_observations.clone();
-        let client_attribution = self
-            .client
-            .as_ref()
-            .and_then(UiNativeEventLoopClient::presentation_attribution);
-        let peak_census = self.shared.borrow().compiler_total_peak();
-        let peak_text_pins = self.shared.borrow().peak_text_pins.clone();
-        let text_pin_frame_counts = self.shared.borrow().text_pin_frame_counts.clone();
-        let text_pin_frame_observations = self.shared.borrow().text_pin_frame_observations.clone();
-        let text_atlas_transactions = self.shared.borrow().text_atlas.committed_transactions();
-        let effect_posture = self.shared.borrow().effect_posture;
-        let graphics = self
-            .shared
-            .borrow()
-            .graphics
-            .as_ref()
-            .map(|graphics| UiNativeGraphicsObservation::from_graphics(graphics));
-        let client_cleanup = self
-            .client
-            .take()
-            .and_then(|client| client.close().into_cleanup());
-        let client_closed = client_cleanup.is_none();
-        let readiness_owner_count = self.readiness.close();
-        let mut shared = self.shared.borrow_mut();
-        shared
-            .resources
-            .release_all(self.loop_resources.drain(..))
-            .expect("event-loop owners must remain exact");
-        let host_census = shared.close();
-        drop(shared);
-        let cleanup_complete =
-            terminal_cleanup_complete(client_closed, readiness_owner_count == 2, &host_census);
+        let captured = finish_capture::capture(&self);
+        let terminal = finish_cleanup::close(&mut self, captured.host_peak_census);
         let failure = self.failure_cause(
-            cleanup_complete,
-            presentation.as_ref(),
-            graphics.as_ref(),
-            client_attribution,
+            terminal.cleanup_complete,
+            captured.presentation.as_ref(),
+            captured.graphics.as_ref(),
+            captured.client_attribution,
         );
         if let Some(cause) = failure {
             let cleanup = UiNativeEventLoopCleanup::retain(
                 Rc::clone(&self.shared),
-                host_census,
-                client_cleanup,
+                terminal.terminal_census,
+                terminal.client_cleanup,
                 self.physical_clock,
             );
             return Err(UiNativeEventLoopStopReport {
                 cause,
-                effect_posture,
-                peak_census,
-                terminal_census: host_census,
-                client_cleanup_complete: client_closed,
+                effect_posture: captured.effect_posture,
+                peak_census: terminal.peak_census,
+                terminal_census: terminal.terminal_census,
+                client_cleanup_complete: terminal.client_closed,
                 cleanup,
-                peak_text_pins,
+                peak_text_pins: captured.peak_text_pins,
+                input_observations: captured.input_observations,
             });
         }
-        Ok(self.completed_report(
-            presentation.expect("validated presentation"),
-            graphics.expect("validated graphics"),
-            client_attribution.expect("validated client attribution"),
-            peak_census,
-            host_census,
-            retained_frames,
-            peak_text_pins,
-            text_pin_frame_counts.into_boxed_slice(),
-            text_pin_frame_observations.into_boxed_slice(),
-            text_atlas_transactions,
-        ))
+        Ok(self.completed_report(UiNativeEventLoopCompletionEvidence {
+            presentation: captured.presentation.expect("validated presentation"),
+            graphics: captured.graphics.expect("validated graphics"),
+            client_attribution: captured
+                .client_attribution
+                .expect("validated client attribution"),
+            peak_census: terminal.peak_census,
+            terminal_census: terminal.terminal_census,
+            retained_frames: captured.retained_frames,
+            peak_text_pins: captured.peak_text_pins,
+            text_pin_frame_counts: captured.text_pin_frame_counts,
+            text_pin_frame_observations: captured.text_pin_frame_observations,
+            text_atlas_model_frame_digests: captured.text_atlas_model_frame_digests,
+            text_atlas_plan_observations: captured.text_atlas_plan_observations,
+            physical_signal_transition_observations: captured
+                .physical_signal_transition_observations,
+            physical_signal_transition_trace_complete: captured
+                .physical_signal_transition_trace_complete,
+            physical_signal_lifecycle: captured.physical_signal_lifecycle,
+            input_observations: captured.input_observations,
+            observation_history_complete: captured.observation_history_complete,
+            text_atlas_transactions: captured.text_atlas_transactions,
+            derived_state_reconstruction: captured.derived_state_reconstruction,
+            client_shutdown: terminal.client_shutdown,
+        }))
     }
 
     fn failure_cause(
         &self,
         cleanup_complete: bool,
         presentation: Option<&crate::native::UiNativePresentationObservation>,
-        graphics: Option<&UiNativeGraphicsObservation>,
+        graphics: Option<&crate::native::UiNativeGraphicsObservation>,
         attribution: Option<super::UiNativeClientPresentationAttribution>,
     ) -> Option<UiNativeEventLoopRunDenial> {
         if !cleanup_complete {
@@ -118,46 +101,14 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
                     .is_none_or(|(value, observed)| !value.matches(observed))
                     .then_some(UiNativeEventLoopRunDenial::ApplicationDriver)
             })
-    }
-
-    fn completed_report(
-        self,
-        presentation: crate::native::UiNativePresentationObservation,
-        graphics: UiNativeGraphicsObservation,
-        client_attribution: super::UiNativeClientPresentationAttribution,
-        peak_census: crate::native::UiNativeResourceCensus,
-        terminal_census: crate::native::UiNativeResourceCensus,
-        retained_frames: Vec<crate::native::UiNativeRetainedFrameObservation>,
-        peak_text_pins: Box<[crate::native::text_atlas::UiNativeTextPinObservation]>,
-        text_pin_frame_counts: Box<[u32]>,
-        text_pin_frame_observations: Box<
-            [Box<[crate::native::text_atlas::UiNativeTextPinObservation]>],
-        >,
-        text_atlas_transactions: u64,
-    ) -> UiNativeEventLoopRunReport {
-        let thread = self
-            .thread_observation
-            .expect("validated event-loop thread");
-        UiNativeEventLoopRunReport {
-            port_crossings: self
-                .port_crossings
-                .saturating_add(presentation.port_crossings()),
-            presentation,
-            graphics,
-            event_loop_thread: format!("{:?}", thread.thread).into_boxed_str(),
-            event_loop_thread_matches_launch: thread.matches_launch,
-            client_attribution,
-            readiness_signals: self.readiness_signals,
-            redraw_turns: self.redraw_turns,
-            idle_wait_turns: self.idle_wait_turns,
-            coalesced_wakes: self.coalesced_wakes,
-            peak_census,
-            terminal_census,
-            retained_frames: retained_frames.into_boxed_slice(),
-            peak_text_pins,
-            text_pin_frame_counts,
-            text_pin_frame_observations,
-            text_atlas_transactions,
-        }
+            .or_else(|| {
+                self.shared
+                    .borrow()
+                    .lifecycle_protocol
+                    .report()
+                    .terminal_stop()
+                    .is_some()
+                    .then_some(UiNativeEventLoopRunDenial::ApplicationDriver)
+            })
     }
 }

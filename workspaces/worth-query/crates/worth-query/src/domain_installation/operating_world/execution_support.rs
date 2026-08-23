@@ -13,6 +13,7 @@ use worth_query_installation::facade::{
 use super::{WorthQueryBoundCommitPosture, WorthQueryBoundGraphParticipation};
 
 type ConditionalNode = crate::domain_installation::WorthQueryInstalledConditionalNode;
+type ConditionalFamily = crate::domain_installation::WorthQueryInstalledConditionalInstanceFamily;
 type DirectExecutor = crate::domain_installation::WorthQueryInstalledDomainOperationExecutor;
 type WorkflowExecutor = crate::domain_installation::WorthQueryInstalledWorkflowStageExecutor;
 type WorkflowGraph = crate::domain_installation::WorthQueryInstalledWorkflowGraph;
@@ -53,6 +54,7 @@ pub(super) fn lower_installed_execution_support(
     graphs: &[WorthQueryBoundGraphParticipation],
     commit_posture: WorthQueryBoundCommitPosture,
     conditional_nodes: &[Arc<ConditionalNode>],
+    conditional_families: &[ConditionalFamily],
     providers: WorthQueryInstalledRuntimeProviders<'_>,
 ) -> Result<WorthQueryInstalledExecutionClosure, &'static str> {
     match &definition.semantics().workflow {
@@ -61,6 +63,7 @@ pub(super) fn lower_installed_execution_support(
             graphs,
             commit_posture,
             conditional_nodes,
+            conditional_families,
             providers,
         ),
         WorthQueryOperationWorkflowContract::Declared(workflow) => {
@@ -69,6 +72,7 @@ pub(super) fn lower_installed_execution_support(
                 graphs,
                 commit_posture,
                 conditional_nodes,
+                conditional_families,
                 providers,
             )
         }
@@ -80,6 +84,7 @@ fn lower_direct_execution_closure(
     graphs: &[WorthQueryBoundGraphParticipation],
     commit_posture: WorthQueryBoundCommitPosture,
     conditional_nodes: &[Arc<ConditionalNode>],
+    conditional_families: &[ConditionalFamily],
     providers: WorthQueryInstalledRuntimeProviders<'_>,
 ) -> Result<WorthQueryInstalledExecutionClosure, &'static str> {
     let executor = providers
@@ -97,6 +102,7 @@ fn lower_direct_execution_closure(
             graphs,
             commit_posture,
             conditional_nodes,
+            conditional_families,
             &executor.resource_support,
         )),
         providers: WorthQueryBoundExecutionProviders::Direct {
@@ -110,6 +116,7 @@ fn lower_workflow_execution_closure(
     graphs: &[WorthQueryBoundGraphParticipation],
     commit_posture: WorthQueryBoundCommitPosture,
     conditional_nodes: &[Arc<ConditionalNode>],
+    conditional_families: &[ConditionalFamily],
     providers: WorthQueryInstalledRuntimeProviders<'_>,
 ) -> Result<WorthQueryInstalledExecutionClosure, &'static str> {
     let graph = providers
@@ -123,7 +130,12 @@ fn lower_workflow_execution_closure(
     {
         return Err("workflow provider closure disagrees with installed semantics");
     }
-    let operation = workflow_operation_support(executor, conditional_nodes, providers.parallel);
+    let operation = workflow_operation_support(
+        executor,
+        conditional_nodes,
+        conditional_families,
+        providers.parallel,
+    );
     let stages = workflow.stages().iter().map(|stage| {
         (
             stage.identity().to_owned(),
@@ -132,6 +144,7 @@ fn lower_workflow_execution_closure(
                 graphs,
                 commit_posture,
                 conditional_nodes,
+                conditional_families,
                 &executor.resource_support,
             ),
         )
@@ -153,11 +166,12 @@ fn lower_workflow_execution_closure(
 fn workflow_operation_support(
     executor: &Arc<WorkflowExecutor>,
     conditional_nodes: &[Arc<ConditionalNode>],
+    conditional_families: &[ConditionalFamily],
     parallel: Option<&Arc<ParallelProvider>>,
 ) -> WorthQueryExecutionResourceSupportSnapshot {
     WorthQueryExecutionResourceSupportSnapshot::new(
         executor.resource_support.clone(),
-        operation_conditional_supports(conditional_nodes),
+        operation_conditional_supports(conditional_nodes, conditional_families),
         Vec::new(),
         Vec::new(),
         parallel.map(|provider| provider.resource_support().clone()),
@@ -169,6 +183,7 @@ fn direct_support_snapshot(
     graphs: &[WorthQueryBoundGraphParticipation],
     commit_posture: WorthQueryBoundCommitPosture,
     conditional_nodes: &[Arc<ConditionalNode>],
+    conditional_families: &[ConditionalFamily],
     executor: &WorthQueryExecutionResourceSupport,
 ) -> WorthQueryExecutionResourceSupportSnapshot {
     let semantics = definition.semantics();
@@ -187,7 +202,7 @@ fn direct_support_snapshot(
     }
     WorthQueryExecutionResourceSupportSnapshot::new(
         executor.clone(),
-        operation_conditional_supports(conditional_nodes),
+        operation_conditional_supports(conditional_nodes, conditional_families),
         graph_supports_for_roles(graphs, &graph_roles),
         commit_supports_for_roles(graphs, commit_posture, &graph_roles),
         None,
@@ -199,6 +214,7 @@ fn workflow_stage_support_snapshot(
     graphs: &[WorthQueryBoundGraphParticipation],
     commit_posture: WorthQueryBoundCommitPosture,
     conditional_nodes: &[Arc<ConditionalNode>],
+    conditional_families: &[ConditionalFamily],
     executor: &WorthQueryExecutionResourceSupport,
 ) -> WorthQueryExecutionResourceSupportSnapshot {
     let roles = stage
@@ -216,7 +232,7 @@ fn workflow_stage_support_snapshot(
         .collect::<BTreeSet<_>>();
     WorthQueryExecutionResourceSupportSnapshot::new(
         executor.clone(),
-        stage_conditional_supports(conditional_nodes, stage.identity()),
+        stage_conditional_supports(conditional_nodes, conditional_families, stage.identity()),
         graph_supports_for_roles(graphs, &roles),
         commit_supports_for_roles(graphs, commit_posture, &touch_roles),
         None,
@@ -225,6 +241,7 @@ fn workflow_stage_support_snapshot(
 
 fn operation_conditional_supports(
     nodes: &[Arc<ConditionalNode>],
+    families: &[ConditionalFamily],
 ) -> Vec<(String, WorthQueryExecutionResourceSupport)> {
     nodes
         .iter()
@@ -235,11 +252,19 @@ fn operation_conditional_supports(
             )),
             WorthQueryConditionalNodeLocation::WorkflowStage { .. } => None,
         })
+        .chain(families.iter().filter_map(|family| match &family.location {
+            WorthQueryConditionalNodeLocation::Operation { node_identity } => Some((
+                format!("operation:{node_identity}"),
+                family.resource_support.clone(),
+            )),
+            WorthQueryConditionalNodeLocation::WorkflowStage { .. } => None,
+        }))
         .collect()
 }
 
 fn stage_conditional_supports(
     nodes: &[Arc<ConditionalNode>],
+    families: &[ConditionalFamily],
     expected_stage: &str,
 ) -> Vec<(String, WorthQueryExecutionResourceSupport)> {
     nodes
@@ -254,6 +279,16 @@ fn stage_conditional_supports(
             )),
             _ => None,
         })
+        .chain(families.iter().filter_map(|family| match &family.location {
+            WorthQueryConditionalNodeLocation::WorkflowStage {
+                stage_identity,
+                node_identity,
+            } if stage_identity == expected_stage => Some((
+                format!("stage:{stage_identity}:{node_identity}"),
+                family.resource_support.clone(),
+            )),
+            _ => None,
+        }))
         .collect()
 }
 

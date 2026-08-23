@@ -58,6 +58,7 @@ fn is_independent_viewport_contract(
         Some(
             crate::declaration::UiDeclaredMeasurementMode::FillViewport
                 | crate::declaration::UiDeclaredMeasurementMode::ViewportInset { .. }
+                | crate::declaration::UiDeclaredMeasurementMode::FixedLogicalSize { .. }
         )
     )
 }

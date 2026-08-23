@@ -18,10 +18,16 @@ pub(super) fn validate_delta(input: &UiMountedPresentationDeltaInput) {
     let change_identities = input
         .changes
         .iter()
-        .map(|change| match change {
-            UiMountedPaintCommandChange::Insert(command)
-            | UiMountedPaintCommandChange::Replace(command) => command.identity(),
-            UiMountedPaintCommandChange::Remove(identity) => *identity,
+        .flat_map(|change| match change {
+            UiMountedPaintCommandChange::Insert(command) => vec![command.identity()],
+            UiMountedPaintCommandChange::Replace {
+                predecessor,
+                successor,
+            } if *predecessor != successor.identity() => {
+                vec![*predecessor, successor.identity()]
+            }
+            UiMountedPaintCommandChange::Replace { predecessor, .. }
+            | UiMountedPaintCommandChange::Remove(predecessor) => vec![*predecessor],
         })
         .collect::<HashSet<_>>();
     let order_identities = input
@@ -34,7 +40,18 @@ pub(super) fn validate_delta(input: &UiMountedPresentationDeltaInput) {
         .iter()
         .map(|change| change.mounted_instance())
         .collect::<HashSet<_>>();
-    assert_eq!(change_identities.len(), input.changes.len());
+    let expected_change_identities = input
+        .changes
+        .iter()
+        .map(|change| match change {
+            UiMountedPaintCommandChange::Replace {
+                predecessor,
+                successor,
+            } if *predecessor != successor.identity() => 2,
+            _ => 1,
+        })
+        .sum::<usize>();
+    assert_eq!(change_identities.len(), expected_change_identities);
     assert_eq!(order_identities.len(), input.order.len());
     assert_eq!(node_identities.len(), input.nodes.len());
     assert!(
@@ -47,7 +64,6 @@ pub(super) fn validate_delta(input: &UiMountedPresentationDeltaInput) {
 }
 
 pub(super) fn validate_reconstruction(input: &UiMountedPresentationReconstructionInput) {
-    assert_ne!(input.predecessor, input.successor);
     assert_eq!(input.projection.frame(), input.successor);
     assert_eq!(input.projection.surface(), input.surface);
     assert_eq!(input.projection.binding(), input.binding);

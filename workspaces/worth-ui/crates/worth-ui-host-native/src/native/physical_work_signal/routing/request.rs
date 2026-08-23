@@ -54,6 +54,12 @@ impl UiNativePhysicalSignalRequestToken {
 }
 
 impl UiNativePhysicalSignalWork {
+    pub(in crate::native::physical_work_signal) const fn slot_lineage(
+        self,
+    ) -> super::super::identity::UiNativePhysicalSignalSlotLineage {
+        self.request_identity().presentation_basis().slot_lineage()
+    }
+
     pub(in crate::native::physical_work_signal) const fn sequence(self) -> u64 {
         match self {
             Self::AtlasPlanning(identity) => identity.sequence(),

@@ -6,7 +6,7 @@ use worth_ui_dsl::{
 };
 use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 
-use super::{MountedMixedRows, RECTANGLE_COUNT};
+use super::{MixedCarrierFixtureProfile, MountedMixedRows};
 use crate::host_platform::world;
 
 const COLLECTION_SOURCE: &str = "host.platform.mixed.collection";
@@ -15,11 +15,12 @@ const INSTALLED_PROJECTION: &str = "platform.pulse.status";
 const INSTALLED_SCALAR_PROJECTION: &str = "host.platform.mixed.scalar.view";
 
 pub(super) fn build(
+    profile: MixedCarrierFixtureProfile,
     collection: worth_ui_query_binding::UiCollectionProjectionRegistration,
     scalar: worth_ui_query_binding::UiScalarProjectionRegistration,
     recorder: worth_ui_host_headless::WorthUiHeadlessRecorder,
 ) -> worth_ui::facade::app::WorthUiApp {
-    let (builder, module) = (0..super::RECTANGLE_COMPONENT_COUNT).fold(
+    let (builder, module) = (0..profile.rectangle_component_count).fold(
         (
             world::application_builder(recorder),
             WorthUiRustAuthoredArtifactInputModule::new("app/main.wui"),
@@ -104,6 +105,7 @@ fn authored_component(
 }
 
 pub(super) fn mount(
+    profile: MixedCarrierFixtureProfile,
     session: &mut worth_ui::facade::app::WorthUiActiveApplicationSession,
 ) -> MountedMixedRows {
     let surface = session.create_semantic_surface().unwrap();
@@ -130,7 +132,7 @@ pub(super) fn mount(
         })
         .collect::<Vec<_>>();
     nodes.sort_by(|left, right| left.0.cmp(&right.0));
-    assert_eq!(nodes.len(), super::RECTANGLE_COMPONENT_COUNT);
+    assert_eq!(nodes.len(), profile.rectangle_component_count);
     let scalar_node = nodes[1].1;
     let mut rows = nodes
         .into_iter()
@@ -139,12 +141,12 @@ pub(super) fn mount(
             super::MountedMixedRow { node, instance }
         })
         .collect::<Vec<_>>();
-    for _ in 1..super::SCALAR_INSTANCE_COUNT {
+    for _ in 1..profile.scalar_instance_count {
         rows.push(super::MountedMixedRow {
             node: scalar_node,
             instance: session.mount_instance(scalar_node, surface).unwrap(),
         });
     }
-    assert_eq!(rows.len(), RECTANGLE_COUNT);
+    assert_eq!(rows.len(), profile.rectangle_count);
     MountedMixedRows { surface, rows }
 }

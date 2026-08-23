@@ -5,7 +5,8 @@ use worth_ui_host_contract::{
 
 use super::presentation_attempt::{UiMountedPresentationProgress, UiMountedPresentationStart};
 use crate::native_platform::text_presentation::{
-    prepare_mounted_semantic_text, UiMountedEventTimeDpiAuthority, UiNativeMountedTextCoordinator,
+    derive_text_presentation_request_bases, prepare_mounted_semantic_text,
+    UiMountedEventTimeDpiAuthority, UiNativeMountedTextCoordinator,
     UiNativeTextPresentationPreparation,
 };
 
@@ -15,6 +16,7 @@ pub(super) fn present(
     presentation_work: &super::super::UiMountedPresentationWork,
     progress: &mut UiMountedPresentationProgress,
     text: &mut UiNativeMountedTextCoordinator,
+    presentation_async: &mut crate::native_platform::text_presentation::UiPresentationAsyncRuntime,
 ) -> Option<crate::native_platform::text_presentation::UiNativeMountedSurfaceTextObservation> {
     let Some(dpi) = UiMountedEventTimeDpiAuthority::from_requirement(requirement) else {
         record_rejection(
@@ -26,7 +28,11 @@ pub(super) fn present(
     };
     let preparation = prepare_mounted_semantic_text(presentation_work.view(), dpi, |identity| {
         presentation_work.resolve_layout(identity)
-    })?;
+    });
+    let preparation = match preparation {
+        Some(preparation) => preparation,
+        None => return None,
+    };
     let prepared = match preparation {
         UiNativeTextPresentationPreparation::Prepared(prepared) => prepared,
         UiNativeTextPresentationPreparation::Denied(denial) => {
@@ -52,10 +58,52 @@ pub(super) fn present(
                     text_raster_work: Some(text_raster_work),
                 },
             );
-            start
+            let request_bases = match derive_text_presentation_request_bases(
+                &view,
+                &prepared,
+                text_raster_work.pins(),
+                text_raster_work.binding_pins(),
+            ) {
+                Ok(request_bases) => request_bases,
+                Err(_) => {
+                    return (
+                        UiHostSurfacePresentationOutcome::RejectedBeforeEffects(
+                            UiHostSurfacePresentationDenial::AdapterDeclined,
+                        ),
+                        Box::new([]),
+                        Box::new([]),
+                    );
+                }
+            };
+            let mut pending_receipts = Vec::with_capacity(request_bases.len());
+            for basis in request_bases.iter().cloned() {
+                match presentation_async.admit_pending(basis) {
+                    Ok(receipt) => pending_receipts.push(receipt.into()),
+                    Err(denial) => {
+                        if let Some(receipt) = denial.into_recovery_receipt() {
+                            pending_receipts.push(receipt.into());
+                        }
+                        let unresolved = pending_receipts
+                            .into_iter()
+                            .filter(|receipt| {
+                                presentation_async
+                                    .reject_recovery_before_effects(receipt)
+                                    .is_err()
+                            })
+                            .collect::<Vec<_>>()
+                            .into_boxed_slice();
+                        let outcome = UiHostSurfacePresentationOutcome::RejectedBeforeEffects(
+                            UiHostSurfacePresentationDenial::AdapterDeclined,
+                        );
+                        return (outcome, request_bases, unresolved);
+                    }
+                }
+            }
+            let outcome = start
                 .host
                 .adapter()
-                .present_mounted_surface(start.host.authority(), &view)
+                .present_mounted_surface(start.host.authority(), &view);
+            (outcome, request_bases, pending_receipts.into_boxed_slice())
         },
     )
 }

@@ -92,7 +92,11 @@ impl BridgeSemanticDependencyCandidate {
             || parts.graph_adapter_identity.trim().is_empty()
             || parts.relevant_changes.is_empty()
             || matches!(parts.locality, BridgeSemanticLocality::SourceRecord)
-                != parts.source_record_identity.is_some()
+                && parts.source_record_identity.is_none()
+            || !matches!(
+                parts.locality,
+                BridgeSemanticLocality::SourceRecord | BridgeSemanticLocality::SourcePartition(_)
+            ) && parts.source_record_identity.is_some()
             || matches!(parts.locality, BridgeSemanticLocality::SourceRecord)
                 && parts.observation_record_identity.is_some()
                 && parts.observation_record_identity != parts.source_record_identity
@@ -249,6 +253,25 @@ impl BridgeSemanticDependencyCandidate {
         .into_iter()
         .map(|field| format!("{}:{field}", field.len()))
         .collect()
+    }
+
+    pub(crate) fn owned_signal_partition(&self) -> worth_signal::facade::PartitionToken {
+        let partition = match &self.locality {
+            BridgeSemanticLocality::SourcePartition(role) => {
+                self.source_record_identity.map_or_else(
+                    || role.as_str().to_owned(),
+                    |record| format!("{}:{}", role.as_str(), record.bridge_entity_identity()),
+                )
+            }
+            BridgeSemanticLocality::SourceRecord => {
+                format!("source-record:{}", self.binding.canonical_name())
+            }
+            BridgeSemanticLocality::ManagedSourceRecord => {
+                format!("managed-source-record:{}", self.binding.canonical_name())
+            }
+            BridgeSemanticLocality::WholeLogicalGraph => "whole-logical-graph".to_owned(),
+        };
+        worth_signal::facade::PartitionToken::new(partition)
     }
 
     pub(crate) fn authority_registration_key(&self) -> String {

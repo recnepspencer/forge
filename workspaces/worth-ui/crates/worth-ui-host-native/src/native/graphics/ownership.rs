@@ -50,6 +50,13 @@ impl UiNativeOwnedGraphics {
         self.replace_basis(scale_factor, extent, registry)
     }
 
+    pub(crate) fn replace_retained_target_for_reconstruction(
+        &mut self,
+        registry: &mut UiNativeResourceRegistry,
+    ) -> Result<(), ()> {
+        self.replace_target(self.graphics.scale_factor, self.graphics.extent(), registry)
+    }
+
     fn replace_basis(
         &mut self,
         scale_factor: f64,
@@ -65,12 +72,19 @@ impl UiNativeOwnedGraphics {
         ) {
             return Ok(false);
         }
-        if !registry.admits(1) {
-            return Err(());
-        }
+        self.replace_target(scale_factor, extent, registry)?;
+        Ok(true)
+    }
+
+    fn replace_target(
+        &mut self,
+        scale_factor: f64,
+        extent: [u32; 2],
+        registry: &mut UiNativeResourceRegistry,
+    ) -> Result<(), ()> {
+        let successor_owner = registry.register(UiNativeResourceClass::RetainedTarget)?;
         let successor =
             UiWgpuNativeGraphicsPort::replacement_target(&mut self.graphics, scale_factor, extent);
-        let successor_owner = registry.register(UiNativeResourceClass::RetainedTarget)?;
         let predecessor = self
             .graphics
             .retained_target
@@ -79,7 +93,7 @@ impl UiNativeOwnedGraphics {
         let predecessor_owner = std::mem::replace(&mut self.retained_target_owner, successor_owner);
         drop(predecessor);
         registry.release(predecessor_owner)?;
-        Ok(true)
+        Ok(())
     }
 
     pub(crate) fn close(mut self, registry: &mut UiNativeResourceRegistry) {

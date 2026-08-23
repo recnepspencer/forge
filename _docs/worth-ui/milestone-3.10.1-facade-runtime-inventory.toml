@@ -263,12 +263,14 @@ forbidden_shortcut = "make certification reports runtime lifecycle authority"
 id = "certification-scenario"
 path = "scenario"
 match = "directory"
-expected_files = 28
+expected_files = 52
 # Milestone 3.11 extracts the two-node platform pulse application builder into
 # its named scenario home and adds visual-identity capability and filesystem
 # lifecycle worlds; later scale certification adds one named scaled-canvas
-# scenario while preserving certification-only construction.
-content_fingerprint = "6966be34e94ee5c5"
+# scenario while preserving certification-only construction. Phase 5 locality
+# adds a certification-only native matrix family without adding a product
+# composition root or ordinary runtime entrypoint.
+content_fingerprint = "65fadf4af26685a7"
 audience = "certification-support"
 responsibility = "real-boundary certification scenario construction, including the Milestone 3.10.2 platform pulse"
 disposition = "retain"
@@ -286,7 +288,7 @@ exclude_prefixes = [
   "topology/milestone_3103_watched_replacement",
   "topology/milestone_3103_cost_closure",
 ]
-expected_files = 62
+expected_files = 63
 # Milestone 3.10.2 Phase 2 teaches the adapter-boundary audit to distinguish
 # explicit private `self` composition from forbidden source/DSL authority and
 # excludes the successor pulse scenario from the frozen Phase 7 source count.
@@ -308,7 +310,9 @@ expected_files = 62
 # the typed intent provider as exact successor exclusions with hostile neighbors.
 # Milestone 3.14 moves authored intent admission into the declaration owner and
 # admits only that exact source file while a hostile sibling remains forbidden.
-content_fingerprint = "970a877b9a6bc414"
+# Phase 6 locality maintenance adds one named historical-source scope guard;
+# it protects frozen Phase 7 evidence without becoming a successor authority.
+content_fingerprint = "b9d3ab53deb75d5b"
 audience = "certification-support"
 responsibility = "source, topology, public-surface, and authority audits"
 disposition = "retain"
@@ -360,7 +364,9 @@ expected_files = 6
 # receipt-derived projection, shutdown, visual-state, and hostile-fixture audits.
 # Its named source-topology owner preserves predecessor laws while adjudicating
 # lawful successor files.
-content_fingerprint = "171b74bcef52727f"
+# Phase 6 maintenance admits only the exact certification feature composition
+# and rejects certification-worker event-loop posture from product sources.
+content_fingerprint = "1ea09ac61a07dd76"
 audience = "certification-support"
 responsibility = "Milestone 3.10.3 live product launch, observation provenance, facade, target, and anti-feature topology"
 disposition = "retain"
@@ -374,7 +380,9 @@ expected_files = 4
 # The cumulative journey now proves its recovered typestate is consumed by the
 # named cleanup owner before the exact native close transition, with courtroom
 # evidence aggregated across the complete named owner.
-content_fingerprint = "bbdcb8d8a106fb6b"
+# Phase 6 maintenance scopes that evidence to its four predecessor courtroom
+# owners and follows the split process-window and exact-capture modules.
+content_fingerprint = "8d751aeb127f1d4f"
 audience = "certification-support"
 responsibility = "Milestone 3.10.3 real executable process, native boundary, teardown, and external observation topology"
 disposition = "retain"
@@ -388,7 +396,9 @@ expected_files = 4
 # The cumulative watched contract now follows Query-aware typestate through a
 # separately positive-controlled visual journey and typed cleanup owner. Visual
 # cardinality follows the governed Pulse constants instead of stale literals.
-content_fingerprint = "c66127789697bbc2"
+# Phase 6 maintenance freezes the four predecessor courtroom owners and proves
+# ignored successor worlds cannot dilute or poison the Phase 4 audit.
+content_fingerprint = "9f3c8407fae46c11"
 audience = "certification-support"
 responsibility = "Milestone 3.10.3 watched replacement, denial preservation, recovery, and normal-close topology"
 disposition = "retain"

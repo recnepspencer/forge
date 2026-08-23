@@ -249,6 +249,7 @@ fn project_scalar(
 fn unavailable_label(kind: worth_ui_query_binding::UiProjectionUnavailableKind) -> Arc<str> {
     use worth_ui_query_binding::UiProjectionUnavailableKind as Kind;
     Arc::from(match kind {
+        Kind::Unresolved => "UNRESOLVED",
         Kind::Pending => "PENDING",
         Kind::Failed => "FAILED",
         Kind::Cancelled => "CANCELLED",

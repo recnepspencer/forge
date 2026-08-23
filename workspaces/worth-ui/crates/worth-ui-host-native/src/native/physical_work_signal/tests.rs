@@ -54,6 +54,24 @@ pub(super) fn one_runtime_owns_signal_admission_completion_and_quiescent_shutdow
         settled_graph.signal_performed_transitions > admitted_graph.signal_performed_transitions
     );
     assert!(settled_graph.signal_performed_nodes > admitted_graph.signal_performed_nodes);
+    let [transition] = owner.transition_observations() else {
+        panic!("one physical completion must retain one owner-issued transition");
+    };
+    assert_eq!(
+        transition.work(),
+        super::UiNativePhysicalSignalWorkClass::AtlasUpload
+    );
+    assert_eq!(
+        transition.external_status(),
+        super::UiNativePhysicalSignalExternalStatusClass::Completed
+    );
+    assert_eq!(
+        transition.settlement(),
+        super::UiNativePhysicalSignalSettlementClass::Completed
+    );
+    assert_eq!(transition.performed_transitions(), 1);
+    assert!(transition.performed_nodes() > 0);
+    assert!(owner.transition_observation_trace_complete());
     assert_eq!(
         owner.shutdown(),
         super::shutdown::UiNativePhysicalSignalShutdown::Disposed
@@ -63,6 +81,7 @@ pub(super) fn one_runtime_owns_signal_admission_completion_and_quiescent_shutdow
         settled_graph.signal_performed_transitions,
         "disposed Signal retains its performed progression receipt"
     );
+    assert!(owner.transition_observations().is_empty());
 }
 
 #[test]
@@ -103,7 +122,7 @@ fn partitioned_progression_evaluates_only_the_exact_operation_family() {
         4,
         "presentation progression cannot evaluate atlas or recovery nodes"
     );
-    let _ = owner.take_ready_presentation(presentation).unwrap();
+    let _ = owner.take_initial_presentation(presentation).unwrap();
 }
 
 #[test]
@@ -116,9 +135,9 @@ pub(super) fn wake_delivery_is_exact_to_the_ready_physical_work() {
         .unwrap();
     assert_eq!(owner.observation().pending_wakes, 1);
 
-    let presentation_token = owner.take_ready_presentation(presentation).unwrap();
+    let presentation_token = owner.take_initial_presentation(presentation).unwrap();
     assert_eq!(owner.observation().pending_wakes, 0);
-    assert!(owner.take_ready_presentation(presentation).is_err());
+    assert!(owner.take_initial_presentation(presentation).is_err());
 
     assert_eq!(
         owner.reconcile(presentation_token.observe(UiNativePhysicalSignalStatus::Completed)),
@@ -300,6 +319,56 @@ pub(super) fn foreign_duplicate_and_out_of_order_completion_envelopes_are_stale(
         owner.reconcile(completed),
         UiNativePhysicalSignalSettlement::Stale
     );
+}
+
+#[test]
+fn retained_host_work_settles_as_superseded_before_the_current_presentation() {
+    let mut owner = UiNativePhysicalSignalOwner::new();
+    let predecessor_basis = super::UiNativePhysicalPresentationBasis::test();
+    let predecessor = owner.admit_presentation(predecessor_basis).unwrap();
+    let predecessor_token = owner.take_initial_presentation(predecessor).unwrap();
+    let current = owner
+        .admit_presentation(predecessor_basis.test_successor())
+        .unwrap();
+    let current_token = owner.take_initial_presentation(current).unwrap();
+
+    assert_eq!(
+        owner.reconcile(predecessor_token.observe(UiNativePhysicalSignalStatus::Completed)),
+        UiNativePhysicalSignalSettlement::Superseded
+    );
+    assert_eq!(owner.observation().active_requests, 1);
+    assert_eq!(
+        owner.reconcile(current_token.observe(UiNativePhysicalSignalStatus::Completed)),
+        UiNativePhysicalSignalSettlement::Completed
+    );
+    assert_eq!(owner.observation().active_requests, 0);
+    assert_eq!(
+        owner.transition_observations()[0].settlement(),
+        super::UiNativePhysicalSignalSettlementClass::Superseded
+    );
+}
+
+#[test]
+fn unrelated_presentations_keep_independent_physical_signal_currentness() {
+    let mut owner = UiNativePhysicalSignalOwner::new();
+    let first = owner
+        .admit_presentation(super::UiNativePhysicalPresentationBasis::test())
+        .unwrap();
+    let first_token = owner.take_initial_presentation(first).unwrap();
+    let second = owner
+        .admit_presentation(super::UiNativePhysicalPresentationBasis::test())
+        .unwrap();
+    let second_token = owner.take_initial_presentation(second).unwrap();
+
+    assert_eq!(
+        owner.reconcile(first_token.observe(UiNativePhysicalSignalStatus::Completed)),
+        UiNativePhysicalSignalSettlement::Completed
+    );
+    assert_eq!(
+        owner.reconcile(second_token.observe(UiNativePhysicalSignalStatus::Completed)),
+        UiNativePhysicalSignalSettlement::Completed
+    );
+    assert_eq!(owner.observation().active_requests, 0);
 }
 
 fn pending(seed: u8) -> UiGlyphRasterTransactionPending {

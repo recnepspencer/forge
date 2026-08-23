@@ -2,7 +2,7 @@ use worth_ui_host_contract::UiHostSurfacePresentationDenial;
 
 use super::{
     port, UiNativePresentationFailure, UiNativePresentationPortFailure, UiNativeResourceClass,
-    UiNativeResourceRegistry, GPU_WAIT_DEADLINE,
+    UiNativeResourceRegistry,
 };
 
 pub(crate) struct UiNativePresentationOwners {
@@ -13,11 +13,21 @@ pub(crate) struct UiNativePresentationOwners {
 }
 
 pub(crate) struct UiNativePendingPresentation {
-    external: Box<dyn UiNativePendingExternalObligation>,
-    readback_owner: crate::native::UiNativeResourceOwner,
-    submission_owner: crate::native::UiNativeResourceOwner,
+    external: Option<Box<dyn UiNativePendingExternalObligation>>,
+    readback_owner: Option<crate::native::UiNativeResourceOwner>,
+    submission_owner: Option<crate::native::UiNativeResourceOwner>,
     physical_work: crate::native::physical_work_signal::UiNativePhysicalPresentationIdentity,
     physical_token: crate::native::physical_work_signal::UiNativePhysicalSignalRequestToken,
+    completion_identity: Option<u64>,
+    settlement: Option<super::UiNativePendingSurfaceSettlement>,
+    completion: UiNativePendingPresentationCompletion,
+}
+
+pub(crate) enum UiNativePendingPresentationCompletion {
+    Pending,
+    Presented(port::UiNativePresentationPortObservation),
+    Superseded(port::UiNativePresentationPortObservation),
+    Indeterminate,
 }
 
 pub(crate) trait UiNativePendingExternalObligation {
@@ -26,47 +36,17 @@ pub(crate) trait UiNativePendingExternalObligation {
         basis: crate::native::physical_work_signal::UiNativePhysicalSignalExternalBasis,
         device: Option<&wgpu::Device>,
     ) -> crate::native::physical_work_signal::UiNativePhysicalSignalExternalObservation;
-}
 
-pub(crate) struct UiNativePendingWgpuObligation {
-    readback: wgpu::Buffer,
-    submission: wgpu::SubmissionIndex,
-}
-
-impl UiNativePendingWgpuObligation {
-    pub(crate) fn new(readback: wgpu::Buffer, submission: wgpu::SubmissionIndex) -> Self {
-        Self {
-            readback,
-            submission,
-        }
+    fn take_presented_observation(&mut self) -> Option<port::UiNativePresentationPortObservation> {
+        None
     }
-}
 
-impl UiNativePendingExternalObligation for UiNativePendingWgpuObligation {
-    fn poll_observation(
+    fn take_duplicate_completed_observation(
         &mut self,
-        basis: crate::native::physical_work_signal::UiNativePhysicalSignalExternalBasis,
-        device: Option<&wgpu::Device>,
-    ) -> crate::native::physical_work_signal::UiNativePhysicalSignalExternalObservation {
-        let Some(device) = device else {
-            return basis.observe(
-                crate::native::physical_work_signal::UiNativePhysicalSignalStatus::Pending,
-            );
-        };
-        let settled = device
-            .poll(wgpu::PollType::Wait {
-                submission_index: Some(self.submission.clone()),
-                timeout: Some(GPU_WAIT_DEADLINE),
-            })
-            .is_ok();
-        if settled {
-            self.readback.unmap();
-        }
-        basis.observe(if settled {
-            crate::native::physical_work_signal::UiNativePhysicalSignalStatus::Completed
-        } else {
-            crate::native::physical_work_signal::UiNativePhysicalSignalStatus::Pending
-        })
+        _basis: crate::native::physical_work_signal::UiNativePhysicalSignalExternalBasis,
+    ) -> Option<crate::native::physical_work_signal::UiNativePhysicalSignalExternalObservation>
+    {
+        None
     }
 }
 
@@ -79,18 +59,107 @@ impl UiNativePendingPresentation {
         physical_token: crate::native::physical_work_signal::UiNativePhysicalSignalRequestToken,
     ) -> Self {
         Self {
-            external,
-            readback_owner,
-            submission_owner,
+            external: Some(external),
+            readback_owner: Some(readback_owner),
+            submission_owner: Some(submission_owner),
             physical_work,
             physical_token,
+            completion_identity: None,
+            settlement: None,
+            completion: UiNativePendingPresentationCompletion::Pending,
         }
+    }
+
+    pub(crate) fn with_settlement(
+        mut self,
+        settlement: super::UiNativePendingSurfaceSettlement,
+    ) -> Self {
+        debug_assert!(self.settlement.is_none());
+        self.settlement = Some(settlement);
+        self
+    }
+
+    pub(crate) fn bind_completion_identity(&mut self, identity: u64) -> bool {
+        if self.completion_identity.is_some() || identity == 0 {
+            return false;
+        }
+        self.completion_identity = Some(identity);
+        true
+    }
+
+    pub(crate) const fn completion_identity(&self) -> Option<u64> {
+        self.completion_identity
+    }
+
+    pub(crate) fn take_completion(&mut self) -> UiNativePendingPresentationCompletion {
+        std::mem::replace(
+            &mut self.completion,
+            UiNativePendingPresentationCompletion::Pending,
+        )
+    }
+
+    pub(crate) const fn has_active_external(&self) -> bool {
+        self.external.is_some()
+    }
+
+    pub(crate) fn take_settlement(&mut self) -> Option<super::UiNativePendingSurfaceSettlement> {
+        self.settlement.take()
+    }
+
+    pub(crate) fn replace_settlement(
+        &mut self,
+        settlement: super::UiNativePendingSurfaceSettlement,
+    ) {
+        debug_assert!(self.settlement.is_none());
+        self.settlement = Some(settlement);
+    }
+
+    pub(crate) fn inherit_predecessor_settlement(
+        &mut self,
+        predecessor: super::UiNativePendingSurfaceSettlement,
+    ) -> Result<(), super::UiNativePendingSurfaceSettlement> {
+        let Some(successor) = self.settlement.as_mut() else {
+            return Err(predecessor);
+        };
+        successor.inherit_predecessor(predecessor)
+    }
+
+    pub(crate) const fn has_settlement(&self) -> bool {
+        self.settlement.is_some()
+    }
+
+    pub(crate) fn mark_presented(
+        &mut self,
+        observation: port::UiNativePresentationPortObservation,
+    ) {
+        self.completion = UiNativePendingPresentationCompletion::Presented(observation);
+    }
+
+    pub(crate) fn mark_superseded(
+        &mut self,
+        observation: port::UiNativePresentationPortObservation,
+    ) {
+        self.completion = UiNativePendingPresentationCompletion::Superseded(observation);
+    }
+
+    pub(crate) fn mark_indeterminate(&mut self) {
+        self.completion = UiNativePendingPresentationCompletion::Indeterminate;
+    }
+
+    pub(crate) fn consume_completion_identity(&mut self) {
+        self.completion_identity = None;
     }
 
     pub(crate) const fn physical_work(
         &self,
     ) -> crate::native::physical_work_signal::UiNativePhysicalPresentationIdentity {
         self.physical_work
+    }
+
+    pub(crate) const fn physical_basis(
+        &self,
+    ) -> crate::native::physical_work_signal::UiNativePhysicalPresentationBasis {
+        self.physical_work.basis()
     }
 
     pub(crate) const fn physical_token(
@@ -119,24 +188,65 @@ impl UiNativePendingPresentation {
         device: Option<&wgpu::Device>,
     ) -> crate::native::physical_work_signal::UiNativePhysicalSignalExternalObservation {
         self.external
+            .as_mut()
+            .expect("active physical presentation retains its external obligation")
             .poll_observation(self.physical_token.external_basis(), device)
     }
 
-    pub(crate) fn release(self, resources: &mut UiNativeResourceRegistry) {
-        let Self {
+    pub(crate) fn take_presented_observation(
+        &mut self,
+    ) -> Option<port::UiNativePresentationPortObservation> {
+        self.external
+            .as_mut()
+            .and_then(|external| external.take_presented_observation())
+    }
+
+    #[cfg(feature = "certification-support")]
+    pub(crate) fn qualify_external_observation(
+        &mut self,
+        effects_indeterminate: bool,
+        duplicate_completed: bool,
+    ) {
+        if !effects_indeterminate && !duplicate_completed {
+            return;
+        }
+        let external = self
+            .external
+            .take()
+            .expect("qualification decorates one retained external obligation");
+        self.external = Some(Box::new(super::UiNativeQualifiedExternalObligation::new(
             external,
-            readback_owner,
-            submission_owner,
-            physical_work: _,
-            physical_token: _,
-        } = self;
-        drop(external);
-        resources
-            .release(readback_owner)
-            .expect("settled readback owner must remain exact");
-        resources
-            .release(submission_owner)
-            .expect("settled submission owner must remain exact");
+            effects_indeterminate,
+            duplicate_completed,
+        )));
+    }
+
+    #[cfg(feature = "certification-support")]
+    pub(crate) fn take_duplicate_completed_observation(
+        &mut self,
+    ) -> Option<crate::native::physical_work_signal::UiNativePhysicalSignalExternalObservation>
+    {
+        self.external.as_mut().and_then(|external| {
+            external.take_duplicate_completed_observation(self.physical_token.external_basis())
+        })
+    }
+
+    pub(crate) fn release_external(&mut self, resources: &mut UiNativeResourceRegistry) {
+        drop(self.external.take());
+        if let Some(readback_owner) = self.readback_owner.take() {
+            resources
+                .release(readback_owner)
+                .expect("settled readback owner must remain exact");
+        }
+        if let Some(submission_owner) = self.submission_owner.take() {
+            resources
+                .release(submission_owner)
+                .expect("settled submission owner must remain exact");
+        }
+    }
+
+    pub(crate) fn release(mut self, resources: &mut UiNativeResourceRegistry) {
+        self.release_external(resources);
     }
 }
 
@@ -172,7 +282,7 @@ pub(crate) fn reserve_presentation_owners(
         }
     };
     let physical_token = physical_signal
-        .take_ready_presentation(physical_work)
+        .take_initial_presentation(physical_work)
         .expect("new physical presentation work must issue one exact wake");
     Ok(UiNativePresentationOwners {
         readback,
@@ -221,7 +331,7 @@ pub(crate) fn settle_port_result(
                 settled,
                 crate::native::physical_work_signal::UiNativePhysicalSignalSettlement::Pending
             ));
-            Err(UiNativePresentationFailure::Indeterminate(
+            Err(UiNativePresentationFailure::Pending(
                 UiNativePendingPresentation::external(
                     external,
                     owners.readback,

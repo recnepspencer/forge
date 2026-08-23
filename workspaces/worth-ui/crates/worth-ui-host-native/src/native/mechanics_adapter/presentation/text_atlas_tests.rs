@@ -32,11 +32,14 @@ pub(crate) fn production_presentation_stop_routes_supersession_into_signal_recov
     let counters = state.physical_signal.observation().counters;
     assert_eq!(counters.supersessions, 1);
     assert_eq!(state.pending_text_presentations.len(), 0);
-    assert!(state.progress_text_atlas_physical(pending));
+    assert_eq!(
+        state.progress_text_atlas_physical(pending),
+        crate::native::host_state::UiNativeTextAtlasPhysicalProgress::Terminal
+    );
     assert!(state.close().is_zero());
 }
 
-fn inert_view() -> UiMountedFrameConsumptionView<'static> {
+pub(crate) fn inert_view() -> UiMountedFrameConsumptionView<'static> {
     let surface = UiSemanticSurfaceIdentity::mint_unbound().unwrap();
     let host_surface = UiHostSurfaceIdentity::mint_unbound().unwrap();
     let binding = UiSurfaceBindingGeneration::mint_unbound().unwrap();

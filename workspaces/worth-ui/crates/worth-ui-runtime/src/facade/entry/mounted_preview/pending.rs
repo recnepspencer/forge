@@ -18,6 +18,7 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
             mounted,
             host_session,
             host_exchange,
+            presentation,
         } = self;
         match completion.into_pending_mounted_preview() {
             Ok((transition, planning_counters)) => Ok(WorthUiPendingMountedPreview {
@@ -45,6 +46,7 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
                 mounted,
                 host_session,
                 host_exchange,
+                presentation,
             })),
         }
     }

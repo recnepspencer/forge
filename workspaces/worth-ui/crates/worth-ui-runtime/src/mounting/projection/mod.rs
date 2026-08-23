@@ -29,3 +29,8 @@ pub(crate) use lowering::{
 pub(crate) use prepared_projection::{
     UiMountedPresentationDeltaSource, UiPreparedMountedProjection,
 };
+
+#[cfg(test)]
+pub(in crate::mounting) fn prove_paint_only_mechanic_locality() {
+    frame_storage::mechanic_source_tests::mechanic_source_routes_paint_only_work_through_current_mounted_authority();
+}

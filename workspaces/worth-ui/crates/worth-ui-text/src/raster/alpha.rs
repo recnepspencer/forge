@@ -69,7 +69,7 @@ pub fn rasterize_alpha_outline(
     demand: &UiGlyphRasterDemandBatch,
 ) -> Result<UiAlphaRasterization, UiGlyphRasterizationDenial> {
     let admission = admit_alpha_outline(layout, demand)?;
-    rasterize_candidates(layout, demand, admission, &mut HashSet::new(), None)
+    rasterize_candidates(layout, demand, admission, &mut HashSet::new(), None, None)
 }
 
 /// Rasterize only the keys admitted by the native atlas plan.  Demand and
@@ -94,6 +94,31 @@ pub fn rasterize_alpha_outline_selection(
         admission,
         &mut HashSet::new(),
         Some(&selected),
+        None,
+    )
+}
+
+pub fn rasterize_alpha_outline_selection_cached(
+    layout: &UiQualifiedTextLayout,
+    demand: &UiGlyphRasterDemandBatch,
+    keys: &[UiGlyphRasterKey],
+    cache: &mut super::UiGlyphRasterCache,
+) -> Result<UiAlphaRasterization, UiGlyphRasterizationDenial> {
+    let admission = admit_alpha_outline(layout, demand)?;
+    let selected = keys.iter().copied().collect::<HashSet<_>>();
+    if selected
+        .iter()
+        .any(|key| !demand.records().iter().any(|record| record.key() == *key))
+    {
+        return Err(UiGlyphRasterizationDenial::ForeignDemandRecord);
+    }
+    rasterize_candidates(
+        layout,
+        demand,
+        admission,
+        &mut HashSet::new(),
+        Some(&selected),
+        Some(cache),
     )
 }
 
@@ -114,7 +139,7 @@ pub fn rasterize_alpha_outline_transaction(
         .iter()
         .map(|&(layout, demand)| {
             let batch_admission = admit_alpha_outline(layout, demand)?;
-            rasterize_candidates(layout, demand, batch_admission, &mut rasterized, None)
+            rasterize_candidates(layout, demand, batch_admission, &mut rasterized, None, None)
         })
         .collect::<Result<Vec<_>, _>>()?
         .into_boxed_slice();
@@ -131,8 +156,10 @@ fn rasterize_candidates(
     admission: UiAlphaRasterAdmission,
     rasterized: &mut HashSet<UiGlyphRasterKey>,
     selected: Option<&HashSet<UiGlyphRasterKey>>,
+    mut cache: Option<&mut super::UiGlyphRasterCache>,
 ) -> Result<UiAlphaRasterization, UiGlyphRasterizationDenial> {
     let mut records = Vec::with_capacity(admission.unique_records());
+    let mut cached_records = Vec::with_capacity(admission.unique_records());
     let mut local_keys = HashSet::with_capacity(admission.unique_records());
     let mut transaction_cache_hits = 0_u32;
     for record in demand.records().iter().copied() {
@@ -147,17 +174,35 @@ fn rasterize_candidates(
             continue;
         }
         if rasterized.insert(record.key()) {
-            records.push(record);
+            match cache
+                .as_deref()
+                .and_then(|cache| cache.alpha_record(record))
+            {
+                Some(Ok(cached)) => {
+                    transaction_cache_hits = transaction_cache_hits.saturating_add(1);
+                    cached_records.push(cached);
+                }
+                Some(Err(denial)) => {
+                    return Err(UiGlyphRasterizationDenial::Record(denial));
+                }
+                None => records.push(record),
+            }
         } else {
             transaction_cache_hits = transaction_cache_hits.saturating_add(1);
         }
     }
     let record_count = records.len();
     let mut job = AlphaRasterJob::new(layout);
-    let raster_records = records
+    let mut raster_records = records
         .into_iter()
         .map(|record| job.rasterize(record))
         .collect::<Result<Vec<_>, _>>()?;
+    if let Some(cache) = cache.as_deref_mut() {
+        for record in &raster_records {
+            cache.insert(record);
+        }
+    }
+    raster_records.extend(cached_records);
     let batch = UiAlphaRasterBatch::from_text_mechanics(
         demand.identity(),
         layout.identity(),

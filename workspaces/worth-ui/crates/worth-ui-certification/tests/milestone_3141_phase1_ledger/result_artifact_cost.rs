@@ -8,7 +8,7 @@ pub(super) fn validate(requirement: &str, artifact: &Value) -> Result<(), String
         .unwrap_or(0);
     if matches!(
         requirement,
-        "P3-PREDECESSOR-01" | "P4-PREDECESSOR-01" | "P5-PREDECESSOR-01"
+        "P3-PREDECESSOR-01" | "P4-PREDECESSOR-01" | "P5-PREDECESSOR-01" | "P6-PREDECESSOR-01"
     ) {
         return validate_predecessor(requirement, artifact, control_tests);
     }
@@ -18,20 +18,35 @@ pub(super) fn validate(requirement: &str, artifact: &Value) -> Result<(), String
     if requirement == "P5-ATLAS-PINNING-01" {
         return validate_gate_d_pin_world(artifact, control_tests);
     }
+    if requirement == "P6-WINDOWS-WORLD-01" {
+        return validate_phase_six_windows_world(artifact, control_tests);
+    }
     let p2 = requirement.starts_with("P2-");
+    let phase_five_product_world = matches!(
+        requirement,
+        "P5-TEXT-PIXELS-01"
+            | "P5-TEXT-RECONSTRUCTION-01"
+            | "P5-TEXT-COST-01"
+            | "P5-TEXT-ASYNC-PRESENTATION-01"
+    );
     if artifact.get("shared_main_artifact").is_some() {
         return validate_shared(requirement, artifact, control_tests);
     }
+    let stdout = artifact["test_stdout"].as_str().unwrap_or_default();
+    if requirement == "P5-TEXT-COST-01" {
+        validate_locality_timings(stdout)?;
+    }
+    let worlds = stdout_numeric(stdout, "WORTH_UI_LEDGER_WORLD=")?.unwrap_or(u64::from(p2));
     let product_processes = if p2 {
         artifact["boundary_observation"]["product_processes"]
             .as_u64()
             .ok_or_else(|| "native world omits its product process census".to_owned())?
+    } else if phase_five_product_world {
+        worlds
     } else {
         0
     };
     let compile_sessions = compile_sessions(requirement, artifact)?;
-    let stdout = artifact["test_stdout"].as_str().unwrap_or_default();
-    let worlds = u64::from(p2 || stdout.lines().any(|line| line == "WORTH_UI_LEDGER_WORLD=1"));
     let presentations = if p2 {
         artifact["boundary_observation"]["counters"]["presents"]
             .as_u64()
@@ -50,6 +65,58 @@ pub(super) fn validate(requirement: &str, artifact: &Value) -> Result<(), String
         || artifact["execution_cost"].as_str() != Some(&execution)
     {
         return Err("result artifact cost is not derived from execution observations".to_owned());
+    }
+    Ok(())
+}
+
+fn validate_locality_timings(stdout: &str) -> Result<(), String> {
+    const PREFIX: &str = "WORTH_UI_PHASE5_PRODUCTION_LOCALITY=";
+    let payloads = stdout
+        .lines()
+        .filter_map(|line| line.strip_prefix(PREFIX))
+        .collect::<Vec<_>>();
+    let [payload] = payloads.as_slice() else {
+        return Err("locality result must retain one joined timing payload".to_owned());
+    };
+    let rows: Vec<Value> = serde_json::from_str(payload)
+        .map_err(|error| format!("locality timing payload is invalid: {error}"))?;
+    let identities = rows
+        .iter()
+        .map(|row| {
+            let retained = row["retained"]
+                .as_u64()
+                .ok_or_else(|| "locality timing row omits retained size".to_owned())?;
+            let axis = row["axis"]
+                .as_str()
+                .ok_or_else(|| "locality timing row omits axis".to_owned())?;
+            let world = row["world_elapsed_ms"]
+                .as_u64()
+                .filter(|elapsed| *elapsed > 0)
+                .ok_or_else(|| "locality timing row omits elapsed world time".to_owned())?;
+            for phase in [
+                "profile",
+                "platform_prepare",
+                "query_install",
+                "fixture_materialization",
+                "owner_installation",
+                "builder_registration",
+                "application_completion",
+                "native_run",
+            ] {
+                row["timing_us"][phase]
+                    .as_u64()
+                    .ok_or_else(|| format!("locality timing row omits {phase} time"))?;
+            }
+            let native = row["timing_us"]["native_run"]
+                .as_u64()
+                .filter(|elapsed| *elapsed > 0)
+                .ok_or_else(|| "locality timing row has no native-run duration".to_owned())?;
+            let _ = (world, native);
+            Ok((retained, axis.to_owned()))
+        })
+        .collect::<Result<std::collections::BTreeSet<_>, String>>()?;
+    if rows.len() != 32 || identities.len() != 32 {
+        return Err("locality timing payload must identify 32 unique worlds".to_owned());
     }
     Ok(())
 }
@@ -149,12 +216,38 @@ fn validate_predecessor(
             "operational predecessor cost is not derived from its governed rerun".to_owned(),
         );
     }
-    if matches!(requirement, "P4-PREDECESSOR-01" | "P5-PREDECESSOR-01")
-        && (!records_operational_cost
-            || artifact["construction_cost"].as_str() != Some(&construction)
-            || artifact["execution_cost"].as_str() != Some(&execution))
+    if matches!(
+        requirement,
+        "P4-PREDECESSOR-01" | "P5-PREDECESSOR-01" | "P6-PREDECESSOR-01"
+    ) && (!records_operational_cost
+        || artifact["construction_cost"].as_str() != Some(&construction)
+        || artifact["execution_cost"].as_str() != Some(&execution))
     {
         return Err("current predecessor claim does not own its operational cost".to_owned());
+    }
+    Ok(())
+}
+
+fn validate_phase_six_windows_world(artifact: &Value, control_tests: u64) -> Result<(), String> {
+    let observation = &artifact["boundary_observation"];
+    if observation["schema"] != "worth-ui-native-phase6-boundary-observation-v1"
+        || observation["terminal_zero"] != true
+        || observation["product_processes"] != 1
+        || observation["input"]["retained_events"]
+            .as_u64()
+            .is_none_or(|count| count == 0)
+    {
+        return Err("Phase 6 Windows world omits retained native input evidence".to_owned());
+    }
+    let construction = format!(
+        "main-tests=1;hostile-controls={control_tests};product-processes=1;compile-sessions=0;courtroom-worlds=1"
+    );
+    let execution = "executed-tests=2;presentations=1";
+    if control_tests != 1
+        || artifact["construction_cost"].as_str() != Some(&construction)
+        || artifact["execution_cost"].as_str() != Some(execution)
+    {
+        return Err("Phase 6 Windows world cost is not bound to native input evidence".to_owned());
     }
     Ok(())
 }

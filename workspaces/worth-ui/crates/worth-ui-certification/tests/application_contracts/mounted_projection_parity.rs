@@ -249,6 +249,7 @@ fn project_first_node(
         UiMountedFrameOutcome::RetentionDenied(_) => (false, "retention-denied"),
         UiMountedFrameOutcome::AdmissionDenied(_) => (false, "admission-denied"),
         UiMountedFrameOutcome::CompletionDenied(_) => (false, "completion-denied"),
+        UiMountedFrameOutcome::Superseded(_) => (false, "superseded"),
     };
     let identity = session.inspect_mounted_identity();
     let mounted_identity_is_continuous = identity

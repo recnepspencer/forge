@@ -57,6 +57,7 @@ register_theme_token = "crates/worth-ui-runtime/src/source/tests/phase7_identity
 register_unsupported_intent_definition = "crates/worth-ui-certification/tests/application_contracts/intent/operability/topology/application.rs"
 with_candidate_submission = "crates/worth-ui-certification/tests/application_contracts/canvas_spatial_execution.rs"
 with_change_profile = "crates/worth-ui-certification/src/scenario/application_authority_closure/application_definition.rs"
+with_font_collection = "crates/worth-ui-certification/tests/application_contracts/projection_presentation/font_stack.rs"
 with_host_observation_capacity = "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle.rs"
 with_minimal_registration_diagnostics = "crates/worth-ui/tests/registration_diagnostics.rs"
 with_mounted_frame_retention_budget = "crates/worth-ui-certification/src/scenario/filesystem_application_lifecycle.rs"
@@ -71,8 +72,10 @@ audience = "ordinary-app-and-immutable-observation"
 feature = "production-default"
 sources = [
   "crates/worth-ui-runtime/src/facade/entry/app.rs",
+  "crates/worth-ui-runtime/src/facade/entry/app_inspection_routing.rs",
   "crates/worth-ui-runtime/src/facade/app_inspection_closeout.rs",
   "crates/worth-ui-runtime/src/facade/entry/native_application_shell.rs",
+  "crates/worth-ui-runtime/src/facade/entry/native_application_shell/launch.rs",
 ]
 [surface.callers]
 capabilities = "crates/worth-ui/tests/capability_snapshot/snapshot_lookup_cost_cases.rs"
@@ -80,6 +83,7 @@ declaration_artifacts = "crates/worth-ui-certification/src/scenario/obligation_d
 declaration_closeout_report = "crates/worth-ui-certification/tests/declaration_closeout_runtime.rs"
 discard_evidence_slice = "crates/worth-ui-certification/tests/evidence_reference_runtime.rs"
 expand_evidence_ref = "crates/worth-ui-certification/tests/ai_inspection_runtime.rs"
+font_collection = "crates/worth-ui-runtime/src/runtime/session/application_state.rs"
 generation_identity = "crates/worth-ui-runtime/src/runtime/tests/source_ingress/candidate_composition_preparation_tests.rs"
 graph = "crates/worth-ui-query-binding/src/operation_live_tests.rs"
 graph_closeout_report = "crates/worth-ui-certification/tests/graph_closeout_runtime.rs"
@@ -104,6 +108,7 @@ feature = "production-default"
 sources = [
   "crates/worth-ui-runtime/src/facade/entry/mounted_inspection.rs",
   "crates/worth-ui-runtime/src/facade/entry/native_application_shell.rs",
+  "crates/worth-ui-runtime/src/facade/entry/native_application_shell/shutdown.rs",
   "crates/worth-ui-runtime/src/facade/entry/native_intent.rs",
   "crates/worth-ui-runtime/src/facade/entry/native_intent_evidence.rs",
   "crates/worth-ui-runtime/src/facade/entry/native_intent_execution.rs",
@@ -117,6 +122,7 @@ sources = [
 [surface.callers]
 admit_native_intent_observations = "apps/platform-pulse/src/native_frame/intent/native_ingress.rs"
 advance_native_intent_executions = "apps/platform-pulse/src/native_frame/intent/execution.rs"
+apply_component_semantic_text = "crates/worth-ui-runtime/src/native_platform/application_driver/program_progress.rs"
 begin_visual_geometry_snapshot = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
 begin_visual_pixel_snapshot = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
 begin_projection_rebind = "apps/platform-pulse/src/native_frame/projection.rs"
@@ -124,6 +130,7 @@ begin_source_rebind = "crates/worth-ui-certification/tests/application_contracts
 cancel_visual_snapshot = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
 clear_visual_overlay = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
 compare_visual_snapshots = "apps/platform-pulse/src/visual_identity_execution/comparison.rs"
+complete_frame_presentation = "crates/worth-ui-runtime/src/native_platform/application_driver/program_progress/physical_progress/pending_completion.rs"
 dispose_visual_snapshot = "crates/worth-ui/tests/ui/visual_snapshot/pass/governed_visual_snapshot_lifecycle.rs"
 generation_identity = "crates/worth-ui-certification/tests/application_contracts/platform_pulse.rs"
 host_session_identity = "apps/platform-pulse/src/native_frame/intent/native_ingress.rs"
@@ -148,10 +155,16 @@ kind = "inherent"
 owner = "WorthUiNativeApplicationShutdownReceipt"
 audience = "ordinary-native-app-cleanup-observation"
 feature = "production-default"
-sources = ["crates/worth-ui-runtime/src/facade/entry/native_application_shell.rs"]
+sources = ["crates/worth-ui-runtime/src/facade/entry/native_application_shell/shutdown.rs"]
 [surface.callers]
+closed_query_resources = "crates/worth-ui-runtime/src/native_platform/application_driver.rs"
 host_session_released = "crates/worth-ui-certification/tests/application_contracts/platform_pulse_lifecycle/real_watcher_world.rs"
 mounted_shutdown_attempt_count = "crates/worth-ui-certification/tests/application_contracts/platform_pulse_lifecycle/real_watcher_world.rs"
+query_close_complete = "crates/worth-ui-runtime/src/native_platform/application_driver.rs"
+query_semantic_frontier_trace_complete = "crates/worth-ui-runtime/src/native_platform/application_driver.rs"
+query_semantic_frontiers = "crates/worth-ui-runtime/src/native_platform/application_driver.rs"
+query_transition_trace_complete = "crates/worth-ui-runtime/src/native_platform/application_driver.rs"
+query_transitions = "crates/worth-ui-runtime/src/native_platform/application_driver.rs"
 released_surface_count = "crates/worth-ui-certification/tests/application_contracts/platform_pulse_lifecycle/real_watcher_world.rs"
 visual_capture = "crates/worth-ui-certification/tests/application_contracts/visual_snapshot.rs"
 visual_overlay = "apps/platform-pulse/src/observation_contract/terminal_projection.rs"
@@ -357,6 +370,15 @@ quarantined_host_observation_byte_count = "crates/worth-ui-certification/tests/a
 retained_host_observation_byte_count = "crates/worth-ui-certification/tests/application_contracts/host_observation_pressure.rs"
 retained_host_observation_report_count = "crates/worth-ui-certification/tests/application_contracts/host_observation_reporting.rs"
 validate_host_observation_batch = "crates/worth-ui-certification/tests/application_contracts/query_replacement_lifecycle/mixed_real_lifecycle/hostile_mounted_journey.rs"
+
+[[surface]]
+kind = "extension_trait"
+owner = "WorthUiPresentationAsyncInstallationCertificationExt"
+audience = "certification-support"
+feature = "test-support-only"
+sources = ["crates/worth-ui-runtime/src/certification_support/presentation_async_installation.rs"]
+[surface.callers]
+install_presentation_async_for_certification = "crates/worth-ui-certification/tests/application_contracts/mounted_presentation/query_uncertainty.rs"
 
 [[surface]]
 kind = "extension_trait"

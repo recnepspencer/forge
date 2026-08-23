@@ -186,6 +186,9 @@ fn finish<'session>(
                 WorthUiMountedContentRebindIndeterminate { session, frame },
             ))
         }
+        crate::mounting::UiMountedFrameOutcome::Superseded(_) => {
+            unreachable!("ordinary content rebind cannot overlap a superseding frame")
+        }
         crate::mounting::UiMountedFrameOutcome::RetentionDenied(rejection) => {
             WorthUiMountedContentRebindOutcome::RetentionDenied {
                 denial: rejection.denial(),

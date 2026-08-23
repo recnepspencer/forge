@@ -129,6 +129,18 @@ fn digest_presentation_basis(digest: &mut Sha256, basis: UiNativePhysicalPresent
         worth_ui_host_contract::UiHostSurfacePresentationMode::RecordOnly => 1,
     }]);
     digest.update(baseline.transparent_rgba8());
+    let cost = basis.production_cost();
+    for value in [
+        cost.source_instances(),
+        cost.commands_considered(),
+        cost.command_index_lookups(),
+        cost.order_lookups(),
+        cost.retained_command_scans(),
+        cost.retained_command_clones(),
+        cost.projection_rows_materialized(),
+    ] {
+        digest.update(value.to_le_bytes());
+    }
 }
 
 fn digest_demands(digest: &mut Sha256, demands: &[UiGlyphRasterDemandBatchView<'_>]) {
@@ -229,8 +241,18 @@ pub(crate) struct UiNativePhysicalPresentationBasis {
     host_session_identity: u64,
     attempt: worth_ui_host_contract::UiMountedPresentationAttemptIdentity,
     surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
+    host_surface: worth_ui_host_contract::UiHostSurfaceIdentity,
     binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
     baseline: worth_ui_host_contract::UiHostSurfaceBaselineIdentity,
+    production_cost: worth_ui_host_contract::UiMountedPresentationProductionCost,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(in crate::native::physical_work_signal) struct UiNativePhysicalSignalSlotLineage {
+    host_session_identity: u64,
+    surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
+    host_surface: worth_ui_host_contract::UiHostSurfaceIdentity,
+    binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
 }
 
 impl UiNativePhysicalPresentationBasis {
@@ -241,8 +263,10 @@ impl UiNativePhysicalPresentationBasis {
             host_session_identity: view.host_session_identity(),
             attempt: view.attempt(),
             surface: view.requirement().semantic_surface(),
+            host_surface: view.requirement().host_surface(),
             binding: view.requirement().binding(),
             baseline: view.requirement().baseline(),
+            production_cost: view.presentation_work().production_cost(),
         }
     }
 
@@ -254,8 +278,10 @@ impl UiNativePhysicalPresentationBasis {
             host_session_identity: surface.host_session_identity(),
             attempt: request.attempt(),
             surface: surface.semantic_surface_identity(),
+            host_surface: surface.host_surface_identity(),
             binding: surface.binding_generation(),
             baseline: surface.baseline_identity(),
+            production_cost: Default::default(),
         }
     }
 
@@ -263,22 +289,39 @@ impl UiNativePhysicalPresentationBasis {
         self.host_session_identity
     }
 
-    pub(in crate::native::physical_work_signal) const fn attempt(
+    pub(crate) const fn attempt(
         self,
     ) -> worth_ui_host_contract::UiMountedPresentationAttemptIdentity {
         self.attempt
     }
 
-    pub(in crate::native::physical_work_signal) const fn surface(
-        self,
-    ) -> worth_ui_host_contract::UiSemanticSurfaceIdentity {
+    pub(crate) const fn surface(self) -> worth_ui_host_contract::UiSemanticSurfaceIdentity {
         self.surface
     }
 
-    pub(in crate::native::physical_work_signal) const fn binding(
-        self,
-    ) -> worth_ui_host_contract::UiSurfaceBindingGeneration {
+    pub(crate) const fn host_surface(self) -> worth_ui_host_contract::UiHostSurfaceIdentity {
+        self.host_surface
+    }
+
+    pub(crate) const fn binding(self) -> worth_ui_host_contract::UiSurfaceBindingGeneration {
         self.binding
+    }
+
+    pub(crate) const fn production_cost(
+        self,
+    ) -> worth_ui_host_contract::UiMountedPresentationProductionCost {
+        self.production_cost
+    }
+
+    pub(in crate::native::physical_work_signal) const fn slot_lineage(
+        self,
+    ) -> UiNativePhysicalSignalSlotLineage {
+        UiNativePhysicalSignalSlotLineage {
+            host_session_identity: self.host_session_identity,
+            surface: self.surface,
+            host_surface: self.host_surface,
+            binding: self.binding,
+        }
     }
 
     const fn baseline(self) -> worth_ui_host_contract::UiHostSurfaceBaselineIdentity {
@@ -305,8 +348,19 @@ impl UiNativePhysicalPresentationBasis {
             attempt: worth_ui_host_contract::UiMountedPresentationAttemptIdentity::mint_unbound()
                 .unwrap(),
             surface: requirement.semantic_surface(),
+            host_surface: requirement.host_surface(),
             binding: requirement.binding(),
             baseline: requirement.baseline(),
+            production_cost: Default::default(),
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn test_successor(self) -> Self {
+        Self {
+            attempt: worth_ui_host_contract::UiMountedPresentationAttemptIdentity::mint_unbound()
+                .unwrap(),
+            ..self
         }
     }
 }

@@ -31,6 +31,15 @@ pub(crate) struct UiMountedPresentationState {
 type PresentationOrderKey = (u32, u64, usize);
 
 impl UiMountedPresentationState {
+    pub(crate) fn rebind_surface(
+        &mut self,
+        successor: crate::mounting::UiSurfaceBindingIdentityView,
+    ) {
+        self.surface = successor.semantic_surface_identity();
+        self.binding = successor.binding_generation();
+        self.baseline = successor.baseline();
+    }
+
     pub(crate) fn from_projection(
         projection: &UiMountedProjectionView,
         requirement: worth_ui_host_contract::UiMountedSurfaceBindingRequirement,
@@ -160,7 +169,10 @@ impl UiMountedPresentationState {
         changes: &[worth_ui_host_contract::UiMountedPaintCommandChange],
     ) {
         for change in changes {
-            let worth_ui_host_contract::UiMountedPaintCommandChange::Replace(command) = change
+            let worth_ui_host_contract::UiMountedPaintCommandChange::Replace {
+                successor: command,
+                ..
+            } = change
             else {
                 continue;
             };
@@ -259,23 +271,6 @@ impl UiMountedPresentationState {
         self.commands_by_instance
             .get(&identity.mounted_instance())?
             .get(identity)
-    }
-
-    #[cfg(test)]
-    pub(crate) fn install_command_lookup_probe(&mut self, commands: &[UiMountedPaintCommand]) {
-        self.commands_by_instance = UiPersistentOrdMap::default();
-        let instance = commands[0].identity().mounted_instance();
-        self.commands_by_instance.insert(
-            instance,
-            super::command_bundle::UiMountedPresentationCommandBundle::from_commands(commands),
-        );
-    }
-
-    #[cfg(test)]
-    pub(crate) fn command_option_probe(&self, identity: UiMountedPaintCommandIdentity) -> usize {
-        let _ = super::command_bundle::take_last_lookup_probes();
-        assert!(self.command_option(identity).is_some());
-        super::command_bundle::take_last_lookup_probes()
     }
 
     pub(super) fn command(

@@ -145,6 +145,9 @@ fn map_reconciliation_outcome<'session>(
                 ),
             )
         }
+        crate::mounting::UiMountedFrameOutcome::Superseded(_) => {
+            unreachable!("rebind recovery cannot overlap a superseding frame")
+        }
         crate::mounting::UiMountedFrameOutcome::RetentionDenied(denial) => pre_effect_stop(
             reconciliation,
             attempt,

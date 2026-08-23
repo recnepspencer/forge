@@ -267,7 +267,7 @@ impl UiNativePhysicalSignalOwner {
                     if transition.performed.work() != work {
                         return Err(());
                     }
-                    self.publish_performed(transition.performed)?;
+                    self.publish_successor_performed(transition.performed, previous)?;
                 }
                 UiNativePhysicalTemporalTransition::PollReady { work } => {
                     if transition.performed.work() != work {

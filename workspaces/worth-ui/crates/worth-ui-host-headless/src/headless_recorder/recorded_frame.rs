@@ -50,10 +50,10 @@ impl UiHeadlessRecordedFrame {
                     identity,
                     mechanic,
                 })
-                | UiMountedPaintCommandChange::Replace(UiMountedPaintCommand::SemanticText {
-                    identity,
-                    mechanic,
-                }) => Some((*identity, mechanic)),
+                | UiMountedPaintCommandChange::Replace {
+                    successor: UiMountedPaintCommand::SemanticText { identity, mechanic },
+                    ..
+                } => Some((*identity, mechanic)),
                 _ => None,
             })
             .map(|(identity, mechanic)| {

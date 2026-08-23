@@ -13,7 +13,8 @@ pub(super) fn diff_rows(
                 worth_ui_host_contract::UiMountedPaintCommandIdentity::semantic_text(before),
             )),
             Some(after) if before.semantic_digest() != after.semantic_digest() => {
-                changes.push(UiMountedPaintCommandChange::Replace(
+                changes.push(UiMountedPaintCommandChange::replacement(
+                    worth_ui_host_contract::UiMountedPaintCommandIdentity::semantic_text(before),
                     UiMountedPaintCommand::SemanticText {
                         identity:
                             worth_ui_host_contract::UiMountedPaintCommandIdentity::semantic_text(

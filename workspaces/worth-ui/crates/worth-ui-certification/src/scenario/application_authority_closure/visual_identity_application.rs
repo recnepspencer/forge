@@ -23,6 +23,11 @@ pub(crate) const VISUAL_PAINT_ONLY_TOKEN: &str = "theme.visual_identity.paint_on
 pub(crate) const VISUAL_PAINT_AND_HIT_TOKEN: &str = "theme.visual_identity.paint_and_hit";
 pub(crate) const VISUAL_RED_TOKEN: &str = "theme.visual_identity.red";
 pub(crate) const VISUAL_PURPLE_TOKEN: &str = "theme.visual_identity.purple";
+pub(crate) const PHASE5_CANCELLATION_BACKGROUND: &str = "phase5.cancel.background";
+pub(crate) const PHASE5_CANCELLATION_COMPONENT: &str = "phase5.cancel.component";
+pub(crate) const PHASE5_CANCELLATION_SURFACE: &str = "phase5.cancel.surface";
+pub(crate) const PHASE5_CANCELLATION_TOKEN: &str = "theme.phase5.cancel.foreground";
+pub(crate) const PHASE5_CANCELLATION_COLOR_TOKEN: &str = "theme.phase5.cancel.color";
 
 pub(crate) fn visual_identity_application_builder_with_host<Host>(
     host: Host,
@@ -97,6 +102,52 @@ where
         Some(ComponentHitTestInset::symmetric(12, 8)),
         true,
     )
+}
+
+pub(crate) fn single_semantic_text_application_builder_with_host<Host>(
+    host: Host,
+) -> WorthUiApplicationBuilder
+where
+    Host: FixedCertificationHostBinding,
+{
+    let text_component = component(PHASE5_CANCELLATION_COMPONENT)
+        .with_static_paint(
+            ComponentStaticPaintContract::opaque_fill(
+                token_id(PHASE5_CANCELLATION_TOKEN),
+                ComponentStaticPaintOrder::back_to_front(1),
+            ),
+            ComponentAllocationMeasurementContract::viewport_inset(
+                ComponentViewportInset::symmetric(24, 16),
+            ),
+        )
+        .with_semantic_text(ComponentSemanticTextContract::body_default(
+            token_id(PHASE5_CANCELLATION_TOKEN),
+            2,
+        ));
+    let builder = WorthUi::app()
+        .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
+        .register_component(component(PHASE5_CANCELLATION_BACKGROUND).with_static_paint(
+            ComponentStaticPaintContract::opaque_fill(
+                token_id(PHASE5_CANCELLATION_TOKEN),
+                ComponentStaticPaintOrder::back_to_front(0),
+            ),
+            ComponentAllocationMeasurementContract::fill_viewport(),
+        ))
+        .register_component(text_component)
+        .register_surface(SurfaceDescriptor::new(
+            SurfaceId::new(PHASE5_CANCELLATION_SURFACE).expect("valid cancellation surface id"),
+            SurfaceKind::primary_content(),
+            ComponentId::new(PHASE5_CANCELLATION_BACKGROUND)
+                .expect("valid cancellation background id"),
+            SurfacePlacementClass::primary_region(),
+            SurfaceStateClass::ephemeral(),
+        ))
+        .register_theme_token(color_token(PHASE5_CANCELLATION_COLOR_TOKEN, "#d8e8ff"))
+        .register_theme_token(alias_token(
+            PHASE5_CANCELLATION_TOKEN,
+            PHASE5_CANCELLATION_COLOR_TOKEN,
+        ));
+    FixedCertificationApplicationBuilder::new(builder, host)
 }
 
 pub(crate) fn clipped_semantic_text_action_application_builder_with_host_and_profile<Host>(

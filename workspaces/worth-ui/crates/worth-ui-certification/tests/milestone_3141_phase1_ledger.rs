@@ -1,11 +1,12 @@
-use std::collections::BTreeMap;
-
 use super::{repository_document, workspace_source_inventory};
+use std::collections::BTreeMap;
 
 #[path = "milestone_3141_phase1_ledger/claim_contract.rs"]
 mod claim_contract;
 #[path = "milestone_3141_phase1_ledger/claim_contract_phase5.rs"]
 mod claim_contract_phase5;
+#[path = "milestone_3141_phase1_ledger/claim_contract_phase6.rs"]
+mod claim_contract_phase6;
 #[path = "milestone_3141_phase1_ledger/claim_digest.rs"]
 mod claim_digest;
 #[path = "milestone_3141_phase1_ledger/command_binding.rs"]
@@ -18,8 +19,6 @@ mod dependency_row;
 mod evidence_fields;
 #[path = "milestone_3141_phase1_ledger/execution_contract.rs"]
 mod execution_contract;
-#[path = "milestone_3141_phase1_ledger/execution_contract_phase5.rs"]
-mod execution_contract_phase5;
 #[path = "milestone_3141_phase1_ledger/future_requirement_contract.rs"]
 mod future_requirement_contract;
 #[cfg(test)]
@@ -27,6 +26,8 @@ mod future_requirement_contract;
 mod mutation_tests;
 #[path = "milestone_3141_phase1_ledger/open_gate_posture.rs"]
 mod open_gate_posture;
+#[path = "milestone_3141_phase1_ledger/phase_closure.rs"]
+mod phase_closure;
 #[path = "milestone_3141_phase1_ledger/phase_five_case_contract.rs"]
 mod phase_five_case_contract;
 #[path = "milestone_3141_phase1_ledger/phase_four_case_contract.rs"]
@@ -41,6 +42,8 @@ mod predecessor_current_mapping;
 mod predecessor_handoff;
 #[path = "milestone_3141_phase1_ledger/predecessor_inventory.rs"]
 mod predecessor_inventory;
+#[path = "milestone_3141_phase1_ledger/predecessor_artifact/ledger_basis.rs"]
+mod predecessor_ledger_basis;
 #[path = "milestone_3141_phase1_ledger/requirement_contract.rs"]
 mod requirement_contract;
 #[path = "milestone_3141_phase1_ledger/result_artifact.rs"]
@@ -76,11 +79,10 @@ mod supporting_world_artifact;
 mod text_profile_gate;
 #[path = "milestone_3141_phase1_ledger/text_profile_qualification.rs"]
 mod text_profile_qualification;
-
 use evidence_fields::{named_numeric_fields, validate_cost, validate_mutation_control};
+use phase_closure::validate_proved_run_uniqueness;
 use phase_progression::validate as validate_phase_progression;
 use schema::{EXPECTED_REQUIREMENTS, HEADER};
-
 const LEDGER: &str = "_docs/worth-ui/milestone-3.14.1-proof-ledger.csv";
 
 fn ledger_document() -> String {
@@ -92,7 +94,9 @@ fn ledger_document() -> String {
 }
 
 type Row = BTreeMap<String, String>;
-
+fn validate_phase_closure(rows: &BTreeMap<String, Row>, through_phase: u8) -> Result<(), String> {
+    phase_closure::validate_phase_closure(rows, through_phase)
+}
 fn parse(ledger: &str) -> Result<BTreeMap<String, Row>, String> {
     let _active_dependency_ledger = dependency_row::install(ledger);
     let mut reader = csv::ReaderBuilder::new()
@@ -129,26 +133,6 @@ fn parse(ledger: &str) -> Result<BTreeMap<String, Row>, String> {
     Ok(rows)
 }
 
-fn validate_proved_run_uniqueness(rows: &BTreeMap<String, Row>) -> Result<(), String> {
-    for field in ["run_nonce", "retained_result_artifact"] {
-        let mut observed = std::collections::BTreeSet::new();
-        for value in rows
-            .values()
-            .filter(|row| row["result"] == "PROVED")
-            .map(|row| row[field].as_str())
-        {
-            if !observed.insert(value) {
-                return Err(format!("proved rows reuse {field}"));
-            }
-        }
-    }
-    Ok(())
-}
-
-fn validate_phase_closure(rows: &BTreeMap<String, Row>, through_phase: u8) -> Result<(), String> {
-    phase_progression::validate_closure(rows, through_phase)
-}
-
 #[test]
 #[ignore = "milestone closure gate: run only after every Phase 1 row has final evidence"]
 fn phase_one_closure_requires_every_phase_one_row() {
@@ -175,14 +159,6 @@ fn phase_one_closure_prerequisites_are_final_source() {
         .filter(|requirement| requirement.starts_with("P1-"))
         .count();
     println!("WORTH_UI_LEDGER_COUNTERS={{\"P1-CLOSE-01\":{phase_one_rows}}}");
-}
-
-#[test]
-#[ignore = "milestone closure gate: run only after every Phase 2 row has final evidence"]
-fn phase_two_closure_requires_every_phase_one_and_two_row() {
-    let rows = parse(&ledger_document()).expect("the milestone ledger should parse");
-    validate_phase_closure(&rows, 2)
-        .expect("every Phase 1 and Phase 2 requirement must be final-source proved");
 }
 
 #[test]
@@ -222,6 +198,19 @@ fn phase_five_closure_requires_every_predecessor_and_phase_five_row() {
         }
     }
     println!("WORTH_UI_LEDGER_COUNTERS={{\"P5-CLOSE-01\":12}}");
+}
+
+#[test]
+#[ignore = "milestone closure gate: run only after every Phase 6 row has final evidence"]
+fn phase_six_closure_requires_every_predecessor_and_phase_six_row() {
+    let rows = parse(&ledger_document()).expect("the milestone ledger should parse");
+    for (requirement, row) in &rows {
+        if row["phase"].parse::<u8>().unwrap() <= 6 && requirement != "P6-CLOSE-01" {
+            assert_eq!(row["result"], "PROVED", "{requirement} remains open");
+            assert_eq!(row["final_source"], "true", "{requirement} is not final");
+        }
+    }
+    println!("WORTH_UI_LEDGER_COUNTERS={{\"P6-CLOSE-01\":10}}");
 }
 
 fn validate_row(row: &Row) -> Result<(), String> {
@@ -265,6 +254,7 @@ fn validate_closed_identity(
 ) -> Result<(), String> {
     let expected_phase = requirement_phase(&row["requirement"])?;
     let text_phase = matches!(expected_phase, "4" | "5");
+    let phase_six = expected_phase == "6";
     let expected_font_identity = if text_phase {
         "worth-ui-global-text-v2"
     } else {
@@ -283,7 +273,12 @@ fn validate_closed_identity(
         || row["font_profile_identity"] != expected_font_identity
         || (!phase_four && row["font_profile_digest"] != expected_font_digest)
         || row["native_profile_identity"] != "worth-ui-windows-dx12-v1"
-        || row["native_profile_digest"] != requirement_contract::NATIVE_PROFILE_DIGEST
+        || row["native_profile_digest"]
+            != if phase_six {
+                requirement_contract::NATIVE_PHASE6_PROFILE_DIGEST
+            } else {
+                requirement_contract::NATIVE_PROFILE_DIGEST
+            }
         || (!phase_four
             && row["platform_versions"] != claim_contract::platform_versions(&row["requirement"]))
     {
@@ -302,6 +297,7 @@ fn requirement_phase(requirement: &str) -> Result<&'static str, String> {
         Some("P3-") => Ok("3"),
         Some("P4-") => Ok("4"),
         Some("P5-") => Ok("5"),
+        Some("P6-") => Ok("6"),
         _ => Err("unknown requirement phase".to_owned()),
     }
 }
@@ -375,7 +371,12 @@ fn validate_profile_digests(row: &Row) -> Result<(), String> {
     } else {
         row["font_profile_digest"] == source_digest::file_digest(font)?
     };
-    if !font_matches || row["native_profile_digest"] != source_digest::file_digest(native)? {
+    let expected_native = if row["phase"] == "6" {
+        source_digest::file_digest(native)?
+    } else {
+        requirement_contract::NATIVE_PROFILE_DIGEST.to_owned()
+    };
+    if !font_matches || row["native_profile_digest"] != expected_native {
         return Err("ledger profile digest does not match canonical bytes".to_owned());
     }
     Ok(())

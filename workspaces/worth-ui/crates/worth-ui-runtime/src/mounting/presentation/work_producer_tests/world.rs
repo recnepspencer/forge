@@ -121,10 +121,9 @@ impl MountedPresentationWorld {
         frame: UiMountedFrameIdentity,
         instances: &[UiMountedInstanceIdentity],
         changed_index: Option<usize>,
+        text_layout: worth_ui_host_contract::UiQualifiedTextLayoutView<'_>,
     ) -> UiMountedProjectionView {
         let split = instances.len() / 2;
-        let text_layout =
-            crate::mounting::qualified_text_test_support::inert_qualified_layout("WORTH");
         let rects = instances[..split]
             .iter()
             .enumerate()
@@ -144,7 +143,7 @@ impl MountedPresentationWorld {
                     frame,
                     *instance,
                     index,
-                    text_layout.view(),
+                    text_layout,
                     changed_index == Some(index + split),
                 )
             })

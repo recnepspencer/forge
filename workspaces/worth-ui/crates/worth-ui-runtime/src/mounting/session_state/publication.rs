@@ -1,9 +1,11 @@
 use super::WorthUiMountedSessionState;
 use crate::mounting::{
     UiMountedFrameOutcome, UiMountedFramePublicationCandidate, UiMountedFramePublicationReceipt,
-    UiMountedFrameReconciliationCandidate, UiMountedPresentationInFlight,
-    UiMountedPresentationOutcome,
+    UiMountedPresentationInFlight, UiMountedPresentationOutcome,
 };
+
+#[path = "publication/reconciliation.rs"]
+mod reconciliation;
 
 #[derive(Clone, Copy)]
 pub(crate) struct UiMountedObservationValidationBasis<'session> {
@@ -61,6 +63,81 @@ impl WorthUiMountedSessionState {
                 );
             }
         };
+        self.present_retained_frame(
+            host,
+            retained,
+            capability_report,
+            self.identity.view().current_frame(),
+            deadline,
+            now,
+        )
+    }
+
+    pub(crate) fn present_prepared_superseding_frame(
+        &mut self,
+        host: &crate::facade::WorthUiHostSessionAuthority,
+        frame: crate::mounting::UiPreparedMountedFrame,
+        predecessor: crate::mounting::UiMountedSupersedingPresentationBasis,
+        deadline: worth_ui_host_contract::UiPresentationDeadline,
+        now: u64,
+    ) -> UiMountedPublicationTransition {
+        if !self
+            .presentation
+            .admits_superseding_predecessor(predecessor)
+        {
+            let identity = frame.canonical_core().frame();
+            let rejection = crate::mounting::UiMountedPresentationAdmissionRejection::new(
+                frame,
+                crate::mounting::UiMountedPresentationAdmissionDenial::SupersedingPredecessorUnavailable,
+            );
+            return UiMountedPublicationTransition::with_observation(
+                UiMountedFrameOutcome::AdmissionDenied(rejection),
+                UiMountedHostObservationTransition::NeverPresented(identity),
+            );
+        }
+        let capability_report = host.capability_report().clone();
+        let admitted = match self.identity.admit_prepared_frame_authority(frame) {
+            Ok(admitted) => admitted,
+            Err(rejection) => {
+                let frame = rejection.frame().canonical_core().frame();
+                return UiMountedPublicationTransition::with_observation(
+                    UiMountedFrameOutcome::AdmissionDenied(rejection),
+                    UiMountedHostObservationTransition::NeverPresented(frame),
+                );
+            }
+        };
+        let retained = match self
+            .retention
+            .prepare_superseding_publication(admitted, predecessor.retention())
+        {
+            Ok(retained) => retained,
+            Err(rejection) => {
+                let frame = rejection.frame().canonical_core().frame();
+                return UiMountedPublicationTransition::with_observation(
+                    UiMountedFrameOutcome::RetentionDenied(rejection),
+                    UiMountedHostObservationTransition::NeverPresented(frame),
+                );
+            }
+        };
+        self.present_retained_frame(
+            host,
+            retained,
+            capability_report,
+            Some(predecessor.frame()),
+            deadline,
+            now,
+        )
+    }
+
+    fn present_retained_frame(
+        &mut self,
+        host: &crate::facade::WorthUiHostSessionAuthority,
+        retained: crate::mounting::retention::UiRetentionPreparedMountedFrame,
+        capability_report: worth_ui_host_contract::WorthUiHostCapabilityReport,
+        publication_predecessor: Option<worth_ui_host_contract::UiMountedFrameIdentity>,
+        deadline: worth_ui_host_contract::UiPresentationDeadline,
+        now: u64,
+    ) -> UiMountedPublicationTransition {
         let admission =
             match self
                 .presentation
@@ -75,10 +152,8 @@ impl WorthUiMountedSessionState {
                     );
                 }
             };
-        let reservation = UiMountedFramePublicationCandidate::reserve(
-            &admission,
-            self.identity.view().current_frame(),
-        );
+        let reservation =
+            UiMountedFramePublicationCandidate::reserve(&admission, publication_predecessor);
         let attempt = admission.attempt();
         let replaced = self.publication_reservations.insert(attempt, reservation);
         assert!(
@@ -92,65 +167,6 @@ impl WorthUiMountedSessionState {
             now,
         );
         self.finish_presentation(outcome)
-    }
-
-    pub(crate) fn present_current_for_reconciliation(
-        &mut self,
-        host: &crate::facade::WorthUiHostSessionAuthority,
-        replacements: &[crate::mounting::UiMountedSurfaceReconciliationBinding],
-        deadline: worth_ui_host_contract::UiPresentationDeadline,
-        now: u64,
-    ) -> Result<UiMountedPublicationTransition, crate::mounting::UiMountedIdentityDenial> {
-        let current = self
-            .identity
-            .publication_receipt()
-            .cloned()
-            .ok_or(crate::mounting::UiMountedIdentityDenial::NoPublishedMountedFrame)?;
-        let capability_report = host.capability_report().clone();
-        let frame = self.identity.prepare_current_reconciliation_frame(
-            replacements,
-            host.protocol(),
-            &capability_report,
-        )?;
-        let retained = match self.retention.prepare_reconciliation(frame) {
-            Ok(retained) => retained,
-            Err(rejection) => {
-                return Ok(UiMountedPublicationTransition::new(
-                    UiMountedFrameOutcome::RetentionDenied(rejection),
-                ));
-            }
-        };
-        let admission = match self.presentation.admit_reconciliation(
-            retained,
-            replacements,
-            &capability_report,
-            deadline,
-            now,
-        ) {
-            Ok(admission) => admission,
-            Err(rejection) => {
-                return Ok(UiMountedPublicationTransition::new(
-                    UiMountedFrameOutcome::AdmissionDenied(rejection),
-                ));
-            }
-        };
-        let reservation =
-            UiMountedFrameReconciliationCandidate::reserve(&admission, &current, replacements);
-        let attempt = admission.attempt();
-        let replaced = self
-            .reconciliation_reservations
-            .insert(attempt, reservation);
-        assert!(
-            replaced.is_none(),
-            "runtime-minted reconciliation attempts must be unique"
-        );
-        let outcome = self.presentation.present(
-            admission.into_attempt(),
-            host.effect_port(),
-            mounted_host_authority(host, &capability_report),
-            now,
-        );
-        Ok(self.finish_presentation(outcome))
     }
 
     pub(crate) fn complete_presentation(
@@ -196,6 +212,14 @@ impl WorthUiMountedSessionState {
         }
     }
 
+    pub(crate) fn admit_duplicate_native_presentation_observation(
+        &mut self,
+        presentation: worth_ui_host_native::UiNativePhysicalPresentationCorrelation,
+    ) -> Result<(), ()> {
+        self.presentation
+            .admit_duplicate_native_presentation_observation(presentation)
+    }
+
     pub(crate) fn finish_presentation(
         &mut self,
         outcome: UiMountedPresentationOutcome,
@@ -211,9 +235,18 @@ impl WorthUiMountedSessionState {
                     .publication_reservations
                     .remove(&attempt)
                     .expect("every presented attempt has a pre-effect publication reservation");
-                UiMountedPublicationTransition::new(UiMountedFrameOutcome::Published(
-                    reservation.commit_presented(presented, &mut self.identity),
-                ))
+                match reservation.commit_presented(presented, &mut self.identity) {
+                    crate::mounting::UiMountedFramePublicationCommit::Current(receipt) => {
+                        UiMountedPublicationTransition::new(UiMountedFrameOutcome::Published(
+                            receipt,
+                        ))
+                    }
+                    crate::mounting::UiMountedFramePublicationCommit::Superseded(frame) => {
+                        UiMountedPublicationTransition::new(UiMountedFrameOutcome::Superseded(
+                            frame,
+                        ))
+                    }
+                }
             }
             UiMountedPresentationOutcome::RejectedBeforeEffects(rejected) => {
                 self.remove_publication_reservation(rejected.attempt());
@@ -222,6 +255,10 @@ impl WorthUiMountedSessionState {
                     UiMountedFrameOutcome::RejectedBeforeEffects(rejected),
                     UiMountedHostObservationTransition::Rejected(frame),
                 )
+            }
+            UiMountedPresentationOutcome::Superseded(superseded) => {
+                self.remove_publication_reservation(superseded.attempt());
+                UiMountedPublicationTransition::new(UiMountedFrameOutcome::Superseded(superseded))
             }
             UiMountedPresentationOutcome::InFlight(in_flight) => {
                 UiMountedPublicationTransition::new(UiMountedFrameOutcome::InFlight(in_flight))
@@ -249,43 +286,6 @@ impl WorthUiMountedSessionState {
             .reconcile(reconciliation, self.identity.view().current_frame())
     }
 
-    fn finish_reconciliation(
-        &mut self,
-        outcome: UiMountedPresentationOutcome,
-        attempt: worth_ui_host_contract::UiMountedPresentationAttemptIdentity,
-    ) -> UiMountedPublicationTransition {
-        match outcome {
-            UiMountedPresentationOutcome::Presented(presented) => {
-                let reservation = self
-                    .reconciliation_reservations
-                    .remove(&attempt)
-                    .expect("every reconciliation presentation retains a reservation");
-                self.presentation
-                    .commit_current_frame_reconciliation(reservation.replacements());
-                UiMountedPublicationTransition::new(UiMountedFrameOutcome::Reconciled(
-                    reservation.commit_presented(presented, &mut self.identity),
-                ))
-            }
-            UiMountedPresentationOutcome::RejectedBeforeEffects(rejected) => {
-                self.remove_reconciliation_reservation(rejected.attempt());
-                UiMountedPublicationTransition::new(UiMountedFrameOutcome::RejectedBeforeEffects(
-                    rejected,
-                ))
-            }
-            UiMountedPresentationOutcome::InFlight(in_flight) => {
-                UiMountedPublicationTransition::new(UiMountedFrameOutcome::InFlight(in_flight))
-            }
-            UiMountedPresentationOutcome::PresentationIndeterminate(indeterminate) => {
-                self.remove_reconciliation_reservation(indeterminate.report().attempt());
-                let observation = indeterminate_observation(&indeterminate);
-                UiMountedPublicationTransition::with_observation(
-                    UiMountedFrameOutcome::PresentationIndeterminate(indeterminate),
-                    observation,
-                )
-            }
-        }
-    }
-
     fn remove_publication_reservation(
         &mut self,
         attempt: worth_ui_host_contract::UiMountedPresentationAttemptIdentity,
@@ -293,15 +293,6 @@ impl WorthUiMountedSessionState {
         self.publication_reservations
             .remove(&attempt)
             .expect("every admitted attempt has a publication reservation");
-    }
-
-    fn remove_reconciliation_reservation(
-        &mut self,
-        attempt: worth_ui_host_contract::UiMountedPresentationAttemptIdentity,
-    ) {
-        self.reconciliation_reservations
-            .remove(&attempt)
-            .expect("every admitted reconciliation has a reservation");
     }
 }
 
@@ -363,6 +354,7 @@ fn presentation_attempt(
 ) -> worth_ui_host_contract::UiMountedPresentationAttemptIdentity {
     match outcome {
         UiMountedPresentationOutcome::Presented(frame) => frame.receipt().attempt(),
+        UiMountedPresentationOutcome::Superseded(frame) => frame.attempt(),
         UiMountedPresentationOutcome::RejectedBeforeEffects(frame) => frame.attempt(),
         UiMountedPresentationOutcome::InFlight(frame) => frame.attempt(),
         UiMountedPresentationOutcome::PresentationIndeterminate(frame) => frame.report().attempt(),

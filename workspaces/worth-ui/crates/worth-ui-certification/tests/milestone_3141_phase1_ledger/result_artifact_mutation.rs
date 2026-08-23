@@ -1,8 +1,17 @@
 use serde_json::{json, Value};
 
-use super::{require_duration_within, validate_native_boundary_observation};
+use super::{
+    require_duration_within, validate_artifact_schema, validate_native_boundary_observation,
+};
 use crate::milestone_3141_phase1_ledger::{
     command_binding::ControlBinding, result_artifact_control,
+};
+
+#[path = "result_artifact_mutation_fixture.rs"]
+mod fixture;
+use fixture::{
+    expected_native_seed_authored_provenance_digest,
+    expected_native_seed_authored_semantic_identity_digest, resource_census_fixture,
 };
 
 #[test]
@@ -191,6 +200,11 @@ fn assert_counter_and_graphics_mutants(lawful: &Value) {
                 "event_loop_thread_matches_launch",
             ),
             (
+                &["graphics", "event_loop_thread_posture"],
+                json!("certification-worker"),
+                "event_loop_thread_posture",
+            ),
+            (
                 &["graphics", "max_texture_dimension_2d"],
                 json!(8_192),
                 "extent",
@@ -329,52 +343,22 @@ fn graphics_fixture() -> Value {
         "alpha_mode": "PreMultiplied",
         "retained_format": "Rgba8UnormSrgb",
         "max_texture_dimension_2d": 16_384,
-        "event_loop_thread_matches_launch": true
+        "event_loop_thread_matches_launch": true,
+        "event_loop_thread_posture": "main-thread-required"
     })
 }
 
-fn resource_census_fixture(count: u64, retained_targets: u64) -> Value {
-    let mut census = serde_json::Map::new();
-    for class in worth_ui_host_native::UiNativeResourceCensus::field_names() {
-        let observed = if [
-            "windows",
-            "surfaces",
-            "adapters",
-            "devices",
-            "queues",
-            "retained_targets",
-            "registrations",
-            "readback_buffers",
-            "pending_submissions",
-            "event_wake_registrations",
-            "application_drivers",
-            "physical_signal_runtimes",
-            "physical_signal_workers",
-        ]
-        .contains(&class)
-        {
-            count
-        } else {
-            0
-        };
-        census.insert(class.to_owned(), Value::from(observed));
+#[test]
+fn result_artifact_schema_admits_only_its_historical_lane_or_current_publication() {
+    for shared_main in [false, true] {
+        let historical = if shared_main { 6 } else { 5 };
+        validate_artifact_schema(&json!({"schema_version": historical}), shared_main).unwrap();
+        validate_artifact_schema(&json!({"schema_version": 7}), shared_main).unwrap();
+        let wrong_lane = if shared_main { 5 } else { 6 };
+        assert!(
+            validate_artifact_schema(&json!({"schema_version": wrong_lane}), shared_main).is_err()
+        );
     }
-    census.insert("retained_targets".to_owned(), Value::from(retained_targets));
-    Value::Object(census)
-}
-
-fn expected_native_seed_authored_provenance_digest() -> u64 {
-    independent_text_digest("app/native_seed.wui") ^ 1_u64.rotate_left(13)
-}
-
-fn expected_native_seed_authored_semantic_identity_digest() -> u64 {
-    independent_text_digest("component:platform.pulse.native_seed.rectangle")
-}
-
-fn independent_text_digest(text: &str) -> u64 {
-    text.as_bytes()
-        .iter()
-        .fold(0xCBF2_9CE4_8422_2325_u64, |digest, byte| {
-            digest.wrapping_mul(0x0000_0100_0000_01B3) ^ u64::from(*byte)
-        })
+    assert!(validate_artifact_schema(&json!({"schema_version": 8}), false).is_err());
+    assert!(validate_artifact_schema(&json!({}), true).is_err());
 }

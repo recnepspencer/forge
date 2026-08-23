@@ -57,11 +57,11 @@ pub(super) fn compose(
                     a: source.a + destination.a,
                 }
                 .clamp(),
-            )
+            );
         }
         Screen | Overlay | Darken | Lighten | ColorDodge | ColorBurn | HardLight | SoftLight
         | Difference | Exclusion | Multiply | HslHue | HslSaturation | HslColor | HslLuminosity => {
-            return Some(advanced(source, destination, mode).clamp())
+            return Some(advanced(source, destination, mode).clamp());
         }
         Unknown => return None,
     };

@@ -16,6 +16,10 @@ pub(crate) struct UiNativeTextAtlasTransactionPlanSnapshot {
     pub(super) evictions: u32,
     pub(super) staged_bytes: u64,
     pub(super) physical_staged_bytes: u64,
+    pub(super) key_lookups: u32,
+    pub(super) page_probes: u32,
+    pub(super) placement_probes: u32,
+    pub(super) eviction_candidates: u32,
 }
 
 impl UiNativeTextAtlasTransactionPlanSnapshot {
@@ -57,5 +61,18 @@ impl UiNativeTextAtlasTransactionPlanSnapshot {
 
     pub(crate) const fn physical_staged_bytes(self) -> u64 {
         self.physical_staged_bytes
+    }
+
+    pub(crate) const fn key_lookups(self) -> u32 {
+        self.key_lookups
+    }
+    pub(crate) const fn page_probes(self) -> u32 {
+        self.page_probes
+    }
+    pub(crate) const fn placement_probes(self) -> u32 {
+        self.placement_probes
+    }
+    pub(crate) const fn eviction_candidates(self) -> u32 {
+        self.eviction_candidates
     }
 }

@@ -74,7 +74,10 @@ fn push_change(
             append_damage(command, damage);
         }
         (Some(old), Some(new)) if !command_same_presentation_meaning(old, new) => {
-            changes.push(UiMountedPaintCommandChange::Replace(new.clone()));
+            changes.push(UiMountedPaintCommandChange::replacement(
+                old.identity(),
+                new.clone(),
+            ));
             append_damage(old, damage);
             append_damage(new, damage);
         }

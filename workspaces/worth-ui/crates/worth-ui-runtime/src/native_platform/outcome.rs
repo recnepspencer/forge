@@ -37,6 +37,10 @@ impl UiNativePlatformCloseReceipt {
         self.report.presentation()
     }
 
+    pub fn input_observations(&self) -> &worth_ui_host_native::UiNativeInputObservationReport {
+        self.report.input_observations()
+    }
+
     pub const fn terminal_census(&self) -> worth_ui_host_native::UiNativeResourceCensus {
         self.report.terminal_census()
     }
@@ -51,6 +55,12 @@ impl UiNativePlatformCloseReceipt {
 
     pub const fn event_loop_thread_matches_launch(&self) -> bool {
         self.report.event_loop_thread_matches_launch()
+    }
+
+    pub const fn event_loop_thread_posture(
+        &self,
+    ) -> worth_ui_host_native::UiNativeEventLoopThreadPosture {
+        self.report.event_loop_thread_posture()
     }
 
     pub const fn client_attribution(
@@ -79,6 +89,12 @@ impl UiNativePlatformCloseReceipt {
         self.report.port_crossings()
     }
 
+    pub const fn client_shutdown(
+        &self,
+    ) -> Option<&worth_ui_host_native::UiNativeClientShutdownObservation> {
+        self.report.client_shutdown()
+    }
+
     pub const fn peak_census(&self) -> worth_ui_host_native::UiNativeResourceCensus {
         self.report.peak_census()
     }
@@ -98,6 +114,39 @@ impl UiNativePlatformCloseReceipt {
     }
 
     #[doc(hidden)]
+    pub const fn derived_state_reconstruction(
+        &self,
+    ) -> Option<worth_ui_host_native::UiNativeDerivedStateReconstructionObservation> {
+        self.report.derived_state_reconstruction()
+    }
+
+    #[doc(hidden)]
+    pub fn text_atlas_plan_observations(
+        &self,
+    ) -> &[worth_ui_host_native::UiNativeTextAtlasPlanObservation] {
+        self.report.text_atlas_plan_observations()
+    }
+
+    #[doc(hidden)]
+    pub fn physical_signal_transition_observations(
+        &self,
+    ) -> &[worth_ui_host_native::UiNativePhysicalSignalTransitionObservation] {
+        self.report.physical_signal_transition_observations()
+    }
+
+    #[doc(hidden)]
+    pub const fn physical_signal_transition_trace_complete(&self) -> bool {
+        self.report.physical_signal_transition_trace_complete()
+    }
+
+    #[doc(hidden)]
+    pub const fn physical_signal_lifecycle(
+        &self,
+    ) -> worth_ui_host_native::UiNativePhysicalSignalLifecycleObservation {
+        self.report.physical_signal_lifecycle()
+    }
+
+    #[doc(hidden)]
     pub fn text_pin_frame_counts(&self) -> &[u32] {
         self.report.text_pin_frame_counts()
     }
@@ -107,6 +156,16 @@ impl UiNativePlatformCloseReceipt {
         &self,
     ) -> &[Box<[worth_ui_host_native::UiNativeTextPinObservation]>] {
         self.report.text_pin_frame_observations()
+    }
+
+    #[doc(hidden)]
+    pub fn text_atlas_model_frame_digests(&self) -> &[[u8; 32]] {
+        self.report.text_atlas_model_frame_digests()
+    }
+
+    #[doc(hidden)]
+    pub const fn observation_history_complete(&self) -> bool {
+        self.report.observation_history_complete()
     }
 }
 

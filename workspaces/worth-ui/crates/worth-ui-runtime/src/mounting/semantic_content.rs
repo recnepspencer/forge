@@ -37,6 +37,13 @@ pub(crate) enum UiMountedSemanticTextContent {
 pub(crate) struct UiMountedScalarSemanticTextContent {
     value: UiMountedSemanticTextValueDirective,
     posture: Arc<str>,
+    formatting: Option<UiMountedSemanticTextFormattingDirective>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct UiMountedSemanticTextFormattingDirective {
+    contract: crate::capability::ComponentSemanticTextContract,
+    token_values: BTreeMap<crate::capability::ThemeTokenId, crate::capability::ThemeTokenValue>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -108,11 +115,22 @@ impl UiMountedSemanticContentInput {
         value: UiMountedSemanticTextValueDirective,
         posture: Arc<str>,
     ) -> Result<(), ()> {
+        self.insert_scalar_with_formatting(graph_node, value, posture, None)
+    }
+
+    pub(crate) fn insert_scalar_with_formatting(
+        &mut self,
+        graph_node: crate::graph::UiGraphNodeIdentity,
+        value: UiMountedSemanticTextValueDirective,
+        posture: Arc<str>,
+        formatting: Option<UiMountedSemanticTextFormattingDirective>,
+    ) -> Result<(), ()> {
         self.insert(
             graph_node,
             UiMountedSemanticTextContent::Scalar(UiMountedScalarSemanticTextContent {
                 value,
                 posture,
+                formatting,
             }),
         )
     }
@@ -258,6 +276,33 @@ impl UiMountedScalarSemanticTextContent {
 
     pub(crate) fn posture(&self) -> &Arc<str> {
         &self.posture
+    }
+
+    pub(crate) const fn formatting(&self) -> Option<&UiMountedSemanticTextFormattingDirective> {
+        self.formatting.as_ref()
+    }
+}
+
+impl UiMountedSemanticTextFormattingDirective {
+    pub(crate) fn new(
+        contract: crate::capability::ComponentSemanticTextContract,
+        token_values: BTreeMap<crate::capability::ThemeTokenId, crate::capability::ThemeTokenValue>,
+    ) -> Self {
+        Self {
+            contract,
+            token_values,
+        }
+    }
+
+    pub(crate) const fn contract(&self) -> &crate::capability::ComponentSemanticTextContract {
+        &self.contract
+    }
+
+    pub(crate) fn token_value(
+        &self,
+        token: &crate::capability::ThemeTokenId,
+    ) -> Option<&crate::capability::ThemeTokenValue> {
+        self.token_values.get(token)
     }
 }
 

@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import close_worth_ui_3141_ledger as closer
+import worth_ui_ledger_atomic_closure as closer
 from worth_ui_ledger_row_cache import RowEvidenceCache
 from worth_ui_ledger_runner_authentication import authentication_tag
 
@@ -23,7 +23,8 @@ class AtomicClosureResumeTests(unittest.TestCase):
         fields = [
             "requirement", "exact_command", "matched_test_count", "source_revision",
             "source_digest", "source_state_digest", "run_nonce", "command_result",
-            "result_artifact_digest", "result", "final_source",
+            "result_artifact_digest", "result", "final_source", "source_identity",
+            "production_entry", "independent_oracle",
         ]
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -54,6 +55,7 @@ class AtomicClosureResumeTests(unittest.TestCase):
                     "source_state_digest": "b" * 64,
                     "run_nonce": f"nonce-{requirement}",
                     "matched_test_count": 1,
+                    "source_identity": ["inputs/dependency.json"],
                 }
                 payload["runner_authentication"] = authentication_tag(payload, root)
                 artifact = root / identity
@@ -68,12 +70,19 @@ class AtomicClosureResumeTests(unittest.TestCase):
             common = (
                 patch.object(closer, "ROOT", root),
                 patch.object(closer, "LEDGER", ledger),
-                patch.object(closer, "run", side_effect=execute),
-                patch.object(closer, "claim_digest", return_value="c" * 64),
+                patch.object(
+                    closer,
+                    "run_row",
+                    side_effect=lambda _root, command, candidate: execute(command, candidate),
+                ),
+                patch.object(
+                    closer, "claim_digest_for_row", return_value="c" * 64
+                ),
                 patch.object(closer, "source_revision", return_value="a" * 40),
                 patch.object(closer, "source_state_digest", return_value="b" * 64),
                 patch.object(closer, "RowEvidenceCache", return_value=cache),
                 patch.object(closer, "publish"),
+                patch.object(closer, "synchronize_historical_rows"),
                 patch.object(closer, "validate_ledger_posture"),
             )
             telemetry = io.StringIO()
@@ -85,8 +94,14 @@ class AtomicClosureResumeTests(unittest.TestCase):
                 ))
                 with redirect_stdout(telemetry):
                     with self.assertRaisesRegex(RuntimeError, "late failure"):
-                        closer.close_selected_atomically(rows, fields, rows, verify_phase=3)
-            self.assertEqual(executions, ["P4-ROW-0", "P4-ROW-1"])
+                        closer.close_atomically(
+                            rows,
+                            fields,
+                            closer.AtomicClosurePlan(tuple(rows), 3),
+                            root,
+                            ledger,
+                        )
+            self.assertEqual(executions, ["P4-RESUME-A-01", "P4-RESUME-B-01"])
             self.assertTrue(all(row["result"] == "OPEN" for row in read_rows(ledger)))
             self.assertEqual(dependency.read_text(encoding="utf-8"), "current dependency")
 
@@ -94,12 +109,19 @@ class AtomicClosureResumeTests(unittest.TestCase):
             common = (
                 patch.object(closer, "ROOT", root),
                 patch.object(closer, "LEDGER", ledger),
-                patch.object(closer, "run", side_effect=execute),
-                patch.object(closer, "claim_digest", return_value="c" * 64),
+                patch.object(
+                    closer,
+                    "run_row",
+                    side_effect=lambda _root, command, candidate: execute(command, candidate),
+                ),
+                patch.object(
+                    closer, "claim_digest_for_row", return_value="c" * 64
+                ),
                 patch.object(closer, "source_revision", return_value="a" * 40),
                 patch.object(closer, "source_state_digest", return_value="b" * 64),
                 patch.object(closer, "RowEvidenceCache", return_value=cache),
                 patch.object(closer, "publish"),
+                patch.object(closer, "synchronize_historical_rows"),
                 patch.object(closer, "validate_ledger_posture"),
             )
             with ExitStack() as stack:
@@ -107,16 +129,22 @@ class AtomicClosureResumeTests(unittest.TestCase):
                     stack.enter_context(context)
                 stack.enter_context(patch.object(closer, "verify_closed_prefix"))
                 with redirect_stdout(telemetry):
-                    closer.close_selected_atomically(rows, fields, rows, verify_phase=3)
+                    closer.close_atomically(
+                        rows,
+                        fields,
+                        closer.AtomicClosurePlan(tuple(rows), 3),
+                        root,
+                        ledger,
+                    )
             self.assertEqual(
                 executions,
-                ["P4-ROW-0", "P4-ROW-1"],
+                ["P4-RESUME-A-01", "P4-RESUME-B-01"],
                 "retry must restore source-bound row evidence instead of reexecuting it",
             )
             self.assertTrue(all(row["result"] == "PROVED" for row in read_rows(ledger)))
             self.assertEqual(dependency.read_text(encoding="utf-8"), "current dependency")
             output = telemetry.getvalue()
-            for requirement in ("P4-ROW-0", "P4-ROW-1"):
+            for requirement in ("P4-RESUME-A-01", "P4-RESUME-B-01"):
                 self.assertIn(f"[row:start] {requirement} disposition=execute", output)
                 self.assertIn(
                     f"[row:complete] {requirement} disposition=execute posture=passed duration_ms=",
@@ -129,14 +157,19 @@ class AtomicClosureResumeTests(unittest.TestCase):
 
 
 def row(fields: list[str], index: int) -> dict[str, str]:
-    requirement = f"P4-ROW-{index}"
-    identity = f"_docs/worth-ui/milestone-3.14.1-evidence/row-{index}.json"
+    requirement = ("P4-RESUME-A-01", "P4-RESUME-B-01")[index]
+    identity = (
+        f"_docs/worth-ui/milestone-3.14.1-evidence/{requirement.lower()}.json"
+    )
     return {field: "" for field in fields} | {
         "requirement": requirement,
         "exact_command": (
             f"runner --requirement {requirement} --source inputs/dependency.json "
             f"--artifact {identity}"
         ),
+        "source_identity": "inputs/dependency.json",
+        "production_entry": "inputs/dependency.json::production",
+        "independent_oracle": "inputs/dependency.json::oracle",
         "result": "OPEN",
         "final_source": "false",
     }

@@ -1,7 +1,7 @@
 use super::super::super::{
     delta::settle_staged_delta, reserve_presentation_owners, settle_port_result,
-    UiNativePendingExternalObligation, UiNativePresentationFailure,
-    UiNativePresentationPortFailure,
+    UiNativePendingExternalObligation, UiNativePendingSurfaceSettlement,
+    UiNativePresentationFailure, UiNativePresentationPortFailure,
 };
 use super::*;
 
@@ -36,7 +36,7 @@ fn exact_delta_updates_draw_order_damage_and_replay_without_retained_scans() {
         ),
     ];
     let initial = world.initial(initial_frame, initial_rows.clone());
-    let mut retained = UiNativeRetainedDrawList::initial(&initial).unwrap();
+    let mut retained = UiNativeRetainedDrawList::initial(&initial, &[]).unwrap();
     let successor_frame = UiMountedFrameIdentity::mint_unbound().unwrap();
     let replaced = world.rect(
         successor_frame,
@@ -72,7 +72,10 @@ fn exact_delta_updates_draw_order_damage_and_replay_without_retained_scans() {
         content: world.content,
         baseline: world.requirement.baseline(),
         changes: vec![
-            UiMountedPaintCommandChange::Replace(replaced_command),
+            UiMountedPaintCommandChange::replacement(
+                command(initial_rows[0]).identity(),
+                replaced_command,
+            ),
             UiMountedPaintCommandChange::Remove(removed_identity.command()),
             UiMountedPaintCommandChange::Insert(inserted_command),
         ],
@@ -90,7 +93,7 @@ fn exact_delta_updates_draw_order_damage_and_replay_without_retained_scans() {
         production_cost: Default::default(),
     });
 
-    let (staged, undo) = retained.stage_delta(&delta).unwrap();
+    let (staged, undo) = retained.stage_delta(&delta, &[]).unwrap();
     assert_eq!(
         retained.order.ordered().collect::<Vec<_>>(),
         vec![retained_identity, inserted_identity]
@@ -116,7 +119,7 @@ fn exact_delta_updates_draw_order_damage_and_replay_without_retained_scans() {
         retained.command(removed_identity.command()),
         Some(&initial.commands()[1])
     );
-    let (_, indeterminate_undo) = retained.stage_delta(&delta).unwrap();
+    let (_, indeterminate_undo) = retained.stage_delta(&delta, &[]).unwrap();
     let mut resources = crate::native::UiNativeResourceRegistry::new();
     let mut physical_signal =
         crate::native::physical_work_signal::UiNativePhysicalSignalOwner::new();
@@ -135,16 +138,18 @@ fn exact_delta_updates_draw_order_damage_and_replay_without_retained_scans() {
         )),
     );
     let settled = settle_staged_delta(&mut retained, indeterminate_undo, indeterminate);
-    let Err(UiNativePresentationFailure::Indeterminate(pending)) = settled else {
+    let Err(UiNativePresentationFailure::Pending(mut pending)) = settled else {
         panic!("an unsettled external presentation remains indeterminate");
     };
     assert_eq!(
         retained.order.ordered().collect::<Vec<_>>(),
-        vec![retained_identity, removed_identity]
+        vec![retained_identity, inserted_identity]
     );
     assert_eq!(
-        retained.command(removed_identity.command()),
-        Some(&initial.commands()[1])
+        retained
+            .command(inserted_identity.command())
+            .map(UiMountedPaintCommand::identity),
+        Some(inserted_identity.command())
     );
     assert_eq!(resources.current().readback_buffers, 1);
     assert_eq!(resources.current().pending_submissions, 1);
@@ -155,8 +160,9 @@ fn exact_delta_updates_draw_order_damage_and_replay_without_retained_scans() {
         .advance_clock_to(due)
         .expect("the exact pending poll wake must become ready");
     let token = physical_signal
-        .take_ready_presentation(pending.physical_work())
-        .unwrap();
+        .take_ready_presentation(pending.physical_work(), pending.physical_token())
+        .unwrap()
+        .current();
     assert!(matches!(
         physical_signal.reconcile(
             token.observe(
@@ -165,8 +171,23 @@ fn exact_delta_updates_draw_order_damage_and_replay_without_retained_scans() {
         ),
         crate::native::physical_work_signal::UiNativePhysicalSignalSettlement::Completed
     ));
+    let Some(UiNativePendingSurfaceSettlement::Delta(settlement)) = pending.take_settlement()
+    else {
+        panic!("the pending delta retains its exact rollback authority");
+    };
+    settlement
+        .rollback(&mut retained)
+        .expect("completion without a physical observation restores the predecessor");
     pending.release(&mut resources);
     assert!(resources.current().is_zero());
+    assert_eq!(
+        retained.order.ordered().collect::<Vec<_>>(),
+        vec![retained_identity, removed_identity]
+    );
+    assert_eq!(
+        retained.command(removed_identity.command()),
+        Some(&initial.commands()[1])
+    );
     let plan = retained.apply_delta(&delta).unwrap();
     assert_eq!(plan, staged);
     assert_eq!(plan.baseline_rgba8, [0, 0, 0, 0]);
@@ -232,6 +253,7 @@ fn full_capacity_swap_releases_predecessor_membership_before_successor_claims() 
         &initial_commands,
         &initial_order,
         UiMountedPaintOrderIntegrity::for_order(&initial_order),
+        &[],
     )
     .unwrap();
     let mut reversed_retained = UiNativeRetainedDrawList::from_complete(
@@ -242,6 +264,7 @@ fn full_capacity_swap_releases_predecessor_membership_before_successor_claims() 
         &initial_commands,
         &initial_order,
         UiMountedPaintOrderIntegrity::for_order(&initial_order),
+        &[],
     )
     .unwrap();
 
@@ -310,4 +333,44 @@ fn full_capacity_swap_releases_predecessor_membership_before_successor_claims() 
     assert_eq!(retained.commands.len(), CAPACITY);
     assert!(retained.command(removed.command()).is_none());
     assert!(retained.command(inserted_order.command()).is_some());
+}
+
+#[test]
+fn terminal_removal_retains_exact_paint_attribution_and_rollback_restores_it() {
+    let world = DrawListWorld::new();
+    let initial_frame = UiMountedFrameIdentity::mint_unbound().unwrap();
+    let mechanic = world.rect(
+        initial_frame,
+        world.first,
+        0.0,
+        UiMountedRgba8::new(20, 30, 40, 255),
+    );
+    let initial = world.initial(initial_frame, [mechanic]);
+    let removed = UiMountedPaintOrderIdentity::for_command(initial.commands()[0].identity());
+    let mut retained = UiNativeRetainedDrawList::initial(&initial, &[]).unwrap();
+    let attribution = retained.top_paint_attribution().unwrap();
+    let delta = UiMountedPresentationDelta::from_inert_mechanics(UiMountedPresentationDeltaInput {
+        predecessor: initial_frame,
+        successor: UiMountedFrameIdentity::mint_unbound().unwrap(),
+        surface: world.surface,
+        binding: world.binding,
+        content: world.content,
+        baseline: world.requirement.baseline(),
+        changes: vec![UiMountedPaintCommandChange::Remove(removed.command())],
+        nodes: Vec::new(),
+        order: vec![UiMountedPaintOrderEdit::remove(removed)],
+        order_integrity: UiMountedPaintOrderIntegrity::for_order(&[]),
+        damage: vec![UiMountedLogicalDamage::from_runtime_mounting(
+            mechanic.bounds(),
+        )],
+        auxiliary: None,
+        production_cost: Default::default(),
+    });
+
+    let (_, undo) = retained.stage_delta(&delta, &[]).unwrap();
+    assert_eq!(retained.order.ordered().count(), 0);
+    assert_eq!(retained.top_paint_attribution(), Some(attribution));
+    retained.rollback_delta(undo).unwrap();
+    assert_eq!(retained.order.ordered().collect::<Vec<_>>(), vec![removed]);
+    assert_eq!(retained.top_paint_attribution(), Some(attribution));
 }

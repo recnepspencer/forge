@@ -41,7 +41,7 @@ fn offscreen_delta_advances_retained_truth_without_physical_work() {
         UiMountedRgba8::new(1, 2, 3, 255),
     );
     let initial = world.initial(predecessor, [old]);
-    let mut retained = UiNativeRetainedDrawList::initial(&initial).unwrap();
+    let mut retained = UiNativeRetainedDrawList::initial(&initial, &[]).unwrap();
     let successor = UiMountedFrameIdentity::mint_unbound().unwrap();
     let replacement = world.rect(
         successor,
@@ -57,7 +57,10 @@ fn offscreen_delta_advances_retained_truth_without_physical_work() {
         binding: world.binding,
         content: world.content,
         baseline: world.requirement.baseline(),
-        changes: vec![UiMountedPaintCommandChange::Replace(command(replacement))],
+        changes: vec![UiMountedPaintCommandChange::replacement(
+            command(old).identity(),
+            command(replacement),
+        )],
         nodes: Vec::new(),
         order: Vec::new(),
         order_integrity: UiMountedPaintOrderIntegrity::for_order(&[
@@ -70,9 +73,12 @@ fn offscreen_delta_advances_retained_truth_without_physical_work() {
         production_cost: Default::default(),
     });
 
+    let atlas = crate::native::text_atlas::UiNativeTextAtlas::new();
     let (plan, _committed_undo) = prepare_delta_plan(
         UiNativeRasterBasis::new([100, 100], 1.0),
         &delta,
+        &[],
+        &atlas,
         &mut retained,
     )
     .unwrap_or_else(|_| panic!("a valid offscreen delta must plan without GPU effects"));

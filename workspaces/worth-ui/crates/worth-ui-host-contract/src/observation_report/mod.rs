@@ -2,6 +2,7 @@ mod batch;
 mod drain;
 mod family;
 mod ime;
+mod input_affinity;
 mod integrity;
 mod keyboard;
 mod payload;
@@ -30,6 +31,11 @@ pub use ime::{
     UiHostImeCompositionPhase, UiHostImePreedit, UiHostImePreeditConstructionDenial,
     UiHostImePreeditSelection, UiHostImeRangeConversionReceipt, UiHostUnicodeScalarRange,
     UiHostUtf8ByteRange,
+};
+pub use input_affinity::{
+    UiHostApplicationGeneration, UiHostInputDraftSessionIdentity,
+    UiHostInputRecipientAffinityReceipt, UiHostInputRecipientBindingInput,
+    UiHostInputRecipientBindingReceipt, UiHostInputRecipientFamily, UiHostInputRecipientGeneration,
 };
 pub use integrity::UiHostObservationIntegrity;
 pub use keyboard::{UiHostKey, UiHostKeyTransition, UiHostKeyboardModifiers};

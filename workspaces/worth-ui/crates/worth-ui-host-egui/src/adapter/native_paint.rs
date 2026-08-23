@@ -167,12 +167,21 @@ fn apply_command_change(
             }
             commands.insert(identity, prepare_command(view, command)?);
         }
-        UiMountedPaintCommandChange::Replace(command) => {
-            let identity = command.identity();
-            if !commands.contains_key(&identity) {
+        UiMountedPaintCommandChange::Replace {
+            predecessor,
+            successor,
+        } => {
+            if commands.remove(predecessor).is_none() {
                 return Err(UiHostSurfacePresentationDenial::MalformedProjection);
             }
-            commands.insert(identity, prepare_command(view, command)?);
+            order.retain(|candidate| candidate.command() != *predecessor);
+            let identity = successor.identity();
+            if commands
+                .insert(identity, prepare_command(view, successor)?)
+                .is_some()
+            {
+                return Err(UiHostSurfacePresentationDenial::MalformedProjection);
+            }
         }
         UiMountedPaintCommandChange::Remove(identity) => {
             if commands.remove(identity).is_none() {

@@ -125,7 +125,11 @@ CONTRACT_FIELDS = (
     "structural_counters",
 )
 
-INVALIDATED_PROOF_ROWS = {"P5-ATLAS-01", "P5-ATLAS-PINNING-01"}
+INVALIDATED_PROOF_ROWS = {
+    "P5-ATLAS-01",
+    "P5-ATLAS-PINNING-01",
+    "P5-TEXT-ASYNC-PRESENTATION-01",
+}
 EXECUTION_BINDING_FIELDS = (
     "production_entry",
     "independent_oracle",

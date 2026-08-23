@@ -293,9 +293,9 @@ fn remove_changed_commands(
     for change in changes {
         let identity = match change {
             worth_ui_host_contract::UiMountedPaintCommandChange::Insert(_) => continue,
-            worth_ui_host_contract::UiMountedPaintCommandChange::Replace(command) => {
-                command.identity()
-            }
+            worth_ui_host_contract::UiMountedPaintCommandChange::Replace {
+                predecessor, ..
+            } => *predecessor,
             worth_ui_host_contract::UiMountedPaintCommandChange::Remove(identity) => *identity,
         };
         if let Some(index) = filled_rects
@@ -349,7 +349,9 @@ fn changed_command(
 ) -> Option<&worth_ui_host_contract::UiMountedPaintCommand> {
     match change {
         worth_ui_host_contract::UiMountedPaintCommandChange::Insert(command)
-        | worth_ui_host_contract::UiMountedPaintCommandChange::Replace(command) => Some(command),
+        | worth_ui_host_contract::UiMountedPaintCommandChange::Replace {
+            successor: command, ..
+        } => Some(command),
         worth_ui_host_contract::UiMountedPaintCommandChange::Remove(_) => None,
     }
 }

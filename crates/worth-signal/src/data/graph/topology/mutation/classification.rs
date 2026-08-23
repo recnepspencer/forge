@@ -16,6 +16,13 @@ impl SignalGraph {
         node: NodeId,
         desired: &[DependencyEdge],
     ) -> Result<DependencyReconciliationReport, SignalError> {
+        self.validate_handle(node)?;
+        if self.raw_dependencies_of(node)? == desired {
+            return Ok(DependencyReconciliationReport {
+                unchanged: desired.len() as u32,
+                ..DependencyReconciliationReport::default()
+            });
+        }
         let mut preflight =
             match super::preflight::canonicalize_and_preflight(self, &[(node, desired)]) {
                 Ok(preflight) => preflight,

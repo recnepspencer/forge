@@ -154,7 +154,8 @@ impl BridgeOwnedSignalRuntime {
         let mut comparator = ComparatorAdapter::new(request.lowering);
         counters.signal_execution_contacts = 1;
         let observation = self
-            .graph
+            .signal_runtime
+            .graph_mut()
             .begin_observation_session(SignalObservationRequest::operation())
             .map_err(|denial| {
                 BridgeConditionalDenial::new(
@@ -162,19 +163,18 @@ impl BridgeOwnedSignalRuntime {
                     denial.to_string(),
                 )
             })?;
-        let signal = self.graph.execute_installed_conditional(
-            signal_request,
-            &mut condition,
-            &mut comparator,
-            || {
+        let signal = self
+            .signal_runtime
+            .graph_mut()
+            .execute_installed_conditional(signal_request, &mut condition, &mut comparator, || {
                 compute
                     .compute(compute_context)
                     .map_err(worth_signal::facade::SignalError::invalid_input)
-            },
-        );
+            });
         let signal = admit_signal_execution(signal, &mut condition)?;
         let performed_signal_invalidation = self
-            .graph
+            .signal_runtime
+            .graph_mut()
             .finish_optional_invalidation_execution_observation(&observation)
             .map_err(|error| {
                 BridgeConditionalDenial::new(
@@ -191,7 +191,11 @@ impl BridgeOwnedSignalRuntime {
         lowering: &BridgeInstalledConditionalLowering,
     ) -> Result<(), BridgeConditionalDenial> {
         if lowering.signal_contract.graph_instance_id()
-            == self.graph.installed_graph_capability().graph_instance_id()
+            == self
+                .signal_runtime
+                .graph()
+                .installed_graph_capability()
+                .graph_instance_id()
         {
             return Ok(());
         }

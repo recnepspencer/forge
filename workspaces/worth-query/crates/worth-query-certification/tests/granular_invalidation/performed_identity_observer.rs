@@ -1,9 +1,8 @@
 use worth_query::facade::domain::{
-    WorthQueryAdmittedInvalidationObservation, WorthQueryGranularNoChange,
-    WorthQueryMaintenanceScope, WorthQueryMaintenanceStrategy,
-    WorthQueryPrimaryGranularMaintenancePerformed,
-    WorthQueryPublishedSharedPrimaryInvalidation, WorthQuerySemanticDependencyRole,
-    WorthQueryConditionalDependencyInstallation,
+    WorthQueryAdmittedInvalidationObservation, WorthQueryConditionalDependencyInstallation,
+    WorthQueryGranularNoChange, WorthQueryMaintenanceScope, WorthQueryMaintenanceStrategy,
+    WorthQueryPrimaryGranularMaintenancePerformed, WorthQueryPublishedSharedPrimaryInvalidation,
+    WorthQuerySemanticDependencyRole,
 };
 use worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts;
 
@@ -39,9 +38,9 @@ impl PerformedIdentityObserver {
                         .then(|| relational_identity(mutation.identity, change, record))
                 })
         });
-        self.observed.relational.insert(
-            observed.ok_or("lower truth does not retain the named source mutation")?,
-        );
+        self.observed
+            .relational
+            .insert(observed.ok_or("lower truth does not retain the named source mutation")?);
         Ok(())
     }
 
@@ -188,9 +187,10 @@ impl PerformedIdentityObserver {
                 .map(|partition| partition.0.as_str())
                 .collect::<Vec<_>>()
                 .join("|");
-            self.observed
-                .signal
-                .insert(format!("{}:performed-signal:{partitions}", mutation.identity));
+            self.observed.signal.insert(format!(
+                "{}:performed-signal:{partitions}",
+                mutation.identity
+            ));
         }
         Ok(())
     }
@@ -209,10 +209,7 @@ fn relational_identity(
     )
 }
 
-fn bridge_identity(
-    mutation: &str,
-    impact: &WorthQueryAdmittedInvalidationObservation,
-) -> String {
+fn bridge_identity(mutation: &str, impact: &WorthQueryAdmittedInvalidationObservation) -> String {
     let dependency = impact.truth().change_set().dependency();
     let paths = if dependency.projection_mask().is_whole_aspect() {
         "whole".to_owned()

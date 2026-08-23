@@ -2,6 +2,7 @@
 pub enum ComponentAllocationMeasurementContract {
     FillViewport,
     ViewportInset(super::ComponentViewportInset),
+    FixedLogicalSize { width: u16, height: u16 },
 }
 
 impl ComponentAllocationMeasurementContract {
@@ -13,10 +14,17 @@ impl ComponentAllocationMeasurementContract {
         Self::ViewportInset(inset)
     }
 
+    pub fn fixed_logical_size(width: u16, height: u16) -> Option<Self> {
+        (width != 0 && height != 0).then_some(Self::FixedLogicalSize { width, height })
+    }
+
     pub(crate) fn digest_basis(self) -> String {
         match self {
             Self::FillViewport => "fill-viewport".to_owned(),
             Self::ViewportInset(inset) => inset.digest_basis(),
+            Self::FixedLogicalSize { width, height } => {
+                format!("fixed-logical-size:{width}:{height}")
+            }
         }
     }
 }
@@ -39,5 +47,12 @@ mod tests {
         assert_ne!(fill.digest_basis(), inset.digest_basis());
         assert_ne!(inset.digest_basis(), changed.digest_basis());
         assert_eq!(inset.digest_basis(), "viewport-inset:48:24");
+        assert!(ComponentAllocationMeasurementContract::fixed_logical_size(0, 24).is_none());
+        assert_eq!(
+            ComponentAllocationMeasurementContract::fixed_logical_size(160, 24)
+                .unwrap()
+                .digest_basis(),
+            "fixed-logical-size:160:24"
+        );
     }
 }

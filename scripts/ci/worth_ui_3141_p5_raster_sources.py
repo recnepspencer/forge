@@ -57,6 +57,7 @@ GLYPH_RASTER_SOURCES = (
     f"{TEXT_RASTER}/capacity.rs",
     f"{TEXT_RASTER}/cost.rs",
     f"{TEXT_RASTER}/demand.rs",
+    f"{TEXT_RASTER}/demand/derivation.rs",
     f"{TEXT_RASTER}/demand_alpha_tests.rs",
     f"{TEXT_RASTER}/demand_candidate.rs",
     f"{TEXT_RASTER}/demand_geometry.rs",

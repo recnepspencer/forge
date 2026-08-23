@@ -12,7 +12,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import worth_ui_compile_artifact_cache as cache
-from worth_ui_ledger_execution_cache import CACHE_ENV
+from worth_ui_ledger_execution_observation_store import CACHE_ENV
 
 
 class CompileArtifactCacheTests(unittest.TestCase):

@@ -9,9 +9,13 @@ use crate::certification_support::{
 use crate::mounting::qualified_text_test_support::inert_qualified_layout;
 use worth_ui_host_contract::{
     UiHostSurfaceIdentity, UiHostSurfacePresentationMode, UiMountedPaintCommandChange,
-    UiMountedPaintOrderIntegrity, UiMountedPresentationDelta, UiMountedPresentationDeltaInput,
-    UiMountedPresentationInitial, UiMountedPresentationInitialInput, UiMountedPresentationWorkView,
-    UiMountedSurfaceBindingRequirement, WorthUiHostCapabilityObservationGeneration,
+    UiMountedPaintCommandIdentity, UiMountedPaintOrderIntegrity, UiMountedPresentationDelta,
+    UiMountedPresentationDeltaInput, UiMountedPresentationInitial,
+    UiMountedPresentationInitialInput, UiMountedPresentationWorkView, UiMountedRgba8,
+    UiMountedSemanticTextCompletionInput, UiMountedSemanticTextMechanic,
+    UiMountedSurfaceBindingRequirement, UiMountedTextForegroundSpan,
+    UiMountedTextPaintSpanIdentity, UiTextOriginalRange,
+    WorthUiHostCapabilityObservationGeneration,
 };
 
 fn requirement(
@@ -161,4 +165,226 @@ fn complete_empty_text_set_reaches_the_committed_pin_owner() {
     assert!(prepared.demand_batches().is_empty());
     assert!(prepared.pin_commands().is_empty());
     assert!(prepared.pin_removals().is_empty());
+}
+
+#[test]
+fn mixed_bidi_native_runs_keep_logical_paint_ownership() {
+    crate::mounting::prove_paint_only_mechanic_locality();
+    let (layout, mechanic, command, damage) = mixed_bidi_paint_world();
+    let join = super::MountedTextDemandJoin {
+        dpi: super::UiMountedEventTimeDpiAuthority(std::num::NonZeroU32::new(1_000).unwrap()),
+        lane: worth_ui_host_contract::UiGlyphRasterLane::Ordinary,
+        damage: &damage,
+        resolve: |_| Some(layout.as_ref()),
+        _layout: std::marker::PhantomData,
+    };
+    let prepared = super::prepare_demands(&[(command, &mechanic)], &join).unwrap();
+    let blue_repaint = worth_ui_text::derive_glyph_raster_demand(
+        &layout,
+        worth_ui_text::UiGlyphRasterDemandRequest {
+            paint_spans: &[
+                UiMountedTextForegroundSpan::from_runtime_mounting(
+                    UiTextOriginalRange::new(0, 4).unwrap(),
+                    UiMountedRgba8::new(12, 34, 56, 255),
+                    UiMountedTextPaintSpanIdentity::from_runtime_mounting([17; 32]),
+                ),
+                UiMountedTextForegroundSpan::from_runtime_mounting(
+                    UiTextOriginalRange::new(4, 10).unwrap(),
+                    UiMountedRgba8::new(78, 90, 123, 255),
+                    UiMountedTextPaintSpanIdentity::from_runtime_mounting([29; 32]),
+                ),
+            ],
+            logical_damage: &damage,
+            scale: worth_ui_text::UiGlyphRasterScale::new(1_000, mechanic.qualified_layout_scale())
+                .unwrap(),
+            placement: worth_ui_text::UiGlyphRasterPlacement::from_mounted_logical(
+                mechanic.origin_x(),
+                mechanic.origin_y(),
+            )
+            .unwrap(),
+            lane: worth_ui_host_contract::UiGlyphRasterLane::Ordinary,
+        },
+    )
+    .unwrap();
+    assert!(prepared.demands[0]
+        .records()
+        .iter()
+        .zip(blue_repaint.records())
+        .all(|(before, after)| before.key() == after.key()));
+    let first = UiTextOriginalRange::new(0, 4).unwrap();
+    let second = UiTextOriginalRange::new(4, 10).unwrap();
+    let red = UiMountedRgba8::new(220, 20, 60, 255);
+    let blue = UiMountedRgba8::new(30, 144, 255, 255);
+    let mut observed_first = 0;
+    let mut observed_second = 0;
+    for run in prepared.glyph_runs.iter().copied() {
+        let (owner, color, paint_digest) = if range_contains(first, run.original_range()) {
+            observed_first += 1;
+            (first, red, [17; 32])
+        } else {
+            observed_second += 1;
+            (second, blue, [29; 32])
+        };
+        assert!(range_contains(owner, run.original_range()));
+        assert_eq!(run.foreground(), color);
+        assert_eq!(run.paint_span().digest(), paint_digest);
+        assert_eq!(run.layout_identity(), layout.identity());
+    }
+    assert!(observed_first > 0 && observed_second > 0);
+    assert!(layout
+        .visual_runs()
+        .iter()
+        .any(|run| !run.bidi_level().is_multiple_of(2)));
+    println!(
+        "WORTH_UI_LEDGER_CASES={{\"P5-TEXT-SPAN-PAINT-01\":[\"mixed-bidi-logical-ranges\",\"two-logical-foregrounds\",\"native-glyph-run-attribution\",\"paint-only-layout-reuse\",\"paint-only-raster-key-reuse\",\"affected-command-locality\"]}}"
+    );
+    println!(
+        "WORTH_UI_LEDGER_COUNTERS={{\"P5-TEXT-SPAN-PAINT-01\":{}}}",
+        mechanic.foregrounds().len()
+    );
+}
+
+#[test]
+fn single_color_and_logical_order_mutants_disagree_with_native_runs() {
+    let (layout, mechanic, command, damage) = mixed_bidi_paint_world();
+    let join = super::MountedTextDemandJoin {
+        dpi: super::UiMountedEventTimeDpiAuthority(std::num::NonZeroU32::new(1_000).unwrap()),
+        lane: worth_ui_host_contract::UiGlyphRasterLane::Ordinary,
+        damage: &damage,
+        resolve: |_| Some(layout.as_ref()),
+        _layout: std::marker::PhantomData,
+    };
+    let prepared = super::prepare_demands(&[(command, &mechanic)], &join).unwrap();
+    let observed = prepared
+        .glyph_runs
+        .iter()
+        .map(|run| (run.original_range(), run.foreground()))
+        .collect::<Vec<_>>();
+    let single_color = observed
+        .iter()
+        .map(|(range, _)| (*range, UiMountedRgba8::new(220, 20, 60, 255)))
+        .collect::<Vec<_>>();
+    let mut logical_order = observed.clone();
+    logical_order.sort_by_key(|(range, _)| range.start());
+    assert_ne!(observed, single_color);
+    assert_ne!(observed, logical_order);
+    println!(
+        "WORTH_UI_LEDGER_MUTATION_CASES={{\"P5-TEXT-SPAN-PAINT-01\":[\"single-color\",\"logical-order-rendering\"]}}"
+    );
+    println!(
+        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P5-TEXT-SPAN-PAINT-01\":\"single-color-or-visual-order-or-layout-regen\"}}"
+    );
+}
+
+fn mixed_bidi_paint_world() -> (
+    std::sync::Arc<worth_ui_text::UiQualifiedTextLayout>,
+    UiMountedSemanticTextMechanic,
+    UiMountedPaintCommandIdentity,
+    [worth_ui_host_contract::UiMountedLogicalDamage; 1],
+) {
+    let source: std::sync::Arc<str> = std::sync::Arc::from("abc \u{05d0}\u{05d1}\u{05d2}");
+    let first = UiTextOriginalRange::new(0, 4).unwrap();
+    let second = UiTextOriginalRange::new(4, 10).unwrap();
+    let constraints = worth_ui_text::UiTextParagraphConstraints::new(
+        worth_ui_text::UiTextParagraphConstraintsInput {
+            language: std::sync::Arc::from("und"),
+            base_direction: worth_ui_text::UiTextBaseDirection::Auto,
+            wrap: worth_ui_text::UiTextWrap::UnicodeWord,
+            alignment: worth_ui_text::UiTextAlignment::Start,
+            overflow: worth_ui_text::UiTextOverflow::Clip,
+            font_size_millipoints: 14_000,
+            width_millipoints: 160_000,
+            line_height_millipoints: 18_000,
+            letter_spacing_millipoints: 0,
+            word_spacing_millipoints: 0,
+            tab_interval_millipoints: 56_000,
+            maximum_lines: 1,
+        },
+    )
+    .unwrap();
+    let style = worth_ui_text::UiTextStyle::from_paragraph_constraints(&constraints);
+    let (fonts, _) = worth_ui_text::UiGlobalFontCollection::admit_qualified_profile().unwrap();
+    let fonts = std::sync::Arc::new(fonts);
+    let layout = std::sync::Arc::new(
+        worth_ui_text::qualify_text_layout(
+            worth_ui_text::UiTextParagraphAdmissionInput {
+                source: std::sync::Arc::clone(&source),
+                constraints,
+                profile_generation: worth_ui_host_contract::UiTextProfileGeneration::new(1)
+                    .unwrap(),
+                font_collection_generation: fonts.generation(),
+                text_scale_generation: worth_ui_host_contract::UiTextScaleGeneration::new(1)
+                    .unwrap(),
+                styles: Box::new([
+                    worth_ui_text::UiTextStyleSpan::new(first, style.clone()).unwrap(),
+                    worth_ui_text::UiTextStyleSpan::new(second, style).unwrap(),
+                ]),
+            },
+            fonts,
+        )
+        .unwrap(),
+    );
+    let frame = worth_ui_host_contract::UiMountedFrameIdentity::mint_unbound().unwrap();
+    let instance = worth_ui_host_contract::UiMountedInstanceIdentity::mint_unbound().unwrap();
+    let bounds = worth_ui_host_contract::UiMountedCanonicalBox::canonicalize(
+        worth_ui_host_contract::UiMountedCanonicalBoxInput {
+            x: 0.0,
+            y: 0.0,
+            width: 160.0,
+            height: 48.0,
+            coordinate_space: worth_ui_host_contract::UiMountedCoordinateSpace::Viewport,
+        },
+    )
+    .unwrap();
+    let mechanic = UiMountedSemanticTextMechanic::complete_from_runtime_mounting(
+        UiMountedSemanticTextCompletionInput {
+            content_generation: worth_ui_host_contract::UiMountedContentGeneration::mint_unbound()
+                .unwrap(),
+            frame,
+            surface: worth_ui_host_contract::UiSemanticSurfaceIdentity::mint_unbound().unwrap(),
+            binding: worth_ui_host_contract::UiSurfaceBindingGeneration::mint_unbound().unwrap(),
+            mounted_instance: instance,
+            node_receipt: worth_ui_host_contract::UiMountedNodeReceiptIssuer::mint_for(frame)
+                .unwrap()
+                .receipt_for(instance),
+            allocation_basis: worth_ui_host_contract::UiMountedAllocationBasis::new(
+                1,
+                1,
+                1,
+                worth_ui_host_contract::UiMountedTransformProjection::Identity,
+            ),
+            bounds,
+            clip_bounds: bounds,
+            origin_x: 0.0,
+            origin_y: 0.0,
+            text: source,
+            layout: layout.view(),
+            slot: worth_ui_host_contract::UiSemanticTextSlot::Value,
+            collection_row: None,
+            foregrounds: std::sync::Arc::from([
+                UiMountedTextForegroundSpan::from_runtime_mounting(
+                    first,
+                    UiMountedRgba8::new(220, 20, 60, 255),
+                    UiMountedTextPaintSpanIdentity::from_runtime_mounting([17; 32]),
+                ),
+                UiMountedTextForegroundSpan::from_runtime_mounting(
+                    second,
+                    UiMountedRgba8::new(30, 144, 255, 255),
+                    UiMountedTextPaintSpanIdentity::from_runtime_mounting([29; 32]),
+                ),
+            ]),
+            profile: worth_ui_host_contract::UiSemanticTextProfile::BodyDefault,
+            layer_semantic_order: 1,
+            capability_generation: WorthUiHostCapabilityObservationGeneration::new(7),
+            capability_profile_digest: 11,
+        },
+    )
+    .unwrap();
+    let command = UiMountedPaintCommandIdentity::semantic_text(&mechanic);
+    let damage = [worth_ui_host_contract::UiMountedLogicalDamage::from_runtime_mounting(bounds)];
+    (layout, mechanic, command, damage)
+}
+
+fn range_contains(owner: UiTextOriginalRange, candidate: UiTextOriginalRange) -> bool {
+    owner.start() <= candidate.start() && owner.end() >= candidate.end()
 }

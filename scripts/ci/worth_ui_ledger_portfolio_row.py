@@ -12,10 +12,13 @@ from pathlib import Path
 from worth_ui_3141_proof_plan import prepare_claim, proofs
 from worth_ui_ledger_operational_successors import stage_execution_claim
 from worth_ui_ledger_runner_authentication import authentication_tag
+from worth_ui_ledger_shared_execution_lineage import (
+    SharedExecutionLineageRequest,
+    inherit_shared_receipt_lineage,
+)
 from worth_ui_ledger_verifier_rebinding import (
     REBINDABLE_SOURCE_IDENTITIES,
     bind_fresh_compile_artifact,
-    bind_fresh_predecessor_handoff,
     bind_fresh_shared_world,
     bind_fresh_supporting_world,
 )
@@ -26,6 +29,8 @@ class RowExecutionOptions:
     shared_world_artifact: str | None
     candidate_ledger: Path | None
     supporting_world_artifact: str | None
+    refresh_mode: str
+    predecessor_handoff: str | None
 
 
 @dataclass(frozen=True)
@@ -48,6 +53,8 @@ class PortfolioRowExecutor:
             shared_world_artifact=optional_string(values, "shared_world_artifact"),
             candidate_ledger=optional_path(values, "candidate_ledger"),
             supporting_world_artifact=optional_string(values, "supporting_world_artifact"),
+            refresh_mode=optional_string(values, "refresh_mode") or "direct",
+            predecessor_handoff=optional_string(values, "predecessor_handoff"),
         )
         started = time.perf_counter()
         print(f"[portfolio:start] {row['requirement']}", file=sys.stderr, flush=True)
@@ -68,15 +75,26 @@ class PortfolioRowExecutor:
     ) -> PreparedRowExecution:
         current = dict(row)
         proof = proofs().get(row["requirement"])
-        if proof is not None:
+        if proof is not None and not preserve_historical_claim(current, options.refresh_mode):
             prepare_claim(current, proof)
         identity = artifact.resolve().relative_to(self.root).as_posix()
         command = self.command(current, identity, compile_artifact, options)
         if options.candidate_ledger is not None:
-            stage_execution_claim(options.candidate_ledger, current, identity, command)
+            stage_execution_claim(
+                options.candidate_ledger,
+                current,
+                identity,
+                command,
+                preserve_claim=preserve_historical_claim(current, options.refresh_mode),
+            )
+        predecessor = (
+            options.predecessor_handoff
+            if options.predecessor_handoff is not None
+            else predecessor_artifact(command)
+        )
         return PreparedRowExecution(
             current, artifact, command, execution_environment(
-                compile_artifact, options, predecessor_artifact(command)
+                compile_artifact, options, predecessor
             )
         )
 
@@ -87,10 +105,6 @@ class PortfolioRowExecutor:
         command = current["exact_command"].split()
         command[command.index("--artifact") + 1] = artifact
         command = bind_fresh_compile_artifact(command, compile_artifact)
-        phase = int(current["phase"])
-        if current["requirement"] in {"P3-PREDECESSOR-01", "P4-PREDECESSOR-01"}:
-            handoff = Path(artifact).with_name(f"p{phase}-predecessor-handoff.json")
-            command = bind_fresh_predecessor_handoff(command, handoff.as_posix(), phase)
         if options.shared_world_artifact is not None:
             command = bind_fresh_shared_world(command, options.shared_world_artifact)
         if options.supporting_world_artifact is not None:
@@ -127,6 +141,14 @@ class PortfolioRowExecutor:
             self.root, self.target, mapped, payload["source_identity"]
         )
         payload["executed_exact_command"] = " ".join(command)
+        inherit_shared_receipt_lineage(SharedExecutionLineageRequest(
+            row=current,
+            payload=payload,
+            root=self.root,
+            revision=str(payload["source_revision"]),
+            state_digest=str(payload["source_state_digest"]),
+            current_claim=str(payload["claim_digest"]),
+        ))
         retain_rebound_mapping(self.root, artifact, payload)
 
 
@@ -203,3 +225,8 @@ def optional_path(values: dict[str, object], name: str) -> Path | None:
     if value is not None and not isinstance(value, Path):
         raise TypeError(f"{name} must be a Path")
     return value
+
+
+def preserve_historical_claim(row: dict[str, str], refresh_mode: str) -> bool:
+    del row
+    return refresh_mode.startswith("root-phase-")

@@ -8,6 +8,7 @@ use super::UiNativePhysicalSignalOwner;
 pub(crate) enum UiNativePhysicalSignalSettlement {
     Pending,
     Completed,
+    Superseded,
     Rejected,
     Indeterminate,
     Stale,
@@ -44,21 +45,41 @@ impl UiNativePhysicalSignalOwner {
         &mut self,
         observation: UiNativePhysicalSignalExternalObservation,
     ) -> UiNativePhysicalSignalSettlement {
+        let before = self.observation();
+        let settlement = self.reconcile_observation(observation);
+        let after = self.observation();
+        self.record_transition_observation(
+            super::transition_observation::UiNativePhysicalSignalTransitionObservation::from_owner_reconciliation(
+                observation,
+                settlement,
+                before,
+                after,
+            ),
+        );
+        settlement
+    }
+
+    fn reconcile_observation(
+        &mut self,
+        observation: UiNativePhysicalSignalExternalObservation,
+    ) -> UiNativePhysicalSignalSettlement {
         let Some(token) = self.current_token(observation) else {
             return UiNativePhysicalSignalSettlement::Stale;
         };
-        let status = observation.status();
         let settlement = reconcile(token, observation);
         match settlement {
             UiNativePhysicalSignalSettlement::Pending => self.reconcile_pending(token),
             UiNativePhysicalSignalSettlement::Completed
             | UiNativePhysicalSignalSettlement::Rejected
             | UiNativePhysicalSignalSettlement::Indeterminate => {
-                self.reconcile_terminal(token, status, settlement)
+                self.reconcile_terminal(token, observation.status(), settlement)
             }
             UiNativePhysicalSignalSettlement::Stale => {
                 self.note_stale();
                 UiNativePhysicalSignalSettlement::Stale
+            }
+            UiNativePhysicalSignalSettlement::Superseded => {
+                unreachable!("raw physical status classification cannot supersede a request")
             }
         }
     }
@@ -111,13 +132,24 @@ impl UiNativePhysicalSignalOwner {
                 super::declarations::UiNativePhysicalSignalOperation::Recovery,
             )
         });
-        if self
+        let worker_settlement = match self
             .worker_mut()
             .and_then(|worker| worker.reconcile(token.handle(), token.work(), status))
-            .is_err()
         {
-            self.note_stale();
-            return UiNativePhysicalSignalSettlement::Stale;
+            Ok(settlement) => settlement,
+            Err(()) => {
+                self.note_stale();
+                return UiNativePhysicalSignalSettlement::Stale;
+            }
+        };
+        if matches!(
+            worker_settlement,
+            super::worker::UiNativePhysicalWorkerSettlement::Superseded
+        ) {
+            self.route.remove(token);
+            self.wake.remove(token.work());
+            self.counters.stale_observations = self.counters.stale_observations.saturating_add(1);
+            return UiNativePhysicalSignalSettlement::Superseded;
         }
         self.record_terminal(token, settlement, resolving_recovery);
         settlement
@@ -149,6 +181,9 @@ impl UiNativePhysicalSignalOwner {
             UiNativePhysicalSignalSettlement::Indeterminate => {
                 self.counters.indeterminate_observations =
                     self.counters.indeterminate_observations.saturating_add(1);
+            }
+            UiNativePhysicalSignalSettlement::Superseded => {
+                unreachable!("superseded host work retires before current-terminal accounting")
             }
             _ => unreachable!("only terminal postures reach terminal accounting"),
         }

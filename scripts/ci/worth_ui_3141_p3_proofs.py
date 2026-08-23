@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from worth_ui_3141_closure_sources import (
+    CLOSURE_PROTOCOL_SOURCES,
+    PREDECESSOR_EXECUTION_SOURCES,
+)
+
 
 PREDECESSOR_VALIDATOR = (
     "workspaces/worth-ui/crates/worth-ui-certification/tests/"
@@ -57,13 +62,34 @@ def build_p3_proofs(
             f"{PREDECESSOR_ORACLE}::phase_three_predecessor_handoff_is_current",
             (
                 PREDECESSOR_VALIDATOR,
+                "workspaces/worth-ui/crates/worth-ui-certification/tests/milestone_3141_phase1_ledger/predecessor_artifact/causal_reuse.rs",
+                "workspaces/worth-ui/crates/worth-ui-certification/tests/milestone_3141_phase1_ledger/predecessor_artifact/mapping_digest.rs",
+                "workspaces/worth-ui/crates/worth-ui-certification/tests/milestone_3141_phase1_ledger/predecessor_artifact/ledger_basis.rs",
+                "workspaces/worth-ui/crates/worth-ui-certification/tests/milestone_3141_phase1_ledger/runner_artifact_authentication.rs",
                 PREDECESSOR_ORACLE,
                 "scripts/ci/verify_worth_ui_3141_ledger.py",
-                "scripts/ci/worth_ui_ledger_phase_two_portfolio.py",
+                "scripts/ci/worth_ui_predecessor_causal_refresh.py",
+                "scripts/ci/worth_ui_predecessor_candidate.py",
+                "scripts/ci/worth_ui_predecessor_refresh_order.py",
+                "scripts/ci/worth_ui_predecessor_refresh_runtime.py",
+                "scripts/ci/worth_ui_ledger_causal_revalidation.py",
+                "scripts/ci/worth_ui_ledger_candidate_basis.py",
+                "scripts/ci/worth_ui_ledger_execution_observation_retention.py",
+                "scripts/ci/worth_ui_ledger_execution_runner.py",
+                "scripts/ci/worth_ui_ledger_governed_snapshot.py",
+                "scripts/ci/worth_ui_predecessor_handoff_currentness.py",
+                "scripts/ci/worth_ui_ledger_execution_identity.py",
+                "scripts/ci/worth_ui_ledger_portfolio_snapshot.py",
+                "scripts/ci/worth_ui_ledger_row_cache.py",
+                "scripts/ci/worth_ui_ledger_runner_authentication.py",
+                "scripts/ci/worth_ui_ledger_atomic_closure.py",
+                "scripts/ci/worth_ui_ledger_phase_two_closure.py",
                 "scripts/ci/worth_ui_ledger_phase_three_portfolio.py",
                 "scripts/ci/worth_ui_ledger_operational_successors.py",
                 "scripts/ci/worth_ui_predecessor_handoff.py",
                 "scripts/ci/worth_ui_ledger_source_state.py",
+                "scripts/ci/worth_ui_3141_p3_proofs.py",
+                *PREDECESSOR_EXECUTION_SOURCES,
                 predecessor_artifact,
             ),
             control=control,
@@ -102,8 +128,8 @@ def build_p3_proofs(
         ),
         "P3-TRANSACTION-01": native_control(
             control_type,
-            "native::presentation::retained_draw_list::tests::delta_transaction_tests::exact_delta_updates_draw_order_damage_and_replay_without_retained_scans",
-            "workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/retained_draw_list/delta_transaction_tests.rs",
+            "native::presentation::retained_draw_list::tests::superseded_transaction_tests::superseded_then_rejected_pending_deltas_restore_host_truth_and_resources",
+            "workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/retained_draw_list/superseded_transaction_tests.rs",
         ),
         "P3-UNCHANGED-01": native_control(
             control_type,
@@ -112,12 +138,20 @@ def build_p3_proofs(
         ),
     }
     native_entries = {
-        "P3-BASELINE-REPLAY-01": "workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/pipeline.rs::draw_raster_operations",
+        "P3-BASELINE-REPLAY-01": "workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/pipeline.rs::draw_presentation_operations",
         "P3-DAMAGE-REPLAY-01": "workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/retained_draw_list/replay.rs::replay_plan",
         "P3-DRAW-LIST-01": "workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/retained_draw_list/delta_transaction.rs::stage_delta",
         "P3-PHYSICAL-AMPLIFICATION-01": "workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/delta.rs::delta_cost",
-        "P3-TRANSACTION-01": "workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/delta.rs::settle_staged_delta",
-        "P3-UNCHANGED-01": "workspaces/worth-ui/crates/worth-ui-host-native/src/native/mechanics_adapter/presentation.rs::retain_unchanged",
+        "P3-TRANSACTION-01": "workspaces/worth-ui/crates/worth-ui-host-native/src/native/host_state/presentation_lifecycle/settlement.rs::resolve_superseded_settlement",
+        "P3-UNCHANGED-01": "workspaces/worth-ui/crates/worth-ui-host-native/src/native/mechanics_adapter/presentation/retained_frame.rs::retain_unchanged",
+    }
+    native_extra_sources = {
+        "P3-TRANSACTION-01": (
+            "workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/pending_settlement.rs",
+            "workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/transaction_state.rs",
+            "workspaces/worth-ui/crates/worth-ui-host-native/src/native/mechanics_adapter/presentation/pending_completion.rs",
+            "workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/port.rs",
+        ),
     }
     for requirement, entry in native_entries.items():
         result[requirement] = proof_type(
@@ -130,6 +164,7 @@ def build_p3_proofs(
                 *native_sources,
                 entry.rsplit("::", 1)[0],
                 native_controls[requirement].source,
+                *native_extra_sources.get(requirement, ()),
             ),
             features=("executable-world",),
             control=native_controls[requirement],
@@ -147,6 +182,10 @@ def build_p3_proofs(
             "workspaces/worth-ui/crates/worth-ui-host-headless/src/headless_recorder/presentation.rs",
             "workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/retained_draw_list/reconstruction_tests.rs",
             "workspaces/worth-ui/crates/worth-ui-host-native/src/native/mechanics_adapter/presentation_tests.rs",
+            "workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/pending_settlement.rs",
+            "workspaces/worth-ui/crates/worth-ui-host-native/src/native/host_state/presentation_lifecycle/settlement.rs",
+            "workspaces/worth-ui/crates/worth-ui-host-native/src/native/mechanics_adapter/presentation/pending_completion.rs",
+            "workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/retained_draw_list/superseded_transaction_tests.rs",
         ),
         control=native_control(
             control_type,
@@ -212,7 +251,11 @@ def non_native_proofs(proof_type: Any, control_type: Any) -> dict[str, Any]:
             "milestone_3141_phase1_ledger::phase_three_closure_requires_every_predecessor_and_phase_three_row",
             "workspaces/worth-ui/crates/worth-ui-certification/tests/milestone_3141_phase1_ledger.rs::validate_phase_closure",
             "workspaces/worth-ui/crates/worth-ui-certification/tests/milestone_3141_phase1_ledger.rs::phase_three_closure_requires_every_predecessor_and_phase_three_row",
-            ("workspaces/worth-ui/crates/worth-ui-certification/tests/milestone_3141_phase1_ledger.rs",),
+            (
+                "workspaces/worth-ui/crates/worth-ui-certification/tests/milestone_3141_phase1_ledger.rs",
+                "scripts/ci/worth_ui_3141_p3_proofs.py",
+                *CLOSURE_PROTOCOL_SOURCES,
+            ),
             control=control_type(
                 "worth-ui-certification",
                 ("test", "topology_contracts"),
@@ -254,7 +297,7 @@ def non_native_proofs(proof_type: Any, control_type: Any) -> dict[str, Any]:
         "P3-PRODUCER-SLOPE-01": mixed_world_proof(
             proof_type,
             control_type,
-            "mounting::presentation::work_producer_tests::producer_slope::admitted_sources_leave_only_local_work_inside_delta_issuance",
+            "mounting::presentation::work_producer_tests::producer_slope::complete_retained_scan_and_clone_mutant_is_rejected_by_the_local_oracle",
             extra_sources=(
                 "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/work_producer_tests/world.rs",
             ),
@@ -270,9 +313,9 @@ def non_native_proofs(proof_type: Any, control_type: Any) -> dict[str, Any]:
         ),
         "P3-TOTAL-ORDER-01": library_proof(
             proof_type, control_type, "worth-ui-runtime",
-            "mounting::presentation::work_producer_tests::equal_layer_successor_reorder_remains_authored_when_identity_order_opposes_it",
+            "mounting::presentation::work_producer_tests::total_order::equal_layer_successor_reorder_remains_authored_when_identity_order_opposes_it",
             "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/work_producer/state.rs::from_projection",
-            "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/work_producer_tests.rs",
+            "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/work_producer_tests/total_order.rs",
             "native::presentation::retained_order::tests::repeated_insertions_into_one_gap_keep_a_bounded_balanced_index",
             "workspaces/worth-ui/crates/worth-ui-host-native/src/native/presentation/retained_order.rs",
             control_package="worth-ui-host-native",

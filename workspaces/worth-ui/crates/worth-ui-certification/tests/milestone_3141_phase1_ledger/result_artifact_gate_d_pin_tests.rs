@@ -41,22 +41,27 @@ fn gate_d_pin_artifact() -> Value {
     let mut removed = alpha[..8].to_vec();
     removed.push(digest('b', 8));
     first.extend(frame('b', &removed));
-    let pressure = (0..26).map(|index| digest('c', index)).collect::<Vec<_>>();
+    let pressure = (0..31).map(|index| digest('c', index)).collect::<Vec<_>>();
     first.extend(frame('c', &pressure));
-    let mut second = frame('a', &alpha);
-    second.extend(frame('c', &pressure));
+    let second = first.clone();
+    let mut third = frame('a', &alpha);
+    third.extend(frame('c', &pressure));
     json!({
         "hostile_control": {"executed_test_count": 1},
         "boundary_observation": {
-            "mounted_bindings": 1, "pinned_layouts": 3, "presentations": 1,
-            "atlas_transactions": 3, "native_peak_pin_count": 44,
-            "native_frame_pin_counts": [44, 35, 0],
-            "native_frame_pins": [first, second, []],
+            "schema": "worth-ui-native-gate-d-pin-world-v3",
+            "mounted_bindings": 1, "pinned_layouts": 3, "presentations": 4,
+            "atlas_transactions": 4, "native_peak_pin_count": 49,
+            "native_frame_pin_counts": [49, 49, 40, 0],
+            "native_frame_pins": [first, second, third, []],
+            "observation_history_complete": true,
             "physical_signal_runtimes": 1, "physical_signal_workers": 1,
-            "alpha_entries": 35, "color_entries": 1, "terminal_zero": true
+            "alpha_entries": 40, "color_entries": 1,
+            "closed_query_resources": 1, "query_close_complete": true,
+            "terminal_zero": true
         },
         "construction_cost": "main-tests=1;hostile-controls=1;product-processes=1;compile-sessions=0;courtroom-worlds=1",
-        "execution_cost": "executed-tests=2;presentations=1;atlas-transactions=3"
+        "execution_cost": "executed-tests=2;presentations=4;atlas-transactions=4"
     })
 }
 

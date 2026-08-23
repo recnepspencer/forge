@@ -89,6 +89,12 @@ fn admit(
             ));
         }
     };
+    state.record_text_atlas_plan_observation(
+        crate::native::text_atlas::UiNativeTextAtlasPlanObservation::from_admitted_plan(
+            presentation_basis,
+            plan.snapshot(),
+        ),
+    );
     if let Some(denial) = physical_capacity_denial(state, &plan) {
         reject_signal_before_effects(state, planning_token);
         return Err(reject_plan(state, plan, denial));

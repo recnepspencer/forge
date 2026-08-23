@@ -69,6 +69,7 @@ pub(crate) struct UiQualifiedTextLayoutArtifact {
     profile: UiTextProfileGeneration,
     font_collection: UiFontCollectionGeneration,
     text_scale: UiTextScaleGeneration,
+    width_basis: worth_ui_host_contract::UiQualifiedTextLayoutWidthBasis,
 }
 
 pub(crate) struct UiQualifiedTextLayoutArtifactInput {
@@ -92,6 +93,7 @@ pub(crate) struct UiQualifiedTextLayoutArtifactInput {
     pub profile: UiTextProfileGeneration,
     pub font_collection: UiFontCollectionGeneration,
     pub text_scale: UiTextScaleGeneration,
+    pub width_basis: worth_ui_host_contract::UiQualifiedTextLayoutWidthBasis,
 }
 
 impl UiQualifiedTextFaceResource {
@@ -169,6 +171,7 @@ impl UiQualifiedTextLayoutArtifact {
             profile: input.profile,
             font_collection: input.font_collection,
             text_scale: input.text_scale,
+            width_basis: input.width_basis,
         }
     }
 
@@ -205,6 +208,7 @@ impl UiQualifiedTextLayoutArtifact {
             profile: self.profile,
             font_collection: self.font_collection,
             text_scale: self.text_scale,
+            width_basis: self.width_basis,
         })
     }
 }

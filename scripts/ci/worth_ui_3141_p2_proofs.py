@@ -38,13 +38,17 @@ def application_proofs(control_type, proof_factory):
             ),
         ),
         "P2-EVENT-LOOP-01": proof_factory(
-            f"{HOST}/event_loop.rs::transition_callback_thread",
+            f"{HOST}/event_loop/callback_thread.rs::transition",
             control(
                 control_type,
                 "worth-ui-host-native",
                 "native::event_loop::tests::callback_thread_transition_rejects_off_thread_run",
                 f"{HOST}/event_loop/tests.rs",
             ),
+            f"{HOST}/event_loop/thread_posture.rs",
+            "workspaces/worth-ui/crates/worth-ui-host-native/src/qualification.rs",
+            "workspaces/worth-ui/crates/worth-ui-host-native/src/prepared_host.rs",
+            "workspaces/worth-ui/apps/platform-pulse/src/native_phase2_evidence.rs",
         ),
         "P2-READINESS-01": proof_factory(
             f"{HOST}/readiness.rs::commit_latest",
@@ -112,6 +116,9 @@ def lifecycle_proofs(control_type, proof_factory):
                 "native::event_loop::tests::indeterminate_external_work_moves_into_retryable_cleanup_authority",
                 f"{HOST}/event_loop/tests.rs",
             ),
+            f"{HOST}/event_loop/thread_posture.rs",
+            f"{HOST}/event_loop/finish.rs",
+            "workspaces/worth-ui/apps/platform-pulse/src/native_phase2_evidence.rs",
         ),
         "P2-PORTS-01": proof_factory(
             f"{HOST}/presentation/transaction_state.rs::settle_port_result",
@@ -124,7 +131,7 @@ def lifecycle_proofs(control_type, proof_factory):
             f"{HOST}/event_loop/window_port.rs",
             f"{HOST}/graphics/port.rs",
             f"{HOST}/presentation/port.rs",
-            f"{HOST}/presentation/readback_port.rs",
+            f"{HOST}/presentation/pending_wgpu_readback.rs",
             f"{HOST}/event_loop.rs",
             f"{HOST}/presentation.rs",
         ),
@@ -132,6 +139,9 @@ def lifecycle_proofs(control_type, proof_factory):
             "workspaces/worth-ui/apps/platform-pulse/src/main.rs::run_native_phase2_world",
             boundary_control(control_type),
             "workspaces/worth-ui/apps/platform-pulse/src/native_seed_application.rs",
+            "workspaces/worth-ui/apps/platform-pulse/src/native_phase2_evidence.rs",
+            f"{HOST}/event_loop/thread_posture.rs",
+            f"{HOST}/event_loop/finish.rs",
         ),
     }
 

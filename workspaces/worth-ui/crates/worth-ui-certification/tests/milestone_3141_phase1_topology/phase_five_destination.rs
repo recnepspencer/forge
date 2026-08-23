@@ -169,53 +169,22 @@ fn readiness_identities_emit_no_phase_five_feature_counter() {
         "worth-ui-runtime/src/native_platform/text_presentation",
         "worth-ui-host-contract/src/qualified_text",
     ] {
-        let parsed = parse_crate_module(relative);
+        let production_source = workspace_source_files(relative)
+            .into_iter()
+            .filter(|(path, _)| {
+                !path.contains("/tests/")
+                    && !path.ends_with("_tests.rs")
+                    && !path.ends_with("/tests.rs")
+            })
+            .map(|(_, source)| source)
+            .collect::<String>();
         assert!(
-            !parsed.source.contains("WORTH_UI_LEDGER_COUNTERS"),
+            !production_source.contains("WORTH_UI_LEDGER_COUNTERS"),
             "{relative} mints a ledger counter"
         );
         assert!(
-            !parsed.source.contains("P5-GLYPH-RASTER-01"),
+            !production_source.contains("P5-GLYPH-RASTER-01"),
             "{relative} binds a feature row"
-        );
-    }
-}
-
-#[test]
-fn unimplemented_phase_five_feature_rows_remain_open() {
-    let ledger = std::fs::read_to_string(
-        Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../../../_docs/worth-ui/milestone-3.14.1-proof-ledger.csv"),
-    )
-    .expect("milestone ledger");
-    for requirement in [
-        "P5-ATLAS-01",
-        "P5-ATLAS-PINNING-01",
-        "P5-TEXT-DPI-01",
-        "P5-TEXT-SPAN-PAINT-01",
-        "P5-TEXT-PIXELS-01",
-        "P5-TEXT-RECONSTRUCTION-01",
-        "P5-TEXT-COST-01",
-        "P5-TEXT-ASYNC-PRESENTATION-01",
-        "P5-CLOSE-01",
-    ] {
-        let row = ledger
-            .lines()
-            .skip(1)
-            .map(|line| line.split(',').collect::<Vec<_>>())
-            .find(|columns| columns.get(1) == Some(&requirement))
-            .unwrap_or_else(|| panic!("missing {requirement}"));
-        let result = *row.get(37).expect("result column");
-        let command_result = *row.get(22).expect("command_result column");
-        let exact_command = *row.get(20).expect("exact_command column");
-        assert_eq!(result, "OPEN", "{requirement} result is {result}");
-        assert_eq!(
-            command_result, "not-run",
-            "{requirement} command_result is {command_result}"
-        );
-        assert_eq!(
-            exact_command, "not-bound",
-            "{requirement} exact_command is {exact_command}"
         );
     }
 }

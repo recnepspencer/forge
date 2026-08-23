@@ -13,7 +13,10 @@ mod lowering_authority;
 mod lowering_identity;
 mod managed_time;
 mod managed_wake_execution;
+mod owned_async;
+mod owned_async_observation;
 mod owned_installation;
+mod owned_target_index;
 mod provider_admission;
 mod provider_semantics;
 mod providers;
@@ -56,6 +59,11 @@ pub use managed_time::{
     BridgeManagedTemporalIntentReconciliation, BridgeManagedTemporalIntentReconciliationParts,
 };
 pub use managed_wake_execution::BridgeManagedConditionalExecutionRequest;
+pub use owned_async::BridgeOwnedAsyncRequestResponseDeclaration;
+pub use owned_async_observation::{
+    BridgeAsyncEffectsIndeterminateObservation, BridgeOwnedAsyncEffectsIndeterminateIssuer,
+    BridgeOwnedAsyncRequestAdmission,
+};
 pub use owned_installation::BridgeOwnedConditionalInstallationRequest;
 pub use provider_semantics::BridgeConditionalProviderSemantics;
 pub use providers::{

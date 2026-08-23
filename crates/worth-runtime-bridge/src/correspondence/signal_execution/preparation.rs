@@ -49,8 +49,9 @@ impl BridgePreparedScopedSignalInvalidation {
     }
 }
 
-pub(crate) fn prepare_scoped_signal_invalidation(
+pub(crate) fn prepare_scoped_signal_invalidation_for_targets(
     correspondence: &BridgeInstalledSemanticCorrespondence,
+    targets: &[super::super::InstalledCorrespondenceTarget],
     change_set: &BridgeDeliveredCorrespondenceChangeSet,
     capabilities: Vec<worth_signal::facade::InstalledSignalAspectCapability>,
 ) -> (
@@ -59,10 +60,7 @@ pub(crate) fn prepare_scoped_signal_invalidation(
 ) {
     let mut scoped_changes = Vec::with_capacity(capabilities.len());
     let mut prepared_targets = Vec::with_capacity(capabilities.len());
-    for (capability, target) in capabilities
-        .into_iter()
-        .zip(correspondence.targets.as_slice())
-    {
+    for (capability, target) in capabilities.into_iter().zip(targets) {
         let regions = super::super::locality_lowering::lower_installed_target_regions(
             change_set.dependency(),
             target,

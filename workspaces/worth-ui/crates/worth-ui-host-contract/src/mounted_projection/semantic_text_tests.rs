@@ -158,7 +158,7 @@ fn collection_slot_and_row_correlation_are_atomic() {
 #[test]
 fn row_and_table_byte_caps_are_enforced() {
     assert_eq!(UiMountedSemanticTextMechanic::MAX_CONTENT_BYTES, 65_536);
-    assert_eq!(UiMountedSemanticTextTable::MAX_ROWS, 4_096);
+    assert_eq!(UiMountedSemanticTextTable::MAX_ROWS, 8_192);
     assert_eq!(UiMountedSemanticTextTable::MAX_BYTES, 8 * 1_024 * 1_024);
 
     let mut input = fixture();
@@ -297,6 +297,7 @@ fn inert_layout(source: &str) -> UiQualifiedTextLayoutView<'static> {
         profile: UiTextProfileGeneration::new(1).unwrap(),
         font_collection: UiFontCollectionGeneration::new(1).unwrap(),
         text_scale: UiTextScaleGeneration::new(1).unwrap(),
+        width_basis: crate::UiQualifiedTextLayoutWidthBasis::new(80_000).unwrap(),
     })
 }
 

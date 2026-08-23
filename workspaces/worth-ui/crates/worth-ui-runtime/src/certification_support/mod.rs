@@ -22,6 +22,7 @@ mod layout_admission;
 mod local_interaction_recipient;
 mod mounted_frame_execution;
 mod planning;
+mod presentation_async_installation;
 mod presentation_mechanics;
 mod rebind_identity_lifecycle;
 mod runtime_launch;
@@ -87,6 +88,10 @@ pub use mounted_frame_execution::{
     WorthUiMountedPublicationCertificationExt,
 };
 pub use planning::planning_pair_for_certification_suite;
+pub use presentation_async_installation::{
+    WorthUiPresentationAsyncInstallationCertificationDenial,
+    WorthUiPresentationAsyncInstallationCertificationExt,
+};
 pub use presentation_mechanics::initial_presentation_mechanics_for_certification;
 
 pub use rebind_identity_lifecycle::{

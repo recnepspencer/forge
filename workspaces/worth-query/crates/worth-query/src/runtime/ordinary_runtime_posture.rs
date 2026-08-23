@@ -99,6 +99,9 @@ pub(in crate::runtime) fn project_live_subscription_ordinary_runtime_posture(
             Some(WorthQueryOrdinaryRuntimeAsyncPostureKind::Denied) => {
                 WorthQueryOrdinaryRuntimePostureKind::Denied
             }
+            Some(WorthQueryOrdinaryRuntimeAsyncPostureKind::Unresolved) => {
+                WorthQueryOrdinaryRuntimePostureKind::Unresolved
+            }
             None => WorthQueryOrdinaryRuntimePostureKind::Current,
         },
     };
@@ -142,6 +145,9 @@ fn ordinary_async_posture_kind(
         }
         WorthQueryRuntimeAsyncResultStateKind::Denied => {
             WorthQueryOrdinaryRuntimeAsyncPostureKind::Denied
+        }
+        WorthQueryRuntimeAsyncResultStateKind::Unresolved => {
+            WorthQueryOrdinaryRuntimeAsyncPostureKind::Unresolved
         }
     }
 }

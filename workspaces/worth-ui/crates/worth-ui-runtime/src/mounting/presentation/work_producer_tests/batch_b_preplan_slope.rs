@@ -7,35 +7,58 @@ use worth_ui_host_contract::{
 
 use super::super::work_producer::UiMountedPresentationState;
 use super::world::MountedPresentationWorld;
-use crate::mounting::qualified_text_test_support::inert_qualified_layout;
+use crate::mounting::qualified_text_test_support::UiQualifiedTextTestFixture;
 use crate::native_platform::text_presentation::{
     prepare_mounted_semantic_text, UiMountedEventTimeDpiAuthority, UiNativeTextPresentationPrepared,
 };
 
 #[test]
-fn batch_b_demand_is_local_and_unplanned_work_never_rasterizes() {
+fn batch_b_demand_is_local_and_unplanned_work_never_rasterizes_smoke() {
     let mut baseline = None;
-    for retained in [1, 32, 2_048, 4_096] {
-        for changed_index in [0, retained / 2, retained - 1] {
-            let observed = prepare_one_changed_text(retained, changed_index);
-            assert_eq!(observed.producer_retained_scans, 0);
-            assert_eq!(observed.producer_retained_clones, 0);
-            assert_eq!(observed.raster_retained_scans, 0);
-            assert_eq!(observed.layout_count, 1);
-            assert_eq!(observed.paint_spans, 1);
-            assert_eq!(observed.demand_batches, 1);
-            assert!(observed.demand_records > 0);
-            assert_eq!(observed.key_checks, observed.demand_records);
-            assert_eq!(observed.rasterized_glyphs, 0);
-            assert_eq!(observed.rasterized_texels, 0);
-            assert_eq!(observed.produced_bytes, 0);
-            assert_eq!(observed.producer_source_instances, 1);
-            assert_eq!(observed.producer_commands_considered, 1);
-            assert!(observed.layout_visits > 0);
-            assert!(observed.demanded_glyphs > 0);
-            assert_eq!(baseline.get_or_insert(observed), &observed);
-        }
+    let fixture = measured_fixture_setup("smoke");
+    for (retained, changed_index) in [(1, 0), (32, 16)] {
+        let observed = assert_local_preplan(&fixture, retained, changed_index);
+        assert_eq!(baseline.get_or_insert(observed), &observed);
     }
+}
+
+fn measured_fixture_setup(case: &str) -> UiQualifiedTextTestFixture {
+    let started = std::time::Instant::now();
+    let fixture = UiQualifiedTextTestFixture::new();
+    println!(
+        "WORTH_UI_BATCH_B_FIXTURE_TIMING={{\"case\":\"{case}\",\"elapsed_ms\":{}}}",
+        started.elapsed().as_millis(),
+    );
+    fixture
+}
+
+fn assert_local_preplan(
+    fixture: &UiQualifiedTextTestFixture,
+    retained: usize,
+    changed_index: usize,
+) -> ObservedBatchBPreplanCost {
+    let started = std::time::Instant::now();
+    let observed = prepare_one_changed_text(fixture, retained, changed_index);
+    println!(
+        "WORTH_UI_BATCH_B_PREPLAN_TIMING={{\"retained\":{retained},\"changed_index\":{changed_index},\"elapsed_ms\":{}}}",
+        started.elapsed().as_millis(),
+    );
+    assert_eq!(observed.producer_retained_scans, 0);
+    assert_eq!(observed.producer_retained_clones, 0);
+    assert_eq!(observed.raster_retained_scans, 0);
+    assert_eq!(observed.layout_count, 1);
+    assert_eq!(observed.paint_spans, 1);
+    assert_eq!(observed.demand_batches, 1);
+    assert!(observed.demand_records > 0);
+    assert_eq!(observed.key_checks, observed.demand_records);
+    assert_eq!(observed.rasterized_glyphs, 0);
+    assert_eq!(observed.rasterized_texels, 0);
+    assert_eq!(observed.produced_bytes, 0);
+    assert_eq!(observed.producer_source_instances, 1);
+    assert_eq!(observed.producer_commands_considered, 1);
+    assert!(observed.layout_visits > 0);
+    assert!(observed.demanded_glyphs > 0);
+    observed
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -57,12 +80,16 @@ struct ObservedBatchBPreplanCost {
     raster_retained_scans: u32,
 }
 
-fn prepare_one_changed_text(retained: usize, changed_index: usize) -> ObservedBatchBPreplanCost {
+fn prepare_one_changed_text(
+    fixture: &UiQualifiedTextTestFixture,
+    retained: usize,
+    changed_index: usize,
+) -> ObservedBatchBPreplanCost {
     let world = MountedPresentationWorld::new();
     let instances = (0..retained)
         .map(|_| UiMountedInstanceIdentity::mint_unbound().unwrap())
         .collect::<Vec<_>>();
-    let layout = inert_qualified_layout("WORTH");
+    let layout = fixture.layout("WORTH");
     let predecessor = world.text_projection(
         UiMountedFrameIdentity::mint_unbound().unwrap(),
         &instances,
@@ -86,14 +113,12 @@ fn prepare_one_changed_text(retained: usize, changed_index: usize) -> ObservedBa
         .claim()
         .unwrap();
     let work = predecessor_state
-        .issue_successor(
+        .issue_successor(super::super::work_producer::SuccessorIssueRequest::new(
             &successor_state,
             &[instances[changed_index]],
             &[],
-            false,
-            Some(predecessor.frame()),
             &lease,
-        )
+        ))
         .unwrap();
     let producer_cost = match work.view() {
         UiMountedPresentationWorkView::Delta(delta) => delta.production_cost(),

@@ -25,6 +25,11 @@ pub(crate) struct UiMountedFrameReconciliationCandidate {
     receipt: UiMountedFramePublicationReceipt,
 }
 
+pub(crate) enum UiMountedFramePublicationCommit {
+    Current(UiMountedFramePublicationReceipt),
+    Superseded(super::UiMountedSupersededFrame),
+}
+
 pub enum UiMountedFrameOutcome {
     Published(UiMountedFramePublicationReceipt),
     Unchanged(UiMountedFramePublicationReceipt),
@@ -32,6 +37,7 @@ pub enum UiMountedFrameOutcome {
     RejectedBeforeEffects(super::UiMountedRejectedFrame),
     InFlight(super::UiMountedPresentationInFlight),
     PresentationIndeterminate(super::UiMountedIndeterminateFrame),
+    Superseded(super::UiMountedSupersededFrame),
     RetentionDenied(super::UiMountedFrameRetentionRejection),
     AdmissionDenied(super::UiMountedPresentationAdmissionRejection),
     CompletionDenied(super::UiMountedPresentationCompletionDenial),
@@ -43,7 +49,10 @@ impl UiMountedFrameReconciliationCandidate {
         current: &UiMountedFramePublicationReceipt,
         replacements: &[super::UiMountedSurfaceReconciliationBinding],
     ) -> Self {
-        debug_assert_eq!(admission.frame().canonical_core().frame(), current.frame());
+        let successor = admission.frame().canonical_core().frame();
+        let predecessor = (successor != current.frame())
+            .then_some(current.frame())
+            .or_else(|| current.predecessor());
         let mut bindings = admission
             .frame()
             .manifest()
@@ -55,8 +64,8 @@ impl UiMountedFrameReconciliationCandidate {
         let receipt = UiMountedFramePublicationReceipt {
             inner: std::rc::Rc::new(UiMountedFramePublicationReceiptInner {
                 attempt: admission.attempt(),
-                frame: current.frame(),
-                predecessor: current.predecessor(),
+                frame: successor,
+                predecessor,
                 generation: current.generation().clone(),
                 bindings: bindings.into_boxed_slice(),
                 cost: std::cell::Cell::new(admission.frame().cost_report()),
@@ -76,15 +85,25 @@ impl UiMountedFrameReconciliationCandidate {
         self,
         presented: super::UiMountedPresentedFrame,
         state: &mut super::UiMountedIdentityState,
-    ) -> UiMountedFramePublicationReceipt {
+    ) -> UiMountedFramePublicationCommit {
         let Self { receipt, .. } = self;
         let mount_cost = retained_publication_cost(presented.receipt().cost_report());
         let presentation = presented.receipt().clone();
         receipt.finalize_cost(mount_cost);
         let (frame, reservation) = presented.into_publication_parts();
-        state.publish_reconciled_frame(frame, receipt.clone());
-        reservation.commit(mount_cost, presentation);
-        receipt
+        match reservation.commit(mount_cost, presentation) {
+            Ok(()) => {
+                state.publish_reconciled_frame(frame, receipt.clone());
+                UiMountedFramePublicationCommit::Current(receipt)
+            }
+            Err(crate::mounting::retention::UiMountedRetentionCommitDenial::RevisionChanged) => {
+                UiMountedFramePublicationCommit::Superseded(super::UiMountedSupersededFrame::new(
+                    receipt.attempt(),
+                    frame,
+                    mount_cost,
+                ))
+            }
+        }
     }
 }
 
@@ -123,15 +142,25 @@ impl UiMountedFramePublicationCandidate {
         self,
         presented: super::UiMountedPresentedFrame,
         state: &mut super::UiMountedIdentityState,
-    ) -> UiMountedFramePublicationReceipt {
+    ) -> UiMountedFramePublicationCommit {
         let Self { receipt } = self;
         let mount_cost = retained_publication_cost(presented.receipt().cost_report());
         let presentation = presented.receipt().clone();
         receipt.finalize_cost(mount_cost);
         let (frame, reservation) = presented.into_publication_parts();
-        state.publish_presented_frame(frame, receipt.clone());
-        reservation.commit(mount_cost, presentation);
-        receipt
+        match reservation.commit(mount_cost, presentation) {
+            Ok(()) => {
+                state.publish_presented_frame(frame, receipt.clone());
+                UiMountedFramePublicationCommit::Current(receipt)
+            }
+            Err(crate::mounting::retention::UiMountedRetentionCommitDenial::RevisionChanged) => {
+                UiMountedFramePublicationCommit::Superseded(super::UiMountedSupersededFrame::new(
+                    receipt.attempt(),
+                    frame,
+                    mount_cost,
+                ))
+            }
+        }
     }
 }
 
@@ -181,6 +210,7 @@ impl UiMountedFrameOutcome {
             Self::RejectedBeforeEffects(frame) => Some(frame.cost_report()),
             Self::InFlight(frame) => Some(frame.cost_report()),
             Self::PresentationIndeterminate(frame) => Some(frame.cost_report()),
+            Self::Superseded(frame) => Some(frame.cost_report()),
             Self::RetentionDenied(rejection) => Some(
                 rejection
                     .frame()

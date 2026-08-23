@@ -6,12 +6,19 @@
 //! remain inside the native host; this module retains only portable demand,
 //! pin-candidate, and settlement meaning.
 
+mod async_correspondence;
 mod mounted_coordinator;
 mod preparation;
+mod query_correspondence;
 mod rasterization;
 mod recovery;
 mod transaction;
+mod work_observation;
 
+pub(crate) use async_correspondence::{
+    UiPresentationAsyncPresentedAdmission, UiPresentationAsyncRuntime,
+    UiPresentationAsyncTerminalCleanup,
+};
 pub(crate) use mounted_coordinator::{
     UiNativeMountedSurfaceTextObservation, UiNativeMountedTextCoordinator,
 };
@@ -20,5 +27,9 @@ pub(crate) use preparation::{
     UiNativeTextPresentationPreparation, UiNativeTextPresentationPrepared,
     UiNativeTextPresentationReadiness,
 };
-pub(crate) use rasterization::{UiNativeTextMissRasterizer, UiNativeTextRasterWorkReport};
+pub(crate) use query_correspondence::derive_text_presentation_request_bases;
+pub(crate) use rasterization::UiNativeTextMissRasterizer;
 pub(crate) use transaction::UiNativeTextAtlasTransaction;
+pub(crate) use work_observation::{
+    UiNativeTextPresentationMechanicObservation, UiNativeTextPresentationWorkObservation,
+};

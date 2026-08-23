@@ -8,6 +8,12 @@ use super::UiDraftSessionIdentity;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiLocalInputStopReason {
     NoLocalRecipient,
+    MissingInputRecipientAffinity,
+    InputRecipientAffinityChanged,
+    TextProfileGenerationChanged {
+        expected: worth_ui_host_contract::UiTextProfileGeneration,
+        observed: Option<worth_ui_host_contract::UiTextProfileGeneration>,
+    },
     ForeignBinding {
         expected: UiSurfaceBindingGeneration,
         observed: UiSurfaceBindingGeneration,

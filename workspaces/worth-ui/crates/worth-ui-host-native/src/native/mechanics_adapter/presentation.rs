@@ -6,14 +6,24 @@ use worth_ui_host_contract::{
 
 use crate::native::{
     presentation::{
-        observation_for_retained, present_cold_reconstruction, present_delta, present_initial,
-        UiNativePresentationFailure, UiWgpuNativePresentationPort,
+        present_cold_reconstruction, present_delta, present_initial, UiNativePresentationFailure,
+        UiWgpuNativePresentationPort,
     },
     UiNativeEffectPosture, UiNativeHostState, UiNativePresentationWorkKind,
     UiNativeRetainedFrameObservation,
 };
 
 use super::presentation_text_atlas as text_atlas;
+
+#[path = "presentation/pending_completion.rs"]
+mod pending_completion;
+pub(super) use pending_completion::{complete_pending, owns_completion, stop_pending};
+
+#[path = "presentation/retained_frame.rs"]
+mod retained_frame;
+
+#[path = "presentation/glyph_run_admission.rs"]
+pub(super) mod glyph_run_admission;
 
 #[cfg(test)]
 #[path = "presentation/text_atlas_tests.rs"]
@@ -27,7 +37,7 @@ pub(super) fn perform_native_presentation(
         return match text_atlas::begin(state, view) {
             text_atlas::UiMountedTextWorkOutcome::Ready => {
                 state.record_text_pin_frame_observation();
-                text_atlas::settle_deferred(state, view, None)
+                perform_surface_work(state, view)
             }
             text_atlas::UiMountedTextWorkOutcome::Pending(pending) => {
                 text_atlas::settle_deferred(state, view, Some(pending))
@@ -47,7 +57,7 @@ fn perform_surface_work(
         UiMountedPresentationWorkView::Delta(_) => perform_delta(state, view),
         UiMountedPresentationWorkView::Reconstruction(_) => perform_reconstruction(state, view),
         UiMountedPresentationWorkView::Unchanged(unchanged) => {
-            perform_unchanged(state, view, unchanged)
+            retained_frame::perform_unchanged(state, view, unchanged)
         }
     }
 }
@@ -57,6 +67,7 @@ fn perform_reconstruction(
     view: &UiMountedFrameConsumptionView<'_>,
 ) -> UiHostSurfacePresentationOutcome {
     let key = view.binding().diagnostic_value();
+    let defer_initial_observation = defer_presentation_initial_observation(state);
     let Some(graphics) = state.graphics.as_mut() else {
         return adapter_declined();
     };
@@ -64,16 +75,19 @@ fn perform_reconstruction(
         graphics,
         &mut state.resources,
         &mut state.physical_signal,
+        &state.text_atlas,
+        state.text_atlas_gpu.as_ref(),
         view,
+        defer_initial_observation,
     );
     let (cost, retained, pixels, port_crossings) = match result {
         Ok(reconstruction) => reconstruction.into_parts(),
-        Err(failure) => return settle_presentation_failure(state, failure),
+        Err(failure) => return settle_presentation_failure(state, view, failure),
     };
     state.retained_draw_lists.insert(key, retained);
     state.reconstruction_required.remove(&key);
     state.effect_posture = UiNativeEffectPosture::Presented;
-    record_retained_frame(
+    retained_frame::record_retained_frame(
         state,
         view,
         key,
@@ -82,7 +96,12 @@ fn perform_reconstruction(
         cost,
         port_crossings,
     );
-    completed(state, key, view, cost, true)
+    let outcome = completed(state, key, view, cost, true);
+    #[cfg(feature = "certification-support")]
+    if matches!(&outcome, UiHostSurfacePresentationOutcome::Presented(_)) {
+        state.record_qualified_derived_state_reconstruction(key);
+    }
+    outcome
 }
 
 fn perform_initial(
@@ -93,6 +112,7 @@ fn perform_initial(
     if state.retained_draw_lists.contains_key(&key) {
         return malformed();
     }
+    let defer_initial_observation = defer_presentation_initial_observation(state);
     let Some(graphics) = state.graphics.as_mut() else {
         return adapter_declined();
     };
@@ -100,24 +120,26 @@ fn perform_initial(
         graphics,
         &mut state.resources,
         &mut state.physical_signal,
+        &state.text_atlas,
+        state.text_atlas_gpu.as_ref(),
         view,
+        defer_initial_observation,
     );
     let (observation, cost, retained) = match result {
         Ok(presented) => presented.into_parts(),
-        Err(failure) => return settle_presentation_failure(state, failure),
+        Err(failure) => return settle_presentation_failure(state, view, failure),
     };
     state.effect_posture = UiNativeEffectPosture::Presented;
-    state
-        .retained_frame_observations
-        .push(UiNativeRetainedFrameObservation::observed(
-            view.frame().diagnostic_value(),
-            UiNativePresentationWorkKind::Initial,
-            [
-                observation.retained_baseline_rgba8(),
-                observation.retained_center_rgba8(),
-            ],
-            cost,
-        ));
+    state.record_retained_frame_observation(UiNativeRetainedFrameObservation::observed(
+        view.frame().diagnostic_value(),
+        UiNativePresentationWorkKind::Initial,
+        [
+            observation.retained_baseline_rgba8(),
+            observation.retained_center_rgba8(),
+        ],
+        cost,
+        Some(observation.clone()),
+    ));
     state.last_presentation = Some(observation);
     state.retained_draw_lists.insert(key, retained);
     completed(state, key, view, cost, true)
@@ -134,17 +156,12 @@ fn perform_delta(
     let result = present_delta_work(state, view, key);
     let (cost, painted, observed_pixels, port_crossings) = match result {
         Ok(presented) => presented.into_parts(),
-        Err(failure) => {
-            if matches!(failure, UiNativePresentationFailure::Indeterminate(_)) {
-                state.reconstruction_required.insert(key);
-            }
-            return settle_presentation_failure(state, failure);
-        }
+        Err(failure) => return settle_presentation_failure(state, view, failure),
     };
     state.reconstruction_required.remove(&key);
     state.effect_posture = UiNativeEffectPosture::Presented;
-    let pixels = observed_pixels.unwrap_or_else(|| latest_pixels(state));
-    record_retained_frame(
+    let pixels = observed_pixels.unwrap_or_else(|| retained_frame::latest_pixels(state));
+    retained_frame::record_retained_frame(
         state,
         view,
         key,
@@ -161,6 +178,7 @@ fn present_delta_work(
     view: &UiMountedFrameConsumptionView<'_>,
     key: u64,
 ) -> Result<crate::native::presentation::UiNativeDeltaPresentation, UiNativePresentationFailure> {
+    let defer_initial_observation = defer_presentation_initial_observation(state);
     let Some(graphics) = state.graphics.as_mut() else {
         return Err(before_effects_declined());
     };
@@ -171,85 +189,26 @@ fn present_delta_work(
         graphics,
         &mut state.resources,
         &mut state.physical_signal,
+        &state.text_atlas,
+        state.text_atlas_gpu.as_ref(),
         view,
         retained,
+        defer_initial_observation,
     )
 }
 
-fn perform_unchanged(
-    state: &mut UiNativeHostState,
-    view: &UiMountedFrameConsumptionView<'_>,
-    unchanged: &worth_ui_host_contract::UiMountedPresentationUnchanged,
-) -> UiHostSurfacePresentationOutcome {
-    let key = view.binding().diagnostic_value();
-    if state.reconstruction_required.contains(&key) {
-        return require_owner_reconstruction(state, key);
+fn defer_presentation_initial_observation(state: &mut UiNativeHostState) -> bool {
+    #[cfg(feature = "certification-support")]
+    {
+        state
+            .qualification
+            .defer_next_presentation_initial_observation()
     }
-    retain_unchanged(state, view, unchanged, key)
-}
-
-fn retain_unchanged(
-    state: &mut UiNativeHostState,
-    view: &UiMountedFrameConsumptionView<'_>,
-    unchanged: &worth_ui_host_contract::UiMountedPresentationUnchanged,
-    key: u64,
-) -> UiHostSurfacePresentationOutcome {
-    let Some(retained) = state.retained_draw_lists.get_mut(&key) else {
-        return malformed();
-    };
-    if retained.apply_unchanged(unchanged).is_err() {
-        return malformed();
+    #[cfg(not(feature = "certification-support"))]
+    {
+        let _ = state;
+        false
     }
-    let pixels = latest_pixels(state);
-    record_retained_frame(
-        state,
-        view,
-        key,
-        UiNativePresentationWorkKind::Unchanged,
-        pixels,
-        Default::default(),
-        0,
-    );
-    completed(state, key, view, Default::default(), false)
-}
-
-fn record_retained_frame(
-    state: &mut UiNativeHostState,
-    view: &UiMountedFrameConsumptionView<'_>,
-    key: u64,
-    kind: UiNativePresentationWorkKind,
-    pixels: [[u8; 4]; 2],
-    cost: worth_ui_host_contract::UiHostPresentationCostReport,
-    port_crossings: u8,
-) {
-    state
-        .retained_frame_observations
-        .push(UiNativeRetainedFrameObservation::observed(
-            view.frame().diagnostic_value(),
-            kind,
-            pixels,
-            cost,
-        ));
-    state.last_presentation = state
-        .graphics
-        .as_ref()
-        .zip(state.retained_draw_lists.get(&key))
-        .and_then(|(graphics, retained)| {
-            observation_for_retained(view, graphics, retained, pixels, cost, port_crossings)
-        });
-}
-
-fn latest_pixels(state: &UiNativeHostState) -> [[u8; 4]; 2] {
-    state
-        .retained_frame_observations
-        .last()
-        .map(|observation| {
-            [
-                observation.retained_baseline_rgba8(),
-                observation.retained_center_rgba8(),
-            ]
-        })
-        .unwrap_or([[0, 0, 0, 0]; 2])
 }
 
 fn require_owner_reconstruction(
@@ -277,12 +236,25 @@ fn completed(
         .then_some(UiMountedEffectFamily::NativePaint)
         .into_iter()
         .collect();
-    UiHostSurfacePresentationOutcome::Presented(UiMountedSurfacePresentationCompletion::new(
-        UiHostSurfacePresentationMode::NativeDisplay,
-        epoch,
-        UiMountedCompletedEffects::new(effects),
-        cost,
-    ))
+    let outcome =
+        UiHostSurfacePresentationOutcome::Presented(UiMountedSurfacePresentationCompletion::new(
+            UiHostSurfacePresentationMode::NativeDisplay,
+            epoch,
+            UiMountedCompletedEffects::new(effects),
+            cost,
+        ));
+    let _input_settlement = state.lifecycle_protocol.record_completed_presentation(
+        view.protocol(),
+        view.host_session_identity(),
+        worth_ui_host_contract::UiHostObservationPresentationBasis::new(
+            view.frame(),
+            view.binding(),
+            epoch,
+        ),
+    );
+    #[cfg(feature = "certification-support")]
+    state.apply_completed_qualified_derived_state_loss(key);
+    outcome
 }
 
 fn presentation_epoch(
@@ -301,15 +273,36 @@ fn presentation_epoch(
 
 fn settle_presentation_failure(
     state: &mut UiNativeHostState,
+    view: &UiMountedFrameConsumptionView<'_>,
     failure: UiNativePresentationFailure,
 ) -> UiHostSurfacePresentationOutcome {
     match failure {
         UiNativePresentationFailure::BeforeEffects(denial) => {
             UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial)
         }
-        UiNativePresentationFailure::Indeterminate(pending) => {
+        UiNativePresentationFailure::Pending(mut pending) => {
+            let token = view.issue_completion_token();
+            if !pending.bind_completion_identity(token.diagnostic_value()) {
+                return mark_presentation_indeterminate(state);
+            }
+            let _remembered = state.lifecycle_protocol.remember_pending_presentation(
+                view.protocol(),
+                view.host_session_identity(),
+                view.binding(),
+                token.diagnostic_value(),
+            );
+            #[cfg(feature = "certification-support")]
+            {
+                let qualification = state
+                    .qualification
+                    .presentation_external_qualification(pending.physical_work());
+                pending.qualify_external_observation(
+                    qualification.effects_indeterminate(),
+                    qualification.duplicate_completed(),
+                );
+            }
             state.pending_presentations.push(pending);
-            mark_presentation_indeterminate(state)
+            UiHostSurfacePresentationOutcome::InFlight(token)
         }
     }
 }

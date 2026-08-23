@@ -26,7 +26,7 @@ fn qualified_asset_license_and_manifests_have_exact_digests() {
     );
     assert_eq!(
         sha256(WORTH_UI_NATIVE_PROFILE_MANIFEST.as_bytes()),
-        "1c937a22f42660267480a055e48256b25decf0c4cd5d4d7b493e5df034c6c65b"
+        "a0dfb071145ee2531be8ca2fb52489185b88e13412bdb5b0231d424e6d5cdd9d"
     );
 }
 
@@ -249,15 +249,37 @@ const NATIVE_STRING_FIELDS: &[(&str, &str)] = &[
     ("text_antialiasing", "qualified-grayscale-coverage"),
     ("coordinate_rounding", "min-floor;max-ceil;half-open"),
     ("baseline_rgba", "0;0;0;0"),
-    ("baseline_authority", "same-surface-binding-profile-runtime-receipt"),
-    ("unsupported_mode", "typed-denial-before-effects-no-fallback"),
+    (
+        "baseline_authority",
+        "same-surface-binding-profile-runtime-receipt",
+    ),
+    (
+        "unsupported_mode",
+        "typed-denial-before-effects-no-fallback",
+    ),
     ("initial_logical_size", "application-profile"),
     ("client_background", "transparent"),
-    ("qualification_observations", "os-build;adapter-name;vendor-id;device-id;driver-info;scale-factors;required-modes;required-limits"),
+    (
+        "qualification_observations",
+        "os-build;adapter-name;vendor-id;device-id;driver-info;scale-factors;required-modes;required-limits;message-position;wrapped-coordinate;move-dpi-order",
+    ),
     ("presented_source_observation", "retained-target-readback"),
-    ("client_area_observation", "pulse-executable-world-xcap-0.9.7-wgc"),
-    ("client_window_observation", "winsafe-0.0.28-dwm-kernel-user"),
-    ("client_input_observation", "uiautomation-0.25.0-control-input"),
+    (
+        "client_area_observation",
+        "pulse-executable-world-xcap-0.9.7-wgc",
+    ),
+    (
+        "client_window_observation",
+        "winsafe-0.0.28-dwm-kernel-user",
+    ),
+    (
+        "native_pointer_position_observation",
+        "winsafe-0.0.28-user:GetMessagePos;event-ordered-client-origin;low16-wrapping;no-cursor-query",
+    ),
+    (
+        "client_input_observation",
+        "uiautomation-0.25.0-control-input",
+    ),
 ];
 
 const NATIVE_INTEGER_FIELDS: &[(&str, i64)] = &[

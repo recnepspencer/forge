@@ -1,4 +1,4 @@
-use worth_ui_host_contract::{UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity};
+use worth_ui_host_contract::UiMountedInstanceIdentity;
 
 use super::UiMountedIdentityState;
 
@@ -8,18 +8,10 @@ pub(in crate::mounting) struct UiPresentedAuthoredAttribution {
 }
 
 impl UiMountedIdentityState {
-    pub(in crate::mounting) fn presented_authored_attribution(
+    pub(in crate::mounting) fn current_authored_attribution(
         &self,
         mounted_instance: UiMountedInstanceIdentity,
-        node_receipt: UiMountedNodeReceiptIdentity,
     ) -> Option<UiPresentedAuthoredAttribution> {
-        let expected_receipt = self
-            .current_receipt_basis
-            .as_ref()?
-            .receipt_for(mounted_instance)?;
-        if expected_receipt != node_receipt {
-            return None;
-        }
         let (node, _) = self
             .current_projection
             .as_ref()?

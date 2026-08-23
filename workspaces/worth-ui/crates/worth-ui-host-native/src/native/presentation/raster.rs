@@ -35,11 +35,31 @@ pub(crate) struct RasterRect {
     bottom: f32,
     pub(super) physical_width: u32,
     pub(super) physical_height: u32,
+    physical_left: u32,
+    physical_top: u32,
+}
+
+impl RasterRect {
+    pub(super) const fn physical_bounds(self) -> [f32; 4] {
+        [
+            self.physical_left as f32,
+            self.physical_top as f32,
+            self.physical_width as f32,
+            self.physical_height as f32,
+        ]
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(super) struct RasterVertex {
     pub(super) position: [f32; 2],
+    pub(super) color: [f32; 4],
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(super) struct GlyphVertex {
+    pub(super) position: [f32; 2],
+    pub(super) texture_uv: [f32; 2],
     pub(super) color: [f32; 4],
 }
 
@@ -115,6 +135,8 @@ fn raster_from_basis_optional(
         bottom: 1.0 - physical_bottom as f32 * 2.0 / extent[1] as f32,
         physical_width: physical_right - physical_left,
         physical_height: physical_bottom - physical_top,
+        physical_left,
+        physical_top,
     }))
 }
 

@@ -33,15 +33,19 @@ pub(super) fn qualify_layout(
     let input = worth_ui_text::UiTextParagraphAdmissionInput {
         source: Arc::clone(source),
         constraints,
-        profile_generation: worth_ui_host_contract::UiTextProfileGeneration::new(1)
-            .expect("qualified profile generation"),
+        profile_generation: super::current_text_profile_generation(),
         font_collection_generation: context.font_collection.generation(),
         text_scale_generation: worth_ui_host_contract::UiTextScaleGeneration::new(1)
             .expect("initial text scale generation"),
         styles,
     };
-    let layout = worth_ui_text::qualify_text_layout(input, Arc::clone(context.font_collection))
-        .map(Arc::new)
+    let request = worth_ui_text::UiQualifiedTextLayoutRequest::new(
+        input,
+        Arc::clone(context.font_collection),
+    );
+    let layout = context
+        .qualification_cache
+        .qualify(request)
         .map_err(UiMountedProjectionDenial::SemanticTextQualification)?;
     Ok(UiMountedTextQualification {
         layout,

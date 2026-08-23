@@ -72,3 +72,29 @@ pub(crate) fn install(
         watcher,
     })
 }
+
+#[cfg(feature = "executable-world")]
+pub(crate) fn install_native_presentation_async(
+) -> Option<worth_ui::facade::query_binding::WorthUiPresentationAsyncInstallation> {
+    install_native_presentation_async_plan(
+        worth_ui::facade::query_binding::WorthUiPresentationAsyncHostPlan::prepare().ok()?,
+    )
+}
+
+#[cfg(feature = "executable-world")]
+pub(crate) fn install_native_presentation_async_for_transition_courtroom(
+) -> Option<worth_ui::facade::query_binding::WorthUiPresentationAsyncInstallation> {
+    install_native_presentation_async()
+}
+
+#[cfg(feature = "executable-world")]
+fn install_native_presentation_async_plan(
+    plan: worth_ui::facade::query_binding::WorthUiPresentationAsyncHostPlan,
+) -> Option<worth_ui::facade::query_binding::WorthUiPresentationAsyncInstallation> {
+    let (request, completion) = plan.into_parts();
+    let installation =
+        worth_query_host::facade::runtime::WorthQueryExecutionRuntimeInstaller::new()
+            .install(request.generation(), request.into_packages())
+            .ok()?;
+    completion.complete(installation).ok()
+}

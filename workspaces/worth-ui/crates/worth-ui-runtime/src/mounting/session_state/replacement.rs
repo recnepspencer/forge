@@ -253,8 +253,14 @@ fn settle_graph_replacement(
 ) -> UiMountedGraphReplacementPresentation {
     match outcome {
         crate::mounting::UiMountedPresentationOutcome::Presented(presented) => {
-            let receipt = publication.commit_presented(presented, successor.identity.as_mut());
-            UiMountedGraphReplacementPresentation::Published { successor, receipt }
+            match publication.commit_presented(presented, successor.identity.as_mut()) {
+                crate::mounting::UiMountedFramePublicationCommit::Current(receipt) => {
+                    UiMountedGraphReplacementPresentation::Published { successor, receipt }
+                }
+                crate::mounting::UiMountedFramePublicationCommit::Superseded(_) => {
+                    unreachable!("ordinary graph replacement cannot overlap a successor")
+                }
+            }
         }
         crate::mounting::UiMountedPresentationOutcome::RejectedBeforeEffects(rejected) => {
             let observation = crate::mounting::UiMountedHostObservationTransition::Rejected(
@@ -272,6 +278,9 @@ fn settle_graph_replacement(
                 publication,
                 handle,
             })
+        }
+        crate::mounting::UiMountedPresentationOutcome::Superseded(_) => {
+            unreachable!("ordinary graph replacement cannot settle as superseded")
         }
         crate::mounting::UiMountedPresentationOutcome::PresentationIndeterminate(frame) => {
             let observation = super::publication::indeterminate_observation(&frame);

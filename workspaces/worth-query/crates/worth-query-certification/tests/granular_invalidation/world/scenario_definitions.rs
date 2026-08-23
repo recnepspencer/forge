@@ -4,16 +4,8 @@ use super::{
 };
 
 const PROJECTED: &[&str] = &["projected-value"];
-const DESK_ROLES: &[&str] = &[
-    "projected-value",
-    "selection-or-membership",
-    "grouping",
-];
-const RANK_ROLES: &[&str] = &[
-    "projected-value",
-    "ordering",
-    "window-boundary",
-];
+const DESK_ROLES: &[&str] = &["projected-value", "selection-or-membership", "grouping"];
+const RANK_ROLES: &[&str] = &["projected-value", "ordering", "window-boundary"];
 const FINANCIAL_RECORD: worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts =
     worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts::entity(0, 1, 1);
 const LIFECYCLE_RECORD: worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts =
@@ -24,17 +16,15 @@ pub(super) fn define(
     seed: u64,
 ) -> (Vec<DeclaredDependency>, Vec<GranularInvalidationMutation>) {
     match scenario {
-        GranularInvalidationScenario::CurveDetailToLiveRisk => {
-            curve_world(
-                "bridge-owned:curve-risk:dependency:2",
-                [
-                    "financial-primary-curve-2",
-                    "financial-primary-curve-2",
-                    "financial-primary-curve-2",
-                ],
-                "financial-primary",
-            )
-        }
+        GranularInvalidationScenario::CurveDetailToLiveRisk => curve_world(
+            "bridge-owned:curve-risk:dependency:2",
+            [
+                "financial-primary-curve-2",
+                "financial-primary-curve-2",
+                "financial-primary-curve-2",
+            ],
+            "financial-primary",
+        ),
         GranularInvalidationScenario::OpaqueRegionPlatformTwin => curve_world_with_query_signal(
             "bridge-owned:curve-risk:dependency:2",
             [
@@ -338,6 +328,8 @@ fn lifecycle_mutation(
 ) -> GranularInvalidationMutation {
     GranularInvalidationMutation {
         relational_record_identity: LIFECYCLE_RECORD,
-        ..mutation(identity, aspect, partition, detail, field, magnitude, current)
+        ..mutation(
+            identity, aspect, partition, detail, field, magnitude, current,
+        )
     }
 }

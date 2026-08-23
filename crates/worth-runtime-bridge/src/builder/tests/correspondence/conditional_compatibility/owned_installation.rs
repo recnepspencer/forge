@@ -5,9 +5,12 @@ use crate::builder::tests::correspondence::semantic_dependencies::{
     freshly_installed_dependency, temporal_contract,
 };
 use crate::facade::{
-    BridgeConditionalLocation, BridgeConditionalProviderSemantics, BridgeConditionalProviderSet,
+    BridgeAsyncCompletionRejectionKind, BridgeAsyncRequestAdmissionRequest,
+    BridgeAsyncRequestTruthViewBasis, BridgeConditionalLocation,
+    BridgeConditionalProviderSemantics, BridgeConditionalProviderSet,
     BridgeConditionalResolverContext, BridgeConditionalWakeProvider,
-    BridgeOwnedConditionalInstallationRequest, BridgeOwnedSignalRuntime,
+    BridgeOwnedAsyncRequestResponseDeclaration, BridgeOwnedConditionalInstallationRequest,
+    BridgeOwnedSignalRuntime,
 };
 
 struct Wake;
@@ -73,5 +76,48 @@ fn bridge_rejects_owned_dependencies_from_another_conditional_node() {
     assert_eq!(
         denial.kind(),
         crate::facade::BridgeConditionalDenialKind::DeclarationCorrespondenceMismatch
+    );
+}
+
+#[test]
+fn effects_indeterminate_observation_cannot_cross_owned_runtimes() {
+    let mut source =
+        BridgeOwnedSignalRuntime::with_owned_signal_graph(runtime(exact_mapping(), Vec::new()))
+            .expect("source Bridge owns its Signal graph");
+    let mut foreign =
+        BridgeOwnedSignalRuntime::with_owned_signal_graph(runtime(exact_mapping(), Vec::new()))
+            .expect("foreign Bridge owns a distinct Signal graph");
+    let lowered = source
+        .install_owned_async_request_response(BridgeOwnedAsyncRequestResponseDeclaration::new(
+            "owned-async-source",
+            "owned-async-source-legacy",
+            313,
+            512,
+            1,
+        ))
+        .expect("owned async source installs");
+    let binding = source.bind_owned_async_request_basis(
+        &lowered,
+        BridgeAsyncRequestTruthViewBasis::authoritative(
+            crate::truth_identity_fixtures::truth_branch_fixture("truth-main"),
+            crate::truth_identity_fixtures::truth_commit_fixture("commit-a"),
+            crate::truth_identity_fixtures::truth_snapshot_fixture("snapshot-a"),
+        ),
+    );
+    let admission = source
+        .admit_owned_async_request_identity(
+            BridgeAsyncRequestAdmissionRequest::request_response(&lowered, &binding)
+                .expect("request basis has request-response shape"),
+        )
+        .expect("source owner admits request");
+    let (_, issuer) = admission.into_parts();
+
+    let denial = foreign
+        .admit_owned_async_effects_indeterminate(issuer.certify(64))
+        .expect_err("another owned runtime cannot consume the observation");
+
+    assert_eq!(
+        denial.kind(),
+        BridgeAsyncCompletionRejectionKind::ForeignOwnerObservationAuthority
     );
 }

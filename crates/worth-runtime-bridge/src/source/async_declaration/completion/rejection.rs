@@ -12,6 +12,7 @@ pub enum BridgeAsyncCompletionRejectionKind {
     FamilyKindMismatch,
     SignalRuntimeThreadAffinityViolation,
     SignalCompletionAdmissionUnavailable,
+    ForeignOwnerObservationAuthority,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

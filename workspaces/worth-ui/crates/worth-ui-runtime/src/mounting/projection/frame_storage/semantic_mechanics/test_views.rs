@@ -16,7 +16,7 @@ impl UiMountedSemanticMechanicSource {
             .filter_map(|row| {
                 Some((
                     row.collection_row()?.correlation_digest(),
-                    Arc::clone(row.qualified_layout()),
+                    Arc::clone(row.qualified_layout()?),
                 ))
             })
             .collect()

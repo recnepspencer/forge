@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import os
-import subprocess
-import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 from worth_ui_ledger_command import (
     ROOT,
@@ -12,7 +11,17 @@ from worth_ui_ledger_command import (
     source_digest,
     source_revision,
 )
-from worth_ui_ledger_portfolio_snapshot import DIGEST_ENV, REVISION_ENV, source_state_for_row
+from worth_ui_ledger_artifact_identity import (
+    declared_predecessor_handoff,
+    requirement_phase,
+)
+from worth_ui_ledger_portfolio_snapshot import source_state_for_row
+from worth_ui_ledger_source_state import source_state_digest
+from worth_ui_predecessor_causal_refresh import refresh_handoff
+from worth_ui_predecessor_handoff_currentness import (
+    PredecessorVerification,
+    is_current,
+)
 
 
 @dataclass(frozen=True)
@@ -38,48 +47,57 @@ def refresh_handoff_when_required(test: GovernedTest) -> None:
         "P3-PREDECESSOR-01",
         "P4-PREDECESSOR-01",
         "P5-PREDECESSOR-01",
+        "P6-PREDECESSOR-01",
     }:
         supplied = os.environ.get("WORTH_UI_PREDECESSOR_ARTIFACT")
         if supplied is not None:
-            if supplied not in test.sources or not (ROOT / supplied).is_file():
+            phase = requirement_phase(test.requirement)
+            declared = supplied in test.sources
+            temporary = is_temporary_predecessor_handoff(supplied, phase)
+            if (not declared and not temporary) or not (ROOT / supplied).is_file():
                 raise RuntimeError("supplied predecessor handoff is not an exact governed source")
-            return
+            configured = os.environ.get("WORTH_UI_MILESTONE_3141_LEDGER")
+            ledger = (
+                Path(configured).resolve()
+                if configured
+                else ROOT / "_docs/worth-ui/milestone-3.14.1-proof-ledger.csv"
+            )
+            if current_supplied_handoff(supplied, phase, ledger):
+                return
         refresh_predecessor_handoff(test)
 
 
+def is_temporary_predecessor_handoff(identity: str, phase: int) -> bool:
+    try:
+        parsed = declared_predecessor_handoff(identity, phase)
+    except ValueError:
+        return False
+    return parsed.relative_path.startswith("workspaces/worth-ui/target/")
+
+
 def refresh_predecessor_handoff(test: GovernedTest) -> None:
-    phase = int(test.requirement[1])
+    phase = requirement_phase(test.requirement)
     handoff_name = f"p{phase}-predecessor-handoff.json"
     identity = next((source for source in test.sources if source.endswith(handoff_name)), None)
     if identity is None:
         raise ValueError("predecessor proof omits its handoff artifact")
-    environment = dict(os.environ)
-    for name in (
-        "WORTH_UI_MILESTONE_3141_LEDGER",
-        "WORTH_UI_SHARED_WORLD_ARTIFACT",
-        "WORTH_UI_SUPPORTING_WORLD_ARTIFACT",
-        REVISION_ENV,
-        DIGEST_ENV,
-    ):
-        environment.pop(name, None)
-    completed = subprocess.run(
-        [
-            sys.executable,
-            "scripts/ci/verify_worth_ui_3141_ledger.py",
-            "--through-phase",
-            str(phase - 1),
-            "--artifact",
-            identity,
-        ],
-        cwd=ROOT,
-        env=environment,
-        stdout=subprocess.PIPE,
-        text=True,
-        check=False,
+    configured = os.environ.get("WORTH_UI_MILESTONE_3141_LEDGER")
+    ledger = Path(configured).resolve() if configured else ROOT / "_docs/worth-ui/milestone-3.14.1-proof-ledger.csv"
+    refresh_handoff(ROOT, ledger, phase, declared_predecessor_handoff(identity, phase))
+
+
+def current_supplied_handoff(identity: str, phase: int, ledger: Path) -> bool:
+    try:
+        typed = declared_predecessor_handoff(identity, phase)
+    except ValueError:
+        return False
+    revision = source_revision()
+    return is_current(
+        typed,
+        PredecessorVerification(
+            ROOT, ledger, phase, revision, source_state_digest(revision)
+        ),
     )
-    if completed.returncode != 0:
-        sys.stderr.write(completed.stdout)
-        raise RuntimeError("fresh predecessor verification failed")
 
 
 def governed_sources_changed(

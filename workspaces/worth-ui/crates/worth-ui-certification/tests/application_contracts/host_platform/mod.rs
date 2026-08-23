@@ -6,8 +6,20 @@ use oracle::{adjudicate, expectation, ordered_pixel, OracleDenial};
 use world::{produce_maximum_overlap, MountedPresentationWorld};
 
 #[test]
+fn mixed_carrier_successors_are_local_in_ordinary_smoke() {
+    assert_mixed_carrier(mixed_carrier::SMOKE);
+}
+
+#[test]
 #[ignore = "closure courtroom: mounts the full 2,048 rectangle + 2,048 text public world"]
 fn mixed_carrier_successors_are_local_at_the_4096_command_ceiling() {
+    let production = assert_mixed_carrier(mixed_carrier::CLOSURE);
+    assert_collection_row_correlation(&production.initial, 1_359);
+}
+
+fn assert_mixed_carrier(
+    profile: mixed_carrier::MixedCarrierFixtureProfile,
+) -> mixed_carrier::MixedCarrierProduction {
     let recorder = worth_ui_host_headless::WorthUiHeadlessRecorder::with_viewport_extent(
         worth_ui_host_headless::UiHeadlessRecorderCapacity::new(1, 8, 8_192),
         worth_ui::facade::measurement_exchange::UiViewportExtentObservation {
@@ -15,19 +27,49 @@ fn mixed_carrier_successors_are_local_at_the_4096_command_ceiling() {
             height: 96.0,
         },
     );
-    let production = mixed_carrier::produce(recorder);
-    assert_eq!(production.initial.filled_rects().len(), 2_048);
-    assert_eq!(production.initial.semantic_text().len(), 2_048);
-    assert_eq!(production.initial.nodes().len(), 2_048);
-    assert_eq!(production.text_replacement.filled_rects().len(), 2_048);
-    assert_eq!(production.text_replacement.semantic_text().len(), 2_048);
-    assert_eq!(production.text_replacement.nodes().len(), 2_048);
-    assert_eq!(production.rectangle_removal.filled_rects().len(), 2_047);
-    assert_eq!(production.rectangle_removal.semantic_text().len(), 2_048);
-    assert_eq!(production.rectangle_removal.nodes().len(), 2_047);
-    assert_eq!(production.rectangle_insertion.filled_rects().len(), 2_048);
-    assert_eq!(production.rectangle_insertion.semantic_text().len(), 2_048);
-    assert_eq!(production.rectangle_insertion.nodes().len(), 2_048);
+    let production = mixed_carrier::produce(recorder, profile);
+    assert_eq!(
+        production.initial.filled_rects().len(),
+        profile.rectangle_count
+    );
+    assert_eq!(production.initial.semantic_text().len(), profile.text_count);
+    assert_eq!(production.initial.nodes().len(), profile.rectangle_count);
+    assert_eq!(
+        production.text_replacement.filled_rects().len(),
+        profile.rectangle_count
+    );
+    assert_eq!(
+        production.text_replacement.semantic_text().len(),
+        profile.text_count
+    );
+    assert_eq!(
+        production.text_replacement.nodes().len(),
+        profile.rectangle_count
+    );
+    assert_eq!(
+        production.rectangle_removal.filled_rects().len(),
+        profile.rectangle_count - 1
+    );
+    assert_eq!(
+        production.rectangle_removal.semantic_text().len(),
+        profile.text_count
+    );
+    assert_eq!(
+        production.rectangle_removal.nodes().len(),
+        profile.rectangle_count - 1
+    );
+    assert_eq!(
+        production.rectangle_insertion.filled_rects().len(),
+        profile.rectangle_count
+    );
+    assert_eq!(
+        production.rectangle_insertion.semantic_text().len(),
+        profile.text_count
+    );
+    assert_eq!(
+        production.rectangle_insertion.nodes().len(),
+        profile.rectangle_count
+    );
     assert_eq!(
         mixed_carrier::collection_value_count(&production.initial, "Ready"),
         1
@@ -35,14 +77,14 @@ fn mixed_carrier_successors_are_local_at_the_4096_command_ceiling() {
     assert_eq!(
         mixed_carrier::collection_value_count(
             &production.text_replacement,
-            &mixed_carrier::replacement_value(1_358),
+            &mixed_carrier::replacement_value(profile, profile.collection_rows - 1),
         ),
         1
     );
     assert_eq!(
         mixed_carrier::collection_value_count(
             &production.text_replacement,
-            &mixed_carrier::initial_value(1_358),
+            &mixed_carrier::initial_value(profile, profile.collection_rows - 1),
         ),
         0
     );
@@ -50,10 +92,13 @@ fn mixed_carrier_successors_are_local_at_the_4096_command_ceiling() {
         mixed_carrier::collection_value_count(&production.text_replacement, "Ready"),
         1
     );
-    assert_eq!(mixed_carrier::text_bytes(&production.initial), 1_048_576);
+    assert_eq!(
+        mixed_carrier::text_bytes(&production.initial),
+        profile.text_bytes
+    );
     assert_eq!(
         mixed_carrier::text_bytes(&production.text_replacement),
-        1_048_576
+        profile.text_bytes
     );
     for cost in &production.costs[1..4] {
         assert_local_successor_cost(*cost);
@@ -66,6 +111,30 @@ fn mixed_carrier_successors_are_local_at_the_4096_command_ceiling() {
     );
     println!("WORTH_UI_LEDGER_WORLD=1");
     println!("WORTH_UI_LEDGER_PRESENTATIONS=5");
+    production
+}
+
+fn assert_collection_row_correlation(
+    transcript: &worth_ui_host_headless::UiHeadlessMountedFrameTranscript,
+    expected_rows: usize,
+) {
+    let collection = transcript
+        .semantic_text()
+        .iter()
+        .filter(|mechanic| mechanic.collection_row().is_some())
+        .collect::<Vec<_>>();
+    assert_eq!(collection.len(), expected_rows);
+    assert!(collection.iter().all(|mechanic| {
+        mechanic.slot()
+            == worth_ui_host_contract::UiSemanticTextSlot::CollectionValue {
+                selected_field_ordinal: 0,
+            }
+    }));
+    let correlations = collection
+        .iter()
+        .map(|mechanic| mechanic.collection_row().unwrap().correlation_digest())
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(correlations.len(), expected_rows);
 }
 
 fn assert_adapter_delta(costs: &[worth_ui_host_contract::UiHostPresentationCostReport]) {

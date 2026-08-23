@@ -10,6 +10,7 @@ pub(super) fn outcome_label(outcome: &UiMountedFrameOutcome) -> String {
         UiMountedFrameOutcome::PresentationIndeterminate(_) => {
             "presentation-indeterminate".to_owned()
         }
+        UiMountedFrameOutcome::Superseded(_) => "superseded".to_owned(),
         UiMountedFrameOutcome::RetentionDenied(_) => "retention-denied".to_owned(),
         UiMountedFrameOutcome::AdmissionDenied(_) => "admission-denied".to_owned(),
         UiMountedFrameOutcome::CompletionDenied(_) => "completion-denied".to_owned(),
@@ -22,6 +23,9 @@ pub(super) fn stop_label(
     match stop {
         worth_ui::facade::app::WorthUiMountedFrameExecutionStop::PublicationLease(_) => {
             "publication-lease".to_owned()
+        }
+        worth_ui::facade::app::WorthUiMountedFrameExecutionStop::HostMeasurement(denial) => {
+            format!("host-measurement:{denial:?}")
         }
         worth_ui::facade::app::WorthUiMountedFrameExecutionStop::FrameworkTransition(_) => {
             "framework-transition".to_owned()

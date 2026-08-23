@@ -6,6 +6,7 @@ mod active_application_session;
 mod active_framework_turn;
 mod app;
 mod app_builder;
+mod app_inspection_routing;
 mod application_replacement;
 mod builder;
 #[cfg(any(test, feature = "certification-support"))]
@@ -52,6 +53,9 @@ mod native_intent_evidence;
 mod native_intent_execution;
 mod native_intent_posture;
 mod native_intent_terminal_posture;
+mod native_observation_settlement;
+#[cfg(test)]
+mod native_observation_tests;
 mod native_projection_rebind;
 #[cfg(test)]
 mod native_projection_rebind_tests;
@@ -143,7 +147,9 @@ pub use mounted_preview::{
 pub use native_application_program::{
     UiNativeApplicationFrame, UiNativeApplicationProgram, UiNativeApplicationProgramDenial,
     UiNativeComponentPresenceChange, UiNativeComponentSemanticTextChange,
+    UiNativeThemeTokenValueChange,
 };
+pub(crate) use native_application_shell::UiNativeApplicationQueryCloseObservation;
 pub use native_application_shell::{
     WorthUiNativeApplicationCleanup, WorthUiNativeApplicationShell,
     WorthUiNativeApplicationShellLaunchDenial, WorthUiNativeApplicationShutdownReceipt,

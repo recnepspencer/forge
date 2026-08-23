@@ -7,32 +7,79 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import call, patch
 
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from worth_ui_ledger_command import claim_digest_for_row
 from worth_ui_ledger_retained_portfolio import (
     digest_json,
+    execution_input_rows,
     portfolio_identity,
-    publish,
-    row_claim_digest,
+    publish as publish_candidate,
     validate,
 )
+from worth_ui_ledger_artifact_transaction import ArtifactTransaction
+from worth_ui_ledger_causal_revalidation import source_digest_at
+from worth_ui_ledger_candidate_basis import from_path
+from worth_ui_ledger_portfolio_executions import (
+    aggregate_executions,
+    authenticated_row_payload,
+)
+from worth_ui_ledger_execution_identity import AuthenticatedExecution
+from worth_ui_ledger_execution_binding import artifact_bindings_match
 from worth_ui_ledger_runner_authentication import authentication_tag
 from worth_ui_ledger_runner_authentication import RunnerProvenanceUnavailable
+import verify_worth_ui_3141_ledger as verifier
 
 
 CANONICAL = Path("_docs/worth-ui/milestone-3.14.1-proof-ledger.csv")
 
 
+def publish(
+    root: Path,
+    ledger: Path,
+    phase: int,
+    revision: str,
+    state_digest: str,
+) -> dict[str, object]:
+    transaction = ArtifactTransaction(root, ledger, [])
+    try:
+        result = publish_candidate(root, ledger, phase, revision, state_digest)
+        transaction.prepare_commit(ledger.read_bytes())
+        transaction.commit()
+        return result
+    except BaseException:
+        transaction.rollback()
+        raise
+
+
 class RetainedPortfolioTests(unittest.TestCase):
+    def test_phase_two_portfolio_owns_the_complete_directly_executed_prefix(self) -> None:
+        rows = [
+            {"phase": "1", "requirement": "P1-ONE-01"},
+            {"phase": "2", "requirement": "P2-ONE-01"},
+        ]
+        self.assertEqual(execution_input_rows(rows, 2), rows)
+        self.assertEqual(execution_input_rows(rows, 3), [])
+
     def test_exact_portfolio_validates_without_reexecution(self) -> None:
         with self.fixture() as (root, ledger):
             published = publish(root, ledger, 4, "a" * 40, "b" * 64)
             retained = validate(root, ledger, 4, "a" * 40, "b" * 64)
             self.assertEqual(retained, published)
             self.assertEqual(len(retained["rows"]), 68)
+
+    def test_stale_predecessor_source_binding_is_rejected(self) -> None:
+        with self.fixture() as (root, ledger):
+            handoff = root / "_docs/worth-ui/milestone-3.14.1-evidence/p4-predecessor-handoff.json"
+            payload = json.loads(handoff.read_text(encoding="utf-8"))
+            payload["source_state_digest"] = "c" * 64
+            handoff.write_text(json.dumps(payload), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "predecessor handoff is stale"):
+                publish(root, ledger, 4, "a" * 40, "b" * 64)
 
     def test_artifact_or_portfolio_mutation_is_rejected(self) -> None:
         with self.fixture() as (root, ledger):
@@ -64,6 +111,37 @@ class RetainedPortfolioTests(unittest.TestCase):
             retained = validate(root, ledger, 4, "a" * 40, "b" * 64)
             self.assertEqual(retained, published)
 
+    def test_ordinary_verifier_cannot_materialize_a_missing_migration(self) -> None:
+        with self.fixture() as (root, ledger):
+            publish(root, ledger, 4, "a" * 40, "b" * 64)
+            migration = next(
+                (root / "_docs/worth-ui/milestone-3.14.1-evidence/"
+                 "execution-observation-migrations").rglob("*.json")
+            )
+            migration.unlink()
+            evidence = root / "_docs/worth-ui/milestone-3.14.1-evidence"
+            before = snapshot_tree(evidence)
+            arguments = SimpleNamespace(
+                through_phase=4, refresh_predecessor_for_phase=None
+            )
+            with (
+                patch.object(verifier, "ROOT", root),
+                patch.object(verifier, "LEDGER", ledger),
+                patch.object(verifier, "parse_args", return_value=arguments),
+                patch.object(verifier, "source_revision", return_value="a" * 40),
+                patch.object(
+                    verifier, "source_state_digest", return_value="b" * 64
+                ),
+                patch.object(verifier, "validate_current_causal_sources"),
+                patch.dict(
+                    "os.environ",
+                    {"WORTH_UI_MILESTONE_3141_LEDGER": str(ledger)},
+                ),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "migration publication"):
+                    verifier.main()
+            self.assertEqual(snapshot_tree(evidence), before)
+
     def test_different_machine_key_requires_operational_revalidation(self) -> None:
         with self.fixture() as (root, ledger), tempfile.TemporaryDirectory() as state:
             publish(root, ledger, 4, "a" * 40, "b" * 64)
@@ -75,33 +153,32 @@ class RetainedPortfolioTests(unittest.TestCase):
         with self.fixture() as (root, ledger):
             publish(root, ledger, 4, "a" * 40, "b" * 64)
             envelope_path = next(
-                (root / "_docs/worth-ui/milestone-3.14.1-evidence/executions").rglob(
-                    "*.json"
-                )
+                (root / "_docs/worth-ui/milestone-3.14.1-evidence/"
+                 "execution-observations").rglob("*.json")
             )
             envelope = json.loads(envelope_path.read_text(encoding="utf-8"))
             envelope["record"]["stdout"] = "forged durable envelope"
             envelope["receipt_sha256"] = digest_json(envelope["record"])
             envelope_path.write_text(json.dumps(envelope), encoding="utf-8")
-            with self.assertRaisesRegex(RuntimeError, "differs"):
+            with self.assertRaisesRegex(
+                RuntimeError, "collision|differs|migration publication|provenance"
+            ):
                 validate(root, ledger, 4, "a" * 40, "b" * 64)
         with self.fixture() as (root, ledger):
             publish(root, ledger, 4, "a" * 40, "b" * 64)
             first = next(
-                (root / "_docs/worth-ui/milestone-3.14.1-evidence/executions").rglob(
-                    "*.json"
-                )
+                (root / "_docs/worth-ui/milestone-3.14.1-evidence/"
+                 "execution-observations").rglob("*.json")
             )
             second = next(
                 path
-                for path in (root / "_docs/worth-ui/milestone-3.14.1-evidence/executions").rglob(
-                    "*.json"
-                )
+                for path in (root / "_docs/worth-ui/milestone-3.14.1-evidence/"
+                              "execution-observations").rglob("*.json")
                 if path != first
             )
             first.write_text(second.read_text(encoding="utf-8"), encoding="utf-8")
             with self.assertRaisesRegex(
-                RuntimeError, "absent|differs|wrong row command"
+                RuntimeError, "absent|differs|wrong row command|provenance"
             ):
                 validate(root, ledger, 4, "a" * 40, "b" * 64)
 
@@ -114,7 +191,7 @@ class RetainedPortfolioTests(unittest.TestCase):
             payload["runner_authentication"] = authentication_tag(payload, root)
             artifact.write_text(json.dumps(payload), encoding="utf-8")
             rewrite_artifact_digest(ledger, payload["requirement"], artifact)
-            with self.assertRaisesRegex(RuntimeError, "execution receipts"):
+            with self.assertRaisesRegex(RuntimeError, "execution role"):
                 publish(root, ledger, 4, "a" * 40, "b" * 64)
         with self.fixture() as (root, ledger):
             receipt = next(
@@ -124,7 +201,7 @@ class RetainedPortfolioTests(unittest.TestCase):
             envelope["record"]["stdout"] = "forged"
             envelope["receipt_sha256"] = digest_json(envelope["record"])
             receipt.write_text(json.dumps(envelope), encoding="utf-8")
-            with self.assertRaisesRegex(RuntimeError, "differs"):
+            with self.assertRaisesRegex(RuntimeError, "unauthenticated|differs"):
                 publish(root, ledger, 4, "a" * 40, "b" * 64)
 
     def test_self_consistent_row_artifact_forgery_is_rejected(self) -> None:
@@ -159,12 +236,15 @@ class RetainedPortfolioTests(unittest.TestCase):
             fields = list(reader.fieldnames or ())
             rows = [dict(row) for row in reader if int(row["phase"]) <= 4]
         handoff_rows = []
+        (root / "source.rs").write_text("fixture source", encoding="utf-8")
         for index, row in enumerate(rows):
             row["result"] = "PROVED"
             row["final_source"] = "true"
             row["command_result"] = "passed"
             row["run_nonce"] = f"nonce-{index}"
             row["retained_result_artifact"] = f"evidence/row-{index:02}.json"
+            row["source_identity"] = "source.rs"
+            row["source_digest"] = source_digest_at(root, ("source.rs",))
             commands = {
                 "main-discovery": ["cargo", "test", row["requirement"], "list"],
                 "ignored-discovery": ["cargo", "test", row["requirement"], "ignored"],
@@ -181,8 +261,14 @@ class RetainedPortfolioTests(unittest.TestCase):
             payload = {
                 "requirement": row["requirement"],
                 "exit_posture": "passed",
-                "claim_digest": row_claim_digest(row),
+                "claim_digest": claim_digest_for_row(row),
                 "run_nonce": row["run_nonce"],
+                "production_entry": row["production_entry"],
+                "independent_oracle": row["independent_oracle"],
+                "executed_exact_command": row["exact_command"],
+                "source_identity": ["source.rs"],
+                "mapping_source_identity": ["source.rs"],
+                "source_digest": row["source_digest"],
                 "execution_receipts": receipts,
                 "list_command": commands["main-discovery"],
                 "ignored_list_command": commands["ignored-discovery"],
@@ -205,7 +291,17 @@ class RetainedPortfolioTests(unittest.TestCase):
         handoff = root / "_docs/worth-ui/milestone-3.14.1-evidence/p4-predecessor-handoff.json"
         handoff.parent.mkdir(parents=True, exist_ok=True)
         handoff.write_text(
-            json.dumps({"through_phase": 3, "rows": handoff_rows}), encoding="utf-8"
+            json.dumps(
+                {
+                    "schema": "worth-ui-phase-predecessor-handoff-v4",
+                    "through_phase": 3,
+                    "source_revision": "a" * 40,
+                    "source_state_digest": "b" * 64,
+                    "rows": handoff_rows,
+                    "verification_basis": from_path(ledger, 3).payload(),
+                }
+            ),
+            encoding="utf-8",
         )
         return Fixture(directory, root, ledger)
 
@@ -267,6 +363,14 @@ def rewrite_artifact_digest(ledger: Path, requirement: str, artifact: Path) -> N
         writer = csv.DictWriter(stream, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
+
+
+def snapshot_tree(root: Path) -> dict[str, bytes]:
+    return {
+        path.relative_to(root).as_posix(): path.read_bytes()
+        for path in root.rglob("*")
+        if path.is_file()
+    }
 
 
 class Fixture:

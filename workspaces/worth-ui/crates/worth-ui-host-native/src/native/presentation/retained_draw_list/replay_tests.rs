@@ -31,7 +31,7 @@ fn disjoint_regions_retain_separate_local_replay_lists() {
         .iter()
         .map(|command| command.identity())
         .collect::<Vec<_>>();
-    let mut retained = UiNativeRetainedDrawList::initial(&initial).unwrap();
+    let mut retained = UiNativeRetainedDrawList::initial(&initial, &[]).unwrap();
     let delta = UiMountedPresentationDelta::from_inert_mechanics(UiMountedPresentationDeltaInput {
         predecessor,
         successor: UiMountedFrameIdentity::mint_unbound().unwrap(),
@@ -77,7 +77,7 @@ fn removing_the_top_command_replays_the_vacated_underlying_command() {
     let initial = world.initial(predecessor, [lower, upper]);
     let lower_identity = initial.commands()[0].identity();
     let upper_identity = initial.commands()[1].identity();
-    let mut retained = UiNativeRetainedDrawList::initial(&initial).unwrap();
+    let mut retained = UiNativeRetainedDrawList::initial(&initial, &[]).unwrap();
     let delta = UiMountedPresentationDelta::from_inert_mechanics(UiMountedPresentationDeltaInput {
         predecessor,
         successor: UiMountedFrameIdentity::mint_unbound().unwrap(),

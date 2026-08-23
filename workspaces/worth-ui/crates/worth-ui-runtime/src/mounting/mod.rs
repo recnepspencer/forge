@@ -54,12 +54,13 @@ pub use presentation::{
     UiMountedPresentationInFlight, UiMountedPresentationOutcome, UiMountedPresentationReceipt,
     UiMountedPresentationShutdownAttempt, UiMountedPresentationShutdownDisposition,
     UiMountedPresentationShutdownReport, UiMountedPresentationWitness, UiMountedPresentedFrame,
-    UiMountedRejectedFrame, UiMountedSurfacePresentationReceipt,
+    UiMountedRejectedFrame, UiMountedSupersededFrame, UiMountedSurfacePresentationReceipt,
     UiMountedSurfacePresentationRejection, UiMountedSurfaceReconciliationBinding,
     UiPresentationIndeterminateReport,
 };
 pub(crate) use presentation::{
     UiMountedHostPresentationAuthority, UiMountedPresentationCoordinator,
+    UiMountedSupersedingPresentationBasis,
 };
 #[allow(unused_imports)]
 pub(crate) use projection::compile_presentation_sources;
@@ -79,7 +80,8 @@ pub use publication::{
     UiMountedFrameOutcome, UiMountedFramePublicationReceipt, UiMountedPublicationLeaseDenial,
 };
 pub(crate) use publication::{
-    UiMountedFramePublicationCandidate, UiMountedFrameReconciliationCandidate,
+    UiMountedFramePublicationCandidate, UiMountedFramePublicationCommit,
+    UiMountedFrameReconciliationCandidate,
 };
 pub(crate) use receipt_basis::UiMountedNodeReceiptBasis;
 pub(crate) use retention::{
@@ -108,7 +110,8 @@ pub(crate) use semantic_content::{
     UiMountedCollectionRowIdentity, UiMountedCollectionSemanticTextContent,
     UiMountedCollectionTextChange, UiMountedCollectionTextDirective, UiMountedCollectionTextRow,
     UiMountedScalarSemanticTextContent, UiMountedSemanticContentInput,
-    UiMountedSemanticTextContent, UiMountedSemanticTextValueDirective,
+    UiMountedSemanticTextContent, UiMountedSemanticTextFormattingDirective,
+    UiMountedSemanticTextValueDirective,
 };
 pub(crate) use session_state::{
     UiMountedGraphReplacementAdmission, UiMountedGraphReplacementInFlight,
@@ -130,3 +133,8 @@ pub use worth_ui_host_contract::{
     UiMountedNodeReceiptIdentity, UiMountedProjectionAudience, UiSemanticSurfaceIdentity,
     UiSurfaceBindingGeneration,
 };
+
+#[cfg(test)]
+pub(crate) fn prove_paint_only_mechanic_locality() {
+    projection::prove_paint_only_mechanic_locality();
+}

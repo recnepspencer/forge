@@ -57,6 +57,10 @@ fn query_free_headless_app_executes_without_optional_subsystem_ceremony() {
             "admission-denied"
         }
         UiMountedFrameOutcome::CompletionDenied(_) => "completion-denied",
+        UiMountedFrameOutcome::Superseded(superseded) => {
+            let _ = superseded.cost_report();
+            "superseded"
+        }
     };
     assert_eq!(
         posture, "rejected-before-effects",

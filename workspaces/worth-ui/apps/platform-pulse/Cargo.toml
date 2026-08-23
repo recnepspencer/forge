@@ -15,7 +15,10 @@ name = "worth-ui-platform-pulse"
 path = "src/main.rs"
 
 [features]
-executable-world = ["worth-ui/certification-support"]
+executable-world = [
+    "worth-ui/certification-support",
+    "worth-ui-native-platform/certification-support",
+]
 
 [[test]]
 name = "executable_world"
@@ -38,6 +41,6 @@ worth-ui-native-platform = { workspace = true }
 
 [target.'cfg(windows)'.dev-dependencies]
 uiautomation = { workspace = true }
-winsafe = { workspace = true }
+winsafe = { workspace = true, features = ["dwm", "kernel", "user"] }
 xcap = { workspace = true, features = ["wgc"] }
 win32job = { workspace = true }

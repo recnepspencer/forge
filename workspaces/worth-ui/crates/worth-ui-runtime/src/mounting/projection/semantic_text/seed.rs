@@ -112,7 +112,7 @@ fn resolve_scalar(
     ),
     UiMountedProjectionDenial,
 > {
-    let predecessor = predecessor
+    let predecessor_value = predecessor
         .map(UiMountedSemanticTextSeed::scalar_value)
         .transpose()?
         .flatten();
@@ -120,13 +120,21 @@ fn resolve_scalar(
         crate::mounting::UiMountedSemanticTextValueDirective::Replace(value) => {
             Some(Arc::clone(value))
         }
-        crate::mounting::UiMountedSemanticTextValueDirective::Preserve => predecessor,
+        crate::mounting::UiMountedSemanticTextValueDirective::Preserve => predecessor_value.clone(),
         crate::mounting::UiMountedSemanticTextValueDirective::Clear => None,
+    };
+    let transition = if predecessor.is_some_and(|predecessor| {
+        predecessor_value.as_deref() == value.as_deref()
+            && predecessor.posture.as_ref() == input.posture().as_ref()
+    }) {
+        UiMountedSemanticTextSeedTransition::Retained
+    } else {
+        UiMountedSemanticTextSeedTransition::Complete
     };
     Ok((
         UiMountedSemanticTextSeedContent::Scalar(value),
         Arc::clone(input.posture()),
-        UiMountedSemanticTextSeedTransition::Complete,
+        transition,
     ))
 }
 
@@ -286,6 +294,35 @@ mod tests {
             worth_ui_host_contract::UiMountedRgba8::new(247, 129, 47, 255),
         );
         let successor = lower_semantic_text_seed(None, Some(&predecessor), Some(formatting))
+            .unwrap()
+            .unwrap();
+        assert!(matches!(
+            successor.transition(),
+            UiMountedSemanticTextSeedTransition::PaintOnly
+        ));
+    }
+
+    #[test]
+    fn repeated_scalar_replace_keeps_paint_only_formatting_local() {
+        let predecessor = UiMountedSemanticTextSeed::scalar_for_test();
+        let node = crate::graph::UiGraphNodeIdentity::new(991);
+        let mut content = crate::mounting::UiMountedSemanticContentInput::empty();
+        content
+            .insert_scalar(
+                node,
+                crate::mounting::UiMountedSemanticTextValueDirective::Replace(Arc::from("value")),
+                Arc::from("CURRENT"),
+            )
+            .unwrap();
+        let input = content.get(node).unwrap();
+        assert!(matches!(
+            input,
+            crate::mounting::UiMountedSemanticTextContent::Scalar(_)
+        ));
+        let formatting = UiMountedSemanticTextFormattingSeed::body_default_with_color_for_test(
+            worth_ui_host_contract::UiMountedRgba8::new(247, 129, 47, 255),
+        );
+        let successor = lower_semantic_text_seed(Some(input), Some(&predecessor), Some(formatting))
             .unwrap()
             .unwrap();
         assert!(matches!(

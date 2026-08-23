@@ -31,10 +31,21 @@ pub struct UiMountedPresentationAdmissionRejection {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiMountedPresentationInFlight {
+    frame: worth_ui_host_contract::UiMountedFrameIdentity,
     attempt: UiMountedPresentationAttemptIdentity,
     deadline: UiPresentationDeadline,
     pending_bindings: Box<[UiSurfaceBindingGeneration]>,
+    pending_progress_classes: Box<[worth_ui_host_contract::UiHostPresentationProgressClass]>,
+    semantic_requests: Box<[worth_ui_query_binding::WorthUiPresentationRequestBasis]>,
     cost: super::super::UiMountCostReport,
+    retention: super::super::retention::UiMountedRetentionReservationIdentity,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct UiMountedSupersedingPresentationBasis {
+    frame: worth_ui_host_contract::UiMountedFrameIdentity,
+    attempt: UiMountedPresentationAttemptIdentity,
+    retention: super::super::retention::UiMountedRetentionReservationIdentity,
 }
 
 pub(super) struct UiMountedPresentationInFlightState {
@@ -45,6 +56,10 @@ pub(super) struct UiMountedPresentationInFlightState {
     pub(super) pending: Vec<UiPendingMountedSurface>,
     pub(super) rejected: Vec<UiMountedSurfacePresentationRejection>,
     pub(super) completed: Vec<UiMountedSurfacePresentationReceipt>,
+    pub(super) superseded_costs: Vec<worth_ui_host_contract::UiHostPresentationCostReport>,
+    pub(super) semantic_requests: Vec<worth_ui_query_binding::WorthUiPresentationRequestBasis>,
+    pub(super) superseded: bool,
+    pub(super) reconstructed_bindings: Vec<UiSurfaceBindingGeneration>,
     pub(super) candidates: super::work_producer::UiMountedPresentationCandidates,
 }
 
@@ -53,6 +68,7 @@ pub(super) struct UiPendingMountedSurface {
     pub(super) token: UiHostPresentationCompletionToken,
     pub(super) expected_effects: Box<[worth_ui_host_contract::UiMountedEffectFamily]>,
     pub(super) text_candidate: Option<super::coordinator::UiMountedTextPinCandidate>,
+    pub(super) semantic_receipts: Box<[worth_ui_query_binding::WorthUiPresentationRecoveryReceipt]>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -67,6 +83,7 @@ pub enum UiMountedPresentationAdmissionDenial {
     BaselineReceiptUnavailable(UiSurfaceBindingGeneration),
     ReconciliationBasisMismatch,
     IdentityExhausted,
+    SupersedingPredecessorUnavailable,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -178,6 +195,7 @@ impl UiMountedPresentationInFlight {
         cost: super::super::UiMountCostReport,
     ) -> Self {
         Self {
+            frame: state.frame.canonical_core().frame(),
             attempt: state.attempt,
             deadline: state.deadline,
             pending_bindings: state
@@ -185,7 +203,14 @@ impl UiMountedPresentationInFlight {
                 .iter()
                 .map(|pending| pending.binding)
                 .collect(),
+            pending_progress_classes: state
+                .pending
+                .iter()
+                .map(|pending| pending.token.progress_class())
+                .collect(),
+            semantic_requests: state.semantic_requests.clone().into_boxed_slice(),
             cost,
+            retention: state.retention.identity(),
         }
     }
 
@@ -205,6 +230,41 @@ impl UiMountedPresentationInFlight {
 
     pub fn cost_report(&self) -> super::super::UiMountCostReport {
         self.cost
+    }
+
+    pub fn awaits_progress_class(
+        &self,
+        class: worth_ui_host_contract::UiHostPresentationProgressClass,
+    ) -> bool {
+        self.pending_progress_classes.contains(&class)
+    }
+
+    pub fn semantic_requests(&self) -> &[worth_ui_query_binding::WorthUiPresentationRequestBasis] {
+        &self.semantic_requests
+    }
+
+    pub(crate) const fn superseding_basis(&self) -> UiMountedSupersedingPresentationBasis {
+        UiMountedSupersedingPresentationBasis {
+            frame: self.frame,
+            attempt: self.attempt,
+            retention: self.retention,
+        }
+    }
+}
+
+impl UiMountedSupersedingPresentationBasis {
+    pub(crate) const fn frame(self) -> worth_ui_host_contract::UiMountedFrameIdentity {
+        self.frame
+    }
+
+    pub(crate) const fn attempt(self) -> UiMountedPresentationAttemptIdentity {
+        self.attempt
+    }
+
+    pub(crate) const fn retention(
+        self,
+    ) -> super::super::retention::UiMountedRetentionReservationIdentity {
+        self.retention
     }
 }
 use std::cell::RefCell;

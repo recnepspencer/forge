@@ -31,31 +31,7 @@ impl UiNativeValidatedRasterKey {
 /// Encodes every profile field in a stable byte order for deterministic
 /// eviction.  This is a comparator representation, never a second identity.
 pub(crate) fn canonical_raster_key_bytes(key: UiGlyphRasterKey) -> Vec<u8> {
-    let mut bytes = Vec::with_capacity(128);
-    bytes.extend_from_slice(&key.font_collection_generation().get().to_le_bytes());
-    bytes.extend_from_slice(&key.font_collection_lineage().digest());
-    bytes.extend_from_slice(&key.profile_generation().get().to_le_bytes());
-    bytes.extend_from_slice(&key.face().font_bytes_digest());
-    bytes.extend_from_slice(&key.face().face_index().to_le_bytes());
-    bytes.extend_from_slice(&key.face().selection_digest());
-    bytes.extend_from_slice(&key.glyph_id().to_le_bytes());
-    bytes.push(u8::try_from(key.variations().len()).unwrap_or(u8::MAX));
-    for variation in key.variations().records() {
-        bytes.extend_from_slice(&variation.axis());
-        bytes.extend_from_slice(&variation.value_milli().to_le_bytes());
-    }
-    bytes.extend_from_slice(&key.palette().index().to_le_bytes());
-    bytes.extend_from_slice(&key.size().millipoints().to_le_bytes());
-    bytes.push(match key.source() {
-        worth_ui_host_contract::UiGlyphRasterSource::ColorOutline => 0,
-        worth_ui_host_contract::UiGlyphRasterSource::ColorBitmap => 1,
-        worth_ui_host_contract::UiGlyphRasterSource::AlphaOutline => 2,
-        worth_ui_host_contract::UiGlyphRasterSource::LastResort => 3,
-    });
-    bytes.extend_from_slice(&key.dpi_milli().to_le_bytes());
-    bytes.extend_from_slice(&key.fractional_origin().x_over_64().to_le_bytes());
-    bytes.extend_from_slice(&key.fractional_origin().y_over_64().to_le_bytes());
-    bytes
+    key.canonical_evidence_bytes()
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]

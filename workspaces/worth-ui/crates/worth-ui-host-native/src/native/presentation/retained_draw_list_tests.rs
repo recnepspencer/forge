@@ -27,6 +27,8 @@ mod delta_transaction_tests;
 mod reconstruction_tests;
 #[path = "retained_draw_list/replay_tests.rs"]
 mod replay_tests;
+#[path = "retained_draw_list/superseded_transaction_tests.rs"]
+mod superseded_transaction_tests;
 
 #[test]
 fn unchanged_advances_exact_affinity_without_draw_order_or_damage_work() {
@@ -37,7 +39,7 @@ fn unchanged_advances_exact_affinity_without_draw_order_or_damage_work() {
         [world.rect(frame, world.first, 0.0, UiMountedRgba8::new(1, 2, 3, 255))],
     );
     let identity = initial.commands()[0].identity();
-    let mut retained = UiNativeRetainedDrawList::initial(&initial).unwrap();
+    let mut retained = UiNativeRetainedDrawList::initial(&initial, &[]).unwrap();
     let successor = UiMountedFrameIdentity::mint_unbound().unwrap();
     let unchanged =
         UiMountedPresentationUnchanged::from_inert_mechanics(UiMountedPresentationUnchangedInput {
@@ -62,7 +64,7 @@ fn stale_delta_denies_without_mutating_retained_commands() {
     let mechanic = world.rect(frame, world.first, 0.0, UiMountedRgba8::new(1, 2, 3, 255));
     let initial = world.initial(frame, [mechanic]);
     let identity = initial.commands()[0].identity();
-    let mut retained = UiNativeRetainedDrawList::initial(&initial).unwrap();
+    let mut retained = UiNativeRetainedDrawList::initial(&initial, &[]).unwrap();
     let delta = UiMountedPresentationDelta::from_inert_mechanics(UiMountedPresentationDeltaInput {
         predecessor: UiMountedFrameIdentity::mint_unbound().unwrap(),
         successor: UiMountedFrameIdentity::mint_unbound().unwrap(),

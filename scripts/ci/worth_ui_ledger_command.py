@@ -11,6 +11,8 @@ from decimal import Decimal, ROUND_CEILING
 from dataclasses import dataclass
 from pathlib import Path
 
+from worth_ui_ledger_artifact_identity import require_row_evidence_identity
+
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = Path("workspaces/worth-ui/Cargo.toml")
@@ -23,6 +25,7 @@ PACKAGES = {
     "worth-ui-host-native",
     "worth-ui-native-platform",
     "worth-ui-platform-pulse",
+    "worth-ui-query-binding",
     "worth-ui-runtime",
     "worth-ui-text",
 }
@@ -80,13 +83,17 @@ def parse_args() -> GovernedTest:
     parser.add_argument("--artifact", required=True)
     arguments = parser.parse_args()
     validate_manifest_and_test_name(parser, arguments)
+    try:
+        require_row_evidence_identity(arguments.requirement, arguments.artifact)
+    except ValueError as error:
+        parser.error(str(error))
     target_kind = "lib" if arguments.lib else "test"
     target_name = "lib" if arguments.lib else arguments.test
     features = tuple(arguments.features)
     validate_features(parser, arguments.package, features, "main")
     control = parse_control(parser, arguments)
     requires_control = (
-        arguments.requirement.startswith(("P2-", "P3-", "P4-", "P5-"))
+        arguments.requirement.startswith(("P2-", "P3-", "P4-", "P5-", "P6-"))
         or arguments.requirement == "P1-CONSUMERS-01"
     )
     if requires_control != (control is not None):
@@ -191,11 +198,15 @@ def claim_digest(requirement: str) -> str:
         matches = [row for row in csv.DictReader(source) if row["requirement"] == requirement]
     if len(matches) != 1:
         raise ValueError(f"ledger requirement must occur exactly once: {requirement}")
+    return claim_digest_for_row(matches[0])
+
+
+def claim_digest_for_row(row: dict[str, str]) -> str:
     digest = hashlib.sha256()
     for field in CLAIM_FIELDS:
         digest.update(field.encode("utf-8"))
         digest.update(b"\0")
-        digest.update(matches[0][field].encode("utf-8"))
+        digest.update(row[field].encode("utf-8"))
         digest.update(b"\0")
     return digest.hexdigest()
 
@@ -264,13 +275,21 @@ def execution_budget_ms(requirement: str) -> int:
         "P3-HEADLESS-COST-01",
         "P3-PRODUCER-SLOPE-01",
     }:
-        return 90_000
+        return 120_000
     if requirement == "P4-BIDI-01":
         return 180_000
     if requirement == "P4-LINE-LAYOUT-01":
         return 120_000
     if requirement == "P5-COLOR-EMOJI-01":
         return 180_000
+    if requirement == "P5-TEXT-COST-01":
+        return 570_000
+    if requirement == "P5-TEXT-RECONSTRUCTION-01":
+        return 570_000
+    if requirement == "P6-WINDOWS-WORLD-01":
+        return 300_000
+    if requirement in {"P5-TEXT-PIXELS-01", "P5-TEXT-ASYNC-PRESENTATION-01"}:
+        return 300_000
     return 60_000
 
 
@@ -292,11 +311,12 @@ def control_budget_ms(requirement: str) -> int:
         "P3-HEADLESS-COST-01",
         "P3-PRODUCER-SLOPE-01",
     }:
-        return 90_000
+        return 30_000
     if requirement in {"P4-BIDI-01", "P4-LINE-LAYOUT-01"}:
         return 60_000 if requirement == "P4-BIDI-01" else 120_000
     if requirement in {
         "P4-BIDI-INTERACTION-01",
+        "P4-COLOR-FONT-ADMISSION-01",
         "P4-TEXT-COST-01",
         "P4-TEXT-CONTENT-LOCALITY-01",
         "P4-TEXT-WIDTH-LOCALITY-01",
@@ -304,6 +324,10 @@ def control_budget_ms(requirement: str) -> int:
     }:
         return 30_000
     if requirement == "P5-COLOR-EMOJI-01":
+        return 60_000
+    if requirement == "P5-TEXT-COST-01":
+        return 120_000
+    if requirement == "P6-WINDOWS-WORLD-01":
         return 60_000
     return (
         20_000

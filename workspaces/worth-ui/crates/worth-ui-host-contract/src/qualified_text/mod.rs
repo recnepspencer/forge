@@ -21,7 +21,8 @@ pub use glyph_run_view::{UiGlyphRunView, UiGlyphRunViewInput};
 pub use identity::{
     UiFontCollectionGeneration, UiFontCollectionLineageIdentity, UiQualifiedFontFaceIdentity,
     UiQualifiedFontFamilyIdentity, UiQualifiedFontPackIdentity, UiQualifiedTextLayoutIdentity,
-    UiQualifiedTextLayoutRequestIdentity, UiTextProfileGeneration, UiTextScaleGeneration,
+    UiQualifiedTextLayoutRequestIdentity, UiQualifiedTextLayoutWidthBasis, UiTextProfileGeneration,
+    UiTextScaleGeneration,
 };
 pub use interaction::{UiTextCaretAffinity, UiTextCaretPosition, UiTextVisualEdge};
 pub use layout_records::{

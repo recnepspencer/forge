@@ -271,11 +271,17 @@ fn apply_raw_changes(
                     return Err(UiHostSurfacePresentationDenial::MalformedProjection);
                 }
             }
-            UiMountedPaintCommandChange::Replace(command) => {
-                if !commands.contains_key(&command.identity()) {
+            UiMountedPaintCommandChange::Replace {
+                predecessor,
+                successor,
+            } => {
+                if commands.remove(predecessor).is_none()
+                    || commands
+                        .insert(successor.identity(), successor.clone())
+                        .is_some()
+                {
                     return Err(UiHostSurfacePresentationDenial::MalformedProjection);
                 }
-                commands.insert(command.identity(), command.clone());
             }
             UiMountedPaintCommandChange::Remove(identity) => {
                 if commands.remove(identity).is_none() {

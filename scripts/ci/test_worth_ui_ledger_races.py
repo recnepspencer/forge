@@ -1,4 +1,3 @@
-import subprocess
 import tempfile
 import unittest
 import sys
@@ -8,17 +7,21 @@ from unittest.mock import Mock, patch
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import run_worth_ui_compile_contracts as compile_runner
-import run_worth_ui_ledger_test as ledger_runner
 import close_worth_ui_3141_ledger as ledger_closer
 import verify_worth_ui_3141_ledger as ledger_verifier
 import worth_ui_ledger_operational_successors as successor_verifier
 from worth_ui_ledger_phase_three_portfolio import PhaseThreePortfolioExecution
+from worth_ui_ledger_portfolio_row import PortfolioRowExecutor, RowExecutionOptions
+import worth_ui_ledger_command as ledger_command
+import worth_ui_ledger_governed_snapshot as governed_snapshot
+import worth_ui_ledger_observation as ledger_observation
+import worth_ui_ledger_verifier_rebinding as verifier_rebinding
 import worth_ui_ledger_dependency as ledger_dependency
 import worth_ui_3141_supporting_world as supporting_world
 from worth_ui_3141_proof_plan import prepare_claim, proofs
-from verify_worth_ui_3141_ledger import bind_fresh_compile_artifact
+from worth_ui_ledger_verifier_rebinding import bind_fresh_compile_artifact
 from worth_ui_ledger_source_state import source_state_digest
-from worth_ui_ledger_closure_storage import csv_rows
+from worth_ui_ledger_closure_storage import csv_rows, render_requirement_update
 from worth_ui_ledger_dependency_tests import LedgerDependencyTests
 from worth_ui_ledger_operational_verification_tests import OperationalVerificationTests
 from worth_ui_predecessor_handoff_tests import PredecessorHandoffCostTests
@@ -69,9 +72,9 @@ class GovernedRaceTests(unittest.TestCase):
             ),
             "native",
         )
-        command = ["runner", "--source", ledger_verifier.P3_DELTA_ARTIFACT]
+        command = ["runner", "--source", verifier_rebinding.P3_DELTA_ARTIFACT]
         self.assertEqual(
-            ledger_verifier.bind_fresh_shared_world(command, "fresh-mixed.json"),
+            verifier_rebinding.bind_fresh_shared_world(command, "fresh-mixed.json"),
             ["runner", "--source", "fresh-mixed.json"],
         )
 
@@ -91,9 +94,9 @@ class GovernedRaceTests(unittest.TestCase):
             "P3-HEADLESS-COST-01",
             "P3-PRODUCER-SLOPE-01",
         ):
-            self.assertEqual(ledger_runner.execution_budget_ms(requirement), 90_000)
-        self.assertEqual(ledger_runner.execution_budget_ms("P3-CLOSE-01"), 60_000)
-        self.assertEqual(ledger_runner.execution_budget_ms("P4-BIDI-01"), 180_000)
+            self.assertEqual(ledger_command.execution_budget_ms(requirement), 120_000)
+        self.assertEqual(ledger_command.execution_budget_ms("P3-CLOSE-01"), 60_000)
+        self.assertEqual(ledger_command.execution_budget_ms("P4-BIDI-01"), 180_000)
 
     def test_test_budget_excludes_cargo_wrapper_overhead(self) -> None:
         from worth_ui_ledger_command import exact_test_duration_ms
@@ -113,12 +116,12 @@ class GovernedRaceTests(unittest.TestCase):
 
         self.assertEqual(
             construction_cost("P4-PREDECESSOR-01"),
-            "main-tests=26;hostile-controls=27;product-processes=3;compile-sessions=2;"
+            "main-tests=26;hostile-controls=28;product-processes=3;compile-sessions=2;"
             "courtroom-worlds=6",
         )
         self.assertEqual(
             execution_cost("P4-PREDECESSOR-01"),
-            "executed-tests=55;presentations=28",
+            "executed-tests=56;presentations=28",
         )
 
     def test_phase_five_predecessor_owns_the_unique_current_portfolio_cost(self) -> None:
@@ -126,19 +129,32 @@ class GovernedRaceTests(unittest.TestCase):
 
         self.assertEqual(
             construction_cost("P5-PREDECESSOR-01"),
-            "main-tests=44;hostile-controls=45;product-processes=6;compile-sessions=2;"
+            "main-tests=46;hostile-controls=48;product-processes=6;compile-sessions=2;"
             "courtroom-worlds=12",
         )
         self.assertEqual(
             execution_cost("P5-PREDECESSOR-01"),
-            "executed-tests=91;presentations=56",
+            "executed-tests=96;presentations=56",
+        )
+
+    def test_phase_six_predecessor_uses_logical_execution_identity_cost(self) -> None:
+        from worth_ui_3141_ledger_contracts import construction_cost, execution_cost
+
+        self.assertEqual(
+            construction_cost("P6-PREDECESSOR-01"),
+            "main-tests=55;hostile-controls=57;product-processes=54;compile-sessions=2;"
+            "courtroom-worlds=66",
+        )
+        self.assertEqual(
+            execution_cost("P6-PREDECESSOR-01"),
+            "executed-tests=114;presentations=207",
         )
 
     def test_phase_three_control_requires_the_exact_immutable_mutation_case(self) -> None:
         prefix = "WORTH_UI_LEDGER_MUTATION_CONTROLS="
         lawful = prefix + '{"P3-BASELINE-REPLAY-01":"opaque-baseline-clear"}'
         self.assertEqual(
-            ledger_runner.mutation_control_observation(
+            ledger_observation.mutation_control_observation(
                 lawful, "P3-BASELINE-REPLAY-01"
             ),
             {
@@ -153,7 +169,7 @@ class GovernedRaceTests(unittest.TestCase):
             lawful + "\n" + lawful,
         ]:
             self.assertIsNone(
-                ledger_runner.mutation_control_observation(
+                ledger_observation.mutation_control_observation(
                     hostile, "P3-BASELINE-REPLAY-01"
                 )
             )
@@ -168,7 +184,7 @@ class GovernedRaceTests(unittest.TestCase):
                 )
 
     def test_ignored_candidate_updates_do_not_change_governed_source_state(self) -> None:
-        revision = ledger_runner.source_revision()
+        revision = ledger_command.source_revision()
         before = source_state_digest(revision)
         candidate_root = Path("workspaces/worth-ui/target/milestone-3141-candidates")
         candidate_root.mkdir(parents=True, exist_ok=True)
@@ -182,8 +198,6 @@ class GovernedRaceTests(unittest.TestCase):
 
     def test_fresh_dependent_execution_reads_the_advanced_candidate_ledger(self) -> None:
         import csv
-        import json
-
         with Path("_docs/worth-ui/milestone-3.14.1-proof-ledger.csv").open(
             encoding="utf-8", newline=""
         ) as stream:
@@ -191,27 +205,21 @@ class GovernedRaceTests(unittest.TestCase):
                 row for row in csv.DictReader(stream)
                 if row["requirement"] == "P1-HEADLESS-COST-01"
             )
-        payload = {
-            "exit_posture": "passed",
-            "requirement": row["requirement"],
-            "source_identity": row["source_identity"].split(";"),
-        }
-        completed = Mock(returncode=0, stdout=json.dumps(payload) + "\n", stderr="")
         target = Path("workspaces/worth-ui/target")
         target.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=target) as directory:
-            root = Path(directory)
-            candidate = root / "candidate.csv"
+            temporary = Path(directory)
+            candidate = temporary / "candidate.csv"
             candidate.write_bytes(
                 Path("_docs/worth-ui/milestone-3.14.1-proof-ledger.csv").read_bytes()
             )
-            with patch.object(subprocess, "run", return_value=completed) as run:
-                observation = ledger_verifier.rerun_row(
-                    row, root / "result.json", "compile.json", candidate_ledger=candidate
-                )
-            self.assertEqual(run.call_args.args[0][0], sys.executable)
-            self.assertEqual(observation["executed_exact_command"].split()[0], "python")
-            environment = run.call_args.kwargs["env"]
+            prepared = PortfolioRowExecutor(Path.cwd(), temporary).prepare(
+                row,
+                temporary / "result.json",
+                "compile.json",
+                RowExecutionOptions(None, candidate, None, "direct", None),
+            )
+            environment = prepared.environment
             self.assertEqual(
                 environment["WORTH_UI_MILESTONE_3141_LEDGER"],
                 str(candidate.resolve()),
@@ -219,8 +227,6 @@ class GovernedRaceTests(unittest.TestCase):
 
     def test_phase_three_world_consumes_the_fresh_delta_world(self) -> None:
         import csv
-        import json
-
         with Path("_docs/worth-ui/milestone-3.14.1-proof-ledger.csv").open(
             encoding="utf-8", newline=""
         ) as stream:
@@ -235,29 +241,21 @@ class GovernedRaceTests(unittest.TestCase):
         fresh_path = Path(fresh)
         fresh_path.parent.mkdir(parents=True, exist_ok=True)
         fresh_path.write_text("fresh delta evidence", encoding="utf-8")
-        executed_sources = list(proofs()[row["requirement"]].sources)
-        executed_sources[executed_sources.index(supporting_world.MIXED_ARTIFACT)] = fresh
-        payload = {
-            "exit_posture": "passed",
-            "requirement": row["requirement"],
-            "source_identity": executed_sources,
-        }
-        completed = Mock(returncode=0, stdout=json.dumps(payload) + "\n", stderr="")
         target = Path("workspaces/worth-ui/target")
         target.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=target) as directory:
             try:
-                with patch.object(subprocess, "run", return_value=completed) as run:
-                    ledger_verifier.rerun_row(
-                        row,
-                        Path(directory) / "result.json",
-                        "compile.json",
-                        supporting_world_artifact=fresh,
-                    )
+                temporary = Path(directory)
+                prepared = PortfolioRowExecutor(Path.cwd(), temporary).prepare(
+                    row,
+                    temporary / "result.json",
+                    "compile.json",
+                    RowExecutionOptions(None, None, fresh, "direct", None),
+                )
             finally:
                 fresh_path.unlink(missing_ok=True)
-            command = run.call_args.args[0]
-            environment = run.call_args.kwargs["env"]
+            command = prepared.command
+            environment = prepared.environment
             self.assertIn(fresh, command)
             self.assertNotIn(supporting_world.MIXED_ARTIFACT, command)
             self.assertEqual(environment["WORTH_UI_SUPPORTING_WORLD_ARTIFACT"], fresh)
@@ -278,9 +276,7 @@ class GovernedRaceTests(unittest.TestCase):
         self.assertEqual([row["requirement"] for row in selected], ["P3-ONE"])
         selected[0]["result"] = "PROVED"
         selected[0]["final_source"] = "true"
-        rendered = ledger_closer.render_requirement_update(
-            original, rows, fields, {"P3-ONE"}
-        )
+        rendered = render_requirement_update(original, rows, fields, {"P3-ONE"})
         self.assertTrue(rendered.startswith(
             "phase,requirement,result,final_source\n"
             "1,P1-ONE,PROVED,true\n"
@@ -328,12 +324,13 @@ class GovernedRaceTests(unittest.TestCase):
     def test_expensive_hostile_controls_own_their_reviewed_budget(self) -> None:
         from worth_ui_ledger_command import control_budget_ms
 
-        self.assertEqual(control_budget_ms("P3-DELTA-SOURCE-01"), 90_000)
-        self.assertEqual(control_budget_ms("P3-HEADLESS-COST-01"), 90_000)
-        self.assertEqual(control_budget_ms("P3-PRODUCER-SLOPE-01"), 90_000)
+        self.assertEqual(control_budget_ms("P3-DELTA-SOURCE-01"), 30_000)
+        self.assertEqual(control_budget_ms("P3-HEADLESS-COST-01"), 30_000)
+        self.assertEqual(control_budget_ms("P3-PRODUCER-SLOPE-01"), 30_000)
         self.assertEqual(control_budget_ms("P3-PREDECESSOR-01"), 20_000)
         self.assertEqual(control_budget_ms("P4-PREDECESSOR-01"), 20_000)
         self.assertEqual(control_budget_ms("P4-FONT-COLLECTION-01"), 20_000)
+        self.assertEqual(control_budget_ms("P4-COLOR-FONT-ADMISSION-01"), 30_000)
         self.assertEqual(control_budget_ms("P4-TEXT-RECONSTRUCTION-01"), 20_000)
 
     def test_operational_verifier_rebinds_compile_backed_rows(self) -> None:
@@ -363,11 +360,13 @@ class GovernedRaceTests(unittest.TestCase):
 
     def test_ledger_snapshot_rejects_source_and_claim_drift(self) -> None:
         before = ("revision", "sources", "state", "claim")
-        self.assertFalse(ledger_runner.governed_snapshot_changed(before, before))
+        self.assertFalse(governed_snapshot.governed_snapshot_changed(before, before))
         for index in range(len(before)):
             after = list(before)
             after[index] = "changed"
-            self.assertTrue(ledger_runner.governed_snapshot_changed(before, tuple(after)), index)
+            self.assertTrue(
+                governed_snapshot.governed_snapshot_changed(before, tuple(after)), index
+            )
 
     def test_compile_publication_refuses_drift_without_writing(self) -> None:
         before = {"source_revision": "a", "source_state_digest": "b", "cases": []}

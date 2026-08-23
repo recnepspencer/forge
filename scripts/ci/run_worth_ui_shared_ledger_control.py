@@ -9,9 +9,25 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-import run_worth_ui_ledger_test as ledger
+from run_worth_ui_ledger_test import write_artifact
 from worth_ui_ledger_dependency import require_proved_artifact
 from worth_ui_3141_ledger_contracts import COUNTERS, construction_cost, execution_cost
+from worth_ui_ledger_command import (
+    GovernedTest,
+    ROOT,
+    cargo_command,
+    claim_digest,
+    execution_budget_ms,
+    parse_args,
+    repository_path,
+    source_digest,
+    source_revision,
+)
+from worth_ui_ledger_execution_runner import timed_execution
+from worth_ui_ledger_governed_snapshot import governed_sources_changed
+from worth_ui_ledger_hostile_control_evidence import control_payload
+from worth_ui_ledger_observation import p1_counter_observation, p2_counter_observation
+from worth_ui_ledger_portfolio_snapshot import source_state_for_row
 
 
 P1_WORLD = Path("_docs/worth-ui/milestone-3.14.1-evidence/p1-worlds-01.json")
@@ -56,7 +72,7 @@ class SharedWorldSpec:
     shared_presentations: int
 
 
-def shared_world_spec(test: ledger.GovernedTest) -> SharedWorldSpec:
+def shared_world_spec(test: GovernedTest) -> SharedWorldSpec:
     if test.requirement == "P1-HEADLESS-COST-01":
         return SharedWorldSpec(
             "P1-WORLDS-01",
@@ -116,15 +132,15 @@ def shared_world_spec(test: ledger.GovernedTest) -> SharedWorldSpec:
     raise ValueError("requirement has no governed shared world")
 
 
-def shared_world_path(test: ledger.GovernedTest, spec: SharedWorldSpec) -> Path:
+def shared_world_path(test: GovernedTest, spec: SharedWorldSpec) -> Path:
     identity = Path(os.environ.get("WORTH_UI_SHARED_WORLD_ARTIFACT", spec.path.as_posix()))
     if identity.as_posix() not in test.sources:
         raise ValueError("shared native world is not bound as a row source")
-    return ledger.repository_path(identity.as_posix())
+    return repository_path(identity.as_posix())
 
 
 def read_shared_world(
-    test: ledger.GovernedTest, spec: SharedWorldSpec
+    test: GovernedTest, spec: SharedWorldSpec
 ) -> tuple[dict[str, Any], str]:
     path = shared_world_path(test, spec)
     raw = path.read_bytes()
@@ -133,14 +149,14 @@ def read_shared_world(
         raise ValueError("shared native world artifact is not an object")
     validate_shared_world(value, spec)
     digest = require_proved_artifact(
-        ledger.ROOT, spec.requirement, path.relative_to(ledger.ROOT).as_posix(), value
+        ROOT, spec.requirement, path.relative_to(ROOT).as_posix(), value
     )
     return value, digest
 
 
 def validate_shared_world(value: dict[str, Any], spec: SharedWorldSpec) -> None:
-    exact = ledger.cargo_command(
-        ledger.GovernedTest(
+    exact = cargo_command(
+        GovernedTest(
             spec.requirement,
             spec.package,
             spec.target_kind,
@@ -153,8 +169,9 @@ def validate_shared_world(value: dict[str, Any], spec: SharedWorldSpec) -> None:
         ),
         False,
     )
+    if value.get("schema_version") not in {5, 7}:
+        raise ValueError("shared native world has wrong schema_version")
     required = {
-        "schema_version": 5,
         "requirement": spec.requirement,
         "exit_posture": "passed",
         "executed_test_count": 1,
@@ -168,9 +185,9 @@ def validate_shared_world(value: dict[str, Any], spec: SharedWorldSpec) -> None:
             raise ValueError(f"shared native world has wrong {field}")
     if spec.requirement == "P2-WORLD-01" and not isinstance(value.get("boundary_observation"), dict):
         raise ValueError("shared native world omits its boundary observation")
-    if value.get("source_revision") != ledger.source_revision():
+    if value.get("source_revision") != source_revision():
         raise ValueError("shared native world revision is stale")
-    if value.get("source_state_digest") != ledger.source_state_for_row(value["source_revision"]):
+    if value.get("source_state_digest") != source_state_for_row(value["source_revision"]):
         raise ValueError("shared native world source state is stale")
 
 
@@ -191,29 +208,29 @@ def shared_costs(
     return construction, execution
 
 
-def validate_test(test: ledger.GovernedTest) -> None:
+def validate_test(test: GovernedTest) -> None:
     spec = shared_world_spec(test)
     if (test.control is not None) != spec.control_required:
         raise ValueError("shared row has the wrong hostile-control posture")
 
 
-def result_payload(test: ledger.GovernedTest) -> tuple[dict[str, Any], int]:
+def result_payload(test: GovernedTest) -> tuple[dict[str, Any], int]:
     validate_test(test)
     spec = shared_world_spec(test)
-    revision = ledger.source_revision()
+    revision = source_revision()
     snapshot = GovernedSnapshot(
         revision,
-        ledger.source_digest(test.sources),
-        ledger.source_state_for_row(revision),
-        ledger.claim_digest(test.requirement),
+        source_digest(test.sources),
+        source_state_for_row(revision),
+        claim_digest(test.requirement),
     )
     shared, shared_digest = read_shared_world(test, spec)
     receipts = shared_main_receipts(shared)
 
     def execute(command: list[str], role: str):
-        result, duration, receipt = ledger.timed_execution(
+        result, duration, receipt = timed_execution(
             command,
-            ledger.ROOT,
+            ROOT,
             snapshot.revision,
             snapshot.source_state_digest,
             role,
@@ -222,19 +239,25 @@ def result_payload(test: ledger.GovernedTest) -> tuple[dict[str, Any], int]:
         return result, duration
 
     control = (
-        ledger.control_payload(test.control, test.requirement, execute)
+        control_payload(
+            test.control,
+            test.requirement,
+            execute,
+            snapshot.revision,
+            snapshot.source_state_digest,
+        )
         if test.control is not None
         else None
     )
     observation = shared.get("boundary_observation")
     counter = (
-        ledger.p2_counter_observation(test, observation)
+        p2_counter_observation(test, observation)
         if test.requirement.startswith("P2-")
-        else ledger.p1_counter_observation(shared["test_stdout"], test.requirement)
+        else p1_counter_observation(shared["test_stdout"], test.requirement)
     )
     costs = shared_costs(control, spec)
     posture = shared_row_posture(test, control, counter, costs)
-    if ledger.governed_sources_changed(
+    if governed_sources_changed(
         test,
         snapshot.revision,
         snapshot.source_digest,
@@ -265,7 +288,7 @@ def shared_main_receipts(shared: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def shared_row_posture(
-    test: ledger.GovernedTest,
+    test: GovernedTest,
     control: dict[str, Any] | None,
     counter: str | None,
     costs: tuple[str, str],
@@ -280,14 +303,14 @@ def shared_row_posture(
 
 
 def payload_fields(
-    test: ledger.GovernedTest,
+    test: GovernedTest,
     shared: SharedEvidence,
     snapshot: GovernedSnapshot,
     verdict: RowVerdict,
 ) -> dict[str, Any]:
     world = shared.artifact
     return {
-        "schema_version": 6,
+        "schema_version": 7,
         "requirement": test.requirement,
         "claim_digest": snapshot.claim_digest,
         "package": test.package,
@@ -296,8 +319,8 @@ def payload_fields(
         "features": list(test.features),
         "test_name": test.test_name,
         "matched_test_count": 1,
-        "declared_ignored_test_count": 1,
-        "expected_declared_ignored": True,
+        "declared_ignored_test_count": world["declared_ignored_test_count"],
+        "expected_declared_ignored": world["expected_declared_ignored"],
         "executed_test_count": 0,
         "passed_test_count": 0,
         "ignored_test_count": 0,
@@ -307,7 +330,7 @@ def payload_fields(
         "list_duration_ms": world["list_duration_ms"],
         "ignored_list_duration_ms": world["ignored_list_duration_ms"],
         "test_duration_ms": 0,
-        "test_budget_ms": ledger.execution_budget_ms(test.requirement),
+        "test_budget_ms": execution_budget_ms(test.requirement),
         "source_revision": snapshot.revision,
         "source_digest": snapshot.source_digest,
         "source_state_digest": snapshot.source_state_digest,
@@ -327,7 +350,7 @@ def payload_fields(
         "structural_counter": verdict.counter,
         "construction_cost": verdict.costs[0],
         "execution_cost": verdict.costs[1],
-        "shared_main_artifact": shared_world_path(test, shared_world_spec(test)).relative_to(ledger.ROOT).as_posix(),
+        "shared_main_artifact": shared_world_path(test, shared_world_spec(test)).relative_to(ROOT).as_posix(),
         "shared_main_artifact_digest": shared.artifact_digest,
         "shared_main_requirement": shared_world_spec(test).requirement,
     }
@@ -335,9 +358,9 @@ def payload_fields(
 
 def main() -> int:
     try:
-        test = ledger.parse_args()
+        test = parse_args()
         payload, exit_code = result_payload(test)
-        artifact_digest = ledger.write_artifact(test.artifact, payload)
+        artifact_digest = write_artifact(test.requirement, payload)
     except (OSError, RuntimeError, ValueError) as error:
         print(f"shared ledger control runner: {error}", file=sys.stderr)
         return 2

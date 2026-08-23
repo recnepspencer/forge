@@ -126,10 +126,32 @@ fn evaluate_conditionals<D, O, F, L: BasisOperationLane>(
     Ok(admitted)
 }
 
-fn evaluate_installed_conditional_node<D, O, F, L: BasisOperationLane>(
+pub(crate) fn evaluate_installed_conditional_node<D, O, F, L: BasisOperationLane>(
     bound: &super::super::WorthQueryBoundDomainOperation<D, O, F, L>,
     node: &WorthQueryInstalledConditionalNode,
     evaluation: &mut WorthQueryConditionalEvaluationPass<'_>,
+) -> Result<WorthQueryConditionalProvenance, WorthQueryConditionalEvaluationStop> {
+    evaluate_conditional_node(
+        bound,
+        node,
+        evaluation,
+        evaluation.snapshot.bridge_identity(),
+    )
+}
+
+pub(crate) fn evaluate_owned_conditional_node<D, O, F, L: BasisOperationLane>(
+    bound: &super::super::WorthQueryBoundDomainOperation<D, O, F, L>,
+    node: &WorthQueryInstalledConditionalNode,
+    evaluation: &mut WorthQueryConditionalEvaluationPass<'_>,
+) -> Result<WorthQueryConditionalProvenance, WorthQueryConditionalEvaluationStop> {
+    evaluate_conditional_node(bound, node, evaluation, None)
+}
+
+fn evaluate_conditional_node<D, O, F, L: BasisOperationLane>(
+    bound: &super::super::WorthQueryBoundDomainOperation<D, O, F, L>,
+    node: &WorthQueryInstalledConditionalNode,
+    evaluation: &mut WorthQueryConditionalEvaluationPass<'_>,
+    bridge_snapshot_identity: Option<&worth_runtime_bridge::facade::TruthSnapshotIdentity>,
 ) -> Result<WorthQueryConditionalProvenance, WorthQueryConditionalEvaluationStop> {
     let authority = super::reentry::admit_conditional_authority(bound, node)
         .map_err(WorthQueryConditionalEvaluationStop::Reentry)?;
@@ -155,7 +177,7 @@ fn evaluate_installed_conditional_node<D, O, F, L: BasisOperationLane>(
                 query_capability_identity: bound.capability_identity(),
                 snapshot_identity: snapshot_identity.as_str(),
                 truth_branch_identity: None,
-                bridge_snapshot_identity: evaluation.snapshot.bridge_identity(),
+                bridge_snapshot_identity,
                 execution_identity: evaluation.execution_identity,
                 attempt: evaluation.attempt,
             },
@@ -174,7 +196,7 @@ fn evaluate_installed_conditional_node<D, O, F, L: BasisOperationLane>(
         authority,
         bridge,
         snapshot_identity.as_str(),
-        evaluation.snapshot.bridge_identity(),
+        bridge_snapshot_identity,
         evaluation.execution_identity,
         evaluation.attempt,
     )

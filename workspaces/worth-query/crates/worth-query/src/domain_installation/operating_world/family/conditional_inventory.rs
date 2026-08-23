@@ -18,20 +18,32 @@ pub(super) struct ConditionalInventoryOwner {
 pub(super) fn admit_conditional_inventory(
     definition: &worth_query_installation::facade::WorthQueryPortableDomainOperationDefinition,
     installed: &[std::sync::Arc<crate::domain_installation::WorthQueryInstalledConditionalNode>],
+    families: &[crate::domain_installation::WorthQueryInstalledConditionalInstanceFamily],
     owner: ConditionalInventoryOwner,
     counters: &mut WorthQueryOperationBindingCounters,
 ) -> ConditionalInventoryAdmission {
     let declared = declared_locations(definition, counters);
-    if installed.len() != declared.len() {
+    if installed.len() + families.len() != declared.len() {
         return ConditionalInventoryAdmission::Missing;
     }
-    if installed.iter().all(|node| {
+    let nodes_admitted = installed.iter().all(|node| {
         counters.conditional_lowering_checks += 1;
         node.operation_identity == definition.canonical_identity()
             && node.runtime_authority == owner.runtime_authority
             && node.installation_generation == owner.installation_generation
             && declared.contains(&location_key(&node.location))
-    }) {
+    });
+    let families_admitted = families.iter().all(|family| {
+        counters.conditional_lowering_checks += 1;
+        family.operation_identity == definition.canonical_identity()
+            && family.runtime_authority == owner.runtime_authority
+            && family.installation_generation == owner.installation_generation
+            && declared.contains(&location_key(&family.location))
+            && !installed
+                .iter()
+                .any(|node| node.location == family.location)
+    });
+    if nodes_admitted && families_admitted {
         ConditionalInventoryAdmission::Admitted
     } else {
         ConditionalInventoryAdmission::Drifted

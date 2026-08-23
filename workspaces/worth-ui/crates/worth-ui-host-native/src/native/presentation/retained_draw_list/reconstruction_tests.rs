@@ -44,7 +44,7 @@ fn cold_reconstruction_rebuilds_every_index_then_next_delta_remains_local() {
         },
     );
 
-    let mut retained = UiNativeRetainedDrawList::reconstruction(&reconstruction).unwrap();
+    let mut retained = UiNativeRetainedDrawList::reconstruction(&reconstruction, &[]).unwrap();
     assert_eq!(retained.order.ordered().count(), 2);
     let full_query = retained.damage.intersecting(rows[0].bounds()).unwrap();
     assert_eq!(full_query.stored_records, 2);
@@ -65,7 +65,8 @@ fn cold_reconstruction_rebuilds_every_index_then_next_delta_remains_local() {
         binding: world.binding,
         content: world.content,
         baseline: world.requirement.baseline(),
-        changes: vec![UiMountedPaintCommandChange::Replace(
+        changes: vec![UiMountedPaintCommandChange::replacement(
+            command(rows[0]).identity(),
             replacement_command.clone(),
         )],
         nodes: Vec::new(),
@@ -89,4 +90,7 @@ fn cold_reconstruction_rebuilds_every_index_then_next_delta_remains_local() {
         Some(&replacement_command)
     );
     println!("WORTH_UI_LEDGER_COUNTERS={{\"P3-RECONSTRUCTION-01\":2}}");
+    println!(
+        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P5-TEXT-RECONSTRUCTION-01\":\"stale-raster-reuse\"}}"
+    );
 }

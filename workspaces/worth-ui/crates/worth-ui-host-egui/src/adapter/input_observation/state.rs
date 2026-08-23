@@ -8,6 +8,7 @@ use super::presentation_basis::UiEguiPresentedInputBasis;
 pub(crate) struct UiEguiInputObservationState {
     presentations: BTreeMap<UiSurfaceBindingGeneration, UiEguiPresentedInputBasis>,
     partitions: BTreeMap<UiSurfaceBindingGeneration, UiEguiInputPartition>,
+    input_recipients: BTreeMap<u64, worth_ui_host_contract::UiHostInputRecipientBindingReceipt>,
 }
 
 #[derive(Clone)]
@@ -66,6 +67,43 @@ impl UiEguiInputObservationState {
             .unwrap_or_default()
     }
 
+    pub(super) fn input_recipient(
+        &self,
+        basis: UiEguiPresentedInputBasis,
+    ) -> Option<worth_ui_host_contract::UiHostInputRecipientBindingReceipt> {
+        self.input_recipients
+            .get(&basis.host_session())
+            .copied()
+            .filter(|recipient| recipient.binding() == basis.presentation().binding())
+    }
+
+    pub(super) fn install_input_recipient(
+        &mut self,
+        binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+    ) -> bool {
+        let presented = self
+            .presentations
+            .get(&binding.binding())
+            .is_some_and(|basis| basis.host_session() == binding.host_session());
+        if !presented {
+            return false;
+        }
+        self.input_recipients
+            .insert(binding.host_session(), binding);
+        true
+    }
+
+    pub(super) fn clear_input_recipient(
+        &mut self,
+        binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+    ) -> bool {
+        if self.input_recipients.get(&binding.host_session()) != Some(&binding) {
+            return false;
+        }
+        self.input_recipients.remove(&binding.host_session());
+        true
+    }
+
     pub(super) fn commit(
         &mut self,
         basis: UiEguiPresentedInputBasis,
@@ -83,6 +121,8 @@ impl UiEguiInputObservationState {
     pub(super) fn remove_binding(&mut self, binding: UiSurfaceBindingGeneration) {
         self.presentations.remove(&binding);
         self.partitions.remove(&binding);
+        self.input_recipients
+            .retain(|_, recipient| recipient.binding() != binding);
     }
 
     pub(super) fn release_session(&mut self, host_session: u64) {
@@ -90,6 +130,7 @@ impl UiEguiInputObservationState {
             .retain(|_, basis| basis.host_session() != host_session);
         self.partitions
             .retain(|_, partition| partition.host_session != host_session);
+        self.input_recipients.remove(&host_session);
     }
 }
 

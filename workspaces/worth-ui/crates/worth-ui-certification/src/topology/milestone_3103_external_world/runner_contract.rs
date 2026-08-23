@@ -4,6 +4,12 @@ use std::path::Path;
 use crate::topology::WorkspaceSourceInventory;
 
 const TEST_ROOT: &str = "apps/platform-pulse/tests";
+const PHASE3_COURTROOM_SOURCES: [&str; 4] = [
+    "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_lifecycle.rs",
+    "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_journey.rs",
+    "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_journey/open.rs",
+    "apps/platform-pulse/tests/executable_world/courtroom/platform_pulse_cleanup.rs",
+];
 
 pub(super) fn audit(inventory: &WorkspaceSourceInventory) -> Result<(), String> {
     audit_required_topology(inventory)?;
@@ -30,7 +36,13 @@ pub(super) fn audit(inventory: &WorkspaceSourceInventory) -> Result<(), String> 
     let native_owner = [
         inventory.text("apps/platform-pulse/tests/executable_world/native_platform/windows.rs"),
         inventory.text(
+            "apps/platform-pulse/tests/executable_world/native_platform/windows/process_windows.rs",
+        ),
+        inventory.text(
             "apps/platform-pulse/tests/executable_world/native_platform/windows/capture_region.rs",
+        ),
+        inventory.text(
+            "apps/platform-pulse/tests/executable_world/native_platform/windows/client_capture.rs",
         ),
     ]
     .join("\n");
@@ -40,12 +52,7 @@ pub(super) fn audit(inventory: &WorkspaceSourceInventory) -> Result<(), String> 
             "apps/platform-pulse/tests/executable_world/native_platform/windows/client_capture.rs",
         ),
     )?;
-    let courtroom = inventory
-        .rust_files_under("apps/platform-pulse/tests/executable_world/courtroom")
-        .filter(|source| !source.absolute_path().ends_with("native_phase2.rs"))
-        .map(|source| source.text())
-        .collect::<Vec<_>>()
-        .join("\n");
+    let courtroom = phase3_courtroom(inventory);
     audit_courtroom(&courtroom)
 }
 
@@ -74,7 +81,9 @@ fn audit_required_topology(inventory: &WorkspaceSourceInventory) -> Result<(), S
         "executable_world/native_platform/contract.rs",
         "executable_world/native_platform/mod.rs",
         "executable_world/native_platform/windows.rs",
+        "executable_world/native_platform/windows/capture_region.rs",
         "executable_world/native_platform/windows/client_capture.rs",
+        "executable_world/native_platform/windows/process_windows.rs",
         "executable_world/product_process/launch.rs",
         "executable_world/product_process/first_frame_progression.rs",
         "executable_world/product_process/mod.rs",
@@ -96,6 +105,14 @@ fn audit_required_topology(inventory: &WorkspaceSourceInventory) -> Result<(), S
         ));
     }
     Ok(())
+}
+
+pub(super) fn phase3_courtroom(inventory: &WorkspaceSourceInventory) -> String {
+    PHASE3_COURTROOM_SOURCES
+        .iter()
+        .map(|path| inventory.text(path))
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn audit_runner_purity(inventory: &WorkspaceSourceInventory) -> Result<(), String> {
@@ -237,7 +254,6 @@ pub(super) fn audit_native_boundary(owner: &str, capture: &str) -> Result<(), St
     }
     for forbidden in [
         "Screenshot",
-        "Window::all()",
         ".capture_region(",
         "capture_as_image",
         "get_name()",
@@ -250,6 +266,12 @@ pub(super) fn audit_native_boundary(owner: &str, capture: &str) -> Result<(), St
                 "Windows HWND owner retained forbidden shortcut `{forbidden}`"
             ));
         }
+    }
+    if owner.matches("Window::all()").count() != 1 {
+        return Err(
+            "Windows native boundary must reserve its sole global enumeration for exact-HWND WGC capture"
+                .to_owned(),
+        );
     }
     audit_wgc_capture(capture)?;
     for resampling in ["imageops::resize", "FilterType::Nearest", "scale_floor("] {

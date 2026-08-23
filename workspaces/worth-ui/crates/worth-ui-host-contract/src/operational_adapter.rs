@@ -47,6 +47,20 @@ pub trait WorthUiHostMechanicsAdapter: crate::WorthUiMeasurementHostAdapter {
         Ok(crate::UiHostObservationDrain::empty())
     }
 
+    fn install_mechanical_input_recipient(
+        &self,
+        _binding: crate::UiHostInputRecipientBindingReceipt,
+    ) -> bool {
+        false
+    }
+
+    fn clear_mechanical_input_recipient(
+        &self,
+        _binding: crate::UiHostInputRecipientBindingReceipt,
+    ) -> bool {
+        false
+    }
+
     fn perform_visual_capture(
         &self,
         _request: crate::UiHostVisualCaptureRequest,

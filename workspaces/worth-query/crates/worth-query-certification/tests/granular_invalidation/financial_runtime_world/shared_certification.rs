@@ -8,11 +8,11 @@ use worth_query::facade::domain::{
 use worth_query_host::facade::primary_graph::WorthQueryConditionalClockObservationOutcome;
 
 use super::{host::FinancialCourtroomWorld, query};
+use crate::performed_identity_observer::PerformedIdentityObserver;
 use crate::production_evidence::{
     CertificationComparatorPolicy, CertificationExecutionLane, OwnerPerformedCounterRows,
     PerformedScenarioEvidence, PerformedScenarioEvidenceParts,
 };
-use crate::performed_identity_observer::PerformedIdentityObserver;
 use crate::world::{GranularInvalidationScenario, GranularInvalidationWorldDefinition};
 
 pub fn run_shared_certification(seed: u64) -> PerformedScenarioEvidence {
@@ -45,10 +45,8 @@ pub fn run_shared_certification(seed: u64) -> PerformedScenarioEvidence {
     let installation = batch.installation().clone();
     let lower = batch.observation();
     let current = host.application.granular_invalidation_installation();
-    let binding = bind_shared_primary_runtime_granular_invalidations(
-        &query.subject,
-        current.clone(),
-    );
+    let binding =
+        bind_shared_primary_runtime_granular_invalidations(&query.subject, current.clone());
     let selected = prepare_shared_primary_runtime_granular_batch(
         &[&query.subject, &query.candidate],
         &mut query.workspace,

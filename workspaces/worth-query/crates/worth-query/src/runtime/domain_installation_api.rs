@@ -46,6 +46,13 @@ impl WorthQueryRuntime {
             .operation_nodes::<D, O, F>()
     }
 
+    pub(crate) fn conditional_instance_families<D: 'static, O: 'static, F: 'static>(
+        &self,
+    ) -> Vec<crate::domain_installation::WorthQueryInstalledConditionalInstanceFamily> {
+        self.conditional_execution_registry
+            .owned_instance_families::<D, O, F>()
+    }
+
     pub fn rebuild_conditional_execution_index(
         &mut self,
     ) -> crate::domain_installation::WorthQueryConditionalExecutionIndexRebuildReport {

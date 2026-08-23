@@ -34,6 +34,8 @@ pub struct UiNativeApplicationPreparation {
     binding: UiNativePlatformBindingGrant,
     builder: Option<UiNativeBuilderState>,
     program: Option<crate::facade::entry::UiNativeApplicationProgram>,
+    presentation_async:
+        Option<crate::native_platform::text_presentation::UiPresentationAsyncRuntime>,
 }
 
 #[must_use]
@@ -46,6 +48,8 @@ pub struct UiPreparedNativeApplication {
     application: WorthUiHostNeutralApp,
     binding: UiNativePlatformBindingGrant,
     program: crate::facade::entry::UiNativeApplicationProgram,
+    presentation_async:
+        Option<crate::native_platform::text_presentation::UiPresentationAsyncRuntime>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -56,6 +60,7 @@ pub enum UiNativeApplicationPreparationDenialCause {
     ChangeProfileAlreadyInstalled,
     ApplicationFreezeRejected,
     FrameProgramAlreadyInstalled,
+    PresentationAsyncAlreadyInstalled,
 }
 
 #[must_use]
@@ -78,6 +83,7 @@ impl UiNativeApplicationPreparation {
             binding,
             builder: Some(builder),
             program: None,
+            presentation_async: None,
         }
     }
 
@@ -98,6 +104,23 @@ impl UiNativeApplicationPreparation {
         Ok(())
     }
 
+    pub fn install_presentation_async(
+        &mut self,
+        installation: worth_ui_query_binding::WorthUiPresentationAsyncInstallation,
+    ) -> Result<(), UiNativeApplicationPreparationDenialCause> {
+        if self.presentation_async.is_some() {
+            return Err(
+                UiNativeApplicationPreparationDenialCause::PresentationAsyncAlreadyInstalled,
+            );
+        }
+        self.presentation_async = Some(
+            crate::native_platform::text_presentation::UiPresentationAsyncRuntime::from_installation(
+                installation,
+            ),
+        );
+        Ok(())
+    }
+
     pub fn complete(mut self) -> UiNativeApplicationPreparationOutcome {
         let Some(builder) = self.builder.take() else {
             return self
@@ -114,6 +137,7 @@ impl UiNativeApplicationPreparation {
                     program: self.program.take().unwrap_or_else(
                         crate::facade::entry::UiNativeApplicationProgram::single_frame,
                     ),
+                    presentation_async: self.presentation_async.take(),
                 })
             }
             Err(_) => {
@@ -250,7 +274,9 @@ impl UiPreparedNativeApplication {
             self.binding.profile(),
             worth_ui_host_native::UiNativePlatformProfileIdentity::WORTH_UI_WINDOWS_DX12_V1
         );
-        (self.application.bind_qualified_native(host), self.program)
+        let mut application = self.application.bind_qualified_native(host);
+        application.install_presentation_async_owner(self.presentation_async);
+        (application, self.program)
     }
 }
 

@@ -63,9 +63,7 @@ impl CrossRuntimeInvalidationNecessityManifest {
                     performed_roles.insert("conditional-eligibility-or-semantic-cleanliness");
                 }
                 if !meaningful {
-                    expected
-                        .exclusions
-                        .insert(format!("suppressed:{bridge}"));
+                    expected.exclusions.insert(format!("suppressed:{bridge}"));
                 }
             }
             if expected
@@ -86,15 +84,12 @@ impl CrossRuntimeInvalidationNecessityManifest {
             }
         }
         if world.scenario == GranularInvalidationScenario::SharedLeaseDisclosureNoninterference {
-            expected
-                .exclusions
-                .insert("authorization-denied:1".into());
+            expected.exclusions.insert("authorization-denied:1".into());
         }
         if world.scenario == GranularInvalidationScenario::CorrespondenceRebindRestore {
-            expected.exclusions.extend([
-                "rebind:stale-batch".into(),
-                "rebind:old-binding".into(),
-            ]);
+            expected
+                .exclusions
+                .extend(["rebind:stale-batch".into(), "rebind:old-binding".into()]);
         }
         expected
     }

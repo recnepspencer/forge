@@ -99,7 +99,10 @@ impl UiMountedSemanticMechanicSource {
                 foregrounds,
             })?;
             rows.replace(key, replacement.clone())?;
-            command_changes.push(UiMountedPaintCommandChange::Replace(
+            command_changes.push(UiMountedPaintCommandChange::replacement(
+                worth_ui_host_contract::UiMountedPaintCommandIdentity::semantic_text(
+                    predecessor.mechanic(),
+                ),
                 UiMountedPaintCommand::SemanticText {
                     identity: worth_ui_host_contract::UiMountedPaintCommandIdentity::semantic_text(
                         &replacement,

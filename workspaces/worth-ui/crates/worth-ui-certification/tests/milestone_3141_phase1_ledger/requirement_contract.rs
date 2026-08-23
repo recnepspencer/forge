@@ -3,6 +3,8 @@ pub(super) const FONT_PROFILE_DIGEST: &str =
     "6f140249866e6815e9284fe1c8c959a8bb1b8cab252cfbe8c7c397f9a7eb9b01";
 pub(super) const NATIVE_PROFILE_DIGEST: &str =
     "1c937a22f42660267480a055e48256b25decf0c4cd5d4d7b493e5df034c6c65b";
+pub(super) const NATIVE_PHASE6_PROFILE_DIGEST: &str =
+    "a0dfb071145ee2531be8ca2fb52489185b88e13412bdb5b0231d424e6d5cdd9d";
 
 pub(super) struct RequirementContract {
     pub(super) requirement: &'static str,

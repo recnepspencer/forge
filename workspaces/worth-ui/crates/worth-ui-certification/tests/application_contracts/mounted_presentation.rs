@@ -15,6 +15,8 @@ use worth_ui_runtime::facade::mounted::{
     UiPresentationDeadline,
 };
 
+#[path = "mounted_presentation/query_uncertainty.rs"]
+mod query_uncertainty;
 #[path = "mounted_presentation/support.rs"]
 mod support;
 use support::{

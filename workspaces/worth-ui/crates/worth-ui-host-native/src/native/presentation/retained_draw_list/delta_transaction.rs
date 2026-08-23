@@ -2,23 +2,27 @@ use worth_ui_host_contract::{
     UiMountedPaintCommand, UiMountedPaintCommandIdentity, UiMountedPresentationDelta,
 };
 
-use super::{
-    change_identity, visible_bounds, UiNativeRetainedDrawList, UiNativeRetainedDrawListDenial,
-    UiNativeRetainedReplayPlan,
-};
+use super::mutation::{change_identity, visible_bounds};
+use super::{UiNativeRetainedDrawList, UiNativeRetainedDrawListDenial, UiNativeRetainedReplayPlan};
 use crate::native::presentation::retained_order::UiNativeRetainedOrderSnapshot;
 
 pub(crate) struct UiNativeRetainedDeltaUndo {
     frame: worth_ui_host_contract::UiMountedFrameIdentity,
     commands: Vec<(UiMountedPaintCommandIdentity, Option<UiMountedPaintCommand>)>,
+    glyph_runs: Vec<(
+        UiMountedPaintCommandIdentity,
+        Option<Box<[worth_ui_host_contract::UiGlyphRunView]>>,
+    )>,
     order: UiNativeRetainedOrderSnapshot<worth_ui_host_contract::UiMountedPaintOrderIdentity>,
     order_integrity: worth_ui_host_contract::UiMountedPaintOrderIntegrity,
+    last_paint_attribution: Option<(usize, super::UiNativeRetainedPresentationAttribution)>,
 }
 
 impl UiNativeRetainedDrawList {
     pub(crate) fn stage_delta(
         &mut self,
         delta: &UiMountedPresentationDelta,
+        glyph_runs: &[worth_ui_host_contract::UiGlyphRunView],
     ) -> Result<
         (UiNativeRetainedReplayPlan, UiNativeRetainedDeltaUndo),
         UiNativeRetainedDrawListDenial,
@@ -38,13 +42,22 @@ impl UiNativeRetainedDrawList {
                     (identity, self.commands.get(&identity).cloned())
                 })
                 .collect(),
+            glyph_runs: delta
+                .changes()
+                .iter()
+                .map(|change| {
+                    let identity = change_identity(change);
+                    (identity, self.glyph_runs.get(&identity).cloned())
+                })
+                .collect(),
             order: self
                 .order
                 .snapshot(delta.order().iter().map(|edit| edit.identity())),
             order_integrity: self.order_integrity,
+            last_paint_attribution: self.last_paint_attribution,
         };
         if let Err(error) = self
-            .apply_changes(delta.changes())
+            .apply_changes(delta.changes(), glyph_runs)
             .and_then(|_| self.apply_order_edits(delta.order()))
         {
             self.rollback_delta(undo)
@@ -57,6 +70,7 @@ impl UiNativeRetainedDrawList {
             return Err(UiNativeRetainedDrawListDenial::OrderMismatch);
         }
         self.frame = delta.affinity().successor();
+        self.retain_current_paint_attribution();
         match self.replay_plan(delta.damage(), delta.changes().len(), delta.order().len()) {
             Ok(plan) => Ok((plan, undo)),
             Err(error) => {
@@ -78,6 +92,14 @@ impl UiNativeRetainedDrawList {
                 }
             }
         }
+        for (identity, _) in &undo.glyph_runs {
+            self.glyph_runs.remove(identity);
+        }
+        for (identity, runs) in undo.glyph_runs {
+            if let Some(runs) = runs {
+                self.glyph_runs.insert(identity, runs);
+            }
+        }
         for (identity, command) in undo.commands {
             let Some(command) = command else {
                 continue;
@@ -89,6 +111,7 @@ impl UiNativeRetainedDrawList {
         }
         self.order.restore(undo.order)?;
         self.order_integrity = undo.order_integrity;
+        self.last_paint_attribution = undo.last_paint_attribution;
         self.frame = undo.frame;
         Ok(())
     }

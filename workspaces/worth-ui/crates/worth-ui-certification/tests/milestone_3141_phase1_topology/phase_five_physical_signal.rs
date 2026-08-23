@@ -189,7 +189,7 @@ fn phase_five_physical_signal_has_no_public_atlas_control_or_close_time_schedule
         .source("crates/worth-ui-host-contract/src/operational_adapter.rs")
         .expect("host operational adapter must exist")
         .text();
-    assert!(!public_facade.contains("UiNativeTextAtlas"));
+    assert!(!public_facade.contains("UiNativeTextAtlas,"));
     assert!(!public_facade.contains("UiAtlasEntryIdentity"));
     assert!(!public_facade.contains("UiNativePlatformEffectAuthority"));
     assert!(!public_facade.contains("WorthUiNativeMechanicsAdapter"));

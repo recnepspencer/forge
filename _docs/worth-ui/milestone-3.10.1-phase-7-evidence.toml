@@ -6,8 +6,8 @@ compile_contract_cargo_sessions = 2
 # Successor milestones through 3.14 add public-facade impossibility twins for
 # visual identity, Query publication, typed intent authority, and presentation/
 # execution clock-domain separation without adding a Cargo session or workspace.
-compile_fail_targets = 70
-compile_pass_targets = 22
+compile_fail_targets = 78
+compile_pass_targets = 25
 executable_fixture_manifests = [
   "crates/worth-ui-certification/tests/fixtures/compile_contracts/Cargo.toml",
   "crates/worth-ui-certification/tests/fixtures/host_contract_only_adapter/Cargo.toml",

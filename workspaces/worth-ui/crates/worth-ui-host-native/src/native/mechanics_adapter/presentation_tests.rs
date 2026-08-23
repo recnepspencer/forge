@@ -1,7 +1,4 @@
-use super::{
-    presentation_epoch, require_owner_reconstruction, settle_presentation_failure,
-    UiNativePresentationFailure,
-};
+use super::{presentation_epoch, require_owner_reconstruction, UiNativePresentationFailure};
 use crate::native::presentation::{
     reserve_presentation_owners, settle_port_result, UiNativePendingExternalObligation,
     UiNativePresentationPortFailure,
@@ -28,23 +25,22 @@ impl Drop for PendingProbe {
 
 #[test]
 fn scripted_before_effect_failure_keeps_before_effect_posture() {
-    let mut state = UiNativeHostState::new();
-    let outcome = settle_presentation_failure(
-        &mut state,
-        UiNativePresentationFailure::BeforeEffects(
-            worth_ui_host_contract::UiHostSurfacePresentationDenial::AdapterDeclined,
-        ),
+    let state = UiNativeHostState::new();
+    let failure = UiNativePresentationFailure::BeforeEffects(
+        worth_ui_host_contract::UiHostSurfacePresentationDenial::AdapterDeclined,
     );
     assert!(matches!(
-        outcome,
-        worth_ui_host_contract::UiHostSurfacePresentationOutcome::RejectedBeforeEffects(_)
+        failure,
+        UiNativePresentationFailure::BeforeEffects(
+            worth_ui_host_contract::UiHostSurfacePresentationDenial::AdapterDeclined
+        )
     ));
     assert_eq!(state.effect_posture, UiNativeEffectPosture::BeforeEffects);
 }
 
 #[test]
 fn external_port_orchestration_and_effect_postures_are_exact() {
-    crate::native::presentation::prove_nonuniform_readback_port();
+    crate::native::presentation::prove_pending_readback_handoff();
     let mut state = UiNativeHostState::new();
     let external_dropped = std::rc::Rc::new(std::cell::Cell::new(false));
     let owners = reserve_presentation_owners(
@@ -61,27 +57,77 @@ fn external_port_orchestration_and_effect_postures_are_exact() {
             Box::new(PendingProbe(std::rc::Rc::clone(&external_dropped))),
         )),
     );
-    let Err(UiNativePresentationFailure::Indeterminate(pending)) = pending else {
-        panic!("unsettled port work must remain indeterminate");
+    let Err(UiNativePresentationFailure::Pending(pending)) = pending else {
+        panic!("unsettled port work must remain pending");
     };
-    let outcome = settle_presentation_failure(
-        &mut state,
-        UiNativePresentationFailure::Indeterminate(pending),
-    );
-    assert!(matches!(
-        outcome,
-        worth_ui_host_contract::UiHostSurfacePresentationOutcome::PresentationIndeterminate
-    ));
-    assert_eq!(
-        state.effect_posture,
-        UiNativeEffectPosture::PresentationIndeterminate
-    );
+    state.pending_presentations.push(pending);
+    assert_eq!(state.effect_posture, UiNativeEffectPosture::BeforeEffects);
     assert_eq!(state.pending_presentations.len(), 1);
     assert!(!external_dropped.get());
     assert_eq!(state.resources.current().readback_buffers, 1);
     assert_eq!(state.resources.current().pending_submissions, 1);
     state.pending_presentations.clear();
     assert!(external_dropped.get());
+}
+
+#[test]
+fn presentation_cancellation_transitions_the_exact_physical_request_to_recovery() {
+    let mut state = UiNativeHostState::new();
+    let external_dropped = std::rc::Rc::new(std::cell::Cell::new(false));
+    let owners = reserve_presentation_owners(
+        &mut state.resources,
+        &mut state.physical_signal,
+        crate::native::physical_work_signal::UiNativePhysicalPresentationBasis::test(),
+    )
+    .unwrap_or_else(|_| panic!("empty registry must reserve presentation owners"));
+    let pending = settle_port_result(
+        &mut state.resources,
+        &mut state.physical_signal,
+        owners,
+        Err(UiNativePresentationPortFailure::ReadbackUnsettled(
+            Box::new(PendingProbe(std::rc::Rc::clone(&external_dropped))),
+        )),
+    );
+    let Err(UiNativePresentationFailure::Pending(mut pending)) = pending else {
+        panic!("unsettled port work must remain pending");
+    };
+    let token = super::text_atlas_tests::inert_view().issue_completion_token();
+    assert!(pending.bind_completion_identity(token.diagnostic_value()));
+    state.pending_presentations.push(pending);
+
+    let outcome = super::pending_completion::stop_pending(&mut state, token);
+
+    assert_eq!(
+        outcome,
+        worth_ui_host_contract::UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun
+    );
+    let observation = state.physical_signal.observation();
+    assert_eq!(observation.counters.cancellations, 1);
+    assert_eq!(observation.counters.recovery_schedules, 1);
+    assert!(matches!(
+        observation.recovery,
+        crate::native::physical_work_signal::UiNativePhysicalRecoveryPosture::Required {
+            active_requests: 1
+        }
+    ));
+    let cancellation = state
+        .physical_signal
+        .transition_observations()
+        .last()
+        .expect("the exact cancellation retains a physical transition observation");
+    assert_eq!(
+        cancellation.external_status(),
+        crate::native::physical_work_signal::UiNativePhysicalSignalExternalStatusClass::CancellationEffectsMayHaveBegun
+    );
+    assert_eq!(
+        cancellation.settlement(),
+        crate::native::physical_work_signal::UiNativePhysicalSignalSettlementClass::Indeterminate
+    );
+    assert_eq!(state.pending_presentations.len(), 1);
+    assert!(state.pending_presentations[0]
+        .completion_identity()
+        .is_none());
+    assert!(!external_dropped.get());
 }
 
 #[test]

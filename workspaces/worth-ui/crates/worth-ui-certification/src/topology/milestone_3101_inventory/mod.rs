@@ -7,6 +7,7 @@ mod phase6_callable_surface;
 mod phase7_adapter_boundary;
 mod phase7_closing_evidence;
 mod phase7_evidence;
+mod phase7_historical_source_scope;
 mod phase8_closeout;
 mod runtime_language_ownership;
 mod source_semantics;

@@ -7,6 +7,23 @@ pub use worth_ui_runtime::native_platform::{
     UiNativeApplicationProgram, UiNativeApplicationProgramDenial, UiNativeComponentPresenceChange,
     UiNativeComponentSemanticTextChange, UiNativePlatformCloseReceipt, UiNativePlatformOutcome,
     UiNativePlatformPreparationDenial, UiNativePlatformProfile, UiNativePlatformStopReason,
-    UiNativePlatformStopReport, UiNativeWindowSpec, UiPreparedNativeApplication,
-    UiPreparedNativePlatform, WorthUiNativePlatform,
+    UiNativePlatformStopReport, UiNativeThemeTokenValueChange, UiNativeWindowSpec,
+    UiPreparedNativeApplication, UiPreparedNativePlatform, WorthUiNativePlatform,
+};
+#[cfg(feature = "certification-support")]
+pub use worth_ui_runtime::native_platform::{
+    UiNativeClientAuthoredMountedInstanceObservation, UiNativeClientConditionalOutcome,
+    UiNativeClientDerivedStateLossClass, UiNativeClientDerivedStateReconstructionObservation,
+    UiNativeClientPresentationSemanticChange,
+    UiNativeClientPresentationSemanticFrontierObservation,
+    UiNativeClientPresentationSemanticSubscriberObservation,
+    UiNativeClientPresentationTransitionKind, UiNativeClientPresentationTransitionObservation,
+    UiNativeClientShutdownObservation, UiNativeClientTextPresentationWorkObservation,
+    UiNativeDerivedStateLossClass, UiNativeDerivedStateReconstructionObservation,
+    UiNativePhysicalSignalExternalStatusClass, UiNativePhysicalSignalObservationOriginClass,
+    UiNativePhysicalSignalSettlementClass, UiNativePhysicalSignalTransitionObservation,
+    UiNativePhysicalSignalWorkClass, UiNativePresentationObservation, UiNativePresentationWorkKind,
+    UiNativeQualificationPlan, UiNativeQualificationPlanDenial, UiNativeRetainedFrameObservation,
+    UiNativeRuntimeDerivedStateLossClass, UiNativeRuntimeQualificationPlan,
+    UiNativeRuntimeQualificationPlanDenial,
 };

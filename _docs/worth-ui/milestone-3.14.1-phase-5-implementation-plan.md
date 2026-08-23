@@ -9,11 +9,12 @@ This plan implements, but does not redefine:
    Phase 5 subordinate specification;
 3. `workspaces/worth-ui/profiles/worth-ui-global-text-v2/manifest.toml`, the
    exact qualified data/policy record;
-4. `milestone-3.14.1-proof-ledger.csv`, the single append-only proof ledger.
+4. [the QA review guide](../coding_guidelines/qa_review_guide.md) and
+   [testing laws](../coding_guidelines/testing_laws.md).
 
 If implementation reveals a conflict or missing product decision, stop and
 repair the specifications before coding. Do not invent a wrapper, duplicate
-authority lane, second ledger, or private compatibility posture.
+authority lane, second QA authority, or private compatibility posture.
 
 ## Objective
 
@@ -28,32 +29,20 @@ owner.
 
 ## Current Readiness Boundary
 
-The source now contains substantial raster and Gate D atlas implementation.
-Its retained `P5-ATLAS-01` evidence predates the required physical Signal
-owner. The pivot changes the row's governed source, lifecycle authority,
-completion/recovery semantics, shutdown, counters, and proof basis, so the next
-governed candidate must reopen it. `P5-ATLAS-PINNING-01` and the other existing
-Phase 5 rows remain OPEN. The Query async-presentation row also remains OPEN
-until its real main, independent oracle, named hostile fault, counter, source
-mapping, and authenticated execution receipt exist.
+Phase 5 is implemented and historically reviewed. Its old ledger, receipts,
+portfolio, and row state are frozen records and are not current QA authority.
+Historical phases do not reopen. Current changes run the focused tests affected
+by their causal scope, the required repository checks, and the applicable CI or
+native lanes; code review decides whether those results adequately protect this
+plan and the subordinate specification.
 
-The active UI branch predates the completed Signal Milestone 13 source that is
-present on `origin/master`. Batch D begins by integrating that exact upstream
-substrate and revalidating its manifest/API surface. It must not copy M13 into
-WORTH UI or implement a private approximation against the older local Signal
-tree.
-
-Before the first production batch:
-
-- reexecute and validate the immutable Phase 1-4 portfolio on current source;
-- confirm the twelve-row Phase 5 ledger inventory, reopen the stale atlas row,
-  and keep atlas pinning, cost, and Query async presentation OPEN;
-- freeze the staged transaction and typed denial/settlement API with compile
-  twins and topology tests;
-- freeze one host-native physical Signal runtime identity/construction owner,
-  exact declarations/capacity, external effect port, performed observation,
-  and shutdown contract before migrating manual lifecycle structures;
-- ensure readiness tests emit no feature-row counter or mutation receipt.
+The closed implementation retains two deliberately separate Signal domains:
+one host-native physical-work owner and one Query/Runtime-Bridge semantic
+presentation graph installed through `worth-ui-query-binding`. The native
+courtroom proves the ten-event async/reconstruction lifecycle and external
+pixels; the fresh-world 4×8 matrix proves local semantic and physical work at
+1, 32, 2,048, and 4,096 retained items. This plan now records the completed
+cutover and remains the implementation map for later audits.
 
 ## Destination Authority
 
@@ -137,7 +126,8 @@ crosses between the two graphs.
 3. Add the private runtime native-text transaction owner.
 4. Enforce dependency direction, non-forgeability, no `Clone`/serialization,
    no raw string identity, and consumer non-authority with compile twins.
-5. Complete only readiness evidence; keep feature rows OPEN.
+5. Treat this batch as readiness only; behavioral completion waits for the
+   applicable later-batch tests.
 
 ### Batch B: exact demand and alpha outline raster
 
@@ -147,7 +137,7 @@ crosses between the two graphs.
    alpha outline coverage, bounded bytes, digests, and actual counters.
 3. Preserve layout attribution separately from safe raster equivalence.
 4. Prove first/middle/last local work at 1, 32, 2,048, and 4,096 retained
-   paragraphs and reject consumer reshape/system-font mutants.
+   mechanics and reject consumer reshape/system-font mutants.
 5. Close `P5-GLYPH-RASTER-01` only after its causal mapping exists.
 
 ### Batch C: intrinsic color and exhaustive RGI
@@ -201,9 +191,10 @@ crosses between the two graphs.
    physical-progression/atlas model, deterministic execution, a real qualified
    DX12 boundary, before/partial-effect injected ports, saturation, pin
    advance/release, recovery, and close.
-10. Reopen and freshly prove `P5-ATLAS-01` because this batch changes its exact
-    owner/source/evidence. Close `P5-ATLAS-PINNING-01` only from lawful product
-    construction and causal live-unpin controls.
+10. Rerun atlas ownership, physical lifecycle, pinning, saturation, recovery,
+    and shutdown tests because this batch changes their causal basis. Pinning
+    evidence must come from lawful product construction and causal live-unpin
+    controls.
 
 ### Batch E: paint, scale, and presentation-specific Query binding
 
@@ -245,8 +236,8 @@ crosses between the two graphs.
 12. Add compile/topology twins proving the semantic and physical Signal graphs
     cannot share identity, aspects, handles, capacities, envelopes, shutdown,
     or an ambient runtime.
-13. Close `P5-TEXT-DPI-01` and `P5-TEXT-SPAN-PAINT-01`; keep
-    `P5-TEXT-ASYNC-PRESENTATION-01` OPEN until the real external boundary in F.
+13. Run DPI and span-paint tests here; defer the async-presentation completion
+    claim until the real external boundary in Batch F.
 
 ### Batch F: pixels, reconstruction, and cost
 
@@ -255,7 +246,7 @@ crosses between the two graphs.
 2. Feed host-native's typed external observations through physical Signal
    completion reconciliation, then Runtime Bridge, then the installed Query
    presentation resource and semantic Signal frontier.
-3. Share one real Windows/WGPU courtroom across the applicable rows.
+3. Share one real Windows/WGPU courtroom across the applicable tests.
 4. Destroy layout, raster, atlas pages/index, pins, draw commands, target, and
    presentation state independently; reconstruct from mounted authority and
    prove the next delta is local.
@@ -277,54 +268,46 @@ crosses between the two graphs.
    `P5-TEXT-COST-01`, and `P5-TEXT-ASYNC-PRESENTATION-01` only from their
    exact causal controls.
 
-### Batch G: documentation and closure
+### Batch G: documentation and final review
 
 1. Update `workspaces/worth-ui/docs/text-platform.md` for Phase 5 raster,
    paint, DPI/text-scale, atlas, saturation, reconstruction, and authority.
 2. Keep the public example free of atlas knobs and compile it through the
    shared governed example portfolio.
-3. Bind all feature rows to exact real production, independent oracles, named
-   hostile faults, sources, counters, and authenticated receipts.
-4. Run each unique corpus/model/native command once, retain content-addressed
-   evidence, stream progress, and resume unchanged staged successes.
-5. Validate the just-produced portfolio without rerunning it.
-6. Close `P5-CLOSE-01` only after every predecessor and feature row is final.
+3. Review every material guarantee against real production, independent
+   oracles, named adversarial faults, sources, and counters where applicable.
+4. Run each unique corpus/model/native command once per applicable test run.
+5. Run the required constitutional checks and affected CI lanes on the final
+   commit.
+6. Complete the phase only after code review finds the implementation and test
+   evidence adequate.
 
-## Ledger Inventory
+## QA Scope by Batch
 
-| Requirement | Primary batch | Closure boundary |
-|---|---|---|
-| `P5-PREDECESSOR-01` | A | authenticated current-source through-Phase-4 handoff |
-| `P5-GLYPH-RASTER-01` | B | exact attributable alpha/color raster production |
-| `P5-COLOR-EMOJI-01` | C | exhaustive RGI plus every admitted color source |
-| `P5-ATLAS-01` | D | separate bounded native atlas owners plus one bounded physical Signal lifecycle; reopened and freshly source-bound |
-| `P5-ATLAS-PINNING-01` | D | live pins and deterministic unpinned eviction |
-| `P5-TEXT-DPI-01` | E | layout-preserving pure-DPI raster replacement |
-| `P5-TEXT-SPAN-PAINT-01` | E | original-range paint and color-only reuse |
-| `P5-TEXT-PIXELS-01` | F | headless/native attribution and external pixels |
-| `P5-TEXT-RECONSTRUCTION-01` | F | full derived-state reconstruction from mounted authority |
-| `P5-TEXT-COST-01` | E/F | realized M13 UI frontier slopes plus exact ordinary/reconstructive/unchanged/resource cost |
-| `P5-TEXT-ASYNC-PRESENTATION-01` | E/F | Query-installed presentation meaning in E; real native completion and retained transition proof in F |
-| `P5-CLOSE-01` | G | complete retained portfolio and closure laws |
+- Batch A: predecessor contracts and destination topology.
+- Batch B: attributable alpha/color raster production.
+- Batch C: exhaustive RGI mapping and admitted color sources.
+- Batch D: bounded atlas ownership, physical Signal lifecycle, live pins, and
+  deterministic unpinned eviction.
+- Batch E: DPI, original-range paint, color-only reuse, Query presentation
+  meaning, and locality counters.
+- Batch F: headless/native attribution, external pixels, async completion,
+  reconstruction, and resource census.
+- Batch G: documentation, required checks, and code review.
 
-The exact guarantees and hostile families live in the subordinate
-specification and ledger. This plan does not redefine them.
+The exact guarantees and adversarial families live in the subordinate
+specification. This plan does not redefine them or track progressive QA state.
 
-## Proof Economy and Resume
+## Test Economy
 
-- Key unique execution by source-state, claim, command, oracle, and dependency
-  identity.
 - Execute exhaustive Unicode/RGI, atlas model, compiled examples, and real
-  Windows/WGPU worlds once per key.
-- Let rows validate distinct observations from shared authenticated receipts.
-- Keep row-owned outputs separate from dependency inputs; a consumer cache may
-  never rewind a producer artifact.
-- Stage ledger and evidence atomically. A late failure leaves the published
-  ledger/artifacts unchanged.
-- Resume authenticated staged successes only when every binding is unchanged.
-- Stream requirement, execute/reuse posture, result, and duration.
-- The final verifier validates the retained portfolio and closure laws; it does
-  not reexecute the portfolio.
+  Windows/WGPU worlds once per applicable test run.
+- Keep test outputs separate from dependency inputs; a consumer cache may not
+  rewind a producer artifact.
+- Retain concise diagnostics for failures that need reproduction, but do not
+  require receipt, nonce, portfolio, or publication machinery.
+- Report each applicable check as passed, failed, or environment-blocked.
+- Bind final review to the current commit and final diff, not retained artifacts.
 
 ### Shared Signal/locality proof matrix
 
@@ -336,6 +319,15 @@ UI analysis/shaping/raster/atlas/upload/damage/presentation/pixel/census
 counters. An independent dependency model adjudicates the exact immediate
 subscribers and scope rejections.
 
+The authoritative matrix is physically divided into sixteen source-bound
+shards. Scheduled CI runs one shard per fresh worker. A full local run admits
+exactly eight shard processes in a deterministic large-first wave (`8..15`),
+then the eight ordinary/middle-retained shards (`0..7`), under one shared
+eight-and-a-half-minute runner deadline inside the nine-minute CI envelope,
+then deterministically joins all thirty-two owner-issued cases. No individual
+test or shard may run for ten minutes, and partial, duplicate, missing, or
+timed-out shard output is not admissible evidence.
+
 The hostile matrix injects, at production owners: complete subscriber-closure
 walking; aspect filtering after enqueue; partition/detail/range filtering after
 enqueue; every-mounted-instance invalidation; paint-to-layout widening;
@@ -345,6 +337,27 @@ physical Signal; Query current publication outside Query admission;
 Signal-as-effect authority; stale/duplicate/out-of-order completion; and
 terminal Signal/native resource retention. A printed label or a second lawful
 run is not a control.
+
+For internal cost algorithms that cannot be supplied through a lawful public
+input, certification owns separately authored deterministic owner-mutant
+twins. Each twin receives the same typed case basis, predicts the specific
+wrong performed work, and is convicted against the immutable owner-issued
+observation before serialization. The twins cannot mint or edit evidence.
+Their exact conviction union is checked by the 32-world shard join; only a minimum bounded
+small-world subset is repeated for the named hostile-control execution.
+
+Run the matrix through the existing `application_contracts` integration
+target. The exact ignored test spawns a bounded-stack worker and grants only
+that worker the typed `CertificationWorker` event-loop posture; each result
+must disclose that posture and callback/launch-thread agreement. Do not
+add a certification binary or dedicated integration target. This worker
+posture is not evidence for operating-system main-thread ownership.
+
+Whenever the event-loop posture owner changes, rerun the separate Platform
+Pulse Phase 2 product world and require its result to disclose
+`main-thread-required`. Then rerun the affected event-loop, native-world,
+cleanup, atlas-pinning, cost, async-presentation, and terminal-resource tests
+before Phase 6 relies on the changed lifecycle.
 
 ## Query Boundary
 
@@ -425,8 +438,8 @@ Change in D/E/F:
 
 - add `worth-signal` to host-native and no other WORTH UI production crate for
   native physical progression;
-- reopen and reprove `P5-ATLAS-01`, then prove `P5-ATLAS-PINNING-01` from the
-  corrected physical lifecycle;
+- rerun atlas ownership, pinning, lifecycle, recovery, and shutdown tests after
+  correcting the physical lifecycle;
 - bind every native settlement observation to exact host, transaction,
   presentation basis, and currentness before it can cross the bridge;
 - add the typed Query async request/binding and retained posture owner under
@@ -462,7 +475,8 @@ Run in proportion to the batch, including:
 - affected public application/runtime/headless/native integration tests;
 - exhaustive corpus/model or the shared real native world when its boundary
   changes;
-- proof-ledger mapping/source/counter/artifact validation;
+- code review of test mapping, source coverage, counters, fixture realism, and
+  oracle independence;
 - the shared 1/32/2,048/4,096 performed-frontier matrix and its independent
   dependency model when Gate E/F locality changes;
 - compiled public example and documentation checks where relevant;
@@ -471,5 +485,5 @@ Run in proportion to the batch, including:
 - `cargo run --manifest-path tools/boundary-check/Cargo.toml -- --root .`;
 - `cargo run --manifest-path tools/agent-context/Cargo.toml -- check`.
 
-Do not run the atomic closer until the batch's production, causal controls,
-source mappings, proof economy, and final source state are stable.
+Do not request final review until the batch's production behavior, adversarial
+controls, source mappings, and final commit are stable.

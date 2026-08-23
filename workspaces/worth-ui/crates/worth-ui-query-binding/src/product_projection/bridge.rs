@@ -9,7 +9,7 @@ use worth_runtime_bridge::facade::{
 };
 
 pub(crate) fn platform_pulse_bridge() -> Result<RuntimeBridge, String> {
-    RuntimeBridgeBuilder::new()
+    let mut builder = RuntimeBridgeBuilder::new()
         .with_relational_source(ExternalScalarTruthSource)
         .with_signal_sink(ExternalScalarSignalSink)
         .with_writeback_authority(ExternalScalarWritebackAuthority)
@@ -29,15 +29,32 @@ pub(crate) fn platform_pulse_bridge() -> Result<RuntimeBridge, String> {
             ),
             SignalInvalidationScope::from_stable_name("worth-ui-external-scalar"),
             CoarseRoutingMode::Direct,
-        ))
-        .build()
-        .map_err(|error| error.to_string())
+        ));
+    for (mapping, aspect_mapping) in crate::presentation_async::presentation_bridge_registrations()
+    {
+        builder = builder
+            .register_mapping(mapping)
+            .register_aspect_mapping(aspect_mapping);
+    }
+    builder.build().map_err(|error| error.to_string())
 }
 
 #[derive(Clone, Copy)]
 struct ExternalScalarTruthSource;
 
 impl CommittedPatchSource for ExternalScalarTruthSource {
+    fn authoritative_source_profile(
+        &self,
+    ) -> Option<worth_runtime_bridge::facade::BridgeAuthoritativeSourceProfile> {
+        Some(
+            worth_runtime_bridge::facade::BridgeAuthoritativeSourceProfile::new(
+                0x5755_4950,
+                "worth-ui-product-source",
+            )
+            .expect("static Worth UI product source profile must admit"),
+        )
+    }
+
     fn load_committed_patch(
         &self,
         _request: RelationalCommittedPatchRequest,

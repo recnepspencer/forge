@@ -21,14 +21,16 @@ pub(crate) use coordinator::UiMountedPresentationCoordinator;
 pub use outcome::{
     UiMountedIndeterminateFrame, UiMountedPresentationOutcome, UiMountedPresentationReceipt,
     UiMountedPresentationWitness, UiMountedPresentedFrame, UiMountedRejectedFrame,
-    UiMountedSurfacePresentationReceipt, UiMountedSurfacePresentationRejection,
-    UiPresentationIndeterminateReport,
+    UiMountedSupersededFrame, UiMountedSurfacePresentationReceipt,
+    UiMountedSurfacePresentationRejection, UiPresentationIndeterminateReport,
 };
 pub use reconciliation::{UiHostPresentationReconciliation, UiMountedSurfaceReconciliationBinding};
+pub(super) use shutdown::{UiMountedPresentationQueryShutdown, UiMountedPresentationTextShutdown};
 pub use shutdown::{
     UiMountedPresentationShutdownAttempt, UiMountedPresentationShutdownDisposition,
     UiMountedPresentationShutdownReport,
 };
+pub(crate) use state::UiMountedSupersedingPresentationBasis;
 pub use state::{
     UiMountedPresentationAdmission, UiMountedPresentationAdmissionDenial,
     UiMountedPresentationAdmissionRejection, UiMountedPresentationAttempt,

@@ -4,6 +4,7 @@ mod completion;
 mod counters;
 mod denied;
 mod envelope;
+mod indeterminate;
 mod receipt;
 mod rejection;
 mod supersession;
@@ -22,6 +23,7 @@ pub use envelope::{
     BridgeAsyncCompletionEnvelope, BridgeAsyncCompletionEnvelopeIdentity,
     ValidatedBridgeAsyncCompletionEnvelope,
 };
+pub use indeterminate::BridgeAsyncEffectsIndeterminateCompletion;
 pub use receipt::{
     BridgeAsyncCompletionReceipt, BridgeAsyncCompletionReceiptIdentity,
     BridgeAsyncDeniedCompletionReceipt, BridgeAsyncDeniedCompletionReceiptIdentity,

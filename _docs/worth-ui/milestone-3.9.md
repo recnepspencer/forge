@@ -1,5 +1,15 @@
 # Milestone 3.9: Execution-Plan Lowering, Equivalence, and Frame-Cost Surfaces
 
+> Historical QA policy (2026-08-22): proof, closure, migration, acceptance,
+> and phase ledgers described below are frozen historical records. They are not
+> active implementation or release gates, are not updated or reopened, and a
+> ledger-only failure does not block current work. Current evidence follows
+> [the QA review guide](../coding_guidelines/qa_review_guide.md) and
+> [testing laws](../coding_guidelines/testing_laws.md): specifications state QA
+> considerations in prose, tests and repository checks run against the current
+> commit, and code review decides whether the evidence is adequate. This note
+> does not retire product-domain ledgers that are part of runtime behavior.
+
 **Status:** Closed. Milestone 3.8.1's structural and test-topology work is
 the prerequisite. Phases 1 through 18 are closed. The hostile reopening of
 Phases 9 through 13 is resolved: public real-filesystem canvas and realtime

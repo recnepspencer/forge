@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import csv
+import re
 import sys
 import subprocess
 import tempfile
@@ -15,13 +17,51 @@ if str(CI) not in sys.path:
 
 import close_worth_ui_3141_ledger as ledger_closer
 from worth_ui_3141_ledger_contracts import EXPECTED_IGNORED
+from worth_ui_3141_proof_plan import proofs, source_inventory
 from worth_ui_ledger_command import GovernedTest, control_budget_ms, execution_budget_ms
 from worth_ui_ledger_observation import observed_costs
 import worth_ui_ledger_phase_five_portfolio as phase_five_portfolio
 import worth_ui_ledger_verifier_rebinding as verifier_rebinding
+from worth_ui_predecessor_handoff import mapping_digest
 
 
 class PhaseFiveReadinessTests(unittest.TestCase):
+    def test_predecessor_mapping_digests_match_the_current_proof_plan(self) -> None:
+        with (ROOT / "_docs/worth-ui/milestone-3.14.1-proof-ledger.csv").open(
+            newline="", encoding="utf-8"
+        ) as stream:
+            ledger_rows = list(csv.DictReader(stream))
+        configured = proofs()
+        expected = {}
+        for phase, name in [
+            (2, "EXPECTED_MAPPING_DIGEST"),
+            (3, "EXPECTED_PHASE_THREE_MAPPING_DIGEST"),
+            (4, "EXPECTED_PHASE_FOUR_MAPPING_DIGEST"),
+        ]:
+            observations = []
+            for row in ledger_rows:
+                if int(row["phase"]) > phase:
+                    continue
+                proof = configured[row["requirement"]]
+                observations.append({
+                    "requirement": row["requirement"],
+                    "production_entry": proof.production_entry,
+                    "independent_oracle": proof.oracle_entry,
+                    "mapping_source_identity": source_inventory(proof),
+                })
+            expected[name] = mapping_digest(observations)
+
+        contract = (ROOT / (
+            "workspaces/worth-ui/crates/worth-ui-certification/tests/"
+            "milestone_3141_phase1_ledger/predecessor_artifact.rs"
+        )).read_text(encoding="utf-8")
+        observed = dict(re.findall(
+            r"const (EXPECTED(?:_PHASE_(?:THREE|FOUR))?_MAPPING_DIGEST): &str =\s*"
+            r'"([0-9a-f]{64})"',
+            contract,
+        ))
+        self.assertEqual(observed, expected)
+
     def test_real_dx12_atlas_main_retains_its_declared_ignore_posture(self) -> None:
         self.assertTrue(EXPECTED_IGNORED["P5-ATLAS-01"])
 
@@ -47,11 +87,11 @@ class PhaseFiveReadinessTests(unittest.TestCase):
             subprocess.CompletedProcess([], 0, "", ""),
             {"executed_test_count": 1},
             {
-                "schema": "worth-ui-native-gate-d-pin-world-v2",
+                "schema": "worth-ui-native-gate-d-pin-world-v3",
                 "mounted_bindings": 1,
-                "pinned_layouts": 2,
-                "presentations": 1,
-                "atlas_transactions": 3,
+                "pinned_layouts": 3,
+                "presentations": 4,
+                "atlas_transactions": 4,
             },
             {"requirement": "P5-ATLAS-01"},
             None,
@@ -61,32 +101,40 @@ class PhaseFiveReadinessTests(unittest.TestCase):
             (
                 "main-tests=1;hostile-controls=1;product-processes=1;"
                 "compile-sessions=0;courtroom-worlds=1",
-                "executed-tests=2;presentations=1;atlas-transactions=3",
+                "executed-tests=2;presentations=4;atlas-transactions=4",
             ),
         )
 
-    def test_gate_d_mappings_do_not_make_later_feature_rows_closable(self) -> None:
+    def test_phase_f_and_close_mappings_cover_every_phase_five_row(self) -> None:
         configured = ledger_closer.phase_proofs(5)
-        self.assertEqual(
-            set(configured),
-            {
-                "P5-PREDECESSOR-01",
-                "P5-GLYPH-RASTER-01",
-                "P5-COLOR-EMOJI-01",
-                "P5-ATLAS-01",
-                "P5-ATLAS-PINNING-01",
-            },
-        )
+        requirements = {
+            "P5-PREDECESSOR-01",
+            "P5-GLYPH-RASTER-01",
+            "P5-COLOR-EMOJI-01",
+            "P5-ATLAS-01",
+            "P5-ATLAS-PINNING-01",
+            "P5-TEXT-DPI-01",
+            "P5-TEXT-SPAN-PAINT-01",
+            "P5-TEXT-PIXELS-01",
+            "P5-TEXT-RECONSTRUCTION-01",
+            "P5-TEXT-COST-01",
+            "P5-TEXT-ASYNC-PRESENTATION-01",
+            "P5-CLOSE-01",
+        }
+        self.assertEqual(set(configured), requirements)
         rows = [
             {"phase": "5", "requirement": requirement}
-            for requirement in (
-                "P5-PREDECESSOR-01",
-                "P5-GLYPH-RASTER-01",
-                "P5-TEXT-DPI-01",
-            )
+            for requirement in requirements
         ]
-        with self.assertRaisesRegex(RuntimeError, "proof mappings are incomplete"):
-            ledger_closer.require_complete_phase_mapping(rows, 5, configured)
+        ledger_closer.require_complete_phase_mapping(rows, 5, configured)
+
+    def test_every_phase_five_mapping_has_unique_source_identities(self) -> None:
+        for requirement, proof in ledger_closer.phase_proofs(5).items():
+            self.assertEqual(
+                len(proof.sources),
+                len(set(proof.sources)),
+                f"{requirement} repeats one governed source identity",
+            )
 
     def test_gate_d_sources_close_over_current_model_product_and_dependency_owners(self) -> None:
         configured = ledger_closer.phase_proofs(5)
@@ -148,17 +196,45 @@ class PhaseFiveReadinessTests(unittest.TestCase):
                     f"mapped raster source does not exist: {source}",
                 )
 
+    def test_async_sources_exist_and_close_over_host_owner_topology(self) -> None:
+        configured = ledger_closer.phase_proofs(5)
+        sources = configured["P5-TEXT-ASYNC-PRESENTATION-01"].sources
+        for source in sources:
+            self.assertTrue(
+                (ROOT / source).is_file(),
+                f"mapped async-presentation source does not exist: {source}",
+            )
+
+        host_owner_root = ROOT / (
+            "workspaces/worth-ui/crates/worth-ui-query-binding/src/"
+            "presentation_async/host_owner"
+        )
+        expected = {
+            path.relative_to(ROOT).as_posix()
+            for path in host_owner_root.glob("*.rs")
+        }
+        mapped = {
+            source
+            for source in sources
+            if Path(source).parent.as_posix()
+            == "workspaces/worth-ui/crates/worth-ui-query-binding/src/"
+            "presentation_async/host_owner"
+        }
+        self.assertEqual(mapped, expected)
+
     def test_gate_batches_close_atomically_without_claiming_phase_closure(self) -> None:
         selected = [{"requirement": "P5-ATLAS-01"}]
-        with mock.patch.object(ledger_closer, "close_selected_atomically") as close:
+        with mock.patch.object(ledger_closer, "close_atomically") as close:
             ledger_closer.close_phase_five([], [], selected)
-        close.assert_called_once_with([], [], selected, verify_phase=None)
+        plan = close.call_args.args[2]
+        self.assertEqual((list(plan.selected), plan.verify_phase), (selected, None))
 
     def test_gate_g_close_runs_the_full_phase_verifier(self) -> None:
         selected = [{"requirement": "P5-CLOSE-01"}]
-        with mock.patch.object(ledger_closer, "close_selected_atomically") as close:
+        with mock.patch.object(ledger_closer, "close_atomically") as close:
             ledger_closer.close_phase_five([], [], selected)
-        close.assert_called_once_with([], [], selected, verify_phase=5)
+        plan = close.call_args.args[2]
+        self.assertEqual((list(plan.selected), plan.verify_phase), (selected, 5))
 
     def test_reopening_drops_stale_execution_truth_and_retains_lineage(self) -> None:
         row = {

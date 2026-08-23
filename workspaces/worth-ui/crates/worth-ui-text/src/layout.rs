@@ -213,6 +213,10 @@ impl UiQualifiedTextLayout {
         let font_collection = shaped.font_collection_generation();
         let text_scale = shaped.text_scale_generation();
         let request_identity = shaped.request_identity();
+        let width_basis = worth_ui_host_contract::UiQualifiedTextLayoutWidthBasis::new(
+            shaped.constraints().width_millipoints(),
+        )
+        .expect("admitted text constraints retain a non-zero width");
         let (source, graphemes) = shaped.into_artifact_source();
         let artifact = Arc::new(UiQualifiedTextLayoutArtifact::new(
             UiQualifiedTextLayoutArtifactInput {
@@ -236,6 +240,7 @@ impl UiQualifiedTextLayout {
                 profile,
                 font_collection,
                 text_scale,
+                width_basis,
             },
         ));
         Ok(Self {

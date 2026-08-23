@@ -225,20 +225,22 @@ impl SignalGraph {
         ) {
             return;
         }
-        if let Some(summary) = self.diagnostics_state().latest_graph_summary().cloned() {
-            self.observation
-                .diagnostics
-                .set_pending_graph_summary(summary.with_profile(self.diagnostics_profile()));
-        } else {
-            let retention_budget = self.installed_runtime_policy().retention_budget();
-            self.observation
-                .diagnostics
-                .set_pending_graph_summary(GraphSummary::from_graph(
-                    self,
-                    self.diagnostics_profile(),
-                    retention_budget.detail_limit,
-                    OrdinaryAccessLane,
-                ));
+        if self.diagnostics_state().pending_graph_summary().is_none() {
+            if let Some(summary) = self.diagnostics_state().latest_graph_summary().cloned() {
+                self.observation
+                    .diagnostics
+                    .set_pending_graph_summary(summary.with_profile(self.diagnostics_profile()));
+            } else {
+                let retention_budget = self.installed_runtime_policy().retention_budget();
+                self.observation
+                    .diagnostics
+                    .set_pending_graph_summary(GraphSummary::from_graph(
+                        self,
+                        self.diagnostics_profile(),
+                        retention_budget.detail_limit,
+                        OrdinaryAccessLane,
+                    ));
+            }
         }
         self.observation.diagnostics.record_frontier_execution(
             planning_estimate,

@@ -13,6 +13,12 @@ pub(crate) enum UiNativePhysicalSignalExternalStatus {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum UiNativePhysicalSignalExternalOrigin {
+    NativeExternalPort,
+    QualifiedExternalPort,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct UiNativePhysicalSignalExternalBasis {
     runtime: UiNativePhysicalSignalRuntimeIdentity,
     work: UiNativePhysicalSignalWork,
@@ -23,6 +29,7 @@ pub(crate) struct UiNativePhysicalSignalExternalBasis {
 pub(crate) struct UiNativePhysicalSignalExternalObservation {
     basis: UiNativePhysicalSignalExternalBasis,
     status: UiNativePhysicalSignalExternalStatus,
+    origin: UiNativePhysicalSignalExternalOrigin,
 }
 
 impl UiNativePhysicalSignalExternalBasis {
@@ -45,6 +52,18 @@ impl UiNativePhysicalSignalExternalBasis {
         UiNativePhysicalSignalExternalObservation {
             basis: self,
             status,
+            origin: UiNativePhysicalSignalExternalOrigin::NativeExternalPort,
+        }
+    }
+
+    pub(crate) const fn observe_qualified_external(
+        self,
+        status: UiNativePhysicalSignalExternalStatus,
+    ) -> UiNativePhysicalSignalExternalObservation {
+        UiNativePhysicalSignalExternalObservation {
+            basis: self,
+            status,
+            origin: UiNativePhysicalSignalExternalOrigin::QualifiedExternalPort,
         }
     }
 }
@@ -60,6 +79,10 @@ impl UiNativePhysicalSignalExternalObservation {
 
     pub(crate) const fn status(self) -> UiNativePhysicalSignalExternalStatus {
         self.status
+    }
+
+    pub(crate) const fn origin(self) -> UiNativePhysicalSignalExternalOrigin {
+        self.origin
     }
 
     pub(crate) const fn handle(self) -> ResourceRequestHandle {

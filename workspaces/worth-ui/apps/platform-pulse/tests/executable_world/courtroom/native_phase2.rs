@@ -1,4 +1,3 @@
-use std::io::Read;
 use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 use std::time::{Duration, Instant};
 
@@ -6,6 +5,9 @@ use crate::native_platform::{
     NativePlatformContract, NativePlatformFailure, WindowsNativePlatform,
 };
 use crate::product_process::{CargoBuiltPlatformPulse, SuccessfulPlatformPulseExit};
+
+#[path = "native_phase2/resource_evidence.rs"]
+mod resource_evidence;
 
 #[test]
 #[ignore = "requires the serialized interactive Windows 11 DX12 desktop"]
@@ -149,7 +151,7 @@ fn assert_exact_native_evidence(
     assert_exact_attribution(&evidence["presentation"], &evidence["runtime_attribution"]);
     assert_exact_counters(&evidence["counters"]);
     assert_exact_graphics(&evidence["graphics"]);
-    assert_exact_resource_evidence(evidence);
+    resource_evidence::assert_exact_resource_evidence(evidence);
 }
 
 fn assert_quiescent_control_points(
@@ -256,6 +258,10 @@ fn assert_exact_graphics(graphics: &serde_json::Value) {
     assert_eq!(graphics["alpha_mode"], "PreMultiplied");
     assert_eq!(graphics["retained_format"], "Rgba8UnormSrgb");
     assert_eq!(graphics["event_loop_thread_matches_launch"], true);
+    assert_eq!(
+        graphics["event_loop_thread_posture"],
+        "main-thread-required"
+    );
     assert!(graphics["max_texture_dimension_2d"]
         .as_u64()
         .is_some_and(|limit| limit >= 16_384));
@@ -263,51 +269,6 @@ fn assert_exact_graphics(graphics: &serde_json::Value) {
         .as_str()
         .is_some_and(|value| !value.is_empty()));
 }
-
-fn assert_exact_resource_evidence(evidence: &serde_json::Value) {
-    let mut expected = PHASE_FIVE_ATLAS_RESOURCE_CLASSES
-        .iter()
-        .map(|field| ((*field).to_owned(), serde_json::Value::from(0)))
-        .collect::<serde_json::Map<_, _>>();
-    for (field, count) in [
-        ("windows", 1),
-        ("surfaces", 1),
-        ("adapters", 1),
-        ("devices", 1),
-        ("queues", 1),
-        ("retained_targets", 2),
-        ("registrations", 1),
-        ("readback_buffers", 1),
-        ("pending_submissions", 1),
-        ("event_wake_registrations", 1),
-        ("application_drivers", 1),
-        ("physical_signal_runtimes", 1),
-        ("physical_signal_workers", 1),
-    ] {
-        expected.insert(field.to_owned(), count.into());
-    }
-    assert_eq!(evidence["peak"], serde_json::Value::Object(expected));
-    assert_eq!(evidence["terminal_zero"], true);
-}
-
-const PHASE_FIVE_ATLAS_RESOURCE_CLASSES: &[&str] = &[
-    "alpha_atlas_pages",
-    "color_atlas_pages",
-    "atlas_staging_buffers",
-    "text_atlas_plans",
-    "text_atlas_reservations",
-    "text_atlas_pins",
-    "text_atlas_recoveries",
-    "text_atlas_alpha_entries",
-    "text_atlas_color_entries",
-    "text_atlas_upload_submissions",
-    "text_atlas_recovery_authorities",
-    "text_atlas_in_flight_transactions",
-    "physical_signal_runtimes",
-    "physical_signal_workers",
-    "physical_signal_pending_work",
-    "physical_signal_wakes",
-];
 
 fn expected_native_seed_authored_provenance_digest() -> u64 {
     independent_text_digest("app/native_seed.wui") ^ 1_u64.rotate_left(13)

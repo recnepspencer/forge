@@ -54,7 +54,7 @@ pub(super) fn shape(
             )?;
             match metrics {
                 Some(current) if current != segment_metrics => {
-                    return Err(UiTextShapingDenial::InconsistentRunMetrics)
+                    return Err(UiTextShapingDenial::InconsistentRunMetrics);
                 }
                 Some(_) => {}
                 None => metrics = Some(segment_metrics),

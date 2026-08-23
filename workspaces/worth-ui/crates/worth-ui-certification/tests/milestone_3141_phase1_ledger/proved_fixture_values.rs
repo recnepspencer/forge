@@ -1,4 +1,5 @@
 use super::*;
+use proved_fixture::ProvedEvidence;
 
 pub(super) fn proved_record(evidence: &ProvedEvidence<'_>) -> Vec<String> {
     HEADER
@@ -21,13 +22,19 @@ fn proved_value<'a>(name: &str, evidence: &'a ProvedEvidence<'a>) -> &'a str {
         "scenario_delta" => "stale-predecessor",
         "generated_seed" => "not-applicable",
         "authority_provenance" => "worth_ui_runtime::mounting::presentation",
-        "production_entry" => "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/authority/work.rs::issue_delta",
-        "independent_oracle" => "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/work_producer_tests.rs::one_replacement_carries_one_change_and_exact_predecessor_successor_damage",
+        "production_entry" => {
+            "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/authority/work.rs::issue_delta"
+        }
+        "independent_oracle" => {
+            "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/work_producer_tests.rs::one_replacement_carries_one_change_and_exact_predecessor_successor_damage"
+        }
         "mutation_control" => "family=affinity;case=stale-predecessor",
         "fault_injection_boundary" => "not-applicable",
         "retained_failure_artifact" => evidence.artifact,
         "teardown_result" => "terminal",
-        "construction_cost" => "main-tests=1;hostile-controls=0;product-processes=0;compile-sessions=0;courtroom-worlds=0",
+        "construction_cost" => {
+            "main-tests=1;hostile-controls=0;product-processes=0;compile-sessions=0;courtroom-worlds=0"
+        }
         "execution_cost" => "executed-tests=1;presentations=0",
         "structural_counters" => "work=3",
         "exact_command" => "dynamic",

@@ -28,6 +28,7 @@ pub struct UiQualifiedTextLayoutView<'layout> {
     profile: UiTextProfileGeneration,
     font_collection: UiFontCollectionGeneration,
     text_scale: UiTextScaleGeneration,
+    width_basis: super::UiQualifiedTextLayoutWidthBasis,
 }
 
 #[doc(hidden)]
@@ -51,6 +52,7 @@ pub struct UiQualifiedTextLayoutViewInput<'layout> {
     pub profile: UiTextProfileGeneration,
     pub font_collection: UiFontCollectionGeneration,
     pub text_scale: UiTextScaleGeneration,
+    pub width_basis: super::UiQualifiedTextLayoutWidthBasis,
 }
 
 impl<'layout> UiQualifiedTextLayoutView<'layout> {
@@ -76,6 +78,7 @@ impl<'layout> UiQualifiedTextLayoutView<'layout> {
             profile: input.profile,
             font_collection: input.font_collection,
             text_scale: input.text_scale,
+            width_basis: input.width_basis,
         }
     }
 
@@ -135,5 +138,8 @@ impl<'layout> UiQualifiedTextLayoutView<'layout> {
     }
     pub const fn text_scale_generation(self) -> UiTextScaleGeneration {
         self.text_scale
+    }
+    pub const fn width_basis(self) -> super::UiQualifiedTextLayoutWidthBasis {
+        self.width_basis
     }
 }

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import secrets
-import tempfile
 from pathlib import Path
 
+from worth_ui_ledger_artifact_identity import ArtifactIdentity, predecessor_schema
+from worth_ui_ledger_artifact_publication import publish_json_artifact
+from worth_ui_ledger_candidate_basis import CandidateBasis
+from worth_ui_ledger_portfolio_executions import aggregate_executions
 from worth_ui_ledger_runner_authentication import authentication_tag
 
 
@@ -18,8 +20,17 @@ def predecessor_artifact(
     state_digest: str,
     observations: list[dict[str, object]],
     closure_count: int,
+    basis: CandidateBasis,
 ) -> dict[str, object]:
-    main_tests, controls = unique_test_executions(observations)
+    executions = aggregate_executions(
+        [row for row in observations if isinstance(row, dict)],
+        ROOT,
+        revision,
+        state_digest,
+        {str(row["requirement"]) for row in observations},
+    )
+    main_tests = sum(execution.get("role") == "main-test" for execution in executions)
+    controls = sum(execution.get("role") == "control-test" for execution in executions)
     presentations = sum(unique_presentations(row) for row in observations)
     product_processes = sum(
         unique_construction_amount(row, "product-processes") for row in observations
@@ -27,8 +38,8 @@ def predecessor_artifact(
     courtroom_worlds = sum(
         unique_construction_amount(row, "courtroom-worlds") for row in observations
     )
-    return {
-        "schema": "worth-ui-phase-predecessor-handoff-v1",
+    artifact = {
+        "schema": predecessor_schema(through_phase + 1),
         "through_phase": through_phase,
         "source_revision": revision,
         "source_state_digest": state_digest,
@@ -41,9 +52,26 @@ def predecessor_artifact(
         "courtroom_worlds": courtroom_worlds,
         "presentations": presentations,
         "mapping_digest": mapping_digest(observations),
+        "verification_basis": basis.payload(),
         "run_nonce": secrets.token_hex(16),
         "rows": [retained_row(row, ROOT) for row in observations],
+        "execution_identities": executions,
+        "logical_execution_count": len(executions),
+        "source_bound_execution_count": len({
+            observation["execution_binding_key"]
+            for execution in executions
+            for observation in execution["observations"]
+        }),
+        "physical_observation_count": len({
+            observation["observation_sha256"]
+            for execution in executions
+            for observation in execution["observations"]
+        }),
+        "execution_reference_count": sum(
+            len(execution["requirements"]) for execution in executions
+        ),
     }
+    return artifact
 
 
 def unique_presentations(row: dict[str, object]) -> int:
@@ -54,34 +82,6 @@ def unique_presentations(row: dict[str, object]) -> int:
         if field.startswith("presentations="):
             return int(field.split("=", 1)[1])
     return 0
-
-
-def unique_test_executions(
-    observations: list[dict[str, object]],
-) -> tuple[int, int]:
-    main: set[str] = set()
-    controls: set[str] = set()
-    for row in observations:
-        receipts = row.get("execution_receipts")
-        if not isinstance(receipts, list):
-            continue
-        for receipt in receipts:
-            if not isinstance(receipt, dict) or not isinstance(receipt.get("key"), str):
-                continue
-            if receipt.get("role") == "main-test":
-                main.add(receipt["key"])
-            elif receipt.get("role") == "control-test":
-                controls.add(receipt["key"])
-    if main or controls:
-        return len(main), len(controls)
-    return (
-        sum(int(row["executed_test_count"]) for row in observations),
-        sum(
-            int(row.get("hostile_control", {}).get("executed_test_count", 0))
-            for row in observations
-            if isinstance(row.get("hostile_control"), dict)
-        ),
-    )
 
 
 def unique_construction_amount(row: dict[str, object], name: str) -> int:
@@ -118,7 +118,7 @@ def retained_row(row: dict[str, object], root: Path) -> dict[str, object]:
             "ignored_test_count", "exit_posture", "source_revision", "source_identity",
             "mapping_source_identity", "source_rebindings", "source_digest",
             "source_state_digest", "run_nonce", "artifact_sha256", "structural_counter",
-            "claim_digest",
+            "claim_digest", "executed_exact_command",
             "hostile_control", "construction_cost", "execution_cost",
             "execution_receipts", "list_command", "ignored_list_command", "test_command",
             "public_example_command",
@@ -127,24 +127,13 @@ def retained_row(row: dict[str, object], root: Path) -> dict[str, object]:
     }
     if "shared_main_artifact" in row:
         retained["shared_main_artifact"] = row["shared_main_artifact"]
-    authenticated = {
-        field: value for field, value in retained.items() if field != "artifact_sha256"
-    }
-    retained["runner_authentication"] = authentication_tag(authenticated, root)
+    if "causal_reuse" in row:
+        retained["causal_reuse"] = row["causal_reuse"]
+    retained["runner_authentication"] = authentication_tag(retained, root)
     return retained
 
 
-def write_artifact(identity: str, payload: dict[str, object]) -> None:
-    destination = (ROOT / identity).resolve()
-    try:
-        destination.relative_to(ROOT)
-    except ValueError as error:
-        raise RuntimeError("predecessor artifact escapes the repository") from error
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    data = json.dumps(payload, indent=2, sort_keys=True) + "\n"
-    with tempfile.NamedTemporaryFile(
-        "w", encoding="utf-8", dir=destination.parent, delete=False
-    ) as stream:
-        stream.write(data)
-        temporary = Path(stream.name)
-    temporary.replace(destination)
+def write_artifact(
+    root: Path, identity: ArtifactIdentity, payload: dict[str, object]
+) -> str:
+    return publish_json_artifact(root, identity, payload)

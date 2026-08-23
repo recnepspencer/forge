@@ -22,6 +22,7 @@ mod inspection;
 mod installed_domain;
 mod native_aspect_contracts;
 mod operation_live;
+mod presentation_async;
 mod product_projection;
 #[cfg(test)]
 mod product_projection_tests;
@@ -147,6 +148,33 @@ pub use operation_live::{
     WorthUiOperationLiveRetirementCloseReceipt, WorthUiOperationLiveRetirementStop,
     WorthUiOperationLiveSourceRefreshOutcome, WorthUiOperationLiveSourceRefreshStop,
     WorthUiValidatedCollectionChangeObservation,
+};
+pub use presentation_async::{
+    WorthUiPresentationAdmissionRecovery, WorthUiPresentationAdmissionStop,
+    WorthUiPresentationAsyncCloseDenial, WorthUiPresentationAsyncCloseReceipt,
+    WorthUiPresentationAsyncHostCompletion, WorthUiPresentationAsyncHostPlan,
+    WorthUiPresentationAsyncInstallation, WorthUiPresentationAsyncInstallationError,
+    WorthUiPresentationAsyncObservation, WorthUiPresentationAsyncOwner,
+    WorthUiPresentationAsyncPosture, WorthUiPresentationAsyncTerminalProjection,
+    WorthUiPresentationCancellationEffectsObservation, WorthUiPresentationCleanupProgress,
+    WorthUiPresentationCleanupRecovery, WorthUiPresentationConditionalOutcomeClass,
+    WorthUiPresentationCorrespondenceIssuanceDenial, WorthUiPresentationCorrespondenceIssuer,
+    WorthUiPresentationEffectsIndeterminateObservation, WorthUiPresentationIncompleteAdmission,
+    WorthUiPresentationMechanicBasis, WorthUiPresentationMechanicBasisInput,
+    WorthUiPresentationPaintSpanBasis, WorthUiPresentationPendingAdmissionDenial,
+    WorthUiPresentationPendingReceipt, WorthUiPresentationPinBasis,
+    WorthUiPresentationPresentedReceipt, WorthUiPresentationQueryHostInstallationRequest,
+    WorthUiPresentationRasterKeySetBasis, WorthUiPresentationRecoveryReceipt,
+    WorthUiPresentationRecoveryRequiredReceipt, WorthUiPresentationRequestBasis,
+    WorthUiPresentationRequestBasisDenial, WorthUiPresentationRequestBasisInput,
+    WorthUiPresentationRuntimeCleanupStop, WorthUiPresentationRuntimeCorrespondence,
+    WorthUiPresentationScopeRejectionCounters, WorthUiPresentationSemanticChange,
+    WorthUiPresentationSemanticFrontierObservation, WorthUiPresentationSemanticSubscriberIdentity,
+    WorthUiPresentationSettlementDenial, WorthUiPresentationSettlementStop,
+    WorthUiPresentationSupersededPhysicalObservation, WorthUiPresentationTransitionKind,
+    WorthUiPresentationTransitionObservation, WorthUiPresentationUnresolvedReceipt,
+    WorthUiPresentationValidatedCompletion, WORTH_UI_PRESENTATION_PENDING_CAPACITY,
+    WORTH_UI_PRESENTATION_TRANSITION_CAPACITY,
 };
 pub use product_projection::{
     WorthUiQueryHostInstallationRequest, WorthUiScalarProjectionActionAdvance,

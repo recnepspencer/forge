@@ -40,6 +40,11 @@ impl UiDraftRuntimeState {
             mounted,
             generation,
         };
+        if report_requires_recipient_affinity(report.payload()) {
+            if let Some(rejection) = self.reject_invalid_affinity(context, report) {
+                return rejection;
+            }
+        }
         match report.payload() {
             UiHostObservationPayload::Keyboard {
                 logical_key,
@@ -147,7 +152,7 @@ impl UiDraftRuntimeState {
                         required: super::UiLocalInputRecipientFamily::Draft,
                         active: active.family(),
                     },
-                ))]
+                ))];
             }
             None => return self.missing_or_invalid_active(context),
         };
@@ -177,7 +182,7 @@ impl UiDraftRuntimeState {
                         required: super::UiLocalInputRecipientFamily::Draft,
                         active: active.family(),
                     },
-                ))]
+                ))];
             }
             None => return self.missing_or_invalid_active(context),
         };
@@ -222,6 +227,68 @@ impl UiDraftRuntimeState {
             UiActiveLocalRecipient::Draft(session) => UiValidatedActiveRecipient::Draft(*session),
             UiActiveLocalRecipient::Submit(_) => UiValidatedActiveRecipient::Submit(context.target),
         })
+    }
+
+    fn reject_invalid_affinity(
+        &mut self,
+        context: UiDraftReportContext<'_>,
+        report: &UiHostObservationReport,
+    ) -> Option<Vec<UiDraftProcessingOutcome>> {
+        let Some(lease) = self.active_affinity else {
+            return Some(vec![UiDraftProcessingOutcome::Stopped(
+                self.unsettled_stop(context.core, UiLocalInputStopReason::NoLocalRecipient),
+            )]);
+        };
+        if report.input_affinity().is_none() {
+            return Some(vec![UiDraftProcessingOutcome::Stopped(
+                self.unsettled_stop(
+                    context.core,
+                    UiLocalInputStopReason::MissingInputRecipientAffinity,
+                ),
+            )]);
+        }
+        if let Some((expected, observed)) =
+            lease.reported_text_profile_mismatch(report, context.core.presentation())
+        {
+            return Some(vec![UiDraftProcessingOutcome::Stopped(
+                self.unsettled_stop(
+                    context.core,
+                    UiLocalInputStopReason::TextProfileGenerationChanged { expected, observed },
+                ),
+            )]);
+        }
+        if !lease.admits_report(report, context.core.presentation()) {
+            return Some(vec![UiDraftProcessingOutcome::Stopped(
+                self.unsettled_stop(
+                    context.core,
+                    UiLocalInputStopReason::InputRecipientAffinityChanged,
+                ),
+            )]);
+        }
+        if !payload_requires_text_profile(report.payload()) {
+            return None;
+        }
+        let binding = lease.binding();
+        let Some(expected) = binding.text_profile() else {
+            return None;
+        };
+        let target = self
+            .active_context()
+            .expect("live input affinity has an active recipient")
+            .target;
+        let observed = context.mounted.input_text_profile(target);
+        if observed == Some(expected) {
+            return None;
+        }
+        Some(
+            self.cancel_active(UiLocalInputStopReason::TextProfileGenerationChanged {
+                expected,
+                observed,
+            })
+            .into_iter()
+            .map(UiDraftProcessingOutcome::Stopped)
+            .collect(),
+        )
     }
 
     fn missing_or_invalid_active(
@@ -276,4 +343,21 @@ impl UiDraftRuntimeState {
 
 fn activation_key(key: UiHostKey) -> bool {
     matches!(key, UiHostKey::Enter | UiHostKey::Space)
+}
+
+fn report_requires_recipient_affinity(payload: &UiHostObservationPayload) -> bool {
+    matches!(
+        payload,
+        UiHostObservationPayload::Keyboard { .. }
+            | UiHostObservationPayload::TextInput { .. }
+            | UiHostObservationPayload::ImeComposition { .. }
+    )
+}
+
+fn payload_requires_text_profile(payload: &UiHostObservationPayload) -> bool {
+    matches!(
+        payload,
+        UiHostObservationPayload::TextInput { .. }
+            | UiHostObservationPayload::ImeComposition { .. }
+    )
 }

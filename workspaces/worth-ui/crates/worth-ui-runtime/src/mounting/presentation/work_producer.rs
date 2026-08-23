@@ -1,18 +1,15 @@
-use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
 
 use worth_ui_host_contract::{
-    UiMountedLogicalDamage, UiMountedPaintCommand, UiMountedPresentationDeltaInput,
-    UiMountedPresentationInitialInput, UiMountedPresentationProductionCost,
-    UiMountedPresentationProductionCostInput, UiMountedPresentationReconstructionInput,
-    UiMountedPresentationUnchangedInput, UiMountedProjectionView,
+    UiMountedLogicalDamage, UiMountedPaintCommand, UiMountedPresentationInitialInput,
+    UiMountedPresentationProductionCost, UiMountedPresentationProductionCostInput,
+    UiMountedPresentationReconstructionInput, UiMountedProjectionView,
 };
 
 use super::{UiMountedPresentationLease, UiMountedPresentationWork};
 
 #[path = "work_producer/command_bundle.rs"]
 mod command_bundle;
-#[cfg(test)]
-pub(crate) use command_bundle::tests::collection_commands as collection_commands_for_test;
 #[path = "work_producer/delta_diff.rs"]
 mod delta_diff;
 #[path = "work_producer/effect_expectations.rs"]
@@ -21,6 +18,9 @@ mod effect_expectations;
 mod overlay_attribution;
 #[path = "work_producer/state.rs"]
 mod state;
+#[path = "work_producer/successor_issue.rs"]
+mod successor_issue;
+pub(super) use successor_issue::SuccessorIssueRequest;
 
 pub(crate) use state::UiMountedPresentationState;
 
@@ -60,11 +60,13 @@ impl UiMountedPresentationState {
                 .map(UiMountedLogicalDamage::from_runtime_mounting)
                 .collect(),
             production_cost: production_cost(
-                self.source_instance_count(),
-                commands.len(),
-                order.len(),
-                order.len(),
-                0,
+                LocalWorkCost {
+                    source_instances: self.source_instance_count(),
+                    commands_considered: commands.len(),
+                    command_index_lookups: order.len(),
+                    order_lookups: order.len(),
+                },
+                RetainedTraversalCost::default(),
                 self.projection_rows_materialized,
             ),
         })
@@ -92,11 +94,16 @@ impl UiMountedPresentationState {
             order_integrity: self.order_integrity,
             damage: complete_damage(&commands),
             production_cost: production_cost(
-                self.source_instance_count(),
-                commands.len(),
-                order.len(),
-                order.len(),
-                commands.len(),
+                LocalWorkCost {
+                    source_instances: self.source_instance_count(),
+                    commands_considered: commands.len(),
+                    command_index_lookups: order.len(),
+                    order_lookups: order.len(),
+                },
+                RetainedTraversalCost {
+                    scans: commands.len(),
+                    clones: 0,
+                },
                 self.projection_rows_materialized,
             ),
         })
@@ -104,168 +111,34 @@ impl UiMountedPresentationState {
 
     pub(super) fn issue_successor(
         &self,
-        successor: &Self,
-        changed_instances: &[worth_ui_host_contract::UiMountedInstanceIdentity],
-        precise_changes: &[worth_ui_host_contract::UiMountedPaintCommandChange],
-        surface_changed: bool,
-        source_predecessor: Option<worth_ui_host_contract::UiMountedFrameIdentity>,
-        lease: &UiMountedPresentationLease,
+        request: SuccessorIssueRequest<'_>,
     ) -> Result<UiMountedPresentationWork, UiMountedPresentationWorkProductionDenial> {
-        if successor.predecessor != Some(self.frame) || source_predecessor != Some(self.frame) {
-            return Err(UiMountedPresentationWorkProductionDenial::StalePredecessor);
+        successor_issue::SuccessorIssue {
+            predecessor: self,
+            request,
+            retained_traversal: RetainedTraversalCost::default(),
         }
-        if self.surface != successor.surface {
-            return Err(UiMountedPresentationWorkProductionDenial::SurfaceChanged);
-        }
-        if self.binding != successor.binding {
-            return Err(UiMountedPresentationWorkProductionDenial::BindingChanged);
-        }
-        if self.baseline != successor.baseline {
-            return Err(UiMountedPresentationWorkProductionDenial::BaselineChanged);
-        }
-        let affected = if precise_changes.is_empty() {
-            delta_diff::affected_commands(self, successor, changed_instances)
-        } else {
-            precise_changes
-                .iter()
-                .map(command_change_identity)
-                .collect::<Vec<_>>()
-        };
-        let (mut changes, mut damage, order) = if precise_changes.is_empty() {
-            let (changes, damage) = delta_diff::command_changes(self, successor, &affected);
-            let order = delta_diff::order_edits(self, successor, &affected);
-            (changes, damage, order)
-        } else {
-            let changes = precise_changes.to_vec();
-            let damage = precise_damage(self, &changes);
-            (changes, damage, Vec::new())
-        };
-        let changed_commands = changes
-            .iter()
-            .map(|change| match change {
-                worth_ui_host_contract::UiMountedPaintCommandChange::Insert(command)
-                | worth_ui_host_contract::UiMountedPaintCommandChange::Replace(command) => {
-                    command.identity()
-                }
-                worth_ui_host_contract::UiMountedPaintCommandChange::Remove(identity) => *identity,
-            })
-            .collect::<HashSet<_>>();
-        damage.extend(
-            order
-                .iter()
-                .filter(|edit| !edit.is_removal())
-                .filter(|edit| !changed_commands.contains(&edit.identity().command()))
-                .filter_map(|edit| {
-                    successor
-                        .command_option(edit.identity().command())
-                        .and_then(command_visible_bounds)
-                        .map(UiMountedLogicalDamage::from_runtime_mounting)
-                }),
-        );
-        let auxiliary_changed = surface_changed
-            || !self
-                .auxiliary
-                .same_lane_presentation_meaning(&successor.auxiliary);
-        let auxiliary = auxiliary_changed.then(|| successor.auxiliary.clone());
-        if changes.is_empty()
-            && order.is_empty()
-            && successor.node_changes.is_empty()
-            && auxiliary.is_none()
-        {
-            return Ok(lease.issue_unchanged(UiMountedPresentationUnchangedInput {
-                predecessor: self.frame,
-                successor: successor.frame,
-                surface: successor.surface,
-                binding: successor.binding,
-                content: successor.content,
-                baseline: successor.baseline,
-                production_cost: production_cost(
-                    changed_instances.len(),
-                    affected.len(),
-                    affected.len().saturating_mul(2),
-                    affected.len().saturating_mul(2),
-                    0,
-                    successor.projection_rows_materialized,
-                ),
-            }));
-        }
-        let overlay_cost = overlay_attribution::refresh_commands(
-            self,
-            successor,
-            auxiliary.is_some(),
-            &mut changes,
-        );
-        Ok(lease.issue_delta(UiMountedPresentationDeltaInput {
-            predecessor: self.frame,
-            successor: successor.frame,
-            surface: successor.surface,
-            binding: successor.binding,
-            content: successor.content,
-            baseline: successor.baseline,
-            changes,
-            nodes: successor.node_changes.to_vec(),
-            order,
-            order_integrity: successor.order_integrity,
-            damage,
-            auxiliary,
-            production_cost: production_cost(
-                changed_instances.len(),
-                affected
-                    .len()
-                    .saturating_add(overlay_cost.commands_considered),
-                affected
-                    .len()
-                    .saturating_mul(2)
-                    .saturating_add(overlay_cost.command_lookups),
-                affected
-                    .len()
-                    .saturating_mul(2)
-                    .saturating_add(overlay_cost.order_items_scanned),
-                overlay_cost.order_items_scanned,
-                successor.projection_rows_materialized,
-            ),
-        }))
+        .issue()
     }
-}
 
-fn command_change_identity(
-    change: &worth_ui_host_contract::UiMountedPaintCommandChange,
-) -> worth_ui_host_contract::UiMountedPaintCommandIdentity {
-    match change {
-        worth_ui_host_contract::UiMountedPaintCommandChange::Insert(command)
-        | worth_ui_host_contract::UiMountedPaintCommandChange::Replace(command) => {
-            command.identity()
+    #[cfg(test)]
+    pub(super) fn issue_successor_with_complete_retained_scan_mutant(
+        &self,
+        request: SuccessorIssueRequest<'_>,
+    ) -> Result<UiMountedPresentationWork, UiMountedPresentationWorkProductionDenial> {
+        let cloned = self.commands().iter().cloned().collect::<Vec<_>>();
+        let traversed = cloned.len();
+        std::hint::black_box(&cloned);
+        successor_issue::SuccessorIssue {
+            predecessor: self,
+            request,
+            retained_traversal: RetainedTraversalCost {
+                scans: traversed,
+                clones: cloned.len(),
+            },
         }
-        worth_ui_host_contract::UiMountedPaintCommandChange::Remove(identity) => *identity,
+        .issue()
     }
-}
-
-fn precise_damage(
-    predecessor: &UiMountedPresentationState,
-    changes: &[worth_ui_host_contract::UiMountedPaintCommandChange],
-) -> Vec<UiMountedLogicalDamage> {
-    changes
-        .iter()
-        .flat_map(|change| match change {
-            worth_ui_host_contract::UiMountedPaintCommandChange::Insert(command) => {
-                [None, command_visible_bounds(command)]
-            }
-            worth_ui_host_contract::UiMountedPaintCommandChange::Replace(command) => [
-                predecessor
-                    .command_option(command.identity())
-                    .and_then(command_visible_bounds),
-                command_visible_bounds(command),
-            ],
-            worth_ui_host_contract::UiMountedPaintCommandChange::Remove(identity) => [
-                predecessor
-                    .command_option(*identity)
-                    .and_then(command_visible_bounds),
-                None,
-            ],
-        })
-        .flatten()
-        .map(UiMountedLogicalDamage::from_runtime_mounting)
-        .collect()
 }
 
 fn command_same_presentation_meaning(
@@ -289,7 +162,7 @@ fn command_same_presentation_meaning(
     }
 }
 
-fn command_visible_bounds(
+pub(super) fn command_visible_bounds(
     command: &UiMountedPaintCommand,
 ) -> Option<worth_ui_host_contract::UiMountedCanonicalBox> {
     let (bounds, clip) = match command {
@@ -330,22 +203,40 @@ fn complete_damage(commands: &[UiMountedPaintCommand]) -> Vec<UiMountedLogicalDa
         .collect()
 }
 
-fn production_cost(
+#[derive(Clone, Copy, Default)]
+pub(super) struct RetainedTraversalCost {
+    scans: usize,
+    clones: usize,
+}
+
+impl RetainedTraversalCost {
+    pub(super) fn add_scans(mut self, scans: usize) -> Self {
+        self.scans = self.scans.saturating_add(scans);
+        self
+    }
+}
+
+#[derive(Clone, Copy)]
+pub(super) struct LocalWorkCost {
     source_instances: usize,
     commands_considered: usize,
     command_index_lookups: usize,
     order_lookups: usize,
-    retained_command_scans: usize,
+}
+
+pub(super) fn production_cost(
+    local: LocalWorkCost,
+    retained: RetainedTraversalCost,
     projection_rows_materialized: u64,
 ) -> UiMountedPresentationProductionCost {
     UiMountedPresentationProductionCost::from_runtime_mounting(
         UiMountedPresentationProductionCostInput {
-            source_instances: exact_count(source_instances),
-            commands_considered: exact_count(commands_considered),
-            command_index_lookups: exact_count(command_index_lookups),
-            order_lookups: exact_count(order_lookups),
-            retained_command_scans: exact_count(retained_command_scans),
-            retained_command_clones: 0,
+            source_instances: exact_count(local.source_instances),
+            commands_considered: exact_count(local.commands_considered),
+            command_index_lookups: exact_count(local.command_index_lookups),
+            order_lookups: exact_count(local.order_lookups),
+            retained_command_scans: exact_count(retained.scans),
+            retained_command_clones: exact_count(retained.clones),
             projection_rows_materialized,
         },
     )

@@ -30,6 +30,9 @@ use crate::obligations::closeout::UiObligationCloseoutReport;
 use crate::runtime::WorthUiRetainedAllocationPlanningEvidenceRegistry;
 use std::rc::Rc;
 
+#[path = "app_presentation_async.rs"]
+mod presentation_async;
+
 /// Runtime facade entrypoint for building Worth UI applications.
 pub struct WorthUi {
     _sealed: (),
@@ -52,6 +55,8 @@ pub struct WorthUiApp {
     retained_obligations: WorthUiRetainedObligationRegistry,
     retained_allocation_planning_evidence: Rc<WorthUiRetainedAllocationPlanningEvidenceRegistry>,
     font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
+    presentation_async:
+        Option<crate::native_platform::text_presentation::UiPresentationAsyncRuntime>,
 }
 
 impl WorthUiApp {
@@ -66,6 +71,7 @@ impl WorthUiApp {
             retained_obligations: WorthUiRetainedObligationRegistry::default(),
             retained_allocation_planning_evidence: Rc::default(),
             font_collection,
+            presentation_async: None,
         }
     }
 
@@ -360,40 +366,5 @@ impl WorthUiApp {
         &self,
     ) -> &Rc<WorthUiRetainedAllocationPlanningEvidenceRegistry> {
         &self.retained_allocation_planning_evidence
-    }
-
-    pub fn inspection_support_report_for(
-        &self,
-        query: &UiInspectionQuery,
-    ) -> UiInspectionSupportReport {
-        crate::facade::inspection_bridge::support_routing::inspection_support_report_for(
-            self, query,
-        )
-    }
-
-    pub(crate) fn try_query_touch_for_node(
-        &self,
-        graph_node_identity: crate::graph::UiGraphNodeIdentity,
-    ) -> Result<
-        crate::obligations::touch::UiGraphTouchDescriptor,
-        crate::obligations::touch::UiGraphTouchDenial,
-    > {
-        crate::facade::inspection_bridge::obligation_routes::try_query_touch_for_node(
-            self,
-            graph_node_identity,
-        )
-    }
-
-    pub(crate) fn try_allocation_touch_for_node(
-        &self,
-        graph_node_identity: crate::graph::UiGraphNodeIdentity,
-    ) -> Result<
-        crate::obligations::touch::UiGraphTouchDescriptor,
-        crate::obligations::touch::UiGraphTouchDenial,
-    > {
-        crate::facade::inspection_bridge::obligation_routes::try_allocation_touch_for_node(
-            self,
-            graph_node_identity,
-        )
     }
 }

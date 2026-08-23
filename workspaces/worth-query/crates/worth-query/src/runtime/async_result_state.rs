@@ -27,6 +27,7 @@ pub enum WorthQueryRuntimeAsyncResultStateKind {
     Revalidating,
     Superseded,
     Denied,
+    Unresolved,
 }
 
 impl WorthQueryRuntimeAsyncResultStateKind {
@@ -41,11 +42,15 @@ impl WorthQueryRuntimeAsyncResultStateKind {
             Self::Revalidating => "revalidating",
             Self::Superseded => "superseded",
             Self::Denied => "denied",
+            Self::Unresolved => "unresolved",
         }
     }
 
     pub(crate) fn permits_basis_or_generation_drift(self) -> bool {
-        matches!(self, Self::Stale | Self::Superseded | Self::Denied)
+        matches!(
+            self,
+            Self::Stale | Self::Superseded | Self::Denied | Self::Unresolved
+        )
     }
 
     pub(crate) fn state_kind(self) -> WorthQueryRuntimeStateKind {
@@ -59,6 +64,7 @@ impl WorthQueryRuntimeAsyncResultStateKind {
             Self::Revalidating => WorthQueryRuntimeStateKind::Revalidating,
             Self::Superseded => WorthQueryRuntimeStateKind::Superseded,
             Self::Denied => WorthQueryRuntimeStateKind::Denied,
+            Self::Unresolved => WorthQueryRuntimeStateKind::Unresolved,
         }
     }
 }
@@ -96,6 +102,9 @@ impl WorthQueryRuntimeAsyncResultProjection {
                 BridgeAsyncCompletionState::Admitted(BridgeAsyncCompletionClass::Fulfilled) => {
                     WorthQueryRuntimeAsyncResultStateKind::Current
                 }
+                BridgeAsyncCompletionState::Admitted(
+                    BridgeAsyncCompletionClass::EffectsIndeterminate,
+                ) => WorthQueryRuntimeAsyncResultStateKind::Unresolved,
                 BridgeAsyncCompletionState::Denied(BridgeAsyncCompletionDenialClass::Rejected)
                 | BridgeAsyncCompletionState::Denied(BridgeAsyncCompletionDenialClass::TimedOut) => {
                     WorthQueryRuntimeAsyncResultStateKind::Failed
@@ -318,5 +327,24 @@ impl WorthQueryRuntimeAsyncResultState {
 
     pub fn result_state_for_reporting(&self) -> &str {
         self.result_state_identity.as_str()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn effects_indeterminate_completion_maps_only_to_unresolved() {
+        let projection = WorthQueryRuntimeAsyncResultProjection::completion_state(
+            BridgeAsyncCompletionState::Admitted(BridgeAsyncCompletionClass::EffectsIndeterminate),
+            "owner-effects-indeterminate",
+        );
+
+        assert_eq!(
+            projection.kind(),
+            WorthQueryRuntimeAsyncResultStateKind::Unresolved
+        );
+        assert!(projection.kind().permits_basis_or_generation_drift());
     }
 }

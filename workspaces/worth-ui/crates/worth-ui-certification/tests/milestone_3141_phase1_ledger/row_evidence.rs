@@ -63,11 +63,7 @@ pub(super) fn validate_execution(row: &Row) -> Result<(), String> {
             structural_counter: &row["structural_counters"],
             construction_cost: &row["construction_cost"],
             execution_cost: &row["execution_cost"],
-            source_validation: if current_source {
-                result_artifact::SourceValidationPosture::CurrentSource
-            } else {
-                source_validation_posture(&row["phase"])
-            },
+            source_validation: source_validation_posture(&row["phase"]),
         },
         &command,
     )
@@ -121,17 +117,29 @@ fn validate_historical_named_entry(value: &str, revision: &str) -> Result<(), St
 }
 
 pub(super) fn source_validation_posture(phase: &str) -> result_artifact::SourceValidationPosture {
-    if matches!(phase, "1" | "2" | "3" | "4") {
-        result_artifact::SourceValidationPosture::HistoricalArtifactOnly
-    } else {
+    if phase == "6" {
         result_artifact::SourceValidationPosture::CurrentSource
+    } else {
+        result_artifact::SourceValidationPosture::HistoricalArtifactOnly
     }
 }
 
 pub(super) fn validate_observations(row: &Row) -> Result<(), String> {
     if !matches!(
         row["fault_injection_boundary"].as_str(),
-        "before-effects" | "after-effects-may-have-begun" | "not-applicable"
+        "before-effects"
+            | "after-effects-may-have-begun"
+            | "not-applicable"
+            | "predecessor-handoff-source-binding"
+            | "input-admission-presentation-affinity"
+            | "ime-phase-classification"
+            | "pointer-event-time-witness"
+            | "profile-transition-admission"
+            | "readiness-commit-signal-consume"
+            | "typed-settlement-outcome-mapping"
+            | "protocol-production-oracle-comparison"
+            | "windows-message-position-witness"
+            | "phase-six-closure-source-prefix"
     ) {
         return Err("invalid fault injection boundary".to_owned());
     }
@@ -205,14 +213,13 @@ fn retained_artifact_names_source(row: &Row, source: &str) -> bool {
 }
 
 pub(super) fn row_is_current_source(row: &Row) -> Result<bool, String> {
-    if row["source_revision"] != result_artifact::current_revision()? {
-        return Ok(false);
-    }
     let path = super::source_digest::repository_file(&row["retained_result_artifact"])?;
     let bytes = std::fs::read(path).map_err(|error| error.to_string())?;
     let artifact: serde_json::Value =
         serde_json::from_slice(&bytes).map_err(|error| error.to_string())?;
-    Ok(artifact["mapping_source_identity"].is_array() && artifact["source_rebindings"].is_array())
+    Ok(artifact["mapping_source_identity"].is_array()
+        && artifact["source_rebindings"].is_array()
+        && row["source_digest"] == super::source_digest::calculate(&row["source_identity"])?)
 }
 
 fn verifier_owned_source_exists(source: &str) -> bool {

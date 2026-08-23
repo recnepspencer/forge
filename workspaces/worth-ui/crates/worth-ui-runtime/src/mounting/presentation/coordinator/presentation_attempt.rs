@@ -1,6 +1,5 @@
 use worth_ui_host_contract::{
-    UiHostSurfacePresentationDenial, UiHostSurfacePresentationOutcome,
-    UiMountedPresentationAttemptIdentity, UiPresentationDeadline, UiSurfaceBindingGeneration,
+    UiHostSurfacePresentationDenial, UiMountedPresentationAttemptIdentity, UiPresentationDeadline,
     WorthUiHostKind,
 };
 
@@ -10,9 +9,7 @@ use super::super::consumption_view::{
 use super::super::outcome::{
     UiMountedSurfacePresentationReceipt, UiMountedSurfacePresentationRejection,
 };
-use super::super::terminal::{
-    aggregate_affected, completion_satisfies, UiIndeterminatePresentationEvidence,
-};
+use super::super::terminal::UiIndeterminatePresentationEvidence;
 use crate::facade::UiHostEffectPort;
 use crate::native_platform::text_presentation::UiNativeTextPresentationReadiness;
 
@@ -30,6 +27,9 @@ pub(super) struct UiMountedPresentationProgress {
     pub(super) pending: Vec<super::super::state::UiPendingMountedSurface>,
     pub(super) rejected: Vec<UiMountedSurfacePresentationRejection>,
     pub(super) completed: Vec<UiMountedSurfacePresentationReceipt>,
+    pub(super) superseded_costs: Vec<worth_ui_host_contract::UiHostPresentationCostReport>,
+    pub(super) semantic_requests: Vec<worth_ui_query_binding::WorthUiPresentationRequestBasis>,
+    pub(super) superseded: bool,
 }
 
 pub(super) fn present_one_surface(
@@ -39,27 +39,47 @@ pub(super) fn present_one_surface(
     expected_effects: &[worth_ui_host_contract::UiMountedEffectFamily],
     progress: &mut UiMountedPresentationProgress,
     text: &mut crate::native_platform::text_presentation::UiNativeMountedTextCoordinator,
+    mut presentation_async: Option<
+        &mut crate::native_platform::text_presentation::UiPresentationAsyncRuntime,
+    >,
 ) -> Result<(), UiIndeterminatePresentationEvidence> {
     let requirement = surface.requirement();
     if native_host_owns_semantic_text_boundary(
         start.host.adapter().operational_host_contract().kind(),
     ) {
-        if let Some(observation) = super::semantic_text_raster::present(
-            start,
-            requirement,
-            presentation_work,
-            progress,
-            text,
-        ) {
-            let (outcome, text_candidate) = observation.into_parts();
-            return record_presentation_outcome(
+        let contains_semantic_text = presentation_work.view().contains_semantic_text();
+        if let Some(presentation_async_runtime) = presentation_async.as_deref_mut() {
+            if let Some(observation) = super::semantic_text_raster::present(
                 start,
-                surface,
-                expected_effects,
+                requirement,
+                presentation_work,
                 progress,
-                outcome,
-                text_candidate,
-            );
+                text,
+                presentation_async_runtime,
+            ) {
+                let (outcome, text_candidate, request_bases, pending_receipts) =
+                    observation.into_parts();
+                progress.semantic_requests.extend(request_bases);
+                return super::presentation_outcome::record(
+                    start,
+                    surface,
+                    expected_effects,
+                    progress,
+                    outcome,
+                    text_candidate,
+                    pending_receipts,
+                    Some(presentation_async_runtime),
+                );
+            }
+        }
+        if contains_semantic_text {
+            progress
+                .rejected
+                .push(UiMountedSurfacePresentationRejection::new(
+                    requirement.binding(),
+                    UiHostSurfacePresentationDenial::AdapterDeclined,
+                ));
+            return Ok(());
         }
         if progress
             .rejected
@@ -80,81 +100,16 @@ pub(super) fn present_one_surface(
         .host
         .adapter()
         .present_mounted_surface(start.host.authority(), &view);
-    record_presentation_outcome(start, surface, expected_effects, progress, outcome, None)
-}
-
-fn record_presentation_outcome(
-    start: &UiMountedPresentationStart<'_, '_>,
-    surface: &crate::mounting::UiMountedSurfaceReceipt,
-    expected_effects: &[worth_ui_host_contract::UiMountedEffectFamily],
-    progress: &mut UiMountedPresentationProgress,
-    outcome: UiHostSurfacePresentationOutcome,
-    text_candidate: Option<super::UiMountedTextPinCandidate>,
-) -> Result<(), UiIndeterminatePresentationEvidence> {
-    let requirement = surface.requirement();
-    match outcome {
-        UiHostSurfacePresentationOutcome::RejectedBeforeEffects(denial) => {
-            progress
-                .rejected
-                .push(UiMountedSurfacePresentationRejection::new(
-                    requirement.binding(),
-                    denial,
-                ));
-            Ok(())
-        }
-        UiHostSurfacePresentationOutcome::InFlight(token) => {
-            progress
-                .pending
-                .push(super::super::state::UiPendingMountedSurface {
-                    binding: requirement.binding(),
-                    token,
-                    expected_effects: expected_effects.to_vec().into_boxed_slice(),
-                    text_candidate,
-                });
-            Ok(())
-        }
-        UiHostSurfacePresentationOutcome::PresentationIndeterminate => Err(
-            terminalize_surface_uncertainty(progress, start.host, requirement.binding(), None),
-        ),
-        UiHostSurfacePresentationOutcome::Presented(completion) => {
-            if !completion_satisfies(surface, expected_effects, &completion) {
-                return Err(terminalize_surface_uncertainty(
-                    progress,
-                    start.host,
-                    requirement.binding(),
-                    Some(completion.cost()),
-                ));
-            }
-            let (epoch, effects, adapter_cost) = completion.into_parts();
-            progress
-                .completed
-                .push(UiMountedSurfacePresentationReceipt::new(
-                    requirement,
-                    epoch,
-                    effects,
-                    adapter_cost,
-                ));
-            Ok(())
-        }
-    }
-}
-
-pub(super) fn terminalize_surface_uncertainty(
-    progress: &mut UiMountedPresentationProgress,
-    host: UiHostEffectPort<'_>,
-    binding: UiSurfaceBindingGeneration,
-    additional_cost: Option<worth_ui_host_contract::UiHostPresentationCostReport>,
-) -> UiIndeterminatePresentationEvidence {
-    let mut affected =
-        aggregate_affected(&progress.completed, &progress.pending, &progress.rejected);
-    affected.push(binding);
-    super::settlement::cancel_all(std::mem::take(&mut progress.pending), host);
-    let evidence =
-        UiIndeterminatePresentationEvidence::new(affected, std::mem::take(&mut progress.completed));
-    match additional_cost {
-        Some(cost) => evidence.with_additional_adapter_cost(cost),
-        None => evidence,
-    }
+    super::presentation_outcome::record(
+        start,
+        surface,
+        expected_effects,
+        progress,
+        outcome,
+        None,
+        Box::new([]),
+        presentation_async,
+    )
 }
 
 fn native_host_owns_semantic_text_boundary(kind: WorthUiHostKind) -> bool {

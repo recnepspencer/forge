@@ -1,8 +1,9 @@
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
-use std::sync::atomic::{AtomicU64, Ordering};
 #[path = "ledger_mutants.rs"]
 mod ledger_mutants;
+#[path = "mutation_tests/proved_fixture.rs"]
+mod proved_fixture;
 #[path = "proved_fixture_values.rs"]
 mod proved_fixture_values;
 use super::{
@@ -10,6 +11,7 @@ use super::{
     validate_phase_progression, validate_row, EXPECTED_REQUIREMENTS, HEADER, LEDGER,
 };
 use ledger_mutants::{duplicate_first_data_row, remove_first_data_row, swap_first_data_rows};
+use proved_fixture::ProvedFixture;
 use proved_fixture_values::*;
 
 const PRODUCTION_SOURCE: &str =
@@ -18,7 +20,6 @@ const ORACLE_SOURCE: &str =
     "workspaces/worth-ui/crates/worth-ui-runtime/src/mounting/presentation/work_producer_tests.rs";
 const TEST_NAME: &str = "mounting::presentation::work_producer_tests::one_replacement_carries_one_change_and_exact_predecessor_successor_damage";
 
-static FIXTURE_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 #[test]
 fn milestone_ledger_has_exact_schema_inventory_and_honest_posture() {
     let rows = parse(&super::ledger_document()).expect("the milestone ledger should parse");
@@ -286,6 +287,7 @@ fn phase_closure_mode_rejects_open_rows_at_or_before_its_gate() {
     assert!(validate_phase_closure(&rows, 2).is_ok());
     assert!(validate_phase_closure(&rows, 3).is_ok());
     assert!(validate_phase_closure(&rows, 4).is_ok());
+    assert!(validate_phase_closure(&rows, 5).is_ok());
     let phase_one = rows.get_mut("P1-AFFINITY-01").unwrap();
     phase_one.insert("result".to_owned(), "OPEN".to_owned());
     phase_one.insert("final_source".to_owned(), "false".to_owned());
@@ -293,6 +295,7 @@ fn phase_closure_mode_rejects_open_rows_at_or_before_its_gate() {
     assert!(validate_phase_closure(&rows, 2).is_err());
     assert!(validate_phase_closure(&rows, 3).is_err());
     assert!(validate_phase_closure(&rows, 4).is_err());
+    assert!(validate_phase_closure(&rows, 5).is_err());
     let phase_one = rows.get_mut("P1-AFFINITY-01").unwrap();
     phase_one.insert("result".to_owned(), "PROVED".to_owned());
     phase_one.insert("final_source".to_owned(), "true".to_owned());
@@ -303,6 +306,7 @@ fn phase_closure_mode_rejects_open_rows_at_or_before_its_gate() {
     assert!(validate_phase_closure(&rows, 2).is_err());
     assert!(validate_phase_closure(&rows, 3).is_err());
     assert!(validate_phase_closure(&rows, 4).is_err());
+    assert!(validate_phase_closure(&rows, 5).is_err());
     let phase_two = rows.get_mut("P2-APPLICATION-01").unwrap();
     phase_two.insert("result".to_owned(), "PROVED".to_owned());
     phase_two.insert("final_source".to_owned(), "true".to_owned());
@@ -312,6 +316,7 @@ fn phase_closure_mode_rejects_open_rows_at_or_before_its_gate() {
     assert!(validate_phase_closure(&rows, 2).is_ok());
     assert!(validate_phase_closure(&rows, 3).is_err());
     assert!(validate_phase_closure(&rows, 4).is_err());
+    assert!(validate_phase_closure(&rows, 5).is_err());
     let phase_three = rows.get_mut("P3-BASELINE-REPLAY-01").unwrap();
     phase_three.insert("result".to_owned(), "PROVED".to_owned());
     phase_three.insert("final_source".to_owned(), "true".to_owned());
@@ -320,69 +325,16 @@ fn phase_closure_mode_rejects_open_rows_at_or_before_its_gate() {
     phase_four.insert("final_source".to_owned(), "false".to_owned());
     assert!(validate_phase_closure(&rows, 3).is_ok());
     assert!(validate_phase_closure(&rows, 4).is_err());
+    assert!(validate_phase_closure(&rows, 5).is_err());
+    let phase_four = rows.get_mut("P4-BIDI-01").unwrap();
+    phase_four.insert("result".to_owned(), "PROVED".to_owned());
+    phase_four.insert("final_source".to_owned(), "true".to_owned());
+    let phase_five = rows.get_mut("P5-TEXT-PIXELS-01").unwrap();
+    phase_five.insert("result".to_owned(), "OPEN".to_owned());
+    phase_five.insert("final_source".to_owned(), "false".to_owned());
+    assert!(validate_phase_closure(&rows, 4).is_ok());
+    assert!(validate_phase_closure(&rows, 5).is_err());
     println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-CLOSE-01\":\"open-requirement\",\"P4-CLOSE-01\":\"open-requirement\"}}"
+        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-CLOSE-01\":\"open-requirement\",\"P4-CLOSE-01\":\"open-requirement\",\"P5-CLOSE-01\":\"open-requirement\"}}"
     );
-}
-
-struct ProvedFixture {
-    record: Vec<String>,
-    artifact_identity: String,
-}
-
-impl ProvedFixture {
-    fn new() -> Self {
-        let sequence = FIXTURE_SEQUENCE.fetch_add(1, Ordering::Relaxed);
-        let artifact_identity = format!(
-            "workspaces/worth-ui/target/milestone-3141-ledger-fixtures/{}-{sequence}.json",
-            std::process::id()
-        );
-        let revision = result_artifact::current_revision().unwrap();
-        let sources = format!("{PRODUCTION_SOURCE};{ORACLE_SOURCE}");
-        let digest = source_digest::calculate(&sources).unwrap();
-        let state_digest = source_digest::calculate_source_state(&revision).unwrap();
-        let run_nonce = format!("{:032x}", sequence + 1);
-        let evidence = ProvedEvidence {
-            artifact: &artifact_identity,
-            revision: &revision,
-            digest: &digest,
-            state_digest: &state_digest,
-            run_nonce: &run_nonce,
-            sources: &sources,
-        };
-        let mut record = proved_record(&evidence);
-        let claim_digest = record_claim_digest(&record);
-        write_artifact(&evidence, &claim_digest);
-        let artifact_digest = source_digest::file_digest(&artifact_identity).unwrap();
-        set(&mut record, "result_artifact_digest", &artifact_digest);
-        Self {
-            record,
-            artifact_identity,
-        }
-    }
-
-    fn mutate_artifact(&mut self, field: &str, value: Value) {
-        let path = source_digest::repository_file(&self.artifact_identity).unwrap();
-        let mut artifact: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
-        artifact[field] = value;
-        std::fs::write(path, serde_json::to_vec_pretty(&artifact).unwrap()).unwrap();
-        let artifact_digest = source_digest::file_digest(&self.artifact_identity).unwrap();
-        set(&mut self.record, "result_artifact_digest", &artifact_digest);
-    }
-}
-
-impl Drop for ProvedFixture {
-    fn drop(&mut self) {
-        let _ =
-            std::fs::remove_file(source_digest::repository_root().join(&self.artifact_identity));
-    }
-}
-
-struct ProvedEvidence<'a> {
-    artifact: &'a str,
-    revision: &'a str,
-    digest: &'a str,
-    state_digest: &'a str,
-    run_nonce: &'a str,
-    sources: &'a str,
 }

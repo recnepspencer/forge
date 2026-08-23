@@ -40,13 +40,25 @@ impl UiAtlasPage {
     }
 
     pub(crate) fn allocate(&mut self, width: u32, height: u32) -> Option<UiAtlasRect> {
+        self.allocate_observed(width, height).0
+    }
+
+    pub(crate) fn allocate_observed(
+        &mut self,
+        width: u32,
+        height: u32,
+    ) -> (Option<UiAtlasRect>, usize) {
+        let probes = self.free.len();
         let index = self
             .free
             .iter()
             .enumerate()
             .filter(|(_, block)| block.contains(width, height))
             .min_by_key(|(_, block)| (block.area(), block.y, block.x, block.width, block.height))
-            .map(|(index, _)| index)?;
+            .map(|(index, _)| index);
+        let Some(index) = index else {
+            return (None, probes);
+        };
         let block = self.free.swap_remove(index);
         let placed = UiAtlasRect {
             x: block.x,
@@ -71,7 +83,7 @@ impl UiAtlasPage {
             });
         }
         self.normalize_free_blocks();
-        Some(placed)
+        (Some(placed), probes)
     }
 
     pub(crate) fn release(&mut self, rect: UiAtlasRect) {

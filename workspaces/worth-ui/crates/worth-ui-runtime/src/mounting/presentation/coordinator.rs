@@ -19,10 +19,21 @@ use super::{UiMountedPresentationAttempt, UiMountedPresentationInFlight};
 use crate::facade::UiHostEffectPort;
 
 mod admission;
+mod cancellation;
+mod cancellation_settlement;
+mod duplicate_observation;
+mod pending_completion;
+mod physical_uncertainty;
 mod presentation_attempt;
+mod presentation_outcome;
 mod presented;
+mod presented_semantic_settlement;
+mod raster_cache_reconstruction;
 mod semantic_text_raster;
 mod settlement;
+mod superseding_admission;
+mod surface_binding;
+mod surface_uncertainty;
 mod text_pins;
 mod work_preparation;
 
@@ -31,7 +42,7 @@ use presentation_attempt::{
 };
 pub(crate) use text_pins::{UiMountedTextPinCandidate, UiMountedTextPinState};
 
-const DEFAULT_IN_FLIGHT_LIMIT: usize = 1;
+const DEFAULT_IN_FLIGHT_LIMIT: usize = 2;
 
 pub struct UiMountedPresentationCoordinator {
     shutting_down: bool,
@@ -41,8 +52,19 @@ pub struct UiMountedPresentationCoordinator {
         UiMountedPresentationAttemptIdentity,
         super::state::UiMountedPresentationInFlightState,
     >,
+    unresolved_semantic_receipts: BTreeMap<
+        UiMountedPresentationAttemptIdentity,
+        Vec<worth_ui_query_binding::WorthUiPresentationRecoveryRequiredReceipt>,
+    >,
+    unresolved_semantic_recoveries: BTreeMap<
+        UiMountedPresentationAttemptIdentity,
+        Vec<worth_ui_query_binding::WorthUiPresentationRecoveryReceipt>,
+    >,
     presentation_states: super::work_producer::UiMountedPresentationCandidates,
+    reconstruction_bindings: BTreeSet<UiSurfaceBindingGeneration>,
     text: crate::native_platform::text_presentation::UiNativeMountedTextCoordinator,
+    presentation_async:
+        Option<crate::native_platform::text_presentation::UiPresentationAsyncRuntime>,
     host_truth: crate::mounting::UiMountedHostTruthCoordinator,
 }
 
@@ -54,6 +76,10 @@ struct UiMountedPresentationSettlement<'host> {
     pending: Vec<super::state::UiPendingMountedSurface>,
     rejected: Vec<UiMountedSurfacePresentationRejection>,
     completed: Vec<UiMountedSurfacePresentationReceipt>,
+    superseded_costs: Vec<worth_ui_host_contract::UiHostPresentationCostReport>,
+    semantic_requests: Vec<worth_ui_query_binding::WorthUiPresentationRequestBasis>,
+    superseded: bool,
+    reconstructed_bindings: Vec<UiSurfaceBindingGeneration>,
     candidates: super::work_producer::UiMountedPresentationCandidates,
     host: UiHostEffectPort<'host>,
 }
@@ -65,23 +91,27 @@ impl Default for UiMountedPresentationCoordinator {
             in_flight_limit: DEFAULT_IN_FLIGHT_LIMIT,
             active: Rc::new(RefCell::new(BTreeSet::new())),
             in_flight: BTreeMap::new(),
+            unresolved_semantic_receipts: BTreeMap::new(),
+            unresolved_semantic_recoveries: BTreeMap::new(),
             presentation_states: BTreeMap::new(),
+            reconstruction_bindings: BTreeSet::new(),
             text: Default::default(),
+            presentation_async: None,
             host_truth: Default::default(),
         }
     }
 }
 
 impl UiMountedPresentationCoordinator {
-    pub(crate) fn prepare_text_pin_deregistration(
-        &self,
-        binding: UiSurfaceBindingGeneration,
-    ) -> UiMountedTextPinCandidate {
-        self.text.deregistration_candidate(binding)
-    }
-
-    pub(crate) fn commit_text_pin_deregistration(&mut self, candidate: UiMountedTextPinCandidate) {
-        self.text.commit_surface_candidate(candidate);
+    pub(crate) fn new(
+        presentation_async: Option<
+            crate::native_platform::text_presentation::UiPresentationAsyncRuntime,
+        >,
+    ) -> Self {
+        Self {
+            presentation_async,
+            ..Self::default()
+        }
     }
 
     pub(crate) fn present(
@@ -163,6 +193,7 @@ impl UiMountedPresentationCoordinator {
         let prepared = match work_preparation::prepare(
             &start.frame,
             &self.presentation_states,
+            &self.reconstruction_bindings,
             &start.authority,
         ) {
             Ok(prepared) => prepared,
@@ -173,6 +204,19 @@ impl UiMountedPresentationCoordinator {
             }
         };
         let mut progress = UiMountedPresentationProgress::default();
+        let reconstructed_bindings = start
+            .frame
+            .surfaces()
+            .iter()
+            .zip(&prepared.surfaces)
+            .filter_map(|(surface, prepared)| {
+                matches!(
+                    prepared.work.view(),
+                    worth_ui_host_contract::UiMountedPresentationWorkView::Reconstruction(_)
+                )
+                .then_some(surface.requirement().binding())
+            })
+            .collect();
         for (surface, prepared_surface) in start.frame.surfaces().iter().zip(&prepared.surfaces) {
             if let Err(evidence) = present_one_surface(
                 &start,
@@ -181,6 +225,7 @@ impl UiMountedPresentationCoordinator {
                 &prepared_surface.expected_effects,
                 &mut progress,
                 &mut self.text,
+                self.presentation_async.as_mut(),
             ) {
                 return self.indeterminate(start.frame, start.retention, start.attempt, evidence);
             }
@@ -193,6 +238,10 @@ impl UiMountedPresentationCoordinator {
             pending: progress.pending,
             rejected: progress.rejected,
             completed: progress.completed,
+            superseded_costs: progress.superseded_costs,
+            semantic_requests: progress.semantic_requests,
+            superseded: progress.superseded,
+            reconstructed_bindings,
             candidates: prepared.candidates,
             host: start.host,
         })
@@ -204,6 +253,9 @@ impl UiMountedPresentationCoordinator {
     ) -> UiMountedPresentationOutcome {
         if !settlement.pending.is_empty() {
             return self.retain_in_flight(settlement);
+        }
+        if settlement.superseded {
+            return self.finish_superseded(settlement);
         }
         if settlement.completed.is_empty() {
             return self.finish_rejected(settlement);
@@ -218,9 +270,10 @@ impl UiMountedPresentationCoordinator {
         &mut self,
         settlement: UiMountedPresentationSettlement<'_>,
     ) -> UiMountedPresentationOutcome {
-        let cost = match UiMountedPresentationReceipt::compose_cost(
+        let cost = match UiMountedPresentationReceipt::compose_cost_with_additional(
             settlement.frame.cost_report(),
             &settlement.completed,
+            &settlement.superseded_costs,
         ) {
             Ok(cost) => cost,
             Err(_) => {
@@ -229,12 +282,22 @@ impl UiMountedPresentationCoordinator {
                     &settlement.pending,
                     &settlement.rejected,
                 );
-                settlement::cancel_all(settlement.pending, settlement.host);
+                let stopped = cancellation::cancel_all(settlement.pending, settlement.host);
+                let cancelled = cancellation_settlement::settle(
+                    stopped,
+                    self.presentation_async.as_mut(),
+                    worth_ui_host_contract::UiHostSurfacePresentationDenial::CancelledBeforeEffects,
+                );
+                let (_, semantic_receipts, recovery_required, physical_recovery_bindings) =
+                    cancelled.into_parts();
                 return self.indeterminate(
                     settlement.frame,
                     settlement.retention,
                     settlement.attempt,
-                    UiIndeterminatePresentationEvidence::new(affected, settlement.completed),
+                    UiIndeterminatePresentationEvidence::new(affected, settlement.completed)
+                        .with_semantic_receipts(semantic_receipts)
+                        .with_recovery_required(recovery_required)
+                        .with_physical_recovery_bindings(physical_recovery_bindings),
                 );
             }
         };
@@ -246,6 +309,10 @@ impl UiMountedPresentationCoordinator {
             pending: settlement.pending,
             rejected: settlement.rejected,
             completed: settlement.completed,
+            superseded_costs: settlement.superseded_costs,
+            semantic_requests: settlement.semantic_requests,
+            superseded: settlement.superseded,
+            reconstructed_bindings: settlement.reconstructed_bindings,
             candidates: settlement.candidates,
         };
         let handle = UiMountedPresentationInFlight::from_state(&state, cost);
@@ -262,6 +329,15 @@ impl UiMountedPresentationCoordinator {
             if rejection.denial()
                 == worth_ui_host_contract::UiHostSurfacePresentationDenial::ReconstructionRequired
             {
+                if let Some(requirement) = settlement
+                    .frame
+                    .surfaces()
+                    .iter()
+                    .find(|surface| surface.requirement().binding() == rejection.binding())
+                    .map(|surface| surface.requirement())
+                {
+                    self.host_truth.block_presentation(requirement);
+                }
                 self.presentation_states.remove(&rejection.binding());
             }
         }
@@ -293,7 +369,15 @@ impl UiMountedPresentationCoordinator {
         attempt: UiMountedPresentationAttemptIdentity,
         evidence: UiIndeterminatePresentationEvidence,
     ) -> UiMountedPresentationOutcome {
-        let (affected, cost) = evidence.into_terminal_parts(frame.cost_report());
+        let (affected, cost, semantic_receipts, recovery_required, physical_recovery_bindings) =
+            evidence.into_terminal_parts(frame.cost_report());
+        self.retain_semantic_uncertainty(attempt, semantic_receipts);
+        if !recovery_required.is_empty() {
+            self.unresolved_semantic_receipts
+                .entry(attempt)
+                .or_default()
+                .extend(recovery_required);
+        }
         self.active.borrow_mut().remove(&attempt);
         for binding in &affected {
             self.presentation_states.remove(binding);
@@ -306,7 +390,8 @@ impl UiMountedPresentationCoordinator {
             self.host_truth.block_presentation(requirement);
         }
         drop(retention);
-        let report = UiPresentationIndeterminateReport::new(attempt, affected);
+        let report =
+            UiPresentationIndeterminateReport::new(attempt, affected, physical_recovery_bindings);
         UiMountedPresentationOutcome::PresentationIndeterminate(UiMountedIndeterminateFrame::new(
             frame, report, cost,
         ))

@@ -65,9 +65,21 @@ impl DeltaUndo {
             commands: delta
                 .changes()
                 .iter()
-                .map(|change| {
-                    let identity = change_identity(change);
-                    (identity, current.commands.get(&identity).cloned())
+                .flat_map(|change| {
+                    let identities = match change {
+                        UiMountedPaintCommandChange::Insert(command) => vec![command.identity()],
+                        UiMountedPaintCommandChange::Replace {
+                            predecessor,
+                            successor,
+                        } if *predecessor != successor.identity() => {
+                            vec![*predecessor, successor.identity()]
+                        }
+                        UiMountedPaintCommandChange::Replace { predecessor, .. }
+                        | UiMountedPaintCommandChange::Remove(predecessor) => vec![*predecessor],
+                    };
+                    identities
+                        .into_iter()
+                        .map(|identity| (identity, current.commands.get(&identity).cloned()))
                 })
                 .collect(),
             order: current
@@ -111,18 +123,31 @@ fn validate_delta(
     let mut removed = HashSet::new();
     let mut seen = HashSet::new();
     for change in delta.changes() {
-        let identity = change_identity(change);
-        if !seen.insert(identity) {
-            return Err(malformed());
-        }
         match change {
-            UiMountedPaintCommandChange::Insert(_) if !current.commands.contains_key(&identity) => {
-                inserted.insert(identity);
+            UiMountedPaintCommandChange::Insert(command)
+                if seen.insert(command.identity())
+                    && !current.commands.contains_key(&command.identity()) =>
+            {
+                inserted.insert(command.identity());
             }
-            UiMountedPaintCommandChange::Replace(_) if current.commands.contains_key(&identity) => {
+            UiMountedPaintCommandChange::Replace {
+                predecessor,
+                successor,
+            } if seen.insert(*predecessor)
+                && (*predecessor == successor.identity() || seen.insert(successor.identity()))
+                && current.commands.contains_key(predecessor)
+                && (*predecessor == successor.identity()
+                    || !current.commands.contains_key(&successor.identity())) =>
+            {
+                if *predecessor != successor.identity() {
+                    removed.insert(*predecessor);
+                    inserted.insert(successor.identity());
+                }
             }
-            UiMountedPaintCommandChange::Remove(_) if current.commands.contains_key(&identity) => {
-                removed.insert(identity);
+            UiMountedPaintCommandChange::Remove(identity)
+                if seen.insert(*identity) && current.commands.contains_key(identity) =>
+            {
+                removed.insert(*identity);
             }
             _ => return Err(malformed()),
         }
@@ -203,11 +228,17 @@ fn apply_command_change(
                 return Err(malformed());
             }
         }
-        UiMountedPaintCommandChange::Replace(command) => {
-            if !commands.contains_key(&command.identity()) {
+        UiMountedPaintCommandChange::Replace {
+            predecessor,
+            successor,
+        } => {
+            if commands.remove(predecessor).is_none()
+                || commands
+                    .insert(successor.identity(), successor.clone())
+                    .is_some()
+            {
                 return Err(malformed());
             }
-            commands.insert(command.identity(), command.clone());
         }
         UiMountedPaintCommandChange::Remove(identity) => {
             if commands.remove(identity).is_none() {
@@ -216,14 +247,6 @@ fn apply_command_change(
         }
     }
     Ok(())
-}
-
-fn change_identity(change: &UiMountedPaintCommandChange) -> UiMountedPaintCommandIdentity {
-    match change {
-        UiMountedPaintCommandChange::Insert(command)
-        | UiMountedPaintCommandChange::Replace(command) => command.identity(),
-        UiMountedPaintCommandChange::Remove(identity) => *identity,
-    }
 }
 
 fn malformed() -> UiHostSurfacePresentationDenial {

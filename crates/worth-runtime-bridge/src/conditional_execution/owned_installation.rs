@@ -39,12 +39,58 @@ impl BridgeOwnedSignalRuntime {
         })
     }
 
+    pub fn retire_owned_conditional(
+        &mut self,
+        lowering: &std::sync::Arc<BridgeInstalledConditionalLowering>,
+    ) -> Result<(), BridgeConditionalDenial> {
+        let node = lowering.signal_node();
+        let retained = self.conditional_lowerings.get(&node).ok_or_else(|| {
+            BridgeConditionalDenial::new(
+                BridgeConditionalDenialKind::ForeignSignalGraph,
+                "owned conditional retirement did not match this Bridge runtime",
+            )
+        })?;
+        if !std::sync::Arc::ptr_eq(retained, lowering) {
+            return Err(BridgeConditionalDenial::new(
+                BridgeConditionalDenialKind::ForeignSignalGraph,
+                "owned conditional retirement did not carry the retained lowering",
+            ));
+        }
+        self.signal_runtime
+            .graph_mut()
+            .unregister_node(node)
+            .map_err(|error| {
+                BridgeConditionalDenial::new(
+                    BridgeConditionalDenialKind::SignalContractInstallation,
+                    format!("Signal denied owned conditional retirement: {error:?}"),
+                )
+            })?;
+        self.owned_conditional_targets.unregister(lowering);
+        self.conditional_lowerings.remove(&node);
+        loop {
+            let next = self
+                .conditional_observations
+                .range((
+                    std::ops::Bound::Included((node, 0, None)),
+                    std::ops::Bound::Unbounded,
+                ))
+                .next()
+                .map(|(key, _)| key.clone())
+                .filter(|(observed, _, _)| *observed == node);
+            let Some(key) = next else {
+                break;
+            };
+            self.conditional_observations.remove(&key);
+        }
+        Ok(())
+    }
+
     fn owned_correspondence_registrations(
         &mut self,
         node_identity: &str,
         dependencies: Vec<BridgeSemanticDependencyCandidate>,
     ) -> Result<Vec<BridgeSemanticCorrespondenceRegistration>, BridgeConditionalDenial> {
-        let node = self.graph.node().build();
+        let node = self.signal_runtime.graph_mut().node().build();
         dependencies
             .into_iter()
             .map(|dependency| {
@@ -54,17 +100,14 @@ impl BridgeOwnedSignalRuntime {
                 )
                 .map_err(|kind| correspondence_denial(kind, node_identity))?;
                 let worth_proof::TransitionOutcome::Success(node_capability) =
-                    self.graph.admit_installed_node(node)
+                    self.signal_runtime.graph_mut().admit_installed_node(node)
                 else {
                     return Err(correspondence_denial(
                         crate::correspondence::BridgeCorrespondenceDenialKind::MissingOrStaleSignalNode,
                         node_identity,
                     ));
                 };
-                let partition = worth_signal::facade::PartitionToken::new(format!(
-                    "bridge-owned:{node_identity}:dependency:{}",
-                    dependency.dependency_ordinal()
-                ));
+                let partition = dependency.owned_signal_partition();
                 let target = BridgeSignalAspectTargetDeclaration::allocate(
                     mapping,
                     partition,

@@ -68,6 +68,80 @@ impl WorthQueryInMemoryTestRuntimeBuilder {
         self
     }
 
+    pub fn owned_conditional_runtime(
+        mut self,
+        bridge: worth_runtime_bridge::facade::RuntimeBridge,
+    ) -> Self {
+        self.runtime_installers.push(Box::new(move |builder| {
+            builder.owned_conditional_runtime_for_test(bridge)
+        }));
+        self
+    }
+
+    pub fn owned_topology_conditional_node<D, O, F, G, P>(
+        mut self,
+        domain: D,
+        operation: O,
+        family: F,
+        graph: G,
+        location: crate::domain_installation::WorthQueryConditionalNodeLocation,
+        dependencies: Vec<
+            crate::domain_installation::WorthQueryOwnedConditionalDependencyInstallation,
+        >,
+        providers: worth_runtime_bridge::facade::BridgeConditionalProviderSet,
+        compute: P,
+    ) -> Self
+    where
+        D: 'static,
+        O: 'static,
+        F: 'static,
+        G: 'static,
+        P: crate::domain_installation::WorthQueryConditionalNodeComputeProvider<D, O, F>,
+    {
+        self.runtime_installers.push(Box::new(move |builder| {
+            builder.owned_topology_conditional_node(
+                domain,
+                operation,
+                family,
+                graph,
+                location,
+                dependencies,
+                providers,
+                compute,
+            )
+        }));
+        self
+    }
+
+    pub fn owned_topology_conditional_instances<D, O, F, G, P>(
+        mut self,
+        domain: D,
+        operation: O,
+        family: F,
+        graph: G,
+        location: crate::domain_installation::WorthQueryConditionalNodeLocation,
+        compute_contract: P,
+    ) -> Self
+    where
+        D: 'static,
+        O: 'static,
+        F: 'static,
+        G: 'static,
+        P: crate::domain_installation::WorthQueryConditionalNodeComputeProvider<D, O, F>,
+    {
+        self.runtime_installers.push(Box::new(move |builder| {
+            builder.owned_topology_conditional_instances(
+                domain,
+                operation,
+                family,
+                graph,
+                location,
+                compute_contract,
+            )
+        }));
+        self
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn conditional_node<D, O, F, G, P>(
         mut self,

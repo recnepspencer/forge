@@ -156,6 +156,11 @@ enum ExactChange {
     Insert(WorthQueryEvidenceIdentityKey, usize),
     Remove(WorthQueryEvidenceIdentityKey, usize),
     Move(WorthQueryEvidenceIdentityKey, usize, usize),
+    Regroup(
+        WorthQueryEvidenceIdentityKey,
+        Option<Box<[String]>>,
+        Option<Box<[String]>>,
+    ),
     Update(WorthQueryEvidenceIdentityKey),
     WindowShift,
     ResetRequired(WorthUiCollectionResetReason),
@@ -176,6 +181,11 @@ fn exact_changes(
             UiCollectionProjectionChange::Move { row, from, to } => {
                 ExactChange::Move(row.query_identity().operational_key(), *from, *to)
             }
+            UiCollectionProjectionChange::Regroup { row, from, to } => ExactChange::Regroup(
+                row.query_identity().operational_key(),
+                from.clone(),
+                to.clone(),
+            ),
             UiCollectionProjectionChange::Update { row } => {
                 ExactChange::Update(row.query_identity().operational_key())
             }

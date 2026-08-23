@@ -38,4 +38,18 @@ impl UiAllocationReplanCommitMode<'_> {
                 consequence.neighborhood_identity_digest() == selected.identity_digest()
             })
     }
+
+    pub(super) fn admits_host_measurement_successor(
+        &self,
+        selected: &crate::evidence::UiAllocationNeighborhoodIdentity,
+    ) -> bool {
+        self.selection()
+            .transaction_basis()
+            .consequences()
+            .host_measurements()
+            .iter()
+            .any(|consequence| {
+                consequence.neighborhood_identity_digest() == selected.identity_digest()
+            })
+    }
 }

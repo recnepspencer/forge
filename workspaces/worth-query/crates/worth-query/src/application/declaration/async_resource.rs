@@ -3,6 +3,12 @@ use super::input::{
     WorthQueryDeclarationCanonicalValue,
 };
 
+mod request_identity;
+
+pub use request_identity::{
+    WorthQueryAsyncRequestIdentityPart, WorthQueryAsyncRequestIdentityValue,
+};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum WorthQueryAsyncDeclarationSupport {
     Unsupported,
@@ -68,29 +74,6 @@ impl WorthQueryAsyncFailurePosture {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct WorthQueryAsyncRequestIdentityPart {
-    key: String,
-    value: String,
-}
-
-impl WorthQueryAsyncRequestIdentityPart {
-    pub fn text(key: impl Into<String>, value: impl Into<String>) -> Self {
-        Self {
-            key: key.into(),
-            value: value.into(),
-        }
-    }
-
-    pub fn key(&self) -> &str {
-        &self.key
-    }
-
-    pub fn value(&self) -> &str {
-        &self.value
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum WorthQueryAsyncDeclarationClause {
     ResourceRequest {
         source_family: WorthQueryAsyncSourceFamily,
@@ -138,33 +121,6 @@ impl WorthQueryAsyncDeclarationClause {
             Self::CompletionRequest { .. } => "completion-request",
         }
     }
-
-    fn normalized_key(&self) -> String {
-        match self {
-            Self::ResourceRequest {
-                source_family,
-                loading_posture,
-                failure_posture,
-                request_identity,
-            } => format!(
-                "resource-request:{}:{}:{}:{}",
-                source_family.as_str(),
-                loading_posture.as_str(),
-                failure_posture.as_str(),
-                normalized_request_identity_key(request_identity)
-            ),
-            Self::CompletionRequest {
-                source_family,
-                failure_posture,
-                request_identity,
-            } => format!(
-                "completion-request:{}:{}:{}",
-                source_family.as_str(),
-                failure_posture.as_str(),
-                normalized_request_identity_key(request_identity)
-            ),
-        }
-    }
 }
 
 pub(crate) fn normalize_async_resource_clauses(
@@ -174,7 +130,7 @@ pub(crate) fn normalize_async_resource_clauses(
         .into_iter()
         .map(normalize_async_resource_clause)
         .collect::<Vec<_>>();
-    clauses.sort_by_cached_key(WorthQueryAsyncDeclarationClause::normalized_key);
+    clauses.sort();
     clauses.dedup();
     clauses
 }
@@ -223,16 +179,6 @@ fn normalize_request_identity(
     request_identity.sort();
     request_identity.dedup();
     request_identity
-}
-
-fn normalized_request_identity_key(
-    request_identity: &[WorthQueryAsyncRequestIdentityPart],
-) -> String {
-    request_identity
-        .iter()
-        .map(|part| format!("{}={}", part.key(), part.value()))
-        .collect::<Vec<_>>()
-        .join("|")
 }
 
 fn clause_entries(
@@ -299,20 +245,7 @@ fn request_identity_entries(
     request_identity
         .iter()
         .enumerate()
-        .flat_map(|(index, part)| {
-            [
-                WorthQueryDeclarationCanonicalEntry::new(
-                    format!("{base}.{index}.key"),
-                    WorthQueryDeclarationCanonicalEntryKind::Identity,
-                    WorthQueryDeclarationCanonicalValue::ExactText(part.key().to_string()),
-                ),
-                WorthQueryDeclarationCanonicalEntry::new(
-                    format!("{base}.{index}.value"),
-                    WorthQueryDeclarationCanonicalEntryKind::Identity,
-                    WorthQueryDeclarationCanonicalValue::ExactText(part.value().to_string()),
-                ),
-            ]
-        })
+        .flat_map(|(index, part)| part.canonical_entries(&format!("{base}.{index}")))
         .collect()
 }
 

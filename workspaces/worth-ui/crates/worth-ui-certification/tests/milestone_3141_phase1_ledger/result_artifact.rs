@@ -3,7 +3,7 @@ use serde_json::Value;
 use super::command_binding::CommandBinding;
 use super::result_artifact_binding::{
     cargo_command, ignored_list_command, read_artifact, require_array, require_duration_within,
-    require_i64, require_str, require_u64, validate_ledger_fields,
+    require_i64, require_result_schema, require_str, require_u64, validate_ledger_fields,
 };
 use super::source_digest;
 
@@ -53,11 +53,7 @@ fn validate_artifact_contract(
     ledger: &LedgerResult<'_>,
     command: &CommandBinding,
 ) -> Result<(), String> {
-    require_u64(
-        artifact,
-        "schema_version",
-        if command.shared_main { 6 } else { 5 },
-    )?;
+    validate_artifact_schema(artifact, command.shared_main)?;
     require_str(artifact, "package", &command.package)?;
     require_str(artifact, "target_kind", &command.target_kind)?;
     require_str(artifact, "target_name", &command.target_name)?;
@@ -68,6 +64,11 @@ fn validate_artifact_contract(
     require_str(artifact, "structural_counter", ledger.structural_counter)?;
     require_str(artifact, "construction_cost", ledger.construction_cost)?;
     require_str(artifact, "execution_cost", ledger.execution_cost)
+}
+
+fn validate_artifact_schema(artifact: &Value, shared_main: bool) -> Result<(), String> {
+    let historical = if shared_main { 6 } else { 5 };
+    require_result_schema(artifact, historical)
 }
 
 fn validate_main_execution(artifact: &Value, command: &CommandBinding) -> Result<(), String> {
@@ -141,19 +142,33 @@ fn validate_artifact_proofs(
 ) -> Result<(), String> {
     super::phase_four_case_contract::validate(&command.requirement, artifact)?;
     super::phase_five_case_contract::validate(&command.requirement, artifact)?;
+    let (source_revision, source_state_digest) =
+        if ledger.source_validation == SourceValidationPosture::HistoricalArtifactOnly {
+            (
+                artifact["source_revision"]
+                    .as_str()
+                    .ok_or_else(|| "historical artifact omits source_revision".to_owned())?,
+                artifact["source_state_digest"]
+                    .as_str()
+                    .ok_or_else(|| "historical artifact omits source_state_digest".to_owned())?,
+            )
+        } else {
+            (ledger.source_revision, ledger.source_state_digest)
+        };
     if command.shared_main {
         super::shared_world_artifact::validate(
             artifact,
             command,
-            ledger.source_revision,
-            ledger.source_state_digest,
+            source_revision,
+            source_state_digest,
         )?;
     }
     super::supporting_world_artifact::validate(
         artifact,
         command,
-        ledger.source_revision,
-        ledger.source_state_digest,
+        source_revision,
+        source_state_digest,
+        ledger.source_validation,
     )?;
     super::result_artifact_control::validate(
         artifact,
@@ -203,3 +218,7 @@ mod phase_three_tests;
 #[cfg(test)]
 #[path = "result_artifact_gate_d_pin_tests.rs"]
 mod gate_d_pin_tests;
+
+#[cfg(test)]
+#[path = "result_artifact_phase_five_cost_tests.rs"]
+mod phase_five_cost_tests;

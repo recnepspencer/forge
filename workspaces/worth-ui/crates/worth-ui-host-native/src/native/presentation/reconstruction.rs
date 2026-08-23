@@ -27,24 +27,42 @@ pub(crate) fn present_cold_reconstruction<Port: UiNativePresentationPort>(
     graphics: &mut UiNativeGraphics,
     resources: &mut UiNativeResourceRegistry,
     physical_signal: &mut crate::native::physical_work_signal::UiNativePhysicalSignalOwner,
+    atlas: &crate::native::text_atlas::UiNativeTextAtlas,
+    atlas_gpu: Option<&crate::native::text_atlas::UiNativeTextAtlasGpuPages>,
     view: &UiMountedFrameConsumptionView<'_>,
+    defer_initial_observation: bool,
 ) -> Result<UiNativeColdReconstruction, UiNativePresentationFailure> {
     let UiMountedPresentationWorkView::Reconstruction(work) = view.presentation_work() else {
         return Err(malformed());
     };
-    let retained = UiNativeRetainedDrawList::reconstruction(work).map_err(|_| malformed())?;
-    let plan = build_plan(graphics, &retained)?;
+    let glyph_runs = view
+        .text_raster_work()
+        .map(|work| work.glyph_runs())
+        .unwrap_or_default();
+    let retained =
+        UiNativeRetainedDrawList::reconstruction(work, glyph_runs).map_err(|_| malformed())?;
+    let plan = build_plan(graphics, atlas, &retained)?;
     let owners = reserve_presentation_owners(
         resources,
         physical_signal,
         crate::native::physical_work_signal::UiNativePhysicalPresentationBasis::from_view(view),
     )?;
-    let observation = settle_port_result(
+    let observation = match settle_port_result(
         resources,
         physical_signal,
         owners,
-        Port::present(graphics, plan),
-    )?;
+        Port::present(graphics, atlas_gpu, plan, defer_initial_observation),
+    ) {
+        Ok(observation) => observation,
+        Err(UiNativePresentationFailure::Pending(pending)) => {
+            return Err(UiNativePresentationFailure::Pending(
+                pending.with_settlement(super::UiNativePendingSurfaceSettlement::Reconstruction(
+                    retained,
+                )),
+            ));
+        }
+        Err(failure) => return Err(failure),
+    };
     let (pixels, cost, port_crossings) = observation.into_parts();
     Ok(UiNativeColdReconstruction {
         cost,
@@ -62,29 +80,45 @@ use super::{
 
 fn build_plan(
     graphics: &UiNativeGraphics,
+    atlas: &crate::native::text_atlas::UiNativeTextAtlas,
     retained: &UiNativeRetainedDrawList,
 ) -> Result<UiNativePresentationPortPlan, UiNativePresentationFailure> {
     let commands = retained
         .reconstruction_commands()
         .map_err(|_| malformed())?;
-    let rows = u64::try_from(commands.len()).map_err(|_| malformed())?;
     let mut operations = Vec::with_capacity(commands.len());
     let mut rendered_pixels = 0_u64;
     for command in commands {
-        let UiMountedPaintCommand::FilledRect { mechanic, .. } = command else {
-            return Err(UiNativePresentationFailure::BeforeEffects(
-                UiHostSurfacePresentationDenial::AdapterDeclined,
-            ));
-        };
-        let rect = raster_rect(*mechanic, graphics).map_err(|_| malformed())?;
-        rendered_pixels = rendered_pixels
-            .checked_add(u64::from(rect.physical_width) * u64::from(rect.physical_height))
-            .ok_or_else(malformed)?;
-        operations.push(UiNativeRasterOperation::FilledRect {
-            rect,
-            source_rgba8: mechanic.color().channels(),
-        });
+        match command {
+            UiMountedPaintCommand::FilledRect { mechanic, .. } => {
+                let rect = raster_rect(*mechanic, graphics).map_err(|_| malformed())?;
+                rendered_pixels = rendered_pixels
+                    .checked_add(u64::from(rect.physical_width) * u64::from(rect.physical_height))
+                    .ok_or_else(malformed)?;
+                operations.push(UiNativeRasterOperation::FilledRect {
+                    rect,
+                    source_rgba8: mechanic.color().channels(),
+                });
+            }
+            UiMountedPaintCommand::SemanticText { identity, .. } => {
+                let glyphs = super::text::plan_glyph_commands(
+                    retained.glyph_runs(*identity),
+                    atlas,
+                    graphics.extent(),
+                )
+                .map_err(|_| malformed())?;
+                for glyph in glyphs {
+                    rendered_pixels = rendered_pixels
+                        .checked_add(
+                            (glyph.target[2].ceil() as u64) * (glyph.target[3].ceil() as u64),
+                        )
+                        .ok_or_else(malformed)?;
+                    operations.push(UiNativeRasterOperation::Glyph(glyph));
+                }
+            }
+        }
     }
+    let rows = u64::try_from(operations.len()).map_err(|_| malformed())?;
     let pixels = u64::from(graphics.extent()[0]) * u64::from(graphics.extent()[1]);
     Ok(UiNativePresentationPortPlan {
         clear_retained_target: true,

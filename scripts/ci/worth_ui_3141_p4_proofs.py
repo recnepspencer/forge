@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from worth_ui_3141_closure_sources import CLOSURE_PROTOCOL_SOURCES
+
 from worth_ui_3141_p4_predecessor_proof import predecessor_proof
 from worth_ui_3141_p4_proof_builder import (
     CERT_ROOT,
@@ -66,6 +68,13 @@ def font_and_profile_proofs(proof_type: Any, control_type: Any) -> dict[str, Any
             f"{TEXT_ROOT}/font_collection/coverage.rs",
             "workspaces/worth-ui/crates/worth-ui/examples/text_platform.rs",
             "workspaces/worth-ui/docs/text-platform.md",
+            "scripts/ci/worth_ui_ledger_public_example.py",
+            "workspaces/worth-ui/crates/worth-ui/Cargo.toml",
+            "workspaces/worth-ui/crates/worth-ui/src/lib.rs",
+            "workspaces/worth-ui/crates/worth-ui/src/facade/app.rs",
+            "workspaces/worth-ui/crates/worth-ui/src/facade/declaration.rs",
+            f"{RUNTIME_ROOT}/capability/registry/component/component_semantic_text_contract.rs",
+            f"{RUNTIME_ROOT}/capability/registry/component/component_semantic_text_span_contract.rs",
         ),
         "P4-TEXT-PROFILE-01": proof(
             proof_type,
@@ -334,5 +343,8 @@ def consumer_and_locality_proofs(proof_type: Any, control_type: Any) -> dict[str
         close_source,
         "milestone_3141_phase1_ledger::mutation_tests::phase_closure_mode_rejects_open_rows_at_or_before_its_gate",
         f"{CERT_ROOT}/milestone_3141_phase1_ledger/mutation_tests.rs",
+        "scripts/ci/worth_ui_3141_p4_proofs.py",
+        "scripts/ci/worth_ui_3141_p4_predecessor_proof.py",
+        *CLOSURE_PROTOCOL_SOURCES,
     )
     return result

@@ -11,6 +11,7 @@ struct ReadinessSlot {
     owner_generation: u64,
     next_work_generation: u64,
     work: Option<UiNativeReadyWork>,
+    pending_generation: Option<u64>,
     pending: bool,
     level_only: bool,
 }
@@ -20,6 +21,17 @@ pub(crate) struct UiNativeReadyWork {
     pub(crate) generation: u64,
     pub(crate) scale_factor_milli: u32,
     pub(crate) client_physical_size: [u32; 2],
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct UiNativeLevelReadinessGrant {
+    generation: u64,
+}
+
+impl UiNativeLevelReadinessGrant {
+    pub(crate) const fn generation(self) -> u64 {
+        self.generation
+    }
 }
 
 pub(crate) struct UiNativeReadinessRegistry {
@@ -88,6 +100,7 @@ impl UiNativeReadinessRegistry {
             owner_generation: generation,
             next_work_generation: 1,
             work: None,
+            pending_generation: None,
             pending: false,
             level_only,
         });
@@ -130,6 +143,11 @@ impl UiNativeReadinessRegistry {
             return Err(());
         }
         let queued = !slot.pending;
+        if queued {
+            let generation = slot.next_work_generation;
+            slot.next_work_generation = generation.checked_add(1).ok_or(())?;
+            slot.pending_generation = Some(generation);
+        }
         slot.pending = true;
         Ok(queued)
     }
@@ -143,13 +161,17 @@ impl UiNativeReadinessRegistry {
         slot.work.take().ok_or(())
     }
 
-    pub(crate) fn take_level(&mut self, owner: UiNativeReadyOwner) -> Result<(), ()> {
+    pub(crate) fn take_level(
+        &mut self,
+        owner: UiNativeReadyOwner,
+    ) -> Result<UiNativeLevelReadinessGrant, ()> {
         let slot = self.slot_mut(owner)?;
         if !slot.level_only || !slot.pending {
             return Err(());
         }
+        let generation = slot.pending_generation.take().ok_or(())?;
         slot.pending = false;
-        Ok(())
+        Ok(UiNativeLevelReadinessGrant { generation })
     }
 
     pub(crate) fn close(&mut self) -> usize {
@@ -233,12 +255,32 @@ mod tests {
         );
         assert_eq!(redraws, 1);
         assert!(registry.take(physical).is_err());
-        assert_eq!(registry.take_level(physical), Ok(()));
+        assert_eq!(registry.take_level(physical).unwrap().generation(), 1);
         assert!(registry.take_level(physical).is_err());
         assert_eq!(
             signal_level_ready(&mut registry, physical, true, || redraws += 1),
             Ok(UiNativeReadinessSignalDisposition::RedrawRequested)
         );
         assert_eq!(redraws, 2);
+        assert_eq!(registry.take_level(physical).unwrap().generation(), 2);
+        println!("WORTH_UI_LEDGER_COUNTERS={{\"P6-READINESS-01\":2}}");
+    }
+
+    #[test]
+    fn level_grant_take_does_not_clear_pending_state_before_generation_validation() {
+        let mut registry = UiNativeReadinessRegistry::new();
+        let physical = registry.register_level().unwrap();
+        registry.signal_level(physical).unwrap();
+        registry.slots[physical.slot]
+            .as_mut()
+            .expect("registered level owner")
+            .pending_generation = None;
+
+        assert!(registry.take_level(physical).is_err());
+        let slot = registry.slots[physical.slot]
+            .as_ref()
+            .expect("failed take retains the registered owner");
+        assert!(slot.pending);
+        assert!(slot.pending_generation.is_none());
     }
 }

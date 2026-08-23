@@ -23,6 +23,8 @@ pub struct WorthUiActiveFrameworkTurnCompletion<'session> {
     pub(super) mounted: &'session mut crate::mounting::WorthUiMountedSessionState,
     pub(super) host_session: &'session crate::facade::WorthUiHostSessionAuthority,
     pub(super) host_exchange: &'session mut crate::host_exchange::WorthUiHostExchangeSessionState,
+    pub(super) presentation:
+        &'session mut crate::runtime::presentation_state::UiApplicationPresentationState,
 }
 
 /// Executable framework-turn authority lent by one active application session.
@@ -37,6 +39,8 @@ pub struct WorthUiActiveFrameworkTurnExecution<'session> {
     pub(super) mounted: &'session mut crate::mounting::WorthUiMountedSessionState,
     pub(super) host_session: &'session crate::facade::WorthUiHostSessionAuthority,
     pub(super) host_exchange: &'session mut crate::host_exchange::WorthUiHostExchangeSessionState,
+    pub(super) presentation:
+        &'session mut crate::runtime::presentation_state::UiApplicationPresentationState,
     pub(super) host_protocol: worth_ui_host_contract::UiHostProtocolAgreement,
     pub(super) host_capability_generation:
         worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
@@ -66,6 +70,7 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
             mounted,
             host_session,
             host_exchange,
+            presentation,
         } = self;
         let host_protocol = host_session.protocol();
         let capability_report = host_session.capability_report();
@@ -80,6 +85,7 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
                 mounted,
                 host_session,
                 host_exchange,
+                presentation,
                 host_protocol,
                 host_capability_generation: capability_report.observation_generation(),
                 host_capability_profile_digest: capability_report.profile_identity_digest(),
@@ -95,6 +101,7 @@ impl<'session> WorthUiActiveFrameworkTurnCompletion<'session> {
                 mounted,
                 host_session,
                 host_exchange,
+                presentation,
             })),
         }
     }

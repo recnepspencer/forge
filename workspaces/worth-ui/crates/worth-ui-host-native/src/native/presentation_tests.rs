@@ -70,7 +70,7 @@ fn external_port_failures_cross_the_real_framework_settlement_transition() {
         owners,
         Err(UiNativePresentationPortFailure::ReadbackUnsettled(pending)),
     );
-    let Err(UiNativePresentationFailure::Indeterminate(pending)) = unsettled else {
+    let Err(UiNativePresentationFailure::Pending(pending)) = unsettled else {
         panic!("readback failure must remain indeterminate");
     };
     assert_eq!(resources.current().readback_buffers, 1);
@@ -83,8 +83,9 @@ fn external_port_failures_cross_the_real_framework_settlement_transition() {
         .advance_clock_to(due)
         .expect("the exact pending poll wake must become ready");
     let token = physical_signal
-        .take_ready_presentation(pending.physical_work())
-        .unwrap();
+        .take_ready_presentation(pending.physical_work(), pending.physical_token())
+        .unwrap()
+        .current();
     assert!(matches!(
         physical_signal.reconcile(
             token.observe(

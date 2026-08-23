@@ -11,7 +11,10 @@ use super::outcome::{
 pub(super) struct UiIndeterminatePresentationEvidence {
     affected: Vec<UiSurfaceBindingGeneration>,
     completed: Vec<UiMountedSurfacePresentationReceipt>,
+    semantic_receipts: Vec<worth_ui_query_binding::WorthUiPresentationRecoveryReceipt>,
+    recovery_required: Vec<worth_ui_query_binding::WorthUiPresentationRecoveryRequiredReceipt>,
     additional_adapter_cost: Option<worth_ui_host_contract::UiHostPresentationCostReport>,
+    physical_recovery_bindings: Vec<UiSurfaceBindingGeneration>,
 }
 
 impl UiIndeterminatePresentationEvidence {
@@ -22,8 +25,35 @@ impl UiIndeterminatePresentationEvidence {
         Self {
             affected,
             completed,
+            semantic_receipts: Vec::new(),
+            recovery_required: Vec::new(),
             additional_adapter_cost: None,
+            physical_recovery_bindings: Vec::new(),
         }
+    }
+
+    pub(super) fn with_recovery_required(
+        mut self,
+        recovery_required: Vec<worth_ui_query_binding::WorthUiPresentationRecoveryRequiredReceipt>,
+    ) -> Self {
+        self.recovery_required = recovery_required;
+        self
+    }
+
+    pub(super) fn with_physical_recovery_bindings(
+        mut self,
+        bindings: Vec<UiSurfaceBindingGeneration>,
+    ) -> Self {
+        self.physical_recovery_bindings.extend(bindings);
+        self
+    }
+
+    pub(super) fn with_semantic_receipts(
+        mut self,
+        semantic_receipts: Vec<worth_ui_query_binding::WorthUiPresentationRecoveryReceipt>,
+    ) -> Self {
+        self.semantic_receipts = semantic_receipts;
+        self
     }
 
     pub(super) fn with_additional_adapter_cost(
@@ -40,6 +70,9 @@ impl UiIndeterminatePresentationEvidence {
     ) -> (
         Vec<UiSurfaceBindingGeneration>,
         super::super::UiMountCostReport,
+        Vec<worth_ui_query_binding::WorthUiPresentationRecoveryReceipt>,
+        Vec<worth_ui_query_binding::WorthUiPresentationRecoveryRequiredReceipt>,
+        Vec<UiSurfaceBindingGeneration>,
     ) {
         let composed = UiMountedPresentationReceipt::compose_cost(mounting_cost, &self.completed)
             .and_then(|cost| match self.additional_adapter_cost {
@@ -56,7 +89,13 @@ impl UiIndeterminatePresentationEvidence {
                     .with_cost_overflow()
                     .expect("one cost overflow marker fits accounting")
             });
-        (self.affected, cost)
+        (
+            self.affected,
+            cost,
+            self.semantic_receipts,
+            self.recovery_required,
+            self.physical_recovery_bindings,
+        )
     }
 }
 

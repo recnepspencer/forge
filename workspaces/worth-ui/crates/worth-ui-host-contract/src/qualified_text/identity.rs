@@ -5,6 +5,9 @@ pub struct UiQualifiedTextLayoutIdentity([u8; 32]);
 pub struct UiQualifiedTextLayoutRequestIdentity([u8; 32]);
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct UiQualifiedTextLayoutWidthBasis(u32);
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct UiQualifiedFontFaceIdentity {
     font_bytes_digest: [u8; 32],
     face_index: u32,
@@ -52,6 +55,20 @@ impl UiQualifiedTextLayoutRequestIdentity {
     }
 
     pub const fn digest(self) -> [u8; 32] {
+        self.0
+    }
+}
+
+impl UiQualifiedTextLayoutWidthBasis {
+    pub const fn new(width_millipoints: u32) -> Option<Self> {
+        if width_millipoints == 0 {
+            None
+        } else {
+            Some(Self(width_millipoints))
+        }
+    }
+
+    pub const fn width_millipoints(self) -> u32 {
         self.0
     }
 }

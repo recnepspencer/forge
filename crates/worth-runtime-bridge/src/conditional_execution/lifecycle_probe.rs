@@ -38,7 +38,7 @@ impl BridgeOwnedSignalRuntime {
         BridgeConditionalRuntimeLifecycleProbe {
             signal_graph: (!self.conditional_lowerings.is_empty()
                 || !self.managed_clock_lanes.is_empty())
-            .then(|| self.graph.lifecycle_probe()),
+            .then(|| self.signal_runtime.graph().lifecycle_probe()),
             providers: self
                 .conditional_lowerings
                 .values()

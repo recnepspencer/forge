@@ -1,0 +1,391 @@
+use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
+use std::time::{Duration, Instant};
+
+use crate::native_platform::{NativePlatformContract, WindowsNativePlatform};
+use crate::product_process::{CargoBuiltPlatformPulse, SuccessfulPlatformPulseExit};
+
+#[path = "native_phase_f/authored_pixel_contract.rs"]
+mod authored_pixel_contract;
+#[path = "native_phase_f/lineage.rs"]
+mod lineage;
+#[path = "native_phase_f/physical_trace.rs"]
+mod physical_trace;
+#[path = "native_phase_f/pixels.rs"]
+mod pixels;
+#[path = "native_phase_f/retained_paint.rs"]
+mod retained_paint;
+use pixels::{attributed_pixel_classes, pixel_classes};
+use retained_paint::assert_foreground_invariant_intrinsic_keys;
+
+#[test]
+#[ignore = "requires the serialized interactive Windows 11 DX12 desktop"]
+fn query_async_reconstruction_joins_exact_transitions_to_external_pixels_and_cleanup() {
+    let platform = WindowsNativePlatform::certified().expect("Windows observation is qualified");
+    let binary =
+        CargoBuiltPlatformPulse::exact().expect("the prebuilt Phase F product binary is available");
+    let mut launch = binary
+        .clone()
+        .launch_native_phase_f_world()
+        .expect("the Phase F product world launches under the desktop lease");
+    let process_id = launch.process.id();
+    let deadline = Instant::now() + Duration::from_secs(120);
+    let outcome = catch_unwind(AssertUnwindSafe(|| {
+        execute_world(&platform, &mut launch, process_id, deadline)
+    }));
+    let mut ledger_evidence = outcome.unwrap_or_else(|failure| {
+        let teardown = launch
+            .process
+            .terminate_after_failure(Instant::now() + Duration::from_secs(5));
+        let release = platform.verify_process_window_released(process_id);
+        assert!(teardown.is_ok() && release.is_ok());
+        resume_unwind(failure)
+    });
+    drop(launch);
+    ledger_evidence["partial_effects_cancellation"] =
+        assert_partial_effects_cancellation_world(&binary);
+    emit_ledger_evidence(&ledger_evidence);
+}
+
+fn execute_world(
+    platform: &WindowsNativePlatform,
+    launch: &mut crate::product_process::NativePhase2ProcessLaunch,
+    process_id: u32,
+    deadline: Instant,
+) -> serde_json::Value {
+    let mut client = platform
+        .bind_process_client_area(process_id, deadline)
+        .expect("the Phase F client area appears");
+    let ready = platform
+        .await_external_observation_ready(&client, deadline)
+        .expect("the owner exposes final reconstruction readiness before capture");
+    assert_eq!(ready.process_id(), process_id);
+    let pixel_deadline = Instant::now() + Duration::from_secs(10);
+    let (capture, authored_pixels_proved) =
+        await_quiescent_text_pixels(platform, &mut client, pixel_deadline);
+    platform
+        .request_normal_close(&client)
+        .expect("the external courtroom closes the product window");
+    let exit = SuccessfulPlatformPulseExit::wait(&mut launch.process, deadline);
+    platform
+        .verify_process_window_released(process_id)
+        .expect("the Phase F process leaves no native window");
+    let mut stdout = String::new();
+    launch.stdout.read_to_string(&mut stdout).unwrap();
+    let evidence: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
+    let exit = exit.unwrap_or_else(|failure| {
+        panic!("the Phase F product exits without residue: {failure}; evidence={evidence}")
+    });
+    assert!(exit.status().success());
+    let capture = capture.unwrap_or_else(|| {
+        panic!("the Phase F client area produced no capture; evidence={evidence}")
+    });
+    assert!(
+        authored_pixels_proved,
+        "the Phase F product did not expose alpha and intrinsic-color text pixels; pixels={:?}; evidence={evidence}",
+        pixel_classes(&capture)
+    );
+    let alpha_bounds = assert_alpha_attribution(&evidence);
+    let intrinsic_bounds = assert_intrinsic_attribution(&evidence);
+    assert_headless_glyph_agreement(&evidence);
+    let authored = authored_pixel_contract::assert_owner_projection(&evidence);
+    let pixels =
+        attributed_pixel_classes(&capture, &authored.alpha_bounds, &authored.intrinsic_bounds);
+    assert_phase_f_evidence(&evidence, &capture, &pixels);
+    let mut ledger_evidence = evidence.clone();
+    ledger_evidence["external_capture"] = serde_json::json!({
+        "width": capture.width(),
+        "height": capture.height(),
+        "background_pixels": pixels.background,
+        "alpha_glyph_pixels": pixels.glyph,
+        "antialiased_alpha_glyph_pixels": pixels.antialiased,
+        "alpha_glyph_bounds": pixels.bounds,
+        "owner_issued_alpha_bounds": alpha_bounds,
+        "independent_authored_alpha_bounds": authored.alpha_bounds,
+        "intrinsic_color_pixels": pixels.intrinsic_color,
+        "intrinsic_color_sample_rgba8": pixels.intrinsic_color_sample,
+        "intrinsic_color_bounds": pixels.intrinsic_color_bounds,
+        "intrinsic_color_capture_digest": pixels.intrinsic_color_digest,
+        "owner_issued_intrinsic_bounds": intrinsic_bounds,
+        "independent_authored_intrinsic_bounds": authored.intrinsic_bounds,
+        "glyph_occupied_columns": pixels.occupied_columns,
+        "glyph_occupied_rows": pixels.occupied_rows,
+    });
+    ledger_evidence
+}
+
+fn emit_ledger_evidence(ledger_evidence: &serde_json::Value) {
+    let transitions = ledger_evidence["presentation_transitions"]
+        .as_array()
+        .expect("adjudicated Query transitions");
+    let async_transitions = transitions.len();
+    let presentations = transitions
+        .iter()
+        .filter(|transition| {
+            matches!(
+                transition["kind"].as_str(),
+                Some("Pending" | "ReconstructionCurrent")
+            )
+        })
+        .count();
+    let reconstructed = ledger_evidence["retained_frames"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|frame| frame["kind"] == "Reconstruction")
+        .count();
+    let pixel_classes = usize::from(
+        ledger_evidence["external_capture"]["alpha_glyph_pixels"]
+            .as_u64()
+            .is_some_and(|count| count > 0),
+    ) + usize::from(
+        ledger_evidence["external_capture"]["intrinsic_color_pixels"]
+            .as_u64()
+            .is_some_and(|count| count > 0),
+    );
+    println!("WORTH_UI_LEDGER_OBSERVATION={ledger_evidence}");
+    println!("WORTH_UI_LEDGER_COUNTERS={{\"P5-TEXT-PIXELS-01\":{pixel_classes},\"P5-TEXT-RECONSTRUCTION-01\":{reconstructed},\"P5-TEXT-ASYNC-PRESENTATION-01\":{async_transitions}}}");
+    println!("WORTH_UI_LEDGER_PRESENTATIONS={presentations}");
+    println!(
+        "WORTH_UI_LEDGER_WORLD={}",
+        usize::from(ledger_evidence.is_object())
+    );
+}
+
+fn assert_partial_effects_cancellation_world(
+    binary: &CargoBuiltPlatformPulse,
+) -> serde_json::Value {
+    let mut launch = binary
+        .clone()
+        .launch_native_phase_f_partial_cancellation()
+        .expect("the real native partial-effects cancellation world launches");
+    let deadline = Instant::now() + Duration::from_secs(120);
+    let exit = SuccessfulPlatformPulseExit::wait(&mut launch.process, deadline)
+        .expect("the partial-effects cancellation world exits without residue");
+    let mut stdout = String::new();
+    launch.stdout.read_to_string(&mut stdout).unwrap();
+    let evidence: serde_json::Value = serde_json::from_str(stdout.trim()).unwrap();
+    assert!(exit.status().success(), "cancellation evidence={evidence}");
+    assert_eq!(
+        evidence["schema"],
+        "worth-ui-native-phase-f-partial-cancellation-world-v1"
+    );
+    assert_eq!(evidence["exact_query_recovery"], true);
+    assert_eq!(evidence["exact_cancelled_physical_request"], true);
+    assert_eq!(evidence["physical_signal"]["cancellations"], 1);
+    assert_eq!(evidence["physical_signal"]["recovery_schedules"], 1);
+    assert_eq!(evidence["physical_signal"]["recovery_resolutions"], 1);
+    assert_eq!(
+        evidence["physical_signal"]["transition_trace_complete"],
+        true
+    );
+    assert_eq!(evidence["query_close_complete"], true);
+    assert_eq!(evidence["terminal_zero"], true);
+    evidence
+}
+
+fn assert_alpha_attribution(evidence: &serde_json::Value) -> Vec<[u32; 4]> {
+    let glyphs = evidence["presentation"]["alpha_glyphs"]
+        .as_array()
+        .expect("the retained native presentation carries qualified alpha glyphs");
+    assert!(!glyphs.is_empty());
+    glyphs
+        .iter()
+        .map(|glyph| {
+            assert!(matches!(
+                glyph["source"].as_str(),
+                Some("AlphaOutline" | "LastResort")
+            ));
+            assert_eq!(glyph["foreground"], serde_json::json!([255, 255, 255, 255]));
+            assert_eq!(glyph["raster_key"].as_str().unwrap().len(), 64);
+            assert_eq!(glyph["transcript_digest"].as_str().unwrap().len(), 64);
+            let target = glyph["target_bounds"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|coordinate| u32::try_from(coordinate.as_u64().unwrap()).unwrap())
+                .collect::<Vec<_>>();
+            let [left, top, right, bottom] = <[u32; 4]>::try_from(target).unwrap();
+            assert!(left < right && top < bottom);
+            [left, top, right, bottom]
+        })
+        .collect()
+}
+
+fn await_quiescent_text_pixels(
+    platform: &WindowsNativePlatform,
+    client: &mut <WindowsNativePlatform as NativePlatformContract>::BoundClientArea,
+    deadline: Instant,
+) -> (
+    Option<crate::external_observation::NativeClientPixelCapture>,
+    bool,
+) {
+    let mut previous = None;
+    let mut last_capture = None;
+    let mut capture_count = 0_u32;
+    loop {
+        if let Ok(capture) = platform.capture_client_area(client) {
+            let colors = pixel_classes(&capture);
+            capture_count = capture_count.saturating_add(1);
+            if capture_count % 10 == 0 {
+                eprintln!("Phase F authored-pixel progress: {colors:?}");
+            }
+            if colors.proves_authored_text(capture.width(), capture.height()) {
+                if previous
+                    .as_ref()
+                    .is_some_and(|prior: &Box<[u8]>| prior.as_ref() == capture.rgba())
+                {
+                    return (Some(capture), true);
+                }
+                previous = Some(capture.rgba().to_vec().into_boxed_slice());
+            }
+            last_capture = Some(capture);
+        }
+        if Instant::now() >= deadline {
+            return (last_capture, false);
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+}
+
+fn assert_phase_f_evidence(
+    evidence: &serde_json::Value,
+    capture: &crate::external_observation::NativeClientPixelCapture,
+    pixels: &pixels::PixelClasses,
+) {
+    assert_eq!(evidence["schema"], "worth-ui-native-phase-f-async-world-v1");
+    assert_eq!(evidence["presentation_transition_count"], 10);
+    let transitions = evidence["presentation_transitions"].as_array().unwrap();
+    let kinds = transitions
+        .iter()
+        .map(|transition| transition["kind"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        kinds,
+        [
+            "Pending",
+            "Superseded",
+            "StaleCompletionRejected",
+            "Completed",
+            "DuplicateCompletionRejected",
+            "Pending",
+            "Unresolved",
+            "RecoveryRequired",
+            "ReconstructionCurrent",
+            "TerminalClosed",
+        ]
+    );
+    assert_request_equal(&transitions[0], &transitions[2]);
+    assert_request_equal(&transitions[1], &transitions[3]);
+    assert_request_equal(&transitions[3], &transitions[4]);
+    assert_request_equal(&transitions[5], &transitions[6]);
+    assert_request_equal(&transitions[6], &transitions[7]);
+    assert_request_equal(&transitions[8], &transitions[9]);
+    assert_ne!(transitions[7]["binding"], transitions[8]["binding"]);
+    physical_trace::assert_supersession(evidence, &transitions[0], &transitions[1]);
+    physical_trace::assert_duplicate_rejection(evidence, &transitions[4]);
+    physical_trace::assert_indeterminate(evidence, &transitions[5]);
+    lineage::assert_exact_request_lineage(evidence, &transitions[8]);
+    assert_eq!(
+        evidence["presentation"]["frame"],
+        evidence["runtime_attribution"]["frame"]
+    );
+    assert_eq!(
+        evidence["presentation"]["binding"],
+        transitions[8]["binding"]
+    );
+    assert_eq!(
+        evidence["presentation"]["attempt"],
+        transitions[8]["attempt"]
+    );
+    assert!(evidence["retained_frames"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|frame| frame["kind"] == "Reconstruction"));
+    assert!(pixels.proves_authored_text(capture.width(), capture.height()));
+    assert_eq!(evidence["observation_history_complete"], true);
+    assert_eq!(evidence["terminal_zero"], true);
+    assert_eq!(evidence["query_close_complete"], true);
+    assert!(evidence["closed_query_resources"].as_u64().unwrap() > 0);
+}
+
+fn assert_intrinsic_attribution(evidence: &serde_json::Value) -> Vec<[u32; 4]> {
+    let glyphs = evidence["presentation"]["intrinsic_glyphs"]
+        .as_array()
+        .expect("the retained native presentation carries qualified intrinsic glyphs");
+    assert!(!glyphs.is_empty());
+    let mut bounds = Vec::with_capacity(glyphs.len());
+    let mut keys = std::collections::BTreeSet::new();
+    for glyph in glyphs {
+        assert!(matches!(
+            glyph["source"].as_str(),
+            Some("ColorOutline" | "ColorBitmap")
+        ));
+        assert_eq!(glyph["original_range"], serde_json::json!([8, 19]));
+        assert_eq!(glyph["palette"].as_u64(), Some(0));
+        let key = glyph["raster_key"].as_str().unwrap();
+        assert_eq!(key.len(), 64);
+        keys.insert(key.to_owned());
+        let coordinates = glyph["target_bounds"].as_array().unwrap();
+        let target = coordinates
+            .iter()
+            .map(|coordinate| u32::try_from(coordinate.as_u64().unwrap()).unwrap())
+            .collect::<Vec<_>>();
+        let [left, top, right, bottom] = <[u32; 4]>::try_from(target).unwrap();
+        assert!(left < right && top < bottom);
+        bounds.push([left, top, right, bottom]);
+    }
+    assert_foreground_invariant_intrinsic_keys(evidence, &keys);
+    bounds
+}
+
+fn assert_headless_glyph_agreement(evidence: &serde_json::Value) {
+    let presentation = &evidence["presentation"];
+    let native_digest = presentation["intrinsic_glyph_transcript_digest"]
+        .as_str()
+        .expect("native presentation retains its intrinsic transcript digest");
+    let attempt = presentation["attempt"].as_u64().unwrap();
+    let binding = presentation["binding"].as_u64().unwrap();
+    let mounted_frame = presentation["frame"].as_u64().unwrap();
+    let matches = evidence["text_presentation_work"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|work| {
+            work["attempt"] == attempt
+                && work["binding"] == binding
+                && work["mounted_frame"] == mounted_frame
+        })
+        .collect::<Vec<_>>();
+    let [headless] = matches.as_slice() else {
+        panic!("the exact presented request must retain one headless transcript");
+    };
+    let headless_digest = headless["intrinsic_glyph_transcript_digest"]
+        .as_str()
+        .unwrap();
+    let intrinsic_count = headless["intrinsic_glyph_runs"].as_u64().unwrap();
+    let native_count = presentation["intrinsic_glyphs"].as_array().unwrap().len() as u64;
+    assert!(pixels::headless_intrinsic_agrees(
+        headless_digest,
+        native_digest,
+        intrinsic_count,
+        native_count,
+    ));
+    assert_eq!(
+        headless["glyph_run_transcript_digest"], presentation["glyph_transcript_digest"],
+        "headless and native alpha+intrinsic glyph transcripts diverged",
+    );
+    for field in [
+        "layout_set_digest",
+        "raster_key_set_digest",
+        "glyph_run_transcript_digest",
+    ] {
+        assert_eq!(headless[field].as_str().unwrap().len(), 64);
+        assert_ne!(headless[field].as_str().unwrap(), "0".repeat(64));
+    }
+}
+
+fn assert_request_equal(left: &serde_json::Value, right: &serde_json::Value) {
+    assert_eq!(left["attempt"], right["attempt"]);
+    assert_eq!(left["binding"], right["binding"]);
+}

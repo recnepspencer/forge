@@ -46,7 +46,7 @@ P5_COUNTERS = {
     "P5-TEXT-DPI-01": ("dpi-replacements", 1),
     "P5-TEXT-SPAN-PAINT-01": ("paint-spans", 2),
     "P5-TEXT-PIXELS-01": ("pixel-observations", 2),
-    "P5-TEXT-RECONSTRUCTION-01": ("reconstructed-atlases", 1),
+    "P5-TEXT-RECONSTRUCTION-01": ("reconstructed-derived-states", 7),
     "P5-TEXT-COST-01": ("ui-locality-worlds", 32),
     "P5-TEXT-ASYNC-PRESENTATION-01": ("presentation-transitions", 10),
     "P5-CLOSE-01": ("requirements", 12),
@@ -77,13 +77,33 @@ P5_FAULT_BOUNDARIES = {
 def p5_construction_cost(requirement: str) -> str:
     if requirement == "P5-PREDECESSOR-01":
         return (
-            "main-tests=44;hostile-controls=45;product-processes=6;"
+            "main-tests=46;hostile-controls=48;product-processes=6;"
             "compile-sessions=2;courtroom-worlds=12"
         )
     if requirement == "P5-ATLAS-PINNING-01":
         return (
             "main-tests=1;hostile-controls=1;product-processes=1;"
             "compile-sessions=0;courtroom-worlds=1"
+        )
+    if requirement == "P5-TEXT-ASYNC-PRESENTATION-01":
+        return (
+            "main-tests=1;hostile-controls=1;product-processes=1;"
+            "compile-sessions=2;courtroom-worlds=1"
+        )
+    if requirement == "P5-TEXT-PIXELS-01":
+        return (
+            "main-tests=1;hostile-controls=1;product-processes=1;"
+            "compile-sessions=0;courtroom-worlds=1"
+        )
+    if requirement == "P5-TEXT-RECONSTRUCTION-01":
+        return (
+            "main-tests=1;hostile-controls=1;product-processes=7;"
+            "compile-sessions=0;courtroom-worlds=7"
+        )
+    if requirement == "P5-TEXT-COST-01":
+        return (
+            "main-tests=1;hostile-controls=1;product-processes=32;"
+            "compile-sessions=0;courtroom-worlds=32"
         )
     return (
         "main-tests=1;hostile-controls=1;product-processes=0;"
@@ -93,7 +113,13 @@ def p5_construction_cost(requirement: str) -> str:
 
 def p5_execution_cost(requirement: str) -> str:
     if requirement == "P5-PREDECESSOR-01":
-        return "executed-tests=91;presentations=56"
+        return "executed-tests=96;presentations=56"
     if requirement == "P5-ATLAS-PINNING-01":
-        return "executed-tests=2;presentations=1;atlas-transactions=3"
+        return "executed-tests=2;presentations=4;atlas-transactions=4"
+    if requirement in {"P5-TEXT-PIXELS-01", "P5-TEXT-ASYNC-PRESENTATION-01"}:
+        return "executed-tests=2;presentations=3"
+    if requirement == "P5-TEXT-RECONSTRUCTION-01":
+        return "executed-tests=2;presentations=21"
+    if requirement == "P5-TEXT-COST-01":
+        return "executed-tests=2;presentations=64"
     return "executed-tests=2;presentations=0"

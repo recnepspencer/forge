@@ -61,6 +61,17 @@ pub(super) fn distinct_layout_attributions_share_one_alpha_raster_key() {
         right_demand.identity()
     );
     assert_eq!(transaction.batches()[1].cost().ordinary().cache_hits(), 1);
+
+    let transaction = rasterize_alpha_outline_transaction(&inputs, &admission).unwrap();
+    let mut swapped = transaction.into_batches().into_vec();
+    swapped.swap(0, 1);
+    assert_eq!(
+        super::alpha_transaction_completion::complete_alpha_raster_transaction(
+            &admission, &swapped,
+        ),
+        Err(super::UiGlyphRasterizationDenial::TransactionOutputMismatch),
+        "alpha completion must authenticate batch layout/demand attribution",
+    );
 }
 
 fn alpha_record(

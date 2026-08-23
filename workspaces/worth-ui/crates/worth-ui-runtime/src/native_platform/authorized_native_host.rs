@@ -59,6 +59,24 @@ impl WorthUiOperationalHostAdapter for UiAuthorizedNativeHostAdapter {
             .drain_mechanical_host_observations(authority.host_session_identity())
     }
 
+    fn install_input_recipient(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+        binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+    ) -> bool {
+        binding.host_session() == authority.host_session_identity()
+            && self.adapter.install_mechanical_input_recipient(binding)
+    }
+
+    fn clear_input_recipient(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+        binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+    ) -> bool {
+        binding.host_session() == authority.host_session_identity()
+            && self.adapter.clear_mechanical_input_recipient(binding)
+    }
+
     fn capture_visual_presentation(
         &self,
         authority: &UiHostAdapterSessionAuthority,

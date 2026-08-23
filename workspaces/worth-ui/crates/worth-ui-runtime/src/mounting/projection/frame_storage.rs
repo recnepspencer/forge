@@ -10,9 +10,10 @@ use super::UiMountedProjectionDenial;
 pub(in crate::mounting) mod diagnostic_source;
 mod drawable_order;
 mod lane_recording;
+mod layout_reconstruction;
 mod mechanic_source;
 #[cfg(test)]
-mod mechanic_source_tests;
+pub(crate) mod mechanic_source_tests;
 mod node_changes;
 mod presentation_effects;
 pub(crate) mod presentation_sources;
@@ -65,6 +66,7 @@ pub struct UiMountedProjectionFrame {
     capability_generation: worth_ui_host_contract::WorthUiHostCapabilityObservationGeneration,
     capability_profile_digest: u64,
     font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
+    text_profile_generation: worth_ui_host_contract::UiTextProfileGeneration,
     materialized_projection_rows: std::rc::Rc<std::cell::Cell<u64>>,
 }
 
@@ -115,6 +117,7 @@ impl UiMountedProjectionFrame {
             capability_generation: input.capability_generation,
             capability_profile_digest: input.capability_profile_digest,
             font_collection: input.font_collection,
+            text_profile_generation: super::semantic_text::current_text_profile_generation(),
             materialized_projection_rows: std::rc::Rc::new(std::cell::Cell::new(0)),
         }
     }
@@ -138,15 +141,6 @@ impl UiMountedProjectionFrame {
 
     pub fn cost_report(&self) -> super::super::UiMountCostReport {
         self.counters.finish()
-    }
-
-    pub(crate) fn qualified_layout(
-        &self,
-        identity: worth_ui_host_contract::UiQualifiedTextLayoutIdentity,
-    ) -> Option<&worth_ui_text::UiQualifiedTextLayout> {
-        self.mechanics
-            .qualified_layout(identity)
-            .map(std::sync::Arc::as_ref)
     }
 
     pub(in crate::mounting) fn table_range_digest(&self) -> u64 {
@@ -223,6 +217,12 @@ impl UiMountedProjectionFrame {
 
     pub(super) fn mechanic_source(&self) -> UiMountedMechanicSource {
         self.mechanics.clone()
+    }
+
+    pub(in crate::mounting) fn input_text_profile(
+        &self,
+    ) -> worth_ui_host_contract::UiTextProfileGeneration {
+        self.text_profile_generation
     }
 
     pub(super) fn presentation_effect_source(&self) -> UiMountedPresentationEffectSource {

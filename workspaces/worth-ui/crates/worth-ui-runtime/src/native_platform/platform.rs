@@ -36,15 +36,19 @@ impl UiPreparedNativePlatform {
                 return UiNativePlatformOutcome::ApplicationPreparationDenied(denial);
             }
         };
-        let host = worth_ui_host_native::WorthUiPreparedNativeHost::prepare_qualified();
+        let host = self.profile.prepare_native_host();
         let window = worth_ui_host_native::UiNativeWindowConfiguration::qualified(
             self.profile.window().title(),
             self.profile.window().initial_logical_size(),
         );
         let (adapter, event_loop) = host.into_parts(window);
         let (bound_application, program) = prepared.bind_qualified_native(adapter);
-        let driver =
-            super::application_driver::UiNativeApplicationDriver::new(bound_application, program);
+        let runtime_qualification = self.profile.driver_runtime_qualification();
+        let driver = super::application_driver::UiNativeApplicationDriver::new(
+            bound_application,
+            program,
+            runtime_qualification,
+        );
         match driver.run(event_loop) {
             Ok(report) => UiNativePlatformOutcome::Closed(
                 super::UiNativePlatformCloseReceipt::from_native_report(report),

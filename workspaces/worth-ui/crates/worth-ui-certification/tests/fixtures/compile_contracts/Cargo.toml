@@ -152,6 +152,26 @@ name = "certification-graph-authority"
 path = "../../ui/graph_authority/external_callers_cannot_forge_graph_identity_or_snapshot.rs"
 
 [[bin]]
+name = "certification-phase5-async-authority"
+path = "../../ui/phase5_async_authority/live_authority_cannot_be_reconstructed_or_substituted.rs"
+
+[[bin]]
+name = "certification-phase5-signal-effect-authority"
+path = "../../ui/phase5_async_authority/physical_signal_cannot_authorize_query_effect.rs"
+
+[[bin]]
+name = "certification-phase5-serialized-recovery-authority"
+path = "../../ui/phase5_async_authority/recovery_authority_is_not_serializable.rs"
+
+[[bin]]
+name = "certification-phase5-reporting-authority"
+path = "../../ui/phase5_async_authority/reporting_material_cannot_open_authority.rs"
+
+[[bin]]
+name = "certification-phase5-async-authority-lawful"
+path = "../../ui/phase5_async_authority/live_authority_flows_through_owner_issued_values.rs"
+
+[[bin]]
 name = "certification-measurement-authority"
 path = "../../ui/measurement_authority/external_callers_cannot_mint_measurement_result_via_from_host_observation.rs"
 

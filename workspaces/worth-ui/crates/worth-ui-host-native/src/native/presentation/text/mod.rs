@@ -3,6 +3,9 @@
 //! This boundary admits borrowed alpha raster output without retaining pixels or
 //! performing atlas, GPU-upload, or glyph-run effects.
 
-mod validation;
+mod commands;
 
-pub(crate) use validation::semantic_text_before_effects_denial;
+pub(super) use commands::glyph_vertices;
+pub(crate) use commands::{
+    clip_glyph_command, plan_glyph_commands, source_is_intrinsic_color, UiNativeGlyphCommand,
+};

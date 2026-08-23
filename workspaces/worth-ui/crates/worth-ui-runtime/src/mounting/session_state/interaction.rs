@@ -41,4 +41,12 @@ impl WorthUiMountedSessionState {
         self.identity
             .admit_current_mounted_incarnation_affinity(input)
     }
+
+    pub(crate) fn input_text_profile(
+        &self,
+        target: crate::runtime::interaction::UiPresentedInteractionTargetView,
+    ) -> Option<worth_ui_host_contract::UiTextProfileGeneration> {
+        crate::runtime::interaction::targeting::require_current_target(self, target).ok()?;
+        Some(self.identity.current_projection()?.input_text_profile())
+    }
 }

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use winit::dpi::LogicalSize;
+use winit::dpi::{LogicalSize, PhysicalSize};
 use winit::event_loop::ActiveEventLoop;
 use winit::window::{Window, WindowAttributes};
 
@@ -42,6 +42,21 @@ impl UiNativeOpenedWindow {
 }
 
 impl UiNativeOwnedWindow {
+    pub(crate) fn publish_external_observation_readiness(&self) {
+        self.0.set_title("WORTH UI External Observation Ready");
+    }
+
+    pub(crate) fn client_physical_size(&self) -> [u32; 2] {
+        let size = self.inner_size();
+        [size.width, size.height]
+    }
+
+    pub(crate) fn request_client_physical_size(&self, extent: [u32; 2]) {
+        let _ = self
+            .0
+            .request_inner_size(PhysicalSize::new(extent[0], extent[1]));
+    }
+
     pub(crate) fn close(self, registry: &mut UiNativeResourceRegistry) {
         self.0.close(registry);
     }

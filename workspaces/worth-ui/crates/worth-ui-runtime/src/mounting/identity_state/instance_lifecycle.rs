@@ -8,7 +8,7 @@ use worth_ui_host_contract::{
 use super::{MountedInstanceRecord, UiMountedIdentityState};
 use crate::mounting::{UiMountedGraphNodeHandle, UiMountedIdentityBasis, UiMountedIdentityDenial};
 
-const MOUNTED_CLOSURE_LIMIT: usize = 2_048;
+const MOUNTED_CLOSURE_LIMIT: usize = 4_097;
 const GRAPH_NODE_MOUNT_LIMIT: usize = 1_024;
 
 impl UiMountedIdentityState {

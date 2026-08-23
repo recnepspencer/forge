@@ -12,7 +12,11 @@ from worth_ui_ledger_command import (
     exact_test_duration_ms,
     listed_test_names,
 )
-from worth_ui_ledger_observation import mutation_case_observation, mutation_control_observation
+from worth_ui_ledger_observation import (
+    mutation_case_observation,
+    mutation_control_observation,
+    mutation_receipt_observation,
+)
 from worth_ui_3141_case_contracts import hostile_cases
 
 
@@ -32,10 +36,15 @@ class ControlExecution:
     posture: str = "match-count-rejected"
     mutation_control: str | None = None
     mutation_cases: list[str] | None = None
+    mutation_receipt: dict[str, Any] | None = None
 
 
 def control_payload(
-    test: ControlTest | None, requirement: str, execute: Execution
+    test: ControlTest | None,
+    requirement: str,
+    execute: Execution,
+    source_revision: str | None = None,
+    source_state_digest: str | None = None,
 ) -> dict[str, Any] | None:
     if test is None:
         return None
@@ -50,16 +59,21 @@ def control_payload(
     observed.mutation_control = mutation_control_observation(
         "" if observed.execution is None else observed.execution.stdout, requirement
     )
-    if (
-        requirement.startswith(("P3-", "P4-", "P5-"))
-        and observed.mutation_control is None
-    ):
+    if requirement.startswith(("P3-", "P4-", "P5-", "P6-")) and observed.mutation_control is None:
         observed.posture = "mutation-control-mismatch"
     observed.mutation_cases = mutation_case_observation(
         "" if observed.execution is None else observed.execution.stdout, requirement
     )
     if hostile_cases(requirement) is not None and observed.mutation_cases is None:
         observed.posture = "mutation-case-mismatch"
+    observed.mutation_receipt = mutation_receipt_observation(
+        "" if observed.execution is None else observed.execution.stdout,
+        requirement,
+        source_revision,
+        source_state_digest,
+    )
+    if requirement.startswith("P6-") and observed.mutation_receipt is None:
+        observed.posture = "mutation-receipt-mismatch"
     return control_fields(test, requirement, observed)
 
 
@@ -120,4 +134,5 @@ def control_fields(
         "test_stderr": "" if observed.execution is None else observed.execution.stderr,
         "mutation_control": observed.mutation_control,
         "mutation_cases": observed.mutation_cases,
+        "mutation_receipt": observed.mutation_receipt,
     }

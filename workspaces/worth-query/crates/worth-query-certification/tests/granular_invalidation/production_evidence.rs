@@ -222,10 +222,19 @@ fn bridge_rows(value: WorthQueryBridgeGranularDeliveryCounters) -> Vec<(String, 
     [
         ("source-load-attempts", value.source_load_attempts),
         ("source-envelopes-loaded", value.source_envelopes_loaded),
-        ("allocation-lock-attempts", value.allocation_registry_lock_attempts),
-        ("allocation-source-checks", value.allocation_source_set_checks),
+        (
+            "allocation-lock-attempts",
+            value.allocation_registry_lock_attempts,
+        ),
+        (
+            "allocation-source-checks",
+            value.allocation_source_set_checks,
+        ),
         ("signal-basis-checks", value.signal_basis_target_checks),
-        ("signal-capability-admissions", value.signal_capability_admissions),
+        (
+            "signal-capability-admissions",
+            value.signal_capability_admissions,
+        ),
         ("failed-deliveries", value.failed_deliveries),
         ("truth-targets-admitted", value.truth_targets_admitted),
         ("correspondence-lookups", value.correspondence_lookups),
@@ -236,8 +245,14 @@ fn bridge_rows(value: WorthQueryBridgeGranularDeliveryCounters) -> Vec<(String, 
         ("locality-rejections", value.locality_rejections),
         ("projection-rejections", value.projection_rejections),
         ("relevant-change-checks", value.relevant_change_checks),
-        ("projection-paths-inspected", value.projection_paths_inspected),
-        ("source-widening-checks", value.source_widening_target_checks),
+        (
+            "projection-paths-inspected",
+            value.projection_paths_inspected,
+        ),
+        (
+            "source-widening-checks",
+            value.source_widening_target_checks,
+        ),
         ("signal-seeds-emitted", value.signal_seeds_emitted),
         ("node-fan-out", value.node_fan_out),
         ("slots-touched", value.slots_touched),
@@ -252,9 +267,15 @@ fn admission_rows(value: WorthQueryGranularAdmissionCounters) -> Vec<(String, u6
         ("delivery-changes", value.delivery_changes_examined()),
         ("locality-entries", value.locality_entries_examined()),
         ("impact-index-probes", value.impact_index_probes()),
-        ("candidate-deliveries", value.candidate_deliveries_returned()),
+        (
+            "candidate-deliveries",
+            value.candidate_deliveries_returned(),
+        ),
         ("candidate-roles", value.candidate_roles_returned()),
-        ("candidate-rejections", value.candidates_rejected_before_admission()),
+        (
+            "candidate-rejections",
+            value.candidates_rejected_before_admission(),
+        ),
         ("admitted-impacts", value.admitted_impacts()),
     ]
     .into_iter()
@@ -284,12 +305,24 @@ fn maintenance_rows(value: WorthQueryGranularMaintenanceCounters) -> Vec<(String
         ("replacements", value.replacements()),
         ("retirements", value.retirements()),
         ("suppressions", value.suppressions()),
-        ("authorization-revalidations", value.authorization_revalidations()),
+        (
+            "authorization-revalidations",
+            value.authorization_revalidations(),
+        ),
         ("authorization-denials", value.authorization_denials()),
         ("consumer-publications", value.consumer_publications()),
-        ("retained-backpressure", value.retained_backpressure_deliveries()),
-        ("dropped-backpressure", value.dropped_backpressure_deliveries()),
-        ("terminated-backpressure", value.terminated_backpressure_deliveries()),
+        (
+            "retained-backpressure",
+            value.retained_backpressure_deliveries(),
+        ),
+        (
+            "dropped-backpressure",
+            value.dropped_backpressure_deliveries(),
+        ),
+        (
+            "terminated-backpressure",
+            value.terminated_backpressure_deliveries(),
+        ),
         ("debt-backpressure", value.debt_backpressure_deliveries()),
     ]
     .into_iter()

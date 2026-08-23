@@ -166,6 +166,12 @@ use runtime_authoritative_mutation_routing::{
     WorthQueryPreparedAuthoritativeMutationRouting,
 };
 mod bridge_async_live_view_declaration;
+mod owned_async_source;
+mod owned_async_supersession;
+mod owned_conditional_instance;
+pub use owned_conditional_instance::{
+    WorthQueryInstalledOwnedConditionalInstance, WorthQueryOwnedConditionalInstanceDenial,
+};
 mod runtime_batch_write_entrypoints;
 mod runtime_batch_write_intents;
 mod runtime_batch_writes;

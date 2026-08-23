@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 #[test]
-fn runtime_raster_calls_are_confined_to_the_native_planned_miss_callback() {
+fn runtime_raster_calls_are_confined_to_planned_misses_or_cold_reconstruction() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .expect("workspace crates directory")
@@ -28,23 +28,34 @@ fn assert_planned_callback_owns_raster_calls(source: &str, path: &Path) {
     let callback = source
         .find("impl UiGlyphRasterMissRasterizer for UiNativeTextMissRasterizer")
         .expect("runtime transaction owns the selected-miss callback");
-    let first_raster = ["rasterize_alpha_outline", "rasterize_intrinsic_color"]
-        .iter()
-        .filter_map(|name| source.find(name))
-        .min()
-        .expect("planned callback owns text raster work");
+    let (reconstruction_lane, planned_miss_lane) = source.split_at(callback);
+    let reconstruction = reconstruction_lane
+        .find("pub(crate) fn reconstruct_cache")
+        .expect("runtime raster owner exposes the explicit cold-reconstruction lane");
     assert!(
-        callback < first_raster,
-        "{} can rasterize outside the native selected-miss callback",
+        !contains_text_raster_call(&reconstruction_lane[..reconstruction]),
+        "{} can rasterize before either admitted lane",
+        path.display()
+    );
+    assert_eq!(
+        text_raster_call_count(&reconstruction_lane[reconstruction..]),
+        2,
+        "{} cold reconstruction must rasterize only alpha and color selections",
+        path.display()
+    );
+    assert_eq!(
+        text_raster_call_count(planned_miss_lane),
+        2,
+        "{} planned-miss callback must rasterize only alpha and color selections",
         path.display()
     );
 }
 
 fn assert_transaction_crosses_native_planning(source: &str, path: &Path) {
     assert!(
-        source.contains("host.adapter().prepare_mounted_text_raster(")
-            && source.contains("&mut self.rasterizer"),
-        "{} bypasses native atlas planning or its selected-miss callback",
+        source.contains("UiMountedTextRasterWork::from_text_mechanics(")
+            && source.contains("&callback,"),
+        "{} bypasses the mounted-work planner or its selected-miss callback",
         path.display()
     );
     assert_preplan_raster_calls_absent(source, path);
@@ -59,9 +70,14 @@ fn assert_preplan_raster_calls_absent(source: &str, path: &Path) {
 }
 
 fn contains_text_raster_call(source: &str) -> bool {
+    text_raster_call_count(source) != 0
+}
+
+fn text_raster_call_count(source: &str) -> usize {
     ["rasterize_alpha_outline", "rasterize_intrinsic_color"]
         .iter()
-        .any(|name| source.contains(name))
+        .map(|name| source.matches(name).count())
+        .sum()
 }
 
 fn production_rust_sources(root: &Path) -> Vec<PathBuf> {

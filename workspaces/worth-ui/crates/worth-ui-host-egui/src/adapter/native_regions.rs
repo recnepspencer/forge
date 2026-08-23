@@ -55,9 +55,17 @@ impl UiEguiRetainedNativeRegions {
         let mut candidate = self.clone();
         for change in delta.changes() {
             match change {
-                UiMountedPaintCommandChange::Insert(command)
-                | UiMountedPaintCommandChange::Replace(command) => {
+                UiMountedPaintCommandChange::Insert(command) => {
                     if let Some((identity, region)) = command_region(command) {
+                        candidate.paint.insert(identity, region);
+                    }
+                }
+                UiMountedPaintCommandChange::Replace {
+                    predecessor,
+                    successor,
+                } => {
+                    candidate.paint.remove(predecessor);
+                    if let Some((identity, region)) = command_region(successor) {
                         candidate.paint.insert(identity, region);
                     }
                 }
