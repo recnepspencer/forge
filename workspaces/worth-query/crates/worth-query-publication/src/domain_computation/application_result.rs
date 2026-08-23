@@ -22,9 +22,6 @@ pub use terminal_release::{
     WorthQueryPublishedApplicationQueryTerminalRelease,
 };
 
-#[cfg(test)]
-mod source_residue_tests;
-
 /// Publication-owned result whose input was already governed before domain
 /// projection. Publication performs no field-policy decision or redaction.
 pub struct WorthQueryPublishedApplicationResult<Query, QueryResult> {

@@ -264,13 +264,16 @@ The ordinary Phase 5 certification command is:
 cargo test -p worth-relational --test relational_certification --no-fail-fast
 ```
 
-It intentionally reports the real Scale admission court as one ignored
-scheduled test, keeping the common path at **130 passed, 0 failed, 1 ignored**.
-The mandatory scheduled command is:
+The complete Scale admission court and maximum 4,096-fork slope are scheduled
+tests so the ordinary loop stays responsive. Run them explicitly with:
 
 ```text
 cargo test -p worth-relational --test relational_certification \
   scale_invariant_admission::large_runtime_keeps_global_enforcement_and_filters_graph_planning \
+  -- --ignored --exact --nocapture --test-threads=1
+
+cargo test -p worth-relational --test relational_certification \
+  root::sharing::fork::phase5_standard_fork_copy_slope_is_flat_through_4096_forks \
   -- --ignored --exact --nocapture --test-threads=1
 ```
 
@@ -279,8 +282,7 @@ Scale is scheduled because its production installation is the complete
 retains the independent definition/live-snapshot count, Global commit and
 baseline-publication ceilings, direct GraphComposition `Touched` result and
 one-call counters, ordinary publication lowering, ordinary graph exclusion,
-and duplicate-rejection residue proofs. The CI job and the Phase 5 closure
-ledger must record both lanes against the same source fingerprint.
+and duplicate-rejection behavior.
 
 ## Phase 2 and Phase 3 evidence commands
 
@@ -297,9 +299,9 @@ formatting, the scoped whole-subtree source/dependency fence,
 boundary-check, generated agent-context validation, and dirty Rust line-cap
 checks. Strict Relational Clippy is a required command; existing unrelated
 repository Clippy debt is reported separately and cannot be cited as
-semantic-world evidence. Phase 3's final evidence additionally records the
-branch-reference contract/compile-fail suites and the independent Luna/Sol
-reviews in the milestone closure ledger.
+semantic-world evidence. Phase 3 additionally runs the branch-reference
+contract/compile-fail suites and receives independent review of the final diff
+and direct results.
 
 ## Phase 4 currentness and compatibility-court requirements
 
@@ -334,12 +336,10 @@ must compare branch-cell checkpoints, catalog length, and artifact identity
 before and after the attempted operation.
 
 The Phase-4 target does not call the then-existing historical-read, Bridge,
-application-commit, or replay compatibility surfaces. Its residue checker
-enforces this by rejecting
-`admit_application_commit`, Bridge lease admission, `project_version`, replay
-entry points, and replay-retention calls under `tests/relational_certification`.
-The application-commit compatibility proof additionally confirms that exact
-lease admission does not move branch currentness. Phase 6 has now removed the
+application-commit, or replay compatibility surfaces. Direct behavior and
+compiler-boundary tests keep those surfaces outside the transaction path. The
+application-commit compatibility case additionally confirms that exact lease
+admission does not move branch currentness. Phase 6 has now removed the
 consumer-facing current/latest adapters: snapshot, history, merge-basis, and
 Bridge reads require an admitted exact observation, while replay remains a
 separate cert-only lane.

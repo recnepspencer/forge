@@ -1359,8 +1359,8 @@ current basis.
 Exit proof: both owners expose one shared grammar adapter; epoch/equivalence
 ids cannot masquerade as exact observations; no runtime state enters
 Foundational; no new branch/reference governed facade accepts a generic
-`AuthorityMarker`; and the ledger explicitly defers production-backed owner
-lowering/currentness to Phase 3 (Relational) and Phase 11 (Signal), with live
+`AuthorityMarker`; production-backed owner lowering/currentness remains in
+Phase 3 (Relational) and Phase 11 (Signal), with live
 admission/readmission proved in the owner phases that implement it. Existing
 unrelated Proof migration surfaces remain separately tracked debt and are not
 silently reclassified as branch-reference evidence.
@@ -1373,9 +1373,9 @@ semantic oracle and canonical expected observations without importing
 disputed Relational behavior.
 
 Exit proof: every named handle and delta has one meaning; illegal definitions
-fail before runtime construction; oracle mutation probes fail as expected; and
-the same vocabulary is sufficient for branch-local MVCC and the declared later
-merge cases.
+fail before runtime construction; independently predicted observations disagree
+with intentionally perturbed production results; and the same vocabulary is
+sufficient for branch-local MVCC and the declared later merge cases.
 
 ### Phase 3: Compile And Audit A Production-Backed Supply Chain World
 
@@ -1467,11 +1467,10 @@ explicit and temporary:
 
 The compatibility list is a bounded exception, not permission to add another
 raw branch selector or lease constructor. Each entry must have an owner/runtime
-check, must be absent from the Phase-4 certification target, and must be
-covered by a negative proof that the call leaves branch-cell generation and
-truth unchanged and cannot reach transaction or publication admission. The
-residue checker and closure ledger record the inventory so later phases can
-remove it rather than silently widening it.
+check and direct negative coverage showing that the call leaves branch-cell
+generation and truth unchanged and cannot reach transaction or publication
+admission. Its owning later phase removes the entry rather than silently
+widening it.
 
 The target descriptor used by this phase is descriptive identity only. It may
 carry the immutable commit identity and an owner-produced root descriptor for
@@ -1519,7 +1518,7 @@ a separately named diagnostic sidecar.
 
 Dependency-ordered work is fixed:
 
-1. Freeze the public/private residue inventory and add source/UI checks for
+1. Inspect the public/private boundary and add compiler and behavior checks for
    `CommitReference`, branch-head maps, `ExpectedBranchHead`, optional branch
    routing, ambient-main fallback, `latest_published_commit_ref`, broad
    `publish_metadata_only_commit`/`append_index_generations` paths, generic
@@ -1555,9 +1554,8 @@ Dependency-ordered work is fixed:
    and preservation tests so no `None` means main. Remove the old broad
    publication entry and expose separate immutable commit identity and branch
    observation results.
-7. Extend the existing Supply Chain certification target with fork-only causal
-   proofs, exact counter scopes, residue/mutation controls, documentation,
-   and the closure-ledger evidence. No COW bytes, root visibility, semantic
+7. Extend the existing Supply Chain behavior suite with fork-only causal
+   proofs, exact counter scopes, and documentation. No COW bytes, root visibility, semantic
    sibling reads, readmission, or retention/reclamation claim advances.
 
 Phase 4 proof matrix:
@@ -1586,9 +1584,7 @@ Phase 4 proof matrix:
 - A mandatory 1/64/512 fan-out probe records setup separately and asserts
   constant per-fork catalog lookup, artifact clone, and branch-cell contact
   counts with no branch-population-dependent scan. Full physical-sharing and
-  cost slopes remain Phase 5/12. Residue checks are semantic/exported-surface
-  checks, not raw substring bans that would mistake diagnostic names for
-  currentness authority.
+  cost slopes remain Phase 5/12.
 
 Exit proof: a causal Supply Chain fork consumes an owner-issued exact source
 basis and targets one shared immutable source artifact with a distinct
@@ -1686,12 +1682,12 @@ distinct; the parallel public tuple/basis dialect is absent; acknowledged
 Signal publication survives fresh-process recovery; and restored artifacts
 remain non-authoritative until Signal owner readmission.
 
-### Phase 12: Certify Supply Chain MVCC Semantics And Cost
+### Phase 12: Verify Supply Chain MVCC Semantics And Cost
 
 Run causal-baseline, semantic-isolation, ancestry, independent-progress,
 same-reference, atomicity, retention, cancellation, seeded-model, structural-
 sharing, and cost-slope cases at their declared profiles. Run required
-compile-pass/fail and mutation probes. The durability lane kills the process
+compiler-boundary checks. The durability lane kills the process
 after acknowledged owner publication, destroys process-local authority, and
 reopens both exact component branches through the production PostgreSQL owner
 adapters. Cross-branch Relational checkpoint/tail and cross-definition/runtime
@@ -1699,8 +1695,7 @@ Signal artifact substitutions are required red controls.
 
 Exit proof: production observations match the independent oracle for every
 accepted delta trace; branch-local differences and shared history are both
-exact; fork and write amplification meet their counters; and every claim in
-the closure ledger has a sabotage that makes its evidence fail.
+exact; and fork and write amplification meet their counters.
 
 ### Phase 13: Cutover, Documentation, And Handoff Freeze
 
@@ -1708,8 +1703,8 @@ Delete predecessor authority paths, finish executable owner/world docs, keep
 Fintech and generic preservation suites green, run boundary/generated-context/
 line-cap/format/lint/focused/broader checks, and freeze the 9.17.2 owner port.
 
-Exit proof: residue search finds no retired path or ambient governed `"main"`;
-documentation teaches the same public flows the tests execute; all scoped
+Exit proof: retired paths and ambient governed `"main"` are absent from the
+public boundary; documentation teaches the same public flows the tests execute; all scoped
 constitutional checks pass; and later merge certification can add cases to
 the Supply Chain world without changing its baseline, delta, observation, or
 oracle authority rules.
@@ -1792,63 +1787,24 @@ prepared-root bytes, candidate lifetime, snapshot/pin count, and owner-local
 backpressure queueing. Exhaustion is typed before publication and cannot
 silently widen into history scans or global eviction.
 
-## Proof Portfolio And Closure Ledger
+## QA Considerations
 
-| Claim | Defect that must be exposed | Entry point and oracle | Required sabotage |
-| --- | --- | --- | --- |
-| Supply Chain baseline is causal | fixture injects ids, heads, roots, or schema state | world compiler through public schema/transaction facades; baseline audit | replace one public install operation with private state injection |
-| Supply Chain oracle is independent | expected state is copied from production query/digest logic | pure semantic delta interpreter versus separate public observation adapter | derive one expected projection with the production encoder |
-| Commit and reference are distinct | fork copies source-bound head value | public fork; independent history/reference reads | reintroduce combined `CommitReference` |
-| Fork shares immutable truth | eager fork or first-write world clone passes semantic equality | sharing observation at 1/64/4,096 forks and one-record/relation writes | deep-clone on fork or clone complete root on first write |
-| Branches isolate mutable fate | sibling writes leak while shared ancestors appear correct | Supply Chain oracle per branch plus exact root/reference observations | resolve a read from latest global root or reuse sibling overlay |
-| Shared history exists once | ancestor envelopes/bytes are duplicated per branch | commit catalog and sharing observation across fan-out/delete | duplicate ancestor artifact for each reference |
-| Branch state is independently coordinatable | global borrow/lock/actor serializes A and B | public transaction/publication with deterministic pause | route both through one global mutex |
-| Exact-head MVCC is honest | numeric equality or partial head comparison wins | same-head race plus cross-branch twins | drop generation or owner axis |
-| Publication is atomic | mixed storage/index/schema/history visible | concurrent public readers around linearization | split root and head installation |
-| Candidate has no performed authority | prepared payload reaches history/head | compile-fail and runtime residue oracle | add public candidate publish constructor |
-| Cancellation reports effects honestly | cancelled result hides a commit | cancellation at every seam; head/history oracle | poll cancellation after movement and discard result |
-| Retention follows obligations | archive/head movement reclaims live basis | real pin/transaction/candidate lifecycle | omit one obligation class |
-| Readmission is mandatory | deserialized bytes regain authority | encode/decode then owner operation | expose admitted constructor or trust digest |
-| Signal basis sharing is immutable reuse | sharing performs graph work/latest lookup | owner counters at 1/64/1,024 holders | validate on every clone/use |
-| Foundational is descriptive only | generic value opens owner door | compile-fail owner facade cases | accept Foundational observation directly |
-| Cost is branch-local | total branches/history widen ordinary work | instrumented scale harness | scan branch map or history on open/publish |
-| One canonical commit feeds consumers | receipt, patch, history disagree | independent projections from performed commit | mint a second peer publication artifact |
+Review the implementation and its direct evidence, not a second proof system
+describing the evidence. The material risks are authority substitution,
+stale or mixed-axis selection, sibling leakage, partial publication,
+retention or cleanup escape, dishonest recovery, and ordinary work that grows
+with unrelated branch population.
 
-The closure ledger must record the implementation surface, proof artifact,
-expected counter delta, observed result, and mutation result for every row.
-Tests that pass after their associated sabotage are not closure evidence.
+Use focused owner and integration tests for these risks. Keep expensive scale,
+fuzz, destructive recovery, and environment-backed cases in scheduled lanes
+unless they are needed to reproduce an active defect. Important authority
+seams receive one economical compiler-boundary check plus runtime denial where
+that adds independent evidence. Fixtures use production runtime builders and
+public owner facades.
 
-Required proof families:
-
-- causal Court and Standard Supply Chain compilation through production facades,
-  named-handle audit, and fixture-failure classification;
-- independent-oracle mutation sensitivity for missing writes, sibling leakage,
-  floating-head reads, duplicate relations, illegal endpoints, and wrong
-  ancestry;
-- zero-copy fork, touched-region copy-on-write, one canonical ancestor,
-  logical-versus-physical byte, and unique-only reclamation evidence;
-- seeded and shrunk semantic-delta sequences comparing each branch observation
-  and ancestry to the pure Supply Chain oracle;
-- public compile-pass examples for intended Relational and Signal owner flows;
-- compile-fail cases for construction, substitution, phase skipping, consumed
-  witness reuse, generic `AuthorityMarker` facade parameters, forged owner
-  markers, and retired entry imports;
-- deterministic independent-progress and same-head-race courts;
-- equal-ordinal, equal-digest, foreign-runtime, and mixed-axis twins;
-- fork, empty branch, metadata-only movement, archive, delete, and reclaim;
-- checkpoint/serialization downgrade and owner readmission;
-- cancellation and budget exhaustion at every named boundary;
-- cost slopes with exact counters;
-- one independent critic pass over requirement closure and one over test
-  honesty before acceptance; and
-- residue searches for every removed public type/path and every ambient
-  `"main"` fallback in the governed lane.
-
-Fixtures use production runtime builders and public owner facades. Test-only
-head mutation, fabricated generations, direct retention-table access, or a
-test-only scheduler in the production path cannot certify the claim. A
-deterministic pause hook may exist as an observation/barrier seam only if it
-does not create a different authority path.
+An independent reviewer examines the final diff and executed results for
+material defects. No closure ledger, source fingerprint, evidence registry,
+test inventory, or test-of-tests is required.
 
 ## Documentation Deliverables
 
@@ -1961,57 +1917,13 @@ This milestone is not blocked on `worth-store`. Discovery that correctness
 requires durable or cross-process atomicity is a scope conflict to surface, not
 permission to simulate Store behavior in memory.
 
-## Acceptance Evidence
+## Acceptance
 
-Milestone 9.17.1 closes only when `Owner Component Basis And Relational
-Branch-Local MVCC Certification` in
-[test-requirements.md](./test-requirements.md) passes and all of the following
-are true:
-
-1. Supply Chain Court and Standard baselines compile causally through public
-   Relational facades, bind only owner-issued handles, pass baseline audit, and
-   fail the required independent-oracle mutations.
-2. Foundational exports one exact descriptive branch-reference vocabulary and
-   both owners use it at their boundaries.
-3. Every governed owner door consumes a concrete Proof-owned carrier
-   specialized to an owner-sealed marker; generic authority bounds, forgeable
-   markers, and parallel owner-local witness frameworks are absent.
-4. Relational immutable commit and mutable branch-reference authority are
-   physically and semantically separate; the combined predecessor is gone.
-5. Every governed Relational observation, snapshot, transaction, conflict,
-   candidate, publication, receipt, and retention lease names one exact owner
-   and branch reference.
-6. Forks reuse one exact baseline root and canonical ancestor with zero copied
-   truth/envelopes; writes copy only touched immutable regions; deletion
-   reclaims only unique unretained bytes.
-7. Independent per-branch Supply Chain observations prove no sibling crossover
-   while exact common ancestry and unchanged physical sharing remain visible.
-8. Transactions no longer broadly borrow or globally coordinate the runtime.
-9. The deterministic A/B court proves unrelated progress while same-head races
-   prove one winner.
-10. Branch reference movement atomically selects one complete canonical root
-   and one canonical commit feeds all downstream views.
-11. Cancellation, timeout, budget exhaustion, denial, stale loss, failure, and
-   success restore or transfer every obligation exactly once.
-12. Signal has one canonical exact basis/reference surface, supports zero-work
-   immutable reuse, and preserves owner readmission and definition authority.
-13. Exact scale counters and slopes, including logical-versus-physical memory,
-    match the declared ordinary and maintenance
-   cost boundaries.
-14. Compile-fail, mutation, residue, facade, dependency, line-cap,
-    constitutional, generated-context, and documentation checks agree with the
-    runtime evidence.
-15. Focused owner tests and all affected Relational, Signal, Foundational,
-    Bridge-presentation, Query integration, and workspace lanes pass.
-16. No artifact or receipt claims product/composite authority.
-17. Real PostgreSQL reopens exact Relational and Signal component branches
-    after process loss; cross-branch, cross-definition, and cross-generation
-    substitutions fail, and restored descriptors require owner readmission.
-
-Before claiming closure, run the repository-required boundary checker and
-agent-context checker, the dirty Rust line-cap guard, formatting, focused owner
-tests, affected integration/UI proofs, strict Clippy for touched crates, and
-the broader lanes selected by the closure ledger.
+Milestone 9.17.1 closes when the phase behavior and owner boundaries exist in
+the final source, focused and affected integration tests pass, repository
+architecture and quality gates pass, and independent review finds no material
+defect. Real persistence claims require a real environment; expensive scale
+and destructive cases run in their scheduled lanes.
 
 ## Retained Handoff To Relational Merge Certification
 

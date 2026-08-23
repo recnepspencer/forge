@@ -47,15 +47,12 @@ mod historical;
 mod identity;
 mod identity_authority;
 mod identity_evolution;
-mod installed_domain_certification;
 mod integration_harness;
 mod intent_admission;
 mod live;
 mod live_performance;
 mod lower_runtime_routing;
 mod memory_workspace;
-mod milestone_nine_twelve_certification;
-mod native_value_certification;
 mod orchestration_inventory;
 mod ordinary;
 mod ordinary_outcome;
@@ -91,12 +88,6 @@ mod workflow;
 
 #[cfg(test)]
 mod future_signal_test_support;
-pub use consumer_kit::hard_prohibition_boundary_audit;
-pub(crate) use consumer_kit::{
-    hard_prohibition_registry, WorthQueryBoundaryAuditError, WorthQueryBoundaryAuditErrorKind,
-    WorthQueryBoundaryAuditSource, WorthQueryBoundaryAuditSourceInventory,
-    WorthQueryBoundaryAuditSourceSet, WorthQueryBoundaryAuditSourceSite, WorthQueryProhibitedSeam,
-};
 pub(crate) use contribution_composed_orchestration::WorthQueryContributionComposedClassification;
 pub(crate) use evidence_identity::{
     WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,

@@ -48,6 +48,7 @@ fn phase5_fork_observation_reports_shared_root_and_distinct_cells() {
 }
 
 #[test]
+#[ignore = "scheduled maximum-scale fork slope"]
 fn phase5_standard_fork_copy_slope_is_flat_through_4096_forks() {
     let samples = standard_fanout_samples(&[1, 64, 4_096]);
     assert_eq!(

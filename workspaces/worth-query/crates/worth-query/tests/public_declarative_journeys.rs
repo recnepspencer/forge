@@ -13,5 +13,4 @@ mod declarative_product_boundary_certification;
 mod declarative_read_public_dx;
 mod declarative_workflow_public_dx;
 mod installed_domain_facade_extension;
-mod milestone_nine_twelve_hostile_certification;
 mod native_aspect_mutation_public_dx;

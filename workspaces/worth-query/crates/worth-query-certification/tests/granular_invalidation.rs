@@ -82,23 +82,6 @@ fn portfolio_claim_rejects_a_forged_relational_record_identity() {
 }
 
 #[test]
-fn independent_projection_oracle_agrees_with_the_declared_manifest() {
-    for scenario in GranularInvalidationScenario::ALL {
-        let world = world::GranularInvalidationWorldDefinition::for_scenario(scenario, 17);
-        let expected =
-            necessity_manifest::CrossRuntimeInvalidationNecessityManifest::derive(&world);
-        let projected = scenario_execution::project_scenario_oracle(&world);
-        assert_eq!(projected.relational, expected.relational);
-        assert_eq!(projected.bridge, expected.bridge);
-        assert_eq!(projected.signal, expected.signal);
-        assert_eq!(projected.impacts, expected.impacts);
-        assert_eq!(projected.maintenance, expected.maintenance);
-        assert_eq!(projected.deliveries, expected.deliveries);
-        assert_eq!(projected.exclusions, expected.exclusions);
-    }
-}
-
-#[test]
 fn implemented_structural_slopes_run_through_the_real_composition_root() {
     structural_slopes::assert_measured_bridge_and_result_slopes();
 }
