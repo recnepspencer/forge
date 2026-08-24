@@ -172,6 +172,14 @@ impl WorthQueryPrimaryGraphApplicationAttemptStore {
             .is_some_and(WorthQueryApplicationAttemptState::is_preparable)
     }
 
+    pub(super) fn has_invariant_approved_candidate(
+        &self,
+        session: WorthQueryProviderSessionView<'_>,
+    ) -> bool {
+        self.attempt_state(session)
+            .is_some_and(WorthQueryApplicationAttemptState::phase_is_commit_ready)
+    }
+
     pub(super) fn take_commit_prepared(
         &mut self,
         session: WorthQueryProviderSessionView<'_>,
@@ -295,6 +303,44 @@ impl WorthQueryStagedApplicationAttempt<'_> {
 
     pub(super) fn decision_fact_count(&self) -> usize {
         self.attempt.decision_fact_count()
+    }
+
+    pub(super) fn aftermath_causality(
+        &self,
+    ) -> Option<
+        &crate::domain_computation::application_aftermath::WorthQueryPendingAftermathCausality,
+    > {
+        self.attempt.aftermath_causality()
+    }
+
+    pub(super) fn application_graph_reads(
+        &self,
+    ) -> Option<&worth_query_installation::facade::WorthQueryOperationGraphReadContract> {
+        self.attempt
+            .affinity()
+            .provider_session()
+            .plan()
+            .application_graph_reads()
+    }
+
+    pub(super) fn application_touches(
+        &self,
+    ) -> Option<&worth_query_installation::facade::WorthQueryOperationTouchContract> {
+        self.attempt
+            .affinity()
+            .provider_session()
+            .plan()
+            .application_touches()
+    }
+
+    pub(super) fn application_read_touch_overlap(
+        &self,
+    ) -> Option<&worth_query_installation::facade::WorthQueryOperationReadTouchOverlapIndex> {
+        self.attempt
+            .affinity()
+            .provider_session()
+            .plan()
+            .application_read_touch_overlap()
     }
 }
 

@@ -2,6 +2,7 @@ use worth_query_decl::facade::{
     application_schema::{
         ApplicationEffectPayload, ApplicationExternalEffectPayload,
         ApplicationExternalEffectProtocol,
+        WorthQueryExternalEffectCorrelationFamily,
     },
     worth_query_effect, worth_query_operation, worth_query_operation_emits,
 };
@@ -36,5 +37,8 @@ fn main() {
     let _ = Operation::reference()
         .definition()
         .no_external_effect()
-        .external_effect(Effect::reference(), "rail");
+        .external_effect(
+            Effect::reference(),
+            WorthQueryExternalEffectCorrelationFamily::new("rail").unwrap(),
+        );
 }

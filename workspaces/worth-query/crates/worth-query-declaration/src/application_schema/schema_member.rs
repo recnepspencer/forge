@@ -1,10 +1,11 @@
-use worth_foundational::facade::ScalarAspectType;
+use worth_foundational::facade::{AspectContractRevision, AspectIdentity, ScalarAspectType};
 
 use crate::application_aftermath::PortableApplicationAftermathContract;
 use crate::application_capability::ErasedApplicationCapabilityContract;
 use crate::application_query::ErasedApplicationQueryDefinition;
 
 use super::authorization_policy::ApplicationAuthorizationPath;
+use super::WorthQueryExternalEffectCorrelationFamily;
 use super::{ApplicationFieldPresence, ApplicationMutationPreconditionTarget};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -60,6 +61,8 @@ pub enum ApplicationSchemaMember {
     Aspect {
         entity: String,
         aspect: String,
+        identity: AspectIdentity,
+        revision: AspectContractRevision,
     },
     Field {
         entity: String,
@@ -145,7 +148,7 @@ pub enum ApplicationSchemaMember {
         rust_payload_type: String,
         protocol: super::ApplicationExternalEffectProtocol,
         maximum_payload_bytes: u64,
-        correlation_family: String,
+        correlation_family: WorthQueryExternalEffectCorrelationFamily,
     },
     /// Declared aftermath contract for one mutation operation.
     ///

@@ -92,8 +92,8 @@ pub mod facade {
         OperationLinks, OperationReads, OperationUnlinks, OperationWrites,
         OptionalApplicationFieldValue, RequiredApplicationFieldValue,
         TypedApplicationIdentityValue, TypedApplicationReadableValue,
-        TypedApplicationSignedAggregateValue, TypedApplicationValue, WritableCapability,
-        WritePosture,
+        TypedApplicationSignedAggregateValue, TypedApplicationValue,
+        WorthQueryExternalEffectCorrelationFamily, WritableCapability, WritePosture,
     };
     pub use worth_query_declaration::facade::authentication::{
         WorthQueryExternalPrincipalIdentity, WorthQueryPrincipalMappingStatus,
@@ -122,7 +122,7 @@ pub mod facade {
         ReconcileNextAction, ReversibleNextActionContract, UndoViaRecordedInverse,
         WorthQueryAftermathCanonicalArtifact, WorthQueryAftermathInstallationDenial,
         WorthQueryAftermathInstallationDenialKind, WorthQueryInstalledAftermathContract,
-        WorthQueryInstalledAftermathIdentity,
+        WorthQueryInstalledAftermathIdentity, WorthQueryInstalledReconciliationProcedure,
     };
     pub use crate::application_capability::{
         derive_capability_revocation_proposal_identity, derive_delegation_proposal_identity,
@@ -143,13 +143,13 @@ pub mod facade {
         WorthQueryConditionalApplicationOperationDenialKind, WorthQueryInstalledAbilityRequirement,
         WorthQueryInstalledApplicationConditionalNode,
         WorthQueryInstalledApplicationConditionalOperation,
-        WorthQueryInstalledApplicationOperation,
+        WorthQueryInstalledApplicationEffectEmission, WorthQueryInstalledApplicationOperation,
         WorthQueryInstalledApplicationOperationAuthorization,
         WorthQueryInstalledApplicationOperationExecutionPosture,
         WorthQueryInstalledApplicationOperationGraphAuthority,
         WorthQueryInstalledAuthorizationPath, WorthQueryInstalledHostConditionalProvider,
         WorthQueryInstalledMutationPrecondition, WorthQueryInstalledNamedClockConditionalNode,
-        WorthQueryInstalledTemporalConditionalOperation,
+        WorthQueryInstalledTemporalConditionalOperation, WorthQueryOperationEmissionContract,
         WorthQueryPortableApplicationConditionalOperationBinding,
         APPLICATION_AUTHORIZATION_FACT_FAMILY, APPLICATION_DECISION_FACT_FAMILY,
         APPLICATION_EXECUTION_ACCESS_PRODUCT_FAMILY, APPLICATION_EXECUTION_ALLOCATOR_FAMILY,
@@ -180,8 +180,10 @@ pub mod facade {
         WorthQueryReadGraphRelationDirection, WorthQueryReadGraphRelationView,
     };
     pub use crate::application_schema::{
-        WorthQueryInstalledApplicationSchema, WorthQueryInstalledApplicationSchemaDenial,
-        WorthQueryInstalledApplicationSchemaDenialKind,
+        WorthQueryInstalledApplicationAspectContract, WorthQueryInstalledApplicationAspectLocus,
+        WorthQueryInstalledApplicationSchema, WorthQueryInstalledApplicationSchemaContractCatalog,
+        WorthQueryInstalledApplicationSchemaContractCatalogCounters,
+        WorthQueryInstalledApplicationSchemaDenial, WorthQueryInstalledApplicationSchemaDenialKind,
     };
     pub use crate::canonical_work::{
         WorthQueryCanonicalWorkEvidence, WorthQueryCanonicalWorkPhases,

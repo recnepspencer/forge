@@ -106,6 +106,7 @@ impl WorthQueryExecutionInstallationAuthority {
             })?;
         let (layout, additions) = WorthQueryPrimaryGraphLayout::lower(
             installed_schema.installed_declaration(),
+            installed_schema.native_contracts(),
             &relational_runtime.config().schema.registry,
         )?;
         relational_runtime
@@ -143,7 +144,8 @@ fn map_initial_schema_installation_denial(
         RelationalInitialSchemaInstallationDenialKind::RuntimeAlreadyCommitted => {
             WorthQueryPrimaryGraphInstallationDenialKind::RelationalRuntimeAlreadyPublished
         }
-        RelationalInitialSchemaInstallationDenialKind::SchemaRejected => {
+        RelationalInitialSchemaInstallationDenialKind::SchemaRejected
+        | RelationalInitialSchemaInstallationDenialKind::BranchTransitionRejected => {
             WorthQueryPrimaryGraphInstallationDenialKind::RelationalSchemaRejected
         }
     };

@@ -8,6 +8,6 @@ error[E0624]: associated function `derive` is private
    |
    | /     pub(crate) fn derive(
    | |         proved: &WorthQueryProvedUndo,
-   | |         bound_relational_head: CommitReference,
+   | |         bound_relational_head: RelationalCommitReceipt,
    | |     ) -> Result<Self, WorthQueryAftermathDerivationFailure> {
    | |___________________________________________________________- private associated function defined here

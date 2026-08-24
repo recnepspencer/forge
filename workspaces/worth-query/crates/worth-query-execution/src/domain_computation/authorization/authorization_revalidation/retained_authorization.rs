@@ -50,10 +50,10 @@ where
     ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
         let graph = self.runtime.primary_graph().ok_or_else(foreign_runtime)?;
         graph.integration_handle().with_runtime_mut(|runtime| {
-            let snapshot = runtime
-                .snapshots()
-                .historical_snapshot_for_branch(branch)
-                .ok_or_else(inconsistent_authorization)?;
+            let snapshot = crate::domain_computation::primary_graph::open_current_branch_snapshot(
+                runtime, branch,
+            )
+            .ok_or_else(inconsistent_authorization)?;
             let current = validate_retained_currentness(
                 authorization,
                 runtime,
@@ -79,10 +79,10 @@ where
         let sample = self.sample_capability_time(installed)?;
         let graph = self.runtime.primary_graph().ok_or_else(foreign_runtime)?;
         graph.integration_handle().with_runtime_mut(|runtime| {
-            let snapshot = runtime
-                .snapshots()
-                .historical_snapshot_for_branch(branch)
-                .ok_or_else(inconsistent_authorization)?;
+            let snapshot = crate::domain_computation::primary_graph::open_current_branch_snapshot(
+                runtime, branch,
+            )
+            .ok_or_else(inconsistent_authorization)?;
             let primary = self.validate_retained_capability_observation(
                 capability, installed, &sample, runtime, &snapshot,
             );

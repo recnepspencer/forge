@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 mod application_schema;
+mod application_schema_record;
 mod artifact_contract_admission;
 mod artifact_contract_authority;
 mod authority;
@@ -33,7 +34,7 @@ use crate::generation::{WorthQueryInstallationGeneration, WorthQueryInstallation
 use crate::installed_domain_operation::WorthQueryInstalledDomainOperationAuthority;
 use crate::installed_operation::WorthQueryInstalledOperationAuthority;
 use crate::package::{WorthQueryPortableDefinition, WorthQueryPortableDefinitionKind};
-use worth_query_declaration::facade::application_schema::ErasedApplicationSchemaDeclaration;
+use application_schema_record::WorthQueryInstalledApplicationSchemaRecord;
 
 #[derive(Debug)]
 struct WorthQueryInstalledPackageRecord {
@@ -51,7 +52,7 @@ pub struct WorthQueryInstalledPackageIndex {
         BTreeMap<(WorthQueryPortableDefinitionKind, String, String), WorthQueryPortableDefinition>,
     domain_operations: BTreeMap<(String, String), WorthQueryValidatedDomainOperation>,
     artifact_contracts: BTreeMap<(String, String, u32, u32), WorthQueryPortableArtifactContract>,
-    application_schemas: BTreeMap<(String, String), ErasedApplicationSchemaDeclaration>,
+    application_schemas: BTreeMap<(String, String), WorthQueryInstalledApplicationSchemaRecord>,
     conditional_application_operations: BTreeMap<
         (String, String, String),
         WorthQueryPortableApplicationConditionalOperationBinding,

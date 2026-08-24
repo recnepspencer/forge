@@ -164,8 +164,8 @@ fn mutation_workflow_semantics() -> domain::WorthQueryDomainOperationSemanticClo
         domain::WorthQuerySupportRequirement::NotRequired,
         false,
     );
-    semantics.graph_reads = domain::WorthQueryOperationGraphReadContract::Declared {
-        roles: vec![domain::WorthQueryOperationGraphReadRole {
+    semantics.graph_reads = domain::WorthQueryOperationGraphReadContract::DeclaredDomain {
+        roles: vec![domain::WorthQueryDomainOperationGraphReadRole {
             role: "model".into(),
             participation: domain::WorthQueryOperationGraphParticipation::PrimaryLogicalGraph,
             access: domain::WorthQueryOperationGraphAccess::Observe,
@@ -174,7 +174,9 @@ fn mutation_workflow_semantics() -> domain::WorthQueryDomainOperationSemanticClo
     };
     semantics.touches = domain::WorthQueryOperationTouchContract::Declared {
         graph_roles: vec!["model".into()],
-        scopes: vec!["vertex".into()],
+        scopes: vec![domain::WorthQueryOperationTouchScope::DeclaredDomain(
+            domain::WorthQueryDeclaredDomainTouchScopeIdentity::new("vertex").unwrap(),
+        )],
     };
     semantics.effects = domain::WorthQueryOperationEffectContract::Declared {
         effect_families: vec![domain::WorthQueryOperationEffectFamily::Mutation],
@@ -296,8 +298,8 @@ fn mixed_mutation_semantics() -> domain::WorthQueryDomainOperationSemanticClosur
         domain::WorthQuerySupportRequirement::NotRequired,
         false,
     );
-    semantics.graph_reads = domain::WorthQueryOperationGraphReadContract::Declared {
-        roles: vec![domain::WorthQueryOperationGraphReadRole {
+    semantics.graph_reads = domain::WorthQueryOperationGraphReadContract::DeclaredDomain {
+        roles: vec![domain::WorthQueryDomainOperationGraphReadRole {
             role: "remote-a".into(),
             participation: domain::WorthQueryOperationGraphParticipation::SeparateAuthority {
                 role: "remote-a".into(),
@@ -308,7 +310,9 @@ fn mixed_mutation_semantics() -> domain::WorthQueryDomainOperationSemanticClosur
     };
     semantics.touches = domain::WorthQueryOperationTouchContract::Declared {
         graph_roles: vec!["remote-a".into()],
-        scopes: vec!["vertex".into()],
+        scopes: vec![domain::WorthQueryOperationTouchScope::DeclaredDomain(
+            domain::WorthQueryDeclaredDomainTouchScopeIdentity::new("vertex").unwrap(),
+        )],
     };
     semantics.effects = domain::WorthQueryOperationEffectContract::Declared {
         effect_families: vec![domain::WorthQueryOperationEffectFamily::Mutation],

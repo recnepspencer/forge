@@ -11,9 +11,9 @@ pub fn federated_touch_package<G1: 'static, G2: 'static>(
     let mut semantics = read_vertex_definition(domain::WorthQuerySupportRequirement::Required)
         .semantics()
         .clone();
-    semantics.graph_reads = domain::WorthQueryOperationGraphReadContract::Declared {
+    semantics.graph_reads = domain::WorthQueryOperationGraphReadContract::DeclaredDomain {
         roles: vec![
-            domain::WorthQueryOperationGraphReadRole {
+            domain::WorthQueryDomainOperationGraphReadRole {
                 role: "remote-a".into(),
                 participation: domain::WorthQueryOperationGraphParticipation::SeparateAuthority {
                     role: "remote-a".into(),
@@ -21,7 +21,7 @@ pub fn federated_touch_package<G1: 'static, G2: 'static>(
                 access: domain::WorthQueryOperationGraphAccess::Project,
                 semantic_reads: Vec::new(),
             },
-            domain::WorthQueryOperationGraphReadRole {
+            domain::WorthQueryDomainOperationGraphReadRole {
                 role: "remote-b".into(),
                 participation: domain::WorthQueryOperationGraphParticipation::SeparateAuthority {
                     role: "remote-b".into(),
@@ -37,7 +37,9 @@ pub fn federated_touch_package<G1: 'static, G2: 'static>(
         } else {
             vec!["remote-a".into()]
         },
-        scopes: vec!["vertex".into()],
+        scopes: vec![domain::WorthQueryOperationTouchScope::DeclaredDomain(
+            domain::WorthQueryDeclaredDomainTouchScopeIdentity::new("vertex").unwrap(),
+        )],
     };
     semantics.effects = domain::WorthQueryOperationEffectContract::Declared {
         effect_families: vec![domain::WorthQueryOperationEffectFamily::Mutation],

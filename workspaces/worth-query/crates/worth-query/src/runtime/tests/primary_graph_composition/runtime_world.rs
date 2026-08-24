@@ -6,8 +6,7 @@ use worth_relational::facade::schema::{
 };
 use worth_relational::facade::symbols::ClientKey;
 use worth_relational::facade::transactions::{
-    AspectFieldPatch, CreateIntent, EntitySpec, MutationIntent, TransactionOptions,
-    WorkerIntentBatch,
+    AspectFieldPatch, CreateIntent, EntitySpec, MutationIntent, WorkerIntentBatch,
 };
 
 use crate::memory_workspace::WorthQueryWorkspaceError;

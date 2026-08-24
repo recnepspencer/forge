@@ -61,8 +61,11 @@ impl WorthQueryPrimaryGraphProvider {
         &self,
         branch: &worth_relational::facade::history::BranchId,
     ) -> Option<worth_relational::facade::history::RelationalCommitReceipt> {
-        self.graph
-            .with_runtime(|runtime| runtime.history().historical_branch_head(branch).cloned())
+        self.graph.with_runtime(|runtime| {
+            crate::domain_computation::primary_graph::exact_basis_access::current_branch_head(
+                runtime, branch,
+            )
+        })
     }
 
     pub(in crate::domain_computation::primary_graph) fn resolve_aftermath_causality(
@@ -75,9 +78,7 @@ impl WorthQueryPrimaryGraphProvider {
         self.graph.with_runtime_mut(|runtime| {
             self.graph
                 .ensure_primary_indexes_current_for_branch(runtime, &branch)?;
-            let snapshot = runtime
-                .snapshots()
-                .historical_snapshot_for_branch(&branch)
+            let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(runtime, &branch)
                 .ok_or("aftermath causality branch has no current snapshot")?;
             let resolution = WorthQueryAftermathCausalityRead {
                 runtime,

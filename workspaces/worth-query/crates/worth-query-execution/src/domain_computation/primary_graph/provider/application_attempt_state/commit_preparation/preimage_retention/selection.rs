@@ -4,7 +4,9 @@
 mod tests;
 
 use worth_foundational::facade::{AspectFieldLocator, AspectValue};
-use worth_query_installation::facade::{InstalledPreImageDemand, InstalledPreImageLocus};
+use worth_query_installation::facade::{
+    InstalledPreImageDemand, InstalledPreImageLocus, WorthQueryOperationGraphReadScope,
+};
 use worth_relational::facade::identity::{EntityId, KindId};
 use worth_relational::facade::transactions::{RecordRef, ValidatedMutationFootprint};
 
@@ -16,8 +18,7 @@ use super::super::super::WorthQueryPrimaryGraphApplicationDecisionFact;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct WorthQueryObservedPreImageCandidate {
-    target:
-        worth_query_declaration::facade::application_schema::ApplicationOperationDecisionReadTarget,
+    read_scope: WorthQueryOperationGraphReadScope,
     value: AspectValue,
     target_record: RecordRef,
     entity_kind: KindId,
@@ -70,21 +71,22 @@ impl WorthQueryObservedPreImageCandidate {
     fn from_decision_fact(fact: &WorthQueryPrimaryGraphApplicationDecisionFact) -> Option<Self> {
         use crate::domain_computation::primary_graph::application_attempt::WorthQueryApplicationObservedFact;
 
-        let WorthQueryPrimaryGraphApplicationDecisionFact::Application(
-            WorthQueryApplicationObservedFact::Field {
-                target,
-                locator,
-                value,
-                entity_id,
-                kind,
-                ..
-            },
-        ) = fact
+        let WorthQueryPrimaryGraphApplicationDecisionFact::Application {
+            read_scope,
+            fact:
+                WorthQueryApplicationObservedFact::Field {
+                    locator,
+                    value,
+                    entity_id,
+                    kind,
+                    ..
+                },
+        } = fact
         else {
             return None;
         };
         Self::from_observed_field(
-            target.clone(),
+            read_scope.clone(),
             locator.clone(),
             value.clone(),
             *entity_id,
@@ -93,26 +95,27 @@ impl WorthQueryObservedPreImageCandidate {
     }
 
     fn from_observed_field(
-        target: worth_query_declaration::facade::application_schema::ApplicationOperationDecisionReadTarget,
+        read_scope: WorthQueryOperationGraphReadScope,
         locator: AspectFieldLocator,
         value: AspectValue,
         entity_id: EntityId,
         entity_kind: KindId,
     ) -> Option<Self> {
-        let field = demanded_field_slot(locator.field_path())?;
-        let worth_query_declaration::facade::application_schema::ApplicationOperationDecisionReadTarget::Field {
-            aspect,
-            field: target_field,
-            ..
-        } = &target
-        else {
+        demanded_field_slot(locator.field_path())?;
+        let WorthQueryOperationGraphReadScope::NativeProjection(scope) = &read_scope else {
             return None;
         };
-        if aspect != locator.aspect().aspect_key().as_str() || target_field != field.as_str() {
+        if scope.aspect() != locator.aspect().aspect_key()
+            || !scope
+                .projection()
+                .mask()
+                .paths()
+                .contains(locator.field_path())
+        {
             return None;
         }
         Some(Self {
-            target,
+            read_scope,
             value,
             target_record: RecordRef::Entity(entity_id),
             entity_kind,
@@ -120,11 +123,8 @@ impl WorthQueryObservedPreImageCandidate {
         })
     }
 
-    const fn target(
-        &self,
-    ) -> &worth_query_declaration::facade::application_schema::ApplicationOperationDecisionReadTarget
-    {
-        &self.target
+    const fn read_scope(&self) -> &WorthQueryOperationGraphReadScope {
+        &self.read_scope
     }
 
     const fn value(&self) -> &AspectValue {
@@ -202,14 +202,13 @@ fn candidate_matches_locus(
     candidate: &WorthQueryObservedPreImageCandidate,
     locus: &InstalledPreImageLocus,
 ) -> bool {
-    matches!(
-        candidate.target(),
-        worth_query_declaration::facade::application_schema::ApplicationOperationDecisionReadTarget::Field {
-            entity,
-            aspect,
-            field,
-        } if entity == locus.entity() && aspect == locus.aspect() && field == locus.field()
-    )
+    let WorthQueryOperationGraphReadScope::NativeProjection(scope) = candidate.read_scope() else {
+        return false;
+    };
+    scope.entity().semantic_key() == locus.entity()
+        && scope.aspect().as_str() == locus.aspect()
+        && demanded_field_slot(candidate.locator().field_path())
+            .is_some_and(|field| field.as_str() == locus.field())
 }
 
 impl WorthQueryRetainedPreImageSeal {

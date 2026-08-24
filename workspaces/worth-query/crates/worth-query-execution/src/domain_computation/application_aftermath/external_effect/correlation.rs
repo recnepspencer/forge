@@ -9,6 +9,7 @@ use worth_foundational::facade::{
     CanonicalDigestId, CanonicalDigestWorkBudget, CanonicalIntegerWidth,
     CanonicalizationRuleVersion,
 };
+use worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily;
 
 use super::super::WorthQueryAftermathDerivationFailure;
 
@@ -42,7 +43,7 @@ impl ExternalEffectCorrelationIdentity {
 
 /// Inputs that may bind correlation. Provider strings are excluded by type.
 pub struct ExternalEffectCorrelationBasis<'a> {
-    pub correlation_family: &'a str,
+    pub correlation_family: WorthQueryExternalEffectCorrelationFamily,
     pub operation_slot: &'a str,
     pub operation_version: u64,
     pub outcome_identity: u64,
@@ -53,10 +54,7 @@ pub struct ExternalEffectCorrelationBasis<'a> {
 pub fn derive_external_effect_correlation_identity(
     basis: ExternalEffectCorrelationBasis<'_>,
 ) -> Result<ExternalEffectCorrelationIdentity, WorthQueryAftermathDerivationFailure> {
-    if basis.correlation_family.trim().is_empty()
-        || basis.operation_slot.trim().is_empty()
-        || basis.branch.trim().is_empty()
-    {
+    if basis.operation_slot.trim().is_empty() || basis.branch.trim().is_empty() {
         return Err(WorthQueryAftermathDerivationFailure::EmptyCorrelationBasis);
     }
     let version = CanonicalizationRuleVersion::new(RULE_VERSION)
@@ -68,7 +66,7 @@ pub fn derive_external_effect_correlation_identity(
         ),
         entry(
             "correlation-family",
-            CanonicalBasisValue::ExactText(basis.correlation_family.to_owned().into()),
+            CanonicalBasisValue::ExactText(basis.correlation_family.as_str().to_owned().into()),
         ),
         entry(
             "operation-slot",

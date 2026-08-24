@@ -1,5 +1,9 @@
 use std::marker::PhantomData;
 
+use worth_foundational::facade::{AspectContractRevision, AspectIdentity};
+
+use super::ApplicationAspectMarkerIdentity;
+
 macro_rules! named_reference {
     ($name:ident, $($marker:ident),+) => {
         pub struct $name<$($marker),+> {
@@ -52,6 +56,19 @@ named_reference!(ApplicationEntityRef, Schema, Entity);
 named_reference!(ApplicationAspectRef, Schema, Entity, Aspect);
 named_reference!(ApplicationPolicyRef, Schema, Policy);
 named_reference!(ApplicationUnitRef, Schema, Unit);
+
+impl<Schema, Entity, Aspect> ApplicationAspectRef<Schema, Entity, Aspect>
+where
+    Aspect: ApplicationAspectMarkerIdentity<Schema = Schema, Entity = Entity>,
+{
+    pub const fn identity(&self) -> AspectIdentity {
+        Aspect::ASPECT_IDENTITY
+    }
+
+    pub const fn revision(&self) -> AspectContractRevision {
+        Aspect::CONTRACT_REVISION
+    }
+}
 
 pub struct ApplicationAbilityRef<Schema, Ability, Scope> {
     name: &'static str,

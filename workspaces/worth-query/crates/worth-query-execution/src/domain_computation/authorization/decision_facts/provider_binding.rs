@@ -9,7 +9,8 @@ use crate::domain_computation::primary_graph::{
 use crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity;
 use crate::domain_computation::{WorthQueryDecisionFactLocator, WorthQueryDecisionFactRequest};
 use worth_query_installation::facade::{
-    APPLICATION_AUTHORIZATION_FACT_FAMILY, APPLICATION_DECISION_FACT_FAMILY,
+    WorthQueryOperationGraphReadScope, APPLICATION_AUTHORIZATION_FACT_FAMILY,
+    APPLICATION_DECISION_FACT_FAMILY,
 };
 
 pub(in crate::domain_computation) struct WorthQueryProviderAuthorizationDecisionFacts {
@@ -36,13 +37,20 @@ impl WorthQueryProviderAuthorizationDecisionFacts {
 
     pub(in crate::domain_computation) fn bind_application_facts(
         self,
+        installed_read_scopes: Vec<WorthQueryOperationGraphReadScope>,
         application: Vec<WorthQueryApplicationObservedFact>,
     ) -> Result<WorthQueryProviderDecisionFactBinding, ()> {
+        if installed_read_scopes.len() != application.len() {
+            return Err(());
+        }
         let application_count = application.len();
         let retained_authorization_fact_count = 1usize.saturating_add(self.decisions.len());
-        let facts = application
+        let facts = installed_read_scopes
             .into_iter()
-            .map(WorthQueryPrimaryGraphApplicationDecisionFact::application)
+            .zip(application)
+            .map(|(read_scope, fact)| {
+                WorthQueryPrimaryGraphApplicationDecisionFact::application(read_scope, fact)
+            })
             .chain(std::iter::once(
                 WorthQueryPrimaryGraphApplicationDecisionFact::principal(self.principal),
             ))

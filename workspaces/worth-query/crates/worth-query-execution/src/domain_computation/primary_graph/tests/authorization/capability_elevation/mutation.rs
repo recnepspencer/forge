@@ -5,8 +5,8 @@ use worth_relational::facade::identity::{EntityId, PartitionId};
 use worth_relational::facade::symbols::ClientKey;
 use worth_relational::facade::transactions::{
     AspectFieldPatch, CreateIntent, DeleteRelationIntent, EntityMutationIntent, EntityReference,
-    MutationIntent, RelationMutationIntent, RelationSpec, TransactionOptions,
-    UpdateEntityFieldsIntent, WorkerIntentBatch,
+    MutationIntent, RelationMutationIntent, RelationSpec, UpdateEntityFieldsIntent,
+    WorkerIntentBatch,
 };
 
 use super::super::super::fixture::capability::{CapabilityCustodian, CapabilityGrantor};
@@ -139,10 +139,11 @@ pub(super) fn replace_elevation_resource(
         .kind;
     let handle = graph.integration_handle();
     handle.with_runtime_mut(|runtime| {
-        let snapshot = runtime.snapshots().historical_snapshot();
+        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_main_snapshot(runtime)
+            .expect("primary branch has a current snapshot");
         let relation = runtime
             .read_truth()
-            .visible_relations_of_kind(relation_kind, snapshot.version_id)
+            .visible_relations_of_kind(relation_kind, snapshot.version_id())
             .into_iter()
             .find(|record| record.source == elevation.entity_id())
             .expect("the elevation has one current direct resource")
@@ -313,10 +314,11 @@ pub(super) fn replace_support_grantor_with_custodian(
         .kind;
     let handle = graph.integration_handle();
     handle.with_runtime_mut(|runtime| {
-        let snapshot = runtime.snapshots().historical_snapshot();
+        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_main_snapshot(runtime)
+            .expect("primary branch has a current snapshot");
         let grantor = runtime
             .read_truth()
-            .visible_relations_of_kind(grantor_kind, snapshot.version_id)
+            .visible_relations_of_kind(grantor_kind, snapshot.version_id())
             .into_iter()
             .find(|record| record.source == principal && record.target == grant.entity_id())
             .expect("the request support has one current grantor path")

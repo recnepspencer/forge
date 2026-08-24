@@ -21,9 +21,10 @@ impl WorthQueryObservedApplicationFactBasis {
         &self,
         runtime: &mut worth_relational::facade::runtime::RelationalRuntime,
     ) -> bool {
-        let Some(snapshot) = runtime
-            .snapshots()
-            .historical_snapshot_for_branch(&self.branch)
+        let Some(snapshot) = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(
+            runtime,
+            &self.branch,
+        )
         else {
             return false;
         };

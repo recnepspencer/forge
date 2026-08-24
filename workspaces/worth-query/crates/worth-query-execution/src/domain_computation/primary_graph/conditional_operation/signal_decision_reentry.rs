@@ -1,4 +1,3 @@
-use worth_relational::facade::bridge::bridge_snapshot_identity_for_handle;
 use worth_runtime_bridge::facade::{
     BridgeConditionalDecisionEvidence, BridgeManagedConditionalExecutionRequest,
     BridgeManagedDueWake, BridgeOwnedSignalRuntime, TruthBranchIdentity, TruthSnapshotIdentity,
@@ -11,6 +10,7 @@ use crate::domain_computation::primary_graph::{
 
 pub(in crate::domain_computation::primary_graph) struct WorthQueryConditionalTruthBasis {
     _lease: WorthQueryApplicationSnapshotLease,
+    _observation: worth_relational::facade::bridge::RelationalBridgeObservationLease,
     _branch: TruthBranchIdentity,
     snapshot: TruthSnapshotIdentity,
     branch_projection: worth_runtime_bridge::facade::BridgeIdentityEvidence,
@@ -24,16 +24,25 @@ impl WorthQueryConditionalTruthBasis {
         let graph = runtime
             .primary_graph()
             .ok_or("conditional execution lost the installed primary graph")?;
+        let integration = graph.integration_handle();
         let lease = WorthQueryApplicationSnapshotLease::acquire(
-            graph.integration_handle(),
+            integration.clone(),
             graph.retain_layout(),
             &primary_relational_branch_id(),
         )
         .ok_or("conditional execution could not pin the primary branch head")?;
-        let snapshot = bridge_snapshot_identity_for_handle(lease.snapshot());
+        let source = integration.relational_bridge_source();
+        let basis = source
+            .readmit_branch_basis(lease.basis_descriptor())
+            .map_err(|_| "conditional execution could not readmit its exact primary basis")?;
+        let observation = source
+            .retain_branch_basis_for_bridge(&basis)
+            .map_err(|_| "conditional execution could not bind its exact Bridge observation")?;
+        let snapshot = observation.snapshot_identity().clone();
         let branch = primary_truth_branch_identity();
         Ok(Self {
             _lease: lease,
+            _observation: observation,
             branch_projection: branch.bridge_admission_evidence(),
             snapshot_projection: snapshot.bridge_admission_evidence(),
             _branch: branch,

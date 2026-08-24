@@ -25,11 +25,17 @@ macro_rules! entity_identity {
 }
 
 macro_rules! aspect_identity {
-    ($marker:ty, $entity:ty, $identifier:literal) => {
+    ($marker:ty, $entity:ty, $identifier:literal, $identity:expr) => {
         impl ApplicationAspectMarkerIdentity for $marker {
             type Schema = Schema;
             type Entity = $entity;
             const IDENTIFIER: &'static str = $identifier;
+            const ASPECT_IDENTITY:
+                worth_query_declaration::facade::application_schema::AspectIdentity =
+                worth_query_declaration::facade::application_schema::AspectIdentity($identity);
+            const CONTRACT_REVISION:
+                worth_query_declaration::facade::application_schema::AspectContractRevision =
+                worth_query_declaration::facade::application_schema::AspectContractRevision(1);
         }
     };
 }
@@ -47,8 +53,8 @@ macro_rules! field_identity {
 
 entity_identity!(Grant, "Grant");
 entity_identity!(Resource, "Resource");
-aspect_identity!(Facts, Grant, "Facts");
-aspect_identity!(ResourceFacts, Resource, "ResourceFacts");
+aspect_identity!(Facts, Grant, "Facts", 0x9161_2201);
+aspect_identity!(ResourceFacts, Resource, "ResourceFacts", 0x9161_2202);
 field_identity!(Action, Grant, Facts, "Action");
 field_identity!(Purpose, Grant, Facts, "Purpose");
 field_identity!(Field, Grant, Facts, "Field");

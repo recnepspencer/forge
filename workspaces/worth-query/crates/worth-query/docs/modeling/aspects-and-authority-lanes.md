@@ -33,6 +33,8 @@ Portable semantic meaning comes from `worth_foundational::facade`:
 
 Query authoring and installation use:
 
+- `worth_query_decl::facade::worth_query_aspect!`
+- `domain::WorthQueryInstalledApplicationSchema::native_contracts`
 - `domain::WorthQuerySemanticTruthDependency`
 - `domain::WorthQueryOperationNativeProjectionContract`
 - `domain::WorthQueryConditionalEvaluationCondition`
@@ -133,6 +135,37 @@ let contract = AspectContract::struct_aspect(
 
 The opaque identity and revision are not display labels. They are part of the
 cross-runtime contract.
+
+## Declare Application Aspect Identity Once
+
+Application schemas declare the same Foundational identity and revision at the
+Query entry boundary. Both values are mandatory in the stable macro form:
+
+```rust
+use worth_query_decl::facade::{
+    application_schema::{AspectContractRevision, AspectIdentity},
+    worth_query_aspect,
+};
+
+worth_query_aspect!(
+    pub AccountFacts in BankingSchema, Account;
+    identity = AspectIdentity(0x9161_1001),
+    revision = AspectContractRevision(1),
+);
+```
+
+Installation validates that declaration and retains one exact native contract
+per `(schema binding, entity, aspect)` locus. Hosts inspect the sealed catalog
+through `installed_schema.native_contracts()`, including exact lookup with
+`aspect(entity, aspect)`, iteration with `contracts()`, and the declared
+identity range. They do not allocate an identity, rebuild a contract from its
+name, or copy provider-runtime schema into application meaning.
+
+The catalog compiles once during installation. Every installed application
+operation's native projection and field-touch contract borrows its meaning
+from that catalog. Execution may separately install provider-internal runtime
+schema for physical work; that schema is execution-owned and is never an
+alternate identity source for the application contract.
 
 ## Bind Semantic Meaning To Relational Truth
 
@@ -367,6 +400,10 @@ and aspect contract.
 ## Anti-Patterns
 
 - Treating aspect names as optional labels.
+- Deriving an application aspect identity from a Rust type name, string hash,
+  installed slot, or provider-runtime schema.
+- Reconstructing an aspect contract beside
+  `installed_schema.native_contracts()`.
 - Using a numeric Signal aspect as portable domain identity.
 - Authorizing delivery from a bridge stable name.
 - Dropping contract revision or field mask at a crate boundary.

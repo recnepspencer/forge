@@ -93,28 +93,6 @@ macro_rules! worth_query_entity {
 }
 
 #[macro_export]
-macro_rules! worth_query_aspect {
-    ($vis:vis $Aspect:ident in $Schema:ty, $Entity:ty) => {
-        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-        $vis struct $Aspect;
-
-        impl $crate::facade::application_schema::ApplicationAspectMarkerIdentity for $Aspect {
-            type Schema = $Schema;
-            type Entity = $Entity;
-            const IDENTIFIER: &'static str = stringify!($Aspect);
-        }
-
-        impl $Aspect {
-            pub const fn reference() -> $crate::facade::application_schema::ApplicationAspectRef<$Schema, $Entity, Self> {
-                $crate::facade::application_schema::ApplicationAspectRef::from_schema_identifier(
-                    stringify!($Aspect),
-                )
-            }
-        }
-    };
-}
-
-#[macro_export]
 macro_rules! worth_query_field {
     (
         $vis:vis $Field:ident in $Schema:ty, $Entity:ty, $Aspect:ty:

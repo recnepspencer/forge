@@ -13,12 +13,12 @@ worth_query_entity!(pub ExternalMapping in IdentityExecutionSchema);
 worth_query_entity!(pub Principal in IdentityExecutionSchema);
 worth_query_entity!(pub Account in IdentityExecutionSchema);
 worth_query_entity!(pub Activity in IdentityExecutionSchema);
-worth_query_aspect!(pub ExternalIdentity in IdentityExecutionSchema, ExternalMapping);
+worth_query_aspect!(pub ExternalIdentity in IdentityExecutionSchema, ExternalMapping; identity = AspectIdentity(0x9161103a), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub ExternalIdentityField in IdentityExecutionSchema, ExternalMapping, ExternalIdentity:
     WorthQueryExternalPrincipalIdentity, read_only, equality
 );
-worth_query_aspect!(pub PrincipalIdentity in IdentityExecutionSchema, Principal);
+worth_query_aspect!(pub PrincipalIdentity in IdentityExecutionSchema, Principal; identity = AspectIdentity(0x9161103b), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub PrincipalIdentityField in IdentityExecutionSchema, Principal, PrincipalIdentity:
     u64, read_only, equality
@@ -40,7 +40,7 @@ worth_query_principal_binding!(
         principal_identity: PrincipalIdentityField
     }
 );
-worth_query_aspect!(pub AccountPolicy in IdentityExecutionSchema, Account);
+worth_query_aspect!(pub AccountPolicy in IdentityExecutionSchema, Account; identity = AspectIdentity(0x9161103c), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub AccountIdentity in IdentityExecutionSchema, Account, AccountPolicy:
     String, read_only, equality
@@ -57,7 +57,7 @@ worth_query_field!(
     pub AccountNote in IdentityExecutionSchema, Account, AccountPolicy:
     optional String, read_write, equality
 );
-worth_query_aspect!(pub ActivityFacts in IdentityExecutionSchema, Activity);
+worth_query_aspect!(pub ActivityFacts in IdentityExecutionSchema, Activity; identity = AspectIdentity(0x9161103d), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub ActivityIdentity in IdentityExecutionSchema, Activity, ActivityFacts:
     String, read_only, equality
@@ -104,6 +104,31 @@ worth_query_effect!(
 );
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MutationFreeNotice(pub String);
+
+impl ApplicationEffectPayload for MutationFreeNotice {
+    fn retained_bytes(&self) -> u64 {
+        u64::try_from(self.0.len()).unwrap_or(u64::MAX)
+    }
+}
+
+impl ApplicationExternalEffectPayload for MutationFreeNotice {
+    const PROTOCOL: ApplicationExternalEffectProtocol = ApplicationExternalEffectProtocol::new(
+        BoundaryProtocolIdentity::new("test.mutation-free"),
+        BoundaryProtocolVersion::new(1),
+    );
+    const MAX_EXTERNAL_BYTES: u64 = 256;
+
+    fn external_effect_bytes(&self) -> Vec<u8> {
+        self.0.as_bytes().to_vec()
+    }
+}
+
+worth_query_effect!(
+    pub MutationFreeExternalEffect(MutationFreeNotice) in IdentityExecutionSchema
+);
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TouchAccountInput;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -120,6 +145,9 @@ pub struct MultiTouchInput;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ChangeOwnershipInput;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MutationFreeEmitInput;
 
 worth_query_operation!(
     pub TouchAccountOperation(TouchAccountInput) in IdentityExecutionSchema
@@ -139,6 +167,9 @@ worth_query_operation!(
 worth_query_operation!(
     pub ChangeOwnershipOperation(ChangeOwnershipInput) in IdentityExecutionSchema
 );
+worth_query_operation!(
+    pub MutationFreeEmitOperation(MutationFreeEmitInput) in IdentityExecutionSchema
+);
 worth_query_operation_requires!(TouchAccountOperation => [ViewAccount]);
 worth_query_operation_requires!(WrongFieldRetentionOperation => [ViewAccount]);
 worth_query_operation_requires!(ExactStatusRetentionOperation => [ViewAccount]);
@@ -153,10 +184,12 @@ worth_query_operation_writes!(MultiFieldRetentionOperation => [AccountStatus, Ac
 // Deliberately wider than the installed contract so authority-ceiling tests
 // prove that compile-time capability cannot widen installed authority.
 worth_query_operation_writes!(MultiTouchOperation => [AccountStatus, AccountLabel]);
+worth_query_operation_emits!(MultiTouchOperation => [AccountActivityEffect]);
 worth_query_operation_emits!(
     TouchAccountOperation => [AccountActivityEffect, LiveActivityEffect]
 );
 worth_query_operation_emits!(ExactStatusRetentionOperation => [RetainedStatusEffect]);
+worth_query_operation_emits!(MutationFreeEmitOperation => [MutationFreeExternalEffect]);
 worth_query_operation_reads!(TouchAccountOperation => [AccountStatus, AccountLabel, AccountOwner]);
 worth_query_operation_reads!(WrongFieldRetentionOperation => [AccountStatus, AccountLabel]);
 worth_query_operation_reads!(ExactStatusRetentionOperation => [AccountStatus, AccountLabel]);

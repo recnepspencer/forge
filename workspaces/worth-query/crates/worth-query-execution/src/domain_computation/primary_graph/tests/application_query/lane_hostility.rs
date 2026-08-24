@@ -1,14 +1,12 @@
 use std::num::NonZeroUsize;
 use std::time::{Duration, Instant};
 
+use crate::domain_computation::primary_graph::WorthQueryApplicationPreviewSessionDenialKind;
 use worth_query_admission::facade::authenticated_principal::{
     WorthQueryCancellationSource, WorthQueryRequestScope,
 };
-use worth_runtime_bridge::facade::{TruthBranchIdentity, TruthCommitIdentity};
 
-use crate::domain_computation::primary_graph::WorthQueryApplicationPreviewSessionDenialKind;
-
-use super::lane_parity::{branch_head, parameters, principal_and_account};
+use super::lane_parity::{parameters, principal_and_account};
 use super::lifecycle::{disable_mapping, revoke_account_ownership};
 use super::*;
 
@@ -70,17 +68,13 @@ fn cancelled_historical_request_mints_no_query_basis() {
         Instant::now() + Duration::from_secs(60),
         cancellation.token(),
     );
-    let head = branch_head(&world, "main");
     let observer = world.application.application_query_basis_observer();
     let before = observer.observe();
 
     let denial = world
         .application
         .admit_application_historical_basis(
-            crate::domain_computation::primary_graph::WorthQueryApplicationHistoricalRead::at_commit(
-                TruthBranchIdentity::from_relational_branch_id("main"),
-                TruthCommitIdentity::from_relational_commit_id(head.commit_id.0),
-            ),
+            crate::domain_computation::primary_graph::WorthQueryApplicationHistoricalRead::current_for_test(&world.application),
             &request,
         )
         .err()
@@ -352,14 +346,10 @@ fn historical_basis(
 ) -> crate::domain_computation::primary_graph::WorthQueryApplicationHistoricalBasis<
     super::super::fixture::IdentityExecutionSchema,
 > {
-    let head = branch_head(world, "main");
     world
         .application
         .admit_application_historical_basis(
-            crate::domain_computation::primary_graph::WorthQueryApplicationHistoricalRead::at_commit(
-                TruthBranchIdentity::from_relational_branch_id("main"),
-                TruthCommitIdentity::from_relational_commit_id(head.commit_id.0),
-            ),
+            crate::domain_computation::primary_graph::WorthQueryApplicationHistoricalRead::current_for_test(&world.application),
             request,
         )
         .unwrap()

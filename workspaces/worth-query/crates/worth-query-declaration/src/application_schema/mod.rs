@@ -1,5 +1,6 @@
 mod application_capability_authoring;
 mod application_query_authoring;
+mod aspect_contract_identity;
 mod authoring_context;
 mod authorization_path_components;
 mod authorization_policy;
@@ -18,6 +19,7 @@ mod declaration;
 mod declaration_denial;
 mod effect_authoring;
 mod effect_payload;
+mod external_effect_correlation_family;
 mod external_effect_protocol;
 mod field_presence;
 mod field_reference;
@@ -56,7 +58,10 @@ mod field_presence_tests;
 mod operation_contract_cardinality_tests;
 #[cfg(test)]
 mod preimage_canonical_identity_tests;
+#[cfg(test)]
+mod stable_aspect_identity_tests;
 
+pub use aspect_contract_identity::ApplicationAspectMarkerIdentity;
 pub use authoring_context::{
     ApplicationSchemaAuthoringContext, ApplicationSchemaAuthoringDenial,
     ApplicationSchemaAuthoringDenialKind,
@@ -85,11 +90,11 @@ pub use declaration::{
 pub use declaration_denial::ApplicationSchemaDeclarationDenial;
 pub use effect_authoring::{TypedEffectIntent, TypedEffectIntentBuilder};
 pub use effect_payload::{ApplicationEffectPayload, ApplicationExternalEffectPayload};
+pub use external_effect_correlation_family::WorthQueryExternalEffectCorrelationFamily;
 pub use external_effect_protocol::ApplicationExternalEffectProtocol;
 pub use field_presence::ApplicationFieldPresence;
 pub use field_reference::{
-    ApplicationAspectMarkerIdentity, ApplicationEntityMarkerIdentity,
-    ApplicationFieldMarkerIdentity, ApplicationFieldRef,
+    ApplicationEntityMarkerIdentity, ApplicationFieldMarkerIdentity, ApplicationFieldRef,
 };
 pub use mutation_authoring::{
     TypedMutationIntent, TypedMutationIntentBuilder, TypedMutationWrite, TypedOperationBuilder,
@@ -126,3 +131,4 @@ pub use values::{
     TypedApplicationIdentityValue, TypedApplicationReadableValue,
     TypedApplicationSignedAggregateValue, TypedApplicationValue, TypedUnitApplicationValue,
 };
+pub use worth_foundational::facade::{AspectContractRevision, AspectIdentity};

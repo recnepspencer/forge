@@ -109,10 +109,11 @@ fn revoke_account_ownership(
         .expect("account ownership is installed")
         .kind;
     graph.with_runtime_mut(|runtime| {
-        let snapshot = runtime.snapshots().historical_snapshot();
+        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_main_snapshot(runtime)
+            .expect("primary branch has a current snapshot");
         let relation = runtime
             .read_truth()
-            .visible_relations_of_kind(relation_kind, snapshot.version_id)
+            .visible_relations_of_kind(relation_kind, snapshot.version_id())
             .into_iter()
             .find(|record| record.target == account)
             .expect("the admitted account has one ownership edge")

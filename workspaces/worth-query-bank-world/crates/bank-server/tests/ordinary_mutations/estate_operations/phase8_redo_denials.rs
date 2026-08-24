@@ -4,7 +4,10 @@
 //! World-drift `Stale` / `NewlyUnauthorized` with honest intent live in
 //! `phase8_redo_world_drift` (A9 / X2 / X3).
 
-use bank_server::{BankEstateProgressionDenial, BankMutationCommitOutcome};
+use bank_server::{
+    BankCommitDenialKind, BankCommitDenialStage, BankEstateProgressionDenial,
+    BankMutationCommitOutcome,
+};
 use worth_query_host::facade::primary_graph::WorthQueryApplicationIdempotencyBinding;
 use worth_query_host::facade::provisional_aftermath::WorthQueryRedoDenialKind;
 
@@ -201,19 +204,38 @@ fn relational_head_advance_after_redo_admission_closes_the_commit_race() {
         .runtime
         .progress_redo_disbursement(admission)
         .expect("ordinary progression returns its typed terminal outcome");
-    assert!(
-        !matches!(
-            raced.mutation(),
-            BankMutationCommitOutcome::Committed(_)
-                | BankMutationCommitOutcome::AlreadyCommitted(_)
-        ),
-        "stale expected-head admission must not commit"
-    );
-    assert!(
-        raced.retry().is_some(),
-        "a stale zero-effect race must return the exact redo continuation"
+    let (mutation, retry) = raced.into_parts();
+    assert_eq!(
+        mutation,
+        BankMutationCommitOutcome::Denied {
+            kind: BankCommitDenialKind::ProviderRejected,
+            stage: BankCommitDenialStage::InvariantExecution,
+        },
+        "the admitted aftermath-parent mismatch must be rejected at invariant execution"
     );
     assert_eq!(graph_snapshot(&fixture), after_intervening);
+
+    let retry = retry.expect("the stale zero-effect race retains the redo continuation");
+    assert!(proved.intent.is_bound_to(&retry));
+    let denied = fixture
+        .world
+        .runtime
+        .admit_redo_disbursement_recovery(
+            retry,
+            &proved.specialist,
+            &request_scope(),
+            &proved.intent,
+        )
+        .expect_err("the retained redo continuation observes the intervening head");
+    match denied {
+        BankEstateProgressionDenial::Redo(denial) => {
+            assert_eq!(
+                denial.kind(),
+                WorthQueryRedoDenialKind::DivergenceInvalidation
+            );
+        }
+        other => panic!("expected redo divergence from the retained continuation, got {other:?}"),
+    }
 }
 
 #[test]

@@ -1,6 +1,7 @@
 # Milestone 9.16.2: Portable Packages And PostgreSQL Runtime Durability Foundation
 
-> **Status:** Proposed — required before the Milestone 9.17 sequence
+> **Status:** Proposed — begins after Milestone 9.16.1.1 and is required before
+> the Milestone 9.17 sequence
 >
 > **Product posture:** This milestone gives Workflow Editor a production-usable,
 > restart-safe deployment now and establishes the runtime-level PostgreSQL
@@ -47,17 +48,19 @@ without requiring a semantic rewrite.
 
 ## Roadmap Placement And Append-Only Rule
 
-Milestone 9.16.2 is the second corrective interstitial after Milestone 9.16.
+Milestone 9.16.2 is the durability corrective interstitial after Milestone
+9.16.1.1.
 It consumes the portable installation grammar established by Milestone 9.13,
 the authority decomposition established by Milestone 9.13.2, the installed
 workflow meaning established through Milestones 9.14 and 9.16, the
 application-aftermath and co-committed outbox completed by 9.16 Runtime Phase
-8, and the closed Milestone 9.16.1 authority-convergence substrate.
+8, the closed Milestone 9.16.1 authority-convergence substrate, and the typed
+installed graph-contract integrity repair specified by Milestone 9.16.1.1.
 
 Milestone 9.16 retains its recorded statuses and remains open for Bank Phase 6
-and Closure Phase 1. Work on 9.16.2 may proceed beside those phases where
-boundaries do not overlap. The roadmap does not advance to 9.17.1 until both
-9.16 and 9.16.2 close.
+and Closure Phase 1. Milestone 9.16.2 begins only after 9.16.1.1 closes; it may
+then proceed beside those 9.16 phases where boundaries do not overlap. The
+roadmap does not advance to 9.17.1 until both 9.16 and 9.16.2 close.
 
 This milestone does not reopen prior closure or move PostgreSQL into Query,
 Relational, Signal, or Runtime Bridge semantics. It adds the immediate adapter
@@ -948,23 +951,30 @@ package, durability, recovery, or dispatch boundary honest.
 
 ### Phase 1: Stable Identity And Declared Provenance
 
-Starting from the existing validated portable package, ship stable identities
-for every package-relevant Rust axis, remove package-canonical `type_name`, and
-make operation/effect references declaration-minted. Only the owning
-declarations may construct provenance-bearing references; copied names and
-caller-selected digests open no package or dispatch path. Compile-fail,
-collision, module-move, semantic-mutation, and warm-cost evidence lets Phase 2
-trust the identity vocabulary without trusting representation accidents.
+Starting from the existing validated portable package and the declaration-
+owned application aspect identity/revision and external-effect correlation
+identity delivered by 9.16.1.1, ship stable identities for every remaining
+package-relevant Rust axis, remove package-canonical `type_name`, and make
+operation/effect references declaration-minted. Phase 1 carries the 9.16.1.1
+identities unchanged and may not replace them with package-local equivalents.
+Only the owning declarations may construct provenance-bearing references;
+copied names and caller-selected digests open no package or dispatch path.
+Compile-fail, collision, module-move, semantic-mutation, and warm-cost evidence
+lets Phase 2 trust the identity vocabulary without trusting representation
+accidents.
 
 ### Phase 2: Complete Typed Package Export
 
 Consume one freshly validated package and export a versioned manifest plus the
 complete typed logical record families in canonical order under explicit size
-and count budgets. The export is descriptive meaning, never live runtime
-authority, and no adapter-specific node, edge, row, document, or callback may
-enter it. Closure-inventory and mutation-sensitive omission/duplication tests
-let Phase 3 trust that every package-relevant semantic family has one stable
-portable projection.
+and count budgets. Those records include the retained 9.16.1.1 native schema
+contracts, typed operation read and touch scopes, external-effect correlation
+family, and installed reconciliation procedure; export may not reconstruct
+them from strings or declaration summaries. The export is descriptive meaning,
+never live runtime authority, and no adapter-specific node, edge, row,
+document, or callback may enter it. Closure-inventory and mutation-sensitive
+omission/duplication tests let Phase 3 trust that every package-relevant
+semantic family has one stable portable projection.
 
 ### Phase 3: Bounded Reconstruction And Fresh Query Validation
 
@@ -1116,21 +1126,22 @@ correct but unmanageable library.
 
 ### Phase 15: Persistent Bank And NCR Certification, Then Workflow-Editor Cutover
 
-First exercise the certified persistent Bank world through exact release
-installation, double-entry transfer, atomic state plus existing payment-notice
-outbox commit, checkpoint/compaction, process and database death, projection
-destruction, competing fresh recovery, provider rebinding, fenced external-rail
-dispatch, coexistence, and separate-database backup/restore. Then exercise the
-real composition root from one signed GitHub NCR release through its complete
-state and notification restart journey. Compile/run caller and operator
-documentation against the public facades; run dependency, facade, mutation,
-scale, crash, and residue courts; then cut Workflow Editor to the signed archive
-plus PostgreSQL runtime. This phase integrates already-proved boundaries and may
-not absorb unfinished work from Phases 1 through 14 or substitute an in-memory
-reenactment for either real PostgreSQL fresh-process court.
+Exercise the real composition root from one signed GitHub NCR release through
+exact installation, submit and transition execution, atomic state plus existing
+notification outbox commit, process death, fresh recovery, provider rebinding,
+fenced notification dispatch, observable outcome, backup/restore, and release
+coexistence. Compile/run caller and operator documentation against the public
+facades, including 9.16.1.1 typed read/touch and aftermath inspection; run
+dependency, facade, mutation, scale, crash, and residue courts; then cut
+Workflow Editor to the signed archive plus PostgreSQL runtime. NCR may not add
+a local operation-contract mirror, structured touch grammar, or aftermath
+summary. This phase integrates already-proved boundaries and may not absorb
+unfinished work from Phases 1 through 14 or substitute an in-memory reenactment
+for the real PostgreSQL fresh-process court.
 
-Each phase ends with a closure ledger. Later work cannot hide an unmet
-authority or crash-consistency guarantee.
+Each phase closes through its final implementation, direct tests, required
+repository checks, and review. Later work cannot hide an unmet authority or
+crash-consistency guarantee.
 
 ## Caller DX Target
 
@@ -1253,12 +1264,25 @@ or host authorization policy. Those consumers use this durable runtime.
   complete signed-release deployment, kill/restart, notification recovery,
   rollback/coexistence, and backup/restore walkthrough.
 
-Every code example is compiled or exercised by its named owner/certification
-target. Documentation residue checks reject direct SQL, host-owned recovery,
-serialized authority, latest-by-name selection, or a generic database backend.
+- carriage and fresh readmission of the Milestone 9.16.1.1 native schema,
+  typed read/touch, correlation-family, and reconciliation contracts;
+- package identity, records, reconstruction, archives, and Git/GitHub versioning;
+- PostgreSQL setup, migrations, compatibility, backup/restore, and recovery;
+- durable acknowledgement and readiness guarantees;
+- existing outbox meaning, fencing, retry/idempotency, poison work, and operator
+  intervention;
+- activation, coexistence, rollback, namespace isolation, metrics, and capacity;
+- Query/Relational/Signal/Runtime-Bridge/PostgreSQL-composition/host/external-
+  owner/future-Store boundaries and their 9.17 succession; and
+- a complete NCR deployment and kill/restart walkthrough.
+
+Examples and compile-fail tests are support contract. AI README and coding docs
+must route callers through public facades, never direct SQL/private workarounds.
 
 ## Must Ship
 
+- exact package records and reconstruction for every retained Milestone
+  9.16.1.1 installed graph and aftermath contract;
 - stable identities and declaration-minted operation/effect provenance;
 - complete package export, bounded reconstruction, fresh validation, and
   expected-identity comparison;
@@ -1285,6 +1309,9 @@ serialized authority, latest-by-name selection, or a generic database backend.
 
 ## Must Preserve
 
+- Milestone 9.16.1.1 application aspect identity/revision, native schema
+  catalog, typed operation read/touch scopes, effect separation, and complete
+  typed aftermath inspection without package-local mirrors;
 - Query ownership of workflow meaning, validation, digest, execution, and
   dispatch admission;
 - Relational ownership of publication, canonical envelopes,
@@ -1340,6 +1367,8 @@ The closure ledger contains:
 - authority mapping for every persisted and derived artifact;
 - public API/dependency-direction proof;
 - stable identity/provenance compile-fail and mutation proof;
+- exact 9.16.1.1 installed-contract export/reconstruction equality and mutants
+  that drop, widen, cross-splice, summarize, or string-encode those contracts;
 - record-family inventory and hostile mutants;
 - archive determinism, corruption, compatibility, and budget evidence;
 - local filesystem and PostgreSQL backend conformance;

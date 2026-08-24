@@ -87,8 +87,12 @@ fn validate_parameters(
 fn validate_graph_reads(
     contract: &WorthQueryOperationGraphReadContract,
 ) -> Result<(), &'static str> {
-    let WorthQueryOperationGraphReadContract::Declared { roles } = contract else {
-        return Ok(());
+    let roles = match contract {
+        WorthQueryOperationGraphReadContract::NotRequired => return Ok(()),
+        WorthQueryOperationGraphReadContract::Declared { .. } => {
+            return Err("application-graph-read-contract-in-domain-operation")
+        }
+        WorthQueryOperationGraphReadContract::DeclaredDomain { roles } => roles,
     };
     if roles.is_empty() {
         return Err("empty-graph-read-role-set");
@@ -124,7 +128,7 @@ fn validate_touch_graph_roles(
     };
     if graph_roles
         .iter()
-        .any(|role| !reads.roles().iter().any(|read| &read.role == role))
+        .any(|role| !reads.domain_roles().iter().any(|read| &read.role == role))
     {
         return Err("touch-references-undeclared-graph-role");
     }
@@ -141,7 +145,12 @@ fn validate_touches(contract: &WorthQueryOperationTouchContract) -> Result<(), &
             return Err("empty-touch-contract");
         }
         validate_text_sequence(graph_roles, "empty-touch-graph-role")?;
-        validate_text_sequence(scopes, "empty-touch-scope")?;
+        if scopes
+            .iter()
+            .any(|scope| !matches!(scope, WorthQueryOperationTouchScope::DeclaredDomain(_)))
+        {
+            return Err("application-touch-scope-in-domain-operation");
+        }
     }
     Ok(())
 }

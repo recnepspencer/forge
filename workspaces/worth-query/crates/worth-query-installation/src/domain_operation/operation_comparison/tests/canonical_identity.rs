@@ -40,8 +40,8 @@ fn graph_read_identity_frames_mask_paths_without_delimiter_collisions() {
 fn graph_read(
     projection: WorthQueryOperationNativeProjectionContract,
 ) -> WorthQueryOperationGraphReadContract {
-    WorthQueryOperationGraphReadContract::Declared {
-        roles: vec![WorthQueryOperationGraphReadRole {
+    WorthQueryOperationGraphReadContract::DeclaredDomain {
+        roles: vec![WorthQueryDomainOperationGraphReadRole {
             role: "model".into(),
             participation: WorthQueryOperationGraphParticipation::PrimaryLogicalGraph,
             access: WorthQueryOperationGraphAccess::Project,

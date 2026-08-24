@@ -51,8 +51,7 @@ impl RelationalExecutionOracle {
         runtime: &RelationalRuntime,
         branch: &BranchId,
     ) -> Result<Self, EffectExecutionOracleError> {
-        let history = runtime.history();
-        let observed = history.historical_branch_head(branch).ok_or_else(|| {
+        let identity = runtime.branch_identity(branch).map_err(|_| {
             EffectExecutionOracleError::new(
                 EffectExecutionOracleErrorKind::RelationalObservationMissingBranchHead,
                 format!(
@@ -63,6 +62,43 @@ impl RelationalExecutionOracle {
                 None,
             )
         })?;
+        let (_, basis) = runtime.observe_branch(&identity).map_err(|_| {
+            EffectExecutionOracleError::new(
+                EffectExecutionOracleErrorKind::RelationalObservationMissingBranchHead,
+                format!(
+                    "independent relational oracle could not admit branch `{}`",
+                    branch.0
+                ),
+                &relational_branch_observation_subject(branch),
+                None,
+            )
+        })?;
+        let observation = basis.observation();
+        let history = runtime.history();
+        let observed = history
+            .branch_head_for_observation(&observation)
+            .map_err(|_| {
+                EffectExecutionOracleError::new(
+                    EffectExecutionOracleErrorKind::RelationalObservationMissingBranchHead,
+                    format!(
+                        "independent relational oracle rejected branch basis `{}`",
+                        branch.0
+                    ),
+                    &relational_branch_observation_subject(branch),
+                    None,
+                )
+            })?
+            .ok_or_else(|| {
+                EffectExecutionOracleError::new(
+                    EffectExecutionOracleErrorKind::RelationalObservationMissingBranchHead,
+                    format!(
+                        "independent relational oracle inspection found no head for `{}`",
+                        branch.0
+                    ),
+                    &relational_branch_observation_subject(branch),
+                    None,
+                )
+            })?;
         Ok(Self::new(
             branch.0.clone(),
             observed.commit_id.0,

@@ -5,7 +5,7 @@ fn derived_index_contract_entity_field_equals_executes_through_real_index_path_w
 {
     let mut runtime = runtime_with_index_field_aspects();
     let alpha = create_entity_outcome(&mut runtime, "alpha");
-    let _beta = create_entity_outcome(&mut runtime, "beta");
+    let beta = create_entity_outcome(&mut runtime, "beta");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity.name.lookup".to_string(),
@@ -17,7 +17,7 @@ fn derived_index_contract_entity_field_equals_executes_through_real_index_path_w
     let build = runtime
         .index_authority()
         .build_for_commit(DerivedIndexBuildRequest {
-            source_commit_id: alpha.commit.commit_id,
+            source_commit_id: beta.commit.commit_id,
             branch_id: BranchId("main".to_string()),
             index_ids: vec![index.index_id],
         });

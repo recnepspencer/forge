@@ -101,7 +101,14 @@ where
         WorthQueryInvariantProjectionWorkLimitExceeded,
     > {
         let projected = self.graph.with_runtime_mut(|runtime| {
-            let snapshot = runtime.snapshots().historical_snapshot();
+            let identity = runtime.main_branch_identity();
+            let (_, basis) = runtime
+                .observe_branch(&identity)
+                .expect("installed primary graph retains an exact main-branch basis");
+            let snapshot = runtime
+                .snapshots()
+                .snapshot_for_observation(&basis.observation())
+                .expect("the admitted invariant basis opens its exact snapshot");
             let projected = catch_unwind(AssertUnwindSafe(|| {
                 let mut reader = WorthQueryApplicationInvariantProjectionReader {
                     runtime,
@@ -129,7 +136,7 @@ where
                         let _ = runtime.snapshots().release_snapshot(&snapshot);
                         Ok(Err(WorthQueryInvariantProjectionWorkLimitExceeded))
                     } else {
-                        Ok(Ok((output, snapshot, work, realized_scope)))
+                        Ok(Ok((output, basis, snapshot, work, realized_scope)))
                     }
                 }
                 Err(payload) => {
@@ -138,7 +145,7 @@ where
                 }
             }
         });
-        let (output, snapshot, work, realized_scope) = match projected {
+        let (output, basis, snapshot, work, realized_scope) = match projected {
             Ok(Ok(completed)) => completed,
             Ok(Err(denial)) => return Err(denial),
             Err(payload) => resume_unwind(payload),
@@ -148,6 +155,7 @@ where
             snapshot: WorthQueryApplicationInvariantProjectionSnapshot {
                 graph: self.graph.clone(),
                 layout: Arc::clone(&self.layout),
+                basis: Some(basis),
                 snapshot: Some(snapshot),
                 runtime_authority: self.runtime_authority,
                 binding_identity: self.binding_identity.clone(),
@@ -185,7 +193,7 @@ where
     Schema: ApplicationSchema,
 {
     pub const fn version(&self) -> worth_relational::facade::identity::VersionId {
-        self.snapshot.version_id
+        self.snapshot.version_id()
     }
 
     pub fn resolve_entity<Aspect, Entity, Field, Value, Write, Unit>(

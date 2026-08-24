@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+use super::aspect_contract_identity::ApplicationAspectMarkerIdentity;
 use super::authorization_policy::ApplicationAuthorizationPath;
 use super::canonical_identity::{canonical_identity, ApplicationSchemaCanonicalHeader};
 use super::capabilities::{ApplicationFieldUnit, EqualityPosture, WritePosture};
@@ -153,10 +154,15 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
         mut self,
         entity: ApplicationEntityRef<Schema, Entity>,
         aspect: ApplicationAspectRef<Schema, Entity, Aspect>,
-    ) -> Self {
+    ) -> Self
+    where
+        Aspect: ApplicationAspectMarkerIdentity<Schema = Schema, Entity = Entity>,
+    {
         self.members.push(ApplicationSchemaMember::Aspect {
             entity: entity.name().to_string(),
             aspect: aspect.name().to_string(),
+            identity: Aspect::ASPECT_IDENTITY,
+            revision: Aspect::CONTRACT_REVISION,
         });
         self
     }

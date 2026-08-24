@@ -64,7 +64,7 @@ impl WorthQueryInstalledEntityResolutionContext {
         snapshot: &'truth worth_relational::facade::snapshots::SnapshotHandle,
         mode: WorthQueryPrincipalResolutionMode,
     ) -> Result<WorthQueryEntityResolutionTruth<'truth>, WorthQueryEntityResolutionDenial> {
-        if snapshot.runtime_instance_id != self.relational_runtime_instance_id
+        if snapshot.runtime_instance_id() != self.relational_runtime_instance_id
             || relational.read_truth().project_snapshot(snapshot).is_none()
         {
             return Err(entity_denial(
@@ -196,7 +196,8 @@ where
         })?;
         let installed = graph.retain_entity_resolution_context();
         let result = graph.integration_handle().with_runtime_mut(|relational| {
-            let snapshot = relational.snapshots().historical_snapshot();
+            let snapshot = super::exact_basis_access::open_current_main_snapshot(relational)
+                .expect("installed primary graph retains an exact main-branch basis");
             let result = installed
                 .at_snapshot(relational, &snapshot, mode)
                 .and_then(|truth| {

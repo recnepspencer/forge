@@ -62,7 +62,6 @@ fn test_publication() -> BankHttpQueryPublication {
             runtime_instance: 1,
             branch: "main".to_owned(),
             snapshot: 1,
-            lease: 1,
             version: 1,
             posture: BankHttpQueryBasisPosture::Current,
         },

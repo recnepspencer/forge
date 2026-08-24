@@ -146,26 +146,75 @@ fn hash_collection_field(
 }
 
 fn hash_graph_reads(hasher: &mut Sha256, contract: &WorthQueryOperationGraphReadContract) {
-    let WorthQueryOperationGraphReadContract::Declared { roles } = contract else {
-        hash_text_field(hasher, "graph-read", "not-required");
-        return;
-    };
-    hash_text_field(hasher, "graph-read", "declared");
-    for role in roles {
-        hash_text_field(hasher, "graph-read-role", &role.role);
-        match &role.participation {
-            WorthQueryOperationGraphParticipation::PrimaryLogicalGraph => {
-                hash_text_field(hasher, "graph-participation", "primary");
-            }
-            WorthQueryOperationGraphParticipation::SeparateAuthority { role } => {
-                hash_text_field(hasher, "graph-participation", "separate");
-                hash_text_field(hasher, "graph-participation-role", role);
+    match contract {
+        WorthQueryOperationGraphReadContract::NotRequired => {
+            hash_text_field(hasher, "graph-read", "not-required");
+        }
+        WorthQueryOperationGraphReadContract::Declared { roles } => {
+            hash_text_field(hasher, "graph-read", "declared-application");
+            for role in roles {
+                hash_text_field(hasher, "graph-read-role", role.role());
+                hash_graph_participation(hasher, role.participation());
+                hash_text_field(hasher, "graph-access", graph_access_name(role.access()));
+                for read in role.read_scopes() {
+                    hash_application_read_scope(hasher, read);
+                }
             }
         }
-        hash_text_field(hasher, "graph-access", graph_access_name(role.access));
-        for read in &role.semantic_reads {
-            hash_text_field(hasher, "graph-semantic-read", "declared");
-            hash_native_projection(hasher, read);
+        WorthQueryOperationGraphReadContract::DeclaredDomain { roles } => {
+            hash_text_field(hasher, "graph-read", "declared-domain");
+            for role in roles {
+                hash_text_field(hasher, "graph-read-role", &role.role);
+                hash_graph_participation(hasher, &role.participation);
+                hash_text_field(hasher, "graph-access", graph_access_name(role.access));
+                for read in &role.semantic_reads {
+                    hash_text_field(hasher, "graph-semantic-read", "native-projection");
+                    hash_native_projection(hasher, read);
+                }
+            }
+        }
+    }
+}
+
+fn hash_graph_participation(
+    hasher: &mut Sha256,
+    participation: &WorthQueryOperationGraphParticipation,
+) {
+    match participation {
+        WorthQueryOperationGraphParticipation::PrimaryLogicalGraph => {
+            hash_text_field(hasher, "graph-participation", "primary");
+        }
+        WorthQueryOperationGraphParticipation::SeparateAuthority { role } => {
+            hash_text_field(hasher, "graph-participation", "separate");
+            hash_text_field(hasher, "graph-participation-role", role);
+        }
+    }
+}
+
+fn hash_application_read_scope(hasher: &mut Sha256, scope: &WorthQueryOperationGraphReadScope) {
+    match scope {
+        WorthQueryOperationGraphReadScope::Entity(entity) => {
+            hash_text_field(hasher, "graph-read-scope", "entity");
+            hash_binding(hasher, entity.schema());
+            hash_text_field(hasher, "graph-read-entity", entity.semantic_key());
+        }
+        WorthQueryOperationGraphReadScope::NativeProjection(projection) => {
+            hash_text_field(hasher, "graph-read-scope", "native-projection");
+            hash_binding(hasher, projection.schema());
+            hash_text_field(
+                hasher,
+                "graph-read-entity",
+                projection.entity().semantic_key(),
+            );
+            hash_text_field(hasher, "graph-read-aspect", projection.aspect().as_str());
+            hash_native_projection(hasher, projection.projection());
+        }
+        WorthQueryOperationGraphReadScope::Relation(relation) => {
+            hash_text_field(hasher, "graph-read-scope", "relation");
+            hash_binding(hasher, relation.schema());
+            hash_text_field(hasher, "graph-read-relation", relation.relation());
+            hash_text_field(hasher, "graph-read-from", relation.from());
+            hash_text_field(hasher, "graph-read-to", relation.to());
         }
     }
 }
@@ -185,9 +234,83 @@ fn hash_touches(hasher: &mut Sha256, contract: &WorthQueryOperationTouchContract
                 "touch-graph",
                 graph_roles.iter().map(String::as_str),
             );
-            hash_sequence(hasher, "touch-scope", scopes.iter().map(String::as_str));
+            for scope in scopes {
+                hash_touch_scope(hasher, scope);
+            }
         }
     }
+}
+
+fn hash_touch_scope(hasher: &mut Sha256, scope: &WorthQueryOperationTouchScope) {
+    match scope {
+        WorthQueryOperationTouchScope::CreateEntity(entity)
+        | WorthQueryOperationTouchScope::DeleteEntity(entity) => {
+            let kind = if matches!(scope, WorthQueryOperationTouchScope::CreateEntity(_)) {
+                "create-entity"
+            } else {
+                "delete-entity"
+            };
+            hash_text_field(hasher, "touch-scope", kind);
+            hash_binding(hasher, entity.schema());
+            hash_text_field(hasher, "touch-entity", entity.entity());
+        }
+        WorthQueryOperationTouchScope::WriteField(field) => {
+            hash_text_field(hasher, "touch-scope", "write-field");
+            hash_binding(hasher, field.schema());
+            hash_text_field(hasher, "touch-entity", field.entity());
+            hash_text_field(
+                hasher,
+                "touch-contract-canonical-material",
+                field.canonical_contract_material(),
+            );
+            for part in field.field_path().fields() {
+                hash_text_field(hasher, "touch-field-path-part", part.as_str());
+            }
+        }
+        WorthQueryOperationTouchScope::LinkRelation(relation)
+        | WorthQueryOperationTouchScope::UnlinkRelation(relation) => {
+            let kind = if matches!(scope, WorthQueryOperationTouchScope::LinkRelation(_)) {
+                "link-relation"
+            } else {
+                "unlink-relation"
+            };
+            hash_text_field(hasher, "touch-scope", kind);
+            hash_binding(hasher, relation.schema());
+            hash_text_field(hasher, "touch-relation", relation.relation());
+            hash_text_field(hasher, "touch-from", relation.from());
+            hash_text_field(hasher, "touch-to", relation.to());
+        }
+        WorthQueryOperationTouchScope::DeclaredDomain(identity) => {
+            hash_text_field(hasher, "touch-scope", "declared-domain");
+            hash_text_field(hasher, "touch-domain-identity", identity.as_str());
+        }
+    }
+}
+
+fn hash_binding(
+    hasher: &mut Sha256,
+    binding: &worth_query_declaration::facade::application_schema::ApplicationSchemaBindingIdentity,
+) {
+    hash_text_field(
+        hasher,
+        "scope-runtime-ordinal",
+        &binding.runtime_ordinal().to_string(),
+    );
+    hash_text_field(
+        hasher,
+        "scope-generation",
+        &binding.generation().to_string(),
+    );
+    hash_text_field(
+        hasher,
+        "scope-package",
+        &binding.package_identity().render_hex(),
+    );
+    hash_text_field(
+        hasher,
+        "scope-schema",
+        &binding.schema_identity().render_hex(),
+    );
 }
 
 fn hash_effects(hasher: &mut Sha256, contract: &WorthQueryOperationEffectContract) {

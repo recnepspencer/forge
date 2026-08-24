@@ -10,6 +10,8 @@ pub(in crate::domain_computation::primary_graph) enum WorthQueryPrimaryGraphFaul
     FailedIndexPublication,
     SkippedInvariantOwnerExecution,
     RelationalInvariantViolation,
+    #[cfg(test)]
+    UndeclaredApplicationTouch,
 }
 
 pub(in crate::domain_computation::primary_graph) trait WorthQueryPrimaryGraphFaultPort:

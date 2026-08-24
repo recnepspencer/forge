@@ -211,7 +211,7 @@ impl WorthQueryExternalEffectTransport for BankEstateRailTransport {
         request: WorthQueryExternalDispatchRequest<'_>,
     ) -> WorthQueryExternalTransportOutcome {
         let correlation = RailCorrelation::new(
-            request.correlation_family(),
+            request.correlation_family().as_str(),
             request.correlation_token().to_vec(),
         );
         let payload = RailEffectPayload::new(

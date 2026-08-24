@@ -2,11 +2,11 @@ use std::sync::Arc;
 
 use super::retained_graph_execution::WorthQueryRetainedManagedGraphExecution;
 use super::run_affinity::WorthQueryDirectRunAffinity;
+use super::WorthQueryManagedRelationalObservation;
 use super::{
     WorthQueryManagedRunCounters, WorthQueryPausedDirectGraphExecution,
     WorthQueryYieldTransitionCounters,
 };
-use worth_relational::facade::runtime::RelationalExecutionBasisLease;
 use worth_runtime_bridge::facade::BridgeYieldedExecutionBasis;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -55,7 +55,7 @@ pub enum WorthQueryDirectYieldOutcome {
 #[must_use = "yielded direct run retains exact cleanup or same-runtime readmission authority"]
 pub struct WorthQueryYieldedDirectRun {
     affinity: WorthQueryDirectRunAffinity,
-    relational_basis: RelationalExecutionBasisLease,
+    relational_basis: WorthQueryManagedRelationalObservation,
     bridge: BridgeYieldedExecutionBasis,
     execution: WorthQueryRetainedManagedGraphExecution,
     run_counters: WorthQueryManagedRunCounters,
@@ -136,7 +136,7 @@ impl WorthQueryYieldedDirectRun {
         _owner: &super::WorthQueryDirectReadmissionTransitionPermit,
     ) -> (
         WorthQueryDirectRunAffinity,
-        RelationalExecutionBasisLease,
+        WorthQueryManagedRelationalObservation,
         BridgeYieldedExecutionBasis,
         WorthQueryRetainedManagedGraphExecution,
         WorthQueryManagedRunCounters,
@@ -174,7 +174,7 @@ impl WorthQueryYieldedDirectRun {
         _owner: &super::direct_yield_cleanup::WorthQueryDirectYieldCleanupPermit,
     ) -> (
         WorthQueryDirectRunAffinity,
-        RelationalExecutionBasisLease,
+        WorthQueryManagedRelationalObservation,
         BridgeYieldedExecutionBasis,
         WorthQueryRetainedManagedGraphExecution,
         WorthQueryManagedRunCounters,

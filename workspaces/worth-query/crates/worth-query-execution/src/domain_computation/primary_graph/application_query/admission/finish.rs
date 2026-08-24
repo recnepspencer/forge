@@ -12,9 +12,7 @@ use worth_query_installation::facade::{
     WorthQueryCanonicalWorkPhases, WorthQueryInstalledApplicationQuery,
     WorthQueryInstalledGraphObligationSetIdentity,
 };
-use worth_relational::facade::{
-    indexes::DerivedIndexId, runtime::RelationalExecutionBasisIdentity,
-};
+use worth_relational::facade::indexes::DerivedIndexId;
 
 use super::{
     denial::{denial, graph_work_denial},
@@ -274,7 +272,7 @@ where
             Scope,
         >,
         pending_governance: Option<&WorthQueryPendingApplicationQueryGovernance>,
-        basis_identity: &RelationalExecutionBasisIdentity,
+        basis_identity: &super::super::WorthQueryApplicationBasisIdentity,
         graph: &WorthQueryPrimaryGraph,
     ) -> Result<WorthQueryManagedGraphWorkSession, WorthQueryApplicationQueryAdmissionDenial> {
         let capability_identity = pending_governance

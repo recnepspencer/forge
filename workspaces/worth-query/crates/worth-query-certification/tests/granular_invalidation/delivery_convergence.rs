@@ -87,7 +87,7 @@ fn run_case(performed_first: bool) -> ConvergenceObservation {
 
 fn assert_same_width_runtime_substitution_is_denied() {
     let mut current_host = CourtroomWorld::publish("blocked");
-    let mut query = build_primary_query_world(&current_host);
+    let query = build_primary_query_world(&current_host);
     let current_batch = performed_batch(&mut current_host);
 
     let mut substituted_host = CourtroomWorld::publish("blocked");

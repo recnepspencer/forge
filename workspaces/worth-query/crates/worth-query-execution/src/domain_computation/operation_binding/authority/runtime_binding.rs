@@ -155,12 +155,16 @@ fn direct_topology(
             .iter()
             .map(|node| format!("operation:{}", node.identity())),
         graph_authorities,
-        semantics.graph_reads.roles().iter().filter_map(|read| {
-            graph_authorities
-                .iter()
-                .any(|authority| authority.role() == read.role)
-                .then_some((read.role.as_str(), read.access))
-        }),
+        semantics
+            .graph_reads
+            .domain_roles()
+            .iter()
+            .filter_map(|read| {
+                graph_authorities
+                    .iter()
+                    .any(|authority| authority.role() == read.role)
+                    .then_some((read.role.as_str(), read.access))
+            }),
         touched_roles(semantics).into_iter(),
         commit_posture,
     )
@@ -203,7 +207,7 @@ fn workflow_stage_resources(
                                         .definition()
                                         .semantics()
                                         .graph_reads
-                                        .roles()
+                                        .domain_roles()
                                         .iter()
                                         .find(|read| read.role == *role)
                                         .map(|read| (role.as_str(), read.access))

@@ -98,11 +98,9 @@ fn a_committed_record_of_another_kind_denies_before_projection() {
             .unwrap()
             .clone();
         let binding = WorthQueryCommittedDispatchOutboxBinding::fixture(record.clone(), wrong_ref);
-        let snapshot = runtime
-            .snapshots()
-            .historical_snapshot_for_branch(&primary_relational_branch_id())
+        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(runtime, &primary_relational_branch_id())
             .unwrap();
-        let runtime_id = snapshot.runtime_instance_id;
+        let runtime_id = snapshot.runtime_instance_id();
         runtime.snapshots().release_snapshot(&snapshot);
         (binding, committed.outcome().commit.clone(), runtime_id)
     });
@@ -152,11 +150,9 @@ fn a_deleted_record_is_non_visible_at_the_requested_commit_without_binding_fallb
             )),
         );
         let deleted = delete.commit().unwrap();
-        let snapshot = runtime
-            .snapshots()
-            .historical_snapshot_for_branch(&primary_relational_branch_id())
+        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(runtime, &primary_relational_branch_id())
             .unwrap();
-        let runtime_id = snapshot.runtime_instance_id;
+        let runtime_id = snapshot.runtime_instance_id();
         runtime.snapshots().release_snapshot(&snapshot);
         (binding, deleted.outcome().commit.clone(), runtime_id)
     });
@@ -213,11 +209,9 @@ fn committed_substituted_row(
             pending.record().clone(),
             RecordRef::Entity(corrupted_id),
         );
-        let snapshot = runtime
-            .snapshots()
-            .historical_snapshot_for_branch(&branch)
+        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(runtime, &branch)
             .unwrap();
-        let runtime_id = snapshot.runtime_instance_id;
+        let runtime_id = snapshot.runtime_instance_id();
         runtime.snapshots().release_snapshot(&snapshot);
         (binding, committed.outcome().commit.clone(), runtime_id)
     });
@@ -276,7 +270,11 @@ fn field_locator(
 
 fn record() -> WorthQueryDispatchOutboxRecord {
     let correlation = derive_external_effect_correlation_identity(ExternalEffectCorrelationBasis {
-        correlation_family: "corruption-owner-test",
+        correlation_family:
+            worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily::new(
+                "corruption-owner-test",
+            )
+            .unwrap(),
         operation_slot: "notify",
         operation_version: 1,
         outcome_identity: 41,
@@ -287,7 +285,11 @@ fn record() -> WorthQueryDispatchOutboxRecord {
     WorthQueryDispatchOutboxRecord::from_installed_contract(
         correlation,
         &InstalledExternalEffectContract::Declared {
-            correlation_family: "corruption-owner-test".to_owned(),
+            correlation_family:
+                worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily::new(
+                    "corruption-owner-test",
+                )
+                .unwrap(),
             effect: "OwnerTestEffect".to_owned(),
             rust_payload_type: "tests::Payload".to_owned(),
             protocol: ApplicationExternalEffectProtocol::new(

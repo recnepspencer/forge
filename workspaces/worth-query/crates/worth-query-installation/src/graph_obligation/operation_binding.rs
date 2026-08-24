@@ -109,8 +109,12 @@ fn graph_read_obligations(
         return Ok(Vec::new());
     }
     let mut roles = contract.roles().to_vec();
-    roles.sort_by(|left, right| left.role.cmp(&right.role));
-    if roles.is_empty() || roles.windows(2).any(|pair| pair[0].role == pair[1].role) {
+    roles.sort_by(|left, right| left.role().cmp(right.role()));
+    if roles.is_empty()
+        || roles
+            .windows(2)
+            .any(|pair| pair[0].role() == pair[1].role())
+    {
         return Err(Denial::InvalidContract);
     }
     Ok(roles
@@ -194,7 +198,7 @@ fn validate_touch_roles(
         .graph_reads
         .roles()
         .iter()
-        .map(|role| role.role.as_str())
+        .map(|role| role.role())
         .collect::<BTreeSet<_>>();
     let WorthQueryOperationTouchContract::Declared {
         graph_roles,

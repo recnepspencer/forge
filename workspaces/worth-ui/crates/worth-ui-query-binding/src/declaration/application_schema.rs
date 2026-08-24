@@ -28,11 +28,11 @@ worth_query_application_schema! {
 }
 
 worth_query_entity!(pub WorthUiRecord in WorthUiApplicationSchema);
-worth_query_aspect!(pub IdentityAspect in WorthUiApplicationSchema, WorthUiRecord);
-worth_query_aspect!(pub QueryTextAspect in WorthUiApplicationSchema, WorthUiRecord);
-worth_query_aspect!(pub QueryRevisionAspect in WorthUiApplicationSchema, WorthUiRecord);
-worth_query_aspect!(pub MeasurementAspect in WorthUiApplicationSchema, WorthUiRecord);
-worth_query_aspect!(pub SizeAspect in WorthUiApplicationSchema, WorthUiRecord);
+worth_query_aspect!(pub IdentityAspect in WorthUiApplicationSchema, WorthUiRecord; identity = AspectIdentity(0x91611056), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub QueryTextAspect in WorthUiApplicationSchema, WorthUiRecord; identity = AspectIdentity(0x91611057), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub QueryRevisionAspect in WorthUiApplicationSchema, WorthUiRecord; identity = AspectIdentity(0x91611058), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub MeasurementAspect in WorthUiApplicationSchema, WorthUiRecord; identity = AspectIdentity(0x91611059), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub SizeAspect in WorthUiApplicationSchema, WorthUiRecord; identity = AspectIdentity(0x9161105a), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub IdentityIdField in WorthUiApplicationSchema, WorthUiRecord, IdentityAspect:
     String, read_only, equality

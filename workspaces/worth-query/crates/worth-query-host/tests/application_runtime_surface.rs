@@ -48,12 +48,12 @@ worth_query_application_schema! {
 worth_query_entity!(pub ExternalMapping in HostIdentitySchema);
 worth_query_entity!(pub Principal in HostIdentitySchema);
 worth_query_entity!(pub Account in HostIdentitySchema);
-worth_query_aspect!(pub ExternalIdentity in HostIdentitySchema, ExternalMapping);
+worth_query_aspect!(pub ExternalIdentity in HostIdentitySchema, ExternalMapping; identity = AspectIdentity(0x9161103e), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub ExternalIdentityField in HostIdentitySchema, ExternalMapping, ExternalIdentity:
     WorthQueryExternalPrincipalIdentity, read_only, equality
 );
-worth_query_aspect!(pub PrincipalIdentity in HostIdentitySchema, Principal);
+worth_query_aspect!(pub PrincipalIdentity in HostIdentitySchema, Principal; identity = AspectIdentity(0x9161103f), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub PrincipalIdentityField in HostIdentitySchema, Principal, PrincipalIdentity:
     u64, read_only, equality
@@ -75,7 +75,7 @@ worth_query_principal_binding!(
         principal_identity: PrincipalIdentityField
     }
 );
-worth_query_aspect!(pub AccountIdentity in HostIdentitySchema, Account);
+worth_query_aspect!(pub AccountIdentity in HostIdentitySchema, Account; identity = AspectIdentity(0x91611040), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub AccountNumber in HostIdentitySchema, Account, AccountIdentity:
     String, read_only, equality

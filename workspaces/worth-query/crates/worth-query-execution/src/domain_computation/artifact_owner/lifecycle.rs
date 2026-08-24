@@ -243,8 +243,6 @@ impl WorthQueryRuntimeArtifactOwner {
     }
 
     fn lifecycle(&self) -> WorthQueryArtifactLifecycleMutation<'_> {
-        #[cfg(test)]
-        self.record_lifecycle_gate_attempt();
         WorthQueryArtifactLifecycleMutation {
             _snapshot: self.snapshot_gate.lifecycle_mutation(),
             state: self.lifecycle.lock(),

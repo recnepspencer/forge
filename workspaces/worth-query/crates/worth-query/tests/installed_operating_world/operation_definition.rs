@@ -306,15 +306,20 @@ fn every_downstream_semantic_role_participates_in_atomic_installation() {
             ];
         }),
         ("graph-read", |value| match &mut value.graph_reads {
-            domain::WorthQueryOperationGraphReadContract::Declared { roles } => {
+            domain::WorthQueryOperationGraphReadContract::DeclaredDomain { roles } => {
                 roles[0].role = "source".into()
             }
             domain::WorthQueryOperationGraphReadContract::NotRequired => unreachable!(),
+            domain::WorthQueryOperationGraphReadContract::Declared { .. } => {
+                unreachable!("portable domain operations cannot carry application read scopes")
+            }
         }),
         ("touch", |value| {
             value.touches = domain::WorthQueryOperationTouchContract::Declared {
                 graph_roles: vec!["model".into()],
-                scopes: vec!["vertex".into()],
+                scopes: vec![domain::WorthQueryOperationTouchScope::DeclaredDomain(
+                    domain::WorthQueryDeclaredDomainTouchScopeIdentity::new("vertex").unwrap(),
+                )],
             }
         }),
         ("effect", |value| {

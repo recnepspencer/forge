@@ -73,7 +73,7 @@ fn index_rejection_for_packet(
     {
         return Some(IndexQueryRejectionClass::UnsupportedBranch);
     }
-    if generation.applicability.version_id > packet.context_id.version_id {
+    if generation.applicability.version_id != packet.context_id.version_id {
         return Some(IndexQueryRejectionClass::UnsupportedVersion);
     }
     if generation.applicability.schema_version != packet.context_id.schema_version {
@@ -242,7 +242,7 @@ fn generation_preference(
     generation: &DerivedIndexGeneration,
     packet: &PlannedQueryPacket,
     branch_id: &BranchId,
-) -> (bool, bool, bool, bool) {
+) -> (bool, bool, bool, bool, crate::identity::data::VersionId) {
     let branch_applicable = runtime
         .indexes
         .definitions
@@ -250,7 +250,7 @@ fn generation_preference(
         .is_none_or(|definition| {
             !definition.branch_scoped || generation.applicability.branch_id == *branch_id
         });
-    let version_applicable = generation.applicability.version_id <= packet.context_id.version_id;
+    let version_applicable = generation.applicability.version_id == packet.context_id.version_id;
     let schema_applicable =
         generation.applicability.schema_version == packet.context_id.schema_version;
     let published =
@@ -260,5 +260,6 @@ fn generation_preference(
         branch_applicable,
         version_applicable,
         schema_applicable,
+        generation.applicability.version_id,
     )
 }

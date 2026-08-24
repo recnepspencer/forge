@@ -16,8 +16,8 @@ use worth_query_installation::facade::{
     WorthQueryPortableDomainIdentity, WorthQueryPortableDomainPackage,
 };
 use worth_relational::facade::transactions::{
-    AspectFieldPatch, EntityMutationIntent, MutationIntent, TransactionOptions,
-    UpdateEntityFieldsIntent, WorkerIntentBatch,
+    AspectFieldPatch, EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent,
+    WorkerIntentBatch,
 };
 
 use super::super::{WorthQueryInvariantAggregateDenialKind, WorthQueryInvariantEntityIdentity};
@@ -35,7 +35,7 @@ worth_query_entity!(pub AggregateExternalMapping in AggregateSchema);
 worth_query_entity!(pub AggregatePrincipal in AggregateSchema);
 worth_query_entity!(pub AggregateSource in AggregateSchema);
 worth_query_entity!(pub AggregateTarget in AggregateSchema);
-worth_query_aspect!(pub AggregateExternalIdentity in AggregateSchema, AggregateExternalMapping);
+worth_query_aspect!(pub AggregateExternalIdentity in AggregateSchema, AggregateExternalMapping; identity = AspectIdentity(0x9161102f), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub AggregateExternalIdentityField in AggregateSchema,
     AggregateExternalMapping, AggregateExternalIdentity:
@@ -46,7 +46,7 @@ worth_query_field!(
     AggregateExternalMapping, AggregateExternalIdentity:
     WorthQueryPrincipalMappingStatus, read_write, equality
 );
-worth_query_aspect!(pub AggregatePrincipalIdentity in AggregateSchema, AggregatePrincipal);
+worth_query_aspect!(pub AggregatePrincipalIdentity in AggregateSchema, AggregatePrincipal; identity = AspectIdentity(0x91611030), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub AggregatePrincipalIdentityField in AggregateSchema,
     AggregatePrincipal, AggregatePrincipalIdentity:
@@ -65,8 +65,8 @@ worth_query_principal_binding!(
         principal_identity: AggregatePrincipalIdentityField
     }
 );
-worth_query_aspect!(pub SourceFacts in AggregateSchema, AggregateSource);
-worth_query_aspect!(pub TargetFacts in AggregateSchema, AggregateTarget);
+worth_query_aspect!(pub SourceFacts in AggregateSchema, AggregateSource; identity = AspectIdentity(0x91611031), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub TargetFacts in AggregateSchema, AggregateTarget; identity = AspectIdentity(0x91611032), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub SourceIdentity in AggregateSchema, AggregateSource, SourceFacts:
     String, read_only, equality

@@ -8,7 +8,7 @@ use worth_relational::facade::schema::{
     SchemaVersionId,
 };
 use worth_relational::facade::transactions::{
-    CreateIntent, EntityMutationIntent, EntitySpec, MutationIntent, RecordRef, TransactionOptions,
+    CreateIntent, EntityMutationIntent, EntitySpec, MutationIntent, RecordRef,
     UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 use worth_relational::facade::{identity::KindId, identity::PartitionId, symbols::ClientKey};
@@ -21,7 +21,9 @@ use crate::effect_lifecycle::{
     scope_admitted_effect_plan, EffectExecutionAuthority, EffectExecutionDenialKind,
 };
 
-use super::execution::branch_snapshot_identity;
+use super::execution_support::{
+    branch_snapshot_identity, exact_branch_head_commit_id, exact_branch_snapshot,
+};
 use super::support::{
     admitted_mutation_effect_for_entity_with_binding, native_name_patch,
     runtime_workflow_binding_for_branch,
@@ -43,11 +45,7 @@ fn lowered_mutation_execution_preserves_branch_scoped_authority_target() {
         "main-diverged",
         BranchId("main".to_string()),
     );
-    let branch_head_before = runtime
-        .history()
-        .historical_branch_head(&BranchId("branch-a".to_string()))
-        .expect("branch-a head should exist")
-        .commit_id;
+    let branch_head_before = exact_branch_head_commit_id(&runtime, "branch-a");
     let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
         runtime_workflow_binding_for_branch(
             branch_snapshot_identity(&runtime, "branch-a"),
@@ -69,22 +67,14 @@ fn lowered_mutation_execution_preserves_branch_scoped_authority_target() {
     assert_eq!(commit.outcome().commit.parents, vec![branch_head_before]);
     assert_ne!(commit.outcome().commit.parents, vec![main_head_before]);
     assert_eq!(
-        runtime
-            .history()
-            .historical_branch_head(&BranchId("main".to_string()))
-            .expect("main head should remain present")
-            .commit_id,
+        exact_branch_head_commit_id(&runtime, "main"),
         main_head_before
     );
     assert_eq!(
-        runtime
-            .history()
-            .historical_branch_head(&BranchId("branch-a".to_string()))
-            .expect("branch-a head should advance")
-            .commit_id,
+        exact_branch_head_commit_id(&runtime, "branch-a"),
         commit.outcome().commit.commit_id
     );
-    let snapshot = runtime.snapshots().historical_snapshot();
+    let snapshot = exact_branch_snapshot(&mut runtime, "branch-a");
     let read_view = runtime
         .read_truth()
         .read_snapshot(&snapshot)
@@ -95,6 +85,7 @@ fn lowered_mutation_execution_preserves_branch_scoped_authority_target() {
         .find(|record| record.entity_id == entity_id)
         .expect("entity should still exist after execution");
     assert_entity_name(updated, "authority-plan");
+    assert!(runtime.snapshots().release_snapshot(&snapshot));
 }
 
 #[test]
@@ -118,11 +109,7 @@ fn retained_lowered_mutation_denies_after_intervening_truth_change() {
     .lower()
     .expect("mutation should lower");
 
-    let branch_head_before = runtime
-        .history()
-        .historical_branch_head(&BranchId("branch-a".to_string()))
-        .expect("branch-a head should exist")
-        .commit_id;
+    let branch_head_before = exact_branch_head_commit_id(&runtime, "branch-a");
     update_entity_name(
         &mut runtime,
         entity_id,
@@ -140,11 +127,7 @@ fn retained_lowered_mutation_denies_after_intervening_truth_change() {
     );
     assert_eq!(denial.counters().execution_denied_count(), 1);
     assert_eq!(
-        runtime
-            .history()
-            .historical_branch_head(&BranchId("branch-a".to_string()))
-            .expect("stale denial should preserve intervening branch head")
-            .commit_id,
+        exact_branch_head_commit_id(&runtime, "branch-a"),
         runtime
             .history()
             .historical_latest_commit()
@@ -152,14 +135,10 @@ fn retained_lowered_mutation_denies_after_intervening_truth_change() {
             .commit_id
     );
     assert_ne!(
-        runtime
-            .history()
-            .historical_branch_head(&BranchId("branch-a".to_string()))
-            .expect("branch-a head should remain advanced by intervening commit")
-            .commit_id,
+        exact_branch_head_commit_id(&runtime, "branch-a"),
         branch_head_before
     );
-    let snapshot = runtime.snapshots().historical_snapshot();
+    let snapshot = exact_branch_snapshot(&mut runtime, "branch-a");
     let read_view = runtime
         .read_truth()
         .read_snapshot(&snapshot)
@@ -170,6 +149,7 @@ fn retained_lowered_mutation_denies_after_intervening_truth_change() {
         .find(|record| record.entity_id == entity_id)
         .expect("entity should still exist after stale denial");
     assert_entity_name(updated, "intervening");
+    assert!(runtime.snapshots().release_snapshot(&snapshot));
 }
 
 #[test]
@@ -210,11 +190,7 @@ fn lowered_branch_mutation_does_not_deny_when_only_another_branch_moves() {
     assert_ne!(commit.outcome().commit.commit_id, main_head_before);
     assert_eq!(commit.outcome().commit.parents.len(), 1);
     assert_eq!(
-        runtime
-            .history()
-            .historical_branch_head(&BranchId("main".to_string()))
-            .expect("main branch should retain intervening head")
-            .commit_id,
+        exact_branch_head_commit_id(&runtime, "main"),
         main_head_before
     );
 }

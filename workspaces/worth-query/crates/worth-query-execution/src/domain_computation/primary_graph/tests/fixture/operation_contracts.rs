@@ -76,7 +76,10 @@ pub(super) fn install(
                 .definition()
                 .external_effect(
                     RetainedStatusEffect::reference(),
-                    "test-status-retention-rail",
+                    worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily::new(
+                        "test-status-retention-rail",
+                    )
+                    .unwrap(),
                 )
                 .aftermath(schema_types::exact_preimage_retention::status_with_external_owner())
                 .finish(),
@@ -177,5 +180,24 @@ pub(super) fn install(
         .operation_unlink(
             ChangeOwnershipOperation::reference(),
             AccountOwner::reference(),
+        )
+        .operation(
+            MutationFreeEmitOperation::reference()
+                .definition()
+                .external_effect(
+                    MutationFreeExternalEffect::reference(),
+                    worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily::new(
+                        "test-mutation-free-rail",
+                    )
+                    .unwrap(),
+                )
+                .no_aftermath()
+                .finish(),
+        )
+        .operation_decision_fact_budget(MutationFreeEmitOperation::reference(), 1)
+        .operation_projection_work_budget(MutationFreeEmitOperation::reference(), 8)
+        .operation_emit(
+            MutationFreeEmitOperation::reference(),
+            MutationFreeExternalEffect::reference(),
         )
 }

@@ -11,7 +11,7 @@ pub use crate::runtime::{
     WorthQueryAsyncResultTransitionBatch, WorthQueryAsyncSourceBindingError,
     WorthQueryAsyncSourceBindingErrorKind, WorthQueryAuthenticatedPrincipal,
     WorthQueryBackendMergeAuthority, WorthQueryExecutionRuntimeInstallation,
-    WorthQueryGraphReadAccessRequirementDerivationError,
+    WorthQueryGranularSourceReadBasis, WorthQueryGraphReadAccessRequirementDerivationError,
     WorthQueryGraphReadAccessRequirementExplanationOutcome,
     WorthQueryGraphReadAccessRequirementKind, WorthQueryGraphReadAccessRequirementRow,
     WorthQueryGraphReadAccessRequirementSet, WorthQueryGraphReadAccessRequirementSetDigest,

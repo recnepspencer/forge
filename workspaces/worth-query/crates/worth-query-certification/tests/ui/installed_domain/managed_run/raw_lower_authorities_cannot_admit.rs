@@ -2,7 +2,7 @@ use worth_query_execution::facade::domain_computation::{
     WorthQueryDirectExecutionResourceAttempt, WorthQueryExecutionBoundOperationAuthority,
     WorthQueryExecutionRuntime,
 };
-use worth_relational::facade::runtime::RelationalExecutionBasisLease;
+use worth_relational::facade::branch::AdmittedRelationalBranchBasis;
 use worth_runtime_bridge::facade::BridgeBoundExecutionBasis;
 
 fn bypass(
@@ -10,7 +10,7 @@ fn bypass(
     operation: &WorthQueryExecutionBoundOperationAuthority,
     attempt: WorthQueryDirectExecutionResourceAttempt,
     bridge: BridgeBoundExecutionBasis,
-    relational: RelationalExecutionBasisLease,
+    relational: AdmittedRelationalBranchBasis,
 ) {
     let _ = runtime.admit_direct_run(operation, attempt, bridge, relational);
 }

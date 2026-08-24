@@ -2,8 +2,8 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 use std::time::Instant;
 
+use super::super::WorthQueryApplicationBasisIdentity;
 use worth_query_installation::facade::ApplicationSchemaBindingIdentity;
-use worth_relational::facade::runtime::RelationalExecutionBasisIdentity;
 use worth_runtime_bridge::facade::{
     BridgePreviewSessionLivenessObserver, BridgeSpeculativeSessionHandle,
 };
@@ -34,6 +34,9 @@ pub struct WorthQueryApplicationPreviewSession<Schema> {
     pub(super) schema_binding: ApplicationSchemaBindingIdentity,
     pub(super) identity: WorthQueryApplicationPreviewSessionIdentity,
     pub(super) handle: Option<BridgeSpeculativeSessionHandle>,
+    pub(super) source_basis: worth_relational::facade::branch::AdmittedRelationalBranchBasis,
+    pub(super) source_observation:
+        Option<worth_relational::facade::bridge::RelationalBridgeObservationLease>,
     pub(super) _schema: PhantomData<fn() -> Schema>,
 }
 
@@ -62,6 +65,12 @@ impl<Schema> WorthQueryApplicationPreviewSession<Schema> {
     pub(super) fn handle(&self) -> Option<&BridgeSpeculativeSessionHandle> {
         self.handle.as_ref()
     }
+
+    pub(super) fn source_basis(
+        &self,
+    ) -> &worth_relational::facade::branch::AdmittedRelationalBranchBasis {
+        &self.source_basis
+    }
 }
 
 impl<Schema> Drop for WorthQueryApplicationPreviewSession<Schema> {
@@ -69,6 +78,7 @@ impl<Schema> Drop for WorthQueryApplicationPreviewSession<Schema> {
         if let Some(handle) = self.handle.take() {
             let _ = handle.discard(Vec::new());
         }
+        self.source_observation.take();
     }
 }
 
@@ -103,12 +113,12 @@ pub struct WorthQueryApplicationPreviewBasis<Schema> {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryApplicationPreviewBasisReleaseReceipt {
-    basis_identity: RelationalExecutionBasisIdentity,
+    basis_identity: WorthQueryApplicationBasisIdentity,
     released: bool,
 }
 
 impl<Schema> WorthQueryApplicationPreviewBasis<Schema> {
-    pub fn identity(&self) -> &RelationalExecutionBasisIdentity {
+    pub fn identity(&self) -> &WorthQueryApplicationBasisIdentity {
         self.lease.identity()
     }
 
@@ -147,7 +157,7 @@ impl<Schema> WorthQueryApplicationPreviewBasis<Schema> {
 }
 
 impl WorthQueryApplicationPreviewBasisReleaseReceipt {
-    pub fn basis_identity(&self) -> &RelationalExecutionBasisIdentity {
+    pub fn basis_identity(&self) -> &WorthQueryApplicationBasisIdentity {
         &self.basis_identity
     }
 

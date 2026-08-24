@@ -12,7 +12,7 @@ use worth_relational::facade::schema::{
     SchemaVersionId,
 };
 use worth_relational::facade::transactions::{
-    CreateIntent, EntitySpec, MutationIntent, RecordRef, TransactionOptions, WorkerIntentBatch,
+    CreateIntent, EntitySpec, MutationIntent, RecordRef, WorkerIntentBatch,
 };
 use worth_relational::facade::{identity::KindId, identity::PartitionId, symbols::ClientKey};
 use worth_runtime_bridge::facade::{
@@ -77,6 +77,15 @@ pub(super) fn create_entity(
         .expect("seed commit should touch one entity")
 }
 
+pub(super) fn fork_seed_branch_from_main(runtime: &mut RelationalRuntime, branch: &str) {
+    crate::runtime::fork_branch_from_exact_source(
+        runtime,
+        BranchId(branch.to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("seed branch should fork from the owner-admitted main basis");
+}
+
 pub(super) fn test_bridge_with_writeback_authority() -> RuntimeBridge {
     RuntimeBridgeBuilder::new()
         .with_relational_source(TestBridgeSource)
@@ -101,17 +110,8 @@ pub(super) fn branch_snapshot_identity(
     runtime: &RelationalRuntime,
     branch: &str,
 ) -> WorthQuerySnapshotIdentity {
-    let history = runtime.history();
-    let head = history
-        .historical_branch_head(&BranchId(branch.to_string()))
-        .expect("certification branch snapshot requires a current head");
-    WorthQuerySnapshotIdentity::from_bridge_snapshot_projection(
-        worth_relational::facade::bridge::bridge_snapshot_identity_for_commit(
-            head.commit_id,
-            head.version_id,
-        ),
-    )
-    .expect("relational commit must yield a relational snapshot identity")
+    crate::memory_workspace::snapshot_identity_from_branch(runtime, &BranchId(branch.to_string()))
+        .expect("certification branch snapshot requires a current owner basis")
 }
 
 fn test_schema_registry() -> RelationalSchemaRegistry {

@@ -18,7 +18,7 @@ impl BankCommittedDispatchOutboxObservation {
     }
 
     pub fn correlation_family(&self) -> &str {
-        self.query.record().correlation_family()
+        self.query.record().correlation_family().as_str()
     }
 
     pub fn effect(&self) -> &str {

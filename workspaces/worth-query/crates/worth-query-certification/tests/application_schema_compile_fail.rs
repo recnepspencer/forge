@@ -47,10 +47,14 @@ fn application_schema_compiler_boundaries_hold() {
         "tests/ui/application_schema/operation_definition_rejects_duplicate_aftermath.rs",
         "tests/ui/application_schema/principal_binding_status_cannot_fill_identity_role.rs",
         "tests/ui/application_schema/principal_binding_reversed_target_is_rejected.rs",
+        "tests/ui/application_schema/stable_aspect_macro_requires_identity_and_revision.rs",
+        "tests/ui/application_schema/native_contract_catalog_is_sealed.rs",
     ] {
         cases.compile_fail(fixture);
     }
     cases.pass("tests/ui/application_schema/capability_composition_categories_are_typed.rs");
     cases.pass("tests/ui/application_schema/operation_definition_zero_one_contracts_are_typed.rs");
     cases.pass("tests/ui/application_schema/query_and_principal_authoring_roles_are_typed.rs");
+    cases.pass("tests/ui/application_schema/stable_aspect_macro_carries_identity_and_revision.rs");
+    cases.pass("tests/ui/application_schema/native_contract_catalog_is_read_only.rs");
 }

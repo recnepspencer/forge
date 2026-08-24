@@ -39,7 +39,7 @@ pub(super) fn validate_member_identifiers(
     for member in members {
         match member {
             ApplicationSchemaMember::Entity { entity } => validate_simple_identifier(entity)?,
-            ApplicationSchemaMember::Aspect { entity, aspect } => {
+            ApplicationSchemaMember::Aspect { entity, aspect, .. } => {
                 validate_identifiers([entity, aspect])?;
             }
             ApplicationSchemaMember::Field {
@@ -125,11 +125,8 @@ pub(super) fn validate_member_identifiers(
                 validate_simple_identifier(operation)?;
             }
             ApplicationSchemaMember::OperationExternalEffect {
-                operation,
-                effect,
-                correlation_family,
-                ..
-            } => validate_identifiers([operation, effect, correlation_family])?,
+                operation, effect, ..
+            } => validate_identifiers([operation, effect])?,
             ApplicationSchemaMember::OperationAftermath { operation, .. } => {
                 validate_simple_identifier(operation)?;
             }

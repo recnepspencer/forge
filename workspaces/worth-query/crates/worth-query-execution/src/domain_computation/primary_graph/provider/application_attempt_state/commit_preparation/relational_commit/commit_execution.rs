@@ -38,9 +38,10 @@ pub(super) fn commit(
         preimage_retention_work,
     } = prepared;
     let _ = mint;
-    let before = runtime
-        .snapshots()
-        .historical_snapshot_for_branch(&branch)
+    let before =
+        crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(
+            runtime, &branch,
+        )
         .ok_or_else(|| failure("application branch has no current pre-commit snapshot"))?;
     let committed = runtime.commit_validated_mutation(candidate).map_err(|_| {
         let _ = runtime.snapshots().release_snapshot(&before);

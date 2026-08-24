@@ -11,8 +11,7 @@ use worth_relational::facade::indexes::DerivedIndexBuildRequest;
 use worth_relational::facade::symbols::ClientKey;
 use worth_relational::facade::transactions::{
     AspectFieldPatch, CreateIntent, CreatedEntityRef, EntityMutationIntent, EntityReference,
-    EntitySpec, MutationIntent, RelationSpec, TransactionOptions, UpdateEntityFieldsIntent,
-    WorkerIntentBatch,
+    EntitySpec, MutationIntent, RelationSpec, UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 
 use super::fixture::{external_identity, installed_world, live_scope};

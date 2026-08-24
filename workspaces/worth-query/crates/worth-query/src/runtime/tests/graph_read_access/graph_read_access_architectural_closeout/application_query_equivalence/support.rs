@@ -55,9 +55,9 @@ worth_query_application_schema! {
 
 worth_query_entity!(pub Account in EquivalenceSchema);
 worth_query_entity!(pub Activity in EquivalenceSchema);
-worth_query_aspect!(pub AccountFacts in EquivalenceSchema, Account);
-worth_query_aspect!(pub Identity in EquivalenceSchema, Account);
-worth_query_aspect!(pub ActivityFacts in EquivalenceSchema, Activity);
+worth_query_aspect!(pub AccountFacts in EquivalenceSchema, Account; identity = AspectIdentity(0x91611051), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub Identity in EquivalenceSchema, Account; identity = AspectIdentity(0x91611052), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub ActivityFacts in EquivalenceSchema, Activity; identity = AspectIdentity(0x91611053), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub AccountId in EquivalenceSchema, Account, AccountFacts:
     u64, read_only, equality

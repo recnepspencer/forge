@@ -113,10 +113,11 @@ fn cancellation_and_deadline_deny_resume_before_basis_acquisition() {
 }
 
 #[test]
-fn unavailable_continuation_basis_denies_without_registering_a_lease() {
+fn foreign_continuation_basis_denies_without_registering_a_lease() {
     let context = ContinuationTestContext::new(Duration::from_secs(60));
     let mut continuation = context.issue();
-    continuation.basis_version = worth_relational::facade::identity::VersionId(u64::MAX);
+    let foreign = ContinuationTestContext::new(Duration::from_secs(60));
+    continuation.basis_descriptor = foreign.issue().basis_descriptor;
     let acquisitions = context.basis_acquisitions();
     let request = crate::domain_computation::primary_graph::tests::fixture::live_scope();
 
@@ -124,7 +125,7 @@ fn unavailable_continuation_basis_denies_without_registering_a_lease() {
 
     assert_eq!(
         denial,
-        WorthQueryApplicationQueryAdmissionDenialKind::BasisUnavailable
+        WorthQueryApplicationQueryAdmissionDenialKind::ForeignBasis
     );
     assert_eq!(context.basis_acquisitions(), acquisitions);
     context.assert_resource_baseline();

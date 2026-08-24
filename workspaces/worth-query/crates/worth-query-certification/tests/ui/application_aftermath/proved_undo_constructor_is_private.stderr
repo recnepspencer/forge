@@ -5,7 +5,7 @@ error: cannot construct `WorthQueryProvedUndo` with struct literal syntax due to
    |                     ^^^^^^^^^^^^^^^^^^^^
  9 |           original_operation: [0; 32],
    |           --------------------------- private field
-10 | /         undo_commit: CommitReference {
+10 | /         undo_commit: RelationalCommitReceipt {
 11 | |             commit_id: CommitId(7),
 12 | |             version_id: VersionId(7),
 13 | |             branch_id: BranchId("main".to_owned()),

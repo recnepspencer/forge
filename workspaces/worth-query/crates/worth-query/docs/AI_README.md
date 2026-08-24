@@ -165,6 +165,18 @@ Stable application aftermath and recovery enter through `primary_graph` and
 `publication::application_aftermath`. Do not teach
 `facade::provisional_aftermath` as stable undo/redo support.
 
+Installed application meaning is inspectable without importing an owner crate.
+Through `facade::domain`, use `installed_schema.native_contracts()` for the
+sealed native aspect catalog, and use an installed operation's
+`contracts().graph_reads()`, `contracts().touches()`,
+`contracts().emissions()`, `contracts().external_effect()`, and
+`contracts().aftermath()` for exact typed graph scopes, application-effect
+emissions, escaping-effect meaning, and aftermath meaning. The aftermath view
+includes correction authority, correction mechanism, published and recovery
+posture, legal next actions, exact reconciliation procedure, canonical
+evidence, and the typed external-effect correlation family. These are borrowed
+inspection values, not operational authority.
+
 The facade route is part of the contract, not just the final list of names.
 Boundary enforcement verifies that `worth-query-host` re-exports the exact
 installed owner namespace and snapshots that namespace recursively. Retargeting
@@ -238,15 +250,22 @@ Installed products include the exact identities and contracts needed by
 admission:
 
 - application schema and operation identity;
+- one sealed native application-aspect catalog retaining each declaration-owned
+  `AspectIdentity`, `AspectContractRevision`, contract, and field closure;
 - query and result-shape identity;
 - capability and purpose requirements;
 - principal binding;
-- graph obligations;
+- typed entity, native-projection, and relation read scopes;
+- typed create, delete, field-write, relation-link, and relation-unlink
+  declared touch scopes;
+- typed application-effect emissions kept separate from graph touches;
+- graph obligations derived from those same exact scopes;
 - graph-read access requirements;
 - effect and invariant contracts;
 - external-effect protocol, correlation, payload-bound, and outbox contracts;
-- aftermath correction authority, correction mechanism, pre-image demand, and
-  published posture;
+- aftermath correction authority, correction mechanism, pre-image demand,
+  published posture, recovery, legal next actions, exact reconciliation, and
+  canonical evidence;
 - publication and consumer-support posture.
 
 Installation is the point where domain meaning becomes executable runtime
@@ -259,6 +278,15 @@ either `aftermath(...)` or `no_aftermath()`, before `finish()` is available.
 Installation derives the accepted aftermath posture as `Reversible`,
 `Compensatable`, `Reconcilable`, or `Irreversible`; an escaping external effect
 cannot be reversible.
+
+Do not recover any of this meaning by parsing rendered scope strings or by
+rebuilding application aspect contracts in execution. Declared touches are the
+legal ceiling. Before commit, Relational exposes validated candidate touches so
+Query can prove that the proposed mutation remains inside that ceiling;
+candidate validation is not performed evidence. Only commit-sealed touched
+records say what the committed attempt actually changed. An ordinary typed
+`Emit` target is not a graph touch, and the one escaping external-effect lane
+remains a separate contract.
 
 ## Request, Authentication, And Principal Resolution
 
@@ -343,6 +371,12 @@ Composition can require:
 Delegation derives a narrower capability from existing capability authority.
 It retains lineage to its source and enforces depth, scope, purpose, resource,
 operation, field, and validity bounds.
+
+When one installed operation composes several capabilities, a selected
+delegation-activation program may be a proper subset of the operation's full
+installed program union. The selected targets must be duplicate-free and every
+target must be contained in that installed union; requiring equality with the
+whole union would reject a lawful narrower activation.
 
 Delegation cannot:
 
@@ -1070,6 +1104,7 @@ Start with the guide that owns the concept you are changing:
 - [Declarative Query Experience](./capabilities/declarative-query-experience.md)
 - [Runtime-Installed Domains And Operations](./domain-capabilities/runtime-installed-domains.md)
 - [Canonical Graph Obligation Progression](./domain-capabilities/canonical-graph-obligation-progression.md)
+- [Graph Touch Obligation Authority](./authoring/graph-touch-obligation-authority.md)
 - [Graph Read Access Planning](./authoring/graph-read-access-planning.md)
 - [Provider Sessions And Decision Read-Sets](./domain-capabilities/provider-sessions-and-decision-read-sets.md)
 - [Provisional State And Invariant Execution](./domain-capabilities/provisional-state-and-invariant-execution.md)

@@ -6,7 +6,7 @@ use worth_relational::facade::{
     symbols::ClientKey,
     transactions::{
         ApplyEntityAspectPatchIntent, CreateIntent, DeleteEntityIntent, EntityAspectCreateIntent,
-        EntityMutationIntent, MutationIntent, RecordRef, TransactionOptions, WorkerIntentBatch,
+        EntityMutationIntent, MutationIntent, RecordRef, WorkerIntentBatch,
     },
 };
 

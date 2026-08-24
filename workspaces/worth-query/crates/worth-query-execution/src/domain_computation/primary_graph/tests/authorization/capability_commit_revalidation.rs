@@ -5,8 +5,8 @@ use worth_query_declaration::facade::authentication::WorthQueryPrincipalMappingS
 use worth_query_installation::facade::TypedApplicationValue;
 use worth_relational::facade::identity::EntityId;
 use worth_relational::facade::transactions::{
-    AspectFieldPatch, EntityMutationIntent, MutationIntent, TransactionOptions,
-    UpdateEntityFieldsIntent, WorkerIntentBatch,
+    AspectFieldPatch, EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent,
+    WorkerIntentBatch,
 };
 
 use super::super::application_attempt::{authenticated_principal, idempotency};

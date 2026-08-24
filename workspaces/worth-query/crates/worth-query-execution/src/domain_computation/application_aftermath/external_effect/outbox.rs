@@ -6,7 +6,9 @@ use worth_foundational::facade::{
     AspectValue, BoundaryProtocolIdentity, BoundaryProtocolVersion, CanonicalDigestId,
     InternedString,
 };
-use worth_query_installation::facade::InstalledExternalEffectContract;
+use worth_query_installation::facade::{
+    InstalledExternalEffectContract, WorthQueryExternalEffectCorrelationFamily,
+};
 use worth_relational::facade::transactions::{
     CreateIntent, CreatedEntityRef, EntitySpec, MutationIntent,
 };
@@ -17,7 +19,7 @@ use super::correlation::ExternalEffectCorrelationIdentity;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryDispatchOutboxRecord {
     correlation: ExternalEffectCorrelationIdentity,
-    correlation_family: String,
+    correlation_family: WorthQueryExternalEffectCorrelationFamily,
     effect: String,
     protocol_identity: BoundaryProtocolIdentity,
     protocol_version: BoundaryProtocolVersion,
@@ -95,7 +97,7 @@ impl WorthQueryDispatchOutboxRecord {
         &self.correlation
     }
 
-    pub fn correlation_family(&self) -> &str {
+    pub const fn correlation_family(&self) -> &WorthQueryExternalEffectCorrelationFamily {
         &self.correlation_family
     }
 
@@ -123,17 +125,20 @@ impl WorthQueryDispatchOutboxRecord {
         self.outcome_identity
     }
 
-    pub(crate) fn restore(fields: WorthQueryDispatchOutboxRestoredFields) -> Self {
-        Self {
+    pub(crate) fn restore(fields: WorthQueryDispatchOutboxRestoredFields) -> Option<Self> {
+        Some(Self {
             correlation: fields.correlation,
-            correlation_family: fields.correlation_family,
+            correlation_family: WorthQueryExternalEffectCorrelationFamily::new(
+                fields.correlation_family,
+            )
+            .ok()?,
             effect: fields.effect,
             protocol_identity: fields.protocol_identity,
             protocol_version: fields.protocol_version,
             maximum_payload_bytes: fields.maximum_payload_bytes,
             payload: fields.payload,
             outcome_identity: fields.outcome_identity,
-        }
+        })
     }
 }
 
@@ -177,7 +182,9 @@ pub(crate) fn bind_dispatch_outbox_create_intent(
         ),
         (
             layout.family_locator.clone(),
-            AspectValue::String(InternedString::from(record.correlation_family.clone())),
+            AspectValue::String(InternedString::from(
+                record.correlation_family.as_str().to_owned(),
+            )),
         ),
         (
             layout.effect_locator.clone(),

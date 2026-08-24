@@ -98,6 +98,13 @@ fn external_owner_publishes_reconcilable() {
         installed.published_posture(),
         PublishedAftermathPosture::Reconcilable
     );
+    assert_eq!(
+        installed
+            .reconciliation()
+            .expect("external-owner aftermath retains reconciliation")
+            .procedure_slot(),
+        "confirm-death-notice"
+    );
 }
 
 #[test]

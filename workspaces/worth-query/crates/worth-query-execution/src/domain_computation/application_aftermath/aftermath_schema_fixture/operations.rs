@@ -7,7 +7,7 @@ use worth_query_declaration::facade::application_aftermath::{
 };
 use worth_query_declaration::facade::application_schema::{
     ApplicationAbilityRef, ApplicationOperationRef, ApplicationSchemaDeclaration,
-    ApplicationSchemaDeclarationBuilder,
+    ApplicationSchemaDeclarationBuilder, WorthQueryExternalEffectCorrelationFamily,
 };
 
 use super::declaration::{
@@ -104,7 +104,10 @@ macro_rules! bind_escaping_principal_op {
             .operation(
                 operation
                     .definition()
-                    .external_effect($effect, $rail)
+                    .external_effect(
+                        $effect,
+                        WorthQueryExternalEffectCorrelationFamily::new($rail).unwrap(),
+                    )
                     .aftermath($aftermath)
                     .finish(),
             )

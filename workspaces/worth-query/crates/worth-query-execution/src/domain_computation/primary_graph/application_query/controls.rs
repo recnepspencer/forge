@@ -65,7 +65,7 @@ pub(super) enum WorthQueryApplicationQueryBasis<Schema> {
     Pinned(WorthQueryApplicationPinnedBasis<Schema>),
     Historical(WorthQueryApplicationHistoricalBasis<Schema>),
     Preview(WorthQueryApplicationPreviewBasis<Schema>),
-    Continuation(worth_relational::facade::identity::VersionId),
+    Continuation(worth_relational::facade::branch::RelationalBranchBasisDescriptor),
 }
 
 impl<'a, Schema> WorthQueryApplicationQueryControls<'a, Schema> {
@@ -268,11 +268,11 @@ impl<'a, Schema> WorthQueryApplicationQueryControls<'a, Schema> {
     }
 
     pub(super) fn continuation_resume(
-        version_id: worth_relational::facade::identity::VersionId,
+        descriptor: worth_relational::facade::branch::RelationalBranchBasisDescriptor,
         controls: WorthQueryApplicationQueryResumeControls<'a>,
     ) -> Self {
         Self {
-            basis: WorthQueryApplicationQueryBasis::Continuation(version_id),
+            basis: WorthQueryApplicationQueryBasis::Continuation(descriptor),
             lane: WorthQueryApplicationQueryLane::Continuation,
             maximum_result_count: controls.maximum_page_width,
             maximum_work: controls.maximum_work,

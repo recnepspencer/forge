@@ -7,6 +7,7 @@ use crate::application_aftermath::{
 use super::super::capabilities::OperationEmits;
 use super::super::{
     ApplicationEffectRef, ApplicationExternalEffectPayload, ApplicationOperationRef,
+    WorthQueryExternalEffectCorrelationFamily,
 };
 use super::contract_slots::DeclaredExternalEffectSlot;
 use super::definition::ApplicationOperationDefinition;
@@ -76,7 +77,7 @@ impl<Schema, Operation, Input, const AFTERMATH_DECIDED: bool>
     pub fn external_effect<Effect, Payload>(
         self,
         effect: ApplicationEffectRef<Schema, Effect, Payload>,
-        correlation_family: &str,
+        correlation_family: WorthQueryExternalEffectCorrelationFamily,
     ) -> ApplicationOperationDefinitionBuilder<Schema, Operation, Input, true, AFTERMATH_DECIDED>
     where
         Effect: OperationEmits<Operation>,
@@ -89,7 +90,7 @@ impl<Schema, Operation, Input, const AFTERMATH_DECIDED: bool>
                 rust_payload_type: std::any::type_name::<Payload>().to_string(),
                 protocol: Payload::PROTOCOL,
                 maximum_payload_bytes: Payload::MAX_EXTERNAL_BYTES,
-                correlation_family: correlation_family.to_string(),
+                correlation_family,
             }),
             aftermath: self.aftermath,
             marker: PhantomData,

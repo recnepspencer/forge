@@ -13,5 +13,9 @@ worth-query-execution = { path = "../worth-query-execution" }
 worth-query-installation = { path = "../worth-query-installation" }
 worth-query-publication = { path = "../worth-query-publication" }
 
+[dev-dependencies]
+worth-foundational = { path = "../../../../crates/worth-foundational" }
+worth-query-decl = { path = "../worth-query-decl" }
+
 [lints]
 workspace = true

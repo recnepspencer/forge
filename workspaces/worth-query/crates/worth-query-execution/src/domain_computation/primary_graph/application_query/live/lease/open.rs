@@ -57,7 +57,7 @@ struct WorthQueryApplicationLiveInitialRead {
     graph_work: crate::domain_computation::provider_session::WorthQueryManagedGraphWorkSession,
     read_proof: crate::domain_computation::provider_session::WorthQuerySessionGraphReadProof,
     initial_read_work: crate::domain_computation::provider_session::WorthQueryObservedGraphReadWork,
-    basis_release: worth_relational::facade::runtime::RelationalExecutionBasisReleaseReceipt,
+    basis_release: super::super::super::WorthQueryApplicationBasisReleaseReceipt,
 }
 
 impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>

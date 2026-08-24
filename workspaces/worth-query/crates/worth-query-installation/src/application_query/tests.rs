@@ -57,8 +57,8 @@ worth_query_application_schema! {
 
 worth_query_entity!(pub Account in QueryTestSchema);
 worth_query_entity!(pub Activity in QueryTestSchema);
-worth_query_aspect!(pub AccountFacts in QueryTestSchema, Account);
-worth_query_aspect!(pub ActivityFacts in QueryTestSchema, Activity);
+worth_query_aspect!(pub AccountFacts in QueryTestSchema, Account; identity = AspectIdentity(0x9161104a), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub ActivityFacts in QueryTestSchema, Activity; identity = AspectIdentity(0x9161104b), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub AccountId in QueryTestSchema, Account, AccountFacts:
     u64, read_only, equality

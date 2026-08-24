@@ -5,6 +5,7 @@ use worth_relational::facade::commit_strategies::{
 };
 use worth_relational::facade::history::BranchId;
 use worth_relational::facade::runtime::RelationalRuntime;
+use worth_relational::facade::snapshots::SnapshotHandle;
 use worth_relational::facade::transactions::{CommitResult, TransactionOptions};
 
 use super::execution::{lower_runtime_error, EffectExecutionDenialKind};
@@ -24,8 +25,9 @@ pub(super) fn execute_lowered_mutation(
                 EffectExecutionDenialKind::RelationalStrategyCanonicalizationFailed,
             )
         })?;
-    let snapshot = runtime.snapshots().historical_snapshot();
-    let execution: StrategyExecutionDraft = runtime
+    let target_branch = mutation_target_branch(declaration)?;
+    let snapshot = open_exact_basis_snapshot(runtime, &target_branch)?;
+    let execution = runtime
         .commit_strategies()
         .execute(&canonical, &snapshot)
         .map_err(|error| {
@@ -33,7 +35,15 @@ pub(super) fn execute_lowered_mutation(
                 error,
                 EffectExecutionDenialKind::RelationalStrategyExecutionFailed,
             )
-        })?;
+        });
+    let released = runtime.snapshots().release_snapshot(&snapshot);
+    if !released {
+        return Err((
+            EffectExecutionDenialKind::RelationalAuthorityBindingMalformed,
+            "exact Relational strategy snapshot could not be released".to_string(),
+        ));
+    }
+    let execution: StrategyExecutionDraft = execution?;
     let mut commit_authority = runtime.commit_strategies_authority();
     let lowered = commit_authority
         .lower_execution(&canonical, &execution, transaction_options)
@@ -123,28 +133,59 @@ fn current_branch_snapshot_identity(
     runtime: &RelationalRuntime,
     branch: &BranchId,
 ) -> Result<WorthQuerySnapshotIdentity, (EffectExecutionDenialKind, String)> {
-    let history = runtime.history();
-    let head = history
-        .historical_branch_head(branch)
-        .ok_or_else(|| {
+    crate::memory_workspace::snapshot_identity_from_branch(runtime, branch).ok_or_else(|| {
+        (
+            EffectExecutionDenialKind::RelationalAuthorityBindingMalformed,
+            format!(
+                "lowered relational mutation execution found no current head for branch `{}`",
+                branch.0
+            ),
+        )
+    })
+}
+
+pub(super) fn open_exact_basis_snapshot(
+    runtime: &mut RelationalRuntime,
+    branch: &BranchId,
+) -> Result<SnapshotHandle, (EffectExecutionDenialKind, String)> {
+    let basis = observe_exact_branch_basis(runtime, branch)?;
+    runtime
+        .snapshots()
+        .snapshot_for_observation(&basis.observation())
+        .map_err(|denial| {
             (
                 EffectExecutionDenialKind::RelationalAuthorityBindingMalformed,
                 format!(
-                    "lowered relational mutation execution could not resolve a current head for branch `{}`",
+                    "owner rejected exact mutation snapshot for branch `{}`: {denial:?}",
+                    branch.0,
+                ),
+            )
+        })
+}
+
+fn observe_exact_branch_basis(
+    runtime: &RelationalRuntime,
+    branch: &BranchId,
+) -> Result<
+    worth_relational::facade::branch::AdmittedRelationalBranchBasis,
+    (EffectExecutionDenialKind, String),
+> {
+    let identity = runtime.branch_identity(branch).map_err(|denial| {
+        (
+            EffectExecutionDenialKind::RelationalAuthorityBindingMalformed,
+            format!("owner rejected mutation branch `{}`: {denial:?}", branch.0),
+        )
+    })?;
+    runtime
+        .observe_branch(&identity)
+        .map(|(_, basis)| basis)
+        .map_err(|denial| {
+            (
+                EffectExecutionDenialKind::RelationalAuthorityBindingMalformed,
+                format!(
+                    "owner rejected current mutation basis for branch `{}`: {denial:?}",
                     branch.0
                 ),
             )
-        })?;
-    WorthQuerySnapshotIdentity::from_bridge_snapshot_projection(
-        worth_relational::facade::bridge::bridge_snapshot_identity_for_commit(
-            head.commit_id,
-            head.version_id,
-        ),
-    )
-    .ok_or_else(|| {
-        (
-            EffectExecutionDenialKind::RelationalAuthorityBindingMalformed,
-            "relational bridge returned a non-relational snapshot identity".to_string(),
-        )
-    })
+        })
 }

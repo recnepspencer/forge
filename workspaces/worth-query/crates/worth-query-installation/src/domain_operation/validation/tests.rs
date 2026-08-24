@@ -2,9 +2,10 @@ use std::num::NonZeroU32;
 
 use super::validate_invariant_execution;
 use crate::domain_operation::{
-    WorthQueryInstalledInvariantExecutionRequirement, WorthQueryInvariantEnforcement,
-    WorthQueryInvariantExecutionContract, WorthQueryOperationInvariantContract,
-    WorthQueryOperationTouchContract,
+    WorthQueryDeclaredDomainTouchScopeIdentity, WorthQueryInstalledInvariantExecutionRequirement,
+    WorthQueryInvariantEnforcement, WorthQueryInvariantExecutionContract,
+    WorthQueryOperationInvariantContract, WorthQueryOperationTouchContract,
+    WorthQueryOperationTouchScope,
 };
 
 #[test]
@@ -110,6 +111,8 @@ fn requirement(slot: &str) -> WorthQueryInstalledInvariantExecutionRequirement {
 fn touches() -> WorthQueryOperationTouchContract {
     WorthQueryOperationTouchContract::Declared {
         graph_roles: vec!["graph".to_owned()],
-        scopes: vec!["region".to_owned()],
+        scopes: vec![WorthQueryOperationTouchScope::DeclaredDomain(
+            WorthQueryDeclaredDomainTouchScopeIdentity::new("region").unwrap(),
+        )],
     }
 }

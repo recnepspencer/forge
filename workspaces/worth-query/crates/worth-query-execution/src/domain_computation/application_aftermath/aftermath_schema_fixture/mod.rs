@@ -9,8 +9,8 @@ use worth_query_declaration::facade::application_schema::{
 use worth_query_installation::facade::{
     WorthQueryInstallationAdmissionProfile, WorthQueryInstallationGeneration,
     WorthQueryInstallationRuntimeIdentity, WorthQueryInstalledAftermathContract,
-    WorthQueryInstalledPackageIndex, WorthQueryPortableDomainIdentity,
-    WorthQueryPortableDomainPackage,
+    WorthQueryInstalledPackageIndex, WorthQueryOperationGraphReadScope,
+    WorthQueryPortableDomainIdentity, WorthQueryPortableDomainPackage,
 };
 
 use declaration::{
@@ -95,6 +95,31 @@ pub(crate) fn wire_transfer_final() -> WorthQueryInstalledAftermathContract {
 }
 pub(crate) fn freeze_note() -> WorthQueryInstalledAftermathContract {
     aftermath_of::<FreezeNote>("freeze-note")
+}
+
+pub(crate) fn freeze_account_fields_read_scope(field: &str) -> WorthQueryOperationGraphReadScope {
+    installed_schema()
+        .installed_operation(op::<FreezeAccountFields>("freeze-account-fields"))
+        .expect("operation installs")
+        .contracts()
+        .graph_reads()
+        .roles()
+        .iter()
+        .flat_map(|role| role.read_scopes())
+        .find(|scope| {
+            let WorthQueryOperationGraphReadScope::NativeProjection(scope) = scope else {
+                return false;
+            };
+            scope.entity().semantic_key() == "FixtureEntity"
+                && scope.aspect().as_str() == "IdentityAspect"
+                && scope.projection().mask().paths().iter().any(|path| {
+                    path.fields()
+                        .first()
+                        .is_some_and(|candidate| candidate.as_str() == field)
+                })
+        })
+        .cloned()
+        .expect("fixture operation installs the requested field read")
 }
 pub(crate) fn freeze_balance() -> WorthQueryInstalledAftermathContract {
     aftermath_of::<FreezeBalance>("freeze-balance")

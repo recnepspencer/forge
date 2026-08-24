@@ -52,6 +52,27 @@ impl<'runtime> IndexAccess<'runtime> {
             })
     }
 
+    pub fn published_generation_for_commit(
+        &self,
+        index_id: DerivedIndexId,
+        commit: &crate::history::data::RelationalCommitReceipt,
+    ) -> Option<&DerivedIndexGeneration> {
+        let definition = self.runtime.indexes.definitions.get(&index_id)?;
+        self.runtime
+            .indexes
+            .generations
+            .get(&index_id)?
+            .iter()
+            .rev()
+            .find(|generation| {
+                generation.status == crate::indexes::data::DerivedIndexPublicationStatus::Published
+                    && generation.source_commit_id == commit.commit_id
+                    && generation.applicability.version_id == commit.version_id
+                    && (!definition.branch_scoped
+                        || generation.applicability.branch_id == commit.branch_id)
+            })
+    }
+
     pub fn generations_for_version(
         &self,
         version_id: crate::identity::data::VersionId,

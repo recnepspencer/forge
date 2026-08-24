@@ -64,7 +64,7 @@ fn plan_bound_graph_invocations<D, O, F, L: BasisOperationLane>(
     let mut commit_groups: Vec<(std::sync::Arc<InstalledGraphCommitAuthority>, Vec<String>)> =
         Vec::new();
     for participation in bound.graph_participations() {
-        if let Some(read) = semantics.graph_reads.roles().iter().find(|read| {
+        if let Some(read) = semantics.graph_reads.domain_roles().iter().find(|read| {
             read.role == participation.role
                 && matches!(
                     read.participation,

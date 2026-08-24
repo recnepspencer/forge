@@ -7,8 +7,8 @@ use crate::effect_lifecycle::{
 };
 
 use super::super::execution_support::{
-    branch_snapshot_identity, create_entity, relational_runtime_with_intent_strategy,
-    runtime_snapshot_identity, update_entity_name,
+    branch_snapshot_identity, create_entity, exact_branch_head_commit_id, exact_branch_snapshot,
+    relational_runtime_with_intent_strategy, runtime_snapshot_identity, update_entity_name,
 };
 use super::super::support::{
     branch_mutation_basis, native_name_patch, raw_mutation_effect_with_binding,
@@ -71,7 +71,7 @@ fn mutation_batch_executes_through_one_batch_native_lowered_plan() {
             .is_some_and(|commit| commit.outcome().commit.commit_id == aggregate_commit_id)
     }));
 
-    let snapshot = runtime.snapshots().historical_snapshot();
+    let snapshot = exact_branch_snapshot(&mut runtime, "main");
     let read_view = runtime
         .read_truth()
         .read_snapshot(&snapshot)
@@ -83,6 +83,7 @@ fn mutation_batch_executes_through_one_batch_native_lowered_plan() {
         .collect::<Vec<_>>();
     assert!(names.contains(&"left-batched".to_string()));
     assert!(names.contains(&"right-batched".to_string()));
+    assert!(runtime.snapshots().release_snapshot(&snapshot));
 }
 
 #[test]
@@ -101,11 +102,7 @@ fn mutation_batch_preserves_branch_scoped_authority_target() {
         "main-diverged",
         BranchId("main".to_string()),
     );
-    let branch_head_before = runtime
-        .history()
-        .historical_branch_head(&BranchId("branch-a".to_string()))
-        .expect("branch-a head should exist")
-        .commit_id;
+    let branch_head_before = exact_branch_head_commit_id(&runtime, "branch-a");
 
     let executed = effect_batch()
         .using_basis(EffectAuthoringBasis::from(branch_mutation_basis()))
@@ -174,11 +171,7 @@ fn retained_lowered_batch_denies_after_intervening_truth_change() {
         )
     );
     assert_eq!(
-        runtime
-            .history()
-            .historical_branch_head(&BranchId("branch-a".to_string()))
-            .expect("intervening branch head should remain authoritative")
-            .commit_id,
+        exact_branch_head_commit_id(&runtime, "branch-a"),
         intervening_commit_id
     );
 }

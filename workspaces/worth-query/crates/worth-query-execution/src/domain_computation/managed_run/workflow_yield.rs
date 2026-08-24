@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use worth_relational::facade::runtime::RelationalExecutionBasisLease;
+use super::WorthQueryManagedRelationalObservation;
 use worth_runtime_bridge::facade::{
     BridgeExecutionBasisFinalizationReceipt, BridgeYieldedExecutionBasis,
 };
@@ -68,7 +68,7 @@ pub enum WorthQueryWorkflowYieldOutcome {
 #[must_use = "yielded workflow run retains exact cleanup or same-runtime readmission authority"]
 pub struct WorthQueryYieldedWorkflowRun {
     affinity: WorthQueryWorkflowRunAffinity,
-    relational_basis: RelationalExecutionBasisLease,
+    relational_basis: WorthQueryManagedRelationalObservation,
     bridge: BridgeYieldedExecutionBasis,
     execution: WorthQueryRetainedManagedGraphExecution,
     artifacts: WorthQueryFrozenWorkflowArtifactAuthority,
@@ -81,7 +81,7 @@ pub struct WorthQueryYieldedWorkflowRun {
 
 pub(super) struct WorthQueryYieldedWorkflowCleanupAssociation {
     affinity: super::workflow::WorthQueryWorkflowYieldReleasePending,
-    relational_basis: RelationalExecutionBasisLease,
+    relational_basis: WorthQueryManagedRelationalObservation,
     bridge: BridgeExecutionBasisFinalizationReceipt,
     artifacts: WorthQueryFrozenWorkflowArtifactAuthority,
     checkpoint_release: crate::domain_computation::WorthQueryProviderCheckpointReleaseEvidence,
@@ -269,7 +269,7 @@ impl WorthQueryYieldedWorkflowCleanupAssociation {
         _owner: &super::workflow_yield_cleanup::WorthQueryWorkflowYieldCleanupPermit,
     ) -> (
         super::workflow::WorthQueryWorkflowYieldReleasePending,
-        RelationalExecutionBasisLease,
+        WorthQueryManagedRelationalObservation,
         BridgeExecutionBasisFinalizationReceipt,
         WorthQueryFrozenWorkflowArtifactAuthority,
         crate::domain_computation::WorthQueryProviderCheckpointReleaseEvidence,

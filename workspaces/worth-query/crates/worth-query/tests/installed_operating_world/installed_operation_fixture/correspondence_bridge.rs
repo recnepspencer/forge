@@ -5,6 +5,7 @@ use worth_foundational::facade::{
     AspectBinding, AspectContract, AspectFieldLocator, AspectValue, CanonicalF64,
     CanonicalFieldPath, FieldKey, LocatorAuthority, ScalarAspectType,
 };
+use worth_relational::facade::branch::AdmittedRelationalBranchBasis;
 use worth_relational::facade::bridge::RuntimeBridgeRelationalSource;
 use worth_relational::facade::identity::{KindId, PartitionId};
 use worth_relational::facade::runtime::RelationalRuntimeApi;
@@ -15,15 +16,18 @@ use worth_relational::facade::schema::{
 use worth_relational::facade::symbols::ClientKey;
 use worth_relational::facade::transactions::{
     AspectFieldPatch, CreateIntent, EntityMutationIntent, EntitySpec, MutationIntent, RecordRef,
-    TransactionOptions, UpdateEntityFieldsIntent, WorkerIntentBatch,
+    UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 use worth_runtime_bridge::facade::{
-    AspectKeySelector, BridgeAspectRegistration, BridgeAspectRegistrationId, BridgeDeliveryReceipt,
+    AspectKeySelector, BridgeAspectRegistration, BridgeAspectRegistrationId,
+    BridgeAuthoritativeSourceProfile, BridgeCommittedPatchEnvelope, BridgeDeliveryReceipt,
     BridgeMappingId, BridgeMappingRegistration, BridgeSemanticCorrespondenceRegistration,
-    BridgeSemanticLocality, CoarseRoutingMode, InvalidationSink, MappingSelector,
-    RelationalCommittedPatchRequest, RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSinkError,
-    SignalInvalidationScope, SliceWideningPolicy, SnapshotReadContract, SubscriptionSliceKind,
-    TruthCommitIdentity, TruthDeltaSurfaceKind, TruthPatchScope, TruthPatchTargetSelector,
+    BridgeSemanticLocality, CoarseRoutingMode, CommittedPatchSource, InvalidationSink,
+    MappingSelector, RelationalBridgeSourceError, RelationalCommittedPatchRequest, RuntimeBridge,
+    RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope, SliceWideningPolicy,
+    SnapshotReadContract, SnapshotReadSource, SubscriptionSliceKind, TruthCommitIdentity,
+    TruthDeltaSurfaceKind, TruthPatchScope, TruthPatchTargetSelector, TruthSnapshotIdentity,
+    TruthSnapshotReader,
 };
 
 mod delivery_patch;
@@ -122,6 +126,12 @@ pub(crate) fn correspondence_bridge(
     let updated = update
         .commit()
         .expect("conditional identity field should commit");
+    let branch_identity = relational
+        .branch_identity(&updated.commit.branch_id)
+        .expect("updated branch identity");
+    let (_, updated_basis) = relational
+        .observe_branch(&branch_identity)
+        .expect("updated owner-admitted branch basis");
     let request = RelationalCommittedPatchRequest::new(
         TruthCommitIdentity::from_relational_commit_id(updated.commit.commit_id.0),
     );
@@ -149,6 +159,7 @@ pub(crate) fn correspondence_bridge(
         BridgeSemanticLocality::WholeLogicalGraph => FixtureLocality::Graph,
     };
     let contract = dependency.contract().clone();
+    let (source, _) = RetainedRelationalSource::new(source, vec![updated_basis]);
     let bridge = build_bridge(
         source,
         &contract,
@@ -195,6 +206,7 @@ pub(crate) fn conditional_runtime_bridge(
     };
     let source = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(relational), "model")
         .expect("model is a valid graph role");
+    let (source, _) = RetainedRelationalSource::new(source, Vec::new());
     build_bridge(
         source,
         dependency.contract(),
@@ -214,7 +226,7 @@ enum FixtureLocality {
 }
 
 fn build_bridge(
-    source: RuntimeBridgeRelationalSource,
+    source: RetainedRelationalSource,
     contract: &AspectContract,
     field: FieldKey,
     whole_aspect: bool,
@@ -288,6 +300,68 @@ fn build_bridge(
         None => builder.build(),
     }
     .expect("conditional correspondence bridge should build")
+}
+
+struct RetainedRelationalSource {
+    source: RuntimeBridgeRelationalSource,
+    _observations: Vec<worth_relational::facade::bridge::RelationalBridgeObservationLease>,
+}
+
+impl RetainedRelationalSource {
+    fn new(
+        source: RuntimeBridgeRelationalSource,
+        retained_bases: Vec<AdmittedRelationalBranchBasis>,
+    ) -> (
+        Self,
+        Vec<worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts>,
+    ) {
+        let observations: Vec<_> = retained_bases
+            .iter()
+            .map(|basis| {
+                source
+                    .retain_branch_basis_for_bridge(basis)
+                    .expect("fixture Bridge observation should retain")
+            })
+            .collect();
+        let snapshots = observations
+            .iter()
+            .map(|observation| {
+                observation
+                    .snapshot_identity()
+                    .relational_snapshot_parts()
+                    .expect("Relational Bridge observation identity")
+            })
+            .collect();
+        (
+            Self {
+                source,
+                _observations: observations,
+            },
+            snapshots,
+        )
+    }
+}
+
+impl CommittedPatchSource for RetainedRelationalSource {
+    fn authoritative_source_profile(&self) -> Option<BridgeAuthoritativeSourceProfile> {
+        CommittedPatchSource::authoritative_source_profile(&self.source)
+    }
+
+    fn load_committed_patch(
+        &self,
+        request: RelationalCommittedPatchRequest,
+    ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
+        self.source.load_committed_patch(request)
+    }
+}
+
+impl SnapshotReadSource for RetainedRelationalSource {
+    fn open_snapshot(
+        &self,
+        identity: &TruthSnapshotIdentity,
+    ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
+        self.source.open_snapshot(identity)
+    }
 }
 
 fn dependency_field(binding: &AspectBinding) -> FieldKey {

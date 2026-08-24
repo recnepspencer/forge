@@ -6,17 +6,11 @@ use worth_foundational::facade::ScalarAspectType;
 
 use super::capabilities::{ApplicationFieldUnit, NoApplicationUnit, NoEqualityPredicate, ReadOnly};
 use super::values::TypedApplicationValue;
+use super::ApplicationAspectMarkerIdentity;
 
 /// Schema-declared entity marker identity used to mint exact typed field references.
 pub trait ApplicationEntityMarkerIdentity {
     type Schema;
-    const IDENTIFIER: &'static str;
-}
-
-/// Schema-declared aspect marker identity used to mint exact typed field references.
-pub trait ApplicationAspectMarkerIdentity {
-    type Schema;
-    type Entity;
     const IDENTIFIER: &'static str;
 }
 

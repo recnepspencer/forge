@@ -66,13 +66,14 @@ pub(super) fn has_exact_reviewer(world: &World, reviewer: EntityId) -> bool {
         .unwrap()
         .kind;
     graph.integration_handle().with_runtime_mut(|runtime| {
-        let snapshot = runtime.snapshots().historical_snapshot();
+        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_main_snapshot(runtime)
+            .expect("primary branch has a current snapshot");
         runtime
             .read_truth()
             .bounded_incoming_relations_of_kind_at_version(
                 review,
                 relation_kind,
-                snapshot.version_id,
+                snapshot.version_id(),
                 4,
             )
             .ok()
@@ -102,13 +103,14 @@ pub(super) fn has_exact_approver(world: &World, approver: EntityId) -> bool {
         .unwrap()
         .kind;
     graph.integration_handle().with_runtime_mut(|runtime| {
-        let snapshot = runtime.snapshots().historical_snapshot();
+        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_main_snapshot(runtime)
+            .expect("primary branch has a current snapshot");
         runtime
             .read_truth()
             .bounded_incoming_relations_of_kind_at_version(
                 elevation.entity_id(),
                 relation_kind,
-                snapshot.version_id,
+                snapshot.version_id(),
                 4,
             )
             .ok()
@@ -145,7 +147,8 @@ where
 {
     let graph = runtime.runtime.primary_graph().unwrap();
     graph.integration_handle().with_runtime_mut(|relational| {
-        let snapshot = relational.snapshots().historical_snapshot();
+        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_main_snapshot(relational)
+            .expect("primary branch has a current snapshot");
         crate::domain_computation::primary_graph::application_attempt::observe_field_value(
             relational, &snapshot, entity, kind, locator,
         )

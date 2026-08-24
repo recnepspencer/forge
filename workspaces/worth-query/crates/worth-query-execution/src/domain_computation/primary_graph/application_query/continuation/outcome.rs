@@ -33,7 +33,9 @@ struct WorthQueryContinuationIdentity {
     graph_authority_identity: String,
     provider_identity: String,
     index_id: worth_relational::facade::indexes::DerivedIndexId,
-    basis_version: worth_relational::facade::identity::VersionId,
+    basis_descriptor: worth_relational::facade::branch::RelationalBranchBasisDescriptor,
+    basis_retention:
+        Option<worth_relational::facade::branch::RelationalComponentBasisRetentionLease>,
     next_page_ordinal: u64,
 }
 
@@ -47,7 +49,7 @@ struct WorthQueryContinuationFinalization {
     receipt_basis: WorthQueryApplicationQueryReceiptBasis,
     graph_work: crate::domain_computation::provider_session::WorthQueryManagedGraphWorkSession,
     canonical_work: worth_query_installation::facade::WorthQueryCanonicalWorkPhases,
-    basis_release: worth_relational::facade::runtime::RelationalExecutionBasisReleaseReceipt,
+    basis_release: super::super::WorthQueryApplicationBasisReleaseReceipt,
 }
 
 pub(super) fn finalize_continuation_page<
@@ -81,7 +83,7 @@ where
     Schema: ApplicationSchema,
     QueryResult: WorthQueryApplicationProjection<Schema, Query>,
 {
-    let finalization = release_continuation_page_basis(plan)?;
+    let mut finalization = release_continuation_page_basis(plan)?;
     validate_continuation_projection(application, &finalization)?;
     let projected = project_non_live_kernel::<Schema, Query, QueryResult, _>(
         kernel,
@@ -100,7 +102,7 @@ where
     )?;
     let (rows, kernel_receipt) = projected.into_parts();
     let continuation = mint_continuation::<Schema, Query, Parameters, QueryResult, Scope>(
-        &finalization,
+        &mut finalization,
         &kernel_receipt,
     )?;
     complete_continuation_page(
@@ -135,7 +137,14 @@ fn release_continuation_page_basis<
 ) -> Result<WorthQueryContinuationFinalization, WorthQueryApplicationContinuationDenial> {
     let subject = plan.query.name().to_string();
     let basis_identity = plan.basis.identity().clone();
+    let basis_descriptor = basis_identity.descriptor().clone();
     let basis_version = plan.basis.version_id();
+    let basis_retention = plan.basis.retain_for_continuation().map_err(|_| {
+        denial(
+            WorthQueryApplicationContinuationDenialKind::BasisUnavailable,
+            &subject,
+        )
+    })?;
     let continuation = WorthQueryContinuationIdentity {
         runtime_authority: plan.runtime_authority.as_u64(),
         schema_binding: plan.query.binding_identity().clone(),
@@ -153,7 +162,8 @@ fn release_continuation_page_basis<
         index_id: plan
             .continuation_index_id
             .expect("continuation plans retain an installed ordered index"),
-        basis_version,
+        basis_descriptor,
+        basis_retention: Some(basis_retention),
         next_page_ordinal: plan
             .continuation_state
             .as_ref()
@@ -213,7 +223,7 @@ fn validate_continuation_projection<Schema>(
 }
 
 fn mint_continuation<Schema, Query, Parameters, QueryResult, Scope>(
-    finalization: &WorthQueryContinuationFinalization,
+    finalization: &mut WorthQueryContinuationFinalization,
     kernel_receipt: &NonLiveKernelReceiptEvidence,
 ) -> Result<
     Option<WorthQueryApplicationQueryContinuation<Schema, Query, Parameters, QueryResult, Scope>>,
@@ -241,7 +251,12 @@ fn mint_continuation<Schema, Query, Parameters, QueryResult, Scope>(
                     .graph_authority_identity
                     .clone(),
                 provider_identity: finalization.continuation.provider_identity.clone(),
-                basis_version: finalization.continuation.basis_version,
+                basis_descriptor: finalization.continuation.basis_descriptor.clone(),
+                basis_retention: finalization
+                    .continuation
+                    .basis_retention
+                    .take()
+                    .expect("a materialized next page consumes its retained basis"),
                 index_id: finalization.continuation.index_id,
                 index_generation,
                 boundary,

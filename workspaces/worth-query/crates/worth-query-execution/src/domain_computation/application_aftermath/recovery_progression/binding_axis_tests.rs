@@ -40,7 +40,11 @@ fn baseline_parts() -> WorthQueryRecoveryHandleBindingAxisProbe {
     );
     let idempotency_key = [0x71; 32];
     let correlation = derive_external_effect_correlation_identity(ExternalEffectCorrelationBasis {
-        correlation_family: "estate-death-notice-rail",
+        correlation_family:
+            worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily::new(
+                "estate-death-notice-rail",
+            )
+            .unwrap(),
         operation_slot: "notify-death",
         operation_version: 1,
         outcome_identity: 9,
@@ -64,7 +68,10 @@ fn baseline_parts() -> WorthQueryRecoveryHandleBindingAxisProbe {
         dispatch_outbox: WorthQueryDispatchOutboxRecord::from_installed_contract(
             correlation,
             &InstalledExternalEffectContract::Declared {
-                correlation_family: "estate-death-notice-rail".to_owned(),
+                correlation_family: worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily::new(
+                    "estate-death-notice-rail",
+                )
+                .unwrap(),
                 effect: "EstateDeathNotificationEffect".to_owned(),
                 rust_payload_type: "fixture::EstateDeathNotificationRequest".to_owned(),
                 protocol: ApplicationExternalEffectProtocol::new(

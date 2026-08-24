@@ -12,7 +12,7 @@ const INSTALLATION_BUDGET: CanonicalDigestWorkBudget =
         None => panic!("fixed application-schema installation budget is valid"),
     };
 
-pub(super) fn derive_installed_schema_identity(
+pub(crate) fn derive_installed_schema_identity(
     identity: &ApplicationSchemaIdentity,
 ) -> Result<(CanonicalDigestId, WorthQueryCanonicalWorkEvidence), CanonicalDigestDerivationDenial> {
     derive_with_budget(identity, INSTALLATION_BUDGET)

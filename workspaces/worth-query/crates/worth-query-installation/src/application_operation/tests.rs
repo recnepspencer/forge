@@ -1,9 +1,3 @@
-use super::{
-    WorthQueryCompiledApplicationOperationContracts,
-    WorthQueryInstalledApplicationOperationExecutionPosture, APPLICATION_AUTHORIZATION_FACT_FAMILY,
-};
-use crate::domain_operation::WorthQueryDecisionFactCardinality;
-
 #[test]
 fn activation_operation_compiles_its_union_from_selected_capability_targets() {
     let contract =
@@ -22,72 +16,4 @@ fn activation_operation_compiles_its_union_from_selected_capability_targets() {
         ),
         selected
     );
-}
-
-#[test]
-fn delegation_activation_compiles_specialized_posture_support_and_digest_budget() {
-    let contracts = compiled(
-        WorthQueryInstalledApplicationOperationExecutionPosture::DelegationActivation,
-        1,
-    );
-
-    assert_eq!(
-        contracts.execution_posture(),
-        WorthQueryInstalledApplicationOperationExecutionPosture::DelegationActivation
-    );
-    assert_eq!(
-        contracts
-            .decision_facts()
-            .family(APPLICATION_AUTHORIZATION_FACT_FAMILY)
-            .expect("capability command plus parent support require authorization facts")
-            .cardinality(),
-        WorthQueryDecisionFactCardinality::Exact(3)
-    );
-    let budget = contracts
-        .delegation_activation_proposal_canonical_work_budget()
-        .expect("delegation activation owns a proposal digest budget");
-    assert_eq!(budget.maximum_entry_count(), 22);
-    assert_eq!(budget.maximum_encoded_bytes(), 256 * 1_024);
-}
-
-#[test]
-fn ordinary_operations_have_no_delegation_proposal_digest_allowance() {
-    let contracts = compiled(
-        WorthQueryInstalledApplicationOperationExecutionPosture::Ordinary,
-        0,
-    );
-    assert_eq!(
-        contracts.execution_posture(),
-        WorthQueryInstalledApplicationOperationExecutionPosture::Ordinary
-    );
-    assert!(contracts
-        .delegation_activation_proposal_canonical_work_budget()
-        .is_none());
-    assert!(contracts
-        .capability_revocation_proposal_canonical_work_budget()
-        .is_none());
-}
-
-#[test]
-fn capability_revocation_compiles_specialized_posture_and_digest_budget() {
-    let contracts = compiled(
-        WorthQueryInstalledApplicationOperationExecutionPosture::CapabilityRevocation,
-        0,
-    );
-    assert_eq!(
-        contracts.execution_posture(),
-        WorthQueryInstalledApplicationOperationExecutionPosture::CapabilityRevocation
-    );
-    let budget = contracts
-        .capability_revocation_proposal_canonical_work_budget()
-        .expect("revocation owns a private governed-target digest budget");
-    assert_eq!(budget.maximum_entry_count(), 16);
-    assert_eq!(budget.maximum_encoded_bytes(), 64 * 1_024);
-}
-
-fn compiled(
-    posture: WorthQueryInstalledApplicationOperationExecutionPosture,
-    support_count: usize,
-) -> WorthQueryCompiledApplicationOperationContracts {
-    super::installed::compile_contract_projection_fixture(posture, support_count)
 }

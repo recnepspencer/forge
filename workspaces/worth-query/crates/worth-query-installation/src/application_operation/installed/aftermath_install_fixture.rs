@@ -3,11 +3,10 @@
 use worth_foundational::facade::{
     BoundaryProtocolIdentity, BoundaryProtocolVersion, CanonicalDigestId,
 };
-use worth_query_declaration::facade::application_aftermath::DeclaredApplicationAftermathContract;
 use worth_query_declaration::facade::application_aftermath::{
-    DeclaredAftermathPostcondition, DeclaredCompensation, DeclaredCorrectionMechanism,
-    DeclaredLoweringCorrespondenceRef, DeclaredPreImageDemand, DeclaredPreImageLocus,
-    DeclaredRecordedInverse,
+    DeclaredAftermathPostcondition, DeclaredApplicationAftermathContract, DeclaredCompensation,
+    DeclaredCorrectionMechanism, DeclaredLoweringCorrespondenceRef, DeclaredPreImageDemand,
+    DeclaredPreImageLocus, DeclaredRecordedInverse, PortableApplicationAftermathContract,
 };
 use worth_query_declaration::facade::application_schema::{
     ApplicationAspectMarkerIdentity, ApplicationEntityMarkerIdentity,
@@ -15,14 +14,15 @@ use worth_query_declaration::facade::application_schema::{
     ApplicationOperationDecisionReadTarget, ApplicationOperationProgramTarget,
     ApplicationOperationRef, ApplicationSchema, ApplicationSchemaBindingIdentity,
     ApplicationSchemaDeclaration, ApplicationSchemaDeclarationBuilder, ApplicationSchemaMember,
+    WorthQueryExternalEffectCorrelationFamily,
 };
 
 use crate::application_aftermath::{
-    install_application_aftermath, WorthQueryAftermathInstallationDenial,
-    WorthQueryInstalledAftermathContract,
+    install_application_aftermath, InstalledExternalEffectContract,
+    WorthQueryAftermathInstallationDenial, WorthQueryInstalledAftermathContract,
 };
 
-use super::operation_compilation::WorthQueryApplicationOperationCompilation;
+use super::super::contract_resolution::{operation_aftermath, operation_external_effect};
 
 pub(crate) struct FixtureSchema;
 struct FixtureOperation;
@@ -48,11 +48,17 @@ macro_rules! entity_identity {
 }
 
 macro_rules! aspect_identity {
-    ($marker:ty, $entity:ty, $identifier:literal) => {
+    ($marker:ty, $entity:ty, $identifier:literal, $identity:expr) => {
         impl ApplicationAspectMarkerIdentity for $marker {
             type Schema = FixtureSchema;
             type Entity = $entity;
             const IDENTIFIER: &'static str = $identifier;
+            const ASPECT_IDENTITY:
+                worth_query_declaration::facade::application_schema::AspectIdentity =
+                worth_query_declaration::facade::application_schema::AspectIdentity($identity);
+            const CONTRACT_REVISION:
+                worth_query_declaration::facade::application_schema::AspectContractRevision =
+                worth_query_declaration::facade::application_schema::AspectContractRevision(1);
         }
     };
 }
@@ -70,9 +76,9 @@ macro_rules! field_identity {
 
 entity_identity!(Account, "Account");
 entity_identity!(OtherAccount, "OtherAccount");
-aspect_identity!(State, Account, "State");
-aspect_identity!(OtherAccountState, OtherAccount, "State");
-aspect_identity!(OtherState, Account, "OtherState");
+aspect_identity!(State, Account, "State", 0x9161_2101);
+aspect_identity!(OtherAccountState, OtherAccount, "State", 0x9161_2102);
+aspect_identity!(OtherState, Account, "OtherState", 0x9161_2103);
 field_identity!(Balance, Account, State, "balance");
 field_identity!(
     OtherAccountBalance,
@@ -216,18 +222,53 @@ impl AftermathInstall {
                 rust_payload_type: external_effect.rust_payload_type.clone(),
                 protocol: external_effect.protocol.clone(),
                 maximum_payload_bytes: 64,
-                correlation_family: "escaped-rail".to_owned(),
+                correlation_family: WorthQueryExternalEffectCorrelationFamily::new("escaped-rail")
+                    .unwrap(),
             });
         }
-        let compilation = WorthQueryApplicationOperationCompilation::resolve(
-            self.binding.clone(),
-            &members,
-            self.operation_slot,
-            std::any::type_name::<FixtureInput>(),
-        )
-        .expect("the fixture must describe one compilable operation");
-        install_application_aftermath(&compilation)
+        let source = FixtureAftermathInstallationSource {
+            binding: self.binding.clone(),
+            operation: self.operation_slot.to_owned(),
+            decision_reads: self.declared_reads.clone(),
+            external_effect: operation_external_effect(&members, self.operation_slot)
+                .expect("the fixture external effect is unambiguous"),
+            portable_aftermath: operation_aftermath(&members, self.operation_slot)
+                .expect("the fixture aftermath is unambiguous"),
+        };
+        install_application_aftermath(&source)
             .map(|installed| installed.expect("the fixture declares an aftermath"))
+    }
+}
+
+struct FixtureAftermathInstallationSource {
+    binding: ApplicationSchemaBindingIdentity,
+    operation: String,
+    decision_reads: Vec<ApplicationOperationDecisionReadTarget>,
+    external_effect: InstalledExternalEffectContract,
+    portable_aftermath: Option<PortableApplicationAftermathContract>,
+}
+
+impl super::aftermath_installation_source_seal::Sealed for FixtureAftermathInstallationSource {}
+
+impl super::WorthQueryOperationAftermathInstallationSource for FixtureAftermathInstallationSource {
+    fn binding(&self) -> &ApplicationSchemaBindingIdentity {
+        &self.binding
+    }
+
+    fn operation(&self) -> &str {
+        &self.operation
+    }
+
+    fn decision_reads(&self) -> &[ApplicationOperationDecisionReadTarget] {
+        &self.decision_reads
+    }
+
+    fn external_effect(&self) -> &InstalledExternalEffectContract {
+        &self.external_effect
+    }
+
+    fn portable_aftermath(&self) -> Option<&PortableApplicationAftermathContract> {
+        self.portable_aftermath.as_ref()
     }
 }
 

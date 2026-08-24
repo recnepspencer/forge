@@ -8,7 +8,8 @@ use crate::workflow::LoweredMutationIntentDeclaration;
 
 use super::execution::{lower_runtime_error, EffectExecutionDenialKind};
 use super::execution_relational_scalar::{
-    ensure_exact_basis_freshness, mutation_transaction_options,
+    ensure_exact_basis_freshness, mutation_target_branch, mutation_transaction_options,
+    open_exact_basis_snapshot,
 };
 
 pub(super) fn execute_lowered_mutation_batch(
@@ -18,7 +19,6 @@ pub(super) fn execute_lowered_mutation_batch(
     for declaration in declarations {
         ensure_exact_basis_freshness(runtime, declaration)?;
     }
-    let snapshot = runtime.snapshots().historical_snapshot();
     let transaction_options = declarations
         .first()
         .ok_or_else(|| {
@@ -28,10 +28,24 @@ pub(super) fn execute_lowered_mutation_batch(
             )
         })
         .and_then(|declaration| mutation_transaction_options(runtime, declaration))?;
+    let target_branch = mutation_target_branch(
+        declarations
+            .first()
+            .expect("non-empty mutation batch was established above"),
+    )?;
+    let snapshot = open_exact_basis_snapshot(runtime, &target_branch)?;
     let lowered_components = declarations
         .iter()
         .map(|declaration| lower_batch_component(runtime, declaration, &snapshot))
-        .collect::<Result<Vec<_>, _>>()?;
+        .collect::<Result<Vec<_>, _>>();
+    let released = runtime.snapshots().release_snapshot(&snapshot);
+    if !released {
+        return Err((
+            EffectExecutionDenialKind::RelationalAuthorityBindingMalformed,
+            "exact Relational batch strategy snapshot could not be released".to_string(),
+        ));
+    }
+    let lowered_components = lowered_components?;
     let mut batch = WorkerIntentBatch::new("worth-query-effect-batch");
     for intents in lowered_components {
         for intent in intents {

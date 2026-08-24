@@ -23,6 +23,7 @@ use super::lowering_correspondence::{
 use super::next_action_contract::InstalledAftermathNextActionContract;
 use super::owner_identity::aftermath_owner_identity_digest;
 use super::published_posture::{derive_published_posture, PublishedAftermathPosture};
+use super::reconciliation::WorthQueryInstalledReconciliationProcedure;
 use super::recovery_contract::InstalledAftermathRecoveryContract;
 
 /// Opaque installed aftermath identity retained from the Foundational digest.
@@ -53,6 +54,7 @@ pub struct WorthQueryInstalledAftermathContract {
     published_posture: PublishedAftermathPosture,
     next_actions: InstalledAftermathNextActionContract,
     recovery: InstalledAftermathRecoveryContract,
+    reconciliation: Option<WorthQueryInstalledReconciliationProcedure>,
     canonical: WorthQueryAftermathCanonicalArtifact,
     operation_slot: String,
     compatibility_generation: u64,
@@ -85,6 +87,10 @@ impl WorthQueryInstalledAftermathContract {
 
     pub const fn recovery(&self) -> InstalledAftermathRecoveryContract {
         self.recovery
+    }
+
+    pub const fn reconciliation(&self) -> Option<&WorthQueryInstalledReconciliationProcedure> {
+        self.reconciliation.as_ref()
     }
 
     pub const fn canonical(&self) -> &WorthQueryAftermathCanonicalArtifact {
@@ -127,7 +133,16 @@ pub(crate) fn install_application_aftermath(
         binding.schema_identity(),
         &lowering_catalog,
     )?;
-    let canonical = prepare_aftermath_basis(binding, operation_slot, portable, external_effect)?;
+    let reconciliation = portable
+        .reconciliation()
+        .map(WorthQueryInstalledReconciliationProcedure::from_declared);
+    let canonical = prepare_aftermath_basis(
+        binding,
+        operation_slot,
+        portable,
+        reconciliation.as_ref(),
+        external_effect,
+    )?;
     let authority = InstalledCorrectionAuthority::from(portable.authority());
     let mechanism = match portable.mechanism() {
         Some(portable_mechanism) => Some(
@@ -164,6 +179,7 @@ pub(crate) fn install_application_aftermath(
         published_posture,
         next_actions,
         recovery,
+        reconciliation,
         canonical,
         operation_slot: operation_slot.to_owned(),
         compatibility_generation,

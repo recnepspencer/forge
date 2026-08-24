@@ -39,6 +39,8 @@ pub(in crate::domain_computation::primary_graph) struct WorthQueryPrimaryMutatio
     invariant_work_units: u64,
     relational_invariant_executions: usize,
     relational_invariant_results: usize,
+    installed_touch_admission:
+        super::application_touch_admission::WorthQueryInstalledTouchAdmissionEvidence,
 }
 
 impl WorthQueryPrimaryMutationWorkCounters {
@@ -50,6 +52,7 @@ impl WorthQueryPrimaryMutationWorkCounters {
         invariant_work_units: u64,
         relational_invariant_executions: usize,
         relational_invariant_results: usize,
+        installed_touch_admission: super::application_touch_admission::WorthQueryInstalledTouchAdmissionEvidence,
     ) -> Self {
         Self {
             decision_facts,
@@ -58,6 +61,7 @@ impl WorthQueryPrimaryMutationWorkCounters {
             invariant_work_units,
             relational_invariant_executions,
             relational_invariant_results,
+            installed_touch_admission,
         }
     }
 
@@ -87,6 +91,12 @@ pub struct WorthQueryPrimaryMutationWorkEvidence {
     preimage_decision_facts_examined: usize,
     preimage_candidates_materialized: usize,
     preimage_demanded_loci_examined: usize,
+    performed_touch_validated_intents_examined: usize,
+    performed_touch_targets_materialized: usize,
+    performed_touch_owner_state_lookups: usize,
+    performed_application_touches_admitted: usize,
+    installed_touch_scopes_compared: usize,
+    installed_read_touch_overlaps_observed: usize,
     touched_records: Vec<WorthQueryTouchedRecordIdentity>,
 }
 
@@ -103,6 +113,7 @@ impl WorthQueryPrimaryMutationWorkEvidence {
             .into_iter()
             .map(WorthQueryTouchedRecordIdentity::from_commit_record)
             .collect();
+        let touch_projection = counters.installed_touch_admission.projection_work();
         Self {
             decision_facts: counters.decision_facts,
             proposed_facts: counters.proposed_facts,
@@ -115,6 +126,19 @@ impl WorthQueryPrimaryMutationWorkEvidence {
             preimage_decision_facts_examined: preimage.decision_facts_examined(),
             preimage_candidates_materialized: preimage.candidates_materialized(),
             preimage_demanded_loci_examined: preimage.demanded_loci_examined(),
+            performed_touch_validated_intents_examined: touch_projection
+                .validated_intents_examined(),
+            performed_touch_targets_materialized: touch_projection.mutation_targets_materialized(),
+            performed_touch_owner_state_lookups: touch_projection.owner_state_lookups(),
+            performed_application_touches_admitted: counters
+                .installed_touch_admission
+                .validated_application_touches(),
+            installed_touch_scopes_compared: counters
+                .installed_touch_admission
+                .installed_touch_scopes(),
+            installed_read_touch_overlaps_observed: counters
+                .installed_touch_admission
+                .read_touch_overlaps(),
             touched_records,
         }
     }
@@ -161,6 +185,30 @@ impl WorthQueryPrimaryMutationWorkEvidence {
 
     pub const fn preimage_demanded_loci_examined(&self) -> usize {
         self.preimage_demanded_loci_examined
+    }
+
+    pub const fn performed_touch_validated_intents_examined(&self) -> usize {
+        self.performed_touch_validated_intents_examined
+    }
+
+    pub const fn performed_touch_targets_materialized(&self) -> usize {
+        self.performed_touch_targets_materialized
+    }
+
+    pub const fn performed_touch_owner_state_lookups(&self) -> usize {
+        self.performed_touch_owner_state_lookups
+    }
+
+    pub const fn performed_application_touches_admitted(&self) -> usize {
+        self.performed_application_touches_admitted
+    }
+
+    pub const fn installed_touch_scopes_compared(&self) -> usize {
+        self.installed_touch_scopes_compared
+    }
+
+    pub const fn installed_read_touch_overlaps_observed(&self) -> usize {
+        self.installed_read_touch_overlaps_observed
     }
 
     /// Records this mutation touched, derived from the commit (C2).

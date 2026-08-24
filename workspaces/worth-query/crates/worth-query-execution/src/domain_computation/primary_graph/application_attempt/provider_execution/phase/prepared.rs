@@ -98,6 +98,7 @@ impl<Schema, Operation, Input, Scope>
 }
 
 struct WorthQueryProviderAttemptPreparation {
+    installed_read_scopes: Vec<worth_query_installation::facade::WorthQueryOperationGraphReadScope>,
     facts: Vec<WorthQueryApplicationObservedFact>,
     effects: Vec<WorthQueryApplicationRealizedEffect>,
     emission_retained_bytes: u64,
@@ -161,6 +162,7 @@ where
             admission,
             lease: read_set.lease,
             provider: WorthQueryProviderAttemptPreparation {
+                installed_read_scopes: read_set.installed_read_scopes,
                 facts: read_set.facts,
                 effects,
                 emission_retained_bytes,
@@ -206,6 +208,7 @@ fn prepare_application_provider_attempt(
     preparation: WorthQueryProviderAttemptPreparation,
 ) -> Result<WorthQueryPreparedApplicationProviderAttempt, ()> {
     prepare_provider_attempt(
+        preparation.installed_read_scopes,
         preparation.facts,
         preparation.effects,
         preparation.emission_retained_bytes,

@@ -72,90 +72,12 @@ mod fixture_members;
 #[path = "capability_member_closure_tests/population_budget.rs"]
 mod population_budget;
 
-use fixture_members::{field_member, relation_member, resource_field_member};
+use fixture_members::{field_member, members, relation_member};
 
 fn build_from_members(
     members: Vec<ApplicationSchemaMember>,
 ) -> Result<(), ApplicationSchemaDeclarationDenial> {
     validate_application_capability_members(&members)
-}
-
-fn members(contract: ErasedContract) -> Vec<ApplicationSchemaMember> {
-    let mut members = vec![
-        ApplicationSchemaMember::Entity {
-            entity: "Grant".to_string(),
-        },
-        ApplicationSchemaMember::Entity {
-            entity: "Resource".to_string(),
-        },
-        ApplicationSchemaMember::Entity {
-            entity: "Principal".to_string(),
-        },
-        ApplicationSchemaMember::Aspect {
-            entity: "Grant".to_string(),
-            aspect: "Facts".to_string(),
-        },
-        ApplicationSchemaMember::Aspect {
-            entity: "Resource".to_string(),
-            aspect: "ResourceFacts".to_string(),
-        },
-        ApplicationSchemaMember::PrincipalBinding {
-            binding: "PrincipalBinding".to_string(),
-            mapping_entity: "Grant".to_string(),
-            identity_aspect: "Facts".to_string(),
-            identity_field: "Action".to_string(),
-            status_aspect: "Facts".to_string(),
-            status_field: "Purpose".to_string(),
-            target_relation: "Grantor".to_string(),
-            principal_entity: "Principal".to_string(),
-            principal_identity_aspect: "Facts".to_string(),
-            principal_identity_field: "Field".to_string(),
-            principal_identity_scalar_family: ScalarAspectType::UInt64,
-            principal_identity_value_type: std::any::type_name::<u64>().to_string(),
-        },
-        ApplicationSchemaMember::Operation {
-            operation: "Operation".to_string(),
-            input_type: std::any::type_name::<()>().to_string(),
-        },
-        ApplicationSchemaMember::ApplicationCapabilityContext {
-            context: "Context".to_string(),
-            context_type: std::any::type_name::<Context>().to_string(),
-        },
-        ApplicationSchemaMember::ApplicationCapabilityContextEntitySlot {
-            context: "Context".to_string(),
-            context_type: std::any::type_name::<Context>().to_string(),
-            slot: "ResourceSlot".to_string(),
-            slot_type: std::any::type_name::<ResourceSlot>().to_string(),
-            entity: "Resource".to_string(),
-        },
-        ApplicationSchemaMember::ApplicationCapabilityProvenance {
-            provenance: "Provenance".to_string(),
-            provenance_type: std::any::type_name::<Provenance>().to_string(),
-        },
-        relation_member("ResourceRelation", "Grant", "Resource"),
-        relation_member("WrongResourceRelation", "Principal", "Resource"),
-        relation_member("ScopedRelation", "Grant", "Resource"),
-        relation_member("PrincipalResource", "Principal", "Resource"),
-        relation_member("Parent", "Grant", "Grant"),
-        relation_member("Grantor", "Principal", "Grant"),
-        relation_member("Grantee", "Principal", "Grant"),
-    ];
-    for field in [
-        "Action",
-        "Purpose",
-        "Field",
-        "Amount",
-        "Workflow",
-        "Status",
-        "ValidFrom",
-        "ValidThrough",
-        "DelegationLimit",
-    ] {
-        members.push(field_member(field));
-    }
-    members.push(resource_field_member("ResourceWorkflow"));
-    members.push(ApplicationSchemaMember::ApplicationCapability { contract });
-    members
 }
 
 fn contract(

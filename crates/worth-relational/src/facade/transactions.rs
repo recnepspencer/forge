@@ -31,5 +31,9 @@ pub use crate::transactions::{
     ValidatedMutationFootprint, ValidatedMutationFootprintNotRequested,
     ValidatedMutationFootprintProjection, ValidatedMutationFootprintWork,
 };
+pub use crate::transactions::{
+    ValidatedMutationTouch, ValidatedMutationTouchProjectionError,
+    ValidatedMutationTouchProjectionWork, ValidatedMutationTouches,
+};
 pub use crate::validation::data::InvariantViolationFields;
 pub use worth_foundational::facade::AspectFieldLocator;

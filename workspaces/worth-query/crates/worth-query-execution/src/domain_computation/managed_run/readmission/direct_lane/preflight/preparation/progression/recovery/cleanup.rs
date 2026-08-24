@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use worth_relational::facade::runtime::RelationalExecutionBasisReleaseReceipt;
+use crate::domain_computation::managed_run::WorthQueryManagedRelationalObservationReleaseReceipt;
 use worth_runtime_bridge::facade::{
     BridgeExecutionBasisReadmissionCleanupOutcome, BridgeExecutionBasisReadmissionPending,
     BridgeExecutionBasisReadmissionRecoveryRequired,
@@ -61,7 +61,7 @@ struct WorthQueryDirectReadmissionPartialCleanupReceipt {
     yielded_attempt_identity: Arc<str>,
     checkpoint_release: WorthQueryProviderCheckpointReleaseEvidence,
     restored_execution_release: Option<WorthQueryProviderExecutionReleaseEvidence>,
-    relational: RelationalExecutionBasisReleaseReceipt,
+    relational: WorthQueryManagedRelationalObservationReleaseReceipt,
     attempt: WorthQueryDirectExecutionAttemptReleaseReceipt,
     run_counters: WorthQueryManagedRunCounters,
     provider_work: WorthQueryManagedProviderWorkEvidence,

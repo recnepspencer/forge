@@ -8,6 +8,7 @@ use super::{
 };
 use crate::application_schema::{
     ApplicationExternalEffectProtocol, ApplicationOperationProgramTarget,
+    WorthQueryExternalEffectCorrelationFamily,
 };
 use crate::application_schema::{
     ApplicationMutationPreconditionFamily, ApplicationMutationPreconditionTarget,
@@ -32,6 +33,8 @@ fn every_application_schema_member_family_changes_identity() {
         ApplicationSchemaMember::Aspect {
             entity: "Entity".to_string(),
             aspect: "Aspect".to_string(),
+            identity: worth_foundational::facade::AspectIdentity(0x91613001),
+            revision: worth_foundational::facade::AspectContractRevision(1),
         },
         field((ScalarAspectType::UInt64, "u64", None, false, false)),
         ApplicationSchemaMember::Relation {
@@ -249,7 +252,8 @@ fn every_external_effect_contract_dimension_changes_identity() {
         rust_payload_type: "Payload".to_string(),
         protocol: external_protocol(1),
         maximum_payload_bytes: 64,
-        correlation_family: "external-family".to_string(),
+        correlation_family: WorthQueryExternalEffectCorrelationFamily::new("external-family")
+            .unwrap(),
     };
     let base_identity = identity(std::slice::from_ref(&base));
 
@@ -271,7 +275,10 @@ fn every_external_effect_contract_dimension_changes_identity() {
         changed!(rust_payload_type, "OtherPayload".to_string()),
         changed!(protocol, external_protocol(2)),
         changed!(maximum_payload_bytes, 65),
-        changed!(correlation_family, "other-family".to_string()),
+        changed!(
+            correlation_family,
+            WorthQueryExternalEffectCorrelationFamily::new("other-family").unwrap()
+        ),
     ] {
         assert_ne!(identity(&[member]), base_identity);
     }

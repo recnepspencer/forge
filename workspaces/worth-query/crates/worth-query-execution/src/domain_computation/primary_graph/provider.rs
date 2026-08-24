@@ -2,6 +2,7 @@ mod aftermath_causality;
 mod application_attempt_state;
 mod application_attempt_work;
 mod application_decision_fact;
+mod application_touch_admission;
 mod commit_causality;
 pub(super) mod committed_dispatch_outbox;
 mod conditional_commit_journal;
@@ -44,6 +45,7 @@ pub(in crate::domain_computation) use session_commit::WorthQueryCommittedDispatc
 pub(crate) use session_commit::WorthQueryRetainedPreImageSeal;
 pub(super) use session_commit::{
     WorthQueryCommittedDispatchOutboxBindingDenial, WorthQueryCommittedDispatchOutboxReceiptSeal,
+    WorthQueryRetainedApplicationCommitBasis,
 };
 
 pub(super) struct WorthQueryPrimaryGraphProvider {
@@ -54,6 +56,7 @@ pub(super) struct WorthQueryPrimaryGraphProvider {
     attempts: Mutex<application_attempt_state::WorthQueryPrimaryGraphApplicationAttemptStore>,
     application_attempt_work: application_attempt_work::WorthQueryApplicationAttemptWorkLedger,
     completed_commit_evidence: Mutex<session_commit::WorthQueryCompletedCommitEvidenceStore>,
+    receipt_basis_retention: Mutex<session_commit::WorthQueryReceiptBasisRetentionStore>,
     conditional_commit_journal:
         Mutex<conditional_commit_journal::WorthQueryConditionalCommitJournal>,
     conditional_maintenance_failure: Mutex<Option<String>>,
@@ -84,6 +87,7 @@ impl WorthQueryPrimaryGraphProvider {
             completed_commit_evidence: Mutex::new(
                 session_commit::WorthQueryCompletedCommitEvidenceStore::default(),
             ),
+            receipt_basis_retention: Mutex::new(Default::default()),
             conditional_commit_journal: Mutex::new(Default::default()),
             conditional_maintenance_failure: Mutex::new(None),
             fault_port,
@@ -335,12 +339,41 @@ impl WorthQueryPrimaryGraphProvider {
             .observe_session(session)
     }
 
+    pub(in crate::domain_computation::primary_graph) fn retained_application_commit_basis(
+        &self,
+        commit: &worth_relational::facade::history::RelationalCommitReceipt,
+    ) -> Option<WorthQueryRetainedApplicationCommitBasis> {
+        self.completed_commit_evidence
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .observe(commit)?;
+        self.receipt_basis_retention
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .acquire(commit.commit_id)
+    }
+
+    #[cfg(test)]
+    pub(in crate::domain_computation::primary_graph) fn retained_receipt_basis_count(
+        &self,
+    ) -> usize {
+        self.receipt_basis_retention
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .retained_count()
+    }
+
     pub(super) fn take_skipped_invariant_owner_execution(&self) -> bool {
         self.take_fault(fault_port::WorthQueryPrimaryGraphFault::SkippedInvariantOwnerExecution)
     }
 
     pub(super) fn take_relational_invariant_violation(&self) -> bool {
         self.take_fault(fault_port::WorthQueryPrimaryGraphFault::RelationalInvariantViolation)
+    }
+
+    #[cfg(test)]
+    pub(super) fn take_undeclared_application_touch(&self) -> bool {
+        self.take_fault(fault_port::WorthQueryPrimaryGraphFault::UndeclaredApplicationTouch)
     }
 
     fn take_fault(&self, fault: fault_port::WorthQueryPrimaryGraphFault) -> bool {

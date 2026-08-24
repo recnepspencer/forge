@@ -58,6 +58,7 @@ impl WorthQueryPrimaryGraphSourceProjection for IntentSourceProjection {
         graph: &worth_query_execution::facade::integration::WorthQueryPrimaryGraphIntegrationHandle,
         _target: &runtime::WorthQueryLiveArtifactTarget,
         scope: &domain::WorthQueryMaintenanceScope,
+        basis: &runtime::WorthQueryGranularSourceReadBasis,
     ) -> Result<Vec<foundation::WorthQueryEntity>, foundation::WorthQueryWorkspaceError> {
         let domain::WorthQueryMaintenanceScope::ExactSourceRecord {
             partition_id,
@@ -80,7 +81,9 @@ impl WorthQueryPrimaryGraphSourceProjection for IntentSourceProjection {
         self.observations
             .exact_record_reads
             .fetch_add(1, Ordering::SeqCst);
-        Ok(project_record(graph, requested).into_iter().collect())
+        Ok(project_record_at_basis(graph, basis, requested)?
+            .into_iter()
+            .collect())
     }
 }
 
@@ -89,36 +92,58 @@ fn project_record(
     record: worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts,
 ) -> Option<foundation::WorthQueryEntity> {
     graph.with_runtime(|runtime| {
-        let version = runtime
-            .history()
-            .historical_branch_head(&worth_relational::facade::history::BranchId("main".into()))?
-            .version_id;
-        let entity = worth_relational::facade::identity::EntityId::new(
-            worth_relational::facade::identity::PartitionId::new(record.partition_id()),
-            record.local_slot(),
-            record.generation(),
-        );
-        let authoritative = runtime
-            .read_truth()
-            .visible_entity_at_version(entity, version)?;
-        let mut fields = BTreeMap::new();
-        for (aspect, value) in authoritative
-            .authoritative_aspect_state?
-            .aspects()
-            .entries()
-        {
-            let ContractValidatedAspectValueView::Struct(value) = value.view() else {
-                continue;
-            };
-            let aspect = worth_foundational::facade::FieldKey::new(aspect.as_str().to_owned())?;
-            fields.extend(value.fields().filter_map(|(field, value)| {
-                CanonicalFieldPath::new(vec![aspect.clone(), field.clone()])
-                    .map(|path| (path, value.clone()))
-            }));
-        }
-        Some(foundation::WorthQueryEntity::from_native_field_values(
-            foundation::WorthQueryEntityIdentity::from_bridge_record_projection(record),
-            fields,
-        ))
+        let identity = runtime.main_branch_identity();
+        let (_, basis) = runtime.observe_branch(&identity).ok()?;
+        let observation = basis.observation();
+        project_observation_record(runtime, &observation, record)
     })
+}
+
+fn project_record_at_basis(
+    graph: &worth_query_execution::facade::integration::WorthQueryPrimaryGraphIntegrationHandle,
+    basis: &runtime::WorthQueryGranularSourceReadBasis,
+    record: worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts,
+) -> Result<Option<foundation::WorthQueryEntity>, foundation::WorthQueryWorkspaceError> {
+    graph
+        .with_retained_truth_basis(basis.snapshot(), basis.branch(), |runtime, observation| {
+            project_observation_record(runtime, observation, record)
+        })
+        .map_err(|error| foundation::WorthQueryWorkspaceError::new(error.to_string()))
+}
+
+fn project_observation_record(
+    runtime: &worth_relational::facade::runtime::RelationalRuntime,
+    observation: &worth_relational::facade::branch::RelationalBranchObservation,
+    record: worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts,
+) -> Option<foundation::WorthQueryEntity> {
+    let read_view = runtime.read_truth().read_observation(observation).ok()?;
+    let entity = worth_relational::facade::identity::EntityId::new(
+        worth_relational::facade::identity::PartitionId::new(record.partition_id()),
+        record.local_slot(),
+        record.generation(),
+    );
+    let authoritative = read_view
+        .entities()
+        .iter()
+        .find(|candidate| candidate.entity_id == entity)?;
+    let mut fields = BTreeMap::new();
+    for (aspect, value) in authoritative
+        .authoritative_aspect_state
+        .as_ref()?
+        .aspects()
+        .entries()
+    {
+        let ContractValidatedAspectValueView::Struct(value) = value.view() else {
+            continue;
+        };
+        let aspect = worth_foundational::facade::FieldKey::new(aspect.as_str().to_owned())?;
+        fields.extend(value.fields().filter_map(|(field, value)| {
+            CanonicalFieldPath::new(vec![aspect.clone(), field.clone()])
+                .map(|path| (path, value.clone()))
+        }));
+    }
+    Some(foundation::WorthQueryEntity::from_native_field_values(
+        foundation::WorthQueryEntityIdentity::from_bridge_record_projection(record),
+        fields,
+    ))
 }

@@ -6,14 +6,16 @@ use worth_query_installation::facade::{
     ApplicationSchemaBindingIdentity, WorthQueryInstalledApplicationQueryIdentity,
 };
 use worth_relational::facade::{
-    identity::{EntityId, VersionId},
+    branch::RelationalBranchBasisDescriptor,
+    identity::EntityId,
     indexes::{DerivedIndexGenerationId, DerivedIndexId, RelatedEntityOrderingBoundary},
 };
 
 /// Opaque, move-only description of the exact next application-query page.
 ///
-/// This value retains no authorization, snapshot, provider session, or runtime
-/// resource. Resuming consumes it and requires fresh principal, scope,
+/// This value retains only the exact Relational component basis needed for
+/// owner readmission. It retains no authorization, snapshot, or provider
+/// session. Resuming consumes it and requires fresh principal, scope,
 /// parameter, controls, installed-query, and basis admission.
 ///
 /// It cannot be copied or cloned:
@@ -79,7 +81,9 @@ pub struct WorthQueryApplicationQueryContinuation<Schema, Query, Parameters, Que
     pub(super) continuation_contract_digest: CanonicalDigestId,
     pub(super) graph_authority_identity: String,
     pub(super) provider_identity: String,
-    pub(super) basis_version: VersionId,
+    pub(super) basis_descriptor: RelationalBranchBasisDescriptor,
+    pub(super) basis_retention:
+        worth_relational::facade::branch::RelationalComponentBasisRetentionLease,
     pub(super) index_id: DerivedIndexId,
     pub(super) index_generation: DerivedIndexGenerationId,
     pub(super) boundary: RelatedEntityOrderingBoundary,

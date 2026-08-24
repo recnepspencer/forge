@@ -153,12 +153,16 @@ fn consume_armed_session_and_invariant_sentinels(world: &AuthorizationWorld) {
         &request,
         "invariant-sentinel",
     );
-    assert!(matches!(
-        world
-            .application
-            .compare_and_commit_application(rejected_invariant, idempotency(205, 206)),
-        WorthQueryApplicationCommitOutcome::Aborted
-    ));
+    let WorthQueryApplicationCommitOutcome::Denied(invariant_denial) = world
+        .application
+        .compare_and_commit_application(rejected_invariant, idempotency(205, 206))
+    else {
+        panic!("the retry must leave the invariant-owner sentinel armed");
+    };
+    assert_eq!(
+        invariant_denial.stage(),
+        WorthQueryApplicationCommitDenialStage::InvariantExecution
+    );
 }
 
 fn assert_unseen_commit_uses_the_managed_path(world: &AuthorizationWorld) {

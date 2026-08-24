@@ -74,10 +74,11 @@ fn replace_grantor_with_custodian(
         .kind;
     let handle = graph.integration_handle();
     handle.with_runtime_mut(|runtime| {
-        let snapshot = runtime.snapshots().historical_snapshot();
+        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_main_snapshot(runtime)
+            .expect("primary branch has a current snapshot");
         let grantor = runtime
             .read_truth()
-            .visible_relations_of_kind(grantor_kind, snapshot.version_id)
+            .visible_relations_of_kind(grantor_kind, snapshot.version_id())
             .into_iter()
             .find(|record| record.source == principal && record.target == grant.entity_id())
             .expect("the admitted capability has one current grantor path")

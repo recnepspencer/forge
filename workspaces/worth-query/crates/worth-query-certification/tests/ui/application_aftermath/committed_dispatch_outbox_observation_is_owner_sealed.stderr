@@ -8,7 +8,7 @@ error[E0624]: associated function `seal` is private
   |
   | /     const fn seal(
   | |         record: WorthQueryDispatchOutboxRecord,
-  | |         commit: CommitReference,
+  | |         commit: RelationalCommitReceipt,
   | |         record_ref: RecordRef,
   | |         relational_runtime_instance_id: u64,
   | |         work: WorthQueryCommittedDispatchOutboxReadWork,

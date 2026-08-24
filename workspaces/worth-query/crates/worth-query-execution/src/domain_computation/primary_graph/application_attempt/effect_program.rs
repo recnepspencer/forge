@@ -1,6 +1,7 @@
 mod emission;
 mod model;
 mod relation_effects;
+mod target_admission;
 
 #[cfg(test)]
 mod external_payload_tests;
@@ -39,6 +40,7 @@ use crate::domain_computation::primary_graph::{
     WorthQueryApplicationEntityIdentity, WorthQueryApplicationEntityKey,
     WorthQueryInvariantMutationTarget,
 };
+use target_admission::installed_contract_admits_program_target;
 
 impl<Schema, Operation, Input, Scope>
     WorthQueryCompleteApplicationReadSet<
@@ -340,13 +342,8 @@ impl<Schema, Operation, Input, Scope>
         &self,
         target: &ApplicationOperationProgramTarget,
     ) -> Result<(), WorthQueryApplicationAttemptDenial> {
-        if self
-            .read_set
-            .admission
-            .allowed_graph_contract()
-            .program()
-            .contains(target)
-        {
+        let contracts = self.read_set.admission.allowed_graph_contract();
+        if installed_contract_admits_program_target(contracts, target) {
             Ok(())
         } else {
             Err(denial(

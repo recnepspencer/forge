@@ -20,7 +20,25 @@ impl CommittedPatchSource for RuntimeBridgeRelationalSource {
         request: RelationalCommittedPatchRequest,
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         let commit_id = parse_bridge_commit_identity(request.commit_identity())?;
-        match self.publish_commit(commit_id)? {
+        let publication = match request.snapshot_identity() {
+            Some(snapshot) => {
+                let observation = self.observation_bindings.resolve(snapshot)?;
+                let selected_commit = observation.selected_root().commit_id().ok_or_else(|| {
+                    RelationalBridgeSourceError::new(format!(
+                        "relational bridge snapshot {snapshot:?} has no committed selected root"
+                    ))
+                })?;
+                if selected_commit != commit_id {
+                    return Err(RelationalBridgeSourceError::new(format!(
+                        "relational bridge snapshot {snapshot:?} selects commit `{}` rather than requested commit `{}`",
+                        selected_commit.0, commit_id.0
+                    )));
+                }
+                self.publish_commit_at_snapshot(commit_id, snapshot.clone())
+            }
+            None => self.publish_commit(commit_id)?,
+        };
+        match publication {
             worth_proof::TransitionOutcome::Success(publication) => {
                 Ok(publication.into_bridge_envelope())
             }

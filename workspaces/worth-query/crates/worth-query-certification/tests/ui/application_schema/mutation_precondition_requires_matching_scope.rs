@@ -20,6 +20,10 @@ impl ApplicationAspectMarkerIdentity for InstitutionFacts {
     type Schema = Schema;
     type Entity = Institution;
     const IDENTIFIER: &'static str = "InstitutionFacts";
+    const ASPECT_IDENTITY: worth_query_decl::facade::application_schema::AspectIdentity =
+        worth_query_decl::facade::application_schema::AspectIdentity(0x91612004);
+    const CONTRACT_REVISION: worth_query_decl::facade::application_schema::AspectContractRevision =
+        worth_query_decl::facade::application_schema::AspectContractRevision(1);
 }
 impl ApplicationFieldMarkerIdentity for Status {
     type Schema = Schema;

@@ -19,6 +19,18 @@ pub struct WorthQuerySelectedInstalledInvariant<'inspection, 'run> {
 }
 
 impl WorthQueryProposedStateInspection<'_> {
+    pub(in crate::domain_computation) fn provider_session_view(
+        &self,
+    ) -> crate::domain_computation::provider_session::WorthQueryProviderSessionView<'_> {
+        self.proposed.attempt.staged.provider_session_view()
+    }
+
+    pub fn installed_invariant_requirements(
+        &self,
+    ) -> &[WorthQueryInstalledInvariantExecutionRequirement] {
+        self.proposed.attempt.staged.plan().invariant_requirements()
+    }
+
     pub fn select_installed_invariant(
         &self,
         slot: &str,

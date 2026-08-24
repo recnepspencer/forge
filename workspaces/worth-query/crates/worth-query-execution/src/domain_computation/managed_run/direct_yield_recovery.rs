@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use worth_relational::facade::runtime::RelationalExecutionBasisLease;
+use super::WorthQueryManagedRelationalObservation;
 use worth_runtime_bridge::facade::BridgeYieldedExecutionBasis;
 
 use super::{
@@ -16,7 +16,7 @@ pub(super) enum WorthQueryDirectYieldRecoveryState {
     Running(WorthQueryPausedDirectGraphExecution),
     Terminalized {
         affinity: WorthQueryDirectRunTerminalAffinity,
-        relational_basis: RelationalExecutionBasisLease,
+        relational_basis: WorthQueryManagedRelationalObservation,
         bridge: BridgeYieldedExecutionBasis,
         run_counters: WorthQueryManagedRunCounters,
         provider_work: WorthQueryManagedProviderWorkEvidence,
@@ -88,7 +88,7 @@ impl WorthQueryDirectYieldRecoveryRequired {
             Arc<str>,
             Arc<str>,
             WorthQueryDirectRunTerminalAffinity,
-            RelationalExecutionBasisLease,
+            WorthQueryManagedRelationalObservation,
             BridgeYieldedExecutionBasis,
             WorthQueryManagedRunCounters,
             WorthQueryManagedProviderWorkEvidence,
@@ -139,7 +139,7 @@ pub(super) fn running_recovery(
 
 pub(super) struct WorthQueryTerminalizedDirectYieldRecovery {
     pub(super) affinity: WorthQueryDirectRunTerminalAffinity,
-    pub(super) relational_basis: RelationalExecutionBasisLease,
+    pub(super) relational_basis: WorthQueryManagedRelationalObservation,
     pub(super) bridge: BridgeYieldedExecutionBasis,
     pub(super) run_counters: WorthQueryManagedRunCounters,
     pub(super) provider_work: WorthQueryManagedProviderWorkEvidence,

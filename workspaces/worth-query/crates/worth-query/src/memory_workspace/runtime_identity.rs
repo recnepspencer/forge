@@ -20,6 +20,20 @@ pub(super) fn snapshot_identity_from_runtime(
         .unwrap_or_else(WorthQuerySnapshotIdentity::empty_runtime_state)
 }
 
+pub(crate) fn snapshot_identity_from_branch(
+    runtime: &worth_relational::facade::runtime::RelationalRuntime,
+    branch: &worth_relational::facade::history::BranchId,
+) -> Option<WorthQuerySnapshotIdentity> {
+    let identity = runtime.branch_identity(branch).ok()?;
+    let (_, basis) = runtime.observe_branch(&identity).ok()?;
+    let observation = basis.observation();
+    let history = runtime.history();
+    let head = history.branch_head_for_observation(&observation).ok()??;
+    Some(WorthQuerySnapshotIdentity::from_runtime_snapshot(
+        RelationalBridgeSnapshotIdentityParts::new(head.commit_id.0, head.version_id.0),
+    ))
+}
+
 pub(super) fn entity_identity(
     entity: worth_relational::facade::identity::EntityId,
 ) -> WorthQueryEntityIdentity {

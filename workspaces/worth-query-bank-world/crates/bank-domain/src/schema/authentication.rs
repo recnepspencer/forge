@@ -11,10 +11,8 @@ use super::entities::{ExternalPrincipalMapping, Principal};
 use super::relations::ExternalPrincipal;
 use super::BankSchema;
 
-worth_query_aspect!(
-    pub ExternalPrincipalIdentity in BankSchema,
-    ExternalPrincipalMapping
-);
+worth_query_aspect!(pub ExternalPrincipalIdentity in BankSchema,
+    ExternalPrincipalMapping; identity = AspectIdentity(0x91611001), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub ExternalIdentityKey in BankSchema,
     ExternalPrincipalMapping,
@@ -27,7 +25,7 @@ worth_query_field!(
     ExternalPrincipalIdentity:
     WorthQueryPrincipalMappingStatus, read_write, equality
 );
-worth_query_aspect!(pub PrincipalIdentity in BankSchema, Principal);
+worth_query_aspect!(pub PrincipalIdentity in BankSchema, Principal; identity = AspectIdentity(0x91611002), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub PrincipalIdentityField in BankSchema,
     Principal,

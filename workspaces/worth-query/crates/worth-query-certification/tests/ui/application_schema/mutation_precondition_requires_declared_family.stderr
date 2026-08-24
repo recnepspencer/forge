@@ -1,7 +1,7 @@
 error[E0277]: the trait bound `Status: OperationExpectsVersion<_>` is not satisfied
-  --> tests/ui/application_schema/mutation_precondition_requires_declared_family.rs:41:58
+  --> tests/ui/application_schema/mutation_precondition_requires_declared_family.rs:45:58
    |
-41 |         TypedMutationPreconditions::new().expect_version(status, "open".to_owned());
+45 |         TypedMutationPreconditions::new().expect_version(status, "open".to_owned());
    |                                           -------------- ^^^^^^ unsatisfied trait bound
    |                                           |
    |                                           required by a bound introduced by this call

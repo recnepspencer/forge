@@ -55,8 +55,8 @@ pub struct WorthQueryPrimaryGraphApplicationRuntime<Schema> {
     pub(in crate::domain_computation) authorization_clock: Arc<WorthQueryRuntimeClock>,
     authentication_clock: WorthQueryAuthenticationClock,
     pub(super) relational_source: worth_relational::facade::bridge::RuntimeBridgeRelationalSource,
-    pub(super) execution_basis_source:
-        worth_relational::facade::runtime::RelationalApplicationCommitBasisSource,
+    pub(super) relational_branch_identity:
+        worth_relational::facade::branch::RelationalBranchIdentity,
     pub(super) bridge: super::managed_bridge::WorthQueryInstalledApplicationBridge,
     pub(super) granular_invalidation: super::WorthQueryGranularInvalidationInstallation,
     pub(super) conditional_operations: std::sync::Mutex<

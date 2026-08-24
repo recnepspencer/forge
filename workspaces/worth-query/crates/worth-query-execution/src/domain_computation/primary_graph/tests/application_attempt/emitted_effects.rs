@@ -7,7 +7,8 @@ use crate::domain_computation::primary_graph::tests::fixture::{
 };
 use crate::domain_computation::primary_graph::{
     WorthQueryApplicationAttemptDenialKind, WorthQueryApplicationCommitOutcome,
-    WorthQueryApplicationCommitTerminalKind,
+    WorthQueryApplicationCommitTerminalKind, WorthQueryApplicationHistoricalRead,
+    WorthQueryApplicationQueryAdmissionDenialKind,
 };
 
 #[test]
@@ -144,7 +145,7 @@ fn response_loss_recovers_emit_receipt_without_duplicate_publication() {
 }
 
 #[test]
-fn receipt_recovery_survives_live_source_eviction() {
+fn external_receipt_clones_do_not_pin_an_evicted_historical_basis() {
     let world = installed_authorization_world(true);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
@@ -171,6 +172,7 @@ fn receipt_recovery_survives_live_source_eviction() {
     else {
         panic!("first emitted transaction must commit");
     };
+    let external_original_clone = original.clone();
 
     let mut current_status = "first-emitted".to_string();
     for ordinal in 0..64_u8 {
@@ -221,6 +223,74 @@ fn receipt_recovery_survives_live_source_eviction() {
         WorthQueryApplicationCommitTerminalKind::Recovered
     );
     assert_eq!(recovered.emitted_effect_count(), 1);
+    let external_recovered_clone = recovered.clone();
+    assert_eq!(
+        world
+            .application
+            .primary_provider
+            .retained_receipt_basis_count(),
+        64,
+        "completed evidence must not grow the bounded receipt-basis owner"
+    );
+    let expired_read =
+        WorthQueryApplicationHistoricalRead::at_application_commit(&external_recovered_clone);
+    let denial = world
+        .application
+        .admit_application_historical_basis(expired_read, &request)
+        .err()
+        .expect("external receipt clones must not pin an evicted historical basis");
+    assert_eq!(
+        denial.kind(),
+        WorthQueryApplicationQueryAdmissionDenialKind::BasisUnavailable
+    );
+    assert!(external_original_clone.is_same_authoritative_commit(&original));
+    assert!(external_recovered_clone.is_same_authoritative_commit(&recovered));
+}
+
+#[test]
+fn in_window_receipt_admits_its_exact_historical_basis() {
+    let world = installed_authorization_world(true);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let account = resolved_account(&world, "open", &request);
+    let first =
+        admitted_program_with_emit(&world, &principal, &account, &request, "historical", None);
+    let WorthQueryApplicationCommitOutcome::Committed(receipt) = world
+        .application
+        .compare_and_commit_application(first, idempotency(41, 41))
+    else {
+        panic!("historical transaction must commit");
+    };
+    let exact_version = receipt.commit_reference().version_id;
+    let external_clone = receipt.clone();
+
+    let current_account = resolved_account(&world, "historical", &request);
+    let advanced = admitted_program_with_emit(
+        &world,
+        &principal,
+        &current_account,
+        &request,
+        "advanced",
+        None,
+    );
+    let WorthQueryApplicationCommitOutcome::Committed(advanced) = world
+        .application
+        .compare_and_commit_application(advanced, idempotency(42, 42))
+    else {
+        panic!("advancing transaction must commit");
+    };
+    assert_ne!(advanced.commit_reference().version_id, exact_version);
+
+    let historical_read =
+        WorthQueryApplicationHistoricalRead::at_application_commit(&external_clone);
+    drop(external_clone);
+    drop(receipt);
+    let basis = world
+        .application
+        .admit_application_historical_basis(historical_read, &request)
+        .expect("the bounded owner must retain an in-window receipt basis");
+    assert_eq!(basis.version_id(), exact_version);
+    assert!(basis.release().released());
 }
 
 #[test]

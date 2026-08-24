@@ -61,6 +61,11 @@ impl ApplicationAspectMarkerIdentity for IdentityAspect {
     type Schema = AftermathFixtureSchema;
     type Entity = FixtureEntity;
     const IDENTIFIER: &'static str = "IdentityAspect";
+    const ASPECT_IDENTITY: worth_query_declaration::facade::application_schema::AspectIdentity =
+        worth_query_declaration::facade::application_schema::AspectIdentity(0x91612008);
+    const CONTRACT_REVISION:
+        worth_query_declaration::facade::application_schema::AspectContractRevision =
+        worth_query_declaration::facade::application_schema::AspectContractRevision(1);
 }
 
 macro_rules! field_identity {

@@ -48,11 +48,9 @@ pub(super) fn commit_record(
         .unwrap()
         .unwrap();
         let commit = committed.outcome().commit.clone();
-        let snapshot = runtime
-            .snapshots()
-            .historical_snapshot_for_branch(&branch)
+        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(runtime, &branch)
             .unwrap();
-        let runtime_id = snapshot.runtime_instance_id;
+        let runtime_id = snapshot.runtime_instance_id();
         runtime.snapshots().release_snapshot(&snapshot);
         (binding, commit, runtime_id)
     });
@@ -61,7 +59,11 @@ pub(super) fn commit_record(
 
 pub(super) fn record_for(identity: u64) -> WorthQueryDispatchOutboxRecord {
     let correlation = derive_external_effect_correlation_identity(ExternalEffectCorrelationBasis {
-        correlation_family: "owner-test",
+        correlation_family:
+            worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily::new(
+                "owner-test",
+            )
+            .unwrap(),
         operation_slot: "notify",
         operation_version: 1,
         outcome_identity: identity,
@@ -72,7 +74,11 @@ pub(super) fn record_for(identity: u64) -> WorthQueryDispatchOutboxRecord {
     WorthQueryDispatchOutboxRecord::from_installed_contract(
         correlation,
         &InstalledExternalEffectContract::Declared {
-            correlation_family: "owner-test".to_owned(),
+            correlation_family:
+                worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily::new(
+                    "owner-test",
+                )
+                .unwrap(),
             effect: "OwnerTestEffect".to_owned(),
             rust_payload_type: "tests::Payload".to_owned(),
             protocol: ApplicationExternalEffectProtocol::new(

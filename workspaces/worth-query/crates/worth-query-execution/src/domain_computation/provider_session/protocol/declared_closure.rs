@@ -1,12 +1,15 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use worth_query_installation::facade::{
-    InstalledAftermathPostcondition, InstalledCorrectionMechanism, PublishedAftermathPosture,
-    WorthQueryDomainOperationSemanticClosure, WorthQueryInstalledAftermathContract,
-    WorthQueryOperationEffectContract, WorthQueryOperationGraphAccess,
-    WorthQueryOperationInvariantContract, WorthQueryOperationTouchContract,
+    WorthQueryDomainOperationSemanticClosure, WorthQueryOperationEffectContract,
+    WorthQueryOperationGraphAccess, WorthQueryOperationInvariantContract,
+    WorthQueryOperationTouchContract, WorthQueryOperationTouchScope,
     WorthQueryOperationWorkflowContract,
 };
+
+mod aftermath_posture;
+#[cfg(test)]
+pub(super) use aftermath_posture::reversal_posture;
 
 #[derive(Clone, Debug)]
 pub(crate) struct WorthQueryProviderPlanDeclarations {
@@ -16,6 +19,11 @@ pub(crate) struct WorthQueryProviderPlanDeclarations {
     invariant_requirements:
         Vec<worth_query_installation::facade::WorthQueryInstalledInvariantExecutionRequirement>,
     reconciliation_posture: String,
+    application_graph_reads:
+        Option<worth_query_installation::facade::WorthQueryOperationGraphReadContract>,
+    application_touches: Option<worth_query_installation::facade::WorthQueryOperationTouchContract>,
+    application_read_touch_overlap:
+        Option<worth_query_installation::facade::WorthQueryOperationReadTouchOverlapIndex>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -34,6 +42,9 @@ impl Default for WorthQueryProviderPlanDeclarations {
             decision_fact_families: Vec::new(),
             invariant_requirements: Vec::new(),
             reconciliation_posture: "not-declared".to_owned(),
+            application_graph_reads: None,
+            application_touches: None,
+            application_read_touch_overlap: None,
         }
     }
 }
@@ -43,7 +54,9 @@ impl WorthQueryProviderPlanDeclarations {
         let mut declarations = Self {
             decision_fact_families: semantics.decision_facts.required_families().to_vec(),
             invariant_requirements: semantics.invariant_execution.requirements().to_vec(),
-            reconciliation_posture: reversal_posture(semantics.aftermath.as_ref()),
+            reconciliation_posture: aftermath_posture::reversal_posture(
+                semantics.aftermath.as_ref(),
+            ),
             ..Self::default()
         };
         declarations.bind_direct(semantics);
@@ -54,24 +67,26 @@ impl WorthQueryProviderPlanDeclarations {
     pub(crate) fn from_application_contracts(
         contracts: &worth_query_installation::facade::WorthQueryCompiledApplicationOperationContracts,
     ) -> Self {
-        let mut closure = WorthQueryProviderPlanDeclaredClosure {
-            read: vec!["primary:project".to_owned()],
-            ..WorthQueryProviderPlanDeclaredClosure::default()
-        };
-        if let WorthQueryOperationTouchContract::Declared { scopes, .. } = contracts.touches() {
-            closure.touch.extend(scopes.iter().cloned());
-        }
+        let mut closure = WorthQueryProviderPlanDeclaredClosure::default();
         bind_direct_role_closure(
             &mut closure,
             &effect_families(contracts.effects()),
             &invariant_slots(contracts.invariants()),
         );
+        if !contracts.touches().scopes().is_empty() {
+            closure.effect = effect_families(contracts.effects());
+            closure.invariant = invariant_slots(contracts.invariants());
+            closure.canonicalize();
+        }
         Self {
             direct: [("primary".to_owned(), closure)].into_iter().collect(),
             workflow: BTreeMap::new(),
             decision_fact_families: contracts.decision_facts().required_families().to_vec(),
             invariant_requirements: contracts.invariant_execution().requirements().to_vec(),
             reconciliation_posture: "provisional-discard".to_owned(),
+            application_graph_reads: Some(contracts.graph_reads().clone()),
+            application_touches: Some(contracts.touches().clone()),
+            application_read_touch_overlap: Some(contracts.read_touch_overlap().clone()),
         }
     }
 
@@ -107,7 +122,11 @@ impl WorthQueryProviderPlanDeclarations {
         let Some(closure) = self.closure(stage_identity, graph_role) else {
             return Vec::new();
         };
-        if closure.touch.is_empty() {
+        let application_touches = self
+            .application_touches
+            .as_ref()
+            .is_some_and(|touches| !touches.scopes().is_empty());
+        if closure.touch.is_empty() && !application_touches {
             return Vec::new();
         }
         self.invariant_requirements
@@ -125,7 +144,7 @@ impl WorthQueryProviderPlanDeclarations {
 
     fn bind_direct(&mut self, semantics: &WorthQueryDomainOperationSemanticClosure) {
         let mut roles = BTreeSet::new();
-        for read in semantics.graph_reads.roles() {
+        for read in semantics.graph_reads.domain_roles() {
             roles.insert(read.role.clone());
             self.direct
                 .entry(read.role.clone())
@@ -140,11 +159,14 @@ impl WorthQueryProviderPlanDeclarations {
         {
             for role in graph_roles {
                 roles.insert(role.clone());
-                self.direct
-                    .entry(role.clone())
-                    .or_default()
-                    .touch
-                    .extend(scopes.iter().cloned());
+                self.direct.entry(role.clone()).or_default().touch.extend(
+                    scopes.iter().filter_map(|scope| match scope {
+                        WorthQueryOperationTouchScope::DeclaredDomain(identity) => {
+                            Some(identity.as_str().to_owned())
+                        }
+                        _ => None,
+                    }),
+                );
             }
         }
         let effects = effect_families(&semantics.effects);
@@ -220,6 +242,9 @@ impl WorthQueryProviderPlanDeclarations {
                 "not-required"
             }
             .to_owned(),
+            application_graph_reads: None,
+            application_touches: None,
+            application_read_touch_overlap: None,
         }
     }
 
@@ -284,7 +309,28 @@ impl WorthQueryProviderPlanDeclarations {
             decision_fact_families: Vec::new(),
             invariant_requirements: Vec::new(),
             reconciliation_posture: "not-required".to_owned(),
+            application_graph_reads: None,
+            application_touches: None,
+            application_read_touch_overlap: None,
         }
+    }
+
+    pub(super) const fn application_graph_reads(
+        &self,
+    ) -> Option<&worth_query_installation::facade::WorthQueryOperationGraphReadContract> {
+        self.application_graph_reads.as_ref()
+    }
+
+    pub(super) const fn application_touches(
+        &self,
+    ) -> Option<&worth_query_installation::facade::WorthQueryOperationTouchContract> {
+        self.application_touches.as_ref()
+    }
+
+    pub(super) const fn application_read_touch_overlap(
+        &self,
+    ) -> Option<&worth_query_installation::facade::WorthQueryOperationReadTouchOverlapIndex> {
+        self.application_read_touch_overlap.as_ref()
     }
 }
 
@@ -338,58 +384,6 @@ fn invariant_slots(contract: &WorthQueryOperationInvariantContract) -> Vec<Strin
         WorthQueryOperationInvariantContract::NotRequired => Vec::new(),
         WorthQueryOperationInvariantContract::Declared { invariant_slots } => {
             invariant_slots.clone()
-        }
-    }
-}
-
-pub(super) fn reversal_posture(contract: Option<&WorthQueryInstalledAftermathContract>) -> String {
-    let Some(contract) = contract else {
-        return "none".to_owned();
-    };
-    match (contract.published_posture(), contract.mechanism()) {
-        (PublishedAftermathPosture::Irreversible, _) => "irreversible".to_owned(),
-        (
-            PublishedAftermathPosture::Reversible,
-            Some(InstalledCorrectionMechanism::RecordedInverse(inverse)),
-        ) => format!(
-            "exact-inverse:{}:{}:{}",
-            inverse.inverse_operation_slot(),
-            inverse.lowering_correspondence().correspondence_slot(),
-            aftermath_postcondition(inverse.postcondition())
-        ),
-        (
-            PublishedAftermathPosture::Compensatable,
-            Some(InstalledCorrectionMechanism::Compensation(compensation)),
-        ) => format!(
-            "compensation:{}:{}",
-            compensation.compensating_operation_slot(),
-            aftermath_postcondition(compensation.postcondition())
-        ),
-        (PublishedAftermathPosture::Reconcilable, mechanism) => match mechanism {
-            Some(InstalledCorrectionMechanism::RecordedInverse(inverse)) => format!(
-                "reconcilable-exact-inverse:{}:{}",
-                inverse.inverse_operation_slot(),
-                aftermath_postcondition(inverse.postcondition())
-            ),
-            Some(InstalledCorrectionMechanism::Compensation(compensation)) => format!(
-                "reconcilable-compensation:{}:{}",
-                compensation.compensating_operation_slot(),
-                aftermath_postcondition(compensation.postcondition())
-            ),
-            None => "reconcilable".to_owned(),
-        },
-        _ => "declaration-incomplete".to_owned(),
-    }
-}
-
-fn aftermath_postcondition(postcondition: &InstalledAftermathPostcondition) -> String {
-    match postcondition {
-        InstalledAftermathPostcondition::ExactPriorTruth => "exact-prior-truth".to_owned(),
-        InstalledAftermathPostcondition::InvariantRestored { invariant } => {
-            format!("invariant-restored:{invariant}")
-        }
-        InstalledAftermathPostcondition::BusinessPostcondition { identity } => {
-            format!("business-postcondition:{identity}")
         }
     }
 }

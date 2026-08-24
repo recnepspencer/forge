@@ -108,11 +108,9 @@ pub(in crate::domain_computation) fn commit_distinct_records_and_admit_fixture(
             );
             let second_binding =
                 WorthQueryCommittedDispatchOutboxBinding::fixture(record.clone(), second_ref);
-            let snapshot = runtime
-                .snapshots()
-                .historical_snapshot_for_branch(&branch)
+            let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(runtime, &branch)
                 .unwrap();
-            let runtime_id = snapshot.runtime_instance_id;
+            let runtime_id = snapshot.runtime_instance_id();
             runtime.snapshots().release_snapshot(&snapshot);
             (
                 first_binding,
@@ -170,11 +168,9 @@ pub(in crate::domain_computation::primary_graph) fn commit_and_observe_fixture(
             )
         })
         .expect("declared outbox has a binding");
-        let snapshot = runtime
-            .snapshots()
-            .historical_snapshot_for_branch(&branch)
+        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(runtime, &branch)
             .expect("fixture branch has a snapshot");
-        let runtime_id = snapshot.runtime_instance_id;
+        let runtime_id = snapshot.runtime_instance_id();
         runtime.snapshots().release_snapshot(&snapshot);
         (binding, committed.outcome().commit.clone(), runtime_id)
     });

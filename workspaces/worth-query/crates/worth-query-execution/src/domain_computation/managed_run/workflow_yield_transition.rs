@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use worth_relational::facade::runtime::RelationalExecutionBasisLease;
+use super::WorthQueryManagedRelationalObservation;
 use worth_runtime_bridge::facade::BridgeYieldedExecutionBasis;
 
 use super::managed_graph_execution::WorthQueryManagedGraphExecution;
@@ -47,7 +47,7 @@ pub(super) fn yield_workflow_run(
 
 pub(super) struct WorthQueryWorkflowYieldCheckpointPending {
     pub(super) affinity: WorthQueryWorkflowRunAffinity,
-    pub(super) relational_basis: RelationalExecutionBasisLease,
+    pub(super) relational_basis: WorthQueryManagedRelationalObservation,
     pub(super) run_counters: WorthQueryManagedRunCounters,
     pub(super) artifacts: WorthQueryFrozenWorkflowArtifactAuthority,
     pub(super) provider_artifact_occurrences: Arc<WorthQueryArtifactOccurrenceLedger>,
@@ -137,7 +137,7 @@ impl WorthQueryWorkflowYieldCheckpointPending {
 
 struct WorthQueryWorkflowYieldRetained {
     affinity: WorthQueryWorkflowRunAffinity,
-    relational_basis: RelationalExecutionBasisLease,
+    relational_basis: WorthQueryManagedRelationalObservation,
     run_counters: WorthQueryManagedRunCounters,
     artifacts: WorthQueryFrozenWorkflowArtifactAuthority,
     provider_artifact_occurrences: Arc<WorthQueryArtifactOccurrenceLedger>,
@@ -152,7 +152,7 @@ pub(super) struct WorthQueryWorkflowYieldMint {
 
 pub(super) struct WorthQueryWorkflowYieldMintedOwner {
     pub(super) affinity: super::workflow::WorthQueryWorkflowRunAffinity,
-    pub(super) relational_basis: worth_relational::facade::runtime::RelationalExecutionBasisLease,
+    pub(super) relational_basis: WorthQueryManagedRelationalObservation,
     pub(super) bridge: worth_runtime_bridge::facade::BridgeYieldedExecutionBasis,
     pub(super) execution: super::retained_graph_execution::WorthQueryRetainedManagedGraphExecution,
     pub(super) artifacts:

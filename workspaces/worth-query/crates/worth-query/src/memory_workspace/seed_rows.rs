@@ -2,10 +2,7 @@ use worth_foundational::facade::{AspectValue, InternedString};
 use worth_relational::facade::{
     identity::PartitionId,
     symbols::ClientKey,
-    transactions::{
-        CreateIntent, EntityAspectCreateIntent, MutationIntent, TransactionOptions,
-        WorkerIntentBatch,
-    },
+    transactions::{CreateIntent, EntityAspectCreateIntent, MutationIntent, WorkerIntentBatch},
 };
 
 use super::{WorthQueryCommitIdentity, WorthQueryMemoryWorkspace, WorthQueryWorkspaceError};

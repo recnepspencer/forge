@@ -80,6 +80,12 @@ fn conditional_runtime_bridge_with_change_sequence(
             RecordRef::Relation(_) => None,
         })
         .expect("create commit should retain the delivery entity");
+    let branch_identity = relational
+        .branch_identity(&created.commit.branch_id)
+        .expect("created branch identity");
+    let (_, created_basis) = relational
+        .observe_branch(&branch_identity)
+        .expect("created owner-admitted branch basis");
     let mut update = relational.begin_transaction(
         relational
             .transaction_options_for_main()
@@ -94,8 +100,11 @@ fn conditional_runtime_bridge_with_change_sequence(
         )),
     ));
     let updated = update.commit().expect("delivery update should commit");
+    let (_, updated_basis) = relational
+        .observe_branch(&branch_identity)
+        .expect("updated owner-admitted branch basis");
     let mut requests = vec![request(&updated)];
-    let mut snapshots = vec![snapshot(&created), snapshot(&updated)];
+    let mut retained_bases = vec![created_basis, updated_basis];
     if repeat_after_value {
         let mut repeated = relational.begin_transaction(
             relational
@@ -117,7 +126,10 @@ fn conditional_runtime_bridge_with_change_sequence(
             .commit()
             .expect("repeated delivery value should retain a distinct authoritative commit");
         requests.push(request(&committed));
-        snapshots.push(snapshot(&committed));
+        let (_, repeated_basis) = relational
+            .observe_branch(&branch_identity)
+            .expect("repeated owner-admitted branch basis");
+        retained_bases.push(repeated_basis);
     }
     let record = worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts::entity(
         PartitionId::main().0,
@@ -126,6 +138,7 @@ fn conditional_runtime_bridge_with_change_sequence(
     );
     let source = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(relational), "model")
         .expect("model is a valid graph role");
+    let (source, snapshots) = RetainedRelationalSource::new(source, retained_bases);
     (
         build_bridge(
             source,
@@ -175,13 +188,4 @@ fn request(
     RelationalCommittedPatchRequest::new(TruthCommitIdentity::from_relational_commit_id(
         commit.commit.commit_id.0,
     ))
-}
-
-fn snapshot(
-    commit: &worth_relational::facade::transactions::CommitResult,
-) -> worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts {
-    worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts::new(
-        commit.commit.commit_id.0,
-        commit.commit.version_id.0,
-    )
 }

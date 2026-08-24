@@ -4,7 +4,7 @@ use worth_foundational::facade::{
 use worth_relational::facade::symbols::ClientKey;
 use worth_relational::facade::transactions::{
     ApplyEntityAspectPatchIntent, CreateIntent, EntityAspectCreateIntent, EntityMutationIntent,
-    MutationIntent, TransactionOptions, WorkerIntentBatch,
+    MutationIntent, WorkerIntentBatch,
 };
 
 use crate::runtime::WorthQueryAspectTouch;

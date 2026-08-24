@@ -5,8 +5,8 @@ use std::time::Duration;
 use worth_query_declaration::facade::application_query::ApplicationQueryParameterSet;
 use worth_query_installation::facade::TypedApplicationValue;
 use worth_relational::facade::transactions::{
-    AspectFieldPatch, EntityMutationIntent, MutationIntent, TransactionOptions,
-    UpdateEntityFieldsIntent, WorkerIntentBatch,
+    AspectFieldPatch, EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent,
+    WorkerIntentBatch,
 };
 
 use super::current_controls;

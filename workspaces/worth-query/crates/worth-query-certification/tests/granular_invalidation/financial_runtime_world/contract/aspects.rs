@@ -7,7 +7,7 @@ use worth_query_host::facade::domain::{
 pub(super) fn curve_contract() -> AspectContract {
     struct_contract(
         "CurveFacts",
-        3,
+        0x9161_101e,
         [
             ("CurvePartitionField", ScalarAspectType::String),
             ("CurveDetailField", ScalarAspectType::String),
@@ -19,28 +19,43 @@ pub(super) fn curve_contract() -> AspectContract {
 pub(super) fn volatility_contract() -> AspectContract {
     scalar_contract(
         "VolatilityFacts",
-        8,
+        0x9161_101f,
         "VolatilitySurfaceField",
         ScalarAspectType::UInt64,
     )
 }
 
 pub(super) fn audit_contract() -> AspectContract {
-    scalar_contract("AuditFacts", 2, "AuditLabelField", ScalarAspectType::String)
+    scalar_contract(
+        "AuditFacts",
+        0x9161_1023,
+        "AuditLabelField",
+        ScalarAspectType::String,
+    )
 }
 
 pub(super) fn price_contract() -> AspectContract {
-    scalar_contract("PriceFacts", 6, "QuoteMidField", ScalarAspectType::UInt64)
+    scalar_contract(
+        "PriceFacts",
+        0x9161_1020,
+        "QuoteMidField",
+        ScalarAspectType::UInt64,
+    )
 }
 
 pub(super) fn risk_contract() -> AspectContract {
-    scalar_contract("RiskFacts", 7, "RiskValueField", ScalarAspectType::UInt64)
+    scalar_contract(
+        "RiskFacts",
+        0x9161_1021,
+        "RiskValueField",
+        ScalarAspectType::UInt64,
+    )
 }
 
 pub(in crate::financial_runtime_world) fn portfolio_contract() -> AspectContract {
     struct_contract(
         "PortfolioFacts",
-        5,
+        0x9161_1022,
         [
             ("PortfolioValueField", ScalarAspectType::UInt64),
             ("PortfolioDeskField", ScalarAspectType::String),

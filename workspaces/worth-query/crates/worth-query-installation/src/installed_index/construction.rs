@@ -7,6 +7,12 @@ use super::artifact_contract_admission::admit_artifact_contract;
 use super::index_identity::{index_identity, IndexIdentityInput};
 use super::*;
 
+mod application_schema_records;
+
+use application_schema_records::{
+    compile_application_schema_records, ApplicationSchemaRecordCompilationInput,
+};
+
 #[derive(Default)]
 struct InstalledIndexConstruction {
     records: BTreeMap<String, WorthQueryInstalledPackageRecord>,
@@ -94,18 +100,18 @@ impl InstalledIndexConstruction {
         generation: WorthQueryInstallationGeneration,
         authority_root: InstallationAuthorityRootKey,
     ) -> Result<WorthQueryInstalledPackageIndex, WorthQueryInstalledPackageIndexDenial> {
-        self.counters.installed_package_count = self.records.len();
-        self.counters.installed_definition_count = self.definitions.len();
-        self.counters.installed_domain_operation_count = self.domain_operations.len();
-        self.counters.installed_artifact_contract_count = self.artifact_contracts.len();
-        self.counters.installed_application_schema_count = self.application_schemas.len();
-        self.counters
-            .installed_conditional_application_operation_count =
-            self.conditional_application_operations.len();
-        let package_work = self.records.values().fold(
-            crate::canonical_work::WorthQueryCanonicalWorkEvidence::zero(),
-            |work, record| work.combine(record.package.canonical_work()),
-        );
+        let declarations = std::mem::take(&mut self.application_schemas);
+        let application_schemas =
+            compile_application_schema_records(ApplicationSchemaRecordCompilationInput {
+                runtime: &runtime,
+                generation,
+                packages: &self.records,
+                declarations,
+                counters: &mut self.counters,
+            })?;
+        self.complete_installed_counts(&application_schemas);
+        let package_work = package_installation_work(&self.records);
+        let application_schema_work = application_schema_installation_work(&application_schemas);
         let (identity, index_work) = index_identity(IndexIdentityInput {
             runtime: &runtime,
             generation,
@@ -113,7 +119,7 @@ impl InstalledIndexConstruction {
             definitions: &self.definitions,
             domain_operations: &self.domain_operations,
             artifact_contracts: &self.artifact_contracts,
-            application_schemas: &self.application_schemas,
+            application_schemas: &application_schemas,
             conditional_application_operations: &self.conditional_application_operations,
         })
         .map_err(|denial| {
@@ -124,7 +130,12 @@ impl InstalledIndexConstruction {
                 worth_foundational::facade::CanonicalDigestDerivationDenial::EncodedByteLimitExceeded {
                     ..
                 } => WorthQueryInstalledPackageIndexDenialKind::CanonicalEncodedByteBudgetExceeded,
-                _ => WorthQueryInstalledPackageIndexDenialKind::CanonicalDigestSlotRejected,
+                worth_foundational::facade::CanonicalDigestDerivationDenial::UnsupportedAlgorithm
+                | worth_foundational::facade::CanonicalDigestDerivationDenial::RuleVersionMismatch
+                | worth_foundational::facade::CanonicalDigestDerivationDenial::InputDomainMismatch
+                | worth_foundational::facade::CanonicalDigestDerivationDenial::InputShapeMismatch => {
+                    WorthQueryInstalledPackageIndexDenialKind::CanonicalDigestSlotRejected
+                }
             };
             WorthQueryInstalledPackageIndexDenial::new(kind, "installed-index-canonical-identity")
         })?;
@@ -136,10 +147,12 @@ impl InstalledIndexConstruction {
             definitions: self.definitions,
             domain_operations: self.domain_operations,
             artifact_contracts: self.artifact_contracts,
-            application_schemas: self.application_schemas,
+            application_schemas,
             conditional_application_operations: self.conditional_application_operations,
             identity,
-            installation_canonical_work: package_work.combine(index_work),
+            installation_canonical_work: package_work
+                .combine(application_schema_work)
+                .combine(index_work),
             counters: self.counters,
             indexed_operation_lookups: AtomicUsize::new(0),
         })
@@ -243,6 +256,43 @@ impl InstalledIndexConstruction {
         }
         Ok(())
     }
+
+    fn complete_installed_counts(
+        &mut self,
+        application_schemas: &BTreeMap<
+            (String, String),
+            WorthQueryInstalledApplicationSchemaRecord,
+        >,
+    ) {
+        self.counters.installed_package_count = self.records.len();
+        self.counters.installed_definition_count = self.definitions.len();
+        self.counters.installed_domain_operation_count = self.domain_operations.len();
+        self.counters.installed_artifact_contract_count = self.artifact_contracts.len();
+        self.counters.installed_application_schema_count = application_schemas.len();
+        self.counters
+            .installed_conditional_application_operation_count =
+            self.conditional_application_operations.len();
+    }
+}
+
+fn package_installation_work(
+    records: &BTreeMap<String, WorthQueryInstalledPackageRecord>,
+) -> WorthQueryCanonicalWorkEvidence {
+    records
+        .values()
+        .fold(WorthQueryCanonicalWorkEvidence::zero(), |work, record| {
+            work.combine(record.package.canonical_work())
+        })
+}
+
+fn application_schema_installation_work(
+    schemas: &BTreeMap<(String, String), WorthQueryInstalledApplicationSchemaRecord>,
+) -> WorthQueryCanonicalWorkEvidence {
+    schemas
+        .values()
+        .fold(WorthQueryCanonicalWorkEvidence::zero(), |work, record| {
+            work.combine(record.installation_work())
+        })
 }
 
 fn admit_definition(

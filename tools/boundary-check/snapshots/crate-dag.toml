@@ -36,7 +36,9 @@ dependencies = ["worth-query-declaration"]
 [[packages]]
 package = "worth-query-host"
 dependencies = [
+    "worth-foundational",
     "worth-query-admission",
+    "worth-query-decl",
     "worth-query-declaration",
     "worth-query-execution",
     "worth-query-installation",

@@ -2,7 +2,7 @@ use worth_relational::facade::history::BranchId;
 use worth_runtime_bridge::facade::BridgeWritebackOutcomeClass;
 
 use super::execution_support::{
-    create_entity, relational_runtime_with_intent_strategy, test_bridge,
+    create_entity, exact_branch_snapshot, relational_runtime_with_intent_strategy, test_bridge,
     test_bridge_with_writeback_authority,
 };
 use super::support::{
@@ -50,7 +50,7 @@ fn lowered_mutation_execution_runs_through_relational_strategy_authority() {
         executed.authority_owner(),
         executed.lowered().authority_owner()
     );
-    let snapshot = runtime.snapshots().historical_snapshot();
+    let snapshot = exact_branch_snapshot(&mut runtime, "main");
     let read_view = runtime
         .read_truth()
         .read_snapshot(&snapshot)
@@ -61,6 +61,7 @@ fn lowered_mutation_execution_runs_through_relational_strategy_authority() {
         .find(|record| record.entity_id == entity_id)
         .expect("entity should still exist after execution");
     assert_eq!(entity_name(updated), Some("authority-plan".to_string()));
+    assert!(runtime.snapshots().release_snapshot(&snapshot));
 }
 
 #[test]

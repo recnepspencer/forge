@@ -72,7 +72,8 @@ where
     let (read_outcome, proof) = plan
         .graph_work
         .execute_query_read(basis, |runtime, layout| {
-            let current = runtime.snapshots().historical_snapshot();
+            let current = super::super::exact_basis_access::open_current_main_snapshot(runtime)
+                .expect("installed primary graph retains an exact main-branch basis");
             let authorization_work = validate_current_authorization(
                 application,
                 &entity_resolution,

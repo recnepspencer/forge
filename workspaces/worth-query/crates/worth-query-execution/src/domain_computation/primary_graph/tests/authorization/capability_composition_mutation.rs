@@ -2,7 +2,7 @@ use worth_relational::facade::identity::{EntityId, PartitionId, RelationId};
 use worth_relational::facade::symbols::ClientKey;
 use worth_relational::facade::transactions::{
     AspectFieldPatch, CreateIntent, DeleteRelationIntent, EntityReference, MutationIntent,
-    RelationMutationIntent, RelationSpec, TransactionOptions, WorkerIntentBatch,
+    RelationMutationIntent, RelationSpec, WorkerIntentBatch,
 };
 
 use super::super::fixture::capability::{CapabilityActionRecord, CapabilityActionRecordIdentity};
@@ -152,10 +152,11 @@ fn current_relation(
 ) -> RelationId {
     let graph = world.application.runtime.primary_graph().unwrap();
     graph.integration_handle().with_runtime_mut(|runtime| {
-        let snapshot = runtime.snapshots().historical_snapshot();
+        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_main_snapshot(runtime)
+            .expect("primary branch has a current snapshot");
         let relation = runtime
             .read_truth()
-            .visible_relations_of_kind(kind, snapshot.version_id)
+            .visible_relations_of_kind(kind, snapshot.version_id())
             .into_iter()
             .find(|record| record.source == source && record.target == target)
             .unwrap()

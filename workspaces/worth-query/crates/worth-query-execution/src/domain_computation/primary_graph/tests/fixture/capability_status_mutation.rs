@@ -3,8 +3,8 @@ use std::collections::BTreeMap;
 use worth_foundational::facade::AspectFieldLocator;
 use worth_query_installation::facade::TypedApplicationValue;
 use worth_relational::facade::transactions::{
-    AspectFieldPatch, EntityMutationIntent, MutationIntent, TransactionOptions,
-    UpdateEntityFieldsIntent, WorkerIntentBatch,
+    AspectFieldPatch, EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent,
+    WorkerIntentBatch,
 };
 
 use super::world_installation::AuthorizationWorld;

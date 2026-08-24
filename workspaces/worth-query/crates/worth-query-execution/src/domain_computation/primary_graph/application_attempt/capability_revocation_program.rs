@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
-use worth_query_declaration::facade::{
-    application_schema::ApplicationOperationProgramTarget,
-    domain_computation::WorthQueryResourceDimension,
+use worth_query_declaration::facade::domain_computation::WorthQueryResourceDimension;
+use worth_query_installation::facade::{
+    WorthQueryCompiledApplicationOperationContracts, WorthQueryOperationFieldTouchScope,
+    WorthQueryOperationTouchScope,
 };
 
 use super::effect_program::WorthQueryApplicationRealizedEffect;
@@ -39,8 +40,8 @@ impl<Schema, Operation, Input, Scope>
             .capability_revocation_binding()
             .ok_or_else(|| transition_required(self.admission.operation()))?;
         validate_installed_program(
-            binding.required_program_target(),
-            self.admission.allowed_graph_contract().program(),
+            binding.required_field_touch(),
+            self.admission.allowed_graph_contract(),
         )?;
         validate_target(binding, target, &self.facts, &self.admission)?;
         let emission_retained_bytes_ceiling = self
@@ -77,10 +78,16 @@ impl<Schema, Operation, Input, Scope>
 }
 
 fn validate_installed_program(
-    required: &ApplicationOperationProgramTarget,
-    installed: &[ApplicationOperationProgramTarget],
+    required: &WorthQueryOperationFieldTouchScope,
+    installed: &WorthQueryCompiledApplicationOperationContracts,
 ) -> Result<(), WorthQueryApplicationAttemptDenial> {
-    if installed.len() == 1 && installed.first() == Some(required) {
+    if !installed.external_effect().is_declared()
+        && installed.touches().scopes().len() == 1
+        && matches!(
+            installed.touches().scopes().first(),
+            Some(WorthQueryOperationTouchScope::WriteField(actual)) if actual == required
+        )
+    {
         Ok(())
     } else {
         Err(program_mismatch("capability revocation operation contract"))

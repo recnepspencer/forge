@@ -32,6 +32,7 @@ pub struct WorthQueryApplicationCommitReceipt {
     pub(super) outcome_identity: Option<super::super::WorthQueryApplicationCommitOutcomeIdentity>,
     pub(super) provider_runtime_instance_id: u64,
     pub(super) commit: RelationalCommitReceipt,
+    pub(super) basis_descriptor: worth_relational::facade::branch::RelationalBranchBasisDescriptor,
     pub(super) changed_record_count: usize,
     pub(super) emitted_effect_count: usize,
     pub(super) mutation_work:
@@ -73,6 +74,12 @@ impl WorthQueryApplicationCommitReceipt {
 
     pub const fn commit_reference(&self) -> &RelationalCommitReceipt {
         &self.commit
+    }
+
+    pub const fn basis_descriptor(
+        &self,
+    ) -> &worth_relational::facade::branch::RelationalBranchBasisDescriptor {
+        &self.basis_descriptor
     }
 
     pub const fn changed_record_count(&self) -> usize {

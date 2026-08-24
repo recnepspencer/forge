@@ -21,6 +21,7 @@ pub use observation_bindings::{
 #[derive(Debug, Clone)]
 pub struct RuntimeBridgeRelationalSource {
     runtime: crate::visibility::runtime_authority::RelationalVisibilityRuntimeAuthority,
+    runtime_instance_id: u64,
     observation_bindings: Arc<observation_bindings::RelationalBridgeObservationBindings>,
     branch_head_bindings: Arc<branch_head_bindings::RelationalBridgeBranchHeadBindings>,
     graph_role: Arc<str>,
@@ -47,8 +48,10 @@ impl RuntimeBridgeRelationalSource {
         if graph_role.trim().is_empty() || graph_role.trim() != graph_role.as_ref() {
             return Err(RelationalBridgeSourceConfigurationError::InvalidGraphRole);
         }
+        let runtime_instance_id = runtime.runtime_instance_id();
         Ok(Self {
             runtime: crate::visibility::runtime_authority::RelationalVisibilityRuntimeAuthority::immutable(runtime),
+            runtime_instance_id,
             observation_bindings: observation_bindings::RelationalBridgeObservationBindings::new(),
             branch_head_bindings: branch_head_bindings::RelationalBridgeBranchHeadBindings::new(),
             graph_role,
@@ -62,11 +65,16 @@ impl RuntimeBridgeRelationalSource {
     ) -> Result<Self, RelationalBridgeSourceConfigurationError> {
         let graph_role = graph_role.into();
         validate_graph_role(&graph_role)?;
+        let runtime_instance_id = runtime
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .runtime_instance_id();
         Ok(Self {
             runtime:
                 crate::visibility::runtime_authority::RelationalVisibilityRuntimeAuthority::shared(
                     runtime,
                 ),
+            runtime_instance_id,
             observation_bindings: observation_bindings::RelationalBridgeObservationBindings::new(),
             branch_head_bindings: branch_head_bindings::RelationalBridgeBranchHeadBindings::new(),
             graph_role,
@@ -109,9 +117,15 @@ impl RuntimeBridgeRelationalSource {
         super::RelationalBridgePublicationOutcome,
         worth_runtime_bridge::facade::RelationalBridgeSourceError,
     > {
-        let snapshot_identity = self
-            .observation_bindings
-            .snapshot_identity_for_commit(commit_id)?;
+        let snapshot_identity = match self
+            .branch_head_bindings
+            .unique_snapshot_for_commit(commit_id)?
+        {
+            Some(snapshot) => snapshot,
+            None => self
+                .observation_bindings
+                .snapshot_identity_for_commit(commit_id)?,
+        };
         Ok(self.publish_commit_at_snapshot(commit_id, snapshot_identity))
     }
 

@@ -6,7 +6,7 @@ use worth_relational::facade::indexes::{DerivedIndexBuildRequest, DerivedIndexId
 use worth_relational::facade::symbols::ClientKey;
 use worth_relational::facade::transactions::{
     AspectFieldPatch, CreateIntent, CreatedEntityRef, EntityReference, EntitySpec, MutationIntent,
-    RelationSpec, TransactionOptions, WorkerIntentBatch,
+    RelationSpec, WorkerIntentBatch,
 };
 
 use super::bootstrap::WorthQueryPrincipalBootstrapRow;

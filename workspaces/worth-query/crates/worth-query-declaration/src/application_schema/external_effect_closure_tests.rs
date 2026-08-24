@@ -3,6 +3,7 @@ use worth_foundational::facade::{BoundaryProtocolIdentity, BoundaryProtocolVersi
 use super::{
     member_closure::validate_member_closure, ApplicationExternalEffectProtocol,
     ApplicationOperationProgramTarget, ApplicationSchemaDeclarationDenial, ApplicationSchemaMember,
+    WorthQueryExternalEffectCorrelationFamily,
 };
 
 #[test]
@@ -72,7 +73,8 @@ fn closed_members() -> Vec<ApplicationSchemaMember> {
                 BoundaryProtocolVersion::new(1),
             ),
             maximum_payload_bytes: 64,
-            correlation_family: "external-family".to_owned(),
+            correlation_family: WorthQueryExternalEffectCorrelationFamily::new("external-family")
+                .unwrap(),
         },
     ]
 }

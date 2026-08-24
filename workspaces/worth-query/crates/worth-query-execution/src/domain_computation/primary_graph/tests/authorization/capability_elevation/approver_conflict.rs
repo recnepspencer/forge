@@ -2,7 +2,7 @@ use worth_relational::facade::identity::PartitionId;
 use worth_relational::facade::symbols::ClientKey;
 use worth_relational::facade::transactions::{
     AspectFieldPatch, CreateIntent, EntityReference, MutationIntent, RelationSpec,
-    TransactionOptions, WorkerIntentBatch,
+    WorkerIntentBatch,
 };
 
 use super::super::super::application_attempt::authenticated_principal;

@@ -31,8 +31,7 @@ where
             )
         })?;
         let session_liveness = handle.liveness_observer();
-        let evaluation = self
-            .bridge
+        self.bridge
             .ordinary()
             .evaluate(handle.compare_to_main().speculative_evaluation_request())
             .map_err(|error| {
@@ -41,17 +40,7 @@ where
                     error.to_string(),
                 )
             })?;
-        let lease = self
-            .relational_source
-            .admit_truth_view_execution_basis(&evaluation)
-            .map_err(|error| {
-                denial(
-                    WorthQueryApplicationQueryAdmissionDenialKind::BasisUnavailable,
-                    format!("{error:?}"),
-                )
-            })?;
-        self.ensure_truth_view_indexes(lease.version_id())?;
-        let lease = self.basis_leases.register(lease);
+        let lease = super::super::admission::register_basis(self, session.source_basis().clone())?;
         validate_truth_view_request(request)?;
         validate_preview_session(self, session)?;
         Ok(WorthQueryApplicationPreviewBasis {

@@ -16,7 +16,7 @@ pub(super) fn collect_aspects(members: &[ApplicationSchemaMember]) -> BTreeSet<(
     members
         .iter()
         .filter_map(|member| match member {
-            ApplicationSchemaMember::Aspect { entity, aspect } => {
+            ApplicationSchemaMember::Aspect { entity, aspect, .. } => {
                 Some((entity.as_str(), aspect.as_str()))
             }
             _ => None,

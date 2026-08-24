@@ -7,7 +7,9 @@ use crate::domain_computation::primary_graph::application_attempt::{
     WorthQueryApplicationCommitReceipt, WorthQueryApplicationStaleAttempt,
     WorthQueryCommittedReceiptProjection,
 };
-use crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolution;
+use crate::domain_computation::primary_graph::provider::{
+    WorthQueryPrimaryGraphProvider, WorthQueryProviderIdempotencyResolution,
+};
 use crate::domain_computation::{
     WorthQueryDecisionFactRequest, WorthQueryDecisionReadSetFreshnessOutcome,
     WorthQueryFreshDecisionReadSet, WorthQuerySessionBoundReadsAndEffects,
@@ -50,11 +52,12 @@ impl<'run> WorthQueryFreshProviderAttempt<'run> {
     pub(super) fn progress_invariant(
         self,
         steps: Vec<crate::domain_computation::WorthQueryProvisionalEffectStep>,
+        provider: &std::sync::Arc<WorthQueryPrimaryGraphProvider>,
     ) -> Result<
         crate::domain_computation::WorthQueryInvariantApprovedProposedState<'run>,
         WorthQueryProviderProgressionOutcome,
     > {
-        super::invariant::progress_invariant_candidate(self.staged, self.read_set, steps)
+        super::invariant::progress_invariant_candidate(self.staged, self.read_set, steps, provider)
     }
 }
 

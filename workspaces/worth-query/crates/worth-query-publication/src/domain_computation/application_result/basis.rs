@@ -9,7 +9,6 @@ pub struct WorthQueryPublishedApplicationBasis {
     runtime_instance: u64,
     branch: String,
     snapshot: u64,
-    lease: u64,
     version: u64,
     posture: WorthQueryPublishedApplicationBasisPosture,
 }
@@ -29,7 +28,6 @@ impl WorthQueryPublishedApplicationBasis {
             runtime_instance: identity.runtime_instance_id(),
             branch: identity.branch_id().0.clone(),
             snapshot: identity.snapshot_id().0,
-            lease: identity.lease_ordinal(),
             version: receipt.basis_version().as_u64(),
             posture: match receipt.basis_posture() {
                 WorthQueryApplicationQueryBasisPosture::Current => {
@@ -58,10 +56,6 @@ impl WorthQueryPublishedApplicationBasis {
 
     pub const fn snapshot(&self) -> u64 {
         self.snapshot
-    }
-
-    pub const fn lease(&self) -> u64 {
-        self.lease
     }
 
     pub const fn version(&self) -> u64 {

@@ -65,6 +65,25 @@ impl RelationalBridgeBranchHeadBindings {
         Ok((binding.commit_id, binding.snapshot_identity.clone()))
     }
 
+    pub(super) fn unique_snapshot_for_commit(
+        &self,
+        commit_id: CommitId,
+    ) -> Result<Option<TruthSnapshotIdentity>, RelationalBridgeSourceError> {
+        let entries = self.lock_entries();
+        let mut matching = entries
+            .values()
+            .filter(|binding| binding.commit_id == commit_id)
+            .map(|binding| binding.snapshot_identity.clone());
+        let first = matching.next();
+        if matching.next().is_some() {
+            return Err(RelationalBridgeSourceError::new(format!(
+                "relational commit `{}` is the admitted head of multiple branches; an exact branch-head request is required",
+                commit_id.0
+            )));
+        }
+        Ok(first)
+    }
+
     fn remove(&self, branch_identity: &TruthBranchIdentity, binding_id: u64) -> bool {
         let mut entries = self.lock_entries();
         if entries

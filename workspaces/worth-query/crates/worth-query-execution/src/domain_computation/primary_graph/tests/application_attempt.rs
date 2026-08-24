@@ -41,7 +41,8 @@ mod terminal_failures;
 mod touched_graph_closure;
 
 use program_fixture::{
-    admitted_program, admitted_program_with_emit, admitted_program_with_expected_status,
+    admitted_mutation_free_program, admitted_program, admitted_program_with_emit,
+    admitted_program_with_expected_status,
 };
 
 #[test]

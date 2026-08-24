@@ -153,8 +153,7 @@ struct PublishedApplicationGraph {
     runtime: WorthQueryExecutionRuntime,
     publication: super::WorthQueryPrimaryGraphPublication,
     relational_source: worth_relational::facade::bridge::RuntimeBridgeRelationalSource,
-    execution_basis_source:
-        worth_relational::facade::runtime::RelationalApplicationCommitBasisSource,
+    relational_branch_identity: worth_relational::facade::branch::RelationalBranchIdentity,
     bridge: super::super::managed_bridge::WorthQueryInstalledApplicationBridge,
     primary_provider: std::sync::Arc<WorthQueryPrimaryGraphProvider>,
     primary_graph_authority: WorthQueryInstalledGraphParticipationAuthority,
@@ -212,7 +211,19 @@ where
         .retain_primary_graph_integration_handle()
         .expect("publishing the primary graph installs its integration authority");
     let relational_source = graph.relational_bridge_source();
-    let execution_basis_source = graph.relational_execution_basis_source();
+    graph
+        .bind_current_truth_head(&super::super::application_branch::primary_relational_branch_id())
+        .map_err(|detail| {
+            WorthQueryPrimaryGraphInstallationDenial::new(
+                WorthQueryPrimaryGraphInstallationDenialKind::RelationalSchemaRejected,
+                detail,
+            )
+        })?;
+    let relational_branch_identity = graph.with_runtime(|runtime| {
+        runtime
+            .branch_identity(&super::super::application_branch::primary_relational_branch_id())
+            .expect("the published primary application branch remains owner registered")
+    });
     let bridge = super::super::managed_bridge::install_application_bridge(
         installed_schema,
         &bridge_layout,
@@ -227,7 +238,7 @@ where
         runtime,
         publication,
         relational_source,
-        execution_basis_source,
+        relational_branch_identity,
         bridge,
         primary_provider,
         primary_graph_authority,
@@ -293,7 +304,7 @@ where
         authorization_clock,
         authentication_clock: WorthQueryAuthenticationClock::system(),
         relational_source: graph.relational_source,
-        execution_basis_source: graph.execution_basis_source,
+        relational_branch_identity: graph.relational_branch_identity,
         bridge: graph.bridge,
         granular_invalidation,
         conditional_operations: std::sync::Mutex::new(conditional_operations),

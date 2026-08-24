@@ -5,13 +5,13 @@ use std::collections::BTreeMap;
 use worth_foundational::facade::{
     AspectFieldLocator, AspectKey, AspectValue, CanonicalFieldPath, FieldKey, InternedString,
 };
-use worth_query_declaration::facade::application_schema::ApplicationOperationDecisionReadTarget;
-use worth_query_installation::facade::{InstalledCorrectionMechanism, InstalledPreImageDemand};
+use worth_query_installation::facade::{
+    InstalledCorrectionMechanism, InstalledPreImageDemand, WorthQueryOperationGraphReadScope,
+};
 use worth_relational::facade::identity::{EntityId, KindId, PartitionId};
 use worth_relational::facade::transactions::{
     planned_aspect_field_locator, AspectFieldPatch, EntityMutationIntent, MutationIntent,
-    RecordRef, TransactionOptions, UpdateEntityFieldsIntent, ValidatedMutationFootprint,
-    WorkerIntentBatch,
+    RecordRef, UpdateEntityFieldsIntent, ValidatedMutationFootprint, WorkerIntentBatch,
 };
 
 use super::{retain_from_attempt, retain_matching, WorthQueryObservedPreImageCandidate};
@@ -38,7 +38,7 @@ fn demand(field: &str) -> InstalledPreImageDemand {
 
 fn observed(field: &str, value: AspectValue, slot: u64) -> WorthQueryObservedPreImageCandidate {
     WorthQueryObservedPreImageCandidate::from_observed_field(
-        target("IdentityAspect", field),
+        crate::domain_computation::application_aftermath::aftermath_schema_fixture::freeze_account_fields_read_scope(field),
         locator("IdentityAspect", field),
         value,
         entity(slot),
@@ -64,14 +64,6 @@ fn mutating(
             )
         })
         .collect()
-}
-
-fn target(aspect: &str, field: &str) -> ApplicationOperationDecisionReadTarget {
-    ApplicationOperationDecisionReadTarget::Field {
-        entity: "FixtureEntity".into(),
-        aspect: aspect.into(),
-        field: field.into(),
-    }
 }
 
 fn locator(aspect: &str, field: &str) -> AspectFieldLocator {
@@ -136,13 +128,34 @@ fn owner_path_fixture() -> (
         .field_locator(field.entity(), field.aspect(), field.field())
         .unwrap()
         .clone();
+    let operation = world
+        .application
+        .installed_schema()
+        .installed_operation(ExactStatusRetentionOperation::reference())
+        .unwrap();
+    let read_scope = operation
+        .contracts()
+        .graph_reads()
+        .roles()
+        .iter()
+        .flat_map(|role| role.read_scopes())
+        .find(|scope| {
+            let WorthQueryOperationGraphReadScope::NativeProjection(scope) = scope else {
+                return false;
+            };
+            scope.entity().semantic_key() == field.entity()
+                && scope.aspect().as_str() == field.aspect()
+                && scope
+                    .projection()
+                    .mask()
+                    .paths()
+                    .contains(locator.field_path())
+        })
+        .cloned()
+        .expect("installed operation carries the exact field read scope");
     let fact = WorthQueryPrimaryGraphApplicationDecisionFact::application(
+        read_scope,
         WorthQueryApplicationObservedFact::Field {
-            target: ApplicationOperationDecisionReadTarget::Field {
-                entity: field.entity().to_owned(),
-                aspect: field.aspect().to_owned(),
-                field: field.field().to_owned(),
-            },
             entity_id: account.entity_id(),
             kind: account.entity_kind(),
             locator: locator.clone(),
@@ -150,11 +163,6 @@ fn owner_path_fixture() -> (
         },
     );
     let footprint = validated_status_footprint(&world, account.entity_id(), locator);
-    let operation = world
-        .application
-        .installed_schema()
-        .installed_operation(ExactStatusRetentionOperation::reference())
-        .unwrap();
     let Some(InstalledCorrectionMechanism::RecordedInverse(inverse)) =
         operation.contracts().aftermath().unwrap().mechanism()
     else {
@@ -207,7 +215,7 @@ fn exact_demand_slices_one_matching_field_and_preserves_owner_axes() {
         &demand,
         &[
             observed("frozen", AspectValue::Bool(true), 1),
-            observed("ignored", AspectValue::Bool(false), 2),
+            observed("note", AspectValue::String("ignored".into()), 2),
         ],
         &mutating("frozen", [1]),
     )
@@ -223,7 +231,7 @@ fn exact_demand_slices_one_matching_field_and_preserves_owner_axes() {
 }
 
 #[test]
-fn wrong_field_aspect_entity_and_record_cannot_supply_prior_truth() {
+fn wrong_field_locus_and_record_cannot_supply_prior_truth() {
     let demand = demand("frozen");
     let cases = [
         (
@@ -232,32 +240,14 @@ fn wrong_field_aspect_entity_and_record_cannot_supply_prior_truth() {
         ),
         (
             WorthQueryObservedPreImageCandidate::from_observed_field(
-                target("Accounting", "frozen"),
-                locator("Accounting", "frozen"),
-                AspectValue::Bool(true),
+                crate::domain_computation::application_aftermath::aftermath_schema_fixture::freeze_account_fields_read_scope("note"),
+                locator("IdentityAspect", "note"),
+                AspectValue::String("foreign".into()),
                 entity(1),
                 KindId(7),
             )
             .unwrap(),
-            vec![(
-                RecordRef::Entity(entity(1)),
-                locator("Accounting", "frozen"),
-            )],
-        ),
-        (
-            WorthQueryObservedPreImageCandidate::from_observed_field(
-                ApplicationOperationDecisionReadTarget::Field {
-                    entity: "ForeignEntity".into(),
-                    aspect: "IdentityAspect".into(),
-                    field: "frozen".into(),
-                },
-                locator("IdentityAspect", "frozen"),
-                AspectValue::Bool(true),
-                entity(1),
-                KindId(7),
-            )
-            .unwrap(),
-            mutating("frozen", [1]),
+            mutating("note", [1]),
         ),
         (
             observed("frozen", AspectValue::Bool(true), 1),

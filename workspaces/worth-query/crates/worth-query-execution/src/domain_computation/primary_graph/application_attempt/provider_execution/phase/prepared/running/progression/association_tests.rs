@@ -98,13 +98,14 @@ fn preparation_denial_cleanup_preserves_the_interleaved_peer() {
 }
 
 #[test]
-fn invariant_abort_cleanup_preserves_the_interleaved_peer() {
+fn owner_admission_denial_cleanup_preserves_the_interleaved_peer() {
     assert_interleaved_terminal(
         |world| world.faults.skip_next_invariant_owner_execution(),
         |outcome| {
             assert!(matches!(
                 outcome,
-                WorthQueryApplicationCommitOutcome::Aborted
+                WorthQueryApplicationCommitOutcome::Denied(denial)
+                    if denial.stage() == WorthQueryApplicationCommitDenialStage::InvariantExecution
             ))
         },
     );

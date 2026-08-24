@@ -3,7 +3,7 @@ use worth_relational::facade::history::{BranchId, CommitId};
 use worth_relational::facade::identity::VersionId;
 use worth_relational::facade::transactions::{
     AspectFieldPatch, DeleteEntityIntent, EntityMutationIntent, MutationIntent,
-    RelationalTransaction, TransactionOptions, UpdateEntityFieldsIntent, WorkerIntentBatch,
+    RelationalTransaction, UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 
 use super::owner_test_support::{commit_record, record_for, string};
@@ -326,11 +326,9 @@ fn another_committed_record_ref_cannot_substitute_for_the_bound_outbox() {
                 .unwrap()
                 .unwrap()
             };
-            let snapshot = runtime
-                .snapshots()
-                .historical_snapshot_for_branch(&primary_relational_branch_id())
+            let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(runtime, &primary_relational_branch_id())
                 .unwrap();
-            let runtime_id = snapshot.runtime_instance_id;
+            let runtime_id = snapshot.runtime_instance_id();
             runtime.snapshots().release_snapshot(&snapshot);
             (
                 bind(&first),

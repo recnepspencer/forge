@@ -1,18 +1,12 @@
 use std::marker::PhantomData;
 use std::time::Instant;
 
-use worth_query_installation::facade::ApplicationSchemaBindingIdentity;
-use worth_relational::facade::history::RelationalCommitReceipt;
-use worth_relational::facade::runtime::RelationalExecutionBasisIdentity;
-#[cfg(test)]
-use worth_runtime_bridge::facade::{
-    BridgeTruthViewEvaluationRequest, BridgeTruthViewSelector, TruthBranchIdentity,
-    TruthCommitIdentity,
-};
-
 use super::super::resource_lifecycle::WorthQueryApplicationBasisLease;
+use super::super::WorthQueryApplicationBasisIdentity;
 use crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity;
 use crate::domain_computation::primary_graph::WorthQueryApplicationCommitReceipt;
+use worth_query_installation::facade::ApplicationSchemaBindingIdentity;
+use worth_relational::facade::history::RelationalCommitReceipt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryApplicationHistoricalRead {
@@ -24,18 +18,48 @@ pub(super) enum WorthQueryApplicationHistoricalReadSource {
     ApplicationCommit {
         provider_runtime_instance_id: u64,
         commit: RelationalCommitReceipt,
+        descriptor: worth_relational::facade::branch::RelationalBranchBasisDescriptor,
+        retention: WorthQueryApplicationHistoricalRetention,
     },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(super) enum WorthQueryApplicationHistoricalRetention {
+    OwnerLifecycle,
     #[cfg(test)]
-    BridgeSelector(BridgeTruthViewSelector),
+    Test(crate::domain_computation::primary_graph::provider::WorthQueryRetainedApplicationCommitBasis),
 }
 
 impl WorthQueryApplicationHistoricalRead {
     #[cfg(test)]
-    pub(crate) fn at_commit(branch: TruthBranchIdentity, commit: TruthCommitIdentity) -> Self {
+    pub(crate) fn current_for_test<Schema>(
+        application: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime<Schema>,
+    ) -> Self {
+        let (descriptor, basis) = application
+            .relational_source
+            .observe_branch_basis(&application.relational_branch_identity)
+            .expect("test application primary basis remains owner-observable");
+        let commit = application.primary_provider.graph.with_runtime(|runtime| {
+            runtime
+                .history()
+                .branch_head_for_observation(&basis.observation())
+                .expect("test basis belongs to the application Relational owner")
+                .cloned()
+                .expect("historical test basis requires a committed primary head")
+        });
+        let retention = application.primary_provider.graph.with_runtime(|runtime| {
+            runtime
+                .retain_component_basis(&basis)
+                .map(crate::domain_computation::primary_graph::provider::WorthQueryRetainedApplicationCommitBasis::for_test)
+                .expect("test historical basis remains owner-retainable")
+        });
         Self {
-            source: WorthQueryApplicationHistoricalReadSource::BridgeSelector(
-                BridgeTruthViewSelector::historical_commit(branch, commit),
-            ),
+            source: WorthQueryApplicationHistoricalReadSource::ApplicationCommit {
+                provider_runtime_instance_id: descriptor.runtime_instance_id(),
+                commit,
+                descriptor,
+                retention: WorthQueryApplicationHistoricalRetention::Test(retention),
+            },
         }
     }
 
@@ -44,22 +68,14 @@ impl WorthQueryApplicationHistoricalRead {
             source: WorthQueryApplicationHistoricalReadSource::ApplicationCommit {
                 provider_runtime_instance_id: receipt.provider_runtime_instance_id(),
                 commit: receipt.commit_reference().clone(),
+                descriptor: receipt.basis_descriptor().clone(),
+                retention: WorthQueryApplicationHistoricalRetention::OwnerLifecycle,
             },
         }
     }
 
     pub(super) fn into_source(self) -> WorthQueryApplicationHistoricalReadSource {
         self.source
-    }
-}
-
-#[cfg(test)]
-impl WorthQueryApplicationHistoricalReadSource {
-    pub(super) fn into_evaluation_request(self) -> BridgeTruthViewEvaluationRequest {
-        let Self::BridgeSelector(selector) = self else {
-            panic!("only synthetic Bridge selectors enter the legacy test evaluator")
-        };
-        BridgeTruthViewEvaluationRequest::new(selector)
     }
 }
 
@@ -76,12 +92,12 @@ pub struct WorthQueryApplicationHistoricalBasis<Schema> {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryApplicationHistoricalBasisReleaseReceipt {
-    basis_identity: RelationalExecutionBasisIdentity,
+    basis_identity: WorthQueryApplicationBasisIdentity,
     released: bool,
 }
 
 impl<Schema> WorthQueryApplicationHistoricalBasis<Schema> {
-    pub fn identity(&self) -> &RelationalExecutionBasisIdentity {
+    pub fn identity(&self) -> &WorthQueryApplicationBasisIdentity {
         self.lease.identity()
     }
 
@@ -111,7 +127,7 @@ impl<Schema> WorthQueryApplicationHistoricalBasis<Schema> {
 }
 
 impl WorthQueryApplicationHistoricalBasisReleaseReceipt {
-    pub fn basis_identity(&self) -> &RelationalExecutionBasisIdentity {
+    pub fn basis_identity(&self) -> &WorthQueryApplicationBasisIdentity {
         &self.basis_identity
     }
 

@@ -7,7 +7,7 @@ use super::Denial;
 fn durable_field_restore_accepts_the_exact_committed_shape() {
     let restored = restore_record(valid_restored_fields()).unwrap();
     assert_eq!(restored.correlation().bytes(), &[7; 32]);
-    assert_eq!(restored.correlation_family(), "family");
+    assert_eq!(restored.correlation_family().as_str(), "family");
     assert_eq!(restored.effect(), "effect");
     assert_eq!(restored.protocol_identity().as_str(), "test.effect");
     assert_eq!(restored.protocol_version(), BoundaryProtocolVersion::new(1));

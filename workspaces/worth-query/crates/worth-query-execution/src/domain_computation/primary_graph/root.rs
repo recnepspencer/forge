@@ -7,6 +7,9 @@ use worth_relational::facade::runtime::RelationalRuntime;
 
 use super::schema_layout::WorthQueryPrimaryGraphLayout;
 
+#[cfg(test)]
+mod test_inspection;
+
 /// Execution-owned primary logical graph for one installed application schema.
 ///
 /// This surface exposes graph identity rather than raw Relational access.
@@ -19,6 +22,10 @@ pub struct WorthQueryPrimaryGraph {
     binding_identity: ApplicationSchemaBindingIdentity,
     pub(super) layout: Arc<WorthQueryPrimaryGraphLayout>,
     runtime: Arc<Mutex<RelationalRuntime>>,
+    bridge_source:
+        Arc<Mutex<Option<worth_relational::facade::bridge::RuntimeBridgeRelationalSource>>>,
+    bridge_head:
+        Arc<Mutex<Option<worth_relational::facade::bridge::RelationalBridgeBranchHeadLease>>>,
     aggregate_projections: Arc<Mutex<super::aggregate_projection::WorthQueryAggregateProjections>>,
     truth_partition_role: Option<worth_foundational::facade::TruthPartitionRole>,
 }
@@ -30,9 +37,7 @@ impl WorthQueryPrimaryGraph {
         mut layout: WorthQueryPrimaryGraphLayout,
         mut runtime: RelationalRuntime,
     ) -> Self {
-        let runtime_snapshot = runtime.snapshots().historical_snapshot();
-        let relational_runtime_instance_id = runtime_snapshot.runtime_instance_id;
-        runtime.snapshots().release_snapshot(&runtime_snapshot);
+        let relational_runtime_instance_id = runtime.main_branch_identity().runtime_instance_id();
         let mut indexes_by_locator = BTreeMap::new();
         for (binding, binding_layout) in layout.principal_bindings_mut() {
             let installed = runtime.index_authority().register(DerivedIndexDefinition {
@@ -90,12 +95,21 @@ impl WorthQueryPrimaryGraph {
             branch_scoped: false,
         });
         aftermath_causality.key_index_id = installed.index_id;
+        let runtime = Arc::new(Mutex::new(runtime));
+        let bridge_source =
+            worth_relational::facade::bridge::RuntimeBridgeRelationalSource::for_shared_graph_role(
+                Arc::clone(&runtime),
+                "primary",
+            )
+            .expect("the installed primary graph role is canonical");
         Self {
             runtime_authority,
             relational_runtime_instance_id,
             binding_identity,
             layout: Arc::new(layout),
-            runtime: Arc::new(Mutex::new(runtime)),
+            runtime,
+            bridge_source: Arc::new(Mutex::new(Some(bridge_source))),
+            bridge_head: Arc::new(Mutex::new(None)),
             aggregate_projections: Arc::new(Mutex::new(
                 super::aggregate_projection::WorthQueryAggregateProjections::default(),
             )),
@@ -107,6 +121,17 @@ impl WorthQueryPrimaryGraph {
         &mut self,
         role: worth_foundational::facade::TruthPartitionRole,
     ) {
+        let bridge_source = worth_relational::facade::bridge::RuntimeBridgeRelationalSource::for_shared_graph_partition(
+            Arc::clone(&self.runtime),
+            "primary",
+            worth_relational::facade::identity::PartitionId::main(),
+            role.clone(),
+        )
+        .expect("the installed primary graph partition role is canonical");
+        *self
+            .bridge_source
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(bridge_source);
         self.truth_partition_role = Some(role);
     }
 
@@ -156,6 +181,8 @@ impl WorthQueryPrimaryGraph {
             .into();
         WorthQueryPrimaryGraphIntegrationHandle {
             runtime: Arc::clone(&self.runtime),
+            bridge_source: Arc::clone(&self.bridge_source),
+            bridge_head: Arc::clone(&self.bridge_head),
             layout: Arc::clone(&self.layout),
             primary_index_ids,
             aggregate_projections: Arc::clone(&self.aggregate_projections),
@@ -188,6 +215,10 @@ impl std::fmt::Debug for WorthQueryPrimaryGraph {
 #[derive(Clone)]
 pub struct WorthQueryPrimaryGraphIntegrationHandle {
     pub(super) runtime: Arc<Mutex<RelationalRuntime>>,
+    bridge_source:
+        Arc<Mutex<Option<worth_relational::facade::bridge::RuntimeBridgeRelationalSource>>>,
+    bridge_head:
+        Arc<Mutex<Option<worth_relational::facade::bridge::RelationalBridgeBranchHeadLease>>>,
     pub(super) layout: Arc<WorthQueryPrimaryGraphLayout>,
     pub(super) primary_index_ids: Arc<[worth_relational::facade::indexes::DerivedIndexId]>,
     pub(super) aggregate_projections:
@@ -235,30 +266,44 @@ impl WorthQueryPrimaryGraphIntegrationHandle {
     pub fn relational_bridge_source(
         &self,
     ) -> worth_relational::facade::bridge::RuntimeBridgeRelationalSource {
-        match self.truth_partition_role.clone() {
-            Some(role) => worth_relational::facade::bridge::RuntimeBridgeRelationalSource::for_shared_graph_partition(
-                Arc::clone(&self.runtime),
-                "primary",
-                worth_relational::facade::identity::PartitionId::main(),
-                role,
-            ),
-            None => worth_relational::facade::bridge::RuntimeBridgeRelationalSource::for_shared_graph_role(
-                Arc::clone(&self.runtime),
-                "primary",
-            ),
-        }
-        .expect("the installed primary graph role is canonical")
+        let installed = self
+            .bridge_source
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        installed
+            .as_ref()
+            .expect("the primary graph Bridge source is installed eagerly")
+            .clone()
     }
 
-    /// Checks whether this graph's current branch head is the exact Bridge
-    /// truth basis carried by an admitted downstream read.
+    /// Execute a projection against one exact retained Bridge observation.
+    /// The observation, rather than the descriptive branch name, selects the
+    /// Relational read basis.
     #[doc(hidden)]
-    pub fn retains_current_truth_basis(
+    pub fn with_retained_truth_basis<T>(
         &self,
         snapshot: &worth_runtime_bridge::facade::TruthSnapshotIdentity,
         branch: &worth_runtime_bridge::facade::TruthBranchIdentity,
-    ) -> bool {
-        self.current_truth_snapshot(branch).as_ref() == Some(snapshot)
+        read: impl FnOnce(
+            &RelationalRuntime,
+            &worth_relational::facade::branch::RelationalBranchObservation,
+        ) -> T,
+    ) -> Result<T, worth_runtime_bridge::facade::RelationalBridgeSourceError> {
+        self.relational_bridge_source().with_retained_observation(
+            snapshot,
+            |runtime, observation| {
+                let observed_branch =
+                    worth_runtime_bridge::facade::TruthBranchIdentity::from_relational_branch_id(
+                        observation.identity().branch_id().0.clone(),
+                    );
+                if &observed_branch != branch {
+                    return Err(worth_runtime_bridge::facade::RelationalBridgeSourceError::new(
+                        "retained primary graph observation belongs to a different truth branch",
+                    ));
+                }
+                Ok(read(runtime, observation))
+            },
+        )?
     }
 
     #[doc(hidden)]
@@ -266,103 +311,83 @@ impl WorthQueryPrimaryGraphIntegrationHandle {
         &self,
         branch: &worth_runtime_bridge::facade::TruthBranchIdentity,
     ) -> Option<worth_runtime_bridge::facade::TruthSnapshotIdentity> {
-        let Some(branch) = branch.relational_branch_id() else {
-            return None;
-        };
-        self.with_runtime(|runtime| {
+        self.bridge_head
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .as_ref()
+            .filter(|head| head.branch_identity() == branch)
+            .map(|head| head.snapshot_identity().clone())
+    }
+
+    pub(crate) fn bind_current_truth_head(
+        &self,
+        branch: &worth_relational::facade::history::BranchId,
+    ) -> Result<worth_runtime_bridge::facade::TruthSnapshotIdentity, &'static str> {
+        let basis = self.with_runtime(|runtime| {
+            let identity = runtime
+                .branch_identity(branch)
+                .map_err(|_| "primary graph branch identity is unavailable")?;
             runtime
-                .history()
-                .historical_branch_head(&worth_relational::facade::history::BranchId(
-                    branch.to_owned(),
-                ))
-                .map(|head| {
-                    worth_relational::facade::bridge::bridge_snapshot_identity_for_commit(
-                        head.commit_id,
-                        head.version_id,
-                    )
-                })
-        })
+                .observe_branch(&identity)
+                .map(|(_, basis)| basis)
+                .map_err(|_| "primary graph branch basis is unavailable")
+        })?;
+        let source = self.relational_bridge_source();
+        let head = source
+            .bind_branch_head_basis_for_bridge(&basis)
+            .map_err(|_| "primary graph branch head could not bind to Bridge")?;
+        let snapshot = head.snapshot_identity().clone();
+        let mut installed = self
+            .bridge_head
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        *installed = Some(head);
+        Ok(snapshot)
+    }
+
+    pub(crate) fn retain_current_truth_observation(
+        &self,
+        branch: &worth_relational::facade::history::BranchId,
+    ) -> Result<
+        std::sync::Arc<worth_relational::facade::bridge::RelationalBridgeObservationLease>,
+        &'static str,
+    > {
+        let source = self.relational_bridge_source();
+        let observation = self.with_runtime(|runtime| {
+            let identity = runtime
+                .branch_identity(branch)
+                .map_err(|_| "primary graph branch identity is unavailable")?;
+            let (_, basis) = runtime
+                .observe_branch(&identity)
+                .map_err(|_| "primary graph branch basis is unavailable")?;
+            source
+                .retain_branch_basis_for_bridge_in_runtime(runtime, &basis)
+                .map_err(|_| "primary graph branch observation could not bind to Bridge")
+        })?;
+        Ok(std::sync::Arc::new(observation))
+    }
+
+    pub(crate) fn bind_truth_head_basis_in_runtime(
+        &self,
+        runtime: &RelationalRuntime,
+        basis: &worth_relational::facade::branch::AdmittedRelationalBranchBasis,
+    ) -> Result<worth_runtime_bridge::facade::TruthSnapshotIdentity, &'static str> {
+        let source = self.relational_bridge_source();
+        let head = source
+            .bind_branch_head_basis_for_bridge_in_runtime(runtime, basis)
+            .map_err(|_| "primary graph branch head could not bind to Bridge")?;
+        let snapshot = head.snapshot_identity().clone();
+        let mut installed = self
+            .bridge_head
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        *installed = Some(head);
+        Ok(snapshot)
     }
 
     pub(crate) const fn truth_partition_role(
         &self,
     ) -> Option<&worth_foundational::facade::TruthPartitionRole> {
         self.truth_partition_role.as_ref()
-    }
-
-    pub(crate) fn relational_execution_basis_source(
-        &self,
-    ) -> worth_relational::facade::runtime::RelationalApplicationCommitBasisSource {
-        worth_relational::facade::runtime::RelationalApplicationCommitBasisSource::for_shared_runtime(
-            Arc::clone(&self.runtime),
-        )
-    }
-
-    pub(crate) fn ensure_primary_indexes_current(
-        &self,
-        runtime: &mut RelationalRuntime,
-    ) -> Result<(), &'static str> {
-        let Some(head) = runtime.history().historical_latest_commit().cloned() else {
-            return Ok(());
-        };
-        self.ensure_primary_indexes_for_commit(runtime, head)
-    }
-
-    pub(crate) fn ensure_primary_indexes_current_for_branch(
-        &self,
-        runtime: &mut RelationalRuntime,
-        branch: &worth_relational::facade::history::BranchId,
-    ) -> Result<(), &'static str> {
-        let head = runtime
-            .history()
-            .historical_branch_head(branch)
-            .cloned()
-            .ok_or("primary graph branch has no authoritative head")?;
-        self.ensure_primary_indexes_for_commit(runtime, head)
-    }
-
-    pub(crate) fn ensure_primary_indexes_for_version(
-        &self,
-        runtime: &mut RelationalRuntime,
-        version: worth_relational::facade::identity::VersionId,
-    ) -> Result<(), &'static str> {
-        let commit = runtime
-            .history()
-            .historical_committed_version(version)
-            .ok_or("application-query basis version has no retained commit")?
-            .commit()
-            .clone();
-        self.ensure_primary_indexes_for_commit(runtime, commit)
-    }
-
-    fn ensure_primary_indexes_for_commit(
-        &self,
-        runtime: &mut RelationalRuntime,
-        head: worth_relational::facade::history::RelationalCommitReceipt,
-    ) -> Result<(), &'static str> {
-        let branch = head.branch_id.clone();
-        let current = self.primary_index_ids.iter().all(|index_id| {
-            runtime
-                .index_access()
-                .latest_generation(*index_id, &branch)
-                .is_some_and(|generation| generation.source_commit_id == head.commit_id)
-        });
-        if current {
-            return Ok(());
-        }
-        let build = runtime.index_authority().build_for_commit(
-            worth_relational::facade::indexes::DerivedIndexBuildRequest {
-                source_commit_id: head.commit_id,
-                branch_id: branch,
-                index_ids: self.primary_index_ids.to_vec(),
-            },
-        );
-        if build.failed_indexes.is_empty()
-            && build.generations.len() == self.primary_index_ids.len()
-        {
-            Ok(())
-        } else {
-            Err("primary graph indexes could not recover to the authoritative head")
-        }
     }
 }

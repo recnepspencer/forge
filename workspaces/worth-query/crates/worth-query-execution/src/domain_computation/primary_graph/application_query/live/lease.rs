@@ -71,8 +71,7 @@ pub struct WorthQueryApplicationLiveLease<
         Option<crate::domain_computation::provider_session::WorthQuerySessionGraphReadProof>,
     initial_read_work:
         Option<crate::domain_computation::provider_session::WorthQueryObservedGraphReadWork>,
-    basis_release:
-        Option<worth_relational::facade::runtime::RelationalExecutionBasisReleaseReceipt>,
+    basis_release: Option<super::super::WorthQueryApplicationBasisReleaseReceipt>,
     read_completion:
         Option<crate::domain_computation::provider_session::WorthQueryGraphReadCompletion>,
     queue: WorthQueryLiveCauseQueue<Binding::Payload>,

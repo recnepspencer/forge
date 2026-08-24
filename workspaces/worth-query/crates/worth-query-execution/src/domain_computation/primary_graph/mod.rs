@@ -13,8 +13,11 @@ mod denial;
 mod entity_key;
 mod entity_resolution;
 mod entity_resolution_denial;
+mod exact_basis_access;
+pub(in crate::domain_computation) use exact_basis_access::open_current_branch_snapshot;
 mod freshness;
 mod granular_invalidation;
+mod index_currency;
 mod index_refresh;
 mod invariant_projection;
 mod live_delivery;
@@ -89,7 +92,8 @@ pub(in crate::domain_computation) use application_branch::primary_truth_branch_i
 pub use application_query::{
     WorthQueryAdmittedApplicationQueryControls, WorthQueryAdmittedApplicationQueryPlan,
     WorthQueryAdmittedDisclosedApplicationResult, WorthQueryApplicationAuthorizationWorkEvidence,
-    WorthQueryApplicationBasisObservation, WorthQueryApplicationBasisObserver,
+    WorthQueryApplicationBasisIdentity, WorthQueryApplicationBasisObservation,
+    WorthQueryApplicationBasisObserver, WorthQueryApplicationBasisReleaseReceipt,
     WorthQueryApplicationContinuationDenial, WorthQueryApplicationContinuationDenialKind,
     WorthQueryApplicationContinuationPageResult, WorthQueryApplicationDisclosed,
     WorthQueryApplicationDisclosureDecisionFact, WorthQueryApplicationDisclosureOutcome,

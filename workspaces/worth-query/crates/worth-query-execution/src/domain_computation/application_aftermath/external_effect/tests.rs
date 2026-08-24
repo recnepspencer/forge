@@ -247,7 +247,11 @@ pub(crate) fn outbox_record(outcome_identity: u64) -> WorthQueryDispatchOutboxRe
     WorthQueryDispatchOutboxRecord::from_installed_contract(
         correlation(outcome_identity),
         &InstalledExternalEffectContract::Declared {
-            correlation_family: "estate-death-notice-rail".to_owned(),
+            correlation_family:
+                worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily::new(
+                    "estate-death-notice-rail",
+                )
+                .unwrap(),
             effect: "notify-death-effect".to_owned(),
             rust_payload_type: "fixture::DeathNotice".to_owned(),
             protocol: ApplicationExternalEffectProtocol::new(
@@ -264,7 +268,11 @@ pub(crate) fn outbox_record(outcome_identity: u64) -> WorthQueryDispatchOutboxRe
 
 fn correlation(outcome_identity: u64) -> ExternalEffectCorrelationIdentity {
     derive_external_effect_correlation_identity(ExternalEffectCorrelationBasis {
-        correlation_family: "estate-death-notice-rail",
+        correlation_family:
+            worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily::new(
+                "estate-death-notice-rail",
+            )
+            .unwrap(),
         operation_slot: "notify-death",
         operation_version: 1,
         outcome_identity,

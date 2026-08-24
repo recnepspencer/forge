@@ -10,6 +10,8 @@ pub(super) fn aspect_member(entity: &str, aspect: &str) -> ApplicationSchemaMemb
     ApplicationSchemaMember::Aspect {
         entity: entity.to_string(),
         aspect: aspect.to_string(),
+        identity: worth_foundational::facade::AspectIdentity(0x91613004),
+        revision: worth_foundational::facade::AspectContractRevision(1),
     }
 }
 

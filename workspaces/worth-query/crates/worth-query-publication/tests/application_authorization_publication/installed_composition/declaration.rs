@@ -80,11 +80,11 @@ worth_query_entity!(pub Resource in PublicationAuthorizationSchema);
 worth_query_entity!(pub CapabilityGrant in PublicationAuthorizationSchema);
 worth_query_entity!(pub ActionRecord in PublicationAuthorizationSchema);
 
-worth_query_aspect!(pub ExternalIdentity in PublicationAuthorizationSchema, ExternalMapping);
-worth_query_aspect!(pub PrincipalFacts in PublicationAuthorizationSchema, Principal);
-worth_query_aspect!(pub ResourceFacts in PublicationAuthorizationSchema, Resource);
-worth_query_aspect!(pub GrantFacts in PublicationAuthorizationSchema, CapabilityGrant);
-worth_query_aspect!(pub ActionRecordFacts in PublicationAuthorizationSchema, ActionRecord);
+worth_query_aspect!(pub ExternalIdentity in PublicationAuthorizationSchema, ExternalMapping; identity = AspectIdentity(0x9161104c), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub PrincipalFacts in PublicationAuthorizationSchema, Principal; identity = AspectIdentity(0x9161104d), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub ResourceFacts in PublicationAuthorizationSchema, Resource; identity = AspectIdentity(0x9161104e), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub GrantFacts in PublicationAuthorizationSchema, CapabilityGrant; identity = AspectIdentity(0x9161104f), revision = AspectContractRevision(1),);
+worth_query_aspect!(pub ActionRecordFacts in PublicationAuthorizationSchema, ActionRecord; identity = AspectIdentity(0x91611050), revision = AspectContractRevision(1),);
 
 worth_query_field!(pub ExternalIdentityField in PublicationAuthorizationSchema, ExternalMapping, ExternalIdentity: worth_query_declaration::facade::authentication::WorthQueryExternalPrincipalIdentity, read_only, equality);
 worth_query_field!(pub MappingStatusField in PublicationAuthorizationSchema, ExternalMapping, ExternalIdentity: worth_query_declaration::facade::authentication::WorthQueryPrincipalMappingStatus, read_write, equality);

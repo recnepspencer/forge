@@ -19,7 +19,7 @@ pub(super) fn validate_operation_graph_participations(
             .definition()
             .semantics()
             .graph_reads
-            .roles()
+            .domain_roles()
             .iter()
             .any(|role| role.role == binding.role());
         let duplicate = bindings
@@ -36,7 +36,12 @@ pub(super) fn validate_operation_graph_participations(
         }
     }
     for operation in operations {
-        for role in operation.definition().semantics().graph_reads.roles() {
+        for role in operation
+            .definition()
+            .semantics()
+            .graph_reads
+            .domain_roles()
+        {
             let separate = matches!(
                 role.participation,
                 worth_query_installation::facade::WorthQueryOperationGraphParticipation::SeparateAuthority { .. }

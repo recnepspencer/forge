@@ -43,6 +43,26 @@ fn mutation_work_is_invariant_to_unrelated_graph_population() {
         expanded.relational_invariant_result_count(),
         baseline.relational_invariant_result_count()
     );
+    assert_eq!(
+        expanded.performed_touch_validated_intents_examined(),
+        baseline.performed_touch_validated_intents_examined()
+    );
+    assert_eq!(
+        expanded.performed_touch_targets_materialized(),
+        baseline.performed_touch_targets_materialized()
+    );
+    assert_eq!(
+        expanded.performed_application_touches_admitted(),
+        baseline.performed_application_touches_admitted()
+    );
+    assert_eq!(
+        expanded.installed_touch_scopes_compared(),
+        baseline.installed_touch_scopes_compared()
+    );
+    assert_eq!(
+        expanded.installed_read_touch_overlaps_observed(),
+        baseline.installed_read_touch_overlaps_observed()
+    );
     assert!(baseline.decision_fact_count() > 0);
     assert!(baseline.proposed_fact_count() > 0);
     assert_eq!(
@@ -55,6 +75,11 @@ fn mutation_work_is_invariant_to_unrelated_graph_population() {
     );
     assert_eq!(baseline.relational_invariant_execution_count(), 3);
     assert!(baseline.relational_invariant_result_count() > 0);
+    assert!(baseline.performed_touch_validated_intents_examined() > 0);
+    assert!(baseline.performed_touch_targets_materialized() > 0);
+    assert_eq!(baseline.performed_application_touches_admitted(), 1);
+    assert!(baseline.installed_touch_scopes_compared() >= 1);
+    assert!(baseline.installed_read_touch_overlaps_observed() >= 1);
     for (name, work) in [("baseline", &baseline), ("expanded", &expanded)] {
         assert_eq!(
             work.preimage_validated_intents_examined(),
@@ -100,6 +125,12 @@ fn no_demand_work_is_exact_zero_across_real_mutation_breadth() {
     assert_eq!(narrow.proposed_fact_count(), 1);
     assert_eq!(wide.proposed_fact_count(), 2);
     assert!(wide.touched_record_count() > narrow.touched_record_count());
+    assert_eq!(narrow.performed_application_touches_admitted(), 1);
+    assert_eq!(wide.performed_application_touches_admitted(), 2);
+    assert_eq!(
+        narrow.installed_touch_scopes_compared(),
+        wide.installed_touch_scopes_compared()
+    );
     for (name, work) in [("narrow", &narrow), ("wide", &wide)] {
         assert_eq!(work.preimage_validated_intents_examined(), 0, "{name}");
         assert_eq!(work.preimage_mutation_targets_materialized(), 0, "{name}");

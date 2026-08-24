@@ -50,14 +50,32 @@ impl<T> RelationalBridgeSource for T where
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RelationalCommittedPatchRequest {
     commit_identity: TruthCommitIdentity,
+    snapshot_identity: Option<TruthSnapshotIdentity>,
 }
 
 impl RelationalCommittedPatchRequest {
     pub fn new(commit_identity: TruthCommitIdentity) -> Self {
-        Self { commit_identity }
+        Self {
+            commit_identity,
+            snapshot_identity: None,
+        }
+    }
+
+    pub fn at_snapshot(
+        commit_identity: TruthCommitIdentity,
+        snapshot_identity: TruthSnapshotIdentity,
+    ) -> Self {
+        Self {
+            commit_identity,
+            snapshot_identity: Some(snapshot_identity),
+        }
     }
 
     pub fn commit_identity(&self) -> &TruthCommitIdentity {
         &self.commit_identity
+    }
+
+    pub fn snapshot_identity(&self) -> Option<&TruthSnapshotIdentity> {
+        self.snapshot_identity.as_ref()
     }
 }

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use worth_relational::facade::runtime::RelationalExecutionBasisLease;
+use super::WorthQueryManagedRelationalObservation;
 use worth_runtime_bridge::facade::BridgeYieldedExecutionBasis;
 
 mod terminal_cleanup;
@@ -27,7 +27,7 @@ pub(super) enum WorthQueryWorkflowYieldRecoveryState {
 
 pub(super) struct WorthQueryTerminalizedWorkflowYieldRecovery {
     pub(super) affinity: super::workflow::WorthQueryWorkflowYieldReleasePending,
-    pub(super) relational_basis: RelationalExecutionBasisLease,
+    pub(super) relational_basis: WorthQueryManagedRelationalObservation,
     pub(super) artifacts: WorthQueryFrozenWorkflowArtifactAuthority,
     pub(super) bridge: BridgeYieldedExecutionBasis,
     pub(super) run_counters: WorthQueryManagedRunCounters,

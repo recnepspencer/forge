@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
-  --> tests/ui/application_schema/mutation_precondition_requires_matching_scope.rs:42:55
+  --> tests/ui/application_schema/mutation_precondition_requires_matching_scope.rs:46:55
    |
-42 |         TypedMutationPreconditions::new().expect_fact(institution_status, "open".to_owned());
+46 |         TypedMutationPreconditions::new().expect_fact(institution_status, "open".to_owned());
    |                                           ----------- ^^^^^^^^^^^^^^^^^^ expected `ApplicationFieldRef<..., ..., _, _, ..., _, _, _>`, found `ApplicationFieldRef<..., ..., ..., ..., ..., ..., ...>`
    |                                           |
    |                                           arguments to this method are incorrect

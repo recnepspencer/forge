@@ -157,9 +157,11 @@ where
             )
         })?;
         let observed = graph.integration_handle().with_runtime_mut(|runtime| {
-            let Some(snapshot) = runtime
-                .snapshots()
-                .historical_snapshot_for_branch(refresh.branch)
+            let Some(snapshot) =
+                crate::domain_computation::primary_graph::open_current_branch_snapshot(
+                    runtime,
+                    refresh.branch,
+                )
             else {
                 return Err(denial(
                     WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,
@@ -196,7 +198,7 @@ where
         authorization: &WorthQueryRetainedCapabilityAuthorization,
         refresh: &WorthQueryCapabilityRefresh<'_>,
     ) -> Result<(), WorthQueryOperationAuthorizationDenial> {
-        if snapshot.branch_id != *refresh.branch {
+        if snapshot.branch_id() != refresh.branch {
             return Err(inconsistent_refresh(refresh));
         }
         if !authorization
@@ -290,9 +292,11 @@ where
             )
         })?;
         graph.integration_handle().with_runtime_mut(|runtime| {
-            let Some(snapshot) = runtime
-                .snapshots()
-                .historical_snapshot_for_branch(refresh.branch)
+            let Some(snapshot) =
+                crate::domain_computation::primary_graph::open_current_branch_snapshot(
+                    runtime,
+                    refresh.branch,
+                )
             else {
                 return Err(denial(
                     WorthQueryOperationAuthorizationDenialKind::InconsistentDecision,

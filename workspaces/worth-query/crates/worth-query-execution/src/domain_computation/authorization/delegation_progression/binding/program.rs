@@ -1,12 +1,12 @@
-use std::collections::BTreeSet;
-
 use worth_foundational::facade::{AspectFieldLocator, AspectValue};
 use worth_query_declaration::facade::application_schema::ApplicationOperationProgramTarget;
+use worth_query_installation::facade::WorthQueryCompiledApplicationOperationContracts;
 use worth_relational::facade::identity::KindId;
 use worth_relational::facade::symbols::ClientKey;
 use worth_relational::facade::transactions::{CreatedEntityRef, EntityReference};
 
 use super::WorthQueryDelegationActivationBinding;
+use crate::domain_computation::application_contract_admission::application_contract_contains_program_targets;
 
 /// One complete effect minted by the delegation-authorization owner.
 pub(in crate::domain_computation) enum WorthQueryDelegationActivationEffect {
@@ -30,7 +30,7 @@ impl WorthQueryDelegationActivationBinding {
     /// resource, relationship, or context axes used to authorize them.
     pub(in crate::domain_computation) fn materialize_program(
         &self,
-        installed: &[ApplicationOperationProgramTarget],
+        installed: &WorthQueryCompiledApplicationOperationContracts,
     ) -> Result<Vec<WorthQueryDelegationActivationEffect>, ()> {
         self.validate_installed_program(installed)?;
         let key = canonical_child_key(&self.child_key)?;
@@ -96,34 +96,32 @@ impl WorthQueryDelegationActivationBinding {
 
     fn validate_installed_program(
         &self,
-        installed: &[ApplicationOperationProgramTarget],
+        installed: &WorthQueryCompiledApplicationOperationContracts,
     ) -> Result<(), ()> {
-        let required = self
+        let creates = self
             .required_program_targets
-            .iter()
-            .collect::<BTreeSet<_>>();
-        let installed = installed.iter().collect::<BTreeSet<_>>();
-        let creates = required
             .iter()
             .filter(|target| matches!(target, ApplicationOperationProgramTarget::Create { .. }))
             .count();
-        let writes = required
+        let writes = self
+            .required_program_targets
             .iter()
             .filter(|target| matches!(target, ApplicationOperationProgramTarget::Write { .. }))
             .count();
-        let links = required
+        let links = self
+            .required_program_targets
             .iter()
             .filter(|target| matches!(target, ApplicationOperationProgramTarget::Link { .. }))
             .count();
         let expected_links = 4usize
             .saturating_add(usize::from(self.related.is_some()))
             .saturating_add(self.activation_context.len());
-        (required.len() == self.required_program_targets.len()
-            && required.is_subset(&installed)
+        (application_contract_contains_program_targets(installed, &self.required_program_targets)
             && creates == 1
             && writes == self.fields.len()
             && links == expected_links
-            && required.len() == creates.saturating_add(writes).saturating_add(links))
+            && self.required_program_targets.len()
+                == creates.saturating_add(writes).saturating_add(links))
         .then_some(())
         .ok_or(())
     }

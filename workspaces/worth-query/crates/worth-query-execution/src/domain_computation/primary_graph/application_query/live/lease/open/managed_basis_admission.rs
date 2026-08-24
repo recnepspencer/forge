@@ -20,15 +20,9 @@ pub(super) fn admit_live_managed_basis<Schema>(
     graph_work: &crate::domain_computation::provider_session::WorthQueryManagedGraphWorkSession,
     subject: &str,
 ) -> Result<WorthQueryManagedLowerExecutionBasis, WorthQueryApplicationLiveOpenDenial> {
-    let version = application
-        .primary_provider
-        .graph
-        .with_runtime(|runtime| {
-            runtime
-                .history()
-                .historical_latest_commit()
-                .map(|head| head.version_id)
-        })
+    let descriptor = graph_work
+        .query_basis()
+        .map(|basis| basis.descriptor().clone())
         .ok_or_else(|| {
             open_denial(
                 WorthQueryApplicationLiveOpenDenialKind::ProviderVersionUnavailable,
@@ -40,8 +34,7 @@ pub(super) fn admit_live_managed_basis<Schema>(
     let binding =
         WorthQueryManagedLowerBinding::new(subject, &attempt_identity, live.resource_envelope());
     let request = WorthQueryManagedTruthReadRequest::new(
-        version,
-        graph_work.branch().truth().clone(),
+        descriptor,
         worth_runtime_bridge::facade::SnapshotReadPacket::new(Vec::new()),
     );
     let request_bridge = application.bridge.ordinary().fork_managed_request_lane();

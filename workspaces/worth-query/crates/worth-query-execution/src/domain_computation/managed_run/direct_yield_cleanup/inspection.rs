@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
+use super::super::WorthQueryManagedRelationalObservationReleaseReceipt;
 use worth_query_admission::facade::resource_admission::WorthQueryExecutionCapacityReservationScope;
-use worth_relational::facade::runtime::RelationalExecutionBasisReleaseReceipt;
 use worth_runtime_bridge::facade::{
     BridgeExecutionBasisFinalizationReceipt, BridgeExecutionBasisSignalTerminal,
 };
@@ -22,7 +22,7 @@ pub(super) struct WorthQueryCompletedDirectYieldCleanup {
     pub(super) checkpoint_release: Option<WorthQueryProviderCheckpointReleaseEvidence>,
     pub(super) recovery_evidence: Option<WorthQueryYieldRecoveryResourceEvidence>,
     pub(super) bridge: BridgeExecutionBasisFinalizationReceipt,
-    pub(super) relational: RelationalExecutionBasisReleaseReceipt,
+    pub(super) relational: WorthQueryManagedRelationalObservationReleaseReceipt,
     pub(super) attempt: WorthQueryDirectExecutionAttemptReleaseReceipt,
     pub(super) run_counters: WorthQueryManagedRunCounters,
     pub(super) provider_work: WorthQueryManagedProviderWorkEvidence,
