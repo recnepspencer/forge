@@ -207,7 +207,9 @@ pub(super) fn create_entity_of_kind(
             .into(),
         ),
     );
-    let outcome = txn.commit().expect("entity creation must succeed");
+    let outcome = txn
+        .commit(&mut runtime)
+        .expect("entity creation must succeed");
     outcome
         .changed_records
         .iter()
@@ -238,7 +240,9 @@ pub(super) fn create_relation_of_kind(
             }),
         )),
     );
-    let outcome = txn.commit().expect("relation creation must succeed");
+    let outcome = txn
+        .commit(&mut runtime)
+        .expect("relation creation must succeed");
     outcome
         .changed_records
         .iter()
@@ -331,5 +335,5 @@ pub(super) fn commit_entity_with_summary(
             ]),
         })),
     ));
-    txn.commit()
+    txn.commit(&mut runtime)
 }

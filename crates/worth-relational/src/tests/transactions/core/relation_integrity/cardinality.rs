@@ -24,7 +24,7 @@ fn relation_integrity_commit_boundary_rejects_source_cardinality_overflow() {
         ))),
     );
 
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(error.code(), DiagnosticCode::RelationCardinalityViolation);

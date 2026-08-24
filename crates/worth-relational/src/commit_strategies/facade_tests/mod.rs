@@ -1,4 +1,5 @@
 mod authority_pipeline;
+mod foreign_runtime_authority;
 mod merge_strategy_aspect_conflicts;
 mod merge_strategy_family_conflicts;
 mod native_strategy_fixtures;

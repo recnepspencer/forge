@@ -224,14 +224,22 @@ impl AggregateWorld {
                     fields,
                 },
             ));
-            let mut transaction = runtime.begin_transaction(
+            let mut transaction = {
+                let transaction_validation_input = runtime
+                    .admit_main_branch_basis()
+                    .expect("main branch binding");
                 runtime
-                    .transaction_options_for_main()
-                    .expect("main branch binding"),
-            );
+                    .begin_branch_transaction(
+                        &transaction_validation_input,
+                        worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                    )
+                    .expect("owner-admitted transaction context")
+            };
             transaction
                 .push_batch(WorkerIntentBatch::new("aggregate-stale-generation").push(intent));
-            transaction.commit().expect("amount replacement commits");
+            transaction
+                .commit(runtime)
+                .expect("amount replacement commits");
         });
     }
 

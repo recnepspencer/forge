@@ -78,7 +78,7 @@ fn planning_context(
 fn proof_kind_for_runtime(runtime: &RelationalRuntime) -> PreparationProofKind {
     if matches!(
         runtime.config.execution.execution_model,
-        RelationalExecutionModel::StagedParallelPreparation
+        RelationalExecutionModel::ParallelPreparation
     ) {
         PreparationProofKind::ReadOnlyShared
     } else {
@@ -93,7 +93,7 @@ fn preparation_strategy_for_runtime(
 ) -> PreparationStrategy {
     if !matches!(
         runtime.config.execution.execution_model,
-        RelationalExecutionModel::StagedParallelPreparation
+        RelationalExecutionModel::ParallelPreparation
     ) {
         return PreparationStrategy::serial(SerialPreparationReason::ExecutionModelSerial);
     }
@@ -149,7 +149,7 @@ fn invariant_work_packets<'state>(
                 read_set_approximation: PreparationReadSetApproximation::SharedCommittedRead,
                 write_exclusion: match proof_kind {
                     PreparationProofKind::RequiresSerial => {
-                        PreparationWriteExclusionClass::RequiresSerialAuthority
+                        PreparationWriteExclusionClass::RequiresSingleLaneExecution
                     }
                     _ => PreparationWriteExclusionClass::ReadOnly,
                 },

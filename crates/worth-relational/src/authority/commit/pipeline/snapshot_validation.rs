@@ -85,6 +85,7 @@ fn enforce_snapshot_invariant(
         .proposal_identity()
         .clone();
     let (admitted, working_state) = mutated.validated_mut().prepared_mut().mutation_parts();
+    let prevalidated_snapshot_publication = admitted.take_prevalidated_snapshot_publication();
     let (_, _, merged_plan, _, commit_log, phase_timing) = admitted.phase_view().into_parts();
     let invariant = enforce_snapshot_publication_phase(
         runtime,
@@ -95,6 +96,7 @@ fn enforce_snapshot_invariant(
         version_id,
         merged_plan,
         Some(&proposal_identity),
+        prevalidated_snapshot_publication,
     )?;
     mutated.validated_mut().push_invariant(invariant);
     Ok(())

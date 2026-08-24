@@ -17,7 +17,7 @@ fn relation_integrity_commit_boundary_rejects_endpoint_delete_with_live_relation
         )),
     );
 
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(
@@ -79,7 +79,7 @@ fn relation_integrity_commit_boundary_rejects_replace_when_retained_relation_kee
         )),
     );
 
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(
@@ -109,7 +109,7 @@ fn relation_integrity_commit_boundary_requires_relation_deletion_in_same_commit_
         )),
     );
 
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(
@@ -260,7 +260,7 @@ fn relation_integrity_commit_boundary_rejects_relation_retirement_under_cascade_
         )),
     );
 
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(

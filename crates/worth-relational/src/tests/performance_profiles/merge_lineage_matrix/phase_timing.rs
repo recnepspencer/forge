@@ -29,7 +29,8 @@ pub(super) fn certify_merge_execute_phase_timing_feature_adoption(suite: &'stati
                     .into(),
                 ),
             );
-            let _feature_only = changed_entities(&txn.commit().expect("feature create"))[0];
+            let _feature_only =
+                changed_entities(&txn.commit(&mut runtime).expect("feature create"))[0];
 
             let prepared = runtime
                 .prepare_merge_execution(MergeExecutionRequest {

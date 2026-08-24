@@ -100,7 +100,7 @@ pub(super) fn create_relation_of_kind(
             }),
         )),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
     outcome
         .changed_records
         .iter()
@@ -126,7 +126,7 @@ pub(super) fn create_entity(
             }),
         )),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
     outcome
         .changed_records
         .iter()

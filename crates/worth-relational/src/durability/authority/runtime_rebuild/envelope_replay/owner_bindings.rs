@@ -1,12 +1,12 @@
 use crate::durability::data::{DurabilityError, RecoveryFailureClass};
 use crate::history::data::BranchId;
+use crate::mvcc::RelationalTransactionValidationInput;
 use crate::runtime::RelationalRuntime;
-use crate::transactions::data::TransactionOptions;
 
 pub(super) fn owner_options_for_branch(
     restored: &RelationalRuntime,
     branch: &BranchId,
-) -> Result<TransactionOptions, DurabilityError> {
+) -> Result<RelationalTransactionValidationInput, DurabilityError> {
     let identity = restored.branch_identity(branch).map_err(|denial| {
         DurabilityError::new(
             RecoveryFailureClass::ReplayFailure,
@@ -14,7 +14,7 @@ pub(super) fn owner_options_for_branch(
         )
     })?;
     restored
-        .transaction_options_for(&identity)
+        .transaction_validation_input_for(&identity)
         .map_err(|denial| {
             DurabilityError::new(
                 RecoveryFailureClass::ReplayFailure,
@@ -23,10 +23,10 @@ pub(super) fn owner_options_for_branch(
         })
 }
 
-pub(super) fn owner_merge_parent_bindings(
+pub(super) fn owner_merge_parent_bases(
     restored: &RelationalRuntime,
     branches: &[BranchId],
-) -> Result<Vec<crate::branch::RelationalLegacyBranchBinding>, DurabilityError> {
+) -> Result<Vec<crate::branch::AdmittedRelationalBranchBasis>, DurabilityError> {
     branches
         .iter()
         .map(|branch| {
@@ -37,8 +37,8 @@ pub(super) fn owner_merge_parent_bindings(
                 )
             })?;
             restored
-                .transaction_options_for(&identity)
-                .map(|options| options.branch_binding().clone())
+                .transaction_validation_input_for(&identity)
+                .map(|options| options.basis().clone())
                 .map_err(|denial| {
                     DurabilityError::new(
                         RecoveryFailureClass::ReplayFailure,

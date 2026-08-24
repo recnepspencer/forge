@@ -154,7 +154,7 @@ pub(super) fn replace_entity_on_branch(
             }),
         )),
     );
-    let outcome = txn.commit().expect("replacement should commit");
+    let outcome = txn.commit(runtime).expect("replacement should commit");
     changed_entities(&outcome)[0]
 }
 

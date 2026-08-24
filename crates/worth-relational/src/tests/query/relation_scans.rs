@@ -57,7 +57,7 @@ fn relation_kind_scans_return_only_visible_relations_of_that_kind() {
                 RelationMutationIntent::Delete(DeleteRelationIntent { relation_id: r1 }),
             )),
         );
-        txn.commit().unwrap()
+        txn.commit(&mut runtime).unwrap()
     };
     let visible = runtime
         .read_truth()

@@ -1,5 +1,4 @@
-use std::collections::BTreeMap;
-use std::sync::Arc;
+use std::{collections::BTreeMap, sync::Arc};
 
 use worth_foundational::facade::{
     AspectBinding, AspectContract, AspectFieldLocator, AspectValue, CanonicalF64,
@@ -8,7 +7,10 @@ use worth_foundational::facade::{
 use worth_relational::facade::branch::AdmittedRelationalBranchBasis;
 use worth_relational::facade::bridge::RuntimeBridgeRelationalSource;
 use worth_relational::facade::identity::{KindId, PartitionId};
-use worth_relational::facade::runtime::RelationalRuntimeApi;
+use worth_relational::facade::mvcc::{
+    BranchBoundRelationalTransaction, RelationalTransactionIntent,
+};
+use worth_relational::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
 use worth_relational::facade::schema::{
     DeclaredAspectContractBinding, EntityKindRegistration, KindAspectContractDeclarations,
     RelationalSchemaRegistry, SchemaId, SchemaVersionId,
@@ -32,7 +34,6 @@ use worth_runtime_bridge::facade::{
 
 mod delivery_patch;
 pub(super) mod versioned_snapshot;
-
 pub(crate) use delivery_patch::{
     conditional_runtime_bridge_with_change, conditional_runtime_bridge_with_repeated_value_changes,
 };
@@ -81,11 +82,7 @@ pub(crate) fn correspondence_bridge(
         dependency.contract().key().clone(),
         CanonicalFieldPath::single(field.clone()),
     );
-    let mut create = relational.begin_transaction(
-        relational
-            .transaction_options_for_main()
-            .expect("main branch binding"),
-    );
+    let mut create = begin_main_transaction(&relational);
     create.push_batch(WorkerIntentBatch::new("create-conditional-entity").push(
         MutationIntent::Create(CreateIntent::Entity(EntitySpec {
             partition_id: PartitionId::main(),
@@ -97,7 +94,9 @@ pub(crate) fn correspondence_bridge(
             )])),
         })),
     ));
-    let created = create.commit().expect("conditional entity should commit");
+    let created = create
+        .commit(&mut relational)
+        .expect("conditional entity should commit");
     let entity = created
         .changed_records
         .iter()
@@ -107,11 +106,7 @@ pub(crate) fn correspondence_bridge(
         })
         .expect("create commit should retain its entity identity");
 
-    let mut update = relational.begin_transaction(
-        relational
-            .transaction_options_for_main()
-            .expect("main branch binding"),
-    );
+    let mut update = begin_main_transaction(&relational);
     update.push_batch(WorkerIntentBatch::new("update-conditional-identity").push(
         MutationIntent::Entity(EntityMutationIntent::UpdateFields(
             UpdateEntityFieldsIntent {
@@ -124,7 +119,7 @@ pub(crate) fn correspondence_bridge(
         )),
     ));
     let updated = update
-        .commit()
+        .commit(&mut relational)
         .expect("conditional identity field should commit");
     let branch_identity = relational
         .branch_identity(&updated.commit.branch_id)
@@ -362,6 +357,15 @@ impl SnapshotReadSource for RetainedRelationalSource {
     ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
         self.source.open_snapshot(identity)
     }
+}
+
+fn begin_main_transaction(runtime: &RelationalRuntime) -> BranchBoundRelationalTransaction {
+    let context = runtime
+        .admit_main_branch_basis()
+        .expect("main branch context");
+    runtime
+        .begin_branch_transaction(&context, RelationalTransactionIntent::ordinary())
+        .expect("owner-admitted main basis")
 }
 
 fn dependency_field(binding: &AspectBinding) -> FieldKey {

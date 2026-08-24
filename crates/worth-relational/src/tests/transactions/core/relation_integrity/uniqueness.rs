@@ -54,7 +54,7 @@ fn relation_integrity_commit_boundary_rejects_duplicate_normalized_symmetric_edg
         )),
     );
 
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(error.code(), DiagnosticCode::RelationUniquenessViolation);

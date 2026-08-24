@@ -84,7 +84,7 @@ pub(crate) fn strategy_for_parallel_packets(
 ) -> PreparationStrategy {
     if !matches!(
         execution_model,
-        RelationalExecutionModel::StagedParallelPreparation
+        RelationalExecutionModel::ParallelPreparation
     ) {
         return PreparationStrategy::serial(SerialPreparationReason::ExecutionModelSerial);
     }

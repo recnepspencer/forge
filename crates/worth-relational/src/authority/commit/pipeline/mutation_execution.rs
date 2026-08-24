@@ -50,8 +50,12 @@ pub(super) fn mutate_commit_execution(
     let selected_branch_state = validated.prepared_mut().selected_branch_state().clone();
     let proposed_version_id = validated.prepared_mut().proposed_version_id();
     let proposal_identity = validated.prepared_mut().proposal_identity().clone();
+    let prevalidated_mutation_sensitive = validated
+        .prepared_mut()
+        .admitted_mut()
+        .take_prevalidated_mutation_sensitive();
     let (admitted, working_state) = validated.prepared_mut().mutation_parts();
-    let (transaction_id, _options, merged_plan, _, commit_log, phase_timing) =
+    let (transaction_id, validation_input, merged_plan, _, commit_log, phase_timing) =
         admitted.phase_view().into_parts();
     let mutation = run_authoritative_mutation_phase(
         runtime,
@@ -61,9 +65,11 @@ pub(super) fn mutate_commit_execution(
             transaction_id,
             working_state,
             merged_plan,
+            schema_authority: validation_input.schema_authority(),
             selected_branch_state: &selected_branch_state,
             proposed_version_id,
             proposal_identity: &proposal_identity,
+            prevalidated_mutation_sensitive,
         },
     )?;
     let (

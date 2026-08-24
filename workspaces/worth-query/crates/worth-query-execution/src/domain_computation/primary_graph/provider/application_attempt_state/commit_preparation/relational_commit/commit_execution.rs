@@ -43,7 +43,7 @@ pub(super) fn commit(
             runtime, &branch,
         )
         .ok_or_else(|| failure("application branch has no current pre-commit snapshot"))?;
-    let committed = runtime.commit_validated_mutation(candidate).map_err(|_| {
+    let committed = runtime.commit_validated_proposal(candidate).map_err(|_| {
         let _ = runtime.snapshots().release_snapshot(&before);
         failure("Relational rejected the atomic application transaction")
     })?;

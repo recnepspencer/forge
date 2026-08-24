@@ -242,7 +242,7 @@ fn derived_index_build_materializes_declared_struct_field_through_field_projecti
             },
         ))),
     );
-    let outcome = txn.commit().expect("entity create succeeds");
+    let outcome = txn.commit(&mut runtime).expect("entity create succeeds");
     let alpha = changed_entities(&outcome)[0];
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
@@ -301,5 +301,5 @@ fn create_entity_with_aspect_fields(
             },
         )),
     ));
-    changed_entities(&txn.commit().expect("entity create succeeds"))[0]
+    changed_entities(&txn.commit(&mut runtime).expect("entity create succeeds"))[0]
 }

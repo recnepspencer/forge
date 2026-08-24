@@ -166,7 +166,9 @@ fn stale_native_contract_basis_denies_without_mutating_truth() {
             },
         )),
     ));
-    let error = transaction.commit().expect_err("stale basis must deny");
+    let error = transaction
+        .commit(&mut runtime)
+        .expect_err("stale basis must deny");
     assert!(matches!(
         error,
         TransactionCommitError::Conflict {
@@ -242,7 +244,7 @@ fn commit_entity_create(
             aspect_patch,
         })),
     ));
-    transaction.commit().unwrap()
+    transaction.commit(&mut runtime).unwrap()
 }
 
 fn commit_entity_patch(
@@ -260,7 +262,7 @@ fn commit_entity_patch(
             },
         )),
     ));
-    transaction.commit().unwrap()
+    transaction.commit(&mut runtime).unwrap()
 }
 
 fn commit_relation_create(
@@ -281,7 +283,7 @@ fn commit_relation_create(
             aspect_patch,
         })),
     ));
-    transaction.commit().unwrap()
+    transaction.commit(&mut runtime).unwrap()
 }
 
 fn commit_relation_patch(
@@ -299,7 +301,7 @@ fn commit_relation_patch(
             },
         )),
     ));
-    transaction.commit().unwrap()
+    transaction.commit(&mut runtime).unwrap()
 }
 
 fn whole_set(

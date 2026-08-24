@@ -180,6 +180,10 @@ pub enum ConflictClass {
     StaleValidationBasis {
         detail: String,
     },
+    ForeignRuntime {
+        expected_runtime_instance_id: u64,
+        actual_runtime_instance_id: u64,
+    },
     MergeConflictOverlap {
         detail: String,
     },

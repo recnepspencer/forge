@@ -49,12 +49,25 @@ impl SchemaContinuityPlan {
 pub(crate) fn resolve_schema_continuity(
     runtime: &mut crate::runtime::RelationalRuntime,
     branch_id: &crate::history::data::BranchId,
-    options: &crate::transactions::data::TransactionOptions,
+    options: &crate::mvcc::RelationalTransactionValidationInput,
 ) -> Result<SchemaContinuityPlan, TransactionCommitError> {
     let descriptor_policy = runtime.config.schema.descriptor_semantics_policy.clone();
-    let authority_input = match options.schema_authority_input() {
-        Some(input) => input.clone(),
-        None => crate::schema::SchemaContinuityAuthorityInput::from_runtime(runtime),
+    let authority_input = match (
+        options.schema_authority_input(),
+        options.proposed_schema_transition(),
+    ) {
+        (Some(input), _) => input.clone(),
+        (None, Some(_)) => crate::schema::SchemaContinuityAuthorityInput::from_runtime(runtime),
+        (None, None) => crate::schema::SchemaContinuityAuthorityInput::new(
+            options.schema_authority().schema_version(),
+            options.schema_authority().registry().authority_snapshot(),
+            options.schema_authority().descriptor_semantics_version(),
+            runtime
+                .config
+                .schema
+                .descriptor_canonical_basis_policy
+                .current_write_version(),
+        ),
     };
     let current_descriptor_semantics_version = authority_input.descriptor_semantics_version();
     let current_descriptor_canonical_basis_version =

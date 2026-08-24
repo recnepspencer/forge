@@ -89,7 +89,7 @@ fn perf_retention_reclaim_matrix() {
                         },
                     )),
                 ));
-                txn.commit().expect("delete relation")
+                txn.commit(&mut runtime).expect("delete relation")
             };
 
             assert!(runtime

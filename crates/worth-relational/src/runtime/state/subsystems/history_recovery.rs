@@ -95,12 +95,13 @@ impl HistorySubsystem {
                     }
                 }
             };
-            let cell = RelationalBranchReferenceCell::from_checkpoint_with_root(
+            let mut cell = RelationalBranchReferenceCell::from_checkpoint_with_root(
                 self.runtime_instance_id,
                 checkpoint,
                 root,
             )
             .map_err(|denial| format!("invalid durable branch-cell state: {denial:?}"))?;
+            cell.bind_basis_registry_metrics(Arc::clone(&self.basis_registry_metrics));
             let branch_id = cell.identity().branch_id().clone();
             if cells.insert(branch_id.clone(), cell).is_some() {
                 return Err(format!(

@@ -30,7 +30,8 @@ pub(super) fn certify_merge_execution_zero_diagnostics_budget(suite: &'static st
                     .into(),
                 ),
             );
-            let _feature_only = changed_entities(&txn.commit().expect("feature create"))[0];
+            let _feature_only =
+                changed_entities(&txn.commit(&mut runtime).expect("feature create"))[0];
 
             let prepared = runtime
                 .prepare_merge_execution(MergeExecutionRequest {

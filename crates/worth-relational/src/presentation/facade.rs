@@ -1,8 +1,6 @@
 pub mod runtime {
     pub use crate::presentation::api::RelationalRuntimeApi;
-    pub use crate::presentation::contracts::{
-        ImmutableReadContract, RelationalBoundaryContract, SerializedAuthorityContract,
-    };
+    pub use crate::presentation::contracts::{ImmutableReadContract, RelationalBoundaryContract};
 }
 
 #[cfg(test)]

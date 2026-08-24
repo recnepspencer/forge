@@ -132,5 +132,5 @@ pub(crate) fn commit_case_trade_after_savepoint(
             .into(),
         ),
     );
-    txn.commit().unwrap()
+    txn.commit(&mut world.runtime).unwrap()
 }

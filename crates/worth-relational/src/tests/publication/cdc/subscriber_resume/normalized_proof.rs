@@ -1,4 +1,4 @@
-use super::fixtures::{install_schema_version, transaction_options_for_subscriber_impact};
+use super::fixtures::{install_schema_version, transaction_validation_input_for_subscriber_impact};
 use crate::schema::data::{SchemaSubscriberImpact, SchemaVersionId};
 use crate::tests::support::*;
 
@@ -8,13 +8,21 @@ fn subscriber_stream_composes_prior_and_new_boundaries_into_normalized_proof() {
     let _first = create_entity_outcome(&mut runtime, "a");
 
     install_schema_version(&mut runtime, SchemaVersionId(2));
-    let mut txn = runtime.begin_transaction(transaction_options_for_subscriber_impact(
-        &runtime,
-        SchemaVersionId(2),
-        SchemaSubscriberImpact::ConsumableSurfaceChanged,
-    ));
+    let mut txn = {
+        let transaction_validation_input = transaction_validation_input_for_subscriber_impact(
+            &runtime,
+            SchemaVersionId(2),
+            SchemaSubscriberImpact::ConsumableSurfaceChanged,
+        );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(batch_create("b"));
-    txn.commit().unwrap();
+    txn.commit(&mut runtime).unwrap();
 
     let first_batch = runtime
         .publication()
@@ -29,13 +37,21 @@ fn subscriber_stream_composes_prior_and_new_boundaries_into_normalized_proof() {
     );
 
     install_schema_version(&mut runtime, SchemaVersionId(3));
-    let mut second_txn = runtime.begin_transaction(transaction_options_for_subscriber_impact(
-        &runtime,
-        SchemaVersionId(3),
-        SchemaSubscriberImpact::ConsumableSurfaceChanged,
-    ));
+    let mut second_txn = {
+        let transaction_validation_input = transaction_validation_input_for_subscriber_impact(
+            &runtime,
+            SchemaVersionId(3),
+            SchemaSubscriberImpact::ConsumableSurfaceChanged,
+        );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     second_txn.push_batch(batch_create("c"));
-    second_txn.commit().unwrap();
+    second_txn.commit(&mut runtime).unwrap();
 
     let resumed = runtime
         .publication()
@@ -70,14 +86,21 @@ fn resumed_subscriber_stream_preserves_prior_boundary_and_adds_new_boundary_trac
     let _first = create_entity_outcome(&mut runtime, "a");
 
     install_schema_version(&mut runtime, SchemaVersionId(2));
-    let mut first_transition =
-        runtime.begin_transaction(transaction_options_for_subscriber_impact(
+    let mut first_transition = {
+        let transaction_validation_input = transaction_validation_input_for_subscriber_impact(
             &runtime,
             SchemaVersionId(2),
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
-        ));
+        );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     first_transition.push_batch(batch_create("b"));
-    first_transition.commit().unwrap();
+    first_transition.commit(&mut runtime).unwrap();
 
     let first_batch = runtime
         .publication()
@@ -92,14 +115,21 @@ fn resumed_subscriber_stream_preserves_prior_boundary_and_adds_new_boundary_trac
     );
 
     install_schema_version(&mut runtime, SchemaVersionId(3));
-    let mut second_transition =
-        runtime.begin_transaction(transaction_options_for_subscriber_impact(
+    let mut second_transition = {
+        let transaction_validation_input = transaction_validation_input_for_subscriber_impact(
             &runtime,
             SchemaVersionId(3),
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
-        ));
+        );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     second_transition.push_batch(batch_create("c"));
-    second_transition.commit().unwrap();
+    second_transition.commit(&mut runtime).unwrap();
 
     let resumed = runtime
         .publication()

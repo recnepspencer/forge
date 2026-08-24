@@ -29,12 +29,8 @@ impl RuntimeServices {
         }
     }
 
-    pub(crate) fn next_transaction_id(&mut self) -> crate::transactions::data::TransactionId {
+    pub(crate) fn next_transaction_id(&self) -> crate::transactions::data::TransactionId {
         self.sequence.next_transaction_id()
-    }
-
-    pub(crate) fn next_savepoint_id(&mut self) -> crate::transactions::data::SavepointId {
-        self.sequence.next_savepoint_id()
     }
 
     pub(crate) fn next_proposal_ordinal(&mut self) -> Option<u64> {

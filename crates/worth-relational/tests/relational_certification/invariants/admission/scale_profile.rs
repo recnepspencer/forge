@@ -286,9 +286,14 @@ fn commit_vessel(
         .branch_identity(&branch)
         .expect("branch identity is owner-issued");
     let options = runtime
-        .transaction_options_for(&identity)
+        .admit_branch_basis(&identity)
         .expect("transaction authority is owner-issued");
-    let mut transaction = runtime.begin_transaction(options);
+    let mut transaction = runtime
+        .begin_branch_transaction(
+            &options,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context");
     transaction.push_batch(
         WorkerIntentBatch::new(client_key).push(MutationIntent::Create(CreateIntent::Entity(
             EntitySpec {
@@ -299,7 +304,7 @@ fn commit_vessel(
             },
         ))),
     );
-    transaction.commit()
+    transaction.commit(runtime)
 }
 
 fn graph_execution(runtime: &mut RelationalRuntime, branch: &BranchId) -> InvariantExecutionResult {
@@ -307,9 +312,14 @@ fn graph_execution(runtime: &mut RelationalRuntime, branch: &BranchId) -> Invari
         .branch_identity(branch)
         .expect("branch identity is owner-issued");
     let options = runtime
-        .transaction_options_for(&identity)
+        .admit_branch_basis(&identity)
         .expect("transaction authority is owner-issued");
-    let mut transaction = runtime.begin_transaction(options);
+    let mut transaction = runtime
+        .begin_branch_transaction(
+            &options,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context");
     transaction.push_batch(WorkerIntentBatch::new("large-graph-plan").push(
         MutationIntent::Create(CreateIntent::Entity(EntitySpec {
             partition_id: PartitionId::main(),
@@ -319,7 +329,7 @@ fn graph_execution(runtime: &mut RelationalRuntime, branch: &BranchId) -> Invari
         })),
     ));
     transaction
-        .graph_composition_plan()
+        .graph_composition_plan(runtime)
         .expect("the real Scale graph plan is branch-bound and owner-prepared")
 }
 

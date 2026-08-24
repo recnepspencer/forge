@@ -139,7 +139,8 @@ fn replace_entity_after_snapshot(
             }),
         )),
     );
-    txn.commit().expect("second commit should publish");
+    txn.commit(&mut runtime)
+        .expect("second commit should publish");
 }
 
 fn runtime_with_test_schema() -> crate::facade::runtime::RelationalRuntime {

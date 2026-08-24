@@ -169,9 +169,7 @@ fn concurrent_pinned_traversal_reads_stay_snapshot_stable_under_hot_rewrite_pres
         .schema_registry(declared_aspect_schema_registry(
             CascadeDeletePolicy::CascadeDeleteRelations,
         ))
-        .execution_model(
-            crate::facade::runtime::RelationalExecutionModel::StagedParallelPreparation,
-        )
+        .execution_model(crate::facade::runtime::RelationalExecutionModel::ParallelPreparation)
         .build();
     let seeds = vec![
         create_entity_in_partition(&mut runtime, "s0", PartitionId(7)),
@@ -270,7 +268,7 @@ fn concurrent_pinned_traversal_reads_stay_snapshot_stable_under_hot_rewrite_pres
 #[test]
 fn concurrent_relation_index_certification_parity_stays_stable_under_scheduler_pressure() {
     let mut runtime = runtime_with_test_schema_execution_model(
-        crate::facade::runtime::RelationalExecutionModel::StagedParallelPreparation,
+        crate::facade::runtime::RelationalExecutionModel::ParallelPreparation,
     );
     let source = create_entity_outcome(&mut runtime, "source");
     let source_id = changed_entities(&source)[0];

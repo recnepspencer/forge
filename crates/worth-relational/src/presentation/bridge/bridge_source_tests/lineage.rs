@@ -42,7 +42,7 @@ fn runtime_bridge_lineage_source_resolves_real_relational_history() {
             }),
         )),
     );
-    txn.commit().expect("replace should commit");
+    txn.commit(&mut runtime).expect("replace should commit");
     let latest_bundle = runtime
         .publication()
         .latest_bundle()
@@ -250,7 +250,7 @@ fn replace_entity(
             }),
         )),
     );
-    let outcome = txn.commit().expect("replacement should commit");
+    let outcome = txn.commit(runtime).expect("replacement should commit");
     changed_entities(&outcome)[0]
 }
 

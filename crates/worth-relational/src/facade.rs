@@ -44,7 +44,7 @@ pub mod commit_strategies {
         StrategyOutputSchemaName, StrategyPacketContract, StrategyProjectedAspectReadSet,
         StrategyReadContract, StrategyReadCostClass, StrategyReadLocalityClass,
         StrategyReadScopeClass, StrategyReplayDescriptor, StrategyRequestOrigin,
-        StrategyTraversalBasis, StrategyVisibilityReadView, ValidatedStrategyCommitPlan,
+        StrategyTraversalBasis, StrategyVisibilityReadView,
     };
     pub use crate::commit_strategies::facade::{
         CommitStrategiesAuthorityFacade, CommitStrategiesFacade,
@@ -197,12 +197,10 @@ pub mod merge {
 pub mod runtime {
     pub use super::runtime_validation_exports::*;
     pub use crate::config::data::{
-        CommitAuthorityContract, PlanningContract, RelationIntegrityScopeBudget,
-        RelationalExecutionModel,
+        PlanningContract, RelationIntegrityScopeBudget, RelationalExecutionModel,
     };
     pub use crate::presentation::facade::runtime::{
         ImmutableReadContract, RelationalBoundaryContract, RelationalRuntimeApi,
-        SerializedAuthorityContract,
     };
     pub use crate::publication::{
         PostCommitConsumer, PostCommitConsumptionContext, PostCommitConsumptionFailure,
@@ -360,3 +358,6 @@ pub mod symbols {
 
 #[path = "facade/transactions.rs"]
 pub mod transactions;
+
+#[path = "facade/mvcc.rs"]
+pub mod mvcc;

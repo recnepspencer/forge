@@ -78,7 +78,7 @@ fn publication_cannot_mint_a_missing_branch_cell() {
     let identity = world.runtime.main_branch_identity();
     let options = world
         .runtime
-        .transaction_options_for(&identity)
+        .admit_branch_basis(&identity)
         .expect("main remains owner-admissible");
     let before = capture_reference_evidence(
         &mut world.runtime,
@@ -86,12 +86,18 @@ fn publication_cannot_mint_a_missing_branch_cell() {
         &BranchId("ghost".to_owned()),
         world.commit.commit_id,
     );
-    let mut transaction = world.runtime.begin_transaction(options);
+    let mut transaction = world
+        .runtime
+        .begin_branch_transaction(
+            &options,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context");
     transaction.push_batch(
         worth_relational::facade::transactions::WorkerIntentBatch::new("cannot-create-ghost"),
     );
     transaction
-        .commit()
+        .commit(&mut world.runtime)
         .expect("main publication still advances the admitted main cell");
     let after = capture_reference_evidence(
         &mut world.runtime,

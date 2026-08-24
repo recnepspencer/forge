@@ -1,5 +1,0 @@
-error[E0599]: no method named `commit` found for struct `WorthQueryProposedStateInspection<'run>` in the current scope
- --> tests/ui/installed_domain/managed_run/proposed_inspection_cannot_commit.rs:4:24
-  |
-4 |     let _ = inspection.commit();
-  |                        ^^^^^^ method not found in `WorthQueryProposedStateInspection<'_>`

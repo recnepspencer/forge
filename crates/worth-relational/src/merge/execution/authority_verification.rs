@@ -141,17 +141,25 @@ fn verify_merge_base(
     let merge_base = runtime
         .branch_identity(binding.request.target_branch())
         .ok()
-        .and_then(|target_identity| runtime.transaction_options_for(&target_identity).ok())
+        .and_then(|target_identity| {
+            runtime
+                .transaction_validation_input_for(&target_identity)
+                .ok()
+        })
         .zip(
             runtime
                 .branch_identity(binding.request.source_branch())
                 .ok()
-                .and_then(|source_identity| runtime.transaction_options_for(&source_identity).ok()),
+                .and_then(|source_identity| {
+                    runtime
+                        .transaction_validation_input_for(&source_identity)
+                        .ok()
+                }),
         )
         .and_then(|(target_options, source_options)| {
             runtime.history().latest_common_ancestor_between_bindings(
-                target_options.branch_binding(),
-                source_options.branch_binding(),
+                target_options.basis(),
+                source_options.basis(),
             )
         });
     runtime

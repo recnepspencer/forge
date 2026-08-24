@@ -122,7 +122,7 @@ fn aspect_evaluation_trace_retains_unchanged_bindings_for_auditability() {
             },
         ))),
     );
-    let created = txn.commit().unwrap();
+    let created = txn.commit(&mut runtime).unwrap();
     let entity = changed_entities(&created)[0];
 
     let mut update_txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
@@ -145,7 +145,7 @@ fn aspect_evaluation_trace_retains_unchanged_bindings_for_auditability() {
             }),
         )),
     );
-    let result = update_txn.commit().unwrap();
+    let result = update_txn.commit(&mut runtime).unwrap();
     let trace = &result.aspect_evaluation_traces()[0];
     let status_key = AspectKey::new("status").unwrap();
     let status_row = trace

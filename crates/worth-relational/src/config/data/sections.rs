@@ -1,5 +1,4 @@
 use crate::commit_strategies::data::CommitStrategyRegistration;
-use crate::config::data::CommitAuthorityContract;
 use crate::config::data::{PlanningContract, RelationalExecutionModel};
 use crate::diagnostics::data::RelationalDiagnosticsProfile;
 use crate::history::data::{BranchId, HistoryRetentionClass, VersionGraphPolicy};
@@ -29,7 +28,6 @@ pub struct ExecutionConfig {
     pub runtime_name: String,
     pub execution_model: RelationalExecutionModel,
     pub planning: PlanningContract,
-    pub commit_authority: CommitAuthorityContract,
     pub compiled_lane_policy: CompiledLanePolicy,
     pub relation_integrity_scope_budget: RelationIntegrityScopeBudget,
 }

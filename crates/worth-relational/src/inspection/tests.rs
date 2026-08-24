@@ -58,7 +58,8 @@ fn historical_neighbors_follow_scoped_relation_endpoints_after_rewire() {
             }),
         )),
     );
-    txn.commit().expect("relation rewire should commit");
+    txn.commit(&mut runtime)
+        .expect("relation rewire should commit");
 
     let current_neighbors = runtime
         .inspect_what_happened()

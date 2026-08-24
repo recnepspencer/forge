@@ -29,4 +29,16 @@ impl<'runtime> PerformanceAccess<'runtime> {
     pub(crate) fn new(runtime: &'runtime RelationalRuntime) -> Self {
         Self { runtime }
     }
+
+    pub(crate) fn complexity_counters_snapshot(
+        &self,
+    ) -> crate::performance::data::RuntimeComplexityCounters {
+        self.runtime
+            .services
+            .instrumentation
+            .complexity_counters
+            .lock()
+            .expect("complexity counter lock poisoned")
+            .clone()
+    }
 }

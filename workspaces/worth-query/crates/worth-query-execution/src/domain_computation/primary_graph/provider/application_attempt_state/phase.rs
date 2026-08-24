@@ -15,7 +15,7 @@ enum PhaseState {
     OverlayStaged(WorthQueryPrimaryGraphOverlay),
     InvariantApproved {
         overlay: WorthQueryPrimaryGraphOverlay,
-        candidate: worth_relational::facade::transactions::ValidatedRelationalMutation,
+        candidate: worth_relational::facade::mvcc::ValidatedRelationalProposal,
         work: WorthQueryPrimaryMutationWorkCounters,
     },
     InvariantApprovedAfterOverlayDiscard,
@@ -76,7 +76,7 @@ impl WorthQueryApplicationAttemptPhase {
 
     pub(super) fn approve(
         &mut self,
-        candidate: worth_relational::facade::transactions::ValidatedRelationalMutation,
+        candidate: worth_relational::facade::mvcc::ValidatedRelationalProposal,
         work: WorthQueryPrimaryMutationWorkCounters,
     ) -> Result<(), &'static str> {
         let prior = std::mem::replace(&mut self.0, PhaseState::Registered);
@@ -110,7 +110,7 @@ impl WorthQueryApplicationAttemptPhase {
     pub(super) fn take_commit_ready(
         self,
     ) -> Option<(
-        worth_relational::facade::transactions::ValidatedRelationalMutation,
+        worth_relational::facade::mvcc::ValidatedRelationalProposal,
         WorthQueryPrimaryMutationWorkCounters,
     )> {
         match self.0 {
@@ -168,7 +168,7 @@ impl WorthQueryApplicationAttemptState {
 
     pub(super) fn approve(
         &mut self,
-        candidate: worth_relational::facade::transactions::ValidatedRelationalMutation,
+        candidate: worth_relational::facade::mvcc::ValidatedRelationalProposal,
         work: WorthQueryPrimaryMutationWorkCounters,
     ) -> Result<(), &'static str> {
         self.phase.approve(candidate, work)

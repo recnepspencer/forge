@@ -42,7 +42,7 @@ fn historical_lineage_resolution_follows_replace_events() {
             }),
         )),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
     let resolution =
         runtime
             .lineage_access()
@@ -122,7 +122,7 @@ fn failed_durable_append_installs_no_lineage_under_reused_commit_id() {
         })),
     ));
     let error = transaction
-        .commit()
+        .commit(&mut runtime)
         .expect_err("injected durable failure must abort publication");
     assert!(format!("{error:?}").contains("test-injected durable append failure"));
 
@@ -180,7 +180,7 @@ fn historical_lineage_resolution_does_not_scan_unrelated_branch_events() {
             }),
         )),
     );
-    let _ = txn.commit().unwrap();
+    let _ = txn.commit(&mut runtime).unwrap();
 
     let total_branch_events = runtime
         .lineage_access()
@@ -235,7 +235,7 @@ fn lineage_aspect_history_keeps_origin_events_and_marks_resolution_context() {
             }),
         )),
     );
-    let replacement = txn.commit().unwrap();
+    let replacement = txn.commit(&mut runtime).unwrap();
     let history = runtime
         .lineage_access()
         .entity_aspect_history(

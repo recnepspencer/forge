@@ -219,6 +219,57 @@ fn lowered_branch_batch_does_not_deny_when_only_another_branch_moves() {
     assert_eq!(aggregate.outcome().commit.parents.len(), 1);
 }
 
+#[test]
+fn mutation_batch_rejects_mixed_target_branches_before_publication() {
+    let mut runtime = relational_runtime_with_intent_strategy();
+    let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should be created");
+    let main_head_before = exact_branch_head_commit_id(&runtime, "main");
+    let branch_head_before = exact_branch_head_commit_id(&runtime, "branch-a");
+
+    let denial = effect_batch()
+        .using_basis(EffectAuthoringBasis::from(branch_mutation_basis()))
+        .push(raw_mutation_effect_with_binding(
+            runtime_workflow_binding_for_branch(branch_snapshot_identity(&runtime, "main"), "main"),
+            entity_id,
+            native_name_patch("main-target"),
+        ))
+        .push(raw_mutation_effect_with_binding(
+            runtime_workflow_binding_for_branch(
+                branch_snapshot_identity(&runtime, "branch-a"),
+                "branch-a",
+            ),
+            entity_id,
+            native_name_patch("branch-target"),
+        ))
+        .admit()
+        .expect("legacy batch identity does not encode the target branch")
+        .lower()
+        .expect("mixed targets remain visible at execution admission")
+        .execute_with(EffectExecutionAuthority::relational(&mut runtime))
+        .expect_err("mixed-target batch must deny before either branch moves");
+
+    assert_eq!(
+        denial.kind(),
+        &EffectBatchExecutionDenialKind::AggregateExecutionDenied(
+            EffectExecutionDenialKind::RelationalAuthorityBindingMalformed,
+        )
+    );
+    assert_eq!(
+        exact_branch_head_commit_id(&runtime, "main"),
+        main_head_before
+    );
+    assert_eq!(
+        exact_branch_head_commit_id(&runtime, "branch-a"),
+        branch_head_before
+    );
+}
+
 fn entity_name(record: &worth_relational::facade::runtime::EntityReadRecord) -> Option<String> {
     let state = record.authoritative_aspect_state.as_ref()?;
     let value = state.get(&aspect_key("name").ok()?)?;

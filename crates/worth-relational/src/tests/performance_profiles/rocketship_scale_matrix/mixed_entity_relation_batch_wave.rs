@@ -121,7 +121,7 @@ pub(super) fn certify_hundred_k_nodes_pseudorealistic_mixed_entity_relation_batc
                     batch = batch.push(intent);
                 }
                 txn.push_batch(batch);
-                txn.commit()
+                txn.commit(&mut runtime)
                     .expect("rocketship mixed entity plus relation batch wave commit")
             };
             let update_micros = update_started_at.elapsed().as_micros();

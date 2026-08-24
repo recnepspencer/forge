@@ -62,7 +62,7 @@ fn planned_query_execution_is_deterministic_for_identical_inputs() {
 #[test]
 fn planned_query_execution_uses_staged_parallel_packets_for_profitable_cross_partition_reads() {
     let mut runtime = runtime_with_test_schema_execution_model(
-        crate::facade::runtime::RelationalExecutionModel::StagedParallelPreparation,
+        crate::facade::runtime::RelationalExecutionModel::ParallelPreparation,
     );
     let targets = vec![
         RecordRef::Entity(create_entity_in_partition(
@@ -117,7 +117,7 @@ fn planned_query_execution_uses_staged_parallel_packets_for_profitable_cross_par
 #[test]
 fn planned_query_execution_explicit_targets_do_not_claim_fragment_scratch_reuse() {
     let mut runtime = runtime_with_test_schema_execution_model(
-        crate::facade::runtime::RelationalExecutionModel::SerialAuthority,
+        crate::facade::runtime::RelationalExecutionModel::SingleLaneExecution,
     );
     let left = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
     let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));

@@ -59,7 +59,7 @@ fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_lea
         )),
     ));
 
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(error.code(), DiagnosticCode::RelationCardinalityViolation);

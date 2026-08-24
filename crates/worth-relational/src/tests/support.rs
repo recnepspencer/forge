@@ -44,9 +44,10 @@ pub(super) use crate::facade::schema::{
 pub(super) use crate::facade::transactions::{
     AspectFieldPatch, BulkEntityCreateIntent, CommitResult, CreateIntent, DeleteEntityIntent,
     DeleteRelationIntent, EntityMutationIntent, MutationIntent, PatchVsTruthDeltaReport, RecordRef,
-    RelationMutationIntent, ReplaceEntityIntent, TransactionCommitError, TransactionOptions,
-    UpdateEntityFieldsIntent, UpdateRelationEndpointsIntent, WorkerIntentBatch,
+    RelationMutationIntent, ReplaceEntityIntent, TransactionCommitError, UpdateEntityFieldsIntent,
+    UpdateRelationEndpointsIntent, WorkerIntentBatch,
 };
+pub(super) use crate::mvcc::RelationalTransactionValidationInput;
 pub(super) use crate::publication::cdc::planning::checkpoint_for_schema_version;
 pub(super) use crate::publication::patch::data::{
     ordered_aspect_keys, PatchDetail, RecordStructuralChange,

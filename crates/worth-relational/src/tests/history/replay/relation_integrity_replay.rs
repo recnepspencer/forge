@@ -122,7 +122,7 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
                 },
             )),
         ));
-        txn.commit().unwrap()
+        txn.commit(&mut runtime).unwrap()
     };
     let feature_head_before_reject = runtime
         .history()
@@ -145,7 +145,7 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
             },
         )),
     ));
-    let rejected = rejected_txn.commit().unwrap_err();
+    let rejected = rejected_txn.commit(&mut runtime).unwrap_err();
 
     match rejected {
         TransactionCommitError::Conflict { error, .. } => {

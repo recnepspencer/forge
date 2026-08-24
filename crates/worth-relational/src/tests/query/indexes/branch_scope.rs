@@ -179,7 +179,7 @@ fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports
             },
         )),
     ));
-    let feature_relation = feature_txn.commit().expect("feature relation");
+    let feature_relation = feature_txn.commit(&mut runtime).expect("feature relation");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(1),
         name: "relation.label.branch".to_string(),

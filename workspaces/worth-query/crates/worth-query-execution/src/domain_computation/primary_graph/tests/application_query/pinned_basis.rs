@@ -350,11 +350,17 @@ fn change_account_label(
             locator,
             new_label.to_string().into_foundational_value(),
         )]));
-        let mut transaction = runtime.begin_transaction(
+        let mut transaction = {
+            let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
             runtime
-                .transaction_options_for_main()
-                .expect("main branch binding"),
-        );
+                .begin_branch_transaction(
+                    &transaction_validation_input,
+                    worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                )
+                .expect("owner-admitted transaction context")
+        };
         transaction.push_batch(WorkerIntentBatch::new("change-label-after-basis-pin").push(
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {
@@ -363,7 +369,7 @@ fn change_account_label(
                 },
             )),
         ));
-        transaction.commit().unwrap();
+        transaction.commit(runtime).unwrap();
         handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }

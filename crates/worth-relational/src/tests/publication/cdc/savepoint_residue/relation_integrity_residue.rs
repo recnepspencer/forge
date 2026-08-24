@@ -48,7 +48,7 @@ fn rolled_back_illegal_relation_work_leaves_zero_cdc_and_diagnostic_residue() {
             }),
         )),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
 
     assert!(rollback.has_effects());
     assert_patch_omits_detail(&outcome, "illegal");
@@ -102,7 +102,7 @@ fn rolled_back_endpoint_deletion_work_leaves_zero_cdc_and_diagnostic_residue() {
             }),
         )),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
 
     assert!(rollback.has_effects());
     assert_patch_omits_detail(&outcome, "RetainedDanglingForAudit");

@@ -17,7 +17,7 @@ fn fieldless_entity_create_commits_with_absent_authoritative_aspect_state() {
             },
         ))),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
     let read = runtime
         .read_truth()
         .read_snapshot(&outcome.snapshot)
@@ -80,7 +80,7 @@ fn authoritative_field_patches_are_order_independent_in_patch_output() {
             }),
         )),
     );
-    left_txn.commit().unwrap();
+    left_txn.commit(&mut left_runtime).unwrap();
 
     let mut right_txn =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut right_runtime);
@@ -105,7 +105,7 @@ fn authoritative_field_patches_are_order_independent_in_patch_output() {
             }),
         )),
     );
-    right_txn.commit().unwrap();
+    right_txn.commit(&mut right_runtime).unwrap();
 
     assert_eq!(
         left_runtime.publication().artifacts().latest_patch(),

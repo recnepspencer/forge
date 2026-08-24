@@ -6,6 +6,9 @@ license.workspace = true
 description = "Installed Query execution authority over admitted plans."
 publish = false
 
+[features]
+allocation-probes = []
+
 [dependencies]
 sha2 = "0.10"
 worth-foundational = { path = "../../../../crates/worth-foundational" }

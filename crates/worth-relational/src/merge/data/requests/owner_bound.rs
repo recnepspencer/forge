@@ -1,4 +1,4 @@
-use crate::branch::RelationalLegacyBranchBinding;
+use crate::branch::AdmittedRelationalBranchBasis;
 use crate::history::data::BranchId;
 use serde::{Deserialize, Serialize};
 
@@ -23,15 +23,15 @@ pub enum RelationalMergeRequestBindingDenial {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OwnerBoundMergePlanningRequest {
     pub(crate) request: MergePlanningRequest,
-    pub(crate) target_binding: RelationalLegacyBranchBinding,
-    pub(crate) source_binding: RelationalLegacyBranchBinding,
+    pub(crate) target_binding: AdmittedRelationalBranchBasis,
+    pub(crate) source_binding: AdmittedRelationalBranchBasis,
 }
 
 impl OwnerBoundMergePlanningRequest {
     pub(crate) fn new(
         request: MergePlanningRequest,
-        target_binding: RelationalLegacyBranchBinding,
-        source_binding: RelationalLegacyBranchBinding,
+        target_binding: AdmittedRelationalBranchBasis,
+        source_binding: AdmittedRelationalBranchBasis,
     ) -> Self {
         Self {
             request,
@@ -60,8 +60,8 @@ impl OwnerBoundMergePlanningRequest {
         self,
     ) -> (
         MergePlanningRequest,
-        RelationalLegacyBranchBinding,
-        RelationalLegacyBranchBinding,
+        AdmittedRelationalBranchBasis,
+        AdmittedRelationalBranchBasis,
     ) {
         (self.request, self.target_binding, self.source_binding)
     }
@@ -73,15 +73,15 @@ impl OwnerBoundMergePlanningRequest {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OwnerBoundMergeExecutionRequest {
     pub(crate) request: MergeExecutionRequest,
-    pub(crate) target_binding: RelationalLegacyBranchBinding,
-    pub(crate) source_binding: RelationalLegacyBranchBinding,
+    pub(crate) target_binding: AdmittedRelationalBranchBasis,
+    pub(crate) source_binding: AdmittedRelationalBranchBasis,
 }
 
 impl OwnerBoundMergeExecutionRequest {
     pub(crate) fn new(
         request: MergeExecutionRequest,
-        target_binding: RelationalLegacyBranchBinding,
-        source_binding: RelationalLegacyBranchBinding,
+        target_binding: AdmittedRelationalBranchBasis,
+        source_binding: AdmittedRelationalBranchBasis,
     ) -> Self {
         Self {
             request,
@@ -110,16 +110,14 @@ impl OwnerBoundMergeExecutionRequest {
         self,
     ) -> (
         MergeExecutionRequest,
-        RelationalLegacyBranchBinding,
-        RelationalLegacyBranchBinding,
+        AdmittedRelationalBranchBasis,
+        AdmittedRelationalBranchBasis,
     ) {
         (self.request, self.target_binding, self.source_binding)
     }
 }
 
-impl From<RelationalMergeRequestBindingDenial>
-    for crate::branch::RelationalLegacyBranchBindingDenial
-{
+impl From<RelationalMergeRequestBindingDenial> for crate::branch::RelationalBranchBasisDenial {
     fn from(value: RelationalMergeRequestBindingDenial) -> Self {
         match value {
             RelationalMergeRequestBindingDenial::ForeignRuntime {
@@ -132,7 +130,9 @@ impl From<RelationalMergeRequestBindingDenial>
             RelationalMergeRequestBindingDenial::UnknownBranch(branch) => {
                 Self::UnknownBranch(branch)
             }
-            RelationalMergeRequestBindingDenial::IdentityMismatch => Self::IdentityMismatch,
+            RelationalMergeRequestBindingDenial::IdentityMismatch => {
+                Self::MixedAxis(crate::branch::RelationalBranchBasisMismatchAxis::Branch)
+            }
         }
     }
 }

@@ -29,7 +29,8 @@ pub(super) fn certify_merge_prepare_vs_execute_feature_adoption(suite: &'static 
                     .into(),
                 ),
             );
-            let _feature_only = changed_entities(&txn.commit().expect("feature create"))[0];
+            let _feature_only =
+                changed_entities(&txn.commit(&mut runtime).expect("feature create"))[0];
 
             runtime.performance_access().reset_counters();
             let prepare_started_at = Instant::now();

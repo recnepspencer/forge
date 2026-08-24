@@ -8,7 +8,6 @@ use super::world::supply_chain::{
 use worth_relational::facade::branch::{RelationalBranchIdentityDenial, RelationalForkDenial};
 use worth_relational::facade::history::BranchId;
 use worth_relational::facade::transactions::WorkerIntentBatch;
-
 #[test]
 fn supply_chain_fork_shares_one_source_artifact_and_starts_a_new_reference_line() {
     let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
@@ -178,46 +177,6 @@ fn source_observation_is_foreign_after_runtime_clone() {
 }
 
 #[test]
-fn standard_supply_chain_fork_reuses_the_exact_catalog_artifact() {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::standard());
-    assert_oracle_matches(&world, &expected);
-    let catalog_before = world.runtime.history().immutable_commit_count();
-    let (_, basis) = world
-        .runtime
-        .observe_fork_source(&BranchId("main".to_owned()))
-        .expect("standard main branch has a fork source");
-    let outcome = world
-        .runtime
-        .fork_branch(BranchId("standard-storm".to_owned()), basis)
-        .expect("standard fork succeeds");
-
-    assert_eq!(outcome.shared_commit_id(), Some(world.commit.commit_id));
-    assert_eq!(
-        world.runtime.history().immutable_commit_count(),
-        catalog_before
-    );
-    assert_eq!(
-        outcome.source_observation().target(),
-        outcome.target_observation().target()
-    );
-    assert_eq!(
-        outcome
-            .source_observation()
-            .target()
-            .as_basis()
-            .expect("standard source target")
-            .roots(),
-        outcome
-            .target_observation()
-            .target()
-            .as_basis()
-            .expect("standard fork target")
-            .roots()
-    );
-    assert_oracle_matches(&world, &expected);
-}
-
-#[test]
 fn malformed_fork_target_denies_before_reference_installation() {
     let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &expected);
@@ -348,15 +307,22 @@ fn stale_fork_source_denial_does_not_install_a_target_reference() {
         .runtime
         .observe_fork_source(&BranchId("main".to_owned()))
         .expect("installed main branch has an exact fork source");
-    let mut transaction = world.runtime.begin_transaction({
-        let identity = world.runtime.main_branch_identity();
-        world
-            .runtime
-            .transaction_options_for(&identity)
-            .expect("configured main branch must remain owner-admissible")
-    });
+    let identity = world.runtime.main_branch_identity();
+    let context = world
+        .runtime
+        .admit_branch_basis(&identity)
+        .expect("configured main branch must remain owner-admissible");
+    let mut transaction = world
+        .runtime
+        .begin_branch_transaction(
+            &context,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context");
     transaction.push_batch(WorkerIntentBatch::new("advance-main-before-fork"));
-    transaction.commit().expect("main truth advances");
+    transaction
+        .commit(&mut world.runtime)
+        .expect("main truth advances");
     let catalog_after_advance = world.runtime.history().immutable_commit_count();
     let before = capture_reference_evidence(
         &mut world.runtime,

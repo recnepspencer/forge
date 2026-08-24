@@ -4,7 +4,7 @@ use super::{ComplexityContract, ComplexityStatus};
 pub const COMPLEXITY_CONTRACTS: &[ComplexityContract] = &[
     ComplexityContract {
         id: "runtime.partition_local_commit",
-        function_path: "authority/commit/pipeline/transaction_entrypoint.rs::RelationalTransaction::commit",
+        function_path: "mvcc/transaction/commit.rs::RelationalRuntime::commit_branch_transaction",
         declared_time_complexity: "O(touched_partitions + changed_records + touched_partition_clone_on_write)",
         budget_summary: "Commit/apply must report the number of partitions touched so partition-aware IDs do not degrade into global work by accident.",
         status: ComplexityStatus::Verified,

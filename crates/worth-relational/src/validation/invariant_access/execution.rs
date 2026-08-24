@@ -49,7 +49,7 @@ impl<'runtime> InvariantAccess<'runtime> {
         proposed_working_state: &'state crate::storage::overlay::WorkingState,
         proposed_version_id: crate::identity::data::VersionId,
         merged_plan: &'runtime MergedCommitPlan,
-        proposal_identity: Option<&crate::transactions::RelationalMutationProposalIdentity>,
+        proposal_identity: Option<&crate::mvcc::RelationalMutationProposalIdentity>,
     ) -> InvariantExecutionResult
     where
         'runtime: 'state,

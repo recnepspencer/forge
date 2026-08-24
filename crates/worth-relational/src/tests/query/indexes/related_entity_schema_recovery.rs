@@ -130,14 +130,23 @@ fn transition_checkpoint_and_recover(
     }
     .build_registry();
     runtime.config.schema.registry = v2_registry.clone();
-    let mut transaction = runtime.begin_transaction(
-        test_owner_transaction_options_for_main(&runtime).with_schema_transition(
-            schema_v2_transition(),
-            Some(SchemaReconciliationPolicy::PreserveInformation),
-        ),
-    );
+    let mut transaction = {
+        let transaction_validation_input =
+            test_owner_transaction_validation_input_for_main(&runtime).with_schema_transition(
+                schema_v2_transition(),
+                Some(SchemaReconciliationPolicy::PreserveInformation),
+            );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     transaction.push_batch(batch_create("v2-current"));
-    let v2_commit = transaction.commit().expect("v2 schema transition commits");
+    let v2_commit = transaction
+        .commit(&mut runtime)
+        .expect("v2 schema transition commits");
     let v2_build = runtime
         .index_authority()
         .build_for_commit(DerivedIndexBuildRequest {

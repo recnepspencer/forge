@@ -13,12 +13,12 @@ use worth_relational::facade::transactions::{
     TransactionCommitError, WorkerIntentBatch,
 };
 
-fn main_options(
+fn main_basis(
     runtime: &RelationalRuntime,
-) -> worth_relational::facade::transactions::TransactionOptions {
+) -> worth_relational::facade::branch::AdmittedRelationalBranchBasis {
     let identity = runtime.main_branch_identity();
     runtime
-        .transaction_options_for(&identity)
+        .admit_branch_basis(&identity)
         .expect("configured main branch must remain owner-admissible")
 }
 
@@ -214,9 +214,17 @@ fn commit_definition(
     program: &CompiledSupplyChainProgram,
 ) -> Result<worth_relational::facade::transactions::CommitResult, SupplyChainCompilationError> {
     if program.entity_specs().is_empty() && program.relation_specs().is_empty() {
-        let mut transaction = runtime.begin_transaction(main_options(runtime));
+        let mut transaction = {
+            let basis = main_basis(runtime);
+            runtime
+                .begin_branch_transaction(
+                    &basis,
+                    worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                )
+                .expect("owner-admitted transaction context")
+        };
         transaction.push_batch(WorkerIntentBatch::new("supply-chain-empty-baseline"));
-        return transaction.commit().map_err(transaction_error);
+        return transaction.commit(runtime).map_err(transaction_error);
     }
 
     let mut batch = WorkerIntentBatch::new("supply-chain-baseline");
@@ -227,9 +235,17 @@ fn commit_definition(
         batch = batch.push(intent);
     }
 
-    let mut transaction = runtime.begin_transaction(main_options(runtime));
+    let mut transaction = {
+        let basis = main_basis(runtime);
+        runtime
+            .begin_branch_transaction(
+                &basis,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     transaction.push_batch(batch);
-    transaction.commit().map_err(transaction_error)
+    transaction.commit(runtime).map_err(transaction_error)
 }
 
 fn bulk_entity_intents(program: &CompiledSupplyChainProgram) -> Vec<MutationIntent> {

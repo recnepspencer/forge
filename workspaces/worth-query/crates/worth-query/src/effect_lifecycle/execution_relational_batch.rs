@@ -8,7 +8,7 @@ use crate::workflow::LoweredMutationIntentDeclaration;
 
 use super::execution::{lower_runtime_error, EffectExecutionDenialKind};
 use super::execution_relational_scalar::{
-    ensure_exact_basis_freshness, mutation_target_branch, mutation_transaction_options,
+    ensure_exact_basis_freshness, mutation_target_branch, mutation_transaction_validation_input,
     open_exact_basis_snapshot,
 };
 
@@ -16,27 +16,41 @@ pub(super) fn execute_lowered_mutation_batch(
     runtime: &mut RelationalRuntime,
     declarations: &[LoweredMutationIntentDeclaration],
 ) -> Result<CommitResult, (EffectExecutionDenialKind, String)> {
+    let first_declaration = declarations.first().ok_or_else(|| {
+        (
+            EffectExecutionDenialKind::RelationalAuthorityBindingMalformed,
+            "batch-native mutation execution requires at least one declaration".to_string(),
+        )
+    })?;
+    let target_branch = mutation_target_branch(first_declaration)?;
+    for declaration in declarations.iter().skip(1) {
+        let component_target = mutation_target_branch(declaration)?;
+        if component_target != target_branch {
+            return Err((
+                EffectExecutionDenialKind::RelationalAuthorityBindingMalformed,
+                format!(
+                    "batch-native mutation execution cannot mix target branches `{}` and `{}`",
+                    target_branch.0, component_target.0
+                ),
+            ));
+        }
+    }
     for declaration in declarations {
         ensure_exact_basis_freshness(runtime, declaration)?;
     }
-    let transaction_options = declarations
-        .first()
-        .ok_or_else(|| {
-            (
-                EffectExecutionDenialKind::RelationalAuthorityBindingMalformed,
-                "batch-native mutation execution requires at least one declaration".to_string(),
-            )
-        })
-        .and_then(|declaration| mutation_transaction_options(runtime, declaration))?;
-    let target_branch = mutation_target_branch(
-        declarations
-            .first()
-            .expect("non-empty mutation batch was established above"),
-    )?;
+    let transaction_validation_input =
+        mutation_transaction_validation_input(runtime, first_declaration)?;
     let snapshot = open_exact_basis_snapshot(runtime, &target_branch)?;
     let lowered_components = declarations
         .iter()
-        .map(|declaration| lower_batch_component(runtime, declaration, &snapshot))
+        .map(|declaration| {
+            lower_batch_component(
+                runtime,
+                declaration,
+                &transaction_validation_input,
+                &snapshot,
+            )
+        })
         .collect::<Result<Vec<_>, _>>();
     let released = runtime.snapshots().release_snapshot(&snapshot);
     if !released {
@@ -52,9 +66,14 @@ pub(super) fn execute_lowered_mutation_batch(
             batch.intents.push(intent);
         }
     }
-    let mut txn = runtime.begin_transaction(transaction_options);
+    let mut txn = runtime
+        .begin_branch_transaction(
+            &transaction_validation_input,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context");
     txn.push_batch(batch);
-    txn.commit().map_err(|error| {
+    txn.commit(runtime).map_err(|error| {
         lower_runtime_error(error, EffectExecutionDenialKind::RelationalCommitFailed)
     })
 }
@@ -62,6 +81,7 @@ pub(super) fn execute_lowered_mutation_batch(
 fn lower_batch_component(
     runtime: &mut RelationalRuntime,
     declaration: &LoweredMutationIntentDeclaration,
+    transaction_basis: &worth_relational::facade::branch::AdmittedRelationalBranchBasis,
     snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
 ) -> Result<Vec<MutationIntent>, (EffectExecutionDenialKind, String)> {
     let canonical: CanonicalStrategyCommitRequest = runtime
@@ -82,10 +102,15 @@ fn lower_batch_component(
                 EffectExecutionDenialKind::RelationalStrategyExecutionFailed,
             )
         })?;
-    let transaction_options = mutation_transaction_options(runtime, declaration)?;
     let mut authority = runtime.commit_strategies_authority();
     let lowered = authority
-        .lower_execution(&canonical, &execution, transaction_options)
+        .lower_execution(
+            runtime,
+            &canonical,
+            &execution,
+            transaction_basis,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
         .map_err(|error| {
             lower_runtime_error(
                 error,

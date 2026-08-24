@@ -106,7 +106,7 @@ pub struct InvariantExecutionMetadata {
     preparation_failures: Vec<PreparationFailureClass>,
     proof_boundary: Option<InvariantProofBoundarySummary>,
     #[serde(skip)]
-    proposal_identity: Option<crate::transactions::RelationalMutationProposalIdentity>,
+    proposal_identity: Option<crate::mvcc::RelationalMutationProposalIdentity>,
 }
 
 impl InvariantExecutionMetadata {
@@ -126,7 +126,7 @@ impl InvariantExecutionMetadata {
         preparation_strategy: Option<PreparationStrategy>,
         preparation_failures: Vec<PreparationFailureClass>,
         proof_boundary: Option<InvariantProofBoundarySummary>,
-        proposal_identity: Option<crate::transactions::RelationalMutationProposalIdentity>,
+        proposal_identity: Option<crate::mvcc::RelationalMutationProposalIdentity>,
     ) -> Self {
         Self {
             execution_point,
@@ -161,7 +161,7 @@ impl InvariantExecutionMetadata {
         preparation_strategy: PreparationStrategy,
         preparation_failures: Vec<PreparationFailureClass>,
         proof_boundary: Option<InvariantProofBoundarySummary>,
-        proposal_identity: Option<crate::transactions::RelationalMutationProposalIdentity>,
+        proposal_identity: Option<crate::mvcc::RelationalMutationProposalIdentity>,
     ) -> Self {
         Self::new(
             execution_point,
@@ -176,10 +176,10 @@ impl InvariantExecutionMetadata {
             has_merged_plan,
             match preparation_strategy.selected_mode {
                 crate::authority::commit::preparation::planning::strategy::PreparationStrategySelection::Serial => {
-                    RelationalExecutionModel::SerialAuthority
+                    RelationalExecutionModel::SingleLaneExecution
                 }
                 crate::authority::commit::preparation::planning::strategy::PreparationStrategySelection::StagedParallel => {
-                    RelationalExecutionModel::StagedParallelPreparation
+                    RelationalExecutionModel::ParallelPreparation
                 }
             },
             Some(preparation_strategy),
@@ -241,9 +241,7 @@ impl InvariantExecutionMetadata {
         self.proof_boundary.as_ref()
     }
 
-    pub fn proposal_identity(
-        &self,
-    ) -> Option<&crate::transactions::RelationalMutationProposalIdentity> {
+    pub fn proposal_identity(&self) -> Option<&crate::mvcc::RelationalMutationProposalIdentity> {
         self.proposal_identity.as_ref()
     }
 

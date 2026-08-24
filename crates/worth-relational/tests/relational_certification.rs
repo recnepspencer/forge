@@ -60,8 +60,6 @@ mod reference_cost;
 mod reference_fork;
 #[path = "relational_certification/reference/owner_binding.rs"]
 mod reference_owner_binding;
-#[path = "relational_certification/reference/profiles.rs"]
-mod reference_profiles;
 #[path = "relational_certification/reference/retention.rs"]
 mod reference_retention;
 #[path = "relational_certification/root/accounting/authoritative.rs"]

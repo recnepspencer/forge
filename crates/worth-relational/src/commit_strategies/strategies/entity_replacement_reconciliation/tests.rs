@@ -160,7 +160,7 @@ fn entity_replacement_reconciliation_strategy_replacement_declaration_applies_to
     {
         txn.push_batch(batch);
     }
-    let commit = txn.commit().expect("replacement patch commit");
+    let commit = txn.commit(&mut runtime).expect("replacement patch commit");
     let replacement_id = crate::tests::support::changed_entities(&commit)
         .into_iter()
         .last()

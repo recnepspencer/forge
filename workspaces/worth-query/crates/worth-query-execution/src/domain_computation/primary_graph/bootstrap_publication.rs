@@ -26,9 +26,14 @@ pub(super) fn commit_bootstrap_rows(
 ) -> Result<worth_relational::facade::history::CommitId, WorthQueryPrimaryGraphInstallationDenial> {
     graph.integration_handle().with_runtime_mut(|runtime| {
         let options = runtime
-            .transaction_options_for_main()
+            .admit_main_branch_basis()
             .expect("configured main branch remains owner-admissible");
-        let mut transaction = runtime.begin_transaction(options);
+        let mut transaction = runtime
+            .begin_branch_transaction(
+                &options,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context");
         let mut batch = WorkerIntentBatch::new("application-principal-bootstrap");
         for (ordinal, row) in rows.into_iter().enumerate() {
             batch = append_principal_row(batch, ordinal, row);
@@ -41,7 +46,7 @@ pub(super) fn commit_bootstrap_rows(
         }
         transaction.push_batch(batch);
         transaction
-            .commit()
+            .commit(runtime)
             .map(|outcome| outcome.commit.commit_id)
             .map_err(|error| {
                 primary_graph_denial(

@@ -176,7 +176,7 @@ fn parallel_post_commit_consumption_preserves_publication_surfaces() {
             max_patch_records_per_commit: 4096,
             max_published_snapshot_handles: 2,
         })
-        .execution_model(crate::facade::runtime::RelationalExecutionModel::SerialAuthority)
+        .execution_model(crate::facade::runtime::RelationalExecutionModel::SingleLaneExecution)
         .build();
     let mut parallel = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())

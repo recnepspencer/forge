@@ -222,7 +222,7 @@ fn checkpoint_lineage_node_swap_denies_before_installation() {
     let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
     transaction.push_batch(batch_create("checkpoint-swap-first"));
     transaction.push_batch(batch_create("checkpoint-swap-second"));
-    transaction.commit().expect("two-entity commit");
+    transaction.commit(&mut runtime).expect("two-entity commit");
     runtime.durability_authority().checkpoint().unwrap();
     let mut plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
@@ -249,7 +249,7 @@ fn checkpoint_duplicate_lineage_entity_mapping_denies_before_installation() {
     let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
     transaction.push_batch(batch_create("checkpoint-duplicate-node-first"));
     transaction.push_batch(batch_create("checkpoint-duplicate-node-second"));
-    transaction.commit().expect("two-entity commit");
+    transaction.commit(&mut runtime).expect("two-entity commit");
     runtime.durability_authority().checkpoint().unwrap();
     let mut plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,

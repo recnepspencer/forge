@@ -45,7 +45,9 @@ fn shared_source_retains_the_live_runtime_authority_and_observes_later_commits()
                 ),
             })),
         ));
-        transaction.commit().expect("real shared-runtime commit")
+        transaction
+            .commit(&mut runtime)
+            .expect("real shared-runtime commit")
     };
     let entity = committed
         .changed_records

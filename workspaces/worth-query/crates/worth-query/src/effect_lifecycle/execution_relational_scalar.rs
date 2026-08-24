@@ -6,7 +6,7 @@ use worth_relational::facade::commit_strategies::{
 use worth_relational::facade::history::BranchId;
 use worth_relational::facade::runtime::RelationalRuntime;
 use worth_relational::facade::snapshots::SnapshotHandle;
-use worth_relational::facade::transactions::{CommitResult, TransactionOptions};
+use worth_relational::facade::transactions::CommitResult;
 
 use super::execution::{lower_runtime_error, EffectExecutionDenialKind};
 
@@ -15,7 +15,7 @@ pub(super) fn execute_lowered_mutation(
     declaration: &LoweredMutationIntentDeclaration,
 ) -> Result<CommitResult, (EffectExecutionDenialKind, String)> {
     ensure_exact_basis_freshness(runtime, declaration)?;
-    let transaction_options = mutation_transaction_options(runtime, declaration)?;
+    let transaction_validation_input = mutation_transaction_validation_input(runtime, declaration)?;
     let canonical: CanonicalStrategyCommitRequest = runtime
         .commit_strategies()
         .canonicalize_request(declaration.strategy_request())
@@ -46,7 +46,13 @@ pub(super) fn execute_lowered_mutation(
     let execution: StrategyExecutionDraft = execution?;
     let mut commit_authority = runtime.commit_strategies_authority();
     let lowered = commit_authority
-        .lower_execution(&canonical, &execution, transaction_options)
+        .lower_execution(
+            runtime,
+            &canonical,
+            &execution,
+            &transaction_validation_input,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
         .map_err(|error| {
             lower_runtime_error(
                 error,
@@ -54,7 +60,7 @@ pub(super) fn execute_lowered_mutation(
             )
         })?;
     let validated = commit_authority
-        .validate_lowered_plan(lowered)
+        .validate_lowered_plan(runtime, lowered)
         .map_err(|error| {
             lower_runtime_error(
                 error,
@@ -62,19 +68,22 @@ pub(super) fn execute_lowered_mutation(
             )
         })?;
     commit_authority
-        .execute_validated_commit(validated)
+        .execute_validated_commit(runtime, validated)
         .map_err(|error| {
             lower_runtime_error(error, EffectExecutionDenialKind::RelationalCommitFailed)
         })
 }
 
-pub(super) fn mutation_transaction_options(
+pub(super) fn mutation_transaction_validation_input(
     runtime: &RelationalRuntime,
     declaration: &LoweredMutationIntentDeclaration,
-) -> Result<TransactionOptions, (EffectExecutionDenialKind, String)> {
+) -> Result<
+    worth_relational::facade::branch::AdmittedRelationalBranchBasis,
+    (EffectExecutionDenialKind, String),
+> {
     let target_branch = mutation_target_branch(declaration)?;
     runtime
-        .owner_transaction_options_for_branch(&target_branch)
+        .admit_named_branch_basis(&target_branch)
         .map_err(|denial| {
             (
                 EffectExecutionDenialKind::RelationalAuthorityBindingMalformed,

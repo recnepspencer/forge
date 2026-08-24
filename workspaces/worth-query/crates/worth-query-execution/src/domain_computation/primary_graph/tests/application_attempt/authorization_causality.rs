@@ -119,17 +119,23 @@ fn revoke_account_ownership(
             .expect("the admitted account has one ownership edge")
             .relation_id;
         runtime.snapshots().release_snapshot(&snapshot);
-        let mut transaction = runtime.begin_transaction(
-            runtime
-                .transaction_options_for_main()
-                .expect("main branch binding"),
-        );
+        let mut transaction ={
+    let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
+    runtime
+        .begin_branch_transaction(
+            &transaction_validation_input,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context")
+};
         transaction.push_batch(WorkerIntentBatch::new("revoke-account-owner").push(
             MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
                 relation_id: relation,
             })),
         ));
-        transaction.commit().unwrap();
+        transaction.commit(runtime).unwrap();
         graph.ensure_primary_indexes_current(runtime).unwrap();
     });
 }

@@ -72,7 +72,7 @@ pub(super) struct WorthQueryStagedApplicationAttempt<'attempt> {
 
 pub(super) struct WorthQueryPreparedProviderApplicationAttempt {
     attempt: WorthQueryPrimaryGraphApplicationAttempt,
-    candidate: worth_relational::facade::transactions::ValidatedRelationalMutation,
+    candidate: worth_relational::facade::mvcc::ValidatedRelationalProposal,
     work: WorthQueryPrimaryMutationWorkCounters,
 }
 
@@ -155,7 +155,7 @@ impl WorthQueryPrimaryGraphApplicationAttemptStore {
     pub(super) fn retain_invariant_approved(
         &mut self,
         session: WorthQueryProviderSessionView<'_>,
-        candidate: worth_relational::facade::transactions::ValidatedRelationalMutation,
+        candidate: worth_relational::facade::mvcc::ValidatedRelationalProposal,
         work: WorthQueryPrimaryMutationWorkCounters,
     ) -> Result<(), &'static str> {
         let state = self

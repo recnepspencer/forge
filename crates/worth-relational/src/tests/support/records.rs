@@ -74,7 +74,7 @@ pub(crate) fn create_entity_in_partition_on_branch(
             }),
         )),
     );
-    changed_entities(&txn.commit().unwrap())[0]
+    changed_entities(&txn.commit(&mut runtime).unwrap())[0]
 }
 
 pub(crate) fn create_entity_outcome(runtime: &mut RelationalRuntime, name: &str) -> CommitResult {
@@ -101,7 +101,7 @@ pub(crate) fn create_entity_outcome_on_branch(
             },
         )));
     txn.push_batch(batch);
-    txn.commit().unwrap()
+    txn.commit(runtime).unwrap()
 }
 
 fn entity_fields_for_runtime(runtime: &RelationalRuntime, name: &str) -> AspectFieldPatch {
@@ -140,7 +140,7 @@ pub(crate) fn delete_entity_on_branch(
             EntityMutationIntent::Delete(DeleteEntityIntent { entity_id }),
         )),
     );
-    txn.commit().unwrap()
+    txn.commit(runtime).unwrap()
 }
 
 pub(crate) fn delete_relation_on_branch(
@@ -155,7 +155,7 @@ pub(crate) fn delete_relation_on_branch(
             RelationMutationIntent::Delete(DeleteRelationIntent { relation_id }),
         )),
     );
-    txn.commit().unwrap()
+    txn.commit(runtime).unwrap()
 }
 
 pub(crate) fn update_entity(
@@ -191,7 +191,7 @@ pub(crate) fn try_update_entity_on_branch(
             )),
         );
     }
-    txn.commit()
+    txn.commit(&mut runtime)
 }
 
 pub(crate) fn create_relation(
@@ -270,7 +270,7 @@ pub(crate) fn create_relation_in_partition_on_branch(
             },
         ))),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
     changed_relations(&outcome)[0]
 }
 
@@ -294,7 +294,7 @@ pub(crate) fn create_relation_outcome(
             },
         ))),
     );
-    txn.commit().unwrap()
+    txn.commit(&mut runtime).unwrap()
 }
 
 fn relation_fields_for_runtime(runtime: &RelationalRuntime, label: &str) -> AspectFieldPatch {
@@ -338,7 +338,7 @@ pub(crate) fn apply_batches(batches: Vec<WorkerIntentBatch>) -> RelationalRuntim
     for batch in batches {
         txn.push_batch(batch);
     }
-    txn.commit().unwrap();
+    txn.commit(&mut runtime).unwrap();
     runtime
 }
 
@@ -352,5 +352,5 @@ pub(crate) fn merge_commit_from_branches(
         target_branch,
         merge_parent_branches,
     );
-    txn.commit().unwrap()
+    txn.commit(runtime).unwrap()
 }

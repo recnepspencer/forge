@@ -25,7 +25,7 @@ fn failed_commit_carries_attempt_log() {
             }),
         )),
     );
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
 
     assert!(!error.commit_log().events().is_empty());
     assert!(error
@@ -52,7 +52,7 @@ fn patch_budget_failure_carries_artifact_phase_decision_trace() {
         .build();
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(batch_create("budget-fail"));
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
 
     assert!(matches!(
         error,
@@ -91,7 +91,7 @@ fn stale_entity_ids_are_rejected() {
             }),
         )),
     );
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
 
     assert!(matches!(
         error,
@@ -117,7 +117,7 @@ fn unknown_entity_kind_fails_explicitly() {
             },
         ))),
     );
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
 
     assert!(matches!(
         error,
@@ -147,7 +147,7 @@ fn duplicate_relation_identity_is_rejected() {
             },
         ))),
     );
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
 
     assert!(matches!(
         error,
@@ -164,7 +164,7 @@ fn savepoint_rollback_discards_inner_work_only() {
     let savepoint = txn.create_savepoint();
     txn.push_batch(batch_create("inner"));
     let rollback = txn.rollback_to_savepoint(savepoint).unwrap();
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
     let read = runtime
         .read_truth()
         .read_snapshot(&outcome.snapshot)
@@ -190,7 +190,7 @@ fn snapshot_audit_failure_discards_only_touched_overlay() {
 
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(batch_create("blocked"));
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     let committed_read = runtime
         .read_truth()
         .read_snapshot(&baseline.snapshot)
@@ -261,20 +261,34 @@ fn audit_retained_relations_remain_visible_after_endpoint_delete() {
 #[test]
 fn merged_plan_is_stable_across_batch_order() {
     let mut runtime_a = runtime_with_test_schema();
-    let mut txn_a = runtime_a.begin_transaction(
-        crate::tests::support::test_owner_transaction_options_for_main(&runtime_a),
-    );
+    let mut txn_a = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime_a);
+        runtime_a
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn_a.push_batch(batch_create("b"));
     txn_a.push_batch(batch_create("a"));
-    let plan_a = txn_a.merged_plan().unwrap().clone();
+    let plan_a = txn_a.merged_plan(&mut runtime_a).unwrap().clone();
 
     let mut runtime_b = runtime_with_test_schema();
-    let mut txn_b = runtime_b.begin_transaction(
-        crate::tests::support::test_owner_transaction_options_for_main(&runtime_b),
-    );
+    let mut txn_b = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime_b);
+        runtime_b
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn_b.push_batch(batch_create("a"));
     txn_b.push_batch(batch_create("b"));
-    let plan_b = txn_b.merged_plan().unwrap().clone();
+    let plan_b = txn_b.merged_plan(&mut runtime_b).unwrap().clone();
 
     assert_eq!(plan_a, plan_b);
 }

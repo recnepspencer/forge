@@ -46,7 +46,7 @@ pub(crate) fn shock_market_on_branch(
             )),
         ));
     }
-    txn.commit().unwrap()
+    txn.commit(&mut world.runtime).unwrap()
 }
 
 pub(crate) fn refresh_risk_views(world: &mut FintechWorld, branch_id: BranchId) -> CommitResult {
@@ -88,7 +88,7 @@ pub(crate) fn refresh_risk_views(world: &mut FintechWorld, branch_id: BranchId) 
             ),
         );
     }
-    txn.commit().unwrap()
+    txn.commit(&mut world.runtime).unwrap()
 }
 
 pub(crate) fn stress_seeded_intraday_risk(
@@ -234,5 +234,5 @@ pub(crate) fn stress_seeded_intraday_risk(
             )))
             .into(),
     );
-    txn.commit().unwrap()
+    txn.commit(&mut world.runtime).unwrap()
 }

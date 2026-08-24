@@ -21,7 +21,9 @@ fn relation_endpoint_update_preserves_relation_identity_and_rewrites_endpoints()
             }),
         )),
     );
-    let outcome = txn.commit().expect("relation update should commit");
+    let outcome = txn
+        .commit(&mut runtime)
+        .expect("relation update should commit");
     let read = runtime
         .read_truth()
         .read_snapshot(&outcome.snapshot)
@@ -70,7 +72,7 @@ fn relation_endpoint_update_rejects_duplicate_relation_identity() {
         )),
     );
     let error = txn
-        .commit()
+        .commit(&mut runtime)
         .expect_err("duplicate relation identity should deny");
 
     match error {
@@ -115,7 +117,7 @@ fn relation_endpoint_update_accepts_same_batch_created_target() {
             )),
     );
     let outcome = txn
-        .commit()
+        .commit(&mut runtime)
         .expect("relation update to same-batch created target should commit");
     let read = runtime
         .read_truth()
@@ -173,7 +175,7 @@ fn relation_endpoint_update_to_same_batch_created_target_survives_old_target_ret
             ))),
     );
     let outcome = txn
-        .commit()
+        .commit(&mut runtime)
         .expect("moved relation should survive retirement of its old endpoint");
     let read = runtime
         .read_truth()
@@ -242,7 +244,7 @@ fn relation_endpoint_update_to_same_batch_created_source_survives_old_source_ret
             ))),
     );
     let outcome = txn
-        .commit()
+        .commit(&mut runtime)
         .expect("moved relation should survive retirement of its old source");
     let read = runtime
         .read_truth()

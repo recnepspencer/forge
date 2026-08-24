@@ -271,7 +271,7 @@ fn branch_local_delete_allowance_does_not_make_same_branch_stale_delete_legal() 
         )),
     );
 
-    match txn.commit() {
+    match txn.commit(&mut runtime) {
         Err(TransactionCommitError::Conflict { error, .. }) => {
             assert_eq!(
                 error.code(),

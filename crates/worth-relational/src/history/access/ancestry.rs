@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::branch::RelationalLegacyBranchBinding;
+use crate::branch::AdmittedRelationalBranchBasis;
 #[cfg(test)]
 use crate::history::data::BranchId;
 use crate::history::data::{CommitId, MergeConflictRecord, MergeInspection};
@@ -151,8 +151,8 @@ impl<'runtime> HistoryAccess<'runtime> {
     /// branch names are intentionally not a production currentness input.
     pub(crate) fn latest_common_ancestor_between_bindings(
         &self,
-        left_binding: &RelationalLegacyBranchBinding,
-        right_binding: &RelationalLegacyBranchBinding,
+        left_binding: &AdmittedRelationalBranchBasis,
+        right_binding: &AdmittedRelationalBranchBasis,
     ) -> Option<CommitId> {
         let left = self.bound_head_commit_id(left_binding)?;
         let right = self.bound_head_commit_id(right_binding)?;
@@ -164,8 +164,8 @@ impl<'runtime> HistoryAccess<'runtime> {
     /// heads for production planning.
     pub(crate) fn inspect_merge_from_bindings(
         &self,
-        source_binding: &RelationalLegacyBranchBinding,
-        target_binding: &RelationalLegacyBranchBinding,
+        source_binding: &AdmittedRelationalBranchBasis,
+        target_binding: &AdmittedRelationalBranchBasis,
     ) -> Option<MergeInspection> {
         let source_branch = source_binding.identity().branch_id().clone();
         let target_branch = target_binding.identity().branch_id().clone();
@@ -206,9 +206,9 @@ impl<'runtime> HistoryAccess<'runtime> {
         })
     }
 
-    fn bound_head_commit_id(&self, binding: &RelationalLegacyBranchBinding) -> Option<CommitId> {
+    fn bound_head_commit_id(&self, binding: &AdmittedRelationalBranchBasis) -> Option<CommitId> {
         self.runtime
-            .legacy_branch_binding_commit(binding)
+            .admitted_branch_basis_commit(binding)
             .map(|identity| identity.commit_id())
     }
 

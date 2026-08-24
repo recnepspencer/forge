@@ -13,7 +13,8 @@ fn perf_commit_delta_matrix() {
             for index in 0..64 {
                 txn.push_batch(batch_create(&format!("perf-entity-{index}")));
             }
-            txn.commit().expect("single-partition create burst commit")
+            txn.commit(&mut runtime)
+                .expect("single-partition create burst commit")
         })
     });
     assert!(narrow_samples
@@ -71,7 +72,8 @@ fn perf_commit_delta_matrix() {
                     )));
                 }
                 txn.push_batch(batch);
-                txn.commit().expect("cross-partition relation burst commit")
+                txn.commit(&mut runtime)
+                    .expect("cross-partition relation burst commit")
             })
         });
     assert!(cross_partition_samples
@@ -96,7 +98,8 @@ fn perf_commit_delta_matrix() {
                 let mut txn =
                     crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
                 txn.push_batch(batch_create("persisted-single"));
-                txn.commit().expect("persisted single entity create")
+                txn.commit(&mut runtime)
+                    .expect("persisted single entity create")
             })
         });
     emit_metric_summaries(

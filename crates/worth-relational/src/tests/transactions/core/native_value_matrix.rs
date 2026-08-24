@@ -56,7 +56,7 @@ fn ordinary_native_mutation_roundtrips_every_foundational_scalar_family() {
         })),
     ));
 
-    let committed = transaction.commit().unwrap();
+    let committed = transaction.commit(&mut runtime).unwrap();
     let entity = changed_entities(&committed)[0];
     {
         let read = runtime

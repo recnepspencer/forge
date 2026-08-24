@@ -82,7 +82,7 @@ fn merge_commit_inspection_stays_envelope_projected() {
             }),
         )),
     );
-    feature_txn.commit().expect("feature update");
+    feature_txn.commit(&mut runtime).expect("feature update");
 
     let merge = merge_commit_from_branches(
         &mut runtime,

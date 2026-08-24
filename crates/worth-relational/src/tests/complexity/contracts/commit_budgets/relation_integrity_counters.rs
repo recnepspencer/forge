@@ -48,7 +48,7 @@ fn complexity_budget_relation_integrity_uniqueness_uses_adjacency_local_candidat
             },
         )),
     ));
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     let counters = runtime.performance_access().counters();
 
     assert!(matches!(
@@ -81,7 +81,7 @@ fn complexity_budget_relation_integrity_symmetry_checks_only_touched_pairs() {
             }),
         )),
     );
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     let counters = runtime.performance_access().counters();
 
     assert!(matches!(
@@ -107,7 +107,7 @@ fn complexity_budget_relation_integrity_endpoint_deletion_checks_only_deleted_en
             EntityMutationIntent::Delete(DeleteEntityIntent { entity_id: source }),
         )),
     );
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     let counters = runtime.performance_access().counters();
 
     assert!(matches!(
@@ -141,7 +141,7 @@ fn complexity_budget_relation_integrity_reuses_touched_scope_across_multiple_con
             },
         )),
     ));
-    let _error = txn.commit().unwrap_err();
+    let _error = txn.commit(&mut runtime).unwrap_err();
     let counters = runtime.performance_access().counters();
 
     assert_eq!(counters.relation_integrity_contracts_evaluated, 3);

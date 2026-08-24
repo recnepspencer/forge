@@ -79,7 +79,7 @@ fn prepare_patch_fragments(
     let use_parallel_packets =
         matches!(
             runtime.config.execution.execution_model,
-            RelationalExecutionModel::StagedParallelPreparation
+            RelationalExecutionModel::ParallelPreparation
         ) && packet_width_is_profitable(packet_count, MIN_PARALLEL_PACKET_WIDTH);
 
     if !use_parallel_packets {

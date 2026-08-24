@@ -72,7 +72,7 @@ fn failed_durable_append_lineage_id_gap_recovers_exact_tail_and_continues() {
     let mut failed = test_owner_begin_transaction_for_main(&mut runtime);
     failed.push_batch(batch_create("lineage-gap-abandoned"));
     let error = failed
-        .commit()
+        .commit(&mut runtime)
         .expect_err("injected durable append failure must abandon the reserved lineage id");
     assert!(format!("{error:?}").contains("test-injected durable append failure"));
     assert_eq!(runtime.lineage.next_lineage_id, abandoned_lineage_id + 1);
@@ -160,7 +160,7 @@ fn multi_event_reservation_exhaustion_denies_before_public_effects() {
     transaction.push_batch(batch_create("reservation-exhaustion-first"));
     transaction.push_batch(batch_create("reservation-exhaustion-second"));
     let error = transaction
-        .commit()
+        .commit(&mut runtime)
         .expect_err("two-event reservation must deny at the allocator boundary");
 
     assert!(format!("{error:?}").contains("lineage event id allocator exhausted"));

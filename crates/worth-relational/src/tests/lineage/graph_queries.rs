@@ -58,7 +58,7 @@ fn lineage_graph_replace_emits_replace_edge() {
             }),
         )),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
     let graph = runtime.lineage_access().graph(LineageGraphRequest {
         branch_id: BranchId("main".to_string()),
         traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
@@ -118,7 +118,7 @@ fn lineage_graph_same_shape_replacements_do_not_cross_wire_targets() {
                 },
             ))),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
     let graph = runtime.lineage_access().graph(LineageGraphRequest {
         branch_id: BranchId("main".to_string()),
         traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
@@ -182,7 +182,7 @@ fn lineage_graph_replace_commit_publishes_replace_decision_log_entry() {
             }),
         )),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
     let replay = runtime.replay();
     let envelope = replay
         .canonical_commit_envelope(outcome.commit.commit_id)

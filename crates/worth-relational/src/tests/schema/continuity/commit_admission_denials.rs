@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn commit_rejects_undeclared_schema_drift_against_branch_head() {
+fn ordinary_commit_keeps_the_admitted_branch_root_schema_when_live_registry_drifts() {
     let mut runtime = runtime_with_test_schema();
     let _first = create_entity_outcome(&mut runtime, "a");
 
@@ -26,38 +26,18 @@ fn commit_rejects_undeclared_schema_drift_against_branch_head() {
             },
         ))),
     );
-    let error = txn.commit().unwrap_err();
+    let committed = txn
+        .commit(&mut runtime)
+        .expect("ambient registry drift cannot reinterpret an admitted branch root");
 
-    match error {
-        crate::transactions::data::TransactionCommitError::Conflict { error, .. } => {
-            assert!(matches!(
-                error.class,
-                ConflictClass::UndeclaredSchemaTransition {
-                    previous_schema_version: SchemaVersionId(1),
-                    current_schema_version: SchemaVersionId(2),
-                    ..
-                }
-            ));
-            assert_eq!(
-                error.code(),
-                crate::diagnostics::data::DiagnosticCode::SchemaContinuityViolation
-            );
-        }
-        other => panic!("expected schema continuity conflict, got {other:?}"),
-    }
-    let diagnostics = runtime.publication().diagnostics();
-    let failure_artifact = diagnostics
-        .by_scope(DiagnosticsScope::Schema)
-        .into_iter()
-        .find(|artifact| artifact.kind == DiagnosticsArtifactKind::Failure)
-        .expect("schema continuity failure artifact");
-    assert!(failure_artifact.entries.iter().any(|entry| {
-        entry.code == DiagnosticCode::SchemaContinuityViolation
-            && diagnostic_string_contains(
-                diagnostic_field(entry, "conflict_class"),
-                "UndeclaredSchemaTransition",
-            )
-    }));
+    assert_eq!(committed.envelope().schema_version, SchemaVersionId(1));
+    assert_eq!(
+        committed
+            .envelope()
+            .schema_authority
+            .primary_schema_version_id,
+        Some(SchemaVersionId(1))
+    );
 }
 
 #[test]
@@ -96,15 +76,22 @@ fn declared_schema_transition_rejects_wrong_source_basis() {
         )],
     };
 
-    let mut txn = runtime.begin_transaction(
-        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
-            .with_schema_transition(
-                proposed_transition,
-                Some(SchemaReconciliationPolicy::PreserveInformation),
-            ),
-    );
+    let mut txn = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+                .with_schema_transition(
+                    proposed_transition,
+                    Some(SchemaReconciliationPolicy::PreserveInformation),
+                );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(batch_create("b"));
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
 
     match error {
         crate::transactions::data::TransactionCommitError::Conflict { error, .. } => {
@@ -157,15 +144,22 @@ fn declared_schema_transition_rejects_wrong_target_basis() {
         )],
     };
 
-    let mut txn = runtime.begin_transaction(
-        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
-            .with_schema_transition(
-                proposed_transition,
-                Some(SchemaReconciliationPolicy::PreserveInformation),
-            ),
-    );
+    let mut txn = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+                .with_schema_transition(
+                    proposed_transition,
+                    Some(SchemaReconciliationPolicy::PreserveInformation),
+                );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(batch_create("b"));
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
 
     match error {
         crate::transactions::data::TransactionCommitError::Conflict { error, .. } => {
@@ -227,14 +221,21 @@ fn declared_schema_transition_requires_non_empty_runtime_basis() {
         )],
     };
 
-    let txn = runtime.begin_transaction(
-        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
-            .with_schema_transition(
-                proposed_transition,
-                Some(SchemaReconciliationPolicy::PreserveInformation),
-            ),
-    );
-    let error = txn.commit().unwrap_err();
+    let txn = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+                .with_schema_transition(
+                    proposed_transition,
+                    Some(SchemaReconciliationPolicy::PreserveInformation),
+                );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
+    let error = txn.commit(&mut runtime).unwrap_err();
 
     match error {
         crate::transactions::data::TransactionCommitError::Conflict { error, .. } => {
@@ -287,15 +288,22 @@ fn declared_type_continuity_denied_schema_transition_reports_specific_conflict_c
         )],
     };
 
-    let mut txn = runtime.begin_transaction(
-        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
-            .with_schema_transition(
-                proposed_transition,
-                Some(SchemaReconciliationPolicy::PreserveInformation),
-            ),
-    );
+    let mut txn = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+                .with_schema_transition(
+                    proposed_transition,
+                    Some(SchemaReconciliationPolicy::PreserveInformation),
+                );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(batch_create("b"));
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
 
     match error {
         crate::transactions::data::TransactionCommitError::Conflict { error, .. } => {

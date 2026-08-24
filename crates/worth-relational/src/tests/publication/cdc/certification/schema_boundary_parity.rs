@@ -15,21 +15,30 @@ fn cdc_certification_schema_boundary_continuation_is_explained_and_counted() {
 
     runtime.config.schema.registry = AspectSchemaFixture {
         schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
+        ..AspectSchemaFixture::with_default_declared_aspects(
+            CascadeDeletePolicy::CascadeDeleteRelations,
+        )
     }
     .build_registry();
-    let mut txn = runtime.begin_transaction(
-        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
-            .with_schema_transition(
-                schema_transition_for_subscriber_impact(
-                    SchemaVersionId(2),
-                    SchemaSubscriberImpact::ConsumableSurfaceChanged,
-                ),
-                Some(SchemaReconciliationPolicy::PreserveInformation),
-            ),
-    );
+    let mut txn = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+                .with_schema_transition(
+                    schema_transition_for_subscriber_impact(
+                        SchemaVersionId(2),
+                        SchemaSubscriberImpact::ConsumableSurfaceChanged,
+                    ),
+                    Some(SchemaReconciliationPolicy::PreserveInformation),
+                );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(batch_create("after-boundary"));
-    txn.commit().unwrap();
+    txn.commit(&mut runtime).unwrap();
 
     runtime.performance_access().reset_counters();
     let batch = runtime
@@ -66,39 +75,57 @@ fn diff_cdc_truth_parity_test() {
 
     runtime.config.schema.registry = AspectSchemaFixture {
         schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
+        ..AspectSchemaFixture::with_default_declared_aspects(
+            CascadeDeletePolicy::CascadeDeleteRelations,
+        )
     }
     .build_registry();
-    let mut txn_v2 = runtime.begin_transaction(
-        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
-            .with_schema_transition(
-                schema_transition_for_subscriber_impact(
-                    SchemaVersionId(2),
-                    SchemaSubscriberImpact::ConsumableSurfaceChanged,
-                ),
-                Some(SchemaReconciliationPolicy::PreserveInformation),
-            ),
-    );
+    let mut txn_v2 = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+                .with_schema_transition(
+                    schema_transition_for_subscriber_impact(
+                        SchemaVersionId(2),
+                        SchemaSubscriberImpact::ConsumableSurfaceChanged,
+                    ),
+                    Some(SchemaReconciliationPolicy::PreserveInformation),
+                );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn_v2.push_batch(batch_create("after-v2"));
-    txn_v2.commit().unwrap();
+    txn_v2.commit(&mut runtime).unwrap();
 
     runtime.config.schema.registry = AspectSchemaFixture {
         schema_version_id: SchemaVersionId(3),
-        ..AspectSchemaFixture::default()
+        ..AspectSchemaFixture::with_default_declared_aspects(
+            CascadeDeletePolicy::CascadeDeleteRelations,
+        )
     }
     .build_registry();
-    let mut txn_v3 = runtime.begin_transaction(
-        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
-            .with_schema_transition(
-                schema_transition_for_subscriber_impact(
-                    SchemaVersionId(3),
-                    SchemaSubscriberImpact::ConsumableSurfaceChanged,
-                ),
-                Some(SchemaReconciliationPolicy::PreserveInformation),
-            ),
-    );
+    let mut txn_v3 = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+                .with_schema_transition(
+                    schema_transition_for_subscriber_impact(
+                        SchemaVersionId(3),
+                        SchemaSubscriberImpact::ConsumableSurfaceChanged,
+                    ),
+                    Some(SchemaReconciliationPolicy::PreserveInformation),
+                );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn_v3.push_batch(batch_create("after-v3"));
-    txn_v3.commit().unwrap();
+    txn_v3.commit(&mut runtime).unwrap();
 
     runtime.performance_access().reset_counters();
     let live_batch = runtime
@@ -133,7 +160,9 @@ fn diff_cdc_truth_parity_test() {
     let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, || {
         let registry = AspectSchemaFixture {
             schema_version_id: SchemaVersionId(3),
-            ..AspectSchemaFixture::default()
+            ..AspectSchemaFixture::with_default_declared_aspects(
+                CascadeDeletePolicy::CascadeDeleteRelations,
+            )
         }
         .build_registry();
         RelationalRuntimeApi::builder()

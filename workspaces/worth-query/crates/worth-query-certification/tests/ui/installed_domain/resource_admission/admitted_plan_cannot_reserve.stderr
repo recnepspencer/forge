@@ -1,5 +1,0 @@
-error[E0599]: no method named `reserve_capacity` found for struct `WorthQueryAdmittedExecutionResourcePlan` in the current scope
- --> tests/ui/installed_domain/resource_admission/admitted_plan_cannot_reserve.rs:4:18
-  |
-4 |     let _ = plan.reserve_capacity();
-  |                  ^^^^^^^^^^^^^^^^ method not found in `WorthQueryAdmittedExecutionResourcePlan`

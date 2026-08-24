@@ -1,18 +1,15 @@
-use crate::authority::commit::pipeline::{
-    execute_authoritative_commit, AuthoritativeCommitContext,
-};
 use crate::commit_strategies::data::{
     CanonicalStrategyCommitRequest, LoweredStrategyCommitPlan, NativeStrategyCommitRequest,
     StrategyCommitRequestError, StrategyExecutionDraft, StrategyLoweringError,
-    ValidatedStrategyCommitPlan,
 };
 use crate::commit_strategies::{
     bind_execution, canonicalize_request, execute_bound_strategy, lower_execution,
     validate_lowered_plan as validate_lowered_strategy_plan,
 };
+use crate::mvcc::RelationalTransactionValidationInput;
 use crate::runtime::RelationalRuntime;
 use crate::snapshots::data::SnapshotHandle;
-use crate::transactions::data::{CommitResult, TransactionCommitError, TransactionOptions};
+use crate::transactions::data::{CommitResult, TransactionCommitError};
 
 #[derive(Debug, Clone, Copy)]
 pub struct CommitStrategiesFacade<'runtime> {
@@ -41,50 +38,57 @@ impl<'runtime> CommitStrategiesFacade<'runtime> {
     }
 }
 
-#[derive(Debug)]
-pub struct CommitStrategiesAuthorityFacade<'runtime> {
-    runtime: &'runtime mut RelationalRuntime,
-}
+/// Stateless owner port. Each governed transition borrows the runtime only for
+/// that transition; lowered and validated artifacts remain detached between calls.
+#[derive(Debug, Default)]
+pub struct CommitStrategiesAuthorityFacade;
 
-impl<'runtime> CommitStrategiesAuthorityFacade<'runtime> {
-    pub(crate) fn new(runtime: &'runtime mut RelationalRuntime) -> Self {
-        Self { runtime }
+impl CommitStrategiesAuthorityFacade {
+    pub(crate) fn new() -> Self {
+        Self
     }
 
     pub fn lower_execution(
         &mut self,
+        runtime: &mut RelationalRuntime,
         request: &CanonicalStrategyCommitRequest,
         execution: &StrategyExecutionDraft,
-        options: TransactionOptions,
+        basis: &crate::branch::AdmittedRelationalBranchBasis,
+        intent: crate::mvcc::RelationalTransactionIntent,
     ) -> Result<LoweredStrategyCommitPlan, StrategyLoweringError> {
-        lower_execution(self.runtime, request, execution, options)
+        let transaction = runtime
+            .begin_branch_transaction(basis, intent)
+            .map_err(crate::commit_strategies::lowering::strategy_transaction_admission_error)?;
+        lower_execution(runtime, request, execution, transaction)
     }
 
-    pub fn execute_lowered_commit(
+    pub(crate) fn lower_execution_with_input(
         &mut self,
-        lowered: LoweredStrategyCommitPlan,
-    ) -> Result<CommitResult, TransactionCommitError> {
-        execute_authoritative_commit(
-            self.runtime,
-            AuthoritativeCommitContext::from_strategy(self.runtime, lowered),
-        )
+        runtime: &mut RelationalRuntime,
+        request: &CanonicalStrategyCommitRequest,
+        execution: &StrategyExecutionDraft,
+        input: RelationalTransactionValidationInput,
+    ) -> Result<LoweredStrategyCommitPlan, StrategyLoweringError> {
+        let transaction = runtime
+            .begin_branch_transaction_with_owner_inputs(input)
+            .map_err(crate::commit_strategies::lowering::strategy_transaction_admission_error)?;
+        lower_execution(runtime, request, execution, transaction)
     }
 
     pub fn validate_lowered_plan(
         &mut self,
+        runtime: &mut RelationalRuntime,
         lowered: LoweredStrategyCommitPlan,
-    ) -> Result<ValidatedStrategyCommitPlan, TransactionCommitError> {
-        validate_lowered_strategy_plan(self.runtime, lowered)
+    ) -> Result<crate::mvcc::ValidatedRelationalProposal, TransactionCommitError> {
+        validate_lowered_strategy_plan(runtime, lowered)
     }
 
     pub fn execute_validated_commit(
         &mut self,
-        validated: ValidatedStrategyCommitPlan,
+        runtime: &mut RelationalRuntime,
+        validated: crate::mvcc::ValidatedRelationalProposal,
     ) -> Result<CommitResult, TransactionCommitError> {
-        execute_authoritative_commit(
-            self.runtime,
-            AuthoritativeCommitContext::from_validated_strategy(self.runtime, validated),
-        )
+        runtime.commit_validated_proposal(validated)
     }
 }
 

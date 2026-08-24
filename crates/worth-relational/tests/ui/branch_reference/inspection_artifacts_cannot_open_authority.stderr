@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
-  --> tests/ui/branch_reference/inspection_artifacts_cannot_open_authority.rs:12:64
+  --> tests/ui/branch_reference/inspection_artifacts_cannot_open_authority.rs:13:64
    |
-12 |     let _ = runtime.fork_branch(BranchId("forged".to_owned()), observation);
+13 |     let _ = runtime.fork_branch(BranchId("forged".to_owned()), observation);
    |                     -----------                                ^^^^^^^^^^^ expected `AdmittedRelationalForkSourceBasis`, found `RelationalBranchSharingObservation`
    |                     |
    |                     arguments to this method are incorrect
@@ -13,29 +13,25 @@ note: method defined here
    |            ^^^^^^^^^^^
 
 error[E0308]: mismatched types
-  --> tests/ui/branch_reference/inspection_artifacts_cannot_open_authority.rs:19:39
+  --> tests/ui/branch_reference/inspection_artifacts_cannot_open_authority.rs:21:9
    |
-19 |     let _ = runtime.begin_transaction(observation);
-   |                     ----------------- ^^^^^^^^^^^ expected `TransactionOptions`, found `RelationalOwnerAllocationLedgerObservation`
-   |                     |
-   |                     arguments to this method are incorrect
+20 |     let _ = runtime.begin_branch_transaction(
+   |                     ------------------------ arguments to this method are incorrect
+21 |         &observation,
+   |         ^^^^^^^^^^^^ expected `&AdmittedRelationalBranchBasis`, found `&...`
    |
+   = note: expected reference `&AdmittedRelationalBranchBasis`
+              found reference `&RelationalOwnerAllocationLedgerObservation`
 note: method defined here
-  --> src/transactions/runtime_entry.rs
+  --> src/mvcc/transaction/admission.rs
    |
-   |     pub fn begin_transaction<'a>(
-   |            ^^^^^^^^^^^^^^^^^
-
-error[E0599]: no method named `publish_commit_for_bridge` found for reference `&RelationalRuntime` in the current scope
-  --> tests/ui/branch_reference/inspection_artifacts_cannot_open_authority.rs:26:21
-   |
-26 |     let _ = runtime.publish_commit_for_bridge(observation, "model");
-   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&RelationalRuntime`
+   |     pub fn begin_branch_transaction(
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^
 
 error[E0308]: mismatched types
-  --> tests/ui/branch_reference/inspection_artifacts_cannot_open_authority.rs:35:36
+  --> tests/ui/branch_reference/inspection_artifacts_cannot_open_authority.rs:32:36
    |
-35 |         .retain_version_for_replay(observation);
+32 |         .retain_version_for_replay(observation);
    |          ------------------------- ^^^^^^^^^^^ expected `VersionId`, found `RelationalVisibilityCommitmentObservation`
    |          |
    |          arguments to this method are incorrect

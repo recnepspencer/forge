@@ -69,7 +69,8 @@ pub(super) fn certify_flat_entity_batch_region_wave(suite: &'static str) {
                     )));
                 }
                 txn.push_batch(batch);
-                txn.commit().expect("scene batch flat entity wave commit")
+                txn.commit(&mut runtime)
+                    .expect("scene batch flat entity wave commit")
             };
             let update_micros = update_started_at.elapsed().as_micros();
 

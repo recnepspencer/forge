@@ -53,12 +53,19 @@ pub(super) fn certify_branch_rollback_compile_step_window(suite: &'static str) {
             }
 
             runtime.performance_access().reset_counters();
-            let mut txn = runtime.begin_transaction(
-                crate::tests::support::test_owner_transaction_options_for_branch(
-                    &runtime,
-                    feature_branch.clone(),
-                ),
-            );
+            let mut txn = {
+                let transaction_validation_input =
+                    crate::tests::support::test_owner_transaction_validation_input_for_branch(
+                        &runtime,
+                        feature_branch.clone(),
+                    );
+                runtime
+                    .begin_branch_transaction(
+                        transaction_validation_input.basis(),
+                        transaction_validation_input.intent().clone(),
+                    )
+                    .expect("owner-admitted transaction context")
+            };
             let savepoint = txn.create_savepoint();
             let mut transient_batch = WorkerIntentBatch::new("chip-transient-fanout");
             for (index, target) in transient_targets.iter().enumerate() {
@@ -111,7 +118,7 @@ pub(super) fn certify_branch_rollback_compile_step_window(suite: &'static str) {
                 ),
             );
             let commit_started_at = Instant::now();
-            let commit_outcome = txn.commit().expect("chip branch step commit");
+            let commit_outcome = txn.commit(&mut runtime).expect("chip branch step commit");
             let commit_micros = commit_started_at.elapsed().as_micros();
 
             let feature_commit = runtime

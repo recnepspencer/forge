@@ -153,7 +153,7 @@ fn initial_schema_authority_closes_after_first_commit() {
             fields: Default::default(),
         })),
     ));
-    transaction.commit().unwrap();
+    transaction.commit(&mut runtime).unwrap();
 
     let denial = runtime.prepare_initial_schema_installation().unwrap_err();
     assert_eq!(

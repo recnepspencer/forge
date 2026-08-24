@@ -240,7 +240,7 @@ fn create_entity_with_aspect_fields_on_branch(
             },
         )),
     ));
-    changed_entities(&txn.commit().unwrap())[0]
+    changed_entities(&txn.commit(&mut runtime).unwrap())[0]
 }
 
 fn update_entity_aspect_fields_on_branch(
@@ -267,7 +267,7 @@ fn update_entity_aspect_fields_on_branch(
             }),
         )),
     );
-    txn.commit().unwrap();
+    txn.commit(&mut runtime).unwrap();
 }
 
 fn aspect_fields_with_identity_name(

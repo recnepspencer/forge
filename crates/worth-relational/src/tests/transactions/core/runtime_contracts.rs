@@ -6,20 +6,16 @@ use crate::facade::publication::{PublicationError, PublicationStage};
 use crate::facade::replay::{ReplayError, ReplayFailureClass};
 use crate::facade::runtime::RelationalExecutionModel;
 use crate::facade::schema::SchemaRegistryError;
-use crate::facade::transactions::{AuthorityMode, EntitySpec, MutationIntent};
+use crate::facade::transactions::{EntitySpec, MutationIntent};
 use crate::tests::support::*;
 
 #[test]
-fn runtime_defaults_to_serialized_authority() {
+fn runtime_defaults_to_serial_validation_execution() {
     let runtime = runtime_with_test_schema();
 
     assert_eq!(
         runtime.config().execution.execution_model,
-        RelationalExecutionModel::SerialAuthority
-    );
-    assert_eq!(
-        runtime.config().execution.commit_authority.authority.mode,
-        AuthorityMode::SerializedCommit
+        RelationalExecutionModel::SingleLaneExecution
     );
 }
 
@@ -63,7 +59,7 @@ fn relational_error_wraps_authority_failures_with_context() {
             }),
         )),
     );
-    let transaction_error = txn.commit().unwrap_err();
+    let transaction_error = txn.commit(&mut runtime).unwrap_err();
     let wrapped: RelationalError = transaction_error.into();
     assert!(matches!(wrapped, RelationalError::Transaction(_)));
     assert_eq!(

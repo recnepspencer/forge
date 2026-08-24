@@ -1,8 +1,0 @@
-error: lifetime may not live long enough
- --> tests/ui/installed_domain/artifact_native_access/chunk_view_cannot_escape.rs:8:24
-  |
-8 |     cursor.next(|view| view).unwrap().unwrap()
-  |                  ----- ^^^^ returning this value requires that `'1` must outlive `'2`
-  |                  |   |
-  |                  |   return type of closure is WorthQueryArtifactProjectedChunkView<'2>
-  |                  has type `WorthQueryArtifactProjectedChunkView<'1>`

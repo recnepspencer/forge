@@ -107,7 +107,7 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
             },
         )),
     ));
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
 
     assert!(rollback_b.has_effects());
     assert!(rollback_a.has_effects());

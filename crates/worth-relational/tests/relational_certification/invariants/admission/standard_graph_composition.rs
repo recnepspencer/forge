@@ -128,11 +128,16 @@ fn assert_graph_binding_stales_after_child_diverges(
     child: &BranchId,
 ) {
     let child_identity = runtime.branch_identity(child).unwrap();
-    let stale_options = runtime.transaction_options_for(&child_identity).unwrap();
+    let stale_options = runtime.admit_branch_basis(&child_identity).unwrap();
     commit_graph_entity(runtime, child, "child-divergence");
-    let mut stale = runtime.begin_transaction(stale_options);
+    let mut stale = runtime
+        .begin_branch_transaction(
+            &stale_options,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context");
     stale.push_batch(graph_entity_batch("stale-child-plan"));
-    let denied = stale.graph_composition_plan().unwrap_err();
+    let denied = stale.graph_composition_plan(runtime).unwrap_err();
     assert!(matches!(
         denied.class,
         ConflictClass::StaleValidationBasis { .. }
@@ -202,12 +207,17 @@ fn graph_execution(runtime: &mut RelationalRuntime, branch: &BranchId) -> Invari
         .branch_identity(branch)
         .expect("branch identity is owner-issued");
     let options = runtime
-        .transaction_options_for(&identity)
+        .admit_branch_basis(&identity)
         .expect("transaction authority is owner-issued");
-    let mut transaction = runtime.begin_transaction(options);
+    let mut transaction = runtime
+        .begin_branch_transaction(
+            &options,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context");
     transaction.push_batch(graph_entity_batch("common-graph-plan"));
     transaction
-        .graph_composition_plan()
+        .graph_composition_plan(runtime)
         .expect("the Standard graph plan is branch-bound and owner-prepared")
 }
 
@@ -217,10 +227,17 @@ fn commit_graph_entity(
     client_key: &str,
 ) -> EntityId {
     let identity = runtime.branch_identity(branch).unwrap();
-    let options = runtime.transaction_options_for(&identity).unwrap();
-    let mut transaction = runtime.begin_transaction(options);
+    let options = runtime.admit_branch_basis(&identity).unwrap();
+    let mut transaction = runtime
+        .begin_branch_transaction(
+            &options,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context");
     transaction.push_batch(graph_entity_batch(client_key));
-    let commit = transaction.commit().expect("branch divergence commits");
+    let commit = transaction
+        .commit(runtime)
+        .expect("branch divergence commits");
     commit
         .changed_records
         .iter()

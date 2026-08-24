@@ -2,7 +2,6 @@ mod artifact_execution;
 mod authority_context;
 mod boundary_validation;
 mod bulk_mutation_telemetry;
-mod complexity_delta;
 mod draft_execution;
 mod draft_preparation_phase;
 mod execution;
@@ -15,7 +14,6 @@ mod publication_execution;
 mod rejection;
 mod result_assembly;
 mod snapshot_validation;
-mod transaction_entrypoint;
 
 pub(crate) use authority_context::AuthoritativeCommitContext;
 pub(crate) use execution::execute_authoritative_commit;

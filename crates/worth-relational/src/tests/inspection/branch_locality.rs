@@ -36,7 +36,7 @@ fn historical_inspection_stays_branch_local_under_divergence_and_reclaim_pressur
                 }),
             )),
         );
-        txn.commit().expect("main update")
+        txn.commit(&mut runtime).expect("main update")
     };
     let feature_update = {
         let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
@@ -55,7 +55,7 @@ fn historical_inspection_stays_branch_local_under_divergence_and_reclaim_pressur
                 }),
             )),
         );
-        txn.commit().expect("feature update")
+        txn.commit(&mut runtime).expect("feature update")
     };
 
     assert!(runtime
@@ -149,7 +149,7 @@ fn recent_commit_inspection_and_branch_head_reads_stay_branch_local() {
                 }),
             )),
         );
-        txn.commit().expect("main update")
+        txn.commit(&mut runtime).expect("main update")
     };
     let feature_update = {
         let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
@@ -168,7 +168,7 @@ fn recent_commit_inspection_and_branch_head_reads_stay_branch_local() {
                 }),
             )),
         );
-        txn.commit().expect("feature update")
+        txn.commit(&mut runtime).expect("feature update")
     };
 
     let feature_head = runtime

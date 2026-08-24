@@ -3,7 +3,9 @@ use crate::schema::data::{
     SchemaDiffDetail, SchemaElementKind, SchemaElementRef, SchemaId, SchemaPublicationImpact,
     SchemaReconciliationPolicy, SchemaStratum, SchemaSubscriberImpact, SchemaVersionId,
 };
-use crate::tests::support::{field_key, AspectSchemaFixture, KindId, TransactionOptions};
+use crate::tests::support::{
+    field_key, AspectSchemaFixture, KindId, RelationalTransactionValidationInput,
+};
 
 pub(super) fn schema_transition_for_subscriber_impact(
     target_schema_version_id: SchemaVersionId,
@@ -53,18 +55,21 @@ pub(super) fn install_schema_version(
 ) {
     runtime.config.schema.registry = AspectSchemaFixture {
         schema_version_id,
-        ..AspectSchemaFixture::default()
+        ..AspectSchemaFixture::with_default_declared_aspects(
+            crate::tests::support::CascadeDeletePolicy::CascadeDeleteRelations,
+        )
     }
     .build_registry();
 }
 
-pub(super) fn transaction_options_for_subscriber_impact(
+pub(super) fn transaction_validation_input_for_subscriber_impact(
     runtime: &crate::facade::runtime::RelationalRuntime,
     schema_version_id: SchemaVersionId,
     subscriber_impact: SchemaSubscriberImpact,
-) -> TransactionOptions {
-    crate::tests::support::test_owner_transaction_options_for_main(runtime).with_schema_transition(
-        schema_transition_for_subscriber_impact(schema_version_id, subscriber_impact),
-        Some(SchemaReconciliationPolicy::PreserveInformation),
-    )
+) -> RelationalTransactionValidationInput {
+    crate::tests::support::test_owner_transaction_validation_input_for_main(runtime)
+        .with_schema_transition(
+            schema_transition_for_subscriber_impact(schema_version_id, subscriber_impact),
+            Some(SchemaReconciliationPolicy::PreserveInformation),
+        )
 }

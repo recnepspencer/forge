@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::branch::RelationalLegacyBranchBinding;
+use crate::branch::AdmittedRelationalBranchBasis;
 use crate::history::data::{
     BranchId, MergeBaseSelectionRule, RelationalMergeBranchBasis, RelationalMergeBranchBasisDenial,
     ResolvedMergeBase,
@@ -75,8 +75,8 @@ impl<'runtime> HistoryAccess<'runtime> {
 
     pub(crate) fn resolve_merge_branch_basis_from_bindings(
         &self,
-        source_binding: &RelationalLegacyBranchBinding,
-        target_binding: &RelationalLegacyBranchBinding,
+        source_binding: &AdmittedRelationalBranchBasis,
+        target_binding: &AdmittedRelationalBranchBasis,
     ) -> Result<RelationalMergeBranchBasis, RelationalMergeBranchBasisDenial> {
         let source_head = self.commit_receipt_for_binding(source_binding, false)?;
         let target_head = self.commit_receipt_for_binding(target_binding, true)?;
@@ -90,7 +90,7 @@ impl<'runtime> HistoryAccess<'runtime> {
 
     fn commit_receipt_for_binding(
         &self,
-        binding: &RelationalLegacyBranchBinding,
+        binding: &AdmittedRelationalBranchBasis,
         target: bool,
     ) -> Result<crate::history::data::RelationalCommitReceipt, RelationalMergeBranchBasisDenial>
     {
@@ -108,12 +108,12 @@ impl<'runtime> HistoryAccess<'runtime> {
             .branch_cell(&branch_id)
             .ok_or_else(|| missing(branch_id.clone()))?;
         if cell.identity() != binding.identity()
-            || cell.observation() != binding.observation()
+            || cell.observation() != binding.reference()
             || cell.truth_version() != binding.truth_version()
         {
             return Err(missing(branch_id));
         }
-        let FoundationalBranchTarget::Basis(target) = binding.observation().target() else {
+        let FoundationalBranchTarget::Basis(target) = binding.reference().target() else {
             return Err(missing(branch_id));
         };
         self.runtime

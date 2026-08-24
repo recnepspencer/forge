@@ -20,7 +20,7 @@ pub(in crate::domain_computation::primary_graph) use relational_commit::{
 
 pub(super) struct WorthQueryPreparedApplicationCommit {
     attempt: WorthQueryPrimaryGraphApplicationAttempt,
-    candidate: worth_relational::facade::transactions::ValidatedRelationalMutation,
+    candidate: worth_relational::facade::mvcc::ValidatedRelationalProposal,
     work: WorthQueryPrimaryMutationWorkCounters,
     branch: worth_relational::facade::history::BranchId,
     retained_preimage: Option<WorthQueryRetainedPreImage>,

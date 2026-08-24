@@ -1,5 +1,5 @@
 use crate::branch::{
-    RelationalBranchReferenceCell, RelationalBranchTarget, RelationalLegacyBranchBinding,
+    AdmittedRelationalBranchBasis, RelationalBranchReferenceCell, RelationalBranchTarget,
 };
 use crate::history::data::BranchId;
 use crate::history::data::{CanonicalCommitEnvelope, CommitId, RelationalCommitReceipt};
@@ -15,7 +15,7 @@ pub(crate) enum PublicationSequence {
 pub(crate) struct PublicationRequest<'a> {
     pub(crate) commit_id: CommitId,
     pub(crate) commit_reference: &'a RelationalCommitReceipt,
-    pub(crate) binding: &'a RelationalLegacyBranchBinding,
+    pub(crate) binding: &'a AdmittedRelationalBranchBasis,
     pub(crate) envelope: &'a CanonicalCommitEnvelope,
     pub(crate) sequence: PublicationSequence,
 }
@@ -51,7 +51,7 @@ pub(crate) fn validate_publication(
             branch_id.0, request.envelope.branch_context.0
         ));
     }
-    if !runtime.legacy_branch_binding_is_current(request.binding) {
+    if !runtime.admitted_branch_basis_is_current(request.binding) {
         return Err("publication owner binding is foreign or stale".to_owned());
     }
     if runtime.history.next_version_id.checked_add(1).is_none() {

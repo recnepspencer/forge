@@ -33,7 +33,7 @@ pub(in crate::merge) fn execute_prepared_merge(
             )))
         })?;
     let mut options = runtime
-        .transaction_options_for(&target_identity)
+        .transaction_validation_input_for(&target_identity)
         .map_err(|denial| {
             MergeExecutionError::Commit(TransactionCommitError::conflict(CommitConflict::new(
                 ConflictClass::InvalidMergeParent {
@@ -57,8 +57,8 @@ pub(in crate::merge) fn execute_prepared_merge(
                 )))
             })?;
             runtime
-                .transaction_options_for(&identity)
-                .map(|options| options.branch_binding().clone())
+                .transaction_validation_input_for(&identity)
+                .map(|options| options.basis().clone())
                 .map_err(|denial| {
                     MergeExecutionError::Commit(TransactionCommitError::conflict(
                         CommitConflict::new(ConflictClass::InvalidMergeParent {
@@ -70,7 +70,7 @@ pub(in crate::merge) fn execute_prepared_merge(
                 })
         })
         .collect::<Result<Vec<_>, _>>()?;
-    options = options.with_merge_parent_bindings(parent_bindings);
+    options = options.with_merge_parent_bases(parent_bindings);
     let execution_summary = mutation_plan.merge_execution_summary.clone();
     let structural_summary = mutation_plan.structural_summary.clone();
     let diagnostics_plan = prepared.bound_executable_plan().diagnostics_plan.clone();

@@ -1,8 +1,8 @@
 //! Real commit-to-owner-observation support for C4 tests.
 
+use worth_relational::facade::mvcc::BranchBoundRelationalTransaction;
 use worth_relational::facade::transactions::{
-    CreateIntent, CreatedEntityRef, MutationIntent, RecordRef, RelationalTransaction,
-    WorkerIntentBatch,
+    CreateIntent, CreatedEntityRef, MutationIntent, RecordRef, WorkerIntentBatch,
 };
 
 use super::super::{WorthQueryCommittedDispatchOutboxObservation, WorthQueryPrimaryGraphProvider};
@@ -83,17 +83,23 @@ pub(in crate::domain_computation) fn commit_distinct_records_and_admit_fixture(
                 kind_id: second_spec.kind_id,
                 client_key: second_spec.client_key.clone(),
             };
-            let mut transaction: RelationalTransaction<'_> = runtime.begin_transaction(
-                runtime
-                    .transaction_options_for_main()
-                    .expect("main branch binding"),
-            );
+            let mut transaction: BranchBoundRelationalTransaction ={
+    let transaction_validation_input = runtime
+                    .admit_main_branch_basis()
+                    .expect("main branch binding");
+    runtime
+        .begin_branch_transaction(
+            &transaction_validation_input,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context")
+};
             transaction.push_batch(
                 WorkerIntentBatch::new("same-value-distinct-record-causal-twin")
                     .push(first_intent)
                     .push(MutationIntent::Create(CreateIntent::Entity(second_spec))),
             );
-            let committed = transaction.commit().expect("both outboxes commit");
+            let committed = transaction.commit(runtime).expect("both outboxes commit");
             let first_binding = WorthQueryCommittedDispatchOutboxBinding::fixture_from_commit(
                 provider.graph.layout.provider_dispatch_outbox(),
                 Some(first_pending.record()),
@@ -149,13 +155,19 @@ pub(in crate::domain_computation::primary_graph) fn commit_and_observe_fixture(
             Some(record),
         )
         .expect("declared fixture outbox binds a create intent");
-        let mut transaction: RelationalTransaction<'_> = runtime.begin_transaction(
-            runtime
-                .transaction_options_for_main()
-                .expect("main branch binding"),
-        );
+        let mut transaction: BranchBoundRelationalTransaction ={
+    let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
+    runtime
+        .begin_branch_transaction(
+            &transaction_validation_input,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context")
+};
         transaction.push_batch(WorkerIntentBatch::new("committed-outbox-real-test").push(intent));
-        let committed = transaction.commit().expect("fixture outbox commits");
+        let committed = transaction.commit(runtime).expect("fixture outbox commits");
         let binding = WorthQueryCommittedDispatchOutboxBinding::fixture_from_commit(
             provider.graph.layout.provider_dispatch_outbox(),
             Some(pending.record()),

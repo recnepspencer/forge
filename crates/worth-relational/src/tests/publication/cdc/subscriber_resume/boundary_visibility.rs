@@ -1,4 +1,4 @@
-use super::fixtures::{install_schema_version, transaction_options_for_subscriber_impact};
+use super::fixtures::{install_schema_version, transaction_validation_input_for_subscriber_impact};
 use crate::publication::cdc::data::{
     SubscriberContinuationClassSet, SubscriberContractDeclaration, SubscriberStrataSet,
 };
@@ -13,13 +13,21 @@ fn subscriber_stream_reports_crossed_schema_boundary_from_in_memory_history() {
     let _first = create_entity_outcome(&mut runtime, "a");
 
     install_schema_version(&mut runtime, SchemaVersionId(2));
-    let mut txn = runtime.begin_transaction(transaction_options_for_subscriber_impact(
-        &runtime,
-        SchemaVersionId(2),
-        SchemaSubscriberImpact::ConsumableSurfaceChanged,
-    ));
+    let mut txn = {
+        let transaction_validation_input = transaction_validation_input_for_subscriber_impact(
+            &runtime,
+            SchemaVersionId(2),
+            SchemaSubscriberImpact::ConsumableSurfaceChanged,
+        );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(batch_create("b"));
-    txn.commit().unwrap();
+    txn.commit(&mut runtime).unwrap();
 
     let batch = runtime
         .publication()
@@ -61,13 +69,21 @@ fn subscriber_stream_treats_unconsumed_boundary_as_unchanged() {
     let _first = create_entity_outcome(&mut runtime, "a");
 
     install_schema_version(&mut runtime, SchemaVersionId(2));
-    let mut txn = runtime.begin_transaction(transaction_options_for_subscriber_impact(
-        &runtime,
-        SchemaVersionId(2),
-        SchemaSubscriberImpact::ConsumableSurfaceChanged,
-    ));
+    let mut txn = {
+        let transaction_validation_input = transaction_validation_input_for_subscriber_impact(
+            &runtime,
+            SchemaVersionId(2),
+            SchemaSubscriberImpact::ConsumableSurfaceChanged,
+        );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(batch_create("b"));
-    txn.commit().unwrap();
+    txn.commit(&mut runtime).unwrap();
 
     let contract = SubscriberContractDeclaration {
         contract_id: "subscriber.contract.identity-only.v1".to_string(),

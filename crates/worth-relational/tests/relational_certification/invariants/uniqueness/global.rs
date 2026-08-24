@@ -10,17 +10,16 @@ use super::world::supply_chain::{
 use worth_foundational::facade::{
     AspectKey, AspectValue, ContractValidatedAspectValueView, FieldKey, InternedString,
 };
-use worth_relational::facade::history::BranchId;
-use worth_relational::facade::identity::PartitionId;
 use worth_relational::facade::runtime::{
     InvariantCatalog, InvariantRegistration, InvariantReportedRule, InvariantRule,
     RelationalRuntime,
 };
-use worth_relational::facade::symbols::ClientKey;
 use worth_relational::facade::transactions::{
-    planned_single_field_locator, AspectFieldPatch, CreateIntent, EntitySpec, MutationIntent,
-    TransactionCommitError, WorkerIntentBatch,
+    planned_single_field_locator, AspectFieldPatch, CommitConflict, ConflictClass, CreateIntent,
+    EntitySpec, InvariantViolationFields, MutationIntent, TransactionCommitError,
+    WorkerIntentBatch,
 };
+use worth_relational::facade::{history::BranchId, identity::PartitionId, symbols::ClientKey};
 
 const DIVERGENT_CALL_SIGN: &str = "BRANCH-DIVERGENCE";
 
@@ -243,11 +242,16 @@ fn commit_vessel(
         .branch_identity(&branch)
         .expect("branch identity is owner-issued");
     let options = runtime
-        .transaction_options_for(&identity)
+        .admit_branch_basis(&identity)
         .expect("transaction authority is owner-issued");
-    let mut transaction = runtime.begin_transaction(options);
+    let mut transaction = runtime
+        .begin_branch_transaction(
+            &options,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context");
     push_vessel(&mut transaction, client_key);
-    transaction.commit()
+    transaction.commit(runtime)
 }
 
 fn commit_two_vessels(
@@ -258,16 +262,21 @@ fn commit_two_vessels(
         .branch_identity(&branch)
         .expect("branch identity is owner-issued");
     let options = runtime
-        .transaction_options_for(&identity)
+        .admit_branch_basis(&identity)
         .expect("transaction authority is owner-issued");
-    let mut transaction = runtime.begin_transaction(options);
+    let mut transaction = runtime
+        .begin_branch_transaction(
+            &options,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context");
     push_vessel(&mut transaction, "same-transaction-vessel-a");
     push_vessel(&mut transaction, "same-transaction-vessel-b");
-    transaction.commit()
+    transaction.commit(runtime)
 }
 
 fn push_vessel(
-    transaction: &mut worth_relational::facade::transactions::RelationalTransaction<'_>,
+    transaction: &mut worth_relational::facade::mvcc::BranchBoundRelationalTransaction,
     client_key: &str,
 ) {
     transaction.push_batch(
@@ -369,10 +378,10 @@ fn assert_unique_conflict(error: TransactionCommitError, value: &str) {
     let TransactionCommitError::Conflict { error, .. } = error else {
         panic!("expected invariant conflict, got {error:?}");
     };
-    let worth_relational::facade::transactions::CommitConflict { class, .. } = error;
-    let worth_relational::facade::transactions::ConflictClass::InvariantViolation {
+    let CommitConflict { class, .. } = error;
+    let ConflictClass::InvariantViolation {
         fields:
-            worth_relational::facade::transactions::InvariantViolationFields::UniqueEntityField {
+            InvariantViolationFields::UniqueEntityField {
                 field_locator,
                 value: observed,
             },
@@ -381,15 +390,11 @@ fn assert_unique_conflict(error: TransactionCommitError, value: &str) {
     else {
         panic!("expected typed unique field conflict, got {class:?}");
     };
-    assert_eq!(
-        field_locator,
-        planned_single_field_locator(
-            AspectKey::new("call_sign").expect("call-sign aspect"),
-            FieldKey::new("call_sign").expect("call-sign field"),
-        )
+    let expected = planned_single_field_locator(
+        AspectKey::new("call_sign").expect("call-sign aspect"),
+        FieldKey::new("call_sign").expect("call-sign field"),
     );
-    assert_eq!(
-        observed,
-        AspectValue::String(InternedString::Raw(value.to_owned()))
-    );
+    assert_eq!(field_locator, expected);
+    let expected_value = AspectValue::String(InternedString::Raw(value.into()));
+    assert_eq!(observed, expected_value);
 }

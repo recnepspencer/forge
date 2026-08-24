@@ -117,7 +117,7 @@ fn replica_convergence_strategy_noops_when_authoritative_replicas_match() {
             ),
         ),
     );
-    txn.commit().expect("seed replicas");
+    txn.commit(&mut runtime).expect("seed replicas");
     let request = runtime
         .commit_strategies()
         .canonicalize_request(

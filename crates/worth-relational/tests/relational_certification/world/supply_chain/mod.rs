@@ -42,8 +42,7 @@ pub(crate) use compiler::{
     compile_supply_chain_baseline, compile_supply_chain_baseline_with_budget,
     compile_supply_chain_baseline_with_budget_and_invariant_catalog_and_custom_invariants,
     compile_supply_chain_baseline_with_custom_invariant,
-    compile_supply_chain_baseline_with_invariant_catalog,
-    compile_supply_chain_baseline_with_limits, SupplyChainCompilationError,
+    compile_supply_chain_baseline_with_invariant_catalog, SupplyChainCompilationError,
 };
 pub(crate) use definition::SupplyChainWorldDefinition;
 pub(crate) use delta::{

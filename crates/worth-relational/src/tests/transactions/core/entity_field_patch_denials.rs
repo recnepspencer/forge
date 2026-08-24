@@ -27,7 +27,7 @@ fn update_entity_fields_rejects_undeclared_aspect_targets() {
         )),
     ));
 
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             match error.class {
@@ -117,7 +117,7 @@ fn update_entity_fields_rejects_explicit_aspect_field_path_mismatch() {
         )),
     );
 
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => match error.class {
             crate::transactions::data::ConflictClass::RecordAspectPatchDenied {
@@ -156,7 +156,7 @@ fn update_entity_fields_validation_denial_carries_aspect_field_path() {
         )),
     );
 
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => match error.class {
             crate::transactions::data::ConflictClass::RecordAspectPatchDenied {

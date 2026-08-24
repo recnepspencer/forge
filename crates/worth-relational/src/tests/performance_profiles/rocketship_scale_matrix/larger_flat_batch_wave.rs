@@ -87,7 +87,7 @@ pub(super) fn certify_hundred_k_nodes_pseudorealistic_larger_flat_batch_wave(
                     )));
                 }
                 txn.push_batch(batch);
-                txn.commit()
+                txn.commit(&mut runtime)
                     .expect("rocketship large flat entity batch wave commit")
             };
             let update_micros = update_started_at.elapsed().as_micros();

@@ -50,17 +50,21 @@ cargo test --manifest-path workspaces/worth-query/Cargo.toml -p worth-query-publ
 cargo test --manifest-path workspaces/worth-query/Cargo.toml -p worth-query-host
 ```
 
-Compiler and reconstruction certification are cold and must be selected only
-when their boundary changes or at closeout:
+Allocation and reconstruction certification are cold and must be selected only
+when their boundary changes or at closeout. Allocation probes install a
+process-wide measuring allocator, so they are deliberately absent from the
+ordinary execution test binary. The unbounded legacy compiler matrices were
+removed rather than retained as an unsupported archive:
 
 ```text
-cargo test --manifest-path workspaces/worth-query/Cargo.toml -p worth-query-certification --test compile_certification
+cargo test --manifest-path workspaces/worth-query/Cargo.toml -p worth-query-execution --features allocation-probes --lib -- --test-threads=4
 cargo test --manifest-path workspaces/worth-query/Cargo.toml -p worth-query-certification -p worth-query-replay
 ```
 
-`make query-declaration-test`, `make query-installation-test`, `make
-query-test`, and `make query-compiler-certification` are short forms of these
-same Cargo commands. They add no runner, cache, or selection protocol.
+`make query-declaration-test`, `make query-installation-test`, and `make
+query-test` are short forms of their corresponding ordinary Cargo commands.
+`make query-cold-certification` is the sole short form for the complete cold
+portfolio above. These targets add no runner, cache, or selection protocol.
 
 The repository root remains an orchestrator and may consume Query through path
 dependencies. It does not own Query package membership.

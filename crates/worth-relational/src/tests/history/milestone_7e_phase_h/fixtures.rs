@@ -205,7 +205,7 @@ pub(super) fn create_named_entity_on_branch(
             },
         )),
     ));
-    txn.commit().expect("seed entity");
+    txn.commit(&mut runtime).expect("seed entity");
 }
 
 pub(super) fn merge_request() -> MergeExecutionRequest {

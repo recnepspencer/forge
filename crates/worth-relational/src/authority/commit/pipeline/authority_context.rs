@@ -1,25 +1,24 @@
 use super::bulk_mutation_telemetry::{telemetry_from_strategy_batch, BulkMutationPlanTelemetry};
 use super::rejection::invalid_merge_context;
-use crate::capabilities::RuntimeConfigSource;
-use crate::commit_strategies::data::{
-    LoweredStrategyCommitPlan, StrategyCommitArtifactBundle, ValidatedStrategyCommitPlan,
-};
+use crate::commit_strategies::data::StrategyCommitArtifactBundle;
+use crate::mvcc::RelationalTransactionValidationInput;
 use crate::transactions::data::{
-    CommitPhaseTiming, LoweredCommitPlan, MergeCommitMutationPlan, TransactionCommitError,
-    TransactionId, TransactionOptions,
+    CommitPhaseTiming, MergeCommitMutationPlan, MergedCommitPlan, TransactionCommitError,
+    TransactionId,
 };
 use crate::validation::engine::InvariantExecutionResult;
 
 #[derive(Debug)]
 pub(super) enum CommitAuthorityInput {
-    Lowered(LoweredCommitPlan),
+    Mutation(MergedCommitPlan),
     Merge(MergeCommitMutationPlan),
 }
 
 #[derive(Debug)]
 pub(crate) struct AuthoritativeCommitContext {
+    pub(super) _mutation_authority: Option<crate::branch::RelationalBranchMutationAuthority>,
     pub(super) transaction_id: TransactionId,
-    pub(super) options: TransactionOptions,
+    pub(super) validation_input: RelationalTransactionValidationInput,
     pub(super) phase_timing: CommitPhaseTiming,
     pub(super) authority_input: CommitAuthorityInput,
     pub(super) prepared_scope: Option<PreparedAuthorityScope>,
@@ -27,8 +26,11 @@ pub(crate) struct AuthoritativeCommitContext {
     pub(super) merge_execution_diagnostics_plan:
         Option<crate::merge::data::MergeExecutionDiagnosticsPlan>,
     pub(super) complexity_baseline: Option<crate::performance::data::RuntimeComplexityCounters>,
+    pub(super) prior_complexity_delta: crate::performance::data::RuntimeComplexityCounters,
     pub(super) bulk_mutation_telemetry: Option<BulkMutationPlanTelemetry>,
     pub(super) prevalidated_commit_boundary: Option<InvariantExecutionResult>,
+    pub(super) prevalidated_mutation_sensitive: Option<InvariantExecutionResult>,
+    pub(super) prevalidated_snapshot_publication: Option<InvariantExecutionResult>,
     pub(super) validated_against_commit_id: Option<crate::history::data::CommitId>,
     pub(super) validated_against_version_id: Option<crate::identity::data::VersionId>,
     pub(super) validated_against_branch_version: Option<crate::branch::RelationalBranchVersion>,
@@ -42,7 +44,7 @@ pub(super) struct PreparedAuthorityScope {
         crate::authority::commit::structural_summary::CommitStructuralSummary,
     pub(super) working_state: crate::storage::overlay::WorkingState,
     pub(super) proposed_working_state: Option<crate::storage::overlay::WorkingState>,
-    pub(super) proposal_identity: Option<crate::transactions::RelationalMutationProposalIdentity>,
+    pub(super) proposal_identity: Option<crate::mvcc::RelationalMutationProposalIdentity>,
     pub(super) phase_timing: CommitPhaseTiming,
 }
 
@@ -53,34 +55,43 @@ pub(super) struct MergeExecutionAccounting {
 }
 
 impl AuthoritativeCommitContext {
-    pub(crate) fn from_validated_mutation(
-        candidate: crate::transactions::ValidatedRelationalMutation,
+    pub(crate) fn from_validated_proposal(
+        candidate: crate::mvcc::ValidatedRelationalProposal,
     ) -> Self {
-        let crate::transactions::ValidatedRelationalMutation {
+        let crate::mvcc::ValidatedRelationalProposal {
+            mutation_authority,
             transaction_id,
-            options,
+            validation_input,
             prepared,
             proposed_working_state,
             commit_boundary,
+            mutation_sensitive,
+            snapshot_publication,
             proposal_identity,
             validated_against_commit,
             validated_against_version,
             validated_against_branch_version,
             batch_count,
+            strategy_commit_artifacts,
+            strategy_bulk_mutation_batch,
+            validation_complexity_delta,
             ..
         } = candidate;
-        let bulk_mutation_telemetry =
-            super::bulk_mutation_telemetry::summarize_bulk_mutation_telemetry(
-                &prepared.merged_plan,
-                batch_count,
-            );
+        let bulk_mutation_telemetry = strategy_bulk_mutation_batch
+            .as_ref()
+            .map(telemetry_from_strategy_batch)
+            .or_else(|| {
+                super::bulk_mutation_telemetry::summarize_bulk_mutation_telemetry(
+                    &prepared.merged_plan,
+                    batch_count,
+                )
+            });
         Self {
+            _mutation_authority: Some(mutation_authority),
             transaction_id,
-            options,
+            validation_input,
             phase_timing: prepared.phase_timing.clone(),
-            authority_input: CommitAuthorityInput::Lowered(LoweredCommitPlan::Mutation(
-                prepared.merged_plan,
-            )),
+            authority_input: CommitAuthorityInput::Mutation(prepared.merged_plan),
             prepared_scope: Some(PreparedAuthorityScope {
                 selected_branch_state: prepared.selected_branch_state.clone(),
                 structural_summary: prepared.structural_summary,
@@ -92,64 +103,33 @@ impl AuthoritativeCommitContext {
             merge_execution_accounting: None,
             merge_execution_diagnostics_plan: None,
             complexity_baseline: None,
+            prior_complexity_delta: validation_complexity_delta,
             bulk_mutation_telemetry,
             prevalidated_commit_boundary: Some(commit_boundary),
+            prevalidated_mutation_sensitive: Some(mutation_sensitive),
+            prevalidated_snapshot_publication: Some(snapshot_publication),
             validated_against_commit_id: validated_against_commit,
             validated_against_version_id: Some(validated_against_version),
             validated_against_branch_version: Some(validated_against_branch_version),
-            strategy_commit_artifacts: None,
-        }
-    }
-
-    pub(super) fn from_mutation(
-        transaction_id: TransactionId,
-        options: TransactionOptions,
-        phase_timing: CommitPhaseTiming,
-        prepared: crate::authority::commit::phases::prepare::PreparedWorkingStateScope,
-        bulk_mutation_telemetry: Option<BulkMutationPlanTelemetry>,
-    ) -> Self {
-        Self {
-            transaction_id,
-            options,
-            phase_timing: phase_timing.clone(),
-            authority_input: CommitAuthorityInput::Lowered(LoweredCommitPlan::Mutation(
-                prepared.merged_plan,
-            )),
-            prepared_scope: Some(PreparedAuthorityScope {
-                selected_branch_state: prepared.selected_branch_state,
-                structural_summary: prepared.structural_summary,
-                working_state: prepared.working_state,
-                proposed_working_state: None,
-                proposal_identity: None,
-                phase_timing,
-            }),
-            merge_execution_accounting: None,
-            merge_execution_diagnostics_plan: None,
-            complexity_baseline: None,
-            bulk_mutation_telemetry,
-            prevalidated_commit_boundary: None,
-            validated_against_commit_id: None,
-            validated_against_version_id: None,
-            validated_against_branch_version: None,
-            strategy_commit_artifacts: None,
+            strategy_commit_artifacts,
         }
     }
 
     pub(crate) fn from_merge(
-        options: TransactionOptions,
+        validation_input: RelationalTransactionValidationInput,
         merge_plan: MergeCommitMutationPlan,
     ) -> Result<Self, TransactionCommitError> {
-        Self::from_merge_execution(options, merge_plan, None, None)
+        Self::from_merge_execution(validation_input, merge_plan, None, None)
     }
 
     pub(crate) fn from_prepared_merge(
-        options: TransactionOptions,
+        validation_input: RelationalTransactionValidationInput,
         merge_plan: MergeCommitMutationPlan,
         diagnostics_plan: crate::merge::data::MergeExecutionDiagnosticsPlan,
         complexity_baseline: crate::performance::data::RuntimeComplexityCounters,
     ) -> Result<Self, TransactionCommitError> {
         Self::from_merge_execution(
-            options,
+            validation_input,
             merge_plan,
             Some(diagnostics_plan),
             Some(complexity_baseline),
@@ -157,16 +137,17 @@ impl AuthoritativeCommitContext {
     }
 
     fn from_merge_execution(
-        options: TransactionOptions,
+        validation_input: RelationalTransactionValidationInput,
         merge_plan: MergeCommitMutationPlan,
         diagnostics_plan: Option<crate::merge::data::MergeExecutionDiagnosticsPlan>,
         complexity_baseline: Option<crate::performance::data::RuntimeComplexityCounters>,
     ) -> Result<Self, TransactionCommitError> {
-        validate_merge_context_proof(&options, &merge_plan)?;
+        validate_merge_context_proof(&validation_input, &merge_plan)?;
 
         Ok(Self {
+            _mutation_authority: None,
             transaction_id: merge_plan.transaction_id,
-            options,
+            validation_input,
             phase_timing: CommitPhaseTiming::default(),
             merge_execution_accounting: Some(MergeExecutionAccounting {
                 admitted_records: merge_plan.structural_summary.executed_record_count,
@@ -176,117 +157,31 @@ impl AuthoritativeCommitContext {
             }),
             merge_execution_diagnostics_plan: diagnostics_plan,
             complexity_baseline,
+            prior_complexity_delta: crate::performance::data::RuntimeComplexityCounters::default(),
             authority_input: CommitAuthorityInput::Merge(merge_plan),
             prepared_scope: None,
             bulk_mutation_telemetry: None,
             prevalidated_commit_boundary: None,
+            prevalidated_mutation_sensitive: None,
+            prevalidated_snapshot_publication: None,
             validated_against_commit_id: None,
             validated_against_version_id: None,
             validated_against_branch_version: None,
             strategy_commit_artifacts: None,
         })
     }
-
-    pub(crate) fn from_strategy(
-        runtime: &crate::runtime::RelationalRuntime,
-        lowered_plan: LoweredStrategyCommitPlan,
-    ) -> Self {
-        let descriptor = runtime
-            .commit_strategy_registry()
-            .get_by_id(lowered_plan.request().strategy_id())
-            .expect("strategy lowering provenance should resolve to a registered descriptor")
-            .descriptor();
-        Self {
-            transaction_id: lowered_plan.transaction_id(),
-            options: lowered_plan.options().clone(),
-            phase_timing: CommitPhaseTiming::default(),
-            authority_input: CommitAuthorityInput::Lowered(LoweredCommitPlan::Strategy(
-                lowered_plan.clone(),
-            )),
-            prepared_scope: None,
-            merge_execution_accounting: None,
-            merge_execution_diagnostics_plan: None,
-            complexity_baseline: None,
-            bulk_mutation_telemetry: lowered_plan
-                .bulk_mutation_batch()
-                .map(telemetry_from_strategy_batch),
-            prevalidated_commit_boundary: None,
-            validated_against_commit_id: None,
-            validated_against_version_id: None,
-            validated_against_branch_version: None,
-            strategy_commit_artifacts: Some(StrategyCommitArtifactBundle::from_lowered(
-                &lowered_plan,
-                descriptor,
-                runtime.runtime_config(),
-            )),
-        }
-    }
-
-    pub(crate) fn from_validated_strategy(
-        runtime: &crate::runtime::RelationalRuntime,
-        validated_plan: ValidatedStrategyCommitPlan,
-    ) -> Self {
-        let descriptor = runtime
-            .commit_strategy_registry()
-            .get_by_id(validated_plan.lowered_plan().request().strategy_id())
-            .expect("validated strategy plan should resolve to a registered descriptor")
-            .descriptor();
-        Self {
-            transaction_id: validated_plan.lowered_plan().transaction_id(),
-            options: validated_plan.lowered_plan().options().clone(),
-            phase_timing: CommitPhaseTiming::default(),
-            authority_input: CommitAuthorityInput::Lowered(LoweredCommitPlan::Strategy(
-                validated_plan.lowered_plan().clone(),
-            )),
-            prepared_scope: Some(PreparedAuthorityScope {
-                selected_branch_state: validated_plan
-                    .prepared_scope()
-                    .selected_branch_state
-                    .clone(),
-                structural_summary: validated_plan.prepared_scope().structural_summary.clone(),
-                working_state: validated_plan.prepared_scope().working_state.clone(),
-                proposed_working_state: Some(validated_plan.proposed_working_state().clone()),
-                proposal_identity: Some(validated_plan.proposal_identity().clone()),
-                phase_timing: CommitPhaseTiming::default(),
-            }),
-            merge_execution_accounting: None,
-            merge_execution_diagnostics_plan: None,
-            complexity_baseline: None,
-            bulk_mutation_telemetry: validated_plan
-                .lowered_plan()
-                .bulk_mutation_batch()
-                .map(telemetry_from_strategy_batch),
-            prevalidated_commit_boundary: Some(validated_plan.commit_boundary_invariants().clone()),
-            validated_against_commit_id: validated_plan.validated_against_commit_id(),
-            validated_against_version_id: Some(validated_plan.validated_against_version_id()),
-            validated_against_branch_version: None,
-            strategy_commit_artifacts: Some(
-                StrategyCommitArtifactBundle::from_lowered(
-                    validated_plan.lowered_plan(),
-                    descriptor,
-                    runtime.runtime_config(),
-                )
-                .with_preview_validation(
-                    validated_plan.validation_summary(),
-                    validated_plan.preview_validation_cost(),
-                    validated_plan.validated_against_commit_id(),
-                    validated_plan.validated_against_version_id(),
-                ),
-            ),
-        }
-    }
 }
 
 fn validate_merge_context_proof(
-    options: &TransactionOptions,
+    validation_input: &RelationalTransactionValidationInput,
     merge_plan: &MergeCommitMutationPlan,
 ) -> Result<(), TransactionCommitError> {
-    if options.target_branch() != &merge_plan.target_branch {
+    if validation_input.target_branch() != &merge_plan.target_branch {
         return Err(invalid_merge_context(
             "merge commit context target branch does not match merge proof",
         ));
     }
-    if options.merge_parent_branch_ids() != merge_plan.merge_parent_branches.as_ref() {
+    if validation_input.merge_parent_branch_ids() != merge_plan.merge_parent_branches.as_ref() {
         return Err(invalid_merge_context(
             "merge commit context merge parent branches do not match merge proof",
         ));

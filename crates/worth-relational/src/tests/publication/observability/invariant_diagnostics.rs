@@ -32,7 +32,7 @@ fn invariant_failure_artifact_preserves_specific_code_localization_and_proof_bou
             },
         ))),
     );
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     let diagnostics = runtime.publication().diagnostics();
     let artifact = diagnostics
         .by_scope(DiagnosticsScope::Invariant)
@@ -144,7 +144,7 @@ fn invariant_diagnostics_trace_proof_boundary_for_relation_integrity_execution()
             }),
         )),
     );
-    txn.commit().unwrap();
+    txn.commit(&mut runtime).unwrap();
 
     let diagnostics = runtime.publication().diagnostics();
     let entry = diagnostics
@@ -228,7 +228,7 @@ fn collect_all_invariant_failures_emits_multiple_relation_integrity_entries_for_
             },
         ))),
     );
-    let _error = txn.commit().unwrap_err();
+    let _error = txn.commit(&mut runtime).unwrap_err();
 
     let diagnostics = runtime.publication().diagnostics();
     let failure_artifact = diagnostics

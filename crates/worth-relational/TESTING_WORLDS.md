@@ -306,9 +306,9 @@ and direct results.
 ## Phase 4 currentness and compatibility-court requirements
 
 The canonical Phase-4 court remains Supply Chain; no phase-specific substitute
-is permitted. The court must exercise a real
-owner-issued `RelationalLegacyBranchBinding` and compare production
-observations with the pure Supply Chain oracle. Its fork/currentness matrix
+is permitted. The court must exercise a real owner-admitted branch basis and
+branch-bound transaction, then compare production observations with the pure
+Supply Chain oracle. Its fork/currentness matrix
 must include:
 
 - one shared immutable catalog artifact with distinct runtime-affine target

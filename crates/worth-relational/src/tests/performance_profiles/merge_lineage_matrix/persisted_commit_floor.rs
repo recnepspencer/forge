@@ -29,7 +29,8 @@ pub(super) fn certify_merge_execution_vs_persisted_commit_floor(suite: &'static 
                     .into(),
                 ),
             );
-            let _feature_only = changed_entities(&txn.commit().expect("feature create"))[0];
+            let _feature_only =
+                changed_entities(&txn.commit(&mut merge_runtime).expect("feature create"))[0];
 
             let prepared = merge_runtime
                 .prepare_merge_execution(MergeExecutionRequest {
@@ -55,7 +56,8 @@ pub(super) fn certify_merge_execution_vs_persisted_commit_floor(suite: &'static 
                     &mut control_runtime,
                 );
                 txn.push_batch(batch_create("control-single"));
-                txn.commit().expect("control persisted single create")
+                txn.commit(&mut control_runtime)
+                    .expect("control persisted single create")
             };
             let control_elapsed_micros = control_started_at.elapsed().as_micros();
             let control_counters = control_runtime.performance_access().counters();

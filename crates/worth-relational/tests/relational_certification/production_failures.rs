@@ -75,12 +75,17 @@ fn missing_owner_binding_is_typed_and_cannot_fall_back_to_a_raw_id() {
     let mut owner = RelationalRuntimeApi::builder().build();
     let owner_identity = owner.main_branch_identity();
     let owner_options = owner
-        .transaction_options_for(&owner_identity)
+        .admit_branch_basis(&owner_identity)
         .expect("configured main branch must remain owner-admissible");
-    let mut transaction = owner.begin_transaction(owner_options);
+    let mut transaction = owner
+        .begin_branch_transaction(
+            &owner_options,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context");
     transaction.push_batch(WorkerIntentBatch::new("missing-owner-binding"));
     let commit = transaction
-        .commit()
+        .commit(&mut owner)
         .expect("the public no-op commit supplies a real empty correspondence");
     let error = SupplyChainSemanticHandles::bind(&program, &commit, commit.snapshot.clone())
         .expect_err("a real commit with no matching owner records cannot mint semantic handles");
@@ -95,10 +100,17 @@ fn foreign_snapshot_observation_is_typed_and_does_not_cross_runtime() {
     let foreign_snapshot = {
         let identity = foreign_runtime.main_branch_identity();
         let options = foreign_runtime
-            .transaction_options_for(&identity)
+            .admit_branch_basis(&identity)
             .expect("foreign runtime owner binding");
-        let transaction = foreign_runtime.begin_transaction(options);
-        let commit = transaction.commit().expect("foreign runtime no-op commit");
+        let transaction = foreign_runtime
+            .begin_branch_transaction(
+                &options,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context");
+        let commit = transaction
+            .commit(&mut foreign_runtime)
+            .expect("foreign runtime no-op commit");
         commit.snapshot.clone()
     };
     assert!(world
@@ -129,10 +141,17 @@ fn relation_binding_rejects_a_snapshot_from_another_runtime() {
     let foreign_snapshot = {
         let identity = foreign_runtime.main_branch_identity();
         let options = foreign_runtime
-            .transaction_options_for(&identity)
+            .admit_branch_basis(&identity)
             .expect("foreign runtime owner binding");
-        let transaction = foreign_runtime.begin_transaction(options);
-        let commit = transaction.commit().expect("foreign runtime no-op commit");
+        let transaction = foreign_runtime
+            .begin_branch_transaction(
+                &options,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context");
+        let commit = transaction
+            .commit(&mut foreign_runtime)
+            .expect("foreign runtime no-op commit");
         commit.snapshot.clone()
     };
     let error = SupplyChainSemanticHandles::bind(&program, &world.commit_result, foreign_snapshot)

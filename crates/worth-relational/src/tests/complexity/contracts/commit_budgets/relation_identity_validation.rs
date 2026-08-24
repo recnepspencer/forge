@@ -31,7 +31,7 @@ fn complexity_budget_relation_identity_validation_avoids_partition_scan() {
             },
         ))),
     );
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     let counters = runtime.performance_access().counters();
 
     assert!(matches!(

@@ -22,7 +22,7 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
             },
         ))),
     );
-    let created = txn.commit().unwrap();
+    let created = txn.commit(&mut runtime).unwrap();
     let entity = changed_entities(&created)[0];
     let created_patch = &created.patch()[0];
     let created_aspect_summary = created.aspect_summary().unwrap();
@@ -58,7 +58,7 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
                 }),
             )),
         );
-        txn.commit().unwrap()
+        txn.commit(&mut runtime).unwrap()
     };
     let updated_patch = &updated.patch()[0];
     let updated_aspect_summary = updated.aspect_summary().unwrap();
@@ -106,7 +106,7 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
                 },
             )),
         ));
-        txn.commit().unwrap()
+        txn.commit(&mut runtime).unwrap()
     };
     assert_eq!(
         idempotent_declared_update.patch()[0].authoritative_changed_aspects(),

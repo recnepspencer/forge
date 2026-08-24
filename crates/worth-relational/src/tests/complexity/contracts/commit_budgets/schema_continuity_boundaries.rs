@@ -14,18 +14,25 @@ fn complexity_budget_schema_transition_classification_is_changed_atom_bounded() 
     .build_registry();
 
     runtime.performance_access().reset_counters();
-    let mut txn = runtime.begin_transaction(
-        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
-            .with_schema_transition(
-                schema_transition_for_subscriber_impact(
-                    SchemaVersionId(2),
-                    crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged,
-                ),
-                Some(crate::schema::data::SchemaReconciliationPolicy::PreserveInformation),
-            ),
-    );
+    let mut txn = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+                .with_schema_transition(
+                    schema_transition_for_subscriber_impact(
+                        SchemaVersionId(2),
+                        crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged,
+                    ),
+                    Some(crate::schema::data::SchemaReconciliationPolicy::PreserveInformation),
+                );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(batch_create("b"));
-    txn.commit().unwrap();
+    txn.commit(&mut runtime).unwrap();
     let counters = runtime.performance_access().counters();
 
     assert_eq!(counters.schema_transition_atoms_inspected, 1);
@@ -48,18 +55,25 @@ fn complexity_budget_subscriber_resume_continuity_is_boundary_local() {
         )
     }
     .build_registry();
-    let mut txn = runtime.begin_transaction(
-        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
-            .with_schema_transition(
-                schema_transition_for_subscriber_impact(
-                    SchemaVersionId(2),
-                    crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged,
-                ),
-                Some(crate::schema::data::SchemaReconciliationPolicy::PreserveInformation),
-            ),
-    );
+    let mut txn = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+                .with_schema_transition(
+                    schema_transition_for_subscriber_impact(
+                        SchemaVersionId(2),
+                        crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged,
+                    ),
+                    Some(crate::schema::data::SchemaReconciliationPolicy::PreserveInformation),
+                );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(batch_create("b"));
-    txn.commit().unwrap();
+    txn.commit(&mut runtime).unwrap();
 
     runtime.performance_access().reset_counters();
     let _ = runtime
@@ -89,18 +103,25 @@ fn complexity_budget_milestone5_closeout_keeps_schema_cdc_and_recovery_boundary_
     .build_registry();
 
     runtime.performance_access().reset_counters();
-    let mut txn = runtime.begin_transaction(
-        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
-            .with_schema_transition(
-                schema_transition_for_subscriber_impact(
-                    SchemaVersionId(2),
-                    crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged,
-                ),
-                Some(crate::schema::data::SchemaReconciliationPolicy::PreserveInformation),
-            ),
-    );
+    let mut txn = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+                .with_schema_transition(
+                    schema_transition_for_subscriber_impact(
+                        SchemaVersionId(2),
+                        crate::schema::data::SchemaSubscriberImpact::ConsumableSurfaceChanged,
+                    ),
+                    Some(crate::schema::data::SchemaReconciliationPolicy::PreserveInformation),
+                );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(batch_create("after-boundary"));
-    let transitioned = txn.commit().unwrap();
+    let transitioned = txn.commit(&mut runtime).unwrap();
     let schema_counters = runtime.performance_access().counters();
 
     assert_eq!(schema_counters.schema_transition_atoms_inspected, 1);

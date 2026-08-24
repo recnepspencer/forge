@@ -171,7 +171,7 @@ fn replace_entity_through_authoritative_patch(
             }),
         )),
     );
-    if let Ok(outcome) = txn.commit() {
+    if let Ok(outcome) = txn.commit(&mut runtime) {
         if let Some(replacement) = crate::tests::support::changed_entities(&outcome).last() {
             entities[index] = *replacement;
         }
@@ -250,7 +250,7 @@ fn delete_relation(
             }),
         )),
     );
-    txn.commit().unwrap();
+    txn.commit(&mut runtime).unwrap();
     refresh_live_world(runtime, entities, relations);
 }
 
@@ -275,7 +275,7 @@ fn delete_entity(
             EntityMutationIntent::Delete(DeleteEntityIntent { entity_id: deleted }),
         )),
     );
-    if txn.commit().is_ok() {
+    if txn.commit(&mut runtime).is_ok() {
         entities.swap_remove(index);
         relations.retain(|relation| relation.source != deleted && relation.target != deleted);
         refresh_live_world(runtime, entities, relations);
@@ -325,7 +325,7 @@ fn merge_branch_into_main(
             scenario_branch_main(),
             vec![branch],
         );
-        if txn.commit().is_ok() {
+        if txn.commit(runtime).is_ok() {
             refresh_live_world(runtime, entities, relations);
         }
     }

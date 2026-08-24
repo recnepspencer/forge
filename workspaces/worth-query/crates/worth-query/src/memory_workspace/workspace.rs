@@ -141,16 +141,22 @@ impl WorthQueryMemoryWorkspace {
         let entity_id = super::runtime_identity::entity_id_from_identity(entity_identity.clone())?;
         let options = self
             .runtime
-            .transaction_options_for_main()
+            .admit_main_branch_basis()
             .expect("memory workspace main branch remains owner-admissible");
-        let mut txn = self.runtime.begin_transaction(options);
+        let mut txn = self
+            .runtime
+            .begin_branch_transaction(
+                &options,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context");
         txn.push_batch(
             WorkerIntentBatch::new("query-memory-delete").push(MutationIntent::Entity(
                 EntityMutationIntent::Delete(DeleteEntityIntent { entity_id }),
             )),
         );
         let result = txn
-            .commit()
+            .commit(&mut self.runtime)
             .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
         let mut receipt =
             self.receipt_from_commit(result, WorthQueryMutationKind::Deleted, Vec::new());

@@ -157,5 +157,5 @@ fn create_relation_of_kind(
             }),
         )),
     );
-    transaction.commit().unwrap();
+    transaction.commit(&mut runtime).unwrap();
 }

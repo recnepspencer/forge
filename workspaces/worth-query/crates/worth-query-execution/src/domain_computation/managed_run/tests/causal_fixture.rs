@@ -224,11 +224,17 @@ fn relational_runtime() -> RelationalRuntime {
 fn create_fixture_entity(
     runtime: &mut RelationalRuntime,
 ) -> worth_relational::facade::transactions::CommitResult {
-    let mut transaction = runtime.begin_transaction(
+    let mut transaction = {
+        let transaction_validation_input = runtime
+            .admit_main_branch_basis()
+            .expect("main branch binding");
         runtime
-            .transaction_options_for_main()
-            .expect("main branch binding"),
-    );
+            .begin_branch_transaction(
+                &transaction_validation_input,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     transaction.push_batch(WorkerIntentBatch::new("managed-run-fixture").push(
         MutationIntent::Create(CreateIntent::Entity(EntitySpec {
             partition_id: PartitionId::main(),
@@ -238,7 +244,7 @@ fn create_fixture_entity(
         })),
     ));
     transaction
-        .commit()
+        .commit(runtime)
         .expect("managed-run fixture entity should commit")
 }
 

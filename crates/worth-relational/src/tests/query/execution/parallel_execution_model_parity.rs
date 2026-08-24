@@ -62,7 +62,7 @@ fn planned_query_execution_parallelized_traversal_matches_serial_reference() {
     }
 
     let mut serial_runtime =
-        build_runtime(crate::facade::runtime::RelationalExecutionModel::SerialAuthority);
+        build_runtime(crate::facade::runtime::RelationalExecutionModel::SingleLaneExecution);
     let (serial_snapshot, serial_packet) = build_fixture(&mut serial_runtime);
     let serial = serial_runtime
         .read_truth()
@@ -75,7 +75,7 @@ fn planned_query_execution_parallelized_traversal_matches_serial_reference() {
         .expect("serial execution");
 
     let mut staged_runtime =
-        build_runtime(crate::facade::runtime::RelationalExecutionModel::StagedParallelPreparation);
+        build_runtime(crate::facade::runtime::RelationalExecutionModel::ParallelPreparation);
     let (staged_snapshot, staged_packet) = build_fixture(&mut staged_runtime);
     let staged = staged_runtime
         .read_truth()
@@ -171,7 +171,7 @@ fn planned_query_execution_reports_workload_derived_scratch_reuse_consistently_a
     }
 
     let mut serial_runtime =
-        build_runtime(crate::facade::runtime::RelationalExecutionModel::SerialAuthority);
+        build_runtime(crate::facade::runtime::RelationalExecutionModel::SingleLaneExecution);
     let (serial_snapshot, serial_packet) = build_fixture(&mut serial_runtime);
     serial_runtime.performance_access().reset_counters();
     let serial = serial_runtime
@@ -186,7 +186,7 @@ fn planned_query_execution_reports_workload_derived_scratch_reuse_consistently_a
     let serial_counters = serial_runtime.performance_access().counters();
 
     let mut staged_runtime =
-        build_runtime(crate::facade::runtime::RelationalExecutionModel::StagedParallelPreparation);
+        build_runtime(crate::facade::runtime::RelationalExecutionModel::ParallelPreparation);
     let (staged_snapshot, staged_packet) = build_fixture(&mut staged_runtime);
     staged_runtime.performance_access().reset_counters();
     let staged = staged_runtime
@@ -256,7 +256,7 @@ fn planned_query_execution_parallelized_overlapping_seed_traversal_dedupes_and_m
     }
 
     let mut serial_runtime =
-        build_runtime(crate::facade::runtime::RelationalExecutionModel::SerialAuthority);
+        build_runtime(crate::facade::runtime::RelationalExecutionModel::SingleLaneExecution);
     let (serial_snapshot, serial_packet) = build_fixture(&mut serial_runtime);
     let serial = serial_runtime
         .read_truth()
@@ -269,7 +269,7 @@ fn planned_query_execution_parallelized_overlapping_seed_traversal_dedupes_and_m
         .expect("serial outcome");
 
     let mut staged_runtime =
-        build_runtime(crate::facade::runtime::RelationalExecutionModel::StagedParallelPreparation);
+        build_runtime(crate::facade::runtime::RelationalExecutionModel::ParallelPreparation);
     let (staged_snapshot, staged_packet) = build_fixture(&mut staged_runtime);
     let staged = staged_runtime
         .read_truth()

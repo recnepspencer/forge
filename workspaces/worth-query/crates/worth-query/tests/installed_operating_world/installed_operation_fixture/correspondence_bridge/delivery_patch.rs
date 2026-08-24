@@ -58,11 +58,17 @@ fn conditional_runtime_bridge_with_change_sequence(
         dependency.contract().key().clone(),
         CanonicalFieldPath::single(field.clone()),
     );
-    let mut create = relational.begin_transaction(
+    let mut create = {
+        let transaction_validation_input = relational
+            .admit_main_branch_basis()
+            .expect("main branch binding");
         relational
-            .transaction_options_for_main()
-            .expect("main branch binding"),
-    );
+            .begin_branch_transaction(
+                &transaction_validation_input,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     create.push_batch(WorkerIntentBatch::new("create-delivery-entity").push(
         MutationIntent::Create(CreateIntent::Entity(EntitySpec {
             partition_id: PartitionId::main(),
@@ -71,7 +77,9 @@ fn conditional_runtime_bridge_with_change_sequence(
             fields: AspectFieldPatch::new(BTreeMap::from([(locator.clone(), before)])),
         })),
     ));
-    let created = create.commit().expect("delivery entity should commit");
+    let created = create
+        .commit(&mut relational)
+        .expect("delivery entity should commit");
     let entity = created
         .changed_records
         .iter()
@@ -86,11 +94,17 @@ fn conditional_runtime_bridge_with_change_sequence(
     let (_, created_basis) = relational
         .observe_branch(&branch_identity)
         .expect("created owner-admitted branch basis");
-    let mut update = relational.begin_transaction(
+    let mut update = {
+        let transaction_validation_input = relational
+            .admit_main_branch_basis()
+            .expect("main branch binding");
         relational
-            .transaction_options_for_main()
-            .expect("main branch binding"),
-    );
+            .begin_branch_transaction(
+                &transaction_validation_input,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     update.push_batch(WorkerIntentBatch::new("update-delivery-entity").push(
         MutationIntent::Entity(EntityMutationIntent::UpdateFields(
             UpdateEntityFieldsIntent {
@@ -99,18 +113,26 @@ fn conditional_runtime_bridge_with_change_sequence(
             },
         )),
     ));
-    let updated = update.commit().expect("delivery update should commit");
+    let updated = update
+        .commit(&mut relational)
+        .expect("delivery update should commit");
     let (_, updated_basis) = relational
         .observe_branch(&branch_identity)
         .expect("updated owner-admitted branch basis");
     let mut requests = vec![request(&updated)];
     let mut retained_bases = vec![created_basis, updated_basis];
     if repeat_after_value {
-        let mut repeated = relational.begin_transaction(
+        let mut repeated = {
+            let transaction_validation_input = relational
+                .admit_main_branch_basis()
+                .expect("main branch binding");
             relational
-                .transaction_options_for_main()
-                .expect("main branch binding"),
-        );
+                .begin_branch_transaction(
+                    &transaction_validation_input,
+                    worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                )
+                .expect("owner-admitted transaction context")
+        };
         repeated.push_batch(WorkerIntentBatch::new("repeat-delivery-value").push(
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {
@@ -123,7 +145,7 @@ fn conditional_runtime_bridge_with_change_sequence(
             )),
         ));
         let committed = repeated
-            .commit()
+            .commit(&mut relational)
             .expect("repeated delivery value should retain a distinct authoritative commit");
         requests.push(request(&committed));
         let (_, repeated_basis) = relational

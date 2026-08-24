@@ -64,7 +64,7 @@ fn cdc_certification_savepoint_abandoned_work_never_leaks_into_stream_truth() {
             }),
         )),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
 
     assert!(rollback.summary().has_discarded_entity_creation());
 

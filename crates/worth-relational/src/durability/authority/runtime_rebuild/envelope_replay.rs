@@ -20,7 +20,7 @@ use super::root_inventory::RecoveredRootInventory;
 
 mod owner_bindings;
 
-use owner_bindings::{owner_merge_parent_bindings, owner_options_for_branch};
+use owner_bindings::{owner_merge_parent_bases, owner_options_for_branch};
 
 pub(super) fn replay_durable_envelope(
     restored: &mut RelationalRuntime,
@@ -208,19 +208,19 @@ fn replay_envelope_effect(
         // advances the branch cell. Artifact recovery below restores the
         // immutable catalog/index projections only; its explicit
         // currentness flag is false so publication owns the sole advance.
-        recovered_branch_binding(restored, &envelope.branch_context)?;
+        recovered_branch_basis(restored, &envelope.branch_context)?;
         apply_authoritative_commit_artifacts(restored, envelope, false, false)?;
         // Re-issue the owner binding after sidecar admission so publication
         // validates the exact pre-publication cell and performs the one
         // currentness transition for this commit.
-        let branch_binding = recovered_branch_binding(restored, &envelope.branch_context)?;
+        let branch_basis = recovered_branch_basis(restored, &envelope.branch_context)?;
         let published_partition_delta = restored.storage_authority().affirm_no_partition_changes();
         restored
             .mvcc_publication_authority()
             .publish_commit(
                 envelope.commit.commit_id,
                 envelope.commit.clone(),
-                &branch_binding,
+                &branch_basis,
                 published_partition_delta,
                 envelope.patch.position,
                 Arc::new(envelope.clone()),
@@ -236,10 +236,10 @@ fn replay_envelope_effect(
     Ok(())
 }
 
-fn recovered_branch_binding(
+fn recovered_branch_basis(
     restored: &RelationalRuntime,
     branch_id: &crate::history::data::BranchId,
-) -> Result<crate::branch::RelationalLegacyBranchBinding, DurabilityError> {
+) -> Result<crate::branch::AdmittedRelationalBranchBasis, DurabilityError> {
     let identity = restored.branch_identity(branch_id).map_err(|denial| {
         DurabilityError::new(
             RecoveryFailureClass::CorruptCheckpoint,
@@ -247,7 +247,7 @@ fn recovered_branch_binding(
         )
     })?;
     restored
-        .legacy_branch_binding_for_identity(&identity)
+        .admitted_branch_basis_for_identity(&identity)
         .map_err(|denial| {
             DurabilityError::new(
                 RecoveryFailureClass::CorruptCheckpoint,
@@ -280,19 +280,26 @@ fn replay_ordinary_commit(
 ) -> Result<(), DurabilityError> {
     let schema_basis = RecoveredSchemaBasis::admit(restored, envelope)?;
     let mut options = owner_options_for_branch(restored, &envelope.branch_context)?;
-    options = options.with_merge_parent_bindings(owner_merge_parent_bindings(
+    options = options.with_merge_parent_bases(owner_merge_parent_bases(
         restored,
         &envelope.merge_parent_branches,
     )?);
     let options = schema_basis.apply(options);
-    let mut txn = restored.begin_transaction(options);
+    let mut txn = restored
+        .begin_branch_transaction_with_owner_inputs(options)
+        .map_err(|error| {
+            DurabilityError::new(
+                RecoveryFailureClass::ReplayFailure,
+                format!("failed to admit durable transaction basis: {error:?}"),
+            )
+        })?;
     txn.push_batch(WorkerIntentBatch {
         name: format!("recovery-commit-{}", envelope.commit.commit_id.0),
         partition_key: None,
         worker_local_only: true,
         intents: envelope.merged_plan.merged_intents.clone().to_vec(),
     });
-    let outcome = txn.commit().map_err(|error| {
+    let outcome = restored.commit_branch_transaction(txn).map_err(|error| {
         DurabilityError::new(
             RecoveryFailureClass::ReplayFailure,
             format!(
@@ -311,7 +318,7 @@ fn replay_merge_commit(
     let merge_plan = require_merge_execution_authority(envelope)?;
     let schema_basis = RecoveredSchemaBasis::admit(restored, envelope)?;
     let mut options = owner_options_for_branch(restored, &envelope.branch_context)?;
-    options = options.with_merge_parent_bindings(owner_merge_parent_bindings(
+    options = options.with_merge_parent_bases(owner_merge_parent_bases(
         restored,
         &envelope.merge_parent_branches,
     )?);

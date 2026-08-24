@@ -4,14 +4,14 @@ pub use crate::branch::{
     RelationalBranchBasisDenial, RelationalBranchBasisDescriptor,
     RelationalBranchBasisMismatchAxis, RelationalBranchBasisPosture, RelationalBranchCellDenial,
     RelationalBranchComparisonBasis, RelationalBranchForkBasis, RelationalBranchIdentity,
-    RelationalBranchIdentityDenial, RelationalBranchObservationAuthority,
+    RelationalBranchIdentityDenial, RelationalBranchMutationAuthority,
+    RelationalBranchMutationAuthorityMarker, RelationalBranchObservationAuthority,
     RelationalBranchObservationAuthorityMarker, RelationalBranchObservationConstructionDenial,
     RelationalBranchReferenceObservation, RelationalBranchReferenceState,
     RelationalBranchRootDescriptor, RelationalBranchTarget, RelationalBranchVersion,
     RelationalForkDenial, RelationalForkOutcome, RelationalForkSourceAuthority,
     RelationalForkSourceAuthorityMarker, RelationalForkSourceDescriptor,
-    RelationalLegacyBranchBindingDenial, ResolvedRelationalBasisDescriptor,
-    RELATIONAL_BRANCH_BASIS_DESCRIPTOR_VERSION,
+    ResolvedRelationalBasisDescriptor, RELATIONAL_BRANCH_BASIS_DESCRIPTOR_VERSION,
 };
 pub use crate::history::retention::{
     RelationalBasisRetentionReason, RelationalComponentBasisRetentionLease,

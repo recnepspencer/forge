@@ -24,9 +24,9 @@ impl RelationalRuntime {
     }
 
     pub fn commit_strategies_authority(
-        &mut self,
-    ) -> crate::commit_strategies::facade::CommitStrategiesAuthorityFacade<'_> {
-        crate::commit_strategies::facade::CommitStrategiesAuthorityFacade::new(self)
+        &self,
+    ) -> crate::commit_strategies::facade::CommitStrategiesAuthorityFacade {
+        crate::commit_strategies::facade::CommitStrategiesAuthorityFacade::new()
     }
 
     pub fn phase4_reference_cost_counters(

@@ -7,7 +7,7 @@ use super::super::visibility::{
     historical_created_at, historical_lifecycle, historical_retired_at, lifecycle_storage_visible,
     relation_visible_in_partition_at_version, visible_relation_metadata,
 };
-pub(in super::super) fn materialize_current_authoritative_relation_record(
+pub(crate) fn materialize_current_authoritative_relation_record(
     registry: &RelationalSchemaRegistry,
     partition: &PartitionState,
     partition_id: crate::identity::data::PartitionId,
@@ -40,7 +40,7 @@ pub(in super::super) fn materialize_current_authoritative_relation_record(
     })
 }
 
-pub(in super::super) fn materialize_authoritative_relation_record_at_version(
+pub(crate) fn materialize_authoritative_relation_record_at_version(
     registry: &RelationalSchemaRegistry,
     partition: &PartitionState,
     partition_id: crate::identity::data::PartitionId,

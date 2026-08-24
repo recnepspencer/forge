@@ -56,7 +56,7 @@ pub(crate) fn correct_trade_with_replacement(
             )))
             .into(),
     );
-    txn.commit().unwrap()
+    txn.commit(&mut world.runtime).unwrap()
 }
 
 pub(crate) fn correct_seeded_trade_candidate(

@@ -141,6 +141,7 @@ fn admitted_chunk_count_has_only_the_declared_linear_step_cost() {
 }
 
 #[test]
+#[cfg(feature = "allocation-probes")]
 fn one_provider_step_allocation_count_is_width_invariant() {
     let output = std::process::Command::new(std::env::current_exe().unwrap())
         .arg("isolated_provider_step_allocation_slope_probe")
@@ -156,6 +157,7 @@ fn one_provider_step_allocation_count_is_width_invariant() {
 }
 
 #[test]
+#[cfg(feature = "allocation-probes")]
 fn isolated_provider_step_allocation_slope_probe() {
     if std::env::var_os("WORTH_QUERY_STEP_ALLOCATION_PROBE").is_none() {
         return;
@@ -197,6 +199,7 @@ fn execute_target_with_chunks(
     evidence
 }
 
+#[cfg(feature = "allocation-probes")]
 fn measured_target(unrelated_width: usize) -> stats_alloc::Stats {
     let (active, unrelated, _) = prepared_target(unrelated_width, 1);
     let region = stats_alloc::Region::new(&stats_alloc::INSTRUMENTED_SYSTEM);

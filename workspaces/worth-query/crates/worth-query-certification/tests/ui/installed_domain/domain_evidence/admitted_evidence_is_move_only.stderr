@@ -1,5 +1,0 @@
-error[E0599]: no method named `clone` found for struct `WorthQueryAdmittedDomainEvidence` in the current scope
- --> tests/ui/installed_domain/domain_evidence/admitted_evidence_is_move_only.rs:4:26
-  |
-4 |     let _copy = evidence.clone();
-  |                          ^^^^^ method not found in `WorthQueryAdmittedDomainEvidence`

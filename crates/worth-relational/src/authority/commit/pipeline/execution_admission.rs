@@ -1,15 +1,16 @@
 use super::authority_context::AuthoritativeCommitContext;
 use super::bulk_mutation_telemetry::record_bulk_mutation_telemetry;
 use super::rejection::stale_strategy_validation_basis;
+use crate::mvcc::RelationalTransactionValidationInput;
 use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{
-    CommitLog, CommitPhaseTiming, MergedCommitPlan, TransactionCommitError, TransactionId,
-    TransactionOptions,
+    CommitConflict, CommitLog, CommitPhaseTiming, ConflictClass, MergedCommitPlan,
+    TransactionCommitError, TransactionId,
 };
 
 pub(super) struct AdmittedCommitExecution {
     transaction_id: TransactionId,
-    options: TransactionOptions,
+    validation_input: RelationalTransactionValidationInput,
     selected_branch_state: crate::branch::SelectedRelationalBranchState,
     phase_timing: CommitPhaseTiming,
     commit_log: CommitLog,
@@ -18,14 +19,17 @@ pub(super) struct AdmittedCommitExecution {
     merge_execution_accounting: Option<super::authority_context::MergeExecutionAccounting>,
     merge_execution_diagnostics_plan: Option<crate::merge::data::MergeExecutionDiagnosticsPlan>,
     prevalidated_commit_boundary: Option<crate::validation::engine::InvariantExecutionResult>,
+    prevalidated_mutation_sensitive: Option<crate::validation::engine::InvariantExecutionResult>,
+    prevalidated_snapshot_publication: Option<crate::validation::engine::InvariantExecutionResult>,
     strategy_commit_artifacts: Option<crate::commit_strategies::data::StrategyCommitArtifactBundle>,
     diagnostics_start: usize,
     complexity_before: crate::performance::data::RuntimeComplexityCounters,
+    prior_complexity_delta: crate::performance::data::RuntimeComplexityCounters,
 }
 
 pub(super) struct AdmittedCommitPhaseView<'a> {
     transaction_id: TransactionId,
-    options: &'a TransactionOptions,
+    validation_input: &'a RelationalTransactionValidationInput,
     authority_input: &'a super::authority_context::CommitAuthorityInput,
     commit_log: &'a mut CommitLog,
     phase_timing: &'a mut CommitPhaseTiming,
@@ -36,23 +40,21 @@ impl<'a> AdmittedCommitPhaseView<'a> {
         self,
     ) -> (
         TransactionId,
-        &'a TransactionOptions,
+        &'a RelationalTransactionValidationInput,
         &'a MergedCommitPlan,
         Option<&'a crate::transactions::data::MergeCommitMutationPlan>,
         &'a mut CommitLog,
         &'a mut CommitPhaseTiming,
     ) {
         let (merged_plan, merge_history_plan) = match self.authority_input {
-            super::authority_context::CommitAuthorityInput::Lowered(plan) => {
-                (plan.merged_plan(), None)
-            }
+            super::authority_context::CommitAuthorityInput::Mutation(plan) => (plan, None),
             super::authority_context::CommitAuthorityInput::Merge(plan) => {
                 (&plan.merged_plan, Some(plan))
             }
         };
         (
             self.transaction_id,
-            self.options,
+            self.validation_input,
             merged_plan,
             merge_history_plan,
             self.commit_log,
@@ -68,7 +70,7 @@ impl AdmittedCommitExecution {
 
     pub(super) fn merged_plan(&self) -> &MergedCommitPlan {
         match &self.authority_input {
-            super::authority_context::CommitAuthorityInput::Lowered(plan) => plan.merged_plan(),
+            super::authority_context::CommitAuthorityInput::Mutation(plan) => plan,
             super::authority_context::CommitAuthorityInput::Merge(plan) => &plan.merged_plan,
         }
     }
@@ -81,13 +83,13 @@ impl AdmittedCommitExecution {
         &self,
     ) -> Option<&crate::transactions::data::MergeCommitMutationPlan> {
         match &self.authority_input {
-            super::authority_context::CommitAuthorityInput::Lowered(_) => None,
+            super::authority_context::CommitAuthorityInput::Mutation(_) => None,
             super::authority_context::CommitAuthorityInput::Merge(plan) => Some(plan),
         }
     }
 
-    pub(super) fn options(&self) -> &TransactionOptions {
-        &self.options
+    pub(super) fn validation_input(&self) -> &RelationalTransactionValidationInput {
+        &self.validation_input
     }
 
     pub(super) fn take_prepared_scope(
@@ -102,6 +104,18 @@ impl AdmittedCommitExecution {
         self.prevalidated_commit_boundary.take()
     }
 
+    pub(super) fn take_prevalidated_mutation_sensitive(
+        &mut self,
+    ) -> Option<crate::validation::engine::InvariantExecutionResult> {
+        self.prevalidated_mutation_sensitive.take()
+    }
+
+    pub(super) fn take_prevalidated_snapshot_publication(
+        &mut self,
+    ) -> Option<crate::validation::engine::InvariantExecutionResult> {
+        self.prevalidated_snapshot_publication.take()
+    }
+
     pub(super) fn commit_phase_state(&mut self) -> (&mut CommitLog, &mut CommitPhaseTiming) {
         (&mut self.commit_log, &mut self.phase_timing)
     }
@@ -109,7 +123,7 @@ impl AdmittedCommitExecution {
     pub(super) fn phase_view(&mut self) -> AdmittedCommitPhaseView<'_> {
         AdmittedCommitPhaseView {
             transaction_id: self.transaction_id,
-            options: &self.options,
+            validation_input: &self.validation_input,
             authority_input: &self.authority_input,
             commit_log: &mut self.commit_log,
             phase_timing: &mut self.phase_timing,
@@ -147,6 +161,7 @@ impl AdmittedCommitExecution {
         Option<crate::commit_strategies::data::StrategyCommitArtifactBundle>,
         usize,
         crate::performance::data::RuntimeComplexityCounters,
+        crate::performance::data::RuntimeComplexityCounters,
     ) {
         (
             self.transaction_id,
@@ -155,6 +170,7 @@ impl AdmittedCommitExecution {
             self.strategy_commit_artifacts,
             self.diagnostics_start,
             self.complexity_before,
+            self.prior_complexity_delta,
         )
     }
 }
@@ -164,19 +180,14 @@ pub(super) fn admit_commit_execution(
     context: AuthoritativeCommitContext,
 ) -> Result<AdmittedCommitExecution, TransactionCommitError> {
     let diagnostics_start = runtime.publication().diagnostic_access().artifact_count();
-    let complexity_before = context.complexity_baseline.clone().unwrap_or_else(|| {
-        runtime
-            .services
-            .instrumentation
-            .complexity_counters
-            .lock()
-            .expect("complexity counter lock poisoned")
-            .clone()
-    });
+    let complexity_before = context
+        .complexity_baseline
+        .clone()
+        .unwrap_or_else(|| runtime.performance_access().complexity_counters_snapshot());
     enforce_validated_strategy_basis(
         runtime,
         context.transaction_id,
-        &context.options,
+        &context.validation_input,
         context.validated_against_commit_id,
         context.validated_against_version_id,
         context.validated_against_branch_version,
@@ -189,32 +200,26 @@ pub(super) fn admit_commit_execution(
         .prepared_scope
         .as_ref()
         .map(|scope| scope.selected_branch_state.clone())
-        .or_else(|| match &context.authority_input {
-            super::authority_context::CommitAuthorityInput::Lowered(plan) => {
-                plan.selected_branch_state().cloned()
-            }
-            super::authority_context::CommitAuthorityInput::Merge(_) => None,
-        })
         .map(Ok)
         .unwrap_or_else(|| {
             runtime
-                .selected_branch_state(context.options.branch_binding())
+                .selected_branch_state(context.validation_input.basis())
                 .map_err(TransactionCommitError::preparation)
         })?;
     if let Some(telemetry) = context.bulk_mutation_telemetry.as_ref() {
         record_bulk_mutation_telemetry(runtime, telemetry);
     }
     if matches!(
-        context.options.branch_binding().observation().target(),
+        context.validation_input.basis().reference().target(),
         worth_foundational::FoundationalBranchTarget::Basis(_)
     ) {
         runtime
             .history
-            .record_retained_history_head_lookup(context.options.target_branch());
+            .record_retained_history_head_lookup(context.validation_input.target_branch());
     }
     Ok(AdmittedCommitExecution {
         transaction_id: context.transaction_id,
-        options: context.options,
+        validation_input: context.validation_input,
         selected_branch_state,
         phase_timing: context.phase_timing,
         commit_log: CommitLog::new(),
@@ -223,32 +228,41 @@ pub(super) fn admit_commit_execution(
         merge_execution_accounting: context.merge_execution_accounting,
         merge_execution_diagnostics_plan: context.merge_execution_diagnostics_plan,
         prevalidated_commit_boundary: context.prevalidated_commit_boundary,
+        prevalidated_mutation_sensitive: context.prevalidated_mutation_sensitive,
+        prevalidated_snapshot_publication: context.prevalidated_snapshot_publication,
         strategy_commit_artifacts: context.strategy_commit_artifacts,
         diagnostics_start,
         complexity_before,
+        prior_complexity_delta: context.prior_complexity_delta,
     })
 }
 
 fn enforce_validated_strategy_basis(
     runtime: &RelationalRuntime,
     transaction_id: TransactionId,
-    options: &crate::transactions::data::TransactionOptions,
+    validation_input: &crate::mvcc::RelationalTransactionValidationInput,
     validated_against_commit_id: Option<crate::history::data::CommitId>,
     validated_against_version_id: Option<crate::identity::data::VersionId>,
     validated_against_branch_version: Option<crate::branch::RelationalBranchVersion>,
-    proposal_identity: Option<&crate::transactions::RelationalMutationProposalIdentity>,
+    proposal_identity: Option<&crate::mvcc::RelationalMutationProposalIdentity>,
 ) -> Result<(), TransactionCommitError> {
-    let branch = options.target_branch().clone();
-    if options.branch_binding().identity().runtime_instance_id() != runtime.runtime_instance_id() {
-        return Err(stale_strategy_validation_basis(
-            "transaction branch binding belongs to another Relational runtime",
-        ));
+    let branch = validation_input.target_branch().clone();
+    if validation_input.basis().identity().runtime_instance_id() != runtime.runtime_instance_id() {
+        return Err(TransactionCommitError::conflict(CommitConflict::new(
+            ConflictClass::ForeignRuntime {
+                expected_runtime_instance_id: runtime.runtime_instance_id(),
+                actual_runtime_instance_id: validation_input
+                    .basis()
+                    .identity()
+                    .runtime_instance_id(),
+            },
+        )));
     }
     if let Some(identity) = proposal_identity {
         if identity.runtime_instance_id() != runtime.runtime_instance_id()
             || identity.transaction_id() != transaction_id
-            || identity.branch_observation() != options.branch_binding().observation()
-            || identity.branch_version() != options.branch_binding().truth_version()
+            || identity.branch_observation() != validation_input.basis().reference()
+            || identity.branch_version() != validation_input.basis().truth_version()
         {
             return Err(stale_strategy_validation_basis(
                 "proposal identity does not match the owner-issued transaction basis",
@@ -260,20 +274,20 @@ fn enforce_validated_strategy_basis(
             ));
         }
     }
-    if !runtime.legacy_branch_binding_is_current(options.branch_binding()) {
+    if !runtime.admitted_branch_basis_is_current(validation_input.basis()) {
         return Err(stale_strategy_validation_basis(
             "transaction branch binding is no longer current",
         ));
     }
     if let Some(validated_branch_version) = validated_against_branch_version {
-        let binding = options.branch_binding();
+        let binding = validation_input.basis();
         let Some(cell) = runtime.history.branch_cell(&branch) else {
             return Err(stale_strategy_validation_basis(
                 "validated transaction branch is no longer registered",
             ));
         };
         if cell.identity() != binding.identity()
-            || cell.observation() != binding.observation()
+            || cell.observation() != binding.reference()
             || cell.truth_version() != validated_branch_version
         {
             return Err(stale_strategy_validation_basis(
@@ -281,8 +295,8 @@ fn enforce_validated_strategy_basis(
             ));
         }
     }
-    let current_commit = runtime.legacy_branch_binding_commit(options.branch_binding());
-    let current_version = runtime.legacy_branch_binding_version(options.branch_binding());
+    let current_commit = runtime.admitted_branch_basis_commit(validation_input.basis());
+    let current_version = runtime.admitted_branch_basis_version(validation_input.basis());
     validate_version_basis(current_version, validated_against_version_id)?;
     if validated_against_commit_id.is_some()
         && current_commit.as_ref().map(|commit| commit.commit_id()) != validated_against_commit_id

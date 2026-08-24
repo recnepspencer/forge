@@ -28,7 +28,7 @@ fn update_entity_fields_canonical_delta_uses_authoritative_patch_evidence() {
             }),
         )),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
     let patch_record = &outcome.patch()[0];
     let current_read = runtime
         .read_truth()

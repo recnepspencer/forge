@@ -345,7 +345,7 @@ fn execution_result_with_proof_boundary(
             InvariantExecutionDisposition::Executed,
             None,
             false,
-            RelationalExecutionModel::SerialAuthority,
+            RelationalExecutionModel::SingleLaneExecution,
             None,
             Vec::new(),
             Some(InvariantProofBoundarySummary::new(

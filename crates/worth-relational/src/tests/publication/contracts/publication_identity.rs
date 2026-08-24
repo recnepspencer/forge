@@ -11,7 +11,7 @@ fn publication_rejects_envelope_identity_drift_before_any_effect() {
         .branch_identity(&BranchId("main".to_owned()))
         .expect("main identity");
     let binding = runtime
-        .legacy_branch_binding_for_identity(&identity)
+        .admitted_branch_basis_for_identity(&identity)
         .expect("main binding");
     let before_cells = runtime.history.branch_cells_snapshot();
     let before_catalog = runtime.history.commit_catalog.len();
@@ -46,7 +46,7 @@ fn root_capture_sabotage_leaves_storage_index_history_and_reference_unchanged() 
         .branch_identity(&BranchId("main".to_owned()))
         .expect("main identity");
     let binding = runtime
-        .legacy_branch_binding_for_identity(&identity)
+        .admitted_branch_basis_for_identity(&identity)
         .expect("main binding");
     let commit_id = runtime.history.preview_next_commit_id();
     let version_id = runtime.history.preview_next_version_id();
@@ -173,7 +173,7 @@ fn production_commit_root_capture_sabotage_precedes_durable_append_and_all_effec
     let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
     transaction.push_batch(batch_create("root-capture-production-sabotage"));
     let error = transaction
-        .commit()
+        .commit(&mut runtime)
         .expect_err("the test-only root court must reject the real commit path");
     assert!(format!("{error:?}").contains("UnresolvedContentSymbol"));
 

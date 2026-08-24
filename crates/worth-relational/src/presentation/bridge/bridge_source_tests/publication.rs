@@ -92,7 +92,7 @@ fn partition_source_filters_the_real_commit_and_retains_exact_partition_provenan
             .push(entity(PartitionId::main(), "main"))
             .push(entity(PartitionId::new(7), "secondary")),
     );
-    let committed = transaction.commit().unwrap();
+    let committed = transaction.commit(&mut runtime).unwrap();
     let secondary = committed
         .changed_records
         .iter()
@@ -263,7 +263,8 @@ fn runtime_bridge_replays_historical_commit_after_newer_publication_arrives() {
                 ),
             )),
         );
-        txn.commit().expect("second commit should publish");
+        txn.commit(&mut runtime)
+            .expect("second commit should publish");
     }
     let historical_commit_identity = RelationalCommittedPatchRequest::new(
         TruthCommitIdentity::from_relational_commit_id(historical_commit_id.0),

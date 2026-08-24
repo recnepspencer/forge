@@ -34,7 +34,9 @@ fn committed_create_references_resolve_their_own_distinct_persisted_meanings() {
                 fields: name_field_patch("second-persisted-meaning"),
             }))),
     );
-    let committed = transaction.commit().expect("both creates commit");
+    let committed = transaction
+        .commit(&mut runtime)
+        .expect("both creates commit");
     let first_id = committed
         .created_entity(&first)
         .expect("first create reference resolves");

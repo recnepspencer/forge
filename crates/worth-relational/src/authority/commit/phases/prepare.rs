@@ -8,10 +8,9 @@ use crate::storage::overlay::PartitionCloneMode;
 use crate::storage::overlay::WorkingState;
 use crate::transactions::data::CommitPhaseTiming;
 use crate::transactions::data::{
-    CommitConflict, CommitTopology, ConflictClass, CreateIntent, EntityMutationIntent,
-    MergedCommitPlan, MutationIntent, TransactionCommitError,
+    CommitTopology, CreateIntent, EntityMutationIntent, MergedCommitPlan, MutationIntent,
+    TransactionCommitError,
 };
-use crate::transactions::RelationalTransaction;
 use std::collections::{BTreeMap, BTreeSet};
 use std::time::Instant;
 
@@ -21,6 +20,8 @@ pub(crate) struct PreparedWorkingStateScope {
     pub(crate) structural_summary: CommitStructuralSummary,
     pub(crate) working_state: WorkingState,
     pub(crate) phase_timing: CommitPhaseTiming,
+    pub(crate) footprint: crate::mvcc::RelationalTransactionFootprint,
+    pub(crate) schema_authority: std::sync::Arc<crate::branch::RelationalBranchRootSchemaAuthority>,
 }
 
 const AOSOA_ENTITY_CHUNK_WIDTH_SMALL: usize = 128;
@@ -54,6 +55,7 @@ fn select_entity_working_set_layout(
 fn sparse_entity_slots_for_plan(
     clone_mode: PartitionCloneMode,
     merged_plan: &MergedCommitPlan,
+    footprint: Option<&crate::mvcc::RelationalTransactionFootprint>,
 ) -> Option<BTreeMap<crate::identity::data::PartitionId, BTreeSet<usize>>> {
     if !matches!(
         clone_mode,
@@ -77,6 +79,20 @@ fn sparse_entity_slots_for_plan(
         }
     }
 
+    if let Some(footprint) = footprint {
+        for read in footprint.reads() {
+            if let crate::mvcc::RelationalTransactionReadLocus::Existing(
+                crate::transactions::data::RecordRef::Entity(entity),
+            ) = read
+            {
+                slots_by_partition
+                    .entry(entity.partition_id)
+                    .or_insert_with(BTreeSet::new)
+                    .insert(entity.slot_index());
+            }
+        }
+    }
+
     let total_slots: usize = slots_by_partition.values().map(BTreeSet::len).sum();
     (total_slots > 0
         && total_slots <= AOSOA_SPARSE_ENTITY_SLOT_LIMIT
@@ -87,6 +103,7 @@ fn sparse_entity_slots_for_plan(
 fn sparse_relation_overlay_partitions_for_plan(
     clone_mode: PartitionCloneMode,
     merged_plan: &MergedCommitPlan,
+    footprint: Option<&crate::mvcc::RelationalTransactionFootprint>,
 ) -> Option<BTreeSet<crate::identity::data::PartitionId>> {
     if !matches!(clone_mode, PartitionCloneMode::GraphSparseEntities) {
         return None;
@@ -111,53 +128,55 @@ fn sparse_relation_overlay_partitions_for_plan(
         }
     }
 
+    if let Some(footprint) = footprint {
+        for read in footprint.reads() {
+            if let crate::mvcc::RelationalTransactionReadLocus::Existing(
+                crate::transactions::data::RecordRef::Relation(relation),
+            ) = read
+            {
+                partitions.insert(relation.partition_id);
+            }
+        }
+    }
+
     saw_relation_create.then_some(partitions)
 }
 
 pub(crate) fn prepare_working_state_scope(
-    transaction: &mut RelationalTransaction<'_>,
+    runtime: &mut RelationalRuntime,
+    transaction: &mut crate::mvcc::BranchBoundRelationalTransaction,
 ) -> Result<PreparedWorkingStateScope, TransactionCommitError> {
-    let binding = transaction.options.branch_binding();
-    if binding.identity().runtime_instance_id() != transaction.runtime.runtime_instance_id() {
-        return Err(TransactionCommitError::conflict(CommitConflict::new(
-            ConflictClass::StaleValidationBasis {
-                detail: "branch binding belongs to another Relational runtime".to_owned(),
-            },
-        )));
-    }
-    if !transaction
-        .runtime
-        .legacy_branch_binding_is_current(binding)
-    {
-        return Err(TransactionCommitError::conflict(CommitConflict::new(
-            ConflictClass::StaleValidationBasis {
-                detail: "owner-issued branch binding is no longer current".to_owned(),
-            },
-        )));
-    }
-    let selected_branch_state = transaction
-        .runtime
-        .selected_branch_state(transaction.options.branch_binding())
-        .map_err(TransactionCommitError::preparation)?;
+    transaction
+        .ensure_current_basis(runtime)
+        .map_err(TransactionCommitError::conflict)?;
+    let selected_branch_state =
+        SelectedRelationalBranchState::from_admitted_basis(&transaction.basis);
+    transaction
+        .validate_staged_branch_locality(selected_branch_state.state(), &runtime.services.symbols)
+        .map_err(TransactionCommitError::conflict)?;
     let mut phase_timing = CommitPhaseTiming::default();
     let normalization_started = Instant::now();
-    let intents = transaction.normalized_intents_for_merge();
+    let intents = transaction.normalized_intents_for_merge(runtime);
     phase_timing.draft_intent_normalization_micros =
         normalization_started.elapsed().as_micros() as u64;
     let merge_plan_started = Instant::now();
     let (merged_plan, merged_plan_timing) = transaction
-        .build_merged_plan_for_state_with_timing(selected_branch_state.state(), intents)
+        .build_merged_plan_for_state_with_timing(runtime, selected_branch_state.state(), intents)
         .map_err(TransactionCommitError::conflict)?;
     phase_timing.draft_merge_plan_micros = merge_plan_started.elapsed().as_micros() as u64;
     phase_timing.draft_intent_validation_micros = merged_plan_timing.validation_micros;
     phase_timing.draft_intent_sort_micros = merged_plan_timing.sort_micros;
     phase_timing.draft_conflict_detection_micros = merged_plan_timing.conflict_detection_micros;
+    transaction
+        .footprint
+        .derive_validation_dependencies(&merged_plan);
     let (structural_summary, working_state, prepare_phase_timing) =
         prepare_authoritative_working_state_scope_for_base(
-            transaction.runtime,
+            runtime,
             selected_branch_state.state(),
             &merged_plan,
-            transaction.options.merge_parent_bindings().len(),
+            transaction.merge_parent_bases.len(),
+            Some(&transaction.footprint),
         );
     phase_timing.draft_structural_summary_micros =
         prepare_phase_timing.draft_structural_summary_micros;
@@ -170,7 +189,35 @@ pub(crate) fn prepare_working_state_scope(
         structural_summary,
         working_state,
         phase_timing,
+        footprint: transaction.footprint.clone(),
+        schema_authority: std::sync::Arc::clone(&transaction.schema_authority),
     })
+}
+
+pub(crate) fn prepare_lowered_working_state_scope(
+    runtime: &RelationalRuntime,
+    transaction: &crate::mvcc::BranchBoundRelationalTransaction,
+    selected_branch_state: SelectedRelationalBranchState,
+    merged_plan: MergedCommitPlan,
+) -> PreparedWorkingStateScope {
+    let (structural_summary, working_state, phase_timing) =
+        prepare_authoritative_working_state_scope_for_base(
+            runtime,
+            selected_branch_state.state(),
+            &merged_plan,
+            transaction.merge_parent_bases.len(),
+            Some(&transaction.footprint),
+        );
+
+    PreparedWorkingStateScope {
+        selected_branch_state,
+        merged_plan,
+        structural_summary,
+        working_state,
+        phase_timing,
+        footprint: transaction.footprint.clone(),
+        schema_authority: std::sync::Arc::clone(&transaction.schema_authority),
+    }
 }
 
 pub(crate) fn prepare_authoritative_working_state_scope_for_base(
@@ -178,11 +225,17 @@ pub(crate) fn prepare_authoritative_working_state_scope_for_base(
     base_state: &impl PartitionAccess,
     merged_plan: &MergedCommitPlan,
     merge_parent_count: usize,
+    footprint: Option<&crate::mvcc::RelationalTransactionFootprint>,
 ) -> (CommitStructuralSummary, WorkingState, CommitPhaseTiming) {
     let mut phase_timing = CommitPhaseTiming::default();
     let summary_started = Instant::now();
-    let structural_summary =
+    let mut structural_summary =
         CommitStructuralSummary::derive(base_state, base_state, merged_plan, merge_parent_count);
+    if let Some(footprint) = footprint {
+        structural_summary
+            .touched_partitions
+            .extend(footprint.validation_partitions());
+    }
     phase_timing.draft_structural_summary_micros = summary_started.elapsed().as_micros() as u64;
     let clone_mode = match structural_summary.commit_topology {
         CommitTopology::FlatEntityBatch => PartitionCloneMode::EntityOnly,
@@ -214,9 +267,9 @@ pub(crate) fn prepare_authoritative_working_state_scope_for_base(
     } else {
         0
     };
-    let sparse_entity_slots = sparse_entity_slots_for_plan(clone_mode, merged_plan);
+    let sparse_entity_slots = sparse_entity_slots_for_plan(clone_mode, merged_plan, footprint);
     let sparse_relation_overlay_partitions =
-        sparse_relation_overlay_partitions_for_plan(clone_mode, merged_plan);
+        sparse_relation_overlay_partitions_for_plan(clone_mode, merged_plan, footprint);
     let clone_mode = if matches!(clone_mode, PartitionCloneMode::GraphSparseEntities)
         && sparse_entity_slots.is_none()
         && sparse_relation_overlay_partitions.is_none()
@@ -307,69 +360,5 @@ pub(crate) fn record_mutation_counters(
 }
 
 #[cfg(test)]
-mod tests {
-    use crate::identity::data::{EntityId, PartitionId};
-    use crate::transactions::data::{
-        AspectFieldPatch, EntityMutationIntent, MergedCommitPlan, MutationIntent, TransactionId,
-        UpdateEntityFieldsIntent,
-    };
-
-    use super::{
-        select_entity_working_set_layout, sparse_entity_slots_for_plan, EntityWorkingSetLayout,
-        PartitionCloneMode, AOSOA_ENTITY_CHUNK_WIDTH_SMALL,
-    };
-
-    fn update_intent(partition: u32, slot: u64) -> MutationIntent {
-        MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-            UpdateEntityFieldsIntent {
-                entity_id: EntityId::new(PartitionId(partition), slot, 1),
-                fields: AspectFieldPatch::default(),
-            },
-        ))
-    }
-
-    fn merged_plan(intents: Vec<MutationIntent>) -> MergedCommitPlan {
-        MergedCommitPlan {
-            transaction_id: TransactionId(1),
-            merged_intents: intents,
-        }
-    }
-
-    #[test]
-    fn sparse_entity_slots_accepts_multi_partition_update_batches() {
-        let plan = merged_plan(vec![
-            update_intent(1, 0),
-            update_intent(1, 1),
-            update_intent(2, 7),
-            update_intent(3, 9),
-        ]);
-
-        let sparse = sparse_entity_slots_for_plan(PartitionCloneMode::EntityOnly, &plan)
-            .expect("multi-partition entity batch should stay on sparse path");
-
-        assert_eq!(sparse.len(), 3);
-        assert_eq!(
-            sparse.get(&PartitionId(1)).map(|slots| slots.len()),
-            Some(2)
-        );
-        assert_eq!(
-            sparse.get(&PartitionId(2)).map(|slots| slots.len()),
-            Some(1)
-        );
-        assert_eq!(
-            sparse.get(&PartitionId(3)).map(|slots| slots.len()),
-            Some(1)
-        );
-    }
-
-    #[test]
-    fn sparse_layout_selection_uses_sparse_slot_count_not_full_partition_clone_width() {
-        let layout = select_entity_working_set_layout(PartitionCloneMode::EntityOnly, 96);
-        assert_eq!(
-            layout,
-            EntityWorkingSetLayout::AoSoACandidate {
-                chunk_width: AOSOA_ENTITY_CHUNK_WIDTH_SMALL,
-            }
-        );
-    }
-}
+#[path = "prepare_tests.rs"]
+mod tests;

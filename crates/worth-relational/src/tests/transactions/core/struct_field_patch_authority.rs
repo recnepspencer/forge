@@ -50,7 +50,7 @@ fn update_entity_fields_applies_struct_contract_field_patch() {
             }),
         )),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
     let patch_record = &outcome.patch()[0];
     let current_read = runtime
         .read_truth()
@@ -195,5 +195,5 @@ pub(super) fn create_entity_with_summary_fields(
             fields: crate::transactions::data::AspectFieldPatch::new(fields),
         })),
     ));
-    changed_entities(&txn.commit().unwrap())[0]
+    changed_entities(&txn.commit(&mut runtime).unwrap())[0]
 }

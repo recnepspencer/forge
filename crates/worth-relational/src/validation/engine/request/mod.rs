@@ -44,7 +44,7 @@ pub(crate) struct InvariantExecutionRequest<'runtime> {
     merged_plan: Option<&'runtime MergedCommitPlan>,
     relation_integrity_scopes: Option<PreparedRelationIntegrityScopes>,
     preparation_violation: Option<InvariantViolation>,
-    proposal_identity: Option<crate::transactions::RelationalMutationProposalIdentity>,
+    proposal_identity: Option<crate::mvcc::RelationalMutationProposalIdentity>,
 }
 
 impl<'runtime> InvariantExecutionRequest<'runtime> {
@@ -94,7 +94,7 @@ impl<'runtime> InvariantExecutionRequest<'runtime> {
 
     pub(crate) fn proposal_identity(
         &self,
-    ) -> Option<&crate::transactions::RelationalMutationProposalIdentity> {
+    ) -> Option<&crate::mvcc::RelationalMutationProposalIdentity> {
         self.proposal_identity.as_ref()
     }
 

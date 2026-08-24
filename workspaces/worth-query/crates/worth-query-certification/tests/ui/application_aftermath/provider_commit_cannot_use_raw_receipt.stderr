@@ -1,5 +1,0 @@
-error[E0451]: field `disposition` of struct `WorthQueryCommittedProviderSession` is private
- --> tests/ui/application_aftermath/provider_commit_cannot_use_raw_receipt.rs:7:46
-  |
-7 |         WorthQueryCommittedProviderSession { disposition }
-  |                                              ^^^^^^^^^^^ private field

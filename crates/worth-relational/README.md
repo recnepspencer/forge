@@ -39,18 +39,24 @@ Examples:
 
 ```rust
 use worth_relational::facade::{
+    mvcc::RelationalTransactionIntent,
     runtime::RelationalRuntimeApi,
     schema::RelationalSchemaRegistry,
-    transactions::{TransactionOptions, WorkerIntentBatch},
+    transactions::WorkerIntentBatch,
 };
 
 let mut runtime = RelationalRuntimeApi::builder()
     .schema_registry(RelationalSchemaRegistry::new())
     .build();
 
-let mut tx = runtime.begin_transaction(TransactionOptions::default());
+let main = runtime.main_branch_identity();
+let basis = runtime.admit_branch_basis(&main)?;
+let mut tx = runtime.begin_branch_transaction(
+    &basis,
+    RelationalTransactionIntent::ordinary(),
+)?;
 tx.push_batch(WorkerIntentBatch::new("example"));
-let _outcome = tx.commit()?;
+let _outcome = tx.commit(&mut runtime)?;
 
 let _truth = runtime.read_truth();
 let _snapshots = runtime.snapshots();

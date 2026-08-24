@@ -52,7 +52,7 @@ fn relation_integrity_commit_boundary_requires_paired_inverse_edge() {
         ))),
     );
 
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(error.code(), DiagnosticCode::RelationSymmetryViolation);
@@ -142,7 +142,7 @@ fn relation_integrity_commit_boundary_requires_canonical_undirected_ordering() {
         )),
     );
 
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(error.code(), DiagnosticCode::RelationSymmetryViolation);
@@ -205,7 +205,7 @@ fn relation_integrity_commit_boundary_prohibits_inverse_duplication() {
         ))),
     );
 
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(error.code(), DiagnosticCode::RelationSymmetryViolation);
@@ -266,7 +266,7 @@ fn relation_integrity_commit_boundary_requires_paired_twin_edge() {
         )),
     );
 
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(error.code(), DiagnosticCode::RelationSymmetryViolation);

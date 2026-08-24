@@ -41,7 +41,7 @@ impl WorthQueryPreparedPreImageRetention {
 
 pub(super) fn retain_attempt_preimage(
     attempt: &WorthQueryPrimaryGraphApplicationAttempt,
-    candidate: &worth_relational::facade::transactions::ValidatedRelationalMutation,
+    candidate: &worth_relational::facade::mvcc::ValidatedRelationalProposal,
 ) -> Result<WorthQueryPreparedPreImageRetention, WorthQueryProviderSessionFailure> {
     let Some(demand) = attempt.preimage_demand() else {
         return Ok(WorthQueryPreparedPreImageRetention {

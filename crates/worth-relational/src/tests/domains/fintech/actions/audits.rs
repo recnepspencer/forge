@@ -47,7 +47,7 @@ pub(crate) fn emit_case_audit_record(
             )),
         ),
     );
-    txn.commit().unwrap()
+    txn.commit(&mut world.runtime).unwrap()
 }
 
 pub(crate) fn emit_trade_correction_audit_record(

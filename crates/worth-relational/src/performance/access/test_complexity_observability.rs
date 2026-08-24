@@ -9,13 +9,7 @@ impl PerformanceAccess<'_> {
     }
 
     pub fn counters(&self) -> RuntimeComplexityCounters {
-        self.runtime
-            .services
-            .instrumentation
-            .complexity_counters
-            .lock()
-            .expect("complexity counter lock poisoned")
-            .clone()
+        self.complexity_counters_snapshot()
     }
 
     pub fn reset_counters(&self) {

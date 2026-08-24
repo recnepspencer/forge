@@ -95,7 +95,7 @@ fn complexity_budget_merge_execution_reports_admitted_records_and_emitted_mutati
             )))
             .into(),
     );
-    let feature_only = changed_entities(&txn.commit().expect("feature-only create"))[0];
+    let feature_only = changed_entities(&txn.commit(&mut runtime).expect("feature-only create"))[0];
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {

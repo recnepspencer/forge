@@ -5,9 +5,10 @@ use crate::schema::data::{
 
 /// Schema authority selected by the owner for one continuity derivation.
 ///
-/// Ordinary commits derive this from the live registry. Recovery may carry
-/// an admitted historical snapshot so replay does not reinterpret an older
-/// commit through the runtime's final schema.
+/// Ordinary commits derive this from their admitted root. Declared schema
+/// transitions use the live target, while recovery may carry an admitted
+/// historical snapshot so replay does not reinterpret an older commit through
+/// the runtime's final schema.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct SchemaContinuityAuthorityInput {
     target_schema_version: SchemaVersionId,

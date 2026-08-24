@@ -130,20 +130,25 @@ fn merge_commit_rejects_stale_secondary_parent_binding_after_parent_moves() {
 
     let target_identity = runtime.main_branch_identity();
     let target_options = runtime
-        .transaction_options_for(&target_identity)
+        .transaction_validation_input_for(&target_identity)
         .expect("target binding is owner-issued");
     let parent_identity = runtime
         .branch_identity(&BranchId("feature".to_string()))
         .expect("parent identity is owner-issued");
-    let parent_binding = runtime
-        .transaction_options_for(&parent_identity)
-        .expect("parent binding is owner-issued")
-        .branch_binding()
+    let parent_basis = runtime
+        .transaction_validation_input_for(&parent_identity)
+        .expect("parent basis is owner-issued")
+        .basis()
         .clone();
-    let prepared = runtime
-        .begin_transaction(target_options.with_merge_parent_bindings(vec![parent_binding]))
-        .validate()
-        .expect("target candidate validates before the parent moves");
+    let prepared = {
+        let transaction_validation_input =
+            target_options.with_merge_parent_bases(vec![parent_basis]);
+        runtime
+            .begin_branch_transaction_with_owner_inputs(transaction_validation_input)
+            .expect("owner-admitted transaction context")
+    }
+    .validate(&mut runtime)
+    .expect("target candidate validates before the parent moves");
 
     create_entity_outcome_on_branch(
         &mut runtime,
@@ -151,7 +156,7 @@ fn merge_commit_rejects_stale_secondary_parent_binding_after_parent_moves() {
         BranchId("feature".to_string()),
     );
     let error = runtime
-        .commit_validated_mutation(prepared)
+        .commit_validated_proposal(prepared)
         .expect_err("a moved secondary parent must stale the prepared binding");
     assert!(matches!(
         error,
@@ -216,7 +221,7 @@ fn merge_commit_rejects_overlapping_authority_since_merge_base() {
         BranchId("main".to_string()),
         vec![BranchId("feature".to_string())],
     );
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
 
     assert!(matches!(
         error,

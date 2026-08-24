@@ -94,19 +94,23 @@ fn merge_branch_basis_denial_happens_before_planning_for_missing_or_disconnected
             target_branch,
         } if source_branch == orphan_branch && target_branch == main_branch
     ));
-    assert!(matches!(
+    assert_eq!(
         runtime
             .merge()
             .inspect_planning_scope(MergePlanningRequest::new(
                 main_branch.clone(),
-                orphan_branch.clone(),
+                orphan_branch,
                 MergeIntent::ReconcileIntoTarget,
             )),
-        Err(crate::merge::data::MergePlanningError::MissingMergeBase {
-            source_branch,
-            target_branch,
-        }) if source_branch == orphan_branch && target_branch == main_branch
-    ));
+        Err(
+            crate::merge::data::MergePlanningError::RequestNormalization(
+                crate::merge::data::RelationalMergeRequestNormalizationDenial::OwnerBinding(
+                    crate::merge::data::RelationalMergeRequestBindingDenial::IdentityMismatch,
+                ),
+            )
+        ),
+        "a descriptive orphan with no coherent exact root is denied before ancestry planning",
+    );
 }
 
 #[test]

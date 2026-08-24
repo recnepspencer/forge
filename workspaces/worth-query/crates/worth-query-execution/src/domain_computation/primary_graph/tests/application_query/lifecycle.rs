@@ -327,11 +327,17 @@ pub(super) fn disable_mapping(
             layout.status_locator,
             WorthQueryPrincipalMappingStatus::Disabled.into_foundational_value(),
         )]));
-        let mut transaction = runtime.begin_transaction(
+        let mut transaction = {
+            let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
             runtime
-                .transaction_options_for_main()
-                .expect("main branch binding"),
-        );
+                .begin_branch_transaction(
+                    &transaction_validation_input,
+                    worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                )
+                .expect("owner-admitted transaction context")
+        };
         transaction.push_batch(WorkerIntentBatch::new("revoke-after-query-admission").push(
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {
@@ -340,7 +346,7 @@ pub(super) fn disable_mapping(
                 },
             )),
         ));
-        transaction.commit().unwrap();
+        transaction.commit(runtime).unwrap();
     });
 }
 
@@ -370,17 +376,23 @@ pub(super) fn revoke_account_ownership(
             .expect("the admitted account has one ownership edge")
             .relation_id;
         runtime.snapshots().release_snapshot(&snapshot);
-        let mut transaction = runtime.begin_transaction(
-            runtime
-                .transaction_options_for_main()
-                .expect("main branch binding"),
-        );
+        let mut transaction ={
+    let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
+    runtime
+        .begin_branch_transaction(
+            &transaction_validation_input,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context")
+};
         transaction.push_batch(WorkerIntentBatch::new("revoke-query-account-owner").push(
             MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
                 relation_id: relation,
             })),
         ));
-        transaction.commit().unwrap();
+        transaction.commit(runtime).unwrap();
         handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }

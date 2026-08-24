@@ -60,7 +60,7 @@ pub(crate) fn diverge_case_trade_on_branch(
             }),
         )),
     );
-    txn.commit().unwrap()
+    txn.commit(&mut world.runtime).unwrap()
 }
 
 pub(crate) fn merge_branch_into_main(
@@ -72,5 +72,5 @@ pub(crate) fn merge_branch_into_main(
         BranchId("main".to_string()),
         vec![merge_parent_branch],
     );
-    txn.commit().unwrap()
+    txn.commit(&mut world.runtime).unwrap()
 }

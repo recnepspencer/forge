@@ -254,5 +254,5 @@ fn create_entity_with_summary_title(
             }),
         )),
     );
-    changed_entities(&txn.commit().unwrap())[0]
+    changed_entities(&txn.commit(&mut runtime).unwrap())[0]
 }

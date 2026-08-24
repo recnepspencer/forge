@@ -1,9 +1,8 @@
-use crate::branch::{RelationalBranchRoot, SelectedRelationalBranchState};
-use crate::facade::history::BranchId;
-use crate::facade::transactions::{
-    CommitPreparationReason, SelectedBranchRootDenialReason, TransactionCommitError,
+use crate::branch::{
+    RelationalBranchBasisDenial, RelationalBranchRoot, SelectedRelationalBranchState,
 };
-use crate::tests::support::{batch_create, create_entity_outcome, runtime_with_test_schema};
+use crate::facade::history::BranchId;
+use crate::tests::support::{create_entity_outcome, runtime_with_test_schema};
 
 fn committed_child(runtime: &mut crate::runtime::RelationalRuntime) -> BranchId {
     create_entity_outcome(runtime, "root-selection-source");
@@ -19,7 +18,7 @@ fn committed_child(runtime: &mut crate::runtime::RelationalRuntime) -> BranchId 
 }
 
 #[test]
-fn unavailable_committed_root_denies_before_planning() {
+fn unavailable_committed_root_denies_before_transaction_admission() {
     let mut runtime = runtime_with_test_schema();
     let child = committed_child(&mut runtime);
     runtime
@@ -27,33 +26,24 @@ fn unavailable_committed_root_denies_before_planning() {
         .branch_cell_mut(&child)
         .expect("child remains registered")
         .clear_root_for_test();
-    let options = runtime
-        .owner_transaction_options_for_branch(&child)
-        .expect("owner can issue the still-current binding");
     let symbols_before = runtime.services.symbols.clone();
     let symbol_table_before = runtime.config().identity.symbol_table.clone();
     let commit_count = runtime.history().immutable_commit_count();
+    let denial = runtime
+        .admit_named_branch_basis(&child)
+        .expect_err("a committed branch without its exact root cannot mint authority");
 
-    let mut transaction = runtime.begin_transaction(options);
-    transaction.push_batch(batch_create("raw-key-denied-before-root-selection"));
-    let error = transaction
-        .commit()
-        .expect_err("missing selected root must fail closed before normalization");
-    assert!(matches!(
-        error,
-        TransactionCommitError::Preparation { error, .. }
-            if error.reason()
-                == CommitPreparationReason::SelectedBranchRoot(
-                    SelectedBranchRootDenialReason::Unavailable,
-                )
-    ));
+    assert_eq!(
+        denial,
+        RelationalBranchBasisDenial::UnavailableRetainedTarget
+    );
     assert_eq!(runtime.history().immutable_commit_count(), commit_count);
     assert_eq!(runtime.services.symbols, symbols_before);
     assert_eq!(runtime.config().identity.symbol_table, symbol_table_before);
 }
 
 #[test]
-fn committed_root_reference_mismatch_denies_before_planning() {
+fn committed_root_reference_mismatch_denies_before_transaction_admission() {
     let mut runtime = runtime_with_test_schema();
     let child = committed_child(&mut runtime);
     runtime
@@ -61,23 +51,15 @@ fn committed_root_reference_mismatch_denies_before_planning() {
         .branch_cell_mut(&child)
         .expect("child remains registered")
         .install_root(RelationalBranchRoot::empty());
-    let options = runtime
-        .owner_transaction_options_for_branch(&child)
-        .expect("owner can issue the still-current binding");
     let commit_count = runtime.history().immutable_commit_count();
+    let denial = runtime
+        .admit_named_branch_basis(&child)
+        .expect_err("a root that cannot satisfy the reference cannot mint authority");
 
-    let error = runtime
-        .begin_transaction(options)
-        .commit()
-        .expect_err("mismatched selected root must fail closed");
-    assert!(matches!(
-        error,
-        TransactionCommitError::Preparation { error, .. }
-            if error.reason()
-                == CommitPreparationReason::SelectedBranchRoot(
-                    SelectedBranchRootDenialReason::ReferenceMismatch,
-                )
-    ));
+    assert_eq!(
+        denial,
+        RelationalBranchBasisDenial::UnavailableRetainedTarget
+    );
     assert_eq!(runtime.history().immutable_commit_count(), commit_count);
 }
 
@@ -94,10 +76,9 @@ fn selected_state_shape_keeps_empty_and_committed_roots_distinct() {
     );
     let empty_state = runtime
         .selected_branch_state(
-            runtime
-                .owner_transaction_options_for_branch(&empty)
-                .expect("empty binding")
-                .branch_binding(),
+            &runtime
+                .admit_named_branch_basis(&empty)
+                .expect("empty basis"),
         )
         .expect("empty state is selectable");
     assert!(matches!(

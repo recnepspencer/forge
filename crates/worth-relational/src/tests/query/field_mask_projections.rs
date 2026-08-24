@@ -290,7 +290,7 @@ fn create_entity_with_summary_fields(
             },
         )),
     ));
-    changed_entities(&txn.commit().unwrap())[0]
+    changed_entities(&txn.commit(&mut runtime).unwrap())[0]
 }
 
 fn create_relation_with_summary_fields(
@@ -329,7 +329,7 @@ fn create_relation_with_summary_fields(
             }),
         )),
     );
-    txn.commit().unwrap();
+    txn.commit(&mut runtime).unwrap();
 }
 
 fn test_projection_contract_identity(aspect_key: &AspectKey) -> u64 {

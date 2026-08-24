@@ -87,7 +87,9 @@ impl HarnessAdapter for RelationalHarnessAdapter {
         }
         let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
         txn.push_batch(entity_fixture_batch(&fixture.fixture.entities));
-        let outcome = txn.commit().map_err(commit_error_to_harness_error)?;
+        let outcome = txn
+            .commit(&mut runtime)
+            .map_err(commit_error_to_harness_error)?;
         let entity_ids = outcome
             .changed_records
             .iter()
@@ -104,7 +106,7 @@ impl HarnessAdapter for RelationalHarnessAdapter {
                 &entity_ids,
             )?);
             relation_txn
-                .commit()
+                .commit(&mut runtime)
                 .map_err(commit_error_to_harness_error)?;
         }
         Ok(())
@@ -120,7 +122,8 @@ impl HarnessAdapter for RelationalHarnessAdapter {
             let operation: WorkerIntentBatch = operation.clone();
             txn.push_batch(operation);
         }
-        txn.commit().map_err(commit_error_to_harness_error)?;
+        txn.commit(&mut runtime)
+            .map_err(commit_error_to_harness_error)?;
         Ok(())
     }
 

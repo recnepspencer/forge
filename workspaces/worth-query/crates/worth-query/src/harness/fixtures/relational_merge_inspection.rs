@@ -255,11 +255,7 @@ fn commit_entity_create(
     name: &str,
     branch_id: BranchId,
 ) -> CommitResult {
-    let mut txn = runtime.begin_transaction(
-        runtime
-            .owner_transaction_options_for_branch(&branch_id)
-            .expect("branch binding"),
-    );
+    let mut txn = begin_branch_transaction(runtime, &branch_id);
     txn.push_batch(
         WorkerIntentBatch::new(format!("create-{name}")).push(MutationIntent::Create(
             CreateIntent::Entity(EntitySpec {
@@ -271,7 +267,7 @@ fn commit_entity_create(
             }),
         )),
     );
-    txn.commit().expect("entity create should commit")
+    txn.commit(runtime).expect("entity create should commit")
 }
 
 fn update_entity_on_branch(
@@ -280,11 +276,7 @@ fn update_entity_on_branch(
     name: &str,
     branch_id: BranchId,
 ) {
-    let mut txn = runtime.begin_transaction(
-        runtime
-            .owner_transaction_options_for_branch(&branch_id)
-            .expect("branch binding"),
-    );
+    let mut txn = begin_branch_transaction(runtime, &branch_id);
     txn.push_batch(
         WorkerIntentBatch::new("update-entity").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -294,7 +286,7 @@ fn update_entity_on_branch(
             }),
         )),
     );
-    txn.commit().expect("entity update should commit");
+    txn.commit(runtime).expect("entity update should commit");
 }
 
 fn delete_entity_on_branch(
@@ -302,17 +294,13 @@ fn delete_entity_on_branch(
     entity_id: EntityId,
     branch_id: BranchId,
 ) {
-    let mut txn = runtime.begin_transaction(
-        runtime
-            .owner_transaction_options_for_branch(&branch_id)
-            .expect("branch binding"),
-    );
+    let mut txn = begin_branch_transaction(runtime, &branch_id);
     txn.push_batch(
         WorkerIntentBatch::new("delete-entity").push(MutationIntent::Entity(
             EntityMutationIntent::Delete(DeleteEntityIntent { entity_id }),
         )),
     );
-    txn.commit().expect("entity delete should commit");
+    txn.commit(runtime).expect("entity delete should commit");
 }
 
 fn create_relation_on_branch(
@@ -323,11 +311,7 @@ fn create_relation_on_branch(
     label: &str,
     branch_id: BranchId,
 ) -> RelationId {
-    let mut txn = runtime.begin_transaction(
-        runtime
-            .owner_transaction_options_for_branch(&branch_id)
-            .expect("branch binding"),
-    );
+    let mut txn = begin_branch_transaction(runtime, &branch_id);
     txn.push_batch(
         WorkerIntentBatch::new("create-relation").push(MutationIntent::Create(
             CreateIntent::Relation(RelationSpec {
@@ -341,7 +325,7 @@ fn create_relation_on_branch(
             }),
         )),
     );
-    changed_relations(&txn.commit().expect("relation create should commit"))[0]
+    changed_relations(&txn.commit(runtime).expect("relation create should commit"))[0]
 }
 
 fn delete_relation_on_branch(
@@ -349,17 +333,28 @@ fn delete_relation_on_branch(
     relation_id: RelationId,
     branch_id: BranchId,
 ) {
-    let mut txn = runtime.begin_transaction(
-        runtime
-            .owner_transaction_options_for_branch(&branch_id)
-            .expect("branch binding"),
-    );
+    let mut txn = begin_branch_transaction(runtime, &branch_id);
     txn.push_batch(
         WorkerIntentBatch::new("delete-relation").push(MutationIntent::Relation(
             RelationMutationIntent::Delete(DeleteRelationIntent { relation_id }),
         )),
     );
-    txn.commit().expect("relation delete should commit");
+    txn.commit(runtime).expect("relation delete should commit");
+}
+
+fn begin_branch_transaction(
+    runtime: &RelationalRuntime,
+    branch_id: &BranchId,
+) -> worth_relational::facade::mvcc::BranchBoundRelationalTransaction {
+    let context = runtime
+        .admit_named_branch_basis(branch_id)
+        .expect("branch context");
+    runtime
+        .begin_branch_transaction(
+            &context,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted branch basis")
 }
 
 fn changed_entities(outcome: &CommitResult) -> Vec<EntityId> {

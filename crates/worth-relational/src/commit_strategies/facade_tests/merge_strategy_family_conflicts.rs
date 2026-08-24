@@ -52,16 +52,21 @@ fn merge_planning_classifies_different_strategy_families_as_strategy_intent_conf
             )
             .expect("main canonical request");
         let execution = update_execution_draft(&request, entity, "main-strategy");
-        let (transaction_options, mut authority) =
+        let (transaction_validation_input, mut authority) =
             crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
         let lowered = authority
-            .lower_execution(&request, &execution, transaction_options)
+            .lower_execution_with_input(
+                &mut runtime,
+                &request,
+                &execution,
+                transaction_validation_input,
+            )
             .expect("lowered main strategy plan");
         let validated = authority
-            .validate_lowered_plan(lowered)
+            .validate_lowered_plan(&mut runtime, lowered)
             .expect("validated main strategy plan");
         authority
-            .execute_validated_commit(validated)
+            .execute_validated_commit(&mut runtime, validated)
             .expect("main strategy commit");
     }
 
@@ -88,19 +93,24 @@ fn merge_planning_classifies_different_strategy_families_as_strategy_intent_conf
             )
             .expect("feature canonical request");
         let execution = update_execution_draft(&request, entity, "feature-strategy");
-        let (transaction_options, mut authority) =
+        let (transaction_validation_input, mut authority) =
             crate::tests::support::test_owner_strategy_authority(
                 &mut runtime,
                 Some(feature_branch.clone()),
             );
         let lowered = authority
-            .lower_execution(&request, &execution, transaction_options)
+            .lower_execution_with_input(
+                &mut runtime,
+                &request,
+                &execution,
+                transaction_validation_input,
+            )
             .expect("lowered feature strategy plan");
         let validated = authority
-            .validate_lowered_plan(lowered)
+            .validate_lowered_plan(&mut runtime, lowered)
             .expect("validated feature strategy plan");
         authority
-            .execute_validated_commit(validated)
+            .execute_validated_commit(&mut runtime, validated)
             .expect("feature strategy commit");
     }
 
@@ -190,16 +200,21 @@ fn merge_planning_with_real_strategies_preserves_strategy_specific_manual_bounda
             .commit_strategies()
             .execute(&request, &snapshot)
             .expect("intent execution");
-        let (transaction_options, mut authority) =
+        let (transaction_validation_input, mut authority) =
             crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
         let lowered = authority
-            .lower_execution(&request, &execution, transaction_options)
+            .lower_execution_with_input(
+                &mut runtime,
+                &request,
+                &execution,
+                transaction_validation_input,
+            )
             .expect("lowered intent plan");
         let validated = authority
-            .validate_lowered_plan(lowered)
+            .validate_lowered_plan(&mut runtime, lowered)
             .expect("validated intent plan");
         authority
-            .execute_validated_commit(validated)
+            .execute_validated_commit(&mut runtime, validated)
             .expect("intent strategy commit");
     }
 
@@ -224,19 +239,24 @@ fn merge_planning_with_real_strategies_preserves_strategy_specific_manual_bounda
             .commit_strategies()
             .execute(&request, &snapshot)
             .expect("replica execution");
-        let (transaction_options, mut authority) =
+        let (transaction_validation_input, mut authority) =
             crate::tests::support::test_owner_strategy_authority(
                 &mut runtime,
                 Some(feature_branch.clone()),
             );
         let lowered = authority
-            .lower_execution(&request, &execution, transaction_options)
+            .lower_execution_with_input(
+                &mut runtime,
+                &request,
+                &execution,
+                transaction_validation_input,
+            )
             .expect("lowered replica plan");
         let validated = authority
-            .validate_lowered_plan(lowered)
+            .validate_lowered_plan(&mut runtime, lowered)
             .expect("validated replica plan");
         authority
-            .execute_validated_commit(validated)
+            .execute_validated_commit(&mut runtime, validated)
             .expect("replica strategy commit");
     }
 

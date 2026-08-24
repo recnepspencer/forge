@@ -66,7 +66,8 @@ pub(super) fn certify_flat_entity_step_batch_compile_window(suite: &'static str)
                     }
                 }
                 txn.push_batch(batch);
-                txn.commit().expect("chip flat entity step batch commit")
+                txn.commit(&mut runtime)
+                    .expect("chip flat entity step batch commit")
             };
             let update_micros = update_started_at.elapsed().as_micros();
             let phase_timing = update.execution().phase_timing.clone();

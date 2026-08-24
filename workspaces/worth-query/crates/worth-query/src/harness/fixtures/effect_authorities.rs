@@ -46,11 +46,17 @@ pub(crate) fn create_entity(
     name: &str,
     branch: BranchId,
 ) -> worth_relational::facade::identity::EntityId {
-    let mut txn = runtime.begin_transaction(
+    let mut txn = {
+        let transaction_validation_input = runtime
+            .admit_named_branch_basis(&branch)
+            .expect("branch binding");
         runtime
-            .owner_transaction_options_for_branch(&branch)
-            .expect("branch binding"),
-    );
+            .begin_branch_transaction(
+                &transaction_validation_input,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(
         WorkerIntentBatch::new(format!("create-{name}")).push(MutationIntent::Create(
             CreateIntent::Entity(EntitySpec {
@@ -62,7 +68,7 @@ pub(crate) fn create_entity(
             }),
         )),
     );
-    let outcome = txn.commit().expect("seed commit should succeed");
+    let outcome = txn.commit(runtime).expect("seed commit should succeed");
     outcome
         .changed_records
         .iter()
@@ -79,11 +85,17 @@ pub(crate) fn update_entity_name(
     name: &str,
     branch: BranchId,
 ) -> worth_relational::facade::history::CommitId {
-    let mut txn = runtime.begin_transaction(
+    let mut txn = {
+        let transaction_validation_input = runtime
+            .admit_named_branch_basis(&branch)
+            .expect("branch binding");
         runtime
-            .owner_transaction_options_for_branch(&branch)
-            .expect("branch binding"),
-    );
+            .begin_branch_transaction(
+                &transaction_validation_input,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(
         WorkerIntentBatch::new(format!("update-{name}")).push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -93,7 +105,7 @@ pub(crate) fn update_entity_name(
             }),
         )),
     );
-    txn.commit()
+    txn.commit(runtime)
         .expect("intervening update should succeed")
         .outcome()
         .commit

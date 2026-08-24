@@ -2,6 +2,7 @@ use super::world::supply_chain::{
     audit_supply_chain_baseline, compile_supply_chain_baseline, CompiledSupplyChainProgram,
     SupplyChainProgramError, SupplyChainScale, SupplyChainWorldDefinition,
 };
+use worth_relational::facade::history::BranchId;
 
 #[test]
 fn supply_chain_world_compiles_causally_through_public_facades() {
@@ -117,7 +118,7 @@ fn supply_chain_named_handles_are_owner_issued_and_complete() {
 }
 
 #[test]
-fn supply_chain_baseline_matches_independent_oracle() {
+fn standard_supply_chain_baseline_matches_oracle_and_forks_without_copying() {
     let definition = SupplyChainWorldDefinition::operating(SupplyChainScale::standard())
         .expect("Standard Supply Chain definition is valid");
     let program = CompiledSupplyChainProgram::compile(definition)
@@ -140,6 +141,39 @@ fn supply_chain_baseline_matches_independent_oracle() {
     assert_eq!(
         certified.observed.relations.len(),
         certified.expected.relations.len()
+    );
+    let mut world = certified.world;
+    let catalog_before = world.runtime.history().immutable_commit_count();
+    let (_, basis) = world
+        .runtime
+        .observe_fork_source(&BranchId("main".to_owned()))
+        .expect("standard main branch has a fork source");
+    let outcome = world
+        .runtime
+        .fork_branch(BranchId("standard-storm".to_owned()), basis)
+        .expect("standard fork succeeds");
+    assert_eq!(outcome.shared_commit_id(), Some(world.commit.commit_id));
+    assert_eq!(
+        world.runtime.history().immutable_commit_count(),
+        catalog_before
+    );
+    assert_eq!(
+        outcome.source_observation().target(),
+        outcome.target_observation().target()
+    );
+    assert_eq!(
+        outcome
+            .source_observation()
+            .target()
+            .as_basis()
+            .expect("standard source target")
+            .roots(),
+        outcome
+            .target_observation()
+            .target()
+            .as_basis()
+            .expect("standard fork target")
+            .roots()
     );
 }
 

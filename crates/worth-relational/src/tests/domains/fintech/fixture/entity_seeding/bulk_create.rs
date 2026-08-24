@@ -29,7 +29,7 @@ where
             }),
         )),
     );
-    changed_entities(&txn.commit().unwrap())
+    changed_entities(&txn.commit(&mut runtime).unwrap())
 }
 
 fn changed_entities(outcome: &CommitResult) -> Vec<EntityId> {

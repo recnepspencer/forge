@@ -148,7 +148,7 @@ impl WorthQueryPrimaryGraphProvider {
             &crate::domain_computation::application_aftermath::WorthQueryPendingAftermathCausality,
         >,
     ) -> Result<
-        worth_relational::facade::transactions::ValidatedRelationalMutation,
+        worth_relational::facade::mvcc::ValidatedRelationalProposal,
         WorthQueryInvariantExecutionFailure,
     > {
         #[cfg(not(test))]
@@ -182,11 +182,11 @@ impl WorthQueryPrimaryGraphProvider {
                 .branch_identity(branch)
                 .map_err(|_| owner_failure())?;
             let options = runtime
-                .transaction_options_for(&identity)
+                .admit_branch_basis(&identity)
                 .map_err(|_| owner_failure())?;
-            let mut transaction = runtime.begin_transaction(options);
+            let mut transaction = runtime.begin_branch_transaction(&options, worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary()).expect("owner-admitted transaction context");
             transaction.push_batch(batch);
-            Ok::<_, WorthQueryInvariantExecutionFailure>(transaction.validate())
+            Ok::<_, WorthQueryInvariantExecutionFailure>(transaction.validate(runtime))
         });
         let candidate = candidate
             .map_err(|error| error)?
@@ -235,7 +235,7 @@ impl WorthQueryPrimaryGraphProvider {
     fn retain_validated_candidate(
         &self,
         session: WorthQueryProviderSessionView<'_>,
-        candidate: worth_relational::facade::transactions::ValidatedRelationalMutation,
+        candidate: worth_relational::facade::mvcc::ValidatedRelationalProposal,
         work: super::mutation_work::WorthQueryPrimaryMutationWorkCounters,
     ) -> Result<(), WorthQueryInvariantExecutionFailure> {
         self.attempts
@@ -247,7 +247,7 @@ impl WorthQueryPrimaryGraphProvider {
 }
 
 fn validate_owner_evidence(
-    evidence: &worth_relational::facade::transactions::RelationalMutationInvariantEvidence,
+    evidence: &worth_relational::facade::mvcc::RelationalMutationInvariantEvidence,
     branch: &worth_relational::facade::history::BranchId,
 ) -> Result<(), WorthQueryInvariantExecutionFailure> {
     if evidence.branch() != branch {

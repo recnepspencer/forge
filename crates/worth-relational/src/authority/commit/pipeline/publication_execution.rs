@@ -119,7 +119,7 @@ pub(super) fn publish_commit_execution(
             previous_branch_head_version: history.previous_branch_head_version,
             commit_id: history.commit_id,
             commit_reference: &history.commit_reference,
-            branch_binding: &history.branch_binding,
+            branch_basis: &history.branch_basis,
             branch_id: &history.branch_id,
             merge_base_commits: &history.merge_base_commits,
             merge_parent_branches: &merge_parent_branches,

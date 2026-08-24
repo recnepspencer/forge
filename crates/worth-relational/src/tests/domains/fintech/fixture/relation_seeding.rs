@@ -208,7 +208,7 @@ where
             }),
         )),
     );
-    changed_relations(&txn.commit().unwrap())
+    changed_relations(&txn.commit(&mut runtime).unwrap())
 }
 
 fn relation_role_patch(role: &str) -> AspectFieldPatch {

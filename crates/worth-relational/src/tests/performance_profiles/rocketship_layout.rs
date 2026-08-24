@@ -164,7 +164,8 @@ pub(super) fn seed_rocketship_world(
             batch = batch.push(intent);
         }
         txn.push_batch(batch);
-        txn.commit().expect("rocketship entity seed commit")
+        txn.commit(&mut runtime)
+            .expect("rocketship entity seed commit")
     };
     let entity_commit_micros = entity_commit_started_at.elapsed().as_micros();
     let entities = changed_entities(&entity_outcome);
@@ -214,7 +215,8 @@ pub(super) fn seed_rocketship_world(
                 batch = batch.push(intent);
             }
             txn.push_batch(batch);
-            txn.commit().expect("rocketship relation seed commit chunk")
+            txn.commit(&mut runtime)
+                .expect("rocketship relation seed commit chunk")
         };
         relation_commit_micros += relation_commit_started_at.elapsed().as_micros();
         relation_commit_phase_timing.draft_preparation_micros +=

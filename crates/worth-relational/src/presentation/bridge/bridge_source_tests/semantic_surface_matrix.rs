@@ -88,7 +88,9 @@ fn real_entity_transaction_preserves_field_lifecycle_and_structural_surfaces() {
             }),
         )),
     );
-    let created = creation.commit().expect("real structural create");
+    let created = creation
+        .commit(&mut runtime)
+        .expect("real structural create");
     let entity = changed_entities(&created)[0];
     let structural_commit = runtime
         .publication()
@@ -110,7 +112,7 @@ fn real_entity_transaction_preserves_field_lifecycle_and_structural_surfaces() {
         )),
     ));
     let field_commit = transaction
-        .commit()
+        .commit(&mut runtime)
         .expect("real struct-field update")
         .commit
         .commit_id;

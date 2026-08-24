@@ -60,7 +60,7 @@ fn unique_entity_aspect_field_rejects_entity_aspect_create() {
                 aspect_patch: patch.clone(),
             }),
         )));
-        transaction.commit()
+        transaction.commit(runtime)
     };
 
     create(&mut runtime, "first").expect("first entity-aspect create");
@@ -112,7 +112,7 @@ fn unique_entity_aspect_field_rejects_entity_aspect_patch() {
         )),
     );
 
-    let error = transaction.commit().unwrap_err();
+    let error = transaction.commit(&mut runtime).unwrap_err();
     assert_unique_entity_field_conflict(error, "shared-title");
     assert_runtime_marker_unchanged(&mut runtime, before);
     assert_entity_summary(&mut runtime, second_id, "second-title", "open");

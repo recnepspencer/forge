@@ -60,7 +60,7 @@ fn real_whole_and_field_set_clear_operations_keep_their_exact_publication_meanin
             aspect_patch: initial,
         })),
     ));
-    let created = create.commit().unwrap();
+    let created = create.commit(&mut runtime).unwrap();
     let entity = changed_entities(&created)[0];
     let created_commit = created.commit.commit_id;
 
@@ -85,7 +85,7 @@ fn real_whole_and_field_set_clear_operations_keep_their_exact_publication_meanin
             },
         )),
     ));
-    let updated = transaction.commit().unwrap();
+    let updated = transaction.commit(&mut runtime).unwrap();
     let mut publications = bridge_envelopes_at_current_observation(
         runtime,
         [created_commit, updated.commit.commit_id],

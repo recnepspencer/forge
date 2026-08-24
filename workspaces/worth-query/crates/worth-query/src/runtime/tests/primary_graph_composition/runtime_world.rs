@@ -110,11 +110,17 @@ impl WorthQueryRuntimeWriteAuthorityAdapter for CommittingWriteAuthority {
                 )
             })?;
 
-        let mut transaction = runtime.begin_transaction(
+        let mut transaction = {
+            let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
             runtime
-                .transaction_options_for_main()
-                .expect("main branch binding"),
-        );
+                .begin_branch_transaction(
+                    &transaction_validation_input,
+                    worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                )
+                .expect("owner-admitted transaction context")
+        };
         transaction.push_batch(
             WorkerIntentBatch::new("ordinary-query-shared-root-proof").push(
                 MutationIntent::Create(CreateIntent::Entity(EntitySpec {
@@ -125,7 +131,7 @@ impl WorthQueryRuntimeWriteAuthorityAdapter for CommittingWriteAuthority {
                 })),
             ),
         );
-        transaction.commit().map_err(|error| {
+        transaction.commit(runtime).map_err(|error| {
             WorthQueryWorkspaceError::new(format!(
                 "ordinary Query write could not commit to the shared graph: {error:?}"
             ))

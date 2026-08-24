@@ -87,7 +87,7 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
                 }),
             )),
         );
-        txn.commit().unwrap()
+        txn.commit(&mut runtime).unwrap()
     };
     runtime.durability_authority().checkpoint().unwrap();
 
@@ -185,18 +185,25 @@ fn hostile_commit_replay_equivalence_test() {
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut transition_txn = runtime.begin_transaction(
-        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
-            .with_schema_transition(
-                schema_transition_for_subscriber_impact(
-                    SchemaVersionId(2),
-                    SchemaSubscriberImpact::ConsumableSurfaceChanged,
-                ),
-                Some(SchemaReconciliationPolicy::PreserveInformation),
-            ),
-    );
+    let mut transition_txn = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+                .with_schema_transition(
+                    schema_transition_for_subscriber_impact(
+                        SchemaVersionId(2),
+                        SchemaSubscriberImpact::ConsumableSurfaceChanged,
+                    ),
+                    Some(SchemaReconciliationPolicy::PreserveInformation),
+                );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     transition_txn.push_batch(batch_create("after-boundary"));
-    let _transition_outcome = transition_txn.commit().unwrap();
+    let _transition_outcome = transition_txn.commit(&mut runtime).unwrap();
 
     let merge = merge_commit_from_branches(
         &mut runtime,

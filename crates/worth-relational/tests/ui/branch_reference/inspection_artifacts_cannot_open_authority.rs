@@ -1,8 +1,9 @@
 use worth_relational::facade::history::BranchId;
 use worth_relational::facade::inspection::{
-    RelationalBranchSharingObservation, RelationalMvccCostObservation,
-    RelationalOwnerAllocationLedgerObservation, RelationalVisibilityCommitmentObservation,
+    RelationalBranchSharingObservation, RelationalOwnerAllocationLedgerObservation,
+    RelationalVisibilityCommitmentObservation,
 };
+use worth_relational::facade::mvcc::RelationalTransactionIntent;
 use worth_relational::facade::runtime::RelationalRuntime;
 
 fn sharing_cannot_fork(
@@ -16,14 +17,10 @@ fn allocation_cannot_begin_mutation(
     runtime: &mut RelationalRuntime,
     observation: RelationalOwnerAllocationLedgerObservation,
 ) {
-    let _ = runtime.begin_transaction(observation);
-}
-
-fn cost_cannot_publish(
-    runtime: &RelationalRuntime,
-    observation: RelationalMvccCostObservation,
-) {
-    let _ = runtime.publish_commit_for_bridge(observation, "model");
+    let _ = runtime.begin_branch_transaction(
+        &observation,
+        RelationalTransactionIntent::ordinary(),
+    );
 }
 
 fn visibility_cannot_retain(

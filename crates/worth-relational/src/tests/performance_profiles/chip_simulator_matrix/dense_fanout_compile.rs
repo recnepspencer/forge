@@ -39,7 +39,8 @@ pub(super) fn certify_dense_fanout_compile_wave(suite: &'static str) {
                 )));
             }
             txn.push_batch(batch);
-            txn.commit().expect("chip fanout relation burst commit")
+            txn.commit(&mut runtime)
+                .expect("chip fanout relation burst commit")
         };
         let commit_micros = commit_started_at.elapsed().as_micros();
         let commit = runtime

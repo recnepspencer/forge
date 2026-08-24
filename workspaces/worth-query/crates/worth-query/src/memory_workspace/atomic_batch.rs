@@ -59,12 +59,18 @@ impl WorthQueryMemoryWorkspace {
         let (batch, prepared) = self.prepare_batch(mutations)?;
         let options = self
             .runtime
-            .transaction_options_for_main()
+            .admit_main_branch_basis()
             .expect("memory workspace main branch remains owner-admissible");
-        let mut transaction = self.runtime.begin_transaction(options);
+        let mut transaction = self
+            .runtime
+            .begin_branch_transaction(
+                &options,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context");
         transaction.push_batch(batch);
         let result = transaction
-            .commit()
+            .commit(&mut self.runtime)
             .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
         self.next_client_key = next_key;
         self.batch_receipts(result, prepared)

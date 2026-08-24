@@ -16,13 +16,19 @@ fn empty_branch_validation_uses_local_zero_after_unrelated_main_progress() {
     let identity = runtime
         .branch_identity(&empty_branch)
         .expect("empty branch remains owner-registered");
-    let transaction = runtime.begin_transaction(
+    let transaction = {
+        let transaction_validation_input = runtime
+            .transaction_validation_input_for(&identity)
+            .expect("owner issues the empty branch binding");
         runtime
-            .transaction_options_for(&identity)
-            .expect("owner issues the empty branch binding"),
-    );
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     let validated = transaction
-        .validate()
+        .validate(&mut runtime)
         .expect("empty branch validation should use its local basis");
 
     assert_eq!(validated.validated_against_version, VersionId(0));

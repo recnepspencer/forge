@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn complexity_budget_preparation_packetization_is_chunked_for_broad_deltas() {
     let mut runtime = runtime_with_test_schema_execution_model(
-        crate::facade::runtime::RelationalExecutionModel::StagedParallelPreparation,
+        crate::facade::runtime::RelationalExecutionModel::ParallelPreparation,
     );
     runtime.performance_access().reset_counters();
 
@@ -28,7 +28,7 @@ fn complexity_budget_preparation_packetization_is_chunked_for_broad_deltas() {
             }),
         )),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
     let counters = runtime.performance_access().counters();
 
     assert_eq!(outcome.changed_records.len(), 65);
@@ -43,7 +43,7 @@ fn complexity_budget_preparation_packetization_is_chunked_for_broad_deltas() {
 #[test]
 fn complexity_budget_preparation_narrow_delta_falls_back_to_serial() {
     let mut runtime = runtime_with_test_schema_execution_model(
-        crate::facade::runtime::RelationalExecutionModel::StagedParallelPreparation,
+        crate::facade::runtime::RelationalExecutionModel::ParallelPreparation,
     );
     runtime.performance_access().reset_counters();
 

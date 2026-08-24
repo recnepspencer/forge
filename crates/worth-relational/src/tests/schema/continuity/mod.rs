@@ -45,7 +45,3 @@ fn diagnostic_object_field<'a>(
         .get(field)
         .unwrap_or_else(|| panic!("diagnostic object field '{field}' missing from {value:?}"))
 }
-
-fn diagnostic_string_contains(value: &RelationalDiagnosticValue, expected: &str) -> bool {
-    matches!(value, RelationalDiagnosticValue::String(text) if text.contains(expected))
-}

@@ -1,5 +1,0 @@
-error[E0451]: fields `delta` and `readmission` of struct `WorthQueryAdmittedConsumerInvalidation` are private
- --> tests/ui/installed_domain/consumer_invalidation/admitted_invalidation_constructor_private.rs:5:48
-  |
-5 |     WorthQueryAdmittedConsumerInvalidation { ..panic!() }
-  |                                                ^^^^^^^^ fields `delta` and `readmission` are private

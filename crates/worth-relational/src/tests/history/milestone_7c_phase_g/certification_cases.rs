@@ -102,7 +102,9 @@ pub(super) fn certify_prefer_richer_merge_execution() -> MergeExecutionCertifica
             },
         ))),
     );
-    feature_txn.commit().expect("feature branch seed");
+    feature_txn
+        .commit(&mut runtime)
+        .expect("feature branch seed");
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {

@@ -41,7 +41,7 @@ impl<'runtime> InvariantAuthority<'runtime> {
         proposed_working_state: &WorkingState,
         proposed_version_id: crate::identity::data::VersionId,
         merged_plan: &MergedCommitPlan,
-        proposal_identity: Option<&crate::transactions::RelationalMutationProposalIdentity>,
+        proposal_identity: Option<&crate::mvcc::RelationalMutationProposalIdentity>,
     ) -> Result<InvariantExecutionResult, TransactionCommitError> {
         self.enforce_commit_boundary_result(
             self.runtime
@@ -79,7 +79,7 @@ impl<'runtime> InvariantAuthority<'runtime> {
         working_state: &WorkingState,
         version_id: crate::identity::data::VersionId,
         merged_plan: &MergedCommitPlan,
-        proposal_identity: Option<&crate::transactions::RelationalMutationProposalIdentity>,
+        proposal_identity: Option<&crate::mvcc::RelationalMutationProposalIdentity>,
     ) -> Result<InvariantExecutionResult, CommitConflict> {
         let result = {
             let overlay_state = crate::storage::overlay::OverlayStateView::new(
@@ -112,7 +112,7 @@ impl<'runtime> InvariantAuthority<'runtime> {
         working_state: &WorkingState,
         version_id: crate::identity::data::VersionId,
         merged_plan: &MergedCommitPlan,
-        proposal_identity: Option<&crate::transactions::RelationalMutationProposalIdentity>,
+        proposal_identity: Option<&crate::mvcc::RelationalMutationProposalIdentity>,
     ) -> Result<InvariantExecutionResult, PublicationError> {
         let result = {
             let overlay_state = crate::storage::overlay::OverlayStateView::new(

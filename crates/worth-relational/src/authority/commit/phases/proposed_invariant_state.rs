@@ -15,6 +15,7 @@ pub(crate) fn prepare_proposed_invariant_state(
     selected_state: &SelectedRelationalBranchState,
     working_state: &WorkingState,
     merged_plan: &MergedCommitPlan,
+    schema_authority: &crate::branch::RelationalBranchRootSchemaAuthority,
     version_id: crate::identity::data::VersionId,
 ) -> Result<WorkingState, TransactionCommitError> {
     let apply_plan = AuthoritativeApplyPlan {
@@ -39,8 +40,8 @@ pub(crate) fn prepare_proposed_invariant_state(
         &mut proposed,
         &apply_plan,
         &mutation_config,
-        &runtime.config.schema.registry,
-        &runtime.schema_contract_runtime.aspect_contract_plans,
+        schema_authority.registry(),
+        schema_authority.aspect_plans(),
         &mut symbols,
         allowance,
         &mut record_allocations,

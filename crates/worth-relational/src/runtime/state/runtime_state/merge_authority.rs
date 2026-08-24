@@ -13,9 +13,9 @@ impl RelationalRuntime {
         request: MergePlanningRequest,
     ) -> Result<OwnerBoundMergePlanningRequest, RelationalMergeRequestBindingDenial> {
         let target_binding =
-            self.legacy_branch_binding_for_merge_branch(request.target_branch())?;
+            self.admitted_branch_basis_for_merge_branch(request.target_branch())?;
         let source_binding =
-            self.legacy_branch_binding_for_merge_branch(request.source_branch())?;
+            self.admitted_branch_basis_for_merge_branch(request.source_branch())?;
         Ok(OwnerBoundMergePlanningRequest::new(
             request,
             target_binding,
@@ -30,9 +30,9 @@ impl RelationalRuntime {
         request: MergeExecutionRequest,
     ) -> Result<OwnerBoundMergeExecutionRequest, RelationalMergeRequestBindingDenial> {
         let target_binding =
-            self.legacy_branch_binding_for_merge_branch(request.target_branch())?;
+            self.admitted_branch_basis_for_merge_branch(request.target_branch())?;
         let source_binding =
-            self.legacy_branch_binding_for_merge_branch(request.source_branch())?;
+            self.admitted_branch_basis_for_merge_branch(request.source_branch())?;
         Ok(OwnerBoundMergeExecutionRequest::new(
             request,
             target_binding,

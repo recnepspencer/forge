@@ -96,10 +96,10 @@ fn relational_execution_model(
     match execution_mode {
         ExecutionMode::RuntimeDefault => None,
         ExecutionMode::Serial => {
-            Some(crate::config::data::RelationalExecutionModel::SerialAuthority)
+            Some(crate::config::data::RelationalExecutionModel::SingleLaneExecution)
         }
         ExecutionMode::StagedParallel => {
-            Some(crate::config::data::RelationalExecutionModel::StagedParallelPreparation)
+            Some(crate::config::data::RelationalExecutionModel::ParallelPreparation)
         }
         ExecutionMode::FullParallel => {
             Some(crate::config::data::RelationalExecutionModel::ParallelPostCommitConsumption)

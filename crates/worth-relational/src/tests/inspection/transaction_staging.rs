@@ -60,7 +60,9 @@ fn transaction_inspection_savepoint_rollback_scrubs_abandoned_work_and_commit_tr
     assert_eq!(after_rollback.intent_counts.create_count, 1);
     assert_eq!(after_rollback.intent_counts.entity_mutation_count, 0);
 
-    let committed = txn.commit().expect("commit surviving staged work");
+    let committed = txn
+        .commit(&mut runtime)
+        .expect("commit surviving staged work");
     let committed_entity = changed_entities(&committed)[0];
     let commit_inspection = runtime
         .inspect_what_happened()

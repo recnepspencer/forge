@@ -35,7 +35,7 @@ pub(crate) use created_entity_bindings::CommitCreatedEntityBindings;
 pub(crate) use created_relation_bindings::CommitCreatedRelationBindings;
 pub(crate) use plan_artifacts::merge_commit_mutation_plan_token;
 pub use plan_artifacts::{
-    AuthoritativeApplyPlan, LoweredCommitPlan, MergeCommitMutationPlan, MergeExecutionOutcome,
+    AuthoritativeApplyPlan, MergeCommitMutationPlan, MergeExecutionOutcome,
     MergeExecutionStructuralSummary, MergeExecutionSummary, MergedCommitPlan,
     PublishedMergeExecutionAuthority, UndoRecord,
 };

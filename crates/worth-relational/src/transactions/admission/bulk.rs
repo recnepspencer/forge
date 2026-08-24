@@ -10,7 +10,7 @@ use crate::transactions::planning::bulk::{
     bulk_mutation_lineage, bulk_mutation_naming, bulk_mutation_provenance,
 };
 
-pub(in crate::transactions) fn validate_naming_plan(
+pub(crate) fn validate_naming_plan(
     planned: &PlannedBulkMutationBatch,
     client_key_symbol_policy: ClientKeySymbolPolicy,
 ) -> Result<(), CommitConflict> {
@@ -76,7 +76,7 @@ pub(in crate::transactions) fn validate_naming_plan(
     Ok(())
 }
 
-pub(in crate::transactions) fn validate_lineage_plan(
+pub(crate) fn validate_lineage_plan(
     planned: &PlannedBulkMutationBatch,
 ) -> Result<(), CommitConflict> {
     let expected_transitions = bulk_mutation_lineage(planned.intents.as_ref())
@@ -136,7 +136,7 @@ pub(in crate::transactions) fn validate_lineage_plan(
     Ok(())
 }
 
-pub(in crate::transactions) fn validate_provenance_plan(
+pub(crate) fn validate_provenance_plan(
     planned: &PlannedBulkMutationBatch,
     batches: &[WorkerIntentBatch],
 ) -> Result<(), CommitConflict> {
@@ -222,7 +222,10 @@ mod tests {
             }),
         )));
 
-        let mut planned = txn.plan_bulk_mutation_batch().expect("planned batch");
+        let mut planned = txn
+            .plan_bulk_mutation_batch(&runtime)
+            .expect("planning succeeds")
+            .expect("planned batch");
         planned.naming.normalized_client_keys =
             std::sync::Arc::<[ClientKey]>::from(vec![ClientKey::raw("raw-key")]);
 
@@ -262,7 +265,10 @@ mod tests {
             )),
         );
 
-        let mut planned = txn.plan_bulk_mutation_batch().expect("planned batch");
+        let mut planned = txn
+            .plan_bulk_mutation_batch(&runtime)
+            .expect("planning succeeds")
+            .expect("planned batch");
         planned.lineage.lineage_scope_digest = "tampered".to_string();
 
         let error = validate_lineage_plan(&planned).expect_err("lineage admission should reject");
@@ -299,11 +305,14 @@ mod tests {
             )),
         );
 
-        let mut planned = txn.plan_bulk_mutation_batch().expect("planned batch");
+        let mut planned = txn
+            .plan_bulk_mutation_batch(&runtime)
+            .expect("planning succeeds")
+            .expect("planned batch");
         planned.provenance.worker_batch_names =
             std::sync::Arc::<[String]>::from(vec!["tampered".to_string()]);
 
-        let error = validate_provenance_plan(&planned, &txn.batches)
+        let error = validate_provenance_plan(&planned, txn.batches())
             .expect_err("provenance admission should reject");
         assert!(matches!(
             error.class,
@@ -332,9 +341,9 @@ mod tests {
         )));
 
         let admitted = txn
-            .admit_naming_stable_bulk_mutation_batch()
+            .admit_naming_stable_bulk_mutation_batch(&runtime)
             .expect("admission should succeed");
-        let counters = txn.runtime.performance_access().counters();
+        let counters = runtime.performance_access().counters();
 
         assert!(admitted.is_some());
         assert_eq!(counters.bulk_mutation_batch_count, 0);

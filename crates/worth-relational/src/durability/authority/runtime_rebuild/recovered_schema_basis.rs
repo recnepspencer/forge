@@ -4,11 +4,11 @@ use crate::durability::data::{
     DurabilityError, RecoveryAuthorityContinuityMismatch, RecoveryFailureClass,
 };
 use crate::history::data::CanonicalCommitEnvelope;
+use crate::mvcc::RelationalTransactionValidationInput;
 use crate::schema::data::{
     DescriptorCanonicalBasisVersion, ProposedSchemaTransition, SchemaAuthoritySnapshot,
 };
 use crate::schema::{validate_schema_continuity_bundle, SchemaContinuityAuthorityInput};
-use crate::transactions::data::TransactionOptions;
 
 pub(super) struct RecoveredSchemaBasis {
     authority_input: SchemaContinuityAuthorityInput,
@@ -72,7 +72,10 @@ impl RecoveredSchemaBasis {
         })
     }
 
-    pub(super) fn apply(&self, mut options: TransactionOptions) -> TransactionOptions {
+    pub(super) fn apply(
+        &self,
+        mut options: RelationalTransactionValidationInput,
+    ) -> RelationalTransactionValidationInput {
         options = options.with_schema_authority_input(self.authority_input.clone());
         match self.proposed_transition.clone() {
             Some(transition) => {

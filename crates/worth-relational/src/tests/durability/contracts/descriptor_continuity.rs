@@ -146,18 +146,25 @@ fn durability_contract_failure_descriptor_canonical_basis_version_mismatch_is_ex
         )
     }
     .build_registry();
-    let mut txn = runtime.begin_transaction(
-        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
-            .with_schema_transition(
-                schema_transition_for_subscriber_impact(
-                    SchemaVersionId(2),
-                    SchemaSubscriberImpact::ConsumableSurfaceChanged,
-                ),
-                Some(SchemaReconciliationPolicy::PreserveInformation),
-            ),
-    );
+    let mut txn = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+                .with_schema_transition(
+                    schema_transition_for_subscriber_impact(
+                        SchemaVersionId(2),
+                        SchemaSubscriberImpact::ConsumableSurfaceChanged,
+                    ),
+                    Some(SchemaReconciliationPolicy::PreserveInformation),
+                );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(batch_create("transitioned"));
-    txn.commit().unwrap();
+    txn.commit(&mut runtime).unwrap();
 
     let segment_path = runtime
         .durability()

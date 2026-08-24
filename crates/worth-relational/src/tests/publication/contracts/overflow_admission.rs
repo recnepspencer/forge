@@ -19,7 +19,7 @@ fn truth_sequence_overflow_is_rejected_before_publication_effects() {
     let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
     transaction.push_batch(batch_create("overflow-denial"));
     let error = transaction
-        .commit()
+        .commit(&mut runtime)
         .expect_err("sequence overflow must be a typed publication denial");
 
     match &error {

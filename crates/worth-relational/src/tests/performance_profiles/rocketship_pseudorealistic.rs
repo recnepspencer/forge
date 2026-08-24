@@ -78,7 +78,7 @@ pub(super) fn seed_pseudorealistic_rocketship_world(
             batch = batch.push(intent);
         }
         txn.push_batch(batch);
-        txn.commit()
+        txn.commit(&mut runtime)
             .expect("pseudorealistic rocketship entity seed commit")
     };
     let entity_commit_micros = entity_commit_started_at.elapsed().as_micros();
@@ -230,7 +230,7 @@ pub(super) fn seed_pseudorealistic_rocketship_world(
                 batch = batch.push(intent);
             }
             txn.push_batch(batch);
-            txn.commit()
+            txn.commit(&mut runtime)
                 .expect("pseudorealistic rocketship relation seed commit chunk")
         };
         relation_commit_micros += relation_commit_started_at.elapsed().as_micros();

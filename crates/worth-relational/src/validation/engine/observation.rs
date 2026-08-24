@@ -23,7 +23,7 @@ pub(crate) struct CommittedInvariantView<'runtime> {
     committed: CommittedInvariantState<'runtime>,
     enforcement: Option<OverlayStateView<'runtime, WorkingState>>,
     enforcement_version_id: Option<crate::identity::data::VersionId>,
-    proposal_identity: Option<crate::transactions::RelationalMutationProposalIdentity>,
+    proposal_identity: Option<crate::mvcc::RelationalMutationProposalIdentity>,
 }
 
 #[derive(Clone)]
@@ -46,7 +46,7 @@ impl<'runtime> CommittedInvariantView<'runtime> {
         state: &'runtime crate::branch::RelationalBranchRootState,
         proposed_working_state: &'runtime WorkingState,
         proposed_version_id: crate::identity::data::VersionId,
-        proposal_identity: Option<crate::transactions::RelationalMutationProposalIdentity>,
+        proposal_identity: Option<crate::mvcc::RelationalMutationProposalIdentity>,
     ) -> Self {
         Self {
             committed: CommittedInvariantState::Branch(state),
@@ -88,7 +88,7 @@ impl<'runtime> CommittedInvariantView<'runtime> {
 
     pub(crate) fn proposal_identity(
         &self,
-    ) -> Option<&crate::transactions::RelationalMutationProposalIdentity> {
+    ) -> Option<&crate::mvcc::RelationalMutationProposalIdentity> {
         self.proposal_identity.as_ref()
     }
 }
@@ -96,13 +96,13 @@ impl<'runtime> CommittedInvariantView<'runtime> {
 #[derive(Clone)]
 pub(crate) struct SpeculativeInvariantView<'runtime> {
     state: OverlayStateView<'runtime, WorkingState>,
-    proposal_identity: Option<crate::transactions::RelationalMutationProposalIdentity>,
+    proposal_identity: Option<crate::mvcc::RelationalMutationProposalIdentity>,
 }
 
 impl<'runtime> SpeculativeInvariantView<'runtime> {
     pub(crate) fn new(
         state: OverlayStateView<'runtime, WorkingState>,
-        proposal_identity: Option<crate::transactions::RelationalMutationProposalIdentity>,
+        proposal_identity: Option<crate::mvcc::RelationalMutationProposalIdentity>,
     ) -> Self {
         Self {
             state,
@@ -130,7 +130,7 @@ impl<'runtime> InvariantObservation<'runtime> {
         state: &'runtime crate::branch::RelationalBranchRootState,
         proposed_working_state: &'runtime WorkingState,
         proposed_version_id: crate::identity::data::VersionId,
-        proposal_identity: Option<crate::transactions::RelationalMutationProposalIdentity>,
+        proposal_identity: Option<crate::mvcc::RelationalMutationProposalIdentity>,
     ) -> Self {
         Self::Committed(CommittedInvariantView::from_branch_with_proposed(
             state,
@@ -148,7 +148,7 @@ impl<'runtime> InvariantObservation<'runtime> {
 
     pub(crate) fn speculative_with_proposal(
         state: OverlayStateView<'runtime, WorkingState>,
-        proposal_identity: Option<crate::transactions::RelationalMutationProposalIdentity>,
+        proposal_identity: Option<crate::mvcc::RelationalMutationProposalIdentity>,
     ) -> Self {
         Self::Speculative(SpeculativeInvariantView::new(state, proposal_identity))
     }
@@ -186,7 +186,7 @@ impl<'runtime> InvariantObservation<'runtime> {
 
     pub(crate) fn proposal_identity(
         &self,
-    ) -> Option<&crate::transactions::RelationalMutationProposalIdentity> {
+    ) -> Option<&crate::mvcc::RelationalMutationProposalIdentity> {
         match self {
             Self::Committed(view) => view.proposal_identity(),
             Self::Speculative(view) => view.proposal_identity.as_ref(),

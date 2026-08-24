@@ -39,12 +39,18 @@ fn subscriber_stream_rejects_when_normalized_continuation_proof_exceeds_complexi
         );
 
     install_schema_version(&mut runtime, SchemaVersionId(2));
-    let mut txn = runtime.begin_transaction(visible_bridge_transition_options(
-        &runtime,
-        SchemaVersionId(2),
-    ));
+    let mut txn = {
+        let transaction_validation_input =
+            visible_bridge_transition_options(&runtime, SchemaVersionId(2));
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(batch_create("b"));
-    txn.commit().unwrap();
+    txn.commit(&mut runtime).unwrap();
 
     let error = runtime
         .publication()

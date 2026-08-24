@@ -259,9 +259,14 @@ fn commit_relation(
         .branch_identity(&branch_id)
         .expect("branch identity is owner-issued");
     let options = runtime
-        .transaction_options_for(&identity)
+        .admit_branch_basis(&identity)
         .expect("transaction authority is owner-issued");
-    let mut transaction = runtime.begin_transaction(options);
+    let mut transaction = runtime
+        .begin_branch_transaction(
+            &options,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context");
     transaction.push_batch(
         WorkerIntentBatch::new(client_key).push(MutationIntent::Create(CreateIntent::Relation(
             RelationSpec {
@@ -274,7 +279,7 @@ fn commit_relation(
             },
         ))),
     );
-    transaction.commit()
+    transaction.commit(runtime)
 }
 
 fn registry_with_vessel_source_cardinality(

@@ -67,7 +67,7 @@ impl<'runtime> InvariantAccess<'runtime> {
         state: crate::storage::overlay::OverlayStateView<'state, crate::runtime::WorkingState>,
         version_id: crate::identity::data::VersionId,
         merged_plan: Option<&'state MergedCommitPlan>,
-        proposal_identity: Option<&crate::transactions::RelationalMutationProposalIdentity>,
+        proposal_identity: Option<&crate::mvcc::RelationalMutationProposalIdentity>,
     ) -> InvariantExecutionResult {
         self.execute_for_state(
             InvariantRequestProfile::MutationSensitive,
@@ -83,7 +83,7 @@ impl<'runtime> InvariantAccess<'runtime> {
         proposed_working_state: &crate::storage::overlay::WorkingState,
         proposed_version_id: crate::identity::data::VersionId,
         merged_plan: &'runtime MergedCommitPlan,
-        proposal_identity: Option<&crate::transactions::RelationalMutationProposalIdentity>,
+        proposal_identity: Option<&crate::mvcc::RelationalMutationProposalIdentity>,
     ) -> InvariantExecutionResult {
         self.execute_for_selected_branch_plan(
             InvariantRequestProfile::CommitBoundary,
@@ -124,7 +124,7 @@ impl<'runtime> InvariantAccess<'runtime> {
         state: crate::storage::overlay::OverlayStateView<'state, crate::runtime::WorkingState>,
         version_id: crate::identity::data::VersionId,
         merged_plan: Option<&'state MergedCommitPlan>,
-        proposal_identity: Option<&crate::transactions::RelationalMutationProposalIdentity>,
+        proposal_identity: Option<&crate::mvcc::RelationalMutationProposalIdentity>,
     ) -> InvariantExecutionResult {
         self.execute_for_state(
             InvariantRequestProfile::SnapshotPublication,

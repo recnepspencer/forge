@@ -21,7 +21,7 @@ pub struct CustomInvariantExecutionContext<'runtime> {
     relations: StructuralRelationView<'runtime>,
     counts: StructuralCountView,
     traversal: BoundedStructuralTraversal<'runtime>,
-    proposal_identity: Option<crate::transactions::RelationalMutationProposalIdentity>,
+    proposal_identity: Option<crate::mvcc::RelationalMutationProposalIdentity>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -33,7 +33,7 @@ pub struct CustomInvariantProvenance {
     pub counts: StructuralCountView,
     pub traversal: CustomInvariantTraversalSummary,
     #[serde(skip)]
-    pub proposal_identity: Option<crate::transactions::RelationalMutationProposalIdentity>,
+    pub proposal_identity: Option<crate::mvcc::RelationalMutationProposalIdentity>,
 }
 
 impl<'runtime> CustomInvariantExecutionContext<'runtime> {

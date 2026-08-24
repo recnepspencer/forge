@@ -9,7 +9,7 @@ use crate::transactions::data::{
     CommitConflict, ConflictClass, RecordAspectPatchDenial, RecordAspectPatchTarget,
 };
 
-pub(super) fn readmit(
+pub(crate) fn readmit(
     candidate: PortableRecordAspectPatch,
     purpose: PortablePatchReadmissionPurpose,
     plan: Option<&LoweredAspectContractPlan>,
@@ -35,7 +35,7 @@ pub(super) fn readmit(
     }
 }
 
-pub(super) fn readmit_field_authoring(
+pub(crate) fn readmit_field_authoring(
     fields: &crate::transactions::data::AspectFieldPatch,
     purpose: PortablePatchReadmissionPurpose,
     plan: Option<&LoweredAspectContractPlan>,
@@ -48,7 +48,7 @@ pub(super) fn readmit_field_authoring(
     readmit(candidate, purpose, plan, target)
 }
 
-pub(super) fn apply(
+pub(crate) fn apply(
     current: Option<&AuthoritativeRecordAspectState>,
     patch: &AuthoritativeRecordAspectPatch,
     target: RecordAspectPatchTarget,

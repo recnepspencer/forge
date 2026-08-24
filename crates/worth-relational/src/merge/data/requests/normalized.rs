@@ -1,7 +1,7 @@
 use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::branch::RelationalLegacyBranchBinding;
+use crate::branch::AdmittedRelationalBranchBasis;
 use crate::history::data::BranchId;
 
 use super::{
@@ -49,7 +49,7 @@ pub struct NormalizedRelationalMergeRequest {
     topology_intent: RelationalMergeTopologyIntent,
     request_digest: String,
     #[serde(skip)]
-    owner_bindings: Option<(RelationalLegacyBranchBinding, RelationalLegacyBranchBinding)>,
+    owner_bindings: Option<(AdmittedRelationalBranchBasis, AdmittedRelationalBranchBasis)>,
 }
 
 impl PartialEq for NormalizedRelationalMergeRequest {
@@ -163,8 +163,8 @@ impl NormalizedRelationalMergeRequest {
     pub(crate) fn owner_bindings(
         &self,
     ) -> Option<(
-        &RelationalLegacyBranchBinding,
-        &RelationalLegacyBranchBinding,
+        &AdmittedRelationalBranchBasis,
+        &AdmittedRelationalBranchBasis,
     )> {
         self.owner_bindings
             .as_ref()

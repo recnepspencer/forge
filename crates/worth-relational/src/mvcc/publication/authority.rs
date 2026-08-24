@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::branch::{RelationalLegacyBranchBinding, SelectedRelationalBranchState};
+use crate::branch::{AdmittedRelationalBranchBasis, SelectedRelationalBranchState};
 use crate::history::data::{CanonicalCommitEnvelope, CommitId, RelationalCommitReceipt};
 use crate::history::RelationalCommitArtifact;
 use crate::publication::patch::data::PatchStreamPosition;
@@ -67,7 +67,7 @@ impl<'runtime> RelationalPublicationAuthority<'runtime> {
         &self,
         commit_id: CommitId,
         commit_reference: &RelationalCommitReceipt,
-        binding: &RelationalLegacyBranchBinding,
+        binding: &AdmittedRelationalBranchBasis,
         envelope: &CanonicalCommitEnvelope,
     ) -> Result<(), String> {
         self.validate(PublicationRequest {
@@ -84,7 +84,7 @@ impl<'runtime> RelationalPublicationAuthority<'runtime> {
         &mut self,
         commit_id: CommitId,
         commit_reference: RelationalCommitReceipt,
-        binding: &RelationalLegacyBranchBinding,
+        binding: &AdmittedRelationalBranchBasis,
         published_partition_delta: crate::storage::RelationalPublishedPartitionDelta,
         patch_position: PatchStreamPosition,
         envelope: Arc<CanonicalCommitEnvelope>,
@@ -111,7 +111,7 @@ impl<'runtime> RelationalPublicationAuthority<'runtime> {
         &mut self,
         commit_id: CommitId,
         commit_reference: RelationalCommitReceipt,
-        binding: &RelationalLegacyBranchBinding,
+        binding: &AdmittedRelationalBranchBasis,
         selected_branch_state: &SelectedRelationalBranchState,
         published_partition_delta: crate::storage::RelationalPublishedPartitionDelta,
         patch_position: PatchStreamPosition,
@@ -133,7 +133,7 @@ impl<'runtime> RelationalPublicationAuthority<'runtime> {
         &mut self,
         commit_id: CommitId,
         commit_reference: RelationalCommitReceipt,
-        binding: &RelationalLegacyBranchBinding,
+        binding: &AdmittedRelationalBranchBasis,
         selected_branch_state: &SelectedRelationalBranchState,
         published_partition_delta: crate::storage::RelationalPublishedPartitionDelta,
         patch_position: PatchStreamPosition,

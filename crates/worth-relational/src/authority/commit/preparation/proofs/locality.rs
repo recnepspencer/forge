@@ -29,7 +29,7 @@ pub(crate) enum PreparationReadSetApproximation {
 pub(crate) enum PreparationWriteExclusionClass {
     ReadOnly,
     PublicationExcluded,
-    RequiresSerialAuthority,
+    RequiresSingleLaneExecution,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

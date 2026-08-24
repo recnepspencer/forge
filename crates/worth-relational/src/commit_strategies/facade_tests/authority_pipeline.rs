@@ -1,60 +1,6 @@
 use super::native_strategy_fixtures::*;
 
 #[test]
-fn execute_lowered_commit_routes_strategy_plan_through_authoritative_pipeline() {
-    let mut runtime = RelationalRuntimeBuilder::new()
-        .schema_registry(strategy_schema_registry())
-        .commit_strategy(strategy_registration())
-        .build();
-    let request = canonical_request();
-    let execution = execution_draft(&request);
-    let lowered = {
-        let (transaction_options, mut authority) =
-            crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
-        authority
-            .lower_execution(&request, &execution, transaction_options)
-            .expect("lowered strategy plan")
-    };
-
-    let commit = {
-        let mut authority = CommitStrategiesAuthorityFacade::new(&mut runtime);
-        authority
-            .execute_lowered_commit(lowered)
-            .expect("strategy commit executed")
-    };
-
-    assert_eq!(commit.commit.commit_id.0, 1);
-    assert_eq!(commit.version_id.0, 1);
-    assert_eq!(runtime.current_version_id().0, 1);
-    assert!(commit.publication().strategy_artifacts.is_some());
-    assert!(commit.publication().envelope.strategy_artifacts.is_some());
-    let populated_nested_bytes = commit
-        .publication()
-        .envelope
-        .allocation_inventory()
-        .authoritative_nested_bytes;
-    let mut omitted_strategy = commit.publication().envelope.as_ref().clone();
-    omitted_strategy.strategy_artifacts = None;
-    assert!(
-        populated_nested_bytes
-            > omitted_strategy
-                .allocation_inventory()
-                .authoritative_nested_bytes
-    );
-    assert_eq!(
-        commit
-            .publication()
-            .strategy_artifacts
-            .as_ref()
-            .expect("strategy artifacts")
-            .merge_descriptor()
-            .semantic_name()
-            .as_str(),
-        "strategy.intent.reconcile"
-    );
-}
-
-#[test]
 fn validate_lowered_plan_preserves_strategy_provenance_and_commit_boundary_summary() {
     let mut runtime = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_schema_registry())
@@ -63,108 +9,122 @@ fn validate_lowered_plan_preserves_strategy_provenance_and_commit_boundary_summa
     let request = canonical_request();
     let execution = execution_draft(&request);
     let lowered = {
-        let (transaction_options, mut authority) =
+        let (transaction_validation_input, mut authority) =
             crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
         authority
-            .lower_execution(&request, &execution, transaction_options)
+            .lower_execution_with_input(
+                &mut runtime,
+                &request,
+                &execution,
+                transaction_validation_input,
+            )
             .expect("lowered strategy plan")
     };
+    let lowered_merged_plan = lowered.merged_plan().clone();
+    let lowered_footprint = lowered.transaction().footprint().clone();
 
     let validated = {
-        let mut authority = CommitStrategiesAuthorityFacade::new(&mut runtime);
+        let mut authority = CommitStrategiesAuthorityFacade::new();
         authority
-            .validate_lowered_plan(lowered)
+            .validate_lowered_plan(&mut runtime, lowered)
             .expect("validated lowered strategy plan")
     };
 
+    let artifacts = validated
+        .strategy_commit_artifacts()
+        .expect("strategy validation decorates the canonical proposal");
     assert_eq!(
-        validated.lowered_plan().lowering_provenance().strategy_id(),
+        artifacts.lowering_provenance().strategy_id(),
         CommitStrategyId(41)
     );
     assert_eq!(validated.validated_against_version_id().0, 0);
+    assert_eq!(validated.prepared.merged_plan, lowered_merged_plan);
+    assert_eq!(validated.footprint(), &lowered_footprint);
     assert!(validated.validation_summary().commit_boundary_seen);
     assert!(validated.validation_summary().mutation_sensitive_seen);
     assert!(validated.validation_summary().snapshot_publication_seen);
     assert_eq!(validated.validation_summary().execution_count, 3);
     assert!(validated.validation_summary().plan_backed_execution_count >= 1);
-    assert_eq!(validated.preview_validation_cost().merged_intent_count(), 1);
-    assert_eq!(
-        validated
-            .preview_validation_cost()
-            .post_mutation_preview_pass_count(),
-        2
-    );
-    assert!(validated
-        .preview_mutation_sensitive_invariants()
-        .metadata()
-        .has_merged_plan());
+    let preview_cost = artifacts
+        .preview_validation_cost()
+        .expect("strategy proposal records preview validation cost");
+    assert_eq!(preview_cost.merged_intent_count(), 1);
+    assert_eq!(preview_cost.post_mutation_preview_pass_count(), 2);
 }
 
 #[test]
-fn strategy_proposal_uses_global_next_version_when_branch_lags_sibling() {
+fn validated_strategy_proposal_survives_unrelated_sibling_advance() {
     let mut runtime = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_schema_registry())
         .commit_strategy(strategy_registration())
         .build();
 
-    for client_key in ["main-before-fork", "main-after-fork"] {
-        let mut transaction =
-            crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-        transaction.push_batch(
-            WorkerIntentBatch::new(client_key).push(MutationIntent::Create(CreateIntent::Entity(
-                EntitySpec {
-                    partition_id: PartitionId(1),
-                    kind_id: KindId(1),
-                    client_key: ClientKey::from(client_key),
-                    fields: strategy_name_and_replicas_patch(client_key, 1),
-                },
-            ))),
-        );
-        if client_key == "main-before-fork" {
-            transaction.commit().expect("pre-fork main commit");
-            let (_, basis) = runtime
-                .observe_fork_source(&BranchId("main".to_owned()))
-                .expect("main remains forkable");
-            runtime
-                .fork_branch(BranchId("strategy-version-child".to_owned()), basis)
-                .expect("child branch installs from main");
-        } else {
-            transaction.commit().expect("sibling main commit");
-        }
-    }
+    let mut seed = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    seed.push_batch(
+        WorkerIntentBatch::new("main-before-fork").push(MutationIntent::Create(
+            CreateIntent::Entity(EntitySpec {
+                partition_id: PartitionId(1),
+                kind_id: KindId(1),
+                client_key: ClientKey::from("main-before-fork"),
+                fields: strategy_name_and_replicas_patch("main-before-fork", 1),
+            }),
+        )),
+    );
+    seed.commit(&mut runtime).expect("pre-fork main commit");
+    let (_, basis) = runtime
+        .observe_fork_source(&BranchId("main".to_owned()))
+        .expect("main remains forkable");
+    runtime
+        .fork_branch(BranchId("strategy-version-child".to_owned()), basis)
+        .expect("child branch installs from main");
 
     let request = canonical_request();
     let execution = execution_draft(&request);
     let child = BranchId("strategy-version-child".to_owned());
     let validated = {
-        let (transaction_options, mut authority) =
+        let (transaction_validation_input, mut authority) =
             crate::tests::support::test_owner_strategy_authority(&mut runtime, Some(child));
         let lowered = authority
-            .lower_execution(&request, &execution, transaction_options)
+            .lower_execution_with_input(
+                &mut runtime,
+                &request,
+                &execution,
+                transaction_validation_input,
+            )
             .expect("child strategy lowers against its selected root");
         authority
-            .validate_lowered_plan(lowered)
-            .expect("child strategy validates after sibling advance")
+            .validate_lowered_plan(&mut runtime, lowered)
+            .expect("child strategy validates before sibling advance")
     };
+    let validated_version = validated.proposal_identity().proposed_version_id();
 
-    assert_eq!(
-        validated.proposal_identity().proposed_version_id(),
-        runtime.history().preview_next_version_id(),
-        "strategy identity must use the global next version owner"
-    );
+    let mut sibling = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    sibling.push_batch(WorkerIntentBatch::new("main-after-validation").push(
+        MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+            partition_id: PartitionId(1),
+            kind_id: KindId(1),
+            client_key: ClientKey::from("main-after-validation"),
+            fields: strategy_name_and_replicas_patch("main-after-validation", 1),
+        })),
+    ));
+    sibling
+        .commit(&mut runtime)
+        .expect("unrelated sibling commit");
+
     assert_ne!(
-        validated.proposal_identity().proposed_version_id(),
-        validated.validated_against_version_id(),
-        "the lagging branch version must not be used as the proposal version"
+        validated_version,
+        runtime.history().preview_next_version_id(),
+        "the sibling commit must force canonical proposal revalidation"
     );
 
     let commit = {
-        let mut authority = CommitStrategiesAuthorityFacade::new(&mut runtime);
+        let mut authority = CommitStrategiesAuthorityFacade::new();
         authority
-            .execute_validated_commit(validated)
-            .expect("branch-local strategy progress remains admissible")
+            .execute_validated_commit(&mut runtime, validated)
+            .expect("unrelated sibling progress remains admissible")
     };
     assert_eq!(commit.version_id, runtime.current_version_id());
+    assert_ne!(commit.version_id, validated_version);
 }
 
 #[test]
@@ -176,20 +136,25 @@ fn execute_validated_commit_routes_prevalidated_strategy_plan_through_authoritat
     let request = canonical_request();
     let execution = execution_draft(&request);
     let validated = {
-        let (transaction_options, mut authority) =
+        let (transaction_validation_input, mut authority) =
             crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
         let lowered = authority
-            .lower_execution(&request, &execution, transaction_options)
+            .lower_execution_with_input(
+                &mut runtime,
+                &request,
+                &execution,
+                transaction_validation_input,
+            )
             .expect("lowered strategy plan");
         authority
-            .validate_lowered_plan(lowered)
+            .validate_lowered_plan(&mut runtime, lowered)
             .expect("validated lowered strategy plan")
     };
 
     let commit = {
-        let mut authority = CommitStrategiesAuthorityFacade::new(&mut runtime);
+        let mut authority = CommitStrategiesAuthorityFacade::new();
         authority
-            .execute_validated_commit(validated)
+            .execute_validated_commit(&mut runtime, validated)
             .expect("validated strategy commit executed")
     };
 
@@ -223,6 +188,78 @@ fn execute_validated_commit_routes_prevalidated_strategy_plan_through_authoritat
 }
 
 #[test]
+fn validate_lowered_plan_rejects_stale_basis_with_zero_residue() {
+    let mut runtime = RelationalRuntimeBuilder::new()
+        .schema_registry(strategy_schema_registry())
+        .commit_strategy(strategy_registration())
+        .build();
+    let request = canonical_request();
+    let execution = execution_draft(&request);
+    let lowered = {
+        let (transaction_validation_input, mut authority) =
+            crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
+        authority
+            .lower_execution_with_input(
+                &mut runtime,
+                &request,
+                &execution,
+                transaction_validation_input,
+            )
+            .expect("lowered strategy plan")
+    };
+    let mut intervening =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    intervening.push_batch(WorkerIntentBatch::new("advance-before-validation").push(
+        MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+            partition_id: PartitionId(1),
+            kind_id: KindId(1),
+            client_key: ClientKey::from("advance-before-validation"),
+            fields: strategy_name_and_replicas_patch("advance-before-validation", 1),
+        })),
+    ));
+    intervening
+        .commit(&mut runtime)
+        .expect("intervening commit advances the exact branch");
+    let symbols_before = runtime.services.symbols.clone();
+    let configured_symbols_before = runtime.config().identity.symbol_table.clone();
+    let branch_cells_before = runtime.history().branch_cells_snapshot();
+    let catalog_before = runtime.history().commit_envelopes_snapshot();
+    let reference_cost_before = runtime.phase4_reference_cost_counters();
+    let complexity_before = runtime.performance_access().counters();
+
+    let error = CommitStrategiesAuthorityFacade::new()
+        .validate_lowered_plan(&mut runtime, lowered)
+        .expect_err("validation rejects a lowered plan after its branch moves");
+
+    assert!(matches!(
+        error,
+        TransactionCommitError::Conflict { error, .. }
+            if matches!(
+                error.class,
+                crate::transactions::data::ConflictClass::StaleValidationBasis { .. }
+            )
+    ));
+    assert_eq!(runtime.services.symbols, symbols_before);
+    assert_eq!(
+        runtime.config().identity.symbol_table,
+        configured_symbols_before
+    );
+    assert_eq!(
+        runtime.phase4_reference_cost_counters(),
+        reference_cost_before
+    );
+    assert_eq!(runtime.performance_access().counters(), complexity_before);
+    assert_eq!(
+        runtime.history().branch_cells_snapshot(),
+        branch_cells_before
+    );
+    assert_eq!(
+        runtime.history().commit_envelopes_snapshot(),
+        catalog_before
+    );
+}
+
+#[test]
 fn execute_validated_commit_rejects_stale_validation_basis_after_intervening_commit() {
     let mut runtime = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_schema_registry())
@@ -231,13 +268,18 @@ fn execute_validated_commit_rejects_stale_validation_basis_after_intervening_com
     let request = canonical_request();
     let execution = execution_draft(&request);
     let validated = {
-        let (transaction_options, mut authority) =
+        let (transaction_validation_input, mut authority) =
             crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
         let lowered = authority
-            .lower_execution(&request, &execution, transaction_options)
+            .lower_execution_with_input(
+                &mut runtime,
+                &request,
+                &execution,
+                transaction_validation_input,
+            )
             .expect("lowered strategy plan");
         authority
-            .validate_lowered_plan(lowered)
+            .validate_lowered_plan(&mut runtime, lowered)
             .expect("validated lowered strategy plan")
     };
 
@@ -251,12 +293,20 @@ fn execute_validated_commit_rejects_stale_validation_basis_after_intervening_com
             fields: strategy_name_and_replicas_patch("ordinary-a", 1),
         })),
     ));
-    ordinary_txn.commit().expect("ordinary commit succeeds");
+    ordinary_txn
+        .commit(&mut runtime)
+        .expect("ordinary commit succeeds");
+    let symbols_before = runtime.services.symbols.clone();
+    let configured_symbols_before = runtime.config().identity.symbol_table.clone();
+    let branch_cells_before = runtime.history().branch_cells_snapshot();
+    let catalog_before = runtime.history().commit_envelopes_snapshot();
+    let reference_cost_before = runtime.phase4_reference_cost_counters();
+    let complexity_before = runtime.performance_access().counters();
 
     let error = {
-        let mut authority = CommitStrategiesAuthorityFacade::new(&mut runtime);
+        let mut authority = CommitStrategiesAuthorityFacade::new();
         authority
-            .execute_validated_commit(validated)
+            .execute_validated_commit(&mut runtime, validated)
             .expect_err("stale validated strategy plan should be rejected")
     };
 
@@ -269,4 +319,22 @@ fn execute_validated_commit_rejects_stale_validation_basis_after_intervening_com
         }
         other => panic!("expected conflict rejection, got {other:?}"),
     }
+    assert_eq!(runtime.services.symbols, symbols_before);
+    assert_eq!(
+        runtime.config().identity.symbol_table,
+        configured_symbols_before
+    );
+    assert_eq!(
+        runtime.phase4_reference_cost_counters(),
+        reference_cost_before
+    );
+    assert_eq!(runtime.performance_access().counters(), complexity_before);
+    assert_eq!(
+        runtime.history().branch_cells_snapshot(),
+        branch_cells_before
+    );
+    assert_eq!(
+        runtime.history().commit_envelopes_snapshot(),
+        catalog_before
+    );
 }

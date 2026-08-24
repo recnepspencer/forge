@@ -61,7 +61,7 @@ fn durability_contract_recovery_preserves_inspection_truth_bundle() {
                 }),
             )),
         );
-        txn.commit().unwrap()
+        txn.commit(&mut runtime).unwrap()
     };
     runtime.durability_authority().checkpoint().unwrap();
     let expected = capture_inspection_truth_bundle(
@@ -161,7 +161,7 @@ fn durability_contract_persisted_commit_fails_closed_when_store_path_is_not_dire
 
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(batch_create("fail-closed"));
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
 
     assert!(matches!(error, TransactionCommitError::Publication { .. }));
     assert!(runtime.history().latest_commit().is_none());

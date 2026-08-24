@@ -119,5 +119,5 @@ pub(crate) fn repair_settlement_with_aspect_field_patches(
             )))
             .into(),
     );
-    txn.commit().unwrap()
+    txn.commit(&mut world.runtime).unwrap()
 }

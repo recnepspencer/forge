@@ -60,7 +60,7 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
             }),
         )),
     );
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(error.code(), DiagnosticCode::RelationCardinalityViolation);

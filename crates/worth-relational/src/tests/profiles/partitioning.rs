@@ -30,7 +30,7 @@ fn bulk_create_entities_match_equivalent_singular_creates() {
             ],
         }),
     )));
-    let bulk_outcome = bulk_txn.commit().unwrap();
+    let bulk_outcome = bulk_txn.commit(&mut bulk_runtime).unwrap();
 
     let singular_runtime = apply_batches(vec![batch_create("a"), batch_create("b")]);
     let bulk_read = bulk_runtime
@@ -102,7 +102,7 @@ fn staged_parallel_bulk_entity_import_matches_serial_reference() {
                 ],
             }),
         )));
-        let outcome = txn.commit().unwrap();
+        let outcome = txn.commit(&mut runtime).unwrap();
         let read = runtime
             .read_truth()
             .read_snapshot(&outcome.snapshot)
@@ -115,9 +115,8 @@ fn staged_parallel_bulk_entity_import_matches_serial_reference() {
         (outcome, names)
     }
 
-    let (serial_outcome, serial_names) = bulk_commit(RelationalExecutionModel::SerialAuthority);
-    let (staged_outcome, staged_names) =
-        bulk_commit(RelationalExecutionModel::StagedParallelPreparation);
+    let (serial_outcome, serial_names) = bulk_commit(RelationalExecutionModel::SingleLaneExecution);
+    let (staged_outcome, staged_names) = bulk_commit(RelationalExecutionModel::ParallelPreparation);
 
     assert_eq!(
         staged_outcome.changed_records.len(),
@@ -187,7 +186,7 @@ fn cross_context_relations_respect_relation_kind_policy() {
         )),
     );
 
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
 
     assert!(matches!(
         error,

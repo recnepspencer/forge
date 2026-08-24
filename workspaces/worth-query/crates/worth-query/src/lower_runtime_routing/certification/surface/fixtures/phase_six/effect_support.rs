@@ -46,9 +46,14 @@ pub(crate) fn create_entity(
     branch: BranchId,
 ) -> worth_relational::facade::identity::EntityId {
     let options = runtime
-        .owner_transaction_options_for_branch(&branch)
+        .admit_named_branch_basis(&branch)
         .expect("fixture branch remains owner-admissible");
-    let mut txn = runtime.begin_transaction(options);
+    let mut txn = runtime
+        .begin_branch_transaction(
+            &options,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context");
     txn.push_batch(
         WorkerIntentBatch::new(format!("create-{name}")).push(MutationIntent::Create(
             CreateIntent::Entity(EntitySpec {
@@ -60,7 +65,7 @@ pub(crate) fn create_entity(
             }),
         )),
     );
-    let outcome = txn.commit().expect("seed commit should succeed");
+    let outcome = txn.commit(runtime).expect("seed commit should succeed");
     outcome
         .changed_records
         .iter()

@@ -59,18 +59,27 @@ fn recovery_rejects_a_schema_carrier_swapped_between_exact_roots() {
         )
     }
     .build_registry();
-    let mut transaction = runtime.begin_transaction(
-        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
-            .with_schema_transition(
-                schema_transition_for_subscriber_impact(
-                    SchemaVersionId(2),
-                    SchemaSubscriberImpact::ConsumableSurfaceChanged,
-                ),
-                Some(SchemaReconciliationPolicy::PreserveInformation),
-            ),
-    );
+    let mut transaction = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+                .with_schema_transition(
+                    schema_transition_for_subscriber_impact(
+                        SchemaVersionId(2),
+                        SchemaSubscriberImpact::ConsumableSurfaceChanged,
+                    ),
+                    Some(SchemaReconciliationPolicy::PreserveInformation),
+                );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     transaction.push_batch(batch_create("schema-v2"));
-    transaction.commit().expect("schema transition commits");
+    transaction
+        .commit(&mut runtime)
+        .expect("schema transition commits");
     runtime
         .durability_authority()
         .checkpoint()
@@ -149,19 +158,34 @@ fn recovered_exact_roots_interpret_records_with_their_own_schema_contracts() {
     }
     .build_registry();
     runtime.config.schema.registry = v2_registry.clone();
-    let mut transaction = runtime.begin_transaction(
-        crate::tests::support::test_owner_transaction_options_for_main(&runtime)
-            .with_schema_transition(
-                schema_transition_for_subscriber_impact(
-                    SchemaVersionId(2),
-                    SchemaSubscriberImpact::ConsumableSurfaceChanged,
-                ),
-                Some(SchemaReconciliationPolicy::PreserveInformation),
-            ),
-    );
+    let mut transaction = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+                .with_schema_transition(
+                    schema_transition_for_subscriber_impact(
+                        SchemaVersionId(2),
+                        SchemaSubscriberImpact::ConsumableSurfaceChanged,
+                    ),
+                    Some(SchemaReconciliationPolicy::PreserveInformation),
+                );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     transaction.push_batch(batch_create("new-contract"));
-    let new = transaction.commit().expect("v2 schema transition commits");
+    let new = transaction
+        .commit(&mut runtime)
+        .expect("v2 schema transition commits");
     let new_entity = changed_entities(&new)[0];
+    let _legacy_before_recovery = update_entity_on_branch(
+        &mut runtime,
+        old_entity,
+        "legacy-v1-before-recovery",
+        BranchId("legacy-schema".to_owned()),
+    );
     runtime
         .durability_authority()
         .checkpoint()
@@ -197,7 +221,7 @@ fn recovered_exact_roots_interpret_records_with_their_own_schema_contracts() {
         .expect("v1 entity remains present");
     assert_eq!(
         read_entity_name(old_record),
-        Some("old-contract".to_owned())
+        Some("legacy-v1-before-recovery".to_owned())
     );
     assert_eq!(
         read_entity_aspect_field(old_record, aspect_key("display"), field_key("display")),
@@ -261,6 +285,46 @@ fn recovered_exact_roots_interpret_records_with_their_own_schema_contracts() {
         current_projection.entity_record_with_projection_scope(new_entity, name_scope, |_| Some(()))
     }))
     .is_err());
+
+    let _legacy_after_recovery = update_entity_on_branch(
+        &mut recovered,
+        old_entity,
+        "legacy-v1-after-recovery",
+        BranchId("legacy-schema".to_owned()),
+    );
+    let mut v2_meaning_on_v1_root = crate::tests::support::test_owner_begin_transaction_for_branch(
+        &mut recovered,
+        BranchId("legacy-schema".to_owned()),
+    );
+    v2_meaning_on_v1_root.push_batch(WorkerIntentBatch::new("v2-meaning-on-v1-root").push(
+        MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+            UpdateEntityFieldsIntent {
+                entity_id: old_entity,
+                fields: single_string_aspect_field_patch(
+                    aspect_key("display"),
+                    field_key("display"),
+                    "not-admitted-by-v1",
+                ),
+            },
+        )),
+    ));
+    let denial = v2_meaning_on_v1_root
+        .commit(&mut recovered)
+        .expect_err("a retained v1 root must deny v2-only meaning");
+    assert!(matches!(
+        denial,
+        TransactionCommitError::Conflict { error, .. }
+            if matches!(
+                error.class,
+                crate::transactions::data::ConflictClass::RecordAspectPatchDenied {
+                    denial: crate::transactions::data::RecordAspectPatchDenial::FieldAuthoringDenied {
+                        reason: crate::transactions::data::AspectFieldTargetRejectionReason::UndeclaredAspect,
+                        ..
+                    },
+                    ..
+                }
+            )
+    ));
 }
 
 fn checkpoint_plan_with_one_root(label: &str) -> RecoveryPlan {

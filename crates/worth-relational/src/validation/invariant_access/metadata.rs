@@ -18,7 +18,7 @@ impl<'runtime> InvariantAccess<'runtime> {
         applicable_groups: InvariantGroupSet,
         max_cost: InvariantCostClass,
         disposition: InvariantExecutionDisposition,
-        proposal_identity: Option<&crate::transactions::RelationalMutationProposalIdentity>,
+        proposal_identity: Option<&crate::mvcc::RelationalMutationProposalIdentity>,
     ) -> InvariantExecutionMetadata {
         InvariantExecutionMetadata::new(
             profile.execution_point(),

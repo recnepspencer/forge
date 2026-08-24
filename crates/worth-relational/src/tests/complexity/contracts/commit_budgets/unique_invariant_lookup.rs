@@ -28,7 +28,7 @@ fn complexity_budget_unique_entity_invariant_scans_the_selected_state() {
             }),
         )),
     );
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     let counters = runtime.performance_access().counters();
 
     assert!(matches!(
@@ -74,7 +74,7 @@ fn complexity_budget_commit_boundary_unique_invariant_applies_the_selected_plan(
             }),
         )),
     );
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     let counters = runtime.performance_access().counters();
 
     assert!(matches!(

@@ -117,7 +117,8 @@ pub(super) fn certify_trade_correction_analysis_round_trip(suite: &'static str) 
                         )))
                         .into(),
                 );
-                txn.commit().expect("analysis branch correction commit")
+                txn.commit(&mut runtime)
+                    .expect("analysis branch correction commit")
             };
             let analysis_commit_micros = analysis_commit_started_at.elapsed().as_micros();
             let analysis_entities = changed_entities(&analysis_commit);

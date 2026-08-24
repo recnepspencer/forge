@@ -185,7 +185,7 @@ fn write_comparison_fields(
         )),
     ));
     transaction
-        .commit()
+        .commit(&mut runtime)
         .expect("comparison fields must be valid for the declared fixture schema");
 }
 

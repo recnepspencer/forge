@@ -33,7 +33,7 @@ fn commit_boundary_short_circuits_when_plan_contract_cannot_touch_profile_groups
             )],
             ..InvariantCatalog::default()
         },
-        RelationalExecutionModel::SerialAuthority,
+        RelationalExecutionModel::SingleLaneExecution,
     );
     let plan = MergedCommitPlan {
         transaction_id: TransactionId(1),
@@ -53,7 +53,7 @@ fn commit_boundary_short_circuits_when_plan_contract_cannot_touch_profile_groups
 fn graph_composition_plan_uses_graph_composition_execution_profile() {
     let runtime = runtime_with_invariants(
         InvariantCatalog::default(),
-        RelationalExecutionModel::SerialAuthority,
+        RelationalExecutionModel::SingleLaneExecution,
     );
     let plan = MergedCommitPlan {
         transaction_id: TransactionId(11),
@@ -88,11 +88,11 @@ fn staged_parallel_commit_boundary_matches_serial_reference_results() {
     };
     let serial_runtime = runtime_with_invariants(
         invariant_catalog.clone(),
-        RelationalExecutionModel::SerialAuthority,
+        RelationalExecutionModel::SingleLaneExecution,
     );
     let staged_runtime = runtime_with_invariants(
         invariant_catalog,
-        RelationalExecutionModel::StagedParallelPreparation,
+        RelationalExecutionModel::ParallelPreparation,
     );
     let plan = MergedCommitPlan {
         transaction_id: TransactionId(2),
@@ -222,9 +222,16 @@ fn commit_boundary_cardinality_failure_fields_localize_nonmanifold_like_overflow
     let target_a = create_entity(&mut runtime, "target-a");
     let target_b = create_entity(&mut runtime, "target-b");
     let _accepted = {
-        let mut txn = runtime.begin_transaction(
-            crate::tests::support::test_owner_transaction_options_for_main(&runtime),
-        );
+        let mut txn = {
+            let transaction_validation_input =
+                crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime);
+            runtime
+                .begin_branch_transaction(
+                    transaction_validation_input.basis(),
+                    transaction_validation_input.intent().clone(),
+                )
+                .expect("owner-admitted transaction context")
+        };
         txn.push_batch(
             crate::facade::transactions::WorkerIntentBatch::new("accepted").push(
                 MutationIntent::Create(CreateIntent::Relation(
@@ -239,7 +246,7 @@ fn commit_boundary_cardinality_failure_fields_localize_nonmanifold_like_overflow
                 )),
             ),
         );
-        txn.commit().unwrap()
+        txn.commit(&mut runtime).unwrap()
     };
     let overflow_plan = MergedCommitPlan {
         transaction_id: TransactionId(5),

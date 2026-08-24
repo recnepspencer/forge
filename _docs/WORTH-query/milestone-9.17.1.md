@@ -1619,6 +1619,11 @@ admitted Supply Chain bases remain repeatable while references move.
 
 ### Phase 7: Detach Transactions And Make Footprints Branch-Qualified
 
+Status: Closed on 2026-08-24. Detached transactions now consume exact admitted
+bases, own branch-qualified overlays and footprints, and progress through the
+single validated-proposal publication path. Independent QA loop, test-quality,
+code-quality, and final-gate reviews reported clean.
+
 Replace optional branch selection and broad runtime borrowing with exact-basis
 transaction binding, detached overlays, read-your-writes, and authoritative
 read/write footprints. Migrate schema and invariant consumers.

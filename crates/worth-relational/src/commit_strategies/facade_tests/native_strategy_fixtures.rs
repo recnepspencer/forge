@@ -238,16 +238,21 @@ pub(super) fn execute_persisted_intent_strategy_commit(
         .commit_strategies()
         .execute(&request, &snapshot)
         .expect("strategy execution");
-    let (transaction_options, mut authority) =
+    let (transaction_validation_input, mut authority) =
         crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
     let lowered = authority
-        .lower_execution(&request, &execution, transaction_options)
+        .lower_execution_with_input(
+            &mut runtime,
+            &request,
+            &execution,
+            transaction_validation_input,
+        )
         .expect("lowered strategy plan");
     let validated = authority
-        .validate_lowered_plan(lowered)
+        .validate_lowered_plan(&mut runtime, lowered)
         .expect("validated strategy plan");
     authority
-        .execute_validated_commit(validated)
+        .execute_validated_commit(&mut runtime, validated)
         .expect("validated strategy commit")
 }
 

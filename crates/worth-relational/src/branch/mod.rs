@@ -25,11 +25,11 @@ mod root_selection;
 mod target;
 mod version;
 
-pub(crate) use authority::RelationalLegacyBranchBinding;
+pub(crate) use authority::issue_relational_branch_mutation_authority;
 pub use authority::{
+    RelationalBranchMutationAuthority, RelationalBranchMutationAuthorityMarker,
     RelationalBranchObservationAuthority, RelationalBranchObservationAuthorityMarker,
     RelationalForkSourceAuthority, RelationalForkSourceAuthorityMarker,
-    RelationalLegacyBranchBindingDenial,
 };
 pub(crate) use basis::AdmittedRelationalBranchBasisInner;
 pub use basis::{

@@ -347,15 +347,21 @@ fn update_field(
     let handle = graph.integration_handle();
     handle.with_runtime_mut(|runtime| {
         let fields = AspectFieldPatch::from(BTreeMap::from([(locator, value)]));
-        let mut transaction = runtime.begin_transaction(
+        let mut transaction = {
+            let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
             runtime
-                .transaction_options_for_main()
-                .expect("main branch binding"),
-        );
+                .begin_branch_transaction(
+                    &transaction_validation_input,
+                    worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                )
+                .expect("owner-admitted transaction context")
+        };
         transaction.push_batch(WorkerIntentBatch::new(reason).push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent { entity_id, fields }),
         )));
-        transaction.commit().unwrap();
+        transaction.commit(runtime).unwrap();
         handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }

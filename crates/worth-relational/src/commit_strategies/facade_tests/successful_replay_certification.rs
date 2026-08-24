@@ -31,16 +31,21 @@ fn replay_commit_certifies_strategy_surface_for_strategy_bearing_commit() {
         .execute(&request, &snapshot)
         .expect("strategy executes against committed basis");
     let commit = {
-        let (transaction_options, mut authority) =
+        let (transaction_validation_input, mut authority) =
             crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
         let lowered = authority
-            .lower_execution(&request, &execution, transaction_options)
+            .lower_execution_with_input(
+                &mut runtime,
+                &request,
+                &execution,
+                transaction_validation_input,
+            )
             .expect("lowered strategy plan");
         let validated = authority
-            .validate_lowered_plan(lowered)
+            .validate_lowered_plan(&mut runtime, lowered)
             .expect("validated lowered strategy plan");
         authority
-            .execute_validated_commit(validated)
+            .execute_validated_commit(&mut runtime, validated)
             .expect("validated strategy commit executed")
     };
 
@@ -110,16 +115,21 @@ fn intent_reconciliation_strategy_commits_and_replays_end_to_end() {
         .execute(&request, &snapshot)
         .expect("strategy executes against committed basis");
     let commit = {
-        let (transaction_options, mut authority) =
+        let (transaction_validation_input, mut authority) =
             crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
         let lowered = authority
-            .lower_execution(&request, &execution, transaction_options)
+            .lower_execution_with_input(
+                &mut runtime,
+                &request,
+                &execution,
+                transaction_validation_input,
+            )
             .expect("lowered strategy plan");
         let validated = authority
-            .validate_lowered_plan(lowered)
+            .validate_lowered_plan(&mut runtime, lowered)
             .expect("validated strategy plan");
         authority
-            .execute_validated_commit(validated)
+            .execute_validated_commit(&mut runtime, validated)
             .expect("validated strategy commit executed")
     };
 
@@ -205,16 +215,21 @@ fn entity_replacement_reconciliation_strategy_commits_lineage_sensitive_replace_
         .execute(&request, &snapshot)
         .expect("replacement strategy executes against committed basis");
     let commit = {
-        let (transaction_options, mut authority) =
+        let (transaction_validation_input, mut authority) =
             crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
         let lowered = authority
-            .lower_execution(&request, &execution, transaction_options)
+            .lower_execution_with_input(
+                &mut runtime,
+                &request,
+                &execution,
+                transaction_validation_input,
+            )
             .expect("lowered replacement strategy plan");
         let validated = authority
-            .validate_lowered_plan(lowered)
+            .validate_lowered_plan(&mut runtime, lowered)
             .expect("validated replacement strategy plan");
         authority
-            .execute_validated_commit(validated)
+            .execute_validated_commit(&mut runtime, validated)
             .expect("validated replacement strategy commit executed")
     };
     let current = runtime

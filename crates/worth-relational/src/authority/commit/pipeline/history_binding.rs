@@ -47,14 +47,14 @@ pub(super) fn bind_commit_history(
     let version_id = mutated.version_id();
     let admitted = mutated.validated_mut().prepared_mut().admitted_mut();
     let merge_diagnostics_plan = admitted.merge_execution_diagnostics_plan().cloned();
-    let (transaction_id, options, _, merge_plan, commit_log, phase_timing) =
+    let (transaction_id, validation_input, _, merge_plan, commit_log, phase_timing) =
         admitted.phase_view().into_parts();
     let history = resolve_authoritative_history_phase(
         runtime,
         commit_log,
         phase_timing,
         transaction_id,
-        options,
+        validation_input,
         version_id,
         merge_plan,
     )?;
@@ -80,12 +80,14 @@ pub(super) fn bind_commit_history(
     }
     let merge_execution_authority =
         merge_plan.map(PublishedMergeExecutionAuthority::from_merge_plan);
-    let schema_continuity = resolve_schema_continuity(runtime, &history.branch_id, options)
-        .map_err(|error| {
-            super::rejection::attach_rejection(commit_log, CommitPhase::ArtifactAssembly, error)
-        })?;
+    let schema_continuity =
+        resolve_schema_continuity(runtime, &history.branch_id, validation_input).map_err(
+            |error| {
+                super::rejection::attach_rejection(commit_log, CommitPhase::ArtifactAssembly, error)
+            },
+        )?;
     emit_schema_continuity_diagnostic(runtime, &history.branch_id, &schema_continuity);
-    let merge_parent_branches = options.merge_parent_branch_ids();
+    let merge_parent_branches = validation_input.merge_parent_branch_ids();
     Ok(HistoryBoundCommitExecution {
         mutated,
         history,

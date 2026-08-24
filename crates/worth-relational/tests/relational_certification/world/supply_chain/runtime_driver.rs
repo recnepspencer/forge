@@ -379,11 +379,16 @@ pub(crate) fn commit_branch_batch(
         .branch_identity(&branch_id)
         .expect("branch identity is owner-issued");
     let options = runtime
-        .transaction_options_for(&identity)
+        .admit_branch_basis(&identity)
         .expect("transaction authority is owner-issued");
-    let mut transaction = runtime.begin_transaction(options);
+    let mut transaction = runtime
+        .begin_branch_transaction(
+            &options,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context");
     transaction.push_batch(batch);
     transaction
-        .commit()
+        .commit(runtime)
         .expect("Supply Chain mutation commits through production publication");
 }

@@ -48,9 +48,12 @@ pub(super) struct MutationPhaseInput<'a> {
     pub(super) transaction_id: TransactionId,
     pub(super) working_state: &'a mut crate::storage::overlay::WorkingState,
     pub(super) merged_plan: &'a MergedCommitPlan,
+    pub(super) schema_authority: &'a crate::branch::RelationalBranchRootSchemaAuthority,
     pub(super) selected_branch_state: &'a crate::branch::SelectedRelationalBranchState,
     pub(super) proposed_version_id: crate::identity::data::VersionId,
-    pub(super) proposal_identity: &'a crate::transactions::RelationalMutationProposalIdentity,
+    pub(super) proposal_identity: &'a crate::mvcc::RelationalMutationProposalIdentity,
+    pub(super) prevalidated_mutation_sensitive:
+        Option<crate::validation::engine::InvariantExecutionResult>,
 }
 
 pub(super) fn run_authoritative_mutation_phase(
@@ -63,9 +66,11 @@ pub(super) fn run_authoritative_mutation_phase(
         transaction_id,
         working_state,
         merged_plan,
+        schema_authority,
         selected_branch_state,
         proposed_version_id,
         proposal_identity,
+        prevalidated_mutation_sensitive,
     } = input;
     commit_log.begin_phase(CommitPhase::AuthoritativeMutation);
     let phase_started = std::time::Instant::now();
@@ -74,9 +79,11 @@ pub(super) fn run_authoritative_mutation_phase(
         transaction_id,
         working_state,
         merged_plan,
+        schema_authority,
         selected_branch_state,
         proposed_version_id,
         proposal_identity,
+        prevalidated_mutation_sensitive,
     )
     .map_err(|error| attach_rejection(commit_log, CommitPhase::AuthoritativeMutation, error))?;
     commit_log.record_invariant_outcomes(mutation.invariant_results());
@@ -90,9 +97,11 @@ fn run_authoritative_mutation_for_runtime(
     transaction_id: TransactionId,
     working_state: &mut crate::runtime::WorkingState,
     merged_plan: &MergedCommitPlan,
+    schema_authority: &crate::branch::RelationalBranchRootSchemaAuthority,
     selected_branch_state: &crate::branch::SelectedRelationalBranchState,
     proposed_version_id: crate::identity::data::VersionId,
-    proposal_identity: &crate::transactions::RelationalMutationProposalIdentity,
+    proposal_identity: &crate::mvcc::RelationalMutationProposalIdentity,
+    prevalidated_mutation_sensitive: Option<crate::validation::engine::InvariantExecutionResult>,
 ) -> Result<MutationPhaseOutput, TransactionCommitError> {
     let version_id = proposed_version_id;
     let apply_plan = AuthoritativeApplyPlan {
@@ -109,8 +118,8 @@ fn run_authoritative_mutation_for_runtime(
     let branch_local_delete_allowance =
         branch_local_delete_allowance_for_plan(selected_branch_state, working_state, merged_plan);
     let mut record_allocations = runtime.record_identity.begin_allocations();
-    let schema_registry = &runtime.config.schema.registry;
-    let aspect_plans = &runtime.schema_contract_runtime.aspect_contract_plans;
+    let schema_registry = schema_authority.registry();
+    let aspect_plans = schema_authority.aspect_plans();
     let services = &mut runtime.services;
     let MutationApplyOutcome {
         effect,
@@ -131,16 +140,19 @@ fn run_authoritative_mutation_for_runtime(
     record_preparation_telemetry(runtime, preparation_telemetry);
     crate::authority::commit::phases::prepare::record_mutation_counters(runtime, working_state);
 
-    let invariant_results = runtime
-        .invariant_authority()
-        .enforce_mutation_sensitive_for_working_state(
-            selected_branch_state,
-            working_state,
-            version_id,
-            merged_plan,
-            Some(proposal_identity),
-        )
-        .map_err(TransactionCommitError::conflict)?;
+    let invariant_results = match prevalidated_mutation_sensitive {
+        Some(result) => result,
+        None => runtime
+            .invariant_authority()
+            .enforce_mutation_sensitive_for_working_state(
+                selected_branch_state,
+                working_state,
+                version_id,
+                merged_plan,
+                Some(proposal_identity),
+            )
+            .map_err(TransactionCommitError::conflict)?,
+    };
 
     Ok(MutationPhaseOutput {
         version_id,

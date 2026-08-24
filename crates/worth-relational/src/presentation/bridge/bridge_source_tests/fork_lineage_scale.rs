@@ -143,7 +143,9 @@ fn create_entity_on_branch(
             },
         ))),
     );
-    transaction.commit().expect("owner-created scale commit");
+    transaction
+        .commit(runtime)
+        .expect("owner-created scale commit");
 }
 
 fn assert_same_branch_history_scale(unrelated_commit_count: usize, checkpoints: &[usize]) {

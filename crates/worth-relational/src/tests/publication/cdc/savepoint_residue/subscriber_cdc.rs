@@ -36,7 +36,7 @@ fn savepoint_abandoned_work_never_appears_in_subscriber_cdc() {
             }),
         )),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
 
     assert!(rollback.summary().has_discarded_entity_creation());
 

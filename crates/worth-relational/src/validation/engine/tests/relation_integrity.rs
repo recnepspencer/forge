@@ -184,7 +184,9 @@ fn commit_publication_stage_rejects_sources_without_required_connectivity() {
         ))),
     );
 
-    let error = txn.commit().expect_err("connectivity publication failure");
+    let error = txn
+        .commit(&mut runtime)
+        .expect_err("connectivity publication failure");
     match error {
         crate::facade::transactions::TransactionCommitError::Publication { error, .. } => {
             assert!(error.detail.contains("reachable_anchor"));
@@ -211,7 +213,7 @@ fn minimum_cardinality_current_version_scans_only_live_slots() {
             }),
         )),
     );
-    delete_txn.commit().expect("retire relation");
+    delete_txn.commit(&mut runtime).expect("retire relation");
 
     runtime.performance_access().reset_counters();
     let _results = InvariantEngine::new(&runtime).execute(

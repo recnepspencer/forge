@@ -15,7 +15,6 @@ dependencies = ["worth-schema-core"]
 [[packages]]
 package = "worth-query-certification"
 dependencies = [
-    "trybuild",
     "worth-foundational",
     "worth-proof",
     "worth-query",

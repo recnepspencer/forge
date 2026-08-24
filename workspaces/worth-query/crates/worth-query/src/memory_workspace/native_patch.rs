@@ -161,13 +161,19 @@ impl WorthQueryMemoryWorkspace {
     ) -> Result<WorthQueryMutationReceipt, WorthQueryWorkspaceError> {
         let options = self
             .runtime
-            .transaction_options_for_main()
+            .admit_main_branch_basis()
             .expect("memory workspace main branch remains owner-admissible");
-        let mut transaction = self.runtime.begin_transaction(options);
+        let mut transaction = self
+            .runtime
+            .begin_branch_transaction(
+                &options,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context");
         transaction
             .push_batch(WorkerIntentBatch::new("query-memory-native-aspect-patch").push(intent));
         let result = transaction
-            .commit()
+            .commit(&mut self.runtime)
             .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
         Ok(self.receipt_from_commit(result, mutation_kind, touches))
     }

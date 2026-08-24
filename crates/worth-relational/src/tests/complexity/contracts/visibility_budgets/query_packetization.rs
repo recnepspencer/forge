@@ -3,7 +3,7 @@ use crate::tests::support::*;
 #[test]
 fn complexity_budget_query_packetization_reports_parallel_shape_for_cross_partition_reads() {
     let mut runtime = runtime_with_test_schema_execution_model(
-        crate::facade::runtime::RelationalExecutionModel::StagedParallelPreparation,
+        crate::facade::runtime::RelationalExecutionModel::ParallelPreparation,
     );
     let left_a = create_entity_in_partition(&mut runtime, "left-a", PartitionId(7));
     let left_b = create_entity_in_partition(&mut runtime, "left-b", PartitionId(7));
@@ -38,7 +38,7 @@ fn complexity_budget_query_packetization_reports_parallel_shape_for_cross_partit
 #[test]
 fn complexity_budget_query_packetization_reports_serial_shape_for_narrow_reads() {
     let mut runtime = runtime_with_test_schema_execution_model(
-        crate::facade::runtime::RelationalExecutionModel::StagedParallelPreparation,
+        crate::facade::runtime::RelationalExecutionModel::ParallelPreparation,
     );
     let entity = create_entity(&mut runtime, "single");
     let snapshot = runtime.visibility_authority().snapshot();

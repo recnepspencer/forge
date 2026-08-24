@@ -12,7 +12,7 @@ use worth_relational::facade::schema::{
 };
 use worth_relational::facade::symbols::ClientKey;
 use worth_relational::facade::transactions::{
-    CreateIntent, EntitySpec, MutationIntent, TransactionOptions, WorkerIntentBatch,
+    CreateIntent, EntitySpec, MutationIntent, WorkerIntentBatch,
 };
 
 pub fn public_relational_merge_runtime() -> RelationalRuntime {
@@ -50,11 +50,17 @@ pub fn public_relational_merge_runtime() -> RelationalRuntime {
 
 fn create_empty_entity(runtime: &mut RelationalRuntime, branch: &str, key: &str) {
     let branch_id = BranchId(branch.to_string());
-    let mut transaction = runtime.begin_transaction(
+    let mut transaction = {
+        let transaction_validation_input = runtime
+            .admit_named_branch_basis(&branch_id)
+            .expect("branch binding");
         runtime
-            .owner_transaction_options_for_branch(&branch_id)
-            .expect("branch binding"),
-    );
+            .begin_branch_transaction(
+                &transaction_validation_input,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     transaction.push_batch(WorkerIntentBatch::new(format!("create-{key}")).push(
         MutationIntent::Create(CreateIntent::Entity(EntitySpec {
             partition_id: PartitionId::main(),
@@ -64,6 +70,6 @@ fn create_empty_entity(runtime: &mut RelationalRuntime, branch: &str, key: &str)
         })),
     ));
     transaction
-        .commit()
+        .commit(runtime)
         .expect("public merge seed should commit");
 }

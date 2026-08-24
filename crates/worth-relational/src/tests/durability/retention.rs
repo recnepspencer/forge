@@ -30,7 +30,7 @@ fn retention_plan_reports_snapshot_pinned_records_before_release() {
                 }),
             )),
         );
-        txn.commit().unwrap()
+        txn.commit(&mut runtime).unwrap()
     };
     let deleted_relation_snapshot = runtime.visibility_authority().snapshot();
 
@@ -261,7 +261,7 @@ fn retention_plan_reports_explicit_replay_pins_for_deleted_relations_until_relea
                 }),
             )),
         );
-        txn.commit().unwrap()
+        txn.commit(&mut runtime).unwrap()
     };
 
     assert!(runtime

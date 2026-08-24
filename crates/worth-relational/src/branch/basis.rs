@@ -136,6 +136,16 @@ pub struct AdmittedRelationalBranchBasis {
     pub(crate) inner: Arc<AdmittedRelationalBranchBasisInner>,
 }
 
+impl PartialEq for AdmittedRelationalBranchBasis {
+    fn eq(&self, other: &Self) -> bool {
+        self.inner.descriptor == other.inner.descriptor
+            && self.inner.identity == other.inner.identity
+            && self.inner.root.id() == other.inner.root.id()
+    }
+}
+
+impl Eq for AdmittedRelationalBranchBasis {}
+
 #[derive(Debug)]
 pub(crate) struct AdmittedRelationalBranchBasisInner {
     pub(crate) descriptor: RelationalBranchBasisDescriptor,
@@ -153,6 +163,14 @@ impl AdmittedRelationalBranchBasis {
 
     pub fn identity(&self) -> &RelationalBranchIdentity {
         &self.inner.identity
+    }
+
+    pub fn reference(&self) -> &RelationalBranchReferenceObservation {
+        self.descriptor().reference()
+    }
+
+    pub fn truth_version(&self) -> RelationalBranchVersion {
+        self.descriptor().truth_version()
     }
 
     pub fn retention_reason(&self) -> crate::history::retention::RelationalBasisRetentionReason {

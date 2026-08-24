@@ -10,12 +10,18 @@ fn subscriber_stream_rejects_checkpoint_with_mismatched_authoritative_boundary_b
     let _first = create_entity_outcome(&mut runtime, "a");
 
     install_schema_version(&mut runtime, SchemaVersionId(2));
-    let mut txn = runtime.begin_transaction(visible_bridge_transition_options(
-        &runtime,
-        SchemaVersionId(2),
-    ));
+    let mut txn = {
+        let transaction_validation_input =
+            visible_bridge_transition_options(&runtime, SchemaVersionId(2));
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(batch_create("b"));
-    let _ = txn.commit().unwrap();
+    let _ = txn.commit(&mut runtime).unwrap();
 
     let batch = runtime
         .publication()

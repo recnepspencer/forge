@@ -210,7 +210,7 @@ fn commit_status_update(
         .branch_identity(&branch)
         .expect("branch identity is owner-issued");
     let options = runtime
-        .transaction_options_for(&identity)
+        .admit_branch_basis(&identity)
         .expect("transaction authority is owner-issued");
     let locator = planned_single_field_locator(
         AspectKey::new("status").expect("status aspect"),
@@ -220,11 +220,16 @@ fn commit_status_update(
         locator,
         AspectValue::String(InternedString::Raw("Held".to_owned())),
     )]));
-    let mut transaction = runtime.begin_transaction(options);
+    let mut transaction = runtime
+        .begin_branch_transaction(
+            &options,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context");
     transaction.push_batch(WorkerIntentBatch::new("phase5-proposed-status").push(
         MutationIntent::Entity(EntityMutationIntent::UpdateFields(
             UpdateEntityFieldsIntent { entity_id, fields },
         )),
     ));
-    transaction.commit()
+    transaction.commit(runtime)
 }

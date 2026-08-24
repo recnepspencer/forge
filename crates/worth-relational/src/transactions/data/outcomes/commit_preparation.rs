@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SelectedBranchRootDenialReason {
-    Unavailable,
     ReferenceMismatch,
 }
 
@@ -26,20 +25,6 @@ pub struct CommitPreparationError {
 }
 
 impl CommitPreparationError {
-    pub(crate) fn selected_branch_root_unavailable(
-        branch_id: BranchId,
-        expected_commit_id: Option<u64>,
-        expected_version_id: VersionId,
-    ) -> Self {
-        Self::selected_branch_root(
-            branch_id,
-            SelectedBranchRootDenialReason::Unavailable,
-            expected_commit_id,
-            expected_version_id,
-            SuggestedFix::RebuildFromCanonicalArtifacts,
-        )
-    }
-
     pub(crate) fn selected_branch_root_reference_mismatch(
         branch_id: BranchId,
         expected_commit_id: Option<u64>,
@@ -115,7 +100,6 @@ impl CommitPreparationError {
             ),
             CommitPreparationReason::SelectedBranchRoot(reason) => {
                 let root = match reason {
-                    SelectedBranchRootDenialReason::Unavailable => "unavailable",
                     SelectedBranchRootDenialReason::ReferenceMismatch => "does not match",
                 };
                 format!(

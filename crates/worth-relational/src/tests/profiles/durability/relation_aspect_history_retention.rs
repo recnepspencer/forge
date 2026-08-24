@@ -71,7 +71,7 @@ fn create_aspect_bearing_relation(
             }),
         )),
     );
-    let created = txn.commit().unwrap();
+    let created = txn.commit(&mut runtime).unwrap();
     let relation = changed_relations(&created)[0];
     assert_eq!(runtime.relation_history_len_for_test(relation), 1);
     relation
@@ -89,7 +89,7 @@ fn delete_relation(
             relation_id: relation,
         })),
     ));
-    let deleted = delete_txn.commit().unwrap();
+    let deleted = delete_txn.commit(&mut runtime).unwrap();
     DeletedAspectRelationEvidence {
         created_version,
         created_snapshot,

@@ -111,7 +111,7 @@ fn create_entity(
             .into(),
         ),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
     outcome
         .changed_records
         .iter()
@@ -140,7 +140,7 @@ fn planner_packets_only_include_relation_integrity_registrations_authorized_by_p
             },
         ))),
     );
-    let plan = txn.merged_plan().unwrap().clone();
+    let plan = txn.merged_plan(&mut runtime).unwrap().clone();
 
     let request = request_for_plan(&runtime, &plan);
     let prepared = plan_invariant_execution(&runtime, &request);
@@ -177,7 +177,7 @@ fn planner_proof_boundary_reports_partition_scoped_relation_integrity_packets() 
             },
         ))),
     );
-    let plan = txn.merged_plan().unwrap().clone();
+    let plan = txn.merged_plan(&mut runtime).unwrap().clone();
 
     let request = request_for_plan(&runtime, &plan);
     let prepared = plan_invariant_execution(&runtime, &request);

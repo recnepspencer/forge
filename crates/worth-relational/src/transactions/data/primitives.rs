@@ -15,26 +15,6 @@ pub struct TransactionId(pub u64);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct SavepointId(pub u64);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum AuthorityMode {
-    SerializedCommit,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CommitAuthority {
-    pub mode: AuthorityMode,
-    pub label: String,
-}
-
-impl Default for CommitAuthority {
-    fn default() -> Self {
-        Self {
-            mode: AuthorityMode::SerializedCommit,
-            label: "single-writer deterministic commit".to_string(),
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WorkerIntentBatch {
     pub name: String,

@@ -10,7 +10,7 @@ pub(super) struct PreparedCommitExecution {
     working_state: crate::storage::overlay::WorkingState,
     proposed_working_state: crate::storage::overlay::WorkingState,
     proposed_version_id: crate::identity::data::VersionId,
-    proposal_identity: crate::transactions::RelationalMutationProposalIdentity,
+    proposal_identity: crate::mvcc::RelationalMutationProposalIdentity,
 }
 
 impl PreparedCommitExecution {
@@ -26,9 +26,7 @@ impl PreparedCommitExecution {
         self.proposed_version_id
     }
 
-    pub(super) fn proposal_identity(
-        &self,
-    ) -> &crate::transactions::RelationalMutationProposalIdentity {
+    pub(super) fn proposal_identity(&self) -> &crate::mvcc::RelationalMutationProposalIdentity {
         &self.proposal_identity
     }
 
@@ -47,7 +45,7 @@ impl PreparedCommitExecution {
         &mut AdmittedCommitExecution,
         &crate::storage::overlay::WorkingState,
         crate::identity::data::VersionId,
-        &crate::transactions::RelationalMutationProposalIdentity,
+        &crate::mvcc::RelationalMutationProposalIdentity,
     ) {
         (
             &mut self.admitted,
@@ -81,7 +79,7 @@ pub(super) fn prepare_commit_execution(
     let merge_parent_count = admitted
         .merge_history_plan()
         .map(|plan| plan.requested_merge_parent_count)
-        .unwrap_or(admitted.options().merge_parent_bindings().len());
+        .unwrap_or(admitted.validation_input().merge_parent_bases().len());
     let PreparedAuthorityScope {
         structural_summary,
         working_state,
@@ -99,6 +97,7 @@ pub(super) fn prepare_commit_execution(
                     selected_branch_state.state(),
                     admitted.merged_plan(),
                     merge_parent_count,
+                    Some(admitted.validation_input().footprint()),
                 );
             PreparedAuthorityScope {
                 selected_branch_state: selected_branch_state.clone(),
@@ -112,8 +111,10 @@ pub(super) fn prepare_commit_execution(
     };
     let proposal_identity = match proposal_identity {
         Some(identity) => identity,
-        None => runtime
-            .issue_mutation_proposal_identity(admitted.transaction_id(), admitted.options())?,
+        None => runtime.issue_mutation_proposal_identity(
+            admitted.transaction_id(),
+            admitted.validation_input(),
+        )?,
     };
     let proposed_version_id = proposal_identity.proposed_version_id();
     let proposed_working_state = match proposed_working_state {
@@ -123,6 +124,7 @@ pub(super) fn prepare_commit_execution(
             admitted.selected_branch_state(),
             &working_state,
             admitted.merged_plan(),
+            admitted.validation_input().schema_authority(),
             proposed_version_id,
         )?,
     };
