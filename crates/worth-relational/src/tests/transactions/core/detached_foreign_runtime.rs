@@ -40,7 +40,7 @@ fn foreign_runtime_validation_denials_precede_raw_entity_and_relation_effects() 
 }
 
 #[test]
-fn foreign_runtime_validated_candidate_denial_preserves_exact_target_state() {
+fn foreign_runtime_validated_proposal_denial_preserves_exact_target_state() {
     let mut runtime_a = runtime_with_test_schema();
     let mut transaction = test_owner_begin_transaction_for_main(&mut runtime_a);
     stage_raw_entity_relation_graph(&mut transaction, "validated");
@@ -51,7 +51,7 @@ fn foreign_runtime_validated_candidate_denial_preserves_exact_target_state() {
     let target_before = TargetRuntimeState::capture(&runtime_b);
 
     let error = runtime_b
-        .commit_validated_proposal(candidate)
+        .prepare_validated_proposal(candidate)
         .expect_err("validated authority cannot cross its runtime boundary");
     assert!(matches!(
         error,
@@ -61,6 +61,34 @@ fn foreign_runtime_validated_candidate_denial_preserves_exact_target_state() {
                 crate::facade::transactions::ConflictClass::ForeignRuntime { .. }
             )
     ));
+    target_before.assert_unchanged(&runtime_b);
+}
+
+#[test]
+fn foreign_runtime_discard_denies_without_public_residue_and_disposes_candidate() {
+    let mut runtime_a = runtime_with_test_schema();
+    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime_a);
+    transaction.push_batch(batch_create("prepared-owner-affinity"));
+    let candidate = runtime_a
+        .prepare_branch_transaction(transaction)
+        .expect("the source owner prepares its own candidate");
+    let source_before = TargetRuntimeState::capture(&runtime_a);
+
+    let mut runtime_b = require_interned_runtime();
+    let target_before = TargetRuntimeState::capture(&runtime_b);
+    let error = runtime_b
+        .discard_prepared_candidate(candidate)
+        .expect_err("foreign discard denies owner mismatch while consuming the candidate");
+
+    assert!(matches!(
+        error,
+        crate::facade::transactions::TransactionCommitError::Conflict { error, .. }
+            if matches!(
+                error.class,
+                crate::facade::transactions::ConflictClass::ForeignRuntime { .. }
+            )
+    ));
+    source_before.assert_unchanged(&runtime_a);
     target_before.assert_unchanged(&runtime_b);
 }
 

@@ -85,6 +85,7 @@ pub(super) fn assemble_commit_artifacts(
         additional_diagnostics_entries,
         merge_execution_authority,
         schema_continuity,
+        deferred_diagnostic_artifacts,
     ) = validated.into_parts();
     let strategy_artifacts = admitted.strategy_artifacts().cloned();
     let (_, _, merged_plan, _, commit_log, phase_timing) = admitted.phase_view().into_parts();
@@ -106,6 +107,7 @@ pub(super) fn assemble_commit_artifacts(
             merge_execution_authority,
             schema_continuity: &schema_continuity,
             additional_diagnostics_entries,
+            deferred_diagnostic_artifacts,
         },
     )?;
     let aspect_evaluation_traces = publication.aspect_evaluation_traces().to_vec();

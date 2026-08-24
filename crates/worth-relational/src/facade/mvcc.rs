@@ -1,7 +1,8 @@
 //! Branch-qualified transaction preparation and publication surface.
 
 pub use crate::mvcc::{
-    BranchBoundRelationalTransaction, RelationalBranchObservation,
+    BranchBoundRelationalTransaction, DiscardedRelationalCommitCandidate,
+    PreparedRelationalCommitCandidate, RelationalBranchObservation,
     RelationalBranchTransactionAdmissionDenial, RelationalMutationInvariantEvidence,
     RelationalTransactionEntityRead, RelationalTransactionFootprint, RelationalTransactionIntent,
     RelationalTransactionReadLocus, RelationalTransactionRelationRead,

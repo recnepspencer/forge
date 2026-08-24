@@ -72,7 +72,6 @@ impl RelationalRuntime {
             ),
             None => prepare_working_state_scope(self, &mut transaction)?,
         };
-        self.history.record_candidate_preparation(&branch);
         let transaction_id = transaction.transaction_id;
         let validation_input =
             super::RelationalTransactionValidationInput::from_transaction(&transaction);

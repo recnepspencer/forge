@@ -17,6 +17,7 @@ pub(super) struct SnapshotValidatedCommitExecution {
     additional_diagnostics_entries: Vec<crate::diagnostics::data::RelationalDiagnosticsEntry>,
     merge_execution_authority: Option<crate::transactions::data::PublishedMergeExecutionAuthority>,
     schema_continuity: crate::authority::commit::phases::schema_continuity::SchemaContinuityPlan,
+    deferred_diagnostic_artifacts: Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
 }
 
 impl SnapshotValidatedCommitExecution {
@@ -39,6 +40,7 @@ impl SnapshotValidatedCommitExecution {
         Vec<crate::diagnostics::data::RelationalDiagnosticsEntry>,
         Option<crate::transactions::data::PublishedMergeExecutionAuthority>,
         crate::authority::commit::phases::schema_continuity::SchemaContinuityPlan,
+        Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
     ) {
         (
             self.admitted,
@@ -56,6 +58,7 @@ impl SnapshotValidatedCommitExecution {
             self.additional_diagnostics_entries,
             self.merge_execution_authority,
             self.schema_continuity,
+            self.deferred_diagnostic_artifacts,
         )
     }
 }
@@ -105,7 +108,7 @@ fn enforce_snapshot_invariant(
 fn into_snapshot_validated_execution(
     history_bound: HistoryBoundCommitExecution,
 ) -> SnapshotValidatedCommitExecution {
-    let (mutated, history, merge_parents, diagnostics, merge_authority, continuity) =
+    let (mutated, history, merge_parents, diagnostics, merge_authority, continuity, deferred) =
         history_bound.into_parts();
     let (validated, version_id, effect, created_entities, created_relations, record_allocations) =
         mutated.into_parts();
@@ -128,5 +131,6 @@ fn into_snapshot_validated_execution(
         additional_diagnostics_entries: diagnostics,
         merge_execution_authority: merge_authority,
         schema_continuity: continuity,
+        deferred_diagnostic_artifacts: deferred,
     }
 }

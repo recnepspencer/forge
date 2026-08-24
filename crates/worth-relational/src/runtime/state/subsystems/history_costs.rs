@@ -8,6 +8,7 @@ pub struct RelationalBranchSharingCostCounters {
     pub transaction_validation_attempts: u64,
     pub retained_history_head_lookups: u64,
     pub candidate_preparations: u64,
+    pub candidate_discards: u64,
     pub publication_attempts: u64,
     pub shared_root_acquisitions: u64,
     pub copied_truth_bytes: u64,
@@ -42,6 +43,7 @@ impl RelationalBranchSharingCostCounters {
                 self.candidate_preparations,
                 baseline.candidate_preparations,
             ),
+            candidate_discards: delta(self.candidate_discards, baseline.candidate_discards),
             publication_attempts: delta(self.publication_attempts, baseline.publication_attempts),
             shared_root_acquisitions: delta(
                 self.shared_root_acquisitions,

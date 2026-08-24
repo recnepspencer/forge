@@ -9,7 +9,7 @@ use crate::schema::{
 use crate::transactions::data::{CommitConflict, ConflictClass, TransactionCommitError};
 #[path = "schema_continuity_diagnostics/mod.rs"]
 mod diagnostics;
-pub(crate) use diagnostics::emit_schema_continuity_diagnostic;
+pub(crate) use diagnostics::prepare_schema_continuity_diagnostics;
 use diagnostics::{
     emit_schema_continuity_failure_diagnostic, schema_continuity_conflict_from_issue,
     FailureTransitionView,

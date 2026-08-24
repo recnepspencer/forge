@@ -19,6 +19,7 @@ mod native_aspect_mutations;
 mod native_durability;
 mod native_value_matrix;
 mod parallel_preparation;
+mod prepared_candidates;
 mod publication_trace_diagnostics;
 mod relation_integrity;
 mod relation_updates;

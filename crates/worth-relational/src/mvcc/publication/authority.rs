@@ -39,6 +39,12 @@ impl PreparedRelationalPublication {
             .history
             .install_prepared_versioned_artifact(self.publication);
     }
+
+    #[cfg(test)]
+    pub(crate) fn materialization_counts(&self) -> (u64, u64) {
+        let cost = self.publication.root.publication_cost();
+        (cost.touched_regions, cost.reused_regions)
+    }
 }
 
 impl PreparedIndexRefreshBasis {

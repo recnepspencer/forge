@@ -1,12 +1,8 @@
-use super::super::artifact_execution::preparation::PublicationPreparation;
 use super::super::rejection::{attach_rejection, elapsed_micros};
+use super::preparation::PreparedPublicationPhase;
 use crate::authority::commit::phases::publication::append_durable_commit;
-use crate::authority::mutation::apply_adjacency_deltas;
 use crate::history::data::CanonicalCommitEnvelope;
-use crate::history::data::{BranchId, CommitId, RelationalCommitReceipt};
-use crate::identity::data::VersionId;
-use crate::publication::bundle::PublicationStage;
-use crate::publication::data::PublicationError;
+use crate::history::data::{BranchId, CommitId};
 use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{
     CommitLog, CommitPhase, CommitPhaseTiming, TransactionCommitError,
@@ -66,95 +62,32 @@ pub(super) fn append_durable_commit_phase(
     Ok(())
 }
 
-pub(super) struct FinalizePublicationPhaseInput<'a> {
-    pub(super) commit_log: &'a mut CommitLog,
-    pub(super) phase_timing: &'a mut CommitPhaseTiming,
-    pub(super) working_state: crate::storage::overlay::WorkingState,
-    pub(super) record_allocations: crate::runtime::PendingRecordAllocations,
-    pub(super) selected_branch_state: &'a crate::branch::SelectedRelationalBranchState,
-    pub(super) publication: PublicationPreparation,
-    pub(super) version_id: VersionId,
-    pub(super) previous_branch_head_version: Option<VersionId>,
-    pub(super) commit_id: CommitId,
-    pub(super) commit_reference: &'a RelationalCommitReceipt,
-    pub(super) branch_basis: &'a crate::branch::AdmittedRelationalBranchBasis,
-    pub(super) branch_id: &'a BranchId,
-    pub(super) merge_base_commits: &'a [CommitId],
-    pub(super) merge_parent_branches: &'a [BranchId],
-}
-
 pub(super) fn finalize_publication_phase(
     runtime: &mut RelationalRuntime,
-    input: FinalizePublicationPhaseInput<'_>,
+    commit_log: &mut CommitLog,
+    phase_timing: &mut CommitPhaseTiming,
+    prepared: PreparedPublicationPhase,
 ) -> Result<FinalizedPublicationPhase, TransactionCommitError> {
-    let FinalizePublicationPhaseInput {
-        commit_log,
-        phase_timing,
-        working_state,
+    let PreparedPublicationPhase {
         record_allocations,
-        selected_branch_state,
-        publication,
+        clone_mode,
+        committed_partitions,
+        prepared_history,
+        validated_lineage_events,
+        lineage_nodes,
+        artifacts,
+        changed_records,
+        canonical_commit_envelope,
+        append_authority,
         version_id,
         previous_branch_head_version,
         commit_id,
         commit_reference,
-        branch_basis,
         branch_id,
         merge_base_commits,
         merge_parent_branches,
-    } = input;
-    let (artifacts, changed_records, canonical_commit_envelope, adjacency_deltas, lineage_nodes) =
-        publication.into_finalize().into_parts();
-    let canonical_commit_envelope = Arc::new(canonical_commit_envelope);
-    let mut working_state = working_state;
-    apply_adjacency_deltas(&mut working_state, &adjacency_deltas);
-    let clone_mode = working_state.clone_mode();
-    let committed_partitions = working_state.into_partition_commits().1;
-    runtime
-        .history
-        .validate_branch_root_capture(committed_partitions.len())
-        .map_err(|denial| {
-            TransactionCommitError::publication(PublicationError::new(
-                PublicationStage::BundleAssembly,
-                format!("branch-root capture preflight denied: {denial:?}"),
-            ))
-            .with_commit_log(commit_log.clone())
-        })?;
-    let published_partition_delta =
-        crate::storage::RelationalPublishedPartitionDelta::from_committed_partitions(
-            &committed_partitions,
-        );
-    let prepared_history = runtime
-        .mvcc_publication_authority()
-        .prepare_commit(
-            commit_id,
-            commit_reference.clone(),
-            branch_basis,
-            selected_branch_state,
-            published_partition_delta,
-            canonical_commit_envelope.patch.position,
-            Arc::clone(&canonical_commit_envelope),
-        )
-        .map_err(|detail| {
-            TransactionCommitError::publication(PublicationError::new(
-                PublicationStage::BundleAssembly,
-                detail,
-            ))
-            .with_commit_log(commit_log.clone())
-        })?;
-    let append_authority = crate::durability::authority::DurableAppendAuthority::from_commit(
-        super::CommitDurableAppendAdmission::new(runtime, commit_id, branch_id),
-    );
-    let validated_lineage_events = runtime
-        .lineage
-        .validate_live_event_batch(canonical_commit_envelope.lineage_events())
-        .map_err(|detail| {
-            TransactionCommitError::publication(PublicationError::new(
-                PublicationStage::BundleAssembly,
-                detail,
-            ))
-            .with_commit_log(commit_log.clone())
-        })?;
+        deferred_diagnostic_artifacts,
+    } = prepared;
     append_durable_commit_phase(
         runtime,
         DurableAppendPhaseInput {
@@ -164,7 +97,7 @@ pub(super) fn finalize_publication_phase(
             patch_position: canonical_commit_envelope.patch.position,
             append_authority,
             commit_id,
-            branch_id,
+            branch_id: &branch_id,
         },
     )?;
     runtime.lineage_authority().install_published_lineage(
@@ -187,14 +120,19 @@ pub(super) fn finalize_publication_phase(
             version_id,
             previous_branch_head_version,
             commit_id,
-            commit_reference,
-            branch_id,
-            merge_base_commits,
+            commit_reference: &commit_reference,
+            branch_id: &branch_id,
+            merge_base_commits: &merge_base_commits,
             artifacts,
-            merge_parent_branches,
+            merge_parent_branches: &merge_parent_branches,
             phase_timing: &mut publication_phase_timing,
         },
     );
+    for artifact in deferred_diagnostic_artifacts {
+        runtime
+            .publication_authority()
+            .push_diagnostic_artifact(artifact);
+    }
     commit_log.record_commit_published(commit_id, &commit_reference.branch_id.0);
     commit_log.complete_phase(CommitPhase::Publication);
     phase_timing.publication_micros = elapsed_micros(phase_started);

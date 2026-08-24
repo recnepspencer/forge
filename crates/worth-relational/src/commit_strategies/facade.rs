@@ -9,7 +9,7 @@ use crate::commit_strategies::{
 use crate::mvcc::RelationalTransactionValidationInput;
 use crate::runtime::RelationalRuntime;
 use crate::snapshots::data::SnapshotHandle;
-use crate::transactions::data::{CommitResult, TransactionCommitError};
+use crate::transactions::data::TransactionCommitError;
 
 #[derive(Debug, Clone, Copy)]
 pub struct CommitStrategiesFacade<'runtime> {
@@ -83,12 +83,22 @@ impl CommitStrategiesAuthorityFacade {
         validate_lowered_strategy_plan(runtime, lowered)
     }
 
-    pub fn execute_validated_commit(
+    pub fn prepare_validated_commit(
         &mut self,
         runtime: &mut RelationalRuntime,
         validated: crate::mvcc::ValidatedRelationalProposal,
-    ) -> Result<CommitResult, TransactionCommitError> {
-        runtime.commit_validated_proposal(validated)
+    ) -> Result<crate::mvcc::PreparedRelationalCommitCandidate, TransactionCommitError> {
+        runtime.prepare_validated_proposal(validated)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn execute_validated_commit(
+        &mut self,
+        runtime: &mut RelationalRuntime,
+        validated: crate::mvcc::ValidatedRelationalProposal,
+    ) -> Result<crate::transactions::data::CommitResult, TransactionCommitError> {
+        let candidate = self.prepare_validated_commit(runtime, validated)?;
+        runtime.publish_prepared_candidate(candidate)
     }
 }
 

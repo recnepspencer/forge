@@ -100,9 +100,12 @@ fn validated_proposal_complexity_excludes_intervening_sibling_commit_work() {
         "the intervening sibling commit must touch a relation slot"
     );
 
-    let committed = runtime
-        .commit_validated_proposal(proposal)
+    let candidate = runtime
+        .prepare_validated_proposal(proposal)
         .expect("sibling advancement permits candidate revalidation");
+    let committed = runtime
+        .publish_prepared_candidate(candidate)
+        .expect("prepared candidate publishes through its owner");
     assert_eq!(
         committed
             .complexity_delta()

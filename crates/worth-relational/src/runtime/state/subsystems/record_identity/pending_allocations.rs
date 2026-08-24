@@ -120,6 +120,10 @@ impl PendingRecordAllocations {
         &self.canonical
     }
 
+    pub(crate) fn reservation_count(&self) -> usize {
+        self.reservations.len()
+    }
+
     pub(crate) fn commit(mut self) {
         for reservation in &mut self.reservations {
             reservation.consume();

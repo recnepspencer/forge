@@ -1634,6 +1634,14 @@ effects; and Storm and Maintenance overlays never cross over.
 
 ### Phase 8: Prepare Validated Candidates Before Effects
 
+Status: Closed on 2026-08-24. Fallible preparation now produces an opaque,
+runtime-affine, branch-bound, single-use candidate without changing public
+roots, history, patches, references, diagnostics, or durable state. Explicit
+and implicit discard release live obligations, detached-root materialization
+matches the declared write footprint, and compiler boundaries deny candidate
+self-publication and raw-proposal publication lanes. Independent QA loop,
+test-quality, code-quality, and final-gate reviews reported clean.
+
 Move planning, schema checks, invariants, footprint validation, immutable-root
 construction, budget checks, and canonical commit assembly into fallible
 preparation. Produce only an opaque single-use candidate and complete all

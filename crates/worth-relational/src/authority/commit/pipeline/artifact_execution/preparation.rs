@@ -32,6 +32,7 @@ pub(in crate::authority::commit::pipeline) struct PublicationFinalizeArtifacts {
     canonical_commit_envelope: crate::history::data::CanonicalCommitEnvelope,
     adjacency_deltas: Vec<crate::authority::mutation::AdjacencyDelta>,
     lineage_nodes: Vec<crate::lineage::data::LineageNode>,
+    deferred_diagnostic_artifacts: Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
 }
 
 pub(super) struct PublicationPreparationInput<'a> {
@@ -50,6 +51,8 @@ pub(super) struct PublicationPreparationInput<'a> {
     pub(super) schema_continuity: &'a SchemaContinuityPlan,
     pub(super) effect: crate::authority::mutation::MutationEffect,
     pub(super) additional_diagnostics_entries: Vec<RelationalDiagnosticsEntry>,
+    pub(super) deferred_diagnostic_artifacts:
+        Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
 }
 
 pub(super) fn prepare_publication_artifacts(
@@ -71,6 +74,7 @@ pub(super) fn prepare_publication_artifacts(
         schema_continuity,
         effect,
         additional_diagnostics_entries,
+        deferred_diagnostic_artifacts,
     } = input;
     let crate::authority::mutation::MutationEffect {
         publication,
@@ -110,6 +114,7 @@ pub(super) fn prepare_publication_artifacts(
         adjacency_deltas: adjacency.deltas,
         traces,
         authority,
+        deferred_diagnostic_artifacts,
     }))
 }
 
@@ -242,6 +247,7 @@ struct PublicationCompletionInput<'a> {
     adjacency_deltas: Vec<crate::authority::mutation::AdjacencyDelta>,
     traces: PublicationTraceCapture,
     authority: PreparedPublicationAuthority,
+    deferred_diagnostic_artifacts: Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
 }
 
 fn finish_publication_preparation(input: PublicationCompletionInput<'_>) -> PublicationPreparation {
@@ -253,6 +259,7 @@ fn finish_publication_preparation(input: PublicationCompletionInput<'_>) -> Publ
         adjacency_deltas,
         traces,
         authority,
+        deferred_diagnostic_artifacts,
     } = input;
     let mut changed_records = changed_records;
     canonicalize_changed_records(&mut changed_records);
@@ -282,6 +289,7 @@ fn finish_publication_preparation(input: PublicationCompletionInput<'_>) -> Publ
             canonical_commit_envelope: authority.canonical_commit_envelope,
             adjacency_deltas,
             lineage_nodes: authority.lineage_nodes,
+            deferred_diagnostic_artifacts,
         },
     }
 }
@@ -327,6 +335,7 @@ impl PublicationFinalizeArtifacts {
         crate::history::data::CanonicalCommitEnvelope,
         Vec<crate::authority::mutation::AdjacencyDelta>,
         Vec<crate::lineage::data::LineageNode>,
+        Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
     ) {
         (
             self.artifacts,
@@ -334,6 +343,7 @@ impl PublicationFinalizeArtifacts {
             self.canonical_commit_envelope,
             self.adjacency_deltas,
             self.lineage_nodes,
+            self.deferred_diagnostic_artifacts,
         )
     }
 }

@@ -24,6 +24,15 @@ impl RelationalRuntime {
     pub fn certify_current_state(&mut self) -> Result<InvariantExecutionResult, PublicationError> {
         self.invariant_authority().enforce_certification_boundary()
     }
+
+    pub(crate) fn publish_invariant_preparation_diagnostics(
+        &mut self,
+        results: &[InvariantExecutionResult],
+    ) {
+        for result in results {
+            emit_preparation_diagnostics(self, result);
+        }
+    }
 }
 
 pub(crate) struct InvariantAuthority<'runtime> {
@@ -60,9 +69,9 @@ impl<'runtime> InvariantAuthority<'runtime> {
         &mut self,
         result: InvariantExecutionResult,
     ) -> Result<InvariantExecutionResult, TransactionCommitError> {
-        emit_preparation_diagnostics(self.runtime, &result);
-        let collect_all = emit_collect_all_failure_diagnostics(self.runtime, &result);
         if let Some(failure) = result.summary().blocking_failure() {
+            emit_preparation_diagnostics(self.runtime, &result);
+            let collect_all = emit_collect_all_failure_diagnostics(self.runtime, &result);
             if !collect_all {
                 emit_conflict_diagnostic(self.runtime, &result, failure);
             }
@@ -95,9 +104,9 @@ impl<'runtime> InvariantAuthority<'runtime> {
                     proposal_identity,
                 )
         };
-        emit_preparation_diagnostics(self.runtime, &result);
-        let collect_all = emit_collect_all_failure_diagnostics(self.runtime, &result);
         if let Some(failure) = result.summary().blocking_failure() {
+            emit_preparation_diagnostics(self.runtime, &result);
+            let collect_all = emit_collect_all_failure_diagnostics(self.runtime, &result);
             if !collect_all {
                 emit_conflict_diagnostic(self.runtime, &result, failure);
             }
@@ -128,9 +137,9 @@ impl<'runtime> InvariantAuthority<'runtime> {
                     proposal_identity,
                 )
         };
-        emit_preparation_diagnostics(self.runtime, &result);
-        let collect_all = emit_collect_all_failure_diagnostics(self.runtime, &result);
         if let Some(failure) = result.summary().publication_failure() {
+            emit_preparation_diagnostics(self.runtime, &result);
+            let collect_all = emit_collect_all_failure_diagnostics(self.runtime, &result);
             if !collect_all {
                 emit_publication_failure(self.runtime, &result, failure);
             }

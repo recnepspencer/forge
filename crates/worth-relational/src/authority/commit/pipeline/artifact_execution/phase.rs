@@ -30,6 +30,8 @@ pub(super) struct ArtifactAssemblyInput<'a> {
     pub(super) merge_execution_authority: Option<PublishedMergeExecutionAuthority>,
     pub(super) schema_continuity: &'a SchemaContinuityPlan,
     pub(super) additional_diagnostics_entries: Vec<RelationalDiagnosticsEntry>,
+    pub(super) deferred_diagnostic_artifacts:
+        Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
 }
 
 pub(super) fn assemble_authoritative_publication_phase(
@@ -71,32 +73,20 @@ pub(super) fn assemble_authoritative_publication_phase(
             schema_continuity: input.schema_continuity,
             effect,
             additional_diagnostics_entries: input.additional_diagnostics_entries,
+            deferred_diagnostic_artifacts: input.deferred_diagnostic_artifacts,
         },
     )
     .map_err(|error| attach_rejection(commit_log, CommitPhase::ArtifactAssembly, error))?;
-    record_publication_phase_artifacts(runtime, commit_log, &publication);
+    record_publication_phase_artifacts(commit_log, &publication);
     commit_log.complete_phase(CommitPhase::ArtifactAssembly);
     phase_timing.artifact_assembly_micros = elapsed_micros(phase_started);
     Ok(publication)
 }
 
 fn record_publication_phase_artifacts(
-    runtime: &mut RelationalRuntime,
     commit_log: &mut CommitLog,
     publication: &PublicationPreparation,
 ) {
-    if runtime.config.diagnostics.profile.detailed_traces_enabled {
-        for trace in publication.aspect_evaluation_traces() {
-            runtime
-                .publication_authority()
-                .push_diagnostic_artifact(trace.diagnostic_artifact());
-        }
-        for trace in publication.aspect_emission_traces() {
-            runtime
-                .publication_authority()
-                .push_diagnostic_artifact(trace.diagnostic_artifact());
-        }
-    }
     let (change_summary, aspect_summary, publication_summary) = publication.summaries();
     commit_log.record_changed_records(change_summary);
     commit_log.record_aspect_summary(aspect_summary);

@@ -6,10 +6,18 @@ impl RelationalRuntime {
         &mut self,
         transaction: crate::mvcc::BranchBoundRelationalTransaction,
     ) -> Result<CommitResult, TransactionCommitError> {
+        let candidate = self.prepare_branch_transaction(transaction)?;
+        self.publish_prepared_candidate(candidate)
+    }
+
+    pub fn prepare_branch_transaction(
+        &mut self,
+        transaction: crate::mvcc::BranchBoundRelationalTransaction,
+    ) -> Result<crate::mvcc::PreparedRelationalCommitCandidate, TransactionCommitError> {
         let proposal = self
             .validate_branch_transaction(transaction)
             .map_err(attach_validation_rejection)?;
-        self.commit_validated_proposal(proposal)
+        self.prepare_validated_proposal(proposal)
     }
 }
 

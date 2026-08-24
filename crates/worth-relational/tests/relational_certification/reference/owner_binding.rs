@@ -10,9 +10,7 @@ use worth_relational::facade::branch::{
 use worth_relational::facade::history::BranchId;
 use worth_relational::facade::merge::{MergeExecutionRequest, MergeIntent};
 use worth_relational::facade::mvcc::RelationalBranchTransactionAdmissionDenial;
-use worth_relational::facade::transactions::{
-    ConflictClass, TransactionCommitError, WorkerIntentBatch,
-};
+use worth_relational::facade::transactions::WorkerIntentBatch;
 
 #[test]
 fn owner_issues_transaction_context_from_exact_main_identity() {
@@ -148,7 +146,7 @@ fn unrelated_branch_progress_is_not_staled_by_main_branch_movement() {
         .runtime
         .admit_branch_basis(&storm_identity)
         .expect("storm options are owner-issued");
-    let candidate = {
+    let storm_transaction = {
         let transaction_validation_input = storm_options;
         world
             .runtime
@@ -157,9 +155,7 @@ fn unrelated_branch_progress_is_not_staled_by_main_branch_movement() {
                 worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
             )
             .expect("owner-admitted transaction context")
-    }
-    .validate(&mut world.runtime)
-    .expect("storm candidate validates against its own branch reference");
+    };
 
     let mut main_transaction = {
         let transaction_validation_input = {
@@ -182,9 +178,8 @@ fn unrelated_branch_progress_is_not_staled_by_main_branch_movement() {
         .commit(&mut world.runtime)
         .expect("main branch movement succeeds independently");
 
-    let committed = world
-        .runtime
-        .commit_validated_proposal(candidate)
+    let committed = storm_transaction
+        .commit(&mut world.runtime)
         .expect("main branch movement must not stale an unrelated storm basis");
     assert_eq!(committed.commit.branch_id, BranchId("storm".to_owned()));
     assert_oracle_matches(&world, &expected);
@@ -277,88 +272,5 @@ fn unknown_branch_cannot_issue_an_owner_binding() {
         world.commit.commit_id,
     );
     assert_denial_left_no_reference_residue(&before, &after);
-    assert_oracle_matches(&world, &expected);
-}
-
-#[test]
-fn validation_commit_race_is_closed_by_branch_local_truth_version() {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
-    let identity = world.runtime.main_branch_identity();
-    let candidate_options = world
-        .runtime
-        .admit_branch_basis(&identity)
-        .expect("candidate receives owner-issued branch proof");
-    let candidate = {
-        let transaction_validation_input = candidate_options;
-        world
-            .runtime
-            .begin_branch_transaction(
-                &transaction_validation_input,
-                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
-            )
-            .expect("owner-admitted transaction context")
-    }
-    .validate(&mut world.runtime)
-    .expect("the candidate validates against the current branch cell");
-    let before_advance = world
-        .runtime
-        .branch_reference_state(&BranchId("main".to_owned()))
-        .expect("main reference state exists before the advancing commit");
-
-    let advance_options = world
-        .runtime
-        .admit_branch_basis(&identity)
-        .expect("the advancing transaction receives a fresh branch proof");
-    let mut advance = {
-        let transaction_validation_input = advance_options;
-        world
-            .runtime
-            .begin_branch_transaction(
-                &transaction_validation_input,
-                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
-            )
-            .expect("owner-admitted transaction context")
-    };
-    advance.push_batch(WorkerIntentBatch::new("advance-branch-version"));
-    advance
-        .commit(&mut world.runtime)
-        .expect("the branch truth version advances");
-    let after_advance = world
-        .runtime
-        .branch_reference_state(&BranchId("main".to_owned()))
-        .expect("main reference state exists after the advancing commit");
-    assert_eq!(
-        after_advance.observation().generation().get(),
-        before_advance.observation().generation().get() + 1
-    );
-    assert_eq!(
-        after_advance.truth_version().as_u64(),
-        before_advance.truth_version().as_u64() + 1
-    );
-    let before_denial = capture_reference_evidence(
-        &mut world.runtime,
-        &BranchId("main".to_owned()),
-        &BranchId("stale-target".to_owned()),
-        world.commit.commit_id,
-    );
-
-    let denied = world
-        .runtime
-        .commit_validated_proposal(candidate)
-        .expect_err("the old branch-local version must no longer be current");
-    assert!(matches!(
-        &denied,
-        TransactionCommitError::Conflict {
-            error: conflict,
-            ..
-        } if matches!(conflict.class, ConflictClass::StaleValidationBasis { .. })
-    ));
-    let after_denial = capture_reference_evidence(
-        &mut world.runtime,
-        &BranchId("main".to_owned()),
-        &BranchId("stale-target".to_owned()),
-        world.commit.commit_id,
-    );
-    assert_denial_left_no_reference_residue(&before_denial, &after_denial);
     assert_oracle_matches(&world, &expected);
 }

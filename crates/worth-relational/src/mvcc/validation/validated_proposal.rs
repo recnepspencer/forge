@@ -170,7 +170,7 @@ mod tests {
 
         let _ = create_entity(&mut runtime, "post-validation-advance");
         let denied = runtime
-            .commit_validated_proposal(candidate)
+            .prepare_validated_proposal(candidate)
             .expect_err("Relational must close the validate/commit race");
 
         assert!(matches!(

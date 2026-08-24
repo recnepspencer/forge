@@ -156,7 +156,7 @@ fn merge_commit_rejects_stale_secondary_parent_binding_after_parent_moves() {
         BranchId("feature".to_string()),
     );
     let error = runtime
-        .commit_validated_proposal(prepared)
+        .prepare_validated_proposal(prepared)
         .expect_err("a moved secondary parent must stale the prepared binding");
     assert!(matches!(
         error,

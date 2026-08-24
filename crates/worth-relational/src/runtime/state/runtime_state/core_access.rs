@@ -73,6 +73,9 @@ impl RelationalRuntime {
             total.candidate_preparations = total
                 .candidate_preparations
                 .saturating_add(costs.candidate_preparations);
+            total.candidate_discards = total
+                .candidate_discards
+                .saturating_add(costs.candidate_discards);
             total.publication_attempts = total
                 .publication_attempts
                 .saturating_add(costs.publication_attempts);
