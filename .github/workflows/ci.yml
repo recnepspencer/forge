@@ -293,16 +293,10 @@ jobs:
         working-directory: workspaces/worth-store
         shell: bash
         run: |
-          cargo build --locked -j 1 --no-default-features -p worth-store --bin physical_store_c8_writer
-          cargo build --locked -j 1 --no-default-features -p worth-store-offline-verifier --bin physical_store_offline_observer
-          cargo build --locked -j 1 --no-default-features -p worth-store-recovery-runtime --bin physical_store_recover --features worth-store-recovery-runtime/certification-test-authority
-          export WORTH_STORE_PHASE8_WRITER="$PWD/target/debug/physical_store_c8_writer"
-          export WORTH_STORE_PHASE8_OBSERVER="$PWD/target/debug/physical_store_offline_observer"
-          export WORTH_STORE_PHASE8_RECOVERY="$PWD/target/debug/physical_store_recover"
           cargo test -p worth-store-operations --lib phase_1_6_tests::release_scale_backup::two_gib_owner_bundle_stays_bounded_through_materialization_and_independent_verification -- --ignored --exact --nocapture --test-threads=1
-          cargo test -p worth-store-recovery-runtime --test phase_eight_process --features certification-test-authority checkpoint_crash::killed_checkpoint_writer_reopens_and_observes_each_persisted_effect_frontier -- --exact --nocapture --test-threads=1
-          cargo test -p worth-store-recovery-runtime --test phase_eight_process --features certification-test-authority production::recovery_crash::killed_recovery_process_reopens_after_each_named_c8_seam -- --exact --nocapture --test-threads=1
-          cargo test -p worth-store-recovery-runtime --test phase_eight_process --features certification-test-authority production::size_independence::recovery_work_is_independent_of_unrelated_persisted_store_size -- --exact --nocapture --test-threads=1
+      - name: Complete fresh-process crash matrix
+        working-directory: workspaces/worth-store
+        run: cargo run --locked -q -p store-test-runner -- ci --partition process-scenario
 
   worth_ui_quality:
     name: WORTH UI Quality and Topology

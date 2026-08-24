@@ -52,7 +52,7 @@ fn phase_two_admission_limits(
         recovery_memory_bytes,
         dirty_frames: 1_000_000,
         concurrent_commands: 64,
-        publication_effects: 64,
+        publication_effects: 256,
         cleanup_candidates: 1_000_000,
         cleanup_bytes: u32::MAX as u64,
         observation_bytes: 64 * 1024 * 1024,

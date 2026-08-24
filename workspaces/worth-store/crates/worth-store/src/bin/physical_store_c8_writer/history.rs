@@ -1,6 +1,6 @@
 use super::{
-    checkpoint, identity_receipt, initialization::InitializedWriter,
-    operation_program::C8Operation, CheckpointStageWithSeed,
+    checkpoint, initialization::InitializedWriter, operation_program::C8Operation,
+    CheckpointStageWithSeed,
 };
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
@@ -12,38 +12,37 @@ use worth_store::physical_runtime::{
 pub(super) fn seed_initial_history(
     writer: &InitializedWriter,
     stage: &CheckpointStageWithSeed,
-) -> Result<Vec<identity_receipt::IdentityReceipt>, String> {
+) -> Result<(), String> {
     let scheduled_operations = writer
         .operation_program
         .scheduled_operations(stage.schedule_seed);
     let first_split = scheduled_operations.len() / 3;
     let second_split = scheduled_operations.len() * 2 / 3;
-    let mut receipts = seed_operations(
+    seed_operations(
         &writer.serving,
         writer.placement,
         &scheduled_operations[..first_split],
     )?;
     checkpoint::complete(&writer.serving, stage.perturbation_seed)?;
-    receipts.extend(seed_operations(
+    seed_operations(
         &writer.serving,
         writer.placement,
         &scheduled_operations[first_split..second_split],
-    )?);
+    )?;
     checkpoint::complete(&writer.serving, stage.perturbation_seed ^ 0xC8_00_00_02)?;
-    receipts.extend(seed_operations(
+    seed_operations(
         &writer.serving,
         writer.placement,
         &scheduled_operations[second_split..],
-    )?);
-    Ok(receipts)
+    )?;
+    Ok(())
 }
 
 fn seed_operations(
     serving: &ServingPhysicalRuntime,
     placement: AdmittedRecordPlacementPolicy,
     operations: &[&C8Operation],
-) -> Result<Vec<identity_receipt::IdentityReceipt>, String> {
-    let mut receipts = Vec::with_capacity(operations.len());
+) -> Result<(), String> {
     for operation in operations {
         let batch = RecordAppendBatch::try_from_iter([operation.payload().to_owned()])
             .map_err(|denial| format!("C8 writer seed batch denied: {denial:?}"))?;
@@ -53,7 +52,6 @@ fn seed_operations(
                 operation.material(),
             ))
             .map_err(|denial| format!("C8 writer seed identity denied: {denial:?}"))?;
-        let idempotency = key.identity().bytes();
         let request = PhysicalMutationRequest::platform_durable(
             key,
             PhysicalMutationDeadline::after_milliseconds(5_000)
@@ -93,12 +91,9 @@ fn seed_operations(
                 "ordinary C8 writer seed mutation completed with the wrong record count".to_owned(),
             );
         };
-        receipts.push(identity_receipt::IdentityReceipt {
-            material: operation.material(),
-            idempotency,
-            fate: 1,
-            record: Some(*record),
-        });
+        if record.allocation_epoch() == [0; 16] || record.ordinal() == 0 {
+            return Err("ordinary C8 writer produced an invalid record identity".to_owned());
+        }
     }
-    Ok(receipts)
+    Ok(())
 }

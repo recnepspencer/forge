@@ -11,6 +11,7 @@ mod request;
 mod session;
 mod source_denial;
 mod staging;
+mod successor_candidate;
 
 pub use authority::{PhysicalRecoveryPlatformAdmissionError, PhysicalRecoveryPlatformAuthority};
 pub use authority_binding::PhysicalRecoveryEntryBindingDrift;
@@ -39,6 +40,9 @@ pub use source_denial::{
 pub use staging::{
     PhysicalRecoveryStagingCounters, PhysicalRecoveryStagingDenial,
     PhysicalRecoveryStagingSettlement, PhysicalRecoveryStagingSettlementLedger,
+};
+pub use successor_candidate::{
+    PhysicalRecoverySuccessorCandidateDenial, PhysicalRecoverySuccessorCandidateMismatch,
 };
 
 pub(crate) use authority::{AdmittedPlatformAdmission, AdmittedPlatformAuthority};

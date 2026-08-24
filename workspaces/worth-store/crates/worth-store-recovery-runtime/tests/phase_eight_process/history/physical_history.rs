@@ -31,7 +31,7 @@ impl ParentPhysicalHistory {
         Self::capture_with_membership(root, expected, None)
     }
 
-    pub(crate) fn capture_after_recovery(
+    pub(crate) fn capture_with_unresolved_record(
         root: &Path,
         expected: &ExpectedWriterHistory,
     ) -> Result<Self, String> {
@@ -157,16 +157,4 @@ impl ParentPhysicalHistory {
         }
         Ok(())
     }
-}
-
-pub(crate) fn require_completed_bindings_reclaimed(
-    root: &Path,
-    expected: &ExpectedWriterHistory,
-) -> Result<(), String> {
-    let root = root
-        .canonicalize()
-        .map_err(|error| format!("canonicalize reclaimed WAL root: {error}"))?;
-    let mut files = Vec::new();
-    super::artifacts::collect_files(&root, &root, &mut files)?;
-    super::parent_oracle::require_no_wal_bindings(&files, expected.durable_bindings())
 }

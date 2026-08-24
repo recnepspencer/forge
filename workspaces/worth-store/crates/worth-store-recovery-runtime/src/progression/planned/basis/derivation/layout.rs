@@ -66,6 +66,11 @@ fn base_image(
     RecoveryBaseImagePlan {
         selected_selector: selection.root().selected().selector(),
         selected_root: selection.root().selected().manifest().clone(),
+        selected_root_topology: selection
+            .page_facts()
+            .routing_topology()
+            .to_vec()
+            .into_boxed_slice(),
         destination_generation: pending.staging_generation,
         actions,
         segment_updates: segment_updates

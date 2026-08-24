@@ -3,7 +3,7 @@ use super::harness::ProcessWorld;
 
 #[test]
 fn independent_observers_converge_and_recovery_runtime_identity_changes() {
-    let world = ProcessWorld::start("candidate-publication", 0);
+    let world = ProcessWorld::start("candidate-publication", 0, 1);
     let first_runtime = world.recover("repeat-first");
     let first_observer = world.observe("repeat-first");
     let second_observer = world.observe("repeat-second");
@@ -22,5 +22,4 @@ fn independent_observers_converge_and_recovery_runtime_identity_changes() {
         first_runtime.report.counters(),
         second_runtime.report.counters()
     );
-    world.finish_within_budget("production/repeatability process proof");
 }

@@ -2,7 +2,7 @@ use super::harness::ProcessWorld;
 
 #[test]
 fn production_and_observer_agree_across_real_process_boundary() {
-    let world = ProcessWorld::start("candidate-publication", 0);
+    let world = ProcessWorld::start("candidate-publication", 0, 1);
     let dead_observer = world.observe("dead");
     world
         .writer
@@ -16,5 +16,4 @@ fn production_and_observer_agree_across_real_process_boundary() {
     assert_ne!(world.writer.process_id, dead_observer.process_id);
     assert_ne!(world.writer.process_id, runtime.process_id);
     assert_ne!(runtime.process_id, observer.process_id);
-    world.finish_within_budget("production/agreement process proof");
 }

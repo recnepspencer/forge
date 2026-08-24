@@ -53,12 +53,8 @@ pub(super) fn prepare(
     let mut operation_program = operation_program;
     operation_program
         .expected
-        .bind_identity_receipt(&operation_program.identity_receipt)
-        .expect("bind writer-issued identity receipt");
-    operation_program
-        .expected
-        .bind_checkpoint_redo_digests(&root)
-        .expect("bind baseline checkpoint redo digests");
+        .bind_persisted_operation_identities(&root)
+        .expect("bind submitted operations from persisted authority");
     let baseline_snapshot = snapshot_directory(&root);
     let baseline_observer =
         super::super::process::fresh_observer(&parent, &root, "baseline-observer");

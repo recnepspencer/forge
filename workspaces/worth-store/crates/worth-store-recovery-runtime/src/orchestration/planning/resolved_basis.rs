@@ -18,8 +18,12 @@ pub(super) struct PageObservationResult {
     pub(super) observations: Vec<worth_store_recovery_physics::RecoveryPageObservation>,
     pub(super) artifact_reads: u64,
     pub(super) bytes_read: u64,
+    pub(super) candidate_artifact_reads: u64,
+    pub(super) candidate_bytes_read: u64,
+    pub(super) candidate_peak_materialization_bytes: u64,
     pub(super) inline_truth: Option<super::page_observation::InlineAllocationTruth>,
     pub(super) selected_source: crate::progression::RecoverySelectedSourceInventory,
+    pub(super) manifest_budget: super::manifest_entry_budget::ManifestEntryBudget,
 }
 
 pub(super) struct ResolvedPlanningBasis {
@@ -38,8 +42,17 @@ impl ResolvedPlanningBasis {
             &self.sample,
             &self.fates,
             self.redo.counters(),
-            self.observed_pages.artifact_reads,
-            self.observed_pages.bytes_read,
+            self.observed_pages
+                .artifact_reads
+                .saturating_add(self.observed_pages.candidate_artifact_reads),
+            self.observed_pages
+                .bytes_read
+                .saturating_add(self.observed_pages.candidate_bytes_read),
+        )
+        .with_successor_candidate_observation(
+            self.observed_pages.candidate_artifact_reads,
+            self.observed_pages.candidate_bytes_read,
+            self.observed_pages.candidate_peak_materialization_bytes,
         )
     }
 }
@@ -141,6 +154,7 @@ pub(super) fn resolve(
         &observation_targets,
         admitted.format,
         read_ceiling.addressed_reads,
+        context.limits.manifest_entries,
         admitted.remaining_manifest_entries,
         remaining_observation_bytes,
     );
@@ -157,8 +171,12 @@ pub(super) fn resolve(
             observations: observed.observations,
             artifact_reads: attempt.artifact_reads,
             bytes_read: attempt.bytes_read,
+            candidate_artifact_reads: 0,
+            candidate_bytes_read: 0,
+            candidate_peak_materialization_bytes: 0,
             inline_truth: observed.inline_truth,
             selected_source: observed.selected_source,
+            manifest_budget: observed.manifest_budget,
         },
         Err(denial) => {
             let limit = observation_limit(&context, &denial, remaining_observation_bytes);

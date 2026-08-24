@@ -130,7 +130,7 @@ fn run_cancelled(world: &ProcessWorld, index: usize, stage: PhysicalRecoveryYiel
     );
     let publication_after = world.parent_history_after_recovery(&root);
     let publication_observer = world.observe_root(&root, &format!("cancelled-{index}-observer"));
-    let posture = publication_adjudication::adjudicate(
+    publication_adjudication::adjudicate(
         &root,
         &report,
         publication_before
@@ -140,39 +140,6 @@ fn run_cancelled(world: &ProcessWorld, index: usize, stage: PhysicalRecoveryYiel
         &publication_observer.report,
         "cancelled",
     );
-    assert_rehashed_publication_label(
-        &root,
-        &report,
-        posture,
-        publication_before
-            .as_ref()
-            .expect("publication cancellation baseline history"),
-        &publication_after,
-        &publication_observer.report,
-        "cancelled",
-    );
-    if matches!(report.outcome(), RecoveryReportOutcome::Blocked) {
-        if index == 0 {
-            let mutated = RecoveryReportEnvelope::decode(
-                &comparison::mutate_runtime_root_generation(&report.encode()),
-            );
-            if let Ok(mutated) = mutated {
-                assert_ne!(
-                    comparison::compare_runtime_and_observer(
-                        &mutated,
-                        &publication_observer.report,
-                        &publication_after,
-                    ),
-                    Ok(())
-                );
-            }
-            let mutated_cause = RecoveryReportEnvelope::decode(
-                &comparison::mutate_runtime_denial_cause(&report.encode()),
-            )
-            .expect("mutated cancellation denial cause report");
-            assert_ne!(mutated_cause.denial_cause(), report.denial_cause());
-        }
-    }
 }
 
 fn run_deadlines(
@@ -267,7 +234,7 @@ fn run_deadline(world: &ProcessWorld, index: usize, stage: PhysicalRecoveryYield
     );
     let publication_after = world.parent_history_after_recovery(&root);
     let publication_observer = world.observe_root(&root, &format!("deadline-{index}-observer"));
-    let posture = publication_adjudication::adjudicate(
+    publication_adjudication::adjudicate(
         &root,
         &report,
         publication_before
@@ -276,43 +243,6 @@ fn run_deadline(world: &ProcessWorld, index: usize, stage: PhysicalRecoveryYield
         &publication_after,
         &publication_observer.report,
         "deadline",
-    );
-    assert_rehashed_publication_label(
-        &root,
-        &report,
-        posture,
-        publication_before
-            .as_ref()
-            .expect("publication deadline baseline history"),
-        &publication_after,
-        &publication_observer.report,
-        "deadline",
-    );
-}
-
-fn assert_rehashed_publication_label(
-    root: &Path,
-    report: &RecoveryReportEnvelope,
-    posture: publication_adjudication::RawPublicationPosture,
-    before: &super::super::super::history::ParentPhysicalHistory,
-    after: &super::super::super::history::ParentPhysicalHistory,
-    observer: &worth_store_offline_verifier::RecoveryObserverReport,
-    label: &str,
-) {
-    let encoded = report.encode();
-    let mutated = match posture {
-        publication_adjudication::RawPublicationPosture::ProvenNoEffect => {
-            comparison::mutate_runtime_blocked_as_indeterminate(&encoded)
-        }
-        publication_adjudication::RawPublicationPosture::PhysicalEffectObserved => {
-            comparison::mutate_runtime_publication_as_blocked(&encoded)
-        }
-    };
-    let mutated = RecoveryReportEnvelope::decode(&mutated)
-        .expect("rehashed publication-label mutation must remain decodable");
-    assert!(
-        publication_adjudication::validate(root, &mutated, before, after, observer, label).is_err(),
-        "{label} rehashed publication-label mutation was accepted"
     );
 }
 

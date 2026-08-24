@@ -11,6 +11,9 @@ pub struct RecoveryPlanningCounters {
     freshness_expired: u64,
     fate_counts: [u64; 4],
     peak_recovery_bytes: u64,
+    successor_candidate_reads: u64,
+    successor_candidate_bytes: u64,
+    successor_candidate_peak_bytes: u64,
 }
 
 impl RecoveryPlanningCounters {
@@ -34,6 +37,9 @@ impl RecoveryPlanningCounters {
             freshness_expired,
             fate_counts,
             peak_recovery_bytes: 0,
+            successor_candidate_reads: 0,
+            successor_candidate_bytes: 0,
+            successor_candidate_peak_bytes: 0,
         }
     }
     pub const fn page_extent_reads(self) -> u64 {
@@ -69,8 +75,28 @@ impl RecoveryPlanningCounters {
     pub const fn peak_recovery_bytes(self) -> u64 {
         self.peak_recovery_bytes
     }
+    pub const fn successor_candidate_reads(self) -> u64 {
+        self.successor_candidate_reads
+    }
+    pub const fn successor_candidate_bytes(self) -> u64 {
+        self.successor_candidate_bytes
+    }
+    pub const fn successor_candidate_peak_bytes(self) -> u64 {
+        self.successor_candidate_peak_bytes
+    }
     pub const fn with_peak_recovery_bytes(mut self, peak_recovery_bytes: u64) -> Self {
         self.peak_recovery_bytes = peak_recovery_bytes;
+        self
+    }
+    pub const fn with_successor_candidate_observation(
+        mut self,
+        reads: u64,
+        bytes: u64,
+        peak_bytes: u64,
+    ) -> Self {
+        self.successor_candidate_reads = reads;
+        self.successor_candidate_bytes = bytes;
+        self.successor_candidate_peak_bytes = peak_bytes;
         self
     }
 }

@@ -19,6 +19,7 @@ pub struct SelectedPhysicalPageFacts {
     manifest_block_count: u64,
     distinct_pages_and_extents: u64,
     routing_blocks: Vec<ManifestBlockReference>,
+    routing_topology: Vec<(ManifestBlockReference, PhysicalRootRoutingBlock)>,
     placements: Vec<CurrentPhysicalRecordPlacement>,
 }
 
@@ -63,6 +64,10 @@ impl SelectedPhysicalPageFacts {
     pub fn routing_blocks(&self) -> &[ManifestBlockReference] {
         &self.routing_blocks
     }
+
+    pub fn routing_topology(&self) -> &[(ManifestBlockReference, PhysicalRootRoutingBlock)] {
+        &self.routing_topology
+    }
 }
 
 pub fn admit_physical_page_facts(
@@ -82,6 +87,7 @@ pub fn admit_physical_page_facts(
     let mut pending = manifest.routing_root().into_iter().collect::<VecDeque<_>>();
     let mut visited = BTreeSet::new();
     let mut routing_blocks = Vec::new();
+    let mut routing_topology = Vec::new();
     let mut placements = Vec::new();
     let mut distinct_pages_and_extents = BTreeSet::new();
     while let Some(reference) = pending.pop_front() {
@@ -100,6 +106,7 @@ pub fn admit_physical_page_facts(
         if block.tree_identity() != manifest.tree_identity() {
             return Err(PhysicalPageFactDenial::TreeIdentityMismatch);
         }
+        routing_topology.push((reference, block.clone()));
         match block {
             PhysicalRootRoutingBlock::Leaf { entries, .. } => {
                 let next_entry_count = placements
@@ -144,6 +151,7 @@ pub fn admit_physical_page_facts(
         manifest_block_count: routing_blocks.len() as u64,
         distinct_pages_and_extents,
         routing_blocks,
+        routing_topology,
         placements,
     })
 }

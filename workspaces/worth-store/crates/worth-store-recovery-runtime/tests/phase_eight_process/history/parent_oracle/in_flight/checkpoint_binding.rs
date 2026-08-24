@@ -26,30 +26,6 @@ pub(crate) fn scan_checkpoint_binding(
     Ok(matches)
 }
 
-pub(crate) fn scan_checkpoint_redo_digest(
-    bytes: &[u8],
-    identity: &[u8],
-    expected_record: RecordIdentity,
-) -> Result<Option<[u8; 32]>, String> {
-    let mut offset = 0;
-    let mut found = None;
-    while offset < bytes.len() {
-        let (total, payload, kind) = checkpoint_record(bytes, offset)?;
-        if kind == 4 {
-            if let Some(digest) = completed_binding_redo_digest(payload, identity, expected_record)
-            {
-                if found.replace(digest).is_some() {
-                    return Err(
-                        "semantic checkpoint oracle found duplicate completed binding".to_owned(),
-                    );
-                }
-            }
-        }
-        offset += total;
-    }
-    Ok(found)
-}
-
 pub(super) fn scan_identity(bytes: &[u8], identity: &[u8]) -> Result<bool, String> {
     let mut offset = 0;
     let mut found_identity = false;
@@ -103,24 +79,16 @@ fn completed_binding_redo_digest(
     if !super::basis_matches(&mut cursor, identity) || cursor.byte() != Some(2) {
         return None;
     }
-    let Some(binding) = cursor.field() else {
-        return None;
-    };
+    let binding = cursor.field()?;
     let binding_redo_digest = super::binding_redo_digest(binding, identity, None)?;
     if cursor.u32().is_none() || cursor.u64().is_none() {
         return None;
     }
-    let Some(record_count) = cursor.u32() else {
-        return None;
-    };
+    let record_count = cursor.u32()?;
     let mut record_matches = 0;
     for _ in 0..record_count {
-        let Some(allocation_epoch) = cursor.array_field(16) else {
-            return None;
-        };
-        let Some(ordinal) = cursor.u64() else {
-            return None;
-        };
+        let allocation_epoch = cursor.array_field(16)?;
+        let ordinal = cursor.u64()?;
         record_matches += usize::from(
             RecordIdentity {
                 allocation_epoch: allocation_epoch.try_into().unwrap_or([0; 16]),
@@ -129,9 +97,7 @@ fn completed_binding_redo_digest(
         );
     }
     for _ in 0..13 {
-        if cursor.u64().is_none() {
-            return None;
-        }
+        cursor.u64()?;
     }
     (record_matches == 1 && cursor.is_empty()).then_some(binding_redo_digest)
 }

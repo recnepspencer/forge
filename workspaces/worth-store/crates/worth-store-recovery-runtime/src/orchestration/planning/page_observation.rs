@@ -28,6 +28,7 @@ pub(super) struct ObservedPageBasis {
     pub(super) observations: Vec<RecoveryPageObservation>,
     pub(super) inline_truth: Option<allocation_truth::InlineAllocationTruth>,
     pub(super) selected_source: crate::progression::RecoverySelectedSourceInventory,
+    pub(super) manifest_budget: super::manifest_entry_budget::ManifestEntryBudget,
 }
 
 pub(super) use selected_basis::{artifact_read_ceiling, ArtifactReadCeilingDenial};
@@ -43,6 +44,7 @@ pub(super) fn observe_selected_pages(
     targets: &[PhysicalRedoTarget],
     format: PhysicalRecordFormatDeclaration,
     maximum_entries: u64,
+    admitted_manifest_entries: u64,
     maximum_manifest_entries: u64,
     maximum_bytes: u64,
 ) -> (AdmittedRecoveryFilesystemMedia, PageObservationAttempt) {
@@ -56,6 +58,7 @@ pub(super) fn observe_selected_pages(
         placements,
         targets,
         format,
+        admitted_manifest_entries,
         maximum_manifest_entries,
         maximum_bytes,
     );
@@ -80,11 +83,15 @@ fn observe(
     placements: &[CurrentPhysicalRecordPlacement],
     targets: &[PhysicalRedoTarget],
     format: PhysicalRecordFormatDeclaration,
+    admitted_manifest_entries: u64,
     maximum_manifest_entries: u64,
     byte_limit: u64,
 ) -> Result<ObservedPageBasis, PageObservationFailure> {
-    let mut budget =
-        super::selected_source_inventory::ManifestEntryBudget::new(maximum_manifest_entries);
+    let already_observed = admitted_manifest_entries.saturating_sub(maximum_manifest_entries);
+    let mut budget = super::manifest_entry_budget::ManifestEntryBudget::new(
+        admitted_manifest_entries,
+        already_observed,
+    );
     let mut selected_source = super::selected_source_inventory::observe_with_budget(
         discovery,
         root_manifest,
@@ -176,6 +183,7 @@ fn observe(
         observations,
         inline_truth: absent.inline_truth,
         selected_source,
+        manifest_budget: budget,
     })
 }
 

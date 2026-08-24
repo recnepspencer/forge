@@ -2,8 +2,10 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use super::super::super::child_lifecycle::ProcessChildGuard;
-use super::super::history_io::{c8_writer_binary_path, wait_for_marker};
-use super::super::{ExpectedWriterHistory, ParentPhysicalHistory, SubmittedOperationProgram};
+use super::super::writer_process::{c8_writer_binary_path, wait_for_marker};
+use super::super::{
+    ExpectedWriterHistory, MutationCrashWorkload, ParentPhysicalHistory, SubmittedOperationProgram,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct KilledProductionWriter {
@@ -17,43 +19,56 @@ pub(crate) struct KilledProductionWriter {
 pub(crate) struct WriterLaunch {
     pub(crate) root: PathBuf,
     pub(crate) stage: String,
+    pub(crate) mutation_crash: Option<MutationCrashLaunch>,
     pub(crate) operation_program: SubmittedOperationProgram,
     pub(crate) start: PathBuf,
     pub(crate) reached: PathBuf,
     pub(crate) durable_before_ack: bool,
-    pub(crate) capture_after_recovery: bool,
+    pub(crate) allow_unresolved_current_record: bool,
+}
+
+pub(crate) struct MutationCrashLaunch {
+    stage: &'static str,
+    workload: MutationCrashWorkload,
+}
+
+impl MutationCrashLaunch {
+    pub(crate) const fn new(stage: &'static str, workload: MutationCrashWorkload) -> Self {
+        Self { stage, workload }
+    }
 }
 
 pub(crate) fn launch(mut declaration: WriterLaunch) -> Result<KilledProductionWriter, String> {
-    let barrier_receipt = declaration.operation_program.barrier_receipt.clone();
+    let mut command = Command::new(c8_writer_binary_path());
+    command
+        .args(["--root"])
+        .arg(&declaration.root)
+        .args(["--start-marker"])
+        .arg(&declaration.start)
+        .args(["--reached-marker"])
+        .arg(&declaration.reached)
+        .args(["--checkpoint-stage"])
+        .arg(&declaration.stage)
+        .args(["--writer-durability-profile"])
+        .arg(
+            declaration
+                .operation_program
+                .writer_profile_selection
+                .cli_name(),
+        )
+        .args(["--operation-program"])
+        .arg(&declaration.operation_program.path)
+        .args(
+            declaration
+                .durable_before_ack
+                .then_some("--durable-before-ack"),
+        );
+    if let Some(crash) = declaration.mutation_crash {
+        command.args(["--mutation-crash-stage", crash.stage]);
+        command.args(["--mutation-crash-workload", crash.workload.cli_name()]);
+    }
     let mut child = ProcessChildGuard::new(
-        Command::new(c8_writer_binary_path())
-            .args(["--root"])
-            .arg(&declaration.root)
-            .args(["--start-marker"])
-            .arg(&declaration.start)
-            .args(["--reached-marker"])
-            .arg(&declaration.reached)
-            .args(["--checkpoint-stage"])
-            .arg(&declaration.stage)
-            .args(["--writer-durability-profile"])
-            .arg(
-                declaration
-                    .operation_program
-                    .writer_profile_selection
-                    .cli_name(),
-            )
-            .args(["--operation-program"])
-            .arg(&declaration.operation_program.path)
-            .args(["--identity-receipt"])
-            .arg(&declaration.operation_program.identity_receipt)
-            .args(["--barrier-receipt"])
-            .arg(&barrier_receipt)
-            .args(
-                declaration
-                    .durable_before_ack
-                    .then_some("--durable-before-ack"),
-            )
+        command
             .spawn()
             .map_err(|error| format!("spawn {}: {error}", declaration.stage))?,
     );
@@ -67,11 +82,7 @@ pub(crate) fn launch(mut declaration: WriterLaunch) -> Result<KilledProductionWr
     declaration
         .operation_program
         .expected
-        .bind_identity_receipt(&declaration.operation_program.identity_receipt)?;
-    declaration
-        .operation_program
-        .expected
-        .bind_checkpoint_redo_digests(&declaration.root)?;
+        .bind_persisted_operation_identities(&declaration.root)?;
     std::fs::write(&declaration.start, b"release")
         .map_err(|error| format!("release {}: {error}", declaration.stage))?;
     wait_for_marker(&mut child, &declaration.reached, "writer effect")?;
@@ -84,8 +95,8 @@ pub(crate) fn launch(mut declaration: WriterLaunch) -> Result<KilledProductionWr
             declaration.stage
         ));
     }
-    let history = if declaration.capture_after_recovery {
-        ParentPhysicalHistory::capture_after_recovery(
+    let history = if declaration.allow_unresolved_current_record {
+        ParentPhysicalHistory::capture_with_unresolved_record(
             &declaration.root,
             &declaration.operation_program.expected,
         )?

@@ -24,6 +24,8 @@ mod identity_evidence;
 mod in_flight;
 #[path = "parent_oracle/manifest_evidence.rs"]
 mod manifest_evidence;
+#[path = "parent_oracle/operation_binding.rs"]
+mod operation_binding;
 #[path = "parent_oracle/page_evidence.rs"]
 mod page_evidence;
 #[path = "parent_oracle/residue_evidence.rs"]
@@ -58,21 +60,7 @@ pub(crate) use cleanup_candidate::{
 pub(crate) use derivation::derive;
 pub(crate) use evidence::ParentPhysicalEvidence;
 pub(super) use evidence_digest::{DigestBuilder, DigestObservation};
-pub(super) use in_flight::{
-    classify as classify_in_flight_artifacts, require_bound_records, require_no_wal_bindings,
-};
+pub(super) use in_flight::{classify as classify_in_flight_artifacts, require_bound_records};
+pub(crate) use operation_binding::bind as bind_submitted_operations;
 pub(super) use selected_basis::select as select_recovery_basis;
 pub(super) use terminal::contains_persisted_no_effect_terminal;
-
-pub(super) fn checkpoint_redo_digest(
-    files: &[(String, Vec<u8>)],
-    idempotency: &[u8],
-    record: RecordIdentity,
-) -> Result<[u8; 32], String> {
-    let checkpoint = files
-        .iter()
-        .find(|(path, _)| path == "families/checkpoint.current")
-        .ok_or_else(|| "parent oracle cannot find current checkpoint".to_owned())?;
-    in_flight::scan_checkpoint_redo_digest(&checkpoint.1, idempotency, record)?
-        .ok_or_else(|| "parent oracle cannot find completed checkpoint binding".to_owned())
-}

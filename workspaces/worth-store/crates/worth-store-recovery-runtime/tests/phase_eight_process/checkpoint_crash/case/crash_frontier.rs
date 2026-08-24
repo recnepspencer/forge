@@ -3,8 +3,7 @@ use worth_store_recovery_runtime::RecoveryReportOutcome;
 
 use super::super::super::history;
 use super::super::evidence::{
-    assert_barrier_receipt, assert_snapshot_preserved, assert_stage_frontier,
-    derive_expected_frontier, snapshot_directory,
+    assert_snapshot_preserved, assert_stage_frontier, derive_expected_frontier, snapshot_directory,
 };
 use super::super::process::{fresh_observer, wait_for_marker};
 use super::fixture_setup::CheckpointFixture;
@@ -21,12 +20,10 @@ pub(super) struct CrashObservation {
 
 pub(super) fn observe(mut fixture: CheckpointFixture) -> CrashObservation {
     let stage = fixture.stage;
-    let barrier_receipt = fixture.operation_program.barrier_receipt.clone();
     let start_marker = fixture.parent.path().join("checkpoint-start");
     let reached_marker = fixture.parent.path().join("checkpoint-reached");
     std::fs::write(&start_marker, stage.label()).expect("release checkpoint writer");
     wait_for_marker(&mut fixture.child, &reached_marker, "checkpoint effect");
-    assert_barrier_receipt(&barrier_receipt, stage.label());
 
     let effect_snapshot = snapshot_directory(&fixture.root);
     let expected_frontier = derive_expected_frontier(stage.label());

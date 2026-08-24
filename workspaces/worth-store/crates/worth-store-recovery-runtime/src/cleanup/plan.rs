@@ -183,6 +183,9 @@ fn retained_record_dispositions(
             .entry(*artifact)
             .or_insert(RecoveryCleanupDispositionKind::Retained);
     }
+    for artifact in publication.referenced_artifacts() {
+        records.insert(*artifact, RecoveryCleanupDispositionKind::Current);
+    }
     for artifact in publication.created_artifacts() {
         if !is_consumed_publication_candidate(*artifact) {
             records.insert(*artifact, RecoveryCleanupDispositionKind::Current);

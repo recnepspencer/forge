@@ -1,7 +1,5 @@
 #[path = "production/agreement.rs"]
 mod agreement;
-#[path = "production/checkpoint_mutations.rs"]
-mod checkpoint_mutations;
 #[path = "production/failure.rs"]
 mod failure;
 #[path = "production/fate_markers.rs"]
@@ -10,8 +8,6 @@ pub(super) mod fate_markers;
 mod fates;
 #[path = "production/harness.rs"]
 pub(super) mod harness;
-#[path = "production/mutations.rs"]
-mod mutations;
 #[path = "production/protocol.rs"]
 mod protocol;
 #[path = "production/recovery_crash.rs"]
@@ -22,6 +18,8 @@ mod repeatability;
 mod size_independence;
 #[path = "production/terminal_fixture.rs"]
 pub(super) mod terminal_fixture;
+#[path = "production/writer_crash.rs"]
+mod writer_crash;
 
 pub(super) use fate_markers::persisted_fate_tags;
 pub(super) use harness::run_recovery_with_profile;

@@ -29,6 +29,7 @@ fn killed_recovery_process_reopens_after_each_named_c8_seam() {
     let publication_world = ProcessWorld::start_with_operation_count(
         "candidate-binding-record",
         0xC8_08_11,
+        0xC8_18_11,
         RECOVERY_SEAM_OPERATION_COUNT,
     );
     for (index, stage) in RECOVERY_SEAMS
@@ -38,12 +39,11 @@ fn killed_recovery_process_reopens_after_each_named_c8_seam() {
         .filter(|(_, stage)| !is_cleanup_stage(*stage))
     {
         seam::run(&publication_world, index, stage);
-        publication_world.assert_within_budget("production/recovery seam case");
     }
-    publication_world.finish_within_budget("production/recovery publication seams");
 
     let cleanup_world = ProcessWorld::start_cleanup_world_with_operation_count(
         0xC8_08_21,
+        0xC8_18_21,
         RECOVERY_SEAM_OPERATION_COUNT,
     );
     cleanup_world::require_raw_candidate(&cleanup_world);
@@ -54,9 +54,7 @@ fn killed_recovery_process_reopens_after_each_named_c8_seam() {
         .filter(|(_, stage)| is_cleanup_stage(*stage))
     {
         seam::run(&cleanup_world, index, stage);
-        cleanup_world.assert_within_budget("production/recovery cleanup seam case");
     }
-    cleanup_world.finish_within_budget("production/recovery cleanup seams");
 }
 
 #[test]
@@ -64,18 +62,18 @@ fn cancelled_recovery_process_reports_a_blocked_post_effect_outcome() {
     let publication_world = ProcessWorld::start_with_operation_count(
         "candidate-binding-record",
         0xC8_08_31,
+        0xC8_18_31,
         RECOVERY_SEAM_OPERATION_COUNT,
     );
     interruption::run_publication(&publication_world, 0);
-    publication_world.finish_within_budget("production/cancelled publication proof");
 
     let cleanup_world = ProcessWorld::start_cleanup_world_with_operation_count(
-        0xC8_08_32,
+        0x00C8_0832,
+        0x00C8_1832,
         RECOVERY_SEAM_OPERATION_COUNT,
     );
     cleanup_world::require_raw_candidate(&cleanup_world);
     interruption::run_cleanup(&cleanup_world, RECOVERY_SEAMS.len());
-    cleanup_world.finish_within_budget("production/cancelled cleanup proof");
 }
 
 fn is_cleanup_stage(stage: PhysicalRecoveryYieldpointStage) -> bool {

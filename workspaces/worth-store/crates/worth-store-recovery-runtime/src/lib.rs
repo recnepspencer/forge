@@ -27,7 +27,8 @@ pub use entry::{
     PhysicalRecoveryReopenFailure, PhysicalRecoverySessionIdentity, PhysicalRecoverySourceDenial,
     PhysicalRecoveryStagingCounters, PhysicalRecoveryStagingDenial,
     PhysicalRecoveryStagingSettlement, PhysicalRecoveryStagingSettlementLedger,
-    PhysicalRecoveryStaticConfiguration,
+    PhysicalRecoveryStaticConfiguration, PhysicalRecoverySuccessorCandidateDenial,
+    PhysicalRecoverySuccessorCandidateMismatch,
 };
 pub use handoff::{
     RecoveredPhysicalRuntimeHandoff, RecoveryCleanupCounters, RecoveryCleanupDeferralEvidence,

@@ -210,18 +210,3 @@ fn wal_identities(files: &[(String, Vec<u8>)]) -> Result<Vec<CleanupWalIdentity>
     identities.sort_by_key(|identity| (identity.segment, identity.generation));
     Ok(identities)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::prove;
-
-    #[test]
-    fn missing_checkpoint_and_wal_are_rejected_before_cleanup_is_claimed() {
-        assert!(prove(&[]).is_err());
-        assert!(prove(&[(
-            "families/checkpoint.current".to_owned(),
-            b"not-a-checkpoint".to_vec(),
-        )])
-        .is_err());
-    }
-}

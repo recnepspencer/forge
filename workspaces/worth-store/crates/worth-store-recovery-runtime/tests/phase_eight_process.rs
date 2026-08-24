@@ -6,8 +6,6 @@ mod child_lifecycle;
 mod comparison;
 #[path = "phase_eight_process/history.rs"]
 mod history;
-#[path = "phase_eight_process/process_lane.rs"]
-mod process_lane;
 #[path = "phase_eight_process/production.rs"]
 mod production;
 #[path = "phase_eight_process/support_binaries.rs"]

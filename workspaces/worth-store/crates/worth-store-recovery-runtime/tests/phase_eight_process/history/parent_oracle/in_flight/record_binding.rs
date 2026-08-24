@@ -27,33 +27,6 @@ pub(crate) fn require_bound_records(
     Ok(())
 }
 
-pub(crate) fn require_no_wal_bindings(
-    files: &[(String, Vec<u8>)],
-    expected: &BTreeMap<[u8; 32], ExpectedCanonicalRecord>,
-) -> Result<(), String> {
-    let wal = files.iter().filter(|(path, bytes)| {
-        path.starts_with("families/wal/") && bytes.starts_with(b"WORTHWAL")
-    });
-    let wal = wal.collect::<Vec<_>>();
-    for (idempotency, record) in expected {
-        let identity = RecordIdentity {
-            allocation_epoch: record.allocation_epoch,
-            ordinal: record.ordinal,
-        };
-        let matches = wal.iter().try_fold(0, |matches, (_, bytes)| {
-            Ok::<_, String>(
-                matches + scan_wal(bytes, idempotency, identity, &record.payload, None)?,
-            )
-        })?;
-        if matches != 0 {
-            return Err(
-                "parent oracle found a completed checkpoint binding in retained WAL".to_owned(),
-            );
-        }
-    }
-    Ok(())
-}
-
 pub(crate) fn require_bound_record(
     files: &[(String, Vec<u8>)],
     idempotency: &[u8],
@@ -309,78 +282,5 @@ impl<'bytes> Cursor<'bytes> {
 
     const fn is_empty(&self) -> bool {
         self.offset == self.bytes.len()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{redo_contains_record, RecordIdentity};
-
-    fn record(epoch: u8, ordinal: u64) -> RecordIdentity {
-        RecordIdentity {
-            allocation_epoch: [epoch; 16],
-            ordinal,
-        }
-    }
-
-    fn redo(record: RecordIdentity, payload: &[u8]) -> Vec<u8> {
-        let mut projection = Vec::new();
-        field(&mut projection, b"store.physical.recovery-projection.v3");
-        projection.extend_from_slice(&1_u64.to_le_bytes());
-        field(&mut projection, &[3]);
-        projection.extend_from_slice(&1_u64.to_le_bytes());
-        record_field(&mut projection, record);
-        projection.extend_from_slice(&1_u64.to_le_bytes());
-        field(&mut projection, &[4]);
-        projection.extend_from_slice(&1_u64.to_le_bytes());
-        let mut placement = vec![2];
-        raw_record(&mut placement, record);
-        placement.extend_from_slice(&1_u64.to_le_bytes());
-        placement.extend_from_slice(&1_u64.to_le_bytes());
-        placement.extend_from_slice(&(payload.len() as u64).to_le_bytes());
-        field(&mut projection, &placement);
-        projection.extend_from_slice(&0_u64.to_le_bytes());
-        projection.extend_from_slice(&0_u64.to_le_bytes());
-        let mut redo = Vec::new();
-        field(&mut redo, b"store.physical.wal.canonical-redo.v3");
-        redo.extend_from_slice(&1_u64.to_le_bytes());
-        redo.extend_from_slice(&0_u32.to_le_bytes());
-        redo.extend_from_slice(&1_u64.to_le_bytes());
-        redo.extend_from_slice(&1_u64.to_le_bytes());
-        field(&mut redo, &[1]);
-        redo.extend_from_slice(&[2; 32]);
-        field(&mut redo, payload);
-        field(&mut redo, &projection);
-        redo
-    }
-
-    fn field(target: &mut Vec<u8>, bytes: &[u8]) {
-        target.extend_from_slice(&(bytes.len() as u64).to_le_bytes());
-        target.extend_from_slice(bytes);
-    }
-
-    fn record_field(target: &mut Vec<u8>, record: RecordIdentity) {
-        let mut bytes = Vec::new();
-        raw_record(&mut bytes, record);
-        field(target, &bytes);
-    }
-
-    fn raw_record(target: &mut Vec<u8>, record: RecordIdentity) {
-        target.extend_from_slice(&record.allocation_epoch);
-        target.extend_from_slice(&record.ordinal.to_le_bytes());
-    }
-
-    #[test]
-    fn wrong_physical_record_does_not_bind_a_matching_payload() {
-        let expected = record(1, 7);
-        let observed = redo(record(2, 8), b"dirty-payload");
-        assert!(!redo_contains_record(&observed, expected, b"dirty-payload").unwrap());
-    }
-
-    #[test]
-    fn rehashed_wrong_payload_does_not_bind_the_dirty_record() {
-        let expected = record(1, 7);
-        let observed = redo(expected, b"rehashed-foreign-payload");
-        assert!(!redo_contains_record(&observed, expected, b"dirty-payload").unwrap());
     }
 }

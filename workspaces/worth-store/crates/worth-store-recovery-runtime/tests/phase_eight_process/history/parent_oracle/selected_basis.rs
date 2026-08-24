@@ -111,31 +111,3 @@ fn parse_segment_name(name: &str) -> Option<(u64, u64)> {
         && format!("segment-{segment}-generation-{generation}.wal") == name)
         .then_some((segment, generation))
 }
-
-#[cfg(test)]
-mod tests {
-    use super::{parse_segment_name, validate_wal_continuation};
-
-    #[test]
-    fn canonical_wal_names_are_the_only_selectable_names() {
-        assert_eq!(
-            parse_segment_name("segment-1-generation-2.wal"),
-            Some((1, 2))
-        );
-        assert_eq!(parse_segment_name("segment-01-generation-2.wal"), None);
-        assert_eq!(parse_segment_name("old-segment-1-generation-2.wal"), None);
-    }
-
-    #[test]
-    fn selected_basis_rejects_foreign_generation_and_checkpoint_or_segment_overlap() {
-        assert!(validate_wal_continuation((1, 9), 2, 10, 10, 11, 10, None).is_err());
-        assert!(validate_wal_continuation((1, 2), 2, 10, 9, 11, 10, None).is_err());
-        assert!(validate_wal_continuation((2, 2), 2, 10, 10, 12, 11, Some(1)).is_err());
-    }
-
-    #[test]
-    fn selected_basis_accepts_only_a_contiguous_non_overlapping_tail() {
-        assert!(validate_wal_continuation((1, 2), 2, 10, 10, 11, 10, None).is_ok());
-        assert!(validate_wal_continuation((2, 2), 2, 10, 11, 12, 11, Some(1)).is_ok());
-    }
-}

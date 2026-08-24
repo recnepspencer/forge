@@ -11,36 +11,15 @@ use worth_store_physical_format::{
     SegmentManifestBlockReference, SegmentMembershipBlockDecodeLimits,
 };
 
+use super::manifest_entry_budget::ManifestEntryBudget;
 use super::page_observation::{required, PageObservationFailure};
 use crate::progression::{RecoverySelectedSegmentPage, RecoverySelectedSourceInventory};
 
-pub(super) struct ManifestEntryBudget {
-    remaining: u64,
-}
-
-impl ManifestEntryBudget {
-    pub(super) const fn new(remaining: u64) -> Self {
-        Self { remaining }
-    }
-
-    fn admit_pending_block_read(&self) -> Result<(), PageObservationFailure> {
-        (self.remaining != 0)
-            .then_some(())
-            .ok_or(PageObservationFailure::ManifestEntryLimit)
-    }
-
-    fn consume(&mut self, entries: usize) -> Result<(), PageObservationFailure> {
-        self.remaining = self
-            .remaining
-            .checked_sub(entries as u64)
-            .ok_or(PageObservationFailure::ManifestEntryLimit)?;
-        Ok(())
-    }
-
-    const fn remaining(&self) -> u64 {
-        self.remaining
-    }
-}
+type SelectedSegmentTopologyObservation = (
+    BTreeMap<(u64, u64), RecoverySelectedSegmentPage>,
+    BTreeSet<RecordArtifactFile>,
+    BTreeMap<(u64, u64), PhysicalSegmentMembershipBlock>,
+);
 
 #[cfg(test)]
 pub(super) fn observe(
@@ -50,7 +29,7 @@ pub(super) fn observe(
     maximum_manifest_entries: u64,
     byte_limit: u64,
 ) -> Result<RecoverySelectedSourceInventory, PageObservationFailure> {
-    let mut budget = ManifestEntryBudget::new(maximum_manifest_entries);
+    let mut budget = ManifestEntryBudget::new(maximum_manifest_entries, 0);
     observe_with_budget(discovery, root, format, &mut budget, byte_limit)
 }
 
@@ -63,9 +42,9 @@ pub(super) fn observe_with_budget(
 ) -> Result<RecoverySelectedSourceInventory, PageObservationFailure> {
     budget.admit_pending_block_read()?;
     let free_space = read_free_space_header(discovery, root, format, byte_limit)?;
-    let (segment_pages, segment_artifacts) =
+    let (segment_pages, segment_artifacts, segment_topology) =
         read_segment_pages(discovery, root, format, budget, byte_limit)?;
-    let (free_entries, free_artifacts) =
+    let (free_entries, free_artifacts, free_topology) =
         read_free_entries(discovery, &free_space, format, budget, byte_limit)?;
     let mut source_artifacts = BTreeSet::from([RecordArtifactFile::FreeSpaceManifest {
         generation: root.generation(),
@@ -75,7 +54,9 @@ pub(super) fn observe_with_budget(
     Ok(RecoverySelectedSourceInventory {
         free_space,
         segment_pages,
+        segment_topology,
         free_entries: free_entries.into_boxed_slice(),
+        free_topology,
         source_artifacts: source_artifacts
             .into_iter()
             .collect::<Vec<_>>()
@@ -115,17 +96,12 @@ fn read_segment_pages(
     format: PhysicalRecordFormatDeclaration,
     budget: &mut ManifestEntryBudget,
     byte_limit: u64,
-) -> Result<
-    (
-        BTreeMap<(u64, u64), RecoverySelectedSegmentPage>,
-        BTreeSet<RecordArtifactFile>,
-    ),
-    PageObservationFailure,
-> {
+) -> Result<SelectedSegmentTopologyObservation, PageObservationFailure> {
     let mut pending = root.segment_root().into_iter().collect::<VecDeque<_>>();
     let mut visited = BTreeSet::new();
     let mut artifacts = BTreeSet::new();
     let mut pages = BTreeMap::new();
+    let mut topology = BTreeMap::new();
     while let Some(reference) = pending.pop_front() {
         budget.admit_pending_block_read()?;
         let artifact = RecordArtifactFile::SegmentMembershipBlock {
@@ -160,6 +136,7 @@ fn read_segment_pages(
         {
             return Err(invalid(artifact));
         }
+        topology.insert((reference.generation(), reference.block()), block.clone());
         if let Some(entries) = block.entries() {
             budget.consume(entries.len())?;
             for entry in entries {
@@ -178,7 +155,7 @@ fn read_segment_pages(
             pending.extend(children.iter().copied());
         }
     }
-    Ok((pages, artifacts))
+    Ok((pages, artifacts, topology))
 }
 
 fn read_free_entries(
@@ -191,6 +168,7 @@ fn read_free_entries(
     (
         Vec<RecordFreeSpaceManifestEntry>,
         BTreeSet<RecordArtifactFile>,
+        BTreeMap<(u64, u64), PhysicalFreeSpaceMembershipBlock>,
     ),
     PageObservationFailure,
 > {
@@ -198,6 +176,7 @@ fn read_free_entries(
     let mut visited = BTreeSet::new();
     let mut artifacts = BTreeSet::new();
     let mut entries = Vec::new();
+    let mut topology = BTreeMap::new();
     while let Some(reference) = pending.pop_front() {
         budget.admit_pending_block_read()?;
         let artifact = RecordArtifactFile::FreeSpaceMembershipBlock {
@@ -232,6 +211,7 @@ fn read_free_entries(
         {
             return Err(invalid(artifact));
         }
+        topology.insert((reference.generation(), reference.block()), block.clone());
         if let Some(found) = block.entries() {
             budget.consume(found.len())?;
             entries.extend_from_slice(found);
@@ -249,7 +229,7 @@ fn read_free_entries(
             generation: header.generation(),
         }));
     }
-    Ok((entries, artifacts))
+    Ok((entries, artifacts, topology))
 }
 
 fn routing_identity(
@@ -308,21 +288,5 @@ const fn invalid(artifact: RecordArtifactFile) -> PageObservationFailure {
     PageObservationFailure::InvalidManifest {
         target: None,
         artifact,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{ManifestEntryBudget, PageObservationFailure};
-
-    #[test]
-    fn exhausted_branch_budget_denies_the_child_before_its_read() {
-        let mut budget = ManifestEntryBudget::new(1);
-        assert_eq!(budget.admit_pending_block_read(), Ok(()));
-        assert_eq!(budget.consume(1), Ok(()));
-        assert_eq!(
-            budget.admit_pending_block_read(),
-            Err(PageObservationFailure::ManifestEntryLimit)
-        );
     }
 }

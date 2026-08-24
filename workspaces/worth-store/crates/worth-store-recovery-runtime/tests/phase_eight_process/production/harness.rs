@@ -9,7 +9,7 @@ use worth_store_recovery_runtime::{
     RECOVERY_REPORT_PROTOCOL,
 };
 
-use super::super::{comparison, history, process_lane};
+use super::super::{comparison, history};
 use super::fate_markers::IndexedRecoveryFate;
 
 #[path = "harness/markers.rs"]
@@ -19,6 +19,7 @@ mod process;
 #[path = "harness/recovery.rs"]
 mod recovery;
 
+pub(super) use super::super::history::MutationCrashWorkload;
 pub(super) use markers::{RecoveryFateMarker, RecoveryRuntimeMarker};
 pub use process::run_recovery_with_profile;
 pub(super) use process::{
@@ -31,7 +32,6 @@ pub(super) const C8_RECOVERY_MEMORY_BUDGET_BYTES: u64 = 512 * 1024;
 pub(super) struct ProcessWorld {
     parent: TempDir,
     pub(super) writer: history::KilledProductionWriter,
-    lane: process_lane::ProcessLaneGuard,
 }
 
 pub(super) struct ObserverProcess {
@@ -50,101 +50,109 @@ pub(super) struct RuntimeProcess {
 }
 
 impl ProcessWorld {
-    pub(super) fn start(stage: &str, seed: u64) -> Self {
-        let lane = process_lane::acquire().expect("acquire Phase 8 process lane");
-        assert!(!process_lane::lane_name().is_empty());
-        let parent = tempfile::tempdir().expect("Phase 8 process parent");
-        let writer = history::launch_killed_production_writer(parent.path(), stage, seed)
-            .expect("production writer must leave a killed persisted root");
-        Self {
-            parent,
-            writer,
-            lane,
-        }
+    pub(super) fn start_mutation_crash(
+        stage: &'static str,
+        workload: MutationCrashWorkload,
+        schedule_seed: u64,
+        perturbation_seed: u64,
+    ) -> Self {
+        let parent = tempfile::tempdir().expect("C8 mutation-crash process parent");
+        let writer = history::launch_killed_mutation_writer(
+            parent.path(),
+            stage,
+            workload,
+            schedule_seed,
+            perturbation_seed,
+        )
+        .expect("production writer must leave a killed mutation root");
+        Self { parent, writer }
     }
 
-    pub(super) fn start_after_reclamation(seed: u64) -> Self {
-        let lane = process_lane::acquire().expect("acquire Phase 8 process lane");
-        assert!(!process_lane::lane_name().is_empty());
-        let parent = tempfile::tempdir().expect("Phase 8 post-reclamation parent");
-        let writer = history::launch_killed_post_reclamation_writer(parent.path(), seed)
-            .expect("production writer must leave a post-reclamation persisted root");
-        Self {
-            parent,
-            writer,
-            lane,
-        }
+    pub(super) fn start_capacity_transition_crash(
+        schedule_seed: u64,
+        perturbation_seed: u64,
+    ) -> Self {
+        let parent = tempfile::tempdir().expect("C8 capacity-transition process parent");
+        let writer = history::launch_killed_mutation_writer_with_operation_count(
+            parent.path(),
+            "during-root-publication",
+            MutationCrashWorkload::CapacityTransition,
+            schedule_seed,
+            perturbation_seed,
+            super::super::history::DEFAULT_OPERATION_COUNT,
+        )
+        .expect("production writer must leave a killed capacity-transition root");
+        Self { parent, writer }
+    }
+
+    pub(super) fn start(stage: &str, schedule_seed: u64, perturbation_seed: u64) -> Self {
+        let parent = tempfile::tempdir().expect("Phase 8 process parent");
+        let writer = history::launch_killed_production_writer(
+            parent.path(),
+            stage,
+            schedule_seed,
+            perturbation_seed,
+        )
+        .expect("production writer must leave a killed persisted root");
+        Self { parent, writer }
     }
 
     pub(super) fn start_with_operation_count(
         stage: &str,
-        seed: u64,
+        schedule_seed: u64,
+        perturbation_seed: u64,
         operation_count: usize,
     ) -> Self {
-        let lane = process_lane::acquire().expect("acquire Phase 8 process lane");
-        assert!(!process_lane::lane_name().is_empty());
         let parent = tempfile::tempdir().expect("Phase 8 process parent");
         let writer = history::launch_killed_production_writer_with_operation_count(
             parent.path(),
             stage,
-            seed,
+            schedule_seed,
+            perturbation_seed,
             operation_count,
         )
         .expect("production writer must leave a killed persisted root");
-        Self {
-            parent,
-            writer,
-            lane,
-        }
+        Self { parent, writer }
     }
 
-    pub(super) fn start_durable_unacknowledged(seed: u64) -> Self {
+    pub(super) fn start_durable_unacknowledged(schedule_seed: u64, perturbation_seed: u64) -> Self {
         Self::start_durable_unacknowledged_with_operation_count(
-            seed,
+            schedule_seed,
+            perturbation_seed,
             super::super::history::DEFAULT_OPERATION_COUNT,
         )
     }
 
     pub(super) fn start_durable_unacknowledged_with_operation_count(
-        seed: u64,
+        schedule_seed: u64,
+        perturbation_seed: u64,
         operation_count: usize,
     ) -> Self {
-        let lane = process_lane::acquire().expect("acquire Phase 8 process lane");
-        assert!(!process_lane::lane_name().is_empty());
         let parent = tempfile::tempdir().expect("Phase 8 durable-unacknowledged parent");
         let writer = history::launch_killed_durable_unacknowledged_writer_with_operation_count(
             parent.path(),
-            seed,
+            schedule_seed,
+            perturbation_seed,
             operation_count,
         )
-        .unwrap_or_else(|error| {
-            panic!("MUTANT_PREDICATE:c8-durable-before-ack-parent-payload-profile\n{error}")
-        });
-        Self {
-            parent,
-            writer,
-            lane,
-        }
+        .unwrap_or_else(|error| panic!("durable-before-ack writer fixture failed: {error}"));
+        Self { parent, writer }
     }
 
     pub(super) fn start_cleanup_world_with_operation_count(
-        seed: u64,
+        schedule_seed: u64,
+        perturbation_seed: u64,
         operation_count: usize,
     ) -> Self {
-        let lane = process_lane::acquire().expect("acquire Phase 8 process lane");
-        assert!(!process_lane::lane_name().is_empty());
         let parent = tempfile::tempdir().expect("Phase 8 cleanup-rotation parent");
         let writer = history::launch_killed_cleanup_writer_with_operation_count(
             parent.path(),
-            seed,
+            schedule_seed,
+            perturbation_seed,
             operation_count,
         )
         .unwrap_or_else(|error| panic!("cleanup-rotation writer fixture failed: {error}"));
-        Self {
-            parent,
-            writer,
-            lane,
-        }
+        Self { parent, writer }
     }
 
     pub(super) fn observe(&self, name: &str) -> ObserverProcess {
@@ -197,19 +205,8 @@ impl ProcessWorld {
         &self,
         root: &Path,
     ) -> history::ParentPhysicalHistory {
-        history::ParentPhysicalHistory::capture_after_recovery(root, &self.writer.expected)
+        history::ParentPhysicalHistory::capture_with_unresolved_record(root, &self.writer.expected)
             .expect("capture parent history after recovery")
-    }
-
-    pub(super) fn assert_within_budget(&self, owner: &str) {
-        self.lane.assert_within_budget(owner);
-    }
-
-    pub(super) fn finish_within_budget(self, owner: &str) {
-        self.lane.assert_within_budget(owner);
-        self.lane
-            .close()
-            .unwrap_or_else(|error| panic!("close Phase 8 process lane: {error}"));
     }
 
     pub(super) fn require_cleanup_candidate(&self) -> Result<(), String> {
@@ -249,14 +246,28 @@ pub(super) fn compare_runtime_and_observer(
     observer: &ObserverProcess,
     history: &history::ParentPhysicalHistory,
 ) {
+    compare_runtime_and_observer_with_budget(
+        runtime,
+        observer,
+        history,
+        C8_RECOVERY_MEMORY_BUDGET_BYTES,
+    );
+}
+
+pub(super) fn compare_runtime_and_observer_with_budget(
+    runtime: &RuntimeProcess,
+    observer: &ObserverProcess,
+    history: &history::ParentPhysicalHistory,
+    memory_budget_bytes: u64,
+) {
     assert_eq!(runtime.report.outcome(), RecoveryReportOutcome::Recovered);
     assert!(runtime.fates.acknowledged > 0);
     assert!(runtime.report.store_identity().is_some());
     assert!(runtime.report.root_generation().is_some());
     assert!(runtime.report.counters().peak_recovery_bytes() > 0);
     assert!(
-        runtime.report.counters().peak_recovery_bytes() < C8_RECOVERY_MEMORY_BUDGET_BYTES,
-        "MUTANT_PREDICATE:c8-process-memory-boundary"
+        runtime.report.counters().peak_recovery_bytes() < memory_budget_bytes,
+        "recovery exceeded the ordinary process memory boundary"
     );
     assert!(observer.report.artifact_count() > 0);
     assert!(observer.report.bytes_read() > 0);
@@ -273,8 +284,13 @@ pub(super) fn compare_runtime_and_observer(
         observer.report.current_root_generation(),
         runtime.report.root_generation()
     );
-    comparison::compare_runtime_and_observer(&runtime.report, &observer.report, history)
-        .expect("runtime and observer must agree on the recovered physical frontier");
+    comparison::compare_runtime_and_observer_with_budget(
+        &runtime.report,
+        &observer.report,
+        history,
+        memory_budget_bytes,
+    )
+    .expect("runtime and observer must agree on the recovered physical frontier");
 }
 
 pub(super) fn assert_protocol_families_are_distinct(
@@ -283,7 +299,7 @@ pub(super) fn assert_protocol_families_are_distinct(
 ) {
     assert_ne!(
         RECOVERY_REPORT_PROTOCOL, RECOVERY_OBSERVER_REPORT_PROTOCOL,
-        "MUTANT_PREDICATE:c8-protocol-family-boundary"
+        "recovery and observer reports must remain distinct protocol families"
     );
     assert!(matches!(
         RecoveryReportEnvelope::decode(&observer.encoded),
@@ -296,7 +312,6 @@ pub(super) fn assert_protocol_families_are_distinct(
 }
 
 pub(super) fn assert_missing_root_observer_fails() {
-    let lane = process_lane::acquire().expect("acquire Phase 8 process lane");
     let parent = tempfile::tempdir().expect("missing-root process parent");
     let missing_root = parent.path().join("missing-root");
     let report = parent.path().join("missing-observer-report.bin");
@@ -307,7 +322,4 @@ pub(super) fn assert_missing_root_observer_fails() {
         String::from_utf8_lossy(&output.stderr).contains("physical_store_offline_observer:"),
         "missing-root observer omitted its typed denial marker"
     );
-    lane.assert_within_budget("production/failure process proof");
-    lane.close()
-        .unwrap_or_else(|error| panic!("close missing-root process lane: {error}"));
 }

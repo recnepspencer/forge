@@ -42,13 +42,6 @@ pub(super) fn collect_files(
     Ok(())
 }
 
-pub(super) fn contains_bytes(haystack: &[u8], needle: &[u8]) -> bool {
-    !needle.is_empty()
-        && haystack
-            .windows(needle.len())
-            .any(|window| window == needle)
-}
-
 pub(super) fn artifact_set_digest(contents: &[(String, u64, [u8; 32])]) -> [u8; 32] {
     let mut digest = Sha256::new();
     digest.update(ARTIFACT_SET_DOMAIN);

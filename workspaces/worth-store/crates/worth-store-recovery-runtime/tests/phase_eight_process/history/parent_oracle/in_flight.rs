@@ -2,19 +2,10 @@ use sha2::{Digest, Sha256};
 
 #[path = "in_flight/record_binding.rs"]
 mod record_binding;
-pub(crate) use record_binding::{
-    require_bound_record, require_bound_records, require_no_wal_bindings,
-};
+pub(crate) use record_binding::{require_bound_record, require_bound_records};
 #[path = "in_flight/checkpoint_binding.rs"]
 mod checkpoint_binding;
-pub(crate) use checkpoint_binding::{scan_checkpoint_binding, scan_checkpoint_redo_digest};
-
-#[cfg(test)]
-#[path = "in_flight/checkpoint_binding_tests.rs"]
-mod checkpoint_binding_tests;
-#[cfg(test)]
-#[path = "in_flight/record_binding_tests.rs"]
-mod record_binding_tests;
+pub(crate) use checkpoint_binding::scan_checkpoint_binding;
 
 const WAL_HEADER_BYTES: usize = 116;
 const WAL_FOOTER_BYTES: usize = 32;
@@ -144,36 +135,16 @@ fn binding_redo_digest(bytes: &[u8], identity: &[u8], redo: Option<&[u8]>) -> Op
     if cursor.field() != Some(ATTEMPT_DOMAIN) || cursor.field() != Some(identity) {
         return None;
     }
-    let Some(store) = cursor.array_field(16) else {
-        return None;
-    };
-    let Some(policy) = cursor.array_field(32) else {
-        return None;
-    };
-    let Some(issuance) = cursor.u64() else {
-        return None;
-    };
-    let Some(expiry) = cursor.u64() else {
-        return None;
-    };
-    let Some(material) = cursor.array_field(32) else {
-        return None;
-    };
-    let Some(fingerprint) = cursor.array_field(32) else {
-        return None;
-    };
-    let Some(mutation_store) = cursor.array_field(16) else {
-        return None;
-    };
-    let Some(runtime) = cursor.u64() else {
-        return None;
-    };
-    let Some(lifecycle) = cursor.u64() else {
-        return None;
-    };
-    let Some(operation) = cursor.u64() else {
-        return None;
-    };
+    let store = cursor.array_field(16)?;
+    let policy = cursor.array_field(32)?;
+    let issuance = cursor.u64()?;
+    let expiry = cursor.u64()?;
+    let material = cursor.array_field(32)?;
+    let fingerprint = cursor.array_field(32)?;
+    let mutation_store = cursor.array_field(16)?;
+    let runtime = cursor.u64()?;
+    let lifecycle = cursor.u64()?;
+    let operation = cursor.u64()?;
     if store == [0; 16]
         || policy == [0; 32]
         || material == [0; 32]
@@ -204,15 +175,9 @@ fn binding_redo_digest(bytes: &[u8], identity: &[u8], redo: Option<&[u8]>) -> Op
     {
         return None;
     }
-    let Some(start) = cursor.u64() else {
-        return None;
-    };
-    let Some(end) = cursor.u64() else {
-        return None;
-    };
-    let Some(redo_digest) = cursor.array_field(32) else {
-        return None;
-    };
+    let start = cursor.u64()?;
+    let end = cursor.u64()?;
+    let redo_digest = cursor.array_field(32)?;
     if !cursor.is_empty() || start >= end {
         return None;
     }
@@ -221,7 +186,7 @@ fn binding_redo_digest(bytes: &[u8], identity: &[u8], redo: Option<&[u8]>) -> Op
             return None;
         }
     }
-    Some(redo_digest.try_into().ok()?)
+    redo_digest.try_into().ok()
 }
 
 fn basis_matches(cursor: &mut Cursor<'_>, identity: &[u8]) -> bool {

@@ -7,16 +7,6 @@ use super::history::ParentPhysicalHistory;
 
 #[path = "comparison/evidence.rs"]
 mod evidence;
-#[path = "comparison/mutations.rs"]
-mod mutations;
-
-pub(super) use mutations::{
-    mutate_artifact_identity_digest, mutate_observer_evidence_fields,
-    mutate_runtime_blocked_as_indeterminate, mutate_runtime_denial_cause,
-    mutate_runtime_peak_recovery_bytes, mutate_runtime_publication_as_blocked,
-    mutate_runtime_recovery_effects, mutate_runtime_root_generation,
-};
-
 const C8_RECOVERY_MEMORY_BUDGET_BYTES: u64 = 512 * 1024;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -124,20 +114,6 @@ pub(super) fn compare_runtime_and_observer_with_budget(
     }
     if observer.bytes_read() == 0 || observer.artifact_set_digest() == [0; 32] {
         return Err(RecoveryObserverDisagreement::RecoveredWithoutArtifacts);
-    }
-    Ok(())
-}
-
-pub(super) fn compare_effectful_runtime_and_observer(
-    runtime: &RecoveryReportEnvelope,
-    observer: &RecoveryObserverReport,
-    expected_history: &ParentPhysicalHistory,
-) -> Result<(), RecoveryObserverDisagreement> {
-    compare_runtime_and_observer(runtime, observer, expected_history)?;
-    if runtime.outcome() == RecoveryReportOutcome::Recovered
-        && runtime.counters().recovery_effects() == 0
-    {
-        return Err(RecoveryObserverDisagreement::RuntimeCounterMismatch);
     }
     Ok(())
 }

@@ -191,8 +191,9 @@ impl PlannedPhysicalRecovery {
 mod basis;
 
 pub(crate) use basis::{
-    derive_execution_basis, ExecutionBasisDenial, RecoverySelectedSegmentPage,
-    RecoverySelectedSourceInventory,
+    derive_execution_basis, requires_successor_candidate, CandidateMaterializationCost,
+    ExecutionBasisDenial, RecoveryObservedCandidateArtifact, RecoveryObservedSuccessorCandidate,
+    RecoverySelectedSegmentPage, RecoverySelectedSourceInventory,
 };
 pub use basis::{
     RecoveryBaseImageAction, RecoveryBaseImagePlan, RecoveryPayloadManifestAction,

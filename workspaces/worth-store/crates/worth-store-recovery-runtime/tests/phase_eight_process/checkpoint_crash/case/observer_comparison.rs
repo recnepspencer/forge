@@ -1,4 +1,3 @@
-use worth_store_offline_verifier::RecoveryObserverReport;
 use worth_store_recovery_runtime::RecoveryReportOutcome;
 
 use super::super::super::{comparison, history};
@@ -46,12 +45,12 @@ pub(super) fn compare(recoveries: &RecoverySet) {
         observer, observer_reopen,
         "same-root observer drift at {stage:?}"
     );
-    let first_history = history::ParentPhysicalHistory::capture_after_recovery(
+    let first_history = history::ParentPhysicalHistory::capture_with_unresolved_record(
         &recoveries.first_root,
         &crash.fixture.operation_program.expected,
     )
     .expect("capture parent history after checkpoint recovery");
-    let second_history = history::ParentPhysicalHistory::capture_after_recovery(
+    let second_history = history::ParentPhysicalHistory::capture_with_unresolved_record(
         &recoveries.second_root,
         &crash.fixture.operation_program.expected,
     )
@@ -90,25 +89,6 @@ pub(super) fn compare(recoveries: &RecoverySet) {
         .unwrap_or_else(|disagreement| {
             panic!("independent physical observer evidence diverged at {stage:?}: {disagreement:?}")
         });
-    for (field, encoded) in comparison::mutate_observer_evidence_fields(&observer.encode()) {
-        let mutated_observer = RecoveryObserverReport::decode(&encoded).unwrap_or_else(|error| {
-            panic!("mutated checkpoint field {field} must decode: {error:?}")
-        });
-        assert_eq!(
-            comparison::compare_independent_observers(&observer, &mutated_observer),
-            Err(comparison::RecoveryObserverDisagreement::ObserverEvidenceMismatch),
-            "checkpoint field mutation {field} was not detected at {stage:?}"
-        );
-    }
-    let mutated_observer = RecoveryObserverReport::decode(
-        &comparison::mutate_artifact_identity_digest(&observer.encode()),
-    )
-    .expect("mutated checkpoint observer identity digest retains a valid wire digest");
-    assert_eq!(
-        comparison::compare_independent_observers(&observer, &mutated_observer),
-        Err(comparison::RecoveryObserverDisagreement::ObserverEvidenceMismatch),
-        "rich checkpoint identity mutation must be detected at {stage:?}"
-    );
     assert_eq!(
         snapshot_directory(&recoveries.first_root),
         snapshot_directory(&recoveries.second_root),

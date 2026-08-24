@@ -1249,6 +1249,12 @@ generation freshness through its Store owner, advance past effects only from
 concrete performed evidence, terminate the recovery session exactly once, and
 keep versioned cross-process reports descriptive.
 
+The only successor value is `RecoveredPhysicalRuntimeHandoff`. C.9 consumes
+that boundary to add integrity, corruption localization, quarantine, and
+offline truth. C.10 consumes it to add stable reads, epochs, reclaim, scheduled
+I/O, and maintenance interference. Descriptive recovery and observer reports
+cannot be promoted into either successor's authority.
+
 ## C.9: Physical Integrity, Corruption Localization, And Offline Truth
 
 ### Goal

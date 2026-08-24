@@ -26,6 +26,16 @@ pub(super) fn record_configuration() -> (
     (format, placement, access)
 }
 
+pub(super) fn capacity_transition_placement(
+    format: AdmittedPhysicalRecordFormat,
+) -> AdmittedRecordPlacementPolicy {
+    PhysicalRecordPlacementPolicy::builder()
+        .manifest_capacity(ManifestEntryCapacity::new(4).expect("nonzero transition capacity"))
+        .extent_threshold(RecordByteLimit::new(8_192).expect("nonzero threshold"))
+        .admit(format)
+        .expect("capacity-transition placement is compatible")
+}
+
 pub(super) fn dirty_checkpoint_payload_length(format: AdmittedPhysicalRecordFormat) -> usize {
     let frame_bytes = usize::try_from(format.declaration().page_size().bytes())
         .expect("admitted page size fits usize");

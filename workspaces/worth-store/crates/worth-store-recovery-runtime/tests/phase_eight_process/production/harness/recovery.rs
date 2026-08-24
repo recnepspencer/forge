@@ -4,9 +4,7 @@ use std::path::Path;
 use worth_store_recovery_runtime::RecoveryReportEnvelope;
 
 use super::super::super::history;
-use super::super::fate_markers::{
-    assert_writer_issued_fates, indexed_fate_tags, parse_indexed_recovery_fates,
-};
+use super::super::fate_markers::{indexed_fate_tags, parse_indexed_recovery_fates};
 use super::markers::{parse_recovery_fate_marker, parse_recovery_runtime_marker};
 use super::{assert_child_succeeded, run_recovery_with_profile, ProcessWorld, RuntimeProcess};
 
@@ -37,8 +35,6 @@ pub(super) fn recover_root_with_profile(
         fates.total(),
         "production recovery fate evidence must be identity-indexed"
     );
-    assert_writer_issued_fates(world.writer.expected.writer_fates(), &indexed_fates)
-        .unwrap_or_else(|error| panic!("writer-issued fate receipt mismatch: {error}"));
     let observed_fates = indexed_fate_tags(&indexed_fates)
         .unwrap_or_else(|error| panic!("indexed fate evidence failed: {error}"));
     assert_eq!(

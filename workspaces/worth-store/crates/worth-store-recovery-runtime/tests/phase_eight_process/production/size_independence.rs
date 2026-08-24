@@ -14,7 +14,7 @@ const UNRELATED_RESIDUE_CHUNK_BYTES: usize = 64 * 1024;
 
 #[test]
 fn recovery_work_is_independent_of_unrelated_persisted_store_size() {
-    let world = ProcessWorld::start("candidate-publication", 0);
+    let world = ProcessWorld::start("candidate-publication", 0, 1);
     let small_root = world.writer.root.clone();
     let large_root = world.parent_path().join("size-independence-large-root");
     copy_persisted_store_root(&small_root, &large_root);
@@ -70,7 +70,6 @@ fn recovery_work_is_independent_of_unrelated_persisted_store_size() {
         recovery_work(&large_runtime),
         "recovery work evidence scaled with unrelated persisted Store bytes"
     );
-    world.finish_within_budget("production/size-independence process proof");
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -205,13 +204,13 @@ fn persisted_store_bytes(path: &Path) -> u64 {
         .expect("read persisted Store metadata")
         .file_type();
     if file_type.is_file() {
-        return (!is_runtime_lock(path))
-            .then(|| {
-                fs::metadata(path)
-                    .expect("read persisted Store file metadata")
-                    .len()
-            })
-            .unwrap_or(0);
+        return if is_runtime_lock(path) {
+            0
+        } else {
+            fs::metadata(path)
+                .expect("read persisted Store file metadata")
+                .len()
+        };
     }
     if !file_type.is_dir() {
         return 0;

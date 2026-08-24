@@ -119,9 +119,11 @@ certification or operator tool; the observer must not decide recovery success.
 
 C.4 remains the only physical effect executor. C.5.1 schedules recovery work.
 C.7 remains the ordinary durability and checkpoint publisher. The offline
-verifier is an independent inspection boundary, not a Store runtime. C.9 owns
-later replay or reconstruction semantics; C.8 does not silently become that
-authority.
+verifier is an independent inspection boundary, not a Store runtime.
+`RecoveredPhysicalRuntimeHandoff` is the only successor boundary: C.9 adds
+integrity, corruption localization, quarantine, and offline truth; C.10 adds
+stable reads, epochs, reclaim, scheduled I/O, and maintenance interference.
+Neither milestone may treat a recovery or observer report as authority.
 
 ## Inspection And Debugging
 
@@ -134,7 +136,12 @@ If a writer dies during candidate publication, leave the root in place and run
 the same bounded recovery command again. Recovery reselects the persisted
 namespace-durable basis, blocks or publishes according to the bytes it can
 prove, and never trusts the dead writer's heap, runtime identity, scheduler
-state, counters, or report. A report path must remain outside the Store root.
+state, counters, or report. A synchronized exact-successor candidate remains
+non-current material: when redo requires that successor, recovery adopts its
+exact bytes only after bounded decoding proves the same final placements,
+membership, free-space state, frontiers, tail, and checksums. It does not skip
+the generation, overwrite a mismatch, or delete the candidate before
+publication. A report path must remain outside the Store root.
 
 ## Anti-Patterns
 

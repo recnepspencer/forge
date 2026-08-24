@@ -121,7 +121,7 @@ pub(super) fn observe_extent(
     manifests: &mut BTreeMap<(u64, u64), DurableExtentManifest>,
 ) -> Result<RecoveryPageObservation, PageObservationFailure> {
     let key = (placement.extent().get(), placement.extent_generation());
-    if !manifests.contains_key(&key) {
+    if let std::collections::btree_map::Entry::Vacant(entry) = manifests.entry(key) {
         let manifest_bytes = required(
             discovery.read_extent_manifest(key.0, key.1, byte_limit),
             Some(target.identity()),
@@ -152,7 +152,7 @@ pub(super) fn observe_extent(
                 },
             });
         }
-        manifests.insert(key, manifest);
+        entry.insert(manifest);
     }
     let manifest = *manifests.get(&key).unwrap();
     let PhysicalRedoTargetIdentity::ExtentChunk { chunk, .. } = target.identity() else {

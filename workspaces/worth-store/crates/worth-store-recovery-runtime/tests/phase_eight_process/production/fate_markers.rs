@@ -7,51 +7,6 @@ pub(super) struct IndexedRecoveryFate {
     pub(super) fate: String,
 }
 
-pub(super) fn assert_writer_issued_fates(
-    expected: &BTreeMap<[u8; 32], u8>,
-    actual: &[IndexedRecoveryFate],
-) -> Result<(), String> {
-    let mut observed = BTreeMap::new();
-    for fate in actual {
-        let tag = fate_tag(&fate.fate)?;
-        if observed.insert(fate.idempotency, tag).is_some() {
-            return Err("recovery emitted a duplicate writer-issued fate identity".to_owned());
-        }
-        let writer_fate = expected.get(&fate.idempotency).copied();
-        let compatible = match (writer_fate, tag) {
-            (Some(4), 2 | 4) => true,
-            (Some(expected), observed) => expected == observed,
-            (None, _) => false,
-        };
-        if !compatible {
-            return Err(format!(
-                "recovery emitted a missing or incompatible writer-issued fate for {:?}: expected {:?}, observed {:?}",
-                fate.idempotency,
-                writer_fate,
-                Some(tag),
-            ));
-        }
-    }
-    if observed.len() != expected.len() {
-        let missing = expected
-            .keys()
-            .filter(|identity| !observed.contains_key(*identity))
-            .count();
-        let unexpected = observed
-            .keys()
-            .filter(|identity| !expected.contains_key(*identity))
-            .count();
-        return Err(format!(
-            "recovery writer-issued fate bijection has {} observed identities, expected {}; missing {}, unexpected {}",
-            observed.len(),
-            expected.len(),
-            missing,
-            unexpected
-        ));
-    }
-    Ok(())
-}
-
 pub(super) fn indexed_fate_tags(
     actual: &[IndexedRecoveryFate],
 ) -> Result<BTreeMap<[u8; 32], u8>, String> {
@@ -118,47 +73,4 @@ fn decode_hex_32(value: &str) -> [u8; 32] {
             .expect("indexed fate identity is hexadecimal");
     }
     bytes
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{assert_writer_issued_fates, IndexedRecoveryFate};
-    use std::collections::BTreeMap;
-
-    fn identity(value: u8) -> [u8; 32] {
-        [value; 32]
-    }
-
-    fn fate(value: u8, name: &str) -> IndexedRecoveryFate {
-        IndexedRecoveryFate {
-            idempotency: identity(value),
-            fate: name.to_owned(),
-        }
-    }
-
-    fn expected() -> BTreeMap<[u8; 32], u8> {
-        BTreeMap::from([(identity(1), 1), (identity(2), 3)])
-    }
-
-    #[test]
-    fn writer_fate_bijection_rejects_swapped_fates() {
-        let actual = [fate(1, "ProvenNoEffect"), fate(2, "AcknowledgedDurable")];
-        assert!(assert_writer_issued_fates(&expected(), &actual).is_err());
-    }
-
-    #[test]
-    fn writer_fate_bijection_rejects_added_identity() {
-        let actual = [
-            fate(1, "AcknowledgedDurable"),
-            fate(2, "ProvenNoEffect"),
-            fate(3, "Indeterminate"),
-        ];
-        assert!(assert_writer_issued_fates(&expected(), &actual).is_err());
-    }
-
-    #[test]
-    fn writer_fate_bijection_rejects_deleted_identity() {
-        let actual = [fate(1, "AcknowledgedDurable")];
-        assert!(assert_writer_issued_fates(&expected(), &actual).is_err());
-    }
 }

@@ -1,6 +1,6 @@
 use super::{
-    barrier_receipt, lifecycle::checkpoint_stage_label, markers,
-    mutation_material::checkpoint_idempotency_material, Invocation,
+    lifecycle::checkpoint_stage_label, markers, mutation_material::checkpoint_idempotency_material,
+    Invocation,
 };
 use worth_proof::TransitionOutcome;
 use worth_store::physical_runtime::{
@@ -57,7 +57,6 @@ pub(super) fn hold_at_stage(
         let _checkpoint_handle = handle;
     }
     let stage = checkpoint_stage_label(invocation.stage.stage);
-    barrier_receipt::write(&invocation.barrier_receipt, stage)?;
     markers::write_reached(
         &invocation.reached_marker,
         stage.as_bytes(),

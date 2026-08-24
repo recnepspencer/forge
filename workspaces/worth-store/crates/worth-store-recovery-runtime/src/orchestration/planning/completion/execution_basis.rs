@@ -1,31 +1,77 @@
 use crate::entry::{
     PhysicalRecoveryLimitDimension, PhysicalRecoveryLimitFailure, PhysicalRecoveryOutcome,
+    PhysicalRecoverySuccessorCandidateDenial,
 };
 use crate::progression::{
-    derive_execution_basis, ExecutionBasisDenial, RecoveryPublicationPlan, RecoveryQuiescencePlan,
+    derive_execution_basis, requires_successor_candidate, CandidateMaterializationCost,
+    ExecutionBasisDenial, RecoveryPublicationPlan, RecoveryQuiescencePlan,
     RecoveryStagingLayoutPlan,
 };
 
 use super::super::context::PlanningContext;
 use super::super::resolved_basis::ResolvedPlanningBasis;
+use super::super::successor_candidate_observation;
 
 pub(super) struct ExecutionProducts {
     pub(super) staging: RecoveryStagingLayoutPlan,
     pub(super) publication: RecoveryPublicationPlan,
     pub(super) quiescence: RecoveryQuiescencePlan,
+    pub(super) candidate_materialization: CandidateMaterializationCost,
 }
 
 pub(super) fn derive(
-    context: PlanningContext,
-    basis: &ResolvedPlanningBasis,
+    mut context: PlanningContext,
+    basis: &mut ResolvedPlanningBasis,
 ) -> Result<(PlanningContext, ExecutionProducts), PhysicalRecoveryOutcome> {
-    let (staging, publication, quiescence) = match derive_execution_basis(
+    let candidate_required = match requires_successor_candidate(&basis.fates, &basis.redo) {
+        Ok(required) => required,
+        Err(_) => return Err(context.redo_block(basis.planning_counters(), None)),
+    };
+    let successor_candidate = if candidate_required {
+        let remaining_observation_bytes = context
+            .limits
+            .observation_bytes
+            .saturating_sub(context.counters.bytes_observed)
+            .saturating_sub(basis.observed_pages.bytes_read);
+        let media = context.authority.media;
+        let (media, attempt) = successor_candidate_observation::observe(
+            media,
+            context.selection.root().selected().manifest(),
+            context.selection.root().selected().selector().format(),
+            &mut basis.observed_pages.manifest_budget,
+            context.limits.manifest_entries,
+            remaining_observation_bytes,
+        );
+        context.authority.media = media;
+        basis.observed_pages.candidate_artifact_reads = attempt.artifact_reads;
+        basis.observed_pages.candidate_bytes_read = attempt.bytes_read;
+        basis.observed_pages.candidate_peak_materialization_bytes =
+            attempt.peak_materialization_bytes;
+        match attempt.result {
+            Ok(candidate) => candidate,
+            Err(denial) => {
+                let limit = candidate_limit(&context, &denial, remaining_observation_bytes);
+                let artifact = format!("{:?}", denial.artifact());
+                return Err(context.block_with_planning_attempt_denial(
+                    crate::entry::PhysicalRecoveryBlockKind::PageAdmission,
+                    basis.planning_counters(),
+                    &artifact,
+                    limit,
+                    crate::entry::PhysicalRecoveryPlanningDenial::SuccessorCandidate(denial),
+                ));
+            }
+        }
+    } else {
+        None
+    };
+    let (staging, publication, quiescence, candidate_materialization) = match derive_execution_basis(
         context.authority.media.store_identity(),
         &context.selection,
         &basis.sample,
         &basis.fates,
         &basis.redo,
         &basis.observed_pages.selected_source,
+        successor_candidate,
         context.limits.staging_bytes,
         context.limits.dirty_frames,
     ) {
@@ -54,6 +100,16 @@ pub(super) fn derive(
                 },
             ));
         }
+        Err(ExecutionBasisDenial::SuccessorCandidate(denial)) => {
+            let artifact = format!("{:?}", denial.artifact());
+            return Err(context.block_with_planning_attempt_denial(
+                crate::entry::PhysicalRecoveryBlockKind::PageAdmission,
+                basis.planning_counters(),
+                &artifact,
+                None,
+                crate::entry::PhysicalRecoveryPlanningDenial::SuccessorCandidate(denial),
+            ));
+        }
         Err(ExecutionBasisDenial::Invalid) => {
             return Err(context.redo_block(basis.planning_counters(), None));
         }
@@ -64,6 +120,40 @@ pub(super) fn derive(
             staging,
             publication,
             quiescence,
+            candidate_materialization,
         },
     ))
+}
+
+fn candidate_limit(
+    context: &PlanningContext,
+    denial: &PhysicalRecoverySuccessorCandidateDenial,
+    remaining_observation_bytes: u64,
+) -> Option<PhysicalRecoveryLimitFailure> {
+    match denial {
+        PhysicalRecoverySuccessorCandidateDenial::Discovery {
+            failure:
+                worth_store::physical_runtime::RecoveryDiscoveryFailure::ByteLimitExceeded {
+                    observed,
+                    ..
+                },
+            ..
+        } => Some(PhysicalRecoveryLimitFailure {
+            dimension: PhysicalRecoveryLimitDimension::ObservationBytes,
+            observed: context
+                .limits
+                .observation_bytes
+                .saturating_sub(remaining_observation_bytes)
+                .saturating_add(*observed),
+            admitted: context.limits.observation_bytes,
+        }),
+        PhysicalRecoverySuccessorCandidateDenial::ManifestEntryLimit {
+            observed, admitted, ..
+        } => Some(PhysicalRecoveryLimitFailure {
+            dimension: PhysicalRecoveryLimitDimension::ManifestEntries,
+            observed: *observed,
+            admitted: *admitted,
+        }),
+        _ => None,
+    }
 }

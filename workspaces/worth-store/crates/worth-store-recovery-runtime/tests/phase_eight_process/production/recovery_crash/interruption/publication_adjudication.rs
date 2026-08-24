@@ -19,17 +19,6 @@ pub(super) fn adjudicate(
     observer: &RecoveryObserverReport,
     label: &str,
 ) -> RawPublicationPosture {
-    validate(root, report, before, after, observer, label).unwrap_or_else(|error| panic!("{error}"))
-}
-
-pub(super) fn validate(
-    root: &Path,
-    report: &RecoveryReportEnvelope,
-    before: &history::ParentPhysicalHistory,
-    after: &history::ParentPhysicalHistory,
-    observer: &RecoveryObserverReport,
-    label: &str,
-) -> Result<RawPublicationPosture, String> {
     let posture = if after.publication_changed_from(before) {
         RawPublicationPosture::PhysicalEffectObserved
     } else {
@@ -37,31 +26,30 @@ pub(super) fn validate(
     };
     match posture {
         RawPublicationPosture::ProvenNoEffect => {
-            if report.outcome() != RecoveryReportOutcome::Blocked {
-                return Err(format!(
-                    "{label} raw publication state did not change, so the report must be Blocked"
-                ));
-            }
+            assert_eq!(
+                report.outcome(),
+                RecoveryReportOutcome::Blocked,
+                "{label} raw publication state did not change"
+            );
         }
         RawPublicationPosture::PhysicalEffectObserved => {
-            if report.outcome() != RecoveryReportOutcome::PublicationIndeterminate {
-                return Err(format!(
-                    "MUTANT_PREDICATE:c8-publication-effect-adjudication {label} raw publication state changed, so the report must be PublicationIndeterminate; paths={:?}",
-                    after.changed_paths_from(before)
-                ));
-            }
-            if report.counters().recovery_effects() == 0 {
-                return Err(format!(
-                    "{label} changed parent history requires a performed recovery effect"
-                ));
-            }
+            assert_eq!(
+                report.outcome(),
+                RecoveryReportOutcome::PublicationIndeterminate,
+                "{label} raw publication state changed; paths={:?}",
+                after.changed_paths_from(before)
+            );
+            assert!(
+                report.counters().recovery_effects() > 0,
+                "{label} changed parent history requires a performed recovery effect"
+            );
         }
     }
-    comparison::compare_runtime_and_observer(report, observer, after).map_err(|error| {
-        format!(
+    comparison::compare_runtime_and_observer(report, observer, after).unwrap_or_else(|error| {
+        panic!(
             "{label} publication adjudication disagreed with runtime, observer, or raw parent history at {}: {error:?}",
             root.display()
         )
-    })?;
-    Ok(posture)
+    });
+    posture
 }

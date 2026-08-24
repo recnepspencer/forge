@@ -15,16 +15,21 @@ pub(super) enum CheckpointStage {
 
 impl CheckpointStage {
     pub(super) fn parse(encoded: &str) -> Result<(Self, u64, u64), String> {
-        let (label, encoded_seeds) = encoded.split_once('@').unwrap_or((encoded, "0:0"));
+        let (label, encoded_seeds) = encoded.split_once('@').ok_or_else(|| {
+            "C8 checkpoint stage requires schedule and perturbation seeds".to_owned()
+        })?;
         let (schedule_seed, perturbation_seed) = encoded_seeds
             .split_once(':')
-            .unwrap_or((encoded_seeds, encoded_seeds));
+            .ok_or_else(|| "C8 checkpoint stage requires distinct seed fields".to_owned())?;
         let schedule_seed = schedule_seed
             .parse::<u64>()
             .map_err(|_| format!("invalid C8 schedule seed `{schedule_seed}`"))?;
         let perturbation_seed = perturbation_seed
             .parse::<u64>()
             .map_err(|_| format!("invalid C8 perturbation seed `{perturbation_seed}`"))?;
+        if schedule_seed == perturbation_seed {
+            return Err("C8 schedule and perturbation seeds must be distinct".to_owned());
+        }
         let stage = match label {
             "candidate-creation" => Self::CandidateCreation,
             "candidate-append" => Self::CandidateAppend,

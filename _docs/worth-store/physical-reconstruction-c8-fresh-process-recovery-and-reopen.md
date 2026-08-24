@@ -533,6 +533,24 @@ The recovery request's configuration and qualified platform authority decide
 what may be opened and what budgets apply. They do not decide which persisted
 generation is current.
 
+A C.7 death after synchronizing a root candidate but before root-protocol
+replacement may leave complete artifacts at the exact successor generation.
+Those bytes are never current authority. When recovery must publish that same
+successor, effect-free planning may read only that addressed candidate and its
+referenced manifest blocks under the existing observation and manifest-entry
+limits. Recovery independently derives the exact incremental copy-on-write
+successor required by the admitted physical-format contract from the selected
+current topology and persisted recovery projection. Adoption requires exact
+root and free-space headers, exact reused selected-source references in their
+expected positions, and exact identity and canonical bytes for every
+successor-owned block. Recovery's candidate-absent full reconstruction is a
+different lawful strategy and is not the adoption oracle. A malformed,
+semantically conflicting, differently packed, or differently sourced candidate
+blocks before effects. Recovery never skips a generation, overwrites mismatched
+immutable bytes, or deletes a candidate to make publication proceed. If no
+publication is required, non-current successor material cannot displace or
+invalidate the selected root.
+
 ### Derived state
 
 These are derived and may be destroyed and recomputed:
@@ -1250,11 +1268,13 @@ Counters are monotonic, stage-honest, and cannot report future work as zeroed
 fields. Each phase exposes only facts already executed. Exact structural
 counters prove boundedness; elapsed time is secondary qualification evidence.
 
-CI uses a small bounded profile. Release certification and named hardware
-qualification use larger explicit profiles. Every timing report names source
-identity, hardware, filesystem, backend profile, cold/warm posture, Store and
-tail scale, concurrency, repetitions, and percentiles. Timing qualification
-does not share a contended lane with randomized schedule exploration.
+The ordinary CI process lane runs the complete deterministic process matrix
+with the small bounded profile. Larger named profiles are invoked directly on
+their target hardware when scale or timing qualification is needed; those
+runs are performance observations, not a second source-validity system. Every
+timing report names source revision, hardware, filesystem, backend profile,
+cold/warm posture, Store and tail scale, concurrency, repetitions, and
+percentiles.
 
 ## Cleanup, Cutover, And Deletion Contract
 
@@ -1636,17 +1656,70 @@ observation, and boundedness proof.
 **Consumes:** final cutover source, public/operator documentation, observer,
 process harness, exact counters, and named profiles.
 
-**Establishes:** one C.9/C.10 successor handoff and counter-backed performance
-evidence over the final implementation.
+**Establishes:** `RecoveredPhysicalRuntimeHandoff` as the sole physical
+successor boundary. C.9 may consume it for integrity, corruption localization,
+quarantine, and offline truth. C.10 may consume it for stable reads, epochs,
+reclaim, scheduled I/O, and maintenance interference. Neither successor may
+reconstruct a parallel C.8 authority lane from reports or test artifacts.
 
-**Evidence:** all named crash seams; explicit deterministic scenario seeds;
-direct malformed, torn, stale, foreign, and unsupported inputs; independent
-observer comparison; authority compile denials; documentation execution;
-line-cap, constitution, dependency, and focused API checks; and hardware
-qualification for named release profiles.
+**Evidence:** every persisted-effect C.7 mutation seam and every C.8 recovery
+seam under real process death; explicit deterministic scenario seeds; direct
+malformed, torn, stale, foreign, and unsupported inputs; independent observer
+comparison; authority compile denials; documentation execution; exact bounded
+counters; and line-cap, constitution, dependency, and focused API checks.
+Named larger profiles remain direct target-hardware qualification, separate
+from source closure. The scheduled and manually dispatched release job runs
+the complete `process-scenario` matrix directly after the release-scale backup
+proof; it does not substitute a hand-maintained test filter or generated
+certificate for those executable scenarios.
 
-**Cleanup:** delete temporary process-only code. Retain only production C.4
-yieldpoints/interposers and the smallest reusable process infrastructure.
+Successor-candidate observation is production accounting. Planning exposes the
+number of addressed candidate artifacts read, candidate bytes read, and peak
+retained candidate materialization bytes. Root-routing, segment-membership,
+and free-space observation share one cumulative manifest-entry budget. Direct
+raw-media evidence must admit the exact total and deny one entry below it; a
+second per-family or candidate-local allowance is forbidden. A failed child
+decode reports the exact retained prefix peak for its family, including all
+earlier successfully retained families. A recovery with no pending
+publication must report zero for all three counters even when malformed bytes
+exist at the next-generation path. Candidate boundedness uses two isolated
+copies of the same killed-writer world: one with the candidate topology and one
+without it. The exact observation and lifecycle-memory values must equal an
+independent raw-media and public-structure calculation, followed by exact-limit
+admission and one-byte-below denial. Lifecycle memory is the larger of
+candidate observation plus one expected-artifact comparison scratch buffer and
+the final publication materialization; recovery must not retain a second
+complete expected candidate. A test may not use the production plan cost as
+its own expected candidate delta.
+
+Candidate identity is stronger than semantic equivalence. Recovery reproduces
+the concrete C.7 producer's incremental allocation and packing order from the
+selected topology, including capacity transitions, and compares each emitted
+canonical artifact directly with the addressed immutable candidate bytes.
+Same-capacity and capacity-transition derivation remain independent recovery
+implementations; calling the candidate-absent full-rebuild helper is not an
+incremental adoption proof. Canonically encoded stale selected-generation
+topology, foreign topology, frontier drift, malformed frames, and corrupted
+children produce exact typed denials before effects. A killed-writer capacity
+transition must preserve the writer's exact multi-level successor bytes through
+recovery and a second fresh reopen.
+
+The complete mutation-seam matrix explicitly uses an extent-backed writeback
+workload. Successor child-family corruption explicitly uses an inline-record
+workload so root-routing, segment-membership, and free-space candidate children
+are present. Crash stage and workload are independent required inputs; no stage
+implicitly selects its workload.
+
+**Cleanup:** delete temporary process-only code, cross-test lock bookkeeping,
+recursive tests of parent-oracle helpers, and writer-issued mutation identity,
+fate, or barrier receipts. Reaching a production C.4 yieldpoint is observed
+from that real gate; a second marker cannot certify it. Expected operations are
+bound from the parent-submitted program and independently decoded persisted
+authority. Retain production C.4 yieldpoints/interposers, the independent
+raw-byte observer, direct malformed persisted inputs, and the smallest process
+launcher needed to kill and inspect real executables. Git records the reviewed
+change; no ledger, certificate, fingerprint map, or generated closeout report
+is produced.
 
 ## Must Preserve
 

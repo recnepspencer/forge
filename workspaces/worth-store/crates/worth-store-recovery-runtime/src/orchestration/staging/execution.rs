@@ -87,13 +87,11 @@ fn execute_commands(
                 PhysicalRecoveryStagingDenial::InvalidPlan,
             ));
         };
-        match input
+        let outcome = input
             .coordination
             .owner()
-            .execute_staging_command(&input.authority.media, declaration)
-        {
-            outcome => record_command_outcome(progress, command.ordinal(), outcome)?,
-        };
+            .execute_staging_command(&input.authority.media, declaration);
+        record_command_outcome(progress, command.ordinal(), outcome)?;
         if matches!(
             input.cancellation,
             super::RecoveryStagingCancellation::AfterSettledCommands(settled)

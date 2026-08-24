@@ -184,6 +184,7 @@ pub enum PhysicalRecoveryPlanningDenial {
     OperationReconciliation(OperationReconciliationDenial),
     Redo(PhysicalRedoPlanningDenial),
     Page(PhysicalRecoveryPageAdmissionDenial),
+    SuccessorCandidate(super::PhysicalRecoverySuccessorCandidateDenial),
     Cost(RecoveryPlanCostDenial),
 }
 

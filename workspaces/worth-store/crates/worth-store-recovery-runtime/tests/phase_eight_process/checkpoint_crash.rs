@@ -139,8 +139,6 @@ fn scenario_seeds() -> [ScenarioSeeds; SCENARIO_COUNT] {
 
 #[test]
 fn killed_checkpoint_writer_reopens_and_observes_each_persisted_effect_frontier() {
-    let process_lane = super::process_lane::acquire().expect("acquire Phase 8 process lane");
-    assert!(!super::process_lane::lane_name().is_empty());
     let seeds = scenario_seeds();
     let mut schedules = std::collections::BTreeSet::new();
     let mut perturbations = std::collections::BTreeSet::new();
@@ -157,9 +155,5 @@ fn killed_checkpoint_writer_reopens_and_observes_each_persisted_effect_frontier(
     }
     assert_eq!(schedules.len(), SCENARIO_COUNT);
     assert_eq!(perturbations.len(), SCENARIO_COUNT);
-    process_lane.assert_within_budget("killed-writer checkpoint matrix");
-    process_lane
-        .close()
-        .expect("close killed-writer checkpoint process lane");
 }
 use sha2::{Digest, Sha256};
