@@ -136,10 +136,6 @@ fn lineage_graph_same_shape_replacements_do_not_cross_wire_targets() {
     assert_eq!(graph.metrics.event_count, graph.events.len());
     assert_eq!(graph.metrics.node_count, graph.nodes.len());
     assert_eq!(
-        graph.metrics.candidate_count,
-        graph.correspondence_candidates.len()
-    );
-    assert_eq!(
         graph.digest_basis().digest_mode(),
         LineageGraphDigestMode::ExactDigestCanonicalOrder
     );

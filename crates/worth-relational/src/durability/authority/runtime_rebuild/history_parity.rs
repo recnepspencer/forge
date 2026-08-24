@@ -72,22 +72,6 @@ pub(super) fn apply_authoritative_commit_artifacts(
         return Err(error);
     }
 
-    if !envelope.lineage_events().is_empty() {
-        for event in envelope.lineage_events() {
-            if let Some(existing) = runtime
-                .lineage
-                .events
-                .iter_mut()
-                .find(|candidate| candidate.event_id == event.event_id)
-            {
-                *existing = event.clone();
-            } else {
-                runtime.lineage.events.push(event.clone());
-            }
-        }
-        runtime.lineage.events.sort_by_key(|event| event.event_id);
-    }
-
     apply_envelope_derived_index_artifacts(runtime, envelope);
     Ok(())
 }
@@ -118,20 +102,109 @@ pub(super) fn validate_recovered_history_parity(
                 .len()
                 .max(recovered_envelope.commit.ordered_parents().len()),
         );
-    if durable_envelope.commit.ordered_parents() != recovered_envelope.commit.ordered_parents()
-        || durable_envelope.merge_parent_branches != recovered_envelope.merge_parent_branches
-        || durable_envelope.merge_base_commits != recovered_envelope.merge_base_commits
-    {
+    let drifted_axes = canonical_effect_drift(durable_envelope, recovered_envelope);
+    if !drifted_axes.is_empty() {
         return Err(DurabilityError::new(
             RecoveryFailureClass::ReplayFailure,
             format!(
-                "recovered durable history parity drifted for commit {}",
-                durable_envelope.commit.commit_id.0
+                "recovered durable canonical effect drifted for commit {} on {}",
+                durable_envelope.commit.commit_id.0,
+                drifted_axes.join(", ")
             ),
         )
         .with_history_drift_class(HistoryDriftClass::DurabilityParityDrift));
     }
     Ok(())
+}
+
+fn canonical_effect_drift(
+    durable: &CanonicalCommitEnvelope,
+    replayed: &CanonicalCommitEnvelope,
+) -> Vec<&'static str> {
+    let mut drifted = Vec::new();
+    macro_rules! compare {
+        ($field:ident) => {
+            if durable.$field != replayed.$field {
+                drifted.push(stringify!($field));
+            }
+        };
+    }
+    compare!(commit);
+    compare!(branch_context);
+    if !branch_cell_checkpoint_truth_matches(
+        durable.branch_cell_checkpoint.as_ref(),
+        replayed.branch_cell_checkpoint.as_ref(),
+    ) {
+        drifted.push("branch_cell_checkpoint");
+    }
+    compare!(authority_kind);
+    compare!(merge_execution_authority);
+    compare!(merge_parent_branches);
+    compare!(merge_base_commits);
+    compare!(schema_version);
+    compare!(schema_authority);
+    if durable.merged_plan.merged_intents != replayed.merged_plan.merged_intents {
+        drifted.push("merged_plan");
+    }
+    if durable.record_allocations() != replayed.record_allocations() {
+        drifted.push("record_allocations");
+    }
+    compare!(patch);
+    if durable.published_lineage() != replayed.published_lineage() {
+        drifted.push("lineage");
+    }
+    compare!(schema_transition);
+    compare!(schema_continuation_descriptor);
+    compare!(schema_reconciliation_descriptor);
+    compare!(descriptor_semantics_version);
+    drifted
+}
+
+fn branch_cell_checkpoint_truth_matches(
+    durable: Option<&crate::branch::RelationalBranchCellCheckpoint>,
+    replayed: Option<&crate::branch::RelationalBranchCellCheckpoint>,
+) -> bool {
+    match (durable, replayed) {
+        (Some(durable), Some(replayed)) => {
+            durable.branch_id == replayed.branch_id
+                && branch_observation_truth_matches(&durable.observation, &replayed.observation)
+                && durable.truth_version == replayed.truth_version
+                && match (
+                    durable.fork_provenance.as_ref(),
+                    replayed.fork_provenance.as_ref(),
+                ) {
+                    (Some(durable), Some(replayed)) => {
+                        branch_observation_truth_matches(durable, replayed)
+                    }
+                    (None, None) => true,
+                    _ => false,
+                }
+                && durable.fork_source_branch_id == replayed.fork_source_branch_id
+        }
+        (None, None) => true,
+        _ => false,
+    }
+}
+
+fn branch_observation_truth_matches(
+    durable: &crate::branch::RelationalBranchReferenceObservation,
+    replayed: &crate::branch::RelationalBranchReferenceObservation,
+) -> bool {
+    use worth_foundational::FoundationalBranchTarget;
+
+    if durable.generation() != replayed.generation() {
+        return false;
+    }
+    match (durable.target(), replayed.target()) {
+        (FoundationalBranchTarget::Empty, FoundationalBranchTarget::Empty) => true,
+        (FoundationalBranchTarget::Basis(durable), FoundationalBranchTarget::Basis(replayed)) => {
+            durable.selected_commit_id() == replayed.selected_commit_id()
+                && durable.version_id() == replayed.version_id()
+                && durable.parent_commit_ids() == replayed.parent_commit_ids()
+                && durable.roots() == replayed.roots()
+        }
+        _ => false,
+    }
 }
 
 pub(super) fn validate_expected_recovery_parent_shape(
@@ -145,7 +218,7 @@ pub(super) fn validate_expected_recovery_parent_shape(
         .branch_cell(&envelope.branch_context)
         .and_then(|cell| match cell.observation().target() {
             worth_foundational::FoundationalBranchTarget::Basis(target) => {
-                Some(crate::history::data::CommitId(target.commit_id()))
+                Some(crate::history::data::CommitId(target.selected_commit_id()))
             }
             worth_foundational::FoundationalBranchTarget::Empty => None,
         });
@@ -179,7 +252,7 @@ pub(super) fn validate_expected_recovery_parent_shape(
             .branch_cell(branch)
             .and_then(|cell| match cell.observation().target() {
                 worth_foundational::FoundationalBranchTarget::Basis(target) => {
-                    Some(crate::history::data::CommitId(target.commit_id()))
+                    Some(crate::history::data::CommitId(target.selected_commit_id()))
                 }
                 worth_foundational::FoundationalBranchTarget::Empty => None,
             })

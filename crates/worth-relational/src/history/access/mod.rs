@@ -7,6 +7,8 @@ mod merge_branch_basis_foundational;
 
 use crate::runtime::RelationalRuntime;
 
+pub(crate) use ancestry::{CommitAncestryInspection, CommitAncestryPosture};
+
 pub struct HistoryAccess<'runtime> {
     runtime: &'runtime RelationalRuntime,
 }

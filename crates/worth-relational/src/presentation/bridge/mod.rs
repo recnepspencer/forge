@@ -13,7 +13,6 @@ pub(crate) mod patch_envelopes;
 mod patch_envelopes_tests;
 mod patch_semantic_validation;
 mod publication_outcome;
-mod publication_snapshot_basis;
 mod runtime_source;
 #[cfg(test)]
 mod snapshot_catalog_tests;

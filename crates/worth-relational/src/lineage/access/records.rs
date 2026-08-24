@@ -8,7 +8,7 @@ use crate::identity::data::{EntityId, LineageId};
 use crate::lineage::access::LineageAccess;
 #[cfg(test)]
 use crate::lineage::data::LineageEventRecord;
-use crate::lineage::data::{CorrespondenceCandidate, LineageDecisionRecord, LineageNode};
+use crate::lineage::data::LineageNode;
 #[cfg(test)]
 use crate::visibility::cache_state::cached_historical_state_for_version;
 
@@ -68,14 +68,6 @@ impl<'runtime> LineageAccess<'runtime> {
         }
 
         nodes
-    }
-
-    pub(crate) fn correspondence_candidates_snapshot(&self) -> Vec<CorrespondenceCandidate> {
-        self.runtime.lineage.correspondence_candidates.clone()
-    }
-
-    pub(crate) fn rejected_decisions_snapshot(&self) -> Vec<LineageDecisionRecord> {
-        self.runtime.lineage.rejected_decisions.clone()
     }
 
     pub(crate) fn visible_entity_ids_for_lineages_for_observation(

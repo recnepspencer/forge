@@ -10,7 +10,6 @@ pub enum LineageEventKind {
     Split,
     Merge,
     Retire,
-    Correspond,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

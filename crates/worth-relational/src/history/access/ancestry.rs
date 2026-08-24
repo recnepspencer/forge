@@ -7,6 +7,62 @@ use crate::history::data::{CommitId, MergeConflictRecord, MergeInspection};
 
 use super::HistoryAccess;
 
+pub(crate) struct CommitAncestryInspection {
+    reachable_commits: BTreeSet<CommitId>,
+    authoring_branches: BTreeSet<crate::history::data::BranchId>,
+    selected_commit_available: bool,
+    node_visits: usize,
+    catalog_probes: usize,
+    parent_edge_visits: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum CommitAncestryPosture {
+    SelectedCommitUnavailable,
+    RequestedCommitUnavailable,
+    Reachable,
+    Unreachable,
+}
+
+pub(crate) struct CommitAncestryClassification {
+    posture: CommitAncestryPosture,
+    traversal_work: usize,
+}
+
+impl CommitAncestryClassification {
+    pub(crate) fn posture(&self) -> CommitAncestryPosture {
+        self.posture
+    }
+
+    pub(crate) fn traversal_work(&self) -> usize {
+        self.traversal_work
+    }
+}
+
+impl CommitAncestryInspection {
+    pub(crate) fn authoring_branches(&self) -> &BTreeSet<crate::history::data::BranchId> {
+        &self.authoring_branches
+    }
+
+    pub(crate) fn node_visits(&self) -> usize {
+        self.node_visits
+    }
+
+    pub(crate) fn catalog_probes(&self) -> usize {
+        self.catalog_probes
+    }
+
+    pub(crate) fn parent_edge_visits(&self) -> usize {
+        self.parent_edge_visits
+    }
+
+    pub(crate) fn total_work(&self) -> usize {
+        self.node_visits
+            .saturating_add(self.catalog_probes)
+            .saturating_add(self.parent_edge_visits)
+    }
+}
+
 impl<'runtime> HistoryAccess<'runtime> {
     /// Returns the ancestor closure for `commit_id`, ordered by ascending
     /// `CommitId`.
@@ -14,6 +70,65 @@ impl<'runtime> HistoryAccess<'runtime> {
     /// This is not a linear parent chain on DAG-shaped history.
     pub fn ancestor_closure_by_commit_id_order(&self, commit_id: CommitId) -> Vec<CommitId> {
         self.ancestor_set(commit_id).into_iter().collect()
+    }
+
+    pub(crate) fn inspect_commit_ancestry(&self, start: CommitId) -> CommitAncestryInspection {
+        let mut visited_commits = BTreeSet::new();
+        let mut reachable_commits = BTreeSet::new();
+        let mut authoring_branches = BTreeSet::new();
+        let mut selected_commit_available = false;
+        let mut stack = vec![start];
+        let mut node_visits = 0;
+        let mut catalog_probes = 0;
+        let mut parent_edge_visits = 0;
+        while let Some(commit_id) = stack.pop() {
+            node_visits += 1;
+            if !visited_commits.insert(commit_id) {
+                continue;
+            }
+            catalog_probes += 1;
+            if let Some(artifact) = self.runtime.history.commit_catalog.get(commit_id) {
+                reachable_commits.insert(commit_id);
+                selected_commit_available |= commit_id == start;
+                authoring_branches.insert(artifact.identity().authoring_branch().clone());
+                parent_edge_visits += artifact.envelope().commit.parents.len();
+                stack.extend(artifact.envelope().commit.parents.iter().copied());
+            }
+        }
+        CommitAncestryInspection {
+            reachable_commits,
+            authoring_branches,
+            selected_commit_available,
+            node_visits,
+            catalog_probes,
+            parent_edge_visits,
+        }
+    }
+
+    pub(crate) fn classify_commit_in_ancestry(
+        &self,
+        inspection: &CommitAncestryInspection,
+        requested_commit: CommitId,
+    ) -> CommitAncestryClassification {
+        let posture = if !inspection.selected_commit_available {
+            CommitAncestryPosture::SelectedCommitUnavailable
+        } else if inspection.reachable_commits.contains(&requested_commit) {
+            CommitAncestryPosture::Reachable
+        } else if self
+            .runtime
+            .history
+            .commit_catalog
+            .get(requested_commit)
+            .is_some()
+        {
+            CommitAncestryPosture::Unreachable
+        } else {
+            CommitAncestryPosture::RequestedCommitUnavailable
+        };
+        CommitAncestryClassification {
+            posture,
+            traversal_work: inspection.total_work(),
+        }
     }
 
     /// Convenience wrapper over the runtime's current common-ancestor
@@ -180,20 +295,11 @@ impl<'runtime> HistoryAccess<'runtime> {
     }
 
     pub(super) fn ancestor_set(&self, start: CommitId) -> BTreeSet<CommitId> {
-        let mut seen = BTreeSet::new();
-        let mut stack = vec![start];
-        while let Some(commit_id) = stack.pop() {
-            if !seen.insert(commit_id) {
-                continue;
-            }
-            if let Some(artifact) = self.runtime.history.commit_catalog.get(commit_id) {
-                stack.extend(artifact.envelope().commit.parents.iter().copied());
-            }
-        }
+        let closure = self.inspect_commit_ancestry(start);
         self.runtime
             .performance_access()
-            .count_merge_history_ancestry_traversal(seen.len());
-        seen
+            .count_merge_history_ancestry_traversal(closure.total_work());
+        closure.reachable_commits
     }
 
     /// Returns the branch-local ancestor closure for `head` after removing the

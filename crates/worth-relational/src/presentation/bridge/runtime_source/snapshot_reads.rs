@@ -15,7 +15,7 @@ impl SnapshotReadSource for RuntimeBridgeRelationalSource {
             RuntimePublicationSnapshotReader::for_observation_authority(
                 self.runtime.clone(),
                 identity.clone(),
-                observation,
+                observation.observation().clone(),
                 self.partition
                     .as_ref()
                     .map(|partition| partition.relational),

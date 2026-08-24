@@ -276,36 +276,6 @@ impl WorthQueryPrimaryGraphIntegrationHandle {
             .clone()
     }
 
-    /// Execute a projection against one exact retained Bridge observation.
-    /// The observation, rather than the descriptive branch name, selects the
-    /// Relational read basis.
-    #[doc(hidden)]
-    pub fn with_retained_truth_basis<T>(
-        &self,
-        snapshot: &worth_runtime_bridge::facade::TruthSnapshotIdentity,
-        branch: &worth_runtime_bridge::facade::TruthBranchIdentity,
-        read: impl FnOnce(
-            &RelationalRuntime,
-            &worth_relational::facade::branch::RelationalBranchObservation,
-        ) -> T,
-    ) -> Result<T, worth_runtime_bridge::facade::RelationalBridgeSourceError> {
-        self.relational_bridge_source().with_retained_observation(
-            snapshot,
-            |runtime, observation| {
-                let observed_branch =
-                    worth_runtime_bridge::facade::TruthBranchIdentity::from_relational_branch_id(
-                        observation.identity().branch_id().0.clone(),
-                    );
-                if &observed_branch != branch {
-                    return Err(worth_runtime_bridge::facade::RelationalBridgeSourceError::new(
-                        "retained primary graph observation belongs to a different truth branch",
-                    ));
-                }
-                Ok(read(runtime, observation))
-            },
-        )?
-    }
-
     #[doc(hidden)]
     pub fn current_truth_snapshot(
         &self,

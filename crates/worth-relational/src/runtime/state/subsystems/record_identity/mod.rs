@@ -17,6 +17,7 @@ use crate::transactions::data::RecordAllocationDenial;
 
 pub(crate) use pending_allocations::PendingRecordAllocations;
 pub(crate) use reclaimed::ReclaimedRecordSlot;
+use record_ref::{record_partition, record_slot};
 use reservation::{RecordSlotReservation, ReservationOrigin};
 
 use super::RuntimeSubsystem;
@@ -51,13 +52,33 @@ impl RecordIdentitySubsystem {
         PendingRecordAllocations::new(self.clone(), self.staged_replay_allocations.take())
     }
 
-    pub(crate) fn stage_replay_allocations(
+    pub(crate) fn stage_replay_allocations_with_leading_gaps(
         &mut self,
         allocations: Vec<CanonicalRecordAllocation>,
     ) -> Result<(), &'static str> {
         if self.staged_replay_allocations.is_some() {
             return Err("record allocation replay evidence is already staged");
         }
+        let mut first_append_slots = BTreeMap::new();
+        for allocation in &allocations {
+            if allocation.origin() != RecordAllocationOrigin::AppendFrontier {
+                continue;
+            }
+            let key = (allocation.class(), record_partition(allocation.record()));
+            let slot = record_slot(allocation.record());
+            first_append_slots
+                .entry(key)
+                .and_modify(|first: &mut usize| *first = (*first).min(slot))
+                .or_insert(slot);
+        }
+        let mut state = self.lock();
+        for (key, first_slot) in first_append_slots {
+            let frontier = state.next_slots.entry(key).or_default();
+            if *frontier < first_slot {
+                *frontier = first_slot;
+            }
+        }
+        drop(state);
         self.staged_replay_allocations = Some(allocations);
         Ok(())
     }

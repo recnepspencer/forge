@@ -8,6 +8,8 @@ mod branch_heads;
 mod committed_patches;
 mod continuity_lineage;
 mod observation_bindings;
+mod retained_entity_projection;
+mod selected_commit_resolution;
 mod snapshot_reads;
 mod source_profile;
 
@@ -16,6 +18,9 @@ pub use branch_head_bindings::{
 };
 pub use observation_bindings::{
     RelationalBridgeObservationLease, RelationalBridgeObservationReleaseReceipt,
+};
+pub(in crate::presentation::bridge) use observation_bindings::{
+    RelationalBridgeSelectedCommitObservation, RelationalBridgeSelectedObservation,
 };
 
 #[derive(Debug, Clone)]
@@ -108,46 +113,6 @@ impl RuntimeBridgeRelationalSource {
             truth: truth_partition,
         });
         Ok(source)
-    }
-
-    fn publish_commit(
-        &self,
-        commit_id: crate::history::data::CommitId,
-    ) -> Result<
-        super::RelationalBridgePublicationOutcome,
-        worth_runtime_bridge::facade::RelationalBridgeSourceError,
-    > {
-        let snapshot_identity = match self
-            .branch_head_bindings
-            .unique_snapshot_for_commit(commit_id)?
-        {
-            Some(snapshot) => snapshot,
-            None => self
-                .observation_bindings
-                .snapshot_identity_for_commit(commit_id)?,
-        };
-        Ok(self.publish_commit_at_snapshot(commit_id, snapshot_identity))
-    }
-
-    fn publish_commit_at_snapshot(
-        &self,
-        commit_id: crate::history::data::CommitId,
-        snapshot_identity: worth_runtime_bridge::facade::TruthSnapshotIdentity,
-    ) -> super::RelationalBridgePublicationOutcome {
-        self.runtime.with_runtime(|runtime| match &self.partition {
-            Some(partition) => runtime.publish_commit_for_bridge_graph_partition_at_snapshot(
-                commit_id,
-                self.graph_role.clone(),
-                partition.relational,
-                partition.truth.clone(),
-                snapshot_identity,
-            ),
-            None => runtime.publish_commit_for_bridge_graph_role_at_snapshot(
-                commit_id,
-                self.graph_role.clone(),
-                snapshot_identity,
-            ),
-        })
     }
 
     fn admits_relational_partition(&self, partition_id: u32) -> bool {

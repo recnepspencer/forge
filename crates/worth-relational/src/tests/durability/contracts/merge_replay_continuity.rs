@@ -82,9 +82,15 @@ fn durability_contract_replays_empty_intent_merge_currentness_once() {
         "recovery must apply the merge currentness transition exactly once"
     );
     assert_eq!(expected.truth_version(), actual.truth_version());
-    assert_eq!(expected_target.commit_id(), actual_target.commit_id());
+    assert_eq!(
+        expected_target.selected_commit_id(),
+        actual_target.selected_commit_id()
+    );
     assert_eq!(expected_target.version_id(), actual_target.version_id());
-    assert_eq!(merge.commit.commit_id.0, expected_target.commit_id());
+    assert_eq!(
+        merge.commit.commit_id.0,
+        expected_target.selected_commit_id()
+    );
 }
 
 #[test]

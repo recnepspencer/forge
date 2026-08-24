@@ -158,15 +158,20 @@ fn prepare_lineage(
         .cloned()
         .map(|node| (node.lineage_id, node))
         .collect();
-    lineage.events = checkpoint
+    let events = checkpoint
         .envelopes
         .iter()
-        .flat_map(|envelope| envelope.lineage_events().iter().cloned())
-        .collect();
-    lineage.events.sort_by_key(|event| event.event_id);
-    lineage.rebuild_branch_event_positions();
-    lineage.correspondence_candidates = checkpoint.lineage.correspondence_candidates().to_vec();
-    lineage.rejected_decisions = checkpoint.lineage.rejected_decisions().to_vec();
+        .flat_map(|envelope| {
+            envelope
+                .lineage_events()
+                .iter()
+                .cloned()
+                .map(|event| (event, envelope.commit.commit_id))
+        })
+        .collect::<Vec<_>>();
+    let mut events = events;
+    events.sort_by_key(|(event, _)| event.event_id);
+    lineage.replace_events(events);
     lineage
 }
 
@@ -190,49 +195,6 @@ fn install_checkpoint_state(restored: &mut RelationalRuntime, prepared: Prepared
     restored.lineage = prepared.lineage;
     restored.indexes = prepared.indexes;
     restored.durability.push_checkpoint(prepared.checkpoint);
-}
-
-pub(super) fn refresh_recovered_history_counters(restored: &mut RelationalRuntime) {
-    restored.history.next_commit_id = restored
-        .history
-        .commit_envelopes
-        .keys()
-        .map(|id| id.0)
-        .max()
-        .unwrap_or(0)
-        + 1;
-    restored.history.next_version_id = restored
-        .history
-        .commit_envelopes
-        .values()
-        .map(|envelope| envelope.commit.version_id.0)
-        .max()
-        .unwrap_or(0)
-        + 1;
-    restored.lineage.next_lineage_id = restored
-        .lineage
-        .nodes
-        .keys()
-        .map(|lineage_id| lineage_id.0)
-        .max()
-        .unwrap_or(0)
-        + 1;
-    restored.lineage.next_event_id = restored
-        .lineage
-        .events
-        .iter()
-        .map(|event| event.event_id)
-        .max()
-        .unwrap_or(0)
-        + 1;
-    restored.lineage.next_candidate_id = restored
-        .lineage
-        .correspondence_candidates
-        .iter()
-        .map(|candidate| candidate.candidate_id.0)
-        .max()
-        .unwrap_or(0)
-        + 1;
 }
 
 pub(super) fn clear_recovery_partition_pins(restored: &mut RelationalRuntime) {

@@ -23,7 +23,7 @@ pub(crate) use history::{
 };
 pub use history::{RelationalBranchSharingCostCounters, RelationalPhase4ReferenceCostCounters};
 pub(crate) use indexing::IndexingSubsystem;
-pub(crate) use lineage::LineageSubsystem;
+pub(crate) use lineage::{LineageSubsystem, ValidatedLineageEventBatch};
 pub(crate) use publication::PublicationSubsystem;
 pub(crate) use record_identity::{
     PendingRecordAllocations, ReclaimedRecordSlot, RecordIdentitySubsystem,

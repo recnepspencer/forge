@@ -8,23 +8,24 @@ use super::HistoryAccess;
 impl<'runtime> HistoryAccess<'runtime> {
     /// Read the canonical head carried by one owner-admitted repeatable
     /// observation. No live branch cell or catalog-latest lookup participates.
-    pub fn branch_head_for_observation<'observation>(
+    pub fn branch_head_for_observation(
         &self,
-        observation: &'observation crate::mvcc::RelationalBranchObservation,
-    ) -> Result<
-        Option<&'observation RelationalCommitReceipt>,
-        crate::branch::RelationalBranchBasisDenial,
-    > {
+        observation: &crate::mvcc::RelationalBranchObservation,
+    ) -> Result<Option<&'runtime RelationalCommitReceipt>, crate::branch::RelationalBranchBasisDenial>
+    {
         if observation.identity().runtime_instance_id() != self.runtime.runtime_instance_id() {
             return Err(crate::branch::RelationalBranchBasisDenial::ForeignRuntime {
                 expected_runtime_instance_id: self.runtime.runtime_instance_id(),
                 actual_runtime_instance_id: observation.identity().runtime_instance_id(),
             });
         }
-        Ok(observation
-            .selected_root()
-            .canonical_envelope()
-            .map(|envelope| &envelope.commit))
+        Ok(observation.commit_id().and_then(|commit_id| {
+            self.runtime
+                .history
+                .commit_catalog
+                .get(commit_id)
+                .map(|artifact| &artifact.envelope().commit)
+        }))
     }
 
     /// Diagnostic immutable-identity lookup. This returns commit identity only
@@ -157,7 +158,7 @@ impl<'runtime> HistoryAccess<'runtime> {
         let commit_id = match cell.observation().target() {
             worth_foundational::FoundationalBranchTarget::Empty => return None,
             worth_foundational::FoundationalBranchTarget::Basis(target) => {
-                CommitId(target.commit_id())
+                CommitId(target.selected_commit_id())
             }
         };
         self.runtime

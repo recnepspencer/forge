@@ -1,6 +1,4 @@
 use crate::facade::history::BranchId;
-use crate::facade::indexes::DerivedIndexGeneration;
-use crate::facade::lineage::{LineageEventKind, LineageGraphSnapshot, LineageResolutionStatus};
 
 use super::super::comparisons::{
     compare_case_truth, compare_observability_overlap, compare_recovery_probe,
@@ -88,32 +86,6 @@ pub(crate) fn assert_snapshot_release_contract(
     assert!(
         compare_case_truth(baseline, historical_after_release).is_empty(),
         "historical version read should remain stable after snapshot release"
-    );
-}
-
-pub(crate) fn assert_metadata_preserved_after_recovery(
-    resolution: LineageResolutionStatus,
-    graph: &LineageGraphSnapshot,
-    generation: &DerivedIndexGeneration,
-) {
-    assert_eq!(resolution, LineageResolutionStatus::Promoted);
-    assert!(
-        graph
-            .correspondence_candidates
-            .iter()
-            .any(|candidate| { candidate.note == "fintech-case-correspondence" }),
-        "recovered lineage graph should preserve promoted correspondence candidates"
-    );
-    assert!(
-        graph
-            .events
-            .iter()
-            .any(|event| { event.kind == LineageEventKind::Correspond }),
-        "recovered lineage graph should preserve correspondence events"
-    );
-    assert_eq!(
-        generation.source_branch_id,
-        BranchId("analysis".to_string())
     );
 }
 

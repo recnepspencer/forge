@@ -230,7 +230,7 @@ fn replace_descriptor(
         &checkpoint.branch_id.0,
         FoundationalBranchTarget::basis(crate::branch::RelationalBranchTarget::new(
             target.runtime_instance_id(),
-            target.commit_id(),
+            target.selected_commit_id(),
             target.version_id(),
             target.parent_commit_ids().to_vec(),
             descriptor,

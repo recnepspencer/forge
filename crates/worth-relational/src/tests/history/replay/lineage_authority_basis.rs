@@ -1,175 +1,79 @@
 use super::*;
 
-#[test]
-fn replay_contract_reports_lineage_event_drift_at_digest_layer_when_artifacts_are_tampered() {
-    let mut runtime = runtime_with_test_schema();
-    let first = create_entity_outcome(&mut runtime, "first");
-    let second = create_entity_outcome(&mut runtime, "second");
-    let first_lineage = runtime
-        .lineage_access()
-        .for_record(changed_entities(&first)[0])
-        .unwrap()
-        .lineage_id;
-    let second_lineage = runtime
-        .lineage_access()
-        .for_record(changed_entities(&second)[0])
-        .unwrap()
-        .lineage_id;
-    let candidate = runtime.lineage_authority().record_correspondence_candidate(
-        BranchId("main".to_string()),
-        vec![first_lineage],
-        vec![second_lineage],
-        "lineage-drift",
-    );
-    let promotion = runtime
-        .lineage_authority()
-        .promote_correspondence(candidate.candidate_id, second.commit.clone())
-        .unwrap();
-    let promoted_commit_id = promotion
-        .promoted_commit_id()
-        .expect("promotion should publish a metadata-only commit");
+fn replay_request(commit_id: crate::history::data::CommitId) -> RelationalReplayRequest {
+    RelationalReplayRequest {
+        commit_id,
+        branch_id: BranchId("main".to_owned()),
+        execution_mode: ReplayExecutionMode::SerialDeterministic,
+        verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
+    }
+}
 
+#[test]
+fn replay_reports_owner_create_event_drift_at_digest_layer() {
+    let mut runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&mut runtime, "event-drift");
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(
-        promoted_commit_id,
+        created.commit.commit_id,
         |envelope| {
-            if let Some(event) = envelope
+            envelope
                 .published_lineage_mut_for_test()
-                .lineage_events_mut()
-                .first_mut()
-            {
-                event.kind = crate::facade::lineage::LineageEventKind::Retire;
-            }
+                .lineage_events_mut()[0]
+                .kind = crate::facade::lineage::LineageEventKind::Retire;
         }
     ));
 
     let replay = runtime
         .replay_authority()
-        .replay_commit(RelationalReplayRequest {
-            commit_id: promoted_commit_id,
-            branch_id: BranchId("main".to_string()),
-            execution_mode: ReplayExecutionMode::SerialDeterministic,
-            verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
-        });
+        .replay_commit(replay_request(created.commit.commit_id));
 
     assert_eq!(replay.failure, Some(ReplayFailureClass::ObservableMismatch));
-    assert!(
-        replay.mismatches.iter().any(|mismatch| {
-            mismatch.class == ReplayMismatchClass::LineageDrift
-                && mismatch.surface == ReplayObservableSurface::Lineage
-                && mismatch.verification_layer
-                    == crate::facade::replay::ReplayVerificationLayer::DigestParity
-        }),
-        "{:?}",
-        replay.mismatches
-    );
+    assert!(replay.mismatches.iter().any(|mismatch| {
+        mismatch.class == ReplayMismatchClass::LineageDrift
+            && mismatch.surface == ReplayObservableSurface::Lineage
+            && mismatch.verification_layer
+                == crate::facade::replay::ReplayVerificationLayer::DigestParity
+    }));
 }
 
 #[test]
-fn replay_contract_reports_lineage_decision_log_drift_at_digest_layer_when_artifacts_are_tampered()
-{
+fn replay_reports_owner_create_decision_drift_at_digest_layer() {
     let mut runtime = runtime_with_test_schema();
-    let first = create_entity_outcome(&mut runtime, "source");
-    let second = create_entity_outcome(&mut runtime, "target");
-    let first_entity = changed_entities(&first)[0];
-    let second_entity = changed_entities(&second)[0];
-    let first_lineage = runtime
-        .lineage_access()
-        .for_record(first_entity)
-        .unwrap()
-        .lineage_id;
-    let second_lineage = runtime
-        .lineage_access()
-        .for_record(second_entity)
-        .unwrap()
-        .lineage_id;
-    let candidate = runtime.lineage_authority().record_correspondence_candidate(
-        BranchId("main".to_string()),
-        vec![first_lineage],
-        vec![second_lineage],
-        "lineage-decision-drift",
-    );
-    let promotion = runtime
-        .lineage_authority()
-        .promote_correspondence(candidate.candidate_id, second.commit.clone())
-        .unwrap();
-    let promoted_commit_id = promotion
-        .promoted_commit_id()
-        .expect("promotion should publish a metadata-only commit");
-
+    let created = create_entity_outcome(&mut runtime, "decision-drift");
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(
-        promoted_commit_id,
+        created.commit.commit_id,
         |envelope| {
-            if let Some(decision) = envelope
+            envelope
                 .published_lineage_mut_for_test()
-                .lineage_decision_log_mut()
-                .first_mut()
-            {
-                decision.kind = crate::facade::lineage::LineageDecisionKind::RetireAccepted;
-            }
+                .lineage_decision_log_mut()[0]
+                .kind = crate::facade::lineage::LineageDecisionKind::RetireAccepted;
         }
     ));
 
     let replay = runtime
         .replay_authority()
-        .replay_commit(RelationalReplayRequest {
-            commit_id: promoted_commit_id,
-            branch_id: BranchId("main".to_string()),
-            execution_mode: ReplayExecutionMode::SerialDeterministic,
-            verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
-        });
+        .replay_commit(replay_request(created.commit.commit_id));
 
     assert_eq!(replay.failure, Some(ReplayFailureClass::ObservableMismatch));
-    assert!(
-        replay.mismatches.iter().any(|mismatch| {
-            mismatch.class == ReplayMismatchClass::LineageDrift
-                && mismatch.surface == ReplayObservableSurface::Lineage
-                && mismatch.verification_layer
-                    == crate::facade::replay::ReplayVerificationLayer::DigestParity
-        }),
-        "{:?}",
-        replay.mismatches
-    );
+    assert!(replay.mismatches.iter().any(|mismatch| {
+        mismatch.class == ReplayMismatchClass::LineageDrift
+            && mismatch.surface == ReplayObservableSurface::Lineage
+            && mismatch.verification_layer
+                == crate::facade::replay::ReplayVerificationLayer::DigestParity
+    }));
 }
 
 #[test]
-fn replay_contract_uses_retained_envelope_basis_only_in_normal_mode() {
+fn replay_uses_retained_owner_envelope_only_in_normal_mode() {
     let mut runtime = runtime_with_test_schema();
-    let first = create_entity_outcome(&mut runtime, "source");
-    let second = create_entity_outcome(&mut runtime, "target");
-    let first_entity = changed_entities(&first)[0];
-    let second_entity = changed_entities(&second)[0];
-    let first_lineage = runtime
-        .lineage_access()
-        .for_record(first_entity)
-        .unwrap()
-        .lineage_id;
-    let second_lineage = runtime
-        .lineage_access()
-        .for_record(second_entity)
-        .unwrap()
-        .lineage_id;
-    let candidate = runtime.lineage_authority().record_correspondence_candidate(
-        BranchId("main".to_string()),
-        vec![first_lineage],
-        vec![second_lineage],
-        "lineage-retained-envelope-basis",
-    );
-    runtime
-        .lineage_authority()
-        .promote_correspondence(candidate.candidate_id, second.commit.clone())
-        .unwrap();
+    let created = create_entity_outcome(&mut runtime, "retained-envelope");
     assert!(runtime
         .durability_authority()
-        .remove_durable_envelope_for_test(second.commit.commit_id));
+        .remove_durable_envelope_for_test(created.commit.commit_id));
 
     let replay = runtime
         .replay_authority()
-        .replay_commit(RelationalReplayRequest {
-            commit_id: second.commit.commit_id,
-            branch_id: BranchId("main".to_string()),
-            execution_mode: ReplayExecutionMode::SerialDeterministic,
-            verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
-        });
+        .replay_commit(replay_request(created.commit.commit_id));
 
     assert!(runtime.replay().compare_outcome(&replay));
     assert_eq!(
@@ -182,44 +86,16 @@ fn replay_contract_uses_retained_envelope_basis_only_in_normal_mode() {
 }
 
 #[test]
-fn replay_contract_rejects_retained_envelope_basis_in_audit_mode() {
+fn audit_replay_rejects_retained_owner_envelope_basis() {
     let mut runtime = runtime_with_test_schema();
-    let first = create_entity_outcome(&mut runtime, "source");
-    let second = create_entity_outcome(&mut runtime, "target");
-    let first_entity = changed_entities(&first)[0];
-    let second_entity = changed_entities(&second)[0];
-    let first_lineage = runtime
-        .lineage_access()
-        .for_record(first_entity)
-        .unwrap()
-        .lineage_id;
-    let second_lineage = runtime
-        .lineage_access()
-        .for_record(second_entity)
-        .unwrap()
-        .lineage_id;
-    let candidate = runtime.lineage_authority().record_correspondence_candidate(
-        BranchId("main".to_string()),
-        vec![first_lineage],
-        vec![second_lineage],
-        "lineage-audit-basis",
-    );
-    runtime
-        .lineage_authority()
-        .promote_correspondence(candidate.candidate_id, second.commit.clone())
-        .unwrap();
+    let created = create_entity_outcome(&mut runtime, "audit-retained-envelope");
     assert!(runtime
         .durability_authority()
-        .remove_durable_envelope_for_test(second.commit.commit_id));
+        .remove_durable_envelope_for_test(created.commit.commit_id));
+    let mut request = replay_request(created.commit.commit_id);
+    request.verification_mode = ReplayVerificationMode::AuditRecoveryVerification;
 
-    let replay = runtime
-        .replay_authority()
-        .replay_commit(RelationalReplayRequest {
-            commit_id: second.commit.commit_id,
-            branch_id: BranchId("main".to_string()),
-            execution_mode: ReplayExecutionMode::SerialDeterministic,
-            verification_mode: ReplayVerificationMode::AuditRecoveryVerification,
-        });
+    let replay = runtime.replay_authority().replay_commit(request);
 
     assert_eq!(
         replay.failure,
@@ -228,45 +104,17 @@ fn replay_contract_rejects_retained_envelope_basis_in_audit_mode() {
 }
 
 #[test]
-fn replay_contract_uses_checkpoint_canonical_basis_in_audit_mode_when_durable_log_tail_is_absent() {
+fn audit_replay_uses_checkpoint_owner_basis_when_tail_is_absent() {
     let mut runtime = runtime_with_test_schema();
-    let first = create_entity_outcome(&mut runtime, "source");
-    let second = create_entity_outcome(&mut runtime, "target");
-    let first_entity = changed_entities(&first)[0];
-    let second_entity = changed_entities(&second)[0];
-    let first_lineage = runtime
-        .lineage_access()
-        .for_record(first_entity)
-        .unwrap()
-        .lineage_id;
-    let second_lineage = runtime
-        .lineage_access()
-        .for_record(second_entity)
-        .unwrap()
-        .lineage_id;
-    let candidate = runtime.lineage_authority().record_correspondence_candidate(
-        BranchId("main".to_string()),
-        vec![first_lineage],
-        vec![second_lineage],
-        "lineage-checkpoint-basis",
-    );
-    runtime
-        .lineage_authority()
-        .promote_correspondence(candidate.candidate_id, second.commit.clone())
-        .unwrap();
+    let created = create_entity_outcome(&mut runtime, "checkpoint-basis");
     runtime.durability_authority().checkpoint().unwrap();
     assert!(runtime
         .durability_authority()
-        .remove_durable_envelope_for_test(second.commit.commit_id));
+        .remove_durable_envelope_for_test(created.commit.commit_id));
+    let mut request = replay_request(created.commit.commit_id);
+    request.verification_mode = ReplayVerificationMode::AuditRecoveryVerification;
 
-    let replay = runtime
-        .replay_authority()
-        .replay_commit(RelationalReplayRequest {
-            commit_id: second.commit.commit_id,
-            branch_id: BranchId("main".to_string()),
-            execution_mode: ReplayExecutionMode::SerialDeterministic,
-            verification_mode: ReplayVerificationMode::AuditRecoveryVerification,
-        });
+    let replay = runtime.replay_authority().replay_commit(request);
 
     assert!(runtime.replay().compare_outcome(&replay));
     assert_eq!(
@@ -276,77 +124,4 @@ fn replay_contract_uses_checkpoint_canonical_basis_in_audit_mode_when_durable_lo
             .map(|basis| basis.kind()),
         Some(crate::facade::replay::ReplayAuthorityBasisKind::DurableLogCanonical)
     );
-}
-
-#[test]
-fn replay_contract_preserves_metadata_only_promotion_commit_truth_and_recovery() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let first = create_entity_outcome(&mut runtime, "source");
-    let second = create_entity_outcome(&mut runtime, "target");
-    let first_lineage = runtime
-        .lineage_access()
-        .for_record(changed_entities(&first)[0])
-        .unwrap()
-        .lineage_id;
-    let second_lineage = runtime
-        .lineage_access()
-        .for_record(changed_entities(&second)[0])
-        .unwrap()
-        .lineage_id;
-    let candidate = runtime.lineage_authority().record_correspondence_candidate(
-        BranchId("main".to_string()),
-        vec![first_lineage],
-        vec![second_lineage],
-        "metadata-only-promotion",
-    );
-    let promoted = runtime
-        .lineage_authority()
-        .promote_correspondence(candidate.candidate_id, second.commit.clone())
-        .unwrap();
-    let promoted_commit_id = promoted.promoted_commit_id().expect("promotion commit id");
-    let promoted_commit = runtime
-        .history()
-        .branch_head(&BranchId("main".to_string()))
-        .cloned()
-        .expect("truth branch head remains available after metadata promotion");
-
-    assert_eq!(promoted_commit.commit_id, second.commit.commit_id);
-    assert_eq!(promoted_commit.version_id, second.commit.version_id);
-
-    let replay = runtime
-        .replay_authority()
-        .replay_commit(RelationalReplayRequest {
-            commit_id: promoted_commit_id,
-            branch_id: BranchId("main".to_string()),
-            execution_mode: ReplayExecutionMode::SerialDeterministic,
-            verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
-        });
-
-    assert!(runtime.replay().compare_outcome(&replay));
-
-    let recovery_plan = runtime.durability().recovery_plan(
-        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
-    );
-    let mut recovered = persisted_runtime_with_test_schema();
-    recovered
-        .durability_authority()
-        .recover(recovery_plan)
-        .unwrap();
-    let recovered_head = recovered
-        .history()
-        .branch_head(&BranchId("main".to_string()))
-        .cloned()
-        .expect("recovered promoted branch head");
-    let recovered_replay = recovered
-        .replay_authority()
-        .replay_commit(RelationalReplayRequest {
-            commit_id: promoted_commit_id,
-            branch_id: BranchId("main".to_string()),
-            execution_mode: ReplayExecutionMode::SerialDeterministic,
-            verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
-        });
-
-    assert_eq!(recovered_head.commit_id, second.commit.commit_id);
-    assert_eq!(recovered_head.version_id, second.commit.version_id);
-    assert!(recovered.replay().compare_outcome(&recovered_replay));
 }

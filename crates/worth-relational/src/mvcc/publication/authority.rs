@@ -80,23 +80,6 @@ impl<'runtime> RelationalPublicationAuthority<'runtime> {
         .map(|_| ())
     }
 
-    pub(crate) fn validate_metadata_publication(
-        &self,
-        commit_id: CommitId,
-        commit_reference: &RelationalCommitReceipt,
-        binding: &RelationalLegacyBranchBinding,
-        envelope: &CanonicalCommitEnvelope,
-    ) -> Result<(), String> {
-        self.validate(PublicationRequest {
-            commit_id,
-            commit_reference,
-            binding,
-            envelope,
-            sequence: PublicationSequence::Metadata,
-        })
-        .map(|_| ())
-    }
-
     pub(crate) fn publish_commit(
         &mut self,
         commit_id: CommitId,
@@ -222,55 +205,7 @@ impl<'runtime> RelationalPublicationAuthority<'runtime> {
         })
     }
 
-    pub(crate) fn publish_metadata_artifact(
-        &mut self,
-        commit_id: CommitId,
-        commit_reference: RelationalCommitReceipt,
-        binding: &RelationalLegacyBranchBinding,
-        patch_position: PatchStreamPosition,
-        envelope: Arc<CanonicalCommitEnvelope>,
-    ) -> Result<(), String> {
-        self.validate_metadata_publication(
-            commit_id,
-            &commit_reference,
-            binding,
-            envelope.as_ref(),
-        )?;
-        self.publish(
-            commit_id,
-            commit_reference,
-            binding,
-            patch_position,
-            envelope,
-        )
-    }
-
     fn validate(&self, request: PublicationRequest<'_>) -> Result<ValidatedPublication, String> {
         validate_publication(self.runtime, request)
-    }
-
-    fn publish(
-        &mut self,
-        commit_id: CommitId,
-        commit_reference: RelationalCommitReceipt,
-        binding: &RelationalLegacyBranchBinding,
-        patch_position: PatchStreamPosition,
-        envelope: Arc<CanonicalCommitEnvelope>,
-    ) -> Result<(), String> {
-        let validated = self.validate(PublicationRequest {
-            commit_id,
-            commit_reference: &commit_reference,
-            binding,
-            envelope: envelope.as_ref(),
-            sequence: PublicationSequence::Metadata,
-        })?;
-        self.runtime.history.publish_metadata_artifact(
-            commit_id,
-            commit_reference,
-            validated.branch_id,
-            validated.next_cell,
-            patch_position,
-            envelope,
-        )
     }
 }

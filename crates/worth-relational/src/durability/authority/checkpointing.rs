@@ -164,6 +164,13 @@ impl<'runtime> DurabilityAuthority<'runtime> {
         envelope: &crate::history::data::CanonicalCommitEnvelope,
     ) -> Result<(), DurabilityError> {
         authority.validate(self.runtime.runtime_instance_id(), envelope)?;
+        #[cfg(test)]
+        if std::mem::take(&mut self.runtime.durability.fail_next_append) {
+            return Err(DurabilityError::new(
+                crate::durability::data::RecoveryFailureClass::DurableIoFailure,
+                "test-injected durable append failure",
+            ));
+        }
         match self.runtime.runtime_config().durability.policy.mode {
             DurabilityMode::InMemoryCanonical => {
                 self.runtime.durability.push_log_envelope(envelope.clone());

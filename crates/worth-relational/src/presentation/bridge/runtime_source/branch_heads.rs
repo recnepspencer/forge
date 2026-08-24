@@ -11,8 +11,10 @@ impl TruthBranchHeadSource for RuntimeBridgeRelationalSource {
         branch_identity: &TruthBranchIdentity,
     ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
         let (commit_id, snapshot_identity) = self.branch_head_bindings.resolve(branch_identity)?;
+        let observation = self.observation_bindings.resolve(&snapshot_identity)?;
+        let selected_commit = self.select_exact_commit_for_observation(commit_id, observation)?;
 
-        match self.publish_commit_at_snapshot(commit_id, snapshot_identity) {
+        match self.publish_commit_for_selected_observation(selected_commit) {
             worth_proof::TransitionOutcome::Success(publication) => {
                 Ok(publication.into_bridge_envelope())
             }

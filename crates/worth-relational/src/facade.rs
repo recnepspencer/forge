@@ -126,9 +126,6 @@ pub mod indexes;
 
 pub mod lineage {
     pub use crate::lineage::data::{
-        CorrespondenceCandidate, CorrespondenceCandidateId,
-        CorrespondencePromotionExecutionFailureClass, CorrespondencePromotionOutcome,
-        CorrespondencePromotionRejectionClass, CorrespondenceResolution,
         HistoricalLineageResolution, HistoricalLineageResolutionDigestBasis,
         HistoricalLineageResolutionMetrics, HistoricalResolutionBoundednessBasis,
         HistoricalResolutionDigestMode, HistoricalResolutionRequest, HistoricalResolutionTrace,
@@ -138,7 +135,7 @@ pub mod lineage {
         LineageDivergenceSummary, LineageDivergenceTraversalBasis, LineageEventBatchDigestBasis,
         LineageEventKind, LineageEventRecord, LineageGraphDigestBasis, LineageGraphDigestMode,
         LineageGraphMetrics, LineageGraphRequest, LineageGraphSnapshot, LineageGraphTraversalBasis,
-        LineageInvariant, LineageNode, LineageResolutionStatus, RecordHistoryRequest,
+        LineageInvariant, LineageNode, RecordHistoryRequest,
     };
 }
 

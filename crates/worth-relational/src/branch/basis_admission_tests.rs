@@ -115,16 +115,13 @@ fn repeated_observation_shares_one_registry_entry_and_final_drop_removes_it() {
 }
 
 #[test]
-fn retained_basis_readmits_after_metadata_only_reference_movement() {
-    let mut runtime = runtime();
+fn retained_basis_readmits_after_owner_publication_moves_the_reference() {
+    let mut runtime = crate::tests::support::runtime_with_test_schema();
+    crate::tests::support::create_entity_outcome(&mut runtime, "retained-basis-before");
     let identity = runtime.main_branch_identity();
     let (descriptor, retained) = runtime.observe_branch(&identity).unwrap();
-    runtime
-        .history
-        .branch_cell_mut(identity.branch_id())
-        .unwrap()
-        .advance_metadata()
-        .unwrap();
+    crate::tests::support::create_entity_outcome(&mut runtime, "retained-basis-after");
+    let (current_descriptor, current) = runtime.observe_branch(&identity).unwrap();
 
     let readmitted = runtime.readmit_branch_basis(&descriptor).unwrap();
     assert_eq!(readmitted.descriptor(), retained.descriptor());
@@ -132,11 +129,17 @@ fn retained_basis_readmits_after_metadata_only_reference_movement() {
         readmitted.observation().reference().generation(),
         descriptor.reference().generation()
     );
+    assert_ne!(
+        current_descriptor.root_identity(),
+        descriptor.root_identity()
+    );
+    assert_ne!(current.descriptor(), retained.descriptor());
 }
 
 #[test]
 fn observation_opens_the_same_snapshot_after_reference_movement() {
-    let mut runtime = runtime();
+    let mut runtime = crate::tests::support::runtime_with_test_schema();
+    crate::tests::support::create_entity_outcome(&mut runtime, "snapshot-before-movement");
     let identity = runtime.main_branch_identity();
     let (_, basis) = runtime.observe_branch(&identity).unwrap();
     let observation = basis.observation();
@@ -144,12 +147,7 @@ fn observation_opens_the_same_snapshot_after_reference_movement() {
         .snapshots()
         .snapshot_for_observation(&observation)
         .unwrap();
-    runtime
-        .history
-        .branch_cell_mut(identity.branch_id())
-        .unwrap()
-        .advance_metadata()
-        .unwrap();
+    crate::tests::support::create_entity_outcome(&mut runtime, "snapshot-after-movement");
     let after = runtime
         .snapshots()
         .snapshot_for_observation(&observation)
@@ -157,22 +155,18 @@ fn observation_opens_the_same_snapshot_after_reference_movement() {
 
     assert_eq!(before.branch_id, after.branch_id);
     assert_eq!(before.version_id, after.version_id);
-    assert_eq!(observation.selected_root_identity(), 0);
+    assert!(observation.selected_root_identity() > 0);
 }
 
 #[test]
 fn external_pin_retains_once_and_release_consumes_the_obligation() {
-    let mut runtime = runtime();
+    let mut runtime = crate::tests::support::runtime_with_test_schema();
+    crate::tests::support::create_entity_outcome(&mut runtime, "external-pin-before");
     let identity = runtime.main_branch_identity();
     let (descriptor, basis) = runtime.observe_branch(&identity).unwrap();
     let lease = runtime.retain_component_basis(&basis).unwrap();
     drop(basis);
-    runtime
-        .history
-        .branch_cell_mut(identity.branch_id())
-        .unwrap()
-        .advance_metadata()
-        .unwrap();
+    crate::tests::support::create_entity_outcome(&mut runtime, "external-pin-after");
 
     let readmitted = runtime.readmit_branch_basis(&descriptor).unwrap();
     drop(readmitted);
@@ -180,33 +174,29 @@ fn external_pin_retains_once_and_release_consumes_the_obligation() {
     assert_eq!(release.descriptor(), &descriptor);
     assert!(matches!(
         runtime.readmit_branch_basis(&descriptor),
-        Err(RelationalBranchBasisDenial::StaleReferenceGeneration)
+        Err(RelationalBranchBasisDenial::UnavailableRetainedTarget)
     ));
 }
 
 #[test]
-fn stale_unretained_descriptor_denies_without_reconstructing_authority() {
-    let mut runtime = runtime();
+fn superseded_unretained_descriptor_denies_without_reconstructing_authority() {
+    let mut runtime = crate::tests::support::runtime_with_test_schema();
+    crate::tests::support::create_entity_outcome(&mut runtime, "stale-before");
     let identity = runtime.main_branch_identity();
     let (descriptor, basis) = runtime.observe_branch(&identity).unwrap();
     drop(basis);
-    runtime
-        .history
-        .branch_cell_mut(identity.branch_id())
-        .unwrap()
-        .advance_metadata()
-        .unwrap();
+    crate::tests::support::create_entity_outcome(&mut runtime, "stale-after");
 
     let before = runtime.branch_basis_cost_counters();
     assert!(matches!(
         runtime.readmit_branch_basis(&descriptor),
-        Err(RelationalBranchBasisDenial::StaleReferenceGeneration)
+        Err(RelationalBranchBasisDenial::UnavailableRetainedTarget)
     ));
     let after = runtime.branch_basis_cost_counters();
     assert_eq!(after.readmission_denials, before.readmission_denials + 1);
     assert_eq!(
         after.stale_readmission_denials,
-        before.stale_readmission_denials + 1
+        before.stale_readmission_denials
     );
 }
 

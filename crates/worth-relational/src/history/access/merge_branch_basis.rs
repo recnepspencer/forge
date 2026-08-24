@@ -119,7 +119,7 @@ impl<'runtime> HistoryAccess<'runtime> {
         self.runtime
             .history
             .commit_catalog
-            .get(crate::history::data::CommitId(target.commit_id()))
+            .get(crate::history::data::CommitId(target.selected_commit_id()))
             .map(|artifact| artifact.envelope().commit.clone())
             .ok_or_else(|| missing(branch_id))
     }

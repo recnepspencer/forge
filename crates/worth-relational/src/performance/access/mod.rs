@@ -1,3 +1,4 @@
+mod bridge_counters;
 mod inspection_counters;
 mod lineage_counters;
 mod merge_counters;

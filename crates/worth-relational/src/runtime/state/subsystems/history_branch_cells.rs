@@ -10,7 +10,7 @@ use crate::branch::{
 };
 use crate::history::data::{BranchId, CommitId};
 
-use super::{history_recovery, HistorySubsystem};
+use super::{history_recovery_validation, HistorySubsystem};
 
 impl HistorySubsystem {
     pub(crate) fn transition_empty_branches_to_initial_schema(
@@ -62,7 +62,7 @@ impl HistorySubsystem {
             .as_ref()
             .map(|provenance| provenance.target())
         {
-            let commit_id = CommitId(target.commit_id());
+            let commit_id = CommitId(target.selected_commit_id());
             self.readmit_replayed_root_descriptor(
                 commit_id,
                 target.roots().clone(),
@@ -75,7 +75,7 @@ impl HistorySubsystem {
         let readmission_root = match checkpoint.observation.target() {
             FoundationalBranchTarget::Empty => None,
             FoundationalBranchTarget::Basis(target) => {
-                let commit_id = CommitId(target.commit_id());
+                let commit_id = CommitId(target.selected_commit_id());
                 Some(
                     self.readmit_replayed_root_descriptor(
                         commit_id,
@@ -94,7 +94,7 @@ impl HistorySubsystem {
                 )
             }
         };
-        history_recovery::require_branch_target_artifact(
+        history_recovery_validation::require_branch_target_artifact(
             &self.commit_catalog,
             expected_branch_id,
             checkpoint.observation.target(),
@@ -106,7 +106,7 @@ impl HistorySubsystem {
             checkpoint.fork_source_branch_id.as_ref(),
             checkpoint.fork_provenance.as_ref(),
         )?;
-        history_recovery::validate_branch_target_artifact(
+        history_recovery_validation::validate_branch_target_artifact(
             &self.commit_catalog,
             expected_branch_id,
             checkpoint.observation.target(),
@@ -124,22 +124,16 @@ impl HistorySubsystem {
                 branch_id.0, expected_branch_id.0
             ));
         }
-        history_recovery::validate_tail_branch_cell(self, &cell)?;
+        history_recovery_validation::validate_recovered_branch_cell(self, &cell)?;
         if let Some(existing) = self.branch_cell(&branch_id) {
-            if !history_recovery::branch_cell_truth_matches(
+            if !history_recovery_validation::branch_cell_truth_matches(
                 &existing.checkpoint(),
                 &cell.checkpoint(),
             ) {
-                if !history_recovery::replayed_branch_cell_accepts_canonical_target(
-                    &existing.checkpoint(),
-                    &cell.checkpoint(),
-                ) {
-                    return Err(format!(
-                        "recovery branch-cell state conflicts for `{}`",
-                        branch_id.0
-                    ));
-                }
-                self.insert_branch_cell(cell);
+                return Err(format!(
+                    "recovery branch-cell state conflicts for `{}`",
+                    branch_id.0
+                ));
             }
             return Ok(());
         }

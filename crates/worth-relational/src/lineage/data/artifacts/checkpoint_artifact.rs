@@ -1,8 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::lineage::data::{CorrespondenceCandidate, LineageNode};
-
-use super::LineageDecisionRecord;
+use crate::lineage::data::LineageNode;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LineageCheckpointDigestBasis {
@@ -31,21 +29,11 @@ impl LineageCheckpointDigestBasis {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LineageCheckpointCounters {
     pub node_count: usize,
-    pub correspondence_candidate_count: usize,
-    pub rejected_decision_count: usize,
 }
 
 impl LineageCheckpointCounters {
-    fn new(
-        node_count: usize,
-        correspondence_candidate_count: usize,
-        rejected_decision_count: usize,
-    ) -> Self {
-        Self {
-            node_count,
-            correspondence_candidate_count,
-            rejected_decision_count,
-        }
+    fn new(node_count: usize) -> Self {
+        Self { node_count }
     }
 }
 
@@ -54,28 +42,15 @@ pub struct LineageCheckpointArtifact {
     digest_basis: LineageCheckpointDigestBasis,
     counters: LineageCheckpointCounters,
     nodes: Vec<LineageNode>,
-    correspondence_candidates: Vec<CorrespondenceCandidate>,
-    rejected_decisions: Vec<LineageDecisionRecord>,
 }
 
 impl LineageCheckpointArtifact {
-    pub fn new(
-        digest_basis: LineageCheckpointDigestBasis,
-        nodes: Vec<LineageNode>,
-        correspondence_candidates: Vec<CorrespondenceCandidate>,
-        rejected_decisions: Vec<LineageDecisionRecord>,
-    ) -> Self {
-        let counters = LineageCheckpointCounters::new(
-            nodes.len(),
-            correspondence_candidates.len(),
-            rejected_decisions.len(),
-        );
+    pub fn new(digest_basis: LineageCheckpointDigestBasis, nodes: Vec<LineageNode>) -> Self {
+        let counters = LineageCheckpointCounters::new(nodes.len());
         Self {
             digest_basis,
             counters,
             nodes,
-            correspondence_candidates,
-            rejected_decisions,
         }
     }
 
@@ -91,11 +66,8 @@ impl LineageCheckpointArtifact {
         &self.nodes
     }
 
-    pub fn correspondence_candidates(&self) -> &[CorrespondenceCandidate] {
-        &self.correspondence_candidates
-    }
-
-    pub fn rejected_decisions(&self) -> &[LineageDecisionRecord] {
-        &self.rejected_decisions
+    #[cfg(test)]
+    pub(crate) fn nodes_mut(&mut self) -> &mut Vec<LineageNode> {
+        &mut self.nodes
     }
 }

@@ -41,16 +41,3 @@ fn truth_sequence_overflow_is_rejected_before_publication_effects() {
         .sum();
     assert_eq!(after_slots, before_slots);
 }
-
-#[test]
-fn metadata_sequence_overflow_is_rejected_without_advancing_the_allocator() {
-    let mut runtime = runtime_with_test_schema();
-    runtime.history.next_commit_id = u64::MAX;
-    let before_version = runtime.history.next_version_id;
-    assert_eq!(
-        runtime.history.advance_metadata_commit_sequence(),
-        Err("metadata commit id sequence overflow")
-    );
-    assert_eq!(runtime.history.next_commit_id, u64::MAX);
-    assert_eq!(runtime.history.next_version_id, before_version);
-}

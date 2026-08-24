@@ -1,73 +1,18 @@
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use worth_foundational::{
-    FoundationalBranchComparisonBasis, FoundationalBranchForkBasis, FoundationalBranchId,
-    FoundationalBranchIdConstructionDenial, FoundationalBranchReferenceGeneration,
-    FoundationalBranchReferenceObservation, FoundationalBranchTarget,
-};
+use worth_foundational::{FoundationalBranchReferenceGeneration, FoundationalBranchTarget};
 
 use super::identity::RelationalBranchIdentity;
 use super::target::RelationalBranchTarget;
 use super::RelationalBranchVersion;
 use crate::history::data::BranchId;
 
-/// Exact descriptive branch-reference observation, not a repeatable-read artifact.
-pub type RelationalBranchReferenceObservation =
-    FoundationalBranchReferenceObservation<RelationalBranchTarget>;
-pub type RelationalBranchForkBasis = FoundationalBranchForkBasis<RelationalBranchTarget>;
-pub type RelationalBranchComparisonBasis =
-    FoundationalBranchComparisonBasis<RelationalBranchTarget>;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum RelationalBranchObservationConstructionDenial {
-    InvalidBranchId(FoundationalBranchIdConstructionDenial),
-    EmptyBranchName,
-    RuntimeInstanceMismatch {
-        observation_runtime_instance_id: u64,
-        target_runtime_instance_id: u64,
-    },
-    ForkProvenanceMismatch,
-}
-
-/// Lower an owner branch name into the shared exact observation grammar.
-///
-/// A basis target must belong to the same runtime as the observation. The
-/// typed empty target has no target runtime and remains affine through the
-/// owner-qualified branch identity.
-pub fn relational_branch_observation(
-    runtime_instance_id: u64,
-    branch_name: impl AsRef<str>,
-    target: FoundationalBranchTarget<RelationalBranchTarget>,
-    generation: FoundationalBranchReferenceGeneration,
-) -> Result<RelationalBranchReferenceObservation, RelationalBranchObservationConstructionDenial> {
-    let branch_name = branch_name.as_ref();
-    if branch_name.trim().is_empty() {
-        return Err(RelationalBranchObservationConstructionDenial::EmptyBranchName);
-    }
-    if let FoundationalBranchTarget::Basis(target) = &target {
-        if target.runtime_instance_id() != runtime_instance_id {
-            return Err(
-                RelationalBranchObservationConstructionDenial::RuntimeInstanceMismatch {
-                    observation_runtime_instance_id: runtime_instance_id,
-                    target_runtime_instance_id: target.runtime_instance_id(),
-                },
-            );
-        }
-    }
-    let branch_id =
-        FoundationalBranchId::new(format!("relational/{runtime_instance_id}/{branch_name}"))?;
-    Ok(RelationalBranchReferenceObservation::new(
-        branch_id, target, generation,
-    ))
-}
-
-impl From<FoundationalBranchIdConstructionDenial>
-    for RelationalBranchObservationConstructionDenial
-{
-    fn from(denial: FoundationalBranchIdConstructionDenial) -> Self {
-        Self::InvalidBranchId(denial)
-    }
-}
+#[path = "reference_observation.rs"]
+mod observation;
+pub use observation::{
+    relational_branch_observation, RelationalBranchComparisonBasis, RelationalBranchForkBasis,
+    RelationalBranchObservationConstructionDenial, RelationalBranchReferenceObservation,
+};
 
 /// Mutable owner cell for one branch reference. The exact Foundational observation
 /// owns target/generation; owner-local truth movement stays in the version counter.
@@ -345,9 +290,21 @@ impl RelationalBranchReferenceCell {
     }
 
     pub(crate) fn advance_metadata(&mut self) -> Result<(), RelationalBranchCellDenial> {
+        self.advance_metadata_to(self.observation.target().clone())
+    }
+
+    pub(crate) fn advance_metadata_to(
+        &mut self,
+        target: FoundationalBranchTarget<RelationalBranchTarget>,
+    ) -> Result<(), RelationalBranchCellDenial> {
+        if let FoundationalBranchTarget::Basis(target) = &target {
+            if target.runtime_instance_id() != self.identity.runtime_instance_id() {
+                return Err(RelationalBranchCellDenial::RuntimeInstanceMismatch);
+            }
+        }
         self.observation = RelationalBranchReferenceObservation::new(
             self.observation.branch_id().clone(),
-            self.observation.target().clone(),
+            target,
             self.observation
                 .generation()
                 .checked_advance()

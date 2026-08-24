@@ -11,7 +11,8 @@ pub struct RelationalBranchTarget {
     /// A basis target is always a committed source. The shared `Empty`
     /// variant represents the absence of a committed target; `None` is not a
     /// second empty-like state inside a `Basis` descriptor.
-    commit_id: u64,
+    #[serde(rename = "commit_id")]
+    selected_commit_id: u64,
     version_id: u64,
     parent_commit_ids: Vec<u64>,
     roots: RelationalBranchRootDescriptor,
@@ -48,14 +49,14 @@ impl RelationalBranchRootDescriptor {
 impl RelationalBranchTarget {
     pub(crate) fn new(
         runtime_instance_id: u64,
-        commit_id: u64,
+        selected_commit_id: u64,
         version_id: u64,
         parent_commit_ids: Vec<u64>,
         roots: RelationalBranchRootDescriptor,
     ) -> Self {
         Self {
             runtime_instance_id,
-            commit_id,
+            selected_commit_id,
             version_id,
             parent_commit_ids,
             roots,
@@ -66,8 +67,8 @@ impl RelationalBranchTarget {
         self.runtime_instance_id
     }
 
-    pub const fn commit_id(&self) -> u64 {
-        self.commit_id
+    pub const fn selected_commit_id(&self) -> u64 {
+        self.selected_commit_id
     }
 
     pub const fn version_id(&self) -> u64 {
@@ -85,7 +86,7 @@ impl RelationalBranchTarget {
     pub(crate) fn rebind_runtime_instance_id(&self, runtime_instance_id: u64) -> Self {
         Self {
             runtime_instance_id,
-            commit_id: self.commit_id,
+            selected_commit_id: self.selected_commit_id,
             version_id: self.version_id,
             parent_commit_ids: self.parent_commit_ids.clone(),
             roots: self.roots.clone(),
@@ -133,7 +134,7 @@ impl FoundationalBranchTargetBasis for RelationalBranchTarget {
     fn canonical_encoding(&self) -> FoundationalBranchTargetEncoding {
         let mut bytes = Vec::new();
         write_u64(&mut bytes, self.runtime_instance_id);
-        write_u64(&mut bytes, self.commit_id);
+        write_u64(&mut bytes, self.selected_commit_id);
         write_u64(&mut bytes, self.version_id);
         write_u64(&mut bytes, self.parent_commit_ids.len() as u64);
         for parent in &self.parent_commit_ids {
@@ -141,7 +142,7 @@ impl FoundationalBranchTargetBasis for RelationalBranchTarget {
         }
         bytes.extend_from_slice(self.roots.truth_root());
         bytes.extend_from_slice(self.roots.schema_root());
-        FoundationalBranchTargetEncoding::new("worth.relational.branch-target", 1, bytes)
+        FoundationalBranchTargetEncoding::new("worth.relational.branch-target", 2, bytes)
             .expect("static relational target encoding is valid")
     }
 }
@@ -194,7 +195,8 @@ mod tests {
             .canonical_encoding()
             .bytes(),
             hex_bytes(concat!(
-                "000000000000000b0000000000000007000000000000000300000000000000010000000000000002",
+                "000000000000000b00000000000000070000000000000003",
+                "00000000000000010000000000000002",
                 "0101010101010101010101010101010101010101010101010101010101010101",
                 "0202020202020202020202020202020202020202020202020202020202020202",
             ))

@@ -8,6 +8,6 @@ pub(crate) use subsystems::{
     PublicationSubsystem, ReclaimedRecordSlot, RecordIdentitySubsystem,
     RelationalForkMaterializationCost, ReplayRetentionState, RuntimeInstrumentation,
     RuntimeServices, RuntimeSubsystem, SchemaContractRuntimeSubsystem, SnapshotHandleBinding,
-    VisibilityResidency, VisibilitySubsystem,
+    ValidatedLineageEventBatch, VisibilityResidency, VisibilitySubsystem,
 };
 pub use subsystems::{RelationalBranchSharingCostCounters, RelationalPhase4ReferenceCostCounters};

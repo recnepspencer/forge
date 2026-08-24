@@ -26,19 +26,11 @@ note: method defined here
    |     pub fn begin_transaction<'a>(
    |            ^^^^^^^^^^^^^^^^^
 
-error[E0308]: mismatched types
-  --> tests/ui/branch_reference/inspection_artifacts_cannot_open_authority.rs:26:47
+error[E0599]: no method named `publish_commit_for_bridge` found for reference `&RelationalRuntime` in the current scope
+  --> tests/ui/branch_reference/inspection_artifacts_cannot_open_authority.rs:26:21
    |
 26 |     let _ = runtime.publish_commit_for_bridge(observation, "model");
-   |                     ------------------------- ^^^^^^^^^^^ expected `CommitId`, found `RelationalMvccCostObservation`
-   |                     |
-   |                     arguments to this method are incorrect
-   |
-note: method defined here
-  --> src/presentation/bridge/authoritative_patch_publication.rs
-   |
-   |     pub fn publish_commit_for_bridge(
-   |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&RelationalRuntime`
 
 error[E0308]: mismatched types
   --> tests/ui/branch_reference/inspection_artifacts_cannot_open_authority.rs:35:36

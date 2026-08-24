@@ -197,7 +197,7 @@ impl RelationalRuntime {
         let target_truth_version = target_cell.truth_version();
         let shared_commit_id = match target_observation.target() {
             FoundationalBranchTarget::Empty => None,
-            FoundationalBranchTarget::Basis(target) => Some(CommitId(target.commit_id())),
+            FoundationalBranchTarget::Basis(target) => Some(CommitId(target.selected_commit_id())),
         };
         let source_head_version = if let Some(commit_id) = shared_commit_id {
             self.history.phase4_costs.catalog_lookups =

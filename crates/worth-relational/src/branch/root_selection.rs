@@ -86,7 +86,7 @@ impl crate::runtime::RelationalRuntime {
             }
             FoundationalBranchTarget::Basis(target) => {
                 let expected_version = VersionId(target.version_id());
-                let expected_commit = Some(target.commit_id());
+                let expected_commit = Some(target.selected_commit_id());
                 let Some(root) = cell.root() else {
                     return Err(CommitPreparationError::selected_branch_root_unavailable(
                         branch_id,
@@ -97,7 +97,7 @@ impl crate::runtime::RelationalRuntime {
                 let Some(artifact) = self
                     .history
                     .commit_catalog
-                    .get(CommitId(target.commit_id()))
+                    .get(CommitId(target.selected_commit_id()))
                 else {
                     return Err(CommitPreparationError::selected_branch_root_unavailable(
                         branch_id,
@@ -107,7 +107,7 @@ impl crate::runtime::RelationalRuntime {
                 };
                 if target.runtime_instance_id() != self.runtime_instance_id()
                     || !root_matches_target(root, target)
-                    || artifact.identity().commit_id().0 != target.commit_id()
+                    || artifact.identity().commit_id().0 != target.selected_commit_id()
                     || artifact.identity().version_id().0 != target.version_id()
                     || artifact.parentage().as_slice()
                         != target
@@ -142,7 +142,7 @@ fn root_matches_target(root: &RelationalBranchRoot, target: &RelationalBranchTar
         return false;
     };
     root.commit_id()
-        .is_some_and(|commit_id| commit_id.0 == target.commit_id())
+        .is_some_and(|commit_id| commit_id.0 == target.selected_commit_id())
         && axes.storage_version == target.version_id()
         && descriptor.truth_root() == target.roots().truth_root()
         && descriptor.schema_root() == target.roots().schema_root()
@@ -154,9 +154,10 @@ fn reference_mismatch(
 ) -> CommitPreparationError {
     let (commit_id, version_id) = match binding.observation().target() {
         FoundationalBranchTarget::Empty => (None, VersionId(0)),
-        FoundationalBranchTarget::Basis(target) => {
-            (Some(target.commit_id()), VersionId(target.version_id()))
-        }
+        FoundationalBranchTarget::Basis(target) => (
+            Some(target.selected_commit_id()),
+            VersionId(target.version_id()),
+        ),
     };
     CommitPreparationError::selected_branch_root_reference_mismatch(
         branch_id.clone(),

@@ -53,15 +53,6 @@ pub(super) fn relational_fintech_analysis_baseline_plan() -> WorkflowPlan<Fintec
         },
     ))
     .step(certified_step(
-        "promote-analysis-lineage",
-        FintechWorkflowStep::PromoteCaseCorrespondence {
-            branch_alias: "analysis",
-            left_case: FintechCaseRef::BaselinePortfolio,
-            right_case: FintechCaseRef::LateTradeCorrection,
-            resolution_alias: "analysis_lineage",
-        },
-    ))
-    .step(certified_step(
         "capture-analysis-replay",
         FintechWorkflowStep::CaptureReplay {
             branch_alias: "analysis",
@@ -86,11 +77,6 @@ pub(super) fn relational_fintech_analysis_baseline_plan() -> WorkflowPlan<Fintec
     .invariant(InvariantCheck::new(
         "read_matches_case:analysis_correction_case:LateTradeCorrection",
         "analysis correction probe should target the late trade correction case",
-        WorkflowState::Completed,
-    ))
-    .invariant(InvariantCheck::new(
-        "lineage_promotion_succeeded:analysis_lineage",
-        "analysis baseline workflow should publish lineage correspondence",
         WorkflowState::Completed,
     ))
     .invariant(InvariantCheck::new(

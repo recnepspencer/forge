@@ -2,7 +2,6 @@ use worth_harness::facade::{WorkflowState, WorkflowStep};
 
 #[derive(Debug, Clone, Copy)]
 pub(super) enum FintechCaseRef {
-    BaselinePortfolio,
     LateTradeCorrection,
     IntradayRisk,
     FailedSettlementRepair,
@@ -41,12 +40,6 @@ pub(super) enum FintechWorkflowStep {
     ReadCaseProbe {
         case: FintechCaseRef,
         read_alias: &'static str,
-    },
-    PromoteCaseCorrespondence {
-        branch_alias: &'static str,
-        left_case: FintechCaseRef,
-        right_case: FintechCaseRef,
-        resolution_alias: &'static str,
     },
     CaptureReplay {
         branch_alias: &'static str,

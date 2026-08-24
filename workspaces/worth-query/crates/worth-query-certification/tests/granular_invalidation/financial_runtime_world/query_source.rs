@@ -184,13 +184,12 @@ fn project_financial_record_at_basis(
     derive_risk_from_curve: bool,
 ) -> Result<Option<foundation::WorthQueryEntity>, foundation::WorthQueryWorkspaceError> {
     graph
-        .with_retained_truth_basis(basis.snapshot(), basis.branch(), |runtime, observation| {
-            project_financial_observation_record(
-                runtime,
-                observation,
-                record,
-                derive_risk_from_curve,
-            )
+        .relational_bridge_source()
+        .read_retained_entity_aspect_state(basis.snapshot(), basis.branch(), record)
+        .map(|state| {
+            state.and_then(|state| {
+                project_financial_aspect_state(record, &state, derive_risk_from_curve)
+            })
         })
         .map_err(|error| foundation::WorthQueryWorkspaceError::new(error.to_string()))
 }
@@ -211,13 +210,20 @@ fn project_financial_observation_record(
         .entities()
         .iter()
         .find(|candidate| candidate.entity_id == entity)?;
+    project_financial_aspect_state(
+        record,
+        authoritative.authoritative_aspect_state.as_ref()?,
+        derive_risk_from_curve,
+    )
+}
+
+fn project_financial_aspect_state(
+    record: worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts,
+    state: &worth_foundational::facade::AuthoritativeRecordAspectState,
+    derive_risk_from_curve: bool,
+) -> Option<foundation::WorthQueryEntity> {
     let mut fields = BTreeMap::new();
-    for (aspect, value) in authoritative
-        .authoritative_aspect_state
-        .as_ref()?
-        .aspects()
-        .entries()
-    {
+    for (aspect, value) in state.aspects().entries() {
         let ContractValidatedAspectValueView::Struct(value) = value.view() else {
             continue;
         };

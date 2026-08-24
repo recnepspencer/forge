@@ -245,17 +245,18 @@ fn fintech_persisted_workflow_supports_compaction_after_checkpoint() {
 }
 
 #[test]
-fn fintech_metadata_survives_hostile_workflow_recovery() {
+fn fintech_index_and_lineage_authority_survive_hostile_workflow_recovery() {
     let mut world = setup_world_for(FintechScenario::PersistedSmokeBook);
     let analysis = open_analysis_branch(&mut world);
     let correction = correct_seeded_trade_candidate(&mut world, analysis.clone());
+    let corrected_trade = changed_entities(&correction)[0];
+    let corrected_lineage = world
+        .runtime
+        .lineage_access()
+        .for_record(corrected_trade)
+        .expect("corrected trade lineage")
+        .lineage_id();
     let _audit = emit_trade_correction_audit_record(&mut world, analysis.clone());
-    let resolution = promote_case_correspondence(
-        &mut world,
-        FintechCaseRole::BaselinePortfolio,
-        FintechCaseRole::LateTradeCorrection,
-        correction.commit.clone(),
-    );
     let index = register_case_book_index(&mut world);
     let build = build_branch_scoped_case_index(
         &mut world,
@@ -266,13 +267,6 @@ fn fintech_metadata_survives_hostile_workflow_recovery() {
     checkpoint_world(&mut world).unwrap();
 
     let (recovered, _outcome) = recover_persisted_world(&world).unwrap();
-    let graph = recovered
-        .lineage_access()
-        .graph(crate::facade::lineage::LineageGraphRequest {
-            branch_id: BranchId("analysis".to_string()),
-            traversal_basis:
-                crate::facade::lineage::LineageGraphTraversalBasis::FullBranchGraphMaterialization,
-        });
     let index_access = recovered.index_access();
     let generation = index_access
         .latest_generation(index.index_id, &BranchId("analysis".to_string()))
@@ -281,7 +275,18 @@ fn fintech_metadata_survives_hostile_workflow_recovery() {
     assert!(build.failed_indexes.is_empty());
     assert_eq!(generation.generation_id, build.generations[0].generation_id);
     assert_eq!(generation.source_commit_id, correction.commit.commit_id);
-    assert_metadata_preserved_after_recovery(resolution, &graph, generation);
+    assert_eq!(
+        recovered
+            .lineage_access()
+            .for_record(corrected_trade)
+            .expect("recovered corrected trade lineage")
+            .lineage_id(),
+        corrected_lineage
+    );
+    assert_eq!(
+        generation.source_branch_id,
+        BranchId("analysis".to_string())
+    );
 }
 
 #[test]

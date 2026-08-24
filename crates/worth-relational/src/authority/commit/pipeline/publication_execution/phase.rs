@@ -103,7 +103,7 @@ pub(super) fn finalize_publication_phase(
         merge_base_commits,
         merge_parent_branches,
     } = input;
-    let (artifacts, changed_records, canonical_commit_envelope, adjacency_deltas) =
+    let (artifacts, changed_records, canonical_commit_envelope, adjacency_deltas, lineage_nodes) =
         publication.into_finalize().into_parts();
     let canonical_commit_envelope = Arc::new(canonical_commit_envelope);
     let mut working_state = working_state;
@@ -145,6 +145,16 @@ pub(super) fn finalize_publication_phase(
     let append_authority = crate::durability::authority::DurableAppendAuthority::from_commit(
         super::CommitDurableAppendAdmission::new(runtime, commit_id, branch_id),
     );
+    let validated_lineage_events = runtime
+        .lineage
+        .validate_live_event_batch(canonical_commit_envelope.lineage_events())
+        .map_err(|detail| {
+            TransactionCommitError::publication(PublicationError::new(
+                PublicationStage::BundleAssembly,
+                detail,
+            ))
+            .with_commit_log(commit_log.clone())
+        })?;
     append_durable_commit_phase(
         runtime,
         DurableAppendPhaseInput {
@@ -157,6 +167,11 @@ pub(super) fn finalize_publication_phase(
             branch_id,
         },
     )?;
+    runtime.lineage_authority().install_published_lineage(
+        validated_lineage_events,
+        commit_id,
+        lineage_nodes,
+    );
     commit_log.begin_phase(CommitPhase::Publication);
     let phase_started = std::time::Instant::now();
     let mut publication_phase_timing =

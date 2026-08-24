@@ -53,6 +53,17 @@ impl RelationalBranchObservation {
         }
     }
 
+    /// Canonical commit selected by the branch reference. Metadata-only
+    /// commits can advance this axis while retaining the same truth root.
+    pub fn commit_id(&self) -> Option<crate::history::data::CommitId> {
+        match self.reference().target() {
+            worth_foundational::FoundationalBranchTarget::Empty => None,
+            worth_foundational::FoundationalBranchTarget::Basis(target) => {
+                Some(crate::history::data::CommitId(target.selected_commit_id()))
+            }
+        }
+    }
+
     pub fn selected_root_identity(&self) -> u64 {
         self.inner.root.id()
     }

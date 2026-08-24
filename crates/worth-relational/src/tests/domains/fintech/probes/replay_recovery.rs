@@ -84,7 +84,7 @@ pub(crate) fn capture_recovery_probe(
                 let FoundationalBranchTarget::Basis(target) = cell.observation.target() else {
                     return None;
                 };
-                Some((cell.branch_id.0, target.commit_id()))
+                Some((cell.branch_id.0, target.selected_commit_id()))
             })
             .collect(),
         recovered_commits: outcome.recovered_commits,

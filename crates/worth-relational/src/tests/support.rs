@@ -64,7 +64,6 @@ pub(super) use worth_foundational::facade::AspectKey;
 // - `durability`: branch/recovery helpers for persisted round trips
 // - `relation_integrity`: schema fixtures and scenario helpers for milestone-4 legality work
 // - `savepoint`: hostile savepoint residue assertions for patch/subscriber surfaces
-// - `lineage`: generic lineage-specific helpers and candidate builders
 //
 // Prefer reusing these helpers before introducing new ad hoc setup in test files.
 #[path = "support/aspect_field_patches.rs"]
@@ -75,8 +74,6 @@ mod durability;
 mod history;
 #[path = "support/inspection.rs"]
 mod inspection;
-#[path = "support/lineage.rs"]
-mod lineage;
 #[path = "support/records.rs"]
 mod records;
 #[path = "support/relation_integrity.rs"]
@@ -94,7 +91,6 @@ pub(crate) use aspect_field_patches::*;
 pub(crate) use durability::*;
 pub(crate) use history::*;
 pub(crate) use inspection::*;
-pub(crate) use lineage::*;
 pub(crate) use records::*;
 pub(crate) use relation_integrity::*;
 pub(crate) use runtime::*;

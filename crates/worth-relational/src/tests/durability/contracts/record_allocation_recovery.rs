@@ -137,6 +137,42 @@ fn tail_replay_rejects_missing_canonical_allocation_evidence() {
 }
 
 #[test]
+fn tail_replay_gap_admission_cannot_replace_a_different_canonical_effect() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    let checkpoint_entity = create_entity(&mut runtime, "allocation-gap-checkpoint");
+    runtime.durability_authority().checkpoint().unwrap();
+    let tail_entity = create_entity(&mut runtime, "allocation-gap-tail");
+    let mut plan = runtime.durability().recovery_plan(
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+    );
+    let forged_entity = crate::identity::data::EntityId::new(
+        tail_entity.partition_id,
+        checkpoint_entity.local_slot.0 + 4,
+        tail_entity.generation.0,
+    );
+    plan.tail_log
+        .last_mut()
+        .expect("tail commit")
+        .install_record_allocations(vec![
+            crate::history::data::CanonicalRecordAllocation::with_origin(
+                0,
+                crate::transactions::data::RecordRef::Entity(forged_entity),
+                crate::history::data::RecordAllocationOrigin::AppendFrontier,
+            ),
+        ]);
+
+    let mut recovered = persisted_runtime_with_test_schema();
+    let error = recovered
+        .durability_authority()
+        .recover(plan)
+        .expect_err("gap admission cannot authorize a different replayed effect");
+
+    assert_eq!(error.class, RecoveryFailureClass::ReplayFailure);
+    assert!(error.detail.contains("canonical effect"));
+    assert_eq!(recovered.history().immutable_commit_count(), 0);
+}
+
+#[test]
 fn metadata_only_merge_rejects_unconsumable_allocation_evidence() {
     let mut runtime = persisted_runtime_with_test_schema();
     let entity = create_entity(&mut runtime, "allocation-shared");

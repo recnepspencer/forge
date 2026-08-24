@@ -29,7 +29,7 @@ impl HistorySource for RelationalRuntime {
         let commit_id = match cell.observation().target() {
             worth_foundational::FoundationalBranchTarget::Empty => return None,
             worth_foundational::FoundationalBranchTarget::Basis(target) => {
-                CommitId(target.commit_id())
+                CommitId(target.selected_commit_id())
             }
         };
         self.history

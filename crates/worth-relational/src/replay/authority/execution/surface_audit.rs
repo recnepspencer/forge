@@ -1,4 +1,4 @@
-use crate::capabilities::{CommitEnvelopeSource, HistorySource, ReplayRead};
+use crate::capabilities::{HistorySource, ReplayRead};
 use crate::history::data::HistoryDriftClass;
 use crate::replay::data::{
     CanonicalCommitEnvelope, RelationalReplayRequest, ReplayMismatch, ReplayMismatchClass,
@@ -229,7 +229,7 @@ pub(super) fn compare_replay_surfaces(
             || format!("{:?}", replayed_surface),
         );
     }
-    let expected_branch_head = expected_truth_branch_head(runtime, envelope);
+    let expected_branch_head = Some(envelope.commit.clone());
     compare_replay_surface(
         runtime,
         verification_plan,
@@ -282,22 +282,4 @@ pub(super) fn compare_replay_surfaces(
             || format!("{:?}", replayed_derived_index_artifacts),
         );
     }
-}
-
-fn expected_truth_branch_head(
-    runtime: &RelationalRuntime,
-    envelope: &CanonicalCommitEnvelope,
-) -> Option<crate::history::data::RelationalCommitReceipt> {
-    let metadata_only = envelope.authority_kind
-        == crate::history::data::CanonicalCommitAuthorityKind::MetadataOnlyLineage;
-    if metadata_only {
-        return envelope
-            .commit
-            .ordered_parents()
-            .as_slice()
-            .first()
-            .and_then(|parent| runtime.commit_envelope(*parent))
-            .map(|parent| parent.commit.clone());
-    }
-    Some(envelope.commit.clone())
 }

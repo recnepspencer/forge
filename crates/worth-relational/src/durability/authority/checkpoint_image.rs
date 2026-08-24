@@ -79,10 +79,6 @@ impl DurabilityAuthority<'_> {
                     published_lineage_decision_count,
                 ),
                 self.runtime.lineage_access().nodes_snapshot(),
-                self.runtime
-                    .lineage_access()
-                    .correspondence_candidates_snapshot(),
-                self.runtime.lineage_access().rejected_decisions_snapshot(),
             ),
             index_definitions: self.runtime.index_access().definitions_snapshot(),
             derived_index_artifacts: checkpoint_derived_index_artifacts(self.runtime),

@@ -105,9 +105,9 @@ fn project_record_at_basis(
     record: worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts,
 ) -> Result<Option<foundation::WorthQueryEntity>, foundation::WorthQueryWorkspaceError> {
     graph
-        .with_retained_truth_basis(basis.snapshot(), basis.branch(), |runtime, observation| {
-            project_observation_record(runtime, observation, record)
-        })
+        .relational_bridge_source()
+        .read_retained_entity_aspect_state(basis.snapshot(), basis.branch(), record)
+        .map(|state| state.and_then(|state| project_aspect_state(record, &state)))
         .map_err(|error| foundation::WorthQueryWorkspaceError::new(error.to_string()))
 }
 
@@ -126,13 +126,15 @@ fn project_observation_record(
         .entities()
         .iter()
         .find(|candidate| candidate.entity_id == entity)?;
+    project_aspect_state(record, authoritative.authoritative_aspect_state.as_ref()?)
+}
+
+fn project_aspect_state(
+    record: worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts,
+    state: &worth_foundational::facade::AuthoritativeRecordAspectState,
+) -> Option<foundation::WorthQueryEntity> {
     let mut fields = BTreeMap::new();
-    for (aspect, value) in authoritative
-        .authoritative_aspect_state
-        .as_ref()?
-        .aspects()
-        .entries()
-    {
+    for (aspect, value) in state.aspects().entries() {
         let ContractValidatedAspectValueView::Struct(value) = value.view() else {
             continue;
         };

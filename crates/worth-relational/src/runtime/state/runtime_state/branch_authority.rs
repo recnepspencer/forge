@@ -148,7 +148,7 @@ impl RelationalRuntime {
             worth_foundational::FoundationalBranchTarget::Basis(target) => self
                 .history
                 .commit_catalog
-                .get(crate::history::data::CommitId(target.commit_id()))
+                .get(crate::history::data::CommitId(target.selected_commit_id()))
                 .map(|artifact| artifact.identity().clone()),
         }
     }
@@ -174,7 +174,7 @@ impl RelationalRuntime {
             worth_foundational::FoundationalBranchTarget::Basis(target) => self
                 .history
                 .commit_catalog
-                .get(crate::history::data::CommitId(target.commit_id()))
+                .get(crate::history::data::CommitId(target.selected_commit_id()))
                 .map(|artifact| artifact.identity().version_id()),
         }
     }

@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use worth_foundational::FoundationalBranchTarget;
 
-use crate::branch::RelationalBranchReferenceCell;
 use crate::history::data::CanonicalCommitEnvelope;
 use crate::history::RelationalCommitCatalog;
 
@@ -50,7 +49,7 @@ impl HistorySubsystem {
                 let FoundationalBranchTarget::Basis(target) = target else {
                     continue;
                 };
-                let commit_id = crate::history::data::CommitId(target.commit_id());
+                let commit_id = crate::history::data::CommitId(target.selected_commit_id());
                 match descriptors.get(&commit_id) {
                     Some(existing) if existing != target.roots() => {
                         return Err(format!(
@@ -197,10 +196,6 @@ impl HistorySubsystem {
         if !advance_branch_currentness {
             return Ok(());
         }
-        if is_metadata_only_envelope(envelope) {
-            self.advance_recovered_metadata(envelope)?;
-            return Ok(());
-        }
         let roots = self
             .commit_catalog
             .get(envelope.commit.commit_id)
@@ -215,7 +210,7 @@ impl HistorySubsystem {
             .branch_cell(&envelope.branch_context)
             .is_some_and(|cell| match cell.observation().target() {
                 FoundationalBranchTarget::Basis(current) => {
-                    current.commit_id() == envelope.commit.commit_id.0
+                    current.selected_commit_id() == envelope.commit.commit_id.0
                         && current.version_id() == envelope.commit.version_id.0
                 }
                 FoundationalBranchTarget::Empty => false,
@@ -234,46 +229,6 @@ impl HistorySubsystem {
         Ok(())
     }
 
-    fn advance_recovered_metadata(
-        &mut self,
-        envelope: &CanonicalCommitEnvelope,
-    ) -> Result<(), String> {
-        let already_applied = envelope
-            .branch_cell_checkpoint
-            .as_ref()
-            .and_then(|checkpoint| {
-                let checkpoint = RelationalBranchReferenceCell::from_checkpoint(
-                    self.runtime_instance_id,
-                    checkpoint.clone(),
-                )
-                .ok()?
-                .checkpoint();
-                let cell = self.branch_cell(&envelope.branch_context)?;
-                let expected_generation =
-                    checkpoint.observation.generation().checked_advance().ok()?;
-                (cell.observation().branch_id() == checkpoint.observation.branch_id()
-                    && cell.observation().target() == checkpoint.observation.target()
-                    && cell.observation().generation() == expected_generation
-                    && cell.truth_version() == checkpoint.truth_version
-                    && cell.fork_provenance() == checkpoint.fork_provenance.as_ref()
-                    && cell.fork_source_branch_id() == checkpoint.fork_source_branch_id.as_ref())
-                .then_some(())
-            })
-            .is_some();
-        if !already_applied {
-            self.branch_cell_mut(&envelope.branch_context)
-                .ok_or_else(|| {
-                    format!(
-                        "recovered branch cell missing for `{}`",
-                        envelope.branch_context.0
-                    )
-                })?
-                .advance_metadata()
-                .map_err(|denial| format!("recovered metadata reference denied: {denial:?}"))?;
-        }
-        Ok(())
-    }
-
     #[cfg(test)]
     pub(crate) fn replace_catalog_from_legacy_for_test(&mut self) {
         let mut catalog = RelationalCommitCatalog::default();
@@ -284,9 +239,4 @@ impl HistorySubsystem {
         }
         self.commit_catalog = catalog;
     }
-}
-
-fn is_metadata_only_envelope(envelope: &CanonicalCommitEnvelope) -> bool {
-    envelope.authority_kind
-        == crate::history::data::CanonicalCommitAuthorityKind::MetadataOnlyLineage
 }

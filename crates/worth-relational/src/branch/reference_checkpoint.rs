@@ -27,13 +27,6 @@ impl RelationalBranchReferenceCell {
         );
     }
 
-    pub(crate) fn from_checkpoint(
-        expected_runtime_instance_id: u64,
-        checkpoint: RelationalBranchCellCheckpoint,
-    ) -> Result<Self, RelationalBranchCellDenial> {
-        Self::from_checkpoint_with_root(expected_runtime_instance_id, checkpoint, None)
-    }
-
     pub(crate) fn from_checkpoint_with_root(
         expected_runtime_instance_id: u64,
         checkpoint: RelationalBranchCellCheckpoint,

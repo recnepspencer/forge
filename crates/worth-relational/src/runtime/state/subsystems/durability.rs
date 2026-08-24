@@ -19,6 +19,8 @@ pub(crate) struct DurabilitySubsystem {
     pub(crate) log_commit_index: HashMap<CommitId, usize>,
     pub(crate) checkpoint_commit_index: HashMap<CommitId, CheckpointEnvelopeLocation>,
     pub(crate) store: Option<DurableStore>,
+    #[cfg(test)]
+    pub(crate) fail_next_append: bool,
 }
 
 impl DurabilitySubsystem {
@@ -38,6 +40,8 @@ impl DurabilitySubsystem {
                     segments: Vec::new(),
                     checkpoints: Vec::new(),
                 }),
+            #[cfg(test)]
+            fail_next_append: false,
         }
     }
 

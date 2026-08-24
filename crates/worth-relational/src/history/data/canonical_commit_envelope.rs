@@ -52,7 +52,6 @@ pub struct CanonicalCommitEnvelope {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CanonicalCommitAuthorityKind {
     VersionedTransaction,
-    MetadataOnlyLineage,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -127,24 +126,8 @@ impl CanonicalCommitEnvelope {
     pub fn lineage_decision_log(&self) -> &[LineageDecisionRecord] {
         self.lineage.lineage_decision_log()
     }
-    pub fn lineage_decisions_for_candidate(
-        &self,
-        candidate_id: crate::lineage::data::CorrespondenceCandidateId,
-    ) -> Vec<&LineageDecisionRecord> {
-        self.lineage.decisions_for_candidate(candidate_id).collect()
-    }
-
     pub fn lineage_decisions_for_event_id(&self, event_id: u64) -> Vec<&LineageDecisionRecord> {
         self.lineage.decisions_for_event_id(event_id).collect()
-    }
-
-    pub fn lineage_decisions_for_rejection_class(
-        &self,
-        rejection_class: crate::lineage::data::CorrespondencePromotionRejectionClass,
-    ) -> Vec<&LineageDecisionRecord> {
-        self.lineage
-            .decisions_for_rejection_class(rejection_class)
-            .collect()
     }
 
     pub fn lineage_digest_basis(&self) -> &LineageDigestBasis {
@@ -245,6 +228,20 @@ impl CanonicalCommitEnvelope {
     #[cfg(test)]
     pub(crate) fn published_lineage_mut_for_test(&mut self) -> &mut PublishedLineageArtifact {
         &mut self.lineage
+    }
+
+    #[cfg(test)]
+    pub(crate) fn rebuild_lineage_basis_for_test(&mut self) {
+        self.lineage = crate::lineage::data::LineageFinalizationArtifact::new(
+            self.branch_context.clone(),
+            crate::lineage::data::FinalizedLineageEventBatch::new(
+                self.lineage.lineage_events().to_vec(),
+            ),
+            crate::lineage::data::LineageDecisionLog::new(
+                self.lineage.lineage_decision_log().to_vec(),
+            ),
+        )
+        .publish();
     }
 }
 

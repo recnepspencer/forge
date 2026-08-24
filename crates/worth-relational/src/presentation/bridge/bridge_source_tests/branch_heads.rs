@@ -1,15 +1,15 @@
 use std::sync::{Arc, Barrier, Mutex};
 
 use worth_runtime_bridge::facade::{
-    CommittedPatchSource, RelationalCommittedPatchRequest, TruthBranchHeadSource,
-    TruthBranchIdentity, TruthCommitIdentity,
+    BridgeTruthViewEvaluationRequest, CommittedPatchSource, RelationalCommittedPatchRequest,
+    TruthBranchHeadSource, TruthBranchIdentity, TruthCommitIdentity,
 };
 
 use crate::history::data::BranchId;
-use crate::tests::support::create_entity_outcome;
+use crate::tests::support::{create_entity_outcome, create_entity_outcome_on_branch};
 
 use super::super::RuntimeBridgeRelationalSource;
-use super::support::runtime_with_test_schema;
+use super::support::{runtime_bridge_for_envelope, runtime_with_test_schema};
 
 #[test]
 fn branch_head_loading_requires_an_explicit_owner_admitted_binding() {
@@ -62,8 +62,8 @@ fn sibling_heads_sharing_a_commit_keep_exact_branch_snapshot_bindings() {
     let (_, storm_basis) = source.observe_branch_basis(&storm_identity).unwrap();
     let (_, maintenance_basis) = source.observe_branch_basis(&maintenance_identity).unwrap();
     assert_eq!(
-        storm_basis.observation().selected_root().commit_id(),
-        maintenance_basis.observation().selected_root().commit_id(),
+        storm_basis.observation().commit_id(),
+        maintenance_basis.observation().commit_id(),
     );
     let before_bind = runtime.lock().unwrap().branch_basis_cost_counters();
     let storm_lease = source
@@ -80,16 +80,27 @@ fn sibling_heads_sharing_a_commit_keep_exact_branch_snapshot_bindings() {
     let maintenance_branch = TruthBranchIdentity::from_relational_branch_id("maintenance");
     let storm_envelope = source.load_branch_head_patch(&storm_branch).unwrap();
     let maintenance_envelope = source.load_branch_head_patch(&maintenance_branch).unwrap();
+    assert_eq!(
+        storm_envelope.branch_identity().relational_branch_id(),
+        Some("storm")
+    );
+    assert_eq!(
+        maintenance_envelope
+            .branch_identity()
+            .relational_branch_id(),
+        Some("maintenance")
+    );
     assert_eq!(storm_envelope.snapshot_identity(), &storm_snapshot);
     assert_eq!(
         maintenance_envelope.snapshot_identity(),
         &maintenance_snapshot
     );
-    let commit_id = storm_basis
-        .observation()
-        .selected_root()
-        .commit_id()
-        .unwrap();
+    runtime_bridge_for_envelope(source.clone(), &storm_envelope)
+        .evaluate(BridgeTruthViewEvaluationRequest::for_branch_head(
+            storm_branch.clone(),
+        ))
+        .expect("an inherited fork head must plan through the real branch-head selector");
+    let commit_id = storm_basis.observation().commit_id().unwrap();
     let collision = source
         .load_committed_patch(RelationalCommittedPatchRequest::new(
             TruthCommitIdentity::from_relational_commit_id(commit_id.0),
@@ -98,6 +109,50 @@ fn sibling_heads_sharing_a_commit_keep_exact_branch_snapshot_bindings() {
     assert!(collision
         .to_string()
         .contains("admitted head of multiple branches"));
+    let commit_identity = TruthCommitIdentity::from_relational_commit_id(commit_id.0);
+    let storm_selected = source
+        .load_committed_patch(RelationalCommittedPatchRequest::on_branch(
+            commit_identity.clone(),
+            storm_branch.clone(),
+        ))
+        .expect("the selected storm branch disambiguates the shared commit");
+    let maintenance_selected = source
+        .load_committed_patch(RelationalCommittedPatchRequest::on_branch(
+            commit_identity.clone(),
+            maintenance_branch.clone(),
+        ))
+        .expect("the selected maintenance branch disambiguates the shared commit");
+    assert_eq!(storm_selected.snapshot_identity(), &storm_snapshot);
+    assert_eq!(
+        maintenance_selected.snapshot_identity(),
+        &maintenance_snapshot
+    );
+    let storm_source_basis = storm_selected
+        .producer_metadata()
+        .authoritative_source()
+        .expect("storm source provenance")
+        .source_basis();
+    assert!(storm_source_basis.contains("selected-branch=storm"));
+    assert!(storm_source_basis.contains("authoring-branch=main"));
+    let maintenance_source_basis = maintenance_selected
+        .producer_metadata()
+        .authoritative_source()
+        .expect("maintenance source provenance")
+        .source_basis();
+    assert!(maintenance_source_basis.contains("selected-branch=maintenance"));
+    assert!(maintenance_source_basis.contains("authoring-branch=main"));
+    runtime_bridge_for_envelope(source.clone(), &storm_selected)
+        .evaluate(BridgeTruthViewEvaluationRequest::for_historical_commit(
+            storm_branch.clone(),
+            commit_identity.clone(),
+        ))
+        .expect("historical selector retains the storm branch axis");
+    runtime_bridge_for_envelope(source.clone(), &maintenance_selected)
+        .evaluate(BridgeTruthViewEvaluationRequest::for_historical_commit(
+            maintenance_branch.clone(),
+            commit_identity,
+        ))
+        .expect("historical selector retains the maintenance branch axis");
 
     let storm_receipt = storm_lease.release();
     assert!(storm_receipt.unbound());
@@ -138,7 +193,46 @@ fn sibling_heads_sharing_a_commit_keep_exact_branch_snapshot_bindings() {
 }
 
 #[test]
-fn explicit_snapshot_request_rejects_a_cross_spliced_commit() {
+fn explicit_snapshot_request_rejects_an_earlier_sibling_commit() {
+    let runtime = Arc::new(Mutex::new(runtime_with_test_schema()));
+    let ancestor = create_entity_outcome(&mut runtime.lock().unwrap(), "shared-ancestor");
+    let feature = BranchId("feature".to_owned());
+    runtime
+        .lock()
+        .unwrap()
+        .history_authority()
+        .fork_branch_from(feature.clone(), &BranchId("main".to_owned()))
+        .unwrap();
+    let sibling =
+        create_entity_outcome_on_branch(&mut runtime.lock().unwrap(), "feature-only", feature);
+    let main_head = create_entity_outcome(&mut runtime.lock().unwrap(), "main-head");
+    assert!(sibling.commit.commit_id < main_head.commit.commit_id);
+
+    let source =
+        RuntimeBridgeRelationalSource::for_shared_graph_role(Arc::clone(&runtime), "model")
+            .unwrap();
+    let main_identity = runtime.lock().unwrap().main_branch_identity();
+    let (_, basis) = source.observe_branch_basis(&main_identity).unwrap();
+    let lease = source.retain_branch_basis_for_bridge(&basis).unwrap();
+    let snapshot = lease.snapshot_identity().clone();
+
+    source
+        .load_committed_patch(RelationalCommittedPatchRequest::at_snapshot(
+            TruthCommitIdentity::from_relational_commit_id(ancestor.commit.commit_id.0),
+            snapshot.clone(),
+        ))
+        .expect("the common ancestor is visible beneath the selected main root");
+    let denial = source
+        .load_committed_patch(RelationalCommittedPatchRequest::at_snapshot(
+            TruthCommitIdentity::from_relational_commit_id(sibling.commit.commit_id.0),
+            snapshot,
+        ))
+        .expect_err("an earlier sibling commit is not visible beneath the selected main root");
+    assert!(denial.to_string().contains("cannot see requested commit"));
+}
+
+#[test]
+fn explicit_snapshot_request_admits_visible_ancestors_and_rejects_future_commits() {
     let runtime = Arc::new(Mutex::new(runtime_with_test_schema()));
     let first = create_entity_outcome(&mut runtime.lock().unwrap(), "first-exact-basis");
     let source =
@@ -160,21 +254,31 @@ fn explicit_snapshot_request_rejects_a_cross_spliced_commit() {
 
     let denial = source
         .load_committed_patch(RelationalCommittedPatchRequest::at_snapshot(
-            first_commit.clone(),
-            second_snapshot,
-        ))
-        .expect_err("a later observation cannot authorize an earlier commit envelope");
-    assert!(denial.to_string().contains("rather than requested commit"));
-
-    let exact = source
-        .load_committed_patch(RelationalCommittedPatchRequest::at_snapshot(
-            first_commit.clone(),
+            second_commit.clone(),
             first_snapshot.clone(),
         ))
-        .expect("the matching retained observation remains valid");
-    assert_eq!(exact.commit_identity(), &first_commit);
-    assert_eq!(exact.snapshot_identity(), &first_snapshot);
-    assert_ne!(exact.commit_identity(), &second_commit);
+        .expect_err("an earlier observation cannot authorize a future commit envelope");
+    assert!(denial.to_string().contains("cannot see requested commit"));
+
+    let unavailable = source
+        .load_committed_patch(RelationalCommittedPatchRequest::at_snapshot(
+            TruthCommitIdentity::from_relational_commit_id(u64::MAX),
+            first_snapshot.clone(),
+        ))
+        .expect_err("a selected observation cannot authorize an unavailable commit");
+    assert!(unavailable
+        .to_string()
+        .contains("unavailable requested commit"));
+
+    let visible_ancestor = source
+        .load_committed_patch(RelationalCommittedPatchRequest::at_snapshot(
+            first_commit.clone(),
+            second_snapshot.clone(),
+        ))
+        .expect("a retained observation authorizes commits visible beneath its exact root");
+    assert_eq!(visible_ancestor.commit_identity(), &first_commit);
+    assert_eq!(visible_ancestor.snapshot_identity(), &second_snapshot);
+    assert_ne!(visible_ancestor.commit_identity(), &second_commit);
 }
 
 #[test]

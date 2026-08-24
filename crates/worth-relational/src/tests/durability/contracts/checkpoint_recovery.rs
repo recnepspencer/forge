@@ -179,43 +179,22 @@ fn durability_contract_checkpoint_recovers_index_metadata() {
 }
 
 #[test]
-fn durability_contract_checkpoint_recovers_lineage_metadata() {
+fn durability_contract_checkpoint_recovers_lineage_authority() {
     let mut runtime = persisted_runtime_with_test_schema();
     let first = create_entity_outcome(&mut runtime, "first");
     let second = create_entity_outcome(&mut runtime, "second");
+    let first_entity = changed_entities(&first)[0];
+    let second_entity = changed_entities(&second)[0];
     let first_lineage = runtime
         .lineage_access()
-        .for_record(changed_entities(&first)[0])
+        .for_record(first_entity)
         .unwrap()
         .lineage_id;
     let second_lineage = runtime
         .lineage_access()
-        .for_record(changed_entities(&second)[0])
+        .for_record(second_entity)
         .unwrap()
         .lineage_id;
-    let candidate = runtime.lineage_authority().record_correspondence_candidate(
-        BranchId("main".to_string()),
-        vec![first_lineage],
-        vec![second_lineage],
-        "recover-me",
-    );
-    runtime
-        .lineage_authority()
-        .promote_correspondence(candidate.candidate_id, second.commit.clone())
-        .unwrap();
-    let rejected_candidate = runtime.lineage_authority().record_correspondence_candidate(
-        BranchId("main".to_string()),
-        vec![LineageId(999)],
-        vec![LineageId(1000)],
-        "reject-me",
-    );
-    let rejected_resolution = runtime
-        .lineage_authority()
-        .promote_correspondence(rejected_candidate.candidate_id, second.commit.clone());
-    assert_eq!(
-        rejected_resolution,
-        Err(CorrespondencePromotionRejectionClass::MissingLineageReference)
-    );
     let checkpoint = runtime.durability_authority().checkpoint().unwrap();
     assert_eq!(
         checkpoint
@@ -257,14 +236,6 @@ fn durability_contract_checkpoint_recovers_lineage_metadata() {
         checkpoint.lineage.counters().node_count,
         checkpoint.lineage.nodes().len()
     );
-    assert_eq!(
-        checkpoint.lineage.counters().correspondence_candidate_count,
-        checkpoint.lineage.correspondence_candidates().len()
-    );
-    assert_eq!(
-        checkpoint.lineage.counters().rejected_decision_count,
-        checkpoint.lineage.rejected_decisions().len()
-    );
     let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
@@ -279,24 +250,27 @@ fn durability_contract_checkpoint_recovers_lineage_metadata() {
         });
 
     assert_eq!(graph.nodes.len(), 2);
+    assert_eq!(graph.events.len(), 2);
     assert!(graph
         .events
         .iter()
-        .any(|event| event.kind == LineageEventKind::Correspond));
-    assert!(graph
-        .correspondence_candidates
-        .iter()
-        .any(|entry| entry.candidate_id == candidate.candidate_id));
-    assert!(recovered
-        .lineage_access()
-        .rejected_decisions_snapshot()
-        .iter()
-        .any(|decision| {
-            decision.kind == LineageDecisionKind::CorrespondencePromotionRejected
-                && decision.candidate_id == Some(rejected_candidate.candidate_id)
-                && decision.rejection_class
-                    == Some(CorrespondencePromotionRejectionClass::MissingLineageReference)
-        }));
+        .all(|event| event.kind == LineageEventKind::Create));
+    assert_eq!(
+        recovered
+            .lineage_access()
+            .for_record(first_entity)
+            .unwrap()
+            .lineage_id(),
+        first_lineage
+    );
+    assert_eq!(
+        recovered
+            .lineage_access()
+            .for_record(second_entity)
+            .unwrap()
+            .lineage_id(),
+        second_lineage
+    );
 }
 
 #[test]

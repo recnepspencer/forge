@@ -30,6 +30,8 @@ mod history_publication;
 mod history_recovery;
 #[path = "history_recovery_lineage.rs"]
 mod history_recovery_lineage;
+#[path = "history_recovery_validation.rs"]
+mod history_recovery_validation;
 #[path = "history_root_capture.rs"]
 mod history_root_capture;
 pub use history_costs::RelationalBranchSharingCostCounters;
@@ -120,26 +122,6 @@ impl HistorySubsystem {
 
     pub(crate) fn current_version_id(&self) -> VersionId {
         VersionId(self.next_version_id.saturating_sub(1))
-    }
-
-    pub(crate) fn advance_commit_sequence(&mut self) -> Result<(), &'static str> {
-        self.next_commit_id = self
-            .next_commit_id
-            .checked_add(1)
-            .ok_or("commit id sequence overflow")?;
-        self.next_version_id = self
-            .next_version_id
-            .checked_add(1)
-            .ok_or("version id sequence overflow")?;
-        Ok(())
-    }
-
-    pub(crate) fn advance_metadata_commit_sequence(&mut self) -> Result<(), &'static str> {
-        self.next_commit_id = self
-            .next_commit_id
-            .checked_add(1)
-            .ok_or("metadata commit id sequence overflow")?;
-        Ok(())
     }
 
     pub(crate) fn prepare_recovery_sequence(&mut self, commit_id: CommitId, version_id: VersionId) {

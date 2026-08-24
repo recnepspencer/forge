@@ -20,11 +20,6 @@ impl FinalizedLineageEventBatch {
         }
     }
 
-    #[cfg(test)]
-    pub(crate) fn single(event: LineageEventRecord) -> Self {
-        Self::new(vec![event])
-    }
-
     pub(crate) fn event_ids(&self) -> &[u64] {
         &self.event_ids
     }
@@ -48,7 +43,6 @@ fn summarize_event_counters(events: &[LineageEventRecord]) -> LineageFinalizatio
             LineageEventKind::Create => counters.created_event_count += 1,
             LineageEventKind::Replace => counters.replaced_event_count += 1,
             LineageEventKind::Retire => counters.retired_event_count += 1,
-            LineageEventKind::Correspond => counters.promoted_correspondence_count += 1,
             LineageEventKind::Split | LineageEventKind::Merge => {}
         }
     }

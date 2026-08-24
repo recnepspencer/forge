@@ -9,23 +9,6 @@ use super::{
 };
 
 impl RuntimeBridgeRelationalSource {
-    /// Execute a read against one exact observation while its Bridge binding
-    /// remains retained by the caller.
-    #[doc(hidden)]
-    pub fn with_retained_observation<T>(
-        &self,
-        snapshot: &worth_runtime_bridge::facade::TruthSnapshotIdentity,
-        read: impl FnOnce(
-            &crate::runtime::RelationalRuntime,
-            &crate::mvcc::RelationalBranchObservation,
-        ) -> T,
-    ) -> Result<T, worth_runtime_bridge::facade::RelationalBridgeSourceError> {
-        let observation = self.observation_bindings.resolve(snapshot)?;
-        Ok(self
-            .runtime
-            .with_runtime(|runtime| read(runtime, &observation)))
-    }
-
     /// Ask the Relational owner for one exact admitted branch basis.
     pub fn observe_branch_basis(
         &self,
@@ -98,7 +81,6 @@ impl RuntimeBridgeRelationalSource {
     ) -> Result<RelationalBridgeBranchHeadLease, RelationalBranchBasisDenial> {
         let commit_id = basis
             .observation()
-            .selected_root()
             .commit_id()
             .ok_or(RelationalBranchBasisDenial::UnavailableRetainedTarget)?;
         let branch_identity =
@@ -119,7 +101,6 @@ impl RuntimeBridgeRelationalSource {
     ) -> Result<RelationalBridgeBranchHeadLease, RelationalBranchBasisDenial> {
         let commit_id = basis
             .observation()
-            .selected_root()
             .commit_id()
             .ok_or(RelationalBranchBasisDenial::UnavailableRetainedTarget)?;
         let branch_identity =

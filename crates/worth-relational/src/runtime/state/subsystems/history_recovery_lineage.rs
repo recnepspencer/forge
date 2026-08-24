@@ -14,7 +14,7 @@ pub(super) fn validate_branch_target_lineage(
     let FoundationalBranchTarget::Basis(target_basis) = target else {
         return Ok(());
     };
-    let commit_id = CommitId(target_basis.commit_id());
+    let commit_id = CommitId(target_basis.selected_commit_id());
     let artifact = history.commit_catalog.get(commit_id).ok_or_else(|| {
         format!(
             "branch cell `{}` references missing commit artifact `{}`",
@@ -52,7 +52,7 @@ pub(super) fn validate_target_authoring_lineage(
     let FoundationalBranchTarget::Basis(target) = target else {
         return Ok(());
     };
-    let commit_id = CommitId(target.commit_id());
+    let commit_id = CommitId(target.selected_commit_id());
     let artifact = history.commit_catalog.get(commit_id).ok_or_else(|| {
         format!(
             "branch cell `{}` references missing commit artifact `{}`",

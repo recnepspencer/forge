@@ -38,17 +38,17 @@ pub(super) fn replay_durable_envelope(
         Some(checkpoint) => {
             let recovered_root = match checkpoint.observation.target() {
                 worth_foundational::FoundationalBranchTarget::Empty => None,
-                worth_foundational::FoundationalBranchTarget::Basis(target) => {
-                    recovered_roots.resolve(crate::history::data::CommitId(target.commit_id()))
-                }
+                worth_foundational::FoundationalBranchTarget::Basis(target) => recovered_roots
+                    .resolve(crate::history::data::CommitId(target.selected_commit_id())),
             };
             let recovered_provenance_root =
                 checkpoint.fork_provenance.as_ref().and_then(|provenance| {
                     match provenance.target() {
                         worth_foundational::FoundationalBranchTarget::Empty => None,
                         worth_foundational::FoundationalBranchTarget::Basis(target) => {
-                            recovered_roots
-                                .resolve(crate::history::data::CommitId(target.commit_id()))
+                            recovered_roots.resolve(crate::history::data::CommitId(
+                                target.selected_commit_id(),
+                            ))
                         }
                     }
                 });
@@ -92,6 +92,7 @@ pub(super) fn replay_durable_envelope(
     restored
         .history
         .prepare_recovery_sequence(envelope.commit.commit_id, envelope.commit.version_id);
+    prepare_recovery_lineage_sequence(restored, envelope);
     let replays_mutation_pipeline = envelope.authority_kind()
         == CanonicalCommitAuthorityKind::VersionedTransaction
         && !is_metadata_only_merge_commit(envelope);
@@ -107,7 +108,7 @@ pub(super) fn replay_durable_envelope(
     if replays_mutation_pipeline {
         restored
             .record_identity
-            .stage_replay_allocations(envelope.record_allocations().to_vec())
+            .stage_replay_allocations_with_leading_gaps(envelope.record_allocations().to_vec())
             .map_err(|detail| DurabilityError::new(RecoveryFailureClass::ReplayFailure, detail))?;
     }
     let replay_result = replay_envelope_effect(restored, envelope);
@@ -129,6 +130,30 @@ pub(super) fn replay_durable_envelope(
         !had_checkpoint_artifact,
     )?;
     recovered_roots.retain_current(restored, &envelope.branch_context)
+}
+
+fn prepare_recovery_lineage_sequence(
+    restored: &mut RelationalRuntime,
+    envelope: &CanonicalCommitEnvelope,
+) {
+    if let Some(first_event_id) = envelope
+        .lineage_events()
+        .first()
+        .map(|event| event.event_id())
+    {
+        restored.lineage.next_event_id = restored.lineage.next_event_id.max(first_event_id);
+    }
+    if let Some(first_created_lineage_id) = envelope
+        .lineage_events()
+        .iter()
+        .find(|event| event.kind() == crate::lineage::data::LineageEventKind::Create)
+        .and_then(|event| event.targets().first())
+    {
+        restored.lineage.next_lineage_id = restored
+            .lineage
+            .next_lineage_id
+            .max(first_created_lineage_id.0);
+    }
 }
 
 fn validate_parent_closure(
@@ -175,45 +200,28 @@ fn replay_envelope_effect(
     restored: &mut RelationalRuntime,
     envelope: &CanonicalCommitEnvelope,
 ) -> Result<(), DurabilityError> {
-    if is_metadata_only_lineage_commit(envelope) || is_metadata_only_merge_commit(envelope) {
-        if is_metadata_only_merge_commit(envelope) {
-            if governed_merge_authority_was_published(envelope) {
-                require_merge_execution_authority(envelope)?;
-            }
-            // Preflight the owner door before recovery writes any sidecar or
-            // advances the branch cell. Artifact recovery below restores the
-            // immutable catalog/index projections only; its explicit
-            // currentness flag is false so publication owns the sole advance.
-            recovered_branch_binding(restored, &envelope.branch_context)?;
-            apply_authoritative_commit_artifacts(restored, envelope, false, false)?;
-            // Re-issue the owner binding after sidecar admission so
-            // publication validates the exact pre-publication cell and
-            // performs the one currentness transition for this commit.
-            let branch_binding = recovered_branch_binding(restored, &envelope.branch_context)?;
-            let published_partition_delta =
-                restored.storage_authority().affirm_no_partition_changes();
-            restored
-                .mvcc_publication_authority()
-                .publish_commit(
-                    envelope.commit.commit_id,
-                    envelope.commit.clone(),
-                    &branch_binding,
-                    published_partition_delta,
-                    envelope.patch.position,
-                    Arc::new(envelope.clone()),
-                )
-                .map_err(|detail| {
-                    DurabilityError::new(RecoveryFailureClass::ReplayFailure, detail)
-                })?;
-            return Ok(());
+    if is_metadata_only_merge_commit(envelope) {
+        if governed_merge_authority_was_published(envelope) {
+            require_merge_execution_authority(envelope)?;
         }
+        // Preflight the owner door before recovery writes any sidecar or
+        // advances the branch cell. Artifact recovery below restores the
+        // immutable catalog/index projections only; its explicit
+        // currentness flag is false so publication owns the sole advance.
+        recovered_branch_binding(restored, &envelope.branch_context)?;
+        apply_authoritative_commit_artifacts(restored, envelope, false, false)?;
+        // Re-issue the owner binding after sidecar admission so publication
+        // validates the exact pre-publication cell and performs the one
+        // currentness transition for this commit.
         let branch_binding = recovered_branch_binding(restored, &envelope.branch_context)?;
+        let published_partition_delta = restored.storage_authority().affirm_no_partition_changes();
         restored
             .mvcc_publication_authority()
-            .publish_metadata_artifact(
+            .publish_commit(
                 envelope.commit.commit_id,
                 envelope.commit.clone(),
                 &branch_binding,
+                published_partition_delta,
                 envelope.patch.position,
                 Arc::new(envelope.clone()),
             )
@@ -255,13 +263,13 @@ fn restore_authoritative_artifacts_when_required(
     allow_reconstructed_replacement: bool,
 ) -> Result<(), DurabilityError> {
     if plan.should_restore_authoritative_envelope(envelope.commit.commit_id) {
+        validate_recovered_history_parity(restored, envelope)?;
         apply_authoritative_commit_artifacts(
             restored,
             envelope,
             allow_reconstructed_replacement,
             true,
         )?;
-        validate_recovered_history_parity(restored, envelope)?;
     }
     Ok(())
 }
@@ -341,10 +349,6 @@ fn require_merge_execution_authority(
             ),
         )
     })
-}
-
-fn is_metadata_only_lineage_commit(envelope: &CanonicalCommitEnvelope) -> bool {
-    envelope.authority_kind() == CanonicalCommitAuthorityKind::MetadataOnlyLineage
 }
 
 fn is_metadata_only_merge_commit(envelope: &CanonicalCommitEnvelope) -> bool {

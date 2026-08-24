@@ -6,6 +6,9 @@ mod branch_root_schema_binding;
 mod checkpoint_recovery;
 mod descriptor_continuity;
 mod fork_provenance_checkpoint;
+mod lineage_allocator_denials;
+mod lineage_artifact_recovery;
+mod lineage_event_allocator_recovery;
 mod merge_replay_continuity;
 mod record_allocation_recovery;
 mod rejected_and_parent_closure;
@@ -26,9 +29,7 @@ use crate::facade::identity::KindId;
 use crate::facade::indexes::{
     DerivedIndexBuildRequest, DerivedIndexDefinition, DerivedIndexId, DerivedIndexKind,
 };
-use crate::facade::lineage::{
-    CorrespondencePromotionRejectionClass, LineageDecisionKind, LineageEventKind,
-};
+use crate::facade::lineage::LineageEventKind;
 use crate::facade::merge::{MergeExecutionRequest, MergeIntent};
 use crate::facade::replay::ReplayVerificationLayer;
 use crate::facade::runtime::RelationalRuntimeApi;

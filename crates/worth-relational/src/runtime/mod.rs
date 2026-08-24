@@ -40,5 +40,5 @@ pub(crate) use state::{
     PublicationSubsystem, ReclaimedRecordSlot, RecordIdentitySubsystem,
     RelationalForkMaterializationCost, ReplayRetentionState, RuntimeInstrumentation,
     RuntimeServices, RuntimeSubsystem, SchemaContractRuntimeSubsystem, SnapshotHandleBinding,
-    VisibilityResidency, VisibilitySubsystem,
+    ValidatedLineageEventBatch, VisibilityResidency, VisibilitySubsystem,
 };

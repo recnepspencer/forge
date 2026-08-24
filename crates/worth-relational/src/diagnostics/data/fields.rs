@@ -10,7 +10,6 @@ use crate::history::data::BranchId;
 use crate::history::data::CommitId;
 use crate::identity::data::{EntityId, KindId, LineageId, PartitionId, RelationId, VersionId};
 use crate::indexes::data::{DerivedIndexGenerationId, DerivedIndexId};
-use crate::lineage::data::CorrespondenceCandidateId;
 use crate::publication::patch::data::PatchStreamPosition;
 use crate::replay::data::ReplaySchemaVersion;
 use crate::schema::data::{
@@ -82,7 +81,6 @@ pub enum RelationalDiagnosticValue {
     DurableSegmentId(DurableSegmentId),
     DerivedIndexId(DerivedIndexId),
     DerivedIndexGenerationId(DerivedIndexGenerationId),
-    CorrespondenceCandidateId(CorrespondenceCandidateId),
     PatchStreamPosition(PatchStreamPosition),
     ReplaySchemaVersion(ReplaySchemaVersion),
     SchemaId(SchemaId),

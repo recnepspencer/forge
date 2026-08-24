@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use worth_runtime_bridge::facade::{RelationalBridgeSourceError, TruthSnapshotIdentity};
@@ -9,6 +9,44 @@ use crate::identity::data::VersionId;
 use crate::mvcc::RelationalBranchObservation;
 use crate::snapshots::data::SnapshotId;
 
+#[derive(Clone, Debug)]
+pub(in crate::presentation::bridge) struct RelationalBridgeSelectedObservation {
+    pub(super) snapshot_identity: TruthSnapshotIdentity,
+    pub(super) observation: RelationalBranchObservation,
+}
+
+#[derive(Debug)]
+pub(in crate::presentation::bridge) struct RelationalBridgeSelectedCommitObservation {
+    pub(super) commit_id: CommitId,
+    pub(super) observation: RelationalBridgeSelectedObservation,
+}
+
+impl RelationalBridgeSelectedObservation {
+    pub(in crate::presentation::bridge) fn branch_id(&self) -> &crate::history::data::BranchId {
+        self.observation.identity().branch_id()
+    }
+
+    pub(super) fn observation(&self) -> &RelationalBranchObservation {
+        &self.observation
+    }
+}
+
+impl RelationalBridgeSelectedCommitObservation {
+    pub(in crate::presentation::bridge) fn into_parts(
+        self,
+    ) -> (
+        CommitId,
+        TruthSnapshotIdentity,
+        crate::history::data::BranchId,
+    ) {
+        (
+            self.commit_id,
+            self.observation.snapshot_identity,
+            self.observation.observation.identity().branch_id().clone(),
+        )
+    }
+}
+
 #[derive(Debug, Default)]
 pub(super) struct RelationalBridgeObservationBindings {
     entries: Mutex<RelationalBridgeObservationBindingIndex>,
@@ -16,8 +54,8 @@ pub(super) struct RelationalBridgeObservationBindings {
 
 #[derive(Debug, Default)]
 struct RelationalBridgeObservationBindingIndex {
-    by_snapshot: BTreeMap<SnapshotId, RelationalBridgeObservationBinding>,
-    by_commit: BTreeMap<CommitId, BTreeSet<SnapshotId>>,
+    by_snapshot: HashMap<SnapshotId, RelationalBridgeObservationBinding>,
+    by_commit: HashMap<CommitId, HashSet<SnapshotId>>,
 }
 
 #[derive(Debug)]
@@ -40,7 +78,7 @@ impl RelationalBridgeObservationBindings {
         retention: RelationalComponentBasisRetentionLease,
     ) -> RelationalBridgeObservationLease {
         let version_id = observation.version_id();
-        let commit_id = observation.selected_root().commit_id();
+        let commit_id = observation.commit_id();
         let mut entries = self.lock_entries();
         entries.by_snapshot.insert(
             snapshot_id,
@@ -74,7 +112,7 @@ impl RelationalBridgeObservationBindings {
     pub(super) fn resolve(
         &self,
         identity: &TruthSnapshotIdentity,
-    ) -> Result<RelationalBranchObservation, RelationalBridgeSourceError> {
+    ) -> Result<RelationalBridgeSelectedObservation, RelationalBridgeSourceError> {
         let (snapshot_id, expected_version_id) =
             crate::presentation::bridge::identities::parse_bridge_snapshot_identity(identity)?;
         let entries = self.lock_entries();
@@ -90,7 +128,10 @@ impl RelationalBridgeObservationBindings {
                 snapshot_id.0, expected_version_id.0, binding.version_id.0
             )));
         }
-        Ok(binding.observation.clone())
+        Ok(RelationalBridgeSelectedObservation {
+            snapshot_identity: identity.clone(),
+            observation: binding.observation.clone(),
+        })
     }
 
     pub(super) fn snapshot_identity_for_commit(
@@ -111,7 +152,8 @@ impl RelationalBridgeObservationBindings {
             )));
         }
         let snapshot_id = *snapshot_ids
-            .first()
+            .iter()
+            .next()
             .expect("non-empty commit binding set has one snapshot");
         let binding = entries
             .by_snapshot

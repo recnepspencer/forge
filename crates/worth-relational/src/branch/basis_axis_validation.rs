@@ -24,7 +24,7 @@ pub(crate) fn reject_cross_branch_target_substitution(
         .fork_provenance()
         .is_some_and(|provenance| provenance.target() == descriptor.reference().target());
     let target_belongs_to_other_branch = commit_catalog
-        .get(CommitId(target.commit_id()))
+        .get(CommitId(target.selected_commit_id()))
         .is_some_and(|artifact| artifact.envelope().commit.branch_id != *descriptor.branch_id());
     if target_belongs_to_other_branch && !inherited_fork_target {
         return Err(RelationalBranchBasisDenial::WrongImmutableTarget);
@@ -109,7 +109,7 @@ pub(crate) fn require_root_matches_reference(
                     super::RelationalBranchBasisMismatchAxis::SchemaRoot,
                 ));
             }
-            if root.commit_id().map(|commit| commit.0) != Some(target.commit_id()) {
+            if root.commit_id().map(|commit| commit.0) != Some(target.selected_commit_id()) {
                 return Err(RelationalBranchBasisDenial::MixedAxis(
                     super::RelationalBranchBasisMismatchAxis::Commit,
                 ));

@@ -10,7 +10,6 @@ use worth_foundational::FoundationalBranchTarget;
 pub(crate) enum PublicationSequence {
     Truth,
     RecoveryTruth,
-    Metadata,
 }
 
 pub(crate) struct PublicationRequest<'a> {
@@ -55,11 +54,7 @@ pub(crate) fn validate_publication(
     if !runtime.legacy_branch_binding_is_current(request.binding) {
         return Err("publication owner binding is foreign or stale".to_owned());
     }
-    if matches!(
-        request.sequence,
-        PublicationSequence::Truth | PublicationSequence::RecoveryTruth
-    ) && runtime.history.next_version_id.checked_add(1).is_none()
-    {
+    if runtime.history.next_version_id.checked_add(1).is_none() {
         return Err("version id sequence overflow".to_owned());
     }
     if runtime.history.next_commit_id.checked_add(1).is_none() {
@@ -70,7 +65,7 @@ pub(crate) fn validate_publication(
             .history
             .commit_catalog
             .validate_new_envelope(request.envelope),
-        PublicationSequence::RecoveryTruth | PublicationSequence::Metadata => runtime
+        PublicationSequence::RecoveryTruth => runtime
             .history
             .commit_catalog
             .validate_envelope(request.envelope),
@@ -87,21 +82,14 @@ pub(crate) fn validate_publication(
                 branch_id.0
             )
         })?;
-    match request.sequence {
-        PublicationSequence::Truth | PublicationSequence::RecoveryTruth => {
-            let roots = RelationalBranchTarget::roots_for_commit(request.commit_reference);
-            let target = RelationalBranchTarget::from_commit_receipt(
-                runtime.history.runtime_instance_id,
-                request.commit_reference,
-                roots,
-            );
-            cell.advance_truth(FoundationalBranchTarget::basis(target))
-                .map_err(|denial| format!("publication branch advance denied: {denial:?}"))?;
-        }
-        PublicationSequence::Metadata => cell
-            .advance_metadata()
-            .map_err(|denial| format!("publication metadata advance denied: {denial:?}"))?,
-    }
+    let roots = RelationalBranchTarget::roots_for_commit(request.commit_reference);
+    let target = RelationalBranchTarget::from_commit_receipt(
+        runtime.history.runtime_instance_id,
+        request.commit_reference,
+        roots,
+    );
+    cell.advance_truth(FoundationalBranchTarget::basis(target))
+        .map_err(|denial| format!("publication branch advance denied: {denial:?}"))?;
     Ok(ValidatedPublication {
         branch_id: branch_id.clone(),
         next_cell: cell,

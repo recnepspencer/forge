@@ -4,8 +4,7 @@ use crate::history::data::{BranchId, CommitId};
 /// Runtime-bound permission to append one exact canonical commit envelope.
 ///
 /// The authority is intentionally non-cloneable. Its only constructors consume
-/// sealed admissions minted by the typed commit publication lane or the typed
-/// lineage-promotion lane.
+/// sealed admissions minted by the typed commit publication lane.
 pub(crate) struct DurableAppendAuthority {
     runtime_instance_id: u64,
     commit_id: CommitId,
@@ -16,16 +15,6 @@ impl DurableAppendAuthority {
     pub(crate) fn from_commit(
         admission: crate::authority::commit::CommitDurableAppendAdmission,
     ) -> Self {
-        let (runtime_instance_id, commit_id, branch_id) = admission.into_parts();
-        Self {
-            runtime_instance_id,
-            commit_id,
-            branch_id,
-        }
-    }
-
-    #[cfg(test)]
-    pub(crate) fn from_lineage(admission: crate::lineage::LineageDurableAppendAdmission) -> Self {
         let (runtime_instance_id, commit_id, branch_id) = admission.into_parts();
         Self {
             runtime_instance_id,

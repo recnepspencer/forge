@@ -4,9 +4,9 @@ use worth_foundational::facade::{
     ContractValidationInput, PortableAspectContractBasis, PortableAspectPatchOperation,
     PortableRecordAspectPatch, ScalarAspectType, StructAspectValue,
 };
-use worth_proof::TransitionOutcome;
 use worth_runtime_bridge::facade::TruthDeltaSurfaceKind;
 
+use super::support::bridge_envelopes_at_current_observation;
 use crate::facade::identity::{KindId, PartitionId};
 use crate::facade::schema::DeclaredAspectContractBinding;
 use crate::facade::transactions::{
@@ -62,17 +62,7 @@ fn real_whole_and_field_set_clear_operations_keep_their_exact_publication_meanin
     ));
     let created = create.commit().unwrap();
     let entity = changed_entities(&created)[0];
-    let TransitionOutcome::Success(created_publication) =
-        runtime.publish_commit_for_bridge(created.commit.commit_id, "model")
-    else {
-        panic!("real whole-set commit publishes")
-    };
-    assert_change(
-        created_publication.bridge_envelope(),
-        note.key(),
-        AuthoritativeAspectChangeKind::WholeAspectSet,
-        TruthDeltaSurfaceKind::AuthoritativeAspect,
-    );
+    let created_commit = created.commit.commit_id;
 
     let update = PortableRecordAspectPatch::new([
         PortableAspectPatchOperation::ClearWhole {
@@ -96,19 +86,26 @@ fn real_whole_and_field_set_clear_operations_keep_their_exact_publication_meanin
         )),
     ));
     let updated = transaction.commit().unwrap();
-    let TransitionOutcome::Success(publication) =
-        runtime.publish_commit_for_bridge(updated.commit.commit_id, "model")
-    else {
-        panic!("real clear commit publishes")
-    };
+    let mut publications = bridge_envelopes_at_current_observation(
+        runtime,
+        [created_commit, updated.commit.commit_id],
+    );
+    let publication = publications.pop().expect("clear publication");
+    let created_publication = publications.pop().expect("whole-set publication");
     assert_change(
-        publication.bridge_envelope(),
+        &created_publication,
+        note.key(),
+        AuthoritativeAspectChangeKind::WholeAspectSet,
+        TruthDeltaSurfaceKind::AuthoritativeAspect,
+    );
+    assert_change(
+        &publication,
         note.key(),
         AuthoritativeAspectChangeKind::WholeAspectClear,
         TruthDeltaSurfaceKind::AuthoritativeAspect,
     );
     assert_change(
-        publication.bridge_envelope(),
+        &publication,
         summary_contract.key(),
         AuthoritativeAspectChangeKind::FieldClear,
         TruthDeltaSurfaceKind::EntityField,

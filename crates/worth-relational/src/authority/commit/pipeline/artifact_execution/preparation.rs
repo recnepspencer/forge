@@ -7,6 +7,7 @@ use crate::diagnostics::data::RelationalDiagnosticsEntry;
 use crate::diagnostics::data::{DiagnosticsArtifactKind, DiagnosticsScope};
 use crate::history::data::RelationalCommitReceipt;
 use crate::publication::patch::data::PublishedAuthoritativePatchEnvelope;
+use crate::publication::{bundle::PublicationStage, data::PublicationError};
 use crate::transactions::data::{
     AspectEmissionTrace, AspectEvaluationTrace, CommitAspectSummary, CommitChangeSummary,
     CommitPublicationSummary, MergedCommitPlan, PublishedMergeExecutionAuthority, RecordRef,
@@ -30,6 +31,7 @@ pub(in crate::authority::commit::pipeline) struct PublicationFinalizeArtifacts {
     changed_records: Vec<RecordRef>,
     canonical_commit_envelope: crate::history::data::CanonicalCommitEnvelope,
     adjacency_deltas: Vec<crate::authority::mutation::AdjacencyDelta>,
+    lineage_nodes: Vec<crate::lineage::data::LineageNode>,
 }
 
 pub(super) struct PublicationPreparationInput<'a> {
@@ -174,6 +176,7 @@ struct PreparedPublicationAuthority {
     artifacts: crate::storage::overlay::PublicationArtifacts,
     canonical_commit_envelope: crate::history::data::CanonicalCommitEnvelope,
     lineage_event_count: usize,
+    lineage_nodes: Vec<crate::lineage::data::LineageNode>,
 }
 
 fn prepare_authoritative_publication(
@@ -186,13 +189,26 @@ fn prepare_authoritative_publication(
         input.patch.clone(),
         input.diagnostics_summary.clone(),
     );
-    let lineage_artifact = runtime.lineage_authority().ensure_lineage_for_commit(
-        input.working_state,
-        input.commit_reference,
-        &input.merged_plan.merged_intents,
-        input.changed_records,
-    );
-    let lineage_event_count = lineage_artifact.event_batch().counters().event_batch_width;
+    let prepared_lineage = runtime
+        .lineage_authority()
+        .ensure_lineage_for_commit(
+            input.working_state,
+            input.commit_reference,
+            &input.merged_plan.merged_intents,
+            input.changed_records,
+        )
+        .map_err(|detail| {
+            TransactionCommitError::publication(PublicationError::new(
+                PublicationStage::BundleAssembly,
+                detail,
+            ))
+        })?;
+    let lineage_event_count = prepared_lineage
+        .artifact()
+        .event_batch()
+        .counters()
+        .event_batch_width;
+    let (lineage_artifact, lineage_nodes) = prepared_lineage.into_parts();
     let mut canonical_commit_envelope = canonical_commit_envelope(
         runtime,
         input.commit_reference,
@@ -214,6 +230,7 @@ fn prepare_authoritative_publication(
         artifacts,
         canonical_commit_envelope,
         lineage_event_count,
+        lineage_nodes,
     })
 }
 
@@ -264,6 +281,7 @@ fn finish_publication_preparation(input: PublicationCompletionInput<'_>) -> Publ
             changed_records,
             canonical_commit_envelope: authority.canonical_commit_envelope,
             adjacency_deltas,
+            lineage_nodes: authority.lineage_nodes,
         },
     }
 }
@@ -308,12 +326,14 @@ impl PublicationFinalizeArtifacts {
         Vec<RecordRef>,
         crate::history::data::CanonicalCommitEnvelope,
         Vec<crate::authority::mutation::AdjacencyDelta>,
+        Vec<crate::lineage::data::LineageNode>,
     ) {
         (
             self.artifacts,
             self.changed_records,
             self.canonical_commit_envelope,
             self.adjacency_deltas,
+            self.lineage_nodes,
         )
     }
 }

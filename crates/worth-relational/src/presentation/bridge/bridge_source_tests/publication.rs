@@ -6,7 +6,6 @@ use crate::tests::support::{
     aspect_key, create_entity_outcome, field_key, single_string_aspect_field_patch,
 };
 use worth_foundational::ScalarAspectType;
-use worth_proof::TransitionOutcome;
 use worth_runtime_bridge::facade::{
     BridgeRouteRequest, CommittedPatchSource, RelationalBridgeRecordIdentityParts,
     RelationalCommittedPatchRequest, RuntimeBridgeBuilder, SnapshotReadContract,
@@ -151,61 +150,6 @@ fn partition_source_filters_the_real_commit_and_retains_exact_partition_provenan
         SnapshotReadContract::scalar(aspect_key("name"), ScalarAspectType::String),
     )]);
     assert!(reader.read_packet(&packet).is_err());
-}
-
-#[test]
-fn live_runtime_mints_publication_provenance_and_rejects_foreign_widening_authority() {
-    let mut owner = runtime_with_test_schema();
-    create_entity_outcome(&mut owner, "owner");
-    let commit = owner
-        .publication()
-        .latest_bundle()
-        .unwrap()
-        .commit
-        .commit_id;
-    let foreign = runtime_with_test_schema();
-    let foreign_admission = foreign
-        .admit_opaque_aspect_bridge_widening("model")
-        .unwrap();
-
-    assert!(matches!(
-        owner.publish_commit_for_bridge_with_widening(commit, "model", &foreign_admission,),
-        TransitionOutcome::Stale(super::super::RelationalBridgePublicationStale::RuntimeAuthority)
-    ));
-
-    let admission = owner.admit_opaque_aspect_bridge_widening("model").unwrap();
-    assert!(matches!(
-        owner.publish_commit_for_bridge_with_widening(commit, "analysis", &admission),
-        TransitionOutcome::RebindRequired(
-            super::super::RelationalBridgePublicationRebindRequired::GraphRole
-        )
-    ));
-    let TransitionOutcome::Success(publication) =
-        owner.publish_commit_for_bridge_with_widening(commit, "model", &admission)
-    else {
-        panic!("owner-minted publication authority should publish its exact commit");
-    };
-    assert_eq!(publication.commit_id(), commit);
-    assert_eq!(publication.graph_role(), "model");
-    assert!(publication.runtime_instance_id() > 0);
-    assert!(publication
-        .adapter_identity()
-        .contains(&format!("runtime={}", publication.runtime_instance_id())));
-    assert!(publication
-        .source_basis()
-        .contains(&format!("commit={}", commit.0)));
-    let source = publication
-        .bridge_envelope()
-        .producer_metadata()
-        .authoritative_source()
-        .expect("owner publication carries its source authority into the Bridge envelope");
-    assert_eq!(
-        source.runtime_instance_id(),
-        publication.runtime_instance_id()
-    );
-    assert_eq!(source.graph_role(), publication.graph_role());
-    assert_eq!(source.adapter_identity(), publication.adapter_identity());
-    assert_eq!(source.source_basis(), publication.source_basis());
 }
 
 #[test]

@@ -8,16 +8,8 @@ warning: unreachable statement
   |
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
 
-error[E0308]: mismatched types
- --> tests/ui/branch_reference/fork_basis_cannot_publish.rs:7:47
+error[E0599]: no method named `publish_commit_for_bridge` found for reference `&RelationalRuntime` in the current scope
+ --> tests/ui/branch_reference/fork_basis_cannot_publish.rs:7:21
   |
 7 |     let _ = runtime.publish_commit_for_bridge(basis, "model");
-  |                     ------------------------- ^^^^^ expected `CommitId`, found `AdmittedRelationalForkSourceBasis`
-  |                     |
-  |                     arguments to this method are incorrect
-  |
-note: method defined here
- --> src/presentation/bridge/authoritative_patch_publication.rs
-  |
-  |     pub fn publish_commit_for_bridge(
-  |            ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&RelationalRuntime`
