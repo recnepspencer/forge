@@ -27,9 +27,13 @@ obligations, choose lower owners, construct plans, or run validators directly.
 
 Application authors use the declaration and host facades:
 
-- `worth_query_declaration` application-schema, query, and operation macros;
+- `worth_query_decl::facade` application-schema, query, and operation macros;
 - `worth_query_host::facade::domain` for installed query or operation
   inspection;
+- `installed_schema.native_contracts()` for the sealed application aspect
+  catalog;
+- `installed_operation.contracts().graph_reads()` and `.touches()` for exact
+  typed graph scopes, plus `.emissions()` for declared application effects;
 - `worth_query_host::facade::inspect_installed_graph_obligations(...)`
   for read-only downstream adoption evidence;
 - the ordinary application runtime for query and operation execution; and
@@ -49,6 +53,8 @@ posture, effect posture, and required terminal.
 
 ```text
 typed application declaration
+  -> sealed installed native aspect catalog
+  -> exact typed operation read and touch contracts
   -> sealed installed obligation set
   -> selected obligation rows
   -> requirement and cost review
@@ -101,6 +107,13 @@ only after the installed provider executes it against the exact proposed state.
 Publication consumes a terminal; it cannot execute, retry, commit, dispatch,
 or recover work.
 
+Likewise, the installed touch contract is a legal ceiling, not evidence that a
+mutation happened. Execution compares actual Relational touched-graph evidence
+with that declared ceiling. An `Emit` program target is not a graph touch: it
+has a sealed installed application-effect emission contract. Only an effect
+also declared external receives the separate escaping correlation and protocol
+contract.
+
 ## Small Example
 
 Given an installed application query, downstream code may inspect its sealed
@@ -121,6 +134,49 @@ assert_eq!(proof.rows().len(), 1);
 `WorthQueryGraphObligationAdoptionProof` exposes installed identities, kinds,
 required owners, terminal requirements, and selector-index size. It exposes no
 registration, selection, planning, execution, invariant, or commit transition.
+
+For an installed operation, inspect exact semantic meaning through the same
+Host domain facade rather than decoding diagnostic text:
+
+```rust
+use worth_query_host::facade::domain::{
+    WorthQueryOperationGraphReadScope, WorthQueryOperationTouchScope,
+};
+
+for role in installed_operation.contracts().graph_reads().roles() {
+    for scope in role.read_scopes() {
+        match scope {
+            WorthQueryOperationGraphReadScope::Entity(scope) => {
+                inspect_entity(scope.schema(), scope.semantic_key());
+            }
+            WorthQueryOperationGraphReadScope::NativeProjection(scope) => {
+                inspect_projection(
+                    scope.entity().semantic_key(),
+                    scope.aspect().as_str(),
+                    scope.projection().mask(),
+                );
+            }
+            WorthQueryOperationGraphReadScope::Relation(scope) => {
+                inspect_relation(scope.schema(), scope.relation(), scope.from(), scope.to());
+            }
+        }
+    }
+}
+
+for scope in installed_operation.contracts().touches().scopes() {
+    match scope {
+        WorthQueryOperationTouchScope::WriteField(field) => {
+            inspect_field(field.schema(), field.entity(), field.contract(), field.field_path());
+        }
+        _ => inspect_structural_touch(scope),
+    }
+}
+```
+
+The installed native catalog is the one application-schema truth source used
+to compile those scopes. A projection mask preserves either explicit
+whole-aspect posture or its exact canonical field paths; an empty vector is
+not a substitute for either meaning.
 
 ## Real Example
 
@@ -177,6 +233,10 @@ rendered strings or reconstruct an identity from a version number.
 - Passing a manual invariant pack to generic graph or read composition.
 - Importing admission internals to construct or review a raw plan.
 - Calling Relational directly from an application-query lane.
+- Parsing a rendered read or touch string to recover authority.
+- Reconstructing an application aspect contract outside the installed native
+  catalog.
+- Treating a declared touch as performed mutation evidence.
 - Defaulting a missing branch to `"main"`.
 - Publishing a receipt before terminal cleanup is proved.
 - Keeping a compatibility alias that can mint a retired authority product.

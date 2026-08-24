@@ -2,6 +2,7 @@ mod aftermath_causality;
 mod application_attempt_state;
 mod application_attempt_work;
 mod application_decision_fact;
+mod application_touch_admission;
 mod commit_causality;
 pub(super) mod committed_dispatch_outbox;
 mod conditional_commit_journal;
@@ -341,6 +342,11 @@ impl WorthQueryPrimaryGraphProvider {
 
     pub(super) fn take_relational_invariant_violation(&self) -> bool {
         self.take_fault(fault_port::WorthQueryPrimaryGraphFault::RelationalInvariantViolation)
+    }
+
+    #[cfg(test)]
+    pub(super) fn take_undeclared_application_touch(&self) -> bool {
+        self.take_fault(fault_port::WorthQueryPrimaryGraphFault::UndeclaredApplicationTouch)
     }
 
     fn take_fault(&self, fault: fault_port::WorthQueryPrimaryGraphFault) -> bool {

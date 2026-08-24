@@ -7,7 +7,7 @@ use super::operation_contract_cardinality::validate_operation_contract_cardinali
 use super::{
     ApplicationOperationRef, ApplicationSchema, ApplicationSchemaDeclaration,
     ApplicationSchemaDeclarationBuilder, ApplicationSchemaDeclarationDenial,
-    ApplicationSchemaMember,
+    ApplicationSchemaMember, WorthQueryExternalEffectCorrelationFamily,
 };
 
 struct CardinalitySchema;
@@ -132,7 +132,8 @@ fn external_effect(operation: &str, effect: &str) -> ApplicationSchemaMember {
             worth_foundational::facade::BoundaryProtocolVersion::new(1),
         ),
         maximum_payload_bytes: 64,
-        correlation_family: "external-family".to_owned(),
+        correlation_family: WorthQueryExternalEffectCorrelationFamily::new("external-family")
+            .unwrap(),
     }
 }
 

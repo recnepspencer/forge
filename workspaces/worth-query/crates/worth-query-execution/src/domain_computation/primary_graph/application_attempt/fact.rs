@@ -1,5 +1,4 @@
 use worth_foundational::facade::{AspectFieldLocator, AspectValue};
-use worth_query_installation::facade::ApplicationOperationDecisionReadTarget;
 use worth_relational::facade::identity::{EntityId, KindId, RelationId};
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -42,26 +41,22 @@ pub(in crate::domain_computation::primary_graph) enum WorthQueryApplicationFactK
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::domain_computation) enum WorthQueryApplicationObservedFact {
     Entity {
-        target: ApplicationOperationDecisionReadTarget,
         entity_id: EntityId,
         kind: KindId,
     },
     Field {
-        target: ApplicationOperationDecisionReadTarget,
         entity_id: EntityId,
         kind: KindId,
         locator: AspectFieldLocator,
         value: AspectValue,
     },
     Relation {
-        target: ApplicationOperationDecisionReadTarget,
         relation_kind: KindId,
         from: EntityId,
         to: EntityId,
         matching_relations: Vec<RelationId>,
     },
     Adjacency {
-        target: ApplicationOperationDecisionReadTarget,
         relation_kind: KindId,
         anchor: EntityId,
         direction: WorthQueryApplicationAdjacencyDirection,
@@ -75,15 +70,6 @@ impl WorthQueryApplicationObservedFact {
         match self {
             Self::Field { value, .. } => Some(value),
             _ => None,
-        }
-    }
-
-    pub(super) const fn target(&self) -> &ApplicationOperationDecisionReadTarget {
-        match self {
-            Self::Entity { target, .. }
-            | Self::Field { target, .. }
-            | Self::Relation { target, .. }
-            | Self::Adjacency { target, .. } => target,
         }
     }
 

@@ -123,18 +123,21 @@ fn covered_preimage_demand_installs_with_operation_decision_reads() {
         aftermath.published_posture(),
         crate::facade::PublishedAftermathPosture::Reversible
     );
-    let reads = installed.contracts().decision_reads();
     assert!(
-        reads.iter().any(|read| {
-            matches!(
+        installed
+            .contracts()
+            .graph_reads()
+            .roles()
+            .iter()
+            .flat_map(|role| role.read_scopes())
+            .any(|read| matches!(
                 read,
-                worth_query_declaration::facade::application_schema::ApplicationOperationDecisionReadTarget::Field {
-                    field,
-                    ..
-                } if field == "PrincipalIdentityField"
-            )
-        }),
-        "coverage must come from the operation's declared decision reads"
+                crate::facade::WorthQueryOperationGraphReadScope::NativeProjection(scope)
+                    if scope.projection().mask().paths().iter().any(|path| {
+                        path.fields().iter().any(|field| field.as_str() == "PrincipalIdentityField")
+                    })
+            )),
+        "coverage must be retained in the operation's installed typed reads"
     );
 }
 

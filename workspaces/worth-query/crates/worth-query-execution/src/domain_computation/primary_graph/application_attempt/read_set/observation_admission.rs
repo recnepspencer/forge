@@ -1,4 +1,7 @@
-use worth_query_installation::facade::ApplicationOperationDecisionReadTarget;
+use worth_query_installation::facade::{
+    ApplicationOperationDecisionReadTarget, WorthQueryOperationGraphReadContract,
+    WorthQueryOperationGraphReadScope,
+};
 
 use super::super::fact::WorthQueryApplicationFactKey;
 use super::WorthQueryApplicationReadAttempt;
@@ -13,20 +16,18 @@ impl<Schema, Operation, Input, Scope, Phase>
     pub(super) fn admit_target(
         &self,
         target: &ApplicationOperationDecisionReadTarget,
-    ) -> Result<(), WorthQueryApplicationAttemptDenial> {
-        if self
-            .admission
-            .allowed_graph_contract()
-            .decision_reads()
-            .contains(target)
-        {
-            Ok(())
-        } else {
-            Err(denial(
+    ) -> Result<WorthQueryOperationGraphReadScope, WorthQueryApplicationAttemptDenial> {
+        crate::domain_computation::application_contract_admission::installed_read_scope_for_target(
+            self.admission.allowed_graph_contract().graph_reads(),
+            target,
+        )
+        .cloned()
+        .ok_or_else(|| {
+            denial(
                 WorthQueryApplicationAttemptDenialKind::UndeclaredDecisionRead,
                 self.admission.operation(),
-            ))
-        }
+            )
+        })
     }
 
     pub(super) fn admit_fact_key(
@@ -111,6 +112,71 @@ impl<Schema, Operation, Input, Scope, Phase>
                 )
             })
     }
+}
+
+pub(super) fn graph_read_scope_matches_key(
+    scope: &WorthQueryOperationGraphReadScope,
+    key: &WorthQueryApplicationFactKey,
+) -> bool {
+    match (scope, key) {
+        (
+            WorthQueryOperationGraphReadScope::Entity(scope),
+            WorthQueryApplicationFactKey::Entity { entity, .. },
+        ) => scope.semantic_key() == entity,
+        (
+            WorthQueryOperationGraphReadScope::NativeProjection(scope),
+            WorthQueryApplicationFactKey::Field {
+                entity, locator, ..
+            },
+        ) => {
+            scope.entity().semantic_key() == entity
+                && scope.aspect() == locator.aspect().aspect_key()
+                && scope
+                    .projection()
+                    .mask()
+                    .paths()
+                    .contains(locator.field_path())
+        }
+        (
+            WorthQueryOperationGraphReadScope::Relation(scope),
+            WorthQueryApplicationFactKey::Relation { relation, .. }
+            | WorthQueryApplicationFactKey::Adjacency { relation, .. },
+        ) => scope.relation() == relation,
+        _ => false,
+    }
+}
+
+pub(super) fn graph_reads_exactly_cover_fact_keys<'key>(
+    contract: &WorthQueryOperationGraphReadContract,
+    mut keys: impl Clone + Iterator<Item = &'key WorthQueryApplicationFactKey>,
+) -> bool {
+    let mut expected = 0usize;
+    for scope in contract.roles().iter().flat_map(|role| role.read_scopes()) {
+        let atomic_count = match scope {
+            WorthQueryOperationGraphReadScope::Entity(_)
+            | WorthQueryOperationGraphReadScope::Relation(_) => 1,
+            WorthQueryOperationGraphReadScope::NativeProjection(scope) => {
+                if scope.projection().mask().is_whole_aspect() {
+                    return false;
+                }
+                scope.projection().mask().paths().len()
+            }
+        };
+        expected = match expected.checked_add(atomic_count) {
+            Some(expected) => expected,
+            None => return false,
+        };
+    }
+    expected == keys.clone().count()
+        && keys.all(|key| {
+            contract
+                .roles()
+                .iter()
+                .flat_map(|role| role.read_scopes())
+                .filter(|scope| graph_read_scope_matches_key(scope, key))
+                .count()
+                == 1
+        })
 }
 
 fn denial(

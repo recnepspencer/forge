@@ -26,6 +26,7 @@ Declaration consumers use `worth_query_decl::facade`:
 
 - `application_schema::ApplicationExternalEffectPayload`
 - `application_schema::ApplicationExternalEffectProtocol`
+- `application_schema::WorthQueryExternalEffectCorrelationFamily`
 - `application_schema::ApplicationOperationDefinitionBuilder::external_effect`
 - `application_schema::ApplicationOperationDefinitionBuilder::no_external_effect`
 - `application_aftermath::DeclaredApplicationAftermathContract`
@@ -129,7 +130,7 @@ use worth_foundational::facade::{
 };
 use worth_query_decl::facade::application_schema::{
     ApplicationEffectPayload, ApplicationExternalEffectPayload,
-    ApplicationExternalEffectProtocol,
+    ApplicationExternalEffectProtocol, WorthQueryExternalEffectCorrelationFamily,
 };
 
 struct InvoiceReady {
@@ -166,9 +167,13 @@ Assume `InvoiceReadyEffect` is the schema's typed effect reference and
 builder then makes both static choices before `finish()` becomes available:
 
 ```rust
+let correlation_family =
+    WorthQueryExternalEffectCorrelationFamily::new("billing-rail")
+        .expect("the application-owned correlation family is an atomic identity");
+
 let definition = operation
     .definition()
-    .external_effect(InvoiceReadyEffect::reference(), "billing-rail")
+    .external_effect(InvoiceReadyEffect::reference(), correlation_family)
     .aftermath(declared_aftermath)
     .finish();
 ```
@@ -183,6 +188,38 @@ let definition = operation
     .finish();
 ```
 
+Hosts may inspect the exact installed contract through the read-only domain
+facade:
+
+```rust
+let contracts = installed_operation.contracts();
+let aftermath = contracts
+    .aftermath()
+    .expect("this operation declares aftermath meaning");
+
+inspect_authority(aftermath.authority());
+inspect_recovery(aftermath.recovery());
+inspect_canonical(aftermath.canonical());
+
+let procedure_slot = aftermath
+    .reconciliation()
+    .map(|procedure| procedure.procedure_slot());
+let correlation_family = aftermath
+    .external_effect()
+    .correlation_family()
+    .map(|family| family.as_str());
+
+assert_eq!(
+    aftermath.external_effect().correlation_family(),
+    contracts.external_effect().correlation_family(),
+);
+```
+
+These values retain correction authority, recovery posture, the exact
+reconciliation procedure, correlation family, and canonical evidence. Reading
+them grants no correction, recovery, dispatch, or external completion
+authority.
+
 ## Real Example
 
 Bank's death-notification operation declares one emission, one stable protocol
@@ -196,11 +233,14 @@ schema
 The operation definition binds the escaping lane:
 
 ```rust
+use worth_query_decl::facade::application_schema::WorthQueryExternalEffectCorrelationFamily;
+
 operation
     .definition()
     .external_effect(
         EstateDeathNotificationEffect::reference(),
-        ESTATE_DEATH_NOTICE_RAIL,
+        WorthQueryExternalEffectCorrelationFamily::new(ESTATE_DEATH_NOTICE_RAIL)
+            .expect("the Bank rail name is a stable atomic identity"),
     )
     .aftermath(declared_aftermath)
     .finish()
@@ -302,6 +342,9 @@ normally wrap this generic sequence in domain-named methods, as Bank does.
 
 For a committed operation, inspect:
 
+- the installed operation's `contracts().aftermath()` for correction
+  `authority()`, `recovery()`, exact `reconciliation()`, canonical evidence,
+  and the external effect's typed `correlation_family()`;
 - the host receipt's commit identity and ordinary canonical-work counters;
 - `aftermath().posture()` for the installed accepted posture;
 - `aftermath().external_effect()` for external observation state;
@@ -319,6 +362,8 @@ owner's ledger.
 ## Anti-Patterns
 
 - Do not derive a protocol family or version from `std::any::type_name`.
+- Do not retain or parse a raw correlation-family string beside the typed
+  `WorthQueryExternalEffectCorrelationFamily`.
 - Do not accept payload bytes, effect names, completion flags, or recovery slots
   from the caller after operation admission.
 - Do not treat acknowledgement, silence, timeout, or response loss as completion.

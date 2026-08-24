@@ -259,7 +259,11 @@ fn field_locator(
 
 fn record() -> WorthQueryDispatchOutboxRecord {
     let correlation = derive_external_effect_correlation_identity(ExternalEffectCorrelationBasis {
-        correlation_family: "corruption-owner-test",
+        correlation_family:
+            worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily::new(
+                "corruption-owner-test",
+            )
+            .unwrap(),
         operation_slot: "notify",
         operation_version: 1,
         outcome_identity: 41,
@@ -270,7 +274,11 @@ fn record() -> WorthQueryDispatchOutboxRecord {
     WorthQueryDispatchOutboxRecord::from_installed_contract(
         correlation,
         &InstalledExternalEffectContract::Declared {
-            correlation_family: "corruption-owner-test".to_owned(),
+            correlation_family:
+                worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily::new(
+                    "corruption-owner-test",
+                )
+                .unwrap(),
             effect: "OwnerTestEffect".to_owned(),
             rust_payload_type: "tests::Payload".to_owned(),
             protocol: ApplicationExternalEffectProtocol::new(

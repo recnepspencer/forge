@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use worth_query_declaration::facade::domain_computation::WorthQueryResourceDimension;
 use worth_relational::facade::identity::PartitionId;
@@ -13,6 +13,7 @@ use super::{
     WorthQueryApplicationEffectProgram, WorthQueryCompleteApplicationReadSet,
     WorthQueryProjectedApplicationMutation,
 };
+use crate::domain_computation::application_contract_admission::application_contract_exactly_matches_program_targets;
 use crate::domain_computation::authorization::WorthQueryElevationRequestBinding;
 
 /// Exact request mutation produced from Query-owned lifecycle authority.
@@ -43,7 +44,7 @@ impl<Schema, Operation, Input, Scope>
             .admission
             .elevation_request_binding()
             .ok_or_else(|| transition_required(self.admission.operation()))?;
-        validate_installed_program(binding, self.admission.allowed_graph_contract().program())?;
+        validate_installed_program(binding, self.admission.allowed_graph_contract())?;
         let mut effects = request_effects(binding)?;
         let emission_retained_bytes_ceiling = self
             .admission
@@ -114,17 +115,12 @@ pub(in crate::domain_computation::primary_graph) fn validate_elevation_request_p
 
 fn validate_installed_program(
     binding: &WorthQueryElevationRequestBinding,
-    installed: &[worth_query_installation::facade::ApplicationOperationProgramTarget],
+    installed: &worth_query_installation::facade::WorthQueryCompiledApplicationOperationContracts,
 ) -> Result<(), WorthQueryApplicationAttemptDenial> {
-    let expected = binding
-        .required_program_targets()
-        .iter()
-        .collect::<BTreeSet<_>>();
-    let installed = installed.iter().collect::<BTreeSet<_>>();
-    if expected.len() == binding.required_program_targets().len()
-        && installed.len() == expected.len()
-        && installed == expected
-    {
+    if application_contract_exactly_matches_program_targets(
+        installed,
+        binding.required_program_targets(),
+    ) {
         Ok(())
     } else {
         Err(program_mismatch("elevation request operation program"))

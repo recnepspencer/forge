@@ -5,6 +5,7 @@ use worth_query_installation::facade::{
 };
 
 use super::WorthQueryApplicationOperationInvariantProjectionReader;
+use crate::domain_computation::application_contract_admission::graph_reads_admit_target;
 use crate::domain_computation::primary_graph::{
     application_attempt::{WorthQueryApplicationAdjacencyDirection, WorthQueryApplicationFactKey},
     WorthQueryInvariantEntityIdentity, WorthQueryInvariantProjectionTraversalDenial,
@@ -204,8 +205,8 @@ where
         target: &ApplicationOperationDecisionReadTarget,
     ) -> Result<(), WorthQueryInvariantDecisionPlanDenial> {
         if self
-            .admitted_decision_reads
-            .is_none_or(|reads| reads.contains(target))
+            .admitted_graph_reads
+            .is_none_or(|reads| graph_reads_admit_target(reads, target))
         {
             Ok(())
         } else {

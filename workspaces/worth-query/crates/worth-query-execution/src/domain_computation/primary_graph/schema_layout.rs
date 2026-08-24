@@ -2,8 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use worth_foundational::facade::{AspectContract, AspectFieldLocator, AspectKey, FieldKey};
 use worth_query_installation::facade::{
-    ApplicationSchemaMember, ErasedApplicationSchemaDeclaration,
-    WorthQueryInstalledApplicationSchemaContractCatalog,
+    ErasedApplicationSchemaDeclaration, WorthQueryInstalledApplicationSchemaContractCatalog,
 };
 use worth_relational::facade::identity::KindId;
 use worth_relational::facade::indexes::DerivedIndexId;
@@ -11,6 +10,7 @@ use worth_relational::facade::schema::RelationalSchemaRegistry;
 
 use super::WorthQueryPrimaryGraphInstallationDenial;
 
+mod application_layout_lowering;
 mod capability_grant_join;
 mod continuation_ordering;
 mod installation_primitives;
@@ -22,6 +22,7 @@ mod provider_identity_allocator;
 mod registry_lowering;
 
 use crate::domain_computation::application_aftermath::WorthQueryDispatchOutboxLayout;
+use application_layout_lowering::{field_capability_keys, lower_fields, lower_relation_layouts};
 use capability_grant_join::{lower_capability_grant_joins, WorthQueryCapabilityGrantJoinLayout};
 use continuation_ordering::{
     lower_continuation_orderings, WorthQueryPrimaryContinuationOrderingLayout,
@@ -49,6 +50,8 @@ pub(in crate::domain_computation) struct WorthQueryPrimaryGraphLayout {
     principal_bindings: BTreeMap<String, WorthQueryPrimaryPrincipalBindingLayout>,
     entity_kinds: BTreeMap<String, KindId>,
     relation_kinds: BTreeMap<String, WorthQueryPrimaryRelationLayout>,
+    application_entity_kinds: BTreeSet<KindId>,
+    application_relation_kinds: BTreeSet<KindId>,
     fields: BTreeMap<(String, String, String), WorthQueryPrimaryFieldLayout>,
     aspect_contracts: BTreeMap<(String, AspectKey), AspectContract>,
     equality_field_keys: BTreeMap<AspectKey, BTreeSet<FieldKey>>,
@@ -149,6 +152,11 @@ impl WorthQueryPrimaryGraphLayout {
         )?;
         let principal_bindings = lower_principal_bindings(schema, &entity_kinds, &relation_kinds)?;
         let relation_layouts = lower_relation_layouts(schema, &entity_kinds, &relation_kinds)?;
+        let application_entity_kinds = entity_kinds.values().copied().collect();
+        let application_relation_kinds = relation_layouts
+            .values()
+            .map(|layout| layout.kind)
+            .collect();
         let continuation_orderings =
             lower_continuation_orderings(schema, &entity_kinds, &relation_layouts)?;
         let capability_grant_joins =
@@ -166,6 +174,8 @@ impl WorthQueryPrimaryGraphLayout {
                 principal_bindings,
                 entity_kinds,
                 relation_kinds: relation_layouts,
+                application_entity_kinds,
+                application_relation_kinds,
                 fields,
                 aspect_contracts,
                 equality_field_keys,
@@ -212,6 +222,31 @@ impl WorthQueryPrimaryGraphLayout {
         relation: &str,
     ) -> Option<&WorthQueryPrimaryRelationLayout> {
         self.relation_kinds.get(relation)
+    }
+
+    pub(in crate::domain_computation) fn is_application_entity_kind(&self, kind: KindId) -> bool {
+        self.application_entity_kinds.contains(&kind)
+    }
+
+    pub(in crate::domain_computation) fn is_application_relation_kind(&self, kind: KindId) -> bool {
+        self.application_relation_kinds.contains(&kind)
+    }
+
+    #[cfg(test)]
+    pub(in crate::domain_computation) fn application_entity_kind_without_create_scope(
+        &self,
+        touches: &worth_query_installation::facade::WorthQueryOperationTouchContract,
+    ) -> Option<KindId> {
+        self.entity_kinds
+            .iter()
+            .find(|(entity, _)| {
+                !touches.scopes().iter().any(|scope| matches!(
+                    scope,
+                    worth_query_installation::facade::WorthQueryOperationTouchScope::CreateEntity(scope)
+                        if scope.entity() == *entity
+                ))
+            })
+            .map(|(_, kind)| *kind)
     }
 
     pub(in crate::domain_computation) fn field_locator(
@@ -292,83 +327,4 @@ impl WorthQueryPrimaryGraphLayout {
     ) -> &mut WorthQueryAftermathCausalityLayout {
         &mut self.provider_aftermath_causality
     }
-}
-
-fn field_capability_keys<'a>(
-    fields: impl IntoIterator<Item = &'a WorthQueryPrimaryFieldLayout>,
-) -> BTreeMap<AspectKey, BTreeSet<FieldKey>> {
-    let mut keys = BTreeMap::<AspectKey, BTreeSet<FieldKey>>::new();
-    for field in fields {
-        let aspect = field.locator.aspect().aspect_key().clone();
-        let field_key = field
-            .locator
-            .field_path()
-            .fields()
-            .first()
-            .expect("primary application fields always have a single canonical field")
-            .clone();
-        keys.entry(aspect).or_default().insert(field_key);
-    }
-    keys
-}
-
-fn lower_relation_layouts(
-    schema: &ErasedApplicationSchemaDeclaration,
-    entity_kinds: &BTreeMap<String, KindId>,
-    relation_kinds: &BTreeMap<String, KindId>,
-) -> Result<
-    BTreeMap<String, WorthQueryPrimaryRelationLayout>,
-    WorthQueryPrimaryGraphInstallationDenial,
-> {
-    schema
-        .members()
-        .iter()
-        .filter_map(|member| match member {
-            ApplicationSchemaMember::Relation { relation, from, to } => Some((relation, from, to)),
-            _ => None,
-        })
-        .map(|(relation, from, to)| {
-            Ok((
-                relation.clone(),
-                WorthQueryPrimaryRelationLayout {
-                    kind: required_kind(relation_kinds, relation)?,
-                    from: required_kind(entity_kinds, from)?,
-                    to: required_kind(entity_kinds, to)?,
-                },
-            ))
-        })
-        .collect()
-}
-
-fn lower_fields(
-    schema: &ErasedApplicationSchemaDeclaration,
-    entity_kinds: &BTreeMap<String, KindId>,
-) -> Result<
-    BTreeMap<(String, String, String), WorthQueryPrimaryFieldLayout>,
-    WorthQueryPrimaryGraphInstallationDenial,
-> {
-    schema
-        .members()
-        .iter()
-        .filter_map(|member| match member {
-            ApplicationSchemaMember::Field {
-                entity,
-                aspect,
-                field,
-                equality_queryable,
-                ..
-            } => Some((entity, aspect, field, equality_queryable)),
-            _ => None,
-        })
-        .map(|(entity, aspect, field, equality_queryable)| {
-            Ok((
-                (entity.clone(), aspect.clone(), field.clone()),
-                WorthQueryPrimaryFieldLayout {
-                    entity_kind: required_kind(entity_kinds, entity)?,
-                    locator: planned_field_locator(aspect, field)?,
-                    equality_index_id: equality_queryable.then_some(DerivedIndexId(0)),
-                },
-            ))
-        })
-        .collect()
 }

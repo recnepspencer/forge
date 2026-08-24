@@ -88,7 +88,11 @@ fn commit_only_other_outbox() -> (
 
 fn record(identity: u64) -> WorthQueryDispatchOutboxRecord {
     let correlation = derive_external_effect_correlation_identity(ExternalEffectCorrelationBasis {
-        correlation_family: "receipt-resolution-test",
+        correlation_family:
+            worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily::new(
+                "receipt-resolution-test",
+            )
+            .unwrap(),
         operation_slot: "notify",
         operation_version: 1,
         outcome_identity: identity,
@@ -99,7 +103,11 @@ fn record(identity: u64) -> WorthQueryDispatchOutboxRecord {
     WorthQueryDispatchOutboxRecord::from_installed_contract(
         correlation,
         &InstalledExternalEffectContract::Declared {
-            correlation_family: "receipt-resolution-test".to_owned(),
+            correlation_family:
+                worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily::new(
+                    "receipt-resolution-test",
+                )
+                .unwrap(),
             effect: "ReceiptResolutionEffect".to_owned(),
             rust_payload_type: "tests::ReceiptResolutionPayload".to_owned(),
             protocol: ApplicationExternalEffectProtocol::new(

@@ -2,7 +2,7 @@ use super::{authenticated_principal, installed_authorization_world, live_scope, 
 use crate::domain_computation::primary_graph::WorthQueryApplicationAttemptDenialKind;
 
 use super::super::fixture::{
-    AccountLabel, AccountStatus, MultiTouchOperation, TouchAccountOperation,
+    AccountActivityEffect, AccountLabel, AccountStatus, MultiTouchOperation, TouchAccountOperation,
 };
 
 #[test]
@@ -51,6 +51,17 @@ fn compile_capability_does_not_widen_the_installed_effect_program() {
     let Err(denial) = effects.write_field(&target, AccountLabel::reference(), "forged".to_string())
     else {
         panic!("a compile-capable field outside the installed program must deny");
+    };
+    assert_eq!(
+        denial.kind(),
+        WorthQueryApplicationAttemptDenialKind::UndeclaredEffect
+    );
+
+    let Err(denial) = effects.emit(
+        AccountActivityEffect::reference(),
+        "forged-emission".to_owned(),
+    ) else {
+        panic!("a compile-capable emission outside the installed contract must deny");
     };
     assert_eq!(
         denial.kind(),

@@ -56,19 +56,18 @@ pub(super) fn restore_record(
     let AspectValue::UInt64(outcome) = outcome else {
         return Err(Denial::Malformed);
     };
-    Ok(WorthQueryDispatchOutboxRecord::restore(
-        WorthQueryDispatchOutboxRestoredFields {
-            correlation: ExternalEffectCorrelationIdentity::from_digest(correlation),
-            correlation_family: raw_string(family)?,
-            effect: raw_string(effect)?,
-            protocol_identity: BoundaryProtocolIdentity::parse(raw_string(protocol_identity)?)
-                .map_err(|_| Denial::Malformed)?,
-            protocol_version,
-            maximum_payload_bytes: maximum,
-            payload,
-            outcome_identity: outcome,
-        },
-    ))
+    WorthQueryDispatchOutboxRecord::restore(WorthQueryDispatchOutboxRestoredFields {
+        correlation: ExternalEffectCorrelationIdentity::from_digest(correlation),
+        correlation_family: raw_string(family)?,
+        effect: raw_string(effect)?,
+        protocol_identity: BoundaryProtocolIdentity::parse(raw_string(protocol_identity)?)
+            .map_err(|_| Denial::Malformed)?,
+        protocol_version,
+        maximum_payload_bytes: maximum,
+        payload,
+        outcome_identity: outcome,
+    })
+    .ok_or(Denial::Malformed)
 }
 
 fn raw_string(value: AspectValue) -> Result<String, Denial> {

@@ -6,6 +6,7 @@ use crate::domain_operation::{WorthQueryOperationGraphReadScope, WorthQueryOpera
 pub struct WorthQueryOperationReadTouchOverlapIndex {
     reads: Vec<WorthQueryOperationGraphReadScope>,
     touches: Vec<WorthQueryOperationTouchScope>,
+    touch_overlap_counts: Vec<usize>,
 }
 
 impl WorthQueryOperationReadTouchOverlapIndex {
@@ -13,7 +14,20 @@ impl WorthQueryOperationReadTouchOverlapIndex {
         reads: Vec<WorthQueryOperationGraphReadScope>,
         touches: Vec<WorthQueryOperationTouchScope>,
     ) -> Self {
-        Self { reads, touches }
+        let touch_overlap_counts = touches
+            .iter()
+            .map(|touch| {
+                reads
+                    .iter()
+                    .filter(|read| read_intersects_touch(read, touch))
+                    .count()
+            })
+            .collect();
+        Self {
+            reads,
+            touches,
+            touch_overlap_counts,
+        }
     }
 
     pub fn reads(&self) -> &[WorthQueryOperationGraphReadScope] {
@@ -30,6 +44,13 @@ impl WorthQueryOperationReadTouchOverlapIndex {
         touch: &WorthQueryOperationTouchScope,
     ) -> bool {
         read_intersects_touch(read, touch)
+    }
+
+    /// Number of installed read scopes intersecting one indexed touch scope.
+    /// Installation pays the cross-product once; execution performs O(1)
+    /// overlap lookup after resolving the selected touch index.
+    pub fn touch_overlap_count(&self, touch_index: usize) -> Option<usize> {
+        self.touch_overlap_counts.get(touch_index).copied()
     }
 }
 

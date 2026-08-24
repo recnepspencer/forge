@@ -90,7 +90,11 @@ fn installed_bound_drift_is_rejected() {
 
 fn contract(effect: &str) -> InstalledExternalEffectContract {
     InstalledExternalEffectContract::Declared {
-        correlation_family: "external-family".to_owned(),
+        correlation_family:
+            worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily::new(
+                "external-family",
+            )
+            .unwrap(),
         effect: effect.to_owned(),
         rust_payload_type: std::any::type_name::<ExternalPayload>().to_owned(),
         protocol: EXTERNAL_PROTOCOL,

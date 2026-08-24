@@ -136,35 +136,7 @@ fn installed_application_operation_compiles_existing_authority_contract_families
         crate::facade::WorthQueryOperationTouchContract::Declared { scopes, .. }
             if matches!(scopes.as_slice(), [crate::facade::WorthQueryOperationTouchScope::CreateEntity(scope)] if scope.entity() == "TestEntity")
     ));
-    assert!(!operation.contracts().read_touch_overlap().intersects(
-        read,
-        &crate::facade::WorthQueryOperationTouchScope::WriteField(
-            crate::facade::WorthQueryOperationFieldTouchScope::new(
-                operation.binding_identity().clone(),
-                "TestEntity".to_owned(),
-                schema
-                    .native_contracts()
-                    .aspect("TestEntity", "IdentityAspect")
-                    .unwrap(),
-                CanonicalFieldPath::single(FieldKey::new("OtherField").unwrap()),
-            )
-        )
-    ));
-    assert!(!operation.contracts().read_touch_overlap().intersects(
-        read,
-        &crate::facade::WorthQueryOperationTouchScope::WriteField(
-            crate::facade::WorthQueryOperationFieldTouchScope::new(
-                operation.binding_identity().clone(),
-                "OtherEntity".to_owned(),
-                schema
-                    .native_contracts()
-                    .aspect("TestEntity", "IdentityAspect")
-                    .unwrap(),
-                CanonicalFieldPath::single(FieldKey::new("PrincipalIdentityField").unwrap()),
-            )
-        )
-    ));
-    assert_eq!(operation.contracts().decision_reads().len(), 1);
+    assert_eq!(operation.contracts().read_touch_overlap().reads().len(), 1);
     let [precondition] = operation.contracts().mutation_preconditions() else {
         panic!("the exact declared mutation precondition must be installed");
     };

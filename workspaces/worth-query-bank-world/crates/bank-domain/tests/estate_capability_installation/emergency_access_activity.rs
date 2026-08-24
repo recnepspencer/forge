@@ -17,12 +17,13 @@ use worth_query_host::facade::{
             ApplicationQueryDisclosurePosture, ApplicationQueryObservableInfluence,
             ApplicationQueryOrderingDirection, ApplicationQueryResultTraversalDirection,
         },
-        application_schema::{ApplicationOperationProgramTarget, TypedApplicationValue},
+        application_schema::TypedApplicationValue,
     },
     domain::WorthQueryInstallationRuntimeIdentity,
 };
 
 use super::installed_bank;
+use worth_query_host::facade::domain::WorthQueryOperationTouchScope;
 
 #[test]
 fn emergency_view_installs_exact_resource_lifecycle_and_effect_meaning() {
@@ -279,18 +280,17 @@ fn every_lifecycle_program_installs_one_exact_activity_emission() {
                 .capability(<$capability>::reference(), <$operation>::reference())
                 .unwrap();
             let operation = bank.installed_operation(<$operation>::reference()).unwrap();
-            let program = operation.contracts().program().to_vec();
             assert_eq!(
-                program
+                operation
+                    .contracts()
+                    .emissions()
+                    .emissions()
                     .iter()
-                    .filter_map(|target| match target {
-                        ApplicationOperationProgramTarget::Emit { effect } => Some(effect.as_str()),
-                        _ => None,
-                    })
+                    .map(|emission| emission.effect())
                     .collect::<Vec<_>>(),
                 vec!["EstateEmergencyAccessActivityEffect"]
             );
-            program
+            operation.contracts().touches().clone()
         }};
     }
 
@@ -298,20 +298,20 @@ fn every_lifecycle_program_installs_one_exact_activity_emission() {
         RequestEstateEmergencyAccessCapability,
         RequestEstateEmergencyAccessOperation
     );
-    assert!(request.iter().any(|target| matches!(
+    assert!(request.scopes().iter().any(|target| matches!(
         target,
-        ApplicationOperationProgramTarget::Link { relation, from, to }
-            if relation == "EmergencyEstate" && from == "EmergencyAccess" && to == "EstateCase"
+        WorthQueryOperationTouchScope::LinkRelation(scope)
+            if scope.relation() == "EmergencyEstate" && scope.from() == "EmergencyAccess" && scope.to() == "EstateCase"
     )));
-    assert_emission!(
+    let _ = assert_emission!(
         ApproveEstateEmergencyAccessCapability,
         ApproveEstateEmergencyAccessOperation
     );
-    assert_emission!(
+    let _ = assert_emission!(
         RevokeEstateEmergencyAccessCapability,
         RevokeEstateEmergencyAccessOperation
     );
-    assert_emission!(
+    let _ = assert_emission!(
         CompleteEstateMandatoryReviewCapability,
         CompleteEstateMandatoryReviewOperation
     );

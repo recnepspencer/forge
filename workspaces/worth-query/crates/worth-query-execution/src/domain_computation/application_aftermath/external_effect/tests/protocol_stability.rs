@@ -67,7 +67,13 @@ macro_rules! moved_payload_module {
                         .operation(
                             operation
                                 .definition()
-                                .external_effect(Notice::reference(), "protocol-test-rail")
+                                .external_effect(
+                                    Notice::reference(),
+                                    worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily::new(
+                                        "protocol-test-rail",
+                                    )
+                                    .unwrap(),
+                                )
                                 .no_aftermath()
                                 .finish(),
                         )
@@ -168,7 +174,11 @@ fn outbox(
     payload: Vec<u8>,
 ) -> WorthQueryDispatchOutboxRecord {
     let correlation = derive_external_effect_correlation_identity(ExternalEffectCorrelationBasis {
-        correlation_family: "protocol-test-rail",
+        correlation_family:
+            worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily::new(
+                "protocol-test-rail",
+            )
+            .unwrap(),
         operation_slot: "Notify",
         operation_version: 1,
         outcome_identity: 9,

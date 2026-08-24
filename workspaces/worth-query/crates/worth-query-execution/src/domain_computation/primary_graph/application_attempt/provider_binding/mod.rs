@@ -22,6 +22,7 @@ use super::{
 };
 
 pub(in crate::domain_computation) struct WorthQueryPreparedApplicationProviderAttempt {
+    installed_read_scopes: Vec<worth_query_installation::facade::WorthQueryOperationGraphReadScope>,
     facts: Vec<WorthQueryApplicationObservedFact>,
     effects: effect_accumulator::WorthQueryRegisteredProviderEffects,
     preimage_demand: Option<InstalledPreImageDemand>,
@@ -65,6 +66,7 @@ pub(super) fn installed_preimage_demand(
 }
 
 pub(super) fn prepare_provider_attempt(
+    installed_read_scopes: Vec<worth_query_installation::facade::WorthQueryOperationGraphReadScope>,
     facts: Vec<WorthQueryApplicationObservedFact>,
     effects: Vec<WorthQueryApplicationRealizedEffect>,
     expected_emission_retained_bytes: u64,
@@ -80,6 +82,7 @@ pub(super) fn prepare_provider_attempt(
         emission_retained_bytes_ceiling,
     )?;
     Ok(WorthQueryPreparedApplicationProviderAttempt {
+        installed_read_scopes,
         facts,
         effects: completed,
         preimage_demand,

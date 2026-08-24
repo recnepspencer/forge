@@ -4930,14 +4930,21 @@ features.
 
 ## Milestone 9.16.1.1: Installed Graph Contract Integrity Repair
 
+**Status:** Closed on 2026-08-23. Declaration now owns stable application
+aspect identity and revision; installation retains one native schema catalog
+and exact typed read, touch, emission, external-effect, and aftermath meaning;
+execution consumes those installed contracts through Relational-owned read and
+validated-mutation evidence; and Host exposes the complete read-only contract
+surface. Milestone 9.16.2 may consume this contract without a package- or
+NCR-local compatibility representation.
+
 ### Placement
 
-Milestone 9.16.1 remains closed. This append-only corrective sub-milestone
-repairs a later-discovered mismatch between its installed application-
-operation contract claim and the public contract emitted by Query
-installation. Milestone 9.16.2 remains proposed and begins production
-implementation only after 9.16.1.1 closes; it consumes the repaired installed
-contract rather than creating a package- or NCR-local workaround.
+Milestone 9.16.1 remains historical. This corrective sub-milestone repairs a
+later-discovered mismatch in the current installed application-operation
+contract without reopening or amending the prior closure record. Milestone
+9.16.2 consumes the repaired installed contract rather than creating a package-
+or NCR-local workaround.
 
 ### Goal
 
@@ -4948,22 +4955,18 @@ inspection, Host adoption, and successor package export.
 
 ### Adversarial Constraint
 
-A hostile Host consumer installs same-named fields and aspects across distinct
-entity and schema loci, permutes declaration order, cross-splices runtime
-generations, widens a one-field read, treats effect emission as graph mutation,
-substitutes declared scope for performed evidence, and changes reconciliation
-or correlation meaning without changing public inspection. Query must expose
-exact typed scopes and masks, register the same installed native contracts in
-Relational, retain complete typed aftermath meaning, deny every substitution,
-and perform zero warm reconstruction or canonical/SHA work with 128 unrelated
-fields and 4,096 unrelated operations.
+A Host consumer installs same-named fields and aspects across distinct entity
+and schema loci, reads one field, declares graph touches, and inspects an
+emit-only operation and external-owner aftermath. Query must expose exact typed
+scopes and masks, register the installed native contracts in Relational, keep
+declared and performed touches distinct, and retain complete typed aftermath
+meaning.
 
 ### Specification
 
 The governing specification is
-[milestone-9.16.1.1.md](./milestone-9.16.1.1.md). The closed 9.16.1 ledger
-retains its historical statuses and receives one append-only post-closure
-finding that names this repair.
+[milestone-9.16.1.1.md](./milestone-9.16.1.1.md). Historical closure artifacts
+are not reopened or used as current implementation authority.
 
 ### Must Ship
 
@@ -4976,8 +4979,8 @@ finding that names this repair.
   installed contracts, with no application contract reconstruction
 - typed installed reconciliation and correlation-family inspection through
   `worth_query_host::facade::domain`
-- canonical, scale, hostile-consumer, independent-owner, compile-fail,
-  dependency, facade, mutation-sensitive, and residue evidence
+- focused owner, Host-consumer, compile-boundary, and execution integration
+  tests plus required repository checks
 
 ### Must Preserve
 
@@ -5648,7 +5651,7 @@ answer is "store-gated" or "shared with another subsystem."
 | Installed operation semantics, semantic aspect correspondence, conditional Signal authority, and bound downstream authority | Milestone 9.14 | Complete installed operation semantic closures, one installed operating-world root, typed borrowed operation-family facades, sealed graph-participation adapters, atomic multi-domain and admitted multi-graph operation capabilities, portable Query-authored semantic truth dependencies and conditional-node declarations, aspect-precise Relational publication, installed truth-to-Signal aspect correspondences, pair-bound runtime-bridge lowerings, installed Signal node contracts, Signal-minted decision evidence, Query re-entry receipts, installed workflow DAGs, Query-minted run/stage traces, ordinary re-execution and cert-only replay results, typed reversal/compensation posture, derived-publication receipts, trace-bound lineage and promotion evidence, runtime-affine bound projections, Query-minted consumer support contracts, proof-bearing execution/consumption states, declaration-indexed native access keys, pair-bound compatibility witnesses, compiled dependency-impact closures, shared execution owners and consumer leases, capability-bound invalidation deltas, bound collection/window capabilities, query-shaped patches, managed lifecycle states, opaque operational identities, and exact counter snapshots | Stable domain operations, semantic truth dependencies, aspect publication, installed aspect correspondence, entry authority, graph participation, workflow progression, conditional authoring, lowering, Signal decisions, Query re-entry, replay, reversal, publication, promotion, and lineage cannot be reconstructed locally and independently valid authority ingredients cannot be recombined; Query owns portable semantic dependency and conditional intent, Relational owns authoritative aspect-change meaning, the runtime bridge owns exact installed correspondence and lowering, and Signal owns local aspect slots and evaluation truth; node evaluation and effect conditions remain distinct; skipped, deferred, and reverted-clean outcomes cannot masquerade as new computed delivery; one logical graph is the default; separate graphs bind atomically only with shared commit authority and otherwise expose compensation; ordinary downstream work consumes typed publications while replay remains cert-only; native access remains Foundational-exact and bounded; Query alone binds operation authority, advances workflow, mints traces and publications, admits replay, binds aftermath and lineage, compiles impact, admits sharing and compatibility/lifecycle, mints leases and support, states invalidation meaning, and preserves collection identity, ordering, cursors, continuation, and patch semantics; reporting representations and derived indexes have zero operational power | Milestone 9.14 operation-definition, single-root, graph-adapter, atomic/compensated multi-graph, semantic-dependency canonicality, Relational publication precision, aspect-correspondence/slot-capacity admission, conditional-authoring canonicality, bridge-lowering admission, Signal-decision authority, conditional outcome/counter matrix, Query re-entry, workflow-graph convergence/conflict, stage-progression, publication-consumption, replay-fence/equivalence/divergence, reversal-posture, lineage/promotion/persistent-naming, construction, support-spoofing, mix-and-match, native parity, dependency-impact replay, sharing-equivalence/lease lifecycle, collision, invalidation replay, collection-window identity, shared patch/fresh-execution parity, exact-counter, facade, residue, sabotage, reusable-certification-kit, and reference-consumer certification + Milestone 13 provider-independent bound-projection parity |
 | Managed pre-commit domain computation | Milestone 9.15 | Installed artifact/counter/decision/invariant contracts, occurrence and reproducibility identity, move-only managed artifacts, resource reservations, managed runs and continuations, sealed provider plans and sessions, basis-complete decision read-sets, provisional post-state attempts, and real invariant-execution results | Large products cross stages without blobs; actual provider work is bounded, cancellable, yieldable, resumable in memory, and backpressured; proposals remain isolated; selected obligations cannot masquerade as executed invariants; prepared work has no commit power | Milestone 9.15 artifact/occurrence, native-memory, resource-saturation, lifecycle, provider-session, read-set, proposed-state, invariant-execution, facade, residue, and hostile-provider certification |
 | Authenticated ordinary Query front door | Milestone 9.16 | Schema-derived typed references, installed application queries and Query-owned continuations, Authentik principal proof, capability/purpose/disclosure/conflict/elevation authority, Milestone 9.10-bound filter/sort/traversal access plans, touched-graph admission, double-entry and estate effects, provider compare-and-commit, actionable recovery, accepted aftermath/external-effect publication, ordinary read/mutation/workflow/history/live facades, host-installed conditional providers and named clocks, reconstructible temporal wakes, cross-process HTTP adaptation, and explicitly provisional linear undo/redo implementation evidence | Authentication cannot imply authorization; roles cannot imply unconstrained capability; entity visibility cannot imply field disclosure; break-glass cannot become superuser or self-benefit authority; policy composes through Relational facts, runtime-bridge lowering, Signal decision evidence, and Query admission; application queries cannot bypass graph-read planning or fabricate no-N+1 proof; host predicates cannot return raw Signal decisions; hosts cannot own Signal graphs or temporal schedulers; wake eligibility cannot imply application-operation authority; cursors carry no authority; compensation preserves history; provisional undo/redo owns no canonical history; concurrent money movement commits once or returns an honest outcome | Milestone 9.16 OIDC, capability/touched-graph, conflict-of-interest, disclosure, break-glass, canonical-query/cursor/basis, graph-access/no-N+1, accounting, concurrency, idempotency, recovery, aftermath, conditional host/reinstall, live-revocation, cross-process consumer, facade, residue, and certification-only replay parity; Milestone 9.18 for tree-based undo/redo product acceptance |
-| Installed graph contract integrity repair | Milestone 9.16.1.1 | Declaration-owned application aspect identity/revision; installed native schema catalog; typed entity/projection/relation reads; typed create/delete/write/link/unlink touches; typed reconciliation and correlation-family inspection | Installed operation inspection, graph-obligation selection, execution lowering, performed-evidence comparison, Host adoption, and successor package export consume one exact typed contract; no empty semantic-read posture, structured touch grammar, application contract reconstruction, or aftermath summary survives | Same-name/cross-locus, exact-mask, order-permutation, semantic-mutant, emit-only, declared-versus-performed, cross-generation, Host-facade, independent-owner, scale, warm-work, compile-fail, dependency, mutation, documentation, and residue certification |
+| Installed graph contract integrity repair | Milestone 9.16.1.1 | Declaration-owned application aspect identity/revision; installed native schema catalog; typed entity/projection/relation reads; typed create/delete/write/link/unlink touches; typed reconciliation and correlation-family inspection | Installed operation inspection, graph-obligation selection, execution lowering, performed-evidence comparison, Host adoption, and successor package export consume one exact typed contract; no empty semantic-read posture, structured touch grammar, application contract reconstruction, or aftermath summary survives | Focused owner, Host-consumer, compile-boundary, and execution integration tests plus required repository checks |
 | Portable packages and PostgreSQL runtime durability foundation | Milestone 9.16.2 | Stable identities and declaration-minted references, extending the application aspect/correlation identities delivered by 9.16.1.1; typed package records carrying the repaired installed graph and aftermath contracts; bounded reconstruction/fresh validation; neutral archive; stable `worth-runtime-postgres` adapter and persistent `worth-query-host` facade; Relational durability/recovery; existing-outbox discovery, performed-product-publication admission, fenced claims, attempts, and outcomes; committed Signal/Runtime-Bridge adapter topology | PostgreSQL is in the owner commit path before acknowledgement; Query's co-committed outbox remains the only payload; the host facade invokes owner recovery but mints no authority; the adapter owns physical mechanics only; old proofs, handles, rows, and leases mint nothing; 9.17 adds owner siblings without moving facades; warm execution performs no package/recovery/global-work scan | Real-PostgreSQL commit/dispatch crash matrices; package mutants; checkpoint/tail fresh-process equality; coexisting releases; isolation; migrations; projection rebuild; stable-idempotency/stale-fence hostility; destination-topology enforcement; NCR state/notification/restart journey through the repaired public contracts; backup/restore, facade, docs, boundary, and residue certification |
 | Composite runtime branching, continuous durability, and branch-local MVCC | Milestone 9.17 umbrella: 9.17.1 owner bases/MVCC/component recovery, 9.17.2 durable composite history/publication, 9.17.3 Query carriage/recovery/outbox cutover/facade/certification | Owner-issued durable Relational/Signal bases; branch-local MVCC; Runtime Bridge-owned correspondence, single-parent composite commits, durable product-head CAS and recovery; Query-carried product-world affinity; existing-outbox admission bound to performed composite publication | Branch identities remain distinct; components and Bridge recover through their own authority; SQL rows mint nothing; unrelated branches progress; partial preparation never becomes product-current; an owner-local outbox never dispatches after failed composite publication; the stable runtime facade admits traffic only after owner-first recovery and reconciliation | 9.17.1 real-PostgreSQL component recovery and independent progress + 9.17.2 product-head crash/CAS/owner-first recovery + 9.17.3 end-to-end composite restart and dispatch crash matrix + shared-basis, component-divergence, same-head-race, substitution, lifecycle, facade, compiler, docs, residue, and later cross-runtime semantic merge suites |
 | Tree-based semantic undo and redo | Milestone 9.18 | Exact source composite commit and target product branch/head, explicit per-component correction posture, installed inverse/compensation/reconciliation/reapplication contracts, applicability against intervening history, fresh Query admission, owner-local preparation, Runtime Bridge coordinated publication, correction causality, and typed next actions | Reversal and reapplication create new composite commits; unchanged components retain exact bases; Signal reconciliation remains Signal-owned; history and alternatives remain intact; copied receipts and prior authority open no door; stale/conflicting divergence is typed before effects; external effects retain honest compensation/irreversibility posture; Query owns no history head | Milestone 9.18 composite-divergence, stale-head, component-basis, Signal-reconciliation, authority, compensation, external-effect, partial-preparation, zero-ordinary-work, facade, documentation, and residue certification + later cross-runtime merge/rebase/recovery suites |
@@ -5755,7 +5758,6 @@ must gain a row in the same patch or the roadmap is incomplete.
 - [milestone-9.15.md](./milestone-9.15.md)
 - [milestone-9.16.md](./milestone-9.16.md)
 - [milestone-9.16.1.md](./milestone-9.16.1.md)
-- [milestone-9.16.1-closure-ledger.md](./milestone-9.16.1-closure-ledger.md)
 - [milestone-9.16.1.1.md](./milestone-9.16.1.1.md)
 - [milestone-9.16.2.md](./milestone-9.16.2.md)
 - [milestone-9.17.md](./milestone-9.17.md)

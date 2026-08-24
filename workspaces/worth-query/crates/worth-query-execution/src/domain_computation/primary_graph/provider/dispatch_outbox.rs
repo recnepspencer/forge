@@ -44,7 +44,7 @@ pub(in crate::domain_computation::primary_graph) fn derive_dispatch_outbox_recor
         .ok_or(WorthQueryAftermathDerivationFailure::MissingExternalPayload)?;
     let correlation =
         derive_external_effect_correlation_identity(ExternalEffectCorrelationBasis {
-            correlation_family,
+            correlation_family: correlation_family.clone(),
             operation_slot: basis.operation_slot,
             operation_version: basis.operation_version,
             outcome_identity: basis.outcome_identity.get(),

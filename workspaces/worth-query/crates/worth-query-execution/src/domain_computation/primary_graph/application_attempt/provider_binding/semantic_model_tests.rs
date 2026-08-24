@@ -10,6 +10,7 @@ use super::prepare_provider_attempt;
 fn mixed_effects_lower_to_the_exact_independent_semantic_model() {
     let world = mixed_effect_world();
     let prepared = prepare_provider_attempt(
+        Vec::new(),
         world.facts,
         world.effects,
         world.retained_bytes,
@@ -25,6 +26,7 @@ fn mixed_effects_lower_to_the_exact_independent_semantic_model() {
 fn alternate_effect_insertion_preserves_each_exact_association_and_order() {
     let world = mixed_effect_world();
     let prepared = prepare_provider_attempt(
+        Vec::new(),
         world.facts,
         world.alternate_effects,
         world.retained_bytes,

@@ -13,6 +13,7 @@ use worth_query_decl::facade::{
     application_schema::{
         ApplicationOperationDefinition, ApplicationOperationRef,
         ApplicationSchemaDeclarationBuilder, OperationEmits,
+        WorthQueryExternalEffectCorrelationFamily,
     },
 };
 
@@ -220,12 +221,15 @@ fn escaping_operation<Operation>(
 where
     EstateDeathNotificationEffect: OperationEmits<Operation>,
 {
+    let correlation_family =
+        WorthQueryExternalEffectCorrelationFamily::new(ESTATE_DEATH_NOTICE_RAIL)
+            .expect("the estate death-notice rail is an atomic identity");
     match declared_aftermath_for(capability) {
         Some(contract) => operation
             .definition()
             .external_effect(
                 EstateDeathNotificationEffect::reference(),
-                ESTATE_DEATH_NOTICE_RAIL,
+                correlation_family,
             )
             .aftermath(contract)
             .finish(),
@@ -233,7 +237,7 @@ where
             .definition()
             .external_effect(
                 EstateDeathNotificationEffect::reference(),
-                ESTATE_DEATH_NOTICE_RAIL,
+                correlation_family,
             )
             .no_aftermath()
             .finish(),

@@ -1,14 +1,12 @@
 use std::collections::BTreeSet;
 
 use bank_domain::schema::ReleaseEstateOperation;
-use worth_query_host::facade::{
-    declaration::application_schema::{
-        ApplicationOperationDecisionReadTarget, ApplicationOperationProgramTarget,
-    },
-    domain::WorthQueryInstallationRuntimeIdentity,
-};
+use worth_query_host::facade::domain::WorthQueryInstallationRuntimeIdentity;
 
-use super::installed_bank;
+use super::{
+    installed_bank, installed_program_targets, installed_read_targets, InstalledProgramTarget,
+    InstalledReadTarget,
+};
 
 #[test]
 fn release_installs_exact_reads_and_effect() {
@@ -19,25 +17,22 @@ fn release_installs_exact_reads_and_effect() {
     assert_eq!(release.contracts().decision_fact_budget(), 32);
     assert_eq!(release.contracts().projection_work_budget(), 96);
     assert_eq!(
-        release
-            .contracts()
-            .decision_reads()
-            .iter()
-            .cloned()
-            .collect::<BTreeSet<_>>(),
+        installed_read_targets(release.contracts()),
         expected_release_reads()
     );
     assert_eq!(
-        release.contracts().program(),
-        [ApplicationOperationProgramTarget::Write {
+        installed_program_targets(release.contracts()),
+        [InstalledProgramTarget::Write {
             entity: "EstateCase".to_owned(),
             aspect: "EstateCaseRecord".to_owned(),
-            field: "EstateCaseStatusField".to_owned(),
+            path: path("EstateCaseStatusField"),
         }]
+        .into_iter()
+        .collect()
     );
 }
 
-fn expected_release_reads() -> BTreeSet<ApplicationOperationDecisionReadTarget> {
+fn expected_release_reads() -> BTreeSet<InstalledReadTarget> {
     [
         field("EstateCase", "EstateCaseRecord", "EstateCaseIdentityField"),
         field("EstateCase", "EstateCaseRecord", "EstateCaseStatusField"),
@@ -77,18 +72,24 @@ fn expected_release_reads() -> BTreeSet<ApplicationOperationDecisionReadTarget> 
     .collect()
 }
 
-fn field(entity: &str, aspect: &str, field: &str) -> ApplicationOperationDecisionReadTarget {
-    ApplicationOperationDecisionReadTarget::Field {
+fn field(entity: &str, aspect: &str, field: &str) -> InstalledReadTarget {
+    InstalledReadTarget::Field {
         entity: entity.to_owned(),
         aspect: aspect.to_owned(),
-        field: field.to_owned(),
+        path: path(field),
     }
 }
 
-fn relation(relation: &str, from: &str, to: &str) -> ApplicationOperationDecisionReadTarget {
-    ApplicationOperationDecisionReadTarget::Relation {
+fn relation(relation: &str, from: &str, to: &str) -> InstalledReadTarget {
+    InstalledReadTarget::Relation {
         relation: relation.to_owned(),
         from: from.to_owned(),
         to: to.to_owned(),
     }
+}
+
+fn path(field: &str) -> worth_foundational::facade::CanonicalFieldPath {
+    worth_foundational::facade::CanonicalFieldPath::single(
+        worth_foundational::facade::FieldKey::new(field).unwrap(),
+    )
 }

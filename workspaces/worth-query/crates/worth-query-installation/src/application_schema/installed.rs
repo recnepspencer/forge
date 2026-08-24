@@ -124,14 +124,6 @@ where
         Arc::clone(&self.native_contract_catalog)
     }
 
-    #[cfg(test)]
-    pub(crate) fn shares_native_contract_catalog_with(&self, other: &Self) -> bool {
-        Arc::ptr_eq(
-            &self.native_contract_catalog,
-            &other.native_contract_catalog,
-        )
-    }
-
     pub fn installed_ability_requirement(
         &self,
         ability: &str,

@@ -35,8 +35,7 @@ impl<Schema, Operation, Input, Scope>
             .admission
             .delegation_activation_binding()
             .ok_or_else(|| transition_required(self.admission.operation()))?;
-        let effects =
-            activation_effects(binding, self.admission.allowed_graph_contract().program())?;
+        let effects = activation_effects(binding, self.admission.allowed_graph_contract())?;
         let emission_retained_bytes_ceiling = self
             .admission
             .allowed_graph_contract()
@@ -78,14 +77,8 @@ pub(in crate::domain_computation::primary_graph) fn validate_delegation_activati
         .admission
         .delegation_activation_binding()
         .ok_or_else(|| transition_required(program.read_set.admission.operation()))?;
-    let expected = activation_effects(
-        binding,
-        program
-            .read_set
-            .admission
-            .allowed_graph_contract()
-            .program(),
-    )?;
+    let expected =
+        activation_effects(binding, program.read_set.admission.allowed_graph_contract())?;
     if program.emission_retained_bytes == 0 && effects_are_exact(&program.effects, &expected) {
         Ok(())
     } else {
@@ -95,7 +88,7 @@ pub(in crate::domain_computation::primary_graph) fn validate_delegation_activati
 
 fn activation_effects(
     binding: &WorthQueryDelegationActivationBinding,
-    installed: &[worth_query_installation::facade::ApplicationOperationProgramTarget],
+    installed: &worth_query_installation::facade::WorthQueryCompiledApplicationOperationContracts,
 ) -> Result<Vec<WorthQueryApplicationRealizedEffect>, WorthQueryApplicationAttemptDenial> {
     binding
         .materialize_program(installed)

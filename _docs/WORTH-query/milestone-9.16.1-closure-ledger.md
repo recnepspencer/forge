@@ -670,32 +670,6 @@ canonical derivation after copying the terminal's metered publication work.
 This is an append-only evidence correction. It changes neither the completed
 Phase 5 authority cutover nor any unrelated milestone status.
 
-## Post-Closure Installed Contract Integrity Finding
-
-After this ledger closed, downstream NCR contract inspection exposed that the
-installed application-operation compiler still emitted an empty native
-semantic-read collection and encoded structured graph touch scopes as private
-strings. The same audit found that application native aspect identity and
-contract construction still occurred in execution rather than installation,
-and that reconciliation and aftermath correlation-family meaning were not
-completely available through typed installed inspection.
-
-This finding narrows the historical interpretation of C1, C2-Q, C9, CQ9, and
-the installed application-operation migration row. Those rows correctly prove
-one sealed obligation authority and one execution/session progression; they do
-not prove that every installed application read, touch, and aftermath semantic
-component was completely retained and publicly inspectable as typed meaning.
-
-Milestone
-[9.16.1.1](./milestone-9.16.1.1.md) owns the append-only repair. It establishes
-declaration-owned application aspect identity/revision, one installed native
-schema catalog, exact typed read and touch scopes, execution consumption of the
-same contracts, and complete typed aftermath inspection. Milestone 9.16.1
-remains historically closed, and all unaffected session, owner-execution,
-lifecycle, publication, facade, performance, and residue evidence remains
-valid input. Milestone 9.16.2 may not begin production implementation until
-9.16.1.1 closes.
-
 ## Evidence Selection Policy
 
 Evidence is selected from the causal ledger rather than multiplied across every

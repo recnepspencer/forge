@@ -6,7 +6,6 @@ use worth_query_declaration::facade::domain_computation::{
 };
 
 use super::compiled_contract::WorthQueryCompiledApplicationOperationContracts;
-use super::effect_posture;
 use crate::application_operation::WorthQuerySealedOperationContractCompilation;
 use crate::domain_computation::{
     WorthQueryExecutionAccessProductFamily, WorthQueryExecutionAllocatorFamily,
@@ -37,8 +36,7 @@ impl WorthQueryCompiledApplicationOperationContracts {
         let (
             authorization,
             mut ability_requirements,
-            mut program,
-            mut decision_reads,
+            authored_program_width,
             decision_fact_budget,
             projection_work_budget,
             additional_authorization_fact_count,
@@ -48,18 +46,11 @@ impl WorthQueryCompiledApplicationOperationContracts {
             aftermath,
             graph_reads,
             touches,
+            emissions,
             graph_mutation_count,
         ) = compilation.into_parts();
         ability_requirements.sort();
         ability_requirements.dedup();
-        program.sort();
-        program.dedup();
-        decision_reads.sort();
-        decision_reads.dedup();
-        debug_assert_eq!(
-            effect_posture::has_graph_mutation(&program),
-            graph_mutation_count > 0,
-        );
         let authorization_fact_count = authorization
             .exact_fact_count(ability_requirements.len())
             .saturating_add(additional_authorization_fact_count);
@@ -77,20 +68,19 @@ impl WorthQueryCompiledApplicationOperationContracts {
             application_decision_fact_contract(decision_fact_budget, authorization_fact_count);
         let resources = application_resource_contract(
             decision_fact_budget.saturating_add(authorization_fact_count),
-            program.len(),
+            authored_program_width,
         );
         Self {
             authorization,
             ability_requirements,
             graph_reads,
             touches,
+            emissions,
             effects,
             invariants,
             decision_facts,
             invariant_execution,
             resources,
-            program,
-            decision_reads,
             decision_fact_budget,
             projection_work_budget,
             additional_authorization_fact_count,

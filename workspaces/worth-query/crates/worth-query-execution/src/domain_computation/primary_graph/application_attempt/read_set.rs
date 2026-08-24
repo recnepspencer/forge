@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use worth_query_installation::facade::{
     ApplicationFieldRef, ApplicationFieldUnit, ApplicationSchema, EqualityPredicate,
-    OperationReads, TypedApplicationValue, WritePosture,
+    OperationReads, TypedApplicationValue, WorthQueryOperationGraphReadScope, WritePosture,
 };
 
 use super::fact::{WorthQueryApplicationFactKey, WorthQueryApplicationObservedFact};
@@ -38,6 +38,8 @@ pub struct WorthQueryApplicationReadAttempt<
     entity_resolution: WorthQueryInstalledEntityResolutionContext,
     read_scope: WorthQueryApplicationReadScope,
     expected_facts: Option<BTreeSet<WorthQueryApplicationFactKey>>,
+    installed_read_scopes:
+        BTreeMap<WorthQueryApplicationFactKey, WorthQueryOperationGraphReadScope>,
     facts: BTreeMap<WorthQueryApplicationFactKey, WorthQueryApplicationObservedFact>,
     _phase: PhantomData<fn() -> Phase>,
 }
@@ -51,6 +53,7 @@ pub struct WorthQueryCompleteApplicationReadSet<
 > {
     pub(super) admission: WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scope>,
     pub(super) lease: WorthQueryApplicationSnapshotLease,
+    pub(super) installed_read_scopes: Vec<WorthQueryOperationGraphReadScope>,
     pub(super) facts: Vec<WorthQueryApplicationObservedFact>,
     pub(super) _phase: PhantomData<fn() -> Phase>,
 }
@@ -120,6 +123,7 @@ where
             entity_resolution: graph.retain_entity_resolution_context(),
             read_scope,
             expected_facts: None,
+            installed_read_scopes: BTreeMap::new(),
             facts: BTreeMap::new(),
             _phase: PhantomData,
         })
@@ -208,6 +212,7 @@ where
             entity_resolution: graph.retain_entity_resolution_context(),
             read_scope: WorthQueryApplicationReadScope::projected(root, projected_scope),
             expected_facts: Some(expected_facts),
+            installed_read_scopes: BTreeMap::new(),
             facts: BTreeMap::new(),
             _phase: PhantomData,
         })
@@ -301,24 +306,40 @@ impl<Schema, Operation, Input, Scope, Phase>
                 self.admission.operation(),
             ));
         }
-        if self.expected_facts.is_none() {
-            let observed = self
-                .facts
-                .values()
-                .map(WorthQueryApplicationObservedFact::target)
-                .collect::<BTreeSet<_>>();
-            if let Some(missing) = self
-                .admission
-                .allowed_graph_contract()
-                .decision_reads()
-                .iter()
-                .find(|target| !observed.contains(*target))
-            {
-                return Err(denial(
-                    WorthQueryApplicationAttemptDenialKind::IncompleteDecisionReadSet,
-                    format!("{missing:?}"),
-                ));
-            }
+        let installed_scopes_close_over_facts = self
+            .installed_read_scopes
+            .iter()
+            .zip(self.facts.keys())
+            .all(|((scope_key, scope), fact_key)| {
+                scope_key == fact_key
+                    && observation_admission::graph_read_scope_matches_key(scope, fact_key)
+                    && self
+                        .admission
+                        .allowed_graph_contract()
+                        .graph_reads()
+                        .roles()
+                        .iter()
+                        .flat_map(|role| role.read_scopes())
+                        .any(|installed| installed == scope)
+            });
+        if self.installed_read_scopes.len() != self.facts.len()
+            || !installed_scopes_close_over_facts
+        {
+            return Err(denial(
+                WorthQueryApplicationAttemptDenialKind::DecisionDependencyMismatch,
+                self.admission.operation(),
+            ));
+        }
+        if self.expected_facts.is_none()
+            && !observation_admission::graph_reads_exactly_cover_fact_keys(
+                self.admission.allowed_graph_contract().graph_reads(),
+                self.facts.keys(),
+            )
+        {
+            return Err(denial(
+                WorthQueryApplicationAttemptDenialKind::IncompleteDecisionReadSet,
+                self.admission.operation(),
+            ));
         }
         self.admission
             .mutation_preconditions()
@@ -332,6 +353,7 @@ impl<Schema, Operation, Input, Scope, Phase>
         Ok(WorthQueryCompleteApplicationReadSet {
             admission: self.admission,
             lease: self.lease,
+            installed_read_scopes: self.installed_read_scopes.into_values().collect(),
             facts: self.facts.into_values().collect(),
             _phase: PhantomData,
         })

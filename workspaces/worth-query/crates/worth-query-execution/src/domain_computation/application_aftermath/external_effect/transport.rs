@@ -6,6 +6,7 @@
 
 use super::outbox::WorthQueryDispatchOutboxRecord;
 use worth_foundational::facade::{BoundaryProtocolIdentity, BoundaryProtocolVersion};
+use worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily;
 
 /// What one dispatch attempt observed. `Completed` is the only variant that
 /// may become an `ExternalCompletion` posture.
@@ -43,7 +44,7 @@ pub enum WorthQueryExternalTransportOutcome {
 /// least able to do it (Q8.25-C3).
 #[derive(Clone, Copy, Debug)]
 pub struct WorthQueryExternalDispatchRequest<'a> {
-    correlation_family: &'a str,
+    correlation_family: &'a WorthQueryExternalEffectCorrelationFamily,
     correlation_token: &'a [u8; 32],
     /// The declared effect these bytes project from.
     effect: &'a str,
@@ -86,7 +87,7 @@ impl<'a> WorthQueryExternalDispatchRequest<'a> {
         }
     }
 
-    pub const fn correlation_family(&self) -> &'a str {
+    pub const fn correlation_family(&self) -> &'a WorthQueryExternalEffectCorrelationFamily {
         self.correlation_family
     }
 
@@ -119,7 +120,9 @@ impl<'a> WorthQueryExternalDispatchRequest<'a> {
 mod tests {
     use worth_foundational::facade::{BoundaryProtocolIdentity, BoundaryProtocolVersion};
     use worth_query_declaration::facade::application_schema::ApplicationExternalEffectProtocol;
-    use worth_query_installation::facade::InstalledExternalEffectContract;
+    use worth_query_installation::facade::{
+        InstalledExternalEffectContract, WorthQueryExternalEffectCorrelationFamily,
+    };
 
     use super::super::{
         derive_external_effect_correlation_identity, ExternalEffectCorrelationBasis,
@@ -131,7 +134,10 @@ mod tests {
     fn request_is_an_exact_borrowed_projection_of_one_outbox_record() {
         let correlation =
             derive_external_effect_correlation_identity(ExternalEffectCorrelationBasis {
-                correlation_family: "transport-mapping",
+                correlation_family: WorthQueryExternalEffectCorrelationFamily::new(
+                    "transport-mapping",
+                )
+                .unwrap(),
                 operation_slot: "notify-death",
                 operation_version: 7,
                 outcome_identity: 81,
@@ -140,7 +146,8 @@ mod tests {
             })
             .expect("the fixture correlation derives");
         let contract = InstalledExternalEffectContract::Declared {
-            correlation_family: "transport-mapping".to_owned(),
+            correlation_family: WorthQueryExternalEffectCorrelationFamily::new("transport-mapping")
+                .unwrap(),
             effect: "EstateDeathNotificationEffect".to_owned(),
             rust_payload_type: "internal::MovedPayload".to_owned(),
             protocol: ApplicationExternalEffectProtocol::new(

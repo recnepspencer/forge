@@ -4,7 +4,10 @@ use crate::domain_computation::authorization::WorthQueryPrincipalCurrentnessDepe
 
 #[derive(Clone)]
 pub(in crate::domain_computation) enum WorthQueryPrimaryGraphApplicationDecisionFact {
-    Application(super::super::application_attempt::WorthQueryApplicationObservedFact),
+    Application {
+        read_scope: worth_query_installation::facade::WorthQueryOperationGraphReadScope,
+        fact: super::super::application_attempt::WorthQueryApplicationObservedFact,
+    },
     Principal(WorthQueryPrincipalCurrentnessDependency),
     Authorization {
         session: crate::domain_computation::provider_session::WorthQueryGraphWorkSessionIdentity,
@@ -15,9 +18,10 @@ pub(in crate::domain_computation) enum WorthQueryPrimaryGraphApplicationDecision
 
 impl WorthQueryPrimaryGraphApplicationDecisionFact {
     pub(in crate::domain_computation) const fn application(
+        read_scope: worth_query_installation::facade::WorthQueryOperationGraphReadScope,
         fact: super::super::application_attempt::WorthQueryApplicationObservedFact,
     ) -> Self {
-        Self::Application(fact)
+        Self::Application { read_scope, fact }
     }
 
     pub(in crate::domain_computation) const fn principal(
@@ -48,13 +52,13 @@ impl WorthQueryPrimaryGraphApplicationDecisionFact {
         match self {
             Self::Principal(dependency) => Some(dependency.session_identity()),
             Self::Authorization { session, .. } => Some(*session),
-            Self::Application(_) => None,
+            Self::Application { .. } => None,
         }
     }
 
     pub(in crate::domain_computation) fn locator_identity(&self) -> String {
         match self {
-            Self::Application(fact) => fact.locator_identity(),
+            Self::Application { fact, .. } => fact.locator_identity(),
             Self::Principal(_) => "application-principal-currentness".to_string(),
             Self::Authorization { locator, .. } => locator.to_string(),
         }
@@ -66,7 +70,7 @@ impl WorthQueryPrimaryGraphApplicationDecisionFact {
         snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
     ) -> bool {
         match self {
-            Self::Application(fact) => fact.remains_equal_in(runtime, snapshot),
+            Self::Application { fact, .. } => fact.remains_equal_in(runtime, snapshot),
             Self::Principal(dependency) => dependency.remains_current_in(runtime, snapshot),
             Self::Authorization { decision, .. } => decision.remains_equal_in(runtime, snapshot),
         }

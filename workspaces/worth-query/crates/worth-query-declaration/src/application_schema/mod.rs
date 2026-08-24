@@ -19,6 +19,7 @@ mod declaration;
 mod declaration_denial;
 mod effect_authoring;
 mod effect_payload;
+mod external_effect_correlation_family;
 mod external_effect_protocol;
 mod field_presence;
 mod field_reference;
@@ -89,6 +90,7 @@ pub use declaration::{
 pub use declaration_denial::ApplicationSchemaDeclarationDenial;
 pub use effect_authoring::{TypedEffectIntent, TypedEffectIntentBuilder};
 pub use effect_payload::{ApplicationEffectPayload, ApplicationExternalEffectPayload};
+pub use external_effect_correlation_family::WorthQueryExternalEffectCorrelationFamily;
 pub use external_effect_protocol::ApplicationExternalEffectProtocol;
 pub use field_presence::ApplicationFieldPresence;
 pub use field_reference::{

@@ -76,7 +76,10 @@ pub(super) fn install(
                 .definition()
                 .external_effect(
                     RetainedStatusEffect::reference(),
-                    "test-status-retention-rail",
+                    worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily::new(
+                        "test-status-retention-rail",
+                    )
+                    .unwrap(),
                 )
                 .aftermath(schema_types::exact_preimage_retention::status_with_external_owner())
                 .finish(),

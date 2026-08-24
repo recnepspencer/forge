@@ -3,6 +3,7 @@ use worth_query_decl::facade::application_schema::{
     ApplicationEffectPayload, ApplicationExternalEffectPayload,
     ApplicationExternalEffectProtocol, ApplicationSchema, ApplicationSchemaDeclaration,
     ApplicationSchemaDeclarationBuilder, ApplicationSchemaDeclarationDenial,
+    WorthQueryExternalEffectCorrelationFamily,
 };
 use worth_foundational::facade::{BoundaryProtocolIdentity, BoundaryProtocolVersion};
 use worth_query_decl::facade::{
@@ -68,7 +69,10 @@ impl ApplicationSchema for Schema {
             .operation(
                 external_only
                     .definition()
-                    .external_effect(Effect::reference(), "rail")
+                    .external_effect(
+                        Effect::reference(),
+                        WorthQueryExternalEffectCorrelationFamily::new("rail").unwrap(),
+                    )
                     .no_aftermath()
                     .finish(),
             )
@@ -76,7 +80,10 @@ impl ApplicationSchema for Schema {
             .operation(
                 both
                     .definition()
-                    .external_effect(Effect::reference(), "rail")
+                    .external_effect(
+                        Effect::reference(),
+                        WorthQueryExternalEffectCorrelationFamily::new("rail").unwrap(),
+                    )
                     .aftermath(DeclaredApplicationAftermathContract::not_correctable())
                     .finish(),
             )

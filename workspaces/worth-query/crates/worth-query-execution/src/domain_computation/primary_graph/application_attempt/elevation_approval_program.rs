@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use worth_query_declaration::facade::domain_computation::WorthQueryResourceDimension;
 use worth_relational::facade::transactions::EntityReference;
@@ -15,6 +15,9 @@ use super::{
     WorthQueryApplicationAttemptDenial, WorthQueryApplicationAttemptDenialKind,
     WorthQueryApplicationEffectProgram, WorthQueryCompleteApplicationReadSet,
     WorthQueryProjectedApplicationMutation,
+};
+use crate::domain_computation::application_contract_admission::{
+    application_contract_exactly_matches_program_targets, graph_reads_exactly_match_targets,
 };
 use crate::domain_computation::authorization::WorthQueryElevationApprovalBinding;
 
@@ -126,30 +129,12 @@ fn validate_installed_contract<Schema, Operation, Input, Scope>(
         WorthQueryProjectedApplicationMutation,
     >,
 ) -> Result<(), WorthQueryApplicationAttemptDenial> {
-    let expected_reads = binding
-        .required_decision_reads()
-        .iter()
-        .collect::<BTreeSet<_>>();
-    let installed_reads = read_set
-        .admission
-        .allowed_graph_contract()
-        .decision_reads()
-        .iter()
-        .collect::<BTreeSet<_>>();
-    let expected_targets = binding
-        .required_program_targets()
-        .iter()
-        .collect::<BTreeSet<_>>();
-    let installed_targets = read_set
-        .admission
-        .allowed_graph_contract()
-        .program()
-        .iter()
-        .collect::<BTreeSet<_>>();
-    if expected_reads.len() == binding.required_decision_reads().len()
-        && expected_reads == installed_reads
-        && expected_targets.len() == binding.required_program_targets().len()
-        && expected_targets == installed_targets
+    let contracts = read_set.admission.allowed_graph_contract();
+    if graph_reads_exactly_match_targets(contracts.graph_reads(), binding.required_decision_reads())
+        && application_contract_exactly_matches_program_targets(
+            contracts,
+            binding.required_program_targets(),
+        )
     {
         Ok(())
     } else {

@@ -125,11 +125,8 @@ pub(super) fn validate_member_identifiers(
                 validate_simple_identifier(operation)?;
             }
             ApplicationSchemaMember::OperationExternalEffect {
-                operation,
-                effect,
-                correlation_family,
-                ..
-            } => validate_identifiers([operation, effect, correlation_family])?,
+                operation, effect, ..
+            } => validate_identifiers([operation, effect])?,
             ApplicationSchemaMember::OperationAftermath { operation, .. } => {
                 validate_simple_identifier(operation)?;
             }

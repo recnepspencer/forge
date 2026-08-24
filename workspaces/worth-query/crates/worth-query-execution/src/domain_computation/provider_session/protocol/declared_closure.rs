@@ -8,6 +8,8 @@ use worth_query_installation::facade::{
 };
 
 mod aftermath_posture;
+#[cfg(test)]
+pub(super) use aftermath_posture::reversal_posture;
 
 #[derive(Clone, Debug)]
 pub(crate) struct WorthQueryProviderPlanDeclarations {
@@ -17,6 +19,11 @@ pub(crate) struct WorthQueryProviderPlanDeclarations {
     invariant_requirements:
         Vec<worth_query_installation::facade::WorthQueryInstalledInvariantExecutionRequirement>,
     reconciliation_posture: String,
+    application_graph_reads:
+        Option<worth_query_installation::facade::WorthQueryOperationGraphReadContract>,
+    application_touches: Option<worth_query_installation::facade::WorthQueryOperationTouchContract>,
+    application_read_touch_overlap:
+        Option<worth_query_installation::facade::WorthQueryOperationReadTouchOverlapIndex>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -35,6 +42,9 @@ impl Default for WorthQueryProviderPlanDeclarations {
             decision_fact_families: Vec::new(),
             invariant_requirements: Vec::new(),
             reconciliation_posture: "not-declared".to_owned(),
+            application_graph_reads: None,
+            application_touches: None,
+            application_read_touch_overlap: None,
         }
     }
 }
@@ -57,26 +67,26 @@ impl WorthQueryProviderPlanDeclarations {
     pub(crate) fn from_application_contracts(
         contracts: &worth_query_installation::facade::WorthQueryCompiledApplicationOperationContracts,
     ) -> Self {
-        let mut closure = WorthQueryProviderPlanDeclaredClosure {
-            read: vec!["primary:project".to_owned()],
-            ..WorthQueryProviderPlanDeclaredClosure::default()
-        };
-        if let WorthQueryOperationTouchContract::Declared { scopes, .. } = contracts.touches() {
-            closure
-                .touch
-                .extend(scopes.iter().map(application_touch_diagnostic));
-        }
+        let mut closure = WorthQueryProviderPlanDeclaredClosure::default();
         bind_direct_role_closure(
             &mut closure,
             &effect_families(contracts.effects()),
             &invariant_slots(contracts.invariants()),
         );
+        if !contracts.touches().scopes().is_empty() {
+            closure.effect = effect_families(contracts.effects());
+            closure.invariant = invariant_slots(contracts.invariants());
+            closure.canonicalize();
+        }
         Self {
             direct: [("primary".to_owned(), closure)].into_iter().collect(),
             workflow: BTreeMap::new(),
             decision_fact_families: contracts.decision_facts().required_families().to_vec(),
             invariant_requirements: contracts.invariant_execution().requirements().to_vec(),
             reconciliation_posture: "provisional-discard".to_owned(),
+            application_graph_reads: Some(contracts.graph_reads().clone()),
+            application_touches: Some(contracts.touches().clone()),
+            application_read_touch_overlap: Some(contracts.read_touch_overlap().clone()),
         }
     }
 
@@ -112,7 +122,11 @@ impl WorthQueryProviderPlanDeclarations {
         let Some(closure) = self.closure(stage_identity, graph_role) else {
             return Vec::new();
         };
-        if closure.touch.is_empty() {
+        let application_touches = self
+            .application_touches
+            .as_ref()
+            .is_some_and(|touches| !touches.scopes().is_empty());
+        if closure.touch.is_empty() && !application_touches {
             return Vec::new();
         }
         self.invariant_requirements
@@ -228,6 +242,9 @@ impl WorthQueryProviderPlanDeclarations {
                 "not-required"
             }
             .to_owned(),
+            application_graph_reads: None,
+            application_touches: None,
+            application_read_touch_overlap: None,
         }
     }
 
@@ -292,20 +309,29 @@ impl WorthQueryProviderPlanDeclarations {
             decision_fact_families: Vec::new(),
             invariant_requirements: Vec::new(),
             reconciliation_posture: "not-required".to_owned(),
+            application_graph_reads: None,
+            application_touches: None,
+            application_read_touch_overlap: None,
         }
     }
-}
 
-fn application_touch_diagnostic(scope: &WorthQueryOperationTouchScope) -> String {
-    match scope {
-        WorthQueryOperationTouchScope::CreateEntity(_) => "create-entity",
-        WorthQueryOperationTouchScope::DeleteEntity(_) => "delete-entity",
-        WorthQueryOperationTouchScope::WriteField(_) => "write-field",
-        WorthQueryOperationTouchScope::LinkRelation(_) => "link-relation",
-        WorthQueryOperationTouchScope::UnlinkRelation(_) => "unlink-relation",
-        WorthQueryOperationTouchScope::DeclaredDomain(_) => "declared-domain",
+    pub(super) const fn application_graph_reads(
+        &self,
+    ) -> Option<&worth_query_installation::facade::WorthQueryOperationGraphReadContract> {
+        self.application_graph_reads.as_ref()
     }
-    .to_owned()
+
+    pub(super) const fn application_touches(
+        &self,
+    ) -> Option<&worth_query_installation::facade::WorthQueryOperationTouchContract> {
+        self.application_touches.as_ref()
+    }
+
+    pub(super) const fn application_read_touch_overlap(
+        &self,
+    ) -> Option<&worth_query_installation::facade::WorthQueryOperationReadTouchOverlapIndex> {
+        self.application_read_touch_overlap.as_ref()
+    }
 }
 
 impl WorthQueryProviderPlanDeclaredClosure {

@@ -243,3 +243,31 @@ fn relational_invariant_violation_denies_before_provider_commit() {
     );
     let _still_open = resolved_account(&world, "open", &live_scope());
 }
+
+#[test]
+fn owner_validated_application_touch_outside_installed_ceiling_is_denied() {
+    let world = installed_authorization_world(true);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let account = resolved_account(&world, "open", &request);
+    let rejected = admitted_program(
+        &world,
+        &principal,
+        &account,
+        &request,
+        "must-not-pass-installed-touch-ceiling",
+    );
+
+    world.faults.add_next_undeclared_application_touch();
+    let WorthQueryApplicationCommitOutcome::Denied(denial) = world
+        .application
+        .compare_and_commit_application(rejected, idempotency(24, 24))
+    else {
+        panic!("an undeclared performed application touch must deny");
+    };
+    assert_eq!(
+        denial.stage(),
+        WorthQueryApplicationCommitDenialStage::InvariantExecution
+    );
+    let _still_open = resolved_account(&world, "open", &live_scope());
+}

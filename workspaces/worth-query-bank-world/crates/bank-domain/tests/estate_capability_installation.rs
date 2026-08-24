@@ -10,12 +10,17 @@ mod disburse_estate;
 mod emergency_access_activity;
 #[path = "estate_capability_installation/graph_authority_source.rs"]
 mod graph_authority_source;
+#[path = "estate_capability_installation/installed_contract_views.rs"]
+mod installed_contract_views;
 #[path = "estate_capability_installation/release_estate.rs"]
 mod release_estate;
 #[path = "estate_capability_installation/transition_dimensions.rs"]
 mod transition_dimensions;
 
 use bank_domain::{estate::EstateAction, schema::*};
+use installed_contract_views::{
+    installed_program_targets, installed_read_targets, InstalledProgramTarget, InstalledReadTarget,
+};
 use worth_query_host::facade::declaration::application_schema::ApplicationOperationRef;
 use worth_query_host::facade::domain::{
     ApplicationCapabilityRef, WorthQueryApplicationCapabilityInstallationDenialKind,

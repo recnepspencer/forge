@@ -141,7 +141,8 @@ pub(super) fn validate_preimage_coverage(
 }
 
 pub(super) fn escaping_effect_subject(external_effect: &InstalledExternalEffectContract) -> String {
-    external_effect
-        .correlation_family()
-        .map_or_else(|| "unspecified-escaping-effect".into(), ToOwned::to_owned)
+    external_effect.correlation_family().map_or_else(
+        || "unspecified-escaping-effect".into(),
+        |family| family.as_str().to_owned(),
+    )
 }

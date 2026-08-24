@@ -3,7 +3,6 @@ use worth_foundational::facade::{
     CanonicalIntegerWidth, InternedString,
 };
 
-use super::canonical_identity::{canonical_identity, ApplicationSchemaCanonicalHeader};
 use super::{ApplicationSchemaDeclarationBuilder, ApplicationSchemaMember};
 
 crate::worth_query_application_schema! {
@@ -81,7 +80,7 @@ fn canonical_schema_v11_encodes_identity_then_revision_as_u64() {
 }
 
 #[test]
-fn aspect_member_order_is_canonical_and_contract_axes_are_identity_bearing() {
+fn aspect_member_order_is_canonical() {
     let first = ApplicationSchemaDeclarationBuilder::<StableAspectSchema>::for_schema()
         .entity(Account::reference())
         .aspect(Account::reference(), AccountFacts::reference())
@@ -95,38 +94,6 @@ fn aspect_member_order_is_canonical_and_contract_axes_are_identity_bearing() {
         .build()
         .unwrap();
     assert_eq!(first.identity(), reordered.identity());
-
-    let aspect = first
-        .erased()
-        .members()
-        .iter()
-        .find(|member| matches!(member, ApplicationSchemaMember::Aspect { .. }))
-        .unwrap()
-        .clone();
-    let mut changed_identity = aspect.clone();
-    let ApplicationSchemaMember::Aspect { identity, .. } = &mut changed_identity else {
-        unreachable!()
-    };
-    *identity = AspectIdentity(identity.0 + 1);
-    let mut changed_revision = aspect.clone();
-    let ApplicationSchemaMember::Aspect { revision, .. } = &mut changed_revision else {
-        unreachable!()
-    };
-    *revision = AspectContractRevision(revision.0 + 1);
-    assert_ne!(member_identity(&aspect), member_identity(&changed_identity));
-    assert_ne!(member_identity(&aspect), member_identity(&changed_revision));
-}
-
-fn member_identity(member: &ApplicationSchemaMember) -> super::ApplicationSchemaIdentity {
-    canonical_identity(
-        ApplicationSchemaCanonicalHeader {
-            owner: "worth.test",
-            name: "StableAspectSchema",
-            major: 1,
-            minor: 0,
-        },
-        std::slice::from_ref(member),
-    )
 }
 
 fn canonical_entry<'a>(

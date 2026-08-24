@@ -44,6 +44,12 @@ impl PrimaryGraphFaultController {
     pub(in crate::domain_computation::primary_graph) fn violate_next_relational_invariant(&self) {
         self.schedule(WorthQueryPrimaryGraphFault::RelationalInvariantViolation);
     }
+
+    pub(in crate::domain_computation::primary_graph) fn add_next_undeclared_application_touch(
+        &self,
+    ) {
+        self.schedule(WorthQueryPrimaryGraphFault::UndeclaredApplicationTouch);
+    }
 }
 
 impl WorthQueryPrimaryGraphFaultPort for PrimaryGraphFaultController {
@@ -75,5 +81,6 @@ const fn mask(fault: WorthQueryPrimaryGraphFault) -> u8 {
         WorthQueryPrimaryGraphFault::FailedIndexPublication => 1 << 3,
         WorthQueryPrimaryGraphFault::SkippedInvariantOwnerExecution => 1 << 4,
         WorthQueryPrimaryGraphFault::RelationalInvariantViolation => 1 << 5,
+        WorthQueryPrimaryGraphFault::UndeclaredApplicationTouch => 1 << 6,
     }
 }

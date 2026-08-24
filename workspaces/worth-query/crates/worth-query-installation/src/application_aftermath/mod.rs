@@ -12,6 +12,7 @@ mod next_action_contract;
 mod owner_identity;
 mod postcondition;
 mod published_posture;
+mod reconciliation;
 mod recovery_contract;
 
 #[cfg(test)]
@@ -43,4 +44,5 @@ pub use next_action_contract::{
 pub use owner_identity::aftermath_owner_identity_digest;
 pub use postcondition::InstalledAftermathPostcondition;
 pub use published_posture::{derive_published_posture, PublishedAftermathPosture};
+pub use reconciliation::WorthQueryInstalledReconciliationProcedure;
 pub use recovery_contract::InstalledAftermathRecoveryContract;

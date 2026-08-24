@@ -28,7 +28,7 @@ use super::super::{
     WorthQueryCompiledApplicationOperationContracts, WorthQueryInstalledAbilityRequirement,
     WorthQueryInstalledApplicationOperationAuthorization,
     WorthQueryInstalledApplicationOperationExecutionPosture,
-    WorthQueryInstalledMutationPrecondition,
+    WorthQueryInstalledMutationPrecondition, WorthQueryOperationEmissionContract,
 };
 
 /// Every candidate-derived axis for one exact operation declaration.
@@ -54,8 +54,7 @@ pub(super) struct WorthQueryApplicationOperationCompilation<'a> {
 pub(in crate::application_operation) struct WorthQuerySealedOperationContractCompilation {
     authorization: WorthQueryInstalledApplicationOperationAuthorization,
     ability_requirements: Vec<WorthQueryInstalledAbilityRequirement>,
-    program: Vec<ApplicationOperationProgramTarget>,
-    decision_reads: Vec<ApplicationOperationDecisionReadTarget>,
+    authored_program_width: usize,
     decision_fact_budget: usize,
     projection_work_budget: usize,
     additional_authorization_fact_count: usize,
@@ -65,6 +64,7 @@ pub(in crate::application_operation) struct WorthQuerySealedOperationContractCom
     aftermath: Option<WorthQueryInstalledAftermathContract>,
     graph_reads: WorthQueryOperationGraphReadContract,
     touches: WorthQueryOperationTouchContract,
+    emissions: WorthQueryOperationEmissionContract,
     graph_mutation_count: usize,
 }
 
@@ -178,17 +178,20 @@ impl<'a> WorthQueryApplicationOperationCompilation<'a> {
                 &self.operation,
             )
         })?;
+        let emissions = super::super::contracts::compile_effect_emissions(&self.program);
         let aftermath = install_application_aftermath(&self).map_err(|_| {
             operation_denial(
                 WorthQueryApplicationOperationInstallationDenialKind::AftermathInstallationDenied,
                 &self.operation,
             )
         })?;
+        let mut authored_program = self.program;
+        authored_program.sort();
+        authored_program.dedup();
         let sealed = WorthQuerySealedOperationContractCompilation {
             authorization,
             ability_requirements,
-            program: self.program,
-            decision_reads: self.decision_reads,
+            authored_program_width: authored_program.len(),
             decision_fact_budget: self.decision_fact_budget,
             projection_work_budget: self.projection_work_budget,
             additional_authorization_fact_count,
@@ -198,6 +201,7 @@ impl<'a> WorthQueryApplicationOperationCompilation<'a> {
             aftermath,
             graph_reads,
             touches,
+            emissions,
             graph_mutation_count,
         };
         Ok(WorthQueryCompiledApplicationOperationContracts::compile(
@@ -262,8 +266,7 @@ impl WorthQuerySealedOperationContractCompilation {
     ) -> (
         WorthQueryInstalledApplicationOperationAuthorization,
         Vec<WorthQueryInstalledAbilityRequirement>,
-        Vec<ApplicationOperationProgramTarget>,
-        Vec<ApplicationOperationDecisionReadTarget>,
+        usize,
         usize,
         usize,
         usize,
@@ -273,13 +276,13 @@ impl WorthQuerySealedOperationContractCompilation {
         Option<WorthQueryInstalledAftermathContract>,
         WorthQueryOperationGraphReadContract,
         WorthQueryOperationTouchContract,
+        WorthQueryOperationEmissionContract,
         usize,
     ) {
         (
             self.authorization,
             self.ability_requirements,
-            self.program,
-            self.decision_reads,
+            self.authored_program_width,
             self.decision_fact_budget,
             self.projection_work_budget,
             self.additional_authorization_fact_count,
@@ -289,45 +292,10 @@ impl WorthQuerySealedOperationContractCompilation {
             self.aftermath,
             self.graph_reads,
             self.touches,
+            self.emissions,
             self.graph_mutation_count,
         )
     }
-}
-
-#[cfg(test)]
-pub(in crate::application_operation) fn compile_contract_projection_fixture(
-    posture: WorthQueryInstalledApplicationOperationExecutionPosture,
-    support_count: usize,
-) -> WorthQueryCompiledApplicationOperationContracts {
-    let sealed = WorthQuerySealedOperationContractCompilation {
-        authorization: WorthQueryInstalledApplicationOperationAuthorization::Capability,
-        ability_requirements: Vec::new(),
-        program: vec![ApplicationOperationProgramTarget::Create {
-            entity: "Grant".to_owned(),
-        }],
-        decision_reads: Vec::new(),
-        decision_fact_budget: 1,
-        projection_work_budget: 16,
-        additional_authorization_fact_count: support_count,
-        mutation_preconditions: Vec::new(),
-        execution_posture: posture,
-        external_effect: InstalledExternalEffectContract::None,
-        aftermath: None,
-        graph_reads: WorthQueryOperationGraphReadContract::NotRequired,
-        touches: WorthQueryOperationTouchContract::Declared {
-            graph_roles: vec!["primary".to_owned()],
-            scopes: vec![
-                crate::domain_operation::WorthQueryOperationTouchScope::DeclaredDomain(
-                    crate::domain_operation::WorthQueryDeclaredDomainTouchScopeIdentity::new(
-                        "grant",
-                    )
-                    .expect("fixture domain touch identity is valid"),
-                ),
-            ],
-        },
-        graph_mutation_count: 1,
-    };
-    WorthQueryCompiledApplicationOperationContracts::compile(sealed)
 }
 
 fn operation_capability_count(
