@@ -31,13 +31,13 @@ fn cdc_certification_durable_recovery_matches_head_and_midstream_consumers() {
 
     assert!(runtime
         .history_authority()
-        .remove_commit_envelope_for_test(crate::history::data::CommitId(1)));
+        .evict_commit_envelope_for_durable_recovery_test(crate::history::data::CommitId(1)));
     assert!(runtime
         .history_authority()
-        .remove_commit_envelope_for_test(crate::history::data::CommitId(2)));
+        .evict_commit_envelope_for_durable_recovery_test(crate::history::data::CommitId(2)));
     assert!(runtime
         .history_authority()
-        .remove_commit_envelope_for_test(crate::history::data::CommitId(3)));
+        .evict_commit_envelope_for_durable_recovery_test(crate::history::data::CommitId(3)));
 
     let durable_mid = runtime
         .publication()

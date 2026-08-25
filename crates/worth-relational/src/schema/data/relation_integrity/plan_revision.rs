@@ -29,7 +29,7 @@ pub(crate) fn derive_relation_integrity_plan_revision(
     partition_isolation_contracts: &[PartitionIsolationContractDeclaration],
     connectivity_minimum_contracts: &[ConnectivityMinimumContractDeclaration],
 ) -> RelationIntegrityPlanRevision {
-    let mut digest = RelationIntegrityRevisionDigest::default();
+    let mut digest = RelationIntegrityRevisionDigest::new();
     digest.mix_endpoint_kind_contracts(endpoint_kind_contracts);
     digest.mix_cardinality_contracts(cardinality_contracts);
     digest.mix_uniqueness_contracts(uniqueness_contracts);
@@ -45,15 +45,12 @@ struct RelationIntegrityRevisionDigest {
     hash: u128,
 }
 
-impl Default for RelationIntegrityRevisionDigest {
-    fn default() -> Self {
+impl RelationIntegrityRevisionDigest {
+    fn new() -> Self {
         Self {
             hash: 0x6c62272e07bb014262b821756295c58d,
         }
     }
-}
-
-impl RelationIntegrityRevisionDigest {
     const FNV_PRIME: u128 = 0x0000000001000000000000000000013B;
 
     fn finish(self) -> u128 {

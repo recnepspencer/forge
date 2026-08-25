@@ -159,6 +159,29 @@ impl EffectLifecycleCounters {
         }
     }
 
+    pub(crate) fn publication_settlement_deferred(
+        effect_support_row_count: usize,
+        effect_lowering_width: usize,
+        effect_executor_rediscovery_count: usize,
+        effect_execution_width: usize,
+    ) -> Self {
+        Self {
+            support_lookup_count: 1,
+            support_lookup_width: effect_support_row_count,
+            basis_scope_check_count: 1,
+            admitted_effect_count: 1,
+            authority_scoped_plan_count: 1,
+            lowered_effect_count: 1,
+            effect_lowering_width,
+            effect_executor_rediscovery_count,
+            executed_effect_count: 1,
+            publication_settlement_deferred_count: 1,
+            effect_execution_width,
+            effect_support_row_count,
+            ..Self::default()
+        }
+    }
+
     pub(crate) fn denied(effect_support_row_count: usize) -> Self {
         Self {
             support_lookup_count: 1,

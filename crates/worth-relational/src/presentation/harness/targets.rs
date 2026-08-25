@@ -82,6 +82,10 @@ pub(super) fn commit_error_to_harness_error(
         crate::facade::transactions::TransactionCommitError::Preparation { error, .. } => {
             RelationalHarnessError(error.detail())
         }
+        crate::facade::transactions::TransactionCommitError::PerformedButDurabilityDeferred {
+            error,
+            ..
+        } => RelationalHarnessError(error.detail),
     }
 }
 

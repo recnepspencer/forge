@@ -179,7 +179,8 @@ pub enum WorthQueryElevationRequestOutcome {
     Cancelled,
     Denied(WorthQueryApplicationCommitDenial),
     Aborted,
-    PartialEffect,
+    Deferred(super::WorthQueryApplicationCommitDeferred),
+    SettlementDeferred(super::WorthQueryApplicationSettlementDeferred),
     Indeterminate,
 }
 
@@ -208,8 +209,11 @@ pub(in crate::domain_computation::primary_graph) fn requested_outcome(
             WorthQueryElevationRequestOutcome::Denied(denial)
         }
         WorthQueryApplicationCommitOutcome::Aborted => WorthQueryElevationRequestOutcome::Aborted,
-        WorthQueryApplicationCommitOutcome::PartialEffect(_) => {
-            WorthQueryElevationRequestOutcome::PartialEffect
+        WorthQueryApplicationCommitOutcome::Deferred(deferred) => {
+            WorthQueryElevationRequestOutcome::Deferred(deferred)
+        }
+        WorthQueryApplicationCommitOutcome::SettlementDeferred(deferred) => {
+            WorthQueryElevationRequestOutcome::SettlementDeferred(deferred)
         }
         WorthQueryApplicationCommitOutcome::Indeterminate(_) => {
             WorthQueryElevationRequestOutcome::Indeterminate

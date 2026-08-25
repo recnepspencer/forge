@@ -1,4 +1,4 @@
-use crate::history::data::CanonicalCommitEnvelope;
+use crate::history::data::PositionedCanonicalCommit;
 use crate::publication::cdc::data::{
     SubscriberCheckpoint, SubscriberContinuationAssessment, SubscriberRecoveryDecision,
     SubscriberResumeRequest,
@@ -11,7 +11,7 @@ pub struct SubscriberRecoveryPlan {
     pub(crate) decision: SubscriberRecoveryDecision,
     pub(crate) latest_available_checkpoint: Option<SubscriberCheckpoint>,
     pub(crate) start_after_position: Option<PatchStreamPosition>,
-    pub(crate) selected_envelopes: Vec<CanonicalCommitEnvelope>,
+    pub(crate) selected_envelopes: Vec<PositionedCanonicalCommit>,
     pub(crate) continuation_assessment: SubscriberContinuationAssessment,
 }
 
@@ -21,7 +21,7 @@ impl SubscriberRecoveryPlan {
         decision: SubscriberRecoveryDecision,
         latest_available_checkpoint: Option<SubscriberCheckpoint>,
         start_after_position: Option<PatchStreamPosition>,
-        selected_envelopes: Vec<CanonicalCommitEnvelope>,
+        selected_envelopes: Vec<PositionedCanonicalCommit>,
         continuation_assessment: SubscriberContinuationAssessment,
     ) -> Self {
         Self {

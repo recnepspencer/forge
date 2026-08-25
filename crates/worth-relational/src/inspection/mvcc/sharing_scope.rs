@@ -10,7 +10,7 @@ use super::RelationalBranchSharingInspectionDenial;
 
 pub(super) struct BranchSharingScopeEntry<'runtime> {
     pub(super) branch_id: BranchId,
-    pub(super) root: &'runtime Arc<RelationalBranchRoot>,
+    pub(super) root: Arc<RelationalBranchRoot>,
     pub(super) artifact: &'runtime Arc<RelationalCommitArtifact>,
     pub(super) coordination_cell: crate::branch::RelationalBranchCoordinationCellId,
     pub(super) coordination_contacts: u64,
@@ -44,7 +44,7 @@ pub(super) fn resolve_sharing_scope<'runtime>(
             .ok_or(RelationalBranchSharingInspectionDenial::RootUnavailable)?;
         if verified_roots.insert(root.id())
             && (!root.is_complete(&runtime.services.symbols)
-                || !artifact.links_root(root)
+                || !artifact.links_root(&root)
                 || root.axes().is_none())
         {
             return Err(RelationalBranchSharingInspectionDenial::RootUnavailable);

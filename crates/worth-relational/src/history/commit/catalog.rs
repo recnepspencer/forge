@@ -79,6 +79,32 @@ impl RelationalCommitCatalog {
         self.entries.insert(commit_id, Arc::new(artifact));
     }
 
+    pub(crate) fn synchronize_recovered_envelope(
+        &mut self,
+        envelope: Arc<crate::history::data::CanonicalCommitEnvelope>,
+    ) -> Result<(), RelationalCommitArtifactDenial> {
+        let commit_id = envelope.commit.commit_id;
+        if self
+            .entries
+            .get(&commit_id)
+            .is_some_and(|existing| existing.envelope() == &envelope)
+        {
+            return Ok(());
+        }
+        let linked_root = self
+            .entries
+            .get(&commit_id)
+            .and_then(|existing| existing.linked_root())
+            .filter(|root| root.links_envelope(&envelope));
+        let artifact = match linked_root {
+            Some(root) => RelationalCommitArtifact::from_envelope_with_root(envelope, root)?,
+            None => RelationalCommitArtifact::from_envelope(envelope)?,
+        };
+        self.materializations.fetch_add(1, Ordering::Relaxed);
+        self.entries.insert(commit_id, Arc::new(artifact));
+        Ok(())
+    }
+
     fn append(
         &mut self,
         artifact: RelationalCommitArtifact,

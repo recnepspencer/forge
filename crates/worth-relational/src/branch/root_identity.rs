@@ -1,48 +1,66 @@
 use super::{RelationalBranchRoot, RelationalBranchRootCaptureDenial};
+use std::sync::atomic::{AtomicU64, Ordering};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct RelationalBranchRootIdentityIssuer {
-    next_root_id: u64,
-    next_schema_authority_id: u64,
-    next_region_id: u64,
-    next_reachability_id: u64,
+    next_root_id: AtomicU64,
+    next_schema_authority_id: AtomicU64,
+    next_region_id: AtomicU64,
+    next_reachability_id: AtomicU64,
+}
+
+impl Clone for RelationalBranchRootIdentityIssuer {
+    fn clone(&self) -> Self {
+        Self {
+            next_root_id: AtomicU64::new(self.next_root_id.load(Ordering::Relaxed)),
+            next_schema_authority_id: AtomicU64::new(
+                self.next_schema_authority_id.load(Ordering::Relaxed),
+            ),
+            next_region_id: AtomicU64::new(self.next_region_id.load(Ordering::Relaxed)),
+            next_reachability_id: AtomicU64::new(self.next_reachability_id.load(Ordering::Relaxed)),
+        }
+    }
 }
 
 impl Default for RelationalBranchRootIdentityIssuer {
     fn default() -> Self {
         Self {
-            next_root_id: 1,
-            next_schema_authority_id: 1,
-            next_region_id: 1,
-            next_reachability_id: 1,
+            next_root_id: AtomicU64::new(1),
+            next_schema_authority_id: AtomicU64::new(1),
+            next_region_id: AtomicU64::new(1),
+            next_reachability_id: AtomicU64::new(1),
         }
     }
 }
 
 impl RelationalBranchRootIdentityIssuer {
-    pub(super) const fn next_reachability_id(&self) -> u64 {
-        self.next_reachability_id
+    pub(super) fn next_reachability_id(&self) -> u64 {
+        self.next_reachability_id.load(Ordering::Relaxed)
     }
 
-    pub(crate) fn observe_root(&mut self, root: &RelationalBranchRoot) {
-        self.next_root_id = self.next_root_id.max(root.id.saturating_add(1));
-        self.next_schema_authority_id = self
-            .next_schema_authority_id
-            .max(root.schema_authority().allocation_id().saturating_add(1));
+    pub(crate) fn observe_root(&self, root: &RelationalBranchRoot) {
+        self.next_root_id
+            .fetch_max(root.id.saturating_add(1), Ordering::Relaxed);
+        self.next_schema_authority_id.fetch_max(
+            root.schema_authority().allocation_id().saturating_add(1),
+            Ordering::Relaxed,
+        );
         let next_region_id = root
             .storage_regions()
             .map(|region| region.region_id.saturating_add(1))
             .max()
-            .unwrap_or(self.next_region_id);
-        self.next_region_id = self.next_region_id.max(next_region_id);
+            .unwrap_or_else(|| self.next_region_id.load(Ordering::Relaxed));
+        self.next_region_id
+            .fetch_max(next_region_id, Ordering::Relaxed);
         let next_reachability_id = root
             .regions
             .allocation_observations()
             .into_iter()
             .map(|node| node.node_id.saturating_add(1))
             .max()
-            .unwrap_or(self.next_reachability_id);
-        self.next_reachability_id = self.next_reachability_id.max(next_reachability_id);
+            .unwrap_or_else(|| self.next_reachability_id.load(Ordering::Relaxed));
+        self.next_reachability_id
+            .fetch_max(next_reachability_id, Ordering::Relaxed);
     }
 
     pub(crate) fn validate_capture_capacity(
@@ -50,12 +68,15 @@ impl RelationalBranchRootIdentityIssuer {
         touched_regions: usize,
     ) -> Result<(), RelationalBranchRootCaptureDenial> {
         self.next_root_id
+            .load(Ordering::Relaxed)
             .checked_add(1)
             .ok_or(RelationalBranchRootCaptureDenial::RootIdentityExhausted)?;
         self.next_schema_authority_id
+            .load(Ordering::Relaxed)
             .checked_add(1)
             .ok_or(RelationalBranchRootCaptureDenial::SchemaAuthorityIdentityExhausted)?;
         self.next_region_id
+            .load(Ordering::Relaxed)
             .checked_add(touched_regions as u64)
             .ok_or(RelationalBranchRootCaptureDenial::RegionIdentityExhausted)?;
         let maximum_path_nodes = (touched_regions as u64)
@@ -63,48 +84,50 @@ impl RelationalBranchRootIdentityIssuer {
             .and_then(|nodes| nodes.checked_add(1))
             .ok_or(RelationalBranchRootCaptureDenial::ReachabilityIdentityExhausted)?;
         self.next_reachability_id
+            .load(Ordering::Relaxed)
             .checked_add(maximum_path_nodes)
             .ok_or(RelationalBranchRootCaptureDenial::ReachabilityIdentityExhausted)?;
         Ok(())
     }
 
-    pub(super) fn issue_root_id(&mut self) -> Result<u64, RelationalBranchRootCaptureDenial> {
-        let issued = self.next_root_id;
-        self.next_root_id = self
-            .next_root_id
-            .checked_add(1)
-            .ok_or(RelationalBranchRootCaptureDenial::RootIdentityExhausted)?;
-        Ok(issued)
+    pub(super) fn issue_root_id(&self) -> Result<u64, RelationalBranchRootCaptureDenial> {
+        issue(
+            &self.next_root_id,
+            RelationalBranchRootCaptureDenial::RootIdentityExhausted,
+        )
     }
 
     pub(super) fn issue_schema_authority_id(
-        &mut self,
+        &self,
     ) -> Result<u64, RelationalBranchRootCaptureDenial> {
-        let issued = self.next_schema_authority_id;
-        self.next_schema_authority_id = self
-            .next_schema_authority_id
-            .checked_add(1)
-            .ok_or(RelationalBranchRootCaptureDenial::SchemaAuthorityIdentityExhausted)?;
-        Ok(issued)
+        issue(
+            &self.next_schema_authority_id,
+            RelationalBranchRootCaptureDenial::SchemaAuthorityIdentityExhausted,
+        )
     }
 
-    pub(super) fn issue_region_id(&mut self) -> Result<u64, RelationalBranchRootCaptureDenial> {
-        let issued = self.next_region_id;
-        self.next_region_id = self
-            .next_region_id
-            .checked_add(1)
-            .ok_or(RelationalBranchRootCaptureDenial::RegionIdentityExhausted)?;
-        Ok(issued)
+    pub(super) fn issue_region_id(&self) -> Result<u64, RelationalBranchRootCaptureDenial> {
+        issue(
+            &self.next_region_id,
+            RelationalBranchRootCaptureDenial::RegionIdentityExhausted,
+        )
     }
 
-    pub(crate) fn issue_reachability_id(
-        &mut self,
-    ) -> Result<u64, RelationalBranchRootCaptureDenial> {
-        let issued = self.next_reachability_id;
-        self.next_reachability_id = self
-            .next_reachability_id
-            .checked_add(1)
-            .ok_or(RelationalBranchRootCaptureDenial::ReachabilityIdentityExhausted)?;
-        Ok(issued)
+    pub(crate) fn issue_reachability_id(&self) -> Result<u64, RelationalBranchRootCaptureDenial> {
+        issue(
+            &self.next_reachability_id,
+            RelationalBranchRootCaptureDenial::ReachabilityIdentityExhausted,
+        )
     }
+}
+
+fn issue(
+    counter: &AtomicU64,
+    denial: RelationalBranchRootCaptureDenial,
+) -> Result<u64, RelationalBranchRootCaptureDenial> {
+    counter
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+            current.checked_add(1)
+        })
+        .map_err(|_| denial)
 }

@@ -149,6 +149,7 @@ fn retained_decision_evidence_mut(
         | Decision::Suppressed(evidence)
         | Decision::Deferred(evidence)
         | Decision::OperationRetryable(evidence, _)
+        | Decision::OperationSettlementDeferred(evidence, _)
         | Decision::OperationIndeterminate(evidence, _)
         | Decision::OperationCommitted(evidence)
         | Decision::OperationAlreadyCommitted(evidence) => Some(evidence),

@@ -1609,6 +1609,12 @@ branch fate remains isolated; and inspection cannot mutate or mint authority.
 
 ### Phase 6: Admit Exact Observations And Boundary Readmission
 
+Status: Closed on 2026-08-24. Exact owner observations now bind reads to the
+selected reference root, descriptor weakening cannot mint operating authority,
+and boundary readmission distinguishes stale, foreign, unavailable, archived,
+restored, and mixed-axis substitutions. Independent QA loop, test-quality,
+code-quality, and final-gate reviews reported clean.
+
 Implement exact owner basis observation, descriptor weakening, readmission,
 repeatable branch observation, and explicit external retention. Cut snapshots,
 visibility, presentation, and history lookup to the reference-selected root.
@@ -1653,6 +1659,15 @@ releases every obligation; and touched-region materialization matches the
 declared Supply Chain delta footprint.
 
 ### Phase 9: Linearize Branch-Local Publication
+
+Status: Closed on 2026-08-25. Complete-root publication is branch-local,
+same-reference races select one winner, readers observe only complete roots,
+and unrelated branches remain independently available. Performed-but-unsettled
+application, branch-merge, scalar-effect, and batch-effect outcomes now carry
+opaque domain-typed recovery through their owning public surfaces; durability,
+Query publication, current ancestry, and index refresh are repaired under the
+required serialization boundary. Independent QA loop, test-quality, and
+code-quality reviews reported clean.
 
 Implement complete-reference compare-and-publish over one bounded branch-local
 critical section. Atomically select the next complete root and make the one

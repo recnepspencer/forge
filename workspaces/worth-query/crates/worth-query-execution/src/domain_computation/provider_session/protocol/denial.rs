@@ -97,7 +97,7 @@ impl WorthQueryProviderSessionFailure {
         self
     }
 
-    pub(super) fn with_recovery_posture(
+    pub(in crate::domain_computation) fn with_recovery_posture(
         mut self,
         posture: WorthQueryProviderSessionRecoveryPosture,
     ) -> Self {

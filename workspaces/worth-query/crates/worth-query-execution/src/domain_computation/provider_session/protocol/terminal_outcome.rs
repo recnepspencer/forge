@@ -1,6 +1,6 @@
 use super::{
     WorthQueryProviderSessionFailure, WorthQueryProviderSessionProtocolCounters,
-    WorthQueryProviderSessionRecoveryPosture,
+    WorthQueryProviderSessionRecoveryPosture, WorthQueryProviderSessionSettlementDeferred,
 };
 
 /// Provider-authored text describing a completed physical transition.
@@ -35,6 +35,8 @@ pub struct WorthQueryClosedProviderSessionDisposition {
 pub enum WorthQuerySessionCommitOrAbortOutcome {
     Committed(WorthQueryClosedProviderSessionDisposition),
     Aborted(WorthQueryClosedProviderSessionDisposition),
+    CommitDeferred(super::WorthQueryProviderSessionCommitDeferred),
+    CommitSettlementDeferred(WorthQueryProviderSessionSettlementDeferred),
     CommitRecoveryRequired(WorthQueryProviderSessionFailure),
     AbortRecoveryRequired(WorthQueryProviderSessionFailure),
 }
@@ -42,10 +44,12 @@ pub enum WorthQuerySessionCommitOrAbortOutcome {
 impl WorthQuerySessionCommitOrAbortOutcome {
     pub fn recovery_posture(&self) -> WorthQueryProviderSessionRecoveryPosture {
         match self {
-            Self::Committed(_) | Self::Aborted(_) => {
+            Self::Committed(_) | Self::Aborted(_) | Self::CommitDeferred(_) => {
                 WorthQueryProviderSessionRecoveryPosture::Closed
             }
-            Self::CommitRecoveryRequired(_) | Self::AbortRecoveryRequired(_) => {
+            Self::CommitSettlementDeferred(_)
+            | Self::CommitRecoveryRequired(_)
+            | Self::AbortRecoveryRequired(_) => {
                 WorthQueryProviderSessionRecoveryPosture::RecoveryRequired
             }
         }
@@ -56,7 +60,21 @@ impl WorthQuerySessionCommitOrAbortOutcome {
             Self::CommitRecoveryRequired(failure) | Self::AbortRecoveryRequired(failure) => {
                 Some(failure)
             }
-            Self::Committed(_) | Self::Aborted(_) => None,
+            Self::Committed(_)
+            | Self::Aborted(_)
+            | Self::CommitDeferred(_)
+            | Self::CommitSettlementDeferred(_) => None,
+        }
+    }
+
+    pub fn settlement_deferred(&self) -> Option<&WorthQueryProviderSessionSettlementDeferred> {
+        match self {
+            Self::CommitSettlementDeferred(deferred) => Some(deferred),
+            Self::Committed(_)
+            | Self::Aborted(_)
+            | Self::CommitDeferred(_)
+            | Self::CommitRecoveryRequired(_)
+            | Self::AbortRecoveryRequired(_) => None,
         }
     }
 }

@@ -9,10 +9,11 @@ use super::super::super::derived_index_artifacts::apply_envelope_derived_index_a
 
 pub(super) fn apply_authoritative_commit_artifacts(
     runtime: &mut RelationalRuntime,
-    envelope: &CanonicalCommitEnvelope,
+    positioned: &crate::history::data::PositionedCanonicalCommit,
     allow_reconstructed_replacement: bool,
     advance_branch_currentness: bool,
 ) -> Result<(), DurabilityError> {
+    let envelope = positioned.envelope();
     let history_before = runtime.history.clone();
     if runtime
         .history
@@ -50,18 +51,24 @@ pub(super) fn apply_authoritative_commit_artifacts(
             commit: envelope.commit.clone(),
         },
     );
+    let canonical = runtime
+        .history
+        .commit_envelopes
+        .get(&envelope.commit.commit_id)
+        .cloned()
+        .unwrap_or_else(|| Arc::clone(positioned.canonical_arc()));
     runtime
         .history
         .commit_envelopes
-        .insert(envelope.commit.commit_id, Arc::new(envelope.clone()));
+        .insert(envelope.commit.commit_id, Arc::clone(&canonical));
     runtime
         .history
         .patch_stream_index
-        .insert(envelope.patch.position, envelope.commit.commit_id);
+        .insert(positioned.position(), envelope.commit.commit_id);
     let result = runtime
         .history
         .record_recovered_commit(
-            envelope,
+            canonical.as_ref(),
             allow_reconstructed_replacement,
             advance_branch_currentness,
             &runtime.services.symbols,
@@ -102,7 +109,7 @@ pub(super) fn validate_recovered_history_parity(
                 .len()
                 .max(recovered_envelope.commit.ordered_parents().len()),
         );
-    let drifted_axes = canonical_effect_drift(durable_envelope, recovered_envelope);
+    let drifted_axes = canonical_effect_drift(durable_envelope, &recovered_envelope);
     if !drifted_axes.is_empty() {
         return Err(DurabilityError::new(
             RecoveryFailureClass::ReplayFailure,

@@ -19,7 +19,7 @@ fn durability_contract_checkpoint_tail_recovery_preserves_post_checkpoint_commit
         recovered
             .history()
             .branch_head(&BranchId("main".to_string())),
-        Some(&later.commit)
+        Some(later.commit.clone())
     );
     assert_eq!(
         recovered
@@ -115,6 +115,7 @@ fn durability_contract_recovery_rejects_tail_checkpoint_drift_before_mutation() 
     let tail = plan
         .tail_log
         .iter_mut()
+        .map(|commit| commit.envelope_mut_for_test())
         .find(|envelope| envelope.commit.commit_id == second.commit.commit_id)
         .expect("tail contains the post-checkpoint commit");
     let checkpoint = tail
@@ -305,7 +306,7 @@ fn durability_contract_corrupt_latest_checkpoint_falls_back_to_prior_valid_check
         recovered
             .history()
             .branch_head(&BranchId("main".to_string())),
-        Some(&second.commit)
+        Some(second.commit.clone())
     );
     assert!(recovered
         .replay()

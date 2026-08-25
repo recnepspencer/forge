@@ -174,13 +174,13 @@ fn stale_transaction_reads_remain_on_the_admitted_root_and_commit_has_no_effect(
                 crate::facade::transactions::ConflictClass::StaleValidationBasis { .. }
             )
     ));
-    assert_eq!(runtime.history().immutable_commit_count(), commit_count);
-    assert_eq!(runtime.services.symbols, symbols_before);
-    assert_eq!(runtime.config().identity.symbol_table, symbol_table_before);
     assert_eq!(
         runtime.phase4_reference_cost_counters(),
         reference_cost_before
     );
+    assert_eq!(runtime.history().immutable_commit_count(), commit_count);
+    assert_eq!(runtime.services.symbols, symbols_before);
+    assert_eq!(runtime.config().identity.symbol_table, symbol_table_before);
     assert_eq!(runtime.performance_access().counters(), complexity_before);
     assert_eq!(
         runtime.history().branch_cells_snapshot(),

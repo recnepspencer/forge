@@ -26,15 +26,11 @@ impl RelationalBranchVisibilityCommitment {
         digest.update(match correctness_index {
             RelationalRootCorrectnessIndex::AuthoritativeFallback => [0],
         });
-        digest.update(envelope.commit.commit_id.0.to_be_bytes());
-        digest.update(envelope.commit.version_id.0.to_be_bytes());
-        digest.update((envelope.commit.parents.len() as u64).to_be_bytes());
-        for parent in &envelope.commit.parents {
-            digest.update(parent.0.to_be_bytes());
-        }
-        digest.update((envelope.branch_context.0.len() as u64).to_be_bytes());
-        digest.update(envelope.branch_context.0.as_bytes());
-        digest.update(envelope.patch.position.0.to_be_bytes());
+        digest.update(
+            envelope
+                .encode_authoritative_payload()
+                .expect("canonical branch envelope must encode for visibility commitment"),
+        );
         Self(digest.finalize().into())
     }
 

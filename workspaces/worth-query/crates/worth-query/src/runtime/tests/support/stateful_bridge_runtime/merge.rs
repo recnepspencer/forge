@@ -30,7 +30,7 @@ pub(super) fn execute_merge(
     state: &SharedState,
     authority: &WorthQueryBackendMergeAuthority,
     declaration: &crate::workflow::LoweredMergeWorkflowDeclaration,
-) -> Result<MergeExecutionOutcome, (crate::effect_lifecycle::EffectExecutionDenialKind, String)> {
+) -> Result<MergeExecutionOutcome, crate::effect_lifecycle::RelationalEffectExecutionFailure> {
     let mut state = state.borrow_mut();
     let runtime = state.relational_runtime.as_mut().ok_or_else(|| {
         (
@@ -44,7 +44,8 @@ pub(super) fn execute_merge(
         return Err((
             crate::effect_lifecycle::EffectExecutionDenialKind::AuthorityOverrideRejected,
             "lowered merge request does not match fixture authority".to_string(),
-        ));
+        )
+            .into());
     }
     crate::effect_lifecycle::execute_lowered_merge(runtime, declaration)
 }

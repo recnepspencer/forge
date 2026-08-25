@@ -120,6 +120,7 @@ fn retained_lowered_mutation_denies_after_intervening_truth_change() {
     let denial = lowered
         .execute_with(EffectExecutionAuthority::relational(&mut runtime))
         .expect_err("retained lowered mutation should deny stale exact-basis replay");
+    let denial = denial.denial().expect("stale replay is a denial");
 
     assert_eq!(
         denial.denial_kind(),

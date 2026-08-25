@@ -105,3 +105,8 @@ impl CommitStrategiesAuthorityFacade {
 #[cfg(test)]
 #[path = "facade_tests/mod.rs"]
 mod tests;
+
+#[cfg(test)]
+pub(crate) use tests::native_strategy_fixtures::{
+    execute_persisted_intent_strategy_commit, persisted_intent_runtime,
+};

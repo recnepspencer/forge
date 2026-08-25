@@ -67,7 +67,6 @@ pub(super) fn execute_strategy_commit(
         let branch_head = runtime
             .history()
             .branch_head(branch_id)
-            .cloned()
             .expect("target branch head for strategy snapshot");
         if branch_head.version_id == runtime.current_version_id() {
             runtime.visibility_authority().snapshot()

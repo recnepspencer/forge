@@ -64,6 +64,30 @@ impl RelationalBranchObservation {
         }
     }
 
+    /// Canonical commit selected by this immutable observation. The commit is
+    /// reached from the same root as storage and visibility, so it is valid
+    /// immediately at branch-reference movement without a catalog refresh.
+    pub fn canonical_commit(&self) -> Option<&crate::history::data::CanonicalCommitEnvelope> {
+        self.inner
+            .root
+            .canonical_envelope()
+            .map(std::sync::Arc::as_ref)
+    }
+
+    pub fn commit_receipt(&self) -> Option<&crate::history::data::RelationalCommitReceipt> {
+        self.canonical_commit().map(|envelope| &envelope.commit)
+    }
+
+    pub fn canonical_patch(
+        &self,
+    ) -> Option<&crate::publication::patch::data::CanonicalAuthoritativePatch> {
+        self.canonical_commit().map(|envelope| &envelope.patch)
+    }
+
+    pub fn correctness_index(&self) -> Option<crate::branch::RelationalRootCorrectnessIndex> {
+        self.inner.root.axes().map(|axes| axes.correctness_index)
+    }
+
     pub fn selected_root_identity(&self) -> u64 {
         self.inner.root.id()
     }

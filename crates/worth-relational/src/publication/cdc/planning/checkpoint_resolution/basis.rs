@@ -1,5 +1,5 @@
 use crate::capabilities::{PatchStreamSource, RuntimeConfigSource};
-use crate::history::data::CanonicalCommitEnvelope;
+use crate::history::data::PositionedCanonicalCommit;
 use crate::publication::cdc::data::{
     SubscriberCheckpoint, SubscriberCheckpointBasis, SubscriberContinuationAssessment,
 };
@@ -60,10 +60,10 @@ pub(crate) fn checkpoint_basis_from_patch_position(
 }
 
 pub(crate) fn checkpoint_basis_from_envelope(
-    envelope: &CanonicalCommitEnvelope,
+    envelope: &PositionedCanonicalCommit,
 ) -> SubscriberCheckpointBasis {
     SubscriberCheckpointBasis::new(
-        envelope.patch.position,
+        envelope.position(),
         ReplaySchemaVersion(1),
         envelope.schema_version,
     )

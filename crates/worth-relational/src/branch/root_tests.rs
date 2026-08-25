@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use super::{RelationalBranchRootCaptureDenial, RelationalBranchVisibilityCommitment};
 use crate::history::data::{BranchId, CommitId};
-use crate::publication::patch::data::PatchStreamPosition;
 use crate::schema::data::SchemaId;
 use crate::tests::support::{create_entity_outcome, persisted_runtime_with_test_schema};
 
@@ -17,7 +16,6 @@ fn committed_root_and_envelope() -> (
         .history
         .branch_cell(&BranchId("main".to_owned()))
         .and_then(|cell| cell.root())
-        .cloned()
         .expect("performed commit installs one complete branch root");
     let envelope = runtime
         .replay()
@@ -35,14 +33,12 @@ fn publication_cost_distinguishes_new_and_reused_schema_authority() {
         .history
         .branch_cell(&BranchId("main".to_owned()))
         .and_then(|cell| cell.root())
-        .cloned()
         .expect("first commit installs a root");
     create_entity_outcome(&mut runtime, "schema-authority-reuse");
     let second = runtime
         .history
         .branch_cell(&BranchId("main".to_owned()))
         .and_then(|cell| cell.root())
-        .cloned()
         .expect("second commit installs a root");
 
     assert_eq!(first.publication_cost().new_schema_authorities, 1);
@@ -73,7 +69,7 @@ fn relink_rejects_schema_authority_mutation() {
 #[test]
 fn relink_rejects_visibility_tuple_mutation() {
     let (runtime, root, mut envelope) = committed_root_and_envelope();
-    envelope.patch.position = PatchStreamPosition(envelope.patch.position.0 + 1);
+    envelope.patch.authoritative_record_patches[0].contains_opaque_aspect ^= true;
 
     let denial = root
         .relink_canonical_envelope(Arc::new(envelope), &runtime.services.symbols)
@@ -89,7 +85,7 @@ fn relink_rejects_visibility_tuple_mutation() {
 fn completeness_recomputes_visibility_commitment() {
     let (runtime, root, mut altered_envelope) = committed_root_and_envelope();
     assert!(root.is_complete(&runtime.services.symbols));
-    altered_envelope.patch.position = PatchStreamPosition(altered_envelope.patch.position.0 + 1);
+    altered_envelope.patch.authoritative_record_patches[0].contains_opaque_aspect ^= true;
     let mut corrupted = root.as_ref().clone();
     let committed = corrupted
         .committed
@@ -110,7 +106,7 @@ fn completeness_recomputes_visibility_commitment() {
 
 #[test]
 fn visibility_commitment_binds_every_visible_tuple_axis() {
-    let (_, _, envelope) = committed_root_and_envelope();
+    let (runtime, root, envelope) = committed_root_and_envelope();
     let storage_root = [17; 32];
     let schema_root = [29; 32];
     let baseline = RelationalBranchVisibilityCommitment::for_root(
@@ -120,53 +116,87 @@ fn visibility_commitment_binds_every_visible_tuple_axis() {
         super::RelationalRootCorrectnessIndex::AuthoritativeFallback,
     )
     .digest();
-    assert_eq!(
-        baseline,
-        independent_visibility_digest(&envelope, storage_root, schema_root, 0),
-        "the production commitment must match an independent complete-tuple oracle"
+    assert_ne!(
+        production_visibility(&envelope, [18; 32], schema_root),
+        baseline
+    );
+    assert_ne!(
+        production_visibility(&envelope, storage_root, [30; 32]),
+        baseline
     );
 
     let mut mutants = Vec::new();
-    mutants.push(independent_visibility_digest(
-        &envelope,
-        [18; 32],
-        schema_root,
-        0,
-    ));
-    mutants.push(independent_visibility_digest(
-        &envelope,
-        storage_root,
-        [30; 32],
-        0,
-    ));
-    mutants.push(independent_visibility_digest(
-        &envelope,
-        storage_root,
-        schema_root,
-        1,
-    ));
     let mut commit = envelope.clone();
     commit.commit.commit_id = CommitId(commit.commit.commit_id.0 + 1);
-    mutants.push(production_visibility(&commit, storage_root, schema_root));
+    mutants.push(("commit", commit));
     let mut version = envelope.clone();
     version.commit.version_id.0 += 1;
-    mutants.push(production_visibility(&version, storage_root, schema_root));
+    mutants.push(("version", version));
     let mut parents = envelope.clone();
     parents.commit.parents = vec![CommitId(41), CommitId(43)];
-    mutants.push(production_visibility(&parents, storage_root, schema_root));
+    mutants.push(("ordered parents", parents.clone()));
     parents.commit.parents.reverse();
-    mutants.push(production_visibility(&parents, storage_root, schema_root));
+    mutants.push(("parent order", parents));
     let mut branch = envelope.clone();
     branch.branch_context = BranchId("visibility-mutant".to_owned());
-    mutants.push(production_visibility(&branch, storage_root, schema_root));
+    mutants.push(("branch", branch));
+    let mut receipt_branch = envelope.clone();
+    receipt_branch.commit.branch_id = BranchId("receipt-branch-mutant".to_owned());
+    mutants.push(("receipt branch", receipt_branch));
+    let mut checkpoint = envelope.clone();
+    checkpoint.branch_cell_checkpoint = None;
+    mutants.push(("branch checkpoint", checkpoint));
+    let mut authority_kind = envelope.clone();
+    authority_kind.authority_kind =
+        crate::history::data::CanonicalCommitAuthorityKind::BranchReferenceMovement;
+    mutants.push(("authority kind", authority_kind));
+    let mut merge_parents = envelope.clone();
+    merge_parents
+        .merge_parent_branches
+        .push(BranchId("merge-mutant".to_owned()));
+    mutants.push(("merge branches", merge_parents));
+    let mut merge_bases = envelope.clone();
+    merge_bases.merge_base_commits.push(CommitId(47));
+    mutants.push(("merge bases", merge_bases));
+    let mut schema_version = envelope.clone();
+    schema_version.schema_version.0 += 1;
+    mutants.push(("schema version", schema_version));
+    let mut schema_authority = envelope.clone();
+    schema_authority.schema_authority.primary_schema_id =
+        Some(SchemaId("visibility-mutant".to_owned()));
+    mutants.push(("schema authority", schema_authority));
+    let mut plan = envelope.clone();
+    plan.merged_plan.transaction_id.0 += 1;
+    mutants.push(("merged plan", plan));
+    let mut allocations = envelope.clone();
+    assert!(!allocations.record_allocations().is_empty());
+    allocations.install_record_allocations(Vec::new());
+    mutants.push(("record allocations", allocations));
     let mut patch = envelope.clone();
-    patch.patch.position = PatchStreamPosition(patch.patch.position.0 + 1);
-    mutants.push(production_visibility(&patch, storage_root, schema_root));
+    patch.patch.authoritative_record_patches[0].contains_opaque_aspect ^= true;
+    mutants.push(("patch", patch));
+    let mut lineage = envelope.clone();
+    lineage
+        .published_lineage_mut_for_test()
+        .lineage_events_mut()[0]
+        .event_id += 1;
+    mutants.push(("lineage", lineage));
+    let mut descriptor_semantics = envelope.clone();
+    descriptor_semantics.descriptor_semantics_version.0 += 1;
+    mutants.push(("descriptor semantics", descriptor_semantics));
 
-    assert!(
-        mutants.into_iter().all(|mutant| mutant != baseline),
-        "every truth, schema, correctness, commit, ancestry, branch, and patch axis must turn the commitment red"
-    );
+    for (axis, mutant) in mutants {
+        assert_ne!(
+            production_visibility(&mutant, storage_root, schema_root),
+            baseline,
+            "{axis} must change the visibility commitment"
+        );
+        assert!(
+            root.relink_canonical_envelope(Arc::new(mutant), &runtime.services.symbols)
+                .is_err(),
+            "{axis} mutation must not relink to the committed root"
+        );
+    }
 }
 
 fn production_visibility(
@@ -181,28 +211,4 @@ fn production_visibility(
         super::RelationalRootCorrectnessIndex::AuthoritativeFallback,
     )
     .digest()
-}
-
-fn independent_visibility_digest(
-    envelope: &crate::history::data::CanonicalCommitEnvelope,
-    storage_root: [u8; 32],
-    schema_root: [u8; 32],
-    correctness_tag: u8,
-) -> [u8; 32] {
-    use sha2::{Digest, Sha256};
-    let mut digest = Sha256::new();
-    digest.update(b"worth.relational.branch-visibility.v1\0");
-    digest.update(storage_root);
-    digest.update(schema_root);
-    digest.update([correctness_tag]);
-    digest.update(envelope.commit.commit_id.0.to_be_bytes());
-    digest.update(envelope.commit.version_id.0.to_be_bytes());
-    digest.update((envelope.commit.parents.len() as u64).to_be_bytes());
-    for parent in &envelope.commit.parents {
-        digest.update(parent.0.to_be_bytes());
-    }
-    digest.update((envelope.branch_context.0.len() as u64).to_be_bytes());
-    digest.update(envelope.branch_context.0.as_bytes());
-    digest.update(envelope.patch.position.0.to_be_bytes());
-    digest.finalize().into()
 }

@@ -4,6 +4,7 @@ mod commit_surfaces;
 mod merge_branch_basis;
 #[cfg(test)]
 mod merge_branch_basis_foundational;
+mod patch_stream_commit;
 
 use crate::runtime::RelationalRuntime;
 

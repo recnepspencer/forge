@@ -14,6 +14,16 @@ use crate::validation::FrozenCustomInvariantRegistry;
 
 use super::RelationalRuntime;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RelationalRuntimeForkDenial {
+    PublicationInFlight,
+    PerformedPublicationRequiresSettlement {
+        commit_id: crate::history::data::CommitId,
+    },
+    IdentityCapacityExhausted,
+    CanonicalInventoryInvalid,
+}
+
 #[derive(Debug, Default)]
 pub(crate) struct RuntimeExtensions {
     custom_invariants: Vec<CustomInvariantRegistration>,
@@ -140,22 +150,24 @@ impl RelationalRuntime {
         }
     }
 
-    pub fn fork(&self) -> Self {
+    pub fn fork(&self) -> Result<Self, RelationalRuntimeForkDenial> {
+        let mut history = self.history.fork_snapshot()?;
         let services = RuntimeSubsystem::fork(&self.services);
         let runtime_instance_id = services.runtime_instance_id();
-        Self {
+        history.bind_fork_runtime(runtime_instance_id);
+        Ok(Self {
             config: self.config.clone(),
             schema_contract_runtime: RuntimeSubsystem::fork(&self.schema_contract_runtime),
             commit_strategies: RuntimeSubsystem::fork(&self.commit_strategies),
             partitions: self.partitions.clone(),
             visibility: RuntimeSubsystem::fork(&self.visibility),
             publication: RuntimeSubsystem::fork(&self.publication),
-            history: self.history.fork_for_runtime(runtime_instance_id),
+            history,
             indexes: RuntimeSubsystem::fork(&self.indexes),
             lineage: RuntimeSubsystem::fork(&self.lineage),
             durability: RuntimeSubsystem::fork(&self.durability),
             record_identity: RuntimeSubsystem::fork(&self.record_identity),
             services,
-        }
+        })
     }
 }

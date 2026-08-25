@@ -35,6 +35,7 @@ fn attach_validation_rejection(error: TransactionCommitError) -> TransactionComm
         TransactionCommitError::Preparation { error, .. } => {
             commit_log.record_rejection(phase, Some(error.code()), None, error.detail());
         }
+        TransactionCommitError::PerformedButDurabilityDeferred { .. } => {}
     }
     error.with_commit_log(commit_log)
 }

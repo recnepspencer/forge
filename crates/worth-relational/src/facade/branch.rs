@@ -11,7 +11,8 @@ pub use crate::branch::{
     RelationalBranchRootDescriptor, RelationalBranchTarget, RelationalBranchVersion,
     RelationalForkDenial, RelationalForkOutcome, RelationalForkSourceAuthority,
     RelationalForkSourceAuthorityMarker, RelationalForkSourceDescriptor,
-    ResolvedRelationalBasisDescriptor, RELATIONAL_BRANCH_BASIS_DESCRIPTOR_VERSION,
+    RelationalRootCorrectnessIndex, ResolvedRelationalBasisDescriptor,
+    RELATIONAL_BRANCH_BASIS_DESCRIPTOR_VERSION,
 };
 pub use crate::history::retention::{
     RelationalBasisRetentionReason, RelationalComponentBasisRetentionLease,

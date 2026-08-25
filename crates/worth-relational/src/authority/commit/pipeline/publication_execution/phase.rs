@@ -1,7 +1,6 @@
-use super::super::rejection::{attach_rejection, elapsed_micros};
-use super::preparation::PreparedPublicationPhase;
+use super::super::rejection::elapsed_micros;
+use super::preparation::PreparedPublicationCompletion;
 use crate::authority::commit::phases::publication::append_durable_commit;
-use crate::history::data::CanonicalCommitEnvelope;
 use crate::history::data::{BranchId, CommitId};
 use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{
@@ -14,26 +13,31 @@ mod finalization;
 use finalization::{finalize_published_commit, FinalizationInput};
 
 pub(super) struct FinalizedPublicationPhase {
-    canonical_commit_envelope: Arc<CanonicalCommitEnvelope>,
+    positioned_commit: Arc<crate::history::data::PositionedCanonicalCommit>,
     changed_records: Vec<crate::transactions::data::RecordRef>,
+    durability_error: Option<TransactionCommitError>,
 }
 
 impl FinalizedPublicationPhase {
     pub(super) fn into_parts(
         self,
     ) -> (
-        Arc<CanonicalCommitEnvelope>,
+        Arc<crate::history::data::PositionedCanonicalCommit>,
         Vec<crate::transactions::data::RecordRef>,
+        Option<TransactionCommitError>,
     ) {
-        (self.canonical_commit_envelope, self.changed_records)
+        (
+            self.positioned_commit,
+            self.changed_records,
+            self.durability_error,
+        )
     }
 }
 
 pub(super) struct DurableAppendPhaseInput<'a> {
     pub(super) commit_log: &'a mut CommitLog,
     pub(super) phase_timing: &'a mut CommitPhaseTiming,
-    pub(super) canonical_commit_envelope: &'a CanonicalCommitEnvelope,
-    pub(super) patch_position: crate::publication::patch::data::PatchStreamPosition,
+    pub(super) positioned_commit: &'a crate::history::data::PositionedCanonicalCommit,
     pub(super) append_authority: crate::durability::authority::DurableAppendAuthority,
     pub(super) commit_id: CommitId,
     pub(super) branch_id: &'a BranchId,
@@ -46,17 +50,20 @@ pub(super) fn append_durable_commit_phase(
     let DurableAppendPhaseInput {
         commit_log,
         phase_timing,
-        canonical_commit_envelope,
-        patch_position,
+        positioned_commit,
         append_authority,
         commit_id,
         branch_id,
     } = input;
     commit_log.begin_phase(CommitPhase::DurableAppend);
     let phase_started = std::time::Instant::now();
-    commit_log.record_durable_append_prepared(commit_id, &branch_id.0, patch_position);
-    append_durable_commit(runtime, append_authority, canonical_commit_envelope)
-        .map_err(|error| attach_rejection(commit_log, CommitPhase::DurableAppend, error))?;
+    commit_log.record_durable_append_prepared(
+        commit_id,
+        &branch_id.0,
+        positioned_commit.position(),
+    );
+    append_durable_commit(runtime, append_authority, positioned_commit)
+        .map_err(|error| error.with_commit_log(commit_log.clone()))?;
     commit_log.complete_phase(CommitPhase::DurableAppend);
     phase_timing.durable_append_micros = elapsed_micros(phase_started);
     Ok(())
@@ -66,10 +73,9 @@ pub(super) fn finalize_publication_phase(
     runtime: &mut RelationalRuntime,
     commit_log: &mut CommitLog,
     phase_timing: &mut CommitPhaseTiming,
-    prepared: PreparedPublicationPhase,
+    prepared: PreparedPublicationCompletion,
 ) -> Result<FinalizedPublicationPhase, TransactionCommitError> {
-    let PreparedPublicationPhase {
-        record_allocations,
+    let PreparedPublicationCompletion {
         clone_mode,
         committed_partitions,
         prepared_history,
@@ -77,7 +83,6 @@ pub(super) fn finalize_publication_phase(
         lineage_nodes,
         artifacts,
         changed_records,
-        canonical_commit_envelope,
         append_authority,
         version_id,
         previous_branch_head_version,
@@ -88,18 +93,23 @@ pub(super) fn finalize_publication_phase(
         merge_parent_branches,
         deferred_diagnostic_artifacts,
     } = prepared;
-    append_durable_commit_phase(
+    let positioned_commit = runtime
+        .history
+        .positioned_canonical_commit(commit_id)
+        .expect("performed publication must expose its positioned canonical commit");
+    commit_log.record_publication_position(positioned_commit.position());
+    let durability_error = append_durable_commit_phase(
         runtime,
         DurableAppendPhaseInput {
             commit_log,
             phase_timing,
-            canonical_commit_envelope: canonical_commit_envelope.as_ref(),
-            patch_position: canonical_commit_envelope.patch.position,
+            positioned_commit: positioned_commit.as_ref(),
             append_authority,
             commit_id,
             branch_id: &branch_id,
         },
-    )?;
+    )
+    .err();
     runtime.lineage_authority().install_published_lineage(
         validated_lineage_events,
         commit_id,
@@ -109,7 +119,6 @@ pub(super) fn finalize_publication_phase(
     let phase_started = std::time::Instant::now();
     let mut publication_phase_timing =
         crate::authority::commit::phases::finalize::PublicationPhaseTiming::default();
-    record_allocations.commit();
     finalize_published_commit(
         runtime,
         FinalizationInput {
@@ -124,6 +133,7 @@ pub(super) fn finalize_publication_phase(
             branch_id: &branch_id,
             merge_base_commits: &merge_base_commits,
             artifacts,
+            patch_position: positioned_commit.position(),
             merge_parent_branches: &merge_parent_branches,
             phase_timing: &mut publication_phase_timing,
         },
@@ -149,7 +159,8 @@ pub(super) fn finalize_publication_phase(
         publication_phase_timing.post_commit_consumer_micros;
 
     Ok(FinalizedPublicationPhase {
-        canonical_commit_envelope,
+        positioned_commit,
         changed_records,
+        durability_error,
     })
 }

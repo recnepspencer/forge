@@ -4,8 +4,19 @@ mod transaction;
 pub(crate) mod validation;
 
 pub use observation::RelationalBranchObservation;
-pub use publication::{DiscardedRelationalCommitCandidate, PreparedRelationalCommitCandidate};
-pub(crate) use publication::{PreparedIndexRefreshBasis, PreparedRelationalPublication};
+pub(crate) use publication::PreparedCanonicalBranchMovement;
+pub use publication::{
+    DiscardedRelationalCommitCandidate, PerformedRelationalCommit,
+    PreparedRelationalCommitCandidate, PublishRelationalCommit, RelationalPublicationDeferred,
+    RelationalPublicationDenial, RelationalPublicationDurabilityPosture,
+    RelationalPublicationFailure, RelationalPublicationFailureKind, RelationalPublicationOutcome,
+    RelationalPublicationPort, RelationalPublicationProjectionPosture,
+    StaleRelationalBranchObservation,
+};
+pub(crate) use publication::{
+    PreparedIndexRefreshBasis, PreparedRelationalPublication,
+    PreparedRelationalPublicationAccelerators,
+};
 pub(crate) use transaction::commit_plan::bulk_reservations_for_plan;
 pub(crate) use transaction::RelationalTransactionSavepoint;
 pub use transaction::{

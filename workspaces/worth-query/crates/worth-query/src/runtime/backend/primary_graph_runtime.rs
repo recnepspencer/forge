@@ -46,6 +46,21 @@ impl WorthQueryPrimaryGraphBackendHandle {
         self.integration.with_runtime(read)
     }
 
+    pub(in crate::runtime) fn repair_deferred_publication_settlement(
+        &self,
+        settlement: &worth_relational::facade::publication::DeferredPublicationSettlement,
+    ) -> Result<
+        worth_relational::facade::history::RelationalCommitReceipt,
+        crate::runtime::WorthQuerySettlementRepairError,
+    > {
+        self.integration
+            .execute_mutation_with_index_refresh(|runtime| {
+                runtime.repair_deferred_publication_settlement(settlement)
+            })
+            .map_err(crate::runtime::WorthQuerySettlementRepairError::PrimaryGraphIndexRefresh)?
+            .map_err(Into::into)
+    }
+
     pub(in crate::runtime) fn execute_mutation<T, E>(
         &self,
         mutate: impl FnOnce(&mut RelationalRuntime) -> Result<T, E>,

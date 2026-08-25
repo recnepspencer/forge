@@ -9,14 +9,14 @@ use crate::indexes::data::DerivedIndexArtifacts;
 use crate::lineage::data::LineageFinalizationArtifact;
 use crate::publication::bundle::PublicationStage;
 use crate::publication::data::PublicationError;
-use crate::publication::patch::data::PublishedAuthoritativePatchEnvelope;
+use crate::publication::patch::data::CanonicalAuthoritativePatch;
 use crate::transactions::data::{
     MergedCommitPlan, PublishedMergeExecutionAuthority, RecordRef, TransactionCommitError,
 };
 
 pub(crate) fn enforce_patch_budget(
     runtime: &mut (impl DiagnosticArtifactSink + PublicationPolicySource),
-    patch: &PublishedAuthoritativePatchEnvelope,
+    patch: &CanonicalAuthoritativePatch,
 ) -> Result<(), TransactionCommitError> {
     let max_patch_records_per_commit = runtime.max_patch_records_per_commit();
     if patch.authoritative_record_patches.len() > max_patch_records_per_commit {
@@ -47,7 +47,7 @@ pub(crate) fn canonical_commit_envelope(
     merge_parent_branches: &[BranchId],
     merge_base_commits: &[CommitId],
     merged_plan: &MergedCommitPlan,
-    patch: crate::publication::patch::data::PublishedAuthoritativePatchEnvelope,
+    patch: CanonicalAuthoritativePatch,
     diagnostics_summary: crate::diagnostics::data::RelationalDiagnosticArtifact,
     lineage_artifact: LineageFinalizationArtifact,
     derived_index_artifacts: DerivedIndexArtifacts,
@@ -103,12 +103,11 @@ pub(crate) fn canonical_commit_envelope(
 pub(crate) fn append_durable_commit(
     runtime: &mut (impl DiagnosticArtifactSink + DurabilityWrite),
     append_authority: crate::durability::authority::DurableAppendAuthority,
-    canonical_commit_envelope: &CanonicalCommitEnvelope,
+    positioned_commit: &crate::history::data::PositionedCanonicalCommit,
 ) -> Result<(), TransactionCommitError> {
     let commit_id = append_authority.commit_id();
     let branch_id = append_authority.branch_id().clone();
-    if let Err(error) = runtime.append_durable_envelope(append_authority, canonical_commit_envelope)
-    {
+    if let Err(error) = runtime.append_durable_envelope(append_authority, positioned_commit) {
         runtime.emit_failure_diagnostic(
             DiagnosticsScope::History,
             DiagnosticCode::DurableAppendFailed,
@@ -116,7 +115,7 @@ pub(crate) fn append_durable_commit(
             durable_append_failure_fields(commit_id, &branch_id),
         );
         return Err(TransactionCommitError::publication(PublicationError::new(
-            PublicationStage::Visibility,
+            PublicationStage::DurableAppend,
             error.detail,
         )));
     }

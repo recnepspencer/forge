@@ -68,6 +68,10 @@ pub(super) enum WorthQueryRetainedConditionalDecision {
     Suppressed(BridgeConditionalDecisionEvidence),
     Deferred(BridgeConditionalDecisionEvidence),
     OperationRetryable(BridgeConditionalDecisionEvidence, String),
+    OperationSettlementDeferred(
+        BridgeConditionalDecisionEvidence,
+        crate::domain_computation::primary_graph::WorthQueryApplicationSettlementDeferred,
+    ),
     OperationIndeterminate(BridgeConditionalDecisionEvidence, String),
     OperationCommitted(BridgeConditionalDecisionEvidence),
     OperationAlreadyCommitted(BridgeConditionalDecisionEvidence),
@@ -117,6 +121,14 @@ pub(super) fn retained_decision_counts(
                 let _decision = evidence.signal().class();
                 let _failure_detail = detail.as_str();
                 counts.failed += 1;
+            }
+            WorthQueryRetainedConditionalDecision::OperationSettlementDeferred(
+                evidence,
+                deferred,
+            ) => {
+                let _decision = evidence.signal().class();
+                let _settlement = deferred.settlement();
+                counts.deferred += 1;
             }
             WorthQueryRetainedConditionalDecision::OperationCommitted(_)
             | WorthQueryRetainedConditionalDecision::OperationAlreadyCommitted(_) => {}

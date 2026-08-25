@@ -11,11 +11,12 @@ use super::execution_relational_scalar::{
     ensure_exact_basis_freshness, mutation_target_branch, mutation_transaction_validation_input,
     open_exact_basis_snapshot,
 };
+use super::RelationalEffectExecutionFailure;
 
 pub(super) fn execute_lowered_mutation_batch(
     runtime: &mut RelationalRuntime,
     declarations: &[LoweredMutationIntentDeclaration],
-) -> Result<CommitResult, (EffectExecutionDenialKind, String)> {
+) -> Result<CommitResult, RelationalEffectExecutionFailure> {
     let first_declaration = declarations.first().ok_or_else(|| {
         (
             EffectExecutionDenialKind::RelationalAuthorityBindingMalformed,
@@ -32,7 +33,8 @@ pub(super) fn execute_lowered_mutation_batch(
                     "batch-native mutation execution cannot mix target branches `{}` and `{}`",
                     target_branch.0, component_target.0
                 ),
-            ));
+            )
+                .into());
         }
     }
     for declaration in declarations {
@@ -57,7 +59,8 @@ pub(super) fn execute_lowered_mutation_batch(
         return Err((
             EffectExecutionDenialKind::RelationalAuthorityBindingMalformed,
             "exact Relational batch strategy snapshot could not be released".to_string(),
-        ));
+        )
+            .into());
     }
     let lowered_components = lowered_components?;
     let mut batch = WorkerIntentBatch::new("worth-query-effect-batch");
@@ -73,9 +76,47 @@ pub(super) fn execute_lowered_mutation_batch(
         )
         .expect("owner-admitted transaction context");
     txn.push_batch(batch);
-    txn.commit(runtime).map_err(|error| {
+    let candidate = runtime.prepare_branch_transaction(txn).map_err(|error| {
         lower_runtime_error(error, EffectExecutionDenialKind::RelationalCommitFailed)
-    })
+    })?;
+    let performed = match runtime.publication_port().compare_and_publish(candidate) {
+        worth_proof::TransitionOutcome::Success(performed) => performed,
+        worth_proof::TransitionOutcome::Deferred(deferred) => {
+            return Err(RelationalEffectExecutionFailure::deferred(format!(
+                "Relational batch publication deferred before movement: {deferred:?}"
+            )));
+        }
+        worth_proof::TransitionOutcome::Stale(stale) => {
+            return Err(lower_runtime_error(
+                stale,
+                EffectExecutionDenialKind::RelationalCommitFailed,
+            )
+            .into());
+        }
+        worth_proof::TransitionOutcome::Denied(denial) => {
+            return Err(lower_runtime_error(
+                denial,
+                EffectExecutionDenialKind::RelationalCommitFailed,
+            )
+            .into());
+        }
+        worth_proof::TransitionOutcome::Failed(failure) => {
+            return Err(lower_runtime_error(
+                failure,
+                EffectExecutionDenialKind::RelationalCommitFailed,
+            )
+            .into());
+        }
+        worth_proof::TransitionOutcome::RebindRequired(impossible) => match impossible {},
+    };
+    runtime
+        .settle_performed_publication(performed)
+        .map_err(|error| {
+            let settlement = error.deferred_settlement().cloned();
+            let (kind, message) =
+                lower_runtime_error(error, EffectExecutionDenialKind::RelationalCommitFailed);
+            RelationalEffectExecutionFailure::from_publication_failure(kind, message, settlement)
+        })
 }
 
 fn lower_batch_component(

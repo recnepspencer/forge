@@ -4,7 +4,6 @@ use super::{
     DurableCheckpoint, DurableCheckpointId, DurableCheckpointManifest, DurableSegmentId,
     DurableStore, RecoveryAuthorityContinuityMismatch,
 };
-use crate::history::data::CanonicalCommitEnvelope;
 use crate::history::data::{CommitId, RelationalCommitReceipt};
 use crate::replay::data::ReplayVerificationLayer;
 use crate::schema::data::DescriptorSemanticsVersion;
@@ -88,13 +87,14 @@ pub struct RecoveryPlan {
     pub store: Option<DurableStore>,
     pub checkpoint_manifest: Option<DurableCheckpointManifest>,
     pub checkpoint: Option<DurableCheckpoint>,
-    pub tail_log: Vec<CanonicalCommitEnvelope>,
+    pub(crate) tail_log: Vec<crate::durability::migration::ReadmittedCanonicalCommit>,
     pub cursor: RecoveryCursor,
     pub integrity_report: RecoveryIntegrityReport,
     pub authority_continuity: RecoveryAuthorityContinuityCheck,
     pub verification_plan: RecoveryVerificationPlan,
     pub descriptor_semantics_version: DescriptorSemanticsVersion,
     pub restore_authoritative_envelope_commit_ids: Vec<CommitId>,
+    pub(crate) persisted_tail_error: Option<super::DurabilityError>,
     pub(crate) commit_strategy_executors:
         crate::commit_strategies::FrozenCommitStrategyExecutorRegistry,
 }
@@ -160,12 +160,12 @@ impl RecoveryAuthorityContinuityCheck {
 
 impl RecoveryPlan {
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         config: crate::runtime::RelationalRuntimeConfig,
         store: Option<DurableStore>,
         checkpoint_manifest: Option<DurableCheckpointManifest>,
         checkpoint: Option<DurableCheckpoint>,
-        tail_log: Vec<CanonicalCommitEnvelope>,
+        tail_log: Vec<crate::durability::migration::ReadmittedCanonicalCommit>,
         cursor: RecoveryCursor,
         integrity_report: RecoveryIntegrityReport,
         authority_continuity: RecoveryAuthorityContinuityCheck,
@@ -187,6 +187,7 @@ impl RecoveryPlan {
             verification_plan: RecoveryVerificationPlan::from_mode(verification_mode),
             descriptor_semantics_version,
             restore_authoritative_envelope_commit_ids,
+            persisted_tail_error: None,
             commit_strategy_executors:
                 crate::commit_strategies::FrozenCommitStrategyExecutorRegistry::default(),
         }
@@ -202,6 +203,33 @@ impl RecoveryPlan {
     ) -> Self {
         self.commit_strategy_executors = executors;
         self
+    }
+
+    pub(crate) fn with_persisted_tail_error(
+        mut self,
+        error: Option<super::DurabilityError>,
+    ) -> Self {
+        self.persisted_tail_error = error;
+        self
+    }
+
+    pub(crate) fn tail_commit_count(&self) -> usize {
+        self.tail_log.len()
+    }
+
+    pub(crate) fn tail_envelopes_in_stream_order(
+        &self,
+    ) -> Vec<&crate::history::data::CanonicalCommitEnvelope> {
+        let mut envelopes = self
+            .tail_log
+            .iter()
+            .map(|entry| (entry.position(), entry.envelope()))
+            .collect::<Vec<_>>();
+        envelopes.sort_by_key(|(position, _)| *position);
+        envelopes
+            .into_iter()
+            .map(|(_, envelope)| envelope)
+            .collect()
     }
 
     pub(crate) fn should_restore_authoritative_envelope(&self, commit_id: CommitId) -> bool {

@@ -6,7 +6,8 @@ use crate::facade::lineage::{
     HistoricalResolutionRequest, LineageGraphRequest, LineageGraphTraversalBasis,
 };
 use crate::facade::transactions::{
-    EntityMutationIntent, MutationIntent, ReplaceEntityIntent, WorkerIntentBatch,
+    EntityMutationIntent, MutationIntent, ReplaceEntityIntent, TransactionCommitError,
+    WorkerIntentBatch,
 };
 use crate::tests::support::*;
 
@@ -89,7 +90,7 @@ fn historical_lineage_resolution_follows_replace_events() {
 }
 
 #[test]
-fn failed_durable_append_installs_no_lineage_under_reused_commit_id() {
+fn failed_durable_append_cannot_misreport_a_performed_owner_commit() {
     let mut runtime = runtime_with_test_schema();
     let created = create_entity_outcome(&mut runtime, "failed-lineage-source");
     let entity = changed_entities(&created)[0];
@@ -121,19 +122,35 @@ fn failed_durable_append_installs_no_lineage_under_reused_commit_id() {
             },
         })),
     ));
-    let error = transaction
+    let durability_deferred = transaction
         .commit(&mut runtime)
-        .expect_err("injected durable failure must abort publication");
-    assert!(format!("{error:?}").contains("test-injected durable append failure"));
+        .expect_err("an unacknowledged performed movement is a typed error");
+    assert!(matches!(
+        durability_deferred,
+        TransactionCommitError::PerformedButDurabilityDeferred { .. }
+    ));
+    assert_eq!(
+        durability_deferred
+            .performed_commit()
+            .expect("error carries exact performed receipt")
+            .commit_id,
+        failed_commit_id
+    );
 
     let after_failure = runtime.lineage_access().graph(LineageGraphRequest {
         branch_id: BranchId("main".to_owned()),
         traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
     });
-    assert_eq!(after_failure.nodes, before.nodes);
-    assert_eq!(after_failure.events, before.events);
-    let successor = create_entity_outcome(&mut runtime, "reused-commit-successor");
-    assert_eq!(successor.commit.commit_id, failed_commit_id);
+    assert_eq!(after_failure.nodes.len(), before.nodes.len());
+    assert_eq!(after_failure.events.len(), before.events.len() + 2);
+    assert_eq!(
+        runtime
+            .history()
+            .branch_head(&BranchId("main".to_owned()))
+            .expect("performed owner movement remains current")
+            .commit_id,
+        failed_commit_id
+    );
     let resolution =
         runtime
             .lineage_access()
@@ -142,8 +159,9 @@ fn failed_durable_append_installs_no_lineage_under_reused_commit_id() {
                 lineage_id: start_lineage,
                 boundedness_basis: HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
             });
-    assert_eq!(resolution.resolved, vec![start_lineage]);
-    assert!(resolution.traversed_event_ids.is_empty());
+    assert_eq!(resolution.resolved.len(), 1);
+    assert_ne!(resolution.resolved[0], start_lineage);
+    assert_eq!(resolution.traversed_event_ids.len(), 1);
 }
 
 #[test]

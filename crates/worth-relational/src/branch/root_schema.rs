@@ -14,6 +14,7 @@ use crate::schema::data::{
 #[derive(Debug, Clone)]
 pub(crate) struct RelationalBranchRootSchemaAuthority {
     allocation_id: u64,
+    authority_digest: [u8; 32],
     registry: Arc<RelationalSchemaRegistry>,
     aspect_plans: Arc<AspectContractPlanCatalog>,
     retained_aspect_contracts: Arc<Vec<AspectContract>>,
@@ -34,6 +35,9 @@ impl RelationalBranchRootSchemaAuthority {
             debug_assert!(plans_match_snapshot(&aspect_plans, expected));
             Arc::new(Self {
                 allocation_id,
+                authority_digest: crate::schema::data::schema_authority_snapshot_digest_bytes(
+                    expected,
+                ),
                 registry: Arc::new(registry),
                 aspect_plans: Arc::new(aspect_plans),
                 retained_aspect_contracts: Arc::new(retained_aspect_contracts),
@@ -54,6 +58,9 @@ impl RelationalBranchRootSchemaAuthority {
             debug_assert!(plans_match_snapshot(&aspect_plans, expected));
             Arc::new(Self {
                 allocation_id,
+                authority_digest: crate::schema::data::schema_authority_snapshot_digest_bytes(
+                    expected,
+                ),
                 registry: Arc::new(registry),
                 aspect_plans: Arc::new(aspect_plans),
                 retained_aspect_contracts: Arc::new(retained_aspect_contracts),
@@ -66,6 +73,7 @@ impl RelationalBranchRootSchemaAuthority {
     pub(crate) fn empty() -> Arc<Self> {
         Arc::new(Self {
             allocation_id: 0,
+            authority_digest: RelationalSchemaRegistry::default().authority_digest_bytes(),
             registry: Arc::new(RelationalSchemaRegistry::default()),
             aspect_plans: Arc::new(AspectContractPlanCatalog::empty()),
             retained_aspect_contracts: Arc::new(Vec::new()),
@@ -82,6 +90,10 @@ impl RelationalBranchRootSchemaAuthority {
 
     pub(crate) fn registry(&self) -> &RelationalSchemaRegistry {
         &self.registry
+    }
+
+    pub(crate) const fn authority_digest(&self) -> [u8; 32] {
+        self.authority_digest
     }
 
     pub(crate) fn aspect_plans(&self) -> &AspectContractPlanCatalog {

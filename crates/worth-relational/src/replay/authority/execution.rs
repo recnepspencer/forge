@@ -181,7 +181,6 @@ impl<'runtime> ReplayAuthority<'runtime> {
         let Some(envelope) = runtime
             .replay()
             .canonical_commit_envelope(request.commit_id)
-            .cloned()
         else {
             return Err(self.fail_and_record(
                 request.clone(),

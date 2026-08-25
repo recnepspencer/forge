@@ -1,10 +1,14 @@
 pub(crate) fn descriptor_semantics_version_for_envelopes(
-    checkpoint_envelopes: &[crate::history::data::CanonicalCommitEnvelope],
-    tail_log: &[crate::history::data::CanonicalCommitEnvelope],
+    checkpoint_envelopes: &[crate::history::data::PositionedCanonicalCommit],
+    tail_log: &[crate::durability::migration::ReadmittedCanonicalCommit],
 ) -> crate::schema::data::DescriptorSemanticsVersion {
     tail_log
         .last()
-        .or_else(|| checkpoint_envelopes.last())
-        .map(|envelope| envelope.descriptor_semantics_version)
+        .map(|entry| entry.envelope().descriptor_semantics_version)
+        .or_else(|| {
+            checkpoint_envelopes
+                .last()
+                .map(|entry| entry.envelope().descriptor_semantics_version)
+        })
         .unwrap_or_default()
 }

@@ -24,6 +24,7 @@ struct CommitResultMaterial {
     created_relations: crate::transactions::data::CommitCreatedRelationBindings,
     history: crate::authority::commit::phases::history::ResolvedCommitHistory,
     canonical_commit_envelope: std::sync::Arc<crate::history::data::CanonicalCommitEnvelope>,
+    patch_position: crate::publication::patch::data::PatchStreamPosition,
     changed_records: Vec<crate::transactions::data::RecordRef>,
     publication_snapshot: crate::snapshots::data::SnapshotHandle,
     aspect_evaluation_traces: Vec<crate::transactions::data::AspectEvaluationTrace>,
@@ -70,7 +71,7 @@ impl CommitResultSeal {
     }
 }
 
-pub(super) fn assemble_commit_result(
+pub(crate) fn assemble_commit_result(
     runtime: &crate::runtime::RelationalRuntime,
     published: PublishedCommitExecution,
 ) -> CommitResult {
@@ -94,6 +95,7 @@ impl CommitResultMaterial {
             created_relations,
             history,
             canonical_commit_envelope,
+            patch_position,
             changed_records,
             publication_snapshot,
             aspect_evaluation_traces,
@@ -123,6 +125,7 @@ impl CommitResultMaterial {
             created_relations,
             history,
             canonical_commit_envelope,
+            patch_position,
             changed_records,
             publication_snapshot,
             aspect_evaluation_traces,
@@ -154,6 +157,7 @@ impl CommitResultMaterial {
             publication: CommitPublication {
                 diagnostics,
                 envelope: self.canonical_commit_envelope,
+                patch_position: self.patch_position,
                 aspect_evaluation_traces: self.aspect_evaluation_traces,
                 aspect_emission_traces: self.aspect_emission_traces,
                 strategy_artifacts: self.strategy_artifacts,

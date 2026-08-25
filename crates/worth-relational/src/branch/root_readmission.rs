@@ -22,10 +22,9 @@ impl RelationalBranchRoot {
         symbols: &crate::symbols::data::StringInterner,
     ) -> Result<Arc<Self>, RelationalBranchRootCaptureDenial> {
         validate_schema_root(&envelope, &descriptor)?;
-        let mut candidate_issuer = issuer.clone();
-        let root_id = candidate_issuer.issue_root_id()?;
+        let root_id = issuer.issue_root_id()?;
         let (regions, mut publication_cost) =
-            capture::build_initial_regions(&mut candidate_issuer, root_id, partitions, symbols)?;
+            capture::build_initial_regions(issuer, root_id, partitions, symbols)?;
         let (storage_root, content_accumulator) = axes::storage_root_for(&regions);
         require_descriptor_content(&descriptor, storage_root)?;
         let schema_root = *descriptor.schema_root();
@@ -55,7 +54,6 @@ impl RelationalBranchRoot {
                 correctness_index,
             ),
         };
-        *issuer = candidate_issuer;
         Ok(Arc::new(Self {
             id: root_id,
             regions,

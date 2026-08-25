@@ -1,4 +1,4 @@
-use crate::history::data::CanonicalCommitEnvelope;
+use crate::history::data::PositionedCanonicalCommit;
 use crate::publication::cdc::data::{
     NormalizedContinuationProof, SubscriberCheckpoint, SubscriberContinuationAssessment,
     SubscriberContractDeclaration, SubscriberStreamFailure,
@@ -10,8 +10,8 @@ use crate::schema::data::DescriptorSemanticsVersion;
 
 pub(super) fn latest_available_assessment(
     runtime: &RelationalRuntime,
-    available_envelopes: &[CanonicalCommitEnvelope],
-    selected_envelopes: &[CanonicalCommitEnvelope],
+    available_envelopes: &[PositionedCanonicalCommit],
+    selected_envelopes: &[PositionedCanonicalCommit],
     subscriber_contract: &SubscriberContractDeclaration,
     prior_proof: &NormalizedContinuationProof,
     resume_basis_descriptor_semantics_version: DescriptorSemanticsVersion,
@@ -32,7 +32,7 @@ pub(super) fn latest_available_assessment(
 
 pub(super) fn latest_available_checkpoint_for_recovery(
     subscriber_contract_id: String,
-    available_envelopes: &[CanonicalCommitEnvelope],
+    available_envelopes: &[PositionedCanonicalCommit],
     assessment: &SubscriberContinuationAssessment,
 ) -> Option<SubscriberCheckpoint> {
     let basis = checkpoint_basis_from_envelope(available_envelopes.last()?);

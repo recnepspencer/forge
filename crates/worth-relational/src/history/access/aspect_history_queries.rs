@@ -215,7 +215,7 @@ impl<'runtime> HistoryAccess<'runtime> {
         )
     }
 
-    fn commit_span(envelopes: &[&CanonicalCommitEnvelope]) -> Option<AspectHistoryCommitSpan> {
+    fn commit_span(envelopes: &[CanonicalCommitEnvelope]) -> Option<AspectHistoryCommitSpan> {
         Some(AspectHistoryCommitSpan {
             first_commit_id: envelopes.first()?.commit.commit_id,
             last_commit_id: envelopes.last()?.commit.commit_id,

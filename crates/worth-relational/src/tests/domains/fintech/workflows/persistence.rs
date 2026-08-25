@@ -62,9 +62,8 @@ fn fintech_persisted_workflow_recovers_checkpoint_tail_and_keeps_queryable_portf
     assert_eq!(
         recovered
             .history()
-            .branch_head(&BranchId("analysis".to_string()))
-            .cloned(),
-        recovered.history().latest_commit().cloned()
+            .branch_head(&BranchId("analysis".to_string())),
+        recovered.history().latest_commit()
     );
     let after_probe = read_snapshot_probe(
         &world,
@@ -210,9 +209,8 @@ fn fintech_persisted_workflow_supports_compaction_after_checkpoint() {
     assert_eq!(
         recovered
             .history()
-            .branch_head(&BranchId("analysis".to_string()))
-            .cloned(),
-        recovered.history().latest_commit().cloned()
+            .branch_head(&BranchId("analysis".to_string())),
+        recovered.history().latest_commit()
     );
     let recovered_snapshot = recovered.visibility_authority().snapshot();
     let packet = {

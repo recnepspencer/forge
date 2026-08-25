@@ -99,7 +99,6 @@ where
                         .branch_head_for_observation(&basis.observation())
                         .ok()
                         .flatten()
-                        .cloned()
                 });
                 if selected_commit.as_ref() != Some(&commit) {
                     return Err(denial(

@@ -76,6 +76,72 @@ fn checkpoint_restores_burned_append_frontier_beyond_all_retained_roots() {
 }
 
 #[test]
+fn recovery_releases_orphaned_append_reservation_without_reusing_its_gap() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    let original = create_entity(&mut runtime, "orphan-append-root");
+    let mut pending = runtime.record_identity.begin_allocations();
+    let reservation = pending
+        .reserve(
+            crate::history::data::RecordAllocationClass::Entity,
+            original.partition_id,
+        )
+        .unwrap();
+    assert_eq!(reservation.slot as u64, original.local_slot.0 + 1);
+    runtime.durability_authority().checkpoint().unwrap();
+    let plan = runtime.durability().recovery_plan(
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+    );
+    drop(pending);
+
+    let mut recovered = persisted_runtime_with_test_schema();
+    recovered.durability_authority().recover(plan).unwrap();
+
+    assert!(recovered.record_identity.pending_snapshot().is_empty());
+    let after_recovery = create_entity(&mut recovered, "orphan-append-after");
+    assert_eq!(after_recovery.local_slot.0, original.local_slot.0 + 2);
+}
+
+#[test]
+fn recovery_returns_orphaned_reclaimed_reservation_to_reuse() {
+    let mut runtime = persisted_runtime_with_test_schema_profile(
+        crate::facade::config::RelationalRuntimeProfile::AiWorkflow,
+    );
+    let created = create_entity_outcome(&mut runtime, "orphan-reclaimed-root");
+    let original = changed_entities(&created)[0];
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&created.snapshot));
+    let deleted = delete_entity(&mut runtime, original);
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&deleted.snapshot));
+    runtime.retention().run_pass();
+    let mut pending = runtime.record_identity.begin_allocations();
+    let reservation = pending
+        .reserve(
+            crate::history::data::RecordAllocationClass::Entity,
+            original.partition_id,
+        )
+        .unwrap();
+    assert_eq!(reservation.slot as u64, original.local_slot.0);
+    runtime.durability_authority().checkpoint().unwrap();
+    let plan = runtime.durability().recovery_plan(
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+    );
+    drop(pending);
+
+    let mut recovered = persisted_runtime_with_test_schema_profile(
+        crate::facade::config::RelationalRuntimeProfile::AiWorkflow,
+    );
+    recovered.durability_authority().recover(plan).unwrap();
+
+    assert!(recovered.record_identity.pending_snapshot().is_empty());
+    let replacement = create_entity(&mut recovered, "orphan-reclaimed-after");
+    assert_eq!(replacement.local_slot, original.local_slot);
+    assert!(replacement.generation.0 > original.generation.0);
+}
+
+#[test]
 fn tail_replay_rejects_canonical_allocation_targeting_a_live_slot() {
     let mut runtime = persisted_runtime_with_test_schema();
     let original = create_entity(&mut runtime, "allocation-live");
@@ -84,7 +150,11 @@ fn tail_replay_rejects_canonical_allocation_targeting_a_live_slot() {
     let mut plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
-    let tail = plan.tail_log.last_mut().expect("tail commit is selected");
+    let tail = plan
+        .tail_log
+        .last_mut()
+        .expect("tail commit is selected")
+        .envelope_mut_for_test();
     let forged = crate::identity::data::EntityId::new(
         original.partition_id,
         original.local_slot.0,
@@ -123,6 +193,7 @@ fn tail_replay_rejects_missing_canonical_allocation_evidence() {
     plan.tail_log
         .last_mut()
         .expect("tail commit is selected")
+        .envelope_mut_for_test()
         .install_record_allocations(Vec::new());
 
     let mut recovered = persisted_runtime_with_test_schema();
@@ -153,6 +224,7 @@ fn tail_replay_gap_admission_cannot_replace_a_different_canonical_effect() {
     plan.tail_log
         .last_mut()
         .expect("tail commit")
+        .envelope_mut_for_test()
         .install_record_allocations(vec![
             crate::history::data::CanonicalRecordAllocation::with_origin(
                 0,
@@ -195,7 +267,11 @@ fn metadata_only_merge_rejects_unconsumable_allocation_evidence() {
     let mut plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
-    let tail = plan.tail_log.last_mut().expect("merge tail is selected");
+    let tail = plan
+        .tail_log
+        .last_mut()
+        .expect("merge tail is selected")
+        .envelope_mut_for_test();
     tail.install_record_allocations(vec![crate::history::data::CanonicalRecordAllocation::new(
         0,
         crate::transactions::data::RecordRef::Entity(entity),

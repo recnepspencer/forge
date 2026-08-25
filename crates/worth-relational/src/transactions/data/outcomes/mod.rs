@@ -8,12 +8,13 @@ mod created_entity_bindings;
 mod created_relation_bindings;
 mod plan_artifacts;
 mod rollback;
+mod transaction_commit_error;
 
 pub use aspect_delta_failure_fields::{
     AspectDeltaFailureFields, AspectDeltaPatchConstructionDenial, AspectDeltaPatchValueDenial,
     AspectDeltaRecordClass,
 };
-pub use commit_conflict::{CommitConflict, TransactionCommitError};
+pub use commit_conflict::CommitConflict;
 pub use commit_preparation::{
     CommitPreparationError, CommitPreparationReason, SelectedBranchRootDenialReason,
 };
@@ -40,3 +41,4 @@ pub use plan_artifacts::{
     PublishedMergeExecutionAuthority, UndoRecord,
 };
 pub use rollback::{RollbackEffect, RollbackOutcome, RollbackSummary};
+pub use transaction_commit_error::TransactionCommitError;

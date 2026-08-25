@@ -15,14 +15,10 @@ fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_lea
             &BranchId("main".to_string()),
         )
         .unwrap();
-    let main_head_before = runtime
-        .history()
-        .branch_head(&BranchId("main".to_string()))
-        .cloned();
+    let main_head_before = runtime.history().branch_head(&BranchId("main".to_string()));
     let feature_head_before = runtime
         .history()
-        .branch_head(&BranchId("feature".to_string()))
-        .cloned();
+        .branch_head(&BranchId("feature".to_string()));
     let main_digest_before = relation_aspect_history_digest_on_branch(
         &runtime,
         &BranchId("main".to_string()),
@@ -69,13 +65,13 @@ fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_lea
 
     assert_eq!(
         runtime.history().branch_head(&BranchId("main".to_string())),
-        main_head_before.as_ref()
+        main_head_before
     );
     assert_eq!(
         runtime
             .history()
             .branch_head(&BranchId("feature".to_string())),
-        feature_head_before.as_ref()
+        feature_head_before
     );
     assert_eq!(
         relation_aspect_history_digest_on_branch(

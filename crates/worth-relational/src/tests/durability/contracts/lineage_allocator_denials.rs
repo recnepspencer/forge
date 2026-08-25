@@ -10,10 +10,13 @@ fn tail_created_lineage_allocator_exhaustion_denies_before_replay() {
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     plan.tail_log[0]
+        .envelope_mut_for_test()
         .published_lineage_mut_for_test()
         .lineage_events_mut()[0]
         .targets[0] = crate::identity::data::LineageId(u64::MAX - 1);
-    plan.tail_log[0].rebuild_lineage_basis_for_test();
+    plan.tail_log[0]
+        .envelope_mut_for_test()
+        .rebuild_lineage_basis_for_test();
 
     let mut recovered = persisted_runtime_with_test_schema();
     let error = recovered
@@ -48,7 +51,7 @@ fn live_lineage_allocator_exhaustion_denies_before_public_effects() {
             .history()
             .branch_head(&BranchId("main".to_owned()))
             .expect("baseline head"),
-        &baseline.commit
+        baseline.commit
     );
     assert_eq!(
         runtime.storage_access().storage_stats().live_entities,

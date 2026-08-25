@@ -125,6 +125,7 @@ fn durability_contract_replays_merge_from_typed_authority_when_diagnostics_are_a
     let merge_entry = file
         .entries
         .iter_mut()
+        .map(|commit| commit.envelope_mut_for_test())
         .find(|entry| entry.commit.commit_id == merge.commit.commit.commit_id)
         .expect("merge entry in durable segment");
     assert!(merge_entry.merge_execution_authority.is_some());
@@ -194,6 +195,7 @@ fn durability_contract_reports_parent_order_parity_drift_when_durable_segment_is
     let merge_entry = file
         .entries
         .iter_mut()
+        .map(|commit| commit.envelope_mut_for_test())
         .find(|entry| entry.commit.commit_id == merge.commit.commit_id)
         .expect("merge entry in durable segment");
     assert_eq!(
@@ -249,6 +251,7 @@ fn durability_contract_does_not_reconstruct_missing_merge_authority_from_diagnos
     let merge_entry = file
         .entries
         .iter_mut()
+        .map(|commit| commit.envelope_mut_for_test())
         .find(|entry| entry.commit.commit_id == merge.commit.commit.commit_id)
         .expect("merge entry in durable segment");
     assert!(merge_entry.merge_execution_authority.is_some());

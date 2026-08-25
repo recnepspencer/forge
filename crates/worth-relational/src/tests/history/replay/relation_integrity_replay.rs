@@ -126,8 +126,7 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
     };
     let feature_head_before_reject = runtime
         .history()
-        .branch_head(&BranchId("feature".to_string()))
-        .cloned();
+        .branch_head(&BranchId("feature".to_string()));
 
     let mut rejected_txn = crate::tests::support::test_owner_begin_transaction_for_branch(
         &mut runtime,
@@ -157,7 +156,7 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
         runtime
             .history()
             .branch_head(&BranchId("feature".to_string())),
-        feature_head_before_reject.as_ref()
+        feature_head_before_reject
     );
 
     let replay = runtime

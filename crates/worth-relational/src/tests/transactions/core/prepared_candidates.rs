@@ -1,6 +1,7 @@
 use crate::facade::identity::{KindId, PartitionId};
 use crate::facade::transactions::{CreateIntent, MutationIntent, WorkerIntentBatch};
 use crate::tests::support::*;
+use std::sync::{Arc, Barrier};
 
 #[test]
 fn preparation_is_truth_effect_free_and_discard_releases_reservations() {
@@ -119,7 +120,263 @@ fn prepared_root_materializes_exactly_the_declared_write_partitions() {
 #[test]
 fn prepared_candidate_is_sendable_across_one_worker_boundary() {
     fn assert_send<T: Send>() {}
+    fn assert_clone_send_sync<T: Clone + Send + Sync>() {}
     assert_send::<crate::facade::mvcc::PreparedRelationalCommitCandidate>();
+    assert_clone_send_sync::<crate::facade::mvcc::RelationalPublicationPort>();
+}
+
+#[test]
+fn foreign_publication_port_denies_before_reference_movement() {
+    let mut source = runtime_with_test_schema();
+    create_entity(&mut source, "foreign-port-anchor");
+    let before = source.admit_main_branch_basis().expect("source basis");
+    let commit_count_before = source.history().immutable_commit_count();
+    let mut transaction = source
+        .begin_branch_transaction(
+            &before,
+            crate::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("source transaction binds");
+    transaction.push_batch(batch_create("foreign-port-write"));
+    let candidate = source
+        .prepare_branch_transaction(transaction)
+        .expect("source candidate prepares");
+    let foreign = runtime_with_test_schema();
+
+    match foreign.publication_port().compare_and_publish(candidate) {
+        worth_proof::TransitionOutcome::Denied(
+            crate::mvcc::RelationalPublicationDenial::ForeignRuntime {
+                expected_runtime_instance_id,
+                actual_runtime_instance_id,
+            },
+        ) => {
+            assert_eq!(expected_runtime_instance_id, foreign.runtime_instance_id());
+            assert_eq!(actual_runtime_instance_id, source.runtime_instance_id());
+        }
+        outcome => panic!("foreign port must return its typed denial: {outcome:?}"),
+    }
+    assert_eq!(
+        source
+            .admit_main_branch_basis()
+            .expect("source basis remains current")
+            .descriptor(),
+        before.descriptor()
+    );
+    assert_eq!(
+        source.history().immutable_commit_count(),
+        commit_count_before
+    );
+}
+
+#[test]
+fn publication_port_performs_one_exact_candidate_and_reports_the_loser_stale() {
+    let mut runtime = runtime_with_test_schema();
+    let anchor = create_entity_outcome(&mut runtime, "publication-race-anchor");
+    let anchor_commit_id = anchor.commit.commit_id;
+    let commit_count_before = runtime.history().immutable_commit_count();
+    let expected = runtime
+        .admit_main_branch_basis()
+        .expect("main basis is admitted")
+        .descriptor()
+        .clone();
+    let visible_entity_count_before = runtime
+        .read_truth()
+        .read_observation(
+            &runtime
+                .admit_main_branch_basis()
+                .expect("counting basis")
+                .observation(),
+        )
+        .expect("counting observation reads")
+        .entities()
+        .len();
+
+    let mut first = runtime
+        .begin_branch_transaction(
+            &runtime.admit_main_branch_basis().expect("first basis"),
+            crate::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("first transaction binds");
+    first.push_batch(batch_create("first-race-write"));
+    let first = runtime
+        .prepare_branch_transaction(first)
+        .expect("first candidate prepares");
+
+    let mut second = runtime
+        .begin_branch_transaction(
+            &runtime.admit_main_branch_basis().expect("second basis"),
+            crate::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("second transaction binds");
+    second.push_batch(batch_create("second-race-write"));
+    let second = runtime
+        .prepare_branch_transaction(second)
+        .expect("second candidate prepares");
+    let start = Arc::new(Barrier::new(3));
+    let (first_done, first_completion) = std::sync::mpsc::sync_channel(1);
+    let first_start = Arc::clone(&start);
+    let first_port = runtime.publication_port();
+    let first_thread = std::thread::spawn(move || {
+        first_start.wait();
+        let outcome = first_port.compare_and_publish(first);
+        first_done
+            .send(())
+            .expect("first completion receiver lives");
+        outcome
+    });
+    let (second_done, second_completion) = std::sync::mpsc::sync_channel(1);
+    let second_start = Arc::clone(&start);
+    let second_port = runtime.publication_port();
+    let second_thread = std::thread::spawn(move || {
+        second_start.wait();
+        let outcome = second_port.compare_and_publish(second);
+        second_done
+            .send(())
+            .expect("second completion receiver lives");
+        outcome
+    });
+    start.wait();
+    first_completion
+        .recv_timeout(std::time::Duration::from_secs(1))
+        .expect("first same-reference publisher completes within one second");
+    second_completion
+        .recv_timeout(std::time::Duration::from_secs(1))
+        .expect("second same-reference publisher completes within one second");
+    let first_outcome = first_thread.join().expect("first publisher joins");
+    let second_outcome = second_thread.join().expect("second publisher joins");
+    let (performed, stale) = match (first_outcome, second_outcome) {
+        (
+            worth_proof::TransitionOutcome::Success(performed),
+            worth_proof::TransitionOutcome::Stale(stale),
+        )
+        | (
+            worth_proof::TransitionOutcome::Stale(stale),
+            worth_proof::TransitionOutcome::Success(performed),
+        ) => (performed, stale),
+        outcomes => {
+            panic!("the same-reference race must have one winner and one stale loser: {outcomes:?}")
+        }
+    };
+    assert_eq!(
+        performed.next_basis().descriptor().branch_id(),
+        expected.branch_id()
+    );
+    assert_ne!(performed.next_basis().descriptor(), &expected);
+    assert_eq!(
+        performed
+            .canonical_commit()
+            .patch
+            .authoritative_record_patches
+            .len(),
+        1
+    );
+    assert_eq!(
+        performed.projection_posture(),
+        crate::mvcc::RelationalPublicationProjectionPosture::CanonicalRootCurrentOptionalProjectionsDeferred
+    );
+    assert_eq!(
+        performed.durability_posture(),
+        crate::mvcc::RelationalPublicationDurabilityPosture::OwnerAcknowledgementDeferred
+    );
+    assert!(performed
+        .next_basis()
+        .inner
+        .root
+        .is_complete(&runtime.services.symbols));
+    let observation = performed.next_basis().observation();
+    let created_entity = match &performed
+        .canonical_commit()
+        .patch
+        .authoritative_record_patches[0]
+        .target
+    {
+        crate::transactions::data::RecordRef::Entity(entity_id) => *entity_id,
+        crate::transactions::data::RecordRef::Relation(_) => {
+            panic!("the candidate creates one entity")
+        }
+    };
+    let visible = runtime
+        .read_truth()
+        .read_observation(&observation)
+        .expect("the performed basis reads its selected root");
+    assert!(visible.get_entity(created_entity).is_some());
+    assert_eq!(
+        visible.entities().len(),
+        visible_entity_count_before + 1,
+        "the selected root contains the winner only, never a merged loser write"
+    );
+    assert_eq!(
+        observation.commit_receipt(),
+        Some(&performed.canonical_commit().commit)
+    );
+    assert_eq!(
+        observation.canonical_patch(),
+        Some(&performed.canonical_commit().patch)
+    );
+    assert_eq!(
+        observation.correctness_index(),
+        Some(crate::branch::RelationalRootCorrectnessIndex::AuthoritativeFallback)
+    );
+    assert_eq!(
+        runtime
+            .history()
+            .immutable_commit_receipt(performed.canonical_commit().commit.commit_id),
+        Some(performed.canonical_commit().commit.clone())
+    );
+    assert_eq!(
+        runtime
+            .replay()
+            .canonical_commit_envelope(performed.canonical_commit().commit.commit_id),
+        Some(performed.canonical_commit().clone()),
+        "the ordinary replay surface resolves the root-owned artifact"
+    );
+    assert_eq!(
+        runtime
+            .replay()
+            .canonical_commit_envelope_owned(performed.canonical_commit().commit.commit_id),
+        Some(performed.canonical_commit().clone()),
+        "replay input resolves the same canonical root-owned artifact"
+    );
+    assert_eq!(
+        runtime.history().immutable_commit_count(),
+        commit_count_before + 1
+    );
+    let ancestry = runtime
+        .history()
+        .ancestor_closure_by_commit_id_order(performed.canonical_commit().commit.commit_id);
+    assert!(ancestry.contains(&anchor_commit_id));
+    assert!(ancestry.contains(&performed.canonical_commit().commit.commit_id));
+    assert!(runtime
+        .history()
+        .recent_commit_ids(Some(&BranchId("main".to_owned())), 8)
+        .contains(&performed.canonical_commit().commit.commit_id));
+    let stream = runtime
+        .publication()
+        .read_patch_stream(PatchStreamRequest::default())
+        .expect("the performed root's patch is immediately stream-visible");
+    let expected_patch =
+        crate::publication::patch::data::PublishedAuthoritativePatchEnvelope::from_canonical(
+            performed.patch_position(),
+            &performed.canonical_commit().patch,
+        );
+    assert!(stream.patches.iter().any(|patch| patch == &expected_patch));
+    assert_eq!(
+        stream.latest_commit_id,
+        Some(performed.canonical_commit().commit.commit_id)
+    );
+
+    assert_eq!(stale.expected(), &expected);
+    assert_eq!(stale.observed(), performed.next_basis().descriptor());
+    assert_eq!(
+        runtime.history().immutable_commit_count(),
+        commit_count_before + 1,
+        "the losing candidate must not enter canonical history"
+    );
+    assert_eq!(
+        runtime.history.pending_canonical_publication_route_count(),
+        0,
+        "the stale candidate releases its private canonical route reservation"
+    );
 }
 
 fn create_batch(name: &str, partition_id: PartitionId) -> WorkerIntentBatch {

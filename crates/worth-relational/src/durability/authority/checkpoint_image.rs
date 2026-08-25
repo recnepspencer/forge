@@ -1,4 +1,3 @@
-use crate::capabilities::RuntimeIdentitySource;
 use crate::durability::checkpoints::aspect_state_images::CheckpointAspectContractCatalog;
 use crate::durability::checkpoints::images::{
     partition_to_image, partition_to_image_with_contracts,
@@ -9,12 +8,24 @@ use crate::durability::data::{
 };
 use crate::lineage::data::{LineageCheckpointArtifact, LineageCheckpointDigestBasis};
 
-use super::super::derived_index_artifacts::checkpoint_derived_index_artifacts;
-use super::DurabilityAuthority;
+use super::checkpoint_capture::{CapturedCheckpointBasis, CapturedRecordIdentity};
 
-impl DurabilityAuthority<'_> {
-    pub(super) fn build_checkpoint_image(&self) -> Result<DurableCheckpoint, DurabilityError> {
-        let envelopes = self.runtime.history().commit_envelopes_snapshot();
+impl CapturedCheckpointBasis {
+    pub(super) fn build_checkpoint_image(self) -> Result<DurableCheckpoint, DurabilityError> {
+        let CapturedCheckpointBasis {
+            latest_commit,
+            branch_cells,
+            branch_roots,
+            record_identity,
+            envelopes,
+            partitions,
+            aspect_contracts,
+            lineage_nodes,
+            index_definitions,
+            derived_index_artifacts,
+            symbol_table,
+            runtime_name,
+        } = self;
         let published_lineage_commit_count = envelopes
             .iter()
             .filter(|envelope| envelope.has_lineage_authority())
@@ -37,18 +48,14 @@ impl DurabilityAuthority<'_> {
             .iter()
             .map(|envelope| envelope.lineage_digest_basis().lineage_decision_count())
             .sum();
-        let record_identity = checkpoint_record_identity(self.runtime)?;
-        let (branch_roots, branch_root_schema_images) = self.branch_root_images()?;
+        let record_identity = checkpoint_record_identity(record_identity)?;
+        let (branch_roots, branch_root_schema_images) = branch_root_images(branch_roots)?;
         Ok(DurableCheckpoint {
             coverage: CheckpointCoverage {
-                up_to_commit: self.runtime.history().latest_commit().cloned(),
-                up_to_version: self
-                    .runtime
-                    .history()
-                    .latest_commit()
-                    .map(|commit| commit.version_id),
+                up_to_commit: latest_commit.clone(),
+                up_to_version: latest_commit.map(|commit| commit.version_id),
             },
-            branch_cells: self.runtime.history().branch_cells_snapshot(),
+            branch_cells,
             branch_roots,
             branch_root_schema_images,
             record_identity,
@@ -56,21 +63,11 @@ impl DurabilityAuthority<'_> {
             reusable_record_slots: Vec::new(),
             record_slot_frontiers: Vec::new(),
             envelopes,
-            partition_images: self
-                .runtime
-                .partitions
-                .values()
-                .cloned()
-                .map(|partition| {
-                    partition_to_image(
-                        partition,
-                        &self.runtime.schema_contract_runtime.aspect_contract_plans,
-                    )
-                })
+            partition_images: partitions
+                .into_iter()
+                .map(|partition| partition_to_image(partition, &aspect_contracts))
                 .collect::<Result<Vec<_>, _>>()?,
-            aspect_contracts: checkpoint_aspect_contracts(
-                &self.runtime.schema_contract_runtime.aspect_contract_plans,
-            )?,
+            aspect_contracts: checkpoint_aspect_contracts(&aspect_contracts)?,
             lineage: LineageCheckpointArtifact::new(
                 LineageCheckpointDigestBasis::new(
                     published_lineage_commit_count,
@@ -78,97 +75,90 @@ impl DurabilityAuthority<'_> {
                     published_lineage_event_count,
                     published_lineage_decision_count,
                 ),
-                self.runtime.lineage_access().nodes_snapshot(),
+                lineage_nodes,
             ),
-            index_definitions: self.runtime.index_access().definitions_snapshot(),
-            derived_index_artifacts: checkpoint_derived_index_artifacts(self.runtime),
-            symbol_table: self.runtime.services.symbols.snapshot(),
-            runtime_name: self.runtime.runtime_name().to_string(),
+            index_definitions,
+            derived_index_artifacts,
+            symbol_table,
+            runtime_name,
         })
-    }
-
-    fn branch_root_images(
-        &self,
-    ) -> Result<
-        (
-            Vec<DurableBranchRootImage>,
-            Vec<crate::durability::data::DurableBranchRootSchemaImage>,
-        ),
-        DurabilityError,
-    > {
-        let mut schema_images = std::collections::BTreeMap::new();
-        let root_images = self
-            .runtime
-            .history
-            .branch_root_checkpoints()
-            .map_err(|detail| {
-                DurabilityError::new(RecoveryFailureClass::CorruptCheckpoint, detail)
-            })?
-            .into_iter()
-            .map(|root| {
-                let schema_image = crate::durability::data::DurableBranchRootSchemaImage::capture(
-                    root.schema_authority(),
-                )
-                .map_err(|error| {
-                    DurabilityError::new(
-                        RecoveryFailureClass::CorruptCheckpoint,
-                        format!("branch-root schema image encoding failed: {error}"),
-                    )
-                })?;
-                let schema_carrier_digest = schema_image.carrier_digest();
-                schema_images
-                    .entry(schema_carrier_digest)
-                    .or_insert(schema_image);
-                let retained_contracts = CheckpointAspectContractCatalog::from_contracts(
-                    root.schema_authority().retained_aspect_contracts(),
-                )?;
-                let partition_images = root
-                    .partitions()
-                    .iter()
-                    .cloned()
-                    .map(|partition| {
-                        partition_to_image_with_contracts(
-                            partition,
-                            root.schema_authority().aspect_plans(),
-                            &retained_contracts,
-                        )
-                    })
-                    .collect::<Result<Vec<_>, _>>()?;
-                let partition_image_digest =
-                    crate::durability::data::branch_root_partition_image_digest(&partition_images)
-                        .map_err(|error| {
-                            DurabilityError::new(
-                                RecoveryFailureClass::CorruptCheckpoint,
-                                format!("branch-root image encoding failed: {error}"),
-                            )
-                        })?;
-                let format_version = DurableBranchRootImage::CURRENT_FORMAT_VERSION;
-                let root_image_digest = crate::durability::data::branch_root_image_digest(
-                    format_version,
-                    root.commit_id(),
-                    partition_image_digest,
-                    schema_carrier_digest,
-                );
-                Ok(DurableBranchRootImage {
-                    format_version,
-                    commit_id: root.commit_id(),
-                    partition_images,
-                    partition_image_digest,
-                    schema_carrier_digest,
-                    root_image_digest,
-                })
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        Ok((root_images, schema_images.into_values().collect()))
     }
 }
 
+fn branch_root_images(
+    branch_roots: Vec<crate::branch::RelationalBranchRootCheckpoint>,
+) -> Result<
+    (
+        Vec<DurableBranchRootImage>,
+        Vec<crate::durability::data::DurableBranchRootSchemaImage>,
+    ),
+    DurabilityError,
+> {
+    let mut schema_images = std::collections::BTreeMap::new();
+    let root_images = branch_roots
+        .into_iter()
+        .map(|root| {
+            let schema_image = crate::durability::data::DurableBranchRootSchemaImage::capture(
+                root.schema_authority(),
+            )
+            .map_err(|error| {
+                DurabilityError::new(
+                    RecoveryFailureClass::CorruptCheckpoint,
+                    format!("branch-root schema image encoding failed: {error}"),
+                )
+            })?;
+            let schema_carrier_digest = schema_image.carrier_digest();
+            schema_images
+                .entry(schema_carrier_digest)
+                .or_insert(schema_image);
+            let retained_contracts = CheckpointAspectContractCatalog::from_contracts(
+                root.schema_authority().retained_aspect_contracts(),
+            )?;
+            let partition_images = root
+                .partitions()
+                .iter()
+                .cloned()
+                .map(|partition| {
+                    partition_to_image_with_contracts(
+                        partition,
+                        root.schema_authority().aspect_plans(),
+                        &retained_contracts,
+                    )
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            let partition_image_digest =
+                crate::durability::data::branch_root_partition_image_digest(&partition_images)
+                    .map_err(|error| {
+                        DurabilityError::new(
+                            RecoveryFailureClass::CorruptCheckpoint,
+                            format!("branch-root image encoding failed: {error}"),
+                        )
+                    })?;
+            let format_version = DurableBranchRootImage::CURRENT_FORMAT_VERSION;
+            let root_image_digest = crate::durability::data::branch_root_image_digest(
+                format_version,
+                root.commit_id(),
+                partition_image_digest,
+                schema_carrier_digest,
+            );
+            Ok(DurableBranchRootImage {
+                format_version,
+                commit_id: root.commit_id(),
+                partition_images,
+                partition_image_digest,
+                schema_carrier_digest,
+                root_image_digest,
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok((root_images, schema_images.into_values().collect()))
+}
+
 fn checkpoint_record_identity(
-    runtime: &crate::runtime::RelationalRuntime,
+    captured: CapturedRecordIdentity,
 ) -> Result<crate::durability::data::DurableRecordIdentityState, DurabilityError> {
-    let generation_high_water = runtime
-        .record_identity
-        .generation_snapshot()
+    let generation_high_water = captured
+        .generation_high_water
         .into_iter()
         .map(|(class, partition_id, slot, generation)| {
             crate::durability::data::DurableRecordGenerationHighWater {
@@ -179,9 +169,8 @@ fn checkpoint_record_identity(
             }
         })
         .collect();
-    let reusable_slots = runtime
-        .record_identity
-        .reusable_snapshot()
+    let reusable_slots = captured
+        .reusable_slots
         .into_iter()
         .map(|(class, partition_id, slot)| {
             let slot = u64::try_from(slot).map_err(|_| {
@@ -197,9 +186,8 @@ fn checkpoint_record_identity(
             })
         })
         .collect::<Result<Vec<_>, DurabilityError>>()?;
-    let append_frontiers = runtime
-        .record_identity
-        .frontier_snapshot()
+    let append_frontiers = captured
+        .append_frontiers
         .into_iter()
         .map(|(class, partition_id, next_slot)| {
             let next_slot = u64::try_from(next_slot).map_err(|_| {
@@ -215,11 +203,34 @@ fn checkpoint_record_identity(
             })
         })
         .collect::<Result<Vec<_>, DurabilityError>>()?;
+    let pending_reservations = captured
+        .pending_reservations
+        .into_iter()
+        .map(|(class, partition_id, slot, generation, origin)| {
+            crate::durability::data::DurablePendingRecordReservation {
+                class: durable_record_class(class),
+                partition_id,
+                slot,
+                generation,
+                origin: match origin {
+                    crate::history::data::RecordAllocationOrigin::AppendFrontier => {
+                        crate::durability::data::DurableRecordReservationOrigin::AppendFrontier
+                    }
+                    crate::history::data::RecordAllocationOrigin::Reclaimed {
+                        prior_generation,
+                    } => crate::durability::data::DurableRecordReservationOrigin::Reclaimed {
+                        prior_generation,
+                    },
+                },
+            }
+        })
+        .collect();
     Ok(
         crate::durability::data::DurableRecordIdentityState::current(
             generation_high_water,
             reusable_slots,
             append_frontiers,
+            pending_reservations,
         ),
     )
 }

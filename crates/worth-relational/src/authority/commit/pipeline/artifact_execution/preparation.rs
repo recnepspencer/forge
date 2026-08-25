@@ -6,22 +6,22 @@ use crate::authority::commit::publication::diagnostics_summary_artifact;
 use crate::diagnostics::data::RelationalDiagnosticsEntry;
 use crate::diagnostics::data::{DiagnosticsArtifactKind, DiagnosticsScope};
 use crate::history::data::RelationalCommitReceipt;
-use crate::publication::patch::data::PublishedAuthoritativePatchEnvelope;
+use crate::publication::patch::data::CanonicalAuthoritativePatch;
 use crate::publication::{bundle::PublicationStage, data::PublicationError};
 use crate::transactions::data::{
-    AspectEmissionTrace, AspectEvaluationTrace, CommitAspectSummary, CommitChangeSummary,
-    CommitPublicationSummary, MergedCommitPlan, PublishedMergeExecutionAuthority, RecordRef,
-    TransactionCommitError,
+    AspectEvaluationTrace, CommitAspectSummary, CommitChangeSummary, CommitPublicationSummary,
+    MergedCommitPlan, PublishedMergeExecutionAuthority, RecordRef, TransactionCommitError,
 };
 mod traces;
 
 use traces::derive_aspect_emission_traces;
+pub(in crate::authority::commit::pipeline) use traces::PreparedAspectEmissionTrace;
 
 pub(in crate::authority::commit::pipeline) struct PublicationPreparation {
     change_summary: CommitChangeSummary,
     aspect_summary: CommitAspectSummary,
     aspect_evaluation_traces: Vec<AspectEvaluationTrace>,
-    aspect_emission_traces: Vec<AspectEmissionTrace>,
+    aspect_emission_traces: Vec<PreparedAspectEmissionTrace>,
     summary: CommitPublicationSummary,
     finalize: PublicationFinalizeArtifacts,
 }
@@ -37,7 +37,7 @@ pub(in crate::authority::commit::pipeline) struct PublicationFinalizeArtifacts {
 
 pub(super) struct PublicationPreparationInput<'a> {
     pub(super) working_state: &'a mut crate::runtime::WorkingState,
-    pub(super) patch: PublishedAuthoritativePatchEnvelope,
+    pub(super) patch: CanonicalAuthoritativePatch,
     pub(super) commit_reference: &'a RelationalCommitReceipt,
     pub(super) branch_id: &'a crate::history::data::BranchId,
     pub(super) version_id: crate::identity::data::VersionId,
@@ -120,12 +120,12 @@ pub(super) fn prepare_publication_artifacts(
 
 struct PublicationTraceCapture {
     aspect_evaluation_traces: Vec<AspectEvaluationTrace>,
-    aspect_emission_traces: Vec<AspectEmissionTrace>,
+    aspect_emission_traces: Vec<PreparedAspectEmissionTrace>,
 }
 
 fn capture_publication_traces(
     runtime: &crate::runtime::RelationalRuntime,
-    patch: &PublishedAuthoritativePatchEnvelope,
+    patch: &CanonicalAuthoritativePatch,
     canonical_deltas: &[crate::authority::mutation::CanonicalRecordAspectDelta],
 ) -> PublicationTraceCapture {
     let diagnostics_profile = &runtime.config.diagnostics.profile;
@@ -146,11 +146,7 @@ fn capture_publication_traces(
         Vec::new()
     };
     let aspect_emission_traces = if capture_patch_publication_traces {
-        derive_aspect_emission_traces(
-            patch.position,
-            &patch.authoritative_record_patches,
-            canonical_deltas,
-        )
+        derive_aspect_emission_traces(&patch.authoritative_record_patches, canonical_deltas)
     } else {
         Vec::new()
     };
@@ -162,7 +158,7 @@ fn capture_publication_traces(
 
 struct PublicationAuthorityInput<'a> {
     working_state: &'a mut crate::runtime::WorkingState,
-    patch: &'a PublishedAuthoritativePatchEnvelope,
+    patch: &'a CanonicalAuthoritativePatch,
     commit_reference: &'a RelationalCommitReceipt,
     branch_id: &'a crate::history::data::BranchId,
     version_id: crate::identity::data::VersionId,
@@ -240,7 +236,7 @@ fn prepare_authoritative_publication(
 }
 
 struct PublicationCompletionInput<'a> {
-    patch: PublishedAuthoritativePatchEnvelope,
+    patch: CanonicalAuthoritativePatch,
     commit_reference: &'a RelationalCommitReceipt,
     changed_records: Vec<RecordRef>,
     canonical_deltas: Vec<crate::authority::mutation::CanonicalRecordAspectDelta>,
@@ -270,10 +266,10 @@ fn finish_publication_preparation(input: PublicationCompletionInput<'_>) -> Publ
     let aspect_summary = summarize_commit_aspects(&canonical_deltas);
     let summary = CommitPublicationSummary {
         patch_record_count: patch.authoritative_record_patches.len(),
-        diagnostics_entry_count: authority.artifacts.bundle.diagnostics_summary.entries.len(),
+        diagnostics_entry_count: authority.artifacts.diagnostics_summary.entries.len(),
         lineage_event_count: authority.lineage_event_count,
-        patch_position: Some(patch.position),
-        final_snapshot_id: Some(authority.artifacts.bundle.snapshot.snapshot_id),
+        patch_position: None,
+        final_snapshot_id: Some(authority.artifacts.snapshot.snapshot_id),
         merge_parent_count: commit_reference.parents.len().saturating_sub(1),
     };
 
@@ -309,14 +305,14 @@ impl PublicationPreparation {
         &self.aspect_evaluation_traces
     }
 
-    pub(super) fn aspect_emission_traces(&self) -> &[AspectEmissionTrace] {
+    pub(super) fn aspect_emission_traces(&self) -> &[PreparedAspectEmissionTrace] {
         &self.aspect_emission_traces
     }
 
     pub(in crate::authority::commit::pipeline) fn snapshot(
         &self,
     ) -> &crate::snapshots::data::SnapshotHandle {
-        &self.finalize.artifacts.bundle.snapshot
+        &self.finalize.artifacts.snapshot
     }
 
     pub(in crate::authority::commit::pipeline) fn into_finalize(

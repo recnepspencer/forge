@@ -158,6 +158,7 @@ pub(super) fn host_override_denial_row() -> EffectLifecyclePhase4CertificationRo
         .expect("mutation should lower")
         .execute_with(EffectExecutionAuthority::bridge(&bridge))
         .expect_err("bridge host override should deny");
+    let denial = denial.denial().expect("bridge override is a denial");
     EffectLifecyclePhase4CertificationRow::new(
         EffectLifecyclePhase4LaneKind::HostOverrideDenial,
         EffectLifecyclePhase4LaneOutcome::Denied,
@@ -202,6 +203,7 @@ pub(super) fn stale_after_admission_row() -> EffectLifecyclePhase4CertificationR
         .expect("mutation should still lower after admission")
         .execute_with(EffectExecutionAuthority::relational(&mut runtime))
         .expect_err("changed truth after admission should deny at execution");
+    let denial = denial.denial().expect("stale admission is a denial");
     EffectLifecyclePhase4CertificationRow::new(
         EffectLifecyclePhase4LaneKind::StaleAfterAdmission,
         EffectLifecyclePhase4LaneOutcome::Denied,
@@ -252,6 +254,7 @@ pub(super) fn stale_after_lowering_row() -> EffectLifecyclePhase4CertificationRo
     let denial = lowered
         .execute_with(EffectExecutionAuthority::relational(&mut runtime))
         .expect_err("retained lowered artifact should stale-deny");
+    let denial = denial.denial().expect("stale lowering is a denial");
     EffectLifecyclePhase4CertificationRow::new(
         EffectLifecyclePhase4LaneKind::StaleAfterLowering,
         EffectLifecyclePhase4LaneOutcome::Denied,

@@ -135,13 +135,28 @@ impl RelationalRuntime {
                 TransitionOutcome::Stale(RelationalBridgePublicationStale::CommitNotRetained)
             };
         };
-        self.lower_retained_publication(unresolved, envelope, snapshot_identity, selected_branch)
+        let Some(position) = self
+            .history()
+            .canonical_stream_position(envelope.commit.commit_id)
+        else {
+            return TransitionOutcome::Deferred(
+                RelationalBridgePublicationDeferred::CommitVisibilityPending,
+            );
+        };
+        self.lower_retained_publication(
+            unresolved,
+            &envelope,
+            position,
+            snapshot_identity,
+            selected_branch,
+        )
     }
 
     fn lower_retained_publication(
         &self,
         unresolved: PublicationUnresolvedRecipe,
         envelope: &crate::history::data::CanonicalCommitEnvelope,
+        patch_position: crate::publication::patch::data::PatchStreamPosition,
         snapshot_identity: worth_runtime_bridge::facade::TruthSnapshotIdentity,
         selected_branch: crate::history::data::BranchId,
     ) -> RelationalBridgePublicationOutcome {
@@ -171,8 +186,13 @@ impl RelationalRuntime {
         let metadata =
             worth_runtime_bridge::facade::BridgeProducerMetadata::registered_authoritative_source()
                 .with_authoritative_source(source);
+        let patch =
+            crate::publication::patch::data::PublishedAuthoritativePatchEnvelope::from_canonical(
+                patch_position,
+                &envelope.patch,
+            );
         let projection = super::partition_projection::project_patch_partition(
-            &envelope.patch,
+            &patch,
             resolved.payload().relational_partition_id,
         );
         let outcome = super::patch_envelopes::publication_patch_to_bridge_envelope_with_widening(

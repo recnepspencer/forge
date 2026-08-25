@@ -159,7 +159,7 @@ impl CommitStrategyExecutor for DeterministicFailureExecutor {
     }
 }
 
-pub(super) fn persisted_intent_runtime(
+pub(crate) fn persisted_intent_runtime(
     root_path: std::path::PathBuf,
     include_executor: bool,
 ) -> crate::facade::runtime::RelationalRuntime {
@@ -205,7 +205,7 @@ pub(super) fn persisted_intent_runtime_with_failing_executor(
         .build()
 }
 
-pub(super) fn execute_persisted_intent_strategy_commit(
+pub(crate) fn execute_persisted_intent_strategy_commit(
     mut runtime: &mut crate::facade::runtime::RelationalRuntime,
     entity: EntityId,
 ) -> crate::facade::transactions::CommitResult {

@@ -60,6 +60,10 @@ mod tests {
         let mut source = runtime_with_test_schema();
         let committed = create_entity_outcome(&mut source, "durable-authority-source");
         let envelope = committed.envelope().clone();
+        let positioned = crate::history::data::PositionedCanonicalCommit::for_test(
+            committed.patch_position(),
+            std::sync::Arc::new(envelope.clone()),
+        );
         let authority = DurableAppendAuthority {
             runtime_instance_id: source.runtime_instance_id(),
             commit_id: envelope.commit.commit_id,
@@ -70,7 +74,7 @@ mod tests {
 
         let error = foreign
             .durability_authority()
-            .append_commit(authority, &envelope)
+            .append_commit(authority, &positioned)
             .expect_err("runtime-affine durable append authority must reject a foreign runtime");
 
         assert_eq!(

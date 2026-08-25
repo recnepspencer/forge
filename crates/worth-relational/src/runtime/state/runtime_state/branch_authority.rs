@@ -115,7 +115,7 @@ impl RelationalRuntime {
             .branch_cell(binding.identity().branch_id())
             .is_some_and(|cell| {
                 cell.identity() == binding.identity()
-                    && cell.observation() == binding.reference()
+                    && cell.observation() == *binding.reference()
                     && cell.truth_version() == binding.truth_version()
             })
     }
@@ -126,18 +126,32 @@ impl RelationalRuntime {
     ) -> Option<crate::history::RelationalCommitIdentity> {
         let cell = self.history.branch_cell(binding.identity().branch_id())?;
         if cell.identity() != binding.identity()
-            || cell.observation() != binding.reference()
+            || cell.observation() != *binding.reference()
             || cell.truth_version() != binding.truth_version()
         {
             return None;
         }
         match binding.reference().target() {
             worth_foundational::FoundationalBranchTarget::Empty => None,
-            worth_foundational::FoundationalBranchTarget::Basis(target) => self
-                .history
-                .commit_catalog
-                .get(crate::history::data::CommitId(target.selected_commit_id()))
-                .map(|artifact| artifact.identity().clone()),
+            worth_foundational::FoundationalBranchTarget::Basis(target) => {
+                let commit_id = crate::history::data::CommitId(target.selected_commit_id());
+                self.history
+                    .commit_catalog
+                    .get(commit_id)
+                    .map(|artifact| artifact.identity().clone())
+                    .or_else(|| {
+                        cell.root().and_then(|root| {
+                            let envelope = root.canonical_envelope()?;
+                            (envelope.commit.commit_id == commit_id).then(|| {
+                                crate::history::RelationalCommitIdentity::new(
+                                    envelope.commit.commit_id,
+                                    envelope.commit.version_id,
+                                    envelope.branch_context.clone(),
+                                )
+                            })
+                        })
+                    })
+            }
         }
     }
 
@@ -150,7 +164,7 @@ impl RelationalRuntime {
     ) -> Option<crate::identity::data::VersionId> {
         let cell = self.history.branch_cell(binding.identity().branch_id())?;
         if cell.identity() != binding.identity()
-            || cell.observation() != binding.reference()
+            || cell.observation() != *binding.reference()
             || cell.truth_version() != binding.truth_version()
         {
             return None;
@@ -159,11 +173,21 @@ impl RelationalRuntime {
             worth_foundational::FoundationalBranchTarget::Empty => {
                 Some(crate::identity::data::VersionId(0))
             }
-            worth_foundational::FoundationalBranchTarget::Basis(target) => self
-                .history
-                .commit_catalog
-                .get(crate::history::data::CommitId(target.selected_commit_id()))
-                .map(|artifact| artifact.identity().version_id()),
+            worth_foundational::FoundationalBranchTarget::Basis(target) => {
+                let commit_id = crate::history::data::CommitId(target.selected_commit_id());
+                self.history
+                    .commit_catalog
+                    .get(commit_id)
+                    .map(|artifact| artifact.identity().version_id())
+                    .or_else(|| {
+                        cell.root().and_then(|root| {
+                            root.canonical_envelope().and_then(|envelope| {
+                                (envelope.commit.commit_id == commit_id)
+                                    .then_some(envelope.commit.version_id)
+                            })
+                        })
+                    })
+            }
         }
     }
 

@@ -17,6 +17,7 @@ pub(super) struct RecordSlotReservation {
     class: RecordAllocationClass,
     partition_id: PartitionId,
     pub(super) slot: usize,
+    generation: u32,
     pub(super) origin: ReservationOrigin,
     consumed: bool,
 }
@@ -27,6 +28,7 @@ impl RecordSlotReservation {
         class: RecordAllocationClass,
         partition_id: PartitionId,
         slot: usize,
+        generation: u32,
         origin: ReservationOrigin,
     ) -> Self {
         Self {
@@ -34,25 +36,52 @@ impl RecordSlotReservation {
             class,
             partition_id,
             slot,
+            generation,
             origin,
             consumed: false,
         }
     }
 
     pub(super) fn consume(&mut self) {
+        self.remove_pending();
         self.consumed = true;
+    }
+
+    fn remove_pending(&self) {
+        let mut state = self
+            .authority
+            .lock()
+            .expect("record identity lock poisoned");
+        let key = (self.class, self.partition_id, self.slot);
+        let exact = state
+            .pending
+            .get(&key)
+            .is_some_and(|reservation| reservation.generation == self.generation);
+        if exact {
+            state.pending.remove(&key);
+        }
     }
 }
 
 impl Drop for RecordSlotReservation {
     fn drop(&mut self) {
-        if self.consumed || self.origin == ReservationOrigin::AppendFrontier {
+        if self.consumed {
             return;
         }
-        self.authority
+        let mut state = self
+            .authority
             .lock()
-            .expect("record identity lock poisoned")
-            .reusable
-            .insert((self.class, self.partition_id, self.slot));
+            .expect("record identity lock poisoned");
+        let key = (self.class, self.partition_id, self.slot);
+        let exact = state
+            .pending
+            .get(&key)
+            .is_some_and(|reservation| reservation.generation == self.generation);
+        if exact {
+            state.pending.remove(&key);
+            if self.origin == ReservationOrigin::Reclaimed {
+                state.reusable.insert(key);
+            }
+        }
     }
 }

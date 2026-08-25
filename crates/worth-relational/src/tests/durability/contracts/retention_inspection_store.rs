@@ -147,7 +147,7 @@ fn durability_contract_live_branch_pin_counts_match_branch_head_membership() {
 }
 
 #[test]
-fn durability_contract_persisted_commit_fails_closed_when_store_path_is_not_directory() {
+fn invalid_store_path_does_not_relabel_performed_in_memory_publication() {
     let root_path = unique_test_store_path("worth-relational-bad-store");
     std::fs::write(&root_path, b"not-a-directory").unwrap();
     let mut runtime = RelationalRuntimeApi::builder()
@@ -161,8 +161,59 @@ fn durability_contract_persisted_commit_fails_closed_when_store_path_is_not_dire
 
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(batch_create("fail-closed"));
-    let error = txn.commit(&mut runtime).unwrap_err();
+    let durability_deferred = txn
+        .commit(&mut runtime)
+        .expect_err("the performed movement is not falsely acknowledged as durable");
+    match &durability_deferred {
+        TransactionCommitError::PerformedButDurabilityDeferred { error, .. } => {
+            assert_eq!(
+                error.stage,
+                crate::publication::bundle::PublicationStage::DurableAppend
+            );
+            assert!(!error.detail.is_empty());
+        }
+        error => panic!("performed durability fault has the exact typed posture: {error:?}"),
+    }
+    assert!(!durability_deferred
+        .commit_log()
+        .events()
+        .iter()
+        .any(|event| {
+            matches!(
+                event,
+                crate::transactions::data::CommitTraceEvent::CommitRejected { .. }
+            )
+        }));
 
-    assert!(matches!(error, TransactionCommitError::Publication { .. }));
-    assert!(runtime.history().latest_commit().is_none());
+    let performed_commit = durability_deferred
+        .performed_commit()
+        .expect("deferred error carries exact performed receipt");
+    assert_eq!(
+        runtime
+            .history()
+            .immutable_commit_receipt(performed_commit.commit_id),
+        Some(performed_commit.clone())
+    );
+    assert_eq!(
+        runtime.history().branch_head(&BranchId("main".to_owned())),
+        Some(performed_commit.clone())
+    );
+    let basis = runtime
+        .admit_main_branch_basis()
+        .expect("the performed branch basis remains admissible");
+    let truth = runtime
+        .read_truth()
+        .read_observation(&basis.observation())
+        .expect("the finalized performed root is readable");
+    assert_eq!(truth.entities().len(), 1);
+    assert_eq!(
+        runtime
+            .publication()
+            .latest_bundle()
+            .expect("in-memory publication finalization installs the bundle")
+            .commit
+            .commit_id,
+        performed_commit.commit_id
+    );
+    assert_eq!(runtime.retention().inspect_plan().branch_pinned_entities, 1);
 }

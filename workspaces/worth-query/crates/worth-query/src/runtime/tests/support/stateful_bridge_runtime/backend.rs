@@ -1,18 +1,19 @@
 use super::super::*;
 use super::merge::{capture_merge_authority, execute_merge, validate_merge_authority};
-use super::verification::{probe_existing_truth, verify_existing_truth_assertion};
-use super::writes::{
-    execute_write, external_row_text_at_path, native_external_field_path_for_touch,
+use super::projection_paths::{
+    identity_aspect_key, native_external_field_path_for_aspect_field,
+    native_external_field_path_for_grouping_aspect,
+    native_external_field_path_for_projection_field,
 };
-use crate::runtime::WorthQueryAspectTouch;
+use super::verification::{probe_existing_truth, verify_existing_truth_assertion};
+use super::writes::{execute_write, external_row_text_at_path};
 use crate::{WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag};
 
-use crate::declarative_live::{DeclarativeLiveViewShape, DeclarativeProjectionField};
+use crate::declarative_live::DeclarativeLiveViewShape;
 use crate::memory_workspace::{
     WorthQueryLivePatch, WorthQueryLiveViewHandle, WorthQuerySnapshotIdentity,
 };
 use crate::subscription::SubscriptionActivationInput;
-use worth_foundational::facade::{AspectKey, CanonicalFieldPath, FieldKey};
 
 use super::SharedState;
 
@@ -36,6 +37,22 @@ impl StatefulBridgeRuntimeBackend {
 impl WorthQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
     fn support_profile(&self) -> WorthQueryRuntimeSupportProfile {
         self.support_profile.clone()
+    }
+
+    fn repair_deferred_branch_merge_settlement(
+        &mut self,
+        deferred: &crate::ordinary::workflow::WorthQueryBranchMergeSettlementDeferred,
+    ) -> Result<
+        worth_relational::facade::history::RelationalCommitReceipt,
+        crate::runtime::WorthQuerySettlementRepairError,
+    > {
+        self.state
+            .borrow_mut()
+            .relational_runtime
+            .as_mut()
+            .ok_or(crate::runtime::WorthQuerySettlementRepairError::RelationalOwnerUnavailable)?
+            .repair_deferred_publication_settlement(deferred.settlement())
+            .map_err(Into::into)
     }
 
     fn current_snapshot_identity(&self) -> WorthQuerySnapshotIdentity {
@@ -208,7 +225,7 @@ impl WorthQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
         declaration: &crate::workflow::LoweredMergeWorkflowDeclaration,
     ) -> Result<
         worth_relational::facade::transactions::MergeExecutionOutcome,
-        (crate::effect_lifecycle::EffectExecutionDenialKind, String),
+        crate::effect_lifecycle::RelationalEffectExecutionFailure,
     > {
         execute_merge(&self.state, authority, declaration)
     }
@@ -355,38 +372,4 @@ impl WorthQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
             .collect::<Vec<_>>();
         Ok(Some(members))
     }
-}
-
-fn identity_aspect_key() -> AspectKey {
-    AspectKey::new("identity").expect("identity aspect key must admit")
-}
-
-fn native_external_field_path_for_projection_field(
-    field: &DeclarativeProjectionField,
-) -> Result<CanonicalFieldPath, WorthQueryWorkspaceError> {
-    native_external_field_path_for_touch(&WorthQueryAspectTouch::aspect_field_path(
-        field.source_field_key().native_aspect_key(),
-        CanonicalFieldPath::single(field.source_field_key().native_field_key()),
-    ))
-}
-
-fn native_external_field_path_for_grouping_aspect(
-    grouping_aspect: &AspectKey,
-) -> Result<CanonicalFieldPath, WorthQueryWorkspaceError> {
-    native_external_field_path_for_touch(&WorthQueryAspectTouch::aspect_field_path(
-        grouping_aspect.clone(),
-        CanonicalFieldPath::single(FieldKey::new("value").expect("value field key must admit")),
-    ))
-}
-
-fn native_external_field_path_for_aspect_field(
-    aspect: &str,
-    field: &str,
-) -> Result<CanonicalFieldPath, WorthQueryWorkspaceError> {
-    native_external_field_path_for_touch(&WorthQueryAspectTouch::aspect_field_path(
-        AspectKey::new(aspect).expect("stateful bridge fixture aspect key must admit"),
-        CanonicalFieldPath::single(
-            FieldKey::new(field).expect("stateful bridge fixture field key must admit"),
-        ),
-    ))
 }

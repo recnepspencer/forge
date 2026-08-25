@@ -8,6 +8,35 @@ use crate::history::RelationalCommitCatalog;
 use super::HistorySubsystem;
 
 impl HistorySubsystem {
+    pub(crate) fn install_recovered_canonical_inventory(
+        &mut self,
+        commits: Vec<Arc<crate::history::data::PositionedCanonicalCommit>>,
+    ) -> Result<(), String> {
+        self.rebuild_recovered_canonical_routes(commits.iter().cloned())
+            .map_err(str::to_owned)?;
+        self.commit_envelopes = commits
+            .iter()
+            .map(|commit| {
+                (
+                    commit.envelope().commit.commit_id,
+                    Arc::clone(commit.canonical_arc()),
+                )
+            })
+            .collect();
+        self.patch_stream_index = commits
+            .iter()
+            .map(|commit| (commit.position(), commit.envelope().commit.commit_id))
+            .collect();
+        for commit in commits {
+            self.commit_catalog
+                .synchronize_recovered_envelope(Arc::clone(commit.canonical_arc()))
+                .map_err(|denial| {
+                    format!("recovered canonical catalog synchronization denied: {denial:?}")
+                })?;
+        }
+        Ok(())
+    }
+
     pub(crate) fn rebuild_catalog_from_durable_envelopes(&mut self) {
         self.commit_catalog = RelationalCommitCatalog::default();
         let envelopes = self
@@ -86,7 +115,7 @@ impl HistorySubsystem {
         let mut roots = additional_roots.clone();
         let mut cells = self.branch_cells.take_all();
         for cell in cells.values_mut() {
-            let Some(root) = cell.root().cloned() else {
+            let Some(root) = cell.root() else {
                 continue;
             };
             let commit_id = root

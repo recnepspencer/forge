@@ -3,12 +3,12 @@ use std::sync::Arc;
 use super::RelationalBranchReferenceCell;
 
 impl RelationalBranchReferenceCell {
-    pub(crate) fn root(&self) -> Option<&Arc<super::super::RelationalBranchRoot>> {
-        self.root.as_ref()
+    pub(crate) fn root(&self) -> Option<Arc<super::super::RelationalBranchRoot>> {
+        self.state_snapshot().root
     }
 
     pub(crate) fn install_root(&mut self, root: Arc<super::super::RelationalBranchRoot>) {
-        self.root = Some(root);
+        self.state().root = Some(root);
     }
 
     pub(crate) fn register_basis(
@@ -37,6 +37,6 @@ impl RelationalBranchReferenceCell {
 
     #[cfg(test)]
     pub(crate) fn clear_root_for_test(&mut self) {
-        self.root = None;
+        self.state().root = None;
     }
 }

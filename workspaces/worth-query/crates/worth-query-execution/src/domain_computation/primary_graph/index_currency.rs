@@ -11,7 +11,7 @@ impl WorthQueryPrimaryGraphIntegrationHandle {
         &self,
         runtime: &mut RelationalRuntime,
     ) -> Result<(), &'static str> {
-        let Some(head) = runtime.history().historical_latest_commit().cloned() else {
+        let Some(head) = runtime.history().historical_latest_commit() else {
             return Ok(());
         };
         self.ensure_primary_indexes_for_commit(runtime, head)
@@ -37,7 +37,6 @@ impl WorthQueryPrimaryGraphIntegrationHandle {
             .history()
             .branch_head_for_observation(&observation)
             .map_err(|_| "application-query basis is not owned by this Relational runtime")?
-            .cloned()
         else {
             return Ok(());
         };

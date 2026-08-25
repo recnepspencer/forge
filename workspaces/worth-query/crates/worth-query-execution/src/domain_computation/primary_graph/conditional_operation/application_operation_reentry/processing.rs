@@ -3,16 +3,18 @@ use std::collections::BTreeMap;
 use worth_query_installation::facade::{
     ApplicationFieldUnit, ApplicationSchema, OperationReads, OperationWrites,
     TypedApplicationReadableValue, TypedApplicationValue, WorthQueryInstalledApplicationOperation,
-    WorthQueryTemporalIntentCandidate, WorthQueryTemporalIntentRevisionValue, WritableCapability,
-    WritePosture,
+    WorthQueryTemporalIntentRevisionValue, WritableCapability, WritePosture,
 };
 use worth_runtime_bridge::facade::{
-    BridgeConditionalDecisionEvidence, BridgeManagedClockBinding,
-    BridgeManagedTemporalIntentLifecycle, BridgeManagedTemporalIntentReconciliation,
-    BridgeManagedTemporalIntentReconciliationParts, BridgeOwnedSignalRuntime,
+    BridgeConditionalDecisionEvidence, BridgeManagedClockBinding, BridgeOwnedSignalRuntime,
 };
 
-use super::{reenter_temporal_operation, WorthQueryTemporalReentryOutcome};
+use super::{
+    reenter_temporal_operation,
+    settlement_reentry::{self, WorthQuerySettlementReentry},
+    wake_retirement::{complete_wake, retire_obsolete, wake_matches_candidate},
+    WorthQueryTemporalReentryCounts, WorthQueryTemporalReentryOutcome,
+};
 use crate::domain_computation::primary_graph::conditional_operation::{
     operation_invocation::{
         WorthQueryTemporalOperationExecution, WorthQueryTemporalOperationInvoker,
@@ -25,16 +27,6 @@ use crate::domain_computation::primary_graph::conditional_operation::{
     },
 };
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime;
-
-#[derive(Clone, Copy, Default)]
-pub(in crate::domain_computation::primary_graph::conditional_operation) struct WorthQueryTemporalReentryCounts
-{
-    pub(in crate::domain_computation::primary_graph::conditional_operation) committed: usize,
-    pub(in crate::domain_computation::primary_graph::conditional_operation) already_committed:
-        usize,
-    pub(in crate::domain_computation::primary_graph::conditional_operation) failed: usize,
-    pub(in crate::domain_computation::primary_graph::conditional_operation) indeterminate: usize,
-}
 
 #[allow(clippy::too_many_arguments)]
 pub(in crate::domain_computation::primary_graph::conditional_operation) fn reenter_retained_wakes<
@@ -153,6 +145,10 @@ where
 {
     let mut counts = WorthQueryTemporalReentryCounts::default();
     for wake in wakes.iter_mut() {
+        wake.application_attempted = false;
+        wake.application_admission_canonical_work =
+            worth_query_installation::facade::WorthQueryCanonicalWorkEvidence::zero();
+        let mut settlement_retry = None;
         let decision = std::mem::replace(
             &mut wake.decision,
             WorthQueryRetainedConditionalDecision::Failed(
@@ -160,6 +156,43 @@ where
             ),
         );
         let evidence = match decision {
+            WorthQueryRetainedConditionalDecision::OperationSettlementDeferred(
+                evidence,
+                deferred,
+            ) => match settlement_reentry::repair(runtime, deferred) {
+                WorthQuerySettlementReentry::RetryApplicationPublication(deferred) => {
+                    settlement_retry = Some(deferred);
+                    evidence
+                }
+                WorthQuerySettlementReentry::AlreadyCommitted => {
+                    complete_wake(
+                        bridge,
+                        clock,
+                        candidates,
+                        wake,
+                        wake.due.intent_identity().as_str().to_owned(),
+                        evidence,
+                        &mut counts,
+                        false,
+                    );
+                    continue;
+                }
+                WorthQuerySettlementReentry::Indeterminate(detail) => {
+                    wake.decision = WorthQueryRetainedConditionalDecision::OperationIndeterminate(
+                        evidence, detail,
+                    );
+                    counts.indeterminate += 1;
+                    continue;
+                }
+                WorthQuerySettlementReentry::Deferred(deferred) => {
+                    wake.decision =
+                        WorthQueryRetainedConditionalDecision::OperationSettlementDeferred(
+                            evidence, deferred,
+                        );
+                    counts.indeterminate += 1;
+                    continue;
+                }
+            },
             WorthQueryRetainedConditionalDecision::Eligible(evidence)
             | WorthQueryRetainedConditionalDecision::OperationRetryable(evidence, _)
             | WorthQueryRetainedConditionalDecision::OperationIndeterminate(evidence, _) => {
@@ -172,23 +205,52 @@ where
         };
         let identity = wake.due.intent_identity().as_str();
         let Some(candidate) = candidates.get(identity) else {
-            wake.decision =
-                WorthQueryRetainedConditionalDecision::OperationAlreadyCommitted(evidence);
+            if settlement_retry.is_some() {
+                wake.decision = WorthQueryRetainedConditionalDecision::OperationIndeterminate(
+                    evidence,
+                    "settled publication retry lost its retained temporal candidate".to_string(),
+                );
+                counts.indeterminate += 1;
+            } else {
+                wake.decision =
+                    WorthQueryRetainedConditionalDecision::OperationAlreadyCommitted(evidence);
+            }
             continue;
         };
         if !wake_matches_candidate(wake, candidate.candidate()) {
-            wake.decision =
-                WorthQueryRetainedConditionalDecision::OperationAlreadyCommitted(evidence);
+            if settlement_retry.is_some() {
+                wake.decision = WorthQueryRetainedConditionalDecision::OperationIndeterminate(
+                    evidence,
+                    "settled publication retry no longer matches its temporal candidate"
+                        .to_string(),
+                );
+                counts.indeterminate += 1;
+            } else {
+                wake.decision =
+                    WorthQueryRetainedConditionalDecision::OperationAlreadyCommitted(evidence);
+            }
             continue;
         }
         wake.application_attempted = true;
-        let attempt = reenter_temporal_operation(
-            runtime,
-            operation,
-            access,
-            execution,
-            candidate.candidate(),
-            runtime_binding,
+        let attempt = settlement_retry.map_or_else(
+            || {
+                reenter_temporal_operation(
+                    runtime,
+                    operation,
+                    access,
+                    execution,
+                    candidate.candidate(),
+                    runtime_binding,
+                )
+            },
+            |deferred| {
+                settlement_reentry::retry_application_publication(
+                    runtime,
+                    candidate.candidate(),
+                    runtime_binding,
+                    deferred,
+                )
+            },
         );
         wake.application_admission_canonical_work = attempt.admission_canonical_work;
         apply_reentry_outcome(
@@ -234,112 +296,16 @@ fn apply_reentry_outcome<Clock, Input>(
                 WorthQueryRetainedConditionalDecision::OperationRetryable(evidence, detail);
             counts.failed += 1;
         }
+        WorthQueryTemporalReentryOutcome::SettlementDeferred(deferred) => {
+            wake.decision = WorthQueryRetainedConditionalDecision::OperationSettlementDeferred(
+                evidence, deferred,
+            );
+            counts.indeterminate += 1;
+        }
         WorthQueryTemporalReentryOutcome::Indeterminate(detail) => {
             wake.decision =
                 WorthQueryRetainedConditionalDecision::OperationIndeterminate(evidence, detail);
             counts.indeterminate += 1;
         }
     }
-}
-
-#[allow(clippy::too_many_arguments)]
-fn complete_wake<Clock, Input>(
-    bridge: &mut BridgeOwnedSignalRuntime,
-    clock: &BridgeManagedClockBinding,
-    candidates: &mut BTreeMap<
-        String,
-        super::super::temporal_reconstruction::WorthQueryReconstructedTemporalIntent<Clock, Input>,
-    >,
-    wake: &mut WorthQueryRetainedConditionalWake,
-    identity: String,
-    evidence: BridgeConditionalDecisionEvidence,
-    counts: &mut WorthQueryTemporalReentryCounts,
-    committed: bool,
-) {
-    if let Err(detail) = retire_committed_wake(bridge, clock, wake) {
-        wake.decision = WorthQueryRetainedConditionalDecision::OperationRetryable(evidence, detail);
-        counts.failed += 1;
-        return;
-    }
-    candidates.remove(&identity);
-    if committed {
-        wake.decision = WorthQueryRetainedConditionalDecision::OperationCommitted(evidence);
-        counts.committed += 1;
-    } else {
-        wake.decision = WorthQueryRetainedConditionalDecision::OperationAlreadyCommitted(evidence);
-        counts.already_committed += 1;
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-fn retire_obsolete<Clock, Input>(
-    bridge: &mut BridgeOwnedSignalRuntime,
-    clock: &BridgeManagedClockBinding,
-    candidates: &mut BTreeMap<
-        String,
-        super::super::temporal_reconstruction::WorthQueryReconstructedTemporalIntent<Clock, Input>,
-    >,
-    wake: &mut WorthQueryRetainedConditionalWake,
-    identity: String,
-    evidence: BridgeConditionalDecisionEvidence,
-    counts: &mut WorthQueryTemporalReentryCounts,
-) {
-    match retire_obsolete_wake(bridge, clock, wake) {
-        Ok(()) => {
-            candidates.remove(&identity);
-            wake.decision =
-                WorthQueryRetainedConditionalDecision::OperationAlreadyCommitted(evidence);
-        }
-        Err(detail) => {
-            wake.decision =
-                WorthQueryRetainedConditionalDecision::OperationRetryable(evidence, detail);
-            counts.failed += 1;
-        }
-    }
-}
-
-fn wake_matches_candidate<Clock, Input>(
-    wake: &WorthQueryRetainedConditionalWake,
-    candidate: &WorthQueryTemporalIntentCandidate<Clock, Input>,
-) -> bool {
-    wake.due.revision() == candidate.revision()
-        && wake.due.due_coordinate() == candidate.due().nanoseconds()
-        && wake.due.idempotency_identity() == candidate.idempotency().as_str()
-        && wake.due.intent_identity().as_str() == candidate.identity().as_str()
-}
-
-fn retire_committed_wake(
-    bridge: &mut BridgeOwnedSignalRuntime,
-    clock: &BridgeManagedClockBinding,
-    wake: &WorthQueryRetainedConditionalWake,
-) -> Result<(), String> {
-    let revision = wake
-        .due
-        .revision()
-        .checked_add(1)
-        .ok_or_else(|| "committed temporal intent revision overflowed".to_string())?;
-    let outcome = bridge
-        .reconcile_managed_temporal_intent(BridgeManagedTemporalIntentReconciliationParts {
-            binding: clock,
-            identity: wake.due.intent_identity().clone(),
-            revision,
-            due_coordinate: wake.due.due_coordinate(),
-            idempotency_identity: std::sync::Arc::from(wake.due.idempotency_identity()),
-            source_record_identity: wake.due.source_record_identity(),
-            lifecycle: BridgeManagedTemporalIntentLifecycle::Completed,
-        })
-        .map_err(|denial| denial.detail().to_string())?;
-    if outcome == BridgeManagedTemporalIntentReconciliation::Retired {
-        Ok(())
-    } else {
-        Err("committed temporal intent did not retire its exact managed wake".to_string())
-    }
-}
-
-fn retire_obsolete_wake(
-    bridge: &mut BridgeOwnedSignalRuntime,
-    clock: &BridgeManagedClockBinding,
-    wake: &WorthQueryRetainedConditionalWake,
-) -> Result<(), String> {
-    retire_committed_wake(bridge, clock, wake)
 }

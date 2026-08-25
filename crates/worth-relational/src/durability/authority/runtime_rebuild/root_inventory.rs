@@ -49,7 +49,7 @@ impl RecoveredRootInventory {
             )
         })?;
         if let Some(existing) = self.roots.get(&commit_id) {
-            if !Arc::ptr_eq(existing, root) {
+            if !Arc::ptr_eq(existing, &root) {
                 return Err(DurabilityError::new(
                     RecoveryFailureClass::CorruptCheckpoint,
                     format!(
@@ -60,7 +60,7 @@ impl RecoveredRootInventory {
             }
             return Ok(());
         }
-        self.roots.insert(commit_id, Arc::clone(root));
+        self.roots.insert(commit_id, Arc::clone(&root));
         Ok(())
     }
 

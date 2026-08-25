@@ -53,7 +53,7 @@ fn owner_issues_transaction_context_from_exact_main_identity() {
 fn copied_identity_cannot_issue_context_in_a_forked_runtime() {
     let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     let identity = world.runtime.main_branch_identity();
-    let clone = world.runtime.fork();
+    let clone = world.runtime.fork().expect("settled runtime forks");
 
     assert!(matches!(
         clone.admit_branch_basis(&identity),
@@ -70,7 +70,7 @@ fn owner_issued_transaction_basis_is_denied_before_foreign_transaction_creation(
         .runtime
         .admit_branch_basis(&main_identity)
         .expect("configured main branch must remain owner-admissible");
-    let mut foreign = world.runtime.fork();
+    let mut foreign = world.runtime.fork().expect("settled runtime forks");
     let before = capture_reference_evidence(
         &mut foreign,
         &BranchId("main".to_owned()),

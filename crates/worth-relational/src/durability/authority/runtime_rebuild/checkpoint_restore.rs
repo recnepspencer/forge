@@ -109,13 +109,35 @@ fn prepare_history(
         .envelopes
         .iter()
         .cloned()
-        .map(|envelope| (envelope.commit.commit_id, Arc::new(envelope)))
+        .map(|commit| {
+            (
+                commit.envelope().commit.commit_id,
+                Arc::clone(commit.canonical_arc()),
+            )
+        })
         .collect();
     history.patch_stream_index = checkpoint
         .envelopes
         .iter()
-        .map(|envelope| (envelope.patch.position, envelope.commit.commit_id))
+        .map(|commit| (commit.position(), commit.envelope().commit.commit_id))
         .collect();
+    for commit in &checkpoint.envelopes {
+        history
+            .install_recovered_canonical_route(Arc::new(commit.clone()))
+            .map_err(|detail| {
+                DurabilityError::new(
+                    crate::durability::data::RecoveryFailureClass::CorruptCheckpoint,
+                    detail,
+                )
+            })?;
+    }
+    if let Some(position) = history
+        .patch_stream_index
+        .last_key_value()
+        .map(|(position, _)| *position)
+    {
+        history.advance_canonical_stream_floor(position);
+    }
     history.commit_graph = checkpoint
         .envelopes
         .iter()
@@ -124,7 +146,7 @@ fn prepare_history(
             (
                 envelope.commit.commit_id,
                 VersionNode {
-                    commit: envelope.commit,
+                    commit: envelope.commit.clone(),
                 },
             )
         })

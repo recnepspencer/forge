@@ -71,6 +71,7 @@ impl ReplayDigestBuilder {
             RelationalDiagnosticValue::DurableSegmentId(value) => self.tag(29).label(value),
             RelationalDiagnosticValue::DerivedIndexId(value) => self.tag(30).label(value),
             RelationalDiagnosticValue::DerivedIndexGenerationId(value) => self.tag(31).label(value),
+            RelationalDiagnosticValue::CorrespondenceCandidateId(value) => self.tag(32).u64(*value),
             RelationalDiagnosticValue::ReplaySchemaVersion(value) => self.tag(33).label(value),
             RelationalDiagnosticValue::SchemaId(value) => self.tag(34).label(value),
             RelationalDiagnosticValue::ContractId(value) => self.tag(35).label(value),

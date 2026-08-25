@@ -16,13 +16,36 @@ use crate::durability::data::{
 };
 use crate::durability::log::local_store::{
     append_segment_entry, checkpoint_file_path, current_segment_ids, ensure_loaded_store,
-    persist_store_manifest, segment_file_path, DurableCheckpointFile,
+    persist_store_manifest, segment_file_path, segment_requires_recovery_readmission,
+    DurableCheckpointFile,
 };
 use crate::durability::log::native_file_codec::write_checkpoint_file;
 
 impl<'runtime> DurabilityAuthority<'runtime> {
     pub fn checkpoint(&mut self) -> Result<DurableCheckpoint, DurabilityError> {
-        let checkpoint = self.build_checkpoint_image()?;
+        let captured = self.capture_checkpoint_basis()?;
+        self.finalize_captured_checkpoint(captured)
+    }
+
+    pub(super) fn capture_checkpoint_basis(
+        &mut self,
+    ) -> Result<super::checkpoint_capture::CapturedCheckpointBasis, DurabilityError> {
+        let checkpoint_routes = self.runtime.history.canonical_checkpoint_gate();
+        let selection = checkpoint_routes
+            .checkpoint_selection()
+            .map_err(checkpoint_admission_error)?;
+        super::checkpoint_capture::CapturedCheckpointBasis::capture(
+            self.runtime,
+            &checkpoint_routes,
+            selection,
+        )
+    }
+
+    pub(super) fn finalize_captured_checkpoint(
+        &mut self,
+        captured: super::checkpoint_capture::CapturedCheckpointBasis,
+    ) -> Result<DurableCheckpoint, DurabilityError> {
+        let checkpoint = captured.build_checkpoint_image()?;
         if self.runtime.runtime_config().durability.policy.mode
             == DurabilityMode::PersistedSegmentedLocalFs
         {
@@ -161,10 +184,11 @@ impl<'runtime> DurabilityAuthority<'runtime> {
     pub(crate) fn append_commit(
         &mut self,
         authority: super::DurableAppendAuthority,
-        envelope: &crate::history::data::CanonicalCommitEnvelope,
+        positioned: &crate::history::data::PositionedCanonicalCommit,
     ) -> Result<(), DurabilityError> {
+        let envelope = positioned.envelope();
         authority.validate(self.runtime.runtime_instance_id(), envelope)?;
-        #[cfg(test)]
+        #[cfg(any(test, feature = "test-durability-faults"))]
         if std::mem::take(&mut self.runtime.durability.fail_next_append) {
             return Err(DurabilityError::new(
                 crate::durability::data::RecoveryFailureClass::DurableIoFailure,
@@ -173,15 +197,27 @@ impl<'runtime> DurabilityAuthority<'runtime> {
         }
         match self.runtime.runtime_config().durability.policy.mode {
             DurabilityMode::InMemoryCanonical => {
-                self.runtime.durability.push_log_envelope(envelope.clone());
+                self.runtime
+                    .durability
+                    .push_log_envelope(positioned.clone());
                 Ok(())
             }
             DurabilityMode::PersistedSegmentedLocalFs => {
                 let mut store = ensure_loaded_store(self.runtime)?;
                 let segment_capacity = store.layout.segment_commit_capacity.max(1);
                 let active_segment = store.segments.last().cloned();
+                let active_requires_recovery = match active_segment.as_ref() {
+                    Some(segment) if segment.commit_count < segment_capacity => {
+                        segment_requires_recovery_readmission(&segment.path)?
+                    }
+                    _ => false,
+                };
                 let segment_id = match active_segment.as_ref() {
-                    Some(segment) if segment.commit_count < segment_capacity => segment.segment_id,
+                    Some(segment)
+                        if segment.commit_count < segment_capacity && !active_requires_recovery =>
+                    {
+                        segment.segment_id
+                    }
                     _ => DurableSegmentId(
                         store
                             .segments
@@ -206,7 +242,11 @@ impl<'runtime> DurabilityAuthority<'runtime> {
                     .as_ref()
                     .map(|segment| segment.commit_count + 1)
                     .unwrap_or(1);
-                append_segment_entry(&segment_path, envelope)?;
+                append_segment_entry(
+                    &segment_path,
+                    positioned,
+                    &self.runtime.runtime_config().schema.registry,
+                )?;
                 if let Some(existing) = store
                     .segments
                     .iter_mut()
@@ -230,13 +270,15 @@ impl<'runtime> DurabilityAuthority<'runtime> {
                     });
                 }
                 self.runtime.durability.store = Some(store);
-                self.runtime.durability.push_log_envelope(envelope.clone());
+                self.runtime
+                    .durability
+                    .push_log_envelope(positioned.clone());
                 let latest_commit_id = self
                     .runtime
                     .durability
                     .log
                     .last()
-                    .map(|entry| entry.commit.commit_id)
+                    .map(|entry| entry.envelope().commit.commit_id)
                     .unwrap_or(envelope.commit.commit_id);
                 self.runtime
                     .publication_authority()
@@ -297,3 +339,29 @@ impl<'runtime> DurabilityAuthority<'runtime> {
         Ok(manifest)
     }
 }
+
+pub(super) fn checkpoint_admission_error(
+    denial: crate::runtime::CanonicalCheckpointAdmissionError,
+) -> DurabilityError {
+    match denial {
+        crate::runtime::CanonicalCheckpointAdmissionError::PublicationInFlight => {
+            DurabilityError::new(
+                crate::durability::data::RecoveryFailureClass::CheckpointPublicationInFlight,
+                "checkpoint denied while canonical publication is in flight",
+            )
+        }
+        crate::runtime::CanonicalCheckpointAdmissionError::PerformedPublicationRequiresSettlement(
+            commit_id,
+        ) => DurabilityError::new(
+            crate::durability::data::RecoveryFailureClass::PerformedPublicationRequiresSettlement,
+            format!(
+                "checkpoint denied until performed commit {} completes owner settlement",
+                commit_id.0
+            ),
+        ),
+    }
+}
+
+#[cfg(test)]
+#[path = "checkpoint_concurrency_tests.rs"]
+mod checkpoint_concurrency_tests;

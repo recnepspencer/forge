@@ -130,7 +130,7 @@ impl RelationalRuntime {
                 .owned_allocation_capacity_bytes();
             inventory_root(
                 self.runtime_instance_id(),
-                root,
+                &root,
                 artifact,
                 derived_cache_bytes,
                 &mut authoritative_allocations,

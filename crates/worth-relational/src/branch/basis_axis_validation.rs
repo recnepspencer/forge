@@ -68,7 +68,7 @@ pub(crate) fn require_current_descriptor_axes(
             super::RelationalBranchBasisMismatchAxis::RootIdentity,
         ));
     }
-    let schema_commitment = root.schema_authority().registry().authority_digest_bytes();
+    let schema_commitment = root.schema_authority().authority_digest();
     if descriptor.schema_commitment() != schema_commitment {
         return Err(RelationalBranchBasisDenial::MixedAxis(
             super::RelationalBranchBasisMismatchAxis::SchemaRoot,

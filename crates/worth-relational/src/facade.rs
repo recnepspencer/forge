@@ -214,10 +214,11 @@ pub mod runtime {
         InvariantAccess, RelationProjectionRecord, RelationRecordProjection,
         RelationalInitialSchemaInstallation, RelationalInitialSchemaInstallationDenial,
         RelationalInitialSchemaInstallationDenialKind, RelationalInitialSchemaInstallationReceipt,
-        RelationalPhase4ReferenceCostCounters, RelationalReplayRecord, RelationalRuntime,
-        RelationalRuntimeConfig, ReplaySchemaVersion, RuntimeComplexityCounters, SimulationAccess,
-        SimulationAuthority, SnapshotGuard, TopologyFreezeMode, VisibilityProjectionView,
-        VisibilityReadContext, VisibilityRetentionAuthority,
+        RelationalPatchPositionReservationCounters, RelationalPhase4ReferenceCostCounters,
+        RelationalReplayRecord, RelationalRuntime, RelationalRuntimeConfig,
+        RelationalRuntimeForkDenial, ReplaySchemaVersion, RuntimeComplexityCounters,
+        SimulationAccess, SimulationAuthority, SnapshotGuard, TopologyFreezeMode,
+        VisibilityProjectionView, VisibilityReadContext, VisibilityRetentionAuthority,
     };
     pub use crate::storage::data::{
         ChunkVisibilitySummary, ChunkedStorageSummary, EntityReadRecord, PartitionStorageStats,
@@ -256,6 +257,7 @@ pub mod publication {
         SubscriberStreamFailureClass,
     };
     pub use crate::publication::data::{
+        DeferredPublicationSettlement, DeferredPublicationSettlementError,
         PublicationArtifactSnapshot, PublicationDiagnosticsSnapshot, PublicationError,
         PublicationObservationSnapshot,
     };

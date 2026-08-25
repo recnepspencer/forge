@@ -44,6 +44,29 @@ impl PublishedAuthoritativeRecordPatch {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CanonicalAuthoritativePatch {
+    pub ordering: PatchOrdering,
+    pub publication_mode: PatchPublicationMode,
+    pub authoritative_record_patches: Vec<PublishedAuthoritativeRecordPatch>,
+}
+
+impl CanonicalAuthoritativePatch {
+    pub fn canonicalized(&self) -> Self {
+        Self {
+            ordering: self.ordering,
+            publication_mode: self.publication_mode,
+            authoritative_record_patches: self
+                .authoritative_record_patches
+                .iter()
+                .map(PublishedAuthoritativeRecordPatch::canonicalized)
+                .collect(),
+        }
+    }
+}
+
+/// Subscriber-facing projection of one canonical patch at its performed
+/// runtime stream position.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PublishedAuthoritativePatchEnvelope {
     pub ordering: PatchOrdering,
     pub publication_mode: PatchPublicationMode,
@@ -52,16 +75,25 @@ pub struct PublishedAuthoritativePatchEnvelope {
 }
 
 impl PublishedAuthoritativePatchEnvelope {
-    pub fn canonicalized(&self) -> Self {
+    pub(crate) fn from_canonical(
+        position: PatchStreamPosition,
+        patch: &CanonicalAuthoritativePatch,
+    ) -> Self {
         Self {
+            ordering: patch.ordering,
+            publication_mode: patch.publication_mode,
+            position,
+            authoritative_record_patches: patch.authoritative_record_patches.clone(),
+        }
+    }
+
+    pub fn canonicalized(&self) -> Self {
+        let canonical = CanonicalAuthoritativePatch {
             ordering: self.ordering,
             publication_mode: self.publication_mode,
-            position: self.position,
-            authoritative_record_patches: self
-                .authoritative_record_patches
-                .iter()
-                .map(PublishedAuthoritativeRecordPatch::canonicalized)
-                .collect(),
+            authoritative_record_patches: self.authoritative_record_patches.clone(),
         }
+        .canonicalized();
+        Self::from_canonical(self.position, &canonical)
     }
 }

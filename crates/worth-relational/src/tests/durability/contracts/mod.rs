@@ -6,6 +6,7 @@ mod branch_root_schema_binding;
 mod checkpoint_recovery;
 mod descriptor_continuity;
 mod fork_provenance_checkpoint;
+mod legacy_segment_recovery;
 mod lineage_allocator_denials;
 mod lineage_artifact_recovery;
 mod lineage_event_allocator_recovery;

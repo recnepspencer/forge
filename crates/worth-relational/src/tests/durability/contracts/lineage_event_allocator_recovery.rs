@@ -16,6 +16,7 @@ fn tail_lineage_event_allocator_exhaustion_denies_before_replay() {
     let invalid_envelope = plan
         .tail_log
         .iter_mut()
+        .map(|commit| commit.envelope_mut_for_test())
         .find(|envelope| envelope.commit.commit_id == replay_invalid.commit.commit_id)
         .expect("earlier tail envelope");
     let checkpoint = invalid_envelope
@@ -28,6 +29,7 @@ fn tail_lineage_event_allocator_exhaustion_denies_before_replay() {
     let event = plan
         .tail_log
         .iter_mut()
+        .map(|commit| commit.envelope_mut_for_test())
         .find(|envelope| envelope.commit.commit_id == allocator_exhausted.commit.commit_id)
         .expect("later tail envelope")
         .published_lineage_mut_for_test()
@@ -38,6 +40,7 @@ fn tail_lineage_event_allocator_exhaustion_denies_before_replay() {
     let exhausted_envelope = plan
         .tail_log
         .iter_mut()
+        .map(|commit| commit.envelope_mut_for_test())
         .find(|envelope| envelope.commit.commit_id == allocator_exhausted.commit.commit_id)
         .expect("later tail envelope");
     exhausted_envelope.rebuild_lineage_basis_for_test();
@@ -54,7 +57,7 @@ fn tail_lineage_event_allocator_exhaustion_denies_before_replay() {
 }
 
 #[test]
-fn failed_durable_append_lineage_id_gap_recovers_exact_tail_and_continues() {
+fn failed_durable_append_blocks_descendants_and_recovers_last_checkpoint() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity_outcome(&mut runtime, "lineage-gap-checkpoint");
     runtime.durability_authority().checkpoint().unwrap();
@@ -62,88 +65,66 @@ fn failed_durable_append_lineage_id_gap_recovers_exact_tail_and_continues() {
     let abandoned_event_id = runtime.lineage.next_event_id;
     let published_node_count = runtime.lineage.nodes.len();
     let published_event_count = runtime.lineage.events().count();
-    let published_head = runtime
-        .history()
-        .branch_head(&BranchId("main".to_owned()))
-        .expect("checkpoint head")
-        .clone();
-
     runtime.durability.fail_next_append = true;
     let mut failed = test_owner_begin_transaction_for_main(&mut runtime);
     failed.push_batch(batch_create("lineage-gap-abandoned"));
-    let error = failed
+    let durability_deferred = failed
         .commit(&mut runtime)
-        .expect_err("injected durable append failure must abandon the reserved lineage id");
-    assert!(format!("{error:?}").contains("test-injected durable append failure"));
+        .expect_err("performed movement without durable acknowledgement is typed");
+    assert!(matches!(
+        durability_deferred,
+        TransactionCommitError::PerformedButDurabilityDeferred { .. }
+    ));
+    let performed_commit = durability_deferred
+        .performed_commit()
+        .expect("deferred error carries performed receipt")
+        .clone();
     assert_eq!(runtime.lineage.next_lineage_id, abandoned_lineage_id + 1);
     assert_eq!(runtime.lineage.next_event_id, abandoned_event_id + 1);
-    assert_eq!(runtime.lineage.nodes.len(), published_node_count);
-    assert_eq!(runtime.lineage.events().count(), published_event_count);
+    assert_eq!(runtime.lineage.nodes.len(), published_node_count + 1);
+    assert_eq!(runtime.lineage.events().count(), published_event_count + 1);
     assert_eq!(
         runtime
             .history()
             .branch_head(&BranchId("main".to_owned()))
-            .expect("failed append cannot move branch head"),
-        &published_head
+            .expect("performed append-fault commit is current")
+            .commit_id,
+        performed_commit.commit_id
     );
 
-    let successful = create_entity_outcome(&mut runtime, "lineage-gap-tail");
-    let successful_entity = changed_entities(&successful)[0];
-    let successful_lineage_id = runtime
-        .lineage_access()
-        .for_record(successful_entity)
-        .expect("successful tail lineage")
-        .lineage_id();
-    let successful_event_id = runtime
-        .history()
-        .commit_envelope(successful.commit.commit_id)
-        .expect("successful tail envelope")
-        .lineage_events()[0]
-        .event_id();
-    assert!(successful_lineage_id.0 > abandoned_lineage_id);
-    assert!(successful_event_id > abandoned_event_id);
+    let mut child = test_owner_begin_transaction_for_main(&mut runtime);
+    child.push_batch(batch_create("lineage-gap-tail"));
+    let child_denial = child
+        .commit(&mut runtime)
+        .expect_err("an unsettled performed parent denies descendants");
+    assert!(child_denial
+        .detail()
+        .contains("requires explicit owner settlement"));
+    assert_eq!(
+        runtime
+            .fork()
+            .expect_err("an unsettled performed parent denies runtime fork"),
+        crate::runtime::RelationalRuntimeForkDenial::PerformedPublicationRequiresSettlement {
+            commit_id: performed_commit.commit_id,
+        }
+    );
 
     let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
     let mut recovered = persisted_runtime_with_test_schema();
-    recovered
+    let recovery = recovered
         .durability_authority()
         .recover(plan)
-        .expect("canonical tail create must recover across an abandoned lineage-id gap");
-    assert_eq!(
-        recovered
-            .lineage_access()
-            .for_record(successful_entity)
-            .expect("recovered tail lineage")
-            .lineage_id(),
-        successful_lineage_id
-    );
+        .expect("recovery stops at the last acknowledged checkpoint");
+    assert_eq!(recovery.recovered_commits, 1);
     assert_eq!(
         recovered
             .history()
-            .commit_envelope(successful.commit.commit_id)
-            .expect("recovered successful envelope")
-            .lineage_events()[0]
-            .event_id(),
-        successful_event_id
-    );
-
-    let post_recovery = create_entity_outcome(&mut recovered, "lineage-gap-post-recovery");
-    let post_recovery_lineage_id = recovered
-        .lineage_access()
-        .for_record(changed_entities(&post_recovery)[0])
-        .expect("post-recovery lineage")
-        .lineage_id();
-    assert_eq!(post_recovery_lineage_id.0, successful_lineage_id.0 + 1);
-    assert_eq!(
-        recovered
-            .history()
-            .commit_envelope(post_recovery.commit.commit_id)
-            .expect("post-recovery envelope")
-            .lineage_events()[0]
-            .event_id(),
-        successful_event_id + 1
+            .branch_head(&BranchId("main".to_owned()))
+            .expect("checkpoint head recovers")
+            .commit_id,
+        crate::history::data::CommitId(1)
     );
 }
 
@@ -171,7 +152,7 @@ fn multi_event_reservation_exhaustion_denies_before_public_effects() {
             .history()
             .branch_head(&BranchId("main".to_owned()))
             .expect("baseline head"),
-        &baseline_head
+        baseline_head
     );
     assert_eq!(
         runtime.storage_access().storage_stats().live_entities,

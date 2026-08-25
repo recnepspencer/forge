@@ -16,6 +16,7 @@ mod idempotency;
 mod invariant_execution;
 mod mutation_work;
 mod provisional_state;
+mod publication_recovery;
 mod resource_support;
 mod session_commit;
 mod session_lifecycle;
@@ -317,6 +318,13 @@ impl WorthQueryPrimaryGraphProvider {
 
     pub(super) fn take_failed_index_publication(&self) -> bool {
         self.take_fault(fault_port::WorthQueryPrimaryGraphFault::FailedIndexPublication)
+    }
+
+    #[cfg(feature = "test-primary-graph-faults")]
+    pub(super) fn fail_next_index_publication_for_test(&self) {
+        assert!(self
+            .fault_port
+            .schedule_for_test(fault_port::WorthQueryPrimaryGraphFault::FailedIndexPublication));
     }
 
     pub(super) fn observe_completed_application(

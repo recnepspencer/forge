@@ -23,6 +23,8 @@ pub enum WorthQueryProviderCompareAndCommitOutcome {
     Committed(WorthQueryCommittedProviderSession),
     Stale(WorthQueryStaleDecisionReadSet),
     Denied(WorthQueryProviderCompareAndCommitDenial),
+    Deferred(crate::domain_computation::WorthQueryProviderSessionCommitDeferred),
+    SettlementDeferred(crate::domain_computation::WorthQueryProviderSessionSettlementDeferred),
     Indeterminate(WorthQueryProviderSessionFailure),
 }
 
@@ -176,6 +178,17 @@ impl WorthQueryInvariantApprovedProposedState<'_> {
                     .overlay
                     .release_to_provider_resolution();
                 WorthQueryProviderCompareAndCommitOutcome::Indeterminate(failure)
+            }
+            WorthQuerySessionCommitOrAbortOutcome::CommitDeferred(deferred) => {
+                let _ = self.proposed.attempt.overlay.discard();
+                WorthQueryProviderCompareAndCommitOutcome::Deferred(deferred)
+            }
+            WorthQuerySessionCommitOrAbortOutcome::CommitSettlementDeferred(deferred) => {
+                self.proposed
+                    .attempt
+                    .overlay
+                    .release_to_provider_resolution();
+                WorthQueryProviderCompareAndCommitOutcome::SettlementDeferred(deferred)
             }
             WorthQuerySessionCommitOrAbortOutcome::Aborted(_)
             | WorthQuerySessionCommitOrAbortOutcome::AbortRecoveryRequired(_) => {

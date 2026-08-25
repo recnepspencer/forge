@@ -7,7 +7,7 @@ pub(super) struct FinalizationInput<'a> {
             crate::storage::overlay::PartitionMutationJournal,
         ),
     >,
-    pub(super) prepared_history: crate::mvcc::PreparedRelationalPublication,
+    pub(super) prepared_history: crate::mvcc::PreparedRelationalPublicationAccelerators,
     pub(super) changed_records: &'a [crate::transactions::data::RecordRef],
     pub(super) version_id: crate::identity::data::VersionId,
     pub(super) previous_branch_head_version: Option<crate::identity::data::VersionId>,
@@ -16,6 +16,7 @@ pub(super) struct FinalizationInput<'a> {
     pub(super) branch_id: &'a crate::history::data::BranchId,
     pub(super) merge_base_commits: &'a [crate::history::data::CommitId],
     pub(super) artifacts: crate::storage::overlay::PublicationArtifacts,
+    pub(super) patch_position: crate::publication::patch::data::PatchStreamPosition,
     pub(super) merge_parent_branches: &'a [crate::history::data::BranchId],
     pub(super) phase_timing:
         &'a mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
@@ -37,10 +38,11 @@ pub(super) fn finalize_published_commit(
         branch_id,
         merge_base_commits,
         artifacts,
+        patch_position,
         merge_parent_branches,
         phase_timing,
     } = input;
-    let index_refresh_basis = prepared_history.index_refresh_basis();
+    let index_refresh_basis = prepared_history.index_refresh_basis().clone();
     publish_storage(
         runtime,
         branch_id,
@@ -50,7 +52,7 @@ pub(super) fn finalize_published_commit(
     );
     refresh_indexes(runtime, changed_records, &index_refresh_basis, phase_timing);
     let started = std::time::Instant::now();
-    prepared_history.install(runtime);
+    prepared_history.install(runtime, patch_position);
     phase_timing.history_publish_micros = phase_timing
         .history_publish_micros
         .saturating_add(started.elapsed().as_micros() as u64);
@@ -64,7 +66,8 @@ pub(super) fn finalize_published_commit(
     );
     run_retention(runtime, changed_records, version_id, phase_timing);
     compact_durability(runtime, phase_timing);
-    let snapshot_id = publish_artifacts(runtime, version_id, artifacts, phase_timing);
+    let snapshot_id =
+        publish_artifacts(runtime, version_id, artifacts, patch_position, phase_timing);
     run_configured_retention_pass(runtime, phase_timing);
     consume_post_commit_artifacts(
         runtime,
@@ -167,12 +170,14 @@ fn publish_artifacts(
     runtime: &mut crate::runtime::RelationalRuntime,
     version_id: crate::identity::data::VersionId,
     artifacts: crate::storage::overlay::PublicationArtifacts,
+    patch_position: crate::publication::patch::data::PatchStreamPosition,
     timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
 ) -> crate::snapshots::data::SnapshotId {
     let started = std::time::Instant::now();
-    let snapshot_id = runtime
-        .publication_authority()
-        .publish_artifacts(version_id, artifacts);
+    let snapshot_id =
+        runtime
+            .publication_authority()
+            .publish_artifacts(version_id, artifacts, patch_position);
     timing.bundle_publish_micros = started.elapsed().as_micros() as u64;
     snapshot_id
 }

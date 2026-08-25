@@ -87,12 +87,12 @@ impl<'runtime> HistoryAccess<'runtime> {
                 continue;
             }
             catalog_probes += 1;
-            if let Some(artifact) = self.runtime.history.commit_catalog.get(commit_id) {
+            if let Some(envelope) = self.runtime.history.canonical_envelope(commit_id) {
                 reachable_commits.insert(commit_id);
                 selected_commit_available |= commit_id == start;
-                authoring_branches.insert(artifact.identity().authoring_branch().clone());
-                parent_edge_visits += artifact.envelope().commit.parents.len();
-                stack.extend(artifact.envelope().commit.parents.iter().copied());
+                authoring_branches.insert(envelope.commit.branch_id.clone());
+                parent_edge_visits += envelope.commit.parents.len();
+                stack.extend(envelope.commit.parents.iter().copied());
             }
         }
         CommitAncestryInspection {
@@ -117,8 +117,7 @@ impl<'runtime> HistoryAccess<'runtime> {
         } else if self
             .runtime
             .history
-            .commit_catalog
-            .get(requested_commit)
+            .canonical_envelope(requested_commit)
             .is_some()
         {
             CommitAncestryPosture::Unreachable
@@ -174,15 +173,13 @@ impl<'runtime> HistoryAccess<'runtime> {
         let source_head = self
             .runtime
             .history
-            .commit_catalog
-            .get(source_head_id)
-            .map(|artifact| artifact.envelope().commit.clone())?;
+            .canonical_envelope(source_head_id)
+            .map(|envelope| envelope.commit.clone())?;
         let target_head = self
             .runtime
             .history
-            .commit_catalog
-            .get(target_head_id)
-            .map(|artifact| artifact.envelope().commit.clone())?;
+            .canonical_envelope(target_head_id)
+            .map(|envelope| envelope.commit.clone())?;
         let merge_base =
             self.max_commit_id_common_ancestor(source_head.commit_id, target_head.commit_id);
         let source_only_commits =
@@ -236,8 +233,8 @@ impl<'runtime> HistoryAccess<'runtime> {
     ) -> MergeInspection {
         // This remains a history substrate helper. New merge-semantic planning
         // should land in `crate::merge`, not grow richer semantics here.
-        let source_head = self.branch_head(source_branch).cloned();
-        let target_head = self.branch_head(target_branch).cloned();
+        let source_head = self.branch_head(source_branch);
+        let target_head = self.branch_head(target_branch);
         let merge_base =
             source_head
                 .as_ref()
@@ -331,13 +328,7 @@ impl<'runtime> HistoryAccess<'runtime> {
     fn commit_record_set(&self, commits: &[CommitId]) -> BTreeSet<MergeConflictRecord> {
         commits
             .iter()
-            .filter_map(|commit_id| {
-                self.runtime
-                    .history
-                    .commit_catalog
-                    .get(*commit_id)
-                    .map(|artifact| artifact.envelope())
-            })
+            .filter_map(|commit_id| self.runtime.history.canonical_envelope(*commit_id))
             .flat_map(|envelope| envelope.touched_record_refs().into_iter())
             .map(|record_ref| match record_ref {
                 crate::transactions::data::RecordRef::Entity(entity_id) => {

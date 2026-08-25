@@ -94,6 +94,43 @@ impl LineageSubsystem {
         }
     }
 
+    pub(crate) fn install_recovered_event_batch(
+        &mut self,
+        events: &[LineageEventRecord],
+        publication_commit_id: CommitId,
+    ) -> Result<(), String> {
+        let mut previous_event_id = None;
+        for event in events {
+            if previous_event_id.is_some_and(|previous| event.event_id() <= previous) {
+                return Err(
+                    "recovered lineage event ids must advance within their durable batch"
+                        .to_owned(),
+                );
+            }
+            if self.published_event_ids.contains(&event.event_id()) {
+                return Err(format!(
+                    "recovered lineage event id {} was already installed",
+                    event.event_id()
+                ));
+            }
+            previous_event_id = Some(event.event_id());
+        }
+        let next_event_id = previous_event_id
+            .map(|event_id| {
+                event_id
+                    .checked_add(1)
+                    .ok_or_else(|| "recovered lineage event exhausted the allocator".to_owned())
+            })
+            .transpose()?;
+        for event in events.iter().cloned() {
+            self.record_event(event, publication_commit_id);
+        }
+        if let Some(next_event_id) = next_event_id {
+            self.next_event_id = self.next_event_id.max(next_event_id);
+        }
+        Ok(())
+    }
+
     #[cfg(test)]
     pub(crate) fn branch_events(
         &self,

@@ -246,12 +246,10 @@ pub(super) fn assert_recovered_commit_truth_matches(
     let original_envelope = original_runtime
         .replay()
         .canonical_commit_envelope(commit_id)
-        .cloned()
         .unwrap();
     let recovered_envelope = recovered_runtime
         .replay()
         .canonical_commit_envelope(commit_id)
-        .cloned()
         .unwrap();
     let original_bundle =
         capture_aspect_truth_bundle(original_runtime, entity_ids, relation_ids, lineage_ids);

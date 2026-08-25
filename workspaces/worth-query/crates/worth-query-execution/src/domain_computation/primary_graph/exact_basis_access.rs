@@ -42,5 +42,4 @@ pub(crate) fn current_branch_head(
         .history()
         .branch_head_for_observation(&basis.observation())
         .ok()?
-        .cloned()
 }

@@ -10,6 +10,7 @@ mod readmission;
 mod session_affinity;
 mod session_binding;
 mod session_lease;
+mod settlement_deferred;
 mod terminal_binding;
 mod terminal_outcome;
 
@@ -34,6 +35,7 @@ pub(in crate::domain_computation) use session_affinity::{
 };
 pub(crate) use session_binding::WorthQuerySessionBinding;
 pub(crate) use session_lease::WorthQueryProviderSessionLease;
+pub use settlement_deferred::*;
 pub(in crate::domain_computation) use terminal_binding::WorthQueryProviderSessionTerminalBinding;
 pub use terminal_outcome::*;
 

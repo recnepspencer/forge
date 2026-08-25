@@ -228,7 +228,6 @@ fn hostile_commit_replay_equivalence_test() {
     let original_envelope = runtime
         .replay()
         .canonical_commit_envelope(merge.commit.commit_id)
-        .cloned()
         .unwrap();
     let replay = runtime
         .replay_authority()
@@ -243,14 +242,10 @@ fn hostile_commit_replay_equivalence_test() {
         "hostile replay mismatch: {replay:#?}"
     );
 
-    let original_main_branch_head = runtime
-        .history()
-        .branch_head(&BranchId("main".to_string()))
-        .cloned();
+    let original_main_branch_head = runtime.history().branch_head(&BranchId("main".to_string()));
     let original_feature_branch_head = runtime
         .history()
-        .branch_head(&BranchId("feature".to_string()))
-        .cloned();
+        .branch_head(&BranchId("feature".to_string()));
 
     let recovery_plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
@@ -285,7 +280,6 @@ fn hostile_commit_replay_equivalence_test() {
     let recovered_envelope = recovered
         .replay()
         .canonical_commit_envelope(merge.commit.commit_id)
-        .cloned()
         .unwrap();
     let recovered_replay = recovered
         .replay_authority()
@@ -316,14 +310,12 @@ fn hostile_commit_replay_equivalence_test() {
         recovered
             .history()
             .branch_head(&BranchId("main".to_string()))
-            .cloned()
     );
     assert_eq!(
         original_feature_branch_head,
         recovered
             .history()
             .branch_head(&BranchId("feature".to_string()))
-            .cloned()
     );
     assert_eq!(original_inspection, recovered_inspection);
     let recovered_counters = recovered.performance_access().counters();

@@ -217,9 +217,8 @@ fn fintech_analysis_workflow_preserves_branching_snapshots_and_trade_correction(
         world
             .runtime
             .history()
-            .branch_head(&BranchId("analysis".to_string()))
-            .cloned(),
-        world.runtime.history().latest_commit().cloned()
+            .branch_head(&BranchId("analysis".to_string())),
+        world.runtime.history().latest_commit()
     );
     let post_probe = capture_case_truth_probe(
         &world,
@@ -263,9 +262,8 @@ fn fintech_intraday_risk_workflow_exposes_open_breach_on_analysis_branch() {
         world
             .runtime
             .history()
-            .branch_head(&BranchId("analysis".to_string()))
-            .cloned(),
-        world.runtime.history().latest_commit().cloned()
+            .branch_head(&BranchId("analysis".to_string())),
+        world.runtime.history().latest_commit()
     );
     assert_intraday_risk_case_transition(&baseline_probe, &post_probe);
     assert!(compare_case_truth(&post_probe, &post_replay_probe).is_empty());
@@ -299,9 +297,8 @@ fn fintech_settlement_repair_workflow_exposes_repaired_settlement_on_analysis_br
         world
             .runtime
             .history()
-            .branch_head(&BranchId("analysis".to_string()))
-            .cloned(),
-        world.runtime.history().latest_commit().cloned()
+            .branch_head(&BranchId("analysis".to_string())),
+        world.runtime.history().latest_commit()
     );
     assert_settlement_repair_case_transition(&baseline_probe, &post_probe);
 }

@@ -12,8 +12,8 @@ use crate::lineage::data::{
     FinalizedLineageEventBatch, LineageDecisionLog, LineageFinalizationArtifact,
 };
 use crate::publication::patch::data::{
-    PatchDetail, PatchOrdering, PatchPublicationMode, PatchStreamPosition,
-    PublishedAuthoritativePatchEnvelope, PublishedAuthoritativeRecordPatch, RecordStructuralChange,
+    CanonicalAuthoritativePatch, PatchDetail, PatchOrdering, PatchPublicationMode,
+    PatchStreamPosition, PublishedAuthoritativeRecordPatch, RecordStructuralChange,
 };
 use crate::schema::data::{DescriptorSemanticsVersion, RelationalSchemaRegistry, SchemaVersionId};
 use crate::transactions::data::{MergedCommitPlan, RecordRef, TransactionId};
@@ -24,10 +24,10 @@ struct FakeHistorySource {
 }
 
 impl CommitEnvelopeSource for FakeHistorySource {
-    fn commit_envelope(&self, commit_id: CommitId) -> Option<&CanonicalCommitEnvelope> {
+    fn commit_envelope(&self, commit_id: CommitId) -> Option<CanonicalCommitEnvelope> {
         self.envelopes
             .get(&commit_id)
-            .map(|envelope| envelope.as_ref())
+            .map(|envelope| envelope.as_ref().clone())
     }
 }
 
@@ -97,10 +97,9 @@ fn commit_envelope(commit_id: u64, version_id: u64) -> CanonicalCommitEnvelope {
             transaction_id: TransactionId(commit_id),
             merged_intents: vec![],
         },
-        PublishedAuthoritativePatchEnvelope {
+        CanonicalAuthoritativePatch {
             ordering: PatchOrdering::CanonicalCommitOrder,
             publication_mode: PatchPublicationMode::CommitNative,
-            position: PatchStreamPosition(commit_id),
             authoritative_record_patches: vec![PublishedAuthoritativeRecordPatch {
                 target: RecordRef::Entity(crate::identity::data::EntityId::new(
                     crate::identity::data::PartitionId::main(),

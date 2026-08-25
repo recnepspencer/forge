@@ -63,7 +63,6 @@ fn source_commit_envelope(
     runtime
         .history()
         .commit_envelope(commit_id)
-        .cloned()
         .ok_or_else(|| CompiledArtifactError {
             authority_status: CompiledArtifactAuthorityStatus::MissingSourceCommit,
             detail: format!("missing source commit {}", commit_id.0),

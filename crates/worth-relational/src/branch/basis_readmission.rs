@@ -48,10 +48,11 @@ impl RelationalRuntime {
         if let Some(retained) = branch_cell.readmit_retained_basis(&descriptor) {
             return Ok(retained);
         }
+        let snapshot = branch_cell.atomic_snapshot();
         let (current_reference, current_truth_version, root) = (
-            branch_cell.observation().clone(),
-            branch_cell.truth_version(),
-            branch_cell.root().cloned().unwrap_or_else(|| {
+            snapshot.observation(),
+            snapshot.truth_version(),
+            snapshot.root().unwrap_or_else(|| {
                 RelationalBranchRoot::empty_with_schema(
                     &self.config.schema.registry,
                     crate::schema::data::runtime_descriptor_semantics_policy()
@@ -61,7 +62,7 @@ impl RelationalRuntime {
         );
         reject_cross_branch_target_substitution(
             &self.history.commit_catalog,
-            branch_cell,
+            &snapshot,
             &descriptor,
             &current_reference,
         )?;

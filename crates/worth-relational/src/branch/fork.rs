@@ -84,8 +84,9 @@ impl RelationalRuntime {
             .history
             .branch_cell(source_branch)
             .ok_or(RelationalForkDenial::SourceBranchMissing)?;
-        let observation = source_cell.observation().clone();
-        let truth_version = source_cell.truth_version();
+        let source_snapshot = source_cell.atomic_snapshot();
+        let observation = source_snapshot.observation();
+        let truth_version = source_snapshot.truth_version();
         self.history.phase4_costs.branch_cell_lookups = self
             .history
             .phase4_costs
@@ -134,14 +135,16 @@ impl RelationalRuntime {
         if self.history.has_branch(target_branch) {
             return Err(RelationalForkDenial::DuplicateTarget);
         }
-        let (source_observation, source_truth_version) = {
+        let (source_observation, source_truth_version, source_root) = {
             let source_cell = self
                 .history
                 .branch_cell(descriptor.source_branch())
                 .ok_or(RelationalForkDenial::SourceBranchMissing)?;
+            let snapshot = source_cell.atomic_snapshot();
             (
-                source_cell.observation().clone(),
-                source_cell.truth_version(),
+                snapshot.observation(),
+                snapshot.truth_version(),
+                snapshot.root(),
             )
         };
         self.history.phase4_costs.branch_cell_lookups = self
@@ -166,6 +169,7 @@ impl RelationalRuntime {
             descriptor,
             source_observation,
             source_truth_version,
+            source_root: source_root.ok_or(RelationalForkDenial::MissingArtifact)?,
         })
     }
 
@@ -175,12 +179,7 @@ impl RelationalRuntime {
         source: &ValidatedForkSource,
     ) -> Result<PreparedForkTarget, RelationalForkDenial> {
         let target_branch_id = target_branch.clone();
-        let source_root = self
-            .history
-            .branch_cell(source.descriptor.source_branch())
-            .and_then(|cell| cell.root())
-            .cloned()
-            .ok_or(RelationalForkDenial::MissingArtifact)?;
+        let source_root = Arc::clone(&source.source_root);
         let target_cell = crate::branch::RelationalBranchReferenceCell::from_source_with_root(
             self.runtime_instance_id(),
             target_branch,
@@ -192,7 +191,6 @@ impl RelationalRuntime {
         let target_observation = target_cell.observation().clone();
         let fork_provenance = target_cell
             .fork_provenance()
-            .cloned()
             .expect("forked branch must retain exact source provenance");
         let target_truth_version = target_cell.truth_version();
         let shared_commit_id = match target_observation.target() {
@@ -202,12 +200,19 @@ impl RelationalRuntime {
         let source_head_version = if let Some(commit_id) = shared_commit_id {
             self.history.phase4_costs.catalog_lookups =
                 self.history.phase4_costs.catalog_lookups.saturating_add(1);
-            let artifact = self
+            let version_id = self
                 .history
                 .commit_catalog
                 .get(commit_id)
+                .map(|artifact| artifact.identity().version_id())
+                .or_else(|| {
+                    source_root
+                        .canonical_envelope()
+                        .filter(|envelope| envelope.commit.commit_id == commit_id)
+                        .map(|envelope| envelope.commit.version_id)
+                })
                 .ok_or(RelationalForkDenial::MissingArtifact)?;
-            Some(artifact.identity().version_id())
+            Some(version_id)
         } else {
             None
         };
@@ -297,6 +302,7 @@ struct ValidatedForkSource {
     descriptor: RelationalForkSourceDescriptor,
     source_observation: RelationalBranchReferenceObservation,
     source_truth_version: RelationalBranchVersion,
+    source_root: Arc<crate::branch::RelationalBranchRoot>,
 }
 
 struct PreparedForkTarget {

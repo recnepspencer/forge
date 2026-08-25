@@ -77,7 +77,7 @@ pub(crate) fn resolve_schema_continuity(
     let current_schema_basis = authority_input.target_schema_basis();
     let previous_head = {
         let history = runtime.history();
-        history.branch_head(branch_id).cloned()
+        history.branch_head(branch_id)
     };
     let Some(previous_head) = previous_head else {
         if let Some(proposed_transition) = options.proposed_schema_transition() {
@@ -98,7 +98,7 @@ pub(crate) fn resolve_schema_continuity(
     };
     let previous_envelope = {
         let history = runtime.history();
-        history.commit_envelope(previous_head.commit_id).cloned()
+        history.commit_envelope(previous_head.commit_id)
     };
     let Some(previous_envelope) = previous_envelope.as_ref() else {
         return Ok(SchemaContinuityPlan::current(&authority_input));

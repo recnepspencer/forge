@@ -42,7 +42,6 @@ fn history_visibility_and_bridge_read_the_observation_selected_root() {
         .history()
         .branch_head_for_observation(&observation)
         .unwrap()
-        .cloned()
         .expect("baseline has one canonical head");
 
     let batch = lower_phase5_production_delta(
@@ -62,7 +61,6 @@ fn history_visibility_and_bridge_read_the_observation_selected_root() {
         .history()
         .branch_head_for_observation(&current_basis.observation())
         .unwrap()
-        .cloned()
         .unwrap();
     assert_ne!(current_head.commit_id, original_head.commit_id);
     assert_eq!(
@@ -111,7 +109,6 @@ fn merge_history_resolves_from_two_exact_observations() {
         .history()
         .branch_head_for_observation(&main_observation)
         .unwrap()
-        .cloned()
         .unwrap();
 
     let storm = BranchId("storm".to_owned());
@@ -134,7 +131,6 @@ fn merge_history_resolves_from_two_exact_observations() {
         .history()
         .branch_head_for_observation(&storm_observation)
         .unwrap()
-        .cloned()
         .unwrap();
 
     let merge_basis = world

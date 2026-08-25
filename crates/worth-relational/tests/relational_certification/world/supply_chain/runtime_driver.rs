@@ -356,7 +356,6 @@ pub(crate) fn head_for_supply_chain_identity(
         .history()
         .branch_head_for_observation(&basis.observation())
         .expect("observation belongs to this runtime")
-        .cloned()
         .expect("observed Supply Chain branch has a canonical head")
 }
 

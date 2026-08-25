@@ -154,7 +154,11 @@ fn phase5_selected_publication_tuple_ignores_unrelated_population_reads_and_vali
             delta.candidate_preparations,
             delta.publication_attempts,
         ));
-        assert_eq!(publication.branch_cell_contacts(), 0);
+        assert_eq!(
+            publication.branch_cell_contacts(),
+            1,
+            "publication contacts only its selected branch reference cell"
+        );
         assert_eq!(publication.branch_population_scans(), 1);
         assert_eq!(
             publication.sharing_cost_delta().branch_population_scans,

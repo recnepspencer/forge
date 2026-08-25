@@ -138,7 +138,7 @@ fn source_observation_is_foreign_after_runtime_clone() {
         .runtime
         .observe_fork_source(&BranchId("main".to_owned()))
         .expect("installed main branch has an exact fork source");
-    let mut clone = world.runtime.fork();
+    let mut clone = world.runtime.fork().expect("settled runtime forks");
     let source_identity = world.runtime.main_branch_identity();
     let clone_identity = clone.main_branch_identity();
     assert_eq!(source_identity.branch_id(), clone_identity.branch_id());

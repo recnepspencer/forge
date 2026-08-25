@@ -81,6 +81,9 @@ pub enum RelationalDiagnosticValue {
     DurableSegmentId(DurableSegmentId),
     DerivedIndexId(DerivedIndexId),
     DerivedIndexGenerationId(DerivedIndexGenerationId),
+    // Retained as durable vocabulary for 9.16.1.1 lineage diagnostics.
+    // Current diagnostic publication does not mint this retired identifier.
+    CorrespondenceCandidateId(u64),
     PatchStreamPosition(PatchStreamPosition),
     ReplaySchemaVersion(ReplaySchemaVersion),
     SchemaId(SchemaId),

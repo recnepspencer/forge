@@ -11,21 +11,14 @@ impl<'runtime> HistoryAccess<'runtime> {
     pub fn branch_head_for_observation(
         &self,
         observation: &crate::mvcc::RelationalBranchObservation,
-    ) -> Result<Option<&'runtime RelationalCommitReceipt>, crate::branch::RelationalBranchBasisDenial>
-    {
+    ) -> Result<Option<RelationalCommitReceipt>, crate::branch::RelationalBranchBasisDenial> {
         if observation.identity().runtime_instance_id() != self.runtime.runtime_instance_id() {
             return Err(crate::branch::RelationalBranchBasisDenial::ForeignRuntime {
                 expected_runtime_instance_id: self.runtime.runtime_instance_id(),
                 actual_runtime_instance_id: observation.identity().runtime_instance_id(),
             });
         }
-        Ok(observation.commit_id().and_then(|commit_id| {
-            self.runtime
-                .history
-                .commit_catalog
-                .get(commit_id)
-                .map(|artifact| &artifact.envelope().commit)
-        }))
+        Ok(observation.commit_receipt().cloned())
     }
 
     /// Diagnostic immutable-identity lookup. This returns commit identity only
@@ -39,6 +32,18 @@ impl<'runtime> HistoryAccess<'runtime> {
             .commit_catalog
             .get(commit_id)
             .map(|artifact| artifact.identity().clone())
+            .or_else(|| {
+                self.runtime
+                    .history
+                    .canonical_envelope(commit_id)
+                    .map(|envelope| {
+                        crate::history::RelationalCommitIdentity::new(
+                            envelope.commit.commit_id,
+                            envelope.commit.version_id,
+                            envelope.branch_context.clone(),
+                        )
+                    })
+            })
     }
 
     /// Return the immutable catalog receipt, including ordered parentage, for
@@ -50,6 +55,12 @@ impl<'runtime> HistoryAccess<'runtime> {
             .commit_catalog
             .get(commit_id)
             .map(|artifact| artifact.envelope().commit.clone())
+            .or_else(|| {
+                self.runtime
+                    .history
+                    .canonical_envelope(commit_id)
+                    .map(|envelope| envelope.commit.clone())
+            })
     }
 
     pub fn latest_catalog_commit_identity(
@@ -63,18 +74,52 @@ impl<'runtime> HistoryAccess<'runtime> {
     }
 
     pub fn immutable_commit_count(&self) -> usize {
-        self.runtime.history.commit_catalog.len()
-    }
-
-    /// Transitional immutable-history read for existing Query consumers.
-    /// This returns catalog evidence only; it cannot select a branch cell or
-    /// mint currentness authority.
-    pub fn historical_latest_commit(&self) -> Option<&RelationalCommitReceipt> {
-        self.runtime
+        let mut commit_ids = self
+            .runtime
             .history
             .commit_catalog
-            .latest_artifact()
-            .map(|artifact| &artifact.envelope().commit)
+            .snapshot()
+            .into_iter()
+            .map(|artifact| artifact.commit_id())
+            .collect::<std::collections::BTreeSet<_>>();
+        commit_ids.extend(
+            self.runtime
+                .history
+                .performed_canonical_envelopes()
+                .into_iter()
+                .map(|envelope| envelope.commit.commit_id),
+        );
+        commit_ids.len()
+    }
+
+    /// Latest canonical commit in performed stream order. The returned value
+    /// is immutable evidence and cannot select a branch cell or mint
+    /// currentness authority.
+    pub fn historical_latest_commit(&self) -> Option<RelationalCommitReceipt> {
+        self.latest_patch_stream_position()
+            .and_then(|position| {
+                self.runtime
+                    .history
+                    .canonical_envelope_at_patch(position)
+                    .map(|envelope| envelope.commit.clone())
+                    .or_else(|| {
+                        self.runtime
+                            .history
+                            .patch_stream_index
+                            .get(&position)
+                            .and_then(|commit_id| {
+                                self.runtime.history.commit_catalog.get(*commit_id)
+                            })
+                            .map(|artifact| artifact.envelope().commit.clone())
+                    })
+            })
+            .or_else(|| {
+                self.runtime
+                    .history
+                    .commit_catalog
+                    .latest_artifact()
+                    .map(|artifact| artifact.envelope().commit.clone())
+            })
     }
 
     /// Transitional immutable version lookup for existing Query consumers.
@@ -83,6 +128,13 @@ impl<'runtime> HistoryAccess<'runtime> {
         version_id: crate::identity::data::VersionId,
     ) -> Option<CommittedVersionSummary> {
         self.commit_envelope_for_version(version_id)
+            .map(|envelope| envelope.clone())
+            .or_else(|| {
+                self.runtime
+                    .history
+                    .canonical_envelope_for_version(version_id)
+                    .map(|envelope| envelope.as_ref().clone())
+            })
             .map(|envelope| {
                 CommittedVersionSummary::new(
                     envelope.commit.clone(),
@@ -91,31 +143,50 @@ impl<'runtime> HistoryAccess<'runtime> {
             })
     }
 
-    pub(crate) fn commit_envelope(&self, commit_id: CommitId) -> Option<&CanonicalCommitEnvelope> {
+    pub(crate) fn commit_envelope(&self, commit_id: CommitId) -> Option<CanonicalCommitEnvelope> {
         self.runtime
             .history
-            .commit_catalog
-            .get(commit_id)
-            .map(|artifact| artifact.envelope().as_ref())
+            .canonical_envelope(commit_id)
+            .map(|envelope| envelope.as_ref().clone())
     }
 
     pub(crate) fn commit_envelope_for_version(
         &self,
         version_id: crate::identity::data::VersionId,
-    ) -> Option<&CanonicalCommitEnvelope> {
+    ) -> Option<CanonicalCommitEnvelope> {
         self.runtime
             .history
             .commit_catalog
             .find_by_version(version_id)
-            .map(|artifact| artifact.envelope().as_ref())
+            .map(|artifact| artifact.envelope().as_ref().clone())
+            .or_else(|| {
+                self.runtime
+                    .history
+                    .canonical_envelope_for_version(version_id)
+                    .map(|envelope| envelope.as_ref().clone())
+            })
     }
 
     pub(crate) fn latest_patch_stream_position(&self) -> Option<PatchStreamPosition> {
-        self.runtime
+        let projected = self
+            .runtime
             .history
             .patch_stream_index
             .last_key_value()
-            .map(|(position, _)| *position)
+            .map(|(position, _)| *position);
+        projected.max(
+            self.runtime
+                .history
+                .latest_canonical_patch_route()
+                .map(|(position, _)| position),
+        )
+    }
+
+    pub(crate) fn canonical_stream_position(
+        &self,
+        commit_id: CommitId,
+    ) -> Option<PatchStreamPosition> {
+        self.runtime.history.canonical_stream_position(commit_id)
     }
 
     pub(crate) fn contains_patch_stream_position(&self, position: PatchStreamPosition) -> bool {
@@ -123,15 +194,36 @@ impl<'runtime> HistoryAccess<'runtime> {
             .history
             .patch_stream_index
             .contains_key(&position)
+            || self
+                .runtime
+                .history
+                .canonical_envelope_at_patch(position)
+                .is_some()
     }
 
     pub(crate) fn commit_envelopes_snapshot(&self) -> Vec<CanonicalCommitEnvelope> {
-        self.runtime
+        let mut envelopes = self
+            .runtime
             .history
             .commit_catalog
             .snapshot()
             .into_iter()
-            .map(|artifact| artifact.envelope().as_ref().clone())
+            .map(|artifact| (artifact.commit_id(), artifact.envelope().as_ref().clone()))
+            .collect::<std::collections::BTreeMap<_, _>>();
+        for envelope in self.runtime.history.performed_canonical_envelopes() {
+            envelopes.insert(envelope.commit.commit_id, envelope.as_ref().clone());
+        }
+        envelopes.into_values().collect()
+    }
+
+    pub(crate) fn positioned_commits_snapshot(
+        &self,
+    ) -> Vec<crate::history::data::PositionedCanonicalCommit> {
+        self.runtime
+            .history
+            .positioned_canonical_commits_snapshot()
+            .into_iter()
+            .map(|commit| commit.as_ref().clone())
             .collect()
     }
 
@@ -145,6 +237,7 @@ impl<'runtime> HistoryAccess<'runtime> {
         self.runtime.history.preview_next_commit_id()
     }
 
+    #[cfg(test)]
     pub(crate) fn preview_next_version_id(&self) -> crate::identity::data::VersionId {
         self.runtime.history.preview_next_version_id()
     }
@@ -153,8 +246,15 @@ impl<'runtime> HistoryAccess<'runtime> {
         self.runtime.history.commit_catalog.len()
     }
 
-    pub(crate) fn branch_head(&self, branch_id: &BranchId) -> Option<&RelationalCommitReceipt> {
+    pub(crate) fn branch_head(&self, branch_id: &BranchId) -> Option<RelationalCommitReceipt> {
         let cell = self.runtime.history.branch_cell(branch_id)?;
+        if let Some(root) = cell.root() {
+            return root
+                .canonical_envelope()
+                .map(|envelope| envelope.commit.clone());
+        }
+        // Rootless cells exist only in legacy recovery fixtures. Operational
+        // cells always select their head through the immutable root above.
         let commit_id = match cell.observation().target() {
             worth_foundational::FoundationalBranchTarget::Empty => return None,
             worth_foundational::FoundationalBranchTarget::Basis(target) => {
@@ -165,11 +265,29 @@ impl<'runtime> HistoryAccess<'runtime> {
             .history
             .commit_catalog
             .get(commit_id)
-            .map(|artifact| &artifact.envelope().commit)
+            .map(|artifact| artifact.envelope().commit.clone())
     }
 
-    pub(crate) fn latest_commit(&self) -> Option<&RelationalCommitReceipt> {
+    pub(crate) fn latest_commit(&self) -> Option<RelationalCommitReceipt> {
         self.historical_latest_commit()
+    }
+
+    pub(crate) fn latest_canonical_commit_id(&self) -> Option<CommitId> {
+        self.latest_patch_stream_position()
+            .and_then(|position| {
+                self.runtime
+                    .history
+                    .canonical_envelope_at_patch(position)
+                    .map(|envelope| envelope.commit.commit_id)
+                    .or_else(|| {
+                        self.runtime
+                            .history
+                            .patch_stream_index
+                            .get(&position)
+                            .copied()
+                    })
+            })
+            .or_else(|| self.latest_commit().map(|commit| commit.commit_id))
     }
 
     pub(crate) fn committed_version(
@@ -186,10 +304,10 @@ impl<'runtime> HistoryAccess<'runtime> {
         RelationalBranchReferenceObservation,
         RelationalBranchVersion,
     )> {
-        self.runtime
-            .history
-            .branch_cell(branch_id)
-            .map(|cell| (cell.observation().clone(), cell.truth_version()))
+        self.runtime.history.branch_cell(branch_id).map(|cell| {
+            let state = cell.evidence_state();
+            (state.observation().clone(), state.truth_version())
+        })
     }
 
     pub(crate) fn recent_commit_ids(
@@ -206,13 +324,11 @@ impl<'runtime> HistoryAccess<'runtime> {
                 .map(|envelope| envelope.commit.commit_id)
                 .collect(),
             None => self
-                .runtime
-                .history
-                .commit_envelopes
-                .values()
+                .positioned_commits_snapshot()
+                .into_iter()
                 .rev()
                 .take(limit)
-                .map(|envelope| envelope.commit.commit_id)
+                .map(|positioned| positioned.envelope().commit.commit_id)
                 .collect(),
         }
     }
@@ -229,21 +345,18 @@ impl<'runtime> HistoryAccess<'runtime> {
     pub(super) fn branch_commit_envelopes(
         &self,
         branch_id: &BranchId,
-    ) -> Vec<&CanonicalCommitEnvelope> {
+    ) -> Vec<CanonicalCommitEnvelope> {
         let Some(head) = self.branch_head(branch_id) else {
             return Vec::new();
         };
         let branch_commits = self.ancestor_set(head.commit_id);
         let mut envelopes = self
-            .runtime
-            .history
-            .commit_envelopes
-            .values()
+            .commit_envelopes_snapshot()
+            .into_iter()
             .filter(|envelope| {
                 branch_commits.contains(&envelope.commit.commit_id)
                     && envelope.commit.branch_id == *branch_id
             })
-            .map(|envelope| envelope.as_ref())
             .collect::<Vec<_>>();
         envelopes
             .sort_by_key(|envelope| (envelope.commit.version_id.0, envelope.commit.commit_id.0));

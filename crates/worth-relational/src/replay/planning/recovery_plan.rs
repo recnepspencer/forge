@@ -67,7 +67,7 @@ fn replay_tail_log(
     source: &crate::runtime::RelationalRuntime,
     chain: &[CommitId],
     checkpoint: Option<&crate::durability::data::DurableCheckpoint>,
-) -> Vec<crate::history::data::CanonicalCommitEnvelope> {
+) -> Vec<crate::durability::migration::ReadmittedCanonicalCommit> {
     let tail_start = checkpoint
         .as_ref()
         .and_then(|checkpoint| checkpoint.coverage.up_to_commit.as_ref())
@@ -76,7 +76,16 @@ fn replay_tail_log(
         .iter()
         .copied()
         .filter(|commit_id| tail_start.is_none_or(|start| *commit_id > start))
-        .filter_map(|commit_id| source.commit_envelope(commit_id).cloned())
+        .filter_map(|commit_id| {
+            source
+                .history
+                .positioned_canonical_commit(commit_id)
+                .map(|commit| {
+                    crate::durability::migration::ReadmittedCanonicalCommit::exact(
+                        commit.as_ref().clone(),
+                    )
+                })
+        })
         .collect()
 }
 
@@ -93,7 +102,7 @@ fn authoritative_replay_envelopes(
             chain
                 .iter()
                 .copied()
-                .filter_map(|commit_id| source.commit_envelope(commit_id))
+                .filter_map(|commit_id| source.canonical_envelope_owned(commit_id))
                 .filter(|envelope| envelope.strategy_artifacts.is_some())
                 .map(|envelope| envelope.commit.commit_id),
         )
@@ -108,7 +117,7 @@ fn target_descriptor_semantics_version(
 ) -> DescriptorSemanticsVersion {
     chain
         .last()
-        .and_then(|commit_id| source.commit_envelope(*commit_id))
+        .and_then(|commit_id| source.canonical_envelope_owned(*commit_id))
         .map(|envelope| envelope.descriptor_semantics_version)
         .unwrap_or_default()
 }

@@ -86,6 +86,11 @@ pub enum DiagnosticCode {
     MergeExecutionPublished,
     MergeCommitPublished,
     CommitPublished,
+    // Retained as durable vocabulary for 9.16.1.1 lineage diagnostics. Current
+    // publication does not mint these retired diagnostic codes.
+    LineageCandidateRecorded,
+    LineagePromotionPublished,
+    LineagePromotionExecutionFailed,
     DurableAppendSucceeded,
     DurableAppendFailed,
     CheckpointCreated,

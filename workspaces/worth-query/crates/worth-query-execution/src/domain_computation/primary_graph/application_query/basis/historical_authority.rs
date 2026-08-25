@@ -44,7 +44,6 @@ impl WorthQueryApplicationHistoricalRead {
                 .history()
                 .branch_head_for_observation(&basis.observation())
                 .expect("test basis belongs to the application Relational owner")
-                .cloned()
                 .expect("historical test basis requires a committed primary head")
         });
         let retention = application.primary_provider.graph.with_runtime(|runtime| {

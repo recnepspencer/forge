@@ -14,8 +14,12 @@ use crate::history::RelationalCommitCatalog;
 use crate::identity::data::VersionId;
 use crate::publication::patch::data::PatchStreamPosition;
 
+#[path = "canonical_publication_routes.rs"]
+mod canonical_publication_routes;
 #[path = "history_branch_cells.rs"]
 mod history_branch_cells;
+#[path = "history_canonical_routes.rs"]
+mod history_canonical_routes;
 #[path = "history_catalog_recovery.rs"]
 mod history_catalog_recovery;
 #[path = "history_construction.rs"]
@@ -34,8 +38,16 @@ mod history_recovery_lineage;
 mod history_recovery_validation;
 #[path = "history_root_capture.rs"]
 mod history_root_capture;
+pub use canonical_publication_routes::RelationalPatchPositionReservationCounters;
+pub(crate) use canonical_publication_routes::{
+    readmit_positioned_canonical_commit, CanonicalCheckpointAdmissionError,
+    CanonicalPositionAdmission, CanonicalPublicationRecordError, PerformedCheckpointSelection,
+    PreparedCanonicalPublicationRoute, RelationalCanonicalPublicationRoutes,
+};
 pub use history_costs::RelationalBranchSharingCostCounters;
 pub(crate) use history_costs::RelationalForkMaterializationCost;
+pub(crate) use history_publication::PreparedRecoveredVersionedArtifactPublication;
+pub(crate) use history_publication::PreparedVersionedArtifactAccelerators;
 pub(crate) use history_publication::PreparedVersionedArtifactPublication;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -83,6 +95,9 @@ pub(crate) struct HistorySubsystem {
     pub(crate) patch_stream_index: BTreeMap<PatchStreamPosition, crate::history::data::CommitId>,
     pub(crate) next_commit_id: u64,
     pub(crate) next_version_id: u64,
+    commit_identity_allocator: Arc<AtomicU64>,
+    version_identity_allocator: Arc<AtomicU64>,
+    canonical_publication_routes: Arc<RelationalCanonicalPublicationRoutes>,
 }
 
 impl HistorySubsystem {
@@ -109,6 +124,9 @@ impl HistorySubsystem {
             patch_stream_index: BTreeMap::new(),
             next_commit_id: 1,
             next_version_id: 1,
+            commit_identity_allocator: Arc::new(AtomicU64::new(1)),
+            version_identity_allocator: Arc::new(AtomicU64::new(1)),
+            canonical_publication_routes: Arc::new(RelationalCanonicalPublicationRoutes::default()),
         }
     }
 
@@ -116,8 +134,17 @@ impl HistorySubsystem {
         CommitId(self.next_commit_id)
     }
 
+    #[cfg(test)]
     pub(crate) fn preview_next_version_id(&self) -> VersionId {
         VersionId(self.next_version_id)
+    }
+
+    pub(crate) fn reserve_commit_id(&self) -> Option<CommitId> {
+        reserve_identity(&self.commit_identity_allocator, self.next_commit_id).map(CommitId)
+    }
+
+    pub(crate) fn reserve_version_id(&self) -> Option<VersionId> {
+        reserve_identity(&self.version_identity_allocator, self.next_version_id).map(VersionId)
     }
 
     pub(crate) fn current_version_id(&self) -> VersionId {
@@ -125,8 +152,21 @@ impl HistorySubsystem {
     }
 
     pub(crate) fn prepare_recovery_sequence(&mut self, commit_id: CommitId, version_id: VersionId) {
-        self.next_commit_id = self.next_commit_id.max(commit_id.0);
-        self.next_version_id = self.next_version_id.max(version_id.0);
+        self.next_commit_id = commit_id.0;
+        self.next_version_id = version_id.0;
+        self.commit_identity_allocator = Arc::new(AtomicU64::new(commit_id.0));
+        self.version_identity_allocator = Arc::new(AtomicU64::new(version_id.0));
+    }
+
+    pub(crate) fn install_recovered_sequence_floor(
+        &mut self,
+        next_commit_id: u64,
+        next_version_id: u64,
+    ) {
+        self.next_commit_id = next_commit_id;
+        self.next_version_id = next_version_id;
+        self.commit_identity_allocator = Arc::new(AtomicU64::new(next_commit_id));
+        self.version_identity_allocator = Arc::new(AtomicU64::new(next_version_id));
     }
 
     pub(crate) fn prepare_replay_target_sequence(
@@ -139,6 +179,8 @@ impl HistorySubsystem {
         }
         self.next_commit_id = commit_id.0;
         self.next_version_id = version_id.0;
+        self.commit_identity_allocator = Arc::new(AtomicU64::new(commit_id.0));
+        self.version_identity_allocator = Arc::new(AtomicU64::new(version_id.0));
         Ok(())
     }
 
@@ -161,14 +203,60 @@ impl HistorySubsystem {
         );
     }
 
-    pub(crate) fn fork_for_runtime(&self, runtime_instance_id: u64) -> Self {
+    pub(crate) fn fork_snapshot(
+        &self,
+    ) -> Result<Self, crate::runtime::RelationalRuntimeForkDenial> {
+        let _fork_guard = self.canonical_publication_routes.enter_fork()?;
+        if let Some(commit_id) = self
+            .canonical_publication_routes
+            .has_unsettled_performed_publication()
+        {
+            return Err(
+                crate::runtime::RelationalRuntimeForkDenial::PerformedPublicationRequiresSettlement {
+                    commit_id,
+                },
+            );
+        }
+        let positioned = self.canonical_publication_routes.performed_snapshot();
         let mut fork = self.clone();
-        fork.set_runtime_instance_id(runtime_instance_id);
-        fork.phase4_costs = RelationalPhase4ReferenceCostCounters::default();
-        fork.sharing_costs = RelationalBranchSharingCostCounters::default();
-        fork.branch_sharing_costs.clear();
-        fork.branch_population_scans = Arc::new(AtomicU64::new(0));
-        fork
+        if let Some(maximum) = positioned
+            .iter()
+            .map(|commit| commit.envelope().commit.commit_id.0)
+            .max()
+        {
+            fork.next_commit_id =
+                fork.next_commit_id.max(maximum.checked_add(1).ok_or(
+                    crate::runtime::RelationalRuntimeForkDenial::IdentityCapacityExhausted,
+                )?);
+        }
+        if let Some(maximum) = positioned
+            .iter()
+            .map(|commit| commit.envelope().commit.version_id.0)
+            .max()
+        {
+            fork.next_version_id =
+                fork.next_version_id.max(maximum.checked_add(1).ok_or(
+                    crate::runtime::RelationalRuntimeForkDenial::IdentityCapacityExhausted,
+                )?);
+        }
+        fork.commit_identity_allocator = Arc::new(AtomicU64::new(fork.next_commit_id));
+        fork.version_identity_allocator = Arc::new(AtomicU64::new(fork.next_version_id));
+        let routes = Arc::new(RelationalCanonicalPublicationRoutes::default());
+        for commit in positioned {
+            routes.install_recovered(commit).map_err(|_| {
+                crate::runtime::RelationalRuntimeForkDenial::CanonicalInventoryInvalid
+            })?;
+        }
+        fork.canonical_publication_routes = routes;
+        Ok(fork)
+    }
+
+    pub(crate) fn bind_fork_runtime(&mut self, runtime_instance_id: u64) {
+        self.set_runtime_instance_id(runtime_instance_id);
+        self.phase4_costs = RelationalPhase4ReferenceCostCounters::default();
+        self.sharing_costs = RelationalBranchSharingCostCounters::default();
+        self.branch_sharing_costs.clear();
+        self.branch_population_scans = Arc::new(AtomicU64::new(0));
     }
 
     pub(crate) fn branch_cell(
@@ -224,4 +312,13 @@ impl HistorySubsystem {
             .then_some(())
             .ok_or_else(|| format!("recovery checkpoint omitted branch cell `{}`", branch_id.0))
     }
+}
+
+fn reserve_identity(allocator: &AtomicU64, legacy_floor: u64) -> Option<u64> {
+    allocator.fetch_max(legacy_floor, Ordering::Relaxed);
+    allocator
+        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |next| {
+            next.checked_add(1)
+        })
+        .ok()
 }

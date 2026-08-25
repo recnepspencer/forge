@@ -53,7 +53,7 @@ fn validate_lowered_plan_preserves_strategy_provenance_and_commit_boundary_summa
 }
 
 #[test]
-fn validated_strategy_proposal_survives_unrelated_sibling_advance() {
+fn validated_strategy_proposal_keeps_its_unique_version_across_unrelated_sibling_advance() {
     let mut runtime = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_schema_registry())
         .commit_strategy(strategy_registration())
@@ -114,7 +114,7 @@ fn validated_strategy_proposal_survives_unrelated_sibling_advance() {
     assert_ne!(
         validated_version,
         runtime.history().preview_next_version_id(),
-        "the sibling commit must force canonical proposal revalidation"
+        "the sibling commit advances the allocator beyond the reserved proposal version"
     );
 
     let commit = {
@@ -123,8 +123,7 @@ fn validated_strategy_proposal_survives_unrelated_sibling_advance() {
             .execute_validated_commit(&mut runtime, validated)
             .expect("unrelated sibling progress remains admissible")
     };
-    assert_eq!(commit.version_id, runtime.current_version_id());
-    assert_ne!(commit.version_id, validated_version);
+    assert_eq!(commit.version_id, validated_version);
 }
 
 #[test]

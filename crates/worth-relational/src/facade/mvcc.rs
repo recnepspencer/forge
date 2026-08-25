@@ -2,15 +2,19 @@
 
 pub use crate::mvcc::{
     BranchBoundRelationalTransaction, DiscardedRelationalCommitCandidate,
-    PreparedRelationalCommitCandidate, RelationalBranchObservation,
-    RelationalBranchTransactionAdmissionDenial, RelationalMutationInvariantEvidence,
+    PerformedRelationalCommit, PreparedRelationalCommitCandidate, PublishRelationalCommit,
+    RelationalBranchObservation, RelationalBranchTransactionAdmissionDenial,
+    RelationalMutationInvariantEvidence, RelationalPublicationDeferred,
+    RelationalPublicationDenial, RelationalPublicationDurabilityPosture,
+    RelationalPublicationFailure, RelationalPublicationFailureKind, RelationalPublicationOutcome,
+    RelationalPublicationPort, RelationalPublicationProjectionPosture,
     RelationalTransactionEntityRead, RelationalTransactionFootprint, RelationalTransactionIntent,
     RelationalTransactionReadLocus, RelationalTransactionRelationRead,
     RelationalTransactionRelationValue, RelationalTransactionWriteLocus,
-    ValidatedMutationFootprint, ValidatedMutationFootprintNotRequested,
-    ValidatedMutationFootprintProjection, ValidatedMutationFootprintWork, ValidatedMutationTouch,
-    ValidatedMutationTouchProjectionError, ValidatedMutationTouchProjectionWork,
-    ValidatedMutationTouches, ValidatedRelationalProposal,
+    StaleRelationalBranchObservation, ValidatedMutationFootprint,
+    ValidatedMutationFootprintNotRequested, ValidatedMutationFootprintProjection,
+    ValidatedMutationFootprintWork, ValidatedMutationTouch, ValidatedMutationTouchProjectionError,
+    ValidatedMutationTouchProjectionWork, ValidatedMutationTouches, ValidatedRelationalProposal,
 };
 pub use crate::transactions::data::{
     CommitConflict, CommitResult, ConflictClass, TransactionCommitError, WorkerIntentBatch,

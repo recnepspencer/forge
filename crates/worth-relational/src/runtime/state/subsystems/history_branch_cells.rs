@@ -162,7 +162,7 @@ impl HistorySubsystem {
                 )
             })?;
             if let Some(existing) = roots.get(&commit_id) {
-                if !Arc::ptr_eq(existing, root) {
+                if !Arc::ptr_eq(existing, &root) {
                     return Err(format!(
                         "commit {} is represented by competing immutable roots",
                         commit_id.0
@@ -170,7 +170,7 @@ impl HistorySubsystem {
                 }
                 continue;
             }
-            roots.insert(commit_id, Arc::clone(root));
+            roots.insert(commit_id, Arc::clone(&root));
         }
         Ok(roots
             .into_iter()

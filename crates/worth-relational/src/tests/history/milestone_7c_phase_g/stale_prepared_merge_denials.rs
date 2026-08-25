@@ -91,7 +91,6 @@ fn authoritative_merge_execution_certification_rejects_metadata_reference_moveme
     let target_head = runtime
         .history()
         .branch_head(&target_branch)
-        .cloned()
         .expect("main has a committed head");
     let target_generation = runtime
         .history

@@ -5,7 +5,10 @@ use crate::workflow::{
 use crate::{WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag};
 
 use super::batch_admission::AdmittedEffectBatch;
-use super::batch_execution::{EffectBatchExecutionDenial, ExecutedEffectBatchPlan};
+use super::batch_execution::{
+    EffectBatchExecutionDeferred, EffectBatchExecutionDenial, EffectBatchExecutionStop,
+    EffectBatchSettlementDeferred, ExecutedEffectBatchPlan,
+};
 use super::counters::EffectLifecycleCounters;
 use super::eligibility::AdmittedEffectIntent;
 use super::execution::{
@@ -237,7 +240,7 @@ impl LoweredEffectBatchExecutionPlan {
     pub fn execute_with(
         self,
         mut authority: EffectExecutionAuthority<'_>,
-    ) -> Result<ExecutedEffectBatchPlan, EffectBatchExecutionDenial> {
+    ) -> Result<ExecutedEffectBatchPlan, EffectBatchExecutionStop> {
         let lowered = self.clone();
         let Self {
             authority_lane,
@@ -250,21 +253,41 @@ impl LoweredEffectBatchExecutionPlan {
         match artifact {
             LoweredEffectBatchExecutionArtifact::RelationalMutation(batch) => {
                 if !authority.has_relational_authority() && authority.has_bridge_authority() {
-                    return Err(EffectBatchExecutionDenial::aggregate(
+                    return Err(EffectBatchExecutionStop::Denied(
+                        EffectBatchExecutionDenial::aggregate(
                         EffectExecutionDenialKind::AuthorityOverrideRejected,
                         "lowered relational mutation batch execution rejected bridge host override; the admitted lowered batch requires relational authority",
+                        ),
                     ));
                 }
                 let runtime = authority.relational_runtime().ok_or_else(|| {
-                    EffectBatchExecutionDenial::aggregate(
+                    EffectBatchExecutionStop::Denied(EffectBatchExecutionDenial::aggregate(
                         EffectExecutionDenialKind::MissingRelationalAuthority,
                         "lowered relational mutation batch execution requires a relational runtime authority",
-                    )
+                    ))
                 })?;
                 let aggregate_commit =
-                    execute_lowered_mutation_batch(runtime, batch.declarations()).map_err(
-                        |(kind, message)| EffectBatchExecutionDenial::aggregate(kind, message),
-                    )?;
+                    match execute_lowered_mutation_batch(runtime, batch.declarations()) {
+                        Ok(commit) => commit,
+                        Err(super::RelationalEffectExecutionFailure::Deferred { message }) => {
+                            return Err(EffectBatchExecutionStop::Deferred(
+                                EffectBatchExecutionDeferred::new(&lowered, message),
+                            ));
+                        }
+                        Err(super::RelationalEffectExecutionFailure::Denied { kind, message }) => {
+                            return Err(EffectBatchExecutionStop::Denied(
+                                EffectBatchExecutionDenial::aggregate(kind, message),
+                            ));
+                        }
+                        Err(super::RelationalEffectExecutionFailure::SettlementDeferred(
+                            deferred,
+                        )) => {
+                            let (message, settlement) = deferred.into_parts();
+                            return Err(EffectBatchExecutionStop::SettlementDeferred(
+                                EffectBatchSettlementDeferred::new(&lowered, message, settlement),
+                            ));
+                        }
+                    };
                 let components = batch
                     .declarations
                     .into_iter()
@@ -292,7 +315,7 @@ impl LoweredEffectBatchExecutionPlan {
     pub fn execute_receipt_with(
         self,
         authority: EffectExecutionAuthority<'_>,
-    ) -> Result<EffectExecutionReceipt, EffectBatchExecutionDenial> {
+    ) -> Result<EffectExecutionReceipt, EffectBatchExecutionStop> {
         self.execute_with(authority)
             .map(|executed| executed.receipt())
     }

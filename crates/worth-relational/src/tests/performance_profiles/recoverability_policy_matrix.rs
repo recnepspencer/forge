@@ -60,7 +60,6 @@ fn perf_recoverability_policy_matrix() {
             let recovered_envelope = recovered
                 .replay()
                 .canonical_commit_envelope(hot_commit.commit.commit_id)
-                .cloned()
                 .expect("policy recovered geometry envelope");
 
             PerfMeasurement {

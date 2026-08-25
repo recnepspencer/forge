@@ -40,7 +40,7 @@ pub(crate) fn resolve_commit_history(
     options: &RelationalTransactionValidationInput,
     version_id: VersionId,
 ) -> Result<ResolvedCommitHistory, TransactionCommitError> {
-    let commit_id = runtime.history().next_commit_id();
+    let commit_id = reserve_commit_id(runtime)?;
     let branch_basis = options.basis().clone();
     let branch_id = branch_basis.identity().branch_id().clone();
     if !runtime.admitted_branch_basis_is_current(&branch_basis) {
@@ -195,7 +195,7 @@ where
     )
         -> Result<(Vec<CommitId>, Vec<CommitId>), crate::transactions::data::CommitConflict>,
 {
-    let commit_id = runtime.history().next_commit_id();
+    let commit_id = reserve_commit_id(runtime)?;
     let branch_id = merge_plan
         .map(|plan| plan.target_branch.clone())
         .unwrap_or_else(|| options.target_branch().clone());
@@ -283,4 +283,15 @@ fn merge_parent_resolution_failure_fields(
         ),
     ])
     .into()
+}
+
+fn reserve_commit_id(
+    runtime: &crate::runtime::RelationalRuntime,
+) -> Result<CommitId, TransactionCommitError> {
+    runtime.history.reserve_commit_id().ok_or_else(|| {
+        TransactionCommitError::publication(crate::publication::data::PublicationError::new(
+            crate::publication::bundle::PublicationStage::BundleAssembly,
+            "canonical commit identity capacity exhausted",
+        ))
+    })
 }

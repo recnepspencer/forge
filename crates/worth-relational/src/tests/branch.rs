@@ -24,7 +24,7 @@ fn missing_source_denial_leaves_registry_and_catalog_unchanged() {
 }
 
 #[test]
-fn missing_artifact_denial_leaves_source_and_registry_unchanged() {
+fn root_owned_artifact_keeps_fork_available_when_catalog_accelerator_is_missing() {
     let mut runtime = runtime_with_test_schema();
     let commit = create_entity_outcome(&mut runtime, "fork-source");
     let source = BranchId("main".to_owned());
@@ -36,7 +36,6 @@ fn missing_artifact_denial_leaves_source_and_registry_unchanged() {
     assert!(runtime
         .history_authority()
         .remove_commit_envelope_for_test(commit.commit.commit_id));
-    let before_cells = runtime.history.branch_cells_snapshot();
     let before_source = runtime
         .history
         .branch_cell(&source)
@@ -44,23 +43,20 @@ fn missing_artifact_denial_leaves_source_and_registry_unchanged() {
         .checkpoint();
     let before_catalog_count = runtime.history.commit_catalog.len();
 
-    assert_eq!(
-        runtime.fork_branch(target.clone(), basis),
-        Err(RelationalForkDenial::MissingArtifact)
-    );
+    let forked = runtime
+        .fork_branch(target.clone(), basis)
+        .expect("the exact source root, not the catalog accelerator, authorizes the fork");
 
-    assert_eq!(runtime.history.branch_cells_snapshot(), before_cells);
-    assert_eq!(runtime.history.branch_count(), 1);
-    assert_eq!(
-        runtime
-            .history
-            .branch_cell(&source)
-            .expect("source remains registered")
-            .checkpoint(),
-        before_source,
-        "missing artifact denial must not retain or advance the source"
-    );
-    assert!(runtime.history.branch_cell(&target).is_none());
+    assert_eq!(forked.shared_commit_id(), Some(commit.commit.commit_id));
+    assert_eq!(runtime.history.branch_count(), 2);
+    let after_source = runtime
+        .history
+        .branch_cell(&source)
+        .expect("source remains registered")
+        .checkpoint();
+    assert_eq!(after_source.observation, before_source.observation);
+    assert_eq!(after_source.truth_version, before_source.truth_version);
+    assert!(runtime.history.branch_cell(&target).is_some());
     assert_eq!(runtime.history.commit_catalog.len(), before_catalog_count);
 }
 

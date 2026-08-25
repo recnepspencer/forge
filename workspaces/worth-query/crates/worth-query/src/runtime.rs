@@ -78,6 +78,7 @@ mod installed_live_routing;
 mod live_subscription_target_index;
 mod primary_graph_source;
 mod runtime_root_state;
+mod settlement_repair;
 mod shared_projection_owners;
 pub(crate) use conditional_owner_delivery_admission::{
     WorthQueryStagedOwnerDeliveryAdmission, WorthQueryStagedOwnerDeliveryAdmissionError,

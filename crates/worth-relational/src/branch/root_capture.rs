@@ -11,7 +11,7 @@ use super::{
 };
 
 pub(super) fn build_initial_regions(
-    issuer: &mut RelationalBranchRootIdentityIssuer,
+    issuer: &RelationalBranchRootIdentityIssuer,
     root_id: u64,
     partitions: &BTreeMap<PartitionId, PartitionState>,
     symbols: &crate::symbols::data::StringInterner,
@@ -58,7 +58,7 @@ pub(super) fn build_initial_regions(
 }
 
 pub(super) fn build_incremental_regions(
-    issuer: &mut RelationalBranchRootIdentityIssuer,
+    issuer: &RelationalBranchRootIdentityIssuer,
     root_id: u64,
     published_delta: &RelationalPublishedPartitionDelta,
     previous: &RelationalBranchRoot,

@@ -45,7 +45,7 @@ impl RelationalPersistentRegionSet {
     pub(crate) fn initial(
         set_id: u64,
         regions: BTreeMap<PartitionId, Arc<RelationalRootRegion>>,
-        issuer: &mut RelationalBranchRootIdentityIssuer,
+        issuer: &RelationalBranchRootIdentityIssuer,
     ) -> Result<Arc<Self>, RelationalBranchRootCaptureDenial> {
         let count = regions.len();
         let mut index_root = None;
@@ -72,7 +72,7 @@ impl RelationalPersistentRegionSet {
         parent: &Arc<Self>,
         replacements: BTreeMap<PartitionId, Arc<RelationalRootRegion>>,
         removed: BTreeSet<PartitionId>,
-        issuer: &mut RelationalBranchRootIdentityIssuer,
+        issuer: &RelationalBranchRootIdentityIssuer,
     ) -> Result<Arc<Self>, RelationalBranchRootCaptureDenial> {
         let mut index_root = parent.index_root.clone();
         let mut count = parent.count;
@@ -200,7 +200,7 @@ fn insert_leaf(
     partition_id: PartitionId,
     leaf: RelationalPersistentRegionLeaf,
     depth: u32,
-    issuer: &mut RelationalBranchRootIdentityIssuer,
+    issuer: &RelationalBranchRootIdentityIssuer,
 ) -> Result<Arc<RelationalPersistentRegionNode>, RelationalBranchRootCaptureDenial> {
     let (mut zero, mut one, mut current_leaf) = current.map_or((None, None, None), |node| {
         (node.zero.clone(), node.one.clone(), clone_leaf(&node.leaf))

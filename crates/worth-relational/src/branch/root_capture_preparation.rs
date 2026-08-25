@@ -39,17 +39,16 @@ pub(super) fn prepare(
     registry: &crate::schema::data::RelationalSchemaRegistry,
     symbols: &crate::symbols::data::StringInterner,
 ) -> Result<PreparedRelationalBranchRootCapture, RelationalBranchRootCaptureDenial> {
-    let mut next_issuer = issuer.clone();
-    let root_id = next_issuer.issue_root_id()?;
+    let root_id = issuer.issue_root_id()?;
     let prepared_regions = prepare_regions(
-        &mut next_issuer,
+        issuer,
         root_id,
         partitions,
         published_delta,
         previous,
         symbols,
     )?;
-    let prepared_schema = prepare_schema(&mut next_issuer, previous, &envelope, registry)?;
+    let prepared_schema = prepare_schema(issuer, previous, &envelope, registry)?;
     let publication_cost = prepared_schema.apply_cost(prepared_regions.publication_cost);
     let correctness_index = RelationalRootCorrectnessIndex::AuthoritativeFallback;
     let axes = RelationalBranchRootAxes {
@@ -79,11 +78,11 @@ pub(super) fn prepare(
             publication_cost,
         }),
     });
-    Ok(PreparedRelationalBranchRootCapture { root, next_issuer })
+    Ok(PreparedRelationalBranchRootCapture { root })
 }
 
 fn prepare_regions(
-    issuer: &mut RelationalBranchRootIdentityIssuer,
+    issuer: &RelationalBranchRootIdentityIssuer,
     root_id: u64,
     partitions: &impl PartitionAccess,
     published_delta: &RelationalPublishedPartitionDelta,
@@ -109,7 +108,7 @@ fn prepare_regions(
 }
 
 fn prepare_schema(
-    issuer: &mut RelationalBranchRootIdentityIssuer,
+    issuer: &RelationalBranchRootIdentityIssuer,
     previous: Option<&Arc<RelationalBranchRoot>>,
     envelope: &CanonicalCommitEnvelope,
     registry: &crate::schema::data::RelationalSchemaRegistry,

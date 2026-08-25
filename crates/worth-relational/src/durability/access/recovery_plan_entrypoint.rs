@@ -24,7 +24,12 @@ impl<'runtime> DurabilityAccess<'runtime> {
         }
     }
 
-    pub fn durable_log(&self) -> &[crate::history::data::CanonicalCommitEnvelope] {
+    pub fn durable_commit_count(&self) -> usize {
+        DurabilityRead::durable_log(self.runtime).len()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn durable_log(&self) -> &[crate::history::data::PositionedCanonicalCommit] {
         DurabilityRead::durable_log(self.runtime)
     }
 }

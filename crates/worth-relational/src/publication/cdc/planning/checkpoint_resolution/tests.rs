@@ -15,7 +15,9 @@ fn subscriber_stream_recovers_from_durable_canonical_envelopes_when_patch_stream
 
     assert!(runtime
         .history_authority()
-        .remove_commit_envelope_preserving_patch_stream_position_for_test(first.commit.commit_id,));
+        .evict_commit_envelope_preserving_patch_position_for_durable_recovery_test(
+            first.commit.commit_id,
+        ));
 
     let checkpoint = checkpoint_for_schema_version(PatchStreamPosition(1), SchemaVersionId(1));
     let resumed = runtime

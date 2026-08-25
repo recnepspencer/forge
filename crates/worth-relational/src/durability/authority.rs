@@ -1,5 +1,6 @@
 mod append_authority;
 mod authority_continuity;
+mod checkpoint_capture;
 mod checkpoint_image;
 mod checkpointing;
 mod diagnostics;

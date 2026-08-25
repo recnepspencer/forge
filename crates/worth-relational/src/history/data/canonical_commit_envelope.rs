@@ -9,7 +9,7 @@ use crate::lineage::data::{
     LineageDigestBasis, LineageEventBatchDigestBasis, LineageEventRecord, PublishedLineageArtifact,
 };
 use crate::publication::patch::data::{
-    PublishedAuthoritativePatchEnvelope, PublishedAuthoritativeRecordPatch,
+    CanonicalAuthoritativePatch, PublishedAuthoritativeRecordPatch,
 };
 use crate::schema::data::{
     DescriptorSemanticsVersion, SchemaAuthoritySnapshot, SchemaContinuationDescriptor,
@@ -39,7 +39,7 @@ pub struct CanonicalCommitEnvelope {
     pub merged_plan: MergedCommitPlan,
     #[serde(default)]
     pub(crate) record_allocations: Vec<crate::history::data::CanonicalRecordAllocation>,
-    pub patch: PublishedAuthoritativePatchEnvelope,
+    pub patch: CanonicalAuthoritativePatch,
     pub diagnostics_summary: RelationalDiagnosticArtifact,
     lineage: PublishedLineageArtifact,
     pub derived_index_artifacts: DerivedIndexArtifacts,
@@ -52,6 +52,10 @@ pub struct CanonicalCommitEnvelope {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CanonicalCommitAuthorityKind {
     VersionedTransaction,
+    /// A canonical branch-reference movement that carries no new relational
+    /// version. Recovery may readmit legacy metadata publications here after
+    /// translating their obsolete lineage vocabulary.
+    BranchReferenceMovement,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -73,7 +77,7 @@ impl CanonicalCommitEnvelope {
         schema_version: SchemaVersionId,
         schema_authority: SchemaAuthoritySnapshot,
         merged_plan: MergedCommitPlan,
-        patch: PublishedAuthoritativePatchEnvelope,
+        patch: CanonicalAuthoritativePatch,
         diagnostics_summary: RelationalDiagnosticArtifact,
         lineage: PublishedLineageArtifact,
         derived_index_artifacts: DerivedIndexArtifacts,
@@ -279,9 +283,8 @@ mod tests {
         FinalizedLineageEventBatch, LineageDecisionLog, LineageFinalizationArtifact,
     };
     use crate::publication::patch::data::{
-        PatchDetail, PatchOrdering, PatchPublicationMode, PatchStreamPosition,
-        PublishedAuthoritativePatchEnvelope, PublishedAuthoritativeRecordPatch,
-        RecordStructuralChange,
+        CanonicalAuthoritativePatch, PatchDetail, PatchOrdering, PatchPublicationMode,
+        PublishedAuthoritativeRecordPatch, RecordStructuralChange,
     };
     use crate::schema::data::{
         DescriptorSemanticsVersion, RelationalSchemaRegistry, SchemaVersionId,
@@ -320,10 +323,9 @@ mod tests {
                 ))]
                 .into(),
             },
-            PublishedAuthoritativePatchEnvelope {
+            CanonicalAuthoritativePatch {
                 ordering: PatchOrdering::CanonicalCommitOrder,
                 publication_mode: PatchPublicationMode::CommitNative,
-                position: PatchStreamPosition(1),
                 authoritative_record_patches: vec![PublishedAuthoritativeRecordPatch {
                     target: patch_target,
                     structural_change: RecordStructuralChange::Updated,

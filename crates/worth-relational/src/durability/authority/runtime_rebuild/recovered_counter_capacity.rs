@@ -1,13 +1,34 @@
 use crate::durability::data::{DurabilityError, RecoveryFailureClass};
-use crate::history::data::CanonicalCommitEnvelope;
 use crate::runtime::RelationalRuntime;
 
-pub(super) fn validate_tail_lineage_allocator_capacity(
-    tail_log: &[CanonicalCommitEnvelope],
-) -> Result<(), DurabilityError> {
-    if tail_log
+pub(super) fn prepare_recovery_lineage_sequence(
+    restored: &mut RelationalRuntime,
+    envelope: &crate::history::data::CanonicalCommitEnvelope,
+) {
+    if let Some(first_event_id) = envelope
+        .lineage_events()
+        .first()
+        .map(|event| event.event_id())
+    {
+        restored.lineage.next_event_id = first_event_id;
+    }
+    if let Some(first_created_lineage_id) = envelope
+        .lineage_events()
         .iter()
-        .flat_map(CanonicalCommitEnvelope::lineage_events)
+        .find(|event| event.kind() == crate::lineage::data::LineageEventKind::Create)
+        .and_then(|event| event.targets().first())
+    {
+        restored.lineage.next_lineage_id = first_created_lineage_id.0;
+    }
+}
+
+pub(super) fn validate_tail_lineage_allocator_capacity<'a>(
+    tail_log: impl IntoIterator<Item = &'a crate::history::data::CanonicalCommitEnvelope>,
+) -> Result<(), DurabilityError> {
+    let envelopes = tail_log.into_iter().collect::<Vec<_>>();
+    if envelopes
+        .iter()
+        .flat_map(|commit| commit.lineage_events())
         .any(|event| event.event_id() >= u64::MAX - 1)
     {
         return Err(DurabilityError::new(
@@ -15,9 +36,9 @@ pub(super) fn validate_tail_lineage_allocator_capacity(
             "recovery tail lineage event id exhausted the allocator",
         ));
     }
-    if tail_log
+    if envelopes
         .iter()
-        .flat_map(CanonicalCommitEnvelope::lineage_events)
+        .flat_map(|commit| commit.lineage_events())
         .filter(|event| event.kind() == crate::lineage::data::LineageEventKind::Create)
         .flat_map(|event| event.targets())
         .any(|lineage_id| lineage_id.0 >= u64::MAX - 1)
@@ -68,8 +89,9 @@ pub(super) fn refresh_checkpoint_counters(
             .max(),
         "lineage event id",
     )?;
-    restored.history.next_commit_id = next_commit_id;
-    restored.history.next_version_id = next_version_id;
+    restored
+        .history
+        .install_recovered_sequence_floor(next_commit_id, next_version_id);
     restored.lineage.next_lineage_id = next_lineage_id;
     restored.lineage.next_event_id = next_event_id;
     Ok(())

@@ -15,7 +15,8 @@ pub use checkpoint_images::{
     VersionedRelationMetadataImage,
 };
 pub(crate) use checkpoint_images::{
-    DurableRecordGenerationClass, DurableRecordGenerationHighWater, DurableRecordIdentityState,
+    DurablePendingRecordReservation, DurableRecordGenerationClass,
+    DurableRecordGenerationHighWater, DurableRecordIdentityState, DurableRecordReservationOrigin,
     DurableRecordSlotFrontier, DurableReusableRecordSlot,
 };
 pub use recovery_errors::{

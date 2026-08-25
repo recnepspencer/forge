@@ -5,7 +5,8 @@ mod preparation;
 
 use phase::finalize_publication_phase;
 use preparation::{
-    prepare_publication_phase, PreparePublicationPhaseInput, PreparedPublicationPhase,
+    prepare_publication_phase, PreparePublicationPhaseInput, PreparedPublicationCompletion,
+    PreparedPublicationPhase,
 };
 
 pub(crate) struct CommitDurableAppendAdmission {
@@ -38,7 +39,7 @@ impl CommitDurableAppendAdmission {
     }
 }
 
-pub(super) struct PublishedCommitExecution {
+pub(crate) struct PublishedCommitExecution {
     admitted: super::execution_admission::AdmittedCommitExecution,
     public_structural_summary: crate::transactions::data::CommitStructuralSummary,
     invariant_executions: Vec<crate::validation::engine::InvariantExecutionResult>,
@@ -47,6 +48,7 @@ pub(super) struct PublishedCommitExecution {
     created_relations: crate::transactions::data::CommitCreatedRelationBindings,
     history: crate::authority::commit::phases::history::ResolvedCommitHistory,
     canonical_commit_envelope: std::sync::Arc<crate::history::data::CanonicalCommitEnvelope>,
+    patch_position: crate::publication::patch::data::PatchStreamPosition,
     changed_records: Vec<crate::transactions::data::RecordRef>,
     publication_snapshot: crate::snapshots::data::SnapshotHandle,
     aspect_evaluation_traces: Vec<crate::transactions::data::AspectEvaluationTrace>,
@@ -66,6 +68,7 @@ impl PublishedCommitExecution {
         crate::transactions::data::CommitCreatedRelationBindings,
         crate::authority::commit::phases::history::ResolvedCommitHistory,
         std::sync::Arc<crate::history::data::CanonicalCommitEnvelope>,
+        crate::publication::patch::data::PatchStreamPosition,
         Vec<crate::transactions::data::RecordRef>,
         crate::snapshots::data::SnapshotHandle,
         Vec<crate::transactions::data::AspectEvaluationTrace>,
@@ -80,6 +83,7 @@ impl PublishedCommitExecution {
             self.created_relations,
             self.history,
             self.canonical_commit_envelope,
+            self.patch_position,
             self.changed_records,
             self.publication_snapshot,
             self.aspect_evaluation_traces,
@@ -145,11 +149,17 @@ pub(super) fn prepare_commit_publication_execution(
     })
 }
 
-pub(super) fn publish_commit_execution(
+pub(crate) fn publish_commit_execution(
     runtime: &mut crate::runtime::RelationalRuntime,
-    prepared: PreparedCommitPublicationExecution,
-) -> Result<PublishedCommitExecution, crate::transactions::data::TransactionCommitError> {
-    let PreparedCommitPublicationExecution {
+    prepared: PreparedCommitPublicationCompletion,
+) -> Result<
+    (
+        PublishedCommitExecution,
+        Option<crate::transactions::data::TransactionCommitError>,
+    ),
+    crate::transactions::data::TransactionCommitError,
+> {
+    let PreparedCommitPublicationCompletion {
         mut admitted,
         public_structural_summary,
         invariant_executions,
@@ -166,7 +176,14 @@ pub(super) fn publish_commit_execution(
         let (_, _, _, _, commit_log, phase_timing) = admitted.phase_view().into_parts();
         finalize_publication_phase(runtime, commit_log, phase_timing, publication)?
     };
-    let (canonical_commit_envelope, changed_records) = finalized.into_parts();
+    let (positioned_commit, changed_records, durability_error) = finalized.into_parts();
+    let patch_position = positioned_commit.position();
+    let canonical_commit_envelope = std::sync::Arc::clone(positioned_commit.canonical_arc());
+    let aspect_emission_traces: Vec<crate::transactions::data::AspectEmissionTrace> =
+        aspect_emission_traces
+            .into_iter()
+            .map(|trace| trace.publish(patch_position))
+            .collect();
     runtime.publish_invariant_preparation_diagnostics(&invariant_executions);
     publish_prepared_trace_diagnostics(runtime, &aspect_evaluation_traces, &aspect_emission_traces);
     if let Some(accounting) = admitted.take_merge_accounting() {
@@ -175,20 +192,28 @@ pub(super) fn publish_commit_execution(
             accounting.emitted_mutation_intents,
         );
     }
-    Ok(PublishedCommitExecution {
-        admitted,
-        public_structural_summary,
-        invariant_executions,
-        version_id,
-        created_entities,
-        created_relations,
-        history,
-        canonical_commit_envelope,
-        changed_records,
-        publication_snapshot,
-        aspect_evaluation_traces,
-        aspect_emission_traces,
-    })
+    let durability_error = durability_error.map(|error| {
+        let (_, _, _, _, commit_log, _) = admitted.phase_view().into_parts();
+        error.with_commit_log(commit_log.clone())
+    });
+    Ok((
+        PublishedCommitExecution {
+            admitted,
+            public_structural_summary,
+            invariant_executions,
+            version_id,
+            created_entities,
+            created_relations,
+            history,
+            canonical_commit_envelope,
+            patch_position,
+            changed_records,
+            publication_snapshot,
+            aspect_evaluation_traces,
+            aspect_emission_traces,
+        },
+        durability_error,
+    ))
 }
 
 fn publish_prepared_trace_diagnostics(
@@ -222,12 +247,51 @@ pub(crate) struct PreparedCommitPublicationExecution {
     publication: PreparedPublicationPhase,
     publication_snapshot: crate::snapshots::data::SnapshotHandle,
     aspect_evaluation_traces: Vec<crate::transactions::data::AspectEvaluationTrace>,
-    aspect_emission_traces: Vec<crate::transactions::data::AspectEmissionTrace>,
+    aspect_emission_traces:
+        Vec<super::artifact_execution::preparation::PreparedAspectEmissionTrace>,
+}
+
+pub(crate) struct PreparedCommitPublicationCompletion {
+    admitted: super::execution_admission::AdmittedCommitExecution,
+    public_structural_summary: crate::transactions::data::CommitStructuralSummary,
+    invariant_executions: Vec<crate::validation::engine::InvariantExecutionResult>,
+    version_id: crate::identity::data::VersionId,
+    created_entities: crate::transactions::data::CommitCreatedEntityBindings,
+    created_relations: crate::transactions::data::CommitCreatedRelationBindings,
+    history: crate::authority::commit::phases::history::ResolvedCommitHistory,
+    publication: PreparedPublicationCompletion,
+    publication_snapshot: crate::snapshots::data::SnapshotHandle,
+    aspect_evaluation_traces: Vec<crate::transactions::data::AspectEvaluationTrace>,
+    aspect_emission_traces:
+        Vec<super::artifact_execution::preparation::PreparedAspectEmissionTrace>,
 }
 
 impl PreparedCommitPublicationExecution {
     pub(crate) fn reservation_count(&self) -> usize {
         self.publication.reservation_count()
+    }
+
+    pub(crate) fn split(
+        self,
+    ) -> (
+        crate::mvcc::PreparedCanonicalBranchMovement,
+        PreparedCommitPublicationCompletion,
+    ) {
+        let (movement, publication) = self.publication.split();
+        let completion = PreparedCommitPublicationCompletion {
+            admitted: self.admitted,
+            public_structural_summary: self.public_structural_summary,
+            invariant_executions: self.invariant_executions,
+            version_id: self.version_id,
+            created_entities: self.created_entities,
+            created_relations: self.created_relations,
+            history: self.history,
+            publication,
+            publication_snapshot: self.publication_snapshot,
+            aspect_evaluation_traces: self.aspect_evaluation_traces,
+            aspect_emission_traces: self.aspect_emission_traces,
+        };
+        (movement, completion)
     }
 
     #[cfg(test)]

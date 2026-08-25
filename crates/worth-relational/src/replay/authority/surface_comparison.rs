@@ -1,14 +1,14 @@
 use crate::commit_strategies::data::StrategyCommitArtifactBundle;
 use crate::history::data::{OrderedParentList, RelationalCommitReceipt};
 use crate::replay::data::{
-    digest_branch_head_summary, digest_branch_head_surface, digest_diagnostics_summary,
-    digest_diagnostics_surface, digest_history_summary, digest_history_surface,
-    digest_patch_summary, digest_patch_surface, digest_snapshot_summary, digest_snapshot_surface,
-    digest_strategy_replay_descriptor, digest_strategy_replay_summary, CanonicalCommitEnvelope,
-    DescriptorComparisonBasis, DescriptorParityCheck, ReplayMismatch, ReplayMismatchClass,
-    ReplayObservableSurface, ReplaySnapshotSurface, ReplaySurfaceAuthorityKind,
-    ReplaySurfaceComparisonBasis, ReplaySurfaceParityCheck, ReplayVerificationLayer,
-    ReplayVerificationPlan, VerifiedReplaySurfaceDigest,
+    digest_branch_head_summary, digest_branch_head_surface, digest_canonical_patch_summary,
+    digest_canonical_patch_surface, digest_diagnostics_summary, digest_diagnostics_surface,
+    digest_history_summary, digest_history_surface, digest_snapshot_summary,
+    digest_snapshot_surface, digest_strategy_replay_descriptor, digest_strategy_replay_summary,
+    CanonicalCommitEnvelope, DescriptorComparisonBasis, DescriptorParityCheck, ReplayMismatch,
+    ReplayMismatchClass, ReplayObservableSurface, ReplaySnapshotSurface,
+    ReplaySurfaceAuthorityKind, ReplaySurfaceComparisonBasis, ReplaySurfaceParityCheck,
+    ReplayVerificationLayer, ReplayVerificationPlan, VerifiedReplaySurfaceDigest,
 };
 use crate::runtime::RelationalRuntime;
 
@@ -190,9 +190,9 @@ pub(super) fn surface_basis_for_patch(
         ReplaySurfaceAuthorityKind::Patch,
         Some(VerifiedReplaySurfaceDigest::from_digest(
             ReplaySurfaceAuthorityKind::Patch,
-            digest_patch_surface(&patch),
+            digest_canonical_patch_surface(&patch),
         )),
-        Some(digest_patch_summary(&patch)),
+        Some(digest_canonical_patch_summary(&patch)),
     )
 }
 

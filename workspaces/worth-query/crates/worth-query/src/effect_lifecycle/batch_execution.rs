@@ -46,6 +46,151 @@ impl EffectBatchExecutionDenial {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EffectBatchExecutionDeferred {
+    message: String,
+    batch_identity: WorthQueryEvidenceIdentity,
+    counters: EffectLifecycleCounters,
+}
+
+impl EffectBatchExecutionDeferred {
+    pub(crate) fn new(
+        lowered: &LoweredEffectBatchExecutionPlan,
+        message: impl Into<String>,
+    ) -> Self {
+        Self {
+            message: message.into(),
+            batch_identity: lowered.batch_identity().clone(),
+            counters: EffectLifecycleCounters::deferred(
+                lowered.counters().effect_support_row_count(),
+            ),
+        }
+    }
+
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    pub fn batch_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.batch_identity
+    }
+
+    pub fn counters(&self) -> &EffectLifecycleCounters {
+        &self.counters
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EffectBatchSettlementDeferred {
+    message: String,
+    batch_identity: WorthQueryEvidenceIdentity,
+    outcome_identity: WorthQueryEvidenceIdentity,
+    counters: EffectLifecycleCounters,
+    settlement: worth_relational::facade::publication::DeferredPublicationSettlement,
+}
+
+impl EffectBatchSettlementDeferred {
+    pub(crate) fn new(
+        lowered: &LoweredEffectBatchExecutionPlan,
+        message: impl Into<String>,
+        settlement: worth_relational::facade::publication::DeferredPublicationSettlement,
+    ) -> Self {
+        let message = message.into();
+        let batch_identity = lowered.batch_identity().clone();
+        let commit = settlement.commit();
+        let outcome_identity =
+            WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::WorkflowMutationLowering)
+                .field_shape(
+                    WorthQueryEvidenceTag::new("identity_family"),
+                    "effect_batch_settlement_deferred_v1",
+                )
+                .field_evidence_identity(WorthQueryEvidenceTag::new("batch"), &batch_identity)
+                .field_usize(
+                    WorthQueryEvidenceTag::new("commit_id"),
+                    commit.commit_id.0 as usize,
+                )
+                .field_usize(
+                    WorthQueryEvidenceTag::new("version_id"),
+                    commit.version_id.0 as usize,
+                )
+                .seal();
+        Self {
+            message,
+            batch_identity,
+            outcome_identity,
+            counters: EffectLifecycleCounters::publication_settlement_deferred(
+                lowered.counters().effect_support_row_count(),
+                lowered.counters().effect_lowering_width(),
+                lowered.counters().effect_executor_rediscovery_count(),
+                1,
+            ),
+            settlement,
+        }
+    }
+
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    pub fn batch_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.batch_identity
+    }
+
+    pub fn outcome_identity(&self) -> &WorthQueryEvidenceIdentity {
+        &self.outcome_identity
+    }
+
+    pub fn counters(&self) -> &EffectLifecycleCounters {
+        &self.counters
+    }
+
+    pub fn repair_with(
+        &self,
+        authority: super::EffectExecutionAuthority<'_>,
+    ) -> Result<
+        worth_relational::facade::history::RelationalCommitReceipt,
+        super::EffectSettlementRepairError,
+    > {
+        super::settlement_repair::repair_effect_settlement(authority, &self.settlement)
+    }
+
+    pub(crate) fn settlement(
+        &self,
+    ) -> &worth_relational::facade::publication::DeferredPublicationSettlement {
+        &self.settlement
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum EffectBatchExecutionStop {
+    Denied(EffectBatchExecutionDenial),
+    Deferred(EffectBatchExecutionDeferred),
+    SettlementDeferred(EffectBatchSettlementDeferred),
+}
+
+impl EffectBatchExecutionStop {
+    pub fn denial(&self) -> Option<&EffectBatchExecutionDenial> {
+        match self {
+            Self::Denied(denial) => Some(denial),
+            Self::Deferred(_) | Self::SettlementDeferred(_) => None,
+        }
+    }
+
+    pub fn deferred(&self) -> Option<&EffectBatchExecutionDeferred> {
+        match self {
+            Self::Deferred(deferred) => Some(deferred),
+            Self::Denied(_) | Self::SettlementDeferred(_) => None,
+        }
+    }
+
+    pub fn settlement_deferred(&self) -> Option<&EffectBatchSettlementDeferred> {
+        match self {
+            Self::Denied(_) | Self::Deferred(_) => None,
+            Self::SettlementDeferred(deferred) => Some(deferred),
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct ExecutedEffectBatchPlan {
     lowered: LoweredEffectBatchExecutionPlan,

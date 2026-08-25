@@ -34,13 +34,13 @@ fn merge_commit_uses_deterministic_parent_order_and_advances_target_branch() {
     );
     assert_eq!(
         runtime.history().branch_head(&BranchId("main".to_string())),
-        Some(&merge_outcome.commit)
+        Some(merge_outcome.commit.clone())
     );
     assert_eq!(
         runtime
             .history()
             .branch_head(&BranchId("feature".to_string())),
-        Some(&feature_outcome.commit)
+        Some(feature_outcome.commit.clone())
     );
     let replay = runtime.replay();
     let envelope = replay

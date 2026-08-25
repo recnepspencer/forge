@@ -34,21 +34,20 @@ pub(super) fn validate_recovered_branch_cell(
     cell: &RelationalBranchReferenceCell,
 ) -> Result<(), String> {
     let branch_id = cell.identity().branch_id();
-    validate_branch_target_artifact(
-        &history.commit_catalog,
-        branch_id,
-        cell.observation().target(),
-    )?;
+    let observation = cell.observation();
+    let fork_source_branch_id = cell.fork_source_branch_id();
+    let fork_provenance = cell.fork_provenance();
+    validate_branch_target_artifact(&history.commit_catalog, branch_id, observation.target())?;
     validate_branch_target_lineage(
         history,
         branch_id,
-        cell.observation().target(),
-        cell.fork_source_branch_id(),
-        cell.fork_provenance(),
+        observation.target(),
+        fork_source_branch_id.as_ref(),
+        fork_provenance.as_ref(),
     )?;
-    match (cell.fork_source_branch_id(), cell.fork_provenance()) {
+    match (fork_source_branch_id, fork_provenance) {
         (Some(source_branch_id), Some(provenance)) => {
-            let source_cell = history.branch_cell(source_branch_id).ok_or_else(|| {
+            let source_cell = history.branch_cell(&source_branch_id).ok_or_else(|| {
                 format!(
                     "branch cell `{}` names missing fork source `{}`",
                     branch_id.0, source_branch_id.0
@@ -67,7 +66,7 @@ pub(super) fn validate_recovered_branch_cell(
                 branch_id,
                 provenance.target(),
             )?;
-            validate_target_authoring_lineage(history, source_branch_id, provenance.target())?;
+            validate_target_authoring_lineage(history, &source_branch_id, provenance.target())?;
             Ok(())
         }
         (None, None) => Ok(()),

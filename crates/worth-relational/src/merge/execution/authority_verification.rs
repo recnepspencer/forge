@@ -55,8 +55,7 @@ fn verify_branch_heads(
         .branch_reference_state(binding.request.target_branch());
     let target_head = runtime
         .history()
-        .branch_head(binding.request.target_branch())
-        .cloned();
+        .branch_head(binding.request.target_branch());
     runtime
         .performance_access()
         .count_merge_execution_branch_head_checks(1);
@@ -96,8 +95,7 @@ fn verify_branch_heads(
         .branch_reference_state(binding.request.source_branch());
     let source_head = runtime
         .history()
-        .branch_head(binding.request.source_branch())
-        .cloned();
+        .branch_head(binding.request.source_branch());
     runtime
         .performance_access()
         .count_merge_execution_branch_head_checks(1);

@@ -10,7 +10,7 @@ fn subscriber_stream_rejects_durable_only_checkpoint_with_descriptor_version_mis
 
     assert!(runtime
         .history_authority()
-        .remove_commit_envelope_for_test(first.commit.commit_id));
+        .evict_commit_envelope_for_durable_recovery_test(first.commit.commit_id));
 
     let checkpoint = checkpoint_for_schema_version(PatchStreamPosition(1), SchemaVersionId(1))
         .with_incoherent_continuation_for_test(

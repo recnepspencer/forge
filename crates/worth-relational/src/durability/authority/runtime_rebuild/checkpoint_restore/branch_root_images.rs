@@ -50,7 +50,7 @@ pub(super) fn restore_branch_root_images(
                 image.commit_id.0
             )));
         }
-        let schema_authority = schema_catalog.readmit_root(restored, image, envelope)?;
+        let schema_authority = schema_catalog.readmit_root(restored, image, envelope.envelope())?;
         let root_contracts = crate::durability::checkpoints::aspect_state_images::CheckpointAspectContractCatalog::from_contracts(
             schema_authority.retained_aspect_contracts(),
         )?;

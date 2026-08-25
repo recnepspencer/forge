@@ -104,7 +104,7 @@ impl VisibilitySnapshotBasis {
         version_id: VersionId,
     ) -> Option<Self> {
         let cell = runtime.history.branch_cell(branch_id)?;
-        let root = match cell.root().cloned() {
+        let root = match cell.root() {
             Some(root) => root,
             None if version_id.is_zero()
                 && runtime.current_version_id().is_zero()

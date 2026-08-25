@@ -6,6 +6,8 @@ mod contract;
 mod courtroom;
 #[path = "temporal_conditional_operation/courtroom_lifecycle.rs"]
 mod courtroom_lifecycle;
+#[path = "temporal_conditional_operation/courtroom_settlement.rs"]
+mod courtroom_settlement;
 #[path = "temporal_conditional_operation/courtroom_support.rs"]
 mod courtroom_support;
 #[path = "temporal_conditional_operation/schema.rs"]
@@ -49,6 +51,16 @@ fn reconstruction_panic_restores_runtime_owners_for_retry() {
 #[test]
 fn host_installs_and_executes_a_due_temporal_application_operation() {
     courtroom::host_installs_and_executes_due_operation();
+}
+
+#[test]
+fn temporal_wake_repairs_durable_settlement_before_exact_retirement() {
+    courtroom_settlement::temporal_wake_repairs_durable_settlement_before_exact_retirement();
+}
+
+#[test]
+fn temporal_wake_retries_query_publication_after_settlement_repair() {
+    courtroom_settlement::temporal_wake_retries_query_publication_after_settlement_repair();
 }
 
 #[test]

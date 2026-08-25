@@ -21,7 +21,7 @@ pub(super) struct AssembledCommitExecution {
     publication: PublicationPreparation,
     publication_snapshot: crate::snapshots::data::SnapshotHandle,
     aspect_evaluation_traces: Vec<crate::transactions::data::AspectEvaluationTrace>,
-    aspect_emission_traces: Vec<crate::transactions::data::AspectEmissionTrace>,
+    aspect_emission_traces: Vec<preparation::PreparedAspectEmissionTrace>,
 }
 
 impl AssembledCommitExecution {
@@ -43,7 +43,7 @@ impl AssembledCommitExecution {
         PublicationPreparation,
         crate::snapshots::data::SnapshotHandle,
         Vec<crate::transactions::data::AspectEvaluationTrace>,
-        Vec<crate::transactions::data::AspectEmissionTrace>,
+        Vec<preparation::PreparedAspectEmissionTrace>,
     ) {
         (
             self.admitted,

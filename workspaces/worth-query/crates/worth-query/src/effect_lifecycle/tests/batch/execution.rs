@@ -87,6 +87,47 @@ fn mutation_batch_executes_through_one_batch_native_lowered_plan() {
 }
 
 #[test]
+fn performed_batch_returns_settlement_deferred_without_denial_telemetry() {
+    let mut runtime = relational_runtime_with_intent_strategy();
+    let entity_id = create_entity(&mut runtime, "batch-before", BranchId("main".to_string()));
+    let binding = runtime_workflow_binding_with_snapshot(runtime_snapshot_identity(&runtime));
+    let lowered = effect_batch()
+        .using_basis(EffectAuthoringBasis::from(branch_mutation_basis()))
+        .push(raw_mutation_effect_with_binding(
+            binding,
+            entity_id,
+            native_name_patch("batch-performed-before-settlement"),
+        ))
+        .admit()
+        .expect("batch should admit")
+        .lower()
+        .expect("batch should lower");
+    runtime.fail_next_durable_append_for_test();
+
+    let stop = lowered
+        .execute_with(EffectExecutionAuthority::relational(&mut runtime))
+        .expect_err("performed batch must require settlement");
+    let deferred = stop
+        .settlement_deferred()
+        .expect("performed batch is not an execution denial");
+    assert!(stop.denial().is_none());
+    assert_eq!(deferred.counters().executed_effect_count(), 1);
+    assert_eq!(deferred.counters().execution_denied_count(), 0);
+    assert_eq!(
+        deferred.counters().publication_settlement_deferred_count(),
+        1
+    );
+    let settlement = deferred.settlement().clone();
+    assert_eq!(
+        runtime.history().historical_latest_commit(),
+        Some(settlement.commit().clone())
+    );
+    deferred
+        .repair_with(EffectExecutionAuthority::relational(&mut runtime))
+        .expect("exact owner repairs the performed batch");
+}
+
+#[test]
 fn mutation_batch_preserves_branch_scoped_authority_target() {
     let mut runtime = relational_runtime_with_intent_strategy();
     let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
@@ -163,6 +204,7 @@ fn retained_lowered_batch_denies_after_intervening_truth_change() {
     let denial = lowered
         .execute_with(EffectExecutionAuthority::relational(&mut runtime))
         .expect_err("retained lowered batch should deny stale exact-basis replay");
+    let denial = denial.denial().expect("stale batch replay is a denial");
 
     assert_eq!(
         denial.kind(),
@@ -253,6 +295,7 @@ fn mutation_batch_rejects_mixed_target_branches_before_publication() {
         .expect("mixed targets remain visible at execution admission")
         .execute_with(EffectExecutionAuthority::relational(&mut runtime))
         .expect_err("mixed-target batch must deny before either branch moves");
+    let denial = denial.denial().expect("mixed-target batch is a denial");
 
     assert_eq!(
         denial.kind(),

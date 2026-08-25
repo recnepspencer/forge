@@ -1,21 +1,21 @@
 use std::collections::{btree_map::Entry, BTreeMap, BTreeSet};
 
 use crate::durability::data::{DurabilityError, DurableCheckpoint, RecoveryFailureClass};
-use crate::history::data::CanonicalCommitEnvelope;
+use crate::history::data::{CanonicalCommitEnvelope, PositionedCanonicalCommit};
 use crate::runtime::RelationalRuntime;
 
-pub(super) fn validate_recovered_lineage_artifacts(
+pub(super) fn validate_recovered_lineage_artifacts<'a>(
     checkpoint: Option<&DurableCheckpoint>,
-    tail_log: &[CanonicalCommitEnvelope],
+    tail_log: impl IntoIterator<Item = &'a CanonicalCommitEnvelope>,
 ) -> Result<(), DurabilityError> {
     let mut seen_event_ids = BTreeSet::new();
     let mut seen_created_lineage_ids = BTreeSet::new();
-    let mut previous_event_id = None;
-    let mut previous_created_lineage_id = None;
     if let Some(checkpoint) = checkpoint {
         for envelope in &checkpoint.envelopes {
+            let mut previous_event_id = Some(0);
+            let mut previous_created_lineage_id = Some(crate::identity::data::LineageId(0));
             validate_envelope_lineage(
-                envelope,
+                envelope.envelope(),
                 RecoveryFailureClass::CorruptCheckpoint,
                 &mut seen_event_ids,
                 &mut seen_created_lineage_ids,
@@ -25,6 +25,8 @@ pub(super) fn validate_recovered_lineage_artifacts(
         }
     }
     for envelope in tail_log {
+        let mut previous_event_id = Some(0);
+        let mut previous_created_lineage_id = Some(crate::identity::data::LineageId(0));
         validate_envelope_lineage(
             envelope,
             RecoveryFailureClass::CorruptSegment,
@@ -124,7 +126,7 @@ fn validate_envelope_lineage(
 
 pub(super) fn reconcile_recovered_lineage_artifacts(
     restored: &mut RelationalRuntime,
-    tail_log: &[CanonicalCommitEnvelope],
+    tail_log: &[PositionedCanonicalCommit],
 ) -> Result<(), DurabilityError> {
     let mut events_by_id = BTreeMap::new();
     for (event, publication_commit_id) in restored.lineage.drain_events() {

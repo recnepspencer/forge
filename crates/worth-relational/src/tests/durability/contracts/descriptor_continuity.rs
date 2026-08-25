@@ -98,7 +98,9 @@ fn durability_recovery_plan_reports_descriptor_version_mismatch_before_recovery(
         .clone();
     let mut file =
         crate::durability::log::native_file_codec::read_segment_file(&segment_path).unwrap();
-    file.entries[0].descriptor_semantics_version = DescriptorSemanticsVersion(99);
+    file.entries[0]
+        .envelope_mut_for_test()
+        .descriptor_semantics_version = DescriptorSemanticsVersion(99);
     crate::durability::log::native_file_codec::write_segment_file(&segment_path, &file).unwrap();
 
     let plan = runtime.durability().recovery_plan(
@@ -180,7 +182,11 @@ fn durability_contract_failure_descriptor_canonical_basis_version_mismatch_is_ex
         .clone();
     let mut file =
         crate::durability::log::native_file_codec::read_segment_file(&segment_path).unwrap();
-    if let Some(descriptor) = file.entries[1].schema_continuation_descriptor.as_mut() {
+    if let Some(descriptor) = file.entries[1]
+        .envelope_mut_for_test()
+        .schema_continuation_descriptor
+        .as_mut()
+    {
         descriptor.bridge.canonical_basis_version = DescriptorCanonicalBasisVersion(99);
     }
     crate::durability::log::native_file_codec::write_segment_file(&segment_path, &file).unwrap();

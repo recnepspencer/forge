@@ -21,14 +21,12 @@ impl<'runtime> HistoryAccess<'runtime> {
         let source_head = self
             .branch_head_for_observation(source)
             .map_err(RelationalMergeBranchBasisDenial::SourceObservationDenied)?
-            .cloned()
             .ok_or_else(|| RelationalMergeBranchBasisDenial::MissingSourceHead {
                 branch_id: source_branch.clone(),
             })?;
         let target_head = self
             .branch_head_for_observation(target)
             .map_err(RelationalMergeBranchBasisDenial::TargetObservationDenied)?
-            .cloned()
             .ok_or_else(|| RelationalMergeBranchBasisDenial::MissingTargetHead {
                 branch_id: target_branch.clone(),
             })?;
@@ -108,7 +106,7 @@ impl<'runtime> HistoryAccess<'runtime> {
             .branch_cell(&branch_id)
             .ok_or_else(|| missing(branch_id.clone()))?;
         if cell.identity() != binding.identity()
-            || cell.observation() != binding.reference()
+            || cell.observation() != *binding.reference()
             || cell.truth_version() != binding.truth_version()
         {
             return Err(missing(branch_id));
@@ -118,9 +116,8 @@ impl<'runtime> HistoryAccess<'runtime> {
         };
         self.runtime
             .history
-            .commit_catalog
-            .get(crate::history::data::CommitId(target.selected_commit_id()))
-            .map(|artifact| artifact.envelope().commit.clone())
+            .canonical_envelope(crate::history::data::CommitId(target.selected_commit_id()))
+            .map(|envelope| envelope.commit.clone())
             .ok_or_else(|| missing(branch_id))
     }
 
@@ -130,12 +127,12 @@ impl<'runtime> HistoryAccess<'runtime> {
         source_branch: &BranchId,
         target_branch: &BranchId,
     ) -> Result<RelationalMergeBranchBasis, RelationalMergeBranchBasisDenial> {
-        let target_head = self.branch_head(target_branch).cloned().ok_or_else(|| {
+        let target_head = self.branch_head(target_branch).ok_or_else(|| {
             RelationalMergeBranchBasisDenial::MissingTargetHead {
                 branch_id: target_branch.clone(),
             }
         })?;
-        let source_head = self.branch_head(source_branch).cloned().ok_or_else(|| {
+        let source_head = self.branch_head(source_branch).ok_or_else(|| {
             RelationalMergeBranchBasisDenial::MissingSourceHead {
                 branch_id: source_branch.clone(),
             }

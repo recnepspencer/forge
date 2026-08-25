@@ -12,6 +12,9 @@ pub struct PreparedRelationalCommitCandidate {
     runtime_instance_id: u64,
     transaction_id: TransactionId,
     branch_id: BranchId,
+    pub(crate) expected_basis: crate::branch::RelationalBranchBasisDescriptor,
+    pub(crate) expected_root: std::sync::Arc<crate::branch::RelationalBranchRoot>,
+    pub(crate) publication_cell: crate::branch::RelationalBranchPublicationCell,
     pub(crate) execution: crate::authority::commit::pipeline::PreparedCommitPublicationExecution,
     _not_sync: PhantomData<Cell<()>>,
 }
@@ -21,12 +24,18 @@ impl PreparedRelationalCommitCandidate {
         runtime_instance_id: u64,
         transaction_id: TransactionId,
         branch_id: BranchId,
+        expected_basis: crate::branch::RelationalBranchBasisDescriptor,
+        expected_root: std::sync::Arc<crate::branch::RelationalBranchRoot>,
+        publication_cell: crate::branch::RelationalBranchPublicationCell,
         execution: crate::authority::commit::pipeline::PreparedCommitPublicationExecution,
     ) -> Self {
         Self {
             runtime_instance_id,
             transaction_id,
             branch_id,
+            expected_basis,
+            expected_root,
+            publication_cell,
             execution,
             _not_sync: PhantomData,
         }
@@ -46,6 +55,25 @@ impl PreparedRelationalCommitCandidate {
 
     pub(crate) fn reservation_count(&self) -> usize {
         self.execution.reservation_count()
+    }
+
+    pub(super) fn into_publication_parts(
+        self,
+    ) -> (
+        crate::branch::RelationalBranchBasisDescriptor,
+        std::sync::Arc<crate::branch::RelationalBranchRoot>,
+        crate::branch::RelationalBranchPublicationCell,
+        super::PreparedCanonicalBranchMovement,
+        crate::authority::commit::pipeline::PreparedCommitPublicationCompletion,
+    ) {
+        let (movement, completion) = self.execution.split();
+        (
+            self.expected_basis,
+            self.expected_root,
+            self.publication_cell,
+            movement,
+            completion,
+        )
     }
 
     #[cfg(test)]

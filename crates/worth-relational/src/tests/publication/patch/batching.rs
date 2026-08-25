@@ -60,7 +60,9 @@ fn patch_stream_uses_durable_canonical_history_when_retained_envelope_is_missing
 
     assert!(runtime
         .history_authority()
-        .remove_commit_envelope_preserving_patch_stream_position_for_test(first.commit.commit_id));
+        .evict_commit_envelope_preserving_patch_position_for_durable_recovery_test(
+            first.commit.commit_id,
+        ));
 
     let batch = runtime
         .publication()

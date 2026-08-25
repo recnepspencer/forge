@@ -46,14 +46,15 @@ impl RelationalRuntime {
                 .ok_or_else(|| {
                     RelationalBranchBasisDenial::UnknownBranch(identity.branch_id().clone())
                 })?;
-            let root = cell.root().cloned().unwrap_or_else(|| {
+            let snapshot = cell.atomic_snapshot();
+            let root = snapshot.root().unwrap_or_else(|| {
                 RelationalBranchRoot::empty_with_schema(
                     &self.config.schema.registry,
                     crate::schema::data::runtime_descriptor_semantics_policy()
                         .current_write_version(),
                 )
             });
-            let descriptor = descriptor_for_cell(cell, &root)?;
+            let descriptor = descriptor_for_cell(&snapshot, &root)?;
             (descriptor, root)
         };
         let basis =
@@ -70,7 +71,7 @@ impl RelationalRuntime {
     }
 }
 
-fn descriptor_for_cell(
+pub(crate) fn descriptor_for_cell(
     cell: &super::RelationalBranchReferenceCell,
     root: &Arc<RelationalBranchRoot>,
 ) -> Result<RelationalBranchBasisDescriptor, RelationalBranchBasisDenial> {
@@ -78,8 +79,8 @@ fn descriptor_for_cell(
         .axes()
         .map(|axes| axes.visibility.digest())
         .unwrap_or([0; 32]);
-    let schema_commitment = root.schema_authority().registry().authority_digest_bytes();
-    require_root_matches_reference(cell.observation(), root)?;
+    let schema_commitment = root.schema_authority().authority_digest();
+    require_root_matches_reference(&cell.observation(), root)?;
     Ok(RelationalBranchBasisDescriptor::live(
         super::basis::RelationalLiveBranchBasisDescriptorAxes {
             runtime_instance_id: cell.identity().runtime_instance_id(),

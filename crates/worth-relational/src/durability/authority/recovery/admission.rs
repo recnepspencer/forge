@@ -30,10 +30,6 @@ impl AdmittedRecoveryPlan {
         &self.admission
     }
 
-    pub(in crate::durability::authority) const fn plan(&self) -> &RecoveryPlan {
-        &self.plan
-    }
-
     pub(in crate::durability::authority) fn into_plan(self) -> RecoveryPlan {
         self.plan
     }
@@ -162,6 +158,9 @@ fn validate_reported_parity(
 }
 
 fn validate_integrity(plan: &RecoveryPlan) -> Result<(), DurabilityError> {
+    if let Some(error) = plan.persisted_tail_error.as_ref() {
+        return Err(error.clone());
+    }
     if plan.integrity_report.corrupt_segment_id.is_some() {
         Err(DurabilityError::new(
             RecoveryFailureClass::CorruptSegment,

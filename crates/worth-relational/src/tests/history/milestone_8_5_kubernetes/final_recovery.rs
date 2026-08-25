@@ -143,7 +143,6 @@ pub(super) fn certify_final_recovery(
     let recovered_revalidation_envelope = recovered
         .replay()
         .canonical_commit_envelope(revalidation_commit.commit.commit_id)
-        .cloned()
         .expect("recovered revalidation envelope");
     assert_eq!(
         KubernetesNoopEvidence {
@@ -185,8 +184,8 @@ pub(super) fn certify_final_recovery(
     );
     assert_eq!(
         KubernetesBranchHeadEvidence {
-            main: recovered.history().branch_head(&main_branch).cloned(),
-            controller: recovered.history().branch_head(&controller_branch).cloned(),
+            main: recovered.history().branch_head(&main_branch),
+            controller: recovered.history().branch_head(&controller_branch),
         },
         live_bundle.branch_heads
     );

@@ -10,6 +10,9 @@ use crate::storage::RelationalPublishedPartitionDelta;
 
 #[path = "root_allocation.rs"]
 mod allocation;
+#[cfg(test)]
+#[path = "root_authoritative_payload_tests.rs"]
+mod authoritative_payload_tests;
 #[path = "root_axes.rs"]
 mod axes;
 #[path = "root_capture.rs"]
@@ -74,7 +77,7 @@ pub(crate) struct RelationalBranchRootPublicationCost {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum RelationalRootCorrectnessIndex {
+pub enum RelationalRootCorrectnessIndex {
     AuthoritativeFallback,
 }
 
@@ -118,7 +121,6 @@ pub(crate) struct RelationalBranchRootState {
 
 pub(crate) struct PreparedRelationalBranchRootCapture {
     root: Arc<RelationalBranchRoot>,
-    next_issuer: RelationalBranchRootIdentityIssuer,
 }
 
 impl PreparedRelationalBranchRootCapture {
@@ -126,13 +128,8 @@ impl PreparedRelationalBranchRootCapture {
         &self.root
     }
 
-    pub(crate) fn into_parts(
-        self,
-    ) -> (
-        Arc<RelationalBranchRoot>,
-        RelationalBranchRootIdentityIssuer,
-    ) {
-        (self.root, self.next_issuer)
+    pub(crate) fn into_root(self) -> Arc<RelationalBranchRoot> {
+        self.root
     }
 }
 

@@ -65,7 +65,7 @@ fn observe_entry(
         .owned_allocation_capacity_bytes();
     inventory.accounting.observe_branch_root(
         runtime.runtime_instance_id(),
-        entry.root,
+        &entry.root,
         entry.artifact,
         derived_cache_bytes,
     );

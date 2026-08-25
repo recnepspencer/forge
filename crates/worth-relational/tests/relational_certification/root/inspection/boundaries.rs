@@ -10,7 +10,7 @@ use worth_relational::facade::inspection::RelationalMvccCostScope;
 fn phase5_inspection_rejects_foreign_and_rootless_identities() {
     let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &expected);
-    let foreign_runtime = world.runtime.fork();
+    let foreign_runtime = world.runtime.fork().expect("settled runtime forks");
     assert!(matches!(
         foreign_runtime.inspect_branch_sharing(&[world.runtime.main_branch_identity()]),
         Err(RelationalBranchSharingInspectionDenial::ForeignRuntime)
@@ -40,7 +40,7 @@ fn phase5_region_locators_are_runtime_affine_even_when_storage_is_shared() {
     let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &expected);
     let source = inspect_main_regions(&world.runtime);
-    let foreign = inspect_main_regions(&world.runtime.fork());
+    let foreign = inspect_main_regions(&world.runtime.fork().expect("settled runtime forks"));
     assert_ne!(source, foreign);
     let physical =
         |locators: &[worth_relational::facade::inspection::RelationalStorageRegionLocator]| {

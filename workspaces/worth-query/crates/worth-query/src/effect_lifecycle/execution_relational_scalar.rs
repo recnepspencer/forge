@@ -9,11 +9,12 @@ use worth_relational::facade::snapshots::SnapshotHandle;
 use worth_relational::facade::transactions::CommitResult;
 
 use super::execution::{lower_runtime_error, EffectExecutionDenialKind};
+use super::RelationalEffectExecutionFailure;
 
 pub(super) fn execute_lowered_mutation(
     runtime: &mut RelationalRuntime,
     declaration: &LoweredMutationIntentDeclaration,
-) -> Result<CommitResult, (EffectExecutionDenialKind, String)> {
+) -> Result<CommitResult, RelationalEffectExecutionFailure> {
     ensure_exact_basis_freshness(runtime, declaration)?;
     let transaction_validation_input = mutation_transaction_validation_input(runtime, declaration)?;
     let canonical: CanonicalStrategyCommitRequest = runtime
@@ -41,7 +42,8 @@ pub(super) fn execute_lowered_mutation(
         return Err((
             EffectExecutionDenialKind::RelationalAuthorityBindingMalformed,
             "exact Relational strategy snapshot could not be released".to_string(),
-        ));
+        )
+            .into());
     }
     let execution: StrategyExecutionDraft = execution?;
     let mut commit_authority = runtime.commit_strategies_authority();
@@ -67,10 +69,48 @@ pub(super) fn execute_lowered_mutation(
                 EffectExecutionDenialKind::RelationalStrategyAuthorityValidationFailed,
             )
         })?;
-    commit_authority
-        .execute_validated_commit(runtime, validated)
+    let candidate = commit_authority
+        .prepare_validated_commit(runtime, validated)
         .map_err(|error| {
             lower_runtime_error(error, EffectExecutionDenialKind::RelationalCommitFailed)
+        })?;
+    let performed = match runtime.publication_port().compare_and_publish(candidate) {
+        worth_proof::TransitionOutcome::Success(performed) => performed,
+        worth_proof::TransitionOutcome::Stale(stale) => {
+            return Err(lower_runtime_error(
+                stale,
+                EffectExecutionDenialKind::RelationalCommitFailed,
+            )
+            .into());
+        }
+        worth_proof::TransitionOutcome::Denied(denial) => {
+            return Err(lower_runtime_error(
+                denial,
+                EffectExecutionDenialKind::RelationalCommitFailed,
+            )
+            .into());
+        }
+        worth_proof::TransitionOutcome::Deferred(deferred) => {
+            return Err(RelationalEffectExecutionFailure::deferred(format!(
+                "Relational publication deferred before movement: {deferred:?}"
+            )));
+        }
+        worth_proof::TransitionOutcome::Failed(failure) => {
+            return Err(lower_runtime_error(
+                failure,
+                EffectExecutionDenialKind::RelationalCommitFailed,
+            )
+            .into());
+        }
+        worth_proof::TransitionOutcome::RebindRequired(impossible) => match impossible {},
+    };
+    runtime
+        .settle_performed_publication(performed)
+        .map_err(|error| {
+            let settlement = error.deferred_settlement().cloned();
+            let (kind, message) =
+                lower_runtime_error(error, EffectExecutionDenialKind::RelationalCommitFailed);
+            RelationalEffectExecutionFailure::from_publication_failure(kind, message, settlement)
         })
 }
 

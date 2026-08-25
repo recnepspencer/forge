@@ -47,6 +47,7 @@ fn fork_tail_plan(mutate: fn(&mut crate::branch::RelationalBranchCellCheckpoint)
     let envelope = plan
         .tail_log
         .iter_mut()
+        .map(|commit| commit.envelope_mut_for_test())
         .find(|envelope| envelope.branch_context == BranchId("storm".to_owned()))
         .expect("fork tail envelope is selected");
     mutate(

@@ -132,7 +132,7 @@ impl WorthQueryProviderSessionLifecycle for ProvisionalProvider {
         session: &WorthQueryProviderSessionView<'_>,
     ) -> Result<
         crate::domain_computation::WorthQueryProviderTerminalDescription,
-        WorthQueryProviderSessionFailure,
+        crate::domain_computation::WorthQueryProviderSessionCommitStop,
     > {
         let mut state = self.state.lock().unwrap();
         let overlay_identity = state

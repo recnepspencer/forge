@@ -78,17 +78,17 @@ fn branch_lineage_contains(
     branch_id: &BranchId,
     candidate: &BranchId,
 ) -> bool {
-    let mut cursor = Some(branch_id);
+    let mut cursor = Some(branch_id.clone());
     let mut visited = std::collections::BTreeSet::new();
     while let Some(current) = cursor {
-        if current == candidate {
+        if &current == candidate {
             return true;
         }
         if !visited.insert(current.clone()) {
             return false;
         }
         cursor = history
-            .branch_cell(current)
+            .branch_cell(&current)
             .and_then(|cell| cell.fork_source_branch_id());
     }
     false

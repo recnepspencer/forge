@@ -20,10 +20,11 @@ impl RelationalBranchReferenceCell {
                 "owner-produced content target remains runtime-affine"
             );
         }
-        self.observation = super::RelationalBranchReferenceObservation::new(
-            self.observation.branch_id().clone(),
+        let mut state = self.state();
+        state.observation = super::RelationalBranchReferenceObservation::new(
+            state.observation.branch_id().clone(),
             target,
-            self.observation.generation(),
+            state.observation.generation(),
         );
     }
 
@@ -71,12 +72,16 @@ impl RelationalBranchReferenceCell {
                 checkpoint.runtime_instance_id,
                 checkpoint.branch_id.clone(),
             ),
-            observation: checkpoint.observation,
-            truth_version: checkpoint.truth_version,
-            head_retention_obligations: checkpoint.head_retention_obligations,
-            fork_provenance: checkpoint.fork_provenance,
-            fork_source_branch_id: checkpoint.fork_source_branch_id,
-            root,
+            state: std::sync::Arc::new(std::sync::Mutex::new(
+                super::RelationalBranchReferenceMutableState {
+                    observation: checkpoint.observation,
+                    truth_version: checkpoint.truth_version,
+                    head_retention_obligations: checkpoint.head_retention_obligations,
+                    fork_provenance: checkpoint.fork_provenance,
+                    fork_source_branch_id: checkpoint.fork_source_branch_id,
+                    root,
+                },
+            )),
             basis_registry: crate::branch::RelationalBranchBasisRegistry::default(),
             coordination: crate::branch::coordination::RelationalBranchCoordinationCell::fresh(
                 checkpoint.runtime_instance_id,

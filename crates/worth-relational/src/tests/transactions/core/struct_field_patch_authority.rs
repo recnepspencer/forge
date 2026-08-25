@@ -124,6 +124,7 @@ fn update_entity_fields_applies_struct_contract_field_patch() {
     let TransitionOutcome::Success(bridge_envelope) =
         crate::presentation::bridge::patch_envelopes::commit_envelope_to_bridge_envelope(
             outcome.envelope(),
+            outcome.patch_position(),
         )
     else {
         panic!("real field patch must retain enough authority for Bridge publication");

@@ -57,7 +57,7 @@ impl HistoricalVisibilityBasis {
             .history
             .branch_cell(&branch_id)
             .ok_or(HistoricalVisibilityDenial::AuthoringBranchUnavailable)?;
-        let Some(root) = cell.root().cloned() else {
+        let Some(root) = cell.root() else {
             if version_id.is_zero() && runtime.history().latest_commit().is_none() {
                 return Ok(Self {
                     branch_id,
@@ -68,7 +68,7 @@ impl HistoricalVisibilityBasis {
             }
             return Err(HistoricalVisibilityDenial::CertificationReconstructionRequired);
         };
-        let source_version = match root.axes() {
+        let mut source_version = match root.axes() {
             Some(axes) => VersionId(axes.storage_version),
             None if version_id.is_zero() && root.id() == 0 && root.descriptor().is_none() => {
                 VersionId(0)
@@ -76,7 +76,15 @@ impl HistoricalVisibilityBasis {
             None => return Err(HistoricalVisibilityDenial::MvccIntervalUnavailable),
         };
         if source_version.as_u64() < version_id.as_u64() {
-            return Err(HistoricalVisibilityDenial::MvccIntervalUnavailable);
+            let metadata_aliases_root = runtime
+                .history
+                .commit_catalog
+                .find_by_version(version_id)
+                .is_some_and(|artifact| envelope_selects_root(artifact.envelope(), &root));
+            if !metadata_aliases_root {
+                return Err(HistoricalVisibilityDenial::MvccIntervalUnavailable);
+            }
+            source_version = version_id;
         }
         let source_root_id = root.id();
         Ok(Self {
@@ -123,4 +131,18 @@ impl HistoricalVisibilityBasis {
             HistoricalVisibilityCoverage::RetainedInterval { source_version, .. } => source_version,
         }
     }
+}
+
+fn envelope_selects_root(
+    envelope: &crate::history::data::CanonicalCommitEnvelope,
+    root: &RelationalBranchRoot,
+) -> bool {
+    let Some(descriptor) = root.descriptor() else {
+        return false;
+    };
+    envelope
+        .branch_cell_checkpoint
+        .as_ref()
+        .and_then(|checkpoint| checkpoint.observation.target().as_basis())
+        .is_some_and(|target| target.roots() == descriptor)
 }

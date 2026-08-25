@@ -136,7 +136,6 @@ fn merge_branch_basis_survives_published_merge_outcome_and_durability_recovery()
     let live_envelope = runtime
         .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)
-        .cloned()
         .expect("live merge envelope");
     let live_authority = live_envelope
         .merge_execution_authority
@@ -148,7 +147,6 @@ fn merge_branch_basis_survives_published_merge_outcome_and_durability_recovery()
     let recovered_envelope = recovered
         .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)
-        .cloned()
         .expect("recovered merge envelope");
     let recovered_authority = recovered_envelope
         .merge_execution_authority
@@ -217,7 +215,6 @@ fn graft_disconnected_branch_head(runtime: &mut RelationalRuntime, branch_id: &B
     let source_head = disconnected
         .history()
         .branch_head(&BranchId("main".to_string()))
-        .cloned()
         .expect("disconnected source head");
     let mut orphan_head = source_head.clone();
     orphan_head.commit_id = CommitId(9_999_001);

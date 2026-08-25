@@ -30,6 +30,7 @@ mod resolution;
 mod resolution_denial;
 mod root;
 mod schema_layout;
+mod settlement_repair;
 mod typed_bootstrap;
 
 #[cfg(test)]
@@ -65,10 +66,12 @@ pub use application_attempt::{
     WorthQueryApplicationAttemptDenial, WorthQueryApplicationAttemptDenialKind,
     WorthQueryApplicationCommitAuthorityBinding, WorthQueryApplicationCommitDenial,
     WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
-    WorthQueryApplicationCommitOutcome, WorthQueryApplicationCommitOutcomeIdentity,
+    WorthQueryApplicationCommitDeferred, WorthQueryApplicationCommitOutcome,
+    WorthQueryApplicationCommitOutcomeIdentity,
     WorthQueryApplicationCommitPublicationExternalEffect,
     WorthQueryApplicationCommitPublicationSource, WorthQueryApplicationCommitReceipt,
-    WorthQueryApplicationCommitRecoveryKind,
+    WorthQueryApplicationCommitRecoveryKind, WorthQueryApplicationSettlementDeferred,
+    WorthQueryApplicationSettlementNextAction,
     WorthQueryApplicationCommitTerminalEvidence, WorthQueryApplicationCommitTerminalKind,
     WorthQueryApplicationEffectEntity, WorthQueryApplicationEffectProgram,
     WorthQueryApplicationEffectProgramBuilder, WorthQueryApplicationIdempotencyBinding,
@@ -87,6 +90,7 @@ pub use application_attempt::{
     WorthQueryOrdinaryApplicationRead, WorthQueryProjectedApplicationMutation,
     WorthQueryRequestedElevation, WorthQueryReviewedElevation,
 };
+pub use settlement_repair::WorthQueryApplicationSettlementRecoveryError;
 pub(in crate::domain_computation) use application_branch::primary_relational_branch_id;
 pub(in crate::domain_computation) use application_branch::primary_truth_branch_identity;
 pub use application_query::{

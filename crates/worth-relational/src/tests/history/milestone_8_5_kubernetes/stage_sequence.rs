@@ -42,12 +42,10 @@ pub(super) fn run_kubernetes_style_certification() -> KubernetesIntentCertificat
     let overlap_main_head = runtime
         .history()
         .branch_head(&main_branch)
-        .cloned()
         .expect("overlap main head");
     let overlap_controller_head = runtime
         .history()
         .branch_head(&controller_branch)
-        .cloned()
         .expect("overlap controller head");
     let mut runtime = recover_stage(&mut runtime, recovered_root.clone());
     let recovered_overlap_planning =
@@ -109,12 +107,10 @@ pub(super) fn run_kubernetes_style_certification() -> KubernetesIntentCertificat
     let narrowed_main_head = runtime
         .history()
         .branch_head(&main_branch)
-        .cloned()
         .expect("narrowed main head");
     let narrowed_controller_head = runtime
         .history()
         .branch_head(&controller_branch)
-        .cloned()
         .expect("narrowed controller head");
     let mut runtime = recover_stage(&mut runtime, recovered_root.clone());
     let recovered_narrowed_planning =
@@ -146,12 +142,10 @@ pub(super) fn run_kubernetes_style_certification() -> KubernetesIntentCertificat
     let rebroadened_main_head = runtime
         .history()
         .branch_head(&main_branch)
-        .cloned()
         .expect("rebroadened main head");
     let rebroadened_controller_head = runtime
         .history()
         .branch_head(&controller_branch)
-        .cloned()
         .expect("rebroadened controller head");
     let rebroadened_intent_replay = replay_commit(
         &mut runtime,
@@ -271,8 +265,8 @@ pub(super) fn run_kubernetes_style_certification() -> KubernetesIntentCertificat
         rebroadened_intent_replay,
         revalidation_noop_replay: revalidation_replay,
         branch_heads: KubernetesBranchHeadEvidence {
-            main: runtime.history().branch_head(&main_branch).cloned(),
-            controller: runtime.history().branch_head(&controller_branch).cloned(),
+            main: runtime.history().branch_head(&main_branch),
+            controller: runtime.history().branch_head(&controller_branch),
         },
         visible_truth,
     };

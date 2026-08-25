@@ -15,7 +15,6 @@ where
     let envelope = runtime
         .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)
-        .cloned()
         .expect("canonical merge envelope");
     let truth_bundle = capture_aspect_truth_bundle(runtime, &[], &[], &[]);
     let direct_rebuild_plan = runtime.durability().recovery_plan(
@@ -43,7 +42,6 @@ where
     let recovered_envelope = recovered
         .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)
-        .cloned()
         .expect("recovered merge envelope");
     let recovered_truth_bundle = capture_aspect_truth_bundle(&mut recovered, &[], &[], &[]);
 

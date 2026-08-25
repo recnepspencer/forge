@@ -31,7 +31,7 @@ fn durable_source_subscriber_stream_matches_recovered_runtime_patch_stream() {
 
     assert!(runtime
         .history_authority()
-        .remove_commit_envelope_for_test(first.commit.commit_id));
+        .evict_commit_envelope_for_durable_recovery_test(first.commit.commit_id));
 
     let subscriber_batch = runtime
         .publication()
@@ -70,7 +70,9 @@ fn subscriber_stream_keeps_patch_parity_when_later_retained_envelope_is_missing(
 
     assert!(runtime
         .history_authority()
-        .remove_commit_envelope_preserving_patch_stream_position_for_test(second.commit.commit_id));
+        .evict_commit_envelope_preserving_patch_position_for_durable_recovery_test(
+            second.commit.commit_id,
+        ));
 
     let patch_batch = runtime
         .publication()

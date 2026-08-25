@@ -57,7 +57,6 @@ fn root_capture_sabotage_leaves_storage_index_history_and_reference_unchanged() 
         branch_id: BranchId("main".to_owned()),
         parents: vec![current_receipt.commit_id],
     };
-    future_envelope.patch.position.0 += 1;
 
     let partition_id = *runtime
         .partitions
@@ -106,7 +105,6 @@ fn root_capture_sabotage_leaves_storage_index_history_and_reference_unchanged() 
             &binding,
             &selected_branch_state,
             delta,
-            future_envelope.patch.position,
             std::sync::Arc::new(future_envelope),
         )
         .err()

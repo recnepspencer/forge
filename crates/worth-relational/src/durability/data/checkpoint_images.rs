@@ -6,8 +6,8 @@ use worth_foundational::facade::{PortableAspectContract, PortableRecordAspectSta
 
 use super::CheckpointCoverage;
 use crate::branch::RelationalBranchCellCheckpoint;
-use crate::history::data::CanonicalCommitEnvelope;
 use crate::history::data::CommitId;
+use crate::history::data::PositionedCanonicalCommit;
 use crate::identity::data::{
     EntityId, KindId, LineageId, PartitionId, RelationId, StructuralFingerprint, VersionId,
 };
@@ -183,6 +183,21 @@ pub(crate) struct DurableRecordSlotFrontier {
     pub(crate) next_slot: u64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) enum DurableRecordReservationOrigin {
+    AppendFrontier,
+    Reclaimed { prior_generation: u32 },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct DurablePendingRecordReservation {
+    pub(crate) class: DurableRecordGenerationClass,
+    pub(crate) partition_id: PartitionId,
+    pub(crate) slot: u64,
+    pub(crate) generation: u32,
+    pub(crate) origin: DurableRecordReservationOrigin,
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct DurableRecordIdentityState {
     pub(crate) schema_version: u16,
@@ -192,21 +207,25 @@ pub(crate) struct DurableRecordIdentityState {
     pub(crate) reusable_slots: Vec<DurableReusableRecordSlot>,
     #[serde(default)]
     pub(crate) append_frontiers: Vec<DurableRecordSlotFrontier>,
+    #[serde(default)]
+    pub(crate) pending_reservations: Vec<DurablePendingRecordReservation>,
 }
 
 impl DurableRecordIdentityState {
-    pub(crate) const CURRENT_SCHEMA_VERSION: u16 = 1;
+    pub(crate) const CURRENT_SCHEMA_VERSION: u16 = 2;
 
     pub(crate) fn current(
         generation_high_water: Vec<DurableRecordGenerationHighWater>,
         reusable_slots: Vec<DurableReusableRecordSlot>,
         append_frontiers: Vec<DurableRecordSlotFrontier>,
+        pending_reservations: Vec<DurablePendingRecordReservation>,
     ) -> Self {
         Self {
             schema_version: Self::CURRENT_SCHEMA_VERSION,
             generation_high_water,
             reusable_slots,
             append_frontiers,
+            pending_reservations,
         }
     }
 }
@@ -241,25 +260,18 @@ pub(crate) fn branch_root_image_digest(
     digest.finalize().into()
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DurableCheckpoint {
     pub coverage: CheckpointCoverage,
-    #[serde(default)]
     pub(crate) branch_cells: Vec<RelationalBranchCellCheckpoint>,
-    #[serde(default)]
     pub(crate) branch_roots: Vec<DurableBranchRootImage>,
-    #[serde(default)]
     pub(crate) branch_root_schema_images: Vec<super::DurableBranchRootSchemaImage>,
-    #[serde(default)]
     pub(crate) record_identity: DurableRecordIdentityState,
     /// Version-zero migration fields retained only for decoding old images.
-    #[serde(default)]
     pub(crate) record_generation_high_water: Vec<DurableRecordGenerationHighWater>,
-    #[serde(default)]
     pub(crate) reusable_record_slots: Vec<DurableReusableRecordSlot>,
-    #[serde(default)]
     pub(crate) record_slot_frontiers: Vec<DurableRecordSlotFrontier>,
-    pub envelopes: Vec<CanonicalCommitEnvelope>,
+    pub(crate) envelopes: Vec<PositionedCanonicalCommit>,
     pub partition_images: Vec<PartitionCheckpointImage>,
     pub aspect_contracts: Vec<PortableAspectContract>,
     pub lineage: LineageCheckpointArtifact,

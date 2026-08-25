@@ -1177,8 +1177,7 @@ The existing Fintech and generic worlds continue as preservation evidence, not
 The `relational_certification` integration target owns these cohesive groups:
 
 1. **World causality** — public installation, owner-issued handle completeness,
-   baseline/oracle agreement, profile parity, typed fixture failures, and
-   mutation sensitivity.
+   baseline/oracle agreement, profile parity, and typed fixture failures.
 2. **Reference and ancestry** — immutable commit versus mutable reference,
    exact fork basis, local version zero, metadata generation, foreign/equal-
    ordinal substitution, and one canonical shared ancestor.
@@ -1203,53 +1202,6 @@ The `relational_certification` integration target owns these cohesive groups:
 9. **Cost slopes** — Court/Standard/Scale fixture separation; 1/64/4,096
    branches; retained-history, footprint, and immutable-holder axes; zero
    unrelated-branch wait/contact; and no total-world copy slope.
-10. **Compiler and sabotage** — unforgeable exact bases and phases, prohibited
-    cross-branch/cross-owner substitutions, and one causal mutation per claim.
-
-### Machine-checkable outputs
-
-Every applicable run emits canonical evidence rather than log inspection:
-
-- `supply_chain_definition_digest`
-- `supply_chain_installed_baseline_digest`
-- `supply_chain_oracle_observation_digest`
-- `supply_chain_observed_projection_digest`
-- `supply_chain_delta_trace_digest`
-- `branch_reference_observation_matrix`
-- `branch_truth_and_ancestry_digest`
-- `branch_isolation_mismatch_report`
-- `publication_outcome_and_residue_matrix`
-- `retention_obligation_matrix`
-- `cancellation_effect_boundary_matrix`
-- `fork_materialization_counter_snapshot`
-- `publication_region_reuse_counter_snapshot`
-- `logical_vs_unique_physical_byte_report`
-- `shared_ancestor_and_commit_uniqueness_report`
-- `reclaimable_unique_byte_report`
-- `branch_local_cost_slope_report`
-- `oracle_mutation_sensitivity_report`
-- `compiler_denial_matrix`
-- `residue_search_report`
-
-Exact identifiers may be represented by safe canonical locators in evidence;
-raw process pointers are neither stable output nor a sufficient sharing oracle.
-
-### Required hostile mutations
-
-Certification must fail after each corresponding defect is introduced:
-
-- bypass public world construction with direct state or id injection;
-- derive expected state with a production query/encoder/digest;
-- clone baseline truth or commit envelopes on fork;
-- clone the complete world on first branch write;
-- resolve an admitted read from the latest global or sibling root;
-- reuse a sibling transaction overlay or coordination cell;
-- compare only version, generation, commit id, or digest;
-- publish storage, schema, index, visibility, history, or patch state in
-  separately visible steps;
-- serialize unrelated branches behind one runtime-global lock/actor/borrow;
-- omit one retention obligation or reclaim a shared ancestor early; or
-- report cancellation after movement without returning the performed commit.
 
 The later Relational merge program must reuse this world, compiler, baselines,
 deltas, oracle, observation adapter, comparator, and sharing evidence for

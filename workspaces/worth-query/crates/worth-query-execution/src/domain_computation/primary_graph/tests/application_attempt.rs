@@ -35,6 +35,8 @@ mod program_fixture;
 mod provider_terminal_evidence;
 #[path = "application_attempt/retry_outbox_rebind.rs"]
 mod retry_outbox_rebind;
+#[path = "application_attempt/settlement_failures.rs"]
+mod settlement_failures;
 #[path = "application_attempt/terminal_failures.rs"]
 mod terminal_failures;
 #[path = "application_attempt/touched_graph_closure.rs"]

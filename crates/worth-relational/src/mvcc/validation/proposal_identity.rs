@@ -69,7 +69,14 @@ impl crate::runtime::RelationalRuntime {
         validation_input: &crate::mvcc::RelationalTransactionValidationInput,
     ) -> Result<RelationalMutationProposalIdentity, crate::transactions::data::TransactionCommitError>
     {
-        let proposed_version_id = self.history.preview_next_version_id();
+        let proposed_version_id = self.history.reserve_version_id().ok_or_else(|| {
+            crate::transactions::data::TransactionCommitError::publication(
+                crate::publication::data::PublicationError::new(
+                    crate::publication::bundle::PublicationStage::BundleAssembly,
+                    "canonical version sequence overflow",
+                ),
+            )
+        })?;
         let ordinal = self.services.next_proposal_ordinal().ok_or_else(|| {
             crate::transactions::data::TransactionCommitError::preparation(
                 crate::transactions::data::CommitPreparationError::proposal_identity_exhausted(

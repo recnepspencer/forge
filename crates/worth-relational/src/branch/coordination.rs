@@ -30,7 +30,6 @@ pub(crate) struct RelationalBranchCoordinationCell {
     id: RelationalBranchCoordinationCellId,
     contacts: AtomicU64,
     waits: AtomicU64,
-    #[allow(dead_code)] // Phase 9 consumes the guard; Phase 5 exposes cells first.
     gate: Mutex<()>,
 }
 
@@ -59,24 +58,28 @@ impl RelationalBranchCoordinationCell {
         self.waits.load(Ordering::Relaxed)
     }
 
-    /// Record one owner-local contact and acquire the branch-local gate
-    /// without ever consulting a runtime-global coordinator. Publication
-    /// will use this bounded guard in the later linearization phase.
-    #[allow(dead_code)] // The bounded publication guard is installed in Phase 9.
-    pub(crate) fn try_enter(&self) -> Result<RelationalBranchCoordinationGuard<'_>, ()> {
+    /// Enter the bounded branch-local publication section. Contention is
+    /// recorded only on this exact branch; no runtime-global gate is touched.
+    pub(crate) fn enter(&self) -> RelationalBranchCoordinationGuard<'_> {
         self.contacts.fetch_add(1, Ordering::Relaxed);
         match self.gate.try_lock() {
-            Ok(guard) => Ok(RelationalBranchCoordinationGuard { guard }),
+            Ok(guard) => RelationalBranchCoordinationGuard { guard },
             Err(TryLockError::WouldBlock) => {
                 self.waits.fetch_add(1, Ordering::Relaxed);
-                Err(())
+                RelationalBranchCoordinationGuard {
+                    guard: self
+                        .gate
+                        .lock()
+                        .unwrap_or_else(|poisoned| poisoned.into_inner()),
+                }
             }
-            Err(TryLockError::Poisoned(_)) => Err(()),
+            Err(TryLockError::Poisoned(poisoned)) => RelationalBranchCoordinationGuard {
+                guard: poisoned.into_inner(),
+            },
         }
     }
 }
 
-#[allow(dead_code)] // The bounded publication guard is installed in Phase 9.
 pub(crate) struct RelationalBranchCoordinationGuard<'cell> {
     guard: MutexGuard<'cell, ()>,
 }

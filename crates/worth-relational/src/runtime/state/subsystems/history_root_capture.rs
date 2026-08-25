@@ -5,7 +5,6 @@ use std::sync::Arc;
 
 use crate::branch::{
     PreparedRelationalBranchRootCapture, RelationalBranchRoot, RelationalBranchRootCaptureDenial,
-    RelationalBranchRootIdentityIssuer,
 };
 use crate::history::data::CanonicalCommitEnvelope;
 
@@ -41,13 +40,6 @@ impl HistorySubsystem {
     #[cfg(test)]
     pub(crate) fn sabotage_next_root_capture(&self) {
         self.root_capture_sabotage.store(true, Ordering::Relaxed);
-    }
-
-    pub(crate) fn commit_branch_root_capture(
-        &mut self,
-        next_issuer: RelationalBranchRootIdentityIssuer,
-    ) {
-        self.root_identity_issuer = next_issuer;
     }
 
     pub(crate) fn readmit_branch_root(

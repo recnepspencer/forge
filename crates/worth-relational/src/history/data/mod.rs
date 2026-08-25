@@ -7,6 +7,7 @@ mod committed_version;
 mod merge_branch_basis;
 #[cfg(test)]
 mod merge_branch_basis_foundational;
+mod positioned_canonical_commit;
 
 use serde::{Deserialize, Serialize};
 
@@ -37,6 +38,7 @@ pub use merge_branch_basis_foundational::{
     RelationalFoundationalCurrentMergeBranchBasisArtifact,
     RelationalMergeBranchBasisFoundationalLoweringDenial,
 };
+pub(crate) use positioned_canonical_commit::PositionedCanonicalCommit;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct CommitId(pub u64);

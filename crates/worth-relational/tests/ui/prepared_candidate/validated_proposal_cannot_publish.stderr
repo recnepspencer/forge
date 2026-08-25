@@ -2,7 +2,13 @@ error[E0599]: no method named `commit_validated_proposal` found for struct `Rela
  --> tests/ui/prepared_candidate/validated_proposal_cannot_publish.rs:6:13
   |
 6 |     runtime.commit_validated_proposal(proposal);
-  |             ^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `RelationalRuntime`
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+help: there is a method `prepare_validated_proposal` with a similar name
+  |
+6 -     runtime.commit_validated_proposal(proposal);
+6 +     runtime.prepare_validated_proposal(proposal);
+  |
 
 error[E0599]: no method named `execute_validated_commit` found for struct `CommitStrategiesAuthorityFacade` in the current scope
  --> tests/ui/prepared_candidate/validated_proposal_cannot_publish.rs:9:16

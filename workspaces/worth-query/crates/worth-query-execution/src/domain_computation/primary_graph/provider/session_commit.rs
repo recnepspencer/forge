@@ -28,7 +28,7 @@ pub(super) fn commit_prepared_session(
     session: crate::domain_computation::WorthQueryProviderSessionView<'_>,
 ) -> Result<
     crate::domain_computation::WorthQueryProviderTerminalDescription,
-    WorthQueryProviderSessionFailure,
+    crate::domain_computation::WorthQueryProviderSessionCommitStop,
 > {
     super::application_attempt_state::commit_prepared_application(provider, session)
 }

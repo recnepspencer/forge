@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use super::super::artifact_execution::preparation::PublicationPreparation;
 use crate::authority::mutation::apply_adjacency_deltas;
-use crate::history::data::{BranchId, CanonicalCommitEnvelope, CommitId, RelationalCommitReceipt};
+use crate::history::data::{BranchId, CommitId, RelationalCommitReceipt};
 use crate::identity::data::VersionId;
 use crate::publication::bundle::PublicationStage;
 use crate::publication::data::PublicationError;
@@ -24,7 +24,33 @@ pub(super) struct PreparedPublicationPhase {
     pub(super) lineage_nodes: Vec<crate::lineage::data::LineageNode>,
     pub(super) artifacts: crate::storage::overlay::PublicationArtifacts,
     pub(super) changed_records: Vec<crate::transactions::data::RecordRef>,
-    pub(super) canonical_commit_envelope: Arc<CanonicalCommitEnvelope>,
+    pub(super) append_authority: crate::durability::authority::DurableAppendAuthority,
+    pub(super) version_id: VersionId,
+    pub(super) previous_branch_head_version: Option<VersionId>,
+    pub(super) commit_id: CommitId,
+    pub(super) commit_reference: RelationalCommitReceipt,
+    pub(super) branch_id: BranchId,
+    pub(super) merge_base_commits: Vec<CommitId>,
+    pub(super) merge_parent_branches: Vec<BranchId>,
+    pub(super) deferred_diagnostic_artifacts:
+        Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
+    pub(super) canonical_publication_route: crate::runtime::PreparedCanonicalPublicationRoute,
+}
+
+pub(super) struct PreparedPublicationCompletion {
+    pub(super) clone_mode: crate::storage::overlay::PartitionCloneMode,
+    pub(super) committed_partitions: std::collections::BTreeMap<
+        crate::identity::data::PartitionId,
+        (
+            crate::storage::overlay::PartitionState,
+            crate::storage::overlay::PartitionMutationJournal,
+        ),
+    >,
+    pub(super) prepared_history: crate::mvcc::PreparedRelationalPublicationAccelerators,
+    pub(super) validated_lineage_events: crate::runtime::ValidatedLineageEventBatch,
+    pub(super) lineage_nodes: Vec<crate::lineage::data::LineageNode>,
+    pub(super) artifacts: crate::storage::overlay::PublicationArtifacts,
+    pub(super) changed_records: Vec<crate::transactions::data::RecordRef>,
     pub(super) append_authority: crate::durability::authority::DurableAppendAuthority,
     pub(super) version_id: VersionId,
     pub(super) previous_branch_head_version: Option<VersionId>,
@@ -45,6 +71,41 @@ impl PreparedPublicationPhase {
     #[cfg(test)]
     pub(super) fn materialization_counts(&self) -> (u64, u64) {
         self.prepared_history.materialization_counts()
+    }
+
+    pub(crate) fn split(
+        self,
+    ) -> (
+        crate::mvcc::PreparedCanonicalBranchMovement,
+        PreparedPublicationCompletion,
+    ) {
+        let (next_cell, root, _envelope, prepared_history) =
+            self.prepared_history.into_canonical_parts();
+        let movement = crate::mvcc::PreparedCanonicalBranchMovement::new(
+            self.record_allocations,
+            next_cell,
+            root,
+            self.canonical_publication_route,
+        );
+        let completion = PreparedPublicationCompletion {
+            clone_mode: self.clone_mode,
+            committed_partitions: self.committed_partitions,
+            prepared_history,
+            validated_lineage_events: self.validated_lineage_events,
+            lineage_nodes: self.lineage_nodes,
+            artifacts: self.artifacts,
+            changed_records: self.changed_records,
+            append_authority: self.append_authority,
+            version_id: self.version_id,
+            previous_branch_head_version: self.previous_branch_head_version,
+            commit_id: self.commit_id,
+            commit_reference: self.commit_reference,
+            branch_id: self.branch_id,
+            merge_base_commits: self.merge_base_commits,
+            merge_parent_branches: self.merge_parent_branches,
+            deferred_diagnostic_artifacts: self.deferred_diagnostic_artifacts,
+        };
+        (movement, completion)
     }
 }
 
@@ -118,7 +179,6 @@ pub(super) fn prepare_publication_phase(
             &branch_basis,
             &selected_branch_state,
             published_partition_delta,
-            canonical_commit_envelope.patch.position,
             Arc::clone(&canonical_commit_envelope),
         )
         .map_err(|detail| {
@@ -141,6 +201,19 @@ pub(super) fn prepare_publication_phase(
             ))
             .with_commit_log(commit_log.clone())
         })?;
+    let canonical_publication_route = runtime
+        .history
+        .reserve_canonical_publication_route(
+            Arc::clone(&canonical_commit_envelope),
+            Arc::clone(prepared_history.root()),
+        )
+        .map_err(|detail| {
+            TransactionCommitError::publication(PublicationError::new(
+                PublicationStage::BundleAssembly,
+                detail,
+            ))
+            .with_commit_log(commit_log.clone())
+        })?;
 
     Ok(PreparedPublicationPhase {
         record_allocations,
@@ -151,7 +224,6 @@ pub(super) fn prepare_publication_phase(
         lineage_nodes,
         artifacts,
         changed_records,
-        canonical_commit_envelope,
         append_authority,
         version_id,
         previous_branch_head_version,
@@ -161,5 +233,6 @@ pub(super) fn prepare_publication_phase(
         merge_base_commits,
         merge_parent_branches,
         deferred_diagnostic_artifacts,
+        canonical_publication_route,
     })
 }

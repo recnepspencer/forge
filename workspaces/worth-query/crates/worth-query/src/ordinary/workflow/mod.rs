@@ -11,8 +11,9 @@ pub use branch_merge::{
     WorthQueryBranchMergeCompletion, WorthQueryBranchMergeContext,
     WorthQueryBranchMergeContextStop, WorthQueryBranchMergeDeclaration,
     WorthQueryBranchMergeDeclarationDenialKind, WorthQueryBranchMergeDeclarationIdentity,
-    WorthQueryBranchMergeDeclarationStop, WorthQueryBranchMergeNextAction,
-    WorthQueryBranchMergeOutcome, WorthQueryBranchMergeRequest, WorthQueryBranchMergeStop,
+    WorthQueryBranchMergeDeclarationStop, WorthQueryBranchMergeDeferred,
+    WorthQueryBranchMergeNextAction, WorthQueryBranchMergeOutcome, WorthQueryBranchMergeRequest,
+    WorthQueryBranchMergeSettlementDeferred, WorthQueryBranchMergeStop,
     WorthQueryBranchMergeStopSource,
 };
 pub use context::{preview, WorthQueryWorkflowContext, WorthQueryWorkflowContextStop};

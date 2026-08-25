@@ -268,11 +268,6 @@ fn enforce_validated_strategy_basis(
                 "proposal identity does not match the owner-issued transaction basis",
             ));
         }
-        if identity.proposed_version_id() != runtime.history().preview_next_version_id() {
-            return Err(stale_strategy_validation_basis(
-                "proposal identity no longer names the next runtime version",
-            ));
-        }
     }
     if !runtime.admitted_branch_basis_is_current(validation_input.basis()) {
         return Err(stale_strategy_validation_basis(
@@ -287,7 +282,7 @@ fn enforce_validated_strategy_basis(
             ));
         };
         if cell.identity() != binding.identity()
-            || cell.observation() != binding.reference()
+            || cell.observation() != *binding.reference()
             || cell.truth_version() != validated_branch_version
         {
             return Err(stale_strategy_validation_basis(

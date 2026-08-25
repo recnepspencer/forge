@@ -9,7 +9,34 @@ pub(super) fn prepare_record_identity(
     let durable = durable_record_identity(checkpoint)?;
     restore_record_generation_high_water(&authority, checkpoint, durable.generation_high_water)?;
     restore_record_slot_allocator(&authority, checkpoint, durable)?;
+    restore_pending_reservations(&authority, durable.pending_reservations)?;
     Ok(authority)
+}
+
+fn restore_pending_reservations(
+    authority: &RecordIdentitySubsystem,
+    reservations: &[crate::durability::data::DurablePendingRecordReservation],
+) -> Result<(), DurabilityError> {
+    for reservation in reservations {
+        let origin = match reservation.origin {
+            crate::durability::data::DurableRecordReservationOrigin::AppendFrontier => {
+                crate::history::data::RecordAllocationOrigin::AppendFrontier
+            }
+            crate::durability::data::DurableRecordReservationOrigin::Reclaimed {
+                prior_generation,
+            } => crate::history::data::RecordAllocationOrigin::Reclaimed { prior_generation },
+        };
+        authority
+            .restore_pending(
+                durable_record_class(reservation.class),
+                reservation.partition_id,
+                checked_slot(reservation.slot, "pending record reservation")?,
+                reservation.generation,
+                origin,
+            )
+            .map_err(|detail| corrupt_checkpoint(detail.to_owned()))?;
+    }
+    Ok(())
 }
 
 fn restore_record_generation_high_water(
@@ -121,6 +148,7 @@ pub(super) struct DurableRecordIdentityRef<'a> {
         &'a [crate::durability::data::DurableRecordGenerationHighWater],
     reusable_slots: &'a [crate::durability::data::DurableReusableRecordSlot],
     append_frontiers: &'a [crate::durability::data::DurableRecordSlotFrontier],
+    pending_reservations: &'a [crate::durability::data::DurablePendingRecordReservation],
     legacy: bool,
 }
 
@@ -132,13 +160,22 @@ pub(super) fn durable_record_identity(
             generation_high_water: &checkpoint.record_generation_high_water,
             reusable_slots: &checkpoint.reusable_record_slots,
             append_frontiers: &checkpoint.record_slot_frontiers,
+            pending_reservations: &[],
             legacy: true,
+        }),
+        1 => Ok(DurableRecordIdentityRef {
+            generation_high_water: &checkpoint.record_identity.generation_high_water,
+            reusable_slots: &checkpoint.record_identity.reusable_slots,
+            append_frontiers: &checkpoint.record_identity.append_frontiers,
+            pending_reservations: &[],
+            legacy: false,
         }),
         crate::durability::data::DurableRecordIdentityState::CURRENT_SCHEMA_VERSION => {
             Ok(DurableRecordIdentityRef {
                 generation_high_water: &checkpoint.record_identity.generation_high_water,
                 reusable_slots: &checkpoint.record_identity.reusable_slots,
                 append_frontiers: &checkpoint.record_identity.append_frontiers,
+                pending_reservations: &checkpoint.record_identity.pending_reservations,
                 legacy: false,
             })
         }

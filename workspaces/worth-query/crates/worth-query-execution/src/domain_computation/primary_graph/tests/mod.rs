@@ -5,6 +5,7 @@ mod authorization;
 pub(in crate::domain_computation::primary_graph) mod fault_controller;
 pub(in crate::domain_computation) mod fixture;
 mod hostile_resolution;
+mod index_refresh;
 mod invariant_projection;
 pub(in crate::domain_computation::primary_graph) mod live_delivery_support;
 mod successful_resolution;

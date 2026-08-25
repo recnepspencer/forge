@@ -25,7 +25,9 @@ pub(super) fn capture_snapshot(
 ) -> Result<SnapshotRecord<String>, RelationalHarnessError> {
     let scenario_id_value = worth_harness::facade::scenario_id(&fixture.name);
     let run_id_value = run_id(&scenario_id_value, &profile.name, &request.name);
-    let mut clone = runtime.fork();
+    let mut clone = runtime
+        .fork()
+        .expect("settled runtime forks for snapshot capture");
     let snapshot = clone.visibility_authority().snapshot();
     let resolved_version_id = clone
         .read_truth()

@@ -70,7 +70,6 @@ fn durable_recovery_and_schema_mismatch_test() {
     let recovered_envelope = recovered
         .replay()
         .canonical_commit_envelope(transitioned.commit.commit_id)
-        .cloned()
         .expect("recovered transitioned envelope");
     let recovered_diagnostics = recovered.publication().diagnostics();
     let recovery_authority_continuity_diagnostic = recovered_diagnostics

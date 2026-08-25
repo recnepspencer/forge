@@ -5,13 +5,13 @@ impl<'runtime> HistoryAuthority<'runtime> {
         &mut self,
         commit_id: crate::history::data::CommitId,
     ) -> bool {
-        let Some(envelope) = self.runtime.history.commit_envelopes.remove(&commit_id) else {
+        let position = self.runtime.history.canonical_stream_position(commit_id);
+        let Some(_envelope) = self.runtime.history.commit_envelopes.remove(&commit_id) else {
             return false;
         };
-        self.runtime
-            .history
-            .patch_stream_index
-            .remove(&envelope.patch.position);
+        if let Some(position) = position {
+            self.runtime.history.patch_stream_index.remove(&position);
+        }
         self.runtime.history.replace_catalog_from_legacy_for_test();
         true
     }
@@ -25,10 +25,33 @@ impl<'runtime> HistoryAuthority<'runtime> {
         removed.is_some()
     }
 
+    pub(crate) fn evict_commit_envelope_for_durable_recovery_test(
+        &mut self,
+        commit_id: crate::history::data::CommitId,
+    ) -> bool {
+        let removed = self.remove_commit_envelope_for_test(commit_id);
+        self.runtime
+            .history
+            .remove_canonical_publication_route_for_test(commit_id);
+        removed
+    }
+
+    pub(crate) fn evict_commit_envelope_preserving_patch_position_for_durable_recovery_test(
+        &mut self,
+        commit_id: crate::history::data::CommitId,
+    ) -> bool {
+        let removed =
+            self.remove_commit_envelope_preserving_patch_stream_position_for_test(commit_id);
+        self.runtime
+            .history
+            .remove_canonical_publication_route_for_test(commit_id);
+        removed
+    }
+
     pub(crate) fn tamper_commit_patch_for_test(
         &mut self,
         commit_id: crate::history::data::CommitId,
-        mutate: impl FnOnce(&mut crate::publication::patch::data::PublishedAuthoritativePatchEnvelope),
+        mutate: impl FnOnce(&mut crate::publication::patch::data::CanonicalAuthoritativePatch),
     ) -> bool {
         let Some(envelope) = self.runtime.history.commit_envelopes.get(&commit_id) else {
             return false;

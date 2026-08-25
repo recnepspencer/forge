@@ -2,11 +2,35 @@ use std::collections::BTreeMap;
 
 use crate::transactions::data::AspectEmissionTrace;
 
+#[derive(Debug, Clone)]
+pub(in crate::authority::commit::pipeline) struct PreparedAspectEmissionTrace {
+    target: crate::transactions::data::RecordRef,
+    patch_record_index: u64,
+    structural_change: crate::publication::patch::data::RecordStructuralChange,
+    changed_aspects: Vec<worth_foundational::facade::AspectKey>,
+    contains_opaque_aspect: bool,
+}
+
+impl PreparedAspectEmissionTrace {
+    pub(in crate::authority::commit::pipeline) fn publish(
+        self,
+        patch_position: crate::publication::patch::data::PatchStreamPosition,
+    ) -> AspectEmissionTrace {
+        AspectEmissionTrace {
+            target: self.target,
+            patch_position,
+            patch_record_index: self.patch_record_index,
+            structural_change: self.structural_change,
+            changed_aspects: self.changed_aspects,
+            contains_opaque_aspect: self.contains_opaque_aspect,
+        }
+    }
+}
+
 pub(super) fn derive_aspect_emission_traces(
-    patch_position: crate::publication::patch::data::PatchStreamPosition,
     patch_records: &[crate::publication::patch::data::PublishedAuthoritativeRecordPatch],
     deltas: &[crate::authority::mutation::CanonicalRecordAspectDelta],
-) -> Vec<AspectEmissionTrace> {
+) -> Vec<PreparedAspectEmissionTrace> {
     let delta_index = deltas
         .iter()
         .map(|delta| (delta.target.clone(), delta))
@@ -21,9 +45,8 @@ pub(super) fn derive_aspect_emission_traces(
                     record.target
                 )
             });
-            AspectEmissionTrace {
+            PreparedAspectEmissionTrace {
                 target: delta.target.clone(),
-                patch_position,
                 patch_record_index: patch_record_index as u64,
                 structural_change: delta.structural_change,
                 changed_aspects: delta.changed_aspects.clone(),
@@ -93,7 +116,10 @@ mod tests {
             },
         ];
 
-        let traces = derive_aspect_emission_traces(PatchStreamPosition(9), &patch_records, &deltas);
+        let traces = derive_aspect_emission_traces(&patch_records, &deltas)
+            .into_iter()
+            .map(|trace| trace.publish(PatchStreamPosition(9)))
+            .collect::<Vec<_>>();
         assert_eq!(traces.len(), 2);
         assert_eq!(traces[0].target, target_b);
         assert_eq!(traces[0].changed_aspects, ordered_aspect_keys([aspect_b]));

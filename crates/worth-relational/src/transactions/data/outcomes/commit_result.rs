@@ -65,6 +65,7 @@ pub struct CommitPhaseTiming {
 pub struct CommitPublication {
     pub diagnostics: Vec<RelationalDiagnosticArtifact>,
     pub envelope: Arc<CanonicalCommitEnvelope>,
+    pub patch_position: crate::publication::patch::data::PatchStreamPosition,
     pub aspect_evaluation_traces: Vec<AspectEvaluationTrace>,
     pub aspect_emission_traces: Vec<AspectEmissionTrace>,
     pub strategy_artifacts: Option<crate::commit_strategies::data::StrategyCommitArtifactBundle>,
@@ -373,7 +374,7 @@ impl CommitResult {
     }
 
     pub fn patch_position(&self) -> crate::publication::patch::data::PatchStreamPosition {
-        self.publication.envelope.patch.position
+        self.publication.patch_position
     }
 
     pub fn final_snapshot_id(&self) -> SnapshotId {

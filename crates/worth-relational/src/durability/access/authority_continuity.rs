@@ -12,8 +12,21 @@ use crate::schema::{
 
 pub(crate) fn authority_continuity_for_envelopes(
     runtime: &RelationalRuntime,
-    checkpoint_envelopes: &[crate::history::data::CanonicalCommitEnvelope],
-    tail_log: &[crate::history::data::CanonicalCommitEnvelope],
+    checkpoint_envelopes: &[crate::history::data::PositionedCanonicalCommit],
+    tail_log: &[crate::durability::migration::ReadmittedCanonicalCommit],
+) -> RecoveryAuthorityContinuityCheck {
+    authority_continuity_for_canonical_envelopes(
+        runtime,
+        checkpoint_envelopes
+            .iter()
+            .map(crate::history::data::PositionedCanonicalCommit::envelope)
+            .chain(tail_log.iter().map(|entry| entry.envelope())),
+    )
+}
+
+fn authority_continuity_for_canonical_envelopes<'a>(
+    runtime: &RelationalRuntime,
+    envelopes: impl IntoIterator<Item = &'a crate::history::data::CanonicalCommitEnvelope>,
 ) -> RecoveryAuthorityContinuityCheck {
     let descriptor_policy = runtime
         .runtime_config()
@@ -31,7 +44,7 @@ pub(crate) fn authority_continuity_for_envelopes(
     let mut authority_continuity =
         RecoveryAuthorityContinuityCheck::verified_at(ReplayVerificationLayer::DigestParity);
 
-    for envelope in checkpoint_envelopes.iter().chain(tail_log.iter()) {
+    for envelope in envelopes {
         if !descriptor_policy.supports(envelope.descriptor_semantics_version) {
             reject_descriptor_semantics_version(
                 runtime,

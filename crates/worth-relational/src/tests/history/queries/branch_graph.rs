@@ -23,14 +23,14 @@ fn branch_creation_and_branch_targeted_commits_build_a_version_graph() {
             .history()
             .branch_head(&BranchId("feature".to_string()))
             .unwrap(),
-        &feature_outcome.commit
+        feature_outcome.commit
     );
     assert_eq!(
         runtime
             .history()
             .branch_head(&BranchId("main".to_string()))
             .unwrap(),
-        &main_second.commit
+        main_second.commit
     );
     assert_eq!(
         feature_outcome.commit.parents,

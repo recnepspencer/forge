@@ -9,7 +9,13 @@ fn phase4_reference_cost_probe_separates_setup_and_operation_work() {
         assert_oracle_matches(&world, &expected);
         let setup = world.runtime.phase4_reference_cost_counters();
         let setup_catalog = world.runtime.history().immutable_commit_count();
-        let mut previous = setup;
+        let after_setup_query = world.runtime.phase4_reference_cost_counters();
+        assert_eq!(
+            after_setup_query.branch_population_scans - setup.branch_population_scans,
+            0,
+            "immutable commit counting uses indexed canonical routes, not a root scan"
+        );
+        let mut previous = after_setup_query;
         for _ in 0..fanout {
             let (_, source_basis) = world
                 .runtime
