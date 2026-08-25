@@ -36,11 +36,14 @@ application schema and declarations
     -> provider-session execution
        |-> read result -> governed disclosure and publication
        `-> validated mutation candidate
-            -> compare-and-commit
+            -> opaque Relational prepared candidate
+            -> branch-local compare-and-publish
+            -> performed publication
+            -> durability settlement and Query index publication
             -> idempotency and optional co-committed dispatch outbox
             -> external-effect observation and typed commit outcome
             -> aftermath publication
-            -> optional receipt-bound runtime recovery
+            -> optional settlement recovery or receipt-bound aftermath recovery
 ```
 
 Each arrow is a proof transition. A later product may retain evidence from an
@@ -54,10 +57,10 @@ identifiers, or equivalent-looking reports.
 | Application domain | Business vocabulary, schema meaning, operations, invariants, capability intent, and disclosure classifications | Runtime proof or lower-runtime truth |
 | Proof substrate (`worth-proof`) | Generic proof-bearing progression, freshness, readmission, composition, and capability carriers | Query permission, live runtime state, or owner-specific authority |
 | Foundational | Exact canonical values, keys, paths, portable bases, provenance, receipts, and shared boundary vocabulary | Proof progression, application permission, or relational truth |
-| Relational | Entities, relations, aspects, versions, snapshots, transactions, graph observations, and commit mechanics | Product authorization or application operation meaning |
+| Relational | Entities, relations, aspects, immutable branch roots, mutable branch-reference cells, exact branch observations, detached transactions, opaque prepared candidates, branch-local linearization, commit history, and durable publication settlement | Product authorization, application operation meaning, Query index publication, or external completion |
 | Runtime Bridge | Installed correspondence and lawful lowering between Query and lower runtimes | Relational facts, Signal decisions, or application policy |
 | Signal | Policy evaluation, producer-local scoped invalidation, readiness and scheduling, performed execution receipts, local evaluation slots, and condition outcomes | Application capability admission, Query maintenance authority, or relational mutation |
-| Query | Installed application meaning, authority composition, admission, typed progression, execution products, idempotency/outbox meaning, runtime-local recovery, and publication | Authentication truth, graph truth, policy truth, external completion, or durable reconstruction |
+| Query | Installed application meaning, authority composition, admission, typed progression, execution products, idempotency/outbox meaning, Query index publication, typed settlement recovery, runtime-local aftermath recovery, and consumer publication | Authentication truth, graph truth, policy truth, external completion, or Relational durability authority |
 | Store | Durable persistence, journals, restart checkpoints, and reconstructive state | Ordinary Query admission, live recovery authority, or external completion |
 | External effect owner | Whether an escaping consequence was accepted or completed | Query commit, application authorization, or recovery authority |
 
@@ -102,10 +105,12 @@ that they do.
 
 ### State progression is explicit
 
-Requested, admitted, executing, completed, stopped, published, and released
-objects are different states. Methods appear only on the states that may
-legally perform them. Do not simulate progression with booleans or status
-strings.
+Requested, admitted, prepared, executing, performed, settled, completed,
+stopped, published, and released objects are different states. In particular,
+`performed` means the branch reference already moved; `settled` means the
+owning runtime also acknowledged durability and any required Query publication.
+Methods appear only on the states that may legally perform them. Do not
+simulate progression with booleans or status strings.
 
 ### Currentness is part of authority
 
@@ -164,6 +169,13 @@ not expose raw primary-graph handles that would let a consumer bypass Query.
 Stable application aftermath and recovery enter through `primary_graph` and
 `publication::application_aftermath`. Do not teach
 `facade::provisional_aftermath` as stable undo/redo support.
+
+The same `primary_graph` audience exposes opaque application settlement
+recovery through `WorthQueryApplicationSettlementDeferred` and
+`WorthQueryPrimaryGraphApplicationRuntime::recover_deferred_application_settlement`.
+The host never receives Relational's raw settlement capability. This recovery
+finishes an already-performed commit and refreshes Query-owned publication; it
+does not rerun the application operation.
 
 Installed application meaning is inspectable without importing an owner crate.
 Through `facade::domain`, use `installed_schema.native_contracts()` for the
@@ -545,7 +557,10 @@ admitted application operation
     -> proposed state and effect program
     -> invariant execution
     -> authorization revalidation
-    -> provider compare-and-commit
+    -> provider prepares an opaque branch-bound candidate
+    -> branch-local compare-and-publish
+    -> performed publication
+    -> durability settlement and Query index publication
     -> idempotency resolution
     -> committed mutation and optional dispatch-outbox fact
     -> external dispatch observation
@@ -555,6 +570,9 @@ admitted application operation
 
 A proposed state is not committed truth. A selected invariant is not an
 executed invariant. A successful local effect program is not a commit receipt.
+The prepared candidate is opaque, runtime-affine, branch-bound, and single-use;
+it has no method that can publish itself. Only the Relational owner can consume
+it through compare-and-publish or explicit discard.
 
 The commit transition revalidates the dependencies whose drift could make the
 operation unlawful. Commit authority remains bound to its originating
@@ -568,6 +586,16 @@ share one Relational commit. Query dispatches only from that committed fact.
 it. Even an operation with no domain mutation must commit its outbox and
 idempotency fact before an external consequence may escape.
 
+`SettlementDeferred` is different from all of those outcomes. It means the
+authoritative branch movement already happened, but durability acknowledgement
+or Query's derived publication did not finish. The typed deferred carrier is
+the only legal retry input. Recovery repairs the exact performed publication,
+refreshes Query indexes, observes the current branch basis, proves the original
+commit remains in current ancestry, binds the current Bridge head, and
+re-admits idempotency when required. It runs under the application commit
+serialization boundary and is idempotent. Never rerun the mutation or obtain a
+raw Relational settlement token.
+
 External dispatch has its own published posture: `NotDeclared`,
 `PendingDispatch`, `Acknowledged`, `Completed`, or `Unresolved`. The external
 owner decides completion. Query records what it observed.
@@ -579,6 +607,14 @@ do not create application authority or alter committed history. They are not
 recorded inverse, compensation, reconciliation, or recovery.
 
 ### Application aftermath and recovery
+
+Publication-settlement recovery happens before ordinary application aftermath.
+It completes an already-performed Relational publication and Query's derived
+index/head publication. `WorthQueryApplicationSettlementDeferred` directs the
+host to
+`WorthQueryApplicationSettlementNextAction::RecoverDeferredApplicationSettlement`,
+and the installed application owner accepts it through
+`recover_deferred_application_settlement(...)`.
 
 After commit, the installed aftermath contract determines whether the result
 is reversible, compensatable, reconcilable, or irreversible. Runtime-local
@@ -614,6 +650,19 @@ or executed. Depending on the operation, it includes:
 Equal version ordinals on different branches are not equal bases. Matching
 digests from different owners are not interchangeable authority. A cursor is
 meaningful only with the query, ordering, branch, and basis that produced it.
+
+Relational branch truth has two distinct parts: an immutable root selected by
+an exact basis and a mutable reference cell that may later select another root.
+An owner-issued reference observation records the exact target and branch-local
+truth version seen together. Resolution of a serialized descriptor proves only
+its shape; the owning runtime must readmit it before it becomes operational.
+
+An admitted basis pins its immutable root. Reads through that basis are
+repeatable even if the live branch reference advances. A branch-bound
+Relational transaction is detached from the runtime after it opens and keeps
+that same basis for reads and staged writes. Publication later compares the
+prepared candidate's expected observation with the one current branch cell;
+unrelated branches do not share that linearization point.
 
 Currentness checks compare retained dependencies with the owning runtime. They
 do not rebuild authority from a fresh report. Relevant drift returns a typed
@@ -705,8 +754,9 @@ wake table is volatile derived state. The host supplies a typed predicate, a
 named clock source, a bounded reconstruction projection, and an ordinary
 application-operation invoker through `worth-query-host`. A clock reading is
 time evidence only. Signal decides eligibility, and Query then performs fresh
-principal, capability, purpose, invariant, idempotency, and compare-and-commit
-progression. The effect and the intent's completed posture commit atomically.
+principal, capability, purpose, invariant, idempotency, and branch-local
+compare-and-publish progression. The effect and the intent's completed posture
+commit atomically.
 
 Bridge decision evidence enters Query as one of five public postures:
 eligible, dependency-unchanged, reverted-clean, suppressed, or deferred. Only
@@ -844,6 +894,13 @@ support. Those values are intentionally weaker than execution authority. They
 cannot mint a recovery handle, redispatch an effect, compensate a commit, or
 resolve an indeterminate result.
 
+A performed-but-unsettled mutation returns opaque typed recovery authority,
+not a successful publication receipt and not a denial. Generic effect paths use
+`EffectExecutionSettlementDeferred` or `EffectBatchSettlementDeferred` and
+repair with fresh owning `EffectExecutionAuthority`. Application and branch
+merge paths wrap the same lower-runtime fact in their own public carriers so
+callers cannot reach the raw `DeferredPublicationSettlement`.
+
 Downstream runtimes consume bound projections or publication receipts. They do
 not reach behind the facade to recover raw Query or Relational state.
 
@@ -871,6 +928,8 @@ Important distinctions include:
 - pending versus terminal;
 - published versus internally completed;
 - committed versus already committed;
+- prepared versus performed versus settled publication;
+- execution denied versus performed-but-settlement-deferred;
 - partial effect versus indeterminate;
 - external dispatch pending, acknowledged, completed, or unresolved;
 - live recovery authority versus published recovery support.
@@ -957,7 +1016,9 @@ typed operation reference
     -> proposed state
     -> effect and invariant execution
     -> authorization revalidation
-    -> compare-and-commit
+    -> opaque candidate preparation
+    -> branch-local compare-and-publish
+    -> durability and Query publication settlement
     -> typed terminal outcome
     -> governed publication
 ```
@@ -1019,6 +1080,10 @@ Use this table when deciding where a change belongs.
 |---|---|
 | What entities, relations, fields, or versions exist? | Relational |
 | What transaction committed and at which version? | Relational |
+| Which immutable root and exact observation does a branch reference select? | Relational |
+| Which branch cell linearizes a prepared candidate? | Relational, independently per branch |
+| Did canonical branch movement occur even though durability acknowledgement failed? | Relational performed-publication evidence |
+| May an already-performed application or merge publication be repaired through this facade? | Query typed settlement recovery over the owning Relational runtime |
 | How does installed Query meaning correspond to lower-runtime structures? | Runtime Bridge |
 | Which installed semantic dependencies match one committed change? | Runtime Bridge candidate selection followed by Query admission |
 | Which scoped recomputation did the lower runtime actually perform? | Signal performed execution receipt |
@@ -1033,7 +1098,7 @@ Use this table when deciding where a change belongs.
 | What idempotency and dispatch-outbox meaning belongs to this operation? | Query over committed Relational facts |
 | Did an escaping consequence complete? | External effect owner |
 | Is a receipt-bound recovery action legal now? | Query runtime |
-| Can recovery survive restart or cross a process boundary? | Store-backed capability; currently deferred |
+| Can a live Query aftermath recovery handle survive restart or cross a process boundary? | Store-backed capability; currently deferred |
 | How is committed graph state persisted and versioned? | Relational |
 | How are durable reconstructive artifacts retained? | Store |
 | How is a published product encoded for another process? | Transport adapter |
@@ -1090,7 +1155,12 @@ Do not:
   surface; keep those bindings explicit and named;
 - hide typed denial, stale, cancellation, or resource state inside a generic
   success/failure flag;
-- treat Relational rollback as an application-level authority transition.
+- treat Relational rollback as an application-level authority transition;
+- retry an application mutation or merge after a settlement-deferred outcome;
+- expose, serialize, or repair from a raw `DeferredPublicationSettlement`
+  instead of the audience facade's opaque typed carrier;
+- let an opaque prepared Relational candidate publish itself or be reused after
+  publication or discard.
 
 ## Documentation Map
 
@@ -1108,7 +1178,9 @@ Start with the guide that owns the concept you are changing:
 - [Graph Read Access Planning](./authoring/graph-read-access-planning.md)
 - [Provider Sessions And Decision Read-Sets](./domain-capabilities/provider-sessions-and-decision-read-sets.md)
 - [Provisional State And Invariant Execution](./domain-capabilities/provisional-state-and-invariant-execution.md)
+- [Authority-Scoped Effect Execution](./execution/authority-scoped-effect-execution.md)
 - [Application Aftermath, External Effects, And Recovery](./execution/application-aftermath-and-recovery.md)
+- [Branches And Previews](./foundations/branches-and-previews.md)
 - [Lower-Runtime Capability Routing](./domain-capabilities/lower-runtime-capability-routing.md)
 - [Projection Consumption](./capabilities/projection-consumption.md)
 - [Granular Live Invalidation](./runtime-surfaces/granular-live-invalidation.md)

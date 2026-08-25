@@ -45,6 +45,16 @@ Host provider integration:
 Provider traits belong in runtime assembly. Domain consumers should not invoke
 them directly.
 
+The higher application facade exposes a performed-publication terminal as:
+
+- `WorthQueryApplicationCommitOutcome::SettlementDeferred(...)`
+- `WorthQueryApplicationSettlementDeferred`
+- `WorthQueryApplicationSettlementNextAction::RecoverDeferredApplicationSettlement`
+- `WorthQueryPrimaryGraphApplicationRuntime::recover_deferred_application_settlement(...)`
+
+The provider-session settlement carrier and raw Relational settlement remain
+inside the owning execution boundary.
+
 ## Core Mental Model
 
 The provider protocol is a type-level sequence:
@@ -67,6 +77,13 @@ the session-owned read port and terminate. Mutations continue through complete
 decision facts, proposed state, real invariant execution, and
 compare-and-commit. The lower managed run is the exact worker inside that
 application session, not a competing session authority.
+
+Compare-and-commit has a terminal that ordinary error handling must not erase:
+the Relational branch movement can perform before durability or Query index
+publication finishes. The provider then returns a typed settlement-deferred
+carrier. The application layer wraps it in
+`WorthQueryApplicationSettlementDeferred`; it does not turn the result into a
+denial and does not expose the raw lower-runtime repair capability.
 
 The basis is branch-qualified. A version ordinal has meaning only with its
 typed branch and runtime identity; an equal ordinal from another branch cannot
@@ -106,12 +123,15 @@ running run admits installed graph participation
   -> caller requests every installed decision fact
   -> provider returns bound evidence
   -> Query compares every captured fact
-  -> fresh continues; stale replans; lower failure remains typed for the
-     installed application-operation owner
+  -> fresh continues; stale replans
+  -> mutation progression prepares and compares one branch-bound candidate
+  -> committed, already committed, or performed-but-settlement-deferred
 ```
 
 Provider rejection or panic is caught at the exact protocol stage. Abort and
 cleanup outcomes retain whether physical recovery is complete or required.
+Settlement-deferred is post-effect: the operation must be repaired, not
+aborted, discarded, or rerun.
 
 ## Small Example
 
@@ -155,6 +175,14 @@ The installed operation determines which fact families are complete. The
 caller supplies locators for that declared closure; it cannot omit a required
 family or add an undeclared one.
 
+If the later application commit returns `SettlementDeferred`, hand its opaque
+carrier to `recover_deferred_application_settlement(...)`. That serialized
+recovery boundary repairs durability, refreshes Query indexes, observes the
+current branch head, proves the performed commit remains in its ancestry,
+binds the current Bridge head, and validates the exact idempotency binding,
+readmitting it when required. It preserves a later legal head and is safe to
+call again.
+
 ## How It Relates To Other Features
 
 - [Execution Resource Admission And Managed Runs](./execution-resource-admission-and-managed-runs.md)
@@ -178,6 +206,8 @@ Inspect:
 - read-set identity and requested, provider-call, compared, stale, and
   false-conflict counters;
 - protocol failure stage and recovery posture.
+- settlement-deferred stage, detail, counters, and optional Query publication
+  failure without inspecting a raw settlement token.
 
 If capture fails for incompleteness, no provisional provider call should have
 occurred.
@@ -192,6 +222,10 @@ occurred.
 - Letting effect authority capture facts or read authority stage effects.
 - Treating a fresh read-set as mutation or commit authority.
 - Continuing after `Stale` without replanning.
+- Retrying, aborting, or discarding a mutation after its provider reports
+  performed-but-settlement-deferred.
+- Exposing the provider-session or Relational settlement carrier to application
+  callers.
 
 ## Current Limits
 
@@ -202,8 +236,8 @@ occurred.
   state.
 - This document stops at the provider-session worker boundary. The higher
   installed application-operation progression owns compare-and-commit,
-  idempotency, co-committed outbox meaning, external dispatch, aftermath, and
-  receipt-bound recovery.
+  idempotency, co-committed outbox meaning, typed settlement recovery, external
+  dispatch, aftermath, and receipt-bound recovery.
 
 ## Related Docs
 

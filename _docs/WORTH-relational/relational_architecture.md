@@ -240,7 +240,44 @@ The architectural rule is:
 
 Authoritative mutation flows through transactions.
 
-The main public transaction-side types are:
+The branch-qualified public transaction path is:
+
+```text
+exact branch observation
+  -> owner-admitted immutable basis
+  -> detached branch-bound transaction
+  -> validated proposal
+  -> opaque prepared candidate
+  -> branch-local compare-and-publish
+  -> performed publication
+  -> durability settlement
+```
+
+Its main public types are:
+
+- `RelationalBranchReferenceObservation`
+- `RelationalBranchBasisDescriptor`
+- `AdmittedRelationalBranchBasis`
+- `BranchBoundRelationalTransaction`
+- `RelationalTransactionIntent`
+- `RelationalTransactionFootprint`
+- `ValidatedRelationalProposal`
+- `PreparedRelationalCommitCandidate`
+- `RelationalPublicationPort`
+- `RelationalPublicationOutcome`
+- `PerformedRelationalCommit`
+- `DeferredPublicationSettlement`
+
+`RelationalRuntime::begin_branch_transaction(...)` opens a move-only
+transaction from one owner-admitted exact basis. The transaction contains no
+runtime reference, so reads and staging remain repeatable against its retained
+immutable root while unrelated work continues. Preparation is effect-free and
+returns an opaque, runtime-affine, branch-bound, single-use candidate. That
+candidate has no publication method; only the owner publication port can
+consume it or the runtime can discard it.
+
+Older/general transaction vocabulary still used by intent construction and
+commit artifacts includes:
 
 - `RelationalTransaction`
 - `TransactionId`
@@ -311,15 +348,32 @@ Examples:
 
 ## Commit Artifacts
 
-Milestone 5 made commit output reconstructive instead of flattening it into one
-bag.
+Commit output is reconstructive rather than flattened into one bag. The current
+path also distinguishes preparation, performed branch movement, and durable
+settlement.
+
+### Prepared, performed, and settled
+
+`PreparedRelationalCommitCandidate` is pre-effect. It carries all fallible
+preparation needed by branch publication but has not moved the reference.
+
+`PerformedRelationalCommit` proves the expected branch reference compared
+successfully and the canonical branch cutover occurred. It exposes the
+canonical commit, ordered patch position, and next admitted basis. It is
+non-cloneable and must be settled by the owning runtime.
+
+`RelationalRuntime::settle_performed_publication(...)` completes durability and
+derived publication. If the branch already moved but durable append fails, the
+ordinary commit surface returns `TransactionCommitError::PerformedButDurabilityDeferred`
+with a `DeferredPublicationSettlement`. Repair is runtime-affine and idempotent;
+it completes the exact performed route rather than rerunning the transaction.
 
 ### CommitOutcome
 
 `CommitOutcome` is the baseline successful commit result:
 
 - `transaction_id`
-- `commit: CommitReference`
+- `commit: RelationalCommitReceipt`
 - `version_id`
 - `snapshot: SnapshotHandle`
 - `changed_records: Vec<RecordRef>`
@@ -688,13 +742,33 @@ Those are the primary entrypoints for projection reads.
 
 ## Publication and Patch Model
 
-Publication is coherent and commit-native.
+Publication is coherent, commit-native, and branch-local at its authority
+boundary. One mutable branch-reference cell is the currentness and
+linearization authority for that branch. Immutable roots and canonical commit
+artifacts are retained separately.
 
-### Publication bundle
+### Canonical movement and derived publication bundle
 
-The main publication types are:
+The authority-bearing publication types are:
 
-- `PublicationBundle<ReplayRecord>`
+- `PreparedRelationalCommitCandidate`
+- `RelationalPublicationPort`
+- `RelationalPublicationOutcome`
+- `PerformedRelationalCommit`
+- `DeferredPublicationSettlement`
+- `PositionedCanonicalCommit`
+
+Compare-and-publish locks only the candidate's branch coordination cell while
+it compares the exact expected descriptor and swaps in the prepared immutable
+root. The canonical performed stream assigns an ordered patch position during
+that cutover. Its lifecycle gate coordinates checkpoint selection, but it does
+not turn all branch movement into one runtime-global mutation lock.
+
+`PublicationBundle<RelationalReplayRecord>` still exists as a derived
+observation surface after commit execution. It is not the branch currentness or
+publication authority. Its supporting types are:
+
+- `PublicationBundle<RelationalReplayRecord>`
 - `PublicationStatus`
 - `PublicationStage`
 - `PublicationError`
@@ -751,7 +825,7 @@ Replay is canonical-envelope driven.
 
 `CanonicalCommitEnvelope` currently contains:
 
-- `commit: CommitReference`
+- `commit: RelationalCommitReceipt`
 - `branch_context`
 - `merge_parent_branches`
 - `merge_base_commits`
@@ -829,10 +903,15 @@ Important public history types include:
 
 - `CommitId`
 - `BranchId`
-- `CommitReference`
-- `BranchHead`
-- `VersionNode`
-- `VersionGraphSnapshot`
+- `RelationalCommitReceipt`
+- `OrderedParentList`
+- `RelationalCommitIdentity`
+- `RelationalCommitParentage`
+- `RelationalBranchIdentity`
+- `RelationalBranchReferenceObservation`
+- `RelationalBranchBasisDescriptor`
+- `AdmittedRelationalBranchBasis`
+- `RelationalForkOutcome`
 - `MergeConflictRecord`
 - `MergeInspection`
 - `VersionGraphPolicy`
@@ -840,9 +919,16 @@ Important public history types include:
 
 Important current truths:
 
-- `CommitReference` includes ordered parent commit IDs
-- branch heads are explicit
-- version graph snapshots are explicit
+- `RelationalCommitReceipt` includes ordered parent commit IDs; its branch ID is
+  authoring provenance and does not select a mutable head
+- each mutable branch reference selects one immutable root and exposes an exact
+  reference observation
+- owner-admitted bases retain exact roots for repeatable reads and must be
+  readmitted against the owning runtime when restored from descriptors
+- a branch head is resolved through current branch-reference authority, not a
+  free-standing `BranchHead` value
+- forks create a new reference cell and share the immutable source root rather
+  than copying the graph
 - merge inspection is structured rather than ad hoc
 - merge-ready parent ordering is already part of the model even before any
   broader future merge work
@@ -951,6 +1037,13 @@ Current durability truths:
   authority; it changes storage mode, not semantic authority
 - checkpoint and tail-log recovery are explicit
 - corruption fallback is structured and diagnosable
+- checkpoints capture exact branch-reference cells, retained immutable branch
+  roots, root schema images, and positioned canonical envelopes
+- checkpoint admission rejects an in-flight publication and any performed
+  publication that has not completed owner settlement
+- recovery and migration rebuild branch-qualified reference state and verify
+  branch-cell/root parity; a runtime-global latest version is not a substitute
+  for those per-branch facts
 
 ## Diagnostics
 
@@ -1022,9 +1115,14 @@ behavior.
 The codebase now follows a stronger phase distinction than older versions:
 
 - committed reads use committed read surfaces
+- owner-admitted branch bases pin immutable roots and provide repeatable reads
+- detached branch transactions carry their exact basis without broadly
+  borrowing the runtime
 - speculative/working-state observation is explicit in validation and write-path
   flows
-- mutation authority remains explicit and serialized
+- mutation authority remains explicit; compare-and-publish is serialized by the
+  target branch cell, not one runtime-global branch lock
+- prepared, performed, and settled publication are different phases
 - replay, publication, and recovery have their own artifact surfaces
 
 Avoid reintroducing APIs that erase these boundaries into one generic
@@ -1060,7 +1158,7 @@ Future work should assume the following as stable architectural ground:
 - namespaced facade is the primary public and internal default surface
 - commit results are reconstructive artifact envelopes
 - replay is envelope-driven
-- publication is coherent
+- publication is coherent and branch-local at its linearization authority
 - lineage and derived indexes are explicit domains
 - projection reads are the primary ergonomic read API
 - bulk packetized reads are the primary query API
@@ -1080,14 +1178,16 @@ If you are new to the crate and want to understand the current system quickly,
 read in this order:
 
 1. [`src/facade.rs`](../../crates/worth-relational/src/facade.rs)
-2. [`src/transactions/data/outcomes.rs`](../../crates/worth-relational/src/transactions/data/outcomes.rs)
-3. [`src/transactions/data/commit_log.rs`](../../crates/worth-relational/src/transactions/data/commit_log.rs)
-4. [`src/replay/data/mod.rs`](../../crates/worth-relational/src/replay/data/mod.rs)
-5. [`src/visibility/materialization/read_records/projection.rs`](../../crates/worth-relational/src/visibility/materialization/read_records/projection.rs)
-6. [`src/storage/data/mod.rs`](../../crates/worth-relational/src/storage/data/mod.rs)
-7. [`src/history/data/mod.rs`](../../crates/worth-relational/src/history/data/mod.rs)
-8. [`src/lineage/data/mod.rs`](../../crates/worth-relational/src/lineage/data/mod.rs)
-9. [`src/config/data/mod.rs`](../../crates/worth-relational/src/config/data/mod.rs)
-10. the highest-signal domain tests, especially the fintech workflow harness
+2. [`src/facade/branch.rs`](../../crates/worth-relational/src/facade/branch.rs)
+3. [`src/facade/mvcc.rs`](../../crates/worth-relational/src/facade/mvcc.rs)
+4. [`src/transactions/data/outcomes/mod.rs`](../../crates/worth-relational/src/transactions/data/outcomes/mod.rs)
+5. [`src/transactions/data/commit_log.rs`](../../crates/worth-relational/src/transactions/data/commit_log.rs)
+6. [`src/replay/data/mod.rs`](../../crates/worth-relational/src/replay/data/mod.rs)
+7. [`src/visibility/materialization/read_records/projection/mod.rs`](../../crates/worth-relational/src/visibility/materialization/read_records/projection/mod.rs)
+8. [`src/storage/data/mod.rs`](../../crates/worth-relational/src/storage/data/mod.rs)
+9. [`src/history/data/mod.rs`](../../crates/worth-relational/src/history/data/mod.rs)
+10. [`src/lineage/data/mod.rs`](../../crates/worth-relational/src/lineage/data/mod.rs)
+11. [`src/config/data/mod.rs`](../../crates/worth-relational/src/config/data/mod.rs)
+12. the highest-signal domain tests, especially the fintech workflow harness
 
 That sequence gives the current runtime story with minimal archaeological work.

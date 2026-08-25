@@ -48,6 +48,17 @@ Stable preview-local operations:
 - stage preview-local writes
 - discard or promote a preview outcome
 
+Stable ordinary branch-merge operations under
+`worth_query::facade::workflow`:
+
+- `declare_branch_merge(...)`
+- `branch_merge(...)`
+- `WorthQueryBranchMergeOutcome`
+- `WorthQueryBranchMergeSettlementDeferred`
+- `WorthQueryBranchMergeNextAction::RepairDeferredBranchMergeSettlement`
+- `WorthQueryRuntime::repair_deferred_branch_merge_settlement(...)`
+- `WorthQueryWorkspace::repair_deferred_branch_merge_settlement(...)`
+
 Stable preview-live planning entry points live under
 `worth_query::facade::policy`:
 
@@ -91,6 +102,26 @@ Branch:
 The key idea is isolation by authority lane, not by reimplementing the whole
 runtime.
 
+Under that Query lane, Relational owns the actual branch reference. Each branch
+has one mutable reference cell that selects an immutable root. An exact
+reference observation records its selected target and branch-local truth
+version together. Equal version numbers on different branches do not describe
+the same state.
+
+An owner-admitted branch basis pins the selected immutable root. Reads through
+that basis are repeatable even when the live reference advances. A transaction
+opened from the basis is detached from the runtime: it carries the exact basis,
+overlay, and footprint without holding a general runtime borrow. Preparation
+produces an opaque, single-use candidate. Publication compares that candidate
+against only its branch cell, so unrelated branches have independent
+linearization points.
+
+Serialized basis descriptors are descriptive, not operational. Resolving one
+checks its shape; only the owning Relational runtime can readmit it against the
+live reference, retained root, lifecycle posture, and runtime identity. Query
+consumes those admitted owner products through its facade rather than
+reconstructing branch authority from IDs or digests.
+
 For preview-live planning, isolation is also basis-scoped. A preview plan
 binding and a scoped observation basis must agree structurally before Query
 mints `ScopedPreviewSessionPlanBinding`. Live admission then consumes that
@@ -127,6 +158,19 @@ Branch path:
 1. Open a branch session from the workspace.
 2. Use the declared branch effect policy.
 3. Stage branch-local intent work when support and policy admit it.
+
+An admitted Relational-backed mutation then follows a stricter owner path:
+
+1. Observe or readmit one exact branch basis.
+2. Open a detached transaction from that basis and stage work.
+3. Validate and prepare one opaque branch-bound candidate without moving the
+   reference.
+4. Compare-and-publish under that branch's bounded critical section.
+5. Settle durability and refresh any required Query indexes.
+
+The performed and settled boundaries are distinct. If branch movement succeeds
+but settlement fails, the operation returns typed settlement recovery. It must
+not rerun the mutation or merge.
 
 `derive_only` is the default for both preview and branch sessions. That means
 derived behavior is allowed, but delivery and write-intent work are denied or
@@ -219,6 +263,39 @@ let branch_result = {
 };
 ```
 
+An ordinary branch merge handles performed-but-unsettled publication through
+the workspace that owns the Relational runtime:
+
+```rust
+use worth_query::facade::workflow::{
+    branch_merge, declare_branch_merge, WorthQueryBranchMergeNextAction,
+    WorthQueryBranchMergeOutcome,
+};
+
+let declaration = declare_branch_merge("main", "candidate")?;
+let context = branch_merge(&workspace, &declaration)?;
+
+match declaration.using(context).run(&mut workspace) {
+    WorthQueryBranchMergeOutcome::Completed(completion) => {
+        inspect_merge(completion);
+    }
+    WorthQueryBranchMergeOutcome::SettlementDeferred(deferred) => {
+        assert_eq!(
+            deferred.next_action(),
+            WorthQueryBranchMergeNextAction::RepairDeferredBranchMergeSettlement,
+        );
+        let receipt = workspace
+            .repair_deferred_branch_merge_settlement(&deferred)?;
+        record_repaired_merge(receipt);
+    }
+    other => handle_merge_stop(other),
+}
+```
+
+The deferred carrier hides the raw Relational settlement. Repair with a foreign
+runtime is rejected, repair with the owning workspace is idempotent, and a
+subsequent public operation can proceed after repair.
+
 When a preview also carries a live plan, keep basis admission explicit:
 
 ```rust
@@ -272,6 +349,10 @@ What gets retained:
 - execution evidence
 - closeout evidence
 - preview or branch-local intent receipts when admitted
+- exact branch observations and immutable-root retention for admitted
+  Relational bases
+- opaque settlement recovery when branch movement performed but durability did
+  not settle
 
 What closeout means:
 
@@ -316,6 +397,8 @@ Look for:
 - rebinding digests on successful promotion
 - basis snapshot tokens, rebinding digests, recovery posture, and denial
   digests on failed promotion
+- branch-merge settlement message, counters, and `next_action()` without raw
+  settlement access
 
 ## Anti-Patterns
 
@@ -327,6 +410,12 @@ Look for:
   live-plan digest.
 - Treating preview or branch sessions as separate domain runtimes rather than
   authority-lane shifts over retained surfaces.
+- Reconstructing a live branch basis from branch ID, commit ID, version, or a
+  serialized descriptor instead of owner readmission.
+- Assuming a reference-selected read follows later branch movement; an admitted
+  basis is repeatable and remains pinned to its immutable root.
+- Retrying a merge after `WorthQueryBranchMergeOutcome::SettlementDeferred` or
+  reaching for the raw Relational repair capability.
 
 ## Current Limits
 
@@ -341,8 +430,11 @@ Look for:
   posture when crossed preview residue cannot be promoted honestly.
 - Preview-local and branch-local intent work still depends on admitted intent
   support and the correct sandboxed policy.
-- Durable preview replay, store-backed branch semantics, and temporal/async
-  branch behavior remain future work.
+- Relational branch-local MVCC, exact-basis readmission, detached transactions,
+  and typed branch-merge settlement repair are implemented owner capabilities.
+  They do not make every Query branch-session effect family supported.
+- Durable preview replay and temporal/async branch-session behavior remain
+  future work.
 
 ## Related Docs
 
