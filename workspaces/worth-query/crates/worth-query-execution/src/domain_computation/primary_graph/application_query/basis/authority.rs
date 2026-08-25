@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 use std::time::Instant;
 
+use super::super::WorthQueryApplicationBasisIdentity;
 use worth_query_installation::facade::ApplicationSchemaBindingIdentity;
-use worth_relational::facade::runtime::RelationalExecutionBasisIdentity;
 
 use crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity;
 use crate::domain_computation::primary_graph::application_query::resource_lifecycle::WorthQueryApplicationBasisLease;
@@ -24,7 +24,7 @@ pub struct WorthQueryApplicationPinnedBasis<Schema> {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryApplicationPinnedBasisReleaseReceipt {
-    basis_identity: RelationalExecutionBasisIdentity,
+    basis_identity: WorthQueryApplicationBasisIdentity,
     released: bool,
 }
 
@@ -51,7 +51,7 @@ impl<Schema> WorthQueryApplicationPinnedBasis<Schema> {
         }
     }
 
-    pub fn identity(&self) -> &RelationalExecutionBasisIdentity {
+    pub fn identity(&self) -> &WorthQueryApplicationBasisIdentity {
         self.lease.identity()
     }
 
@@ -113,7 +113,7 @@ impl<Schema> WorthQueryApplicationPinnedBasis<Schema> {
 }
 
 impl WorthQueryApplicationPinnedBasisReleaseReceipt {
-    pub fn basis_identity(&self) -> &RelationalExecutionBasisIdentity {
+    pub fn basis_identity(&self) -> &WorthQueryApplicationBasisIdentity {
         &self.basis_identity
     }
 

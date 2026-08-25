@@ -1,4 +1,3 @@
-use crate::capabilities::PublicationBundleSource;
 use crate::publication::patch::data::{
     PatchStreamBatch, PatchStreamReadError, PatchStreamReadErrorClass, PatchStreamRequest,
 };
@@ -17,15 +16,7 @@ pub(crate) fn read_patch_stream(
     }
 
     let latest_position = runtime.history().latest_patch_stream_position();
-    let latest_commit_id = runtime
-        .latest_publication_bundle()
-        .map(|bundle| bundle.commit.commit_id)
-        .or_else(|| {
-            runtime
-                .history()
-                .latest_commit()
-                .map(|commit| commit.commit_id)
-        });
+    let latest_commit_id = runtime.history().latest_canonical_commit_id();
 
     if let Some(after_position) = request.after_position {
         if !runtime
@@ -43,7 +34,7 @@ pub(crate) fn read_patch_stream(
         retained_canonical_envelopes_after(runtime, request.after_position, request.max_commits)
             .map_err(retained_history_gap)?
             .into_iter()
-            .map(|envelope| envelope.patch)
+            .map(|commit| commit.published_patch())
             .collect();
 
     Ok(PatchStreamBatch {

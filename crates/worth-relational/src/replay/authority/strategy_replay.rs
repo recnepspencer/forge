@@ -3,13 +3,17 @@ use crate::commit_strategies::data::StrategyCommitArtifactBundle;
 use crate::commit_strategies::data::StrategyExecutionDraft;
 use crate::history::data::{BranchId, CommitId};
 use crate::replay::data::{
-    CanonicalCommitEnvelope, ReplayMismatch, ReplayMismatchClass, ReplayObservableSurface,
-    ReplayVerificationLayer, ReplayVerificationMode,
+    CanonicalCommitEnvelope, ReplayMismatch, ReplayMismatchClass, ReplayVerificationLayer,
+    ReplayVerificationMode,
 };
 use crate::runtime::RelationalRuntime;
-use crate::transactions::data::TransactionOptions;
 
 use super::super::planning::replay_commit_closure_by_commit_id_order;
+
+mod basis_admission;
+mod mismatch;
+
+use mismatch::strategy_mismatch;
 
 pub(super) fn verify_strategy_reexecution_surface(
     runtime: &mut RelationalRuntime,
@@ -229,14 +233,28 @@ fn lower_strategy_replay(
     mismatches: &mut Vec<ReplayMismatch>,
 ) -> Option<StrategyCommitArtifactBundle> {
     let replay_request = expected_artifacts.replay_request();
-    let lowered = match basis_runtime.commit_strategies_authority().lower_execution(
+    let options = match basis_admission::replay_transaction_context(
+        basis_runtime,
+        &envelope.branch_context,
+        &envelope.merge_parent_branches,
+    ) {
+        Ok(context) => context,
+        Err(denial) => {
+            mismatches.push(strategy_mismatch(
+                ReplayMismatchClass::StrategyLoweringDrift,
+                format!("strategy replay transaction basis was denied: {denial:?}"),
+                expected_artifacts,
+                None,
+            ));
+            return None;
+        }
+    };
+    let mut strategy_authority = basis_runtime.commit_strategies_authority();
+    let lowered = match strategy_authority.lower_execution_with_input(
+        basis_runtime,
         &replay_request,
         execution,
-        TransactionOptions {
-            target_branch: Some(envelope.branch_context.clone()),
-            merge_parent_branches: envelope.merge_parent_branches.clone(),
-            ..TransactionOptions::default()
-        },
+        options,
     ) {
         Ok(lowered) => lowered,
         Err(error) => {
@@ -259,23 +277,20 @@ fn lower_strategy_replay(
         || expected_artifacts.preview_validation_cost().is_some()
         || expected_artifacts.validated_against_version_id().is_some()
     {
-        match basis_runtime
-            .commit_strategies_authority()
-            .validate_lowered_plan(lowered.clone())
+        if let Err(detail) = basis_runtime
+            .history
+            .prepare_replay_target_sequence(envelope.commit.commit_id, envelope.commit.version_id)
         {
-            Ok(validated) => Some(
-                StrategyCommitArtifactBundle::from_lowered(
-                    validated.lowered_plan(),
-                    &descriptor,
-                    basis_runtime.runtime_config(),
-                )
-                .with_preview_validation(
-                    validated.validation_summary(),
-                    validated.preview_validation_cost(),
-                    validated.validated_against_commit_id(),
-                    validated.validated_against_version_id(),
-                ),
-            ),
+            mismatches.push(strategy_mismatch(
+                ReplayMismatchClass::StrategyLoweringDrift,
+                detail.to_string(),
+                expected_artifacts,
+                None,
+            ));
+            return None;
+        }
+        match strategy_authority.validate_lowered_plan(basis_runtime, lowered) {
+            Ok(validated) => validated.strategy_commit_artifacts().cloned(),
             Err(error) => {
                 mismatches.push(strategy_mismatch(
                     ReplayMismatchClass::StrategyLoweringDrift,
@@ -321,28 +336,11 @@ fn ensure_strategy_replay_basis_branch(
 
     basis_runtime
         .history_authority()
-        .create_branch(envelope.branch_context.clone(), &source_branch)
+        .fork_branch_from(envelope.branch_context.clone(), &source_branch)
         .map_err(|error| {
             format!(
                 "failed to reconstruct strategy replay basis branch {:?} from {:?}: {error:?}",
                 envelope.branch_context, source_branch
             )
         })
-}
-
-fn strategy_mismatch(
-    class: ReplayMismatchClass,
-    detail: String,
-    expected_artifacts: &StrategyCommitArtifactBundle,
-    observed: Option<String>,
-) -> ReplayMismatch {
-    ReplayMismatch {
-        class,
-        history_drift_class: None,
-        surface: ReplayObservableSurface::Strategy,
-        verification_layer: ReplayVerificationLayer::DeepArtifactParity,
-        detail,
-        expected: Some(format!("{:?}", expected_artifacts.replay_descriptor())),
-        observed,
-    }
 }

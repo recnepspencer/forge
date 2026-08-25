@@ -24,7 +24,6 @@ pub(super) fn describe_query_publication(
             runtime_instance: basis.runtime_instance(),
             branch: basis.branch().to_owned(),
             snapshot: basis.snapshot(),
-            lease: basis.lease(),
             version: basis.version(),
             posture: match basis.posture() {
                 WorthQueryPublishedApplicationBasisPosture::Current => {

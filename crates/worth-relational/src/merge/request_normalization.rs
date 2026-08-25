@@ -1,16 +1,16 @@
 use crate::merge::data::{
-    MergeExecutionRequest, MergePlanningRequest, NormalizedRelationalMergeRequest,
-    RelationalMergeRequestNormalizationDenial,
+    NormalizedRelationalMergeRequest, OwnerBoundMergeExecutionRequest,
+    OwnerBoundMergePlanningRequest, RelationalMergeRequestNormalizationDenial,
 };
 
-pub(super) fn normalize_merge_planning_request(
-    request: MergePlanningRequest,
+pub(super) fn normalize_bound_merge_planning_request(
+    request: OwnerBoundMergePlanningRequest,
 ) -> Result<NormalizedRelationalMergeRequest, RelationalMergeRequestNormalizationDenial> {
-    NormalizedRelationalMergeRequest::from_planning_request(request)
+    NormalizedRelationalMergeRequest::from_owner_bound_planning_request(request)
 }
 
-pub(super) fn normalize_merge_execution_request(
-    request: MergeExecutionRequest,
+pub(super) fn normalize_bound_merge_execution_request(
+    request: OwnerBoundMergeExecutionRequest,
 ) -> Result<NormalizedRelationalMergeRequest, RelationalMergeRequestNormalizationDenial> {
-    NormalizedRelationalMergeRequest::from_execution_request(request)
+    NormalizedRelationalMergeRequest::from_owner_bound_execution_request(request)
 }

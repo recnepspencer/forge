@@ -15,7 +15,6 @@ fn execute_prepared_merge_survives_durability_append_and_recovery() {
     let merge_envelope = runtime
         .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)
-        .cloned()
         .expect("live merge envelope");
 
     let (_recovery, mut recovered) =
@@ -24,7 +23,6 @@ fn execute_prepared_merge_survives_durability_append_and_recovery() {
     let recovered_envelope = recovered
         .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)
-        .cloned()
         .expect("recovered merge envelope");
 
     assert_eq!(before_bundle.visible_truth, recovered_bundle.visible_truth);

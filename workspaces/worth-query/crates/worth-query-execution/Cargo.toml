@@ -6,6 +6,11 @@ license.workspace = true
 description = "Installed Query execution authority over admitted plans."
 publish = false
 
+[features]
+allocation-probes = []
+test-durability-faults = ["worth-relational/test-durability-faults"]
+test-primary-graph-faults = []
+
 [dependencies]
 sha2 = "0.10"
 worth-foundational = { path = "../../../../crates/worth-foundational" }
@@ -20,6 +25,7 @@ worth-query-installation = { path = "../worth-query-installation" }
 [dev-dependencies]
 serde_json = "1"
 stats_alloc = "0.1"
+worth-relational = { path = "../../../../crates/worth-relational", features = ["test-durability-faults"] }
 
 [lints]
 workspace = true

@@ -1,9 +1,9 @@
+use crate::domain_computation::primary_graph::WorthQueryApplicationBasisIdentity;
 use worth_query_admission::facade::graph_obligation::WorthQueryAdmittedGraphWorkPlan;
 use worth_query_installation::facade::{
     ApplicationSchemaBindingIdentity, WorthQueryInstalledGraphObligationSetIdentity,
 };
 use worth_relational::facade::identity::EntityId;
-use worth_relational::facade::runtime::RelationalExecutionBasisIdentity;
 
 use super::{
     WorthQueryGraphReadOwnerPort, WorthQueryGraphWorkBranchAffinity,
@@ -46,7 +46,7 @@ impl WorthQueryGraphWorkAccessContextAffinity {
 
 enum WorthQueryGraphWorkBasis {
     Query {
-        identity: RelationalExecutionBasisIdentity,
+        identity: WorthQueryApplicationBasisIdentity,
         port: WorthQueryGraphReadOwnerPort,
     },
     Mutation(Option<WorthQueryApplicationSnapshotLease>),
@@ -87,7 +87,7 @@ impl WorthQueryManagedGraphWorkSession {
         subject_authority: &str,
         principal: EntityId,
         access: WorthQueryGraphWorkAccessContextAffinity,
-        basis: &RelationalExecutionBasisIdentity,
+        basis: &WorthQueryApplicationBasisIdentity,
         provider: &str,
         port: WorthQueryGraphReadOwnerPort,
     ) -> Result<Self, WorthQueryManagedGraphWorkSessionStartDenial> {
@@ -280,7 +280,7 @@ impl WorthQueryManagedGraphWorkSession {
     fn retained_affinity_is_exact(&self) -> bool {
         let basis_branch = match &self.basis {
             WorthQueryGraphWorkBasis::Query { identity, .. } => identity.branch_id(),
-            WorthQueryGraphWorkBasis::Mutation(Some(lease)) => &lease.snapshot().branch_id,
+            WorthQueryGraphWorkBasis::Mutation(Some(lease)) => lease.snapshot().branch_id(),
             WorthQueryGraphWorkBasis::Mutation(None) => self.branch.relational(),
         };
         let access_is_bound = match &self.access {
@@ -300,7 +300,7 @@ impl WorthQueryManagedGraphWorkSession {
 
     pub(in crate::domain_computation) fn query_basis(
         &self,
-    ) -> Option<&RelationalExecutionBasisIdentity> {
+    ) -> Option<&WorthQueryApplicationBasisIdentity> {
         match &self.basis {
             WorthQueryGraphWorkBasis::Query { identity, .. } => Some(identity),
             WorthQueryGraphWorkBasis::Mutation(_) => None,

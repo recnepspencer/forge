@@ -316,13 +316,6 @@ pub(crate) fn evidence_scope_as_str(scope: WorthQueryEvidenceScope) -> &'static 
         | WorthQueryEvidenceScope::ConsumerEvidenceReport
         | WorthQueryEvidenceScope::ConsumerEvidenceReportFieldInventory
         | WorthQueryEvidenceScope::ConsumerEvidenceReportDigestParticipation
-        | WorthQueryEvidenceScope::ConsumerEvidenceReportAdoptionFinding
-        | WorthQueryEvidenceScope::ConsumerEvidenceReportAdoptionResidue
-        | WorthQueryEvidenceScope::ConsumerEvidenceReportAdoptionReport
-        | WorthQueryEvidenceScope::ConsumerBoundaryAuditFinding
-        | WorthQueryEvidenceScope::ConsumerBoundaryAuditReport
-        | WorthQueryEvidenceScope::ConsumerBoundaryAuditCoverage
-        | WorthQueryEvidenceScope::ConsumerBoundaryAuditSourceInventory
         | WorthQueryEvidenceScope::ConsumerSupportSnapshotSchema
         | WorthQueryEvidenceScope::ConsumerSupportSnapshotRow
         | WorthQueryEvidenceScope::ConsumerSupportSnapshotDocument
@@ -334,14 +327,7 @@ pub(crate) fn evidence_scope_as_str(scope: WorthQueryEvidenceScope) -> &'static 
         | WorthQueryEvidenceScope::ConsumerSupportPinContract
         | WorthQueryEvidenceScope::ConsumerSupportPinContractDocument
         | WorthQueryEvidenceScope::ConsumerSupportPinFinding
-        | WorthQueryEvidenceScope::ConsumerSupportPinReport
-        | WorthQueryEvidenceScope::ConsumerResidueFinding
-        | WorthQueryEvidenceScope::ConsumerResidueReport
-        | WorthQueryEvidenceScope::ConsumerTestBackendResidueFinding
-        | WorthQueryEvidenceScope::ConsumerTestBackendResidueReport
-        | WorthQueryEvidenceScope::ConsumerGraphReadBypassFinding
-        | WorthQueryEvidenceScope::ConsumerGraphReadBypassReport
-        | WorthQueryEvidenceScope::ConsumerGraphReadBypassResidue => {
+        | WorthQueryEvidenceScope::ConsumerSupportPinReport => {
             consumer_kit_evidence_scope_as_str(scope)
         }
         WorthQueryEvidenceScope::GraphCompositionDomainInvariantDenial

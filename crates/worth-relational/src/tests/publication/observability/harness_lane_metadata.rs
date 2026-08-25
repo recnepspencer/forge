@@ -25,7 +25,7 @@ fn harness_phase8_certification_matrix_reports_parallel_lane_diagnostics() {
             report.baseline_diagnostics_summary.as_ref().unwrap(),
             "runtime_execution_model"
         ),
-        Some("SerialAuthority")
+        Some("SingleLaneExecution")
     );
     assert_eq!(report.cases.len(), 2);
     assert_eq!(report.cases[0].candidate_profile, "staged");
@@ -35,7 +35,7 @@ fn harness_phase8_certification_matrix_reports_parallel_lane_diagnostics() {
             report.cases[0].diagnostics_summary.as_ref().unwrap(),
             "runtime_execution_model"
         ),
-        Some("StagedParallelPreparation")
+        Some("ParallelPreparation")
     );
     assert_eq!(
         harness_summary_field(
@@ -82,7 +82,7 @@ fn harness_phase8_certification_matrix_closes_out_supported_runtime_lanes() {
             report.baseline_diagnostics_summary.as_ref().unwrap(),
             "runtime_execution_model"
         ),
-        Some("SerialAuthority")
+        Some("SingleLaneExecution")
     );
 
     let staged = certification_case(&report, "staged");
@@ -95,7 +95,7 @@ fn harness_phase8_certification_matrix_closes_out_supported_runtime_lanes() {
             staged.diagnostics_summary.as_ref().unwrap(),
             "runtime_execution_model"
         ),
-        Some("StagedParallelPreparation")
+        Some("ParallelPreparation")
     );
     assert_eq!(
         harness_summary_field(
@@ -150,7 +150,7 @@ fn harness_phase8_observed_matrix_exposes_mode_specific_metadata() {
     );
     assert_eq!(
         harness_summary_field(serial_summary, "runtime_execution_model"),
-        Some("SerialAuthority")
+        Some("SingleLaneExecution")
     );
     assert_eq!(
         harness_summary_field(staged_summary, "execution_mode"),
@@ -158,7 +158,7 @@ fn harness_phase8_observed_matrix_exposes_mode_specific_metadata() {
     );
     assert_eq!(
         harness_summary_field(staged_summary, "runtime_execution_model"),
-        Some("StagedParallelPreparation")
+        Some("ParallelPreparation")
     );
     assert_eq!(
         harness_summary_field(post_commit_summary, "execution_mode"),
@@ -208,7 +208,7 @@ fn harness_diagnostics_expose_execution_mode_and_performance_counters() {
     );
     assert_eq!(
         harness_summary_field(&summary, "runtime_execution_model"),
-        Some("StagedParallelPreparation")
+        Some("ParallelPreparation")
     );
     assert!(harness_summary_counter(&summary, "preparation_packet_count").is_some());
     assert!(harness_summary_counter(&summary, "preparation_packet_item_count").is_some());
@@ -270,7 +270,7 @@ fn harness_phase8_serial_strategy_selection_is_harness_visible_and_still_parity_
     );
     assert_eq!(
         harness_summary_field(&summary, "runtime_execution_model"),
-        Some("StagedParallelPreparation")
+        Some("ParallelPreparation")
     );
     assert!(
         harness_summary_counter(&summary, "preparation_serial_strategy_count")

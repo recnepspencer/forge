@@ -14,6 +14,7 @@ impl ConflictClass {
             Self::InvariantViolation { code, .. } => *code,
             Self::KindSchemaMismatch { .. } => DiagnosticCode::InvariantViolation,
             Self::MutationStateInconsistency { .. } => DiagnosticCode::StorageInconsistencyDetected,
+            Self::RecordAllocationDenied { .. } => DiagnosticCode::StorageInconsistencyDetected,
             Self::EntityUpdateStateInconsistency { .. } => {
                 DiagnosticCode::StorageInconsistencyDetected
             }
@@ -32,6 +33,7 @@ impl ConflictClass {
             Self::InvalidSavepoint { .. } => DiagnosticCode::InvalidSavepoint,
             Self::InvalidMergeParent { .. } => DiagnosticCode::InvalidMergeParent,
             Self::StaleValidationBasis { .. } => DiagnosticCode::StaleHandle,
+            Self::ForeignRuntime { .. } => DiagnosticCode::StaleHandle,
             Self::MergeConflictOverlap { .. } => DiagnosticCode::MergeConflictOverlap,
             Self::MissingMergeBase { .. } => DiagnosticCode::MissingMergeBase,
             Self::UndeclaredSchemaTransition { .. }
@@ -67,6 +69,13 @@ impl ConflictClass {
             | Self::TypeContinuityDeniedSchemaTransition { detail }
             | Self::StructuralContinuityDeniedSchemaTransition { detail }
             | Self::DirectionalityMismatchUnderCanonicalReconciliation { detail } => detail.clone(),
+            Self::ForeignRuntime {
+                expected_runtime_instance_id,
+                actual_runtime_instance_id,
+            } => format!(
+                "transaction belongs to Relational runtime {actual_runtime_instance_id}, not supplied runtime {expected_runtime_instance_id}"
+            ),
+            Self::RecordAllocationDenied { denial } => denial.detail(),
             Self::InvariantViolation { detail, .. } => detail.clone(),
             Self::InvalidSchemaTransitionShape { detail } => detail.clone(),
             Self::EntityUpdateStateInconsistency { missing, .. } => format!(

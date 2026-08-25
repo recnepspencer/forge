@@ -1,32 +1,51 @@
 use std::fs;
 
-use crate::capabilities::{
-    DurabilityRead, RuntimeConfigSource, RuntimeIdentitySource, SchemaVersionSource,
-};
-use crate::diagnostics::data::{DiagnosticsArtifactKind, DiagnosticsScope};
-use crate::durability::checkpoints::images::partition_to_image;
-use crate::durability::data::{
-    CheckpointCoverage, CompactionOutcome, CompactionPlan, DurabilityError, DurabilityMode,
-    DurableCheckpoint, DurableCheckpointId, DurableCheckpointManifest, DurableIntegrityStatus,
-    DurableSegmentId, DurableSegmentManifest,
-};
-use crate::durability::log::local_store::{
-    append_segment_entry, checkpoint_file_path, current_segment_ids, ensure_loaded_store,
-    persist_store_manifest, segment_file_path, DurableCheckpointFile,
-};
-use crate::durability::log::native_file_codec::write_checkpoint_file;
-use crate::lineage::data::{LineageCheckpointArtifact, LineageCheckpointDigestBasis};
-
-use super::super::derived_index_artifacts::checkpoint_derived_index_artifacts;
 use super::diagnostics::{
     durable_segment_append_succeeded, durable_store_compacted, in_memory_checkpoint_created,
     persisted_checkpoint_created,
 };
 use super::DurabilityAuthority;
+use crate::capabilities::{
+    DurabilityRead, RuntimeConfigSource, RuntimeIdentitySource, SchemaVersionSource,
+};
+use crate::diagnostics::data::{DiagnosticsArtifactKind, DiagnosticsScope};
+use crate::durability::data::{
+    CompactionOutcome, CompactionPlan, DurabilityError, DurabilityMode, DurableCheckpoint,
+    DurableCheckpointId, DurableCheckpointManifest, DurableIntegrityStatus, DurableSegmentId,
+    DurableSegmentManifest,
+};
+use crate::durability::log::local_store::{
+    append_segment_entry, checkpoint_file_path, current_segment_ids, ensure_loaded_store,
+    persist_store_manifest, segment_file_path, segment_requires_recovery_readmission,
+    DurableCheckpointFile,
+};
+use crate::durability::log::native_file_codec::write_checkpoint_file;
 
 impl<'runtime> DurabilityAuthority<'runtime> {
     pub fn checkpoint(&mut self) -> Result<DurableCheckpoint, DurabilityError> {
-        let checkpoint = self.build_checkpoint_image()?;
+        let captured = self.capture_checkpoint_basis()?;
+        self.finalize_captured_checkpoint(captured)
+    }
+
+    pub(super) fn capture_checkpoint_basis(
+        &mut self,
+    ) -> Result<super::checkpoint_capture::CapturedCheckpointBasis, DurabilityError> {
+        let checkpoint_routes = self.runtime.history.canonical_checkpoint_gate();
+        let selection = checkpoint_routes
+            .checkpoint_selection()
+            .map_err(checkpoint_admission_error)?;
+        super::checkpoint_capture::CapturedCheckpointBasis::capture(
+            self.runtime,
+            &checkpoint_routes,
+            selection,
+        )
+    }
+
+    pub(super) fn finalize_captured_checkpoint(
+        &mut self,
+        captured: super::checkpoint_capture::CapturedCheckpointBasis,
+    ) -> Result<DurableCheckpoint, DurabilityError> {
+        let checkpoint = captured.build_checkpoint_image()?;
         if self.runtime.runtime_config().durability.policy.mode
             == DurabilityMode::PersistedSegmentedLocalFs
         {
@@ -165,20 +184,40 @@ impl<'runtime> DurabilityAuthority<'runtime> {
     pub(crate) fn append_commit(
         &mut self,
         authority: super::DurableAppendAuthority,
-        envelope: &crate::history::data::CanonicalCommitEnvelope,
+        positioned: &crate::history::data::PositionedCanonicalCommit,
     ) -> Result<(), DurabilityError> {
+        let envelope = positioned.envelope();
         authority.validate(self.runtime.runtime_instance_id(), envelope)?;
+        #[cfg(any(test, feature = "test-durability-faults"))]
+        if std::mem::take(&mut self.runtime.durability.fail_next_append) {
+            return Err(DurabilityError::new(
+                crate::durability::data::RecoveryFailureClass::DurableIoFailure,
+                "test-injected durable append failure",
+            ));
+        }
         match self.runtime.runtime_config().durability.policy.mode {
             DurabilityMode::InMemoryCanonical => {
-                self.runtime.durability.push_log_envelope(envelope.clone());
+                self.runtime
+                    .durability
+                    .push_log_envelope(positioned.clone());
                 Ok(())
             }
             DurabilityMode::PersistedSegmentedLocalFs => {
                 let mut store = ensure_loaded_store(self.runtime)?;
                 let segment_capacity = store.layout.segment_commit_capacity.max(1);
                 let active_segment = store.segments.last().cloned();
+                let active_requires_recovery = match active_segment.as_ref() {
+                    Some(segment) if segment.commit_count < segment_capacity => {
+                        segment_requires_recovery_readmission(&segment.path)?
+                    }
+                    _ => false,
+                };
                 let segment_id = match active_segment.as_ref() {
-                    Some(segment) if segment.commit_count < segment_capacity => segment.segment_id,
+                    Some(segment)
+                        if segment.commit_count < segment_capacity && !active_requires_recovery =>
+                    {
+                        segment.segment_id
+                    }
                     _ => DurableSegmentId(
                         store
                             .segments
@@ -203,7 +242,11 @@ impl<'runtime> DurabilityAuthority<'runtime> {
                     .as_ref()
                     .map(|segment| segment.commit_count + 1)
                     .unwrap_or(1);
-                append_segment_entry(&segment_path, envelope)?;
+                append_segment_entry(
+                    &segment_path,
+                    positioned,
+                    &self.runtime.runtime_config().schema.registry,
+                )?;
                 if let Some(existing) = store
                     .segments
                     .iter_mut()
@@ -227,13 +270,15 @@ impl<'runtime> DurabilityAuthority<'runtime> {
                     });
                 }
                 self.runtime.durability.store = Some(store);
-                self.runtime.durability.push_log_envelope(envelope.clone());
+                self.runtime
+                    .durability
+                    .push_log_envelope(positioned.clone());
                 let latest_commit_id = self
                     .runtime
                     .durability
                     .log
                     .last()
-                    .map(|entry| entry.commit.commit_id)
+                    .map(|entry| entry.envelope().commit.commit_id)
                     .unwrap_or(envelope.commit.commit_id);
                 self.runtime
                     .publication_authority()
@@ -256,76 +301,6 @@ impl<'runtime> DurabilityAuthority<'runtime> {
         commit_id: crate::history::data::CommitId,
     ) -> bool {
         self.runtime.durability.remove_log_commit(commit_id)
-    }
-
-    fn build_checkpoint_image(&self) -> Result<DurableCheckpoint, DurabilityError> {
-        let envelopes = self.runtime.history().commit_envelopes_snapshot();
-        let published_lineage_commit_count = envelopes
-            .iter()
-            .filter(|envelope| envelope.has_lineage_authority())
-            .count();
-        let canonical_published_event_ids = envelopes
-            .iter()
-            .flat_map(|envelope| {
-                envelope
-                    .lineage_digest_basis()
-                    .canonical_event_ids()
-                    .iter()
-                    .copied()
-            })
-            .collect();
-        let published_lineage_event_count = envelopes
-            .iter()
-            .map(|envelope| envelope.lineage_digest_basis().lineage_event_count())
-            .sum();
-        let published_lineage_decision_count = envelopes
-            .iter()
-            .map(|envelope| envelope.lineage_digest_basis().lineage_decision_count())
-            .sum();
-        Ok(DurableCheckpoint {
-            coverage: CheckpointCoverage {
-                up_to_commit: self.runtime.history().latest_commit().cloned(),
-                up_to_version: self
-                    .runtime
-                    .history()
-                    .latest_commit()
-                    .map(|commit| commit.version_id),
-            },
-            branches: self.runtime.history().branches(),
-            envelopes,
-            partition_images: self
-                .runtime
-                .partitions
-                .values()
-                .cloned()
-                .map(|partition| {
-                    partition_to_image(
-                        partition,
-                        &self.runtime.schema_contract_runtime.aspect_contract_plans,
-                    )
-                })
-                .collect::<Result<Vec<_>, _>>()?,
-            aspect_contracts: checkpoint_aspect_contracts(
-                &self.runtime.schema_contract_runtime.aspect_contract_plans,
-            )?,
-            lineage: LineageCheckpointArtifact::new(
-                LineageCheckpointDigestBasis::new(
-                    published_lineage_commit_count,
-                    canonical_published_event_ids,
-                    published_lineage_event_count,
-                    published_lineage_decision_count,
-                ),
-                self.runtime.lineage_access().nodes_snapshot(),
-                self.runtime
-                    .lineage_access()
-                    .correspondence_candidates_snapshot(),
-                self.runtime.lineage_access().rejected_decisions_snapshot(),
-            ),
-            index_definitions: self.runtime.index_access().definitions_snapshot(),
-            derived_index_artifacts: checkpoint_derived_index_artifacts(self.runtime),
-            symbol_table: self.runtime.services.symbols.snapshot(),
-            runtime_name: self.runtime.runtime_name().to_string(),
-        })
     }
 
     fn persist_checkpoint_file(
@@ -365,33 +340,28 @@ impl<'runtime> DurabilityAuthority<'runtime> {
     }
 }
 
-fn checkpoint_aspect_contracts(
-    plans: &crate::schema::data::AspectContractPlanCatalog,
-) -> Result<Vec<worth_foundational::facade::PortableAspectContract>, DurabilityError> {
-    let mut contracts = std::collections::BTreeMap::new();
-    for binding in plans
-        .entity_plans
-        .values()
-        .chain(plans.relation_plans.values())
-        .flat_map(|plan| plan.executable_bindings.iter())
-    {
-        let candidate =
-            worth_foundational::facade::PortableAspectContract::from_contract(&binding.contract);
-        match contracts.get(candidate.key()) {
-            Some(existing) if existing == &candidate => continue,
-            Some(_) => {
-                return Err(DurabilityError::new(
-                    crate::durability::data::RecoveryFailureClass::SchemaMismatch,
-                    format!(
-                        "checkpoint has conflicting active contracts for aspect `{}`",
-                        candidate.key().as_str()
-                    ),
-                ));
-            }
-            None => {
-                contracts.insert(candidate.key().clone(), candidate);
-            }
+pub(super) fn checkpoint_admission_error(
+    denial: crate::runtime::CanonicalCheckpointAdmissionError,
+) -> DurabilityError {
+    match denial {
+        crate::runtime::CanonicalCheckpointAdmissionError::PublicationInFlight => {
+            DurabilityError::new(
+                crate::durability::data::RecoveryFailureClass::CheckpointPublicationInFlight,
+                "checkpoint denied while canonical publication is in flight",
+            )
         }
+        crate::runtime::CanonicalCheckpointAdmissionError::PerformedPublicationRequiresSettlement(
+            commit_id,
+        ) => DurabilityError::new(
+            crate::durability::data::RecoveryFailureClass::PerformedPublicationRequiresSettlement,
+            format!(
+                "checkpoint denied until performed commit {} completes owner settlement",
+                commit_id.0
+            ),
+        ),
     }
-    Ok(contracts.into_values().collect())
 }
+
+#[cfg(test)]
+#[path = "checkpoint_concurrency_tests.rs"]
+mod checkpoint_concurrency_tests;

@@ -8,10 +8,7 @@ use worth_query_installation::facade::{
     WorthQueryCanonicalWorkEvidence, WorthQueryCanonicalWorkPhases,
     WorthQueryInstalledApplicationQueryIdentity, WorthQueryInstalledGraphObligationSetIdentity,
 };
-use worth_relational::facade::{
-    identity::VersionId, indexes::DerivedIndexGenerationId,
-    runtime::RelationalExecutionBasisIdentity,
-};
+use worth_relational::facade::{identity::VersionId, indexes::DerivedIndexGenerationId};
 
 use crate::domain_computation::primary_graph::{
     WorthQueryApplicationAuthorizationWorkEvidence, WorthQueryApplicationDisclosureDecisionFact,
@@ -90,7 +87,7 @@ struct StableBasisIdentity {
     runtime_instance_present: bool,
     branch: String,
     snapshot: u64,
-    lease_ordinal: u64,
+    root_identity: u64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -300,13 +297,15 @@ impl StableSchemaBinding {
 }
 
 impl StableBasisIdentity {
-    fn capture(identity: &RelationalExecutionBasisIdentity) -> Self {
+    fn capture(
+        identity: &crate::domain_computation::primary_graph::WorthQueryApplicationBasisIdentity,
+    ) -> Self {
         assert!(identity.runtime_instance_id() > 0);
         Self {
             runtime_instance_present: true,
             branch: identity.branch_id().0.clone(),
             snapshot: identity.snapshot_id().0,
-            lease_ordinal: identity.lease_ordinal(),
+            root_identity: identity.descriptor().root_identity(),
         }
     }
 }

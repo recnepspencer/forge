@@ -1,5 +1,0 @@
-error[E0599]: no method named `take_fresh_call` found for struct `WorthQueryYieldedWorkflowRun` in the current scope
- --> tests/ui/installed_domain/managed_run/yielded_workflow_cannot_take_fresh_call.rs:4:9
-  |
-4 |     run.take_fresh_call();
-  |         ^^^^^^^^^^^^^^^ method not found in `WorthQueryYieldedWorkflowRun`

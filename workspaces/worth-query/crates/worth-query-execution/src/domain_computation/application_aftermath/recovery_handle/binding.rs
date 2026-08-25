@@ -6,7 +6,7 @@ use worth_query_installation::facade::{
 };
 #[cfg(test)]
 use worth_relational::facade::history::CommitId;
-use worth_relational::facade::history::{BranchId, CommitReference};
+use worth_relational::facade::history::{BranchId, RelationalCommitReceipt};
 #[cfg(test)]
 use worth_relational::facade::identity::VersionId;
 
@@ -28,7 +28,7 @@ use super::denial::{WorthQueryRecoveryHandleDenial, WorthQueryRecoveryHandleDeni
 pub struct WorthQueryRecoveryHandleBinding {
     runtime_instance_id: u64,
     schema_identity: [u8; 32],
-    commit: CommitReference,
+    commit: RelationalCommitReceipt,
     /// Generation of the installed application schema binding.
     application_binding_generation: u64,
     installed_operation: [u8; 32],
@@ -117,7 +117,7 @@ impl WorthQueryRecoveryHandleBinding {
     }
 
     /// Exact Relational commit identity retained from the ordinary commit.
-    pub const fn commit_reference(&self) -> &CommitReference {
+    pub const fn commit_reference(&self) -> &RelationalCommitReceipt {
         &self.commit
     }
 
@@ -207,7 +207,7 @@ impl WorthQueryRecoveryHandleBinding {
         Self {
             runtime_instance_id: parts.runtime_instance_id,
             schema_identity: parts.schema_identity,
-            commit: CommitReference {
+            commit: RelationalCommitReceipt {
                 commit_id: CommitId(parts.attempt_commit_id),
                 version_id: VersionId(parts.attempt_commit_id),
                 branch_id: parts.branch,

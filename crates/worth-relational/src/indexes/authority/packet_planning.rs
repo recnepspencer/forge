@@ -39,7 +39,7 @@ pub(super) fn choose_index_preparation_strategy(
 ) -> PreparationStrategy {
     if !matches!(
         runtime.config.execution.execution_model,
-        RelationalExecutionModel::StagedParallelPreparation
+        RelationalExecutionModel::ParallelPreparation
     ) {
         return PreparationStrategy::serial(SerialPreparationReason::ExecutionModelSerial);
     }

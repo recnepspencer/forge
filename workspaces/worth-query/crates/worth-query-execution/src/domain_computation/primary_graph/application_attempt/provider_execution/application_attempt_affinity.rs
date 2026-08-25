@@ -113,7 +113,7 @@ impl WorthQueryApplicationAttemptBasis {
         snapshot: &SnapshotHandle,
     ) -> Result<Self, ()> {
         if admission.runtime_authority() != application.runtime.authority_identity()
-            || snapshot.branch_id != *admission.graph_work_branch()
+            || snapshot.branch_id() != admission.graph_work_branch()
         {
             return Err(());
         }

@@ -74,16 +74,27 @@ fn replace_grantor_with_custodian(
         .kind;
     let handle = graph.integration_handle();
     handle.with_runtime_mut(|runtime| {
-        let snapshot = runtime.snapshots().snapshot();
+        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_main_snapshot(runtime)
+            .expect("primary branch has a current snapshot");
         let grantor = runtime
             .read_truth()
-            .visible_relations_of_kind(grantor_kind, snapshot.version_id)
+            .visible_relations_of_kind(grantor_kind, snapshot.version_id())
             .into_iter()
             .find(|record| record.source == principal && record.target == grant.entity_id())
             .expect("the admitted capability has one current grantor path")
             .relation_id;
         runtime.snapshots().release_snapshot(&snapshot);
-        let mut transaction = runtime.begin_transaction(Default::default());
+        let mut transaction ={
+    let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
+    runtime
+        .begin_branch_transaction(
+            &transaction_validation_input,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context")
+};
         transaction.push_batch(
             WorkerIntentBatch::new("replace-capability-policy-path")
                 .push(MutationIntent::Relation(RelationMutationIntent::Delete(
@@ -102,7 +113,7 @@ fn replace_grantor_with_custodian(
                     },
                 ))),
         );
-        transaction.commit().unwrap();
+        transaction.commit(runtime).unwrap();
         handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }

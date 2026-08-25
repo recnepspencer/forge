@@ -10,7 +10,7 @@ use worth_query_declaration::facade::authentication::WorthQueryPrincipalMappingS
 use worth_query_installation::facade::TypedApplicationValue;
 use worth_relational::facade::transactions::{
     AspectFieldPatch, DeleteRelationIntent, EntityMutationIntent, MutationIntent,
-    RelationMutationIntent, TransactionOptions, UpdateEntityFieldsIntent, WorkerIntentBatch,
+    RelationMutationIntent, UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 
 use super::{current_controls, installed_query};
@@ -24,7 +24,7 @@ use crate::domain_computation::primary_graph::{
 };
 
 #[test]
-fn retained_continuation_holds_identity_but_no_relational_basis() {
+fn retained_continuation_releases_the_query_registry_basis() {
     let world = installed_authorization_world(true);
     let request = super::super::fixture::live_scope();
     let external = world.authenticate("alice", Duration::from_secs(60), &request);
@@ -298,16 +298,14 @@ fn scope_authorization_revocation_after_admission_denies_under_the_execution_loc
 
 pub(super) fn basis_is_live(
     world: &super::super::fixture::AuthorizationWorld,
-    basis: &worth_relational::facade::runtime::RelationalExecutionBasisIdentity,
+    _basis: &crate::domain_computation::primary_graph::WorthQueryApplicationBasisIdentity,
 ) -> bool {
-    let graph = world
+    world
         .application
-        .runtime
-        .primary_graph()
-        .expect("test world publishes a primary graph");
-    graph
-        .integration_handle()
-        .with_runtime_mut(|runtime| runtime.snapshots().execution_basis_is_live(basis))
+        .application_query_basis_observer()
+        .observe()
+        .active()
+        > 0
 }
 
 pub(super) fn disable_mapping(
@@ -329,7 +327,17 @@ pub(super) fn disable_mapping(
             layout.status_locator,
             WorthQueryPrincipalMappingStatus::Disabled.into_foundational_value(),
         )]));
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction = {
+            let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
+            runtime
+                .begin_branch_transaction(
+                    &transaction_validation_input,
+                    worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                )
+                .expect("owner-admitted transaction context")
+        };
         transaction.push_batch(WorkerIntentBatch::new("revoke-after-query-admission").push(
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {
@@ -338,7 +346,7 @@ pub(super) fn disable_mapping(
                 },
             )),
         ));
-        transaction.commit().unwrap();
+        transaction.commit(runtime).unwrap();
     });
 }
 
@@ -358,22 +366,33 @@ pub(super) fn revoke_account_ownership(
         .kind;
     let handle = graph.integration_handle();
     handle.with_runtime_mut(|runtime| {
-        let snapshot = runtime.snapshots().snapshot();
+        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_main_snapshot(runtime)
+            .expect("primary branch has a current snapshot");
         let relation = runtime
             .read_truth()
-            .visible_relations_of_kind(relation_kind, snapshot.version_id)
+            .visible_relations_of_kind(relation_kind, snapshot.version_id())
             .into_iter()
             .find(|record| record.target == account)
             .expect("the admitted account has one ownership edge")
             .relation_id;
         runtime.snapshots().release_snapshot(&snapshot);
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction ={
+    let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
+    runtime
+        .begin_branch_transaction(
+            &transaction_validation_input,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context")
+};
         transaction.push_batch(WorkerIntentBatch::new("revoke-query-account-owner").push(
             MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
                 relation_id: relation,
             })),
         ));
-        transaction.commit().unwrap();
+        transaction.commit(runtime).unwrap();
         handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }

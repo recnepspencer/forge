@@ -1,5 +1,0 @@
-error[E0599]: no method named `registry` found for struct `WorthQueryManagedWorkflowArtifactAuthority<'run>` in the current scope
- --> tests/ui/installed_domain/managed_run/managed_artifacts_cannot_close_registry.rs:4:21
-  |
-4 |     run.artifacts().registry().close_cancelled();
-  |                     ^^^^^^^^ method not found in `WorthQueryManagedWorkflowArtifactAuthority<'_>`

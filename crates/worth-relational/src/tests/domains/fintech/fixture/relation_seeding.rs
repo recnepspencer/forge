@@ -2,7 +2,7 @@ use crate::facade::identity::{EntityId, KindId, PartitionId, RelationId};
 use crate::facade::runtime::RelationalRuntime;
 use crate::facade::transactions::{
     AspectFieldPatch, BulkRelationCreateIntent, CommitResult, CreateIntent, MutationIntent,
-    RecordRef, TransactionOptions, WorkerIntentBatch,
+    RecordRef, WorkerIntentBatch,
 };
 use crate::tests::support::single_string_aspect_field_patch;
 
@@ -177,7 +177,7 @@ pub(super) fn seed_relations(
 }
 
 pub(super) fn bulk_create_relations<I>(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     batch_name: &str,
     partition_id: PartitionId,
     specs: I,
@@ -196,7 +196,7 @@ where
         ));
         field_patches.push(fields);
     }
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new(batch_name).push(MutationIntent::Create(
             CreateIntent::BulkRelations(BulkRelationCreateIntent {
@@ -208,7 +208,7 @@ where
             }),
         )),
     );
-    changed_relations(&txn.commit().unwrap())
+    changed_relations(&txn.commit(&mut runtime).unwrap())
 }
 
 fn relation_role_patch(role: &str) -> AspectFieldPatch {

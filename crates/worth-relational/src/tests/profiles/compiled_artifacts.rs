@@ -194,13 +194,17 @@ fn chip_profile_branch_local_topology_pressure_preserves_relation_history_isolat
         .unwrap();
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
         .unwrap();
-    let feature_target =
-        create_entity_in_partition(&mut runtime, "topo-target-feature", PartitionId(13));
+    let feature_target = create_entity_in_partition_on_branch(
+        &mut runtime,
+        "topo-target-feature",
+        PartitionId(13),
+        BranchId("feature".to_string()),
+    );
     let feature_relation = create_relation_in_partition_on_branch(
         &mut runtime,
         source,
@@ -212,7 +216,7 @@ fn chip_profile_branch_local_topology_pressure_preserves_relation_history_isolat
     );
     let main_view = runtime
         .read_truth()
-        .project_version(main_commit.version_id)
+        .project_historical_version(main_commit.version_id)
         .all_authoritative_relation_records();
     let feature_commit = runtime
         .history()
@@ -221,7 +225,7 @@ fn chip_profile_branch_local_topology_pressure_preserves_relation_history_isolat
         .clone();
     let feature_view = runtime
         .read_truth()
-        .project_version(feature_commit.version_id)
+        .project_historical_version(feature_commit.version_id)
         .all_authoritative_relation_records();
     let feature_artifact = runtime
         .compiled_artifacts_authority()

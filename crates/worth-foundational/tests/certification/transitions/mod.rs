@@ -1,4 +1,5 @@
 mod branch_local;
+mod branch_reference;
 mod committed_authority;
 pub(crate) mod fixtures;
 mod merge_verdicts;

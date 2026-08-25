@@ -1,3 +1,4 @@
+use super::WorthQueryApplicationBasisIdentity;
 use worth_foundational::facade::CanonicalDigestId;
 use worth_query_admission::facade::application_query::WorthQueryAdmittedApplicationQueryParameters;
 use worth_query_installation::facade::{
@@ -6,7 +7,6 @@ use worth_query_installation::facade::{
 };
 use worth_relational::facade::indexes::DerivedIndexId;
 use worth_relational::facade::indexes::{DerivedIndexGenerationId, RelatedEntityOrderingBoundary};
-use worth_relational::facade::runtime::RelationalExecutionBasisIdentity;
 
 use crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity;
 
@@ -95,7 +95,7 @@ impl<'a, Schema, Query, Parameters, QueryResult, Principal, PrincipalIdentity, S
         self.continuation_index_id
     }
 
-    pub fn basis_identity(&self) -> &RelationalExecutionBasisIdentity {
+    pub fn basis_identity(&self) -> &WorthQueryApplicationBasisIdentity {
         self.graph_work
             .query_basis()
             .expect("an application-query graph-work session retains its exact basis")

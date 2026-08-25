@@ -8,10 +8,10 @@ pub(super) fn certify_merge_execute_phase_timing_feature_adoption(suite: &'stati
             let mut runtime = persisted_runtime_with_test_schema();
             create_entity(&mut runtime, "main-anchor");
             create_branch_from_main(&mut runtime, "feature");
-            let mut txn = runtime.begin_transaction(TransactionOptions {
-                target_branch: Some(BranchId("feature".to_string())),
-                ..TransactionOptions::default()
-            });
+            let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
+                &mut runtime,
+                BranchId("feature".to_string()),
+            );
             txn.push_batch(
                 WorkerIntentBatch::new("create-feature-only").push(
                     MutationIntent::Create(CreateIntent::Entity(
@@ -29,7 +29,8 @@ pub(super) fn certify_merge_execute_phase_timing_feature_adoption(suite: &'stati
                     .into(),
                 ),
             );
-            let _feature_only = changed_entities(&txn.commit().expect("feature create"))[0];
+            let _feature_only =
+                changed_entities(&txn.commit(&mut runtime).expect("feature create"))[0];
 
             let prepared = runtime
                 .prepare_merge_execution(MergeExecutionRequest {

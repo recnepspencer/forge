@@ -1,5 +1,5 @@
 use crate::capabilities::PatchStreamSource;
-use crate::history::data::CanonicalCommitEnvelope;
+use crate::history::data::PositionedCanonicalCommit;
 use crate::publication::cdc::data::{
     SubscriberCheckpoint, SubscriberStreamFailure, SubscriberStreamFailureClass,
 };
@@ -14,7 +14,7 @@ use super::validation::validate_checkpoint_against_envelope;
 pub(crate) fn resolve_checkpoint(
     runtime: &RelationalRuntime,
     checkpoint: Option<&SubscriberCheckpoint>,
-    durable_envelopes: Option<&[CanonicalCommitEnvelope]>,
+    durable_envelopes: Option<&[PositionedCanonicalCommit]>,
 ) -> Result<
     (
         Option<PatchStreamPosition>,
@@ -50,7 +50,7 @@ pub(crate) fn resolve_checkpoint(
     {
         validate_checkpoint_against_envelope(
             checkpoint,
-            envelope,
+            &envelope,
             "retained canonical",
             latest.clone(),
             &mut diagnostics,
@@ -62,7 +62,7 @@ pub(crate) fn resolve_checkpoint(
     if let Some(envelope) = durable_checkpoint_envelope(runtime, checkpoint, durable_envelopes) {
         validate_checkpoint_against_envelope(
             checkpoint,
-            &envelope,
+            envelope.envelope(),
             "durable canonical",
             latest.clone(),
             &mut diagnostics,
@@ -96,7 +96,7 @@ pub(crate) fn resolve_checkpoint(
 pub(crate) fn preloaded_durable_envelopes_for_checkpoint_gap(
     runtime: &RelationalRuntime,
     checkpoint: Option<&SubscriberCheckpoint>,
-) -> Option<Vec<CanonicalCommitEnvelope>> {
+) -> Option<Vec<PositionedCanonicalCommit>> {
     let checkpoint = checkpoint?;
     if runtime
         .commit_envelope_at_patch_stream_position(checkpoint.position())

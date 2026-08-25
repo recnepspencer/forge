@@ -7,23 +7,63 @@ mod record_plan_compilation;
 
 pub(super) use prepared_execution::execute_prepared_merge;
 
+#[cfg(test)]
+use crate::merge::data::MergeExecutionRequest;
 use crate::merge::data::{
     CompiledMergeExecution, ExecutionReadyLoweredMergePlan, MergeExecutionError,
-    MergeExecutionPreparationError, MergeExecutionRequest, PreparedMergeExecution,
+    MergeExecutionPreparationError, OwnerBoundMergeExecutionRequest, PreparedMergeExecution,
 };
 
 use super::planning_artifact::materialize_planning_artifact;
 use super::MergeAccess;
 
 impl<'runtime> MergeAccess<'runtime> {
+    #[cfg(test)]
     pub fn prepare_merge_execution(
         &self,
         request: MergeExecutionRequest,
     ) -> Result<PreparedMergeExecution, MergeExecutionPreparationError> {
-        let normalized_request = self
-            .normalize_merge_request(request)
-            .map_err(crate::merge::data::MergePlanningError::from)
-            .map_err(MergeExecutionPreparationError::Planning)?;
+        let source_branch = request.source_branch().clone();
+        let target_branch = request.target_branch().clone();
+        let bound =
+            self.runtime
+                .bind_merge_execution_request(request)
+                .map_err(|denial| match denial {
+                    crate::merge::data::RelationalMergeRequestBindingDenial::UnknownBranch(
+                        branch,
+                    ) if branch == source_branch => MergeExecutionPreparationError::Planning(
+                        crate::merge::data::MergePlanningError::MissingSourceHead {
+                            branch_id: branch,
+                        },
+                    ),
+                    crate::merge::data::RelationalMergeRequestBindingDenial::UnknownBranch(
+                        branch,
+                    ) if branch == target_branch => MergeExecutionPreparationError::Planning(
+                        crate::merge::data::MergePlanningError::MissingTargetHead {
+                            branch_id: branch,
+                        },
+                    ),
+                    other => MergeExecutionPreparationError::OwnerBinding(other),
+                })?;
+        self.prepare_bound_merge_execution(bound)
+    }
+
+    #[cfg(not(test))]
+    pub fn prepare_merge_execution(
+        &self,
+        request: OwnerBoundMergeExecutionRequest,
+    ) -> Result<PreparedMergeExecution, MergeExecutionPreparationError> {
+        self.prepare_bound_merge_execution(request)
+    }
+
+    fn prepare_bound_merge_execution(
+        &self,
+        request: OwnerBoundMergeExecutionRequest,
+    ) -> Result<PreparedMergeExecution, MergeExecutionPreparationError> {
+        let normalized_request =
+            super::request_normalization::normalize_bound_merge_execution_request(request)
+                .map_err(crate::merge::data::MergePlanningError::from)
+                .map_err(MergeExecutionPreparationError::Planning)?;
         let lowered_plan = self
             .lower_planning_scope(normalized_request.clone())
             .map_err(MergeExecutionPreparationError::Planning)?;

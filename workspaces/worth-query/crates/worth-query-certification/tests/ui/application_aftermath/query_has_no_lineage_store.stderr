@@ -1,5 +1,0 @@
-error[E0599]: no method named `linear_lineage_head` found for reference `&WorthQueryPrimaryGraphApplicationRuntime<Schema>` in the current scope
- --> tests/ui/application_aftermath/query_has_no_lineage_store.rs:7:21
-  |
-7 |     let _ = runtime.linear_lineage_head();
-  |                     ^^^^^^^^^^^^^^^^^^^ method not found in `&WorthQueryPrimaryGraphApplicationRuntime<Schema>`

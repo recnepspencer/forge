@@ -2,10 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::history::data::{BranchId, CommitId};
 use crate::identity::data::LineageId;
-use crate::lineage::data::{
-    CorrespondenceCandidateId, CorrespondencePromotionRejectionClass, LineageEventKind,
-    LineageEventRecord,
-};
+use crate::lineage::data::{LineageEventKind, LineageEventRecord};
 
 use super::{
     FinalizedLineageEventBatch, LineageDecisionKind, LineageDecisionLog, LineageDecisionRecord,
@@ -106,8 +103,6 @@ pub struct LineageDecisionLogDigestBasis {
     branch_id: BranchId,
     canonical_decision_kinds: Vec<LineageDecisionKind>,
     canonical_event_ids: Vec<Option<u64>>,
-    canonical_candidate_ids: Vec<Option<CorrespondenceCandidateId>>,
-    canonical_rejection_classes: Vec<Option<CorrespondencePromotionRejectionClass>>,
     canonical_source_orderings: Vec<Vec<LineageId>>,
     canonical_target_orderings: Vec<Vec<LineageId>>,
 }
@@ -123,14 +118,6 @@ impl LineageDecisionLogDigestBasis {
 
     pub fn canonical_event_ids(&self) -> &[Option<u64>] {
         &self.canonical_event_ids
-    }
-
-    pub fn canonical_candidate_ids(&self) -> &[Option<CorrespondenceCandidateId>] {
-        &self.canonical_candidate_ids
-    }
-
-    pub fn canonical_rejection_classes(&self) -> &[Option<CorrespondencePromotionRejectionClass>] {
-        &self.canonical_rejection_classes
     }
 
     pub fn canonical_source_orderings(&self) -> &[Vec<LineageId>] {
@@ -184,14 +171,6 @@ pub(super) fn decision_log_digest_basis_from_parts(
         canonical_event_ids: decisions
             .iter()
             .map(|decision| decision.event_id())
-            .collect(),
-        canonical_candidate_ids: decisions
-            .iter()
-            .map(|decision| decision.candidate_id())
-            .collect(),
-        canonical_rejection_classes: decisions
-            .iter()
-            .map(|decision| decision.rejection_class())
             .collect(),
         canonical_source_orderings: decisions
             .iter()

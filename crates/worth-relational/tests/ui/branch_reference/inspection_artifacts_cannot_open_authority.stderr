@@ -1,0 +1,43 @@
+error[E0308]: mismatched types
+  --> tests/ui/branch_reference/inspection_artifacts_cannot_open_authority.rs:13:64
+   |
+13 |     let _ = runtime.fork_branch(BranchId("forged".to_owned()), observation);
+   |                     -----------                                ^^^^^^^^^^^ expected `AdmittedRelationalForkSourceBasis`, found `RelationalBranchSharingObservation`
+   |                     |
+   |                     arguments to this method are incorrect
+   |
+note: method defined here
+  --> src/branch/fork.rs
+   |
+   |     pub fn fork_branch(
+   |            ^^^^^^^^^^^
+
+error[E0308]: mismatched types
+  --> tests/ui/branch_reference/inspection_artifacts_cannot_open_authority.rs:21:9
+   |
+20 |     let _ = runtime.begin_branch_transaction(
+   |                     ------------------------ arguments to this method are incorrect
+21 |         &observation,
+   |         ^^^^^^^^^^^^ expected `&AdmittedRelationalBranchBasis`, found `&...`
+   |
+   = note: expected reference `&AdmittedRelationalBranchBasis`
+              found reference `&RelationalOwnerAllocationLedgerObservation`
+note: method defined here
+  --> src/mvcc/transaction/admission.rs
+   |
+   |     pub fn begin_branch_transaction(
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0308]: mismatched types
+  --> tests/ui/branch_reference/inspection_artifacts_cannot_open_authority.rs:32:36
+   |
+32 |         .retain_version_for_replay(observation);
+   |          ------------------------- ^^^^^^^^^^^ expected `VersionId`, found `RelationalVisibilityCommitmentObservation`
+   |          |
+   |          arguments to this method are incorrect
+   |
+note: method defined here
+  --> src/history/authority/replay_retention.rs
+   |
+   |     pub fn retain_version_for_replay(
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^

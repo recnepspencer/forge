@@ -96,12 +96,14 @@ pub(super) fn publication_patch_to_bridge_envelope_with_widening(
 #[cfg(test)]
 pub(crate) fn commit_envelope_to_bridge_envelope(
     envelope: &CanonicalCommitEnvelope,
+    position: crate::publication::patch::data::PatchStreamPosition,
 ) -> TransitionOutcome<BridgeCommittedPatchEnvelope, RelationalBridgePublicationDenial> {
+    let patch = PublishedAuthoritativePatchEnvelope::from_canonical(position, &envelope.patch);
     publication_patch_to_bridge_envelope(
         envelope.commit.commit_id,
         &envelope.commit.branch_id,
         bridge_snapshot_identity_for_commit(envelope.commit.commit_id, envelope.commit.version_id),
-        &envelope.patch,
+        &patch,
     )
 }
 

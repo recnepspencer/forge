@@ -5,15 +5,15 @@ use super::{CommitEnvelopeSource, HistorySource, PatchStreamCommitRef, PatchStre
 use crate::diagnostics::data::{
     DeterminismExpectation, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticArtifact,
 };
-use crate::history::data::{BranchId, CommitId, CommitReference};
+use crate::history::data::{BranchId, CommitId, RelationalCommitReceipt};
 use crate::history::data::{CanonicalCommitAuthorityKind, CanonicalCommitEnvelope};
 use crate::indexes::data::DerivedIndexArtifacts;
 use crate::lineage::data::{
     FinalizedLineageEventBatch, LineageDecisionLog, LineageFinalizationArtifact,
 };
 use crate::publication::patch::data::{
-    PatchDetail, PatchOrdering, PatchPublicationMode, PatchStreamPosition,
-    PublishedAuthoritativePatchEnvelope, PublishedAuthoritativeRecordPatch, RecordStructuralChange,
+    CanonicalAuthoritativePatch, PatchDetail, PatchOrdering, PatchPublicationMode,
+    PatchStreamPosition, PublishedAuthoritativeRecordPatch, RecordStructuralChange,
 };
 use crate::schema::data::{DescriptorSemanticsVersion, RelationalSchemaRegistry, SchemaVersionId};
 use crate::transactions::data::{MergedCommitPlan, RecordRef, TransactionId};
@@ -24,10 +24,10 @@ struct FakeHistorySource {
 }
 
 impl CommitEnvelopeSource for FakeHistorySource {
-    fn commit_envelope(&self, commit_id: CommitId) -> Option<&CanonicalCommitEnvelope> {
+    fn commit_envelope(&self, commit_id: CommitId) -> Option<CanonicalCommitEnvelope> {
         self.envelopes
             .get(&commit_id)
-            .map(|envelope| envelope.as_ref())
+            .map(|envelope| envelope.as_ref().clone())
     }
 }
 
@@ -65,7 +65,7 @@ impl PatchStreamSource for FakeHistorySource {
 }
 
 impl HistorySource for FakeHistorySource {
-    fn branch_head_ref(&self, _branch_id: &BranchId) -> Option<&CommitReference> {
+    fn branch_head_ref(&self, _branch_id: &BranchId) -> Option<&RelationalCommitReceipt> {
         None
     }
 
@@ -79,7 +79,7 @@ impl HistorySource for FakeHistorySource {
 
 fn commit_envelope(commit_id: u64, version_id: u64) -> CanonicalCommitEnvelope {
     CanonicalCommitEnvelope::new(
-        CommitReference {
+        RelationalCommitReceipt {
             commit_id: CommitId(commit_id),
             version_id: crate::identity::data::VersionId(version_id),
             branch_id: BranchId("main".to_string()),
@@ -97,10 +97,9 @@ fn commit_envelope(commit_id: u64, version_id: u64) -> CanonicalCommitEnvelope {
             transaction_id: TransactionId(commit_id),
             merged_intents: vec![],
         },
-        PublishedAuthoritativePatchEnvelope {
+        CanonicalAuthoritativePatch {
             ordering: PatchOrdering::CanonicalCommitOrder,
             publication_mode: PatchPublicationMode::CommitNative,
-            position: PatchStreamPosition(commit_id),
             authoritative_record_patches: vec![PublishedAuthoritativeRecordPatch {
                 target: RecordRef::Entity(crate::identity::data::EntityId::new(
                     crate::identity::data::PartitionId::main(),

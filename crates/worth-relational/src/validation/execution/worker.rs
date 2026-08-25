@@ -71,7 +71,7 @@ fn invariant_packet_failures(packet: &InvariantWorkPacket<'_>) -> Vec<Preparatio
     match packet.proof_kind {
         PreparationProofKind::RequiresSerial => {
             if packet.locality.write_exclusion
-                != PreparationWriteExclusionClass::RequiresSerialAuthority
+                != PreparationWriteExclusionClass::RequiresSingleLaneExecution
             {
                 failures.push(PreparationFailureClass::PublicationIsolationViolation);
             }

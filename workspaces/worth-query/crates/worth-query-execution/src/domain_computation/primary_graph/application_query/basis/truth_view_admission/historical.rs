@@ -1,16 +1,9 @@
 use std::marker::PhantomData;
 
-use worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope;
-use worth_query_declaration::facade::application_schema::ApplicationSchema;
-#[cfg(test)]
-use worth_relational::facade::bridge::RelationalBridgeTruthViewBasisDenial;
-use worth_relational::facade::runtime::{
-    RelationalApplicationCommitBasisDenial, RelationalExecutionBasisLease,
-    RelationalRetainedCommitSnapshotDenialKind,
-};
-
 use super::super::{
-    historical_authority::WorthQueryApplicationHistoricalReadSource,
+    historical_authority::{
+        WorthQueryApplicationHistoricalReadSource, WorthQueryApplicationHistoricalRetention,
+    },
     WorthQueryApplicationHistoricalBasis, WorthQueryApplicationHistoricalRead,
 };
 use super::validation::{denial, validate_truth_view_request};
@@ -20,6 +13,8 @@ use crate::domain_computation::primary_graph::{
     },
     WorthQueryPrimaryGraphApplicationRuntime,
 };
+use worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope;
+use worth_query_declaration::facade::application_schema::ApplicationSchema;
 
 impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
 where
@@ -34,9 +29,8 @@ where
         WorthQueryApplicationQueryAdmissionDenial,
     > {
         validate_truth_view_request(request)?;
-        let lease = self.admit_historical_execution_lease(read.into_source())?;
-        self.ensure_truth_view_indexes(lease.version_id())?;
-        let lease = self.basis_leases.register(lease);
+        let basis = self.admit_historical_execution_basis(read.into_source())?;
+        let lease = super::super::admission::register_basis(self, basis)?;
         validate_truth_view_request(request)?;
         Ok(WorthQueryApplicationHistoricalBasis {
             runtime_authority: self.runtime.authority_identity(),
@@ -52,63 +46,68 @@ where
         })
     }
 
-    fn admit_historical_execution_lease(
+    fn admit_historical_execution_basis(
         &self,
         source: WorthQueryApplicationHistoricalReadSource,
-    ) -> Result<RelationalExecutionBasisLease, WorthQueryApplicationQueryAdmissionDenial> {
+    ) -> Result<
+        worth_relational::facade::branch::AdmittedRelationalBranchBasis,
+        WorthQueryApplicationQueryAdmissionDenial,
+    > {
         match source {
             WorthQueryApplicationHistoricalReadSource::ApplicationCommit {
                 provider_runtime_instance_id,
                 commit,
-            } => self
-                .execution_basis_source
-                .admit_application_commit(provider_runtime_instance_id, &commit)
-                .map_err(map_application_commit_basis_denial),
-            #[cfg(test)]
-            source @ WorthQueryApplicationHistoricalReadSource::BridgeSelector(_) => {
-                let evaluation = self
-                    .bridge
-                    .ordinary()
-                    .evaluate(source.into_evaluation_request())
-                    .map_err(|error| {
-                        denial(
-                            WorthQueryApplicationQueryAdmissionDenialKind::TruthViewUnavailable,
-                            error.to_string(),
-                        )
-                    })?;
-                self.relational_source
-                    .admit_truth_view_execution_basis(&evaluation)
-                    .map_err(map_basis_unavailable)
+                descriptor,
+                retention,
+            } => {
+                if provider_runtime_instance_id != descriptor.runtime_instance_id()
+                    || provider_runtime_instance_id
+                        != self.relational_branch_identity.runtime_instance_id()
+                    || commit.branch_id != *descriptor.branch_id()
+                {
+                    return Err(denial(
+                        WorthQueryApplicationQueryAdmissionDenialKind::ForeignHistoricalReceipt,
+                        "application commit receipt",
+                    ));
+                }
+                let retention = match retention {
+                    WorthQueryApplicationHistoricalRetention::OwnerLifecycle => self
+                        .primary_provider
+                        .retained_application_commit_basis(&commit),
+                    #[cfg(test)]
+                    WorthQueryApplicationHistoricalRetention::Test(retention) => Some(retention),
+                }
+                .ok_or_else(|| {
+                    denial(
+                        WorthQueryApplicationQueryAdmissionDenialKind::BasisUnavailable,
+                        "historical receipt basis retention has expired",
+                    )
+                })?;
+                if retention.descriptor() != &descriptor {
+                    return Err(denial(
+                        WorthQueryApplicationQueryAdmissionDenialKind::ForeignHistoricalReceipt,
+                        "application commit receipt",
+                    ));
+                }
+                let basis = self
+                    .relational_source
+                    .readmit_branch_basis(&descriptor)
+                    .map_err(super::super::admission::map_basis_denial)?;
+                let selected_commit = self.primary_provider.graph.with_runtime(|runtime| {
+                    runtime
+                        .history()
+                        .branch_head_for_observation(&basis.observation())
+                        .ok()
+                        .flatten()
+                });
+                if selected_commit.as_ref() != Some(&commit) {
+                    return Err(denial(
+                        WorthQueryApplicationQueryAdmissionDenialKind::BasisUnavailable,
+                        "historical receipt does not match its exact Relational basis",
+                    ));
+                }
+                Ok(basis)
             }
         }
     }
-}
-
-fn map_application_commit_basis_denial(
-    error: RelationalApplicationCommitBasisDenial,
-) -> WorthQueryApplicationQueryAdmissionDenial {
-    match error {
-        RelationalApplicationCommitBasisDenial::RetainedCommit(retained)
-            if retained.kind() == RelationalRetainedCommitSnapshotDenialKind::ForeignRuntime =>
-        {
-            denial(
-                WorthQueryApplicationQueryAdmissionDenialKind::ForeignHistoricalReceipt,
-                "application commit receipt",
-            )
-        }
-        error => denial(
-            WorthQueryApplicationQueryAdmissionDenialKind::BasisUnavailable,
-            format!("{error:?}"),
-        ),
-    }
-}
-
-#[cfg(test)]
-fn map_basis_unavailable(
-    error: RelationalBridgeTruthViewBasisDenial,
-) -> WorthQueryApplicationQueryAdmissionDenial {
-    denial(
-        WorthQueryApplicationQueryAdmissionDenialKind::BasisUnavailable,
-        format!("{error:?}"),
-    )
 }

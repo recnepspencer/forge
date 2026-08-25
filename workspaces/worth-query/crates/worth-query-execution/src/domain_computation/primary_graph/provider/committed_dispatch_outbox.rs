@@ -1,7 +1,7 @@
 //! Fresh Relational owner reads for committed dispatch-outbox rows.
 
 use worth_foundational::facade::AspectValue;
-use worth_relational::facade::history::CommitReference;
+use worth_relational::facade::history::RelationalCommitReceipt;
 use worth_relational::facade::runtime::{ProjectionAspectRequirement, ProjectionAspectScope};
 use worth_relational::facade::transactions::RecordRef;
 
@@ -37,7 +37,7 @@ pub use work::WorthQueryCommittedDispatchOutboxReadWork;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryCommittedDispatchOutboxObservation {
     record: WorthQueryDispatchOutboxRecord,
-    commit: CommitReference,
+    commit: RelationalCommitReceipt,
     record_ref: RecordRef,
     relational_runtime_instance_id: u64,
     work: WorthQueryCommittedDispatchOutboxReadWork,
@@ -61,7 +61,7 @@ use WorthQueryCommittedDispatchOutboxReadDenial as Denial;
 impl WorthQueryCommittedDispatchOutboxObservation {
     const fn seal(
         record: WorthQueryDispatchOutboxRecord,
-        commit: CommitReference,
+        commit: RelationalCommitReceipt,
         record_ref: RecordRef,
         relational_runtime_instance_id: u64,
         work: WorthQueryCommittedDispatchOutboxReadWork,
@@ -79,7 +79,7 @@ impl WorthQueryCommittedDispatchOutboxObservation {
         &self.record
     }
 
-    pub const fn commit_reference(&self) -> &CommitReference {
+    pub const fn commit_reference(&self) -> &RelationalCommitReceipt {
         &self.commit
     }
 
@@ -127,7 +127,7 @@ impl WorthQueryPrimaryGraphProvider {
     fn observe_expected(
         &self,
         binding: &super::WorthQueryCommittedDispatchOutboxBinding,
-        expected_commit: &worth_relational::facade::history::CommitReference,
+        expected_commit: &worth_relational::facade::history::RelationalCommitReceipt,
         expected_runtime: u64,
     ) -> Result<WorthQueryCommittedDispatchOutboxObservation, Denial> {
         let layout = self.graph.layout.provider_dispatch_outbox().clone();
@@ -176,7 +176,7 @@ struct CommittedOutboxRead<'a> {
     runtime: &'a mut worth_relational::facade::runtime::RelationalRuntime,
     layout: &'a WorthQueryDispatchOutboxLayout,
     binding: &'a super::WorthQueryCommittedDispatchOutboxBinding,
-    expected_commit: &'a worth_relational::facade::history::CommitReference,
+    expected_commit: &'a worth_relational::facade::history::RelationalCommitReceipt,
     expected_runtime: u64,
 }
 
@@ -194,7 +194,7 @@ impl CommittedOutboxRead<'_> {
         let committed = self
             .runtime
             .history()
-            .committed_version(created_at)
+            .historical_committed_version(created_at)
             .ok_or(Denial::NotAuthoritative)?;
         if committed.commit() != self.expected_commit {
             return Err(Denial::CommitMismatch);

@@ -1,5 +1,0 @@
-error[E0599]: no method named `bind_graph_provider_call` found for mutable reference `&mut WorthQueryRunningDirectRun` in the current scope
-  --> tests/ui/installed_domain/managed_run/direct_run_cannot_lend_provider_call.rs:10:17
-   |
-10 |     let _ = run.bind_graph_provider_call(
-   |             ----^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `&mut WorthQueryRunningDirectRun`

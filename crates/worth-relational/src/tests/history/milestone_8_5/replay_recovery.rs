@@ -92,11 +92,8 @@ pub(super) fn certify_replay_recovery(
         .read_truth()
         .read_version(runtime.current_version_id());
     let live_branch_heads = StrategyBranchHeadEvidence {
-        main: runtime
-            .history()
-            .branch_head(&BranchId("main".to_string()))
-            .cloned(),
-        feature: runtime.history().branch_head(&feature_branch).cloned(),
+        main: runtime.history().branch_head(&BranchId("main".to_string())),
+        feature: runtime.history().branch_head(&feature_branch),
     };
     let live_visible_truth = StrategyVisibleTruthEvidence {
         entity_name: read_entity_name(current.get_entity(entity).expect("entity visible")),
@@ -301,12 +298,10 @@ pub(super) fn certify_replay_recovery(
     let recovered_main_envelope = recovered
         .replay()
         .canonical_commit_envelope(main_commit.commit.commit_id)
-        .cloned()
         .expect("recovered main envelope");
     let recovered_feature_envelope = recovered
         .replay()
         .canonical_commit_envelope(feature_commit.commit.commit_id)
-        .cloned()
         .expect("recovered feature envelope");
     let recovered_current = recovered
         .read_truth()
@@ -314,14 +309,12 @@ pub(super) fn certify_replay_recovery(
     let recovered_controller_noop_envelope = recovered
         .replay()
         .canonical_commit_envelope(controller_feature_idempotent_commit.commit.commit_id)
-        .cloned()
         .expect("recovered controller noop envelope");
     let recovered_branch_heads = StrategyBranchHeadEvidence {
         main: recovered
             .history()
-            .branch_head(&BranchId("main".to_string()))
-            .cloned(),
-        feature: recovered.history().branch_head(&feature_branch).cloned(),
+            .branch_head(&BranchId("main".to_string())),
+        feature: recovered.history().branch_head(&feature_branch),
     };
     let recovered_visible_truth = StrategyVisibleTruthEvidence {
         entity_name: read_entity_name(

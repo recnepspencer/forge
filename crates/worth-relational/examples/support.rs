@@ -7,6 +7,7 @@ use worth_foundational::facade::{
     FieldKey, LocatorAuthority, ScalarAspectType,
 };
 use worth_relational::facade::{
+    branch::AdmittedRelationalBranchBasis,
     config::{CascadeDeletePolicy, CrossContextPolicy},
     history::BranchId,
     identity::{EntityId, KindId, PartitionId, RelationId},
@@ -18,10 +19,18 @@ use worth_relational::facade::{
     symbols::ClientKey,
     transactions::{
         AspectFieldPatch, CreateIntent, DeleteEntityIntent, EntityMutationIntent, EntityReference,
-        EntitySpec, MutationIntent, RelationSpec, TransactionOptions, UpdateEntityFieldsIntent,
-        WorkerIntentBatch,
+        EntitySpec, MutationIntent, RelationSpec, UpdateEntityFieldsIntent, WorkerIntentBatch,
     },
 };
+
+fn main_basis(
+    runtime: &worth_relational::facade::runtime::RelationalRuntime,
+) -> AdmittedRelationalBranchBasis {
+    let identity = runtime.main_branch_identity();
+    runtime
+        .admit_branch_basis(&identity)
+        .expect("configured main branch must remain owner-admissible")
+}
 
 pub fn demo_schema_registry() -> RelationalSchemaRegistry {
     RelationalSchemaRegistry::new()
@@ -62,7 +71,15 @@ pub fn create_entity(
     worth_relational::facade::transactions::CommitResult,
     EntityId,
 ) {
-    let mut tx = runtime.begin_transaction(TransactionOptions::default());
+    let mut tx = {
+        let basis = main_basis(runtime);
+        runtime
+            .begin_branch_transaction(
+                &basis,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     tx.push_batch(
         WorkerIntentBatch::new(format!("create-{name}")).push(MutationIntent::Create(
             CreateIntent::Entity(EntitySpec {
@@ -73,7 +90,7 @@ pub fn create_entity(
             }),
         )),
     );
-    let outcome = tx.commit().expect("entity commit");
+    let outcome = tx.commit(runtime).expect("entity commit");
     let entity_id = changed_entity(&outcome).expect("created entity id");
     (outcome, entity_id)
 }
@@ -92,10 +109,25 @@ pub fn update_entity_on_branch(
     name: &str,
     target_branch: Option<BranchId>,
 ) -> worth_relational::facade::transactions::CommitResult {
-    let mut tx = runtime.begin_transaction(TransactionOptions {
-        target_branch,
-        ..TransactionOptions::default()
-    });
+    let basis = target_branch.map_or_else(
+        || main_basis(runtime),
+        |branch| {
+            let identity = runtime
+                .branch_identity(&branch)
+                .expect("example branch must be owner-registered");
+            runtime
+                .admit_branch_basis(&identity)
+                .expect("example branch identity must be owner-admitted")
+        },
+    );
+    let mut tx = {
+        runtime
+            .begin_branch_transaction(
+                &basis,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     tx.push_batch(
         WorkerIntentBatch::new(format!("update-{name}")).push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -104,20 +136,28 @@ pub fn update_entity_on_branch(
             }),
         )),
     );
-    tx.commit().expect("update commit")
+    tx.commit(runtime).expect("update commit")
 }
 
 pub fn delete_entity(
     runtime: &mut worth_relational::facade::runtime::RelationalRuntime,
     entity_id: EntityId,
 ) -> worth_relational::facade::transactions::CommitResult {
-    let mut tx = runtime.begin_transaction(TransactionOptions::default());
+    let mut tx = {
+        let basis = main_basis(runtime);
+        runtime
+            .begin_branch_transaction(
+                &basis,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     tx.push_batch(
         WorkerIntentBatch::new("delete-entity").push(MutationIntent::Entity(
             EntityMutationIntent::Delete(DeleteEntityIntent { entity_id }),
         )),
     );
-    tx.commit().expect("delete entity commit")
+    tx.commit(runtime).expect("delete entity commit")
 }
 
 pub fn create_relation(
@@ -129,7 +169,15 @@ pub fn create_relation(
     worth_relational::facade::transactions::CommitResult,
     RelationId,
 ) {
-    let mut tx = runtime.begin_transaction(TransactionOptions::default());
+    let mut tx = {
+        let basis = main_basis(runtime);
+        runtime
+            .begin_branch_transaction(
+                &basis,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     tx.push_batch(
         WorkerIntentBatch::new(format!("rel-{label}")).push(MutationIntent::Create(
             CreateIntent::Relation(RelationSpec {
@@ -142,7 +190,7 @@ pub fn create_relation(
             }),
         )),
     );
-    let outcome = tx.commit().expect("relation commit");
+    let outcome = tx.commit(runtime).expect("relation commit");
     let relation_id = changed_relation(&outcome).expect("created relation id");
     (outcome, relation_id)
 }

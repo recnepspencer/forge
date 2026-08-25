@@ -18,13 +18,12 @@ fn mutation_batch_lowers_once_into_a_batch_native_relational_artifact() {
     let mut runtime = relational_runtime_with_intent_strategy();
     let left = create_entity(&mut runtime, "left", BranchId("main".to_string()));
     let right = create_entity(&mut runtime, "right", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("branch-a".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("branch-a should be created");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should be created");
     let binding = runtime_workflow_binding_with_snapshot(runtime_snapshot_identity(&runtime));
 
     let lowered = effect_batch()

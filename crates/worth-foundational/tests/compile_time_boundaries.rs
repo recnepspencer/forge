@@ -127,6 +127,11 @@ fn branch_local_transition_surfaces_remain_non_authoritative() {
 }
 
 #[test]
+fn exact_branch_reference_surfaces_do_not_accept_candidate_or_raw_epoch_values() {
+    compile_fail("tests/ui/transitions/branch_reference/*.rs");
+}
+
+#[test]
 fn merge_transition_admission_surfaces_preserve_non_authoritative_boundaries() {
     compile_fail("tests/ui/transitions/merge_admission/*.rs");
 }

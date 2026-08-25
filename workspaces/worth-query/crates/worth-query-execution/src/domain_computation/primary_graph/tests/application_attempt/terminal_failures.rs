@@ -1,11 +1,43 @@
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
+};
+
 use super::{
-    admitted_program, authenticated_principal, idempotency, installed_authorization_world,
-    live_scope, resolved_account,
+    admitted_mutation_free_program, admitted_program, authenticated_principal, idempotency,
+    installed_authorization_world, live_scope, resolved_account,
 };
 use crate::domain_computation::primary_graph::{
     WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
     WorthQueryApplicationCommitOutcome, WorthQueryApplicationCommitTerminalKind,
 };
+use crate::facade::primary_graph::{
+    WorthQueryExternalDispatchRequest, WorthQueryExternalEffectTransport,
+    WorthQueryExternalTransportOutcome,
+};
+
+struct ZeroInvariantCompletingTransport(AtomicUsize);
+
+impl WorthQueryExternalEffectTransport for ZeroInvariantCompletingTransport {
+    fn dispatch(
+        &self,
+        _request: WorthQueryExternalDispatchRequest<'_>,
+    ) -> WorthQueryExternalTransportOutcome {
+        self.0.fetch_add(1, Ordering::AcqRel);
+        WorthQueryExternalTransportOutcome::Completed
+    }
+}
+
+fn install_zero_invariant_transport(
+    world: &super::super::fixture::AuthorizationWorld,
+) -> Arc<ZeroInvariantCompletingTransport> {
+    let transport = Arc::new(ZeroInvariantCompletingTransport(AtomicUsize::new(0)));
+    world
+        .application
+        .install_external_effect_transport(transport.clone())
+        .expect("zero-invariant fixture installs its external transport");
+    transport
+}
 
 #[test]
 fn preparation_rejection_is_denied_without_effect_or_idempotency_residue() {
@@ -193,7 +225,7 @@ fn idempotency_without_the_claimed_causal_fact_is_not_equivalent() {
 }
 
 #[test]
-fn forged_invariant_verdict_cannot_commit_without_relational_owner_candidate() {
+fn missing_owner_candidate_is_denied_before_semantic_invariant_execution() {
     let world = installed_authorization_world(true);
     let request = live_scope();
     let principal = authenticated_principal(&world, &request);
@@ -207,12 +239,24 @@ fn forged_invariant_verdict_cannot_commit_without_relational_owner_candidate() {
     );
 
     world.faults.skip_next_invariant_owner_execution();
-    let outcome = world
+    let WorthQueryApplicationCommitOutcome::Denied(denial) = world
         .application
-        .compare_and_commit_application(rejected, idempotency(22, 22));
-    if !matches!(outcome, WorthQueryApplicationCommitOutcome::Aborted) {
-        panic!("a verdict without Relational's sealed candidate must not commit");
-    }
+        .compare_and_commit_application(rejected, idempotency(22, 22))
+    else {
+        panic!("missing owner admission must deny before semantic execution");
+    };
+    assert_eq!(
+        denial.stage(),
+        WorthQueryApplicationCommitDenialStage::InvariantExecution
+    );
+    assert_eq!(
+        world
+            .application
+            .primary_provider
+            .published_application_commit_count(),
+        0,
+        "owner validation denial must precede commit and outbox publication"
+    );
     let _still_open = resolved_account(&world, "open", &live_scope());
 }
 
@@ -242,6 +286,65 @@ fn relational_invariant_violation_denies_before_provider_commit() {
         WorthQueryApplicationCommitDenialStage::InvariantExecution
     );
     let _still_open = resolved_account(&world, "open", &live_scope());
+}
+
+#[test]
+fn zero_semantic_invariants_still_require_relational_candidate_validation() {
+    let world = installed_authorization_world(true);
+    let transport = install_zero_invariant_transport(&world);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let account = resolved_account(&world, "open", &request);
+    let rejected = admitted_mutation_free_program(&world, &principal, &account, &request);
+
+    world.faults.violate_next_relational_invariant();
+    let WorthQueryApplicationCommitOutcome::Denied(denial) = world
+        .application
+        .compare_and_commit_application(rejected, idempotency(25, 25))
+    else {
+        panic!("zero semantic requirements must not bypass Relational validation");
+    };
+    assert_eq!(
+        denial.stage(),
+        WorthQueryApplicationCommitDenialStage::InvariantExecution
+    );
+    assert_eq!(
+        world
+            .application
+            .primary_provider
+            .published_application_commit_count(),
+        0,
+        "zero-requirement owner denial must precede commit and outbox publication"
+    );
+    assert_eq!(transport.0.load(Ordering::Acquire), 0);
+}
+
+#[test]
+fn zero_semantic_invariants_commit_after_owner_candidate_admission() {
+    let world = installed_authorization_world(true);
+    let transport = install_zero_invariant_transport(&world);
+    let request = live_scope();
+    let principal = authenticated_principal(&world, &request);
+    let account = resolved_account(&world, "open", &request);
+    let program = admitted_mutation_free_program(&world, &principal, &account, &request);
+
+    let WorthQueryApplicationCommitOutcome::Committed(receipt) = world
+        .application
+        .compare_and_commit_application(program, idempotency(26, 26))
+    else {
+        panic!("owner-admitted candidate with no semantic requirements must commit");
+    };
+    assert_eq!(
+        receipt.changed_record_count(),
+        2,
+        "only provider idempotency and outbox records may change"
+    );
+    assert_eq!(receipt.emitted_effect_count(), 1);
+    assert!(
+        receipt.dispatch_outbox().is_some(),
+        "the mutation-free external effect must co-commit its outbox"
+    );
+    assert_eq!(transport.0.load(Ordering::Acquire), 1);
 }
 
 #[test]

@@ -43,7 +43,7 @@ fn replay_contract_failure_wrong_branch_is_explicit() {
 }
 
 #[test]
-fn replay_contract_failure_missing_authoritative_parent_closure_is_explicit() {
+fn replay_uses_canonical_root_parent_when_catalog_accelerator_is_missing() {
     let mut runtime = runtime_with_test_schema();
     let parent = create_entity_outcome(&mut runtime, "parent");
     let child = create_entity_outcome(&mut runtime, "child");
@@ -61,9 +61,10 @@ fn replay_contract_failure_missing_authoritative_parent_closure_is_explicit() {
             verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
         });
 
+    assert!(runtime.replay().compare_outcome(&replay));
     assert_eq!(
-        replay.failure,
-        Some(ReplayFailureClass::MissingAuthoritativeParentClosure)
+        replay.reconstructed_commit_closure,
+        vec![parent.commit.commit_id, child.commit.commit_id]
     );
 }
 
@@ -73,7 +74,7 @@ fn replay_contract_success_preserves_merge_parent_order() {
     let main = create_entity_outcome(&mut runtime, "main");
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )

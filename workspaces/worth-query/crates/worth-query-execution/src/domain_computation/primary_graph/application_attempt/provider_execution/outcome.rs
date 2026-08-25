@@ -12,6 +12,8 @@ pub(in crate::domain_computation) enum WorthQueryProviderProgressionOutcome {
     Cancelled,
     Denied(WorthQueryApplicationCommitDenial),
     Aborted,
+    Deferred(super::super::WorthQueryApplicationCommitDeferred),
+    SettlementDeferred(super::super::WorthQueryApplicationSettlementDeferred),
     Indeterminate(super::super::WorthQueryApplicationUnresolvedCommitEvidence),
 }
 
@@ -33,6 +35,10 @@ impl WorthQueryProviderProgressionOutcome {
             Self::Cancelled => WorthQueryApplicationCommitOutcome::Cancelled,
             Self::Denied(denial) => WorthQueryApplicationCommitOutcome::Denied(denial),
             Self::Aborted => WorthQueryApplicationCommitOutcome::Aborted,
+            Self::Deferred(deferred) => WorthQueryApplicationCommitOutcome::Deferred(deferred),
+            Self::SettlementDeferred(deferred) => {
+                WorthQueryApplicationCommitOutcome::SettlementDeferred(deferred)
+            }
             Self::Indeterminate(evidence) => {
                 WorthQueryApplicationCommitOutcome::Indeterminate(evidence)
             }

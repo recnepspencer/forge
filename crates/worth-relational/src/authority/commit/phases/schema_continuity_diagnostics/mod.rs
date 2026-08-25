@@ -4,7 +4,8 @@ mod field_shapes;
 mod trace_entries;
 
 use crate::diagnostics::data::{
-    DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
+    DeterminismExpectation, DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope,
+    RelationalDiagnosticArtifact, RelationalDiagnosticsEntry,
 };
 use crate::history::data::CanonicalCommitEnvelope;
 use crate::schema::data::{SchemaTransitionArtifact, SchemaTransitionSummary};
@@ -24,21 +25,22 @@ pub(super) enum FailureTransitionView<'a> {
     Artifact(&'a SchemaTransitionArtifact),
 }
 
-pub(crate) fn emit_schema_continuity_diagnostic(
-    runtime: &mut crate::runtime::RelationalRuntime,
+pub(crate) fn prepare_schema_continuity_diagnostics(
     branch_id: &crate::history::data::BranchId,
     plan: &SchemaContinuityPlan,
-) {
+) -> Vec<RelationalDiagnosticArtifact> {
     let Some(transition) = &plan.schema_transition else {
-        return;
+        return Vec::new();
     };
-
-    emit_schema_transition_summary(runtime, branch_id, plan, transition);
-    runtime.publication_authority().push_bounded_diagnostic(
-        DiagnosticsScope::Schema,
-        DiagnosticsArtifactKind::DetailedTrace,
-        schema_transition_trace_entries(branch_id, transition),
-    );
+    vec![
+        schema_transition_summary_artifact(branch_id, plan, transition),
+        RelationalDiagnosticArtifact::new(
+            DiagnosticsScope::Schema,
+            DiagnosticsArtifactKind::DetailedTrace,
+            DeterminismExpectation::Required,
+            schema_transition_trace_entries(branch_id, transition),
+        ),
+    ]
 }
 
 pub(super) fn schema_continuity_conflict_from_issue(
@@ -90,16 +92,16 @@ pub(super) fn emit_schema_continuity_failure_diagnostic(
     );
 }
 
-fn emit_schema_transition_summary(
-    runtime: &mut crate::runtime::RelationalRuntime,
+fn schema_transition_summary_artifact(
     branch_id: &crate::history::data::BranchId,
     plan: &SchemaContinuityPlan,
     transition: &SchemaTransitionArtifact,
-) {
+) -> RelationalDiagnosticArtifact {
     let transition_summary = SchemaTransitionSummary::from_artifact(transition);
-    runtime.publication_authority().push_bounded_diagnostic(
+    RelationalDiagnosticArtifact::new(
         DiagnosticsScope::Schema,
         DiagnosticsArtifactKind::MinimalSummary,
+        DeterminismExpectation::Required,
         vec![RelationalDiagnosticsEntry::new(
             DiagnosticCode::SchemaTransitionTraced,
             "schema continuity transition lowered into canonical commit artifacts",
@@ -128,7 +130,7 @@ fn emit_schema_transition_summary(
                     .normalized_boundary_count,
             }),
         )],
-    );
+    )
 }
 
 fn descriptor_version_mismatch_issue(issue: &SchemaContinuityBundleIssue) -> bool {

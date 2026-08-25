@@ -98,9 +98,9 @@ pub(crate) fn project_diagnostic_value_for_terminal_projection(
         RelationalDiagnosticValue::SnapshotId(value) => unsigned(value.0),
         RelationalDiagnosticValue::DurableCheckpointId(value) => unsigned(value.0),
         RelationalDiagnosticValue::DurableSegmentId(value) => unsigned(value.0),
-        RelationalDiagnosticValue::DerivedIndexId(value) => unsigned(value.0 as u64),
-        RelationalDiagnosticValue::DerivedIndexGenerationId(value) => unsigned(value.0 as u64),
-        RelationalDiagnosticValue::CorrespondenceCandidateId(value) => unsigned(value.0),
+        RelationalDiagnosticValue::DerivedIndexId(value) => unsigned(value.0),
+        RelationalDiagnosticValue::DerivedIndexGenerationId(value) => unsigned(value.0),
+        RelationalDiagnosticValue::CorrespondenceCandidateId(value) => unsigned(*value),
         RelationalDiagnosticValue::PatchStreamPosition(value) => unsigned(value.0),
         RelationalDiagnosticValue::ReplaySchemaVersion(value) => unsigned(value.0 as u64),
         RelationalDiagnosticValue::SchemaId(value) => {

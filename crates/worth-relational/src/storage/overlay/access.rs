@@ -4,9 +4,13 @@ use crate::identity::data::PartitionId;
 
 use super::PartitionState;
 
-pub(crate) trait PartitionAccess {
+pub(crate) trait PartitionAccess: Sync {
     fn get_partition(&self, partition_id: PartitionId) -> Option<&PartitionState>;
     fn partition_ids(&self) -> Vec<PartitionId>;
+
+    fn touched_partition_ids(&self) -> Option<Vec<PartitionId>> {
+        None
+    }
 
     fn touched_entity_slots(&self, _partition_id: PartitionId) -> Option<Vec<usize>> {
         None
@@ -31,6 +35,16 @@ pub(crate) trait PartitionAccess {
     }
 }
 
+impl PartitionAccess for BTreeMap<PartitionId, PartitionState> {
+    fn get_partition(&self, partition_id: PartitionId) -> Option<&PartitionState> {
+        self.get(&partition_id)
+    }
+
+    fn partition_ids(&self) -> Vec<PartitionId> {
+        self.keys().copied().collect()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct BorrowedWorkingState<'a> {
     partitions: &'a BTreeMap<PartitionId, PartitionState>,
@@ -52,17 +66,14 @@ impl PartitionAccess for BorrowedWorkingState<'_> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub(crate) struct OverlayStateView<'a, S> {
-    base_partitions: &'a BTreeMap<PartitionId, PartitionState>,
+    base_partitions: &'a dyn PartitionAccess,
     staged: &'a S,
 }
 
 impl<'a, S> OverlayStateView<'a, S> {
-    pub(crate) fn new(
-        base_partitions: &'a BTreeMap<PartitionId, PartitionState>,
-        staged: &'a S,
-    ) -> Self {
+    pub(crate) fn new(base_partitions: &'a dyn PartitionAccess, staged: &'a S) -> Self {
         Self {
             base_partitions,
             staged,
@@ -74,16 +85,16 @@ impl<S: PartitionAccess> PartitionAccess for OverlayStateView<'_, S> {
     fn get_partition(&self, partition_id: PartitionId) -> Option<&PartitionState> {
         self.staged
             .get_partition(partition_id)
-            .or_else(|| self.base_partitions.get(&partition_id))
+            .or_else(|| self.base_partitions.get_partition(partition_id))
     }
 
     fn partition_ids(&self) -> Vec<PartitionId> {
-        let base_ids = self.base_partitions.keys().copied();
+        let base_ids = self.base_partitions.partition_ids();
         let staged_ids = self.staged.partition_ids();
         debug_assert!(partition_ids_are_canonical(staged_ids.iter().copied()));
 
-        let mut merged = Vec::with_capacity(self.base_partitions.len() + staged_ids.len());
-        let mut base_iter = base_ids.peekable();
+        let mut merged = Vec::with_capacity(base_ids.len() + staged_ids.len());
+        let mut base_iter = base_ids.into_iter().peekable();
         let mut staged_iter = staged_ids.into_iter().peekable();
 
         loop {
@@ -130,6 +141,10 @@ impl<S: PartitionAccess> PartitionAccess for OverlayStateView<'_, S> {
         self.staged.touched_relation_slots(partition_id)
     }
 
+    fn touched_partition_ids(&self) -> Option<Vec<PartitionId>> {
+        self.staged.touched_partition_ids()
+    }
+
     fn entity_slot_is_touched(&self, partition_id: PartitionId, slot: usize) -> bool {
         self.staged.entity_slot_is_touched(partition_id, slot)
     }
@@ -139,7 +154,7 @@ impl<S: PartitionAccess> PartitionAccess for OverlayStateView<'_, S> {
     }
 
     fn base_partition(&self, partition_id: PartitionId) -> Option<&PartitionState> {
-        self.base_partitions.get(&partition_id)
+        self.base_partitions.get_partition(partition_id)
     }
 }
 

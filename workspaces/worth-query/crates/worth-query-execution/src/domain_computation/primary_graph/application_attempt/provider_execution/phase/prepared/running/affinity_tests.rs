@@ -78,15 +78,33 @@ fn exact_affinity_accepts_its_real_session_and_rejects_runtime_snapshot_and_bran
         .is_err());
     assert!(substitute_lease.release());
 
-    let mut foreign_branch_snapshot = lease.snapshot().clone();
-    foreign_branch_snapshot.branch_id =
-        worth_relational::facade::history::BranchId("foreign-affinity-branch".to_owned());
+    let foreign_branch_snapshot = lease.handle().with_runtime_mut(|runtime| {
+        let foreign =
+            worth_relational::facade::history::BranchId("foreign-affinity-branch".to_owned());
+        let (_, fork_basis) = runtime
+            .observe_fork_source(lease.snapshot().branch_id())
+            .expect("test runtime can observe the exact source basis");
+        runtime
+            .fork_branch(foreign.clone(), fork_basis)
+            .expect("test runtime can issue a real sibling branch");
+        let identity = runtime.branch_identity(&foreign).unwrap();
+        let (_, basis) = runtime.observe_branch(&identity).unwrap();
+        runtime
+            .snapshots()
+            .snapshot_for_observation(&basis.observation())
+            .unwrap()
+    });
     assert!(WorthQueryApplicationAttemptBasis::capture(
         &world.application,
         &admission,
         &foreign_branch_snapshot,
     )
     .is_err());
+    assert!(lease.handle().with_runtime_mut(|runtime| {
+        runtime
+            .snapshots()
+            .release_snapshot(&foreign_branch_snapshot)
+    }));
     let _ = staged.abort();
     finish_uncommitted(mutation_run, running, lease);
 }

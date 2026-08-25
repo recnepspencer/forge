@@ -6,39 +6,53 @@ use crate::indexes::data::{
     RelatedEntityEndpoint, RelatedEntityOrderingDirection, RelatedEntityOrderingEntry,
     RelatedEntityOrderingField,
 };
-use crate::runtime::RelationalRuntime;
 
 use super::{entity_aspect_field_ordering_value, IndexProjectionSource};
 
-pub(in crate::indexes) fn build_related_entity_ordering_index(
-    runtime: &RelationalRuntime,
-    projection: &IndexProjectionSource<'_, '_>,
+pub(in crate::indexes) struct RelatedEntityOrderingProjection<'definition> {
     relation_kind: KindId,
     parent_endpoint: RelatedEntityEndpoint,
     child_kind: KindId,
-    ordering: &[RelatedEntityOrderingField],
+    ordering: &'definition [RelatedEntityOrderingField],
+}
+
+impl<'definition> RelatedEntityOrderingProjection<'definition> {
+    pub(in crate::indexes) const fn new(
+        relation_kind: KindId,
+        parent_endpoint: RelatedEntityEndpoint,
+        child_kind: KindId,
+        ordering: &'definition [RelatedEntityOrderingField],
+    ) -> Self {
+        Self {
+            relation_kind,
+            parent_endpoint,
+            child_kind,
+            ordering,
+        }
+    }
+}
+
+pub(in crate::indexes) fn build_related_entity_ordering_index(
+    projection: &IndexProjectionSource<'_, '_>,
+    contract: &RelatedEntityOrderingProjection<'_>,
 ) -> BTreeMap<crate::identity::data::EntityId, Vec<RelatedEntityOrderingEntry>> {
     let mut entries =
         BTreeMap::<crate::identity::data::EntityId, Vec<RelatedEntityOrderingEntry>>::new();
-    projection.for_each_relation(relation_kind, |relation| {
-        let (parent, child) = match parent_endpoint {
+    projection.for_each_relation(contract.relation_kind, |relation| {
+        let (parent, child) = match contract.parent_endpoint {
             RelatedEntityEndpoint::SourceParent => (relation.source, relation.target),
             RelatedEntityEndpoint::TargetParent => (relation.target, relation.source),
         };
         let values = projection
             .with_entity(child, |record| {
-                if record.kind.kind_id != child_kind {
+                if record.kind.kind_id != contract.child_kind {
                     return None;
                 }
-                ordering
+                contract
+                    .ordering
                     .iter()
                     .map(|field| {
-                        entity_aspect_field_ordering_value(
-                            runtime,
-                            projection,
-                            child,
-                            field.locator(),
-                        )
+                        entity_aspect_field_ordering_value(projection, child, field.locator())
                     })
                     .collect::<Option<Vec<_>>>()
             })
@@ -55,7 +69,7 @@ pub(in crate::indexes) fn build_related_entity_ordering_index(
         }
     });
     for rows in entries.values_mut() {
-        rows.sort_by(|left, right| compare_related_entries(left, right, ordering));
+        rows.sort_by(|left, right| compare_related_entries(left, right, contract.ordering));
     }
     entries
 }

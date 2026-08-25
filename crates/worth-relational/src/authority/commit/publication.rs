@@ -11,9 +11,8 @@ use crate::diagnostics::data::{
     DeterminismExpectation, DiagnosticsArtifactKind, DiagnosticsScope,
     RelationalDiagnosticArtifact, RelationalDiagnosticsEntry,
 };
-use crate::history::data::CommitId;
 use crate::publication::patch::data::{
-    PatchOrdering, PatchPublicationMode, PatchStreamPosition, PublishedAuthoritativePatchEnvelope,
+    CanonicalAuthoritativePatch, PatchOrdering, PatchPublicationMode,
     PublishedAuthoritativeRecordPatch,
 };
 use crate::runtime::RelationalRuntime;
@@ -23,9 +22,8 @@ use std::collections::BTreeSet;
 
 pub(super) fn assemble_patch(
     runtime: &RelationalRuntime,
-    commit_id: CommitId,
     fragments: Vec<FoundationalPatchFragment>,
-) -> PublishedAuthoritativePatchEnvelope {
+) -> CanonicalAuthoritativePatch {
     let records = prepare_patch_fragments(
         runtime,
         fragments
@@ -33,10 +31,9 @@ pub(super) fn assemble_patch(
             .map(|fragment| fragment.published_record())
             .collect(),
     );
-    PublishedAuthoritativePatchEnvelope {
+    CanonicalAuthoritativePatch {
         ordering: PatchOrdering::CanonicalCommitOrder,
         publication_mode: PatchPublicationMode::CommitNative,
-        position: PatchStreamPosition(commit_id.0),
         authoritative_record_patches: records,
     }
     .canonicalized()
@@ -79,7 +76,7 @@ fn prepare_patch_fragments(
     let use_parallel_packets =
         matches!(
             runtime.config.execution.execution_model,
-            RelationalExecutionModel::StagedParallelPreparation
+            RelationalExecutionModel::ParallelPreparation
         ) && packet_width_is_profitable(packet_count, MIN_PARALLEL_PACKET_WIDTH);
 
     if !use_parallel_packets {

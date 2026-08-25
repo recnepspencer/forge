@@ -11,8 +11,8 @@ use crate::workflow::{
 use worth_relational::facade::history::BranchId;
 
 use super::super::support::{
-    branch_snapshot_identity, create_entity, relational_runtime_with_intent_strategy,
-    test_bridge_with_writeback_authority,
+    branch_snapshot_identity, create_entity, fork_seed_branch_from_main,
+    relational_runtime_with_intent_strategy, test_bridge_with_writeback_authority,
 };
 use super::{
     branch_mutation_basis, raw_mutation_effect_with_binding, runtime_workflow_binding,
@@ -28,7 +28,8 @@ pub(super) fn scalar_mutation_row(
     let entity_name = seeded_label("entity", stepper, index);
     let updated_name = seeded_label("updated", stepper, index);
     let mut runtime = relational_runtime_with_intent_strategy();
-    let entity_id = create_entity(&mut runtime, &entity_name, BranchId(branch.clone()));
+    let entity_id = create_entity(&mut runtime, &entity_name, BranchId("main".to_string()));
+    fork_seed_branch_from_main(&mut runtime, &branch);
     let binding =
         runtime_workflow_binding_for_branch(branch_snapshot_identity(&runtime, &branch), &branch);
     let basis = EffectAuthoringBasis::from(branch_mutation_basis(&branch));
@@ -206,13 +207,14 @@ pub(super) fn batch_mutation_row(
             "{}-{component_index}",
             seeded_label("entity", stepper, index)
         );
-        let entity_id = create_entity(&mut runtime, &entity_name, BranchId(branch.clone()));
+        let entity_id = create_entity(&mut runtime, &entity_name, BranchId("main".to_string()));
         let desired = format!(
             "{}-{component_index}",
             seeded_label("after", stepper, index)
         );
         seeded_entities.push((entity_id, desired));
     }
+    fork_seed_branch_from_main(&mut runtime, &branch);
     let binding =
         runtime_workflow_binding_for_branch(branch_snapshot_identity(&runtime, &branch), &branch);
     let mut draft = effect_batch();

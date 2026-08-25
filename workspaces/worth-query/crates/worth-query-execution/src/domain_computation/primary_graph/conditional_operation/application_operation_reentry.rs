@@ -1,10 +1,14 @@
 mod admitted_projection;
 mod invoker_isolation;
 mod processing;
+mod reentry_counts;
 mod sealed_commit;
+mod settlement_reentry;
 mod temporal_idempotency;
+mod wake_retirement;
 pub(in crate::domain_computation::primary_graph::conditional_operation) use invoker_isolation::isolate_invoker;
-pub(super) use processing::{reenter_retained_wakes, WorthQueryTemporalReentryCounts};
+pub(super) use processing::reenter_retained_wakes;
+pub(super) use reentry_counts::WorthQueryTemporalReentryCounts;
 #[cfg(test)]
 mod tests;
 
@@ -28,6 +32,9 @@ pub(super) enum WorthQueryTemporalReentryOutcome {
     AlreadyCommitted,
     Obsolete,
     RetryableFailure(String),
+    SettlementDeferred(
+        crate::domain_computation::primary_graph::WorthQueryApplicationSettlementDeferred,
+    ),
     Indeterminate(String),
 }
 

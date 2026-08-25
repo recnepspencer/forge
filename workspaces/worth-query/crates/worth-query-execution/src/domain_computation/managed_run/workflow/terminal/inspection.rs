@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
+use super::super::super::WorthQueryManagedRelationalObservationReleaseReceipt;
 use worth_query_admission::facade::resource_admission::WorthQueryExecutionCapacityReservationScope;
-use worth_relational::facade::runtime::RelationalExecutionBasisReleaseReceipt;
 use worth_runtime_bridge::facade::BridgeExecutionBasisFinalizationReceipt;
 
 use crate::domain_computation::{
@@ -16,7 +16,7 @@ pub(super) struct WorthQueryCompletedWorkflowRunCleanup {
     pub(super) terminal: WorthQueryManagedRunTerminalKind,
     pub(super) disposition: WorthQueryManagedRunCleanupDisposition,
     pub(super) bridge: BridgeExecutionBasisFinalizationReceipt,
-    pub(super) relational: RelationalExecutionBasisReleaseReceipt,
+    pub(super) relational: WorthQueryManagedRelationalObservationReleaseReceipt,
     pub(super) attempt: WorthQueryWorkflowExecutionAttemptReleaseReceipt,
     pub(super) artifact_evidence: WorthQueryWorkflowArtifactRegistryEvidence,
     pub(super) counters: WorthQueryManagedRunCounters,

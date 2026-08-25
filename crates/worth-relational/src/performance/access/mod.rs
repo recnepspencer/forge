@@ -1,3 +1,4 @@
+mod bridge_counters;
 mod inspection_counters;
 mod lineage_counters;
 mod merge_counters;
@@ -27,5 +28,17 @@ impl RelationalRuntime {
 impl<'runtime> PerformanceAccess<'runtime> {
     pub(crate) fn new(runtime: &'runtime RelationalRuntime) -> Self {
         Self { runtime }
+    }
+
+    pub(crate) fn complexity_counters_snapshot(
+        &self,
+    ) -> crate::performance::data::RuntimeComplexityCounters {
+        self.runtime
+            .services
+            .instrumentation
+            .complexity_counters
+            .lock()
+            .expect("complexity counter lock poisoned")
+            .clone()
     }
 }

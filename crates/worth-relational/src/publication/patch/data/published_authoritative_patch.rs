@@ -44,6 +44,14 @@ impl PublishedAuthoritativePatch {
         self.operations.len()
     }
 
+    pub(crate) fn owned_allocation_capacity_bytes(&self) -> u64 {
+        self.operations.iter().fold(
+            (self.operations.capacity()
+                * std::mem::size_of::<PublishedAuthoritativePatchOperation>()) as u64,
+            |bytes, operation| bytes.saturating_add(operation.owned_allocation_capacity_bytes()),
+        )
+    }
+
     pub fn scalar_set_for(&self, aspect_key: &AspectKey) -> Option<&AspectValue> {
         self.operations
             .iter()
@@ -150,12 +158,76 @@ impl PublishedAuthoritativePatchOperation {
             | Self::FieldLevelPatch { aspect_key, .. } => aspect_key,
         }
     }
+
+    fn owned_allocation_capacity_bytes(&self) -> u64 {
+        let aspect_and_binding = match self {
+            Self::WholeAspectSet {
+                aspect_key,
+                binding,
+                ..
+            }
+            | Self::WholeAspectClear {
+                aspect_key,
+                binding,
+                ..
+            }
+            | Self::FieldLevelPatch {
+                aspect_key,
+                binding,
+                ..
+            } => {
+                (aspect_key.owned_allocation_capacity_bytes()
+                    + binding.owned_allocation_capacity_bytes()) as u64
+            }
+        };
+        match self {
+            Self::WholeAspectSet { value, .. } => {
+                aspect_and_binding.saturating_add(value.owned_allocation_capacity_bytes())
+            }
+            Self::WholeAspectClear { .. } => aspect_and_binding,
+            Self::FieldLevelPatch {
+                field_sets,
+                field_clears,
+                ..
+            } => aspect_and_binding
+                .saturating_add(
+                    (field_sets.capacity() * std::mem::size_of::<PublishedAuthoritativeFieldSet>())
+                        as u64,
+                )
+                .saturating_add(
+                    field_sets
+                        .iter()
+                        .map(|field| {
+                            (field.field.owned_allocation_capacity_bytes()
+                                + field.value.owned_allocation_capacity_bytes())
+                                as u64
+                        })
+                        .sum(),
+                )
+                .saturating_add((field_clears.capacity() * std::mem::size_of::<FieldKey>()) as u64)
+                .saturating_add(
+                    field_clears
+                        .iter()
+                        .map(|field| field.owned_allocation_capacity_bytes() as u64)
+                        .sum(),
+                ),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) enum PublishedAuthoritativePatchValue {
     Scalar(AspectValue),
     Struct(StructAspectValue),
+}
+
+impl PublishedAuthoritativePatchValue {
+    fn owned_allocation_capacity_bytes(&self) -> u64 {
+        match self {
+            Self::Scalar(value) => value.owned_allocation_capacity_bytes() as u64,
+            Self::Struct(value) => value.owned_allocation_capacity_bytes() as u64,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

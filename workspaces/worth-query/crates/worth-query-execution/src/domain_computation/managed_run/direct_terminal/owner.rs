@@ -1,10 +1,10 @@
+use super::super::WorthQueryManagedRelationalObservation;
 use super::super::{
     provider_work::WorthQueryManagedProviderCleanupAuthority,
     run_affinity::WorthQueryDirectRunTerminalAffinity, WorthQueryManagedProviderWorkEvidence,
     WorthQueryManagedRunCounters, WorthQueryManagedRunTerminalKind,
 };
 use super::{cleanup, WorthQueryDirectRunCleanupFailure, WorthQueryDirectRunCleanupReceipt};
-use worth_relational::facade::runtime::RelationalExecutionBasisLease;
 use worth_runtime_bridge::facade::BridgeBoundExecutionBasis;
 
 #[must_use = "a direct run terminal retains resources that must be cleaned up"]
@@ -12,7 +12,8 @@ pub struct WorthQueryDirectRunTerminal {
     pub(in crate::domain_computation::managed_run) affinity: WorthQueryDirectRunTerminalAffinity,
     pub(in crate::domain_computation::managed_run) kind: WorthQueryManagedRunTerminalKind,
     pub(in crate::domain_computation::managed_run) bridge_basis: BridgeBoundExecutionBasis,
-    pub(in crate::domain_computation::managed_run) relational_basis: RelationalExecutionBasisLease,
+    pub(in crate::domain_computation::managed_run) relational_basis:
+        WorthQueryManagedRelationalObservation,
     pub(in crate::domain_computation::managed_run) counters: WorthQueryManagedRunCounters,
     pub(in crate::domain_computation::managed_run) provider_work:
         WorthQueryManagedProviderWorkEvidence,

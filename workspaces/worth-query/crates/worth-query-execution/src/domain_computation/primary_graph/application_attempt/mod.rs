@@ -40,11 +40,12 @@ pub use commit_terminal::{
     WorthQueryApplicationCommitTerminalEvidence, WorthQueryApplicationCommitTerminalKind,
 };
 pub use compare_and_commit::{
-    WorthQueryApplicationCommitDenial, WorthQueryApplicationCommitDenialKind,
-    WorthQueryApplicationCommitDenialStage, WorthQueryApplicationCommitOutcome,
-    WorthQueryApplicationCommitPublicationExternalEffect,
+    WorthQueryApplicationCommitDeferred, WorthQueryApplicationCommitDenial,
+    WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
+    WorthQueryApplicationCommitOutcome, WorthQueryApplicationCommitPublicationExternalEffect,
     WorthQueryApplicationCommitPublicationSource, WorthQueryApplicationCommitReceipt,
-    WorthQueryApplicationCommitRecoveryKind, WorthQueryApplicationStaleAttempt,
+    WorthQueryApplicationCommitRecoveryKind, WorthQueryApplicationSettlementDeferred,
+    WorthQueryApplicationSettlementNextAction, WorthQueryApplicationStaleAttempt,
     WorthQueryApplicationUnresolvedCommitEvidence,
 };
 pub(in crate::domain_computation::primary_graph) use compare_and_commit::{

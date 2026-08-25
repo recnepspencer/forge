@@ -12,6 +12,7 @@ use crate::durability::data::{
 use crate::durability::log::native_file_codec::{
     read_segment_file, read_store_manifest_file, write_segment_file, write_store_manifest_file,
 };
+use crate::durability::log::persisted_canonical_commit::PersistedCanonicalCommit;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct DurableStoreManifestFile {
@@ -20,10 +21,10 @@ pub(crate) struct DurableStoreManifestFile {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct DurableSegmentFile {
-    pub(crate) entries: Vec<crate::history::data::CanonicalCommitEnvelope>,
+    pub(crate) entries: Vec<PersistedCanonicalCommit>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct DurableCheckpointFile {
     pub(crate) checkpoint: DurableCheckpoint,
 }
@@ -163,10 +164,10 @@ fn refresh_store_segments_from_disk(
                 .find(|segment| segment.segment_id == segment_id)
                 .cloned();
             let (first_commit_id, last_commit_id, commit_count, integrity) =
-                match read_segment_entries(&path) {
+                match read_segment_inventory(&path) {
                     Ok(entries) => (
-                        entries.first().map(|entry| entry.commit.commit_id),
-                        entries.last().map(|entry| entry.commit.commit_id),
+                        entries.first().map(|entry| entry.commit_id),
+                        entries.last().map(|entry| entry.commit_id),
                         entries.len(),
                         DurableIntegrityStatus::Verified,
                     ),
@@ -209,28 +210,167 @@ fn refresh_store_segments_from_disk(
     Ok(store)
 }
 
-pub(crate) fn read_segment_entries(
+pub(crate) fn read_segment_entries_with_registry(
     path: &Path,
-) -> Result<Vec<crate::history::data::CanonicalCommitEnvelope>, DurabilityError> {
-    read_segment_file(path).map(|file| file.entries)
+    registry: &crate::schema::data::RelationalSchemaRegistry,
+) -> Result<Vec<crate::durability::migration::ReadmittedCanonicalCommit>, DurabilityError> {
+    match read_segment_file(path) {
+        Ok(file) => file
+            .entries
+            .into_iter()
+            .map(|entry| {
+                entry.readmit().map_err(|detail| {
+                    DurabilityError::new(RecoveryFailureClass::CorruptSegment, detail)
+                })
+            })
+            .collect(),
+        Err(current_error) => {
+            let bytes = fs::read(path).map_err(io_error)?;
+            match crate::durability::migration::decode_worth_query_9_16_1_1_segment(
+                &bytes, registry,
+            ) {
+                Ok(entries) => Ok(entries),
+                Err(crate::durability::migration::LegacySegmentDecodeError::Schema(detail)) => Err(
+                    DurabilityError::new(RecoveryFailureClass::SchemaMismatch, detail),
+                ),
+                Err(
+                    crate::durability::migration::LegacySegmentDecodeError::UnsupportedLineage(
+                        detail,
+                    ),
+                ) => Err(DurabilityError::new(
+                    RecoveryFailureClass::UnsupportedLegacySemantics,
+                    detail,
+                )),
+                Err(crate::durability::migration::LegacySegmentDecodeError::Decode) => {
+                    Err(current_error)
+                }
+            }
+        }
+    }
+}
+
+pub(crate) fn segment_requires_recovery_readmission(path: &Path) -> Result<bool, DurabilityError> {
+    match read_segment_file(path) {
+        Ok(_) => Ok(false),
+        Err(current_error) => {
+            let bytes = fs::read(path).map_err(io_error)?;
+            crate::durability::migration::worth_query_9_16_1_1_segment_inventory(&bytes)
+                .map(|_| true)
+                .map_err(|_| current_error)
+        }
+    }
+}
+
+fn read_segment_inventory(
+    path: &Path,
+) -> Result<Vec<crate::history::data::RelationalCommitReceipt>, DurabilityError> {
+    match read_segment_file(path) {
+        Ok(file) => Ok(file
+            .entries
+            .into_iter()
+            .map(PersistedCanonicalCommit::into_receipt)
+            .collect()),
+        Err(current_error) => {
+            let bytes = fs::read(path).map_err(io_error)?;
+            crate::durability::migration::worth_query_9_16_1_1_segment_inventory(&bytes)
+                .map_err(|_| current_error)
+        }
+    }
 }
 
 pub(crate) fn append_segment_entry(
     path: &Path,
-    envelope: &crate::history::data::CanonicalCommitEnvelope,
+    commit: &crate::history::data::PositionedCanonicalCommit,
+    registry: &crate::schema::data::RelationalSchemaRegistry,
 ) -> Result<(), DurabilityError> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(io_error)?;
     }
     let mut entries = if path.exists() {
-        read_segment_entries(path)?
+        read_segment_entries_with_registry(path, registry)?
+            .into_iter()
+            .map(|entry| {
+                entry
+                    .positioned()
+                    .map(PersistedCanonicalCommit::from_positioned)
+                    .ok_or_else(|| {
+                        DurabilityError::new(
+                            RecoveryFailureClass::DurableIoFailure,
+                            "current append cannot extend a migration-owned segment",
+                        )
+                    })
+            })
+            .collect::<Result<Vec<_>, _>>()?
     } else {
         Vec::new()
     };
-    entries.push(envelope.clone());
+    entries.push(PersistedCanonicalCommit::from_positioned(commit));
     write_segment_file(path, &DurableSegmentFile { entries })
 }
 
 pub(crate) fn io_error(error: std::io::Error) -> DurabilityError {
     DurabilityError::new(RecoveryFailureClass::DurableIoFailure, error.to_string())
+}
+
+#[cfg(test)]
+mod legacy_segment_tests {
+    use super::*;
+    use crate::capabilities::RuntimeConfigSource;
+
+    #[test]
+    fn native_reader_readmits_a_real_9_16_1_1_segment() {
+        // Generated once by the production persisted runtime and native
+        // segment writer at the 9.16.1.1 close commit 7d198923e36e9df.
+        let bytes = decode_hex(include_str!(
+            "../../../tests/fixtures/worth_query_9_16_1_1_native_segment.hex"
+        ));
+        let path = std::env::temp_dir().join(format!(
+            "worth-query-9-16-1-1-segment-{}.worth-segment",
+            std::process::id()
+        ));
+        std::fs::write(&path, bytes).expect("legacy fixture is written to the native read seam");
+        let runtime = crate::tests::support::persisted_runtime_with_test_schema();
+        let entries =
+            read_segment_entries_with_registry(&path, &runtime.runtime_config().schema.registry)
+                .expect("9.16.1.1 schema authority readmits through the runtime registry");
+        std::fs::remove_file(&path).expect("legacy fixture scratch file is removed");
+
+        assert_eq!(entries.len(), 1);
+        assert!(entries[0].needs_replay_completion());
+        assert_eq!(
+            entries[0].position(),
+            crate::publication::patch::data::PatchStreamPosition(1)
+        );
+        assert_eq!(entries[0].envelope().commit.commit_id.0, 1);
+        assert_eq!(entries[0].envelope().commit.version_id.0, 1);
+        assert_eq!(entries[0].envelope().branch_context.0, "main");
+        assert_eq!(
+            entries[0]
+                .envelope()
+                .patch
+                .authoritative_record_patches
+                .len(),
+            1
+        );
+    }
+
+    fn decode_hex(encoded: &str) -> Vec<u8> {
+        let digits = encoded
+            .bytes()
+            .filter(|byte| !byte.is_ascii_whitespace())
+            .collect::<Vec<_>>();
+        assert_eq!(digits.len() % 2, 0, "fixture hex has complete bytes");
+        digits
+            .chunks_exact(2)
+            .map(|pair| (hex_digit(pair[0]) << 4) | hex_digit(pair[1]))
+            .collect()
+    }
+
+    fn hex_digit(digit: u8) -> u8 {
+        match digit {
+            b'0'..=b'9' => digit - b'0',
+            b'a'..=b'f' => digit - b'a' + 10,
+            _ => panic!("fixture contains a non-hex digit"),
+        }
+    }
 }

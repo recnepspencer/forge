@@ -3,11 +3,8 @@ use worth_foundational::facade::{
     ContractValidatedAspectValueView, FieldKey,
 };
 
-use crate::identity::data::{EntityId, KindId};
+use crate::identity::data::KindId;
 use crate::schema::data::{LoweredAspectContractBinding, LoweredAspectContractPlan};
-use crate::storage::data::{
-    authoritative_aspect_value_field_comparison_key, AuthoritativeFieldComparisonKey,
-};
 use crate::validation::engine::state_view::VisibleEntityMetadata;
 use crate::visibility::materialization::read_records::ProjectionAspectScope;
 
@@ -15,7 +12,6 @@ use super::super::super::context::InvariantExecutionContext;
 
 #[derive(Debug, Clone)]
 pub(super) struct ProjectedEntityAspectFieldValue {
-    pub(super) entity_id: EntityId,
     pub(super) value: AspectValue,
 }
 
@@ -32,16 +28,6 @@ enum AdmittedEntityAspectFieldProjection {
     },
 }
 
-pub(super) fn projected_entity_aspect_field_value(
-    context: &InvariantExecutionContext<'_>,
-    entity_id: EntityId,
-    field_locator: &AspectFieldLocator,
-) -> Option<ProjectedEntityAspectFieldValue> {
-    let state_view = context.state_view();
-    let metadata = state_view.entity_metadata(entity_id)?;
-    projected_entity_aspect_field_value_for_metadata(context, &metadata, field_locator)
-}
-
 pub(super) fn projected_entity_aspect_field_value_for_metadata(
     context: &InvariantExecutionContext<'_>,
     metadata: &VisibleEntityMetadata,
@@ -53,50 +39,12 @@ pub(super) fn projected_entity_aspect_field_value_for_metadata(
         field_locator,
     )?;
     let state = context
-        .state_view()
+        .enforcement_state_view()
         .entity_aspect_state(metadata.entity_id)?;
     projection
         .value_from_state(state)
         .cloned()
-        .map(|value| ProjectedEntityAspectFieldValue {
-            entity_id: metadata.entity_id,
-            value,
-        })
-}
-
-pub(super) fn visible_entity_field_value_conflict(
-    context: &InvariantExecutionContext<'_>,
-    field_locator: &AspectFieldLocator,
-    comparison_key: &AuthoritativeFieldComparisonKey,
-    include_entity: impl Fn(EntityId) -> bool,
-) -> bool {
-    let state_view = context.state_view();
-    for partition_id in state_view.state().partition_ids() {
-        if state_view.state().get_partition(partition_id).is_none() {
-            continue;
-        }
-        let Some(slot_count) = state_view.entity_slot_scan_count(partition_id) else {
-            continue;
-        };
-        for slot in 0..slot_count {
-            let Some(metadata) = state_view.entity_metadata_for_slot(partition_id, slot) else {
-                continue;
-            };
-            if !include_entity(metadata.entity_id) {
-                continue;
-            }
-            let Some(projected) =
-                projected_entity_aspect_field_value_for_metadata(context, &metadata, field_locator)
-            else {
-                continue;
-            };
-            if &authoritative_aspect_value_field_comparison_key(&projected.value) == comparison_key
-            {
-                return true;
-            }
-        }
-    }
-    false
+        .map(|value| ProjectedEntityAspectFieldValue { value })
 }
 
 impl AdmittedEntityAspectFieldProjection {

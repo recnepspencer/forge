@@ -116,21 +116,6 @@ mod tests {
                 .unwrap()
         }
 
-        fn basis_is_live(
-            &self,
-            basis: &worth_relational::facade::runtime::RelationalExecutionBasisIdentity,
-        ) -> bool {
-            let graph = self
-                .world
-                .application
-                .runtime
-                .primary_graph()
-                .expect("test world publishes a primary graph");
-            graph
-                .integration_handle()
-                .with_runtime_mut(|runtime| runtime.snapshots().execution_basis_is_live(basis))
-        }
-
         fn close_source(&self) {
             self.world
                 .application
@@ -155,14 +140,14 @@ mod tests {
     }
 
     #[test]
-    fn explicit_close_releases_relational_bridge_signal_and_queue_resources() {
+    fn explicit_close_releases_bridge_signal_and_queue_resources() {
         let context = LiveContext::new(
             crate::domain_computation::primary_graph::tests::fixture::live_scope(),
         );
         let lease = context.open();
-        let (bridge, relational) = observers(&lease);
+        let bridge = observer(&lease);
         let provider_session_baseline = context.world.application.provider_session_resource_count();
-        assert_live(&context, &bridge, &relational);
+        assert_live(&bridge);
 
         let WorthQueryApplicationLiveCloseOutcome::Completed(completion) = lease.close() else {
             panic!("live close must complete its opening graph-read session");
@@ -174,9 +159,7 @@ mod tests {
             provider_session_baseline
         );
         assert_terminal(
-            &context,
             &bridge,
-            &relational,
             BridgeExecutionBasisLifecycleSignalStatus::Fulfilled,
         );
     }
@@ -190,16 +173,14 @@ mod tests {
         );
         let context = LiveContext::new(request);
         let mut lease = context.open();
-        let (bridge, relational) = observers(&lease);
+        let bridge = observer(&lease);
         cancellation.cancel();
         assert!(matches!(
             lease.poll(),
             WorthQueryApplicationLiveOutcome::Cancelled
         ));
         assert_terminal(
-            &context,
             &bridge,
-            &relational,
             BridgeExecutionBasisLifecycleSignalStatus::Cancelled,
         );
 
@@ -207,7 +188,7 @@ mod tests {
             crate::domain_computation::primary_graph::tests::fixture::live_scope(),
         );
         let mut deadline_lease = deadline_context.open();
-        let (deadline_bridge, deadline_relational) = observers(&deadline_lease);
+        let deadline_bridge = observer(&deadline_lease);
         // Live-lease deadlines still sample wall-clock Instant, not the Gate
         // 8.3 injectable runtime clock. Open under a non-expiring scope, then
         // bind an already-expired deadline only to the poll phase under test.
@@ -217,9 +198,7 @@ mod tests {
             WorthQueryApplicationLiveOutcome::DeadlineExceeded
         ));
         assert_terminal(
-            &deadline_context,
             &deadline_bridge,
-            &deadline_relational,
             BridgeExecutionBasisLifecycleSignalStatus::Cancelled,
         );
     }
@@ -230,16 +209,14 @@ mod tests {
             crate::domain_computation::primary_graph::tests::fixture::live_scope(),
         );
         let mut closed = closed_context.open();
-        let (closed_bridge, closed_relational) = observers(&closed);
+        let closed_bridge = observer(&closed);
         closed_context.close_source();
         assert!(matches!(
             closed.poll(),
             WorthQueryApplicationLiveOutcome::Closed
         ));
         assert_terminal(
-            &closed_context,
             &closed_bridge,
-            &closed_relational,
             BridgeExecutionBasisLifecycleSignalStatus::Fulfilled,
         );
 
@@ -247,16 +224,14 @@ mod tests {
             crate::domain_computation::primary_graph::tests::fixture::live_scope(),
         );
         let mut overflow = overflow_context.open();
-        let (overflow_bridge, overflow_relational) = observers(&overflow);
+        let overflow_bridge = observer(&overflow);
         overflow_context.overflow_source();
         let WorthQueryApplicationLiveOutcome::Overflow(missed) = overflow.poll() else {
             panic!("retention loss must terminalize as overflow");
         };
         assert_eq!(missed.missed_commit_batches(), 1);
         assert_terminal(
-            &overflow_context,
             &overflow_bridge,
-            &overflow_relational,
             BridgeExecutionBasisLifecycleSignalStatus::Cancelled,
         );
 
@@ -264,35 +239,20 @@ mod tests {
             crate::domain_computation::primary_graph::tests::fixture::live_scope(),
         );
         let abandoned = abandoned_context.open();
-        let (abandoned_bridge, abandoned_relational) = observers(&abandoned);
+        let abandoned_bridge = observer(&abandoned);
         drop(abandoned);
         assert_terminal(
-            &abandoned_context,
             &abandoned_bridge,
-            &abandoned_relational,
             BridgeExecutionBasisLifecycleSignalStatus::Cancelled,
         );
     }
 
-    fn observers(
-        lease: &TestLiveLease<'_, '_>,
-    ) -> (
-        BridgeExecutionBasisLifecycleObserver,
-        worth_relational::facade::runtime::RelationalExecutionBasisIdentity,
-    ) {
+    fn observer(lease: &TestLiveLease<'_, '_>) -> BridgeExecutionBasisLifecycleObserver {
         let basis = lease.basis.as_ref().expect("open lease retains its basis");
-        (
-            basis.bridge.lifecycle_observer(),
-            basis.relational.identity().clone(),
-        )
+        basis.bridge.lifecycle_observer()
     }
 
-    fn assert_live(
-        context: &LiveContext,
-        bridge: &BridgeExecutionBasisLifecycleObserver,
-        relational: &worth_relational::facade::runtime::RelationalExecutionBasisIdentity,
-    ) {
-        assert!(context.basis_is_live(relational));
+    fn assert_live(bridge: &BridgeExecutionBasisLifecycleObserver) {
         let observation = bridge.observe().unwrap();
         assert!(observation.reservation_active());
         assert_eq!(
@@ -309,12 +269,9 @@ mod tests {
     }
 
     fn assert_terminal(
-        context: &LiveContext,
         bridge: &BridgeExecutionBasisLifecycleObserver,
-        relational: &worth_relational::facade::runtime::RelationalExecutionBasisIdentity,
         status: BridgeExecutionBasisLifecycleSignalStatus,
     ) {
-        assert!(!context.basis_is_live(relational));
         let observation = bridge.observe().unwrap();
         assert!(!observation.reservation_active());
         assert_eq!(observation.signal_status(), Some(status));

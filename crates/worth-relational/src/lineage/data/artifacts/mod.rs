@@ -6,7 +6,6 @@ mod digest_basis;
 mod event_batch;
 mod finalization_artifact;
 mod published_artifact;
-mod rejection_artifact;
 
 pub use artifact_counters::LineageArtifactCounters;
 pub use checkpoint_artifact::{
@@ -19,7 +18,5 @@ pub use digest_basis::{
 
 pub(crate) use decision_log::LineageDecisionLog;
 pub(crate) use event_batch::FinalizedLineageEventBatch;
-pub(crate) use finalization_artifact::LineageFinalizationArtifact;
+pub(crate) use finalization_artifact::{LineageFinalizationArtifact, PreparedLineageFinalization};
 pub(crate) use published_artifact::PublishedLineageArtifact;
-#[cfg(test)]
-pub(crate) use rejection_artifact::LineageRejectionArtifact;

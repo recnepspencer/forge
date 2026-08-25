@@ -67,6 +67,7 @@ pub struct WorthQueryApplicationInvariantProjectionAuthority<Schema> {
 pub struct WorthQueryApplicationInvariantProjectionSnapshot<Schema> {
     graph: WorthQueryPrimaryGraphIntegrationHandle,
     layout: Arc<WorthQueryPrimaryGraphLayout>,
+    basis: Option<worth_relational::facade::branch::AdmittedRelationalBranchBasis>,
     snapshot: Option<worth_relational::facade::snapshots::SnapshotHandle>,
     runtime_authority: WorthQueryRuntimeAuthorityIdentity,
     binding_identity: ApplicationSchemaBindingIdentity,
@@ -140,12 +141,21 @@ where
     }
 
     pub fn snapshot(&self) -> WorthQueryApplicationInvariantProjectionSnapshot<Schema> {
-        let snapshot = self
-            .graph
-            .with_runtime_mut(|runtime| runtime.snapshots().snapshot());
+        let (basis, snapshot) = self.graph.with_runtime_mut(|runtime| {
+            let identity = runtime.main_branch_identity();
+            let (_, basis) = runtime
+                .observe_branch(&identity)
+                .expect("installed primary graph retains an exact main-branch basis");
+            let snapshot = runtime
+                .snapshots()
+                .snapshot_for_observation(&basis.observation())
+                .expect("the admitted invariant basis opens its exact snapshot");
+            (basis, snapshot)
+        });
         WorthQueryApplicationInvariantProjectionSnapshot {
             graph: self.graph.clone(),
             layout: Arc::clone(&self.layout),
+            basis: Some(basis),
             snapshot: Some(snapshot),
             runtime_authority: self.runtime_authority,
             binding_identity: self.binding_identity.clone(),
@@ -161,7 +171,7 @@ where
     Schema: ApplicationSchema,
 {
     pub fn version(&self) -> VersionId {
-        self.snapshot().version_id
+        self.snapshot().version_id()
     }
 
     pub fn entities<Entity>(
@@ -174,7 +184,7 @@ where
         self.graph.with_runtime(|runtime| {
             runtime
                 .read_truth()
-                .visible_entities_of_kind(kind, self.snapshot().version_id)
+                .visible_entities_of_kind(kind, self.snapshot().version_id())
                 .into_iter()
                 .filter(|record| record.lifecycle == RecordLifecycleState::Live)
                 .map(|record| WorthQueryInvariantEntityIdentity {
@@ -230,7 +240,7 @@ where
         self.graph.with_runtime(|runtime| {
             runtime
                 .read_truth()
-                .visible_relations_of_kind(layout.kind, self.snapshot().version_id)
+                .visible_relations_of_kind(layout.kind, self.snapshot().version_id())
                 .into_iter()
                 .filter(|record| record.lifecycle == RecordLifecycleState::Live)
                 .map(|record| WorthQueryInvariantRelation {
@@ -266,6 +276,10 @@ where
     pub(in crate::domain_computation::primary_graph) fn into_lease(
         mut self,
     ) -> super::application_attempt::snapshot_lease::WorthQueryApplicationSnapshotLease {
+        let basis = self
+            .basis
+            .take()
+            .expect("projection snapshot retains its owner-admitted basis");
         let snapshot = self
             .snapshot
             .take()
@@ -273,6 +287,7 @@ where
         super::application_attempt::snapshot_lease::WorthQueryApplicationSnapshotLease::from_existing(
             self.graph.clone(),
             Arc::clone(&self.layout),
+            basis,
             snapshot,
         )
     }

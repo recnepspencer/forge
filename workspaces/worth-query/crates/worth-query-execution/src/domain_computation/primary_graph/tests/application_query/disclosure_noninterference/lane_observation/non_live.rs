@@ -1,5 +1,3 @@
-use worth_runtime_bridge::facade::{TruthBranchIdentity, TruthCommitIdentity};
-
 use super::super::super::super::fixture::{
     admit_touch_account_capability, governed_live_account_parameters, IdentityExecutionSchema,
 };
@@ -104,17 +102,14 @@ pub(super) fn observe_continuation(
 
 pub(super) fn observe_historical(
     context: &GovernedObservationContext<'_>,
-    commit: u64,
+    _commit: u64,
     occurrences: &mut GraphWorkOccurrences,
 ) -> LaneObservation {
     let basis = context
         .world
         .application
         .admit_application_historical_basis(
-            crate::domain_computation::primary_graph::WorthQueryApplicationHistoricalRead::at_commit(
-                TruthBranchIdentity::from_relational_branch_id("main"),
-                TruthCommitIdentity::from_relational_commit_id(commit),
-            ),
+            crate::domain_computation::primary_graph::WorthQueryApplicationHistoricalRead::current_for_test(&context.world.application),
             context.request,
         )
         .unwrap();

@@ -6,6 +6,7 @@ mod divergence;
 mod graph;
 mod records;
 mod resolution;
+mod selected_root_resolution;
 
 use crate::runtime::RelationalRuntime;
 

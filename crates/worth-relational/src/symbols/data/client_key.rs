@@ -47,6 +47,10 @@ impl ClientKey {
     pub fn canonical_text(&self) -> Cow<'_, str> {
         self.0.canonical_text()
     }
+
+    pub(crate) fn owned_allocation_capacity_bytes(&self) -> u64 {
+        self.0.owned_allocation_capacity_bytes()
+    }
 }
 
 impl From<&str> for ClientKey {

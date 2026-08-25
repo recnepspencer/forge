@@ -8,8 +8,8 @@ use worth_query_installation::facade::{
     WorthQueryOperationTouchContract, WorthQueryOperationTouchScope,
 };
 use worth_relational::facade::identity::KindId;
-use worth_relational::facade::transactions::{
-    ValidatedMutationTouch, ValidatedMutationTouchProjectionWork, ValidatedRelationalMutation,
+use worth_relational::facade::mvcc::{
+    ValidatedMutationTouch, ValidatedMutationTouchProjectionWork, ValidatedRelationalProposal,
 };
 
 use super::super::schema_layout::WorthQueryPrimaryGraphLayout;
@@ -50,7 +50,7 @@ enum ResolvedApplicationTouch {
 }
 
 pub(super) fn admit_validated_application_touches(
-    candidate: &ValidatedRelationalMutation,
+    candidate: &ValidatedRelationalProposal,
     layout: &WorthQueryPrimaryGraphLayout,
     graph_reads: &WorthQueryOperationGraphReadContract,
     touch_contract: &WorthQueryOperationTouchContract,

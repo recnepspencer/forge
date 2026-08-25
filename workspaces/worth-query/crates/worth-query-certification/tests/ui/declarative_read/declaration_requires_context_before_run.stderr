@@ -1,5 +1,0 @@
-error[E0599]: no method named `run` found for struct `WorthQueryReadDeclaration` in the current scope
- --> tests/ui/declarative_read/declaration_requires_context_before_run.rs:5:32
-  |
-5 |     let _outcome = declaration.run(workspace);
-  |                                ^^^ method not found in `WorthQueryReadDeclaration`

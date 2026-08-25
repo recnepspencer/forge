@@ -147,7 +147,9 @@ fn prepared_acyclicity_scope_rejects_visible_graphs_that_exceed_scan_budget() {
     };
 
     let result =
-        crate::validation::invariant_access::InvariantAccess::new(&runtime).commit_boundary(&plan);
+        crate::validation::invariant_access::test_support::evaluate_main_commit_boundary_plan(
+            &runtime, &plan,
+        );
     let failure = result
         .summary()
         .blocking_failure()
@@ -170,7 +172,7 @@ fn prepared_acyclicity_scope_rejects_visible_graphs_that_exceed_scan_budget() {
 #[test]
 fn commit_publication_stage_rejects_sources_without_required_connectivity() {
     let mut runtime = runtime_with_acyclicity_and_connectivity();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("node-a").push(MutationIntent::Create(CreateIntent::Entity(
             EntitySpec {
@@ -182,7 +184,9 @@ fn commit_publication_stage_rejects_sources_without_required_connectivity() {
         ))),
     );
 
-    let error = txn.commit().expect_err("connectivity publication failure");
+    let error = txn
+        .commit(&mut runtime)
+        .expect_err("connectivity publication failure");
     match error {
         crate::facade::transactions::TransactionCommitError::Publication { error, .. } => {
             assert!(error.detail.contains("reachable_anchor"));
@@ -201,7 +205,7 @@ fn minimum_cardinality_current_version_scans_only_live_slots() {
     let retired_relation =
         create_relation_of_kind(&mut runtime, KindId(2), source, retired_target, "retired");
     create_relation_of_kind(&mut runtime, KindId(2), source, target, "live");
-    let mut delete_txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut delete_txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     delete_txn.push_batch(
         WorkerIntentBatch::new("delete-retired").push(MutationIntent::Relation(
             RelationMutationIntent::Delete(DeleteRelationIntent {
@@ -209,7 +213,7 @@ fn minimum_cardinality_current_version_scans_only_live_slots() {
             }),
         )),
     );
-    delete_txn.commit().expect("retire relation");
+    delete_txn.commit(&mut runtime).expect("retire relation");
 
     runtime.performance_access().reset_counters();
     let _results = InvariantEngine::new(&runtime).execute(

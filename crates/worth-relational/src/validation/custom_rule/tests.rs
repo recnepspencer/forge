@@ -6,8 +6,8 @@ use crate::facade::runtime::RelationalRuntimeApi;
 use crate::facade::schema::RelationalSchemaRegistry;
 use crate::facade::transactions::{
     CreateIntent, CreatedEntityRef, DeleteEntityIntent, DeleteRelationIntent, EntityReference,
-    EntitySpec, MutationIntent, RelationMutationIntent, TransactionOptions,
-    UpdateRelationEndpointsIntent, WorkerIntentBatch,
+    EntitySpec, MutationIntent, RelationMutationIntent, UpdateRelationEndpointsIntent,
+    WorkerIntentBatch,
 };
 use crate::symbols::data::ClientKey;
 use crate::tests::support::{create_entity, create_relation, runtime_with_test_schema};
@@ -27,12 +27,28 @@ fn prepared_scope(
     observation: &InvariantObservation<'_>,
     merged_plan: Option<&MergedCommitPlan>,
 ) -> PreparedCustomInvariantScope {
-    PreparedCustomInvariantScope::capture(
-        runtime,
-        observation,
-        runtime.current_version_id(),
-        merged_plan,
-    )
+    PreparedCustomInvariantScope::capture(observation, runtime.current_version_id(), merged_plan)
+}
+
+#[test]
+fn custom_scope_planner_preserves_owner_selected_current_version() {
+    let runtime = RelationalRuntimeApi::builder()
+        .schema_registry(RelationalSchemaRegistry::new())
+        .build();
+    let observation = InvariantObservation::committed(runtime.storage_access().current_state());
+    let prepared_scope = prepared_scope(&runtime, &observation, None);
+    let selected_version = crate::identity::data::VersionId(77);
+    let planner = CustomInvariantScopePlanner::new_at_current_version(
+        &runtime,
+        &observation,
+        selected_version,
+        selected_version,
+        &prepared_scope,
+    );
+
+    assert_eq!(planner.version_id(), selected_version);
+    assert_eq!(planner.current_version_id(), selected_version);
+    assert_ne!(planner.current_version_id(), runtime.current_version_id());
 }
 
 impl CustomInvariantRule for TestRule {
@@ -135,6 +151,7 @@ fn traversal_budget_is_session_wide() {
         &runtime,
         &observation,
         runtime.current_version_id(),
+        runtime.current_version_id(),
         &prepared_scope,
     );
 
@@ -168,7 +185,7 @@ fn touched_scope_tracks_planned_relation_endpoint_updates() {
             target: EntityReference::Existing(new_target),
         },
     ));
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(WorkerIntentBatch::new("rewire").push(intent.clone()));
     let merged_plan = MergedCommitPlan {
         transaction_id: txn.transaction_id,
@@ -224,7 +241,7 @@ fn touched_scope_tracks_planned_relation_endpoint_updates_to_created_entities() 
             target: EntityReference::Created(created_target.clone()),
         },
     ));
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("rewire-to-created")
             .push(create_target.clone())
@@ -263,7 +280,7 @@ fn touched_scope_tracks_planned_relation_deletes() {
     let intent = MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
         relation_id,
     }));
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(WorkerIntentBatch::new("delete").push(intent.clone()));
     let merged_plan = MergedCommitPlan {
         transaction_id: txn.transaction_id,
@@ -296,7 +313,7 @@ fn touched_scope_tracks_planned_entity_deletes() {
     let intent = MutationIntent::Entity(crate::facade::transactions::EntityMutationIntent::Delete(
         DeleteEntityIntent { entity_id },
     ));
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(WorkerIntentBatch::new("delete-entity").push(intent.clone()));
     let merged_plan = MergedCommitPlan {
         transaction_id: txn.transaction_id,

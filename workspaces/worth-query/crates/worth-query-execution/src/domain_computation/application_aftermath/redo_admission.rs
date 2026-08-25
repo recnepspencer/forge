@@ -13,7 +13,7 @@ use crate::domain_computation::primary_graph::{
     WorthQueryApplicationIdempotencyBinding, WorthQueryPrimaryGraphApplicationRuntime,
     WorthQueryRetainedGovernedInput,
 };
-use worth_relational::facade::history::CommitReference;
+use worth_relational::facade::history::RelationalCommitReceipt;
 
 use super::governed_input::bound_original_governed_input;
 use super::recovery_handle::{RelinquishOnDenial, WorthQueryRecoveryHandleBinding};
@@ -141,7 +141,7 @@ pub(super) fn admit_redo_against_relational(
     recovery: WorthQueryRedoRecovery,
     authority: &WorthQueryRecoveryEffectAuthority,
     intent: &WorthQueryRedoIntent,
-    current_head: &CommitReference,
+    current_head: &RelationalCommitReceipt,
     prior_redo: WorthQueryPriorRedoObservation,
 ) -> Result<WorthQueryRedoAdmission, WorthQueryRedoDenial> {
     // Every check below is preparatory — nothing has been redone yet — so a

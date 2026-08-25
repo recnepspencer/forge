@@ -1,7 +1,7 @@
 //! Query aftermath meaning carried into Relational-owned commit history.
 
-use worth_relational::facade::history::{CommitId, CommitReference};
-use worth_relational::facade::transactions::{ExpectedBranchHead, RecordRef};
+use worth_relational::facade::history::{CommitId, RelationalCommitReceipt};
+use worth_relational::facade::transactions::RecordRef;
 
 /// Query meaning of one co-committed aftermath relation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -23,18 +23,18 @@ impl WorthQueryAftermathCausalRole {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct WorthQueryPendingAftermathCausality {
     role: WorthQueryAftermathCausalRole,
-    parent: CommitReference,
+    parent: RelationalCommitReceipt,
 }
 
 impl WorthQueryPendingAftermathCausality {
-    pub(crate) fn undo_of(parent: CommitReference) -> Self {
+    pub(crate) fn undo_of(parent: RelationalCommitReceipt) -> Self {
         Self {
             role: WorthQueryAftermathCausalRole::Undo,
             parent,
         }
     }
 
-    pub(crate) fn redo_of(parent: CommitReference) -> Self {
+    pub(crate) fn redo_of(parent: RelationalCommitReceipt) -> Self {
         Self {
             role: WorthQueryAftermathCausalRole::Redo,
             parent,
@@ -45,7 +45,7 @@ impl WorthQueryPendingAftermathCausality {
         self.role
     }
 
-    pub(crate) const fn parent(&self) -> &CommitReference {
+    pub(crate) const fn parent(&self) -> &RelationalCommitReceipt {
         &self.parent
     }
 
@@ -57,10 +57,6 @@ impl WorthQueryPendingAftermathCausality {
             self.parent.commit_id.0
         )
     }
-
-    pub(crate) const fn expected_head(&self) -> ExpectedBranchHead {
-        ExpectedBranchHead::Commit(self.parent.commit_id)
-    }
 }
 
 /// Query aftermath meaning sealed from one Relational commit and its exact
@@ -68,15 +64,15 @@ impl WorthQueryPendingAftermathCausality {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryCommittedAftermathCausality {
     role: WorthQueryAftermathCausalRole,
-    parent: CommitReference,
-    child: CommitReference,
+    parent: RelationalCommitReceipt,
+    child: RelationalCommitReceipt,
     fact_record: RecordRef,
 }
 
 impl WorthQueryCommittedAftermathCausality {
     pub(crate) fn seal(
         pending: WorthQueryPendingAftermathCausality,
-        child: CommitReference,
+        child: RelationalCommitReceipt,
         fact_record: RecordRef,
     ) -> Option<Self> {
         (child.branch_id == pending.parent.branch_id
@@ -93,11 +89,11 @@ impl WorthQueryCommittedAftermathCausality {
         self.role
     }
 
-    pub const fn parent(&self) -> &CommitReference {
+    pub const fn parent(&self) -> &RelationalCommitReceipt {
         &self.parent
     }
 
-    pub const fn child(&self) -> &CommitReference {
+    pub const fn child(&self) -> &RelationalCommitReceipt {
         &self.child
     }
 

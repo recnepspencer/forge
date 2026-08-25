@@ -19,6 +19,7 @@ pub(super) struct WorthQueryCommittedApplicationPublicationSeal {
     emitted_effect_count: usize,
     outcome_identity:
         crate::domain_computation::primary_graph::application_attempt::WorthQueryApplicationCommitOutcomeIdentity,
+    basis_descriptor: worth_relational::facade::branch::RelationalBranchBasisDescriptor,
     evidence: super::super::WorthQueryPrimaryGraphCommitEvidence,
 }
 
@@ -41,14 +42,34 @@ pub(super) fn publish(
     } = committed;
     let commit_id = committed.envelope().commit.commit_id;
     let changed_record_count = committed.patch().len();
-    let after = runtime
-        .snapshots()
-        .snapshot_for_branch(&branch)
+    let after =
+        crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(
+            runtime, &branch,
+        )
         .ok_or_else(|| {
             let _ = runtime.snapshots().release_snapshot(&before);
             failure("application branch has no current post-commit snapshot")
         })?;
-    let runtime_instance_id = after.runtime_instance_id;
+    let runtime_instance_id = after.runtime_instance_id();
+    let branch_identity = runtime
+        .branch_identity(&branch)
+        .map_err(|_| failure("application branch identity became unavailable after commit"))?;
+    let (basis_descriptor, basis) = runtime
+        .observe_branch(&branch_identity)
+        .map_err(|_| failure("application commit basis could not be observed"))?;
+    let observed_commit = runtime
+        .history()
+        .branch_head_for_observation(&basis.observation())
+        .map_err(|_| failure("application commit basis was rejected by its owner"))?
+        .map(|receipt| receipt.commit_id);
+    if observed_commit != Some(commit_id) {
+        return Err(failure(
+            "application commit basis does not select the published commit",
+        ));
+    }
+    let basis_retention_lease = runtime
+        .retain_component_basis(&basis)
+        .map_err(|_| failure("application commit basis could not be retained"))?;
     provider
         .graph
         .aggregate_projections
@@ -65,15 +86,25 @@ pub(super) fn publish(
         changed_record_count,
         emitted_effect_count: causality.emitted_effect_count(),
         outcome_identity: causality.outcome_identity(),
+        basis_descriptor,
         evidence,
     };
     let application = WorthQueryPrimaryGraphCommittedApplication::from_publication(seal);
+    provider
+        .receipt_basis_retention
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .retain(commit_id, basis_retention_lease);
     provider
         .completed_commit_evidence
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
         .record(application);
     publish_indexes(provider, runtime, branch, commit_id)?;
+    provider
+        .graph
+        .bind_truth_head_basis_in_runtime(runtime, &basis)
+        .map_err(failure)?;
     Ok(WorthQueryPublishedApplicationCommit { _private: () })
 }
 

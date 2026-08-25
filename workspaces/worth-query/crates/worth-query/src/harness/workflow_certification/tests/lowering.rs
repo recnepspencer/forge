@@ -101,11 +101,11 @@ fn workflow_certification_merge_lowering_matches_direct_relational_control() {
     )
     .expect("merge lowering should succeed");
 
-    let control = MergeExecutionRequest {
-        target_branch: BranchId("main".to_string()),
-        source_branch: BranchId("candidate".to_string()),
-        merge_intent: MergeIntent::ReconcileIntoTarget,
-    };
+    let control = MergeExecutionRequest::new(
+        BranchId("main".to_string()),
+        BranchId("candidate".to_string()),
+        MergeIntent::ReconcileIntoTarget,
+    );
     assert_eq!(lowered.merge_request(), &control);
 }
 

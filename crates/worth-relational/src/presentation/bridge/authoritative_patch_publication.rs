@@ -1,143 +1,19 @@
 use worth_proof::TransitionOutcome;
 use worth_runtime_bridge::facade::{
     BridgeAspectChangeWideningCause, BridgeAuthoritativePatchLoweringCounters,
-    BridgeCommittedPatchEnvelope,
 };
 
 use super::authoritative_publication_witness::{
-    admit_lowered_publication, begin_publication, resolve_publication, PublicationReadyRecipe,
-    PublicationUnresolvedRecipe, RelationalPublicationBasis, RelationalPublicationRequest,
+    admit_lowered_publication, begin_publication, resolve_publication, PublicationUnresolvedRecipe,
+    RelationalPublicationBasis, RelationalPublicationRequest,
+};
+use super::publication_outcome::{
+    RelationalBridgePatchPublication, RelationalBridgePublicationDeferred,
+    RelationalBridgePublicationDenial, RelationalBridgePublicationOutcome,
+    RelationalBridgePublicationRebindRequired, RelationalBridgePublicationStale,
 };
 use crate::capabilities::CommitEnvelopeSource;
-use crate::history::data::CommitId;
 use crate::runtime::RelationalRuntime;
-
-pub type RelationalBridgePublicationOutcome = TransitionOutcome<
-    RelationalBridgePatchPublication,
-    RelationalBridgePublicationDenial,
-    RelationalBridgePublicationDeferred,
-    RelationalBridgePublicationStale,
-    RelationalBridgePublicationRebindRequired,
-    RelationalBridgePublicationFailure,
->;
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct RelationalBridgePublicationDenial {
-    error: worth_runtime_bridge::facade::BridgeRouteError,
-    counters: BridgeAuthoritativePatchLoweringCounters,
-}
-
-impl RelationalBridgePublicationDenial {
-    pub(super) const fn new(
-        error: worth_runtime_bridge::facade::BridgeRouteError,
-        counters: BridgeAuthoritativePatchLoweringCounters,
-    ) -> Self {
-        Self { error, counters }
-    }
-
-    pub fn error(&self) -> &worth_runtime_bridge::facade::BridgeRouteError {
-        &self.error
-    }
-
-    pub fn kind(&self) -> worth_runtime_bridge::facade::BridgeRouteErrorKind {
-        self.error.kind()
-    }
-
-    pub const fn counters(&self) -> BridgeAuthoritativePatchLoweringCounters {
-        self.counters
-    }
-}
-
-impl std::fmt::Display for RelationalBridgePublicationDenial {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.error.fmt(formatter)
-    }
-}
-
-impl std::error::Error for RelationalBridgePublicationDenial {}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RelationalBridgePublicationDeferred {
-    CommitVisibilityPending,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RelationalBridgePublicationStale {
-    RuntimeAuthority,
-    CommitNotRetained,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RelationalBridgePublicationRebindRequired {
-    GraphRole,
-}
-
-pub type RelationalBridgePublicationFailure = std::convert::Infallible;
-
-/// Relational-owned proof that a Bridge envelope was derived from one admitted
-/// canonical authoritative patch, rather than assembled from detached items.
-pub struct RelationalBridgePatchPublication {
-    envelope: BridgeCommittedPatchEnvelope,
-    proof: PublicationReadyRecipe,
-    _commit_identity: crate::identity_authority::RelationalSourceTruthAuthorityIdentity<
-        u64,
-        crate::identity_authority::RelationalCommitIdentityKind,
-    >,
-}
-
-impl RelationalBridgePatchPublication {
-    fn mint(proof: PublicationReadyRecipe, envelope: BridgeCommittedPatchEnvelope) -> Self {
-        let commit_identity = worth_foundational::facade::admit_foundational_authority_identity(
-            proof.payload().commit_id.0,
-            crate::identity_authority::relational_source_truth_authority(),
-        );
-        Self {
-            envelope,
-            proof,
-            _commit_identity: commit_identity,
-        }
-    }
-
-    pub fn bridge_envelope(&self) -> &BridgeCommittedPatchEnvelope {
-        &self.envelope
-    }
-
-    pub fn lowering_counters(&self) -> &BridgeAuthoritativePatchLoweringCounters {
-        self.envelope.patch_summary().authoritative_lowering()
-    }
-
-    pub fn runtime_instance_id(&self) -> u64 {
-        self.proof.payload().runtime_instance_id
-    }
-
-    pub fn commit_id(&self) -> CommitId {
-        self.proof.payload().commit_id
-    }
-
-    pub fn graph_role(&self) -> &str {
-        &self.proof.payload().graph_role
-    }
-
-    pub fn adapter_identity(&self) -> &str {
-        &self.proof.strong_basis().value().adapter_identity
-    }
-
-    pub fn source_basis(&self) -> &str {
-        &self.proof.strong_basis().value().source_basis
-    }
-
-    pub fn partition_role(&self) -> Option<&worth_foundational::facade::TruthPartitionRole> {
-        self.proof.payload().partition_role.as_ref()
-    }
-
-    pub fn relational_partition_id(&self) -> Option<crate::identity::data::PartitionId> {
-        self.proof.payload().relational_partition_id
-    }
-
-    pub(crate) fn into_bridge_envelope(self) -> BridgeCommittedPatchEnvelope {
-        self.envelope
-    }
-}
 
 /// Runtime-affine admission for the one supported loss of precision. The
 /// opaque token cannot be assembled from a widening label or copied fields.
@@ -151,6 +27,8 @@ pub struct RelationalOpaqueAspectWideningAdmission {
 pub enum RelationalOpaqueAspectWideningAdmissionDenial {
     InvalidGraphRole,
 }
+
+use super::runtime_source::RelationalBridgeSelectedCommitObservation;
 
 impl RelationalRuntime {
     pub fn admit_opaque_aspect_bridge_widening(
@@ -174,32 +52,9 @@ impl RelationalRuntime {
         })
     }
 
-    pub fn publish_commit_for_bridge(
+    pub(in crate::presentation::bridge) fn publish_commit_for_bridge_with_widening_at_observation(
         &self,
-        commit_id: CommitId,
-        graph_role: impl Into<std::sync::Arc<str>>,
-    ) -> RelationalBridgePublicationOutcome {
-        self.publish_commit_for_bridge_inner(commit_id, graph_role.into(), None, None)
-    }
-
-    pub fn publish_commit_for_bridge_partition(
-        &self,
-        commit_id: CommitId,
-        graph_role: impl Into<std::sync::Arc<str>>,
-        relational_partition_id: crate::identity::data::PartitionId,
-        partition_role: worth_foundational::facade::TruthPartitionRole,
-    ) -> RelationalBridgePublicationOutcome {
-        self.publish_commit_for_bridge_inner(
-            commit_id,
-            graph_role.into(),
-            Some((relational_partition_id, partition_role)),
-            None,
-        )
-    }
-
-    pub fn publish_commit_for_bridge_with_widening(
-        &self,
-        commit_id: CommitId,
+        selected_commit: RelationalBridgeSelectedCommitObservation,
         graph_role: impl Into<std::sync::Arc<str>>,
         admission: &RelationalOpaqueAspectWideningAdmission,
     ) -> RelationalBridgePublicationOutcome {
@@ -212,42 +67,48 @@ impl RelationalRuntime {
                 RelationalBridgePublicationRebindRequired::GraphRole,
             );
         }
-        self.publish_commit_for_bridge_inner(commit_id, graph_role, None, Some(admission.cause))
+        self.publish_commit_for_bridge_inner(
+            graph_role,
+            None,
+            Some(admission.cause),
+            selected_commit,
+        )
     }
 
-    pub(crate) fn publish_commit_for_bridge_graph_role(
+    pub(in crate::presentation::bridge) fn publish_commit_for_bridge_graph_role_at_observation(
         &self,
-        commit_id: CommitId,
+        selected_commit: RelationalBridgeSelectedCommitObservation,
         graph_role: std::sync::Arc<str>,
     ) -> RelationalBridgePublicationOutcome {
-        self.publish_commit_for_bridge_inner(commit_id, graph_role, None, None)
+        self.publish_commit_for_bridge_inner(graph_role, None, None, selected_commit)
     }
 
-    pub(crate) fn publish_commit_for_bridge_graph_partition(
+    pub(in crate::presentation::bridge) fn publish_commit_for_bridge_graph_partition_at_observation(
         &self,
-        commit_id: CommitId,
+        selected_commit: RelationalBridgeSelectedCommitObservation,
         graph_role: std::sync::Arc<str>,
         relational_partition_id: crate::identity::data::PartitionId,
         partition_role: worth_foundational::facade::TruthPartitionRole,
     ) -> RelationalBridgePublicationOutcome {
         self.publish_commit_for_bridge_inner(
-            commit_id,
             graph_role,
             Some((relational_partition_id, partition_role)),
             None,
+            selected_commit,
         )
     }
 
     fn publish_commit_for_bridge_inner(
         &self,
-        commit_id: CommitId,
         graph_role: std::sync::Arc<str>,
         partition: Option<(
             crate::identity::data::PartitionId,
             worth_foundational::facade::TruthPartitionRole,
         )>,
         admitted_widening: Option<BridgeAspectChangeWideningCause>,
+        selected_commit: RelationalBridgeSelectedCommitObservation,
     ) -> RelationalBridgePublicationOutcome {
+        let (commit_id, snapshot_identity, selected_branch) = selected_commit.into_parts();
         let unresolved = begin_publication(RelationalPublicationRequest {
             runtime_instance_id: self.runtime_instance_id(),
             commit_id,
@@ -274,23 +135,44 @@ impl RelationalRuntime {
                 TransitionOutcome::Stale(RelationalBridgePublicationStale::CommitNotRetained)
             };
         };
-        self.lower_retained_publication(unresolved, envelope)
+        let Some(position) = self
+            .history()
+            .canonical_stream_position(envelope.commit.commit_id)
+        else {
+            return TransitionOutcome::Deferred(
+                RelationalBridgePublicationDeferred::CommitVisibilityPending,
+            );
+        };
+        self.lower_retained_publication(
+            unresolved,
+            &envelope,
+            position,
+            snapshot_identity,
+            selected_branch,
+        )
     }
 
     fn lower_retained_publication(
         &self,
         unresolved: PublicationUnresolvedRecipe,
         envelope: &crate::history::data::CanonicalCommitEnvelope,
+        patch_position: crate::publication::patch::data::PatchStreamPosition,
+        snapshot_identity: worth_runtime_bridge::facade::TruthSnapshotIdentity,
+        selected_branch: crate::history::data::BranchId,
     ) -> RelationalBridgePublicationOutcome {
-        let source_basis =
-            publication_source_basis(self.runtime_instance_id(), &unresolved, envelope);
+        let source_basis = publication_source_basis(
+            self.runtime_instance_id(),
+            &unresolved,
+            envelope,
+            &selected_branch,
+        );
         let adapter_identity =
             super::identities::relational_bridge_adapter_identity(self.runtime_instance_id());
         let resolved = resolve_publication(
             unresolved,
             RelationalPublicationBasis {
                 version_id: envelope.commit.version_id.0,
-                branch_id: std::sync::Arc::from(envelope.commit.branch_id.0.clone()),
+                branch_id: std::sync::Arc::from(selected_branch.0.clone()),
                 adapter_identity: adapter_identity.clone(),
                 source_basis: source_basis.clone(),
             },
@@ -304,18 +186,20 @@ impl RelationalRuntime {
         let metadata =
             worth_runtime_bridge::facade::BridgeProducerMetadata::registered_authoritative_source()
                 .with_authoritative_source(source);
+        let patch =
+            crate::publication::patch::data::PublishedAuthoritativePatchEnvelope::from_canonical(
+                patch_position,
+                &envelope.patch,
+            );
         let projection = super::partition_projection::project_patch_partition(
-            &envelope.patch,
+            &patch,
             resolved.payload().relational_partition_id,
         );
         let outcome = super::patch_envelopes::publication_patch_to_bridge_envelope_with_widening(
             super::patch_envelopes::RelationalBridgePatchPublicationRequest {
                 commit_id: envelope.commit.commit_id,
-                branch_id: &envelope.commit.branch_id,
-                snapshot_identity: super::identities::bridge_snapshot_identity_for_commit(
-                    envelope.commit.commit_id,
-                    envelope.commit.version_id,
-                ),
+                branch_id: &selected_branch,
+                snapshot_identity,
                 patch: &projection.patch,
                 admitted_widening: resolved.payload().widening,
                 producer_metadata: metadata,
@@ -339,12 +223,14 @@ fn publication_source_basis(
     runtime_instance_id: u64,
     unresolved: &PublicationUnresolvedRecipe,
     envelope: &crate::history::data::CanonicalCommitEnvelope,
+    selected_branch: &crate::history::data::BranchId,
 ) -> std::sync::Arc<str> {
     let source_basis: std::sync::Arc<str> = std::sync::Arc::from(format!(
-            "runtime={};commit={};version={};branch={};graph-role={};relational-partition={};truth-partition={}",
+            "runtime={};commit={};version={};selected-branch={};authoring-branch={};graph-role={};relational-partition={};truth-partition={}",
             runtime_instance_id,
             envelope.commit.commit_id.0,
             envelope.commit.version_id.0,
+            selected_branch.0,
             envelope.commit.branch_id.0,
             unresolved.payload().graph_role,
             unresolved

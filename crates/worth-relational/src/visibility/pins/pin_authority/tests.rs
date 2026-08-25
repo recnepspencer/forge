@@ -22,8 +22,8 @@ fn initial_branch_head_bulk_pin_advancement_sets_branch_pins_for_changed_records
             relation_overlay_is_sparse: false,
             entity_arena: EntityArena::with_capacity(1),
             relation_arena: RelationArena::with_capacity(1),
-            adjacency: Vec::new(),
-            reverse_adjacency: Vec::new(),
+            adjacency: Default::default(),
+            reverse_adjacency: Default::default(),
         },
     );
     let partition = runtime.partitions.get_mut(&partition_id).unwrap();

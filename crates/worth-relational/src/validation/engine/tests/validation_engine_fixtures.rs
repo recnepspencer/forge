@@ -22,9 +22,7 @@ pub(super) use crate::tests::support::{
     aspect_field_patch_from_values, aspect_key, entity_field_aspect, entity_summary_struct_aspect,
     field_key, string_aspect_value, AspectSchemaFixture,
 };
-pub(super) use crate::transactions::data::{
-    EntitySpec, RelationSpec, TransactionOptions, WorkerIntentBatch,
-};
+pub(super) use crate::transactions::data::{EntitySpec, RelationSpec, WorkerIntentBatch};
 pub(super) use crate::validation::data::{
     CustomInvariantDescriptor, CustomInvariantExecutionContext, CustomInvariantExecutionError,
     CustomInvariantOperationalMetadata, CustomInvariantPreparationError,
@@ -193,11 +191,11 @@ pub(super) fn runtime_with_acyclicity_and_connectivity_budget(
 }
 
 pub(super) fn create_entity_of_kind(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     kind_id: KindId,
     client_key: &str,
 ) -> crate::identity::data::EntityId {
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new(format!("entity-{client_key}")).push(
             MutationIntent::Create(CreateIntent::Entity(EntitySpec {
@@ -209,7 +207,9 @@ pub(super) fn create_entity_of_kind(
             .into(),
         ),
     );
-    let outcome = txn.commit().expect("entity creation must succeed");
+    let outcome = txn
+        .commit(&mut runtime)
+        .expect("entity creation must succeed");
     outcome
         .changed_records
         .iter()
@@ -221,13 +221,13 @@ pub(super) fn create_entity_of_kind(
 }
 
 pub(super) fn create_relation_of_kind(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     kind_id: KindId,
     source: crate::identity::data::EntityId,
     target: crate::identity::data::EntityId,
     client_key: &str,
 ) -> RelationId {
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new(format!("relation-{client_key}")).push(MutationIntent::Create(
             CreateIntent::Relation(RelationSpec {
@@ -240,7 +240,9 @@ pub(super) fn create_relation_of_kind(
             }),
         )),
     );
-    let outcome = txn.commit().expect("relation creation must succeed");
+    let outcome = txn
+        .commit(&mut runtime)
+        .expect("relation creation must succeed");
     outcome
         .changed_records
         .iter()
@@ -275,8 +277,32 @@ pub(super) fn runtime_with_summary_title_uniqueness() -> RelationalRuntime {
         .build()
 }
 
+pub(super) fn runtime_with_summary_title_commit_boundary_uniqueness() -> RelationalRuntime {
+    RelationalRuntimeApi::builder()
+        .schema_registry(
+            AspectSchemaFixture {
+                entity_aspects: vec![
+                    entity_field_aspect(aspect_key("name"), field_key("name")),
+                    entity_summary_struct_aspect(aspect_key("summary"), field_key("summary")),
+                ],
+                ..AspectSchemaFixture::default()
+            }
+            .build_registry(),
+        )
+        .invariant_catalog(InvariantCatalog {
+            registrations: vec![InvariantRegistration::commit_boundary_blocking(
+                InvariantRule::unique_entity_aspect_field(
+                    aspect_key("summary"),
+                    field_key("title"),
+                ),
+            )],
+            ..InvariantCatalog::default()
+        })
+        .build()
+}
+
 pub(super) fn commit_entity_with_summary(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     client_key: &str,
     title: &str,
     status: &str,
@@ -284,7 +310,7 @@ pub(super) fn commit_entity_with_summary(
     crate::facade::transactions::CommitResult,
     crate::transactions::data::TransactionCommitError,
 > {
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(WorkerIntentBatch::new(format!("entity-{client_key}")).push(
         MutationIntent::Create(CreateIntent::Entity(EntitySpec {
             partition_id: PartitionId::main(),
@@ -309,5 +335,5 @@ pub(super) fn commit_entity_with_summary(
             ]),
         })),
     ));
-    txn.commit()
+    txn.commit(&mut runtime)
 }

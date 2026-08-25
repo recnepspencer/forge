@@ -109,7 +109,8 @@ pub enum WorthQueryMandatoryReviewOutcome {
     Cancelled(WorthQueryMandatoryReview),
     Denied(WorthQueryApplicationCommitDenial, WorthQueryMandatoryReview),
     Aborted(WorthQueryMandatoryReview),
-    PartialEffect,
+    Deferred(super::WorthQueryApplicationCommitDeferred),
+    SettlementDeferred(super::WorthQueryApplicationSettlementDeferred),
     Indeterminate,
 }
 
@@ -136,8 +137,11 @@ pub(in crate::domain_computation::primary_graph) fn reviewed_outcome(
         WorthQueryApplicationCommitOutcome::Aborted => {
             WorthQueryMandatoryReviewOutcome::Aborted(binding.into_mandatory())
         }
-        WorthQueryApplicationCommitOutcome::PartialEffect(_) => {
-            WorthQueryMandatoryReviewOutcome::PartialEffect
+        WorthQueryApplicationCommitOutcome::Deferred(deferred) => {
+            WorthQueryMandatoryReviewOutcome::Deferred(deferred)
+        }
+        WorthQueryApplicationCommitOutcome::SettlementDeferred(deferred) => {
+            WorthQueryMandatoryReviewOutcome::SettlementDeferred(deferred)
         }
         WorthQueryApplicationCommitOutcome::Indeterminate(_) => {
             WorthQueryMandatoryReviewOutcome::Indeterminate

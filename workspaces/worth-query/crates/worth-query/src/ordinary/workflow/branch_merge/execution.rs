@@ -4,8 +4,10 @@ use crate::ordinary::workflow::{
 use crate::runtime::{WorthQueryMergeAuthorityValidationError, WorthQueryWorkspace};
 
 use super::{
-    WorthQueryBranchMergeAftermath, WorthQueryBranchMergeCompletion, WorthQueryBranchMergeOutcome,
-    WorthQueryBranchMergeRequest, WorthQueryBranchMergeStop, WorthQueryBranchMergeStopSource,
+    WorthQueryBranchMergeAftermath, WorthQueryBranchMergeCompletion, WorthQueryBranchMergeDeferred,
+    WorthQueryBranchMergeOutcome, WorthQueryBranchMergeRequest,
+    WorthQueryBranchMergeSettlementDeferred, WorthQueryBranchMergeStop,
+    WorthQueryBranchMergeStopSource,
 };
 
 impl WorthQueryBranchMergeRequest {
@@ -55,9 +57,25 @@ impl WorthQueryBranchMergeRequest {
             materialize_inspection,
         ) {
             Ok(execution) => execution,
-            Err(error) => {
+            Err(crate::runtime::WorthQueryOrdinaryMergeExecutionError::Deferred { message }) => {
+                return WorthQueryBranchMergeOutcome::Deferred(WorthQueryBranchMergeDeferred::new(
+                    message, counters,
+                ));
+            }
+            Err(crate::runtime::WorthQueryOrdinaryMergeExecutionError::Denied {
+                stage,
+                message,
+            }) => {
                 return WorthQueryBranchMergeOutcome::Stopped(
-                    WorthQueryBranchMergeStop::from_execution(error, counters),
+                    WorthQueryBranchMergeStop::from_execution_denial(stage, message, counters),
+                );
+            }
+            Err(crate::runtime::WorthQueryOrdinaryMergeExecutionError::SettlementDeferred {
+                message,
+                settlement,
+            }) => {
+                return WorthQueryBranchMergeOutcome::SettlementDeferred(
+                    WorthQueryBranchMergeSettlementDeferred::new(message, settlement, counters),
                 );
             }
         };

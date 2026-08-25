@@ -88,6 +88,7 @@ pub(crate) fn reduce_invariant_execution(
         strategy,
         preparation_failures.clone(),
         Some(proof_boundary),
+        request.proposal_identity().cloned(),
     );
     let result = InvariantExecutionResult::executed(metadata, results.clone());
     let counters = ValidationPreparationCounters {

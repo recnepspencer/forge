@@ -22,4 +22,4 @@ pub use sections::{
     StorageConfig, VisibilityConfig,
 };
 mod execution_contract;
-pub use execution_contract::{CommitAuthorityContract, PlanningContract, RelationalExecutionModel};
+pub use execution_contract::{PlanningContract, RelationalExecutionModel};

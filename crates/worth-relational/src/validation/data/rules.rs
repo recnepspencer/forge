@@ -169,7 +169,7 @@ impl InvariantRule {
             Self::UniqueEntityAspectField { .. } => InvariantRuleMetadata {
                 groups: InvariantGroupSet::of(InvariantGroup::SchemaCompliance)
                     .union(InvariantGroupSet::of(InvariantGroup::IdentityCoherence)),
-                cost: InvariantCostClass::Touched,
+                cost: InvariantCostClass::Global,
             },
             Self::EndpointKindContract(_) => InvariantRuleMetadata {
                 groups: InvariantGroupSet::of(InvariantGroup::SchemaCompliance)

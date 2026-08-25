@@ -2,81 +2,174 @@
 
 ## What This Feature Is
 
-Authority-scoped effect execution is the **effect lifecycle phase pipeline**: eligibility, admission, authority ownership, lowering, and execution receipts for effect families (writeback, mutation, merge, delivery neighbors) tied to **basis families**. [Effects](effects.md) covers **authoring and DX** (`workspace.effect`, triggers, staging); this doc owns **lowering, execution, and support-matrix honesty**.
+Authority-scoped effect execution turns an admitted effect into work performed
+by the runtime that owns its target. Use it after authoring and admission when
+you need to execute a writeback, mutation, merge, or supported delivery
+neighbor and retain an honest typed outcome.
+
+[Effects](effects.md) owns authoring (`workspace.effect`, triggers, and staged
+intent). This guide owns lowering, execution, and recovery when a Relational
+effect performed its branch movement but durability settlement did not finish.
 
 ## Why You Use It
 
-- execute admitted effect intents with correct authority owner and receipt kinds
-- read `effect_lifecycle_support_matrix()` before claiming store/durable effect paths
-- separate staged write-intent from executed writeback on bridge-backed paths
-- align agents with `discover_effect_lifecycle_support` postures per basis/effect pair
+- Execute admitted effects with the correct owner and receipt type.
+- Check support before claiming a store-backed or durable path exists.
+- Distinguish denial from work that already performed and must be settled.
+- Repair an exact performed Relational publication without rerunning the
+  effect.
+
+## Stable Entry Points
+
+Import the lifecycle from `worth_query::facade::foundation`:
+
+- `effect_lifecycle_support_matrix()` and
+  `discover_effect_lifecycle_support(...)`
+- `evaluate_effect_eligibility(...)` and `admit_effect_intent(...)`
+- `EffectExecutionAuthority`
+- `EffectExecutionStop` and `EffectBatchExecutionStop`
+- `EffectExecutionSettlementDeferred` and `EffectBatchSettlementDeferred`
+- `EffectSettlementRepairError`
+
+The authoring surface remains [Effects](effects.md). A raw Relational
+`DeferredPublicationSettlement` is not a Query application surface.
 
 ## Core Mental Model
 
-Phases in `effect_lifecycle/` (representative):
+An admitted effect still has to cross the owner boundary:
 
 ```text
-discover_effect_lifecycle_support(basis, effect)
-  → evaluate_effect_eligibility
-  → admit_effect_intent
-  → lower + execute (authority-scoped)
-  → EffectReceiptArtifactKind
+support discovery
+  -> eligibility
+  -> admission
+  -> lowering
+  -> execute with owner authority
+       |-> executed receipt
+       |-> denied or deferred before performance
+       `-> performed, but settlement deferred
+              -> repair with the same owning Relational runtime
 ```
 
-Postures: `Admitted`, `Advisory`, `Denied`, `RebindRequired`, `Deferred`, `Unsupported`. Causes include `StoreBackedExecutionDeferred`, `DurableReplayDeferred`, `PreviewRebindRequired`, `BranchAuthorityRequired`.
+`EffectExecutionStop::SettlementDeferred` and
+`EffectBatchExecutionStop::SettlementDeferred` do not mean execution was
+denied. The canonical branch movement already happened. The opaque carrier
+retains the exact repair capability and exposes `.repair_with(...)`; it does
+not expose the raw lower-runtime token.
 
-## Main Entry Points
+Support postures remain explicit: `Admitted`, `Advisory`, `Denied`,
+`RebindRequired`, `Deferred`, and `Unsupported`.
 
-- `effect_lifecycle_support_matrix()`, `discover_effect_lifecycle_support`
-- `admit_effect_intent`, `evaluate_effect_eligibility`
-- Effect taxonomy: `EffectFamily`, `BasisFamily` pairing in support rows
-- Execution tests: `effect_lifecycle/tests/execution/`
-- Authoring surface: [effects.md](effects.md) — `workspace.effect`, `next_effect_write_intent`
+## How It Executes
 
-## Typical Flow
+1. Discover support for the exact basis and effect family.
+2. Evaluate eligibility and admit the effect intent.
+3. Lower the admitted effect or batch.
+4. Execute with `EffectExecutionAuthority` for the declared owner.
+5. On success, consume the execution receipt.
+6. On `SettlementDeferred`, retain the typed carrier and call `repair_with`
+   using fresh authority for the runtime that performed the effect.
 
-1. Author effect via `workspace.effect` (triggers, delivery, write-intent staging).
-2. When consuming staged work, route through [intent admission](intent-admission.md).
-3. `discover_effect_lifecycle_support` for the basis + effect family.
-4. If admitted: eligibility → admit → execute with authority owner receipt.
-5. Inspect effect artifacts; do not assume durable replay without matrix row.
+Repair is idempotent. It completes durability for the exact performed route;
+it does not execute the effect program again.
 
-## How It Relates
+## Small Example
 
-- [Effects](effects.md) — declaration, inspection, staging DX
-- [Authoritative mutation evidence](../capabilities/authoritative-mutation-evidence.md) — write provenance vs effect delivery
-- [Basis capability lifecycle](../capabilities/basis-capability-lifecycle.md) — basis phases before effect admit
-- [Intent Admission](intent-admission.md) — consuming staged write-intent
+```rust
+use worth_query::facade::foundation::{
+    EffectExecutionAuthority, EffectExecutionStop,
+};
 
-## Good to Know
+match lowered.execute_with(EffectExecutionAuthority::relational(&mut relational)) {
+    Ok(executed) => consume(executed.receipt()),
+    Err(EffectExecutionStop::SettlementDeferred(deferred)) => {
+        let receipt = deferred.repair_with(
+            EffectExecutionAuthority::relational(&mut relational),
+        )?;
+        consume_repaired(receipt);
+    }
+    Err(stop) => handle_non_performed_stop(stop),
+}
+```
 
-- `StoreBacked` / `DurableReload` basis families often yield **Deferred** causes for writeback neighbors.
-- `Preview` + `Mutation` may require **RebindRequired** before execution.
-- Advisory-only execution is explicit—do not treat as full authority-scoped execute.
+This is the smallest honest recovery example because it branches on the typed
+terminal and repairs the existing publication instead of retrying `lowered`.
+
+## Real Example
+
+A batch follows the same rule while retaining one aggregate publication:
+
+```rust
+use worth_query::facade::foundation::{
+    EffectBatchExecutionStop, EffectExecutionAuthority,
+};
+
+match lowered_batch.execute_with(
+    EffectExecutionAuthority::relational(&mut relational),
+) {
+    Ok(batch) => record_batch(batch),
+    Err(EffectBatchExecutionStop::SettlementDeferred(deferred)) => {
+        audit(deferred.batch_identity(), deferred.counters());
+        deferred.repair_with(
+            EffectExecutionAuthority::relational(&mut relational),
+        )?;
+    }
+    Err(stop) => handle_batch_stop(stop),
+}
+```
+
+All components in a native mutation batch share the aggregate commit. Repair
+settles that one performed commit and must not loop over components.
+
+## How It Relates To Other Features
+
+- [Effects](effects.md) covers declaration, inspection, and staging DX.
+- [Intent Admission](intent-admission.md) consumes staged write intent.
+- [Basis Capability Lifecycle](../capabilities/basis-capability-lifecycle.md)
+  supplies the exact basis before admission.
+- [Application Aftermath And Recovery](application-aftermath-and-recovery.md)
+  explains the separate application-level settlement and post-commit recovery
+  boundaries.
+
+## Inspection And Debugging
+
+Inspect the typed stop, lifecycle counters, plan or batch identity, and repair
+error. A performed-but-unsettled effect reports executed work and
+`publication_settlement_deferred_count() == 1`; it must not increment denial
+telemetry.
+
+`EffectSettlementRepairError::MissingRelationalAuthority` means the repair was
+attempted without the owner required by the carrier. A wrapped settlement error
+can report a foreign runtime, missing or mismatched performed route, or another
+durability failure.
 
 ## Anti-Patterns
 
-- Documenting “full effect pipeline” in effects.md without checking lifecycle matrix.
-- Executing merge/writeback families on basis lanes marked `UnsupportedForBasisFamily`.
-- Using effect declaration alone as proof of backend writeback completion.
+- Retrying the effect after `SettlementDeferred`.
+- Treating `SettlementDeferred` as a denial or recording denial telemetry.
+- Extracting, serializing, or accepting a raw lower-runtime settlement token.
+- Repairing with another runtime merely because its branch or commit IDs look
+  equal.
+- Executing a family on a basis lane marked unsupported.
+- Treating declaration or advisory support as proof of execution.
 
 ## Current Limits
 
-From `effect_lifecycle_support_matrix()` / `discover_effect_lifecycle_support` (representative):
-
 | Cause / posture | Meaning |
-|-----------------|--------|
-| `StoreBackedExecutionDeferred` | Store-backed effect execution **deferred** |
-| `DurableReplayDeferred` | Durable replay **deferred** |
-| `AdvisoryOnlyExecution` | Execute path **advisory** only |
-| `PreviewRebindRequired` | Rebind before execute |
-| `Denied` / `Unsupported` | Do not execute on public contract |
+|---|---|
+| `StoreBackedExecutionDeferred` | Store-backed effect execution is deferred. |
+| `DurableReplayDeferred` | Durable replay is deferred. |
+| `AdvisoryOnlyExecution` | The path is advisory, not full execution authority. |
+| `PreviewRebindRequired` | Rebind before execution. |
+| `Denied` / `Unsupported` | Do not execute on the public contract. |
 
-See `effect_lifecycle/support_matrix_rows.rs` for the full row inventory.
+See `effect_lifecycle/support_matrix_rows.rs` for the complete inventory.
+Settlement repair is currently runtime-affine; a typed carrier from one
+Relational runtime cannot be repaired by another.
 
 ## Related Docs
 
 - [Effects](effects.md)
-- [Support matrix and admission](../foundations/support-matrix-and-admission.md)
-- [Query operating modes](../foundations/query-operating-modes.md)
-- [Authoritative mutation evidence](../capabilities/authoritative-mutation-evidence.md)
+- [Intent Admission](intent-admission.md)
+- [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)
+- [Authoritative Mutation Evidence](../capabilities/authoritative-mutation-evidence.md)
+- [Application Aftermath And Recovery](application-aftermath-and-recovery.md)

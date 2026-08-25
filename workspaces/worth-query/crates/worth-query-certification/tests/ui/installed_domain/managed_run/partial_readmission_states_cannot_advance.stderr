@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query_execution::facade::provider_session::WorthQueryDirectResourceReadmissionPending`
- --> tests/ui/installed_domain/managed_run/partial_readmission_states_cannot_advance.rs:1:5
-  |
-1 | use worth_query_execution::facade::provider_session::WorthQueryDirectResourceReadmissionPending;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthQueryDirectResourceReadmissionPending` in `facade::provider_session`

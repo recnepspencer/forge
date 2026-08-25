@@ -3,7 +3,8 @@ use worth_foundational::facade::{
 };
 use worth_query_declaration::facade::application_schema::ApplicationExternalEffectProtocol;
 use worth_query_installation::facade::InstalledExternalEffectContract;
-use worth_relational::facade::transactions::{RelationalTransaction, WorkerIntentBatch};
+use worth_relational::facade::mvcc::BranchBoundRelationalTransaction;
+use worth_relational::facade::transactions::WorkerIntentBatch;
 
 use super::super::WorthQueryPrimaryGraphProvider;
 use crate::domain_computation::application_aftermath::{
@@ -19,14 +20,23 @@ pub(super) fn commit_record(
     identity: u64,
 ) -> (
     WorthQueryCommittedDispatchOutboxBinding,
-    worth_relational::facade::history::CommitReference,
+    worth_relational::facade::history::RelationalCommitReceipt,
     u64,
 ) {
     let record = record_for(identity);
     let branch = primary_relational_branch_id();
     let (binding, commit, runtime_id) = provider.graph.with_runtime_mut(|runtime| {
-        let mut transaction: RelationalTransaction<'_> =
-            runtime.begin_transaction(Default::default());
+        let mut transaction: BranchBoundRelationalTransaction ={
+    let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
+    runtime
+        .begin_branch_transaction(
+            &transaction_validation_input,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context")
+};
         transaction.push_batch(
             WorkerIntentBatch::new("committed-outbox-owner-test").push(
                 dispatch_outbox_create_intent(
@@ -36,7 +46,7 @@ pub(super) fn commit_record(
                 .unwrap(),
             ),
         );
-        let committed = transaction.commit().unwrap();
+        let committed = transaction.commit(runtime).unwrap();
         let binding = WorthQueryCommittedDispatchOutboxBinding::fixture_from_commit(
             provider.graph.layout.provider_dispatch_outbox(),
             Some(&record),
@@ -45,8 +55,9 @@ pub(super) fn commit_record(
         .unwrap()
         .unwrap();
         let commit = committed.outcome().commit.clone();
-        let snapshot = runtime.snapshots().snapshot_for_branch(&branch).unwrap();
-        let runtime_id = snapshot.runtime_instance_id;
+        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(runtime, &branch)
+            .unwrap();
+        let runtime_id = snapshot.runtime_instance_id();
         runtime.snapshots().release_snapshot(&snapshot);
         (binding, commit, runtime_id)
     });

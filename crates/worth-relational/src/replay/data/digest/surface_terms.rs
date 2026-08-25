@@ -1,12 +1,14 @@
 use crate::commit_strategies::data::StrategyReplayDescriptor;
 use crate::diagnostics::data::RelationalDiagnosticArtifact;
-use crate::history::data::{BranchId, CommitId, CommitReference, OrderedParentList};
+use crate::history::data::{BranchId, CommitId, OrderedParentList, RelationalCommitReceipt};
 use crate::indexes::data::{DerivedIndexArtifacts, DerivedIndexEntries};
+#[cfg(test)]
 use crate::publication::patch::data::PublishedAuthoritativePatchEnvelope;
 use crate::replay::data::ReplaySnapshotSurface;
 
 use super::primitive_terms::ReplayDigestBuilder;
 
+#[cfg(test)]
 pub(crate) fn digest_patch_surface(patch: &PublishedAuthoritativePatchEnvelope) -> [u8; 32] {
     let canonical = patch.canonicalized();
     let mut builder = ReplayDigestBuilder::new("worth.relational.replay.surface.patch.v1")
@@ -25,8 +27,30 @@ pub(crate) fn digest_patch_surface(patch: &PublishedAuthoritativePatchEnvelope) 
     builder.finish()
 }
 
-pub(crate) fn digest_patch_summary(patch: &PublishedAuthoritativePatchEnvelope) -> [u8; 32] {
-    ReplayDigestBuilder::new("worth.relational.replay.summary.patch.v1")
+pub(crate) fn digest_canonical_patch_surface(
+    patch: &crate::publication::patch::data::CanonicalAuthoritativePatch,
+) -> [u8; 32] {
+    let canonical = patch.canonicalized();
+    let mut builder =
+        ReplayDigestBuilder::new("worth.relational.replay.surface.canonical-patch.v1")
+            .patch_ordering(canonical.ordering)
+            .patch_publication_mode(canonical.publication_mode)
+            .usize(canonical.authoritative_record_patches.len());
+    for record in &canonical.authoritative_record_patches {
+        builder = builder
+            .record_ref(&record.target)
+            .structural_change(record.structural_change)
+            .published_patch(&record.authoritative_patch)
+            .bool(record.contains_opaque_aspect)
+            .patch_detail(&record.detail);
+    }
+    builder.finish()
+}
+
+pub(crate) fn digest_canonical_patch_summary(
+    patch: &crate::publication::patch::data::CanonicalAuthoritativePatch,
+) -> [u8; 32] {
+    ReplayDigestBuilder::new("worth.relational.replay.summary.canonical-patch.v1")
         .usize(patch.authoritative_record_patches.len())
         .finish()
 }
@@ -111,7 +135,7 @@ pub(crate) fn digest_snapshot_summary(surface: &ReplaySnapshotSurface) -> [u8; 3
         .finish()
 }
 
-pub(crate) fn digest_branch_head_surface(commit: Option<&CommitReference>) -> [u8; 32] {
+pub(crate) fn digest_branch_head_surface(commit: Option<&RelationalCommitReceipt>) -> [u8; 32] {
     let builder = ReplayDigestBuilder::new("worth.relational.replay.surface.branch_head.v1");
     match commit {
         Some(commit) => builder
@@ -125,7 +149,7 @@ pub(crate) fn digest_branch_head_surface(commit: Option<&CommitReference>) -> [u
     }
 }
 
-pub(crate) fn digest_branch_head_summary(commit: Option<&CommitReference>) -> [u8; 32] {
+pub(crate) fn digest_branch_head_summary(commit: Option<&RelationalCommitReceipt>) -> [u8; 32] {
     let builder = ReplayDigestBuilder::new("worth.relational.replay.summary.branch_head.v1");
     match commit {
         Some(commit) => builder

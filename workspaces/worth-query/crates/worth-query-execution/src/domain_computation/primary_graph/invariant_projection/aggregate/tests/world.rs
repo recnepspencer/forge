@@ -16,8 +16,8 @@ use worth_query_installation::facade::{
     WorthQueryPortableDomainIdentity, WorthQueryPortableDomainPackage,
 };
 use worth_relational::facade::transactions::{
-    AspectFieldPatch, EntityMutationIntent, MutationIntent, TransactionOptions,
-    UpdateEntityFieldsIntent, WorkerIntentBatch,
+    AspectFieldPatch, EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent,
+    WorkerIntentBatch,
 };
 
 use super::super::{WorthQueryInvariantAggregateDenialKind, WorthQueryInvariantEntityIdentity};
@@ -224,10 +224,22 @@ impl AggregateWorld {
                     fields,
                 },
             ));
-            let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+            let mut transaction = {
+                let transaction_validation_input = runtime
+                    .admit_main_branch_basis()
+                    .expect("main branch binding");
+                runtime
+                    .begin_branch_transaction(
+                        &transaction_validation_input,
+                        worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                    )
+                    .expect("owner-admitted transaction context")
+            };
             transaction
                 .push_batch(WorkerIntentBatch::new("aggregate-stale-generation").push(intent));
-            transaction.commit().expect("amount replacement commits");
+            transaction
+                .commit(runtime)
+                .expect("amount replacement commits");
         });
     }
 

@@ -12,15 +12,25 @@ fn durable_recovery_and_schema_mismatch_test() {
         )
     }
     .build_registry();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
-        schema_transition_for_subscriber_impact(
-            SchemaVersionId(2),
-            SchemaSubscriberImpact::ConsumableSurfaceChanged,
-        ),
-        Some(SchemaReconciliationPolicy::PreserveInformation),
-    ));
+    let mut txn = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+                .with_schema_transition(
+                    schema_transition_for_subscriber_impact(
+                        SchemaVersionId(2),
+                        SchemaSubscriberImpact::ConsumableSurfaceChanged,
+                    ),
+                    Some(SchemaReconciliationPolicy::PreserveInformation),
+                );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(batch_create("main-b"));
-    let transitioned = txn.commit().unwrap();
+    let transitioned = txn.commit(&mut runtime).unwrap();
 
     let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
@@ -60,7 +70,6 @@ fn durable_recovery_and_schema_mismatch_test() {
     let recovered_envelope = recovered
         .replay()
         .canonical_commit_envelope(transitioned.commit.commit_id)
-        .cloned()
         .expect("recovered transitioned envelope");
     let recovered_diagnostics = recovered.publication().diagnostics();
     let recovery_authority_continuity_diagnostic = recovered_diagnostics

@@ -15,6 +15,9 @@ use crate::validation::data::{
     CustomInvariantVerdict, InvariantCostClass, InvariantExecutionPoint, InvariantFailureEffect,
     InvariantGroup, InvariantGroupSet, InvariantReportedRule, InvariantVerdict,
 };
+use crate::validation::invariant_access::test_support::{
+    evaluate_main_commit_boundary_plan, evaluate_main_graph_composition_plan,
+};
 
 #[test]
 fn graph_composition_plan_selects_only_graph_composition_custom_registrations() {
@@ -42,8 +45,8 @@ fn graph_composition_plan_selects_only_graph_composition_custom_registrations() 
         .build();
     let plan = graph_relevant_plan(71);
 
-    let graph_result = runtime.validation().graph_composition_plan(&plan);
-    let commit_result = runtime.validation().commit_boundary(&plan);
+    let graph_result = evaluate_main_graph_composition_plan(&runtime, &plan);
+    let commit_result = evaluate_main_commit_boundary_plan(&runtime, &plan);
 
     assert_custom_rule_ids(
         &graph_result,
@@ -68,9 +71,7 @@ fn graph_composition_plan_does_not_execute_global_cost_custom_registration() {
         .build();
     runtime.performance_access().reset_counters();
 
-    let result = runtime
-        .validation()
-        .graph_composition_plan(&graph_relevant_plan(72));
+    let result = evaluate_main_graph_composition_plan(&runtime, &graph_relevant_plan(72));
 
     assert_eq!(
         result.metadata().execution_point(),

@@ -33,11 +33,25 @@ use crate::subscription::{
     SubscriptionConsumerAttachmentRequest, SubscriptionLifecycleCloseRequest,
 };
 use crate::view_shape_live::LiveViewShapeFamily;
+use worth_relational::facade::branch::{RelationalForkDenial, RelationalForkOutcome};
+use worth_relational::facade::history::BranchId;
 use worth_relational::facade::runtime::RelationalRuntime;
 use worth_runtime_bridge::facade::{
     BridgeContinuityMutationBundle, BridgeNamingMutationBundle,
     BridgeSymbolicTargetReferenceBundle, RuntimeBridge,
 };
+
+/// Compose the two public owner fork operations for Query-owned fixtures.
+/// The helper deliberately keeps the exact fork basis local to this call; no
+/// raw branch selector is passed into Relational's fork transition.
+pub(crate) fn fork_branch_from_exact_source(
+    runtime: &mut RelationalRuntime,
+    target_branch: BranchId,
+    source_branch: &BranchId,
+) -> Result<RelationalForkOutcome, RelationalForkDenial> {
+    let (_, basis) = runtime.observe_fork_source(source_branch)?;
+    runtime.fork_branch(target_branch, basis)
+}
 
 mod aspect_api_closeout;
 mod async_result_identity;
@@ -64,6 +78,7 @@ mod installed_live_routing;
 mod live_subscription_target_index;
 mod primary_graph_source;
 mod runtime_root_state;
+mod settlement_repair;
 mod shared_projection_owners;
 pub(crate) use conditional_owner_delivery_admission::{
     WorthQueryStagedOwnerDeliveryAdmission, WorthQueryStagedOwnerDeliveryAdmissionError,

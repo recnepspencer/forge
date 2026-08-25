@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::transactions::data::{
-    CommitConflict, MergedCommitPlan, ProvenanceCompleteBulkMutationBatch, TransactionId,
-    TransactionOptions,
+    CommitConflict, CommitPreparationError, MergedCommitPlan, ProvenanceCompleteBulkMutationBatch,
+    TransactionId,
 };
 
 use super::{
@@ -15,11 +15,16 @@ use super::{
 pub enum StrategyLoweringError {
     RequestExecutionMismatch { detail: String },
     MutationConflict(CommitConflict),
+    Preparation(CommitPreparationError),
 }
 
 impl StrategyLoweringError {
     pub(crate) fn mutation_conflict(conflict: CommitConflict) -> Self {
         Self::MutationConflict(conflict)
+    }
+
+    pub(crate) fn preparation(error: CommitPreparationError) -> Self {
+        Self::Preparation(error)
     }
 }
 
@@ -142,26 +147,25 @@ impl StrategyLoweringSummary {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct LoweredStrategyCommitPlan {
     request: CanonicalStrategyCommitRequest,
     execution: StrategyExecutionDraft,
-    transaction_id: TransactionId,
-    options: TransactionOptions,
+    transaction: crate::mvcc::BranchBoundRelationalTransaction,
     bulk_mutation_batch: Option<ProvenanceCompleteBulkMutationBatch>,
+    selected_branch_state: crate::branch::SelectedRelationalBranchState,
     merged_plan: MergedCommitPlan,
     lowering_provenance: StrategyLoweringProvenance,
     lowering_summary: StrategyLoweringSummary,
-    pub(crate) proof_token: LoweredStrategyCommitPlanToken,
 }
 
 impl LoweredStrategyCommitPlan {
     pub(crate) fn new(
         request: CanonicalStrategyCommitRequest,
         execution: StrategyExecutionDraft,
-        transaction_id: TransactionId,
-        options: TransactionOptions,
+        transaction: crate::mvcc::BranchBoundRelationalTransaction,
         bulk_mutation_batch: Option<ProvenanceCompleteBulkMutationBatch>,
+        selected_branch_state: crate::branch::SelectedRelationalBranchState,
         merged_plan: MergedCommitPlan,
         lowering_provenance: StrategyLoweringProvenance,
         lowering_summary: StrategyLoweringSummary,
@@ -169,13 +173,12 @@ impl LoweredStrategyCommitPlan {
         Self {
             request,
             execution,
-            transaction_id,
-            options,
+            transaction,
             bulk_mutation_batch,
+            selected_branch_state,
             merged_plan,
             lowering_provenance,
             lowering_summary,
-            proof_token: LoweredStrategyCommitPlanToken,
         }
     }
 
@@ -188,11 +191,27 @@ impl LoweredStrategyCommitPlan {
     }
 
     pub fn transaction_id(&self) -> TransactionId {
-        self.transaction_id
+        self.transaction.transaction_id()
     }
 
-    pub fn options(&self) -> &TransactionOptions {
-        &self.options
+    pub(crate) fn transaction(&self) -> &crate::mvcc::BranchBoundRelationalTransaction {
+        &self.transaction
+    }
+
+    pub(crate) fn into_validation_parts(
+        self,
+    ) -> (
+        crate::mvcc::BranchBoundRelationalTransaction,
+        Option<ProvenanceCompleteBulkMutationBatch>,
+        crate::branch::SelectedRelationalBranchState,
+        MergedCommitPlan,
+    ) {
+        (
+            self.transaction,
+            self.bulk_mutation_batch,
+            self.selected_branch_state,
+            self.merged_plan,
+        )
     }
 
     pub fn bulk_mutation_batch(&self) -> Option<&ProvenanceCompleteBulkMutationBatch> {
@@ -211,6 +230,3 @@ impl LoweredStrategyCommitPlan {
         &self.lowering_summary
     }
 }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub(crate) struct LoweredStrategyCommitPlanToken;

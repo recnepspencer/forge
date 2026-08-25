@@ -7,19 +7,7 @@ pub(super) fn certify_persisted_recovery_replay_round_trip(suite: &'static str) 
         || {
             let mut runtime = persisted_runtime_with_test_schema();
             let source_created = create_entity_outcome(&mut runtime, "recovery-source");
-            let target_created = create_entity_outcome(&mut runtime, "recovery-target");
             let source = changed_entities(&source_created)[0];
-            let target = changed_entities(&target_created)[0];
-            let source_lineage = runtime
-                .lineage_access()
-                .for_record(source)
-                .expect("source lineage")
-                .lineage_id;
-            let target_lineage = runtime
-                .lineage_access()
-                .for_record(target)
-                .expect("target lineage")
-                .lineage_id;
 
             let checkpoint_started_at = Instant::now();
             runtime
@@ -29,22 +17,14 @@ pub(super) fn certify_persisted_recovery_replay_round_trip(suite: &'static str) 
             let checkpoint_micros = checkpoint_started_at.elapsed().as_micros();
 
             let post_checkpoint_commit_started_at = Instant::now();
-            let candidate = runtime.lineage_authority().record_correspondence_candidate(
-                BranchId("main".to_string()),
-                vec![source_lineage],
-                vec![target_lineage],
-                "workflow-recovery-lineage",
-            );
-            let promotion = runtime
-                .lineage_authority()
-                .promote_correspondence(candidate.candidate_id, target_created.commit.clone())
-                .expect("promote workflow correspondence");
+            let target_created = create_entity_outcome(&mut runtime, "recovery-target");
+            let target = changed_entities(&target_created)[0];
             let post_checkpoint_commit_micros =
                 post_checkpoint_commit_started_at.elapsed().as_micros();
             let recovery_plan = runtime.durability().recovery_plan(
                 crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
             );
-            let tail_commit_id = promotion.promoted_commit_id().expect("promoted commit id");
+            let tail_commit_id = target_created.commit.commit_id;
 
             let mut recovered = persisted_runtime_with_test_schema();
             recovered.performance_access().reset_counters();

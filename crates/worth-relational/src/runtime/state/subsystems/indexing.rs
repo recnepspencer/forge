@@ -2,7 +2,10 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use worth_foundational::facade::AspectFieldLocator;
 
-use crate::indexes::data::{DerivedIndexDefinition, DerivedIndexGeneration, DerivedIndexId};
+use crate::history::data::CommitId;
+use crate::indexes::data::{
+    DerivedIndexArtifacts, DerivedIndexDefinition, DerivedIndexGeneration, DerivedIndexId,
+};
 use crate::runtime::state::subsystems::RuntimeSubsystem;
 use crate::storage::data::AuthoritativeFieldComparisonKey;
 
@@ -27,6 +30,20 @@ impl IndexingSubsystem {
             next_index_id: 1,
             next_generation_id: 1,
         }
+    }
+
+    pub(crate) fn derived_artifacts_for_commit(
+        &self,
+        commit_id: CommitId,
+    ) -> DerivedIndexArtifacts {
+        DerivedIndexArtifacts::new(
+            self.generations
+                .values()
+                .flat_map(|generations| generations.iter())
+                .filter(|generation| generation.source_commit_id == commit_id)
+                .cloned()
+                .collect(),
+        )
     }
 }
 

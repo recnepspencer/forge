@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use worth_relational::facade::runtime::RelationalExecutionBasisLease;
+use super::WorthQueryManagedRelationalObservation;
 use worth_runtime_bridge::facade::{BridgeBoundExecutionBasis, BridgeExecutionBasisSignalTerminal};
 
 use super::super::managed_graph_execution::WorthQueryManagedGraphExecution;
@@ -31,7 +31,7 @@ pub(in crate::domain_computation::managed_run) fn freeze_and_finalize_workflow_y
 struct WorthQueryWorkflowYieldBridgePending {
     affinity: WorthQueryWorkflowRunAffinity,
     bridge_basis: BridgeBoundExecutionBasis,
-    relational_basis: RelationalExecutionBasisLease,
+    relational_basis: WorthQueryManagedRelationalObservation,
     run_counters: WorthQueryManagedRunCounters,
     artifacts: WorthQueryWorkflowArtifactAuthority,
     provider_artifact_occurrences: Arc<WorthQueryArtifactOccurrenceLedger>,
@@ -143,7 +143,7 @@ impl WorthQueryWorkflowYieldBridgePending {
 struct WorthQueryWorkflowYieldArtifactFreezePending {
     affinity: WorthQueryWorkflowRunAffinity,
     bridge_basis: BridgeBoundExecutionBasis,
-    relational_basis: RelationalExecutionBasisLease,
+    relational_basis: WorthQueryManagedRelationalObservation,
     run_counters: WorthQueryManagedRunCounters,
     artifacts: WorthQueryWorkflowArtifactFreezePending,
     provider_artifact_occurrences: Arc<WorthQueryArtifactOccurrenceLedger>,

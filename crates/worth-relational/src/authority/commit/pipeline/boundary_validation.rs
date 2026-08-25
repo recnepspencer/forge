@@ -32,14 +32,21 @@ pub(super) fn validate_commit_boundary(
     runtime: &mut crate::runtime::RelationalRuntime,
     mut prepared: PreparedCommitExecution,
 ) -> Result<BoundaryValidatedCommitExecution, crate::transactions::data::TransactionCommitError> {
-    let prevalidated = prepared.admitted_mut().take_prevalidated_boundary();
-    let (_, _, merged_plan, _, commit_log, phase_timing) =
-        prepared.admitted_mut().phase_view().into_parts();
+    let (admitted, proposed_working_state, proposed_version_id, proposal_identity) =
+        prepared.boundary_parts();
+    let prevalidated = admitted.take_prevalidated_boundary();
+    let selected_branch_state = admitted.selected_branch_state().clone();
+    let (_, _options, merged_plan, _, commit_log, phase_timing) =
+        admitted.phase_view().into_parts();
     let invariant = enforce_commit_boundary_phase(
         runtime,
         commit_log,
         phase_timing,
+        &selected_branch_state,
+        proposed_working_state,
+        proposed_version_id,
         merged_plan,
+        Some(proposal_identity),
         prevalidated,
     )?;
     Ok(BoundaryValidatedCommitExecution {

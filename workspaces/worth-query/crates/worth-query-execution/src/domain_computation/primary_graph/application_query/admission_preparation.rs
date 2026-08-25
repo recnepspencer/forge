@@ -218,7 +218,8 @@ where
         );
         let entity_resolution = graph.retain_entity_resolution_context();
         let policy = graph.integration_handle().with_runtime_mut(|runtime| {
-            let snapshot = runtime.snapshots().snapshot();
+            let snapshot = super::super::exact_basis_access::open_current_main_snapshot(runtime)
+                .expect("installed primary graph retains an exact main-branch basis");
             let result = if !graph_work.admits_snapshot(&snapshot) {
                 Err(denial(
                     WorthQueryApplicationQueryAdmissionDenialKind::GraphWorkAdmissionUnavailable,

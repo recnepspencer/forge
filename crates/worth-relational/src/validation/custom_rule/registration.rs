@@ -71,7 +71,6 @@ impl<R: CustomInvariantRule> PreparedCustomInvariantExecution
         context: &CustomInvariantExecutionContext<'_>,
     ) -> PreparedCustomInvariantExecutionOutcome {
         context
-            .runtime()
             .performance_access()
             .count_custom_invariant_execution();
         match run_custom_rule_safely(

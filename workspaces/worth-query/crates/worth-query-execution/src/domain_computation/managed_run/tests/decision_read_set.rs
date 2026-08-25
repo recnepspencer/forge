@@ -90,7 +90,7 @@ impl WorthQueryProviderSessionLifecycle for DecisionProvider {
         _session: &WorthQueryProviderSessionView<'_>,
     ) -> Result<
         crate::domain_computation::WorthQueryProviderTerminalDescription,
-        WorthQueryProviderSessionFailure,
+        crate::domain_computation::WorthQueryProviderSessionCommitStop,
     > {
         Ok(
             crate::domain_computation::WorthQueryProviderTerminalDescription::new("unused commit")

@@ -9,7 +9,9 @@ use crate::durability::data::{
     RecoveryAuthorityContinuityCheck, RecoveryAuthorityParity, RecoveryCursor,
     RecoveryIntegrityReport, RecoveryPlan, RecoveryVerificationMode,
 };
-use crate::durability::log::local_store::{load_store_from_disk, read_segment_entries};
+use crate::durability::log::local_store::{
+    load_store_from_disk, read_segment_entries_with_registry,
+};
 use crate::durability::log::native_file_codec::read_checkpoint_file;
 use crate::replay::data::ReplayVerificationLayer;
 use crate::runtime::RelationalRuntime;
@@ -23,12 +25,17 @@ pub(super) fn persisted_recovery_plan(
     };
 
     let selected_checkpoint = select_latest_readable_checkpoint(&store);
-    let checkpoint_commit = selected_checkpoint
+    let checkpoint_position = selected_checkpoint
         .checkpoint
         .as_ref()
-        .and_then(|checkpoint| checkpoint.coverage.up_to_commit.as_ref())
-        .map(|commit| commit.commit_id);
-    let verified_tail = read_verified_tail_log(&store, checkpoint_commit);
+        .and_then(|checkpoint| {
+            checkpoint
+                .envelopes
+                .iter()
+                .map(crate::history::data::PositionedCanonicalCommit::position)
+                .max()
+        });
+    let verified_tail = read_verified_tail_log(runtime, &store, checkpoint_position);
     let descriptor_semantics_version = descriptor_semantics_version_for_envelopes(
         selected_checkpoint
             .checkpoint
@@ -46,8 +53,9 @@ pub(super) fn persisted_recovery_plan(
     let restore_authoritative_envelope_commit_ids = verified_tail
         .tail_log
         .iter()
-        .map(|entry| entry.commit.commit_id)
+        .map(|entry| entry.envelope().commit.commit_id)
         .collect();
+    let persisted_tail_error = verified_tail.terminal_error.clone();
 
     RecoveryPlan::new(
         runtime.runtime_config().clone(),
@@ -76,6 +84,7 @@ pub(super) fn persisted_recovery_plan(
         descriptor_semantics_version,
         restore_authoritative_envelope_commit_ids,
     )
+    .with_persisted_tail_error(persisted_tail_error)
     .with_commit_strategy_executors(runtime.commit_strategy_executor_registry().clone())
 }
 
@@ -88,9 +97,10 @@ struct SelectedPersistedCheckpoint {
 
 #[derive(Debug)]
 struct VerifiedTailLog {
-    tail_log: Vec<crate::history::data::CanonicalCommitEnvelope>,
+    tail_log: Vec<crate::durability::migration::ReadmittedCanonicalCommit>,
     verified_segment_ids: Vec<crate::durability::data::DurableSegmentId>,
     corrupt_segment_id: Option<crate::durability::data::DurableSegmentId>,
+    terminal_error: Option<crate::durability::data::DurabilityError>,
 }
 
 fn empty_persisted_recovery_plan(
@@ -149,27 +159,30 @@ fn select_latest_readable_checkpoint(
 }
 
 fn read_verified_tail_log(
+    runtime: &RelationalRuntime,
     store: &crate::durability::data::DurableStore,
-    checkpoint_commit: Option<crate::history::data::CommitId>,
+    checkpoint_position: Option<crate::publication::patch::data::PatchStreamPosition>,
 ) -> VerifiedTailLog {
     let mut tail_log = Vec::new();
     let mut verified_segment_ids = Vec::new();
     let mut corrupt_segment_id = None;
+    let mut terminal_error = None;
     for manifest in &store.segments {
-        if checkpoint_commit
-            .is_some_and(|covered| manifest.last_commit_id.is_some_and(|last| last <= covered))
-        {
-            continue;
-        }
-        match read_segment_entries(&manifest.path) {
+        match read_segment_entries_with_registry(
+            &manifest.path,
+            &runtime.runtime_config().schema.registry,
+        ) {
             Ok(entries) => {
                 verified_segment_ids.push(manifest.segment_id);
                 tail_log.extend(entries.into_iter().filter(|entry| {
-                    checkpoint_commit.is_none_or(|covered| entry.commit.commit_id > covered)
+                    checkpoint_position.is_none_or(|covered| entry.position() > covered)
                 }));
             }
-            Err(_) => {
-                corrupt_segment_id = Some(manifest.segment_id);
+            Err(error) => {
+                if error.class == crate::durability::data::RecoveryFailureClass::CorruptSegment {
+                    corrupt_segment_id = Some(manifest.segment_id);
+                }
+                terminal_error = Some(error);
                 break;
             }
         }
@@ -178,6 +191,7 @@ fn read_verified_tail_log(
         tail_log,
         verified_segment_ids,
         corrupt_segment_id,
+        terminal_error,
     }
 }
 
@@ -185,7 +199,7 @@ fn persisted_authority_continuity(
     runtime: &RelationalRuntime,
     selected_checkpoint: Option<&crate::durability::data::DurableCheckpoint>,
     selected_checkpoint_manifest: Option<&crate::durability::data::DurableCheckpointManifest>,
-    tail_log: &[crate::history::data::CanonicalCommitEnvelope],
+    tail_log: &[crate::durability::migration::ReadmittedCanonicalCommit],
 ) -> RecoveryAuthorityContinuityCheck {
     let mut recovery_authority_continuity = authority_continuity_for_envelopes(
         runtime,

@@ -6,7 +6,7 @@ fn derived_index_contract_success_branch_scoped_build_keeps_storage_read() {
     let main_outcome = create_entity_outcome(&mut runtime, "main-a");
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -71,7 +71,7 @@ fn derived_index_contract_unscoped_generation_is_rejected_for_unsupported_scope(
     let main_outcome = create_entity_outcome(&mut runtime, "main-a");
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -144,7 +144,7 @@ fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports
     );
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -159,10 +159,10 @@ fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports
         "feature-target",
         BranchId("feature".to_string()),
     );
-    let mut feature_txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(BranchId("feature".to_string())),
-        ..TransactionOptions::default()
-    });
+    let mut feature_txn = crate::tests::support::test_owner_begin_transaction_for_branch(
+        &mut runtime,
+        BranchId("feature".to_string()),
+    );
     feature_txn.push_batch(WorkerIntentBatch::new("feature-relation").push(
         MutationIntent::Create(CreateIntent::Relation(
             crate::transactions::data::RelationSpec {
@@ -179,7 +179,7 @@ fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports
             },
         )),
     ));
-    let feature_relation = feature_txn.commit().expect("feature relation");
+    let feature_relation = feature_txn.commit(&mut runtime).expect("feature relation");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(1),
         name: "relation.label.branch".to_string(),
@@ -242,7 +242,7 @@ fn derived_index_contract_branch_scoped_generation_reports_unsupported_branch() 
     let main_outcome = create_entity_outcome(&mut runtime, "main-a");
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -326,7 +326,7 @@ fn derived_index_contract_prefers_older_supported_generation_over_newer_unsuppor
 
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )

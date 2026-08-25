@@ -9,7 +9,7 @@ use crate::runtime::RelationalRuntime;
 use crate::visibility::snapshot_states::resolve_snapshot_handle;
 
 use super::super::projected_field_values::{
-    build_related_entity_ordering_index, compare_related_entries,
+    build_related_entity_ordering_index, compare_related_entries, RelatedEntityOrderingProjection,
 };
 use super::IndexAccess;
 
@@ -28,85 +28,28 @@ impl IndexAccess<'_> {
                 &request,
             )
         })?;
-        let definition = runtime
-            .indexes
-            .definitions
-            .get(&request.index_id())
+        let projection = runtime
+            .read_truth()
+            .project_snapshot(&snapshot)
             .ok_or_else(|| {
                 denial(
-                    BoundedRelatedEntityOrderedLookupDenialKind::IndexNotInstalled,
+                    BoundedRelatedEntityOrderedLookupDenialKind::SnapshotUnavailable,
                     &request,
                 )
             })?;
-        let DerivedIndexKind::RelatedEntityOrdering {
-            relation_kind,
-            parent_endpoint,
-            child_kind,
-            ordering,
-        } = &definition.kind
-        else {
-            return Err(denial(
-                BoundedRelatedEntityOrderedLookupDenialKind::WrongIndexKind,
-                &request,
-            ));
-        };
-        if *child_kind != request.child_kind() {
-            return Err(denial(
-                BoundedRelatedEntityOrderedLookupDenialKind::WrongIndexKind,
-                &request,
-            ));
-        }
-        let generation =
-            super::generation_selection::exact_published_generation(runtime, &snapshot, definition)
-                .ok_or_else(|| {
-                    denial(
-                        BoundedRelatedEntityOrderedLookupDenialKind::ExactGenerationUnavailable,
-                        &request,
-                    )
-                })?;
-        if request
-            .expected_generation()
-            .is_some_and(|expected| expected != generation.generation_id)
-        {
-            return Err(denial(
-                BoundedRelatedEntityOrderedLookupDenialKind::ExpectedGenerationMismatch,
-                &request,
-            ));
-        }
-        let DerivedIndexEntries::RelatedEntityOrdering(entries) = &generation.entries else {
-            return Err(denial(
-                BoundedRelatedEntityOrderedLookupDenialKind::WrongIndexKind,
-                &request,
-            ));
-        };
-        let parent_entries = entries
-            .get(&request.parent_entity_id())
-            .map(Vec::as_slice)
-            .unwrap_or(&[]);
-        let page = select_page(parent_entries, ordering, &request)?;
-        verify_entries(
-            runtime,
-            &snapshot,
-            *relation_kind,
-            *parent_endpoint,
-            *child_kind,
-            ordering,
-            request.parent_entity_id(),
-            page.rows,
+        let source =
+            super::super::projected_field_values::IndexProjectionSource::exact(&projection)
+                .expect("resolved snapshot projection must carry an exact basis");
+        let prepared = prepare_related_lookup(runtime, &snapshot, &request)?;
+        let page = select_page(
+            prepared.parent_entries,
+            prepared.contract.ordering,
             &request,
         )?;
-        let outcome = outcome_from_page(generation.generation_id, page, parity_mode);
+        verify_entries(&source, &prepared.contract, page.rows)?;
+        let outcome = outcome_from_page(prepared.generation_id, page, parity_mode);
         if parity_mode == BoundedIndexParityMode::Certification {
-            certify_storage_parity(
-                runtime,
-                &snapshot,
-                *relation_kind,
-                *parent_endpoint,
-                *child_kind,
-                ordering,
-                &request,
-                &outcome,
-            )?;
+            certify_storage_parity(&source, &prepared.contract, &outcome)?;
             runtime
                 .performance_access()
                 .count_query_index_parity_verification();
@@ -114,6 +57,111 @@ impl IndexAccess<'_> {
         runtime.performance_access().count_query_index_path();
         Ok(outcome)
     }
+}
+
+struct PreparedRelatedLookup<'definition, 'request> {
+    generation_id: crate::indexes::data::DerivedIndexGenerationId,
+    parent_entries: &'definition [RelatedEntityOrderingEntry],
+    contract: RelatedLookupContract<'definition, 'request>,
+}
+
+struct RelatedLookupContract<'definition, 'request> {
+    relation_kind: crate::identity::data::KindId,
+    parent_endpoint: RelatedEntityEndpoint,
+    child_kind: crate::identity::data::KindId,
+    ordering: &'definition [RelatedEntityOrderingField],
+    parent: crate::identity::data::EntityId,
+    request: &'request BoundedRelatedEntityOrderedLookupRequest,
+}
+
+fn prepare_related_lookup<'definition, 'request>(
+    runtime: &'definition RelationalRuntime,
+    snapshot: &crate::snapshots::data::SnapshotHandle,
+    request: &'request BoundedRelatedEntityOrderedLookupRequest,
+) -> Result<PreparedRelatedLookup<'definition, 'request>, BoundedRelatedEntityOrderedLookupDenial> {
+    let (definition, contract) = resolve_related_lookup_contract(runtime, request)?;
+    let generation =
+        super::generation_selection::exact_published_generation(runtime, snapshot, definition)
+            .ok_or_else(|| {
+                denial(
+                    BoundedRelatedEntityOrderedLookupDenialKind::ExactGenerationUnavailable,
+                    request,
+                )
+            })?;
+    if request
+        .expected_generation()
+        .is_some_and(|expected| expected != generation.generation_id)
+    {
+        return Err(denial(
+            BoundedRelatedEntityOrderedLookupDenialKind::ExpectedGenerationMismatch,
+            request,
+        ));
+    }
+    let DerivedIndexEntries::RelatedEntityOrdering(entries) = &generation.entries else {
+        return Err(denial(
+            BoundedRelatedEntityOrderedLookupDenialKind::WrongIndexKind,
+            request,
+        ));
+    };
+    Ok(PreparedRelatedLookup {
+        generation_id: generation.generation_id,
+        parent_entries: entries
+            .get(&contract.parent)
+            .map(Vec::as_slice)
+            .unwrap_or(&[]),
+        contract,
+    })
+}
+
+fn resolve_related_lookup_contract<'definition, 'request>(
+    runtime: &'definition RelationalRuntime,
+    request: &'request BoundedRelatedEntityOrderedLookupRequest,
+) -> Result<
+    (
+        &'definition crate::indexes::data::DerivedIndexDefinition,
+        RelatedLookupContract<'definition, 'request>,
+    ),
+    BoundedRelatedEntityOrderedLookupDenial,
+> {
+    let definition = runtime
+        .indexes
+        .definitions
+        .get(&request.index_id())
+        .ok_or_else(|| {
+            denial(
+                BoundedRelatedEntityOrderedLookupDenialKind::IndexNotInstalled,
+                request,
+            )
+        })?;
+    let DerivedIndexKind::RelatedEntityOrdering {
+        relation_kind,
+        parent_endpoint,
+        child_kind,
+        ordering,
+    } = &definition.kind
+    else {
+        return Err(denial(
+            BoundedRelatedEntityOrderedLookupDenialKind::WrongIndexKind,
+            request,
+        ));
+    };
+    if *child_kind != request.child_kind() {
+        return Err(denial(
+            BoundedRelatedEntityOrderedLookupDenialKind::WrongIndexKind,
+            request,
+        ));
+    }
+    Ok((
+        definition,
+        RelatedLookupContract {
+            relation_kind: *relation_kind,
+            parent_endpoint: *parent_endpoint,
+            child_kind: *child_kind,
+            ordering,
+            parent: request.parent_entity_id(),
+            request,
+        },
+    ))
 }
 
 struct SelectedPage<'a> {
@@ -180,106 +228,72 @@ fn outcome_from_page(
     )
 }
 
-#[allow(clippy::too_many_arguments)]
 fn verify_entries(
-    runtime: &RelationalRuntime,
-    snapshot: &crate::snapshots::data::SnapshotHandle,
-    relation_kind: crate::identity::data::KindId,
-    parent_endpoint: RelatedEntityEndpoint,
-    child_kind: crate::identity::data::KindId,
-    ordering: &[RelatedEntityOrderingField],
-    parent: crate::identity::data::EntityId,
+    projection: &super::super::projected_field_values::IndexProjectionSource<'_, '_>,
+    contract: &RelatedLookupContract<'_, '_>,
     entries: &[RelatedEntityOrderingEntry],
-    request: &BoundedRelatedEntityOrderedLookupRequest,
 ) -> Result<(), BoundedRelatedEntityOrderedLookupDenial> {
-    let read = runtime
-        .read_truth()
-        .read_snapshot(snapshot)
-        .ok_or_else(|| {
-            denial(
-                BoundedRelatedEntityOrderedLookupDenialKind::SnapshotUnavailable,
-                request,
-            )
-        })?;
-    let projection =
-        super::super::projected_field_values::IndexProjectionSource::Reconstructed(&read);
     for entry in entries {
         let relation = projection
             .with_relation(entry.relation_id(), Clone::clone)
-            .ok_or_else(|| corrupt(request))?;
-        let (observed_parent, observed_child) = match parent_endpoint {
+            .ok_or_else(|| corrupt(contract.request))?;
+        let (observed_parent, observed_child) = match contract.parent_endpoint {
             RelatedEntityEndpoint::SourceParent => (relation.source, relation.target),
             RelatedEntityEndpoint::TargetParent => (relation.target, relation.source),
         };
-        if relation.kind.kind_id != relation_kind
-            || observed_parent != parent
+        if relation.kind.kind_id != contract.relation_kind
+            || observed_parent != contract.parent
             || observed_child != entry.child_entity_id()
             || projection.with_entity(observed_child, |record| record.kind.kind_id)
-                != Some(child_kind)
+                != Some(contract.child_kind)
         {
-            return Err(corrupt(request));
+            return Err(corrupt(contract.request));
         }
-        let values = ordering
+        let values = contract
+            .ordering
             .iter()
             .map(|field| {
                 super::super::projected_field_values::entity_aspect_field_ordering_value(
-                    runtime,
-                    &projection,
+                    projection,
                     observed_child,
                     field.locator(),
                 )
             })
             .collect::<Option<Vec<_>>>()
-            .ok_or_else(|| corrupt(request))?;
+            .ok_or_else(|| corrupt(contract.request))?;
         if !values
             .iter()
             .zip(entry.ordering_values())
             .all(|(value, expected)| value == expected.value())
             || values.len() != entry.ordering_values().len()
         {
-            return Err(corrupt(request));
+            return Err(corrupt(contract.request));
         }
     }
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
 fn certify_storage_parity(
-    runtime: &RelationalRuntime,
-    snapshot: &crate::snapshots::data::SnapshotHandle,
-    relation_kind: crate::identity::data::KindId,
-    parent_endpoint: RelatedEntityEndpoint,
-    child_kind: crate::identity::data::KindId,
-    ordering: &[RelatedEntityOrderingField],
-    request: &BoundedRelatedEntityOrderedLookupRequest,
+    projection: &super::super::projected_field_values::IndexProjectionSource<'_, '_>,
+    contract: &RelatedLookupContract<'_, '_>,
     indexed: &BoundedRelatedEntityOrderedLookupOutcome,
 ) -> Result<(), BoundedRelatedEntityOrderedLookupDenial> {
-    let read = runtime
-        .read_truth()
-        .read_snapshot(snapshot)
-        .ok_or_else(|| {
-            denial(
-                BoundedRelatedEntityOrderedLookupDenialKind::SnapshotUnavailable,
-                request,
-            )
-        })?;
-    let projection =
-        super::super::projected_field_values::IndexProjectionSource::Reconstructed(&read);
     let storage = build_related_entity_ordering_index(
-        runtime,
-        &projection,
-        relation_kind,
-        parent_endpoint,
-        child_kind,
-        ordering,
+        projection,
+        &RelatedEntityOrderingProjection::new(
+            contract.relation_kind,
+            contract.parent_endpoint,
+            contract.child_kind,
+            contract.ordering,
+        ),
     );
     let expected = select_page(
         storage
-            .get(&request.parent_entity_id())
+            .get(&contract.parent)
             .map(Vec::as_slice)
             .unwrap_or(&[]),
-        ordering,
-        request,
+        contract.ordering,
+        contract.request,
     )?;
     let expected = outcome_from_page(indexed.generation_id(), expected, indexed.parity_mode());
     if expected.child_entity_ids() == indexed.child_entity_ids()
@@ -289,7 +303,7 @@ fn certify_storage_parity(
     } else {
         Err(denial(
             BoundedRelatedEntityOrderedLookupDenialKind::StorageParityMismatch,
-            request,
+            contract.request,
         ))
     }
 }

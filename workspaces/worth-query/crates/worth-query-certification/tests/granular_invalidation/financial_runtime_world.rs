@@ -1,7 +1,5 @@
 #[path = "financial_runtime_world/adapters.rs"]
 mod adapters;
-#[path = "financial_runtime_world/certification.rs"]
-mod certification;
 #[path = "financial_runtime_world/contract.rs"]
 mod contract;
 #[path = "financial_runtime_world/frontier_slope.rs"]
@@ -10,8 +8,6 @@ mod frontier_slope;
 mod host;
 #[path = "financial_runtime_world/portfolio.rs"]
 mod portfolio;
-#[path = "financial_runtime_world/portfolio_certification.rs"]
-mod portfolio_certification;
 #[path = "financial_runtime_world/query.rs"]
 mod query;
 #[path = "financial_runtime_world/query_domain.rs"]
@@ -22,8 +18,6 @@ mod query_source;
 mod schema;
 #[path = "financial_runtime_world/shared.rs"]
 mod shared;
-#[path = "financial_runtime_world/shared_certification.rs"]
-mod shared_certification;
 
 pub fn assert_financial_host_curve_delivery() {
     use worth_query_host::facade::primary_graph::WorthQueryConditionalClockObservationOutcome;
@@ -314,17 +308,9 @@ pub fn assert_suppressed_quote_has_no_query_patch() {
     assert_eq!(fields[0].as_uint64(), Ok(&5_120));
 }
 
-pub use certification::{
-    assert_mixed_runtime_evidence_denied, run_curve_certification,
-    run_curve_with_opaque_query_substitution, run_opaque_certification, run_quote_certification,
-};
 pub use frontier_slope::assert_frontier_expansion_slope;
 pub use portfolio::assert_ordered_portfolio_membership;
-pub use portfolio_certification::{
-    run_portfolio_certification, run_portfolio_with_relational_record_substitution,
-};
 pub use shared::{
     assert_shared_financial_disclosure_revalidation,
     assert_shared_financial_execution_and_publication,
 };
-pub use shared_certification::run_shared_certification;

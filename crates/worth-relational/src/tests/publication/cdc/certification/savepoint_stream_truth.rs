@@ -11,7 +11,7 @@ fn cdc_certification_savepoint_abandoned_work_never_leaks_into_stream_truth() {
     let right_entity = changed_entities(&right)[0];
     let checkpoint = checkpoint_for_schema_version(right.patch_position(), SchemaVersionId(1));
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(batch_create("surviving"));
     let savepoint = txn.create_savepoint();
     txn.push_batch(batch_create("abandoned"));
@@ -64,7 +64,7 @@ fn cdc_certification_savepoint_abandoned_work_never_leaks_into_stream_truth() {
             }),
         )),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
 
     assert!(rollback.summary().has_discarded_entity_creation());
 

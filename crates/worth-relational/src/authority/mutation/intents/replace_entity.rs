@@ -41,6 +41,7 @@ pub(super) fn apply(
         )?;
         let replacement_id = allocate_entity_with_extra(
             context.state,
+            context.record_allocations,
             version_id,
             intent.replacement.partition_id,
             intent.replacement.kind_id,
@@ -48,7 +49,7 @@ pub(super) fn apply(
                 authoritative_aspect_state: replacement_state,
                 ..EntityExtra::default()
             },
-        );
+        )?;
         context
             .state
             .mark_entity_slot_touched(replacement_id.partition_id, replacement_id.slot_index());

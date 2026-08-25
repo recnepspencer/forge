@@ -86,8 +86,8 @@ pub(super) fn recover_stage(
 pub(super) fn recover_stage_from_final_history(
     source: &RelationalRuntime,
     root_path: std::path::PathBuf,
-    source_head: crate::history::data::CommitReference,
-    target_head: crate::history::data::CommitReference,
+    source_head: crate::history::data::RelationalCommitReceipt,
+    target_head: crate::history::data::RelationalCommitReceipt,
 ) -> RelationalRuntime {
     let mut chain = source
         .history()
@@ -124,8 +124,17 @@ pub(super) fn recover_stage_from_final_history(
         .iter()
         .copied()
         .filter(|commit_id| tail_start.is_none_or(|start| *commit_id > start))
-        .filter_map(|commit_id| replay_access.canonical_commit_envelope(commit_id))
-        .cloned()
+        .filter_map(|commit_id| {
+            let position = source.history().canonical_stream_position(commit_id)?;
+            replay_access
+                .canonical_commit_envelope(commit_id)
+                .map(|envelope| {
+                    crate::history::data::PositionedCanonicalCommit::for_test(
+                        position,
+                        std::sync::Arc::new(envelope),
+                    )
+                })
+        })
         .collect::<Vec<_>>();
     let restore_authoritative_envelope_commit_ids = tail_log
         .iter()
@@ -141,7 +150,10 @@ pub(super) fn recover_stage_from_final_history(
         source.durable_store().cloned(),
         None,
         checkpoint,
-        tail_log,
+        tail_log
+            .into_iter()
+            .map(crate::durability::migration::ReadmittedCanonicalCommit::exact)
+            .collect(),
         crate::durability::data::RecoveryCursor {
             checkpoint_id: None,
             segment_ids: Vec::new(),

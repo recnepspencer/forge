@@ -1,6 +1,8 @@
 pub mod builder;
 mod configuration;
 mod construction;
+#[cfg(any(test, feature = "test-durability-faults"))]
+mod durability_fault_injection;
 mod guided;
 mod initial_schema_installation;
 mod state;
@@ -29,13 +31,24 @@ pub use initial_schema_installation::{
     RelationalInitialSchemaInstallation, RelationalInitialSchemaInstallationDenial,
     RelationalInitialSchemaInstallationDenialKind, RelationalInitialSchemaInstallationReceipt,
 };
+pub use state::{
+    RelationalBranchSharingCostCounters, RelationalPatchPositionReservationCounters,
+    RelationalPhase4ReferenceCostCounters,
+};
 
 pub(crate) use crate::storage::overlay::{PartitionAccess, WorkingState};
+pub use construction::RelationalRuntimeForkDenial;
 pub(crate) use construction::RuntimeExtensions;
 pub use state::RelationalRuntime;
 pub(crate) use state::{
-    CommitStrategiesSubsystem, DurabilitySubsystem, ExecutionBasisRegistry, HistorySubsystem,
-    IndexingSubsystem, LineageSubsystem, PublicationSubsystem, ReplayRetentionState,
-    RuntimeInstrumentation, RuntimeServices, RuntimeSubsystem, SchemaContractRuntimeSubsystem,
-    SnapshotHandleBinding, VisibilityResidency, VisibilitySubsystem,
+    readmit_positioned_canonical_commit, CanonicalCheckpointAdmissionError,
+    CanonicalPositionAdmission, CanonicalPublicationRecordError, CommitStrategiesSubsystem,
+    DurabilitySubsystem, HistorySubsystem, IndexingSubsystem, LineageSubsystem,
+    PendingRecordAllocations, PerformedCheckpointSelection, PreparedCanonicalPublicationRoute,
+    PreparedRecoveredVersionedArtifactPublication, PreparedVersionedArtifactAccelerators,
+    PreparedVersionedArtifactPublication, PublicationSubsystem, ReclaimedRecordSlot,
+    RecordIdentitySubsystem, RelationalCanonicalPublicationRoutes,
+    RelationalForkMaterializationCost, ReplayRetentionState, RuntimeInstrumentation,
+    RuntimeServices, RuntimeSubsystem, SchemaContractRuntimeSubsystem, SnapshotHandleBinding,
+    ValidatedLineageEventBatch, VisibilityResidency, VisibilitySubsystem,
 };

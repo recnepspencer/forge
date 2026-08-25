@@ -314,7 +314,7 @@ pub(super) fn create_analysis_branch(runtime: &mut RelationalRuntime) -> BranchI
     let branch = BranchId("analysis".to_string());
     runtime
         .history_authority()
-        .create_branch(branch.clone(), &BranchId("main".to_string()))
+        .fork_branch_from(branch.clone(), &BranchId("main".to_string()))
         .unwrap();
     branch
 }

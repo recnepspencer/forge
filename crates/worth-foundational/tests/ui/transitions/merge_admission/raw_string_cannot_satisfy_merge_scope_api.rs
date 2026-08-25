@@ -10,11 +10,11 @@ fn main() {
         .with_candidate_id(worth_foundational::FoundationalBranchCandidateId::new(
             worth_foundational::BoundaryHandle::new(1),
         ))
-        .from_fork_basis(worth_foundational::FoundationalBranchForkBasis::new(
+        .from_fork_basis(worth_foundational::FoundationalBranchCandidateForkBasis::new(
             worth_foundational::FoundationalBranchId::new("main").unwrap(),
             worth_foundational::BoundaryEpoch::new(1),
         ))
-        .under_observation_basis(worth_foundational::FoundationalBranchObservationBasis::new(
+        .under_observation_basis(worth_foundational::FoundationalBranchCandidateObservationBasis::new(
             worth_foundational::EquivalenceBasisId::new(1),
             worth_foundational::BoundaryEpoch::new(1),
         ))

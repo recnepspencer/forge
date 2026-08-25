@@ -1,8 +1,6 @@
 use crate::facade::history::BranchId;
 use crate::facade::merge::{MergeExecutionRequest, MergeIntent};
-use crate::facade::transactions::{
-    CreateIntent, MutationIntent, TransactionOptions, WorkerIntentBatch,
-};
+use crate::facade::transactions::{CreateIntent, MutationIntent, WorkerIntentBatch};
 use crate::tests::support::{
     changed_entities, create_branch_from_main, create_entity, persisted_runtime_with_test_schema,
     update_entity, update_entity_on_branch,
@@ -77,10 +75,10 @@ fn complexity_budget_merge_execution_reports_admitted_records_and_emitted_mutati
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity(&mut runtime, "main-anchor");
     create_branch_from_main(&mut runtime, "feature");
-    let mut txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(BranchId("feature".to_string())),
-        ..TransactionOptions::default()
-    });
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
+        &mut runtime,
+        BranchId("feature".to_string()),
+    );
     txn.push_batch(
         WorkerIntentBatch::new("create-feature-only")
             .push(MutationIntent::Create(CreateIntent::Entity(
@@ -97,7 +95,7 @@ fn complexity_budget_merge_execution_reports_admitted_records_and_emitted_mutati
             )))
             .into(),
     );
-    let feature_only = changed_entities(&txn.commit().expect("feature-only create"))[0];
+    let feature_only = changed_entities(&txn.commit(&mut runtime).expect("feature-only create"))[0];
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {

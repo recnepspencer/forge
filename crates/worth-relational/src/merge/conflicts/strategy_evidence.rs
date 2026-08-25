@@ -3,6 +3,31 @@ use std::sync::Arc;
 
 use crate::merge::data::{StrategyConflictClass, StrategyConflictEvidence};
 
+pub(super) fn overlapping_strategy_intent_diverges(
+    evidence: &StrategyConflictEvidence,
+    aspect_evidence: &[crate::merge::data::AspectConflictEvidence],
+) -> bool {
+    evidence.source_descriptors.iter().any(|source| {
+        evidence.target_descriptors.iter().any(|target| {
+            source.intent_scope_targets().iter().any(|source_field| {
+                target
+                    .intent_scope_targets()
+                    .iter()
+                    .filter(|target_field| *target_field == source_field)
+                    .any(|_| {
+                        aspect_evidence
+                            .iter()
+                            .find(|aspect| &aspect.aspect_key == source_field.aspect().aspect_key())
+                            .is_none_or(|aspect| {
+                                aspect.comparison
+                                    != crate::merge::data::AspectComparisonState::Equal
+                            })
+                    })
+            })
+        })
+    })
+}
+
 pub(super) fn strategy_conflict_evidence(
     runtime: &crate::runtime::RelationalRuntime,
     source_delta: Option<&crate::merge::data::BranchTouchedRecordDelta>,
@@ -62,14 +87,8 @@ fn strategy_descriptors_for_delta(
         return Vec::new();
     };
     let history = runtime.history();
-    let mut dedup = BTreeMap::<
-        (
-            [u8; 32],
-            [u8; 32],
-            Vec<worth_foundational::facade::AspectFieldLocator>,
-        ),
-        crate::commit_strategies::data::StrategyMergeDescriptor,
-    >::new();
+    let mut latest_by_strategy =
+        BTreeMap::<[u8; 32], crate::commit_strategies::data::StrategyMergeDescriptor>::new();
     for commit_id in delta.commit_ids.iter().rev().copied() {
         let Some(envelope) = history.commit_envelope(commit_id) else {
             continue;
@@ -78,18 +97,11 @@ fn strategy_descriptors_for_delta(
             continue;
         };
         let descriptor = strategy_artifacts.merge_descriptor().clone();
-        let key = (
-            descriptor.descriptor_digest().0,
-            *descriptor.intent_scope_digest().bytes(),
-            descriptor
-                .intent_scope_targets()
-                .iter()
-                .cloned()
-                .collect::<Vec<_>>(),
-        );
-        dedup.entry(key).or_insert(descriptor);
+        latest_by_strategy
+            .entry(descriptor.descriptor_digest().0)
+            .or_insert(descriptor);
     }
-    dedup.into_values().collect()
+    latest_by_strategy.into_values().collect()
 }
 
 fn strategy_scope_overlaps(

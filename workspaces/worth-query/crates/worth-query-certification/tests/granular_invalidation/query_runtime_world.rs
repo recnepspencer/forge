@@ -41,8 +41,6 @@ pub struct PrimaryQueryWorld {
         worth_query::facade::foundation::ObservationLaneWitness,
     >,
     pub observations: Arc<SourceObservations>,
-    pub diagnostics_tier: worth_runtime_bridge::facade::BridgeDiagnosticsTier,
-    pub signal_installations: Vec<query_domain::WorthQueryConditionalDependencyInstallation>,
 }
 
 pub type PrimarySharedLease = query_domain::WorthQuerySharedLiveProjectionLease<
@@ -126,7 +124,6 @@ fn try_build_primary_query_world_with_dimensions(
         &installation,
         scale.unrelated_bridge_mappings,
     );
-    let diagnostics_tier = bridge.policy().diagnostics_tier();
     let mut signal = worth_signal::facade::SignalGraph::new();
     let signal_node = signal.node().build();
     let worth_proof::TransitionOutcome::Success(installed_signal) =
@@ -155,7 +152,6 @@ fn try_build_primary_query_world_with_dimensions(
     }
     let dependency_installation =
         query_domain::WorthQueryConditionalDependencyInstallation::new(Some(record), vec![target]);
-    let signal_installations = vec![dependency_installation.clone()];
     let providers =
         worth_runtime_bridge::facade::BridgeConditionalProviderSet::new().wake(EligibleProvider);
     let conditional_compute = ConditionalCompute {
@@ -270,8 +266,6 @@ fn try_build_primary_query_world_with_dimensions(
         workspace,
         live,
         observations,
-        diagnostics_tier,
-        signal_installations,
     })
 }
 
@@ -282,8 +276,6 @@ pub fn build_shared_primary_query_world(
         mut workspace,
         live,
         observations: _,
-        diagnostics_tier: _,
-        signal_installations: _,
     } = build_primary_query_world_with_profile(host, domain::ConsumerProfile::SharedValuePatch);
     let candidate = settle_primary_projection(&mut workspace).into_lifecycle();
     let shared = match live.share_with(candidate, &mut workspace) {

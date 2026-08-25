@@ -1,9 +1,10 @@
 use worth_foundational::facade::AspectValue;
 use worth_relational::facade::history::{BranchId, CommitId};
 use worth_relational::facade::identity::VersionId;
+use worth_relational::facade::mvcc::BranchBoundRelationalTransaction;
 use worth_relational::facade::transactions::{
     AspectFieldPatch, DeleteEntityIntent, EntityMutationIntent, MutationIntent,
-    RelationalTransaction, TransactionOptions, UpdateEntityFieldsIntent, WorkerIntentBatch,
+    UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 
 use super::owner_test_support::{commit_record, record_for, string};
@@ -52,7 +53,7 @@ fn owner_read_denies_missing_foreign_and_every_commit_affinity_substitution() {
 fn assert_commit_affinity_substitutions(
     provider: &WorthQueryPrimaryGraphProvider,
     binding: &WorthQueryCommittedDispatchOutboxBinding,
-    commit: worth_relational::facade::history::CommitReference,
+    commit: worth_relational::facade::history::RelationalCommitReceipt,
     runtime_id: u64,
 ) {
     let mut wrong_commit_id = commit.clone();
@@ -69,15 +70,20 @@ fn assert_commit_affinity_substitutions(
     );
     let feature = BranchId("committed-outbox-feature".to_owned());
     provider.graph.with_runtime_mut(|runtime| {
-        runtime
-            .history_authority()
-            .create_branch(feature.clone(), &commit.branch_id)
-            .unwrap();
+        let (_, basis) = runtime.observe_fork_source(&commit.branch_id).unwrap();
+        runtime.fork_branch(feature.clone(), basis).unwrap();
         let feature_record = record_for(99);
-        let mut transaction = runtime.begin_transaction(TransactionOptions {
-            target_branch: Some(feature.clone()),
-            ..TransactionOptions::default()
-        });
+        let mut transaction = {
+            let transaction_validation_input = runtime
+                .admit_named_branch_basis(&feature)
+                .expect("feature branch binding");
+            runtime
+                .begin_branch_transaction(
+                    &transaction_validation_input,
+                    worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                )
+                .expect("owner-admitted transaction context")
+        };
         transaction.push_batch(
             WorkerIntentBatch::new("feature-outbox-head").push(
                 dispatch_outbox_create_intent(
@@ -87,7 +93,7 @@ fn assert_commit_affinity_substitutions(
                 .unwrap(),
             ),
         );
-        transaction.commit().unwrap();
+        transaction.commit(runtime).unwrap();
     });
     let mut wrong_branch = commit;
     wrong_branch.branch_id = feature;
@@ -137,7 +143,17 @@ fn every_later_valid_field_substitution_leaves_exact_commit_truth_unchanged() {
         provider.graph.with_runtime_mut(|runtime| {
             let locator =
                 outbox_field_locator(provider.graph.layout.provider_dispatch_outbox(), field);
-            let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+            let mut transaction = {
+                let transaction_validation_input = runtime
+                    .admit_main_branch_basis()
+                    .expect("main branch binding");
+                runtime
+                    .begin_branch_transaction(
+                        &transaction_validation_input,
+                        worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                    )
+                    .expect("owner-admitted transaction context")
+            };
             transaction.push_batch(
                 WorkerIntentBatch::new("later-valid-outbox-substitution").push(
                     MutationIntent::Entity(EntityMutationIntent::UpdateFields(
@@ -148,7 +164,7 @@ fn every_later_valid_field_substitution_leaves_exact_commit_truth_unchanged() {
                     )),
                 ),
             );
-            transaction.commit().unwrap();
+            transaction.commit(runtime).unwrap();
         });
 
         let exact = provider
@@ -172,13 +188,23 @@ fn later_deletion_cannot_erase_exact_commit_truth() {
         panic!("dispatch outbox is an entity record");
     };
     provider.graph.with_runtime_mut(|runtime| {
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction = {
+            let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
+            runtime
+                .begin_branch_transaction(
+                    &transaction_validation_input,
+                    worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                )
+                .expect("owner-admitted transaction context")
+        };
         transaction.push_batch(WorkerIntentBatch::new("later-outbox-deletion").push(
             MutationIntent::Entity(EntityMutationIntent::Delete(DeleteEntityIntent {
                 entity_id: *entity_id,
             })),
         ));
-        transaction.commit().unwrap();
+        transaction.commit(runtime).unwrap();
     });
 
     let exact = provider
@@ -243,8 +269,17 @@ fn unrelated_identical_row_cannot_make_owner_mapping_ambiguous() {
             kind_id: unrelated.kind_id,
             client_key: unrelated.client_key.clone(),
         };
-        let mut transaction: RelationalTransaction<'_> =
-            runtime.begin_transaction(Default::default());
+        let mut transaction: BranchBoundRelationalTransaction = {
+            let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
+            runtime
+                .begin_branch_transaction(
+                    &transaction_validation_input,
+                    worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                )
+                .expect("owner-admitted transaction context")
+        };
         transaction.push_batch(
             WorkerIntentBatch::new("owner-mapped-committed-outbox-test")
                 .push(intent)
@@ -252,7 +287,7 @@ fn unrelated_identical_row_cannot_make_owner_mapping_ambiguous() {
                     worth_relational::facade::transactions::CreateIntent::Entity(unrelated),
                 )),
         );
-        let committed = transaction.commit().unwrap();
+        let committed = transaction.commit(runtime).unwrap();
         assert_ne!(
             committed.created_entity(pending.created_entity()),
             committed.created_entity(&unrelated_created),
@@ -296,13 +331,23 @@ fn another_committed_record_ref_cannot_substitute_for_the_bound_outbox() {
                 )
                 .unwrap()
             };
-            let mut transaction = runtime.begin_transaction(Default::default());
+            let mut transaction ={
+    let transaction_validation_input = runtime
+                    .admit_main_branch_basis()
+                    .expect("main branch binding");
+    runtime
+        .begin_branch_transaction(
+            &transaction_validation_input,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context")
+};
             transaction.push_batch(
                 WorkerIntentBatch::new("record-ref-substitution-owner-test")
                     .push(intent(&first))
                     .push(intent(&second)),
             );
-            let committed = transaction.commit().unwrap();
+            let committed = transaction.commit(runtime).unwrap();
             let bind = |record| {
                 WorthQueryCommittedDispatchOutboxBinding::fixture_from_commit(
                     provider.graph.layout.provider_dispatch_outbox(),
@@ -312,11 +357,9 @@ fn another_committed_record_ref_cannot_substitute_for_the_bound_outbox() {
                 .unwrap()
                 .unwrap()
             };
-            let snapshot = runtime
-                .snapshots()
-                .snapshot_for_branch(&primary_relational_branch_id())
+            let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(runtime, &primary_relational_branch_id())
                 .unwrap();
-            let runtime_id = snapshot.runtime_instance_id;
+            let runtime_id = snapshot.runtime_instance_id();
             runtime.snapshots().release_snapshot(&snapshot);
             (
                 bind(&first),

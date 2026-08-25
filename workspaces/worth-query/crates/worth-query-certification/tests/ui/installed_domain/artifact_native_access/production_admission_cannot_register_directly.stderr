@@ -1,5 +1,0 @@
-error[E0599]: no method named `register` found for struct `WorthQueryArtifactProductionAdmission` in the current scope
- --> tests/ui/installed_domain/artifact_native_access/production_admission_cannot_register_directly.rs:9:23
-  |
-9 |     let _ = admission.register(resource);
-  |                       ^^^^^^^^ method not found in `WorthQueryArtifactProductionAdmission`

@@ -3,19 +3,19 @@ use crate::authority::commit::phases::history::{
     resolve_commit_history, resolve_commit_history_for_merge, ResolvedCommitHistory,
 };
 use crate::identity::data::VersionId;
+use crate::mvcc::RelationalTransactionValidationInput;
 use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{
     CommitLog, CommitPhase, CommitPhaseTiming, MergeCommitMutationPlan, TransactionCommitError,
-    TransactionId, TransactionOptions,
+    TransactionId,
 };
-use crate::transactions::RelationalTransaction;
 
 pub(super) fn resolve_authoritative_history_phase(
     runtime: &mut RelationalRuntime,
     commit_log: &mut CommitLog,
     phase_timing: &mut CommitPhaseTiming,
     transaction_id: TransactionId,
-    options: &TransactionOptions,
+    validation_input: &RelationalTransactionValidationInput,
     version_id: VersionId,
     merge_history_plan: Option<&MergeCommitMutationPlan>,
 ) -> Result<ResolvedCommitHistory, TransactionCommitError> {
@@ -23,17 +23,10 @@ pub(super) fn resolve_authoritative_history_phase(
     let phase_started = std::time::Instant::now();
     let history = match merge_history_plan {
         None => {
-            let mut transaction = RelationalTransaction {
-                runtime,
-                transaction_id,
-                options: options.clone(),
-                batches: Vec::new(),
-                savepoints: Vec::new(),
-                last_merged_plan: None,
-            };
-            resolve_commit_history(&mut transaction, version_id)
+            let _ = transaction_id;
+            resolve_commit_history(runtime, validation_input, version_id)
         }
-        Some(plan) => resolve_commit_history_for_merge(runtime, options, plan, version_id),
+        Some(plan) => resolve_commit_history_for_merge(runtime, validation_input, plan, version_id),
     }
     .map_err(|error| attach_rejection(commit_log, CommitPhase::HistoryResolution, error))?;
     let history_summary = history.summary();

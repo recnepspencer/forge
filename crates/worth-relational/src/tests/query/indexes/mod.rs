@@ -2,10 +2,12 @@ mod bounded_entity_field_lookup;
 mod bounded_relation_join_lookup;
 mod branch_scope;
 mod entity_field_lookup;
+mod exact_observation;
 mod historical_relation_field_lookup;
 mod parity_observability;
 mod recovery_and_execution_models;
 mod related_entity_ordered_lookup;
+mod related_entity_schema_recovery;
 mod relation_field_lookup;
 
 use crate::facade::history::BranchId;

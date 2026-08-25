@@ -83,9 +83,15 @@ artifact, orchestration, grouping, continuation, and typed-stop model.
 - if you need installed product authorization, emergency elevation, or the
   command-versus-governed-bound distinction:
   [capabilities/application-authorization-and-emergency-elevation.md](./capabilities/application-authorization-and-emergency-elevation.md)
-- if a mutation declares aftermath, an external effect, idempotent dispatch,
-  or receipt-bound recovery:
+- if a mutation performed but publication settlement failed, or it declares
+  aftermath, an external effect, idempotent dispatch, or receipt-bound recovery:
   [execution/application-aftermath-and-recovery.md](./execution/application-aftermath-and-recovery.md)
+- if you need exact branch observations, repeatable bases, branch-local
+  publication, or typed merge settlement repair:
+  [foundations/branches-and-previews.md](./foundations/branches-and-previews.md)
+- if you are executing a generic effect or batch and must distinguish denial
+  from performed-but-unsettled work:
+  [execution/authority-scoped-effect-execution.md](./execution/authority-scoped-effect-execution.md)
 - if you need basis capability lifecycle rather than raw identifiers:
   [capabilities/basis-capability-lifecycle.md](./capabilities/basis-capability-lifecycle.md)
 - if you need cross-runtime “why” (not `workspace.inspections()?.inspect` alone):

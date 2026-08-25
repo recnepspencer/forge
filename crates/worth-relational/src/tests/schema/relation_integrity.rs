@@ -174,3 +174,91 @@ fn duplicate_relation_contract_ids_are_rejected() {
         }
     ));
 }
+
+#[test]
+fn schema_authority_recomputes_mutated_integrity_and_binds_map_key() {
+    let registry =
+        relation_integrity_registry(crate::schema::data::RelationIntegrityDeclarations::new(
+            vec![],
+            vec![crate::schema::data::CardinalityContractDeclaration {
+                contract_id: "cardinality".into(),
+                source_max: Some(1),
+                source_min: None,
+                target_max: None,
+                target_min: None,
+                pair_max: None,
+                pair_min: None,
+                pair_min_semantics:
+                    crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+                minimum_enforcement:
+                    crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
+            }],
+            vec![],
+            vec![],
+            vec![],
+        ));
+    let baseline_digest = registry.authority_digest_bytes();
+    let mut mutated = registry.clone();
+    let registration = mutated
+        .relation_kinds
+        .get_mut(&KindId(2))
+        .expect("relation kind is installed under its map key");
+    registration.kind_id = KindId(999);
+    registration.relation_integrity.cardinality_contracts[0].source_max = Some(2);
+
+    assert_ne!(baseline_digest, mutated.authority_digest_bytes());
+    assert_eq!(
+        mutated.authority_snapshot().relation_kinds[0].kind_id,
+        KindId(2),
+        "the effective map key, not a mutable embedded label, is schema authority"
+    );
+    assert_ne!(
+        registry.authority_snapshot().relation_kinds[0].relation_integrity_plan_revision,
+        mutated.authority_snapshot().relation_kinds[0].relation_integrity_plan_revision,
+        "mutated relation semantics cannot retain the stale plan revision"
+    );
+    let runtime = RelationalRuntimeApi::builder()
+        .schema_registry(mutated.clone())
+        .build();
+    assert_eq!(
+        runtime
+            .relation_integrity_plan(KindId(2))
+            .expect("relation plan is lowered")
+            .plan_revision,
+        mutated.authority_snapshot().relation_kinds[0].relation_integrity_plan_revision,
+        "lowered relation plans and schema roots share the effective revision"
+    );
+}
+
+#[test]
+fn relation_integrity_plan_revision_distinguishes_absent_and_max_u64_bounds() {
+    let contract = |source_max| crate::schema::data::CardinalityContractDeclaration {
+        contract_id: "cardinality".into(),
+        source_max,
+        source_min: None,
+        target_max: None,
+        target_min: None,
+        pair_max: None,
+        pair_min: None,
+        pair_min_semantics: crate::schema::data::PairMinimumSemantics::ObservedDirectedPairs,
+        minimum_enforcement:
+            crate::schema::data::MinimumCardinalityEnforcement::CertificationBoundary,
+    };
+
+    let absent = crate::schema::data::RelationIntegrityDeclarations::new(
+        vec![],
+        vec![contract(None)],
+        vec![],
+        vec![],
+        vec![],
+    );
+    let explicit_max = crate::schema::data::RelationIntegrityDeclarations::new(
+        vec![],
+        vec![contract(Some(u64::MAX))],
+        vec![],
+        vec![],
+        vec![],
+    );
+
+    assert_ne!(absent.plan_revision, explicit_max.plan_revision);
+}

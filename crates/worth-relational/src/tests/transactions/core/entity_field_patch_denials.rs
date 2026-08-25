@@ -9,7 +9,7 @@ fn update_entity_fields_rejects_undeclared_aspect_targets() {
         runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     let entity = create_entity(&mut runtime, "field-guard");
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(WorkerIntentBatch::new("update-fields-undeclared").push(
         MutationIntent::Entity(EntityMutationIntent::UpdateFields(
             UpdateEntityFieldsIntent {
@@ -27,7 +27,7 @@ fn update_entity_fields_rejects_undeclared_aspect_targets() {
         )),
     ));
 
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             match error.class {
@@ -101,7 +101,7 @@ fn update_entity_fields_rejects_explicit_aspect_field_path_mismatch() {
         true,
     );
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("mismatched-aspect-field").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -117,7 +117,7 @@ fn update_entity_fields_rejects_explicit_aspect_field_path_mismatch() {
         )),
     );
 
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => match error.class {
             crate::transactions::data::ConflictClass::RecordAspectPatchDenied {
@@ -140,7 +140,7 @@ fn update_entity_fields_validation_denial_carries_aspect_field_path() {
         runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     let entity = create_entity(&mut runtime, "type-denial");
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("field-patch-type-denial").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -156,7 +156,7 @@ fn update_entity_fields_validation_denial_carries_aspect_field_path() {
         )),
     );
 
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => match error.class {
             crate::transactions::data::ConflictClass::RecordAspectPatchDenied {

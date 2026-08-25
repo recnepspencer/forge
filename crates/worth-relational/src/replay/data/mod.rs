@@ -9,11 +9,11 @@ pub use crate::history::data::{
     CanonicalCommitEnvelope, RelationalReplayRecord, ReplaySchemaVersion,
 };
 pub(crate) use digest::{
-    digest_branch_head_summary, digest_branch_head_surface, digest_derived_index_summary,
-    digest_derived_index_surface, digest_diagnostics_summary, digest_diagnostics_surface,
-    digest_history_summary, digest_history_surface, digest_lineage_decision_log_surface,
-    digest_lineage_decision_summary, digest_lineage_event_batch_surface,
-    digest_lineage_event_summary, digest_patch_summary, digest_patch_surface,
+    digest_branch_head_summary, digest_branch_head_surface, digest_canonical_patch_summary,
+    digest_canonical_patch_surface, digest_derived_index_summary, digest_derived_index_surface,
+    digest_diagnostics_summary, digest_diagnostics_surface, digest_history_summary,
+    digest_history_surface, digest_lineage_decision_log_surface, digest_lineage_decision_summary,
+    digest_lineage_event_batch_surface, digest_lineage_event_summary,
     digest_schema_continuation_descriptor, digest_schema_continuation_summary,
     digest_schema_lineage_summary, digest_schema_reconciliation_descriptor,
     digest_schema_reconciliation_summary, digest_schema_transition_descriptor,

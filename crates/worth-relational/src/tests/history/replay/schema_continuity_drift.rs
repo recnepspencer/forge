@@ -38,12 +38,22 @@ fn replay_contract_reports_schema_continuation_descriptor_drift_when_envelope_is
             },
         )],
     };
-    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
-        proposed_transition,
-        Some(SchemaReconciliationPolicy::PreserveInformation),
-    ));
+    let mut txn = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+                .with_schema_transition(
+                    proposed_transition,
+                    Some(SchemaReconciliationPolicy::PreserveInformation),
+                );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(batch_create("b"));
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
 
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(
         outcome.commit.commit_id,
@@ -114,12 +124,22 @@ fn replay_contract_audit_mode_confirms_schema_continuation_descriptor_drift_at_d
             },
         )],
     };
-    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
-        proposed_transition,
-        Some(SchemaReconciliationPolicy::PreserveInformation),
-    ));
+    let mut txn = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+                .with_schema_transition(
+                    proposed_transition,
+                    Some(SchemaReconciliationPolicy::PreserveInformation),
+                );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(batch_create("b"));
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
 
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(
         outcome.commit.commit_id,
@@ -190,12 +210,22 @@ fn replay_certification_audit_drift_is_explained_and_counted() {
             },
         )],
     };
-    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
-        proposed_transition,
-        Some(SchemaReconciliationPolicy::PreserveInformation),
-    ));
+    let mut txn = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+                .with_schema_transition(
+                    proposed_transition,
+                    Some(SchemaReconciliationPolicy::PreserveInformation),
+                );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(batch_create("b"));
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
 
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(
         outcome.commit.commit_id,
@@ -291,12 +321,22 @@ fn replay_contract_reports_schema_lineage_drift_at_summary_layer_when_digest_is_
             },
         )],
     };
-    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
-        proposed_transition,
-        Some(SchemaReconciliationPolicy::PreserveInformation),
-    ));
+    let mut txn = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+                .with_schema_transition(
+                    proposed_transition,
+                    Some(SchemaReconciliationPolicy::PreserveInformation),
+                );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(batch_create("b"));
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
 
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(
         outcome.commit.commit_id,

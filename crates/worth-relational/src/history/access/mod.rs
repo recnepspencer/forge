@@ -2,9 +2,13 @@ mod ancestry;
 mod aspect_history_queries;
 mod commit_surfaces;
 mod merge_branch_basis;
+#[cfg(test)]
 mod merge_branch_basis_foundational;
+mod patch_stream_commit;
 
 use crate::runtime::RelationalRuntime;
+
+pub(crate) use ancestry::{CommitAncestryInspection, CommitAncestryPosture};
 
 pub struct HistoryAccess<'runtime> {
     runtime: &'runtime RelationalRuntime,

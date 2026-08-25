@@ -8,8 +8,8 @@ use worth_query_admission::facade::authenticated_principal::{
 use worth_query_declaration::facade::application_query::ApplicationQueryParameterSet;
 use worth_query_installation::facade::TypedApplicationValue;
 use worth_relational::facade::transactions::{
-    AspectFieldPatch, EntityMutationIntent, MutationIntent, TransactionOptions,
-    UpdateEntityFieldsIntent, WorkerIntentBatch,
+    AspectFieldPatch, EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent,
+    WorkerIntentBatch,
 };
 
 use super::{current_controls, installed_query};
@@ -95,10 +95,17 @@ fn pinned_basis_reads_old_truth_through_its_exact_index_generation() {
         current_result.receipt().basis_posture(),
         WorthQueryApplicationQueryBasisPosture::Current
     );
-    assert_ne!(
-        pinned_result.receipt().predicate_index_generation(),
-        current_result.receipt().predicate_index_generation()
-    );
+    let pinned_generation = pinned_result
+        .receipt()
+        .predicate_index_generation()
+        .expect("pinned query uses its exact retained index generation");
+    let current_generation = current_result
+        .receipt()
+        .predicate_index_generation()
+        .expect("current query uses its exact current index generation");
+    assert_ne!(pinned_generation, current_generation);
+    assert_eq!(pinned_result.receipt().fallback_count(), 0);
+    assert_eq!(current_result.receipt().fallback_count(), 0);
     assert!(pinned_result.receipt().basis_released());
     assert!(current_result.receipt().basis_released());
 }
@@ -343,7 +350,17 @@ fn change_account_label(
             locator,
             new_label.to_string().into_foundational_value(),
         )]));
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction = {
+            let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
+            runtime
+                .begin_branch_transaction(
+                    &transaction_validation_input,
+                    worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                )
+                .expect("owner-admitted transaction context")
+        };
         transaction.push_batch(WorkerIntentBatch::new("change-label-after-basis-pin").push(
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {
@@ -352,7 +369,7 @@ fn change_account_label(
                 },
             )),
         ));
-        transaction.commit().unwrap();
+        transaction.commit(runtime).unwrap();
         handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }

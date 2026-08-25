@@ -16,8 +16,13 @@ pub enum HistoricalResolutionDigestMode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct HistoricalLineageResolutionMetrics {
     pub traversed_event_count: usize,
-    pub branch_event_scan_count: usize,
+    pub event_visit_count: usize,
     pub resolved_lineage_count: usize,
+    pub lineage_seed_index_probe_count: usize,
+    pub reachable_event_index_probe_count: usize,
+    pub reachable_commit_node_visits: usize,
+    pub reachable_commit_parent_edge_visits: usize,
+    pub reachable_commit_catalog_probes: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -11,7 +11,6 @@ impl<K: RecordKind> RecordArena<K> {
         &mut self,
         overlay: &mut Self,
         touched_slots: &BTreeSet<usize>,
-        sync_free_list: bool,
     ) where
         K::Extra: Clone,
         K::Meta: Clone,
@@ -23,10 +22,6 @@ impl<K: RecordKind> RecordArena<K> {
         for &slot in touched_slots {
             self.move_slot_from_overlay(overlay, slot);
         }
-
-        if sync_free_list {
-            self.free_list = std::mem::take(&mut overlay.free_list);
-        }
     }
 
     pub(crate) fn merge_slot_chunks_from_owned(
@@ -34,7 +29,6 @@ impl<K: RecordKind> RecordArena<K> {
         overlay: &mut Self,
         touched_slots: &BTreeSet<usize>,
         chunk_width: usize,
-        sync_free_list: bool,
     ) -> usize
     where
         K::Extra: Clone,
@@ -55,11 +49,6 @@ impl<K: RecordKind> RecordArena<K> {
             }
             self.move_slot_from_overlay(overlay, slot);
         }
-
-        if sync_free_list {
-            self.free_list = std::mem::take(&mut overlay.free_list);
-        }
-
         chunk_count
     }
 
@@ -68,51 +57,81 @@ impl<K: RecordKind> RecordArena<K> {
         K::Extra: Clone,
         K::Meta: Clone,
     {
-        while self.generations.len() <= slot {
-            let next = self.generations.len();
-            self.partition_ids.push(overlay.partition_ids[next]);
-            self.generations.push(overlay.generations[next]);
-            self.lifecycle.push(overlay.lifecycle[next]);
-            self.kind_ids.push(overlay.kind_ids[next]);
-            self.metadata_history
-                .push(overlay.metadata_history[next].clone());
-            self.created_at.push(overlay.created_at[next]);
-            self.retired_at.push(overlay.retired_at[next]);
-            self.extra.push(overlay.extra[next].clone());
-            self.aspect_versions
-                .push(overlay.aspect_versions[next].clone());
-            self.diagnostics_enrichment
-                .push(overlay.diagnostics_enrichment[next].clone());
-            self.branch_pins.push(overlay.branch_pins[next]);
-            self.replay_pins.push(overlay.replay_pins[next]);
-            self.snapshot_pins.push(overlay.snapshot_pins[next]);
+        let overlay_physical = overlay
+            .physical_index(slot)
+            .expect("touched overlay slot must be materialized");
+        let Some(physical) = self.physical_index(slot) else {
+            self.slots
+                .insert(slot as u64)
+                .expect("new publication slot must be unique");
+            self.partition_ids
+                .push(overlay.partition_ids[overlay_physical]);
+            self.generations.push(overlay.generations[overlay_physical]);
+            self.lifecycle.push(overlay.lifecycle[overlay_physical]);
+            self.kind_ids.push(overlay.kind_ids[overlay_physical]);
+            self.metadata_history.push(std::mem::take(
+                &mut overlay.metadata_history[overlay_physical],
+            ));
+            self.created_at.push(overlay.created_at[overlay_physical]);
+            self.retired_at.push(overlay.retired_at[overlay_physical]);
+            self.extra.push(std::mem::replace(
+                &mut overlay.extra[overlay_physical],
+                K::empty_extra(),
+            ));
+            self.aspect_versions.push(std::mem::take(
+                &mut overlay.aspect_versions[overlay_physical],
+            ));
+            self.diagnostics_enrichment.push(std::mem::take(
+                &mut overlay.diagnostics_enrichment[overlay_physical],
+            ));
+            self.branch_pins.push(0);
+            self.replay_pins.push(0);
+            self.snapshot_pins.push(0);
             self.live_bitset.set(
-                next,
-                overlay.live_bitset.count_ones_in_range(next, next + 1) == 1,
+                slot,
+                overlay.live_bitset.count_ones_in_range(slot, slot + 1) == 1,
             );
             self.reclaimable_bitset.set(
-                next,
+                slot,
                 overlay
                     .reclaimable_bitset
-                    .count_ones_in_range(next, next + 1)
+                    .count_ones_in_range(slot, slot + 1)
                     == 1,
             );
-        }
+            return;
+        };
 
-        self.partition_ids[slot] = overlay.partition_ids[slot];
-        self.generations[slot] = overlay.generations[slot];
-        self.lifecycle[slot] = overlay.lifecycle[slot];
-        self.kind_ids[slot] = overlay.kind_ids[slot];
-        self.metadata_history[slot] = std::mem::take(&mut overlay.metadata_history[slot]);
-        self.created_at[slot] = overlay.created_at[slot];
-        self.retired_at[slot] = overlay.retired_at[slot];
-        self.extra[slot] = std::mem::replace(&mut overlay.extra[slot], K::empty_extra());
-        self.aspect_versions[slot] = std::mem::take(&mut overlay.aspect_versions[slot]);
-        self.diagnostics_enrichment[slot] =
-            std::mem::take(&mut overlay.diagnostics_enrichment[slot]);
-        self.branch_pins[slot] = overlay.branch_pins[slot];
-        self.replay_pins[slot] = overlay.replay_pins[slot];
-        self.snapshot_pins[slot] = overlay.snapshot_pins[slot];
+        let retains_runtime_pins =
+            self.generations[physical] == overlay.generations[overlay_physical];
+        if !retains_runtime_pins {
+            debug_assert_eq!(self.branch_pins[physical], 0);
+            debug_assert_eq!(self.replay_pins[physical], 0);
+            debug_assert_eq!(self.snapshot_pins[physical], 0);
+        }
+        self.partition_ids[physical] = overlay.partition_ids[overlay_physical];
+        self.generations[physical] = overlay.generations[overlay_physical];
+        self.lifecycle[physical] = overlay.lifecycle[overlay_physical];
+        self.kind_ids[physical] = overlay.kind_ids[overlay_physical];
+        self.metadata_history[physical] =
+            std::mem::take(&mut overlay.metadata_history[overlay_physical]);
+        self.created_at[physical] = overlay.created_at[overlay_physical];
+        self.retired_at[physical] = overlay.retired_at[overlay_physical];
+        self.extra[physical] =
+            std::mem::replace(&mut overlay.extra[overlay_physical], K::empty_extra());
+        self.aspect_versions[physical] =
+            std::mem::take(&mut overlay.aspect_versions[overlay_physical]);
+        self.diagnostics_enrichment[physical] =
+            std::mem::take(&mut overlay.diagnostics_enrichment[overlay_physical]);
+        // Pin counts belong to the live storage owner, not to a transaction's
+        // sparsely cloned publication overlay. Preserve counts which may have
+        // advanced after the overlay was opened. A new generation starts with
+        // no inherited obligations; allocator admission proves the displaced
+        // generation was reclaimable before reuse.
+        if !retains_runtime_pins {
+            self.branch_pins[physical] = 0;
+            self.replay_pins[physical] = 0;
+            self.snapshot_pins[physical] = 0;
+        }
         self.live_bitset.set(
             slot,
             overlay.live_bitset.count_ones_in_range(slot, slot + 1) == 1,

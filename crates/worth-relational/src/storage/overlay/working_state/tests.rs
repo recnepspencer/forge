@@ -27,8 +27,8 @@ fn touched_partition_working_state_only_clones_selected_partitions() {
             relation_overlay_is_sparse: false,
             entity_arena: EntityArena::with_capacity(1),
             relation_arena: RelationArena::with_capacity(0),
-            adjacency: Vec::new(),
-            reverse_adjacency: Vec::new(),
+            adjacency: Default::default(),
+            reverse_adjacency: Default::default(),
         },
     );
     base.insert(
@@ -39,8 +39,8 @@ fn touched_partition_working_state_only_clones_selected_partitions() {
             relation_overlay_is_sparse: false,
             entity_arena: EntityArena::with_capacity(1),
             relation_arena: RelationArena::with_capacity(0),
-            adjacency: Vec::new(),
-            reverse_adjacency: Vec::new(),
+            adjacency: Default::default(),
+            reverse_adjacency: Default::default(),
         },
     );
 
@@ -68,8 +68,8 @@ fn touched_partition_working_state_preserves_candidate_layout_metadata() {
             relation_overlay_is_sparse: false,
             entity_arena: EntityArena::with_capacity(8),
             relation_arena: RelationArena::with_capacity(0),
-            adjacency: Vec::new(),
-            reverse_adjacency: Vec::new(),
+            adjacency: Default::default(),
+            reverse_adjacency: Default::default(),
         },
     );
 
@@ -100,8 +100,8 @@ fn sparse_entity_overlay_only_materializes_touched_slot_authoritative_metadata()
         relation_overlay_is_sparse: false,
         entity_arena: EntityArena::with_capacity(2),
         relation_arena: RelationArena::with_capacity(0),
-        adjacency: Vec::new(),
-        reverse_adjacency: Vec::new(),
+        adjacency: Default::default(),
+        reverse_adjacency: Default::default(),
     };
     let _ = base_partition.entity_arena.push_slot(SlotInit {
         partition_id: partition,
@@ -159,8 +159,8 @@ fn sparse_relation_overlay_keeps_relation_shape_without_full_authoritative_state
         relation_overlay_is_sparse: false,
         entity_arena: EntityArena::with_capacity(0),
         relation_arena: RelationArena::with_capacity(2),
-        adjacency: Vec::new(),
-        reverse_adjacency: Vec::new(),
+        adjacency: Default::default(),
+        reverse_adjacency: Default::default(),
     };
     let _ = base_partition.relation_arena.push_slot(SlotInit {
         partition_id: partition,

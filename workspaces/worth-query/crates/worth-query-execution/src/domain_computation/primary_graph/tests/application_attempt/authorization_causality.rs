@@ -109,22 +109,33 @@ fn revoke_account_ownership(
         .expect("account ownership is installed")
         .kind;
     graph.with_runtime_mut(|runtime| {
-        let snapshot = runtime.snapshots().snapshot();
+        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_main_snapshot(runtime)
+            .expect("primary branch has a current snapshot");
         let relation = runtime
             .read_truth()
-            .visible_relations_of_kind(relation_kind, snapshot.version_id)
+            .visible_relations_of_kind(relation_kind, snapshot.version_id())
             .into_iter()
             .find(|record| record.target == account)
             .expect("the admitted account has one ownership edge")
             .relation_id;
         runtime.snapshots().release_snapshot(&snapshot);
-        let mut transaction = runtime.begin_transaction(Default::default());
+        let mut transaction ={
+    let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
+    runtime
+        .begin_branch_transaction(
+            &transaction_validation_input,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context")
+};
         transaction.push_batch(WorkerIntentBatch::new("revoke-account-owner").push(
             MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
                 relation_id: relation,
             })),
         ));
-        transaction.commit().unwrap();
+        transaction.commit(runtime).unwrap();
         graph.ensure_primary_indexes_current(runtime).unwrap();
     });
 }

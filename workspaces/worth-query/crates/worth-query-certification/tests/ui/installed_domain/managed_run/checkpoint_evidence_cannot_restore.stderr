@@ -1,5 +1,0 @@
-error[E0599]: no method named `restore` found for struct `WorthQueryProviderCheckpointEvidence` in the current scope
- --> tests/ui/installed_domain/managed_run/checkpoint_evidence_cannot_restore.rs:4:14
-  |
-4 |     evidence.restore();
-  |              ^^^^^^^ method not found in `WorthQueryProviderCheckpointEvidence`

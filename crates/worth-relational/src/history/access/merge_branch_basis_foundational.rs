@@ -1,3 +1,4 @@
+#[cfg(test)]
 use worth_foundational::{
     admit_authoritative_current_boundary_surface, admit_current_basis_boundary_artifact,
     foundational_boundary_authority_admission, foundational_boundary_current_basis_authority,
@@ -5,8 +6,10 @@ use worth_foundational::{
     FoundationalBoundaryArtifactSurface, FoundationalBoundaryMaterializationSeam,
     FoundationalBoundaryMaterializationSource, MaterializedFoundationalProfileSet,
 };
+#[cfg(test)]
 use worth_proof::TransitionOutcome;
 
+#[cfg(test)]
 use crate::history::data::{
     RelationalFoundationalCurrentMergeBranchBasisArtifact, RelationalMergeBranchBasis,
     RelationalMergeBranchBasisFoundationalLoweringDenial,
@@ -15,7 +18,8 @@ use crate::history::data::{
 use super::HistoryAccess;
 
 impl<'runtime> HistoryAccess<'runtime> {
-    pub fn lower_merge_branch_basis_to_foundational_current_basis(
+    #[cfg(test)]
+    pub(crate) fn lower_merge_branch_basis_to_foundational_current_basis(
         &self,
         basis: &RelationalMergeBranchBasis,
         version: CanonicalizationRuleVersion,

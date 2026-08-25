@@ -4,15 +4,17 @@ use std::sync::{
 };
 
 use worth_relational::facade::{
-    runtime::{
-        RelationalExecutionBasisIdentity, RelationalExecutionBasisLease,
-        RelationalExecutionBasisReleaseReceipt,
+    branch::{
+        AdmittedRelationalBranchBasis, RelationalBranchBasisDescriptor,
+        RelationalComponentBasisRetentionLease,
     },
-    snapshots::SnapshotHandle,
+    history::BranchId,
+    snapshots::{SnapshotHandle, SnapshotId},
 };
 use worth_runtime_bridge::facade::BridgePreviewSessionLivenessObserver;
 
 use super::lifecycle_count::{acquire, record_one_saturating, release};
+use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphIntegrationHandle;
 
 #[derive(Default)]
 struct WorthQueryApplicationBasisRegistryState {
@@ -31,6 +33,48 @@ pub struct WorthQueryApplicationBasisObserver {
     state: Arc<WorthQueryApplicationBasisRegistryState>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryApplicationBasisIdentity {
+    runtime_instance_id: u64,
+    branch_id: BranchId,
+    snapshot_id: SnapshotId,
+    descriptor: RelationalBranchBasisDescriptor,
+}
+
+impl WorthQueryApplicationBasisIdentity {
+    pub const fn runtime_instance_id(&self) -> u64 {
+        self.runtime_instance_id
+    }
+
+    pub fn branch_id(&self) -> &BranchId {
+        &self.branch_id
+    }
+
+    pub const fn snapshot_id(&self) -> SnapshotId {
+        self.snapshot_id
+    }
+
+    pub fn descriptor(&self) -> &RelationalBranchBasisDescriptor {
+        &self.descriptor
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryApplicationBasisReleaseReceipt {
+    identity: WorthQueryApplicationBasisIdentity,
+    released: bool,
+}
+
+impl WorthQueryApplicationBasisReleaseReceipt {
+    pub fn identity(&self) -> &WorthQueryApplicationBasisIdentity {
+        &self.identity
+    }
+
+    pub const fn released(&self) -> bool {
+        self.released
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WorthQueryApplicationBasisObservation {
     active: usize,
@@ -40,7 +84,11 @@ pub struct WorthQueryApplicationBasisObservation {
 
 pub(in crate::domain_computation::primary_graph::application_query) struct WorthQueryApplicationBasisLease
 {
-    lease: Option<RelationalExecutionBasisLease>,
+    identity: WorthQueryApplicationBasisIdentity,
+    basis: Option<AdmittedRelationalBranchBasis>,
+    retention: Option<RelationalComponentBasisRetentionLease>,
+    snapshot: Option<SnapshotHandle>,
+    graph: WorthQueryPrimaryGraphIntegrationHandle,
     preview_session_liveness: Option<BridgePreviewSessionLivenessObserver>,
     state: Arc<WorthQueryApplicationBasisRegistryState>,
 }
@@ -56,17 +104,44 @@ impl WorthQueryApplicationBasisRegistry {
 
     pub(in crate::domain_computation::primary_graph::application_query) fn register(
         &self,
-        lease: RelationalExecutionBasisLease,
-    ) -> WorthQueryApplicationBasisLease {
+        basis: AdmittedRelationalBranchBasis,
+        graph: WorthQueryPrimaryGraphIntegrationHandle,
+    ) -> Result<
+        WorthQueryApplicationBasisLease,
+        worth_relational::facade::branch::RelationalBranchBasisDenial,
+    > {
+        let observation = basis.observation();
+        let snapshot = graph.with_runtime_mut(|runtime| {
+            runtime.snapshots().snapshot_for_observation(&observation)
+        })?;
+        let retention = graph.with_runtime(|runtime| runtime.retain_component_basis(&basis));
+        let retention = match retention {
+            Ok(retention) => retention,
+            Err(denial) => {
+                graph.with_runtime_mut(|runtime| {
+                    runtime.snapshots().release_snapshot(&snapshot);
+                });
+                return Err(denial);
+            }
+        };
         let active = acquire(&self.state.active, 1)
             .expect("live application-query basis count cannot overflow");
         record_one_saturating(&self.state.acquisitions);
         self.state.peak_active.fetch_max(active, Ordering::AcqRel);
-        WorthQueryApplicationBasisLease {
-            lease: Some(lease),
+        Ok(WorthQueryApplicationBasisLease {
+            identity: WorthQueryApplicationBasisIdentity {
+                runtime_instance_id: basis.identity().runtime_instance_id(),
+                branch_id: basis.identity().branch_id().clone(),
+                snapshot_id: snapshot.snapshot_id(),
+                descriptor: basis.descriptor().clone(),
+            },
+            basis: Some(basis),
+            retention: Some(retention),
+            snapshot: Some(snapshot),
+            graph,
             preview_session_liveness: None,
             state: Arc::clone(&self.state),
-        }
+        })
     }
 }
 
@@ -109,36 +184,64 @@ impl WorthQueryApplicationBasisLease {
         self.preview_session_liveness.as_ref()
     }
 
-    pub fn identity(&self) -> &RelationalExecutionBasisIdentity {
-        self.lease().identity()
+    pub fn identity(&self) -> &WorthQueryApplicationBasisIdentity {
+        &self.identity
     }
 
     pub fn version_id(&self) -> worth_relational::facade::identity::VersionId {
-        self.lease().version_id()
+        self.basis().observation().version_id()
     }
 
     pub fn snapshot_handle(&self) -> &SnapshotHandle {
-        self.lease().snapshot_handle()
+        self.snapshot
+            .as_ref()
+            .expect("an active application-query basis retains its snapshot")
     }
 
     pub fn is_live(&self) -> bool {
-        self.lease().is_live()
+        self.basis.is_some()
+            && self.snapshot.as_ref().is_some_and(|snapshot| {
+                self.graph.with_runtime(|runtime| {
+                    runtime.read_truth().project_snapshot(snapshot).is_some()
+                })
+            })
     }
 
-    pub fn release(mut self) -> RelationalExecutionBasisReleaseReceipt {
-        let receipt = self
-            .lease
+    pub(in crate::domain_computation::primary_graph::application_query) fn retain_for_continuation(
+        &self,
+    ) -> Result<
+        RelationalComponentBasisRetentionLease,
+        worth_relational::facade::branch::RelationalBranchBasisDenial,
+    > {
+        self.graph
+            .with_runtime(|runtime| runtime.retain_component_basis(self.basis()))
+    }
+
+    pub fn release(mut self) -> WorthQueryApplicationBasisReleaseReceipt {
+        let released = self.release_snapshot();
+        let retained_released = self
+            .retention
             .take()
-            .expect("an application-query basis releases once")
-            .release();
+            .is_some_and(|lease| lease.release().descriptor() == self.identity.descriptor());
+        self.basis.take();
         self.release_observation();
-        receipt
+        WorthQueryApplicationBasisReleaseReceipt {
+            identity: self.identity.clone(),
+            released: released && retained_released,
+        }
     }
 
-    fn lease(&self) -> &RelationalExecutionBasisLease {
-        self.lease
+    fn basis(&self) -> &AdmittedRelationalBranchBasis {
+        self.basis
             .as_ref()
-            .expect("an active application-query basis retains its Relational lease")
+            .expect("an active application-query basis retains its Relational observation")
+    }
+
+    fn release_snapshot(&mut self) -> bool {
+        self.snapshot.take().is_some_and(|snapshot| {
+            self.graph
+                .with_runtime_mut(|runtime| runtime.snapshots().release_snapshot(&snapshot))
+        })
     }
 
     fn release_observation(&self) {
@@ -149,7 +252,9 @@ impl WorthQueryApplicationBasisLease {
 
 impl Drop for WorthQueryApplicationBasisLease {
     fn drop(&mut self) {
-        if self.lease.take().is_some() {
+        if self.basis.take().is_some() {
+            let _ = self.release_snapshot();
+            self.retention.take();
             self.release_observation();
         }
     }

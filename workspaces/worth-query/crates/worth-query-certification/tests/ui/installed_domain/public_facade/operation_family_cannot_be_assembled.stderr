@@ -1,9 +1,0 @@
-error[E0451]: fields `world` and `_family` of struct `WorthQueryOperationFamilyView` are private
-  --> tests/ui/installed_domain/public_facade/operation_family_cannot_be_assembled.rs:11:9
-   |
-10 |     WorthQueryOperationFamilyView {
-   |     ----------------------------- in this type
-11 |         world,
-   |         ^^^^^ private field
-12 |         _family: PhantomData,
-   |         ^^^^^^^ private field

@@ -10,6 +10,7 @@ use crate::identity::hash_parts;
 use crate::workflow::{
     MutationLoweringInput, WorkflowAuthorityTargetFamily, WorkflowDeclarationFamily,
 };
+use worth_relational::facade::history::BranchId;
 
 use super::closeout_receipts::{
     batch_receipt_surface, mutation_receipt_surface, writeback_receipt_surface,
@@ -19,7 +20,8 @@ use super::scenarios::{
     runtime_workflow_binding_for_branch, workflow_request,
 };
 use super::support::{
-    branch_snapshot_identity, create_entity, relational_runtime_with_intent_strategy,
+    branch_snapshot_identity, create_entity, fork_seed_branch_from_main,
+    relational_runtime_with_intent_strategy,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -180,11 +182,8 @@ fn common_path_story(
 fn inspectable_lowered_story() -> DxStoryEvidence {
     let branch = "dx-lowered";
     let mut runtime = relational_runtime_with_intent_strategy();
-    let entity = create_entity(
-        &mut runtime,
-        "before",
-        worth_relational::facade::history::BranchId(branch.to_string()),
-    );
+    let entity = create_entity(&mut runtime, "before", BranchId("main".to_string()));
+    fork_seed_branch_from_main(&mut runtime, branch);
     let basis = EffectAuthoringBasis::from(branch_mutation_basis(branch));
     let binding =
         runtime_workflow_binding_for_branch(branch_snapshot_identity(&runtime, branch), branch);

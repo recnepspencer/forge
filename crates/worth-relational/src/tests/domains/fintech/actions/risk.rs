@@ -1,7 +1,6 @@
 use crate::facade::history::BranchId;
 use crate::facade::transactions::{
-    CommitResult, EntityMutationIntent, MutationIntent, TransactionOptions,
-    UpdateEntityFieldsIntent, WorkerIntentBatch,
+    CommitResult, EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 
 use super::super::fixture::FintechWorld;
@@ -10,10 +9,10 @@ pub(crate) fn shock_market_on_branch(
     world: &mut FintechWorld,
     branch_id: BranchId,
 ) -> CommitResult {
-    let mut txn = world.runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(branch_id),
-        ..TransactionOptions::default()
-    });
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
+        &mut world.runtime,
+        branch_id,
+    );
     for (idx, market_point) in world.market.market_points.iter().enumerate() {
         txn.push_batch(WorkerIntentBatch::new(format!("shock-market-{idx}")).push(
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(
@@ -34,7 +33,7 @@ pub(crate) fn shock_market_on_branch(
                             crate::tests::support::aspect_key("mid"),
                             crate::tests::support::field_key("mid"),
                             crate::tests::support::fixture_i64_number_aspect_value(
-                                102_00 + (idx as i64 * 40),
+                                10_200 + (idx as i64 * 40),
                             ),
                         ),
                         (
@@ -47,14 +46,14 @@ pub(crate) fn shock_market_on_branch(
             )),
         ));
     }
-    txn.commit().unwrap()
+    txn.commit(&mut world.runtime).unwrap()
 }
 
 pub(crate) fn refresh_risk_views(world: &mut FintechWorld, branch_id: BranchId) -> CommitResult {
-    let mut txn = world.runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(branch_id),
-        ..TransactionOptions::default()
-    });
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
+        &mut world.runtime,
+        branch_id,
+    );
     for (idx, risk_view) in world.risk.risk_views.iter().enumerate() {
         txn.push_batch(
             WorkerIntentBatch::new(format!("refresh-risk-{idx}")).push(
@@ -89,7 +88,7 @@ pub(crate) fn refresh_risk_views(world: &mut FintechWorld, branch_id: BranchId) 
             ),
         );
     }
-    txn.commit().unwrap()
+    txn.commit(&mut world.runtime).unwrap()
 }
 
 pub(crate) fn stress_seeded_intraday_risk(
@@ -97,10 +96,10 @@ pub(crate) fn stress_seeded_intraday_risk(
     branch_id: BranchId,
 ) -> CommitResult {
     let case = world.intraday_risk_case();
-    let mut txn = world.runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(branch_id),
-        ..TransactionOptions::default()
-    });
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
+        &mut world.runtime,
+        branch_id,
+    );
     txn.push_batch(
         WorkerIntentBatch::new("stress-intraday-market")
             .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
@@ -125,7 +124,7 @@ pub(crate) fn stress_seeded_intraday_risk(
                         (
                             crate::tests::support::aspect_key("mid"),
                             crate::tests::support::field_key("mid"),
-                            crate::tests::support::u64_aspect_value(103_75),
+                            crate::tests::support::u64_aspect_value(10_375),
                         ),
                         (
                             crate::tests::support::aspect_key("stress_regime"),
@@ -235,5 +234,5 @@ pub(crate) fn stress_seeded_intraday_risk(
             )))
             .into(),
     );
-    txn.commit().unwrap()
+    txn.commit(&mut world.runtime).unwrap()
 }

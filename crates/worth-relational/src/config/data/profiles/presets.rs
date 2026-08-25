@@ -1,5 +1,4 @@
 use crate::commit_strategies::data::CommitStrategyRegistration;
-use crate::config::data::CommitAuthorityContract;
 use crate::config::data::*;
 use crate::config::data::{PlanningContract, RelationalExecutionModel};
 use crate::diagnostics::data::RelationalDiagnosticsProfile;
@@ -33,9 +32,8 @@ pub(super) fn default_profile_config(profile: RelationalRuntimeProfile) -> Relat
         profile,
         execution: ExecutionConfig {
             runtime_name: runtime_name.to_string(),
-            execution_model: RelationalExecutionModel::SerialAuthority,
+            execution_model: RelationalExecutionModel::SingleLaneExecution,
             planning: PlanningContract::default(),
-            commit_authority: CommitAuthorityContract::default(),
             compiled_lane_policy,
             relation_integrity_scope_budget,
         },

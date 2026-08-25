@@ -33,32 +33,27 @@ cargo test -p worth-query-publication
 cargo test -p worth-query-host
 ```
 
-Run the retained public compiler-boundary portfolio only when a type or facade
-boundary changes:
+Run the bounded cold portfolio at milestone closeout or when allocation,
+hostile-world, reconstruction, or replay behavior changes:
 
 ```text
-cargo test -p worth-query-certification --test compile_certification
-```
-
-Run the complete cold lane at milestone closeout:
-
-```text
+cargo test -p worth-query-execution --features allocation-probes --lib -- --test-threads=4
 cargo test -p worth-query-certification -p worth-query-replay
 ```
 
-The compiler target batches only selected compile-fail fixtures. Positive
-facade journeys belong in ordinary integration tests or doctests; do not add a
-compile-pass trybuild loop, a second trybuild target, or trybuild work to the
-library suite.
+Positive facade journeys belong in ordinary integration tests and doctests.
+Legacy compiler matrices and test-harness self-certification were deleted;
+do not recreate them. Scheduled CI gives each cold command a four-minute hard
+timeout. A lane approaching that timeout is an iteration defect to fix, not a
+budget to consume.
 
 ## Observed On 2026-07-18
 
 These elapsed times are development observations, not CI budgets or golden
 performance tests:
 
-- the former warm compiler-fixture portfolio took about `399.2 s`
-- the retained compiler-certification target takes `4.34 s` warm (`64.15 s`
-  after the final production cleanup rebuild)
+- the deleted compiler-fixture portfolio took about `399.2 s`, which exceeded
+  a sane development loop and motivated its removal
 - before the package extraction, the final ordinary library suite contained
   2,981 tests and took `118.14 s` of warm test time
 - the Worth UI-owned Query binding suite takes `47.35 s` after a rebuild, of
@@ -77,4 +72,4 @@ The Phase 8 same-machine observations were:
 - installation warm check/test: `0.36 s` / `0.22 s`
 - installation package-invalidated check: `0.35 s`
 - complete main runtime package after those invalidations: `43.55 s`
-- explicitly selected cold compiler/replay lane after invalidation: `62.98 s`
+- explicitly selected cold hostile/replay lane after invalidation: `62.98 s`

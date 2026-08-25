@@ -1,9 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use crate::facade::identity::PartitionId;
-use crate::facade::transactions::{
-    CreateIntent, EntitySpec, MutationIntent, TransactionOptions, WorkerIntentBatch,
-};
+use crate::facade::transactions::{CreateIntent, EntitySpec, MutationIntent, WorkerIntentBatch};
 use crate::tests::support::{aspect_key, field_key, single_string_aspect_field_patch};
 use worth_foundational::ScalarAspectType;
 use worth_runtime_bridge::facade::{
@@ -33,7 +31,8 @@ fn shared_source_retains_the_live_runtime_authority_and_observes_later_commits()
 
     let committed = {
         let mut runtime = runtime.lock().expect("test runtime lock");
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction =
+            crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
         transaction.push_batch(WorkerIntentBatch::new("shared-authority-create").push(
             MutationIntent::Create(CreateIntent::Entity(EntitySpec {
                 partition_id: PartitionId::main(),
@@ -46,16 +45,29 @@ fn shared_source_retains_the_live_runtime_authority_and_observes_later_commits()
                 ),
             })),
         ));
-        transaction.commit().expect("real shared-runtime commit")
+        transaction
+            .commit(&mut runtime)
+            .expect("real shared-runtime commit")
     };
     let entity = committed
         .changed_records
         .iter()
         .find_map(|record| match record {
-            crate::facade::transactions::RecordRef::Entity(entity) => Some(*entity),
+            crate::facade::transactions::RecordRef::Entity(entity) => Some(entity),
             crate::facade::transactions::RecordRef::Relation(_) => None,
         })
         .expect("created entity");
+    let branch_identity = runtime
+        .lock()
+        .expect("test runtime lock")
+        .branch_identity(&committed.commit.branch_id)
+        .expect("committed branch identity");
+    let (_, basis) = source
+        .observe_branch_basis(&branch_identity)
+        .expect("source must observe the live owner basis");
+    let _lease = source
+        .retain_branch_basis_for_bridge(&basis)
+        .expect("source must retain the live owner observation");
     let envelope = source
         .load_committed_patch(RelationalCommittedPatchRequest::new(
             TruthCommitIdentity::from_relational_commit_id(committed.commit.commit_id.0),

@@ -44,9 +44,8 @@ fn rebuild_admitted_recovery_or_emit(
     admitted: admission::AdmittedRecoveryPlan,
 ) -> Result<RecoveredRuntimeMaterial, DurabilityError> {
     let admission = admitted.admission().clone();
-    let plan = admitted.plan().clone();
     match rebuild_runtime_from_plan(admitted) {
-        Ok(restored) => Ok(RecoveredRuntimeMaterial {
+        Ok((restored, plan)) => Ok(RecoveredRuntimeMaterial {
             restored,
             plan,
             admission,
@@ -67,13 +66,12 @@ fn publish_recovered_runtime(
         plan,
         admission,
     } = material;
-    let tail_commits = plan.tail_log.len();
+    let tail_commits = plan.tail_commit_count();
     let checkpoint_commits = plan
         .checkpoint
         .as_ref()
         .map(|checkpoint| checkpoint.envelopes.len())
         .unwrap_or(0);
-    restored.durability.set_log(plan.tail_log);
     restored.durability.store = plan.store.clone();
     record_recovery_verification_counters(&restored, &plan.authority_continuity);
     restored.publication_authority().push_bounded_diagnostic(
@@ -94,13 +92,13 @@ fn publish_recovered_runtime(
     );
     let outcome = RuntimeRecoveryOutcome {
         recovered_commits: restored.history.commit_envelopes.len(),
-        latest_commit: restored.history().latest_commit().cloned(),
-        restored_branches: restored.history.branch_heads.len(),
+        latest_commit: restored.history().latest_commit(),
+        restored_branches: restored.history.branch_count(),
         cursor: plan.cursor,
         coverage: RecoveryCoverage {
             checkpoint_commits,
             replayed_tail_commits: tail_commits,
-            recovered_through_commit: restored.history().latest_commit().cloned(),
+            recovered_through_commit: restored.history().latest_commit(),
         },
         integrity_report: plan.integrity_report,
     };
@@ -115,6 +113,9 @@ impl RelationalRuntime {
     ) -> Result<RelationalRuntime, DurabilityError> {
         let admitted =
             admission::admit_recovery(self, plan).map_err(|rejection| rejection.into_error())?;
-        rebuild_runtime_from_plan(admitted)
+        rebuild_runtime_from_plan(admitted).map(|(mut restored, plan)| {
+            restored.durability.store = plan.store;
+            restored
+        })
     }
 }

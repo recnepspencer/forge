@@ -156,7 +156,8 @@ fn stale_native_contract_basis_denies_without_mutating_truth() {
         ),
         value: ContractValidationInput::Scalar(text("after")),
     }]);
-    let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+    let mut transaction =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     transaction.push_batch(WorkerIntentBatch::new("stale-native-basis").push(
         MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(
             ApplyEntityAspectPatchIntent {
@@ -165,7 +166,9 @@ fn stale_native_contract_basis_denies_without_mutating_truth() {
             },
         )),
     ));
-    let error = transaction.commit().expect_err("stale basis must deny");
+    let error = transaction
+        .commit(&mut runtime)
+        .expect_err("stale basis must deny");
     assert!(matches!(
         error,
         TransactionCommitError::Conflict {
@@ -228,10 +231,11 @@ fn native_patch_state_survives_checkpoint_readmission() {
 }
 
 fn commit_entity_create(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     aspect_patch: PortableRecordAspectPatch,
 ) -> CommitResult {
-    let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+    let mut transaction =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     transaction.push_batch(WorkerIntentBatch::new("native-entity-create").push(
         MutationIntent::Create(CreateIntent::EntityAspects(EntityAspectCreateIntent {
             partition_id: PartitionId::main(),
@@ -240,15 +244,16 @@ fn commit_entity_create(
             aspect_patch,
         })),
     ));
-    transaction.commit().unwrap()
+    transaction.commit(&mut runtime).unwrap()
 }
 
 fn commit_entity_patch(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     entity_id: EntityId,
     aspect_patch: PortableRecordAspectPatch,
 ) -> CommitResult {
-    let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+    let mut transaction =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     transaction.push_batch(WorkerIntentBatch::new("native-entity-patch").push(
         MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(
             ApplyEntityAspectPatchIntent {
@@ -257,16 +262,17 @@ fn commit_entity_patch(
             },
         )),
     ));
-    transaction.commit().unwrap()
+    transaction.commit(&mut runtime).unwrap()
 }
 
 fn commit_relation_create(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     source: EntityId,
     target: EntityId,
     aspect_patch: PortableRecordAspectPatch,
 ) -> CommitResult {
-    let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+    let mut transaction =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     transaction.push_batch(WorkerIntentBatch::new("native-relation-create").push(
         MutationIntent::Create(CreateIntent::RelationAspects(RelationAspectCreateIntent {
             partition_id: PartitionId::main(),
@@ -277,15 +283,16 @@ fn commit_relation_create(
             aspect_patch,
         })),
     ));
-    transaction.commit().unwrap()
+    transaction.commit(&mut runtime).unwrap()
 }
 
 fn commit_relation_patch(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     relation_id: RelationId,
     aspect_patch: PortableRecordAspectPatch,
 ) -> CommitResult {
-    let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+    let mut transaction =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     transaction.push_batch(WorkerIntentBatch::new("native-relation-patch").push(
         MutationIntent::Relation(RelationMutationIntent::ApplyAspectPatch(
             ApplyRelationAspectPatchIntent {
@@ -294,7 +301,7 @@ fn commit_relation_patch(
             },
         )),
     ));
-    transaction.commit().unwrap()
+    transaction.commit(&mut runtime).unwrap()
 }
 
 fn whole_set(

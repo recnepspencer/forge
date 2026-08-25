@@ -137,7 +137,7 @@ fn publication_handle_retention_is_bounded_by_policy() {
 }
 
 #[test]
-fn pruned_publication_version_cannot_mint_historical_execution_authority() {
+fn pruned_publication_handle_does_not_erase_an_admitted_observation() {
     let mut runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .publication(PublicationConfig {
@@ -147,7 +147,9 @@ fn pruned_publication_version_cannot_mint_historical_execution_authority() {
         })
         .build();
     let first = create_entity_outcome(&mut runtime, "first");
-    let first_branch = first.snapshot.branch_id.clone();
+    let identity = runtime.main_branch_identity();
+    let (_, first_basis) = runtime.observe_branch(&identity).unwrap();
+    let first_observation = first_basis.observation();
     let entity = changed_entities(&first)[0];
     update_entity(&mut runtime, entity, "second");
     update_entity(&mut runtime, entity, "third");
@@ -157,19 +159,12 @@ fn pruned_publication_version_cannot_mint_historical_execution_authority() {
         .read_truth()
         .read_snapshot(&first.snapshot)
         .is_none());
-    let denial = match runtime
+    let observed = runtime
         .snapshots()
-        .admit_execution_basis(&first_branch, first.version_id)
-    {
-        Ok(_) => panic!("pruned publication version admitted execution authority"),
-        Err(denial) => denial,
-    };
-    assert_eq!(
-        denial.kind(),
-        crate::facade::runtime::RelationalExecutionBasisDenialKind::VersionUnavailable
-    );
-    assert_eq!(denial.counters().snapshot_identity_allocation_count(), 0);
-    assert_eq!(denial.counters().lease_registry_insert_count(), 0);
+        .snapshot_for_observation(&first_observation)
+        .expect("admitted observation carries its selected root independently");
+    assert_eq!(observed.version_id, first.version_id);
+    assert!(runtime.read_truth().read_snapshot(&observed).is_some());
 }
 
 #[test]
@@ -181,7 +176,7 @@ fn parallel_post_commit_consumption_preserves_publication_surfaces() {
             max_patch_records_per_commit: 4096,
             max_published_snapshot_handles: 2,
         })
-        .execution_model(crate::facade::runtime::RelationalExecutionModel::SerialAuthority)
+        .execution_model(crate::facade::runtime::RelationalExecutionModel::SingleLaneExecution)
         .build();
     let mut parallel = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())

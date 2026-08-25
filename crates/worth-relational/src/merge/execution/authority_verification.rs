@@ -50,13 +50,38 @@ fn verify_branch_heads(
     runtime: &crate::runtime::RelationalRuntime,
     binding: &crate::merge::data::MergeExecutionAuthorityBinding,
 ) -> Result<(), MergeExecutionError> {
+    let target_state = runtime
+        .history()
+        .branch_reference_state(binding.request.target_branch());
     let target_head = runtime
         .history()
-        .branch_head(binding.request.target_branch())
-        .cloned();
+        .branch_head(binding.request.target_branch());
     runtime
         .performance_access()
         .count_merge_execution_branch_head_checks(1);
+    if let Some((current_reference, current_truth_version)) = &target_state {
+        if (current_reference != &binding.target_reference
+            || current_truth_version != &binding.target_truth_version)
+            && target_head.as_ref().map(|head| head.commit_id)
+                == Some(binding.target_head_commit_id)
+        {
+            return Err(MergeExecutionError::StaleBranchReference {
+                branch: binding.request.target_branch().clone(),
+                planned_generation: binding.target_reference.generation().get(),
+                current_generation: Some(current_reference.generation().get()),
+                planned_truth_version: binding.target_truth_version.as_u64(),
+                current_truth_version: Some(current_truth_version.as_u64()),
+            });
+        }
+    } else if target_head.is_none() {
+        return Err(MergeExecutionError::StaleBranchReference {
+            branch: binding.request.target_branch().clone(),
+            planned_generation: binding.target_reference.generation().get(),
+            current_generation: None,
+            planned_truth_version: binding.target_truth_version.as_u64(),
+            current_truth_version: None,
+        });
+    }
     if target_head.as_ref().map(|head| head.commit_id) != Some(binding.target_head_commit_id) {
         return Err(MergeExecutionError::StaleBranchHead {
             branch: binding.request.target_branch().clone(),
@@ -65,13 +90,38 @@ fn verify_branch_heads(
         });
     }
 
+    let source_state = runtime
+        .history()
+        .branch_reference_state(binding.request.source_branch());
     let source_head = runtime
         .history()
-        .branch_head(binding.request.source_branch())
-        .cloned();
+        .branch_head(binding.request.source_branch());
     runtime
         .performance_access()
         .count_merge_execution_branch_head_checks(1);
+    if let Some((current_reference, current_truth_version)) = &source_state {
+        if (current_reference != &binding.source_reference
+            || current_truth_version != &binding.source_truth_version)
+            && source_head.as_ref().map(|head| head.commit_id)
+                == Some(binding.source_head_commit_id)
+        {
+            return Err(MergeExecutionError::StaleBranchReference {
+                branch: binding.request.source_branch().clone(),
+                planned_generation: binding.source_reference.generation().get(),
+                current_generation: Some(current_reference.generation().get()),
+                planned_truth_version: binding.source_truth_version.as_u64(),
+                current_truth_version: Some(current_truth_version.as_u64()),
+            });
+        }
+    } else if source_head.is_none() {
+        return Err(MergeExecutionError::StaleBranchReference {
+            branch: binding.request.source_branch().clone(),
+            planned_generation: binding.source_reference.generation().get(),
+            current_generation: None,
+            planned_truth_version: binding.source_truth_version.as_u64(),
+            current_truth_version: None,
+        });
+    }
     if source_head.as_ref().map(|head| head.commit_id) != Some(binding.source_head_commit_id) {
         return Err(MergeExecutionError::StaleBranchHead {
             branch: binding.request.source_branch().clone(),
@@ -86,10 +136,30 @@ fn verify_merge_base(
     runtime: &crate::runtime::RelationalRuntime,
     binding: &crate::merge::data::MergeExecutionAuthorityBinding,
 ) -> Result<(), MergeExecutionError> {
-    let merge_base = runtime.history().latest_common_ancestor_between_branches(
-        binding.request.target_branch(),
-        binding.request.source_branch(),
-    );
+    let merge_base = runtime
+        .branch_identity(binding.request.target_branch())
+        .ok()
+        .and_then(|target_identity| {
+            runtime
+                .transaction_validation_input_for(&target_identity)
+                .ok()
+        })
+        .zip(
+            runtime
+                .branch_identity(binding.request.source_branch())
+                .ok()
+                .and_then(|source_identity| {
+                    runtime
+                        .transaction_validation_input_for(&source_identity)
+                        .ok()
+                }),
+        )
+        .and_then(|(target_options, source_options)| {
+            runtime.history().latest_common_ancestor_between_bindings(
+                target_options.basis(),
+                source_options.basis(),
+            )
+        });
     runtime
         .performance_access()
         .count_merge_execution_merge_base_checks(1);

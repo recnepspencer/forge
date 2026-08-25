@@ -2,7 +2,6 @@ use crate::capabilities::{DurabilityRead, RuntimeConfigSource};
 use crate::durability::access::in_memory_recovery_plan::in_memory_recovery_plan;
 use crate::durability::access::persisted_recovery_plan::persisted_recovery_plan;
 use crate::durability::data::{DurabilityMode, RecoveryPlan, RecoveryVerificationMode};
-use crate::history::data::BranchHead;
 use crate::runtime::RelationalRuntime;
 
 pub struct DurabilityAccess<'runtime> {
@@ -25,11 +24,12 @@ impl<'runtime> DurabilityAccess<'runtime> {
         }
     }
 
-    pub fn durable_log(&self) -> &[crate::history::data::CanonicalCommitEnvelope] {
-        DurabilityRead::durable_log(self.runtime)
+    pub fn durable_commit_count(&self) -> usize {
+        DurabilityRead::durable_log(self.runtime).len()
     }
 
-    pub fn durable_branch_heads(&self) -> Vec<BranchHead> {
-        self.runtime.history().branches()
+    #[cfg(test)]
+    pub(crate) fn durable_log(&self) -> &[crate::history::data::PositionedCanonicalCommit] {
+        DurabilityRead::durable_log(self.runtime)
     }
 }

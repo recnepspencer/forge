@@ -82,8 +82,9 @@ impl RuntimeBridge {
                 })?;
                 let envelope = self
                     .committed_patch_source
-                    .load_committed_patch(RelationalCommittedPatchRequest::new(
+                    .load_committed_patch(RelationalCommittedPatchRequest::on_branch(
                         commit_identity.clone(),
+                        selector.branch_identity().clone(),
                     ))
                     .map_err(|error| {
                         BridgeDeliveryError::new(

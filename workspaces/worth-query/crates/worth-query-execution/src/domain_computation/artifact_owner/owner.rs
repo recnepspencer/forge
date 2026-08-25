@@ -1,8 +1,5 @@
 use std::sync::{Arc, Mutex};
 
-#[cfg(test)]
-use std::sync::atomic::{AtomicUsize, Ordering};
-
 use super::registry_evidence::WorthQueryArtifactLifecycleSnapshotGate;
 use super::{
     WorthQueryArtifactDenial, WorthQueryArtifactDenialKind, WorthQueryArtifactLifecycleRecord,
@@ -20,8 +17,6 @@ pub(crate) struct WorthQueryRuntimeArtifactOwner {
     occurrence_scope: Option<WorthQueryArtifactOccurrenceScope>,
     pub(super) lifecycle: Arc<WorthQueryArtifactLifecycleRecord>,
     pub(super) snapshot_gate: Arc<WorthQueryArtifactLifecycleSnapshotGate>,
-    #[cfg(test)]
-    lifecycle_gate_attempt_count: AtomicUsize,
 }
 
 pub(crate) struct WorthQueryRuntimeArtifactBinding {
@@ -72,8 +67,6 @@ impl WorthQueryRuntimeArtifactOwner {
             occurrence_scope,
             lifecycle: Arc::new(WorthQueryArtifactLifecycleRecord::new(retained_bytes)),
             snapshot_gate,
-            #[cfg(test)]
-            lifecycle_gate_attempt_count: AtomicUsize::new(0),
         });
         if let Some(scope) = &owner.occurrence_scope {
             scope.record_produced(retained_bytes);
@@ -103,17 +96,6 @@ impl WorthQueryRuntimeArtifactOwner {
 
     pub(super) fn lifecycle_record(&self) -> Arc<WorthQueryArtifactLifecycleRecord> {
         Arc::clone(&self.lifecycle)
-    }
-
-    #[cfg(test)]
-    pub(super) fn record_lifecycle_gate_attempt(&self) {
-        self.lifecycle_gate_attempt_count
-            .fetch_add(1, Ordering::AcqRel);
-    }
-
-    #[cfg(test)]
-    pub(super) fn lifecycle_gate_attempt_count(&self) -> usize {
-        self.lifecycle_gate_attempt_count.load(Ordering::Acquire)
     }
 
     pub(super) fn with_native_access_provider<T>(

@@ -31,15 +31,6 @@ pub use crate::basis_lifecycle::{
     BasisLifecyclePublicBoundarySurface, BasisLifecycleReuseMatrix, BasisLifecycleReuseMatrixRow,
     BasisLifecycleReuseSurface, BasisLifecycleSlopeDigest, BasisLifecycleSlopeFamily,
 };
-pub use crate::consumer_kit::{
-    audit_domain_authority_sources, audit_workspace_domain_authority_inventory,
-    current_domain_authority_inventory_audit, worth_query_domain_authority_inventory_rows,
-    worth_query_domain_installation_grammar, WorthQueryDomainAuthorityClass,
-    WorthQueryDomainAuthorityFinding, WorthQueryDomainAuthorityFindingKind,
-    WorthQueryDomainAuthorityInventoryAudit, WorthQueryDomainAuthorityInventoryRow,
-    WorthQueryDomainAuthoritySource, WorthQueryDomainAuthoritySourceSite,
-    WorthQueryDomainInstallationGrammar, WorthQueryDomainInstallationGrammarStage,
-};
 pub use crate::domain_capabilities::{
     certify_domain_capabilities, worth_query_domain_capability_certification_output_manifest,
     worth_query_domain_capability_certification_surface,
@@ -74,12 +65,6 @@ pub use crate::identity_evolution::{
     IdentityEvolutionCertificationDenialEvidence, IdentityEvolutionCertificationEvidence,
     IdentityEvolutionCertificationResultEvidence,
 };
-pub use crate::installed_domain_certification::{
-    certify_milestone_nine_thirteen_installed_domain,
-    WorthQueryMilestoneNineThirteenInstalledDomainCertificationBundle,
-    WorthQueryMilestoneNineThirteenInstalledDomainCertificationError,
-    WorthQueryMilestoneNineThirteenInstalledDomainCertificationErrorKind,
-};
 pub use crate::integration_harness::public_bridge_hostile_certification::{
     compose_public_bridge_hostile_certification_digest,
     public_bridge_hostile_certification_evidence_label,
@@ -91,15 +76,6 @@ pub use crate::integration_harness::public_bridge_hostile_certification::{
     PublicBridgeHostileCertificationComposeInput,
 };
 pub use crate::live::{LiveCertificationLane, LiveCertificationRejectionLane};
-pub use crate::milestone_nine_twelve_certification::{
-    certify_milestone_nine_twelve, WorthQueryMilestoneNineTwelveCertificationBundle,
-};
-pub use crate::native_value_certification::{
-    certify_milestone_nine_thirteen_native_values,
-    WorthQueryMilestoneNineThirteenNativeValueCertificationBundle,
-    WorthQueryMilestoneNineThirteenNativeValueCertificationError,
-    WorthQueryMilestoneNineThirteenNativeValueCertificationErrorKind,
-};
 pub use crate::orchestration_inventory::{
     WorthQueryOrchestrationInventoryAudit, WorthQueryOrchestrationSurfaceCertificationReference,
 };

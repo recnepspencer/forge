@@ -41,7 +41,12 @@ pub(super) fn validate_schema_recovery_authority_continuity(
         .as_ref()
         .map(|checkpoint| checkpoint.envelopes.as_slice())
         .unwrap_or(&[]);
-    for envelope in checkpoint_envelopes.iter().chain(plan.tail_log.iter()) {
+    let tail_envelopes = plan.tail_envelopes_in_stream_order();
+    for envelope in checkpoint_envelopes
+        .iter()
+        .map(crate::history::data::PositionedCanonicalCommit::envelope)
+        .chain(tail_envelopes)
+    {
         if envelope.descriptor_semantics_version != plan.descriptor_semantics_version {
             return Err(DurabilityError::new(
                 RecoveryFailureClass::SchemaMismatch,

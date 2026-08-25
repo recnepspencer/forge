@@ -6,10 +6,10 @@ use crate::boundary_artifacts::{
 };
 use crate::identities::BoundaryHandle;
 use crate::transitions::{
-    FoundationalAuthorityTransitionClass, FoundationalBranchComparisonBasis,
-    FoundationalBranchForkBasis, FoundationalBranchId, FoundationalBranchObservationBasis,
-    FoundationalCommitDeltaSummary, FoundationalCommitParentBasis, FoundationalMergeBasis,
-    FoundationalNoOpCause, FoundationalTransitionCorrespondenceBasis,
+    FoundationalAuthorityTransitionClass, FoundationalBranchCandidateComparisonBasis,
+    FoundationalBranchCandidateForkBasis, FoundationalBranchCandidateObservationBasis,
+    FoundationalBranchId, FoundationalCommitDeltaSummary, FoundationalCommitParentBasis,
+    FoundationalMergeBasis, FoundationalNoOpCause, FoundationalTransitionCorrespondenceBasis,
     FoundationalTransitionRemapBasis, FoundationalTransitionStrategyDescriptorDigest,
     FoundationalTransitionStrategyIdentity, FoundationalTransitionStrategyOwnershipClass,
 };
@@ -75,8 +75,8 @@ pub struct FoundationalTransitionProvenanceRow {
     no_op_cause: Option<FoundationalNoOpCause>,
     strategy_identity: FoundationalTransitionStrategyIdentity,
     strategy_descriptor_digest: FoundationalTransitionStrategyDescriptorDigest,
-    observation_basis: FoundationalBranchObservationBasis,
-    comparison_basis: Option<FoundationalBranchComparisonBasis>,
+    observation_basis: FoundationalBranchCandidateObservationBasis,
+    comparison_basis: Option<FoundationalBranchCandidateComparisonBasis>,
     correspondence_basis: Option<FoundationalTransitionCorrespondenceBasis>,
     remap_basis: Option<FoundationalTransitionRemapBasis>,
     issuance_cause: Option<FoundationalTransitionIssuanceCause>,
@@ -95,8 +95,8 @@ impl FoundationalTransitionProvenanceRow {
         no_op_cause: Option<FoundationalNoOpCause>,
         strategy_identity: FoundationalTransitionStrategyIdentity,
         strategy_descriptor_digest: FoundationalTransitionStrategyDescriptorDigest,
-        observation_basis: FoundationalBranchObservationBasis,
-        comparison_basis: Option<FoundationalBranchComparisonBasis>,
+        observation_basis: FoundationalBranchCandidateObservationBasis,
+        comparison_basis: Option<FoundationalBranchCandidateComparisonBasis>,
         correspondence_basis: Option<FoundationalTransitionCorrespondenceBasis>,
         remap_basis: Option<FoundationalTransitionRemapBasis>,
         issuance_cause: Option<FoundationalTransitionIssuanceCause>,
@@ -160,11 +160,11 @@ impl FoundationalTransitionProvenanceRow {
         self.strategy_descriptor_digest
     }
 
-    pub const fn observation_basis(&self) -> FoundationalBranchObservationBasis {
+    pub const fn observation_basis(&self) -> FoundationalBranchCandidateObservationBasis {
         self.observation_basis
     }
 
-    pub fn comparison_basis(&self) -> Option<&FoundationalBranchComparisonBasis> {
+    pub fn comparison_basis(&self) -> Option<&FoundationalBranchCandidateComparisonBasis> {
         self.comparison_basis.as_ref()
     }
 
@@ -226,7 +226,7 @@ impl FoundationalNonAuthoritativeResidueReport {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FoundationalBranchDiscardReceipt {
     branch_id: FoundationalBranchId,
-    fork_basis: FoundationalBranchForkBasis,
+    fork_basis: FoundationalBranchCandidateForkBasis,
     closeout_cause: FoundationalBranchCloseoutCause,
     residue_report: FoundationalNonAuthoritativeResidueReport,
     summary: FoundationalSupportOnlyBoundaryClaim<FoundationalBoundarySummarySurface>,
@@ -235,7 +235,7 @@ pub struct FoundationalBranchDiscardReceipt {
 impl FoundationalBranchDiscardReceipt {
     pub(crate) fn new(
         branch_id: FoundationalBranchId,
-        fork_basis: FoundationalBranchForkBasis,
+        fork_basis: FoundationalBranchCandidateForkBasis,
         closeout_cause: FoundationalBranchCloseoutCause,
     ) -> Result<Self, FoundationalCommitReceiptIssuanceDenial> {
         let summary = FoundationalBoundarySummarySurface::new(
@@ -260,7 +260,7 @@ impl FoundationalBranchDiscardReceipt {
         &self.branch_id
     }
 
-    pub fn fork_basis(&self) -> &FoundationalBranchForkBasis {
+    pub fn fork_basis(&self) -> &FoundationalBranchCandidateForkBasis {
         &self.fork_basis
     }
 

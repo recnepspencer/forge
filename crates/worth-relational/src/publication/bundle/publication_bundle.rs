@@ -1,13 +1,12 @@
 use crate::diagnostics::data::RelationalDiagnosticArtifact;
-use crate::history::data::CommitReference;
+use crate::history::data::RelationalCommitReceipt;
 use crate::publication::bundle::publication_status::PublicationStatus;
 use crate::publication::patch::data::PublishedAuthoritativePatchEnvelope;
 use crate::snapshots::data::SnapshotHandle;
-use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PublicationBundle<ReplayRecord> {
-    pub commit: CommitReference,
+    pub commit: RelationalCommitReceipt,
     pub snapshot: SnapshotHandle,
     pub diagnostics_summary: RelationalDiagnosticArtifact,
     pub patch: PublishedAuthoritativePatchEnvelope,

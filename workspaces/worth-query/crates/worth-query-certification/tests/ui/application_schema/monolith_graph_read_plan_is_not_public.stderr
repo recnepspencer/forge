@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query::facade::WorthQueryAdmittedGraphReadAccessPlan`
- --> tests/ui/application_schema/monolith_graph_read_plan_is_not_public.rs:1:5
-  |
-1 | use worth_query::facade::WorthQueryAdmittedGraphReadAccessPlan;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthQueryAdmittedGraphReadAccessPlan` in `facade`

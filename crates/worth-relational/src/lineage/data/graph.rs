@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::history::data::BranchId;
 use crate::identity::data::{EntityId, LineageId};
-use crate::lineage::data::{CorrespondenceCandidate, LineageEventRecord};
+use crate::lineage::data::LineageEventRecord;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LineageGraphTraversalBasis {
@@ -35,7 +35,6 @@ pub struct LineageGraphSnapshot {
     pub(crate) branch_id: BranchId,
     pub(crate) nodes: Vec<LineageNode>,
     pub(crate) events: Vec<LineageEventRecord>,
-    pub(crate) correspondence_candidates: Vec<CorrespondenceCandidate>,
     pub(crate) traversal_basis: LineageGraphTraversalBasis,
     digest_basis: LineageGraphDigestBasis,
     pub(crate) metrics: LineageGraphMetrics,
@@ -51,7 +50,6 @@ pub struct LineageGraphRequest {
 pub struct LineageGraphMetrics {
     pub node_count: usize,
     pub event_count: usize,
-    pub candidate_count: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -60,7 +58,6 @@ pub struct LineageGraphDigestBasis {
     traversal_basis: LineageGraphTraversalBasis,
     canonical_lineage_ids: Vec<LineageId>,
     canonical_event_ids: Vec<u64>,
-    canonical_candidate_ids: Vec<crate::lineage::data::CorrespondenceCandidateId>,
     digest_mode: LineageGraphDigestMode,
 }
 
@@ -70,7 +67,6 @@ impl LineageGraphSnapshot {
         branch_id: BranchId,
         nodes: Vec<LineageNode>,
         events: Vec<LineageEventRecord>,
-        correspondence_candidates: Vec<CorrespondenceCandidate>,
         traversal_basis: LineageGraphTraversalBasis,
         digest_basis: LineageGraphDigestBasis,
         metrics: LineageGraphMetrics,
@@ -79,7 +75,6 @@ impl LineageGraphSnapshot {
             branch_id,
             nodes,
             events,
-            correspondence_candidates,
             traversal_basis,
             digest_basis,
             metrics,
@@ -102,10 +97,6 @@ impl LineageGraphSnapshot {
         &self.events
     }
 
-    pub fn correspondence_candidates(&self) -> &[CorrespondenceCandidate] {
-        &self.correspondence_candidates
-    }
-
     pub fn traversal_basis(&self) -> LineageGraphTraversalBasis {
         self.traversal_basis
     }
@@ -122,7 +113,6 @@ impl LineageGraphDigestBasis {
         traversal_basis: LineageGraphTraversalBasis,
         canonical_lineage_ids: Vec<LineageId>,
         canonical_event_ids: Vec<u64>,
-        canonical_candidate_ids: Vec<crate::lineage::data::CorrespondenceCandidateId>,
         digest_mode: LineageGraphDigestMode,
     ) -> Self {
         Self {
@@ -130,7 +120,6 @@ impl LineageGraphDigestBasis {
             traversal_basis,
             canonical_lineage_ids,
             canonical_event_ids,
-            canonical_candidate_ids,
             digest_mode,
         }
     }
@@ -149,10 +138,6 @@ impl LineageGraphDigestBasis {
 
     pub fn canonical_event_ids(&self) -> &[u64] {
         &self.canonical_event_ids
-    }
-
-    pub fn canonical_candidate_ids(&self) -> &[crate::lineage::data::CorrespondenceCandidateId] {
-        &self.canonical_candidate_ids
     }
 
     pub fn digest_mode(&self) -> LineageGraphDigestMode {

@@ -2,7 +2,6 @@ mod build_execution;
 mod diagnostics;
 mod packet_planning;
 
-use crate::capabilities::SchemaVersionSource;
 use crate::history::data::CommitId;
 use crate::indexes::data::{
     DerivedIndexApplicability, DerivedIndexBuildOutcome, DerivedIndexBuildRequest,
@@ -11,7 +10,9 @@ use crate::indexes::data::{
 };
 use crate::runtime::RelationalRuntime;
 
-use self::build_execution::{execute_index_packets, record_index_preparation_strategy_counters};
+use self::build_execution::{
+    execute_index_packets, record_index_preparation_strategy_counters, IndexPreparationResult,
+};
 use self::diagnostics::{
     derived_index_build_artifact_kind, derived_index_build_completed, derived_index_build_scope,
 };
@@ -26,6 +27,107 @@ use super::unique_entity_aspect_field_index::{
 
 pub struct IndexAuthority<'runtime> {
     runtime: &'runtime mut RelationalRuntime,
+}
+
+enum IndexBuildProjection<'runtime> {
+    Exact(crate::runtime::VisibilityProjectionView<'runtime>),
+    Historical(crate::runtime::VisibilityProjectionView<'runtime>),
+}
+
+impl<'runtime> IndexBuildProjection<'runtime> {
+    fn select(
+        runtime: &'runtime RelationalRuntime,
+        branch_id: &crate::history::data::BranchId,
+        version_id: crate::identity::data::VersionId,
+    ) -> Option<Self> {
+        if version_id == runtime.current_version_id() {
+            return runtime
+                .read_truth()
+                .project_branch_head(branch_id, version_id)
+                .map(Self::Exact);
+        }
+        Some(Self::Historical(
+            runtime.read_truth().project_historical_version(version_id),
+        ))
+    }
+
+    fn source(&self) -> Option<IndexProjectionSource<'_, 'runtime>> {
+        match self {
+            Self::Exact(projection) => IndexProjectionSource::exact(projection),
+            Self::Historical(projection) => IndexProjectionSource::historical(projection),
+        }
+    }
+}
+
+struct IndexGenerationPublicationBasis {
+    source_commit_id: CommitId,
+    branch_id: crate::history::data::BranchId,
+    version_id: crate::identity::data::VersionId,
+    schema_version: crate::schema::data::SchemaVersionId,
+}
+
+impl IndexGenerationPublicationBasis {
+    fn new(
+        request: &DerivedIndexBuildRequest,
+        version_id: crate::identity::data::VersionId,
+        schema_version: crate::schema::data::SchemaVersionId,
+    ) -> Self {
+        Self {
+            source_commit_id: request.source_commit_id,
+            branch_id: request.branch_id.clone(),
+            version_id,
+            schema_version,
+        }
+    }
+}
+
+fn publish_index_generations(
+    runtime: &mut RelationalRuntime,
+    basis: &IndexGenerationPublicationBasis,
+    results: Vec<IndexPreparationResult>,
+    failed_indexes: &mut Vec<DerivedIndexId>,
+) -> Vec<DerivedIndexGeneration> {
+    let mut generations = Vec::new();
+    for result in results {
+        let Some(entries) = result.entries else {
+            failed_indexes.push(result.index_id);
+            continue;
+        };
+        let generation = DerivedIndexGeneration {
+            generation_id: DerivedIndexGenerationId(runtime.indexes.next_generation_id),
+            index_id: result.index_id,
+            source_commit_id: basis.source_commit_id,
+            source_branch_id: basis.branch_id.clone(),
+            applicability: DerivedIndexApplicability {
+                branch_id: basis.branch_id.clone(),
+                version_id: basis.version_id,
+                schema_version: basis.schema_version,
+            },
+            status: DerivedIndexPublicationStatus::Published,
+            entries,
+        };
+        runtime.indexes.next_generation_id += 1;
+        runtime
+            .indexes
+            .generations
+            .entry(result.index_id)
+            .or_default()
+            .push(generation.clone());
+        generations.push(generation);
+    }
+    generations
+}
+
+fn failed_build_outcome(
+    source_commit_id: CommitId,
+    generations: Vec<DerivedIndexGeneration>,
+    failed_indexes: Vec<DerivedIndexId>,
+) -> DerivedIndexBuildOutcome {
+    DerivedIndexBuildOutcome {
+        source_commit_id,
+        generations,
+        failed_indexes,
+    }
 }
 
 impl RelationalRuntime {
@@ -56,11 +158,7 @@ impl<'runtime> IndexAuthority<'runtime> {
         let mut generations = Vec::new();
         let mut failed_indexes = Vec::new();
         let Some(version_id) = self.source_commit_version_id(request.source_commit_id) else {
-            return DerivedIndexBuildOutcome {
-                source_commit_id: request.source_commit_id,
-                generations,
-                failed_indexes: request.index_ids,
-            };
+            return failed_build_outcome(request.source_commit_id, generations, request.index_ids);
         };
 
         let (definitions, missing_indexes) =
@@ -70,52 +168,32 @@ impl<'runtime> IndexAuthority<'runtime> {
         let strategy = choose_index_preparation_strategy(self.runtime, definitions.len());
         record_index_preparation_strategy_counters(self.runtime, definitions.len(), &strategy);
 
-        let schema_version = self.runtime.primary_schema_version_id();
-        let current_projection = (version_id == self.runtime.current_version_id())
-            .then(|| self.runtime.read_truth().project_version(version_id));
-        let reconstructed_projection = (version_id != self.runtime.current_version_id())
-            .then(|| self.runtime.read_truth().read_version(version_id));
-        let projection = match (&current_projection, &reconstructed_projection) {
-            (Some(projection), None) => IndexProjectionSource::Current(projection),
-            (None, Some(projection)) => IndexProjectionSource::Reconstructed(projection),
-            _ => unreachable!("one index projection source must match the requested version"),
+        let selected_projection =
+            IndexBuildProjection::select(self.runtime, &request.branch_id, version_id);
+        let Some(projection) = selected_projection
+            .as_ref()
+            .and_then(IndexBuildProjection::source)
+        else {
+            failed_indexes.extend(definitions.iter().map(|definition| definition.index_id));
+            return failed_build_outcome(request.source_commit_id, generations, failed_indexes);
+        };
+        let Some(schema_version) = projection.schema_version() else {
+            failed_indexes.extend(definitions.iter().map(|definition| definition.index_id));
+            return failed_build_outcome(request.source_commit_id, generations, failed_indexes);
         };
         let packets = plan_index_packets(&definitions);
         let results =
             execute_index_packets(self.runtime, &projection, &packets, strategy.selected_mode);
 
-        for result in results {
-            match result.entries {
-                Some(entries) => {
-                    let generation = DerivedIndexGeneration {
-                        generation_id: DerivedIndexGenerationId(
-                            self.runtime.indexes.next_generation_id,
-                        ),
-                        index_id: result.index_id,
-                        source_commit_id: request.source_commit_id,
-                        source_branch_id: request.branch_id.clone(),
-                        applicability: DerivedIndexApplicability {
-                            branch_id: request.branch_id.clone(),
-                            version_id,
-                            schema_version,
-                        },
-                        status: DerivedIndexPublicationStatus::Published,
-                        entries,
-                    };
-                    self.runtime.indexes.next_generation_id += 1;
-                    self.runtime
-                        .indexes
-                        .generations
-                        .entry(result.index_id)
-                        .or_default()
-                        .push(generation.clone());
-                    generations.push(generation);
-                }
-                None => failed_indexes.push(result.index_id),
-            }
-        }
+        let publication_basis =
+            IndexGenerationPublicationBasis::new(&request, version_id, schema_version);
+        generations = publish_index_generations(
+            self.runtime,
+            &publication_basis,
+            results,
+            &mut failed_indexes,
+        );
 
-        self.attach_generations_to_commit(request.source_commit_id, &generations);
         self.publish_build_diagnostic(&request, &generations, &failed_indexes);
 
         DerivedIndexBuildOutcome {
@@ -128,13 +206,9 @@ impl<'runtime> IndexAuthority<'runtime> {
     pub(crate) fn refresh_unique_entity_aspect_field_index_for_records(
         &mut self,
         changed_records: &[crate::transactions::data::RecordRef],
-        version_id: crate::identity::data::VersionId,
+        basis: &crate::mvcc::PreparedIndexRefreshBasis,
     ) {
-        refresh_unique_entity_aspect_field_index_for_records(
-            self.runtime,
-            changed_records,
-            version_id,
-        );
+        refresh_unique_entity_aspect_field_index_for_records(self.runtime, changed_records, basis);
     }
 
     pub(crate) fn rebuild_unique_entity_aspect_field_indexes(&mut self) {
@@ -150,25 +224,6 @@ impl<'runtime> IndexAuthority<'runtime> {
             .commit_envelopes
             .get(&commit_id)
             .map(|commit| commit.commit.version_id)
-    }
-
-    fn attach_generations_to_commit(
-        &mut self,
-        commit_id: CommitId,
-        generations: &[DerivedIndexGeneration],
-    ) {
-        self.runtime
-            .history_authority()
-            .append_index_generations(commit_id, generations);
-        if let Some(log_entry) = self
-            .runtime
-            .durability
-            .log
-            .iter_mut()
-            .find(|entry| entry.commit.commit_id == commit_id)
-        {
-            log_entry.append_index_generations_canonical(generations);
-        }
     }
 
     fn publish_build_diagnostic(

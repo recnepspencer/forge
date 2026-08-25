@@ -1,5 +1,0 @@
-error[E0599]: no method named `effect_authority` found for reference `&WorthQueryPreparedProviderSession<'_>` in the current scope
- --> tests/ui/installed_domain/managed_run/prepared_session_cannot_stage_effects_early.rs:4:22
-  |
-4 |     let _ = prepared.effect_authority();
-  |                      ^^^^^^^^^^^^^^^^ method not found in `&WorthQueryPreparedProviderSession<'_>`

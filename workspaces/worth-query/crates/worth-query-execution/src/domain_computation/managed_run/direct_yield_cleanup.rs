@@ -1,6 +1,6 @@
 mod inspection;
 
-use worth_relational::facade::runtime::RelationalExecutionBasisLease;
+use super::WorthQueryManagedRelationalObservation;
 use worth_runtime_bridge::facade::BridgeYieldedExecutionBasis;
 
 pub use inspection::{WorthQueryDirectYieldCleanupInspection, WorthQueryDirectYieldCleanupReceipt};
@@ -33,7 +33,7 @@ struct WorthQueryDirectYieldCleanupAssociation {
     logical_run_identity: std::sync::Arc<str>,
     attempt_identity: std::sync::Arc<str>,
     affinity: WorthQueryDirectRunTerminalAffinity,
-    relational_basis: RelationalExecutionBasisLease,
+    relational_basis: WorthQueryManagedRelationalObservation,
     bridge: BridgeYieldedExecutionBasis,
     run_counters: WorthQueryManagedRunCounters,
     provider_work: WorthQueryManagedProviderWorkEvidence,

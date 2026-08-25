@@ -1,6 +1,7 @@
 use crate::authority::commit::preparation::proofs::kinds::PreparationProofKind;
 use crate::authority::commit::preparation::proofs::locality::PreparationLocalityProof;
 use crate::identity::data::{KindId, PartitionId};
+use crate::symbols::data::ClientKey;
 use crate::transactions::data::{AspectFieldPatch, EntityReference};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -23,6 +24,7 @@ pub(crate) enum ImportStagedRow {
         fields: AspectFieldPatch,
     },
     Relation {
+        client_key: Option<ClientKey>,
         source: EntityReference,
         target: EntityReference,
         fields: AspectFieldPatch,

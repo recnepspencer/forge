@@ -1,3 +1,4 @@
+mod authority_input;
 mod bundle_admission;
 mod errors;
 mod transition_canonical_fingerprint;
@@ -10,6 +11,7 @@ pub use errors::SchemaContinuityBundleIssue;
 pub use transition_lowering::lower_schema_transition;
 pub use transition_validation::validate_schema_transition;
 
+pub(crate) use authority_input::SchemaContinuityAuthorityInput;
 pub(crate) use transition_classification::classify_schema_transition;
 
 pub(super) use transition_canonical_fingerprint::{

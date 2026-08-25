@@ -17,8 +17,7 @@ pub(crate) fn admissible_access_path(
         return QueryAccessPath::AuthoritativeStorage;
     }
 
-    let branch_id = branch_id_for_version(runtime, plan.snapshot.version_id)
-        .unwrap_or_else(|| runtime.config.history.main_branch.clone());
+    let branch_id = plan.snapshot.branch_id().clone();
     let Some(generation) = candidate_generation_for_packet(runtime, &plan.packet, &branch_id)
     else {
         return QueryAccessPath::DerivedIndexRejectedStorageRead {
@@ -56,18 +55,6 @@ pub(crate) fn should_verify_sampled_parity(
     sample_key % SAMPLED_PARITY_MODULUS == SAMPLED_PARITY_REMAINDER
 }
 
-fn branch_id_for_version(
-    runtime: &RelationalRuntime,
-    version_id: crate::identity::data::VersionId,
-) -> Option<BranchId> {
-    runtime
-        .history
-        .commit_graph
-        .values()
-        .find(|node| node.commit.version_id == version_id)
-        .map(|node| node.commit.branch_id.clone())
-}
-
 fn index_rejection_for_packet(
     runtime: &RelationalRuntime,
     packet: &PlannedQueryPacket,
@@ -86,7 +73,7 @@ fn index_rejection_for_packet(
     {
         return Some(IndexQueryRejectionClass::UnsupportedBranch);
     }
-    if generation.applicability.version_id > packet.context_id.version_id {
+    if generation.applicability.version_id != packet.context_id.version_id {
         return Some(IndexQueryRejectionClass::UnsupportedVersion);
     }
     if generation.applicability.schema_version != packet.context_id.schema_version {
@@ -255,7 +242,7 @@ fn generation_preference(
     generation: &DerivedIndexGeneration,
     packet: &PlannedQueryPacket,
     branch_id: &BranchId,
-) -> (bool, bool, bool, bool) {
+) -> (bool, bool, bool, bool, crate::identity::data::VersionId) {
     let branch_applicable = runtime
         .indexes
         .definitions
@@ -263,7 +250,7 @@ fn generation_preference(
         .is_none_or(|definition| {
             !definition.branch_scoped || generation.applicability.branch_id == *branch_id
         });
-    let version_applicable = generation.applicability.version_id <= packet.context_id.version_id;
+    let version_applicable = generation.applicability.version_id == packet.context_id.version_id;
     let schema_applicable =
         generation.applicability.schema_version == packet.context_id.schema_version;
     let published =
@@ -273,5 +260,6 @@ fn generation_preference(
         branch_applicable,
         version_applicable,
         schema_applicable,
+        generation.applicability.version_id,
     )
 }

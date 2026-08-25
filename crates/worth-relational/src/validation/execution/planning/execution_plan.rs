@@ -21,10 +21,13 @@ use crate::validation::engine::InvariantExecutionRequest;
 use super::packet_scope::packet_partition_scope;
 use super::packet_selection::eligible_registrations;
 
-pub(crate) fn plan_invariant_execution<'runtime>(
+pub(crate) fn plan_invariant_execution<'runtime, 'state>(
     runtime: &'runtime RelationalRuntime,
-    request: &'runtime InvariantExecutionRequest<'runtime>,
-) -> PreparedInvariantExecution<'runtime> {
+    request: &'state InvariantExecutionRequest<'state>,
+) -> PreparedInvariantExecution<'state>
+where
+    'runtime: 'state,
+{
     let registrations = eligible_registrations(runtime, request);
     let context = Arc::new(planning_context(runtime, request));
     let partition_scope = packet_partition_scope(request.merged_plan());
@@ -75,7 +78,7 @@ fn planning_context(
 fn proof_kind_for_runtime(runtime: &RelationalRuntime) -> PreparationProofKind {
     if matches!(
         runtime.config.execution.execution_model,
-        RelationalExecutionModel::StagedParallelPreparation
+        RelationalExecutionModel::ParallelPreparation
     ) {
         PreparationProofKind::ReadOnlyShared
     } else {
@@ -90,7 +93,7 @@ fn preparation_strategy_for_runtime(
 ) -> PreparationStrategy {
     if !matches!(
         runtime.config.execution.execution_model,
-        RelationalExecutionModel::StagedParallelPreparation
+        RelationalExecutionModel::ParallelPreparation
     ) {
         return PreparationStrategy::serial(SerialPreparationReason::ExecutionModelSerial);
     }
@@ -114,13 +117,13 @@ fn preparation_strategy_for_runtime(
     }
 }
 
-fn invariant_work_packets<'runtime>(
-    request: &'runtime InvariantExecutionRequest<'runtime>,
+fn invariant_work_packets<'state>(
+    request: &'state InvariantExecutionRequest<'state>,
     registrations: Vec<InvariantPacketRegistration>,
     context: Arc<PreparationPlanningContext>,
     partition_scope: Arc<[crate::identity::data::PartitionId]>,
     proof_kind: PreparationProofKind,
-) -> Vec<crate::authority::commit::preparation::InvariantWorkPacket<'runtime>> {
+) -> Vec<crate::authority::commit::preparation::InvariantWorkPacket<'state>> {
     let observation = request.observation();
     let relation_integrity_scopes = request.relation_integrity_scopes().cloned();
 
@@ -146,7 +149,7 @@ fn invariant_work_packets<'runtime>(
                 read_set_approximation: PreparationReadSetApproximation::SharedCommittedRead,
                 write_exclusion: match proof_kind {
                     PreparationProofKind::RequiresSerial => {
-                        PreparationWriteExclusionClass::RequiresSerialAuthority
+                        PreparationWriteExclusionClass::RequiresSingleLaneExecution
                     }
                     _ => PreparationWriteExclusionClass::ReadOnly,
                 },
@@ -169,6 +172,7 @@ fn invariant_work_packets<'runtime>(
                 planning_context: context.clone(),
                 observation,
                 version_id: request.version_id(),
+                current_version_id: request.current_version_id(),
                 merged_plan: request.merged_plan(),
                 relation_integrity_scopes: relation_integrity_scopes.clone(),
             }

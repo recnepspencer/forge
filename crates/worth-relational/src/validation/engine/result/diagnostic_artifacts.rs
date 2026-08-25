@@ -190,13 +190,10 @@ fn matching_failure_check_result<'a>(
     result: &'a InvariantExecutionResult,
     failure: &InvariantFailure,
 ) -> Option<&'a InvariantCheckResult> {
-    result
-        .results()
-        .iter()
-        .find_map(|result| match &result.verdict {
-            InvariantVerdict::Violation(violation) if *violation == *failure.violation() => {
-                Some(result)
-            }
-            _ => None,
-        })
+    result.results().iter().find(|result| {
+        matches!(
+            &result.verdict,
+            InvariantVerdict::Violation(violation) if *violation == *failure.violation()
+        )
+    })
 }

@@ -2,14 +2,14 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
 use crate::diagnostics::data::RelationalDiagnosticArtifact;
-use crate::history::data::{BranchId, CommitId, CommitReference};
-use crate::indexes::data::{DerivedIndexArtifacts, DerivedIndexGeneration};
+use crate::history::data::{BranchId, CommitId, RelationalCommitReceipt};
+use crate::indexes::data::DerivedIndexArtifacts;
 use crate::lineage::data::{
     LineageArtifactCounters, LineageDecisionLogDigestBasis, LineageDecisionRecord,
     LineageDigestBasis, LineageEventBatchDigestBasis, LineageEventRecord, PublishedLineageArtifact,
 };
 use crate::publication::patch::data::{
-    PublishedAuthoritativePatchEnvelope, PublishedAuthoritativeRecordPatch,
+    CanonicalAuthoritativePatch, PublishedAuthoritativeRecordPatch,
 };
 use crate::schema::data::{
     DescriptorSemanticsVersion, SchemaAuthoritySnapshot, SchemaContinuationDescriptor,
@@ -22,8 +22,13 @@ use crate::transactions::data::{
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CanonicalCommitEnvelope {
-    pub commit: CommitReference,
+    pub commit: RelationalCommitReceipt,
     pub branch_context: BranchId,
+    /// Exact owner cell state immediately before this commit advances the
+    /// branch. It lets recovery admit a branch created after a checkpoint
+    /// without rebuilding currentness from a legacy head projection.
+    #[serde(default)]
+    pub(crate) branch_cell_checkpoint: Option<crate::branch::RelationalBranchCellCheckpoint>,
     pub authority_kind: CanonicalCommitAuthorityKind,
     pub strategy_artifacts: Option<crate::commit_strategies::data::StrategyCommitArtifactBundle>,
     pub merge_execution_authority: Option<PublishedMergeExecutionAuthority>,
@@ -32,7 +37,9 @@ pub struct CanonicalCommitEnvelope {
     pub schema_version: SchemaVersionId,
     pub schema_authority: SchemaAuthoritySnapshot,
     pub merged_plan: MergedCommitPlan,
-    pub patch: PublishedAuthoritativePatchEnvelope,
+    #[serde(default)]
+    pub(crate) record_allocations: Vec<crate::history::data::CanonicalRecordAllocation>,
+    pub patch: CanonicalAuthoritativePatch,
     pub diagnostics_summary: RelationalDiagnosticArtifact,
     lineage: PublishedLineageArtifact,
     pub derived_index_artifacts: DerivedIndexArtifacts,
@@ -45,19 +52,22 @@ pub struct CanonicalCommitEnvelope {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CanonicalCommitAuthorityKind {
     VersionedTransaction,
-    MetadataOnlyLineage,
+    /// A canonical branch-reference movement that carries no new relational
+    /// version. Recovery may readmit legacy metadata publications here after
+    /// translating their obsolete lineage vocabulary.
+    BranchReferenceMovement,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct CommittedRecordChange<'a> {
-    pub commit: &'a CommitReference,
+    pub commit: &'a RelationalCommitReceipt,
     pub record: &'a PublishedAuthoritativeRecordPatch,
 }
 
 impl CanonicalCommitEnvelope {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
-        commit: CommitReference,
+        commit: RelationalCommitReceipt,
         branch_context: BranchId,
         authority_kind: CanonicalCommitAuthorityKind,
         strategy_artifacts: Option<crate::commit_strategies::data::StrategyCommitArtifactBundle>,
@@ -67,7 +77,7 @@ impl CanonicalCommitEnvelope {
         schema_version: SchemaVersionId,
         schema_authority: SchemaAuthoritySnapshot,
         merged_plan: MergedCommitPlan,
-        patch: PublishedAuthoritativePatchEnvelope,
+        patch: CanonicalAuthoritativePatch,
         diagnostics_summary: RelationalDiagnosticArtifact,
         lineage: PublishedLineageArtifact,
         derived_index_artifacts: DerivedIndexArtifacts,
@@ -79,6 +89,7 @@ impl CanonicalCommitEnvelope {
         Self {
             commit,
             branch_context,
+            branch_cell_checkpoint: None,
             authority_kind,
             strategy_artifacts,
             merge_execution_authority,
@@ -87,6 +98,7 @@ impl CanonicalCommitEnvelope {
             schema_version,
             schema_authority,
             merged_plan,
+            record_allocations: Vec::new(),
             patch,
             diagnostics_summary,
             lineage,
@@ -102,38 +114,29 @@ impl CanonicalCommitEnvelope {
         self.lineage.lineage_event_ids()
     }
 
+    pub(crate) fn install_record_allocations(
+        &mut self,
+        allocations: Vec<crate::history::data::CanonicalRecordAllocation>,
+    ) {
+        self.record_allocations = allocations;
+    }
+
+    pub(crate) fn record_allocations(&self) -> &[crate::history::data::CanonicalRecordAllocation] {
+        &self.record_allocations
+    }
     pub fn lineage_events(&self) -> &[LineageEventRecord] {
         self.lineage.lineage_events()
     }
-
     pub fn lineage_decision_log(&self) -> &[LineageDecisionRecord] {
         self.lineage.lineage_decision_log()
     }
-
-    pub fn lineage_decisions_for_candidate(
-        &self,
-        candidate_id: crate::lineage::data::CorrespondenceCandidateId,
-    ) -> Vec<&LineageDecisionRecord> {
-        self.lineage.decisions_for_candidate(candidate_id).collect()
-    }
-
     pub fn lineage_decisions_for_event_id(&self, event_id: u64) -> Vec<&LineageDecisionRecord> {
         self.lineage.decisions_for_event_id(event_id).collect()
-    }
-
-    pub fn lineage_decisions_for_rejection_class(
-        &self,
-        rejection_class: crate::lineage::data::CorrespondencePromotionRejectionClass,
-    ) -> Vec<&LineageDecisionRecord> {
-        self.lineage
-            .decisions_for_rejection_class(rejection_class)
-            .collect()
     }
 
     pub fn lineage_digest_basis(&self) -> &LineageDigestBasis {
         self.lineage.digest_basis()
     }
-
     pub fn event_batch_digest_basis(&self) -> &LineageEventBatchDigestBasis {
         self.lineage.event_batch_digest_basis()
     }
@@ -177,6 +180,35 @@ impl CanonicalCommitEnvelope {
         touched
     }
 
+    /// Canonical bytes for owner truth only. Diagnostics and optional derived
+    /// indexes have distinct lifecycle lanes and cannot perturb commit-byte
+    /// accounting.
+    pub(crate) fn encode_authoritative_payload(&self) -> Result<Vec<u8>, rmp_serde::encode::Error> {
+        let identity_and_authority = (
+            &self.commit,
+            &self.branch_context,
+            &self.branch_cell_checkpoint,
+            &self.authority_kind,
+            &self.strategy_artifacts,
+            &self.merge_execution_authority,
+            &self.merge_parent_branches,
+            &self.merge_base_commits,
+        );
+        let canonical_semantics = (
+            &self.schema_version,
+            &self.schema_authority,
+            &self.merged_plan,
+            &self.record_allocations,
+            &self.patch,
+            &self.lineage,
+            &self.schema_transition,
+            &self.schema_continuation_descriptor,
+            &self.schema_reconciliation_descriptor,
+            &self.descriptor_semantics_version,
+        );
+        rmp_serde::to_vec_named(&(identity_and_authority, canonical_semantics))
+    }
+
     pub(crate) fn committed_record_changes(
         &self,
     ) -> impl Iterator<Item = CommittedRecordChange<'_>> {
@@ -202,8 +234,18 @@ impl CanonicalCommitEnvelope {
         &mut self.lineage
     }
 
-    pub fn append_index_generations_canonical(&mut self, generations: &[DerivedIndexGeneration]) {
-        self.derived_index_artifacts.extend_canonical(generations);
+    #[cfg(test)]
+    pub(crate) fn rebuild_lineage_basis_for_test(&mut self) {
+        self.lineage = crate::lineage::data::LineageFinalizationArtifact::new(
+            self.branch_context.clone(),
+            crate::lineage::data::FinalizedLineageEventBatch::new(
+                self.lineage.lineage_events().to_vec(),
+            ),
+            crate::lineage::data::LineageDecisionLog::new(
+                self.lineage.lineage_decision_log().to_vec(),
+            ),
+        )
+        .publish();
     }
 }
 
@@ -234,16 +276,15 @@ mod tests {
         DeterminismExpectation, DiagnosticsArtifactKind, DiagnosticsScope,
         RelationalDiagnosticArtifact,
     };
-    use crate::history::data::{BranchId, CommitId, CommitReference};
+    use crate::history::data::{BranchId, CommitId, RelationalCommitReceipt};
     use crate::identity::data::{EntityId, PartitionId, VersionId};
     use crate::indexes::data::DerivedIndexArtifacts;
     use crate::lineage::data::{
         FinalizedLineageEventBatch, LineageDecisionLog, LineageFinalizationArtifact,
     };
     use crate::publication::patch::data::{
-        PatchDetail, PatchOrdering, PatchPublicationMode, PatchStreamPosition,
-        PublishedAuthoritativePatchEnvelope, PublishedAuthoritativeRecordPatch,
-        RecordStructuralChange,
+        CanonicalAuthoritativePatch, PatchDetail, PatchOrdering, PatchPublicationMode,
+        PublishedAuthoritativeRecordPatch, RecordStructuralChange,
     };
     use crate::schema::data::{
         DescriptorSemanticsVersion, RelationalSchemaRegistry, SchemaVersionId,
@@ -258,7 +299,7 @@ mod tests {
         update_target: EntityId,
     ) -> CanonicalCommitEnvelope {
         CanonicalCommitEnvelope::new(
-            CommitReference {
+            RelationalCommitReceipt {
                 commit_id: CommitId(1),
                 version_id: VersionId(1),
                 branch_id: BranchId("main".to_string()),
@@ -282,10 +323,9 @@ mod tests {
                 ))]
                 .into(),
             },
-            PublishedAuthoritativePatchEnvelope {
+            CanonicalAuthoritativePatch {
                 ordering: PatchOrdering::CanonicalCommitOrder,
                 publication_mode: PatchPublicationMode::CommitNative,
-                position: PatchStreamPosition(1),
                 authoritative_record_patches: vec![PublishedAuthoritativeRecordPatch {
                     target: patch_target,
                     structural_change: RecordStructuralChange::Updated,

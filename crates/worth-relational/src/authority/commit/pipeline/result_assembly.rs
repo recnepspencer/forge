@@ -1,5 +1,7 @@
-use super::complexity_delta::complexity_delta;
 use super::publication_execution::PublishedCommitExecution;
+use crate::performance::operation_complexity_accounting::{
+    combine_complexity_deltas, complexity_delta,
+};
 use crate::publication::bundle::PublicationStatus;
 use crate::schema::data::SchemaTransitionSummary;
 use crate::transactions::data::{
@@ -14,12 +16,15 @@ struct CommitResultMaterial {
     strategy_artifacts: Option<crate::commit_strategies::data::StrategyCommitArtifactBundle>,
     diagnostics_start: usize,
     complexity_before: crate::performance::data::RuntimeComplexityCounters,
+    prior_complexity_delta: crate::performance::data::RuntimeComplexityCounters,
     public_structural_summary: crate::transactions::data::CommitStructuralSummary,
     invariant_executions: Vec<crate::validation::engine::InvariantExecutionResult>,
     version_id: crate::identity::data::VersionId,
     created_entities: crate::transactions::data::CommitCreatedEntityBindings,
+    created_relations: crate::transactions::data::CommitCreatedRelationBindings,
     history: crate::authority::commit::phases::history::ResolvedCommitHistory,
     canonical_commit_envelope: std::sync::Arc<crate::history::data::CanonicalCommitEnvelope>,
+    patch_position: crate::publication::patch::data::PatchStreamPosition,
     changed_records: Vec<crate::transactions::data::RecordRef>,
     publication_snapshot: crate::snapshots::data::SnapshotHandle,
     aspect_evaluation_traces: Vec<crate::transactions::data::AspectEvaluationTrace>,
@@ -35,6 +40,7 @@ pub(crate) struct CommitResultSeal {
     validation: CommitValidation,
     execution: CommitExecution,
     created_entities: crate::transactions::data::CommitCreatedEntityBindings,
+    created_relations: crate::transactions::data::CommitCreatedRelationBindings,
 }
 
 impl CommitResultSeal {
@@ -49,6 +55,7 @@ impl CommitResultSeal {
         CommitValidation,
         CommitExecution,
         crate::transactions::data::CommitCreatedEntityBindings,
+        crate::transactions::data::CommitCreatedRelationBindings,
     ) {
         (
             self.outcome,
@@ -59,22 +66,17 @@ impl CommitResultSeal {
             self.validation,
             self.execution,
             self.created_entities,
+            self.created_relations,
         )
     }
 }
 
-pub(super) fn assemble_commit_result(
+pub(crate) fn assemble_commit_result(
     runtime: &crate::runtime::RelationalRuntime,
     published: PublishedCommitExecution,
 ) -> CommitResult {
     let material = CommitResultMaterial::from_published(published);
-    let complexity_after = runtime
-        .services
-        .instrumentation
-        .complexity_counters
-        .lock()
-        .expect("complexity counter lock poisoned")
-        .clone();
+    let complexity_after = runtime.performance_access().complexity_counters_snapshot();
     let diagnostics = runtime
         .publication()
         .diagnostic_access()
@@ -90,8 +92,10 @@ impl CommitResultMaterial {
             invariant_executions,
             version_id,
             created_entities,
+            created_relations,
             history,
             canonical_commit_envelope,
+            patch_position,
             changed_records,
             publication_snapshot,
             aspect_evaluation_traces,
@@ -104,6 +108,7 @@ impl CommitResultMaterial {
             strategy_artifacts,
             diagnostics_start,
             complexity_before,
+            prior_complexity_delta,
         ) = admitted.into_result_parts();
         Self {
             transaction_id,
@@ -112,12 +117,15 @@ impl CommitResultMaterial {
             strategy_artifacts,
             diagnostics_start,
             complexity_before,
+            prior_complexity_delta,
             public_structural_summary,
             invariant_executions,
             version_id,
             created_entities,
+            created_relations,
             history,
             canonical_commit_envelope,
+            patch_position,
             changed_records,
             publication_snapshot,
             aspect_evaluation_traces,
@@ -149,6 +157,7 @@ impl CommitResultMaterial {
             publication: CommitPublication {
                 diagnostics,
                 envelope: self.canonical_commit_envelope,
+                patch_position: self.patch_position,
                 aspect_evaluation_traces: self.aspect_evaluation_traces,
                 aspect_emission_traces: self.aspect_emission_traces,
                 strategy_artifacts: self.strategy_artifacts,
@@ -159,9 +168,13 @@ impl CommitResultMaterial {
             },
             execution: CommitExecution {
                 phase_timing: self.phase_timing,
-                complexity_delta: complexity_delta(self.complexity_before, complexity_after),
+                complexity_delta: combine_complexity_deltas(
+                    self.prior_complexity_delta,
+                    complexity_delta(self.complexity_before, complexity_after),
+                ),
             },
             created_entities: self.created_entities,
+            created_relations: self.created_relations,
         })
     }
 }

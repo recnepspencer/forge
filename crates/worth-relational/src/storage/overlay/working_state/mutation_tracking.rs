@@ -14,26 +14,12 @@ impl WorkingState {
             .insert(slot);
     }
 
-    pub(crate) fn mark_entity_free_list_changed(&mut self, partition_id: PartitionId) {
-        self.mutation_journal
-            .entry(partition_id)
-            .or_default()
-            .entity_free_list_changed = true;
-    }
-
     pub(crate) fn mark_relation_slot_touched(&mut self, partition_id: PartitionId, slot: usize) {
         self.mutation_journal
             .entry(partition_id)
             .or_default()
             .relation_slots
             .insert(slot);
-    }
-
-    pub(crate) fn mark_relation_free_list_changed(&mut self, partition_id: PartitionId) {
-        self.mutation_journal
-            .entry(partition_id)
-            .or_default()
-            .relation_free_list_changed = true;
     }
 
     pub(crate) fn mark_adjacency_slot_touched(&mut self, partition_id: PartitionId, slot: usize) {
@@ -62,8 +48,6 @@ impl WorkingState {
         }
         let partition = self.get_partition_mut(partition_id);
         partition.entity_arena.reserve_additional(additional);
-        partition.adjacency.reserve(additional);
-        partition.reverse_adjacency.reserve(additional);
     }
 
     pub(crate) fn reserve_relation_slots(&mut self, partition_id: PartitionId, additional: usize) {
@@ -100,6 +84,10 @@ impl PartitionAccess for WorkingState {
 
     fn partition_ids(&self) -> Vec<PartitionId> {
         self.partitions.keys().copied().collect()
+    }
+
+    fn touched_partition_ids(&self) -> Option<Vec<PartitionId>> {
+        (!self.mutation_journal.is_empty()).then(|| self.mutation_journal.keys().copied().collect())
     }
 
     fn touched_entity_slots(&self, partition_id: PartitionId) -> Option<Vec<usize>> {

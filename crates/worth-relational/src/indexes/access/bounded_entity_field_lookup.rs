@@ -5,7 +5,6 @@ use crate::indexes::data::{
     BoundedEntityFieldLookupOutcome, BoundedEntityFieldLookupRequest, BoundedIndexParityMode,
     DerivedIndexEntries, DerivedIndexKind,
 };
-use crate::runtime::RelationalRuntime;
 use crate::storage::data::AuthoritativeFieldComparisonKey;
 use crate::visibility::materialization::read_records::entity_query_locus_comparison_key;
 use crate::visibility::snapshot_states::resolve_snapshot_handle;
@@ -26,58 +25,32 @@ impl IndexAccess<'_> {
                 &request,
             )
         })?;
-        let definition = runtime
-            .indexes
-            .definitions
-            .get(&request.index_id())
+        let projection = runtime
+            .read_truth()
+            .project_snapshot(&snapshot)
             .ok_or_else(|| {
                 lookup_denial(
-                    BoundedEntityFieldLookupDenialKind::IndexNotInstalled,
+                    BoundedEntityFieldLookupDenialKind::SnapshotUnavailable,
                     &request,
                 )
             })?;
-        if !matches!(
-            &definition.kind,
-            DerivedIndexKind::EntityField { field_locator }
-                if field_locator == request.field_locator()
-        ) {
-            return Err(lookup_denial(
-                BoundedEntityFieldLookupDenialKind::WrongIndexKind,
-                &request,
-            ));
-        }
-        let generation =
-            super::generation_selection::exact_published_generation(runtime, &snapshot, definition)
-                .ok_or_else(|| {
-                    lookup_denial(
-                        BoundedEntityFieldLookupDenialKind::ExactGenerationUnavailable,
-                        &request,
-                    )
-                })?;
-        let DerivedIndexEntries::EntityField(entries) = &generation.entries else {
-            return Err(lookup_denial(
-                BoundedEntityFieldLookupDenialKind::WrongIndexKind,
-                &request,
-            ));
-        };
-        let comparison_key = AuthoritativeFieldComparisonKey::from_aspect_value(request.value());
-        let indexed_ids = entries
-            .get(&comparison_key)
-            .map(Vec::as_slice)
-            .unwrap_or(&[]);
-        let overflowed = indexed_ids.len() > request.candidate_limit();
-        let examined_entry_count = indexed_ids.len().min(request.candidate_limit());
+        let source =
+            super::super::projected_field_values::IndexProjectionSource::exact(&projection)
+                .expect("resolved snapshot projection must carry an exact basis");
+        let prepared = prepare_entity_field_lookup(runtime, &snapshot, &request)?;
+        let overflowed = prepared.indexed_ids.len() > request.candidate_limit();
+        let examined_entry_count = prepared.indexed_ids.len().min(request.candidate_limit());
         let candidate_entity_ids =
-            verify_bounded_index_entries(runtime, &snapshot, &request, indexed_ids)?;
+            verify_bounded_index_entries(&source, &request, prepared.indexed_ids)?;
         let outcome = BoundedEntityFieldLookupOutcome::new(
-            generation.generation_id,
+            prepared.generation_id,
             candidate_entity_ids,
             examined_entry_count,
             overflowed,
             parity_mode,
         );
         if parity_mode == BoundedIndexParityMode::Certification {
-            certify_storage_parity(runtime, &snapshot, &request, &outcome)?;
+            certify_storage_parity(&source, &request, &outcome)?;
             runtime
                 .performance_access()
                 .count_query_index_parity_verification();
@@ -87,45 +60,68 @@ impl IndexAccess<'_> {
     }
 }
 
-fn verify_bounded_index_entries(
-    runtime: &RelationalRuntime,
+struct PreparedEntityFieldLookup<'a> {
+    generation_id: crate::indexes::data::DerivedIndexGenerationId,
+    indexed_ids: &'a [crate::identity::data::EntityId],
+}
+
+fn prepare_entity_field_lookup<'a>(
+    runtime: &'a crate::runtime::RelationalRuntime,
     snapshot: &crate::snapshots::data::SnapshotHandle,
+    request: &BoundedEntityFieldLookupRequest,
+) -> Result<PreparedEntityFieldLookup<'a>, BoundedEntityFieldLookupDenial> {
+    let definition = runtime
+        .indexes
+        .definitions
+        .get(&request.index_id())
+        .ok_or_else(|| {
+            lookup_denial(
+                BoundedEntityFieldLookupDenialKind::IndexNotInstalled,
+                request,
+            )
+        })?;
+    if !matches!(
+        &definition.kind,
+        DerivedIndexKind::EntityField { field_locator } if field_locator == request.field_locator()
+    ) {
+        return Err(lookup_denial(
+            BoundedEntityFieldLookupDenialKind::WrongIndexKind,
+            request,
+        ));
+    }
+    let generation =
+        super::generation_selection::exact_published_generation(runtime, snapshot, definition)
+            .ok_or_else(|| {
+                lookup_denial(
+                    BoundedEntityFieldLookupDenialKind::ExactGenerationUnavailable,
+                    request,
+                )
+            })?;
+    let DerivedIndexEntries::EntityField(entries) = &generation.entries else {
+        return Err(lookup_denial(
+            BoundedEntityFieldLookupDenialKind::WrongIndexKind,
+            request,
+        ));
+    };
+    let key = AuthoritativeFieldComparisonKey::from_aspect_value(request.value());
+    Ok(PreparedEntityFieldLookup {
+        generation_id: generation.generation_id,
+        indexed_ids: entries.get(&key).map(Vec::as_slice).unwrap_or(&[]),
+    })
+}
+
+fn verify_bounded_index_entries(
+    source: &super::super::projected_field_values::IndexProjectionSource<'_, '_>,
     request: &BoundedEntityFieldLookupRequest,
     indexed_ids: &[crate::identity::data::EntityId],
 ) -> Result<Vec<crate::identity::data::EntityId>, BoundedEntityFieldLookupDenial> {
-    let historical_read = if snapshot.version_id == runtime.current_version_id() {
-        None
-    } else {
-        Some(
-            runtime
-                .read_truth()
-                .read_snapshot(snapshot)
-                .ok_or_else(|| {
-                    lookup_denial(
-                        BoundedEntityFieldLookupDenialKind::SnapshotUnavailable,
-                        request,
-                    )
-                })?,
-        )
-    };
-    let current_state =
-        (historical_read.is_none()).then(|| runtime.storage_access().current_state());
     let expected = AuthoritativeFieldComparisonKey::from_aspect_value(request.value());
     let mut seen = BTreeSet::new();
     let mut candidates = Vec::with_capacity(indexed_ids.len().min(request.candidate_limit()));
     for entity_id in indexed_ids.iter().take(request.candidate_limit()) {
-        let record = match (&historical_read, &current_state) {
-            (Some(read), None) => read.get_entity(*entity_id).cloned(),
-            (None, Some(state)) => runtime
-                .read_truth()
-                .authoritative_entity_record_for_id_at_version(
-                    state,
-                    *entity_id,
-                    snapshot.version_id,
-                ),
-            _ => unreachable!("one index verification source must match the snapshot version"),
-        }
-        .ok_or_else(|| corrupt_index_denial(request))?;
+        let record = source
+            .with_entity(*entity_id, Clone::clone)
+            .ok_or_else(|| corrupt_index_denial(request))?;
         if !seen.insert(record.entity_id)
             || entity_query_locus_comparison_key(&record, request.field_locator())
                 != Some(expected.clone())
@@ -140,31 +136,19 @@ fn verify_bounded_index_entries(
 }
 
 fn certify_storage_parity(
-    runtime: &RelationalRuntime,
-    snapshot: &crate::snapshots::data::SnapshotHandle,
+    source: &super::super::projected_field_values::IndexProjectionSource<'_, '_>,
     request: &BoundedEntityFieldLookupRequest,
     indexed: &BoundedEntityFieldLookupOutcome,
 ) -> Result<(), BoundedEntityFieldLookupDenial> {
     let expected = AuthoritativeFieldComparisonKey::from_aspect_value(request.value());
-    let read = runtime
-        .read_truth()
-        .read_snapshot(snapshot)
-        .ok_or_else(|| {
-            lookup_denial(
-                BoundedEntityFieldLookupDenialKind::SnapshotUnavailable,
-                request,
-            )
-        })?;
-    let mut storage_ids = read
-        .entities()
-        .iter()
-        .filter(|record| {
-            record.kind.kind_id == request.entity_kind()
-                && entity_query_locus_comparison_key(record, request.field_locator())
-                    == Some(expected.clone())
-        })
-        .map(|record| record.entity_id)
-        .collect::<Vec<_>>();
+    let mut storage_ids = Vec::new();
+    source.for_each_entity(request.entity_kind(), |record| {
+        if entity_query_locus_comparison_key(record, request.field_locator())
+            == Some(expected.clone())
+        {
+            storage_ids.push(record.entity_id);
+        }
+    });
     storage_ids.sort();
     let storage_overflowed = storage_ids.len() > request.candidate_limit();
     storage_ids.truncate(request.candidate_limit());

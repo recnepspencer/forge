@@ -3,9 +3,6 @@ use super::{
     SubscriptionActivationReceipt, WriteAuthorityExecutionReceipt,
 };
 use crate::declarative_live::DeclarativeLiveQueryRequest;
-use crate::evidence_identity::{
-    WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag,
-};
 use crate::memory_workspace::{
     WorthQueryEntity, WorthQueryEntityIdentity, WorthQueryLivePatch, WorthQueryLiveViewHandle,
     WorthQueryMutationKind, WorthQueryMutationReceipt, WorthQuerySnapshotIdentity,
@@ -35,20 +32,18 @@ use crate::runtime::{
     WorthQueryWriteCommand, WorthQueryWriteReceipt,
 };
 
-pub fn runtime_subscription_support_evidence_identity(
-    support_label: &str,
-) -> WorthQueryEvidenceIdentity {
-    WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::SubscriptionActivationReceipt)
-        .field_shape(
-            WorthQueryEvidenceTag::new("identity_family"),
-            "runtime_subscription_activation_support_evidence_v1",
-        )
-        .field_shape(WorthQueryEvidenceTag::new("support_label"), support_label)
-        .seal()
-}
-
 pub trait WorthQueryRuntimeBackend {
     fn support_profile(&self) -> WorthQueryRuntimeSupportProfile;
+
+    fn repair_deferred_branch_merge_settlement(
+        &mut self,
+        _deferred: &crate::ordinary::workflow::WorthQueryBranchMergeSettlementDeferred,
+    ) -> Result<
+        worth_relational::facade::history::RelationalCommitReceipt,
+        crate::runtime::WorthQuerySettlementRepairError,
+    > {
+        Err(crate::runtime::WorthQuerySettlementRepairError::RelationalOwnerUnavailable)
+    }
     #[doc(hidden)]
     fn readmits_primary_graph_source(
         &self,
@@ -68,7 +63,6 @@ pub trait WorthQueryRuntimeBackend {
     }
     /// Transfers an unpublished Relational runtime into execution-owned
     /// primary-graph installation.
-    ///
     /// The default denial makes custom backends incapable of accidentally
     /// claiming support for a construction protocol they do not implement.
     #[doc(hidden)]
@@ -206,12 +200,13 @@ pub trait WorthQueryRuntimeBackend {
         _declaration: &crate::workflow::LoweredMergeWorkflowDeclaration,
     ) -> Result<
         worth_relational::facade::transactions::MergeExecutionOutcome,
-        (crate::effect_lifecycle::EffectExecutionDenialKind, String),
+        crate::effect_lifecycle::RelationalEffectExecutionFailure,
     > {
         Err((
             crate::effect_lifecycle::EffectExecutionDenialKind::MissingRelationalAuthority,
             "this runtime backend has no relational merge executor".to_string(),
-        ))
+        )
+            .into())
     }
 
     fn execute_query_causal_inspection(

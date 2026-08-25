@@ -29,7 +29,7 @@ fn historical_record_inspection_and_transaction_staging_are_read_only() {
         .changed_records
         .contains(&crate::facade::transactions::RecordRef::Entity(created)));
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(batch_create("pending"));
     let staging = txn.inspect_staging();
     assert_eq!(staging.batch_count, 1);
@@ -48,7 +48,7 @@ fn historical_record_inspection_preserves_requested_branch_context() {
     let created = create_entity(&mut runtime, "branch-base");
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )

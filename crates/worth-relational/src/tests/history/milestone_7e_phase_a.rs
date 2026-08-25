@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
-use crate::facade::history::{BranchId, CommitId, VersionNode};
+use crate::branch::{RelationalBranchReferenceCell, RelationalBranchTarget};
+use crate::facade::history::{BranchId, CommitId};
 use crate::facade::identity::VersionId;
 use crate::facade::merge::{MergeIntent, MergePlanningRequest};
 use crate::facade::runtime::RelationalRuntime;
-use crate::history::data::{MergeBaseSelectionRule, RelationalMergeBranchBasis};
+use crate::history::data::{MergeBaseSelectionRule, RelationalMergeBranchBasis, VersionNode};
 use crate::tests::support::{
     checkpoint_and_recover_with, create_branch_from_main, create_entity,
     create_entity_outcome_on_branch, persisted_runtime_with_test_schema,
@@ -93,19 +94,23 @@ fn merge_branch_basis_denial_happens_before_planning_for_missing_or_disconnected
             target_branch,
         } if source_branch == orphan_branch && target_branch == main_branch
     ));
-    assert!(matches!(
+    assert_eq!(
         runtime
             .merge()
             .inspect_planning_scope(MergePlanningRequest::new(
                 main_branch.clone(),
-                orphan_branch.clone(),
+                orphan_branch,
                 MergeIntent::ReconcileIntoTarget,
             )),
-        Err(crate::merge::data::MergePlanningError::MissingMergeBase {
-            source_branch,
-            target_branch,
-        }) if source_branch == orphan_branch && target_branch == main_branch
-    ));
+        Err(
+            crate::merge::data::MergePlanningError::RequestNormalization(
+                crate::merge::data::RelationalMergeRequestNormalizationDenial::OwnerBinding(
+                    crate::merge::data::RelationalMergeRequestBindingDenial::IdentityMismatch,
+                ),
+            )
+        ),
+        "a descriptive orphan with no coherent exact root is denied before ancestry planning",
+    );
 }
 
 #[test]
@@ -131,7 +136,6 @@ fn merge_branch_basis_survives_published_merge_outcome_and_durability_recovery()
     let live_envelope = runtime
         .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)
-        .cloned()
         .expect("live merge envelope");
     let live_authority = live_envelope
         .merge_execution_authority
@@ -143,7 +147,6 @@ fn merge_branch_basis_survives_published_merge_outcome_and_durability_recovery()
     let recovered_envelope = recovered
         .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)
-        .cloned()
         .expect("recovered merge envelope");
     let recovered_authority = recovered_envelope
         .merge_execution_authority
@@ -212,12 +215,12 @@ fn graft_disconnected_branch_head(runtime: &mut RelationalRuntime, branch_id: &B
     let source_head = disconnected
         .history()
         .branch_head(&BranchId("main".to_string()))
-        .cloned()
         .expect("disconnected source head");
     let mut orphan_head = source_head.clone();
     orphan_head.commit_id = CommitId(9_999_001);
     orphan_head.version_id = VersionId(9_999_001);
     orphan_head.branch_id = branch_id.clone();
+    orphan_head.parents.clear();
 
     let mut envelope = disconnected
         .history
@@ -231,8 +234,22 @@ fn graft_disconnected_branch_head(runtime: &mut RelationalRuntime, branch_id: &B
 
     runtime
         .history
-        .branch_heads
-        .insert(branch_id.clone(), Some(orphan_head.clone()));
+        .commit_catalog
+        .append_envelope(Arc::new(envelope.clone()))
+        .expect("disconnected artifact id is unique");
+    let mut branch_cell =
+        RelationalBranchReferenceCell::empty(runtime.runtime_instance_id(), branch_id.clone())
+            .expect("disconnected branch identity is valid");
+    branch_cell
+        .advance_truth(worth_foundational::FoundationalBranchTarget::basis(
+            RelationalBranchTarget::from_commit_receipt(
+                runtime.runtime_instance_id(),
+                &orphan_head,
+                RelationalBranchTarget::roots_for_commit(&orphan_head),
+            ),
+        ))
+        .expect("disconnected branch reference is valid");
+    runtime.history.insert_branch_cell(branch_cell);
     runtime.history.commit_graph.insert(
         orphan_head.commit_id,
         VersionNode {

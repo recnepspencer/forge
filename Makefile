@@ -84,12 +84,9 @@ query-test:
 .PHONY: query-fast
 query-fast: query-test
 
-.PHONY: query-compiler-certification
-query-compiler-certification:
-	cargo test --manifest-path $(QUERY_MANIFEST) -p worth-query-certification --test compile_certification $(ARGS)
-
 .PHONY: query-cold-certification
 query-cold-certification:
+	cargo test --manifest-path $(QUERY_MANIFEST) -p worth-query-execution --features allocation-probes --lib $(ARGS) -- --test-threads=4
 	cargo test --manifest-path $(QUERY_MANIFEST) -p worth-query-certification -p worth-query-replay $(ARGS)
 
 .PHONY: spatial-fast
@@ -100,9 +97,8 @@ spatial-fast:
 	cargo test -p worth-spatial --test ui -- --format terse
 
 .PHONY: query-closeout
-query-closeout:
+query-closeout: query-cold-certification
 	cargo test --manifest-path $(QUERY_MANIFEST) --workspace --exclude worth-query-certification --exclude worth-query-replay -- --format terse
-	cargo test --manifest-path $(QUERY_MANIFEST) -p worth-query-certification -p worth-query-replay -- --format terse
 
 .PHONY: spatial-public-api-closeout
 spatial-public-api-closeout:

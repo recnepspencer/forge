@@ -11,7 +11,7 @@ use crate::schema::data::{
 };
 use crate::storage::overlay::WorkingState;
 use crate::symbols::data::StringInterner;
-use crate::transactions::data::{CreatedEntityRef, EntityReference};
+use crate::transactions::data::{CreatedEntityRef, CreatedRelationRef, EntityReference};
 
 use super::mutation_context::MutationContext;
 
@@ -43,6 +43,8 @@ pub(crate) struct MutationWorkspace<'a> {
     branch_local_delete_allowance: BranchLocalDeleteAllowance,
     preparation_telemetry: MutationPreparationTelemetry,
     created_entities: BTreeMap<CreatedEntityRef, EntityId>,
+    created_relations: BTreeMap<CreatedRelationRef, RelationId>,
+    record_allocations: Option<&'a mut crate::runtime::PendingRecordAllocations>,
 }
 
 impl<'a> MutationWorkspace<'a> {
@@ -54,6 +56,7 @@ impl<'a> MutationWorkspace<'a> {
         aspect_plans: &'a AspectContractPlanCatalog,
         version_id: VersionId,
         branch_local_delete_allowance: BranchLocalDeleteAllowance,
+        record_allocations: Option<&'a mut crate::runtime::PendingRecordAllocations>,
     ) -> Self {
         Self {
             state,
@@ -65,14 +68,21 @@ impl<'a> MutationWorkspace<'a> {
             branch_local_delete_allowance,
             preparation_telemetry: MutationPreparationTelemetry::default(),
             created_entities: BTreeMap::new(),
+            created_relations: BTreeMap::new(),
+            record_allocations,
         }
     }
 
     pub(crate) fn with_context<R>(&mut self, f: impl FnOnce(MutationContext<'_>) -> R) -> R {
+        let record_allocations = self
+            .record_allocations
+            .as_deref_mut()
+            .expect("authoritative record creation requires allocation authority");
         f(MutationContext {
             state: self.state,
             symbols: self.symbols,
             schema: self.schema,
+            record_allocations,
         })
     }
 
@@ -149,13 +159,29 @@ impl<'a> MutationWorkspace<'a> {
         self.preparation_telemetry
     }
 
-    pub(crate) fn into_created_entity_bindings(
+    pub(crate) fn into_created_bindings(
         self,
-    ) -> crate::transactions::data::CommitCreatedEntityBindings {
-        crate::transactions::data::CommitCreatedEntityBindings::from_owner_map(
-            self.created_entities,
-            self.symbols,
-        )
+    ) -> (
+        crate::transactions::data::CommitCreatedEntityBindings,
+        crate::transactions::data::CommitCreatedRelationBindings,
+    ) {
+        let MutationWorkspace {
+            created_entities,
+            created_relations,
+            symbols,
+            ..
+        } = self;
+        let created_entities =
+            crate::transactions::data::CommitCreatedEntityBindings::from_owner_map(
+                created_entities,
+                symbols,
+            );
+        let created_relations =
+            crate::transactions::data::CommitCreatedRelationBindings::from_owner_map(
+                created_relations,
+                symbols,
+            );
+        (created_entities, created_relations)
     }
 
     pub(crate) fn register_created_entity(
@@ -164,6 +190,14 @@ impl<'a> MutationWorkspace<'a> {
         entity_id: EntityId,
     ) {
         self.created_entities.insert(created, entity_id);
+    }
+
+    pub(crate) fn register_created_relation(
+        &mut self,
+        created: CreatedRelationRef,
+        relation_id: RelationId,
+    ) {
+        self.created_relations.insert(created, relation_id);
     }
 
     pub(crate) fn resolve_entity_reference(

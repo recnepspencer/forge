@@ -54,10 +54,17 @@ impl WorthQueryProviderSessionLease {
 
     pub(super) fn commit(
         &mut self,
-    ) -> Result<super::WorthQueryProviderTerminalDescription, super::WorthQueryProviderSessionFailure>
-    {
+    ) -> Result<
+        super::WorthQueryProviderTerminalDescription,
+        super::WorthQueryProviderSessionCommitStop,
+    > {
         let result = self.provider.commit_session(&self.token.view());
-        if result.is_ok() {
+        if result.is_ok()
+            || matches!(
+                &result,
+                Err(super::WorthQueryProviderSessionCommitStop::SettlementDeferred(_))
+            )
+        {
             self.close();
         }
         result

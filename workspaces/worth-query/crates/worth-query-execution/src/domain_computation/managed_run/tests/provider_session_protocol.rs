@@ -152,11 +152,13 @@ impl WorthQueryProviderSessionLifecycle for SessionProtocolProvider {
         _session: &WorthQueryProviderSessionView<'_>,
     ) -> Result<
         crate::domain_computation::WorthQueryProviderTerminalDescription,
-        WorthQueryProviderSessionFailure,
+        crate::domain_computation::WorthQueryProviderSessionCommitStop,
     > {
         self.calls.commits.fetch_add(1, Ordering::AcqRel);
         match self.failure {
-            SessionFailurePoint::CommitRejection => Err(provider_rejection("commit rejected")),
+            SessionFailurePoint::CommitRejection => {
+                Err(provider_rejection("commit rejected").into())
+            }
             SessionFailurePoint::CommitPanic => panic!("commit panic"),
             _ => Ok(
                 crate::domain_computation::WorthQueryProviderTerminalDescription::new(

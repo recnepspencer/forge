@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::durability::data::{DurabilityError, RecoveryFailureClass};
 
 use super::local_store::{DurableCheckpointFile, DurableSegmentFile, DurableStoreManifestFile};
+use super::persisted_checkpoint::PersistedDurableCheckpointFile;
 
 pub(crate) fn read_store_manifest_file(
     path: &Path,
@@ -32,14 +33,14 @@ pub(crate) fn write_segment_file(
 }
 
 pub(crate) fn read_checkpoint_file(path: &Path) -> Result<DurableCheckpointFile, DurabilityError> {
-    read_native_file(path)
+    read_native_file::<PersistedDurableCheckpointFile>(path)?.readmit()
 }
 
 pub(crate) fn write_checkpoint_file(
     path: &Path,
     file: &DurableCheckpointFile,
 ) -> Result<(), DurabilityError> {
-    write_native_file(path, file)
+    write_native_file(path, &PersistedDurableCheckpointFile::from_current(file))
 }
 
 fn read_native_file<T: for<'de> Deserialize<'de>>(path: &Path) -> Result<T, DurabilityError> {

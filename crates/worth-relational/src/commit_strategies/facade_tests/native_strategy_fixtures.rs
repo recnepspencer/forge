@@ -26,8 +26,7 @@ pub(super) use crate::facade::replay::{
     ReplayObservableSurface, ReplayVerificationMode,
 };
 pub(super) use crate::facade::transactions::{
-    CreateIntent, EntityMutationIntent, MutationIntent, TransactionOptions,
-    UpdateEntityFieldsIntent, WorkerIntentBatch,
+    CreateIntent, EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 pub(super) use crate::identity::data::{EntityId, KindId, PartitionId};
 pub(super) use crate::runtime::builder::RelationalRuntimeBuilder;
@@ -160,7 +159,7 @@ impl CommitStrategyExecutor for DeterministicFailureExecutor {
     }
 }
 
-pub(super) fn persisted_intent_runtime(
+pub(crate) fn persisted_intent_runtime(
     root_path: std::path::PathBuf,
     include_executor: bool,
 ) -> crate::facade::runtime::RelationalRuntime {
@@ -206,8 +205,8 @@ pub(super) fn persisted_intent_runtime_with_failing_executor(
         .build()
 }
 
-pub(super) fn execute_persisted_intent_strategy_commit(
-    runtime: &mut crate::facade::runtime::RelationalRuntime,
+pub(crate) fn execute_persisted_intent_strategy_commit(
+    mut runtime: &mut crate::facade::runtime::RelationalRuntime,
     entity: EntityId,
 ) -> crate::facade::transactions::CommitResult {
     let request = runtime
@@ -239,15 +238,21 @@ pub(super) fn execute_persisted_intent_strategy_commit(
         .commit_strategies()
         .execute(&request, &snapshot)
         .expect("strategy execution");
-    let mut authority = runtime.commit_strategies_authority();
+    let (transaction_validation_input, mut authority) =
+        crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
     let lowered = authority
-        .lower_execution(&request, &execution, TransactionOptions::default())
+        .lower_execution_with_input(
+            &mut runtime,
+            &request,
+            &execution,
+            transaction_validation_input,
+        )
         .expect("lowered strategy plan");
     let validated = authority
-        .validate_lowered_plan(lowered)
+        .validate_lowered_plan(&mut runtime, lowered)
         .expect("validated strategy plan");
     authority
-        .execute_validated_commit(validated)
+        .execute_validated_commit(&mut runtime, validated)
         .expect("validated strategy commit")
 }
 

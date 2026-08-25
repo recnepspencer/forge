@@ -190,6 +190,7 @@ impl WorthQueryOutcomeNavigation for workflow::WorthQueryBranchMergeOutcome {
     fn posture(&self) -> WorthQueryOutcomePosture {
         match self {
             Self::Completed(_) => WorthQueryOutcomePosture::Completed,
+            Self::Deferred(_) | Self::SettlementDeferred(_) => WorthQueryOutcomePosture::Deferred,
             Self::Stopped(stop) => match stop.source() {
                 workflow::WorthQueryBranchMergeStopSource::InspectionUnavailable
                 | workflow::WorthQueryBranchMergeStopSource::RelationalExecution => {

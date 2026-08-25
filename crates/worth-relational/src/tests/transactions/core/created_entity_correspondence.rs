@@ -17,7 +17,8 @@ fn committed_create_references_resolve_their_own_distinct_persisted_meanings() {
         kind_id,
         client_key: ClientKey::raw("second-owner-reference"),
     };
-    let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+    let mut transaction =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     transaction.push_batch(
         WorkerIntentBatch::new("created-reference-correspondence")
             .push(MutationIntent::Create(CreateIntent::Entity(EntitySpec {
@@ -33,7 +34,9 @@ fn committed_create_references_resolve_their_own_distinct_persisted_meanings() {
                 fields: name_field_patch("second-persisted-meaning"),
             }))),
     );
-    let committed = transaction.commit().expect("both creates commit");
+    let committed = transaction
+        .commit(&mut runtime)
+        .expect("both creates commit");
     let first_id = committed
         .created_entity(&first)
         .expect("first create reference resolves");
@@ -44,7 +47,7 @@ fn committed_create_references_resolve_their_own_distinct_persisted_meanings() {
 
     let records = runtime
         .read_truth()
-        .project_version(committed.version_id)
+        .project_historical_version(committed.version_id)
         .all_authoritative_entity_records();
     let first_record = records
         .iter()

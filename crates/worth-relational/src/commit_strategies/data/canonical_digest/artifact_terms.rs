@@ -77,8 +77,8 @@ pub(crate) fn runtime_planning_contract_digest(planning: &PlanningContract) -> [
 pub(crate) fn runtime_execution_model_digest(model: RelationalExecutionModel) -> [u8; 32] {
     commit_strategy_digest("strategy-runtime-execution-model-v1", |bytes| {
         bytes.tag(match model {
-            RelationalExecutionModel::SerialAuthority => 1,
-            RelationalExecutionModel::StagedParallelPreparation => 2,
+            RelationalExecutionModel::SingleLaneExecution => 1,
+            RelationalExecutionModel::ParallelPreparation => 2,
             RelationalExecutionModel::ParallelPostCommitConsumption => 3,
         });
     })

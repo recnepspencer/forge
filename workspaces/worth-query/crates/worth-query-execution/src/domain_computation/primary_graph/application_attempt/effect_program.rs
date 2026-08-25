@@ -1,5 +1,7 @@
 mod emission;
 mod model;
+mod optional_field_authoring;
+mod ordinary_field_authoring;
 mod relation_effects;
 mod target_admission;
 
@@ -17,17 +19,19 @@ use worth_query_declaration::facade::domain_computation::WorthQueryResourceDimen
 use worth_query_installation::facade::{
     ApplicationEntityRef, ApplicationFieldRef, ApplicationFieldUnit,
     ApplicationOperationProgramTarget, OperationCreates, OperationDeletes, OperationWrites,
-    TypedApplicationValue, WritableCapability,
+    TypedApplicationValue,
 };
 use worth_relational::facade::transactions::EntityReference;
 
-pub(super) use model::WorthQueryApplicationRealizedEffect;
 pub(in crate::domain_computation::primary_graph) use model::{
     WorthQueryAdmittedApplicationEmissionBatch, WorthQueryApplicationEmission,
 };
 pub use model::{
     WorthQueryApplicationEffectEntity, WorthQueryApplicationEffectProgram,
     WorthQueryApplicationEffectProgramBuilder,
+};
+pub(super) use model::{
+    WorthQueryApplicationOptionalFieldWrite, WorthQueryApplicationRealizedEffect,
 };
 
 use super::effect_validation::{canonical_key, denial};
@@ -221,59 +225,6 @@ impl<Schema, Operation, Input, Scope>
             ));
         };
         fields.insert(locator, value.into_foundational_value());
-        Ok(())
-    }
-
-    pub fn write_field<Entity, Aspect, Field, Value, Write, Equality, Unit>(
-        &mut self,
-        target: &WorthQueryApplicationEffectEntity<Schema, Entity>,
-        field: ApplicationFieldRef<Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>,
-        value: Value,
-    ) -> Result<(), WorthQueryApplicationAttemptDenial>
-    where
-        Field: OperationWrites<Operation>,
-        Value: TypedApplicationValue,
-        Write: WritableCapability,
-        Unit: ApplicationFieldUnit,
-    {
-        self.validate_target(target, field.entity())?;
-        self.admit_program_target(&ApplicationOperationProgramTarget::Write {
-            entity: field.entity().to_string(),
-            aspect: field.aspect().to_string(),
-            field: field.field().to_string(),
-        })?;
-        let EntityReference::Existing(entity_id) = target.reference else {
-            return Err(denial(
-                WorthQueryApplicationAttemptDenialKind::ForeignEffectTarget,
-                field.field(),
-            ));
-        };
-        let locator = self.field_locator(field.entity(), field.aspect(), field.field())?;
-        match self.effects.iter_mut().find(|effect| {
-            matches!(
-                effect,
-                WorthQueryApplicationRealizedEffect::UpdateEntity {
-                    entity,
-                    entity_id: candidate,
-                    ..
-                } if entity == field.entity() && *candidate == entity_id
-            )
-        }) {
-            Some(WorthQueryApplicationRealizedEffect::UpdateEntity {
-                entity,
-                entity_id: candidate,
-                fields,
-            }) if entity == field.entity() && *candidate == entity_id => {
-                fields.insert(locator, value.into_foundational_value());
-            }
-            _ => self
-                .effects
-                .push(WorthQueryApplicationRealizedEffect::UpdateEntity {
-                    entity: field.entity().to_string(),
-                    entity_id,
-                    fields: BTreeMap::from([(locator, value.into_foundational_value())]),
-                }),
-        }
         Ok(())
     }
 

@@ -2,19 +2,33 @@ use std::sync::{Arc, Mutex};
 
 use crate::runtime::RelationalRuntime;
 
+mod branch_basis;
+mod branch_head_bindings;
 mod branch_heads;
 mod committed_patches;
 mod continuity_lineage;
-mod execution_basis;
-mod snapshot_authority;
+mod observation_bindings;
+mod retained_entity_projection;
+mod selected_commit_resolution;
 mod snapshot_reads;
 mod source_profile;
 
-pub use execution_basis::RelationalBridgeTruthViewBasisDenial;
+pub use branch_head_bindings::{
+    RelationalBridgeBranchHeadLease, RelationalBridgeBranchHeadReleaseReceipt,
+};
+pub use observation_bindings::{
+    RelationalBridgeObservationLease, RelationalBridgeObservationReleaseReceipt,
+};
+pub(in crate::presentation::bridge) use observation_bindings::{
+    RelationalBridgeSelectedCommitObservation, RelationalBridgeSelectedObservation,
+};
 
 #[derive(Debug, Clone)]
 pub struct RuntimeBridgeRelationalSource {
     runtime: crate::visibility::runtime_authority::RelationalVisibilityRuntimeAuthority,
+    runtime_instance_id: u64,
+    observation_bindings: Arc<observation_bindings::RelationalBridgeObservationBindings>,
+    branch_head_bindings: Arc<branch_head_bindings::RelationalBridgeBranchHeadBindings>,
     graph_role: Arc<str>,
     partition: Option<RelationalBridgePartitionBinding>,
 }
@@ -39,8 +53,12 @@ impl RuntimeBridgeRelationalSource {
         if graph_role.trim().is_empty() || graph_role.trim() != graph_role.as_ref() {
             return Err(RelationalBridgeSourceConfigurationError::InvalidGraphRole);
         }
+        let runtime_instance_id = runtime.runtime_instance_id();
         Ok(Self {
             runtime: crate::visibility::runtime_authority::RelationalVisibilityRuntimeAuthority::immutable(runtime),
+            runtime_instance_id,
+            observation_bindings: observation_bindings::RelationalBridgeObservationBindings::new(),
+            branch_head_bindings: branch_head_bindings::RelationalBridgeBranchHeadBindings::new(),
             graph_role,
             partition: None,
         })
@@ -52,11 +70,18 @@ impl RuntimeBridgeRelationalSource {
     ) -> Result<Self, RelationalBridgeSourceConfigurationError> {
         let graph_role = graph_role.into();
         validate_graph_role(&graph_role)?;
+        let runtime_instance_id = runtime
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .runtime_instance_id();
         Ok(Self {
             runtime:
                 crate::visibility::runtime_authority::RelationalVisibilityRuntimeAuthority::shared(
                     runtime,
                 ),
+            runtime_instance_id,
+            observation_bindings: observation_bindings::RelationalBridgeObservationBindings::new(),
+            branch_head_bindings: branch_head_bindings::RelationalBridgeBranchHeadBindings::new(),
             graph_role,
             partition: None,
         })
@@ -88,23 +113,6 @@ impl RuntimeBridgeRelationalSource {
             truth: truth_partition,
         });
         Ok(source)
-    }
-
-    fn publish_commit(
-        &self,
-        commit_id: crate::history::data::CommitId,
-    ) -> super::RelationalBridgePublicationOutcome {
-        self.runtime.with_runtime(|runtime| match &self.partition {
-            Some(partition) => runtime.publish_commit_for_bridge_graph_partition(
-                commit_id,
-                self.graph_role.clone(),
-                partition.relational,
-                partition.truth.clone(),
-            ),
-            None => {
-                runtime.publish_commit_for_bridge_graph_role(commit_id, self.graph_role.clone())
-            }
-        })
     }
 
     fn admits_relational_partition(&self, partition_id: u32) -> bool {

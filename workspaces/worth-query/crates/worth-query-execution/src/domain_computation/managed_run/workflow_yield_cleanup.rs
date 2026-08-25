@@ -1,6 +1,6 @@
 mod inspection;
 
-use worth_relational::facade::runtime::RelationalExecutionBasisLease;
+use super::WorthQueryManagedRelationalObservation;
 use worth_runtime_bridge::facade::BridgeExecutionBasisFinalizationReceipt;
 
 pub use inspection::{
@@ -41,7 +41,7 @@ pub struct WorthQueryWorkflowYieldCleanupPending {
 
 struct WorthQueryWorkflowYieldCleanupAssociation {
     affinity: WorthQueryWorkflowYieldReleasePending,
-    relational_basis: RelationalExecutionBasisLease,
+    relational_basis: WorthQueryManagedRelationalObservation,
     bridge: BridgeExecutionBasisFinalizationReceipt,
     artifacts: WorthQueryFrozenWorkflowArtifactAuthority,
     checkpoint_release: WorthQueryProviderCheckpointReleaseEvidence,

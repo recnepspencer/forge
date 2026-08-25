@@ -1102,6 +1102,8 @@ readiness closure.
 
 Use it when multiple crates need to agree about:
 
+- exact branch-reference observations shared by Relational and Signal without
+  moving owner currentness or authority into Foundational
 - branch-local candidate meaning without accidentally claiming authority
 - staged branch work that is ready for merge planning
 - merge planning and typed merge verdict topology
@@ -1123,10 +1125,10 @@ The actual capability inventory is much larger than "branch, merge, commit":
 - `FoundationalStagedBranchArtifact<T>`
 - `FoundationalBranchId`
 - `FoundationalBranchCandidateId`
-- `FoundationalBranchForkBasis`
-- `FoundationalBranchObservationBasis`
-- `FoundationalBranchForkObservationBasis`
-- `FoundationalBranchComparisonBasis`
+- `FoundationalBranchCandidateForkBasis`
+- `FoundationalBranchCandidateObservationBasis`
+- `FoundationalBranchCandidateForkObservationBasis`
+- `FoundationalBranchCandidateComparisonBasis`
 - merge planning through `foundational_merge(...)`
 - `FoundationalMergeBuilder<T>`
 - `FoundationalMergeCandidate<T>`

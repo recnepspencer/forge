@@ -14,14 +14,14 @@ use crate::visibility::materialization::read_records::{
 
 #[derive(Debug, Clone, Copy)]
 pub struct StrategyVisibilityReadView<'observation, 'runtime> {
-    projection: VisibilityProjectionView<'runtime>,
+    projection: &'observation VisibilityProjectionView<'runtime>,
     read_contract: &'runtime StrategyReadContract,
     metrics: &'observation RefCell<StrategyObservationMetrics>,
 }
 
 impl<'observation, 'runtime> StrategyVisibilityReadView<'observation, 'runtime> {
     pub(super) const fn new(
-        projection: VisibilityProjectionView<'runtime>,
+        projection: &'observation VisibilityProjectionView<'runtime>,
         read_contract: &'runtime StrategyReadContract,
         metrics: &'observation RefCell<StrategyObservationMetrics>,
     ) -> Self {

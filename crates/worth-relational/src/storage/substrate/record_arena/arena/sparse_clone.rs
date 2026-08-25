@@ -15,13 +15,13 @@ impl<K: RecordKind> RecordArena<K> {
         let mut clone = self.sparse_overlay_shell(slot_count);
 
         for &slot in touched_slots {
-            if slot >= slot_count {
+            let Some(physical) = self.physical_index(slot) else {
                 continue;
-            }
-            clone.metadata_history[slot] = self.metadata_history[slot].clone();
-            clone.extra[slot] = self.extra[slot].clone();
-            clone.aspect_versions[slot] = self.aspect_versions[slot].clone();
-            clone.diagnostics_enrichment[slot] = self.diagnostics_enrichment[slot].clone();
+            };
+            clone.metadata_history[physical] = self.metadata_history[physical].clone();
+            clone.extra[physical] = self.extra[physical].clone();
+            clone.aspect_versions[physical] = self.aspect_versions[physical].clone();
+            clone.diagnostics_enrichment[physical] = self.diagnostics_enrichment[physical].clone();
         }
 
         clone
@@ -41,6 +41,7 @@ impl<K: RecordKind> RecordArena<K> {
         K::Meta: Clone,
     {
         let mut clone = Self::with_capacity(slot_count);
+        clone.slots.clone_from(&self.slots);
         clone.partition_ids.clone_from(&self.partition_ids);
         clone.generations.clone_from(&self.generations);
         clone.lifecycle.clone_from(&self.lifecycle);
@@ -52,7 +53,6 @@ impl<K: RecordKind> RecordArena<K> {
         clone.snapshot_pins.clone_from(&self.snapshot_pins);
         clone.live_bitset = self.live_bitset.clone();
         clone.reclaimable_bitset = self.reclaimable_bitset.clone();
-        clone.free_list = self.free_list.clone();
 
         clone.metadata_history.resize_with(slot_count, Vec::new);
         clone.extra.resize_with(slot_count, K::empty_extra);

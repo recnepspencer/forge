@@ -6,8 +6,7 @@ use worth_relational::facade::schema::{
 };
 use worth_relational::facade::symbols::ClientKey;
 use worth_relational::facade::transactions::{
-    AspectFieldPatch, CreateIntent, EntitySpec, MutationIntent, TransactionOptions,
-    WorkerIntentBatch,
+    AspectFieldPatch, CreateIntent, EntitySpec, MutationIntent, WorkerIntentBatch,
 };
 
 use crate::memory_workspace::WorthQueryWorkspaceError;
@@ -111,7 +110,17 @@ impl WorthQueryRuntimeWriteAuthorityAdapter for CommittingWriteAuthority {
                 )
             })?;
 
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction = {
+            let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
+            runtime
+                .begin_branch_transaction(
+                    &transaction_validation_input,
+                    worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                )
+                .expect("owner-admitted transaction context")
+        };
         transaction.push_batch(
             WorkerIntentBatch::new("ordinary-query-shared-root-proof").push(
                 MutationIntent::Create(CreateIntent::Entity(EntitySpec {
@@ -122,7 +131,7 @@ impl WorthQueryRuntimeWriteAuthorityAdapter for CommittingWriteAuthority {
                 })),
             ),
         );
-        transaction.commit().map_err(|error| {
+        transaction.commit(runtime).map_err(|error| {
             WorthQueryWorkspaceError::new(format!(
                 "ordinary Query write could not commit to the shared graph: {error:?}"
             ))

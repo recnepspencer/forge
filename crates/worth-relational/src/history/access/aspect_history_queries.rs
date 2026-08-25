@@ -196,8 +196,7 @@ impl<'runtime> HistoryAccess<'runtime> {
         for event in self
             .runtime
             .lineage
-            .events
-            .iter()
+            .events()
             .filter(|event| traversed_event_ids.contains(&event.event_id))
         {
             scope.extend(event.sources.iter().copied());
@@ -216,7 +215,7 @@ impl<'runtime> HistoryAccess<'runtime> {
         )
     }
 
-    fn commit_span(envelopes: &[&CanonicalCommitEnvelope]) -> Option<AspectHistoryCommitSpan> {
+    fn commit_span(envelopes: &[CanonicalCommitEnvelope]) -> Option<AspectHistoryCommitSpan> {
         Some(AspectHistoryCommitSpan {
             first_commit_id: envelopes.first()?.commit.commit_id,
             last_commit_id: envelopes.last()?.commit.commit_id,

@@ -52,9 +52,9 @@ let suite = WorthQueryCertificationSuite::complete([
 ])?;
 ```
 
-Query owns the generic compile-fail and hostile-attack cross-product. A domain
-does not reproduce those fixtures or build a product-specific evidence ledger.
-Its provider adapter executes scenarios and projects results into
+Query owns the bounded public-facade journey and targeted runtime denials. A
+domain does not reproduce those fixtures or build a product-specific evidence
+ledger. Its provider adapter executes scenarios and projects results into
 provider-neutral semantic facts and exact counters. Query derives and attaches
 the journey checkpoints from the scenario family.
 
@@ -82,16 +82,16 @@ windows, and collection patches.
 `certify_hostile_provider` is the separate contract for a Query-owned
 hostile-world adapter. The runner's substitute test proves canonical dispatch
 and comparison sensitivity only;
-production denial behavior remains the responsibility of Query's real compile
-and runtime boundary suites. Domain provider adapters do not reproduce the
-generic authority attack cross-product.
+production denial behavior remains the responsibility of Query's focused
+runtime boundary suites. Domain provider adapters do not reproduce generic
+authority-attack matrices.
 
 ## Static Enforcement
 
-The central `trybuild` session contains a positive audience-facade journey and
-focused negative proofs for real type-system guarantees. Boundary-check also
-snapshots the complete nested `worth-query-host::installed` namespace, not
-only the top-level `installed` module name.
+Ordinary integration tests and doctests compile the positive audience-facade
+journey through its real package owners. Boundary-check snapshots the complete
+nested `worth-query-host::installed` namespace, not only the top-level
+`installed` module name.
 
 Runtime-affine foreign, stale, cross-provider, lifecycle, replay, collection,
 and correspondence failures remain typed runtime certification. They are not

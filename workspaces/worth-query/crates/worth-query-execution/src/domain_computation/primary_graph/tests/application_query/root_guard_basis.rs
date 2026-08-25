@@ -5,8 +5,8 @@ use std::time::Duration;
 use worth_query_declaration::facade::application_query::ApplicationQueryParameterSet;
 use worth_query_installation::facade::TypedApplicationValue;
 use worth_relational::facade::transactions::{
-    AspectFieldPatch, EntityMutationIntent, MutationIntent, TransactionOptions,
-    UpdateEntityFieldsIntent, WorkerIntentBatch,
+    AspectFieldPatch, EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent,
+    WorkerIntentBatch,
 };
 
 use super::current_controls;
@@ -110,7 +110,17 @@ fn change_account_status(
             locator,
             status.to_string().into_foundational_value(),
         )]));
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction = {
+            let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
+            runtime
+                .begin_branch_transaction(
+                    &transaction_validation_input,
+                    worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                )
+                .expect("owner-admitted transaction context")
+        };
         transaction.push_batch(
             WorkerIntentBatch::new("change-status-after-basis-pin").push(MutationIntent::Entity(
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -119,7 +129,7 @@ fn change_account_status(
                 }),
             )),
         );
-        transaction.commit().unwrap();
+        transaction.commit(runtime).unwrap();
         handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }

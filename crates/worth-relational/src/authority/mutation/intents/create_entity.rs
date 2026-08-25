@@ -29,6 +29,7 @@ pub(super) fn apply(
     let entity_id = workspace.with_context(|context| {
         let entity_id = allocate_entity_with_extra(
             context.state,
+            context.record_allocations,
             version_id,
             spec.partition_id,
             spec.kind_id,
@@ -36,12 +37,12 @@ pub(super) fn apply(
                 authoritative_aspect_state,
                 ..EntityExtra::default()
             },
-        );
+        )?;
         context
             .state
             .mark_entity_slot_touched(entity_id.partition_id, entity_id.slot_index());
-        entity_id
-    });
+        Ok(entity_id)
+    })?;
     workspace.register_created_entity(
         CreatedEntityRef {
             partition_id: spec.partition_id,

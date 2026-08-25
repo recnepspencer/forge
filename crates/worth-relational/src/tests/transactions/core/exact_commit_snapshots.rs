@@ -19,6 +19,7 @@ fn exact_commit_snapshot_survives_later_update_and_delete_without_reconstruction
         .expect("created commit publication remains retained");
     let counters = runtime.performance_access().counters();
     assert_eq!(counters.visibility_cache_miss_reconstructions, 0);
+    assert!(counters.visibility_exact_state_materializations <= 1);
     assert_eq!(created_observation.commit(), &created_commit);
     assert_eq!(
         created_observation.snapshot_handle().version_id,
@@ -50,7 +51,7 @@ fn exact_commit_snapshot_survives_later_update_and_delete_without_reconstruction
     assert_eq!(read_entity_name(&updated_record), Some("after".to_owned()));
     assert!(runtime
         .read_truth()
-        .project_version(runtime.current_version_id())
+        .project_historical_version(runtime.current_version_id())
         .all_authoritative_entity_records()
         .into_iter()
         .all(|record| record.entity_id != entity));

@@ -83,6 +83,25 @@ impl WorthQueryRuntimeBackend for WorthQueryBridgeBackedRuntimeBackend {
         self.support_profile.clone()
     }
 
+    fn repair_deferred_branch_merge_settlement(
+        &mut self,
+        deferred: &crate::ordinary::workflow::WorthQueryBranchMergeSettlementDeferred,
+    ) -> Result<
+        worth_relational::facade::history::RelationalCommitReceipt,
+        crate::runtime::WorthQuerySettlementRepairError,
+    > {
+        let settlement = deferred.settlement();
+        match self.primary_graph_runtime.as_ref() {
+            Some(primary_graph) => primary_graph.repair_deferred_publication_settlement(settlement),
+            None => self
+                .relational_runtime
+                .as_mut()
+                .ok_or(crate::runtime::WorthQuerySettlementRepairError::RelationalOwnerUnavailable)?
+                .repair_deferred_publication_settlement(settlement)
+                .map_err(Into::into),
+        }
+    }
+
     fn readmits_primary_graph_source(
         &self,
         installation: &worth_query_execution::facade::primary_graph::WorthQueryGranularInvalidationInstallation,
@@ -274,7 +293,7 @@ impl WorthQueryRuntimeBackend for WorthQueryBridgeBackedRuntimeBackend {
         declaration: &crate::workflow::LoweredMergeWorkflowDeclaration,
     ) -> Result<
         worth_relational::facade::transactions::MergeExecutionOutcome,
-        (crate::effect_lifecycle::EffectExecutionDenialKind, String),
+        crate::effect_lifecycle::RelationalEffectExecutionFailure,
     > {
         self.execute_backend_merge(authority, declaration)
     }

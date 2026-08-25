@@ -21,12 +21,14 @@ pub(crate) use lineage_terms::{
     digest_lineage_decision_log_surface, digest_lineage_decision_summary,
     digest_lineage_event_batch_surface, digest_lineage_event_summary,
 };
+#[cfg(test)]
+pub(crate) use surface_terms::digest_patch_surface;
 pub(crate) use surface_terms::{
-    digest_branch_head_summary, digest_branch_head_surface, digest_derived_index_summary,
-    digest_derived_index_surface, digest_diagnostics_summary, digest_diagnostics_surface,
-    digest_history_summary, digest_history_surface, digest_patch_summary, digest_patch_surface,
-    digest_snapshot_summary, digest_snapshot_surface, digest_strategy_replay_descriptor,
-    digest_strategy_replay_summary,
+    digest_branch_head_summary, digest_branch_head_surface, digest_canonical_patch_summary,
+    digest_canonical_patch_surface, digest_derived_index_summary, digest_derived_index_surface,
+    digest_diagnostics_summary, digest_diagnostics_surface, digest_history_summary,
+    digest_history_surface, digest_snapshot_summary, digest_snapshot_surface,
+    digest_strategy_replay_descriptor, digest_strategy_replay_summary,
 };
 
 #[cfg(test)]

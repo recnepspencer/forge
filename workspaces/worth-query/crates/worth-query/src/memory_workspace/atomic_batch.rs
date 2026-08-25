@@ -6,7 +6,7 @@ use worth_relational::facade::{
     symbols::ClientKey,
     transactions::{
         ApplyEntityAspectPatchIntent, CreateIntent, DeleteEntityIntent, EntityAspectCreateIntent,
-        EntityMutationIntent, MutationIntent, RecordRef, TransactionOptions, WorkerIntentBatch,
+        EntityMutationIntent, MutationIntent, RecordRef, WorkerIntentBatch,
     },
 };
 
@@ -57,12 +57,20 @@ impl WorthQueryMemoryWorkspace {
             .checked_add(insert_count as u64)
             .ok_or_else(|| WorthQueryWorkspaceError::new("batch client-key space exhausted"))?;
         let (batch, prepared) = self.prepare_batch(mutations)?;
+        let options = self
+            .runtime
+            .admit_main_branch_basis()
+            .expect("memory workspace main branch remains owner-admissible");
         let mut transaction = self
             .runtime
-            .begin_transaction(TransactionOptions::default());
+            .begin_branch_transaction(
+                &options,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context");
         transaction.push_batch(batch);
         let result = transaction
-            .commit()
+            .commit(&mut self.runtime)
             .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
         self.next_client_key = next_key;
         self.batch_receipts(result, prepared)

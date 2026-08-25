@@ -4,6 +4,7 @@ mod failure_diagnostics;
 mod invariant_violation_diagnostic_projection;
 mod preparation_diagnostics;
 
+use crate::branch::SelectedRelationalBranchState;
 use crate::publication::bundle::PublicationStage;
 use crate::publication::data::PublicationError;
 use crate::runtime::{RelationalRuntime, WorkingState};
@@ -23,6 +24,15 @@ impl RelationalRuntime {
     pub fn certify_current_state(&mut self) -> Result<InvariantExecutionResult, PublicationError> {
         self.invariant_authority().enforce_certification_boundary()
     }
+
+    pub(crate) fn publish_invariant_preparation_diagnostics(
+        &mut self,
+        results: &[InvariantExecutionResult],
+    ) {
+        for result in results {
+            emit_preparation_diagnostics(self, result);
+        }
+    }
 }
 
 pub(crate) struct InvariantAuthority<'runtime> {
@@ -34,14 +44,34 @@ impl<'runtime> InvariantAuthority<'runtime> {
         Self { runtime }
     }
 
-    pub(crate) fn enforce_commit_boundary(
+    pub(crate) fn enforce_commit_boundary_for_selected_branch(
         &mut self,
+        selected_state: &SelectedRelationalBranchState,
+        proposed_working_state: &WorkingState,
+        proposed_version_id: crate::identity::data::VersionId,
         merged_plan: &MergedCommitPlan,
+        proposal_identity: Option<&crate::mvcc::RelationalMutationProposalIdentity>,
     ) -> Result<InvariantExecutionResult, TransactionCommitError> {
-        let result = self.runtime.validation().commit_boundary(merged_plan);
-        emit_preparation_diagnostics(self.runtime, &result);
-        let collect_all = emit_collect_all_failure_diagnostics(self.runtime, &result);
+        self.enforce_commit_boundary_result(
+            self.runtime
+                .validation()
+                .commit_boundary_for_selected_branch(
+                    selected_state,
+                    proposed_working_state,
+                    proposed_version_id,
+                    merged_plan,
+                    proposal_identity,
+                ),
+        )
+    }
+
+    fn enforce_commit_boundary_result(
+        &mut self,
+        result: InvariantExecutionResult,
+    ) -> Result<InvariantExecutionResult, TransactionCommitError> {
         if let Some(failure) = result.summary().blocking_failure() {
+            emit_preparation_diagnostics(self.runtime, &result);
+            let collect_all = emit_collect_all_failure_diagnostics(self.runtime, &result);
             if !collect_all {
                 emit_conflict_diagnostic(self.runtime, &result, failure);
             }
@@ -54,22 +84,29 @@ impl<'runtime> InvariantAuthority<'runtime> {
 
     pub(crate) fn enforce_mutation_sensitive_for_working_state(
         &mut self,
+        selected_state: &SelectedRelationalBranchState,
         working_state: &WorkingState,
         version_id: crate::identity::data::VersionId,
         merged_plan: &MergedCommitPlan,
+        proposal_identity: Option<&crate::mvcc::RelationalMutationProposalIdentity>,
     ) -> Result<InvariantExecutionResult, CommitConflict> {
         let result = {
-            let storage = self.runtime.storage_access();
-            let overlay_state = storage.overlay_state_view(working_state);
-            self.runtime.validation().mutation_sensitive_for_state(
-                overlay_state,
-                version_id,
-                Some(merged_plan),
-            )
+            let overlay_state = crate::storage::overlay::OverlayStateView::new(
+                selected_state.state(),
+                working_state,
+            );
+            self.runtime
+                .validation()
+                .mutation_sensitive_for_state_with_proposal(
+                    overlay_state,
+                    version_id,
+                    Some(merged_plan),
+                    proposal_identity,
+                )
         };
-        emit_preparation_diagnostics(self.runtime, &result);
-        let collect_all = emit_collect_all_failure_diagnostics(self.runtime, &result);
         if let Some(failure) = result.summary().blocking_failure() {
+            emit_preparation_diagnostics(self.runtime, &result);
+            let collect_all = emit_collect_all_failure_diagnostics(self.runtime, &result);
             if !collect_all {
                 emit_conflict_diagnostic(self.runtime, &result, failure);
             }
@@ -80,22 +117,29 @@ impl<'runtime> InvariantAuthority<'runtime> {
 
     pub(crate) fn enforce_snapshot_publication_for_working_state(
         &mut self,
+        selected_state: &SelectedRelationalBranchState,
         working_state: &WorkingState,
         version_id: crate::identity::data::VersionId,
         merged_plan: &MergedCommitPlan,
+        proposal_identity: Option<&crate::mvcc::RelationalMutationProposalIdentity>,
     ) -> Result<InvariantExecutionResult, PublicationError> {
         let result = {
-            let storage = self.runtime.storage_access();
-            let overlay_state = storage.overlay_state_view(working_state);
-            self.runtime.validation().snapshot_publication_for_state(
-                overlay_state,
-                version_id,
-                Some(merged_plan),
-            )
+            let overlay_state = crate::storage::overlay::OverlayStateView::new(
+                selected_state.state(),
+                working_state,
+            );
+            self.runtime
+                .validation()
+                .snapshot_publication_for_state_with_proposal(
+                    overlay_state,
+                    version_id,
+                    Some(merged_plan),
+                    proposal_identity,
+                )
         };
-        emit_preparation_diagnostics(self.runtime, &result);
-        let collect_all = emit_collect_all_failure_diagnostics(self.runtime, &result);
         if let Some(failure) = result.summary().publication_failure() {
+            emit_preparation_diagnostics(self.runtime, &result);
+            let collect_all = emit_collect_all_failure_diagnostics(self.runtime, &result);
             if !collect_all {
                 emit_publication_failure(self.runtime, &result, failure);
             }

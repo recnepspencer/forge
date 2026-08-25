@@ -16,8 +16,15 @@ impl<'runtime> ReplayAccess<'runtime> {
     pub fn canonical_commit_envelope(
         &self,
         commit_id: CommitId,
-    ) -> Option<&CanonicalCommitEnvelope> {
-        self.runtime.commit_envelope(commit_id)
+    ) -> Option<CanonicalCommitEnvelope> {
+        self.runtime.canonical_envelope_owned(commit_id)
+    }
+
+    pub fn canonical_commit_envelope_owned(
+        &self,
+        commit_id: CommitId,
+    ) -> Option<CanonicalCommitEnvelope> {
+        self.runtime.canonical_envelope_owned(commit_id)
     }
 
     pub fn compare_outcome(&self, outcome: &RelationalReplayOutcome) -> bool {

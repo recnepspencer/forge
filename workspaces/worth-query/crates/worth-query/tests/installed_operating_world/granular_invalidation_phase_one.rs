@@ -12,62 +12,6 @@ use super::installed_operation_fixture::{
 };
 use crate::support::public_bridge_runtime::PublicBridgeRuntimeHarness;
 
-mod necessity_manifest;
-
-use necessity_manifest::{
-    CrossRuntimeInvalidationNecessityManifest, GranularInvalidationMutation,
-    GranularInvalidationScenario, GranularInvalidationWorldDefinition,
-};
-
-#[test]
-fn phase_one_manifest_retains_the_exact_5y_need_before_runtime_routing() {
-    let world = GranularInvalidationWorldDefinition::curve_detail_twins();
-    let mutation = GranularInvalidationMutation::curve_detail("usd-rates", "5y");
-    let manifest = CrossRuntimeInvalidationNecessityManifest::derive(&world, &mutation);
-
-    assert_eq!(
-        manifest.relational_changes(),
-        &std::collections::BTreeSet::from(["curve:usd-rates:5y:zero-rate".into()])
-    );
-    assert_eq!(manifest.bridge_matches().len(), 3);
-    assert!(manifest.bridge_matches().contains("risk-exact"));
-    assert!(manifest.bridge_matches().contains("risk-partition"));
-    assert!(manifest.bridge_matches().contains("risk-unscoped"));
-    assert_eq!(manifest.signal_seeds(), manifest.bridge_matches());
-    assert_eq!(manifest.query_impacts().len(), 3);
-    assert_eq!(manifest.maintenance().len(), 3);
-    assert_eq!(manifest.deliveries().len(), 3);
-    assert!(manifest.exclusions().contains("risk-sibling"));
-    assert!(manifest.exclusions().contains("volatility"));
-}
-
-#[test]
-fn phase_one_manifest_defines_all_six_required_worlds_before_routing() {
-    for scenario in GranularInvalidationScenario::ALL {
-        let world = GranularInvalidationWorldDefinition::for_scenario(scenario);
-        let mutation = GranularInvalidationMutation::for_scenario(scenario);
-        let manifest = CrossRuntimeInvalidationNecessityManifest::derive(&world, &mutation);
-        assert_eq!(
-            manifest.relational_changes().len(),
-            1,
-            "{}",
-            scenario.name()
-        );
-        assert!(!manifest.bridge_matches().is_empty(), "{}", scenario.name());
-        if scenario == GranularInvalidationScenario::SuppressedQuoteNoQueryPatch {
-            assert!(manifest.signal_seeds().is_empty());
-            assert!(manifest.query_impacts().is_empty());
-            assert!(manifest.maintenance().is_empty());
-            assert!(manifest.deliveries().is_empty());
-        } else {
-            assert!(!manifest.signal_seeds().is_empty(), "{}", scenario.name());
-            assert!(!manifest.query_impacts().is_empty(), "{}", scenario.name());
-            assert!(!manifest.maintenance().is_empty(), "{}", scenario.name());
-            assert!(!manifest.deliveries().is_empty(), "{}", scenario.name());
-        }
-    }
-}
-
 #[test]
 fn phase_one_red_control_separates_direct_truth_from_later_signal_execution() {
     let conditional = node(

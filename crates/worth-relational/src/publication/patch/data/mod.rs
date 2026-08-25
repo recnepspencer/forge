@@ -10,7 +10,8 @@ mod record_structural_change;
 mod semantic_change;
 
 pub use authoritative_patch_envelope::{
-    PublishedAuthoritativePatchEnvelope, PublishedAuthoritativeRecordPatch,
+    CanonicalAuthoritativePatch, PublishedAuthoritativePatchEnvelope,
+    PublishedAuthoritativeRecordPatch,
 };
 pub use patch_batch::{PatchStreamBatch, PatchStreamRequest};
 pub use patch_detail::{PatchDetail, PatchFragmentBudget};

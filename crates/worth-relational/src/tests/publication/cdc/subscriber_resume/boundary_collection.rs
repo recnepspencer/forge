@@ -51,7 +51,20 @@ fn crossed_boundary_collection_deduplicates_without_losing_first_seen_order() {
         1,
     ));
 
-    let crossed = collect_crossed_boundaries(&[first_envelope, second_envelope, third_envelope]);
+    let crossed = collect_crossed_boundaries(&[
+        crate::history::data::PositionedCanonicalCommit::for_test(
+            first.patch_position(),
+            std::sync::Arc::new(first_envelope),
+        ),
+        crate::history::data::PositionedCanonicalCommit::for_test(
+            second.patch_position(),
+            std::sync::Arc::new(second_envelope),
+        ),
+        crate::history::data::PositionedCanonicalCommit::for_test(
+            third.patch_position(),
+            std::sync::Arc::new(third_envelope),
+        ),
+    ]);
 
     assert_eq!(crossed, vec![fingerprint_a, fingerprint_b]);
 }

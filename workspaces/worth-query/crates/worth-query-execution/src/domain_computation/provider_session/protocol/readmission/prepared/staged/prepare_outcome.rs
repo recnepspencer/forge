@@ -85,7 +85,9 @@ impl WorthQuerySessionPrepareOutcome<'_> {
                     terminal_binding,
                 ),
             ),
-            Ok(Err(failure)) => WorthQuerySessionCommitOrAbortOutcome::CommitRecoveryRequired(
+            Ok(Err(super::super::super::super::WorthQueryProviderSessionCommitStop::Denied(
+                failure,
+            ))) => WorthQuerySessionCommitOrAbortOutcome::CommitRecoveryRequired(
                 failure
                     .at_stage(
                         WorthQueryProviderSessionProtocolStage::Commit,
@@ -95,6 +97,22 @@ impl WorthQuerySessionPrepareOutcome<'_> {
                         WorthQueryProviderSessionRecoveryPosture::RecoveryRequired,
                     ),
             ),
+            Ok(Err(super::super::super::super::WorthQueryProviderSessionCommitStop::Deferred(
+                deferred,
+            ))) => WorthQuerySessionCommitOrAbortOutcome::CommitDeferred(deferred.at_stage(
+                WorthQueryProviderSessionProtocolStage::Commit,
+                self.counters,
+            )),
+            Ok(Err(
+                super::super::super::super::WorthQueryProviderSessionCommitStop::SettlementDeferred(
+                    deferred,
+                ),
+            )) => {
+                WorthQuerySessionCommitOrAbortOutcome::CommitSettlementDeferred(deferred.at_stage(
+                    WorthQueryProviderSessionProtocolStage::Commit,
+                    self.counters,
+                ))
+            }
             Err(_) => WorthQuerySessionCommitOrAbortOutcome::CommitRecoveryRequired(
                 WorthQueryProviderSessionFailure::new(
                     WorthQueryProviderSessionDenialKind::ProviderPanicked,

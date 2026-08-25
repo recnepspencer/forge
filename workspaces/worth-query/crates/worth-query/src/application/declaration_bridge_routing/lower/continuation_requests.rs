@@ -55,7 +55,7 @@ pub(super) fn preview_session_request<
     lowering: &BridgeLoweringContext,
     request: WorthQueryDeclarationBridgeContinuationRequest,
 ) -> BridgeSpeculativeSessionRequest {
-    let binding = preview_branch_binding(envelope);
+    let binding = preview_branch_basis(envelope);
     let declaration = BridgePreviewSessionDeclaration::new(
         BridgePreviewSessionDeclarationIdentity::from_bridge_evidence(
             &bridge_lowering_bridge_evidence_identity(
@@ -86,7 +86,7 @@ pub(super) fn preview_session_request<
     )
 }
 
-fn preview_branch_binding<
+fn preview_branch_basis<
     D: crate::application::WorthQueryDomainEntryMarker,
     I: crate::application::WorthQueryDeclarationInput<D>,
 >(

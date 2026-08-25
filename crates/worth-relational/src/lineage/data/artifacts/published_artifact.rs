@@ -1,9 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::history::data::BranchId;
-use crate::lineage::data::{
-    CorrespondenceCandidateId, CorrespondencePromotionRejectionClass, LineageEventRecord,
-};
+use crate::lineage::data::LineageEventRecord;
 
 use super::digest_basis::{
     decision_log_digest_basis_from_parts, event_batch_digest_basis_from_parts,
@@ -58,15 +56,6 @@ impl PublishedLineageArtifact {
         &self.lineage_decision_log
     }
 
-    pub(crate) fn decisions_for_candidate(
-        &self,
-        candidate_id: CorrespondenceCandidateId,
-    ) -> impl Iterator<Item = &LineageDecisionRecord> {
-        self.lineage_decision_log
-            .iter()
-            .filter(move |decision| decision.candidate_id() == Some(candidate_id))
-    }
-
     pub(crate) fn decisions_for_event_id(
         &self,
         event_id: u64,
@@ -74,15 +63,6 @@ impl PublishedLineageArtifact {
         self.lineage_decision_log
             .iter()
             .filter(move |decision| decision.event_id() == Some(event_id))
-    }
-
-    pub(crate) fn decisions_for_rejection_class(
-        &self,
-        rejection_class: CorrespondencePromotionRejectionClass,
-    ) -> impl Iterator<Item = &LineageDecisionRecord> {
-        self.lineage_decision_log
-            .iter()
-            .filter(move |decision| decision.rejection_class() == Some(rejection_class))
     }
 
     pub(crate) fn digest_basis(&self) -> &LineageDigestBasis {
@@ -117,6 +97,17 @@ impl PublishedLineageArtifact {
         !self.lineage_events.is_empty() || !self.lineage_decision_log.is_empty()
     }
 
+    pub(crate) fn owned_allocation_capacity_bytes(&self) -> u64 {
+        self.branch_id
+            .0
+            .capacity()
+            .try_into()
+            .unwrap_or(u64::MAX)
+            .saturating_add(vector_capacity_bytes(&self.lineage_event_ids))
+            .saturating_add(vector_capacity_bytes(&self.lineage_events))
+            .saturating_add(vector_capacity_bytes(&self.lineage_decision_log))
+    }
+
     #[cfg(test)]
     pub(crate) fn lineage_events_mut(&mut self) -> &mut Vec<LineageEventRecord> {
         &mut self.lineage_events
@@ -126,4 +117,8 @@ impl PublishedLineageArtifact {
     pub(crate) fn lineage_decision_log_mut(&mut self) -> &mut Vec<LineageDecisionRecord> {
         &mut self.lineage_decision_log
     }
+}
+
+fn vector_capacity_bytes<T>(values: &Vec<T>) -> u64 {
+    (values.capacity() as u64).saturating_mul(std::mem::size_of::<T>() as u64)
 }

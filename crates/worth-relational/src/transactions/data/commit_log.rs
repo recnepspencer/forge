@@ -315,6 +315,12 @@ impl CommitLog {
             .push(CommitTraceEvent::PublicationArtifactsPrepared);
     }
 
+    pub(crate) fn record_publication_position(&mut self, position: PatchStreamPosition) {
+        if let Some(summary) = self.running_summary.publication_summary.as_mut() {
+            summary.patch_position = Some(position);
+        }
+    }
+
     pub fn record_patch_budget(&mut self, summary: &CommitPatchBudgetSummary) {
         self.running_summary.patch_budget_summary = Some(summary.clone());
         self.events.push(CommitTraceEvent::PatchBudgetEvaluated);

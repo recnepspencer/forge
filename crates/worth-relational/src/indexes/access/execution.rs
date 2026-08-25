@@ -27,22 +27,9 @@ pub(crate) fn execute_index_backed_query_from_generation(
         .values()
         .flat_map(|generations| generations.iter())
         .find(|generation| generation.generation_id == generation_id)?;
-    let current_projection =
-        (plan.snapshot.version_id == runtime.current_version_id()).then(|| {
-            runtime
-                .read_truth()
-                .project_version(plan.snapshot.version_id)
-        });
-    let historical_read = if plan.snapshot.version_id == runtime.current_version_id() {
-        None
-    } else {
-        Some(runtime.read_truth().read_snapshot(&plan.snapshot)?)
-    };
-    let source = match (&current_projection, &historical_read) {
-        (Some(projection), None) => IndexProjectionSource::Current(projection),
-        (None, Some(read)) => IndexProjectionSource::Reconstructed(read),
-        _ => unreachable!("one exact index read source must match the query snapshot"),
-    };
+    let exact_projection = runtime.read_truth().project_snapshot(&plan.snapshot)?;
+    let source = IndexProjectionSource::exact(&exact_projection)
+        .expect("commit execution projection must carry an exact basis");
     match (&plan.packet.scope, &generation.entries) {
         (
             QueryScope::EntityFieldEquals {

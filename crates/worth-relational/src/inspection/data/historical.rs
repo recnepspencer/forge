@@ -19,7 +19,7 @@ pub enum HistoricalInspectionMode {
     AllowCanonicalReconstruction,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[must_use]
 pub struct HistoricalSnapshotView {
     pub snapshot: SnapshotHandle,
@@ -29,7 +29,7 @@ pub struct HistoricalSnapshotView {
     pub availability: InspectionAvailability,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[must_use]
 pub struct HistoricalOpenResult {
     pub view: Option<HistoricalSnapshotView>,

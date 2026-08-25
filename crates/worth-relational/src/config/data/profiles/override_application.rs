@@ -42,11 +42,6 @@ fn apply_execution_overrides(
     insert_override_provenance(provenance, "execution.planning", section.planning.is_some());
     insert_override_provenance(
         provenance,
-        "execution.commit_authority",
-        section.commit_authority.is_some(),
-    );
-    insert_override_provenance(
-        provenance,
         "execution.compiled_lane_policy",
         section.compiled_lane_policy.is_some(),
     );
@@ -64,9 +59,6 @@ fn apply_execution_overrides(
     }
     if let Some(planning) = &section.planning {
         config.execution.planning = planning.clone();
-    }
-    if let Some(commit_authority) = &section.commit_authority {
-        config.execution.commit_authority = commit_authority.clone();
     }
     if let Some(compiled_lane_policy) = section.compiled_lane_policy {
         config.execution.compiled_lane_policy = compiled_lane_policy;

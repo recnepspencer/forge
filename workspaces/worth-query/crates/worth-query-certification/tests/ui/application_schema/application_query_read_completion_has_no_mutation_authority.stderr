@@ -1,5 +1,0 @@
-error[E0599]: no method named `proposed_state` found for struct `WorthQueryGraphReadCompletion` in the current scope
- --> tests/ui/application_schema/application_query_read_completion_has_no_mutation_authority.rs:4:24
-  |
-4 |     let _ = completion.proposed_state();
-  |                        ^^^^^^^^^^^^^^ method not found in `WorthQueryGraphReadCompletion`

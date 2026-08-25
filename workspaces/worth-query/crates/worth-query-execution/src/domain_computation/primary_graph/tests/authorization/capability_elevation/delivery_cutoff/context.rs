@@ -1,7 +1,6 @@
 use std::num::NonZeroUsize;
 
 use worth_query_installation::facade::WorthQueryInstalledApplicationQuery;
-use worth_runtime_bridge::facade::{TruthBranchIdentity, TruthCommitIdentity};
 
 use super::super::super::super::{
     application_attempt::authenticated_principal,
@@ -116,12 +115,7 @@ pub(super) fn historical_basis(
         .world
         .application
         .admit_application_historical_basis(
-            crate::domain_computation::primary_graph::WorthQueryApplicationHistoricalRead::at_commit(
-                TruthBranchIdentity::from_relational_branch_id("main"),
-                TruthCommitIdentity::from_relational_commit_id(
-                    context.approved.as_ref().unwrap().approval_commit_id().0,
-                ),
-            ),
+            crate::domain_computation::primary_graph::WorthQueryApplicationHistoricalRead::current_for_test(&context.world.application),
             &context.request,
         )
         .unwrap()

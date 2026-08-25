@@ -15,11 +15,11 @@ pub struct SignalBranchRetirementBatchRequest {
 }
 
 impl SignalBranchRetirementBatchRequest {
-    pub fn new(requests: Vec<SignalBranchRetirementRequest>) -> Self {
+    pub(crate) fn new(requests: Vec<SignalBranchRetirementRequest>) -> Self {
         Self { requests }
     }
 
-    pub fn requests(&self) -> &[SignalBranchRetirementRequest] {
+    pub(crate) fn requests(&self) -> &[SignalBranchRetirementRequest] {
         &self.requests
     }
 }

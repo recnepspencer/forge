@@ -72,7 +72,7 @@ pub(super) struct WorthQueryStagedApplicationAttempt<'attempt> {
 
 pub(super) struct WorthQueryPreparedProviderApplicationAttempt {
     attempt: WorthQueryPrimaryGraphApplicationAttempt,
-    candidate: worth_relational::facade::transactions::ValidatedRelationalMutation,
+    candidate: worth_relational::facade::mvcc::ValidatedRelationalProposal,
     work: WorthQueryPrimaryMutationWorkCounters,
 }
 
@@ -155,7 +155,7 @@ impl WorthQueryPrimaryGraphApplicationAttemptStore {
     pub(super) fn retain_invariant_approved(
         &mut self,
         session: WorthQueryProviderSessionView<'_>,
-        candidate: worth_relational::facade::transactions::ValidatedRelationalMutation,
+        candidate: worth_relational::facade::mvcc::ValidatedRelationalProposal,
         work: WorthQueryPrimaryMutationWorkCounters,
     ) -> Result<(), &'static str> {
         let state = self
@@ -170,6 +170,14 @@ impl WorthQueryPrimaryGraphApplicationAttemptStore {
     ) -> bool {
         self.attempt_state(session)
             .is_some_and(WorthQueryApplicationAttemptState::is_preparable)
+    }
+
+    pub(super) fn has_invariant_approved_candidate(
+        &self,
+        session: WorthQueryProviderSessionView<'_>,
+    ) -> bool {
+        self.attempt_state(session)
+            .is_some_and(WorthQueryApplicationAttemptState::phase_is_commit_ready)
     }
 
     pub(super) fn take_commit_prepared(
@@ -297,12 +305,12 @@ impl WorthQueryStagedApplicationAttempt<'_> {
         self.attempt.decision_fact_count()
     }
 
-    pub(super) fn expected_branch_head(
+    pub(super) fn aftermath_causality(
         &self,
-    ) -> Option<worth_relational::facade::transactions::ExpectedBranchHead> {
-        self.attempt
-            .aftermath_causality()
-            .map(|causality| causality.expected_head())
+    ) -> Option<
+        &crate::domain_computation::application_aftermath::WorthQueryPendingAftermathCausality,
+    > {
+        self.attempt.aftermath_causality()
     }
 
     pub(super) fn application_graph_reads(

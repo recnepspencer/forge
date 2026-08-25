@@ -157,9 +157,6 @@ jobs:
       - name: Run WORTH Query ordinary tests
         run: cargo test --manifest-path workspaces/worth-query/Cargo.toml --workspace --exclude worth-query-certification --exclude worth-query-replay
 
-      - name: Run WORTH Query cold certification
-        run: cargo test --manifest-path workspaces/worth-query/Cargo.toml -p worth-query-certification -p worth-query-replay
-
       - name: Upload worth-signal semantic snapshots
         if: failure()
         uses: actions/upload-artifact@v4
@@ -176,6 +173,78 @@ jobs:
 
       - name: Benchmarks compile
         run: cargo bench --workspace --no-run
+
+  worth-relational-scale-certification:
+    name: WORTH Relational scheduled certification
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry and build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-relational-scale-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-relational-scale-
+
+      - name: Run mandatory ignored Scale admission proof
+        run: >-
+          cargo test -p worth-relational --test relational_certification
+          scale_invariant_admission::large_runtime_keeps_global_enforcement_and_filters_graph_planning
+          -- --ignored --exact --nocapture --test-threads=1
+
+      - name: Run hostile CDC rewrite-storm certification
+        run: >-
+          cargo test -p worth-relational --lib
+          tests::publication::cdc::certification::seeded_resume::cdc_certification_rewrite_storm_preserves_exact_suffix_under_tiny_windows
+          -- --ignored --exact --nocapture --test-threads=1
+
+      - name: Run hostile CDC thousand-step certification
+        run: >-
+          cargo test -p worth-relational --lib
+          tests::publication::cdc::certification::seeded_resume::cdc_certification_thousand_step_random_resume_matrix_converges
+          -- --ignored --exact --nocapture --test-threads=1
+
+  worth-query-cold-certification:
+    name: WORTH Query scheduled cold certification
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry and build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-query-cold-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-query-cold-
+
+      - name: Run Query allocation certification
+        timeout-minutes: 4
+        run: cargo test --manifest-path workspaces/worth-query/Cargo.toml -p worth-query-execution --features allocation-probes --lib -- --test-threads=4
+
+      - name: Run Query reconstruction certification
+        timeout-minutes: 4
+        run: cargo test --manifest-path workspaces/worth-query/Cargo.toml -p worth-query-certification -p worth-query-replay
 
   miri:
     name: Miri (worth-math)

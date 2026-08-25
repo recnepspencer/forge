@@ -115,6 +115,9 @@ fn terminal(
         WorthQueryRetainedConditionalDecision::OperationIndeterminate(_, _) => {
             WorthQueryConditionalExecutionTerminal::Indeterminate
         }
+        WorthQueryRetainedConditionalDecision::OperationSettlementDeferred(_, _) => {
+            WorthQueryConditionalExecutionTerminal::DeferredRetained
+        }
         WorthQueryRetainedConditionalDecision::OperationCommitted(_) => {
             WorthQueryConditionalExecutionTerminal::Committed
         }

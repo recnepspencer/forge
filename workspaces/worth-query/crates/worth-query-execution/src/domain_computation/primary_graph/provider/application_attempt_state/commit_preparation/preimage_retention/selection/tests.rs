@@ -9,10 +9,10 @@ use worth_query_installation::facade::{
     InstalledCorrectionMechanism, InstalledPreImageDemand, WorthQueryOperationGraphReadScope,
 };
 use worth_relational::facade::identity::{EntityId, KindId, PartitionId};
+use worth_relational::facade::mvcc::ValidatedMutationFootprint;
 use worth_relational::facade::transactions::{
     planned_aspect_field_locator, AspectFieldPatch, EntityMutationIntent, MutationIntent,
-    RecordRef, TransactionOptions, UpdateEntityFieldsIntent, ValidatedMutationFootprint,
-    WorkerIntentBatch,
+    RecordRef, UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 
 use super::{retain_from_attempt, retain_matching, WorthQueryObservedPreImageCandidate};
@@ -188,7 +188,17 @@ fn validated_status_footprint(
             locator,
             AspectValue::String(InternedString::from("frozen")),
         )]));
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction = {
+            let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
+            runtime
+                .begin_branch_transaction(
+                    &transaction_validation_input,
+                    worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                )
+                .expect("owner-admitted transaction context")
+        };
         transaction.push_batch(WorkerIntentBatch::new("selection-owner-path").push(
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {
@@ -197,7 +207,9 @@ fn validated_status_footprint(
                 },
             )),
         ));
-        transaction.validate().expect("owner validates mutation")
+        transaction
+            .validate(runtime)
+            .expect("owner validates mutation")
     });
     validated
         .mutation_footprint(Some(&()))

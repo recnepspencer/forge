@@ -6,10 +6,7 @@ fn replay_commit_reports_strategy_executor_unavailable_when_recovered_runtime_la
     let mut runtime = persisted_intent_runtime(root_path.clone(), true);
     let entity = crate::tests::support::create_entity(&mut runtime, "before");
     let commit = execute_persisted_intent_strategy_commit(&mut runtime, entity);
-    let branch_head_before = runtime
-        .history()
-        .branch_head(&BranchId("main".to_string()))
-        .cloned();
+    let branch_head_before = runtime.history().branch_head(&BranchId("main".to_string()));
     let mut recovery_plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::AuditRecoveryVerification,
     );
@@ -22,8 +19,7 @@ fn replay_commit_reports_strategy_executor_unavailable_when_recovered_runtime_la
         .expect("recovery without strategy executor");
     let branch_head_after_recovery = recovered
         .history()
-        .branch_head(&BranchId("main".to_string()))
-        .cloned();
+        .branch_head(&BranchId("main".to_string()));
 
     let replay = recovered
         .replay_authority()
@@ -45,8 +41,7 @@ fn replay_commit_reports_strategy_executor_unavailable_when_recovered_runtime_la
     assert_eq!(
         recovered
             .history()
-            .branch_head(&BranchId("main".to_string()))
-            .cloned(),
+            .branch_head(&BranchId("main".to_string())),
         branch_head_after_recovery
     );
     assert_eq!(branch_head_after_recovery, branch_head_before);
@@ -70,8 +65,7 @@ fn replay_commit_reports_strategy_execution_failure_when_recovered_executor_reje
         .expect("recovery with hostile failing executor");
     let branch_head_before_replay = recovered
         .history()
-        .branch_head(&BranchId("main".to_string()))
-        .cloned();
+        .branch_head(&BranchId("main".to_string()));
 
     let replay = recovered
         .replay_authority()
@@ -93,8 +87,7 @@ fn replay_commit_reports_strategy_execution_failure_when_recovered_executor_reje
     assert_eq!(
         recovered
             .history()
-            .branch_head(&BranchId("main".to_string()))
-            .cloned(),
+            .branch_head(&BranchId("main".to_string())),
         branch_head_before_replay
     );
 }

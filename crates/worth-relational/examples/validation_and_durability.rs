@@ -22,7 +22,7 @@ fn main() {
         "validation_results={} blocking_violation={} durable_log_len={} recovery_segments={}",
         validation.summary().result_count(),
         validation.summary().has_blocking_violation(),
-        runtime.durability().durable_log().len(),
+        runtime.durability().durable_commit_count(),
         recovery_plan.cursor.segment_ids.len()
     );
 }

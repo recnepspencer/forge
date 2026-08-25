@@ -70,6 +70,69 @@ fn authoritative_merge_execution_certification_rejects_stale_prepared_merge_afte
 }
 
 #[test]
+fn authoritative_merge_execution_certification_rejects_metadata_reference_movement() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    create_entity(&mut runtime, "root");
+    create_branch_from_main(&mut runtime, "feature");
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature-only",
+        BranchId("feature".to_string()),
+    );
+
+    let prepared = runtime
+        .prepare_merge_execution(MergeExecutionRequest {
+            target_branch: BranchId("main".to_string()),
+            source_branch: BranchId("feature".to_string()),
+            merge_intent: MergeIntent::ReconcileIntoTarget,
+        })
+        .expect("prepared merge execution");
+    let target_branch = BranchId("main".to_string());
+    let target_head = runtime
+        .history()
+        .branch_head(&target_branch)
+        .expect("main has a committed head");
+    let target_generation = runtime
+        .history
+        .branch_cell(&target_branch)
+        .expect("main has a reference cell")
+        .observation()
+        .generation()
+        .get();
+    runtime
+        .history
+        .branch_cell_mut(&target_branch)
+        .expect("main has a mutable reference cell")
+        .advance_metadata()
+        .expect("metadata movement should advance only the reference generation");
+    assert_eq!(
+        runtime
+            .history()
+            .branch_head(&target_branch)
+            .expect("metadata movement does not change the immutable head")
+            .commit_id,
+        target_head.commit_id
+    );
+    assert_eq!(
+        runtime
+            .history
+            .branch_cell(&target_branch)
+            .expect("main reference remains live")
+            .observation()
+            .generation()
+            .get(),
+        target_generation + 1
+    );
+
+    match runtime.merge().verify_prepared_merge_execution(&prepared) {
+        Err(MergeExecutionError::StaleBranchReference { branch, .. }) => {
+            assert_eq!(branch, target_branch);
+        }
+        other => panic!("expected metadata-only reference movement rejection, got {other:?}"),
+    }
+}
+
+#[test]
 fn authoritative_merge_execution_certification_rejects_schema_semantic_drift_after_planning() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity(&mut runtime, "root");

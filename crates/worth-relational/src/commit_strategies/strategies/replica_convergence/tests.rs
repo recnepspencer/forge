@@ -101,7 +101,7 @@ fn replica_convergence_strategy_noops_when_authoritative_replicas_match() {
         ))
         .build();
     let entity = crate::tests::support::create_entity(&mut runtime, "before");
-    let mut txn = runtime.begin_transaction(Default::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         crate::transactions::data::WorkerIntentBatch::new("seed-replicas").push(
             crate::transactions::data::MutationIntent::Entity(
@@ -117,7 +117,7 @@ fn replica_convergence_strategy_noops_when_authoritative_replicas_match() {
             ),
         ),
     );
-    txn.commit().expect("seed replicas");
+    txn.commit(&mut runtime).expect("seed replicas");
     let request = runtime
         .commit_strategies()
         .canonicalize_request(

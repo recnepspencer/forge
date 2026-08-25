@@ -7,7 +7,7 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
     let mut runtime =
         runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("create").push(MutationIntent::Create(CreateIntent::Entity(
             crate::transactions::data::EntitySpec {
@@ -22,7 +22,7 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
             },
         ))),
     );
-    let created = txn.commit().unwrap();
+    let created = txn.commit(&mut runtime).unwrap();
     let entity = changed_entities(&created)[0];
     let created_patch = &created.patch()[0];
     let created_aspect_summary = created.aspect_summary().unwrap();
@@ -45,7 +45,7 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
     assert_eq!(created_aspect_summary.changed_relation_aspect_count, 0);
 
     let updated = {
-        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
         txn.push_batch(
             WorkerIntentBatch::new("update").push(MutationIntent::Entity(
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -58,7 +58,7 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
                 }),
             )),
         );
-        txn.commit().unwrap()
+        txn.commit(&mut runtime).unwrap()
     };
     let updated_patch = &updated.patch()[0];
     let updated_aspect_summary = updated.aspect_summary().unwrap();
@@ -93,7 +93,7 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
     assert_eq!(updated_aspect_summary.changed_entity_aspect_count, 1);
 
     let idempotent_declared_update = {
-        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
         txn.push_batch(WorkerIntentBatch::new("idempotent-declared-update").push(
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {
@@ -106,7 +106,7 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
                 },
             )),
         ));
-        txn.commit().unwrap()
+        txn.commit(&mut runtime).unwrap()
     };
     assert_eq!(
         idempotent_declared_update.patch()[0].authoritative_changed_aspects(),

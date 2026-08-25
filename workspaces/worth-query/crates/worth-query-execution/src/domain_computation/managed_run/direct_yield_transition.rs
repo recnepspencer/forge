@@ -16,7 +16,7 @@ impl WorthQueryDirectYieldMint {
 
 pub(super) struct WorthQueryDirectYieldMintedOwner {
     pub(super) affinity: super::run_affinity::WorthQueryDirectRunAffinity,
-    pub(super) relational_basis: worth_relational::facade::runtime::RelationalExecutionBasisLease,
+    pub(super) relational_basis: super::WorthQueryManagedRelationalObservation,
     pub(super) bridge: worth_runtime_bridge::facade::BridgeYieldedExecutionBasis,
     pub(super) execution: super::retained_graph_execution::WorthQueryRetainedManagedGraphExecution,
     pub(super) run_counters: super::WorthQueryManagedRunCounters,
@@ -66,7 +66,7 @@ pub(super) fn yield_direct_run(
 struct WorthQueryDirectYieldBridgePending {
     affinity: WorthQueryDirectRunAffinity,
     bridge_basis: worth_runtime_bridge::facade::BridgeBoundExecutionBasis,
-    relational_basis: worth_relational::facade::runtime::RelationalExecutionBasisLease,
+    relational_basis: super::WorthQueryManagedRelationalObservation,
     run_counters: WorthQueryManagedRunCounters,
     execution: WorthQueryManagedGraphExecution,
     safe_point: WorthQueryManagedYieldSafePoint,
@@ -153,7 +153,7 @@ impl WorthQueryDirectYieldBridgePending {
 
 struct WorthQueryDirectYieldCheckpointPending {
     affinity: WorthQueryDirectRunAffinity,
-    relational_basis: worth_relational::facade::runtime::RelationalExecutionBasisLease,
+    relational_basis: super::WorthQueryManagedRelationalObservation,
     run_counters: WorthQueryManagedRunCounters,
     execution: WorthQueryManagedGraphExecution,
     bridge: BridgeYieldedExecutionBasis,
@@ -243,7 +243,7 @@ impl WorthQueryDirectYieldCheckpointPending {
 
 struct WorthQueryDirectYieldRetained {
     affinity: WorthQueryDirectRunAffinity,
-    relational_basis: worth_relational::facade::runtime::RelationalExecutionBasisLease,
+    relational_basis: super::WorthQueryManagedRelationalObservation,
     run_counters: WorthQueryManagedRunCounters,
     bridge: BridgeYieldedExecutionBasis,
     yield_counters: WorthQueryYieldTransitionCounters,

@@ -55,8 +55,8 @@ pub struct WorthQueryPrimaryGraphApplicationRuntime<Schema> {
     pub(in crate::domain_computation) authorization_clock: Arc<WorthQueryRuntimeClock>,
     authentication_clock: WorthQueryAuthenticationClock,
     pub(super) relational_source: worth_relational::facade::bridge::RuntimeBridgeRelationalSource,
-    pub(super) execution_basis_source:
-        worth_relational::facade::runtime::RelationalApplicationCommitBasisSource,
+    pub(super) relational_branch_identity:
+        worth_relational::facade::branch::RelationalBranchIdentity,
     pub(super) bridge: super::managed_bridge::WorthQueryInstalledApplicationBridge,
     pub(super) granular_invalidation: super::WorthQueryGranularInvalidationInstallation,
     pub(super) conditional_operations: std::sync::Mutex<
@@ -194,6 +194,31 @@ impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
 where
     Schema: ApplicationSchema,
 {
+    /// Schedules one failure at the generic Query index-publication boundary.
+    #[doc(hidden)]
+    #[cfg(feature = "test-primary-graph-faults")]
+    pub fn fail_next_index_publication_for_test(&self) {
+        self.primary_provider.fail_next_index_publication_for_test();
+    }
+
+    /// Observes the currently bound primary Bridge truth snapshot.
+    #[doc(hidden)]
+    #[cfg(feature = "test-primary-graph-faults")]
+    pub fn primary_truth_snapshot_for_test(
+        &self,
+    ) -> Option<worth_runtime_bridge::facade::TruthSnapshotIdentity> {
+        self.primary_provider
+            .graph
+            .current_truth_snapshot(&super::primary_truth_branch_identity())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn fail_next_durable_append_for_test(&self) {
+        self.primary_provider
+            .graph
+            .with_runtime_mut(|runtime| runtime.fail_next_durable_append_for_test());
+    }
+
     pub fn installed_schema(&self) -> &WorthQueryInstalledApplicationSchema<Schema> {
         &self.installed_schema
     }

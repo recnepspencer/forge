@@ -215,6 +215,7 @@ fn merge_collaboration_truth_denies_cross_family_witness_mismatch() {
     let merge_entry = file
         .entries
         .iter_mut()
+        .map(|commit| commit.envelope_mut_for_test())
         .find(|entry| entry.commit.commit_id == outcome.commit.commit.commit_id)
         .expect("merge entry in durable segment");
     merge_entry
@@ -261,6 +262,7 @@ fn merge_collaboration_truth_denies_summary_only_and_planner_shortcuts() {
     let merge_entry = file
         .entries
         .iter_mut()
+        .map(|commit| commit.envelope_mut_for_test())
         .find(|entry| entry.commit.commit_id == outcome.commit.commit.commit_id)
         .expect("merge entry in durable segment");
     merge_entry

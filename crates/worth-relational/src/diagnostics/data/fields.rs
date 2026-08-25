@@ -10,7 +10,6 @@ use crate::history::data::BranchId;
 use crate::history::data::CommitId;
 use crate::identity::data::{EntityId, KindId, LineageId, PartitionId, RelationId, VersionId};
 use crate::indexes::data::{DerivedIndexGenerationId, DerivedIndexId};
-use crate::lineage::data::CorrespondenceCandidateId;
 use crate::publication::patch::data::PatchStreamPosition;
 use crate::replay::data::ReplaySchemaVersion;
 use crate::schema::data::{
@@ -38,6 +37,10 @@ impl RelationalDiagnosticFields {
 
     pub fn root(&self) -> &RelationalDiagnosticValue {
         &self.root
+    }
+
+    pub(crate) fn owned_allocation_capacity_bytes(&self) -> u64 {
+        self.root.owned_allocation_capacity_bytes()
     }
 }
 
@@ -78,7 +81,9 @@ pub enum RelationalDiagnosticValue {
     DurableSegmentId(DurableSegmentId),
     DerivedIndexId(DerivedIndexId),
     DerivedIndexGenerationId(DerivedIndexGenerationId),
-    CorrespondenceCandidateId(CorrespondenceCandidateId),
+    // Retained as durable vocabulary for 9.16.1.1 lineage diagnostics.
+    // Current diagnostic publication does not mint this retired identifier.
+    CorrespondenceCandidateId(u64),
     PatchStreamPosition(PatchStreamPosition),
     ReplaySchemaVersion(ReplaySchemaVersion),
     SchemaId(SchemaId),
@@ -118,6 +123,39 @@ impl RelationalDiagnosticValue {
     pub fn optional(value: Option<RelationalDiagnosticValue>) -> Self {
         value.unwrap_or(Self::Null)
     }
+
+    pub(crate) fn owned_allocation_capacity_bytes(&self) -> u64 {
+        match self {
+            Self::String(value) => value.capacity() as u64,
+            Self::CanonicalBytes(value) => vector_capacity_bytes(value),
+            Self::Array(values) => vector_capacity_bytes(values).saturating_add(
+                values
+                    .iter()
+                    .map(Self::owned_allocation_capacity_bytes)
+                    .sum(),
+            ),
+            Self::Object(fields) => {
+                let entries = (fields.len() as u64)
+                    .saturating_mul(
+                        std::mem::size_of::<(String, RelationalDiagnosticValue)>() as u64
+                    );
+                fields.iter().fold(entries, |bytes, (key, value)| {
+                    bytes
+                        .saturating_add(key.capacity() as u64)
+                        .saturating_add(value.owned_allocation_capacity_bytes())
+                })
+            }
+            Self::AspectKey(value) => value.owned_allocation_capacity_bytes() as u64,
+            Self::FieldKey(value) => value.owned_allocation_capacity_bytes() as u64,
+            Self::AspectValue(value) => value.owned_allocation_capacity_bytes() as u64,
+            Self::StructAspectValue(value) => value.owned_allocation_capacity_bytes() as u64,
+            _ => 0,
+        }
+    }
+}
+
+fn vector_capacity_bytes<T>(values: &Vec<T>) -> u64 {
+    (values.capacity() as u64).saturating_mul(std::mem::size_of::<T>() as u64)
 }
 
 impl Serialize for RelationalDiagnosticFields {

@@ -73,7 +73,7 @@ where
         let affinity =
             validate_continuation_affinity(self, query, access.scope().entity_id(), continuation)?;
         let query_controls = WorthQueryApplicationQueryControls::continuation_resume(
-            affinity.basis_version,
+            affinity.basis_descriptor.clone(),
             controls,
         );
         self.finish_continuation_readmission(
@@ -148,7 +148,7 @@ where
         let affinity =
             validate_continuation_affinity(self, query, access.scope().entity_id(), continuation)?;
         let query_controls = WorthQueryApplicationQueryControls::continuation_resume(
-            affinity.basis_version,
+            affinity.basis_descriptor.clone(),
             controls,
         );
         let pending = prepare_governed_access(self, query, access, capability, &query_controls)?;

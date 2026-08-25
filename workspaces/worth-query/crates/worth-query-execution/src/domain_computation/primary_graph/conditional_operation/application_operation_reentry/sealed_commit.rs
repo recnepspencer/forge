@@ -97,8 +97,10 @@ fn classify_commit(
         WorthQueryApplicationCommitOutcome::AlreadyCommitted(_) => {
             WorthQueryTemporalReentryOutcome::AlreadyCommitted
         }
-        WorthQueryApplicationCommitOutcome::PartialEffect(evidence)
-        | WorthQueryApplicationCommitOutcome::Indeterminate(evidence) => {
+        WorthQueryApplicationCommitOutcome::SettlementDeferred(deferred) => {
+            WorthQueryTemporalReentryOutcome::SettlementDeferred(deferred)
+        }
+        WorthQueryApplicationCommitOutcome::Indeterminate(evidence) => {
             WorthQueryTemporalReentryOutcome::Indeterminate(evidence.detail().to_string())
         }
         other => WorthQueryTemporalReentryOutcome::RetryableFailure(format!("{other:?}")),

@@ -67,9 +67,7 @@ impl WorthQueryPrimaryGraphProvider {
         self.graph.with_runtime_mut(|runtime| {
             self.graph
                 .ensure_primary_indexes_current_for_branch(runtime, branch)?;
-            let snapshot = runtime
-                .snapshots()
-                .snapshot_for_branch(branch)
+            let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(runtime, branch)
                 .ok_or("provider idempotency branch has no current snapshot")?;
             let resolution = resolve_at_snapshot(self, runtime, &snapshot, &layout, binding);
             runtime.snapshots().release_snapshot(&snapshot);
@@ -260,7 +258,7 @@ fn resolve_projected_idempotency(
     let committed = context
         .runtime
         .history()
-        .committed_version(record.created_at_version)
+        .historical_committed_version(record.created_at_version)
         .ok_or("provider idempotency creation commit is unavailable")?;
     let Some(AspectValue::UInt64(outcome_identity)) = record.outcome_identity else {
         return Err("provider idempotency outcome identity is unavailable");
@@ -278,7 +276,7 @@ fn resolve_projected_idempotency(
         .observe_completed_application(&commit)
         .ok_or("provider idempotency commit evidence is unavailable")?;
     if committed.application_outcome_identity() != Some(outcome_identity)
-        || committed.runtime_instance_id() != context.snapshot.runtime_instance_id
+        || committed.runtime_instance_id() != context.snapshot.runtime_instance_id()
         || committed.emitted_effect_count() != emitted
     {
         return Err("provider idempotency commit evidence has foreign affinity");

@@ -1,5 +1,4 @@
 mod artifacts;
-mod correspondence;
 mod events;
 mod graph;
 mod invariants;
@@ -10,11 +9,6 @@ pub use artifacts::{
     LineageArtifactCounters, LineageCheckpointArtifact, LineageCheckpointCounters,
     LineageCheckpointDigestBasis, LineageDecisionKind, LineageDecisionLogDigestBasis,
     LineageDecisionRecord, LineageDigestBasis, LineageEventBatchDigestBasis,
-};
-pub use correspondence::{
-    CorrespondenceCandidate, CorrespondenceCandidateId,
-    CorrespondencePromotionExecutionFailureClass, CorrespondencePromotionOutcome,
-    CorrespondencePromotionRejectionClass, CorrespondenceResolution, LineageResolutionStatus,
 };
 pub use events::{LineageEventKind, LineageEventRecord};
 pub use graph::{
@@ -32,9 +26,7 @@ pub use resolution::{
     RecordHistoryRequest,
 };
 
-#[cfg(test)]
-pub(crate) use artifacts::LineageRejectionArtifact;
 pub(crate) use artifacts::{
     FinalizedLineageEventBatch, LineageDecisionLog, LineageFinalizationArtifact,
-    PublishedLineageArtifact,
+    PreparedLineageFinalization, PublishedLineageArtifact,
 };

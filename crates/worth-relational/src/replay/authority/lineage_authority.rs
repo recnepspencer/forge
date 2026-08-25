@@ -1,8 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::lineage::data::{
-    CorrespondenceCandidateId, CorrespondencePromotionRejectionClass, PublishedLineageArtifact,
-};
+use crate::lineage::data::PublishedLineageArtifact;
 use crate::performance::ReplayLineageAuthorityIndexedSource;
 use crate::replay::data::{
     digest_lineage_decision_log_surface, digest_lineage_decision_summary,
@@ -32,24 +30,6 @@ pub(super) fn published_lineage_artifacts_match(
         return false;
     }
 
-    let candidate_ids = expected
-        .lineage_decision_log()
-        .iter()
-        .chain(observed.lineage_decision_log().iter())
-        .filter_map(|decision| decision.candidate_id)
-        .collect::<BTreeSet<CorrespondenceCandidateId>>();
-    for candidate_id in candidate_ids {
-        if expected
-            .decisions_for_candidate(candidate_id)
-            .collect::<Vec<_>>()
-            != observed
-                .decisions_for_candidate(candidate_id)
-                .collect::<Vec<_>>()
-        {
-            return false;
-        }
-    }
-
     let event_ids = expected
         .lineage_event_ids()
         .iter()
@@ -68,26 +48,6 @@ pub(super) fn published_lineage_artifacts_match(
             .collect::<Vec<_>>()
             != observed
                 .decisions_for_event_id(event_id)
-                .collect::<Vec<_>>()
-        {
-            return false;
-        }
-    }
-
-    let mut rejection_classes = expected
-        .lineage_decision_log()
-        .iter()
-        .chain(observed.lineage_decision_log().iter())
-        .filter_map(|decision| decision.rejection_class)
-        .collect::<Vec<CorrespondencePromotionRejectionClass>>();
-    rejection_classes.sort_by_key(|class| format!("{class:?}"));
-    rejection_classes.dedup();
-    for rejection_class in rejection_classes {
-        if expected
-            .decisions_for_rejection_class(rejection_class)
-            .collect::<Vec<_>>()
-            != observed
-                .decisions_for_rejection_class(rejection_class)
                 .collect::<Vec<_>>()
         {
             return false;

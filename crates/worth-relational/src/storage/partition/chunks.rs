@@ -1,9 +1,12 @@
+use std::collections::BTreeMap;
+
 use crate::identity::data::{VersionBound, VersionId};
 use crate::query::data::{PlannedQueryPacket, ReadPacketPlan};
 use crate::runtime::RelationalRuntime;
 use crate::storage::data::{
     ChunkDiagnostics, ChunkVisibilitySummary, ChunkedStorageSummary, RecordLifecycleState,
 };
+use crate::storage::substrate::{HistoricalMetadata, RecordArena, RecordKind};
 use crate::transactions::data::RecordRef;
 
 pub(crate) fn chunked_storage_summary(
@@ -62,24 +65,16 @@ pub(crate) fn plan_read_explicit_query_packet(
 
     for target in targets {
         match target {
-            RecordRef::Entity(entity_id) => {
-                let chunk_index = slot_chunk_index(
-                    entity_id.slot_index(),
-                    runtime.config.storage.layout.entity_chunk_size,
-                );
-                if !entity_chunk_indexes.contains(&chunk_index) {
-                    entity_chunk_indexes.push(chunk_index);
-                }
-            }
-            RecordRef::Relation(relation_id) => {
-                let chunk_index = slot_chunk_index(
-                    relation_id.slot_index(),
-                    runtime.config.storage.layout.relation_chunk_size,
-                );
-                if !relation_chunk_indexes.contains(&chunk_index) {
-                    relation_chunk_indexes.push(chunk_index);
-                }
-            }
+            RecordRef::Entity(entity_id) => push_unique_chunk(
+                &mut entity_chunk_indexes,
+                entity_id.slot_index(),
+                runtime.config.storage.layout.entity_chunk_size,
+            ),
+            RecordRef::Relation(relation_id) => push_unique_chunk(
+                &mut relation_chunk_indexes,
+                relation_id.slot_index(),
+                runtime.config.storage.layout.relation_chunk_size,
+            ),
         }
     }
 
@@ -91,294 +86,146 @@ pub(crate) fn plan_read_explicit_query_packet(
     })
 }
 
+fn push_unique_chunk(chunks: &mut Vec<usize>, slot: usize, chunk_size: usize) {
+    let chunk = slot_chunk_index(slot, chunk_size);
+    if !chunks.contains(&chunk) {
+        chunks.push(chunk);
+    }
+}
+
 fn summarize_entity_chunks(
     runtime: &RelationalRuntime,
     version_id: VersionId,
 ) -> Vec<ChunkVisibilitySummary> {
-    let mut summaries = Vec::new();
-    let current_version = runtime.current_version_id();
-    for partition in runtime.partitions.values() {
-        if version_id == current_version {
-            summaries.extend(summarize_current_entity_chunks(
-                partition,
+    runtime
+        .partitions
+        .values()
+        .flat_map(|partition| {
+            summarize_arena_chunks(
+                &partition.entity_arena,
+                version_id,
+                runtime.current_version_id(),
                 runtime.config.storage.layout.entity_chunk_size,
-            ));
-            continue;
-        }
-        summaries.extend(summarize_chunks(
-            partition.entity_arena.slot_count(),
-            runtime.config.storage.layout.entity_chunk_size,
-            |slot| partition.entity_arena.created_at.get(slot).copied(),
-            |slot| partition.entity_arena.retired_at_for_slot(slot),
-            |slot| {
-                partition
-                    .entity_arena
-                    .get_slot(slot)
-                    .map(|slot_view| slot_view.lifecycle())
-            },
-            |slot| {
-                partition
-                    .entity_arena
-                    .created_at
-                    .get(slot)
-                    .is_some_and(|created| {
-                        let bound = VersionBound::new(version_id);
-                        bound.includes_created(*created)
-                            && partition
-                                .entity_arena
-                                .retired_at_for_slot(slot)
-                                .is_none_or(|retired| bound.retains_retired(retired))
-                            && partition
-                                .entity_arena
-                                .get_slot(slot)
-                                .is_some_and(|slot_view| {
-                                    slot_view.lifecycle() != RecordLifecycleState::Reusable
-                                })
-                    })
-            },
-        ));
-    }
-    summaries
+            )
+        })
+        .collect()
 }
 
 fn summarize_relation_chunks(
     runtime: &RelationalRuntime,
     version_id: VersionId,
 ) -> Vec<ChunkVisibilitySummary> {
-    let mut summaries = Vec::new();
-    let current_version = runtime.current_version_id();
-    for partition in runtime.partitions.values() {
-        if version_id == current_version {
-            summaries.extend(summarize_current_relation_chunks(
-                partition,
+    runtime
+        .partitions
+        .values()
+        .flat_map(|partition| {
+            summarize_arena_chunks(
+                &partition.relation_arena,
+                version_id,
+                runtime.current_version_id(),
                 runtime.config.storage.layout.relation_chunk_size,
-            ));
-            continue;
-        }
-        summaries.extend(summarize_chunks(
-            partition.relation_arena.slot_count(),
-            runtime.config.storage.layout.relation_chunk_size,
-            |slot| partition.relation_arena.created_at.get(slot).copied(),
-            |slot| partition.relation_arena.retired_at_for_slot(slot),
-            |slot| {
-                partition
-                    .relation_arena
-                    .get_slot(slot)
-                    .map(|slot_view| slot_view.lifecycle())
-            },
-            |slot| {
-                partition
-                    .relation_arena
-                    .created_at
-                    .get(slot)
-                    .is_some_and(|created| {
-                        let bound = VersionBound::new(version_id);
-                        bound.includes_created(*created)
-                            && partition
-                                .relation_arena
-                                .retired_at_for_slot(slot)
-                                .is_none_or(|retired| bound.retains_retired(retired))
-                            && partition
-                                .relation_arena
-                                .get_slot(slot)
-                                .is_some_and(|slot_view| {
-                                    slot_view.lifecycle() != RecordLifecycleState::Reusable
-                                })
-                    })
-            },
-        ));
-    }
-    summaries
+            )
+        })
+        .collect()
 }
 
-fn summarize_current_entity_chunks(
-    partition: &crate::storage::overlay::PartitionState,
+fn summarize_arena_chunks<K: RecordKind>(
+    arena: &RecordArena<K>,
+    version_id: VersionId,
+    current_version: VersionId,
     chunk_size: usize,
-) -> Vec<ChunkVisibilitySummary> {
-    summarize_current_chunks(
-        partition.entity_arena.slot_count(),
-        chunk_size,
-        |start, end| {
-            partition
-                .entity_arena
-                .live_bitset
-                .count_ones_in_range(start, end)
-        },
-        |slot| partition.entity_arena.created_at.get(slot).copied(),
-        |slot| partition.entity_arena.retired_at_for_slot(slot),
-        |slot| {
-            partition
-                .entity_arena
-                .get_slot(slot)
-                .map(|slot_view| slot_view.lifecycle())
-        },
-    )
-}
-
-fn summarize_current_relation_chunks(
-    partition: &crate::storage::overlay::PartitionState,
-    chunk_size: usize,
-) -> Vec<ChunkVisibilitySummary> {
-    summarize_current_chunks(
-        partition.relation_arena.slot_count(),
-        chunk_size,
-        |start, end| {
-            partition
-                .relation_arena
-                .live_bitset
-                .count_ones_in_range(start, end)
-        },
-        |slot| partition.relation_arena.created_at.get(slot).copied(),
-        |slot| partition.relation_arena.retired_at_for_slot(slot),
-        |slot| {
-            partition
-                .relation_arena
-                .get_slot(slot)
-                .map(|slot_view| slot_view.lifecycle())
-        },
-    )
-}
-
-fn summarize_current_chunks<FLiveCount, FCreated, FRetired, FLifecycle>(
-    slot_count: usize,
-    chunk_size: usize,
-    live_count_in_range: FLiveCount,
-    created_at: FCreated,
-    retired_at: FRetired,
-    lifecycle: FLifecycle,
 ) -> Vec<ChunkVisibilitySummary>
 where
-    FLiveCount: Fn(usize, usize) -> usize,
-    FCreated: Fn(usize) -> Option<VersionId>,
-    FRetired: Fn(usize) -> Option<VersionId>,
-    FLifecycle: Fn(usize) -> Option<RecordLifecycleState>,
+    K::Meta: HistoricalMetadata,
 {
-    if chunk_size == 0 || slot_count == 0 {
+    if chunk_size == 0 {
         return Vec::new();
     }
-
-    let mut summaries = Vec::new();
-    let mut chunk_index = 0;
-    let mut slot_start = 0;
-
-    while slot_start < slot_count {
-        let slot_end = (slot_start + chunk_size).min(slot_count);
-        let visible_records = live_count_in_range(slot_start, slot_end);
-        let mut retained_records = 0;
-        let mut reclaimable_records = 0;
-        let mut earliest_created_at: Option<VersionId> = None;
-        let mut latest_retired_at: Option<VersionId> = None;
-
-        for slot in slot_start..slot_end {
-            if let Some(created) = created_at(slot) {
-                earliest_created_at = Some(match earliest_created_at {
-                    Some(current) => current.min(created),
-                    None => created,
-                });
-            }
-
-            if let Some(retired) = retired_at(slot) {
-                retained_records += 1;
-                latest_retired_at = Some(match latest_retired_at {
-                    Some(current) => current.max(retired),
-                    None => retired,
-                });
-            }
-
-            if lifecycle(slot) == Some(RecordLifecycleState::Reclaimable) {
-                reclaimable_records += 1;
-            }
-        }
-
-        summaries.push(ChunkVisibilitySummary {
-            chunk_index,
-            slot_start,
-            slot_len: slot_end - slot_start,
-            visible_records,
-            retained_records,
-            reclaimable_records,
-            earliest_created_at,
-            latest_retired_at,
-        });
-
-        chunk_index += 1;
-        slot_start = slot_end;
+    let occupied = arena.occupied_slots();
+    let Some(logical_end) = occupied.last().and_then(|slot| slot.checked_add(1)) else {
+        return Vec::new();
+    };
+    let mut chunks = BTreeMap::<usize, ChunkAccumulator>::new();
+    for slot in occupied {
+        let visible = if version_id == current_version {
+            arena.live_bitset.count_ones_in_range(slot, slot + 1) == 1
+        } else {
+            arena
+                .metadata_history_at(slot)
+                .is_some_and(|history| visible_at_version(history, version_id))
+        };
+        chunks
+            .entry(slot_chunk_index(slot, chunk_size))
+            .or_default()
+            .observe(
+                visible,
+                arena.created_at_for_slot(slot),
+                arena.retired_at_for_slot(slot),
+                arena.get_slot(slot).map(|view| view.lifecycle()),
+            );
     }
-
-    summaries
+    chunks
+        .into_iter()
+        .map(|(chunk_index, values)| {
+            let slot_start = chunk_index.saturating_mul(chunk_size);
+            ChunkVisibilitySummary {
+                chunk_index,
+                slot_start,
+                slot_len: logical_end.saturating_sub(slot_start).min(chunk_size),
+                visible_records: values.visible_records,
+                retained_records: values.retained_records,
+                reclaimable_records: values.reclaimable_records,
+                earliest_created_at: values.earliest_created_at,
+                latest_retired_at: values.latest_retired_at,
+            }
+        })
+        .collect()
 }
 
-fn summarize_chunks<FCreated, FRetired, FLifecycle, FVisible>(
-    slot_count: usize,
-    chunk_size: usize,
-    created_at: FCreated,
-    retired_at: FRetired,
-    lifecycle: FLifecycle,
-    visible_at_version: FVisible,
-) -> Vec<ChunkVisibilitySummary>
-where
-    FCreated: Fn(usize) -> Option<VersionId>,
-    FRetired: Fn(usize) -> Option<VersionId>,
-    FLifecycle: Fn(usize) -> Option<RecordLifecycleState>,
-    FVisible: Fn(usize) -> bool,
-{
-    if chunk_size == 0 || slot_count == 0 {
-        return Vec::new();
-    }
+fn visible_at_version<M: HistoricalMetadata>(history: &[M], version_id: VersionId) -> bool {
+    let bound = VersionBound::new(version_id);
+    let end = history.partition_point(|entry| bound.includes_created(entry.effective_at()));
+    history[..end].iter().rev().any(|entry| {
+        entry
+            .retired_at()
+            .is_none_or(|retired| bound.retains_retired(retired))
+    })
+}
 
-    let mut summaries = Vec::new();
-    let mut chunk_index = 0;
-    let mut slot_start = 0;
+#[derive(Default)]
+struct ChunkAccumulator {
+    visible_records: usize,
+    retained_records: usize,
+    reclaimable_records: usize,
+    earliest_created_at: Option<VersionId>,
+    latest_retired_at: Option<VersionId>,
+}
 
-    while slot_start < slot_count {
-        let slot_end = (slot_start + chunk_size).min(slot_count);
-        let mut visible_records = 0;
-        let mut retained_records = 0;
-        let mut reclaimable_records = 0;
-        let mut earliest_created_at: Option<VersionId> = None;
-        let mut latest_retired_at: Option<VersionId> = None;
-
-        for slot in slot_start..slot_end {
-            if visible_at_version(slot) {
-                visible_records += 1;
-            }
-
-            if let Some(created) = created_at(slot) {
-                earliest_created_at = Some(match earliest_created_at {
-                    Some(current) => current.min(created),
-                    None => created,
-                });
-            }
-
-            if let Some(retired) = retired_at(slot) {
-                retained_records += 1;
-                latest_retired_at = Some(match latest_retired_at {
-                    Some(current) => current.max(retired),
-                    None => retired,
-                });
-            }
-
-            if lifecycle(slot) == Some(RecordLifecycleState::Reclaimable) {
-                reclaimable_records += 1;
-            }
+impl ChunkAccumulator {
+    fn observe(
+        &mut self,
+        visible: bool,
+        created_at: Option<VersionId>,
+        retired_at: Option<VersionId>,
+        lifecycle: Option<RecordLifecycleState>,
+    ) {
+        self.visible_records += usize::from(visible);
+        if let Some(created_at) = created_at {
+            self.earliest_created_at = Some(
+                self.earliest_created_at
+                    .map_or(created_at, |current| current.min(created_at)),
+            );
         }
-
-        summaries.push(ChunkVisibilitySummary {
-            chunk_index,
-            slot_start,
-            slot_len: slot_end - slot_start,
-            visible_records,
-            retained_records,
-            reclaimable_records,
-            earliest_created_at,
-            latest_retired_at,
-        });
-
-        chunk_index += 1;
-        slot_start = slot_end;
+        if let Some(retired_at) = retired_at {
+            self.retained_records += 1;
+            self.latest_retired_at = Some(
+                self.latest_retired_at
+                    .map_or(retired_at, |current| current.max(retired_at)),
+            );
+        }
+        self.reclaimable_records +=
+            usize::from(lifecycle == Some(RecordLifecycleState::Reclaimable));
     }
-
-    summaries
 }
 
 fn slot_chunk_index(slot: usize, chunk_size: usize) -> usize {

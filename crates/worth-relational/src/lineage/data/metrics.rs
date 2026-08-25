@@ -6,5 +6,4 @@ pub struct LineageFinalizationCounters {
     pub created_event_count: usize,
     pub replaced_event_count: usize,
     pub retired_event_count: usize,
-    pub promoted_correspondence_count: usize,
 }

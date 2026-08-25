@@ -1,6 +1,6 @@
 //! Durable committed-application evidence minted only from publication completion.
 
-use worth_relational::facade::history::{BranchId, CommitReference};
+use worth_relational::facade::history::{BranchId, RelationalCommitReceipt};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(in crate::domain_computation::primary_graph) struct WorthQueryPrimaryGraphCommittedApplication {
@@ -10,6 +10,7 @@ pub(in crate::domain_computation::primary_graph) struct WorthQueryPrimaryGraphCo
     runtime_instance_id: u64,
     changed_record_count: usize,
     emitted_effect_count: usize,
+    basis_descriptor: worth_relational::facade::branch::RelationalBranchBasisDescriptor,
     commit_evidence: super::super::super::WorthQueryPrimaryGraphCommitEvidence,
 }
 
@@ -22,6 +23,7 @@ impl WorthQueryPrimaryGraphCommittedApplication {
             changed_record_count,
             emitted_effect_count,
             outcome_identity,
+            basis_descriptor,
             evidence,
         } = seal;
         Self {
@@ -29,6 +31,7 @@ impl WorthQueryPrimaryGraphCommittedApplication {
             runtime_instance_id,
             changed_record_count,
             emitted_effect_count,
+            basis_descriptor,
             commit_evidence: evidence,
         }
     }
@@ -51,8 +54,14 @@ impl WorthQueryPrimaryGraphCommittedApplication {
 
     pub(in crate::domain_computation::primary_graph) const fn commit_reference(
         &self,
-    ) -> &CommitReference {
+    ) -> &RelationalCommitReceipt {
         self.commit_evidence.commit_reference()
+    }
+
+    pub(in crate::domain_computation::primary_graph) const fn basis_descriptor(
+        &self,
+    ) -> &worth_relational::facade::branch::RelationalBranchBasisDescriptor {
+        &self.basis_descriptor
     }
 
     pub(in crate::domain_computation::primary_graph) const fn changed_record_count(&self) -> usize {

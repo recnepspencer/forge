@@ -1,12 +1,12 @@
 use std::collections::BTreeSet;
 
 use crate::history::data::CanonicalCommitEnvelope;
-use crate::history::data::{BranchId, CommitId, CommitReference};
+use crate::history::data::{BranchId, CommitId, RelationalCommitReceipt};
 use crate::identity::data::VersionId;
 use crate::runtime::RelationalRuntime;
 
 pub(crate) trait HistorySource: super::CommitEnvelopeSource {
-    fn branch_head_ref(&self, branch_id: &BranchId) -> Option<&CommitReference>;
+    fn branch_head_ref(&self, branch_id: &BranchId) -> Option<&RelationalCommitReceipt>;
     fn authoritative_commit_envelopes(&self) -> Vec<&CanonicalCommitEnvelope>;
 
     fn has_committed_version_at_or_before_outside_closure(
@@ -24,18 +24,21 @@ pub(crate) trait HistorySource: super::CommitEnvelopeSource {
 }
 
 impl HistorySource for RelationalRuntime {
-    fn branch_head_ref(&self, branch_id: &BranchId) -> Option<&CommitReference> {
+    fn branch_head_ref(&self, branch_id: &BranchId) -> Option<&RelationalCommitReceipt> {
+        let cell = self.history.branch_cell(branch_id)?;
+        let commit_id = match cell.observation().target() {
+            worth_foundational::FoundationalBranchTarget::Empty => return None,
+            worth_foundational::FoundationalBranchTarget::Basis(target) => {
+                CommitId(target.selected_commit_id())
+            }
+        };
         self.history
-            .branch_heads
-            .get(branch_id)
-            .and_then(|head| head.as_ref())
+            .commit_catalog
+            .get(commit_id)
+            .map(|artifact| &artifact.envelope().commit)
     }
 
     fn authoritative_commit_envelopes(&self) -> Vec<&CanonicalCommitEnvelope> {
-        self.history
-            .commit_envelopes
-            .values()
-            .map(|envelope| envelope.as_ref())
-            .collect()
+        self.history.commit_catalog.envelope_refs()
     }
 }

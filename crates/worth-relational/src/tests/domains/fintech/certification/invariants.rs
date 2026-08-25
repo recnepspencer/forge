@@ -54,17 +54,6 @@ fn run_check(
             read_summary(session, alias)?.matches_case_role(case_role),
             format!("read `{alias}` should target case `{case_role}`"),
         ),
-        ["lineage_promotion_succeeded", alias] => {
-            let resolution = session
-                .named_lineage_resolutions
-                .get(*alias)
-                .copied()
-                .unwrap_or(crate::facade::lineage::LineageResolutionStatus::Rejected);
-            (
-                resolution == crate::facade::lineage::LineageResolutionStatus::Promoted,
-                format!("lineage promotion `{alias}` should succeed"),
-            )
-        }
         ["read_has_repaired_settlement", alias] => {
             let count = read_summary(session, alias)?.repaired_settlement_count();
             (

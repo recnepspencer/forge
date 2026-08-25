@@ -59,7 +59,7 @@ impl WorthQueryProviderSessionLifecycle for Arc<WorthQueryPrimaryGraphProvider> 
         session: &WorthQueryProviderSessionView<'_>,
     ) -> Result<
         crate::domain_computation::WorthQueryProviderTerminalDescription,
-        WorthQueryProviderSessionFailure,
+        crate::domain_computation::WorthQueryProviderSessionCommitStop,
     > {
         self.application_attempt_work.observe_prepared_commit();
         super::session_commit::commit_prepared_session(self, *session)

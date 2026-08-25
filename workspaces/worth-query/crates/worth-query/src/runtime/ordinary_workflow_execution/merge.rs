@@ -24,25 +24,51 @@ pub(crate) enum WorthQueryOrdinaryMergeFailureStage {
     RelationalExecution,
 }
 
-pub(crate) struct WorthQueryOrdinaryMergeExecutionError {
-    stage: WorthQueryOrdinaryMergeFailureStage,
-    message: String,
+pub(crate) enum WorthQueryOrdinaryMergeExecutionError {
+    Deferred {
+        message: String,
+    },
+    Denied {
+        stage: WorthQueryOrdinaryMergeFailureStage,
+        message: String,
+    },
+    SettlementDeferred {
+        message: String,
+        settlement: worth_relational::facade::publication::DeferredPublicationSettlement,
+    },
 }
 
 impl WorthQueryOrdinaryMergeExecutionError {
     fn new(stage: WorthQueryOrdinaryMergeFailureStage, message: impl Into<String>) -> Self {
-        Self {
+        Self::Denied {
             stage,
             message: message.into(),
         }
     }
 
-    pub(crate) fn stage(&self) -> WorthQueryOrdinaryMergeFailureStage {
-        self.stage
-    }
-
-    pub(crate) fn message(&self) -> &str {
-        &self.message
+    pub(crate) fn from_relational(
+        failure: crate::effect_lifecycle::RelationalEffectExecutionFailure,
+    ) -> Self {
+        match failure {
+            crate::effect_lifecycle::RelationalEffectExecutionFailure::Deferred { message } => {
+                Self::Deferred { message }
+            }
+            crate::effect_lifecycle::RelationalEffectExecutionFailure::Denied { kind, message } => {
+                Self::Denied {
+                    stage: WorthQueryOrdinaryMergeFailureStage::RelationalExecution,
+                    message: format!("{}: {message}", kind.as_str()),
+                }
+            }
+            crate::effect_lifecycle::RelationalEffectExecutionFailure::SettlementDeferred(
+                deferred,
+            ) => {
+                let (message, settlement) = deferred.into_parts();
+                Self::SettlementDeferred {
+                    message,
+                    settlement,
+                }
+            }
+        }
     }
 }
 
@@ -145,12 +171,7 @@ impl WorthQueryRuntime {
         let outcome = self
             .backend
             .execute_query_merge(merge_authority, &declaration)
-            .map_err(|(kind, message)| {
-                WorthQueryOrdinaryMergeExecutionError::new(
-                    WorthQueryOrdinaryMergeFailureStage::RelationalExecution,
-                    format!("{}: {message}", kind.as_str()),
-                )
-            })?;
+            .map_err(WorthQueryOrdinaryMergeExecutionError::from_relational)?;
         let receipt =
             ExecutedEffectPlan::new(lowered, ExecutedEffectAuthorityArtifact::Merge(outcome), 1)
                 .receipt();

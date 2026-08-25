@@ -52,4 +52,15 @@ impl CanonicalAspectStateMap {
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
+
+    /// Owner-accounted bytes allocated by the canonical map and every nested
+    /// key, contract, and value payload. Allocator bookkeeping is excluded.
+    pub fn owned_allocation_capacity_bytes(&self) -> usize {
+        self.entries.iter().fold(0_usize, |bytes, (key, value)| {
+            bytes
+                .saturating_add(std::mem::size_of::<(AspectKey, ContractValidatedAspectValue)>())
+                .saturating_add(key.owned_allocation_capacity_bytes())
+                .saturating_add(value.owned_allocation_capacity_bytes())
+        })
+    }
 }

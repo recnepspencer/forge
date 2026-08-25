@@ -12,7 +12,6 @@ use crate::visibility::materialization::read_records::{
 };
 
 pub(crate) fn execute_query_fragment(
-    runtime: &RelationalRuntime,
     read_view: &RelationalReadView,
     packet: &PlannedQueryPacket,
     work: &PacketizedQueryWork,
@@ -160,58 +159,16 @@ pub(crate) fn execute_query_fragment(
                     && aspect_filter_matches_relation(record, aspect_filter)
             },
         )),
-        PacketizedQueryWork::OutgoingNeighborhood {
-            seeds,
-            relation_kind_scope,
-        } => traversal_fragment(
-            runtime,
-            &runtime.storage_access().current_state(),
-            read_view.snapshot.version_id,
-            packet,
-            seeds,
-            relation_kind_scope.as_deref(),
-            ordinal,
-            TraversalMode::OutgoingNeighborhood,
-            scratch,
-        ),
-        PacketizedQueryWork::IncomingNeighborhood {
-            seeds,
-            relation_kind_scope,
-        } => traversal_fragment(
-            runtime,
-            &runtime.storage_access().current_state(),
-            read_view.snapshot.version_id,
-            packet,
-            seeds,
-            relation_kind_scope.as_deref(),
-            ordinal,
-            TraversalMode::IncomingNeighborhood,
-            scratch,
-        ),
-        PacketizedQueryWork::ConnectivityTraversal {
-            seeds,
-            relation_kind_scope,
-            max_depth,
-        } => traversal_fragment(
-            runtime,
-            &runtime.storage_access().current_state(),
-            read_view.snapshot.version_id,
-            packet,
-            seeds,
-            relation_kind_scope.as_deref(),
-            ordinal,
-            TraversalMode::ConnectivityTraversal {
-                max_depth: *max_depth,
-            },
-            scratch,
-        ),
+        PacketizedQueryWork::OutgoingNeighborhood { .. }
+        | PacketizedQueryWork::IncomingNeighborhood { .. }
+        | PacketizedQueryWork::ConnectivityTraversal { .. } => None,
     }
 }
 
 pub(crate) fn execute_explicit_query_fragment_from_state(
     read_context: &VisibilityReadContext<'_>,
-    snapshot_state: &crate::storage::overlay::SnapshotState,
-    current_state: &(impl PartitionAccess + Sync),
+    snapshot_state: &crate::visibility::snapshot_states::SnapshotState,
+    state_access: &(dyn PartitionAccess + Sync),
     version_id: crate::identity::data::VersionId,
     packet: &PlannedQueryPacket,
     work: &PacketizedQueryWork,
@@ -243,7 +200,7 @@ pub(crate) fn execute_explicit_query_fragment_from_state(
                     continue;
                 }
                 if let Some(record) = read_context.authoritative_entity_record_for_id_at_version(
-                    current_state,
+                    state_access,
                     *entity_id,
                     version_id,
                 ) {
@@ -266,7 +223,7 @@ pub(crate) fn execute_explicit_query_fragment_from_state(
                     continue;
                 }
                 if let Some(record) = read_context.authoritative_relation_record_for_id_at_version(
-                    current_state,
+                    state_access,
                     *relation_id,
                     version_id,
                 ) {
@@ -311,7 +268,7 @@ pub(crate) fn execute_explicit_query_fragment_from_state(
 
 pub(crate) fn execute_traversal_query_fragment_from_state(
     runtime: &RelationalRuntime,
-    state: &(impl PartitionAccess + Sync),
+    state: &(dyn PartitionAccess + Sync),
     version_id: crate::identity::data::VersionId,
     packet: &PlannedQueryPacket,
     work: &PacketizedQueryWork,

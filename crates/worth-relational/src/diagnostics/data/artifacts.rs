@@ -86,6 +86,8 @@ pub enum DiagnosticCode {
     MergeExecutionPublished,
     MergeCommitPublished,
     CommitPublished,
+    // Retained as durable vocabulary for 9.16.1.1 lineage diagnostics. Current
+    // publication does not mint these retired diagnostic codes.
     LineageCandidateRecorded,
     LineagePromotionPublished,
     LineagePromotionExecutionFailed,
@@ -185,6 +187,16 @@ impl RelationalDiagnosticArtifact {
             .map(RelationalDiagnosticsEntry::canonicalized)
             .collect();
         self
+    }
+
+    pub(crate) fn owned_allocation_capacity_bytes(&self) -> u64 {
+        let entries = (self.entries.capacity() as u64)
+            .saturating_mul(std::mem::size_of::<RelationalDiagnosticsEntry>() as u64);
+        self.entries.iter().fold(entries, |bytes, entry| {
+            bytes
+                .saturating_add(entry.message.capacity() as u64)
+                .saturating_add(entry.fields.owned_allocation_capacity_bytes())
+        })
     }
 }
 

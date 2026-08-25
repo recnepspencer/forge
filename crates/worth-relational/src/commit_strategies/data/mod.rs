@@ -50,5 +50,4 @@ pub use strategy_aspect_read_record::{
     StrategyEntityAspectReadRecord, StrategyProjectedAspectReadSet,
 };
 pub use strategy_id::CommitStrategyId;
-pub(crate) use validation::PreparedStrategyAuthorityScope;
-pub use validation::{StrategyPreviewValidationCostSummary, ValidatedStrategyCommitPlan};
+pub use validation::StrategyPreviewValidationCostSummary;

@@ -28,7 +28,7 @@ pub(crate) trait PatchStreamSource: CommitEnvelopeSource {
     fn commit_envelope_at_patch_stream_position(
         &self,
         position: PatchStreamPosition,
-    ) -> Option<&CanonicalCommitEnvelope> {
+    ) -> Option<CanonicalCommitEnvelope> {
         self.commit_id_at_patch_stream_position(position)
             .and_then(|commit_id| self.commit_envelope(commit_id))
     }
@@ -36,17 +36,31 @@ pub(crate) trait PatchStreamSource: CommitEnvelopeSource {
 
 impl PatchStreamSource for RelationalRuntime {
     fn latest_patch_stream_position(&self) -> Option<PatchStreamPosition> {
-        self.history
+        let projected = self
+            .history
             .patch_stream_index
             .last_key_value()
-            .map(|(position, _)| *position)
+            .map(|(position, _)| *position);
+        projected.max(
+            self.history
+                .latest_canonical_patch_route()
+                .map(|(position, _)| position),
+        )
     }
 
     fn commit_id_at_patch_stream_position(
         &self,
         position: PatchStreamPosition,
     ) -> Option<CommitId> {
-        self.history.patch_stream_index.get(&position).copied()
+        self.history
+            .patch_stream_index
+            .get(&position)
+            .copied()
+            .or_else(|| {
+                self.history
+                    .canonical_envelope_at_patch(position)
+                    .map(|envelope| envelope.commit.commit_id)
+            })
     }
 
     fn patch_stream_commits_after(
@@ -57,8 +71,18 @@ impl PatchStreamSource for RelationalRuntime {
         let start = after_position
             .map(std::ops::Bound::Excluded)
             .unwrap_or(std::ops::Bound::Unbounded);
-        self.history
+        let mut entries = self
+            .history
             .patch_stream_index
+            .range((start, std::ops::Bound::Unbounded))
+            .take(max_commits)
+            .map(|(position, commit_id)| (*position, *commit_id))
+            .collect::<std::collections::BTreeMap<_, _>>();
+        entries.extend(
+            self.history
+                .canonical_patch_routes_after(after_position, max_commits),
+        );
+        entries
             .range((start, std::ops::Bound::Unbounded))
             .map(|(position, commit_id)| PatchStreamCommitRef {
                 position: *position,

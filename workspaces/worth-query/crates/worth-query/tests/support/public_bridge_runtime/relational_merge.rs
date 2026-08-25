@@ -12,7 +12,7 @@ use worth_relational::facade::schema::{
 };
 use worth_relational::facade::symbols::ClientKey;
 use worth_relational::facade::transactions::{
-    CreateIntent, EntitySpec, MutationIntent, TransactionOptions, WorkerIntentBatch,
+    CreateIntent, EntitySpec, MutationIntent, WorkerIntentBatch,
 };
 
 pub fn public_relational_merge_runtime() -> RelationalRuntime {
@@ -38,22 +38,29 @@ pub fn public_relational_merge_runtime() -> RelationalRuntime {
         ))
         .build();
     create_empty_entity(&mut runtime, "main", "main-seed");
+    let (_, basis) = runtime
+        .observe_fork_source(&BranchId("main".to_string()))
+        .expect("main branch should expose an exact fork source");
     runtime
-        .history_authority()
-        .create_branch(
-            BranchId("candidate".to_string()),
-            &BranchId("main".to_string()),
-        )
+        .fork_branch(BranchId("candidate".to_string()), basis)
         .expect("candidate branch should be created");
     create_empty_entity(&mut runtime, "candidate", "candidate-seed");
     runtime
 }
 
 fn create_empty_entity(runtime: &mut RelationalRuntime, branch: &str, key: &str) {
-    let mut transaction = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(BranchId(branch.to_string())),
-        ..TransactionOptions::default()
-    });
+    let branch_id = BranchId(branch.to_string());
+    let mut transaction = {
+        let transaction_validation_input = runtime
+            .admit_named_branch_basis(&branch_id)
+            .expect("branch binding");
+        runtime
+            .begin_branch_transaction(
+                &transaction_validation_input,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     transaction.push_batch(WorkerIntentBatch::new(format!("create-{key}")).push(
         MutationIntent::Create(CreateIntent::Entity(EntitySpec {
             partition_id: PartitionId::main(),
@@ -63,6 +70,6 @@ fn create_empty_entity(runtime: &mut RelationalRuntime, branch: &str, key: &str)
         })),
     ));
     transaction
-        .commit()
+        .commit(runtime)
         .expect("public merge seed should commit");
 }

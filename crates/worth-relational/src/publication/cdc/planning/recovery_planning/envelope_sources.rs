@@ -1,4 +1,4 @@
-use crate::history::data::CanonicalCommitEnvelope;
+use crate::history::data::PositionedCanonicalCommit;
 use crate::publication::cdc::data::{
     SubscriberCheckpoint, SubscriberStreamFailure, SubscriberStreamFailureClass,
 };
@@ -9,8 +9,8 @@ use crate::publication::retained_canonical_envelopes_after;
 use crate::runtime::RelationalRuntime;
 
 pub(super) enum AvailableEnvelopeSource {
-    InMemory(Vec<CanonicalCommitEnvelope>),
-    Durable(Vec<CanonicalCommitEnvelope>),
+    InMemory(Vec<PositionedCanonicalCommit>),
+    Durable(Vec<PositionedCanonicalCommit>),
 }
 
 impl AvailableEnvelopeSource {
@@ -18,14 +18,14 @@ impl AvailableEnvelopeSource {
         matches!(self, Self::Durable(_))
     }
 
-    pub(super) fn durable_envelopes(&self) -> Option<&[CanonicalCommitEnvelope]> {
+    pub(super) fn durable_envelopes(&self) -> Option<&[PositionedCanonicalCommit]> {
         match self {
             Self::Durable(envelopes) => Some(envelopes.as_slice()),
             Self::InMemory(_) => None,
         }
     }
 
-    pub(super) fn into_envelopes(self) -> Vec<CanonicalCommitEnvelope> {
+    pub(super) fn into_envelopes(self) -> Vec<PositionedCanonicalCommit> {
         match self {
             Self::InMemory(envelopes) | Self::Durable(envelopes) => envelopes,
         }

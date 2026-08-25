@@ -18,6 +18,7 @@ fn unsupported_continuation_failure_counts_current_boundary_when_no_prior_proof_
     let fingerprint = SchemaBoundaryFingerprint::new([7_u8; 32]);
     let envelopes = vec![envelope_with_continuation(
         outcome.envelope().clone(),
+        outcome.patch_position(),
         fingerprint,
         SchemaContinuationClassification::ContinueWithContractUpgrade,
     )];
@@ -54,6 +55,7 @@ fn unsupported_continuation_failure_deduplicates_boundary_already_present_in_pri
     let fingerprint = SchemaBoundaryFingerprint::new([9_u8; 32]);
     let envelopes = vec![envelope_with_continuation(
         outcome.envelope().clone(),
+        outcome.patch_position(),
         fingerprint,
         SchemaContinuationClassification::ContinueWithContractUpgrade,
     )];
@@ -87,9 +89,10 @@ fn unsupported_continuation_failure_deduplicates_boundary_already_present_in_pri
 
 fn envelope_with_continuation(
     mut envelope: crate::history::data::CanonicalCommitEnvelope,
+    position: crate::publication::patch::data::PatchStreamPosition,
     fingerprint: SchemaBoundaryFingerprint,
     continuation: SchemaContinuationClassification,
-) -> crate::history::data::CanonicalCommitEnvelope {
+) -> crate::history::data::PositionedCanonicalCommit {
     envelope.schema_continuation_descriptor = Some(SchemaContinuationDescriptor::new(
         fingerprint,
         SchemaBridgeDescriptor::new(
@@ -103,5 +106,8 @@ fn envelope_with_continuation(
         ),
         1,
     ));
-    envelope
+    crate::history::data::PositionedCanonicalCommit::for_test(
+        position,
+        std::sync::Arc::new(envelope),
+    )
 }

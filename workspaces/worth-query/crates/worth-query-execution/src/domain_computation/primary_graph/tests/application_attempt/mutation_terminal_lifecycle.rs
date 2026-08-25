@@ -107,7 +107,7 @@ fn aborted_terminal() {
 }
 
 #[test]
-fn skipped_owner_terminal() {
+fn skipped_owner_admission_is_a_denied_terminal() {
     let world = installed_authorization_world(true);
     let baseline = baselines(&world);
     let program = program(&world, "terminal-skipped-owner");
@@ -116,7 +116,8 @@ fn skipped_owner_terminal() {
         world
             .application
             .compare_and_commit_application(program, idempotency(67, 67)),
-        WorthQueryApplicationCommitOutcome::Aborted
+        WorthQueryApplicationCommitOutcome::Denied(denial)
+            if denial.stage() == WorthQueryApplicationCommitDenialStage::InvariantExecution
     ));
     assert_baselines(&world, baseline);
 }

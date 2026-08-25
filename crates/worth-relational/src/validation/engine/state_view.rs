@@ -4,6 +4,8 @@ use crate::storage::overlay::PartitionAccess;
 use crate::storage::substrate::EntityArena;
 use crate::storage::substrate::HistoricalMetadata;
 
+mod structural_adjacency;
+
 #[derive(Clone, Copy)]
 pub(crate) struct InvariantStateView<'state> {
     state: &'state dyn PartitionAccess,
@@ -31,7 +33,8 @@ impl<'state> InvariantStateView<'state> {
     ) -> Option<Vec<crate::identity::data::EntityId>> {
         let mut ids = Vec::new();
         let mut saw_any = false;
-        for partition_id in self.state.partition_ids() {
+        let partition_ids = self.state.touched_partition_ids()?;
+        for partition_id in partition_ids {
             let partition = self.state.get_partition(partition_id)?;
             let Some(slots) = self.state.touched_entity_slots(partition_id) else {
                 continue;
@@ -233,7 +236,8 @@ impl<'state> InvariantStateView<'state> {
     ) -> Option<Vec<crate::identity::data::RelationId>> {
         let mut ids = Vec::new();
         let mut saw_any = false;
-        for partition_id in self.state.partition_ids() {
+        let partition_ids = self.state.touched_partition_ids()?;
+        for partition_id in partition_ids {
             let partition = self.state.get_partition(partition_id)?;
             let Some(slots) = self.state.touched_relation_slots(partition_id) else {
                 continue;
@@ -302,8 +306,10 @@ impl<'state> InvariantStateView<'state> {
     ) -> Option<&'state crate::storage::overlay::PartitionState> {
         let partition = self.state.get_partition(partition_id)?;
         if self.state.relation_slot_is_touched(partition_id, slot)
-            || self.state.touched_relation_slots(partition_id).is_none()
-            || !partition.relation_overlay_is_sparse
+            || (self.state.touched_relation_slots(partition_id).is_none()
+                && partition.relation_arena.get_slot(slot).is_some())
+            || (partition.relation_arena.get_slot(slot).is_some()
+                && !partition.relation_overlay_is_sparse)
         {
             return Some(partition);
         }

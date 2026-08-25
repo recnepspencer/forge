@@ -1,7 +1,0 @@
-error[E0277]: the trait bound `WorthQueryNativeAccessKey: From<ProjectionFactFieldPath>` is not satisfied
- --> tests/ui/projection_consumption/native_access/native_access_key_rejects_raw_path.rs:5:10
-  |
-5 |     path.into()
-  |          ^^^^ the trait `From<ProjectionFactFieldPath>` is not implemented for `WorthQueryNativeAccessKey`
-  |
-  = note: required for `ProjectionFactFieldPath` to implement `Into<WorthQueryNativeAccessKey>`

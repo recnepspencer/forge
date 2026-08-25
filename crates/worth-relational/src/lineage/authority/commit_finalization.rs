@@ -1,150 +1,101 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
-use crate::history::data::CommitReference;
+use crate::history::data::RelationalCommitReceipt;
 use crate::identity::data::{EntityId, KindId, LineageId, PartitionId, VersionId};
 use crate::lineage::authority::LineageAuthority;
 use crate::lineage::data::{
     FinalizedLineageEventBatch, LineageDecisionKind, LineageDecisionLog, LineageEventKind,
-    LineageFinalizationArtifact, LineageNode,
+    LineageFinalizationArtifact, LineageNode, PreparedLineageFinalization,
 };
 use crate::runtime::{PartitionAccess, WorkingState};
 use crate::transactions::data::{EntityMutationIntent, MutationIntent, RecordRef};
+
+struct LineageFinalizationPlan {
+    drafts: Vec<LineageEventDraft>,
+    required_lineage_ids: usize,
+}
+
+enum LineageEventDraft {
+    Create {
+        entity_id: EntityId,
+        existing_lineage_id: Option<LineageId>,
+    },
+    Retire {
+        lineage_id: LineageId,
+    },
+    Replace {
+        source_lineage_id: LineageId,
+        target_entity_id: EntityId,
+        target_lineage_id: Option<LineageId>,
+    },
+}
+
+struct AssignedLineageEvent {
+    kind: LineageEventKind,
+    decision_kind: LineageDecisionKind,
+    sources: Vec<LineageId>,
+    targets: Vec<LineageId>,
+    node: Option<AssignedLineageNode>,
+}
+
+struct AssignedLineageNode {
+    entity_id: EntityId,
+    lineage_id: LineageId,
+    install_in_staged_state: bool,
+}
 
 impl<'runtime> LineageAuthority<'runtime> {
     pub(crate) fn ensure_lineage_for_commit(
         &mut self,
         staged: &mut WorkingState,
-        commit: &CommitReference,
+        commit: &RelationalCommitReceipt,
         merged_plan: &[MutationIntent],
         changed_records: &[RecordRef],
-    ) -> LineageFinalizationArtifact {
-        let mut events = Vec::new();
-        let mut decisions = Vec::new();
-        for record in changed_records {
-            let RecordRef::Entity(entity_id) = record else {
-                continue;
-            };
-            let partition = staged.get_partition_mut(entity_id.partition_id);
-            let slot = entity_id.local_slot.0 as usize;
-            if partition.entity_arena.created_at.get(slot).copied() != Some(commit.version_id) {
-                continue;
-            }
-            let Some(existing_lineage_id) = partition
-                .entity_arena
-                .extra
-                .get(slot)
-                .map(|extra| extra.lineage_id)
-            else {
-                continue;
-            };
-            let lineage_id = existing_lineage_id.unwrap_or_else(|| {
-                let lineage_id = LineageId(self.runtime.lineage.next_lineage_id);
-                self.runtime.lineage.next_lineage_id += 1;
-                if let Some(extra) = partition.entity_arena.extra.get_mut(slot) {
-                    extra.lineage_id = Some(lineage_id);
+    ) -> Result<PreparedLineageFinalization, String> {
+        let plan =
+            LineageFinalizationPlan::from_staged(staged, commit, merged_plan, changed_records);
+        let lineage_width = u64::try_from(plan.required_lineage_ids)
+            .map_err(|_| "lineage id batch capacity exceeded u64".to_owned())?;
+        let event_width = u64::try_from(plan.drafts.len())
+            .map_err(|_| "lineage event batch capacity exceeded u64".to_owned())?;
+        let lineage_start = self.runtime.lineage.next_lineage_id;
+        let event_start = self.runtime.lineage.next_event_id;
+        let lineage_end = checked_reservation_end(lineage_start, lineage_width, "lineage id")?;
+        let event_end = checked_reservation_end(event_start, event_width, "lineage event id")?;
+        let assigned = plan.assign_lineage_ids(staged, lineage_start..lineage_end)?;
+
+        self.runtime.lineage.next_lineage_id = lineage_end;
+        self.runtime.lineage.next_event_id = event_end;
+
+        let mut events = Vec::with_capacity(assigned.len());
+        let mut decisions = Vec::with_capacity(assigned.len());
+        let mut new_nodes = Vec::new();
+        for (offset, assigned) in assigned.into_iter().enumerate() {
+            if let Some(node) = assigned.node {
+                if node.install_in_staged_state {
+                    install_lineage_id(staged, node.entity_id, node.lineage_id)?;
                 }
-                if let Some(metadata) = partition
-                    .entity_arena
-                    .metadata_history_at_mut(slot)
-                    .and_then(|history| history.last_mut())
-                {
-                    metadata.lineage_id = Some(lineage_id);
-                }
-                lineage_id
-            });
-            self.runtime
-                .lineage
-                .nodes
-                .entry(lineage_id)
-                .or_insert(LineageNode {
-                    lineage_id,
-                    entity_id: *entity_id,
+                new_nodes.push(LineageNode {
+                    lineage_id: node.lineage_id,
+                    entity_id: node.entity_id,
                 });
-            let event = self.emit_authoritative_lineage_event(
+            }
+            let offset = u64::try_from(offset)
+                .map_err(|_| "lineage event batch capacity exceeded u64".to_owned())?;
+            let event_id = event_start
+                .checked_add(offset)
+                .ok_or_else(|| "lineage event id allocator exhausted".to_owned())?;
+            let event = self.prepare_authoritative_lineage_event(
+                event_id,
                 commit,
-                LineageEventKind::Create,
-                Vec::new(),
-                vec![lineage_id],
+                assigned.kind,
+                assigned.sources,
+                assigned.targets,
             );
-            decisions.push(self.accepted_decision_record(
-                LineageDecisionKind::CreateAccepted,
-                &event,
-                None,
-            ));
+            decisions.push(self.accepted_decision_record(assigned.decision_kind, &event));
             events.push(event);
         }
-        let mut consumed_replace_targets = BTreeSet::new();
-        for intent in merged_plan {
-            match intent {
-                MutationIntent::Entity(EntityMutationIntent::Delete(spec)) => {
-                    let entity_id = spec.entity_id;
-                    if let Some(lineage_id) = staged
-                        .get_partition(entity_id.partition_id)
-                        .and_then(|partition| partition.entity_arena.get(&entity_id))
-                        .and_then(|slot_view| slot_view.extra().lineage_id)
-                    {
-                        let event = self.emit_authoritative_lineage_event(
-                            commit,
-                            LineageEventKind::Retire,
-                            vec![lineage_id],
-                            Vec::new(),
-                        );
-                        decisions.push(self.accepted_decision_record(
-                            LineageDecisionKind::RetireAccepted,
-                            &event,
-                            None,
-                        ));
-                        events.push(event);
-                    }
-                }
-                MutationIntent::Entity(EntityMutationIntent::Replace(spec)) => {
-                    let entity_id = spec.entity_id;
-                    let replacement = &spec.replacement;
-                    let source_lineage_id = staged
-                        .get_partition(entity_id.partition_id)
-                        .and_then(|partition| partition.entity_arena.get(&entity_id))
-                        .and_then(|slot_view| slot_view.extra().lineage_id);
-                    let replacement_entity_id = find_replace_target_entity(
-                        staged,
-                        changed_records,
-                        entity_id,
-                        replacement.partition_id,
-                        replacement.kind_id,
-                        commit.version_id,
-                        &mut consumed_replace_targets,
-                    );
-                    let Some(source_lineage_id) = source_lineage_id else {
-                        continue;
-                    };
-                    let Some(replacement_entity_id) = replacement_entity_id else {
-                        continue;
-                    };
-                    let replacement_lineage_id = staged
-                        .get_partition(replacement_entity_id.partition_id)
-                        .and_then(|partition| partition.entity_arena.get(&replacement_entity_id))
-                        .and_then(|slot_view| slot_view.extra().lineage_id);
-                    let Some(replacement_lineage_id) = replacement_lineage_id else {
-                        continue;
-                    };
-                    let event = self.emit_authoritative_lineage_event(
-                        commit,
-                        LineageEventKind::Replace,
-                        vec![source_lineage_id],
-                        vec![replacement_lineage_id],
-                    );
-                    decisions.push(self.accepted_decision_record(
-                        LineageDecisionKind::ReplaceAccepted,
-                        &event,
-                        None,
-                    ));
-                    events.push(event);
-                }
-                MutationIntent::Create(_)
-                | MutationIntent::Relation(_)
-                | MutationIntent::Entity(EntityMutationIntent::UpdateFields(_))
-                | MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(_)) => {}
-            }
-        }
+
         let artifact = LineageFinalizationArtifact::new(
             commit.branch_id.clone(),
             FinalizedLineageEventBatch::new(events),
@@ -156,8 +107,197 @@ impl<'runtime> LineageAuthority<'runtime> {
                 artifact.event_batch().events().len(),
                 artifact.decision_log().decisions().len(),
             );
-        artifact
+        Ok(PreparedLineageFinalization::new(artifact, new_nodes))
     }
+}
+
+impl LineageFinalizationPlan {
+    fn from_staged(
+        staged: &WorkingState,
+        commit: &RelationalCommitReceipt,
+        merged_plan: &[MutationIntent],
+        changed_records: &[RecordRef],
+    ) -> Self {
+        let mut drafts = Vec::new();
+        let mut required_lineage_ids = 0;
+        for record in changed_records {
+            let RecordRef::Entity(entity_id) = record else {
+                continue;
+            };
+            let Some(existing_lineage_id) =
+                created_entity_lineage_slot(staged, *entity_id, commit.version_id)
+            else {
+                continue;
+            };
+            required_lineage_ids += usize::from(existing_lineage_id.is_none());
+            drafts.push(LineageEventDraft::Create {
+                entity_id: *entity_id,
+                existing_lineage_id,
+            });
+        }
+
+        let mut consumed_replace_targets = BTreeSet::new();
+        for intent in merged_plan {
+            match intent {
+                MutationIntent::Entity(EntityMutationIntent::Delete(spec)) => {
+                    if let Some(lineage_id) = entity_lineage(staged, spec.entity_id) {
+                        drafts.push(LineageEventDraft::Retire { lineage_id });
+                    }
+                }
+                MutationIntent::Entity(EntityMutationIntent::Replace(spec)) => {
+                    let Some(source_lineage_id) = entity_lineage(staged, spec.entity_id) else {
+                        continue;
+                    };
+                    let Some(target_entity_id) = find_replace_target_entity(
+                        staged,
+                        changed_records,
+                        spec.entity_id,
+                        spec.replacement.partition_id,
+                        spec.replacement.kind_id,
+                        commit.version_id,
+                        &mut consumed_replace_targets,
+                    ) else {
+                        continue;
+                    };
+                    drafts.push(LineageEventDraft::Replace {
+                        source_lineage_id,
+                        target_entity_id,
+                        target_lineage_id: entity_lineage(staged, target_entity_id),
+                    });
+                }
+                MutationIntent::Create(_)
+                | MutationIntent::Relation(_)
+                | MutationIntent::Entity(EntityMutationIntent::UpdateFields(_))
+                | MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(_)) => {}
+            }
+        }
+        Self {
+            drafts,
+            required_lineage_ids,
+        }
+    }
+
+    fn assign_lineage_ids(
+        self,
+        staged: &WorkingState,
+        mut reserved: std::ops::Range<u64>,
+    ) -> Result<Vec<AssignedLineageEvent>, String> {
+        let mut created_lineages = BTreeMap::new();
+        let mut assigned = Vec::with_capacity(self.drafts.len());
+        for draft in self.drafts {
+            let event = match draft {
+                LineageEventDraft::Create {
+                    entity_id,
+                    existing_lineage_id,
+                } => {
+                    let lineage_id = match existing_lineage_id {
+                        Some(lineage_id) => lineage_id,
+                        None => LineageId(reserved.next().ok_or_else(|| {
+                            "lineage id reservation did not cover its plan".to_owned()
+                        })?),
+                    };
+                    created_lineages.insert(entity_id, lineage_id);
+                    AssignedLineageEvent {
+                        kind: LineageEventKind::Create,
+                        decision_kind: LineageDecisionKind::CreateAccepted,
+                        sources: Vec::new(),
+                        targets: vec![lineage_id],
+                        node: Some(AssignedLineageNode {
+                            entity_id,
+                            lineage_id,
+                            install_in_staged_state: existing_lineage_id.is_none(),
+                        }),
+                    }
+                }
+                LineageEventDraft::Retire { lineage_id } => AssignedLineageEvent {
+                    kind: LineageEventKind::Retire,
+                    decision_kind: LineageDecisionKind::RetireAccepted,
+                    sources: vec![lineage_id],
+                    targets: Vec::new(),
+                    node: None,
+                },
+                LineageEventDraft::Replace {
+                    source_lineage_id,
+                    target_entity_id,
+                    target_lineage_id,
+                } => {
+                    let target_lineage_id = target_lineage_id
+                        .or_else(|| created_lineages.get(&target_entity_id).copied())
+                        .or_else(|| entity_lineage(staged, target_entity_id))
+                        .ok_or_else(|| {
+                            "lineage replacement target lost its planned lineage".to_owned()
+                        })?;
+                    AssignedLineageEvent {
+                        kind: LineageEventKind::Replace,
+                        decision_kind: LineageDecisionKind::ReplaceAccepted,
+                        sources: vec![source_lineage_id],
+                        targets: vec![target_lineage_id],
+                        node: None,
+                    }
+                }
+            };
+            assigned.push(event);
+        }
+        if reserved.next().is_some() {
+            return Err("lineage id reservation exceeded its plan".to_owned());
+        }
+        Ok(assigned)
+    }
+}
+
+fn created_entity_lineage_slot(
+    staged: &WorkingState,
+    entity_id: EntityId,
+    version_id: VersionId,
+) -> Option<Option<LineageId>> {
+    let partition = staged.get_partition(entity_id.partition_id)?;
+    let physical = partition
+        .entity_arena
+        .physical_index(entity_id.local_slot.0 as usize)?;
+    if partition.entity_arena.created_at.get(physical).copied() != Some(version_id) {
+        return None;
+    }
+    Some(partition.entity_arena.extra.get(physical)?.lineage_id)
+}
+
+fn install_lineage_id(
+    staged: &mut WorkingState,
+    entity_id: EntityId,
+    lineage_id: LineageId,
+) -> Result<(), String> {
+    let partition = staged.get_partition_mut(entity_id.partition_id);
+    let slot = entity_id.local_slot.0 as usize;
+    let physical = partition
+        .entity_arena
+        .physical_index(slot)
+        .ok_or_else(|| "planned lineage entity slot is unavailable".to_owned())?;
+    let extra = partition
+        .entity_arena
+        .extra
+        .get_mut(physical)
+        .ok_or_else(|| "planned lineage entity metadata is unavailable".to_owned())?;
+    extra.lineage_id = Some(lineage_id);
+    let metadata = partition
+        .entity_arena
+        .metadata_history_at_mut(slot)
+        .and_then(|history| history.last_mut())
+        .ok_or_else(|| "planned lineage metadata history is unavailable".to_owned())?;
+    metadata.lineage_id = Some(lineage_id);
+    Ok(())
+}
+
+fn entity_lineage(staged: &WorkingState, entity_id: EntityId) -> Option<LineageId> {
+    staged
+        .get_partition(entity_id.partition_id)
+        .and_then(|partition| partition.entity_arena.get(&entity_id))
+        .and_then(|slot_view| slot_view.extra().lineage_id)
+}
+
+fn checked_reservation_end(start: u64, width: u64, counter_name: &str) -> Result<u64, String> {
+    start
+        .checked_add(width)
+        .filter(|end| *end < u64::MAX)
+        .ok_or_else(|| format!("{counter_name} allocator exhausted"))
 }
 
 fn find_replace_target_entity(
@@ -180,13 +320,15 @@ fn find_replace_target_entity(
             continue;
         }
         let partition = staged.get_partition(candidate.partition_id)?;
-        let slot = candidate.local_slot.0 as usize;
-        let created_now = partition.entity_arena.created_at.get(slot) == Some(&version_id);
+        let physical = partition
+            .entity_arena
+            .physical_index(candidate.local_slot.0 as usize)?;
+        let created_now = partition.entity_arena.created_at.get(physical) == Some(&version_id);
         let matching_partition = candidate.partition_id == replacement_partition_id;
         let matching_kind = partition
             .entity_arena
             .kind_ids
-            .get(slot)
+            .get(physical)
             .copied()
             .flatten()
             .is_some_and(|kind_id| kind_id == replacement_kind_id);

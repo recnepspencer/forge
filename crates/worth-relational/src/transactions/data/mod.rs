@@ -35,31 +35,33 @@ pub use intents::{
 pub use mutation_planning::CommitTopology;
 pub(crate) use outcomes::merge_commit_mutation_plan_token;
 pub(crate) use outcomes::CommitCreatedEntityBindings;
+pub(crate) use outcomes::CommitCreatedRelationBindings;
 #[cfg(test)]
 pub(crate) use outcomes::EntityUpdateMissingState;
 pub use outcomes::{
     AspectDeltaFailureFields, AspectDeltaPatchConstructionDenial, AspectDeltaPatchValueDenial,
     AspectDeltaRecordClass, AspectFieldTargetRejectionReason, AuthoritativeApplyPlan,
     BulkImportRowDomain, BulkImportStage, BulkMutationAdmissionDenial, CommitConflict,
-    CommitExecution, CommitOutcome, CommitPhaseTiming, CommitPublication, CommitResult,
-    CommitSchemaSummary, CommitStructuralSummary, CommitValidation, CommitValidationSummary,
-    ConflictClass, EntityAuthoritativeAspectStateDenial, EntityCascadeDeleteMissingState,
-    EntityFieldUpdateMissingState, LoweredCommitPlan, MergeCommitMutationPlan,
-    MergeExecutionOutcome, MergeExecutionStructuralSummary, MergeExecutionSummary,
-    MergedCommitPlan, MutationStateInconsistencyEvidence, PublishedMergeExecutionAuthority,
+    CommitExecution, CommitOutcome, CommitPhaseTiming, CommitPreparationError,
+    CommitPreparationReason, CommitPublication, CommitResult, CommitSchemaSummary,
+    CommitStructuralSummary, CommitValidation, CommitValidationSummary, ConflictClass,
+    EntityAuthoritativeAspectStateDenial, EntityCascadeDeleteMissingState,
+    EntityFieldUpdateMissingState, MergeCommitMutationPlan, MergeExecutionOutcome,
+    MergeExecutionStructuralSummary, MergeExecutionSummary, MergedCommitPlan,
+    MutationStateInconsistencyEvidence, PublishedMergeExecutionAuthority, RecordAllocationDenial,
     RecordAspectPatchDenial, RecordAspectPatchTarget, RelationEndpointUpdateMissingState,
-    RollbackEffect, RollbackOutcome, RollbackSummary, TransactionCommitError, UndoRecord,
+    RollbackEffect, RollbackOutcome, RollbackSummary, SelectedBranchRootDenialReason,
+    TransactionCommitError, UndoRecord,
 };
 pub(crate) use primitives::{
     lineage_safe_bulk_mutation_batch, naming_stable_bulk_mutation_batch,
     provenance_complete_bulk_mutation_batch,
 };
 pub use primitives::{
-    AuthorityMode, BulkMutationLineagePlan, BulkMutationLocalityFootprint, BulkMutationNamingPlan,
-    BulkMutationProvenancePlan, BulkMutationScope, CommitAuthority, CreatedEntityRef,
+    BulkMutationLineagePlan, BulkMutationLocalityFootprint, BulkMutationNamingPlan,
+    BulkMutationProvenancePlan, BulkMutationScope, CreatedEntityRef, CreatedRelationRef,
     CrossContextEndpointClass, EntityReference, EntitySpec, ExistingRecordTarget,
-    ExpectedBranchHead, LineageSafeBulkMutationBatch, NamingStableBulkMutationBatch,
-    PlannedBulkMutationBatch, PlannedLineageTransition, ProvenanceCompleteBulkMutationBatch,
-    RecordRef, RelationIdentity, RelationScope, RelationSpec, SavepointId, TransactionId,
-    TransactionOptions, WorkerIntentBatch,
+    LineageSafeBulkMutationBatch, NamingStableBulkMutationBatch, PlannedBulkMutationBatch,
+    PlannedLineageTransition, ProvenanceCompleteBulkMutationBatch, RecordRef, RelationIdentity,
+    RelationScope, RelationSpec, SavepointId, TransactionId, WorkerIntentBatch,
 };

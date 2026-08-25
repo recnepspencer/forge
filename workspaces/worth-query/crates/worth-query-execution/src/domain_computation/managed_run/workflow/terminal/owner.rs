@@ -1,4 +1,4 @@
-use worth_relational::facade::runtime::RelationalExecutionBasisLease;
+use super::super::WorthQueryManagedRelationalObservation;
 use worth_runtime_bridge::facade::BridgeBoundExecutionBasis;
 
 use super::super::run_affinity::WorthQueryWorkflowRunTerminalAffinity;
@@ -18,7 +18,7 @@ pub struct WorthQueryWorkflowRunTerminal {
     pub(super) affinity: WorthQueryWorkflowRunTerminalAffinity,
     pub(super) kind: WorthQueryManagedRunTerminalKind,
     pub(super) bridge_basis: BridgeBoundExecutionBasis,
-    pub(super) relational_basis: RelationalExecutionBasisLease,
+    pub(super) relational_basis: WorthQueryManagedRelationalObservation,
     pub(super) artifacts: WorthQueryWorkflowArtifactAuthority,
     pub(super) artifact_evidence_at_terminal: WorthQueryWorkflowArtifactRegistryEvidence,
     pub(super) counters: WorthQueryManagedRunCounters,

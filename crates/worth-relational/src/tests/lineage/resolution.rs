@@ -6,7 +6,7 @@ use crate::facade::lineage::{
     HistoricalResolutionRequest, LineageGraphRequest, LineageGraphTraversalBasis,
 };
 use crate::facade::transactions::{
-    EntityMutationIntent, MutationIntent, ReplaceEntityIntent, TransactionOptions,
+    EntityMutationIntent, MutationIntent, ReplaceEntityIntent, TransactionCommitError,
     WorkerIntentBatch,
 };
 use crate::tests::support::*;
@@ -25,7 +25,7 @@ fn historical_lineage_resolution_follows_replace_events() {
         .unwrap()
         .lineage_id;
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("replace").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -43,7 +43,7 @@ fn historical_lineage_resolution_follows_replace_events() {
             }),
         )),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
     let resolution =
         runtime
             .lineage_access()
@@ -62,7 +62,7 @@ fn historical_lineage_resolution_follows_replace_events() {
     assert_eq!(resolution.resolved.len(), 1);
     assert_ne!(resolution.resolved[0], start_lineage);
     assert_eq!(resolution.metrics.traversed_event_count, 1);
-    assert!(resolution.metrics.branch_event_scan_count >= 1);
+    assert!(resolution.metrics.event_visit_count >= 1);
     assert_eq!(resolution.metrics.resolved_lineage_count, 1);
     assert_eq!(
         resolution.digest_basis().digest_mode(),
@@ -90,6 +90,81 @@ fn historical_lineage_resolution_follows_replace_events() {
 }
 
 #[test]
+fn failed_durable_append_cannot_misreport_a_performed_owner_commit() {
+    let mut runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&mut runtime, "failed-lineage-source");
+    let entity = changed_entities(&created)[0];
+    let start_lineage = runtime
+        .lineage_access()
+        .for_record(entity)
+        .expect("source lineage")
+        .lineage_id();
+    let failed_commit_id = runtime.history.preview_next_commit_id();
+    let before = runtime.lineage_access().graph(LineageGraphRequest {
+        branch_id: BranchId("main".to_owned()),
+        traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
+    });
+
+    runtime.durability.fail_next_append = true;
+    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
+    transaction.push_batch(WorkerIntentBatch::new("failed-replacement").push(
+        MutationIntent::Entity(EntityMutationIntent::Replace(ReplaceEntityIntent {
+            entity_id: entity,
+            replacement: crate::transactions::data::EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_key: crate::symbols::data::ClientKey::raw("failed-successor"),
+                fields: single_string_aspect_field_patch(
+                    aspect_key("name"),
+                    field_key("name"),
+                    "failed-successor",
+                ),
+            },
+        })),
+    ));
+    let durability_deferred = transaction
+        .commit(&mut runtime)
+        .expect_err("an unacknowledged performed movement is a typed error");
+    assert!(matches!(
+        durability_deferred,
+        TransactionCommitError::PerformedButDurabilityDeferred { .. }
+    ));
+    assert_eq!(
+        durability_deferred
+            .performed_commit()
+            .expect("error carries exact performed receipt")
+            .commit_id,
+        failed_commit_id
+    );
+
+    let after_failure = runtime.lineage_access().graph(LineageGraphRequest {
+        branch_id: BranchId("main".to_owned()),
+        traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
+    });
+    assert_eq!(after_failure.nodes.len(), before.nodes.len());
+    assert_eq!(after_failure.events.len(), before.events.len() + 2);
+    assert_eq!(
+        runtime
+            .history()
+            .branch_head(&BranchId("main".to_owned()))
+            .expect("performed owner movement remains current")
+            .commit_id,
+        failed_commit_id
+    );
+    let resolution =
+        runtime
+            .lineage_access()
+            .resolve_historical_lineage(HistoricalResolutionRequest {
+                branch_id: BranchId("main".to_owned()),
+                lineage_id: start_lineage,
+                boundedness_basis: HistoricalResolutionBoundednessBasis::BranchScopedLineageSeed,
+            });
+    assert_eq!(resolution.resolved.len(), 1);
+    assert_ne!(resolution.resolved[0], start_lineage);
+    assert_eq!(resolution.traversed_event_ids.len(), 1);
+}
+
+#[test]
 fn historical_lineage_resolution_does_not_scan_unrelated_branch_events() {
     let mut runtime = runtime_with_test_schema();
     let created = create_entity_outcome(&mut runtime, "source");
@@ -105,7 +180,7 @@ fn historical_lineage_resolution_does_not_scan_unrelated_branch_events() {
         let _ = create_entity_outcome(&mut runtime, &label);
     }
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("replace").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -123,7 +198,7 @@ fn historical_lineage_resolution_does_not_scan_unrelated_branch_events() {
             }),
         )),
     );
-    let _ = txn.commit().unwrap();
+    let _ = txn.commit(&mut runtime).unwrap();
 
     let total_branch_events = runtime
         .lineage_access()
@@ -144,8 +219,8 @@ fn historical_lineage_resolution_does_not_scan_unrelated_branch_events() {
             });
 
     assert_eq!(resolution.metrics.traversed_event_count, 1);
-    assert_eq!(resolution.metrics.branch_event_scan_count, 1);
-    assert!(total_branch_events > resolution.metrics.branch_event_scan_count);
+    assert_eq!(resolution.metrics.event_visit_count, 1);
+    assert!(total_branch_events > resolution.metrics.event_visit_count);
 }
 
 #[test]
@@ -160,7 +235,7 @@ fn lineage_aspect_history_keeps_origin_events_and_marks_resolution_context() {
         .unwrap()
         .lineage_id;
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("replace").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -178,7 +253,7 @@ fn lineage_aspect_history_keeps_origin_events_and_marks_resolution_context() {
             }),
         )),
     );
-    let replacement = txn.commit().unwrap();
+    let replacement = txn.commit(&mut runtime).unwrap();
     let history = runtime
         .lineage_access()
         .entity_aspect_history(

@@ -4,17 +4,14 @@ use std::sync::Arc;
 use worth_foundational::facade::{AspectKey, FieldKey, ScalarAspectType};
 use worth_relational::facade::bridge::RuntimeBridgeRelationalSource;
 use worth_relational::facade::identity::{KindId, PartitionId};
-use worth_relational::facade::runtime::{
-    RelationalExecutionBasisLease, RelationalRuntime, RelationalRuntimeApi,
-};
+use worth_relational::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
 use worth_relational::facade::schema::{
     EntityKindRegistration, KindAspectContractDeclarations, RelationalSchemaRegistry, SchemaId,
     SchemaVersionId,
 };
 use worth_relational::facade::symbols::ClientKey;
 use worth_relational::facade::transactions::{
-    AspectFieldPatch, CreateIntent, EntitySpec, MutationIntent, TransactionOptions,
-    WorkerIntentBatch,
+    AspectFieldPatch, CreateIntent, EntitySpec, MutationIntent, WorkerIntentBatch,
 };
 use worth_runtime_bridge::facade::{
     BridgeAsyncRequestTruthViewBasis, BridgeAuthoritativeSourceProfile, BridgeBoundExecutionBasis,
@@ -25,40 +22,40 @@ use worth_runtime_bridge::facade::{
     BridgeRuntimePolicy, BridgeSourceAdapter, BridgeSourceCapability, BridgeSourceCapabilitySet,
     BridgeTruthViewSelector, CoarseRoutingMode, CommittedPatchSource,
     HistoricalEvaluationDeclaration, InvalidationSink, MappingSelector,
-    RelationalBridgeSnapshotIdentityParts, RelationalBridgeSourceError,
-    RelationalCommittedPatchRequest, RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSinkError,
-    SignalInvalidationScope, SnapshotReadContract, SnapshotReadPacket, SnapshotReadSource,
-    SourceDeclaration, SourceDeclarationIdentity, TruthBranchIdentity, TruthPatchScope,
-    TruthSnapshotIdentity, TruthSnapshotReader,
+    RelationalBridgeSourceError, RelationalCommittedPatchRequest, RuntimeBridge,
+    RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope, SnapshotReadContract,
+    SnapshotReadPacket, SnapshotReadSource, SourceDeclaration, SourceDeclarationIdentity,
+    TruthBranchIdentity, TruthPatchScope, TruthSnapshotIdentity, TruthSnapshotReader,
 };
 
-use super::super::WorthQueryManagedTruthReadRequest;
+use super::super::{WorthQueryManagedRelationalObservation, WorthQueryManagedTruthReadRequest};
 
 pub(super) struct CausalLowerExecutionBasis {
     pub bridge: BridgeBoundExecutionBasis,
-    pub relational: RelationalExecutionBasisLease,
+    pub relational: WorthQueryManagedRelationalObservation,
 }
 
 pub(crate) struct CausalManagedAdmissionContext {
     pub bridge: RuntimeBridge,
     pub relational: RuntimeBridgeRelationalSource,
-    pub version_id: worth_relational::facade::identity::VersionId,
+    pub descriptor: worth_relational::facade::branch::RelationalBranchBasisDescriptor,
     pub branch: TruthBranchIdentity,
+    _registration: worth_relational::facade::bridge::RelationalBridgeObservationLease,
 }
 
 pub(super) struct SourceProfileSubstitutionContext {
     pub foreign_bridge: RuntimeBridge,
     pub exact_bridge: RuntimeBridge,
     pub relational: RuntimeBridgeRelationalSource,
-    pub version_id: worth_relational::facade::identity::VersionId,
+    pub descriptor: worth_relational::facade::branch::RelationalBranchBasisDescriptor,
     pub branch: TruthBranchIdentity,
+    _registration: worth_relational::facade::bridge::RelationalBridgeObservationLease,
 }
 
 impl CausalManagedAdmissionContext {
     pub fn read_request(&self) -> WorthQueryManagedTruthReadRequest {
         WorthQueryManagedTruthReadRequest::new(
-            self.version_id,
-            self.branch.clone(),
+            self.descriptor.clone(),
             SnapshotReadPacket::new(vec![]),
         )
     }
@@ -67,37 +64,34 @@ impl CausalManagedAdmissionContext {
 pub(crate) fn managed_admission_context() -> CausalManagedAdmissionContext {
     let mut runtime = relational_runtime();
     let committed = create_fixture_entity(&mut runtime);
-    let version_id = committed.version_id;
-    let registration_snapshot =
-        worth_relational::facade::bridge::bridge_snapshot_identity_for_commit(
-            committed.commit.commit_id,
-            committed.commit.version_id,
-        );
+    let identity = runtime.main_branch_identity();
+    let (descriptor, basis) = runtime.observe_branch(&identity).unwrap();
     assert!(runtime.snapshots().release_snapshot(&committed.snapshot));
     let relational = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(runtime), "model")
         .expect("model should be a valid graph role");
+    let registration = relational.retain_branch_basis_for_bridge(&basis).unwrap();
+    let registration_snapshot = registration.snapshot_identity().clone();
     let branch = crate::domain_computation::primary_graph::primary_truth_branch_identity();
     let bridge = bridge_for_source(relational.clone(), branch.clone(), registration_snapshot);
     CausalManagedAdmissionContext {
         bridge,
         relational,
-        version_id,
+        descriptor,
         branch,
+        _registration: registration,
     }
 }
 
 pub(super) fn source_profile_substitution_context() -> SourceProfileSubstitutionContext {
     let mut runtime = relational_runtime();
     let committed = create_fixture_entity(&mut runtime);
-    let version_id = committed.version_id;
-    let registration_snapshot =
-        worth_relational::facade::bridge::bridge_snapshot_identity_for_commit(
-            committed.commit.commit_id,
-            committed.commit.version_id,
-        );
+    let identity = runtime.main_branch_identity();
+    let (descriptor, basis) = runtime.observe_branch(&identity).unwrap();
     assert!(runtime.snapshots().release_snapshot(&committed.snapshot));
     let relational = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(runtime), "model")
         .expect("model should be a valid graph role");
+    let registration = relational.retain_branch_basis_for_bridge(&basis).unwrap();
+    let registration_snapshot = registration.snapshot_identity().clone();
     let branch = crate::domain_computation::primary_graph::primary_truth_branch_identity();
     let exact_bridge = bridge_for_source(
         relational.clone(),
@@ -110,8 +104,9 @@ pub(super) fn source_profile_substitution_context() -> SourceProfileSubstitution
         foreign_bridge,
         exact_bridge,
         relational,
-        version_id,
+        descriptor,
         branch,
+        _registration: registration,
     }
 }
 
@@ -180,36 +175,32 @@ fn relational_source_and_lease(
     matching_snapshot: bool,
 ) -> (
     RuntimeBridgeRelationalSource,
-    RelationalExecutionBasisLease,
-    Option<RelationalExecutionBasisLease>,
+    WorthQueryManagedRelationalObservation,
+    Option<WorthQueryManagedRelationalObservation>,
     TruthBranchIdentity,
     TruthSnapshotIdentity,
 ) {
     let mut runtime = relational_runtime();
     let committed = create_fixture_entity(&mut runtime);
-    let version_id = committed.snapshot.version_id;
-    let branch_id = committed.snapshot.branch_id.clone();
+    let branch_identity = runtime.main_branch_identity();
+    let (_, bridge_basis) = runtime.observe_branch(&branch_identity).unwrap();
+    let substitute_basis = runtime
+        .readmit_branch_basis(bridge_basis.descriptor())
+        .unwrap();
     assert!(runtime.snapshots().release_snapshot(&committed.snapshot));
     let source = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(runtime), "model")
         .expect("model should be a valid graph role");
-    let bridge_basis = source
-        .admit_execution_basis(&branch_id, version_id)
+    let bridge_basis = WorthQueryManagedRelationalObservation::retain(&source, bridge_basis, true)
         .expect("Relational source should retain the bridge execution basis");
     let substitute = if matching_snapshot {
         None
     } else {
         Some(
-            source
-                .admit_execution_basis(&branch_id, version_id)
+            WorthQueryManagedRelationalObservation::retain(&source, substitute_basis, true)
                 .expect("same version should admit an independent execution basis"),
         )
     };
-    let snapshot = TruthSnapshotIdentity::from_relational_snapshot(
-        RelationalBridgeSnapshotIdentityParts::new(
-            bridge_basis.identity().snapshot_id().0,
-            version_id.0,
-        ),
-    );
+    let snapshot = bridge_basis.identity().snapshot_identity().clone();
     let branch = crate::domain_computation::primary_graph::primary_truth_branch_identity();
     (source, bridge_basis, substitute, branch, snapshot)
 }
@@ -233,7 +224,17 @@ fn relational_runtime() -> RelationalRuntime {
 fn create_fixture_entity(
     runtime: &mut RelationalRuntime,
 ) -> worth_relational::facade::transactions::CommitResult {
-    let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+    let mut transaction = {
+        let transaction_validation_input = runtime
+            .admit_main_branch_basis()
+            .expect("main branch binding");
+        runtime
+            .begin_branch_transaction(
+                &transaction_validation_input,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     transaction.push_batch(WorkerIntentBatch::new("managed-run-fixture").push(
         MutationIntent::Create(CreateIntent::Entity(EntitySpec {
             partition_id: PartitionId::main(),
@@ -243,7 +244,7 @@ fn create_fixture_entity(
         })),
     ));
     transaction
-        .commit()
+        .commit(runtime)
         .expect("managed-run fixture entity should commit")
 }
 

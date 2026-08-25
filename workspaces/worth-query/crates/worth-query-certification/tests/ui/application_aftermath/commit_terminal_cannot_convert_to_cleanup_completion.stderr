@@ -1,7 +1,0 @@
-error[E0277]: the trait bound `WorthQueryMutationGraphWorkCompletion: From<&WorthQueryApplicationCommitTerminalEvidence>` is not satisfied
- --> tests/ui/application_aftermath/commit_terminal_cannot_convert_to_cleanup_completion.rs:7:24
-  |
-7 |     receipt.terminal().into()
-  |                        ^^^^ the trait `From<&WorthQueryApplicationCommitTerminalEvidence>` is not implemented for `WorthQueryMutationGraphWorkCompletion`
-  |
-  = note: required for `&WorthQueryApplicationCommitTerminalEvidence` to implement `Into<WorthQueryMutationGraphWorkCompletion>`

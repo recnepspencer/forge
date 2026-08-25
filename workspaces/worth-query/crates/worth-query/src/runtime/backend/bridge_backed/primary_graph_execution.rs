@@ -190,7 +190,7 @@ impl WorthQueryBridgeBackedRuntimeBackend {
         declaration: &crate::workflow::LoweredMergeWorkflowDeclaration,
     ) -> Result<
         worth_relational::facade::transactions::MergeExecutionOutcome,
-        (crate::effect_lifecycle::EffectExecutionDenialKind, String),
+        crate::effect_lifecycle::RelationalEffectExecutionFailure,
     > {
         if declaration.merge_request().target_branch() != authority.target_branch()
             || declaration.merge_request().source_branch() != authority.source_branch()
@@ -198,7 +198,8 @@ impl WorthQueryBridgeBackedRuntimeBackend {
             return Err((
                 crate::effect_lifecycle::EffectExecutionDenialKind::AuthorityOverrideRejected,
                 "lowered merge request does not match the captured branch authority".to_string(),
-            ));
+            )
+                .into());
         }
         match self.primary_graph_runtime.clone() {
             Some(primary_graph) => primary_graph
@@ -241,11 +242,12 @@ fn primary_graph_refresh_runtime_error(
 
 fn primary_graph_refresh_merge_error(
     denial: worth_query_execution::facade::integration::WorthQueryPrimaryGraphIndexRefreshDenial,
-) -> (crate::effect_lifecycle::EffectExecutionDenialKind, String) {
+) -> crate::effect_lifecycle::RelationalEffectExecutionFailure {
     (
         crate::effect_lifecycle::EffectExecutionDenialKind::MergeExecutionFailed,
         format!(
             "merge committed but primary identity indexes could not be refreshed; retry is indeterminate: {denial}"
         ),
     )
+        .into()
 }

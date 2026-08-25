@@ -12,16 +12,15 @@ use super::projected_field_values::{
 pub(crate) fn refresh_unique_entity_aspect_field_index_for_records(
     runtime: &mut RelationalRuntime,
     changed_records: &[crate::transactions::data::RecordRef],
-    version_id: crate::identity::data::VersionId,
+    basis: &crate::mvcc::PreparedIndexRefreshBasis,
 ) {
     let tracked_fields = tracked_unique_entity_aspect_fields(runtime);
     if tracked_fields.is_empty() {
         return;
     }
-    let projection = runtime.read_truth().project_version(version_id);
     let refreshed_values = collect_changed_unique_entity_aspect_field_entries(
         runtime,
-        &projection,
+        basis,
         changed_records,
         &tracked_fields,
     );
@@ -39,11 +38,22 @@ pub(crate) fn rebuild_unique_entity_aspect_field_indexes(runtime: &mut Relationa
     if tracked_fields.is_empty() {
         return;
     }
-    let projection = runtime
+    let Some(branch_id) = runtime.history().latest_commit().and_then(|commit| {
+        runtime
+            .history()
+            .commit_envelope(commit.commit_id)
+            .map(|envelope| envelope.branch_context.clone())
+    }) else {
+        return;
+    };
+    let Some(projection) = runtime
         .read_truth()
-        .project_version(runtime.current_version_id());
+        .project_branch_head(&branch_id, runtime.current_version_id())
+    else {
+        return;
+    };
     let rebuilt_values =
-        collect_all_unique_entity_aspect_field_entries(runtime, &projection, &tracked_fields);
+        collect_all_unique_entity_aspect_field_entries(&projection, &tracked_fields);
     write_unique_entity_aspect_field_index_entries(runtime, rebuilt_values);
 }
 
@@ -92,7 +102,6 @@ fn write_unique_entity_aspect_field_index_entries(
 }
 
 fn collect_all_unique_entity_aspect_field_entries(
-    runtime: &RelationalRuntime,
     projection: &crate::runtime::VisibilityProjectionView<'_>,
     tracked_fields: &BTreeSet<AspectFieldLocator>,
 ) -> Vec<(
@@ -101,10 +110,11 @@ fn collect_all_unique_entity_aspect_field_entries(
     crate::identity::data::EntityId,
 )> {
     let mut entries = Vec::new();
-    let source = super::projected_field_values::IndexProjectionSource::Current(projection);
+    let source = super::projected_field_values::IndexProjectionSource::exact(projection)
+        .expect("current unique-index projection must carry an exact basis");
     for field_locator in tracked_fields {
         entries.extend(
-            build_entity_aspect_field_index(runtime, &source, field_locator)
+            build_entity_aspect_field_index(&source, field_locator)
                 .into_iter()
                 .flat_map(|(value, entity_ids)| {
                     entity_ids
@@ -118,7 +128,7 @@ fn collect_all_unique_entity_aspect_field_entries(
 
 fn collect_changed_unique_entity_aspect_field_entries(
     runtime: &RelationalRuntime,
-    projection: &crate::runtime::VisibilityProjectionView<'_>,
+    basis: &crate::mvcc::PreparedIndexRefreshBasis,
     changed_records: &[crate::transactions::data::RecordRef],
     tracked_fields: &BTreeSet<AspectFieldLocator>,
 ) -> Vec<(
@@ -127,13 +137,21 @@ fn collect_changed_unique_entity_aspect_field_entries(
     crate::identity::data::EntityId,
 )> {
     let mut entries = Vec::new();
+    let reader = runtime.read_truth();
     for record in changed_records {
         let crate::transactions::data::RecordRef::Entity(entity_id) = record else {
             continue;
         };
+        let Some(record) = reader.authoritative_entity_record_for_id_at_version(
+            basis.root(),
+            *entity_id,
+            basis.version_id(),
+        ) else {
+            continue;
+        };
         for field_locator in tracked_fields {
             if let Some((value, entity_id)) =
-                entity_aspect_field_index_entry(runtime, projection, *entity_id, field_locator)
+                entity_aspect_field_index_entry(runtime, &record, field_locator)
             {
                 entries.push((field_locator.clone(), value, entity_id));
             }

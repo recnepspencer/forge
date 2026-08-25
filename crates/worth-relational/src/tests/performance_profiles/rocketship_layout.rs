@@ -130,12 +130,12 @@ pub(super) fn rocketship_query_target_count(node_count: usize) -> usize {
 }
 
 pub(super) fn seed_rocketship_world(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     node_count: usize,
 ) -> RocketshipSeedOutcome {
     let entity_commit_started_at = Instant::now();
     let entity_outcome = {
-        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
         let mut batch = WorkerIntentBatch::new("rocketship-entities-bulk");
         let mut entity_specs = Vec::with_capacity(node_count);
         for index in 0..node_count {
@@ -164,7 +164,8 @@ pub(super) fn seed_rocketship_world(
             batch = batch.push(intent);
         }
         txn.push_batch(batch);
-        txn.commit().expect("rocketship entity seed commit")
+        txn.commit(&mut runtime)
+            .expect("rocketship entity seed commit")
     };
     let entity_commit_micros = entity_commit_started_at.elapsed().as_micros();
     let entities = changed_entities(&entity_outcome);
@@ -206,14 +207,16 @@ pub(super) fn seed_rocketship_world(
     {
         let relation_commit_started_at = Instant::now();
         let outcome = {
-            let mut txn = runtime.begin_transaction(TransactionOptions::default());
+            let mut txn =
+                crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
             let mut batch =
                 WorkerIntentBatch::new(format!("rocketship-relations-bulk-{chunk_index}"));
             for intent in bulk_relation_create_intents(relation_chunk) {
                 batch = batch.push(intent);
             }
             txn.push_batch(batch);
-            txn.commit().expect("rocketship relation seed commit chunk")
+            txn.commit(&mut runtime)
+                .expect("rocketship relation seed commit chunk")
         };
         relation_commit_micros += relation_commit_started_at.elapsed().as_micros();
         relation_commit_phase_timing.draft_preparation_micros +=

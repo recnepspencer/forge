@@ -89,7 +89,7 @@ fn evaluate_live_record_sidecar<K: RecordKind>(
         } else if !has_touched_surface {
             let arena = K::arena(partition);
             count_scans(context, arena.slot_count());
-            for slot in 0..arena.slot_count() {
+            for slot in arena.occupied_slots() {
                 if let Some(violation) = sidecar_violation_for_slot(
                     class,
                     partition,

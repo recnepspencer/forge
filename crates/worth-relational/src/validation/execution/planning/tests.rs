@@ -10,8 +10,7 @@ use crate::facade::{
 use crate::identity::data::{KindId, PartitionId};
 use crate::schema::data::{EndpointKindContractDeclaration, RelationIntegrityDeclarations};
 use crate::transactions::data::{
-    CreateIntent, EntitySpec, MergedCommitPlan, MutationIntent, RelationSpec, TransactionOptions,
-    WorkerIntentBatch,
+    CreateIntent, EntitySpec, MergedCommitPlan, MutationIntent, RelationSpec, WorkerIntentBatch,
 };
 use crate::validation::data::InvariantPlanContract;
 use crate::validation::engine::{
@@ -97,10 +96,10 @@ fn request_for_plan<'runtime>(
 }
 
 fn create_entity(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    mut runtime: &mut crate::runtime::RelationalRuntime,
     name: &str,
 ) -> crate::identity::data::EntityId {
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new(format!("entity-{name}")).push(
             MutationIntent::Create(CreateIntent::Entity(EntitySpec {
@@ -112,7 +111,7 @@ fn create_entity(
             .into(),
         ),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
     outcome
         .changed_records
         .iter()
@@ -128,7 +127,7 @@ fn planner_packets_only_include_relation_integrity_registrations_authorized_by_p
     let mut runtime = relation_runtime();
     let source = create_entity(&mut runtime, "source");
     let target = create_entity(&mut runtime, "target");
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("planned").push(MutationIntent::Create(CreateIntent::Relation(
             RelationSpec {
@@ -141,7 +140,7 @@ fn planner_packets_only_include_relation_integrity_registrations_authorized_by_p
             },
         ))),
     );
-    let plan = txn.merged_plan().unwrap().clone();
+    let plan = txn.merged_plan(&mut runtime).unwrap().clone();
 
     let request = request_for_plan(&runtime, &plan);
     let prepared = plan_invariant_execution(&runtime, &request);
@@ -165,7 +164,7 @@ fn planner_proof_boundary_reports_partition_scoped_relation_integrity_packets() 
     let mut runtime = relation_runtime();
     let source = create_entity(&mut runtime, "source");
     let target = create_entity(&mut runtime, "target");
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("planned").push(MutationIntent::Create(CreateIntent::Relation(
             RelationSpec {
@@ -178,7 +177,7 @@ fn planner_proof_boundary_reports_partition_scoped_relation_integrity_packets() 
             },
         ))),
     );
-    let plan = txn.merged_plan().unwrap().clone();
+    let plan = txn.merged_plan(&mut runtime).unwrap().clone();
 
     let request = request_for_plan(&runtime, &plan);
     let prepared = plan_invariant_execution(&runtime, &request);

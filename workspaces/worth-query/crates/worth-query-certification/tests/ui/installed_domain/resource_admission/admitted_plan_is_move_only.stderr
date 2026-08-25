@@ -1,5 +1,0 @@
-error[E0599]: no method named `clone` found for struct `WorthQueryAdmittedExecutionResourcePlan` in the current scope
- --> tests/ui/installed_domain/resource_admission/admitted_plan_is_move_only.rs:4:22
-  |
-4 |     let _copy = plan.clone();
-  |                      ^^^^^ method not found in `WorthQueryAdmittedExecutionResourcePlan`

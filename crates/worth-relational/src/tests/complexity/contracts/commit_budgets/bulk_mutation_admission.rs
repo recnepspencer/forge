@@ -7,7 +7,7 @@ fn complexity_budget_bulk_mutation_planning_reports_identity_scope_and_batch_evi
     let target = create_entity_in_partition(&mut runtime, "target", PartitionId(11));
 
     runtime.performance_access().reset_counters();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("entities").push(MutationIntent::Create(
             CreateIntent::BulkEntities(BulkEntityCreateIntent {
@@ -47,7 +47,10 @@ fn complexity_budget_bulk_mutation_planning_reports_identity_scope_and_batch_evi
         )),
     );
 
-    let plan = txn.plan_bulk_mutation_batch().expect("planned batch");
+    let plan = txn
+        .plan_bulk_mutation_batch(&runtime)
+        .expect("planning succeeds")
+        .expect("planned batch");
     let counters = runtime.performance_access().counters();
 
     assert_eq!(plan.locality.entity_target_count, 2);
@@ -69,7 +72,7 @@ fn complexity_budget_bulk_mutation_admission_remains_side_effect_free_until_comm
     let target = create_entity(&mut runtime, "target");
 
     runtime.performance_access().reset_counters();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("relation-batch").push(MutationIntent::Create(
             CreateIntent::BulkRelations(BulkRelationCreateIntent {
@@ -86,7 +89,7 @@ fn complexity_budget_bulk_mutation_admission_remains_side_effect_free_until_comm
     );
 
     let admitted = txn
-        .admit_provenance_complete_bulk_mutation_batch()
+        .admit_provenance_complete_bulk_mutation_batch(&runtime)
         .expect("admission should succeed");
     let preflight_counters = runtime.performance_access().counters();
 
@@ -99,7 +102,7 @@ fn complexity_budget_bulk_mutation_admission_remains_side_effect_free_until_comm
     assert_eq!(preflight_counters.bulk_mutation_lineage_transition_count, 0);
     assert_eq!(preflight_counters.bulk_mutation_provenance_record_count, 0);
 
-    let mut commit_txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut commit_txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     commit_txn.push_batch(
         WorkerIntentBatch::new("relation-batch").push(MutationIntent::Create(
             CreateIntent::BulkRelations(BulkRelationCreateIntent {
@@ -114,7 +117,9 @@ fn complexity_budget_bulk_mutation_admission_remains_side_effect_free_until_comm
             }),
         )),
     );
-    let _ = commit_txn.commit().expect("commit should succeed");
+    let _ = commit_txn
+        .commit(&mut runtime)
+        .expect("commit should succeed");
     let committed_counters = runtime.performance_access().counters();
 
     assert_eq!(committed_counters.bulk_mutation_batch_count, 1);

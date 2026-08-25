@@ -44,7 +44,7 @@ struct WorthQueryBoundedReadOutcome {
 struct WorthQueryReleasedBoundedProjection<QueryResult> {
     rows: Vec<QueryResult>,
     kernel_receipt: NonLiveKernelReceiptEvidence,
-    basis_release: worth_relational::facade::runtime::RelationalExecutionBasisReleaseReceipt,
+    basis_release: super::WorthQueryApplicationBasisReleaseReceipt,
 }
 
 struct WorthQueryBoundedReceiptContext {

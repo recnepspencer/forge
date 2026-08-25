@@ -18,10 +18,13 @@ impl<'runtime> InvariantEngine<'runtime> {
         Self { runtime }
     }
 
-    pub(crate) fn execute(
+    pub(crate) fn execute<'state>(
         &self,
-        request: InvariantExecutionRequest<'runtime>,
-    ) -> InvariantExecutionResult {
+        request: InvariantExecutionRequest<'state>,
+    ) -> InvariantExecutionResult
+    where
+        'runtime: 'state,
+    {
         let mut work_plan =
             crate::authority::commit::preparation::planning::work_plan::empty_preparation_work_plan(
             );

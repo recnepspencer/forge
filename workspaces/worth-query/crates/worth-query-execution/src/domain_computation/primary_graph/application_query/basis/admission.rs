@@ -74,9 +74,9 @@ where
         WorthQueryApplicationQueryBasis::Preview(preview) => {
             admit_preview_execution_basis(application, preview)
         }
-        WorthQueryApplicationQueryBasis::Continuation(version_id) => {
-            let lease = admit_version_execution_basis(application, version_id)?;
-            Ok(application.basis_leases.register(lease))
+        WorthQueryApplicationQueryBasis::Continuation(descriptor) => {
+            let basis = admit_descriptor_execution_basis(application, &descriptor)?;
+            register_basis(application, basis)
         }
     }
 }
@@ -200,16 +200,12 @@ where
         )
     })?;
     let handle = graph.integration_handle();
-    let version = handle
+    handle
         .with_runtime_mut(|runtime| {
-            handle.ensure_primary_indexes_current(runtime).map(|()| {
-                runtime
-                    .history()
-                    .latest_commit()
-                    .map_or(worth_relational::facade::identity::VersionId(0), |commit| {
-                        commit.version_id
-                    })
-            })
+            handle.ensure_primary_indexes_current_for_branch(
+                runtime,
+                application.relational_branch_identity.branch_id(),
+            )
         })
         .map_err(|detail| {
             admission_denial(
@@ -217,38 +213,67 @@ where
                 detail,
             )
         })?;
-    let lease = admit_version_execution_basis(application, version)?;
-    Ok(application.basis_leases.register(lease))
+    let (_, basis) = application
+        .relational_source
+        .observe_branch_basis(&application.relational_branch_identity)
+        .map_err(map_basis_denial)?;
+    register_basis(application, basis)
 }
 
-fn admit_version_execution_basis<Schema>(
+fn admit_descriptor_execution_basis<Schema>(
     application: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
-    version: worth_relational::facade::identity::VersionId,
+    descriptor: &worth_relational::facade::branch::RelationalBranchBasisDescriptor,
 ) -> Result<
-    worth_relational::facade::runtime::RelationalExecutionBasisLease,
+    worth_relational::facade::branch::AdmittedRelationalBranchBasis,
     WorthQueryApplicationQueryAdmissionDenial,
 >
 where
     Schema: ApplicationSchema,
 {
-    let branch = application
+    if descriptor.runtime_instance_id()
+        != application.relational_branch_identity.runtime_instance_id()
+        || descriptor.branch_id() != application.relational_branch_identity.branch_id()
+    {
+        return Err(admission_denial(
+            WorthQueryApplicationQueryAdmissionDenialKind::ForeignBasis,
+            "primary Relational branch",
+        ));
+    }
+    application
         .relational_source
-        .resolve_execution_basis_branch(version)
-        .ok_or_else(|| {
+        .readmit_branch_basis(descriptor)
+        .map_err(map_basis_denial)
+}
+
+pub(super) fn register_basis<Schema>(
+    application: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
+    basis: worth_relational::facade::branch::AdmittedRelationalBranchBasis,
+) -> Result<WorthQueryApplicationBasisLease, WorthQueryApplicationQueryAdmissionDenial>
+where
+    Schema: ApplicationSchema,
+{
+    let graph = application.primary_provider.graph.clone();
+    graph
+        .with_runtime_mut(|runtime| graph.ensure_primary_indexes_for_basis(runtime, &basis))
+        .map_err(|detail| {
             admission_denial(
-                WorthQueryApplicationQueryAdmissionDenialKind::BasisUnavailable,
-                "Relational version branch",
+                WorthQueryApplicationQueryAdmissionDenialKind::RuntimeSupportUnavailable,
+                detail,
             )
         })?;
     application
-        .relational_source
-        .admit_execution_basis(&branch, version)
-        .map_err(|basis| {
-            admission_denial(
-                WorthQueryApplicationQueryAdmissionDenialKind::BasisUnavailable,
-                basis.detail(),
-            )
-        })
+        .basis_leases
+        .register(basis, graph)
+        .map_err(map_basis_denial)
+}
+
+pub(super) fn map_basis_denial(
+    denial: worth_relational::facade::branch::RelationalBranchBasisDenial,
+) -> WorthQueryApplicationQueryAdmissionDenial {
+    admission_denial(
+        WorthQueryApplicationQueryAdmissionDenialKind::BasisUnavailable,
+        format!("{denial:?}"),
+    )
 }
 
 fn admit_pinned_execution_basis<Schema>(

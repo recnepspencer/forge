@@ -160,6 +160,9 @@ pub(crate) struct ValidatedSchemaDeclaredCorrespondence {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MergePlanningError {
     RequestNormalization(RelationalMergeRequestNormalizationDenial),
+    UnboundBranchCurrentness,
+    SourceObservationDenied(crate::branch::RelationalBranchBasisDenial),
+    TargetObservationDenied(crate::branch::RelationalBranchBasisDenial),
     MissingSourceHead {
         branch_id: BranchId,
     },
@@ -209,6 +212,12 @@ impl From<RelationalMergeRequestNormalizationDenial> for MergePlanningError {
 impl From<crate::history::data::RelationalMergeBranchBasisDenial> for MergePlanningError {
     fn from(value: crate::history::data::RelationalMergeBranchBasisDenial) -> Self {
         match value {
+            crate::history::data::RelationalMergeBranchBasisDenial::SourceObservationDenied(
+                denial,
+            ) => Self::SourceObservationDenied(denial),
+            crate::history::data::RelationalMergeBranchBasisDenial::TargetObservationDenied(
+                denial,
+            ) => Self::TargetObservationDenied(denial),
             crate::history::data::RelationalMergeBranchBasisDenial::MissingSourceHead {
                 branch_id,
             } => Self::MissingSourceHead { branch_id },

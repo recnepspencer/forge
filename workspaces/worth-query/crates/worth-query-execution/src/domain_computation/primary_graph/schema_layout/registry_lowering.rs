@@ -53,10 +53,12 @@ pub(super) fn lower_kind_ids(
 fn next_kind_id(
     registry: &RelationalSchemaRegistry,
 ) -> Result<u32, WorthQueryPrimaryGraphInstallationDenial> {
-    registry
+    let authority = registry.authority_snapshot();
+    authority
         .entity_kinds
-        .keys()
-        .chain(registry.relation_kinds.keys())
+        .iter()
+        .map(|kind| kind.kind_id)
+        .chain(authority.relation_kinds.iter().map(|kind| kind.kind_id))
         .map(|kind| kind.0)
         .max()
         .unwrap_or(0)

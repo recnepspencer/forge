@@ -122,7 +122,8 @@ impl WorthQueryExecutionRuntime {
             .clone()
             .into_foundational_value();
         graph.integration_handle().with_runtime_mut(|runtime| {
-            let snapshot = runtime.snapshots().snapshot();
+            let snapshot = super::exact_basis_access::open_current_main_snapshot(runtime)
+                .expect("installed primary graph retains an exact main-branch basis");
             let result = validate_freshness_at_snapshot(
                 runtime,
                 &snapshot,
@@ -178,7 +179,8 @@ where
     PrincipalIdentity: TypedApplicationIdentityValue,
 {
     graph.integration_handle().with_runtime_mut(|runtime| {
-        let snapshot = runtime.snapshots().snapshot();
+        let snapshot = super::exact_basis_access::open_current_main_snapshot(runtime)
+            .expect("installed primary graph retains an exact main-branch basis");
         let result = resolve_at_snapshot(runtime, &snapshot, &resolution);
         runtime.snapshots().release_snapshot(&snapshot);
         result

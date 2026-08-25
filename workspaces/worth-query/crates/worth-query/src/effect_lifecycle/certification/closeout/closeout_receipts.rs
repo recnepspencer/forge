@@ -14,8 +14,8 @@ use super::closeout_artifacts::{
 };
 use super::scenarios;
 use super::support::{
-    branch_snapshot_identity, create_entity, relational_runtime_with_intent_strategy,
-    test_bridge_with_writeback_authority,
+    branch_snapshot_identity, create_entity, fork_seed_branch_from_main,
+    relational_runtime_with_intent_strategy, test_bridge_with_writeback_authority,
 };
 
 #[derive(Clone)]
@@ -81,7 +81,8 @@ impl ReceiptSurfaceEvidence {
 pub(super) fn mutation_receipt_surface() -> ReceiptSurfaceEvidence {
     let branch = "cert-phase6-branch";
     let mut runtime = relational_runtime_with_intent_strategy();
-    let entity_id = create_entity(&mut runtime, "before", BranchId(branch.to_string()));
+    let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
+    fork_seed_branch_from_main(&mut runtime, branch);
     let basis = EffectAuthoringBasis::from(scenarios::branch_mutation_basis(branch));
     let raw = scenarios::raw_mutation_effect_with_binding(
         scenarios::runtime_workflow_binding_for_branch(
@@ -115,8 +116,10 @@ pub(super) fn writeback_receipt_surface() -> ReceiptSurfaceEvidence {
 pub(super) fn batch_receipt_surface() -> ReceiptSurfaceEvidence {
     let branch = "cert-phase6-batch";
     let mut runtime = relational_runtime_with_intent_strategy();
-    let left = create_entity(&mut runtime, "left", BranchId(branch.to_string()));
-    let right = create_entity(&mut runtime, "right", BranchId(branch.to_string()));
+    let main = BranchId("main".to_string());
+    let left = create_entity(&mut runtime, "left", main.clone());
+    let right = create_entity(&mut runtime, "right", main);
+    fork_seed_branch_from_main(&mut runtime, branch);
     let basis = EffectAuthoringBasis::from(scenarios::branch_mutation_basis(branch));
     let binding = scenarios::runtime_workflow_binding_for_branch(
         branch_snapshot_identity(&runtime, branch),

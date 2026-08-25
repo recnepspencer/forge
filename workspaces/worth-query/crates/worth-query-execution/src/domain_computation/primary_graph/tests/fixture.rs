@@ -181,6 +181,7 @@ worth_query_application_schema! {
                 .field(Account::reference(), AccountStatus::reference())
                 .field(Account::reference(), AccountLabel::reference())
                 .field(Account::reference(), AccountNote::reference())
+                .field(Account::reference(), AccountScore::reference())
                 .aspect(Activity::reference(), ActivityFacts::reference())
                 .field(Activity::reference(), ActivityIdentity::reference())
                 .field(Activity::reference(), ActivitySequence::reference())
@@ -225,6 +226,7 @@ worth_query_application_schema! {
                 .ability(ManageOwnership::reference())
                 .effect(AccountActivityEffect::reference())
                 .effect(RetainedStatusEffect::reference())
+                .effect(MutationFreeExternalEffect::reference())
                 .effect(LiveActivityEffect::reference());
             let schema = operation_contracts::install(schema)
                 .policy(AccountAccessPolicy::reference())

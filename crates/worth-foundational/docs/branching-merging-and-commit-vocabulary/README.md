@@ -17,14 +17,15 @@ Use these docs when you need to answer questions like:
 
 Read the docs in this order if you are new to the surface:
 
-1. [Branch-Local Candidates And Staged Branches](./branch-local-candidates-and-staged-branches.md)
-2. [Merge Planning And Verdicts](./merge-planning-and-verdicts.md)
-3. [Transition Strategy And Basis Semantics](./transition-strategy-and-basis-semantics.md)
-4. [Scoped Merge And Cherry-Pick Vocabulary](../scoped-merge-adoption.md)
-5. [Committed Authority Transitions](./committed-authority-transitions.md)
-6. [Commit Receipts, Discard, And Transition Bundles](./commit-receipts-discard-and-transition-bundles.md)
-7. [Transition Canonical Basis, Locators, And Current-Basis](./transition-canonical-basis-locators-and-current-basis.md)
-8. [Transition Production Readiness](./transition-production-readiness.md)
+1. [Exact Branch References](./branch-references.md)
+2. [Branch-Local Candidates And Staged Branches](./branch-local-candidates-and-staged-branches.md)
+3. [Merge Planning And Verdicts](./merge-planning-and-verdicts.md)
+4. [Transition Strategy And Basis Semantics](./transition-strategy-and-basis-semantics.md)
+5. [Scoped Merge And Cherry-Pick Vocabulary](../scoped-merge-adoption.md)
+6. [Committed Authority Transitions](./committed-authority-transitions.md)
+7. [Commit Receipts, Discard, And Transition Bundles](./commit-receipts-discard-and-transition-bundles.md)
+8. [Transition Canonical Basis, Locators, And Current-Basis](./transition-canonical-basis-locators-and-current-basis.md)
+9. [Transition Production Readiness](./transition-production-readiness.md)
 
 The order matters.
 

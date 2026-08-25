@@ -53,7 +53,11 @@ pub(super) fn apply(
         let partition = context
             .state
             .get_partition_mut(intent.entity_id.partition_id);
-        let mut extra = partition.entity_arena.extra[slot].clone();
+        let mut extra = partition
+            .entity_arena
+            .extra_at(slot)
+            .expect("entity aspect patch requires a materialized slot")
+            .clone();
         extra.authoritative_aspect_state = new_state.clone();
         partition
             .entity_arena

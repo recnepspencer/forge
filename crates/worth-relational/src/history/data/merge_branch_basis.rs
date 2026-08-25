@@ -4,7 +4,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use super::{BranchId, CommitId, CommitReference};
+use super::{BranchId, CommitId, RelationalCommitReceipt};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MergeBaseSelectionRule {
@@ -14,20 +14,22 @@ pub enum MergeBaseSelectionRule {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ResolvedMergeBase {
     pub(crate) rule: MergeBaseSelectionRule,
-    pub(crate) commit: CommitReference,
+    pub(crate) commit: RelationalCommitReceipt,
     pub(crate) supporting_left_ancestors: Arc<[CommitId]>,
     pub(crate) supporting_right_ancestors: Arc<[CommitId]>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RelationalMergeBranchBasis {
-    pub(crate) source_head: CommitReference,
-    pub(crate) target_head: CommitReference,
+    pub(crate) source_head: RelationalCommitReceipt,
+    pub(crate) target_head: RelationalCommitReceipt,
     pub(crate) merge_base: ResolvedMergeBase,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RelationalMergeBranchBasisDenial {
+    SourceObservationDenied(crate::branch::RelationalBranchBasisDenial),
+    TargetObservationDenied(crate::branch::RelationalBranchBasisDenial),
     MissingSourceHead {
         branch_id: BranchId,
     },
@@ -44,11 +46,11 @@ pub enum RelationalMergeBranchBasisDenial {
 }
 
 impl RelationalMergeBranchBasis {
-    pub fn source_head(&self) -> &CommitReference {
+    pub fn source_head(&self) -> &RelationalCommitReceipt {
         &self.source_head
     }
 
-    pub fn target_head(&self) -> &CommitReference {
+    pub fn target_head(&self) -> &RelationalCommitReceipt {
         &self.target_head
     }
 
@@ -91,7 +93,7 @@ impl ResolvedMergeBase {
         self.rule
     }
 
-    pub fn commit(&self) -> &CommitReference {
+    pub fn commit(&self) -> &RelationalCommitReceipt {
         &self.commit
     }
 
@@ -111,7 +113,7 @@ fn canonical_selection_rule_bytes(bytes: &mut Vec<u8>, rule: MergeBaseSelectionR
     bytes.push(0xff);
 }
 
-fn canonical_commit_reference_bytes(bytes: &mut Vec<u8>, reference: &CommitReference) {
+fn canonical_commit_reference_bytes(bytes: &mut Vec<u8>, reference: &RelationalCommitReceipt) {
     write_u64(bytes, reference.commit_id.0);
     write_u64(bytes, reference.version_id.0);
     bytes.extend_from_slice(reference.branch_id.0.as_bytes());

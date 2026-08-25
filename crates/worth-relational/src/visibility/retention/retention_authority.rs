@@ -2,12 +2,17 @@ use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
 };
 use crate::runtime::RelationalRuntime;
-use crate::storage::data::{RecordLifecycleState, RetentionPassOutcome, RetentionPlan};
-use crate::storage::substrate::{
-    EntityRecordKind, HistoricalMetadata, RecordKind, RelationRecordKind,
-};
+use crate::storage::data::{RetentionPassOutcome, RetentionPlan};
+use crate::storage::substrate::{EntityRecordKind, RelationRecordKind};
 
 use super::diagnostic_fields::retention_plan_inspection_fields;
+
+mod partition_pass;
+
+use partition_pass::{
+    inspect_partition_retention, refresh_entity_retention_state, refresh_relation_retention_state,
+    run_partition_retention_pass, trim_live_history, PartitionRetentionPass,
+};
 
 pub struct VisibilityRetentionAuthority<'runtime> {
     runtime: &'runtime mut RelationalRuntime,
@@ -36,28 +41,29 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
 
         let partition_ids = self.runtime.storage_access().partition_ids();
         for partition_id in partition_ids {
-            inspect_partition_retention::<EntityRecordKind>(
+            let entity_counts = inspect_partition_retention::<EntityRecordKind>(
                 self.runtime,
                 partition_id,
                 retention_fence,
-                &mut branch_pinned_entities,
-                &mut replay_pinned_entities,
-                &mut snapshot_pinned_entities,
-                &mut reclaimable_entities,
-                &mut branch_replay_overlap_entities,
                 refresh_entity_retention_state,
             );
-            inspect_partition_retention::<RelationRecordKind>(
+            branch_pinned_entities += entity_counts.branch_pinned;
+            replay_pinned_entities += entity_counts.replay_pinned;
+            snapshot_pinned_entities += entity_counts.snapshot_pinned;
+            reclaimable_entities += entity_counts.reclaimable;
+            branch_replay_overlap_entities += entity_counts.branch_replay_overlap;
+
+            let relation_counts = inspect_partition_retention::<RelationRecordKind>(
                 self.runtime,
                 partition_id,
                 retention_fence,
-                &mut branch_pinned_relations,
-                &mut replay_pinned_relations,
-                &mut snapshot_pinned_relations,
-                &mut reclaimable_relations,
-                &mut branch_replay_overlap_relations,
                 refresh_relation_retention_state,
             );
+            branch_pinned_relations += relation_counts.branch_pinned;
+            replay_pinned_relations += relation_counts.replay_pinned;
+            snapshot_pinned_relations += relation_counts.snapshot_pinned;
+            reclaimable_relations += relation_counts.reclaimable;
+            branch_replay_overlap_relations += relation_counts.branch_replay_overlap;
         }
 
         let plan = RetentionPlan {
@@ -109,14 +115,14 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
 
         let partition_ids = self.runtime.storage_access().partition_ids();
         for partition_id in partition_ids {
-            run_partition_retention_pass::<EntityRecordKind>(
+            let entity_counts = run_partition_retention_pass::<EntityRecordKind>(
                 self.runtime,
-                partition_id,
-                entity_chunk_size,
-                retention_fence,
-                &mut outcome.entity_chunks_scanned,
-                &mut outcome.entity_reclaimable,
-                &mut outcome.entity_reclaimed,
+                PartitionRetentionPass {
+                    class: crate::history::data::RecordAllocationClass::Entity,
+                    partition_id,
+                    chunk_size: entity_chunk_size,
+                    retention_fence,
+                },
                 |runtime| {
                     let mut counters = runtime
                         .services
@@ -128,14 +134,18 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
                 },
                 refresh_entity_retention_state,
             );
-            run_partition_retention_pass::<RelationRecordKind>(
+            outcome.entity_chunks_scanned += entity_counts.chunks_scanned;
+            outcome.entity_reclaimable += entity_counts.reclaimable;
+            outcome.entity_reclaimed += entity_counts.reclaimed;
+
+            let relation_counts = run_partition_retention_pass::<RelationRecordKind>(
                 self.runtime,
-                partition_id,
-                relation_chunk_size,
-                retention_fence,
-                &mut outcome.relation_chunks_scanned,
-                &mut outcome.relation_reclaimable,
-                &mut outcome.relation_reclaimed,
+                PartitionRetentionPass {
+                    class: crate::history::data::RecordAllocationClass::Relation,
+                    partition_id,
+                    chunk_size: relation_chunk_size,
+                    retention_fence,
+                },
                 |runtime| {
                     let mut counters = runtime
                         .services
@@ -147,6 +157,9 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
                 },
                 refresh_relation_retention_state,
             );
+            outcome.relation_chunks_scanned += relation_counts.chunks_scanned;
+            outcome.relation_reclaimable += relation_counts.reclaimable;
+            outcome.relation_reclaimed += relation_counts.reclaimed;
         }
 
         outcome
@@ -220,162 +233,57 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
             },
         );
     }
-}
 
-pub(crate) fn refresh_entity_retention_state(
-    runtime: &mut RelationalRuntime,
-    partition_id: crate::identity::data::PartitionId,
-    slot: usize,
-    retired_at: Option<crate::identity::data::VersionId>,
-    retention_fence: crate::identity::data::VersionId,
-) {
-    runtime
-        .storage_authority()
-        .refresh_retention_state::<EntityRecordKind>(
-            partition_id,
-            slot,
-            retired_at,
-            retention_fence,
-        );
-}
-
-pub(crate) fn refresh_relation_retention_state(
-    runtime: &mut RelationalRuntime,
-    partition_id: crate::identity::data::PartitionId,
-    slot: usize,
-    retired_at: Option<crate::identity::data::VersionId>,
-    retention_fence: crate::identity::data::VersionId,
-) {
-    runtime
-        .storage_authority()
-        .refresh_retention_state::<RelationRecordKind>(
-            partition_id,
-            slot,
-            retired_at,
-            retention_fence,
-        );
-}
-
-fn inspect_partition_retention<K: RecordKind>(
-    runtime: &mut RelationalRuntime,
-    partition_id: crate::identity::data::PartitionId,
-    retention_fence: crate::identity::data::VersionId,
-    branch_pinned: &mut usize,
-    replay_pinned: &mut usize,
-    snapshot_pinned: &mut usize,
-    reclaimable: &mut usize,
-    branch_replay_overlap: &mut usize,
-    refresh_retention: fn(
-        &mut RelationalRuntime,
-        crate::identity::data::PartitionId,
-        usize,
-        Option<crate::identity::data::VersionId>,
-        crate::identity::data::VersionId,
-    ),
-) {
-    let len = runtime
-        .storage_access()
-        .record_slot_count::<K>(partition_id);
-    for slot in 0..len {
-        let surface_before = runtime
-            .storage_access()
-            .record_slot_surface::<K>(partition_id, slot);
-        let retired_at = surface_before.and_then(|surface| surface.retired_at);
-        if retired_at.is_some() {
-            refresh_retention(runtime, partition_id, slot, retired_at, retention_fence);
-        }
-        let Some(surface) = runtime
-            .storage_access()
-            .record_slot_surface::<K>(partition_id, slot)
-        else {
-            continue;
-        };
-        if surface.branch_pins > 0 {
-            *branch_pinned += 1;
-        }
-        if surface.replay_pins > 0 {
-            *replay_pinned += 1;
-        }
-        if surface.branch_pins > 0 && surface.replay_pins > 0 {
-            *branch_replay_overlap += 1;
-        }
-        if surface.snapshot_pins > 0 {
-            *snapshot_pinned += 1;
-        }
-        if surface.lifecycle == RecordLifecycleState::Reclaimable {
-            *reclaimable += 1;
-        }
-    }
-}
-
-fn run_partition_retention_pass<K: RecordKind>(
-    runtime: &mut RelationalRuntime,
-    partition_id: crate::identity::data::PartitionId,
-    chunk_size: usize,
-    retention_fence: crate::identity::data::VersionId,
-    chunks_scanned: &mut usize,
-    reclaimable: &mut usize,
-    reclaimed: &mut usize,
-    count_scan: impl Fn(&RelationalRuntime),
-    refresh_retention: fn(
-        &mut RelationalRuntime,
-        crate::identity::data::PartitionId,
-        usize,
-        Option<crate::identity::data::VersionId>,
-        crate::identity::data::VersionId,
-    ),
-) {
-    let len = runtime
-        .storage_access()
-        .record_slot_count::<K>(partition_id);
-    for slot_start in (0..len).step_by(chunk_size.max(1)) {
-        *chunks_scanned += 1;
-        let slot_end = (slot_start + chunk_size.max(1)).min(len);
-        for slot in slot_start..slot_end {
-            count_scan(runtime);
-            let retired_at = runtime
-                .storage_access()
-                .record_slot_surface::<K>(partition_id, slot)
-                .and_then(|surface| surface.retired_at);
-            if let Some(version) = retired_at {
-                refresh_retention(runtime, partition_id, slot, Some(version), retention_fence);
-                if runtime
-                    .storage_access()
-                    .record_slot_surface::<K>(partition_id, slot)
-                    .is_some_and(|surface| surface.lifecycle == RecordLifecycleState::Reclaimable)
-                {
-                    *reclaimable += 1;
-                    if runtime.config.storage.mvcc.auto_reclaim_deleted_records
-                        && *reclaimed < runtime.config.storage.mvcc.reclaim_batch_size
-                    {
-                        if runtime
-                            .storage_authority()
-                            .reclaim_record_if_reclaimable::<K>(partition_id, slot)
-                        {
-                            *reclaimed += 1;
-                        }
-                    }
+    pub(crate) fn reconcile_changed_record_states(
+        &mut self,
+        changed_records: &[crate::transactions::data::RecordRef],
+        published_version: crate::identity::data::VersionId,
+    ) {
+        let retention_fence = self
+            .runtime
+            .visibility
+            .retention_fence_version(published_version);
+        for record in changed_records {
+            match record {
+                crate::transactions::data::RecordRef::Entity(entity_id) => {
+                    let retired_at = self
+                        .runtime
+                        .partitions
+                        .get(&entity_id.partition_id)
+                        .and_then(|partition| {
+                            partition
+                                .entity_arena
+                                .retired_at_for_slot(entity_id.slot_index())
+                        });
+                    refresh_entity_retention_state(
+                        self.runtime,
+                        entity_id.partition_id,
+                        entity_id.slot_index(),
+                        retired_at,
+                        retention_fence,
+                    );
+                }
+                crate::transactions::data::RecordRef::Relation(relation_id) => {
+                    let retired_at = self
+                        .runtime
+                        .partitions
+                        .get(&relation_id.partition_id)
+                        .and_then(|partition| {
+                            partition
+                                .relation_arena
+                                .retired_at_for_slot(relation_id.slot_index())
+                        });
+                    refresh_relation_retention_state(
+                        self.runtime,
+                        relation_id.partition_id,
+                        relation_id.slot_index(),
+                        retired_at,
+                        retention_fence,
+                    );
                 }
             }
         }
     }
-}
-
-fn trim_live_history<K: RecordKind>(
-    runtime: &mut RelationalRuntime,
-    slots_by_partition: std::collections::BTreeMap<
-        crate::identity::data::PartitionId,
-        std::collections::BTreeSet<usize>,
-    >,
-    oldest_pinned_version: crate::identity::data::VersionId,
-    count_trimmed: impl Fn(&RelationalRuntime, usize),
-) where
-    K::Meta: HistoricalMetadata,
-{
-    let total_trimmed = runtime
-        .storage_authority()
-        .trim_live_history::<K>(slots_by_partition, oldest_pinned_version);
-    count_trimmed(runtime, total_trimmed);
 }
 
 impl RelationalRuntime {

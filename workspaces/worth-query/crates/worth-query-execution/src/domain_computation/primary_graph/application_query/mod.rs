@@ -83,7 +83,8 @@ pub use projection::{
     WorthQueryApplicationProjectionRow, WorthQueryApplicationProjectionRows,
 };
 pub use resource_lifecycle::{
-    WorthQueryApplicationBasisObservation, WorthQueryApplicationBasisObserver,
+    WorthQueryApplicationBasisIdentity, WorthQueryApplicationBasisObservation,
+    WorthQueryApplicationBasisObserver, WorthQueryApplicationBasisReleaseReceipt,
     WorthQueryApplicationResultBufferEvidence, WorthQueryApplicationResultBufferObservation,
     WorthQueryApplicationResultBufferObserver,
 };

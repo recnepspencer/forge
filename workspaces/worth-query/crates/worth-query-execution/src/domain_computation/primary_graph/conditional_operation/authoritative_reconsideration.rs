@@ -72,7 +72,7 @@ pub(super) fn deliver_authoritative_commits(
 ) -> Result<WorthQueryDeliveredAuthoritativeCommits, String> {
     let mut granular_invalidations = Vec::new();
     for (sequence, commit) in &commits.commits {
-        let delivered = deliver_commit_dependencies(bridge, lowering, *commit)?;
+        let delivered = deliver_commit_dependencies(bridge, lowering, *commit, truth)?;
         for wake in wakes.iter_mut().filter(|wake| {
             delivered
                 .changed_records
@@ -149,6 +149,7 @@ fn retained_decision_evidence_mut(
         | Decision::Suppressed(evidence)
         | Decision::Deferred(evidence)
         | Decision::OperationRetryable(evidence, _)
+        | Decision::OperationSettlementDeferred(evidence, _)
         | Decision::OperationIndeterminate(evidence, _)
         | Decision::OperationCommitted(evidence)
         | Decision::OperationAlreadyCommitted(evidence) => Some(evidence),
@@ -165,6 +166,7 @@ fn deliver_commit_dependencies(
     bridge: &mut BridgeOwnedSignalRuntime,
     lowering: &BridgeInstalledConditionalLowering,
     commit: worth_relational::facade::history::CommitId,
+    truth: &WorthQueryConditionalTruthBasis,
 ) -> Result<WorthQueryDeliveredCommitDependencies, String> {
     let mut changed_records = BTreeSet::new();
     let mut granular_invalidations = Vec::new();
@@ -173,8 +175,9 @@ fn deliver_commit_dependencies(
             .deliver_authoritative_change(
                 lowering,
                 dependency_ordinal,
-                RelationalCommittedPatchRequest::new(
+                RelationalCommittedPatchRequest::at_snapshot(
                     TruthCommitIdentity::from_relational_commit_id(commit.0),
+                    truth.snapshot().clone(),
                 ),
             )
             .map_err(|denial| denial.detail().to_string())?;
