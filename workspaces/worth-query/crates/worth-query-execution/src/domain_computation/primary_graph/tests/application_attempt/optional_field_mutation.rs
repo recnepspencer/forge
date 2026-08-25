@@ -70,6 +70,67 @@ fn optional_fields_preserve_empty_zero_and_lawful_absence_through_query() {
 }
 
 #[test]
+fn ordinary_and_optional_writes_to_one_entity_commit_as_one_native_patch() {
+    let world = super::super::fixture::installed_authorization_world(true);
+    let request = live_scope();
+    let principal = super::authenticated_principal(&world, &request);
+    let account = super::resolved_account(&world, "unrelated", &request);
+    let operation = world
+        .application
+        .installed_schema()
+        .installed_operation(PatchAccountDraftOperation::reference())
+        .unwrap();
+    let admission = world
+        .application
+        .authorize_operation(
+            &principal,
+            &account,
+            &operation,
+            TypedMutationPreconditions::new(),
+            &request,
+        )
+        .unwrap();
+    let (_, projection, _) = world
+        .invariant
+        .project_admitted_operation(&admission, |reader, projected| {
+            reader
+                .decision_field(projected, AccountNote::reference())
+                .unwrap();
+            reader
+                .decision_field(projected, AccountScore::reference())
+                .unwrap();
+        })
+        .unwrap()
+        .into_parts();
+    let reads = world
+        .application
+        .begin_projected_application_read_attempt(admission, projection)
+        .unwrap();
+    let mut effects = reads
+        .complete_projected_dependencies()
+        .unwrap()
+        .begin_effect_program();
+    let account = effects.existing_entity(&account).unwrap();
+    effects
+        .write_field(&account, AccountNote::reference(), "ordinary".to_owned())
+        .unwrap();
+    effects
+        .write_optional_field(&account, AccountScore::reference(), Some(0))
+        .unwrap();
+
+    let outcome = world
+        .application
+        .compare_and_commit_application(effects.finish().unwrap(), super::idempotency(75, 75));
+    assert!(matches!(
+        outcome,
+        WorthQueryApplicationCommitOutcome::Committed(_)
+    ));
+    let result = query(&world, &principal, "account-2", &request);
+    assert_eq!(result.note(), Some("ordinary"));
+    assert_eq!(result.score(), Some(0));
+}
+
+#[test]
 fn absent_field_decision_facts_stale_after_a_competing_presence_change() {
     let world = super::super::fixture::installed_authorization_world(true);
     let request = live_scope();

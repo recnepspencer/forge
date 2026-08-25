@@ -62,9 +62,60 @@ impl<Schema, Operation, Input, Scope>
             contract,
             value: value.map(TypedApplicationValue::into_foundational_value),
         };
+        promote_ordinary_writes(&self.layout, &mut self.effects, field.entity(), entity_id)?;
         record_write(&mut self.effects, field.entity(), entity_id, locator, write);
         Ok(())
     }
+}
+
+fn promote_ordinary_writes(
+    layout: &super::super::super::schema_layout::WorthQueryPrimaryGraphLayout,
+    effects: &mut [WorthQueryApplicationRealizedEffect],
+    entity: &str,
+    entity_id: EntityId,
+) -> Result<(), WorthQueryApplicationAttemptDenial> {
+    let Some(index) = effects.iter().position(|effect| {
+        matches!(
+            effect,
+            WorthQueryApplicationRealizedEffect::UpdateEntity {
+                entity: candidate_entity,
+                entity_id: candidate,
+                ..
+            } if candidate_entity == entity && *candidate == entity_id
+        )
+    }) else {
+        return Ok(());
+    };
+    let WorthQueryApplicationRealizedEffect::UpdateEntity { fields, .. } = &effects[index] else {
+        unreachable!("the selected effect is an ordinary entity update");
+    };
+    let fields = fields
+        .iter()
+        .map(|(locator, value)| {
+            let contract = layout
+                .aspect_contract(entity, locator.aspect().aspect_key())
+                .map(PortableAspectContractBasis::from_contract)
+                .ok_or_else(|| {
+                    denial(
+                        WorthQueryApplicationAttemptDenialKind::UndeclaredEffect,
+                        format!("{:?}", locator.field_path()),
+                    )
+                })?;
+            Ok((
+                locator.clone(),
+                WorthQueryApplicationOptionalFieldWrite {
+                    contract,
+                    value: Some(value.clone()),
+                },
+            ))
+        })
+        .collect::<Result<BTreeMap<_, _>, _>>()?;
+    effects[index] = WorthQueryApplicationRealizedEffect::PatchOptionalEntityFields {
+        entity: entity.to_owned(),
+        entity_id,
+        fields,
+    };
+    Ok(())
 }
 
 fn record_write(

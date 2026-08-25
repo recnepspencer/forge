@@ -252,6 +252,37 @@ impl<Schema, Operation, Input, Scope>
             ));
         };
         let locator = self.field_locator(field.entity(), field.aspect(), field.field())?;
+        if let Some(WorthQueryApplicationRealizedEffect::PatchOptionalEntityFields {
+            fields, ..
+        }) = self.effects.iter_mut().find(|effect| {
+            matches!(
+                effect,
+                WorthQueryApplicationRealizedEffect::PatchOptionalEntityFields {
+                    entity,
+                    entity_id: candidate,
+                    ..
+                } if entity == field.entity() && *candidate == entity_id
+            )
+        }) {
+            let contract = self
+                .layout
+                .aspect_contract(field.entity(), locator.aspect().aspect_key())
+                .map(worth_foundational::facade::PortableAspectContractBasis::from_contract)
+                .ok_or_else(|| {
+                    denial(
+                        WorthQueryApplicationAttemptDenialKind::UndeclaredEffect,
+                        field.field(),
+                    )
+                })?;
+            fields.insert(
+                locator,
+                WorthQueryApplicationOptionalFieldWrite {
+                    contract,
+                    value: Some(value.into_foundational_value()),
+                },
+            );
+            return Ok(());
+        }
         match self.effects.iter_mut().find(|effect| {
             matches!(
                 effect,
