@@ -10,6 +10,14 @@ pub enum WorthUiNativeProjectionRebindDenial {
     Identity(crate::runtime::rebind::UiIdentityLifecycleDenial),
     Planning(crate::runtime::rebind::UiRebindPlanningDenial),
     Preparation(crate::runtime::rebind::UiRebindPreparationDenial),
+    ManagedRebindAlreadyInFlight,
+    ManagedRebindSessionMismatch,
+}
+
+pub enum WorthUiNativeManagedProjectionRebindOutcome {
+    Published(crate::runtime::rebind::UiRebindReceipt),
+    Pending,
+    Stopped(super::native_managed_rebind::WorthUiNativeManagedRebindStop),
 }
 
 impl WorthUiNativeApplicationShell {
@@ -37,6 +45,36 @@ impl WorthUiNativeApplicationShell {
             .map_err(WorthUiNativeProjectionRebindDenial::Classification)?;
         let plan = plan_projection_rebind(&mut self.session, classified, policy)?;
         execute_projection_rebind(&mut self.session, plan, execution)
+    }
+
+    pub fn begin_managed_projection_rebind(
+        &mut self,
+        request: crate::runtime::rebind::UiProjectionRebindRequest,
+    ) -> Result<WorthUiNativeManagedProjectionRebindOutcome, WorthUiNativeProjectionRebindDenial>
+    {
+        if self.pending_managed_rebind.is_some() {
+            return Err(WorthUiNativeProjectionRebindDenial::ManagedRebindAlreadyInFlight);
+        }
+        let outcome = self.begin_projection_rebind(request)?;
+        match super::native_managed_rebind::normalize_managed_outcome(outcome) {
+            super::native_managed_rebind::ManagedRebindNormalization::Published(receipt) => Ok(
+                WorthUiNativeManagedProjectionRebindOutcome::Published(receipt),
+            ),
+            super::native_managed_rebind::ManagedRebindNormalization::Pending(pending) => {
+                if pending.session_identity() != self.session.session_identity() {
+                    return Err(WorthUiNativeProjectionRebindDenial::ManagedRebindSessionMismatch);
+                }
+                self.pending_managed_rebind = Some(
+                    super::native_managed_rebind::WorthUiNativePendingManagedRebind::Completion(
+                        pending,
+                    ),
+                );
+                Ok(WorthUiNativeManagedProjectionRebindOutcome::Pending)
+            }
+            super::native_managed_rebind::ManagedRebindNormalization::Stopped(stop) => {
+                Ok(WorthUiNativeManagedProjectionRebindOutcome::Stopped(stop))
+            }
+        }
     }
 }
 
@@ -108,8 +146,8 @@ fn execute_projection_rebind<'session>(
 ) -> Result<crate::runtime::rebind::UiRebindOutcome<'session>, WorthUiNativeProjectionRebindDenial>
 {
     let now_tick = execution.now_tick();
-    session
+    let prepared = session
         .prepare_rebind(plan, execution)
-        .map(|prepared| prepared.execute(now_tick))
-        .map_err(WorthUiNativeProjectionRebindDenial::Preparation)
+        .map_err(WorthUiNativeProjectionRebindDenial::Preparation)?;
+    Ok(prepared.execute(now_tick))
 }

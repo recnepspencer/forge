@@ -44,6 +44,8 @@ pub struct UiProjectedMountedFrameCandidate {
         Option<worth_ui_host_contract::UiMountedFrameIdentity>,
     pub(in crate::mounting) presentation_changed_instances:
         std::rc::Rc<[worth_ui_host_contract::UiMountedInstanceIdentity]>,
+    pub(in crate::mounting) presentation_node_changed_instances:
+        std::rc::Rc<[worth_ui_host_contract::UiMountedInstanceIdentity]>,
 }
 
 #[derive(Clone, Copy)]
@@ -51,6 +53,7 @@ pub(crate) struct UiMountedPresentationDeltaSource<'a> {
     frame: &'a UiMountedProjectionFrame,
     predecessor: Option<worth_ui_host_contract::UiMountedFrameIdentity>,
     changed_instances: &'a [worth_ui_host_contract::UiMountedInstanceIdentity],
+    node_changed_instances: &'a [worth_ui_host_contract::UiMountedInstanceIdentity],
     changes: &'a super::super::UiMountedProjectionChangeSnapshot,
 }
 
@@ -68,6 +71,12 @@ impl UiMountedPresentationDeltaSource<'_> {
         &self,
     ) -> &[worth_ui_host_contract::UiMountedInstanceIdentity] {
         self.changed_instances
+    }
+
+    pub(in crate::mounting) const fn node_changed_instances(
+        &self,
+    ) -> &[worth_ui_host_contract::UiMountedInstanceIdentity] {
+        self.node_changed_instances
     }
 
     pub(in crate::mounting) fn surface_changed(
@@ -89,6 +98,7 @@ impl UiProjectedMountedFrameCandidate {
         let frame = std::sync::Arc::make_mut(&mut self.frame);
         frame.rebind_retained_mechanics(replacements)?;
         self.presentation_changed_instances = frame.mounted_instances().collect::<Vec<_>>().into();
+        self.presentation_node_changed_instances = self.presentation_changed_instances.clone();
         Ok(())
     }
 
@@ -112,6 +122,7 @@ impl UiProjectedMountedFrameCandidate {
             frame: &self.frame,
             predecessor: self.presentation_predecessor,
             changed_instances: &self.presentation_changed_instances,
+            node_changed_instances: &self.presentation_node_changed_instances,
             changes: &self.projection_changes,
         }
     }
@@ -209,6 +220,11 @@ impl UiPreparedMountedProjection {
         let diagnostics = predecessor
             .map(UiMountedProjectionFrame::diagnostic_source)
             .unwrap_or_default();
+        let presentation_node_changed_instances = presentation_node_changes_with_overlay(
+            &self.presentation_changed_instances,
+            predecessor.and_then(UiMountedProjectionFrame::visual_overlay_target),
+            self.visual_overlay.map(|overlay| overlay.target_instance()),
+        );
         let mut frame = UiMountedProjectionFrame::new(UiMountedProjectionFrameInput {
             frame: identity_candidate.frame(),
             content_generation,
@@ -241,14 +257,15 @@ impl UiPreparedMountedProjection {
             frame.record_preview(preview)?;
         }
         frame.record_visual_overlay(self.visual_overlay)?;
-        frame.complete_presentation_effects();
-        frame.complete_diagnostics();
+        frame.complete_presentation_effects(&presentation_node_changed_instances);
+        frame.complete_diagnostics(&presentation_node_changed_instances);
         Ok(UiProjectedMountedFrameCandidate {
             frame: std::sync::Arc::new(frame),
             identity_candidate,
             projection_changes: self.projection_changes,
             presentation_predecessor,
             presentation_changed_instances: self.presentation_changed_instances,
+            presentation_node_changed_instances,
         })
     }
 
@@ -262,6 +279,20 @@ impl UiPreparedMountedProjection {
         }
         Ok(())
     }
+}
+
+fn presentation_node_changes_with_overlay(
+    changed: &[worth_ui_host_contract::UiMountedInstanceIdentity],
+    predecessor_target: Option<worth_ui_host_contract::UiMountedInstanceIdentity>,
+    successor_target: Option<worth_ui_host_contract::UiMountedInstanceIdentity>,
+) -> std::rc::Rc<[worth_ui_host_contract::UiMountedInstanceIdentity]> {
+    let mut changed = changed.to_vec();
+    for target in [predecessor_target, successor_target].into_iter().flatten() {
+        if !changed.contains(&target) {
+            changed.push(target);
+        }
+    }
+    changed.into()
 }
 
 fn require_vacant<T>(slot: &Option<T>) -> Result<(), UiMountedProjectionDenial> {

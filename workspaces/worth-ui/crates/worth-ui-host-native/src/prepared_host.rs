@@ -93,6 +93,16 @@ impl worth_ui_host_contract::WorthUiHostMechanicsAdapter for WorthUiPreparedNati
         )
     }
 
+    fn register_mechanical_host_session(
+        &self,
+        host_session_identity: u64,
+    ) -> Result<(), worth_ui_host_contract::UiHostObservationSessionRegistrationDenial> {
+        worth_ui_host_contract::WorthUiHostMechanicsAdapter::register_mechanical_host_session(
+            &self.adapter,
+            host_session_identity,
+        )
+    }
+
     fn mechanical_measurement_environment_report(
         &self,
     ) -> worth_ui_host_contract::UiHostMeasurementEnvironmentReport {
@@ -119,6 +129,26 @@ impl worth_ui_host_contract::WorthUiHostMechanicsAdapter for WorthUiPreparedNati
         worth_ui_host_contract::WorthUiHostMechanicsAdapter::drain_mechanical_host_observations(
             &self.adapter,
             host_session_identity,
+        )
+    }
+
+    fn install_mechanical_input_recipient(
+        &self,
+        binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+    ) -> bool {
+        worth_ui_host_contract::WorthUiHostMechanicsAdapter::install_mechanical_input_recipient(
+            &self.adapter,
+            binding,
+        )
+    }
+
+    fn clear_mechanical_input_recipient(
+        &self,
+        binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+    ) -> bool {
+        worth_ui_host_contract::WorthUiHostMechanicsAdapter::clear_mechanical_input_recipient(
+            &self.adapter,
+            binding,
         )
     }
 

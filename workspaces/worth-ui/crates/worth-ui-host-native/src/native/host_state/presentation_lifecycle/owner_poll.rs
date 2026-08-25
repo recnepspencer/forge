@@ -14,7 +14,7 @@ impl UiNativeHostState {
         identity: crate::native::physical_work_signal::UiNativePhysicalPresentationIdentity,
         mut ready: ReadyPresentation,
     ) -> Result<PolledPresentation, UiNativePresentationPhysicalProgress> {
-        let device = self.graphics.as_ref().map(|graphics| &graphics.device);
+        let device = self.device.as_ref().map(|device| device.state().device());
         #[cfg(feature = "certification-support")]
         let qualified_override = self.qualification.presentation_poll_override(identity);
         #[cfg(feature = "certification-support")]

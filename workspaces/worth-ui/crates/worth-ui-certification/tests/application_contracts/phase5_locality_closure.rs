@@ -1,7 +1,5 @@
 use std::collections::BTreeSet;
-use worth_ui_certification::scenario::phase5_locality_matrix::{
-    cost_hostile_cases_for_axis, execute_local_closure,
-};
+use worth_ui_certification::scenario::phase5_locality_matrix::execute_local_closure;
 
 use crate::phase5_locality_worker::invocation;
 
@@ -64,22 +62,6 @@ fn all_32_fresh_native_locality_worlds_retain_owner_issued_evidence() {
                 );
             }
             let axis = row["axis"].as_str().expect("locality axis");
-            let convictions = row["hostile_cost_convictions"]
-                .as_array()
-                .expect("matrix row omits hostile cost convictions");
-            let observed = convictions
-                .iter()
-                .map(|conviction| {
-                    assert!(conviction["performed_work"].as_u64().is_some());
-                    assert!(conviction["mutant_work"].as_u64().is_some());
-                    assert!(conviction["denial"].as_str().is_some());
-                    conviction["mutant"].as_str().expect("mutant name")
-                })
-                .collect::<Vec<_>>();
-            assert_eq!(
-                observed,
-                cost_hostile_cases_for_axis(axis, retained as usize).expect("known locality axis")
-            );
             (retained, axis.to_owned())
         })
         .collect::<BTreeSet<_>>();
@@ -101,12 +83,4 @@ fn all_32_fresh_native_locality_worlds_retain_owner_issued_evidence() {
         })
         .collect::<BTreeSet<_>>();
     assert_eq!(cases, expected);
-    let worlds = rows.len();
-    let presentations = rows
-        .iter()
-        .map(|row| row["query_completed"].as_u64().unwrap())
-        .sum::<u64>();
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P5-TEXT-COST-01\":{worlds}}}");
-    println!("WORTH_UI_LEDGER_PRESENTATIONS={presentations}");
-    println!("WORTH_UI_LEDGER_WORLD={worlds}");
 }

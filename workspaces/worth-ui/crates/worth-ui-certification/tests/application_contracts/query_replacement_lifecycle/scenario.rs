@@ -15,7 +15,6 @@ use worth_ui::facade::declaration::{
 use worth_ui::facade::source::{
     WorthUiFilesystemSourceProvider, WorthUiWatchedCandidateSubmission,
 };
-use worth_ui_certification::scenario::application_authority_closure::fixed_host::FixedCertificationHostBinding;
 use worth_ui_query_binding::WorthUiInstalledLiveQueryView;
 use worth_ui_query_binding::{
     worth_ui_domain_package, worth_ui_native_aspect_contracts, WorthUiInstalledQueryView,
@@ -64,37 +63,6 @@ pub(crate) fn application(
         ))
         .freeze()
         .expect("source-backed Query app")
-}
-
-pub(super) fn capability_application(
-    first: WorthUiInstalledLiveQueryView,
-    second: WorthUiInstalledLiveQueryView,
-    workspace: &mut runtime::WorthQueryWorkspace,
-) -> worth_ui::facade::app::WorthUiApp {
-    let binding_reference = settled_binding_reference(first.clone().into(), workspace);
-    builder(first.into(), second.into(), &binding_reference)
-        .freeze()
-        .expect("capability snapshot")
-}
-
-pub(super) fn application_with_submission_and_host<Host>(
-    first: WorthUiInstalledLiveQueryView,
-    second: WorthUiInstalledLiveQueryView,
-    submission: WorthUiWatchedCandidateSubmission,
-    host: Host,
-    workspace: &mut runtime::WorthQueryWorkspace,
-) -> worth_ui::facade::app::WorthUiApp
-where
-    Host: FixedCertificationHostBinding + 'static,
-{
-    let binding_reference = settled_binding_reference(first.clone().into(), workspace);
-    BoundBuilder::new(
-        unbound_builder(first.into(), second.into(), &binding_reference),
-        host,
-    )
-    .with_candidate_submission(submission)
-    .freeze()
-    .expect("source-backed Query application")
 }
 
 pub(crate) fn snapshot_application(

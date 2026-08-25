@@ -74,3 +74,4 @@ fail,tests/ui/facade/construction/host_binding/paint_identities_are_not_orderabl
 fail,tests/ui/facade/construction/host_binding/raw_protocol_contract_cannot_enter_consumers.rs,facade_compile.rs
 pass,tests/ui/facade/construction/host_binding/native_preparation_progression_is_lawful.rs,facade_compile.rs
 pass,tests/ui/facade/construction/host_binding/known_empty_baseline_observation_is_lawful.rs,facade_compile.rs
+pass,tests/ui/facade/construction/host_binding/paint_identities_support_lawful_correlation.rs,facade_compile.rs

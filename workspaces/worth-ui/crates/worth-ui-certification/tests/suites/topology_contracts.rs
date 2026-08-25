@@ -38,6 +38,22 @@ fn topology_suite_uses_one_stable_workspace_source_inventory() {
     assert!(first.rust_file_count() > 0);
 }
 
+#[test]
+fn hp05_certifies_the_exact_post_retirement_repository() {
+    let repository_root = workspace_source_inventory()
+        .root()
+        .parent()
+        .and_then(Path::parent)
+        .expect("Worth UI workspace sits below the repository root");
+    let world =
+        worth_ui_certification::topology::HostRetirementTopologyWorld::capture(repository_root);
+    world
+        .certify()
+        .unwrap_or_else(|failure| panic!("{failure}"));
+    worth_ui_certification::topology::HostRetirementTopologyWorld::assert_hiding_mutations_rejected(
+    );
+}
+
 #[path = "../admission_boundary_bypass.rs"]
 mod admission_boundary_bypass;
 #[path = "../admission_topology_audit.rs"]
@@ -68,72 +84,12 @@ mod inspection_contract_audit;
 mod inspection_growth_posture_audit;
 #[path = "../lane_extension_authority_topology_audit.rs"]
 mod lane_extension_authority_topology_audit;
-#[path = "../legacy_surface_residue_audit.rs"]
-mod legacy_surface_residue_audit;
 #[path = "../measurement_boundary_purity_audit.rs"]
 mod measurement_boundary_purity_audit;
 #[path = "../measurement_growth_posture_audit.rs"]
 mod measurement_growth_posture_audit;
-#[path = "../milestone_3101_inventory_audit.rs"]
-mod milestone_3101_inventory_audit;
-#[path = "../milestone_3102_pulse_seed_audit.rs"]
-mod milestone_3102_pulse_seed_audit;
-#[path = "../milestone_3103_cost_closure_audit.rs"]
-mod milestone_3103_cost_closure_audit;
-#[path = "../milestone_3103_executable_world_audit.rs"]
-mod milestone_3103_executable_world_audit;
-#[path = "../milestone_3103_external_world_audit.rs"]
-mod milestone_3103_external_world_audit;
-#[path = "../milestone_3103_product_contract_audit.rs"]
-mod milestone_3103_product_contract_audit;
-#[path = "../milestone_3103_watched_replacement_audit.rs"]
-mod milestone_3103_watched_replacement_audit;
-#[path = "../milestone_311_phase1_contract_audit.rs"]
-mod milestone_311_phase1_contract_audit;
-#[path = "../milestone_311_phase2_contract_audit.rs"]
-mod milestone_311_phase2_contract_audit;
-#[path = "../milestone_311_phase3_contract_audit.rs"]
-mod milestone_311_phase3_contract_audit;
-#[path = "../milestone_311_phase4_contract_audit.rs"]
-mod milestone_311_phase4_contract_audit;
-#[path = "../milestone_311_phase5_contract_audit.rs"]
-mod milestone_311_phase5_contract_audit;
-#[path = "../milestone_312_ledger.rs"]
-mod milestone_312_ledger;
-#[path = "../milestone_312_phase1_contract_audit.rs"]
-mod milestone_312_phase1_contract_audit;
-#[path = "../milestone_312_phase2_contract_audit.rs"]
-mod milestone_312_phase2_contract_audit;
-#[path = "../milestone_312_phase3_contract_audit.rs"]
-mod milestone_312_phase3_contract_audit;
-#[path = "../milestone_312_phase4.rs"]
-mod milestone_312_phase4;
-#[path = "../milestone_312_phase5_documentation.rs"]
-mod milestone_312_phase5_documentation;
-#[path = "../milestone_313_ledger.rs"]
-mod milestone_313_ledger;
-#[path = "../milestone_313_phase1_contract_audit.rs"]
-mod milestone_313_phase1_contract_audit;
-#[path = "../milestone_313_phase5_documentation.rs"]
-mod milestone_313_phase5_documentation;
-#[path = "../milestone_3141_phase1_ledger.rs"]
-mod milestone_3141_phase1_ledger;
 #[path = "../milestone_3141_phase1_topology.rs"]
 mod milestone_3141_phase1_topology;
-#[path = "../milestone_314_ledger.rs"]
-mod milestone_314_ledger;
-#[path = "../milestone_314_phase1_contract_audit.rs"]
-mod milestone_314_phase1_contract_audit;
-#[path = "../milestone_314_phase2_contract_audit.rs"]
-mod milestone_314_phase2_contract_audit;
-#[path = "../milestone_314_phase3_contract_audit.rs"]
-mod milestone_314_phase3_contract_audit;
-#[path = "../milestone_314_phase4_contract_audit.rs"]
-mod milestone_314_phase4_contract_audit;
-#[path = "../milestone_314_phase5_contract_audit.rs"]
-mod milestone_314_phase5_contract_audit;
-#[path = "../milestone_37_structural_inventory_audit.rs"]
-mod milestone_37_structural_inventory_audit;
 #[path = "../obligation_boundary_bypass.rs"]
 mod obligation_boundary_bypass;
 #[path = "../obligation_boundary_residue_audit.rs"]

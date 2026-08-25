@@ -1,18 +1,20 @@
 # WORTH build targets
 #
-# Two-agent isolation: UI builds land in target-ui/, kernel builds in target/.
-# Both can run simultaneously without Cargo lock contention.
+# UI builds land in target-ui/, kernel builds in target/. Both can run
+# simultaneously without Cargo lock contention.
 #
 # Usage:
-#   make ui          â€” build worth-ui binary (isolated target dir)
-#   make ui-test     â€” run worth-ui crate tests (isolated target dir)
+#   make ui          â€” build the native Platform Pulse binary
+#   make ui-run      â€” run the native Platform Pulse binary
+#   make ui-test     â€” run the WORTH UI workspace tests
 #   make kernel      â€” build all kernel crates
 #   make kernel-test â€” run all kernel tests
 #   make test        â€” run everything
 #   make trace-view  â€” open trace viewer GUI
 
-UI_CRATES := worth-ui worth-ui-types worth-ui-theme worth-ui-components worth-ui-adapters worth-ui-state
-UI_TARGET  := $(CURDIR)/target-ui
+UI_MANIFEST := workspaces/worth-ui/Cargo.toml
+UI_APP      := worth-ui-platform-pulse
+UI_TARGET   := $(CURDIR)/target-ui
 QUERY_MANIFEST := workspaces/worth-query/Cargo.toml
 
 WORTH_LOG        ?= compact
@@ -22,37 +24,35 @@ WORTH_TRACE_DIR  ?=
 
 .PHONY: ui
 ui:
-	CARGO_TARGET_DIR=$(UI_TARGET) cargo build -p worth-ui $(ARGS)
+	CARGO_TARGET_DIR=$(UI_TARGET) cargo build --manifest-path $(UI_MANIFEST) -p $(UI_APP) $(ARGS)
 
 .PHONY: ui-release
 ui-release:
-	CARGO_TARGET_DIR=$(UI_TARGET) cargo build -p worth-ui --release $(ARGS)
+	CARGO_TARGET_DIR=$(UI_TARGET) cargo build --manifest-path $(UI_MANIFEST) -p $(UI_APP) --release $(ARGS)
 
 .PHONY: ui-run
 ui-run:
-	CARGO_TARGET_DIR=$(UI_TARGET) cargo run -p worth-ui $(ARGS)
+	CARGO_TARGET_DIR=$(UI_TARGET) cargo run --manifest-path $(UI_MANIFEST) -p $(UI_APP) --bin worth-ui-platform-pulse $(ARGS)
 
 .PHONY: ui-test
 ui-test:
-	CARGO_TARGET_DIR=$(UI_TARGET) cargo test $(addprefix -p ,$(UI_CRATES)) $(ARGS)
+	CARGO_TARGET_DIR=$(UI_TARGET) cargo test --manifest-path $(UI_MANIFEST) --workspace $(ARGS)
 
 .PHONY: ui-check
 ui-check:
-	CARGO_TARGET_DIR=$(UI_TARGET) cargo check $(addprefix -p ,$(UI_CRATES)) $(ARGS)
+	CARGO_TARGET_DIR=$(UI_TARGET) cargo check --manifest-path $(UI_MANIFEST) --workspace --all-features $(ARGS)
 
 # â”€â”€ Kernel targets (default target dir) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-KERNEL_EXCLUDES := $(addprefix --exclude ,$(UI_CRATES))
-
 .PHONY: kernel
 kernel:
-	cargo build $(KERNEL_EXCLUDES) $(ARGS)
+	cargo build $(ARGS)
 
 .PHONY: kernel-test
 kernel-test:
 	WORTH_LOG=$(WORTH_LOG) \
 	WORTH_TRACE_DIR=$(WORTH_TRACE_DIR) \
-	cargo test $(KERNEL_EXCLUDES) $(ARGS)
+	cargo test $(ARGS)
 
 .PHONY: worth-fast
 worth-fast: query-fast spatial-fast
@@ -110,7 +110,7 @@ spatial-closeout:
 
 .PHONY: kernel-check
 kernel-check:
-	cargo check $(KERNEL_EXCLUDES) $(ARGS)
+	cargo check $(ARGS)
 
 # â”€â”€ Combined â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 

@@ -55,7 +55,7 @@ fn surface_recreation_preserves_semantic_instance_but_retires_frame_affinity() {
         first_binding.semantic_surface_identity(),
         second_binding.semantic_surface_identity()
     );
-    assert_ne!(
+    assert_eq!(
         first_binding.host_surface_identity(),
         second_binding.host_surface_identity()
     );

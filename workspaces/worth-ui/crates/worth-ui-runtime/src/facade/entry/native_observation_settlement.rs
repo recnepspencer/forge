@@ -8,6 +8,7 @@ pub(crate) enum UiNativeObservationIngressSettlement {
 
 pub(crate) struct UiNativeObservationDrainReport {
     outcomes: Box<[UiHostInteractionIngressOutcome]>,
+    reachability: worth_ui_host_native::UiNativeInputReachability,
     applied_batches: usize,
     duplicate_batches: usize,
     quarantined_batches: usize,
@@ -15,9 +16,13 @@ pub(crate) struct UiNativeObservationDrainReport {
 }
 
 impl UiNativeObservationIngressSettlement {
-    pub(crate) fn from_outcomes(outcomes: Box<[UiHostInteractionIngressOutcome]>) -> Self {
+    pub(crate) fn from_outcomes(
+        outcomes: Box<[UiHostInteractionIngressOutcome]>,
+        reachability: worth_ui_host_native::UiNativeInputReachability,
+    ) -> Self {
         let mut report = UiNativeObservationDrainReport {
             outcomes,
+            reachability,
             applied_batches: 0,
             duplicate_batches: 0,
             quarantined_batches: 0,
@@ -34,10 +39,17 @@ impl UiNativeObservationIngressSettlement {
         Self::Drained(report)
     }
 
-    pub(crate) fn outcomes(&self) -> &[UiHostInteractionIngressOutcome] {
+    pub(crate) fn reachability(&self) -> worth_ui_host_native::UiNativeInputReachability {
         match self {
-            Self::Drained(report) => &report.outcomes,
-            Self::DrainDenied(_) => &[],
+            Self::Drained(report) => report.reachability,
+            Self::DrainDenied(_) => worth_ui_host_native::UiNativeInputReachability::default(),
+        }
+    }
+
+    pub(crate) fn into_outcomes(self) -> Box<[UiHostInteractionIngressOutcome]> {
+        match self {
+            Self::Drained(report) => report.outcomes,
+            Self::DrainDenied(_) => Box::new([]),
         }
     }
 
@@ -57,6 +69,13 @@ impl UiNativeObservationIngressSettlement {
                 report.denied_batches,
             ),
             Self::DrainDenied(_) => (0, 0, 0, 0),
+        }
+    }
+
+    pub(crate) fn retained_batch_count(&self) -> usize {
+        match self {
+            Self::Drained(report) => report.outcomes.len(),
+            Self::DrainDenied(_) => 0,
         }
     }
 }

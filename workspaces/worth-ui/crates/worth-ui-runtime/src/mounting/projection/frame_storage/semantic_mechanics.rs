@@ -28,7 +28,7 @@ use layout_index::UiMountedQualifiedLayoutIndex;
 use sparse_update::{apply_posture_update, apply_row_update};
 
 #[derive(Clone, Default)]
-pub(super) struct UiMountedSemanticMechanicSource {
+pub(in crate::mounting) struct UiMountedSemanticMechanicSource {
     by_instance: UiPersistentOrdMap<UiMountedInstanceIdentity, UiMountedSemanticMechanicRows>,
     by_layout: UiMountedQualifiedLayoutIndex,
     row_count: usize,
@@ -202,8 +202,38 @@ impl UiMountedSemanticMechanicSource {
             .flat_map(|rows| rows.iter().map(UiMountedQualifiedSemanticText::mechanic))
     }
 
+    pub(super) fn retained_rows_for_instance(
+        &self,
+        instance: UiMountedInstanceIdentity,
+    ) -> impl Iterator<Item = &UiMountedQualifiedSemanticText> {
+        self.by_instance
+            .get(&instance)
+            .into_iter()
+            .flat_map(UiMountedSemanticMechanicRows::iter)
+    }
+
     pub(super) fn retained_iter(&self) -> impl Iterator<Item = &UiMountedQualifiedSemanticText> {
         self.by_instance.iter().flat_map(|(_, rows)| rows.iter())
+    }
+
+    pub(in crate::mounting) fn visual_mechanics(
+        &self,
+    ) -> impl Iterator<Item = &UiMountedSemanticTextMechanic> {
+        self.retained_iter()
+            .map(UiMountedQualifiedSemanticText::mechanic)
+    }
+
+    pub(in crate::mounting) fn retained_structural_bytes(&self) -> Option<usize> {
+        let row_structures = self
+            .by_instance
+            .iter()
+            .try_fold(0usize, |bytes, (_, rows)| {
+                bytes.checked_add(rows.retained_structural_bytes()?)
+            })?;
+        std::mem::size_of::<Self>()
+            .checked_add(self.by_instance.retained_structural_bytes()?)?
+            .checked_add(row_structures)?
+            .checked_add(self.by_layout.retained_structural_bytes()?)
     }
 
     pub(super) fn qualified_layout(
@@ -296,6 +326,12 @@ impl UiMountedSemanticMechanicRows {
                 .get(key)
                 .expect("semantic mechanic order names an indexed row")
         })
+    }
+
+    fn retained_structural_bytes(&self) -> Option<usize> {
+        std::mem::size_of::<Self>()
+            .checked_add(self.rows.retained_structural_bytes()?)?
+            .checked_add(self.order.retained_structural_bytes()?)
     }
 
     fn replace(

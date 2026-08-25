@@ -56,7 +56,7 @@ pub use crate::runtime::intent::{
     UiIntentQueryInputRevision, UiIntentReadinessPosture, UiIntentRouteResolution,
     UiIntentRouteResolutionCost, UiIntentRouteResolutionStop, UiIntentSupportPosture,
     UiPendingIntentConfirmation, UiPreparedIntentPayload, UiResolvedConfirmationIntentRoute,
-    UiResolvedProductIntentRoute, UI_INTENT_ADMISSION_CAPACITY, UI_INTENT_CONFIRMATION_TTL_TICKS,
+    UiResolvedProductIntentRoute, UI_INTENT_ADMISSION_CAPACITY, UI_INTENT_CONFIRMATION_TTL_MILLIS,
     UI_PENDING_INTENT_CONFIRMATION_LIMIT,
 };
 pub use crate::runtime::intent_execution::{

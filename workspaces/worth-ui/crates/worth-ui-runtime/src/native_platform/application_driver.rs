@@ -1,10 +1,13 @@
 use crate::facade::{WorthUiApp, WorthUiNativeApplicationShell};
 use worth_ui_host_native::{
-    UiNativeEventLoopClient, UiNativeEventLoopClientCleanup, UiNativeEventLoopClientClose,
-    UiNativeEventLoopDirective, UiNativeObservationReadinessGrant, UiNativeReadinessGrant,
-    WorthUiNativeEventLoop,
+    UiNativeEventLoopClient, UiNativeEventLoopClientClose, UiNativeEventLoopDirective,
+    UiNativeObservationReadinessGrant, UiNativeReadinessGrant, WorthUiNativeEventLoop,
 };
 
+#[path = "application_driver/application_runtime.rs"]
+mod application_runtime;
+#[path = "application_driver/cleanup.rs"]
+mod cleanup;
 #[path = "application_driver/physical_recovery_tracker.rs"]
 mod physical_recovery_tracker;
 #[path = "application_driver/program_progress.rs"]
@@ -14,12 +17,16 @@ mod program_reconstruction;
 #[path = "application_driver/runtime_qualification.rs"]
 mod runtime_qualification;
 #[path = "application_driver/shutdown_observation.rs"]
-mod shutdown_observation;
+pub(crate) mod shutdown_observation;
+#[cfg(test)]
+#[path = "application_driver/tests.rs"]
+mod tests;
+mod visual_snapshot;
+use cleanup::UiNativeApplicationDriverCleanup;
+#[cfg(test)]
+use cleanup::UiNativeApplicationDriverCleanupCompletion;
 use program_progress::UiNativeApplicationProgramProgress;
-use shutdown_observation::{
-    client_resource_observation, host_shutdown_observation, map_semantic_frontier_observations,
-    map_text_presentation_work, map_transition_observations,
-};
+use shutdown_observation::UiNativeDriverShutdownEvidence;
 
 pub(crate) struct UiNativeApplicationDriver {
     application: Option<WorthUiApp>,
@@ -31,13 +38,10 @@ pub(crate) struct UiNativeApplicationDriver {
     consumed_application_cleanup_complete: bool,
     pending_cleanup: Option<UiNativeApplicationDriverCleanup>,
     progress: UiNativeApplicationProgramProgress,
-}
-
-enum UiNativeApplicationDriverCleanup {
-    RuntimeLaunch(crate::runtime::WorthUiRuntimeLaunchDenial),
-    Application(crate::facade::WorthUiNativeApplicationCleanup),
-    HostSession(crate::facade::WorthUiHostSessionReleaseRecovery),
-    UnresolvedApplication,
+    application_runtime: Option<Box<dyn super::UiNativeApplicationRuntime>>,
+    application_runtime_ports: Option<Box<[super::UiNativeApplicationReadinessPort]>>,
+    application_runtime_active: bool,
+    pending_application_runtime_close: Option<super::UiNativeApplicationRuntimeCloseIncomplete>,
 }
 
 impl UiNativeApplicationDriver {
@@ -47,6 +51,7 @@ impl UiNativeApplicationDriver {
         runtime_qualification: Option<
             super::runtime_qualification::UiNativeRuntimeQualificationPlan,
         >,
+        application_runtime: Option<Box<dyn super::UiNativeApplicationRuntime>>,
     ) -> Self {
         Self {
             application: Some(application),
@@ -58,6 +63,32 @@ impl UiNativeApplicationDriver {
             consumed_application_cleanup_complete: false,
             pending_cleanup: None,
             progress: UiNativeApplicationProgramProgress::new(program, runtime_qualification),
+            application_runtime,
+            application_runtime_ports: None,
+            application_runtime_active: false,
+            pending_application_runtime_close: None,
+        }
+    }
+
+    #[cfg(test)]
+    fn from_launched_shell_for_test(shell: WorthUiNativeApplicationShell) -> Self {
+        Self {
+            application: None,
+            shell: Some(shell),
+            last_ready_generation: 0,
+            last_observation_ready_generation: 0,
+            observation_ingress_counts: [0; 5],
+            scale_factor_milli: Some(1_000),
+            consumed_application_cleanup_complete: false,
+            pending_cleanup: None,
+            progress: UiNativeApplicationProgramProgress::new(
+                crate::facade::entry::UiNativeApplicationProgram::single_frame(),
+                None,
+            ),
+            application_runtime: None,
+            application_runtime_ports: None,
+            application_runtime_active: false,
+            pending_application_runtime_close: None,
         }
     }
 
@@ -74,8 +105,6 @@ impl UiNativeApplicationDriver {
     fn next_directive(&self) -> UiNativeEventLoopDirective {
         if self.progress.should_close() {
             UiNativeEventLoopDirective::Close
-        } else if self.progress.external_observation_ready() {
-            UiNativeEventLoopDirective::ExternalObservationReady
         } else {
             UiNativeEventLoopDirective::Continue
         }
@@ -83,6 +112,26 @@ impl UiNativeApplicationDriver {
 }
 
 impl UiNativeEventLoopClient for UiNativeApplicationDriver {
+    fn application_readiness_owner_count(
+        &self,
+    ) -> worth_ui_host_native::UiNativeApplicationReadinessOwnerCount {
+        self.application_readiness_owner_count()
+    }
+
+    fn install_application_readiness(
+        &mut self,
+        ports: Box<[worth_ui_host_native::UiNativeApplicationReadinessPort]>,
+    ) -> Result<(), ()> {
+        self.install_application_readiness(ports)
+    }
+
+    fn application_readiness_ready(
+        &mut self,
+        grant: worth_ui_host_native::UiNativeApplicationReadinessGrant,
+    ) -> Result<UiNativeEventLoopDirective, ()> {
+        self.progress_application_runtime(grant)
+    }
+
     fn native_surface_ready(
         &mut self,
         grant: UiNativeReadinessGrant,
@@ -105,7 +154,10 @@ impl UiNativeEventLoopClient for UiNativeApplicationDriver {
             Err(crate::facade::WorthUiNativeApplicationShellLaunchDenial::ApplicationCleanup(
                 cleanup,
             )) => {
-                self.pending_cleanup = Some(UiNativeApplicationDriverCleanup::Application(cleanup));
+                self.pending_cleanup = Some(UiNativeApplicationDriverCleanup::Application {
+                    cleanup,
+                    evidence: UiNativeDriverShutdownEvidence::empty(),
+                });
                 return Err(());
             }
             Err(denial) => {
@@ -117,8 +169,13 @@ impl UiNativeEventLoopClient for UiNativeApplicationDriver {
         self.shell
             .as_mut()
             .ok_or(())?
-            .observe_native_viewport_readiness(grant.client_physical_size(), false);
+            .observe_native_viewport_readiness(
+                grant.client_physical_size(),
+                grant.scale_factor_milli(),
+                false,
+            );
         self.scale_factor_milli = Some(grant.scale_factor_milli());
+        self.activate_application_runtime()?;
         Ok(UiNativeEventLoopDirective::Continue)
     }
 
@@ -139,11 +196,15 @@ impl UiNativeEventLoopClient for UiNativeApplicationDriver {
             }
             self.scale_factor_milli = Some(grant.scale_factor_milli());
         }
-        shell.observe_native_viewport_readiness(grant.client_physical_size(), true);
-        shell.commit_pending_native_viewport_measurement()?;
+        shell.observe_native_viewport_readiness(
+            grant.client_physical_size(),
+            grant.scale_factor_milli(),
+            true,
+        );
         self.progress
-            .observe_readiness_generation(grant.generation());
+            .observe_readiness(grant.generation(), grant.surface_basis_generation());
         if self.progress.advance(shell).is_err() {
+            eprintln!("native-driver-diagnostic: redraw program progress denied");
             return Err(());
         }
         self.last_ready_generation = grant.generation();
@@ -154,6 +215,13 @@ impl UiNativeEventLoopClient for UiNativeApplicationDriver {
         &mut self,
         grant: worth_ui_host_native::UiNativePhysicalProgressGrant,
     ) -> Result<UiNativeEventLoopDirective, ()> {
+        if self.application_runtime_active {
+            return self
+                .progress_application_runtime_physical(grant)
+                .map_err(|()| {
+                    eprintln!("native-driver-diagnostic: application physical progress denied");
+                });
+        }
         let shell = self.shell.as_mut().ok_or(())?;
         self.progress.physical_work_progressed(shell, grant)?;
         Ok(self.next_directive())
@@ -167,7 +235,7 @@ impl UiNativeEventLoopClient for UiNativeApplicationDriver {
             return Err(());
         }
         let shell = self.shell.as_mut().ok_or(())?;
-        let settlement = shell.admit_native_observation_batches();
+        let settlement = shell.admit_native_observation_batches(grant.reachability());
         let (applied, duplicate, quarantined, denied) = settlement.counts();
         for (total, observed) in self.observation_ingress_counts[..4].iter_mut().zip([
             applied,
@@ -178,12 +246,22 @@ impl UiNativeEventLoopClient for UiNativeApplicationDriver {
             *total = total.saturating_add(observed as u64);
         }
         if settlement.drain_denial().is_some() {
+            eprintln!("native-driver-diagnostic: observation drain denied");
             self.observation_ingress_counts[4] =
                 self.observation_ingress_counts[4].saturating_add(1);
             return Err(());
         }
         self.last_observation_ready_generation = grant.generation();
-        Ok(self.next_directive())
+        let directive = self
+            .progress_application_runtime_observations(settlement)
+            .map_err(|()| {
+                eprintln!("native-driver-diagnostic: application observation progress denied");
+            })?;
+        if matches!(directive, UiNativeEventLoopDirective::Close) {
+            Ok(directive)
+        } else {
+            Ok(self.next_directive())
+        }
     }
 
     fn external_close_requested(&mut self) -> Result<UiNativeEventLoopDirective, ()> {
@@ -194,128 +272,66 @@ impl UiNativeEventLoopClient for UiNativeApplicationDriver {
     fn presentation_attribution(
         &self,
     ) -> Option<worth_ui_host_native::UiNativeClientPresentationAttribution> {
-        self.progress.attribution(self.shell.as_ref())
+        self.shell
+            .as_ref()
+            .and_then(WorthUiNativeApplicationShell::current_presentation_attribution)
     }
 
     fn close(mut self) -> UiNativeEventLoopClientClose {
+        let runtime_derived_state_reconstruction = self
+            .application_runtime_shell()
+            .and_then(WorthUiNativeApplicationShell::runtime_derived_state_reconstruction);
+        let application_runtime_shutdown = match self.close_application_runtime() {
+            Ok(shutdown) => shutdown,
+            Err(()) => {
+                return UiNativeEventLoopClientClose::Incomplete(Box::new(self));
+            }
+        };
+        if self.pending_application_runtime_close.is_some() {
+            return UiNativeEventLoopClientClose::Incomplete(Box::new(self));
+        }
         if let Some(cleanup) = self.pending_cleanup.take() {
             match cleanup.retry() {
-                Ok(query_close) => {
-                    return UiNativeEventLoopClientClose::CompleteWithObservation(
-                        host_shutdown_observation(&query_close),
-                    );
-                }
+                Ok(completion) => return completion.into_client_close(),
                 Err(cleanup) => return UiNativeEventLoopClientClose::Incomplete(Box::new(cleanup)),
             }
         }
-        let Some(shell) = self.shell.take() else {
-            return if self.application.take().is_some()
-                || self.consumed_application_cleanup_complete
-            {
-                UiNativeEventLoopClientClose::Complete
-            } else {
-                UiNativeEventLoopClientClose::Incomplete(Box::new(
-                    UiNativeApplicationDriverCleanup::UnresolvedApplication,
-                ))
+        let shutdown = if let Some(shutdown) = application_runtime_shutdown {
+            shutdown
+        } else {
+            let Some(shell) = self.shell.take() else {
+                return if self.application.take().is_some()
+                    || self.consumed_application_cleanup_complete
+                {
+                    UiNativeEventLoopClientClose::Complete
+                } else {
+                    UiNativeEventLoopClientClose::Incomplete(Box::new(
+                        UiNativeApplicationDriverCleanup::UnresolvedApplication,
+                    ))
+                };
             };
+            shell.shutdown()
         };
-        let runtime_derived_state_reconstruction = shell.runtime_derived_state_reconstruction();
-        let shutdown = shell.shutdown();
-        let close_observation = worth_ui_host_native::UiNativeClientShutdownObservation::from_client_with_presentation_evidence(
-            shutdown.closed_query_resources(),
-            shutdown.query_close_complete(),
-            map_transition_observations(shutdown.query_transitions()),
-            shutdown.query_transition_trace_complete(),
-            map_semantic_frontier_observations(shutdown.query_semantic_frontiers()),
-            shutdown.query_semantic_frontier_trace_complete(),
-        ).with_text_presentation_work(
-            map_text_presentation_work(shutdown.text_presentation_work()),
-            shutdown.text_presentation_work_trace_complete(),
-        ).with_authored_mounted_instances(
-            shutdown.authored_mounted_instances().to_vec().into_boxed_slice(),
-        ).with_derived_state_reconstruction(runtime_derived_state_reconstruction)
-        .with_resources(client_resource_observation(shutdown.client_resource_peaks()));
-        let close_observation = close_observation.with_observation_ingress(
-            worth_ui_host_native::UiNativeClientObservationIngressObservation::reported(
-                self.observation_ingress_counts,
-            ),
+        let evidence = UiNativeDriverShutdownEvidence::captured(
+            runtime_derived_state_reconstruction,
+            self.observation_ingress_counts,
+            self.progress.take_visual_snapshot(),
         );
         if shutdown.host_session_released()
             && shutdown.released_surface_count() == 1
             && shutdown.query_close_complete()
+            && shutdown.intent_resources_empty()
         {
-            UiNativeEventLoopClientClose::CompleteWithObservation(close_observation)
+            let query_close = shutdown.into_query_close_observation();
+            UiNativeEventLoopClientClose::CompleteWithObservation(evidence.finalize(&query_close))
         } else if let Some(cleanup) = shutdown.into_application_cleanup() {
             UiNativeEventLoopClientClose::Incomplete(Box::new(
-                UiNativeApplicationDriverCleanup::Application(cleanup),
+                UiNativeApplicationDriverCleanup::Application { cleanup, evidence },
             ))
         } else {
             UiNativeEventLoopClientClose::Incomplete(Box::new(
                 UiNativeApplicationDriverCleanup::UnresolvedApplication,
             ))
-        }
-    }
-}
-
-#[cfg(test)]
-fn retain_presentation_attribution(
-    current: &mut Option<worth_ui_host_native::UiNativeClientPresentationAttribution>,
-    observed: Option<worth_ui_host_native::UiNativeClientPresentationAttribution>,
-) {
-    if let Some(observed) = observed {
-        *current = Some(observed);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::retain_presentation_attribution;
-    use worth_ui_host_native::UiNativeClientPresentationAttribution;
-
-    #[test]
-    fn deferred_logical_frames_preserve_the_last_physical_attribution() {
-        let first = UiNativeClientPresentationAttribution::reported([1, 2, 3, 4, 5, 6], [7, 8]);
-        let second =
-            UiNativeClientPresentationAttribution::reported([9, 10, 11, 12, 13, 14], [15, 16]);
-        let mut current = None;
-        retain_presentation_attribution(&mut current, None);
-        assert_eq!(current, None);
-        retain_presentation_attribution(&mut current, Some(first));
-        retain_presentation_attribution(&mut current, None);
-        assert_eq!(current, Some(first));
-        retain_presentation_attribution(&mut current, Some(second));
-        assert_eq!(current, Some(second));
-    }
-}
-
-impl UiNativeEventLoopClientCleanup for UiNativeApplicationDriverCleanup {
-    fn retry(self: Box<Self>) -> UiNativeEventLoopClientClose {
-        match (*self).retry() {
-            Ok(query_close) => UiNativeEventLoopClientClose::CompleteWithObservation(
-                host_shutdown_observation(&query_close),
-            ),
-            Err(cleanup) => UiNativeEventLoopClientClose::Incomplete(Box::new(cleanup)),
-        }
-    }
-}
-
-impl UiNativeApplicationDriverCleanup {
-    fn retry(self) -> Result<crate::facade::entry::UiNativeApplicationQueryCloseObservation, Self> {
-        match self {
-            Self::RuntimeLaunch(cleanup) => cleanup
-                .retry_host_session_cleanup()
-                .map(|_| {
-                    crate::facade::entry::UiNativeApplicationQueryCloseObservation::empty_complete()
-                })
-                .map_err(Self::RuntimeLaunch),
-            Self::Application(cleanup) => cleanup.retry().map_err(Self::Application),
-            Self::HostSession(cleanup) => cleanup
-                .retry()
-                .map(|_| {
-                    crate::facade::entry::UiNativeApplicationQueryCloseObservation::empty_complete()
-                })
-                .map_err(Self::HostSession),
-            Self::UnresolvedApplication => Err(Self::UnresolvedApplication),
         }
     }
 }

@@ -3,7 +3,6 @@ mod case;
 mod dependency_model;
 mod execution;
 mod execution_mode;
-mod hostile_cost_model;
 mod joined_rows;
 mod oracle;
 mod presentation_cost_model;
@@ -17,9 +16,6 @@ mod timings;
 
 use case::{Phase5LocalityAxis, Phase5LocalityCase};
 use std::path::Path;
-
-pub use hostile_cost_model::expected_for_label as cost_hostile_cases_for_axis;
-pub use hostile_cost_model::ALL as COST_HOSTILE_CASES;
 
 pub(super) const RETAINED_SIZES: [usize; 4] = [1, 32, 2_048, 4_096];
 

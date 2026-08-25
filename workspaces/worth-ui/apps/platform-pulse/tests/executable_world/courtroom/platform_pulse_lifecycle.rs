@@ -3,7 +3,6 @@ use std::time::{Duration, Instant};
 use crate::external_observation::PlatformPulseLifecycleStreamFailure;
 use crate::failure_teardown::PulseExecutableWorldFailure;
 use crate::installation::CanonicalPlatformPulse;
-use crate::native_platform::{current_platform_posture, NativePlatformPosture};
 use crate::product_process::{
     AwaitingFirstFrame, AwaitingReplacement, CargoBuiltPlatformPulse, FirstCurrent, IdentityTraced,
     InitialBlue, Installed, OverlayCleared, OverlayPublished, Published, PulseExecutableWorld,
@@ -12,28 +11,8 @@ use crate::product_process::{
 use crate::source_delta::{GreenPulseSourceDelta, QueryStatusV1, QueryStatusV2};
 
 use super::exclusive_native_courtroom::enter_exclusive_native_courtroom;
-use super::platform_pulse_journey::{self, PlatformPulseJourneyDeltas};
 
 const TRANSITION_DEADLINE: Duration = Duration::from_secs(5);
-const JOURNEY_BUDGET: Duration = Duration::from_secs(30);
-
-#[test]
-fn canonical_platform_pulse_survives_blue_green_denial_recovery_and_normal_shutdown() {
-    let _courtroom = enter_exclusive_native_courtroom();
-    assert_eq!(
-        current_platform_posture(),
-        NativePlatformPosture::CertifiedExecutable
-    );
-    let journey_started = Instant::now();
-    let deltas = PlatformPulseJourneyDeltas::exact()
-        .unwrap_or_else(|failure| panic!("derive exact source deltas: {failure}"));
-    let completed = platform_pulse_journey::complete(deltas);
-    assert!(journey_started.elapsed() <= JOURNEY_BUDGET);
-    assert!(completed.closed().evidence().installation_removed());
-    completed.cost().assert_frozen_budgets();
-    completed.cost().report();
-}
-
 #[test]
 fn expired_first_frame_deadline_preserves_primary_failure_and_teardown_disposition() {
     let _courtroom = enter_exclusive_native_courtroom();

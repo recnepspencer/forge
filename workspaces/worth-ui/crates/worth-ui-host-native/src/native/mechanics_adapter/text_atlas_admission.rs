@@ -22,7 +22,7 @@ pub(super) fn physical_capacity_denial(
     {
         return Some(UiGlyphRasterTransactionDenial::CapacityExceeded);
     }
-    state.graphics.as_ref()?;
+    state.presentation_access()?;
     let current = state.text_atlas_gpu.as_ref().map_or((0, 0), |gpu| {
         (
             gpu.page_count(UiNativeGpuAtlasKind::Alpha),

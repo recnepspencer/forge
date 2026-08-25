@@ -42,7 +42,8 @@ impl UiNativeHostState {
             LossClass::RetainedTarget => {
                 self.retained_draw_lists.len() == 1
                     && self.retained_draw_lists.contains_key(&binding)
-                    && self.graphics.is_some()
+                    && self.device.is_some()
+                    && self.presentation_surface.is_some()
                     && self.resources.admits(1)
             }
             LossClass::PresentationAffinity => {
@@ -79,8 +80,15 @@ impl UiNativeHostState {
                 BTreeSet::from([binding])
             }
         };
-        self.reconstruction_required
-            .extend(affected.iter().copied());
+        for binding in &affected {
+            self.captures.invalidate_source(*binding);
+        }
+        for binding in affected.iter().copied() {
+            self.lifecycle.require_recovery(
+                binding,
+                crate::native::UiNativeRecoveryCause::DerivedStateLost,
+            );
+        }
         self.qualification
             .record_derived_state_loss(class, affected);
     }
@@ -94,8 +102,8 @@ impl UiNativeHostState {
             LossClass::TextAtlasPins => self.text_pins_are_live_for(binding),
             LossClass::RetainedDrawList => self.retained_draw_lists.contains_key(&binding),
             LossClass::RetainedTarget => {
-                self.graphics.as_ref().is_some_and(|graphics| {
-                    let _ = graphics.retained_target();
+                self.presentation_access().is_some_and(|access| {
+                    let _ = access.retained_target();
                     true
                 }) && self.presentation_affinity_is_live_for(binding)
             }
@@ -152,11 +160,17 @@ impl UiNativeHostState {
             .copied()
             .collect::<BTreeSet<_>>();
         affected.insert(binding);
-        self.graphics
+        let device = self.device.as_ref().expect("preflight retained device");
+        let surface = self
+            .presentation_surface
             .as_mut()
-            .expect("preflight retained graphics")
-            .replace_retained_target_for_reconstruction(&mut self.resources)
-            .expect("preflight reserved one replacement target owner");
+            .expect("preflight retained presentation surface");
+        crate::native::lifecycle::replace_retained_target_for_reconstruction(
+            device,
+            surface,
+            &mut self.resources,
+        )
+        .expect("preflight reserved one replacement target owner");
         affected
     }
 

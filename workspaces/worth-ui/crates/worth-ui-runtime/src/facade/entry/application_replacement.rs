@@ -17,6 +17,10 @@ mod receipt;
 mod retry;
 
 pub use candidate::{WorthUiReplacementCandidateSummary, WorthUiReplacementPlannedCostEnvelope};
+pub(crate) use mounted::{
+    WorthUiDetachedMountedApplicationReplacementInFlight,
+    WorthUiDetachedPreparedMountedApplicationReplacement,
+};
 pub use mounted::{
     WorthUiMountedApplicationReplacementInFlight,
     WorthUiMountedApplicationReplacementIndeterminate, WorthUiMountedApplicationReplacementOutcome,

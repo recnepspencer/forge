@@ -15,6 +15,7 @@ mod thread_posture;
 
 struct CleanupClient {
     completes: bool,
+    terminal_resources_complete: bool,
 }
 
 struct PendingProbe {
@@ -70,7 +71,14 @@ impl UiNativeEventLoopClient for CleanupClient {
 
     fn close(self) -> UiNativeEventLoopClientClose {
         if self.completes {
-            UiNativeEventLoopClientClose::Complete
+            if self.terminal_resources_complete {
+                UiNativeEventLoopClientClose::Complete
+            } else {
+                UiNativeEventLoopClientClose::CompleteWithObservation(
+                    super::UiNativeClientShutdownObservation::from_client(0, false)
+                        .with_intent_resources_empty(false),
+                )
+            }
         } else {
             UiNativeEventLoopClientClose::Incomplete(Box::new(self))
         }

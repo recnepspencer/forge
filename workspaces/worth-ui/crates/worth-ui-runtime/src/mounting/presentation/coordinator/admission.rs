@@ -233,6 +233,5 @@ mod tests {
             .deregister_surface(session.effect_port(), request)
             .unwrap();
         assert!(baseline_requirement_denial(&truth, requirement).is_some());
-        println!("WORTH_UI_LEDGER_COUNTERS={{\"P1-BASELINE-01\":{admitted}}}");
     }
 }

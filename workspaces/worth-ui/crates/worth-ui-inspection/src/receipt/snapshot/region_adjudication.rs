@@ -13,6 +13,7 @@ pub enum UiVisualRegionCompleteness {
     Complete,
     EmptyAndComplete,
     Truncated,
+    Unsupported,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

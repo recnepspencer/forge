@@ -90,11 +90,44 @@ fn equal_counts_do_not_alias_changed_static_paint_meaning() {
             baseline,
             UiMountedAllocationBasis::new(1, 3, 3, UiMountedTransformProjection::Identity),
         ),
+        with_clip(baseline, canonical_box(32.0, 33.0, 160.0, 95.0)),
         with_frame(baseline, UiMountedFrameIdentity::mint_unbound().unwrap()),
     ];
 
     for variant in variants {
         assert_ne!(complete(variant).semantic_digest(), baseline_digest);
+    }
+}
+
+#[test]
+fn retained_paint_equivalence_excludes_lineage_but_not_paint_inputs() {
+    let baseline = fixture();
+    let baseline_row = complete(baseline);
+    assert!(
+        baseline_row.same_retained_paint_meaning(complete(with_frame(
+            baseline,
+            UiMountedFrameIdentity::mint_unbound().unwrap(),
+        )))
+    );
+
+    let variants = [
+        with_bounds(baseline, canonical_box(33.0, 32.0, 160.0, 96.0)),
+        with_color(baseline, UiMountedRgba8::new(48, 129, 247, 255)),
+        with_instance(baseline, UiMountedInstanceIdentity::mint_unbound().unwrap()),
+        with_layer(baseline, 1),
+        with_binding(
+            baseline,
+            UiSurfaceBindingGeneration::mint_unbound().unwrap(),
+        ),
+        with_surface(baseline, UiSemanticSurfaceIdentity::mint_unbound().unwrap()),
+        with_allocation_basis(
+            baseline,
+            UiMountedAllocationBasis::new(1, 3, 3, UiMountedTransformProjection::Identity),
+        ),
+        with_clip(baseline, canonical_box(32.0, 33.0, 160.0, 95.0)),
+    ];
+    for variant in variants {
+        assert!(!baseline_row.same_retained_paint_meaning(complete(variant)));
     }
 }
 
@@ -205,6 +238,14 @@ fn with_allocation_basis(
     allocation_basis: UiMountedAllocationBasis,
 ) -> UiMountedFilledRectCompletionInput {
     input.allocation_basis = allocation_basis;
+    input
+}
+
+fn with_clip(
+    mut input: UiMountedFilledRectCompletionInput,
+    clip_bounds: UiMountedCanonicalBox,
+) -> UiMountedFilledRectCompletionInput {
+    input.clip_bounds = clip_bounds;
     input
 }
 

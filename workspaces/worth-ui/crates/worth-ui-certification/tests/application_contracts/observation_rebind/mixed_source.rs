@@ -34,7 +34,7 @@ use worth_ui_test_support::{
 };
 
 use crate::query_replacement_lifecycle::{
-    mixed_real_lifecycle::query_patch::update_measurement,
+    query_patch::update_measurement,
     scenario::{
         application, installed_workspace_with_measurement_authority, submission, FIRST_VIEW,
         NEXT_COMPONENT, SECOND_VIEW,

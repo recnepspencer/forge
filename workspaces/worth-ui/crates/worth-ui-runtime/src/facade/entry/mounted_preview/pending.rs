@@ -152,6 +152,7 @@ impl<'session> WorthUiPendingMountedPreview<'session> {
                 }),
                 visual_overlay: None,
                 semantic_content: crate::mounting::UiMountedSemanticContentInput::empty(),
+                theme_values: crate::mounting::UiMountedThemeValueSource::preview_only(),
                 font_collection: std::sync::Arc::clone(&self.font_collection),
                 reuse_contract,
             })

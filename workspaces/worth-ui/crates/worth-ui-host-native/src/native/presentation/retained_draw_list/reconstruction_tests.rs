@@ -89,8 +89,4 @@ fn cold_reconstruction_rebuilds_every_index_then_next_delta_remains_local() {
         retained.command(replacement_command.identity()),
         Some(&replacement_command)
     );
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P3-RECONSTRUCTION-01\":2}}");
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P5-TEXT-RECONSTRUCTION-01\":\"stale-raster-reuse\"}}"
-    );
 }

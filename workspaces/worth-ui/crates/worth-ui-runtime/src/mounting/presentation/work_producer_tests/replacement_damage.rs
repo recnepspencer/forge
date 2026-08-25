@@ -86,7 +86,6 @@ fn one_replacement_carries_one_change_and_exact_predecessor_successor_damage() {
         unchanged.affinity().successor(),
         unchanged_projection.frame()
     );
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P1-AFFINITY-01\":3}}");
 }
 
 fn change_identity(

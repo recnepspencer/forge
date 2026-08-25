@@ -9,6 +9,7 @@ pub(super) enum ScriptedVisualAffinity {
 pub(super) enum ScriptedVisualTerminal {
     SupersededBeforeReadback,
     CaptureAffinityIndeterminate,
+    ReadbackCompletionIndeterminate,
     Unsupported,
     CapacityExceeded,
 }
@@ -122,6 +123,10 @@ impl ScriptedPresentationHost {
         self.push_visual_terminal(ScriptedVisualTerminal::CaptureAffinityIndeterminate);
     }
 
+    pub fn push_visual_capture_readback_completion_indeterminate(&self) {
+        self.push_visual_terminal(ScriptedVisualTerminal::ReadbackCompletionIndeterminate);
+    }
+
     pub fn push_visual_capture_unsupported(&self) {
         self.push_visual_terminal(ScriptedVisualTerminal::Unsupported);
     }
@@ -180,6 +185,9 @@ fn terminal_outcome(
         }
         ScriptedVisualTerminal::CaptureAffinityIndeterminate => {
             worth_ui_host_contract::UiHostCaptureObservationOutcome::CaptureAffinityIndeterminate
+        }
+        ScriptedVisualTerminal::ReadbackCompletionIndeterminate => {
+            worth_ui_host_contract::UiHostCaptureObservationOutcome::ReadbackCompletionIndeterminate
         }
         ScriptedVisualTerminal::Unsupported => {
             worth_ui_host_contract::UiHostCaptureObservationOutcome::Unsupported

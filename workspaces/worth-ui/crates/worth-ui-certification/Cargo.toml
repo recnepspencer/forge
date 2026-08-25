@@ -21,12 +21,11 @@ toml = "0.8"
 worth-ui = { path = "../worth-ui" }
 worth-ui-dsl = { path = "../worth-ui-dsl" }
 worth-ui-host-contract = { path = "../worth-ui-host-contract" }
-worth-ui-host-egui = { path = "../worth-ui-host-egui" }
 worth-ui-host-headless = { path = "../worth-ui-host-headless" }
 worth-ui-host-native = { path = "../worth-ui-host-native", features = ["certification-support"] }
 worth-ui-native-platform = { path = "../worth-ui-native-platform", features = ["certification-support"] }
 worth-ui-query-binding = { path = "../worth-ui-query-binding", features = ["certification-construction"] }
-worth-ui-runtime = { path = "../worth-ui-runtime", features = ["certification-support", "legacy-egui-migration"] }
+worth-ui-runtime = { path = "../worth-ui-runtime", features = ["certification-support"] }
 worth-ui-test-support = { path = "../worth-ui-test-support" }
 worth-ui-text = { path = "../worth-ui-text" }
 worth-query-host = { path = "../../../worth-query/crates/worth-query-host" }
@@ -34,7 +33,6 @@ worth-query-host = { path = "../../../worth-query/crates/worth-query-host" }
 [dev-dependencies]
 allocation-counter = "0.8.1"
 atomicwrites = "0.4.4"
-egui = { workspace = true }
 winit = { workspace = true }
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-query = { path = "../../../worth-query/crates/worth-query" }

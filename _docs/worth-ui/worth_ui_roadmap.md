@@ -5,7 +5,7 @@
 This document defines the future work for Worth UI.
 
 It is a future-only roadmap. It does not treat Worth UI as a widget bundle or
-an ornamental layer over `egui`. It exists to sequence the remaining work
+an ornamental layer over a renderer. It exists to sequence the remaining work
 required to turn Worth UI into a real desktop application platform with
 hot-lowered iteration, canonical UI artifacts, Query-bound product surfaces,
 platform-grade shell behavior, native desktop integration, and frame-efficient
@@ -157,8 +157,8 @@ built on top of ad hoc app-local abstractions.
 
 ### Must Preserve
 
-- Worth UI remains above `egui` and does not fork or entangle low-level
-  rendering ownership with platform ownership
+- Worth UI meaning remains above native rendering and does not entangle
+  low-level rendering ownership with platform ownership
 - Worth UI does not become a second Query or truth runtime
 - capability definition stays in compiled Rust rather than moving into
   untyped runtime source
@@ -330,11 +330,11 @@ explanation runtime later.
   - `worth-ui-inspection`
   - `worth-ui-query-binding`
   - `worth-ui-host-contract`
-  - `worth-ui-host-egui`
+  - `worth-ui-host-native`
+  - `worth-ui-host-headless`
   - `worth-ui-certification`
-- `worth-ui-host-contract` as the stable native-host boundary and
-  `worth-ui-host-egui` as only the first adapter implementation rather than
-  the permanent rendering substrate
+- `worth-ui-host-contract` as the stable host boundary, with native and
+  headless mechanics outside runtime meaning
 - sealed inspection and harness contract types:
   - `UiInspectionTarget`
   - `UiInspectionQuery`
@@ -368,7 +368,7 @@ explanation runtime later.
   contracts
 - a second host adapter can be introduced against `worth-ui-host-contract`
   without changing runtime truth ownership or moving host-neutral types into
-  `worth-ui-host-egui`
+  the runtime or product facade
 - certification crate exists as the canonical anti-cheating home rather than
   test helpers drifting through unrelated modules
 
@@ -886,8 +886,8 @@ late optimization.
   invocations (negative and positive), reuses the caller's ordinary target
   graph, and adds no private duplicate build, generated fixture workspace, or
   ordinary-test nested Cargo invocation
-- egui and headless paths consume the same sealed host-neutral envelope meaning;
-  at least one real `egui::Context::run` frame and production headless frame
+- predecessor and headless paths consume the same sealed host-neutral envelope meaning;
+  at least one real predecessor-adapter frame and production headless frame
   exercise their adapters, and neither adapter can receive an owned plan or
   choose lane/UI semantics
 - the zero-allocation executor claim is checked by an independent thread-scoped
@@ -1397,7 +1397,7 @@ This successor gate makes product entry a permanent proof boundary. It does not
 add another product feature. It classifies the existing egui-context and
 watched-lifecycle tests honestly as in-process integration, then adds one
 separately budgeted executable-world target that launches the exact Cargo-built
-pulse binary through `main`, `eframe::run_native`, the operating-system native
+pulse binary through `main`, the then-current predecessor shell, the operating-system native
 event loop, `PlatformPulseNativeFrame`, its watcher worker, and normal native
 shutdown.
 
@@ -1951,8 +1951,14 @@ implementation gates, documentation, and Phase 6 handoff are governed by
 specification exists to keep this roadmap outcome-readable; it does not create
 a second milestone or independently closable product surface.
 
-Phase 5 was implemented and historically reviewed on 2026-08-20; Phase 6 is the
-current implementation phase. Its frozen QA
+Phase 5 was implemented and historically reviewed on 2026-08-20. Phases 6-7
+were implemented and independently reviewed on 2026-08-23. Phase 8 was
+implemented and independently reviewed on 2026-08-24. The corrected Phase 9
+implementation record and its frozen source snapshot were independently
+certified and closed on 2026-08-24. The corrected Phase 10 native-cutover
+implementation and its frozen source snapshot were independently certified and
+closed on 2026-08-24, completing Milestone 3.14.1.
+The frozen QA
 ledger and retained artifacts are not current authority and are never reopened.
 The accepted test coverage
 includes deterministic alpha/color raster and
@@ -2006,6 +2012,19 @@ atlas, and draw-list residue — through the native host, followed by deletion
 of the `egui` adapter and shell. A new harness, scripted host closure, or
 retained dual-host fallback does not close the pulse.
 
+The frozen Phase 9 candidate uses event-driven readiness on both hosts and
+adds a real 500 ms unchanged segment after final recovery: the process remains
+alive, emits no lifecycle envelope, and retains byte-identical client pixels.
+The existing certification-owned mounted-session lane separately requires
+exact unchanged reuse with zero allocation, zero mount work, zero adapter work,
+and no additional host presentation; the executable runner imports none of
+that lane's internal authorities. External color, geometry, control-point,
+DPI, and text-profile expectations come from one versioned test-owned literal
+manifest rather than production visual constants. All visual await/observe
+actions advance the shared causal cursor at their real boundaries, and process
+identity plus exit poll multiplicity remain typed host-mechanical exclusions
+with their raw pairs retained.
+
 **Must ship**
 
 - Phase 1 materializes a contract-only Worth native host-mechanics crate as
@@ -2053,6 +2072,10 @@ retained dual-host fallback does not close the pulse.
   receipt and generation set; receiptless paint is unrepresentable
 - unchanged-frame zero work extends through the draw list, atlas, and surface
   counters, not just the semantic turn
+- the cumulative dual-host journey contains a bounded quiescent interval with
+  zero lifecycle events and byte-identical external client pixels, while the
+  certification-owned mounted-session lane independently proves exact-zero
+  adapter admission without entering the executable runner
 - Unicode, shaping, fallback, and line-layout dependencies demonstrably receive
   only their completed typed inputs and cannot alter value, semantic style,
   mounted identity, language/direction policy, wrapping, or clipping evidence

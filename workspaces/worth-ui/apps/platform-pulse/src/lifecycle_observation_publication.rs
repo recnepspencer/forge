@@ -4,8 +4,7 @@ use std::rc::Rc;
 
 use worth_ui::facade::app::{
     UiMountedFrameOutcome, UiMountedFramePublicationReceipt, WorthUiApplicationPreparationDenial,
-    WorthUiMountedFrameExecutionStop, WorthUiNativeApplicationShellLaunchDenial,
-    WorthUiNativeSourceRebindDenial,
+    WorthUiMountedFrameExecutionStop, WorthUiNativeSourceRebindDenial,
 };
 use worth_ui::facade::source::{
     UiSourceRebindAttemptFailure, WorthUiFilesystemWatcherDenial, WorthUiSourcePackageRevision,
@@ -97,15 +96,6 @@ impl PlatformPulseObservationPublisher {
         })
     }
 
-    pub(crate) fn native_surface_launch_failure(
-        &self,
-        denial: &WorthUiNativeApplicationShellLaunchDenial,
-    ) -> Result<(), PlatformPulseObservationPublicationDenial> {
-        self.with_publication(|publication| {
-            publication.project(|stream| stream.project_native_surface_launch_failure(denial))
-        })
-    }
-
     pub(crate) fn frame_execution_failure(
         &self,
         denial: &WorthUiMountedFrameExecutionStop<'_>,
@@ -155,11 +145,10 @@ impl PlatformPulseObservationPublisher {
 
     pub(crate) fn native_input_reached(
         &self,
-        reached: worth_ui_host_egui::UiEguiRawInputReachability,
-        posture: worth_ui_platform_pulse::observation_contract::PlatformPulseNativeInputIngressPosture,
+        reached: worth_ui_platform_pulse::observation_contract::PlatformPulseNativeInputReached,
     ) -> Result<(), PlatformPulseObservationPublicationDenial> {
         self.with_publication(|publisher| {
-            publisher.project(|stream| stream.project_native_input_reached(reached, posture))
+            publisher.project(|stream| stream.project_native_input_reached(reached))
         })
     }
 

@@ -335,6 +335,15 @@ impl UiMountedRejectedFrame {
     pub(crate) fn into_frame(self) -> UiPreparedMountedFrame {
         self.frame
     }
+
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        UiPreparedMountedFrame,
+        Box<[UiMountedSurfacePresentationRejection]>,
+    ) {
+        (self.frame, self.rejections)
+    }
 }
 
 impl UiMountedIndeterminateFrame {

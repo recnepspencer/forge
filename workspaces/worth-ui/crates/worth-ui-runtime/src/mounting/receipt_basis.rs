@@ -1,6 +1,6 @@
 use worth_ui_host_contract::{
     UiMountedContractIdentityExhaustion, UiMountedFrameIdentity, UiMountedInstanceIdentity,
-    UiMountedNodeReceiptIdentity, UiMountedNodeReceiptIssuer,
+    UiMountedNodeReceiptAffinity, UiMountedNodeReceiptIdentity, UiMountedNodeReceiptIssuer,
 };
 
 #[derive(Clone)]
@@ -25,6 +25,10 @@ impl UiMountedNodeReceiptBasis {
 
     pub(crate) fn frame(&self) -> UiMountedFrameIdentity {
         self.issuer.frame_identity()
+    }
+
+    pub(crate) fn affinity(&self) -> Option<UiMountedNodeReceiptAffinity> {
+        (!self.presented_instances.is_empty()).then(|| self.issuer.receipt_affinity())
     }
 
     pub(crate) fn receipt_for(

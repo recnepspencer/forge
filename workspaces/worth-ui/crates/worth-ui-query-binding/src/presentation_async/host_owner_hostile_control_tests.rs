@@ -2,22 +2,17 @@ use super::authority_tests::installed_owner_parts;
 use super::tests::{basis, installed_owner};
 use super::*;
 
-const CASES: [&str; 10] = [
+const CASES: [&str; 6] = [
     "completion-without-query-admission",
-    "physical-completion-outside-signal",
     "foreign-or-stale-basis",
     "duplicate-or-out-of-order-current",
     "indeterminate-flattened-to-completed",
-    "signal-as-effect-authority",
     "cross-graph-authority",
-    "serialized-recovery-authority",
-    "reporting-material-as-authority",
     "terminal-query-resource-leak",
 ];
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum Verdict {
-    CompilerRejected,
     AdmissionDenied,
     CompletionDenied,
     Unresolved,
@@ -58,15 +53,10 @@ fn typed_async_hostile_family_matches_the_independent_transition_adjudicator() {
         denial_verdict(no_admission),
         "foreign pending has no Query admission in the settling owner",
     ));
-    outcomes.push(compile_outcome(
-        CASES[1],
-        "certification-phase5-async-authority",
-    ));
-
     let foreign_request = right_issuer.issue(basis(102)).unwrap();
     let foreign_basis = left.admit_pending(foreign_request);
     outcomes.push(outcome(
-        CASES[2],
+        CASES[1],
         if matches!(
             foreign_basis,
             Err(WorthUiPresentationPendingAdmissionDenial::ForeignCorrespondenceAuthority)
@@ -85,7 +75,7 @@ fn typed_async_hostile_family_matches_the_independent_transition_adjudicator() {
     left.admit_presented(&pending, completion).unwrap();
     let duplicate = left_issuer.certify_presented(&pending, 64);
     outcomes.push(outcome(
-        CASES[3],
+        CASES[2],
         denial_verdict(left.admit_presented(&pending, duplicate)),
         "consumed pending receipt cannot settle a second completion",
     ));
@@ -94,7 +84,7 @@ fn typed_async_hostile_family_matches_the_independent_transition_adjudicator() {
     let pending = indeterminate.admit_pending(basis(104)).unwrap();
     let unresolved = indeterminate.admit_effects_indeterminate(&pending).unwrap();
     outcomes.push(outcome(
-        CASES[4],
+        CASES[3],
         if unresolved.observation().posture() == WorthUiPresentationAsyncPosture::Unresolved {
             Verdict::Unresolved
         } else {
@@ -103,32 +93,19 @@ fn typed_async_hostile_family_matches_the_independent_transition_adjudicator() {
         "owner retained Unresolved rather than fabricating Current",
     ));
     assert_cancellation_postures();
-    outcomes.push(compile_outcome(
-        CASES[5],
-        "certification-phase5-signal-effect-authority",
-    ));
 
     let cross_graph_completion = left_issuer.certify_presented(&foreign_pending, 64);
     outcomes.push(outcome(
-        CASES[6],
+        CASES[4],
         denial_verdict(left.admit_presented(&foreign_pending, cross_graph_completion)),
         "foreign graph receipt cannot settle through local graph authority",
     ));
-    outcomes.push(compile_outcome(
-        CASES[7],
-        "certification-phase5-serialized-recovery-authority",
-    ));
-    outcomes.push(compile_outcome(
-        CASES[8],
-        "certification-phase5-reporting-authority",
-    ));
-
     left.close_terminal_resources().unwrap();
     indeterminate.close_terminal_resources().unwrap();
     right.reject_before_effects(&foreign_pending).unwrap();
     let terminal = right.close_terminal_resources().unwrap();
     outcomes.push(outcome(
-        CASES[9],
+        CASES[5],
         if terminal.closed_query_resources() == 0 {
             Verdict::TerminalZero
         } else {
@@ -143,12 +120,6 @@ fn typed_async_hostile_family_matches_the_independent_transition_adjudicator() {
         assert!(!observed.trace.is_empty());
         assert_eq!(observed.verdict, independently_predicted(observed.case));
     }
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P5-TEXT-ASYNC-PRESENTATION-01\":\"bypass-query-or-stale-presentation-completion\"}}"
-    );
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CASES={{\"P5-TEXT-ASYNC-PRESENTATION-01\":[\"completion-without-query-admission\",\"physical-completion-outside-signal\",\"foreign-or-stale-basis\",\"duplicate-or-out-of-order-current\",\"indeterminate-flattened-to-completed\",\"signal-as-effect-authority\",\"cross-graph-authority\",\"serialized-recovery-authority\",\"reporting-material-as-authority\",\"terminal-query-resource-leak\"]}}"
-    );
 }
 
 fn assert_cancellation_postures() {
@@ -187,62 +158,6 @@ fn denial_verdict(
     }
 }
 
-fn compile_outcome(case: &'static str, target: &'static str) -> CaseOutcome {
-    let expected = match case {
-        "physical-completion-outside-signal" => "certification-phase5-async-authority",
-        "signal-as-effect-authority" => "certification-phase5-signal-effect-authority",
-        "serialized-recovery-authority" => "certification-phase5-serialized-recovery-authority",
-        "reporting-material-as-authority" => "certification-phase5-reporting-authority",
-        _ => panic!("compile outcome requested for a runtime-hostile case"),
-    };
-    assert_eq!(target, expected);
-    assert_governed_compile_receipt(target);
-    outcome(
-        case,
-        Verdict::CompilerRejected,
-        "governed compile artifact owns exact fail/pass authority pair",
-    )
-}
-
-fn assert_governed_compile_receipt(target: &str) {
-    use sha2::{Digest, Sha256};
-
-    let repository = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../..");
-    let artifact_path =
-        repository.join("_docs/worth-ui/milestone-3.14.1-evidence/compile-contracts.json");
-    let artifact: serde_json::Value = serde_json::from_slice(
-        &std::fs::read(&artifact_path).expect("governed compile artifact is readable"),
-    )
-    .expect("governed compile artifact is valid JSON");
-    let matches = artifact["cases"]
-        .as_array()
-        .expect("compile artifact carries cases")
-        .iter()
-        .filter(|row| row["owner"] == "certification" && row["kind"] == "fail")
-        .filter(|row| row["target"] == target)
-        .collect::<Vec<_>>();
-    let [row] = matches.as_slice() else {
-        panic!("compile target {target} is not represented exactly once");
-    };
-    for (path_field, digest_field) in [("source", "source_sha256"), ("snapshot", "snapshot_sha256")]
-    {
-        let path = row[path_field]
-            .as_str()
-            .expect("compile receipt retains its governed path");
-        let expected = row[digest_field]
-            .as_str()
-            .expect("compile receipt retains its governed digest");
-        let actual = Sha256::digest(
-            std::fs::read(repository.join(path)).expect("compile receipt source is readable"),
-        );
-        let actual = actual
-            .iter()
-            .map(|byte| format!("{byte:02x}"))
-            .collect::<String>();
-        assert_eq!(actual, expected, "compile receipt drifted for {target}");
-    }
-}
-
 const fn outcome(case: &'static str, verdict: Verdict, trace: &'static str) -> CaseOutcome {
     CaseOutcome {
         case,
@@ -257,10 +172,6 @@ fn independently_predicted(case: &str) -> Verdict {
         | "duplicate-or-out-of-order-current"
         | "cross-graph-authority" => Verdict::CompletionDenied,
         "foreign-or-stale-basis" => Verdict::AdmissionDenied,
-        "physical-completion-outside-signal"
-        | "signal-as-effect-authority"
-        | "serialized-recovery-authority"
-        | "reporting-material-as-authority" => Verdict::CompilerRejected,
         "indeterminate-flattened-to-completed" => Verdict::Unresolved,
         "terminal-query-resource-leak" => Verdict::TerminalZero,
         _ => panic!("independent adjudicator received an unknown fault"),

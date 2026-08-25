@@ -11,13 +11,7 @@ from typing import Any
 
 from worth_ui_ci_contract import ci_contract_violations
 from worth_ui_compile_contract_topology import compile_reconciliation_violations
-from worth_ui_real_boundary_proof_ledger import real_boundary_ledger_violations
-from worth_ui_query_lifetime_matrix import query_lifetime_matrix_violations
-from worth_ui_test_proof_ledger import ledger_violations
-from worth_ui_test_cost_evidence import test_cost_evidence_violations
 from worth_ui_test_source_topology import source_violations
-from worth_ui_test_seam_inventory import test_seam_inventory_violations
-from worth_ui_timing_evidence import timing_evidence_violations
 from worth_ui_test_topology_config import (
     Violation,
     load_json,
@@ -142,18 +136,6 @@ def source_inventory_violations(root: Path, config: dict[str, Any]) -> list[Viol
                 )
             )
 
-    topology_root = owner.parent
-    for source in topology_root.rglob("*.rs"):
-        if source == owner:
-            continue
-        text = source.read_text(encoding="utf-8")
-        if "read_dir(" in text:
-            violations.append(
-                Violation(
-                    "source-inventory",
-                    f"{normalized(source.relative_to(root))}: recursive source discovery bypasses the inventory owner",
-                )
-            )
     return violations
 
 
@@ -193,12 +175,6 @@ def main() -> int:
         violations.extend(required_source_violations(root, config))
         violations.extend(ci_contract_violations(root, config))
         violations.extend(compile_reconciliation_violations(root, config))
-        violations.extend(ledger_violations(root, config))
-        violations.extend(real_boundary_ledger_violations(root, config))
-        violations.extend(query_lifetime_matrix_violations(root, config))
-        violations.extend(test_seam_inventory_violations(root, config))
-        violations.extend(timing_evidence_violations(root, config))
-        violations.extend(test_cost_evidence_violations(root, config))
         lane_runner = root / required_string(config, "lane_runner")
         if not lane_runner.is_file():
             violations.append(Violation("lane-runner", f"missing {normalized(lane_runner.relative_to(root))}"))

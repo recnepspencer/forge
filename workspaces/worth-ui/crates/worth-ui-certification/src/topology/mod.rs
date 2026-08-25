@@ -13,23 +13,16 @@ mod executable_equivalence_schema_audit;
 mod graph_mutation_boundary_audit;
 mod graph_residue_audit;
 mod host_output_boundary_audit;
+mod host_platform;
 mod inspection_boundary_audit;
 mod inspection_boundary_certification;
 mod inspection_evidence_topology_audit;
 mod inspection_growth_posture_audit;
 mod inspection_topology_audit;
 mod lane_extension_authority_audit;
-mod legacy_surface_residue;
 mod lifecycle_propagation;
 mod measurement_boundary_audit;
 mod measurement_growth_posture_audit;
-mod milestone_3101_inventory;
-mod milestone_3102_pulse_seed;
-mod milestone_3103_cost_closure;
-mod milestone_3103_executable_world;
-mod milestone_3103_external_world;
-mod milestone_3103_product_contract;
-mod milestone_3103_watched_replacement;
 mod milestone_37_structural_inventory_audit;
 mod obligation_boundary_audit;
 mod obligation_residue_audit;
@@ -66,7 +59,7 @@ pub use declaration_residue_audit::{
     audit_phase4_authored_lookup_lane_is_indexed_not_scan_first,
 };
 pub use dependency_audit::{
-    audit_host_egui_dependency_boundary, audit_no_cross_crate_deep_imports,
+    audit_host_adapter_dependency_boundary, audit_no_cross_crate_deep_imports,
     audit_non_product_crates_route_declaration_through_worth_ui_facade,
 };
 pub use executable_equivalence_schema_audit::{
@@ -80,6 +73,7 @@ pub use graph_residue_audit::{
     audit_phase6_aspect_lookup_lane_is_indexed_not_scan_first,
 };
 pub use host_output_boundary_audit::audit_host_output_plan_encapsulation;
+pub use host_platform::{HostRetirementTopologyFailure, HostRetirementTopologyWorld};
 pub use inspection_boundary_audit::audit_consumers_route_inspection_through_worth_ui_facade;
 pub use inspection_boundary_certification::certify_consumers_route_inspection_through_worth_ui_facade;
 pub use inspection_evidence_topology_audit::{
@@ -95,10 +89,6 @@ pub use inspection_topology_audit::{
     audit_inspection_public_module_role_purity,
 };
 pub use lane_extension_authority_audit::audit_lane_extension_authority;
-pub use legacy_surface_residue::{
-    audit_legacy_crate_dispositions, audit_legacy_public_surface_narrowing,
-    audit_legacy_shim_honesty, audit_no_parallel_legacy_authority,
-};
 pub use lifecycle_propagation::{
     audit_phase3_lifecycle_public_surface, expected_phase3_lifecycle_subsystems,
     lifecycle_propagation_fixture_paths,
@@ -111,13 +101,6 @@ pub use measurement_growth_posture_audit::{
     audit_measurement_basis_artifact_growth_posture,
     audit_measurement_future_family_extension_home, audit_measurement_future_growth_posture,
 };
-pub use milestone_3101_inventory::audit_milestone_3101_inventory;
-pub use milestone_3102_pulse_seed::audit_milestone_3102_pulse_seed;
-pub use milestone_3103_cost_closure::audit_milestone_3103_phase5_cost_closure;
-pub use milestone_3103_executable_world::audit_milestone_3103_phase1;
-pub use milestone_3103_external_world::audit_milestone_3103_phase3_external_world;
-pub use milestone_3103_product_contract::audit_milestone_3103_phase2_product_contract;
-pub use milestone_3103_watched_replacement::audit_milestone_3103_phase4_watched_replacement;
 pub use milestone_37_structural_inventory_audit::{
     audit_milestone_37_structural_inventory, milestone_37_active_failure_modes,
     milestone_37_cleared_finding_ids, milestone_37_critical_finding_ids,

@@ -8,6 +8,16 @@ pub(crate) struct UiNativeColdReconstruction {
     retained: UiNativeRetainedDrawList,
     pixels: [[u8; 4]; 2],
     port_crossings: u8,
+    recovery: crate::native::UiNativeRecoveryRequirement,
+}
+
+pub(crate) enum UiNativeReconstructionFailure {
+    BeforeEffects {
+        denial: UiHostSurfacePresentationDenial,
+        recovery: crate::native::UiNativeRecoveryRequirement,
+        successor_cause: Option<crate::native::UiNativeRecoveryCause>,
+    },
+    Pending(super::UiNativePendingPresentation),
 }
 
 impl UiNativeColdReconstruction {
@@ -18,50 +28,84 @@ impl UiNativeColdReconstruction {
         UiNativeRetainedDrawList,
         [[u8; 4]; 2],
         u8,
+        crate::native::UiNativeRecoveryRequirement,
     ) {
-        (self.cost, self.retained, self.pixels, self.port_crossings)
+        let Self {
+            cost,
+            retained,
+            pixels,
+            port_crossings,
+            recovery,
+        } = self;
+        (cost, retained, pixels, port_crossings, recovery)
     }
 }
 
 pub(crate) fn present_cold_reconstruction<Port: UiNativePresentationPort>(
-    graphics: &mut UiNativeGraphics,
+    graphics: &mut UiNativePresentationAccess,
     resources: &mut UiNativeResourceRegistry,
     physical_signal: &mut crate::native::physical_work_signal::UiNativePhysicalSignalOwner,
     atlas: &crate::native::text_atlas::UiNativeTextAtlas,
     atlas_gpu: Option<&crate::native::text_atlas::UiNativeTextAtlasGpuPages>,
     view: &UiMountedFrameConsumptionView<'_>,
+    recovery: crate::native::UiNativeRecoveryRequirement,
     defer_initial_observation: bool,
-) -> Result<UiNativeColdReconstruction, UiNativePresentationFailure> {
+    lifecycle: &mut crate::native::lifecycle::UiNativeLifecycleOrchestrator,
+) -> Result<UiNativeColdReconstruction, UiNativeReconstructionFailure> {
     let UiMountedPresentationWorkView::Reconstruction(work) = view.presentation_work() else {
-        return Err(malformed());
+        return Err(before_effects(malformed_denial(), recovery, None));
     };
     let glyph_runs = view
         .text_raster_work()
         .map(|work| work.glyph_runs())
         .unwrap_or_default();
-    let retained =
-        UiNativeRetainedDrawList::reconstruction(work, glyph_runs).map_err(|_| malformed())?;
-    let plan = build_plan(graphics, atlas, &retained)?;
-    let owners = reserve_presentation_owners(
+    let retained = match UiNativeRetainedDrawList::reconstruction(work, glyph_runs) {
+        Ok(retained) => retained,
+        Err(_) => return Err(before_effects(malformed_denial(), recovery, None)),
+    };
+    let plan = match build_plan(graphics, atlas, &retained) {
+        Ok(plan) => plan,
+        Err(failure) => {
+            let (denial, successor_cause) = presentation_before_effects(failure);
+            return Err(before_effects(denial, recovery, successor_cause));
+        }
+    };
+    let owners = match reserve_presentation_owners(
         resources,
         physical_signal,
         crate::native::physical_work_signal::UiNativePhysicalPresentationBasis::from_view(view),
-    )?;
+    ) {
+        Ok(owners) => owners,
+        Err(failure) => {
+            let (denial, successor_cause) = presentation_before_effects(failure);
+            return Err(before_effects(denial, recovery, successor_cause));
+        }
+    };
     let observation = match settle_port_result(
         resources,
         physical_signal,
         owners,
-        Port::present(graphics, atlas_gpu, plan, defer_initial_observation),
+        Port::present(
+            graphics,
+            atlas_gpu,
+            plan,
+            defer_initial_observation,
+            lifecycle,
+        ),
     ) {
         Ok(observation) => observation,
         Err(UiNativePresentationFailure::Pending(pending)) => {
-            return Err(UiNativePresentationFailure::Pending(
-                pending.with_settlement(super::UiNativePendingSurfaceSettlement::Reconstruction(
+            return Err(UiNativeReconstructionFailure::Pending(
+                pending.with_settlement(super::UiNativePendingSurfaceSettlement::Reconstruction {
                     retained,
-                )),
+                    recovery,
+                }),
             ));
         }
-        Err(failure) => return Err(failure),
+        Err(failure) => {
+            let (denial, successor_cause) = presentation_before_effects(failure);
+            return Err(before_effects(denial, recovery, successor_cause));
+        }
     };
     let (pixels, cost, port_crossings) = observation.into_parts();
     Ok(UiNativeColdReconstruction {
@@ -69,17 +113,19 @@ pub(crate) fn present_cold_reconstruction<Port: UiNativePresentationPort>(
         retained,
         pixels,
         port_crossings,
+        recovery,
     })
 }
 
 use super::{
-    raster::raster_rect, reserve_presentation_owners, settle_port_result, UiNativeGraphics,
-    UiNativePresentationFailure, UiNativePresentationPort, UiNativePresentationPortPlan,
-    UiNativeRasterOperation, UiNativeResourceRegistry, UiNativeRetainedDrawList,
+    raster::raster_rect, reserve_presentation_owners, settle_port_result,
+    UiNativePresentationAccess, UiNativePresentationFailure, UiNativePresentationPort,
+    UiNativePresentationPortPlan, UiNativeRasterOperation, UiNativeResourceRegistry,
+    UiNativeRetainedDrawList,
 };
 
 fn build_plan(
-    graphics: &UiNativeGraphics,
+    graphics: &UiNativePresentationAccess,
     atlas: &crate::native::text_atlas::UiNativeTextAtlas,
     retained: &UiNativeRetainedDrawList,
 ) -> Result<UiNativePresentationPortPlan, UiNativePresentationFailure> {
@@ -118,6 +164,13 @@ fn build_plan(
             }
         }
     }
+    operations.extend(
+        retained
+            .identity_overlay_operations(
+                super::raster::UiNativeRasterBasis::from_presentation_access(graphics),
+            )
+            .map_err(UiNativePresentationFailure::BeforeEffects)?,
+    );
     let rows = u64::try_from(operations.len()).map_err(|_| malformed())?;
     let pixels = u64::from(graphics.extent()[0]) * u64::from(graphics.extent()[1]);
     Ok(UiNativePresentationPortPlan {
@@ -148,5 +201,36 @@ fn build_plan(
 }
 
 fn malformed() -> UiNativePresentationFailure {
-    UiNativePresentationFailure::BeforeEffects(UiHostSurfacePresentationDenial::MalformedProjection)
+    UiNativePresentationFailure::BeforeEffects(malformed_denial())
+}
+
+const fn malformed_denial() -> UiHostSurfacePresentationDenial {
+    UiHostSurfacePresentationDenial::MalformedProjection
+}
+
+fn presentation_before_effects(
+    failure: UiNativePresentationFailure,
+) -> (
+    UiHostSurfacePresentationDenial,
+    Option<crate::native::UiNativeRecoveryCause>,
+) {
+    match failure {
+        UiNativePresentationFailure::BeforeEffects(denial) => (denial, None),
+        UiNativePresentationFailure::RecoveryRequired { denial, cause } => (denial, Some(cause)),
+        UiNativePresentationFailure::Pending(_) => {
+            unreachable!("pending reconstruction is handled with its recovery authority")
+        }
+    }
+}
+
+const fn before_effects(
+    denial: UiHostSurfacePresentationDenial,
+    recovery: crate::native::UiNativeRecoveryRequirement,
+    successor_cause: Option<crate::native::UiNativeRecoveryCause>,
+) -> UiNativeReconstructionFailure {
+    UiNativeReconstructionFailure::BeforeEffects {
+        denial,
+        recovery,
+        successor_cause,
+    }
 }

@@ -13,15 +13,12 @@ mod resource_evidence;
 #[ignore = "requires the serialized interactive Windows 11 DX12 desktop"]
 fn windows_native_boundary_world_presents_quiesces_and_closes_without_residue() {
     let platform = WindowsNativePlatform::certified().expect("Windows observation is qualified");
-    let os_version = platform
-        .observed_os_version()
-        .expect("the executable environment reports a qualified Windows build");
     let mut launch = CargoBuiltPlatformPulse::exact()
         .and_then(CargoBuiltPlatformPulse::launch_native_phase2)
         .expect("the one product binary launches under the native desktop lease");
     let process_id = launch.process.id();
     let outcome = catch_unwind(AssertUnwindSafe(|| {
-        execute_boundary_world(&platform, &os_version, &mut launch, process_id)
+        execute_boundary_world(&platform, &mut launch, process_id)
     }));
     if let Err(failure) = outcome {
         finalize_failed_world(&platform, &mut launch.process, process_id);
@@ -31,7 +28,6 @@ fn windows_native_boundary_world_presents_quiesces_and_closes_without_residue() 
 
 fn execute_boundary_world(
     platform: &WindowsNativePlatform,
-    os_version: &str,
     launch: &mut crate::product_process::NativePhase2ProcessLaunch,
     process_id: u32,
 ) {
@@ -39,7 +35,7 @@ fn execute_boundary_world(
     let mut client = platform
         .bind_process_client_area(process_id, deadline)
         .expect("one process-owned native client area appears");
-    let capture = await_exact_pixels(&platform, &mut client, &mut launch.process, deadline);
+    let capture = await_exact_pixels(platform, &mut client, &mut launch.process, deadline);
     assert_eq!(capture.process_id(), process_id);
     assert_eq!(capture.capture_count(), 1);
     assert_exact_control_points(&capture);
@@ -67,10 +63,6 @@ fn execute_boundary_world(
     let evidence: serde_json::Value =
         serde_json::from_str(stdout.trim()).expect("versioned native evidence is JSON");
     assert_exact_native_evidence(&evidence, &capture);
-    println!(
-        "WORTH_UI_LEDGER_OBSERVATION={}",
-        ledger_observation(&evidence, &capture, &os_version)
-    );
 }
 
 fn finalize_failed_world(
@@ -81,7 +73,7 @@ fn finalize_failed_world(
     let teardown = process.terminate_after_failure(Instant::now() + Duration::from_secs(5));
     let window_release = platform.verify_process_window_released(process_id);
     eprintln!(
-        "WORTH_UI_LEDGER_FAILURE={}",
+        "native world failure: {}",
         serde_json::json!({
             "schema": "worth-ui-native-world-failure-v1",
             "process_id": process_id,
@@ -97,49 +89,6 @@ fn finalize_failed_world(
         window_release.is_ok(),
         "failed world retained a process window: {window_release:?}"
     );
-}
-
-fn ledger_observation(
-    evidence: &serde_json::Value,
-    capture: &crate::external_observation::NativeClientPixelCapture,
-    os_version: &str,
-) -> serde_json::Value {
-    let points = [
-        (capture.width() / 4, capture.height() / 4),
-        (capture.width() / 2, capture.height() / 2),
-        (capture.width() * 3 / 4, capture.height() * 3 / 4),
-    ];
-    serde_json::json!({
-        "schema": "worth-ui-native-boundary-observation-v1",
-        "os_version": os_version,
-        "architecture": std::env::consts::ARCH,
-        "product_processes": 1,
-        "presented_source": evidence["presentation"]["presented_source"],
-        "retained_center": evidence["presentation"]["retained_center"],
-        "retained_baseline": evidence["presentation"]["retained_baseline"],
-        "scale_factor_milli": evidence["presentation"]["scale_factor_milli"],
-        "logical_bounds_milli": evidence["presentation"]["logical_bounds_milli"],
-        "frame": evidence["presentation"]["frame"],
-        "surface": evidence["presentation"]["surface"],
-        "binding": evidence["presentation"]["binding"],
-        "mounted_instance": evidence["presentation"]["mounted_instance"],
-        "node_receipt": evidence["presentation"]["node_receipt"],
-        "presentation_attempt": evidence["presentation"]["presentation_attempt"],
-        "runtime_attribution": evidence["runtime_attribution"],
-        "client_physical_size": [capture.width(), capture.height()],
-        "client_control_points": points.map(|(x, y)| serde_json::json!({
-            "x": x,
-            "y": y,
-            "rgba": pixel(capture, x, y),
-        })),
-        "quiescent_control_points_equal": true,
-        "normal_os_close_requests": 1,
-        "terminal_zero": evidence["terminal_zero"],
-        "peak": evidence["peak"],
-        "terminal_census": evidence["terminal_census"],
-        "counters": evidence["counters"],
-        "graphics": evidence["graphics"],
-    })
 }
 
 fn assert_exact_native_evidence(

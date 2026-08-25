@@ -3,14 +3,9 @@ use super::{validate_and_index, UiSpatialValidationDenial};
 
 #[path = "tests/cost_bounds.rs"]
 mod cost_bounds;
-
-struct SpatialWorld {
-    frame: worth_ui_host_contract::UiMountedFrameIdentity,
-    surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
-    binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
-    instance: worth_ui_host_contract::UiMountedInstanceIdentity,
-    receipt: worth_ui_host_contract::UiMountedNodeReceiptIdentity,
-}
+#[path = "tests/world.rs"]
+mod world;
+use world::*;
 
 #[test]
 fn validation_preserves_disjoint_typed_mechanics_and_half_open_edges() {
@@ -62,6 +57,46 @@ fn validation_preserves_disjoint_typed_mechanics_and_half_open_edges() {
         hit_candidates[0].source_projection_digest(),
         hit.semantic_digest()
     );
+}
+
+#[test]
+fn unsupported_text_paint_is_validated_without_becoming_exact_attribution() {
+    let world = SpatialWorld::new();
+    let supported = paint(&world, bounds(0.0, 0.0, 24.0, 8.0), 1, u8::MAX);
+    let text_bounds = bounds(8.0, 0.0, 8.0, 8.0);
+    let unsupported = crate::mounting::UiMountedUnsupportedPaintBasis::new(
+        world.receipt,
+        text_bounds,
+        text_bounds,
+        2,
+        71,
+    );
+    let basis =
+        crate::mounting::UiMountedVisualRegionBasis::new(Box::new([supported]), Box::new([]))
+            .with_unsupported_paint(Box::new([unsupported]));
+    let observed = [
+        observed_paint(supported, 1),
+        observed(
+            unsupported.node_receipt(),
+            realized_geometry(unsupported.bounds(), unsupported.clip()),
+            realized_ordering(
+                unsupported.semantic_order(),
+                worth_ui_host_contract::UiHostRealizedRegionParticipation::Paint,
+            ),
+        ),
+    ];
+
+    let indexed = validate_and_index(43, &basis, &observed, transform([32, 16]))
+        .expect("unsupported text paint remains an exact validated host observation");
+    let (visible, _, cost) = indexed.into_parts();
+    assert_eq!(visible.len(), 2);
+    assert_eq!(visible.supported_len(), 1);
+    assert_eq!(cost.region_records_examined(), 2);
+    let text_candidates = visible.point_candidates(point(8, 0), 16).into_parts().0;
+    assert_eq!(text_candidates.len(), 2);
+    assert!(text_candidates
+        .iter()
+        .any(|record| record.opacity() == UiVisibleOpacity::Unsupported));
 }
 
 #[test]
@@ -234,156 +269,4 @@ fn assert_first_visible_record(
         record.source_projection_digest(),
         mechanic.semantic_digest()
     );
-}
-
-impl SpatialWorld {
-    fn new() -> Self {
-        let frame = worth_ui_host_contract::UiMountedFrameIdentity::mint_unbound().unwrap();
-        let instance = worth_ui_host_contract::UiMountedInstanceIdentity::mint_unbound().unwrap();
-        let receipt = worth_ui_host_contract::UiMountedNodeReceiptIssuer::mint_for(frame)
-            .unwrap()
-            .receipt_for(instance);
-        Self {
-            frame,
-            surface: worth_ui_host_contract::UiSemanticSurfaceIdentity::mint_unbound().unwrap(),
-            binding: worth_ui_host_contract::UiSurfaceBindingGeneration::mint_unbound().unwrap(),
-            instance,
-            receipt,
-        }
-    }
-}
-
-fn paint(
-    world: &SpatialWorld,
-    bounds: worth_ui_host_contract::UiMountedCanonicalBox,
-    order: u32,
-    alpha: u8,
-) -> worth_ui_host_contract::UiMountedFilledRectMechanic {
-    worth_ui_host_contract::UiMountedFilledRectMechanic::complete_from_runtime_mounting(
-        worth_ui_host_contract::UiMountedFilledRectCompletionInput {
-            frame: world.frame,
-            surface: world.surface,
-            binding: world.binding,
-            mounted_instance: world.instance,
-            node_receipt: world.receipt,
-            allocation_basis: worth_ui_host_contract::UiMountedAllocationBasis::new(
-                1,
-                1,
-                1,
-                worth_ui_host_contract::UiMountedTransformProjection::Identity,
-            ),
-            bounds,
-            color: worth_ui_host_contract::UiMountedRgba8::new(1, 2, 3, alpha),
-            layer_semantic_order: order,
-            clip_bounds: bounds,
-        },
-    )
-    .unwrap()
-}
-
-fn hit_test(
-    world: &SpatialWorld,
-    bounds: worth_ui_host_contract::UiMountedCanonicalBox,
-    order: u32,
-) -> worth_ui_host_contract::UiMountedHitTestMechanic {
-    worth_ui_host_contract::UiMountedHitTestMechanic::complete_from_runtime_mounting(
-        worth_ui_host_contract::UiMountedHitTestCompletionInput {
-            frame: world.frame,
-            surface: world.surface,
-            binding: world.binding,
-            mounted_instance: world.instance,
-            node_receipt: world.receipt,
-            bounds,
-            clip_bounds: bounds,
-            order: worth_ui_host_contract::UiMountedHitTestOrder::from_runtime_plan(order),
-        },
-    )
-    .unwrap()
-}
-
-fn observed_paint(
-    row: worth_ui_host_contract::UiMountedFilledRectMechanic,
-    order: u32,
-) -> worth_ui_host_contract::UiHostRealizedRegion {
-    observed(
-        row.node_receipt(),
-        realized_geometry(row.bounds(), row.clip_bounds()),
-        realized_ordering(
-            order,
-            worth_ui_host_contract::UiHostRealizedRegionParticipation::Paint,
-        ),
-    )
-}
-
-fn observed_hit(
-    row: worth_ui_host_contract::UiMountedHitTestMechanic,
-    order: u32,
-) -> worth_ui_host_contract::UiHostRealizedRegion {
-    observed(
-        row.node_receipt(),
-        realized_geometry(row.bounds(), row.clip_bounds()),
-        realized_ordering(
-            order,
-            worth_ui_host_contract::UiHostRealizedRegionParticipation::HitTest,
-        ),
-    )
-}
-
-fn observed(
-    receipt: worth_ui_host_contract::UiMountedNodeReceiptIdentity,
-    geometry: worth_ui_host_contract::UiHostRealizedGeometry,
-    ordering: worth_ui_host_contract::UiHostRealizedOrdering,
-) -> worth_ui_host_contract::UiHostRealizedRegion {
-    worth_ui_host_contract::UiHostRealizedRegion::observed_by_host(receipt, geometry, ordering)
-}
-
-fn realized_geometry(
-    bounds: worth_ui_host_contract::UiMountedCanonicalBox,
-    clip: worth_ui_host_contract::UiMountedCanonicalBox,
-) -> worth_ui_host_contract::UiHostRealizedGeometry {
-    worth_ui_host_contract::UiHostRealizedGeometry::observed_by_host(bounds, clip)
-}
-
-fn realized_ordering(
-    order: u32,
-    participation: worth_ui_host_contract::UiHostRealizedRegionParticipation,
-) -> worth_ui_host_contract::UiHostRealizedOrdering {
-    worth_ui_host_contract::UiHostRealizedOrdering::observed_by_host(order, participation)
-}
-
-fn bounds(
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
-) -> worth_ui_host_contract::UiMountedCanonicalBox {
-    worth_ui_host_contract::UiMountedCanonicalBox::canonicalize(
-        worth_ui_host_contract::UiMountedCanonicalBoxInput {
-            x,
-            y,
-            width,
-            height,
-            coordinate_space: worth_ui_host_contract::UiMountedCoordinateSpace::Viewport,
-        },
-    )
-    .unwrap()
-}
-
-fn transform(dimensions: [u32; 2]) -> worth_ui_host_contract::UiHostCoordinateTransform {
-    worth_ui_host_contract::UiHostCoordinateTransform::observed_by_host(
-        worth_ui_host_contract::UiHostClientAreaObservation::observed_by_host([0, 0], dimensions),
-        worth_ui_host_contract::UiHostViewportTransformObservation::observed_by_host(
-            [dimensions[0] as f32, dimensions[1] as f32],
-            [1.0, 1.0],
-            [0.0, 0.0],
-        ),
-        worth_ui_host_contract::UiHostCoordinatePosture::observed_by_host(
-            worth_ui_host_contract::UiHostCoordinateOrientation::TopLeftOrigin,
-            worth_ui_host_contract::UiHostCoordinateRounding::FloorEdges,
-        ),
-    )
-}
-
-fn point(x: i64, y: i64) -> worth_ui_inspection::UiClientPhysicalPixel {
-    worth_ui_inspection::UiClientPhysicalPixel::new(x, y).unwrap()
 }

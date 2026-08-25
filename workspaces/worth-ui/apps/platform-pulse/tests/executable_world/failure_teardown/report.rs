@@ -16,7 +16,8 @@ use crate::installation::{
 use crate::native_platform::NativePlatformFailure;
 use crate::product_process::{
     EmergencyPlatformPulseExit, EmergencyPlatformPulseExitFailure, PlatformPulseProcessExitFailure,
-    PlatformPulseProcessLaunchFailure, WatchedPulseObservationFailure,
+    PlatformPulseProcessLaunchFailure, PlatformPulseQuiescenceFailure,
+    WatchedPulseObservationFailure,
 };
 use crate::source_delta::PulseSourceActionFailure;
 
@@ -45,6 +46,7 @@ pub(crate) enum PulseExecutableWorldFailure {
     IntentJourney(crate::product_process::PlatformPulseIntentJourneyFailure),
     ProcessExit(PlatformPulseProcessExitFailure),
     Cleanup(ExecutableLifecycleCleanupFailure),
+    Quiescence(PlatformPulseQuiescenceFailure),
 }
 
 #[derive(Debug)]
@@ -277,6 +279,7 @@ impl fmt::Display for PulseExecutableWorldFailure {
             Self::IntentJourney(failure) => write!(formatter, "intent journey: {failure}"),
             Self::ProcessExit(failure) => write!(formatter, "process exit: {failure}"),
             Self::Cleanup(failure) => write!(formatter, "lifecycle cleanup: {failure}"),
+            Self::Quiescence(failure) => write!(formatter, "product quiescence: {failure}"),
         }
     }
 }

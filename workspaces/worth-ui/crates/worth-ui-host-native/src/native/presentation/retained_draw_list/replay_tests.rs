@@ -103,7 +103,4 @@ fn removing_the_top_command_replays_the_vacated_underlying_command() {
     assert_eq!(plan.regions.len(), 1);
     assert_eq!(plan.regions[0].replay.as_ref(), [lower_identity]);
     assert_eq!(plan.counters.replayed_commands, 1);
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-DAMAGE-REPLAY-01\":\"omitted-vacated-replay\"}}"
-    );
 }

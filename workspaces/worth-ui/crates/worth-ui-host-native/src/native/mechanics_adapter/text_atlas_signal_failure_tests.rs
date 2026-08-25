@@ -322,7 +322,6 @@ fn lawful_signal_transaction_commits_and_releases_one_live_layout_pin() {
     assert_eq!(state.text_atlas.census().pins, 0);
     assert_eq!(upload.calls, 1, "pin-only work performs no upload");
     assert!(state.close().is_zero());
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P5-ATLAS-01\":1}}");
 }
 
 #[test]

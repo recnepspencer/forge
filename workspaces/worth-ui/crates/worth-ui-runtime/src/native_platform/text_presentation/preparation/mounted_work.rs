@@ -39,24 +39,27 @@ fn delta_text_work(changes: &[UiMountedPaintCommandChange]) -> MountedSemanticTe
             UiMountedPaintCommandChange::Insert(command) => {
                 if let Some(mechanic) = semantic_text_mechanic(command) {
                     mechanics.push((command.identity(), mechanic));
-                } else {
-                    removals.push(command.identity());
                 }
             }
             UiMountedPaintCommandChange::Replace {
                 predecessor,
                 successor,
             } => {
-                if *predecessor != successor.identity() {
+                if *predecessor != successor.identity()
+                    && predecessor.semantic_text_identity_parts().is_some()
+                {
                     removals.push(*predecessor);
                 }
                 if let Some(mechanic) = semantic_text_mechanic(successor) {
                     mechanics.push((successor.identity(), mechanic));
-                } else {
-                    removals.push(successor.identity());
                 }
             }
-            UiMountedPaintCommandChange::Remove(identity) => removals.push(*identity),
+            UiMountedPaintCommandChange::Remove(identity)
+                if identity.semantic_text_identity_parts().is_some() =>
+            {
+                removals.push(*identity);
+            }
+            UiMountedPaintCommandChange::Remove(_) => {}
         }
     }
     MountedSemanticTextWork {
@@ -94,5 +97,72 @@ pub(super) fn logical_damage(work: UiMountedPresentationWorkView<'_>) -> &[UiMou
         UiMountedPresentationWorkView::Delta(delta) => delta.damage(),
         UiMountedPresentationWorkView::Reconstruction(reconstruction) => reconstruction.damage(),
         UiMountedPresentationWorkView::Unchanged(_) => &[],
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use worth_ui_host_contract::{
+        UiMountedAllocationBasis, UiMountedCanonicalBox, UiMountedCanonicalBoxInput,
+        UiMountedCoordinateSpace, UiMountedFilledRectCompletionInput, UiMountedFilledRectMechanic,
+        UiMountedFrameIdentity, UiMountedInstanceIdentity, UiMountedNodeReceiptIssuer,
+        UiMountedRgba8, UiMountedTransformProjection, UiSemanticSurfaceIdentity,
+        UiSurfaceBindingGeneration,
+    };
+
+    #[test]
+    fn non_text_delta_changes_do_not_forge_semantic_text_removals() {
+        let first = filled_rect_command(0.0);
+        let second = filled_rect_command(40.0);
+        let changes = [
+            UiMountedPaintCommandChange::Insert(first.clone()),
+            UiMountedPaintCommandChange::replacement(first.identity(), second.clone()),
+            UiMountedPaintCommandChange::Remove(second.identity()),
+        ];
+
+        let work = delta_text_work(&changes);
+
+        assert!(work.mechanics.is_empty());
+        assert!(work.removals.is_empty());
+    }
+
+    fn filled_rect_command(x: f32) -> UiMountedPaintCommand {
+        let frame = UiMountedFrameIdentity::mint_unbound().unwrap();
+        let instance = UiMountedInstanceIdentity::mint_unbound().unwrap();
+        let bounds = UiMountedCanonicalBox::canonicalize(UiMountedCanonicalBoxInput {
+            x,
+            y: 0.0,
+            width: 32.0,
+            height: 24.0,
+            coordinate_space: UiMountedCoordinateSpace::HostSurface,
+        })
+        .unwrap();
+        let mechanic = UiMountedFilledRectMechanic::complete_from_runtime_mounting(
+            UiMountedFilledRectCompletionInput {
+                frame,
+                surface: UiSemanticSurfaceIdentity::mint_unbound().unwrap(),
+                binding: UiSurfaceBindingGeneration::mint_unbound().unwrap(),
+                mounted_instance: instance,
+                node_receipt: UiMountedNodeReceiptIssuer::mint_for(frame)
+                    .unwrap()
+                    .receipt_for(instance),
+                allocation_basis: UiMountedAllocationBasis::new(
+                    1,
+                    2,
+                    3,
+                    UiMountedTransformProjection::Identity,
+                ),
+                bounds,
+                color: UiMountedRgba8::new(47, 129, 247, 255),
+                layer_semantic_order: 0,
+                clip_bounds: bounds,
+            },
+        )
+        .unwrap();
+        UiMountedPaintCommand::FilledRect {
+            identity: UiMountedPaintCommandIdentity::filled_rect(&mechanic),
+            mechanic,
+        }
     }
 }

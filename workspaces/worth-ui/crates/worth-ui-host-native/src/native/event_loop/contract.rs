@@ -4,12 +4,19 @@ use super::super::{
 };
 use super::UiNativeEventLoopCleanup;
 
+mod application_readiness;
 mod client_derived_state;
 mod client_resources;
 mod client_shutdown;
+mod observation_readiness;
 mod presentation_attribution;
 mod readiness_grant;
+mod shutdown_overlap;
 mod stop_report;
+pub use application_readiness::{
+    UiNativeApplicationReadinessGrant, UiNativeApplicationReadinessOwnerCount,
+    UiNativeApplicationReadinessOwnerCountDenial,
+};
 pub use client_derived_state::{
     UiNativeClientDerivedStateLossClass, UiNativeClientDerivedStateReconstructionObservation,
 };
@@ -22,11 +29,36 @@ pub use client_shutdown::{
     UiNativeClientPresentationSemanticFrontierObservation,
     UiNativeClientPresentationSemanticSubscriberObservation,
     UiNativeClientPresentationTransitionKind, UiNativeClientPresentationTransitionObservation,
+    UiNativeClientShutdownAttemptDisposition, UiNativeClientShutdownAttemptObservation,
     UiNativeClientShutdownObservation, UiNativeClientTextPresentationWorkObservation,
+    UiNativeClientVisualCoordinateOrientation, UiNativeClientVisualCoordinateRounding,
+    UiNativeClientVisualPixelColorSpace, UiNativeClientVisualSnapshotInput,
+    UiNativeClientVisualSnapshotObservation, UiNativeClientVisualSnapshotRelation,
 };
+pub use observation_readiness::{UiNativeInputReachability, UiNativeObservationReadinessGrant};
 pub use presentation_attribution::UiNativeClientPresentationAttribution;
+pub use shutdown_overlap::UiNativeEventLoopShutdownOverlapObservation;
 
 pub trait UiNativeEventLoopClient {
+    fn application_readiness_owner_count(&self) -> UiNativeApplicationReadinessOwnerCount {
+        UiNativeApplicationReadinessOwnerCount::none()
+    }
+    fn install_application_readiness(
+        &mut self,
+        ports: Box<[crate::UiNativeApplicationReadinessPort]>,
+    ) -> Result<(), ()> {
+        if ports.is_empty() {
+            Ok(())
+        } else {
+            Err(())
+        }
+    }
+    fn application_readiness_ready(
+        &mut self,
+        _grant: UiNativeApplicationReadinessGrant,
+    ) -> Result<UiNativeEventLoopDirective, ()> {
+        Err(())
+    }
     fn native_surface_ready(
         &mut self,
         grant: UiNativeReadinessGrant,
@@ -57,21 +89,6 @@ pub struct UiNativePhysicalProgressGrant {
     class: UiNativePhysicalProgressClass,
     presentation: Option<super::UiNativePhysicalPresentationCorrelation>,
     duplicate_presentation_observed: bool,
-}
-
-#[must_use]
-pub struct UiNativeObservationReadinessGrant {
-    generation: u64,
-}
-
-impl UiNativeObservationReadinessGrant {
-    pub(super) const fn issued(generation: u64) -> Self {
-        Self { generation }
-    }
-
-    pub const fn generation(&self) -> u64 {
-        self.generation
-    }
 }
 
 impl UiNativePhysicalProgressGrant {
@@ -135,7 +152,6 @@ impl UiNativeEventLoopClientClose {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiNativeEventLoopDirective {
     Continue,
-    ExternalObservationReady,
     WaitUntil(std::time::Instant),
     Close,
 }
@@ -143,6 +159,7 @@ pub enum UiNativeEventLoopDirective {
 #[must_use]
 pub struct UiNativeReadinessGrant {
     generation: u64,
+    surface_basis_generation: u64,
     scale_factor_milli: u32,
     client_physical_size: [u32; 2],
 }
@@ -153,6 +170,7 @@ pub enum UiNativeEventLoopRunDenial {
     WindowCreation,
     GraphicsPreparation,
     ApplicationDriver,
+    PresentationDeadlineExpired,
     EventLoopRun,
     IncompleteCleanup,
 }
@@ -167,6 +185,7 @@ pub struct UiNativeEventLoopStopReport {
     pub(super) cleanup: Option<UiNativeEventLoopCleanup>,
     pub(super) peak_text_pins: Box<[crate::native::text_atlas::UiNativeTextPinObservation]>,
     pub(super) input_observations: UiNativeInputObservationReport,
+    pub(super) shutdown_overlap: UiNativeEventLoopShutdownOverlapObservation,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -202,6 +221,7 @@ pub struct UiNativeEventLoopRunReport {
     pub(super) physical_signal_lifecycle: crate::native::UiNativePhysicalSignalLifecycleObservation,
     pub(super) client_shutdown: Option<UiNativeClientShutdownObservation>,
     pub(super) input_observations: UiNativeInputObservationReport,
+    pub(super) shutdown_overlap: UiNativeEventLoopShutdownOverlapObservation,
 }
 
 impl UiNativeEventLoopRunReport {
@@ -263,6 +283,10 @@ impl UiNativeEventLoopRunReport {
 
     pub fn input_observations(&self) -> &UiNativeInputObservationReport {
         &self.input_observations
+    }
+
+    pub const fn shutdown_overlap(&self) -> UiNativeEventLoopShutdownOverlapObservation {
+        self.shutdown_overlap
     }
 
     pub fn retained_frames(&self) -> &[UiNativeRetainedFrameObservation] {

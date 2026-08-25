@@ -26,7 +26,7 @@ fn qualified_asset_license_and_manifests_have_exact_digests() {
     );
     assert_eq!(
         sha256(WORTH_UI_NATIVE_PROFILE_MANIFEST.as_bytes()),
-        "a0dfb071145ee2531be8ca2fb52489185b88e13412bdb5b0231d424e6d5cdd9d"
+        "522ac8b797b085acba1e5cb03644bd8d6bed0d150c037ee2ab2f99eb7482778f"
     );
 }
 
@@ -132,8 +132,11 @@ fn every_qualified_semantic_and_dependency_pin_matches_the_closed_record() {
     assert_eq!(integer(&platform, "windows"), 1);
     assert_eq!(integer(&platform, "surfaces"), 1);
     assert_eq!(integer(&platform, "sample_count"), 1);
+    assert_eq!(
+        integer(&platform, "wheel_line_logical_subpixels"),
+        crate::native_profile::QUALIFIED_WHEEL_LINE_LOGICAL_SUBPIXELS,
+    );
     qualified_dependencies::assert_qualified_dependencies();
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P1-PROFILE-01\":2}}");
 }
 
 const TEXT_STRING_FIELDS: &[(&str, &str)] = &[
@@ -300,6 +303,7 @@ const NATIVE_INTEGER_FIELDS: &[(&str, i64)] = &[
     ("readback_slots", 4),
     ("readback_bytes", 16_777_216),
     ("gpu_wait_deadline_ms", 5_000),
+    ("wheel_line_logical_subpixels", 40_000),
 ];
 
 const NATIVE_BOOL_FIELDS: &[(&str, bool)] = &[("required_surface_compatibility", true)];

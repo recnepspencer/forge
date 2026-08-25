@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use super::{
     UiHeadlessFilledRectMechanic, UiHeadlessMountedFrameTranscript, UiHeadlessSemanticTextMechanic,
     UiHeadlessTranscriptSuccessorIdentity,
@@ -47,46 +49,46 @@ fn apply_node_changes(
     successor: &mut UiHeadlessMountedFrameTranscript,
     changes: &[worth_ui_host_contract::UiMountedPresentationNodeChange],
 ) -> Result<(), worth_ui_host_contract::UiHostSurfacePresentationDenial> {
+    let mut affected = HashSet::with_capacity(changes.len());
+    let mut upserts = Vec::new();
     for change in changes {
         let instance = change.mounted_instance();
+        if !affected.insert(instance) {
+            return Err(malformed());
+        }
         let current = successor
             .nodes
             .iter()
             .position(|node| node.mounted_instance() == instance);
         match change {
             worth_ui_host_contract::UiMountedPresentationNodeChange::Remove(_) => {
-                successor.nodes = remove_node(&successor.nodes, current.ok_or_else(malformed)?);
+                current.ok_or_else(malformed)?;
             }
             worth_ui_host_contract::UiMountedPresentationNodeChange::Upsert(state) => {
-                let node = translate_node_state(successor, *state)?;
-                let mut nodes = successor.nodes.to_vec();
-                if let Some(index) = current {
-                    nodes.remove(index);
-                }
-                if nodes
-                    .iter()
-                    .any(|existing| existing.authored_position() == node.authored_position())
-                {
-                    return Err(malformed());
-                }
-                let insertion = nodes.partition_point(|existing| {
-                    existing.authored_position() < node.authored_position()
-                });
-                nodes.insert(insertion, node);
-                successor.nodes = nodes.into_boxed_slice();
+                upserts.push(translate_node_state(successor, *state)?);
             }
         }
     }
+    let mut nodes = successor
+        .nodes
+        .iter()
+        .filter(|node| !affected.contains(&node.mounted_instance()))
+        .cloned()
+        .collect::<Vec<_>>();
+    let mut positions = nodes
+        .iter()
+        .map(|node| node.authored_position())
+        .collect::<HashSet<_>>();
+    for node in upserts {
+        if !positions.insert(node.authored_position()) {
+            return Err(malformed());
+        }
+        let insertion = nodes
+            .partition_point(|existing| existing.authored_position() < node.authored_position());
+        nodes.insert(insertion, node);
+    }
+    successor.nodes = nodes.into_boxed_slice();
     refresh_node_effects(successor)
-}
-
-fn remove_node(
-    nodes: &[super::UiHeadlessNodeMechanic],
-    index: usize,
-) -> Box<[super::UiHeadlessNodeMechanic]> {
-    let mut nodes = nodes.to_vec();
-    nodes.remove(index);
-    nodes.into_boxed_slice()
 }
 
 fn translate_node_state(

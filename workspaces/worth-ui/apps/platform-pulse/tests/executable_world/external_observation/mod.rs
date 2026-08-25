@@ -17,7 +17,8 @@ pub(crate) use lifecycle_teardown::{
 #[cfg(target_os = "windows")]
 pub(crate) use native_client_area::{
     NativeClientAreaBounds, NativeClientPixelCapture, NativeClientPixelPoint, NativeWindowIdentity,
-    NormalNativeCloseRequestObservation, ProcessBoundNativeClientAreaObservation,
+    NativeWindowVisibilityTransitionObservation, NormalNativeCloseRequestObservation,
+    ProcessBoundNativeClientAreaObservation,
 };
 #[cfg(target_os = "windows")]
 pub(crate) use native_input_delivery::{NativeInputDeliveryObservation, NativeInputProbeKind};

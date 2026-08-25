@@ -15,8 +15,7 @@ use worth_ui_runtime::facade::mounted::{
 use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
 use super::super::filesystem_mounted_world::{
-    establish_allocation, launch_clipped_world, launch_native_world, launch_world, prepare_frame,
-    HitOrderProfile,
+    establish_allocation, launch_clipped_world, launch_world, prepare_frame,
 };
 use super::super::mounted_application_lifecycle::published_mounted_world::presented_epoch;
 
@@ -26,42 +25,22 @@ pub(super) struct InteractionWorld {
     pub(super) presentation: UiHostObservationPresentationBasis,
     pub(super) hit_rows: Box<[UiMountedHitTestMechanic]>,
     next_sequence: u64,
-    native_host: Option<worth_ui_host_egui::WorthUiHostEgui>,
 }
-
-mod native_input;
 
 impl InteractionWorld {
     pub(super) fn canonical() -> Self {
-        Self::launch(launch_world(HitOrderProfile::Canonical), None)
+        Self::launch(launch_world())
     }
 
     pub(super) fn clipped() -> Self {
-        Self::launch(launch_clipped_world(), None)
-    }
-
-    pub(super) fn native() -> Self {
-        let context = egui::Context::default();
-        let _ = context.run_ui(egui::RawInput::default(), |_| {});
-        let host = worth_ui_host_egui::WorthUiHostEgui::new(context);
-        Self::launch(launch_native_world(host.clone()), Some(host))
+        Self::launch(launch_clipped_world())
     }
 
     pub(super) fn from_session(session: WorthUiActiveApplicationSession) -> Self {
-        Self::launch(session, None)
+        Self::launch(session)
     }
 
-    pub(super) fn from_native_session(
-        session: WorthUiActiveApplicationSession,
-        host: worth_ui_host_egui::WorthUiHostEgui,
-    ) -> Self {
-        Self::launch(session, Some(host))
-    }
-
-    fn launch(
-        mut session: WorthUiActiveApplicationSession,
-        native_host: Option<worth_ui_host_egui::WorthUiHostEgui>,
-    ) -> Self {
+    fn launch(mut session: WorthUiActiveApplicationSession) -> Self {
         establish_allocation(&mut session, 3);
         let (presentation, binding, hit_rows) = publish(&mut session);
         Self {
@@ -70,7 +49,6 @@ impl InteractionWorld {
             presentation,
             hit_rows,
             next_sequence: 1,
-            native_host,
         }
     }
 
@@ -168,7 +146,7 @@ impl InteractionWorld {
         let sequence = UiHostObservationSequence::new(sequence);
         let report = UiHostObservationReport::new(
             sequence,
-            UiHostObservationTimeBasis::HostMonotonicTick(tick),
+            UiHostObservationTimeBasis::HostMonotonicMillis(tick),
             payload,
         );
         self.admit_range(
@@ -220,7 +198,7 @@ impl InteractionWorld {
         self.next_sequence += 1;
         let report = UiHostObservationReport::new(
             sequence,
-            UiHostObservationTimeBasis::HostMonotonicTick(sequence.value()),
+            UiHostObservationTimeBasis::HostMonotonicMillis(sequence.value()),
             UiHostObservationPayload::PointerButton {
                 pointer: UiHostPointerIdentity::new(pointer),
                 capture_epoch: UiHostPointerCaptureEpoch::new(1),
@@ -252,7 +230,7 @@ impl InteractionWorld {
                 self.next_sequence += 1;
                 UiHostObservationReport::new(
                     sequence,
-                    UiHostObservationTimeBasis::HostMonotonicTick(sequence.value()),
+                    UiHostObservationTimeBasis::HostMonotonicMillis(sequence.value()),
                     payload,
                 )
             })

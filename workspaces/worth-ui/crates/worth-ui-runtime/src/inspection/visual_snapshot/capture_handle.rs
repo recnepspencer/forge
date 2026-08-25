@@ -34,11 +34,13 @@ pub(crate) enum UiPendingVisualCaptureRoute<Target, Policy: UiVisualArtifactPoli
     DerivedRegion(UiPendingDerivedRegionCapture<Target, Policy>),
 }
 
+#[must_use = "capture polling returns a successor handle or terminal outcome that must be handled"]
 pub enum UiVisualCapturePoll<Target, ArtifactPolicy: UiVisualArtifactPolicy> {
     Pending(UiPendingVisualCapture<Target, ArtifactPolicy>),
     Completed(UiVisualSnapshotOutcome<ArtifactPolicy::CapturedPosture>),
 }
 
+#[must_use = "visual snapshot outcomes must be handled"]
 pub enum UiVisualSnapshotOutcome<ArtifactPosture: UiVisualArtifactPolicy> {
     Captured(super::UiVisualSnapshotReceipt<ArtifactPosture>),
     Superseded(worth_ui_inspection::UiVisualSnapshotSuperseded),

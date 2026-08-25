@@ -97,10 +97,12 @@ fn admission_and_adapter_rejection_preserve_the_complete_predecessor_tuple() {
 
     let replacement = prepared_replacement(&workspace, &mut session);
     host.push_rejected();
-    let retry = match replacement.present(UiPresentationDeadline::at_tick(20), 2) {
-        WorthUiMountedApplicationReplacementOutcome::RejectedBeforeEffects(retry) => retry,
+    let rejection = match replacement.present(UiPresentationDeadline::at_tick(20), 2) {
+        WorthUiMountedApplicationReplacementOutcome::RejectedBeforeEffects(rejection) => rejection,
         _ => panic!("adapter rejection must return the exact prepared replacement"),
     };
+    assert_eq!(rejection.rejections().len(), 1);
+    let retry = rejection.into_replacement();
     drop(retry);
     truth.assert_unchanged(&session);
     assert_eq!(session.current_mounted_publication(), Some(&predecessor));

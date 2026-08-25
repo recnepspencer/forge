@@ -87,6 +87,10 @@ impl<'session> UiRebindCompletionHandle<'session> {
         }
     }
 
+    pub(crate) fn detach_for_native(self) -> super::UiDetachedRebindCompletion {
+        super::UiDetachedRebindCompletion::from_state(*self.into_state())
+    }
+
     fn state(&self) -> &UiRebindCompletionState<'session> {
         self.state
             .as_deref()

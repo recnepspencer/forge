@@ -77,9 +77,6 @@ fn real_query_collection_snapshot_and_patch_publish_keyed_semantic_text() {
     let shutdown = session.shutdown();
     assert!(shutdown.rebind().is_empty());
     assert!(shutdown.mounted_presentation().is_empty());
-    println!(
-        "WORTH_UI_LEDGER_COUNTERS={{\"P4-TEXT-CONTENT-LOCALITY-01\":{analyzed_bytes},\"P4-TEXT-COST-01\":0}}"
-    );
 }
 
 fn exercise_membership_shifts(
@@ -377,8 +374,8 @@ pub(crate) fn collection_registration(
 ) -> UiCollectionProjectionRegistration {
     UiCollectionProjectionRegistration::text(
         domain.projection_view(PROJECTION).unwrap(),
-        UiProjectionFieldRequirement::declared("identity.id").unwrap(),
-        [UiProjectionFieldRequirement::declared("status").unwrap()],
+        UiProjectionFieldRequirement::identity_id(),
+        [UiProjectionFieldRequirement::query_text_status()],
         false,
         false,
     )

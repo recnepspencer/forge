@@ -1,10 +1,9 @@
 pub use worth_ui_runtime::facade::application::{
     WorthUiVisibleRange, WorthUiVisibleRangeDenial, WorthUiVisibleRangeDenialReason,
 };
-#[cfg(feature = "legacy-egui-migration")]
-pub use worth_ui_runtime::facade::entry::WorthUiLegacyEguiApplicationTransition;
 pub use worth_ui_runtime::facade::entry::{
-    UiIntentWiringSatisfied, WorthUiApplicationCutoverRetry,
+    UiIntentWiringSatisfied, UiMountedHostMeasurementTransitionDenial,
+    UiMountedHostMeasurementUnexpectedTransition, WorthUiApplicationCutoverRetry,
     WorthUiApplicationPublicationObservation,
 };
 pub use worth_ui_runtime::facade::lifecycle::{
@@ -53,11 +52,17 @@ pub use worth_ui_runtime::facade::{
     WorthUiNativeIntentAttemptPrepared, WorthUiNativeIntentConfirmationRequired,
     WorthUiNativeIntentIngress, WorthUiNativeIntentPosture, WorthUiNativeIntentPostureKind,
     WorthUiNativeIntentPosturePublicationCompletion, WorthUiNativeIntentPosturePublicationOutcome,
-    WorthUiNativeIntentPosturePublicationRecovery, WorthUiNativeIntentPosturePublicationStop,
-    WorthUiNativeIntentStop, WorthUiNativeIntentStopped, WorthUiNativeIntentTerminalPostureOutcome,
-    WorthUiNativeIntentTransition, WorthUiNativeInteractionIngressStop,
-    WorthUiNativeProjectionRebindDenial, WorthUiNativeSourceRebindDenial,
-    WorthUiPendingApplicationCutover, WorthUiPreparedApplicationReplacement,
-    WorthUiPreparedMountedApplicationReplacement, WorthUiReplacementCandidateSummary,
-    WorthUiReplacementPlannedCostEnvelope,
+    WorthUiNativeIntentPosturePublicationRecovery, WorthUiNativeIntentPosturePublicationRetry,
+    WorthUiNativeIntentPosturePublicationStop, WorthUiNativeIntentStop, WorthUiNativeIntentStopped,
+    WorthUiNativeIntentTerminalPostureOutcome, WorthUiNativeIntentTransition,
+    WorthUiNativeInteractionIngressStop, WorthUiNativeManagedIntentConsequencePublicationDenial,
+    WorthUiNativeManagedIntentConsequencePublicationOutcome,
+    WorthUiNativeManagedIntentPosturePublicationDenial,
+    WorthUiNativeManagedIntentPosturePublicationOutcome,
+    WorthUiNativeManagedProjectionRebindOutcome, WorthUiNativeManagedRebindDenial,
+    WorthUiNativeManagedRebindProgress, WorthUiNativeManagedRebindStop,
+    WorthUiNativeManagedSourceRebindOutcome, WorthUiNativeProjectionRebindDenial,
+    WorthUiNativeSourceRebindDenial, WorthUiPendingApplicationCutover,
+    WorthUiPreparedApplicationReplacement, WorthUiPreparedMountedApplicationReplacement,
+    WorthUiReplacementCandidateSummary, WorthUiReplacementPlannedCostEnvelope,
 };

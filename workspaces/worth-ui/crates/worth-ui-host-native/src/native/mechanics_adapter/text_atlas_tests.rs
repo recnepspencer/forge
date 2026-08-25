@@ -392,5 +392,5 @@ mod signal_failure_tests;
 #[path = "text_atlas_retry_correlation_tests.rs"]
 mod retry_correlation_tests;
 
-#[path = "text_atlas_gate_d_evidence.rs"]
-mod gate_d_evidence;
+#[path = "text_atlas_dx12_tests.rs"]
+mod dx12_tests;

@@ -1,11 +1,52 @@
+pub(super) struct UiNativeDriverShutdownEvidence {
+    runtime_derived_state_reconstruction:
+        Option<worth_ui_host_native::UiNativeClientDerivedStateReconstructionObservation>,
+    observation_ingress_counts: [u64; 5],
+    visual_snapshot: Option<worth_ui_host_native::UiNativeClientVisualSnapshotObservation>,
+}
+
+impl UiNativeDriverShutdownEvidence {
+    pub(super) fn captured(
+        runtime_derived_state_reconstruction: Option<
+            worth_ui_host_native::UiNativeClientDerivedStateReconstructionObservation,
+        >,
+        observation_ingress_counts: [u64; 5],
+        visual_snapshot: Option<worth_ui_host_native::UiNativeClientVisualSnapshotObservation>,
+    ) -> Self {
+        Self {
+            runtime_derived_state_reconstruction,
+            observation_ingress_counts,
+            visual_snapshot,
+        }
+    }
+
+    pub(super) fn empty() -> Self {
+        Self::captured(None, [0; 5], None)
+    }
+
+    pub(super) fn finalize(
+        self,
+        query_close: &crate::facade::entry::UiNativeApplicationQueryCloseObservation,
+    ) -> worth_ui_host_native::UiNativeClientShutdownObservation {
+        host_shutdown_observation(query_close)
+            .with_derived_state_reconstruction(self.runtime_derived_state_reconstruction)
+            .with_observation_ingress(
+                worth_ui_host_native::UiNativeClientObservationIngressObservation::reported(
+                    self.observation_ingress_counts,
+                ),
+            )
+            .with_visual_snapshot(self.visual_snapshot)
+    }
+}
+
 pub(super) fn host_shutdown_observation(
     query_close: &crate::facade::entry::UiNativeApplicationQueryCloseObservation,
 ) -> worth_ui_host_native::UiNativeClientShutdownObservation {
     worth_ui_host_native::UiNativeClientShutdownObservation::from_client_with_presentation_evidence(
         query_close.closed_query_resources(),
-        query_close.complete(),
+        query_close.query_close_complete(),
         map_transition_observations(query_close.transitions()),
-        query_close.complete(),
+        query_close.transition_trace_complete(),
         map_semantic_frontier_observations(query_close.semantic_frontiers()),
         query_close.semantic_frontier_trace_complete(),
     )
@@ -22,6 +63,37 @@ pub(super) fn host_shutdown_observation(
     .with_resources(client_resource_observation(
         query_close.client_resource_peaks(),
     ))
+    .with_shutdown_attempts(map_shutdown_attempts(
+        query_close.mounted_shutdown_attempts(),
+    ))
+    .with_intent_resources_empty(query_close.intent_resources_empty())
+}
+
+pub(crate) fn map_shutdown_attempts(
+    attempts: &[crate::mounting::UiMountedPresentationShutdownAttempt],
+) -> Box<[worth_ui_host_native::UiNativeClientShutdownAttemptObservation]> {
+    attempts
+        .iter()
+        .map(|attempt| {
+            let disposition = match attempt.disposition() {
+                crate::mounting::UiMountedPresentationShutdownDisposition::CancelledBeforeEffects => {
+                    worth_ui_host_native::UiNativeClientShutdownAttemptDisposition::CancelledBeforeEffects
+                }
+                crate::mounting::UiMountedPresentationShutdownDisposition::PresentationIndeterminate => {
+                    worth_ui_host_native::UiNativeClientShutdownAttemptDisposition::PresentationIndeterminate
+                }
+            };
+            worth_ui_host_native::UiNativeClientShutdownAttemptObservation::reported(
+                attempt.attempt().diagnostic_value(),
+                disposition,
+                attempt
+                    .affected_bindings()
+                    .iter()
+                    .map(|binding| binding.diagnostic_value()),
+            )
+        })
+        .collect::<Vec<_>>()
+        .into_boxed_slice()
 }
 
 pub(super) fn client_resource_observation(

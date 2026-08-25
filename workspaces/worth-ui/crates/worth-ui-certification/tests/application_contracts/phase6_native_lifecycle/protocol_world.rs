@@ -4,29 +4,18 @@ pub(super) use super::production_world::{
     UiNativeLifecycleObservation, UiNativeLifecycleState, UiNativeLifecycleWorld,
 };
 use super::schedule_inventory::{Schedule, SCHEDULES};
-use super::schedule_requirements::REQUIRED_SCHEDULE_IDS;
-use serde_json::json;
-use std::collections::BTreeSet;
 use worth_ui_host_native::UiNativeInputObservationStop;
 
 #[test]
 fn native_lifecycle_protocol_world_matches_independent_oracle_for_all_schedules() {
-    let mut comparisons = 0;
     for state in STATES.iter().copied() {
         for event in EVENTS.iter().copied() {
-            comparisons += run_schedule("single-state-event", state, std::slice::from_ref(&event));
+            run_schedule("single-state-event", state, std::slice::from_ref(&event));
         }
     }
     for schedule in SCHEDULES {
-        comparisons += run_inventory_schedule(schedule);
+        run_inventory_schedule(schedule);
     }
-    assert_eq!(comparisons, super::schedule_inventory::EXPECTED_COMPARISONS);
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P6-PROTOCOL-WORLD-01\":{comparisons}}}");
-    let cases: Vec<_> = SCHEDULES.iter().map(|schedule| schedule.name).collect();
-    println!(
-        "WORTH_UI_LEDGER_CASES={}",
-        json!({"P6-PROTOCOL-WORLD-01": cases})
-    );
 }
 
 #[test]
@@ -37,13 +26,41 @@ fn native_lifecycle_protocol_world_preserves_retention_before_close() {
         UiNativeLifecycleEffect::Retained
     );
     assert_eq!(
-        world.apply(UiNativeLifecycleEvent::Close).effect,
-        UiNativeLifecycleEffect::CloseDeferred
+        world.request_close(),
+        UiNativeLifecycleObservation {
+            state: UiNativeLifecycleState::Closing,
+            effect: UiNativeLifecycleEffect::CloseDeferred,
+            retained_delta: 0,
+            predecessor: None,
+            next_action: Some(UiNativeLifecycleAction::DrainRetained),
+        }
     );
     assert!(world.drain_retained() >= 1);
     assert_eq!(
-        world.apply(UiNativeLifecycleEvent::Close).effect,
-        UiNativeLifecycleEffect::Closed
+        world.request_close(),
+        UiNativeLifecycleObservation {
+            state: UiNativeLifecycleState::Closed,
+            effect: UiNativeLifecycleEffect::Closed,
+            retained_delta: 0,
+            predecessor: None,
+            next_action: None,
+        }
+    );
+}
+
+#[test]
+fn native_lifecycle_protocol_world_closes_an_empty_presented_session() {
+    let mut world = UiNativeLifecycleWorld::new(UiNativeLifecycleState::Presented);
+    assert_eq!(world.drain_retained(), 0);
+    assert_eq!(
+        world.request_close(),
+        UiNativeLifecycleObservation {
+            state: UiNativeLifecycleState::Closed,
+            effect: UiNativeLifecycleEffect::Closed,
+            retained_delta: 0,
+            predecessor: None,
+            next_action: None,
+        }
     );
 }
 
@@ -115,25 +132,11 @@ fn invalid_ime_range_denial_preserves_revision_and_sequence_continuity() {
     );
 }
 
-#[test]
-fn schedule_inventory_covers_the_independently_declared_phase_six_cases() {
-    let actual = SCHEDULES
-        .iter()
-        .map(|schedule| schedule.name)
-        .collect::<BTreeSet<_>>();
-    let required = REQUIRED_SCHEDULE_IDS
-        .iter()
-        .copied()
-        .collect::<BTreeSet<_>>();
-    assert_eq!(actual, required);
-    assert_eq!(actual.len(), REQUIRED_SCHEDULE_IDS.len());
-}
-
-fn run_inventory_schedule(schedule: &Schedule) -> usize {
+fn run_inventory_schedule(schedule: &Schedule) {
     run_schedule(schedule.name, schedule.initial, schedule.events)
 }
 
-fn run_schedule(_name: &str, initial: State, events: &[Event]) -> usize {
+fn run_schedule(name: &str, initial: State, events: &[Event]) {
     let mut expected_state = initial;
     let mut generation = 7;
     let mut world = UiNativeLifecycleWorld::new(production_state(initial));
@@ -146,7 +149,7 @@ fn run_schedule(_name: &str, initial: State, events: &[Event]) -> usize {
         let observed = convert_observation(world.apply(production_event(*event)));
         assert_eq!(
             observed, expected,
-            "protocol mismatch for {initial:?} + {event:?}"
+            "protocol mismatch in {name} for {initial:?} + {event:?}"
         );
         if matches!(
             (expected_state, *event),
@@ -159,7 +162,6 @@ fn run_schedule(_name: &str, initial: State, events: &[Event]) -> usize {
         }
         expected_state = expected.state;
     }
-    events.len()
 }
 
 fn production_state(state: State) -> UiNativeLifecycleState {
@@ -193,7 +195,6 @@ fn production_event(event: Event) -> UiNativeLifecycleEvent {
         Event::TextWithoutRecipient => UiNativeLifecycleEvent::TextWithoutRecipient,
         Event::TextWithStaleRecipient => UiNativeLifecycleEvent::TextWithStaleRecipient,
         Event::CompletePresentation => UiNativeLifecycleEvent::CompletePresentation,
-        Event::Close => UiNativeLifecycleEvent::Close,
     }
 }
 

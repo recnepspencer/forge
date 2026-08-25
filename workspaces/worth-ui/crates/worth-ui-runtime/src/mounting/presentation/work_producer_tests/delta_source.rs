@@ -51,5 +51,4 @@ fn stale_successor_affinity_is_denied_before_work_issuance() {
         ),
         Err(UiMountedPresentationWorkProductionDenial::StalePredecessor)
     ));
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P3-STALE-DELTA-01\":2}}");
 }

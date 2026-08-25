@@ -33,6 +33,22 @@ pub(super) fn native_phase6_evidence(
                         "coordinate_unit": format!("{:?}", button.coordinate_unit()),
                     })
                 }),
+                "last_vertical_scroll": input.last_vertical_scroll().map(|scroll| {
+                    serde_json::json!({
+                        "sequence": scroll.sequence(),
+                        "event_tick": scroll.event_tick(),
+                        "x_subpixels": scroll.x_subpixels(),
+                        "y_subpixels": scroll.y_subpixels(),
+                    })
+                }),
+                "last_horizontal_scroll": input.last_horizontal_scroll().map(|scroll| {
+                    serde_json::json!({
+                        "sequence": scroll.sequence(),
+                        "event_tick": scroll.event_tick(),
+                        "x_subpixels": scroll.x_subpixels(),
+                        "y_subpixels": scroll.y_subpixels(),
+                    })
+                }),
             }),
         );
         fields.insert(

@@ -8,6 +8,11 @@ use super::CanonicalPlatformPulse;
 
 static INSTALLATION_ORDINAL: AtomicU64 = AtomicU64::new(1);
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct PulseInstallationPath {
+    root: PathBuf,
+}
+
 #[derive(Debug)]
 pub(crate) struct IsolatedPulseInstallation {
     root: PathBuf,
@@ -110,11 +115,15 @@ impl IsolatedPulseInstallation {
     pub(crate) fn install(
         canonical: CanonicalPlatformPulse,
     ) -> Result<Self, PulseInstallationFailure> {
-        let ordinal = INSTALLATION_ORDINAL.fetch_add(1, Ordering::Relaxed);
-        let root = std::env::temp_dir().join(format!(
-            "worth-ui-platform-pulse-executable-world-{}-{ordinal}",
-            std::process::id()
-        ));
+        let path = PulseInstallationPath::fresh();
+        Self::install_at(canonical, &path)
+    }
+
+    pub(crate) fn install_at(
+        canonical: CanonicalPlatformPulse,
+        path: &PulseInstallationPath,
+    ) -> Result<Self, PulseInstallationFailure> {
+        let root = path.root.clone();
         fs::create_dir(&root).map_err(PulseInstallationFailure::CreateRoot)?;
         let mut installation = Self {
             root,
@@ -182,6 +191,26 @@ impl IsolatedPulseInstallation {
     }
 }
 
+impl PulseInstallationPath {
+    pub(crate) fn fresh() -> Self {
+        let ordinal = INSTALLATION_ORDINAL.fetch_add(1, Ordering::Relaxed);
+        Self {
+            root: std::env::temp_dir().join(format!(
+                "worth-ui-platform-pulse-executable-world-{}-{ordinal}",
+                std::process::id()
+            )),
+        }
+    }
+
+    pub(crate) fn is_absent(&self) -> bool {
+        !self.root.exists()
+    }
+
+    pub(crate) fn root(&self) -> &Path {
+        &self.root
+    }
+}
+
 impl PulseInstallationCleanupEvidence {
     pub(crate) fn removed_owned_root(self) -> bool {
         self.removed_owned_root
@@ -198,7 +227,7 @@ impl Drop for IsolatedPulseInstallation {
 
 #[cfg(test)]
 mod tests {
-    use super::IsolatedPulseInstallation;
+    use super::{IsolatedPulseInstallation, PulseInstallationPath};
     use crate::installation::CanonicalPlatformPulse;
 
     #[test]
@@ -209,5 +238,27 @@ mod tests {
         let source = std::fs::read(installation.source_root().join("main.wui")).expect("source");
         assert_eq!(source, CanonicalPlatformPulse::checked_in().source_bytes());
         assert!(installation.close().expect("cleanup").removed_owned_root());
+    }
+
+    #[test]
+    fn one_path_accepts_two_fresh_installations_after_proven_cleanup() {
+        let path = PulseInstallationPath::fresh();
+        let mut predecessor =
+            IsolatedPulseInstallation::install_at(CanonicalPlatformPulse::checked_in(), &path)
+                .expect("predecessor installation");
+        assert!(predecessor
+            .close()
+            .expect("predecessor cleanup")
+            .removed_owned_root());
+        assert!(path.is_absent());
+
+        let mut successor =
+            IsolatedPulseInstallation::install_at(CanonicalPlatformPulse::checked_in(), &path)
+                .expect("successor installation");
+        assert!(successor
+            .close()
+            .expect("successor cleanup")
+            .removed_owned_root());
+        assert!(path.is_absent());
     }
 }

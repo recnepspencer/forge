@@ -99,7 +99,11 @@ pub(crate) fn prepare_mounted_semantic_text<'work>(
     // text release.  Arbitrary non-text removals remain insufficient because
     // the mounted text coordinator rejects zero-demand candidates that do not
     // change committed text ownership.
-    if pin_work.mechanics.is_empty() && pin_work.removals.is_empty() && !pin_work.complete {
+    if pin_work.mechanics.is_empty()
+        && pin_work.removals.is_empty()
+        && !pin_work.complete
+        && !matches!(work, UiMountedPresentationWorkView::Delta(_))
+    {
         return None;
     }
     let lane = lane_for(work);

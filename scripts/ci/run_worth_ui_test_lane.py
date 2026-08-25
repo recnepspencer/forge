@@ -106,7 +106,17 @@ def certification_commands() -> list[list[str]]:
     command = cargo("test", "--all-features", "-p", "worth-ui-certification")
     for target in CERTIFICATION_TARGETS:
         command.extend(("--test", target))
-    return [command]
+    replacement_storm = cargo(
+        "test",
+        "--all-features",
+        "-p",
+        "worth-ui-runtime",
+        "--lib",
+        "long_replacement_storm_",
+        "--",
+        "--ignored",
+    )
+    return [command, replacement_storm]
 
 
 def dependency_contract_commands() -> list[list[str]]:

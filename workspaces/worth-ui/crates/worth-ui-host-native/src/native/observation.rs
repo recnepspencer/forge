@@ -1,6 +1,8 @@
 use worth_ui_host_contract::{UiHostPresentationCostReport, UiMountedPresentationProductionCost};
 
-use super::UiNativeGraphics;
+#[path = "observation/graphics.rs"]
+mod graphics;
+pub use graphics::UiNativeGraphicsObservation;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiNativePresentationObservation {
@@ -76,22 +78,6 @@ pub(crate) struct UiNativePresentationInput {
     pub(crate) cost: UiHostPresentationCostReport,
     pub(crate) alpha_glyphs: Box<[UiNativeGlyphObservation]>,
     pub(crate) intrinsic_glyphs: Box<[UiNativeGlyphObservation]>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct UiNativeGraphicsObservation {
-    adapter_name: Box<str>,
-    vendor: u32,
-    device: u32,
-    driver: Box<str>,
-    driver_info: Box<str>,
-    device_type: Box<str>,
-    backend: Box<str>,
-    surface_format: Box<str>,
-    present_mode: Box<str>,
-    alpha_mode: Box<str>,
-    retained_format: Box<str>,
-    max_texture_dimension_2d: u32,
 }
 
 impl UiNativePresentationObservation {
@@ -331,63 +317,5 @@ impl UiNativeRetainedFrameObservation {
 
     pub fn intrinsic_glyph_transcript_digest(&self) -> [u8; 32] {
         intrinsic_transcript_digest(&self.intrinsic_glyphs)
-    }
-}
-
-impl UiNativeGraphicsObservation {
-    pub(crate) fn from_graphics(graphics: &UiNativeGraphics) -> Self {
-        let info = &graphics.adapter_info;
-        Self {
-            adapter_name: info.name.clone().into_boxed_str(),
-            vendor: info.vendor,
-            device: info.device,
-            driver: info.driver.clone().into_boxed_str(),
-            driver_info: info.driver_info.clone().into_boxed_str(),
-            device_type: format!("{:?}", info.device_type).into_boxed_str(),
-            backend: format!("{:?}", info.backend).into_boxed_str(),
-            surface_format: format!("{:?}", graphics.surface_configuration.format).into_boxed_str(),
-            present_mode: format!("{:?}", graphics.surface_configuration.present_mode)
-                .into_boxed_str(),
-            alpha_mode: format!("{:?}", graphics.surface_configuration.alpha_mode).into_boxed_str(),
-            retained_format: "Rgba8UnormSrgb".into(),
-            max_texture_dimension_2d: graphics._adapter.limits().max_texture_dimension_2d,
-        }
-    }
-
-    pub fn adapter_name(&self) -> &str {
-        &self.adapter_name
-    }
-    pub const fn vendor(&self) -> u32 {
-        self.vendor
-    }
-    pub const fn device(&self) -> u32 {
-        self.device
-    }
-    pub fn driver(&self) -> &str {
-        &self.driver
-    }
-    pub fn driver_info(&self) -> &str {
-        &self.driver_info
-    }
-    pub fn device_type(&self) -> &str {
-        &self.device_type
-    }
-    pub fn backend(&self) -> &str {
-        &self.backend
-    }
-    pub fn surface_format(&self) -> &str {
-        &self.surface_format
-    }
-    pub fn present_mode(&self) -> &str {
-        &self.present_mode
-    }
-    pub fn alpha_mode(&self) -> &str {
-        &self.alpha_mode
-    }
-    pub fn retained_format(&self) -> &str {
-        &self.retained_format
-    }
-    pub const fn max_texture_dimension_2d(&self) -> u32 {
-        self.max_texture_dimension_2d
     }
 }

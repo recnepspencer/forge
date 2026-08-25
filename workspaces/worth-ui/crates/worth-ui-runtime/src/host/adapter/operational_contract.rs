@@ -11,6 +11,17 @@ pub trait WorthUiOperationalHostAdapter:
 
     fn operational_capability_report(&self) -> worth_ui_host_contract::WorthUiHostCapabilityReport;
 
+    /// Open the concrete authority's adapter session before session effects.
+    ///
+    /// Denial is effect-free. A successful open remains owned by the adapter
+    /// until `release_host_session` terminalizes the same authority.
+    fn open_host_session(
+        &self,
+        _authority: &UiHostAdapterSessionAuthority,
+    ) -> Result<(), worth_ui_host_contract::UiHostObservationSessionRegistrationDenial> {
+        Ok(())
+    }
+
     fn measurement_environment_report(
         &self,
     ) -> worth_ui_host_contract::UiHostMeasurementEnvironmentReport {
@@ -137,6 +148,13 @@ where
 
     fn operational_capability_report(&self) -> worth_ui_host_contract::WorthUiHostCapabilityReport {
         self.mechanical_capability_report()
+    }
+
+    fn open_host_session(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+    ) -> Result<(), worth_ui_host_contract::UiHostObservationSessionRegistrationDenial> {
+        self.register_mechanical_host_session(authority.host_session_identity())
     }
 
     fn measurement_environment_report(

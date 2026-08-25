@@ -14,7 +14,7 @@ pub(super) fn perform_unchanged(
     unchanged: &UiMountedPresentationUnchanged,
 ) -> UiHostSurfacePresentationOutcome {
     let key = view.binding().diagnostic_value();
-    if state.reconstruction_required.contains(&key) {
+    if state.lifecycle.recovery_required(key) {
         return super::require_owner_reconstruction(state, key);
     }
     retain_unchanged(state, view, unchanged, key)
@@ -42,7 +42,14 @@ fn retain_unchanged(
         Default::default(),
         0,
     );
-    super::completed(state, key, view, Default::default(), false)
+    super::completed(
+        state,
+        key,
+        view,
+        Default::default(),
+        false,
+        crate::native::presentation::UiNativePresentationEffects::default(),
+    )
 }
 
 pub(super) fn record_retained_frame(
@@ -54,8 +61,8 @@ pub(super) fn record_retained_frame(
     cost: UiHostPresentationCostReport,
     port_crossings: u8,
 ) {
-    let observation = state
-        .graphics
+    let access = state.presentation_access();
+    let observation = access
         .as_ref()
         .zip(state.retained_draw_lists.get(&key))
         .and_then(|(graphics, retained)| {

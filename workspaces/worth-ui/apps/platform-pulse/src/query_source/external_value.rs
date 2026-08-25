@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{mpsc, Arc};
+use std::sync::{mpsc, Arc, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
@@ -22,6 +22,7 @@ pub(crate) struct PlatformPulseExternalValueWatch {
     receiver: mpsc::Receiver<PlatformPulseExternalValueEvent>,
     stop: Arc<AtomicBool>,
     worker: Option<JoinHandle<Result<(), PlatformPulseExternalValueWatchDenial>>>,
+    readiness: Arc<Mutex<Option<worth_ui_platform_pulse::PlatformPulseApplicationReadinessSignal>>>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -72,16 +73,29 @@ impl PlatformPulseExternalValueWatch {
         let root = root.to_owned();
         let stop = Arc::new(AtomicBool::new(false));
         let worker_stop = Arc::clone(&stop);
+        let readiness = Arc::new(Mutex::new(None));
+        let worker_readiness = Arc::clone(&readiness);
         let (sender, receiver) = mpsc::channel();
         let worker = thread::Builder::new()
             .name("worth-ui-platform-pulse-query-source".to_owned())
-            .spawn(move || run_watch(root, worker_stop, sender))
+            .spawn(move || run_watch(root, worker_stop, sender, worker_readiness))
             .map_err(|error| PlatformPulseExternalValueWatchDenial::Watcher(error.to_string()))?;
         Ok(Self {
             receiver,
             stop,
             worker: Some(worker),
+            readiness,
         })
+    }
+
+    pub(crate) fn install_readiness(
+        &self,
+        readiness: worth_ui_platform_pulse::PlatformPulseApplicationReadinessSignal,
+    ) {
+        *self
+            .readiness
+            .lock()
+            .expect("Query readiness installation is not poisoned") = Some(readiness);
     }
 
     pub(crate) fn try_next(&self) -> Option<PlatformPulseExternalValueEvent> {
@@ -124,6 +138,7 @@ fn run_watch(
     root: PathBuf,
     stop: Arc<AtomicBool>,
     sender: mpsc::Sender<PlatformPulseExternalValueEvent>,
+    readiness: Arc<Mutex<Option<worth_ui_platform_pulse::PlatformPulseApplicationReadinessSignal>>>,
 ) -> Result<(), PlatformPulseExternalValueWatchDenial> {
     let target = root.join(VALUE_FILE);
     let (notification_sender, notification_receiver) = mpsc::channel();
@@ -137,10 +152,14 @@ fn run_watch(
     let mut admitted_revision = None;
     while !stop.load(Ordering::Acquire) {
         match notification_receiver.recv_timeout(WORKER_SETTLE_INTERVAL) {
-            Ok(Ok(_)) => publish_exact_target(&target, &mut admitted_revision, &sender),
+            Ok(Ok(_)) => {
+                publish_exact_target(&target, &mut admitted_revision, &sender);
+                signal_readiness(&readiness);
+            }
             Ok(Err(error)) => {
                 let denial = PlatformPulseExternalValueWatchDenial::Watcher(error.to_string());
                 let _ = sender.send(PlatformPulseExternalValueEvent::Failed(denial));
+                signal_readiness(&readiness);
                 return Ok(());
             }
             Err(mpsc::RecvTimeoutError::Timeout) => {}
@@ -148,6 +167,18 @@ fn run_watch(
         }
     }
     Ok(())
+}
+
+fn signal_readiness(
+    readiness: &Mutex<Option<worth_ui_platform_pulse::PlatformPulseApplicationReadinessSignal>>,
+) {
+    if let Some(readiness) = readiness
+        .lock()
+        .expect("Query readiness signal is not poisoned")
+        .as_ref()
+    {
+        readiness.signal();
+    }
 }
 
 fn publish_exact_target(

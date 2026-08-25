@@ -16,9 +16,6 @@ fn pending_admission_rejects_a_foreign_runtime_correspondence_capability() {
         left.admit_pending(local).unwrap().observation().posture(),
         WorthUiPresentationAsyncPosture::Pending
     );
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P5-TEXT-ASYNC-PRESENTATION-01\":\"bypass-query-or-stale-presentation-completion\"}}"
-    );
 }
 
 #[test]

@@ -61,9 +61,6 @@ fn collection_patch_content_locality_is_constant_at_every_qualified_size() {
         "WORTH_UI_PHASE4_COLLECTION_LOCALITY={{\"observations\":[{}],\"changed_rows\":1}}",
         observations.join(",")
     );
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P4-TEXT-CONTENT-LOCALITY-01\":\"content-only-global-rescan\",\"P4-TEXT-COST-01\":\"complete-document-rescan\"}}"
-    );
 }
 
 fn assert_one_collection_layout_changed(

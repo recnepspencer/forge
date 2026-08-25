@@ -1,10 +1,8 @@
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
-use worth_ui_host_egui::WorthUiHostEgui;
 use worth_ui_host_headless::WorthUiHeadlessRecorder;
 use worth_ui_runtime::facade::mounted::{
-    UiHostSurfacePresentationDenial, UiHostSurfacePresentationMode, UiMountedEffectFamily,
-    UiMountedLaneParticipation, UiMountedPreviewProjection, UiPresentationDeadline,
-    UiRequiredLaneContributionStatus,
+    UiHostSurfacePresentationMode, UiMountedLaneParticipation, UiMountedPreviewProjection,
+    UiPresentationDeadline, UiRequiredLaneContributionStatus,
 };
 use worth_ui_runtime::facade::runtime_handoff::{
     UiAllocationReplanTransactionCommitDenial, UiAllocationReplanTransactionOutcome,
@@ -20,7 +18,7 @@ use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 
 use super::mounted_application_lifecycle::adapter_projection_world::{
     cell_status, preview_application_from_sources, preview_application_with_host, preview_target,
-    raw_input, retire_query, submit_preview,
+    retire_query, submit_preview,
 };
 use super::mounted_application_lifecycle::known_empty_surface_world::profile;
 
@@ -96,59 +94,6 @@ fn real_wui_preview_records_and_publishes_through_the_mounted_contract() {
         session.inspect_mounted_identity().current_frame(),
         Some(publication.frame())
     );
-    retire_query(
-        &mut scenario,
-        session.shutdown().into_operation_live_retirement(),
-    );
-    workspace.close();
-}
-
-#[test]
-fn real_wui_egui_preview_denies_incomplete_native_paint_without_shapes() {
-    let context = egui::Context::default();
-    let host = WorthUiHostEgui::new(context.clone());
-    let (mut session, workspace, mut scenario) =
-        preview_application_with_host("mounted-preview-egui", host);
-    let surface = session.create_semantic_surface().unwrap();
-    session
-        .register_host_surface(
-            surface,
-            UiHostSurfacePresentationMode::NativeDisplay,
-            profile(1),
-        )
-        .unwrap();
-    let target = preview_target(&session);
-    let handle = session.mounted_graph_node(target).unwrap();
-    let instance = session.mount_instance(handle, surface).unwrap();
-    let prepared = match submit_preview(&mut session, target, 280.0).prepare(instance) {
-        Ok(prepared) => prepared,
-        Err(_) => panic!("matching mounted instance must prepare preview"),
-    };
-
-    let mut prepared = Some(prepared);
-    let mut outcome = None;
-    let native = context.run_ui(raw_input(), |_| {
-        outcome = Some(
-            prepared
-                .take()
-                .unwrap()
-                .present(UiPresentationDeadline::at_tick(10), 0),
-        );
-    });
-    let resolved = match outcome.unwrap() {
-        WorthUiMountedPreviewOutcome::Resolved(resolved) => resolved,
-        _ => panic!("egui denial must resolve synchronously"),
-    };
-    let rejected = match resolved.disposition() {
-        WorthUiMountedPreviewDisposition::RejectedBeforeEffects(rejected) => rejected,
-        _ => panic!("incomplete preview paint cannot publish"),
-    };
-    assert_eq!(
-        rejected.rejections()[0].denial(),
-        UiHostSurfacePresentationDenial::UnsupportedEffect(UiMountedEffectFamily::NativePaint)
-    );
-    assert!(native.shapes.is_empty());
-    assert!(session.inspect_mounted_identity().current_frame().is_none());
     retire_query(
         &mut scenario,
         session.shutdown().into_operation_live_retirement(),

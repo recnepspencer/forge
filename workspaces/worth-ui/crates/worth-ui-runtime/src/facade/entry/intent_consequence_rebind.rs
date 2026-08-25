@@ -72,10 +72,12 @@ impl WorthUiActiveApplicationSession {
         let execution = completion.into_execution().map_err(|_| {
             crate::runtime::rebind::UiRebindPreparationDenial::FrameBoundaryUnavailable
         })?;
+        let theme_values = execution.presentation.theme_values_source();
         execution
             .prepare_mounted_frame_with_content_internal(
                 crate::mounting::UiMountedFrameRequest::all_bound_surfaces(),
                 semantic_content,
+                theme_values,
             )
             .map_err(|denial| {
                 crate::runtime::rebind::UiRebindPreparationDenial::ContentMountedPreparation(

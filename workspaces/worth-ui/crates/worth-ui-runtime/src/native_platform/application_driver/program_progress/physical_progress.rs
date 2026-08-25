@@ -8,6 +8,16 @@ mod recovery_progress;
 mod settlement_progress;
 
 impl UiNativeApplicationProgramProgress {
+    #[cfg(test)]
+    pub(in crate::native_platform::application_driver) fn settle_first_pending_presentation_for_test(
+        &mut self,
+        shell: &mut WorthUiNativeApplicationShell,
+    ) -> Result<(), ()> {
+        let pending = self.pending.pop_front().ok_or(())?;
+        let completed = self.complete_pending_physical_progress(shell, pending, None)?;
+        self.settle_completed_physical_progress(shell, completed, None, false)
+    }
+
     pub(in crate::native_platform::application_driver) fn physical_work_progressed(
         &mut self,
         shell: &mut WorthUiNativeApplicationShell,
@@ -17,6 +27,12 @@ impl UiNativeApplicationProgramProgress {
         if class == worth_ui_host_native::UiNativePhysicalProgressClass::PresentationRecovery {
             let presentation = grant.presentation().ok_or(())?;
             return self.progress_presentation_recovery(shell, presentation);
+        }
+        if class == worth_ui_host_native::UiNativePhysicalProgressClass::TextAtlas
+            && self.retry_readiness() == Some(UiNativeProgramRetryReadiness::TextAtlas)
+        {
+            self.progress_text_atlas_retry(shell)?;
+            return self.advance(shell);
         }
         let presentation = grant.presentation();
         let Some(pending) = self.take_pending_for_physical_progress(class, presentation)? else {

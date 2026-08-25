@@ -10,10 +10,6 @@ use super::world::{rect_spec, MountedPresentationWorld};
 #[test]
 fn admitted_sources_leave_only_local_work_inside_delta_issuance() {
     run_locality_cases(&[(1, 0), (32, 16), (2_048, 1_024), (4_096, 2_048)]);
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P3-DELTA-SOURCE-01\":1,\"P3-PRODUCER-SLOPE-01\":0}}");
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-DELTA-SOURCE-01\":\"successor-rediscovery\",\"P3-PRODUCER-SLOPE-01\":\"complete-successor-scan\",\"P5-TEXT-COST-01\":\"complete-document-rescan\"}}"
-    );
 }
 
 #[test]
@@ -22,9 +18,6 @@ fn complete_retained_scan_and_clone_mutant_is_rejected_by_the_local_oracle() {
     assert_eq!(actual[4], 32);
     assert_eq!(actual[5], 32);
     assert!(!is_local_cost(actual, 32));
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-PRODUCER-SLOPE-01\":\"complete-successor-scan\"}}"
-    );
 }
 
 fn run_locality_cases(cases: &[(usize, usize)]) {

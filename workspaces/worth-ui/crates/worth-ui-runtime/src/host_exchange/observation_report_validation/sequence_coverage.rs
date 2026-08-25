@@ -268,7 +268,7 @@ mod tests {
     fn report(sequence: u64) -> UiHostObservationReport {
         UiHostObservationReport::new(
             UiHostObservationSequence::new(sequence),
-            worth_ui_host_contract::UiHostObservationTimeBasis::HostMonotonicTick(sequence),
+            worth_ui_host_contract::UiHostObservationTimeBasis::HostMonotonicMillis(sequence),
             worth_ui_host_contract::UiHostObservationPayload::Focus { focused: true },
         )
     }
@@ -281,7 +281,7 @@ mod tests {
     ) -> UiHostObservationReport {
         UiHostObservationReport::new(
             UiHostObservationSequence::new(sequence),
-            worth_ui_host_contract::UiHostObservationTimeBasis::HostMonotonicTick(sequence),
+            worth_ui_host_contract::UiHostObservationTimeBasis::HostMonotonicMillis(sequence),
             worth_ui_host_contract::UiHostObservationPayload::PointerMotion {
                 pointer: worth_ui_host_contract::UiHostPointerIdentity::new(pointer),
                 capture_epoch: worth_ui_host_contract::UiHostPointerCaptureEpoch::new(

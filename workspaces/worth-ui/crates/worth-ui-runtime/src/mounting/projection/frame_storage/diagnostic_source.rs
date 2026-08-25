@@ -24,6 +24,8 @@ impl UiMountedDiagnosticSource {
         &mut self,
         semantic: &UiMountedSemanticProjection,
         changed: &[UiMountedInstanceIdentity],
+        overlay: Option<crate::mounting::UiMountedVisualOverlayProjectionInput>,
+        frame: worth_ui_host_contract::UiMountedFrameIdentity,
     ) {
         for instance in changed {
             self.by_instance.remove(instance);
@@ -33,8 +35,16 @@ impl UiMountedDiagnosticSource {
             let Some(surface) = semantic.surface_for(node.receipt.semantic_surface()) else {
                 continue;
             };
+            let diagnostic = overlay
+                .filter(|_| surface.audience.diagnostics_disclosed())
+                .filter(|overlay| overlay.target_instance() == *instance)
+                .and_then(|overlay| overlay.mechanic_for(frame, surface.surface, surface.binding))
+                .map_or_else(
+                    || node.receipt.diagnostic(),
+                    UiMountedDiagnosticProjection::IdentityOverlay,
+                );
             self.by_instance
-                .insert(*instance, (surface.binding, node.receipt.diagnostic()));
+                .insert(*instance, (surface.binding, diagnostic));
         }
     }
 

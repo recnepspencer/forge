@@ -99,7 +99,8 @@ impl UiRetainedPresentedFrame {
         &self,
         binding: UiSurfaceBindingGeneration,
     ) -> super::super::UiMountedVisualRegionBasis {
-        self.visual_regions.for_binding(binding)
+        self.visual_regions
+            .for_binding(binding, self.receipts.clone())
     }
 
     pub(crate) fn identity_trace_basis(&self) -> super::super::UiMountedIdentityTraceBasis {

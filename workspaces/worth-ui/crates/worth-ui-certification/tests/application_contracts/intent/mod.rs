@@ -8,6 +8,5 @@ mod interaction_world;
 mod lifecycle;
 mod observation;
 mod operability;
-mod ordering;
 mod payload;
 mod phase1_definition;

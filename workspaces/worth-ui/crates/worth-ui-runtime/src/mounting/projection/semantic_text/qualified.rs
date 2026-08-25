@@ -4,6 +4,8 @@ use worth_ui_host_contract::{UiMountedSemanticTextCompletionInput, UiMountedSema
 
 use super::super::UiMountedProjectionDenial;
 
+mod frame_affinity;
+
 #[derive(Clone)]
 pub(in crate::mounting::projection) struct UiMountedQualifiedSemanticText {
     mechanic: UiMountedSemanticTextMechanic,

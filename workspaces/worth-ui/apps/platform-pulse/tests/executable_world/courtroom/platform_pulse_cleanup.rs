@@ -4,12 +4,6 @@ use crate::product_process::{Closed, FinalRecovered, Published, PulseExecutableW
 
 const TRANSITION_DEADLINE: Duration = Duration::from_secs(5);
 
-pub(super) fn close_recovered(
-    recovered: PulseExecutableWorld<Published<FinalRecovered>>,
-) -> PulseExecutableWorld<Closed> {
-    close_recovered_at_sequence(recovered, 25)
-}
-
 pub(super) fn close_recovered_at_sequence(
     recovered: PulseExecutableWorld<Published<FinalRecovered>>,
     expected_shutdown_sequence: u64,

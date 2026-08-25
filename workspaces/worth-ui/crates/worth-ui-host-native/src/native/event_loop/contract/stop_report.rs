@@ -33,4 +33,8 @@ impl UiNativeEventLoopStopReport {
     pub fn input_observations(&self) -> &crate::UiNativeInputObservationReport {
         &self.input_observations
     }
+
+    pub const fn shutdown_overlap(&self) -> super::UiNativeEventLoopShutdownOverlapObservation {
+        self.shutdown_overlap
+    }
 }

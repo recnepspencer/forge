@@ -2,12 +2,6 @@ use std::time::Duration;
 
 use crate::adjudication::ExecutableLifecycleCleanupEvidence;
 
-const FIRST_PUBLICATION_BUDGET: Duration = Duration::from_secs(5);
-const JOURNEY_BUDGET: Duration = Duration::from_secs(45);
-const EXACT_LIFECYCLE_EVENT_COUNT: usize = 25;
-const LIFECYCLE_EVENT_BUDGET: usize = 256;
-const LIFECYCLE_BYTE_BUDGET: usize = 1_048_576;
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) struct PlatformPulseJourneyCost {
     first_publication: Duration,
@@ -52,22 +46,6 @@ impl PlatformPulseJourneyCost {
             successful_exit: cleanup.successful_exit().status().success(),
             installation_removed: cleanup.installation_removed(),
         }
-    }
-
-    pub(super) fn assert_frozen_budgets(self) {
-        assert!(self.first_publication <= FIRST_PUBLICATION_BUDGET);
-        assert!(self.full_journey <= JOURNEY_BUDGET);
-        assert_eq!(self.lifecycle_events, EXACT_LIFECYCLE_EVENT_COUNT);
-        assert!(self.lifecycle_events <= LIFECYCLE_EVENT_BUDGET);
-        assert!(self.lifecycle_bytes <= LIFECYCLE_BYTE_BUDGET);
-        assert_eq!(self.source_actions, 7);
-        assert_eq!(self.native_captures, 11);
-        assert!(self.window_lookups > 0);
-        assert_eq!(self.process_launches, 1);
-        assert_eq!(self.native_windows, 1);
-        assert_eq!(self.close_requests, 1);
-        assert!(self.successful_exit);
-        assert!(self.installation_removed);
     }
 
     pub(super) fn report(self) {

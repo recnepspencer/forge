@@ -21,7 +21,7 @@ impl UiNativeRetainedDrawList {
         {
             return Err(UiNativeRetainedDrawListDenial::BaselineUnavailable);
         }
-        Self::from_complete(
+        Self::from_complete_with_projection(
             initial.affinity().successor(),
             initial.affinity().surface(),
             initial.affinity().binding(),
@@ -30,6 +30,7 @@ impl UiNativeRetainedDrawList {
             initial.order(),
             initial.order_integrity(),
             glyph_runs,
+            initial.projection(),
         )
     }
 
@@ -43,7 +44,7 @@ impl UiNativeRetainedDrawList {
         {
             return Err(UiNativeRetainedDrawListDenial::BaselineUnavailable);
         }
-        Self::from_complete(
+        Self::from_complete_with_projection(
             work.affinity().successor(),
             work.affinity().surface(),
             work.affinity().binding(),
@@ -52,9 +53,11 @@ impl UiNativeRetainedDrawList {
             work.order(),
             work.order_integrity(),
             glyph_runs,
+            work.projection(),
         )
     }
 
+    #[cfg(test)]
     pub(super) fn from_complete(
         frame: worth_ui_host_contract::UiMountedFrameIdentity,
         surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
@@ -64,6 +67,67 @@ impl UiNativeRetainedDrawList {
         source_order: &[UiMountedPaintOrderIdentity],
         order_integrity: UiMountedPaintOrderIntegrity,
         source_glyph_runs: &[worth_ui_host_contract::UiGlyphRunView],
+    ) -> Result<Self, UiNativeRetainedDrawListDenial> {
+        Self::from_complete_parts(
+            frame,
+            surface,
+            binding,
+            baseline,
+            source_commands,
+            source_order,
+            order_integrity,
+            source_glyph_runs,
+            super::super::retained_regions::UiNativeRetainedRegions::paint_only(source_commands),
+            super::super::identity_overlay::UiNativeRetainedIdentityOverlay::default(),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn from_complete_with_projection(
+        frame: worth_ui_host_contract::UiMountedFrameIdentity,
+        surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
+        binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
+        baseline: worth_ui_host_contract::UiHostSurfaceBaselineIdentity,
+        source_commands: &[UiMountedPaintCommand],
+        source_order: &[UiMountedPaintOrderIdentity],
+        order_integrity: UiMountedPaintOrderIntegrity,
+        source_glyph_runs: &[worth_ui_host_contract::UiGlyphRunView],
+        projection: &worth_ui_host_contract::UiMountedProjectionView,
+    ) -> Result<Self, UiNativeRetainedDrawListDenial> {
+        let regions = super::super::retained_regions::UiNativeRetainedRegions::prepare(
+            projection,
+            source_commands,
+        )
+        .map_err(|_| UiNativeRetainedDrawListDenial::CommandMismatch)?;
+        let identity_overlay =
+            super::super::identity_overlay::UiNativeRetainedIdentityOverlay::prepare(projection)
+                .map_err(|_| UiNativeRetainedDrawListDenial::CommandMismatch)?;
+        Self::from_complete_parts(
+            frame,
+            surface,
+            binding,
+            baseline,
+            source_commands,
+            source_order,
+            order_integrity,
+            source_glyph_runs,
+            regions,
+            identity_overlay,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn from_complete_parts(
+        frame: worth_ui_host_contract::UiMountedFrameIdentity,
+        surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
+        binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
+        baseline: worth_ui_host_contract::UiHostSurfaceBaselineIdentity,
+        source_commands: &[UiMountedPaintCommand],
+        source_order: &[UiMountedPaintOrderIdentity],
+        order_integrity: UiMountedPaintOrderIntegrity,
+        source_glyph_runs: &[worth_ui_host_contract::UiGlyphRunView],
+        regions: super::super::retained_regions::UiNativeRetainedRegions,
+        identity_overlay: super::super::identity_overlay::UiNativeRetainedIdentityOverlay,
     ) -> Result<Self, UiNativeRetainedDrawListDenial> {
         let mut commands = UiNativeRetainedCommandStore::with_capacity(source_commands.len());
         let mut damage = UiNativeDamageIndex::new();
@@ -122,6 +186,8 @@ impl UiNativeRetainedDrawList {
             order_integrity,
             damage,
             glyph_runs,
+            regions,
+            identity_overlay,
             last_paint_attribution: None,
         };
         retained.retain_current_paint_attribution();

@@ -38,13 +38,7 @@ impl WorthUiActiveApplicationSession {
         deadline_tick: u64,
         now_tick: u64,
     ) -> Result<UiPublishedVisualOverlay, UiVisualOverlayPublicationFailure> {
-        if pending.session() != self.identity {
-            return Err(UiVisualOverlayPublicationFailure::new(
-                worth_ui_inspection::UiVisualOverlayDenial::ForeignSession,
-                pending,
-            ));
-        }
-        let publishing = self.visual_overlays.begin_publication(pending);
+        let publishing = self.begin_visual_overlay_publication(pending)?;
         let base_frame = publishing.selection.presentation.frame;
         match present_overlay_successor(self, deadline_tick, now_tick) {
             Some(frame) if frame != base_frame => self
@@ -56,6 +50,22 @@ impl WorthUiActiveApplicationSession {
                 self.visual_overlays.rollback_publication(publishing),
             )),
         }
+    }
+
+    fn begin_visual_overlay_publication(
+        &mut self,
+        pending: UiPendingVisualOverlay,
+    ) -> Result<
+        crate::inspection::visual_snapshot::UiPublishingVisualOverlay,
+        UiVisualOverlayPublicationFailure,
+    > {
+        if pending.session() != self.identity {
+            return Err(UiVisualOverlayPublicationFailure::new(
+                worth_ui_inspection::UiVisualOverlayDenial::ForeignSession,
+                pending,
+            ));
+        }
+        Ok(self.visual_overlays.begin_publication(pending))
     }
 
     pub fn clear_visual_overlay(
@@ -84,6 +94,22 @@ impl WorthUiActiveApplicationSession {
         }
     }
 
+    fn begin_visual_overlay_clear(
+        &mut self,
+        published: UiPublishedVisualOverlay,
+    ) -> Result<
+        crate::inspection::visual_snapshot::UiClearingVisualOverlay,
+        UiVisualOverlayClearFailure,
+    > {
+        if published.session() != self.identity {
+            return Err(UiVisualOverlayClearFailure::new(
+                worth_ui_inspection::UiVisualOverlayDenial::ForeignSession,
+                published,
+            ));
+        }
+        Ok(self.visual_overlays.begin_clear(published))
+    }
+
     pub(super) fn mounted_frame_request(&self) -> crate::mounting::UiMountedFrameRequest {
         let overlay = self
             .visual_overlays
@@ -109,8 +135,27 @@ impl WorthUiNativeApplicationShell {
         deadline_tick: u64,
         now_tick: u64,
     ) -> Result<UiPublishedVisualOverlay, UiVisualOverlayPublicationFailure> {
-        self.session
-            .present_visual_overlay(pending, deadline_tick, now_tick)
+        let publishing = self.session.begin_visual_overlay_publication(pending)?;
+        let base_frame = publishing.selection.presentation.frame;
+        let outcome = self.present_frame(deadline_tick, now_tick);
+        match outcome {
+            Ok(crate::mounting::UiMountedFrameOutcome::Published(receipt))
+                if receipt.frame() != base_frame =>
+            {
+                self.session
+                    .visual_overlays
+                    .commit_publication(publishing, receipt.frame())
+                    .map_err(|denial| {
+                        panic!("presented overlay must remain registered: {denial:?}")
+                    })
+            }
+            _ => Err(UiVisualOverlayPublicationFailure::new(
+                worth_ui_inspection::UiVisualOverlayDenial::Presentation,
+                self.session
+                    .visual_overlays
+                    .rollback_publication(publishing),
+            )),
+        }
     }
 
     pub fn clear_visual_overlay(
@@ -119,8 +164,22 @@ impl WorthUiNativeApplicationShell {
         deadline_tick: u64,
         now_tick: u64,
     ) -> Result<UiClearedVisualOverlayReceipt, UiVisualOverlayClearFailure> {
-        self.session
-            .clear_visual_overlay(published, deadline_tick, now_tick)
+        let clearing = self.session.begin_visual_overlay_clear(published)?;
+        let published_frame = clearing.published_frame;
+        match self.present_frame(deadline_tick, now_tick) {
+            Ok(crate::mounting::UiMountedFrameOutcome::Published(receipt))
+                if receipt.frame() != published_frame =>
+            {
+                self.session
+                    .visual_overlays
+                    .commit_clear(clearing, receipt.frame())
+                    .map_err(|denial| panic!("cleared overlay must remain registered: {denial:?}"))
+            }
+            _ => Err(UiVisualOverlayClearFailure::new(
+                worth_ui_inspection::UiVisualOverlayDenial::Presentation,
+                self.session.visual_overlays.rollback_clear(clearing),
+            )),
+        }
     }
 }
 

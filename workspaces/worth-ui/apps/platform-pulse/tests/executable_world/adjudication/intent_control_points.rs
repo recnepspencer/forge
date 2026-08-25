@@ -1,11 +1,8 @@
 use std::fmt;
 
+use super::platform_pulse_control_points::{checked_in, PlatformPulseControlPointManifestFailure};
 use crate::external_observation::{NativeClientPixelCapture, NativeClientPixelPoint};
-use worth_ui_platform_pulse::visual_identity_pulse::{
-    PLATFORM_PULSE_CONFIRMATION_RGB, PLATFORM_PULSE_TARGET_RGB,
-};
 
-const CHANNEL_TOLERANCE: u8 = 12;
 const MINIMUM_INTERIOR_PIXELS: usize = 9;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -33,6 +30,7 @@ pub(crate) struct VisibleControlPixelChange {
 
 #[derive(Debug)]
 pub(crate) enum IntentControlPointFailure {
+    ControlPointManifest(PlatformPulseControlPointManifestFailure),
     InsufficientInteriorPixels {
         control: &'static str,
         matching_pixels: usize,
@@ -50,15 +48,32 @@ pub(crate) enum IntentControlPointFailure {
 pub(crate) fn adjudicate_action_control_point(
     capture: &NativeClientPixelCapture,
 ) -> Result<PlatformPulseActionControlPoint, IntentControlPointFailure> {
-    let (point, region) = select_interior_pixel(capture, "action", PLATFORM_PULSE_TARGET_RGB)?;
+    let manifest = checked_in().map_err(IntentControlPointFailure::ControlPointManifest)?;
+    let (point, region) = select_interior_pixel(
+        capture,
+        "action",
+        manifest.target_rgba()[..3].try_into().expect("RGB prefix"),
+        manifest.action_control_logical_point(),
+        manifest.logical_client_extent(),
+        manifest.channel_tolerance(),
+    )?;
     Ok(PlatformPulseActionControlPoint { point, region })
 }
 
 pub(crate) fn adjudicate_confirmation_control_point(
     capture: &NativeClientPixelCapture,
 ) -> Result<PlatformPulseConfirmationControlPoint, IntentControlPointFailure> {
-    let (point, region) =
-        select_interior_pixel(capture, "confirmation", PLATFORM_PULSE_CONFIRMATION_RGB)?;
+    let manifest = checked_in().map_err(IntentControlPointFailure::ControlPointManifest)?;
+    let (point, region) = select_interior_pixel(
+        capture,
+        "confirmation",
+        manifest.confirmation_rgba()[..3]
+            .try_into()
+            .expect("RGB prefix"),
+        manifest.confirmation_control_logical_point(),
+        manifest.logical_client_extent(),
+        manifest.channel_tolerance(),
+    )?;
     Ok(PlatformPulseConfirmationControlPoint { point, region })
 }
 
@@ -108,6 +123,9 @@ fn select_interior_pixel(
     capture: &NativeClientPixelCapture,
     control: &'static str,
     expected: [u8; 3],
+    preferred_logical_point: [u32; 2],
+    logical_extent: [u32; 2],
+    channel_tolerance: u8,
 ) -> Result<(NativeClientPixelPoint, NativeControlPixelRegion), IntentControlPointFailure> {
     let mut matching_pixels = 0;
     let mut interior = Vec::new();
@@ -115,7 +133,7 @@ fn select_interior_pixel(
     let mut maximum = [0, 0];
     for y in 0..capture.height() {
         for x in 0..capture.width() {
-            if !matches_at(capture, x, y, expected) {
+            if !matches_at(capture, x, y, expected, channel_tolerance) {
                 continue;
             }
             matching_pixels += 1;
@@ -125,7 +143,7 @@ fn select_interior_pixel(
                 && y > 0
                 && x + 1 < capture.width()
                 && y + 1 < capture.height()
-                && neighborhood_matches(capture, x, y, expected)
+                && neighborhood_matches(capture, x, y, expected, channel_tolerance)
             {
                 interior.push((x, y));
             }
@@ -138,7 +156,22 @@ fn select_interior_pixel(
             interior_pixels: interior.len(),
         });
     }
-    let (x, y) = interior[interior.len() / 2];
+    let preferred = [
+        scale_axis(
+            preferred_logical_point[0],
+            capture.width(),
+            logical_extent[0],
+        ),
+        scale_axis(
+            preferred_logical_point[1],
+            capture.height(),
+            logical_extent[1],
+        ),
+    ];
+    let (x, y) = interior
+        .into_iter()
+        .min_by_key(|(x, y)| x.abs_diff(preferred[0]) + y.abs_diff(preferred[1]))
+        .ok_or(IntentControlPointFailure::InvalidSelectedPixel)?;
     let point = NativeClientPixelPoint::interior(capture, x, y, 1)
         .ok_or(IntentControlPointFailure::InvalidSelectedPixel)?;
     Ok((point, NativeControlPixelRegion { minimum, maximum }))
@@ -149,13 +182,21 @@ fn neighborhood_matches(
     x: u32,
     y: u32,
     expected: [u8; 3],
+    channel_tolerance: u8,
 ) -> bool {
     ((y - 1)..=(y + 1)).all(|sample_y| {
-        ((x - 1)..=(x + 1)).all(|sample_x| matches_at(capture, sample_x, sample_y, expected))
+        ((x - 1)..=(x + 1))
+            .all(|sample_x| matches_at(capture, sample_x, sample_y, expected, channel_tolerance))
     })
 }
 
-fn matches_at(capture: &NativeClientPixelCapture, x: u32, y: u32, expected: [u8; 3]) -> bool {
+fn matches_at(
+    capture: &NativeClientPixelCapture,
+    x: u32,
+    y: u32,
+    expected: [u8; 3],
+    channel_tolerance: u8,
+) -> bool {
     let Some(offset) = usize::try_from(y)
         .ok()
         .and_then(|y| y.checked_mul(capture.width() as usize))
@@ -171,8 +212,13 @@ fn matches_at(capture: &NativeClientPixelCapture, x: u32, y: u32, expected: [u8;
             observed
                 .iter()
                 .zip(expected)
-                .all(|(&channel, expected)| channel.abs_diff(expected) <= CHANNEL_TOLERANCE)
+                .all(|(&channel, expected)| channel.abs_diff(expected) <= channel_tolerance)
         })
+}
+
+fn scale_axis(logical: u32, physical: u32, logical_extent: u32) -> u32 {
+    ((u64::from(logical) * u64::from(physical) + u64::from(logical_extent / 2))
+        / u64::from(logical_extent)) as u32
 }
 
 fn rgba_at(capture: &NativeClientPixelCapture, x: u32, y: u32) -> Option<[u8; 4]> {
@@ -214,6 +260,9 @@ impl VisibleControlPixelChange {
 impl fmt::Display for IntentControlPointFailure {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::ControlPointManifest(failure) => {
+                write!(formatter, "test-owned control-point manifest: {failure:?}")
+            }
             Self::InsufficientInteriorPixels {
                 control,
                 matching_pixels,

@@ -13,7 +13,7 @@ use super::super::super::filesystem_mounted_world::{
 };
 use super::super::interaction_world::InteractionWorld;
 pub(super) use super::topology::OccupancyLayout;
-use super::topology::{build_edit, build_projection, build_scoped, build_unsupported};
+use super::topology::{build_scoped, build_unsupported};
 use super::OperabilityFacts;
 
 pub(super) const PRIMARY_POINT: [i64; 2] = [10, 20];
@@ -34,28 +34,6 @@ impl OperabilityWorld {
     pub(super) fn unsupported() -> Self {
         let (app, facts) = build_unsupported();
         Self::launch(app, facts)
-    }
-
-    pub(super) fn projection(
-        registration: worth_ui_query_binding::UiScalarProjectionRegistration,
-    ) -> Self {
-        let (app, facts) = build_projection(registration);
-        Self::launch(app, facts)
-    }
-
-    pub(super) fn committed_draft() -> Self {
-        let context = egui::Context::default();
-        let _ = context.run_ui(egui::RawInput::default(), |_| {});
-        let host = worth_ui_host_egui::WorthUiHostEgui::new(context);
-        let (app, facts) = build_edit(host.clone());
-        let nodes = component_graph_nodes(&app);
-        let session =
-            launch_mounted_components(app, nodes, UiHostSurfacePresentationMode::NativeDisplay);
-        Self {
-            interaction: InteractionWorld::from_native_session(session, host),
-            facts,
-            next_pointer: 1,
-        }
     }
 
     fn launch(app: worth_ui::facade::app::WorthUiApp, facts: OperabilityFacts) -> Self {

@@ -62,6 +62,27 @@ pub(in crate::mounting::projection) fn complete_hit_test(
     .map_err(UiMountedProjectionDenial::HitTestCompletion)
 }
 
+pub(in crate::mounting) fn reattribute_hit_test(
+    row: UiMountedHitTestMechanic,
+    frame: worth_ui_host_contract::UiMountedFrameIdentity,
+    receipts: &super::super::super::UiMountedNodeReceiptBasis,
+) -> Result<UiMountedHitTestMechanic, UiMountedProjectionDenial> {
+    let node_receipt = receipts
+        .receipt_for(row.mounted_instance())
+        .ok_or(UiMountedProjectionDenial::HitTestNodeReceiptMismatch)?;
+    UiMountedHitTestMechanic::complete_from_runtime_mounting(UiMountedHitTestCompletionInput {
+        frame,
+        surface: row.surface(),
+        binding: row.binding(),
+        mounted_instance: row.mounted_instance(),
+        node_receipt,
+        bounds: row.bounds(),
+        clip_bounds: row.clip_bounds(),
+        order: row.order(),
+    })
+    .map_err(UiMountedProjectionDenial::HitTestCompletion)
+}
+
 fn complete_clip_bounds(
     bounds: worth_ui_host_contract::UiMountedCanonicalBox,
     clip: crate::capability::ComponentHitTestClipContract,

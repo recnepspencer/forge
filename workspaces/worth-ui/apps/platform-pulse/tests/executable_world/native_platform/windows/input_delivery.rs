@@ -1,7 +1,7 @@
-use uiautomation::inputs::{Mouse, MouseButton};
+use uiautomation::inputs::Mouse;
 use uiautomation::types::{Handle, Point};
 use uiautomation::UIAutomation;
-use winsafe::{co, HWND, POINT};
+use winsafe::{co, HwKbMouse, HWND, KEYBDINPUT, MOUSEINPUT, POINT};
 
 use crate::external_observation::{
     NativeClientPixelPoint, NativeInputDeliveryObservation, NativeInputProbeKind,
@@ -56,6 +56,55 @@ pub(super) fn deliver_pointer(
     )
 }
 
+pub(super) fn deliver_wheel_deltas(
+    window: &HWND,
+    observed: ProcessBoundNativeClientAreaObservation,
+) -> Result<(), NativePlatformFailure> {
+    let bounds = observed.bounds();
+    let half_width = i32::try_from(bounds.width() / 2)
+        .map_err(|_| NativePlatformFailure::InvalidCaptureWindowBounds)?;
+    let half_height = i32::try_from(bounds.height() / 2)
+        .map_err(|_| NativePlatformFailure::InvalidCaptureWindowBounds)?;
+    let screen_point = (
+        bounds
+            .left()
+            .checked_add(half_width)
+            .ok_or(NativePlatformFailure::InvalidCaptureWindowBounds)?,
+        bounds
+            .top()
+            .checked_add(half_height)
+            .ok_or(NativePlatformFailure::InvalidCaptureWindowBounds)?,
+    );
+    let automation = UIAutomation::new().map_err(input_failure)?;
+    automation
+        .element_from_handle(Handle::from(window.ptr() as isize))
+        .and_then(|element| element.set_focus())
+        .map_err(input_failure)?;
+    super::input_environment::qualify_pointer_world(window, observed.process_id(), screen_point)
+        .map_err(NativePlatformFailure::InputEnvironment)?;
+    move_pointer_to(screen_point)?;
+    require_point_hit_target_before_effect(window, screen_point)?;
+    let delivered = winsafe::SendInput(&[
+        HwKbMouse::Mouse(MOUSEINPUT {
+            mouseData: 120,
+            dwFlags: co::MOUSEEVENTF::WHEEL,
+            ..Default::default()
+        }),
+        HwKbMouse::Mouse(MOUSEINPUT {
+            mouseData: 120,
+            dwFlags: co::MOUSEEVENTF::HWHEEL,
+            ..Default::default()
+        }),
+    ])
+    .map_err(|error| NativePlatformFailure::InputDelivery(error.to_string()))?;
+    if delivered != 2 {
+        return Err(NativePlatformFailure::InputDelivery(format!(
+            "SendInput delivered {delivered} of 2 wheel events"
+        )));
+    }
+    Ok(())
+}
+
 fn deliver_at(
     window: &HWND,
     observed: ProcessBoundNativeClientAreaObservation,
@@ -82,74 +131,239 @@ fn deliver_at(
         )
         .map_err(NativePlatformFailure::InputEnvironment)?;
     }
-    match kind {
+    let delivered_event_count = match kind {
         NativeInputProbeKind::Pointer => {
-            move_pointer_to((screen_x, screen_y))?;
-            Mouse::default().click_button(MouseButton::LEFT)
+            prime_pointer_motion(window, (screen_x, screen_y))?;
+            require_point_hit_target_before_effect(window, (screen_x, screen_y))?;
+            let delivered = winsafe::SendInput(&[
+                HwKbMouse::Mouse(MOUSEINPUT {
+                    dwFlags: co::MOUSEEVENTF::LEFTDOWN,
+                    ..Default::default()
+                }),
+                HwKbMouse::Mouse(MOUSEINPUT {
+                    dwFlags: co::MOUSEEVENTF::LEFTUP,
+                    ..Default::default()
+                }),
+            ])
+            .map_err(|error| post_effect_failure(kind, 0, error.to_string()))?;
+            require_complete_delivery(kind, delivered, "pointer")?;
+            delivered
         }
         NativeInputProbeKind::Keyboard => {
-            let result = element.send_keys("A", 0);
+            super::input_environment::qualify_keyboard_world(window, observed.process_id())
+                .map_err(NativePlatformFailure::InputEnvironment)?;
             if !element.has_keyboard_focus().map_err(input_failure)? {
-                return Err(NativePlatformFailure::InputDelivery(
-                    "process-bound automation element did not retain keyboard focus".to_owned(),
+                return Err(NativePlatformFailure::InputEnvironment(
+                    super::input_environment::WindowsInputEnvironmentDenial::
+                        KeyboardFocusUnavailable {
+                            target_window: window.ptr() as usize,
+                        },
                 ));
             }
-            result
+            let delivered = winsafe::SendInput(&[
+                HwKbMouse::Kb(KEYBDINPUT {
+                    wVk: co::VK::CHAR_A,
+                    ..Default::default()
+                }),
+                HwKbMouse::Kb(KEYBDINPUT {
+                    wVk: co::VK::CHAR_A,
+                    dwFlags: co::KEYEVENTF::KEYUP,
+                    ..Default::default()
+                }),
+            ])
+            .map_err(|error| post_effect_failure(kind, 0, error.to_string()))?;
+            require_complete_delivery(kind, delivered, "keyboard")?;
+            let retained_focus = element.has_keyboard_focus().map_err(|error| {
+                post_effect_failure(
+                    kind,
+                    delivered,
+                    format!("observe process-bound keyboard focus after delivery: {error}"),
+                )
+            })?;
+            if !retained_focus {
+                return Err(post_effect_failure(
+                    kind,
+                    delivered,
+                    "process-bound automation element lost keyboard focus",
+                ));
+            }
+            delivered
         }
-    }
-    .map_err(input_failure)?;
-    require_point_hit_target(window, (screen_x, screen_y))?;
-    let delivered_point = Mouse::get_cursor_pos().map_err(input_failure)?;
-    if pointer_tolerance.is_some_and(|tolerance| {
-        delivered_point.get_x().abs_diff(screen_x) > tolerance
-            || delivered_point.get_y().abs_diff(screen_y) > tolerance
-    }) {
-        return Err(NativePlatformFailure::InputDelivery(format!(
-            "native pointer landed at ({}, {}) instead of ({screen_x}, {screen_y})",
-            delivered_point.get_x(),
-            delivered_point.get_y()
-        )));
-    }
-    if delivered_point.get_x() < bounds.left()
-        || delivered_point.get_x() >= bounds.right()
-        || delivered_point.get_y() < bounds.top()
-        || delivered_point.get_y() >= bounds.bottom()
+    };
+    let delivered_point = match kind {
+        NativeInputProbeKind::Pointer => {
+            require_point_hit_target_after_effect(
+                window,
+                (screen_x, screen_y),
+                kind,
+                delivered_event_count,
+            )?;
+            let delivered_point = Mouse::get_cursor_pos().map_err(|error| {
+                post_effect_failure(
+                    kind,
+                    delivered_event_count,
+                    format!("observe cursor position after delivery: {error}"),
+                )
+            })?;
+            if pointer_tolerance.is_some_and(|tolerance| {
+                delivered_point.get_x().abs_diff(screen_x) > tolerance
+                    || delivered_point.get_y().abs_diff(screen_y) > tolerance
+            }) {
+                return Err(post_effect_failure(
+                    kind,
+                    delivered_event_count,
+                    format!(
+                        "native pointer landed at ({}, {}) instead of ({screen_x}, {screen_y})",
+                        delivered_point.get_x(),
+                        delivered_point.get_y()
+                    ),
+                ));
+            }
+            (delivered_point.get_x(), delivered_point.get_y())
+        }
+        NativeInputProbeKind::Keyboard => (screen_x, screen_y),
+    };
+    if delivered_point.0 < bounds.left()
+        || delivered_point.0 >= bounds.right()
+        || delivered_point.1 < bounds.top()
+        || delivered_point.1 >= bounds.bottom()
     {
-        return Err(NativePlatformFailure::InputDelivery(
-            "native input cursor was outside the process-bound client area".to_owned(),
+        return Err(post_effect_failure(
+            kind,
+            delivered_event_count,
+            "native input target was outside the process-bound client area",
         ));
     }
     Ok(NativeInputDeliveryObservation::for_client(
         kind,
         observed,
-        (delivered_point.get_x(), delivered_point.get_y()),
-        2,
+        delivered_point,
+        delivered_event_count,
     ))
+}
+
+fn require_complete_delivery(
+    kind: NativeInputProbeKind,
+    delivered_event_count: u32,
+    family: &'static str,
+) -> Result<(), NativePlatformFailure> {
+    if delivered_event_count != 2 {
+        return Err(post_effect_failure(
+            kind,
+            delivered_event_count,
+            format!("SendInput delivered {delivered_event_count} of 2 {family} events"),
+        ));
+    }
+    Ok(())
+}
+
+fn post_effect_failure(
+    kind: NativeInputProbeKind,
+    delivered_event_count: u32,
+    detail: impl Into<String>,
+) -> NativePlatformFailure {
+    NativePlatformFailure::InputDeliveryIndeterminate {
+        kind,
+        delivered_event_count,
+        detail: detail.into(),
+    }
 }
 
 fn move_pointer_to(screen_point: (i32, i32)) -> Result<(), NativePlatformFailure> {
     Mouse::set_cursor_pos(&Point::new(screen_point.0, screen_point.1)).map_err(input_failure)
 }
 
-fn require_point_hit_target(
+fn prime_pointer_motion(
     window: &HWND,
     screen_point: (i32, i32),
 ) -> Result<(), NativePlatformFailure> {
-    let hit = HWND::WindowFromPoint(POINT {
+    let adjacent = (
+        screen_point
+            .0
+            .checked_sub(1)
+            .ok_or(NativePlatformFailure::InvalidCaptureWindowBounds)?,
+        screen_point.1,
+    );
+    super::input_environment::actuate_and_observe_cursor(adjacent)
+        .map_err(NativePlatformFailure::InputEnvironment)?;
+    require_point_hit_target_before_effect(window, adjacent)?;
+    super::input_environment::actuate_and_observe_cursor(screen_point)
+        .map_err(NativePlatformFailure::InputEnvironment)
+}
+
+fn require_point_hit_target_before_effect(
+    window: &HWND,
+    screen_point: (i32, i32),
+) -> Result<(), NativePlatformFailure> {
+    let observed = point_root_window(screen_point);
+    classify_pointer_target(
+        window.ptr() as usize,
+        observed,
+        PointerTargetCheckPhase::BeforeEffect,
+    )
+}
+
+fn require_point_hit_target_after_effect(
+    window: &HWND,
+    screen_point: (i32, i32),
+    kind: NativeInputProbeKind,
+    delivered_event_count: u32,
+) -> Result<(), NativePlatformFailure> {
+    let observed = point_root_window(screen_point);
+    classify_pointer_target(
+        window.ptr() as usize,
+        observed,
+        PointerTargetCheckPhase::AfterEffect {
+            kind,
+            delivered_event_count,
+        },
+    )
+}
+
+fn point_root_window(screen_point: (i32, i32)) -> usize {
+    HWND::WindowFromPoint(POINT {
         x: screen_point.0,
         y: screen_point.1,
-    });
-    let root = hit
-        .as_ref()
-        .and_then(|child| child.GetAncestor(co::GA::ROOT));
-    if root.as_ref() == Some(window) {
+    })
+    .and_then(|child| child.GetAncestor(co::GA::ROOT))
+    .map_or(0, |handle| handle.ptr() as usize)
+}
+
+#[derive(Clone, Copy)]
+pub(super) enum PointerTargetCheckPhase {
+    BeforeEffect,
+    AfterEffect {
+        kind: NativeInputProbeKind,
+        delivered_event_count: u32,
+    },
+}
+
+pub(super) fn classify_pointer_target(
+    expected_window: usize,
+    observed_window: usize,
+    phase: PointerTargetCheckPhase,
+) -> Result<(), NativePlatformFailure> {
+    if observed_window == expected_window {
         return Ok(());
     }
-    Err(NativePlatformFailure::InputDelivery(format!(
-        "native pointer hit window {} instead of bound window {}",
-        hit.map_or(0, |handle| handle.ptr() as usize),
-        window.ptr() as usize,
-    )))
+    match phase {
+        PointerTargetCheckPhase::BeforeEffect => Err(NativePlatformFailure::InputEnvironment(
+            super::input_environment::WindowsInputEnvironmentDenial::PointerTargetMismatch {
+                target_window: expected_window,
+                hit_window: observed_window,
+            },
+        )),
+        PointerTargetCheckPhase::AfterEffect {
+            kind,
+            delivered_event_count,
+        } => Err(post_effect_failure(
+            kind,
+            delivered_event_count,
+            format!(
+                "pointer hit window {observed_window:#x} instead of bound window {expected_window:#x}"
+            ),
+        )),
+    }
 }
 
 fn input_failure(error: uiautomation::Error) -> NativePlatformFailure {

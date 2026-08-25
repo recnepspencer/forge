@@ -37,6 +37,7 @@ pub(super) fn run_watch(
     stop: Arc<AtomicBool>,
     sender: mpsc::SyncSender<PlatformPulseIntentInputRecord>,
     terminal: Arc<Mutex<Option<PlatformPulseIntentInputWatchDenial>>>,
+    readiness: Arc<Mutex<Option<crate::PlatformPulseApplicationReadinessSignal>>>,
 ) {
     let target = root.join(INPUT_FILE);
     let (notification_sender, notification_receiver) = mpsc::sync_channel(CHANNEL_CAPACITY);
@@ -87,12 +88,15 @@ pub(super) fn run_watch(
                         admitted_revision = record.revision();
                         if sender.try_send(record).is_err() {
                             store_capacity_stop(&terminal);
+                            signal_readiness(&readiness);
                             return;
                         }
+                        signal_readiness(&readiness);
                     }
                 },
                 Err(denial) => {
                     store_terminal(&terminal, denial);
+                    signal_readiness(&readiness);
                     return;
                 }
             },
@@ -101,11 +105,22 @@ pub(super) fn run_watch(
                     &terminal,
                     PlatformPulseIntentInputWatchDenial::Watcher(error.to_string()),
                 );
+                signal_readiness(&readiness);
                 return;
             }
             Err(mpsc::RecvTimeoutError::Timeout) => {}
             Err(mpsc::RecvTimeoutError::Disconnected) => return,
         }
+    }
+}
+
+fn signal_readiness(readiness: &Mutex<Option<crate::PlatformPulseApplicationReadinessSignal>>) {
+    if let Some(readiness) = readiness
+        .lock()
+        .expect("intent readiness signal is not poisoned")
+        .as_ref()
+    {
+        readiness.signal();
     }
 }
 

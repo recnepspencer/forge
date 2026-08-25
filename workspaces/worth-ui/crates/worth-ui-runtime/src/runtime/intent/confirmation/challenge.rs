@@ -3,7 +3,7 @@ use super::{
 };
 
 pub const UI_PENDING_INTENT_CONFIRMATION_LIMIT: usize = 16;
-pub const UI_INTENT_CONFIRMATION_TTL_TICKS: u64 = 64;
+pub const UI_INTENT_CONFIRMATION_TTL_MILLIS: u64 = 30_000;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiIntentConfirmationSlotIdentity {
@@ -16,8 +16,8 @@ pub struct UiIntentConfirmationChallenge {
     pub(super) candidate: super::super::payload::UiPreparedIntentPayload,
     pub(super) decision: super::super::operability::UiIntentOperabilityDecision,
     pub(super) policy_identity: Box<str>,
-    pub(super) issued_at: u64,
-    pub(super) expires_at: u64,
+    pub(super) issued_at_millis: u64,
+    pub(super) expires_at_millis: u64,
     pub(super) lineage: super::super::UiIntentAttemptLineage,
     pub(super) slot_identity: UiIntentConfirmationSlotIdentity,
 }
@@ -29,7 +29,7 @@ pub struct UiPendingIntentConfirmation {
     policy_identity: Box<str>,
     lineage: super::super::UiIntentAttemptLineage,
     slot_identity: UiIntentConfirmationSlotIdentity,
-    expires_at: u64,
+    expires_at_millis: u64,
 }
 
 #[must_use]
@@ -42,8 +42,8 @@ pub(super) struct UiPreparedConfirmationChallenge {
     candidate: super::super::payload::UiPreparedIntentPayload,
     decision: super::super::operability::UiIntentOperabilityDecision,
     policy_identity: Box<str>,
-    issued_at: u64,
-    expires_at: u64,
+    issued_at_millis: u64,
+    expires_at_millis: u64,
 }
 
 pub(super) fn prepare_challenge(
@@ -52,16 +52,16 @@ pub(super) fn prepare_challenge(
     let (candidate, decision) = candidate.into_parts();
     let policy_identity = exclusively_required_policy(&decision)
         .ok_or(UiIntentConfirmationStopReason::CandidateNotExclusivelyConfirmable)?;
-    let issued_at = monotonic_tick(candidate.interaction_time_basis())?;
-    let expires_at = issued_at
-        .checked_add(UI_INTENT_CONFIRMATION_TTL_TICKS)
+    let issued_at_millis = monotonic_millis(candidate.interaction_time_basis())?;
+    let expires_at_millis = issued_at_millis
+        .checked_add(UI_INTENT_CONFIRMATION_TTL_MILLIS)
         .ok_or(UiIntentConfirmationStopReason::ChallengeExpiryOverflow)?;
     Ok(UiPreparedConfirmationChallenge {
         candidate,
         decision,
         policy_identity,
-        issued_at,
-        expires_at,
+        issued_at_millis,
+        expires_at_millis,
     })
 }
 
@@ -77,14 +77,14 @@ impl UiPreparedConfirmationChallenge {
             policy_identity: self.policy_identity.clone(),
             lineage,
             slot_identity,
-            expires_at: self.expires_at,
+            expires_at_millis: self.expires_at_millis,
         };
         let challenge = UiIntentConfirmationChallenge {
             candidate: self.candidate,
             decision: self.decision,
             policy_identity: self.policy_identity,
-            issued_at: self.issued_at,
-            expires_at: self.expires_at,
+            issued_at_millis: self.issued_at_millis,
+            expires_at_millis: self.expires_at_millis,
             lineage,
             slot_identity,
         };
@@ -127,8 +127,8 @@ impl UiPendingIntentConfirmation {
         self.slot_identity
     }
 
-    pub const fn expires_at_tick(&self) -> u64 {
-        self.expires_at
+    pub const fn expires_at_millis(&self) -> u64 {
+        self.expires_at_millis
     }
 }
 
@@ -145,11 +145,13 @@ fn exclusively_required_policy(
     causes.next().is_none().then_some(policy_identity)
 }
 
-fn monotonic_tick(
+fn monotonic_millis(
     basis: worth_ui_host_contract::UiHostObservationTimeBasis,
 ) -> Result<u64, UiIntentConfirmationStopReason> {
     match basis {
-        worth_ui_host_contract::UiHostObservationTimeBasis::HostMonotonicTick(tick) => Ok(tick),
+        worth_ui_host_contract::UiHostObservationTimeBasis::HostMonotonicMillis(millis) => {
+            Ok(millis)
+        }
         worth_ui_host_contract::UiHostObservationTimeBasis::HostWallClockMicros(_) => {
             Err(UiIntentConfirmationStopReason::MonotonicTimeRequired {
                 observed: UiIntentConfirmationTimeBasisKind::HostWallClock,

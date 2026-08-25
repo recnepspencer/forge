@@ -16,7 +16,9 @@ use crate::source_delta::{
     AppliedPulseSourceDelta, CanonicalBlueRecoverySourceDelta, GreenPulseSourceDelta,
 };
 
-use super::watched_native_observation::{observe_watched_native, WatchedNativeObservation};
+use super::watched_native_observation::{
+    observe_watched_native, observe_watched_native_stable, WatchedNativeObservation,
+};
 use super::{
     await_watched_observation, AwaitingRecovery, AwaitingReplacement, GreenSuccessor,
     NativeBoundExecutableWorld, PreservedPredecessorEvidence, Published, PulseExecutableWorld,
@@ -156,7 +158,12 @@ fn observe_replacement(
         ),
         _ => (None, None, None),
     };
-    let native = observe_watched_native(world)?;
+    let native = match transition {
+        WatchedPulseTransition::CanonicalBlueRecovery => {
+            observe_watched_native_stable(world, deadline, "stable canonical blue recovery")?
+        }
+        _ => observe_watched_native(world)?,
+    };
     Ok(WatchedReplacementObservation {
         envelope,
         visual: WatchedReplacementVisualObservation {

@@ -14,6 +14,7 @@ pub(crate) struct UiMountedPresentationState {
     pub(super) binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
     pub(super) content: worth_ui_host_contract::UiMountedContentGeneration,
     pub(super) baseline: worth_ui_host_contract::UiHostSurfaceBaselineIdentity,
+    pub(super) receipt_affinity: Option<worth_ui_host_contract::UiMountedNodeReceiptAffinity>,
     commands_by_instance: UiPersistentOrdMap<
         worth_ui_host_contract::UiMountedInstanceIdentity,
         super::command_bundle::UiMountedPresentationCommandBundle,
@@ -92,6 +93,7 @@ impl UiMountedPresentationState {
             binding: projection.binding(),
             content: projection.content_generation(),
             baseline: requirement.baseline(),
+            receipt_affinity: projection.node_receipt_affinity(),
             commands_by_instance: persistent_commands,
             instance_order,
             command_order,
@@ -120,6 +122,7 @@ impl UiMountedPresentationState {
         successor.binding = requirement.binding();
         successor.content = source.frame().content_generation();
         successor.baseline = requirement.baseline();
+        successor.receipt_affinity = source.frame().node_receipt_affinity();
         successor.projection_rows_materialized = source.frame().materialized_projection_rows();
         for instance in source
             .changed_instances()
@@ -155,13 +158,47 @@ impl UiMountedPresentationState {
             .presentation_effects(requirement.presentation_mode(), successor.binding);
         successor.node_changes = source
             .frame()
-            .presentation_node_changes(successor.surface, successor.binding)
+            .presentation_node_changes(
+                source.node_changed_instances(),
+                successor.surface,
+                successor.binding,
+            )
+            .into_iter()
+            .filter(|change| match change {
+                worth_ui_host_contract::UiMountedPresentationNodeChange::Remove(instance) => {
+                    predecessor.instance_order.position(*instance).is_some()
+                }
+                worth_ui_host_contract::UiMountedPresentationNodeChange::Upsert(_) => true,
+            })
+            .collect::<Vec<_>>()
             .into();
-        if let Some(projection) = projection {
-            successor.auxiliary =
-                UiMountedPresentationAuxiliaryState::from_runtime_mounting(projection);
+        let mut lane_candidate = successor.auxiliary.clone();
+        source
+            .frame()
+            .refresh_presentation_lane_auxiliary(&mut lane_candidate, requirement);
+        if !successor
+            .auxiliary
+            .same_lane_presentation_meaning(&lane_candidate)
+        {
+            successor.auxiliary = UiMountedPresentationAuxiliaryState::from_runtime_mounting(
+                projection.expect("lane changes require the complete successor projection"),
+            );
         }
         successor
+    }
+
+    pub(in crate::mounting::presentation) fn successor_projection_required(
+        predecessor: &Self,
+        source: crate::mounting::UiMountedPresentationDeltaSource<'_>,
+        requirement: worth_ui_host_contract::UiMountedSurfaceBindingRequirement,
+    ) -> bool {
+        let mut candidate = predecessor.auxiliary.clone();
+        source
+            .frame()
+            .refresh_presentation_lane_auxiliary(&mut candidate, requirement);
+        !predecessor
+            .auxiliary
+            .same_lane_presentation_meaning(&candidate)
     }
 
     fn apply_precise_replacements(

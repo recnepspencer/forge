@@ -6,8 +6,8 @@ use super::windows::WindowsInputEnvironmentDenial;
 #[cfg(target_os = "windows")]
 use crate::external_observation::{
     NativeClientPixelCapture, NativeClientPixelPoint, NativeInputDeliveryObservation,
-    NativeInputProbeKind, NormalNativeCloseRequestObservation,
-    ProcessBoundNativeClientAreaObservation,
+    NativeInputProbeKind, NativeWindowVisibilityTransitionObservation,
+    NormalNativeCloseRequestObservation, ProcessBoundNativeClientAreaObservation,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -23,14 +23,17 @@ pub(crate) enum NativePlatformFailure {
     EnvironmentQualification(String),
     WindowEnumeration(String),
     WindowLookupDeadline,
-    ExternalObservationDeadline,
     AmbiguousProcessWindows(usize),
     ClientCapture(String),
+    ClientPixelDeadline(&'static str),
     ClientExposure(String),
+    WindowActuation(String),
+    WindowStateDeadline(&'static str),
     InvalidCaptureWindowBounds,
     BoundWindowMissing,
     BoundWindowOwnerChanged,
     BoundClientAreaChanged,
+    BoundWindowDpiChanged,
     ClientOutsideCaptureMonitor,
     InvalidClientCapture {
         image_width: u32,
@@ -42,6 +45,12 @@ pub(crate) enum NativePlatformFailure {
     #[cfg(target_os = "windows")]
     InputEnvironment(WindowsInputEnvironmentDenial),
     InputDelivery(String),
+    #[cfg(target_os = "windows")]
+    InputDeliveryIndeterminate {
+        kind: NativeInputProbeKind,
+        delivered_event_count: u32,
+        detail: String,
+    },
     ProcessWindowResidue(usize),
 }
 
@@ -60,15 +69,19 @@ impl fmt::Display for NativePlatformFailure {
             Self::WindowLookupDeadline => {
                 formatter.write_str("process-bound native window lookup deadline elapsed")
             }
-            Self::ExternalObservationDeadline => {
-                formatter.write_str("owner-issued external observation readiness deadline elapsed")
-            }
             Self::AmbiguousProcessWindows(count) => {
                 write!(formatter, "found {count} visible process windows")
             }
             Self::ClientCapture(error) => write!(formatter, "capture native client area: {error}"),
+            Self::ClientPixelDeadline(posture) => {
+                write!(formatter, "native client pixels did not reach {posture} before deadline")
+            }
             Self::ClientExposure(error) => {
                 write!(formatter, "expose native client area for capture: {error}")
+            }
+            Self::WindowActuation(error) => write!(formatter, "actuate native window: {error}"),
+            Self::WindowStateDeadline(state) => {
+                write!(formatter, "native window did not reach {state} before its deadline")
             }
             Self::InvalidCaptureWindowBounds => {
                 formatter.write_str("native capture window reported invalid bounds")
@@ -81,6 +94,9 @@ impl fmt::Display for NativePlatformFailure {
             }
             Self::BoundClientAreaChanged => {
                 formatter.write_str("the bound native client area changed after observation")
+            }
+            Self::BoundWindowDpiChanged => {
+                formatter.write_str("the bound native window DPI changed after observation")
             }
             Self::ClientOutsideCaptureMonitor => {
                 formatter.write_str("the native client area is not contained by one monitor")
@@ -102,6 +118,15 @@ impl fmt::Display for NativePlatformFailure {
                 write!(formatter, "native input environment denied: {denial}")
             }
             Self::InputDelivery(error) => write!(formatter, "deliver native input: {error}"),
+            #[cfg(target_os = "windows")]
+            Self::InputDeliveryIndeterminate {
+                kind,
+                delivered_event_count,
+                detail,
+            } => write!(
+                formatter,
+                "native {kind:?} input became indeterminate after {delivered_event_count} delivered event(s): {detail}"
+            ),
             Self::ProcessWindowResidue(count) => {
                 write!(formatter, "{count} process window(s) remained after exit")
             }
@@ -124,16 +149,23 @@ pub(crate) trait NativePlatformContract: sealed::Sealed {
         bound: &Self::BoundClientArea,
     ) -> Result<ProcessBoundNativeClientAreaObservation, NativePlatformFailure>;
 
-    fn await_external_observation_ready(
-        &self,
-        bound: &Self::BoundClientArea,
-        deadline: Instant,
-    ) -> Result<ProcessBoundNativeClientAreaObservation, NativePlatformFailure>;
-
     fn capture_client_area(
         &self,
         bound: &Self::BoundClientArea,
     ) -> Result<NativeClientPixelCapture, NativePlatformFailure>;
+
+    fn resize_bound_client_area(
+        &self,
+        bound: &mut Self::BoundClientArea,
+        client_physical_size: [u32; 2],
+        deadline: Instant,
+    ) -> Result<ProcessBoundNativeClientAreaObservation, NativePlatformFailure>;
+
+    fn minimize_and_restore_bound_client_area(
+        &self,
+        bound: &mut Self::BoundClientArea,
+        deadline: Instant,
+    ) -> Result<NativeWindowVisibilityTransitionObservation, NativePlatformFailure>;
 
     fn deliver_input_reachability_probe(
         &self,
@@ -146,6 +178,11 @@ pub(crate) trait NativePlatformContract: sealed::Sealed {
         bound: &Self::BoundClientArea,
         point: NativeClientPixelPoint,
     ) -> Result<NativeInputDeliveryObservation, NativePlatformFailure>;
+
+    fn deliver_wheel_deltas(
+        &self,
+        bound: &Self::BoundClientArea,
+    ) -> Result<(), NativePlatformFailure>;
 
     fn move_cursor(&self, screen_point: (i32, i32)) -> Result<(), NativePlatformFailure>;
 

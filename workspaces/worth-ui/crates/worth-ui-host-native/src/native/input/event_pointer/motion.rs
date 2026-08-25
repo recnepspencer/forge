@@ -24,9 +24,5 @@ pub(super) fn observe(
             return state.terminal_disposition(UiNativeInputObservationStop::CoordinateOutOfRange);
         }
     };
-    let disposition = state.emit_payloads([state.pointer.motion(position)]);
-    if disposition == UiNativeInputObservationDisposition::Retained {
-        state.pointer.record_position(position);
-    }
-    disposition
+    state.emit_payloads([state.pointer.motion(position)])
 }

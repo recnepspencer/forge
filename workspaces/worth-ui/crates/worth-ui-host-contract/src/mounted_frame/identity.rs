@@ -69,6 +69,11 @@ pub struct UiMountedNodeReceiptIdentity {
     issuer_nonce: u64,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct UiMountedNodeReceiptAffinity {
+    issuer: UiMountedNodeReceiptIssuer,
+}
+
 impl UiMountedNodeReceiptIssuer {
     #[doc(hidden)]
     pub fn mint_for(
@@ -96,6 +101,11 @@ impl UiMountedNodeReceiptIssuer {
     pub const fn frame_identity(self) -> UiMountedFrameIdentity {
         self.frame
     }
+
+    #[doc(hidden)]
+    pub const fn receipt_affinity(self) -> UiMountedNodeReceiptAffinity {
+        UiMountedNodeReceiptAffinity { issuer: self }
+    }
 }
 
 impl UiMountedNodeReceiptIdentity {
@@ -122,6 +132,40 @@ impl UiMountedNodeReceiptIdentity {
 
     pub const fn mounted_instance(self) -> UiMountedInstanceIdentity {
         self.mounted_instance
+    }
+}
+
+impl UiMountedNodeReceiptAffinity {
+    pub(crate) const fn from_receipt(receipt: UiMountedNodeReceiptIdentity) -> Self {
+        Self {
+            issuer: UiMountedNodeReceiptIssuer {
+                frame: receipt.frame,
+                nonce: receipt.issuer_nonce,
+            },
+        }
+    }
+
+    #[doc(hidden)]
+    pub const fn rebind_node_receipt(
+        self,
+        receipt: UiMountedNodeReceiptIdentity,
+    ) -> UiMountedNodeReceiptIdentity {
+        self.issuer.receipt_for(receipt.mounted_instance())
+    }
+
+    #[doc(hidden)]
+    pub const fn rebind_realized_region(
+        self,
+        region: crate::UiHostRealizedRegion,
+    ) -> crate::UiHostRealizedRegion {
+        crate::UiHostRealizedRegion::observed_by_host(
+            self.rebind_node_receipt(region.mounted_receipt()),
+            crate::UiHostRealizedGeometry::observed_by_host(region.bounds(), region.clip()),
+            crate::UiHostRealizedOrdering::observed_by_host(
+                region.semantic_order(),
+                region.participation(),
+            ),
+        )
     }
 }
 
