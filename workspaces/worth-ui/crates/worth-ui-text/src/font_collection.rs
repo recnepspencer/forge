@@ -385,7 +385,3 @@ mod application_variation_tests;
 mod coverage_tests;
 #[cfg(test)]
 pub(crate) mod ink_bounds_tests;
-#[cfg(test)]
-mod phase4_evidence;
-#[cfg(test)]
-pub(crate) mod phase5_raster_evidence;

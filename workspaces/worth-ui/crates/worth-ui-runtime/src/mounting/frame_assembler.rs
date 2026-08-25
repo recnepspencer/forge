@@ -33,6 +33,7 @@ pub(crate) struct UiMountedFrameAssemblyInput<'input, 'graph> {
     pub preview: Option<UiMountedPreviewProjectionInput>,
     pub visual_overlay: Option<super::UiMountedVisualOverlayProjectionInput>,
     pub semantic_content: super::UiMountedSemanticContentInput,
+    pub theme_values: super::UiMountedThemeValueSource,
     pub font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
     pub reuse_contract: super::UiMountedFrameReuseContract,
 }
@@ -176,6 +177,7 @@ impl<'state> UiMountedFrameAssembler<'state> {
                 preview: input.preview,
                 visual_overlay: input.visual_overlay,
                 semantic_content: &input.semantic_content,
+                theme_values: &input.theme_values,
                 font_collection: input.font_collection,
                 semantic_predecessor,
                 capability_generation: input.reuse_contract.capability_generation(),

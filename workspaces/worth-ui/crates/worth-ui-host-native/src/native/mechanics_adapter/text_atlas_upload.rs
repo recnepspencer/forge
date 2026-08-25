@@ -49,12 +49,12 @@ impl UiNativeTextAtlasUploadPort for RealTextAtlasUploadPort {
         basis: crate::native::physical_work_signal::UiNativePhysicalSignalExternalBasis,
     ) -> CorrelatedGpuUploadObservation {
         let UiNativeHostState {
-            graphics,
+            device,
             text_atlas_gpu,
             resources,
             ..
         } = state;
-        let Some(graphics) = graphics.as_ref() else {
+        let Some(device) = device.as_ref() else {
             return correlated_failure(
                 basis,
                 GpuUploadFailure::BeforeEffects(UiGlyphRasterTransactionDenial::Unsupported),
@@ -63,8 +63,8 @@ impl UiNativeTextAtlasUploadPort for RealTextAtlasUploadPort {
         submit_correlated_upload(CorrelatedUploadInput {
             gpu: text_atlas_gpu,
             resources,
-            device: &graphics.device,
-            queue: &graphics.queue,
+            device: device.state().device(),
+            queue: device.state().queue(),
             plan,
             uploads,
             basis,

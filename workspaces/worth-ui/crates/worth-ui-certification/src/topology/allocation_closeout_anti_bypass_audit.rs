@@ -14,20 +14,24 @@ pub fn audit_allocation_closeout_anti_bypass_boundaries(
 }
 
 fn host_allocation_authority_violations(inventory: &WorkspaceSourceInventory) -> Vec<String> {
-    inventory
-        .rust_files_under("crates/worth-ui-host-egui/src")
-        .flat_map(|source| {
-            let path = source.absolute_path();
-            forbidden_host_authority_patterns(source.text())
-                .into_iter()
-                .map(move |pattern| {
-                    format!(
-                        "{} contains `{pattern}`; a host adapter must not construct allocation truth",
-                        path.display()
-                    )
-                })
-        })
-        .collect()
+    [
+        "crates/worth-ui-host-native/src",
+        "crates/worth-ui-host-headless/src",
+    ]
+    .into_iter()
+    .flat_map(|root| inventory.rust_files_under(root))
+    .flat_map(|source| {
+        let path = source.absolute_path();
+        forbidden_host_authority_patterns(source.text())
+            .into_iter()
+            .map(move |pattern| {
+                format!(
+                    "{} contains `{pattern}`; a host adapter must not construct allocation truth",
+                    path.display()
+                )
+            })
+    })
+    .collect()
 }
 
 fn forbidden_host_authority_patterns(text: &str) -> Vec<&'static str> {

@@ -42,4 +42,12 @@ impl UiMountedHitTestSeed {
     ) -> crate::capability::ComponentHitTestClipContract {
         self.clip
     }
+
+    #[cfg(test)]
+    pub(in crate::mounting::projection) const fn for_test(rank: u32) -> Self {
+        Self {
+            order: worth_ui_host_contract::UiMountedHitTestOrder::from_runtime_plan(rank),
+            clip: crate::capability::ComponentHitTestClipContract::allocation_bounds(),
+        }
+    }
 }

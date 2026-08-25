@@ -32,17 +32,9 @@ pub(super) use intent_world::{
 };
 
 #[derive(Clone, Copy)]
-pub(super) enum HitOrderProfile {
-    Canonical,
-    Duplicate,
-}
-
-#[derive(Clone, Copy)]
 enum VisualWorldProfile {
     Canonical,
     Clipped,
-    DuplicateHitOrder,
-    FrontmostInset,
 }
 
 pub(super) fn launch_clipped_world() -> worth_ui::facade::app::WorthUiActiveApplicationSession {
@@ -61,13 +53,7 @@ pub(super) fn launch_clipped_world() -> worth_ui::facade::app::WorthUiActiveAppl
     )
 }
 
-pub(super) fn launch_world(
-    order_profile: HitOrderProfile,
-) -> worth_ui::facade::app::WorthUiActiveApplicationSession {
-    let responsibility = match order_profile {
-        HitOrderProfile::Canonical => "phase-3-visual-identity",
-        HitOrderProfile::Duplicate => "phase-3-duplicate-hit-order",
-    };
+pub(super) fn launch_world() -> worth_ui::facade::app::WorthUiActiveApplicationSession {
     let host = WorthUiHeadlessRecorder::with_viewport_extent(
         UiHeadlessRecorderCapacity::production_default(),
         UiViewportExtentObservation {
@@ -75,85 +61,11 @@ pub(super) fn launch_world(
             height: 96.0,
         },
     );
-    let profile = match order_profile {
-        HitOrderProfile::Canonical => VisualWorldProfile::Canonical,
-        HitOrderProfile::Duplicate => VisualWorldProfile::DuplicateHitOrder,
-    };
     launch_world_with_host(
-        profile,
-        responsibility,
+        VisualWorldProfile::Canonical,
+        "phase-3-visual-identity",
         host,
         UiHostSurfacePresentationMode::RecordOnly,
-    )
-}
-
-pub(super) fn launch_native_world<Host>(
-    host: Host,
-) -> worth_ui::facade::app::WorthUiActiveApplicationSession
-where
-    Host: FixedCertificationHostBinding + Clone + 'static,
-{
-    launch_world_with_host(
-        VisualWorldProfile::Canonical,
-        "phase-3-visual-identity-egui",
-        host,
-        UiHostSurfacePresentationMode::NativeDisplay,
-    )
-}
-
-pub(super) fn launch_native_world_with_policy<Host>(
-    host: Host,
-    policy: worth_ui::facade::inspection::UiVisualInspectionPolicy,
-) -> worth_ui::facade::app::WorthUiActiveApplicationSession
-where
-    Host: FixedCertificationHostBinding + Clone + 'static,
-{
-    let application = prepare_filesystem_application(
-        VisualWorldProfile::Canonical,
-        "phase-3-visual-identity-budget",
-        host,
-        Some(policy),
-    );
-    let component_nodes = component_graph_nodes(&application);
-    launch_mounted_components(
-        application,
-        component_nodes,
-        UiHostSurfacePresentationMode::NativeDisplay,
-    )
-}
-
-pub(super) fn launch_native_region_world<Host>(
-    host: Host,
-) -> worth_ui::facade::app::WorthUiActiveApplicationSession
-where
-    Host: FixedCertificationHostBinding + Clone + 'static,
-{
-    launch_world_with_host(
-        VisualWorldProfile::FrontmostInset,
-        "phase-3-region-identity-egui",
-        host,
-        UiHostSurfacePresentationMode::NativeDisplay,
-    )
-}
-
-pub(super) fn launch_native_region_world_with_policy<Host>(
-    host: Host,
-    policy: worth_ui::facade::inspection::UiVisualInspectionPolicy,
-) -> worth_ui::facade::app::WorthUiActiveApplicationSession
-where
-    Host: FixedCertificationHostBinding + Clone + 'static,
-{
-    let application = prepare_filesystem_application(
-        VisualWorldProfile::FrontmostInset,
-        "phase-3-region-identity-budget",
-        host,
-        Some(policy),
-    );
-    let component_nodes = component_graph_nodes(&application);
-    launch_mounted_components(
-        application,
-        component_nodes,
-        UiHostSurfacePresentationMode::NativeDisplay,
     )
 }
 
@@ -166,7 +78,7 @@ fn launch_world_with_host<Host>(
 where
     Host: FixedCertificationHostBinding + Clone + 'static,
 {
-    let application = prepare_filesystem_application(world_profile, responsibility, host, None);
+    let application = prepare_filesystem_application(world_profile, responsibility, host);
     let component_nodes = component_graph_nodes(&application);
     launch_mounted_components(application, component_nodes, mode)
 }
@@ -175,7 +87,6 @@ fn prepare_filesystem_application<Host>(
     world_profile: VisualWorldProfile,
     responsibility: &str,
     host: Host,
-    policy: Option<worth_ui::facade::inspection::UiVisualInspectionPolicy>,
 ) -> worth_ui::facade::app::WorthUiApp
 where
     Host: FixedCertificationHostBinding + Clone + 'static,
@@ -196,39 +107,17 @@ where
         VisualWorldProfile::Clipped => {
             scenario.clipped_visual_identity_capability_application(host.clone())
         }
-        VisualWorldProfile::DuplicateHitOrder => {
-            scenario.duplicate_hit_order_capability_application(host.clone())
-        }
-        VisualWorldProfile::FrontmostInset => {
-            scenario.region_identity_capability_application(host.clone())
-        }
     };
     let submission = FilesystemApplicationLifecycleScenario::lower_snapshot(
         snapshot,
         capabilities.capabilities(),
     );
-    let application = match (world_profile, policy) {
-        (VisualWorldProfile::Canonical, Some(policy)) => scenario
-            .prepare_visual_identity_application_with_policy_and_host(submission, policy, host),
-        (VisualWorldProfile::Canonical, None) => {
+    let application = match world_profile {
+        VisualWorldProfile::Canonical => {
             scenario.prepare_visual_identity_application_with_host(submission, host)
         }
-        (VisualWorldProfile::Clipped, None) => {
+        VisualWorldProfile::Clipped => {
             scenario.prepare_clipped_visual_identity_application_with_host(submission, host)
-        }
-        (VisualWorldProfile::DuplicateHitOrder, None) => {
-            scenario.prepare_duplicate_hit_order_application_with_host(submission, host)
-        }
-        (VisualWorldProfile::FrontmostInset, None) => {
-            scenario.prepare_region_identity_application_with_host(submission, host)
-        }
-        (VisualWorldProfile::FrontmostInset, Some(policy)) => scenario
-            .prepare_region_identity_application_with_policy_and_host(submission, policy, host),
-        (VisualWorldProfile::DuplicateHitOrder, Some(_)) => {
-            panic!("the duplicate-hit-order world does not admit a custom inspection policy")
-        }
-        (VisualWorldProfile::Clipped, Some(_)) => {
-            panic!("the clipped interaction world does not admit a custom inspection policy")
         }
     };
     workspace.close();

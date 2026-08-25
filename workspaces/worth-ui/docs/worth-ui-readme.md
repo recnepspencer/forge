@@ -60,7 +60,7 @@ worth-ui-query-binding
 
 Layering matters.
 
-Worth UI is not a widget helper over egui. It is the product-facing UI runtime
+Worth UI is not a widget helper over a native adapter. It is the product-facing UI runtime
 layer. It owns declaration entry, support/admission, UI graph authority, graph
 touch obligations, measurement/allocation, mounted receipts, service topology,
 hot rebind, diagnostics, and host boundary contracts.
@@ -1028,7 +1028,7 @@ They must not become host-local patch rules.
 
 Mistakes to avoid:
 
-- egui deciding layout meaning
+- a host adapter deciding layout meaning
 - implicit shrink/grow behavior
 - layout behavior hidden in control rendering
 - scroll ownership inferred from overflow accidents
@@ -1633,12 +1633,14 @@ crates/
       measurement_exchange/
       capability_report/
 
-  worth-ui-host-egui/
+  worth-ui-host-native/
     src/
-      adapter.rs
-      frame_runner.rs
-      translate_to_egui/
-      translate_from_egui/
+      native/
+      native_profile.rs
+
+  worth-ui-host-headless/
+    src/
+      headless_translation/
 
   worth-ui-certification/
     src/
@@ -1684,9 +1686,11 @@ worth-ui
   -> worth-ui-query-binding
   -> worth-ui-host-contract
 
-worth-ui-host-egui
+worth-ui-host-native
   -> worth-ui-host-contract
-  -> worth-ui
+
+worth-ui-host-headless
+  -> worth-ui-host-contract
 
 worth-ui-certification
   -> worth-ui

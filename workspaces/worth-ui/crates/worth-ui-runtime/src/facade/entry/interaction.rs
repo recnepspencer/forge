@@ -13,6 +13,7 @@ use super::WorthUiActiveApplicationSession;
 impl WorthUiActiveApplicationSession {
     pub(crate) fn drain_and_admit_host_observation_batches(
         &mut self,
+        reachability: worth_ui_host_native::UiNativeInputReachability,
     ) -> UiNativeObservationIngressSettlement {
         let drain = match self.host_session.drain_observations() {
             Ok(drain) => drain,
@@ -27,7 +28,7 @@ impl WorthUiActiveApplicationSession {
             .map(|batch| self.admit_host_interaction_batch(batch))
             .collect::<Vec<_>>()
             .into_boxed_slice();
-        UiNativeObservationIngressSettlement::from_outcomes(outcomes)
+        UiNativeObservationIngressSettlement::from_outcomes(outcomes, reachability)
     }
 
     /// Validates raw host evidence and immediately moves admitted evidence into

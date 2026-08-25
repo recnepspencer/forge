@@ -7,7 +7,6 @@ fn consumer_raster_authority_mutants_are_rejected() {
     for crate_name in [
         "worth-ui-host-headless",
         "worth-ui-host-native",
-        "worth-ui-host-egui",
         "worth-ui-host-contract",
     ] {
         for path in rust_sources(&crate_root().join(crate_name).join("src")) {
@@ -27,12 +26,6 @@ fn consumer_raster_authority_mutants_are_rejected() {
     ] {
         assert!(consumer_authority_violation(mutant).is_some());
     }
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CASES={{\"P5-GLYPH-RASTER-01\":[\"consumer-reshape\",\"ambient-system-font\"]}}"
-    );
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P5-GLYPH-RASTER-01\":\"consumer-reshape-or-system-font\"}}"
-    );
 }
 
 fn consumer_authority_violation(source: &str) -> Option<&'static str> {

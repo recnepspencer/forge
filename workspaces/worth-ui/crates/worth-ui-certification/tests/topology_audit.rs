@@ -8,7 +8,7 @@ use worth_ui::facade::inspection::{
 };
 use worth_ui_certification::topology::{
     audit_consumers_route_inspection_through_worth_ui_facade, audit_evidence_family_storage_homes,
-    audit_host_egui_dependency_boundary, audit_host_output_plan_encapsulation,
+    audit_host_adapter_dependency_boundary, audit_host_output_plan_encapsulation,
     audit_inspection_crate_does_not_export_runtime_owned_evidence_surface,
     audit_inspection_future_artifact_seed_topology, audit_inspection_public_module_names,
     audit_inspection_public_module_role_purity, audit_no_cross_crate_deep_imports,
@@ -50,20 +50,20 @@ fn assert_has_violation(
 }
 
 #[test]
-fn host_egui_only_uses_host_contract_surfaces() {
-    let violations = audit_host_egui_dependency_boundary(workspace_root());
+fn host_adapters_only_use_host_contract_surfaces() {
+    let violations = audit_host_adapter_dependency_boundary(workspace_root());
     assert!(violations.is_empty(), "{}", violations.join("\n"));
 }
 
 #[test]
-fn host_egui_boundary_audit_rejects_known_bad_runtime_import_fixture() {
+fn host_adapter_boundary_audit_rejects_known_bad_runtime_import_fixture() {
     let inventory = worth_ui_certification::topology::WorkspaceSourceInventory::capture(
-        topology_negative_fixture_root("host_egui_forbidden_runtime_import"),
+        topology_negative_fixture_root("host_native_forbidden_runtime_import"),
     );
-    let violations = audit_host_egui_dependency_boundary(&inventory);
+    let violations = audit_host_adapter_dependency_boundary(&inventory);
     assert_has_violation(
         &violations,
-        "worth-ui-host-egui",
+        "worth-ui-host-native",
         "reaches worth-ui-runtime internals",
     );
 }
@@ -81,12 +81,11 @@ fn product_lifecycle_facade_exposes_observation_not_plan_authority() {
 }
 
 #[test]
-fn host_output_encapsulation_audit_rejects_known_plan_and_facade_leaks() {
+fn host_output_encapsulation_audit_rejects_known_facade_leak() {
     let inventory = worth_ui_certification::topology::WorkspaceSourceInventory::capture(
         topology_negative_fixture_root("host_output_plan_leak"),
     );
     let violations = audit_host_output_plan_encapsulation(&inventory);
-    assert_has_violation(&violations, "egui_plan_leak.rs", "egui-specific meaning");
     assert_has_violation(&violations, "runtime.rs", "owned execution plan");
 }
 

@@ -32,19 +32,18 @@ pub(super) fn capture<Client: UiNativeEventLoopClient>(
     let state = application.shared.borrow();
     UiNativeEventLoopFinishCapture {
         presentation: state.last_presentation.clone(),
-        graphics: state
-            .graphics
-            .as_ref()
-            .map(|graphics| crate::native::UiNativeGraphicsObservation::from_graphics(graphics)),
+        graphics: state.presentation_access().as_ref().map(|access| {
+            crate::native::UiNativeGraphicsObservation::from_presentation_access(access)
+        }),
         client_attribution: application
             .client
             .as_ref()
             .and_then(UiNativeEventLoopClient::presentation_attribution),
-        effect_posture: state.effect_posture,
+        effect_posture: state.lifecycle.effect_posture(),
         host_peak_census: state.compiler_total_peak(),
         retained_frames: state.retained_frame_observations.clone(),
         peak_text_pins: state.peak_text_pins.clone(),
-        input_observations: state.lifecycle_protocol.report(),
+        input_observations: state.lifecycle.input_report(),
         text_pin_frame_counts: state.text_pin_frame_counts.clone().into_boxed_slice(),
         text_pin_frame_observations: state.text_pin_frame_observations.clone().into_boxed_slice(),
         text_atlas_model_frame_digests: state

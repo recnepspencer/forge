@@ -46,6 +46,32 @@ where
     })
 }
 
+pub(crate) fn source_backed_component_app_with_host_and_viewport_allocation<Host>(
+    host: Host,
+) -> WorthUiApp
+where
+    Host: crate::facade::host::WorthUiHostAdapter + 'static,
+{
+    let snapshot = component_builder_with_viewport_allocation()
+        .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
+        .expect("viewport component snapshot should prepare");
+    component_builder_with_viewport_allocation()
+        .with_candidate_submission(component_submission(
+            "viewport-active-session-current",
+            "workspace.component.active_session_current",
+            snapshot.capabilities(),
+        ))
+        .freeze()
+        .map(|application| {
+            crate::facade::entry::WorthUiCertificationApplicationTransition::activate_test_host(
+                application,
+                host,
+            )
+        })
+        .expect("viewport component source application should prepare")
+}
+
 pub(crate) fn source_backed_component_app_with_host_and_scalar_projection<Host>(
     host: Host,
     registration: worth_ui_query_binding::UiScalarProjectionRegistration,
@@ -123,19 +149,38 @@ pub(crate) fn scaled_component_candidate_submission(
 }
 
 fn component_builder() -> crate::facade::entry::WorthUiApplicationBuilder {
+    component_builder_with_allocation(false)
+}
+
+fn component_builder_with_viewport_allocation() -> crate::facade::entry::WorthUiApplicationBuilder {
+    component_builder_with_allocation(true)
+}
+
+fn component_builder_with_allocation(
+    viewport_allocation: bool,
+) -> crate::facade::entry::WorthUiApplicationBuilder {
     let (_, _, world_profile) =
         crate::evidence::measurement::projection::fact_test_support::display_field_projection_context(
             "active-application-session",
         );
+    let allocation = crate::capability::ComponentAllocationMeasurementContract::fill_viewport();
+    let active = source_backed_package_component("workspace.component.active_session_current");
+    let candidate = source_backed_package_component("workspace.component.active_session_candidate");
+    let active = if viewport_allocation {
+        active.with_allocation_measurement_contract(allocation)
+    } else {
+        active
+    };
+    let candidate = if viewport_allocation {
+        candidate.with_allocation_measurement_contract(allocation)
+    } else {
+        candidate
+    };
     WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .with_graph_world_profile(world_profile)
-        .register_component(source_backed_package_component(
-            "workspace.component.active_session_current",
-        ))
-        .register_component(source_backed_package_component(
-            "workspace.component.active_session_candidate",
-        ))
+        .register_component(active)
+        .register_component(candidate)
         .register_theme_token(crate::capability::ThemeTokenDescriptor::define(
             crate::capability::ThemeTokenId::new("theme.removal_only")
                 .expect("removal-only fixture token id is valid"),

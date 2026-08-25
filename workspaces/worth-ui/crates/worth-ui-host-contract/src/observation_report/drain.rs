@@ -2,6 +2,7 @@ use super::UiHostObservationBatch;
 use std::collections::{BTreeSet, VecDeque};
 use std::sync::Mutex;
 
+pub const UI_HOST_OBSERVATION_ACTIVE_SESSION_LIMIT: usize = 16;
 pub const UI_HOST_OBSERVATION_DRAIN_BATCH_LIMIT: usize = 16;
 pub const UI_HOST_OBSERVATION_DRAIN_REPORT_LIMIT: usize = 256;
 pub const UI_HOST_OBSERVATION_DRAIN_BYTE_LIMIT: usize = 64 * 1024;
@@ -15,8 +16,13 @@ pub enum UiHostObservationDrainDenial {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiHostObservationRetentionDenial {
-    ReleasedSession,
+    InactiveSession,
     Capacity(UiHostObservationDrainDenial),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiHostObservationSessionRegistrationDenial {
+    ActiveSessionCapacityExceeded,
 }
 
 /// Adapter-issued, mechanically bounded raw observation transfer.
@@ -29,14 +35,16 @@ pub struct UiHostObservationDrain {
 
 /// Standard adapter-owned bounded retention for raw host reports.
 ///
-/// The adapter owns this value. Runtime and application callers can request a
-/// drain only through the adapter contract and never receive a cloneable queue.
+/// The adapter registers a session only when runtime opens concrete host
+/// authority. Retention then accepts reports only while that session remains
+/// active. Runtime and application callers can request a drain only through
+/// the adapter contract and never receive a cloneable queue.
 pub struct UiHostObservationRetention {
     state: Mutex<UiHostObservationRetentionState>,
 }
 
 struct UiHostObservationRetentionState {
-    released_sessions: BTreeSet<u64>,
+    active_sessions: BTreeSet<u64>,
     batches: VecDeque<UiHostObservationBatch>,
     reports: usize,
     bytes: usize,
@@ -76,7 +84,7 @@ impl Default for UiHostObservationRetention {
     fn default() -> Self {
         Self {
             state: Mutex::new(UiHostObservationRetentionState {
-                released_sessions: BTreeSet::new(),
+                active_sessions: BTreeSet::new(),
                 batches: VecDeque::new(),
                 reports: 0,
                 bytes: 0,
@@ -86,6 +94,17 @@ impl Default for UiHostObservationRetention {
 }
 
 impl UiHostObservationRetention {
+    pub fn register_session(
+        &self,
+        host_session_identity: u64,
+    ) -> Result<(), UiHostObservationSessionRegistrationDenial> {
+        let mut state = self
+            .state
+            .lock()
+            .expect("host observation retention poisoned");
+        register_active_session(&mut state, host_session_identity)
+    }
+
     pub fn retain(
         &self,
         batch: UiHostObservationBatch,
@@ -96,11 +115,9 @@ impl UiHostObservationRetention {
             .state
             .lock()
             .expect("host observation retention poisoned");
-        if state
-            .released_sessions
-            .contains(&batch.canonical_core().host_session())
-        {
-            return Err(UiHostObservationRetentionDenial::ReleasedSession);
+        let host_session = batch.canonical_core().host_session();
+        if !state.active_sessions.contains(&host_session) {
+            return Err(UiHostObservationRetentionDenial::InactiveSession);
         }
         if state.batches.len() == UI_HOST_OBSERVATION_DRAIN_BATCH_LIMIT {
             return Err(UiHostObservationRetentionDenial::Capacity(
@@ -133,6 +150,14 @@ impl UiHostObservationRetention {
         state.reports = next_reports;
         state.bytes = next_bytes;
         Ok(())
+    }
+
+    pub fn is_session_active(&self, host_session_identity: u64) -> bool {
+        self.state
+            .lock()
+            .expect("host observation retention poisoned")
+            .active_sessions
+            .contains(&host_session_identity)
     }
 
     pub fn pending_batch_count(&self) -> usize {
@@ -170,8 +195,22 @@ impl UiHostObservationRetention {
             .lock()
             .expect("host observation retention poisoned");
         take_session_batches(&mut state, host_session_identity);
-        state.released_sessions.insert(host_session_identity);
+        state.active_sessions.remove(&host_session_identity);
     }
+}
+
+fn register_active_session(
+    state: &mut UiHostObservationRetentionState,
+    host_session_identity: u64,
+) -> Result<(), UiHostObservationSessionRegistrationDenial> {
+    if state.active_sessions.contains(&host_session_identity) {
+        return Ok(());
+    }
+    if state.active_sessions.len() == UI_HOST_OBSERVATION_ACTIVE_SESSION_LIMIT {
+        return Err(UiHostObservationSessionRegistrationDenial::ActiveSessionCapacityExceeded);
+    }
+    state.active_sessions.insert(host_session_identity);
+    Ok(())
 }
 
 fn take_session_batches(
@@ -214,109 +253,5 @@ fn measure_batches(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{
-        UiHostObservationBatchInput, UiHostObservationLoss, UiHostObservationPayload,
-        UiHostObservationPresentationBasis, UiHostObservationReport, UiHostObservationSequence,
-        UiHostObservationSequenceRange, UiHostObservationTimeBasis, UiHostPresentationEpoch,
-        UiHostProtocolContract, UiHostProtocolNegotiation, UiMountedFrameIdentity,
-        UiSurfaceBindingGeneration,
-    };
-
-    #[test]
-    fn adapter_retention_is_bounded_drained_and_terminalized_per_session() {
-        let retention = UiHostObservationRetention::default();
-        for sequence in 1..=UI_HOST_OBSERVATION_DRAIN_BATCH_LIMIT {
-            retention
-                .retain(batch(1, sequence as u64, "x"))
-                .expect("canonical adapter retention capacity");
-        }
-        assert_eq!(
-            retention.retain(batch(1, 17, "x")),
-            Err(UiHostObservationRetentionDenial::Capacity(
-                UiHostObservationDrainDenial::BatchCapacityExceeded
-            ))
-        );
-        assert_eq!(retention.drain(1).into_batches().len(), 16);
-        assert_eq!(retention.pending_batch_count(), 0);
-        retention.release_session(1);
-        assert_eq!(
-            retention.retain(batch(1, 18, "x")),
-            Err(UiHostObservationRetentionDenial::ReleasedSession)
-        );
-        retention
-            .retain(batch(2, 1, "x"))
-            .expect("a distinct host session remains usable");
-        assert_eq!(retention.pending_batch_count_for(2), 1);
-        assert_eq!(retention.drain(2).into_batches().len(), 1);
-    }
-
-    #[test]
-    fn drain_bounds_measure_actual_reports_not_untrusted_core_claims() {
-        let report = report(1, "x".repeat(UI_HOST_OBSERVATION_DRAIN_BYTE_LIMIT + 1));
-        let baseline = batch(1, 1, "x");
-        let core = baseline.canonical_core();
-        let forged = UiHostObservationBatch::from_untrusted_parts(
-            crate::UiHostObservationCanonicalCore::from_untrusted(
-                crate::UiHostObservationCanonicalCoreInput {
-                    protocol: core.protocol(),
-                    host_session: core.host_session(),
-                    presentation: core.presentation(),
-                    sequences: core.sequences(),
-                    report_count: core.report_count(),
-                    byte_count: 0,
-                    loss: core.loss(),
-                },
-            ),
-            vec![report],
-            baseline.integrity(),
-        );
-        assert!(matches!(
-            UiHostObservationDrain::bounded(vec![forged]),
-            Err(UiHostObservationDrainDenial::ByteCapacityExceeded)
-        ));
-    }
-
-    fn batch(host_session: u64, sequence: u64, text: &str) -> UiHostObservationBatch {
-        batch_from_reports(host_session, sequence, vec![report(sequence, text.into())])
-    }
-
-    fn batch_from_reports(
-        host_session: u64,
-        sequence: u64,
-        reports: Vec<UiHostObservationReport>,
-    ) -> UiHostObservationBatch {
-        let protocol = match UiHostProtocolContract::current().negotiate() {
-            UiHostProtocolNegotiation::Compatible(agreement) => agreement,
-            UiHostProtocolNegotiation::Incompatible(_) => unreachable!(),
-        };
-        UiHostObservationBatch::new(UiHostObservationBatchInput {
-            protocol,
-            host_session,
-            presentation: UiHostObservationPresentationBasis::new(
-                UiMountedFrameIdentity::mint_unbound().unwrap(),
-                UiSurfaceBindingGeneration::mint_unbound().unwrap(),
-                UiHostPresentationEpoch::issued_by_host(1),
-            ),
-            sequences: UiHostObservationSequenceRange::new(
-                UiHostObservationSequence::new(sequence),
-                UiHostObservationSequence::new(sequence),
-            ),
-            loss: UiHostObservationLoss::Complete,
-            reports,
-        })
-        .expect("focused drain fixture is structurally valid")
-    }
-
-    fn report(sequence: u64, text: String) -> UiHostObservationReport {
-        UiHostObservationReport::new(
-            UiHostObservationSequence::new(sequence),
-            UiHostObservationTimeBasis::HostMonotonicTick(sequence),
-            UiHostObservationPayload::TextInput {
-                revision: sequence,
-                text: text.into_boxed_str(),
-            },
-        )
-    }
-}
+#[path = "drain/tests.rs"]
+mod tests;

@@ -15,6 +15,8 @@ pub(crate) struct UiNativeRetainedDeltaUndo {
     )>,
     order: UiNativeRetainedOrderSnapshot<worth_ui_host_contract::UiMountedPaintOrderIdentity>,
     order_integrity: worth_ui_host_contract::UiMountedPaintOrderIntegrity,
+    regions: super::super::retained_regions::UiNativeRetainedRegions,
+    identity_overlay: super::super::identity_overlay::UiNativeRetainedIdentityOverlay,
     last_paint_attribution: Option<(usize, super::UiNativeRetainedPresentationAttribution)>,
 }
 
@@ -54,6 +56,8 @@ impl UiNativeRetainedDrawList {
                 .order
                 .snapshot(delta.order().iter().map(|edit| edit.identity())),
             order_integrity: self.order_integrity,
+            regions: self.regions.clone(),
+            identity_overlay: self.identity_overlay,
             last_paint_attribution: self.last_paint_attribution,
         };
         if let Err(error) = self
@@ -69,10 +73,58 @@ impl UiNativeRetainedDrawList {
                 .expect("an invalid order receipt must preserve retained state");
             return Err(UiNativeRetainedDrawListDenial::OrderMismatch);
         }
+        self.regions.apply_paint_changes(delta.changes());
+        if self.regions.apply_node_changes(delta).is_err() {
+            self.rollback_delta(undo)
+                .expect("an invalid realized-region delta must roll back exactly");
+            return Err(UiNativeRetainedDrawListDenial::CommandMismatch);
+        }
+        let predecessor_identity_overlay = self.identity_overlay;
+        let identity_overlay_effect = match self.identity_overlay.apply_delta(delta) {
+            Ok(changed) => changed,
+            Err(_) => {
+                self.rollback_delta(undo)
+                    .expect("an invalid identity-overlay delta must roll back exactly");
+                return Err(UiNativeRetainedDrawListDenial::CommandMismatch);
+            }
+        };
+        let region_result = delta.auxiliary().map_or(Ok(()), |auxiliary| {
+            let projection = auxiliary
+                .reconstruct(self.commands.as_map())
+                .map_err(|_| UiNativeRetainedDrawListDenial::CommandMismatch)?;
+            self.regions
+                .replace_hit_tests(&projection)
+                .map_err(|_| UiNativeRetainedDrawListDenial::CommandMismatch)?;
+            Ok(())
+        });
+        if let Err(error) = region_result {
+            self.rollback_delta(undo)
+                .expect("an invalid realized-region delta must roll back exactly");
+            return Err(error);
+        }
+        self.regions
+            .rebind_receipt_affinity(delta.affinity().receipt_affinity());
         self.frame = delta.affinity().successor();
         self.retain_current_paint_attribution();
-        match self.replay_plan(delta.damage(), delta.changes().len(), delta.order().len()) {
-            Ok(plan) => Ok((plan, undo)),
+        let mut replay_damage = delta.damage().to_vec();
+        let overlay_damage =
+            match super::super::identity_overlay::UiNativeRetainedIdentityOverlay::transition_damage(
+                predecessor_identity_overlay,
+                self.identity_overlay,
+            ) {
+                Ok(damage) => damage,
+                Err(_) => {
+                    self.rollback_delta(undo)
+                        .expect("invalid overlay damage must roll back exactly");
+                    return Err(UiNativeRetainedDrawListDenial::CommandMismatch);
+                }
+            };
+        replay_damage.extend(overlay_damage);
+        match self.replay_plan(&replay_damage, delta.changes().len(), delta.order().len()) {
+            Ok(mut plan) => {
+                plan.identity_overlay_effect = identity_overlay_effect;
+                Ok((plan, undo))
+            }
             Err(error) => {
                 self.rollback_delta(undo)
                     .expect("a prevalidated retained delta must roll back exactly");
@@ -111,6 +163,8 @@ impl UiNativeRetainedDrawList {
         }
         self.order.restore(undo.order)?;
         self.order_integrity = undo.order_integrity;
+        self.regions = undo.regions;
+        self.identity_overlay = undo.identity_overlay;
         self.last_paint_attribution = undo.last_paint_attribution;
         self.frame = undo.frame;
         Ok(())

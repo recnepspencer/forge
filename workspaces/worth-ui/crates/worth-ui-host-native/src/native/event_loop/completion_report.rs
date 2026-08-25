@@ -26,6 +26,7 @@ pub(super) struct UiNativeEventLoopCompletionEvidence {
     pub text_atlas_transactions: u64,
     pub derived_state_reconstruction: Option<crate::UiNativeDerivedStateReconstructionObservation>,
     pub client_shutdown: Option<UiNativeClientShutdownObservation>,
+    pub shutdown_overlap: super::UiNativeEventLoopShutdownOverlapObservation,
 }
 
 impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
@@ -68,6 +69,7 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
             text_atlas_transactions: evidence.text_atlas_transactions,
             derived_state_reconstruction: evidence.derived_state_reconstruction,
             client_shutdown: evidence.client_shutdown,
+            shutdown_overlap: evidence.shutdown_overlap,
         }
     }
 }

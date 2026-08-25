@@ -84,7 +84,7 @@ fn map_content_outcome<'session>(
         crate::facade::entry::WorthUiMountedContentRebindOutcome::RejectedBeforeEffects {
             rejections,
             retry: prepared,
-        } if first_attempt => retry_host(plan, registration, prepared, rejections),
+        } => retry_host(plan, registration, prepared, rejections),
         crate::facade::entry::WorthUiMountedContentRebindOutcome::RetentionDenied {
             denial,
             retry: prepared,
@@ -126,10 +126,7 @@ fn map_content_outcome<'session>(
                 UiRebindInternalDefectOutcome::completion_authority_rejected(plan, registration),
             )
         }
-        crate::facade::entry::WorthUiMountedContentRebindOutcome::RejectedBeforeEffects {
-            ..
-        }
-        | crate::facade::entry::WorthUiMountedContentRebindOutcome::RetentionDenied { .. }
+        crate::facade::entry::WorthUiMountedContentRebindOutcome::RetentionDenied { .. }
         | crate::facade::entry::WorthUiMountedContentRebindOutcome::AdmissionDenied { .. } => {
             unreachable!("content completion cannot return a preparation-stage denial")
         }

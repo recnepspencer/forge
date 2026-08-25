@@ -53,10 +53,16 @@ pub(super) fn prepare(
                 Ok((candidate, work))
             }
             (Some(source_frame), Some(predecessor)) if source_frame == predecessor.frame() => {
+                let projection = UiMountedPresentationState::successor_projection_required(
+                    predecessor,
+                    source,
+                    surface.requirement(),
+                )
+                .then(|| surface.projection());
                 let candidate = UiMountedPresentationState::successor_from_source(
                     predecessor,
                     source,
-                    None,
+                    projection,
                     surface.requirement(),
                 );
                 predecessor

@@ -72,6 +72,7 @@ pub(crate) enum WorthUiHostSessionActivationDenial {
     IdentityExhausted,
     Protocol(worth_ui_host_contract::UiHostProtocolDenial),
     MountedPresentationLease(crate::mounting::presentation::UiMountedPresentationLeaseDenial),
+    ObservationSession(worth_ui_host_contract::UiHostObservationSessionRegistrationDenial),
 }
 
 impl WorthUiHostSessionAuthority {
@@ -91,14 +92,17 @@ impl WorthUiHostSessionAuthority {
             .map_err(|_| WorthUiHostSessionActivationDenial::IdentityExhausted)?;
         let identity = WorthUiHostSessionIdentity { value };
         let adapter_authority = UiHostAdapterSessionAuthority::activate(value);
+        let mounted_presentation_lease = adapter_authority
+            .claim_mounted_presentation_lease()
+            .map_err(WorthUiHostSessionActivationDenial::MountedPresentationLease)?;
         let capability_report = plan
             .capability_report()
             .clone()
             .with_observation_generation(WorthUiHostCapabilityObservationGeneration::new(value));
         let adapter = plan.adapter();
-        let mounted_presentation_lease = adapter_authority
-            .claim_mounted_presentation_lease()
-            .map_err(WorthUiHostSessionActivationDenial::MountedPresentationLease)?;
+        adapter
+            .open_host_session(&adapter_authority)
+            .map_err(WorthUiHostSessionActivationDenial::ObservationSession)?;
         Ok(Self {
             identity,
             protocol,

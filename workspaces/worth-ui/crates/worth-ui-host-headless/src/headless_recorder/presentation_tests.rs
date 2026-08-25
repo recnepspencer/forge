@@ -131,9 +131,6 @@ fn ordinary_delta_returns_one_delta_record_without_parallel_retained_history() {
     let retained = retained.as_ref().unwrap();
     assert_eq!(retained.frame, delta.affinity().successor());
     assert_eq!(retained.commands.len(), initial.commands().len() - 1);
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-HEADLESS-COST-01\":\"complete-transcript-clone\"}}"
-    );
 }
 
 fn view<'work>(

@@ -2,7 +2,8 @@ use winit::dpi::PhysicalPosition;
 use winit::event::{ElementState, WindowEvent};
 use winit::keyboard::{Key, PhysicalKey};
 use worth_ui_host_contract::{
-    UiHostInputRecipientBindingReceipt, UiHostObservationDrain, UiHostPresentationEpoch,
+    UiHostInputRecipientBindingReceipt, UiHostObservationDrain,
+    UiHostObservationSessionRegistrationDenial, UiHostPresentationEpoch,
 };
 
 use super::{
@@ -150,6 +151,13 @@ impl UiNativeLifecycleProtocol {
 
     pub fn drain(&mut self, host_session: u64) -> UiHostObservationDrain {
         self.input.drain(host_session)
+    }
+
+    pub fn register_session(
+        &self,
+        host_session: u64,
+    ) -> Result<(), UiHostObservationSessionRegistrationDenial> {
+        self.input.register_session(host_session)
     }
 
     pub fn install_input_recipient(&mut self, binding: UiHostInputRecipientBindingReceipt) -> bool {

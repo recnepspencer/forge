@@ -12,8 +12,6 @@ mod pixels;
 mod transform;
 
 #[cfg(test)]
-pub(super) mod phase5_evidence;
-#[cfg(test)]
 mod tests;
 
 pub(crate) use image::predicted_geometry;

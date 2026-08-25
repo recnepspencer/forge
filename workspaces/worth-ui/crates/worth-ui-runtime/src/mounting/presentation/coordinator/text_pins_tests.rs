@@ -80,7 +80,6 @@ fn real_prepared_demands_advance_pins_only_after_accepted_settlement() {
     assert!(retained.additions().is_empty());
     assert!(retained.releases().is_empty());
     owner.commit_presented(retained);
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P5-ATLAS-PINNING-01\":1}}");
 }
 
 #[test]
@@ -120,10 +119,6 @@ fn shared_pins_release_only_after_the_last_binding_is_deregistered() {
     assert!(!release_last.releases().is_empty());
     owner.commit_presented(release_last);
     assert!(owner.committed(second_binding).is_empty());
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CASES={{\"P5-ATLAS-PINNING-01\":[\"shared-owner-preservation\",\"last-owner-release\"]}}"
-    );
-    println!("WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P5-ATLAS-PINNING-01\":\"live-layout-unpin\"}}");
 }
 
 #[test]
@@ -318,5 +313,4 @@ fn partial_delta_replaces_only_its_command_and_preserves_unchanged_shared_pins()
         .records()
         .iter()
         .all(|record| committed.iter().any(|pin| pin.key() == record.key())));
-    println!("WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P5-ATLAS-PINNING-01\":\"live-layout-unpin\"}}");
 }

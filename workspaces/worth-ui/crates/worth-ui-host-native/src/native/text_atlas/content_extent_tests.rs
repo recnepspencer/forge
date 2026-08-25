@@ -28,7 +28,7 @@ fn key() -> UiGlyphRasterKey {
 }
 
 #[test]
-pub(crate) fn retained_content_extent_is_the_uploaded_shape_not_the_padded_allocation() {
+fn retained_content_extent_is_the_uploaded_shape_not_the_padded_allocation() {
     let atlas = UiNativeTextAtlas::new();
     let key = key();
     let demand = UiNativeTextAtlasDemand::from_native_geometry(

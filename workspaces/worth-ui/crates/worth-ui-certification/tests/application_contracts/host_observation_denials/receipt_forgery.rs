@@ -42,7 +42,7 @@ fn mounted_report(
 ) -> UiHostObservationReport {
     UiHostObservationReport::new(
         UiHostObservationSequence::new(1),
-        UiHostObservationTimeBasis::HostMonotonicTick(1),
+        UiHostObservationTimeBasis::HostMonotonicMillis(1),
         UiHostObservationPayload::Focus { focused: true },
     )
     .with_mounted_basis(UiHostObservationMountedBasis::new(instance, receipt))

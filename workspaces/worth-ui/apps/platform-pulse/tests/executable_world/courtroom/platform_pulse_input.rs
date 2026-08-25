@@ -1,13 +1,16 @@
 use std::time::Instant;
 
-use crate::product_process::{InitialBlue, NativeInputReached, Published, PulseExecutableWorld};
+use crate::product_process::{
+    InitialBlue, NativeInputCausalStep, NativeInputReached, Published, PulseExecutableWorld,
+};
 
-pub(super) fn reach_native_input(
+pub(super) fn reach_native_input_observed(
     initial: PulseExecutableWorld<Published<InitialBlue>>,
     deadline: Instant,
+    observe_step: impl FnMut(NativeInputCausalStep),
 ) -> PulseExecutableWorld<Published<NativeInputReached<InitialBlue>>> {
     let reached = initial
-        .reach_native_input(deadline)
+        .reach_native_input_observed(deadline, observe_step)
         .unwrap_or_else(|failure| {
             panic!("real native input reaches the production adapter: {failure}")
         });

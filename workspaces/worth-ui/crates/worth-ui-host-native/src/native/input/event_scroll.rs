@@ -36,12 +36,24 @@ pub(super) fn observe(
                     }
                 }
             }
-            MouseScrollDelta::LineDelta(..) => {
-                return Some(state.terminal_disposition(
-                    UiNativeInputObservationStop::Unsupported(
-                        UiNativeInputObservationEventFamily::Scroll,
-                    ),
-                ));
+            MouseScrollDelta::LineDelta(x_lines, y_lines) => {
+                match pointer::logical_line_delta(
+                    *x_lines,
+                    *y_lines,
+                    profile.wheel_line_logical_units,
+                ) {
+                    Ok(delta) => delta,
+                    Err(pointer::UiNativePointerCoordinateDenial::NotFinite) => {
+                        return Some(state.terminal_disposition(
+                            UiNativeInputObservationStop::CoordinateNotFinite,
+                        ));
+                    }
+                    Err(pointer::UiNativePointerCoordinateDenial::OutOfRange) => {
+                        return Some(state.terminal_disposition(
+                            UiNativeInputObservationStop::CoordinateOutOfRange,
+                        ));
+                    }
+                }
             }
         };
     Some(state.emit_payloads([UiHostObservationPayload::ScrollDelta {

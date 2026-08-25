@@ -64,6 +64,9 @@ fn visible_outcome(
     let maximum_results = usize::from(input.budget.maximum_results());
     let mut contributors = Vec::new();
     for record in candidates {
+        if record.opacity() == super::UiVisibleOpacity::Unsupported {
+            return worth_ui_inspection::UiVisualVisibleOutcome::Unsupported;
+        }
         if contributors.len() == maximum_results {
             return worth_ui_inspection::UiVisualVisibleOutcome::Incomplete(input.budget);
         }

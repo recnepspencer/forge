@@ -43,6 +43,28 @@ impl UiHostMeasurementReplanConsequence {
         &self.measurement
     }
 
+    pub(crate) fn admit_same_turn_successor(
+        &mut self,
+        successor: Self,
+    ) -> Result<(), super::UiReplanLocalityDenial> {
+        if self == &successor {
+            return Ok(());
+        }
+        let (_, current_generation, current_order) = self.measurement.host_source_position();
+        let (_, successor_generation, successor_order) =
+            successor.measurement.host_source_position();
+        if self.neighborhood_identity_digest != successor.neighborhood_identity_digest
+            || self.predecessor_basis_identity_digest != successor.predecessor_basis_identity_digest
+            || self.measurement.request_identity() != successor.measurement.request_identity()
+            || current_generation != successor_generation
+            || successor_order <= current_order
+        {
+            return Err(super::UiReplanLocalityDenial::HostMeasurementSuccessorDenied);
+        }
+        *self = successor;
+        Ok(())
+    }
+
     pub(crate) fn identity_digest(&self) -> u64 {
         let (_, source_generation, source_order) = self.measurement.host_source_position();
         crate::declaration::stable_text_digest("worth-ui.host-measurement-consequence")

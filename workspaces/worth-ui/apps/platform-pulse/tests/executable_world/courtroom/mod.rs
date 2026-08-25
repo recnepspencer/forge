@@ -3,6 +3,8 @@ mod exclusive_native_courtroom;
 #[cfg(target_os = "windows")]
 mod journey_cost;
 #[cfg(target_os = "windows")]
+mod native_cutover;
+#[cfg(target_os = "windows")]
 mod native_gate_d_pin;
 #[cfg(target_os = "windows")]
 mod native_phase2;
@@ -10,6 +12,10 @@ mod native_phase2;
 mod native_phase3;
 #[cfg(target_os = "windows")]
 mod native_phase6;
+#[cfg(target_os = "windows")]
+mod native_phase7;
+#[cfg(target_os = "windows")]
+mod native_phase8;
 #[cfg(target_os = "windows")]
 mod native_phase_f;
 mod native_phase_f_reconstruction;

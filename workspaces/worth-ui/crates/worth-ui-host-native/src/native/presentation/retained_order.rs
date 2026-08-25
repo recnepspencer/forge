@@ -265,9 +265,5 @@ mod tests {
         assert_eq!(denied.high_water_entries(), 4_096);
         assert_eq!(denied.rotations(), 0);
         assert_eq!(order.ordered().collect::<Vec<_>>(), expected);
-        println!("WORTH_UI_LEDGER_COUNTERS={{\"P3-TOTAL-ORDER-01\":4096}}");
-        println!(
-            "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-TOTAL-ORDER-01\":\"identity-ordering\"}}"
-        );
     }
 }

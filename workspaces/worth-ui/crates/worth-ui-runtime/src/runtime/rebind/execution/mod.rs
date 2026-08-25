@@ -15,6 +15,7 @@ mod visual_comparison_request;
 pub(crate) use admission::{admit_plan, UiRebindFinalAdmissionBasis};
 pub use admission::{UiRebindExecutionRequest, UiRebindPreparationDenial};
 pub use effecting::{UiEffectingRebind, UiEffectingRebindCompletion};
+pub(crate) use outcome::{UiDetachedRebindCompletion, UiDetachedRebindRetry};
 pub use outcome::{
     UiDuplicateObservationReceipt, UiRebindCancellationReceipt, UiRebindCompletionHandle,
     UiRebindDenialCause, UiRebindDenialReceipt, UiRebindInternalDefectKind,

@@ -24,13 +24,12 @@ mod intent_payload;
 mod intent_resource_census;
 mod intent_routing;
 mod interaction;
-#[cfg(feature = "legacy-egui-migration")]
-mod legacy_egui_application_transition;
 mod local_interaction_recipient;
 mod measurement_exchange;
 mod mounted_allocation_denial;
 mod mounted_allocation_establishment;
 mod mounted_allocation_inspection;
+mod mounted_application_presentation;
 mod mounted_content_rebind;
 mod mounted_frame_execution;
 mod mounted_identity;
@@ -42,6 +41,8 @@ mod mounted_publication;
 mod native_application_identity_trace_test_support;
 #[cfg(test)]
 mod native_application_identity_trace_tests;
+#[cfg(test)]
+mod native_application_presentation_attribution_tests;
 mod native_application_program;
 mod native_application_shell;
 #[cfg(test)]
@@ -53,7 +54,9 @@ mod native_intent_evidence;
 mod native_intent_execution;
 mod native_intent_posture;
 mod native_intent_terminal_posture;
+mod native_managed_rebind;
 mod native_observation_settlement;
+pub(crate) use native_observation_settlement::UiNativeObservationIngressSettlement;
 #[cfg(test)]
 mod native_observation_tests;
 mod native_projection_rebind;
@@ -61,6 +64,8 @@ mod native_projection_rebind;
 mod native_projection_rebind_tests;
 mod native_replacement_allocation;
 mod native_source_rebind;
+#[cfg(test)]
+mod native_source_rebind_tests;
 mod observation;
 mod observation_report;
 mod rebind_execution;
@@ -101,6 +106,10 @@ pub use application_replacement::{
     WorthUiPreparedMountedApplicationReplacement, WorthUiReplacementCandidateSummary,
     WorthUiReplacementPlannedCostEnvelope,
 };
+pub(crate) use application_replacement::{
+    WorthUiDetachedMountedApplicationReplacementInFlight,
+    WorthUiDetachedPreparedMountedApplicationReplacement,
+};
 pub use builder::CapabilityRegistrationBuilder;
 #[cfg(any(test, feature = "certification-support"))]
 pub use certification_application_transition::WorthUiCertificationApplicationTransition;
@@ -109,8 +118,6 @@ pub use intent_consequence_publication::{
     UiIntentConsequencePublicationCompletion, UiIntentConsequencePublicationOutcome,
     UiIntentConsequencePublicationRecovery,
 };
-#[cfg(feature = "legacy-egui-migration")]
-pub use legacy_egui_application_transition::WorthUiLegacyEguiApplicationTransition;
 #[cfg(any(test, feature = "certification-support"))]
 pub use local_interaction_recipient::WorthUiLocalInputRecipientCertificationExt;
 pub use mounted_allocation_denial::{
@@ -124,7 +131,11 @@ pub use mounted_allocation_inspection::{
     WorthUiMountedAllocationInspectionCertificationExt,
     WorthUiMountedAllocationProjectionInspectionDenial,
 };
+pub use mounted_application_presentation::{
+    UiMountedHostMeasurementTransitionDenial, UiMountedHostMeasurementUnexpectedTransition,
+};
 pub(crate) use mounted_content_rebind::{
+    WorthUiDetachedMountedContentRebindInFlight, WorthUiDetachedPreparedMountedContentRebind,
     WorthUiMountedContentPublicationReceipt, WorthUiMountedContentRebindInFlight,
     WorthUiMountedContentRebindIndeterminate, WorthUiMountedContentRebindOutcome,
     WorthUiPreparedMountedContentRebind,
@@ -160,13 +171,27 @@ pub use native_intent::{
     WorthUiNativeIntentStop, WorthUiNativeIntentStopped, WorthUiNativeIntentTransition,
     WorthUiNativeInteractionIngressStop,
 };
+pub use native_intent_execution::{
+    WorthUiNativeManagedIntentConsequencePublicationDenial,
+    WorthUiNativeManagedIntentConsequencePublicationOutcome,
+};
 pub use native_intent_posture::{
     WorthUiNativeIntentPosturePublicationCompletion, WorthUiNativeIntentPosturePublicationOutcome,
-    WorthUiNativeIntentPosturePublicationRecovery, WorthUiNativeIntentPosturePublicationStop,
+    WorthUiNativeIntentPosturePublicationRecovery, WorthUiNativeIntentPosturePublicationRetry,
+    WorthUiNativeIntentPosturePublicationStop, WorthUiNativeManagedIntentPosturePublicationDenial,
+    WorthUiNativeManagedIntentPosturePublicationOutcome,
 };
 pub use native_intent_terminal_posture::WorthUiNativeIntentTerminalPostureOutcome;
-pub use native_projection_rebind::WorthUiNativeProjectionRebindDenial;
-pub use native_source_rebind::WorthUiNativeSourceRebindDenial;
+pub use native_managed_rebind::{
+    WorthUiNativeManagedRebindDenial, WorthUiNativeManagedRebindProgress,
+    WorthUiNativeManagedRebindStop,
+};
+pub use native_projection_rebind::{
+    WorthUiNativeManagedProjectionRebindOutcome, WorthUiNativeProjectionRebindDenial,
+};
+pub use native_source_rebind::{
+    WorthUiNativeManagedSourceRebindOutcome, WorthUiNativeSourceRebindDenial,
+};
 pub(crate) use rebind_execution::WorthUiPreparedEvidenceOnlyApplicationRebind;
 pub(crate) use rebind_recovery::WorthUiRebindRecoveryAuthority;
 pub use selection_interaction::UiCurrentProjectionOptionStop;

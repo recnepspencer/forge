@@ -73,7 +73,11 @@ fn real_source_schema_edit_compiles_typed_stop_and_preserves_mounted_value() {
     assert_eq!(transition.declaration_identity(), PROJECTION);
     assert_eq!(transition.view_identity().as_str(), PROJECTION);
     assert_eq!(selected_field(transition.predecessor()), "status");
-    assert_eq!(selected_field(transition.candidate()), "revision");
+    assert_eq!(selected_field(transition.candidate()), "value");
+    assert_eq!(
+        typed_field(transition.candidate()),
+        worth_ui_query_binding::WorthUiProjectionField::QueryRevisionValue
+    );
     assert_eq!(selected_field(transition.installed()), "status");
     let Some(crate::mounting::UiMountedSemanticTextContent::Scalar(content)) =
         plan.content().get(transition.graph_node())
@@ -206,13 +210,18 @@ fn status_registration() -> UiScalarProjectionRegistration {
         .expect("Worth UI Query domain installed");
     UiScalarProjectionRegistration::text(
         domain.projection_view(PROJECTION).unwrap(),
-        UiProjectionFieldRequirement::declared("status").unwrap(),
+        UiProjectionFieldRequirement::query_text_status(),
     )
 }
 
 fn scalar_requirement(selected_field: &str) -> UiProjectionSchemaRequirement {
+    let selected_field = match selected_field {
+        "status" => UiProjectionFieldRequirement::query_text_status(),
+        "revision" => UiProjectionFieldRequirement::query_revision(),
+        other => UiProjectionFieldRequirement::declared(other).unwrap(),
+    };
     UiProjectionSchemaRequirement::Scalar(UiScalarSchemaRequirement::text(
-        UiProjectionFieldRequirement::declared(selected_field).unwrap(),
+        selected_field,
         worth_ui_query_binding::UiProjectionLifecycleRequirement::Live,
     ))
 }
@@ -222,6 +231,20 @@ fn selected_field(requirement: &UiProjectionSchemaRequirement) -> &str {
         UiProjectionSchemaRequirement::Scalar(requirement) => {
             requirement.selected_field().declared_name()
         }
+        UiProjectionSchemaRequirement::Collection(_) => {
+            panic!("the scalar Pulse requirement must not change shape")
+        }
+    }
+}
+
+fn typed_field(
+    requirement: &UiProjectionSchemaRequirement,
+) -> worth_ui_query_binding::WorthUiProjectionField {
+    match requirement {
+        UiProjectionSchemaRequirement::Scalar(requirement) => requirement
+            .selected_field()
+            .typed_field()
+            .expect("real schema transition fields carry typed Worth UI authority"),
         UiProjectionSchemaRequirement::Collection(_) => {
             panic!("the scalar Pulse requirement must not change shape")
         }

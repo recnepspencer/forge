@@ -7,15 +7,12 @@ use worth_ui_host_headless::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder
 use worth_ui_runtime::facade::measurement_exchange::UiViewportExtentObservation;
 
 use super::super::facts::OperabilityFacts;
-use super::super::intent_types::{
-    PrimaryIntent, ProjectionIntent, SecondaryIntent, UnsupportedIntent,
-};
+use super::super::intent_types::{PrimaryIntent, SecondaryIntent, UnsupportedIntent};
 
 pub(super) struct OperabilityApplicationInput<P> {
     source: WorthUiRustAuthoredArtifactInput,
     primary_provider: P,
     unsupported: bool,
-    projection: Option<worth_ui_query_binding::UiScalarProjectionRegistration>,
 }
 
 impl<P> OperabilityApplicationInput<P> {
@@ -24,20 +21,11 @@ impl<P> OperabilityApplicationInput<P> {
             source,
             primary_provider,
             unsupported: false,
-            projection: None,
         }
     }
 
     pub(super) fn with_unsupported_definition(mut self) -> Self {
         self.unsupported = true;
-        self
-    }
-
-    pub(super) fn with_projection(
-        mut self,
-        projection: worth_ui_query_binding::UiScalarProjectionRegistration,
-    ) -> Self {
-        self.projection = Some(projection);
         self
     }
 }
@@ -76,12 +64,6 @@ where
         .register_intent_provider(
             worth_ui_certification::WorthUiCertificationBeforeEffectProvider::<SecondaryIntent>::new(),
         )
-        .unwrap()
-        .register_intent_definition(UiIntentDefinition::<ProjectionIntent>::application_effect())
-        .unwrap()
-        .register_intent_provider(
-            worth_ui_certification::WorthUiCertificationBeforeEffectProvider::<ProjectionIntent>::new(),
-        )
         .unwrap();
     let builder = if input.unsupported {
         builder
@@ -93,12 +75,6 @@ where
             .unwrap()
     } else {
         builder
-    };
-    let builder = match input.projection {
-        Some(registration) => builder
-            .register_scalar_projection(registration)
-            .expect("operability projection registers"),
-        None => builder,
     };
     builder
         .with_rust_authored_input(input.source)

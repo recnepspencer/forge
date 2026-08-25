@@ -19,7 +19,11 @@ use crate::mounting::projection::node_receipt::{UiMountedNodeReceipt, UiMountedN
 use crate::mounting::projection::semantic_text::{
     lower_semantic_text_seed, UiMountedSemanticTextFormattingSeed, UiMountedSemanticTextSeed,
 };
+use crate::mounting::projection::{
+    hit_test::UiMountedHitTestSeed, static_paint::UiMountedStaticPaintSeed,
+};
 
+mod frame_affinity;
 mod phase4_locality;
 
 #[test]
@@ -173,6 +177,69 @@ pub(crate) fn mechanic_source_routes_paint_only_work_through_current_mounted_aut
     }
 }
 
+#[test]
+fn sparse_text_does_not_hide_a_simultaneous_static_paint_change() {
+    let (fonts, _) = worth_ui_text::UiGlobalFontCollection::admit_qualified_profile().unwrap();
+    let fonts = Arc::new(fonts);
+    let instance = UiMountedInstanceIdentity::mint_unbound().unwrap();
+    let surface = UiSemanticSurfaceIdentity::mint_unbound().unwrap();
+    let binding = UiSurfaceBindingGeneration::mint_unbound().unwrap();
+    let graph_node = crate::graph::UiGraphNodeIdentity::new(4_042);
+    let initial_seed = UiMountedSemanticTextSeed::scalar_for_test();
+    let initial = semantic_projection(graph_node, instance, surface, binding, initial_seed.clone());
+    let initial_frame = UiMountedFrameIdentity::mint_unbound().unwrap();
+    let initial_receipts = receipt_basis(initial_frame, instance);
+    let changed = [instance];
+    let mut source = UiMountedMechanicSource::default();
+    source
+        .apply(completion(
+            initial_frame,
+            UiMountedContentGeneration::mint_unbound().unwrap(),
+            &initial_receipts,
+            &initial,
+            &fonts,
+            &changed,
+            1,
+        ))
+        .unwrap();
+
+    let successor_seed = lower_semantic_text_seed(
+        None,
+        Some(&initial_seed),
+        Some(
+            UiMountedSemanticTextFormattingSeed::body_default_with_color_for_test(
+                UiMountedRgba8::new(247, 129, 47, 255),
+            ),
+        ),
+    )
+    .unwrap()
+    .unwrap();
+    let successor = semantic_projection_with_static_color(
+        graph_node,
+        instance,
+        surface,
+        binding,
+        successor_seed,
+        UiMountedRgba8::new(48, 129, 247, 255),
+    );
+    let successor_frame = UiMountedFrameIdentity::mint_unbound().unwrap();
+    let successor_receipts = receipt_basis(successor_frame, instance);
+    let mutation = source
+        .apply(completion(
+            successor_frame,
+            UiMountedContentGeneration::mint_unbound().unwrap(),
+            &successor_receipts,
+            &successor,
+            &fonts,
+            &changed,
+            2,
+        ))
+        .unwrap();
+
+    assert!(mutation.precise_instances.is_empty());
+    assert_eq!(mutation.command_changes.len(), 2);
+}
+
 fn semantic_rows(
     source: &UiMountedMechanicSource,
     instance: UiMountedInstanceIdentity,
@@ -219,6 +286,24 @@ fn semantic_projection(
     binding: UiSurfaceBindingGeneration,
     seed: UiMountedSemanticTextSeed,
 ) -> UiMountedSemanticProjection {
+    semantic_projection_with_static_color(
+        graph_node,
+        instance,
+        surface,
+        binding,
+        seed,
+        UiMountedRgba8::new(47, 129, 247, 255),
+    )
+}
+
+fn semantic_projection_with_static_color(
+    graph_node: crate::graph::UiGraphNodeIdentity,
+    instance: UiMountedInstanceIdentity,
+    surface: UiSemanticSurfaceIdentity,
+    binding: UiSurfaceBindingGeneration,
+    seed: UiMountedSemanticTextSeed,
+    static_color: UiMountedRgba8,
+) -> UiMountedSemanticProjection {
     UiMountedSemanticProjection::initial(
         vec![UiMountedProjectionNodeRecord {
             receipt: UiMountedNodeReceipt::from_input(UiMountedNodeReceiptInput {
@@ -240,9 +325,9 @@ fn semantic_projection(
                 },
             }),
             plan_index: Some(0),
-            static_paint: None,
+            static_paint: Some(UiMountedStaticPaintSeed::for_test(static_color)),
             semantic_text: Some(seed),
-            hit_test: None,
+            hit_test: Some(UiMountedHitTestSeed::for_test(0)),
         }],
         vec![UiMountedProjectionSurface {
             surface,
@@ -269,7 +354,7 @@ fn admitted_participation() -> UiMountedParticipation {
         clip: admitted,
         input: withheld,
         focus: withheld,
-        hit_test: withheld,
+        hit_test: admitted,
         accessibility: withheld,
         motion: withheld,
         diagnostic: withheld,

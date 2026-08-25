@@ -1,6 +1,6 @@
 use worth_ui::facade::interaction::{
-    UiActivateInteraction, UiHostInteractionIngressOutcome, UiInteractionBatchReceipt,
-    UiInteractionStop, UiInteractionTransition, UiPointerGestureStopReason, UiSemanticInteraction,
+    UiHostInteractionIngressOutcome, UiInteractionBatchReceipt, UiInteractionStop,
+    UiInteractionTransition, UiPointerGestureStopReason, UiSemanticInteraction,
 };
 
 use super::model::{ModelStop, ModelVerdict};
@@ -29,23 +29,6 @@ pub(super) fn applied(outcome: UiHostInteractionIngressOutcome) -> UiInteraction
         UiHostInteractionIngressOutcome::Applied(receipt) => receipt,
         other => panic!("expected applied interaction batch, got {other:?}"),
     }
-}
-
-pub(super) fn take_pointer_activation(
-    outcome: UiHostInteractionIngressOutcome,
-) -> UiActivateInteraction {
-    let receipt = applied(outcome);
-    receipt
-        .into_transitions()
-        .into_vec()
-        .into_iter()
-        .find_map(|transition| match transition {
-            UiInteractionTransition::Semantic(UiSemanticInteraction::Activate(activation)) => {
-                Some(activation)
-            }
-            _ => None,
-        })
-        .expect("the complete pointer pair seals one activation")
 }
 
 fn applied_verdict(receipt: &UiInteractionBatchReceipt) -> ModelVerdict {

@@ -49,6 +49,4 @@ fn phase_three_world_accepts_only_semantic_program_input_through_the_ordinary_dr
             "ordinary platform progression contains alternate-driver residue: {forbidden}"
         );
     }
-
-    println!("WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-HP02-WORLD-01\":\"synthetic-successor\"}}");
 }

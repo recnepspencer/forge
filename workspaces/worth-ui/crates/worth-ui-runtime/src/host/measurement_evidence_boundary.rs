@@ -20,6 +20,11 @@ pub(crate) struct UiHostMeasurementSourceAuthority {
 }
 
 impl UiHostMeasurementSourceAuthority {
+    pub(crate) fn advance_past(&mut self, retained: &UiMeasurementResult) {
+        let (_, _, retained_order) = retained.host_source_position();
+        self.next_source_order = self.next_source_order.max(retained_order);
+    }
+
     fn seal(
         &mut self,
         result: &mut UiMeasurementResult,

@@ -29,7 +29,6 @@ use super::world::{
 };
 use crate::projection_lifecycle::support::ScalarLifecycleWorld;
 
-mod draft_input;
 mod selection_identity;
 
 #[test]

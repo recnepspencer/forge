@@ -3,9 +3,13 @@ use super::state::UiRebindReservation;
 mod completion_handle;
 mod content_mapping;
 mod denial_receipt;
+mod detached_completion;
+mod detached_retry;
 mod mapping;
 
 pub(crate) use content_mapping::map_content_first_attempt;
+pub(crate) use detached_completion::UiDetachedRebindCompletion;
+pub(crate) use detached_retry::UiDetachedRebindRetry;
 pub(crate) use mapping::map_changed_first_attempt;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

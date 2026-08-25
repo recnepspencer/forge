@@ -63,11 +63,6 @@ fn execute_phase3_world(
         assert_eq!(pixel(&capture, x, y), [47, 129, 247, 255]);
     }
     println!("WORTH_UI_PHASE3_NATIVE_OBSERVATION={evidence}");
-    println!(
-        "WORTH_UI_LEDGER_COUNTERS={{\"P3-BASELINE-REPLAY-01\":1,\"P3-DRAW-LIST-01\":2048,\"P3-DAMAGE-REPLAY-01\":2048,\"P3-PHYSICAL-AMPLIFICATION-01\":1,\"P3-TRANSACTION-01\":1,\"P3-UNCHANGED-01\":0,\"P3-HP02-WORLD-01\":1}}"
-    );
-    println!("WORTH_UI_LEDGER_WORLD=1");
-    println!("WORTH_UI_LEDGER_PRESENTATIONS=7");
 }
 
 fn await_final_pixels(

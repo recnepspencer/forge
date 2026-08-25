@@ -98,26 +98,29 @@ impl SuccessorIssue<'_> {
                 .saturating_mul(2)
                 .saturating_add(overlay.order_items_scanned),
         };
-        Ok(self.lease.issue_delta(UiMountedPresentationDeltaInput {
-            predecessor: self.predecessor.frame,
-            successor: self.successor.frame,
-            surface: self.successor.surface,
-            binding: self.successor.binding,
-            content: self.successor.content,
-            baseline: self.successor.baseline,
-            changes: delta.changes,
-            nodes: self.successor.node_changes.to_vec(),
-            order: delta.order,
-            order_integrity: self.successor.order_integrity,
-            damage: delta.damage,
-            auxiliary: delta.auxiliary,
-            production_cost: production_cost(
-                cost,
-                self.retained_traversal
-                    .add_scans(overlay.order_items_scanned),
-                self.successor.projection_rows_materialized,
-            ),
-        }))
+        Ok(self.lease.issue_delta(
+            UiMountedPresentationDeltaInput {
+                predecessor: self.predecessor.frame,
+                successor: self.successor.frame,
+                surface: self.successor.surface,
+                binding: self.successor.binding,
+                content: self.successor.content,
+                baseline: self.successor.baseline,
+                changes: delta.changes,
+                nodes: self.successor.node_changes.to_vec(),
+                order: delta.order,
+                order_integrity: self.successor.order_integrity,
+                damage: delta.damage,
+                auxiliary: delta.auxiliary,
+                production_cost: production_cost(
+                    cost,
+                    self.retained_traversal
+                        .add_scans(overlay.order_items_scanned),
+                    self.successor.projection_rows_materialized,
+                ),
+            },
+            self.successor.receipt_affinity,
+        ))
     }
 
     fn validate_lineage(&self) -> Result<(), UiMountedPresentationWorkProductionDenial> {
@@ -145,8 +148,8 @@ impl SuccessorIssue<'_> {
             command_index_lookups: affected_count.saturating_mul(2),
             order_lookups: affected_count.saturating_mul(2),
         };
-        self.lease
-            .issue_unchanged(UiMountedPresentationUnchangedInput {
+        self.lease.issue_unchanged(
+            UiMountedPresentationUnchangedInput {
                 predecessor: self.predecessor.frame,
                 successor: self.successor.frame,
                 surface: self.successor.surface,
@@ -158,7 +161,9 @@ impl SuccessorIssue<'_> {
                     self.retained_traversal,
                     self.successor.projection_rows_materialized,
                 ),
-            })
+            },
+            self.successor.receipt_affinity,
+        )
     }
 }
 

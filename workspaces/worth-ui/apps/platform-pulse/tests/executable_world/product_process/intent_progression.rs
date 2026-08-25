@@ -5,7 +5,7 @@ use crate::failure_teardown::{
     teardown_native_bound_world, PulseExecutableWorldFailure, PulseExecutableWorldFailureReport,
 };
 use crate::native_platform::{NativePlatformContract, NativePlatformFailure};
-use crate::source_delta::IntentRouteRemovalSourceDelta;
+use crate::source_delta::{IntentRouteRemovalSourceDelta, PulseCausalActionCursor};
 
 use super::{FinalRecovered, Published, PulseExecutableWorld};
 
@@ -27,6 +27,7 @@ pub(crate) enum PlatformPulseIntentJourneyFailure {
     SourceAction(crate::source_delta::PulseSourceActionFailure),
     Cancellation(&'static str),
     EvidenceOrder(&'static str),
+    CausalManifest(crate::source_delta::PulseCausalActionManifestFailure),
     EvidenceIncomplete,
 }
 
@@ -76,8 +77,28 @@ impl PulseExecutableWorld<Published<FinalRecovered>> {
         self,
         route_removal: IntentRouteRemovalSourceDelta,
     ) -> Result<CompletedPlatformPulseIntentJourney, PulseExecutableWorldFailureReport> {
+        let mut actions = transitions::UntrackedIntentCausalActions;
+        self.complete_intent_journey_with_actions(route_removal, &mut actions)
+    }
+
+    pub(crate) fn complete_intent_journey_for_manifest(
+        self,
+        route_removal: IntentRouteRemovalSourceDelta,
+        cursor: &mut PulseCausalActionCursor<'_>,
+    ) -> Result<CompletedPlatformPulseIntentJourney, PulseExecutableWorldFailureReport> {
+        self.complete_intent_journey_with_actions(route_removal, cursor)
+    }
+
+    fn complete_intent_journey_with_actions(
+        self,
+        route_removal: IntentRouteRemovalSourceDelta,
+        actions: &mut dyn transitions::IntentCausalActionAuthority,
+    ) -> Result<CompletedPlatformPulseIntentJourney, PulseExecutableWorldFailureReport> {
         let Published { mut world, stage } = self.state;
         let result = (|| {
+            actions
+                .advance("capture-intent-baseline")
+                .map_err(PlatformPulseIntentJourneyFailure::CausalManifest)?;
             let baseline = world
                 .platform
                 .capture_client_area(&world.native_client)
@@ -85,7 +106,14 @@ impl PulseExecutableWorld<Published<FinalRecovered>> {
             let action = adjudicate_action_control_point(&baseline)
                 .map_err(PlatformPulseIntentJourneyFailure::ControlPoint)?;
             let mut evidence = PlatformPulseIntentJourneyEvidenceBuilder::default();
-            transitions::run(&mut world, &baseline, action, &mut evidence, route_removal)?;
+            transitions::run(
+                &mut world,
+                &baseline,
+                action,
+                &mut evidence,
+                route_removal,
+                actions,
+            )?;
             evidence
                 .finish()
                 .ok_or(PlatformPulseIntentJourneyFailure::EvidenceIncomplete)
@@ -134,6 +162,7 @@ impl fmt::Display for PlatformPulseIntentJourneyFailure {
             Self::SourceAction(failure) => write!(formatter, "product source action: {failure}"),
             Self::Cancellation(detail) => write!(formatter, "rebind cancellation: {detail}"),
             Self::EvidenceOrder(detail) => write!(formatter, "causal evidence order: {detail}"),
+            Self::CausalManifest(failure) => write!(formatter, "causal manifest: {failure}"),
             Self::EvidenceIncomplete => {
                 formatter.write_str("intent journey did not produce its complete evidence set")
             }

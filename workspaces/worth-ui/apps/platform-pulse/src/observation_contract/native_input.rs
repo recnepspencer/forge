@@ -51,23 +51,25 @@ impl PlatformPulseNativeInputReached {
         self.posture
     }
 
-    pub(super) fn from_egui(
-        reached: worth_ui_host_egui::UiEguiRawInputReachability,
+    pub fn from_counts(
+        event_count: u64,
+        pointer_button_events: u64,
+        keyboard_events: u64,
+        text_events: u64,
+        ime_preedit_events: u64,
+        ime_commit_events: u64,
+        ime_cancel_events: u64,
         posture: PlatformPulseNativeInputIngressPosture,
     ) -> Self {
         Self {
-            event_count: count(reached.event_count()),
-            pointer_button_events: count(reached.pointer_button_events()),
-            keyboard_events: count(reached.keyboard_events()),
-            text_events: count(reached.text_events()),
-            ime_preedit_events: count(reached.ime_preedit_events()),
-            ime_commit_events: count(reached.ime_commit_events()),
-            ime_cancel_events: count(reached.ime_cancel_events()),
+            event_count,
+            pointer_button_events,
+            keyboard_events,
+            text_events,
+            ime_preedit_events,
+            ime_commit_events,
+            ime_cancel_events,
             posture,
         }
     }
-}
-
-fn count(value: usize) -> u64 {
-    u64::try_from(value).unwrap_or(u64::MAX)
 }

@@ -11,6 +11,10 @@ pub(crate) struct UiMountedVisualOverlayProjectionInput {
 }
 
 impl UiMountedVisualOverlayProjectionInput {
+    pub(crate) const fn target_instance(self) -> worth_ui_host_contract::UiMountedInstanceIdentity {
+        self.target_receipt.mounted_instance()
+    }
+
     pub(crate) fn mechanic_for(
         self,
         successor_frame: worth_ui_host_contract::UiMountedFrameIdentity,

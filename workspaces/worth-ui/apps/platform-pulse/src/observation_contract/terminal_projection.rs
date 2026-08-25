@@ -54,7 +54,7 @@ impl PlatformPulseLifecycleObservationStream {
         watcher: &WorthUiFilesystemWatcherShutdownReceipt,
         query: super::query::PlatformPulseQueryShutdownEvidence,
         intent: super::intent::PlatformPulseIntentWatcherShutdownEvidence,
-        application: WorthUiNativeApplicationShutdownReceipt,
+        application: &WorthUiNativeApplicationShutdownReceipt,
     ) -> Result<
         PlatformPulseLifecycleObservationEnvelope,
         PlatformPulseLifecycleObservationProjectionDenial,
@@ -73,6 +73,8 @@ impl PlatformPulseLifecycleObservationStream {
                 pending_query_observation_count: query_watcher.pending_observation_count(),
                 intent_watcher_joined: intent.worker_joined(),
                 pending_intent_input_count: intent.pending_input_count(),
+                intent_resources_empty: application.intent_resources_empty(),
+                query_close_complete: application.query_close_complete(),
                 query_owner_terminal: query.owner_terminal(),
                 live_query_source_count: query_live.source_count(),
                 live_query_attempt_count: query_live.attempt_count(),
@@ -216,6 +218,12 @@ impl PlatformPulseLifecycleObservationStream {
                 super::lifecycle::PlatformPulseNativeRebindDenialStage::Preparation(
                     project_rebind_preparation_denial(denial),
                 )
+            }
+            WorthUiNativeSourceRebindDenial::ManagedRebindAlreadyInFlight => {
+                super::lifecycle::PlatformPulseNativeRebindDenialStage::ManagedRebindAlreadyInFlight
+            }
+            WorthUiNativeSourceRebindDenial::ManagedRebindSessionMismatch => {
+                super::lifecycle::PlatformPulseNativeRebindDenialStage::ManagedRebindSessionMismatch
             }
         };
         self.project_terminal(

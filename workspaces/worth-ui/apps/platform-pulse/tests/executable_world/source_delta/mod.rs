@@ -1,5 +1,7 @@
 mod atomic_replacement;
 mod canonical_deltas;
+#[cfg(target_os = "windows")]
+mod causal_action_manifest;
 mod intent_values;
 mod query_values;
 mod schema_deltas;
@@ -10,6 +12,10 @@ pub(crate) use atomic_replacement::{
 pub(crate) use canonical_deltas::{
     CanonicalBlueRecoverySourceDelta, GreenPulseSourceDelta, IntentRouteRemovalSourceDelta,
     MalformedPulseSourceDelta, PulseSourceDeltaDefinitionFailure,
+};
+#[cfg(target_os = "windows")]
+pub(crate) use causal_action_manifest::{
+    PulseCausalActionCursor, PulseCausalActionManifest, PulseCausalActionManifestFailure,
 };
 pub(crate) use intent_values::{
     ConfirmationHeldIntentDelta, ConfirmationReleasedIntentDelta, DeniedIntentDelta,

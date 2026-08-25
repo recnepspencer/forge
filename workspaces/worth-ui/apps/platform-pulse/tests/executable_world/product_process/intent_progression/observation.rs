@@ -149,7 +149,7 @@ pub(super) fn await_confirmation_required(
         slot,
         generation,
         lineage,
-        expires_at_tick,
+        expires_at_millis,
     } = published.posture()
     else {
         return Err(unexpected(
@@ -162,7 +162,7 @@ pub(super) fn await_confirmation_required(
             slot: *slot,
             generation: *generation,
             lineage: *lineage,
-            expires_at_tick: *expires_at_tick,
+            expires_at_millis: *expires_at_millis,
         },
         sequence: envelope.sequence().value(),
     })

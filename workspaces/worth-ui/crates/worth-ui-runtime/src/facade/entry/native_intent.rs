@@ -1,8 +1,10 @@
 use super::WorthUiNativeApplicationShell;
 
 mod posture;
+mod transition;
 
 pub use posture::{WorthUiNativeIntentPosture, WorthUiNativeIntentPostureKind};
+use transition::{confirmation_stop_posture, stopped, NativePostureTarget};
 
 /// Bounded result of moving adapter-retained observations through the
 /// interaction owner and, where applicable, into one typed intent definition.
@@ -67,11 +69,47 @@ impl WorthUiNativeApplicationShell {
         I: crate::facade::intent::UiIntent,
         D: crate::facade::intent::UiIntentDefinitionDestination,
     {
+        let outcomes = drain
+            .into_batches()
+            .into_vec()
+            .into_iter()
+            .map(|batch| self.session.admit_host_interaction_batch(batch))
+            .collect::<Vec<_>>();
+        self.admit_native_intent_outcomes(definition, outcomes, deadline)
+    }
+
+    pub fn admit_native_intent_progress<I, D>(
+        &mut self,
+        definition: crate::facade::intent::UiIntentDefinition<I, D>,
+        progress: crate::native_platform::UiNativeApplicationObservationProgress,
+        deadline: crate::facade::intent::UiIntentExecutionDeadlineBasis,
+    ) -> WorthUiNativeIntentIngress
+    where
+        I: crate::facade::intent::UiIntent,
+        D: crate::facade::intent::UiIntentDefinitionDestination,
+    {
+        self.admit_native_intent_outcomes(
+            definition,
+            progress.into_settlement().into_outcomes().into_vec(),
+            deadline,
+        )
+    }
+
+    fn admit_native_intent_outcomes<I, D>(
+        &mut self,
+        definition: crate::facade::intent::UiIntentDefinition<I, D>,
+        outcomes: Vec<crate::facade::interaction::UiHostInteractionIngressOutcome>,
+        deadline: crate::facade::intent::UiIntentExecutionDeadlineBasis,
+    ) -> WorthUiNativeIntentIngress
+    where
+        I: crate::facade::intent::UiIntent,
+        D: crate::facade::intent::UiIntentDefinitionDestination,
+    {
         let mut transitions = Vec::new();
         let mut duplicate_batches = 0;
         let mut interaction_stops = Vec::new();
-        for batch in drain.into_batches() {
-            match self.session.admit_host_interaction_batch(batch) {
+        for outcome in outcomes {
+            match outcome {
                 crate::facade::interaction::UiHostInteractionIngressOutcome::Applied(receipt) => {
                     for transition in receipt.into_transitions() {
                         if let crate::facade::interaction::UiInteractionTransition::Semantic(
@@ -264,71 +302,6 @@ impl WorthUiNativeApplicationShell {
             kind,
         )?;
         Some(WorthUiNativeIntentPosture::new(observation, commit, kind))
-    }
-}
-
-#[derive(Clone, Copy)]
-struct NativePostureTarget {
-    graph_node: crate::graph::UiGraphNodeIdentity,
-    target: crate::facade::interaction::UiPresentedInteractionTargetView,
-    definition: crate::facade::intent::UiIntentId,
-}
-
-impl NativePostureTarget {
-    fn product(route: &crate::facade::intent::UiResolvedProductIntentRoute) -> Self {
-        Self {
-            graph_node: route.graph_node(),
-            target: route.source().target(),
-            definition: route.definition_id(),
-        }
-    }
-
-    fn confirmation(route: &crate::facade::intent::UiResolvedConfirmationIntentRoute) -> Self {
-        Self {
-            graph_node: route.graph_node(),
-            target: route.source().target(),
-            definition: route.definition_id(),
-        }
-    }
-}
-
-fn stopped(
-    stop: WorthUiNativeIntentStop,
-    posture: Option<WorthUiNativeIntentPosture>,
-) -> WorthUiNativeIntentTransition {
-    WorthUiNativeIntentTransition::Stopped(WorthUiNativeIntentStopped { stop, posture })
-}
-
-fn confirmation_stop_posture(
-    reason: &crate::facade::intent::UiIntentConfirmationStopReason,
-) -> crate::fact_contract::UiIntentPostureKind {
-    use crate::facade::intent::UiIntentConfirmationStopReason as Reason;
-    match reason {
-        Reason::AlreadyContinued
-        | Reason::AlreadyStopped
-        | Reason::MonotonicTimeRegressed { .. }
-        | Reason::Expired { .. }
-        | Reason::ApplicationWorldChanged
-        | Reason::ApplicationGenerationChanged
-        | Reason::ConfirmationRouteChanged
-        | Reason::ProductRouteChanged
-        | Reason::ConfirmationNotPresented
-        | Reason::ConfirmationPresentationStale
-        | Reason::ConfirmationTargetChanged(_)
-        | Reason::TargetChanged(_)
-        | Reason::PayloadInputChanged
-        | Reason::OperabilityDependencyChanged
-        | Reason::PolicyChanged
-        | Reason::ConfirmationPolicyChanged
-        | Reason::OccupancyChanged => crate::fact_contract::UiIntentPostureKind::StaleConfirmation,
-        Reason::CandidateNotExclusivelyConfirmable
-        | Reason::MonotonicTimeRequired { .. }
-        | Reason::ChallengeExpiryOverflow
-        | Reason::ChallengeCapacityExceeded { .. }
-        | Reason::ChallengeIdentityExhausted
-        | Reason::NoPendingChallenge { .. }
-        | Reason::AmbiguousPendingChallenges { .. }
-        | Reason::LifecycleCancelled(_) => crate::fact_contract::UiIntentPostureKind::Denied,
     }
 }
 

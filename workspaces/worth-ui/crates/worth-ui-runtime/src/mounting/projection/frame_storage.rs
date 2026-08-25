@@ -1,8 +1,6 @@
 use worth_ui_host_contract::{
-    UiMountedClipProjection, UiMountedLayerProjection, UiMountedLayerReference, UiMountedLayerRow,
-    UiMountedPaintBatchReference, UiMountedPaintBatchRow, UiMountedPaintPrimitiveKind,
-    UiMountedRealtimeBatchRow, UiMountedResourceEntry, UiMountedResourceKind,
-    UiMountedResourceReference, UiMountedSpatialBatchRow,
+    UiMountedLayerRow, UiMountedPaintBatchRow, UiMountedPaintPrimitiveKind,
+    UiMountedRealtimeBatchRow, UiMountedResourceEntry, UiMountedSpatialBatchRow,
 };
 
 use super::UiMountedProjectionDenial;
@@ -20,6 +18,7 @@ pub(crate) mod presentation_sources;
 mod rebind;
 mod semantic_mechanics;
 mod semantic_projection;
+mod table_recording;
 mod view;
 
 use diagnostic_source::UiMountedDiagnosticSource;
@@ -28,6 +27,7 @@ use mechanic_source::{UiMountedMechanicCompletion, UiMountedMechanicSource};
 use presentation_effects::{
     UiMountedPresentationEffectCompletion, UiMountedPresentationEffectSource,
 };
+pub(in crate::mounting) use semantic_mechanics::UiMountedSemanticMechanicSource;
 pub(in crate::mounting) use semantic_projection::UiMountedSemanticProjection;
 pub(super) use semantic_projection::{UiMountedProjectionNodeRecord, UiMountedProjectionSurface};
 use view::{UiMountedOrdinaryPaintSelector, UiMountedPlanIndexPaintSelector};
@@ -133,6 +133,11 @@ impl UiMountedProjectionFrame {
     pub fn plan_digest(&self) -> u64 {
         self.plan_digest
     }
+    pub(super) fn visual_overlay_target(
+        &self,
+    ) -> Option<worth_ui_host_contract::UiMountedInstanceIdentity> {
+        self.visual_overlay.map(|overlay| overlay.target_instance())
+    }
     pub(crate) fn mounted_instances(
         &self,
     ) -> impl ExactSizeIterator<Item = worth_ui_host_contract::UiMountedInstanceIdentity> + '_ {
@@ -229,12 +234,15 @@ impl UiMountedProjectionFrame {
         self.presentation_effects.clone()
     }
 
-    pub(super) fn complete_presentation_effects(&mut self) {
+    pub(super) fn complete_presentation_effects(
+        &mut self,
+        changed_instances: &[worth_ui_host_contract::UiMountedInstanceIdentity],
+    ) {
         self.presentation_effects
             .apply(UiMountedPresentationEffectCompletion {
                 semantic: &self.semantic,
                 mechanics: &self.mechanics,
-                changed: &self.changed_instances,
+                changed: changed_instances,
                 preview: self.preview.as_ref(),
                 overlay: self.visual_overlay.as_ref(),
                 canvas: !self.spatial_batches.is_empty(),
@@ -242,9 +250,16 @@ impl UiMountedProjectionFrame {
             });
     }
 
-    pub(super) fn complete_diagnostics(&mut self) {
-        self.diagnostics
-            .apply(&self.semantic, &self.changed_instances);
+    pub(super) fn complete_diagnostics(
+        &mut self,
+        changed_instances: &[worth_ui_host_contract::UiMountedInstanceIdentity],
+    ) {
+        self.diagnostics.apply(
+            &self.semantic,
+            changed_instances,
+            self.visual_overlay,
+            self.frame,
+        );
     }
 
     pub(in crate::mounting) fn presentation_commands_for_instance(
@@ -293,102 +308,30 @@ impl UiMountedProjectionFrame {
         self.materialized_projection_rows.get()
     }
 
+    pub(in crate::mounting) fn node_receipt_affinity(
+        &self,
+    ) -> Option<worth_ui_host_contract::UiMountedNodeReceiptAffinity> {
+        self.receipt_basis.affinity()
+    }
+
+    pub(in crate::mounting) fn refresh_presentation_lane_auxiliary(
+        &self,
+        auxiliary: &mut worth_ui_host_contract::UiMountedPresentationAuxiliaryState,
+        requirement: worth_ui_host_contract::UiMountedSurfaceBindingRequirement,
+    ) {
+        auxiliary.refresh_lane_presentation_from_runtime_mounting(
+            self.frame,
+            requirement.semantic_surface(),
+            requirement.binding(),
+            self.content_generation,
+            worth_ui_host_contract::UiMountedPaintBatchTable::new(self.paint_batches.clone()),
+            worth_ui_host_contract::UiMountedSpatialBatchTable::new(self.spatial_batches.clone()),
+            worth_ui_host_contract::UiMountedRealtimeBatchTable::new(self.realtime_batches.clone()),
+            worth_ui_host_contract::UiMountedResourceTable::new(self.resources.clone()),
+        );
+    }
+
     pub(in crate::mounting) fn semantic_projection(&self) -> &UiMountedSemanticProjection {
         &self.semantic
-    }
-
-    fn push_paint_batch(
-        &mut self,
-        primitive_count: u32,
-        layer: UiMountedLayerReference,
-        resource: Option<UiMountedResourceReference>,
-        primitive_kind: UiMountedPaintPrimitiveKind,
-    ) -> Result<UiMountedPaintBatchReference, UiMountedProjectionDenial> {
-        if self.paint_batches.len() >= TABLE_LIMIT {
-            return Err(UiMountedProjectionDenial::TableCapacityExceeded);
-        }
-        self.record_rows::<UiMountedPaintBatchRow>(1)?;
-        let batch_index = u16::try_from(self.paint_batches.len())
-            .map_err(|_| UiMountedProjectionDenial::TableCapacityExceeded)?;
-        self.paint_batches.push(UiMountedPaintBatchRow::new(
-            primitive_count,
-            UiMountedLayerProjection::Layer(layer),
-            resource,
-            primitive_kind,
-        ));
-        Ok(UiMountedPaintBatchReference::new(batch_index))
-    }
-
-    fn push_lane_batch(
-        &mut self,
-        primitive_count: u32,
-        semantic_order: u32,
-        resource: Option<UiMountedResourceReference>,
-        primitive_kind: UiMountedPaintPrimitiveKind,
-    ) -> Result<UiMountedPaintBatchReference, UiMountedProjectionDenial> {
-        let layer = self.push_layer(semantic_order)?;
-        self.push_paint_batch(primitive_count, layer, resource, primitive_kind)
-    }
-
-    fn push_plan_index_selector(
-        &mut self,
-        indexes: impl IntoIterator<Item = u32>,
-        batch: UiMountedPaintBatchReference,
-    ) {
-        self.plan_index_paint_selectors
-            .push(UiMountedPlanIndexPaintSelector::new(
-                indexes.into_iter().collect(),
-                batch,
-            ));
-    }
-
-    fn push_layer(
-        &mut self,
-        semantic_order: u32,
-    ) -> Result<UiMountedLayerReference, UiMountedProjectionDenial> {
-        if self.layers.len() >= TABLE_LIMIT {
-            return Err(UiMountedProjectionDenial::TableCapacityExceeded);
-        }
-        self.record_rows::<UiMountedLayerRow>(1)?;
-        let index = u16::try_from(self.layers.len())
-            .map_err(|_| UiMountedProjectionDenial::TableCapacityExceeded)?;
-        self.layers.push(UiMountedLayerRow::new(
-            semantic_order,
-            UiMountedClipProjection::Unclipped,
-        ));
-        Ok(UiMountedLayerReference::new(index))
-    }
-
-    fn intern_canvas_resource(
-        &mut self,
-        content_identity: u64,
-    ) -> Result<UiMountedResourceReference, UiMountedProjectionDenial> {
-        if let Some(index) = self
-            .resources
-            .iter()
-            .position(|entry| entry.content_identity() == content_identity)
-        {
-            return u16::try_from(index)
-                .map(UiMountedResourceReference::new)
-                .map_err(|_| UiMountedProjectionDenial::TableCapacityExceeded);
-        }
-        if self.resources.len() >= RESOURCE_LIMIT {
-            return Err(UiMountedProjectionDenial::TableCapacityExceeded);
-        }
-        self.record_rows::<UiMountedResourceEntry>(1)?;
-        let index = u16::try_from(self.resources.len())
-            .map_err(|_| UiMountedProjectionDenial::TableCapacityExceeded)?;
-        self.resources.push(UiMountedResourceEntry::new(
-            content_identity,
-            UiMountedResourceKind::CanvasContract,
-            0,
-        ));
-        Ok(UiMountedResourceReference::new(index))
-    }
-
-    fn record_rows<Row>(&mut self, count: usize) -> Result<(), UiMountedProjectionDenial> {
-        self.counters
-            .replace_rows::<Row>(count)
-            .map_err(|_| UiMountedProjectionDenial::CostCounterOverflow)
     }
 }

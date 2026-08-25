@@ -62,6 +62,9 @@ impl WorthUiApp {
                                 closed_query_resources: cleanup
                                     .mounted_presentation()
                                     .closed_query_resources(),
+                                query_close_complete: cleanup
+                                    .mounted_presentation()
+                                    .query_close_complete(),
                                 query_transitions: cleanup
                                     .mounted_presentation()
                                     .query_transitions()
@@ -88,6 +91,12 @@ impl WorthUiApp {
                                     .text_presentation_work_trace_complete(),
                                 authored_mounted_instances: Box::new([]),
                                 client_resource_peaks,
+                                mounted_shutdown_attempts: cleanup
+                                    .mounted_presentation()
+                                    .attempts()
+                                    .to_vec()
+                                    .into_boxed_slice(),
+                                intent_resources_empty: cleanup.intent_resource_census().is_empty(),
                             },
                         )
                     },
@@ -95,17 +104,19 @@ impl WorthUiApp {
             }
         };
         Ok(WorthUiNativeApplicationShell {
-            session,
+            session: Box::new(session),
             binding: configured.binding,
             surface: configured.surface,
             scale_factor_milli,
             mounted_rows: configured.mounted_rows,
             mounted_row_indices: configured.mounted_row_indices,
-            client_physical_size: None,
-            viewport_measurement_pending: false,
+            observed_viewport_basis: None,
+            pending_viewport_basis: None,
             viewport_measurement_authority: configured.viewport_measurement_authority,
             pending_surface_reconciliation: None,
             runtime_derived_state_reconstruction: None,
+            pending_managed_rebind: None,
+            managed_rebind_completion_tick: 0,
         })
     }
 }

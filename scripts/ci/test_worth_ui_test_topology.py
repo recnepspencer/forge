@@ -148,34 +148,6 @@ class WorthUiTestTopologySourceTests(TestCase):
 
             self.assertIn("trybuild-session", {item.rule for item in violations})
 
-    def test_each_compile_session_has_an_independent_case_ceiling(self) -> None:
-        with TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            suites = root / "crate/tests/suites"
-            fixture = root / "crate/tests/ui/case.rs"
-            suites.mkdir(parents=True)
-            fixture.parent.mkdir(parents=True)
-            fixture.write_text("fn main() {}\n", encoding="utf-8")
-            rows = "kind,path,legacy_harness\npass,tests/ui/case.rs,owner\n"
-            (suites / "inventory.csv").write_text(rows, encoding="utf-8")
-            (suites / "execution.csv").write_text(rows, encoding="utf-8")
-            config = {
-                "compile_contract_sessions": {
-                    "certification": {
-                        "inventory": "crate/tests/suites/inventory.csv",
-                        "execution": "crate/tests/suites/execution.csv",
-                        "inventory_count": 2,
-                        "execution_count": 1,
-                        "structural_replacement_patterns": [],
-                    }
-                }
-            }
-
-            violations = compile_reconciliation_violations(root, config)
-
-            self.assertEqual(violations[0].rule, "compile-reconciliation")
-            self.assertIn("certification: inventory has 1 rows; expected 2", violations[0].detail)
-
     def test_compile_fail_aggregation_preserves_inventory_coverage(self) -> None:
         with TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -205,8 +177,6 @@ class WorthUiTestTopologySourceTests(TestCase):
                     "product": {
                         "inventory": "crate/tests/suites/inventory.csv",
                         "execution": "crate/tests/suites/execution.csv",
-                        "inventory_count": 2,
-                        "execution_count": 1,
                         "structural_replacement_patterns": [],
                     }
                 }
@@ -240,8 +210,6 @@ class WorthUiTestTopologySourceTests(TestCase):
                     "product": {
                         "inventory": "crate/tests/suites/inventory.csv",
                         "execution": "crate/tests/suites/execution.csv",
-                        "inventory_count": 2,
-                        "execution_count": 1,
                         "structural_replacement_patterns": [],
                     }
                 }
@@ -283,8 +251,6 @@ class WorthUiTestTopologySourceTests(TestCase):
                     "product": {
                         "inventory": "crate/tests/suites/inventory.csv",
                         "execution": "crate/tests/suites/execution.csv",
-                        "inventory_count": 1,
-                        "execution_count": 1,
                         "structural_replacement_patterns": [],
                     }
                 },
@@ -322,8 +288,6 @@ class WorthUiTestTopologySourceTests(TestCase):
                         "certification": {
                             "inventory": "crate/tests/suites/inventory.csv",
                             "execution": "crate/tests/suites/execution.csv",
-                            "inventory_count": 1,
-                            "execution_count": 1,
                             "structural_replacement_patterns": [],
                         }
                     }
@@ -381,20 +345,10 @@ def source_workspace(root: Path):
 
 if __name__ == "__main__":
     from test_worth_ui_compile_contracts import WorthUiCompileContractRunnerTests
-    from test_worth_ui_query_lifetime_matrix import WorthUiQueryLifetimeMatrixTests
-    from test_worth_ui_real_boundary_proof_ledger import WorthUiRealBoundaryProofLedgerTests
-    from test_worth_ui_test_seam_inventory import WorthUiTestSeamInventoryTests
-    from test_worth_ui_test_cost_evidence import WorthUiTestCostEvidenceTests
-    from test_worth_ui_timing_evidence import WorthUiTimingEvidenceTests
 
     suite = defaultTestLoader.loadTestsFromTestCase(WorthUiTestTopologySourceTests)
     suite.addTests(
         defaultTestLoader.loadTestsFromTestCase(WorthUiCompileContractRunnerTests)
     )
-    suite.addTests(defaultTestLoader.loadTestsFromTestCase(WorthUiQueryLifetimeMatrixTests))
-    suite.addTests(defaultTestLoader.loadTestsFromTestCase(WorthUiRealBoundaryProofLedgerTests))
-    suite.addTests(defaultTestLoader.loadTestsFromTestCase(WorthUiTestSeamInventoryTests))
-    suite.addTests(defaultTestLoader.loadTestsFromTestCase(WorthUiTestCostEvidenceTests))
-    suite.addTests(defaultTestLoader.loadTestsFromTestCase(WorthUiTimingEvidenceTests))
     result = TextTestRunner().run(suite)
     raise SystemExit(0 if result.wasSuccessful() else 1)

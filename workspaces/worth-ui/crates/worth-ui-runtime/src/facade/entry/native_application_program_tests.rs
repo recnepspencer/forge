@@ -29,3 +29,16 @@ fn program_admission_is_bounded_and_component_semantic() {
     assert_eq!(combined.component_presence().len(), 1);
     assert_eq!(combined.semantic_text().len(), 1);
 }
+
+#[test]
+fn presented_source_capture_is_bounded_to_one_program_frame() {
+    let captured = UiNativeApplicationFrame::present_current().capture_presented_source_pixels();
+    assert!(UiNativeApplicationProgram::new([captured]).is_ok());
+
+    let first = UiNativeApplicationFrame::present_current().capture_presented_source_pixels();
+    let second = UiNativeApplicationFrame::present_current().capture_presented_source_pixels();
+    assert!(matches!(
+        UiNativeApplicationProgram::new([first, second]),
+        Err(UiNativeApplicationProgramDenial::PresentedSourceCaptureCapacityExceeded)
+    ));
+}

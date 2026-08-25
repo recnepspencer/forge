@@ -53,7 +53,11 @@ pub(crate) enum ExecutableNativeInputReachabilityFailure {
         kind: NativeInputProbeKind,
         observed: u64,
     },
-    RetainedPostureMissing,
+    UnexpectedPosture {
+        kind: NativeInputProbeKind,
+        expected: PlatformPulseNativeInputIngressPosture,
+        observed: PlatformPulseNativeInputIngressPosture,
+    },
     InputFamilyMissing(NativeInputProbeKind),
     BackgroundPoint(NativeColorFailure),
     NativeColor(NativeColorFailure),
@@ -83,12 +87,14 @@ pub(crate) fn adjudicate_native_input_reachability(
         pointer.envelope,
         NativeInputProbeKind::Pointer,
         5,
+        PlatformPulseNativeInputIngressPosture::Retained,
     )?;
     let (keyboard_reached, keyboard_sequence) = require_reached(
         first_frame,
         keyboard.envelope,
         NativeInputProbeKind::Keyboard,
         6,
+        PlatformPulseNativeInputIngressPosture::Stopped,
     )?;
     let color = adjudicate_native_color(&pixels, ExpectedNativeColor::Blue)
         .map_err(ExecutableNativeInputReachabilityFailure::NativeColor)?;
@@ -157,6 +163,7 @@ fn require_reached(
     envelope: PlatformPulseLifecycleObservationEnvelope,
     kind: NativeInputProbeKind,
     expected_sequence: u64,
+    expected_posture: PlatformPulseNativeInputIngressPosture,
 ) -> Result<(PlatformPulseNativeInputReached, u64), ExecutableNativeInputReachabilityFailure> {
     let reached = match envelope.outcome() {
         PlatformPulseLifecycleObservation::NativeInputReached(reached) => *reached,
@@ -173,8 +180,14 @@ fn require_reached(
             ExecutableNativeInputReachabilityFailure::UnexpectedSequence { kind, observed },
         );
     }
-    if reached.posture() != PlatformPulseNativeInputIngressPosture::Retained {
-        return Err(ExecutableNativeInputReachabilityFailure::RetainedPostureMissing);
+    if reached.posture() != expected_posture {
+        return Err(
+            ExecutableNativeInputReachabilityFailure::UnexpectedPosture {
+                kind,
+                expected: expected_posture,
+                observed: reached.posture(),
+            },
+        );
     }
     let family_reached = match kind {
         NativeInputProbeKind::Pointer => reached.pointer_button_events() > 0,
@@ -240,9 +253,14 @@ impl fmt::Display for ExecutableNativeInputReachabilityFailure {
             Self::UnexpectedSequence { kind, observed } => {
                 write!(formatter, "{kind:?} reachability sequence was {observed}")
             }
-            Self::RetainedPostureMissing => {
-                formatter.write_str("native input did not retain translated observations")
-            }
+            Self::UnexpectedPosture {
+                kind,
+                expected,
+                observed,
+            } => write!(
+                formatter,
+                "{kind:?} input posture was {observed:?}, expected {expected:?}"
+            ),
             Self::InputFamilyMissing(kind) => {
                 write!(formatter, "{kind:?} input did not reach the adapter")
             }

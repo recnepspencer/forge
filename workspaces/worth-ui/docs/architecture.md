@@ -90,10 +90,11 @@ interaction and admission contracts.
 - `worth-ui-host-contract` defines inert host capabilities, mounted input, and
   mechanical outcomes, including exact affinity, total order, logical damage,
   transparent surface baseline, and structural/physical cost vocabulary.
-- Host adapters perform native mechanics. They never receive source, Query,
+- Native and headless host consumers perform mechanics. They never receive source, Query,
   graph, semantic-classification, or publication authority.
 - `worth-ui-native-platform` owns the move-only native platform binding and
-  effect-free application preparation. Phase 1 opens no native resources.
+  effect-free application preparation, then exclusively enters the qualified
+  native event loop after preparation succeeds.
 - `worth-ui-certification` proves boundaries; it is not an application API.
 
 An identity or digest can explain what happened. It cannot launch an
@@ -106,13 +107,13 @@ application code
 -> worth-ui facade
 -> worth-ui-runtime
 -> worth-ui-query-binding -> worth-query
--> worth-ui-host-contract <- host adapters
+-> worth-ui-host-contract <- native/headless mechanics
 ```
 
 The arrows do not permit every lower layer to import every peer. Authored
 meaning flows from DSL to runtime. Query crosses only through the binding
-crate. Runtime sends sealed mounted mechanics to the host contract. Adapters
-depend on the host contract and never on runtime internals.
+crate. Runtime sends sealed mounted mechanics to the host contract. Host
+consumers depend on the host contract and never on runtime internals.
 
 The ordinary host lane is receipt-keyed work, not a complete projection:
 

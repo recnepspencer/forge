@@ -15,6 +15,8 @@ impl UiNativeRetainedDrawList {
         {
             return Err(UiNativeRetainedDrawListDenial::AffinityMismatch);
         }
+        self.regions
+            .rebind_receipt_affinity(affinity.receipt_affinity());
         self.frame = affinity.successor();
         Ok(())
     }

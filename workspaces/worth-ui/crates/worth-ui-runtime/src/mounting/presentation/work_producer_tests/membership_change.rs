@@ -80,8 +80,4 @@ fn removal_and_insert_carry_exact_identities_vacated_damage_and_total_order() {
             ),
         ]
     );
-    println!(
-        "WORTH_UI_LEDGER_COUNTERS={{\"P1-PRODUCER-01\":{}}}",
-        delta.changes().len()
-    );
 }

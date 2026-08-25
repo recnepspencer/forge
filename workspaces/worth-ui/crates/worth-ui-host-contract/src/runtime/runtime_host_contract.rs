@@ -4,7 +4,6 @@ use super::{UiHostMeasurementObservationValue, UiHostMeasurementRequest};
 pub enum WorthUiHostKind {
     Headless,
     Native,
-    Egui,
     CapabilityProbeInconclusive,
     DiagnosticsOnly,
 }
@@ -25,12 +24,6 @@ impl WorthUiHostContract {
     pub fn headless() -> Self {
         Self {
             kind: WorthUiHostKind::Headless,
-        }
-    }
-
-    pub fn egui() -> Self {
-        Self {
-            kind: WorthUiHostKind::Egui,
         }
     }
 

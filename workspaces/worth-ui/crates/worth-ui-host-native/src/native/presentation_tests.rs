@@ -1,6 +1,6 @@
 use super::{
     reserve_presentation_owners, settle_port_result, UiNativePendingExternalObligation,
-    UiNativePresentationFailure, UiNativePresentationPortFailure,
+    UiNativePresentationFailure, UiNativePresentationPortFailure, UiNativeSurfaceAcquireFailure,
 };
 
 struct PendingProbe {
@@ -43,12 +43,14 @@ fn external_port_failures_cross_the_real_framework_settlement_transition() {
         &mut resources,
         &mut physical_signal,
         owners,
-        Err(UiNativePresentationPortFailure::SurfaceUnavailable),
+        Err(UiNativePresentationPortFailure::Surface(
+            UiNativeSurfaceAcquireFailure::Timeout,
+        )),
     );
     assert!(matches!(
         denied,
         Err(UiNativePresentationFailure::BeforeEffects(
-            worth_ui_host_contract::UiHostSurfacePresentationDenial::AdapterDeclined
+            worth_ui_host_contract::UiHostSurfacePresentationDenial::ExternalTimeout
         ))
     ));
     assert!(resources.current().is_zero());
@@ -97,4 +99,51 @@ fn external_port_failures_cross_the_real_framework_settlement_transition() {
     pending.release(&mut resources);
     assert!(dropped.get());
     assert!(resources.current().is_zero());
+}
+
+#[test]
+fn surface_failures_preserve_retry_and_reconstruction_distinctions() {
+    use crate::native::UiNativeRecoveryCause;
+
+    let cases = [
+        (UiNativeSurfaceAcquireFailure::Timeout, None),
+        (UiNativeSurfaceAcquireFailure::Occluded, None),
+        (UiNativeSurfaceAcquireFailure::Validation, None),
+        (
+            UiNativeSurfaceAcquireFailure::Outdated,
+            Some(UiNativeRecoveryCause::SurfaceOutdated),
+        ),
+        (
+            UiNativeSurfaceAcquireFailure::Lost,
+            Some(UiNativeRecoveryCause::SurfaceLost),
+        ),
+        (
+            UiNativeSurfaceAcquireFailure::DeviceLost,
+            Some(UiNativeRecoveryCause::DeviceLost),
+        ),
+    ];
+    for (failure, expected_recovery) in cases {
+        let mut resources = crate::native::UiNativeResourceRegistry::new();
+        let mut signal = crate::native::physical_work_signal::UiNativePhysicalSignalOwner::new();
+        let owners = reserve_presentation_owners(
+            &mut resources,
+            &mut signal,
+            crate::native::physical_work_signal::UiNativePhysicalPresentationBasis::test(),
+        )
+        .unwrap_or_else(|_| panic!("empty registry must admit presentation owners"));
+        let observed = settle_port_result(
+            &mut resources,
+            &mut signal,
+            owners,
+            Err(UiNativePresentationPortFailure::Surface(failure)),
+        );
+        match (observed, expected_recovery) {
+            (Err(UiNativePresentationFailure::BeforeEffects(_)), None) => {}
+            (Err(UiNativePresentationFailure::RecoveryRequired { cause, .. }), Some(expected)) => {
+                assert_eq!(cause, expected)
+            }
+            _ => panic!("surface fact crossed with the wrong recovery posture"),
+        }
+        assert!(resources.current().is_zero());
+    }
 }

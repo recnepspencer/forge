@@ -32,7 +32,7 @@ fn query_async_reconstruction_joins_exact_transitions_to_external_pixels_and_cle
     let outcome = catch_unwind(AssertUnwindSafe(|| {
         execute_world(&platform, &mut launch, process_id, deadline)
     }));
-    let mut ledger_evidence = outcome.unwrap_or_else(|failure| {
+    outcome.unwrap_or_else(|failure| {
         let teardown = launch
             .process
             .terminate_after_failure(Instant::now() + Duration::from_secs(5));
@@ -41,9 +41,7 @@ fn query_async_reconstruction_joins_exact_transitions_to_external_pixels_and_cle
         resume_unwind(failure)
     });
     drop(launch);
-    ledger_evidence["partial_effects_cancellation"] =
-        assert_partial_effects_cancellation_world(&binary);
-    emit_ledger_evidence(&ledger_evidence);
+    assert_partial_effects_cancellation_world(&binary);
 }
 
 fn execute_world(
@@ -51,14 +49,14 @@ fn execute_world(
     launch: &mut crate::product_process::NativePhase2ProcessLaunch,
     process_id: u32,
     deadline: Instant,
-) -> serde_json::Value {
+) {
     let mut client = platform
         .bind_process_client_area(process_id, deadline)
         .expect("the Phase F client area appears");
-    let ready = platform
-        .await_external_observation_ready(&client, deadline)
-        .expect("the owner exposes final reconstruction readiness before capture");
-    assert_eq!(ready.process_id(), process_id);
+    let bound = platform
+        .observe_bound_client_area(&client)
+        .expect("the Phase F client area remains process-bound");
+    assert_eq!(bound.process_id(), process_id);
     let pixel_deadline = Instant::now() + Duration::from_secs(10);
     let (capture, authored_pixels_proved) =
         await_quiescent_text_pixels(platform, &mut client, pixel_deadline);
@@ -84,76 +82,16 @@ fn execute_world(
         "the Phase F product did not expose alpha and intrinsic-color text pixels; pixels={:?}; evidence={evidence}",
         pixel_classes(&capture)
     );
-    let alpha_bounds = assert_alpha_attribution(&evidence);
-    let intrinsic_bounds = assert_intrinsic_attribution(&evidence);
+    assert_alpha_attribution(&evidence);
+    assert_intrinsic_attribution(&evidence);
     assert_headless_glyph_agreement(&evidence);
     let authored = authored_pixel_contract::assert_owner_projection(&evidence);
     let pixels =
         attributed_pixel_classes(&capture, &authored.alpha_bounds, &authored.intrinsic_bounds);
     assert_phase_f_evidence(&evidence, &capture, &pixels);
-    let mut ledger_evidence = evidence.clone();
-    ledger_evidence["external_capture"] = serde_json::json!({
-        "width": capture.width(),
-        "height": capture.height(),
-        "background_pixels": pixels.background,
-        "alpha_glyph_pixels": pixels.glyph,
-        "antialiased_alpha_glyph_pixels": pixels.antialiased,
-        "alpha_glyph_bounds": pixels.bounds,
-        "owner_issued_alpha_bounds": alpha_bounds,
-        "independent_authored_alpha_bounds": authored.alpha_bounds,
-        "intrinsic_color_pixels": pixels.intrinsic_color,
-        "intrinsic_color_sample_rgba8": pixels.intrinsic_color_sample,
-        "intrinsic_color_bounds": pixels.intrinsic_color_bounds,
-        "intrinsic_color_capture_digest": pixels.intrinsic_color_digest,
-        "owner_issued_intrinsic_bounds": intrinsic_bounds,
-        "independent_authored_intrinsic_bounds": authored.intrinsic_bounds,
-        "glyph_occupied_columns": pixels.occupied_columns,
-        "glyph_occupied_rows": pixels.occupied_rows,
-    });
-    ledger_evidence
 }
 
-fn emit_ledger_evidence(ledger_evidence: &serde_json::Value) {
-    let transitions = ledger_evidence["presentation_transitions"]
-        .as_array()
-        .expect("adjudicated Query transitions");
-    let async_transitions = transitions.len();
-    let presentations = transitions
-        .iter()
-        .filter(|transition| {
-            matches!(
-                transition["kind"].as_str(),
-                Some("Pending" | "ReconstructionCurrent")
-            )
-        })
-        .count();
-    let reconstructed = ledger_evidence["retained_frames"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter(|frame| frame["kind"] == "Reconstruction")
-        .count();
-    let pixel_classes = usize::from(
-        ledger_evidence["external_capture"]["alpha_glyph_pixels"]
-            .as_u64()
-            .is_some_and(|count| count > 0),
-    ) + usize::from(
-        ledger_evidence["external_capture"]["intrinsic_color_pixels"]
-            .as_u64()
-            .is_some_and(|count| count > 0),
-    );
-    println!("WORTH_UI_LEDGER_OBSERVATION={ledger_evidence}");
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P5-TEXT-PIXELS-01\":{pixel_classes},\"P5-TEXT-RECONSTRUCTION-01\":{reconstructed},\"P5-TEXT-ASYNC-PRESENTATION-01\":{async_transitions}}}");
-    println!("WORTH_UI_LEDGER_PRESENTATIONS={presentations}");
-    println!(
-        "WORTH_UI_LEDGER_WORLD={}",
-        usize::from(ledger_evidence.is_object())
-    );
-}
-
-fn assert_partial_effects_cancellation_world(
-    binary: &CargoBuiltPlatformPulse,
-) -> serde_json::Value {
+fn assert_partial_effects_cancellation_world(binary: &CargoBuiltPlatformPulse) {
     let mut launch = binary
         .clone()
         .launch_native_phase_f_partial_cancellation()
@@ -180,35 +118,23 @@ fn assert_partial_effects_cancellation_world(
     );
     assert_eq!(evidence["query_close_complete"], true);
     assert_eq!(evidence["terminal_zero"], true);
-    evidence
 }
 
-fn assert_alpha_attribution(evidence: &serde_json::Value) -> Vec<[u32; 4]> {
+fn assert_alpha_attribution(evidence: &serde_json::Value) {
     let glyphs = evidence["presentation"]["alpha_glyphs"]
         .as_array()
         .expect("the retained native presentation carries qualified alpha glyphs");
     assert!(!glyphs.is_empty());
-    glyphs
-        .iter()
-        .map(|glyph| {
-            assert!(matches!(
-                glyph["source"].as_str(),
-                Some("AlphaOutline" | "LastResort")
-            ));
-            assert_eq!(glyph["foreground"], serde_json::json!([255, 255, 255, 255]));
-            assert_eq!(glyph["raster_key"].as_str().unwrap().len(), 64);
-            assert_eq!(glyph["transcript_digest"].as_str().unwrap().len(), 64);
-            let target = glyph["target_bounds"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .map(|coordinate| u32::try_from(coordinate.as_u64().unwrap()).unwrap())
-                .collect::<Vec<_>>();
-            let [left, top, right, bottom] = <[u32; 4]>::try_from(target).unwrap();
-            assert!(left < right && top < bottom);
-            [left, top, right, bottom]
-        })
-        .collect()
+    for glyph in glyphs {
+        assert!(matches!(
+            glyph["source"].as_str(),
+            Some("AlphaOutline" | "LastResort")
+        ));
+        assert_eq!(glyph["foreground"], serde_json::json!([255, 255, 255, 255]));
+        assert_eq!(glyph["raster_key"].as_str().unwrap().len(), 64);
+        assert_eq!(glyph["transcript_digest"].as_str().unwrap().len(), 64);
+        assert_valid_bounds(&glyph["target_bounds"]);
+    }
 }
 
 fn await_quiescent_text_pixels(
@@ -219,24 +145,24 @@ fn await_quiescent_text_pixels(
     Option<crate::external_observation::NativeClientPixelCapture>,
     bool,
 ) {
-    let mut previous = None;
+    let mut previous: Option<Vec<u8>> = None;
     let mut last_capture = None;
     let mut capture_count = 0_u32;
     loop {
         if let Ok(capture) = platform.capture_client_area(client) {
             let colors = pixel_classes(&capture);
             capture_count = capture_count.saturating_add(1);
-            if capture_count % 10 == 0 {
+            if capture_count.is_multiple_of(10) {
                 eprintln!("Phase F authored-pixel progress: {colors:?}");
             }
             if colors.proves_authored_text(capture.width(), capture.height()) {
                 if previous
                     .as_ref()
-                    .is_some_and(|prior: &Box<[u8]>| prior.as_ref() == capture.rgba())
+                    .is_some_and(|prior| prior.as_slice() == capture.rgba())
                 {
                     return (Some(capture), true);
                 }
-                previous = Some(capture.rgba().to_vec().into_boxed_slice());
+                previous = Some(capture.rgba().to_vec());
             }
             last_capture = Some(capture);
         }
@@ -309,12 +235,11 @@ fn assert_phase_f_evidence(
     assert!(evidence["closed_query_resources"].as_u64().unwrap() > 0);
 }
 
-fn assert_intrinsic_attribution(evidence: &serde_json::Value) -> Vec<[u32; 4]> {
+fn assert_intrinsic_attribution(evidence: &serde_json::Value) {
     let glyphs = evidence["presentation"]["intrinsic_glyphs"]
         .as_array()
         .expect("the retained native presentation carries qualified intrinsic glyphs");
     assert!(!glyphs.is_empty());
-    let mut bounds = Vec::with_capacity(glyphs.len());
     let mut keys = std::collections::BTreeSet::new();
     for glyph in glyphs {
         assert!(matches!(
@@ -326,17 +251,21 @@ fn assert_intrinsic_attribution(evidence: &serde_json::Value) -> Vec<[u32; 4]> {
         let key = glyph["raster_key"].as_str().unwrap();
         assert_eq!(key.len(), 64);
         keys.insert(key.to_owned());
-        let coordinates = glyph["target_bounds"].as_array().unwrap();
-        let target = coordinates
-            .iter()
-            .map(|coordinate| u32::try_from(coordinate.as_u64().unwrap()).unwrap())
-            .collect::<Vec<_>>();
-        let [left, top, right, bottom] = <[u32; 4]>::try_from(target).unwrap();
-        assert!(left < right && top < bottom);
-        bounds.push([left, top, right, bottom]);
+        assert_valid_bounds(&glyph["target_bounds"]);
     }
     assert_foreground_invariant_intrinsic_keys(evidence, &keys);
-    bounds
+}
+
+fn assert_valid_bounds(value: &serde_json::Value) {
+    let coordinates = value.as_array().expect("glyph target bounds are present");
+    let [left, top, right, bottom] = coordinates.as_slice() else {
+        panic!("glyph target bounds must have four coordinates");
+    };
+    let left = left.as_u64().unwrap();
+    let top = top.as_u64().unwrap();
+    let right = right.as_u64().unwrap();
+    let bottom = bottom.as_u64().unwrap();
+    assert!(left < right && top < bottom);
 }
 
 fn assert_headless_glyph_agreement(evidence: &serde_json::Value) {

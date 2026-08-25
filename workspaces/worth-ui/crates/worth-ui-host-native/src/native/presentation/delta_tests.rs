@@ -74,7 +74,7 @@ fn offscreen_delta_advances_retained_truth_without_physical_work() {
     });
 
     let atlas = crate::native::text_atlas::UiNativeTextAtlas::new();
-    let (plan, _committed_undo) = prepare_delta_plan(
+    let (plan, _committed_undo, _effects) = prepare_delta_plan(
         UiNativeRasterBasis::new([100, 100], 1.0),
         &delta,
         &[],
@@ -118,9 +118,6 @@ fn offscreen_delta_advances_retained_truth_without_physical_work() {
             },
         ))
         .unwrap();
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-CLIPPED-DELTA-01\":\"zero-paint-as-indeterminate\"}}"
-    );
 }
 
 #[test]
@@ -128,9 +125,6 @@ fn opaque_replay_baseline_is_rejected_before_raster_work() {
     validate_replay_baseline([0, 0, 0, 0]).unwrap();
     assert!(validate_replay_baseline([0, 0, 0, 1]).is_err());
     assert!(validate_replay_baseline([47, 129, 247, 255]).is_err());
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-BASELINE-REPLAY-01\":\"opaque-baseline-clear\"}}"
-    );
 }
 
 #[test]
@@ -152,7 +146,4 @@ fn physical_delta_cost_exposes_the_full_surface_amplification_boundary() {
     assert_eq!(cost.surface_acquisitions(), 1);
     assert_eq!(cost.queue_submissions(), 1);
     assert_eq!(cost.presents(), 1);
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-PHYSICAL-AMPLIFICATION-01\":\"hidden-full-surface-copy\"}}"
-    );
 }

@@ -16,9 +16,12 @@ pub use denial::UiMountedProjectionDenial;
 pub(in crate::mounting) use frame_storage::diagnostic_source::UiMountedDiagnosticSource;
 pub(crate) use frame_storage::presentation_sources::compile as compile_presentation_sources;
 pub use frame_storage::UiMountedProjectionFrame;
+pub(in crate::mounting) use frame_storage::UiMountedSemanticMechanicSource;
 pub(in crate::mounting) use frame_storage::UiMountedSemanticProjection;
+pub(in crate::mounting) use hit_test::reattribute_hit_test;
 pub use node_receipt::UiMountedNodeReceipt;
 pub use prepared_projection::UiProjectedMountedFrameCandidate;
+pub(in crate::mounting) use static_paint::reattribute_filled_rect;
 
 pub(crate) use intent_posture::{
     UiIntentPostureCommit, UiIntentPostureObservation, UiIntentPostureTable,

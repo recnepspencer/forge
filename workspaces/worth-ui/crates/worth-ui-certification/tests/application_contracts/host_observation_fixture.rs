@@ -25,7 +25,7 @@ pub(super) fn report(
 ) -> UiHostObservationReport {
     UiHostObservationReport::new(
         UiHostObservationSequence::new(sequence),
-        UiHostObservationTimeBasis::HostMonotonicTick(sequence),
+        UiHostObservationTimeBasis::HostMonotonicMillis(sequence),
         payload,
     )
     .with_mounted_basis(UiHostObservationMountedBasis::new(

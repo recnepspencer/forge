@@ -34,6 +34,7 @@ pub enum WorthUiRuntimeLaunchDenial {
     HostSessionIdentityExhausted,
     HostProtocol(worth_ui_host_contract::UiHostProtocolDenial),
     HostMountedPresentationLease,
+    HostObservationSession(worth_ui_host_contract::UiHostObservationSessionRegistrationDenial),
     HostSessionReleaseIndeterminate {
         cause: Box<WorthUiRuntimeLaunchDenial>,
         recovery: crate::facade::WorthUiHostSessionReleaseRecovery,

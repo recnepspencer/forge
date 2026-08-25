@@ -76,6 +76,20 @@ fn host_plan_equivalence_includes_capabilities_but_excludes_provenance() {
 }
 
 #[test]
+fn host_session_activation_surfaces_adapter_registration_capacity() {
+    let plan = crate::facade::prepared_application_authority::WorthUiHostSessionPlan::prepare(
+        RegistrationCapacityAdapter,
+    );
+
+    assert!(matches!(
+        WorthUiHostSessionAuthority::activate(&plan),
+        Err(super::WorthUiHostSessionActivationDenial::ObservationSession(
+            worth_ui_host_contract::UiHostObservationSessionRegistrationDenial::ActiveSessionCapacityExceeded
+        ))
+    ));
+}
+
+#[test]
 fn indeterminate_launch_cleanup_retains_the_exact_host_authority_for_retry() {
     let attempts = std::rc::Rc::new(std::cell::Cell::new(0));
     let plan = crate::facade::prepared_application_authority::WorthUiHostSessionPlan::prepare(
@@ -101,6 +115,43 @@ fn indeterminate_launch_cleanup_retains_the_exact_host_authority_for_retry() {
 
 struct RetryReleaseAdapter {
     attempts: std::rc::Rc<std::cell::Cell<u8>>,
+}
+
+struct RegistrationCapacityAdapter;
+
+impl worth_ui_host_contract::WorthUiMeasurementHostAdapter for RegistrationCapacityAdapter {
+    fn observe_measurement(
+        &self,
+        _request: &worth_ui_host_contract::UiHostMeasurementRequest,
+    ) -> worth_ui_host_contract::UiHostMeasurementObservationValue {
+        unreachable!("denied activation performs no measurement")
+    }
+}
+
+impl crate::host::adapter::WorthUiOperationalHostAdapter for RegistrationCapacityAdapter {
+    fn operational_host_contract(&self) -> worth_ui_host_contract::WorthUiHostContract {
+        worth_ui_host_contract::WorthUiHostContract::headless()
+    }
+
+    fn operational_capability_report(&self) -> worth_ui_host_contract::WorthUiHostCapabilityReport {
+        worth_ui_host_contract::WorthUiHostCapabilityReport::available(vec![])
+    }
+
+    fn open_host_session(
+        &self,
+        _authority: &crate::host::adapter::UiHostAdapterSessionAuthority,
+    ) -> Result<(), worth_ui_host_contract::UiHostObservationSessionRegistrationDenial> {
+        Err(
+            worth_ui_host_contract::UiHostObservationSessionRegistrationDenial::ActiveSessionCapacityExceeded,
+        )
+    }
+
+    fn release_host_session(
+        &self,
+        _authority: &crate::host::adapter::UiHostAdapterSessionAuthority,
+    ) -> crate::host::adapter::UiHostSessionReleaseOutcome {
+        unreachable!("registration denial opens no adapter session")
+    }
 }
 
 impl worth_ui_host_contract::WorthUiMeasurementHostAdapter for RetryReleaseAdapter {

@@ -42,10 +42,6 @@ impl UiNativeOpenedWindow {
 }
 
 impl UiNativeOwnedWindow {
-    pub(crate) fn publish_external_observation_readiness(&self) {
-        self.0.set_title("WORTH UI External Observation Ready");
-    }
-
     pub(crate) fn client_physical_size(&self) -> [u32; 2] {
         let size = self.inner_size();
         [size.width, size.height]

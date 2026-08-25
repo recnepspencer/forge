@@ -21,6 +21,14 @@ impl WorthUiOperationalHostAdapter for ScriptedPresentationHost {
         self.state.lock().unwrap().protocol
     }
 
+    fn open_host_session(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+    ) -> Result<(), worth_ui_host_contract::UiHostObservationSessionRegistrationDenial> {
+        self.observation_retention
+            .register_session(authority.host_session_identity())
+    }
+
     fn drain_host_observations(
         &self,
         authority: &UiHostAdapterSessionAuthority,

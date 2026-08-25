@@ -1,8 +1,6 @@
-use eframe::egui;
 use worth_ui::facade::app::WorthUiApplicationPreparationDenial;
 use worth_ui::facade::app::{
-    UiChangeProfileInstalled, UiIntentWiringSatisfied, WorthUi, WorthUiApp,
-    WorthUiApplicationBuilder,
+    UiChangeProfileInstalled, UiIntentWiringSatisfied, WorthUi, WorthUiApplicationBuilder,
 };
 use worth_ui::facade::intent::{
     UiIntentApplicationFactRegistrationError, UiIntentDefinitionRegistrationError,
@@ -16,7 +14,6 @@ use worth_ui::facade::source::{
     UiSourceRebindAttemptFailure, WorthUiFilesystemSourceProvider, WorthUiFilesystemSourceWatcher,
     WorthUiFilesystemWatcherDenial, WorthUiSourcePackageRevision,
 };
-use worth_ui_host_egui::WorthUiHostEgui;
 
 use crate::launch_configuration::AdmittedPlatformPulseLaunchConfiguration;
 use crate::query_source::{
@@ -35,9 +32,9 @@ mod presentation;
 
 use presentation::{register_structure, register_theme_tokens, visual_inspection_policy};
 
-pub(crate) struct PreparedPlatformPulse {
-    pub(crate) app: WorthUiApp,
-    pub(crate) host: WorthUiHostEgui,
+pub(crate) struct PreparedPlatformPulseComposition {
+    pub(crate) builder:
+        WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied>,
     pub(crate) watcher: WorthUiFilesystemSourceWatcher,
     pub(crate) initial_source: WorthUiSourcePackageRevision,
     pub(crate) query_lifecycle: PlatformPulseQueryLifecycle,
@@ -53,7 +50,6 @@ pub(crate) enum PlatformPulsePreparationDenial {
     InitialSourceSettlement(WorthUiFilesystemWatcherDenial),
     CapabilityApplication(WorthUiApplicationPreparationDenial),
     InitialSourceLowering(UiSourceRebindAttemptFailure),
-    FileApplication(WorthUiApplicationPreparationDenial),
     QueryInstallation(Box<PlatformPulseQueryInstallationDenial>),
     QueryRegistration(WorthUiProjectionRegistrationError),
     QueryViewRegistration(WorthUiQueryViewRegistrationError),
@@ -63,10 +59,9 @@ pub(crate) enum PlatformPulsePreparationDenial {
     IntentProvider(UiIntentExecutionBindingPreparationDenial),
 }
 
-pub(crate) fn prepare(
-    context: egui::Context,
+pub(crate) fn prepare_composition(
     launch: &AdmittedPlatformPulseLaunchConfiguration,
-) -> Result<PreparedPlatformPulse, PlatformPulsePreparationDenial> {
+) -> Result<PreparedPlatformPulseComposition, PlatformPulsePreparationDenial> {
     let query = crate::query_source::install(launch.query_source_root())
         .map_err(|denial| PlatformPulsePreparationDenial::QueryInstallation(Box::new(denial)))?;
     let intent = match PlatformPulseIntentInputInstallation::open(launch.intent_source_root()) {
@@ -102,41 +97,30 @@ pub(crate) fn prepare(
             .take_initial_snapshot()
             .map_err(PlatformPulsePreparationDenial::InitialSourceSettlement)?;
         let initial_source = snapshot.source_revision().clone();
-        let host = WorthUiHostEgui::new(context);
-        let capability_app = builder(
+        let capability_builder = builder(
             registration.clone(),
             action_view.clone(),
             &intent_initial,
             intent_provider.clone(),
-        )?
-        .freeze()
-        .map(|application| {
-            worth_ui::facade::app::WorthUiLegacyEguiApplicationTransition::activate(
-                application,
-                host.clone(),
-            )
-        })
-        .map_err(PlatformPulsePreparationDenial::CapabilityApplication)?;
+        )?;
+        let capability_app = capability_builder
+            .freeze()
+            .map_err(PlatformPulsePreparationDenial::CapabilityApplication)?;
         let submission = snapshot
             .attempt_source_rebind(capability_app.capabilities())
             .into_candidate_submission()
             .map_err(PlatformPulsePreparationDenial::InitialSourceLowering)?;
-        builder(registration, action_view, &intent_initial, intent_provider)?
-            .with_candidate_submission(submission)
-            .freeze()
-            .map(|application| {
-                worth_ui::facade::app::WorthUiLegacyEguiApplicationTransition::activate(
-                    application,
-                    host.clone(),
-                )
-            })
-            .map_err(PlatformPulsePreparationDenial::FileApplication)
-            .map(|app| (app, host, initial_source))
+        drop(capability_app);
+        builder(registration, action_view, &intent_initial, intent_provider).map(|builder| {
+            (
+                builder.with_candidate_submission(submission),
+                initial_source,
+            )
+        })
     })();
     match result {
-        Ok((app, host, initial_source)) => Ok(PreparedPlatformPulse {
-            app,
-            host,
+        Ok((builder, initial_source)) => Ok(PreparedPlatformPulseComposition {
+            builder,
             watcher,
             initial_source,
             query_lifecycle,
@@ -167,9 +151,6 @@ impl std::fmt::Display for PlatformPulsePreparationDenial {
             }
             Self::InitialSourceLowering(denial) => {
                 write!(formatter, "initial source lowering: {denial:?}")
-            }
-            Self::FileApplication(denial) => {
-                write!(formatter, "file application: {denial:?}")
             }
             Self::QueryInstallation(denial) => {
                 write!(formatter, "Query installation: {denial}")

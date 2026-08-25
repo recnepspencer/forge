@@ -5,6 +5,9 @@ const MAXIMUM_CHANGES_PER_FRAME: usize = 4_096;
 #[path = "native_application_program_tests.rs"]
 mod tests;
 
+#[path = "native_application_program/capture.rs"]
+mod capture;
+
 #[must_use]
 pub struct UiNativeApplicationProgram {
     frames: Box<[UiNativeApplicationFrame]>,
@@ -18,6 +21,7 @@ pub struct UiNativeApplicationFrame {
     theme_values: Box<[UiNativeThemeTokenValueChange]>,
     start: UiNativeApplicationFrameStart,
     completion: UiNativeApplicationFrameCompletion,
+    capture_presented_source_pixels: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -63,6 +67,7 @@ pub enum UiNativeApplicationProgramDenial {
     InvalidSemanticTextSpans,
     InvalidThemeTokenValue,
     SemanticTextUpdateRejected,
+    PresentedSourceCaptureCapacityExceeded,
 }
 
 impl UiNativeApplicationProgram {
@@ -75,6 +80,14 @@ impl UiNativeApplicationProgram {
         }
         if frames.len() > MAXIMUM_FRAMES {
             return Err(UiNativeApplicationProgramDenial::FrameCapacityExceeded);
+        }
+        if frames
+            .iter()
+            .filter(|frame| frame.capture_presented_source_pixels)
+            .count()
+            > 1
+        {
+            return Err(UiNativeApplicationProgramDenial::PresentedSourceCaptureCapacityExceeded);
         }
         let mut revisions = std::collections::HashMap::<Box<str>, u64>::new();
         let mut theme_revisions = std::collections::BTreeMap::new();
@@ -109,6 +122,13 @@ impl UiNativeApplicationProgram {
         }
     }
 
+    pub(crate) fn application_driven() -> Self {
+        Self {
+            frames: Box::new([]),
+            close_after_program: false,
+        }
+    }
+
     pub fn remain_open_until_external_close(mut self) -> Self {
         self.close_after_program = false;
         self
@@ -131,6 +151,7 @@ impl UiNativeApplicationFrame {
             theme_values: Box::new([]),
             start: UiNativeApplicationFrameStart::AfterPriorSettlement,
             completion: UiNativeApplicationFrameCompletion::Settle,
+            capture_presented_source_pixels: false,
         }
     }
 
@@ -147,6 +168,7 @@ impl UiNativeApplicationFrame {
             theme_values: Box::new([]),
             start: UiNativeApplicationFrameStart::AfterPriorSettlement,
             completion: UiNativeApplicationFrameCompletion::Settle,
+            capture_presented_source_pixels: false,
         })
     }
 
@@ -163,6 +185,7 @@ impl UiNativeApplicationFrame {
             theme_values: Box::new([]),
             start: UiNativeApplicationFrameStart::AfterPriorSettlement,
             completion: UiNativeApplicationFrameCompletion::Settle,
+            capture_presented_source_pixels: false,
         })
     }
 
@@ -181,6 +204,7 @@ impl UiNativeApplicationFrame {
             theme_values: Box::new([]),
             start: UiNativeApplicationFrameStart::AfterPriorSettlement,
             completion: UiNativeApplicationFrameCompletion::Settle,
+            capture_presented_source_pixels: false,
         })
     }
 
@@ -219,6 +243,7 @@ impl UiNativeApplicationFrame {
             theme_values: changes.into_boxed_slice(),
             start: UiNativeApplicationFrameStart::AfterPriorSettlement,
             completion: UiNativeApplicationFrameCompletion::Settle,
+            capture_presented_source_pixels: false,
         })
     }
 

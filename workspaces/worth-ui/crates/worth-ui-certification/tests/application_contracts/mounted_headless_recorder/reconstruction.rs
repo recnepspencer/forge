@@ -79,7 +79,6 @@ fn missing_surface_state_reconstructs_from_mounted_authority_then_returns_to_loc
     let local = one(recorder.drain_transcripts());
     assert_eq!(local.binding(), second_binding);
     assert_eq!(local.filled_rects().len(), 1);
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P3-RECONSTRUCTION-01\":2}}");
     let _ = session.shutdown();
 }
 

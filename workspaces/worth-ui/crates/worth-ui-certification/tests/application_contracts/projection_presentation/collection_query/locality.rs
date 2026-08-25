@@ -41,7 +41,4 @@ pub(super) fn assert_content_update_is_local(
 #[test]
 fn content_only_global_rescan_is_rejected_by_retained_layout_owners() {
     super::real_query_collection_snapshot_and_patch_publish_keyed_semantic_text();
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P4-TEXT-CONTENT-LOCALITY-01\":\"content-only-global-rescan\",\"P4-TEXT-COST-01\":\"complete-document-rescan\"}}"
-    );
 }

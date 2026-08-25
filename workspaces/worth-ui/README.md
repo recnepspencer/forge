@@ -2,7 +2,7 @@
 
 This workspace is the dedicated home for the Worth UI product facade,
 DSL-to-runtime application lifecycle, Query binding edge, host contract,
-adapters, and certification surfaces.
+native and headless mechanics, and certification surfaces.
 
 ## Canonical Reading Order
 
@@ -23,8 +23,6 @@ specifications remain under `_docs/worth-ui` at the repository root.
 
 ## Dependency Direction
 
-- `worth-ui-theme` owns design-token truth.
-- `worth-ui-components` owns purely presentational widget surfaces.
 - `worth-ui` is the public product facade. Query-backed UI work enters through
   `worth_ui::facade::query_binding`; application lifecycle stays under
   `worth_ui::facade::app`. Product code does not import the binding crate
@@ -38,7 +36,7 @@ specifications remain under `_docs/worth-ui` at the repository root.
   presentation protocol. `worth-ui-host-headless` and
   `worth-ui-host-native` consume only that contract; neither imports runtime.
 - `worth-ui-native-platform` owns effect-free native application preparation
-  and the one-shot platform binding. Phase 1 opens no native resources.
+  and the one-shot platform binding. It is the sole native-display entrypoint.
 - `worth-ui-certification` proves the public lifecycle and structural
   anti-bypass boundaries through production facades.
 - The root Worth workspace should not treat these crates as ordinary

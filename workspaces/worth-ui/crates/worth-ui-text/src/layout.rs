@@ -8,6 +8,8 @@ mod ink_metrics_tests;
 mod interaction;
 mod line_fitting;
 #[cfg(test)]
+mod original_range_tests;
+#[cfg(test)]
 pub(crate) mod paragraph_alignment_tests;
 mod recording;
 #[cfg(test)]

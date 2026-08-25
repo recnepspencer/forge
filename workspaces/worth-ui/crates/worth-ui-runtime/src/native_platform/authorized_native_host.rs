@@ -38,6 +38,14 @@ impl WorthUiOperationalHostAdapter for UiAuthorizedNativeHostAdapter {
         self.adapter.mechanical_capability_report()
     }
 
+    fn open_host_session(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+    ) -> Result<(), worth_ui_host_contract::UiHostObservationSessionRegistrationDenial> {
+        self.adapter
+            .register_mechanical_host_session(authority.host_session_identity())
+    }
+
     fn measurement_environment_report(
         &self,
     ) -> worth_ui_host_contract::UiHostMeasurementEnvironmentReport {

@@ -159,13 +159,3 @@ pub(crate) fn preview_target(
     );
     matches[0]
 }
-
-pub(crate) fn raw_input() -> egui::RawInput {
-    egui::RawInput {
-        screen_rect: Some(egui::Rect::from_min_size(
-            egui::Pos2::ZERO,
-            egui::vec2(800.0, 600.0),
-        )),
-        ..Default::default()
-    }
-}

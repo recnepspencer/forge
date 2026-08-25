@@ -20,20 +20,6 @@ pub(crate) fn modifiers(modifiers: Modifiers) -> UiHostKeyboardModifiers {
     )
 }
 
-pub(crate) fn translate(
-    event: &winit::event::KeyEvent,
-    modifiers: UiHostKeyboardModifiers,
-) -> Result<(UiHostObservationPayload, Option<Box<str>>), UiNativeKeyboardDenial> {
-    translate_components(
-        &event.logical_key,
-        event.physical_key,
-        event.state,
-        event.repeat,
-        event.text.as_deref(),
-        modifiers,
-    )
-}
-
 pub(crate) fn translate_components(
     logical_key: &Key,
     physical_key: PhysicalKey,

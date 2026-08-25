@@ -2,21 +2,19 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use worth_ui_host_contract::{
-    UiDpiScaleFactorObservation, UiHostMeasurementObservationValue, UiHostMeasurementRequest,
     UiHostSessionReleaseOutcome, UiHostSessionReleaseReceipt, UiHostSurfacePresentationMode,
     UiHostSurfacePresentationOutcome, UiHostSurfaceRegistrationDenial,
-    UiHostSurfaceRegistrationRequest, UiMountedFrameConsumptionView, UiViewportExtentObservation,
-    WorthUiHostCapability, WorthUiHostCapabilityReport, WorthUiHostContract,
-    WorthUiHostMechanicsAdapter, WorthUiMeasurementHostAdapter,
+    UiHostSurfaceRegistrationRequest, UiMountedFrameConsumptionView, WorthUiHostCapability,
+    WorthUiHostCapabilityReport, WorthUiHostContract, WorthUiHostMechanicsAdapter,
 };
 
 use super::UiNativeHostState;
 
-#[path = "mechanics_adapter/presentation.rs"]
+mod construction;
+mod measurement;
 mod presentation;
 #[path = "mechanics_adapter/presentation/text_atlas.rs"]
 mod presentation_text_atlas;
-#[path = "mechanics_adapter/text_atlas.rs"]
 mod text_atlas;
 
 #[cfg(test)]
@@ -25,43 +23,6 @@ pub(crate) use text_atlas::seed_pending_atlas_for_event_loop;
 pub(crate) struct WorthUiNativeMechanicsAdapter {
     state: Rc<RefCell<UiNativeHostState>>,
     profile: crate::UiNativePlatformProfileIdentity,
-}
-
-impl WorthUiNativeMechanicsAdapter {
-    pub(crate) fn from_preparation(
-        state: Rc<RefCell<UiNativeHostState>>,
-        profile: crate::UiNativePlatformProfileIdentity,
-    ) -> Self {
-        Self { state, profile }
-    }
-}
-
-impl WorthUiMeasurementHostAdapter for WorthUiNativeMechanicsAdapter {
-    fn observe_measurement(
-        &self,
-        request: &UiHostMeasurementRequest,
-    ) -> UiHostMeasurementObservationValue {
-        let state = self.state.borrow();
-        let graphics = state
-            .graphics
-            .as_ref()
-            .expect("native measurement requires a live qualified surface");
-        match request.family() {
-            worth_ui_host_contract::UiMeasurementRequestFamily::ViewportExtent => {
-                let [width, height] = graphics.extent();
-                UiHostMeasurementObservationValue::ViewportExtent(UiViewportExtentObservation {
-                    width: width as f32 / graphics.scale_factor as f32,
-                    height: height as f32 / graphics.scale_factor as f32,
-                })
-            }
-            worth_ui_host_contract::UiMeasurementRequestFamily::DpiScaleFactor => {
-                UiHostMeasurementObservationValue::DpiScaleFactor(UiDpiScaleFactorObservation {
-                    scale_factor: graphics.scale_factor as f32,
-                })
-            }
-            _ => unreachable!("the Phase 2 seed admits only viewport and DPI measurement"),
-        }
-    }
 }
 
 impl WorthUiHostMechanicsAdapter for WorthUiNativeMechanicsAdapter {
@@ -82,7 +43,28 @@ impl WorthUiHostMechanicsAdapter for WorthUiNativeMechanicsAdapter {
             WorthUiHostCapability::TextInput,
             WorthUiHostCapability::Ime,
             WorthUiHostCapability::NativePaint,
+            WorthUiHostCapability::IdentityOverlay,
         ])
+    }
+
+    fn mechanical_visual_capture_capability(
+        &self,
+    ) -> worth_ui_host_contract::UiHostCaptureCapability {
+        super::capture::capability()
+    }
+
+    fn perform_visual_capture(
+        &self,
+        request: worth_ui_host_contract::UiHostVisualCaptureRequest,
+    ) -> worth_ui_host_contract::UiHostCaptureObservationOutcome {
+        super::capture::observe(&mut self.state.borrow_mut(), request)
+    }
+
+    fn perform_visual_capture_cancellation(
+        &self,
+        request: worth_ui_host_contract::UiHostVisualCaptureRequest,
+    ) -> worth_ui_host_contract::UiHostCaptureCancellationOutcome {
+        super::capture::cancel(&mut self.state.borrow_mut(), request)
     }
 
     fn drain_mechanical_host_observations(
@@ -95,8 +77,18 @@ impl WorthUiHostMechanicsAdapter for WorthUiNativeMechanicsAdapter {
         Ok(self
             .state
             .borrow_mut()
-            .lifecycle_protocol
-            .drain(host_session_identity))
+            .lifecycle
+            .drain_observations(host_session_identity))
+    }
+
+    fn register_mechanical_host_session(
+        &self,
+        host_session_identity: u64,
+    ) -> Result<(), worth_ui_host_contract::UiHostObservationSessionRegistrationDenial> {
+        self.state
+            .borrow()
+            .lifecycle
+            .register_session(host_session_identity)
     }
 
     fn install_mechanical_input_recipient(
@@ -105,7 +97,7 @@ impl WorthUiHostMechanicsAdapter for WorthUiNativeMechanicsAdapter {
     ) -> bool {
         self.state
             .borrow_mut()
-            .lifecycle_protocol
+            .lifecycle
             .install_input_recipient(binding)
     }
 
@@ -115,7 +107,7 @@ impl WorthUiHostMechanicsAdapter for WorthUiNativeMechanicsAdapter {
     ) -> bool {
         self.state
             .borrow_mut()
-            .lifecycle_protocol
+            .lifecycle
             .clear_input_recipient(binding)
     }
 
@@ -146,6 +138,27 @@ impl WorthUiHostMechanicsAdapter for WorthUiNativeMechanicsAdapter {
                     );
                 }
             };
+            state.lifecycle.claim_recovery(
+                super::UiNativeRecoveryLineage::from_registration(request),
+                key,
+            );
+            let recovery_predecessors = state
+                .registrations
+                .iter()
+                .filter(|(predecessor, registered)| {
+                    **predecessor != key
+                        && registered.host_session_identity() == request.host_session_identity()
+                        && registered.semantic_surface_identity()
+                            == request.semantic_surface_identity()
+                        && registered.host_surface_identity() == request.host_surface_identity()
+                        && registered.presentation_mode() == request.presentation_mode()
+                        && state.lifecycle.recovery_required(**predecessor)
+                })
+                .map(|(predecessor, _)| *predecessor)
+                .collect::<Vec<_>>();
+            for predecessor in recovery_predecessors {
+                state.lifecycle.transfer_recovery(predecessor, key);
+            }
             state.registrations.insert(key, request);
             state.registration_resources.insert(key, owner);
         }
@@ -242,9 +255,13 @@ impl WorthUiHostMechanicsAdapter for WorthUiNativeMechanicsAdapter {
                 );
             }
         }
+        state.lifecycle.park_recovery(
+            key,
+            super::UiNativeRecoveryLineage::from_registration(request),
+        );
         state.registrations.remove(&key);
+        state.captures.remove_binding(request.binding_generation());
         state.retained_draw_lists.remove(&key);
-        state.reconstruction_required.remove(&key);
         let Some(owner) = state.registration_resources.remove(&key) else {
             return worth_ui_host_contract::UiHostSurfaceDeregistrationOutcome::DeregistrationIndeterminate(
                 worth_ui_host_contract::UiHostSurfaceDeregistrationIndeterminate::after_effects_may_have_begun(request),
@@ -267,9 +284,7 @@ impl WorthUiHostMechanicsAdapter for WorthUiNativeMechanicsAdapter {
         host_session_identity: u64,
     ) -> UiHostSessionReleaseOutcome {
         let mut state = self.state.borrow_mut();
-        state
-            .lifecycle_protocol
-            .release_session(host_session_identity);
+        state.lifecycle.release_session(host_session_identity);
         let pending_tokens = state
             .pending_text_presentations
             .iter()
@@ -353,9 +368,12 @@ impl WorthUiHostMechanicsAdapter for WorthUiNativeMechanicsAdapter {
             }
         }
         for key in released {
+            if let Some(request) = state.registrations.get(&key).copied() {
+                state.captures.remove_binding(request.binding_generation());
+            }
             state.registrations.remove(&key);
             state.retained_draw_lists.remove(&key);
-            state.reconstruction_required.remove(&key);
+            state.lifecycle.resolve_recovery(key);
             state.text_pins_by_binding.remove(&key);
             let owner = state
                 .registration_resources

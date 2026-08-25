@@ -44,9 +44,6 @@ fn headless_measurement_and_accessibility_consume_only_qualified_records() {
         "impl Mechanic { fn qualified_measurement(&self) { alternate_shape(self); } }"
     )
     .is_err());
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P4-MEASUREMENT-IDENTITY-01\":\"independent-measurement-pass\",\"P4-ACCESSIBILITY-GEOMETRY-01\":\"accessibility-reshape\"}}"
-    );
 }
 
 #[test]
@@ -124,7 +121,6 @@ fn runtime_alone_owns_qualified_layouts_while_hosts_receive_borrowed_views() {
         "worth-ui-host-contract",
         "worth-ui-host-headless",
         "worth-ui-host-native",
-        "worth-ui-host-egui",
     ] {
         for source in rust_sources(&crates.join(name).join("src")) {
             let text = std::fs::read_to_string(&source).expect("host source is readable");
@@ -146,9 +142,6 @@ fn runtime_alone_owns_qualified_layouts_while_hosts_receive_borrowed_views() {
     )
     .is_err());
     assert!(validate_host_layout_source("struct Host(UiQualifiedTextLayoutArtifact);").is_err());
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P4-MEASUREMENT-IDENTITY-01\":\"independent-measurement-pass\",\"P4-ACCESSIBILITY-GEOMETRY-01\":\"accessibility-reshape\"}}"
-    );
 }
 
 fn validate_host_layout_source(source: &str) -> Result<(), String> {

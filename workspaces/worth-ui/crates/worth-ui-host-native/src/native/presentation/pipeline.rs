@@ -1,4 +1,4 @@
-use crate::native::UiNativeGraphics;
+use crate::native::UiNativePresentationAccess;
 
 const RETAINED_TO_SURFACE_SHADER: &str = r#"
 @group(0) @binding(0) var retained: texture_2d<f32>;
@@ -327,16 +327,16 @@ pub(super) fn draw_presentation_operations(
 }
 
 pub(super) fn retained_transfer(
-    graphics: &UiNativeGraphics,
+    graphics: &UiNativePresentationAccess,
 ) -> (wgpu::RenderPipeline, wgpu::BindGroup) {
     let shader = graphics
-        .device
+        .device()
         .create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("worth-ui-retained-to-surface"),
             source: wgpu::ShaderSource::Wgsl(RETAINED_TO_SURFACE_SHADER.into()),
         });
     let pipeline = transfer_pipeline(
-        &graphics.device,
+        graphics.device(),
         &shader,
         wgpu::TextureFormat::Bgra8UnormSrgb,
     );
@@ -344,7 +344,7 @@ pub(super) fn retained_transfer(
         .retained_target()
         .create_view(&wgpu::TextureViewDescriptor::default());
     let bind_group = graphics
-        .device
+        .device()
         .create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("worth-ui-retained-to-surface-bind-group"),
             layout: &pipeline.get_bind_group_layout(0),

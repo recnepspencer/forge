@@ -60,6 +60,31 @@ pub(in crate::mounting::projection) fn complete_static_filled_rect(
     .map_err(UiMountedProjectionDenial::StaticPaintCompletion)
 }
 
+pub(in crate::mounting) fn reattribute_filled_rect(
+    row: UiMountedFilledRectMechanic,
+    frame: worth_ui_host_contract::UiMountedFrameIdentity,
+    receipts: &super::super::super::UiMountedNodeReceiptBasis,
+) -> Result<UiMountedFilledRectMechanic, UiMountedProjectionDenial> {
+    let node_receipt = receipts
+        .receipt_for(row.mounted_instance())
+        .ok_or(UiMountedProjectionDenial::StaticPaintNodeReceiptMismatch)?;
+    UiMountedFilledRectMechanic::complete_from_runtime_mounting(
+        UiMountedFilledRectCompletionInput {
+            frame,
+            surface: row.surface(),
+            binding: row.binding(),
+            mounted_instance: row.mounted_instance(),
+            node_receipt,
+            allocation_basis: row.allocation_basis(),
+            bounds: row.bounds(),
+            color: row.color(),
+            layer_semantic_order: row.layer_semantic_order(),
+            clip_bounds: row.clip_bounds(),
+        },
+    )
+    .map_err(UiMountedProjectionDenial::StaticPaintCompletion)
+}
+
 fn require_static_paint_participation(
     node: &super::super::frame_storage::UiMountedProjectionNodeRecord,
 ) -> Result<(), UiMountedProjectionDenial> {

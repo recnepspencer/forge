@@ -1,10 +1,10 @@
 use worth_ui::facade::app::{
     UiMountedFrameOutcome, UiMountedFramePublicationReceipt, UiMountedFrameRequest,
-    UiMountedFrameRetentionRejection, UiMountedIndeterminateFrame,
+    UiMountedFrameRetentionRejection, UiMountedHostMeasurementTransitionDenial,
+    UiMountedHostMeasurementUnexpectedTransition, UiMountedIndeterminateFrame,
     UiMountedPresentationAdmissionRejection, UiMountedPresentationCompletionDenial,
     UiMountedPresentationInFlight, UiMountedRejectedFrame, UiMountedSupersededFrame,
-    UiPresentationDeadline, WorthUi, WorthUiLegacyEguiApplicationTransition,
-    WorthUiMountedFrameExecutionStop,
+    UiPresentationDeadline, WorthUi, WorthUiMountedFrameExecutionStop,
 };
 
 fn main() {
@@ -15,12 +15,9 @@ pub fn run() {
     let app = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
-        .map(|application| {
-            WorthUiLegacyEguiApplicationTransition::activate(
-                application,
-                worth_ui_host_egui::WorthUiHostEgui::new(egui::Context::default()),
-            )
-        })
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("empty application preparation should succeed");
     let mut session = app.launch().expect("empty application should launch");
     let outcome = match session.execute_mounted_frame(
@@ -66,6 +63,9 @@ fn observe_stop(stop: &WorthUiMountedFrameExecutionStop<'_>) {
     match stop {
         WorthUiMountedFrameExecutionStop::PublicationLease(_) => {}
         WorthUiMountedFrameExecutionStop::HostMeasurement(_) => {}
+        WorthUiMountedFrameExecutionStop::HostMeasurementTransition(denial) => {
+            observe_host_measurement_transition(denial)
+        }
         WorthUiMountedFrameExecutionStop::FrameworkTransition(transition) => {
             let _ = transition.generation_identity();
         }
@@ -101,4 +101,26 @@ fn observe_completion_denial(_denial: &UiMountedPresentationCompletionDenial) {}
 
 fn observe_superseded(superseded: &UiMountedSupersededFrame) {
     let _ = superseded.cost_report();
+}
+
+fn observe_host_measurement_transition(denial: &UiMountedHostMeasurementTransitionDenial) {
+    use UiMountedHostMeasurementTransitionDenial as Denial;
+    use UiMountedHostMeasurementUnexpectedTransition as Unexpected;
+
+    match denial {
+        Denial::AllocationReplanDenied(_)
+        | Denial::ViewportResizeDenied(_)
+        | Denial::AllocationReplanSelectionDenied(_)
+        | Denial::AllocationFrameResolutionDenied(_)
+        | Denial::AllocationInvalidationNarrowingDenied(_)
+        | Denial::FrameworkTransitionPlanningDenied(_)
+        | Denial::FrameworkTransitionExecutionDenied(_)
+        | Denial::DispatcherDenied { .. } => {}
+        Denial::UnexpectedSuccessfulTransition(unexpected) => match unexpected {
+            Unexpected::ReadyToExecute
+            | Unexpected::ResizePreviewPublished
+            | Unexpected::DurableResizeCommitted
+            | Unexpected::DragResizePreviewPending => {}
+        },
+    }
 }

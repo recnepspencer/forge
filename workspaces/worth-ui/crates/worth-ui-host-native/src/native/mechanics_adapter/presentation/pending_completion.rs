@@ -1,4 +1,4 @@
-use crate::native::{UiNativeEffectPosture, UiNativeHostState};
+use crate::native::UiNativeHostState;
 
 pub(crate) fn owns_completion(
     state: &UiNativeHostState,
@@ -42,7 +42,7 @@ pub(crate) fn complete_pending(
             if let Some(settlement) = pending.take_settlement() {
                 settlement.abandon(state, pending.physical_basis(), completion_identity);
             }
-            state.lifecycle_protocol.abandon_pending_presentation(
+            state.lifecycle.abandon_pending_presentation(
                 pending.physical_basis().binding(),
                 completion_identity,
             );
@@ -62,13 +62,13 @@ fn complete_superseded(
     mut pending: crate::native::presentation::UiNativePendingPresentation,
     observation: crate::native::presentation::UiNativePresentationPortObservation,
 ) -> worth_ui_host_contract::UiHostSurfaceInFlightCompletion {
-    state.lifecycle_protocol.abandon_pending_presentation(
+    state.lifecycle.abandon_pending_presentation(
         pending.physical_basis().binding(),
         pending.completion_identity(),
     );
     let Some(settlement) = pending.take_settlement() else {
         pending.release(&mut state.resources);
-        state.effect_posture = UiNativeEffectPosture::PresentationIndeterminate;
+        state.lifecycle.record_presentation_indeterminate();
         return worth_ui_host_contract::UiHostSurfaceInFlightCompletion::PresentationIndeterminate;
     };
     if !settlement.is_resolved_supersession() {
@@ -78,7 +78,7 @@ fn complete_superseded(
             pending.completion_identity(),
         );
         pending.release(&mut state.resources);
-        state.effect_posture = UiNativeEffectPosture::PresentationIndeterminate;
+        state.lifecycle.record_presentation_indeterminate();
         return worth_ui_host_contract::UiHostSurfaceInFlightCompletion::PresentationIndeterminate;
     }
     let cost = observation.into_superseded_cost();
@@ -110,7 +110,7 @@ fn complete_presented(
             worth_ui_host_contract::UiHostSurfaceInFlightCompletion::Presented(completion)
         }
         None => {
-            state.effect_posture = UiNativeEffectPosture::PresentationIndeterminate;
+            state.lifecycle.record_presentation_indeterminate();
             worth_ui_host_contract::UiHostSurfaceInFlightCompletion::PresentationIndeterminate
         }
     }
@@ -129,7 +129,7 @@ pub(crate) fn stop_pending(
         return worth_ui_host_contract::UiHostSurfaceCancellationOutcome::EffectsMayHaveBegun;
     };
     let mut pending = state.pending_presentations.remove(index);
-    state.lifecycle_protocol.abandon_pending_presentation(
+    state.lifecycle.abandon_pending_presentation(
         pending.physical_basis().binding(),
         pending.completion_identity(),
     );

@@ -13,11 +13,14 @@ use crate::lifecycle_observation_publication::{
 
 mod comparison;
 mod progression;
+mod readiness;
 
 const INITIAL_NATIVE_SETTLEMENT: Duration = Duration::from_secs(1);
+const NATIVE_CAPTURE_POLL_INTERVAL: Duration = Duration::from_millis(1);
 
 pub(crate) struct PlatformPulseVisualIdentityExecution {
     state: Option<PlatformPulseVisualIdentityState>,
+    readiness: Option<readiness::PlatformPulseVisualReadiness>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -130,7 +133,15 @@ impl PlatformPulseVisualIdentityExecution {
     pub(crate) fn new() -> Self {
         Self {
             state: Some(PlatformPulseVisualIdentityState::AwaitingFirstFrame),
+            readiness: None,
         }
+    }
+
+    pub(crate) fn install_readiness(
+        &mut self,
+        signal: worth_ui_platform_pulse::PlatformPulseApplicationReadinessSignal,
+    ) {
+        self.readiness = Some(readiness::PlatformPulseVisualReadiness::install(signal));
     }
 
     pub(crate) fn content_mutation_readiness(&self) -> PlatformPulseContentMutationReadiness {
@@ -188,6 +199,7 @@ impl PlatformPulseVisualIdentityExecution {
             .checked_add(INITIAL_NATIVE_SETTLEMENT)
             .ok_or(PlatformPulseVisualExecutionDenial::ClockOverflow)?;
         self.state = Some(PlatformPulseVisualIdentityState::Settling { begin_at });
+        self.schedule_wake(begin_at);
         Ok(())
     }
 
@@ -205,6 +217,7 @@ impl PlatformPulseVisualIdentityExecution {
         match progression::advance_state(state, shell, publisher, tick, now) {
             Ok(next) => {
                 self.state = Some(next);
+                self.schedule_current_wake();
                 Ok(())
             }
             Err(denial) => Err(denial),
@@ -230,6 +243,7 @@ impl PlatformPulseVisualIdentityExecution {
                 };
                 let comparison = comparison::begin(retained, rebind, capture);
                 self.state = Some(PlatformPulseVisualIdentityState::Comparing(comparison));
+                self.schedule_current_wake();
                 Ok(())
             }
             Some(PlatformPulseVisualIdentityState::Retired) => {
@@ -250,6 +264,7 @@ impl PlatformPulseVisualIdentityExecution {
         if matches!(self.state, Some(PlatformPulseVisualIdentityState::Retired)) {
             let capture = progression::begin_capture(shell, tick, now)?;
             self.state = Some(PlatformPulseVisualIdentityState::Rebasing(capture));
+            self.schedule_current_wake();
             return Ok(());
         }
         if !matches!(
@@ -272,6 +287,42 @@ impl PlatformPulseVisualIdentityExecution {
                 predecessor,
             },
         ));
+        self.schedule_current_wake();
         Ok(())
     }
+
+    fn schedule_current_wake(&self) {
+        let deadline = match self.state.as_ref() {
+            Some(PlatformPulseVisualIdentityState::Settling { begin_at }) => Some(*begin_at),
+            Some(PlatformPulseVisualIdentityState::Capturing(capture))
+            | Some(PlatformPulseVisualIdentityState::Rebasing(capture)) => {
+                Some(next_capture_poll(capture.deadline))
+            }
+            Some(PlatformPulseVisualIdentityState::Refreshing(refresh)) => {
+                Some(next_capture_poll(refresh.capture.deadline))
+            }
+            Some(PlatformPulseVisualIdentityState::Comparing(comparison)) => {
+                Some(next_capture_poll(comparison.deadline()))
+            }
+            Some(PlatformPulseVisualIdentityState::OverlayVisible(overlay)) => {
+                Some(overlay.clear_at)
+            }
+            _ => None,
+        };
+        if let Some(deadline) = deadline {
+            self.schedule_wake(deadline);
+        }
+    }
+
+    fn schedule_wake(&self, deadline: Instant) {
+        if let Some(readiness) = self.readiness.as_ref() {
+            readiness.schedule(deadline);
+        }
+    }
+}
+
+fn next_capture_poll(deadline: Instant) -> Instant {
+    Instant::now()
+        .checked_add(NATIVE_CAPTURE_POLL_INTERVAL)
+        .map_or(deadline, |poll| poll.min(deadline))
 }

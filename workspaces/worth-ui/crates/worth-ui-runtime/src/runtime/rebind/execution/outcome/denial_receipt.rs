@@ -86,4 +86,8 @@ impl<'session> UiRebindDenialReceipt<'session> {
             None => UiRebindOutcome::RejectedBeforeEffects(self),
         }
     }
+
+    pub(crate) fn detach_retry_for_native(self) -> Result<super::UiDetachedRebindRetry, Self> {
+        super::UiDetachedRebindRetry::from_denial(self)
+    }
 }

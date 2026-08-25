@@ -8,6 +8,9 @@ use super::PlatformPulseLifecycleObservationProjectionDenial;
 
 const COMPONENT: &str = "component:platform.pulse.component.projected_status";
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct PlatformPulseProjectionSchemaTransitionObservation {
     kind: PlatformPulseProjectionSchemaTransitionKind,
@@ -84,16 +87,20 @@ fn scalar_field(
     requirement: &UiProjectionSchemaRequirement,
 ) -> Result<PlatformPulseProjectionSchemaField, PlatformPulseLifecycleObservationProjectionDenial> {
     match requirement {
-        UiProjectionSchemaRequirement::Scalar(requirement) => match requirement
-            .selected_field()
-            .declared_name()
-        {
-            "status" => Ok(PlatformPulseProjectionSchemaField::Status),
-            "revision" => Ok(PlatformPulseProjectionSchemaField::Revision),
-            _ => Err(
-                PlatformPulseLifecycleObservationProjectionDenial::UnsupportedSchemaTransitionField,
-            ),
-        },
+        UiProjectionSchemaRequirement::Scalar(requirement) => {
+            match requirement.selected_field().typed_field() {
+                Some(worth_ui::facade::query_binding::WorthUiProjectionField::QueryTextStatus) => {
+                    Ok(PlatformPulseProjectionSchemaField::Status)
+                }
+                Some(
+                    worth_ui::facade::query_binding::WorthUiProjectionField::QueryRevisionValue,
+                ) => Ok(PlatformPulseProjectionSchemaField::Revision),
+                _ => Err(
+                    PlatformPulseLifecycleObservationProjectionDenial::
+                        UnsupportedSchemaTransitionField,
+                ),
+            }
+        }
         UiProjectionSchemaRequirement::Collection(_) => {
             Err(PlatformPulseLifecycleObservationProjectionDenial::UnsupportedSchemaTransitionShape)
         }

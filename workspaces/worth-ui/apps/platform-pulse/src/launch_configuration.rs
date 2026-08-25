@@ -16,9 +16,16 @@ pub(crate) struct AdmittedPlatformPulseLaunchConfiguration {
 }
 
 impl AdmittedPlatformPulseLaunchConfiguration {
+    #[cfg(not(feature = "executable-world"))]
     pub(crate) fn from_process() -> Result<Self, PlatformPulseLaunchConfigurationDenial> {
+        Self::from_arguments(std::env::args_os().skip(1))
+    }
+
+    pub(crate) fn from_arguments(
+        arguments: impl IntoIterator<Item = OsString>,
+    ) -> Result<Self, PlatformPulseLaunchConfigurationDenial> {
         admit(
-            std::env::args_os().skip(1),
+            arguments,
             Path::new(env!("CARGO_MANIFEST_DIR")).join("app"),
             Path::new(env!("CARGO_MANIFEST_DIR")).join("query_samples"),
             Path::new(env!("CARGO_MANIFEST_DIR")).join("intent_samples"),

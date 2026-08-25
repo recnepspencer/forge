@@ -231,7 +231,8 @@ impl UiMountedIdentityState {
             identity_candidate,
             projection_changes,
             presentation_predecessor: self.current_frame,
-            presentation_changed_instances: current_instances.into(),
+            presentation_changed_instances: current_instances.clone().into(),
+            presentation_node_changed_instances: current_instances.into(),
         })
     }
 

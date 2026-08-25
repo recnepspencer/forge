@@ -4,6 +4,7 @@ use super::record::{UiHitTestRegionRecord, UiVisibleRegionRecord};
 pub(crate) struct UiVisibleRegionIndex {
     identity: worth_ui_inspection::UiVisibleRegionIndexIdentity,
     index: UiImmutableIntervalIndex<UiVisibleRegionRecord>,
+    supported_len: usize,
 }
 
 pub(crate) struct UiHitTestRegionIndex {
@@ -13,6 +14,10 @@ pub(crate) struct UiHitTestRegionIndex {
 
 impl UiVisibleRegionIndex {
     pub(crate) fn build(capture_identity: u64, records: Vec<UiVisibleRegionRecord>) -> Self {
+        let supported_len = records
+            .iter()
+            .filter(|record| record.opacity() != super::UiVisibleOpacity::Unsupported)
+            .count();
         let index = UiImmutableIntervalIndex::build(records);
         Self {
             identity: worth_ui_inspection::UiVisibleRegionIndexIdentity::from_runtime_projection(
@@ -20,6 +25,7 @@ impl UiVisibleRegionIndex {
                 index.structural_digest(),
             ),
             index,
+            supported_len,
         }
     }
 
@@ -37,6 +43,10 @@ impl UiVisibleRegionIndex {
 
     pub(crate) fn len(&self) -> usize {
         self.index.len()
+    }
+
+    pub(crate) const fn supported_len(&self) -> usize {
+        self.supported_len
     }
 
     pub(crate) fn retained_structural_bytes(&self) -> Option<usize> {

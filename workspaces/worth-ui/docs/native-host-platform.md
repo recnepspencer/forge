@@ -99,10 +99,12 @@ Candidate retained state commits only after every required surface succeeds.
 
 ## Physical Work Progression
 
-Host-native owns physical resources and effects. This includes WGPU devices,
-queues, surfaces, textures, buffers, submissions, completion polling, atlas
-storage, uploads, pins, and resource release. The native adapter's observation
-of an external effect is the source of physical completion truth.
+Host-native owns physical resources and effects. The device owner retains the
+adapter/device/queue generation, while the presentation-surface owner retains
+the surface and current target. Concrete WGPU and Winit handles remain inside
+the WGPU backend; the graphics port carries only associated backend mechanics.
+The native adapter's observation of an external effect is the source of
+physical completion truth.
 
 A private physical Signal runtime inside host-native owns how that work
 progresses. It admits bounded work, tracks the current physical attempt, emits
@@ -137,6 +139,41 @@ can reconcile or close the physical consequence.
 Shutdown first stops new admissions, then drains retained completion and
 recovery obligations. Signal state and native resource ownership are disposed
 only after those obligations reach a terminal posture.
+
+## Presented-Source Readback
+
+The Windows native host records one capture source only after presentation has
+settled successfully. That source binds the host session, frame, presentation
+attempt, surface, binding generation, presentation epoch, current client
+transform, and the retained realized regions that produced the pixels. A draw
+list, reconstructed image, or later compositor capture cannot substitute for
+that identity.
+
+Capture admission is deliberately two-step:
+
+```text
+request -> reserve one bounded logical slot and padded byte capacity (no GPU effect)
+poll    -> revalidate the exact source, allocate owners, and submit the copy
+poll    -> Pending | canonical tight RGBA8 pixels | completion indeterminate
+```
+
+The native owner permits at most four readback slots and 16 MiB of aggregate
+padded capacity. WGPU's 256-byte row alignment remains internal; successful
+results remove row padding and expose top-left, tightly packed RGBA8 bytes.
+Resize, scale, binding, presentation, and derived-state changes invalidate
+unsubmitted source reservations. Already submitted copies retain their exact
+predecessor source until terminal observation. Cancelling the caller's request
+does not cancel or forget physical work that may already have begun.
+
+Cancellation before submission proves that readback did not begin.
+Cancellation after submission can prove only that readback may have begun. A
+device timeout remains pending. An unknown physical completion enters bounded
+capture recovery and keeps its slot, padded bytes, readback buffer, and pending
+submission owner charged. A map failure or malformed artifact observed after
+GPU settlement is completion-indeterminate but physically releasable. Ordinary
+admission and governed close retries progress retained recovery; host graphics
+remain live until it settles. Runtime snapshot retention and disposal remain
+runtime policy, not native policy.
 
 ## Relationship To Query Invalidation
 
@@ -179,6 +216,37 @@ A pre-effect denial preserves the current publication. If an effect may have
 started, the affected binding becomes indeterminate and must be reconciled or
 closed. A successful surface in a partially failed multi-surface attempt does
 not promote the candidate frame.
+
+## Recovery And Hostile Close
+
+Timeout and occlusion do not spend reconstruction authority in a local retry
+loop. The runtime retains the exact mounted frame and reconstruction authority,
+then admits another attempt only after a later qualified redraw or visibility
+readiness generation. Validation rejection remains pre-effect. Surface
+outdated, surface loss, device loss, and indeterminate completion enter the
+typed recovery registry.
+
+Physical graphics recovery is global to the native host generation, not local
+to one semantic binding. One pending recovery epoch prepares and commits one
+generation-bearing device/surface fact. Every affected binding must consume
+that same fact through its own semantic reconstruction before the epoch can be
+released. A stronger device-loss requirement supersedes a previously prepared
+surface-only epoch instead of opening a parallel recovery lane.
+
+Zero-sized Windows surfaces suspend presentation. Restoring a nonzero client
+area publishes a later readiness generation and a monotonic successor-barrier
+ordinal; retained reconstruction resumes from current mounted authority and
+presents a distinct product frame. A later minimize/restore cycle cannot reuse
+the earlier title/barrier observation. The Windows lifecycle courtroom verifies
+each successor presentation before it accepts compositor pixels.
+
+Close uses one ordered shutdown progression: stop admission, settle external
+presentation and readback obligations, release derived/recovery state, release
+native resources, then publish `Closed` only when the complete census is zero.
+Close during preparation, any presentation stage, readback, queued readiness,
+or a held application attempt uses this same progression. Certification
+observes the production readiness registry and runtime-issued mounted attempt;
+it does not mint census-only stand-ins.
 
 ## Current Limits
 

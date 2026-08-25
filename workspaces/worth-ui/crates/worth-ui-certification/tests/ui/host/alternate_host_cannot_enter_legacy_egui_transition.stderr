@@ -1,4 +1,0 @@
-error[E0308]: mismatched types
- --> tests/ui/host/alternate_host_cannot_enter_legacy_egui_transition.rs
- note: expected `WorthUiHostEgui`, found `WorthUiHeadlessHost`
- note: associated function defined here

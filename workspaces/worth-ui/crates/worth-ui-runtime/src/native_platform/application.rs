@@ -36,6 +36,7 @@ pub struct UiNativeApplicationPreparation {
     program: Option<crate::facade::entry::UiNativeApplicationProgram>,
     presentation_async:
         Option<crate::native_platform::text_presentation::UiPresentationAsyncRuntime>,
+    application_runtime: Option<Box<dyn super::UiNativeApplicationRuntime>>,
 }
 
 #[must_use]
@@ -50,6 +51,7 @@ pub struct UiPreparedNativeApplication {
     program: crate::facade::entry::UiNativeApplicationProgram,
     presentation_async:
         Option<crate::native_platform::text_presentation::UiPresentationAsyncRuntime>,
+    application_runtime: Option<Box<dyn super::UiNativeApplicationRuntime>>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -61,6 +63,9 @@ pub enum UiNativeApplicationPreparationDenialCause {
     ApplicationFreezeRejected,
     FrameProgramAlreadyInstalled,
     PresentationAsyncAlreadyInstalled,
+    ApplicationRuntimeAlreadyInstalled,
+    ApplicationCompositionAlreadyInstalled,
+    ApplicationRuntimeFrameProgramConflict,
 }
 
 #[must_use]
@@ -84,6 +89,7 @@ impl UiNativeApplicationPreparation {
             builder: Some(builder),
             program: None,
             presentation_async: None,
+            application_runtime: None,
         }
     }
 
@@ -97,10 +103,28 @@ impl UiNativeApplicationPreparation {
         &mut self,
         program: crate::facade::entry::UiNativeApplicationProgram,
     ) -> Result<(), UiNativeApplicationPreparationDenialCause> {
+        if self.application_runtime.is_some() {
+            return Err(
+                UiNativeApplicationPreparationDenialCause::ApplicationRuntimeFrameProgramConflict,
+            );
+        }
         if self.program.is_some() {
             return Err(UiNativeApplicationPreparationDenialCause::FrameProgramAlreadyInstalled);
         }
         self.program = Some(program);
+        Ok(())
+    }
+
+    pub fn install_application_composition(
+        &mut self,
+        builder: WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied>,
+    ) -> Result<(), UiNativeApplicationPreparationDenialCause> {
+        if !matches!(self.builder, Some(UiNativeBuilderState::MissingProfile(_))) {
+            return Err(
+                UiNativeApplicationPreparationDenialCause::ApplicationCompositionAlreadyInstalled,
+            );
+        }
+        self.builder = Some(UiNativeBuilderState::Ready(builder));
         Ok(())
     }
 
@@ -121,6 +145,27 @@ impl UiNativeApplicationPreparation {
         Ok(())
     }
 
+    pub fn install_application_runtime<Runtime>(
+        &mut self,
+        runtime: Runtime,
+    ) -> Result<(), UiNativeApplicationPreparationDenialCause>
+    where
+        Runtime: super::UiNativeApplicationRuntime,
+    {
+        if self.program.is_some() {
+            return Err(
+                UiNativeApplicationPreparationDenialCause::ApplicationRuntimeFrameProgramConflict,
+            );
+        }
+        if self.application_runtime.is_some() {
+            return Err(
+                UiNativeApplicationPreparationDenialCause::ApplicationRuntimeAlreadyInstalled,
+            );
+        }
+        self.application_runtime = Some(Box::new(runtime));
+        Ok(())
+    }
+
     pub fn complete(mut self) -> UiNativeApplicationPreparationOutcome {
         let Some(builder) = self.builder.take() else {
             return self
@@ -134,10 +179,15 @@ impl UiNativeApplicationPreparation {
                 UiNativeApplicationPreparationOutcome::Prepared(UiPreparedNativeApplication {
                     application,
                     binding: self.binding,
-                    program: self.program.take().unwrap_or_else(
-                        crate::facade::entry::UiNativeApplicationProgram::single_frame,
-                    ),
+                    program: self.program.take().unwrap_or_else(|| {
+                        if self.application_runtime.is_some() {
+                            crate::facade::entry::UiNativeApplicationProgram::application_driven()
+                        } else {
+                            crate::facade::entry::UiNativeApplicationProgram::single_frame()
+                        }
+                    }),
                     presentation_async: self.presentation_async.take(),
+                    application_runtime: self.application_runtime.take(),
                 })
             }
             Err(_) => {
@@ -269,14 +319,18 @@ impl UiPreparedNativeApplication {
     pub(crate) fn bind_qualified_native(
         self,
         host: worth_ui_host_native::WorthUiPreparedNativeMechanics,
-    ) -> (crate::facade::WorthUiApp, super::UiNativeApplicationProgram) {
+    ) -> (
+        crate::facade::WorthUiApp,
+        super::UiNativeApplicationProgram,
+        Option<Box<dyn super::UiNativeApplicationRuntime>>,
+    ) {
         debug_assert_eq!(
             self.binding.profile(),
             worth_ui_host_native::UiNativePlatformProfileIdentity::WORTH_UI_WINDOWS_DX12_V1
         );
         let mut application = self.application.bind_qualified_native(host);
         application.install_presentation_async_owner(self.presentation_async);
-        (application, self.program)
+        (application, self.program, self.application_runtime)
     }
 }
 
@@ -291,47 +345,5 @@ impl UiNativeApplicationPreparationDenial {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{UiNativeApplicationPreparation, UiNativeApplicationPreparationOutcome};
-
-    #[test]
-    fn complete_preparation_freezes_only_a_host_neutral_application() {
-        let identity = 41;
-        let binding =
-            crate::native_platform::native_platform_binding::UiNativePlatformBindingGrant::issue(
-                identity,
-            );
-        let mut preparation = UiNativeApplicationPreparation::new(identity, binding);
-        preparation
-            .builder()
-            .with_change_profile(crate::facade::rebind::UiChangeProfile::platform_pulse())
-            .unwrap();
-        assert!(matches!(
-            preparation.complete(),
-            UiNativeApplicationPreparationOutcome::Prepared(_)
-        ));
-    }
-
-    #[test]
-    fn preparation_builder_rejects_replacement_and_preserves_affine_slot() {
-        let identity = 42;
-        let binding =
-            crate::native_platform::native_platform_binding::UiNativePlatformBindingGrant::issue(
-                identity,
-            );
-        let mut preparation = UiNativeApplicationPreparation::new(identity, binding);
-        let mut builder = preparation.builder();
-        builder
-            .with_change_profile(crate::facade::rebind::UiChangeProfile::platform_pulse())
-            .unwrap();
-        assert_eq!(
-            builder.with_change_profile(crate::facade::rebind::UiChangeProfile::platform_pulse()),
-            Err(super::UiNativeApplicationPreparationDenialCause::ChangeProfileAlreadyInstalled)
-        );
-        drop(builder);
-        assert!(matches!(
-            preparation.complete(),
-            UiNativeApplicationPreparationOutcome::Prepared(_)
-        ));
-    }
-}
+#[path = "application/tests.rs"]
+mod tests;

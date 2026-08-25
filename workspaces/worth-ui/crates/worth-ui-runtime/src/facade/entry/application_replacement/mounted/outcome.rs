@@ -37,6 +37,24 @@ pub struct WorthUiMountedReplacementCompletionDenial<'session> {
     pub(super) in_flight: WorthUiMountedApplicationReplacementInFlight<'session>,
 }
 
+pub(crate) struct WorthUiDetachedPreparedMountedApplicationReplacement {
+    pub(super) session_identity: crate::facade::WorthUiActiveApplicationSessionIdentity,
+    pub(super) application: Box<WorthUiPreparedApplicationActivation>,
+    pub(super) mounted_successor: crate::mounting::UiMountedGraphReplacementSuccessor,
+    pub(super) frame: crate::mounting::UiPreparedMountedFrame,
+}
+
+pub(crate) struct WorthUiDetachedMountedApplicationReplacementInFlight {
+    pub(super) session_identity: crate::facade::WorthUiActiveApplicationSessionIdentity,
+    pub(super) application: Box<WorthUiPreparedApplicationActivation>,
+    pub(super) mounted: crate::mounting::UiMountedGraphReplacementInFlight,
+}
+
+pub struct WorthUiMountedReplacementHostRejection<'session> {
+    pub(super) rejections: Box<[crate::mounting::UiMountedSurfacePresentationRejection]>,
+    pub(super) replacement: Box<WorthUiPreparedMountedApplicationReplacement<'session>>,
+}
+
 pub enum WorthUiMountedReplacementPreparationOutcome<'session> {
     SemanticNoOp(Box<WorthUiApplicationSemanticNoOpReceipt>),
     Prepared(Box<WorthUiPreparedMountedApplicationReplacement<'session>>),
@@ -47,7 +65,7 @@ pub enum WorthUiMountedApplicationReplacementOutcome<'session> {
         application: WorthUiApplicationCutoverReceipt,
         mounted: crate::mounting::UiMountedFramePublicationReceipt,
     },
-    RejectedBeforeEffects(Box<WorthUiPreparedMountedApplicationReplacement<'session>>),
+    RejectedBeforeEffects(WorthUiMountedReplacementHostRejection<'session>),
     InFlight(Box<WorthUiMountedApplicationReplacementInFlight<'session>>),
     PresentationIndeterminate(Box<WorthUiMountedApplicationReplacementIndeterminate<'session>>),
     RetentionDenied(WorthUiMountedReplacementRetentionDenial<'session>),
@@ -102,5 +120,24 @@ impl<'session> WorthUiMountedReplacementCompletionDenial<'session> {
         self: Box<Self>,
     ) -> WorthUiMountedApplicationReplacementInFlight<'session> {
         self.in_flight
+    }
+}
+
+impl<'session> WorthUiMountedReplacementHostRejection<'session> {
+    pub fn rejections(&self) -> &[crate::mounting::UiMountedSurfacePresentationRejection] {
+        &self.rejections
+    }
+
+    pub fn into_parts(
+        self,
+    ) -> (
+        Box<[crate::mounting::UiMountedSurfacePresentationRejection]>,
+        Box<WorthUiPreparedMountedApplicationReplacement<'session>>,
+    ) {
+        (self.rejections, self.replacement)
+    }
+
+    pub fn into_replacement(self) -> Box<WorthUiPreparedMountedApplicationReplacement<'session>> {
+        self.replacement
     }
 }

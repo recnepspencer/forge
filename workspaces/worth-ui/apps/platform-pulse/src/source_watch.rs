@@ -1,4 +1,5 @@
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
+use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::Duration;
 
@@ -23,21 +24,35 @@ pub(crate) struct PlatformPulseSourceWatch {
     events: Receiver<PlatformPulseSourceEvent>,
     worker:
         JoinHandle<Result<WorthUiFilesystemWatcherShutdownReceipt, WorthUiFilesystemWatcherDenial>>,
+    readiness: Arc<Mutex<Option<worth_ui_platform_pulse::PlatformPulseApplicationReadinessSignal>>>,
 }
 
 impl PlatformPulseSourceWatch {
     pub(crate) fn spawn(watcher: WorthUiFilesystemSourceWatcher) -> Self {
         let (stop, stop_requests) = mpsc::channel();
         let (event_publications, events) = mpsc::channel();
+        let readiness = Arc::new(Mutex::new(None));
+        let worker_readiness = Arc::clone(&readiness);
         let worker = std::thread::Builder::new()
             .name("worth-ui-platform-pulse-source".to_owned())
-            .spawn(move || run(watcher, stop_requests, event_publications))
+            .spawn(move || run(watcher, stop_requests, event_publications, worker_readiness))
             .expect("platform pulse source worker should start");
         Self {
             stop,
             events,
             worker,
+            readiness,
         }
+    }
+
+    pub(crate) fn install_readiness(
+        &self,
+        readiness: worth_ui_platform_pulse::PlatformPulseApplicationReadinessSignal,
+    ) {
+        *self
+            .readiness
+            .lock()
+            .expect("source readiness installation is not poisoned") = Some(readiness);
     }
 
     pub(crate) fn try_next(&self) -> Option<PlatformPulseSourceEvent> {
@@ -60,6 +75,7 @@ fn run(
     mut watcher: WorthUiFilesystemSourceWatcher,
     stop: Receiver<()>,
     events: Sender<PlatformPulseSourceEvent>,
+    readiness: Arc<Mutex<Option<worth_ui_platform_pulse::PlatformPulseApplicationReadinessSignal>>>,
 ) -> Result<WorthUiFilesystemWatcherShutdownReceipt, WorthUiFilesystemWatcherDenial> {
     loop {
         match stop.try_recv() {
@@ -74,12 +90,26 @@ fn run(
                 {
                     return watcher.shutdown();
                 }
+                signal_readiness(&readiness);
             }
             Err(WorthUiFilesystemWatcherDenial::SettlementTimedOut { .. }) => {}
             Err(denial) => {
                 let _ = events.send(PlatformPulseSourceEvent::Failed(denial));
+                signal_readiness(&readiness);
                 return watcher.shutdown();
             }
         }
+    }
+}
+
+fn signal_readiness(
+    readiness: &Mutex<Option<worth_ui_platform_pulse::PlatformPulseApplicationReadinessSignal>>,
+) {
+    if let Some(readiness) = readiness
+        .lock()
+        .expect("source readiness signal is not poisoned")
+        .as_ref()
+    {
+        readiness.signal();
     }
 }

@@ -3,7 +3,7 @@ use crate::external_observation::{NativeClientPixelCapture, NativeClientPixelPoi
 use crate::source_delta::{
     ConfirmationHeldIntentDelta, ConfirmationReleasedIntentDelta, DeniedIntentDelta,
     DisabledIntentDelta, FinalHeldIntentDelta, IntentRouteRemovalSourceDelta,
-    ReadyReleasedIntentDelta,
+    PulseCausalActionCursor, PulseCausalActionManifestFailure, ReadyReleasedIntentDelta,
 };
 use worth_ui_platform_pulse::observation_contract::{
     PlatformPulseIntentExecutorGateObservation as Gate,
@@ -13,13 +13,14 @@ use worth_ui_platform_pulse::observation_contract::{
 use super::evidence::PlatformPulseIntentJourneyEvidenceBuilder;
 use super::observation::{self, ExpectedTerminalPosture};
 use super::states::{
-    Cancelled, ConfirmationPending, ConfirmationStale, DisabledStopped, FinalHeld, FirstCompleted,
-    FirstHeld, FreshConfirmationPending, PolicyDeniedStopped, Ready, SecondCompleted,
+    Cancelled, ConfirmationPending, ConfirmationStale, FirstCompleted, FirstHeld,
+    FreshConfirmationPending, Ready, SecondCompleted,
 };
 use super::PlatformPulseIntentJourneyFailure;
 use crate::product_process::NativeBoundExecutableWorld;
 
 mod cancellation;
+mod terminal;
 
 use cancellation::await_rebind_cancellation;
 
@@ -29,12 +30,14 @@ pub(super) fn run(
     action: PlatformPulseActionControlPoint,
     evidence: &mut PlatformPulseIntentJourneyEvidenceBuilder,
     route_removal: IntentRouteRemovalSourceDelta,
+    actions: &mut dyn IntentCausalActionAuthority,
 ) -> Result<(), PlatformPulseIntentJourneyFailure> {
     let ready = IntentJourney {
         world,
         baseline,
         action,
         evidence,
+        actions,
         state: Ready,
     };
     let first_held = ready.activate_first()?;
@@ -59,11 +62,13 @@ pub(super) fn run_causal_pulse(
     action: PlatformPulseActionControlPoint,
     evidence: &mut PlatformPulseIntentJourneyEvidenceBuilder,
 ) -> Result<(), PlatformPulseIntentJourneyFailure> {
+    let mut actions = UntrackedIntentCausalActions;
     let ready = IntentJourney {
         world,
         baseline,
         action,
         evidence,
+        actions: &mut actions,
         state: Ready,
     };
     let first_held = ready.activate_first()?;
@@ -74,15 +79,43 @@ pub(super) fn run_causal_pulse(
     Ok(())
 }
 
+pub(super) struct UntrackedIntentCausalActions;
+
+pub(super) trait IntentCausalActionAuthority {
+    fn advance(&mut self, action: &'static str) -> Result<(), PulseCausalActionManifestFailure>;
+}
+
+impl IntentCausalActionAuthority for UntrackedIntentCausalActions {
+    fn advance(&mut self, _action: &'static str) -> Result<(), PulseCausalActionManifestFailure> {
+        Ok(())
+    }
+}
+
+impl IntentCausalActionAuthority for PulseCausalActionCursor<'_> {
+    fn advance(&mut self, action: &'static str) -> Result<(), PulseCausalActionManifestFailure> {
+        PulseCausalActionCursor::advance(self, action)
+    }
+}
+
 struct IntentJourney<'a, State> {
     world: &'a mut NativeBoundExecutableWorld,
     baseline: &'a NativeClientPixelCapture,
     action: PlatformPulseActionControlPoint,
     evidence: &'a mut PlatformPulseIntentJourneyEvidenceBuilder,
+    actions: &'a mut dyn IntentCausalActionAuthority,
     state: State,
 }
 
 impl<State> IntentJourney<'_, State> {
+    fn advance_action(
+        &mut self,
+        action: &'static str,
+    ) -> Result<(), PlatformPulseIntentJourneyFailure> {
+        self.actions
+            .advance(action)
+            .map_err(PlatformPulseIntentJourneyFailure::CausalManifest)
+    }
+
     fn activate(
         &mut self,
         point: NativeClientPixelPoint,
@@ -156,6 +189,7 @@ impl<'a> IntentJourney<'a, Ready> {
     fn activate_first(
         mut self,
     ) -> Result<IntentJourney<'a, FirstHeld>, PlatformPulseIntentJourneyFailure> {
+        self.advance_action("activate-first-action")?;
         self.activate(self.action.point())?;
         let admitted = observation::await_admitted(self.world)?;
         self.evidence.record_sequence(admitted.sequence);
@@ -165,6 +199,7 @@ impl<'a> IntentJourney<'a, Ready> {
         self.record_rebase()?;
         self.visible(self.action.region())?;
         self.evidence.record_first_attempt(admitted.value);
+        self.advance_action("observe-first-action-held")?;
         Ok(self.with_state(FirstHeld {
             attempt: admitted.value,
         }))
@@ -176,6 +211,7 @@ impl<'a> IntentJourney<'a, FirstHeld> {
         mut self,
         delta: ReadyReleasedIntentDelta,
     ) -> Result<IntentJourney<'a, FirstCompleted>, PlatformPulseIntentJourneyFailure> {
+        self.advance_action("edit-intent-ready-released")?;
         delta
             .apply(&self.world.installation)
             .map_err(PlatformPulseIntentJourneyFailure::SourceAction)?;
@@ -186,6 +222,7 @@ impl<'a> IntentJourney<'a, FirstHeld> {
         self.record_query_completion(self.state.attempt, 1, 2, "ACTION 1")?;
         self.record_refresh()?;
         self.visible_completed(self.action.region())?;
+        self.advance_action("observe-first-consequence")?;
         Ok(self.with_state(FirstCompleted))
     }
 }
@@ -195,6 +232,7 @@ impl<'a> IntentJourney<'a, FirstCompleted> {
         mut self,
         delta: ConfirmationHeldIntentDelta,
     ) -> Result<IntentJourney<'a, ConfirmationPending>, PlatformPulseIntentJourneyFailure> {
+        self.advance_action("edit-intent-confirmation-held")?;
         delta
             .apply(&self.world.installation)
             .map_err(PlatformPulseIntentJourneyFailure::SourceAction)?;
@@ -206,6 +244,7 @@ impl<'a> IntentJourney<'a, FirstCompleted> {
             Gate::Held,
         )?;
         self.evidence.record_sequence(sequence);
+        self.advance_action("activate-confirmation-action")?;
         self.activate(self.action.point())?;
         let challenge = observation::await_confirmation_required(self.world)?;
         self.evidence.record_sequence(challenge.sequence);
@@ -213,6 +252,7 @@ impl<'a> IntentJourney<'a, FirstCompleted> {
         let (control, change) =
             observation::capture_visible_confirmation(self.world, self.baseline, self.action)?;
         self.evidence.record_visible_change(change);
+        self.advance_action("observe-confirmation-required")?;
         Ok(self.with_state(ConfirmationPending {
             challenge: challenge.value,
             control,
@@ -225,6 +265,7 @@ impl<'a> IntentJourney<'a, ConfirmationPending> {
         mut self,
         delta: ConfirmationReleasedIntentDelta,
     ) -> Result<IntentJourney<'a, ConfirmationStale>, PlatformPulseIntentJourneyFailure> {
+        self.advance_action("edit-intent-confirmation-released")?;
         delta
             .apply(&self.world.installation)
             .map_err(PlatformPulseIntentJourneyFailure::SourceAction)?;
@@ -236,6 +277,7 @@ impl<'a> IntentJourney<'a, ConfirmationPending> {
             Gate::Released,
         )?;
         self.evidence.record_sequence(sequence);
+        self.advance_action("activate-stale-confirmation")?;
         self.activate(self.state.control.point())?;
         let sequence = observation::await_terminal_posture(
             self.world,
@@ -244,6 +286,7 @@ impl<'a> IntentJourney<'a, ConfirmationPending> {
         self.evidence.record_sequence(sequence);
         self.record_refresh()?;
         self.visible(self.state.control.region())?;
+        self.advance_action("observe-stale-confirmation")?;
         let predecessor = self.state.challenge;
         let control = self.state.control;
         Ok(self.with_state(ConfirmationStale {
@@ -258,6 +301,7 @@ impl<'a> IntentJourney<'a, ConfirmationStale> {
         mut self,
     ) -> Result<IntentJourney<'a, FreshConfirmationPending>, PlatformPulseIntentJourneyFailure>
     {
+        self.advance_action("activate-fresh-action")?;
         self.activate(self.action.point())?;
         let challenge = observation::await_confirmation_required(self.world)?;
         if challenge.value == self.state.predecessor {
@@ -268,6 +312,7 @@ impl<'a> IntentJourney<'a, ConfirmationStale> {
         self.evidence.record_sequence(challenge.sequence);
         self.record_refresh()?;
         self.visible(self.state.control.region())?;
+        self.advance_action("observe-fresh-confirmation")?;
         let control = self.state.control;
         Ok(self.with_state(FreshConfirmationPending {
             challenge: challenge.value,
@@ -280,11 +325,12 @@ impl<'a> IntentJourney<'a, FreshConfirmationPending> {
     fn confirm_and_complete(
         mut self,
     ) -> Result<IntentJourney<'a, SecondCompleted>, PlatformPulseIntentJourneyFailure> {
-        if self.state.challenge.expires_at_tick == 0 {
+        if self.state.challenge.expires_at_millis == 0 {
             return Err(PlatformPulseIntentJourneyFailure::Cancellation(
                 "fresh challenge carried no expiry boundary",
             ));
         }
+        self.advance_action("activate-fresh-confirmation")?;
         self.activate(self.state.control.point())?;
         let admitted = observation::await_admitted(self.world)?;
         self.evidence.record_sequence(admitted.sequence);
@@ -295,95 +341,8 @@ impl<'a> IntentJourney<'a, FreshConfirmationPending> {
         self.evidence.record_second_attempt(admitted.value);
         self.record_refresh()?;
         self.visible_completed(self.action.region())?;
+        self.advance_action("observe-second-consequence")?;
         Ok(self.with_state(SecondCompleted))
-    }
-}
-
-impl<'a> IntentJourney<'a, SecondCompleted> {
-    fn stop_disabled(
-        mut self,
-        delta: DisabledIntentDelta,
-    ) -> Result<IntentJourney<'a, DisabledStopped>, PlatformPulseIntentJourneyFailure> {
-        delta
-            .apply(&self.world.installation)
-            .map_err(PlatformPulseIntentJourneyFailure::SourceAction)?;
-        self.evidence.record_source_action();
-        let sequence =
-            observation::await_intent_input(self.world, 5, Operability::Disabled, Gate::Released)?;
-        self.evidence.record_sequence(sequence);
-        self.activate(self.action.point())?;
-        let sequence =
-            observation::await_terminal_posture(self.world, ExpectedTerminalPosture::Denied)?;
-        self.evidence.record_sequence(sequence);
-        self.record_refresh()?;
-        self.visible(self.action.region())?;
-        Ok(self.with_state(DisabledStopped))
-    }
-}
-
-impl<'a> IntentJourney<'a, DisabledStopped> {
-    fn stop_policy_denied(
-        mut self,
-        delta: DeniedIntentDelta,
-    ) -> Result<IntentJourney<'a, PolicyDeniedStopped>, PlatformPulseIntentJourneyFailure> {
-        delta
-            .apply(&self.world.installation)
-            .map_err(PlatformPulseIntentJourneyFailure::SourceAction)?;
-        self.evidence.record_source_action();
-        let sequence =
-            observation::await_intent_input(self.world, 6, Operability::Denied, Gate::Released)?;
-        self.evidence.record_sequence(sequence);
-        self.activate(self.action.point())?;
-        let sequence =
-            observation::await_terminal_posture(self.world, ExpectedTerminalPosture::Denied)?;
-        self.evidence.record_sequence(sequence);
-        self.record_refresh()?;
-        self.visible(self.action.region())?;
-        Ok(self.with_state(PolicyDeniedStopped))
-    }
-}
-
-impl<'a> IntentJourney<'a, PolicyDeniedStopped> {
-    fn activate_final_held(
-        mut self,
-        delta: FinalHeldIntentDelta,
-    ) -> Result<IntentJourney<'a, FinalHeld>, PlatformPulseIntentJourneyFailure> {
-        delta
-            .apply(&self.world.installation)
-            .map_err(PlatformPulseIntentJourneyFailure::SourceAction)?;
-        self.evidence.record_source_action();
-        let sequence =
-            observation::await_intent_input(self.world, 7, Operability::Ready, Gate::Held)?;
-        self.evidence.record_sequence(sequence);
-        self.activate(self.action.point())?;
-        let admitted = observation::await_admitted(self.world)?;
-        self.evidence.record_sequence(admitted.sequence);
-        let sequence = observation::await_executor_started(self.world, admitted.value)?;
-        self.evidence.record_provider_start();
-        self.evidence.record_sequence(sequence);
-        self.record_refresh()?;
-        self.visible(self.action.region())?;
-        Ok(self.with_state(FinalHeld {
-            attempt: admitted.value,
-        }))
-    }
-}
-
-impl<'a> IntentJourney<'a, FinalHeld> {
-    fn cancel_through_rebind(
-        mut self,
-        delta: IntentRouteRemovalSourceDelta,
-    ) -> Result<IntentJourney<'a, Cancelled>, PlatformPulseIntentJourneyFailure> {
-        delta
-            .apply(&self.world.installation)
-            .map_err(PlatformPulseIntentJourneyFailure::SourceAction)?;
-        self.evidence.record_source_action();
-        let sequence = await_rebind_cancellation(self.world, self.state.attempt)?;
-        self.evidence.record_sequence(sequence);
-        self.evidence.record_cancelled_attempt(self.state.attempt);
-        self.record_rebase()?;
-        self.visible(self.action.region())?;
-        Ok(self.with_state(Cancelled))
     }
 }
 
@@ -394,6 +353,7 @@ impl<'a, State> IntentJourney<'a, State> {
             baseline: self.baseline,
             action: self.action,
             evidence: self.evidence,
+            actions: self.actions,
             state,
         }
     }

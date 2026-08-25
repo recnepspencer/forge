@@ -159,6 +159,13 @@ impl UiMountedNodeProjectionView {
 }
 
 impl UiMountedProjectionView {
+    #[doc(hidden)]
+    pub fn node_receipt_affinity(&self) -> Option<crate::UiMountedNodeReceiptAffinity> {
+        self.nodes
+            .first()
+            .map(|node| crate::UiMountedNodeReceiptAffinity::from_receipt(node.node_receipt()))
+    }
+
     pub fn new(input: UiMountedProjectionViewInput) -> Self {
         let native_effects = presentation_effects::derive(
             &input.nodes,

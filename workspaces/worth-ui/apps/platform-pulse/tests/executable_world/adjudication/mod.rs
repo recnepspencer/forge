@@ -1,4 +1,6 @@
 #[cfg(target_os = "windows")]
+mod content_fingerprint;
+#[cfg(target_os = "windows")]
 mod identity_trace;
 #[cfg(target_os = "windows")]
 mod intent_control_points;
@@ -8,6 +10,8 @@ mod lifecycle_cleanup;
 mod native_color;
 #[cfg(target_os = "windows")]
 mod native_input_reachability;
+#[cfg(target_os = "windows")]
+mod platform_pulse_control_points;
 #[cfg(target_os = "windows")]
 mod predecessor_preservation;
 #[cfg(target_os = "windows")]
@@ -22,6 +26,8 @@ mod source_to_pixel;
 #[cfg(target_os = "windows")]
 mod visual_overlay_pixels;
 
+#[cfg(target_os = "windows")]
+pub(crate) use content_fingerprint::content_fingerprint;
 #[cfg(target_os = "windows")]
 pub(crate) use identity_trace::{
     adjudicate_successor_visual_snapshot, adjudicate_visual_comparison,

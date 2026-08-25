@@ -80,6 +80,9 @@ impl UiNativeInputObservationContract {
         host_session: u64,
         presentation: UiHostObservationPresentationBasis,
     ) -> bool {
+        if self.protocol.register_session(host_session).is_err() {
+            return false;
+        }
         self.protocol
             .record_completed_presentation(protocol, host_session, presentation)
             .effect()
@@ -93,6 +96,9 @@ impl UiNativeInputObservationContract {
         binding: UiSurfaceBindingGeneration,
         completion_identity: u64,
     ) -> bool {
+        if self.protocol.register_session(host_session).is_err() {
+            return false;
+        }
         self.protocol
             .remember_pending_presentation(protocol, host_session, binding, completion_identity)
             .required_action()
@@ -118,6 +124,13 @@ impl UiNativeInputObservationContract {
 
     pub fn release_session(&mut self, host_session: u64) {
         self.protocol.release_session(host_session);
+    }
+
+    pub fn install_input_recipient(
+        &mut self,
+        binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+    ) -> bool {
+        self.protocol.install_input_recipient(binding)
     }
 
     pub fn close(&mut self) {

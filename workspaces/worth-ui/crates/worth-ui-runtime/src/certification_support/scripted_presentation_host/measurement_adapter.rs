@@ -47,9 +47,17 @@ impl WorthUiMeasurementHostAdapter for ScriptedPresentationHost {
                 )
             }
             UiMeasurementRequestFamily::ViewportExtent => {
+                let extent = {
+                    let mut state = self.state.lock().unwrap();
+                    state.viewport_measurement_calls = state
+                        .viewport_measurement_calls
+                        .checked_add(1)
+                        .expect("scripted viewport observation count capacity");
+                    state.viewport_extent
+                };
                 UiHostMeasurementObservationValue::ViewportExtent(UiViewportExtentObservation {
-                    width: 800.0,
-                    height: 600.0,
+                    width: extent[0],
+                    height: extent[1],
                 })
             }
             UiMeasurementRequestFamily::DpiScaleFactor => {

@@ -34,7 +34,7 @@ pub use confirmation::{
     UiIntentConfirmationSettlementReceipt, UiIntentConfirmationShutdownReport,
     UiIntentConfirmationSlotIdentity, UiIntentConfirmationStop, UiIntentConfirmationStopReason,
     UiIntentConfirmationTimeBasisKind, UiPendingIntentConfirmation,
-    UI_INTENT_CONFIRMATION_TTL_TICKS, UI_PENDING_INTENT_CONFIRMATION_LIMIT,
+    UI_INTENT_CONFIRMATION_TTL_MILLIS, UI_PENDING_INTENT_CONFIRMATION_LIMIT,
 };
 #[cfg(any(test, feature = "certification-support"))]
 pub(crate) use operability::UiIntentOperabilityDecisionInput;

@@ -455,6 +455,7 @@ jobs:
           python3 scripts/ci/test_worth_ui_test_topology.py
           python3 scripts/ci/test_worth_ui_test_lane.py
           python3 scripts/ci/check_worth_ui_test_topology.py
+          python3 scripts/ci/check_worth_ui_native_features.py
 
       - name: Check WORTH UI formatting
         run: cargo fmt --all --manifest-path workspaces/worth-ui/Cargo.toml -- --check

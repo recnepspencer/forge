@@ -59,16 +59,16 @@ fn query_drift_changes_identity_while_host_selection_remains_outside_it() {
         .freeze()
         .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("headless app should prepare");
-    let egui = WorthUi::app()
+    let alternate_host = WorthUi::app()
         .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
         .freeze()
         .map(|application| {
             crate::facade::entry::WorthUiCertificationApplicationTransition::activate_test_host(
                 application,
-                EguiPlanAdapter,
+                AlternatePlanAdapter,
             )
         })
-        .expect("egui app should prepare");
+        .expect("alternate host app should prepare");
 
     assert_eq!(
         left_query.capabilities().digest(),
@@ -80,15 +80,18 @@ fn query_drift_changes_identity_while_host_selection_remains_outside_it() {
     );
     assert_eq!(
         headless.capabilities().digest(),
-        egui.capabilities().digest()
+        alternate_host.capabilities().digest()
     );
-    assert_eq!(headless.generation_identity(), egui.generation_identity());
+    assert_eq!(
+        headless.generation_identity(),
+        alternate_host.generation_identity()
+    );
 }
 
 #[derive(Default)]
-struct EguiPlanAdapter;
+struct AlternatePlanAdapter;
 
-impl worth_ui_host_contract::WorthUiMeasurementHostAdapter for EguiPlanAdapter {
+impl worth_ui_host_contract::WorthUiMeasurementHostAdapter for AlternatePlanAdapter {
     fn observe_measurement(
         &self,
         _request: &worth_ui_host_contract::UiHostMeasurementRequest,
@@ -97,9 +100,9 @@ impl worth_ui_host_contract::WorthUiMeasurementHostAdapter for EguiPlanAdapter {
     }
 }
 
-impl crate::host::adapter::WorthUiOperationalHostAdapter for EguiPlanAdapter {
+impl crate::host::adapter::WorthUiOperationalHostAdapter for AlternatePlanAdapter {
     fn operational_host_contract(&self) -> worth_ui_host_contract::WorthUiHostContract {
-        worth_ui_host_contract::WorthUiHostContract::egui()
+        worth_ui_host_contract::WorthUiHostContract::diagnostics_only()
     }
 
     fn operational_capability_report(&self) -> worth_ui_host_contract::WorthUiHostCapabilityReport {

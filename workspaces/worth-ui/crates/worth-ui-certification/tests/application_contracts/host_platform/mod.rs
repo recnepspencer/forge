@@ -1,3 +1,5 @@
+mod capture;
+mod lifecycle;
 mod mixed_carrier;
 mod oracle;
 mod world;
@@ -106,11 +108,6 @@ fn assert_mixed_carrier(
     assert_zero_successor_cost(production.costs[4]);
     assert_adapter_delta(&production.adapter_costs[1..4]);
     assert_eq!(production.adapter_costs[4], Default::default());
-    println!(
-        "WORTH_UI_LEDGER_COUNTERS={{\"P3-HEADLESS-COST-01\":0,\"P3-DELTA-SOURCE-01\":1,\"P3-PRODUCER-SLOPE-01\":0}}"
-    );
-    println!("WORTH_UI_LEDGER_WORLD=1");
-    println!("WORTH_UI_LEDGER_PRESENTATIONS=5");
     production
 }
 
@@ -138,8 +135,8 @@ fn assert_collection_row_correlation(
 }
 
 fn assert_adapter_delta(costs: &[worth_ui_host_contract::UiHostPresentationCostReport]) {
-    assert_eq!(costs[0].translated_rows(), 1);
-    assert_eq!(costs[0].delta_rows_carried(), 3);
+    assert_eq!(costs[0].translated_rows(), 2);
+    assert_eq!(costs[0].delta_rows_carried(), 4);
     for cost in &costs[1..] {
         assert_eq!(cost.translated_rows(), 2);
         assert_eq!(cost.delta_rows_carried(), 4);
@@ -199,24 +196,12 @@ fn maximum_overlap_removals_cross_public_runtime_and_headless_with_exact_work() 
         world.assert_restoration(restoration);
     }
     assert_required_oracle_mutations_are_rejected();
-    let unchanged_carrier = production.unchanged.cost.delta_rows_carried()
-        + production.unchanged.cost.draw_list_mutations()
-        + production.unchanged.cost.order_mutations()
-        + production.unchanged.cost.logical_damage_regions()
-        + production.unchanged.native_work_count as u64;
-    println!(
-        "WORTH_UI_LEDGER_COUNTERS={{\"P1-HEADLESS-COST-01\":{unchanged_carrier},\"P1-WORLDS-01\":{}}}",
-        world.baseline().len()
-    );
-    println!("WORTH_UI_LEDGER_WORLD=1");
-    println!("WORTH_UI_LEDGER_PRESENTATIONS=7");
     let _ = production.session.shutdown();
 }
 
 #[test]
 fn independent_oracle_rejects_each_required_control_mutation_for_its_exact_cause() {
     assert_required_oracle_mutations_are_rejected();
-    println!("WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-HP02-WORLD-01\":\"synthetic-successor\"}}");
 }
 
 fn assert_required_oracle_mutations_are_rejected() {

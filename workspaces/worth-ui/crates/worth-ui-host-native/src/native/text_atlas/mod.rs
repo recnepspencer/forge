@@ -12,8 +12,6 @@ mod demand_admission;
 mod entry;
 #[cfg(test)]
 mod eviction;
-#[cfg(test)]
-mod gate_d_model_evidence;
 mod in_flight;
 mod key;
 mod ownership;
@@ -28,6 +26,8 @@ mod settling;
 #[cfg(test)]
 mod test_device_tests;
 mod transaction;
+#[cfg(test)]
+mod transaction_model_assertion;
 mod transaction_plan_snapshot;
 mod upload;
 mod upload_staging;
@@ -62,13 +62,7 @@ mod recovery_identity_tests;
 pub use capacity::{UiNativeTextAtlasCapacityPosture, UiNativeTextAtlasQualifiedCapacity};
 pub(crate) use census::UiNativeTextAtlasPhysicalPosture;
 pub use census::{UiNativeTextAtlasCensus, UiNativeTextAtlasResourceClass};
-#[cfg(test)]
-pub(crate) use content_extent_tests::retained_content_extent_is_the_uploaded_shape_not_the_padded_allocation;
 pub(crate) use demand::UiNativeTextAtlasDemand;
-#[cfg(test)]
-pub(crate) use gate_d_model_evidence::{
-    assert_gate_d_model_boundaries, assert_independent_committed_transaction,
-};
 pub(crate) use in_flight::UiNativeTextAtlasInFlight;
 pub(crate) use key::canonical_raster_key_bytes;
 pub use key::{UiAtlasEntryIdentity, UiNativeValidatedRasterKey};
@@ -88,6 +82,8 @@ pub(crate) use transaction::{
     UiNativeTextAtlasExternalOutcome, UiNativeTextAtlasPinRequest, UiNativeTextAtlasPinTransition,
     UiNativeTextAtlasTransactionPlan,
 };
+#[cfg(test)]
+pub(crate) use transaction_model_assertion::assert_independent_committed_transaction;
 pub(crate) use upload::UiNativeGpuAtlasKind;
 pub(crate) use upload::{
     UiNativeTextAtlasGpuBatchUpload, UiNativeTextAtlasGpuPages, UiNativeTextAtlasGpuUploadRequest,

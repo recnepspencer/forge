@@ -134,7 +134,7 @@ fn phase_five_physical_signal_owns_exact_basis_currentness_and_winit_wakes() {
     }
 
     let event_loop = inventory
-        .source("crates/worth-ui-host-native/src/native/event_loop.rs")
+        .source("crates/worth-ui-host-native/src/native/event_loop/physical_progression.rs")
         .expect("native event loop must transport physical Signal wakes")
         .text();
     assert!(event_loop.contains("request_physical_signal_redraw"));
@@ -148,7 +148,7 @@ fn phase_five_physical_signal_owns_exact_basis_currentness_and_winit_wakes() {
         assert!(readiness.contains(operation));
     }
     let event_loop_run = inventory
-        .source("crates/worth-ui-host-native/src/native/event_loop/run.rs")
+        .source("crates/worth-ui-host-native/src/native/event_loop/run_preflight.rs")
         .expect("event-loop construction must register the physical level wake")
         .text();
     assert!(event_loop_run.contains("register_level"));
@@ -239,7 +239,6 @@ fn phase_five_physical_signal_has_no_public_atlas_control_or_close_time_schedule
     );
     assert!(!close.contains("progress_one_physical_signal_ready"));
     assert!(!close.contains("try_settle"));
-    println!("WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P5-ATLAS-01\":\"host-atlas-escape\"}}");
 }
 
 #[test]

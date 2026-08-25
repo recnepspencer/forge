@@ -177,6 +177,20 @@ impl CargoBuiltPlatformPulse {
         self.launch_native(&["--worth-ui-native-phase6-world"])
     }
 
+    pub(crate) fn launch_native_phase7(
+        self,
+        points: &str,
+    ) -> Result<NativePhase2ProcessLaunch, PlatformPulseProcessLaunchFailure> {
+        let argument = format!("--worth-ui-native-phase7-world={points}");
+        self.launch_native(&[&argument])
+    }
+
+    pub(crate) fn launch_native_phase8(
+        self,
+    ) -> Result<NativePhase2ProcessLaunch, PlatformPulseProcessLaunchFailure> {
+        self.launch_native(&["--worth-ui-native-phase8-world"])
+    }
+
     pub(crate) fn launch_native_phase3(
         self,
     ) -> Result<NativePhase2ProcessLaunch, PlatformPulseProcessLaunchFailure> {

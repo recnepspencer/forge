@@ -7,6 +7,7 @@ use crate::{
 };
 
 mod foreground;
+mod frame_affinity;
 mod validation;
 
 pub use foreground::{UiMountedTextForegroundSpan, UiMountedTextPaintSpanIdentity};

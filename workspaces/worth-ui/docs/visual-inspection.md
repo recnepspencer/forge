@@ -86,6 +86,14 @@ The pending handle is linear: polling or cancellation consumes it and returns
 the only valid next state. The runtime reserves bounded resources before it
 asks the host to capture.
 
+On the qualified Windows native host, a required-pixel request uses two host
+progress steps. The first step admits one logical readback reservation and has
+no GPU effect. The second step revalidates the exact presented source and may
+submit its texture-to-buffer copy. Later polls observe completion. Cancellation
+therefore distinguishes `CancelledBeforeReadback` from
+`ReadbackMayHaveBegun`; an unprovable submitted completion becomes
+`HostCompletion` indeterminate instead of being relabeled as captured.
+
 ## Small Example
 
 Once you hold a required-pixels receipt, pixel access is total because the
@@ -128,6 +136,12 @@ Snapshot geometry uses client physical pixels. The receipt also records the
 native client origin, client physical dimensions, logical viewport dimensions,
 scale, translation, orientation, and rounding rule that relate authored
 logical geometry to captured pixels.
+
+Native pixel artifacts are canonical, tightly packed top-left RGBA8 rows. The
+host keeps GPU row padding private and removes it only after completion. The
+recorded transform uses the current native client origin, physical extent,
+scale, and pixel-center-nearest rounding; consumers do not reconstruct that
+mapping from a desktop screenshot.
 
 Rectangles are half-open: left and top are included; right and bottom are
 excluded. A point exactly on a shared right or bottom edge belongs to the
@@ -481,9 +495,18 @@ receipts independently after the comparison is no longer needed.
 
 Pixel capture depends on the selected host capability and policy. Historical
 pixels may be unavailable even when historical mounted identity remains
-inspectable. Current Windows Platform Pulse certification uses exact native
-window capture; other platform adapters do not inherit that certification from
-a successful compile.
+inspectable. The qualified Windows host retains at most four native readback
+slots and 16 MiB of aggregate padded readback capacity. A larger or fifth
+concurrent request denies before GPU work. A submitted request keeps consuming
+that bounded capacity after caller cancellation or unknown physical completion
+until the native host proves settlement; shutdown retries do not report a false
+zero while such work remains.
+
+Current Windows Platform Pulse certification reads the exact retained native
+presentation source through the runtime and separately captures the
+compositor-visible client for correlation. The external client image is not a
+substitute for source affinity, retained regions, or the runtime receipt. Other
+platform adapters do not inherit that certification from a successful compile.
 
 ## Related Docs
 
