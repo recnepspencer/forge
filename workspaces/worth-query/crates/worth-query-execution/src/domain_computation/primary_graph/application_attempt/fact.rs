@@ -50,6 +50,11 @@ pub(in crate::domain_computation) enum WorthQueryApplicationObservedFact {
         locator: AspectFieldLocator,
         value: AspectValue,
     },
+    AbsentField {
+        entity_id: EntityId,
+        kind: KindId,
+        locator: AspectFieldLocator,
+    },
     Relation {
         relation_kind: KindId,
         from: EntityId,
@@ -85,6 +90,9 @@ impl WorthQueryApplicationObservedFact {
                 kind.as_u32()
             ),
             Self::Field {
+                entity_id, locator, ..
+            }
+            | Self::AbsentField {
                 entity_id, locator, ..
             } => format!(
                 "application-field:{}:{}:{}:{}/{}",
@@ -131,9 +139,9 @@ impl WorthQueryApplicationObservedFact {
 
     pub(super) fn touches_entity(&self, candidate: EntityId) -> bool {
         match self {
-            Self::Entity { entity_id, .. } | Self::Field { entity_id, .. } => {
-                *entity_id == candidate
-            }
+            Self::Entity { entity_id, .. }
+            | Self::Field { entity_id, .. }
+            | Self::AbsentField { entity_id, .. } => *entity_id == candidate,
             Self::Relation { from, to, .. } => *from == candidate || *to == candidate,
             Self::Adjacency {
                 anchor, relations, ..
@@ -181,6 +189,14 @@ impl WorthQueryApplicationObservedFact {
                 runtime, snapshot, *entity_id, *kind, locator,
             )
             .is_some_and(|current| current == *value),
+            Self::AbsentField {
+                entity_id,
+                kind,
+                locator,
+            } => matches!(
+                super::observation::observe_field(runtime, snapshot, *entity_id, *kind, locator),
+                Some(super::observation::WorthQueryApplicationFieldObservation::Absent)
+            ),
             Self::Relation {
                 relation_kind,
                 from,

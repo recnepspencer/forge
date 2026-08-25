@@ -47,6 +47,35 @@ pub(super) fn install(
             AccountStatus::reference(),
         )
         .operation(
+            PatchAccountDraftOperation::reference()
+                .definition()
+                .no_external_effect()
+                .no_aftermath()
+                .finish(),
+        )
+        .operation_decision_fact_budget(PatchAccountDraftOperation::reference(), 2)
+        .operation_projection_work_budget(PatchAccountDraftOperation::reference(), 16)
+        .operation_requires_ability(
+            PatchAccountDraftOperation::reference(),
+            ViewAccount::reference(),
+        )
+        .operation_write(
+            PatchAccountDraftOperation::reference(),
+            AccountNote::reference(),
+        )
+        .operation_write(
+            PatchAccountDraftOperation::reference(),
+            AccountScore::reference(),
+        )
+        .operation_read_field(
+            PatchAccountDraftOperation::reference(),
+            AccountNote::reference(),
+        )
+        .operation_read_field(
+            PatchAccountDraftOperation::reference(),
+            AccountScore::reference(),
+        )
+        .operation(
             WrongFieldRetentionOperation::reference()
                 .definition()
                 .no_external_effect()

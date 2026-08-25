@@ -574,6 +574,33 @@ The prepared candidate is opaque, runtime-affine, branch-bound, and single-use;
 it has no method that can publish itself. Only the Relational owner can consume
 it through compare-and-publish or explicit discard.
 
+Optional application fields participate in this same decision and currentness
+path. An installed operation must declare the field as both a decision read and
+a write. Its invariant projection observes either the exact value or lawful
+absence, and `write_optional_field` authors presence with `Some(value)` or
+absence with `None`:
+
+```rust
+let note = reader.decision_field(projected, DraftNote::reference())?;
+let quantity = reader.decision_field(projected, DraftQuantity::reference())?;
+
+// After projected dependencies are completed and the effect target is bound:
+set_effects.write_optional_field(&draft, DraftNote::reference(), Some(String::new()))?;
+set_effects.write_optional_field(&draft, DraftQuantity::reference(), Some(0_u64))?;
+
+// A later admitted operation clears the optional note without a sentinel:
+clear_effects.write_optional_field(&draft, DraftNote::reference(), None)?;
+```
+
+Empty text, zero, and absence remain distinct authoritative states. Absence is
+also a retained decision fact: a competing absent-to-present change makes the
+older attempt stale. Required fields cannot call `write_optional_field`; the
+field marker enforces that boundary at compile time. Do not encode absence as
+an empty string, zero, `AspectValue::Null`, or an application-side sentinel,
+and do not bypass the operation projection with a direct Relational patch.
+Query lowers the admitted optional-field effect to Relational's native,
+contract-validated field patch.
+
 The commit transition revalidates the dependencies whose drift could make the
 operation unlawful. Commit authority remains bound to its originating
 admission and serialization proof; it cannot be paired with another admitted

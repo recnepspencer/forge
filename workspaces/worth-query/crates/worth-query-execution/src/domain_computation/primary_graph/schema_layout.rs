@@ -1,6 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use worth_foundational::facade::{AspectContract, AspectFieldLocator, AspectKey, FieldKey};
+use worth_foundational::facade::{
+    AspectContract, AspectFieldLocator, AspectKey, AspectShape, FieldKey, FieldRequirement,
+};
 use worth_query_installation::facade::{
     ErasedApplicationSchemaDeclaration, WorthQueryInstalledApplicationSchemaContractCatalog,
 };
@@ -267,6 +269,25 @@ impl WorthQueryPrimaryGraphLayout {
     ) -> Option<&AspectContract> {
         self.aspect_contracts
             .get(&(entity.to_string(), aspect.clone()))
+    }
+
+    pub(in crate::domain_computation) fn field_is_optional(
+        &self,
+        entity: &str,
+        locator: &AspectFieldLocator,
+    ) -> bool {
+        let Some(field) = locator.field_path().fields().first() else {
+            return false;
+        };
+        let Some(contract) = self.aspect_contract(entity, locator.aspect().aspect_key()) else {
+            return false;
+        };
+        let AspectShape::Struct(shape) = contract.shape() else {
+            return false;
+        };
+        shape
+            .field(field)
+            .is_some_and(|field| field.requirement() == FieldRequirement::Optional)
     }
 
     pub(in crate::domain_computation) fn equality_field(

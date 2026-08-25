@@ -8,7 +8,7 @@ use worth_query_declaration::facade::application_query::{
 use worth_query_declaration::worth_query_application_query;
 
 use super::{
-    Account, AccountIdentity, AccountNote, AccountPolicy, AccountSummaryParameters,
+    Account, AccountIdentity, AccountNote, AccountPolicy, AccountScore, AccountSummaryParameters,
     IdentityExecutionSchema,
 };
 use crate::domain_computation::primary_graph::{
@@ -18,11 +18,13 @@ use crate::domain_computation::primary_graph::{
 
 pub struct AccountSlot;
 pub struct NoteSlot;
+pub struct ScoreSlot;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OptionalAccountFieldResult {
     account: String,
     note: Option<String>,
+    score: Option<u64>,
 }
 
 impl OptionalAccountFieldResult {
@@ -32,6 +34,10 @@ impl OptionalAccountFieldResult {
 
     pub fn note(&self) -> Option<&str> {
         self.note.as_deref()
+    }
+
+    pub const fn score(&self) -> Option<u64> {
+        self.score
     }
 }
 
@@ -53,13 +59,14 @@ pub(super) fn optional_account_field_definition() -> ApplicationQueryDefinition<
     let shape = ApplicationQueryResultShapeBuilder::new(Account::reference())
         .field(account())
         .optional_field(note())
+        .optional_field(score())
         .build();
     ApplicationQueryDefinitionBuilder::declare(OptionalAccountFieldQuery::reference())
         .root(Account::reference())
         .scope(Account::reference())
         .result_shape(shape)
         .cardinality(ApplicationQueryCardinality::ExactlyOne)
-        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(0, 0, 2))
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(0, 0, 3))
         .disclosure(ApplicationQueryDisclosureContract::public())
         .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
         .lanes(ApplicationQueryLaneEligibility::one_shot())
@@ -81,6 +88,7 @@ impl WorthQueryApplicationProjection<IdentityExecutionSchema, OptionalAccountFie
         Ok(Self {
             account: row.field(account())?,
             note: row.optional_field(note())?,
+            score: row.optional_field(score())?,
         })
     }
 }
@@ -113,4 +121,19 @@ fn note() -> ApplicationQueryOptionalResultFieldRef<
     worth_query_declaration::facade::application_schema::NoApplicationUnit,
 > {
     ApplicationQueryOptionalResultFieldRef::new("note", AccountNote::reference())
+}
+
+fn score() -> ApplicationQueryOptionalResultFieldRef<
+    OptionalAccountFieldQuery,
+    ScoreSlot,
+    IdentityExecutionSchema,
+    Account,
+    AccountPolicy,
+    AccountScore,
+    u64,
+    worth_query_declaration::facade::application_schema::ReadWrite,
+    worth_query_declaration::facade::application_schema::NoEqualityPredicate,
+    worth_query_declaration::facade::application_schema::NoApplicationUnit,
+> {
+    ApplicationQueryOptionalResultFieldRef::new("score", AccountScore::reference())
 }
