@@ -7,7 +7,19 @@ mod prepared_host;
 mod qualification;
 mod text_profile;
 
+#[cfg(feature = "certification-support")]
 pub use native::{
+    certify_client_close_with_queued_readiness, UiNativeQueuedReadinessCloseCertification,
+};
+#[cfg(feature = "certification-support")]
+pub use native::{
+    classify_presentation_fault, UiNativePresentationFault, UiNativePresentationFaultDisposition,
+    UiNativePresentationRecoveryClass,
+};
+pub use native::{
+    UiNativeApplicationReadinessGrant, UiNativeApplicationReadinessOwnerCount,
+    UiNativeApplicationReadinessOwnerCountDenial, UiNativeApplicationReadinessPort,
+    UiNativeApplicationReadinessSignalDenial, UiNativeApplicationReadinessSignalDisposition,
     UiNativeClientAuthoredMountedInstanceObservation, UiNativeClientConditionalOutcome,
     UiNativeClientDerivedStateLossClass, UiNativeClientDerivedStateReconstructionObservation,
     UiNativeClientObservationIngressObservation, UiNativeClientPresentationAttribution,
@@ -16,30 +28,44 @@ pub use native::{
     UiNativeClientPresentationSemanticFrontierObservation,
     UiNativeClientPresentationSemanticSubscriberObservation,
     UiNativeClientPresentationTransitionKind, UiNativeClientPresentationTransitionObservation,
-    UiNativeClientResourceObservation, UiNativeClientShutdownObservation,
-    UiNativeClientTextPresentationWorkObservation, UiNativeDerivedStateLossClass,
+    UiNativeClientResourceObservation, UiNativeClientShutdownAttemptDisposition,
+    UiNativeClientShutdownAttemptObservation, UiNativeClientShutdownObservation,
+    UiNativeClientTextPresentationWorkObservation, UiNativeClientVisualCoordinateOrientation,
+    UiNativeClientVisualCoordinateRounding, UiNativeClientVisualPixelColorSpace,
+    UiNativeClientVisualSnapshotInput, UiNativeClientVisualSnapshotObservation,
+    UiNativeClientVisualSnapshotRelation, UiNativeDerivedStateLossClass,
     UiNativeDerivedStateReconstructionObservation, UiNativeEffectPosture, UiNativeEventLoopCleanup,
     UiNativeEventLoopClient, UiNativeEventLoopClientCleanup, UiNativeEventLoopClientClose,
     UiNativeEventLoopDirective, UiNativeEventLoopRunDenial, UiNativeEventLoopRunReport,
-    UiNativeEventLoopStopReport, UiNativeEventLoopThreadPosture, UiNativeGlyphObservation,
-    UiNativeGraphicsObservation, UiNativeInputObservationEventFamily,
-    UiNativeInputObservationReport, UiNativeInputObservationStop,
-    UiNativeObservationReadinessGrant, UiNativePhysicalPresentationCorrelation,
-    UiNativePhysicalProgressClass, UiNativePhysicalProgressGrant,
-    UiNativePhysicalSignalExternalStatusClass, UiNativePhysicalSignalLifecycleObservation,
-    UiNativePhysicalSignalObservationOriginClass, UiNativePhysicalSignalSettlementClass,
-    UiNativePhysicalSignalTransitionObservation, UiNativePhysicalSignalWorkClass,
-    UiNativePointerButtonObservation, UiNativePresentationObservation,
-    UiNativePresentationWorkKind, UiNativeReadinessGrant, UiNativeResourceCensus,
-    UiNativeRetainedFrameObservation, UiNativeTextAtlasPlanObservation, UiNativeTextPinObservation,
+    UiNativeEventLoopShutdownOverlapObservation, UiNativeEventLoopStopReport,
+    UiNativeEventLoopThreadPosture, UiNativeGlyphObservation, UiNativeGraphicsObservation,
+    UiNativeInputObservationEventFamily, UiNativeInputObservationReport,
+    UiNativeInputObservationStop, UiNativeInputReachability, UiNativeObservationReadinessGrant,
+    UiNativePhysicalPresentationCorrelation, UiNativePhysicalProgressClass,
+    UiNativePhysicalProgressGrant, UiNativePhysicalSignalExternalStatusClass,
+    UiNativePhysicalSignalLifecycleObservation, UiNativePhysicalSignalObservationOriginClass,
+    UiNativePhysicalSignalSettlementClass, UiNativePhysicalSignalTransitionObservation,
+    UiNativePhysicalSignalWorkClass, UiNativePointerButtonObservation,
+    UiNativePresentationEffectPhase, UiNativePresentationObservation, UiNativePresentationWorkKind,
+    UiNativeReadinessGrant, UiNativeResourceCensus, UiNativeRetainedFrameObservation,
+    UiNativeScrollDeltaObservation, UiNativeTextAtlasPlanObservation, UiNativeTextPinObservation,
     WorthUiNativeEventLoop,
 };
+#[cfg(feature = "certification-support")]
+pub use native::{UiNativeCaptureExternalObservation, UiNativeCaptureProtocolWorld};
 #[cfg(feature = "certification-support")]
 pub use native::{UiNativeInputObservationContract, UiNativeInputObservationContractDisposition};
 #[cfg(feature = "certification-support")]
 pub use native::{
     UiNativeLifecycleEffect, UiNativeLifecyclePhase, UiNativeLifecycleProtocol,
     UiNativeLifecycleRequiredAction, UiNativeLifecycleTransition,
+};
+#[cfg(feature = "certification-support")]
+pub use native::{
+    UiNativeLifecycleProtocolReport, UiNativeLifecycleProtocolSchedule,
+    UiNativeLifecycleProtocolWorld, UiNativeProtocolCloseDisposition, UiNativeProtocolClosePoint,
+    UiNativeProtocolNextAction, UiNativeProtocolPredecessor, UiNativeProtocolReadback,
+    UiNativeProtocolResourceCensus, UiNativeProtocolSurfaceTransition,
 };
 #[cfg(feature = "certification-support")]
 pub use native::{

@@ -4,6 +4,7 @@ use super::geometry::UiSpatialRect;
 pub(crate) enum UiVisibleOpacity {
     Opaque,
     Composited(u8),
+    Unsupported,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -58,6 +59,25 @@ impl UiVisibleRegionRecord {
                 realized: realized_clip,
             },
             source_projection_digest: mechanic.semantic_digest(),
+        }
+    }
+
+    pub(crate) fn unsupported(
+        mechanic: crate::mounting::UiMountedUnsupportedPaintBasis,
+        realized_clip: worth_ui_host_contract::UiMountedCanonicalBox,
+        region: UiSpatialRect,
+    ) -> Self {
+        Self {
+            node_receipt: mechanic.node_receipt(),
+            region,
+            layer_order: mechanic.semantic_order(),
+            paint_order: mechanic.semantic_order(),
+            opacity: UiVisibleOpacity::Unsupported,
+            clip_lineage: UiValidatedClipLineage {
+                canonical: mechanic.clip(),
+                realized: realized_clip,
+            },
+            source_projection_digest: mechanic.source_digest(),
         }
     }
 
@@ -132,6 +152,7 @@ impl UiSpatialRecord for UiVisibleRegionRecord {
         let opacity = match self.opacity {
             UiVisibleOpacity::Opaque => u64::from(u8::MAX),
             UiVisibleOpacity::Composited(alpha) => u64::from(alpha),
+            UiVisibleOpacity::Unsupported => u64::MAX,
         };
         [
             self.node_receipt.diagnostic_value(),

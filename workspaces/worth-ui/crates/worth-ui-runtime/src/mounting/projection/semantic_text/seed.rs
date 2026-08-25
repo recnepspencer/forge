@@ -180,6 +180,10 @@ fn resolve_collection(
 }
 
 impl UiMountedSemanticTextSeed {
+    pub(in crate::mounting::projection) fn require_complete_mechanics(&mut self) {
+        self.transition = UiMountedSemanticTextSeedTransition::Complete;
+    }
+
     fn scalar_value(&self) -> Result<Option<Arc<str>>, UiMountedProjectionDenial> {
         match &self.content {
             UiMountedSemanticTextSeedContent::Scalar(value) => Ok(value.clone()),

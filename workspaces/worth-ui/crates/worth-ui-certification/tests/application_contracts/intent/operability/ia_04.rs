@@ -12,8 +12,6 @@ use worth_ui_test_support::{
 use super::model::{causes, ModelAffinity, ModelCause, ModelInput};
 use super::world::{OccupancyLayout, OperabilityWorld, PEER_POINT, PRIMARY_POINT};
 
-mod source_roles;
-
 #[test]
 fn ia_04_exhausts_the_small_semantic_lattice_without_materializing_it_in_runtime() {
     let mut rows = 0;

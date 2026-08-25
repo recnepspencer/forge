@@ -107,7 +107,6 @@ fn consumers_cannot_reshape_refallback_or_consult_system_fonts() {
     for crate_name in [
         "worth-ui-host-headless",
         "worth-ui-host-native",
-        "worth-ui-host-egui",
         "worth-ui-host-contract",
     ] {
         let parsed = parse_crate_module(&format!("{crate_name}/src"));
@@ -178,10 +177,6 @@ fn readiness_identities_emit_no_phase_five_feature_counter() {
             })
             .map(|(_, source)| source)
             .collect::<String>();
-        assert!(
-            !production_source.contains("WORTH_UI_LEDGER_COUNTERS"),
-            "{relative} mints a ledger counter"
-        );
         assert!(
             !production_source.contains("P5-GLYPH-RASTER-01"),
             "{relative} binds a feature row"

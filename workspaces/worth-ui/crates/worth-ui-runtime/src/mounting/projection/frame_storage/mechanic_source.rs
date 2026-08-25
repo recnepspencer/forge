@@ -2,13 +2,15 @@ use std::sync::Arc;
 
 use worth_ui_host_contract::{
     UiMountedFilledRectMechanic, UiMountedHitTestMechanic, UiMountedInstanceIdentity,
-    UiMountedSemanticTextMechanic,
 };
 
 use super::semantic_mechanics::UiMountedSemanticMechanicSource;
 use super::UiMountedSemanticProjection;
 use crate::mounting::UiMountedProjectionDenial;
 use crate::runtime::persistent_index::UiPersistentOrdMap;
+
+#[path = "mechanic_source/view.rs"]
+mod view;
 
 #[derive(Clone, Default)]
 pub(in crate::mounting::projection) struct UiMountedMechanicSource {
@@ -62,6 +64,7 @@ impl UiMountedMechanicSource {
         let qualification_cache =
             super::super::semantic_text::UiMountedTextQualificationCache::default();
         for instance in completion.changed {
+            let predecessor_rect = self.filled_rects.get(instance).copied();
             self.remove_non_text(*instance);
             let Some(node) = completion.semantic.node(*instance) else {
                 mutation
@@ -69,12 +72,13 @@ impl UiMountedMechanicSource {
                     .extend(self.semantic_text.remove_instance(*instance));
                 continue;
             };
-            if let Some(rect) = super::super::static_paint::complete_static_filled_rect(
+            let successor_rect = super::super::static_paint::complete_static_filled_rect(
                 completion.frame,
                 completion.receipts,
                 completion.semantic,
                 node,
-            )? {
+            )?;
+            if let Some(rect) = successor_rect {
                 self.filled_rects.insert(*instance, rect);
                 self.filled_digest ^= row_digest(rect.semantic_digest());
                 mutation.filled_rects += 1;
@@ -100,8 +104,11 @@ impl UiMountedMechanicSource {
             });
             let text_update = match sparse {
                 Some(update) => {
-                    mutation.precise_instances.push(*instance);
-                    update?
+                    let update = update?;
+                    if same_filled_rect_presentation(predecessor_rect, successor_rect) {
+                        mutation.precise_instances.push(*instance);
+                    }
+                    update
                 }
                 None => {
                     let text = super::super::semantic_text::complete_node_semantic_text(
@@ -173,34 +180,6 @@ impl UiMountedMechanicSource {
         Ok(())
     }
 
-    pub(super) fn filled_rects_for(
-        &self,
-        semantic: &UiMountedSemanticProjection,
-        surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
-        binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
-    ) -> Vec<UiMountedFilledRectMechanic> {
-        semantic
-            .order
-            .iter()
-            .filter_map(|instance| self.filled_rects.get(instance).copied())
-            .filter(|row| row.surface() == surface && row.binding() == binding)
-            .collect()
-    }
-
-    pub(super) fn semantic_text_for(
-        &self,
-        semantic: &UiMountedSemanticProjection,
-        surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
-        binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
-    ) -> Vec<UiMountedSemanticTextMechanic> {
-        semantic
-            .order
-            .iter()
-            .flat_map(|instance| self.semantic_text.rows_for_instance(*instance).cloned())
-            .filter(|row| row.surface() == surface && row.binding() == binding)
-            .collect()
-    }
-
     pub(super) fn qualified_layout(
         &self,
         identity: worth_ui_host_contract::UiQualifiedTextLayoutIdentity,
@@ -250,20 +229,6 @@ impl UiMountedMechanicSource {
     ) -> std::collections::BTreeMap<[u8; 32], std::sync::Arc<worth_ui_text::UiQualifiedTextLayout>>
     {
         self.semantic_text.collection_layouts_for(instance)
-    }
-
-    pub(super) fn hit_tests_for(
-        &self,
-        semantic: &UiMountedSemanticProjection,
-        surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
-        binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
-    ) -> Vec<UiMountedHitTestMechanic> {
-        semantic
-            .order
-            .iter()
-            .filter_map(|instance| self.hit_tests.get(instance).copied())
-            .filter(|row| row.surface() == surface && row.binding() == binding)
-            .collect()
     }
 
     pub(super) fn commands_for_instance(
@@ -378,7 +343,19 @@ impl UiMountedMechanicSource {
         crate::mounting::UiMountedVisualRegionBasis::from_persistent(
             self.filled_rects.clone(),
             self.hit_tests.clone(),
+            self.semantic_text.clone(),
         )
+    }
+}
+
+fn same_filled_rect_presentation(
+    predecessor: Option<UiMountedFilledRectMechanic>,
+    successor: Option<UiMountedFilledRectMechanic>,
+) -> bool {
+    match (predecessor, successor) {
+        (None, None) => true,
+        (Some(predecessor), Some(successor)) => predecessor.same_retained_paint_meaning(successor),
+        (None, Some(_)) | (Some(_), None) => false,
     }
 }
 

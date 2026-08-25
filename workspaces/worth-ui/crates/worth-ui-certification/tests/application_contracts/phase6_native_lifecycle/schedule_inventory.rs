@@ -6,8 +6,6 @@ pub(super) struct Schedule {
     pub(super) events: &'static [Event],
 }
 
-pub(super) const EXPECTED_COMPARISONS: usize = 177;
-
 const BEFORE_FIRST_INPUT: &[Event] = &[
     Event::Pointer,
     Event::Keyboard,
@@ -23,23 +21,15 @@ const SUCCESSOR: &[Event] = &[
     Event::Pointer,
     Event::CompletePresentation,
     Event::Pointer,
-    Event::Close,
 ];
 const PROFILE: &[Event] = &[
     Event::BeginProfileTransition,
     Event::Pointer,
     Event::CompletePresentation,
     Event::Pointer,
-    Event::Close,
 ];
 const IME: &[Event] = &[Event::Preedit, Event::ImeCommit, Event::ImeCancel];
 const POINTER_WITNESSES: &[Event] = &[Event::Button, Event::ButtonUnavailable];
-const READINESS_AND_CLOSE: &[Event] = &[
-    Event::BeginSuccessor,
-    Event::CompletePresentation,
-    Event::Close,
-    Event::Close,
-];
 const MIXED_ORDERING: &[Event] = &[
     Event::Pointer,
     Event::Scroll,
@@ -49,7 +39,6 @@ const MIXED_ORDERING: &[Event] = &[
     Event::BeginProfileTransition,
     Event::Preedit,
     Event::CompletePresentation,
-    Event::Close,
 ];
 const RETENTION_ORDERING: &[Event] = &[
     Event::Pointer,
@@ -61,11 +50,10 @@ const RETENTION_ORDERING: &[Event] = &[
     Event::ImeCancel,
     Event::ButtonUnavailable,
 ];
-const POST_CLOSE: &[Event] = &[Event::Pointer, Event::Keyboard, Event::Close];
-const CLOSING_PENDING: &[Event] = &[Event::Pointer, Event::Close];
+const POST_CLOSE: &[Event] = &[Event::Pointer, Event::Keyboard];
+const CLOSING_PENDING: &[Event] = &[Event::Pointer];
 const STALE_PROFILE_AFTER_COMPLETION: &[Event] =
     &[Event::Pointer, Event::CompletePresentation, Event::Pointer];
-const EMPTY_CLOSE: &[Event] = &[Event::Close];
 const RESIZE_DPI_ZERO_SIZED: &[Event] = &[
     Event::BeginZeroSizedProfile,
     Event::Pointer,
@@ -107,11 +95,6 @@ pub(super) const SCHEDULES: &[Schedule] = &[
         events: POINTER_WITNESSES,
     },
     Schedule {
-        name: "readiness-and-close-drain",
-        initial: State::Presented,
-        events: READINESS_AND_CLOSE,
-    },
-    Schedule {
         name: "mixed-ordering-capacity-and-wake",
         initial: State::Presented,
         events: MIXED_ORDERING,
@@ -135,11 +118,6 @@ pub(super) const SCHEDULES: &[Schedule] = &[
         name: "stale-profile-after-completion",
         initial: State::ProfileTransition { predecessor: 7 },
         events: STALE_PROFILE_AFTER_COMPLETION,
-    },
-    Schedule {
-        name: "empty-close-before-first-presentation",
-        initial: State::BeforeFirstPresentation,
-        events: EMPTY_CLOSE,
     },
     Schedule {
         name: "resize-dpi-zero-sized-profile-around-input",

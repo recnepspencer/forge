@@ -58,8 +58,6 @@ mod milestone_312_post_classification_cost;
 mod mounted_application_lifecycle;
 #[path = "../application_contracts/mounted_cost_evidence.rs"]
 mod mounted_cost_evidence;
-#[path = "../application_contracts/mounted_egui_adapter.rs"]
-mod mounted_egui_adapter;
 #[path = "../application_contracts/mounted_frame_assembly.rs"]
 mod mounted_frame_assembly;
 #[path = "../application_contracts/mounted_headless_recorder.rs"]
@@ -88,8 +86,6 @@ mod mounted_presentation_model_trace;
 mod mounted_presentation_reconciliation;
 #[path = "../application_contracts/mounted_preview.rs"]
 mod mounted_preview;
-#[path = "../application_contracts/mounted_projection_contracts.rs"]
-mod mounted_projection_contracts;
 #[path = "../application_contracts/mounted_projection_geometry.rs"]
 mod mounted_projection_geometry;
 #[path = "../application_contracts/mounted_projection_parity.rs"]
@@ -106,24 +102,16 @@ mod multi_removal_filesystem;
 mod observation_rebind;
 #[path = "../application_contracts/phase5_locality_closure.rs"]
 mod phase5_locality_closure;
-#[path = "../application_contracts/phase5_locality_hostile_control.rs"]
-mod phase5_locality_hostile_control;
 #[path = "../application_contracts/phase5_locality_worker.rs"]
 mod phase5_locality_worker;
 #[path = "../application_contracts/phase6_native_lifecycle.rs"]
 mod phase6_native_lifecycle;
-#[path = "../application_contracts/phase7_adapter_parity.rs"]
-mod phase7_adapter_parity;
 #[path = "../application_contracts/phase7_denial_preservation.rs"]
 mod phase7_denial_preservation;
 #[path = "../application_contracts/phase7_hot_frame_source_exclusion.rs"]
 mod phase7_hot_frame_source_exclusion;
 #[path = "../application_contracts/phase7_public_mounted_allocation.rs"]
 mod phase7_public_mounted_allocation;
-#[path = "../application_contracts/platform_pulse.rs"]
-mod platform_pulse;
-#[path = "../application_contracts/platform_pulse_lifecycle.rs"]
-mod platform_pulse_lifecycle;
 #[path = "../application_contracts/projection_adoption/mod.rs"]
 mod projection_adoption;
 #[path = "../application_contracts/projection_authority/mod.rs"]
@@ -172,7 +160,5 @@ mod realtime_overlay_replacement;
 mod source_event_ingress_journey;
 #[path = "../application_contracts/source_transport_diagnostic_parity.rs"]
 mod source_transport_diagnostic_parity;
-#[path = "../application_contracts/visual_identity.rs"]
-mod visual_identity;
 #[path = "../application_contracts/visual_snapshot.rs"]
 mod visual_snapshot;

@@ -95,8 +95,4 @@ fn replacement_damage_is_clipped_to_predecessor_and_successor_visibility() {
         .map(|damage| (damage.bounds().x(), damage.bounds().width()))
         .collect::<Vec<_>>();
     assert_eq!(exact_damage, vec![(4.0, 16.0), (8.0, 10.0)]);
-    println!(
-        "WORTH_UI_LEDGER_COUNTERS={{\"P1-DAMAGE-01\":{}}}",
-        exact_damage.len()
-    );
 }

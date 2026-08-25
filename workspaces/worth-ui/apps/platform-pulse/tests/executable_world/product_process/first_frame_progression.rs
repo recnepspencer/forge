@@ -51,7 +51,7 @@ impl PulseExecutableWorld<AwaitingFirstFrame> {
                     ))
                 }
             };
-        let evidence = match adjudicate_bound_first_frame(&mut process, &bound) {
+        let evidence = match adjudicate_bound_first_frame(&mut process, &bound, deadline) {
             Ok(evidence) => evidence,
             Err(primary) => {
                 return Err(teardown_native_bound_world(
@@ -117,6 +117,7 @@ fn bind_first_frame_world(
 fn adjudicate_bound_first_frame(
     process: &mut LivePlatformPulseProcess,
     bound: &BoundFirstFrameWorld,
+    deadline: Instant,
 ) -> Result<ExecutableFirstFrameEvidence, PulseExecutableWorldFailure> {
     let client_area = bound
         .platform
@@ -124,10 +125,39 @@ fn adjudicate_bound_first_frame(
         .map_err(PulseExecutableWorldFailure::Native)?;
     let liveness =
         observe_stable_process_liveness(process).map_err(PulseExecutableWorldFailure::Liveness)?;
-    let pixels = bound
-        .platform
-        .capture_client_area(&bound.native_client)
-        .map_err(PulseExecutableWorldFailure::Native)?;
+    let pixels = loop {
+        let pixels = bound
+            .platform
+            .capture_client_area(&bound.native_client)
+            .map_err(PulseExecutableWorldFailure::Native)?;
+        if crate::adjudication::adjudicate_native_color(
+            &pixels,
+            crate::adjudication::ExpectedNativeColor::Blue,
+        )
+        .is_ok()
+        {
+            break pixels;
+        }
+        if Instant::now() >= deadline {
+            return Err(PulseExecutableWorldFailure::Native(
+                crate::native_platform::NativePlatformFailure::ClientPixelDeadline(
+                    "first-frame-visible",
+                ),
+            ));
+        }
+        if process
+            .observed_exit()
+            .map_err(PulseExecutableWorldFailure::Launch)?
+            .is_some()
+        {
+            return Err(PulseExecutableWorldFailure::Native(
+                crate::native_platform::NativePlatformFailure::ClientPixelDeadline(
+                    "first-frame-process-exited",
+                ),
+            ));
+        }
+        std::thread::sleep(Duration::from_millis(20));
+    };
     let causal = CausalFirstFrameObservationSet::new(
         process.id(),
         bound.process_started.clone(),

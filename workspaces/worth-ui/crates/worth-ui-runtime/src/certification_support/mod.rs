@@ -29,6 +29,7 @@ mod runtime_launch;
 mod scripted_presentation_host;
 mod semantic_text_projection;
 mod semantic_text_resolver;
+mod shutdown_attempt_observation;
 mod touch_origin;
 mod touch_origin_source;
 
@@ -113,6 +114,7 @@ pub use semantic_text_projection::{
 pub use semantic_text_resolver::{
     semantic_text_layout_resolver_for_certification, UiCertificationQualifiedTextResolver,
 };
+pub use shutdown_attempt_observation::native_shutdown_attempt_observations_for_certification;
 pub use touch_origin::{
     runtime_origin_fixture, WorthUiTouchOriginCertificationFixture,
     WorthUiTouchOriginFixtureVariant,

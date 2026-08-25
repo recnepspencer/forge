@@ -6,16 +6,7 @@ use worth_ui_platform_pulse::observation_contract::{
     PlatformPulseVisualPointTrace, PlatformPulseVisualSnapshotCaptured,
     PlatformPulseVisualSnapshotRetired,
 };
-use worth_ui_platform_pulse::visual_identity_pulse::{
-    PLATFORM_PULSE_BACKGROUND_LOGICAL_POINT, PLATFORM_PULSE_CANONICAL_LOGICAL_EXTENT,
-    PLATFORM_PULSE_HIT_TEST_REGION_COUNT, PLATFORM_PULSE_IDENTITY_TARGET_AUTHORED_NAME,
-    PLATFORM_PULSE_MAXIMUM_CAPTURE_SCALE, PLATFORM_PULSE_MAXIMUM_PIXEL_BYTES,
-    PLATFORM_PULSE_TARGET_LOGICAL_POINT, PLATFORM_PULSE_VISIBLE_REGION_COUNT,
-};
-
 mod evidence;
-
-const TARGET_LOGICAL_INSET: [u32; 2] = [48, 24];
 
 #[derive(Clone, Debug)]
 pub(crate) struct ExecutableVisualSnapshotEvidence {
@@ -43,6 +34,9 @@ pub(crate) struct ExecutableVisualComparisonEvidence {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum ExecutableVisualIdentityFailure {
+    ControlPointManifest(
+        super::platform_pulse_control_points::PlatformPulseControlPointManifestFailure,
+    ),
     WrongEvent(&'static str),
     WrongSequence {
         expected: u64,
@@ -113,6 +107,8 @@ fn adjudicate_snapshot_at_sequence(
     expected_frame: u64,
     expected_sequence: u64,
 ) -> Result<ExecutableVisualSnapshotEvidence, ExecutableVisualIdentityFailure> {
+    let manifest = super::platform_pulse_control_points::checked_in()
+        .map_err(ExecutableVisualIdentityFailure::ControlPointManifest)?;
     require_sequence(&envelope, expected_sequence)?;
     let PlatformPulseLifecycleObservation::VisualSnapshotCaptured(snapshot) = envelope.outcome()
     else {
@@ -127,7 +123,7 @@ fn adjudicate_snapshot_at_sequence(
     {
         return Err(ExecutableVisualIdentityFailure::SnapshotAffinity);
     }
-    let physical_extent = expected_physical_extent(snapshot)?;
+    let physical_extent = expected_physical_extent(snapshot, &manifest)?;
     if snapshot.captured_client_extent() != [0, 0, physical_extent[0], physical_extent[1]]
         || snapshot.coordinates().client_physical_dimensions() != physical_extent
         || snapshot.pixels().dimensions() != physical_extent
@@ -142,17 +138,17 @@ fn adjudicate_snapshot_at_sequence(
         .ok_or(ExecutableVisualIdentityFailure::SnapshotPixelBudget)?;
     if snapshot.pixels().stride() != expected_stride
         || snapshot.pixels().byte_count() != expected_bytes
-        || expected_bytes > PLATFORM_PULSE_MAXIMUM_PIXEL_BYTES
+        || expected_bytes > manifest.maximum_pixel_bytes()
     {
         return Err(ExecutableVisualIdentityFailure::SnapshotPixelBudget);
     }
-    if snapshot.visible_region_count() != PLATFORM_PULSE_VISIBLE_REGION_COUNT
-        || snapshot.hit_test_region_count() != PLATFORM_PULSE_HIT_TEST_REGION_COUNT
+    if snapshot.visible_region_count() != manifest.visible_region_count()
+        || snapshot.hit_test_region_count() != manifest.hit_test_region_count()
     {
         return Err(ExecutableVisualIdentityFailure::SnapshotIndexCardinality {
-            expected_visible: PLATFORM_PULSE_VISIBLE_REGION_COUNT,
+            expected_visible: manifest.visible_region_count(),
             observed_visible: snapshot.visible_region_count(),
-            expected_hit_test: PLATFORM_PULSE_HIT_TEST_REGION_COUNT,
+            expected_hit_test: manifest.hit_test_region_count(),
             observed_hit_test: snapshot.hit_test_region_count(),
         });
     }
@@ -174,6 +170,8 @@ pub(crate) fn adjudicate_visual_trace(
     envelope: PlatformPulseLifecycleObservationEnvelope,
     snapshot: &ExecutableVisualSnapshotEvidence,
 ) -> Result<ExecutableVisualTraceEvidence, ExecutableVisualIdentityFailure> {
+    let manifest = super::platform_pulse_control_points::checked_in()
+        .map_err(ExecutableVisualIdentityFailure::ControlPointManifest)?;
     let sequence = snapshot.sequence.saturating_add(1);
     require_sequence(&envelope, sequence)?;
     let PlatformPulseLifecycleObservation::VisualPointTrace(trace) = envelope.outcome() else {
@@ -183,9 +181,9 @@ pub(crate) fn adjudicate_visual_trace(
     };
     if trace.snapshot() != snapshot.snapshot.affinity().snapshot()
         || trace.target().point()
-            != snapshot.project_logical_point(PLATFORM_PULSE_TARGET_LOGICAL_POINT)?
+            != snapshot.project_logical_point(manifest.target_logical_point())?
         || trace.background().point()
-            != snapshot.project_logical_point(PLATFORM_PULSE_BACKGROUND_LOGICAL_POINT)?
+            != snapshot.project_logical_point(manifest.background_logical_point())?
         || trace.target().visible_region() != snapshot.expected_target_region()?
     {
         return Err(ExecutableVisualIdentityFailure::PointContract);
@@ -199,8 +197,7 @@ pub(crate) fn adjudicate_visual_trace(
     {
         return Err(ExecutableVisualIdentityFailure::BackgroundIdentity);
     }
-    if trace.target().hit().authored_semantic_name() != PLATFORM_PULSE_IDENTITY_TARGET_AUTHORED_NAME
-    {
+    if trace.target().hit().authored_semantic_name() != manifest.target_authored_name() {
         return Err(ExecutableVisualIdentityFailure::AuthoredName);
     }
     require_complete_trace(trace.target().visible())?;
@@ -215,20 +212,22 @@ pub(crate) fn adjudicate_visual_trace(
 
 fn expected_physical_extent(
     snapshot: &PlatformPulseVisualSnapshotCaptured,
+    manifest: &super::platform_pulse_control_points::PlatformPulseControlPointManifest,
 ) -> Result<[u32; 2], ExecutableVisualIdentityFailure> {
     let logical = float_pair(snapshot.coordinates().viewport_logical_dimension_bits());
-    if logical != [160.0, 96.0] {
+    let extent = manifest.logical_client_extent();
+    if logical != [extent[0] as f32, extent[1] as f32] {
         return Err(ExecutableVisualIdentityFailure::SnapshotExtent);
     }
     let scale = float_pair(snapshot.coordinates().scale_bits());
     if scale.iter().any(|value| {
-        !value.is_finite() || *value <= 0.0 || *value > PLATFORM_PULSE_MAXIMUM_CAPTURE_SCALE as f32
+        !value.is_finite() || *value <= 0.0 || *value > manifest.maximum_capture_scale() as f32
     }) {
         return Err(ExecutableVisualIdentityFailure::SnapshotExtent);
     }
     Ok([
-        project_axis(PLATFORM_PULSE_CANONICAL_LOGICAL_EXTENT[0], scale[0], 0.0)?,
-        project_axis(PLATFORM_PULSE_CANONICAL_LOGICAL_EXTENT[1], scale[1], 0.0)?,
+        project_axis(extent[0], scale[0], 0.0)?,
+        project_axis(extent[1], scale[1], 0.0)?,
     ])
 }
 

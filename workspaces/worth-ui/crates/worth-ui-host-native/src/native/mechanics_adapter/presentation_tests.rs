@@ -35,7 +35,10 @@ fn scripted_before_effect_failure_keeps_before_effect_posture() {
             worth_ui_host_contract::UiHostSurfacePresentationDenial::AdapterDeclined
         )
     ));
-    assert_eq!(state.effect_posture, UiNativeEffectPosture::BeforeEffects);
+    assert_eq!(
+        state.lifecycle.effect_posture(),
+        UiNativeEffectPosture::BeforeEffects
+    );
 }
 
 #[test]
@@ -61,7 +64,10 @@ fn external_port_orchestration_and_effect_postures_are_exact() {
         panic!("unsettled port work must remain pending");
     };
     state.pending_presentations.push(pending);
-    assert_eq!(state.effect_posture, UiNativeEffectPosture::BeforeEffects);
+    assert_eq!(
+        state.lifecycle.effect_posture(),
+        UiNativeEffectPosture::BeforeEffects
+    );
     assert_eq!(state.pending_presentations.len(), 1);
     assert!(!external_dropped.get());
     assert_eq!(state.resources.current().readback_buffers, 1);
@@ -134,7 +140,10 @@ fn presentation_cancellation_transitions_the_exact_physical_request_to_recovery(
 fn derived_state_loss_rejects_without_effects_until_owner_reconstruction_arrives() {
     let mut state = UiNativeHostState::new();
     let binding = 71;
-    state.reconstruction_required.insert(binding);
+    state.lifecycle.require_recovery(
+        binding,
+        crate::native::UiNativeRecoveryCause::DerivedStateLost,
+    );
 
     let first = require_owner_reconstruction(&mut state, binding);
     let second = require_owner_reconstruction(&mut state, binding);
@@ -147,13 +156,13 @@ fn derived_state_loss_rejects_without_effects_until_owner_reconstruction_arrives
             )
         ));
     }
-    assert!(state.reconstruction_required.contains(&binding));
+    assert!(state.lifecycle.recovery_required(binding));
     assert!(state.pending_presentations.is_empty());
-    assert_eq!(state.effect_posture, UiNativeEffectPosture::BeforeEffects);
-    assert!(state.resources.current().is_zero());
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-RECONSTRUCTION-01\":\"stale-derived-state\"}}"
+    assert_eq!(
+        state.lifecycle.effect_posture(),
+        UiNativeEffectPosture::BeforeEffects
     );
+    assert!(state.resources.current().is_zero());
 }
 
 #[test]
@@ -165,5 +174,4 @@ fn unchanged_reuses_the_last_physical_presentation_epoch() {
     assert_eq!(unchanged, physical);
     assert_eq!(unchanged.diagnostic_value(), 101);
     assert!(presentation_epoch(&mut state, binding + 1, 103, false).is_none());
-    println!("WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-UNCHANGED-01\":\"fresh-unchanged-epoch\"}}");
 }

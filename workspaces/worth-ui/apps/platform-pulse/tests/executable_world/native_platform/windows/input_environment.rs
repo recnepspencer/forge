@@ -1,8 +1,12 @@
 use std::fmt;
+use std::time::Duration;
 
 use uiautomation::inputs::Mouse;
 use uiautomation::types::Point;
 use winsafe::{co, HDESK, HWND};
+
+const FOREGROUND_SETTLEMENT_ATTEMPTS: usize = 20;
+const FOREGROUND_SETTLEMENT_INTERVAL: Duration = Duration::from_millis(5);
 
 #[derive(Debug, Eq, PartialEq)]
 pub(crate) enum WindowsInputEnvironmentDenial {
@@ -21,6 +25,13 @@ pub(crate) enum WindowsInputEnvironmentDenial {
     CursorActuationNotObserved {
         requested: (i32, i32),
         observed: (i32, i32),
+    },
+    PointerTargetMismatch {
+        target_window: usize,
+        hit_window: usize,
+    },
+    KeyboardFocusUnavailable {
+        target_window: usize,
     },
 }
 
@@ -53,8 +64,27 @@ impl fmt::Display for WindowsInputEnvironmentDenial {
                 "cursor actuation was not observed: requested=({}, {}); observed=({}, {})",
                 requested.0, requested.1, observed.0, observed.1
             ),
+            Self::PointerTargetMismatch {
+                target_window,
+                hit_window,
+            } => write!(
+                formatter,
+                "pointer target mismatch before effects: target_window={target_window:#x}; hit_window={hit_window:#x}"
+            ),
+            Self::KeyboardFocusUnavailable { target_window } => write!(
+                formatter,
+                "keyboard focus was unavailable before effects: target_window={target_window:#x}"
+            ),
         }
     }
+}
+
+pub(super) fn qualify_keyboard_world(
+    window: &HWND,
+    target_pid: u32,
+) -> Result<(), WindowsInputEnvironmentDenial> {
+    qualify_input_desktop()?;
+    qualify_foreground_target(window, target_pid)
 }
 
 pub(super) fn qualify_pointer_world(
@@ -118,13 +148,22 @@ fn qualify_foreground_target(
         return Ok(());
     }
     let activation_accepted = window.SetForegroundWindow();
+    for attempt in 0..FOREGROUND_SETTLEMENT_ATTEMPTS {
+        let foreground = HWND::GetForegroundWindow();
+        let foreground_pid = foreground
+            .as_ref()
+            .map_or(0, |handle| handle.GetWindowThreadProcessId().1);
+        if foreground.as_ref() == Some(window) && foreground_pid == target_pid {
+            return Ok(());
+        }
+        if attempt + 1 < FOREGROUND_SETTLEMENT_ATTEMPTS {
+            std::thread::sleep(FOREGROUND_SETTLEMENT_INTERVAL);
+        }
+    }
     let foreground = HWND::GetForegroundWindow();
     let foreground_pid = foreground
         .as_ref()
         .map_or(0, |handle| handle.GetWindowThreadProcessId().1);
-    if foreground.as_ref() == Some(window) && foreground_pid == target_pid {
-        return Ok(());
-    }
     Err(WindowsInputEnvironmentDenial::ForegroundTargetMismatch {
         target_pid,
         foreground_pid,

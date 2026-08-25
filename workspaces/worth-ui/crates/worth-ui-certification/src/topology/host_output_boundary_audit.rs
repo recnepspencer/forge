@@ -3,19 +3,6 @@ use syn::{ImplItem, Item, Signature, Visibility};
 
 use super::WorkspaceSourceInventory;
 
-const PLAN_AUTHORITY_ROOTS: [&str; 10] = [
-    "crates/worth-ui-runtime/src/runtime/planning/execution_plan_input",
-    "crates/worth-ui-runtime/src/runtime/planning/plan_topology",
-    "crates/worth-ui-runtime/src/runtime/planning/plan_equivalence",
-    "crates/worth-ui-runtime/src/runtime/execution/lane_admission",
-    "crates/worth-ui-runtime/src/runtime/execution/ordinary_lane",
-    "crates/worth-ui-runtime/src/runtime/execution_plan_input",
-    "crates/worth-ui-runtime/src/runtime/plan_topology",
-    "crates/worth-ui-runtime/src/runtime/plan_equivalence",
-    "crates/worth-ui-runtime/src/runtime/lane_admission",
-    "crates/worth-ui-runtime/src/runtime/ordinary_lane",
-];
-
 const FACADE_ROOTS: [&str; 2] = [
     "crates/worth-ui-runtime/src/facade",
     "crates/worth-ui/src/facade",
@@ -33,16 +20,6 @@ const FORBIDDEN_FACADE_SYMBOLS: [&str; 7] = [
 
 pub fn audit_host_output_plan_encapsulation(inventory: &WorkspaceSourceInventory) -> Vec<String> {
     let mut violations = Vec::new();
-    for root in PLAN_AUTHORITY_ROOTS {
-        for file in inventory.rust_files_under(root) {
-            if file.text().to_ascii_lowercase().contains("egui") {
-                violations.push(format!(
-                    "{} restores egui-specific meaning inside the canonical plan",
-                    file.absolute_path().display()
-                ));
-            }
-        }
-    }
     for root in FACADE_ROOTS {
         for file in inventory.rust_files_under(root) {
             for symbol in FORBIDDEN_FACADE_SYMBOLS {

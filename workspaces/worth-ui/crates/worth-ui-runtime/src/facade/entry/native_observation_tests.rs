@@ -27,16 +27,15 @@ fn native_observation_ready_path_drains_through_runtime_interaction_owner() {
         ),
     );
     host.enqueue_observation_for_next_drain(batch);
-    let settlement = shell.admit_native_observation_batches();
-    let outcomes = settlement.outcomes();
+    let settlement = shell.admit_native_observation_batches(Default::default());
     assert_eq!(settlement.counts(), (1, 0, 0, 0));
     assert_eq!(settlement.drain_denial(), None);
+    let outcomes = settlement.into_outcomes();
     assert_eq!(outcomes.len(), 1);
     assert!(matches!(
         &outcomes[0],
         crate::facade::interaction::UiHostInteractionIngressOutcome::Applied(_)
     ));
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P6-SETTLEMENT-01\":1}}");
 
     let shutdown = shell.shutdown();
     assert!(shutdown.host_session_released());
@@ -88,7 +87,7 @@ fn focus_batch(
         loss: UiHostObservationLoss::Complete,
         reports: vec![UiHostObservationReport::new(
             sequence,
-            UiHostObservationTimeBasis::HostMonotonicTick(2),
+            UiHostObservationTimeBasis::HostMonotonicMillis(2),
             UiHostObservationPayload::Focus { focused: true },
         )],
     })

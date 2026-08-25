@@ -255,7 +255,7 @@ impl<Posture: worth_ui_inspection::UiVisualArtifactPolicy> UiVisualSnapshotRecei
     }
 
     pub fn visible_region_count(&self) -> usize {
-        self.visible_index.len()
+        self.visible_index.supported_len()
     }
 
     pub fn hit_test_region_count(&self) -> usize {

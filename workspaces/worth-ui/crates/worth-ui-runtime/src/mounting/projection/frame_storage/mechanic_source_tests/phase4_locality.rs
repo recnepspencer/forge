@@ -109,7 +109,6 @@ fn content_and_width_locality_have_exact_constant_work_at_every_qualified_size()
         "WORTH_UI_PHASE4_LOCALITY={{\"observations\":[{}],\"changed_paragraphs\":1}}",
         observations.join(",")
     );
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P4-TEXT-WIDTH-LOCALITY-01\":1,\"P4-UNCHANGED-01\":0}}");
 }
 
 fn assert_constant_visits(expected: &mut Option<usize>, observed: usize) {
@@ -139,9 +138,6 @@ fn cost_json(cost: worth_ui_host_contract::UiQualifiedTextCostRecord) -> String 
 #[test]
 fn retained_document_scan_and_global_width_substitution_are_rejected() {
     content_and_width_locality_have_exact_constant_work_at_every_qualified_size();
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P4-TEXT-CONTENT-LOCALITY-01\":\"content-only-global-rescan\",\"P4-TEXT-WIDTH-LOCALITY-01\":\"paragraph-width-global-rescan\",\"P4-TEXT-COST-01\":\"complete-document-rescan\",\"P4-UNCHANGED-01\":\"unchanged-paragraph-rescan\"}}"
-    );
 }
 
 #[test]
@@ -234,15 +230,11 @@ fn one_width_change_relayouts_only_its_mounted_paragraphs_and_unchanged_is_zero_
         .iter()
         .zip(&left_after)
         .all(|(after, expected)| Arc::ptr_eq(after, expected)));
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P4-TEXT-WIDTH-LOCALITY-01\":2,\"P4-UNCHANGED-01\":0}}");
 }
 
 #[test]
 fn global_width_relayout_and_unchanged_rescan_are_rejected() {
     one_width_change_relayouts_only_its_mounted_paragraphs_and_unchanged_is_zero_work();
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P4-TEXT-WIDTH-LOCALITY-01\":\"paragraph-width-global-rescan\",\"P4-UNCHANGED-01\":\"unchanged-paragraph-rescan\"}}"
-    );
 }
 
 struct InstanceFixture {
@@ -322,7 +314,7 @@ fn semantic_projection_with_width(
                 incarnation: UiMountIncarnation::mint_unbound().unwrap(),
                 plan_digest: 7,
                 role: UiMountedMechanicalRole::Control,
-                participation: admitted_participation(),
+                participation: text_only_participation(),
                 allocation: UiMountedAllocationProjection::Known {
                     bounds,
                     basis: UiMountedAllocationBasis::new(
@@ -344,4 +336,19 @@ fn semantic_projection_with_width(
             audience: UiMountedProjectionAudience::full(),
         }],
     )
+}
+
+fn text_only_participation() -> UiMountedParticipation {
+    let admitted = UiMountedParticipationFact::new(UiMountedParticipationStatus::Admitted);
+    let withheld = UiMountedParticipationFact::new(UiMountedParticipationStatus::Withheld);
+    UiMountedParticipation::new(UiMountedParticipationInput {
+        paint: admitted,
+        clip: admitted,
+        input: withheld,
+        focus: withheld,
+        hit_test: withheld,
+        accessibility: withheld,
+        motion: withheld,
+        diagnostic: withheld,
+    })
 }

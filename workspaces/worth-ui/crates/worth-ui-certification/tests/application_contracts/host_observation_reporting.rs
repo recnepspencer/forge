@@ -254,7 +254,7 @@ fn assert_terminal_basis(
     };
     let raw = UiHostObservationReport::new(
         UiHostObservationSequence::new(1),
-        UiHostObservationTimeBasis::HostMonotonicTick(1),
+        UiHostObservationTimeBasis::HostMonotonicMillis(1),
         UiHostObservationPayload::Tick { tick: 1 },
     );
     let terminal_batch = batch(
@@ -294,7 +294,7 @@ fn assert_indeterminate_quarantine() {
     };
     let raw = UiHostObservationReport::new(
         UiHostObservationSequence::new(1),
-        UiHostObservationTimeBasis::HostMonotonicTick(1),
+        UiHostObservationTimeBasis::HostMonotonicMillis(1),
         UiHostObservationPayload::Tick { tick: 1 },
     );
     let indeterminate_batch = batch(

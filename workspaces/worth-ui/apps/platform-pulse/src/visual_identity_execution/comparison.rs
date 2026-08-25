@@ -36,6 +36,12 @@ pub(super) fn begin(
     }
 }
 
+impl PlatformPulseVisualComparisonCapture {
+    pub(super) const fn deadline(&self) -> Instant {
+        self.capture.deadline
+    }
+}
+
 pub(super) fn poll(
     mut pending: PlatformPulseVisualComparisonCapture,
     shell: &mut WorthUiNativeApplicationShell,

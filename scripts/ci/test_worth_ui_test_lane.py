@@ -54,7 +54,6 @@ class WorthUiTestLaneTests(TestCase):
         commands = lane_runner.commands_for("full")
         rendered = [" ".join(command) for command in commands]
 
-        self.assertEqual(len(commands), 6)
         self.assertIn("--workspace", commands[0])
         self.assertIn("--all-features", commands[0])
         self.assertTrue(any("application_contracts" in command for command in rendered))

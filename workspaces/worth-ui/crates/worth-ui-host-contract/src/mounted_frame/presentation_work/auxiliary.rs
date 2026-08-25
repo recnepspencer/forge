@@ -140,6 +140,28 @@ impl UiMountedPresentationAuxiliaryState {
             && self.resources == other.resources
     }
 
+    #[doc(hidden)]
+    pub fn refresh_lane_presentation_from_runtime_mounting(
+        &mut self,
+        frame: crate::UiMountedFrameIdentity,
+        surface: crate::UiSemanticSurfaceIdentity,
+        binding: crate::UiSurfaceBindingGeneration,
+        content: crate::UiMountedContentGeneration,
+        paint_batches: crate::UiMountedPaintBatchTable,
+        spatial_batches: crate::UiMountedSpatialBatchTable,
+        realtime_batches: crate::UiMountedRealtimeBatchTable,
+        resources: crate::UiMountedResourceTable,
+    ) {
+        self.frame = frame;
+        self.surface = surface;
+        self.binding = binding;
+        self.content = content;
+        self.paint_batches = paint_batches;
+        self.spatial_batches = spatial_batches;
+        self.realtime_batches = realtime_batches;
+        self.resources = resources;
+    }
+
     pub const fn frame(&self) -> crate::UiMountedFrameIdentity {
         self.frame
     }

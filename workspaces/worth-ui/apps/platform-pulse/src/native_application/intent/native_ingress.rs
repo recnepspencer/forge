@@ -1,0 +1,317 @@
+use worth_ui::facade::app::{
+    WorthUiNativeApplicationShell, WorthUiNativeIntentPosture, WorthUiNativeIntentPostureKind,
+    WorthUiNativeIntentStop, WorthUiNativeIntentTransition,
+    WorthUiNativeManagedIntentPosturePublicationOutcome,
+};
+use worth_ui_platform_pulse::observation_contract::PlatformPulseIntentPostureObservation;
+
+use super::super::PlatformPulseApplicationRuntime;
+
+const MAX_PENDING_INTENT_POSTURES: usize = 64;
+
+pub(in crate::native_application) struct PlatformPulsePreparedIntentPosture {
+    posture: WorthUiNativeIntentPosture,
+    pending: PlatformPulsePendingIntentPosture,
+}
+
+pub(in crate::native_application) struct PlatformPulsePendingIntentPosture {
+    observation: PlatformPulseIntentPostureObservation,
+    settlement: PlatformPulseIntentPostureSettlement,
+}
+
+pub(in crate::native_application) enum PlatformPulseIntentPostureSettlement {
+    PublicationOnly,
+    RetireExecution {
+        attempt: worth_ui::facade::intent::UiIntentExecutionAttemptIdentity,
+        idempotency: worth_ui::facade::intent::UiIntentExecutionIdempotencyIdentity,
+    },
+}
+
+pub(in crate::native_application) enum PlatformPulseIntentPosturePublicationDisposition {
+    Published,
+    Pending,
+    Failed,
+}
+
+impl PlatformPulsePreparedIntentPosture {
+    pub(in crate::native_application) fn new(
+        posture: WorthUiNativeIntentPosture,
+        observation: PlatformPulseIntentPostureObservation,
+        settlement: PlatformPulseIntentPostureSettlement,
+    ) -> Self {
+        Self {
+            posture,
+            pending: PlatformPulsePendingIntentPosture {
+                observation,
+                settlement,
+            },
+        }
+    }
+}
+
+impl PlatformPulseIntentPostureSettlement {
+    pub(in crate::native_application) const fn retire_execution(
+        attempt: worth_ui::facade::intent::UiIntentExecutionAttemptIdentity,
+        idempotency: worth_ui::facade::intent::UiIntentExecutionIdempotencyIdentity,
+    ) -> Self {
+        Self::RetireExecution {
+            attempt,
+            idempotency,
+        }
+    }
+}
+
+impl PlatformPulseApplicationRuntime {
+    pub(in crate::native_application) fn admit_worth_native_intent_input(
+        &mut self,
+        shell: &mut WorthUiNativeApplicationShell,
+        progress: worth_ui_native_platform::UiNativeApplicationObservationProgress,
+    ) {
+        let deadline = match self.intent_clock.new_attempt_deadline() {
+            Ok(deadline) => deadline,
+            Err(denial) => {
+                self.fail_intent_clock(denial);
+                return;
+            }
+        };
+        let ingress = shell.admit_native_intent_progress(
+            worth_ui_platform_pulse::intent::platform_pulse_action_definition(),
+            progress,
+            deadline,
+        );
+        self.settle_native_intent_ingress(shell, ingress);
+    }
+
+    fn settle_native_intent_ingress(
+        &mut self,
+        shell: &mut WorthUiNativeApplicationShell,
+        ingress: worth_ui::facade::app::WorthUiNativeIntentIngress,
+    ) {
+        if ingress.duplicate_batches() > 0 {
+            self.fail_intent_settlement(format!(
+                "native interaction ingress duplicated {} batch(es)",
+                ingress.duplicate_batches()
+            ));
+            return;
+        }
+        if let Some(stop) = ingress.interaction_stops().first() {
+            let detail = match stop {
+                worth_ui::facade::app::WorthUiNativeInteractionIngressStop::Quarantined(stop) => {
+                    format!(
+                        "native interaction ingress quarantined: {:?}",
+                        stop.quarantine()
+                    )
+                }
+                worth_ui::facade::app::WorthUiNativeInteractionIngressStop::Denied(stop) => {
+                    format!("native interaction ingress denied: {:?}", stop.denial())
+                }
+            };
+            self.fail_intent_settlement(detail);
+            return;
+        }
+        for transition in ingress.into_transitions() {
+            let Some(prepared) = self.prepare_ingress_intent_posture(transition) else {
+                if self.terminal_error.is_some() {
+                    break;
+                }
+                continue;
+            };
+            if self.pending_intent_postures.len() == MAX_PENDING_INTENT_POSTURES {
+                self.fail_intent_settlement(format!(
+                    "native intent posture queue exceeded capacity {MAX_PENDING_INTENT_POSTURES}"
+                ));
+                break;
+            }
+            self.pending_intent_postures.push_back(prepared);
+        }
+        if self.terminal_error.is_none() {
+            self.advance_pending_intent_postures(shell);
+        }
+    }
+
+    fn prepare_ingress_intent_posture(
+        &mut self,
+        transition: WorthUiNativeIntentTransition,
+    ) -> Option<PlatformPulsePreparedIntentPosture> {
+        let (posture, observation) = match transition {
+            WorthUiNativeIntentTransition::AttemptPrepared(prepared) => {
+                if let Err(denial) = self.intent_evidence_index.retain(prepared.dispatch()) {
+                    self.fail_intent_settlement(format!(
+                        "prepared intent evidence could not be retained: {denial:?}"
+                    ));
+                    return None;
+                }
+                let observation =
+                    PlatformPulseIntentPostureObservation::admitted(prepared.dispatch());
+                (prepared.into_posture(), observation)
+            }
+            WorthUiNativeIntentTransition::ConfirmationRequired(pending) => {
+                let observation =
+                    PlatformPulseIntentPostureObservation::confirmation_required(pending.pending());
+                let (_, posture) = pending.into_parts();
+                (posture, observation)
+            }
+            WorthUiNativeIntentTransition::Stopped(stopped) => {
+                let (stop, posture) = stopped.into_parts();
+                if posture.is_none() && is_unrouted_interaction(&stop) {
+                    return None;
+                }
+                let Some(posture) = posture else {
+                    self.fail_intent_settlement(
+                        "native intent stopped without a publishable posture",
+                    );
+                    return None;
+                };
+                let Some(observation) = stopped_posture_observation(posture.kind()) else {
+                    self.fail_intent_settlement(
+                        "native intent stopped with an invalid terminal posture",
+                    );
+                    return None;
+                };
+                (posture, observation)
+            }
+        };
+        Some(PlatformPulsePreparedIntentPosture::new(
+            posture,
+            observation,
+            PlatformPulseIntentPostureSettlement::PublicationOnly,
+        ))
+    }
+
+    pub(in crate::native_application) fn advance_pending_intent_postures(
+        &mut self,
+        shell: &mut WorthUiNativeApplicationShell,
+    ) {
+        while self.terminal_error.is_none() && self.pending_managed_rebind.is_none() {
+            let Some(prepared) = self.pending_intent_postures.pop_front() else {
+                return;
+            };
+            if !matches!(
+                self.publish_native_intent_posture(shell, prepared),
+                PlatformPulseIntentPosturePublicationDisposition::Published
+            ) {
+                return;
+            }
+        }
+    }
+
+    pub(in crate::native_application::intent) fn publish_native_intent_posture(
+        &mut self,
+        shell: &mut WorthUiNativeApplicationShell,
+        prepared: PlatformPulsePreparedIntentPosture,
+    ) -> PlatformPulseIntentPosturePublicationDisposition {
+        self.presentation_tick = self.presentation_tick.saturating_add(1);
+        let PlatformPulsePreparedIntentPosture { posture, pending } = prepared;
+        let outcome =
+            shell.begin_managed_native_intent_posture_publication(posture, self.presentation_tick);
+        let receipt = match outcome {
+            Ok(WorthUiNativeManagedIntentPosturePublicationOutcome::Published(receipt)) => receipt,
+            Ok(WorthUiNativeManagedIntentPosturePublicationOutcome::Pending) => {
+                self.pending_managed_rebind =
+                    Some(super::super::PlatformPulsePendingManagedRebind::IntentPosture(pending));
+                return PlatformPulseIntentPosturePublicationDisposition::Pending;
+            }
+            Ok(WorthUiNativeManagedIntentPosturePublicationOutcome::Stopped(stop)) => {
+                self.fail_intent_posture_publication(
+                    super::PlatformPulseIntentPosturePublicationDenial::Stopped(stop),
+                );
+                return PlatformPulseIntentPosturePublicationDisposition::Failed;
+            }
+            Err(denial) => {
+                self.fail_intent_posture_publication(
+                    super::PlatformPulseIntentPosturePublicationDenial::Managed(denial),
+                );
+                return PlatformPulseIntentPosturePublicationDisposition::Failed;
+            }
+        };
+        if self.settle_intent_posture_publication(shell, pending, receipt) {
+            PlatformPulseIntentPosturePublicationDisposition::Published
+        } else {
+            PlatformPulseIntentPosturePublicationDisposition::Failed
+        }
+    }
+
+    pub(in crate::native_application) fn settle_intent_posture_publication(
+        &mut self,
+        shell: &mut WorthUiNativeApplicationShell,
+        pending: PlatformPulsePendingIntentPosture,
+        receipt: worth_ui::facade::rebind::UiRebindReceipt,
+    ) -> bool {
+        let Some(mounted) = receipt.mounted_publication() else {
+            self.fail_intent_settlement("intent posture receipt omitted mounted publication");
+            return false;
+        };
+        if let Err(error) = self
+            .publisher
+            .intent_posture_published(pending.observation, mounted)
+        {
+            self.fail(
+                super::super::PlatformPulseTerminalError::ObservationPublication,
+                Err(error),
+            );
+            return false;
+        }
+        if let Err(denial) = self.visual_identity.refresh_after_content_rebind(
+            shell,
+            self.presentation_tick,
+            std::time::Instant::now(),
+        ) {
+            self.fail_visual_identity(denial);
+            return false;
+        }
+        if let PlatformPulseIntentPostureSettlement::RetireExecution {
+            attempt,
+            idempotency,
+        } = pending.settlement
+        {
+            if self
+                .intent_evidence_index
+                .retire_execution(attempt, idempotency)
+                .is_none()
+            {
+                self.fail_intent_settlement(
+                    "terminal attempt omitted its retained intent evidence reference",
+                );
+                return false;
+            }
+        }
+        true
+    }
+
+    fn fail_intent_posture_publication(
+        &mut self,
+        denial: super::PlatformPulseIntentPosturePublicationDenial,
+    ) {
+        let observation = self.publisher.intent_preparation_failure();
+        self.fail(
+            super::super::PlatformPulseTerminalError::IntentPosturePublication(denial),
+            observation,
+        );
+    }
+}
+
+fn is_unrouted_interaction(stop: &WorthUiNativeIntentStop) -> bool {
+    matches!(
+        stop,
+        WorthUiNativeIntentStop::Route(
+            worth_ui::facade::intent::UiIntentRouteResolutionStop::Unrouted { .. }
+        )
+    )
+}
+
+fn stopped_posture_observation(
+    kind: WorthUiNativeIntentPostureKind,
+) -> Option<PlatformPulseIntentPostureObservation> {
+    match kind {
+        WorthUiNativeIntentPostureKind::Denied => {
+            Some(PlatformPulseIntentPostureObservation::Denied)
+        }
+        WorthUiNativeIntentPostureKind::StaleConfirmation => {
+            Some(PlatformPulseIntentPostureObservation::StaleConfirmation)
+        }
+        WorthUiNativeIntentPostureKind::Admitted
+        | WorthUiNativeIntentPostureKind::ConfirmationRequired
+        | WorthUiNativeIntentPostureKind::Completed
+        | WorthUiNativeIntentPostureKind::Cancelled => None,
+    }
+}

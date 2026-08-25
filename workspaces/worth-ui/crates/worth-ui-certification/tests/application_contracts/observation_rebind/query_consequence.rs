@@ -7,7 +7,7 @@ use worth_ui_query_binding::{
 use worth_ui_test_support::WorthUiActiveSessionCertificationExt;
 
 use crate::query_replacement_lifecycle::{
-    mixed_real_lifecycle::query_patch::update_measurement,
+    query_patch::update_measurement,
     reset_workspace::installed_workspace_without_collection_entity_lookup,
     scenario::{
         application, installed_workspace_with_measurement_authority, FIRST_VIEW, SECOND_VIEW,

@@ -7,8 +7,4 @@ fn enter_headless(
     let _ = host.perform_mounted_surface_presentation(raw);
 }
 
-fn enter_egui(host: &worth_ui_host_egui::WorthUiHostEgui, raw: &UiHostProtocolContract) {
-    let _ = host.perform_mounted_surface_presentation(raw);
-}
-
 fn main() {}

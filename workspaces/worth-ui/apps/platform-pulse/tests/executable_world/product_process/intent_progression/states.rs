@@ -13,7 +13,7 @@ pub(super) struct ConfirmationChallenge {
     pub(super) slot: u8,
     pub(super) generation: u64,
     pub(super) lineage: u64,
-    pub(super) expires_at_tick: u64,
+    pub(super) expires_at_millis: u64,
 }
 
 pub(super) struct ConfirmationPending {

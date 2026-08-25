@@ -1,9 +1,15 @@
 pub(super) mod mounted_identity;
 mod observation_ingress;
 mod presentation_semantic_subscriber;
+mod visual_snapshot;
 
 pub use observation_ingress::UiNativeClientObservationIngressObservation;
 pub use presentation_semantic_subscriber::UiNativeClientPresentationSemanticSubscriberObservation;
+pub use visual_snapshot::{
+    UiNativeClientVisualCoordinateOrientation, UiNativeClientVisualCoordinateRounding,
+    UiNativeClientVisualPixelColorSpace, UiNativeClientVisualSnapshotInput,
+    UiNativeClientVisualSnapshotObservation, UiNativeClientVisualSnapshotRelation,
+};
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct UiNativeClientShutdownObservation {
@@ -20,6 +26,48 @@ pub struct UiNativeClientShutdownObservation {
         Option<super::UiNativeClientDerivedStateReconstructionObservation>,
     resources: super::UiNativeClientResourceObservation,
     observation_ingress: UiNativeClientObservationIngressObservation,
+    visual_snapshot: Option<UiNativeClientVisualSnapshotObservation>,
+    shutdown_attempts: Box<[UiNativeClientShutdownAttemptObservation]>,
+    intent_resources_empty: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiNativeClientShutdownAttemptDisposition {
+    CancelledBeforeEffects,
+    PresentationIndeterminate,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct UiNativeClientShutdownAttemptObservation {
+    attempt: u64,
+    disposition: UiNativeClientShutdownAttemptDisposition,
+    affected_bindings: Box<[u64]>,
+}
+
+impl UiNativeClientShutdownAttemptObservation {
+    pub fn reported(
+        attempt: u64,
+        disposition: UiNativeClientShutdownAttemptDisposition,
+        affected_bindings: impl IntoIterator<Item = u64>,
+    ) -> Self {
+        Self {
+            attempt,
+            disposition,
+            affected_bindings: affected_bindings.into_iter().collect(),
+        }
+    }
+
+    pub const fn attempt(&self) -> u64 {
+        self.attempt
+    }
+
+    pub const fn disposition(&self) -> UiNativeClientShutdownAttemptDisposition {
+        self.disposition
+    }
+
+    pub fn affected_bindings(&self) -> &[u64] {
+        &self.affected_bindings
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -94,6 +142,9 @@ impl UiNativeClientShutdownObservation {
             derived_state_reconstruction: None,
             resources: Default::default(),
             observation_ingress: Default::default(),
+            visual_snapshot: None,
+            shutdown_attempts: Box::new([]),
+            intent_resources_empty: true,
         }
     }
 
@@ -136,6 +187,9 @@ impl UiNativeClientShutdownObservation {
             derived_state_reconstruction: None,
             resources: Default::default(),
             observation_ingress: Default::default(),
+            visual_snapshot: None,
+            shutdown_attempts: Box::new([]),
+            intent_resources_empty: true,
         }
     }
 
@@ -170,6 +224,27 @@ impl UiNativeClientShutdownObservation {
         observation_ingress: UiNativeClientObservationIngressObservation,
     ) -> Self {
         self.observation_ingress = observation_ingress;
+        self
+    }
+
+    pub fn with_visual_snapshot(
+        mut self,
+        visual_snapshot: Option<UiNativeClientVisualSnapshotObservation>,
+    ) -> Self {
+        self.visual_snapshot = visual_snapshot;
+        self
+    }
+
+    pub fn with_shutdown_attempts(
+        mut self,
+        shutdown_attempts: Box<[UiNativeClientShutdownAttemptObservation]>,
+    ) -> Self {
+        self.shutdown_attempts = shutdown_attempts;
+        self
+    }
+
+    pub const fn with_intent_resources_empty(mut self, intent_resources_empty: bool) -> Self {
+        self.intent_resources_empty = intent_resources_empty;
         self
     }
 
@@ -219,6 +294,25 @@ impl UiNativeClientShutdownObservation {
 
     pub const fn observation_ingress(&self) -> UiNativeClientObservationIngressObservation {
         self.observation_ingress
+    }
+
+    pub const fn visual_snapshot(&self) -> Option<&UiNativeClientVisualSnapshotObservation> {
+        self.visual_snapshot.as_ref()
+    }
+
+    pub fn shutdown_attempts(&self) -> &[UiNativeClientShutdownAttemptObservation] {
+        &self.shutdown_attempts
+    }
+
+    pub const fn intent_resources_empty(&self) -> bool {
+        self.intent_resources_empty
+    }
+
+    pub(in crate::native::event_loop) const fn terminal_resources_complete(&self) -> bool {
+        self.managed_semantic_resources_complete
+            && self.intent_resources_empty
+            && self.resources.terminal_mounted_layouts() == 0
+            && self.resources.terminal_raster_cache_entries() == 0
     }
 }
 

@@ -5,6 +5,7 @@ pub(crate) struct UiNativeEventProfile {
     pub(super) scale_factor: f64,
     pub(super) scale_micros: u32,
     pub(super) physical_size: [u32; 2],
+    pub(super) wheel_line_logical_units: f64,
 }
 
 pub(super) fn event_profile(
@@ -22,6 +23,9 @@ pub(super) fn event_profile(
         scale_factor,
         scale_micros: micros as u32,
         physical_size,
+        wheel_line_logical_units: crate::native_profile::QUALIFIED_WHEEL_LINE_LOGICAL_SUBPIXELS
+            as f64
+            / 1_000.0,
     })
 }
 

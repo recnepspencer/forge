@@ -81,4 +81,8 @@ impl UiMountedQualifiedLayoutIndex {
             .get(&identity.digest())
             .map(|entry| &entry.layout)
     }
+
+    pub(super) fn retained_structural_bytes(&self) -> Option<usize> {
+        std::mem::size_of::<Self>().checked_add(self.by_identity.retained_structural_bytes()?)
+    }
 }

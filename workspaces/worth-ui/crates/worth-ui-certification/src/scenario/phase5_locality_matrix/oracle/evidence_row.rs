@@ -15,7 +15,6 @@ pub(super) fn assemble(
     expected: &[SemanticChange],
     work: &UiNativeClientTextPresentationWorkObservation,
     physical: &UiNativePhysicalSignalTransitionObservation,
-    hostile_convictions: &[super::super::hostile_cost_model::HostileCostConviction],
 ) -> Value {
     let case = evidence.case();
     let timing = evidence.timing();
@@ -45,7 +44,6 @@ pub(super) fn assemble(
         "text_work": shutdown.text_presentation_work().iter().map(text_work_row).collect::<Vec<_>>(),
         "atlas_plans": atlas_plan_rows(receipt.text_atlas_plan_observations()),
         "physical_signal": physical_signal_row(physical),
-        "hostile_cost_convictions": hostile_rows(hostile_convictions),
         "native": native_row(presentation),
         "terminal_zero": true,
     })
@@ -91,23 +89,6 @@ fn atlas_plan_rows(plans: &[worth_ui_host_native::UiNativeTextAtlasPlanObservati
         "staged_bytes": plan.staged_bytes(), "physical_staged_bytes": plan.physical_staged_bytes(),
         "peak_entries": plan.peak_entries(),
     })).collect()
-}
-
-fn hostile_rows(
-    convictions: &[super::super::hostile_cost_model::HostileCostConviction],
-) -> Vec<Value> {
-    convictions
-        .iter()
-        .map(|conviction| {
-            json!({
-                "mutant": conviction.mutant(), "performed_work": conviction.performed_work(),
-                "mutant_work": conviction.mutant_work(),
-                "performed_trace_digest": digest_hex(conviction.performed_trace_digest()),
-                "mutant_trace_digest": digest_hex(conviction.mutant_trace_digest()),
-                "denial": conviction.denial(),
-            })
-        })
-        .collect()
 }
 
 fn physical_signal_row(physical: &UiNativePhysicalSignalTransitionObservation) -> Value {

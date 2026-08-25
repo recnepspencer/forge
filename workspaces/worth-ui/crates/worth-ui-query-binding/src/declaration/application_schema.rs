@@ -118,6 +118,16 @@ impl WorthUiProjectionField {
             Self::QueryRevisionValue | Self::MeasurementValue | Self::SizeValue => "value",
         }
     }
+
+    pub(crate) const fn collection_contract_key(self) -> &'static str {
+        match self {
+            Self::IdentityId => "identity.id",
+            Self::QueryTextStatus => "query_text.status",
+            Self::QueryRevisionValue => "query_revision.value",
+            Self::MeasurementValue => "measurement.value",
+            Self::SizeValue => "size.value",
+        }
+    }
 }
 
 pub trait WorthUiNativeField: sealed::Sealed {

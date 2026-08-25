@@ -9,7 +9,7 @@ mod replacement;
 mod shutdown;
 
 pub(in crate::intent) use provider::{
-    AttemptStep, ExecutionScript, RecoveryStep, ScriptedProvider, ScriptedProviderObservation,
+    AttemptStep, ExecutionScript, RecoveryStep, ScriptedProvider,
 };
 
 use worth_ui::facade::intent::{

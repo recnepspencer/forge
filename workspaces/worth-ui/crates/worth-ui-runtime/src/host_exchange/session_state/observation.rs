@@ -63,6 +63,13 @@ impl WorthUiHostExchangeSessionState {
             .record_indeterminate_frame(frame, bindings);
     }
 
+    pub(crate) fn record_presented_frame(
+        &mut self,
+        frame: worth_ui_host_contract::UiMountedFrameIdentity,
+    ) {
+        self.observations.record_presented_frame(frame);
+    }
+
     pub(crate) fn observation_retention_snapshot(
         &self,
     ) -> crate::host_exchange::observation_report_validation::UiHostObservationRetentionSnapshot

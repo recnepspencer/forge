@@ -331,6 +331,9 @@ impl WorthUiApp {
             crate::facade::WorthUiHostSessionActivationDenial::MountedPresentationLease(_) => {
                 WorthUiRuntimeLaunchDenial::HostMountedPresentationLease
             }
+            crate::facade::WorthUiHostSessionActivationDenial::ObservationSession(denial) => {
+                WorthUiRuntimeLaunchDenial::HostObservationSession(denial)
+            }
         })?;
         let runtime = WorthUiRuntime::launch(
             launch,

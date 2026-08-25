@@ -1,7 +1,7 @@
 use super::super::super::{
     delta::settle_staged_delta, reserve_presentation_owners, settle_port_result,
     UiNativePendingExternalObligation, UiNativePendingSurfaceSettlement,
-    UiNativePresentationFailure, UiNativePresentationPortFailure,
+    UiNativePresentationEffects, UiNativePresentationFailure, UiNativePresentationPortFailure,
 };
 use super::*;
 
@@ -101,6 +101,7 @@ fn exact_delta_updates_draw_order_damage_and_replay_without_retained_scans() {
     let denied = settle_staged_delta(
         &mut retained,
         undo,
+        UiNativePresentationEffects::default(),
         Err(UiNativePresentationFailure::BeforeEffects(
             worth_ui_host_contract::UiHostSurfacePresentationDenial::AdapterDeclined,
         )),
@@ -137,7 +138,12 @@ fn exact_delta_updates_draw_order_damage_and_replay_without_retained_scans() {
             Box::new(UnsettledPresentation),
         )),
     );
-    let settled = settle_staged_delta(&mut retained, indeterminate_undo, indeterminate);
+    let settled = settle_staged_delta(
+        &mut retained,
+        indeterminate_undo,
+        UiNativePresentationEffects::default(),
+        indeterminate,
+    );
     let Err(UiNativePresentationFailure::Pending(mut pending)) = settled else {
         panic!("an unsettled external presentation remains indeterminate");
     };
@@ -218,9 +224,6 @@ fn exact_delta_updates_draw_order_damage_and_replay_without_retained_scans() {
     );
     assert_eq!(plan.counters.retained_command_scans, 0);
     assert!(retained.command(removed_identity.command()).is_none());
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-DRAW-LIST-01\":\"complete-map-clone\",\"P3-TRANSACTION-01\":\"commit-before-handoff\"}}"
-    );
 }
 
 #[test]

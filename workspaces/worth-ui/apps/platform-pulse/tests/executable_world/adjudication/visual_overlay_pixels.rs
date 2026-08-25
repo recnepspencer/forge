@@ -1,22 +1,14 @@
+use crate::external_observation::NativeClientPixelCapture;
 use worth_ui_platform_pulse::observation_contract::{
     PlatformPulseLifecycleObservation, PlatformPulseLifecycleObservationEnvelope,
     PlatformPulseVisualOverlayCleared, PlatformPulseVisualOverlayPublished,
 };
-use worth_ui_platform_pulse::visual_identity_pulse::{
-    PLATFORM_PULSE_BACKGROUND_LOGICAL_POINT, PLATFORM_PULSE_TARGET_LOGICAL_POINT,
-    PLATFORM_PULSE_TARGET_RGB,
-};
-
-use crate::external_observation::NativeClientPixelCapture;
 
 use super::{
+    platform_pulse_control_points::{checked_in, PlatformPulseControlPointManifest},
     ExecutableVisualIdentityFailure, ExecutableVisualSnapshotEvidence,
     ExecutableVisualTraceEvidence,
 };
-
-const EXPECTED_BLUE: [u8; 3] = [0x2f, 0x81, 0xf7];
-const EXPECTED_MAGENTA: [u8; 3] = [0xff, 0x00, 0xff];
-const CHANNEL_TOLERANCE: u8 = 12;
 
 #[derive(Debug)]
 pub(crate) struct ExecutableVisualOverlayEvidence {
@@ -44,6 +36,7 @@ pub(crate) fn adjudicate_overlay_pixels(
     process_id: u32,
     pixels: NativeClientPixelCapture,
 ) -> Result<ExecutableVisualOverlayEvidence, ExecutableVisualIdentityFailure> {
+    let manifest = checked_in().map_err(ExecutableVisualIdentityFailure::ControlPointManifest)?;
     let sequence = trace.sequence().saturating_add(1);
     require_sequence(&envelope, sequence)?;
     let PlatformPulseLifecycleObservation::VisualOverlayPublished(overlay) = envelope.outcome()
@@ -63,7 +56,7 @@ pub(crate) fn adjudicate_overlay_pixels(
     let samples = border_samples(&pixels, overlay.target_region())?;
     let matching = samples
         .iter()
-        .filter(|&&pixel| matches_rgb(pixel, EXPECTED_MAGENTA))
+        .filter(|&&pixel| matches_rgb(pixel, manifest.overlay_rgba(), &manifest))
         .count();
     if matching * 4 < samples.len() * 3 {
         return Err(ExecutableVisualIdentityFailure::BorderNotVisible {
@@ -71,10 +64,9 @@ pub(crate) fn adjudicate_overlay_pixels(
             sampled: samples.len(),
         });
     }
-    let target_point = snapshot.project_logical_point(PLATFORM_PULSE_TARGET_LOGICAL_POINT)?;
-    let background_point =
-        snapshot.project_logical_point(PLATFORM_PULSE_BACKGROUND_LOGICAL_POINT)?;
-    require_control_pixels(&pixels, target_point, background_point)?;
+    let target_point = snapshot.project_logical_point(manifest.target_logical_point())?;
+    let background_point = snapshot.project_logical_point(manifest.background_logical_point())?;
+    require_control_pixels(&pixels, target_point, background_point, &manifest)?;
     Ok(ExecutableVisualOverlayEvidence {
         sequence,
         overlay: *overlay,
@@ -93,6 +85,7 @@ pub(crate) fn adjudicate_restored_pixels(
     process_id: u32,
     pixels: NativeClientPixelCapture,
 ) -> Result<ExecutableVisualClearEvidence, ExecutableVisualIdentityFailure> {
+    let manifest = checked_in().map_err(ExecutableVisualIdentityFailure::ControlPointManifest)?;
     let sequence = overlay.sequence.saturating_add(1);
     require_sequence(&envelope, sequence)?;
     let PlatformPulseLifecycleObservation::VisualOverlayCleared(clear) = envelope.outcome() else {
@@ -110,7 +103,7 @@ pub(crate) fn adjudicate_restored_pixels(
     let samples = border_samples(&pixels, overlay.overlay.target_region())?;
     let matching = samples
         .iter()
-        .filter(|&&pixel| matches_rgb(pixel, EXPECTED_MAGENTA))
+        .filter(|&&pixel| matches_rgb(pixel, manifest.overlay_rgba(), &manifest))
         .count();
     if matching != 0 {
         return Err(ExecutableVisualIdentityFailure::BorderStillVisible {
@@ -118,7 +111,12 @@ pub(crate) fn adjudicate_restored_pixels(
             sampled: samples.len(),
         });
     }
-    require_control_pixels(&pixels, overlay.target_point, overlay.background_point)?;
+    require_control_pixels(
+        &pixels,
+        overlay.target_point,
+        overlay.background_point,
+        &manifest,
+    )?;
     Ok(ExecutableVisualClearEvidence {
         sequence,
         clear: *clear,
@@ -180,13 +178,16 @@ fn require_control_pixels(
     pixels: &NativeClientPixelCapture,
     target_point: [u32; 2],
     background_point: [u32; 2],
+    manifest: &PlatformPulseControlPointManifest,
 ) -> Result<(), ExecutableVisualIdentityFailure> {
     if !pixel_at(pixels, target_point)
-        .is_some_and(|pixel| matches_rgb(pixel, PLATFORM_PULSE_TARGET_RGB))
+        .is_some_and(|pixel| matches_rgb(pixel, manifest.target_rgba(), manifest))
     {
         return Err(ExecutableVisualIdentityFailure::TargetPixelChanged);
     }
-    if !pixel_at(pixels, background_point).is_some_and(|pixel| matches_rgb(pixel, EXPECTED_BLUE)) {
+    if !pixel_at(pixels, background_point)
+        .is_some_and(|pixel| matches_rgb(pixel, manifest.blue_rgba(), manifest))
+    {
         return Err(ExecutableVisualIdentityFailure::BackgroundPixelChanged);
     }
     Ok(())
@@ -202,11 +203,15 @@ fn pixel_at(pixels: &NativeClientPixelCapture, point: [u32; 2]) -> Option<[u8; 4
     Some([pixel[0], pixel[1], pixel[2], pixel[3]])
 }
 
-fn matches_rgb(observed: [u8; 4], expected: [u8; 3]) -> bool {
+fn matches_rgb(
+    observed: [u8; 4],
+    expected: [u8; 4],
+    manifest: &PlatformPulseControlPointManifest,
+) -> bool {
     observed[..3]
         .iter()
         .zip(expected)
-        .all(|(&observed, expected)| observed.abs_diff(expected) <= CHANNEL_TOLERANCE)
+        .all(|(&observed, expected)| observed.abs_diff(expected) <= manifest.channel_tolerance())
 }
 
 impl ExecutableVisualOverlayEvidence {

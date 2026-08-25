@@ -9,6 +9,8 @@ use super::{
 };
 
 mod shutdown;
+#[path = "active_application_session/theme_values.rs"]
+mod theme_values;
 
 /// The one ordinary owner of a running Worth UI application generation.
 pub struct WorthUiActiveApplicationSession {
@@ -383,12 +385,5 @@ impl WorthUiActiveApplicationSession {
         changes: &[super::UiNativeComponentSemanticTextChange],
     ) -> Result<(), ()> {
         self.presentation.admit_semantic_text(changes)
-    }
-
-    pub(crate) fn admit_application_theme_values(
-        &mut self,
-        changes: &[super::UiNativeThemeTokenValueChange],
-    ) -> Result<(), ()> {
-        self.presentation.admit_theme_values(changes)
     }
 }

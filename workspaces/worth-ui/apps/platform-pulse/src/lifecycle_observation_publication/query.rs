@@ -60,7 +60,7 @@ impl PlatformPulseObservationPublisher {
         query: crate::query_source::PlatformPulseQueryShutdownReceipt,
         query_watcher: crate::query_source::PlatformPulseExternalValueWatchShutdownReceipt,
         intent_watcher: worth_ui_platform_pulse::intent::PlatformPulseIntentInputWatchShutdownReceipt,
-        application: WorthUiNativeApplicationShutdownReceipt,
+        application: &WorthUiNativeApplicationShutdownReceipt,
     ) -> Result<(), PlatformPulseObservationPublicationDenial> {
         let query = PlatformPulseQueryShutdownEvidence::new(
             PlatformPulseQueryWatcherShutdownEvidence::new(

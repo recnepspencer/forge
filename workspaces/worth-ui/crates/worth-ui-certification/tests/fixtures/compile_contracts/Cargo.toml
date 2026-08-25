@@ -22,23 +22,20 @@ sha2 = "=0.10.9"
 swash = "=0.2.10"
 unicode-bidi = { version = "=0.3.18", default-features = false, features = ["std"] }
 unicode-segmentation = { version = "=1.13.3", default-features = false }
-egui = "=0.35.0"
 serde = "=1.0.229"
 
 [dependencies]
 worth-foundational = { path = "../../../../../../../crates/worth-foundational" }
-worth-ui = { path = "../../../../worth-ui", features = ["legacy-egui-migration"] }
+worth-ui = { path = "../../../../worth-ui" }
 worth-ui-dsl = { path = "../../../../worth-ui-dsl" }
 worth-ui-host-contract = { path = "../../../../worth-ui-host-contract" }
 worth-ui-host-native = { path = "../../../../worth-ui-host-native" }
 worth-ui-host-headless = { path = "../../../../worth-ui-host-headless" }
-worth-ui-host-egui = { path = "../../../../worth-ui-host-egui" }
 worth-ui-native-platform = { path = "../../../../worth-ui-native-platform" }
 worth-ui-inspection = { path = "../../../../worth-ui-inspection" }
 worth-ui-query-binding = { path = "../../../../worth-ui-query-binding", features = ["certification-construction"] }
-worth-ui-runtime = { path = "../../../../worth-ui-runtime", features = ["certification-support", "legacy-egui-migration"] }
+worth-ui-runtime = { path = "../../../../worth-ui-runtime", features = ["certification-support"] }
 worth-ui-test-support = { path = "../../../../worth-ui-test-support" }
-egui.workspace = true
 serde.workspace = true
 
 [[bin]]
@@ -260,12 +257,8 @@ name = "certification-fixed-headless-host"
 path = "../../ui/host/fixed_certification_headless_host_is_lawful.rs"
 
 [[bin]]
-name = "certification-alternate-legacy-egui-host-rejected"
-path = "../../ui/host/alternate_host_cannot_enter_legacy_egui_transition.rs"
-
-[[bin]]
-name = "certification-fixed-legacy-egui-host"
-path = "../../ui/host/fixed_legacy_egui_host_is_lawful.rs"
+name = "certification-retired-egui-surface-absent"
+path = "../../ui/host/retired_egui_surface_is_absent.rs"
 
 [[bin]]
 name = "certification-mounted-consumption-authority"

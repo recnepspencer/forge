@@ -9,7 +9,9 @@ use crate::failure_teardown::{
     teardown_native_bound_world, PulseExecutableWorldFailure, PulseExecutableWorldFailureReport,
 };
 
-use super::watched_native_observation::observe_watched_native;
+use super::watched_native_observation::{
+    observe_watched_native, observe_watched_native_until_pixels,
+};
 use super::{
     await_watched_observation, AwaitingSchemaStop, AwaitingStatusRecovery, FinalRecovered,
     NativeBoundExecutableWorld, Published, PulseExecutableWorld, SchemaStopped,
@@ -103,7 +105,12 @@ impl PulseExecutableWorld<AwaitingStatusRecovery> {
             .map_err(PulseExecutableWorldFailure::WatchedObservation)?;
             require_replacement_lifecycle(&envelope)
                 .map_err(PulseExecutableWorldFailure::Replacement)?;
-            let native = observe_watched_native(&mut world)?;
+            let native = observe_watched_native_until_pixels(
+                &mut world,
+                stopped.recovered.evidence.pixels(),
+                deadline,
+                "canonical current recovery",
+            )?;
             let causal = CausalReplacementObservationSet::new(
                 action,
                 stopped.evidence.replacement().identity().clone(),

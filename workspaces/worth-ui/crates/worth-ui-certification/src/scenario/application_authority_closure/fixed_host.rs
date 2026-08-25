@@ -3,9 +3,7 @@ use worth_ui_host_headless::{
     WorthUiHeadlessBaselineUnavailableHost, WorthUiHeadlessCapabilityProfileHost,
     WorthUiHeadlessHost, WorthUiHeadlessPortalAnchorHost, WorthUiHeadlessRecorder,
 };
-use worth_ui_runtime::facade::entry::{
-    WorthUiCertificationApplicationTransition, WorthUiLegacyEguiApplicationTransition,
-};
+use worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition;
 
 pub(crate) mod sealed {
     pub trait Sealed {}
@@ -66,13 +64,5 @@ impl FixedCertificationHostBinding
 {
     fn activate(self, application: WorthUiHostNeutralApp) -> WorthUiApp {
         WorthUiCertificationApplicationTransition::activate_scripted_presentation(application, self)
-    }
-}
-
-impl sealed::Sealed for worth_ui_host_egui::WorthUiHostEgui {}
-
-impl FixedCertificationHostBinding for worth_ui_host_egui::WorthUiHostEgui {
-    fn activate(self, application: WorthUiHostNeutralApp) -> WorthUiApp {
-        WorthUiLegacyEguiApplicationTransition::activate(application, self)
     }
 }

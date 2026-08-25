@@ -52,6 +52,14 @@ pub struct UiNativePointerButtonObservation {
     coordinate_unit: UiHostSurfaceCoordinateUnit,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct UiNativeScrollDeltaObservation {
+    sequence: u64,
+    event_tick: u64,
+    x_subpixels: i64,
+    y_subpixels: i64,
+}
+
 impl UiNativePointerButtonObservation {
     pub(super) const fn reported(
         sequence: u64,
@@ -93,6 +101,38 @@ impl UiNativePointerButtonObservation {
     }
 }
 
+impl UiNativeScrollDeltaObservation {
+    pub(super) const fn reported(
+        sequence: u64,
+        event_tick: u64,
+        x_subpixels: i64,
+        y_subpixels: i64,
+    ) -> Self {
+        Self {
+            sequence,
+            event_tick,
+            x_subpixels,
+            y_subpixels,
+        }
+    }
+
+    pub const fn sequence(self) -> u64 {
+        self.sequence
+    }
+
+    pub const fn event_tick(self) -> u64 {
+        self.event_tick
+    }
+
+    pub const fn x_subpixels(self) -> i64 {
+        self.x_subpixels
+    }
+
+    pub const fn y_subpixels(self) -> i64 {
+        self.y_subpixels
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UiNativeInputObservationReport {
     pub(super) last_completed_presentation: Option<UiHostObservationPresentationBasis>,
@@ -106,6 +146,8 @@ pub struct UiNativeInputObservationReport {
     pub(super) last_retained_sequence: Option<u64>,
     pub(super) family_counts: [u64; 11],
     pub(super) last_pointer_button: Option<UiNativePointerButtonObservation>,
+    pub(super) last_vertical_scroll: Option<UiNativeScrollDeltaObservation>,
+    pub(super) last_horizontal_scroll: Option<UiNativeScrollDeltaObservation>,
     pub(super) profile_transition_count: u64,
 }
 
@@ -159,6 +201,14 @@ impl UiNativeInputObservationReport {
 
     pub const fn last_pointer_button(&self) -> Option<UiNativePointerButtonObservation> {
         self.last_pointer_button
+    }
+
+    pub const fn last_vertical_scroll(&self) -> Option<UiNativeScrollDeltaObservation> {
+        self.last_vertical_scroll
+    }
+
+    pub const fn last_horizontal_scroll(&self) -> Option<UiNativeScrollDeltaObservation> {
+        self.last_horizontal_scroll
     }
 
     pub const fn profile_transition_count(&self) -> u64 {

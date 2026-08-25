@@ -64,7 +64,12 @@ fn raw_planning_admission_visibility_violations(
 }
 
 fn host_adapter_planning_semantics_violations(inventory: &WorkspaceSourceInventory) -> Vec<String> {
-    let rust_files = inventory.rust_files_under("crates/worth-ui-host-egui/src");
+    let rust_files = [
+        "crates/worth-ui-host-native/src",
+        "crates/worth-ui-host-headless/src",
+    ]
+    .into_iter()
+    .flat_map(|root| inventory.rust_files_under(root));
     let forbidden_tokens = [
         "WorthUiAllocationPlanning",
         "UiAllocationConstraintSet",

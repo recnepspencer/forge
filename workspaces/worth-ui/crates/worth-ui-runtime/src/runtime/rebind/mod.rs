@@ -11,6 +11,10 @@ pub use configuration::{
     UiRebindProfileConstructionDenial,
 };
 pub(crate) use execution::{admit_plan, UiRebindFinalAdmissionBasis};
+pub(crate) use execution::{
+    UiDetachedRebindCompletion, UiDetachedRebindRetry, UiRebindComparisonReservation,
+    UiRebindReservation, UiRebindRuntimeState,
+};
 pub use execution::{
     UiDuplicateObservationReceipt, UiEffectingRebind, UiEffectingRebindCompletion,
     UiPreparedRebind, UiPreparedRebindPosture, UiProjectionRebindRequest,
@@ -24,9 +28,6 @@ pub use execution::{
     UiRebindRecoverySurfaceDenial, UiRebindReservationDenial, UiRebindShutdownReport,
     UiRebindStoppedPhase, UiRebindSupersededReceipt, UiRebindTimeoutReceipt,
     UiRebindValidNextAction, UiSourceRebindRequest,
-};
-pub(crate) use execution::{
-    UiRebindComparisonReservation, UiRebindReservation, UiRebindRuntimeState,
 };
 #[cfg(any(test, feature = "certification-support"))]
 pub(crate) use identity::decision_from_transition;

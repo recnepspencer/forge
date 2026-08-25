@@ -27,6 +27,9 @@ pub struct UiMountedSurfacePresentationCompletion {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiHostSurfacePresentationDenial {
     AdapterDeclined,
+    ExternalTimeout,
+    SurfaceOccluded,
+    ExternalValidationFailed,
     TextAtlasPresentationDeferred,
     CancelledBeforeEffects,
     UnsupportedPresentationMode(crate::UiHostSurfacePresentationMode),

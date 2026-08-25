@@ -57,6 +57,13 @@ impl UiProjectionFieldRequirement {
         self.declared_name()
     }
 
+    pub(crate) fn collection_contract_key(&self) -> &str {
+        match &self.authority {
+            UiProjectionFieldAuthority::WorthUi(field) => field.collection_contract_key(),
+            UiProjectionFieldAuthority::Diagnostic(name) => name,
+        }
+    }
+
     pub fn query_text_status() -> Self {
         Self::from_worth_ui_field(QueryTextStatusField::reference())
     }

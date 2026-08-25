@@ -77,15 +77,6 @@ pub(super) fn adjudicate(evidence: Phase5LocalityEvidence) -> Result<Value, Stri
             presentation.client_physical_size()
         )
     })?;
-    let hostile_convictions = super::hostile_cost_model::adjudicate(
-        case,
-        super::hostile_cost_model::PerformedInputs::new(
-            shutdown,
-            work,
-            presentation.production_cost(),
-            physical,
-        ),
-    )?;
     Ok(evidence_row::assemble(
         &evidence,
         presentation,
@@ -93,7 +84,6 @@ pub(super) fn adjudicate(evidence: Phase5LocalityEvidence) -> Result<Value, Stri
         expected,
         work,
         physical,
-        &hostile_convictions,
     ))
 }
 

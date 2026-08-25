@@ -20,7 +20,6 @@ certification-support = [
     "worth-ui-host-native/certification-support",
     "worth-ui-query-binding/certification-construction",
 ]
-legacy-egui-migration = ["dep:worth-ui-host-egui"]
 
 [dependencies]
 notify = { workspace = true }
@@ -32,7 +31,6 @@ worth-ui-query-binding = { path = "../worth-ui-query-binding" }
 worth-ui-host-contract = { path = "../worth-ui-host-contract" }
 worth-ui-text = { path = "../worth-ui-text" }
 sha2.workspace = true
-worth-ui-host-egui = { path = "../worth-ui-host-egui", optional = true }
 worth-ui-host-headless = { path = "../worth-ui-host-headless", optional = true }
 worth-ui-host-native = { path = "../worth-ui-host-native" }
 

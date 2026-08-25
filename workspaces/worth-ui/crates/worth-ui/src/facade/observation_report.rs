@@ -5,7 +5,7 @@ pub use worth_ui_runtime::facade::observation_report::{
     UiHostObservationBatchConstructionDenial, UiHostObservationBatchDisposition,
     UiHostObservationBatchInput, UiHostObservationCanonicalCore,
     UiHostObservationCanonicalCoreInput, UiHostObservationCapacity, UiHostObservationCapacityInput,
-    UiHostObservationCoalescingIdentity, UiHostObservationDisposition,
+    UiHostObservationCoalescingIdentity, UiHostObservationDisposition, UiHostObservationDrain,
     UiHostObservationDrainDenial, UiHostObservationFamily, UiHostObservationFrameRelation,
     UiHostObservationIntegrity, UiHostObservationLoss, UiHostObservationMountedBasis,
     UiHostObservationPayload, UiHostObservationPresentationBasis, UiHostObservationReport,

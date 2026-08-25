@@ -16,6 +16,8 @@ use worth_ui_runtime::facade::mounted::{UiMountedFrameIdentity, UiSurfaceBinding
 use super::host_observation_fixture::{batch, pointer, report, source};
 use super::mounted_application_lifecycle::published_mounted_world::published_observation_world;
 
+#[path = "host_observation_denials/binding_sequence.rs"]
+mod binding_sequence;
 #[path = "host_observation_denials/presentation_epoch.rs"]
 mod presentation_epoch;
 #[path = "host_observation_denials/receipt_forgery.rs"]

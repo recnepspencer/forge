@@ -29,7 +29,8 @@ WorthUiNativePlatform::prepare(profile)
 -> complete()
 -> WorthUiApp
 -> UiPreparedNativeApplication
--> Phase 1 typed stop before native effects
+-> qualified native event loop
+-> Closed | Stopped | ApplicationPreparationDenied
 ```
 
 `WorthUiApp` is one prepared generation. Launch consumes it. The active session
@@ -39,7 +40,7 @@ inspection identities coherent.
 The platform supplies the only native host binding. An unbound
 `WorthUi::app()` cannot freeze, and a bound builder cannot bind a second host.
 See [Native host platform](./docs/native-host-platform.md) for the compiled
-Phase 1 progression.
+preparation and execution progression.
 
 Treat the returned mounted-frame outcome exhaustively. Do not import an
 intermediate runtime phase to skip a denial or recover a raw executor.
@@ -86,8 +87,8 @@ diagnostic or visible posture cannot be promoted into either.
   operational inspection state.
 - `facade::query_binding` and `worth-ui-query-binding` are the only
   Query-to-UI product route.
-- `worth-ui-host-contract` and host adapters own native mechanics, not UI
-  meaning.
+- `worth-ui-host-contract`, the native host, and the headless recorder own
+  mechanics, not UI meaning.
 - `worth-ui-native-platform` owns native application admission and the affine
   platform-binding grant; product code cannot extract or replace that grant.
 - `facade::inspection` exposes read-only queries and receipts. It cannot mutate

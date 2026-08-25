@@ -44,6 +44,7 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
         self.prepare_mounted_frame_with_content_internal(
             request,
             crate::mounting::UiMountedSemanticContentInput::empty(),
+            self.presentation.theme_values_source(),
         )
     }
 
@@ -51,6 +52,7 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
         &self,
         request: crate::mounting::UiMountedFrameRequest,
         semantic_content: crate::mounting::UiMountedSemanticContentInput,
+        theme_values: crate::mounting::UiMountedThemeValueSource,
     ) -> Result<
         crate::mounting::UiPreparedMountedFrame,
         crate::mounting::UiMountedFramePreparationDenial,
@@ -59,7 +61,7 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
         let plan = self.execution.runtime.active.active_plan_ref();
         let lanes = mounted_lanes(plan, request.virtualized_range().is_some());
         let mut projection =
-            self.begin_mounted_projection(request, lanes, semantic_content, None)?;
+            self.begin_mounted_projection(request, lanes, semantic_content, theme_values, None)?;
         projection.execute_requested_lanes(lanes, virtualized_range)?;
         projection.finish()
     }
@@ -68,6 +70,7 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
         &self,
         request: crate::mounting::UiMountedFrameRequest,
         semantic_content: crate::mounting::UiMountedSemanticContentInput,
+        theme_values: crate::mounting::UiMountedThemeValueSource,
         predecessor: &crate::mounting::UiPreparedMountedFrame,
     ) -> Result<
         crate::mounting::UiPreparedMountedFrame,
@@ -76,8 +79,13 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
         let virtualized_range = request.virtualized_range();
         let plan = self.execution.runtime.active.active_plan_ref();
         let lanes = mounted_lanes(plan, request.virtualized_range().is_some());
-        let mut projection =
-            self.begin_mounted_projection(request, lanes, semantic_content, Some(predecessor))?;
+        let mut projection = self.begin_mounted_projection(
+            request,
+            lanes,
+            semantic_content,
+            theme_values,
+            Some(predecessor),
+        )?;
         projection.execute_requested_lanes(lanes, virtualized_range)?;
         projection.finish()
     }
@@ -86,6 +94,7 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
         &self,
         request: crate::mounting::UiMountedFrameRequest,
         semantic_content: crate::mounting::UiMountedSemanticContentInput,
+        theme_values: crate::mounting::UiMountedThemeValueSource,
         replacements: &[crate::mounting::UiMountedSurfaceReconciliationBinding],
     ) -> Result<
         crate::mounting::UiPreparedMountedFrame,
@@ -95,7 +104,7 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
         let plan = self.execution.runtime.active.active_plan_ref();
         let lanes = mounted_lanes(plan, request.virtualized_range().is_some());
         let mut projection =
-            self.begin_mounted_projection(request, lanes, semantic_content, None)?;
+            self.begin_mounted_projection(request, lanes, semantic_content, theme_values, None)?;
         projection.execute_requested_lanes(lanes, virtualized_range)?;
         projection.finish_for_reconciliation(replacements)
     }
@@ -105,6 +114,7 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
         request: crate::mounting::UiMountedFrameRequest,
         lanes: crate::mounting::UiMountedLaneAssembly,
         semantic_content: crate::mounting::UiMountedSemanticContentInput,
+        theme_values: crate::mounting::UiMountedThemeValueSource,
         predecessor: Option<&'frame crate::mounting::UiPreparedMountedFrame>,
     ) -> Result<
         WorthUiActiveMountedProjectionFrame<'frame, 'session>,
@@ -137,6 +147,7 @@ impl<'session> WorthUiActiveFrameworkTurnExecution<'session> {
             preview: None,
             visual_overlay,
             semantic_content,
+            theme_values,
             font_collection: std::sync::Arc::clone(&self.font_collection),
             reuse_contract,
         };

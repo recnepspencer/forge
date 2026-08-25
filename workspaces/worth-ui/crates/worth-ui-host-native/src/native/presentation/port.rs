@@ -1,10 +1,14 @@
 use worth_ui_host_contract::UiHostPresentationCostReport;
 
-use crate::native::UiNativeGraphics;
+use crate::native::UiNativePresentationAccess;
 
 use super::{RasterRect, UiNativePendingExternalObligation};
 
+pub(crate) mod orchestrator;
+mod phase;
 mod transaction;
+
+pub(crate) use phase::UiNativeSurfaceAcquireFailure;
 
 /// Contractual boundary for one native presentation transaction.
 ///
@@ -13,15 +17,16 @@ mod transaction;
 /// only this boundary; they cannot return a framework settlement verdict.
 pub(crate) trait UiNativePresentationPort {
     fn present(
-        graphics: &mut UiNativeGraphics,
+        graphics: &mut UiNativePresentationAccess,
         atlas: Option<&crate::native::text_atlas::UiNativeTextAtlasGpuPages>,
         plan: UiNativePresentationPortPlan,
         defer_initial_observation: bool,
+        lifecycle: &mut crate::native::lifecycle::UiNativeLifecycleOrchestrator,
     ) -> Result<UiNativePresentationPortObservation, UiNativePresentationPortFailure>;
 }
 
 pub(crate) enum UiNativePresentationPortFailure {
-    SurfaceUnavailable,
+    Surface(UiNativeSurfaceAcquireFailure),
     ReadbackUnsettled(Box<dyn UiNativePendingExternalObligation>),
 }
 
@@ -77,11 +82,12 @@ impl UiNativePresentationPortObservation {
 
 impl UiNativePresentationPort for UiWgpuNativePresentationPort {
     fn present(
-        graphics: &mut UiNativeGraphics,
+        graphics: &mut UiNativePresentationAccess,
         atlas: Option<&crate::native::text_atlas::UiNativeTextAtlasGpuPages>,
         plan: UiNativePresentationPortPlan,
         defer_initial_observation: bool,
+        lifecycle: &mut crate::native::lifecycle::UiNativeLifecycleOrchestrator,
     ) -> Result<UiNativePresentationPortObservation, UiNativePresentationPortFailure> {
-        transaction::present(graphics, atlas, plan, defer_initial_observation)
+        transaction::present(graphics, atlas, plan, defer_initial_observation, lifecycle)
     }
 }

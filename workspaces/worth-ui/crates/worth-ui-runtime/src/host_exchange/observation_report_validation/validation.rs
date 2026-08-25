@@ -5,7 +5,7 @@ use super::sequence_coverage::UiSequenceCoveredObservationBatch;
 use super::state::UiHostObservationBatchFingerprint;
 use super::structural_admission::UiStructurallyAdmittedObservationBatch;
 use super::{
-    UiDuplicateHostObservationBatch, UiHostObservationReportDenial, UiHostObservationReportOutcome,
+    UiHostObservationReportDenial, UiHostObservationReportOutcome,
     UiHostObservationReportValidation, UiQuarantinedHostObservationBatch,
 };
 
@@ -48,12 +48,13 @@ impl UiHostObservationReportValidation {
         if self.is_never_presented(core.frame()) {
             return Err(UiHostObservationReportDenial::NeverPresentedFrame);
         }
-        if self.is_indeterminate(core.frame(), core.binding()) {
-            return self.quarantine(core, integrity);
-        }
         if let Some(duplicate) = self.duplicate_covered_batch(&covered) {
             return Ok(duplicate);
         }
+        if self.is_indeterminate(core.frame(), core.binding()) {
+            return self.quarantine(core, integrity);
+        }
+        super::progression::validate_sequence_progression(self.last_sequence, core.sequences())?;
         let basis = UiBasisAdmittedObservationBatch::admit(
             covered,
             context.mounted.retention(),
@@ -74,13 +75,6 @@ impl UiHostObservationReportValidation {
         core: worth_ui_host_contract::UiHostObservationCanonicalCore,
         integrity: worth_ui_host_contract::UiHostObservationIntegrity,
     ) -> Result<UiHostObservationReportOutcome, UiHostObservationReportDenial> {
-        if self.quarantine_fingerprints.iter().any(|candidate| {
-            candidate.sequences == core.sequences() && candidate.integrity == integrity
-        }) {
-            return Ok(UiHostObservationReportOutcome::Duplicate(
-                UiDuplicateHostObservationBatch::new(core.sequences(), integrity),
-            ));
-        }
         if self.quarantine.len() >= self.capacity.quarantined_batches() {
             return Err(UiHostObservationReportDenial::QuarantineCountCapacityExceeded);
         }
@@ -99,6 +93,7 @@ impl UiHostObservationReportValidation {
                 integrity,
             });
         self.quarantine_bytes = required_bytes;
+        self.last_sequence = Some(core.sequences().last());
         Ok(UiHostObservationReportOutcome::Quarantined(quarantined))
     }
 }

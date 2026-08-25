@@ -166,7 +166,6 @@ mod tests {
             [
                 dependency("worth-ui"),
                 dependency("worth-ui-query-binding"),
-                pulse_eframe_dependency(),
                 pulse_uiautomation_dependency(),
                 pulse_winsafe_dependency(),
                 pulse_xcap_dependency(),
@@ -186,12 +185,13 @@ mod tests {
             "apps/platform-pulse/Cargo.toml",
             [
                 dependency("worth-ui"),
-                dependency("worth-ui-host-egui"),
+                dependency("worth-ui-native-platform"),
                 dependency("worth-query-decl"),
                 dependency("worth-query-host"),
+                dependency("notify"),
                 dependency("serde"),
                 dependency("serde_json"),
-                pulse_eframe_dependency(),
+                dependency("win32job"),
                 pulse_uiautomation_dependency(),
                 pulse_winsafe_dependency(),
                 pulse_xcap_dependency(),
@@ -203,19 +203,18 @@ mod tests {
     }
 
     #[test]
-    fn source_allowlist_rejects_pulse_native_shell_feature_drift() {
+    fn source_allowlist_rejects_pulse_automation_feature_drift() {
         let rule = pulse_source_allowlist();
-        let mut eframe = pulse_eframe_dependency();
-        eframe.uses_default_features = true;
-        eframe.features.push("wgpu".into());
+        let mut automation = pulse_uiautomation_dependency();
+        automation.uses_default_features = true;
+        automation.features.push("tree".into());
         let diagnostics = diagnostics_for_source_allowlist_package(
             "worth-ui-platform-pulse",
             "apps/platform-pulse/Cargo.toml",
             [
                 dependency("worth-ui"),
-                dependency("worth-ui-host-egui"),
-                eframe,
-                pulse_uiautomation_dependency(),
+                dependency("worth-ui-native-platform"),
+                automation,
                 pulse_winsafe_dependency(),
                 pulse_xcap_dependency(),
             ]
@@ -232,28 +231,18 @@ mod tests {
             sources: vec!["worth-ui-platform-pulse".into()],
             allowed_targets: vec![
                 "worth-ui".into(),
-                "worth-ui-host-egui".into(),
+                "worth-ui-native-platform".into(),
                 "worth-query-decl".into(),
                 "worth-query-host".into(),
-                "eframe".into(),
+                "notify".into(),
                 "serde".into(),
                 "serde_json".into(),
                 "uiautomation".into(),
+                "win32job".into(),
                 "winsafe".into(),
                 "xcap".into(),
             ],
             dependency_contracts: vec![
-                SourceDependencyContractConfig {
-                    target: "eframe".into(),
-                    version_requirement: "=0.31.1".into(),
-                    uses_default_features: false,
-                    features: vec![
-                        "default_fonts".into(),
-                        "glow".into(),
-                        "wayland".into(),
-                        "x11".into(),
-                    ],
-                },
                 SourceDependencyContractConfig {
                     target: "uiautomation".into(),
                     version_requirement: "=0.25.0".into(),
@@ -285,20 +274,6 @@ mod tests {
             req: "*".into(),
             features: Vec::new(),
             uses_default_features: true,
-        }
-    }
-
-    fn pulse_eframe_dependency() -> CargoMetadataDependency {
-        CargoMetadataDependency {
-            name: "eframe".into(),
-            req: "=0.31.1".into(),
-            features: vec![
-                "default_fonts".into(),
-                "glow".into(),
-                "wayland".into(),
-                "x11".into(),
-            ],
-            uses_default_features: false,
         }
     }
 

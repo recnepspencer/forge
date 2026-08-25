@@ -1,13 +1,18 @@
 mod application;
 mod launch_configuration;
 mod lifecycle_observation_publication;
-mod native_frame;
+mod native_application;
 #[cfg(feature = "executable-world")]
 mod native_gate_d_application;
 mod native_phase2_evidence;
 #[cfg(feature = "executable-world")]
 mod native_phase3_application;
 mod native_phase6_evidence;
+mod native_phase7_evidence;
+#[cfg(feature = "executable-world")]
+mod native_phase8_evidence;
+#[cfg(feature = "executable-world")]
+mod native_phase8_world;
 #[cfg(feature = "executable-world")]
 mod native_phase_f_application;
 #[cfg(feature = "executable-world")]
@@ -22,6 +27,7 @@ mod native_phase_f_reconstruction_world;
 mod native_phase_f_world;
 #[cfg(feature = "executable-world")]
 mod native_phase_f_world_evidence;
+mod product_process;
 mod query_source;
 mod source_watch;
 mod visual_identity_adjudication;
@@ -30,10 +36,14 @@ mod visual_observation_publication;
 
 use std::process::ExitCode;
 
-use launch_configuration::AdmittedPlatformPulseLaunchConfiguration;
-use lifecycle_observation_publication::PlatformPulseObservationPublisher;
-
 fn main() -> ExitCode {
+    if let Some(points) = std::env::args().find_map(|argument| {
+        argument
+            .strip_prefix("--worth-ui-native-phase7-world=")
+            .and_then(native_phase7_evidence::parse_control_points)
+    }) {
+        return run_native_phase7_world(&points);
+    }
     #[cfg(feature = "executable-world")]
     if let Some(class) = std::env::args().find_map(|argument| {
         argument
@@ -47,6 +57,10 @@ fn main() -> ExitCode {
     }
     if std::env::args_os().any(|argument| argument == "--worth-ui-native-phase6-world") {
         return run_native_phase6_world();
+    }
+    #[cfg(feature = "executable-world")]
+    if std::env::args_os().any(|argument| argument == "--worth-ui-native-phase8-world") {
+        return native_phase8_world::run();
     }
     #[cfg(feature = "executable-world")]
     if std::env::args_os().any(|argument| argument == "--worth-ui-native-phase3-world") {
@@ -72,60 +86,7 @@ fn main() -> ExitCode {
     if std::env::args_os().any(|argument| argument == "--worth-ui-native-phase-f-world") {
         return native_phase_f_world::run();
     }
-    run_application()
-}
-
-fn run_application() -> ExitCode {
-    let publisher = match PlatformPulseObservationPublisher::start() {
-        Ok(publisher) => publisher,
-        Err(denial) => {
-            eprintln!("WORTH UI platform pulse observation stream could not start: {denial:?}");
-            return ExitCode::FAILURE;
-        }
-    };
-    let launch = match AdmittedPlatformPulseLaunchConfiguration::from_process() {
-        Ok(launch) => launch,
-        Err(denial) => {
-            if let Err(publication) = publisher.launch_configuration_failure(&denial) {
-                eprintln!(
-                    "WORTH UI platform pulse launch denial could not be observed: {publication:?}"
-                );
-            }
-            eprintln!("WORTH UI platform pulse launch was denied: {denial:?}");
-            return ExitCode::from(2);
-        }
-    };
-    let options = eframe::NativeOptions {
-        viewport: eframe::egui::ViewportBuilder::default()
-            .with_inner_size([160.0, 96.0])
-            .with_min_inner_size([160.0, 96.0]),
-        renderer: eframe::Renderer::Wgpu,
-        ..Default::default()
-    };
-    let frame_publisher = publisher.clone();
-    let event_loop = eframe::run_native(
-        "WORTH UI Platform Pulse",
-        options,
-        Box::new(move |creation| {
-            Ok(Box::new(native_frame::PlatformPulseNativeFrame::new(
-                creation,
-                launch,
-                frame_publisher,
-            )))
-        }),
-    );
-    match event_loop {
-        Ok(()) => ExitCode::SUCCESS,
-        Err(error) => {
-            if let Err(publication) = publisher.native_event_loop_failure() {
-                eprintln!(
-                    "WORTH UI platform pulse event-loop failure could not be observed: {publication:?}"
-                );
-            }
-            eprintln!("WORTH UI platform pulse native event loop failed: {error}");
-            ExitCode::FAILURE
-        }
-    }
+    product_process::run()
 }
 
 #[cfg(feature = "executable-world")]
@@ -346,6 +307,34 @@ fn run_native_phase6_world() -> ExitCode {
         }
         outcome => {
             eprintln!("worth-ui-native-phase6 stopped: {outcome:?}");
+            ExitCode::from(3)
+        }
+    }
+}
+
+fn run_native_phase7_world(points: &[[u32; 2]]) -> ExitCode {
+    use worth_ui_native_platform::{
+        UiNativePlatformOutcome, UiNativePlatformProfile, UiNativeWindowSpec, WorthUiNativePlatform,
+    };
+    let profile = UiNativePlatformProfile::single_window(UiNativeWindowSpec::new(
+        "WORTH UI Platform Pulse Phase 7",
+        [160, 96],
+    ));
+    let Ok(platform) = WorthUiNativePlatform::prepare(profile) else {
+        return ExitCode::from(2);
+    };
+    let application = worth_ui_platform_pulse::PlatformPulseNativeSeedApplication::new()
+        .with_presented_source_capture();
+    match platform.run(application) {
+        UiNativePlatformOutcome::Closed(receipt) if receipt.terminal_census().is_zero() => {
+            let Some(evidence) = native_phase7_evidence::evidence(&receipt, points) else {
+                return ExitCode::from(3);
+            };
+            println!("{evidence}");
+            ExitCode::SUCCESS
+        }
+        outcome => {
+            eprintln!("worth-ui-native-phase7 stopped: {outcome:?}");
             ExitCode::from(3)
         }
     }

@@ -6,8 +6,12 @@ use crate::UiNativeWindowConfiguration;
 use super::UiNativeHostState;
 
 mod application_handler;
+mod application_readiness;
 mod callback_thread;
 mod cleanup;
+mod client_close;
+#[cfg(feature = "certification-support")]
+mod client_close_certification;
 mod close_request;
 mod completion_report;
 mod contract;
@@ -20,6 +24,7 @@ mod physical_clock;
 mod physical_progression;
 mod pointer_position;
 mod presentation_correlation;
+mod presentation_retry;
 mod qualified_surface_basis;
 mod readiness_progress;
 mod redraw;
@@ -36,21 +41,31 @@ mod window_port;
 use run::stop_before_callbacks;
 
 pub use cleanup::UiNativeEventLoopCleanup;
+#[cfg(feature = "certification-support")]
+pub use client_close_certification::{
+    certify_client_close_with_queued_readiness, UiNativeQueuedReadinessCloseCertification,
+};
 pub use contract::{
-    UiNativeClientAuthoredMountedInstanceObservation, UiNativeClientConditionalOutcome,
-    UiNativeClientDerivedStateLossClass, UiNativeClientDerivedStateReconstructionObservation,
+    UiNativeApplicationReadinessGrant, UiNativeApplicationReadinessOwnerCount,
+    UiNativeApplicationReadinessOwnerCountDenial, UiNativeClientAuthoredMountedInstanceObservation,
+    UiNativeClientConditionalOutcome, UiNativeClientDerivedStateLossClass,
+    UiNativeClientDerivedStateReconstructionObservation,
     UiNativeClientObservationIngressObservation, UiNativeClientPresentationAttribution,
     UiNativeClientPresentationMechanicIdentityObservation,
     UiNativeClientPresentationSemanticChange,
     UiNativeClientPresentationSemanticFrontierObservation,
     UiNativeClientPresentationSemanticSubscriberObservation,
     UiNativeClientPresentationTransitionKind, UiNativeClientPresentationTransitionObservation,
-    UiNativeClientResourceObservation, UiNativeClientShutdownObservation,
-    UiNativeClientTextPresentationWorkObservation, UiNativeEventLoopClient,
-    UiNativeEventLoopClientCleanup, UiNativeEventLoopClientClose, UiNativeEventLoopDirective,
-    UiNativeEventLoopRunDenial, UiNativeEventLoopRunReport, UiNativeEventLoopStopReport,
-    UiNativeObservationReadinessGrant, UiNativePhysicalProgressClass,
-    UiNativePhysicalProgressGrant, UiNativeReadinessGrant,
+    UiNativeClientResourceObservation, UiNativeClientShutdownAttemptDisposition,
+    UiNativeClientShutdownAttemptObservation, UiNativeClientShutdownObservation,
+    UiNativeClientTextPresentationWorkObservation, UiNativeClientVisualCoordinateOrientation,
+    UiNativeClientVisualCoordinateRounding, UiNativeClientVisualPixelColorSpace,
+    UiNativeClientVisualSnapshotInput, UiNativeClientVisualSnapshotObservation,
+    UiNativeClientVisualSnapshotRelation, UiNativeEventLoopClient, UiNativeEventLoopClientCleanup,
+    UiNativeEventLoopClientClose, UiNativeEventLoopDirective, UiNativeEventLoopRunDenial,
+    UiNativeEventLoopRunReport, UiNativeEventLoopShutdownOverlapObservation,
+    UiNativeEventLoopStopReport, UiNativeInputReachability, UiNativeObservationReadinessGrant,
+    UiNativePhysicalProgressClass, UiNativePhysicalProgressGrant, UiNativeReadinessGrant,
 };
 use physical_clock::UiNativePhysicalEventClock;
 pub use presentation_correlation::UiNativePhysicalPresentationCorrelation;
@@ -72,6 +87,7 @@ struct UiNativeEventLoopApplication<Client> {
     readiness_owner: super::UiNativeReadyOwner,
     physical_readiness_owner: super::UiNativeReadyOwner,
     input_readiness_owner: super::UiNativeReadyOwner,
+    application_readiness_owners: Box<[super::UiNativeReadyOwner]>,
     readiness_signals: u64,
     redraw_turns: u64,
     idle_wait_turns: u64,
@@ -83,6 +99,7 @@ struct UiNativeEventLoopApplication<Client> {
     port_crossings: u8,
     physical_clock: UiNativePhysicalEventClock,
     pointer_input: Option<Box<pointer_position::UiNativePointerInputPort>>,
+    pending_input_reachability: contract::UiNativeInputReachability,
     thread_posture: UiNativeEventLoopThreadPosture,
 }
 

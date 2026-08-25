@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 
 use super::{LivePlatformPulseProcess, PlatformPulseProcessLaunchFailure};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct SuccessfulPlatformPulseExit {
     status: ExitStatus,
     poll_count: u32,

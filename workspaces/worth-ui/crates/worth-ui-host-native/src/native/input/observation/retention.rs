@@ -56,7 +56,7 @@ impl UiNativeInputObservationState {
             .map(|(offset, payload)| {
                 let report = UiHostObservationReport::new(
                     UiHostObservationSequence::new(first_value + offset as u64),
-                    UiHostObservationTimeBasis::HostMonotonicTick(event_tick),
+                    UiHostObservationTimeBasis::HostMonotonicMillis(event_tick),
                     payload,
                 );
                 if report_requires_input_affinity(report.payload()) {

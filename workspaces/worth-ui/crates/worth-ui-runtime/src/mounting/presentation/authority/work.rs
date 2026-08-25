@@ -91,13 +91,15 @@ impl UiMountedPresentationLease {
     pub(crate) fn issue_delta(
         &self,
         input: UiMountedPresentationDeltaInput,
+        receipt_affinity: Option<worth_ui_host_contract::UiMountedNodeReceiptAffinity>,
     ) -> UiMountedPresentationWork {
         super::validation::validate_delta(&input);
         UiMountedPresentationWork {
             authority: Rc::clone(&self.seal),
             layout_owner: None,
             kind: UiMountedPresentationWorkKind::Delta(
-                UiMountedPresentationDelta::from_inert_mechanics(input),
+                UiMountedPresentationDelta::from_inert_mechanics(input)
+                    .with_successor_receipt_affinity(receipt_affinity),
             ),
         }
     }
@@ -119,13 +121,15 @@ impl UiMountedPresentationLease {
     pub(crate) fn issue_unchanged(
         &self,
         input: UiMountedPresentationUnchangedInput,
+        receipt_affinity: Option<worth_ui_host_contract::UiMountedNodeReceiptAffinity>,
     ) -> UiMountedPresentationWork {
         super::validation::validate_unchanged(&input);
         UiMountedPresentationWork {
             authority: Rc::clone(&self.seal),
             layout_owner: None,
             kind: UiMountedPresentationWorkKind::Unchanged(
-                UiMountedPresentationUnchanged::from_inert_mechanics(input),
+                UiMountedPresentationUnchanged::from_inert_mechanics(input)
+                    .with_successor_receipt_affinity(receipt_affinity),
             ),
         }
     }

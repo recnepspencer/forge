@@ -23,7 +23,8 @@ pub use batch::{
 };
 pub use drain::{
     UiHostObservationDrain, UiHostObservationDrainDenial, UiHostObservationRetention,
-    UiHostObservationRetentionDenial, UI_HOST_OBSERVATION_DRAIN_BATCH_LIMIT,
+    UiHostObservationRetentionDenial, UiHostObservationSessionRegistrationDenial,
+    UI_HOST_OBSERVATION_ACTIVE_SESSION_LIMIT, UI_HOST_OBSERVATION_DRAIN_BATCH_LIMIT,
     UI_HOST_OBSERVATION_DRAIN_BYTE_LIMIT, UI_HOST_OBSERVATION_DRAIN_REPORT_LIMIT,
 };
 pub use family::UiHostObservationFamily;

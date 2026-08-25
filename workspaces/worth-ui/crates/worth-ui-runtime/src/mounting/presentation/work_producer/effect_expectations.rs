@@ -31,7 +31,11 @@ impl UiMountedPresentationState {
                 {
                     effects.push(UiMountedEffectFamily::NativePaint);
                 }
-                if overlay_changed(self, predecessor, delta.auxiliary().is_some()) {
+                if overlay_changed(
+                    self,
+                    predecessor,
+                    delta.auxiliary().is_some() || !delta.nodes().is_empty(),
+                ) {
                     effects.push(UiMountedEffectFamily::IdentityOverlay);
                 }
                 effects
@@ -44,9 +48,9 @@ impl UiMountedPresentationState {
 fn overlay_changed(
     successor: &UiMountedPresentationState,
     predecessor: Option<&UiMountedPresentationState>,
-    auxiliary_changed: bool,
+    presentation_changed: bool,
 ) -> bool {
-    auxiliary_changed
+    presentation_changed
         && predecessor.is_some_and(|prior| {
             prior
                 .effects

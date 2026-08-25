@@ -138,9 +138,8 @@ quarantined, and denied ingress dispositions plus any drain denial.
 - Use `worth_ui_native_platform` only at the application composition root.
 - The headless host consumes the same inert presentation contract for testing
   and recording, but it is not a substitute for native pixel evidence.
-- Query, intent, text, capture, multi-window, and complete Pulse parity join the
-  same platform in later milestone phases; Phase 2 does not expose them as
-  finished native-host capabilities.
+- Query, intent, text, capture, and the complete Pulse journey use this native
+  platform. Later multi-window work extends the same owner.
 
 ## Inspection And Debugging
 

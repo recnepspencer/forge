@@ -3,7 +3,7 @@ use worth_ui_host_contract::{
     UiHostObservationTimeBasis,
 };
 
-use super::UiNativePointerButtonObservation;
+use super::{UiNativePointerButtonObservation, UiNativeScrollDeltaObservation};
 
 #[derive(Clone, Debug, Default)]
 pub(super) struct UiNativeInputObservationEvidence {
@@ -13,6 +13,8 @@ pub(super) struct UiNativeInputObservationEvidence {
     last_retained_sequence: Option<u64>,
     family_counts: [u64; 11],
     last_pointer_button: Option<UiNativePointerButtonObservation>,
+    last_vertical_scroll: Option<UiNativeScrollDeltaObservation>,
+    last_horizontal_scroll: Option<UiNativeScrollDeltaObservation>,
     profile_transition_count: u64,
 }
 
@@ -31,6 +33,14 @@ impl UiNativeInputObservationEvidence {
             }
             if let Some(pointer_button) = pointer_button_observation(report) {
                 self.last_pointer_button = Some(pointer_button);
+            }
+            if let Some(scroll) = scroll_delta_observation(report) {
+                if scroll.y_subpixels() != 0 {
+                    self.last_vertical_scroll = Some(scroll);
+                }
+                if scroll.x_subpixels() != 0 {
+                    self.last_horizontal_scroll = Some(scroll);
+                }
             }
         }
     }
@@ -63,6 +73,14 @@ impl UiNativeInputObservationEvidence {
         self.last_pointer_button
     }
 
+    pub(super) fn last_vertical_scroll(&self) -> Option<UiNativeScrollDeltaObservation> {
+        self.last_vertical_scroll
+    }
+
+    pub(super) fn last_horizontal_scroll(&self) -> Option<UiNativeScrollDeltaObservation> {
+        self.last_horizontal_scroll
+    }
+
     pub(super) fn profile_transition_count(&self) -> u64 {
         self.profile_transition_count
     }
@@ -90,12 +108,33 @@ fn pointer_button_observation(
     let UiHostObservationPayload::PointerButton { position, .. } = report.payload() else {
         return None;
     };
-    let UiHostObservationTimeBasis::HostMonotonicTick(event_tick) = report.time_basis() else {
+    let UiHostObservationTimeBasis::HostMonotonicMillis(event_tick) = report.time_basis() else {
         return None;
     };
     Some(UiNativePointerButtonObservation::reported(
         report.sequence().value(),
         event_tick,
         *position,
+    ))
+}
+
+fn scroll_delta_observation(
+    report: &UiHostObservationReport,
+) -> Option<UiNativeScrollDeltaObservation> {
+    let UiHostObservationPayload::ScrollDelta {
+        x_subpixels,
+        y_subpixels,
+    } = report.payload()
+    else {
+        return None;
+    };
+    let UiHostObservationTimeBasis::HostMonotonicMillis(event_tick) = report.time_basis() else {
+        return None;
+    };
+    Some(UiNativeScrollDeltaObservation::reported(
+        report.sequence().value(),
+        event_tick,
+        *x_subpixels,
+        *y_subpixels,
     ))
 }

@@ -10,6 +10,21 @@ use worth_ui_host_contract::{
 const HOST_SESSION: u64 = 73;
 
 #[test]
+fn presentation_requires_the_explicit_session_open_edge() {
+    let mut state = UiNativeInputObservationState::new();
+    state.install_initial_profile(1.0, [800, 600]);
+
+    assert!(!state.record_completed_presentation(protocol(), HOST_SESSION, basis(1)));
+    assert_eq!(state.report().last_completed_presentation(), None);
+    assert_eq!(
+        state.report().terminal_stop(),
+        Some(UiNativeInputObservationStop::Retention(
+            worth_ui_host_contract::UiHostObservationRetentionDenial::InactiveSession,
+        ))
+    );
+}
+
+#[test]
 fn event_time_is_independent_from_observation_sequence() {
     let mut state = presented_state();
     state.observe_window_event_at(
@@ -26,7 +41,7 @@ fn event_time_is_independent_from_observation_sequence() {
     assert_eq!(report.sequence().value(), 1);
     assert_eq!(
         report.time_basis(),
-        UiHostObservationTimeBasis::HostMonotonicTick(77)
+        UiHostObservationTimeBasis::HostMonotonicMillis(77)
     );
     assert_eq!(state.report().retained_batch_count(), 1);
     assert_eq!(state.report().retained_event_count(), 1);
@@ -46,15 +61,15 @@ fn resize_observation_keeps_the_resize_event_tick_after_completion() {
     assert!(batches[0]
         .reports()
         .iter()
-        .all(|report| report.time_basis() == UiHostObservationTimeBasis::HostMonotonicTick(41)));
+        .all(|report| report.time_basis() == UiHostObservationTimeBasis::HostMonotonicMillis(41)));
     assert_eq!(state.report().profile_transition_count(), 1);
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P6-PROFILE-ORDER-01\":1}}");
 }
 
 #[test]
 fn pending_successor_contexts_are_not_dropped_by_another_completion() {
     let mut state = UiNativeInputObservationState::new();
     state.install_initial_profile(1.0, [800, 600]);
+    state.register_session(HOST_SESSION).unwrap();
     let first_binding = UiSurfaceBindingGeneration::mint_unbound().unwrap();
     let second_binding = UiSurfaceBindingGeneration::mint_unbound().unwrap();
     assert!(state.remember_pending_presentation(protocol(), HOST_SESSION, first_binding, 91,));
@@ -99,7 +114,7 @@ fn button_event_uses_the_event_time_position_witness() {
     ));
     assert_eq!(
         batches[0].reports()[0].time_basis(),
-        UiHostObservationTimeBasis::HostMonotonicTick(19)
+        UiHostObservationTimeBasis::HostMonotonicMillis(19)
     );
     let button = state
         .report()
@@ -109,7 +124,6 @@ fn button_event_uses_the_event_time_position_witness() {
     assert_eq!(button.event_tick(), 19);
     assert_eq!(button.x_subpixels(), 12_000);
     assert_eq!(button.y_subpixels(), 24_000);
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P6-POINTER-TIME-01\":1}}");
 }
 
 #[test]
@@ -175,6 +189,7 @@ fn cursor_left_epoch_exhaustion_cannot_mask_missing_presentation_basis() {
 fn presented_state() -> UiNativeInputObservationState {
     let mut state = UiNativeInputObservationState::new();
     state.install_initial_profile(1.0, [800, 600]);
+    state.register_session(HOST_SESSION).unwrap();
     assert!(state.record_completed_presentation(protocol(), HOST_SESSION, basis(1)));
     state
 }

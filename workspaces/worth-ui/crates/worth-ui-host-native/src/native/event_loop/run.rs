@@ -13,20 +13,42 @@ use crate::native::UiNativeHostState;
 impl WorthUiNativeEventLoop {
     pub fn run<Client: UiNativeEventLoopClient>(
         self,
-        client: Client,
+        mut client: Client,
     ) -> Result<UiNativeEventLoopRunReport, UiNativeEventLoopStopReport> {
-        let preflight = match run_preflight::prepare(&self.state, self.thread_posture) {
-            Ok(preflight) => preflight,
-            Err(cause) => return Err(stop_before_callbacks(self.state, client, cause)),
-        };
+        let application_owner_count = client.application_readiness_owner_count();
+        let preflight =
+            match run_preflight::prepare(&self.state, self.thread_posture, application_owner_count)
+            {
+                Ok(preflight) => preflight,
+                Err(cause) => return Err(stop_before_callbacks(self.state, client, cause)),
+            };
         let run_preflight::UiNativeEventLoopRunPreflight {
             event_loop,
             readiness,
             readiness_owner,
             physical_readiness_owner,
             input_readiness_owner,
+            application_readiness_owners,
+            application_readiness_ports,
             loop_resources,
         } = preflight;
+        if client
+            .install_application_readiness(application_readiness_ports)
+            .is_err()
+        {
+            let mut expected = vec![
+                readiness_owner,
+                physical_readiness_owner,
+                input_readiness_owner,
+            ];
+            expected.extend(application_readiness_owners.iter().copied());
+            run_preflight::cancel(&self.state, &readiness, &expected, loop_resources);
+            return Err(stop_before_callbacks(
+                self.state,
+                client,
+                UiNativeEventLoopRunDenial::ApplicationDriver,
+            ));
+        }
         event_loop.set_control_flow(ControlFlow::Wait);
         let mut application = UiNativeEventLoopApplication {
             shared: self.state,
@@ -37,6 +59,7 @@ impl WorthUiNativeEventLoop {
             readiness_owner,
             physical_readiness_owner,
             input_readiness_owner,
+            application_readiness_owners,
             readiness_signals: 0,
             redraw_turns: 0,
             idle_wait_turns: 0,
@@ -48,6 +71,7 @@ impl WorthUiNativeEventLoop {
             port_crossings: 0,
             physical_clock: super::physical_clock::UiNativePhysicalEventClock::new(),
             pointer_input: None,
+            pending_input_reachability: Default::default(),
             thread_posture: self.thread_posture,
         };
         if event_loop.run_app(&mut application).is_err() {
@@ -66,10 +90,16 @@ pub(super) fn stop_before_callbacks<Client: UiNativeEventLoopClient>(
 ) -> UiNativeEventLoopStopReport {
     let peak_census = state.borrow().compiler_total_peak();
     let peak_text_pins = state.borrow().peak_text_pins.clone();
-    let input_observations = state.borrow().lifecycle_protocol.report();
-    let effect_posture = state.borrow().effect_posture;
-    let (client_cleanup, _) = client.close().into_parts();
-    let client_cleanup_complete = client_cleanup.is_none();
+    let input_observations = state.borrow().lifecycle.input_report();
+    let effect_posture = state.borrow().lifecycle.effect_posture();
+    let (client_cleanup, client_shutdown) = client.close().into_parts();
+    let shutdown_overlap =
+        super::UiNativeEventLoopShutdownOverlapObservation::observed(0, client_shutdown.as_ref());
+    let client_closed = client_cleanup.is_none();
+    let client_resources_complete = client_shutdown
+        .as_ref()
+        .is_none_or(super::UiNativeClientShutdownObservation::terminal_resources_complete);
+    let client_cleanup_complete = client_closed && client_resources_complete;
     let terminal_census = state.borrow_mut().close();
     let cleanup = UiNativeEventLoopCleanup::retain(
         Rc::clone(&state),
@@ -79,7 +109,8 @@ pub(super) fn stop_before_callbacks<Client: UiNativeEventLoopClient>(
     );
     UiNativeEventLoopStopReport {
         cause: if super::terminal_cleanup::terminal_cleanup_complete(
-            client_cleanup_complete,
+            client_closed,
+            client_resources_complete,
             true,
             &terminal_census,
         ) {
@@ -94,5 +125,6 @@ pub(super) fn stop_before_callbacks<Client: UiNativeEventLoopClient>(
         cleanup,
         peak_text_pins,
         input_observations,
+        shutdown_overlap,
     }
 }

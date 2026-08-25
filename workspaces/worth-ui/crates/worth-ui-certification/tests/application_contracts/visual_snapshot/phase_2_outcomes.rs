@@ -174,6 +174,15 @@ fn terminal_host_outcomes_remain_distinct() {
         UiVisualSnapshotOutcome::Indeterminate(UiVisualSnapshotIndeterminate::CaptureAffinity)
     ));
 
+    let completion = required_outcome(
+        "visual-readback-completion-indeterminate",
+        ScriptedPresentationHost::push_visual_capture_readback_completion_indeterminate,
+    );
+    assert!(matches!(
+        completion,
+        UiVisualSnapshotOutcome::Indeterminate(UiVisualSnapshotIndeterminate::HostCompletion)
+    ));
+
     let unsupported = required_outcome(
         "visual-host-unsupported",
         ScriptedPresentationHost::push_visual_capture_unsupported,

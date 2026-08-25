@@ -6,7 +6,7 @@ use worth_ui_host_contract::{
 
 use crate::native::{
     host_state::{UiNativePendingTextContinuation, UiNativePendingTextPresentation},
-    UiNativeEffectPosture, UiNativeHostState,
+    UiNativeHostState,
 };
 
 pub(super) enum UiMountedTextWorkOutcome {
@@ -148,7 +148,7 @@ pub(super) fn complete(
         worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedBeforeEffects(_)
         | worth_ui_host_contract::UiGlyphRasterTransactionOutcome::RejectedAfterRasterization(_)
         | worth_ui_host_contract::UiGlyphRasterTransactionOutcome::EffectsIndeterminate(_) => {
-            state.effect_posture = UiNativeEffectPosture::PresentationIndeterminate;
+            state.lifecycle.record_presentation_indeterminate();
             UiHostSurfaceInFlightCompletion::PresentationIndeterminate
         }
     }

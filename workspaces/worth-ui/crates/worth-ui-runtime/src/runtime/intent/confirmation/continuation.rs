@@ -239,7 +239,7 @@ fn validate_challenge(
         return Some(UiIntentConfirmationStopReason::ConfirmationRouteChanged);
     }
     let observed = match source.time_basis() {
-        worth_ui_host_contract::UiHostObservationTimeBasis::HostMonotonicTick(tick) => tick,
+        worth_ui_host_contract::UiHostObservationTimeBasis::HostMonotonicMillis(millis) => millis,
         worth_ui_host_contract::UiHostObservationTimeBasis::HostWallClockMicros(_) => {
             return Some(UiIntentConfirmationStopReason::MonotonicTimeRequired {
                 observed: UiIntentConfirmationTimeBasisKind::HostWallClock,
@@ -251,16 +251,16 @@ fn validate_challenge(
             })
         }
     };
-    if observed < challenge.issued_at {
+    if observed < challenge.issued_at_millis {
         return Some(UiIntentConfirmationStopReason::MonotonicTimeRegressed {
-            issued_at: challenge.issued_at,
-            observed,
+            issued_at_millis: challenge.issued_at_millis,
+            observed_millis: observed,
         });
     }
-    if observed > challenge.expires_at {
+    if observed > challenge.expires_at_millis {
         return Some(UiIntentConfirmationStopReason::Expired {
-            expires_at: challenge.expires_at,
-            observed,
+            expires_at_millis: challenge.expires_at_millis,
+            observed_millis: observed,
         });
     }
     let current_frame = context.mounted.view().current_frame();

@@ -36,9 +36,6 @@ fn live_layout_pins_cross_runtime_native_signal_and_release_at_last_owner() {
     assert_eq!(evidence["query_close_complete"], true);
     assert!(evidence["closed_query_resources"].as_u64().unwrap() > 0);
     assert_eq!(evidence["terminal_zero"], true);
-    println!("WORTH_UI_LEDGER_OBSERVATION={evidence}");
-    println!("WORTH_UI_LEDGER_CASES={{\"P5-ATLAS-PINNING-01\":[\"shared-layout-pins\",\"runtime-transaction-owner\",\"native-signal-settlement\",\"alpha-color-event-loop-progression\",\"last-owner-release\",\"preclose-pin-transition\",\"terminal-census\"]}}");
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P5-ATLAS-PINNING-01\":3}}");
 }
 
 fn assert_exact_layout_key_transition(evidence: &serde_json::Value) {

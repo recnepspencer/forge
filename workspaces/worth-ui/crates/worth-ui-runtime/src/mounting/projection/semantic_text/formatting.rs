@@ -35,6 +35,8 @@ pub(in crate::mounting::projection) enum UiMountedSemanticTextRowFormatting<'a> 
 
 pub(in crate::mounting::projection) fn lower_semantic_text_formatting(
     plan: super::super::super::UiMountedPlanProjectionSource<'_>,
+    theme_values: &crate::mounting::UiMountedThemeValueSource,
+    graph_node: crate::graph::UiGraphNodeIdentity,
     plan_index: Option<u32>,
     input: Option<&crate::mounting::UiMountedSemanticTextContent>,
     predecessor: Option<&super::UiMountedSemanticTextSeed>,
@@ -44,7 +46,8 @@ pub(in crate::mounting::projection) fn lower_semantic_text_formatting(
             return lower_directive(directive).map(Some);
         }
     }
-    if let Some(predecessor) = predecessor {
+    if let Some(predecessor) = predecessor.filter(|_| !theme_values.changes_graph_node(graph_node))
+    {
         return Ok(Some(predecessor.formatting().clone()));
     }
     let Some(plan_index) = plan_index else {
@@ -63,7 +66,7 @@ pub(in crate::mounting::projection) fn lower_semantic_text_formatting(
         return Ok(None);
     };
     let default = UiMountedSemanticTextDefault {
-        color: resolve_color(plan, contract.theme_token())?,
+        color: resolve_color(plan, theme_values, contract.theme_token())?,
         style: contract.style().cloned(),
         paint_identity: UiMountedTextPaintSpanIdentity::from_runtime_mounting(
             contract.default_paint_identity(),
@@ -75,7 +78,7 @@ pub(in crate::mounting::projection) fn lower_semantic_text_formatting(
         .map(|span| {
             Ok(UiMountedSemanticTextResolvedSpan {
                 original_range: span.original_range(),
-                color: resolve_color(plan, span.foreground_token())?,
+                color: resolve_color(plan, theme_values, span.foreground_token())?,
                 style: span.style().clone(),
                 paint_identity: UiMountedTextPaintSpanIdentity::from_runtime_mounting(
                     span.paint_identity(),
@@ -135,8 +138,18 @@ fn resolve_directive_color(
 
 fn resolve_color(
     plan: super::super::super::UiMountedPlanProjectionSource<'_>,
+    theme_values: &crate::mounting::UiMountedThemeValueSource,
     token_id: &crate::capability::ThemeTokenId,
 ) -> Result<UiMountedRgba8, UiMountedProjectionDenial> {
+    if let Some(crate::capability::ThemeTokenValue::Color(color)) =
+        theme_values.current_value(token_id)
+    {
+        return super::super::static_paint::parse_rgba(color.as_str())
+            .map_err(|_| UiMountedProjectionDenial::InvalidSemanticTextColor);
+    }
+    if !theme_values.uses_frozen_plan() {
+        return Err(UiMountedProjectionDenial::MissingSemanticTextToken);
+    }
     let Some((_token_plan_index, token_meaning)) = plan
         .semantic_text_token(token_id)
         .map_err(|_| UiMountedProjectionDenial::AmbiguousSemanticTextToken)?

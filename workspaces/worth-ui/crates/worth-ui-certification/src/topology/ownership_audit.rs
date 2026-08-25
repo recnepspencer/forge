@@ -98,7 +98,8 @@ pub fn audit_non_dsl_crates_do_not_reach_dsl_internals(
         "crates/worth-ui-inspection/src",
         "crates/worth-ui-query-binding/src",
         "crates/worth-ui-host-contract/src",
-        "crates/worth-ui-host-egui/src",
+        "crates/worth-ui-host-native/src",
+        "crates/worth-ui-host-headless/src",
         "crates/worth-ui-certification/src",
     ];
     let mut violations = Vec::new();

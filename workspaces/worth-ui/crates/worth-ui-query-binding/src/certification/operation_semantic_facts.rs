@@ -45,7 +45,7 @@ impl WorthUiInstalledQueryTestFixture {
             conditional_node_count: snapshot_semantics.conditional_nodes.len(),
             semantic_read_count: snapshot_semantics
                 .graph_reads
-                .roles()
+                .domain_roles()
                 .iter()
                 .map(|role| role.semantic_reads.len())
                 .sum(),

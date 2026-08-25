@@ -40,6 +40,7 @@ pub(in crate::intent) struct AdmissionWorld {
     facts: OperabilityFacts,
     targets: Box<[AdmissionTarget]>,
     next_pointer: u64,
+    next_sequence: u64,
     target_point: [i64; 2],
 }
 
@@ -47,7 +48,6 @@ pub(in crate::intent) struct AdmissionWorld {
 struct AdmissionTarget {
     presentation: UiHostObservationPresentationBasis,
     mounted_instance: UiMountedInstanceIdentity,
-    next_sequence: u64,
 }
 
 impl AdmissionWorld {
@@ -135,7 +135,6 @@ impl AdmissionWorld {
             .map(|(binding, mounted_instance)| AdmissionTarget {
                 presentation: presentation(&session, publication.frame(), binding),
                 mounted_instance,
-                next_sequence: 1,
             })
             .collect::<Vec<_>>()
             .into_boxed_slice();
@@ -144,6 +143,7 @@ impl AdmissionWorld {
             facts,
             targets,
             next_pointer: 1,
+            next_sequence: 1,
             target_point,
         }
     }
@@ -290,13 +290,12 @@ impl AdmissionWorld {
         target: usize,
         payload: UiHostObservationPayload,
     ) -> UiHostInteractionIngressOutcome {
-        let target = &mut self.targets[target];
-        let sequence = UiHostObservationSequence::new(target.next_sequence);
-        target.next_sequence += 1;
-        let presentation = target.presentation;
+        let presentation = self.targets[target].presentation;
+        let sequence = UiHostObservationSequence::new(self.next_sequence);
+        self.next_sequence += 1;
         let report = UiHostObservationReport::new(
             sequence,
-            UiHostObservationTimeBasis::HostMonotonicTick(sequence.value()),
+            UiHostObservationTimeBasis::HostMonotonicMillis(sequence.value()),
             payload,
         );
         let batch = UiHostObservationBatch::new(UiHostObservationBatchInput {

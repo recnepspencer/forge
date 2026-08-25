@@ -18,9 +18,9 @@ pub use assembly::{
 pub use identity::{
     UiHostPresentationLineageIdentity, UiHostSurfaceIdentity, UiHostSurfacePresentationMode,
     UiMountIncarnation, UiMountedContentGeneration, UiMountedContractIdentityExhaustion,
-    UiMountedFrameIdentity, UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity,
-    UiMountedNodeReceiptIssuer, UiMountedPresentationAttemptIdentity, UiSemanticSurfaceIdentity,
-    UiSurfaceBindingGeneration,
+    UiMountedFrameIdentity, UiMountedInstanceIdentity, UiMountedNodeReceiptAffinity,
+    UiMountedNodeReceiptIdentity, UiMountedNodeReceiptIssuer, UiMountedPresentationAttemptIdentity,
+    UiSemanticSurfaceIdentity, UiSurfaceBindingGeneration,
 };
 pub use presentation::{
     UiHostPresentationCompletionToken, UiHostPresentationProgressClass,
@@ -41,11 +41,11 @@ pub use presentation_work::{
     UiMountedPresentationAuxiliaryState, UiMountedPresentationDelta,
     UiMountedPresentationDeltaInput, UiMountedPresentationInitial,
     UiMountedPresentationInitialInput, UiMountedPresentationNodeChange,
-    UiMountedPresentationNodePaint, UiMountedPresentationNodeState,
-    UiMountedPresentationNodeStateInput, UiMountedPresentationReconstruction,
-    UiMountedPresentationReconstructionDenial, UiMountedPresentationReconstructionInput,
-    UiMountedPresentationUnchanged, UiMountedPresentationUnchangedInput,
-    UiMountedPresentationWorkView,
+    UiMountedPresentationNodeHitTest, UiMountedPresentationNodePaint,
+    UiMountedPresentationNodeState, UiMountedPresentationNodeStateInput,
+    UiMountedPresentationReconstruction, UiMountedPresentationReconstructionDenial,
+    UiMountedPresentationReconstructionInput, UiMountedPresentationUnchanged,
+    UiMountedPresentationUnchangedInput, UiMountedPresentationWorkView,
 };
 pub use protocol::{
     UiHostMeasurementSchemaVersion, UiHostObservationSchemaVersion, UiHostProtocolAgreement,

@@ -117,6 +117,13 @@ impl<T> UiPersistentRankedSequence<T> {
             super::test_observation::observes(std::ptr::from_ref(self).cast()),
         )
     }
+
+    pub(crate) fn retained_structural_bytes(&self) -> Option<usize> {
+        let bytes_per_entry = std::mem::size_of::<Node<T>>()
+            .checked_add(std::mem::size_of::<T>())?
+            .checked_add(std::mem::size_of::<usize>())?;
+        self.len().checked_mul(bytes_per_entry)
+    }
 }
 
 fn insert<T>(

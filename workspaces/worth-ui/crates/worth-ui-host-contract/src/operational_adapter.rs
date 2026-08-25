@@ -30,6 +30,17 @@ pub trait WorthUiHostMechanicsAdapter: crate::WorthUiMeasurementHostAdapter {
 
     fn mechanical_capability_report(&self) -> crate::WorthUiHostCapabilityReport;
 
+    /// Admit one concrete runtime host session before any session effects.
+    ///
+    /// Denial must leave no adapter-owned session state. Success remains live
+    /// until `release_mechanical_host_session` terminalizes that identity.
+    fn register_mechanical_host_session(
+        &self,
+        _host_session_identity: u64,
+    ) -> Result<(), crate::UiHostObservationSessionRegistrationDenial> {
+        Ok(())
+    }
+
     fn mechanical_measurement_environment_report(
         &self,
     ) -> crate::UiHostMeasurementEnvironmentReport {

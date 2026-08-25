@@ -98,6 +98,9 @@ impl UiRegionProjection {
         if fragments.is_empty() {
             return Ok(());
         }
+        if record.opacity() == super::UiVisibleOpacity::Unsupported {
+            return Err(worth_ui_inspection::UiVisualRegionCompleteness::Unsupported);
+        }
         if self.intersections.len().saturating_add(fragments.len())
             > usize::from(input.budget.maximum_results())
         {

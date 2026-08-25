@@ -22,7 +22,6 @@ pub(crate) enum UiNativePointerCoordinateDenial {
 pub(crate) struct UiNativePointerState {
     capture_epoch: u64,
     pressed: [bool; 5],
-    position: Option<UiHostSurfacePosition>,
 }
 
 impl UiNativePointerState {
@@ -30,20 +29,7 @@ impl UiNativePointerState {
         Self {
             capture_epoch: 1,
             pressed: [false; 5],
-            position: None,
         }
-    }
-
-    pub(crate) fn record_position(&mut self, position: UiHostSurfacePosition) {
-        self.position = Some(position);
-    }
-
-    pub(crate) fn invalidate_position(&mut self) {
-        self.position = None;
-    }
-
-    pub(crate) fn position(&self) -> Option<UiHostSurfacePosition> {
-        self.position
     }
 
     pub(crate) fn set_pressed(&mut self, button: UiHostPointerButton, pressed: bool) {
@@ -77,7 +63,6 @@ impl UiNativePointerState {
     pub(crate) fn end_capture(&mut self) -> Result<(), ()> {
         self.capture_epoch = self.capture_epoch.checked_add(1).ok_or(())?;
         self.pressed = [false; 5];
-        self.position = None;
         Ok(())
     }
 
@@ -138,6 +123,17 @@ pub(crate) fn logical_delta(
     Ok((
         canonical_subpixels(delta.x / scale_factor)?,
         canonical_subpixels(delta.y / scale_factor)?,
+    ))
+}
+
+pub(crate) fn logical_line_delta(
+    x_lines: f32,
+    y_lines: f32,
+    logical_units_per_line: f64,
+) -> Result<(i64, i64), UiNativePointerCoordinateDenial> {
+    Ok((
+        canonical_subpixels(f64::from(x_lines) * logical_units_per_line)?,
+        canonical_subpixels(f64::from(y_lines) * logical_units_per_line)?,
     ))
 }
 

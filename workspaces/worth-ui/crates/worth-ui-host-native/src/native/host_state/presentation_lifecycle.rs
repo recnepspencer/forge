@@ -27,6 +27,13 @@ impl UiNativeHostState {
             return UiNativePresentationPhysicalProgress::NoProgress;
         };
         let signal_settlement = self.physical_signal.reconcile(polled.observation);
-        self.settle_presentation_signal(identity, polled.ready, signal_settlement)
+        let progress = self.settle_presentation_signal(identity, polled.ready, signal_settlement);
+        if let Some(device) = self.device.as_mut() {
+            let _ = crate::native::lifecycle::collect_settled_device_generations(
+                device,
+                &mut self.resources,
+            );
+        }
+        progress
     }
 }

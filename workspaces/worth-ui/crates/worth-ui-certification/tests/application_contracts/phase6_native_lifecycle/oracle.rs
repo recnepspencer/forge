@@ -28,7 +28,6 @@ pub(super) enum Event {
     TextWithoutRecipient,
     TextWithStaleRecipient,
     CompletePresentation,
-    Close,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -98,7 +97,6 @@ pub(super) const EVENTS: &[Event] = &[
     Event::TextWithoutRecipient,
     Event::TextWithStaleRecipient,
     Event::CompletePresentation,
-    Event::Close,
 ];
 
 pub(super) fn expected(state: State, event: Event) -> Observation {
@@ -209,23 +207,6 @@ pub(super) fn expected(state: State, event: Event) -> Observation {
         | (State::Presented, Event::CompletePresentation) => {
             (State::Presented, Effect::PresentationCompleted, 0, None)
         }
-        (State::BeforeFirstPresentation, Event::Close) | (State::Closed, Event::Close) => {
-            (State::Closed, Effect::Closed, 0, None)
-        }
-        (State::Presented, Event::Close)
-        | (State::SuccessorInFlight { .. }, Event::Close)
-        | (State::ProfileTransition { .. }, Event::Close) => (
-            State::Closing,
-            Effect::CloseDeferred,
-            0,
-            Some(Action::DrainRetained),
-        ),
-        (State::Closing, Event::Close) => (
-            State::Closing,
-            Effect::CloseDeferred,
-            0,
-            Some(Action::DrainRetained),
-        ),
         _ => (state, Effect::NoOp, 0, None),
     };
     Observation {

@@ -37,6 +37,8 @@ pub(crate) struct UiNativeRetainedDrawList {
     damage: UiNativeDamageIndex<UiMountedPaintCommandIdentity>,
     glyph_runs:
         HashMap<UiMountedPaintCommandIdentity, Box<[worth_ui_host_contract::UiGlyphRunView]>>,
+    regions: super::retained_regions::UiNativeRetainedRegions,
+    identity_overlay: super::identity_overlay::UiNativeRetainedIdentityOverlay,
     last_paint_attribution: Option<(usize, UiNativeRetainedPresentationAttribution)>,
 }
 
@@ -53,6 +55,7 @@ pub(crate) struct UiNativeRetainedReplayPlan {
     pub(super) baseline_rgba8: [u8; 4],
     pub(super) regions: Box<[UiNativeRetainedReplayRegion]>,
     pub(super) counters: UiNativeRetainedMutationCounters,
+    pub(super) identity_overlay_effect: bool,
 }
 
 #[derive(Debug, PartialEq)]
@@ -118,11 +121,35 @@ impl UiNativeRetainedDrawList {
             .collect()
     }
 
+    pub(crate) fn realized_regions(
+        &self,
+    ) -> Option<Vec<worth_ui_host_contract::UiHostRealizedRegion>> {
+        self.regions.realized(self.order.ordered())
+    }
+
+    pub(super) fn identity_overlay_operations(
+        &self,
+        basis: super::raster::UiNativeRasterBasis,
+    ) -> Result<
+        Vec<super::UiNativeRasterOperation>,
+        worth_ui_host_contract::UiHostSurfacePresentationDenial,
+    > {
+        self.identity_overlay.raster_operations(basis)
+    }
+
+    pub(crate) const fn identity_overlay_active(&self) -> bool {
+        self.identity_overlay.is_active()
+    }
+
     pub(super) fn top_paint_attribution(
         &self,
     ) -> Option<(usize, UiNativeRetainedPresentationAttribution)> {
         self.current_top_paint_attribution()
             .or(self.last_paint_attribution)
+            .map(|(ordinal, mut attribution)| {
+                attribution.node_receipt = self.regions.current_receipt(attribution.node_receipt);
+                (ordinal, attribution)
+            })
     }
 
     fn current_top_paint_attribution(

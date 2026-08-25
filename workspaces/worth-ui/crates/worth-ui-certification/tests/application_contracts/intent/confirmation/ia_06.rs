@@ -28,8 +28,8 @@ fn exact_challenge_reenters_admission_once_without_execution() {
 
     world.publish_successor();
     let route = world.confirmation_route(
-        monotonic(issued.pending.expires_at_tick() - 1),
-        monotonic(issued.pending.expires_at_tick()),
+        monotonic(issued.pending.expires_at_millis() - 1),
+        monotonic(issued.pending.expires_at_millis()),
     );
     let ready = match world
         .interaction
@@ -119,8 +119,8 @@ fn same_frame_ambiguous_and_expired_continuations_stop_exactly() {
     let mut same_frame = ConfirmationWorld::launch();
     let issued = same_frame.issue();
     let route = same_frame.confirmation_route(
-        monotonic(issued.pending.expires_at_tick() - 1),
-        monotonic(issued.pending.expires_at_tick()),
+        monotonic(issued.pending.expires_at_millis() - 1),
+        monotonic(issued.pending.expires_at_millis()),
     );
     assert_stop(
         same_frame
@@ -157,16 +157,17 @@ fn same_frame_ambiguous_and_expired_continuations_stop_exactly() {
     let mut expired = ConfirmationWorld::launch();
     let issued = expired.issue();
     expired.publish_successor();
-    let observed = issued.pending.expires_at_tick() + 1;
-    let route = expired.confirmation_route(monotonic(observed - 1), monotonic(observed));
+    let observed_millis = issued.pending.expires_at_millis() + 1;
+    let route =
+        expired.confirmation_route(monotonic(observed_millis - 1), monotonic(observed_millis));
     assert_stop(
         expired
             .interaction
             .session
             .continue_intent_confirmation(route),
         UiIntentConfirmationStopReason::Expired {
-            expires_at: issued.pending.expires_at_tick(),
-            observed,
+            expires_at_millis: issued.pending.expires_at_millis(),
+            observed_millis,
         },
     );
     assert_eq!(
@@ -363,8 +364,8 @@ fn non_monotonic_confirmation_and_shutdown_retire_authority() {
     assert_eq!(receipt.intent_confirmation().pending_after(), 0);
 }
 
-fn monotonic(tick: u64) -> UiHostObservationTimeBasis {
-    UiHostObservationTimeBasis::HostMonotonicTick(tick)
+fn monotonic(millis: u64) -> UiHostObservationTimeBasis {
+    UiHostObservationTimeBasis::HostMonotonicMillis(millis)
 }
 
 fn assert_stop(

@@ -65,9 +65,16 @@ impl UiMountedDeltaScope {
             .state
             .try_projection_instances_for_graph_nodes(&content_graph_nodes)
             .ok_or(UiMountedProjectionDenial::CostCounterOverflow)?;
+        let theme_affected = input
+            .state
+            .try_projection_instances_for_graph_nodes(
+                input.lowering.theme_values.changed_graph_nodes(),
+            )
+            .ok_or(UiMountedProjectionDenial::CostCounterOverflow)?;
         let mut changed = input.changes.changed_instances().collect::<Vec<_>>();
         changed.extend_from_slice(allocation_affected.instances());
         changed.extend_from_slice(content_affected.instances());
+        changed.extend_from_slice(theme_affected.instances());
         changed.sort();
         changed.dedup();
         let initial_index_entries = input
@@ -75,6 +82,7 @@ impl UiMountedDeltaScope {
             .journal_entries_touched()
             .checked_add(allocation_affected.index_entries_touched())
             .and_then(|count| count.checked_add(content_affected.index_entries_touched()))
+            .and_then(|count| count.checked_add(theme_affected.index_entries_touched()))
             .ok_or(UiMountedProjectionDenial::CostCounterOverflow)?;
         Ok(Self {
             changed,
@@ -84,7 +92,8 @@ impl UiMountedDeltaScope {
             declared_semantic_changed: input.changes.changed_instances().next().is_some()
                 || input.changes.retired_instances().next().is_some()
                 || input.changes.order_changed()
-                || !input.lowering.semantic_content.is_empty(),
+                || !input.lowering.semantic_content.is_empty()
+                || !input.lowering.theme_values.changed_graph_nodes().is_empty(),
             allocation_delta_observed: input.allocation_delta.journal_entries_touched() > 0
                 || !input.allocation_delta.changed_graph_nodes().is_empty(),
             initial_index_entries,

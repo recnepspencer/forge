@@ -51,6 +51,8 @@ struct ScriptedPresentationState {
     wrong_next_deregistration_receipt: bool,
     cancellation_calls: Vec<u64>,
     presentation_calls: usize,
+    viewport_extent: [f32; 2],
+    viewport_measurement_calls: usize,
     viewport_environment_generation: u64,
     font_environment_generation: u64,
     adapter_environment_generation: u64,
@@ -82,6 +84,8 @@ impl Default for ScriptedPresentationState {
             wrong_next_deregistration_receipt: false,
             cancellation_calls: Vec::new(),
             presentation_calls: 0,
+            viewport_extent: [800.0, 600.0],
+            viewport_measurement_calls: 0,
             viewport_environment_generation: 1,
             font_environment_generation: 1,
             adapter_environment_generation: 1,
@@ -207,6 +211,14 @@ impl ScriptedPresentationHost {
 
     pub fn presentation_calls(&self) -> usize {
         self.state.lock().unwrap().presentation_calls
+    }
+
+    pub fn set_viewport_extent(&self, extent: [f32; 2]) {
+        self.state.lock().unwrap().viewport_extent = extent;
+    }
+
+    pub fn viewport_measurement_calls(&self) -> usize {
+        self.state.lock().unwrap().viewport_measurement_calls
     }
 
     pub fn return_indeterminate_next_registration(&self) {

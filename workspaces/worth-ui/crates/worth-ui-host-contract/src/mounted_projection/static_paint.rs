@@ -176,6 +176,19 @@ impl UiMountedFilledRectMechanic {
     pub const fn semantic_digest(self) -> u64 {
         self.semantic_digest
     }
+
+    #[doc(hidden)]
+    pub fn same_retained_paint_meaning(self, other: Self) -> bool {
+        self.schema == other.schema
+            && self.surface == other.surface
+            && self.binding == other.binding
+            && self.mounted_instance == other.mounted_instance
+            && self.allocation_basis == other.allocation_basis
+            && self.bounds == other.bounds
+            && self.color == other.color
+            && self.layer_semantic_order == other.layer_semantic_order
+            && self.clip_bounds == other.clip_bounds
+    }
 }
 
 impl UiMountedFilledRectTable {
@@ -235,6 +248,12 @@ fn semantic_digest(input: &UiMountedFilledRectCompletionInput) -> u64 {
         u64::from(input.bounds.height().to_bits()),
         coordinate_space_digest(input.bounds.coordinate_space()),
         geometry_posture_digest(input.bounds.posture()),
+        u64::from(input.clip_bounds.x().to_bits()),
+        u64::from(input.clip_bounds.y().to_bits()),
+        u64::from(input.clip_bounds.width().to_bits()),
+        u64::from(input.clip_bounds.height().to_bits()),
+        coordinate_space_digest(input.clip_bounds.coordinate_space()),
+        geometry_posture_digest(input.clip_bounds.posture()),
         transform_digest(input.allocation_basis.transform()),
         u64::from(input.layer_semantic_order),
     ] {

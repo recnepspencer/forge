@@ -14,9 +14,7 @@ use worth_ui::facade::measurement_exchange::{
 use worth_ui::facade::source::{WorthUiFilesystemSourceProvider, WorthUiFilesystemSourceWatcher};
 use worth_ui_certification::scenario::application_authority_closure::candidate_catalog::admit_candidate_catalog;
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
-use worth_ui_host_headless::{
-    UiHeadlessRecorderCapacity, UiHeadlessUnperformedEffect, WorthUiHeadlessRecorder,
-};
+use worth_ui_host_headless::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder};
 use worth_ui_runtime::facade::entry::UiMountedAllocationMeasurementRequest;
 use worth_ui_runtime::facade::host::{
     UiHostMeasurementAssumptionProfile, UiHostMeasurementNeed,
@@ -36,6 +34,11 @@ use crate::mounted_application_lifecycle::known_empty_surface_world::profile;
 
 const SETTLEMENT_TIMEOUT: Duration = Duration::from_secs(5);
 const SOURCE: &str = "app/main.wui";
+
+#[path = "mounted_successor_transcript_assertions.rs"]
+mod transcript_assertions;
+
+use transcript_assertions::assert_translated_cross_lane_frame;
 
 #[test]
 fn real_file_mount_measure_preview_and_watcher_edit_publish_one_mounted_successor() {
@@ -75,10 +78,10 @@ fn real_file_mount_measure_preview_and_watcher_edit_publish_one_mounted_successo
     admit_query_projection(&mut scenario, &mut session);
     let ordinary = publish_all_lane_frame(&mut session);
     assert_eq!(ordinary.predecessor(), Some(preview.frame()));
-    assert_translated_cross_lane_frame(&recorder, 1, ordinary.frame());
+    assert_translated_cross_lane_frame(&recorder, ordinary.frame());
     let rust_authored =
         publish_equivalent_rust_authored_successor(&mut scenario, &mut session, &ordinary);
-    assert_translated_cross_lane_frame(&recorder, 2, rust_authored.frame());
+    assert_translated_cross_lane_frame(&recorder, rust_authored.frame());
 
     workspace.write_atomic(
         SOURCE,
@@ -138,7 +141,7 @@ fn real_file_mount_measure_preview_and_watcher_edit_publish_one_mounted_successo
         .mounted_instances()
         .iter()
         .any(|receipt| receipt.identity() == preview_instance));
-    assert_translated_cross_lane_frame(&recorder, 3, mounted.frame());
+    assert_translated_cross_lane_frame(&recorder, mounted.frame());
 
     retire_query(&mut scenario, application.into_operation_live_retirement());
     retire_query(
@@ -328,7 +331,26 @@ pub(super) fn publish_all_lane_frame(
             assert_all_execution_lanes_from_publication(session, &publication);
             publication
         }
-        _ => panic!("first ordinary all-lane frame must publish"),
+        UiMountedFrameOutcome::Unchanged(_) => panic!("all-lane frame was unchanged"),
+        UiMountedFrameOutcome::Reconciled(_) => panic!("all-lane frame only reconciled"),
+        UiMountedFrameOutcome::RejectedBeforeEffects(rejected) => panic!(
+            "all-lane frame was rejected before effects: {:?}",
+            rejected.rejections()
+        ),
+        UiMountedFrameOutcome::InFlight(_) => panic!("all-lane frame remained in flight"),
+        UiMountedFrameOutcome::PresentationIndeterminate(_) => {
+            panic!("all-lane frame became indeterminate")
+        }
+        UiMountedFrameOutcome::Superseded(_) => panic!("all-lane frame was superseded"),
+        UiMountedFrameOutcome::RetentionDenied(rejection) => {
+            panic!("all-lane frame retention denied: {:?}", rejection.denial())
+        }
+        UiMountedFrameOutcome::AdmissionDenied(rejection) => {
+            panic!("all-lane frame admission denied: {:?}", rejection.denial())
+        }
+        UiMountedFrameOutcome::CompletionDenied(denial) => {
+            panic!("all-lane frame completion denied: {denial:?}")
+        }
     }
 }
 
@@ -363,33 +385,4 @@ fn assert_all_execution_lanes_from_publication(
     assert_eq!(frame.frame_identity(), publication.frame());
 }
 
-fn assert_translated_cross_lane_frame(
-    recorder: &WorthUiHeadlessRecorder,
-    transcript_index: usize,
-    frame: worth_ui_runtime::facade::mounted::UiMountedFrameIdentity,
-) {
-    let transcripts = recorder.observed_transcripts();
-    let transcript = &transcripts[transcript_index];
-    assert_eq!(transcript.frame(), frame);
-    assert!(transcript
-        .unperformed_effects()
-        .iter()
-        .any(|effect| matches!(
-            effect,
-            UiHeadlessUnperformedEffect::CanvasSpatial {
-                primitive_count: 64,
-                ..
-            }
-        )));
-    assert!(transcript
-        .unperformed_effects()
-        .iter()
-        .any(|effect| matches!(
-            effect,
-            UiHeadlessUnperformedEffect::Realtime {
-                overlay_row_count: 2,
-                ..
-            }
-        )));
-}
 use worth_ui_test_support::WorthUiMountedAllocationCertificationExt;
