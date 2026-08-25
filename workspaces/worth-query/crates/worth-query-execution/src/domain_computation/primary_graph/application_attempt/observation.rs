@@ -9,13 +9,19 @@ use worth_relational::facade::storage::RecordLifecycleState;
 
 use super::{WorthQueryApplicationAttemptDenial, WorthQueryApplicationAttemptDenialKind};
 
-pub(in crate::domain_computation::primary_graph) fn observe_field_value(
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(in crate::domain_computation::primary_graph) enum WorthQueryApplicationFieldObservation {
+    Present(worth_foundational::facade::AspectValue),
+    Absent,
+}
+
+pub(in crate::domain_computation::primary_graph) fn observe_field(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
     snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
     entity_id: worth_relational::facade::identity::EntityId,
     kind: worth_relational::facade::identity::KindId,
     locator: &worth_foundational::facade::AspectFieldLocator,
-) -> Option<worth_foundational::facade::AspectValue> {
+) -> Option<WorthQueryApplicationFieldObservation> {
     let field = locator.field_path().fields().first()?.clone();
     let scope = ProjectionAspectScope::from_requirements([ProjectionAspectRequirement::fields(
         locator.aspect().aspect_key().clone(),
@@ -25,14 +31,31 @@ pub(in crate::domain_computation::primary_graph) fn observe_field_value(
         .read_truth()
         .project_snapshot(snapshot)?
         .entity_record_with_projection_scope(entity_id, scope, |record| {
-            (record.kind_id() == kind && record.lifecycle() == RecordLifecycleState::Live)
-                .then(|| {
+            (record.kind_id() == kind && record.lifecycle() == RecordLifecycleState::Live).then(
+                || {
                     record
                         .aspect_field_value(locator.aspect().aspect_key(), &field)
                         .cloned()
-                })
-                .flatten()
+                        .map_or(
+                            WorthQueryApplicationFieldObservation::Absent,
+                            WorthQueryApplicationFieldObservation::Present,
+                        )
+                },
+            )
         })
+}
+
+pub(in crate::domain_computation::primary_graph) fn observe_field_value(
+    runtime: &worth_relational::facade::runtime::RelationalRuntime,
+    snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
+    entity_id: worth_relational::facade::identity::EntityId,
+    kind: worth_relational::facade::identity::KindId,
+    locator: &worth_foundational::facade::AspectFieldLocator,
+) -> Option<worth_foundational::facade::AspectValue> {
+    match observe_field(runtime, snapshot, entity_id, kind, locator)? {
+        WorthQueryApplicationFieldObservation::Present(value) => Some(value),
+        WorthQueryApplicationFieldObservation::Absent => None,
+    }
 }
 
 pub(super) fn exact_relations(

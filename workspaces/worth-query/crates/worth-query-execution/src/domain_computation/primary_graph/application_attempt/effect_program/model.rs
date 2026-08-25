@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use worth_foundational::facade::{AspectFieldLocator, AspectValue};
+use worth_foundational::facade::{AspectFieldLocator, AspectValue, PortableAspectContractBasis};
 use worth_query_declaration::facade::application_schema::{
     ApplicationEffectPayload, ApplicationExternalEffectPayload,
 };
@@ -231,6 +231,14 @@ pub struct WorthQueryApplicationEffectEntity<Schema, Entity> {
     pub(super) _marker: PhantomData<fn() -> (Schema, Entity)>,
 }
 
+pub(in crate::domain_computation::primary_graph::application_attempt) struct WorthQueryApplicationOptionalFieldWrite
+{
+    pub(in crate::domain_computation::primary_graph::application_attempt) contract:
+        PortableAspectContractBasis,
+    pub(in crate::domain_computation::primary_graph::application_attempt) value:
+        Option<AspectValue>,
+}
+
 pub(in crate::domain_computation::primary_graph::application_attempt) enum WorthQueryApplicationRealizedEffect
 {
     CreateEntity {
@@ -242,6 +250,11 @@ pub(in crate::domain_computation::primary_graph::application_attempt) enum Worth
         entity: String,
         entity_id: EntityId,
         fields: BTreeMap<AspectFieldLocator, AspectValue>,
+    },
+    PatchOptionalEntityFields {
+        entity: String,
+        entity_id: EntityId,
+        fields: BTreeMap<AspectFieldLocator, WorthQueryApplicationOptionalFieldWrite>,
     },
     DeleteEntity {
         entity_id: EntityId,

@@ -57,6 +57,10 @@ worth_query_field!(
     pub AccountNote in IdentityExecutionSchema, Account, AccountPolicy:
     optional String, read_write, equality
 );
+worth_query_field!(
+    pub AccountScore in IdentityExecutionSchema, Account, AccountPolicy:
+    optional u64, read_write, no_equality
+);
 worth_query_aspect!(pub ActivityFacts in IdentityExecutionSchema, Activity; identity = AspectIdentity(0x9161103d), revision = AspectContractRevision(1),);
 worth_query_field!(
     pub ActivityIdentity in IdentityExecutionSchema, Activity, ActivityFacts:
@@ -121,6 +125,9 @@ pub struct MultiTouchInput;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ChangeOwnershipInput;
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PatchAccountDraftInput;
+
 worth_query_operation!(
     pub TouchAccountOperation(TouchAccountInput) in IdentityExecutionSchema
 );
@@ -139,6 +146,9 @@ worth_query_operation!(
 worth_query_operation!(
     pub ChangeOwnershipOperation(ChangeOwnershipInput) in IdentityExecutionSchema
 );
+worth_query_operation!(
+    pub PatchAccountDraftOperation(PatchAccountDraftInput) in IdentityExecutionSchema
+);
 worth_query_operation_requires!(TouchAccountOperation => [ViewAccount]);
 worth_query_operation_requires!(WrongFieldRetentionOperation => [ViewAccount]);
 worth_query_operation_requires!(ExactStatusRetentionOperation => [ViewAccount]);
@@ -146,6 +156,7 @@ worth_query_operation_requires!(MultiFieldRetentionOperation => [ViewAccount]);
 worth_query_operation_expects_fact!(TouchAccountOperation => [AccountStatus]);
 worth_query_operation_requires!(MultiTouchOperation => [ViewAccount, EditAccount]);
 worth_query_operation_requires!(ChangeOwnershipOperation => [ManageOwnership]);
+worth_query_operation_requires!(PatchAccountDraftOperation => [ViewAccount]);
 worth_query_operation_writes!(TouchAccountOperation => [AccountStatus, AccountLabel]);
 worth_query_operation_writes!(WrongFieldRetentionOperation => [AccountLabel]);
 worth_query_operation_writes!(ExactStatusRetentionOperation => [AccountStatus, AccountLabel]);
@@ -153,6 +164,7 @@ worth_query_operation_writes!(MultiFieldRetentionOperation => [AccountStatus, Ac
 // Deliberately wider than the installed contract so authority-ceiling tests
 // prove that compile-time capability cannot widen installed authority.
 worth_query_operation_writes!(MultiTouchOperation => [AccountStatus, AccountLabel]);
+worth_query_operation_writes!(PatchAccountDraftOperation => [AccountNote, AccountScore]);
 worth_query_operation_emits!(MultiTouchOperation => [AccountActivityEffect]);
 worth_query_operation_emits!(
     TouchAccountOperation => [AccountActivityEffect, LiveActivityEffect]
@@ -164,6 +176,7 @@ worth_query_operation_reads!(ExactStatusRetentionOperation => [AccountStatus, Ac
 worth_query_operation_reads!(MultiFieldRetentionOperation => [AccountStatus, AccountLabel]);
 worth_query_operation_reads!(MultiTouchOperation => [AccountStatus, AccountLabel]);
 worth_query_operation_reads!(ChangeOwnershipOperation => [AccountOwner, AccountStatus]);
+worth_query_operation_reads!(PatchAccountDraftOperation => [AccountNote, AccountScore]);
 worth_query_operation_links!(ChangeOwnershipOperation => [AccountOwner]);
 worth_query_operation_unlinks!(ChangeOwnershipOperation => [AccountOwner]);
 

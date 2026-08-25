@@ -17,6 +17,8 @@ use crate::domain_computation::{
     WorthQueryProvisionalEffectAction, WorthQueryProvisionalEffectStep,
 };
 
+mod optional_field_patch;
+
 #[derive(Clone)]
 pub(super) enum WorthQueryLoweredProviderEffect {
     Mutation {
@@ -45,6 +47,11 @@ pub(super) fn lower_provider_effect(
         WorthQueryApplicationRealizedEffect::UpdateEntity {
             entity_id, fields, ..
         } => lower_update_entity(facts, entity_id, fields),
+        WorthQueryApplicationRealizedEffect::PatchOptionalEntityFields {
+            entity_id,
+            fields,
+            ..
+        } => optional_field_patch::lower(facts, entity_id, fields),
         WorthQueryApplicationRealizedEffect::DeleteEntity { entity_id } => {
             lower_delete_entity(facts, entity_id)
         }
@@ -221,6 +228,11 @@ fn field_fact_identity(
             matches!(
                 fact,
                 WorthQueryApplicationObservedFact::Field {
+                    entity_id: observed,
+                    locator: observed_locator,
+                    ..
+                }
+                | WorthQueryApplicationObservedFact::AbsentField {
                     entity_id: observed,
                     locator: observed_locator,
                     ..

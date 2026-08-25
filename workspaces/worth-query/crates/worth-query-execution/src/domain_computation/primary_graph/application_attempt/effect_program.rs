@@ -1,5 +1,6 @@
 mod emission;
 mod model;
+mod optional_field_authoring;
 mod relation_effects;
 mod target_admission;
 
@@ -21,13 +22,15 @@ use worth_query_installation::facade::{
 };
 use worth_relational::facade::transactions::EntityReference;
 
-pub(super) use model::WorthQueryApplicationRealizedEffect;
 pub(in crate::domain_computation::primary_graph) use model::{
     WorthQueryAdmittedApplicationEmissionBatch, WorthQueryApplicationEmission,
 };
 pub use model::{
     WorthQueryApplicationEffectEntity, WorthQueryApplicationEffectProgram,
     WorthQueryApplicationEffectProgramBuilder,
+};
+pub(super) use model::{
+    WorthQueryApplicationOptionalFieldWrite, WorthQueryApplicationRealizedEffect,
 };
 
 use super::effect_validation::{canonical_key, denial};

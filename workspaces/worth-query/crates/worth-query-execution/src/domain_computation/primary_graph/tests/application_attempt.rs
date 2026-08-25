@@ -25,6 +25,8 @@ mod idempotency_behavior;
 mod mutation_terminal_lifecycle;
 #[path = "application_attempt/mutation_work_scale.rs"]
 mod mutation_work_scale;
+#[path = "application_attempt/optional_field_mutation.rs"]
+mod optional_field_mutation;
 #[path = "application_attempt/preimage_evidence.rs"]
 pub(in crate::domain_computation::primary_graph) mod preimage_evidence;
 #[path = "application_attempt/preimage_retention.rs"]
