@@ -38,10 +38,10 @@ where
     Operation: 'static,
     Input: WorthQueryPortableType + 'static,
 {
-    let input_type = Input::PORTABLE_TYPE_IDENTITY.as_str();
+    let input_type = Input::PORTABLE_TYPE_NAME;
     if !schema
         .member_provenance
-        .admits_operation::<Operation, Input>(operation, Input::PORTABLE_TYPE_IDENTITY)
+        .admits_operation::<Operation, Input>(operation, &Input::PORTABLE_TYPE_IDENTITY)
     {
         return Err(operation_denial(
             WorthQueryApplicationOperationInstallationDenialKind::OperationMeaningChanged,

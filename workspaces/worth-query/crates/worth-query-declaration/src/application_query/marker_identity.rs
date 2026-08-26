@@ -8,8 +8,16 @@ pub trait ApplicationQueryMarkerIdentity {
     type Scope;
 
     const IDENTIFIER: &'static str;
-    const QUERY_TYPE_IDENTITY: WorthQueryPortableTypeIdentity;
-    const PARAMETER_TYPE_IDENTITY: WorthQueryPortableTypeIdentity;
-    const RESULT_TYPE_IDENTITY: WorthQueryPortableTypeIdentity;
-    const SCOPE_TYPE_IDENTITY: WorthQueryPortableTypeIdentity;
+    const QUERY_TYPE_NAME: &'static str;
+    const PARAMETER_TYPE_NAME: &'static str;
+    const RESULT_TYPE_NAME: &'static str;
+    const SCOPE_TYPE_NAME: &'static str;
+    const QUERY_TYPE_IDENTITY: WorthQueryPortableTypeIdentity =
+        WorthQueryPortableTypeIdentity::declared(Self::QUERY_TYPE_NAME);
+    const PARAMETER_TYPE_IDENTITY: WorthQueryPortableTypeIdentity =
+        WorthQueryPortableTypeIdentity::declared(Self::PARAMETER_TYPE_NAME);
+    const RESULT_TYPE_IDENTITY: WorthQueryPortableTypeIdentity =
+        WorthQueryPortableTypeIdentity::declared(Self::RESULT_TYPE_NAME);
+    const SCOPE_TYPE_IDENTITY: WorthQueryPortableTypeIdentity =
+        WorthQueryPortableTypeIdentity::declared(Self::SCOPE_TYPE_NAME);
 }

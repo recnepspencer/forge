@@ -4,8 +4,8 @@ use crate::application_schema::ApplicationAbilityRef;
 pub enum ApplicationQueryAuthorizationRequirement {
     Public,
     Ability {
-        ability: &'static str,
-        scope_entity: &'static str,
+        ability: String,
+        scope_entity: String,
     },
 }
 
@@ -18,22 +18,22 @@ impl ApplicationQueryAuthorizationRequirement {
         ability: ApplicationAbilityRef<Schema, Ability, Scope>,
     ) -> Self {
         Self::Ability {
-            ability: ability.name(),
-            scope_entity: ability.scope(),
+            ability: ability.name().to_owned(),
+            scope_entity: ability.scope().to_owned(),
         }
     }
 
-    pub const fn ability(&self) -> Option<&'static str> {
+    pub fn ability(&self) -> Option<&str> {
         match self {
             Self::Public => None,
-            Self::Ability { ability, .. } => Some(ability),
+            Self::Ability { ability, .. } => Some(ability.as_str()),
         }
     }
 
-    pub const fn scope_entity(&self) -> Option<&'static str> {
+    pub fn scope_entity(&self) -> Option<&str> {
         match self {
             Self::Public => None,
-            Self::Ability { scope_entity, .. } => Some(scope_entity),
+            Self::Ability { scope_entity, .. } => Some(scope_entity.as_str()),
         }
     }
 }

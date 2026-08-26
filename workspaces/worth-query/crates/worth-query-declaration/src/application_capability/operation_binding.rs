@@ -3,6 +3,9 @@
 use crate::application_schema::ApplicationOperationRef;
 use crate::portable_identity::{WorthQueryPortableType, WorthQueryPortableTypeIdentity};
 
+mod portable_parts;
+pub use portable_parts::WorthQueryPortableApplicationCapabilityOperationBindingParts;
+
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationCapabilityOperationBinding {
     operation: String,
@@ -32,15 +35,15 @@ impl ApplicationCapabilityOperationBinding {
         self.operation_identity.as_str()
     }
 
-    pub const fn operation_identity(&self) -> WorthQueryPortableTypeIdentity {
-        self.operation_identity
+    pub fn operation_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.operation_identity.clone()
     }
 
     pub fn input_type(&self) -> &str {
         self.input_identity.as_str()
     }
 
-    pub const fn input_identity(&self) -> WorthQueryPortableTypeIdentity {
-        self.input_identity
+    pub fn input_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.input_identity.clone()
     }
 }

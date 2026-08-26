@@ -48,6 +48,29 @@ impl WorthQueryPortablePackageManifest {
         }
     }
 
+    /// Construct one descriptive manifest received from an untrusted boundary.
+    ///
+    /// Construction performs no validation. Callers must pass the result to
+    /// `WorthQueryPortablePackageReconstruction::begin` before any record set
+    /// can close as a reconstruction candidate.
+    pub const fn from_untrusted_fields(
+        version: WorthQueryPortablePackageManifestVersion,
+        package_identity: WorthQueryPortableDomainPackageIdentity,
+        record_count: u32,
+        canonical_source_bytes: u64,
+        logical_export_bytes: u64,
+        family_counts: [u32; WorthQueryPortablePackageRecordFamily::ALL.len()],
+    ) -> Self {
+        Self {
+            version,
+            package_identity,
+            record_count,
+            canonical_source_bytes,
+            logical_export_bytes,
+            family_counts,
+        }
+    }
+
     pub const fn version(&self) -> WorthQueryPortablePackageManifestVersion {
         self.version
     }

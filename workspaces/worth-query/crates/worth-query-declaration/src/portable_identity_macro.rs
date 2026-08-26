@@ -4,11 +4,7 @@
 macro_rules! worth_query_portable_type {
     ($Type:ty => $identity:literal $(,)?) => {
         impl $crate::facade::portable_identity::WorthQueryPortableType for $Type {
-            const PORTABLE_TYPE_IDENTITY:
-                $crate::facade::portable_identity::WorthQueryPortableTypeIdentity =
-                $crate::facade::portable_identity::WorthQueryPortableTypeIdentity::declared(
-                    $identity,
-                );
+            const PORTABLE_TYPE_NAME: &'static str = $identity;
         }
     };
 }

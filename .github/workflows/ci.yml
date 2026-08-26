@@ -157,6 +157,9 @@ jobs:
       - name: Run WORTH Query ordinary tests
         run: cargo test --manifest-path workspaces/worth-query/Cargo.toml --workspace --exclude worth-query-certification --exclude worth-query-replay
 
+      - name: Run WORTH Query release ceremony and workflow contracts
+        run: cargo test --locked --manifest-path tools/worth-query-release/Cargo.toml
+
       - name: Upload worth-signal semantic snapshots
         if: failure()
         uses: actions/upload-artifact@v4

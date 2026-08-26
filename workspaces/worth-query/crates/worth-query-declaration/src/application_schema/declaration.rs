@@ -40,6 +40,24 @@ pub struct ErasedApplicationSchemaDeclaration {
 }
 
 impl ErasedApplicationSchemaDeclaration {
+    pub(super) fn from_fresh_parts(
+        owner: String,
+        name: String,
+        major: u32,
+        minor: u32,
+        identity: ApplicationSchemaIdentity,
+        members: Vec<ApplicationSchemaMember>,
+    ) -> Self {
+        Self {
+            owner,
+            name,
+            major,
+            minor,
+            identity,
+            members,
+        }
+    }
+
     pub fn owner(&self) -> &str {
         &self.owner
     }

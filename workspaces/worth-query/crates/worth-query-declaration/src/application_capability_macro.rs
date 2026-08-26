@@ -11,11 +11,7 @@ macro_rules! worth_query_capability {
         $vis struct $Capability;
 
         impl $crate::facade::portable_identity::WorthQueryPortableType for $Capability {
-            const PORTABLE_TYPE_IDENTITY:
-                $crate::facade::portable_identity::WorthQueryPortableTypeIdentity =
-                $crate::facade::portable_identity::WorthQueryPortableTypeIdentity::declared(
-                    $identity,
-                );
+            const PORTABLE_TYPE_NAME: &'static str = $identity;
         }
 
         impl $crate::facade::application_capability::ApplicationCapabilityMarkerIdentity
@@ -47,11 +43,7 @@ macro_rules! worth_query_capability_context {
         $vis struct $Context;
 
         impl $crate::facade::portable_identity::WorthQueryPortableType for $Context {
-            const PORTABLE_TYPE_IDENTITY:
-                $crate::facade::portable_identity::WorthQueryPortableTypeIdentity =
-                $crate::facade::portable_identity::WorthQueryPortableTypeIdentity::declared(
-                    $identity,
-                );
+            const PORTABLE_TYPE_NAME: &'static str = $identity;
         }
 
         impl $crate::facade::application_capability::ApplicationCapabilityContextMarkerIdentity
@@ -92,11 +84,7 @@ macro_rules! worth_query_capability_context_entity_slot {
         $vis struct $Slot;
 
         impl $crate::facade::portable_identity::WorthQueryPortableType for $Slot {
-            const PORTABLE_TYPE_IDENTITY:
-                $crate::facade::portable_identity::WorthQueryPortableTypeIdentity =
-                $crate::facade::portable_identity::WorthQueryPortableTypeIdentity::declared(
-                    $identity,
-                );
+            const PORTABLE_TYPE_NAME: &'static str = $identity;
         }
 
         impl $crate::facade::application_capability::ApplicationCapabilityContextEntitySlotMarkerIdentity
@@ -135,11 +123,7 @@ macro_rules! worth_query_capability_provenance {
         $vis struct $Provenance;
 
         impl $crate::facade::portable_identity::WorthQueryPortableType for $Provenance {
-            const PORTABLE_TYPE_IDENTITY:
-                $crate::facade::portable_identity::WorthQueryPortableTypeIdentity =
-                $crate::facade::portable_identity::WorthQueryPortableTypeIdentity::declared(
-                    $identity,
-                );
+            const PORTABLE_TYPE_NAME: &'static str = $identity;
         }
 
         impl $crate::facade::application_capability::ApplicationCapabilityProvenanceMarkerIdentity

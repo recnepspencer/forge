@@ -32,6 +32,7 @@ pub use authorization_requirement::{
 pub use conditional_binding::{
     WorthQueryApplicationConditionalOperationBinding,
     WorthQueryPortableApplicationConditionalOperationBinding,
+    WorthQueryPortableApplicationConditionalOperationBindingParts,
 };
 pub use conditional_clock::WorthQueryInstalledNamedClockConditionalNode;
 pub use conditional_provider::WorthQueryInstalledHostConditionalProvider;

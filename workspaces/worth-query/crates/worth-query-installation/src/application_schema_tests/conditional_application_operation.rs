@@ -96,6 +96,26 @@ fn package_declared_binding_resolves_an_exact_installed_conditional_node() {
 
 #[test]
 fn typed_export_closes_every_family_in_one_exact_canonical_inventory() {
+    let package = complete_typed_package_fixture();
+    let export = package.export_typed_records().unwrap();
+    let mut emitted_families = Vec::new();
+    for record in export.records() {
+        if emitted_families.last() != Some(&record.family()) {
+            emitted_families.push(record.family());
+        }
+    }
+    assert_eq!(emitted_families, WorthQueryPortablePackageRecordFamily::ALL);
+
+    assert!(matches!(
+        &export.records()[0],
+        WorthQueryPortablePackageRecord::DomainIdentity(identity)
+            if identity == package.domain_identity()
+    ));
+    assert_complete_family_records(&package, &export);
+}
+
+pub(crate) fn complete_typed_package_fixture(
+) -> crate::package::WorthQueryValidatedPortableDomainPackage {
     let definition = crate::conditional_application_operation_test_fixture::definition::<
         TestDomain,
         TestDomainOperation,
@@ -110,7 +130,7 @@ fn typed_export_closes_every_family_in_one_exact_canonical_inventory() {
         WorthQueryArtifactLifecycleContract::Retained,
         crate::domain_computation_artifact_fixture::domain_reproducibility(),
     );
-    let package = WorthQueryPortableDomainPackage::new(WorthQueryPortableDomainIdentity::new(
+    WorthQueryPortableDomainPackage::new(WorthQueryPortableDomainIdentity::new(
         TestSchema::OWNER,
         1,
         0,
@@ -128,21 +148,13 @@ fn typed_export_closes_every_family_in_one_exact_canonical_inventory() {
     .conditional_application_operation(binding)
     .permits_contribution("conditional-index")
     .validate()
-    .unwrap();
-    let export = package.export_typed_records().unwrap();
-    let mut emitted_families = Vec::new();
-    for record in export.records() {
-        if emitted_families.last() != Some(&record.family()) {
-            emitted_families.push(record.family());
-        }
-    }
-    assert_eq!(emitted_families, WorthQueryPortablePackageRecordFamily::ALL);
+    .unwrap()
+}
 
-    assert!(matches!(
-        &export.records()[0],
-        WorthQueryPortablePackageRecord::DomainIdentity(identity)
-            if identity == package.domain_identity()
-    ));
+fn assert_complete_family_records(
+    package: &crate::package::WorthQueryValidatedPortableDomainPackage,
+    export: &crate::package::WorthQueryPortablePackageRecordSet,
+) {
     macro_rules! assert_exact_family {
         ($variant:ident, $source:expr) => {{
             let actual = export
@@ -178,8 +190,20 @@ fn typed_export_closes_every_family_in_one_exact_canonical_inventory() {
     {
         assert_domain_operation_projection(actual, source);
     }
-    assert_exact_family!(ArtifactContract, package.artifact_contracts());
-    assert_exact_family!(ApplicationSchema, package.application_schemas());
+    let expected_artifact_contracts = package
+        .artifact_contracts()
+        .iter()
+        .map(crate::domain_computation::WorthQueryPortableArtifactContractRecord::project)
+        .collect::<Vec<_>>();
+    assert_exact_family!(ArtifactContract, expected_artifact_contracts);
+    let expected_application_schemas = package
+        .application_schemas()
+        .iter()
+        .map(
+            worth_query_declaration::facade::application_schema::WorthQueryPortableApplicationSchemaRecord::project,
+        )
+        .collect::<Vec<_>>();
+    assert_exact_family!(ApplicationSchema, expected_application_schemas);
     assert_exact_family!(
         ConditionalApplicationOperation,
         package.conditional_application_operations()
@@ -207,7 +231,7 @@ fn typed_export_closes_every_family_in_one_exact_canonical_inventory() {
         let mut omitted = export.records().to_vec();
         omitted.remove(position);
         assert_eq!(
-            crate::package::verify_source_closure_for_test(&package, export.manifest(), &omitted,)
+            crate::package::verify_source_closure_for_test(package, export.manifest(), &omitted,)
                 .unwrap_err()
                 .kind(),
             WorthQueryPortablePackageExportDenialKind::IncompleteRecordClosure,
@@ -217,7 +241,7 @@ fn typed_export_closes_every_family_in_one_exact_canonical_inventory() {
         duplicated.insert(position, duplicated[position].clone());
         assert_eq!(
             crate::package::verify_source_closure_for_test(
-                &package,
+                package,
                 export.manifest(),
                 &duplicated,
             )

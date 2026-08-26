@@ -39,7 +39,6 @@ pub(crate) struct CausalManagedAdmissionContext {
     pub bridge: RuntimeBridge,
     pub relational: RuntimeBridgeRelationalSource,
     pub descriptor: worth_relational::facade::branch::RelationalBranchBasisDescriptor,
-    pub branch: TruthBranchIdentity,
     _registration: worth_relational::facade::bridge::RelationalBridgeObservationLease,
 }
 
@@ -48,7 +47,6 @@ pub(super) struct SourceProfileSubstitutionContext {
     pub exact_bridge: RuntimeBridge,
     pub relational: RuntimeBridgeRelationalSource,
     pub descriptor: worth_relational::facade::branch::RelationalBranchBasisDescriptor,
-    pub branch: TruthBranchIdentity,
     _registration: worth_relational::facade::bridge::RelationalBridgeObservationLease,
 }
 
@@ -77,7 +75,6 @@ pub(crate) fn managed_admission_context() -> CausalManagedAdmissionContext {
         bridge,
         relational,
         descriptor,
-        branch,
         _registration: registration,
     }
 }
@@ -105,7 +102,6 @@ pub(super) fn source_profile_substitution_context() -> SourceProfileSubstitution
         exact_bridge,
         relational,
         descriptor,
-        branch,
         _registration: registration,
     }
 }

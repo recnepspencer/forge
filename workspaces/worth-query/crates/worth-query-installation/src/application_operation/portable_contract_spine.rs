@@ -49,7 +49,7 @@ pub(crate) fn compile_portable_operation_contract_records(
                 schema.members(),
                 native_contracts,
                 operation,
-                *input_type,
+                input_type.clone(),
             )
         })
         .collect()
@@ -275,7 +275,7 @@ fn compile_external_effect(
         } if candidate == operation => Some(WorthQueryPortableExternalEffectContractRecord::new(
             correlation_family.clone(),
             effect.clone(),
-            *rust_payload_type,
+            rust_payload_type.clone(),
             protocol.clone(),
             *maximum_payload_bytes,
         )),

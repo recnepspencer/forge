@@ -116,7 +116,7 @@ pub(in crate::domain_computation::primary_graph::conditional_operation) fn reent
         String,
         super::super::temporal_reconstruction::WorthQueryReconstructedTemporalIntent<Clock, Input>,
     >,
-    wakes: &mut Vec<WorthQueryRetainedConditionalWake>,
+    wakes: &mut [WorthQueryRetainedConditionalWake],
     runtime_binding: &crate::domain_computation::primary_graph::conditional_operation::canonical_identity::WorthQueryTemporalRuntimeBindingIdentity,
 ) -> WorthQueryTemporalReentryCounts
 where

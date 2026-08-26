@@ -163,14 +163,14 @@ where
     where
         Query: ApplicationQueryMarkerIdentity,
     {
-        Query::QUERY_TYPE_IDENTITY.as_str()
+        Query::QUERY_TYPE_NAME
     }
 
     pub fn slot_type(&self) -> &'static str
     where
         Slot: WorthQueryPortableType,
     {
-        Slot::PORTABLE_TYPE_IDENTITY.as_str()
+        Slot::PORTABLE_TYPE_NAME
     }
 
     pub const fn cardinality(&self) -> ApplicationQueryCardinality {

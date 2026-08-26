@@ -24,6 +24,7 @@ use crate::facade::{
 
 mod aftermath_coverage;
 mod conditional_application_operation;
+pub(crate) use conditional_application_operation::complete_typed_package_fixture;
 mod declaration_provenance;
 mod effect_fixture;
 mod field_references;

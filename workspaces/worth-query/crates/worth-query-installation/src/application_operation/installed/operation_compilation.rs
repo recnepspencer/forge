@@ -254,7 +254,7 @@ fn install_portable_external_effect(
         Some(portable) => InstalledExternalEffectContract::Declared {
             correlation_family: portable.correlation_family().clone(),
             effect: portable.effect().to_owned(),
-            rust_payload_type: *portable.payload_type(),
+            rust_payload_type: portable.payload_type().clone(),
             protocol: portable.protocol().clone(),
             maximum_payload_bytes: portable.maximum_payload_bytes(),
         },

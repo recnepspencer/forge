@@ -37,6 +37,7 @@ mod operation_definition;
 mod operation_marker_identity;
 pub(crate) use operation_definition::AftermathAssociationAuthority;
 mod operation_program;
+mod portable_schema;
 mod principal_binding_authoring;
 mod principal_binding_reference;
 mod query_member_closure;
@@ -80,6 +81,9 @@ pub use authorization_policy::{
     ApplicationAuthorizationPath, ApplicationAuthorizationPathBuilder,
     ApplicationAuthorizationPathEffect, ApplicationAuthorizationPredicate,
     ApplicationAuthorizationTraversal, ApplicationAuthorizationTraversalDirection,
+    WorthQueryPortableApplicationAuthorizationPathParts,
+    WorthQueryPortableApplicationAuthorizationPredicateParts,
+    WorthQueryPortableApplicationAuthorizationTraversalParts,
 };
 pub use binding_identity::ApplicationSchemaBindingIdentity;
 pub use capabilities::{
@@ -116,6 +120,14 @@ pub use operation_definition::{
     ApplicationOperationDefinition, ApplicationOperationDefinitionBuilder,
 };
 pub use operation_marker_identity::ApplicationOperationMarkerIdentity;
+pub use portable_schema::{
+    observe_portable_application_schema_reconstruction_work,
+    validate_portable_application_schema_freshly,
+    validate_portable_application_schema_freshly_with_work,
+    WorthQueryPortableApplicationSchemaParts, WorthQueryPortableApplicationSchemaReadmissionWork,
+    WorthQueryPortableApplicationSchemaRecord,
+    WorthQueryPortableApplicationSchemaWorkObservationDenial,
+};
 pub use principal_binding_authoring::{
     ApplicationPrincipalBindingRequirements, ApplicationPrincipalIdentityRequirement,
     ApplicationPrincipalMappingIdentityRequirement, ApplicationPrincipalMappingStatusRequirement,

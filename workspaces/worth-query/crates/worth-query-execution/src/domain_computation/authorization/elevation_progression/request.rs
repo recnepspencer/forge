@@ -231,9 +231,9 @@ fn context_matches<Schema, Scope, Context>(
             let slot = selected.slot();
             (
                 slot.context(),
-                slot.context_identity().as_str(),
+                slot.context_identity_ref().as_str(),
                 slot.slot(),
-                slot.slot_identity().as_str(),
+                slot.slot_identity_ref().as_str(),
                 slot.entity(),
             )
         })

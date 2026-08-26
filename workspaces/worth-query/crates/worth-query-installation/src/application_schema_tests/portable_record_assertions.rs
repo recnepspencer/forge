@@ -37,7 +37,7 @@ pub(super) fn assert_domain_operation_projection(
     assert_ref!(effects);
     assert_ref!(invariants);
     assert_ref!(invariant_execution);
-    assert_copy!(replay);
+    assert_ref!(replay);
     assert!(source.aftermath.is_none());
     assert_copy!(lineage);
     assert_copy!(promotion);

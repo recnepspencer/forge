@@ -10,6 +10,14 @@ use worth_query_declaration::facade::application_schema::{
 };
 use worth_query_declaration::facade::portable_identity::WorthQueryPortableTypeIdentity;
 
+use super::application_contract_parts::{
+    WorthQueryPortableApplicationOperationContractParts,
+    WorthQueryPortableExternalEffectContractParts, WorthQueryPortableNativeAspectContractParts,
+};
+use super::WorthQueryPortableInstalledReconciliationProcedureRecord;
+
+mod reconstruction_work;
+
 /// Runtime-neutral native aspect contract retained by package validation.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryPortableNativeAspectContractRecord {
@@ -22,6 +30,17 @@ pub struct WorthQueryPortableNativeAspectContractRecord {
 }
 
 impl WorthQueryPortableNativeAspectContractRecord {
+    pub fn from_untrusted_parts(parts: WorthQueryPortableNativeAspectContractParts) -> Self {
+        Self {
+            schema: parts.schema,
+            entity: parts.entity,
+            aspect: parts.aspect,
+            contract: parts.contract,
+            fields: parts.fields,
+            binding: parts.binding,
+        }
+    }
+
     pub(crate) fn new(
         schema: String,
         entity: String,
@@ -42,6 +61,11 @@ impl WorthQueryPortableNativeAspectContractRecord {
 
     pub fn schema(&self) -> &str {
         &self.schema
+    }
+
+    #[cfg(test)]
+    pub(crate) fn replace_schema_for_test(&mut self, schema: impl Into<String>) {
+        self.schema = schema.into();
     }
 
     pub fn entity(&self) -> &str {
@@ -234,6 +258,16 @@ pub struct WorthQueryPortableExternalEffectContractRecord {
 }
 
 impl WorthQueryPortableExternalEffectContractRecord {
+    pub fn from_untrusted_parts(parts: WorthQueryPortableExternalEffectContractParts) -> Self {
+        Self {
+            correlation_family: parts.correlation_family,
+            effect: parts.effect,
+            payload_type: parts.payload_type,
+            protocol: parts.protocol,
+            maximum_payload_bytes: parts.maximum_payload_bytes,
+        }
+    }
+
     pub(crate) fn new(
         correlation_family: WorthQueryExternalEffectCorrelationFamily,
         effect: String,
@@ -272,21 +306,6 @@ impl WorthQueryPortableExternalEffectContractRecord {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthQueryPortableInstalledReconciliationProcedureRecord {
-    procedure_slot: String,
-}
-
-impl WorthQueryPortableInstalledReconciliationProcedureRecord {
-    pub(crate) fn new(procedure_slot: String) -> Self {
-        Self { procedure_slot }
-    }
-
-    pub fn procedure_slot(&self) -> &str {
-        &self.procedure_slot
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryPortableApplicationOperationContractRecord {
     schema: String,
     operation: String,
@@ -299,6 +318,21 @@ pub struct WorthQueryPortableApplicationOperationContractRecord {
 }
 
 impl WorthQueryPortableApplicationOperationContractRecord {
+    pub fn from_untrusted_parts(
+        parts: WorthQueryPortableApplicationOperationContractParts,
+    ) -> Self {
+        Self {
+            schema: parts.schema,
+            operation: parts.operation,
+            input_type: parts.input_type,
+            graph_reads: parts.graph_reads,
+            touches: parts.touches,
+            emissions: parts.emissions,
+            external_effect: parts.external_effect,
+            reconciliation: parts.reconciliation,
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         schema: String,
@@ -328,6 +362,11 @@ impl WorthQueryPortableApplicationOperationContractRecord {
 
     pub fn operation(&self) -> &str {
         &self.operation
+    }
+
+    #[cfg(test)]
+    pub(crate) fn replace_operation_for_test(&mut self, operation: impl Into<String>) {
+        self.operation = operation.into();
     }
 
     pub const fn input_type(&self) -> &WorthQueryPortableTypeIdentity {

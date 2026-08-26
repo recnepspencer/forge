@@ -13,7 +13,10 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
     {
         let operation = definition.operation.to_string();
         self.member_provenance
-            .register_operation::<Operation, Input>(definition.operation, definition.input_type);
+            .register_operation::<Operation, Input>(
+                definition.operation,
+                definition.input_type.clone(),
+            );
         self.push_member_in_place(ApplicationSchemaMember::Operation {
             operation: operation.clone(),
             input_type: definition.input_type,

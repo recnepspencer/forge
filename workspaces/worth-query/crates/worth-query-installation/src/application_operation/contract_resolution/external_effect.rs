@@ -32,7 +32,7 @@ pub(crate) fn operation_external_effect(
         resolved = Some(InstalledExternalEffectContract::Declared {
             correlation_family: correlation_family.clone(),
             effect: effect.clone(),
-            rust_payload_type: *rust_payload_type,
+            rust_payload_type: rust_payload_type.clone(),
             protocol: protocol.clone(),
             maximum_payload_bytes: *maximum_payload_bytes,
         });

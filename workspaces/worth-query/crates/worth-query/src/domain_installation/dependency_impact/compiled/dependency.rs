@@ -84,7 +84,7 @@ impl WorthQueryCompiledSemanticAspectDependency {
                 WorthQuerySemanticAspectDependencyView::InstalledInvariant(invariant)
             }
             WorthQuerySemanticAspectDependencySource::ReplayContract(contract) => {
-                WorthQuerySemanticAspectDependencyView::ReplayContract(*contract)
+                WorthQuerySemanticAspectDependencyView::ReplayContract(contract)
             }
             WorthQuerySemanticAspectDependencySource::LineageContract(contract) => {
                 WorthQuerySemanticAspectDependencyView::LineageContract(*contract)

@@ -9,6 +9,8 @@ use crate::application_query::{
 
 use super::{ApplicationSchemaDeclarationDenial, ApplicationSchemaMember};
 
+mod disclosure;
+
 pub(super) fn validate_application_query_members(
     members: &[ApplicationSchemaMember],
 ) -> Result<(), ApplicationSchemaDeclarationDenial> {
@@ -39,6 +41,17 @@ fn validate_query(
         return Err(ApplicationSchemaDeclarationDenial::MissingApplicationQueryDependency);
     }
     validate_authorization_requirement(definition, members)?;
+    disclosure::validate_dependencies(definition, members)?;
+    validate_root_selection(definition, members)?;
+    validate_result_shape(definition, members)?;
+    validate_predicates(definition, members)?;
+    validate_ordering(definition, members)
+}
+
+fn validate_root_selection(
+    definition: &ErasedApplicationQueryDefinition,
+    members: &[ApplicationSchemaMember],
+) -> Result<(), ApplicationSchemaDeclarationDenial> {
     if definition.root_paths().iter().any(|path| {
         path.start_entity() != definition.scope_entity()
             || path.terminal_entity() != definition.root_entity()
@@ -61,6 +74,13 @@ fn validate_query(
     }) {
         return Err(ApplicationSchemaDeclarationDenial::InvalidApplicationQuery);
     }
+    Ok(())
+}
+
+fn validate_result_shape(
+    definition: &ErasedApplicationQueryDefinition,
+    members: &[ApplicationSchemaMember],
+) -> Result<(), ApplicationSchemaDeclarationDenial> {
     if definition.result_shape().result_type() != definition.result_type()
         || definition.result_shape().query_type() != definition.query_type()
         || definition.result_shape().root_entity() != definition.root_entity()
@@ -68,6 +88,13 @@ fn validate_query(
     {
         return Err(ApplicationSchemaDeclarationDenial::InvalidApplicationQuery);
     }
+    Ok(())
+}
+
+fn validate_predicates(
+    definition: &ErasedApplicationQueryDefinition,
+    members: &[ApplicationSchemaMember],
+) -> Result<(), ApplicationSchemaDeclarationDenial> {
     for predicate in definition.predicates() {
         let (entity, aspect, field) = predicate.field();
         if !field_matches(
@@ -85,6 +112,13 @@ fn validate_query(
             return Err(ApplicationSchemaDeclarationDenial::InvalidApplicationQuery);
         }
     }
+    Ok(())
+}
+
+fn validate_ordering(
+    definition: &ErasedApplicationQueryDefinition,
+    members: &[ApplicationSchemaMember],
+) -> Result<(), ApplicationSchemaDeclarationDenial> {
     for ordering in definition.ordering() {
         let (entity, aspect, field) = ordering.field();
         if !field_matches(

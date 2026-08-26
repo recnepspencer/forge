@@ -9,6 +9,15 @@ use super::{
     ApplicationCapabilityProvenanceRef,
 };
 
+mod portable_parts;
+pub use portable_parts::{
+    WorthQueryPortableApplicationCapabilityConstraintParts,
+    WorthQueryPortableApplicationCapabilityDelegationParts,
+    WorthQueryPortableApplicationCapabilityFieldBindingParts,
+    WorthQueryPortableApplicationCapabilityRelationBindingParts,
+    WorthQueryPortableApplicationCapabilityValueBindingParts,
+};
+
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationCapabilityFieldBinding {
     entity: String,
@@ -263,10 +272,8 @@ impl ApplicationCapabilityConstraintDefinition {
         self.context_type.as_str()
     }
 
-    pub const fn context_identity(
-        &self,
-    ) -> crate::portable_identity::WorthQueryPortableTypeIdentity {
-        self.context_type
+    pub fn context_identity(&self) -> crate::portable_identity::WorthQueryPortableTypeIdentity {
+        self.context_type.clone()
     }
 }
 
@@ -342,10 +349,8 @@ impl ApplicationCapabilityDelegationDefinition {
         self.provenance_type.as_str()
     }
 
-    pub const fn provenance_identity(
-        &self,
-    ) -> crate::portable_identity::WorthQueryPortableTypeIdentity {
-        self.provenance_type
+    pub fn provenance_identity(&self) -> crate::portable_identity::WorthQueryPortableTypeIdentity {
+        self.provenance_type.clone()
     }
 
     pub const fn activation(

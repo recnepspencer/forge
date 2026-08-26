@@ -1,3 +1,7 @@
+mod parts;
+
+pub use parts::WorthQueryPortableApplicationQueryParts;
+
 use super::{
     ApplicationQueryAuthorizationRequirement, ApplicationQueryBasisSupport,
     ApplicationQueryCanonicalArtifact, ApplicationQueryCardinality,
@@ -16,124 +20,118 @@ use crate::portable_identity::WorthQueryPortableTypeIdentity;
 /// exact member of an installed application schema.
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ErasedApplicationQueryDefinition {
-    name: String,
-    query_type: WorthQueryPortableTypeIdentity,
-    parameter_type: WorthQueryPortableTypeIdentity,
-    result_type: WorthQueryPortableTypeIdentity,
-    scope_type: WorthQueryPortableTypeIdentity,
-    root_entity: String,
-    scope_entity: String,
-    parameters: Vec<ApplicationQueryParameterDefinition>,
-    result_shape: ApplicationQueryResultShape,
-    root_paths: Vec<ApplicationQueryRootPathMeaning>,
-    cardinality: ApplicationQueryCardinality,
-    predicates: Vec<ApplicationQueryPredicate>,
-    ordering: Vec<ApplicationQueryOrderingTerm>,
-    continuation: Option<ApplicationQueryContinuationTarget>,
-    live_cause: Option<ApplicationQueryLiveCauseContract>,
-    dependency_ceiling: ApplicationQueryDependencyCeiling,
-    disclosure: ApplicationQueryDisclosureContract,
-    authorization: ApplicationQueryAuthorizationRequirement,
-    basis_support: ApplicationQueryBasisSupport,
-    lanes: ApplicationQueryLaneEligibility,
+    parts: WorthQueryPortableApplicationQueryParts,
     canonical: ApplicationQueryCanonicalArtifact,
 }
 
 impl ErasedApplicationQueryDefinition {
+    pub fn from_untrusted_parts(parts: WorthQueryPortableApplicationQueryParts) -> Self {
+        let canonical = super::canonical_basis::prepare_definition_basis(&parts);
+        Self { parts, canonical }
+    }
+
+    pub const fn parts(&self) -> &WorthQueryPortableApplicationQueryParts {
+        &self.parts
+    }
+
+    pub fn into_parts(self) -> WorthQueryPortableApplicationQueryParts {
+        self.parts
+    }
+
     pub fn name(&self) -> &str {
-        &self.name
+        &self.parts.name
     }
 
     pub fn query_type(&self) -> &str {
-        self.query_type.as_str()
+        self.parts.query_type.as_str()
     }
 
-    pub const fn query_identity(&self) -> WorthQueryPortableTypeIdentity {
-        self.query_type
+    pub fn query_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.parts.query_type.clone()
     }
 
     pub fn parameter_type(&self) -> &str {
-        self.parameter_type.as_str()
+        self.parts.parameter_type.as_str()
     }
 
-    pub const fn parameter_identity(&self) -> WorthQueryPortableTypeIdentity {
-        self.parameter_type
+    pub fn parameter_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.parts.parameter_type.clone()
     }
 
     pub fn result_type(&self) -> &str {
-        self.result_type.as_str()
+        self.parts.result_type.as_str()
     }
 
-    pub const fn result_identity(&self) -> WorthQueryPortableTypeIdentity {
-        self.result_type
+    pub fn result_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.parts.result_type.clone()
     }
 
     pub fn scope_type(&self) -> &str {
-        self.scope_type.as_str()
+        self.parts.scope_type.as_str()
     }
 
-    pub const fn scope_identity(&self) -> WorthQueryPortableTypeIdentity {
-        self.scope_type
+    pub fn scope_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.parts.scope_type.clone()
     }
 
     pub fn root_entity(&self) -> &str {
-        &self.root_entity
+        &self.parts.root_entity
     }
 
     pub fn scope_entity(&self) -> &str {
-        &self.scope_entity
+        &self.parts.scope_entity
     }
 
     pub fn parameters(&self) -> &[ApplicationQueryParameterDefinition] {
-        &self.parameters
+        &self.parts.parameters
     }
 
     pub fn result_shape(&self) -> &ApplicationQueryResultShape {
-        &self.result_shape
+        &self.parts.result_shape
     }
 
     pub fn root_paths(&self) -> &[ApplicationQueryRootPathMeaning] {
-        &self.root_paths
+        &self.parts.root_paths
     }
 
     pub const fn cardinality(&self) -> ApplicationQueryCardinality {
-        self.cardinality
+        self.parts.cardinality
     }
 
     pub fn predicates(&self) -> &[ApplicationQueryPredicate] {
-        &self.predicates
+        &self.parts.predicates
     }
 
     pub fn ordering(&self) -> &[ApplicationQueryOrderingTerm] {
-        &self.ordering
+        &self.parts.ordering
     }
 
     pub const fn continuation(&self) -> Option<&ApplicationQueryContinuationTarget> {
-        self.continuation.as_ref()
+        self.parts.continuation.as_ref()
     }
 
     pub const fn live_cause(&self) -> Option<&ApplicationQueryLiveCauseContract> {
-        self.live_cause.as_ref()
+        self.parts.live_cause.as_ref()
     }
 
     pub const fn dependency_ceiling(&self) -> ApplicationQueryDependencyCeiling {
-        self.dependency_ceiling
+        self.parts.dependency_ceiling
     }
 
     pub fn disclosure(&self) -> &ApplicationQueryDisclosureContract {
-        &self.disclosure
+        &self.parts.disclosure
     }
 
     pub const fn authorization(&self) -> &ApplicationQueryAuthorizationRequirement {
-        &self.authorization
+        &self.parts.authorization
     }
 
     pub const fn basis_support(&self) -> ApplicationQueryBasisSupport {
-        self.basis_support
+        self.parts.basis_support
     }
 
     pub const fn lanes(&self) -> ApplicationQueryLaneEligibility {
-        self.lanes
+        self.parts.lanes
     }
 
     pub fn canonical_basis(&self) -> &ApplicationQueryCanonicalArtifact {
@@ -144,39 +142,22 @@ impl ErasedApplicationQueryDefinition {
         &self,
         reference: ApplicationQueryReference<Schema, Query, Parameters, QueryResult, Scope>,
     ) -> bool {
-        self.name == reference.name()
-            && self.query_type == reference.query_type()
-            && self.parameter_type == reference.parameter_type()
-            && self.result_type == reference.result_type()
-            && self.scope_type == reference.scope_type()
+        self.parts.name == reference.name()
+            && self.parts.query_type == reference.query_type()
+            && self.parts.parameter_type == reference.parameter_type()
+            && self.parts.result_type == reference.result_type()
+            && self.parts.scope_type == reference.scope_type()
     }
 
     pub(super) fn from_typed<Schema, Query, Parameters, QueryResult, Scope>(
         definition: ApplicationQueryDefinition<Schema, Query, Parameters, QueryResult, Scope>,
     ) -> Self {
-        let canonical = super::canonical_basis::prepare_definition_basis(&definition);
-        Self {
-            name: definition.name().to_string(),
-            query_type: definition.query_identity(),
-            parameter_type: definition.parameter_identity(),
-            result_type: definition.result_identity(),
-            scope_type: definition.scope_identity(),
-            root_entity: definition.root_entity().to_string(),
-            scope_entity: definition.scope_entity().to_string(),
-            parameters: definition.parameters,
-            result_shape: definition.result_shape,
-            root_paths: definition.root_paths,
-            cardinality: definition.cardinality,
-            predicates: definition.predicates,
-            ordering: definition.ordering,
-            continuation: definition.continuation,
-            live_cause: definition.live_cause,
-            dependency_ceiling: definition.dependency_ceiling,
-            disclosure: definition.disclosure,
-            authorization: definition.authorization,
-            basis_support: definition.basis_support,
-            lanes: definition.lanes,
-            canonical,
-        }
+        Self::from_untrusted_parts(WorthQueryPortableApplicationQueryParts::from_typed(
+            definition,
+        ))
     }
 }
+
+#[cfg(test)]
+#[path = "erased_definition/tests.rs"]
+mod tests;

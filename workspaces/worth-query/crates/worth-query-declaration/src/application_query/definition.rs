@@ -31,20 +31,36 @@ pub enum ApplicationQueryCardinality {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationQueryPredicate {
-    entity: &'static str,
-    aspect: &'static str,
-    field: &'static str,
-    parameter: &'static str,
+    entity: String,
+    aspect: String,
+    field: String,
+    parameter: String,
     scalar_family: ScalarAspectType,
 }
 
 impl ApplicationQueryPredicate {
-    pub const fn field(&self) -> (&'static str, &'static str, &'static str) {
-        (self.entity, self.aspect, self.field)
+    pub fn from_untrusted_fields(
+        entity: String,
+        aspect: String,
+        field: String,
+        parameter: String,
+        scalar_family: ScalarAspectType,
+    ) -> Self {
+        Self {
+            entity,
+            aspect,
+            field,
+            parameter,
+            scalar_family,
+        }
     }
 
-    pub const fn parameter(&self) -> &'static str {
-        self.parameter
+    pub fn field(&self) -> (&str, &str, &str) {
+        (&self.entity, &self.aspect, &self.field)
+    }
+
+    pub fn parameter(&self) -> &str {
+        &self.parameter
     }
 
     pub const fn scalar_family(&self) -> ScalarAspectType {
@@ -117,36 +133,36 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
         self.name
     }
 
-    pub const fn query_type(&self) -> &'static str {
+    pub const fn query_type(&self) -> &str {
         self.query_type.as_str()
     }
 
-    pub const fn query_identity(&self) -> WorthQueryPortableTypeIdentity {
-        self.query_type
+    pub fn query_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.query_type.clone()
     }
 
-    pub const fn parameter_type(&self) -> &'static str {
+    pub const fn parameter_type(&self) -> &str {
         self.parameter_type.as_str()
     }
 
-    pub const fn parameter_identity(&self) -> WorthQueryPortableTypeIdentity {
-        self.parameter_type
+    pub fn parameter_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.parameter_type.clone()
     }
 
-    pub const fn result_type(&self) -> &'static str {
+    pub const fn result_type(&self) -> &str {
         self.result_type.as_str()
     }
 
-    pub const fn result_identity(&self) -> WorthQueryPortableTypeIdentity {
-        self.result_type
+    pub fn result_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.result_type.clone()
     }
 
-    pub const fn scope_type(&self) -> &'static str {
+    pub const fn scope_type(&self) -> &str {
         self.scope_type.as_str()
     }
 
-    pub const fn scope_identity(&self) -> WorthQueryPortableTypeIdentity {
-        self.scope_type
+    pub fn scope_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.scope_type.clone()
     }
 
     pub const fn root_entity(&self) -> &'static str {

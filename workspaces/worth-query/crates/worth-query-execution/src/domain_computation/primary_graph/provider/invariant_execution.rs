@@ -188,9 +188,7 @@ impl WorthQueryPrimaryGraphProvider {
             transaction.push_batch(batch);
             Ok::<_, WorthQueryInvariantExecutionFailure>(transaction.validate(runtime))
         });
-        let candidate = candidate
-            .map_err(|error| error)?
-            .map_err(|_| owner_failure())?;
+        let candidate = candidate?.map_err(|_| owner_failure())?;
         validate_owner_evidence(candidate.invariant_evidence(), branch)?;
         Ok(candidate)
     }

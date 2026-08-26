@@ -112,6 +112,31 @@ pub struct WorthQueryPortableCanonicalQueryBundleRecord {
 }
 
 impl WorthQueryPortableCanonicalQueryBundleRecord {
+    /// Constructs an authority-free record from decoded, untrusted fields.
+    ///
+    /// This performs no validation and mints no canonicalization authority.
+    pub fn from_untrusted_parts(parts: WorthQueryPortableCanonicalQueryBundleParts) -> Self {
+        Self {
+            query: WorthQueryPortableCanonicalQueryRecord {
+                digest: parts.query_digest,
+                family: parts.query_family,
+                root: parts.query_root,
+                projection: parts.projection,
+                predicates: parts.predicates,
+                ordering: parts.ordering,
+                traversal: parts.traversal,
+                identity_bindings: parts.identity_bindings,
+            },
+            result_shape: WorthQueryPortableCanonicalResultShapeRecord {
+                digest: parts.result_shape_digest,
+                family: parts.result_shape_family,
+                fields: parts.result_shape_fields,
+            },
+            report: parts.report,
+            counters: parts.counters,
+        }
+    }
+
     pub fn project(source: &CanonicalQueryBundle) -> Self {
         let query = source.query();
         let result_shape = source.result_shape();
@@ -150,6 +175,97 @@ impl WorthQueryPortableCanonicalQueryBundleRecord {
 
     pub const fn counters(&self) -> &CanonicalizationCounters {
         &self.counters
+    }
+
+    pub fn into_parts(self) -> WorthQueryPortableCanonicalQueryBundleParts {
+        WorthQueryPortableCanonicalQueryBundleParts {
+            query_digest: self.query.digest,
+            query_family: self.query.family,
+            query_root: self.query.root,
+            projection: self.query.projection,
+            predicates: self.query.predicates,
+            ordering: self.query.ordering,
+            traversal: self.query.traversal,
+            identity_bindings: self.query.identity_bindings,
+            result_shape_digest: self.result_shape.digest,
+            result_shape_family: self.result_shape.family,
+            result_shape_fields: self.result_shape.fields,
+            report: self.report,
+            counters: self.counters,
+        }
+    }
+}
+
+/// Decoded fields for one authority-free portable canonical-query record.
+pub struct WorthQueryPortableCanonicalQueryBundleParts {
+    pub query_digest: CanonicalQueryDigest,
+    pub query_family: QueryFamily,
+    pub query_root: RootEntityKey,
+    pub projection: Vec<CanonicalProjectionEntry>,
+    pub predicates: Vec<CanonicalPredicateEntry>,
+    pub ordering: Vec<CanonicalOrderingEntry>,
+    pub traversal: Vec<CanonicalTraversalEntry>,
+    pub identity_bindings: Vec<IdentityBindingDescriptor>,
+    pub result_shape_digest: CanonicalResultShapeDigest,
+    pub result_shape_family: ResultShapeFamily,
+    pub result_shape_fields: Vec<CanonicalResultField>,
+    pub report: CanonicalizationReport,
+    pub counters: CanonicalizationCounters,
+}
+
+#[cfg(test)]
+pub(super) enum WorthQueryPortableCanonicalQueryTestMutation {
+    QueryDigest(CanonicalQueryDigest),
+    ResultShapeDigest(CanonicalResultShapeDigest),
+    DuplicateProjection,
+    DuplicateResultField,
+    ReplaceFirstResultField(CanonicalResultField),
+    AliasSecondResultToFirst,
+    ResultShapeFamily(ResultShapeFamily),
+    IncrementWarningCount,
+    FirstTraversalDepth(u8),
+}
+
+#[cfg(test)]
+impl WorthQueryPortableCanonicalQueryBundleRecord {
+    pub(super) fn project_for_test(
+        source: &CanonicalQueryBundle,
+        mutation: WorthQueryPortableCanonicalQueryTestMutation,
+    ) -> Self {
+        let mut record = Self::project(source);
+        match mutation {
+            WorthQueryPortableCanonicalQueryTestMutation::QueryDigest(digest) => {
+                record.query.digest = digest;
+            }
+            WorthQueryPortableCanonicalQueryTestMutation::ResultShapeDigest(digest) => {
+                record.result_shape.digest = digest;
+            }
+            WorthQueryPortableCanonicalQueryTestMutation::DuplicateProjection => record
+                .query
+                .projection
+                .push(record.query.projection[0].clone()),
+            WorthQueryPortableCanonicalQueryTestMutation::DuplicateResultField => record
+                .result_shape
+                .fields
+                .push(record.result_shape.fields[0].clone()),
+            WorthQueryPortableCanonicalQueryTestMutation::ReplaceFirstResultField(field) => {
+                record.result_shape.fields[0] = field;
+            }
+            WorthQueryPortableCanonicalQueryTestMutation::AliasSecondResultToFirst => {
+                record.result_shape.fields[1].delivered_name =
+                    record.result_shape.fields[0].delivered_name.clone();
+            }
+            WorthQueryPortableCanonicalQueryTestMutation::ResultShapeFamily(family) => {
+                record.result_shape.family = family;
+            }
+            WorthQueryPortableCanonicalQueryTestMutation::IncrementWarningCount => {
+                record.counters.canonicalization_warning_count += 1;
+            }
+            WorthQueryPortableCanonicalQueryTestMutation::FirstTraversalDepth(depth) => {
+                record.query.traversal[0].depth = depth;
+            }
+        }
+        record
     }
 }
 

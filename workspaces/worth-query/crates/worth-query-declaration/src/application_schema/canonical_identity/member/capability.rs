@@ -4,8 +4,6 @@ use crate::application_schema::canonical_basis::ApplicationSchemaCanonicalBasis;
 use crate::application_schema::canonical_capability_identity::append_capability_contract;
 use crate::application_schema::ApplicationSchemaMember;
 
-use super::super::APPLICATION_SCHEMA_DOMAIN;
-
 pub(super) fn append_capability_member(
     basis: &mut ApplicationSchemaCanonicalBasis,
     prefix: &str,
@@ -14,11 +12,11 @@ pub(super) fn append_capability_member(
     match member {
         ApplicationSchemaMember::ApplicationQuery { definition } => {
             basis.text(format!("{prefix}.kind"), "application-query");
-            basis.extend(definition.canonical_basis().embedded_entries(
-                APPLICATION_SCHEMA_DOMAIN,
+            basis.extend_embedded(
+                definition.canonical_basis().basis(),
                 &format!("{prefix}.query-meaning"),
                 CanonicalBasisEntryKind::Identity,
-            ));
+            );
         }
         ApplicationSchemaMember::ApplicationCapability { contract } => {
             basis.text(format!("{prefix}.kind"), "application-capability");

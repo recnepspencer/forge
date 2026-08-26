@@ -89,9 +89,10 @@ pub fn required_domain_workflow_workspace(
     );
     semantics.lowering.deterministic = true;
     semantics.replay = domain::WorthQueryOperationReplayContract::CertReplayable {
-        comparator: domain::WorthQueryOperationReplayComparatorContract {
-            family: "installed-workflow-exact-v1",
-        },
+        comparator: domain::WorthQueryOperationReplayComparatorContract::new(
+            "installed-workflow-exact-v1",
+        )
+        .expect("static replay comparator family is portable"),
     };
     semantics.workflow =
         domain::WorthQueryOperationWorkflowContract::Declared(workflow_definition(None));
@@ -352,9 +353,10 @@ pub(super) fn workflow_package_with_operation_conditionals(
     );
     semantics.lowering.deterministic = deterministic;
     semantics.replay = domain::WorthQueryOperationReplayContract::CertReplayable {
-        comparator: domain::WorthQueryOperationReplayComparatorContract {
-            family: "installed-workflow-exact-v1",
-        },
+        comparator: domain::WorthQueryOperationReplayComparatorContract::new(
+            "installed-workflow-exact-v1",
+        )
+        .expect("static replay comparator family is portable"),
     };
     semantics.workflow = domain::WorthQueryOperationWorkflowContract::Declared(workflow);
     semantics.conditional_nodes = conditional_nodes;

@@ -101,10 +101,10 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
         EqualityPredicate: EqualityCapable,
     {
         self.definition.predicates.push(ApplicationQueryPredicate {
-            entity: field.entity(),
-            aspect: field.aspect(),
-            field: field.field(),
-            parameter: parameter.name(),
+            entity: field.entity().to_owned(),
+            aspect: field.aspect().to_owned(),
+            field: field.field().to_owned(),
+            parameter: parameter.name().to_owned(),
             scalar_family: field.scalar_family(),
         });
         self
@@ -240,7 +240,9 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
         self.definition.predicates.sort();
         self.definition.root_paths.sort();
         self.definition.root_paths.dedup();
-        crate::application_query::validation::validate_definition(&self.definition)?;
+        let portable =
+            super::super::WorthQueryPortableApplicationQueryParts::project_typed(&self.definition);
+        crate::application_query::validate_portable_application_query_freshly(&portable)?;
         Ok(self.definition)
     }
 }

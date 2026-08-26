@@ -12,7 +12,7 @@ macro_rules! worth_query_application_query {
             $vis $Query in $Schema,
             identity stringify!($Query),
             parameters $Parameters => stringify!($Parameters),
-            result $Result => <$Result as $crate::facade::portable_identity::WorthQueryPortableType>::PORTABLE_TYPE_IDENTITY.as_str(),
+            result $Result => <$Result as $crate::facade::portable_identity::WorthQueryPortableType>::PORTABLE_TYPE_NAME,
             scope $Scope => stringify!($Scope),
             name $name
         );
@@ -35,14 +35,10 @@ macro_rules! worth_query_application_query {
             type Scope = $Scope;
 
             const IDENTIFIER: &'static str = $name;
-            const QUERY_TYPE_IDENTITY: $crate::facade::portable_identity::WorthQueryPortableTypeIdentity =
-                $crate::facade::portable_identity::WorthQueryPortableTypeIdentity::declared($query_identity);
-            const PARAMETER_TYPE_IDENTITY: $crate::facade::portable_identity::WorthQueryPortableTypeIdentity =
-                $crate::facade::portable_identity::WorthQueryPortableTypeIdentity::declared($parameter_identity);
-            const RESULT_TYPE_IDENTITY: $crate::facade::portable_identity::WorthQueryPortableTypeIdentity =
-                $crate::facade::portable_identity::WorthQueryPortableTypeIdentity::declared($result_identity);
-            const SCOPE_TYPE_IDENTITY: $crate::facade::portable_identity::WorthQueryPortableTypeIdentity =
-                $crate::facade::portable_identity::WorthQueryPortableTypeIdentity::declared($scope_identity);
+            const QUERY_TYPE_NAME: &'static str = $query_identity;
+            const PARAMETER_TYPE_NAME: &'static str = $parameter_identity;
+            const RESULT_TYPE_NAME: &'static str = $result_identity;
+            const SCOPE_TYPE_NAME: &'static str = $scope_identity;
         }
 
         impl $Query {

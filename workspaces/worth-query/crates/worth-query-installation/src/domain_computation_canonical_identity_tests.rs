@@ -19,6 +19,7 @@ fn typed_export_retains_the_exact_artifact_contract_record() {
     .validate()
     .unwrap();
     let export = package.export_typed_records().unwrap();
+    let expected = WorthQueryPortableArtifactContractRecord::project(&contract);
 
     assert_eq!(
         export
@@ -28,7 +29,7 @@ fn typed_export_retains_the_exact_artifact_contract_record() {
     );
     assert!(export.records().iter().any(|record| matches!(
         record,
-        WorthQueryPortablePackageRecord::ArtifactContract(exported) if exported == &contract
+        WorthQueryPortablePackageRecord::ArtifactContract(exported) if exported == &expected
     )));
 }
 

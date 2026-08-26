@@ -160,21 +160,21 @@ where
     }
 
     pub fn value_type(&self) -> &'static str {
-        Value::PORTABLE_TYPE_IDENTITY.as_str()
+        Value::PORTABLE_TYPE_NAME
     }
 
     pub fn query_type(&self) -> &'static str
     where
         Query: ApplicationQueryMarkerIdentity,
     {
-        Query::QUERY_TYPE_IDENTITY.as_str()
+        Query::QUERY_TYPE_NAME
     }
 
     pub fn slot_type(&self) -> &'static str
     where
         Slot: WorthQueryPortableType,
     {
-        Slot::PORTABLE_TYPE_IDENTITY.as_str()
+        Slot::PORTABLE_TYPE_NAME
     }
 
     pub fn slot_key(&self) -> ApplicationQueryResultSlotKey
@@ -255,21 +255,21 @@ where
     }
 
     pub fn value_type(&self) -> &'static str {
-        Value::PORTABLE_TYPE_IDENTITY.as_str()
+        Value::PORTABLE_TYPE_NAME
     }
 
     pub fn query_type(&self) -> &'static str
     where
         Query: ApplicationQueryMarkerIdentity,
     {
-        Query::QUERY_TYPE_IDENTITY.as_str()
+        Query::QUERY_TYPE_NAME
     }
 
     pub fn slot_type(&self) -> &'static str
     where
         Slot: WorthQueryPortableType,
     {
-        Slot::PORTABLE_TYPE_IDENTITY.as_str()
+        Slot::PORTABLE_TYPE_NAME
     }
 
     pub fn slot_key(&self) -> ApplicationQueryResultSlotKey

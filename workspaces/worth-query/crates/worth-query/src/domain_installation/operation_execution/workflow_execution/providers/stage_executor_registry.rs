@@ -261,7 +261,9 @@ impl WorthQueryPendingWorkflowStageExecutors {
             {
                 return Err("workflow executor cost contract disagrees with installed semantics");
             }
-            if registration.replay_comparator_family != descriptor.replay_comparator_family {
+            if registration.replay_comparator_family
+                != descriptor.replay_comparator_family.as_deref()
+            {
                 return Err("workflow replay comparator disagrees with installed semantics");
             }
             match (&registration.installed_read, descriptor.requires_installed_read) {

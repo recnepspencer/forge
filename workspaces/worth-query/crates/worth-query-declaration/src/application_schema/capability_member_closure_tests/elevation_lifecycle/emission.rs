@@ -5,7 +5,7 @@ use crate::application_capability::{
 };
 use crate::application_schema::{
     ApplicationEffectMarkerIdentity, ApplicationEffectRef, ApplicationOperationMarkerIdentity,
-    ApplicationOperationProgramTarget, OperationEmits,
+    ApplicationOperationProgramTarget, OperationEmits, WorthQueryPortableApplicationSchemaRecord,
 };
 
 pub(crate) struct ActivityEffect;
@@ -126,6 +126,75 @@ fn bound_lifecycle_effect_derives_only_from_the_typed_input() {
     assert_eq!(derived.payload_type(), "worth.rust.string");
     assert!(binding
         .derive_from_retained_input(&1_u64 as &dyn std::any::Any)
+        .is_none());
+}
+
+#[test]
+fn portable_lifecycle_effect_retains_meaning_without_retaining_derivation() {
+    let typed = lifecycle_contract(EffectPosture::Derived, ResourceRelationPosture::Governed);
+    let portable_parts = typed.parts();
+    let reconstructed =
+        ErasedApplicationCapabilityContract::from_untrusted_parts(portable_parts.clone());
+    let typed_transition = typed
+        .elevation()
+        .definition()
+        .unwrap()
+        .lifecycle()
+        .request();
+    let reconstructed_transition = reconstructed
+        .elevation()
+        .definition()
+        .unwrap()
+        .lifecycle()
+        .request();
+
+    assert_eq!(reconstructed, typed);
+    assert_eq!(reconstructed.parts(), portable_parts);
+    assert!(typed_transition
+        .lifecycle_effect()
+        .unwrap()
+        .derive_from_retained_input(&() as &dyn std::any::Any)
+        .is_some());
+    assert!(reconstructed_transition
+        .lifecycle_effect()
+        .unwrap()
+        .derive_from_retained_input(&() as &dyn std::any::Any)
+        .is_none());
+}
+
+#[test]
+fn portable_schema_carriage_strips_the_live_lifecycle_recipe() {
+    let record = WorthQueryPortableApplicationSchemaRecord::from_untrusted_parts(
+        super::super::super::WorthQueryPortableApplicationSchemaParts {
+            owner: "WORTH.tests".to_owned(),
+            name: "callback-free-capability".to_owned(),
+            major: 1,
+            minor: 0,
+            members: vec![ApplicationSchemaMember::ApplicationCapability {
+                contract: lifecycle_contract(
+                    EffectPosture::Derived,
+                    ResourceRelationPosture::Governed,
+                ),
+            }],
+        },
+    );
+    let binding = record
+        .members()
+        .iter()
+        .find_map(|member| {
+            let ApplicationSchemaMember::ApplicationCapability { contract } = member else {
+                return None;
+            };
+            contract
+                .elevation()
+                .definition()
+                .and_then(|elevation| elevation.lifecycle().request().lifecycle_effect())
+        })
+        .expect("portable schema retains descriptive lifecycle-effect meaning");
+
+    assert_eq!(binding.effect(), "ActivityEffect");
+    assert!(binding
+        .derive_from_retained_input(&() as &dyn std::any::Any)
         .is_none());
 }
 

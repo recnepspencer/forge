@@ -3,30 +3,33 @@ use crate::canonical_hash_encoding::CanonicalHashSink;
 use crate::canonical_hash_encoding::hash_text_field;
 use crate::domain_computation::*;
 
-use super::super::WorthQueryPortableArtifactContract;
 use super::vocabulary::*;
+use super::WorthQueryArtifactContractCanonicalSemantics;
 
 pub(super) fn hash_occurrence_and_evidence(
     hash: &mut impl CanonicalHashSink,
-    contract: &WorthQueryPortableArtifactContract,
+    contract: &impl WorthQueryArtifactContractCanonicalSemantics,
 ) {
     hash_text_field(
         hash,
         "occurrence-policy",
-        occurrence_policy(contract.occurrence.identity_policy()),
+        occurrence_policy(contract.occurrence().identity_policy()),
     );
-    for purpose in contract.occurrence.permitted_substitutions() {
+    for purpose in contract.occurrence().permitted_substitutions() {
         hash_text_field(hash, "substitution-purpose", substitution(*purpose));
     }
     for (label, value) in [
-        ("basis-family", contract.evidence.basis_family()),
-        ("provenance-family", contract.evidence.provenance_family()),
-        ("dependency-family", contract.evidence.dependency_family()),
+        ("basis-family", contract.evidence().basis_family()),
+        ("provenance-family", contract.evidence().provenance_family()),
+        ("dependency-family", contract.evidence().dependency_family()),
         (
             "invalidation-family",
-            contract.evidence.invalidation_family(),
+            contract.evidence().invalidation_family(),
         ),
-        ("equivalence-family", contract.evidence.equivalence_family()),
+        (
+            "equivalence-family",
+            contract.evidence().equivalence_family(),
+        ),
     ] {
         hash_text_field(hash, label, value);
     }

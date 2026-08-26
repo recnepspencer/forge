@@ -20,7 +20,7 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
             members,
             self.portable_native_contracts.as_ref(),
             &self.operation,
-            *self.portable_contract.input_type(),
+            self.portable_contract.input_type().clone(),
         ) else {
             return false;
         };

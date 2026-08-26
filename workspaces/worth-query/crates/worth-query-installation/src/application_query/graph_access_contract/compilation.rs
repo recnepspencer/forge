@@ -130,15 +130,15 @@ fn install_ordering(
     WorthQueryInstalledGraphOrdering {
         result_path: projection.result_path.to_string(),
         collection_path: parent_path(&projection.result_path).to_string(),
-        query_type: projection.query_type,
-        slot_type: projection.slot_type,
+        query_type: projection.query_type.clone(),
+        slot_type: projection.slot_type.clone(),
         entity: projection.entity.clone(),
         aspect: projection.aspect.clone(),
         field: projection.field.clone(),
         output_name: projection.output_name.clone(),
         direction: term.direction(),
         scalar_family: projection.scalar_family,
-        value_type: projection.value_type,
+        value_type: projection.value_type.clone(),
     }
 }
 

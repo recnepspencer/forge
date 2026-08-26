@@ -5,9 +5,10 @@ use crate::{
     application_query::{
         ApplicationQueryBasisSupport, ApplicationQueryCardinality,
         ApplicationQueryDefinitionBuilder, ApplicationQueryDependencyCeiling,
-        ApplicationQueryDisclosureContract, ApplicationQueryLaneEligibility,
-        ApplicationQueryResultFieldRef, ApplicationQueryResultShapeBuilder,
-        ErasedApplicationQueryDefinition,
+        ApplicationQueryDisclosureContract, ApplicationQueryDisclosurePosture,
+        ApplicationQueryLaneEligibility, ApplicationQueryResultFieldRef,
+        ApplicationQueryResultShapeBuilder, ErasedApplicationQueryDefinition,
+        WorthQueryPortableApplicationQueryDisclosureParts,
     },
     application_schema::{
         ApplicationAbilityRef, ApplicationEntityRef, ApplicationFieldRef,
@@ -103,6 +104,30 @@ fn governed_query_requires_its_exact_installed_ability_and_policy() {
         },
     );
     assert_eq!(validate_application_query_members(&ability_only), Ok(()));
+}
+
+#[test]
+fn governed_disclosure_requires_its_exact_installed_capability() {
+    let mut parts = query("AccountId", "id").into_parts();
+    parts.disclosure = ApplicationQueryDisclosureContract::from_untrusted_parts(
+        WorthQueryPortableApplicationQueryDisclosureParts {
+            posture: ApplicationQueryDisclosurePosture::Governed,
+            classification: "restricted".to_owned(),
+            capability_name: Some("ReadRestricted".to_owned()),
+            capability_type: Some(
+                crate::portable_identity::WorthQueryPortableTypeIdentity::from_untrusted(
+                    "worth.query.test.read-restricted-capability.v1".to_owned(),
+                ),
+            ),
+            rules: Vec::new(),
+        },
+    );
+    let reconstructed = ErasedApplicationQueryDefinition::from_untrusted_parts(parts);
+
+    assert_eq!(
+        validate_application_query_members(&members(reconstructed)),
+        Err(ApplicationSchemaDeclarationDenial::MissingApplicationQueryDependency)
+    );
 }
 
 fn members(definition: ErasedApplicationQueryDefinition) -> Vec<ApplicationSchemaMember> {

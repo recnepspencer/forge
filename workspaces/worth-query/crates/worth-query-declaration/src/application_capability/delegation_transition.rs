@@ -10,6 +10,12 @@ use super::{
     ApplicationCapabilityValueBinding, ErasedApplicationCapabilityEntitySelector,
 };
 
+mod portable_parts;
+pub use portable_parts::{
+    WorthQueryPortableApplicationCapabilityDelegationActivationParts,
+    WorthQueryPortableApplicationCapabilityRevocationParts,
+};
+
 const MAXIMUM_ACTIVATION_CONTEXT_RELATIONS: usize = 16;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]

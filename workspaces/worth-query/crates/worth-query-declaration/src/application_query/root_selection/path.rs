@@ -15,59 +15,90 @@ pub enum ApplicationQueryRootPathDirection {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationQueryRootPathStep {
-    relation: &'static str,
-    from: &'static str,
-    to: &'static str,
+    relation: String,
+    from: String,
+    to: String,
     direction: ApplicationQueryRootPathDirection,
 }
 
 impl ApplicationQueryRootPathStep {
-    pub const fn relation(&self) -> &'static str {
-        self.relation
+    pub fn from_untrusted_fields(
+        relation: String,
+        from: String,
+        to: String,
+        direction: ApplicationQueryRootPathDirection,
+    ) -> Self {
+        Self {
+            relation,
+            from,
+            to,
+            direction,
+        }
     }
 
-    pub const fn from(&self) -> &'static str {
-        self.from
+    pub fn relation(&self) -> &str {
+        &self.relation
     }
 
-    pub const fn to(&self) -> &'static str {
-        self.to
+    pub fn from(&self) -> &str {
+        &self.from
+    }
+
+    pub fn to(&self) -> &str {
+        &self.to
     }
 
     pub const fn direction(&self) -> ApplicationQueryRootPathDirection {
         self.direction
     }
 
-    pub const fn parent_entity(&self) -> &'static str {
+    pub fn parent_entity(&self) -> &str {
         match self.direction {
-            ApplicationQueryRootPathDirection::Forward => self.from,
-            ApplicationQueryRootPathDirection::Reverse => self.to,
+            ApplicationQueryRootPathDirection::Forward => &self.from,
+            ApplicationQueryRootPathDirection::Reverse => &self.to,
         }
     }
 
-    pub const fn child_entity(&self) -> &'static str {
+    pub fn child_entity(&self) -> &str {
         match self.direction {
-            ApplicationQueryRootPathDirection::Forward => self.to,
-            ApplicationQueryRootPathDirection::Reverse => self.from,
+            ApplicationQueryRootPathDirection::Forward => &self.to,
+            ApplicationQueryRootPathDirection::Reverse => &self.from,
         }
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationQueryRootPathMeaning {
-    start_entity: &'static str,
-    terminal_entity: &'static str,
+    start_entity: String,
+    terminal_entity: String,
     steps: Vec<ApplicationQueryRootPathStep>,
     guards: Vec<ApplicationQueryRootPathGuard>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryPortableApplicationQueryRootPathParts {
+    pub start_entity: String,
+    pub terminal_entity: String,
+    pub steps: Vec<ApplicationQueryRootPathStep>,
+    pub guards: Vec<ApplicationQueryRootPathGuard>,
+}
+
 impl ApplicationQueryRootPathMeaning {
-    pub const fn start_entity(&self) -> &'static str {
-        self.start_entity
+    pub fn from_untrusted_parts(parts: WorthQueryPortableApplicationQueryRootPathParts) -> Self {
+        Self {
+            start_entity: parts.start_entity,
+            terminal_entity: parts.terminal_entity,
+            steps: parts.steps,
+            guards: parts.guards,
+        }
     }
 
-    pub const fn terminal_entity(&self) -> &'static str {
-        self.terminal_entity
+    pub fn start_entity(&self) -> &str {
+        &self.start_entity
+    }
+
+    pub fn terminal_entity(&self) -> &str {
+        &self.terminal_entity
     }
 
     pub fn steps(&self) -> &[ApplicationQueryRootPathStep] {
@@ -105,9 +136,9 @@ impl<Schema, Start, Current> ApplicationQueryRootPath<Schema, Start, Current> {
         relation: ApplicationRelationRef<Schema, Relation, Current, Next>,
     ) -> ApplicationQueryRootPath<Schema, Start, Next> {
         self.steps.push(ApplicationQueryRootPathStep {
-            relation: relation.name(),
-            from: relation.from(),
-            to: relation.to(),
+            relation: relation.name().to_owned(),
+            from: relation.from().to_owned(),
+            to: relation.to().to_owned(),
             direction: ApplicationQueryRootPathDirection::Forward,
         });
         ApplicationQueryRootPath {
@@ -124,9 +155,9 @@ impl<Schema, Start, Current> ApplicationQueryRootPath<Schema, Start, Current> {
         relation: ApplicationRelationRef<Schema, Relation, Previous, Current>,
     ) -> ApplicationQueryRootPath<Schema, Start, Previous> {
         self.steps.push(ApplicationQueryRootPathStep {
-            relation: relation.name(),
-            from: relation.from(),
-            to: relation.to(),
+            relation: relation.name().to_owned(),
+            from: relation.from().to_owned(),
+            to: relation.to().to_owned(),
             direction: ApplicationQueryRootPathDirection::Reverse,
         });
         ApplicationQueryRootPath {
@@ -168,8 +199,8 @@ impl<Schema, Start, Current> ApplicationQueryRootPath<Schema, Start, Current> {
 
     pub(crate) fn into_meaning(self) -> ApplicationQueryRootPathMeaning {
         ApplicationQueryRootPathMeaning {
-            start_entity: self.start_entity,
-            terminal_entity: self.current_entity,
+            start_entity: self.start_entity.to_owned(),
+            terminal_entity: self.current_entity.to_owned(),
             steps: self.steps,
             guards: self.guards,
         }

@@ -78,6 +78,8 @@ mod elevation_lifecycle;
 mod fixture_members;
 #[path = "capability_member_closure_tests/population_budget.rs"]
 mod population_budget;
+#[path = "capability_member_closure_tests/portable_reconstruction.rs"]
+mod portable_reconstruction;
 
 use fixture_members::{field_member, members, relation_member};
 

@@ -26,10 +26,10 @@ impl DeclaredApplicationMemberMarker {
     fn matches<Marker: 'static, Value: 'static>(
         &self,
         name: &str,
-        value_identity: WorthQueryPortableTypeIdentity,
+        value_identity: &WorthQueryPortableTypeIdentity,
     ) -> bool {
         self.name == name
-            && self.value_identity == value_identity
+            && &self.value_identity == value_identity
             && self.marker_type == TypeId::of::<Marker>()
             && self.value_type == TypeId::of::<Value>()
     }
@@ -90,7 +90,7 @@ impl ApplicationSchemaMemberProvenance {
     pub fn admits_operation<Operation: 'static, Input: 'static>(
         &self,
         name: &str,
-        input_identity: WorthQueryPortableTypeIdentity,
+        input_identity: &WorthQueryPortableTypeIdentity,
     ) -> bool {
         self.operations
             .iter()
@@ -101,7 +101,7 @@ impl ApplicationSchemaMemberProvenance {
     pub fn admits_effect<Effect: 'static, Payload: 'static>(
         &self,
         name: &str,
-        payload_identity: WorthQueryPortableTypeIdentity,
+        payload_identity: &WorthQueryPortableTypeIdentity,
     ) -> bool {
         self.effects
             .iter()

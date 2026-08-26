@@ -24,7 +24,15 @@ pub struct ApplicationCapabilityLifecycleEffectBinding {
     effect: String,
     effect_type: String,
     payload_type: WorthQueryPortableTypeIdentity,
-    derive: fn(&dyn Any) -> Option<DerivedApplicationCapabilityLifecycleEffect>,
+    derive: Option<fn(&dyn Any) -> Option<DerivedApplicationCapabilityLifecycleEffect>>,
+}
+
+/// Callback-free lifecycle-effect meaning retained by a portable package.
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub struct WorthQueryPortableApplicationCapabilityLifecycleEffectParts {
+    pub effect: String,
+    pub effect_type: String,
+    pub payload_type: WorthQueryPortableTypeIdentity,
 }
 
 impl ApplicationCapabilityLifecycleEffectBinding {
@@ -36,7 +44,7 @@ impl ApplicationCapabilityLifecycleEffectBinding {
             effect: Input::effect().name().to_string(),
             effect_type: Input::effect().name().to_string(),
             payload_type: Input::Payload::PORTABLE_TYPE_IDENTITY,
-            derive: derive_from_input::<Schema, Operation, Input>,
+            derive: Some(derive_from_input::<Schema, Operation, Input>),
         }
     }
 
@@ -52,17 +60,36 @@ impl ApplicationCapabilityLifecycleEffectBinding {
         self.payload_type.as_str()
     }
 
+    pub fn from_untrusted_parts(
+        parts: WorthQueryPortableApplicationCapabilityLifecycleEffectParts,
+    ) -> Self {
+        Self {
+            effect: parts.effect,
+            effect_type: parts.effect_type,
+            payload_type: parts.payload_type,
+            derive: None,
+        }
+    }
+
+    pub fn parts(&self) -> WorthQueryPortableApplicationCapabilityLifecycleEffectParts {
+        WorthQueryPortableApplicationCapabilityLifecycleEffectParts {
+            effect: self.effect.clone(),
+            effect_type: self.effect_type.clone(),
+            payload_type: self.payload_type.clone(),
+        }
+    }
+
     pub(crate) fn derive_from_retained_input(
         &self,
         input: &dyn Any,
     ) -> Option<DerivedApplicationCapabilityLifecycleEffect> {
-        (self.derive)(input).filter(|derived| {
+        (self.derive?)(input).filter(|derived| {
             derived.effect() == self.effect && derived.payload_type() == self.payload_type.as_str()
         })
     }
 
-    fn meaning(&self) -> (&str, &str, WorthQueryPortableTypeIdentity) {
-        (&self.effect, &self.effect_type, self.payload_type)
+    fn meaning(&self) -> (&str, &str, &WorthQueryPortableTypeIdentity) {
+        (&self.effect, &self.effect_type, &self.payload_type)
     }
 }
 
@@ -113,12 +140,12 @@ impl DerivedApplicationCapabilityLifecycleEffect {
         self.effect
     }
 
-    pub fn payload_type(&self) -> &'static str {
+    pub fn payload_type(&self) -> &str {
         self.payload_type.as_str()
     }
 
-    pub const fn payload_identity(&self) -> WorthQueryPortableTypeIdentity {
-        self.payload_type
+    pub fn payload_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.payload_type.clone()
     }
 
     pub fn payload_type_id(&self) -> TypeId {

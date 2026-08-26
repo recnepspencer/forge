@@ -3,14 +3,14 @@ use crate::canonical_hash_encoding::CanonicalHashSink;
 use crate::canonical_hash_encoding::hash_text_field;
 use crate::domain_computation::*;
 
-use super::super::WorthQueryPortableArtifactContract;
 use super::vocabulary::*;
+use super::WorthQueryArtifactContractCanonicalSemantics;
 
 pub(super) fn hash_carriage(
     hash: &mut impl CanonicalHashSink,
-    contract: &WorthQueryPortableArtifactContract,
+    contract: &impl WorthQueryArtifactContractCanonicalSemantics,
 ) {
-    let carriage = contract.carriage;
+    let carriage = contract.carriage();
     hash_text_field(hash, "movement", move_name(carriage.movement()));
     hash_text_field(hash, "borrowing", borrow_name(carriage.borrowing()));
     let clone_posture = carriage.clone_posture();
@@ -33,8 +33,8 @@ pub(super) fn hash_carriage(
         "serialization",
         serialization_name(carriage.serialization()),
     );
-    hash_text_field(hash, "lifecycle", lifecycle_name(contract.lifecycle));
-    for counter in contract.counters.rows() {
+    hash_text_field(hash, "lifecycle", lifecycle_name(contract.lifecycle()));
+    for counter in contract.counters().rows() {
         hash_text_field(hash, "counter-name", counter.name().as_str());
         hash_text_field(hash, "counter-role", counter_role_name(counter.role()));
         hash_text_field(hash, "counter-unit", &counter_unit_name(counter.unit()));
@@ -145,35 +145,35 @@ fn counter_replay_name(value: WorthQueryStructuralCounterReplayPosture) -> &'sta
 
 pub(super) fn hash_governance(
     hash: &mut impl CanonicalHashSink,
-    contract: &WorthQueryPortableArtifactContract,
+    contract: &impl WorthQueryArtifactContractCanonicalSemantics,
 ) {
-    for audience in contract.governance.audiences() {
+    for audience in contract.governance().audiences() {
         hash_text_field(hash, "audience", audience);
     }
     hash_text_field(
         hash,
         "classification",
-        classification_name(contract.governance.classification()),
+        classification_name(contract.governance().classification()),
     );
     hash_text_field(
         hash,
         "redaction",
-        redaction_name(contract.governance.redaction()),
+        redaction_name(contract.governance().redaction()),
     );
     hash_text_field(
         hash,
         "retention",
-        retention_name(contract.governance.retention()),
+        retention_name(contract.governance().retention()),
     );
     hash_text_field(
         hash,
         "deletion",
-        deletion_name(contract.governance.deletion()),
+        deletion_name(contract.governance().deletion()),
     );
     hash_text_field(
         hash,
         "legal-hold",
-        legal_hold_name(contract.governance.legal_hold()),
+        legal_hold_name(contract.governance().legal_hold()),
     );
 }
 

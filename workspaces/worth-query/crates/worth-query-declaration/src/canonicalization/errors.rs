@@ -3,6 +3,7 @@ use crate::authoring::{QueryFamily, ResultShapeFamily};
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CanonicalizationFailureClass {
     AuthoringAdmission,
+    PortableReadmission,
     CompatibilityRejection,
     BindingRejection,
     InternalInvariantBreak,
@@ -22,6 +23,14 @@ pub enum QueryCanonicalizationError {
     EmptyResultFieldSource,
     EmptyDeliveredFieldName,
     EmptyResultShapeFieldSet,
+    PortableRecordEntryBudgetExceeded {
+        observed: u64,
+        maximum: u32,
+    },
+    PortableRecordLogicalBytesBudgetExceeded {
+        observed: u64,
+        maximum: u64,
+    },
     QueryShapeFamilyMismatch {
         query_family: QueryFamily,
         result_shape_family: ResultShapeFamily,
@@ -64,6 +73,10 @@ impl QueryCanonicalizationError {
             | Self::EmptyResultFieldSource
             | Self::EmptyDeliveredFieldName
             | Self::EmptyResultShapeFieldSet => CanonicalizationFailureClass::AuthoringAdmission,
+            Self::PortableRecordEntryBudgetExceeded { .. }
+            | Self::PortableRecordLogicalBytesBudgetExceeded { .. } => {
+                CanonicalizationFailureClass::PortableReadmission
+            }
             Self::QueryShapeFamilyMismatch { .. }
             | Self::UnprojectedShapeField { .. }
             | Self::AmbiguousShapeAliasIdentity { .. } => {

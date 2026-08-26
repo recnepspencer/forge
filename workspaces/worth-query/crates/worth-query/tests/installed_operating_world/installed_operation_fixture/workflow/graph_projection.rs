@@ -171,9 +171,10 @@ fn workflow_graph_projection_package() -> domain::WorthQueryDomainPackage<Geomet
     semantics.workflow = domain::WorthQueryOperationWorkflowContract::Declared(workflow);
     semantics.cost.execution = domain::WorthQueryOperationCostClass::ExternalBoundary;
     semantics.replay = domain::WorthQueryOperationReplayContract::CertReplayable {
-        comparator: domain::WorthQueryOperationReplayComparatorContract {
-            family: "installed-workflow-exact-v1",
-        },
+        comparator: domain::WorthQueryOperationReplayComparatorContract::new(
+            "installed-workflow-exact-v1",
+        )
+        .expect("static replay comparator family is portable"),
     };
     let operation = domain::WorthQueryDomainOperationDefinition::<
         GeometryDomain,

@@ -7,6 +7,12 @@ use super::{
 };
 use super::{ApplicationCapabilityLifecycleEffect, ApplicationCapabilityLifecycleEffectBinding};
 
+mod portable_parts;
+pub use portable_parts::{
+    WorthQueryPortableApplicationCapabilityElevationLifecycleParts,
+    WorthQueryPortableApplicationCapabilityTransitionBindingParts,
+};
+
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationCapabilityTransitionBinding {
     capability: String,
@@ -58,8 +64,8 @@ impl ApplicationCapabilityTransitionBinding {
         self.capability_type.as_str()
     }
 
-    pub const fn capability_identity(&self) -> WorthQueryPortableTypeIdentity {
-        self.capability_type
+    pub fn capability_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.capability_type.clone()
     }
 
     pub const fn operation(&self) -> &ApplicationCapabilityOperationBinding {

@@ -1,0 +1,5 @@
+pub const WORTH_QUERY_PACKAGE_RELEASE_ENVELOPE_PROTOCOL_VERSION: u16 = 1;
+
+pub(crate) const ENVELOPE_MAGIC: [u8; 8] = *b"WQPKGEN\0";
+pub(crate) const ENVELOPE_FIXED_HEADER_BYTES: u64 = 8 + 2 + 8;
+pub(crate) const SIGNATURE_LENGTH_BYTES: u64 = 4;

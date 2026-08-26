@@ -235,7 +235,7 @@ impl AftermathInstall {
             members.push(ApplicationSchemaMember::OperationExternalEffect {
                 operation: self.operation_slot.to_owned(),
                 effect: "EscapingEffect".to_owned(),
-                rust_payload_type: external_effect.rust_payload_type,
+                rust_payload_type: external_effect.rust_payload_type.clone(),
                 protocol: external_effect.protocol.clone(),
                 maximum_payload_bytes: 64,
                 correlation_family: WorthQueryExternalEffectCorrelationFamily::new("escaped-rail")

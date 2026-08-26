@@ -81,8 +81,14 @@ struct IdentityIdSlot;
 struct ActivitySlot;
 struct ActivitySequenceSlot;
 
+worth_query_declaration::worth_query_portable_type!(ActivityResult => "worth.query.test.runtime.application-query-equivalence.activity-result.v1");
+worth_query_declaration::worth_query_portable_type!(AccountIdSlot => "worth.query.test.runtime.application-query-equivalence.account-id-slot.v1");
+worth_query_declaration::worth_query_portable_type!(IdentityIdSlot => "worth.query.test.runtime.application-query-equivalence.identity-id-slot.v1");
+worth_query_declaration::worth_query_portable_type!(ActivitySlot => "worth.query.test.runtime.application-query-equivalence.activity-slot.v1");
+worth_query_declaration::worth_query_portable_type!(ActivitySequenceSlot => "worth.query.test.runtime.application-query-equivalence.activity-sequence-slot.v1");
+
 worth_query_application_query!(
-    pub ActivityQuery in EquivalenceSchema,
+    pub(super) ActivityQuery in EquivalenceSchema,
     parameters ActivityParameters,
     result ActivityResult,
     scope Account,

@@ -21,6 +21,27 @@ impl CanonicalQueryBundle {
 }
 
 impl WorthQueryPortableCanonicalQueryBundleRecord {
+    /// Aggregate retained list entries that reconstruction must traverse.
+    pub fn portable_record_nested_entries(&self) -> u64 {
+        let query = self.query();
+        let result = self.result_shape();
+        [
+            query.projection().len(),
+            query.predicates().len(),
+            query.ordering().len(),
+            query.traversal().len(),
+            query.identity_bindings().len(),
+            result.fields().len(),
+            self.report().warnings().len(),
+            self.report().events().len(),
+        ]
+        .into_iter()
+        .try_fold(0_u64, |total, count| {
+            total.checked_add(u64::try_from(count).unwrap_or(u64::MAX))
+        })
+        .unwrap_or(u64::MAX)
+    }
+
     /// Stable logical width of this authority-free descriptive projection.
     pub fn portable_record_logical_bytes(&self) -> u64 {
         let query = self.query();

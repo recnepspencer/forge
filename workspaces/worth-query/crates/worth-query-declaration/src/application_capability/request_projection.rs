@@ -187,14 +187,12 @@ impl<Schema, Context> ApplicationCapabilityRequestContext<Schema, Context> {
         self.context
     }
 
-    pub const fn context_type(&self) -> &'static str {
+    pub const fn context_type(&self) -> &str {
         self.context_identity.as_str()
     }
 
-    pub const fn context_identity(
-        &self,
-    ) -> crate::portable_identity::WorthQueryPortableTypeIdentity {
-        self.context_identity
+    pub fn context_identity(&self) -> crate::portable_identity::WorthQueryPortableTypeIdentity {
+        self.context_identity.clone()
     }
 
     pub fn entities(&self) -> &[ApplicationCapabilityContextEntitySelector] {

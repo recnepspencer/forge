@@ -16,11 +16,8 @@ on:
 - genuine Relational branch-local MVCC in which observation, transaction,
   conflict, publication, history, and retention authority are qualified by one
   exact branch reference and unrelated branches make concurrent progress;
-- PostgreSQL durability and fresh-process recovery qualified by the same exact
-  Relational branch axes; and
-- a Signal-owned versioned durable artifact/recovery port with its
-  `worth-runtime-postgres` implementation, so exact Signal bases required by a
-  future composite commit survive restart.
+- explicit in-memory residency and bounded retention for every live owner basis,
+  transaction, snapshot, and branch root.
 
 MVCC is the primary deliverable. The certification world ships first because
 the implementation must not author its own oracle after its mechanics are
@@ -40,12 +37,10 @@ writer deliberately blocked on another branch cannot prevent that lifecycle.
 [Milestone 9.17](./milestone-9.17.md) is the governing umbrella. Milestone
 9.16.1 carries typed branch affinity through Query's provider-session
 progression, but intentionally stops before multiple live heads, owner-local
-MVCC, and exact Relational-plus-Signal component composition. Milestone 9.16.2 is
-closed before this work begins; its package records and PostgreSQL ordinary
-durability foundation is inherited. This milestone extends its populated owner
-topology rather than moving the facade: Relational persistence becomes branch-
-qualified and Signal gains its owner-defined adapter. Package records, SQL rows,
-recovered snapshots, and dispatch leases carry no component authority.
+MVCC, and exact Relational-plus-Signal component composition. Milestone 9.16.2
+is closed before this work begins; its package identity and fresh-readmission
+contracts are inherited. Package records and reconstructed definitions carry no
+component authority.
 
 9.17.1 supplies the owner facts:
 
@@ -136,9 +131,9 @@ reference state, replace the broad transaction borrow with independently
 borrowable owner services, and make branch-reference movement the only
 Relational currentness transition.
 
-The existing 9.16.2 PostgreSQL backend must be branch-qualified with the same
-owner axes. A global durable stream selected outside the Relational owner would
-reintroduce the exact global-currentness assumption this milestone removes.
+This milestone adds no persistence backend. Relational's branch axes must remain
+semantic owner facts so Worth Store can later persist them without discovering
+or redefining currentness inside a physical adapter.
 
 ### Signal
 
@@ -155,10 +150,9 @@ identity, reference observation, fork comparison, basis, and readmission
 surfaces over the same Foundational grammar used by Relational. Its private
 numeric keys and graph storage may remain private implementation details.
 
-Signal must additionally own a versioned durable component artifact and bounded
-fresh-process recovery/readmission contract. PostgreSQL stores that artifact
-through the committed `worth-runtime-postgres::owner::signal` sibling; neither
-the adapter nor Runtime Bridge may reinterpret Signal state.
+Signal state remains memory-resident. Its exact basis and owner readmission
+surface must be sufficient for Runtime Bridge composition without introducing
+a serialized component artifact in this milestone.
 
 ### Shared substrates
 
@@ -436,12 +430,6 @@ isolation.
    baseline, shared ancestry, and every still-pinned observation remain valid.
 
 The same court includes:
-- the process is killed after either owner reports durable publication, all
-  process-local bases are destroyed, and a fresh runtime reopens both exact
-  component branches from PostgreSQL; and
-- a Relational branch is recovered from another branch's checkpoint/tail or a
-  Signal artifact is substituted across definition/runtime generation.
-
 - `A1` and `B1` with equal branch-local version numbers and unequal authority;
 - a branch-A id paired with branch-B reference generation, commit, snapshot,
   schema basis, owner id, or retention lease;
@@ -495,10 +483,8 @@ They must prove:
 - Signal reuse performs zero owner work after the initial admitted basis is
   shared;
 - each committed basis traces to one performed owner publication;
-- acknowledged owner publications survive fresh-process PostgreSQL recovery
-  without collapsing branch, runtime, or definition identity; and
-- every recovered Relational or Signal descriptor requires fresh owner
-  readmission before operational use.
+- every Relational or Signal descriptor crossing an authority boundary requires
+  fresh owner readmission before operational use.
 
 Any of these implementations must fail the court:
 
@@ -969,16 +955,13 @@ Shrinking may reduce the trace but must replay through production facades and
 the independent oracle. Fixture installation cost is measured separately and
 cannot be charged to branch fork, transaction, publication, or reclamation.
 
-### 19. Owner durability and fresh authority
+### 19. Memory residency and future physical boundaries
 
-Relational durable streams, checkpoints, replay tails, and recovery cursors
-are qualified by exact runtime and branch; the PostgreSQL adapter cannot choose
-or infer a branch head. Signal owns its durable artifact format, compatibility,
-bounded decode, and recovery validation; PostgreSQL stores exact artifacts and
-physical indexes only. Acknowledged owner publication means that owner's
-canonical artifact is durable before success. Recovery creates fresh owner
-authority, while stored descriptors and snapshots remain non-authoritative
-until owner readmission.
+Every live branch root, snapshot, transaction, prepared candidate, Signal basis,
+and retention obligation has a bounded owner-managed in-memory lifecycle. This
+milestone defines no serialized owner artifact, backend port, checkpoint
+contract, or restart guarantee. Worth Store later consumes exact owner bases and
+performed publications but cannot choose or infer branch currentness.
 
 ## Compiler-Enforced Progression
 
@@ -1683,43 +1666,36 @@ publication door remains.
 
 Install typed head, observation, transaction, candidate, and external-pin
 obligations. Implement archive, delete, cancellation/timeout, and maintenance-
-lane reclamation at the exact linearization boundary. Extend the inherited
-9.16.2 PostgreSQL owner topology with exact runtime-and-branch-qualified
-Relational streams, checkpoints, replay tails, and recovery cursors. The
-adapter stores owner artifacts but never selects or infers a branch head.
+lane reclamation at the exact linearization boundary. Keep every retained root,
+candidate, and obligation explicitly bounded in memory; introduce no backend or
+serialized owner artifact.
 
 Exit proof: every terminal path restores or transfers obligations once;
 retained shared ancestors survive branch deletion; only unique unretained
 regions become reclaimable; post-linearization cancellation returns performed;
 no ordinary path scans history to reclaim; and acknowledged Relational
-publication survives fresh-process owner-first recovery without allowing a
-foreign branch checkpoint/tail to substitute.
+publication remains available through its live owner basis without allowing a
+foreign branch descriptor to substitute.
 
 ### Phase 11: Cut Signal Over To The Shared Reference Vocabulary
 
 Adapt Signal's branch catalog, basis artifact, fork/restore, targeted
 transactions, retention, and public facade to the same Foundational reference
-grammar while retaining Signal-owned live authority. Define the versioned,
-bounded Signal durable component artifact and recovery/readmission contract,
-and populate `worth-runtime-postgres::owner::signal` without allowing the
-adapter to reinterpret Signal state.
+grammar while retaining Signal-owned live authority and bounded in-memory
+residency.
 
 Exit proof: Signal has one engine and one head truth source; admitted basis
 sharing performs no graph work; owner and definition substitutions remain
-distinct; the parallel public tuple/basis dialect is absent; acknowledged
-Signal publication survives fresh-process recovery; and restored artifacts
-remain non-authoritative until Signal owner readmission.
+distinct; the parallel public tuple/basis dialect is absent; and a weakened
+descriptor remains non-authoritative until Signal owner readmission.
 
 ### Phase 12: Verify Supply Chain MVCC Semantics And Cost
 
 Run causal-baseline, semantic-isolation, ancestry, independent-progress,
 same-reference, atomicity, retention, cancellation, seeded-model, structural-
 sharing, and cost-slope cases at their declared profiles. Run required
-compiler-boundary checks. The durability lane kills the process
-after acknowledged owner publication, destroys process-local authority, and
-reopens both exact component branches through the production PostgreSQL owner
-adapters. Cross-branch Relational checkpoint/tail and cross-definition/runtime
-Signal artifact substitutions are required red controls.
+compiler-boundary checks. Cross-branch Relational descriptors and cross-
+definition/runtime Signal basis substitutions are required red controls.
 
 Exit proof: production observations match the independent oracle for every
 accepted delta trace; branch-local differences and shared history are both
@@ -1748,16 +1724,16 @@ oracle authority rules.
   truth bytes, and zero copied commit envelopes, independent of world size.
 - Preparation: O(read footprint + write footprint + touched invariant/schema
   work), independent of unrelated branches and total history.
-- Publication: O(touched persistent-region/root paths + emitted canonical
+- Publication: O(touched immutable-region/root paths + emitted canonical
   patch) plus O(1) branch comparison and bounded global id/stream reservations;
   it does not copy the complete Supply Chain world.
 - Signal admitted-basis share/reuse: O(1), zero graph/snapshot copy and zero
   evaluation.
 - Retention acquire/release: O(1); reclamation scans are maintenance work.
-- Owner publication performs only the selected branch's required durability
-  barriers; unrelated branch streams contribute zero synchronous writes.
-- Checkpoint reconstruction and fresh-process readmission are explicit
-  reconstructive lanes, not costs hidden in ordinary observation or commit.
+- Owner publication touches only the selected branch's roots, history, and
+  declared indexes; unrelated branches contribute zero synchronous writes.
+- Historical reconstruction is an explicit maintenance lane, not cost hidden
+  in ordinary observation or commit.
 
 ### Required scale axes
 
@@ -1804,7 +1780,7 @@ Counters distinguish:
   unique bytes;
 - cancellation at each named phase;
 - reclamation work; and
-- checkpoint/reconstruction work.
+- explicit history/maintenance reconstruction work.
 
 In the controlled A/B court, branch B's unrelated-branch wait and branch-A
 coordination-contact counters are exactly zero. Atomic allocator contention is
@@ -1820,11 +1796,11 @@ silently widen into history scans or global eviction.
 Review the implementation and its direct evidence, not a second proof system
 describing the evidence. The material risks are authority substitution,
 stale or mixed-axis selection, sibling leakage, partial publication,
-retention or cleanup escape, dishonest recovery, and ordinary work that grows
+retention or cleanup escape, false owner readmission, and ordinary work that grows
 with unrelated branch population.
 
 Use focused owner and integration tests for these risks. Keep expensive scale,
-fuzz, destructive recovery, and environment-backed cases in scheduled lanes
+fuzz, and environment-backed cases in scheduled lanes
 unless they are needed to reproduce an active defect. Important authority
 seams receive one economical compiler-boundary check plus runtime denial where
 that adds independent evidence. Fixtures use production runtime builders and
@@ -1836,7 +1812,7 @@ test inventory, or test-of-tests is required.
 
 ## Documentation Deliverables
 
-The implementation closes only with these exact durable documents:
+The implementation closes only with these continuing documents:
 
 - `crates/worth-foundational/docs/branching-merging-and-commit-vocabulary/branch-references.md`
   — shared descriptive grammar, immutable target versus mutable reference,
@@ -1864,8 +1840,8 @@ The implementation closes only with these exact durable documents:
 - `crates/worth-relational/OWNER_COMPONENT_PORT.md` and the corresponding
   Signal section in `BRANCH_BASES.md` — the exact artifacts, outcomes,
   cancellation, and retention ports 9.17.2 may consume; and
-- a branch-qualified Relational PostgreSQL recovery and Signal component
-  recovery operator guide covering owner-first reload and readmission.
+- an explicit note in both owner guides that state is memory-resident and
+  restart durability is deferred to Worth Store integration.
 
 Examples must compile through public facades. The AI entry README and generated
 crate context must name the same authority and topology as the code.
@@ -1873,10 +1849,9 @@ crate context must name the same authority and topology as the code.
 ## Must Preserve
 
 - all 9.16.1 provider-session branch-affinity and no-ambient-main guarantees;
-- all 9.16.2 package identity, fresh-validation, PostgreSQL durability
-  foundation, runtime-level facade, recovery-barrier, and existing-outbox
-  guarantees, with no branch/component authority added to records, SQL rows,
-  snapshots, or dispatch leases;
+- all 9.16.2 package identity, fresh-validation, archive, and release-boundary
+  guarantees, with no branch/component authority added to package records or
+  archive bytes;
 - Relational authoritative truth, schema, identity, lineage, history, merge,
   patch, replay, inspection, and durability semantics;
 - Signal definition-bound branch, snapshot, restore, merge, targeted
@@ -1901,16 +1876,16 @@ keep old authority alive are forbidden.
 - composite commits, product branch references, or product currentness;
 - coordinated cross-owner publication or rollback;
 - Query public branch/history workflow;
-- semantic merge, rebase, undo/redo, distributed cross-runtime recovery, or
+- semantic merge, rebase, undo/redo, persistence, distributed recovery, or
   offline sync; and
 - a new Signal concurrency engine beyond the basis/reference cutover required
   here.
 
 ## Allowed Debt
 
-Store-native graph persistence, replication, distributed cross-runtime
-recovery, distributed reference movement, cross-owner atomicity, and automatic
-rebase remain later work. PostgreSQL component restart is not debt.
+Store-native graph persistence, restart recovery, replication, distributed
+reference movement, cross-owner atomicity, and automatic rebase remain later
+work.
 
 The following may not remain as debt:
 
@@ -1941,17 +1916,17 @@ primitives, but atomic publication cannot close until branch root, candidate,
 history, sharing inspection, and retention contracts agree. Certification
 follows the real public cutover, not a shadow implementation.
 
-This milestone is not blocked on `worth-store`. Discovery that correctness
-requires durable or cross-process atomicity is a scope conflict to surface, not
-permission to simulate Store behavior in memory.
+This milestone is not blocked on `worth-store` because it claims only live
+in-memory authority. Discovery that a requirement needs restart durability or
+cross-process atomicity moves that requirement to Store integration; it is not
+permission to simulate Store behavior here.
 
 ## Acceptance
 
 Milestone 9.17.1 closes when the phase behavior and owner boundaries exist in
 the final source, focused and affected integration tests pass, repository
 architecture and quality gates pass, and independent review finds no material
-defect. Real persistence claims require a real environment; expensive scale
-and destructive cases run in their scheduled lanes.
+defect. Expensive scale cases run in their scheduled lanes.
 
 ## Retained Handoff To Relational Merge Certification
 
@@ -1991,9 +1966,7 @@ conflict policy, multi-parent commits, or merge publication.
 - ask Signal to perform its existing owner-local advancement/fork/restore and
   receive a new exact Signal basis where a product operation requires it; and
 - observe the exact committed component bases and safe canonical descriptors
-  returned by performed owner operations; and
-- consume versioned owner durable artifacts and bounded owner-first
-  recovery/readmission ports without treating stored bytes as authority.
+  returned by performed owner operations.
 
 A prepared candidate is pre-effect. `PerformedRelationalCommit` is post-effect.
 An admitted component basis says only that its component owner recognizes the

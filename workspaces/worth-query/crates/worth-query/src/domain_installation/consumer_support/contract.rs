@@ -99,7 +99,7 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryConsumerProjectionContract<D, O, 
             canonical_projection: bound.definition().semantics().canonical_query.clone(),
             native_projection: bound.definition().semantics().native_projection.clone(),
             collection: bound.definition().semantics().collection.clone(),
-            replay: bound.definition().semantics().replay,
+            replay: bound.definition().semantics().replay.clone(),
             aftermath: bound.definition().semantics().aftermath.clone(),
             lineage: bound.definition().semantics().lineage,
             promotion: bound.definition().semantics().promotion,
@@ -170,8 +170,8 @@ impl<D, O, F, L: BasisOperationLane> WorthQueryConsumerProjectionContract<D, O, 
         &self.collection
     }
 
-    pub fn replay(&self) -> WorthQueryOperationReplayContract {
-        self.replay
+    pub fn replay(&self) -> &WorthQueryOperationReplayContract {
+        &self.replay
     }
 
     pub fn aftermath(&self) -> Option<&WorthQueryInstalledAftermathContract> {

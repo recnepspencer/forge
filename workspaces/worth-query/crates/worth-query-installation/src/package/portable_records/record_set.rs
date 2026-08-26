@@ -129,14 +129,16 @@ fn assemble_records(
         package
             .artifact_contracts()
             .iter()
-            .cloned()
+            .map(crate::domain_computation::WorthQueryPortableArtifactContractRecord::project)
             .map(WorthQueryPortablePackageRecord::ArtifactContract),
     );
     records.extend(
         package
             .application_schemas()
             .iter()
-            .cloned()
+            .map(
+                worth_query_declaration::facade::application_schema::WorthQueryPortableApplicationSchemaRecord::project,
+            )
             .map(WorthQueryPortablePackageRecord::ApplicationSchema),
     );
     records.extend(

@@ -2,45 +2,43 @@ use crate::canonical_hash_encoding::CanonicalHashSink as Sink;
 
 use crate::canonical_hash_encoding::hash_text_field;
 
-use super::{bool_name, conditional_nodes::hash_conditional_nodes, hash_sequence};
+use super::{
+    bool_name, conditional_nodes::hash_conditional_nodes, hash_sequence,
+    WorthQueryDomainOperationCanonicalSemantics,
+};
 use crate::domain_operation::*;
 
 pub(super) fn hash_input_and_graph_contracts(
     hasher: &mut impl Sink,
-    semantics: &WorthQueryDomainOperationSemanticClosure,
+    semantics: &impl WorthQueryDomainOperationCanonicalSemantics,
 ) {
-    hash_parameters(hasher, &semantics.parameters);
+    hash_parameters(hasher, semantics.parameters());
     hash_sequence(
         hasher,
         "required-domain",
-        semantics.required_domains.iter().map(|role| role.as_str()),
+        semantics
+            .required_domains()
+            .iter()
+            .map(|role| role.as_str()),
     );
-    hash_native_projection(hasher, &semantics.native_projection);
-    hash_text_field(
-        hasher,
-        "query-intent",
-        semantics.canonical_query.query().digest().as_str(),
-    );
-    hash_text_field(
-        hasher,
-        "result-shape",
-        semantics.canonical_query.result_shape().digest().as_str(),
-    );
-    hash_collection(hasher, &semantics.collection);
+    hash_native_projection(hasher, semantics.native_projection());
+    hash_text_field(hasher, "query-intent", semantics.query_intent_digest());
+    hash_text_field(hasher, "result-shape", semantics.result_shape_digest());
+    hash_collection(hasher, semantics.collection());
     hash_sequence(
         hasher,
         "required-capability",
         semantics
-            .required_capabilities
+            .required_capabilities()
             .iter()
             .map(|capability| capability.as_str()),
     );
-    hash_conditional_nodes(hasher, &semantics.conditional_nodes, "operation-condition");
-    hash_graph_reads(hasher, &semantics.graph_reads);
-    hash_touches(hasher, &semantics.touches);
-    hash_effects(hasher, &semantics.effects);
-    hash_invariants(hasher, &semantics.invariants);
-    hash_invariant_execution(hasher, &semantics.invariant_execution);
+    hash_conditional_nodes(hasher, semantics.conditional_nodes(), "operation-condition");
+    hash_graph_reads(hasher, semantics.graph_reads());
+    hash_touches(hasher, semantics.touches());
+    hash_effects(hasher, semantics.effects());
+    hash_invariants(hasher, semantics.invariants());
+    hash_invariant_execution(hasher, semantics.invariant_execution());
 }
 
 fn hash_parameters(hasher: &mut impl Sink, contract: &WorthQueryOperationParameterContract) {

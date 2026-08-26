@@ -66,7 +66,7 @@ where
             principal_identity_aspect: principal_identity.aspect,
             principal_identity_field: principal_identity.field,
             principal_identity_scalar_family: PrincipalIdentity::SCALAR_FAMILY,
-            principal_identity_value_type: PrincipalIdentity::PORTABLE_TYPE_IDENTITY.as_str(),
+            principal_identity_value_type: PrincipalIdentity::PORTABLE_TYPE_NAME,
             _marker: PhantomData,
         }
     }

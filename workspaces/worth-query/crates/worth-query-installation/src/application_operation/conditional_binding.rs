@@ -25,6 +25,19 @@ pub struct WorthQueryPortableApplicationConditionalOperationBinding {
 }
 
 impl WorthQueryPortableApplicationConditionalOperationBinding {
+    pub fn from_untrusted_parts(
+        parts: WorthQueryPortableApplicationConditionalOperationBindingParts,
+    ) -> Self {
+        Self {
+            schema_owner: parts.schema_owner,
+            schema_name: parts.schema_name,
+            application_operation: parts.application_operation,
+            input_type: parts.input_type,
+            domain_operation_slot: parts.domain_operation_slot,
+            domain_operation_canonical_identity: parts.domain_operation_canonical_identity,
+        }
+    }
+
     pub fn schema_owner(&self) -> &str {
         &self.schema_owner
     }
@@ -41,8 +54,8 @@ impl WorthQueryPortableApplicationConditionalOperationBinding {
         self.input_type.as_str()
     }
 
-    pub const fn input_type_identity(&self) -> WorthQueryPortableTypeIdentity {
-        self.input_type
+    pub fn input_type_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.input_type.clone()
     }
 
     pub fn domain_operation_slot(&self) -> &str {
@@ -52,6 +65,15 @@ impl WorthQueryPortableApplicationConditionalOperationBinding {
     pub fn domain_operation_canonical_identity(&self) -> &str {
         &self.domain_operation_canonical_identity
     }
+}
+
+pub struct WorthQueryPortableApplicationConditionalOperationBindingParts {
+    pub schema_owner: String,
+    pub schema_name: String,
+    pub application_operation: String,
+    pub input_type: WorthQueryPortableTypeIdentity,
+    pub domain_operation_slot: String,
+    pub domain_operation_canonical_identity: String,
 }
 
 /// Typed authoring reference for one package-declared application-operation

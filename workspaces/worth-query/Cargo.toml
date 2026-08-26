@@ -8,6 +8,7 @@ members = [
     "crates/worth-query-certification",
     "crates/worth-query-declaration",
     "crates/worth-query-installation",
+    "crates/worth-query-package-archive",
     "crates/worth-query-admission",
     "crates/worth-query-execution",
     "crates/worth-query-publication",
@@ -31,6 +32,7 @@ worth-query-replay = { path = "crates/worth-query-replay" }
 worth-query-certification = { path = "crates/worth-query-certification" }
 worth-query-declaration = { path = "crates/worth-query-declaration" }
 worth-query-installation = { path = "crates/worth-query-installation" }
+worth-query-package-archive = { path = "crates/worth-query-package-archive" }
 worth-query-admission = { path = "crates/worth-query-admission" }
 worth-query-execution = { path = "crates/worth-query-execution" }
 worth-query-publication = { path = "crates/worth-query-publication" }

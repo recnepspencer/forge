@@ -58,7 +58,7 @@ impl ApplicationSchemaAuthoringContext {
     ) -> Result<(), ApplicationSchemaAuthoringDenial> {
         if !self
             .member_provenance
-            .admits_operation::<Operation, Input>(operation, input_type)
+            .admits_operation::<Operation, Input>(operation, &input_type)
         {
             return Err(ApplicationSchemaAuthoringDenial::new(
                 ApplicationSchemaAuthoringDenialKind::OperationProvenanceMismatch,
@@ -69,7 +69,7 @@ impl ApplicationSchemaAuthoringContext {
             ApplicationSchemaMember::Operation {
                 operation: installed,
                 input_type,
-            } if installed == operation => Some(*input_type),
+            } if installed == operation => Some(input_type),
             _ => None,
         });
         let Some(installed_input_type) = installed else {
@@ -78,7 +78,7 @@ impl ApplicationSchemaAuthoringContext {
                 operation,
             ));
         };
-        if installed_input_type != input_type {
+        if installed_input_type != &input_type {
             return Err(ApplicationSchemaAuthoringDenial::new(
                 ApplicationSchemaAuthoringDenialKind::OperationInputTypeMismatch,
                 operation,
@@ -94,7 +94,7 @@ impl ApplicationSchemaAuthoringContext {
     ) -> Result<(), ApplicationSchemaAuthoringDenial> {
         if !self
             .member_provenance
-            .admits_effect::<Effect, Payload>(effect, payload_type)
+            .admits_effect::<Effect, Payload>(effect, &payload_type)
         {
             return Err(ApplicationSchemaAuthoringDenial::new(
                 ApplicationSchemaAuthoringDenialKind::EffectProvenanceMismatch,
@@ -105,7 +105,7 @@ impl ApplicationSchemaAuthoringContext {
             ApplicationSchemaMember::Effect {
                 effect: installed,
                 payload_type,
-            } if installed == effect => Some(*payload_type),
+            } if installed == effect => Some(payload_type),
             _ => None,
         });
         let Some(installed_payload_type) = installed else {
@@ -114,7 +114,7 @@ impl ApplicationSchemaAuthoringContext {
                 effect,
             ));
         };
-        if installed_payload_type != payload_type {
+        if installed_payload_type != &payload_type {
             return Err(ApplicationSchemaAuthoringDenial::new(
                 ApplicationSchemaAuthoringDenialKind::EffectPayloadTypeMismatch,
                 effect,

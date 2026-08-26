@@ -116,7 +116,7 @@ where
     }
 
     pub fn value_type_name(&self) -> &'static str {
-        Value::PORTABLE_TYPE_IDENTITY.as_str()
+        Value::PORTABLE_TYPE_NAME
     }
 
     pub const fn unit(&self) -> Option<&'static str> {

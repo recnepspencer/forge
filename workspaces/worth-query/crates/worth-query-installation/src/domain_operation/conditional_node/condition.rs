@@ -6,6 +6,12 @@ use super::{
     WorthQueryTypedFamilyIdentity,
 };
 
+mod portable_parts;
+pub use portable_parts::{
+    WorthQueryPortableConditionalConditionParts, WorthQueryPortableDeltaThresholdDenial,
+    WorthQueryPortableDeltaThresholdParts,
+};
+
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum WorthQueryDeltaComparisonDomain {
     AbsoluteDifference,
@@ -22,6 +28,7 @@ pub enum WorthQueryThresholdBoundary {
 pub struct WorthQueryDeltaThreshold {
     value: AspectValue,
     unit: WorthQueryTypedFamilyIdentity,
+    value_family: WorthQueryQuantityValueFamily,
     comparison_domain: WorthQueryDeltaComparisonDomain,
     boundary: WorthQueryThresholdBoundary,
 }
@@ -43,6 +50,7 @@ impl WorthQueryDeltaThreshold {
         Ok(Self {
             value,
             unit,
+            value_family: Unit::VALUE_FAMILY,
             comparison_domain,
             boundary,
         })
@@ -65,7 +73,7 @@ impl WorthQueryDeltaThreshold {
     }
 
     pub fn value_family(&self) -> WorthQueryQuantityValueFamily {
-        numeric_family(&self.value).expect("admitted thresholds always retain a numeric value")
+        self.value_family
     }
 }
 

@@ -2,15 +2,16 @@ use super::WorthQueryPortableTypeIdentity;
 
 /// A Rust type whose package-relevant meaning has an explicit stable identity.
 pub trait WorthQueryPortableType {
-    const PORTABLE_TYPE_IDENTITY: WorthQueryPortableTypeIdentity;
+    const PORTABLE_TYPE_NAME: &'static str;
+    const PORTABLE_TYPE_IDENTITY: WorthQueryPortableTypeIdentity =
+        WorthQueryPortableTypeIdentity::declared(Self::PORTABLE_TYPE_NAME);
 }
 
 macro_rules! primitive_portable_types {
     ($($ty:ty => $identity:literal),+ $(,)?) => {
         $(
             impl WorthQueryPortableType for $ty {
-                const PORTABLE_TYPE_IDENTITY: WorthQueryPortableTypeIdentity =
-                    WorthQueryPortableTypeIdentity::declared($identity);
+                const PORTABLE_TYPE_NAME: &'static str = $identity;
             }
         )+
     };
@@ -36,6 +37,5 @@ primitive_portable_types!(
 );
 
 impl WorthQueryPortableType for worth_foundational::facade::InternedString {
-    const PORTABLE_TYPE_IDENTITY: WorthQueryPortableTypeIdentity =
-        WorthQueryPortableTypeIdentity::declared("worth.foundational.interned_string.v1");
+    const PORTABLE_TYPE_NAME: &'static str = "worth.foundational.interned_string.v1";
 }

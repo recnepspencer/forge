@@ -6,13 +6,13 @@ macro_rules! named_reference {
     ($name:ident, $($marker:ident),+) => {
         pub struct $name<$($marker),+> {
             name: &'static str,
-            marker_identity: WorthQueryPortableTypeIdentity,
+            marker_identity: &'static str,
             _marker: PhantomData<fn() -> ($($marker),+)>,
         }
 
         impl<$($marker),+> $name<$($marker),+> {
             #[cfg(test)]
-            pub(crate) const fn from_schema_identifier(name: &'static str) -> Self {
+            pub(crate) fn from_schema_identifier(name: &'static str) -> Self {
                 Self::from_test_declaration(
                     name,
                     WorthQueryPortableTypeIdentity::declared(name),
@@ -20,18 +20,18 @@ macro_rules! named_reference {
             }
 
             #[cfg(test)]
-            pub(crate) const fn from_test_declaration(
+            pub(crate) fn from_test_declaration(
                 name: &'static str,
                 marker_identity: WorthQueryPortableTypeIdentity,
             ) -> Self {
                 Self {
                     name,
-                    marker_identity,
+                    marker_identity: marker_identity.declared_name(),
                     _marker: PhantomData,
                 }
             }
 
-            pub const fn name(self) -> &'static str {
+            pub const fn name(&self) -> &'static str {
                 self.name
             }
         }
@@ -67,7 +67,7 @@ where
     pub const fn from_declaration() -> Self {
         Self {
             name: Capability::IDENTIFIER,
-            marker_identity: Capability::PORTABLE_TYPE_IDENTITY,
+            marker_identity: Capability::PORTABLE_TYPE_NAME,
             _marker: PhantomData,
         }
     }
@@ -81,7 +81,7 @@ where
     pub const fn from_declaration() -> Self {
         Self {
             name: Context::IDENTIFIER,
-            marker_identity: Context::PORTABLE_TYPE_IDENTITY,
+            marker_identity: Context::PORTABLE_TYPE_NAME,
             _marker: PhantomData,
         }
     }
@@ -95,7 +95,7 @@ where
     pub const fn from_declaration() -> Self {
         Self {
             name: Provenance::IDENTIFIER,
-            marker_identity: Provenance::PORTABLE_TYPE_IDENTITY,
+            marker_identity: Provenance::PORTABLE_TYPE_NAME,
             _marker: PhantomData,
         }
     }
@@ -104,8 +104,8 @@ where
 macro_rules! marker_identity_accessor {
     ($name:ident, $($marker:ident),+) => {
         impl<$($marker),+> $name<$($marker),+> {
-            pub const fn marker_identity(self) -> WorthQueryPortableTypeIdentity {
-                self.marker_identity
+            pub const fn marker_identity(&self) -> WorthQueryPortableTypeIdentity {
+                WorthQueryPortableTypeIdentity::declared(self.marker_identity)
             }
         }
     };

@@ -1,4 +1,5 @@
 mod builder;
+mod parts;
 
 use crate::portable_identity::WorthQueryPortableTypeIdentity;
 use std::marker::PhantomData;
@@ -10,6 +11,7 @@ use super::{
 };
 
 pub use builder::ApplicationCapabilityContractBuilder;
+pub use parts::WorthQueryPortableApplicationCapabilityContractParts;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ErasedApplicationCapabilityContract {
@@ -35,8 +37,8 @@ impl ErasedApplicationCapabilityContract {
         self.capability_type.as_str()
     }
 
-    pub const fn capability_identity(&self) -> WorthQueryPortableTypeIdentity {
-        self.capability_type
+    pub fn capability_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.capability_type.clone()
     }
 
     pub fn operation(&self) -> &str {
@@ -47,16 +49,16 @@ impl ErasedApplicationCapabilityContract {
         self.operation_type.as_str()
     }
 
-    pub const fn operation_identity(&self) -> WorthQueryPortableTypeIdentity {
-        self.operation_type
+    pub fn operation_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.operation_type.clone()
     }
 
     pub fn input_type(&self) -> &str {
         self.input_type.as_str()
     }
 
-    pub const fn input_identity(&self) -> WorthQueryPortableTypeIdentity {
-        self.input_type
+    pub fn input_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.input_type.clone()
     }
 
     pub fn grant_entity(&self) -> &str {

@@ -51,17 +51,69 @@ pub(super) fn validate_capability_identifiers(
     if let Some(activation) = contract.delegation().activation() {
         validate_operation_binding(activation.operation())?;
         validate_field(activation.identity())?;
-    }
-    if let Some(elevation) = contract.elevation().definition() {
-        validate_context_slot(elevation.lifecycle().elevation_slot())?;
-        validate_context_slot(elevation.lifecycle().review_slot())?;
-        for transition in elevation.lifecycle().transitions() {
-            validate_simple_identifier(transition.capability())?;
-            validate_portable_type_identifier(transition.capability_type())?;
-            validate_operation_binding(transition.operation())?;
+        for relation in activation.context_relations() {
+            validate_relation(relation)?;
         }
     }
+    if let Some(revocation) = contract.delegation().revocation() {
+        validate_operation_binding(revocation.operation())?;
+        validate_field(revocation.identity())?;
+        validate_value_binding(revocation.revoked_status())?;
+    }
+    if let Some(elevation) = contract.elevation().definition() {
+        validate_elevation(elevation)?;
+    }
     validate_composition(contract)
+}
+
+fn validate_elevation(
+    elevation: &crate::application_capability::ApplicationCapabilityElevationDefinition,
+) -> Result<(), ApplicationSchemaDeclarationDenial> {
+    for field in [
+        elevation.identity(),
+        elevation.reason(),
+        elevation.status(),
+        elevation.validity().not_before(),
+        elevation.validity().not_after(),
+    ] {
+        validate_field(field)?;
+    }
+    for state in elevation.states().values() {
+        validate_value_binding(state)?;
+    }
+    for relation in [
+        elevation.requester(),
+        elevation.approver(),
+        elevation.grant(),
+    ] {
+        validate_relation(relation)?;
+    }
+    if let Some(relation) = elevation.resource_relation() {
+        validate_relation(relation)?;
+    }
+    let review = elevation.review();
+    for relation in [review.relation(), review.scope(), review.reviewer()] {
+        validate_relation(relation)?;
+    }
+    for field in [review.identity(), review.status()] {
+        validate_field(field)?;
+    }
+    for value in [review.kind(), review.required(), review.completed()] {
+        validate_value_binding(value)?;
+    }
+    validate_context_slot(elevation.lifecycle().elevation_slot())?;
+    validate_context_slot(elevation.lifecycle().review_slot())?;
+    for transition in elevation.lifecycle().transitions() {
+        validate_simple_identifier(transition.capability())?;
+        validate_portable_type_identifier(transition.capability_type())?;
+        validate_operation_binding(transition.operation())?;
+        if let Some(effect) = transition.lifecycle_effect() {
+            validate_simple_identifier(effect.effect())?;
+            validate_simple_identifier(effect.effect_type())?;
+            validate_portable_type_identifier(effect.payload_type())?;
+        }
+    }
+    Ok(())
 }
 
 fn validate_operation_binding(
@@ -147,6 +199,12 @@ fn validate_field(
         validate_simple_identifier(value)?;
     }
     validate_portable_type_identifier(field.value_type())
+}
+
+fn validate_value_binding(
+    binding: &crate::application_capability::ApplicationCapabilityValueBinding,
+) -> Result<(), ApplicationSchemaDeclarationDenial> {
+    validate_field(binding.field())
 }
 
 fn validate_relation(

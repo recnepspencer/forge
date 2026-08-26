@@ -8,6 +8,14 @@ pub trait WorthQueryArtifactFamily: 'static {
 pub struct WorthQueryArtifactFamilyIdentity(String);
 
 impl WorthQueryArtifactFamilyIdentity {
+    /// Reconstructs a descriptive family claim from decoded storage input.
+    ///
+    /// Fresh artifact-contract readmission validates portability before this
+    /// value can enter package meaning.
+    pub fn from_untrusted_string(value: String) -> Self {
+        Self(value)
+    }
+
     pub(crate) fn declared<F: WorthQueryArtifactFamily>() -> Self {
         Self(F::SEMANTIC_FAMILY.to_string())
     }
@@ -92,6 +100,22 @@ pub struct WorthQueryArtifactContractReference {
 }
 
 impl WorthQueryArtifactContractReference {
+    /// Retains a descriptive artifact reference decoded from untrusted
+    /// storage. Package reconstruction must still resolve it against a
+    /// freshly validated artifact-contract record before it can enter
+    /// admitted package meaning.
+    pub fn from_untrusted_fields(
+        family: WorthQueryArtifactFamilyIdentity,
+        schema_version: WorthQueryArtifactSchemaVersion,
+        protocol_version: WorthQueryArtifactProtocolVersion,
+    ) -> Self {
+        Self {
+            family,
+            schema_version,
+            protocol_version,
+        }
+    }
+
     pub(crate) fn new(
         family: WorthQueryArtifactFamilyIdentity,
         schema_version: WorthQueryArtifactSchemaVersion,

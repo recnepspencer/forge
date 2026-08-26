@@ -6,8 +6,9 @@ use super::WorthQueryPortableDomainPackage;
 use crate::canonical_digest_derivation::InstallationCanonicalIdentityBasis;
 use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
 
+const PACKAGE_MAXIMUM_CANONICAL_BYTES: usize = 4 * 1_024 * 1_024;
 const PACKAGE_BUDGET: CanonicalDigestWorkBudget =
-    match CanonicalDigestWorkBudget::new(32_768, 4 * 1_024 * 1_024) {
+    match CanonicalDigestWorkBudget::new(32_768, PACKAGE_MAXIMUM_CANONICAL_BYTES) {
         Some(budget) => budget,
         None => panic!("fixed package canonical-work budget is valid"),
     };
@@ -45,6 +46,14 @@ impl WorthQueryPortableDomainIdentity {
 pub struct WorthQueryPortableDomainPackageIdentity(CanonicalDigestId);
 
 impl WorthQueryPortableDomainPackageIdentity {
+    /// Reconstruct descriptive claimed identity from untrusted boundary bytes.
+    ///
+    /// This value carries no validation or installation authority. Phase 3
+    /// compares it with identity freshly derived from reconstructed meaning.
+    pub const fn from_untrusted_bytes(bytes: [u8; 32]) -> Self {
+        Self(CanonicalDigestId::new(bytes))
+    }
+
     pub const fn digest(&self) -> &CanonicalDigestId {
         &self.0
     }
@@ -58,8 +67,9 @@ impl WorthQueryPortableDomainPackageIdentity {
     }
 }
 
-pub(super) fn canonical_identity(
+pub(super) fn canonical_identity_with_maximum_bytes(
     package: &WorthQueryPortableDomainPackage,
+    maximum_canonical_bytes: usize,
 ) -> Result<
     (
         WorthQueryPortableDomainPackageIdentity,
@@ -67,10 +77,18 @@ pub(super) fn canonical_identity(
     ),
     CanonicalDigestDerivationDenial,
 > {
+    let budget = CanonicalDigestWorkBudget::new(
+        PACKAGE_BUDGET.maximum_entry_count(),
+        maximum_canonical_bytes.min(PACKAGE_MAXIMUM_CANONICAL_BYTES),
+    )
+    .ok_or(CanonicalDigestDerivationDenial::EncodedByteLimitExceeded {
+        maximum: 0,
+        attempted: 0,
+    })?;
     let mut basis = InstallationCanonicalIdentityBasis::new(
         "worth-query.portable-domain-package",
         "worth-query-portable-domain-package-v3",
-        PACKAGE_BUDGET,
+        budget,
     );
     append_domain_identity(&mut basis, package)?;
     append_requirements(&mut basis, package)?;

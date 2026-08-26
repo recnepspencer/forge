@@ -192,7 +192,7 @@ impl<Schema, Relation, From, To> ApplicationRelationRef<Schema, Relation, From, 
 
 pub struct ApplicationOperationRef<Schema, Operation, Input> {
     name: &'static str,
-    input_identity: WorthQueryPortableTypeIdentity,
+    input_identity: &'static str,
     _membership: ApplicationOperationMembership<Schema, Operation, Input>,
     _marker: PhantomData<fn(Input) -> (Schema, Operation)>,
 }
@@ -208,8 +208,6 @@ impl<Schema, Operation, Input> Clone for ApplicationOperationMembership<Schema, 
         *self
     }
 }
-
-impl<Schema, Operation, Input> Copy for ApplicationOperationRef<Schema, Operation, Input> {}
 
 impl<Schema, Operation, Input> Clone for ApplicationOperationRef<Schema, Operation, Input> {
     fn clone(&self) -> Self {
@@ -231,7 +229,7 @@ impl<Schema, Operation, Input> std::fmt::Debug
 
 impl<Schema, Operation, Input> PartialEq for ApplicationOperationRef<Schema, Operation, Input> {
     fn eq(&self, other: &Self) -> bool {
-        (self.name, self.input_identity) == (other.name, other.input_identity)
+        (self.name, &self.input_identity) == (other.name, &other.input_identity)
     }
 }
 
@@ -246,7 +244,7 @@ where
     pub const fn from_declaration() -> Self {
         Self {
             name: Operation::IDENTIFIER,
-            input_identity: Input::PORTABLE_TYPE_IDENTITY,
+            input_identity: Input::PORTABLE_TYPE_NAME,
             _membership: ApplicationOperationMembership(PhantomData),
             _marker: PhantomData,
         }
@@ -259,13 +257,13 @@ impl<Schema, Operation, Input> ApplicationOperationRef<Schema, Operation, Input>
     }
 
     pub const fn input_identity(&self) -> WorthQueryPortableTypeIdentity {
-        self.input_identity
+        WorthQueryPortableTypeIdentity::declared(self.input_identity)
     }
 }
 
 pub struct ApplicationEffectRef<Schema, Effect, Payload> {
     name: &'static str,
-    payload_identity: WorthQueryPortableTypeIdentity,
+    payload_identity: &'static str,
     _membership: ApplicationEffectMembership<Schema, Effect, Payload>,
     _marker: PhantomData<fn(Payload) -> (Schema, Effect)>,
 }
@@ -281,8 +279,6 @@ impl<Schema, Effect, Payload> Clone for ApplicationEffectMembership<Schema, Effe
         *self
     }
 }
-
-impl<Schema, Effect, Payload> Copy for ApplicationEffectRef<Schema, Effect, Payload> {}
 
 impl<Schema, Effect, Payload> Clone for ApplicationEffectRef<Schema, Effect, Payload> {
     fn clone(&self) -> Self {
@@ -302,7 +298,7 @@ impl<Schema, Effect, Payload> std::fmt::Debug for ApplicationEffectRef<Schema, E
 
 impl<Schema, Effect, Payload> PartialEq for ApplicationEffectRef<Schema, Effect, Payload> {
     fn eq(&self, other: &Self) -> bool {
-        (self.name, self.payload_identity) == (other.name, other.payload_identity)
+        (self.name, &self.payload_identity) == (other.name, &other.payload_identity)
     }
 }
 
@@ -317,7 +313,7 @@ where
     pub const fn from_declaration() -> Self {
         Self {
             name: Effect::IDENTIFIER,
-            payload_identity: Payload::PORTABLE_TYPE_IDENTITY,
+            payload_identity: Payload::PORTABLE_TYPE_NAME,
             _membership: ApplicationEffectMembership(PhantomData),
             _marker: PhantomData,
         }
@@ -330,6 +326,9 @@ impl<Schema, Effect, Payload> ApplicationEffectRef<Schema, Effect, Payload> {
     }
 
     pub const fn payload_identity(&self) -> WorthQueryPortableTypeIdentity {
-        self.payload_identity
+        WorthQueryPortableTypeIdentity::declared(self.payload_identity)
     }
 }
+impl<Schema, Operation, Input> Copy for ApplicationOperationRef<Schema, Operation, Input> {}
+
+impl<Schema, Effect, Payload> Copy for ApplicationEffectRef<Schema, Effect, Payload> {}

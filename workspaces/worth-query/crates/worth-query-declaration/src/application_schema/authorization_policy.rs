@@ -7,6 +7,13 @@ use super::field_reference::ApplicationFieldRef;
 use super::references::{ApplicationEntityRef, ApplicationRelationRef};
 use super::values::TypedApplicationValue;
 
+mod portable_parts;
+pub use portable_parts::{
+    WorthQueryPortableApplicationAuthorizationPathParts,
+    WorthQueryPortableApplicationAuthorizationPredicateParts,
+    WorthQueryPortableApplicationAuthorizationTraversalParts,
+};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum ApplicationAuthorizationPathEffect {
     Allow,

@@ -1,6 +1,7 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ApplicationSchemaDeclarationDenial {
     InvalidIdentifier,
+    InvalidCanonicalOrdering,
     DuplicateMember,
     MissingEntity,
     MissingAspect,
@@ -28,6 +29,8 @@ pub enum ApplicationSchemaDeclarationDenial {
     MissingAbilityDependency,
     MissingAbilityPolicyDependency,
     InvalidAbilityPolicy,
+    PortableCanonicalSourceBytesBudgetExceeded { observed: u64, maximum: u64 },
+    PortableCanonicalEntryBudgetExceeded { observed: u64, maximum: u64 },
 }
 
 impl std::fmt::Display for ApplicationSchemaDeclarationDenial {

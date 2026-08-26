@@ -11,15 +11,15 @@ S.1-through-S.9 certification real before S.10 through S.12 finish. Part II
 does not compensate for an incomplete reconstruction with an integration-side
 backend or semantic persistence fallback.
 
-Part II builds one public production runtime through a Store-backed composition
-root. Internally, that root owns two sibling instances and their narrow
-translation boundary:
-the Worth Query runtime owns semantic execution, the physical Store instance
-owns physical execution, and the Store-Query adapter translates between their
-public contracts. Worth Query remains the ordinary domain-facing language,
-Worth Relational remains MVCC and transaction authority, semantic Worth Signal
-remains derived-computation authority, Worth Runtime Bridge remains the causal
-protocol layer, and Worth Store makes the joined system survive.
+Part II establishes the backend-neutral `worth-application-runtime` lifecycle
+facade and its concrete `worth-application-store` composition. That composition
+owns one Query participant, one physical Store instance, and their narrow
+bindings.
+Query owns semantic execution, Store owns physical execution, and the bindings
+translate only public contracts. The application facade is the product entry;
+Worth Query remains the domain language, Relational remains MVCC authority,
+semantic Signal remains derived-computation authority, Runtime Bridge remains
+the causal protocol layer, and Worth Store makes the joined system survive.
 
 The previous semantic Store roadmap is deleted. Its document structure,
 milestone numbering, implementation topology, and closeout claims are not
@@ -80,9 +80,9 @@ or completion evidence for it.
   split into separately borrowable read, submission, lifecycle, and inspection
   authorities, while commit execution consumes a typed durability progression.
 - `composition_laws.md` protects one named semantic responsibility per unit. The
-  strongest constraint is that the composition root, Query runtime, physical
-  Store instance, and Store-Query adapter remain distinct responsibilities;
-  the adapter cannot become a third runtime or duplicate orchestration.
+  strongest constraint is that application lifecycle, Query participation,
+  physical Store, and Store bindings remain distinct responsibilities; the
+  bindings cannot become a third runtime or duplicate orchestration.
 - `domain_structure_laws.md` protects authority and dependency direction. Query
   owns public intent and semantic orchestration, Relational owns semantic
   truth, semantic Signal owns semantic derivation, Bridge owns semantic causal
@@ -150,7 +150,7 @@ The joined runtime must survive this hostile condition:
 The runtime has failed if it:
 
 - creates a second semantic Store runtime beside the Query runtime
-- turns the Store-Query adapter into a third runtime, scheduler, cache, truth
+- turns the Store bindings into a third runtime, scheduler, cache, truth
   registry, or recovery authority
 - gives Query and Store different Relational instances or runtime identities
 - confuses the physical Store Signal graph with the semantic Query Signal
@@ -178,22 +178,23 @@ The runtime has failed if it:
 
 Part II freezes these decisions:
 
-1. Worth Query is the ordinary public runtime surface.
-2. There is one public Store-backed Query runtime. Its composition root owns
-   one Query runtime instance, one physical Store instance, and one narrow
-   Store-Query adapter; there is no separately public semantic Store runtime.
-3. The Store-Query adapter implements Query-owned provider and physical-
-   lowering contracts. It translates semantic intent to physical work and physical
+1. Worth Query is the ordinary domain runtime language; the backend-neutral
+   application facade is the persistent product lifecycle surface.
+2. `workspaces/application-composition/crates/worth-application-store` is the
+   one Store composition. It owns one Query participant, one physical Store
+   instance, and narrow bindings; there is no semantic Store runtime.
+3. The Store bindings implement owner-defined provider and physical-
+   lowering contracts. They translate semantic intent to physical work and physical
    evidence to semantic readmission, but it is not a runtime, scheduler, cache,
    truth registry, or lifecycle authority of its own.
-   It implements the same owner-defined persistence ports and typed durability
-   progression established by Query Milestone 9.16.2 and strengthened by 9.17;
-   it does not introduce a Store-specific durability authority lane. Store-
+   Part II defines the owner persistence ports and typed durability progression
+   with Relational, Signal, and Runtime Bridge; the binding cannot define a
+   Store-specific semantic authority lane. Store-
    native read, submission, lifecycle, inspection, and pushdown providers are
    additive Query capabilities, not replacements for those owner ports.
-4. Query core and the Query runtime do not depend on Store. The physical Store
-   instance does not depend on Query. Only the adapter and the composition root
-   know both public contract families.
+4. Query core and Query host do not depend on Store. Physical Store does not
+   depend on Query. Only `worth-application-store` knows both public contract
+   families; backend-neutral `worth-application-runtime` knows neither.
 5. Exactly one Relational authority exists per runtime identity. Bridge consumes
    a published-read handle from that authority rather than a cloned runtime.
 6. MVCC visibility, transaction legality, branch truth, and conflict decisions
@@ -226,9 +227,9 @@ Part II freezes these decisions:
 13. Query-owned and runtime-local artifacts remain in their strongest owning
     types. Foundational vocabulary is used at real shared boundaries, not as a
     universal internal envelope or second runtime model.
-14. Ordinary platform and product entry code reaches the runtime through
-    `worth-query-decl` and `worth-query-host`, never by importing Query core or
-    the Store integration crate directly.
+14. Product entry code opens `worth-application-runtime` with the selected Store
+    composition. That runtime consumes Query only through `worth-query-host`;
+    product and platform code never import Query core or Store internals.
 15. Query replay and reconstruction surfaces remain certification-only.
     Operational Store restart consumes the runtime's dedicated recovery and
     readmission contracts; it does not route ordinary service through
@@ -241,10 +242,11 @@ Part II freezes these decisions:
     are implemented and closed here. Query retains canonical semantic contracts
     and runtime-backed proof, but does not carry a duplicate Store implementation
     sequence.
-18. The Query runtime's semantic Signal instance and the physical Store's
-    physical Signal instance have separate owners, identities, lifecycles, node
-    vocabularies, and recovery posture. They communicate only through adapter
-    contracts and neither imports the other's nodes or completion handles.
+18. Query's semantic Signal and Store's private physical Signal have separate
+    owners, identities, lifecycles, node vocabularies, and recovery posture.
+    They communicate only through owner contracts; neither imports the other's
+    nodes or completion handles. The physical Signal remains Store-owned and is
+    not replaced by application composition.
 19. Format, backend, residency, WAL, recovery, isolation, integrity, layout,
     and blob mechanism crates remain ignorant of Query and semantic Signal.
     Part II consumes the physical Store facade; it does not reach through it to
@@ -274,13 +276,13 @@ proliferated artifact graph.
 
 - `RuntimeBacked`: Query runs on its existing non-Store runtime substrate. No
   Store capability or durability claim is ambient.
-- `StoreBackedDurable`: the composition root owns the Query runtime, physical
-  Store instance, and adapter lifecycles. Semantic working state and durable
+- `StoreBackedDurable`: `worth-application-store` binds the Query participant and
+  physical Store while application runtime orders their lifecycle. Semantic working state and durable
   physical state coexist: admitted families may be hot in the Query runtime,
   hydrating, draining, or Store-only without changing their canonical meaning.
-- `StoreAttachedEmbedded`: an external host supplies the live runtime
-  authorities while the composition root owns explicitly scoped physical
-  Store and adapter contracts without stealing host lifecycle ownership.
+- `StoreAttachedEmbedded`: an external host supplies live runtime authorities
+  while the selected application composition owns explicitly scoped physical
+  Store bindings without stealing host authority.
 - `Unavailable`: Store-backed vocabulary may remain visible for planning, but
   support admission fails typed before execution when the required physical,
   semantic, or deployment capability is absent.
@@ -298,43 +300,44 @@ The strongly preferred initial topology is:
 ```text
                          Product / API
                               |
-                       Worth Query facade
+                  Worth Application Runtime
                               |
-                 Store-backed composition root
+                   worth-application-store
                     /                    \
-          Worth Query runtime       physical Store instance
-          Relational / semantic     physical authority / physical Signal /
-          Signal / Runtime Bridge   scheduler / buffer / WAL / media
-                    \                    /
-                     narrow Store-Query adapter
+          Query host participant     physical Store facade
+          Relational / semantic      Signal / scheduler / WAL / media
+          Signal / Runtime Bridge
 ```
 
 The rough directory target is:
 
 ```text
-worth-store-query-runtime        Store physical-provider composition, not an audience facade
-  composition/                   construction, operating profile, close order
-  query_runtime/                 Query provider and authority-handle binding
-  physical_store/                physical Store facade and lifecycle binding
-  adapter/
+workspaces/application-composition/crates/
+  worth-application-runtime/     provider-neutral opening/readiness/close owner
+  worth-application-store/       concrete Store composition, not a semantic runtime
+    composition/                 construction, operating profile, provider bindings
+    query_participant/           Query host and authority-handle binding
+    physical_store/              physical Store facade and lifecycle binding
+    adapter/
     semantic_lowering/           prepared semantic intent to physical plans
     relational_durability/       physical persist_prepared body and descriptive outcome
     physical_access/             basis requirements to Store access plans
     semantic_hydration/          verified bytes to readmission material
     artifact_association/        semantic identities to physical families
     recovery_readmission/        recovered evidence to fresh semantic admission
-  lifecycle/                     coordinated physical-provider open and close order
-  facade/                        narrow provider construction handles
+    facade/                      narrow Store composition handle
 
-worth-store-semantic-artifacts  persisted semantic records and codecs only
-  commit_record/                 canonical prepared-commit representation
-  identity_record/               schema, branch, version, and lineage records
-  query_artifact_record/         saved declaration and template records
-  continuation_record/           cursor, checkpoint, and resume records
-  blob_reference_record/         basis-bound large-object reference records
-  codec/                         versioned semantic/physical translation
+workspaces/worth-store/crates/
+  worth-store-semantic-artifacts  persisted semantic records and codecs only
+    commit_record/                canonical prepared-commit representation
+    identity_record/              schema, branch, version, and lineage records
+    query_artifact_record/        saved declaration and template records
+    continuation_record/          cursor, checkpoint, and resume records
+    blob_reference_record/        basis-bound large-object reference records
+    codec/                        versioned semantic/physical translation
 
-worth-store-runtime-certification joined hostile courtroom and scale proof
+workspaces/application-composition/crates/
+  worth-application-composition-certification  joined hostile courtroom
 ```
 
 This is a rough target, not permission to create bags. Milestone 1 may change
@@ -346,19 +349,11 @@ responsibility; `adapter/` is not permission for a generic translation bag.
 The target construction experience is conceptually:
 
 ```rust
-let persistence = WorthRuntimeStore::connect(store_configuration)?;
-let providers = PersistentQueryRuntimeProviders::builder()
-    .relational_durability(persistence.relational_durability())
-    .query_package_archives(persistence.query_package_archives())
-    .runtime_stream_catalog(persistence.runtime_stream_catalog())
-    .dispatch_coordination(persistence.dispatch_coordination())
-    .signal_durability(persistence.signal_durability())
-    .runtime_world_durability(persistence.runtime_world_durability())
-    .store_access(persistence.store_access())
-    .build()?;
+let store = WorthStorePhysicalRuntime::open(store_configuration)?;
+let application = WorthApplicationStore::compose(store)?;
 
-let runtime = WorthQueryHost::open_persistent(
-    providers,
+let runtime = WorthApplicationRuntime::open_persistent(
+    application,
     domain_package,
     host_runtime_bindings,
 )?;
@@ -367,16 +362,16 @@ let query = runtime.query();
 let operations = runtime.operations(operator_authority);
 ```
 
-This constructor is infrastructure composition DX, not a new product audience
-facade. Platform and product entry crates receive the legal Query declaration
-and host facades; they do not construct or import the Store integration
-directly. `operator_authority` represents a concrete sealed platform authority,
-not a caller-defined marker.
+The application facade owns infrastructure lifecycle, not domain meaning.
+Platform code selects the concrete composition; ordinary domain work remains
+behind the legal Query declaration and host facades. `operator_authority`
+represents a concrete sealed platform authority, not a caller-defined marker.
 
-Construction and recovery proceed bottom-up: admit and recover the physical
-Store instance; let the adapter identify the durable semantic frontier; create
-the one Relational authority; install semantic Signal and Runtime Bridge from
-published semantic handles; then expose Query. Shutdown proceeds top-down:
+Application composition orders bottom-up construction while each owner retains
+recovery meaning: admit and recover physical Store; let the binding identify the
+durable semantic frontier; create the one Relational authority; install semantic
+Signal and Runtime Bridge from published semantic handles; consume each typed
+owner readiness; then expose overall readiness. Shutdown proceeds top-down:
 quiesce Query admission and live work; let the adapter settle every admitted
 semantic/physical join; drain and close the physical Store instance; then
 release composition authority. A failure at any step returns one typed posture
@@ -418,7 +413,7 @@ surface.
 - split the current `WorthQueryRuntimeBackend` responsibilities into at least:
   - concurrent basis-pinned read authority
   - concurrent submission authority
-  - framework-owned lifecycle authority
+  - Query-participant lifecycle authority
   - observational inspection authority
 - retire the execution-critical `&mut self` backend bottleneck so ordinary
   reads, submissions, lifecycle work, and inspection do not require one
@@ -451,14 +446,13 @@ surface.
 - explicit compatibility map from Query Milestones 9.7, 9.10, 9.11, 9.12, and
   9.13 into the provider contracts this roadmap consumes
 - a Store-backed Query backend contract implemented outside Query core
-- an extensible persistent-provider construction progression compatible with
-  the stable `WorthQueryHost::open_persistent` audience facade and the four
-  owner persistence ports established by Query Milestone 9.16.2; later Store
-  requirements must make incomplete composition roots fail to compile without
-  moving or duplicating the facade
-- one composition root that owns one Query runtime instance, one physical Store
-  instance, and one narrow adapter while exposing only ordinary Query
-  capability namespaces
+- an extensible provider construction progression behind the stable
+  `WorthApplicationRuntime::open_persistent` lifecycle facade, consuming Query
+  only through `worth-query-host`; later Store requirements make incomplete
+  provider sets fail to compile
+- one `worth-application-store` composition owning one Query participant, one
+  physical Store instance, and narrow bindings while exposing Query capability
+  namespaces through the application runtime
 - one Relational runtime identity with distinct write authority and published
   read-source handles
 - Bridge construction from the published read source, not an `Arc` clone of a
@@ -487,9 +481,9 @@ surface.
 - semantic Signal authority over derived computation
 - Bridge authority over causal crossing
 - absent/non-Store Query operation
-- the stable Query-host audience facade and owner-defined durability contract;
-  PostgreSQL and Store are substitutable physical implementations beneath that
-  contract, not separate runtime APIs
+- the stable Query-host audience facade and the in-memory owner authority
+  completed through Query Milestone 9.17; Store integration adds physical
+  durability beneath those owners without creating a separate runtime API
 
 ### Proof Obligations
 
@@ -519,7 +513,7 @@ Relational instance cannot satisfy the public contract.
 
 ### Goal
 
-Build the real Store-Query adapter that translates runtime-owned semantic
+Build the real `worth-application-store` bindings that translate owner semantic
 artifacts into Part I physical operations and translates stable physical reads
 back into runtime-owned semantic material without transferring authority to the
 translation layer.
@@ -533,13 +527,12 @@ relationship between those public families. It does not decide Query meaning,
 Relational legality, physical storage mechanics, physical work readiness, or
 physical scheduling.
 
-For durability, the seam is not redesigned here. The adapter implements the
-Relational durability backend, immutable package repository, Query runtime-
-stream catalog, and persistent dispatch coordinator ports established by Query
-Milestone 9.16.2, plus the Signal and Runtime Bridge owner successors added by
-9.17. Store may realize those contracts through native pages, WAL, indexes, and
-physical Signal work, but no Store-local receipt, registry, or publication path
-may bypass the owner progression or become a parallel authority.
+Part II designs the durability seam here because Query deliberately stops at
+memory-resident semantic authority. Relational, Signal, Runtime Bridge, and
+Query dispatch each define the smallest persistence contract required by their
+own meaning; `worth-application-store` binds those contracts to Store pages,
+WAL, indexes, and physical Signal work. No Store-local receipt, registry, or
+publication path may bypass owner readmission or become parallel authority.
 
 ### Adversarial Constraint
 
@@ -552,13 +545,12 @@ or decoder that can mint semantic authority from bytes.
 
 - Query-owned provider contracts for Store-backed read, submission, lifecycle,
   inspection, capability admission, and typed unavailability
-- implementations of the existing owner persistence ports for Relational,
-  immutable package storage, runtime-stream lifecycle, and dispatch, followed
-  by the Signal and Runtime Bridge successor ports required by 9.17
-- the same exact Query commit-provider capacity binding, pre-effect atomic
-  reservation, and phase-correct backpressure/indeterminate boundary required
-  of the PostgreSQL adapter; Store-native scheduling cannot hide a second queue
-  or convert post-effect ambiguity into backpressure
+- owner-defined persistence ports for Relational, Signal, Runtime Bridge,
+  immutable package storage, runtime-stream lifecycle, and dispatch
+- exact Query commit-provider capacity binding, pre-effect atomic reservation,
+  and a phase-correct backpressure/indeterminate boundary; Store-native
+  scheduling cannot hide a second queue or convert post-effect ambiguity into
+  backpressure
 - typed semantic write lowering from prepared Relational artifacts into Store
   mutation batches with exact identity, ordering, scope, and durability basis
 - typed physical read lowering from Query/Relational access requirements into
@@ -619,7 +611,7 @@ and equivalent read.
 
 ### Boundary
 
-The Store-Query adapter owns physical lowering and evidence correlation beneath
+The Store binding owns physical lowering and evidence correlation beneath
 the existing Relational backend port, but it owns no transactional join,
 publication, acknowledgment, or completion authority. Relational decides
 whether a mutation is legal, prepares canonical truth, verifies the descriptive
@@ -636,8 +628,9 @@ lost acknowledged truth, duplicate commits, or shadow branch heads.
 
 ### Must Ship
 
-- the same canonical owner progression established by Query Milestone 9.16.2,
-  with Store implementing only its physical middle, equivalent to:
+- one canonical owner progression established jointly by the semantic owners
+  and Store integration, with Store implementing only its physical middle,
+  equivalent to:
 
   ```text
   AdmittedQueryMutation
@@ -1827,15 +1820,18 @@ Part II is complete only when Worth Store can honestly say:
 - Worth Query is the single ordinary runtime language in runtime-backed and
   Store-backed modes
 - no second semantic Store runtime or Store-local pseudo-Query exists
-- one Store-backed composition root owns exactly one Query runtime instance,
-  one physical Store instance, and one narrow adapter between them
+- `worth-application-store` owns exactly one Query participant, one physical
+  Store instance, and narrow bindings between them
+- backend-neutral application composition owns selected-provider completeness,
+  owner opening/closing order, typed readiness join, and overall readiness—but
+  no semantic recovery meaning or physical work
 - the adapter is the only semantic/physical translation boundary and owns no
   independent join authority, scheduler, cache, work registry, truth, or
   recovery lifecycle
 - physical and semantic Signal graphs remain distinct, reconstructible under
   their respective owners, and incapable of minting one another's authority
 - one Relational authority owns MVCC truth per runtime identity
-- Query read, submission, lifecycle, and inspection authorities are autonomous
+- Query read, submission, participant-lifecycle, and inspection authorities are autonomous
 - independent branches make concurrent progress without a global backend lock
 - exactly one mutation at a time owns active branch-write authority per
   branch-head generation; same-branch successors remain planned or queued until

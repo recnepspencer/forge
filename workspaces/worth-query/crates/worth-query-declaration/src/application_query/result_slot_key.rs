@@ -4,75 +4,75 @@ use super::{ApplicationQueryCardinality, ApplicationQueryResultTraversalDirectio
 use crate::application_schema::ApplicationFieldPresence;
 use crate::portable_identity::WorthQueryPortableTypeIdentity;
 
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct ApplicationQueryResultSlotKey {
     query: WorthQueryPortableTypeIdentity,
     slot: WorthQueryPortableTypeIdentity,
     contract: ApplicationQueryResultSlotContract,
 }
 
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 enum ApplicationQueryResultSlotContract {
     Field {
-        entity: &'static str,
-        aspect: &'static str,
-        field: &'static str,
-        output_name: &'static str,
+        entity: String,
+        aspect: String,
+        field: String,
+        output_name: String,
         scalar_family: ScalarAspectType,
         value_type: WorthQueryPortableTypeIdentity,
         presence: ApplicationFieldPresence,
     },
     Relation {
-        relation: &'static str,
-        from: &'static str,
-        to: &'static str,
+        relation: String,
+        from: String,
+        to: String,
         direction: ApplicationQueryResultTraversalDirection,
-        output_name: &'static str,
+        output_name: String,
         cardinality: ApplicationQueryCardinality,
     },
 }
 
-pub(super) struct ApplicationQueryResultFieldSlotContract {
-    pub entity: &'static str,
-    pub aspect: &'static str,
-    pub field: &'static str,
-    pub output_name: &'static str,
+pub(super) struct ApplicationQueryResultFieldSlotContract<'contract> {
+    pub entity: &'contract str,
+    pub aspect: &'contract str,
+    pub field: &'contract str,
+    pub output_name: &'contract str,
     pub scalar_family: ScalarAspectType,
     pub value_type: WorthQueryPortableTypeIdentity,
     pub presence: ApplicationFieldPresence,
 }
 
-pub(super) struct ApplicationQueryResultRelationSlotContract {
-    pub relation: &'static str,
-    pub from: &'static str,
-    pub to: &'static str,
+pub(super) struct ApplicationQueryResultRelationSlotContract<'contract> {
+    pub relation: &'contract str,
+    pub from: &'contract str,
+    pub to: &'contract str,
     pub direction: ApplicationQueryResultTraversalDirection,
-    pub output_name: &'static str,
+    pub output_name: &'contract str,
     pub cardinality: ApplicationQueryCardinality,
 }
 
 impl ApplicationQueryResultSlotKey {
-    pub const fn query_identity(self) -> WorthQueryPortableTypeIdentity {
-        self.query
+    pub fn query_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.query.clone()
     }
 
-    pub const fn slot_identity(self) -> WorthQueryPortableTypeIdentity {
-        self.slot
+    pub fn slot_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.slot.clone()
     }
 
-    pub(super) const fn field(
+    pub(super) fn field(
         query: WorthQueryPortableTypeIdentity,
         slot: WorthQueryPortableTypeIdentity,
-        contract: ApplicationQueryResultFieldSlotContract,
+        contract: ApplicationQueryResultFieldSlotContract<'_>,
     ) -> Self {
         Self {
             query,
             slot,
             contract: ApplicationQueryResultSlotContract::Field {
-                entity: contract.entity,
-                aspect: contract.aspect,
-                field: contract.field,
-                output_name: contract.output_name,
+                entity: contract.entity.to_owned(),
+                aspect: contract.aspect.to_owned(),
+                field: contract.field.to_owned(),
+                output_name: contract.output_name.to_owned(),
                 scalar_family: contract.scalar_family,
                 value_type: contract.value_type,
                 presence: contract.presence,
@@ -80,20 +80,20 @@ impl ApplicationQueryResultSlotKey {
         }
     }
 
-    pub(super) const fn relation(
+    pub(super) fn relation(
         query: WorthQueryPortableTypeIdentity,
         slot: WorthQueryPortableTypeIdentity,
-        contract: ApplicationQueryResultRelationSlotContract,
+        contract: ApplicationQueryResultRelationSlotContract<'_>,
     ) -> Self {
         Self {
             query,
             slot,
             contract: ApplicationQueryResultSlotContract::Relation {
-                relation: contract.relation,
-                from: contract.from,
-                to: contract.to,
+                relation: contract.relation.to_owned(),
+                from: contract.from.to_owned(),
+                to: contract.to.to_owned(),
                 direction: contract.direction,
-                output_name: contract.output_name,
+                output_name: contract.output_name.to_owned(),
                 cardinality: contract.cardinality,
             },
         }

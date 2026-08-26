@@ -42,10 +42,12 @@ pub use composition::{
 pub use context::{
     ApplicationCapabilityContextEntitySlotBinding, ApplicationCapabilityContextEntitySlotRef,
     ApplicationCapabilityPathContextAnchor,
+    WorthQueryPortableApplicationCapabilityContextEntitySlotBindingParts,
+    WorthQueryPortableApplicationCapabilityPathContextAnchorParts,
 };
 pub use contract::{
     ApplicationCapabilityContract, ApplicationCapabilityContractBuilder,
-    ErasedApplicationCapabilityContract,
+    ErasedApplicationCapabilityContract, WorthQueryPortableApplicationCapabilityContractParts,
 };
 pub use currentness::{
     ApplicationCapabilityCurrentnessDefinition, ApplicationCapabilityValidityDefinition,
@@ -60,14 +62,20 @@ pub use delegation_transition::{
     ApplicationCapabilityRevocationDefinition, ApplicationCapabilityRevocationRequest,
     ApplicationCapabilityRevocationRequestProjection,
     ApplicationCapabilityRevocationRequestProjectionDenial,
+    WorthQueryPortableApplicationCapabilityDelegationActivationParts,
+    WorthQueryPortableApplicationCapabilityRevocationParts,
 };
 pub use disclosure::ApplicationCapabilityDisclosureRule;
 pub use elevation::{
     ApplicationCapabilityElevationDefinition, ApplicationCapabilityElevationRule,
     ApplicationCapabilityElevationStates, ApplicationCapabilityMandatoryReviewDefinition,
+    WorthQueryPortableApplicationCapabilityElevationDefinitionParts,
+    WorthQueryPortableApplicationCapabilityElevationRuleParts,
 };
 pub use elevation_lifecycle::{
     ApplicationCapabilityElevationLifecycleDefinition, ApplicationCapabilityTransitionBinding,
+    WorthQueryPortableApplicationCapabilityElevationLifecycleParts,
+    WorthQueryPortableApplicationCapabilityTransitionBindingParts,
 };
 pub use elevation_transition::{
     ApplicationCapabilityElevationRequest, ApplicationCapabilityElevationRequestProjection,
@@ -76,13 +84,17 @@ pub use elevation_transition::{
 pub use governed_input_identity::ApplicationCapabilityGovernedInputIdentity;
 pub use lifecycle_effect::{
     ApplicationCapabilityLifecycleEffect, ApplicationCapabilityLifecycleEffectBinding,
+    WorthQueryPortableApplicationCapabilityLifecycleEffectParts,
 };
 pub use marker_identity::{
     ApplicationCapabilityContextEntitySlotMarkerIdentity,
     ApplicationCapabilityContextMarkerIdentity, ApplicationCapabilityMarkerIdentity,
     ApplicationCapabilityProvenanceMarkerIdentity,
 };
-pub use operation_binding::ApplicationCapabilityOperationBinding;
+pub use operation_binding::{
+    ApplicationCapabilityOperationBinding,
+    WorthQueryPortableApplicationCapabilityOperationBindingParts,
+};
 pub use reference::{
     ApplicationCapabilityContextRef, ApplicationCapabilityProvenanceRef, ApplicationCapabilityRef,
 };
@@ -95,7 +107,11 @@ pub use request_projection::{
 pub use rule_clause::{
     ApplicationCapabilityAcceptedValues, ApplicationCapabilityGraphClause,
     ApplicationCapabilityGraphRequirement, ApplicationCapabilityGraphRule,
-    ApplicationCapabilityScopeGuard,
+    ApplicationCapabilityScopeGuard, WorthQueryPortableApplicationCapabilityAcceptedValuesParts,
+    WorthQueryPortableApplicationCapabilityGraphClauseParts,
+    WorthQueryPortableApplicationCapabilityGraphRequirementParts,
+    WorthQueryPortableApplicationCapabilityGraphRuleParts,
+    WorthQueryPortableApplicationCapabilityScopeGuardParts,
 };
 pub use scope::{
     ApplicationCapabilityCardinalityDimension, ApplicationCapabilityConstraintDefinition,
@@ -103,4 +119,9 @@ pub use scope::{
     ApplicationCapabilityFieldDimension, ApplicationCapabilityMagnitudeDimension,
     ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
     ApplicationCapabilityTargetDefinition, ApplicationCapabilityValueBinding,
+    WorthQueryPortableApplicationCapabilityConstraintParts,
+    WorthQueryPortableApplicationCapabilityDelegationParts,
+    WorthQueryPortableApplicationCapabilityFieldBindingParts,
+    WorthQueryPortableApplicationCapabilityRelationBindingParts,
+    WorthQueryPortableApplicationCapabilityValueBindingParts,
 };

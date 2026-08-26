@@ -29,12 +29,16 @@ pub use compatibility::{
 };
 pub use condition::{
     WorthQueryConditionalConditionClass, WorthQueryConditionalEvaluationCondition,
-    WorthQueryDeltaComparisonDomain, WorthQueryDeltaThreshold, WorthQueryThresholdBoundary,
+    WorthQueryDeltaComparisonDomain, WorthQueryDeltaThreshold,
+    WorthQueryPortableConditionalConditionParts, WorthQueryPortableDeltaThresholdDenial,
+    WorthQueryPortableDeltaThresholdParts, WorthQueryThresholdBoundary,
 };
 pub use condition_parameter::{
     WorthQueryPortableConditionParameter, WorthQueryPortableConditionParameterValue,
 };
-pub use declaration::WorthQueryPortableConditionalNodeDeclaration;
+pub use declaration::{
+    WorthQueryPortableConditionalNodeDeclaration, WorthQueryPortableConditionalNodeParts,
+};
 pub use dependency::{
     WorthQueryConditionalGraphReadRole, WorthQuerySemanticDependencyCanonicalBasis,
     WorthQuerySemanticLocality, WorthQuerySemanticTruthDependency,
@@ -51,7 +55,8 @@ pub use host_provider_contract::{
 pub use location::WorthQueryConditionalNodeLocation;
 pub use markers::{
     WorthQueryComparatorFamily, WorthQueryDomainConditionFamily, WorthQueryOnDemandTriggerFamily,
-    WorthQueryQuantityUnit, WorthQueryQuantityValueFamily, WorthQueryTypedFamilyIdentity,
+    WorthQueryPortableFamilyIdentityDenial, WorthQueryQuantityUnit, WorthQueryQuantityValueFamily,
+    WorthQueryTypedFamilyIdentity,
 };
 pub use named_clock_contract::{
     WorthQueryClockCoordinate, WorthQueryClockSourceIdentity, WorthQueryClockTimelineIdentity,

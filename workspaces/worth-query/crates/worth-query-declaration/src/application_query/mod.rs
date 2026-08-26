@@ -22,7 +22,9 @@ mod validation;
 pub use authorization_requirement::ApplicationQueryAuthorizationRequirement;
 pub use basis_support::ApplicationQueryBasisSupport;
 pub use canonical_basis::ApplicationQueryCanonicalArtifact;
-pub use continuation::ApplicationQueryContinuationTarget;
+pub use continuation::{
+    ApplicationQueryContinuationTarget, WorthQueryPortableApplicationQueryContinuationParts,
+};
 pub use definition::{
     ApplicationQueryAuthorizationAuthoring, ApplicationQueryBasisAuthoring,
     ApplicationQueryCardinality, ApplicationQueryCardinalityAuthoring, ApplicationQueryDefinition,
@@ -35,15 +37,21 @@ pub use disclosure_contract::{
     ApplicationQueryDisclosureContract, ApplicationQueryDisclosurePosture,
     ApplicationQueryDisclosureRule, ApplicationQueryDisclosureSelector,
     ApplicationQueryInfluenceContract, ApplicationQueryObservableInfluence,
+    WorthQueryPortableApplicationQueryDisclosureParts,
 };
-pub use erased_definition::ErasedApplicationQueryDefinition;
+pub use erased_definition::{
+    ErasedApplicationQueryDefinition, WorthQueryPortableApplicationQueryParts,
+};
 pub use lane_eligibility::ApplicationQueryLaneEligibility;
 pub use live_cause::{
     ApplicationQueryLiveCauseBinding, ApplicationQueryLiveCauseContract,
-    ApplicationQueryLiveResourceContract,
+    ApplicationQueryLiveResourceContract, WorthQueryPortableApplicationQueryLiveCauseParts,
 };
 pub use marker_identity::ApplicationQueryMarkerIdentity;
-pub use ordering::{ApplicationQueryOrderingDirection, ApplicationQueryOrderingTerm};
+pub use ordering::{
+    ApplicationQueryOrderingDirection, ApplicationQueryOrderingTerm,
+    WorthQueryPortableApplicationQueryOrderingParts,
+};
 pub use parameters::{
     ApplicationQueryParameterDefinition, ApplicationQueryParameterRef, ApplicationQueryParameterSet,
 };
@@ -58,6 +66,9 @@ pub use result_relation_selector::{
 pub use result_shape::{
     ApplicationQueryResultField, ApplicationQueryResultRelation, ApplicationQueryResultShape,
     ApplicationQueryResultShapeBuilder, TypedApplicationQueryResultShape,
+    WorthQueryPortableApplicationQueryResultFieldParts,
+    WorthQueryPortableApplicationQueryResultRelationParts,
+    WorthQueryPortableApplicationQueryResultShapeParts,
 };
 pub use result_slot_key::ApplicationQueryResultSlotKey;
 pub use result_traversal::{
@@ -67,5 +78,8 @@ pub use result_traversal::{
 pub use root_selection::{
     ApplicationQueryRootPath, ApplicationQueryRootPathDirection, ApplicationQueryRootPathGuard,
     ApplicationQueryRootPathMeaning, ApplicationQueryRootPathStep,
+    WorthQueryPortableApplicationQueryRootPathGuardParts,
+    WorthQueryPortableApplicationQueryRootPathParts,
 };
+pub(crate) use validation::validate_portable_application_query_freshly;
 pub use validation::ApplicationQueryDefinitionDenial;

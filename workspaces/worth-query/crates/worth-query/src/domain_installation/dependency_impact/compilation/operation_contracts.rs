@@ -176,7 +176,7 @@ impl SemanticAspectDependencyCompilation {
             .push(WorthQueryCompiledSemanticAspectDependency::new(
                 WorthQuerySemanticAspectDependencyLocus::ReplayContract,
                 WorthQuerySemanticDependencyRole::AdvisoryOnlyContext,
-                WorthQuerySemanticAspectDependencySource::ReplayContract(semantics.replay),
+                WorthQuerySemanticAspectDependencySource::ReplayContract(semantics.replay.clone()),
             ));
         self.counters.replay_contract_edges += 1;
         self.dependencies

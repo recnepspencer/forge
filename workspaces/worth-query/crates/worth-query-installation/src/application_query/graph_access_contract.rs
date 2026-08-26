@@ -46,8 +46,8 @@ impl WorthQueryInstalledGraphProjection {
         self.slot_type.as_str()
     }
 
-    pub const fn portable_slot_identity(&self) -> WorthQueryPortableTypeIdentity {
-        self.slot_type
+    pub fn portable_slot_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.slot_type.clone()
     }
 
     pub fn slot_type_identity(&self) -> Arc<str> {
@@ -127,8 +127,8 @@ impl WorthQueryInstalledGraphRelation {
         self.slot_type.as_str()
     }
 
-    pub const fn portable_slot_identity(&self) -> WorthQueryPortableTypeIdentity {
-        self.slot_type
+    pub fn portable_slot_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.slot_type.clone()
     }
 
     pub fn slot_type_identity(&self) -> Arc<str> {

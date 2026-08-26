@@ -1,9 +1,9 @@
 //! Complete typed logical record vocabulary for one portable package export.
 
-use worth_query_declaration::facade::application_schema::ErasedApplicationSchemaDeclaration;
+use worth_query_declaration::facade::application_schema::WorthQueryPortableApplicationSchemaRecord;
 
 use crate::application_operation::WorthQueryPortableApplicationConditionalOperationBinding;
-use crate::domain_computation::WorthQueryPortableArtifactContract;
+use crate::domain_computation::WorthQueryPortableArtifactContractRecord;
 use crate::package::{
     WorthQueryPortableApplicationOperationContractRecord, WorthQueryPortableDefinition,
     WorthQueryPortableDomainIdentity, WorthQueryPortableDomainOperationRecord,
@@ -62,8 +62,8 @@ pub enum WorthQueryPortablePackageRecord {
     OperatingRequirement(WorthQueryInstallationOperatingRequirement),
     Definition(WorthQueryPortableDefinition),
     DomainOperation(WorthQueryPortableDomainOperationRecord),
-    ArtifactContract(WorthQueryPortableArtifactContract),
-    ApplicationSchema(ErasedApplicationSchemaDeclaration),
+    ArtifactContract(WorthQueryPortableArtifactContractRecord),
+    ApplicationSchema(WorthQueryPortableApplicationSchemaRecord),
     ConditionalApplicationOperation(WorthQueryPortableApplicationConditionalOperationBinding),
     ContributionPolicy(WorthQueryInstallationContributionCategory),
     NativeAspectContract(WorthQueryPortableNativeAspectContractRecord),

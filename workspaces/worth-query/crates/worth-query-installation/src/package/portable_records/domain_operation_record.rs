@@ -1,5 +1,11 @@
 //! Authority-free projection of one validated portable domain operation.
 
+mod canonical_semantics;
+mod readmission;
+mod reconstruction_work;
+
+pub(crate) use readmission::readmit_portable_domain_operation;
+
 use crate::domain_operation::*;
 
 /// Complete descriptive operation meaning without installation aftermath state.
@@ -33,6 +39,36 @@ pub struct WorthQueryPortableDomainOperationSemanticRecord {
 }
 
 impl WorthQueryPortableDomainOperationSemanticRecord {
+    pub fn from_untrusted_parts(parts: WorthQueryPortableDomainOperationSemanticParts) -> Self {
+        Self {
+            parameters: parts.parameters,
+            native_projection: parts.native_projection,
+            canonical_query: parts.canonical_query,
+            collection: parts.collection,
+            required_capabilities: parts.required_capabilities,
+            required_domains: parts.required_domains,
+            workflow: parts.workflow,
+            evidence: parts.evidence,
+            conditional_nodes: parts.conditional_nodes,
+            graph_reads: parts.graph_reads,
+            decision_facts: parts.decision_facts,
+            touches: parts.touches,
+            effects: parts.effects,
+            invariants: parts.invariants,
+            invariant_execution: parts.invariant_execution,
+            replay: parts.replay,
+            lineage: parts.lineage,
+            promotion: parts.promotion,
+            publication: parts.publication,
+            projection_consumption: parts.projection_consumption,
+            terminal: parts.terminal,
+            cost: parts.cost,
+            resources: parts.resources,
+            support: parts.support,
+            lowering: parts.lowering,
+        }
+    }
+
     fn project(source: &WorthQueryDomainOperationSemanticClosure) -> Self {
         debug_assert!(source.aftermath.is_none());
         Self {
@@ -51,7 +87,7 @@ impl WorthQueryPortableDomainOperationSemanticRecord {
             effects: source.effects.clone(),
             invariants: source.invariants.clone(),
             invariant_execution: source.invariant_execution.clone(),
-            replay: source.replay,
+            replay: source.replay.clone(),
             lineage: source.lineage,
             promotion: source.promotion,
             publication: source.publication.clone(),
@@ -111,8 +147,8 @@ impl WorthQueryPortableDomainOperationSemanticRecord {
     pub const fn invariant_execution(&self) -> &WorthQueryInvariantExecutionContract {
         &self.invariant_execution
     }
-    pub const fn replay(&self) -> WorthQueryOperationReplayContract {
-        self.replay
+    pub const fn replay(&self) -> &WorthQueryOperationReplayContract {
+        &self.replay
     }
     pub const fn lineage(&self) -> WorthQueryOperationLineageContract {
         self.lineage
@@ -143,6 +179,64 @@ impl WorthQueryPortableDomainOperationSemanticRecord {
     pub const fn lowering(&self) -> &WorthQueryOperationLoweringContract {
         &self.lowering
     }
+
+    pub fn into_parts(self) -> WorthQueryPortableDomainOperationSemanticParts {
+        WorthQueryPortableDomainOperationSemanticParts {
+            parameters: self.parameters,
+            native_projection: self.native_projection,
+            canonical_query: self.canonical_query,
+            collection: self.collection,
+            required_capabilities: self.required_capabilities,
+            required_domains: self.required_domains,
+            workflow: self.workflow,
+            evidence: self.evidence,
+            conditional_nodes: self.conditional_nodes,
+            graph_reads: self.graph_reads,
+            decision_facts: self.decision_facts,
+            touches: self.touches,
+            effects: self.effects,
+            invariants: self.invariants,
+            invariant_execution: self.invariant_execution,
+            replay: self.replay,
+            lineage: self.lineage,
+            promotion: self.promotion,
+            publication: self.publication,
+            projection_consumption: self.projection_consumption,
+            terminal: self.terminal,
+            cost: self.cost,
+            resources: self.resources,
+            support: self.support,
+            lowering: self.lowering,
+        }
+    }
+}
+
+pub struct WorthQueryPortableDomainOperationSemanticParts {
+    pub parameters: WorthQueryOperationParameterContract,
+    pub native_projection: WorthQueryOperationNativeProjectionContract,
+    pub canonical_query: worth_query_declaration::facade::canonicalization::WorthQueryPortableCanonicalQueryBundleRecord,
+    pub collection: WorthQueryOperationCollectionContract,
+    pub required_capabilities: Vec<WorthQueryOperationCapabilityRequirement>,
+    pub required_domains: Vec<WorthQueryOperationRequiredDomainRole>,
+    pub workflow: WorthQueryOperationWorkflowContract,
+    pub evidence: WorthQueryDomainEvidenceContract,
+    pub conditional_nodes: Vec<WorthQueryPortableConditionalNodeDeclaration>,
+    pub graph_reads: WorthQueryOperationGraphReadContract,
+    pub decision_facts: WorthQueryOperationDecisionFactContract,
+    pub touches: WorthQueryOperationTouchContract,
+    pub effects: WorthQueryOperationEffectContract,
+    pub invariants: WorthQueryOperationInvariantContract,
+    pub invariant_execution: WorthQueryInvariantExecutionContract,
+    pub replay: WorthQueryOperationReplayContract,
+    pub lineage: WorthQueryOperationLineageContract,
+    pub promotion: WorthQueryOperationPromotionContract,
+    pub publication: WorthQueryOperationPublicationContract,
+    pub projection_consumption: WorthQueryOperationProjectionConsumptionContract,
+    pub terminal: WorthQueryOperationTerminalContract,
+    pub cost: WorthQueryOperationCostContract,
+    pub resources: crate::domain_computation::WorthQueryOperationExecutionResourceContract,
+    pub support: WorthQueryOperationSupportRequirements,
+    pub lowering: WorthQueryOperationLoweringContract,
 }
 
 /// Stable portable record for one domain operation.
@@ -165,6 +259,14 @@ pub struct WorthQueryPortableDomainOperationRecord {
 }
 
 impl WorthQueryPortableDomainOperationRecord {
+    pub fn from_untrusted_parts(parts: WorthQueryPortableDomainOperationParts) -> Self {
+        Self {
+            identity: parts.identity,
+            semantics: parts.semantics,
+            canonical_identity: parts.canonical_identity,
+        }
+    }
+
     pub(crate) fn project(source: &WorthQueryPortableDomainOperationDefinition) -> Self {
         Self {
             identity: source.identity().clone(),
@@ -184,4 +286,23 @@ impl WorthQueryPortableDomainOperationRecord {
     pub fn canonical_identity(&self) -> &str {
         &self.canonical_identity
     }
+
+    pub fn into_parts(self) -> WorthQueryPortableDomainOperationParts {
+        WorthQueryPortableDomainOperationParts {
+            identity: self.identity,
+            semantics: self.semantics,
+            canonical_identity: self.canonical_identity,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn replace_canonical_identity_for_test(&mut self, value: impl Into<String>) {
+        self.canonical_identity = value.into();
+    }
+}
+
+pub struct WorthQueryPortableDomainOperationParts {
+    pub identity: WorthQueryDomainOperationIdentity,
+    pub semantics: WorthQueryPortableDomainOperationSemanticRecord,
+    pub canonical_identity: String,
 }

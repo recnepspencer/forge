@@ -10,13 +10,36 @@ use crate::portable_identity::{WorthQueryPortableType, WorthQueryPortableTypeIde
 pub struct ApplicationQueryContinuationTarget {
     query_type: WorthQueryPortableTypeIdentity,
     slot_type: WorthQueryPortableTypeIdentity,
-    relation: &'static str,
-    parent_entity: &'static str,
-    child_entity: &'static str,
+    relation: String,
+    parent_entity: String,
+    child_entity: String,
     direction: ApplicationQueryResultTraversalDirection,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryPortableApplicationQueryContinuationParts {
+    pub query_type: WorthQueryPortableTypeIdentity,
+    pub slot_type: WorthQueryPortableTypeIdentity,
+    pub relation: String,
+    pub parent_entity: String,
+    pub child_entity: String,
+    pub direction: ApplicationQueryResultTraversalDirection,
+}
+
 impl ApplicationQueryContinuationTarget {
+    pub fn from_untrusted_parts(
+        parts: WorthQueryPortableApplicationQueryContinuationParts,
+    ) -> Self {
+        Self {
+            query_type: parts.query_type,
+            slot_type: parts.slot_type,
+            relation: parts.relation,
+            parent_entity: parts.parent_entity,
+            child_entity: parts.child_entity,
+            direction: parts.direction,
+        }
+    }
+
     pub(super) fn from_many_relation<Query, Slot, Schema, Relation, From, To, Direction>(
         relation: ApplicationQueryResultRelationRef<
             Query,
@@ -37,39 +60,39 @@ impl ApplicationQueryContinuationTarget {
         Self {
             query_type: relation.slot_key().query_identity(),
             slot_type: relation.slot_key().slot_identity(),
-            relation: relation.relation(),
-            parent_entity: relation.parent(),
-            child_entity: relation.child(),
+            relation: relation.relation().to_owned(),
+            parent_entity: relation.parent().to_owned(),
+            child_entity: relation.child().to_owned(),
             direction: relation.direction(),
         }
     }
 
-    pub const fn query_type(&self) -> &'static str {
+    pub const fn query_type(&self) -> &str {
         self.query_type.as_str()
     }
 
-    pub const fn query_identity(&self) -> WorthQueryPortableTypeIdentity {
-        self.query_type
+    pub fn query_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.query_type.clone()
     }
 
-    pub const fn slot_type(&self) -> &'static str {
+    pub const fn slot_type(&self) -> &str {
         self.slot_type.as_str()
     }
 
-    pub const fn slot_identity(&self) -> WorthQueryPortableTypeIdentity {
-        self.slot_type
+    pub fn slot_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.slot_type.clone()
     }
 
-    pub const fn relation(&self) -> &'static str {
-        self.relation
+    pub fn relation(&self) -> &str {
+        &self.relation
     }
 
-    pub const fn parent_entity(&self) -> &'static str {
-        self.parent_entity
+    pub fn parent_entity(&self) -> &str {
+        &self.parent_entity
     }
 
-    pub const fn child_entity(&self) -> &'static str {
-        self.child_entity
+    pub fn child_entity(&self) -> &str {
+        &self.child_entity
     }
 
     pub const fn direction(&self) -> ApplicationQueryResultTraversalDirection {

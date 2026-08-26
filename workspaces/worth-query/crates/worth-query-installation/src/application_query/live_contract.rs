@@ -152,7 +152,7 @@ fn require_installed_projection(
     field: (&str, &str, &str),
     denial_kind: WorthQueryApplicationQueryInstallationDenialKind,
 ) -> Result<WorthQueryInstalledGraphProjection, WorthQueryApplicationQueryInstallationDenial> {
-    installed_projection(graph, slot_type, field)
+    installed_projection(graph, slot_type.clone(), field)
         .ok_or_else(|| installation_denial(denial_kind, slot_type.as_str()))
 }
 

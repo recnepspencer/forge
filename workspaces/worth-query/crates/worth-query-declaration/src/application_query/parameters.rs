@@ -34,22 +34,34 @@ impl<Query, Parameter, Value> Copy for ApplicationQueryParameterRef<Query, Param
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationQueryParameterDefinition {
-    name: &'static str,
+    name: String,
     scalar_family: ScalarAspectType,
-    value_type: &'static str,
+    value_type: crate::portable_identity::WorthQueryPortableTypeIdentity,
 }
 
 impl ApplicationQueryParameterDefinition {
-    pub const fn name(&self) -> &'static str {
-        self.name
+    pub fn from_untrusted_fields(
+        name: String,
+        scalar_family: ScalarAspectType,
+        value_type: crate::portable_identity::WorthQueryPortableTypeIdentity,
+    ) -> Self {
+        Self {
+            name,
+            scalar_family,
+            value_type,
+        }
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
     }
 
     pub const fn scalar_family(&self) -> ScalarAspectType {
         self.scalar_family
     }
 
-    pub const fn value_type(&self) -> &'static str {
-        self.value_type
+    pub const fn value_type(&self) -> &str {
+        self.value_type.as_str()
     }
 
     pub(super) fn typed<Query, Parameter, Value>(
@@ -59,9 +71,9 @@ impl ApplicationQueryParameterDefinition {
         Value: TypedApplicationValue + WorthQueryPortableType,
     {
         Self {
-            name: parameter.name(),
+            name: parameter.name().to_owned(),
             scalar_family: Value::SCALAR_FAMILY,
-            value_type: Value::PORTABLE_TYPE_IDENTITY.as_str(),
+            value_type: Value::PORTABLE_TYPE_IDENTITY,
         }
     }
 }
