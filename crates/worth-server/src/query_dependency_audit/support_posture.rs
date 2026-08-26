@@ -1,7 +1,6 @@
 use super::{
     WorthServerQueryDependencyAuditRow, WorthServerQueryDependencyClosurePosture,
-    WorthServerQueryDependencyConsumerKitPosture, WorthServerQueryDependencyRuntimeReadiness,
-    WorthServerQueryDependencyScopePosture,
+    WorthServerQueryDependencyRuntimeReadiness, WorthServerQueryDependencyScopePosture,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -10,7 +9,6 @@ pub struct WorthServerQueryDependencySupportPosture {
     static_test_only_row_count: usize,
     blocked_row_count: usize,
     legacy_assumption_row_count: usize,
-    local_folklore_row_count: usize,
     unclassified_scope_row_count: usize,
     runtime_ready_for_phase_one: bool,
 }
@@ -34,14 +32,6 @@ impl WorthServerQueryDependencySupportPosture {
                     == WorthServerQueryDependencyRuntimeReadiness::LegacyAssumption
             })
             .count();
-        let local_folklore_row_count = rows
-            .iter()
-            .filter(|row| row.ordinary_path())
-            .filter(|row| {
-                row.consumer_kit_posture()
-                    == WorthServerQueryDependencyConsumerKitPosture::LocalFolklore
-            })
-            .count();
         let unclassified_scope_row_count = rows
             .iter()
             .filter(|row| row.ordinary_path())
@@ -51,7 +41,6 @@ impl WorthServerQueryDependencySupportPosture {
             .count();
         let runtime_ready_for_phase_one = blocked_row_count == 0
             && legacy_assumption_row_count == 0
-            && local_folklore_row_count == 0
             && unclassified_scope_row_count == 0;
 
         Self {
@@ -59,7 +48,6 @@ impl WorthServerQueryDependencySupportPosture {
             static_test_only_row_count,
             blocked_row_count,
             legacy_assumption_row_count,
-            local_folklore_row_count,
             unclassified_scope_row_count,
             runtime_ready_for_phase_one,
         }
@@ -79,10 +67,6 @@ impl WorthServerQueryDependencySupportPosture {
 
     pub fn legacy_assumption_row_count(&self) -> usize {
         self.legacy_assumption_row_count
-    }
-
-    pub fn local_folklore_row_count(&self) -> usize {
-        self.local_folklore_row_count
     }
 
     pub fn unclassified_scope_row_count(&self) -> usize {

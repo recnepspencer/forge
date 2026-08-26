@@ -20,6 +20,29 @@ use world::CourtroomWorld;
 use worth_query_host::facade::primary_graph;
 
 #[test]
+fn application_readiness_reports_current_query_basis_without_leaking_a_lease() {
+    let world = CourtroomWorld::publish("ready");
+    let observer = world.application.application_query_basis_observer();
+    let before = observer.observe();
+
+    let readiness = world
+        .application
+        .inspect_application_readiness()
+        .expect("the published application basis should be inspectable");
+
+    assert_eq!(
+        readiness.schema_binding(),
+        &world.application.installed_schema().binding_identity()
+    );
+    assert!(readiness
+        .basis_token()
+        .starts_with("basis:query-primary-graph-v1:"));
+    let after = observer.observe();
+    assert_eq!(after.active(), before.active());
+    assert_eq!(after.acquisitions(), before.acquisitions() + 1);
+}
+
+#[test]
 fn successor_generation_requires_fresh_typed_rebinding() {
     let mut world = CourtroomWorld::publish("ready");
     let successor = std::sync::Arc::new(world.installation.successor_generation());

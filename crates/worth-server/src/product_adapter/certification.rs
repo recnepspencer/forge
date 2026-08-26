@@ -6,6 +6,7 @@ pub enum WorthServerProductAdapterCertificationCode {
     BlankPayloadSchemaIdentity,
     BlankSupportSnapshotRow,
     MissingErrorMap,
+    MissingQueryApplicationReadinessProvider,
     BlankDraftScope,
     BlankCoordinationLane,
     MissingDurableMutationExecutor,

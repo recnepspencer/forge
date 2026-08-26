@@ -2230,6 +2230,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "worth-query-decl"
+version = "0.1.0"
+dependencies = [
+ "worth-query-declaration",
+]
+
+[[package]]
 name = "worth-query-declaration"
 version = "0.1.0"
 dependencies = [
@@ -2252,6 +2259,19 @@ dependencies = [
  "worth-relational",
  "worth-runtime-bridge",
  "worth-signal",
+]
+
+[[package]]
+name = "worth-query-host"
+version = "0.1.0"
+dependencies = [
+ "worth-foundational",
+ "worth-query-admission",
+ "worth-query-decl",
+ "worth-query-declaration",
+ "worth-query-execution",
+ "worth-query-installation",
+ "worth-query-publication",
 ]
 
 [[package]]
@@ -2333,6 +2353,7 @@ dependencies = [
  "worth-foundational",
  "worth-proof",
  "worth-query",
+ "worth-query-host",
  "worth-runtime-bridge",
 ]
 

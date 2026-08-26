@@ -9,7 +9,6 @@ mod receipt;
 mod row;
 mod runtime_readiness;
 mod scope_posture;
-mod source_inventory;
 mod support_posture;
 
 pub(crate) use audit::run_query_dependency_audit;
@@ -18,20 +17,16 @@ pub use consumer_kit_posture::WorthServerQueryDependencyConsumerKitPosture;
 pub use facade::WorthServerQueryDependencyAuditFacade;
 pub use inventory::WorthServerQueryDependencyCoveredPathInventory;
 pub(crate) use inventory::{
-    covered_path_inventory, covered_paths, WorthServerQueryDependencyBindingKind,
-    WorthServerQueryDependencyCoveredPath,
+    covered_path_inventory, covered_paths, WorthServerQueryDependencyCoveredPath,
 };
 pub use path_kind::WorthServerQueryDependencyAuditPathKind;
 pub(crate) use provenance::WorthServerQueryDependencySupportPinProvenanceParts;
 pub use provenance::{
-    WorthServerQueryDependencyAuditProvenance, WorthServerQueryDependencyBoundaryAuditProvenance,
-    WorthServerQueryDependencySupportPinProvenance,
-    WorthServerQueryDependencyTestBackendResidueProvenance,
+    WorthServerQueryDependencyAuditProvenance, WorthServerQueryDependencySupportPinProvenance,
 };
 pub use receipt::{WorthServerQueryDependencyAudit, WorthServerQueryDependencyAuditReceipt};
 pub(crate) use row::WorthServerQueryDependencyAuditRowParts;
 pub use row::{WorthServerQueryDependencyAuditRow, WorthServerQueryDependencyAuditRowId};
 pub use runtime_readiness::WorthServerQueryDependencyRuntimeReadiness;
 pub use scope_posture::WorthServerQueryDependencyScopePosture;
-pub(crate) use source_inventory::worth_server_query_boundary_source_inventory;
 pub use support_posture::WorthServerQueryDependencySupportPosture;

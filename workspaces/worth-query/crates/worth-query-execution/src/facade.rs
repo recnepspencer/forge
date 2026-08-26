@@ -154,6 +154,7 @@ pub mod primary_graph {
         WorthQueryOrdinaryApplicationRead, WorthQueryOrdinaryReadBatch,
         WorthQueryOrdinaryReadMetadata, WorthQueryOrdinaryReadProjection,
         WorthQueryOrdinaryReadVersion, WorthQueryPrimaryGraph,
+        WorthQueryPrimaryGraphApplicationReadinessSnapshot,
         WorthQueryPrimaryGraphApplicationRuntime, WorthQueryPrimaryGraphBootstrap,
         WorthQueryPrimaryGraphInstallationDenial, WorthQueryPrimaryGraphInstallationDenialKind,
         WorthQueryPrimaryGraphPublication, WorthQueryPrimaryMutationWorkEvidence,

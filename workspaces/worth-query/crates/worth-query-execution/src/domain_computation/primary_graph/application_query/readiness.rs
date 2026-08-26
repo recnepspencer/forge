@@ -1,0 +1,81 @@
+use worth_query_declaration::facade::application_schema::{
+    ApplicationSchema, ApplicationSchemaBindingIdentity,
+};
+
+use super::{
+    basis::admit_current_execution_basis, WorthQueryApplicationBasisIdentity,
+    WorthQueryApplicationQueryAdmissionDenial, WorthQueryApplicationQueryAdmissionDenialKind,
+};
+use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime;
+
+/// Descriptive readiness of one installed primary-graph application runtime.
+///
+/// This snapshot carries no query, mutation, basis, or installation authority.
+/// A host may use its token for optimistic transport preconditions, but the
+/// owning Query runtime must still perform ordinary admission and currentness
+/// checks before executing an application operation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthQueryPrimaryGraphApplicationReadinessSnapshot {
+    schema_binding: ApplicationSchemaBindingIdentity,
+    basis_identity: WorthQueryApplicationBasisIdentity,
+    basis_token: String,
+}
+
+impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
+where
+    Schema: ApplicationSchema,
+{
+    /// Inspects the current installed application basis without allowing its
+    /// owner-issued lease to escape the Query boundary.
+    pub fn inspect_application_readiness(
+        &self,
+    ) -> Result<
+        WorthQueryPrimaryGraphApplicationReadinessSnapshot,
+        WorthQueryApplicationQueryAdmissionDenial,
+    > {
+        let basis = admit_current_execution_basis(self)?;
+        let basis_identity = basis.identity().clone();
+        let schema_binding = self.installed_schema().binding_identity();
+        let basis_token = basis_token(&schema_binding, &basis_identity);
+        let release = basis.release();
+        if !release.released() {
+            return Err(WorthQueryApplicationQueryAdmissionDenial::new(
+                WorthQueryApplicationQueryAdmissionDenialKind::RuntimeSupportUnavailable,
+                "primary-graph readiness basis release",
+            ));
+        }
+        Ok(WorthQueryPrimaryGraphApplicationReadinessSnapshot {
+            schema_binding,
+            basis_identity,
+            basis_token,
+        })
+    }
+}
+
+impl WorthQueryPrimaryGraphApplicationReadinessSnapshot {
+    pub fn schema_binding(&self) -> &ApplicationSchemaBindingIdentity {
+        &self.schema_binding
+    }
+
+    pub fn basis_identity(&self) -> &WorthQueryApplicationBasisIdentity {
+        &self.basis_identity
+    }
+
+    pub fn basis_token(&self) -> &str {
+        &self.basis_token
+    }
+}
+
+fn basis_token(
+    schema: &ApplicationSchemaBindingIdentity,
+    basis: &WorthQueryApplicationBasisIdentity,
+) -> String {
+    format!(
+        "basis:query-primary-graph-v1:{}:{}:{}:{}:{}",
+        basis.runtime_instance_id(),
+        basis.snapshot_id().0,
+        schema.generation(),
+        schema.package_identity().render_hex(),
+        schema.schema_identity().render_hex(),
+    )
+}

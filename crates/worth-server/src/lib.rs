@@ -219,12 +219,10 @@ pub use query_dependency_audit::{
     WorthServerQueryDependencyAudit, WorthServerQueryDependencyAuditFacade,
     WorthServerQueryDependencyAuditPathKind, WorthServerQueryDependencyAuditProvenance,
     WorthServerQueryDependencyAuditReceipt, WorthServerQueryDependencyAuditRow,
-    WorthServerQueryDependencyAuditRowId, WorthServerQueryDependencyBoundaryAuditProvenance,
-    WorthServerQueryDependencyClosurePosture, WorthServerQueryDependencyConsumerKitPosture,
-    WorthServerQueryDependencyCoveredPathInventory, WorthServerQueryDependencyRuntimeReadiness,
-    WorthServerQueryDependencyScopePosture, WorthServerQueryDependencySupportPinProvenance,
-    WorthServerQueryDependencySupportPosture,
-    WorthServerQueryDependencyTestBackendResidueProvenance,
+    WorthServerQueryDependencyAuditRowId, WorthServerQueryDependencyClosurePosture,
+    WorthServerQueryDependencyConsumerKitPosture, WorthServerQueryDependencyCoveredPathInventory,
+    WorthServerQueryDependencyRuntimeReadiness, WorthServerQueryDependencyScopePosture,
+    WorthServerQueryDependencySupportPinProvenance, WorthServerQueryDependencySupportPosture,
 };
 pub use query_handoff::{
     WorthServerQueryHandoff, WorthServerQueryHandoffDeferred, WorthServerQueryHandoffDenial,

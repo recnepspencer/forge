@@ -101,6 +101,7 @@ fn shared_read_comparable(authority_metadata: &WorthServerOperationAuthorityMeta
         } if product_support_posture == "production-admitted"
             && (basis_kind == "query-shared-read-basis"
                 || basis_kind == "query-derived"
+                || basis_kind == "primary-graph-application"
                 || basis_kind == "product-session-derived"
                 || basis_kind == "durable-product-derived")
     )

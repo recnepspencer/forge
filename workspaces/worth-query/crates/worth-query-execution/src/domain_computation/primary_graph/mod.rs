@@ -129,6 +129,7 @@ pub use application_query::{
     WorthQueryApplicationQueryWorkEvidence, WorthQueryApplicationResultBufferEvidence,
     WorthQueryApplicationResultBufferObservation, WorthQueryApplicationResultBufferObserver,
     WorthQueryBoundedLaneDenial, WorthQueryBoundedLaneDenialKind,
+    WorthQueryPrimaryGraphApplicationReadinessSnapshot,
 };
 pub(in crate::domain_computation) use crate::domain_computation::application_aftermath::external_effect::WorthQueryAdmittedExternalDispatchAttempt;
 pub(in crate::domain_computation) use application_runtime::WorthQueryExternalDispatchAttemptOrdinal;

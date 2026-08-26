@@ -66,6 +66,24 @@ Host code must not:
 - invent a host-local temporal binding or idempotency hash, or derive either
   again during commit.
 
+## Application Readiness For Editors
+
+An editor or transport host that owns an installed primary-graph application
+may inspect its current descriptive basis before presenting or submitting
+work:
+
+```rust
+let readiness = application.inspect_application_readiness()?;
+let optimistic_basis = readiness.basis_token();
+```
+
+The snapshot identifies the installed schema binding and current Query basis.
+Query releases the inspection lease before returning it. The basis token is an
+optimistic transport precondition only: it carries no query, mutation,
+installation, or basis authority. Execution must still enter through the typed
+Query application adapter, which performs fresh authorization, projection,
+admission, and currentness checks.
+
 ## Related Docs
 
 - [Ordinary Application Front Door](../worth-query/docs/foundations/ordinary-application-front-door.md)

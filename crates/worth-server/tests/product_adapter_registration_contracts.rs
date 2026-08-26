@@ -65,6 +65,26 @@ fn product_adapter_registration_rejects_blank_schema_identity_explicitly() {
     );
 }
 
+#[test]
+fn primary_graph_application_registration_requires_its_query_owner() {
+    let result = build_broken_registration_server(
+        WorthServerProductOperationDeclaration::product_read(
+            "workflow_editor.render",
+            "workflow-editor.render.v1",
+            result_contract("workflow-editor.render.result.v1"),
+            WorthServerProductOperationBasisKind::PrimaryGraphApplication,
+            WorthServerProductOperationSupportSnapshot::production_admitted(
+                "workflow-editor-render-supported",
+            ),
+        )
+        .with_error_map(WorthServerProductOperationErrorMaps::passthrough()),
+    );
+    assert_registration_code(
+        result,
+        WorthServerProductAdapterCertificationCode::MissingQueryApplicationReadinessProvider,
+    );
+}
+
 fn build_broken_registration_server(
     declaration: WorthServerProductOperationDeclaration,
 ) -> Result<WorthServer, WorthServerBuildError> {

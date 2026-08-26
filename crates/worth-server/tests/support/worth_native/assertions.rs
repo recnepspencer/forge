@@ -36,6 +36,9 @@ pub(crate) fn admitted_named_read(
 pub(crate) fn family_contract_digest(posture: &WorthServerQuerySupportPosture) -> &str {
     match posture {
         WorthServerQuerySupportPosture::ProductIndependent { label } => label,
+        WorthServerQuerySupportPosture::PrimaryGraphApplicationSupported { basis_token } => {
+            basis_token
+        }
         WorthServerQuerySupportPosture::QueryReadSupported { family_contract }
         | WorthServerQuerySupportPosture::DirectReadSupported { family_contract }
         | WorthServerQuerySupportPosture::DirectStateSupported { family_contract }
