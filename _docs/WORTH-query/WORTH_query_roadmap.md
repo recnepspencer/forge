@@ -5035,6 +5035,10 @@ and removes every old receipt, runtime handle, and derived pending-work index. A
 fresh process must recover the exact acknowledged state and existing Query
 outbox, install only the independently expected package, and resume safely with
 bounded work. No adapter artifact may mint Query or Relational authority.
+Concurrent saturation must backpressure excess persistent work through Query's
+exact commit-provider capacity reservation before Relational preparation or
+SQL, while any operation whose transaction may have begun resolves only through
+the typed commit outcome and never through ordinary backpressure.
 
 ### Specification
 
@@ -5073,6 +5077,10 @@ retroactively close an unfinished earlier boundary.
 - a production `worth-runtime-postgres` physical-adapter facade with distinct
   Query-package, Relational-owner, dispatch, connection, migration, and
   operations axes
+- binding of the selected PostgreSQL durability instance into Query's existing
+  exact commit-provider capacity subject, atomic pre-effect reservation,
+  bounded blocking/pool/queue posture, phase-correct backpressure versus
+  indeterminate commit outcomes, and dispatch capacity before claim
 - a Query-execution-owned fresh-owner recovery/rebind barrier reexported by the
   leaf `worth-query-host` audience facade
 - restart-stable discovery and fenced claiming of Query's existing
@@ -5096,6 +5104,9 @@ retroactively close an unfinished earlier boundary.
   authority
 - Query-execution ownership of persistent opening and claim/fence/outcome
   progression while `worth-query-host` remains a facade-only reexport
+- Query ownership of multi-provider resource admission and reservation, with
+  PostgreSQL owning only non-authoritative physical capacity subjects, waits,
+  pools, and release mechanics
 - host ownership of Git provenance, signing, registry revision, and activation
 - private validation proofs and runtime authority
 - the ordinary/reconstructive work boundary

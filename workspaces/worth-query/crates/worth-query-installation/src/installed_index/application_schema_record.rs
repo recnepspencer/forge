@@ -5,6 +5,10 @@ use worth_query_declaration::facade::application_schema::ErasedApplicationSchema
 
 use crate::application_schema::WorthQueryInstalledApplicationSchemaContractCatalog;
 use crate::canonical_work::WorthQueryCanonicalWorkEvidence;
+use crate::package::{
+    WorthQueryPortableApplicationOperationContractRecord,
+    WorthQueryPortableNativeAspectContractRecord,
+};
 
 #[derive(Debug)]
 pub(super) struct WorthQueryInstalledApplicationSchemaRecord {
@@ -12,6 +16,8 @@ pub(super) struct WorthQueryInstalledApplicationSchemaRecord {
     schema_identity: CanonicalDigestId,
     schema_work: WorthQueryCanonicalWorkEvidence,
     catalog: Arc<WorthQueryInstalledApplicationSchemaContractCatalog>,
+    native_contracts: Arc<Vec<WorthQueryPortableNativeAspectContractRecord>>,
+    operation_contracts: Arc<Vec<WorthQueryPortableApplicationOperationContractRecord>>,
 }
 
 impl WorthQueryInstalledApplicationSchemaRecord {
@@ -20,12 +26,16 @@ impl WorthQueryInstalledApplicationSchemaRecord {
         schema_identity: CanonicalDigestId,
         schema_work: WorthQueryCanonicalWorkEvidence,
         catalog: Arc<WorthQueryInstalledApplicationSchemaContractCatalog>,
+        native_contracts: Arc<Vec<WorthQueryPortableNativeAspectContractRecord>>,
+        operation_contracts: Arc<Vec<WorthQueryPortableApplicationOperationContractRecord>>,
     ) -> Self {
         Self {
             declaration,
             schema_identity,
             schema_work,
             catalog,
+            native_contracts,
+            operation_contracts,
         }
     }
 
@@ -39,6 +49,18 @@ impl WorthQueryInstalledApplicationSchemaRecord {
 
     pub(super) fn catalog(&self) -> &Arc<WorthQueryInstalledApplicationSchemaContractCatalog> {
         &self.catalog
+    }
+
+    pub(super) fn native_contracts(
+        &self,
+    ) -> &Arc<Vec<WorthQueryPortableNativeAspectContractRecord>> {
+        &self.native_contracts
+    }
+
+    pub(super) fn operation_contracts(
+        &self,
+    ) -> &Arc<Vec<WorthQueryPortableApplicationOperationContractRecord>> {
+        &self.operation_contracts
     }
 
     pub(super) fn installation_work(&self) -> WorthQueryCanonicalWorkEvidence {

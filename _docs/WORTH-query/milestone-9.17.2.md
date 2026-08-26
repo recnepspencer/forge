@@ -243,8 +243,8 @@ enforce these laws:
 - preparation consumes one expected product head and explicit component plan;
 - compatibility consumes the exact owner outcomes produced for that plan;
 - execution-ready publication cannot be minted from raw candidates;
-- performed publication is minted only by the product-head store after the CAS
-  outcome is observed;
+- performed publication is minted only by Bridge after the product-head store
+  CAS outcome is observed;
 - history append and public receipts derive from performed publication;
 - stale, denied, deferred, cancelled, rebind-required, and indeterminate
   outcomes cannot enter the success transition; and

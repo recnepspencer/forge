@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+use crate::application_query::ApplicationQueryMarkerIdentity;
 use crate::application_query::{
     ApplicationQueryAuthorizationRequirement, ApplicationQueryContinuationTarget,
     ApplicationQueryDefinitionDenial, ApplicationQueryLiveCauseBinding,
@@ -13,6 +14,7 @@ use crate::application_schema::{
     ApplicationFieldRef, ApplicationFieldUnit, EqualityCapable, EqualityPredicate,
     TypedApplicationValue,
 };
+use crate::portable_identity::WorthQueryPortableType;
 
 use super::authoring::{ApplicationQueryDefinitionParts, ApplicationQueryRootAuthoring};
 use super::{ApplicationQueryDefinition, ApplicationQueryPredicate};
@@ -37,6 +39,10 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
         Self {
             definition: ApplicationQueryDefinition {
                 name: parts.reference.name(),
+                query_type: parts.reference.query_type(),
+                parameter_type: parts.reference.parameter_type(),
+                result_type: parts.reference.result_type(),
+                scope_type: parts.reference.scope_type(),
                 root_entity: parts.root.name(),
                 scope_entity: parts.scope.name(),
                 parameters: Vec::new(),
@@ -90,7 +96,7 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
         parameter: ApplicationQueryParameterRef<Query, Parameter, Value>,
     ) -> Self
     where
-        Value: TypedApplicationValue,
+        Value: TypedApplicationValue + WorthQueryPortableType,
         Unit: ApplicationFieldUnit,
         EqualityPredicate: EqualityCapable,
     {
@@ -121,8 +127,10 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
         direction: ApplicationQueryOrderingDirection,
     ) -> Self
     where
-        Value: TypedApplicationValue,
+        Value: TypedApplicationValue + WorthQueryPortableType,
         Unit: ApplicationFieldUnit,
+        Query: ApplicationQueryMarkerIdentity,
+        Slot: WorthQueryPortableType,
     {
         self.definition
             .ordering
@@ -147,6 +155,8 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
     ) -> Self
     where
         Direction: ApplicationQueryResultTraversal,
+        Query: ApplicationQueryMarkerIdentity,
+        Slot: WorthQueryPortableType,
     {
         self.definition.continuation = Some(
             ApplicationQueryContinuationTarget::from_many_relation(relation),
@@ -198,6 +208,9 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
         Binding: ApplicationQueryLiveCauseBinding<Schema, Query, Scope, Target>,
         ScopeUnit: ApplicationFieldUnit,
         TargetUnit: ApplicationFieldUnit,
+        Query: ApplicationQueryMarkerIdentity,
+        ScopeSlot: WorthQueryPortableType,
+        TargetSlot: WorthQueryPortableType,
     {
         self.definition.live_cause = Some(ApplicationQueryLiveCauseContract::typed::<
             Schema,

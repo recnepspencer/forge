@@ -4,6 +4,35 @@ use crate::domain_computation_artifact_fixture::*;
 use crate::facade::*;
 
 #[test]
+fn typed_export_retains_the_exact_artifact_contract_record() {
+    let contract = valid_contract(
+        false,
+        WorthQueryArtifactLifecycleContract::Retained,
+        domain_reproducibility(),
+    );
+    let package = WorthQueryPortableDomainPackage::new(WorthQueryPortableDomainIdentity::new(
+        "worth.routing.export",
+        1,
+        0,
+    ))
+    .artifact_contract(contract.clone())
+    .validate()
+    .unwrap();
+    let export = package.export_typed_records().unwrap();
+
+    assert_eq!(
+        export
+            .manifest()
+            .family_count(WorthQueryPortablePackageRecordFamily::ArtifactContract),
+        1
+    );
+    assert!(export.records().iter().any(|record| matches!(
+        record,
+        WorthQueryPortablePackageRecord::ArtifactContract(exported) if exported == &contract
+    )));
+}
+
+#[test]
 fn equivalent_contract_order_converges_to_one_semantic_identity() {
     let canonical = valid_contract(
         false,

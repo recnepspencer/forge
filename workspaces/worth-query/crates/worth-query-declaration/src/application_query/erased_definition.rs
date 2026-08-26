@@ -7,6 +7,7 @@ use super::{
     ApplicationQueryOrderingTerm, ApplicationQueryParameterDefinition, ApplicationQueryPredicate,
     ApplicationQueryReference, ApplicationQueryResultShape, ApplicationQueryRootPathMeaning,
 };
+use crate::portable_identity::WorthQueryPortableTypeIdentity;
 
 /// Descriptive, authority-free application-query meaning retained by a
 /// domain package.
@@ -16,10 +17,10 @@ use super::{
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ErasedApplicationQueryDefinition {
     name: String,
-    query_type: String,
-    parameter_type: String,
-    result_type: String,
-    scope_type: String,
+    query_type: WorthQueryPortableTypeIdentity,
+    parameter_type: WorthQueryPortableTypeIdentity,
+    result_type: WorthQueryPortableTypeIdentity,
+    scope_type: WorthQueryPortableTypeIdentity,
     root_entity: String,
     scope_entity: String,
     parameters: Vec<ApplicationQueryParameterDefinition>,
@@ -44,19 +45,35 @@ impl ErasedApplicationQueryDefinition {
     }
 
     pub fn query_type(&self) -> &str {
-        &self.query_type
+        self.query_type.as_str()
+    }
+
+    pub const fn query_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.query_type
     }
 
     pub fn parameter_type(&self) -> &str {
-        &self.parameter_type
+        self.parameter_type.as_str()
+    }
+
+    pub const fn parameter_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.parameter_type
     }
 
     pub fn result_type(&self) -> &str {
-        &self.result_type
+        self.result_type.as_str()
+    }
+
+    pub const fn result_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.result_type
     }
 
     pub fn scope_type(&self) -> &str {
-        &self.scope_type
+        self.scope_type.as_str()
+    }
+
+    pub const fn scope_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.scope_type
     }
 
     pub fn root_entity(&self) -> &str {
@@ -140,10 +157,10 @@ impl ErasedApplicationQueryDefinition {
         let canonical = super::canonical_basis::prepare_definition_basis(&definition);
         Self {
             name: definition.name().to_string(),
-            query_type: std::any::type_name::<Query>().to_string(),
-            parameter_type: std::any::type_name::<Parameters>().to_string(),
-            result_type: std::any::type_name::<QueryResult>().to_string(),
-            scope_type: std::any::type_name::<Scope>().to_string(),
+            query_type: definition.query_identity(),
+            parameter_type: definition.parameter_identity(),
+            result_type: definition.result_identity(),
+            scope_type: definition.scope_identity(),
             root_entity: definition.root_entity().to_string(),
             scope_entity: definition.scope_entity().to_string(),
             parameters: definition.parameters,

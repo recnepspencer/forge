@@ -2,6 +2,7 @@ use worth_query_declaration::facade::application_capability::{
     ApplicationCapabilityEntitySelector, ApplicationCapabilityRequestContext,
     ApplicationCapabilityRequestProjection,
 };
+use worth_query_declaration::facade::application_schema::ApplicationOperationMarkerIdentity;
 
 use super::super::application_attempt::authenticated_principal;
 use super::super::fixture::{
@@ -53,6 +54,12 @@ mod validity;
 
 struct AliasedRequestCapabilityElevationOperation;
 
+impl ApplicationOperationMarkerIdentity for AliasedRequestCapabilityElevationOperation {
+    type Schema = ();
+    type Input = ();
+    const IDENTIFIER: &'static str = "AliasedRequestCapabilityElevationOperation";
+}
+
 #[test]
 fn exact_active_elevation_admits_and_revalidates_with_ordinary_capability_authority() {
     let (world, request, approved) = approval_transition::exact_approved_world();
@@ -66,20 +73,20 @@ fn exact_active_elevation_admits_and_revalidates_with_ordinary_capability_author
     let (_, _, request_role) = world
         .application
         .authorization
-        .elevation_lifecycle_operation::<
-            RequestCapabilityElevationOperation,
-            RequestElevationInput,
-        >("RequestCapabilityElevationOperation")
+        .elevation_lifecycle_operation::<RequestCapabilityElevationOperation>(
+            "RequestCapabilityElevationOperation",
+            <RequestElevationInput as worth_query_declaration::facade::portable_identity::WorthQueryPortableType>::PORTABLE_TYPE_IDENTITY.as_str(),
+        )
         .expect("the request marker must match installed lifecycle identity")
         .expect("the request operation must have one lifecycle owner");
     assert_eq!(format!("{request_role:?}"), "Request");
     assert!(world
         .application
         .authorization
-        .elevation_lifecycle_operation::<
-            AliasedRequestCapabilityElevationOperation,
-            RequestElevationInput,
-        >("RequestCapabilityElevationOperation")
+        .elevation_lifecycle_operation::<AliasedRequestCapabilityElevationOperation>(
+            "RequestCapabilityElevationOperation",
+            <RequestElevationInput as worth_query_declaration::facade::portable_identity::WorthQueryPortableType>::PORTABLE_TYPE_IDENTITY.as_str(),
+        )
         .is_err());
     world.authorization_time.script([time(100), time(100)]);
     let principal = authenticated_principal(&world, &request);

@@ -1,6 +1,8 @@
 use worth_foundational::facade::{AspectFieldLocator, AspectValue};
 use worth_query_declaration::facade::application_capability::ApplicationCapabilityRequest;
-use worth_query_declaration::facade::application_schema::TypedMutationPreconditions;
+use worth_query_declaration::facade::application_schema::{
+    ApplicationOperationMarkerIdentity, TypedMutationPreconditions,
+};
 use worth_query_installation::facade::{
     ApplicationOperationDecisionReadTarget, ApplicationOperationProgramTarget, ApplicationSchema,
     WorthQueryInstalledApplicationOperation,
@@ -86,6 +88,7 @@ where
         WorthQueryElevationCloseAuthorizationDenial,
     >
     where
+        Operation: ApplicationOperationMarkerIdentity,
         Input: ApplicationCapabilityRequest<Schema, Capability>,
         Input: 'static,
     {
@@ -117,6 +120,7 @@ fn bind_close<Schema, Capability, Operation, Input>(
 ) -> Result<WorthQueryElevationCloseDraft, WorthQueryOperationAuthorizationDenial>
 where
     Schema: ApplicationSchema,
+    Operation: ApplicationOperationMarkerIdentity,
     Input: ApplicationCapabilityRequest<Schema, Capability>,
     Input: 'static,
 {

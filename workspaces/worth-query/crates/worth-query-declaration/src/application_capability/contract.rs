@@ -1,5 +1,6 @@
 mod builder;
 
+use crate::portable_identity::WorthQueryPortableTypeIdentity;
 use std::marker::PhantomData;
 
 use super::{
@@ -13,10 +14,10 @@ pub use builder::ApplicationCapabilityContractBuilder;
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ErasedApplicationCapabilityContract {
     name: String,
-    capability_type: String,
+    capability_type: WorthQueryPortableTypeIdentity,
     operation: String,
-    operation_type: String,
-    input_type: String,
+    operation_type: WorthQueryPortableTypeIdentity,
+    input_type: WorthQueryPortableTypeIdentity,
     grant_entity: String,
     target: ApplicationCapabilityTargetDefinition,
     constraints: ApplicationCapabilityConstraintDefinition,
@@ -31,7 +32,11 @@ impl ErasedApplicationCapabilityContract {
     }
 
     pub fn capability_type(&self) -> &str {
-        &self.capability_type
+        self.capability_type.as_str()
+    }
+
+    pub const fn capability_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.capability_type
     }
 
     pub fn operation(&self) -> &str {
@@ -39,11 +44,19 @@ impl ErasedApplicationCapabilityContract {
     }
 
     pub fn operation_type(&self) -> &str {
-        &self.operation_type
+        self.operation_type.as_str()
+    }
+
+    pub const fn operation_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.operation_type
     }
 
     pub fn input_type(&self) -> &str {
-        &self.input_type
+        self.input_type.as_str()
+    }
+
+    pub const fn input_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.input_type
     }
 
     pub fn grant_entity(&self) -> &str {

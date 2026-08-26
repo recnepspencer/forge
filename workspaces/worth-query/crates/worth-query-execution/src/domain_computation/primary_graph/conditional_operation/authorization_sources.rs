@@ -184,6 +184,7 @@ impl<
 where
     Schema: ApplicationSchema,
     CapabilityInput: ApplicationCapabilityRequest<Schema, Capability, Scope = Scope>
+        + worth_query_declaration::facade::portable_identity::WorthQueryPortableType
         + Clone
         + Send
         + Sync
@@ -309,12 +310,17 @@ impl<Schema, Capability, Operation, Input, Scope>
 where
     Schema: ApplicationSchema,
     Input: ApplicationCapabilityRequest<Schema, Capability, Scope = Scope>
+        + worth_query_declaration::facade::portable_identity::WorthQueryPortableType
         + Clone
         + Send
         + Sync
         + 'static,
     Capability: Send + Sync + 'static,
-    Operation: Send + Sync + 'static,
+    Operation:
+        worth_query_declaration::facade::application_schema::ApplicationOperationMarkerIdentity
+            + Send
+            + Sync
+            + 'static,
 {
     fn authorize<Principal, PrincipalIdentity>(
         &self,

@@ -1,7 +1,7 @@
 use crate::application_query::{
     ApplicationQueryBasisSupport, ApplicationQueryCardinality, ApplicationQueryDefinitionBuilder,
     ApplicationQueryDependencyCeiling, ApplicationQueryDisclosureContract,
-    ApplicationQueryLaneEligibility, ApplicationQueryReference, ApplicationQueryResultFieldRef,
+    ApplicationQueryLaneEligibility, ApplicationQueryResultFieldRef,
     ApplicationQueryResultShapeBuilder,
 };
 use crate::application_schema::{
@@ -13,10 +13,20 @@ pub(super) struct QuerySchema;
 pub(super) struct QueryEntity;
 struct QueryAspect;
 struct QueryField;
-pub(super) struct QueryMarker;
 pub(super) struct QueryParameters;
 pub(super) struct QueryResult;
 struct QueryFieldSlot;
+
+crate::worth_query_application_query!(
+    pub(super) QueryMarker in QuerySchema,
+    identity "QueryMarker",
+    parameters QueryParameters => "QueryParameters",
+    result QueryResult => "worth.query.test.canonical-query-result.v1",
+    scope QueryEntity => "QueryEntity",
+    name "query"
+);
+worth_query_portable_type!(QueryResult => "worth.query.test.canonical-query-result.v1");
+worth_query_portable_type!(QueryFieldSlot => "worth.query.test.canonical-query-field-slot.v1");
 
 impl crate::application_schema::DeclaredApplicationFieldValue for QueryField {
     type Value = u64;
@@ -58,14 +68,7 @@ pub(super) fn application_query(output_name: &'static str) -> ApplicationSchemaM
     >::new(entity)
     .field(result_field)
     .build();
-    let definition =
-        ApplicationQueryDefinitionBuilder::declare(ApplicationQueryReference::<
-            QuerySchema,
-            QueryMarker,
-            QueryParameters,
-            QueryResult,
-            QueryEntity,
-        >::from_schema_identifier("query"))
+    let definition = ApplicationQueryDefinitionBuilder::declare(QueryMarker::reference())
         .root(entity)
         .scope(entity)
         .result_shape(shape)

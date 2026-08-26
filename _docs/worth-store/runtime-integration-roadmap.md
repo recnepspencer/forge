@@ -12,7 +12,8 @@ does not compensate for an incomplete reconstruction with an integration-side
 backend or semantic persistence fallback.
 
 Part II builds one public production runtime through a Store-backed composition
-root. Internally, that root owns two sibling instances and their narrow join:
+root. Internally, that root owns two sibling instances and their narrow
+translation boundary:
 the Worth Query runtime owns semantic execution, the physical Store instance
 owns physical execution, and the Store-Query adapter translates between their
 public contracts. Worth Query remains the ordinary domain-facing language,
@@ -32,7 +33,7 @@ the current Query/Relational/Signal architecture.
 Physical Database Roadmap S.12
   -> Milestone 1: Query integration readiness and backend contract refactor
   -> Milestone 2: semantic-to-physical integration spine
-  -> Milestone 3: canonical durable commit and publication join
+  -> Milestone 3: Store durability beneath canonical commit and publication
   -> Milestone 4: basis-pinned Store reads, hydration, and access providers
   -> Milestone 5: branch-aware concurrent MVCC over Store
   -> Milestone 6: runtime residency, drainage, cleanup, and rehydration
@@ -86,7 +87,8 @@ or completion evidence for it.
   owns public intent and semantic orchestration, Relational owns semantic
   truth, semantic Signal owns semantic derivation, Bridge owns semantic causal
   crossing, the physical Store instance owns byte survival and physical work,
-  and the integration boundary owns only their transactional join.
+  and the integration boundary owns only typed lowering and descriptive
+  evidence correlation beneath those owner contracts.
 - `perf_laws.md` protects locality, boundedness, and honest cost. Parallel
   admission must consume planned read/write/conflict footprints; a branch label
   alone is not proof of disjointness, and a global backend lock is not an
@@ -180,10 +182,15 @@ Part II freezes these decisions:
 2. There is one public Store-backed Query runtime. Its composition root owns
    one Query runtime instance, one physical Store instance, and one narrow
    Store-Query adapter; there is no separately public semantic Store runtime.
-3. The Store-Query adapter implements Query-owned provider and transactional-
-   join contracts. It translates semantic intent to physical work and physical
+3. The Store-Query adapter implements Query-owned provider and physical-
+   lowering contracts. It translates semantic intent to physical work and physical
    evidence to semantic readmission, but it is not a runtime, scheduler, cache,
    truth registry, or lifecycle authority of its own.
+   It implements the same owner-defined persistence ports and typed durability
+   progression established by Query Milestone 9.16.2 and strengthened by 9.17;
+   it does not introduce a Store-specific durability authority lane. Store-
+   native read, submission, lifecycle, inspection, and pushdown providers are
+   additive Query capabilities, not replacements for those owner ports.
 4. Query core and the Query runtime do not depend on Store. The physical Store
    instance does not depend on Query. Only the adapter and the composition root
    know both public contract families.
@@ -305,19 +312,19 @@ The strongly preferred initial topology is:
 The rough directory target is:
 
 ```text
-worth-store-query-runtime        sole Store-backed Query composition entry
+worth-store-query-runtime        Store physical-provider composition, not an audience facade
   composition/                   construction, operating profile, close order
   query_runtime/                 Query provider and authority-handle binding
   physical_store/                physical Store facade and lifecycle binding
   adapter/
     semantic_lowering/           prepared semantic intent to physical plans
-    durable_commit/              durability, publication, acknowledgment join
+    relational_durability/       physical persist_prepared body and descriptive outcome
     physical_access/             basis requirements to Store access plans
     semantic_hydration/          verified bytes to readmission material
     artifact_association/        semantic identities to physical families
     recovery_readmission/        recovered evidence to fresh semantic admission
-  lifecycle/                     joined quiesce, settle, recover, close
-  facade/                        narrow construction and runtime handles
+  lifecycle/                     coordinated physical-provider open and close order
+  facade/                        narrow provider construction handles
 
 worth-store-semantic-artifacts  persisted semantic records and codecs only
   commit_record/                 canonical prepared-commit representation
@@ -333,15 +340,28 @@ worth-store-runtime-certification joined hostile courtroom and scale proof
 This is a rough target, not permission to create bags. Milestone 1 may change
 crate cuts when ownership proves different, but it may not collapse the sibling
 instances, make the adapter a third runtime, or introduce a second public
-runtime. Each adapter child is a named join; `adapter/` is not permission for a
-generic translation bag.
+runtime. Each adapter child is one named lowering, correlation, or hydration
+responsibility; `adapter/` is not permission for a generic translation bag.
 
 The target construction experience is conceptually:
 
 ```rust
-let runtime = WorthStoreQueryRuntime::open(config)
-    .install(domain_package)
+let persistence = WorthRuntimeStore::connect(store_configuration)?;
+let providers = PersistentQueryRuntimeProviders::builder()
+    .relational_durability(persistence.relational_durability())
+    .query_package_archives(persistence.query_package_archives())
+    .runtime_stream_catalog(persistence.runtime_stream_catalog())
+    .dispatch_coordination(persistence.dispatch_coordination())
+    .signal_durability(persistence.signal_durability())
+    .runtime_world_durability(persistence.runtime_world_durability())
+    .store_access(persistence.store_access())
     .build()?;
+
+let runtime = WorthQueryHost::open_persistent(
+    providers,
+    domain_package,
+    host_runtime_bindings,
+)?;
 
 let query = runtime.query();
 let operations = runtime.operations(operator_authority);
@@ -431,6 +451,11 @@ surface.
 - explicit compatibility map from Query Milestones 9.7, 9.10, 9.11, 9.12, and
   9.13 into the provider contracts this roadmap consumes
 - a Store-backed Query backend contract implemented outside Query core
+- an extensible persistent-provider construction progression compatible with
+  the stable `WorthQueryHost::open_persistent` audience facade and the four
+  owner persistence ports established by Query Milestone 9.16.2; later Store
+  requirements must make incomplete composition roots fail to compile without
+  moving or duplicating the facade
 - one composition root that owns one Query runtime instance, one physical Store
   instance, and one narrow adapter while exposing only ordinary Query
   capability namespaces
@@ -462,6 +487,9 @@ surface.
 - semantic Signal authority over derived computation
 - Bridge authority over causal crossing
 - absent/non-Store Query operation
+- the stable Query-host audience facade and owner-defined durability contract;
+  PostgreSQL and Store are substitutable physical implementations beneath that
+  contract, not separate runtime APIs
 
 ### Proof Obligations
 
@@ -505,6 +533,14 @@ relationship between those public families. It does not decide Query meaning,
 Relational legality, physical storage mechanics, physical work readiness, or
 physical scheduling.
 
+For durability, the seam is not redesigned here. The adapter implements the
+Relational durability backend, immutable package repository, Query runtime-
+stream catalog, and persistent dispatch coordinator ports established by Query
+Milestone 9.16.2, plus the Signal and Runtime Bridge owner successors added by
+9.17. Store may realize those contracts through native pages, WAL, indexes, and
+physical Signal work, but no Store-local receipt, registry, or publication path
+may bypass the owner progression or become a parallel authority.
+
 ### Adversarial Constraint
 
 One canonical mutation and one basis-pinned read must cross the actual Part I
@@ -516,6 +552,13 @@ or decoder that can mint semantic authority from bytes.
 
 - Query-owned provider contracts for Store-backed read, submission, lifecycle,
   inspection, capability admission, and typed unavailability
+- implementations of the existing owner persistence ports for Relational,
+  immutable package storage, runtime-stream lifecycle, and dispatch, followed
+  by the Signal and Runtime Bridge successor ports required by 9.17
+- the same exact Query commit-provider capacity binding, pre-effect atomic
+  reservation, and phase-correct backpressure/indeterminate boundary required
+  of the PostgreSQL adapter; Store-native scheduling cannot hide a second queue
+  or convert post-effect ambiguity into backpressure
 - typed semantic write lowering from prepared Relational artifacts into Store
   mutation batches with exact identity, ordering, scope, and durability basis
 - typed physical read lowering from Query/Relational access requirements into
@@ -541,6 +584,9 @@ or decoder that can mint semantic authority from bytes.
 - semantic types remain stronger than their physical encodings
 - record codecs cannot validate domain invariants or publish branch heads
 - Store plans cannot become Query plans or Relational transactions
+- Store-native persistence cannot create a second durability receipt,
+  publication progression, outbox payload, pending-work registry, or recovery
+  authority beside the owner-defined ports
 - the integration crate contains named lowering and hydration responsibilities,
   not a generic adapter or translation bag
 
@@ -562,21 +608,24 @@ read traverse the production physical database in opposite directions through
 typed, authority-preserving contracts, and no shadow in-memory path can satisfy
 the acceptance proof.
 
-## Milestone 3: Canonical Durable Commit And Publication Join
+## Milestone 3: Store Durability Beneath Canonical Commit And Publication
 
 ### Goal
 
 Prove one complete Query mutation from declared intent through Relational
-transaction authority, adapter lowering, physical Store durability, adapter
-evidence correlation, semantic publication, Query completion, crash, restart,
+transaction authority, adapter lowering, physical Store durability, descriptive
+physical evidence, Relational publication, Query completion, crash, restart,
 and equivalent read.
 
 ### Boundary
 
-The Store-Query adapter owns the transactional join but none of its component
-truth. Relational decides whether a mutation is legal and prepares canonical
-truth; Store decides whether the bytes survive; Query completes only after the
-adapter proves those decisions form one recoverable progression.
+The Store-Query adapter owns physical lowering and evidence correlation beneath
+the existing Relational backend port, but it owns no transactional join,
+publication, acknowledgment, or completion authority. Relational decides
+whether a mutation is legal, prepares canonical truth, verifies the descriptive
+physical outcome, and alone mints publication. Store decides whether the bytes
+survive. Query alone mints completion after consuming the resulting
+`RelationalCommitOutcome` through its existing execution progression.
 
 ### Adversarial Constraint
 
@@ -587,16 +636,20 @@ lost acknowledged truth, duplicate commits, or shadow branch heads.
 
 ### Must Ship
 
-- canonical progression equivalent to:
+- the same canonical owner progression established by Query Milestone 9.16.2,
+  with Store implementing only its physical middle, equivalent to:
 
   ```text
   AdmittedQueryMutation
     -> PlannedBranchMutation
     -> BranchWriteAdmittedMutation
-    -> PreparedRelationalCommit
-    -> LoweredPhysicalCommit
-    -> DurablyPersistedCommit
-    -> PublishedRelationalCommit
+    -> RelationalPreparedPublication
+    -> RelationalPreparedDurableAppendRequest
+    -> PhysicalAppendNotStarted
+    -> PhysicalAppendStarted
+    -> PhysicalRelationalAppendOutcome
+    -> RelationalDurabilityAdmittedPublication
+    -> RelationalCommitOutcome
     -> QueryCompletion
   ```
 
@@ -609,14 +662,17 @@ lost acknowledged truth, duplicate commits, or shadow branch heads.
   same-branch plans but carries no active writer or publication authority
 - `BranchWriteAdmittedMutation` consumes the Relational-owned active
   branch-write authority for the exact branch-head generation; a planned or
-  queued mutation cannot construct `PreparedRelationalCommit`, lower Store
-  mutation work, or enter durability
+  queued mutation cannot construct `RelationalPreparedPublication`, lower
+  Store mutation work, or enter durability
 - canonical commit envelope, version identity, branch identity, parent basis,
   active writer generation, mutation identity, and idempotency identity
 - physical lowering through the physical Store facade into its C.5.1 work
   topology and Part I WAL/page/checkpoint contracts, never raw mechanisms
-- Store durability receipt bound to exact prepared semantic content
-- Relational publication that consumes the durability proof
+- Store physical outcome bound to the exact prepared request, branch, writer
+  generation, mutation identity, and idempotency identity; it is descriptive
+  evidence returned through the existing backend port, not Store authority
+- Relational verification and publication that consume the admitted physical
+  outcome through the existing owner progression
 - group-commit-compatible durability without changing semantic commit identity
 - typed `Indeterminate` result with recovery handle where a client cannot know
   whether an unacknowledged durable commit published; this posture retains the
@@ -1240,7 +1296,7 @@ materialization.
 - Part I chunk-backed range and streaming providers
 - upload staging distinct from committed blob authority
 - transactional upload-to-semantic-record association through the canonical
-  commit join
+  owner commit progression
 - deduplication and branch sharing that preserve tenant, key, and policy scope
 - saved-query, continuation, replication, capsule, retention, and rehydration
   participation for blob-bearing results
@@ -1773,8 +1829,9 @@ Part II is complete only when Worth Store can honestly say:
 - no second semantic Store runtime or Store-local pseudo-Query exists
 - one Store-backed composition root owns exactly one Query runtime instance,
   one physical Store instance, and one narrow adapter between them
-- the adapter is the only semantic/physical join and owns no independent
-  scheduler, cache, work registry, truth, or recovery lifecycle
+- the adapter is the only semantic/physical translation boundary and owns no
+  independent join authority, scheduler, cache, work registry, truth, or
+  recovery lifecycle
 - physical and semantic Signal graphs remain distinct, reconstructible under
   their respective owners, and incapable of minting one another's authority
 - one Relational authority owns MVCC truth per runtime identity

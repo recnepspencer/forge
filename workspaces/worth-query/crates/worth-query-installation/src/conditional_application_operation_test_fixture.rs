@@ -135,7 +135,13 @@ fn native_projection() -> WorthQueryOperationNativeProjectionContract {
 }
 
 fn canonical_query() -> worth_query_declaration::facade::canonicalization::CanonicalQueryBundle {
-    let query = DetailQueryBuilder::new(RootEntityKey::new("ConditionalEntity").unwrap())
+    canonical_query_for_root("ConditionalEntity")
+}
+
+pub(crate) fn canonical_query_for_root(
+    root: &str,
+) -> worth_query_declaration::facade::canonicalization::CanonicalQueryBundle {
+    let query = DetailQueryBuilder::new(RootEntityKey::new(root).unwrap())
         .project(AspectFieldSelector::new("profile", "name").unwrap())
         .build()
         .unwrap()

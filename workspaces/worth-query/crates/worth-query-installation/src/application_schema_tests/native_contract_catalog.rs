@@ -10,8 +10,8 @@ mod semantic_collision;
 use crate::facade::{
     WorthQueryInstallationAdmissionProfile, WorthQueryInstallationGeneration,
     WorthQueryInstallationRuntimeIdentity, WorthQueryInstalledPackageIndex,
-    WorthQueryInstalledPackageIndexDenialKind, WorthQueryPortableDomainIdentity,
-    WorthQueryPortableDomainPackage,
+    WorthQueryPortableDomainIdentity, WorthQueryPortableDomainPackage,
+    WorthQueryPortablePackageValidationDenialKind,
 };
 use worth_query_declaration::facade::application_schema::{
     ApplicationEntityRef, ApplicationSchema, ApplicationSchemaDeclaration,
@@ -230,7 +230,7 @@ fn aspect_identity_namespace_is_local_to_one_installed_schema_binding() {
 }
 
 #[test]
-fn installation_denies_zero_revision_duplicate_identity_and_empty_aspect() {
+fn package_validation_denies_unexportable_native_contracts() {
     let zero_entity =
         ApplicationEntityRef::<ZeroRevisionSchema, ZeroEntity>::from_schema_identifier(
             "ZeroEntity",
@@ -247,9 +247,9 @@ fn installation_denies_zero_revision_duplicate_identity_and_empty_aspect() {
         )
         .build()
         .unwrap();
-    assert_installation_denial(
+    assert_package_contract_denial(
         zero,
-        WorthQueryInstalledPackageIndexDenialKind::ApplicationSchemaAspectRevisionZero,
+        WorthQueryPortablePackageValidationDenialKind::ApplicationContractRevisionZero,
     );
 
     let duplicate_entity =
@@ -276,9 +276,9 @@ fn installation_denies_zero_revision_duplicate_identity_and_empty_aspect() {
         )
         .build()
         .unwrap();
-    assert_installation_denial(
+    assert_package_contract_denial(
         duplicate,
-        WorthQueryInstalledPackageIndexDenialKind::ApplicationSchemaDuplicateAspectIdentity,
+        WorthQueryPortablePackageValidationDenialKind::ApplicationContractDuplicateAspectIdentity,
     );
 
     let empty_entity =
@@ -297,24 +297,25 @@ fn installation_denies_zero_revision_duplicate_identity_and_empty_aspect() {
         )
         .build()
         .unwrap();
-    assert_installation_denial(
+    assert_package_contract_denial(
         empty,
-        WorthQueryInstalledPackageIndexDenialKind::ApplicationSchemaMissingAspectFieldClosure,
+        WorthQueryPortablePackageValidationDenialKind::ApplicationContractMissingAspectFieldClosure,
     );
 }
 
-fn assert_installation_denial<Schema>(
+fn assert_package_contract_denial<Schema>(
     declaration: ApplicationSchemaDeclaration<Schema>,
-    expected: WorthQueryInstalledPackageIndexDenialKind,
+    expected: WorthQueryPortablePackageValidationDenialKind,
 ) where
     Schema: ApplicationSchema,
 {
-    let admitted = admitted_package(declaration);
-    let denial = WorthQueryInstalledPackageIndex::build(
-        WorthQueryInstallationRuntimeIdentity::fresh(),
-        WorthQueryInstallationGeneration::initial(),
-        [admitted],
-    )
+    let denial = WorthQueryPortableDomainPackage::new(WorthQueryPortableDomainIdentity::new(
+        Schema::OWNER,
+        1,
+        0,
+    ))
+    .application_schema(declaration)
+    .validate()
     .unwrap_err();
     assert_eq!(denial.kind(), expected);
 }

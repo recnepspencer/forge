@@ -3,6 +3,7 @@ use worth_foundational::facade::{AspectContractRevision, AspectIdentity, ScalarA
 use crate::application_aftermath::PortableApplicationAftermathContract;
 use crate::application_capability::ErasedApplicationCapabilityContract;
 use crate::application_query::ErasedApplicationQueryDefinition;
+use crate::portable_identity::WorthQueryPortableTypeIdentity;
 
 use super::authorization_policy::ApplicationAuthorizationPath;
 use super::WorthQueryExternalEffectCorrelationFamily;
@@ -102,22 +103,22 @@ pub enum ApplicationSchemaMember {
     },
     ApplicationCapabilityContext {
         context: String,
-        context_type: String,
+        context_type: WorthQueryPortableTypeIdentity,
     },
     ApplicationCapabilityContextEntitySlot {
         context: String,
-        context_type: String,
+        context_type: WorthQueryPortableTypeIdentity,
         slot: String,
-        slot_type: String,
+        slot_type: WorthQueryPortableTypeIdentity,
         entity: String,
     },
     ApplicationCapabilityProvenance {
         provenance: String,
-        provenance_type: String,
+        provenance_type: WorthQueryPortableTypeIdentity,
     },
     Operation {
         operation: String,
-        input_type: String,
+        input_type: WorthQueryPortableTypeIdentity,
     },
     OperationProgram {
         operation: String,
@@ -145,7 +146,7 @@ pub enum ApplicationSchemaMember {
     OperationExternalEffect {
         operation: String,
         effect: String,
-        rust_payload_type: String,
+        rust_payload_type: WorthQueryPortableTypeIdentity,
         protocol: super::ApplicationExternalEffectProtocol,
         maximum_payload_bytes: u64,
         correlation_family: WorthQueryExternalEffectCorrelationFamily,
@@ -182,6 +183,6 @@ pub enum ApplicationSchemaMember {
     },
     Effect {
         effect: String,
-        payload_type: String,
+        payload_type: WorthQueryPortableTypeIdentity,
     },
 }

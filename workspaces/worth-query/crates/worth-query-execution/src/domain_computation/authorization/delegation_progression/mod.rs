@@ -67,6 +67,8 @@ where
         WorthQueryOperationAuthorizationDenial,
     >
     where
+        Operation:
+            worth_query_declaration::facade::application_schema::ApplicationOperationMarkerIdentity,
         Input: ApplicationCapabilityRequest<Schema, CommandCapability>
             + ApplicationCapabilityDelegationRequest<Schema, TargetCapability>,
     {
@@ -115,8 +117,8 @@ fn validate_activation_operation<Schema, Operation, Input>(
         .as_ref()
         .ok_or_else(|| delegation_denial(installed))?;
     if activation.operation == operation.operation()
-        && activation.operation_type == std::any::type_name::<Operation>()
-        && activation.input_type == std::any::type_name::<Input>()
+        && activation.operation_type == operation.operation()
+        && activation.input_type == operation.input_type()
     {
         Ok(())
     } else {

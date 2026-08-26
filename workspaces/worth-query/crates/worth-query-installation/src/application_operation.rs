@@ -16,6 +16,7 @@ pub(crate) mod installed;
 mod installed_conditional;
 mod installed_contract_support;
 mod operation_declaration_resolution;
+mod portable_contract_spine;
 mod precondition_contract;
 
 #[cfg(test)]
@@ -49,6 +50,10 @@ pub use denial::{
 pub use execution_posture::WorthQueryInstalledApplicationOperationExecutionPosture;
 pub(crate) use installed::WorthQueryOperationAftermathInstallationSource;
 pub(in crate::application_operation) use installed::WorthQuerySealedOperationContractCompilation;
+pub(crate) use portable_contract_spine::{
+    compile_portable_operation_contract_record, compile_portable_operation_contract_records,
+    WorthQueryPortableOperationContractSpineDenialKind,
+};
 
 pub use installed::{
     WorthQueryInstalledApplicationOperation, WorthQueryInstalledApplicationOperationGraphAuthority,

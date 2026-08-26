@@ -3,13 +3,14 @@ use crate::application_schema::{
     ApplicationMutationPreconditionTarget, ApplicationOperationDecisionReadTarget,
     ApplicationOperationProgramTarget, ApplicationSchemaMember,
 };
+use crate::portable_identity::WorthQueryPortableTypeIdentity;
 
 impl ClosureIndex<'_> {
     pub(super) fn external_effect_dependencies_exist(
         &self,
         operation: &str,
         effect: &str,
-        payload_type: &str,
+        payload_type: &WorthQueryPortableTypeIdentity,
     ) -> bool {
         self.operations.contains(operation)
             && self.members.iter().any(|member| {

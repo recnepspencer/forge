@@ -22,8 +22,13 @@ pub struct AccountIdentitySlot;
 pub struct ActivitiesSlot;
 pub struct ActivityIdentitySlot;
 
+worth_query_declaration::worth_query_portable_type!(AccountIdentitySlot => "worth.query.test.execution.forbidden_live.account_identity_slot.v1");
+worth_query_declaration::worth_query_portable_type!(ActivitiesSlot => "worth.query.test.execution.forbidden_live.activities_slot.v1");
+worth_query_declaration::worth_query_portable_type!(ActivityIdentitySlot => "worth.query.test.execution.forbidden_live.activity_identity_slot.v1");
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForbiddenLiveIdentityResult;
+worth_query_declaration::worth_query_portable_type!(ForbiddenLiveIdentityResult => "worth.query.test.execution.forbidden_live.result.v1");
 
 worth_query_application_query!(
     pub ForbiddenLiveScopeIdentityQuery in IdentityExecutionSchema,
@@ -70,12 +75,15 @@ pub(super) fn forbidden_live_target_identity_definition() -> ApplicationQueryDef
 }
 
 pub(in crate::domain_computation::primary_graph) fn forbidden_live_identity_parameters<
-    Query: 'static,
+    Query: worth_query_declaration::facade::application_query::ApplicationQueryMarkerIdentity,
 >() -> ApplicationQueryParameterSet<Query> {
     ApplicationQueryParameterSet::new().bind(account_parameter::<Query>(), "account-1".to_owned())
 }
 
-fn definition<Query: 'static, Cause>(
+fn definition<
+    Query: worth_query_declaration::facade::application_query::ApplicationQueryMarkerIdentity + 'static,
+    Cause,
+>(
     reference: worth_query_declaration::facade::application_query::ApplicationQueryReference<
         IdentityExecutionSchema,
         Query,
@@ -184,6 +192,8 @@ fn influence_without_live_membership() -> ApplicationQueryInfluenceContract {
 
 pub struct ForbiddenLiveScopeIdentityCause;
 pub struct ForbiddenLiveTargetIdentityCause;
+worth_query_declaration::worth_query_portable_type!(ForbiddenLiveScopeIdentityCause => "worth.query.test.execution.forbidden_live.scope_cause.v1");
+worth_query_declaration::worth_query_portable_type!(ForbiddenLiveTargetIdentityCause => "worth.query.test.execution.forbidden_live.target_cause.v1");
 
 macro_rules! live_cause {
     ($cause:ty, $query:ty) => {
@@ -223,12 +233,15 @@ live_cause!(
     ForbiddenLiveTargetIdentityQuery
 );
 
-fn account_parameter<Query: 'static>(
-) -> ApplicationQueryParameterRef<Query, AccountIdentityParameter, String> {
+fn account_parameter<
+    Query: worth_query_declaration::facade::application_query::ApplicationQueryMarkerIdentity,
+>() -> ApplicationQueryParameterRef<Query, AccountIdentityParameter, String> {
     ApplicationQueryParameterRef::from_query_identifier("account")
 }
 
-fn account_identity<Query: 'static>() -> ApplicationQueryResultFieldRef<
+fn account_identity<
+    Query: worth_query_declaration::facade::application_query::ApplicationQueryMarkerIdentity,
+>() -> ApplicationQueryResultFieldRef<
     Query,
     AccountIdentitySlot,
     IdentityExecutionSchema,
@@ -243,7 +256,9 @@ fn account_identity<Query: 'static>() -> ApplicationQueryResultFieldRef<
     ApplicationQueryResultFieldRef::new("account", AccountIdentity::reference())
 }
 
-fn activity_identity<Query: 'static>() -> ApplicationQueryResultFieldRef<
+fn activity_identity<
+    Query: worth_query_declaration::facade::application_query::ApplicationQueryMarkerIdentity,
+>() -> ApplicationQueryResultFieldRef<
     Query,
     ActivityIdentitySlot,
     IdentityExecutionSchema,
@@ -258,7 +273,9 @@ fn activity_identity<Query: 'static>() -> ApplicationQueryResultFieldRef<
     ApplicationQueryResultFieldRef::new("activity", ActivityIdentity::reference())
 }
 
-fn activities<Query: 'static>() -> ApplicationQueryResultRelationRef<
+fn activities<
+    Query: worth_query_declaration::facade::application_query::ApplicationQueryMarkerIdentity,
+>() -> ApplicationQueryResultRelationRef<
     Query,
     ActivitiesSlot,
     IdentityExecutionSchema,

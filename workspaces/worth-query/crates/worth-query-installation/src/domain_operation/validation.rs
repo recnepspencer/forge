@@ -234,11 +234,8 @@ fn validate_invariant_execution(
 fn validate_aftermath(
     contract: Option<&crate::application_aftermath::WorthQueryInstalledAftermathContract>,
 ) -> Result<(), &'static str> {
-    let Some(contract) = contract else {
-        return Ok(());
-    };
-    if contract.operation_slot().trim().is_empty() {
-        return Err("empty-aftermath-operation");
+    if contract.is_some() {
+        return Err("installed-aftermath-is-not-portable-domain-operation-meaning");
     }
     Ok(())
 }

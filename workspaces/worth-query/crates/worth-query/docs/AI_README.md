@@ -284,6 +284,17 @@ Installation is the point where domain meaning becomes executable runtime
 meaning. Hosts may supply adapters and resources, but they may not add or alter
 application semantics after installation.
 
+### Portable package export
+
+After validation, hosts may call `export_typed_records()` through
+`worth_query_host::facade::domain`. The result is a versioned, bounded,
+authority-free record set containing every package family plus the exact
+retained native and application-operation contracts. It is suitable for
+inspection and later store-neutral carriage, but its manifest identity does
+not authorize installation and its records are not an archive format. See
+[Portable Query Packages](./portable-packages.md) for the public API, limits,
+and examples.
+
 Operation definitions use typestate to make both static choices explicit. A
 builder must call either `external_effect(...)` or `no_external_effect()`, and
 either `aftermath(...)` or `no_aftermath()`, before `finish()` is available.

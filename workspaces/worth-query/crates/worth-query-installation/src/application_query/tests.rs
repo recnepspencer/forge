@@ -9,7 +9,7 @@ use worth_query_declaration::facade::application_query::{
 use worth_query_declaration::facade::application_schema::ApplicationEntityRef;
 use worth_query_declaration::{
     worth_query_application_query, worth_query_application_schema, worth_query_aspect,
-    worth_query_entity, worth_query_field, worth_query_relation,
+    worth_query_entity, worth_query_field, worth_query_portable_type, worth_query_relation,
 };
 
 use crate::facade::{
@@ -86,12 +86,24 @@ struct AccountIdSlot;
 struct ActivitySequenceSlot;
 struct ActivityRelationSlot;
 
+worth_query_portable_type!(ActivityQueryResult => "worth.query.test.installation.activity-result.v1");
+worth_query_portable_type!(AccountIdSlot => "worth.query.test.installation.account-id-slot.v1");
+worth_query_portable_type!(ActivitySequenceSlot => "worth.query.test.installation.sequence-slot.v1");
+worth_query_portable_type!(ActivityRelationSlot => "worth.query.test.installation.relation-slot.v1");
+
 worth_query_application_query!(
     pub(super) ActivityQuery in QueryTestSchema,
     parameters ActivityQueryParameters,
     result ActivityQueryResult,
     scope Account,
     name "account_activity"
+);
+worth_query_application_query!(
+    ActivityScopedQuery in QueryTestSchema,
+    parameters ActivityQueryParameters,
+    result ActivityQueryResult,
+    scope Activity,
+    name "activity_scoped_account_activity"
 );
 fn query_reference() -> ApplicationQueryReference<
     QueryTestSchema,
@@ -103,7 +115,7 @@ fn query_reference() -> ApplicationQueryReference<
     ActivityQuery::reference()
 }
 
-fn account_parameter() -> ApplicationQueryParameterRef<ActivityQuery, AccountParameter, u64> {
+fn account_parameter<Query>() -> ApplicationQueryParameterRef<Query, AccountParameter, u64> {
     ApplicationQueryParameterRef::from_query_identifier("account")
 }
 
@@ -117,15 +129,17 @@ fn definition(
     ActivityQueryResult,
     Account,
 > {
-    definition_with_scope_and_sequence_slot::<Account, ActivitySequenceSlot>(
+    definition_for::<ActivityQuery, Account, ActivitySequenceSlot>(
+        ActivityQuery::reference(),
         Account::reference(),
         direction,
         output_name,
     )
 }
 
-fn definition_with_scope<Scope>(
-    scope: ApplicationEntityRef<QueryTestSchema, Scope>,
+pub(super) fn definition_with_sequence_slot<
+    SequenceSlot: worth_query_declaration::facade::portable_identity::WorthQueryPortableType,
+>(
     direction: ApplicationQueryOrderingDirection,
     output_name: &'static str,
 ) -> ApplicationQueryDefinition<
@@ -133,44 +147,58 @@ fn definition_with_scope<Scope>(
     ActivityQuery,
     ActivityQueryParameters,
     ActivityQueryResult,
-    Scope,
+    Account,
 > {
-    definition_with_scope_and_sequence_slot::<Scope, ActivitySequenceSlot>(
-        scope,
+    definition_for::<ActivityQuery, Account, SequenceSlot>(
+        ActivityQuery::reference(),
+        Account::reference(),
         direction,
         output_name,
     )
 }
 
-pub(super) fn definition_with_scope_and_sequence_slot<Scope, SequenceSlot: 'static>(
+fn definition_for<
+    Query,
+    Scope,
+    SequenceSlot: worth_query_declaration::facade::portable_identity::WorthQueryPortableType,
+>(
+    reference: ApplicationQueryReference<
+        QueryTestSchema,
+        Query,
+        ActivityQueryParameters,
+        ActivityQueryResult,
+        Scope,
+    >,
     scope: ApplicationEntityRef<QueryTestSchema, Scope>,
     direction: ApplicationQueryOrderingDirection,
     output_name: &'static str,
 ) -> ApplicationQueryDefinition<
     QueryTestSchema,
-    ActivityQuery,
+    Query,
     ActivityQueryParameters,
     ActivityQueryResult,
     Scope,
-> {
+>
+where
+    Query: worth_query_declaration::facade::application_query::ApplicationQueryMarkerIdentity,
+{
     let sequence =
-        ApplicationQueryResultFieldRef::<ActivityQuery, SequenceSlot, _, _, _, _, _, _, _, _>::new(
+        ApplicationQueryResultFieldRef::<Query, SequenceSlot, _, _, _, _, _, _, _, _>::new(
             output_name,
             ActivitySequence::reference(),
         );
-    let nested =
-        ApplicationQueryResultShapeBuilder::<QueryTestSchema, ActivityQuery, Activity, ()>::new(
-            Activity::reference(),
-        )
-        .field(sequence);
+    let nested = ApplicationQueryResultShapeBuilder::<QueryTestSchema, Query, Activity, ()>::new(
+        Activity::reference(),
+    )
+    .field(sequence);
     let shape = ApplicationQueryResultShapeBuilder::<
         QueryTestSchema,
-        ActivityQuery,
+        Query,
         Account,
         ActivityQueryResult,
     >::new(Account::reference())
     .field(ApplicationQueryResultFieldRef::<
-        ActivityQuery,
+        Query,
         AccountIdSlot,
         _,
         _,
@@ -183,7 +211,7 @@ pub(super) fn definition_with_scope_and_sequence_slot<Scope, SequenceSlot: 'stat
     >::new("account_id", AccountId::reference()))
     .relation(
         ApplicationQueryResultRelationRef::<
-            ActivityQuery,
+            Query,
             ActivityRelationSlot,
             _,
             _,
@@ -195,25 +223,23 @@ pub(super) fn definition_with_scope_and_sequence_slot<Scope, SequenceSlot: 'stat
         nested,
     )
     .build();
-    ApplicationQueryDefinitionBuilder::declare(ApplicationQueryReference::from_schema_identifier(
-        "account_activity",
-    ))
-    .root(Account::reference())
-    .scope(scope)
-    .result_shape(shape)
-    .cardinality(ApplicationQueryCardinality::Many)
-    .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 1, 2))
-    .disclosure(ApplicationQueryDisclosureContract::installed_policy(
-        "account-holder",
-    ))
-    .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
-    .lanes(ApplicationQueryLaneEligibility::one_shot().with_historical())
-    .public()
-    .parameter(account_parameter())
-    .where_equal(AccountId::reference(), account_parameter())
-    .order_by(sequence, direction)
-    .build()
-    .unwrap()
+    ApplicationQueryDefinitionBuilder::declare(reference)
+        .root(Account::reference())
+        .scope(scope)
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::Many)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(1, 1, 2))
+        .disclosure(ApplicationQueryDisclosureContract::installed_policy(
+            "account-holder",
+        ))
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot().with_historical())
+        .public()
+        .parameter(account_parameter::<Query>())
+        .where_equal(AccountId::reference(), account_parameter::<Query>())
+        .order_by(sequence, direction)
+        .build()
+        .unwrap()
 }
 
 #[test]
@@ -277,19 +303,21 @@ fn equivalent_installed_queries_converge_and_identity_dimensions_do_not_alias() 
     );
     assert_eq!(
         left.read_graph().ordering()[0].slot_type(),
-        std::any::type_name::<ActivitySequenceSlot>()
+        <ActivitySequenceSlot as worth_query_declaration::facade::portable_identity::WorthQueryPortableType>::PORTABLE_TYPE_IDENTITY.as_str()
     );
 }
 
 #[test]
 fn authorization_scope_is_identity_bearing() {
-    let account_scoped = definition_with_scope(
+    let account_scoped = definition_for::<ActivityQuery, Account, ActivitySequenceSlot>(
+        ActivityQuery::reference(),
         Account::reference(),
         ApplicationQueryOrderingDirection::Descending,
         "sequence",
     )
     .into_erased();
-    let activity_scoped = definition_with_scope(
+    let activity_scoped = definition_for::<ActivityScopedQuery, Activity, ActivitySequenceSlot>(
+        ActivityScopedQuery::reference(),
         Activity::reference(),
         ApplicationQueryOrderingDirection::Descending,
         "sequence",

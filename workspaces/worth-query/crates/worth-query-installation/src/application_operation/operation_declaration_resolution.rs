@@ -1,6 +1,7 @@
 use worth_query_declaration::facade::application_schema::{
     ApplicationSchema, ApplicationSchemaMember,
 };
+use worth_query_declaration::facade::portable_identity::WorthQueryPortableType;
 
 use super::installed_contract_support::operation_denial;
 use super::{
@@ -28,14 +29,25 @@ impl ResolvedApplicationOperationDeclaration {
     }
 }
 
-pub(super) fn resolve_operation_declaration<Schema, Input>(
+pub(super) fn resolve_operation_declaration<Schema, Operation, Input>(
     schema: &WorthQueryInstalledApplicationSchema<Schema>,
     operation: &str,
 ) -> Result<ResolvedApplicationOperationDeclaration, WorthQueryApplicationOperationInstallationDenial>
 where
     Schema: ApplicationSchema,
+    Operation: 'static,
+    Input: WorthQueryPortableType + 'static,
 {
-    let input_type = std::any::type_name::<Input>();
+    let input_type = Input::PORTABLE_TYPE_IDENTITY.as_str();
+    if !schema
+        .member_provenance
+        .admits_operation::<Operation, Input>(operation, Input::PORTABLE_TYPE_IDENTITY)
+    {
+        return Err(operation_denial(
+            WorthQueryApplicationOperationInstallationDenialKind::OperationMeaningChanged,
+            operation,
+        ));
+    }
     let installed = schema
         .installed_declaration()
         .members()
@@ -46,7 +58,7 @@ where
                 ApplicationSchemaMember::Operation {
                     operation: installed,
                     input_type: installed_input,
-                } if installed == operation && installed_input == input_type
+                } if installed == operation && installed_input.as_str() == input_type
             )
         });
     if !installed {

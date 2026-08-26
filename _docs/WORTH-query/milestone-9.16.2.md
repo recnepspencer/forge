@@ -84,6 +84,8 @@ The claim is false if:
 - PostgreSQL receives a best-effort mirror after an in-memory commit;
 - a mutation can be acknowledged before its canonical Relational commit is
   durable in PostgreSQL;
+- the existing performed-but-durability-deferred settlement or its runtime-id-
+  bound repair handle survives as an ordinary or recovery path;
 - an adapter, archive, digest, or signature can mint Query authority;
 - the adapter creates a second authoritative outbox payload instead of
   discovering and claiming Query's co-committed outbox row;
@@ -97,6 +99,11 @@ The claim is false if:
 - any upstream owner or `worth-query-host` depends on `worth-runtime-postgres`;
 - one generic database trait erases the distinct authority, atomicity, and
   lifecycle contracts of owner durability, release storage, and dispatch;
+- a persistent Query operation can pass resource admission without reserving
+  the exact commit-provider capacity subject that bounds its durability lane;
+- pool, queue, or transport saturation after a PostgreSQL transaction may have
+  begun is reported as ordinary `Backpressured` or as permission to retry under
+  a new mutation identity;
 - PostgreSQL owns workflow semantics, validation, closure, or package digest;
 - operators cannot index exact releases or pending dispatch work; or
 - archive, recovery-scan, or global pending-work cost appears on warm execution.
@@ -112,10 +119,15 @@ The architecture already supplies the semantic core:
 - `worth-query-host::facade::domain` is the legal package-install audience.
 - `worth-query-execution` already creates the committed-dispatch outbox intent
   in the same Relational worker-intent batch as the application mutation.
-- Relational publication already creates one canonical commit envelope and
-  refuses publication success when durable append fails.
+- Relational publication already creates one canonical commit envelope, but a
+  current independently borrowable publication path can finalize in-memory
+  publication after durable append failure and return
+  `performed_but_durability_deferred` with a `runtime_instance_id`-bound repair
+  handle. That is present reality, not the destination durability law.
 - Relational already owns checkpoint and replay recovery law for in-memory and
-  persisted local-filesystem modes.
+  persisted local-filesystem modes, and its canonical commit already carries a
+  branch identity, but its append authority and deferred repair remain process-
+  affine.
 - Query already exposes `WorthQueryCommittedDispatchOutboxObservation` through
   `observe_committed_dispatch_outbox` and admits external dispatch only through
   current runtime authority.
@@ -127,6 +139,9 @@ a package codec:
 - package-canonical Rust `type_name` values are not stable semantic identities;
 - operation/effect references lack declaration-minted membership provenance;
 - Relational durability has no narrow public backend implementation port;
+- Relational has no compiler-visible prepare-persist-publish progression that
+  prevents in-memory publication before admitted physical durability, and its
+  deferred-settlement lane cannot survive a fresh process honestly;
 - no PostgreSQL implementation of canonical append, checkpoints, and recovery;
 - no store-neutral immutable release repository contract separated from host
   release trust and activation choice;
@@ -165,6 +180,8 @@ claimable; it does not replace it.
 | Physical snapshot completeness | PostgreSQL adapter |
 | Fresh acceptance of reconstructed package meaning | Query |
 | Dispatch candidate, admission, claim/fence progression, retry/outcome meaning, and coordination port | Query execution |
+| Execution-resource support, exact capacity-subject identity, atomic multi-provider reservation, and `Backpressured` admission | Query admission and execution |
+| Physical durability/dispatch capacity subjects, bounded waits, pools, and release mechanics | Selected physical adapter; non-authoritative resource lifecycle only |
 | SQL realization of release repository and dispatch coordination | PostgreSQL adapter beneath the owner contracts |
 | External outcome and idempotency behavior | External-effect owner under Query's effect contract |
 | Future graph topology, replication, and distributed capabilities | Worth Store adapter and Store |
@@ -222,10 +239,10 @@ The Rust-facing contracts have this semantic shape:
 
 ```rust
 trait RelationalDurabilityBackend {
-    fn append(
+    fn persist_prepared(
         &self,
-        request: RelationalDurableAppendRequest,
-    ) -> RelationalDurableAppendResult;
+        request: RelationalPreparedDurableAppendRequest,
+    ) -> PhysicalRelationalAppendOutcome;
 
     fn store_checkpoint(
         &self,
@@ -275,7 +292,7 @@ trait PersistentDispatchCoordinator {
 
     fn claim(
         &self,
-        request: QueryAdmittedDispatchClaim,
+        request: CapacityReservedQueryDispatchClaim,
     ) -> DispatchClaimOutcome;
 
     fn record_attempt(
@@ -295,11 +312,140 @@ Recovery reads return descriptive owner artifacts for owner readmission.
 Archive reads return untrusted bytes. Runtime-stream activation consumes the
 concrete `HostReleaseActivationAuthority` without deciding host policy or Query
 validity. Dispatch discovery returns descriptive candidates; only `claim`
-consumes Query admission, and only current-fenced
+consumes a Query-admitted claim carrying a move-only capacity reservation, and only current-fenced
 attempt/outcome requests can advance operational lifecycle state. Lease renewal
 and reconciliation follow the same fence-qualified contract and may be split
 into responsibility-named traits if implementation evidence shows distinct
 lifecycle owners; they may not collapse into a generic persistence method.
+
+Relational durability is a compiler-visible owner progression, not one method
+called after publication:
+
+```text
+RelationalPreparedPublication
+    -> RelationalPreparedDurableAppendRequest
+    -> PhysicalAppendNotStarted
+    -> PhysicalAppendStarted
+    -> PhysicalRelationalAppendOutcome
+    -> RelationalDurabilityAdmittedPublication
+    -> RelationalCommitOutcome
+```
+
+Only Relational constructs the prepared request from its validated canonical
+commit, exact branch-qualified owner scope, request/idempotency identity, and
+current owner writer fence. Only the adapter crosses
+`PhysicalAppendNotStarted -> PhysicalAppendStarted`; that transition is the
+typed point after which Query `Backpressured` is unavailable. A persisted or
+already-persisted physical outcome returns descriptive confirmation bound to
+the exact request. Relational verifies it and alone constructs the terminal
+owner outcome. A performed conclusion consumes the fence, installs the visible
+root, and mints publication; proven no-effect, conflict, and rejection release the exact
+writer generation for fresh admission; only `Indeterminate` retains it.
+
+Phase 5 deletes `settle_performed_publication`,
+`performed_but_durability_deferred`, runtime-instance-bound deferred settlement,
+and every repair entry that first performs semantic publication and later tries
+to append durability. No wrapper or compatibility alias may preserve that
+ordering. Local filesystem, PostgreSQL, and future physical implementations all
+sit beneath the same prepared-persisted-published progression.
+
+The physical boundary exposes distinct start and settlement outcomes:
+
+```rust
+enum PhysicalAppendStartOutcome {
+    Started(PhysicalAppendStarted),
+    NoEffectRejected(PhysicalAppendPreEffectDenial),
+}
+
+enum PhysicalRelationalAppendOutcome {
+    Persisted(PhysicalAppendConfirmation),
+    AlreadyPersisted(PhysicalAppendConfirmation),
+    AbortedNoEffect(PhysicalAppendAbortedNoEffect),
+    Conflict(PhysicalAppendConflict),
+    Indeterminate(DurableCommitRecoveryLocator),
+}
+```
+
+Exact names may reconcile, but `PhysicalAppendPreEffectDenial` is constructible
+only while the adapter still owns `PhysicalAppendNotStarted` and independently
+observes that no transaction effect began. After `PhysicalAppendStarted`, the
+adapter must settle through `PhysicalRelationalAppendOutcome`; Query may never
+translate that settlement back into execution-resource `Backpressured`. The PostgreSQL
+certification oracle observes transaction start, commit visibility, and durable
+rows independently of Query's returned variant.
+
+### Durability Capacity And Backpressure Lock
+
+The four persistence ports remain the complete semantic persistence boundary.
+Capacity is not a fifth persistence authority and does not authorize append,
+publication, activation, claim, or dispatch. Instead, a persistent composition
+must bind each physical provider into Query's existing execution-resource
+admission contracts before ordinary traffic can become ready.
+
+Every installed Query operation whose admitted path can reach persistent
+Relational publication carries an exact durability commit-provider entry in its
+`WorthQueryExecutionResourceSupportSnapshot`. That entry is backed by the
+existing `WorthQueryExecutionCapacityPort` contract or its reconciled public
+name and by an adapter-owned bounded durability-admission capacity subject.
+The composition root privately constructs one
+`PersistentDurabilityProviderBinding` (or reconciled name) that owns the
+Relational backend implementation and its exact capacity handle together. The
+binding, not a string or support snapshot, proves that reservation and effect
+execution reach the same physical provider instance. A descriptive support row,
+a different pool, a representation-equal binding id, or a same-named capacity
+object is not equivalent. `commit_providers` remains Query's semantic resource-
+admission axis; it does not make the physical adapter a Query semantic provider.
+
+Query's existing atomic capacity reservation acquires the executor, graph,
+conditional, commit-provider, and parallel-admission subjects before a managed
+run, provider session, Relational preparation, or physical effect begins. The
+durability reservation bounds admitted or locally queued commit work. It is an
+opaque resource reservation, not a database connection, transaction, commit
+receipt, publication proof, or recovery authority. PostgreSQL connections are
+acquired only at the named durability effect phase and are never held across
+Query planning, authorization, invariant execution, live delivery, or external
+transport.
+
+For the initial synchronous PostgreSQL lane, one successful durability
+reservation atomically acquires one durability-admission permit, one bounded
+blocking-executor permit, and one permit from the durability-reserved partition
+of the connection pool. It does not check out or hold a connection object. The
+three admitted widths are equal in this milestone; archive, recovery, dispatch,
+and operator work use separately budgeted partitions. Any future decoupling
+must introduce an explicitly named bounded queue with numeric capacity,
+deadline, cancellation, occupancy, and overflow outcomes before changing those
+widths. No second wait or queue may exist between the Query reservation and
+effect-phase provider entry.
+
+The typed outcome boundary is phase-locked:
+
+- failure to reserve the exact Query commit-provider capacity subject returns
+  `WorthQueryExecutionResourceAdmissionDenialKind::Backpressured` before
+  provider work, Relational preparation, connection checkout, or SQL;
+- a standalone Relational caller that did not enter through Query still meets
+  the same bounded adapter admission and may receive a typed capacity rejection
+  only while the adapter proves that no transaction or durable effect began;
+- pool closure, deadline expiry, or dependency loss before a transaction begins
+  is a typed no-effect physical rejection or dependency failure, not an
+  ambiguous commit;
+- after a PostgreSQL transaction may have begun, saturation is never reported
+  as ordinary Query backpressure and never grants a new-identity retry. The
+  operation resolves only through performed, already-performed, rejected,
+  conflict, or indeterminate commit posture according to what the adapter can
+  prove; and
+- an indeterminate result retains the exact recovery locator and owner fence
+  needed to resolve commit fate, but it does not retain a database connection
+  or leak a capacity reservation indefinitely. Releasing local capacity cannot
+  release or reconstruct the unresolved owner writer fence.
+
+Dispatch pressure is a separate operational lane. A worker reserves bounded
+send/worker capacity before acquiring a dispatch claim; a slow or saturated
+transport stops new claims or advances typed bounded retry posture while the
+canonical outbox occurrence remains durable. No SQL transaction remains open
+during a network send. Live-view and subscription backpressure remains a
+derived-delivery policy and may retain within a window, report a gap, or
+terminate a consumer; it cannot delay, undo, or weaken an otherwise admitted
+durable publication.
 
 The public outcome of an append whose client loses the response around commit
 is typed. It distinguishes:
@@ -310,7 +456,7 @@ enum RelationalCommitOutcome {
     AlreadyPerformed(PerformedRelationalPublication),
     Rejected(RelationalCommitDenial),
     Conflict(RelationalCommitConflict),
-    Indeterminate(DurableCommitRecoveryLocator),
+    Indeterminate(RelationalIndeterminateCommit),
 }
 ```
 
@@ -320,10 +466,14 @@ against its issued request and is the only layer that constructs the public
 `RelationalCommitOutcome` and performed publication.
 
 `AlreadyPerformed` is available only for the same stable request identity and
-same canonical artifact. `Indeterminate` carries a bounded recovery locator and
-never invites a retry under a new identity. The exact public names may align
-with existing owner vocabulary, but no ordinary failure variant may falsely
-mean "safe to try again as new work."
+same canonical artifact. `RelationalIndeterminateCommit` carries a restart-
+stable descriptive recovery locator plus a sealed, non-cloneable, exact owner-
+scope writer fence. The live fence is authority and is never serialized. Its
+persisted unresolved request/branch record lets a fresh Relational owner
+reconstruct the blocked posture and issue fresh recovery authority before any
+later writer can enter that scope. It never invites a retry under a new
+identity. The exact public names may align with existing owner vocabulary, but
+no ordinary failure variant may falsely mean "safe to try again as new work."
 
 Dependency direction is mechanical:
 
@@ -341,6 +491,16 @@ None of Relational, Query installation, Query execution, package archive, or
 facade-only under Road 1; adding `src/runtime`, a private recovery engine, SQL,
 or adapter lifecycle there is a boundary failure.
 
+Every Relational durability, checkpoint, recovery, unresolved-commit, and
+retention request is qualified by adapter namespace, durable runtime stream,
+and exact owner-issued Relational branch identity. In 9.16.2 the ordinary lane
+uses the exact primary branch already carried by the canonical commit; this is
+not permission for the catalog or adapter to choose a branch head. The runtime
+stream groups package compatibility and owner lifecycle only. It never means
+"current Relational world." Milestone 9.17.1 strengthens branch references and
+concurrency behind this already branch-qualified owner scope without adding a
+branch axis to the port or rekeying persisted families.
+
 Important authority and non-authority artifacts are frozen as follows:
 
 | Artifact | Constructed by / proves | Authorizes | Cannot authorize |
@@ -350,7 +510,8 @@ Important authority and non-authority artifacts are frozen as follows:
 | Validated package and semantic identity | Query installation after fresh validation | Query installation under current runtime construction | Host trust, database access, or dispatch |
 | Signed release envelope | Host release build/signing system; byte provenance under a named signer | Host trust evaluation only | Query validation or activation by itself |
 | `HostReleaseActivationAuthority` | Concrete platform authority from `worth-proof`, minted under host release policy | Recording one exact generation-qualified activation | Query validation, owner recovery, or cross-namespace activation |
-| Relational durable append request | Relational publication progression; exact canonical artifact and request identity | One backend append attempt | Publication authority merely because storage succeeds |
+| `RelationalPreparedDurableAppendRequest` | Relational publication progression; exact canonical artifact, branch, writer fence, and request identity | One backend append attempt through the selected bound provider | Publication authority merely because storage succeeds |
+| `RelationalIndeterminateCommit` | Relational after an effect-started append whose fate is unresolved; restart-stable locator plus exact owner-scope writer fence | Fate resolution through fresh-owner recovery while later writers remain excluded | New-identity retry, publication, or capacity ownership |
 | Performed Relational publication | Relational after admitted durable append outcome | Current Relational owner use and the 9.16.2 publication carrier | Future Bridge composite currentness |
 | Performed product publication carrier | Query execution, privately retaining current owner-performed evidence | Fresh dispatch-admission evaluation | Caller-selected publication or payload creation |
 | Dispatch admission and current fence | Query execution after exact outbox/publication/binding checks and conditional claim | One current external-send/outcome progression | Another occurrence, namespace, runtime, or expired fence |
@@ -372,6 +533,7 @@ row cannot ship.
 | Host-selected active package identity and activation generation | Authoritative operational lifecycle state | Host release system decides; a row records but cannot choose or validate a release |
 | Query package record projections and lookup catalogs | Rebuildable derived projection | Rebuilt from exact archive bytes; deletion cannot alter executable meaning |
 | Relational commit envelopes and checkpoint artifacts | Canonical semantic-owner artifact | Relational defines format, ordering, validation, and recovery |
+| Unresolved Relational append request, exact branch scope, writer generation, and observed physical fate | Authoritative operational lifecycle state | Relational defines the blocked-writer and recovery progression; the adapter conditionally persists its descriptive record, but only a fresh Relational owner may issue recovery authority or release the fence |
 | Co-committed Query outbox occurrence, payload, correlation, and idempotency identity | Canonical owner artifact within Relational publication | Query creates the outbox meaning; adapter may only locate the exact occurrence |
 | Pending-work locator and projection high-water marks | Rebuildable derived projection | Reconstructed from retained canonical outbox occurrences and owner publications |
 | Current claim, lease, fence, attempt, next-attempt, and terminal/unresolved outcome | Authoritative operational lifecycle state | Query execution defines transitions; physical adapter performs conditional persistence |
@@ -402,20 +564,19 @@ send or acknowledge.
 
 This court forces the implementation to put PostgreSQL in Relational's commit
 path, reuse Query's existing outbox fact, and create fresh runtime authority.
-A package codec, host-side dual write, shadow queue, serialized receipt,
-PostgreSQL-status eligibility check, or happy-path restart demo cannot pass it.
+A package codec, host-side dual write, shadow queue, serialized receipt, or
+happy-path restart demo cannot pass it.
 
 NCR remains a separate final reference-consumer cutover proof. It must install
 the same public release and persistence surfaces and prove its state plus
 notification journey, but it does not substitute for the Bank court's stronger
 ledger/outbox oracle, compaction, contention, and external-rail adversity.
 
-The committed successor mutation repeats the same court after 9.17.3 while
-forcing a Relational owner commit followed by failed Signal preparation or a
-failed Runtime Bridge product-head CAS. The outbox fact must survive as exact
-owner state but remain ineligible and unsent because no performed composite
-publication exists. Deleting the Bridge-publication gate must turn that evidence
-red.
+The successor mutation repeats this court after 9.17.3 with a Relational commit
+followed by failed Signal preparation or Runtime Bridge product-head CAS. The
+outbox remains exact owner state but ineligible and unsent. Deleting the Bridge-
+publication gate or deriving its carrier from row existence must turn the
+evidence red.
 
 ## Governing Runtime Design
 
@@ -437,6 +598,14 @@ pool of synchronous PostgreSQL connections for append and recovery. Async hosts
 run Query on an explicit bounded blocking executor at the host edge. This does
 not make Query or Relational accidentally async and does not allow one unbounded
 blocking task per request.
+
+The bounded blocking executor, durability-admission subject, and durability-
+reserved pool partition are distinct resources bound by one declared operating
+envelope. Query reserves their opaque composite permit before expensive
+semantic work; the adapter checks out a connection object only when the issued
+Relational append request reaches `PhysicalAppendStarted`. Their admitted
+widths are equal in this milestone, and no hidden queue or second capacity
+check sits between reservation and checkout.
 
 The PostgreSQL adapter declares an admitted durability profile before readiness.
 For the profile allowed to acknowledge durable publication, startup verifies at
@@ -526,22 +695,39 @@ payload authority. A background reconciler advances that cursor in order; the
 startup barrier repairs any gap left by a crash before readiness. Ordinary claim
 polling uses the indexed pending rows and never scans the complete commit log.
 
+Discovery does not reserve external-send capacity. Before a descriptive
+candidate may enter conditional claim, Query execution must reserve the exact
+dispatch worker and transport capacity required to begin the attempt within the
+lease posture. Saturation leaves the candidate pending and unclaimed. The
+reservation is sealed as a move-only
+`DispatchCapacityReservedClaimPermit`. Query execution combines that permit
+with semantic claim admission into `CapacityReservedQueryDispatchClaim`, the
+only request accepted by the coordination port. Successful claim settlement
+consumes it into the current fenced attempt lifecycle; denial or failure
+releases it explicitly. A database claim may never become a queue slot for work
+that cannot yet begin.
+
 After restart:
 
 1. the adapter discovers a pending outbox identity and source commit;
 2. Query observes the exact recovered outbox fact in the current runtime;
 3. Query verifies package, operation/effect contract, correlation identity,
-   exact product publication, and current dispatch eligibility;
-4. the adapter acquires a lease and monotonically increasing fencing epoch in
-   a PostgreSQL transaction;
-5. Query issues dispatch admission bound to the current runtime, performed
-   product publication, outbox fact, and fence;
-6. transport sends the existing payload with the existing idempotency key;
-7. the adapter records outcome only if the fence is current;
-8. the adapter records operational attempt/outcome under the current fence;
-   any semantic aftermath that changes workflow state re-enters the ordinary
-   Query publication path; and
-9. the work index advances or is removed.
+   exact product publication, and current dispatch eligibility, then issues
+   semantic claim admission;
+4. Query execution reserves exact worker/transport capacity and seals
+   `DispatchCapacityReservedClaimPermit`;
+5. `CapacityReservedQueryDispatchClaim` consumes the semantic admission and
+   permit, and the adapter acquires a lease plus monotonically increasing
+   fencing epoch in one bounded PostgreSQL transaction that closes on return;
+6. Query verifies the claim result and consumes the retained permit into a
+   current fenced dispatch attempt;
+7. the adapter records the attempt in its own bounded transaction only if the
+   fence is current;
+8. transport sends the existing payload with the existing idempotency key;
+9. the adapter records the outcome only if the fence is current;
+10. any semantic aftermath that changes workflow state re-enters the ordinary
+    Query publication path; and
+11. the work index advances or is removed.
 
 Claiming is at-least-once across crash ambiguity. Exactly-once external effect
 is claimed only when the external owner honors the stable idempotency key. A
@@ -559,7 +745,7 @@ claimant cannot acknowledge or begin a new send after its fence expires.
 5. reconstructs an untrusted candidate and freshly validates it;
 6. rejects any expected/recomputed identity mismatch;
 7. invokes every configured owner's recovery facade in dependency order;
-8. in 9.16.2, asks Relational to reconstruct from checkpoint plus commit tail;
+8. in 9.16.2, asks Relational to readmit checkpoint, tail, and unresolved append fences;
 9. after 9.17.2, additionally recovers Signal owner state and Runtime Bridge
    composite history/product heads only after referenced component bases exist;
 10. installs the package through Query's recovered-runtime constructor;
@@ -580,7 +766,9 @@ not own the recovery progression.
 
 ### Multi-tenant and release coexistence posture
 
-Every physical key is qualified by adapter namespace and durable runtime stream.
+Every physical key is qualified by adapter namespace and durable runtime stream;
+owner artifacts and indexes are additionally qualified by their exact owner
+scope, including Relational branch identity.
 Package identity, not a mutable name, selects executable meaning. Multiple
 releases coexist. Activation is a host-governed pointer updated transactionally
 after the release is stored and freshly validated. One namespace cannot scan,
@@ -590,6 +778,8 @@ A durable runtime stream is bound to an exact package semantic identity,
 owner-artifact format versions, required schema contracts, and descriptive host
 provider-binding requirements. Activation may not reinterpret an existing
 stream under different package meaning or incompatible provider contracts.
+The binding selects no Relational branch head, Signal basis, or Runtime Bridge
+product currentness; those remain owner-issued references beneath the stream.
 Opening an incompatible release yields a typed migration-required or
 unsupported-compatibility outcome before readiness; a pointer flip cannot
 silently migrate owner state.
@@ -682,8 +872,8 @@ audit, scenario action, independent observation, and teardown are separately
 diagnosable stages.
 
 The oracle reads the external payment rail and an independently decoded
-Relational durable artifact or owner-supported audit export. It does not use a
-Query read result, a pending-work projection, adapter status row, or the code
+Relational durable artifact; it does not use a Query read result, pending-work
+projection, adapter status row, or the code
 path that produced the claimed outcome as its only evidence. It verifies exact
 double-entry conservation, occurrence count, payload identity, idempotency key,
 current fence, and absence of cross-namespace effects.
@@ -739,13 +929,32 @@ each meaningful boundary and proves:
 23. the persistent Bank transfer and payment notice survive the complete hostile
     sequence under an independent ledger/external-rail oracle; and
 24. a fresh process runs an NCR workflow, commits state and notification outbox,
-    dies, recovers, resumes notification, and serves exact resulting state.
+    dies, recovers, resumes notification, and serves exact resulting state;
+25. simultaneous persistent operations at the declared durability-capacity
+    boundary admit exactly the reserved commit-provider width, reject excess
+    arrivals as `Backpressured` before Relational preparation or SQL, and admit
+    fresh work after reservations release; and
+26. pool loss or saturation is no-effect only with independent proof; once a
+    transaction may have begun, stalls or response loss never yield backpressure,
+    and every terminal outcome consumes, releases, or retains its fence exactly;
+27. the performed-but-durability-deferred lane and runtime-id-bound repair
+    surface are absent, and mutating the progression back to publish-before-
+    persistence fails the commit crash court;
+28. equal commit ordinals and same-named branches from another namespace,
+    stream, or Relational owner scope cannot append, checkpoint, recover, or
+    satisfy an indeterminate fence; and
+29. a fully stalled live subscriber makes zero progress while PostgreSQL commit
+    completes, its transaction closes, and Query acknowledges; only post-
+    publication retain/gap/terminate delivery posture may change.
 
 Each numbered claim has a named sabotage mutation. At minimum, acknowledgement
 before durable append, trust of claimed package identity, latest-by-name
 selection, shadow outbox payload, database-status dispatch eligibility, stale
 fence send/outcome, readiness before provider rebinding, pruning the final
-pending-outbox source, partial incompatible migration, and warm global scans
+pending-outbox source, descriptive capacity in place of atomic reservation,
+post-transaction backpressure, publish-before-persist, runtime-id-bound
+indeterminate repair, missing branch qualification, claim-before-send-capacity,
+live fanout inside append, partial incompatible migration, and warm global scans
 must each be made to fail their owning proof.
 
 Testcontainers or the repository Docker harness must use a real supported
@@ -765,6 +974,13 @@ crates/worth-relational/src/durability/
     artifact.rs
     denial.rs
     work.rs
+  progression/
+    prepared.rs              # owner-issued append request before physical effect
+    physical_effect.rs       # not-started/started and settled physical outcomes
+    admitted.rs              # verified durability evidence consumed by publication
+  indeterminate/
+    fence.rs                 # exact owner-scope writer exclusion
+    recovery.rs              # fresh-owner fate resolution
   authority.rs               # durable-before-publication law
   checkpoints/               # existing checkpoint meaning
   recovery/                  # existing reconstruction law
@@ -799,6 +1015,9 @@ workspaces/worth-query/crates/worth-query-execution/src/
     opening.rs
     owner_progression.rs
     provider_rebinding.rs
+    capacity/
+      durability_commit.rs               # existing Query commit-provider reservation binding
+      dispatch_send.rs                   # worker/transport capacity before claim
     stream_catalog/
       contract.rs
       binding.rs
@@ -839,6 +1058,9 @@ crates/worth-runtime-postgres/
       opening.rs
       pool.rs
       shutdown.rs
+    capacity/
+      durability_commit.rs         # bounded admission subject, not connection authority
+      dispatch_worker.rs           # bounded physical worker posture beneath Query ownership
     owner/
       relational/                  # created and populated in 9.16.2
         append.rs
@@ -920,7 +1142,9 @@ PostgreSQL paths are existing or populated according to the phase that owns
 them; comments identify newly created and committed-successor destinations.
 No committed-successor file is created empty. The `owner` axis separates
 physical implementations by semantic authority. `connection` owns only
-PostgreSQL resource lifecycle. `dispatch` implements operational indexing,
+PostgreSQL resource lifecycle. `capacity` exposes bounded, non-authoritative
+resource-admission subjects; it owns neither semantic eligibility nor SQL
+transactions. `dispatch` implements operational indexing,
 fencing, and attempts beneath the Query-execution coordination port. The
 adapter facade and the `worth-query-host` audience facade remain stable through
 9.17; successors add populated owner siblings and stronger owner recovery
@@ -1001,22 +1225,32 @@ verifiable release artifact without dictating their schema.
 Move local filesystem durability behind a Relational-owned, publicly
 implementable backend contract while preserving owner-issued append authority,
 versioned canonical artifact encoding, append-before-success, checkpoints,
-replay, and recovery. Run existing local durability tests unchanged plus backend
-conformance and artifact-compatibility tests. No Query/PostgreSQL type enters
-Relational, and no successful backend write may mint Relational publication
-authority. Phase 8 may trust one owner-defined durability contract whose local
-implementation already proves acknowledgement and recovery semantics.
+replay, and recovery. Replace the current performed-then-deferred settlement
+with the compiler-visible prepared-persisted-published progression, restart-
+stable unresolved request descriptors, and owner writer fences. Delete
+`settle_performed_publication`, `performed_but_durability_deferred`, runtime-id-
+bound repair, and every compatibility entry to them. Migrate existing local
+durability tests onto the new order, then run backend conformance and artifact-
+compatibility tests; tests that assert the deleted order are replaced rather
+than preserved. No Query/PostgreSQL type enters Relational, and no successful
+backend write may mint Relational publication authority. Phase 8 may trust one
+owner-defined durability contract whose local implementation already proves
+acknowledgement, indeterminate fencing, and recovery semantics.
 
 ### Phase 6: PostgreSQL Adapter, Connection Lifecycle, And Migrations
 
 Create the stable `worth-runtime-postgres` facade, configuration, connection
 lifecycle, bounded blocking/pool posture, namespace boundary, migration ledger,
 compatibility refusal, durability-profile admission, provider capability report,
-and transaction mechanics. This phase exposes honest
+adapter-owned durability capacity subject, and transaction
+mechanics. Bind the durability subject into Query's existing exact
+commit-provider support shape without creating a PostgreSQL-specific Query
+contract or holding a connection during semantic work. This phase exposes honest
 database readiness only; it does not claim package installation, Relational
 recovery, or dispatch readiness. Real-PostgreSQL migration, rollback-refusal,
 durability-setting, pool-exhaustion, namespace-isolation, and
-dependency-enforcement evidence lets
+atomic-reservation versus descriptive-capacity, hidden-queue, connection-hold,
+and dependency-enforcement evidence lets
 owner adapters enter beneath the facade without moving it or leaking SQL
 upstream.
 
@@ -1041,12 +1275,18 @@ Implement the Phase 5 backend contract in the Relational PostgreSQL owner
 boundary. Atomically persist each canonical Relational commit and its existing
 co-committed Query outbox facts before acknowledgement; add versioned
 checkpoints, bounded replay tails, recovery cursors, retention posture, and
-rebuildable indexes. Preserve every unresolved outbox occurrence and source
+rebuildable indexes, all qualified by namespace, stream, and exact owner-issued
+Relational branch identity. Preserve every unresolved outbox occurrence and source
 publication through checkpoint, compaction, backup, and restore. Return the
 typed performed/already-performed/rejected/conflict/indeterminate outcome around
-ambiguous commit responses. Kill-before-commit,
+ambiguous commit responses. Query-originated appends consume the exact Phase 6
+commit-provider reservation before Relational preparation; standalone owner
+appends use the same bounded physical admission and may report capacity denial
+only from `PhysicalAppendNotStarted`. Kill-before-start, kill-after-start,
+kill-before-commit,
 kill-after-commit-before-response, torn-write, corruption, ordering,
-checkpoint-plus-tail, pending-after-compaction, and backend-conformance
+checkpoint-plus-tail, pending-after-compaction, same-named capacity
+substitution, indeterminate-writer-fence, and backend-conformance
 evidence lets Phase 9 recover owner truth without SQL rows acquiring
 publication authority.
 
@@ -1057,9 +1297,11 @@ recovery barrier, reexported through `worth-query-host`. Consume the exact Phase
 7 release, reconstruct and freshly
 validate it, ask Relational to readmit Phase 8 owner truth, create a new runtime
 generation, rebind current providers/secrets/clock/authorizer, reconcile
-derived indexes, and expose readiness only after closure. Startup failure must
+derived indexes, bind the exact persistent commit-provider capacity subject into
+installed operation support, and expose readiness only after closure. Startup failure must
 leave execution and dispatch closed. Fresh-process equality, missing provider,
-wrong package, corrupt owner history, and destroyed-index evidence freezes the
+wrong package, foreign or same-named capacity authority, corrupt owner history,
+and destroyed-index evidence freezes the
 ordered owner-recovery protocol that 9.17 extends and lets Phase 10 trust one
 live recovered runtime.
 
@@ -1080,10 +1322,12 @@ authorizing dispatch and lets Phase 11 claim only Query-admitted work.
 Define Query execution's persistent dispatch coordination contract, then build
 its PostgreSQL derived pending-work index, bounded discovery, transactional
 claim, lease renewal, monotonically increasing fencing epoch, and current-fence
-verification beneath Query admission. SQL transactions must end before any
-network send, and deleting the index must permit exact rebuild from canonical
+verification beneath Query admission. Reserve exact worker/transport capacity
+before conditional claim so a database lease never becomes an unbounded local
+queue. SQL transactions must end before any network send, and deleting the
+index must permit exact rebuild from canonical
 Relational history. Contention, lease expiry, stale worker, index destruction,
-namespace isolation, and bounded-polling evidence lets Phase 12 hold one
+namespace isolation, send-capacity saturation, and bounded-polling evidence lets Phase 12 hold one
 current operational claim without confusing that claim with effect authority
 or exactly-once delivery.
 
@@ -1118,11 +1362,14 @@ Ship readiness/liveness semantics, owner- and lane-specific health, metrics,
 work/amplification counters, queue and pool saturation posture, alertable poison
 work, namespace isolation, and documented capacity limits. Prove exact indexed
 lookup and bounded claim/recovery work at 4,096 unrelated packages and long
-history, zero archive/recovery scans during warm execution, and fail-closed
-overload before unbounded queues or pool starvation. These observations remain
-sidecars; deleting them cannot alter package, Relational, outbox, or dispatch
-truth. Phase 15 may trust an operable production composition rather than a
-correct but unmanageable library.
+history, exact commit-provider reservation under concurrent saturation, zero
+Relational preparation and SQL for backpressured excess arrivals, zero
+archive/recovery scans during warm execution, and fail-closed overload before
+unbounded queues or pool starvation. Prove separately that post-transaction
+ambiguity never takes the pre-effect backpressure outcome. These observations
+remain sidecars; deleting them cannot alter package, Relational, outbox, or
+dispatch truth. Phase 15 may trust an operable production composition rather
+than a correct but unmanageable library.
 
 ### Phase 15: Persistent Bank And NCR Certification, Then Workflow-Editor Cutover
 
@@ -1159,7 +1406,11 @@ let persistence = WorthRuntimePostgres::connect(
         .database_url(database_url)
         .namespace("acme.medical")?
         .runtime_stream("quality.workflows")?
-        .connection_limit(16)?
+        .durability_admission_limit(16)?
+        .blocking_executor_limit(16)?
+        .durability_connection_limit(16)?
+        .connection_limit(32)?
+        .dispatch_worker_limit(32)?
         .build()?,
 )?;
 
@@ -1188,7 +1439,10 @@ runtime.dispatch_worker(worker_configuration)?.run_until_shutdown(shutdown)?;
 
 Names may align with existing facades, but callers never manually wire a
 Relational runtime, decode envelopes, scan SQL, construct outbox payloads, or
-retain receipts for recovery.
+retain receipts for recovery. The provider bundle binds the adapter's exact
+durability and dispatch capacity subjects into Query admission; callers may size
+those subjects but cannot substitute descriptive availability or construct a
+reservation.
 
 ## Workflow Editor And NCR Requirement Closure
 
@@ -1206,8 +1460,9 @@ This milestone gives Workflow Editor:
 - runtime-level PostgreSQL adapter and Query-execution persistent surface,
   reexported by the leaf Query-host facade, that 9.17 extends without moving NCR
   host integration; and
-- contracts that a later Worth Store adapter can implement without changing
-  authored workflow definitions.
+- a provider construction progression and owner contracts that a later Worth
+  Store adapter implements without changing authored workflow definitions,
+  public host entry, commit outcomes, or owner recovery law.
 
 It does not define the Workflow Editor DSL/UI, NCR rules, notification templates,
 or host authorization policy. Those consumers use this durable runtime.
@@ -1222,6 +1477,19 @@ or host authorization policy. Those consumers use this durable runtime.
 - Dispatch polling is indexed by namespace, status, and next-attempt.
 - Claim is one bounded transaction; SQL transactions never remain open during
   external dispatch.
+- Persistent Query execution atomically reserves the exact durability
+  commit-provider capacity subject with its other execution resources before
+  Relational preparation or physical effects.
+- The durability reservation bounds admitted or queued work but is never a
+  database connection or semantic authority; connection checkout begins only
+  at the append effect phase.
+- Pre-effect saturation returns typed backpressure with zero owner preparation
+  and zero SQL. Once a transaction may have begun, only the typed commit-outcome
+  topology applies, including indeterminate recovery.
+- Dispatch worker/transport capacity is reserved before claim. Saturation leaves
+  canonical outbox work durable and unclaimed rather than queued behind a lease.
+- Live/subscription delivery backpressure never holds a transaction open or
+  enters the authoritative commit cost.
 - Checkpoint/projection rebuild work is explicit and bounded.
 - Each physical adapter reports required durability, ordered-recovery,
   conditional-write/fencing, and namespace-isolation capabilities before
@@ -1246,13 +1514,16 @@ or host authorization policy. Those consumers use this durable runtime.
 - Create
   `workspaces/worth-query/crates/worth-query/docs/persistent-runtime.md` for host
   integrators. It must explain the four provider-neutral ports, execution-owned
-  opening progression, runtime-stream binding, readiness, fresh authority,
-  fencing/idempotency, and the 9.17 product-publication handoff.
+  opening progression, runtime-stream binding, exact commit-provider capacity
+  registration and reservation, readiness, fresh authority, pre-effect
+  backpressure versus post-effect indeterminate outcomes, dispatch-capacity-
+  before-claim, fencing/idempotency, and the 9.17 product-publication handoff.
 - Create `crates/worth-runtime-postgres/docs/operator-runbook.md` for operators.
   It must cover supported PostgreSQL versions, required durability settings,
   migrations, roles and namespace isolation, capacity, poison work, checkpoint
-  and compaction safety, backup/restore, crash models, RPO/RTO, diagnostics, and
-  incompatible-startup recovery.
+  and compaction safety, durability-admission/blocking-executor/pool sizing,
+  saturation and deadline posture, backup/restore, crash models, RPO/RTO,
+  diagnostics, and incompatible-startup recovery.
 - Create
   `workspaces/worth-query-bank-world/crates/bank-courtroom/docs/persistent-bank-world.md`
   for certification maintainers. It must explain definitions, semantic handles,
@@ -1263,6 +1534,8 @@ or host authorization policy. Those consumers use this durable runtime.
   `_docs/WORTH-query/workflow-editor-postgres-deployment.md`. It must contain one
   complete signed-release deployment, kill/restart, notification recovery,
   rollback/coexistence, and backup/restore walkthrough.
+
+Across those named documents, the checked coverage is:
 
 - carriage and fresh readmission of the Milestone 9.16.1.1 native schema,
   typed read/touch, correlation-family, and reconciliation contracts;
@@ -1295,8 +1568,15 @@ must route callers through public facades, never direct SQL/private workarounds.
 - separate Relational durability, immutable archive repository, Query runtime-
   stream lifecycle, and Query dispatch coordination ports with physical-
   capability admission;
-- one cert-only reusable conformance kit covering all four ports, instantiated
-  by PostgreSQL and required of future physical adapters;
+- exact binding of the selected physical durability provider into Query's
+  existing commit-provider capacity subject, atomic pre-effect reservation,
+  bounded adapter admission for standalone Relational use, and phase-correct
+  backpressure/commit-ambiguity outcomes;
+- dispatch worker and transport capacity reservation before claim, with live
+  delivery pressure remaining outside authoritative commit cost;
+- one cert-only reusable conformance kit covering all four ports, exact
+  capacity binding, and durability progression, instantiated by PostgreSQL and
+  reusable at the provider-neutral boundary for future adapters, including Store;
 - Query recovered-runtime installation and provider rebinding;
 - startup recovery/readiness barrier;
 - restart discovery and fenced claiming of Query's existing outbox through a
@@ -1325,6 +1605,9 @@ must route callers through public facades, never direct SQL/private workarounds.
   physical conditional-write mechanics without semantic authority;
 - Query-execution ownership of claim/fence/attempt/outcome transitions and
   persistent opening, with the host facade remaining a leaf reexport;
+- Query ownership of execution-resource admission and atomic capacity
+  reservation, with physical adapters owning only their bounded capacity
+  subjects, pools, waits, and release mechanics;
 - external-owner responsibility for exactly-once behavior via idempotency;
 - cold/warm work separation; and
 - future Worth Store reuse without PostgreSQL topology leakage.
@@ -1362,7 +1645,7 @@ dispatch, unbounded recovery, or latest-name release selection.
 The closure ledger contains:
 
 - the green `Portable Package And PostgreSQL Runtime Durability Certification`
-  suite from [test-requirements.md](./test-requirements.md);
+  suite defined and owned by this specification;
 
 - authority mapping for every persisted and derived artifact;
 - public API/dependency-direction proof;
@@ -1375,7 +1658,17 @@ The closure ledger contains:
 - transactional append, checkpoint, and fresh-process recovery evidence;
 - client acknowledgement and typed commit-ambiguity crash matrix;
 - admitted PostgreSQL durability-profile and physical-capability evidence;
+- concurrent commit-provider saturation evidence proving exact reservation
+  width, zero Relational preparation/SQL for backpressured excess arrivals,
+  release/readmission, no same-named or foreign capacity substitution, and no
+  hidden queue between reservation, blocking executor, and pool;
+- phase-boundary evidence proving pre-transaction capacity refusal remains
+  no-effect while post-transaction stalls and response loss can produce only
+  the typed commit outcomes and never ordinary backpressure;
 - outbox crash, contention, fencing, retry, poison, and idempotency matrix;
+- dispatch-capacity-before-claim and live-consumer-saturation evidence proving
+  no lease-backed local queue, no SQL transaction across send, and no loss or
+  weakening of canonical outbox work;
 - pending-outbox survival after checkpoint, compaction, projection deletion,
   backup, and restore;
 - proof no shadow payload or dual write exists;
@@ -1392,7 +1685,8 @@ The closure ledger contains:
 - docs/facade examples; and
 - residue searches for package-canonical `type_name`, private constructors,
   SQL outside adapter, serialized authority, duplicate outbox payloads, and
-  unbounded scans.
+  unbounded scans, plus persistence paths that bypass exact commit-provider
+  reservation or report post-effect backpressure.
 
 ## Handoff
 

@@ -3,6 +3,9 @@ use std::marker::PhantomData;
 use worth_query_declaration::facade::application_schema::{
     ApplicationOperationRef, ApplicationSchema,
 };
+use worth_query_declaration::facade::portable_identity::{
+    WorthQueryPortableType, WorthQueryPortableTypeIdentity,
+};
 
 use crate::domain_operation::WorthQueryDomainOperationRef;
 
@@ -16,7 +19,7 @@ pub struct WorthQueryPortableApplicationConditionalOperationBinding {
     schema_owner: String,
     schema_name: String,
     application_operation: String,
-    input_type: String,
+    input_type: WorthQueryPortableTypeIdentity,
     domain_operation_slot: String,
     domain_operation_canonical_identity: String,
 }
@@ -35,7 +38,11 @@ impl WorthQueryPortableApplicationConditionalOperationBinding {
     }
 
     pub fn input_type(&self) -> &str {
-        &self.input_type
+        self.input_type.as_str()
+    }
+
+    pub const fn input_type_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.input_type
     }
 
     pub fn domain_operation_slot(&self) -> &str {
@@ -65,6 +72,7 @@ impl<Schema, ApplicationOperation, Input, D, O, F>
     WorthQueryApplicationConditionalOperationBinding<Schema, ApplicationOperation, Input, D, O, F>
 where
     Schema: ApplicationSchema,
+    Input: WorthQueryPortableType,
 {
     pub fn declare(
         application_operation: ApplicationOperationRef<Schema, ApplicationOperation, Input>,
@@ -75,7 +83,7 @@ where
                 schema_owner: Schema::OWNER.to_string(),
                 schema_name: Schema::NAME.to_string(),
                 application_operation: application_operation.name().to_string(),
-                input_type: std::any::type_name::<Input>().to_string(),
+                input_type: Input::PORTABLE_TYPE_IDENTITY,
                 domain_operation_slot: domain_operation.identity().slot(),
                 domain_operation_canonical_identity: domain_operation
                     .canonical_identity()

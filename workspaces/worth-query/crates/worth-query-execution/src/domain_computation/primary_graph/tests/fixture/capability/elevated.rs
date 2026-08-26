@@ -105,6 +105,12 @@ pub struct ElevatedCapabilityTouchInput {
     pub disclosure: CapabilityDisclosure,
     pub amount: u64,
 }
+worth_query_declaration::worth_query_portable_type!(CapabilityElevationStatus => "worth.query.test.execution.capability.elevation_status.v1");
+worth_query_declaration::worth_query_portable_type!(CapabilityReviewStatus => "worth.query.test.execution.capability.review_status.v1");
+worth_query_declaration::worth_query_portable_type!(CapabilityReviewKind => "worth.query.test.execution.capability.review_kind.v1");
+worth_query_declaration::worth_query_portable_type!(
+    ElevatedCapabilityTouchInput => "worth.query.test.elevated-capability-touch-input.v1"
+);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RequestElevationInput {
@@ -122,12 +128,18 @@ pub struct RequestElevationInput {
     pub disclosure: CapabilityDisclosure,
     pub amount: u64,
 }
+worth_query_declaration::worth_query_portable_type!(
+    RequestElevationInput => "worth.query.test.request-elevation-input.v1"
+);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ApproveElevationInput {
     pub account: String,
     pub elevation: String,
 }
+worth_query_declaration::worth_query_portable_type!(
+    ApproveElevationInput => "worth.query.test.approve-elevation-input.v1"
+);
 
 worth_query_operation!(pub ElevatedCapabilityTouchOperation(ElevatedCapabilityTouchInput) in IdentityExecutionSchema);
 worth_query_operation!(pub RequestCapabilityElevationOperation(RequestElevationInput) in IdentityExecutionSchema);

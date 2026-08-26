@@ -87,22 +87,37 @@ pub(super) fn validate_member_identifiers(
             ApplicationSchemaMember::ApplicationCapability { contract } => {
                 validate_capability_identifiers(contract)?;
             }
-            ApplicationSchemaMember::ApplicationCapabilityContext { context, .. } => {
+            ApplicationSchemaMember::ApplicationCapabilityContext {
+                context,
+                context_type,
+            } => {
                 validate_simple_identifier(context)?;
+                validate_portable_type_identity(*context_type)?;
             }
             ApplicationSchemaMember::ApplicationCapabilityContextEntitySlot {
                 context,
+                context_type,
                 slot,
+                slot_type,
                 entity,
-                ..
             } => {
                 validate_identifiers([context, slot, entity])?;
+                validate_portable_type_identity(*context_type)?;
+                validate_portable_type_identity(*slot_type)?;
             }
-            ApplicationSchemaMember::ApplicationCapabilityProvenance { provenance, .. } => {
+            ApplicationSchemaMember::ApplicationCapabilityProvenance {
+                provenance,
+                provenance_type,
+            } => {
                 validate_simple_identifier(provenance)?;
+                validate_portable_type_identity(*provenance_type)?;
             }
-            ApplicationSchemaMember::Operation { operation, .. } => {
+            ApplicationSchemaMember::Operation {
+                operation,
+                input_type,
+            } => {
                 validate_simple_identifier(operation)?;
+                validate_portable_type_identity(*input_type)?;
             }
             ApplicationSchemaMember::OperationProgram { operation, target } => {
                 validate_simple_identifier(operation)?;
@@ -125,8 +140,14 @@ pub(super) fn validate_member_identifiers(
                 validate_simple_identifier(operation)?;
             }
             ApplicationSchemaMember::OperationExternalEffect {
-                operation, effect, ..
-            } => validate_identifiers([operation, effect])?,
+                operation,
+                effect,
+                rust_payload_type,
+                ..
+            } => {
+                validate_identifiers([operation, effect])?;
+                validate_portable_type_identity(*rust_payload_type)?;
+            }
             ApplicationSchemaMember::OperationAftermath { operation, .. } => {
                 validate_simple_identifier(operation)?;
             }
@@ -154,12 +175,41 @@ pub(super) fn validate_member_identifiers(
             ApplicationSchemaMember::Unit { unit } => {
                 validate_simple_identifier(unit)?;
             }
-            ApplicationSchemaMember::Effect { effect, .. } => {
+            ApplicationSchemaMember::Effect {
+                effect,
+                payload_type,
+            } => {
                 validate_simple_identifier(effect)?;
+                validate_portable_type_identity(*payload_type)?;
             }
         }
     }
     Ok(())
+}
+
+fn validate_portable_type_identity(
+    identity: crate::portable_identity::WorthQueryPortableTypeIdentity,
+) -> Result<(), ApplicationSchemaDeclarationDenial> {
+    if identity.is_valid() {
+        Ok(())
+    } else {
+        Err(ApplicationSchemaDeclarationDenial::InvalidIdentifier)
+    }
+}
+
+pub(super) fn validate_portable_type_identifier(
+    value: &str,
+) -> Result<(), ApplicationSchemaDeclarationDenial> {
+    if !value.is_empty()
+        && value.trim() == value
+        && !value
+            .chars()
+            .any(|character| character.is_whitespace() || character.is_control())
+    {
+        Ok(())
+    } else {
+        Err(ApplicationSchemaDeclarationDenial::InvalidIdentifier)
+    }
 }
 
 fn validate_application_query_identifiers(

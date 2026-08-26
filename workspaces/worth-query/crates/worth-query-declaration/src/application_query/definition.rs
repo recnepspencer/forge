@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+use crate::portable_identity::WorthQueryPortableTypeIdentity;
 use worth_foundational::facade::ScalarAspectType;
 
 mod authoring;
@@ -87,6 +88,10 @@ impl ApplicationQueryDependencyCeiling {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ApplicationQueryDefinition<Schema, Query, Parameters, QueryResult, Scope> {
     pub(super) name: &'static str,
+    pub(super) query_type: WorthQueryPortableTypeIdentity,
+    pub(super) parameter_type: WorthQueryPortableTypeIdentity,
+    pub(super) result_type: WorthQueryPortableTypeIdentity,
+    pub(super) scope_type: WorthQueryPortableTypeIdentity,
     pub(super) root_entity: &'static str,
     pub(super) scope_entity: &'static str,
     pub(super) parameters: Vec<ApplicationQueryParameterDefinition>,
@@ -110,6 +115,38 @@ impl<Schema, Query, Parameters, QueryResult, Scope>
 {
     pub const fn name(&self) -> &'static str {
         self.name
+    }
+
+    pub const fn query_type(&self) -> &'static str {
+        self.query_type.as_str()
+    }
+
+    pub const fn query_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.query_type
+    }
+
+    pub const fn parameter_type(&self) -> &'static str {
+        self.parameter_type.as_str()
+    }
+
+    pub const fn parameter_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.parameter_type
+    }
+
+    pub const fn result_type(&self) -> &'static str {
+        self.result_type.as_str()
+    }
+
+    pub const fn result_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.result_type
+    }
+
+    pub const fn scope_type(&self) -> &'static str {
+        self.scope_type.as_str()
+    }
+
+    pub const fn scope_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.scope_type
     }
 
     pub const fn root_entity(&self) -> &'static str {

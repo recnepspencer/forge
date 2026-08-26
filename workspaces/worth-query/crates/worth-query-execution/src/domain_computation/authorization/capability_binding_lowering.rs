@@ -118,7 +118,7 @@ pub(super) fn lower_context_anchors(
     let mut lowered = Vec::with_capacity(clause.context_anchors().len());
     for anchor in clause.context_anchors() {
         if anchor.slot().context() != contract.constraints().context()
-            || anchor.slot().context_type() != contract.constraints().context_type()
+            || anchor.slot().context_identity() != contract.constraints().context_identity()
         {
             return Err(authorization_denial(
                 anchor.slot().slot(),
@@ -155,9 +155,9 @@ pub(super) fn lower_context_anchors(
             ordinal: index + 1,
             kind: kind(layout, entity)?,
             context: anchor.slot().context().to_string(),
-            context_type: anchor.slot().context_type().to_string(),
+            context_type: anchor.slot().context_identity().as_str().to_string(),
             slot: anchor.slot().slot().to_string(),
-            slot_type: anchor.slot().slot_type().to_string(),
+            slot_type: anchor.slot().slot_identity().as_str().to_string(),
             entity: entity.to_string(),
         });
     }

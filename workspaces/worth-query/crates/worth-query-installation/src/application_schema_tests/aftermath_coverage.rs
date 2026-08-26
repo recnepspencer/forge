@@ -111,9 +111,9 @@ fn covered_preimage_demand_installs_with_operation_decision_reads() {
     let installed = schema
         .installed_operation(ApplicationOperationRef::<
             CoveredAftermathSchema,
-            TestOperation,
+            TestOperation<CoveredAftermathSchema>,
             TestInput,
-        >::from_schema_identifier("TestOperation"))
+        >::from_declaration())
         .expect("covered demand must install through operation compile");
     let aftermath = installed
         .contracts()
@@ -149,9 +149,9 @@ fn uncovered_preimage_demand_denies_operation_installation_by_name() {
         .unwrap();
     let denial = match schema.installed_operation(ApplicationOperationRef::<
         UncoveredAftermathSchema,
-        TestOperation,
+        TestOperation<UncoveredAftermathSchema>,
         TestInput,
-    >::from_schema_identifier("TestOperation"))
+    >::from_declaration())
     {
         Ok(_) => panic!("uncovered pre-image demand must deny operation installation"),
         Err(denial) => denial,

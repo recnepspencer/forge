@@ -1,7 +1,4 @@
-use worth_foundational::facade::{CanonicalFieldPath, FieldKey};
-use worth_query_declaration::facade::application_schema::{
-    ApplicationOperationProgramTarget, ApplicationSchemaBindingIdentity,
-};
+use worth_query_declaration::facade::application_schema::ApplicationSchemaBindingIdentity;
 
 use crate::application_schema::WorthQueryInstalledApplicationSchemaContractCatalog;
 use crate::domain_operation::{
@@ -9,68 +6,67 @@ use crate::domain_operation::{
     WorthQueryOperationRelationTouchScope, WorthQueryOperationTouchContract,
     WorthQueryOperationTouchScope,
 };
+use crate::package::WorthQueryPortableOperationTouchScope;
 
-pub(crate) fn compile_graph_touches(
+pub(crate) fn install_portable_graph_touches(
     binding: &ApplicationSchemaBindingIdentity,
     catalog: &WorthQueryInstalledApplicationSchemaContractCatalog,
-    program: &[ApplicationOperationProgramTarget],
+    portable: &[WorthQueryPortableOperationTouchScope],
 ) -> Result<(WorthQueryOperationTouchContract, usize), ()> {
-    let mut scopes = Vec::new();
-    for target in program {
-        let scope = match target {
-            ApplicationOperationProgramTarget::Create { entity } => {
-                WorthQueryOperationTouchScope::CreateEntity(
+    let scopes = portable
+        .iter()
+        .map(|scope| match scope {
+            WorthQueryPortableOperationTouchScope::CreateEntity { entity, .. } => {
+                Ok(WorthQueryOperationTouchScope::CreateEntity(
                     WorthQueryOperationEntityTouchScope::new(binding.clone(), entity.clone()),
-                )
-            }
-            ApplicationOperationProgramTarget::Delete { entity } => {
-                WorthQueryOperationTouchScope::DeleteEntity(
-                    WorthQueryOperationEntityTouchScope::new(binding.clone(), entity.clone()),
-                )
-            }
-            ApplicationOperationProgramTarget::Write {
-                entity,
-                aspect,
-                field,
-            } => {
-                let installed = catalog.aspect(entity, aspect).ok_or(())?;
-                let field = FieldKey::new(field.clone()).ok_or(())?;
-                if !installed.contains_field(&field) {
-                    return Err(());
-                }
-                WorthQueryOperationTouchScope::WriteField(WorthQueryOperationFieldTouchScope::new(
-                    binding.clone(),
-                    entity.clone(),
-                    installed,
-                    CanonicalFieldPath::single(field),
                 ))
             }
-            ApplicationOperationProgramTarget::Link { relation, from, to } => {
-                WorthQueryOperationTouchScope::LinkRelation(
-                    WorthQueryOperationRelationTouchScope::new(
-                        binding.clone(),
-                        relation.clone(),
-                        from.clone(),
-                        to.clone(),
-                    ),
-                )
+            WorthQueryPortableOperationTouchScope::DeleteEntity { entity, .. } => {
+                Ok(WorthQueryOperationTouchScope::DeleteEntity(
+                    WorthQueryOperationEntityTouchScope::new(binding.clone(), entity.clone()),
+                ))
             }
-            ApplicationOperationProgramTarget::Unlink { relation, from, to } => {
-                WorthQueryOperationTouchScope::UnlinkRelation(
-                    WorthQueryOperationRelationTouchScope::new(
+            WorthQueryPortableOperationTouchScope::WriteField {
+                entity,
+                contract,
+                field_path,
+                ..
+            } => {
+                let installed = catalog.aspect(entity, contract.key().as_str()).ok_or(())?;
+                if installed.contract() != contract {
+                    return Err(());
+                }
+                Ok(WorthQueryOperationTouchScope::WriteField(
+                    WorthQueryOperationFieldTouchScope::new(
                         binding.clone(),
-                        relation.clone(),
-                        from.clone(),
-                        to.clone(),
+                        entity.clone(),
+                        installed,
+                        field_path.clone(),
                     ),
-                )
+                ))
             }
-            ApplicationOperationProgramTarget::Emit { .. } => continue,
-        };
-        scopes.push(scope);
-    }
-    scopes.sort_by(WorthQueryOperationTouchScope::canonical_order);
-    scopes.dedup();
+            WorthQueryPortableOperationTouchScope::LinkRelation {
+                relation, from, to, ..
+            } => Ok(WorthQueryOperationTouchScope::LinkRelation(
+                WorthQueryOperationRelationTouchScope::new(
+                    binding.clone(),
+                    relation.clone(),
+                    from.clone(),
+                    to.clone(),
+                ),
+            )),
+            WorthQueryPortableOperationTouchScope::UnlinkRelation {
+                relation, from, to, ..
+            } => Ok(WorthQueryOperationTouchScope::UnlinkRelation(
+                WorthQueryOperationRelationTouchScope::new(
+                    binding.clone(),
+                    relation.clone(),
+                    from.clone(),
+                    to.clone(),
+                ),
+            )),
+        })
+        .collect::<Result<Vec<_>, ()>>()?;
     let count = scopes.len();
     let contract = if scopes.is_empty() {
         WorthQueryOperationTouchContract::NotRequired

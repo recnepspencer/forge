@@ -1,4 +1,4 @@
-use sha2::Sha256;
+use crate::canonical_hash_encoding::CanonicalHashSink;
 
 use crate::canonical_hash_encoding::hash_text_field;
 use crate::domain_computation::*;
@@ -6,7 +6,10 @@ use crate::domain_computation::*;
 use super::super::WorthQueryPortableArtifactContract;
 use super::vocabulary::*;
 
-pub(super) fn hash_carriage(hash: &mut Sha256, contract: &WorthQueryPortableArtifactContract) {
+pub(super) fn hash_carriage(
+    hash: &mut impl CanonicalHashSink,
+    contract: &WorthQueryPortableArtifactContract,
+) {
     let carriage = contract.carriage;
     hash_text_field(hash, "movement", move_name(carriage.movement()));
     hash_text_field(hash, "borrowing", borrow_name(carriage.borrowing()));
@@ -140,7 +143,10 @@ fn counter_replay_name(value: WorthQueryStructuralCounterReplayPosture) -> &'sta
     }
 }
 
-pub(super) fn hash_governance(hash: &mut Sha256, contract: &WorthQueryPortableArtifactContract) {
+pub(super) fn hash_governance(
+    hash: &mut impl CanonicalHashSink,
+    contract: &WorthQueryPortableArtifactContract,
+) {
     for audience in contract.governance.audiences() {
         hash_text_field(hash, "audience", audience);
     }
@@ -172,7 +178,7 @@ pub(super) fn hash_governance(hash: &mut Sha256, contract: &WorthQueryPortableAr
 }
 
 pub(super) fn hash_compatibility(
-    hash: &mut Sha256,
+    hash: &mut impl CanonicalHashSink,
     value: &WorthQueryArtifactCompatibilityContract,
 ) {
     hash_text_field(

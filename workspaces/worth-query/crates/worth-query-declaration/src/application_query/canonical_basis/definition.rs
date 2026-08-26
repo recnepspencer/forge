@@ -23,7 +23,7 @@ pub(in crate::application_query) fn prepare_definition_basis<
 >(
     definition: &ApplicationQueryDefinition<Schema, Query, Parameters, QueryResult, Scope>,
 ) -> ApplicationQueryCanonicalArtifact {
-    let mut entries = definition_header::<Query, Parameters, QueryResult, Scope>(definition);
+    let mut entries = definition_header(definition);
     append_parameters(&mut entries, definition);
     append_root_paths(&mut entries, definition);
     append_result_shape(&mut entries, definition.result_shape(), "result");
@@ -90,21 +90,15 @@ fn append_root_paths<Schema, Query, Parameters, QueryResult, Scope>(
     }
 }
 
-fn definition_header<Query, Parameters, QueryResult, Scope>(
-    definition: &ApplicationQueryDefinition<impl Sized, Query, Parameters, QueryResult, Scope>,
+fn definition_header<Schema, Query, Parameters, QueryResult, Scope>(
+    definition: &ApplicationQueryDefinition<Schema, Query, Parameters, QueryResult, Scope>,
 ) -> Vec<CanonicalBasisEntry> {
     vec![
         text("definition.name", definition.name()),
-        text("definition.query-type", std::any::type_name::<Query>()),
-        text(
-            "definition.parameter-type",
-            std::any::type_name::<Parameters>(),
-        ),
-        text(
-            "definition.result-type",
-            std::any::type_name::<QueryResult>(),
-        ),
-        text("definition.scope-type", std::any::type_name::<Scope>()),
+        text("definition.query-type", definition.query_type()),
+        text("definition.parameter-type", definition.parameter_type()),
+        text("definition.result-type", definition.result_type()),
+        text("definition.scope-type", definition.scope_type()),
         text("definition.root-entity", definition.root_entity()),
         text("definition.scope-entity", definition.scope_entity()),
         text(

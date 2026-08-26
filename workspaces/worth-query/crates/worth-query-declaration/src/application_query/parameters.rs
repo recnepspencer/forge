@@ -3,6 +3,7 @@ use std::marker::PhantomData;
 use worth_foundational::facade::{AspectValue, ScalarAspectType};
 
 use crate::application_schema::TypedApplicationValue;
+use crate::portable_identity::WorthQueryPortableType;
 
 pub struct ApplicationQueryParameterRef<Query, Parameter, Value> {
     name: &'static str,
@@ -55,12 +56,12 @@ impl ApplicationQueryParameterDefinition {
         parameter: ApplicationQueryParameterRef<Query, Parameter, Value>,
     ) -> Self
     where
-        Value: TypedApplicationValue,
+        Value: TypedApplicationValue + WorthQueryPortableType,
     {
         Self {
             name: parameter.name(),
             scalar_family: Value::SCALAR_FAMILY,
-            value_type: std::any::type_name::<Value>(),
+            value_type: Value::PORTABLE_TYPE_IDENTITY.as_str(),
         }
     }
 }

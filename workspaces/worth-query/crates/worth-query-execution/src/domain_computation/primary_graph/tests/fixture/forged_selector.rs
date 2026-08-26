@@ -15,9 +15,12 @@ use super::{
 
 pub struct ForgedActivitySlot;
 pub struct ForgedSequenceSlot;
+worth_query_declaration::worth_query_portable_type!(ForgedActivitySlot => "worth.query.test.execution.forged_selector.activity_slot.v1");
+worth_query_declaration::worth_query_portable_type!(ForgedSequenceSlot => "worth.query.test.execution.forged_selector.sequence_slot.v1");
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgedSelectorResult;
+worth_query_declaration::worth_query_portable_type!(ForgedSelectorResult => "worth.query.test.execution.forged_selector.result.v1");
 
 worth_query_application_query!(
     pub ForgedSelectorQuery in IdentityExecutionSchema,

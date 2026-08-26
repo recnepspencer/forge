@@ -28,8 +28,10 @@ impl WorthQueryOperationTouchScope {
                     compare_binding(left.schema(), right.schema())
                         .then_with(|| left.entity().cmp(right.entity()))
                         .then_with(|| {
-                            left.canonical_contract_material()
-                                .cmp(right.canonical_contract_material())
+                            left.contract()
+                                .key()
+                                .as_str()
+                                .cmp(right.contract().key().as_str())
                         })
                         .then_with(|| left.field_path().cmp(right.field_path()))
                 }

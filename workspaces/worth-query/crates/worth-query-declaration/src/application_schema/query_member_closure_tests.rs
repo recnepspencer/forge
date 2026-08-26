@@ -6,8 +6,8 @@ use crate::{
         ApplicationQueryBasisSupport, ApplicationQueryCardinality,
         ApplicationQueryDefinitionBuilder, ApplicationQueryDependencyCeiling,
         ApplicationQueryDisclosureContract, ApplicationQueryLaneEligibility,
-        ApplicationQueryReference, ApplicationQueryResultFieldRef,
-        ApplicationQueryResultShapeBuilder, ErasedApplicationQueryDefinition,
+        ApplicationQueryResultFieldRef, ApplicationQueryResultShapeBuilder,
+        ErasedApplicationQueryDefinition,
     },
     application_schema::{
         ApplicationAbilityRef, ApplicationEntityRef, ApplicationFieldRef,
@@ -19,11 +19,21 @@ struct TestSchema;
 struct Account;
 struct AccountFacts;
 struct AccountId;
-struct AccountQuery;
 struct AccountParameters;
 struct AccountResult;
 struct AccountIdSlot;
 struct ViewAccount;
+
+crate::worth_query_application_query!(
+    AccountQuery in TestSchema,
+    identity "AccountQuery",
+    parameters AccountParameters => "AccountParameters",
+    result AccountResult => "worth.query.test.member-closure.account-result.v1",
+    scope Account => "Account",
+    name "account"
+);
+worth_query_portable_type!(AccountResult => "worth.query.test.member-closure.account-result.v1");
+worth_query_portable_type!(AccountIdSlot => "worth.query.test.member-closure.account-id-slot.v1");
 
 impl crate::application_schema::DeclaredApplicationFieldValue for AccountId {
     type Value = u64;
@@ -118,7 +128,10 @@ fn dependencies() -> Vec<ApplicationSchemaMember> {
             field: "AccountId".to_string(),
             presence: crate::application_schema::ApplicationFieldPresence::Required,
             scalar_family: ScalarAspectType::UInt64,
-            value_type: std::any::type_name::<u64>().to_string(),
+            value_type:
+                <u64 as crate::portable_identity::WorthQueryPortableType>::PORTABLE_TYPE_IDENTITY
+                    .as_str()
+                    .to_string(),
             unit: None,
             writable: false,
             equality_queryable: true,
@@ -169,30 +182,24 @@ fn governed_query() -> ErasedApplicationQueryDefinition {
         crate::application_schema::NoApplicationUnit,
     >::new("id", field))
     .build();
-    ApplicationQueryDefinitionBuilder::declare(ApplicationQueryReference::<
-        TestSchema,
-        AccountQuery,
-        AccountParameters,
-        AccountResult,
-        Account,
-    >::from_schema_identifier("account"))
-    .root(account)
-    .scope(account)
-    .result_shape(shape)
-    .cardinality(ApplicationQueryCardinality::ExactlyOne)
-    .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(0, 0, 1))
-    .disclosure(ApplicationQueryDisclosureContract::public())
-    .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
-    .lanes(ApplicationQueryLaneEligibility::one_shot())
-    .requires_ability(
-        ApplicationAbilityRef::<TestSchema, ViewAccount, Account>::from_schema_identifiers(
-            "ViewAccount",
-            "Account",
-        ),
-    )
-    .build()
-    .unwrap()
-    .into_erased()
+    ApplicationQueryDefinitionBuilder::declare(AccountQuery::reference())
+        .root(account)
+        .scope(account)
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(0, 0, 1))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .requires_ability(
+            ApplicationAbilityRef::<TestSchema, ViewAccount, Account>::from_schema_identifiers(
+                "ViewAccount",
+                "Account",
+            ),
+        )
+        .build()
+        .unwrap()
+        .into_erased()
 }
 
 fn build_query(
@@ -228,23 +235,17 @@ fn build_query(
     >::new(account)
     .field(result_field)
     .build();
-    ApplicationQueryDefinitionBuilder::declare(ApplicationQueryReference::<
-        TestSchema,
-        AccountQuery,
-        AccountParameters,
-        AccountResult,
-        Account,
-    >::from_schema_identifier("account"))
-    .root(account)
-    .scope(account)
-    .result_shape(shape)
-    .cardinality(ApplicationQueryCardinality::ExactlyOne)
-    .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(0, 0, 1))
-    .disclosure(ApplicationQueryDisclosureContract::public())
-    .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
-    .lanes(ApplicationQueryLaneEligibility::one_shot())
-    .public()
-    .build()
-    .unwrap()
-    .into_erased()
+    ApplicationQueryDefinitionBuilder::declare(AccountQuery::reference())
+        .root(account)
+        .scope(account)
+        .result_shape(shape)
+        .cardinality(ApplicationQueryCardinality::ExactlyOne)
+        .dependency_ceiling(ApplicationQueryDependencyCeiling::bounded(0, 0, 1))
+        .disclosure(ApplicationQueryDisclosureContract::public())
+        .basis_support(ApplicationQueryBasisSupport::current_and_pinned())
+        .lanes(ApplicationQueryLaneEligibility::one_shot())
+        .public()
+        .build()
+        .unwrap()
+        .into_erased()
 }

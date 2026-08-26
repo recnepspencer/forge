@@ -1,8 +1,10 @@
 use worth_foundational::facade::ScalarAspectType;
 
+use crate::portable_identity::WorthQueryPortableTypeIdentity;
+
 use super::{
     ApplicationOperationProgramTarget, ApplicationSchemaBindingIdentity, ApplicationSchemaMember,
-    ErasedApplicationSchemaDeclaration,
+    ApplicationSchemaMemberProvenance, ErasedApplicationSchemaDeclaration,
 };
 
 /// Exact installed schema meaning available to declaration authoring.
@@ -12,6 +14,7 @@ use super::{
 pub struct ApplicationSchemaAuthoringContext {
     binding: ApplicationSchemaBindingIdentity,
     members: Vec<ApplicationSchemaMember>,
+    member_provenance: ApplicationSchemaMemberProvenance,
 }
 
 impl ApplicationSchemaAuthoringContext {
@@ -19,10 +22,12 @@ impl ApplicationSchemaAuthoringContext {
     pub fn from_installed_declaration(
         binding: ApplicationSchemaBindingIdentity,
         declaration: &ErasedApplicationSchemaDeclaration,
+        member_provenance: &ApplicationSchemaMemberProvenance,
     ) -> Self {
         Self {
             binding,
             members: declaration.members().to_vec(),
+            member_provenance: member_provenance.clone(),
         }
     }
 
@@ -46,16 +51,25 @@ impl ApplicationSchemaAuthoringContext {
         }
     }
 
-    pub(crate) fn admit_operation(
+    pub(crate) fn admit_operation<Operation: 'static, Input: 'static>(
         &self,
         operation: &str,
-        input_type: &str,
+        input_type: WorthQueryPortableTypeIdentity,
     ) -> Result<(), ApplicationSchemaAuthoringDenial> {
+        if !self
+            .member_provenance
+            .admits_operation::<Operation, Input>(operation, input_type)
+        {
+            return Err(ApplicationSchemaAuthoringDenial::new(
+                ApplicationSchemaAuthoringDenialKind::OperationProvenanceMismatch,
+                operation,
+            ));
+        }
         let installed = self.members.iter().find_map(|member| match member {
             ApplicationSchemaMember::Operation {
                 operation: installed,
                 input_type,
-            } if installed == operation => Some(input_type.as_str()),
+            } if installed == operation => Some(*input_type),
             _ => None,
         });
         let Some(installed_input_type) = installed else {
@@ -73,16 +87,25 @@ impl ApplicationSchemaAuthoringContext {
         Ok(())
     }
 
-    pub(crate) fn admit_effect(
+    pub(crate) fn admit_effect<Effect: 'static, Payload: 'static>(
         &self,
         effect: &str,
-        payload_type: &str,
+        payload_type: WorthQueryPortableTypeIdentity,
     ) -> Result<(), ApplicationSchemaAuthoringDenial> {
+        if !self
+            .member_provenance
+            .admits_effect::<Effect, Payload>(effect, payload_type)
+        {
+            return Err(ApplicationSchemaAuthoringDenial::new(
+                ApplicationSchemaAuthoringDenialKind::EffectProvenanceMismatch,
+                effect,
+            ));
+        }
         let installed = self.members.iter().find_map(|member| match member {
             ApplicationSchemaMember::Effect {
                 effect: installed,
                 payload_type,
-            } if installed == effect => Some(payload_type.as_str()),
+            } if installed == effect => Some(*payload_type),
             _ => None,
         });
         let Some(installed_payload_type) = installed else {
@@ -319,8 +342,10 @@ pub enum ApplicationSchemaAuthoringDenialKind {
     FieldNotWritable,
     FieldNotEqualityQueryable,
     UnknownOperation,
+    OperationProvenanceMismatch,
     OperationInputTypeMismatch,
     UnknownEffect,
+    EffectProvenanceMismatch,
     EffectPayloadTypeMismatch,
     UnknownRelation,
     OperationProgramNotInstalled,

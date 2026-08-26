@@ -8,6 +8,7 @@ use super::declaration_denial::ApplicationSchemaDeclarationDenial;
 use super::field_reference::ApplicationFieldRef;
 use super::identifier_validation::{validate_member_identifiers, validate_schema_header};
 use super::member_closure::validate_member_closure;
+use super::member_provenance::ApplicationSchemaMemberProvenance;
 use super::operation_contract_cardinality::validate_operation_contract_cardinality;
 use super::principal_binding_reference::ApplicationPrincipalBindingRef;
 use super::references::{
@@ -66,6 +67,7 @@ impl ErasedApplicationSchemaDeclaration {
 
 pub struct ApplicationSchemaDeclaration<Schema> {
     erased: ErasedApplicationSchemaDeclaration,
+    pub(super) member_provenance: ApplicationSchemaMemberProvenance,
     _schema: PhantomData<fn() -> Schema>,
 }
 
@@ -73,6 +75,7 @@ impl<Schema> Clone for ApplicationSchemaDeclaration<Schema> {
     fn clone(&self) -> Self {
         Self {
             erased: self.erased.clone(),
+            member_provenance: self.member_provenance.clone(),
             _schema: PhantomData,
         }
     }
@@ -107,6 +110,11 @@ impl<Schema> ApplicationSchemaDeclaration<Schema> {
     pub fn into_erased(self) -> ErasedApplicationSchemaDeclaration {
         self.erased
     }
+
+    #[doc(hidden)]
+    pub fn member_provenance(&self) -> &ApplicationSchemaMemberProvenance {
+        &self.member_provenance
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -116,10 +124,24 @@ pub struct ApplicationSchemaDeclarationBuilder<Schema> {
     major: u32,
     minor: u32,
     members: Vec<ApplicationSchemaMember>,
+    pub(super) member_provenance: ApplicationSchemaMemberProvenance,
     _schema: PhantomData<fn() -> Schema>,
 }
 
 impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
+    #[cfg(test)]
+    pub(crate) fn from_test_members(members: Vec<ApplicationSchemaMember>) -> Self {
+        Self {
+            owner: "WORTH.tests",
+            name: "raw-member-builder-proof",
+            major: 1,
+            minor: 0,
+            members,
+            member_provenance: ApplicationSchemaMemberProvenance::default(),
+            _schema: PhantomData,
+        }
+    }
+
     pub(super) fn push_member(mut self, member: ApplicationSchemaMember) -> Self {
         self.members.push(member);
         self
@@ -139,6 +161,7 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
             major: Schema::MAJOR,
             minor: Schema::MINOR,
             members: Vec::new(),
+            member_provenance: ApplicationSchemaMemberProvenance::default(),
             _schema: PhantomData,
         }
     }
@@ -301,10 +324,16 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
     pub fn effect<Effect, Payload>(
         mut self,
         effect: ApplicationEffectRef<Schema, Effect, Payload>,
-    ) -> Self {
+    ) -> Self
+    where
+        Effect: 'static,
+        Payload: 'static,
+    {
+        self.member_provenance
+            .register_effect::<Effect, Payload>(effect.name(), effect.payload_identity());
         self.members.push(ApplicationSchemaMember::Effect {
             effect: effect.name().to_string(),
-            payload_type: std::any::type_name::<Payload>().to_string(),
+            payload_type: effect.payload_identity(),
         });
         self
     }
@@ -314,8 +343,10 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
     ) -> Result<ApplicationSchemaDeclaration<Schema>, ApplicationSchemaDeclarationDenial> {
         validate_schema_header(self.owner, self.name)?;
         validate_member_identifiers(&self.members)?;
+        super::member_identity_uniqueness::validate_member_identity_uniqueness(&self.members)?;
         validate_operation_contract_cardinality(&self.members)?;
         self.members.sort();
+        self.member_provenance.normalize();
         if self.members.windows(2).any(|pair| pair[0] == pair[1]) {
             return Err(ApplicationSchemaDeclarationDenial::DuplicateMember);
         }
@@ -338,6 +369,7 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
                 identity,
                 members: self.members,
             },
+            member_provenance: self.member_provenance,
             _schema: PhantomData,
         })
     }

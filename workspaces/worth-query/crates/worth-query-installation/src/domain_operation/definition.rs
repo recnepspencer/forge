@@ -86,6 +86,18 @@ impl WorthQueryPortableDomainOperationDefinition {
     pub fn canonical_identity(&self) -> &str {
         &self.canonical_identity
     }
+
+    pub(crate) fn canonical_encoded_bytes(&self) -> u64 {
+        super::canonical_identity::canonical_operation_encoded_bytes(
+            &self.identity,
+            &self.semantics,
+        )
+        .saturating_add(
+            self.semantics
+                .canonical_query
+                .portable_record_logical_bytes(),
+        )
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

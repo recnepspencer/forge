@@ -25,10 +25,33 @@ pub(super) struct RequestOperation;
 pub(super) struct ApproveOperation;
 pub(super) struct RevokeOperation;
 pub(super) struct CompleteReviewOperation;
+pub(super) struct DuplicateApproveOperation;
+pub(super) struct MissingRequestOperation;
+pub(super) struct SwappedRequestOperation;
+pub(super) struct SwappedApproveOperation;
 pub(super) struct RequestCapability;
 pub(super) struct ApproveCapability;
 pub(super) struct RevokeCapability;
 pub(super) struct CompleteReviewCapability;
+
+macro_rules! operation_identity {
+    ($operation:ty => $identifier:literal) => {
+        impl ApplicationOperationMarkerIdentity for $operation {
+            type Schema = Schema;
+            type Input = ();
+            const IDENTIFIER: &'static str = $identifier;
+        }
+    };
+}
+
+operation_identity!(RequestOperation => "Request");
+operation_identity!(ApproveOperation => "Approve");
+operation_identity!(RevokeOperation => "Revoke");
+operation_identity!(CompleteReviewOperation => "CompleteReview");
+operation_identity!(DuplicateApproveOperation => "Request");
+operation_identity!(MissingRequestOperation => "Missing");
+operation_identity!(SwappedRequestOperation => "Approve");
+operation_identity!(SwappedApproveOperation => "Request");
 
 pub(super) fn elevation_value(value: u64) -> ApplicationCapabilityValueBinding {
     ApplicationCapabilityValueBinding::new(
@@ -90,14 +113,20 @@ pub(super) fn context_slot<Slot, Entity>(
     )
 }
 
-pub(super) fn operation<Marker>(name: &'static str) -> ApplicationOperationRef<Schema, Marker, ()> {
-    ApplicationOperationRef::from_schema_identifier(name)
+pub(super) fn operation<Marker>(_: &'static str) -> ApplicationOperationRef<Schema, Marker, ()>
+where
+    Marker: ApplicationOperationMarkerIdentity<Schema = Schema, Input = ()>,
+{
+    ApplicationOperationRef::from_declaration()
 }
 
 pub(super) fn transition_binding<CapabilityMarker, OperationMarker>(
     capability: &'static str,
     operation_name: &'static str,
-) -> ApplicationCapabilityTransitionBinding {
+) -> ApplicationCapabilityTransitionBinding
+where
+    OperationMarker: ApplicationOperationMarkerIdentity<Schema = Schema, Input = ()>,
+{
     ApplicationCapabilityTransitionBinding::from_references(
         ApplicationCapabilityRef::<Schema, CapabilityMarker>::from_schema_identifier(capability),
         operation::<OperationMarker>(operation_name),
@@ -107,7 +136,10 @@ pub(super) fn transition_binding<CapabilityMarker, OperationMarker>(
 pub(super) fn transition_contract<CapabilityMarker, OperationMarker>(
     capability: &'static str,
     operation_name: &'static str,
-) -> crate::application_capability::ErasedApplicationCapabilityContract {
+) -> crate::application_capability::ErasedApplicationCapabilityContract
+where
+    OperationMarker: ApplicationOperationMarkerIdentity<Schema = Schema, Input = ()>,
+{
     ApplicationCapabilityContractBuilder::new(
         ApplicationCapabilityRef::<Schema, CapabilityMarker>::from_schema_identifier(capability),
         operation::<OperationMarker>(operation_name),

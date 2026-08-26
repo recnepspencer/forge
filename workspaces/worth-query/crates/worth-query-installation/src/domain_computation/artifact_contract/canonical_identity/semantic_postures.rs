@@ -1,4 +1,4 @@
-use sha2::Sha256;
+use crate::canonical_hash_encoding::CanonicalHashSink;
 
 use crate::canonical_hash_encoding::hash_text_field;
 use crate::domain_computation::*;
@@ -7,7 +7,7 @@ use super::super::WorthQueryPortableArtifactContract;
 use super::vocabulary::*;
 
 pub(super) fn hash_occurrence_and_evidence(
-    hash: &mut Sha256,
+    hash: &mut impl CanonicalHashSink,
     contract: &WorthQueryPortableArtifactContract,
 ) {
     hash_text_field(
@@ -33,7 +33,7 @@ pub(super) fn hash_occurrence_and_evidence(
 }
 
 pub(super) fn hash_reproducibility(
-    hash: &mut Sha256,
+    hash: &mut impl CanonicalHashSink,
     value: &WorthQueryArtifactReproducibilityContract,
 ) {
     hash_text_field(
@@ -77,7 +77,10 @@ pub(super) fn hash_reproducibility(
     }
 }
 
-pub(super) fn hash_search(hash: &mut Sha256, value: &WorthQueryCandidateSearchContract) {
+pub(super) fn hash_search(
+    hash: &mut impl CanonicalHashSink,
+    value: &WorthQueryCandidateSearchContract,
+) {
     hash_optional(hash, "candidate-universe", value.universe_family());
     hash_optional(hash, "search-termination", value.termination_family());
     hash_optional(hash, "candidate-feasibility", value.feasibility_family());
@@ -141,7 +144,10 @@ pub(super) fn hash_search(hash: &mut Sha256, value: &WorthQueryCandidateSearchCo
     }
 }
 
-pub(super) fn hash_convergence(hash: &mut Sha256, value: &WorthQueryConvergenceContract) {
+pub(super) fn hash_convergence(
+    hash: &mut impl CanonicalHashSink,
+    value: &WorthQueryConvergenceContract,
+) {
     match value {
         WorthQueryConvergenceContract::NotIterative => {
             hash_text_field(hash, "convergence", "not-iterative")
@@ -166,7 +172,7 @@ pub(super) fn hash_convergence(hash: &mut Sha256, value: &WorthQueryConvergenceC
 }
 
 pub(super) fn hash_transformation(
-    hash: &mut Sha256,
+    hash: &mut impl CanonicalHashSink,
     value: &WorthQueryTransformationEvidenceContract,
 ) {
     match value {

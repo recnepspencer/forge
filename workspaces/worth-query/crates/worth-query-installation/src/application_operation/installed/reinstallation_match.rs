@@ -2,6 +2,7 @@
 
 use worth_query_declaration::facade::application_schema::ApplicationSchemaMember;
 
+use crate::application_operation::compile_portable_operation_contract_record;
 use crate::installed_index::WorthQueryInstalledPackageAuthority;
 
 use super::super::installed_contract_support::authority_transcript;
@@ -14,9 +15,19 @@ impl<Schema, Operation, Input> WorthQueryInstalledApplicationOperation<Schema, O
     }
 
     fn recompiled_contracts_match(&self, members: &[ApplicationSchemaMember]) -> bool {
+        let Ok(portable_contract) = compile_portable_operation_contract_record(
+            &self.schema_name,
+            members,
+            self.portable_native_contracts.as_ref(),
+            &self.operation,
+            *self.portable_contract.input_type(),
+        ) else {
+            return false;
+        };
         let Ok(compilation) = WorthQueryApplicationOperationCompilation::resolve(
             self.binding_identity.clone(),
             members,
+            &portable_contract,
             &self.operation,
             &self.input_type,
         ) else {

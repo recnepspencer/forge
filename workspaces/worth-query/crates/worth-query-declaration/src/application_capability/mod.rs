@@ -15,6 +15,8 @@ mod elevation_lifecycle;
 mod elevation_transition;
 mod governed_input_identity;
 pub(crate) mod lifecycle_effect;
+mod marker_identity;
+mod operation_binding;
 mod reference;
 mod request_projection;
 mod rule_clause;
@@ -65,8 +67,7 @@ pub use elevation::{
     ApplicationCapabilityElevationStates, ApplicationCapabilityMandatoryReviewDefinition,
 };
 pub use elevation_lifecycle::{
-    ApplicationCapabilityElevationLifecycleDefinition, ApplicationCapabilityOperationBinding,
-    ApplicationCapabilityTransitionBinding,
+    ApplicationCapabilityElevationLifecycleDefinition, ApplicationCapabilityTransitionBinding,
 };
 pub use elevation_transition::{
     ApplicationCapabilityElevationRequest, ApplicationCapabilityElevationRequestProjection,
@@ -76,6 +77,12 @@ pub use governed_input_identity::ApplicationCapabilityGovernedInputIdentity;
 pub use lifecycle_effect::{
     ApplicationCapabilityLifecycleEffect, ApplicationCapabilityLifecycleEffectBinding,
 };
+pub use marker_identity::{
+    ApplicationCapabilityContextEntitySlotMarkerIdentity,
+    ApplicationCapabilityContextMarkerIdentity, ApplicationCapabilityMarkerIdentity,
+    ApplicationCapabilityProvenanceMarkerIdentity,
+};
+pub use operation_binding::ApplicationCapabilityOperationBinding;
 pub use reference::{
     ApplicationCapabilityContextRef, ApplicationCapabilityProvenanceRef, ApplicationCapabilityRef,
 };

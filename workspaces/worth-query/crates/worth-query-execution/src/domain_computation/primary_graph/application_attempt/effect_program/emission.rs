@@ -26,17 +26,14 @@ impl<Schema, Operation, Input, Scope>
     /// struct Operation;
     /// struct Input;
     /// struct Scope;
-    /// struct UndeclaredEffect;
+    /// worth_query_declaration::worth_query_effect!(UndeclaredEffect(String) in Schema);
     ///
     /// fn cannot_emit_undeclared_effect(
     ///     builder: &mut WorthQueryApplicationEffectProgramBuilder<
     ///         Schema, Operation, Input, Scope,
     ///     >,
     /// ) {
-    ///     let effect =
-    ///         ApplicationEffectRef::<Schema, UndeclaredEffect, String>::from_schema_identifier(
-    ///             "UndeclaredEffect",
-    ///         );
+    ///     let effect = UndeclaredEffect::reference();
     ///     builder.emit(effect, "payload".to_owned()).unwrap();
     /// }
     /// ```
@@ -47,7 +44,8 @@ impl<Schema, Operation, Input, Scope>
     ) -> Result<(), WorthQueryApplicationAttemptDenial>
     where
         Effect: OperationEmits<Operation>,
-        Payload: ApplicationEffectPayload,
+        Payload: ApplicationEffectPayload
+            + worth_query_declaration::facade::portable_identity::WorthQueryPortableType,
     {
         self.admit_program_target(&ApplicationOperationProgramTarget::Emit {
             effect: effect.name().to_string(),
@@ -78,7 +76,8 @@ impl<Schema, Operation, Input, Scope>
     ) -> Result<(), WorthQueryApplicationAttemptDenial>
     where
         Effect: OperationEmits<Operation>,
-        Payload: ApplicationExternalEffectPayload,
+        Payload: ApplicationExternalEffectPayload
+            + worth_query_declaration::facade::portable_identity::WorthQueryPortableType,
     {
         self.admit_program_target(&ApplicationOperationProgramTarget::Emit {
             effect: effect.name().to_string(),

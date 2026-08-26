@@ -1,5 +1,7 @@
 use worth_query_declaration::facade::application_capability::ApplicationCapabilityRequest;
-use worth_query_declaration::facade::application_schema::TypedMutationPreconditions;
+use worth_query_declaration::facade::application_schema::{
+    ApplicationOperationMarkerIdentity, TypedMutationPreconditions,
+};
 use worth_query_installation::facade::{
     ApplicationOperationDecisionReadTarget, ApplicationOperationProgramTarget, ApplicationSchema,
     WorthQueryInstalledApplicationOperation,
@@ -82,6 +84,7 @@ where
         WorthQueryMandatoryReviewAuthorizationDenial,
     >
     where
+        Operation: ApplicationOperationMarkerIdentity,
         Input: ApplicationCapabilityRequest<Schema, Capability>,
         Input: 'static,
     {
@@ -113,6 +116,7 @@ fn bind_review<Schema, Capability, Operation, Input>(
 ) -> Result<WorthQueryMandatoryReviewDraft, WorthQueryOperationAuthorizationDenial>
 where
     Schema: ApplicationSchema,
+    Operation: ApplicationOperationMarkerIdentity,
     Input: ApplicationCapabilityRequest<Schema, Capability>,
     Input: 'static,
 {

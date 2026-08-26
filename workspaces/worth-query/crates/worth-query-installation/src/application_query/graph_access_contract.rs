@@ -6,6 +6,7 @@ use worth_query_declaration::facade::application_query::{
     ApplicationQueryResultTraversalDirection,
 };
 use worth_query_declaration::facade::application_schema::ApplicationFieldPresence;
+use worth_query_declaration::facade::portable_identity::WorthQueryPortableTypeIdentity;
 
 mod compilation;
 
@@ -13,14 +14,14 @@ mod compilation;
 pub struct WorthQueryInstalledGraphProjection {
     slot_key: Arc<ApplicationQueryResultSlotKey>,
     result_path: Arc<str>,
-    query_type: String,
-    slot_type: Arc<str>,
+    query_type: WorthQueryPortableTypeIdentity,
+    slot_type: WorthQueryPortableTypeIdentity,
     entity: String,
     aspect: AspectKey,
     field: FieldKey,
     output_name: String,
     scalar_family: ScalarAspectType,
-    value_type: String,
+    value_type: WorthQueryPortableTypeIdentity,
     presence: ApplicationFieldPresence,
 }
 
@@ -38,15 +39,19 @@ impl WorthQueryInstalledGraphProjection {
     }
 
     pub fn query_type(&self) -> &str {
-        &self.query_type
+        self.query_type.as_str()
     }
 
     pub fn slot_type(&self) -> &str {
-        &self.slot_type
+        self.slot_type.as_str()
+    }
+
+    pub const fn portable_slot_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.slot_type
     }
 
     pub fn slot_type_identity(&self) -> Arc<str> {
-        Arc::clone(&self.slot_type)
+        Arc::from(self.slot_type.as_str())
     }
 
     pub fn entity(&self) -> &str {
@@ -78,7 +83,7 @@ impl WorthQueryInstalledGraphProjection {
     }
 
     pub fn value_type(&self) -> &str {
-        &self.value_type
+        self.value_type.as_str()
     }
 
     pub const fn presence(&self) -> ApplicationFieldPresence {
@@ -90,8 +95,8 @@ impl WorthQueryInstalledGraphProjection {
 pub struct WorthQueryInstalledGraphRelation {
     slot_key: Arc<ApplicationQueryResultSlotKey>,
     result_path: Arc<str>,
-    query_type: String,
-    slot_type: Arc<str>,
+    query_type: WorthQueryPortableTypeIdentity,
+    slot_type: WorthQueryPortableTypeIdentity,
     relation: String,
     from: String,
     to: String,
@@ -115,15 +120,19 @@ impl WorthQueryInstalledGraphRelation {
     }
 
     pub fn query_type(&self) -> &str {
-        &self.query_type
+        self.query_type.as_str()
     }
 
     pub fn slot_type(&self) -> &str {
-        &self.slot_type
+        self.slot_type.as_str()
+    }
+
+    pub const fn portable_slot_identity(&self) -> WorthQueryPortableTypeIdentity {
+        self.slot_type
     }
 
     pub fn slot_type_identity(&self) -> Arc<str> {
-        Arc::clone(&self.slot_type)
+        Arc::from(self.slot_type.as_str())
     }
 
     pub fn relation(&self) -> &str {
@@ -204,15 +213,15 @@ impl WorthQueryInstalledGraphPredicate {
 pub struct WorthQueryInstalledGraphOrdering {
     result_path: String,
     collection_path: String,
-    query_type: String,
-    slot_type: String,
+    query_type: WorthQueryPortableTypeIdentity,
+    slot_type: WorthQueryPortableTypeIdentity,
     entity: String,
     aspect: AspectKey,
     field: FieldKey,
     output_name: String,
     direction: ApplicationQueryOrderingDirection,
     scalar_family: ScalarAspectType,
-    value_type: String,
+    value_type: WorthQueryPortableTypeIdentity,
 }
 
 impl WorthQueryInstalledGraphOrdering {
@@ -225,11 +234,11 @@ impl WorthQueryInstalledGraphOrdering {
     }
 
     pub fn query_type(&self) -> &str {
-        &self.query_type
+        self.query_type.as_str()
     }
 
     pub fn slot_type(&self) -> &str {
-        &self.slot_type
+        self.slot_type.as_str()
     }
 
     pub fn field(&self) -> (&str, &str, &str) {
@@ -257,7 +266,7 @@ impl WorthQueryInstalledGraphOrdering {
     }
 
     pub fn value_type(&self) -> &str {
-        &self.value_type
+        self.value_type.as_str()
     }
 }
 

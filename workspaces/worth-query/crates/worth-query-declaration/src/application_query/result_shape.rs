@@ -8,23 +8,25 @@ use crate::application_schema::{
 };
 
 use super::{
-    ApplicationQueryCardinality, ApplicationQueryOptionalResultFieldRef,
-    ApplicationQueryResultFieldRef, ApplicationQueryResultRelationCardinality,
-    ApplicationQueryResultRelationRef, ApplicationQueryResultSlotKey,
-    ApplicationQueryResultTraversalDirection, ApplicationQueryResultTraversalEndpoints,
+    ApplicationQueryCardinality, ApplicationQueryMarkerIdentity,
+    ApplicationQueryOptionalResultFieldRef, ApplicationQueryResultFieldRef,
+    ApplicationQueryResultRelationCardinality, ApplicationQueryResultRelationRef,
+    ApplicationQueryResultSlotKey, ApplicationQueryResultTraversalDirection,
+    ApplicationQueryResultTraversalEndpoints,
 };
+use crate::portable_identity::{WorthQueryPortableType, WorthQueryPortableTypeIdentity};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationQueryResultField {
     slot_key: ApplicationQueryResultSlotKey,
-    query_type: &'static str,
-    slot_type: &'static str,
+    query_type: WorthQueryPortableTypeIdentity,
+    slot_type: WorthQueryPortableTypeIdentity,
     entity: &'static str,
     aspect: &'static str,
     field: &'static str,
     output_name: &'static str,
     scalar_family: ScalarAspectType,
-    value_type: &'static str,
+    value_type: WorthQueryPortableTypeIdentity,
     presence: ApplicationFieldPresence,
 }
 
@@ -34,10 +36,18 @@ impl ApplicationQueryResultField {
     }
 
     pub const fn query_type(&self) -> &'static str {
+        self.query_type.as_str()
+    }
+
+    pub const fn query_identity(&self) -> WorthQueryPortableTypeIdentity {
         self.query_type
     }
 
     pub const fn slot_type(&self) -> &'static str {
+        self.slot_type.as_str()
+    }
+
+    pub const fn slot_identity(&self) -> WorthQueryPortableTypeIdentity {
         self.slot_type
     }
 
@@ -62,6 +72,10 @@ impl ApplicationQueryResultField {
     }
 
     pub const fn value_type(&self) -> &'static str {
+        self.value_type.as_str()
+    }
+
+    pub const fn value_identity(&self) -> WorthQueryPortableTypeIdentity {
         self.value_type
     }
 
@@ -73,8 +87,8 @@ impl ApplicationQueryResultField {
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationQueryResultRelation {
     slot_key: ApplicationQueryResultSlotKey,
-    query_type: &'static str,
-    slot_type: &'static str,
+    query_type: WorthQueryPortableTypeIdentity,
+    slot_type: WorthQueryPortableTypeIdentity,
     relation: &'static str,
     from: &'static str,
     to: &'static str,
@@ -90,10 +104,18 @@ impl ApplicationQueryResultRelation {
     }
 
     pub const fn query_type(&self) -> &'static str {
+        self.query_type.as_str()
+    }
+
+    pub const fn query_identity(&self) -> WorthQueryPortableTypeIdentity {
         self.query_type
     }
 
     pub const fn slot_type(&self) -> &'static str {
+        self.slot_type.as_str()
+    }
+
+    pub const fn slot_identity(&self) -> WorthQueryPortableTypeIdentity {
         self.slot_type
     }
 
@@ -127,15 +149,19 @@ impl ApplicationQueryResultRelation {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationQueryResultShape {
-    query_type: &'static str,
+    query_type: WorthQueryPortableTypeIdentity,
     root_entity: &'static str,
-    result_type: &'static str,
+    result_type: WorthQueryPortableTypeIdentity,
     fields: Vec<ApplicationQueryResultField>,
     relations: Vec<ApplicationQueryResultRelation>,
 }
 
 impl ApplicationQueryResultShape {
     pub const fn query_type(&self) -> &'static str {
+        self.query_type.as_str()
+    }
+
+    pub const fn query_identity(&self) -> WorthQueryPortableTypeIdentity {
         self.query_type
     }
 
@@ -144,6 +170,10 @@ impl ApplicationQueryResultShape {
     }
 
     pub const fn result_type(&self) -> &'static str {
+        self.result_type.as_str()
+    }
+
+    pub const fn result_identity(&self) -> WorthQueryPortableTypeIdentity {
         self.result_type
     }
 
@@ -205,21 +235,21 @@ impl<Schema, Query, Entity, Result>
     ) -> Self
     where
         Field: RequiredApplicationFieldValue<Value = Value>,
-        Value: TypedApplicationValue,
+        Value: TypedApplicationValue + WorthQueryPortableType,
         Unit: ApplicationFieldUnit,
-        Query: 'static,
-        Slot: 'static,
+        Query: ApplicationQueryMarkerIdentity,
+        Slot: WorthQueryPortableType,
     {
         self.fields.push(ApplicationQueryResultField {
             slot_key: field.slot_key(),
-            query_type: field.query_type(),
-            slot_type: field.slot_type(),
+            query_type: field.slot_key().query_identity(),
+            slot_type: field.slot_key().slot_identity(),
             entity: field.entity(),
             aspect: field.aspect(),
             field: field.field(),
             output_name: field.output_name(),
             scalar_family: Value::SCALAR_FAMILY,
-            value_type: std::any::type_name::<Value>(),
+            value_type: Value::PORTABLE_TYPE_IDENTITY,
             presence: ApplicationFieldPresence::Required,
         });
         self
@@ -242,21 +272,21 @@ impl<Schema, Query, Entity, Result>
     ) -> Self
     where
         Field: OptionalApplicationFieldValue<Value = Value>,
-        Value: TypedApplicationValue,
+        Value: TypedApplicationValue + WorthQueryPortableType,
         Unit: ApplicationFieldUnit,
-        Query: 'static,
-        Slot: 'static,
+        Query: ApplicationQueryMarkerIdentity,
+        Slot: WorthQueryPortableType,
     {
         self.fields.push(ApplicationQueryResultField {
             slot_key: field.slot_key(),
-            query_type: field.query_type(),
-            slot_type: field.slot_type(),
+            query_type: field.slot_key().query_identity(),
+            slot_type: field.slot_key().slot_identity(),
             entity: field.entity(),
             aspect: field.aspect(),
             field: field.field(),
             output_name: field.output_name(),
             scalar_family: Value::SCALAR_FAMILY,
-            value_type: std::any::type_name::<Value>(),
+            value_type: Value::PORTABLE_TYPE_IDENTITY,
             presence: ApplicationFieldPresence::Optional,
         });
         self
@@ -289,13 +319,14 @@ impl<Schema, Query, Entity, Result>
         Direction:
             ApplicationQueryResultTraversalEndpoints<Entity, Child, DeclaredFrom, DeclaredTo>,
         Cardinality: ApplicationQueryResultRelationCardinality,
-        Query: 'static,
-        Slot: 'static,
+        Query: ApplicationQueryMarkerIdentity,
+        Slot: WorthQueryPortableType,
+        NestedResult: WorthQueryPortableType,
     {
         self.relations.push(ApplicationQueryResultRelation {
             slot_key: relation.slot_key(),
-            query_type: relation.query_type(),
-            slot_type: relation.slot_type(),
+            query_type: relation.slot_key().query_identity(),
+            slot_type: relation.slot_key().slot_identity(),
             relation: relation.relation(),
             from: relation.from(),
             to: relation.to(),
@@ -307,14 +338,18 @@ impl<Schema, Query, Entity, Result>
         self
     }
 
-    pub fn build(mut self) -> TypedApplicationQueryResultShape<Schema, Query, Entity, Result> {
+    pub fn build(mut self) -> TypedApplicationQueryResultShape<Schema, Query, Entity, Result>
+    where
+        Query: ApplicationQueryMarkerIdentity,
+        Result: WorthQueryPortableType,
+    {
         self.fields.sort();
         self.relations.sort();
         TypedApplicationQueryResultShape {
             shape: ApplicationQueryResultShape {
-                query_type: std::any::type_name::<Query>(),
+                query_type: Query::QUERY_TYPE_IDENTITY,
                 root_entity: self.root_entity,
-                result_type: std::any::type_name::<Result>(),
+                result_type: Result::PORTABLE_TYPE_IDENTITY,
                 fields: self.fields,
                 relations: self.relations,
             },

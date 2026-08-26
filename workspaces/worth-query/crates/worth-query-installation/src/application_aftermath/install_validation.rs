@@ -10,7 +10,7 @@ use super::denial::{
 };
 use super::external_effect_contract::InstalledExternalEffectContract;
 
-/// Exact field targets taken from an operation's own decision-read targets.
+/// Exact field targets projected from an operation's retained portable reads.
 ///
 /// Built only at the operation-compile resolution site (and crate-internal
 /// tests of that derivation). There is no public constructor: a caller cannot
@@ -42,6 +42,7 @@ impl OperationDeclaredReadFields {
 
 pub(super) fn validate_axis_pair(
     portable: &PortableApplicationAftermathContract,
+    has_reconciliation: bool,
 ) -> Result<(), WorthQueryAftermathInstallationDenial> {
     match portable.authority() {
         DeclaredCorrectionAuthority::NotCorrectable => {
@@ -51,7 +52,7 @@ pub(super) fn validate_axis_pair(
                     "not-correctable-rejects-mechanism",
                 ));
             }
-            if portable.reconciliation().is_some() {
+            if has_reconciliation {
                 return Err(WorthQueryAftermathInstallationDenial::new(
                     WorthQueryAftermathInstallationDenialKind::ReconciliationForbidden,
                     "not-correctable-rejects-reconciliation",
@@ -66,7 +67,7 @@ pub(super) fn validate_axis_pair(
                     "runtime-alone-requires-mechanism",
                 ));
             }
-            if portable.reconciliation().is_some() {
+            if has_reconciliation {
                 return Err(WorthQueryAftermathInstallationDenial::new(
                     WorthQueryAftermathInstallationDenialKind::ReconciliationForbidden,
                     "runtime-alone-rejects-reconciliation",
@@ -81,7 +82,7 @@ pub(super) fn validate_axis_pair(
                     "external-owner-requires-mechanism",
                 ));
             }
-            if portable.reconciliation().is_none() {
+            if !has_reconciliation {
                 return Err(WorthQueryAftermathInstallationDenial::new(
                     WorthQueryAftermathInstallationDenialKind::ReconciliationRequired,
                     "external-owner-requires-reconciliation",

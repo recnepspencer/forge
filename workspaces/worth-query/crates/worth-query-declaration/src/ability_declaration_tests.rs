@@ -2,6 +2,7 @@ use crate::facade::application_schema::{ApplicationSchemaMember, OperationRequir
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct TransferInput;
+worth_query_portable_type!(TransferInput => "worth.query.test.transfer-input");
 
 worth_query_entity!(pub Account in AbilitySchema);
 worth_query_operation!(pub TransferOperation(TransferInput) in AbilitySchema);

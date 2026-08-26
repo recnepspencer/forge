@@ -1,11 +1,14 @@
 use crate::application_capability::{
-    ApplicationCapabilityDisclosureRule, ApplicationCapabilityFieldBinding,
-    ApplicationCapabilityFieldDimension, ApplicationCapabilityGraphRule,
+    ApplicationCapabilityContextEntitySlotBinding, ApplicationCapabilityDisclosureRule,
+    ApplicationCapabilityFieldBinding, ApplicationCapabilityFieldDimension,
+    ApplicationCapabilityGraphRule, ApplicationCapabilityOperationBinding,
     ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
     ApplicationCapabilityScopeGuard, ErasedApplicationCapabilityContract,
 };
 
-use super::identifier_validation::{validate_authorization_path, validate_simple_identifier};
+use super::identifier_validation::{
+    validate_authorization_path, validate_portable_type_identifier, validate_simple_identifier,
+};
 use super::ApplicationSchemaDeclarationDenial;
 
 pub(super) fn validate_capability_identifiers(
@@ -19,6 +22,15 @@ pub(super) fn validate_capability_identifiers(
         contract.delegation().provenance(),
     ] {
         validate_simple_identifier(value)?;
+    }
+    for identity in [
+        contract.capability_type(),
+        contract.operation_type(),
+        contract.input_type(),
+        contract.constraints().context_type(),
+        contract.delegation().provenance_type(),
+    ] {
+        validate_portable_type_identifier(identity)?;
     }
     validate_field(contract.target().action().field())?;
     validate_relation(contract.target().resource())?;
@@ -37,10 +49,35 @@ pub(super) fn validate_capability_identifiers(
     validate_relation(contract.delegation().grantee())?;
     validate_field(contract.delegation().limit())?;
     if let Some(activation) = contract.delegation().activation() {
-        validate_simple_identifier(activation.operation().operation())?;
+        validate_operation_binding(activation.operation())?;
         validate_field(activation.identity())?;
     }
+    if let Some(elevation) = contract.elevation().definition() {
+        validate_context_slot(elevation.lifecycle().elevation_slot())?;
+        validate_context_slot(elevation.lifecycle().review_slot())?;
+        for transition in elevation.lifecycle().transitions() {
+            validate_simple_identifier(transition.capability())?;
+            validate_portable_type_identifier(transition.capability_type())?;
+            validate_operation_binding(transition.operation())?;
+        }
+    }
     validate_composition(contract)
+}
+
+fn validate_operation_binding(
+    operation: &ApplicationCapabilityOperationBinding,
+) -> Result<(), ApplicationSchemaDeclarationDenial> {
+    validate_simple_identifier(operation.operation())?;
+    validate_portable_type_identifier(operation.operation_type())?;
+    validate_portable_type_identifier(operation.input_type())
+}
+
+fn validate_context_slot(
+    slot: &ApplicationCapabilityContextEntitySlotBinding,
+) -> Result<(), ApplicationSchemaDeclarationDenial> {
+    validate_identifiers([slot.context(), slot.slot(), slot.entity()])?;
+    validate_portable_type_identifier(slot.context_identity().as_str())?;
+    validate_portable_type_identifier(slot.slot_identity().as_str())
 }
 
 fn validate_composition(
@@ -78,11 +115,7 @@ fn validate_graph_rule(
             validate_guard(clause.guard())?;
             for anchor in clause.context_anchors() {
                 validate_relation(anchor.relation())?;
-                validate_identifiers([
-                    anchor.slot().context(),
-                    anchor.slot().slot(),
-                    anchor.slot().entity(),
-                ])?;
+                validate_context_slot(anchor.slot())?;
             }
         }
     }
@@ -110,15 +143,10 @@ fn validate_guard(
 fn validate_field(
     field: &ApplicationCapabilityFieldBinding,
 ) -> Result<(), ApplicationSchemaDeclarationDenial> {
-    for value in [
-        field.entity(),
-        field.aspect(),
-        field.field(),
-        field.value_type(),
-    ] {
+    for value in [field.entity(), field.aspect(), field.field()] {
         validate_simple_identifier(value)?;
     }
-    Ok(())
+    validate_portable_type_identifier(field.value_type())
 }
 
 fn validate_relation(

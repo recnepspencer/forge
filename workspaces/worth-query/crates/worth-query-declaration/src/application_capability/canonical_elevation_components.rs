@@ -157,10 +157,14 @@ fn append_slot(
     text(
         components,
         format!("{prefix}.context-type"),
-        slot.context_type(),
+        slot.context_identity().as_str(),
     );
     text(components, format!("{prefix}.slot"), slot.slot());
-    text(components, format!("{prefix}.slot-type"), slot.slot_type());
+    text(
+        components,
+        format!("{prefix}.slot-type"),
+        slot.slot_identity().as_str(),
+    );
     text(components, format!("{prefix}.entity"), slot.entity());
 }
 

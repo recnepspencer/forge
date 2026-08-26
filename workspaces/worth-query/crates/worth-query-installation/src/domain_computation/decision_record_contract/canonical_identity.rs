@@ -1,4 +1,4 @@
-use sha2::Sha256;
+use crate::canonical_hash_encoding::CanonicalHashSink;
 
 use crate::canonical_hash_encoding::hash_text_field;
 use crate::domain_computation::{
@@ -7,7 +7,7 @@ use crate::domain_computation::{
 };
 
 pub(crate) fn hash_decision_record_contract(
-    hash: &mut Sha256,
+    hash: &mut impl CanonicalHashSink,
     contract: &WorthQueryDecisionRecordContract,
 ) {
     match contract {

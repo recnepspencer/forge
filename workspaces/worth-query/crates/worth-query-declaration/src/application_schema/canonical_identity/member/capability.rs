@@ -30,7 +30,7 @@ pub(super) fn append_capability_member(
         } => {
             basis.text(format!("{prefix}.kind"), "application-capability-context");
             basis.text(format!("{prefix}.context"), context);
-            basis.text(format!("{prefix}.context-type"), context_type);
+            basis.text(format!("{prefix}.context-type"), context_type.as_str());
         }
         ApplicationSchemaMember::ApplicationCapabilityContextEntitySlot {
             context,
@@ -44,9 +44,9 @@ pub(super) fn append_capability_member(
                 "application-capability-context-entity-slot",
             );
             basis.text(format!("{prefix}.context"), context);
-            basis.text(format!("{prefix}.context-type"), context_type);
+            basis.text(format!("{prefix}.context-type"), context_type.as_str());
             basis.text(format!("{prefix}.slot"), slot);
-            basis.text(format!("{prefix}.slot-type"), slot_type);
+            basis.text(format!("{prefix}.slot-type"), slot_type.as_str());
             basis.text(format!("{prefix}.entity"), entity);
         }
         ApplicationSchemaMember::ApplicationCapabilityProvenance {
@@ -58,7 +58,10 @@ pub(super) fn append_capability_member(
                 "application-capability-provenance",
             );
             basis.text(format!("{prefix}.provenance"), provenance);
-            basis.text(format!("{prefix}.provenance-type"), provenance_type);
+            basis.text(
+                format!("{prefix}.provenance-type"),
+                provenance_type.as_str(),
+            );
         }
         _ => unreachable!("capability member router supplied another member family"),
     }

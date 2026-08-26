@@ -181,7 +181,10 @@ pub(super) fn prepare_capability_admission<
 >
 where
     Schema: ApplicationSchema,
-    Input: ApplicationCapabilityRequest<Schema, Capability>,
+    Operation: 'static,
+    Input: ApplicationCapabilityRequest<Schema, Capability>
+        + worth_query_declaration::facade::portable_identity::WorthQueryPortableType
+        + 'static,
 {
     preflight::validate_static_authority(runtime, principal, capability)?;
     let installed = preflight::admit_installed_plan(runtime, capability, approved)?;

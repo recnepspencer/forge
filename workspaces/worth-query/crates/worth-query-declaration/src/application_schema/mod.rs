@@ -18,6 +18,7 @@ mod decision_read_authoring;
 mod declaration;
 mod declaration_denial;
 mod effect_authoring;
+mod effect_marker_identity;
 mod effect_payload;
 mod external_effect_correlation_family;
 mod external_effect_protocol;
@@ -25,12 +26,15 @@ mod field_presence;
 mod field_reference;
 mod identifier_validation;
 mod member_closure;
+mod member_identity_uniqueness;
+mod member_provenance;
 mod mutation_authoring;
 mod mutation_intent_traits;
 mod mutation_precondition;
 mod mutation_precondition_authoring;
 mod operation_contract_cardinality;
 mod operation_definition;
+mod operation_marker_identity;
 pub(crate) use operation_definition::AftermathAssociationAuthority;
 mod operation_program;
 mod principal_binding_authoring;
@@ -56,6 +60,8 @@ mod external_effect_closure_tests;
 mod field_presence_tests;
 #[cfg(test)]
 mod operation_contract_cardinality_tests;
+#[cfg(test)]
+mod portable_member_identity_tests;
 #[cfg(test)]
 mod preimage_canonical_identity_tests;
 #[cfg(test)]
@@ -89,6 +95,7 @@ pub use declaration::{
 };
 pub use declaration_denial::ApplicationSchemaDeclarationDenial;
 pub use effect_authoring::{TypedEffectIntent, TypedEffectIntentBuilder};
+pub use effect_marker_identity::ApplicationEffectMarkerIdentity;
 pub use effect_payload::{ApplicationEffectPayload, ApplicationExternalEffectPayload};
 pub use external_effect_correlation_family::WorthQueryExternalEffectCorrelationFamily;
 pub use external_effect_protocol::ApplicationExternalEffectProtocol;
@@ -96,6 +103,7 @@ pub use field_presence::ApplicationFieldPresence;
 pub use field_reference::{
     ApplicationEntityMarkerIdentity, ApplicationFieldMarkerIdentity, ApplicationFieldRef,
 };
+pub use member_provenance::ApplicationSchemaMemberProvenance;
 pub use mutation_authoring::{
     TypedMutationIntent, TypedMutationIntentBuilder, TypedMutationWrite, TypedOperationBuilder,
     TypedRelationMutation,
@@ -107,6 +115,7 @@ pub use mutation_precondition::{
 pub use operation_definition::{
     ApplicationOperationDefinition, ApplicationOperationDefinitionBuilder,
 };
+pub use operation_marker_identity::ApplicationOperationMarkerIdentity;
 pub use principal_binding_authoring::{
     ApplicationPrincipalBindingRequirements, ApplicationPrincipalIdentityRequirement,
     ApplicationPrincipalMappingIdentityRequirement, ApplicationPrincipalMappingStatusRequirement,

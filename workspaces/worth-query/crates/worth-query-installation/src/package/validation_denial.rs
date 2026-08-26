@@ -15,6 +15,21 @@ pub enum WorthQueryPortablePackageValidationDenialKind {
     ApplicationSchemaIdentityMismatch,
     DuplicateApplicationSchema,
     ConflictingApplicationSchema,
+    ApplicationContractDuplicateAspectIdentity,
+    ApplicationContractDuplicateAspectLocus,
+    ApplicationContractDuplicateFieldLocus,
+    ApplicationContractRevisionZero,
+    ApplicationContractMissingAspectFieldClosure,
+    ApplicationContractFieldWithoutAspect,
+    ApplicationContractInvalidAspectKey,
+    ApplicationContractInvalidFieldKey,
+    ApplicationContractInvalidAspectShape,
+    ApplicationContractProjectionMaskRejected,
+    ApplicationOperationContractMissingNativeAspect,
+    ApplicationOperationContractMissingNativeField,
+    ApplicationOperationContractInvalidProjectionMask,
+    ApplicationOperationContractAmbiguousExternalEffect,
+    ApplicationOperationContractAmbiguousAftermath,
     DuplicateConditionalApplicationOperation,
     ConflictingConditionalApplicationOperation,
     ConditionalApplicationSchemaMissing,
@@ -146,6 +161,13 @@ impl WorthQueryPortablePackageValidationDenial {
             None,
             subject,
         )
+    }
+
+    pub(super) fn invalid_application_contract_spine(
+        kind: WorthQueryPortablePackageValidationDenialKind,
+        subject: impl Into<String>,
+    ) -> Self {
+        Self::new(kind, None, subject)
     }
 
     pub(super) fn duplicate_conditional_application_operation(subject: impl Into<String>) -> Self {

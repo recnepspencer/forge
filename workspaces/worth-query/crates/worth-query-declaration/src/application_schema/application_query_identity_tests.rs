@@ -19,7 +19,6 @@ struct Schema;
 struct Entity;
 struct Aspect;
 struct Field;
-struct Query;
 struct Parameters;
 struct QueryResult;
 struct FirstSlot;
@@ -27,6 +26,19 @@ struct SecondSlot;
 struct Relation;
 struct RelationSlot;
 struct ViewEntity;
+
+crate::worth_query_application_query!(
+    Query in Schema,
+    identity "Query",
+    parameters Parameters => "Parameters",
+    result QueryResult => "worth.query.test.identity-query-result.v1",
+    scope Entity => "Entity",
+    name "query"
+);
+worth_query_portable_type!(QueryResult => "worth.query.test.identity-query-result.v1");
+worth_query_portable_type!(FirstSlot => "worth.query.test.identity-first-slot.v1");
+worth_query_portable_type!(SecondSlot => "worth.query.test.identity-second-slot.v1");
+worth_query_portable_type!(RelationSlot => "worth.query.test.identity-relation-slot.v1");
 
 impl crate::application_schema::DeclaredApplicationFieldValue for Field {
     type Value = u64;
@@ -153,7 +165,7 @@ fn ordering_selector_contract_must_match_its_projected_slot() {
     );
 }
 
-fn definition<Slot: 'static>() -> Result<
+fn definition<Slot: crate::portable_identity::WorthQueryPortableType>() -> Result<
     ApplicationQueryDefinition<Schema, Query, Parameters, QueryResult, Entity>,
     ApplicationQueryDefinitionDenial,
 > {
@@ -175,10 +187,10 @@ fn definition<Slot: 'static>() -> Result<
 }
 
 fn query_reference() -> ApplicationQueryReference<Schema, Query, Parameters, QueryResult, Entity> {
-    ApplicationQueryReference::from_schema_identifier("query")
+    Query::reference()
 }
 
-fn selector<Slot>(
+fn selector<Slot: crate::portable_identity::WorthQueryPortableType>(
     output: &'static str,
 ) -> ApplicationQueryResultFieldRef<
     Query,
@@ -234,7 +246,7 @@ where
         .into_erased()
 }
 
-fn ordering_definition<Slot>(
+fn ordering_definition<Slot: crate::portable_identity::WorthQueryPortableType>(
     ordering: ApplicationQueryResultFieldRef<
         Query,
         Slot,

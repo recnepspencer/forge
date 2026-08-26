@@ -5,6 +5,7 @@ use worth_query_declaration::facade::application_capability::{
     ApplicationCapabilityElevationRequestProjection, ApplicationCapabilityRelationDimension,
     ApplicationCapabilityRequest,
 };
+use worth_query_declaration::facade::application_schema::ApplicationOperationMarkerIdentity;
 use worth_query_declaration::facade::application_schema::TypedMutationPreconditions;
 use worth_query_installation::facade::{
     ApplicationSchema, WorthQueryInstalledApplicationOperation,
@@ -52,6 +53,7 @@ where
         WorthQueryOperationAuthorizationDenial,
     >
     where
+        Operation: ApplicationOperationMarkerIdentity,
         Input: ApplicationCapabilityRequest<Schema, Capability>
             + ApplicationCapabilityElevationRequest<Schema, Operation>
             + 'static,
@@ -98,11 +100,12 @@ fn installed_request_lifecycle<'runtime, Schema, Capability, Operation, Input>(
 >
 where
     Schema: ApplicationSchema,
+    Operation: ApplicationOperationMarkerIdentity,
     Input: ApplicationCapabilityRequest<Schema, Capability>,
 {
     let Some((capability, command_capability, role)) = runtime
         .authorization
-        .elevation_lifecycle_operation::<Operation, Input>(operation.operation())
+        .elevation_lifecycle_operation::<Operation>(operation.operation(), operation.input_type())
         .map_err(|()| stale_operation(operation.operation()))?
     else {
         return Err(denial(
@@ -228,9 +231,9 @@ fn context_matches<Schema, Scope, Context>(
             let slot = selected.slot();
             (
                 slot.context(),
-                slot.context_type(),
+                slot.context_identity().as_str(),
                 slot.slot(),
-                slot.slot_type(),
+                slot.slot_identity().as_str(),
                 slot.entity(),
             )
         })

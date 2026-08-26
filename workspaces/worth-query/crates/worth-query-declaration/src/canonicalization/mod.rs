@@ -3,8 +3,10 @@ mod artifacts;
 mod bindings;
 mod bundle_state;
 mod errors;
+mod logical_width;
 mod ordering;
 pub mod pipeline;
+mod portable_bundle;
 mod predicates;
 mod projection;
 mod query_artifact;
@@ -20,3 +22,7 @@ pub use artifacts::{
 pub use bundle_state::CanonicalQueryBundle;
 pub use errors::{CanonicalizationFailureClass, QueryCanonicalizationError};
 pub use pipeline::canonicalize_request;
+pub use portable_bundle::{
+    WorthQueryPortableCanonicalQueryBundleRecord, WorthQueryPortableCanonicalQueryRecord,
+    WorthQueryPortableCanonicalResultShapeRecord,
+};

@@ -4,6 +4,7 @@ use crate::application_schema::{
     ApplicationFieldRef, ApplicationFieldUnit, EqualityPredicate, TypedApplicationValue,
     WritePosture,
 };
+use crate::portable_identity::WorthQueryPortableType;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationQueryRootPathGuard {
@@ -32,7 +33,7 @@ impl ApplicationQueryRootPathGuard {
         expected: Value,
     ) -> Self
     where
-        Value: TypedApplicationValue,
+        Value: TypedApplicationValue + WorthQueryPortableType,
         Write: WritePosture,
         Unit: ApplicationFieldUnit,
     {
@@ -42,7 +43,7 @@ impl ApplicationQueryRootPathGuard {
             aspect: field.aspect(),
             field: field.field(),
             scalar_family: field.scalar_family(),
-            value_type: std::any::type_name::<Value>(),
+            value_type: Value::PORTABLE_TYPE_IDENTITY.as_str(),
             expected: expected.into_foundational_value(),
         }
     }

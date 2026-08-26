@@ -29,10 +29,26 @@ pub struct StatusResultSlot;
 pub struct LabelResultSlot;
 pub struct ActivitySequenceResultSlot;
 
+worth_query_declaration::worth_query_portable_type!(
+    AccountSummaryResult => "worth.query.test.execution.account_summary.result.v1"
+);
+worth_query_declaration::worth_query_portable_type!(
+    StatusResultSlot => "worth.query.test.execution.account_summary.status_slot.v1"
+);
+worth_query_declaration::worth_query_portable_type!(
+    LabelResultSlot => "worth.query.test.execution.account_summary.label_slot.v1"
+);
+worth_query_declaration::worth_query_portable_type!(
+    ActivitySequenceResultSlot => "worth.query.test.execution.activity_sequence.slot.v1"
+);
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ActivitySequenceResult {
     pub(super) sequence: u64,
 }
+worth_query_declaration::worth_query_portable_type!(
+    ActivitySequenceResult => "worth.query.test.execution.activity_sequence.result.v1"
+);
 
 impl ActivitySequenceResult {
     pub(in crate::domain_computation::primary_graph::tests) const fn sequence(&self) -> u64 {
@@ -50,7 +66,7 @@ impl AccountSummaryResult {
     }
 }
 
-impl<Query: 'static>
+impl<Query: worth_query_declaration::facade::application_query::ApplicationQueryMarkerIdentity>
     crate::domain_computation::primary_graph::WorthQueryApplicationProjection<
         IdentityExecutionSchema,
         Query,
@@ -304,7 +320,9 @@ pub(super) fn ordered_account_summary_definition() -> ApplicationQueryDefinition
     )
 }
 
-fn definition<Query: 'static>(
+fn definition<
+    Query: worth_query_declaration::facade::application_query::ApplicationQueryMarkerIdentity + 'static,
+>(
     reference: ApplicationQueryReference<
         IdentityExecutionSchema,
         Query,

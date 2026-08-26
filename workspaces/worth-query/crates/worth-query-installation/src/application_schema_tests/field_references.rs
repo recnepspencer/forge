@@ -68,6 +68,6 @@ required_field!(
 required_field!(FixtureMappingStatusField, WorthQueryPrincipalMappingStatus);
 required_field!(FixturePrincipalIdentityField, u64);
 
-impl<Schema> OperationCreates<TestOperation> for FixtureEntity<Schema> {}
-impl<Schema> OperationReads<TestOperation> for FixturePrincipalIdentityField<Schema> {}
-impl<Schema> OperationExpectsFact<TestOperation> for FixturePrincipalIdentityField<Schema> {}
+impl<Schema> OperationCreates<TestOperation<Schema>> for FixtureEntity<Schema> {}
+impl<Schema> OperationReads<TestOperation<Schema>> for FixturePrincipalIdentityField<Schema> {}
+impl<Schema> OperationExpectsFact<TestOperation<Schema>> for FixturePrincipalIdentityField<Schema> {}

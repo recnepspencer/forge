@@ -4,11 +4,17 @@ macro_rules! worth_query_operation {
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]
         $vis struct $Operation;
 
+        impl $crate::facade::application_schema::ApplicationOperationMarkerIdentity
+            for $Operation
+        {
+            type Schema = $Schema;
+            type Input = $Input;
+            const IDENTIFIER: &'static str = stringify!($Operation);
+        }
+
         impl $Operation {
             pub const fn reference() -> $crate::facade::application_schema::ApplicationOperationRef<$Schema, Self, $Input> {
-                $crate::facade::application_schema::ApplicationOperationRef::from_schema_identifier(
-                    stringify!($Operation),
-                )
+                $crate::facade::application_schema::ApplicationOperationRef::from_declaration()
             }
         }
     };
@@ -90,6 +96,12 @@ macro_rules! worth_query_effect {
         #[derive(Clone, Copy, Debug, Eq, PartialEq)]
         $vis struct $Effect;
 
+        impl $crate::facade::application_schema::ApplicationEffectMarkerIdentity for $Effect {
+            type Schema = $Schema;
+            type Payload = $Payload;
+            const IDENTIFIER: &'static str = stringify!($Effect);
+        }
+
         const _: () = {
             fn assert_payload_contract<
                 Payload: $crate::facade::application_schema::ApplicationEffectPayload,
@@ -100,9 +112,7 @@ macro_rules! worth_query_effect {
 
         impl $Effect {
             pub const fn reference() -> $crate::facade::application_schema::ApplicationEffectRef<$Schema, Self, $Payload> {
-                $crate::facade::application_schema::ApplicationEffectRef::from_schema_identifier(
-                    stringify!($Effect),
-                )
+                $crate::facade::application_schema::ApplicationEffectRef::from_declaration()
             }
         }
     };

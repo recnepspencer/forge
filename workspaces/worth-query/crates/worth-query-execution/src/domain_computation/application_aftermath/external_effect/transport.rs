@@ -149,7 +149,9 @@ mod tests {
             correlation_family: WorthQueryExternalEffectCorrelationFamily::new("transport-mapping")
                 .unwrap(),
             effect: "EstateDeathNotificationEffect".to_owned(),
-            rust_payload_type: "internal::MovedPayload".to_owned(),
+            rust_payload_type: worth_query_declaration::facade::portable_identity::WorthQueryPortableTypeIdentity::declared(
+                "worth.query.test.moved-payload.v1",
+            ),
             protocol: ApplicationExternalEffectProtocol::new(
                 BoundaryProtocolIdentity::new("bank.estate.death-notification"),
                 BoundaryProtocolVersion::new(1),

@@ -11,18 +11,24 @@ use worth_query_declaration::facade::application_aftermath::{
 use worth_query_declaration::facade::application_schema::{
     ApplicationAspectMarkerIdentity, ApplicationEntityMarkerIdentity,
     ApplicationExternalEffectProtocol, ApplicationFieldMarkerIdentity, ApplicationFieldRef,
-    ApplicationOperationDecisionReadTarget, ApplicationOperationProgramTarget,
-    ApplicationOperationRef, ApplicationSchema, ApplicationSchemaBindingIdentity,
-    ApplicationSchemaDeclaration, ApplicationSchemaDeclarationBuilder, ApplicationSchemaMember,
+    ApplicationOperationDecisionReadTarget, ApplicationOperationMarkerIdentity,
+    ApplicationOperationProgramTarget, ApplicationOperationRef, ApplicationSchema,
+    ApplicationSchemaBindingIdentity, ApplicationSchemaDeclaration,
+    ApplicationSchemaDeclarationBuilder, ApplicationSchemaMember,
     WorthQueryExternalEffectCorrelationFamily,
 };
+use worth_query_declaration::facade::portable_identity::WorthQueryPortableTypeIdentity;
 
 use crate::application_aftermath::{
-    install_application_aftermath, InstalledExternalEffectContract,
-    WorthQueryAftermathInstallationDenial, WorthQueryInstalledAftermathContract,
+    install_application_aftermath, WorthQueryAftermathInstallationDenial,
+    WorthQueryInstalledAftermathContract,
 };
+use crate::package::WorthQueryPortableInstalledReconciliationProcedureRecord;
 
 use super::super::contract_resolution::{operation_aftermath, operation_external_effect};
+use source::FixtureAftermathInstallationSource;
+
+mod source;
 
 pub(crate) struct FixtureSchema;
 struct FixtureOperation;
@@ -37,6 +43,16 @@ pub(crate) struct OtherAccountBalance;
 pub(crate) struct OtherStateBalance;
 pub(crate) struct SecretField;
 pub(crate) struct OtherBalance;
+
+worth_query_declaration::worth_query_portable_type!(
+    FixtureInput => "worth.query.installation-test.aftermath-input"
+);
+
+impl ApplicationOperationMarkerIdentity for FixtureOperation {
+    type Schema = FixtureSchema;
+    type Input = FixtureInput;
+    const IDENTIFIER: &'static str = "FixtureOperation";
+}
 
 macro_rules! entity_identity {
     ($marker:ty, $identifier:literal) => {
@@ -122,7 +138,7 @@ pub(crate) struct AftermathInstall {
 }
 
 struct FixtureExternalEffect {
-    rust_payload_type: String,
+    rust_payload_type: WorthQueryPortableTypeIdentity,
     protocol: ApplicationExternalEffectProtocol,
 }
 
@@ -178,11 +194,11 @@ impl AftermathInstall {
 
     pub(crate) fn escaping_with_contract(
         mut self,
-        rust_payload_type: &str,
+        rust_payload_type: &'static str,
         protocol: ApplicationExternalEffectProtocol,
     ) -> Self {
         self.external_effect = Some(FixtureExternalEffect {
-            rust_payload_type: rust_payload_type.to_owned(),
+            rust_payload_type: WorthQueryPortableTypeIdentity::declared(rust_payload_type),
             protocol,
         });
         self
@@ -219,56 +235,34 @@ impl AftermathInstall {
             members.push(ApplicationSchemaMember::OperationExternalEffect {
                 operation: self.operation_slot.to_owned(),
                 effect: "EscapingEffect".to_owned(),
-                rust_payload_type: external_effect.rust_payload_type.clone(),
+                rust_payload_type: external_effect.rust_payload_type,
                 protocol: external_effect.protocol.clone(),
                 maximum_payload_bytes: 64,
                 correlation_family: WorthQueryExternalEffectCorrelationFamily::new("escaped-rail")
                     .unwrap(),
             });
         }
-        let source = FixtureAftermathInstallationSource {
-            binding: self.binding.clone(),
-            operation: self.operation_slot.to_owned(),
-            decision_reads: self.declared_reads.clone(),
-            external_effect: operation_external_effect(&members, self.operation_slot)
+        let portable_aftermath = operation_aftermath(&members, self.operation_slot)
+            .expect("the fixture aftermath is unambiguous");
+        let portable_reconciliation = portable_aftermath
+            .as_ref()
+            .and_then(PortableApplicationAftermathContract::reconciliation)
+            .map(|procedure| {
+                WorthQueryPortableInstalledReconciliationProcedureRecord::new(
+                    procedure.procedure_slot().to_owned(),
+                )
+            });
+        let source = FixtureAftermathInstallationSource::new(
+            self.binding.clone(),
+            self.operation_slot.to_owned(),
+            self.declared_reads.clone(),
+            operation_external_effect(&members, self.operation_slot)
                 .expect("the fixture external effect is unambiguous"),
-            portable_aftermath: operation_aftermath(&members, self.operation_slot)
-                .expect("the fixture aftermath is unambiguous"),
-        };
+            portable_aftermath,
+            portable_reconciliation,
+        );
         install_application_aftermath(&source)
             .map(|installed| installed.expect("the fixture declares an aftermath"))
-    }
-}
-
-struct FixtureAftermathInstallationSource {
-    binding: ApplicationSchemaBindingIdentity,
-    operation: String,
-    decision_reads: Vec<ApplicationOperationDecisionReadTarget>,
-    external_effect: InstalledExternalEffectContract,
-    portable_aftermath: Option<PortableApplicationAftermathContract>,
-}
-
-impl super::aftermath_installation_source_seal::Sealed for FixtureAftermathInstallationSource {}
-
-impl super::WorthQueryOperationAftermathInstallationSource for FixtureAftermathInstallationSource {
-    fn binding(&self) -> &ApplicationSchemaBindingIdentity {
-        &self.binding
-    }
-
-    fn operation(&self) -> &str {
-        &self.operation
-    }
-
-    fn decision_reads(&self) -> &[ApplicationOperationDecisionReadTarget] {
-        &self.decision_reads
-    }
-
-    fn external_effect(&self) -> &InstalledExternalEffectContract {
-        &self.external_effect
-    }
-
-    fn portable_aftermath(&self) -> Option<&PortableApplicationAftermathContract> {
-        self.portable_aftermath.as_ref()
     }
 }
 
@@ -276,8 +270,9 @@ fn associated_operation_members(
     operation_slot: &'static str,
     contract: DeclaredApplicationAftermathContract<FixtureSchema>,
 ) -> Vec<ApplicationSchemaMember> {
-    let definition = ApplicationOperationRef::<FixtureSchema, FixtureOperation, FixtureInput>::
-        from_schema_identifier(operation_slot)
+    let definition =
+        ApplicationOperationRef::<FixtureSchema, FixtureOperation, FixtureInput>::from_declaration(
+        )
         .definition()
         .no_external_effect()
         .aftermath(contract)
@@ -286,7 +281,22 @@ fn associated_operation_members(
         .operation(definition)
         .build()
         .expect("the matching operation builder associates the aftermath");
-    declaration.erased().members().to_vec()
+    declaration
+        .erased()
+        .members()
+        .iter()
+        .cloned()
+        .map(|mut member| {
+            match &mut member {
+                ApplicationSchemaMember::Operation { operation, .. }
+                | ApplicationSchemaMember::OperationAftermath { operation, .. } => {
+                    *operation = operation_slot.to_owned();
+                }
+                _ => {}
+            }
+            member
+        })
+        .collect()
 }
 
 pub(crate) fn protocol(version: u32) -> ApplicationExternalEffectProtocol {

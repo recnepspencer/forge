@@ -121,11 +121,15 @@ pub(crate) fn install_application_aftermath(
     };
     let binding = operation.binding();
     let operation_slot = operation.operation();
-    let declared_reads = OperationDeclaredReadFields::from_targets(operation.decision_reads());
+    let declared_reads =
+        OperationDeclaredReadFields::from_targets(operation.portable_decision_reads());
     let external_effect = operation.external_effect();
     let lowering_catalog = derived_lowering_catalog(binding, portable)?;
     let compatibility_generation = binding.generation();
-    validate_axis_pair(portable)?;
+    let reconciliation = operation
+        .portable_reconciliation()
+        .map(WorthQueryInstalledReconciliationProcedure::from_portable);
+    validate_axis_pair(portable, reconciliation.is_some())?;
     validate_preimage_coverage(portable, &declared_reads)?;
     let resolved_lowering = resolve_lowering_correspondence(
         portable,
@@ -133,9 +137,6 @@ pub(crate) fn install_application_aftermath(
         binding.schema_identity(),
         &lowering_catalog,
     )?;
-    let reconciliation = portable
-        .reconciliation()
-        .map(WorthQueryInstalledReconciliationProcedure::from_declared);
     let canonical = prepare_aftermath_basis(
         binding,
         operation_slot,

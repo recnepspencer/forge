@@ -4,20 +4,21 @@ use worth_query_declaration::facade::{
         ApplicationCapabilityAllowRule, ApplicationCapabilityCardinalityDimension,
         ApplicationCapabilityComposition, ApplicationCapabilityConflictRule,
         ApplicationCapabilityConstraintDefinition, ApplicationCapabilityContextEntitySlotRef,
-        ApplicationCapabilityContextRef, ApplicationCapabilityContractBuilder,
-        ApplicationCapabilityCurrentnessDefinition, ApplicationCapabilityDecisionComposition,
-        ApplicationCapabilityDelegationDefinition, ApplicationCapabilityDelegationRule,
-        ApplicationCapabilityDenyRule, ApplicationCapabilityDisclosureRule,
-        ApplicationCapabilityDistinctActorRule, ApplicationCapabilityElevationRule,
-        ApplicationCapabilityFieldDimension, ApplicationCapabilityGraphClause,
-        ApplicationCapabilityGraphRequirement, ApplicationCapabilityGraphRule,
-        ApplicationCapabilityPathContextAnchor, ApplicationCapabilityPropagationComposition,
-        ApplicationCapabilityProvenanceRef, ApplicationCapabilityRef,
-        ApplicationCapabilityRelationBinding, ApplicationCapabilityRelationDimension,
-        ApplicationCapabilityScopeGuard, ApplicationCapabilitySeparationOfDutyRule,
-        ApplicationCapabilityTargetDefinition, ApplicationCapabilityValidityDefinition,
-        ApplicationCapabilityValidityTimeline, ApplicationCapabilityValueBinding,
-        ApplicationCapabilityWorkflowDefinition, ErasedApplicationCapabilityContract,
+        ApplicationCapabilityContextRef, ApplicationCapabilityContract,
+        ApplicationCapabilityContractBuilder, ApplicationCapabilityCurrentnessDefinition,
+        ApplicationCapabilityDecisionComposition, ApplicationCapabilityDelegationDefinition,
+        ApplicationCapabilityDelegationRule, ApplicationCapabilityDenyRule,
+        ApplicationCapabilityDisclosureRule, ApplicationCapabilityDistinctActorRule,
+        ApplicationCapabilityElevationRule, ApplicationCapabilityFieldDimension,
+        ApplicationCapabilityGraphClause, ApplicationCapabilityGraphRequirement,
+        ApplicationCapabilityGraphRule, ApplicationCapabilityPathContextAnchor,
+        ApplicationCapabilityPropagationComposition, ApplicationCapabilityProvenanceRef,
+        ApplicationCapabilityRef, ApplicationCapabilityRelationBinding,
+        ApplicationCapabilityRelationDimension, ApplicationCapabilityScopeGuard,
+        ApplicationCapabilitySeparationOfDutyRule, ApplicationCapabilityTargetDefinition,
+        ApplicationCapabilityValidityDefinition, ApplicationCapabilityValidityTimeline,
+        ApplicationCapabilityValueBinding, ApplicationCapabilityWorkflowDefinition,
+        ErasedApplicationCapabilityContract,
     },
     application_schema::{
         ApplicationAuthorizationPath, ApplicationAuthorizationPathBuilder, ApplicationEntityRef,
@@ -30,77 +31,55 @@ use super::canonical_basis::prepare_capability_basis;
 mod axis;
 mod budgets;
 mod field_references;
+mod portable_markers;
 mod residue;
 
 use axis::Axis;
-use field_references::{field, field_binding, resource_field_binding};
-
-pub(super) struct Schema;
-struct Capability;
-struct Operation;
-struct Grant;
-struct Resource;
-struct Principal;
-struct Facts;
-struct ResourceFacts;
-struct Action;
-struct Purpose;
-struct Field;
-struct Amount;
-struct Workflow;
-struct ResourceWorkflow;
-struct Status;
-struct ValidFrom;
-struct ValidThrough;
-struct DelegationLimit;
-struct ResourceRelation;
-struct ScopedRelation;
-struct PrincipalResource;
-struct Parent;
-struct Grantor;
-struct Grantee;
-struct Context;
-struct OtherContext;
-struct Provenance;
-struct OtherProvenance;
-struct ResourceSlot;
-struct ChangedWorkflow;
-struct ChangedResourceWorkflow;
-struct ChangedValidFrom;
+use field_references::{field, field_binding, resource_field, resource_field_binding};
+use portable_markers::*;
 
 pub(crate) mod delegation_activation_fixture;
 mod identity_axes;
+mod warm_lookup;
 
 fn contract(axis: Option<Axis>) -> ErasedApplicationCapabilityContract {
-    let context_name = if matches!(axis, Some(Axis::Context)) {
-        "ChangedContext"
-    } else {
-        "Context"
-    };
-    let provenance_name = if matches!(axis, Some(Axis::Provenance)) {
-        "ChangedProvenance"
-    } else {
-        "Provenance"
-    };
-    contract_with_axis(
-        axis,
-        ApplicationCapabilityContextRef::<Schema, Context>::from_schema_identifier(context_name),
-        ApplicationCapabilityProvenanceRef::<Schema, Provenance>::from_schema_identifier(
-            provenance_name,
+    match axis {
+        Some(Axis::Context) => contract_with_axis(
+            axis,
+            ApplicationCapabilityContextRef::<Schema, ChangedContext>::from_declaration(),
+            ApplicationCapabilityProvenanceRef::<Schema, Provenance>::from_declaration(),
         ),
-    )
+        Some(Axis::Provenance) => contract_with_axis(
+            axis,
+            ApplicationCapabilityContextRef::<Schema, Context>::from_declaration(),
+            ApplicationCapabilityProvenanceRef::<Schema, ChangedProvenance>::from_declaration(),
+        ),
+        _ => contract_with_axis(
+            axis,
+            ApplicationCapabilityContextRef::<Schema, Context>::from_declaration(),
+            ApplicationCapabilityProvenanceRef::<Schema, Provenance>::from_declaration(),
+        ),
+    }
 }
 
-fn contract_with_context<ContextMarker>(
-    context: ApplicationCapabilityContextRef<Schema, ContextMarker>,
-) -> ErasedApplicationCapabilityContract {
-    contract_with_axis(
-        None,
-        context,
-        ApplicationCapabilityProvenanceRef::<Schema, Provenance>::from_schema_identifier(
-            "Provenance",
-        ),
+fn typed_contract() -> ApplicationCapabilityContract<Schema, Capability, Operation, ()> {
+    ApplicationCapabilityContractBuilder::new(
+        ApplicationCapabilityRef::<Schema, Capability>::from_declaration(),
+        ApplicationOperationRef::<Schema, Operation, ()>::from_declaration(),
+        ApplicationEntityRef::<Schema, Grant>::from_schema_identifier("Grant"),
     )
+    .target(target(None))
+    .constraints(constraints(
+        None,
+        ApplicationCapabilityContextRef::<Schema, Context>::from_declaration(),
+    ))
+    .delegation(delegation(
+        None,
+        ApplicationCapabilityProvenanceRef::<Schema, Provenance>::from_declaration(),
+    ))
+    .composition(composition(None))
+    .elevation(ApplicationCapabilityElevationRule::not_applicable())
+    .build()
 }
 
 fn contract_with_markers<ContextMarker, ProvenanceMarker>(
@@ -116,8 +95,8 @@ fn contract_with_axis<ContextMarker, ProvenanceMarker>(
     provenance: ApplicationCapabilityProvenanceRef<Schema, ProvenanceMarker>,
 ) -> ErasedApplicationCapabilityContract {
     let contract = ApplicationCapabilityContractBuilder::new(
-        ApplicationCapabilityRef::<Schema, Capability>::from_schema_identifier("Capability"),
-        ApplicationOperationRef::<Schema, Operation, ()>::from_schema_identifier("Operation"),
+        ApplicationCapabilityRef::<Schema, Capability>::from_declaration(),
+        ApplicationOperationRef::<Schema, Operation, ()>::from_declaration(),
         ApplicationEntityRef::<Schema, Grant>::from_schema_identifier("Grant"),
     )
     .target(target(axis))
@@ -129,7 +108,43 @@ fn contract_with_axis<ContextMarker, ProvenanceMarker>(
     contract.erased().clone()
 }
 
+fn contract_with_resource_relation_name(
+    resource_name: &'static str,
+) -> ErasedApplicationCapabilityContract {
+    ApplicationCapabilityContractBuilder::new(
+        ApplicationCapabilityRef::<Schema, Capability>::from_declaration(),
+        ApplicationOperationRef::<Schema, Operation, ()>::from_declaration(),
+        ApplicationEntityRef::<Schema, Grant>::from_schema_identifier("Grant"),
+    )
+    .target(target_with_resource_name(None, resource_name))
+    .constraints(constraints(
+        None,
+        ApplicationCapabilityContextRef::<Schema, Context>::from_declaration(),
+    ))
+    .delegation(delegation(
+        None,
+        ApplicationCapabilityProvenanceRef::<Schema, Provenance>::from_declaration(),
+    ))
+    .composition(composition(None))
+    .elevation(ApplicationCapabilityElevationRule::not_applicable())
+    .build()
+    .erased()
+    .clone()
+}
+
 fn target(axis: Option<Axis>) -> ApplicationCapabilityTargetDefinition {
+    let resource_name = if matches!(axis, Some(Axis::Resource)) {
+        "ChangedResourceRelation"
+    } else {
+        "ResourceRelation"
+    };
+    target_with_resource_name(axis, resource_name)
+}
+
+fn target_with_resource_name(
+    axis: Option<Axis>,
+    resource_name: &'static str,
+) -> ApplicationCapabilityTargetDefinition {
     let action_value = if matches!(axis, Some(Axis::Action)) {
         2
     } else {
@@ -139,11 +154,6 @@ fn target(axis: Option<Axis>) -> ApplicationCapabilityTargetDefinition {
         2
     } else {
         1
-    };
-    let resource_name = if matches!(axis, Some(Axis::Resource)) {
-        "ChangedResourceRelation"
-    } else {
-        "ResourceRelation"
     };
     ApplicationCapabilityTargetDefinition::new(
         ApplicationCapabilityValueBinding::new(field::<Action>(), action_value),

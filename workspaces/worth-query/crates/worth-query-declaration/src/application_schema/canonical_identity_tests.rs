@@ -13,12 +13,11 @@ use crate::application_schema::{
 use crate::application_schema::{
     ApplicationMutationPreconditionFamily, ApplicationMutationPreconditionTarget,
 };
+use crate::portable_identity::WorthQueryPortableTypeIdentity;
 #[path = "canonical_identity_query_fixture.rs"]
 mod query_fixture;
 
-use query_fixture::{
-    application_query, QueryEntity, QueryMarker, QueryParameters, QueryResult, QuerySchema,
-};
+use query_fixture::{application_query, QueryEntity, QueryMarker, QueryResult, QuerySchema};
 
 #[path = "canonical_identity_application_query_tests.rs"]
 mod application_query;
@@ -46,22 +45,22 @@ fn every_application_schema_member_family_changes_identity() {
         application_query("value"),
         ApplicationSchemaMember::ApplicationCapabilityContext {
             context: "Context".to_string(),
-            context_type: "ContextType".to_string(),
+            context_type: portable("ContextType"),
         },
         ApplicationSchemaMember::ApplicationCapabilityContextEntitySlot {
             context: "Context".to_string(),
-            context_type: "ContextType".to_string(),
+            context_type: portable("ContextType"),
             slot: "Slot".to_string(),
-            slot_type: "SlotType".to_string(),
+            slot_type: portable("SlotType"),
             entity: "Entity".to_string(),
         },
         ApplicationSchemaMember::ApplicationCapabilityProvenance {
             provenance: "Provenance".to_string(),
-            provenance_type: "ProvenanceType".to_string(),
+            provenance_type: portable("ProvenanceType"),
         },
         ApplicationSchemaMember::Operation {
             operation: "Operation".to_string(),
-            input_type: "Input".to_string(),
+            input_type: portable("Input"),
         },
         ApplicationSchemaMember::OperationProgram {
             operation: "Operation".to_string(),
@@ -78,7 +77,7 @@ fn every_application_schema_member_family_changes_identity() {
         },
         ApplicationSchemaMember::Effect {
             effect: "Effect".to_string(),
-            payload_type: "Payload".to_string(),
+            payload_type: portable("Payload"),
         },
     ] {
         assert_ne!(identity(&[member]), empty);
@@ -88,9 +87,9 @@ fn every_application_schema_member_family_changes_identity() {
 #[test]
 fn capability_context_slot_and_provenance_axes_change_schema_identity() {
     let context =
-        |name: &str, marker: &str| ApplicationSchemaMember::ApplicationCapabilityContext {
+        |name: &str, marker: &'static str| ApplicationSchemaMember::ApplicationCapabilityContext {
             context: name.to_string(),
-            context_type: marker.to_string(),
+            context_type: portable(marker),
         };
     assert_ne!(
         identity(&[context("Context", "ContextType")]),
@@ -101,12 +100,12 @@ fn capability_context_slot_and_provenance_axes_change_schema_identity() {
         identity(&[context("Context", "OtherContextType")])
     );
 
-    let slot = |name: &str, marker: &str, entity: &str| {
+    let slot = |name: &str, marker: &'static str, entity: &str| {
         ApplicationSchemaMember::ApplicationCapabilityContextEntitySlot {
             context: "Context".to_string(),
-            context_type: "ContextType".to_string(),
+            context_type: portable("ContextType"),
             slot: name.to_string(),
-            slot_type: marker.to_string(),
+            slot_type: portable(marker),
             entity: entity.to_string(),
         }
     };
@@ -119,11 +118,12 @@ fn capability_context_slot_and_provenance_axes_change_schema_identity() {
         assert_ne!(baseline, identity(&[changed]));
     }
 
-    let provenance =
-        |name: &str, marker: &str| ApplicationSchemaMember::ApplicationCapabilityProvenance {
+    let provenance = |name: &str, marker: &'static str| {
+        ApplicationSchemaMember::ApplicationCapabilityProvenance {
             provenance: name.to_string(),
-            provenance_type: marker.to_string(),
-        };
+            provenance_type: portable(marker),
+        }
+    };
     assert_ne!(
         identity(&[provenance("Provenance", "ProvenanceType")]),
         identity(&[provenance("OtherProvenance", "ProvenanceType")])
@@ -221,21 +221,25 @@ fn every_principal_binding_dimension_changes_identity() {
 fn operation_input_effect_payload_and_schema_version_change_identity() {
     let operation = ApplicationSchemaMember::Operation {
         operation: "Operation".to_string(),
-        input_type: "Input".to_string(),
+        input_type: crate::portable_identity::WorthQueryPortableTypeIdentity::declared("Input"),
     };
     let changed_operation = ApplicationSchemaMember::Operation {
         operation: "Operation".to_string(),
-        input_type: "OtherInput".to_string(),
+        input_type: crate::portable_identity::WorthQueryPortableTypeIdentity::declared(
+            "OtherInput",
+        ),
     };
     assert_ne!(identity(&[operation]), identity(&[changed_operation]));
 
     let effect = ApplicationSchemaMember::Effect {
         effect: "Effect".to_string(),
-        payload_type: "Payload".to_string(),
+        payload_type: crate::portable_identity::WorthQueryPortableTypeIdentity::declared("Payload"),
     };
     let changed_effect = ApplicationSchemaMember::Effect {
         effect: "Effect".to_string(),
-        payload_type: "OtherPayload".to_string(),
+        payload_type: crate::portable_identity::WorthQueryPortableTypeIdentity::declared(
+            "OtherPayload",
+        ),
     };
     assert_ne!(identity(&[effect]), identity(&[changed_effect]));
 
@@ -249,7 +253,9 @@ fn every_external_effect_contract_dimension_changes_identity() {
     let base = ApplicationSchemaMember::OperationExternalEffect {
         operation: "Operation".to_string(),
         effect: "ExternalEffect".to_string(),
-        rust_payload_type: "Payload".to_string(),
+        rust_payload_type: crate::portable_identity::WorthQueryPortableTypeIdentity::declared(
+            "Payload",
+        ),
         protocol: external_protocol(1),
         maximum_payload_bytes: 64,
         correlation_family: WorthQueryExternalEffectCorrelationFamily::new("external-family")
@@ -272,7 +278,10 @@ fn every_external_effect_contract_dimension_changes_identity() {
     for member in [
         changed!(operation, "OtherOperation".to_string()),
         changed!(effect, "OtherEffect".to_string()),
-        changed!(rust_payload_type, "OtherPayload".to_string()),
+        changed!(
+            rust_payload_type,
+            crate::portable_identity::WorthQueryPortableTypeIdentity::declared("OtherPayload")
+        ),
         changed!(protocol, external_protocol(2)),
         changed!(maximum_payload_bytes, 65),
         changed!(
@@ -340,6 +349,10 @@ fn mutation_precondition(
         operation: "Operation".to_string(),
         target: ApplicationMutationPreconditionTarget::field(family, "Entity", "Aspect", field),
     }
+}
+
+const fn portable(identity: &'static str) -> WorthQueryPortableTypeIdentity {
+    WorthQueryPortableTypeIdentity::declared(identity)
 }
 
 fn header(minor: u32) -> ApplicationSchemaCanonicalHeader<'static> {

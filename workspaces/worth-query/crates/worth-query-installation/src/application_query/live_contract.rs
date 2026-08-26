@@ -6,6 +6,7 @@ use worth_query_declaration::facade::{
         WorthQueryResourceDimension, WorthQueryResourceLimitRequest,
         WorthQueryRetainedProgressPosture, WorthQuerySemanticScaleRequest,
     },
+    portable_identity::WorthQueryPortableTypeIdentity,
 };
 
 use crate::domain_computation::WorthQueryExecutionResourceEnvelope;
@@ -17,9 +18,9 @@ use super::{
 };
 
 pub struct WorthQueryInstalledApplicationLiveContract {
-    binding_type: String,
+    binding_type: WorthQueryPortableTypeIdentity,
     effect: String,
-    payload_type: String,
+    payload_type: WorthQueryPortableTypeIdentity,
     scope_identity: WorthQueryInstalledGraphProjection,
     target_identity: WorthQueryInstalledGraphProjection,
     collection_path: String,
@@ -39,13 +40,13 @@ impl WorthQueryInstalledApplicationLiveContract {
         validate_effect_is_installed(schema, live)?;
         let scope_identity = require_installed_projection(
             graph,
-            live.scope_slot_type(),
+            live.scope_slot_identity(),
             live.scope_field(),
             WorthQueryApplicationQueryInstallationDenialKind::LiveScopeIdentityNotInstalled,
         )?;
         let target_identity = require_installed_projection(
             graph,
-            live.target_slot_type(),
+            live.target_slot_identity(),
             live.target_field(),
             WorthQueryApplicationQueryInstallationDenialKind::LiveTargetIdentityNotInstalled,
         )?;
@@ -64,9 +65,9 @@ impl WorthQueryInstalledApplicationLiveContract {
             ));
         }
         Ok(Some(Self {
-            binding_type: live.binding_type().to_string(),
+            binding_type: live.binding_identity(),
             effect: live.effect().to_string(),
-            payload_type: live.payload_type().to_string(),
+            payload_type: live.payload_identity(),
             scope_identity,
             target_identity,
             collection_path: continuation.collection_path().to_string(),
@@ -75,7 +76,7 @@ impl WorthQueryInstalledApplicationLiveContract {
     }
 
     pub fn binding_type(&self) -> &str {
-        &self.binding_type
+        self.binding_type.as_str()
     }
 
     pub fn effect(&self) -> &str {
@@ -83,7 +84,7 @@ impl WorthQueryInstalledApplicationLiveContract {
     }
 
     pub fn payload_type(&self) -> &str {
-        &self.payload_type
+        self.payload_type.as_str()
     }
 
     pub const fn scope_identity(&self) -> &WorthQueryInstalledGraphProjection {
@@ -117,7 +118,7 @@ fn validate_effect_is_installed(
             ApplicationSchemaMember::Effect {
                 effect,
                 payload_type,
-            } if effect == live.effect() && payload_type == live.payload_type()
+            } if effect == live.effect() && *payload_type == live.payload_identity()
         )
     });
     if installed {
@@ -132,14 +133,14 @@ fn validate_effect_is_installed(
 
 fn installed_projection(
     graph: &WorthQueryInstalledGraphReadContract,
-    slot_type: &str,
+    slot_type: WorthQueryPortableTypeIdentity,
     field: (&str, &str, &str),
 ) -> Option<WorthQueryInstalledGraphProjection> {
     graph
         .projections()
         .iter()
         .find(|projection| {
-            projection.slot_type() == slot_type
+            projection.portable_slot_identity() == slot_type
                 && (projection.entity(), projection.aspect(), projection.field()) == field
         })
         .cloned()
@@ -147,12 +148,12 @@ fn installed_projection(
 
 fn require_installed_projection(
     graph: &WorthQueryInstalledGraphReadContract,
-    slot_type: &str,
+    slot_type: WorthQueryPortableTypeIdentity,
     field: (&str, &str, &str),
     denial_kind: WorthQueryApplicationQueryInstallationDenialKind,
 ) -> Result<WorthQueryInstalledGraphProjection, WorthQueryApplicationQueryInstallationDenial> {
     installed_projection(graph, slot_type, field)
-        .ok_or_else(|| installation_denial(denial_kind, slot_type))
+        .ok_or_else(|| installation_denial(denial_kind, slot_type.as_str()))
 }
 
 fn compile_resource_envelope(

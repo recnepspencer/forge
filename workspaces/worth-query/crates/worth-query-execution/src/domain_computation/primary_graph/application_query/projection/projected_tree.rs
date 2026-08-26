@@ -2,11 +2,12 @@ use std::sync::Arc;
 
 use worth_foundational::facade::AspectValue;
 use worth_query_declaration::facade::application_query::{
-    ApplicationQueryCardinality, ApplicationQueryOptionalResultFieldRef,
-    ApplicationQueryResultFieldRef, ApplicationQueryResultRelationCardinality,
-    ApplicationQueryResultRelationRef, ApplicationQueryResultSlotKey,
-    ApplicationQueryResultTraversal,
+    ApplicationQueryCardinality, ApplicationQueryMarkerIdentity,
+    ApplicationQueryOptionalResultFieldRef, ApplicationQueryResultFieldRef,
+    ApplicationQueryResultRelationCardinality, ApplicationQueryResultRelationRef,
+    ApplicationQueryResultSlotKey, ApplicationQueryResultTraversal,
 };
+use worth_query_declaration::facade::portable_identity::WorthQueryPortableType;
 use worth_query_installation::facade::{
     ApplicationFieldUnit, OptionalApplicationFieldValue, TypedApplicationValue,
     WorthQueryInstalledGraphProjection, WorthQueryInstalledGraphRelation,
@@ -182,10 +183,10 @@ impl WorthQueryApplicationProjectedField {
         >,
     ) -> bool
     where
-        Value: TypedApplicationValue,
+        Value: TypedApplicationValue + WorthQueryPortableType,
         Unit: ApplicationFieldUnit,
-        Query: 'static,
-        Slot: 'static,
+        Query: ApplicationQueryMarkerIdentity,
+        Slot: WorthQueryPortableType,
     {
         self.slot_key.as_ref() == &selector.slot_key()
     }
@@ -218,10 +219,10 @@ impl WorthQueryApplicationProjectedField {
     ) -> bool
     where
         Field: OptionalApplicationFieldValue<Value = Value>,
-        Value: TypedApplicationValue,
+        Value: TypedApplicationValue + WorthQueryPortableType,
         Unit: ApplicationFieldUnit,
-        Query: 'static,
-        Slot: 'static,
+        Query: ApplicationQueryMarkerIdentity,
+        Slot: WorthQueryPortableType,
     {
         self.slot_key.as_ref() == &selector.slot_key()
     }
@@ -290,8 +291,8 @@ impl WorthQueryApplicationProjectedRelation {
     where
         Direction: ApplicationQueryResultTraversal,
         Cardinality: ApplicationQueryResultRelationCardinality,
-        Query: 'static,
-        Slot: 'static,
+        Query: ApplicationQueryMarkerIdentity,
+        Slot: WorthQueryPortableType,
     {
         self.slot_key.as_ref() == &selector.slot_key() && self.cardinality == selector.cardinality()
     }

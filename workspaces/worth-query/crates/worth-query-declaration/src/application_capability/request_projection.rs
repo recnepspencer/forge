@@ -155,7 +155,7 @@ impl<Schema> ApplicationCapabilityRelatedEntitySelector<Schema> {
 
 pub struct ApplicationCapabilityRequestContext<Schema, Context> {
     context: &'static str,
-    context_type: &'static str,
+    context_identity: crate::portable_identity::WorthQueryPortableTypeIdentity,
     entities: Vec<ApplicationCapabilityContextEntitySelector>,
     _marker: PhantomData<fn() -> (Schema, Context)>,
 }
@@ -164,7 +164,7 @@ impl<Schema, Context> ApplicationCapabilityRequestContext<Schema, Context> {
     pub fn new(context: ApplicationCapabilityContextRef<Schema, Context>) -> Self {
         Self {
             context: context.name(),
-            context_type: context.marker_type(),
+            context_identity: context.marker_identity(),
             entities: Vec::new(),
             _marker: PhantomData,
         }
@@ -188,7 +188,13 @@ impl<Schema, Context> ApplicationCapabilityRequestContext<Schema, Context> {
     }
 
     pub const fn context_type(&self) -> &'static str {
-        self.context_type
+        self.context_identity.as_str()
+    }
+
+    pub const fn context_identity(
+        &self,
+    ) -> crate::portable_identity::WorthQueryPortableTypeIdentity {
+        self.context_identity
     }
 
     pub fn entities(&self) -> &[ApplicationCapabilityContextEntitySelector] {

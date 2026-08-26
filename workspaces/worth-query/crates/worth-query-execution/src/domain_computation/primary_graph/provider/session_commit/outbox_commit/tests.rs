@@ -121,7 +121,9 @@ fn record(identity: u64) -> WorthQueryDispatchOutboxRecord {
                 )
                 .unwrap(),
             effect: "ReceiptResolutionEffect".to_owned(),
-            rust_payload_type: "tests::ReceiptResolutionPayload".to_owned(),
+            rust_payload_type: worth_query_declaration::facade::portable_identity::WorthQueryPortableTypeIdentity::declared(
+                "worth.query.test.receipt-resolution-payload.v1",
+            ),
             protocol: ApplicationExternalEffectProtocol::new(
                 BoundaryProtocolIdentity::new("test.receipt-resolution.payload"),
                 BoundaryProtocolVersion::new(1),

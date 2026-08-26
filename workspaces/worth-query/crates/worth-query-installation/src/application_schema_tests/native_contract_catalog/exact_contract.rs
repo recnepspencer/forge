@@ -9,8 +9,11 @@ use worth_query_declaration::facade::application_schema::{
     ApplicationSchema, ApplicationSchemaDeclaration, ApplicationSchemaDeclarationBuilder,
 };
 
-use super::{admitted_package, WorthQueryInstallationGeneration, WorthQueryInstalledPackageIndex};
-use crate::facade::WorthQueryInstallationRuntimeIdentity;
+use super::{WorthQueryInstallationGeneration, WorthQueryInstalledPackageIndex};
+use crate::facade::{
+    WorthQueryInstallationAdmissionProfile, WorthQueryInstallationRuntimeIdentity,
+    WorthQueryPortableDomainIdentity, WorthQueryPortableDomainPackage,
+};
 
 struct ExactContractSchema;
 worth_query_declaration::worth_query_entity!(ExactEntity in ExactContractSchema);
@@ -53,10 +56,28 @@ impl ApplicationSchema for ExactContractSchema {
 #[test]
 fn catalog_contract_equals_an_independently_authored_foundational_contract() {
     let declaration = ExactContractSchema::declaration().unwrap();
+    let expected = expected_contract();
+    let package = WorthQueryPortableDomainPackage::new(WorthQueryPortableDomainIdentity::new(
+        ExactContractSchema::OWNER,
+        1,
+        0,
+    ))
+    .application_schema(declaration.clone())
+    .validate()
+    .unwrap();
+    let portable = &package.application_contract_spine().native_aspects()[0];
+    assert_eq!(portable.contract(), &expected);
+    assert_eq!(
+        portable.fields().cloned().collect::<BTreeSet<_>>(),
+        expected_fields()
+    );
+    let admitted = WorthQueryInstallationAdmissionProfile::new("support", "configuration")
+        .admit(package)
+        .unwrap();
     let index = WorthQueryInstalledPackageIndex::build(
         WorthQueryInstallationRuntimeIdentity::fresh(),
         WorthQueryInstallationGeneration::initial(),
-        [admitted_package(declaration.clone())],
+        [admitted],
     )
     .unwrap();
     let schema = index.bind_application_schema(declaration).unwrap();
@@ -64,17 +85,13 @@ fn catalog_contract_equals_an_independently_authored_foundational_contract() {
         .native_contracts()
         .aspect("ExactEntity", "ExactAspect")
         .unwrap();
-    let expected = expected_contract();
 
     assert_eq!(installed.contract(), &expected);
     assert_eq!(installed.contract().absence(), expected.absence());
     assert_eq!(installed.contract().evolution(), expected.evolution());
     assert_eq!(
         installed.fields().cloned().collect::<BTreeSet<_>>(),
-        ["OptionalLabel", "RequiredActive", "RequiredCount"]
-            .map(|field| FieldKey::new(field).unwrap())
-            .into_iter()
-            .collect()
+        expected_fields()
     );
     let expected_basis = prepare_aspect_contract_for_canonical_basis(
         CanonicalizationRuleVersion::new("worth-query-native-contract-v1").unwrap(),
@@ -85,6 +102,13 @@ fn catalog_contract_equals_an_independently_authored_foundational_contract() {
     let expected_material = canonical_basis_sequence_material(expected_basis.payload());
     assert_eq!(installed.canonical_contract_basis(), &expected_basis);
     assert_eq!(installed.canonical_contract_material(), expected_material);
+}
+
+fn expected_fields() -> BTreeSet<FieldKey> {
+    ["OptionalLabel", "RequiredActive", "RequiredCount"]
+        .map(|field| FieldKey::new(field).unwrap())
+        .into_iter()
+        .collect()
 }
 
 fn expected_contract() -> worth_foundational::facade::AspectContract {

@@ -7,6 +7,7 @@ mod disclosure_contract;
 mod erased_definition;
 mod lane_eligibility;
 mod live_cause;
+mod marker_identity;
 mod ordering;
 mod parameters;
 mod reference;
@@ -41,6 +42,7 @@ pub use live_cause::{
     ApplicationQueryLiveCauseBinding, ApplicationQueryLiveCauseContract,
     ApplicationQueryLiveResourceContract,
 };
+pub use marker_identity::ApplicationQueryMarkerIdentity;
 pub use ordering::{ApplicationQueryOrderingDirection, ApplicationQueryOrderingTerm};
 pub use parameters::{
     ApplicationQueryParameterDefinition, ApplicationQueryParameterRef, ApplicationQueryParameterSet,

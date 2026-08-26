@@ -28,6 +28,11 @@ pub struct AccountIdentityParameter;
 pub struct ActivitiesSlot;
 pub struct ActivityIdentitySlot;
 pub struct ActivitySequenceSlot;
+worth_query_declaration::worth_query_portable_type!(AccountIdentitySlot => "worth.query.test.execution.governed_live.account_identity_slot.v1");
+worth_query_declaration::worth_query_portable_type!(AccountLabelSlot => "worth.query.test.execution.governed_live.account_label_slot.v1");
+worth_query_declaration::worth_query_portable_type!(ActivitiesSlot => "worth.query.test.execution.governed_live.activities_slot.v1");
+worth_query_declaration::worth_query_portable_type!(ActivityIdentitySlot => "worth.query.test.execution.governed_live.activity_identity_slot.v1");
+worth_query_declaration::worth_query_portable_type!(ActivitySequenceSlot => "worth.query.test.execution.governed_live.activity_sequence_slot.v1");
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GovernedLiveAccountActivityResult {
@@ -35,6 +40,7 @@ pub struct GovernedLiveAccountActivityResult {
     label: WorthQueryApplicationDisclosed<String>,
     activities: Vec<(String, u64)>,
 }
+worth_query_declaration::worth_query_portable_type!(GovernedLiveAccountActivityResult => "worth.query.test.execution.governed_live.result.v1");
 
 impl GovernedLiveAccountActivityResult {
     pub(in crate::domain_computation::primary_graph) fn account(&self) -> &str {
@@ -197,6 +203,7 @@ impl WorthQueryApplicationProjection<IdentityExecutionSchema, GovernedLiveAccoun
 }
 
 pub struct GovernedLiveAccountActivityCause;
+worth_query_declaration::worth_query_portable_type!(GovernedLiveAccountActivityCause => "worth.query.test.execution.governed_live.cause.v1");
 
 impl
     ApplicationQueryLiveCauseBinding<

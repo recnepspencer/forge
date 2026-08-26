@@ -4,9 +4,11 @@ use crate::application_schema::ApplicationRelationRef;
 
 use super::result_slot_key::ApplicationQueryResultRelationSlotContract;
 use super::{
-    ApplicationQueryCardinality, ApplicationQueryResultSlotKey, ApplicationQueryResultTraversal,
-    ApplicationQueryResultTraversalDirection, ForwardResultTraversal, ReverseResultTraversal,
+    ApplicationQueryCardinality, ApplicationQueryMarkerIdentity, ApplicationQueryResultSlotKey,
+    ApplicationQueryResultTraversal, ApplicationQueryResultTraversalDirection,
+    ForwardResultTraversal, ReverseResultTraversal,
 };
+use crate::portable_identity::WorthQueryPortableType;
 
 mod cardinality_seal {
     pub trait Sealed {}
@@ -157,12 +159,18 @@ where
         }
     }
 
-    pub fn query_type(&self) -> &'static str {
-        std::any::type_name::<Query>()
+    pub fn query_type(&self) -> &'static str
+    where
+        Query: ApplicationQueryMarkerIdentity,
+    {
+        Query::QUERY_TYPE_IDENTITY.as_str()
     }
 
-    pub fn slot_type(&self) -> &'static str {
-        std::any::type_name::<Slot>()
+    pub fn slot_type(&self) -> &'static str
+    where
+        Slot: WorthQueryPortableType,
+    {
+        Slot::PORTABLE_TYPE_IDENTITY.as_str()
     }
 
     pub const fn cardinality(&self) -> ApplicationQueryCardinality {
@@ -171,10 +179,12 @@ where
 
     pub fn slot_key(&self) -> ApplicationQueryResultSlotKey
     where
-        Query: 'static,
-        Slot: 'static,
+        Query: ApplicationQueryMarkerIdentity,
+        Slot: WorthQueryPortableType,
     {
-        ApplicationQueryResultSlotKey::relation::<Query, Slot>(
+        ApplicationQueryResultSlotKey::relation(
+            Query::QUERY_TYPE_IDENTITY,
+            Slot::PORTABLE_TYPE_IDENTITY,
             ApplicationQueryResultRelationSlotContract {
                 relation: self.relation,
                 from: self.from,

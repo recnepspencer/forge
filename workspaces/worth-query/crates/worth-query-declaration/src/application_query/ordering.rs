@@ -2,7 +2,8 @@ use worth_foundational::facade::ScalarAspectType;
 
 use crate::application_schema::{ApplicationFieldUnit, TypedApplicationValue};
 
-use super::ApplicationQueryResultFieldRef;
+use super::{ApplicationQueryMarkerIdentity, ApplicationQueryResultFieldRef};
+use crate::portable_identity::{WorthQueryPortableType, WorthQueryPortableTypeIdentity};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum ApplicationQueryOrderingDirection {
@@ -12,14 +13,14 @@ pub enum ApplicationQueryOrderingDirection {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ApplicationQueryOrderingTerm {
-    query_type: &'static str,
-    slot_type: &'static str,
+    query_type: WorthQueryPortableTypeIdentity,
+    slot_type: WorthQueryPortableTypeIdentity,
     entity: &'static str,
     aspect: &'static str,
     field: &'static str,
     output_name: &'static str,
     scalar_family: ScalarAspectType,
-    value_type: &'static str,
+    value_type: WorthQueryPortableTypeIdentity,
     direction: ApplicationQueryOrderingDirection,
 }
 
@@ -51,28 +52,30 @@ impl ApplicationQueryOrderingTerm {
         direction: ApplicationQueryOrderingDirection,
     ) -> Self
     where
-        Value: TypedApplicationValue,
+        Value: TypedApplicationValue + WorthQueryPortableType,
         Unit: ApplicationFieldUnit,
+        Query: ApplicationQueryMarkerIdentity,
+        Slot: WorthQueryPortableType,
     {
         Self {
-            query_type: selector.query_type(),
-            slot_type: selector.slot_type(),
+            query_type: selector.slot_key().query_identity(),
+            slot_type: selector.slot_key().slot_identity(),
             entity: selector.entity(),
             aspect: selector.aspect(),
             field: selector.field(),
             output_name: selector.output_name(),
             scalar_family: selector.scalar_family(),
-            value_type: selector.value_type(),
+            value_type: Value::PORTABLE_TYPE_IDENTITY,
             direction,
         }
     }
 
     pub const fn query_type(&self) -> &'static str {
-        self.query_type
+        self.query_type.as_str()
     }
 
     pub const fn slot_type(&self) -> &'static str {
-        self.slot_type
+        self.slot_type.as_str()
     }
 
     pub const fn field(&self) -> (&'static str, &'static str, &'static str) {
@@ -88,7 +91,7 @@ impl ApplicationQueryOrderingTerm {
     }
 
     pub const fn value_type(&self) -> &'static str {
-        self.value_type
+        self.value_type.as_str()
     }
 
     pub const fn direction(&self) -> ApplicationQueryOrderingDirection {

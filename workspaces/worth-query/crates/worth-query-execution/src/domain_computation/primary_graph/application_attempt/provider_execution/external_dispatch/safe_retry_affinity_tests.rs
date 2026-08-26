@@ -64,7 +64,9 @@ fn outbox_for(operation_slot: &str) -> WorthQueryDispatchOutboxRecord {
                 )
                 .unwrap(),
             effect: "notify-death-effect".to_owned(),
-            rust_payload_type: "fixture::NotifyDeathPayload".to_owned(),
+            rust_payload_type: worth_query_declaration::facade::portable_identity::WorthQueryPortableTypeIdentity::declared(
+                "worth.query.test.notify-death-payload.v1",
+            ),
             protocol: ApplicationExternalEffectProtocol::new(
                 BoundaryProtocolIdentity::new("test.notify-death-payload"),
                 BoundaryProtocolVersion::new(1),

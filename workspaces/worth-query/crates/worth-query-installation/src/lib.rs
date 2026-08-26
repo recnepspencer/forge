@@ -225,10 +225,23 @@ pub mod facade {
     };
     pub use crate::installed_operation::WorthQueryInstalledOperationAuthority;
     pub use crate::package::{
-        WorthQueryPortableDefinition, WorthQueryPortableDefinitionKind,
-        WorthQueryPortableDomainIdentity, WorthQueryPortableDomainPackage,
-        WorthQueryPortableDomainPackageIdentity, WorthQueryPortablePackageValidationDenial,
-        WorthQueryPortablePackageValidationDenialKind, WorthQueryValidatedPortableDomainPackage,
+        WorthQueryPortableApplicationContractSpine,
+        WorthQueryPortableApplicationOperationContractRecord, WorthQueryPortableDefinition,
+        WorthQueryPortableDefinitionKind, WorthQueryPortableDomainIdentity,
+        WorthQueryPortableDomainOperationRecord, WorthQueryPortableDomainOperationSemanticRecord,
+        WorthQueryPortableDomainPackage, WorthQueryPortableDomainPackageIdentity,
+        WorthQueryPortableExternalEffectContractRecord,
+        WorthQueryPortableInstalledReconciliationProcedureRecord,
+        WorthQueryPortableNativeAspectContractRecord, WorthQueryPortableOperationGraphReadScope,
+        WorthQueryPortableOperationTouchScope, WorthQueryPortablePackageExportDenial,
+        WorthQueryPortablePackageExportDenialKind, WorthQueryPortablePackageExportLimits,
+        WorthQueryPortablePackageManifest, WorthQueryPortablePackageManifestVersion,
+        WorthQueryPortablePackageRecord, WorthQueryPortablePackageRecordFamily,
+        WorthQueryPortablePackageRecordSet, WorthQueryPortablePackageRecordView,
+        WorthQueryPortablePackageValidationDenial, WorthQueryPortablePackageValidationDenialKind,
+        WorthQueryValidatedPortableDomainPackage, WORTH_QUERY_PORTABLE_PACKAGE_MANIFEST_VERSION,
+        WORTH_QUERY_PORTABLE_PACKAGE_MAX_LOGICAL_EXPORT_BYTES,
+        WORTH_QUERY_PORTABLE_PACKAGE_MAX_RECORDS,
     };
     pub use crate::package_requirements::{
         WorthQueryInstallationCapabilityFamily, WorthQueryInstallationConfigSectionFamily,

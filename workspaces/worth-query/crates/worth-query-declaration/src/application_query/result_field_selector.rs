@@ -3,11 +3,13 @@ use std::marker::PhantomData;
 use worth_foundational::facade::ScalarAspectType;
 
 use super::result_slot_key::ApplicationQueryResultFieldSlotContract;
+use super::ApplicationQueryMarkerIdentity;
 use super::ApplicationQueryResultSlotKey;
 use crate::application_schema::{
     ApplicationFieldPresence, ApplicationFieldRef, ApplicationFieldUnit,
     OptionalApplicationFieldValue, RequiredApplicationFieldValue, TypedApplicationValue,
 };
+use crate::portable_identity::WorthQueryPortableType;
 
 /// Selector for a schema-required result field.
 ///
@@ -113,7 +115,7 @@ impl<Query, Slot, Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>
         Unit,
     >
 where
-    Value: TypedApplicationValue,
+    Value: TypedApplicationValue + WorthQueryPortableType,
     Unit: ApplicationFieldUnit,
 {
     pub fn new(
@@ -158,30 +160,38 @@ where
     }
 
     pub fn value_type(&self) -> &'static str {
-        std::any::type_name::<Value>()
+        Value::PORTABLE_TYPE_IDENTITY.as_str()
     }
 
-    pub fn query_type(&self) -> &'static str {
-        std::any::type_name::<Query>()
+    pub fn query_type(&self) -> &'static str
+    where
+        Query: ApplicationQueryMarkerIdentity,
+    {
+        Query::QUERY_TYPE_IDENTITY.as_str()
     }
 
-    pub fn slot_type(&self) -> &'static str {
-        std::any::type_name::<Slot>()
+    pub fn slot_type(&self) -> &'static str
+    where
+        Slot: WorthQueryPortableType,
+    {
+        Slot::PORTABLE_TYPE_IDENTITY.as_str()
     }
 
     pub fn slot_key(&self) -> ApplicationQueryResultSlotKey
     where
-        Query: 'static,
-        Slot: 'static,
+        Query: ApplicationQueryMarkerIdentity,
+        Slot: WorthQueryPortableType,
     {
-        ApplicationQueryResultSlotKey::field::<Query, Slot>(
+        ApplicationQueryResultSlotKey::field(
+            Query::QUERY_TYPE_IDENTITY,
+            Slot::PORTABLE_TYPE_IDENTITY,
             ApplicationQueryResultFieldSlotContract {
                 entity: self.entity,
                 aspect: self.aspect,
                 field: self.field,
                 output_name: self.output_name,
                 scalar_family: Value::SCALAR_FAMILY,
-                value_type: std::any::type_name::<Value>(),
+                value_type: Value::PORTABLE_TYPE_IDENTITY,
                 presence: ApplicationFieldPresence::Required,
             },
         )
@@ -203,7 +213,7 @@ impl<Query, Slot, Schema, Entity, Aspect, Field, Value, Write, Equality, Unit>
     >
 where
     Field: OptionalApplicationFieldValue<Value = Value>,
-    Value: TypedApplicationValue,
+    Value: TypedApplicationValue + WorthQueryPortableType,
     Unit: ApplicationFieldUnit,
 {
     pub fn new(
@@ -245,30 +255,38 @@ where
     }
 
     pub fn value_type(&self) -> &'static str {
-        std::any::type_name::<Value>()
+        Value::PORTABLE_TYPE_IDENTITY.as_str()
     }
 
-    pub fn query_type(&self) -> &'static str {
-        std::any::type_name::<Query>()
+    pub fn query_type(&self) -> &'static str
+    where
+        Query: ApplicationQueryMarkerIdentity,
+    {
+        Query::QUERY_TYPE_IDENTITY.as_str()
     }
 
-    pub fn slot_type(&self) -> &'static str {
-        std::any::type_name::<Slot>()
+    pub fn slot_type(&self) -> &'static str
+    where
+        Slot: WorthQueryPortableType,
+    {
+        Slot::PORTABLE_TYPE_IDENTITY.as_str()
     }
 
     pub fn slot_key(&self) -> ApplicationQueryResultSlotKey
     where
-        Query: 'static,
-        Slot: 'static,
+        Query: ApplicationQueryMarkerIdentity,
+        Slot: WorthQueryPortableType,
     {
-        ApplicationQueryResultSlotKey::field::<Query, Slot>(
+        ApplicationQueryResultSlotKey::field(
+            Query::QUERY_TYPE_IDENTITY,
+            Slot::PORTABLE_TYPE_IDENTITY,
             ApplicationQueryResultFieldSlotContract {
                 entity: self.entity,
                 aspect: self.aspect,
                 field: self.field,
                 output_name: self.output_name,
                 scalar_family: Value::SCALAR_FAMILY,
-                value_type: std::any::type_name::<Value>(),
+                value_type: Value::PORTABLE_TYPE_IDENTITY,
                 presence: ApplicationFieldPresence::Optional,
             },
         )

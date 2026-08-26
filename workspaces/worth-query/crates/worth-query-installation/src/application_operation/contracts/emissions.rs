@@ -1,7 +1,5 @@
 //! Installed application-effect emissions, distinct from graph touches and external dispatch.
 
-use worth_query_declaration::facade::application_schema::ApplicationOperationProgramTarget;
-
 /// One application effect that the installed operation may emit.
 ///
 /// This is retained program meaning. It grants neither graph-mutation nor
@@ -33,21 +31,13 @@ impl WorthQueryOperationEmissionContract {
     }
 }
 
-pub(in crate::application_operation) fn compile_effect_emissions(
-    program: &[ApplicationOperationProgramTarget],
+pub(in crate::application_operation) fn install_portable_effect_emissions(
+    effects: &[String],
 ) -> WorthQueryOperationEmissionContract {
-    let mut emissions = program
+    let emissions = effects
         .iter()
-        .filter_map(|target| match target {
-            ApplicationOperationProgramTarget::Emit { effect } => {
-                Some(WorthQueryInstalledApplicationEffectEmission {
-                    effect: effect.clone(),
-                })
-            }
-            _ => None,
-        })
+        .cloned()
+        .map(|effect| WorthQueryInstalledApplicationEffectEmission { effect })
         .collect::<Vec<_>>();
-    emissions.sort();
-    emissions.dedup();
     WorthQueryOperationEmissionContract { emissions }
 }

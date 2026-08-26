@@ -1,14 +1,13 @@
-use std::any::TypeId;
-
 use worth_foundational::facade::ScalarAspectType;
 
 use super::{ApplicationQueryCardinality, ApplicationQueryResultTraversalDirection};
 use crate::application_schema::ApplicationFieldPresence;
+use crate::portable_identity::WorthQueryPortableTypeIdentity;
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct ApplicationQueryResultSlotKey {
-    query: TypeId,
-    slot: TypeId,
+    query: WorthQueryPortableTypeIdentity,
+    slot: WorthQueryPortableTypeIdentity,
     contract: ApplicationQueryResultSlotContract,
 }
 
@@ -20,7 +19,7 @@ enum ApplicationQueryResultSlotContract {
         field: &'static str,
         output_name: &'static str,
         scalar_family: ScalarAspectType,
-        value_type: &'static str,
+        value_type: WorthQueryPortableTypeIdentity,
         presence: ApplicationFieldPresence,
     },
     Relation {
@@ -39,7 +38,7 @@ pub(super) struct ApplicationQueryResultFieldSlotContract {
     pub field: &'static str,
     pub output_name: &'static str,
     pub scalar_family: ScalarAspectType,
-    pub value_type: &'static str,
+    pub value_type: WorthQueryPortableTypeIdentity,
     pub presence: ApplicationFieldPresence,
 }
 
@@ -53,12 +52,22 @@ pub(super) struct ApplicationQueryResultRelationSlotContract {
 }
 
 impl ApplicationQueryResultSlotKey {
-    pub(super) fn field<Query: 'static, Slot: 'static>(
+    pub const fn query_identity(self) -> WorthQueryPortableTypeIdentity {
+        self.query
+    }
+
+    pub const fn slot_identity(self) -> WorthQueryPortableTypeIdentity {
+        self.slot
+    }
+
+    pub(super) const fn field(
+        query: WorthQueryPortableTypeIdentity,
+        slot: WorthQueryPortableTypeIdentity,
         contract: ApplicationQueryResultFieldSlotContract,
     ) -> Self {
         Self {
-            query: TypeId::of::<Query>(),
-            slot: TypeId::of::<Slot>(),
+            query,
+            slot,
             contract: ApplicationQueryResultSlotContract::Field {
                 entity: contract.entity,
                 aspect: contract.aspect,
@@ -71,12 +80,14 @@ impl ApplicationQueryResultSlotKey {
         }
     }
 
-    pub(super) fn relation<Query: 'static, Slot: 'static>(
+    pub(super) const fn relation(
+        query: WorthQueryPortableTypeIdentity,
+        slot: WorthQueryPortableTypeIdentity,
         contract: ApplicationQueryResultRelationSlotContract,
     ) -> Self {
         Self {
-            query: TypeId::of::<Query>(),
-            slot: TypeId::of::<Slot>(),
+            query,
+            slot,
             contract: ApplicationQueryResultSlotContract::Relation {
                 relation: contract.relation,
                 from: contract.from,

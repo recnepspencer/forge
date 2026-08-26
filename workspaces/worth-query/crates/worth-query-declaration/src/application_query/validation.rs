@@ -2,9 +2,13 @@ use std::collections::BTreeSet;
 
 use super::{ApplicationQueryDefinition, ApplicationQueryResultShape};
 
+mod portable_identity;
+use portable_identity::{portable_identity_is_valid, shape_portable_identities_are_valid};
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ApplicationQueryDefinitionDenial {
     EmptyIdentifier,
+    InvalidPortableIdentity,
     ResultRootMismatch,
     ResultQueryMismatch,
     DuplicateResultSlot,
@@ -37,6 +41,35 @@ pub(super) fn validate_definition<Schema, Query, Parameters, QueryResult, Scope>
     if definition.name().trim().is_empty() {
         return Err(ApplicationQueryDefinitionDenial::EmptyIdentifier);
     }
+    if !portable_identity_is_valid(definition.query_type())
+        || !portable_identity_is_valid(definition.parameter_type())
+        || !portable_identity_is_valid(definition.result_type())
+        || !portable_identity_is_valid(definition.scope_type())
+        || definition
+            .parameters()
+            .iter()
+            .any(|parameter| !portable_identity_is_valid(parameter.value_type()))
+        || definition
+            .root_paths()
+            .iter()
+            .flat_map(|path| path.guards())
+            .any(|guard| !portable_identity_is_valid(guard.value_type()))
+        || !shape_portable_identities_are_valid(definition.result_shape())
+        || definition.live_cause().is_some_and(|live| {
+            [
+                live.binding_type(),
+                live.payload_type(),
+                live.scope_slot_type(),
+                live.scope_value_type(),
+                live.target_slot_type(),
+                live.target_value_type(),
+            ]
+            .into_iter()
+            .any(|identity| !portable_identity_is_valid(identity))
+        })
+    {
+        return Err(ApplicationQueryDefinitionDenial::InvalidPortableIdentity);
+    }
     if definition.root_entity() != definition.result_shape().root_entity() {
         return Err(ApplicationQueryDefinitionDenial::ResultRootMismatch);
     }
@@ -55,8 +88,8 @@ pub(super) fn validate_definition<Schema, Query, Parameters, QueryResult, Scope>
     }) {
         return Err(ApplicationQueryDefinitionDenial::InvalidRootPath);
     }
-    if definition.result_shape().query_type() != std::any::type_name::<Query>()
-        || !shape_query_is_valid(definition.result_shape(), std::any::type_name::<Query>())
+    if definition.result_shape().query_type() != definition.query_type()
+        || !shape_query_is_valid(definition.result_shape(), definition.query_type())
     {
         return Err(ApplicationQueryDefinitionDenial::ResultQueryMismatch);
     }
@@ -206,7 +239,7 @@ fn validate_continuation<Schema, Query, Parameters, QueryResult, Scope>(
     else {
         return Err(ApplicationQueryDefinitionDenial::UnknownContinuationResultSlot);
     };
-    if continuation.query_type() != std::any::type_name::<Query>()
+    if continuation.query_type() != definition.query_type()
         || relation.query_type() != continuation.query_type()
         || relation.relation() != continuation.relation()
         || relation.cardinality() != continuation.cardinality()

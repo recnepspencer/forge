@@ -154,9 +154,9 @@ impl<'a> DeclaredCapabilityDimensions<'a> {
     ) -> bool {
         self.entity_slots.contains(&(
             binding.context(),
-            binding.context_type(),
+            binding.context_identity().as_str(),
             binding.slot(),
-            binding.slot_type(),
+            binding.slot_identity().as_str(),
             binding.entity(),
         ))
     }

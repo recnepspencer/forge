@@ -1,3 +1,4 @@
+use crate::portable_identity::WorthQueryPortableTypeIdentity;
 use worth_foundational::facade::{AspectMask, DiagnosticMask, ProjectionMask};
 
 use super::super::{
@@ -16,8 +17,8 @@ pub enum ApplicationQueryDisclosureSelector {
     },
     Field {
         slot_key: ApplicationQueryResultSlotKey,
-        query_type: &'static str,
-        slot_type: &'static str,
+        query_type: WorthQueryPortableTypeIdentity,
+        slot_type: WorthQueryPortableTypeIdentity,
         entity: &'static str,
         aspect: &'static str,
         field: &'static str,
@@ -27,8 +28,8 @@ pub enum ApplicationQueryDisclosureSelector {
     },
     Relation {
         slot_key: ApplicationQueryResultSlotKey,
-        query_type: &'static str,
-        slot_type: &'static str,
+        query_type: WorthQueryPortableTypeIdentity,
+        slot_type: WorthQueryPortableTypeIdentity,
         relation: &'static str,
         from: &'static str,
         to: &'static str,
@@ -52,14 +53,16 @@ impl ApplicationQueryDisclosureSelector {
 
     pub const fn slot_type(&self) -> &'static str {
         match self {
-            Self::Field { slot_type, .. } | Self::Relation { slot_type, .. } => slot_type,
+            Self::Field { slot_type, .. } | Self::Relation { slot_type, .. } => slot_type.as_str(),
             Self::InternalField { .. } => "internal-computation",
         }
     }
 
     pub const fn query_type(&self) -> &'static str {
         match self {
-            Self::Field { query_type, .. } | Self::Relation { query_type, .. } => query_type,
+            Self::Field { query_type, .. } | Self::Relation { query_type, .. } => {
+                query_type.as_str()
+            }
             Self::InternalField { .. } => "internal-computation",
         }
     }

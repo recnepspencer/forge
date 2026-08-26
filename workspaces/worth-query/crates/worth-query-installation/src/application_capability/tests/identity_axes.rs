@@ -21,18 +21,12 @@ pub(super) fn grouped_graph_rule(conjunctive: bool) -> ApplicationCapabilityGrap
 pub(super) fn anchored_graph_rule() -> ApplicationCapabilityGraphRule {
     let relation = ApplicationRelationRef::<Schema, PrincipalResource, Principal, Resource>::
         from_schema_identifiers("PrincipalResource", "Principal", "Resource");
-    let context =
-        ApplicationCapabilityContextRef::<Schema, Context>::from_schema_identifier("Context");
     let slot = ApplicationCapabilityContextEntitySlotRef::<
         Schema,
         Context,
         ResourceSlot,
         Resource,
-    >::from_schema_identifiers(
-        context,
-        "ResourceSlot",
-        ApplicationEntityRef::from_schema_identifier("Resource"),
-    );
+    >::from_declaration();
     ApplicationCapabilityGraphRule::any([ApplicationCapabilityGraphClause::new(graph_path(
         true,
         "PrincipalResource",
@@ -84,22 +78,16 @@ fn context_and_provenance_marker_types_are_identity_bearing() {
     let package = worth_foundational::facade::CanonicalDigestId::new([1; 32]);
     let schema = worth_foundational::facade::CanonicalDigestId::new([2; 32]);
     let baseline = contract_with_markers(
-        ApplicationCapabilityContextRef::<Schema, Context>::from_schema_identifier("Context"),
-        ApplicationCapabilityProvenanceRef::<Schema, Provenance>::from_schema_identifier(
-            "Provenance",
-        ),
+        ApplicationCapabilityContextRef::<Schema, Context>::from_declaration(),
+        ApplicationCapabilityProvenanceRef::<Schema, Provenance>::from_declaration(),
     );
     let changed_context = contract_with_markers(
-        ApplicationCapabilityContextRef::<Schema, OtherContext>::from_schema_identifier("Context"),
-        ApplicationCapabilityProvenanceRef::<Schema, Provenance>::from_schema_identifier(
-            "Provenance",
-        ),
+        ApplicationCapabilityContextRef::<Schema, OtherContext>::from_declaration(),
+        ApplicationCapabilityProvenanceRef::<Schema, Provenance>::from_declaration(),
     );
     let changed_provenance = contract_with_markers(
-        ApplicationCapabilityContextRef::<Schema, Context>::from_schema_identifier("Context"),
-        ApplicationCapabilityProvenanceRef::<Schema, OtherProvenance>::from_schema_identifier(
-            "Provenance",
-        ),
+        ApplicationCapabilityContextRef::<Schema, Context>::from_declaration(),
+        ApplicationCapabilityProvenanceRef::<Schema, OtherProvenance>::from_declaration(),
     );
     let baseline = prepare_capability_basis(&package, &schema, &baseline).unwrap();
     for changed in [changed_context, changed_provenance] {

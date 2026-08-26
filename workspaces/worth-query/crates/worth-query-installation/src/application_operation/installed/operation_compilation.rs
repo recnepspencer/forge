@@ -2,8 +2,8 @@
 
 use worth_query_declaration::facade::application_aftermath::PortableApplicationAftermathContract;
 use worth_query_declaration::facade::application_schema::{
-    ApplicationOperationDecisionReadTarget, ApplicationOperationProgramTarget,
-    ApplicationSchemaBindingIdentity, ApplicationSchemaMember,
+    ApplicationOperationDecisionReadTarget, ApplicationSchemaBindingIdentity,
+    ApplicationSchemaMember,
 };
 
 use crate::application_aftermath::{
@@ -14,11 +14,15 @@ use crate::application_schema::WorthQueryInstalledApplicationSchemaContractCatal
 use crate::domain_operation::{
     WorthQueryOperationGraphReadContract, WorthQueryOperationTouchContract,
 };
+use crate::package::{
+    WorthQueryPortableApplicationOperationContractRecord,
+    WorthQueryPortableExternalEffectContractRecord,
+    WorthQueryPortableInstalledReconciliationProcedureRecord,
+};
 
 use super::super::contract_resolution::{
     ability_requirement_meaning_matches, operation_aftermath, operation_decision_fact_budget,
-    operation_decision_reads_from_members, operation_execution_posture, operation_external_effect,
-    operation_mutation_preconditions, operation_program_from_members,
+    operation_execution_posture, operation_mutation_preconditions,
     operation_projection_work_budget,
 };
 use super::super::installed_contract_support::{operation_authorization, operation_denial};
@@ -40,13 +44,13 @@ pub(super) struct WorthQueryApplicationOperationCompilation<'a> {
     binding: ApplicationSchemaBindingIdentity,
     operation: String,
     input_type: String,
-    program: Vec<ApplicationOperationProgramTarget>,
     decision_reads: Vec<ApplicationOperationDecisionReadTarget>,
     decision_fact_budget: usize,
     projection_work_budget: usize,
     execution_posture: WorthQueryInstalledApplicationOperationExecutionPosture,
     external_effect: InstalledExternalEffectContract,
     portable_aftermath: Option<PortableApplicationAftermathContract>,
+    portable_contract: &'a WorthQueryPortableApplicationOperationContractRecord,
     members: &'a [ApplicationSchemaMember],
 }
 
@@ -72,6 +76,7 @@ impl<'a> WorthQueryApplicationOperationCompilation<'a> {
     pub(super) fn resolve(
         binding: ApplicationSchemaBindingIdentity,
         members: &'a [ApplicationSchemaMember],
+        portable_contract: &'a WorthQueryPortableApplicationOperationContractRecord,
         operation: &str,
         input_type: &str,
     ) -> Result<Self, WorthQueryApplicationOperationInstallationDenial> {
@@ -81,19 +86,11 @@ impl<'a> WorthQueryApplicationOperationCompilation<'a> {
                 ApplicationSchemaMember::Operation {
                     operation: candidate,
                     input_type: candidate_input,
-                } if candidate == operation && candidate_input == input_type
+                } if candidate == operation && candidate_input.as_str() == input_type
             )
         }) {
             return Err(operation_denial(
                 WorthQueryApplicationOperationInstallationDenialKind::OperationNotInstalled,
-                operation,
-            ));
-        }
-        let program = operation_program_from_members(members, operation, input_type);
-        let decision_reads = operation_decision_reads_from_members(members, operation, input_type);
-        if program.is_empty() && decision_reads.is_empty() {
-            return Err(operation_denial(
-                WorthQueryApplicationOperationInstallationDenialKind::MissingProgram,
                 operation,
             ));
         }
@@ -111,21 +108,40 @@ impl<'a> WorthQueryApplicationOperationCompilation<'a> {
                     operation,
                 )
             })?;
-        let external_effect = operation_external_effect(members, operation)
-            .map_err(|denial| operation_denial(denial.installation_kind(), operation))?;
+        if portable_contract.operation() != operation
+            || portable_contract.input_type().as_str() != input_type
+        {
+            return Err(operation_denial(
+                WorthQueryApplicationOperationInstallationDenialKind::InvalidGraphObligationContract,
+                operation,
+            ));
+        }
+        let decision_reads = portable_contract.decision_read_targets().map_err(|()| {
+            operation_denial(
+                WorthQueryApplicationOperationInstallationDenialKind::InvalidGraphObligationContract,
+                operation,
+            )
+        })?;
+        if portable_contract.authored_program_width() == 0 && decision_reads.is_empty() {
+            return Err(operation_denial(
+                WorthQueryApplicationOperationInstallationDenialKind::MissingProgram,
+                operation,
+            ));
+        }
+        let external_effect = install_portable_external_effect(portable_contract.external_effect());
         let portable_aftermath = operation_aftermath(members, operation)
             .map_err(|denial| operation_denial(denial.installation_kind(), operation))?;
         Ok(Self {
             binding,
             operation: operation.to_owned(),
             input_type: input_type.to_owned(),
-            program,
             decision_reads,
             decision_fact_budget,
             projection_work_budget,
             execution_posture: operation_execution_posture(members, operation, input_type),
             external_effect,
             portable_aftermath,
+            portable_contract,
             members,
         })
     }
@@ -156,10 +172,10 @@ impl<'a> WorthQueryApplicationOperationCompilation<'a> {
         let additional_authorization_fact_count =
             progression_support_fact_count(self.members, &self.operation, &self.input_type);
         let mutation_preconditions = self.compile_mutation_preconditions(&ability_requirements)?;
-        let graph_reads = super::super::contracts::compile_graph_reads(
+        let graph_reads = super::super::contracts::install_portable_graph_reads(
             &self.binding,
             native_contracts,
-            &self.decision_reads,
+            self.portable_contract.graph_reads(),
         )
         .map_err(|()| {
             operation_denial(
@@ -167,10 +183,11 @@ impl<'a> WorthQueryApplicationOperationCompilation<'a> {
                 &self.operation,
             )
         })?;
-        let (touches, graph_mutation_count) = super::super::contracts::compile_graph_touches(
+        let (touches, graph_mutation_count) =
+            super::super::contracts::install_portable_graph_touches(
             &self.binding,
             native_contracts,
-            &self.program,
+            self.portable_contract.touches(),
         )
         .map_err(|()| {
             operation_denial(
@@ -178,20 +195,19 @@ impl<'a> WorthQueryApplicationOperationCompilation<'a> {
                 &self.operation,
             )
         })?;
-        let emissions = super::super::contracts::compile_effect_emissions(&self.program);
+        let emissions = super::super::contracts::install_portable_effect_emissions(
+            self.portable_contract.emissions(),
+        );
         let aftermath = install_application_aftermath(&self).map_err(|_| {
             operation_denial(
                 WorthQueryApplicationOperationInstallationDenialKind::AftermathInstallationDenied,
                 &self.operation,
             )
         })?;
-        let mut authored_program = self.program;
-        authored_program.sort();
-        authored_program.dedup();
         let sealed = WorthQuerySealedOperationContractCompilation {
             authorization,
             ability_requirements,
-            authored_program_width: authored_program.len(),
+            authored_program_width: self.portable_contract.authored_program_width(),
             decision_fact_budget: self.decision_fact_budget,
             projection_work_budget: self.projection_work_budget,
             additional_authorization_fact_count,
@@ -230,6 +246,21 @@ impl<'a> WorthQueryApplicationOperationCompilation<'a> {
     }
 }
 
+fn install_portable_external_effect(
+    portable: Option<&WorthQueryPortableExternalEffectContractRecord>,
+) -> InstalledExternalEffectContract {
+    match portable {
+        None => InstalledExternalEffectContract::None,
+        Some(portable) => InstalledExternalEffectContract::Declared {
+            correlation_family: portable.correlation_family().clone(),
+            effect: portable.effect().to_owned(),
+            rust_payload_type: *portable.payload_type(),
+            protocol: portable.protocol().clone(),
+            maximum_payload_bytes: portable.maximum_payload_bytes(),
+        },
+    }
+}
+
 impl super::aftermath_installation_source_seal::Sealed
     for WorthQueryApplicationOperationCompilation<'_>
 {
@@ -246,7 +277,7 @@ impl super::WorthQueryOperationAftermathInstallationSource
         &self.operation
     }
 
-    fn decision_reads(&self) -> &[ApplicationOperationDecisionReadTarget] {
+    fn portable_decision_reads(&self) -> &[ApplicationOperationDecisionReadTarget] {
         &self.decision_reads
     }
 
@@ -256,6 +287,12 @@ impl super::WorthQueryOperationAftermathInstallationSource
 
     fn portable_aftermath(&self) -> Option<&PortableApplicationAftermathContract> {
         self.portable_aftermath.as_ref()
+    }
+
+    fn portable_reconciliation(
+        &self,
+    ) -> Option<&WorthQueryPortableInstalledReconciliationProcedureRecord> {
+        self.portable_contract.reconciliation()
     }
 }
 

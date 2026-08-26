@@ -16,7 +16,8 @@ Signal basis, correspondence, freshness, and attempt binding through:
 - receipts and causal inspection;
 - history, live delivery, preview, recovery, and certification; and
 - public `worth-query-decl` / `worth-query-host` branch workflows;
-- runtime-level PostgreSQL startup/recovery/readiness; and
+- execution-owned persistent-runtime startup/recovery/readiness, reexported by
+  the provider-neutral host facade; and
 - existing-outbox dispatch admission gated by the performed composite
   publication rather than an owner-local Relational commit.
 
@@ -283,11 +284,10 @@ worth-query-decl/
         mutation.rs
 
 worth-query-host/
-    branch/
-        facade.rs
-        lifecycle.rs
-        recovery.rs
-    runtime/recovery/
+    facade.rs                    # audience reexports only
+
+worth-query-execution/
+    persistent_runtime/recovery/
         owner_progression.rs
         composite_readmission.rs
         dispatch_reconciliation.rs
@@ -385,9 +385,14 @@ creation, inspection, mutation, history, and recovery through
 advanced component plan explicit. Remove public raw lower-runtime ids and
 direct Bridge/Relational/Signal entry from the ordinary Query journey.
 
-Cut the stable `WorthQueryHost::open_persistent` facade to require the completed
-component and Runtime Bridge owner set while the PostgreSQL adapter populates
-their physical implementations. Readiness remains unavailable until exact
+Preserve the stable `WorthQueryHost::open_persistent` audience entry while
+replacing its internal provider-bundle progression with the completed component
+and Runtime Bridge owner set. The 9.16.2 provider bundle must already be a
+compiler-visible construction progression: adding these required owner
+providers intentionally breaks incomplete composition roots without moving or
+duplicating the facade. The PostgreSQL adapter populates only their physical
+implementations. Query execution owns opening and recovery; `worth-query-host`
+only reexports that capability. Readiness remains unavailable until exact
 package, owner, composite, Query, and dispatch reconciliation all close.
 
 Delete the old Relational-only and ambient-Signal paths atomically with the
@@ -422,8 +427,16 @@ Query phase reopened those guarantees.
 
 ```rust
 let persistence = WorthRuntimePostgres::connect(postgres_configuration)?;
+let providers = PersistentQueryRuntimeProviders::builder()
+    .relational_durability(persistence.relational_durability())
+    .query_package_archives(persistence.query_package_archives())
+    .runtime_stream_catalog(persistence.runtime_stream_catalog())
+    .dispatch_coordination(persistence.dispatch_coordination())
+    .signal_durability(persistence.signal_durability())
+    .runtime_world_durability(persistence.runtime_world_durability())
+    .build()?;
 let app = WorthQueryHost::open_persistent(
-    persistence,
+    providers,
     signed_release,
     host_runtime_bindings,
 )?;

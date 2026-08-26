@@ -6,11 +6,17 @@ impl<Schema> ApplicationSchemaDeclarationBuilder<Schema> {
     pub fn operation<Operation, Input>(
         mut self,
         definition: ApplicationOperationDefinition<Schema, Operation, Input>,
-    ) -> Self {
+    ) -> Self
+    where
+        Operation: 'static,
+        Input: 'static,
+    {
         let operation = definition.operation.to_string();
+        self.member_provenance
+            .register_operation::<Operation, Input>(definition.operation, definition.input_type);
         self.push_member_in_place(ApplicationSchemaMember::Operation {
             operation: operation.clone(),
-            input_type: definition.input_type.to_string(),
+            input_type: definition.input_type,
         });
         if let Some(external_effect) = definition.external_effect {
             self.push_member_in_place(ApplicationSchemaMember::OperationExternalEffect {

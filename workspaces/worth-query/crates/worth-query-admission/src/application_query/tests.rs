@@ -8,7 +8,7 @@ use worth_query_declaration::facade::application_query::{
 };
 use worth_query_declaration::{
     worth_query_application_query, worth_query_application_schema, worth_query_aspect,
-    worth_query_entity, worth_query_field, worth_query_relation,
+    worth_query_entity, worth_query_field, worth_query_portable_type, worth_query_relation,
 };
 use worth_query_installation::facade::{
     WorthQueryInstallationAdmissionProfile, WorthQueryInstallationGeneration,
@@ -109,6 +109,11 @@ struct AccountParameter;
 struct AccountIdSlot;
 struct SequenceSlot;
 struct ActivitySlot;
+
+worth_query_portable_type!(ActivityResult => "worth.query.test.admission.activity-result.v1");
+worth_query_portable_type!(AccountIdSlot => "worth.query.test.admission.account-id-slot.v1");
+worth_query_portable_type!(SequenceSlot => "worth.query.test.admission.sequence-slot.v1");
+worth_query_portable_type!(ActivitySlot => "worth.query.test.admission.activity-slot.v1");
 
 worth_query_application_query!(
     ActivityQuery in PlanningTestSchema,

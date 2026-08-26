@@ -4,15 +4,15 @@ use worth_query_declaration::facade::{
     application_capability::ApplicationCapabilityFieldBinding,
     application_schema::{
         ApplicationAspectMarkerIdentity, ApplicationEntityMarkerIdentity,
-        ApplicationFieldMarkerIdentity, ApplicationFieldRef, EqualityPredicate, NoApplicationUnit,
-        ReadOnly,
+        ApplicationFieldMarkerIdentity, ApplicationFieldPresence, ApplicationFieldRef,
+        DeclaredApplicationFieldValue, EqualityPredicate, NoApplicationUnit, ReadOnly,
     },
 };
 
 use super::{
     Action, Amount, ChangedResourceWorkflow, ChangedValidFrom, ChangedWorkflow, DelegationLimit,
-    Facts, Field, Grant, Purpose, Resource, ResourceFacts, ResourceWorkflow, Schema, Status,
-    ValidFrom, ValidThrough, Workflow,
+    Facts, Field, Grant, Principal, Purpose, Resource, ResourceFacts, ResourceWorkflow, Schema,
+    Status, ValidFrom, ValidThrough, Workflow,
 };
 
 macro_rules! entity_identity {
@@ -48,11 +48,16 @@ macro_rules! field_identity {
             type Aspect = $aspect;
             const IDENTIFIER: &'static str = $identifier;
         }
+        impl DeclaredApplicationFieldValue for $marker {
+            type Value = u64;
+            const PRESENCE: ApplicationFieldPresence = ApplicationFieldPresence::Required;
+        }
     };
 }
 
 entity_identity!(Grant, "Grant");
 entity_identity!(Resource, "Resource");
+entity_identity!(Principal, "Principal");
 aspect_identity!(Facts, Grant, "Facts", 0x9161_2201);
 aspect_identity!(ResourceFacts, Resource, "ResourceFacts", 0x9161_2202);
 field_identity!(Action, Grant, Facts, "Action");
@@ -117,4 +122,21 @@ where
         EqualityPredicate,
         NoApplicationUnit,
     >::from_schema_types())
+}
+
+pub(super) fn resource_field<FieldMarker>() -> ApplicationFieldRef<
+    Schema,
+    Resource,
+    ResourceFacts,
+    FieldMarker,
+    u64,
+    ReadOnly,
+    EqualityPredicate,
+    NoApplicationUnit,
+>
+where
+    FieldMarker:
+        ApplicationFieldMarkerIdentity<Schema = Schema, Entity = Resource, Aspect = ResourceFacts>,
+{
+    ApplicationFieldRef::from_schema_types()
 }

@@ -1,3 +1,4 @@
+use worth_query_declaration::facade::application_schema::ApplicationOperationMarkerIdentity;
 use worth_query_installation::facade::{
     ApplicationSchema, WorthQueryInstalledApplicationOperation,
 };
@@ -21,10 +22,11 @@ pub(super) fn installed_lifecycle_owner<'runtime, Schema, Operation, Input>(
 >
 where
     Schema: ApplicationSchema,
+    Operation: ApplicationOperationMarkerIdentity,
 {
     let Some((capability, command_capability, role)) = runtime
         .authorization
-        .elevation_lifecycle_operation::<Operation, Input>(operation.operation())
+        .elevation_lifecycle_operation::<Operation>(operation.operation(), operation.input_type())
         .map_err(|()| stale_operation(operation.operation()))?
     else {
         return Err(role_mismatch(operation.operation()));
