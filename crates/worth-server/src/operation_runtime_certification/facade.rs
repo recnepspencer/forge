@@ -81,11 +81,10 @@ impl WorthServerProductOperationRuntimeCertificationFacade {
             ready,
             receipt.audit_digest(),
             format!(
-                "ordinary_rows={};blocked={};legacy={};folklore={};scope={}",
+                "ordinary_rows={};blocked={};legacy={};scope={}",
                 receipt.support_posture().ordinary_row_count(),
                 receipt.support_posture().blocked_row_count(),
                 receipt.support_posture().legacy_assumption_row_count(),
-                receipt.support_posture().local_folklore_row_count(),
                 receipt.support_posture().unclassified_scope_row_count(),
             ),
         )

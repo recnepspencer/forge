@@ -27,10 +27,64 @@ pub(in crate::product_adapter) fn close_product_operation_readiness(
                 resolved_request_context,
             )
         }
+        WorthServerProductOperationBasisKind::PrimaryGraphApplication => {
+            close_primary_graph_application_readiness(&readiness, admission, declaration)
+        }
         _ => readiness
             .close_readiness(admission, None, None)
             .map_err(WorthServerProductOperationSurfaceDenial::from_readiness_denial),
     }
+}
+
+fn close_primary_graph_application_readiness(
+    readiness: &WorthServerOperationReadinessFacade,
+    admission: &crate::WorthServerOperationAdmissionPosture,
+    declaration: &WorthServerProductOperationDeclaration,
+) -> Result<crate::WorthServerOperationReadinessClosure, WorthServerProductOperationSurfaceDenial> {
+    let provider = declaration
+        .query_application_readiness_provider()
+        .ok_or_else(|| {
+            WorthServerProductOperationSurfaceDenial::new(
+                WorthServerProductOperationSurfaceDenialCode::ReadinessDenied,
+                "primary-graph application readiness provider was not retained after certification"
+                    .to_string(),
+            )
+        })?;
+    let snapshot = provider.inspect_application_readiness().map_err(|denial| {
+        WorthServerProductOperationSurfaceDenial::new(
+            WorthServerProductOperationSurfaceDenialCode::ReadinessDenied,
+            format!(
+                "{} denied application readiness: {}",
+                provider.provider_name(),
+                denial.subject()
+            ),
+        )
+    })?;
+    let prepared_kind = admission
+        .authorization_proof()
+        .admission()
+        .query_handoff_intent()
+        .kind();
+    let operation = query_binding_operation(
+        prepared_kind,
+        declaration.operation_family(),
+        declaration.operation_name(),
+    );
+    let query_context = WorthServerOperationQuerySupportContext::for_primary_graph_application(
+        prepared_kind,
+        &operation,
+        &snapshot,
+    );
+    let precondition_posture = WorthServerProductBasisPrecondition::evaluate(
+        declaration.operation_name(),
+        admission.operation_request().identity().basis_digest(),
+        snapshot.basis_token(),
+    )
+    .map(WorthServerOperationPreconditionPosture::ProductBasis)
+    .map_err(WorthServerProductOperationSurfaceDenial::from_readiness_denial)?;
+    readiness
+        .close_readiness(admission, Some(query_context), Some(precondition_posture))
+        .map_err(WorthServerProductOperationSurfaceDenial::from_readiness_denial)
 }
 
 fn close_query_derived_product_readiness(

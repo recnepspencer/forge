@@ -1,7 +1,6 @@
 use worth_proof::TransitionReadiness;
 use worth_query::facade::consumer_kit::{
-    hard_prohibition_boundary_audit, project_workspace_support_snapshot,
-    query_test_backend_residue_audit, support_pinning_contract, WorthQueryPinnedSupportStatus,
+    project_workspace_support_snapshot, support_pinning_contract, WorthQueryPinnedSupportStatus,
     WorthQueryPinnedTeachingPosture, WorthQuerySupportPinContractBuilder,
     WorthQuerySupportPinningError,
 };
@@ -14,18 +13,12 @@ use crate::{
 };
 
 use super::{
-    covered_path_inventory, covered_paths, worth_server_query_boundary_source_inventory,
-    WorthServerQueryDependencyAuditProvenance, WorthServerQueryDependencyAuditReceipt,
-    WorthServerQueryDependencyAuditRow, WorthServerQueryDependencyAuditRowId,
-    WorthServerQueryDependencyBindingKind, WorthServerQueryDependencyBoundaryAuditProvenance,
-    WorthServerQueryDependencyClosurePosture, WorthServerQueryDependencyConsumerKitPosture,
-    WorthServerQueryDependencyCoveredPath, WorthServerQueryDependencyRuntimeReadiness,
+    covered_path_inventory, covered_paths, WorthServerQueryDependencyAuditProvenance,
+    WorthServerQueryDependencyAuditReceipt, WorthServerQueryDependencyAuditRow,
+    WorthServerQueryDependencyAuditRowId, WorthServerQueryDependencyClosurePosture,
+    WorthServerQueryDependencyConsumerKitPosture, WorthServerQueryDependencyCoveredPath,
     WorthServerQueryDependencyScopePosture, WorthServerQueryDependencySupportPinProvenance,
-    WorthServerQueryDependencyTestBackendResidueProvenance,
 };
-
-const TEST_BACKEND_SUPPORT_ROOT: &str =
-    concat!(env!("CARGO_MANIFEST_DIR"), "/tests/support/query_handoff");
 
 pub(crate) fn run_query_dependency_audit(
     request_contexts: &WorthServerRequestContextFacade,
@@ -45,179 +38,8 @@ fn classify_path(
     query_handoff_config: &WorthServerQueryHandoffConfig,
     path: WorthServerQueryDependencyCoveredPath,
 ) -> WorthServerQueryDependencyAuditRow {
-    if matches!(
-        path.binding_kind,
-        WorthServerQueryDependencyBindingKind::StaticTestOnly
-    ) {
-        return classify_static_test_only_path(path);
-    }
-    if matches!(
-        path.binding_kind,
-        WorthServerQueryDependencyBindingKind::ConsumerKitBoundaryAudit
-    ) {
-        return classify_boundary_audit_path(path);
-    }
-
     let (consumer_kit_posture, closure_posture, provenance, reason) =
         classify_query_bound_path(request_contexts, query_handoff_config, &path);
-    WorthServerQueryDependencyAuditRow::new(super::WorthServerQueryDependencyAuditRowParts {
-        row_id: WorthServerQueryDependencyAuditRowId::new(path.row_id),
-        path_kind: path.path_kind,
-        runtime_readiness: path.runtime_readiness,
-        consumer_kit_posture,
-        scope_posture: scope_posture_for(path.path_kind),
-        closure_posture,
-        ordinary_path: path.ordinary_path,
-        provenance,
-        reason,
-    })
-}
-
-fn classify_static_test_only_path(
-    path: WorthServerQueryDependencyCoveredPath,
-) -> WorthServerQueryDependencyAuditRow {
-    let report = query_test_backend_residue_audit("worth-server")
-        .required_root(TEST_BACKEND_SUPPORT_ROOT)
-        .evaluate();
-    let (consumer_kit_posture, provenance, reason) = match report {
-        Ok(report) if report.finding_count() == 0 => (
-            WorthServerQueryDependencyConsumerKitPosture::QueryTestBackendResidueAuditAdopted,
-            WorthServerQueryDependencyAuditProvenance::TestBackendResidue(
-                WorthServerQueryDependencyTestBackendResidueProvenance::new(
-                    report.audited_roots().to_vec(),
-                    report
-                        .report_identity()
-                        .terminal_projection_for_reporting()
-                        .to_string(),
-                    report.finding_count(),
-                    report.scanned_file_count(),
-                ),
-            ),
-            format!(
-                "query test backend residue audit clean across {} scanned files",
-                report.scanned_file_count()
-            ),
-        ),
-        Ok(report) => (
-            WorthServerQueryDependencyConsumerKitPosture::LocalFolklore,
-            WorthServerQueryDependencyAuditProvenance::TestBackendResidue(
-                WorthServerQueryDependencyTestBackendResidueProvenance::new(
-                    report.audited_roots().to_vec(),
-                    report
-                        .report_identity()
-                        .terminal_projection_for_reporting()
-                        .to_string(),
-                    report.finding_count(),
-                    report.scanned_file_count(),
-                ),
-            ),
-            format!(
-                "query test backend residue findings: {} across {} scanned files",
-                report.finding_count(),
-                report.scanned_file_count()
-            ),
-        ),
-        Err(error) => (
-            WorthServerQueryDependencyConsumerKitPosture::LocalFolklore,
-            WorthServerQueryDependencyAuditProvenance::TestBackendResidue(
-                WorthServerQueryDependencyTestBackendResidueProvenance::new(
-                    vec![TEST_BACKEND_SUPPORT_ROOT.to_string()],
-                    "query-test-backend-residue-audit-error".to_string(),
-                    usize::MAX,
-                    0,
-                ),
-            ),
-            format!("query test backend residue audit failed: {error:?}"),
-        ),
-    };
-
-    WorthServerQueryDependencyAuditRow::new(super::WorthServerQueryDependencyAuditRowParts {
-        row_id: WorthServerQueryDependencyAuditRowId::new(path.row_id),
-        path_kind: path.path_kind,
-        runtime_readiness: WorthServerQueryDependencyRuntimeReadiness::StaticTestOnly,
-        consumer_kit_posture,
-        scope_posture: WorthServerQueryDependencyScopePosture::StaticTestOnly,
-        closure_posture: WorthServerQueryDependencyClosurePosture::StaticTestOnly,
-        ordinary_path: false,
-        provenance,
-        reason,
-    })
-}
-
-fn classify_boundary_audit_path(
-    path: WorthServerQueryDependencyCoveredPath,
-) -> WorthServerQueryDependencyAuditRow {
-    let inventory = worth_server_query_boundary_source_inventory();
-    let (consumer_kit_posture, closure_posture, provenance, reason) =
-        match hard_prohibition_boundary_audit()
-            .covering_sources(inventory.boundary_sources())
-            .evaluate()
-        {
-            Ok(report) if report.findings().is_empty() => (
-                WorthServerQueryDependencyConsumerKitPosture::QueryBoundaryAuditAdopted,
-                WorthServerQueryDependencyClosurePosture::Ready,
-                WorthServerQueryDependencyAuditProvenance::BoundaryAudit(
-                    WorthServerQueryDependencyBoundaryAuditProvenance::new(
-                        inventory.required_roots().to_vec(),
-                        inventory.source_paths().to_vec(),
-                        inventory.inventory_digest().to_string(),
-                        report
-                            .report_identity()
-                            .terminal_projection_for_reporting()
-                            .to_string(),
-                        report.findings().len(),
-                        report.parsed_item_count(),
-                        report.visited_call_count(),
-                    ),
-                ),
-                format!(
-                    "query boundary audit clean with report `{}` across {} sources from inventory `{}`",
-                    report.report_identity().terminal_projection_for_reporting(),
-                    report.source_labels().len(),
-                    inventory.inventory_digest()
-                ),
-            ),
-            Ok(report) => (
-                WorthServerQueryDependencyConsumerKitPosture::QueryBoundaryAuditBlocked,
-                WorthServerQueryDependencyClosurePosture::Blocked,
-                WorthServerQueryDependencyAuditProvenance::BoundaryAudit(
-                    WorthServerQueryDependencyBoundaryAuditProvenance::new(
-                        inventory.required_roots().to_vec(),
-                        inventory.source_paths().to_vec(),
-                        inventory.inventory_digest().to_string(),
-                        report
-                            .report_identity()
-                            .terminal_projection_for_reporting()
-                            .to_string(),
-                        report.findings().len(),
-                        report.parsed_item_count(),
-                        report.visited_call_count(),
-                    ),
-                ),
-                format!(
-                    "query boundary audit found {} prohibited seam usage finding(s) in report `{}`",
-                    report.findings().len(),
-                    report.report_identity().terminal_projection_for_reporting()
-                ),
-            ),
-            Err(error) => (
-                WorthServerQueryDependencyConsumerKitPosture::QueryBoundaryAuditBlocked,
-                WorthServerQueryDependencyClosurePosture::Blocked,
-                WorthServerQueryDependencyAuditProvenance::BoundaryAudit(
-                    WorthServerQueryDependencyBoundaryAuditProvenance::new(
-                        inventory.required_roots().to_vec(),
-                        inventory.source_paths().to_vec(),
-                        inventory.inventory_digest().to_string(),
-                        "query-boundary-audit-error".to_string(),
-                        usize::MAX,
-                        0,
-                        0,
-                    ),
-                ),
-                format!("query-boundary-audit-error: {error}"),
-            ),
-        };
-
     WorthServerQueryDependencyAuditRow::new(super::WorthServerQueryDependencyAuditRowParts {
         row_id: WorthServerQueryDependencyAuditRowId::new(path.row_id),
         path_kind: path.path_kind,
@@ -354,8 +176,7 @@ fn scope_posture_for(
     path_kind: super::WorthServerQueryDependencyAuditPathKind,
 ) -> WorthServerQueryDependencyScopePosture {
     match path_kind {
-        super::WorthServerQueryDependencyAuditPathKind::DirectDeclarationSupportPosture
-        | super::WorthServerQueryDependencyAuditPathKind::ServerConsumerBoundaryAudit => {
+        super::WorthServerQueryDependencyAuditPathKind::DirectDeclarationSupportPosture => {
             WorthServerQueryDependencyScopePosture::ConsumerKitScoped
         }
         _ => WorthServerQueryDependencyScopePosture::QueryFamilyScoped,

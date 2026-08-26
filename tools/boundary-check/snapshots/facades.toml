@@ -339,6 +339,7 @@ exports = [
     "WorthQueryOrdinaryReadVersion",
     "WorthQueryPerformedExternalRedispatch",
     "WorthQueryPrimaryGraph",
+    "WorthQueryPrimaryGraphApplicationReadinessSnapshot",
     "WorthQueryPrimaryGraphApplicationRuntime",
     "WorthQueryPrimaryGraphBootstrap",
     "WorthQueryPrimaryGraphInstallationDenial",

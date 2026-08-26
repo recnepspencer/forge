@@ -2,10 +2,6 @@
 pub enum WorthServerQueryDependencyConsumerKitPosture {
     QuerySupportSnapshotAndPinningAdopted,
     QuerySupportSnapshotAndPinningBlocked,
-    QueryBoundaryAuditAdopted,
-    QueryBoundaryAuditBlocked,
-    QueryTestBackendResidueAuditAdopted,
-    LocalFolklore,
 }
 
 impl WorthServerQueryDependencyConsumerKitPosture {
@@ -17,10 +13,6 @@ impl WorthServerQueryDependencyConsumerKitPosture {
             Self::QuerySupportSnapshotAndPinningBlocked => {
                 "query-support-snapshot-and-pinning-blocked"
             }
-            Self::QueryBoundaryAuditAdopted => "query-boundary-audit-adopted",
-            Self::QueryBoundaryAuditBlocked => "query-boundary-audit-blocked",
-            Self::QueryTestBackendResidueAuditAdopted => "query-test-backend-residue-audit-adopted",
-            Self::LocalFolklore => "local-folklore",
         }
     }
 }

@@ -4,34 +4,10 @@ use crate::WorthServerOperationFamily;
 
 use super::{
     WorthServerProductAdapterCertificationCode, WorthServerProductAdapterCertificationError,
+    WorthServerProductOperationAuthorityRequirement, WorthServerProductOperationBasisKind,
     WorthServerProductOperationErrorMap, WorthServerProductOperationSupportSnapshot,
-    WorthServerProductPayloadSchemaValidator,
+    WorthServerProductPayloadSchemaValidator, WorthServerProductReadTransport,
 };
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum WorthServerProductReadTransport {
-    FlatQuery,
-    StructuredQuery,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum WorthServerProductOperationBasisKind {
-    QueryDerived,
-    ProductSessionDerived,
-    DurableProductDerived,
-    FixtureOnly,
-}
-
-impl WorthServerProductOperationBasisKind {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::QueryDerived => "query-derived",
-            Self::ProductSessionDerived => "product-session-derived",
-            Self::DurableProductDerived => "durable-product-derived",
-            Self::FixtureOnly => "fixture-only",
-        }
-    }
-}
 
 #[derive(Clone)]
 pub struct WorthServerProductOperationDeclaration {
@@ -45,6 +21,8 @@ pub struct WorthServerProductOperationDeclaration {
     read_transport: Option<WorthServerProductReadTransport>,
     payload_validator: Option<Arc<dyn WorthServerProductPayloadSchemaValidator>>,
     error_map: Option<Arc<dyn WorthServerProductOperationErrorMap>>,
+    query_application_readiness:
+        Option<Arc<dyn super::WorthServerQueryApplicationReadinessProvider>>,
 }
 
 impl std::fmt::Debug for WorthServerProductOperationDeclaration {
@@ -58,6 +36,13 @@ impl std::fmt::Debug for WorthServerProductOperationDeclaration {
             .field("support_snapshot", &self.support_snapshot)
             .field("authority_requirement", &self.authority_requirement)
             .field("read_transport", &self.read_transport)
+            .field(
+                "query_application_readiness",
+                &self
+                    .query_application_readiness
+                    .as_ref()
+                    .map(|provider| provider.provider_name()),
+            )
             .finish()
     }
 }
@@ -116,6 +101,7 @@ impl WorthServerProductOperationDeclaration {
             read_transport: Some(read_transport),
             payload_validator: None,
             error_map: None,
+            query_application_readiness: None,
         }
     }
 
@@ -140,6 +126,7 @@ impl WorthServerProductOperationDeclaration {
             read_transport: None,
             payload_validator: None,
             error_map: None,
+            query_application_readiness: None,
         }
     }
 
@@ -165,6 +152,7 @@ impl WorthServerProductOperationDeclaration {
             read_transport: None,
             payload_validator: None,
             error_map: None,
+            query_application_readiness: None,
         }
     }
 
@@ -181,6 +169,29 @@ impl WorthServerProductOperationDeclaration {
         error_map: Arc<dyn WorthServerProductOperationErrorMap>,
     ) -> Self {
         self.error_map = Some(error_map);
+        self
+    }
+
+    /// Binds this operation to the installed Query application that owns its
+    /// readiness snapshot. The snapshot is descriptive only; execution must
+    /// still enter Query through the operation's typed adapter.
+    pub fn with_primary_graph_application<Schema>(
+        mut self,
+        application: Arc<
+            worth_query_host::facade::primary_graph::WorthQueryPrimaryGraphApplicationRuntime<
+                Schema,
+            >,
+        >,
+    ) -> Self
+    where
+        Schema: worth_query_host::facade::declaration::application_schema::ApplicationSchema
+            + Send
+            + Sync
+            + 'static,
+    {
+        self.query_application_readiness = Some(
+            super::primary_graph_application_readiness_provider(application),
+        );
         self
     }
 
@@ -217,6 +228,7 @@ impl WorthServerProductOperationDeclaration {
             read_transport: None,
             payload_validator: None,
             error_map: None,
+            query_application_readiness: None,
         }
     }
 
@@ -285,6 +297,14 @@ impl WorthServerProductOperationDeclaration {
                 None => "not-applicable",
             },
         )
+        .field(
+            "query_application",
+            &self
+                .query_application_readiness
+                .as_ref()
+                .map(|provider| provider.binding_digest())
+                .unwrap_or_else(|| "none".to_string()),
+        )
         .finish()
     }
 
@@ -298,6 +318,12 @@ impl WorthServerProductOperationDeclaration {
         self.error_map
             .as_ref()
             .expect("validated product declarations must retain an explicit error map")
+    }
+
+    pub(crate) fn query_application_readiness_provider(
+        &self,
+    ) -> Option<&Arc<dyn super::WorthServerQueryApplicationReadinessProvider>> {
+        self.query_application_readiness.as_ref()
     }
 
     pub(crate) fn validate(&self) -> Result<(), WorthServerProductAdapterCertificationError> {
@@ -325,6 +351,14 @@ impl WorthServerProductOperationDeclaration {
                 "product operation declarations require an explicit denial or failure error map",
             ));
         }
+        if self.basis_kind == WorthServerProductOperationBasisKind::PrimaryGraphApplication
+            && self.query_application_readiness.is_none()
+        {
+            return Err(WorthServerProductAdapterCertificationError::new(
+                WorthServerProductAdapterCertificationCode::MissingQueryApplicationReadinessProvider,
+                "primary-graph application operations require their owning Query readiness provider",
+            ));
+        }
         match &self.authority_requirement {
             WorthServerProductOperationAuthorityRequirement::SharedRead => {}
             WorthServerProductOperationAuthorityRequirement::DraftMutation { draft_scope } => {
@@ -349,18 +383,4 @@ impl WorthServerProductOperationDeclaration {
         }
         Ok(())
     }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum WorthServerProductOperationAuthorityRequirement {
-    SharedRead,
-    DraftMutation {
-        draft_scope: String,
-    },
-    DurableMutation {
-        contract: crate::WorthServerDurableProductMutationContract,
-    },
-    SessionCoordination {
-        coordination_lane: String,
-    },
 }

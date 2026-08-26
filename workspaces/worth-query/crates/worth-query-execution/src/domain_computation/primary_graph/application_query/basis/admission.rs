@@ -187,7 +187,9 @@ fn validate_truth_view_lease(
     Ok(())
 }
 
-fn admit_current_execution_basis<Schema>(
+pub(in crate::domain_computation::primary_graph::application_query) fn admit_current_execution_basis<
+    Schema,
+>(
     application: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
 ) -> Result<WorthQueryApplicationBasisLease, WorthQueryApplicationQueryAdmissionDenial>
 where

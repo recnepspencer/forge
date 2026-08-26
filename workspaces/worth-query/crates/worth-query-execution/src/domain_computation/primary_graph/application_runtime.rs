@@ -50,6 +50,7 @@ pub struct WorthQueryPrimaryGraphApplicationRuntime<Schema> {
     pub(in crate::domain_computation) runtime: WorthQueryExecutionRuntime,
     pub(in crate::domain_computation) installed_schema:
         WorthQueryInstalledApplicationSchema<Schema>,
+    pub(super) application_readiness_schema_token: String,
     publication: WorthQueryPrimaryGraphPublication,
     pub(in crate::domain_computation) authorization: WorthQueryInstalledAuthorizationRegistry,
     pub(in crate::domain_computation) authorization_clock: Arc<WorthQueryRuntimeClock>,

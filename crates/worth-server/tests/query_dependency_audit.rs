@@ -52,17 +52,7 @@ fn server_query_dependency_audit_consumes_production_owned_covered_path_inventor
             .map(String::as_str)
             .collect::<Vec<_>>()
     );
-    assert_eq!(
-        receipt
-            .rows()
-            .iter()
-            .filter(|row| {
-                row.path_kind()
-                    == WorthServerQueryDependencyAuditPathKind::CertificationTestBackendSupport
-            })
-            .count(),
-        inventory.static_test_only_row_count()
-    );
+    assert_eq!(inventory.static_test_only_row_count(), 0);
     assert!(receipt.rows().iter().all(|row| !row.reason().is_empty()));
     assert!(!receipt.audit_digest().is_empty());
     assert!(receipt.ordinary_rows().iter().all(|row| row.scope_posture()
@@ -140,66 +130,16 @@ fn server_paths_expose_real_query_support_pinning_provenance() {
 }
 
 #[test]
-fn server_support_posture_and_boundary_rows_use_production_receipts() {
+fn server_support_posture_uses_query_runtime_receipts() {
     let server = test_server(TestWorkspaceProvider, false);
 
     let receipt = server.query_dependency_audit().run();
 
     assert!(receipt.ordinary_rows().iter().all(|row| {
-        matches!(
-            row.consumer_kit_posture(),
-            WorthServerQueryDependencyConsumerKitPosture::QuerySupportSnapshotAndPinningAdopted
-                | WorthServerQueryDependencyConsumerKitPosture::QueryBoundaryAuditAdopted
-        )
+        row.consumer_kit_posture()
+            == WorthServerQueryDependencyConsumerKitPosture::QuerySupportSnapshotAndPinningAdopted
     }));
-
-    let boundary_row = receipt
-        .row(WorthServerQueryDependencyAuditPathKind::ServerConsumerBoundaryAudit)
-        .expect("boundary audit row should exist");
-    let boundary = boundary_row
-        .provenance()
-        .boundary_audit()
-        .expect("boundary audit row should expose production inventory provenance");
-    assert_eq!(
-        boundary_row.runtime_readiness(),
-        WorthServerQueryDependencyRuntimeReadiness::QueryNineEightConsumerKitClosureReady
-    );
-    assert_eq!(
-        boundary_row.closure_posture(),
-        WorthServerQueryDependencyClosurePosture::Ready
-    );
-    assert_eq!(boundary.finding_count(), 0);
-    assert!(!boundary.source_inventory_identity().is_empty());
-    assert!(!boundary.report_identity().is_empty());
-    assert!(boundary
-        .required_roots()
-        .iter()
-        .any(|root| root.contains("declaration_intake")));
-    assert!(boundary
-        .required_roots()
-        .iter()
-        .any(|root| root.contains("query_handoff")));
-    assert!(boundary
-        .required_roots()
-        .iter()
-        .any(|root| root.contains("compat_http")));
-    assert!(boundary.source_paths().len() >= 4);
-
-    let test_support_row = receipt
-        .row(WorthServerQueryDependencyAuditPathKind::CertificationTestBackendSupport)
-        .expect("static test support row should exist");
-    let residue = test_support_row
-        .provenance()
-        .test_backend_residue()
-        .expect("static support row should expose residue audit provenance");
-    assert!(!test_support_row.ordinary_path());
-    assert_eq!(
-        test_support_row.consumer_kit_posture(),
-        WorthServerQueryDependencyConsumerKitPosture::LocalFolklore
-    );
-    assert!(residue.finding_count() > 0);
-    assert!(residue.scanned_file_count() > 0);
-    assert!(!residue.report_identity().is_empty());
+    assert_eq!(receipt.ordinary_rows().len(), receipt.rows().len());
 }
 
 #[test]

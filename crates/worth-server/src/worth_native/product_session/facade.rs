@@ -1,6 +1,6 @@
 use crate::{
     WorthServerAdmission, WorthServerCompletedProductSessionCoordination,
-    WorthServerOperationRegistry, WorthServerProductSession,
+    WorthServerOperationRegistry, WorthServerProductAdapterRegistry, WorthServerProductSession,
     WorthServerProductSessionCoordinationRuntime, WorthServerProductSessionCreationRequest,
     WorthServerProductSessionDenial, WorthServerProductSessionIdentity,
     WorthServerProductSessionRegistry,
@@ -10,6 +10,7 @@ use crate::{
 pub struct WorthServerWorthNativeProductSessionFacade {
     admission: WorthServerAdmission,
     operation_registry: WorthServerOperationRegistry,
+    product_adapter_registry: WorthServerProductAdapterRegistry,
     product_session_registry: WorthServerProductSessionRegistry,
 }
 
@@ -17,11 +18,13 @@ impl WorthServerWorthNativeProductSessionFacade {
     pub(crate) fn new(
         admission: WorthServerAdmission,
         operation_registry: WorthServerOperationRegistry,
+        product_adapter_registry: WorthServerProductAdapterRegistry,
         product_session_registry: WorthServerProductSessionRegistry,
     ) -> Self {
         Self {
             admission,
             operation_registry,
+            product_adapter_registry,
             product_session_registry,
         }
     }
@@ -80,6 +83,7 @@ impl WorthServerWorthNativeProductSessionFacade {
     fn runtime(&self) -> WorthServerProductSessionCoordinationRuntime {
         WorthServerProductSessionCoordinationRuntime::new(
             self.operation_registry.clone(),
+            self.product_adapter_registry.clone(),
             self.product_session_registry.clone(),
         )
     }

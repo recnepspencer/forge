@@ -2,7 +2,8 @@ use crate::{
     WorthServerAdmission, WorthServerCompatibilityPreparedRequest,
     WorthServerOperationAdmissionFacade, WorthServerOperationFamily,
     WorthServerOperationReadinessFacade, WorthServerOperationRegistry,
-    WorthServerOperationRequestFacade, WorthServerOperationRequestInput, WorthServerProductSession,
+    WorthServerOperationRequestFacade, WorthServerOperationRequestInput,
+    WorthServerProductAdapterRegistry, WorthServerProductSession,
     WorthServerProductSessionCreationRequest, WorthServerProductSessionDenial,
     WorthServerProductSessionDenialCode, WorthServerProductSessionIdentity,
     WorthServerProductSessionRegistry,
@@ -17,16 +18,19 @@ use super::{
 #[derive(Clone, Debug)]
 pub struct WorthServerProductSessionCoordinationRuntime {
     operation_registry: WorthServerOperationRegistry,
+    product_adapter_registry: WorthServerProductAdapterRegistry,
     product_session_registry: WorthServerProductSessionRegistry,
 }
 
 impl WorthServerProductSessionCoordinationRuntime {
     pub(crate) fn new(
         operation_registry: WorthServerOperationRegistry,
+        product_adapter_registry: WorthServerProductAdapterRegistry,
         product_session_registry: WorthServerProductSessionRegistry,
     ) -> Self {
         Self {
             operation_registry,
+            product_adapter_registry,
             product_session_registry,
         }
     }
@@ -102,6 +106,26 @@ impl WorthServerProductSessionCoordinationRuntime {
             None,
             WorthServerProductSessionCoordinationCommand::OpenMutation(request),
         )
+    }
+
+    fn bind_primary_graph_basis(
+        &self,
+        request: WorthServerProductSessionCreationRequest,
+    ) -> Result<WorthServerProductSessionCreationRequest, WorthServerProductSessionDenial> {
+        if request.basis_digest().is_some() {
+            return Ok(request);
+        }
+        match self
+            .product_adapter_registry
+            .current_primary_graph_basis(request.operation_name())
+        {
+            Ok(Some(basis)) => Ok(request.with_basis_digest(basis)),
+            Ok(None) => Ok(request),
+            Err(detail) => Err(WorthServerProductSessionDenial::new(
+                WorthServerProductSessionDenialCode::CoordinationReadinessDenied,
+                detail,
+            )),
+        }
     }
 
     pub fn close_from_compat_http(
@@ -183,6 +207,14 @@ impl WorthServerProductSessionCoordinationRuntime {
         )
         .close_readiness(&operation_admission, None, None)
         .map_err(map_readiness_denial)?;
+        let command = match command {
+            WorthServerProductSessionCoordinationCommand::OpenMutation(request) => {
+                WorthServerProductSessionCoordinationCommand::OpenMutation(
+                    self.bind_primary_graph_basis(request)?,
+                )
+            }
+            command => command,
+        };
         let plan = WorthServerLoweredProductSessionCoordinationPlan::new(
             operation_admission,
             command,
