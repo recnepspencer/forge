@@ -310,13 +310,13 @@ pub use surfaces::{
 pub use transport::{
     WorthServerAdmittedTransportCaller, WorthServerDeclaredRoute, WorthServerOperationRouter,
     WorthServerOperationalRoute, WorthServerOperationalRouteKind,
-    WorthServerOperationalRouteOutcome, WorthServerProjectedRouter, WorthServerRouteAssembly,
-    WorthServerRouteAssemblyError, WorthServerRouteBranchTarget, WorthServerRouteExecutionBridge,
-    WorthServerRouteExecutionOutcome, WorthServerRouteInventory, WorthServerRouteInventoryRow,
-    WorthServerRouteTransportRequest, WorthServerTransportCallerAdmissionRequest,
-    WorthServerTransportCallerDenial, WorthServerTransportCallerVerification,
-    WorthServerTransportCallerVerifier, WorthServerTransportDenial, WorthServerTransportDenialCode,
-    WorthServerVerifiedTransportCaller,
+    WorthServerOperationalRouteOutcome, WorthServerProjectedRouter, WorthServerQueryRequestScope,
+    WorthServerRouteAssembly, WorthServerRouteAssemblyError, WorthServerRouteBranchTarget,
+    WorthServerRouteExecutionBridge, WorthServerRouteExecutionOutcome, WorthServerRouteInventory,
+    WorthServerRouteInventoryRow, WorthServerRouteTransportRequest,
+    WorthServerTransportCallerAdmissionRequest, WorthServerTransportCallerDenial,
+    WorthServerTransportCallerVerification, WorthServerTransportCallerVerifier,
+    WorthServerTransportDenial, WorthServerTransportDenialCode, WorthServerVerifiedTransportCaller,
 };
 pub use worth_native::{
     WorthServerDirectAsyncResultState, WorthServerDirectContextArtifact,

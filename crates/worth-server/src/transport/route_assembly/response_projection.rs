@@ -19,6 +19,7 @@ pub(super) fn semantic_response(outcome: WorthServerRouteExecutionOutcome) -> Re
             Json(json!({
                 "route_kind": "product_session",
                 "product_session_identity": coordination.session().identity().as_str(),
+                "basis": coordination.session().basis_digest(),
                 "plan_digest": coordination.plan().canonical_digest(),
             })),
             semantic_headers(
@@ -124,6 +125,7 @@ pub(super) fn transport_denial_response(denial: WorthServerTransportDenial) -> R
             StatusCode::UNSUPPORTED_MEDIA_TYPE
         }
         WorthServerTransportDenialCode::UnknownRoute => StatusCode::NOT_FOUND,
+        WorthServerTransportDenialCode::RouteExecutionFailed => StatusCode::INTERNAL_SERVER_ERROR,
         _ => StatusCode::BAD_REQUEST,
     };
     response_with_headers(
@@ -131,6 +133,7 @@ pub(super) fn transport_denial_response(denial: WorthServerTransportDenial) -> R
             status,
             Json(json!({
                 "transport_denial_code": format!("{:?}", denial.code()),
+                "transport_denial_reason_key": denial.reason_key(),
                 "detail": denial.detail(),
             })),
         ),

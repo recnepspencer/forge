@@ -14,7 +14,10 @@ use super::{
     response_projection::{semantic_response, transport_denial_response},
     WorthServerOperationRouter, WorthServerRouteAssembly, WorthServerTransportDenial,
 };
-use crate::transport::{WorthServerTransportCallerAdmissionRequest, WorthServerTransportPrincipal};
+use crate::transport::{
+    WorthServerTransportCallerAdmissionRequest, WorthServerTransportPrincipal,
+    WorthServerTransportRequestCancellationGuard,
+};
 
 pub(crate) fn project_axum_router(
     assembly: &WorthServerRouteAssembly,
@@ -48,6 +51,7 @@ async fn semantic_route_handler(
     Query(query): Query<HashMap<String, String>>,
     body: Bytes,
 ) -> Response {
+    let request_lifecycle = WorthServerTransportRequestCancellationGuard::new();
     let Some(bridge) = operation_router.bridge_for(method.as_str(), uri.path()) else {
         return unknown_route_handler().await;
     };
@@ -58,12 +62,25 @@ async fn semantic_route_handler(
         method.as_str(),
         uri.path(),
         header_pairs(&headers),
+        request_lifecycle.cancellation(),
     );
     let transport_request = operation_router
         .caller_admission()
         .admit(&caller_request, optional_header(&headers, "x-principal-id"))
         .and_then(|principal| lower_transport_request(&headers, &query, body.to_vec(), principal));
-    match transport_request.and_then(|request| bridge.execute(request)) {
+    let execution = match transport_request {
+        Ok(request) => tokio::task::spawn_blocking(move || bridge.execute(request))
+            .await
+            .map_err(|error| {
+                WorthServerTransportDenial::new(
+                    super::WorthServerTransportDenialCode::RouteExecutionFailed,
+                    format!("semantic route execution task failed: {error}"),
+                )
+            })
+            .and_then(|outcome| outcome),
+        Err(denial) => Err(denial),
+    };
+    match execution {
         Ok(outcome) => semantic_response(outcome),
         Err(denial) => transport_denial_response(denial),
     }

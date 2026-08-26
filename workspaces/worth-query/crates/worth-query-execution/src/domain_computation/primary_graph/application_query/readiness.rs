@@ -6,6 +6,7 @@ use super::{
     basis::admit_current_execution_basis, WorthQueryApplicationBasisIdentity,
     WorthQueryApplicationQueryAdmissionDenial, WorthQueryApplicationQueryAdmissionDenialKind,
 };
+use crate::domain_computation::primary_graph::WorthQueryApplicationCommitReceipt;
 use crate::domain_computation::primary_graph::WorthQueryPrimaryGraphApplicationRuntime;
 
 /// Descriptive readiness of one installed primary-graph application runtime.
@@ -36,7 +37,11 @@ where
         let basis = admit_current_execution_basis(self)?;
         let basis_identity = basis.identity().clone();
         let schema_binding = self.installed_schema().binding_identity();
-        let basis_token = basis_token(&schema_binding, &basis_identity);
+        let basis_token = basis_token(
+            &schema_binding,
+            basis_identity.runtime_instance_id(),
+            basis_identity.descriptor(),
+        );
         let release = basis.release();
         if !release.released() {
             return Err(WorthQueryApplicationQueryAdmissionDenial::new(
@@ -49,6 +54,60 @@ where
             basis_identity,
             basis_token,
         })
+    }
+
+    /// Renders the transport precondition for the exact basis observed by an
+    /// application query result.
+    pub fn application_basis_token(
+        &self,
+        basis: &WorthQueryApplicationBasisIdentity,
+    ) -> Result<String, WorthQueryApplicationQueryAdmissionDenial> {
+        self.require_owned_basis(
+            basis.runtime_instance_id(),
+            basis.branch_id(),
+            "application query basis",
+        )?;
+        Ok(basis_token(
+            &self.installed_schema().binding_identity(),
+            basis.runtime_instance_id(),
+            basis.descriptor(),
+        ))
+    }
+
+    /// Renders the transport precondition established by an exact committed
+    /// application receipt without rediscovering a newer global head.
+    pub fn application_commit_basis_token(
+        &self,
+        receipt: &WorthQueryApplicationCommitReceipt,
+    ) -> Result<String, WorthQueryApplicationQueryAdmissionDenial> {
+        let descriptor = receipt.basis_descriptor();
+        self.require_owned_basis(
+            receipt.provider_runtime_instance_id(),
+            descriptor.branch_id(),
+            "application commit basis",
+        )?;
+        Ok(basis_token(
+            &self.installed_schema().binding_identity(),
+            receipt.provider_runtime_instance_id(),
+            descriptor,
+        ))
+    }
+
+    fn require_owned_basis(
+        &self,
+        runtime_instance_id: u64,
+        branch_id: &worth_relational::facade::history::BranchId,
+        subject: &str,
+    ) -> Result<(), WorthQueryApplicationQueryAdmissionDenial> {
+        if runtime_instance_id != self.relational_branch_identity.runtime_instance_id()
+            || branch_id != self.relational_branch_identity.branch_id()
+        {
+            return Err(WorthQueryApplicationQueryAdmissionDenial::new(
+                WorthQueryApplicationQueryAdmissionDenialKind::ForeignBasis,
+                subject,
+            ));
+        }
+        Ok(())
     }
 }
 
@@ -68,12 +127,14 @@ impl WorthQueryPrimaryGraphApplicationReadinessSnapshot {
 
 fn basis_token(
     schema: &ApplicationSchemaBindingIdentity,
-    basis: &WorthQueryApplicationBasisIdentity,
+    runtime_instance_id: u64,
+    descriptor: &worth_relational::facade::branch::RelationalBranchBasisDescriptor,
 ) -> String {
     format!(
-        "basis:query-primary-graph-v1:{}:{}:{}:{}:{}",
-        basis.runtime_instance_id(),
-        basis.snapshot_id().0,
+        "basis:query-primary-graph-v2:{}:{}:{}:{}:{}:{}",
+        runtime_instance_id,
+        descriptor.truth_version().as_u64(),
+        descriptor.root_identity(),
         schema.generation(),
         schema.package_identity().render_hex(),
         schema.schema_identity().render_hex(),

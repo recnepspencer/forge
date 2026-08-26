@@ -128,6 +128,7 @@ impl WorthServerWorthNativePreparedSession {
         WorthServerWorthNativeProductSessionFacade::new(
             self.admission.clone(),
             self.services.operation_registry.clone(),
+            self.services.product_adapter_registry.clone(),
             self.services.product_session_registry.clone(),
         )
     }
@@ -195,6 +196,7 @@ impl WorthServerWorthNativeSession {
         WorthServerWorthNativeProductSessionFacade::new(
             self.admission.clone(),
             self.services.operation_registry.clone(),
+            self.services.product_adapter_registry.clone(),
             self.services.product_session_registry.clone(),
         )
     }

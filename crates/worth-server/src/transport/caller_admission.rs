@@ -1,15 +1,17 @@
 use std::sync::Arc;
+use std::time::Instant;
 
 use sha2::{Digest, Sha256};
 
 use super::{WorthServerTransportDenial, WorthServerTransportDenialCode};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone)]
 pub struct WorthServerTransportCallerAdmissionRequest {
     operation_name: String,
     method: String,
     path: String,
     headers: Vec<(String, String)>,
+    cancellation: super::WorthServerTransportRequestCancellation,
 }
 
 impl WorthServerTransportCallerAdmissionRequest {
@@ -18,12 +20,14 @@ impl WorthServerTransportCallerAdmissionRequest {
         method: impl Into<String>,
         path: impl Into<String>,
         headers: Vec<(String, String)>,
+        cancellation: super::WorthServerTransportRequestCancellation,
     ) -> Self {
         Self {
             operation_name: operation_name.into(),
             method: method.into(),
             path: path.into(),
             headers,
+            cancellation,
         }
     }
 
@@ -44,6 +48,18 @@ impl WorthServerTransportCallerAdmissionRequest {
             .iter()
             .find(|(candidate, _)| candidate.eq_ignore_ascii_case(name))
             .map(|(_, value)| value.as_str())
+    }
+
+    /// Derives a Query request scope from this transport request's live
+    /// cancellation lifecycle and the verifier-admitted deadline.
+    pub fn query_request_scope(
+        &self,
+        scope_identity: impl Into<String>,
+        deadline: Instant,
+        initially_cancelled: bool,
+    ) -> super::WorthServerQueryRequestScope {
+        self.cancellation
+            .query_scope(scope_identity.into(), deadline, initially_cancelled)
     }
 }
 
@@ -68,6 +84,7 @@ pub struct WorthServerVerifiedTransportCaller {
     caller_identity: String,
     verifier_profile: String,
     verifier_revision: u64,
+    query_request_scope: Option<super::WorthServerQueryRequestScope>,
 }
 
 impl WorthServerVerifiedTransportCaller {
@@ -84,6 +101,7 @@ impl WorthServerVerifiedTransportCaller {
             caller_identity: caller_identity.into(),
             verifier_profile: verifier_profile.into(),
             verifier_revision,
+            query_request_scope: None,
         };
         for (label, value) in [
             ("principal identity", verified.principal_identity.as_str()),
@@ -101,6 +119,15 @@ impl WorthServerVerifiedTransportCaller {
             return Err("verified transport caller revision must be positive".to_string());
         }
         Ok(verified)
+    }
+
+    #[must_use]
+    pub fn with_query_request_scope(
+        mut self,
+        query_request_scope: super::WorthServerQueryRequestScope,
+    ) -> Self {
+        self.query_request_scope = Some(query_request_scope);
+        self
     }
 }
 
@@ -135,6 +162,7 @@ pub struct WorthServerAdmittedTransportCaller {
     verifier_profile: String,
     verifier_revision: u64,
     request_receipt: String,
+    query_request_scope: Option<super::WorthServerQueryRequestScope>,
 }
 
 impl WorthServerAdmittedTransportCaller {
@@ -150,6 +178,7 @@ impl WorthServerAdmittedTransportCaller {
             verifier_profile: verified.verifier_profile,
             verifier_revision: verified.verifier_revision,
             request_receipt,
+            query_request_scope: verified.query_request_scope,
         }
     }
 
@@ -175,6 +204,10 @@ impl WorthServerAdmittedTransportCaller {
 
     pub fn request_receipt(&self) -> &str {
         &self.request_receipt
+    }
+
+    pub fn query_request_scope(&self) -> Option<&super::WorthServerQueryRequestScope> {
+        self.query_request_scope.as_ref()
     }
 }
 
@@ -207,7 +240,8 @@ impl WorthServerTransportCallerAdmission {
                 Err(WorthServerTransportDenial::new(
                     WorthServerTransportDenialCode::CallerAdmissionDenied,
                     format!("{}: {}", denial.reason_key(), denial.detail()),
-                ))
+                )
+                .with_reason_key(denial.reason_key()))
             }
             WorthServerTransportCallerVerification::NotApplicable => caller_asserted_principal
                 .filter(|principal| !principal.trim().is_empty())
@@ -264,6 +298,11 @@ fn caller_receipt(
     ] {
         digest.update((component.len() as u64).to_be_bytes());
         digest.update(component.as_bytes());
+    }
+    if let Some(scope) = &caller.query_request_scope {
+        let identity = scope.identity();
+        digest.update((identity.len() as u64).to_be_bytes());
+        digest.update(identity.as_bytes());
     }
     format!("sha256:{:x}", digest.finalize())
 }

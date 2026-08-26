@@ -36,10 +36,27 @@ fn application_readiness_reports_current_query_basis_without_leaking_a_lease() {
     );
     assert!(readiness
         .basis_token()
-        .starts_with("basis:query-primary-graph-v1:"));
+        .starts_with("basis:query-primary-graph-v2:"));
+    let repeated = world
+        .application
+        .inspect_application_readiness()
+        .expect("repeated readiness inspection should remain available");
+    assert_eq!(
+        repeated.basis_token(),
+        readiness.basis_token(),
+        "readiness inspection must not manufacture a new optimistic basis"
+    );
+    assert_eq!(
+        world
+            .application
+            .application_basis_token(readiness.basis_identity())
+            .expect("the observed query basis should render through its owning runtime"),
+        readiness.basis_token(),
+        "a result must retain its exact observed basis instead of rediscovering head"
+    );
     let after = observer.observe();
     assert_eq!(after.active(), before.active());
-    assert_eq!(after.acquisitions(), before.acquisitions() + 1);
+    assert_eq!(after.acquisitions(), before.acquisitions() + 2);
 }
 
 #[test]

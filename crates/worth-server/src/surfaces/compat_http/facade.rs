@@ -116,6 +116,7 @@ impl WorthServerCompatibilityFacade {
     pub fn product_sessions(&self) -> super::WorthServerCompatibilityProductSessionFacade {
         super::WorthServerCompatibilityProductSessionFacade::new(
             self.operation_registry.clone(),
+            self.product_adapter_registry.clone(),
             self.product_session_registry.clone(),
         )
     }

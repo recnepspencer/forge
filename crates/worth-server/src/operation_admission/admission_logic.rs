@@ -314,6 +314,7 @@ fn validate_shared_read_basis_kind(
         }
         WorthServerOperationFamily::ProductApplicationRead => match basis_kind {
             "query-derived"
+            | "primary-graph-application"
             | "product-session-derived"
             | "durable-product-derived"
             | "fixture-only" => Ok(()),
