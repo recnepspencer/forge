@@ -28,7 +28,9 @@ fn repeated_merge_advances_source_branch_ledger_boundary() {
         .unwrap();
 
     runtime.switch_branch(main.clone()).unwrap();
-    let first_merge = runtime.merge_branch(feature.clone(), main.clone()).unwrap();
+    let first_merge = runtime
+        .merge_branch_raw(feature.clone(), main.clone())
+        .unwrap();
     assert_eq!(
         first_merge.records.len(),
         1,
@@ -51,7 +53,7 @@ fn repeated_merge_advances_source_branch_ledger_boundary() {
 
     runtime.switch_branch(main).unwrap();
     let second_merge = runtime
-        .merge_branch(feature, runtime.observe().current_branch())
+        .merge_branch_raw(feature, runtime.observe().current_branch())
         .unwrap();
 
     assert!(
@@ -99,7 +101,9 @@ fn retained_only_branch_churn_does_not_force_merge_replanning() {
         .unwrap();
 
     runtime.switch_branch(main.clone()).unwrap();
-    let _ = runtime.merge_branch(feature.clone(), main.clone()).unwrap();
+    let _ = runtime
+        .merge_branch_raw(feature.clone(), main.clone())
+        .unwrap();
 
     runtime.switch_branch(feature.clone()).unwrap();
     {
@@ -119,7 +123,7 @@ fn retained_only_branch_churn_does_not_force_merge_replanning() {
 
     runtime.switch_branch(main).unwrap();
     let result = runtime
-        .merge_branch(feature, runtime.observe().current_branch())
+        .merge_branch_raw(feature, runtime.observe().current_branch())
         .unwrap();
 
     assert!(
@@ -203,7 +207,7 @@ fn merge_branch_equivalent_runtime_state_ignores_retained_artifact_richness() {
 
     runtime.switch_branch(main).unwrap();
     let result = runtime
-        .merge_branch(feature, runtime.observe().current_branch())
+        .merge_branch_raw(feature, runtime.observe().current_branch())
         .unwrap();
     let shared_record = result
         .records

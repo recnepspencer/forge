@@ -33,13 +33,5 @@ note: found an item that was configured out
   | #[cfg(test)]
   |       ---- the item is gated here
 ...
-  |     SignalBranchRetirementDenial, SignalBranchRetirementRequest,
-  |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-note: found an item that was configured out
- --> src/facade/runtime.rs
-  |
-  | #[cfg(test)]
-  |       ---- the item is gated here
-...
   |     SignalBranchHeadPosture, SignalBranchRestorePosture, SignalBranchTransactionHead,
   |                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^

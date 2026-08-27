@@ -1,6 +1,8 @@
-use worth_signal::facade::{branch::admit_signal_branch_observation, OutputIdentity};
+use worth_signal::facade::{branch::AdmittedSignalBranchBasis, OutputIdentity};
+
+fn require_admitted_branch_basis(_: AdmittedSignalBranchBasis) {}
 
 fn main() {
     let token = OutputIdentity::new("host-output");
-    let _admitted = admit_signal_branch_observation(token, todo!());
+    require_admitted_branch_basis(token);
 }

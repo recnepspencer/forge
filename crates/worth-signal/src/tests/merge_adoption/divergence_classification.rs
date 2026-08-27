@@ -69,7 +69,7 @@ fn merge_branch_target_advanced_without_shared_conflict_surfaces_applied_diverge
         })
         .unwrap();
 
-    let result = runtime.merge_branch(feature, main).unwrap();
+    let result = runtime.merge_branch_raw(feature, main).unwrap();
     assert_eq!(result.merge_kind, BranchMergeKind::Applied);
     assert_eq!(result.divergence, BranchMergeDivergence::TargetAdvanced);
     assert!(result.counters.final_candidate_breadth > 0);
@@ -130,7 +130,7 @@ fn merge_branch_unrelated_target_only_pending_work_does_not_degrade_fast_forward
         })
         .unwrap();
 
-    let result = runtime.merge_branch(feature, main).unwrap();
+    let result = runtime.merge_branch_raw(feature, main).unwrap();
     assert_eq!(result.merge_kind, BranchMergeKind::FastForward);
     assert_eq!(result.divergence, BranchMergeDivergence::None);
     assert!(result

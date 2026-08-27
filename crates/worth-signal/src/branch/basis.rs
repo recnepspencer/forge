@@ -1,54 +1,65 @@
-use super::authority::{mint_signal_branch_authority, SignalBranchBasisAuthority};
+use std::sync::Arc;
+
+use super::authority::{
+    mint_signal_branch_authority, signal_branch_basis_proof, SignalBranchBasisProof,
+};
+use super::descriptor::SignalBranchBasisDescriptor;
 use super::reference::SignalBranchObservation;
+use super::retention::SignalBranchAdmissionLease;
 use crate::state::SignalBranchId;
 
 /// Owner-issued Signal observation token. Construction is private to the
 /// Signal branch owner; callers cannot mint one from a descriptor.
-#[derive(Debug)]
-pub struct AdmittedSignalBranchBasis {
-    observation: SignalBranchObservation,
-    _authority: SignalBranchBasisAuthority,
-    owner_branch_id: Option<SignalBranchId>,
-}
+#[derive(Debug, Clone)]
+pub struct AdmittedSignalBranchBasis(Arc<AdmittedSignalBranchBasisInner>);
 
-impl Clone for AdmittedSignalBranchBasis {
-    fn clone(&self) -> Self {
-        Self {
-            observation: self.observation.clone(),
-            _authority: mint_signal_branch_authority(),
-            owner_branch_id: self.owner_branch_id,
-        }
-    }
+#[derive(Debug)]
+struct AdmittedSignalBranchBasisInner {
+    descriptor: SignalBranchBasisDescriptor,
+    _proof: SignalBranchBasisProof,
+    _retention: SignalBranchAdmissionLease,
 }
 
 impl AdmittedSignalBranchBasis {
     pub fn observation(&self) -> &SignalBranchObservation {
-        &self.observation
+        self.0.descriptor.observation()
     }
 
-    pub(crate) fn owner_branch_id(&self) -> Option<SignalBranchId> {
-        self.owner_branch_id
+    pub fn descriptor(&self) -> &SignalBranchBasisDescriptor {
+        &self.0.descriptor
+    }
+
+    pub fn branch_id(&self) -> SignalBranchId {
+        self.0.descriptor.branch_id()
+    }
+
+    pub(crate) fn owner_branch_id(&self) -> SignalBranchId {
+        self.branch_id()
+    }
+
+    pub(crate) fn shared_holder_count(&self) -> usize {
+        Arc::strong_count(&self.0)
     }
 }
 
-pub fn admit_signal_branch_observation(
+pub(crate) fn admit_signal_branch_observation(
     observation: SignalBranchObservation,
-    authority: SignalBranchBasisAuthority,
+    branch_id: SignalBranchId,
+    retention: SignalBranchAdmissionLease,
 ) -> AdmittedSignalBranchBasis {
-    AdmittedSignalBranchBasis {
-        observation,
-        _authority: authority,
-        owner_branch_id: None,
-    }
+    let authority = mint_signal_branch_authority();
+    let proof = signal_branch_basis_proof(&authority);
+    AdmittedSignalBranchBasis(Arc::new(AdmittedSignalBranchBasisInner {
+        descriptor: SignalBranchBasisDescriptor::owner_issued(branch_id, observation),
+        _proof: proof,
+        _retention: retention,
+    }))
 }
 
 pub(crate) fn admit_runtime_signal_branch_observation(
     observation: SignalBranchObservation,
     branch_id: SignalBranchId,
+    retention: SignalBranchAdmissionLease,
 ) -> AdmittedSignalBranchBasis {
-    AdmittedSignalBranchBasis {
-        observation,
-        _authority: mint_signal_branch_authority(),
-        owner_branch_id: Some(branch_id),
-    }
+    admit_signal_branch_observation(observation, branch_id, retention)
 }

@@ -1,21 +1,15 @@
-use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use worth_proof::TransitionOutcome;
 
+use crate::branch::{
+    AdmittedSignalBranchBasis, PlannedSignalBranchRetirement, SignalBranchRetirementDenial,
+    SignalBranchRetirementReason, SignalBranchRetirementReceipt,
+};
 use crate::logic::transaction::canonical_digest;
-use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId};
+use crate::state::{SignalBranchHandle, SignalBranchId};
 
 use super::super::runtime_state::SignalRuntime;
-use super::{transaction_head::SignalBranchTransactionHead, SignalBranchBasisArtifact};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum SignalBranchRetirementReason {
-    Rejected,
-    Merged,
-    Superseded,
-    DependencyCancellation,
-    ProjectionRebuild,
-}
+use super::transaction_head::SignalBranchTransactionHead;
 
 #[derive(Debug, Clone)]
 pub struct SignalBranchRetirementRequest {
@@ -50,140 +44,53 @@ impl SignalBranchRetirementRequest {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum SignalBranchRetirementDenial {
-    UnknownBranch {
-        branch_id: SignalBranchId,
-    },
-    CurrentBranch {
-        branch_id: SignalBranchId,
-    },
-    CanonicalBranch {
-        branch_id: SignalBranchId,
-    },
-    StaleBranchHead {
-        expected: SignalBranchTransactionHead,
-        observed: SignalBranchTransactionHead,
-    },
-    CanonicalBasisMismatch,
-    LiveChildren {
-        branch_id: SignalBranchId,
-        child_branch_ids: Vec<SignalBranchId>,
-    },
-    MergeParticipant {
-        branch_id: SignalBranchId,
-    },
-}
-
-#[derive(Debug, Clone)]
-pub struct PlannedSignalBranchRetirement {
-    pub(super) request: SignalBranchRetirementRequest,
-    pub(super) validated_basis: SignalBranchBasisArtifact,
-    pub(super) planned_child_membership_count: u32,
-}
-
-impl PlannedSignalBranchRetirement {
-    pub(crate) fn request(&self) -> &SignalBranchRetirementRequest {
-        &self.request
-    }
-
-    pub(crate) fn validated_basis(&self) -> &SignalBranchBasisArtifact {
-        &self.validated_basis
-    }
-
-    pub fn planned_child_membership_count(&self) -> u32 {
-        self.planned_child_membership_count
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SignalBranchRetirementReceipt {
-    retired_branch: SignalBranchHandle,
-    parent_branch_id: SignalBranchId,
-    forked_from_snapshot_id: Option<SignalSnapshotId>,
-    terminal_head_snapshot_id: Option<SignalSnapshotId>,
-    reason: SignalBranchRetirementReason,
-    terminal_basis_digest: String,
-    closeout_digest: String,
-    reclaimed_branch_state_count: u32,
-    reclaimed_snapshot_state_count: u32,
-    reclaimed_runtime_meta_count: u32,
-    retained_proof_record_count: u32,
-}
-
-impl SignalBranchRetirementReceipt {
-    pub fn retired_branch(&self) -> &SignalBranchHandle {
-        &self.retired_branch
-    }
-
-    pub fn parent_branch_id(&self) -> SignalBranchId {
-        self.parent_branch_id
-    }
-
-    pub fn forked_from_snapshot_id(&self) -> Option<SignalSnapshotId> {
-        self.forked_from_snapshot_id
-    }
-
-    pub fn terminal_head_snapshot_id(&self) -> Option<SignalSnapshotId> {
-        self.terminal_head_snapshot_id
-    }
-
-    pub fn reason(&self) -> SignalBranchRetirementReason {
-        self.reason
-    }
-
-    pub fn terminal_basis_digest(&self) -> &str {
-        &self.terminal_basis_digest
-    }
-
-    pub fn closeout_digest(&self) -> &str {
-        &self.closeout_digest
-    }
-
-    pub fn reclaimed_branch_state_count(&self) -> u32 {
-        self.reclaimed_branch_state_count
-    }
-
-    pub fn reclaimed_snapshot_state_count(&self) -> u32 {
-        self.reclaimed_snapshot_state_count
-    }
-
-    pub fn reclaimed_runtime_meta_count(&self) -> u32 {
-        self.reclaimed_runtime_meta_count
-    }
-
-    pub fn retained_proof_record_count(&self) -> u32 {
-        self.retained_proof_record_count
-    }
-}
-
 impl<D, I, E, Ctx, T> SignalRuntime<D, I, E, Ctx, T>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub(crate) fn plan_branch_retirement(
+    pub(super) fn plan_branch_retirement_with_canonical_basis_after(
         &mut self,
         request: SignalBranchRetirementRequest,
+        basis: AdmittedSignalBranchBasis,
+        retired_before: &BTreeSet<SignalBranchId>,
+        admitted_allowance: u32,
     ) -> TransitionOutcome<PlannedSignalBranchRetirement, SignalBranchRetirementDenial> {
         self.with_telemetry(|telemetry| telemetry.transaction.branch_retirement_plan_count += 1);
-        if let Err(denial) = self.validate_retirement_request(&request) {
-            self.with_telemetry(|telemetry| {
-                telemetry.transaction.branch_retirement_denial_count += 1
-            });
+        if let Err(denial) = self.validate_retirement_request_after_with_admitted(
+            &request,
+            retired_before,
+            admitted_allowance,
+        ) {
             return TransitionOutcome::denied(denial);
         }
-
+        let active_leases = self
+            .branches
+            .branch_admitted_retention_count(request.branch.id);
+        let shared_holders = basis.shared_holder_count();
+        if active_leases != admitted_allowance {
+            return TransitionOutcome::denied(
+                SignalBranchRetirementDenial::RetainedAdmittedBasis {
+                    branch_id: request.branch.id,
+                    active_leases,
+                },
+            );
+        }
+        if shared_holders != 1 {
+            return TransitionOutcome::denied(SignalBranchRetirementDenial::SharedAdmittedBasis {
+                branch_id: request.branch.id,
+                shared_holders,
+            });
+        }
         let child_count = self.branches.branch_children(request.branch.id).len() as u32;
-        let validated_basis = match self.branch_basis_artifact(request.branch.clone()) {
-            TransitionOutcome::Success(basis) => basis,
-            other => panic!("validated retirement branch basis must succeed: {other:?}"),
-        };
+        let terminal_basis_digest = canonical_digest(&basis.observation().canonical_encoding());
         TransitionOutcome::success(PlannedSignalBranchRetirement {
-            validated_basis,
-            request,
+            branch: request.branch,
+            reason: request.reason,
+            terminal_basis_digest,
             planned_child_membership_count: child_count,
+            admitted_basis: basis,
         })
     }
 
@@ -191,14 +98,49 @@ where
         &mut self,
         plan: PlannedSignalBranchRetirement,
     ) -> TransitionOutcome<SignalBranchRetirementReceipt, SignalBranchRetirementDenial> {
-        if let Err(denial) = self.validate_retirement_request(&plan.request) {
+        let branch = plan.branch.clone();
+        let expected_generation = plan.admitted_basis.observation().generation().get();
+        let live = match self.signal_branch_observation(&branch) {
+            Ok(live) => live,
+            Err(_) => {
+                return TransitionOutcome::denied(SignalBranchRetirementDenial::UnknownBranch {
+                    branch_id: branch.id,
+                })
+            }
+        };
+        if live.compare(plan.admitted_basis.observation()).is_err() {
+            return TransitionOutcome::denied(SignalBranchRetirementDenial::StaleBranchHead {
+                expected_generation,
+                observed_generation: live.generation().get(),
+            });
+        }
+        let current_head = match self.branch_transaction_head(branch.clone()) {
+            TransitionOutcome::Success(head) => head,
+            _ => {
+                return TransitionOutcome::denied(SignalBranchRetirementDenial::UnknownBranch {
+                    branch_id: branch.id,
+                })
+            }
+        };
+        let request = SignalBranchRetirementRequest::new(branch.clone(), current_head, plan.reason);
+        if let Err(denial) =
+            self.validate_retirement_request_after_with_admitted(&request, &BTreeSet::new(), 1)
+        {
             self.with_telemetry(|telemetry| {
                 telemetry.transaction.branch_retirement_denial_count += 1
             });
             return TransitionOutcome::denied(denial);
         }
-
-        let branch = plan.request.branch.clone();
+        let shared_holders = plan.admitted_basis.shared_holder_count();
+        if shared_holders != 1 {
+            return TransitionOutcome::denied(SignalBranchRetirementDenial::SharedAdmittedBasis {
+                branch_id: branch.id,
+                shared_holders,
+            });
+        }
+        let reason = plan.reason;
+        let terminal_basis_digest = plan.terminal_basis_digest;
+        drop(plan.admitted_basis);
         let ancestry = self
             .branches
             .branch_ancestry_state(branch.id)
@@ -208,7 +150,6 @@ where
             .parent_branch_id()
             .expect("canonical branch retirement is denied during planning");
         let terminal_head_snapshot_id = self.branch_head_snapshot_id(branch.id);
-        let terminal_basis_digest = plan.validated_basis.payload().basis_digest().to_owned();
         let reclaimed = self
             .branches
             .retire_stored_branch(branch.id)
@@ -218,7 +159,7 @@ where
             parent_branch_id,
             ancestry.forked_from_snapshot_id(),
             terminal_head_snapshot_id,
-            plan.request.reason,
+            reason,
             terminal_basis_digest.as_str(),
         ));
         let receipt = SignalBranchRetirementReceipt {
@@ -226,7 +167,7 @@ where
             parent_branch_id,
             forked_from_snapshot_id: ancestry.forked_from_snapshot_id(),
             terminal_head_snapshot_id,
-            reason: plan.request.reason,
+            reason,
             terminal_basis_digest,
             closeout_digest,
             reclaimed_branch_state_count: reclaimed.branch_state_count,
@@ -235,11 +176,7 @@ where
             retained_proof_record_count: 1,
         };
         self.branches.retain_retirement_receipt(receipt.clone());
-        self.graph
-            .diagnostics_state_mut()
-            .retire_branch_from_catalog(branch.id);
-        let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
-        self.synchronize_branch_catalogs(branch_catalog);
+        self.project_branch_catalog();
         self.with_telemetry(|telemetry| {
             telemetry.transaction.branch_retirement_execution_count += 1;
             telemetry
@@ -267,54 +204,5 @@ where
             ),
         );
         TransitionOutcome::success(receipt)
-    }
-
-    fn validate_retirement_request(
-        &self,
-        request: &SignalBranchRetirementRequest,
-    ) -> Result<(), SignalBranchRetirementDenial> {
-        self.validate_retirement_request_after(request, &BTreeSet::new())
-    }
-
-    pub(super) fn validate_retirement_request_after(
-        &self,
-        request: &SignalBranchRetirementRequest,
-        retired_before: &BTreeSet<SignalBranchId>,
-    ) -> Result<(), SignalBranchRetirementDenial> {
-        let branch_id = request.branch.id;
-        if branch_id == self.graph.current_branch().id {
-            return Err(SignalBranchRetirementDenial::CurrentBranch { branch_id });
-        }
-        let Some(live_branch) = self.branches.branch_handle(branch_id) else {
-            return Err(SignalBranchRetirementDenial::UnknownBranch { branch_id });
-        };
-        if live_branch.parent_branch_id.is_none() {
-            return Err(SignalBranchRetirementDenial::CanonicalBranch { branch_id });
-        }
-        let observed = self
-            .observe_branch_transaction_head(&live_branch)
-            .expect("validated stored branch must expose a transaction head");
-        if request.expected_head != observed {
-            return Err(SignalBranchRetirementDenial::StaleBranchHead {
-                expected: request.expected_head.clone(),
-                observed,
-            });
-        }
-        let children = self
-            .branches
-            .branch_children(branch_id)
-            .into_iter()
-            .filter(|child_id| !retired_before.contains(child_id))
-            .collect::<Vec<_>>();
-        if !children.is_empty() {
-            return Err(SignalBranchRetirementDenial::LiveChildren {
-                branch_id,
-                child_branch_ids: children,
-            });
-        }
-        if self.branches.is_merge_participant(branch_id) {
-            return Err(SignalBranchRetirementDenial::MergeParticipant { branch_id });
-        }
-        Ok(())
     }
 }

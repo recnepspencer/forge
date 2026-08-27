@@ -29,7 +29,7 @@ Real examples:
 ## Main Surfaces
 
 - `SignalRuntime`
-- `runtime.transaction(...)`
+- `runtime.advance_signal_branch(...)`
 - `tx.mark_changed(...)`
 - `tx.target(node).run(...)`
 - `tx.target(node).read(...)`

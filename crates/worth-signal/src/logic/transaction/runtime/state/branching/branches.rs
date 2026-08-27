@@ -1,6 +1,7 @@
 mod authority;
 mod catalog;
 mod lifecycle;
+mod retention;
 mod selection;
 mod snapshot_storage;
 mod transfer;
@@ -9,6 +10,8 @@ pub(in crate::logic::transaction::runtime) use authority::{
     BranchAncestryState, BranchState, LatestMergeReference,
 };
 pub(in crate::logic::transaction::runtime) use catalog::BranchManager;
+pub(in crate::logic::transaction::runtime::state) use catalog::DEFAULT_MAXIMUM_STORED_SIGNAL_BRANCH_SNAPSHOTS;
+pub(in crate::logic::transaction::runtime) use snapshot_storage::SignalBranchSnapshotStorageDenial;
 
 use crate::data::graph::SignalGraph;
 use crate::data::telemetry::RuntimeTelemetry;

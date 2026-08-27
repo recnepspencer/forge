@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 use crate::boundary::errors::WorthSignalJsError;
 use crate::recipe::model::{RecipeSpec, SetValue, TransactionOp};
 use crate::runtime::adapters::{RuntimeDefinitionEnvelope, RuntimeEnvelope};
-use crate::runtime::summaries::RuntimeStoreSnapshot;
+use crate::runtime::summaries::{RuntimeSnapshotEnvelope, RuntimeStoreSnapshot};
 
 use super::{
     ExactRuntimeRestoreArtifact, RuntimeCore, CALLBACK_UNAVAILABLE_FOR_RUNTIME_ENVELOPE_IMPORT,
@@ -36,7 +36,7 @@ impl RuntimeCore {
         }
         let worker_public_output_ids = envelope.definitions.worker_public_output_ids;
         define_recipes_in_dependency_order(&mut rebuilt, envelope.definitions.recipes, source_ids)?;
-        rebuilt.restore_snapshot(envelope.snapshot)?;
+        rebuilt.reconstruct_imported_runtime_snapshot(envelope.snapshot)?;
         rebuilt.mark_worker_public_outputs(worker_public_output_ids)?;
         *self = rebuilt;
         Ok(())
@@ -75,20 +75,7 @@ impl RuntimeCore {
         }
         define_recipes_in_dependency_order(&mut rebuilt, recipes, source_ids)?;
 
-        if !state.sources.is_empty() {
-            rebuilt.apply_transaction(vec![TransactionOp::SetMany {
-                values: state
-                    .sources
-                    .iter()
-                    .map(|source| SetValue {
-                        id: source.id.clone(),
-                        value: source.value.clone(),
-                        aspect: None,
-                        aspects: source.produces_aspects.clone(),
-                    })
-                    .collect(),
-            }])?;
-        }
+        apply_imported_source_truth(&mut rebuilt, &state)?;
 
         rebuilt.mark_worker_public_outputs(worker_public_output_ids)?;
         *self = rebuilt;
@@ -104,16 +91,64 @@ impl RuntimeCore {
         rebuilt.web_signals = artifact.web_signals;
         rebuilt.nodes_by_id = artifact.nodes_by_id;
         rebuilt.dense_grids = artifact.dense_grids;
-        rebuilt.branch_states = artifact.branch_states;
-        rebuilt.snapshot_states = artifact.snapshot_states;
-        rebuilt.runtime_snapshots = artifact.runtime_snapshots;
         rebuilt.web_metrics = artifact.web_metrics;
         rebuilt.store = Arc::new(Mutex::new(artifact.store));
         rebuilt.callback_diagnostics = Arc::new(Mutex::new(artifact.callback_diagnostics));
-        rebuilt.restore_snapshot(artifact.snapshot)?;
+        rebuilt.reconstruct_imported_runtime_snapshot(artifact.snapshot)?;
         *self = rebuilt;
         Ok(())
     }
+
+    pub(in crate::runtime::core) fn reconstruct_imported_runtime_snapshot(
+        &mut self,
+        envelope: RuntimeSnapshotEnvelope,
+    ) -> Result<(), WorthSignalJsError> {
+        let RuntimeSnapshotEnvelope { snapshot, state } = envelope;
+        let branch = self.runtime.current_branch();
+        let basis = self.native_branch_basis(branch)?;
+        let (admitted_snapshot, _) = self
+            .runtime
+            .reconstruct_signal_branch_snapshot(&basis, &snapshot)
+            .map_err(|error| {
+                WorthSignalJsError::invalid_input(format!(
+                    "Signal snapshot reconstruction denied: {error:?}"
+                ))
+            })?
+            .into_parts();
+        self.restore_runtime_store_snapshot(state)?;
+        let snapshot_key = (snapshot.meta.branch_id.0, snapshot.meta.snapshot_id.0);
+        self.runtime_snapshots
+            .insert(snapshot_key, snapshot.clone());
+        self.admitted_runtime_snapshots
+            .insert(snapshot_key, admitted_snapshot);
+        self.snapshot_states
+            .insert(snapshot_key, self.snapshot_branch_state());
+        self.branch_states
+            .insert(snapshot.meta.branch_id.0, self.snapshot_branch_state());
+        Ok(())
+    }
+}
+
+fn apply_imported_source_truth(
+    rebuilt: &mut RuntimeCore,
+    state: &RuntimeStoreSnapshot,
+) -> Result<(), WorthSignalJsError> {
+    if state.sources.is_empty() {
+        return Ok(());
+    }
+    rebuilt.apply_transaction(vec![TransactionOp::SetMany {
+        values: state
+            .sources
+            .iter()
+            .map(|source| SetValue {
+                id: source.id.clone(),
+                value: source.value.clone(),
+                aspect: None,
+                aspects: source.produces_aspects.clone(),
+            })
+            .collect(),
+    }])?;
+    Ok(())
 }
 
 fn reject_unavailable_callbacks(

@@ -1,4 +1,7 @@
 use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotId};
+use worth_foundational::{
+    FoundationalBranchReferenceGeneration, FoundationalBranchReferenceGenerationAdvanceDenial,
+};
 
 use super::super::super::runtime_state::ExplicitBranchForkPacket;
 
@@ -40,6 +43,8 @@ where
             .or_default()
             .insert(packet.branch_id());
         self.branch_head_generations.insert(packet.branch_id(), 0);
+        self.branch_restore_snapshot_ids
+            .insert(packet.branch_id(), None);
         self.store_branch_state(packet.into_state());
         Ok(())
     }
@@ -62,13 +67,43 @@ where
             .unwrap_or(0)
     }
 
-    pub(in crate::logic::transaction::runtime) fn advance_branch_head_generation(
+    pub(in crate::logic::transaction::runtime) fn next_branch_head_generation(
+        &self,
+        branch_id: SignalBranchId,
+    ) -> Result<u64, FoundationalBranchReferenceGenerationAdvanceDenial> {
+        FoundationalBranchReferenceGeneration::new(self.branch_head_generation(branch_id))
+            .checked_advance()
+            .map(FoundationalBranchReferenceGeneration::get)
+    }
+
+    pub(in crate::logic::transaction::runtime) fn commit_branch_head_generation(
         &mut self,
         branch_id: SignalBranchId,
-    ) -> u64 {
-        let generation = self.branch_head_generations.entry(branch_id).or_default();
-        *generation = generation.saturating_add(1);
-        *generation
+        generation: u64,
+    ) {
+        self.branch_head_generations.insert(branch_id, generation);
+        self.branch_restore_snapshot_ids.insert(branch_id, None);
+    }
+
+    pub(in crate::logic::transaction::runtime) fn commit_branch_restore_generation(
+        &mut self,
+        branch_id: SignalBranchId,
+        generation: u64,
+        snapshot_id: SignalSnapshotId,
+    ) {
+        self.branch_head_generations.insert(branch_id, generation);
+        self.branch_restore_snapshot_ids
+            .insert(branch_id, Some(snapshot_id));
+    }
+
+    pub fn branch_restore_snapshot_id(
+        &self,
+        branch_id: SignalBranchId,
+    ) -> Option<SignalSnapshotId> {
+        self.branch_restore_snapshot_ids
+            .get(&branch_id)
+            .copied()
+            .flatten()
     }
 
     pub fn mark_merge_participants(
@@ -103,6 +138,10 @@ where
         self.live_branch_catalog.get(&branch_id).cloned()
     }
 
+    pub fn known_branches(&self) -> Vec<SignalBranchHandle> {
+        self.live_branch_catalog.values().cloned().collect()
+    }
+
     pub fn branch_ancestry(&self, branch_id: SignalBranchId) -> Vec<SignalBranchHandle> {
         let mut ancestry = Vec::new();
         let mut cursor = self.live_branch_catalog.get(&branch_id);
@@ -112,6 +151,7 @@ where
                 .parent_branch_id
                 .and_then(|parent| self.live_branch_catalog.get(&parent));
         }
+        ancestry.reverse();
         ancestry
     }
 

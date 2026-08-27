@@ -29,7 +29,7 @@
 //!
 //! - [`facade::SignalGraph`]
 //! - [`facade::SignalRuntime`]
-//! - `runtime.transaction(...)`
+//! - `runtime.advance_signal_branch(...)`
 //! - `runtime.diagnostics()`
 //! - `runtime.history()`
 //!
@@ -96,11 +96,16 @@
 //!     Ok::<_, SignalError>(result)
 //! };
 //!
-//! runtime.transaction(&mut state, |tx| {
+//! let basis = runtime
+//!     .observe_signal_branch_basis(runtime.current_branch())
+//!     .expect("current branch should admit an owner basis");
+//! let _next_basis = runtime.advance_signal_branch(&mut state, &basis, |tx| {
 //!     tx.mark_changed(price, PRICE)?;
 //!     tx.target(total).read(&evaluate)?;
 //!     Ok(())
-//! })?;
+//! })
+//! .expect("admitted branch advance should succeed")
+//! .into_basis();
 //!
 //! let version = runtime.target(total).read(&state, &evaluate)?;
 //! assert_eq!(version.get(TOTAL), 5);

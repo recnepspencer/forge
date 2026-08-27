@@ -46,7 +46,7 @@ fn runtime_proof_report_is_versioned_and_bundle_stable() {
 fn merge_plan_proof_report_is_stable_and_matches_lowered_semantics_bundle() {
     let (mut runtime, feature, main) = build_shared_state_conflict_runtime();
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .conflict_isolation_policy_named("signal.conflict-isolation.per-aspect")
@@ -88,7 +88,7 @@ fn merge_plan_proof_report_is_stable_and_matches_lowered_semantics_bundle() {
 fn merge_result_proof_report_is_stable_and_matches_lowered_semantics_bundle() {
     let (mut runtime, feature, main) = build_shared_state_conflict_runtime();
     let result = runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .conflict_isolation_policy_named("signal.conflict-isolation.per-aspect")
@@ -140,7 +140,7 @@ fn merge_plan_proof_digest_changes_when_conflict_isolation_selection_changes() {
     let (mut runtime, feature, main) = build_shared_state_conflict_runtime();
     let per_node_proof = {
         let per_node = runtime
-            .merge()
+            .merge_raw()
             .from(feature.clone())
             .into(main.clone())
             .conflict_isolation_policy_named("signal.conflict-isolation.per-node")
@@ -150,7 +150,7 @@ fn merge_plan_proof_digest_changes_when_conflict_isolation_selection_changes() {
     };
     let per_aspect_proof = {
         let per_aspect = runtime
-            .merge()
+            .merge_raw()
             .from(feature)
             .into(main)
             .conflict_isolation_policy_named("signal.conflict-isolation.per-aspect")

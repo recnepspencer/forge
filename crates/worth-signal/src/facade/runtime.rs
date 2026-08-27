@@ -136,23 +136,21 @@ pub use crate::logic::transaction::{
 pub use crate::logic::transaction::{
     BatchChangeSession, PlannedRuntimeMerge, PlannedSignalBranchRetirement,
     PlannedSignalBranchRetirementBatch, Recipe, RequiredDerivedRebuildSet, RuntimeMerge,
-    SignalBranchRetirementBatchReceipt, SignalBranchRetirementReason,
-    SignalBranchRetirementReceipt, SignalObservationAdmissionDenial, SignalObservationCompletion,
-    SignalObservationRequest, SignalObservationSession, SignalObservationSurface, SignalRuntime,
-    SignalRuntimeBuilder, SignalTransaction, TemporalCertificationBuilder,
-    TemporalCertificationBundle, TemporalCertificationBundleMismatchClass,
-    TemporalCertificationBundleParityReport, TemporalCertificationFailure,
-    TemporalCertificationFamily, TemporalCertificationRecord, TemporalCertificationSummary,
-    TemporalEligibilityFact, TemporalReconstructabilityArtifact, TemporalReplayMismatchClass,
-    TemporalReplayParityReport, TemporalStateRebuildProof, TemporalTransactionEvidence,
-    TransactionOutcome, TransactionResult, TransactionTiming,
+    SignalBranchRetirementBatchDenial, SignalBranchRetirementBatchReceipt,
+    SignalBranchRetirementDenial, SignalBranchRetirementReason, SignalBranchRetirementReceipt,
+    SignalObservationAdmissionDenial, SignalObservationCompletion, SignalObservationRequest,
+    SignalObservationSession, SignalObservationSurface, SignalRuntime, SignalRuntimeBuilder,
+    SignalTransaction, TemporalCertificationBuilder, TemporalCertificationBundle,
+    TemporalCertificationBundleMismatchClass, TemporalCertificationBundleParityReport,
+    TemporalCertificationFailure, TemporalCertificationFamily, TemporalCertificationRecord,
+    TemporalCertificationSummary, TemporalEligibilityFact, TemporalReconstructabilityArtifact,
+    TemporalReplayMismatchClass, TemporalReplayParityReport, TemporalStateRebuildProof,
+    TemporalTransactionEvidence, TransactionOutcome, TransactionResult, TransactionTiming,
 };
 #[cfg(test)]
 pub use crate::logic::transaction::{
     BranchTargetedTransactionDenial, BranchTargetedTransactionRequest, SignalBranchForkDenial,
     SignalBranchForkReceipt, SignalBranchForkRequest, SignalBranchForkRequestBasis,
-    SignalBranchRetirementBatchDenial, SignalBranchRetirementBatchRequest,
-    SignalBranchRetirementDenial, SignalBranchRetirementRequest,
     ValidatedBranchTargetedTransactionRequest,
 };
 pub use crate::logic::transaction::{

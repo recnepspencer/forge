@@ -58,6 +58,12 @@ Most days, the shape is:
 If you start in `easy`, that is still the same system.
 You are not signing up for a toy path you need to throw away later.
 
+When work must name an exact branch rather than whatever is current later,
+observe an `AdmittedSignalBranchBasis`. Governed fork, restore, advance, and
+retention operations consume that owner-issued basis. A serialized
+`SignalBranchBasisDescriptor` is intentionally non-authoritative until the
+owning runtime readmits it. See [Signal Branch Bases](./BRANCH_BASES.md).
+
 ## Change And Commit Semantics
 
 `mark_changed` records source recompute intent. It says which producer-local
@@ -210,11 +216,16 @@ let evaluate = |view: &mut EvaluationContext<'_, CheckoutState>| {
     Ok::<_, SignalError>(result)
 };
 
-runtime.transaction(&mut state, |tx| {
+let basis = runtime
+    .observe_signal_branch_basis(runtime.current_branch())
+    .expect("current branch should admit an owner basis");
+let _next_basis = runtime.advance_signal_branch(&mut state, &basis, |tx| {
     tx.mark_changed(price, PRICE)?;
     tx.target(total).read(&evaluate)?;
     Ok(())
-})?;
+})
+.expect("admitted branch advance should succeed")
+.into_basis();
 
 let version = runtime.target(total).read(&state, &evaluate)?;
 assert_eq!(version.get(TOTAL), 5);
@@ -248,7 +259,8 @@ If you are just getting started, stay in:
 
 - `SignalGraph`
 - `SignalRuntime`
-- `transaction(...)`
+- `runtime.observe_signal_branch_basis(...)`
+- `runtime.advance_signal_branch(...)`
 - `runtime.diagnostics()`
 
 Or start in `easy` and move out only when you need more room.

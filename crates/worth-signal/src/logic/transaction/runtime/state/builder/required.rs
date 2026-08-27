@@ -33,6 +33,7 @@ where
             checkpoint_policy: CheckpointPolicy::new(barrier),
             fallback_comparator: self.fallback_comparator,
             runtime_policy: self.runtime_policy,
+            maximum_stored_branch_snapshots: self.maximum_stored_branch_snapshots,
             tier_policies: self.tier_policies,
             _marker: PhantomData,
         }
@@ -58,6 +59,7 @@ where
             checkpoint_policy: policy,
             fallback_comparator: self.fallback_comparator,
             runtime_policy: self.runtime_policy,
+            maximum_stored_branch_snapshots: self.maximum_stored_branch_snapshots,
             tier_policies: self.tier_policies,
             _marker: PhantomData,
         }
@@ -87,6 +89,7 @@ where
             checkpoint_policy: self.checkpoint_policy,
             fallback_comparator: self.fallback_comparator,
             runtime_policy: self.runtime_policy,
+            maximum_stored_branch_snapshots: self.maximum_stored_branch_snapshots,
             tier_policies: self.tier_policies,
             _marker: PhantomData,
         }
@@ -112,6 +115,7 @@ where
             checkpoint_policy: self.checkpoint_policy,
             fallback_comparator: comparator,
             runtime_policy: self.runtime_policy,
+            maximum_stored_branch_snapshots: self.maximum_stored_branch_snapshots,
             tier_policies: self.tier_policies,
             _marker: PhantomData,
         }
@@ -141,6 +145,7 @@ where
             checkpoint_policy: self.checkpoint_policy,
             fallback_comparator: self.fallback_comparator,
             runtime_policy: self.runtime_policy,
+            maximum_stored_branch_snapshots: self.maximum_stored_branch_snapshots,
             tier_policies: self.tier_policies,
             _marker: PhantomData,
         }
@@ -169,6 +174,7 @@ where
             checkpoint_policy: self.checkpoint_policy,
             fallback_comparator: self.fallback_comparator,
             runtime_policy: self.runtime_policy,
+            maximum_stored_branch_snapshots: self.maximum_stored_branch_snapshots,
             tier_policies: self.tier_policies,
             _marker: PhantomData,
         }
@@ -195,6 +201,7 @@ where
             checkpoint_policy: CheckpointPolicy::new(self.checkpoint_policy.barrier_for_default()),
             fallback_comparator: self.fallback_comparator,
             runtime_policy: self.runtime_policy,
+            maximum_stored_branch_snapshots: self.maximum_stored_branch_snapshots,
             tier_policies: Vec::new(),
             _marker: PhantomData,
         }
@@ -221,6 +228,7 @@ where
             checkpoint_policy: self.checkpoint_policy,
             fallback_comparator: self.fallback_comparator,
             runtime_policy: self.runtime_policy,
+            maximum_stored_branch_snapshots: self.maximum_stored_branch_snapshots,
             tier_policies: self.tier_policies,
             _marker: PhantomData,
         }
@@ -247,6 +255,7 @@ where
             checkpoint_policy: self.checkpoint_policy,
             fallback_comparator: self.fallback_comparator,
             runtime_policy: self.runtime_policy,
+            maximum_stored_branch_snapshots: self.maximum_stored_branch_snapshots,
             tier_policies: Vec::new(),
             _marker: PhantomData,
         }
@@ -270,6 +279,7 @@ where
             checkpoint_policy: self.checkpoint_policy,
             fallback_comparator: self.fallback_comparator,
             runtime_policy: self.runtime_policy,
+            maximum_stored_branch_snapshots: self.maximum_stored_branch_snapshots,
             tier_policies: self.tier_policies,
             _marker: PhantomData,
         }

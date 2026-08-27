@@ -67,7 +67,7 @@ fn runtime_merge_output_identity_matcher_rejects_ambiguous_target_journal_candid
         .unwrap();
 
     let err = runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main)
         .identity_matcher_named("signal.identity.output-identity-in-target-journal")

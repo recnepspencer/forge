@@ -25,6 +25,9 @@ where
         let event_bus = EventBus::new();
         let mut runtime =
             SignalRuntime::new(self.graph, self.schema_registry, checkpoint, event_bus);
+        runtime
+            .branches
+            .set_maximum_stored_snapshots(self.maximum_stored_branch_snapshots);
         runtime.merge_strategy_registry = self.merge_strategy_registry;
         runtime.merge_base_strategy_registry = self.merge_base_strategy_registry;
         runtime.aspect_merge_policy_registry = self.aspect_merge_policy_registry;

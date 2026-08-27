@@ -52,11 +52,12 @@ That is how one local edit stays local.
 ## Mark A Region Change
 
 ```rust
-runtime.transaction(&mut state, |tx| {
+let basis = runtime.observe_signal_branch_basis(runtime.current_branch())?;
+let _next_basis = runtime.advance_signal_branch(&mut state, &basis, |tx| {
     tx.mark_changed_with_regions(airframe, AIRFRAME, &[ChangedRegion::new("wing")])?;
     tx.read_many(&[wing_skin, tail_skin], &evaluate)?;
     Ok(())
-})?;
+})?.into_basis();
 ```
 
 That one line is doing real work.

@@ -138,7 +138,7 @@ fn mismatched_strategy_witness() -> SignalMergeStrategyWitness {
 fn compatibility_witness_is_equivalent_across_result_replay_and_compatibility_lanes() {
     let (mut ordinary_runtime, feature, main, _node) = build_phase10_runtime();
     let ordinary_result = ordinary_runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .run()
@@ -166,7 +166,7 @@ fn compatibility_witness_is_equivalent_across_result_replay_and_compatibility_la
     let (mut compatibility_runtime, compatibility_feature, compatibility_main, _node) =
         build_phase10_runtime();
     let compatibility_result = compatibility_runtime
-        .merge_branch(compatibility_feature, compatibility_main.clone())
+        .merge_branch_raw(compatibility_feature, compatibility_main.clone())
         .expect("compatibility merge lane should succeed");
     let compatibility_basis =
         expect_branch_basis(&mut compatibility_runtime, compatibility_main.clone());
@@ -208,7 +208,7 @@ fn stale_missing_and_mismatched_inputs_are_denied_before_compatibility_publicati
     let (mut stale_runtime, stale_feature, stale_main, _node) = build_phase10_runtime();
     let stale_basis = expect_branch_basis(&mut stale_runtime, stale_main.clone());
     let stale_result = stale_runtime
-        .merge()
+        .merge_raw()
         .from(stale_feature)
         .into(stale_main.clone())
         .run()
@@ -227,7 +227,7 @@ fn stale_missing_and_mismatched_inputs_are_denied_before_compatibility_publicati
 
     let (mut runtime, feature, main, _node) = build_phase10_runtime();
     let planned = runtime
-        .merge()
+        .merge_raw()
         .from(feature.clone())
         .into(main.clone())
         .plan()
@@ -251,7 +251,7 @@ fn stale_missing_and_mismatched_inputs_are_denied_before_compatibility_publicati
     }
 
     let result = runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main.clone())
         .run()
@@ -286,7 +286,7 @@ fn stale_missing_and_mismatched_inputs_are_denied_before_compatibility_publicati
 fn trust_boundary_bridge_and_readmission_preserve_compatibility_truth_without_digest_drift() {
     let (mut runtime, feature, main, _node) = build_phase10_runtime();
     let result = runtime
-        .merge()
+        .merge_raw()
         .from(feature)
         .into(main.clone())
         .run()

@@ -20,26 +20,13 @@ fn retirement_plan(
     branch: SignalBranchHandle,
     reason: SignalBranchRetirementReason,
 ) -> PlannedSignalBranchRetirement {
-    let head = match runtime.branch_transaction_head(branch.clone()) {
-        TransitionOutcome::Success(head) => head,
-        other => panic!("expected branch head, got {other:?}"),
-    };
-    match runtime.plan_branch_retirement(SignalBranchRetirementRequest::new(branch, head, reason)) {
+    let basis = runtime
+        .observe_signal_branch_basis(branch.clone())
+        .expect("retirement branch should be observable");
+    match runtime.plan_signal_branch_retirement(branch, basis, reason) {
         TransitionOutcome::Success(plan) => plan,
         other => panic!("expected retirement plan, got {other:?}"),
     }
-}
-
-fn retirement_request(
-    runtime: &mut SignalRuntime<(), (), (), (), ()>,
-    branch: SignalBranchHandle,
-    reason: SignalBranchRetirementReason,
-) -> SignalBranchRetirementRequest {
-    let head = match runtime.branch_transaction_head(branch.clone()) {
-        TransitionOutcome::Success(head) => head,
-        other => panic!("expected branch head, got {other:?}"),
-    };
-    SignalBranchRetirementRequest::new(branch, head, reason)
 }
 
 #[test]
@@ -68,7 +55,12 @@ fn retirement_reclaims_heavy_state_and_retains_compact_closeout_proof() {
         other => panic!("expected retirement success, got {other:?}"),
     };
 
-    assert_eq!(receipt.retired_branch(), &branch);
+    assert_eq!(receipt.retired_branch().id, branch.id);
+    assert_eq!(receipt.retired_branch().name, branch.name);
+    assert_eq!(
+        receipt.retired_branch().head_snapshot_id,
+        receipt.terminal_head_snapshot_id()
+    );
     assert_eq!(receipt.parent_branch_id(), canonical.id);
     assert_eq!(receipt.reclaimed_branch_state_count(), 1);
     assert_eq!(receipt.reclaimed_snapshot_state_count(), 2);
@@ -97,15 +89,14 @@ fn retirement_denies_current_and_parent_branches_with_live_native_children() {
         .with_kernel_defaults()
         .build();
     let canonical = runtime.current_branch();
-    let canonical_head = match runtime.branch_transaction_head(canonical.clone()) {
-        TransitionOutcome::Success(head) => head,
-        other => panic!("expected canonical head, got {other:?}"),
-    };
-    let current_denial = runtime.plan_branch_retirement(SignalBranchRetirementRequest::new(
+    let canonical_basis = runtime
+        .observe_signal_branch_basis(canonical.clone())
+        .expect("canonical branch should be observable");
+    let current_denial = runtime.plan_signal_branch_retirement(
         canonical.clone(),
-        canonical_head,
+        canonical_basis,
         SignalBranchRetirementReason::Superseded,
-    ));
+    );
     assert!(matches!(
         current_denial,
         TransitionOutcome::Denied(SignalBranchRetirementDenial::CurrentBranch { .. })
@@ -113,15 +104,14 @@ fn retirement_denies_current_and_parent_branches_with_live_native_children() {
 
     let parent = fork(&mut runtime, "parent", canonical.id);
     let child = fork(&mut runtime, "child", parent.id);
-    let parent_head = match runtime.branch_transaction_head(parent.clone()) {
-        TransitionOutcome::Success(head) => head,
-        other => panic!("expected parent head, got {other:?}"),
-    };
-    let denial = runtime.plan_branch_retirement(SignalBranchRetirementRequest::new(
+    let parent_basis = runtime
+        .observe_signal_branch_basis(parent.clone())
+        .expect("parent branch should be observable");
+    let denial = runtime.plan_signal_branch_retirement(
         parent.clone(),
-        parent_head,
+        parent_basis,
         SignalBranchRetirementReason::DependencyCancellation,
-    ));
+    );
     assert!(matches!(
         denial,
         TransitionOutcome::Denied(SignalBranchRetirementDenial::LiveChildren {
@@ -230,24 +220,27 @@ fn ordered_retirement_batch_closes_child_then_parent_as_one_plan() {
     let canonical = runtime.current_branch();
     let parent = fork(&mut runtime, "derived-basis", canonical.id);
     let child = fork(&mut runtime, "effect", parent.id);
-    let child_request = retirement_request(
-        &mut runtime,
-        child.clone(),
-        SignalBranchRetirementReason::Merged,
-    );
-    let parent_request = retirement_request(
-        &mut runtime,
-        parent.clone(),
-        SignalBranchRetirementReason::DependencyCancellation,
-    );
-    let plan =
-        match runtime.plan_branch_retirement_batch(SignalBranchRetirementBatchRequest::new(vec![
-            child_request,
-            parent_request,
-        ])) {
-            TransitionOutcome::Success(plan) => plan,
-            other => panic!("expected ordered retirement plan, got {other:?}"),
-        };
+    let child_basis = runtime
+        .observe_signal_branch_basis(child.clone())
+        .expect("child should be observable");
+    let parent_basis = runtime
+        .observe_signal_branch_basis(parent.clone())
+        .expect("parent should be observable");
+    let plan = match runtime.plan_signal_branch_retirement_batch(vec![
+        (
+            child.clone(),
+            child_basis,
+            SignalBranchRetirementReason::Merged,
+        ),
+        (
+            parent.clone(),
+            parent_basis,
+            SignalBranchRetirementReason::DependencyCancellation,
+        ),
+    ]) {
+        TransitionOutcome::Success(plan) => plan,
+        other => panic!("expected ordered retirement plan, got {other:?}"),
+    };
     assert_eq!(plan.breadth(), 2);
     let receipt = match runtime.retire_branch_batch(plan) {
         TransitionOutcome::Success(receipt) => receipt,
@@ -267,21 +260,25 @@ fn retirement_batch_denial_is_side_effect_free() {
     let canonical = runtime.current_branch();
     let parent = fork(&mut runtime, "parent-first", canonical.id);
     let child = fork(&mut runtime, "child-second", parent.id);
-    let parent_request = retirement_request(
-        &mut runtime,
-        parent.clone(),
-        SignalBranchRetirementReason::DependencyCancellation,
-    );
-    let child_request = retirement_request(
-        &mut runtime,
-        child.clone(),
-        SignalBranchRetirementReason::Rejected,
-    );
+    let parent_basis = runtime
+        .observe_signal_branch_basis(parent.clone())
+        .expect("parent should be observable");
+    let child_basis = runtime
+        .observe_signal_branch_basis(child.clone())
+        .expect("child should be observable");
     assert!(matches!(
-        runtime.plan_branch_retirement_batch(SignalBranchRetirementBatchRequest::new(vec![
-            parent_request,
-            child_request,
-        ])),
+        runtime.plan_signal_branch_retirement_batch(vec![
+            (
+                parent.clone(),
+                parent_basis,
+                SignalBranchRetirementReason::DependencyCancellation,
+            ),
+            (
+                child.clone(),
+                child_basis,
+                SignalBranchRetirementReason::Rejected
+            ),
+        ]),
         TransitionOutcome::Denied(SignalBranchRetirementBatchDenial::Retirement {
             denial: SignalBranchRetirementDenial::LiveChildren { .. },
             ..

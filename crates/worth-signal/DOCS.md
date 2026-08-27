@@ -11,6 +11,7 @@ Start here:
 
 Core concepts:
 
+- [BRANCH_BASES.md](./BRANCH_BASES.md)
 - [docs/core-concepts/README.md](./docs/core-concepts/README.md)
 - [docs/core-concepts/graph-and-nodes.md](./docs/core-concepts/graph-and-nodes.md)
 - [docs/core-concepts/aspects-and-dependencies.md](./docs/core-concepts/aspects-and-dependencies.md)

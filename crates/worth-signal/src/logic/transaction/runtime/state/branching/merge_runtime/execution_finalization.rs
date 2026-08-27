@@ -23,7 +23,7 @@ pub(super) fn finalize_branch_state<D, I, E, Ctx, T>(
     runtime: &mut SignalRuntime<D, I, E, Ctx, T>,
     request: &crate::logic::transaction::runtime::BranchMergeRequest,
     plan: &BranchMergePlan,
-    prepared: PreparedMergeExecution<D, I, T>,
+    mut prepared: PreparedMergeExecution<D, I, T>,
     artifacts: ArtifactFinalization<D, I, T>,
 ) -> Result<BranchFinalization, SignalError>
 where
@@ -41,6 +41,14 @@ where
         dependency_remaps,
         subscriber_repair_breadth,
     } = artifacts;
+    if let Some(snapshot_id) = target_snapshot_after {
+        runtime
+            .branches
+            .set_branch_head_snapshot(request.target_branch.id, snapshot_id);
+        runtime
+            .branches
+            .project_catalog(request.target_branch.id, prepared.target_state.graph_mut());
+    }
     let target_branch_is_current = request.target_branch.id == runtime.graph.current_branch().id;
     if target_branch_is_current {
         runtime.apply_branch_lifecycle_transfer(BranchLifecycleTransfer::Move(
@@ -76,16 +84,7 @@ where
     }
     runtime.branches.insert_snapshot(target_snapshot_packet);
 
-    let branch_catalog = if target_branch_is_current {
-        runtime.graph.diagnostics_state().branch_catalog().clone()
-    } else {
-        runtime
-            .branches
-            .branch_state(request.target_branch.id)
-            .map(|state| state.graph().diagnostics_state().branch_catalog().clone())
-            .unwrap_or_default()
-    };
-    runtime.synchronize_branch_catalogs(branch_catalog);
+    runtime.project_branch_catalog();
 
     let target_branch_handle = request.target_branch.clone();
     let branch_basis = match runtime.branch_basis_artifact(target_branch_handle.clone()) {

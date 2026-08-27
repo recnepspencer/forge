@@ -41,7 +41,6 @@ pub(crate) fn mint_signal_branch_authority() -> SignalBranchBasisAuthority {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use worth_foundational::{FoundationalBranchReferenceGeneration, FoundationalBranchTarget};
 
     #[test]
@@ -54,9 +53,12 @@ mod tests {
             FoundationalBranchReferenceGeneration::initial(),
         )
         .expect("valid branch");
-        let admitted = crate::branch::admit_signal_branch_observation(
+        let admitted = crate::branch::basis::admit_signal_branch_observation(
             reference.clone(),
-            mint_signal_branch_authority(),
+            crate::state::SignalBranchId(1),
+            crate::branch::SignalBranchRetentionRegistry::default()
+                .acquire_admitted(crate::state::SignalBranchId(1))
+                .expect("test admission retention should be available"),
         );
         assert_eq!(admitted.observation(), &reference);
     }

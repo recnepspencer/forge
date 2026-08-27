@@ -1,6 +1,7 @@
 use worth_proof::TransitionOutcome;
 
 use crate::facade::*;
+use crate::logic::transaction::LoweredBranchTargetedTransactionPlan;
 
 fn targeted_plan<E>(
     runtime: &mut SignalRuntime<(), (), E, (), ()>,

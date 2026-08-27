@@ -1,0 +1,13 @@
+error[E0624]: method `create_branch` is private
+ --> tests/ui/branch_reference/legacy_create_branch_is_private.rs:4:21
+  |
+4 |       let _ = runtime.create_branch("legacy");
+  |                       ^^^^^^^^^^^^^ private method
+  |
+ ::: src/logic/transaction/runtime/state/branching/lifecycle.rs
+  |
+  | /     pub(crate) fn create_branch(
+  | |         &mut self,
+  | |         name: impl Into<String>,
+  | |     ) -> Result<SignalBranchHandle, SignalError> {
+  | |________________________________________________- private method defined here

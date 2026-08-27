@@ -9,11 +9,26 @@
 pub mod adapters;
 pub mod branch {
     pub use crate::branch::{
-        admit_signal_branch_observation, signal_branch_observation, AdmittedSignalBranchBasis,
-        SignalBranchBasisAuthority, SignalBranchBasisAuthorityMarker, SignalBranchBasisOwnerProof,
-        SignalBranchBasisProof, SignalBranchComparisonBasis, SignalBranchForkBasis,
-        SignalBranchObservation, SignalBranchObservationConstructionDenial, SignalBranchTarget,
-        SignalBranchTargetConstructionDenial,
+        signal_branch_identity, signal_branch_observation, AdmittedSignalBranchBasis,
+        AdmittedSignalBranchSnapshot, PlannedSignalBranchRetirement,
+        PlannedSignalBranchRetirementBatch, SignalBranchAdvanceDenial,
+        SignalBranchAdvanceEngineDenial, SignalBranchAdvanceOutcome, SignalBranchBasisAuthority,
+        SignalBranchBasisAuthorityMarker, SignalBranchBasisCompatibilityDenial,
+        SignalBranchBasisDescriptor, SignalBranchBasisLifecyclePosture,
+        SignalBranchBasisObservationDenial, SignalBranchBasisOwnerProof, SignalBranchBasisProof,
+        SignalBranchBasisReadmissionDenial, SignalBranchComparisonBasis, SignalBranchForkBasis,
+        SignalBranchForkOperationDenial, SignalBranchForkOutcome, SignalBranchIdentity,
+        SignalBranchIdentityConstructionDenial, SignalBranchMergeDenial, SignalBranchMergeOutcome,
+        SignalBranchObservation, SignalBranchObservationConstructionDenial,
+        SignalBranchRestoreDenial, SignalBranchRetentionAcquisitionDenial,
+        SignalBranchRetentionLease, SignalBranchRetentionReleaseDenial,
+        SignalBranchRetentionReleaseOutcome, SignalBranchRetentionReleaseReceipt,
+        SignalBranchRetirementBatchDenial, SignalBranchRetirementBatchReceipt,
+        SignalBranchRetirementDenial, SignalBranchRetirementReason, SignalBranchRetirementReceipt,
+        SignalBranchSnapshotCaptureDenial, SignalBranchSnapshotCaptureOutcome,
+        SignalBranchSnapshotReconstructionDenial, SignalBranchSnapshotReconstructionOutcome,
+        SignalBranchTarget, SignalBranchTargetConstructionDenial,
+        SIGNAL_BRANCH_BASIS_DESCRIPTOR_SCHEMA_VERSION,
     };
 }
 pub mod core;

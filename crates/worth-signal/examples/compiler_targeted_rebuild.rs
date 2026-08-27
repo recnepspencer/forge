@@ -76,29 +76,38 @@ fn main() -> Result<(), SignalError> {
         Ok::<_, SignalError>(result)
     };
 
-    runtime.transaction(&mut state, |tx| {
-        tx.read_many(
-            &[source_file, symbol_index, diagnostics_panel, app_bundle],
-            &evaluate,
-        )?;
-        Ok(())
-    })?;
+    let basis = runtime
+        .observe_signal_branch_basis(runtime.current_branch())
+        .expect("the live branch should admit a basis");
+    let basis = runtime
+        .advance_signal_branch(&mut state, &basis, |tx| {
+            tx.read_many(
+                &[source_file, symbol_index, diagnostics_panel, app_bundle],
+                &evaluate,
+            )?;
+            Ok(())
+        })
+        .expect("the initial build should advance the branch")
+        .into_basis();
 
-    let snapshot = {
-        let mut history = runtime.history();
-        history.snapshot()?
-    };
+    let (snapshot, basis) = runtime
+        .capture_signal_branch_snapshot(&basis)
+        .expect("snapshot capture should use the exact live basis")
+        .into_parts();
 
     state.source_version += 1;
     state.symbols_version += 1;
     state.diagnostics_version += 1;
     state.bundle_version += 1;
 
-    runtime.transaction(&mut state, |tx| {
-        tx.mark_changed(source_file, SOURCE_TEXT)?;
-        tx.read_many(&[diagnostics_panel, app_bundle], &evaluate)?;
-        Ok(())
-    })?;
+    let _basis = runtime
+        .advance_signal_branch(&mut state, &basis, |tx| {
+            tx.mark_changed(source_file, SOURCE_TEXT)?;
+            tx.read_many(&[diagnostics_panel, app_bundle], &evaluate)?;
+            Ok(())
+        })
+        .expect("the source edit should advance the branch")
+        .into_basis();
 
     let versions = runtime.read_many(&[diagnostics_panel, app_bundle], &state, &evaluate)?;
     assert_eq!(versions[0].get(DIAGNOSTICS), 21);
@@ -126,7 +135,7 @@ fn main() -> Result<(), SignalError> {
         replay
             .frames
             .iter()
-            .any(|frame| frame.snapshot_id == Some(snapshot.meta.snapshot_id)),
+            .any(|frame| frame.snapshot_id == Some(snapshot.snapshot().meta.snapshot_id)),
         "replay should keep the saved snapshot in view"
     );
 

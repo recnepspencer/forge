@@ -1,25 +1,13 @@
 error[E0308]: mismatched types
- --> tests/ui/phase_2a/output_identity_cannot_cross_branch_basis_boundary.rs:5:53
+ --> tests/ui/phase_2a/output_identity_cannot_cross_branch_basis_boundary.rs:7:35
   |
-5 |     let _admitted = admit_signal_branch_observation(token, todo!());
-  |                     ------------------------------- ^^^^^ expected `FoundationalBranchReferenceObservation<...>`, found `OutputIdentity`
-  |                     |
-  |                     arguments to this function are incorrect
+7 |     require_admitted_branch_basis(token);
+  |     ----------------------------- ^^^^^ expected `AdmittedSignalBranchBasis`, found `OutputIdentity`
+  |     |
+  |     arguments to this function are incorrect
   |
-  = note: expected struct `worth_foundational::transitions::branches::reference::FoundationalBranchReferenceObservation<SignalBranchTarget>`
-             found struct `worth_signal::facade::OutputIdentity`
 note: function defined here
- --> src/branch/authority.rs
+ --> tests/ui/phase_2a/output_identity_cannot_cross_branch_basis_boundary.rs:3:4
   |
-  | pub fn admit_signal_branch_observation(
-  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-warning: unreachable call
- --> tests/ui/phase_2a/output_identity_cannot_cross_branch_basis_boundary.rs:5:21
-  |
-5 |     let _admitted = admit_signal_branch_observation(token, todo!());
-  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^        ------- any code following this expression is unreachable
-  |                     |
-  |                     unreachable call
-  |
-  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+3 | fn require_admitted_branch_basis(_: AdmittedSignalBranchBasis) {}
+  |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ----------------------------

@@ -1,0 +1,62 @@
+use serde::{Deserialize, Serialize};
+use worth_foundational::FoundationalBranchReferenceMismatchAxis;
+
+use crate::data::error::SignalError;
+use crate::state::{SignalBranchId, SignalSnapshotId};
+
+use super::SignalBranchRetentionAcquisitionDenial;
+
+#[derive(Debug)]
+pub enum SignalBranchBasisObservationDenial {
+    UnknownBranch {
+        branch_id: SignalBranchId,
+    },
+    InvalidOwnerObservation {
+        error: SignalError,
+    },
+    RetentionUnavailable {
+        denial: SignalBranchRetentionAcquisitionDenial,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SignalBranchBasisReadmissionDenial {
+    UnsupportedDescriptorVersion {
+        observed: u16,
+        supported: u16,
+    },
+    LifecycleMismatch,
+    OwnerMismatch {
+        descriptor_graph_instance_id: String,
+        runtime_graph_instance_id: String,
+    },
+    DefinitionMismatch {
+        descriptor_definition_basis: u64,
+        runtime_definition_basis: u64,
+    },
+    UnknownBranch {
+        branch_id: SignalBranchId,
+    },
+    RetiredBranch {
+        branch_id: SignalBranchId,
+    },
+    UnavailableSnapshot {
+        branch_id: SignalBranchId,
+        snapshot_id: SignalSnapshotId,
+    },
+    UnavailableRetention {
+        maximum_active_leases: usize,
+    },
+    RetentionIdentityExhausted,
+    ReferenceMismatch {
+        axes: Vec<FoundationalBranchReferenceMismatchAxis>,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SignalBranchBasisCompatibilityDenial {
+    OwnerMismatch,
+    DefinitionMismatch,
+    SnapshotMismatch,
+    RestoreMismatch,
+}

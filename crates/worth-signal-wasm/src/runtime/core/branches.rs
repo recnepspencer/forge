@@ -17,10 +17,15 @@ impl RuntimeCore {
 
     pub fn create_branch(&mut self, name: String) -> Result<RuntimeBranch, WorthSignalJsError> {
         let state = self.snapshot_branch_state();
-        let branch = self
+        let source = self.runtime.current_branch();
+        let source_basis = self.native_branch_basis(source)?;
+        let fork = self
             .runtime
-            .create_branch(name)
-            .map_err(WorthSignalJsError::from)?;
+            .fork_signal_branch(name, &source_basis)
+            .map_err(|error| {
+                WorthSignalJsError::invalid_input(format!("Signal branch fork denied: {error:?}"))
+            })?;
+        let branch = fork.created_branch().clone();
         self.branch_states.insert(branch.id.0, state);
         Ok(branch)
     }
