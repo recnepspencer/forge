@@ -48,7 +48,6 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                     .enumerate()
                     .map(|(ordinal, packet)| {
                         execute_query_fragment(
-                            self.runtime,
                             &read_view,
                             &plan.packet,
                             packet,
@@ -75,7 +74,6 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                             .into_iter()
                             .map(|(ordinal, packet)| {
                                 execute_query_fragment(
-                                    self.runtime,
                                     &read_view,
                                     &plan.packet,
                                     packet,
@@ -140,8 +138,15 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         let strategy = query_execution_strategy(self, &plan, metrics.packet_count);
         record_query_packet_metrics(self.runtime, &plan, &metrics);
 
-        let current_state = self.runtime.storage_access().current_state();
-        let version_id = self.resolved_snapshot_handle(&plan.snapshot)?.version_id;
+        let resolved = resolve_snapshot_state(self.runtime, &plan.snapshot)?;
+        let empty_state = std::collections::BTreeMap::new();
+        let state_access: &(dyn PartitionAccess + Sync) = resolved
+            .state
+            .basis
+            .root()
+            .map(|root| root.as_ref() as &(dyn PartitionAccess + Sync))
+            .unwrap_or(&empty_state);
+        let version_id = resolved.handle.version_id;
         let fragments = match strategy {
             PreparationStrategySelection::Serial => {
                 self.runtime
@@ -154,7 +159,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                     .map(|(ordinal, packet)| {
                         execute_traversal_query_fragment_from_state(
                             self.runtime,
-                            &current_state,
+                            state_access,
                             version_id,
                             &plan.packet,
                             packet,
@@ -182,7 +187,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                             .map(|(ordinal, packet)| {
                                 execute_traversal_query_fragment_from_state(
                                     self.runtime,
-                                    &current_state,
+                                    state_access,
                                     version_id,
                                     &plan.packet,
                                     packet,

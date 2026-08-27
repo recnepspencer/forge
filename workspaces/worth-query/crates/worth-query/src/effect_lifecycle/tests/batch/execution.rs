@@ -7,8 +7,8 @@ use crate::effect_lifecycle::{
 };
 
 use super::super::execution_support::{
-    branch_snapshot_identity, create_entity, relational_runtime_with_intent_strategy,
-    runtime_snapshot_identity, update_entity_name,
+    branch_snapshot_identity, create_entity, exact_branch_head_commit_id, exact_branch_snapshot,
+    relational_runtime_with_intent_strategy, runtime_snapshot_identity, update_entity_name,
 };
 use super::super::support::{
     branch_mutation_basis, native_name_patch, raw_mutation_effect_with_binding,
@@ -20,13 +20,12 @@ fn mutation_batch_executes_through_one_batch_native_lowered_plan() {
     let mut runtime = relational_runtime_with_intent_strategy();
     let left = create_entity(&mut runtime, "left", BranchId("main".to_string()));
     let right = create_entity(&mut runtime, "right", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("branch-a".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("branch-a should be created");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should be created");
     let binding = runtime_workflow_binding_with_snapshot(runtime_snapshot_identity(&runtime));
 
     let executed = effect_batch()
@@ -72,7 +71,7 @@ fn mutation_batch_executes_through_one_batch_native_lowered_plan() {
             .is_some_and(|commit| commit.outcome().commit.commit_id == aggregate_commit_id)
     }));
 
-    let snapshot = runtime.snapshots().snapshot();
+    let snapshot = exact_branch_snapshot(&mut runtime, "main");
     let read_view = runtime
         .read_truth()
         .read_snapshot(&snapshot)
@@ -84,30 +83,67 @@ fn mutation_batch_executes_through_one_batch_native_lowered_plan() {
         .collect::<Vec<_>>();
     assert!(names.contains(&"left-batched".to_string()));
     assert!(names.contains(&"right-batched".to_string()));
+    assert!(runtime.snapshots().release_snapshot(&snapshot));
+}
+
+#[test]
+fn performed_batch_returns_settlement_deferred_without_denial_telemetry() {
+    let mut runtime = relational_runtime_with_intent_strategy();
+    let entity_id = create_entity(&mut runtime, "batch-before", BranchId("main".to_string()));
+    let binding = runtime_workflow_binding_with_snapshot(runtime_snapshot_identity(&runtime));
+    let lowered = effect_batch()
+        .using_basis(EffectAuthoringBasis::from(branch_mutation_basis()))
+        .push(raw_mutation_effect_with_binding(
+            binding,
+            entity_id,
+            native_name_patch("batch-performed-before-settlement"),
+        ))
+        .admit()
+        .expect("batch should admit")
+        .lower()
+        .expect("batch should lower");
+    runtime.fail_next_durable_append_for_test();
+
+    let stop = lowered
+        .execute_with(EffectExecutionAuthority::relational(&mut runtime))
+        .expect_err("performed batch must require settlement");
+    let deferred = stop
+        .settlement_deferred()
+        .expect("performed batch is not an execution denial");
+    assert!(stop.denial().is_none());
+    assert_eq!(deferred.counters().executed_effect_count(), 1);
+    assert_eq!(deferred.counters().execution_denied_count(), 0);
+    assert_eq!(
+        deferred.counters().publication_settlement_deferred_count(),
+        1
+    );
+    let settlement = deferred.settlement().clone();
+    assert_eq!(
+        runtime.history().historical_latest_commit(),
+        Some(settlement.commit().clone())
+    );
+    deferred
+        .repair_with(EffectExecutionAuthority::relational(&mut runtime))
+        .expect("exact owner repairs the performed batch");
 }
 
 #[test]
 fn mutation_batch_preserves_branch_scoped_authority_target() {
     let mut runtime = relational_runtime_with_intent_strategy();
     let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("branch-a".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("branch-a should be created");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should be created");
     let main_head_before = update_entity_name(
         &mut runtime,
         entity_id,
         "main-diverged",
         BranchId("main".to_string()),
     );
-    let branch_head_before = runtime
-        .history()
-        .branch_head(&BranchId("branch-a".to_string()))
-        .expect("branch-a head should exist")
-        .commit_id;
+    let branch_head_before = exact_branch_head_commit_id(&runtime, "branch-a");
 
     let executed = effect_batch()
         .using_basis(EffectAuthoringBasis::from(branch_mutation_basis()))
@@ -137,13 +173,12 @@ fn mutation_batch_preserves_branch_scoped_authority_target() {
 fn retained_lowered_batch_denies_after_intervening_truth_change() {
     let mut runtime = relational_runtime_with_intent_strategy();
     let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("branch-a".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("branch-a should be created");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should be created");
     let lowered = effect_batch()
         .using_basis(EffectAuthoringBasis::from(branch_mutation_basis()))
         .push(raw_mutation_effect_with_binding(
@@ -169,6 +204,7 @@ fn retained_lowered_batch_denies_after_intervening_truth_change() {
     let denial = lowered
         .execute_with(EffectExecutionAuthority::relational(&mut runtime))
         .expect_err("retained lowered batch should deny stale exact-basis replay");
+    let denial = denial.denial().expect("stale batch replay is a denial");
 
     assert_eq!(
         denial.kind(),
@@ -177,11 +213,7 @@ fn retained_lowered_batch_denies_after_intervening_truth_change() {
         )
     );
     assert_eq!(
-        runtime
-            .history()
-            .branch_head(&BranchId("branch-a".to_string()))
-            .expect("intervening branch head should remain authoritative")
-            .commit_id,
+        exact_branch_head_commit_id(&runtime, "branch-a"),
         intervening_commit_id
     );
 }
@@ -190,13 +222,12 @@ fn retained_lowered_batch_denies_after_intervening_truth_change() {
 fn lowered_branch_batch_does_not_deny_when_only_another_branch_moves() {
     let mut runtime = relational_runtime_with_intent_strategy();
     let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("branch-a".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("branch-a should be created");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should be created");
     let lowered = effect_batch()
         .using_basis(EffectAuthoringBasis::from(branch_mutation_basis()))
         .push(raw_mutation_effect_with_binding(
@@ -228,6 +259,58 @@ fn lowered_branch_batch_does_not_deny_when_only_another_branch_moves() {
         .expect("batch should retain one aggregate mutation commit");
     assert_ne!(aggregate.outcome().commit.commit_id, main_head_before);
     assert_eq!(aggregate.outcome().commit.parents.len(), 1);
+}
+
+#[test]
+fn mutation_batch_rejects_mixed_target_branches_before_publication() {
+    let mut runtime = relational_runtime_with_intent_strategy();
+    let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should be created");
+    let main_head_before = exact_branch_head_commit_id(&runtime, "main");
+    let branch_head_before = exact_branch_head_commit_id(&runtime, "branch-a");
+
+    let denial = effect_batch()
+        .using_basis(EffectAuthoringBasis::from(branch_mutation_basis()))
+        .push(raw_mutation_effect_with_binding(
+            runtime_workflow_binding_for_branch(branch_snapshot_identity(&runtime, "main"), "main"),
+            entity_id,
+            native_name_patch("main-target"),
+        ))
+        .push(raw_mutation_effect_with_binding(
+            runtime_workflow_binding_for_branch(
+                branch_snapshot_identity(&runtime, "branch-a"),
+                "branch-a",
+            ),
+            entity_id,
+            native_name_patch("branch-target"),
+        ))
+        .admit()
+        .expect("legacy batch identity does not encode the target branch")
+        .lower()
+        .expect("mixed targets remain visible at execution admission")
+        .execute_with(EffectExecutionAuthority::relational(&mut runtime))
+        .expect_err("mixed-target batch must deny before either branch moves");
+    let denial = denial.denial().expect("mixed-target batch is a denial");
+
+    assert_eq!(
+        denial.kind(),
+        &EffectBatchExecutionDenialKind::AggregateExecutionDenied(
+            EffectExecutionDenialKind::RelationalAuthorityBindingMalformed,
+        )
+    );
+    assert_eq!(
+        exact_branch_head_commit_id(&runtime, "main"),
+        main_head_before
+    );
+    assert_eq!(
+        exact_branch_head_commit_id(&runtime, "branch-a"),
+        branch_head_before
+    );
 }
 
 fn entity_name(record: &worth_relational::facade::runtime::EntityReadRecord) -> Option<String> {

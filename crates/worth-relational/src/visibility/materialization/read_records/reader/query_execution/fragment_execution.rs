@@ -4,15 +4,21 @@ use rayon::prelude::*;
 use super::super::query_fragment_work::execute_explicit_query_fragment_from_state;
 use super::super::query_packetization::PacketizedQueryWork;
 use super::super::{SnapshotPinnedQueryPlan, VisibilityReadContext};
+use crate::storage::overlay::PartitionAccess;
 
 pub(in crate::visibility::materialization::read_records::reader) fn execute_explicit_query_fragments_from_snapshot_state(
     reader: &VisibilityReadContext<'_>,
     plan: &SnapshotPinnedQueryPlan,
     packets: &[PacketizedQueryWork],
-    snapshot_state: &crate::storage::overlay::SnapshotState,
+    snapshot_state: &crate::visibility::snapshot_states::SnapshotState,
     strategy: PreparationStrategySelection,
 ) -> Option<Vec<crate::query::data::QueryWorkerFragment>> {
-    let current_state = reader.runtime().storage_access().current_state();
+    let empty_state = std::collections::BTreeMap::new();
+    let state_access: &(dyn PartitionAccess + Sync) = snapshot_state
+        .basis
+        .root()
+        .map(|root| root.as_ref() as &(dyn PartitionAccess + Sync))
+        .unwrap_or(&empty_state);
     let version_id = snapshot_state.handle.version_id;
     match strategy {
         PreparationStrategySelection::Serial => {
@@ -27,7 +33,7 @@ pub(in crate::visibility::materialization::read_records::reader) fn execute_expl
                     execute_explicit_query_fragment_from_state(
                         reader,
                         snapshot_state,
-                        &current_state,
+                        state_access,
                         version_id,
                         &plan.packet,
                         packet,
@@ -55,7 +61,7 @@ pub(in crate::visibility::materialization::read_records::reader) fn execute_expl
                             execute_explicit_query_fragment_from_state(
                                 reader,
                                 snapshot_state,
-                                &current_state,
+                                state_access,
                                 version_id,
                                 &plan.packet,
                                 packet,

@@ -8,6 +8,8 @@ use crate::facade::WorthUiNativeApplicationShell;
 
 #[path = "program_progress/physical_progress.rs"]
 mod physical_progress;
+#[path = "program_progress/presentation_outcome.rs"]
+mod presentation_outcome;
 #[path = "program_progress/superseding_pair.rs"]
 mod superseding_pair;
 
@@ -18,22 +20,15 @@ pub(super) struct UiNativeApplicationProgramProgress {
     next_present_tick: u64,
     pub(super) pending: VecDeque<UiNativePendingProgramFrame>,
     pub(super) next_completion_tick: u64,
-    attribution: Option<worth_ui_host_native::UiNativeClientPresentationAttribution>,
-    attribution_basis: Option<UiNativeApplicationAttributionBasis>,
     pub(super) physical_recovery: UiNativePhysicalRecoveryTracker,
-    readiness_generation: u64,
+    pub(super) pending_retry: Option<UiNativePendingProgramRetry>,
+    pub(super) readiness_generation: u64,
+    surface_basis_generation: u64,
     surface_basis_barrier: Option<(usize, u64)>,
     runtime_qualification: super::runtime_qualification::UiNativeRuntimeQualificationState,
     pub(super) staged_superseding_successor: Option<UiNativeStagedSupersedingSuccessor>,
     external_close_requested: bool,
-}
-
-#[derive(Clone, Copy)]
-struct UiNativeApplicationAttributionBasis {
-    frame: worth_ui_host_contract::UiMountedFrameIdentity,
-    binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
-    attempt: worth_ui_host_contract::UiMountedPresentationAttemptIdentity,
-    unchanged: bool,
+    visual_snapshot: Option<worth_ui_host_native::UiNativeClientVisualSnapshotObservation>,
 }
 
 pub(super) struct UiNativePendingProgramFrame {
@@ -48,17 +43,39 @@ pub(super) struct UiNativeStagedSupersedingSuccessor {
     pub(super) frame: crate::mounting::UiPreparedMountedFrame,
 }
 
-#[derive(Clone, Copy)]
+pub(super) struct UiNativePendingProgramRetry {
+    pub(super) program_frame: usize,
+    pub(super) rejected: crate::mounting::UiMountedRejectedFrame,
+    pub(super) reconstruction_authority: Option<UiNativeProgramReconstructionAuthority>,
+    pub(super) cancel_after_external_submission: bool,
+    pub(super) after_readiness_generation: u64,
+    pub(super) readiness: UiNativeProgramRetryReadiness,
+}
+
+impl UiNativePendingProgramRetry {
+    fn admits_readiness(&self, generation: u64) -> bool {
+        generation > self.after_readiness_generation
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum UiNativeProgramReconstructionAuthority {
     Physical(worth_ui_host_native::UiNativePhysicalPresentationCorrelation),
     HostRequired,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum UiNativeProgramRetryReadiness {
+    Timeout,
+    Visibility,
+    TextAtlas,
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub(super) enum FrameProgress {
     Retained,
     Settled,
-    RetryRequired,
+    RetryRequired(UiNativeProgramRetryReadiness),
     Failed,
 }
 
@@ -76,10 +93,10 @@ impl UiNativeApplicationProgramProgress {
             next_present_tick: 1,
             pending: VecDeque::new(),
             next_completion_tick: 1,
-            attribution: None,
-            attribution_basis: None,
             physical_recovery: UiNativePhysicalRecoveryTracker::default(),
+            pending_retry: None,
             readiness_generation: 0,
+            surface_basis_generation: 0,
             surface_basis_barrier: None,
             runtime_qualification:
                 super::runtime_qualification::UiNativeRuntimeQualificationState::new(
@@ -87,38 +104,45 @@ impl UiNativeApplicationProgramProgress {
                 ),
             staged_superseding_successor: None,
             external_close_requested: false,
+            visual_snapshot: None,
         }
     }
 
-    pub(super) fn observe_readiness_generation(&mut self, generation: u64) {
+    pub(super) fn observe_readiness(&mut self, generation: u64, surface_basis_generation: u64) {
         self.readiness_generation = self.readiness_generation.max(generation);
+        self.surface_basis_generation = self.surface_basis_generation.max(surface_basis_generation);
     }
 
     pub(super) fn should_close(&self) -> bool {
+        if self.external_close_requested {
+            return true;
+        }
         let program_finished =
             self.program.closes_after_program() && self.next_frame >= self.program.frames().len();
-        (program_finished || self.external_close_requested)
+        program_finished
             && self.pending.is_empty()
             && self.staged_superseding_successor.is_none()
-            && self.physical_recovery.is_empty()
-    }
-
-    pub(super) fn external_observation_ready(&self) -> bool {
-        !self.program.closes_after_program()
-            && !self.external_close_requested
-            && self.next_frame >= self.program.frames().len()
-            && self.pending.is_empty()
-            && self.staged_superseding_successor.is_none()
+            && self.pending_retry.is_none()
             && self.physical_recovery.is_empty()
     }
 
     pub(super) fn request_external_close(&mut self) {
         self.external_close_requested = true;
         self.staged_superseding_successor = None;
+        self.pending_retry = None;
+    }
+
+    pub(super) fn take_visual_snapshot(
+        &mut self,
+    ) -> Option<worth_ui_host_native::UiNativeClientVisualSnapshotObservation> {
+        self.visual_snapshot.take()
     }
 
     pub(super) fn advance(&mut self, shell: &mut WorthUiNativeApplicationShell) -> Result<(), ()> {
         if self.external_close_requested {
+            return Ok(());
+        }
+        if !self.progress_pending_retry(shell)? {
             return Ok(());
         }
         while self.next_frame < self.program.frames().len() {
@@ -152,14 +176,14 @@ impl UiNativeApplicationProgramProgress {
                 match self.surface_basis_barrier {
                     Some((barrier_frame, predecessor_generation))
                         if barrier_frame == program_frame
-                            && self.readiness_generation > predecessor_generation =>
+                            && self.surface_basis_generation > predecessor_generation =>
                     {
                         self.surface_basis_barrier = None;
                     }
                     Some((barrier_frame, _)) if barrier_frame == program_frame => break,
                     None => {
                         self.surface_basis_barrier =
-                            Some((program_frame, self.readiness_generation));
+                            Some((program_frame, self.surface_basis_generation));
                         break;
                     }
                     Some(_) => return Err(()),
@@ -201,170 +225,105 @@ impl UiNativeApplicationProgramProgress {
                 FrameProgress::Retained | FrameProgress::Settled => {
                     self.next_frame = self.next_frame.saturating_add(1);
                 }
-                FrameProgress::RetryRequired => break,
+                FrameProgress::RetryRequired(_) => break,
                 FrameProgress::Failed => return Err(()),
             }
         }
         Ok(())
     }
 
-    pub(super) fn attribution(
-        &self,
-        shell: Option<&WorthUiNativeApplicationShell>,
-    ) -> Option<worth_ui_host_native::UiNativeClientPresentationAttribution> {
-        self.attribution.or_else(|| {
-            let shell = shell?;
-            let basis = self.attribution_basis?;
-            shell.presentation_attribution_for(
-                basis.frame,
-                basis.binding,
-                basis.attempt,
-                self.attribution,
-                basis.unchanged,
-            )
-        })
+    pub(super) const fn retry_readiness(&self) -> Option<UiNativeProgramRetryReadiness> {
+        match &self.pending_retry {
+            Some(pending) => Some(pending.readiness),
+            None => None,
+        }
     }
 
-    pub(super) fn retain_or_attribute(
+    pub(super) fn retain_retry(
         &mut self,
-        shell: &mut WorthUiNativeApplicationShell,
-        outcome: crate::mounting::UiMountedFrameOutcome,
         program_frame: usize,
-        physical_presentation: Option<
-            worth_ui_host_native::UiNativePhysicalPresentationCorrelation,
-        >,
+        rejected: crate::mounting::UiMountedRejectedFrame,
         reconstruction_authority: Option<UiNativeProgramReconstructionAuthority>,
         cancel_after_external_submission: bool,
-    ) -> Result<FrameProgress, ()> {
-        let outcome = apply_completion_intent(shell, outcome, cancel_after_external_submission)?;
-        if let Some(basis) = attribution_basis_from_outcome(&outcome) {
-            self.attribution_basis = Some(basis);
+        readiness: UiNativeProgramRetryReadiness,
+    ) -> Result<(), ()> {
+        if self.pending_retry.is_some() {
+            return Err(());
         }
-        match outcome {
-            crate::mounting::UiMountedFrameOutcome::InFlight(in_flight) => {
-                self.pending.push_back(UiNativePendingProgramFrame {
-                    program_frame,
-                    presentation: in_flight,
-                    reconstruction_authority,
-                    cancel_after_external_submission,
-                });
-                Ok(FrameProgress::Retained)
-            }
-            crate::mounting::UiMountedFrameOutcome::RejectedBeforeEffects(rejected)
-                if rejected.rejections().iter().all(|rejection| {
-                    rejection.denial()
-                        == worth_ui_host_contract::UiHostSurfacePresentationDenial::TextAtlasPresentationDeferred
-                }) =>
-            {
-                Ok(FrameProgress::RetryRequired)
-            }
-            crate::mounting::UiMountedFrameOutcome::RejectedBeforeEffects(rejected)
-                if rejected.rejections().iter().all(|rejection| {
-                    rejection.denial()
-                        == worth_ui_host_contract::UiHostSurfacePresentationDenial::ReconstructionRequired
-                }) =>
-            {
-                self.next_completion_tick = self.next_completion_tick.saturating_add(1);
-                let reconstruction = shell
-                    .reconstruct_current_presentation(u64::MAX, self.next_completion_tick)
-                    .map_err(|_| ())?;
-                self.retain_or_attribute(
-                    shell,
-                    reconstruction,
-                    program_frame,
-                    None,
-                    Some(UiNativeProgramReconstructionAuthority::HostRequired),
-                    false,
-                )
-            }
-            crate::mounting::UiMountedFrameOutcome::PresentationIndeterminate(indeterminate) => {
-                if indeterminate.report().awaits_physical_recovery() {
-                    if let Some(presentation) = physical_presentation {
-                        if presentation.attempt() != indeterminate.report().attempt()
-                        {
-                            return Err(());
-                        }
-                    }
-                    for binding in indeterminate.report().physical_recovery_bindings() {
-                        self.physical_recovery
-                            .expect(indeterminate.report().attempt(), *binding)
-                            .map_err(|_| ())?;
-                    }
-                    if let Some(presentation) = physical_presentation.filter(|presentation| {
-                        indeterminate
-                            .report()
-                            .physical_recovery_bindings()
-                            .contains(&presentation.binding())
-                    }) {
-                        self.physical_recovery
-                            .observe_scheduled(presentation)
-                            .map_err(|_| ())?;
-                    }
-                    return Ok(FrameProgress::Settled);
+        self.pending_retry = Some(UiNativePendingProgramRetry {
+            program_frame,
+            rejected,
+            reconstruction_authority,
+            cancel_after_external_submission,
+            after_readiness_generation: self.readiness_generation,
+            readiness,
+        });
+        Ok(())
+    }
+
+    fn progress_pending_retry(
+        &mut self,
+        shell: &mut WorthUiNativeApplicationShell,
+    ) -> Result<bool, ()> {
+        let Some(pending) = self.pending_retry.as_ref() else {
+            return Ok(true);
+        };
+        if !pending.admits_readiness(self.readiness_generation) {
+            return Ok(false);
+        }
+        let pending = self.pending_retry.take().expect("observed pending retry");
+        self.next_completion_tick = self.next_completion_tick.checked_add(1).ok_or(())?;
+        let outcome = shell.retry_rejected_frame_presentation(
+            pending.rejected,
+            worth_ui_host_contract::UiPresentationDeadline::at_tick(u64::MAX),
+            self.next_completion_tick,
+        );
+        let progress = self.retain_or_attribute(
+            shell,
+            outcome,
+            pending.program_frame,
+            None,
+            pending.reconstruction_authority,
+            pending.cancel_after_external_submission,
+        )?;
+        match progress {
+            FrameProgress::Retained => {
+                if self.next_frame == pending.program_frame {
+                    self.next_frame = self.next_frame.saturating_add(1);
                 }
-                self.next_completion_tick = self.next_completion_tick.saturating_add(1);
-                let recovery = shell
-                    .reconstruct_current_presentation(u64::MAX, self.next_completion_tick)
-                    .map_err(|_| ())?;
-                self.retain_or_attribute(shell, recovery, program_frame, None, None, false)
+                Ok(false)
             }
-            outcome @ (crate::mounting::UiMountedFrameOutcome::Published(_)
-            | crate::mounting::UiMountedFrameOutcome::Unchanged(_)
-            | crate::mounting::UiMountedFrameOutcome::Reconciled(_)) => {
-                if let Some(observed) =
-                    shell.presentation_attribution(&outcome, self.attribution)
+            FrameProgress::Settled => {
+                if let Some(UiNativeProgramReconstructionAuthority::Physical(correlation)) =
+                    pending.reconstruction_authority
                 {
-                    self.attribution = Some(observed);
+                    self.physical_recovery
+                        .commit_settlement(correlation)
+                        .map_err(|_| ())?;
                 }
-                self.runtime_qualification
-                    .observe_settled_presentation(shell, reconstruction_authority.is_some())?;
-                Ok(FrameProgress::Settled)
+                if self.next_frame == pending.program_frame {
+                    self.next_frame = self.next_frame.saturating_add(1);
+                }
+                Ok(true)
             }
-            crate::mounting::UiMountedFrameOutcome::Superseded(_) => Ok(FrameProgress::Settled),
-            crate::mounting::UiMountedFrameOutcome::RejectedBeforeEffects(_)
-            | crate::mounting::UiMountedFrameOutcome::RetentionDenied(_)
-            | crate::mounting::UiMountedFrameOutcome::AdmissionDenied(_)
-            | crate::mounting::UiMountedFrameOutcome::CompletionDenied(_) => {
-                Ok(FrameProgress::Failed)
-            }
+            FrameProgress::RetryRequired(_) => Ok(false),
+            FrameProgress::Failed => Err(()),
         }
     }
-}
 
-fn apply_completion_intent(
-    shell: &mut WorthUiNativeApplicationShell,
-    outcome: crate::mounting::UiMountedFrameOutcome,
-    cancel_after_external_submission: bool,
-) -> Result<crate::mounting::UiMountedFrameOutcome, ()> {
-    if !cancel_after_external_submission {
-        return Ok(outcome);
-    }
-    match outcome {
-        crate::mounting::UiMountedFrameOutcome::InFlight(in_flight)
-            if in_flight.awaits_progress_class(
-                worth_ui_host_contract::UiHostPresentationProgressClass::PhysicalSurface,
-            ) =>
-        {
-            Ok(shell.cancel_mounted_presentation(in_flight))
+    pub(super) fn progress_text_atlas_retry(
+        &mut self,
+        shell: &mut WorthUiNativeApplicationShell,
+    ) -> Result<(), ()> {
+        if self.retry_readiness() != Some(UiNativeProgramRetryReadiness::TextAtlas) {
+            return Err(());
         }
-        outcome @ crate::mounting::UiMountedFrameOutcome::InFlight(_) => Ok(outcome),
-        _ => Err(()),
+        let predecessor_generation = self.readiness_generation;
+        self.readiness_generation = self.readiness_generation.checked_add(1).ok_or(())?;
+        let progressed = self.progress_pending_retry(shell).map(|_| ());
+        if progressed.is_err() {
+            self.readiness_generation = predecessor_generation;
+        }
+        progressed
     }
-}
-
-fn attribution_basis_from_outcome(
-    outcome: &crate::mounting::UiMountedFrameOutcome,
-) -> Option<UiNativeApplicationAttributionBasis> {
-    let (receipt, unchanged) = match outcome {
-        crate::mounting::UiMountedFrameOutcome::Published(receipt)
-        | crate::mounting::UiMountedFrameOutcome::Reconciled(receipt) => (receipt, false),
-        crate::mounting::UiMountedFrameOutcome::Unchanged(receipt) => (receipt, true),
-        _ => return None,
-    };
-    Some(UiNativeApplicationAttributionBasis {
-        frame: receipt.frame(),
-        binding: *receipt.bindings().first()?,
-        attempt: receipt.attempt(),
-        unchanged,
-    })
 }

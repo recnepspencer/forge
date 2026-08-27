@@ -3,6 +3,10 @@ use super::{
     WorthUiActiveApplicationSession,
 };
 
+#[path = "intent_consequence_publication/managed.rs"]
+mod managed;
+pub(in crate::facade::entry) use managed::DetachedUiIntentConsequenceInFlight;
+
 pub enum UiIntentConsequencePublicationOutcome<'session> {
     NoConsequences(crate::runtime::intent_execution::UiIntentConsequenceCompletionReceipt),
     Stopped(crate::runtime::intent_execution::UiIntentConsequenceStop),

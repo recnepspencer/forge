@@ -6,15 +6,42 @@ use super::relation_integrity_scopes::prepare_relation_integrity_scopes;
 use super::InvariantExecutionRequest;
 use crate::validation::engine::{InvariantObservation, InvariantRequestProfile};
 
-impl<'runtime> InvariantExecutionRequest<'runtime> {
-    pub(crate) fn from_profile_with_contract(
+impl<'state> InvariantExecutionRequest<'state> {
+    #[cfg(test)]
+    pub(crate) fn from_profile_with_contract<'runtime>(
         profile: InvariantRequestProfile,
         runtime: &'runtime crate::runtime::RelationalRuntime,
-        observation: InvariantObservation<'runtime>,
+        observation: InvariantObservation<'state>,
         version_id: crate::identity::data::VersionId,
-        merged_plan: Option<&'runtime MergedCommitPlan>,
+        merged_plan: Option<&'state MergedCommitPlan>,
         plan_contract: Option<InvariantPlanContract>,
-    ) -> Self {
+    ) -> Self
+    where
+        'runtime: 'state,
+    {
+        Self::from_profile_with_contract_at_current_version(
+            profile,
+            runtime,
+            observation,
+            version_id,
+            runtime.current_version_id(),
+            merged_plan,
+            plan_contract,
+        )
+    }
+
+    pub(crate) fn from_profile_with_contract_at_current_version<'runtime>(
+        profile: InvariantRequestProfile,
+        runtime: &'runtime crate::runtime::RelationalRuntime,
+        observation: InvariantObservation<'state>,
+        version_id: crate::identity::data::VersionId,
+        current_version_id: crate::identity::data::VersionId,
+        merged_plan: Option<&'state MergedCommitPlan>,
+        plan_contract: Option<InvariantPlanContract>,
+    ) -> Self
+    where
+        'runtime: 'state,
+    {
         debug_assert!(
             profile.supports_observation(observation.kind()),
             "invariant profile {:?} does not support {:?} observation",
@@ -39,7 +66,7 @@ impl<'runtime> InvariantExecutionRequest<'runtime> {
             Option<InvariantViolation>,
         ) = match prepare_relation_integrity_scopes(
             merged_plan,
-            observation.partition_access(),
+            observation.committed_partition_access(),
             version_id,
             relation_scope_requirements,
             &runtime.performance_access(),
@@ -51,10 +78,11 @@ impl<'runtime> InvariantExecutionRequest<'runtime> {
                 Some(exceeded.into_violation(profile.execution_point())),
             ),
         };
+        let proposal_identity = observation.proposal_identity().cloned();
         Self {
             observation,
             version_id,
-            current_version_id: runtime.current_version_id(),
+            current_version_id,
             checkpoint: profile.execution_point(),
             runtime_policy,
             consumed_groups,
@@ -63,6 +91,7 @@ impl<'runtime> InvariantExecutionRequest<'runtime> {
             merged_plan,
             relation_integrity_scopes,
             preparation_violation,
+            proposal_identity,
         }
     }
 }

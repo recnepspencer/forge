@@ -31,6 +31,18 @@ impl StructAspectShape {
     pub fn field(&self, key: &FieldKey) -> Option<&FieldDeclaration> {
         self.fields.iter().find(|field| field.key() == key)
     }
+
+    pub fn owned_allocation_capacity_bytes(&self) -> usize {
+        self.fields
+            .capacity()
+            .saturating_mul(std::mem::size_of::<FieldDeclaration>())
+            .saturating_add(
+                self.fields
+                    .iter()
+                    .map(|field| field.key().owned_allocation_capacity_bytes())
+                    .sum(),
+            )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

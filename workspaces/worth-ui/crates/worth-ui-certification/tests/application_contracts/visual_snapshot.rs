@@ -30,8 +30,6 @@ use super::mounted_host_protocol::scripted_host::ScriptedPresentationHost;
 mod comparison;
 #[path = "visual_snapshot/disclosure_evidence.rs"]
 mod disclosure_evidence;
-#[path = "visual_snapshot/phase_2_egui.rs"]
-mod phase_2_egui;
 #[path = "visual_snapshot/phase_2_lifecycle.rs"]
 mod phase_2_lifecycle;
 #[path = "visual_snapshot/phase_2_outcomes.rs"]

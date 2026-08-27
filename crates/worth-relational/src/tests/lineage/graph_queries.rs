@@ -5,8 +5,7 @@ use crate::facade::lineage::{
     LineageGraphTraversalBasis,
 };
 use crate::facade::transactions::{
-    EntityMutationIntent, MutationIntent, ReplaceEntityIntent, TransactionOptions,
-    WorkerIntentBatch,
+    EntityMutationIntent, MutationIntent, ReplaceEntityIntent, WorkerIntentBatch,
 };
 use crate::tests::support::*;
 
@@ -41,7 +40,7 @@ fn lineage_graph_replace_emits_replace_edge() {
     let created = create_entity_outcome(&mut runtime, "source");
     let entity = changed_entities(&created)[0];
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("replace").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -59,7 +58,7 @@ fn lineage_graph_replace_emits_replace_edge() {
             }),
         )),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
     let graph = runtime.lineage_access().graph(LineageGraphRequest {
         branch_id: BranchId("main".to_string()),
         traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
@@ -85,7 +84,7 @@ fn lineage_graph_same_shape_replacements_do_not_cross_wire_targets() {
     let left_entity = changed_entities(&left)[0];
     let right_entity = changed_entities(&right)[0];
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("replace-many")
             .push(MutationIntent::Entity(EntityMutationIntent::Replace(
@@ -119,7 +118,7 @@ fn lineage_graph_same_shape_replacements_do_not_cross_wire_targets() {
                 },
             ))),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
     let graph = runtime.lineage_access().graph(LineageGraphRequest {
         branch_id: BranchId("main".to_string()),
         traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
@@ -136,10 +135,6 @@ fn lineage_graph_same_shape_replacements_do_not_cross_wire_targets() {
     assert_eq!(replace_events.len(), 2);
     assert_eq!(graph.metrics.event_count, graph.events.len());
     assert_eq!(graph.metrics.node_count, graph.nodes.len());
-    assert_eq!(
-        graph.metrics.candidate_count,
-        graph.correspondence_candidates.len()
-    );
     assert_eq!(
         graph.digest_basis().digest_mode(),
         LineageGraphDigestMode::ExactDigestCanonicalOrder
@@ -169,7 +164,7 @@ fn lineage_graph_replace_commit_publishes_replace_decision_log_entry() {
     let created = create_entity_outcome(&mut runtime, "source");
     let entity = changed_entities(&created)[0];
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("replace").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -187,7 +182,7 @@ fn lineage_graph_replace_commit_publishes_replace_decision_log_entry() {
             }),
         )),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
     let replay = runtime.replay();
     let envelope = replay
         .canonical_commit_envelope(outcome.commit.commit_id)

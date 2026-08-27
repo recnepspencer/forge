@@ -17,8 +17,35 @@ parallelize disposable work, serialize authority.
 That rule still governs every remaining milestone:
 
 1. immutable read, planning, validation, and preparation may scale out
-2. authoritative truth mutation and publication remain serialized and canonical
+2. authoritative truth mutation and publication remain serialized per selected
+   authority scope and canonical
 3. downstream consumption may scale out only over immutable published artifacts
+
+### Query Milestone 9.17.1 Authority-Scope Clarification
+
+[Query Milestone 9.17.1](../WORTH-query/milestone-9.17.1.md) is the governing
+cutover for Relational branch-local MVCC. From that cutover onward, “serialized
+authority” in this roadmap means one exact selected branch reference has one
+linear publication order. It does not authorize a runtime-global commit mutex,
+broad `&mut RelationalRuntime` transaction lifetime, global publication actor,
+or queue that prevents unrelated branches from progressing.
+
+9.17.1 also separates immutable commits from mutable branch references and
+makes one reference-selected immutable branch root the visibility
+linearization boundary. Existing roadmap requirements for canonical commits,
+history, replay, patch publication, storage-visible fallback, merge, and
+inspection must migrate to that root and performed commit; they do not remain
+parallel global authority paths.
+
+The cutover begins by adding the Supply Chain certification world
+through production schema/transaction facades, with an independent semantic
+oracle and Court/Standard/Scale profiles. Forks must share the exact immutable
+baseline without copying truth or commit envelopes; branch writes copy only
+touched persistent regions; semantic state never crosses between siblings;
+and stable inspection evidence distinguishes logical branch bytes from unique
+physical authoritative bytes. The same world, named deltas, and oracle are
+retained for later merge certification rather than replaced by a merge-only
+fixture.
 
 ## Shipped Baseline
 
@@ -48,7 +75,9 @@ certification programs second.
 Rules for every remaining item:
 
 - each milestone must describe the missing runtime/product capability, not only a test label
-- each milestone must preserve serialized authority, canonical observability, replay from canonical commit artifacts, and storage-visible fallback semantics
+- each milestone must preserve authority-scope serialization, canonical
+  observability, replay from canonical commit artifacts, and storage-visible
+  fallback semantics
 - each milestone must name the exact acceptance requirements in
   [test-requirements.md](/Users/spenstar/Documents/programming/WORTH%20workspace/WORTH/_docs/worth-relational/test-requirements.md)
 - the roadmap uses `test-requirements.md` as the authoritative source for what each named acceptance test demands

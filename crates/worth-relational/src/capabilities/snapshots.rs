@@ -11,15 +11,6 @@ pub(crate) trait SnapshotSource {
         VersionId,
         SnapshotReadPolicy,
     )>;
-    fn execution_basis_binding(
-        &self,
-        snapshot_id: SnapshotId,
-    ) -> Option<(
-        crate::history::data::BranchId,
-        VersionId,
-        SnapshotReadPolicy,
-    )>;
-    fn published_snapshot_version(&self, snapshot_id: SnapshotId) -> Option<VersionId>;
 }
 
 impl SnapshotSource for RelationalRuntime {
@@ -40,22 +31,5 @@ impl SnapshotSource for RelationalRuntime {
                     binding.read_policy,
                 )
             })
-    }
-
-    fn published_snapshot_version(&self, snapshot_id: SnapshotId) -> Option<VersionId> {
-        self.visibility.published_snapshot_version(snapshot_id)
-    }
-
-    fn execution_basis_binding(
-        &self,
-        snapshot_id: SnapshotId,
-    ) -> Option<(
-        crate::history::data::BranchId,
-        VersionId,
-        SnapshotReadPolicy,
-    )> {
-        self.visibility
-            .execution_basis_binding(snapshot_id)
-            .map(|binding| (binding.branch_id, binding.version_id, binding.read_policy))
     }
 }

@@ -133,7 +133,7 @@ impl<'run> WorthQueryRegisteredProviderAttempt<'run> {
                 return outcome
             }
         };
-        let candidate = match fresh.progress_invariant(self.steps) {
+        let candidate = match fresh.progress_invariant(self.steps, authority.provider()) {
             Ok(candidate) => candidate,
             Err(outcome) => return outcome,
         };

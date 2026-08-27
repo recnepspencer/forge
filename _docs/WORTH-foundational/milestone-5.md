@@ -363,7 +363,7 @@ pub struct FoundationalBranchId { /* private fields */ }
 pub struct FoundationalMergeId { /* private fields */ }
 pub struct FoundationalCommitId { /* private fields */ }
 
-pub struct FoundationalBranchForkBasis { /* private fields */ }
+pub struct FoundationalBranchCandidateForkBasis { /* private fields */ }
 pub struct FoundationalBranchCandidateId { /* private fields */ }
 
 pub enum FoundationalBranchLocalStateKind {
@@ -399,9 +399,9 @@ pub struct FoundationalTransitionBasisIdentity { /* private fields */ }
 pub struct FoundationalTransitionBasisFamily { /* private fields */ }
 pub struct FoundationalTransitionBasisVersion { /* private fields */ }
 
-pub struct FoundationalBranchObservationBasis { /* private fields */ }
-pub struct FoundationalBranchForkObservationBasis { /* private fields */ }
-pub struct FoundationalBranchComparisonBasis { /* private fields */ }
+pub struct FoundationalBranchCandidateObservationBasis { /* private fields */ }
+pub struct FoundationalBranchCandidateForkObservationBasis { /* private fields */ }
+pub struct FoundationalBranchCandidateComparisonBasis { /* private fields */ }
 pub struct FoundationalMergeBaseSelectionBasis { /* private fields */ }
 pub struct FoundationalStrategyBasis { /* private fields */ }
 

@@ -22,9 +22,9 @@ pub(crate) use framework_turn::{
     UiPendingMountedPreviewTransition,
 };
 pub use framework_turn::{
-    UiFrameworkTransitionPlanningCounters, UiFrameworkTransitionPlanningDenial,
-    WorthUiFrameworkTurn, WorthUiFrameworkTurnCompletion, WorthUiFrameworkTurnExecution,
-    WorthUiInteractionTurnSource, WorthUiQueryProjectionTurnSource,
+    UiFrameworkTransitionExecutionDenial, UiFrameworkTransitionPlanningCounters,
+    UiFrameworkTransitionPlanningDenial, WorthUiFrameworkTurn, WorthUiFrameworkTurnCompletion,
+    WorthUiFrameworkTurnExecution, WorthUiInteractionTurnSource, WorthUiQueryProjectionTurnSource,
 };
 pub use framework_turn::{WorthUiMountedPreviewFollowOn, WorthUiPendingMountedPreviewProjection};
 pub(crate) use gateway::UiAllocationFrameGatewayState;

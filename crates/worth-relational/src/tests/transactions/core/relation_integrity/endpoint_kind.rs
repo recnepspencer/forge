@@ -40,7 +40,7 @@ fn relation_integrity_commit_boundary_rejects_forbidden_self_edge() {
         .build();
     let entity = create_entity(&mut runtime, "self");
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("relation").push(MutationIntent::Create(CreateIntent::Relation(
             crate::transactions::data::RelationSpec {
@@ -54,7 +54,7 @@ fn relation_integrity_commit_boundary_rejects_forbidden_self_edge() {
         ))),
     );
 
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(error.code(), DiagnosticCode::RelationEndpointKindViolation);

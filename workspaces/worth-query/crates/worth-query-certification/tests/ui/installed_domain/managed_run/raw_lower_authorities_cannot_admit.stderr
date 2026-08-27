@@ -1,5 +1,0 @@
-error[E0599]: no method named `admit_direct_run` found for reference `&WorthQueryExecutionRuntime` in the current scope
-  --> tests/ui/installed_domain/managed_run/raw_lower_authorities_cannot_admit.rs:15:21
-   |
-15 |     let _ = runtime.admit_direct_run(operation, attempt, bridge, relational);
-   |                     ^^^^^^^^^^^^^^^^ method not found in `&WorthQueryExecutionRuntime`

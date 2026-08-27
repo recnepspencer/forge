@@ -57,6 +57,7 @@ pub struct PlatformPulseIntentInputWatch {
     terminal: Arc<Mutex<Option<PlatformPulseIntentInputWatchDenial>>>,
     stop: Arc<AtomicBool>,
     worker: Option<JoinHandle<()>>,
+    readiness: Arc<Mutex<Option<crate::PlatformPulseApplicationReadinessSignal>>>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -99,6 +100,8 @@ impl PlatformPulseIntentInputInstallation {
         let stop = Arc::new(AtomicBool::new(false));
         let worker_terminal = Arc::clone(&terminal);
         let worker_stop = Arc::clone(&stop);
+        let readiness = Arc::new(Mutex::new(None));
+        let worker_readiness = Arc::clone(&readiness);
         let root = root.to_owned();
         let admitted_revision = initial.revision;
         let worker = thread::Builder::new()
@@ -110,6 +113,7 @@ impl PlatformPulseIntentInputInstallation {
                     worker_stop,
                     sender,
                     worker_terminal,
+                    worker_readiness,
                 )
             })
             .map_err(|error| PlatformPulseIntentInputWatchDenial::Watcher(error.to_string()))?;
@@ -120,6 +124,7 @@ impl PlatformPulseIntentInputInstallation {
                 terminal,
                 stop,
                 worker: Some(worker),
+                readiness,
             },
         })
     }
@@ -178,6 +183,13 @@ impl PlatformPulseIntentInputRecord {
 }
 
 impl PlatformPulseIntentInputWatch {
+    pub fn install_readiness(&self, readiness: crate::PlatformPulseApplicationReadinessSignal) {
+        *self
+            .readiness
+            .lock()
+            .expect("intent readiness installation is not poisoned") = Some(readiness);
+    }
+
     pub fn try_next(&mut self) -> Option<PlatformPulseIntentInputEvent> {
         match self.receiver.try_recv() {
             Ok(record) => Some(PlatformPulseIntentInputEvent::Record(record)),

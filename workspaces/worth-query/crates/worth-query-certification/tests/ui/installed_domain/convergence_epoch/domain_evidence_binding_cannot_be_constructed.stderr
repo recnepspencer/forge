@@ -1,8 +1,0 @@
-error[E0432]: unresolved import `worth_query_host::facade::installed::domain_computation::WorthQueryConvergenceDomainEvidenceBinding`
- --> tests/ui/installed_domain/convergence_epoch/domain_evidence_binding_cannot_be_constructed.rs:1:5
-  |
-1 | use worth_query_host::facade::installed::domain_computation::WorthQueryConvergenceDomainEvidenceBinding;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^------------------------------------------
-  |     |                                                        |
-  |     |                                                        help: a similar name exists in the module: `WorthQueryConvergenceDomainEvidenceBindingDenial`
-  |     no `WorthQueryConvergenceDomainEvidenceBinding` in `facade::domain_computation`

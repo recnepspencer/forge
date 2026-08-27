@@ -4,7 +4,6 @@ use worth_ui_host_contract::{
 };
 
 use super::basis_admission::UiBasisAdmittedObservationBatch;
-use super::progression::validate_sequence_progression;
 use super::state::{
     UiHostObservationBatchFingerprint, UiHostObservationPartition, UiRetainedHostObservationReport,
     UiRetainedObservationBasis,
@@ -30,7 +29,6 @@ impl UiHostObservationReportValidation {
             .get(&binding)
             .cloned()
             .unwrap_or_else(UiHostObservationPartition::empty);
-        validate_sequence_progression(partition.last_sequence, core.sequences())?;
         let previous = UiHostObservationRetentionBasis::from_partition(&partition);
         let mut basis_changes = UiObservationBasisChanges::default();
         let validated = retain_batch_reports(
@@ -45,13 +43,13 @@ impl UiHostObservationReportValidation {
         );
         let family = capacity_family(batch.disposition(), batch.reports());
         let admitted = self.admit_retention_capacity(&partition, previous, family)?;
-        partition.last_sequence = Some(core.sequences().last());
         partition.remember_batch(UiHostObservationBatchFingerprint {
             sequences: core.sequences(),
             integrity: batch.integrity(),
         });
         self.commit_observation_basis(frame, observation_basis, basis_changes);
         self.commit_partition(binding, partition, admitted);
+        self.last_sequence = Some(core.sequences().last());
         Ok(UiHostObservationReportOutcome::Validated(
             UiValidatedHostObservationBatch::new(core, relation, batch.disposition(), validated),
         ))
@@ -62,15 +60,19 @@ impl UiHostObservationReportValidation {
         batch: &super::sequence_coverage::UiSequenceCoveredObservationBatch,
     ) -> Option<UiHostObservationReportOutcome> {
         let core = batch.core();
-        self.partitions
+        let retained = self
+            .partitions
             .get(&core.binding())
-            .filter(|partition| partition.duplicate(core, batch.integrity()))
-            .map(|_| {
-                UiHostObservationReportOutcome::Duplicate(UiDuplicateHostObservationBatch::new(
-                    core.sequences(),
-                    batch.integrity(),
-                ))
-            })
+            .is_some_and(|partition| partition.duplicate(core, batch.integrity()));
+        let quarantined = self.quarantine_fingerprints.iter().any(|candidate| {
+            candidate.sequences == core.sequences() && candidate.integrity == batch.integrity()
+        });
+        (retained || quarantined).then(|| {
+            UiHostObservationReportOutcome::Duplicate(UiDuplicateHostObservationBatch::new(
+                core.sequences(),
+                batch.integrity(),
+            ))
+        })
     }
 
     fn admit_retention_capacity(

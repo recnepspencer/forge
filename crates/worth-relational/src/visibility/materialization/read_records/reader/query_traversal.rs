@@ -23,7 +23,7 @@ pub(super) fn aspect_filter_matches_relation(
 
 pub(super) fn traversal_fragment(
     runtime: &RelationalRuntime,
-    state: &impl PartitionAccess,
+    state: &(dyn PartitionAccess + Sync),
     version_id: crate::identity::data::VersionId,
     packet: &PlannedQueryPacket,
     seeds: &[crate::identity::data::EntityId],
@@ -152,19 +152,22 @@ pub(super) fn traversal_fragment(
 
 fn relation_ids_for_traversal(
     runtime: &RelationalRuntime,
-    state: &impl PartitionAccess,
+    state: &(dyn PartitionAccess + Sync),
     version_id: crate::identity::data::VersionId,
     entity_id: crate::identity::data::EntityId,
     mode: &TraversalMode,
     relation_kind_scope: Option<&BTreeSet<crate::identity::data::KindId>>,
 ) -> Vec<crate::identity::data::RelationId> {
-    let storage = runtime.storage_access();
     let mut relation_ids = match mode {
         TraversalMode::OutgoingNeighborhood | TraversalMode::ConnectivityTraversal { .. } => {
-            storage.outgoing_relations_for_entity(entity_id, version_id)
+            crate::storage::partition::adjacency_queries::outgoing_relation_candidates_from_state(
+                state, entity_id,
+            )
         }
         TraversalMode::IncomingNeighborhood => {
-            storage.incoming_relations_for_entity(entity_id, version_id)
+            crate::storage::partition::adjacency_queries::incoming_relation_candidates_from_state(
+                state, entity_id,
+            )
         }
     };
     relation_ids.sort();

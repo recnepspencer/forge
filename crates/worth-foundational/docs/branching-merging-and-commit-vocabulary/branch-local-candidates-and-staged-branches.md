@@ -37,10 +37,10 @@ the right lane for authority, receipts, or committed history.
 - `FoundationalStagedBranchArtifact<T>`
 - `FoundationalBranchId`
 - `FoundationalBranchCandidateId`
-- `FoundationalBranchForkBasis`
-- `FoundationalBranchObservationBasis`
-- `FoundationalBranchForkObservationBasis`
-- `FoundationalBranchComparisonBasis`
+- `FoundationalBranchCandidateForkBasis`
+- `FoundationalBranchCandidateObservationBasis`
+- `FoundationalBranchCandidateForkObservationBasis`
+- `FoundationalBranchCandidateComparisonBasis`
 
 ## Core Mental Model
 
@@ -80,17 +80,22 @@ From there you can:
 
 ```rust
 use worth_foundational::{
-    foundational_branch_candidate, FoundationalBranchCandidateId, FoundationalBranchForkBasis,
-    FoundationalBranchId, FoundationalBranchObservationBasis,
+    foundational_branch_candidate, BoundaryEpoch, BoundaryHandle, EquivalenceBasisId,
+    FoundationalBranchCandidateForkBasis, FoundationalBranchCandidateId,
+    FoundationalBranchCandidateObservationBasis, FoundationalBranchId,
 };
 
 let candidate = foundational_branch_candidate()
     .on_branch(FoundationalBranchId::new("feature/mesh").expect("branch id"))
-    .with_candidate_id(
-        FoundationalBranchCandidateId::new(7).expect("candidate id"),
-    )
-    .from_fork_basis(FoundationalBranchForkBasis::new(401))
-    .under_observation_basis(FoundationalBranchObservationBasis::new(11))
+    .with_candidate_id(FoundationalBranchCandidateId::new(BoundaryHandle::new(7)))
+    .from_fork_basis(FoundationalBranchCandidateForkBasis::new(
+        FoundationalBranchId::new("main").expect("branch id"),
+        BoundaryEpoch::new(401),
+    ))
+    .under_observation_basis(FoundationalBranchCandidateObservationBasis::new(
+        EquivalenceBasisId::new(11),
+        BoundaryEpoch::new(402),
+    ))
     .stage("mesh-update")?;
 ```
 
@@ -100,22 +105,30 @@ Use the staged artifact when you are about to enter merge planning:
 
 ```rust
 use worth_foundational::{
-    foundational_branch_candidate, FoundationalBranchCandidateId, FoundationalBranchComparisonBasis,
-    FoundationalBranchForkBasis, FoundationalBranchForkObservationBasis, FoundationalBranchId,
-    FoundationalBranchObservationBasis,
+    foundational_branch_candidate, BoundaryEpoch, BoundaryHandle, EquivalenceBasisId,
+    FoundationalBranchCandidateComparisonBasis, FoundationalBranchCandidateForkBasis,
+    FoundationalBranchCandidateForkObservationBasis, FoundationalBranchCandidateId,
+    FoundationalBranchCandidateObservationBasis, FoundationalBranchId,
 };
 
 let staged = foundational_branch_candidate()
     .on_branch(FoundationalBranchId::new("feature/mesh").expect("branch id"))
-    .with_candidate_id(
-        FoundationalBranchCandidateId::new(7).expect("candidate id"),
-    )
-    .from_fork_basis(FoundationalBranchForkBasis::new(401))
-    .under_observation_basis(FoundationalBranchObservationBasis::new(11))
-    .under_fork_observation_basis(FoundationalBranchForkObservationBasis::new(12))
-    .against_comparison_basis(FoundationalBranchComparisonBasis::new(
+    .with_candidate_id(FoundationalBranchCandidateId::new(BoundaryHandle::new(7)))
+    .from_fork_basis(FoundationalBranchCandidateForkBasis::new(
         FoundationalBranchId::new("main").expect("branch id"),
-        13,
+        BoundaryEpoch::new(401),
+    ))
+    .under_observation_basis(FoundationalBranchCandidateObservationBasis::new(
+        EquivalenceBasisId::new(11),
+        BoundaryEpoch::new(402),
+    ))
+    .under_fork_observation_basis(FoundationalBranchCandidateForkObservationBasis::new(
+        EquivalenceBasisId::new(12),
+        BoundaryEpoch::new(403),
+    ))
+    .against_comparison_basis(FoundationalBranchCandidateComparisonBasis::new(
+        EquivalenceBasisId::new(13),
+        FoundationalBranchId::new("main").expect("branch id"),
     ))
     .stage("mesh-update")?
     .staged();

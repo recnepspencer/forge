@@ -15,9 +15,12 @@ pub enum RecoveryFailureClass {
     RuntimeNameMismatch,
     CorruptCheckpoint,
     CorruptSegment,
+    UnsupportedLegacySemantics,
     MissingAuthoritativeParentClosure,
     ReplayFailure,
     DurableIoFailure,
+    CheckpointPublicationInFlight,
+    PerformedPublicationRequiresSettlement,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -199,8 +202,13 @@ impl DurabilityError {
     pub fn new(class: RecoveryFailureClass, detail: impl Into<String>) -> Self {
         let operation = match class {
             RecoveryFailureClass::DurableIoFailure => ErrorOperation::ReadDurableStore,
+            RecoveryFailureClass::CheckpointPublicationInFlight
+            | RecoveryFailureClass::PerformedPublicationRequiresSettlement => {
+                ErrorOperation::WriteDurableStore
+            }
             RecoveryFailureClass::CorruptCheckpoint
             | RecoveryFailureClass::CorruptSegment
+            | RecoveryFailureClass::UnsupportedLegacySemantics
             | RecoveryFailureClass::MissingAuthoritativeParentClosure
             | RecoveryFailureClass::ReplayFailure
             | RecoveryFailureClass::SchemaMismatch

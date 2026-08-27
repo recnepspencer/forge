@@ -2,9 +2,8 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
-use crate::history::data::{BranchId, CommitId};
+use crate::history::data::BranchId;
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId};
-use crate::schema::data::{ProposedSchemaTransition, SchemaReconciliationPolicy};
 use crate::symbols::data::ClientKey;
 
 use super::intents::MutationIntent;
@@ -15,100 +14,6 @@ pub struct TransactionId(pub u64);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct SavepointId(pub u64);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum AuthorityMode {
-    SerializedCommit,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CommitAuthority {
-    pub mode: AuthorityMode,
-    pub label: String,
-}
-
-impl Default for CommitAuthority {
-    fn default() -> Self {
-        Self {
-            mode: AuthorityMode::SerializedCommit,
-            label: "single-writer deterministic commit".to_string(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TransactionOptions {
-    pub allow_nested_savepoints: bool,
-    pub diagnostics_required: bool,
-    pub deterministic_merge_required: bool,
-    pub target_branch: Option<BranchId>,
-    /// Optional owner-enforced compare-and-commit precondition for the exact
-    /// current target-branch head.
-    pub expected_branch_head: Option<ExpectedBranchHead>,
-    pub merge_parent_branches: Vec<BranchId>,
-    pub proposed_schema_transition: Option<ProposedSchemaTransition>,
-    pub schema_reconciliation_policy: Option<SchemaReconciliationPolicy>,
-}
-
-impl Default for TransactionOptions {
-    fn default() -> Self {
-        Self {
-            allow_nested_savepoints: true,
-            diagnostics_required: true,
-            deterministic_merge_required: true,
-            target_branch: None,
-            expected_branch_head: None,
-            merge_parent_branches: Vec::new(),
-            proposed_schema_transition: None,
-            schema_reconciliation_policy: None,
-        }
-    }
-}
-
-impl TransactionOptions {
-    pub fn for_branch(target_branch: BranchId) -> Self {
-        Self {
-            target_branch: Some(target_branch),
-            ..Self::default()
-        }
-    }
-
-    pub fn merge_from_branches(mut self, branches: Vec<BranchId>) -> Self {
-        self.merge_parent_branches = branches;
-        self
-    }
-
-    pub fn expect_branch_head(mut self, expected: ExpectedBranchHead) -> Self {
-        self.expected_branch_head = Some(expected);
-        self
-    }
-
-    pub fn with_schema_transition(
-        mut self,
-        proposed_schema_transition: ProposedSchemaTransition,
-        schema_reconciliation_policy: Option<SchemaReconciliationPolicy>,
-    ) -> Self {
-        self.proposed_schema_transition = Some(proposed_schema_transition);
-        self.schema_reconciliation_policy = schema_reconciliation_policy;
-        self
-    }
-}
-
-/// Exact target-branch head required for one Relational commit.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ExpectedBranchHead {
-    Empty,
-    Commit(CommitId),
-}
-
-impl ExpectedBranchHead {
-    pub const fn observed_commit(self) -> Option<CommitId> {
-        match self {
-            Self::Empty => None,
-            Self::Commit(commit) => Some(commit),
-        }
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WorkerIntentBatch {
@@ -184,6 +89,21 @@ pub struct CreatedEntityRef {
     pub partition_id: PartitionId,
     pub kind_id: KindId,
     pub client_key: ClientKey,
+}
+
+/// Exact owner-issued correspondence key for one relation creation intent.
+///
+/// Relation identity includes its declared endpoints because a relation
+/// client key is only meaningful within its kind and endpoint intent. The
+/// commit owner resolves this key to the allocated `RelationId`; callers must
+/// not reconstruct that identity from allocator slots or read order.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct CreatedRelationRef {
+    pub partition_id: PartitionId,
+    pub kind_id: KindId,
+    pub client_key: ClientKey,
+    pub source: EntityReference,
+    pub target: EntityReference,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]

@@ -2,7 +2,7 @@ use worth_relational::facade::history::BranchId;
 use worth_runtime_bridge::facade::BridgeWritebackOutcomeClass;
 
 use super::execution_support::{
-    create_entity, relational_runtime_with_intent_strategy, test_bridge,
+    create_entity, exact_branch_snapshot, relational_runtime_with_intent_strategy, test_bridge,
     test_bridge_with_writeback_authority,
 };
 use super::support::{
@@ -22,13 +22,12 @@ pub(super) use super::execution_support::{branch_snapshot_identity, runtime_snap
 fn lowered_mutation_execution_runs_through_relational_strategy_authority() {
     let mut runtime = relational_runtime_with_intent_strategy();
     let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("branch-a".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("branch-a should be created");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should be created");
     let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
         runtime_workflow_binding_with_snapshot(runtime_snapshot_identity(&runtime)),
         entity_id,
@@ -51,7 +50,7 @@ fn lowered_mutation_execution_runs_through_relational_strategy_authority() {
         executed.authority_owner(),
         executed.lowered().authority_owner()
     );
-    let snapshot = runtime.snapshots().snapshot();
+    let snapshot = exact_branch_snapshot(&mut runtime, "main");
     let read_view = runtime
         .read_truth()
         .read_snapshot(&snapshot)
@@ -62,19 +61,55 @@ fn lowered_mutation_execution_runs_through_relational_strategy_authority() {
         .find(|record| record.entity_id == entity_id)
         .expect("entity should still exist after execution");
     assert_eq!(entity_name(updated), Some("authority-plan".to_string()));
+    assert!(runtime.snapshots().release_snapshot(&snapshot));
+}
+
+#[test]
+fn performed_mutation_returns_settlement_deferred_without_denial_telemetry() {
+    let mut runtime = relational_runtime_with_intent_strategy();
+    let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
+    let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
+        runtime_workflow_binding_with_snapshot(runtime_snapshot_identity(&runtime)),
+        entity_id,
+        native_name_patch("performed-before-settlement"),
+    ))
+    .lower()
+    .expect("mutation should lower");
+    runtime.fail_next_durable_append_for_test();
+
+    let stop = lowered
+        .execute_with(EffectExecutionAuthority::relational(&mut runtime))
+        .expect_err("performed mutation must require settlement");
+    let deferred = stop
+        .settlement_deferred()
+        .expect("performed mutation is not an execution denial");
+    assert!(stop.denial().is_none());
+    assert_eq!(deferred.counters().executed_effect_count(), 1);
+    assert_eq!(deferred.counters().execution_denied_count(), 0);
+    assert_eq!(
+        deferred.counters().publication_settlement_deferred_count(),
+        1
+    );
+    let settlement = deferred.settlement().clone();
+    assert_eq!(
+        runtime.history().historical_latest_commit(),
+        Some(settlement.commit().clone())
+    );
+    deferred
+        .repair_with(EffectExecutionAuthority::relational(&mut runtime))
+        .expect("exact owner repairs the performed mutation");
 }
 
 #[test]
 fn lowered_merge_execution_runs_through_relational_merge_authority() {
     let mut runtime = relational_runtime_with_intent_strategy();
     create_entity(&mut runtime, "main", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("candidate".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("candidate branch should be created");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("candidate".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("candidate branch should be created");
     create_entity(
         &mut runtime,
         "feature-only",
@@ -99,7 +134,12 @@ fn lowered_merge_execution_runs_through_relational_merge_authority() {
         .expect("merge artifact should be present");
     assert_eq!(
         merge.commit.outcome().commit.version_id.0,
-        runtime.history().latest_commit().unwrap().version_id.0
+        runtime
+            .history()
+            .historical_latest_commit()
+            .unwrap()
+            .version_id
+            .0
     );
 }
 
@@ -113,6 +153,7 @@ fn lowered_writeback_execution_requires_bridge_authority() {
     let denial = lowered
         .execute_with(EffectExecutionAuthority::relational(&mut runtime))
         .expect_err("writeback execution should reject non-bridge authority");
+    let denial = denial.denial().expect("authority rejection is a denial");
 
     assert_eq!(
         denial.denial_kind(),
@@ -125,13 +166,12 @@ fn lowered_writeback_execution_requires_bridge_authority() {
 fn lowered_mutation_execution_rejects_bridge_host_override() {
     let mut runtime = relational_runtime_with_intent_strategy();
     let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId("branch-a".to_string()),
-            &BranchId("main".to_string()),
-        )
-        .expect("branch-a should be created");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId("branch-a".to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("branch-a should be created");
     let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
         runtime_workflow_binding_for_branch(
             branch_snapshot_identity(&runtime, "branch-a"),
@@ -146,6 +186,7 @@ fn lowered_mutation_execution_rejects_bridge_host_override() {
     let denial = lowered
         .execute_with(EffectExecutionAuthority::bridge(&test_bridge()))
         .expect_err("mutation execution should reject bridge host override");
+    let denial = denial.denial().expect("authority rejection is a denial");
 
     assert_eq!(
         denial.denial_kind(),
@@ -163,6 +204,7 @@ fn lowered_merge_execution_rejects_bridge_host_override() {
     let denial = lowered
         .execute_with(EffectExecutionAuthority::bridge(&test_bridge()))
         .expect_err("merge execution should reject bridge host override");
+    let denial = denial.denial().expect("authority rejection is a denial");
 
     assert_eq!(
         denial.denial_kind(),
@@ -180,6 +222,7 @@ fn lowered_writeback_execution_denies_without_bound_writeback_authority() {
     let denial = lowered
         .execute_with(EffectExecutionAuthority::bridge(&test_bridge()))
         .expect_err("writeback execution should fail when no writeback authority is bound");
+    let denial = denial.denial().expect("missing authority is a denial");
 
     assert_eq!(
         denial.denial_kind(),

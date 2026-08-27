@@ -1,206 +1,121 @@
-use std::collections::BTreeSet;
 use syn::visit::Visit;
 
 #[test]
 fn phase_two_external_effect_ports_are_concrete_and_vendor_scoped() {
     let inventory = super::workspace_source_inventory();
-    for (path, contract, implementation) in [
+    for (contract_path, contract, implementation_path, implementation) in [
         (
             "crates/worth-ui-host-native/src/native/event_loop/window_port.rs",
             "trait UiNativeWindowPort",
+            "crates/worth-ui-host-native/src/native/event_loop/window_port.rs",
             "impl UiNativeWindowPort for UiWinitNativeWindowPort",
         ),
         (
-            "crates/worth-ui-host-native/src/native/graphics/port.rs",
+            "crates/worth-ui-host-native/src/native/graphics/backend/port.rs",
             "trait UiNativeGraphicsPort",
+            "crates/worth-ui-host-native/src/native/graphics/backend/wgpu.rs",
             "impl UiNativeGraphicsPort for UiWgpuNativeGraphicsPort",
         ),
         (
             "crates/worth-ui-host-native/src/native/presentation/port.rs",
             "trait UiNativePresentationPort",
+            "crates/worth-ui-host-native/src/native/presentation/port.rs",
             "impl UiNativePresentationPort for UiWgpuNativePresentationPort",
         ),
-        (
-            "crates/worth-ui-host-native/src/native/presentation/readback_port.rs",
-            "trait UiNativeReadbackPort",
-            "impl UiNativeReadbackPort for UiWgpuNativeReadbackPort",
-        ),
     ] {
-        let source = inventory.source(path).expect("external effect port owner");
-        assert!(source.text().contains(contract), "{path} omits {contract}");
+        let contract_source = inventory
+            .source(contract_path)
+            .expect("external effect port contract owner");
         assert!(
-            source.text().contains(implementation),
-            "{path} omits {implementation}"
+            contract_source.text().contains(contract),
+            "{contract_path} omits {contract}"
+        );
+        let implementation_source = inventory
+            .source(implementation_path)
+            .expect("external effect port implementation owner");
+        assert!(
+            implementation_source.text().contains(implementation),
+            "{implementation_path} omits {implementation}"
         );
     }
 
     assert_port_outputs_are_mechanical(&inventory);
+    assert_native_vendors_are_confined(&inventory);
+}
 
-    let vendor_homes = inventory
-        .rust_files_under("crates/worth-ui-host-native/src")
+fn assert_native_vendors_are_confined(
+    inventory: &worth_ui_certification::topology::WorkspaceSourceInventory,
+) {
+    let violations = ["crates", "apps"]
+        .into_iter()
+        .flat_map(|root| inventory.rust_files_under(root))
         .filter(|source| {
-            !source
-                .relative_path()
-                .file_stem()
-                .is_some_and(|stem| stem.to_string_lossy().ends_with("_tests"))
+            let path = source.relative_path().to_string_lossy().replace('\\', "/");
+            !is_test_source(&path)
+                && uses_native_vendor_path(source.text())
+                && !is_approved_vendor_owner(&path)
         })
-        .filter(|source| uses_native_vendor_path(source.text()))
         .map(|source| source.relative_path().to_string_lossy().replace('\\', "/"))
-        .collect::<BTreeSet<_>>();
-    assert!(vendor_homes.iter().all(|path| {
-        path.starts_with("crates/worth-ui-host-native/src/native/graphics")
-            || path.starts_with("crates/worth-ui-host-native/src/native/presentation")
-            || path.starts_with("crates/worth-ui-host-native/src/native/event_loop")
-            || path.starts_with("crates/worth-ui-host-native/src/native/text_atlas/upload")
-            || path.starts_with(
-                "crates/worth-ui-host-native/src/native/mechanics_adapter/text_atlas_upload",
-            )
-            || path == "crates/worth-ui-host-native/src/qualification_tests.rs"
-    }));
-
-    assert_orchestration_crosses_each_port_once(&inventory);
-}
-
-fn assert_port_outputs_are_mechanical(
-    inventory: &worth_ui_certification::topology::WorkspaceSourceInventory,
-) {
-    for path in [
-        "crates/worth-ui-host-native/src/native/event_loop/window_port.rs",
-        "crates/worth-ui-host-native/src/native/graphics/port.rs",
-        "crates/worth-ui-host-native/src/native/presentation/port.rs",
-        "crates/worth-ui-host-native/src/native/presentation/readback_port.rs",
-    ] {
-        let source = inventory.source(path).expect("external port source").text();
-        for forbidden in [
-            "UiHostSurfacePresentationOutcome",
-            "UiNativeEffectPosture",
-            "RejectedBeforeEffects",
-            "PresentationIndeterminate",
-            "InputRejected",
-            "CapacityUnavailable",
-        ] {
-            assert!(!source.contains(forbidden), "{path} mints {forbidden}");
-        }
-    }
-    for (path, denial) in [
-        (
-            "crates/worth-ui-host-native/src/native/event_loop/window_port.rs",
-            "UiNativeWindowPortDenial",
-        ),
-        (
-            "crates/worth-ui-host-native/src/native/graphics/port.rs",
-            "UiNativeGraphicsPortDenial",
-        ),
-        (
-            "crates/worth-ui-host-native/src/native/presentation/port.rs",
-            "UiNativePresentationPortFailure",
-        ),
-        (
-            "crates/worth-ui-host-native/src/native/presentation/readback_port.rs",
-            "UiNativeReadbackFailure",
-        ),
-    ] {
-        assert!(
-            inventory
-                .source(path)
-                .expect("external port source")
-                .text()
-                .contains(denial),
-            "{path} omits named mechanical failure {denial}"
-        );
-    }
-}
-
-fn assert_orchestration_crosses_each_port_once(
-    inventory: &worth_ui_certification::topology::WorkspaceSourceInventory,
-) {
-    for (path, call) in [
-        (
-            "crates/worth-ui-host-native/src/native/event_loop.rs",
-            "UiWinitNativeWindowPort::open",
-        ),
-        (
-            "crates/worth-ui-host-native/src/native/event_loop.rs",
-            "UiWgpuNativeGraphicsPort::prepare",
-        ),
-        (
-            "crates/worth-ui-host-native/src/native/presentation.rs",
-            "Port::present",
-        ),
-        (
-            "crates/worth-ui-host-native/src/native/presentation/port/transaction.rs",
-            "UiWgpuNativeReadbackPort::read_two_pixels",
-        ),
-    ] {
-        let source = inventory.source(path).expect("native orchestration owner");
-        assert_eq!(
-            rust_call_count(source.text(), call),
-            1,
-            "{path} must cross {call} exactly once"
-        );
-    }
-
-    assert_only_port_owner_calls(
-        inventory,
-        "transaction::present",
-        "crates/worth-ui-host-native/src/native/presentation/port.rs",
+        .collect::<Vec<_>>();
+    assert!(
+        violations.is_empty(),
+        "wgpu/winit escaped the native adapter owners: {violations:?}"
     );
-    for call in [
-        "draw_raster_operations",
-        "retained_transfer",
-        "draw_retained_to_surface",
-        "copy_evidence_pixels",
-    ] {
-        assert_only_port_owner_calls(
-            inventory,
-            call,
-            "crates/worth-ui-host-native/src/native/presentation/port/transaction.rs",
-        );
-    }
 }
 
-fn assert_only_port_owner_calls(
-    inventory: &worth_ui_certification::topology::WorkspaceSourceInventory,
-    call: &str,
-    owner: &str,
-) {
-    let callers = inventory
-        .rust_files_under("crates/worth-ui-host-native/src/native")
-        .filter(|source| rust_call_count(source.text(), call) > 0)
-        .map(|source| source.relative_path().to_string_lossy().replace('\\', "/"))
-        .collect::<BTreeSet<_>>();
-    assert_eq!(callers, BTreeSet::from([owner.to_owned()]));
+fn is_test_source(path: &str) -> bool {
+    path.ends_with("_tests.rs") || path.ends_with("/tests.rs") || path.contains("/tests/")
 }
 
-fn rust_call_count(source: &str, expected: &str) -> usize {
-    struct Calls<'a> {
-        expected: &'a str,
-        count: usize,
-    }
-    impl<'ast> Visit<'ast> for Calls<'_> {
-        fn visit_expr_call(&mut self, call: &'ast syn::ExprCall) {
-            if let syn::Expr::Path(path) = call.func.as_ref() {
-                let observed = path
-                    .path
-                    .segments
-                    .iter()
-                    .map(|segment| segment.ident.to_string())
-                    .collect::<Vec<_>>()
-                    .join("::");
-                self.count += usize::from(observed.ends_with(self.expected));
-            }
-            syn::visit::visit_expr_call(self, call);
-        }
-    }
-    let syntax = syn::parse_file(source).expect("native source parses");
-    let mut calls = Calls { expected, count: 0 };
-    calls.visit_file(&syntax);
-    calls.count
+fn is_approved_vendor_owner(path: &str) -> bool {
+    let module_owners = [
+        "crates/worth-ui-host-native/src/native/event_loop",
+        "crates/worth-ui-host-native/src/native/graphics",
+        "crates/worth-ui-host-native/src/native/input",
+        "crates/worth-ui-host-native/src/native/lifecycle_protocol",
+        "crates/worth-ui-host-native/src/native/platform",
+        "crates/worth-ui-host-native/src/native/presentation",
+        "crates/worth-ui-host-native/src/native/readiness",
+    ];
+    module_owners.iter().any(|owner| {
+        path == format!("{owner}.rs") || path.starts_with(&format!("{owner}/"))
+    }) || [
+        "crates/worth-ui-host-native/src/native/capture/readback.rs",
+        "crates/worth-ui-host-native/src/native/lifecycle/orchestrator/input.rs",
+        "crates/worth-ui-host-native/src/native/lifecycle/presentation_access.rs",
+        "crates/worth-ui-host-native/src/native/mechanics_adapter/text_atlas_dx12_upload_port.rs",
+        "crates/worth-ui-host-native/src/native/mechanics_adapter/text_atlas_upload.rs",
+        "crates/worth-ui-host-native/src/native/text_atlas/upload.rs",
+        "crates/worth-ui-host-native/src/native/text_atlas/upload_batch.rs",
+        "crates/worth-ui-host-native/src/native/text_atlas/upload_staging.rs",
+    ]
+    .contains(&path)
 }
 
 fn uses_native_vendor_path(source: &str) -> bool {
     struct VendorPaths(bool);
     impl<'ast> Visit<'ast> for VendorPaths {
+        fn visit_item_extern_crate(&mut self, item: &'ast syn::ItemExternCrate) {
+            self.0 |= item.ident == "wgpu" || item.ident == "winit";
+            syn::visit::visit_item_extern_crate(self, item);
+        }
+
+        fn visit_item_use(&mut self, item: &'ast syn::ItemUse) {
+            fn mentions_vendor(tree: &syn::UseTree) -> bool {
+                match tree {
+                    syn::UseTree::Path(path) => path.ident == "wgpu" || path.ident == "winit",
+                    syn::UseTree::Name(name) => name.ident == "wgpu" || name.ident == "winit",
+                    syn::UseTree::Rename(rename) => {
+                        rename.ident == "wgpu" || rename.ident == "winit"
+                    }
+                    syn::UseTree::Group(group) => group.items.iter().any(mentions_vendor),
+                    syn::UseTree::Glob(_) => false,
+                }
+            }
+            self.0 |= mentions_vendor(&item.tree);
+            syn::visit::visit_item_use(self, item);
+        }
+
         fn visit_item_mod(&mut self, item: &'ast syn::ItemMod) {
             let test_only = item.attrs.iter().any(|attribute| {
                 attribute.path().is_ident("cfg")
@@ -228,4 +143,49 @@ fn uses_native_vendor_path(source: &str) -> bool {
     let mut paths = VendorPaths(false);
     paths.visit_file(&syntax);
     paths.0
+}
+
+fn assert_port_outputs_are_mechanical(
+    inventory: &worth_ui_certification::topology::WorkspaceSourceInventory,
+) {
+    for path in [
+        "crates/worth-ui-host-native/src/native/event_loop/window_port.rs",
+        "crates/worth-ui-host-native/src/native/graphics/backend/port.rs",
+        "crates/worth-ui-host-native/src/native/presentation/port.rs",
+    ] {
+        let source = inventory.source(path).expect("external port source").text();
+        for forbidden in [
+            "UiHostSurfacePresentationOutcome",
+            "UiNativeEffectPosture",
+            "RejectedBeforeEffects",
+            "PresentationIndeterminate",
+            "InputRejected",
+            "CapacityUnavailable",
+        ] {
+            assert!(!source.contains(forbidden), "{path} mints {forbidden}");
+        }
+    }
+    for (path, denial) in [
+        (
+            "crates/worth-ui-host-native/src/native/event_loop/window_port.rs",
+            "UiNativeWindowPortDenial",
+        ),
+        (
+            "crates/worth-ui-host-native/src/native/graphics/backend/port.rs",
+            "UiNativeGraphicsPortDenial",
+        ),
+        (
+            "crates/worth-ui-host-native/src/native/presentation/port.rs",
+            "UiNativePresentationPortFailure",
+        ),
+    ] {
+        assert!(
+            inventory
+                .source(path)
+                .expect("external port source")
+                .text()
+                .contains(denial),
+            "{path} omits named mechanical failure {denial}"
+        );
+    }
 }

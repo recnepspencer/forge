@@ -47,10 +47,6 @@ impl IndexReductionKey {
 impl ImportReductionKey {
     pub(crate) fn new(partition_id: PartitionId, kind_order: u8, packet_index: usize) -> Self {
         debug_assert!(
-            kind_order <= u8::MAX,
-            "import kind order must fit into the packed key contract"
-        );
-        debug_assert!(
             packet_index <= u32::MAX as usize,
             "packet index must fit into the packed key contract"
         );

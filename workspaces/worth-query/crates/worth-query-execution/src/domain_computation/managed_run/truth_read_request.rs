@@ -1,12 +1,10 @@
-use worth_relational::facade::identity::VersionId;
+use worth_relational::facade::branch::RelationalBranchBasisDescriptor;
 use worth_runtime_bridge::facade::{
     BridgeDeliveryIntent, BridgeDiagnosticsTier, BridgeReplayMode, SnapshotReadPacket,
-    TruthBranchIdentity,
 };
 
 pub struct WorthQueryManagedTruthReadRequest {
-    relational_version_id: VersionId,
-    branch: TruthBranchIdentity,
+    relational_basis: RelationalBranchBasisDescriptor,
     packet: SnapshotReadPacket,
     replay_mode: BridgeReplayMode,
     diagnostics_tier: BridgeDiagnosticsTier,
@@ -15,13 +13,11 @@ pub struct WorthQueryManagedTruthReadRequest {
 
 impl WorthQueryManagedTruthReadRequest {
     pub fn new(
-        relational_version_id: VersionId,
-        branch: TruthBranchIdentity,
+        relational_basis: RelationalBranchBasisDescriptor,
         packet: SnapshotReadPacket,
     ) -> Self {
         Self {
-            relational_version_id,
-            branch,
+            relational_basis,
             packet,
             replay_mode: BridgeReplayMode::Disabled,
             diagnostics_tier: BridgeDiagnosticsTier::Standard,
@@ -47,16 +43,14 @@ impl WorthQueryManagedTruthReadRequest {
     pub(crate) fn into_parts(
         self,
     ) -> (
-        VersionId,
-        TruthBranchIdentity,
+        RelationalBranchBasisDescriptor,
         SnapshotReadPacket,
         BridgeReplayMode,
         BridgeDiagnosticsTier,
         BridgeDeliveryIntent,
     ) {
         (
-            self.relational_version_id,
-            self.branch,
+            self.relational_basis,
             self.packet,
             self.replay_mode,
             self.diagnostics_tier,
@@ -73,12 +67,12 @@ mod tests {
 
     #[test]
     fn ordinary_managed_truth_requests_disable_replay_by_default() {
-        let (_, _, _, replay, _, _) = WorthQueryManagedTruthReadRequest::new(
-            worth_relational::facade::identity::VersionId(7),
-            crate::domain_computation::primary_graph::primary_truth_branch_identity(),
-            SnapshotReadPacket::new(Vec::new()),
-        )
-        .into_parts();
+        let runtime = worth_relational::facade::runtime::RelationalRuntimeApi::builder().build();
+        let identity = runtime.main_branch_identity();
+        let (descriptor, _) = runtime.observe_branch(&identity).unwrap();
+        let (_, _, replay, _, _) =
+            WorthQueryManagedTruthReadRequest::new(descriptor, SnapshotReadPacket::new(Vec::new()))
+                .into_parts();
 
         assert_eq!(replay, BridgeReplayMode::Disabled);
     }

@@ -10,6 +10,14 @@ pub enum WorthUiNativeSourceRebindDenial {
     Identity(crate::runtime::rebind::UiIdentityLifecycleDenial),
     Planning(crate::runtime::rebind::UiRebindPlanningDenial),
     Preparation(crate::runtime::rebind::UiRebindPreparationDenial),
+    ManagedRebindAlreadyInFlight,
+    ManagedRebindSessionMismatch,
+}
+
+pub enum WorthUiNativeManagedSourceRebindOutcome {
+    Published(crate::runtime::rebind::UiRebindReceipt),
+    Pending,
+    Stopped(super::native_managed_rebind::WorthUiNativeManagedRebindStop),
 }
 
 impl WorthUiNativeSourceRebindDenial {
@@ -22,6 +30,35 @@ impl WorthUiNativeSourceRebindDenial {
 }
 
 impl WorthUiNativeApplicationShell {
+    pub fn begin_managed_source_rebind(
+        &mut self,
+        request: crate::runtime::rebind::UiSourceRebindRequest,
+    ) -> Result<WorthUiNativeManagedSourceRebindOutcome, WorthUiNativeSourceRebindDenial> {
+        if self.pending_managed_rebind.is_some() {
+            return Err(WorthUiNativeSourceRebindDenial::ManagedRebindAlreadyInFlight);
+        }
+        let outcome = self.begin_source_rebind(request)?;
+        match super::native_managed_rebind::normalize_managed_outcome(outcome) {
+            super::native_managed_rebind::ManagedRebindNormalization::Published(receipt) => {
+                Ok(WorthUiNativeManagedSourceRebindOutcome::Published(receipt))
+            }
+            super::native_managed_rebind::ManagedRebindNormalization::Pending(pending) => {
+                if pending.session_identity() != self.session.session_identity() {
+                    return Err(WorthUiNativeSourceRebindDenial::ManagedRebindSessionMismatch);
+                }
+                self.pending_managed_rebind = Some(
+                    super::native_managed_rebind::WorthUiNativePendingManagedRebind::Completion(
+                        pending,
+                    ),
+                );
+                Ok(WorthUiNativeManagedSourceRebindOutcome::Pending)
+            }
+            super::native_managed_rebind::ManagedRebindNormalization::Stopped(stop) => {
+                Ok(WorthUiNativeManagedSourceRebindOutcome::Stopped(stop))
+            }
+        }
+    }
+
     pub fn begin_source_rebind(
         &mut self,
         request: crate::runtime::rebind::UiSourceRebindRequest,

@@ -35,7 +35,7 @@ fn complexity_budget_relation_integrity_uniqueness_uses_adjacency_local_candidat
     }
 
     runtime.performance_access().reset_counters();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(WorkerIntentBatch::new("duplicate-unique-relation").push(
         MutationIntent::Create(CreateIntent::Relation(
             crate::transactions::data::RelationSpec {
@@ -48,7 +48,7 @@ fn complexity_budget_relation_integrity_uniqueness_uses_adjacency_local_candidat
             },
         )),
     ));
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     let counters = runtime.performance_access().counters();
 
     assert!(matches!(
@@ -68,7 +68,7 @@ fn complexity_budget_relation_integrity_symmetry_checks_only_touched_pairs() {
     let target = create_entity(&mut runtime, "target");
 
     runtime.performance_access().reset_counters();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("missing-twin").push(MutationIntent::Create(
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
@@ -81,7 +81,7 @@ fn complexity_budget_relation_integrity_symmetry_checks_only_touched_pairs() {
             }),
         )),
     );
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     let counters = runtime.performance_access().counters();
 
     assert!(matches!(
@@ -101,13 +101,13 @@ fn complexity_budget_relation_integrity_endpoint_deletion_checks_only_deleted_en
         create_endpoint_deletion_relation_fixture(&mut runtime, "live");
 
     runtime.performance_access().reset_counters();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("delete-source").push(MutationIntent::Entity(
             EntityMutationIntent::Delete(DeleteEntityIntent { entity_id: source }),
         )),
     );
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     let counters = runtime.performance_access().counters();
 
     assert!(matches!(
@@ -128,7 +128,7 @@ fn complexity_budget_relation_integrity_reuses_touched_scope_across_multiple_con
     let _existing = create_relation(&mut runtime, source, target, "existing");
 
     runtime.performance_access().reset_counters();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(WorkerIntentBatch::new("duplicate-and-missing-twin").push(
         MutationIntent::Create(CreateIntent::Relation(
             crate::transactions::data::RelationSpec {
@@ -141,7 +141,7 @@ fn complexity_budget_relation_integrity_reuses_touched_scope_across_multiple_con
             },
         )),
     ));
-    let _error = txn.commit().unwrap_err();
+    let _error = txn.commit(&mut runtime).unwrap_err();
     let counters = runtime.performance_access().counters();
 
     assert_eq!(counters.relation_integrity_contracts_evaluated, 3);

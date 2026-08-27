@@ -8,12 +8,11 @@ fn main() {
         .build();
 
     let (seed, entity_id) = support::create_entity(&mut runtime, "main-seed");
+    let (_, fork_basis) = runtime
+        .observe_fork_source(&BranchId("main".to_string()))
+        .expect("observe main fork source");
     runtime
-        .history_authority()
-        .create_branch(
-            BranchId("feature".to_string()),
-            &BranchId("main".to_string()),
-        )
+        .fork_branch(BranchId("feature".to_string()), fork_basis)
         .expect("create branch");
 
     let feature_commit = support::update_entity_on_branch(
@@ -23,13 +22,12 @@ fn main() {
         Some(BranchId("feature".to_string())),
     );
 
-    let branches = runtime.history().branches();
     let replay = runtime.replay();
     let envelope = replay
         .canonical_commit_envelope(feature_commit.commit.commit_id)
         .expect("replay envelope");
 
-    println!("branches={}", branches.len());
+    println!("commits={}", runtime.history().immutable_commit_count());
     println!(
         "seed_commit={} feature_commit={} authoritative_record_patches={}",
         seed.commit.commit_id.0,

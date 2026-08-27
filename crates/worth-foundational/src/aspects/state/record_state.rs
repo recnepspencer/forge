@@ -30,6 +30,12 @@ impl AuthoritativeRecordAspectState {
     pub fn get(&self, key: &AspectKey) -> Option<&ContractValidatedAspectValue> {
         self.aspects.get(key)
     }
+
+    /// Owner-accounted allocation reachable from this authoritative state,
+    /// excluding the state's inline wrapper.
+    pub fn owned_allocation_capacity_bytes(&self) -> usize {
+        self.aspects.owned_allocation_capacity_bytes()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

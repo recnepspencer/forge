@@ -1,8 +1,67 @@
 use std::collections::BTreeSet;
 
-use crate::history::data::{BranchId, CommitId, MergeConflictRecord, MergeInspection};
+use crate::branch::AdmittedRelationalBranchBasis;
+#[cfg(test)]
+use crate::history::data::BranchId;
+use crate::history::data::{CommitId, MergeConflictRecord, MergeInspection};
 
 use super::HistoryAccess;
+
+pub(crate) struct CommitAncestryInspection {
+    reachable_commits: BTreeSet<CommitId>,
+    authoring_branches: BTreeSet<crate::history::data::BranchId>,
+    selected_commit_available: bool,
+    node_visits: usize,
+    catalog_probes: usize,
+    parent_edge_visits: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum CommitAncestryPosture {
+    SelectedCommitUnavailable,
+    RequestedCommitUnavailable,
+    Reachable,
+    Unreachable,
+}
+
+pub(crate) struct CommitAncestryClassification {
+    posture: CommitAncestryPosture,
+    traversal_work: usize,
+}
+
+impl CommitAncestryClassification {
+    pub(crate) fn posture(&self) -> CommitAncestryPosture {
+        self.posture
+    }
+
+    pub(crate) fn traversal_work(&self) -> usize {
+        self.traversal_work
+    }
+}
+
+impl CommitAncestryInspection {
+    pub(crate) fn authoring_branches(&self) -> &BTreeSet<crate::history::data::BranchId> {
+        &self.authoring_branches
+    }
+
+    pub(crate) fn node_visits(&self) -> usize {
+        self.node_visits
+    }
+
+    pub(crate) fn catalog_probes(&self) -> usize {
+        self.catalog_probes
+    }
+
+    pub(crate) fn parent_edge_visits(&self) -> usize {
+        self.parent_edge_visits
+    }
+
+    pub(crate) fn total_work(&self) -> usize {
+        self.node_visits
+            .saturating_add(self.catalog_probes)
+            .saturating_add(self.parent_edge_visits)
+    }
+}
 
 impl<'runtime> HistoryAccess<'runtime> {
     /// Returns the ancestor closure for `commit_id`, ordered by ascending
@@ -13,12 +72,71 @@ impl<'runtime> HistoryAccess<'runtime> {
         self.ancestor_set(commit_id).into_iter().collect()
     }
 
+    pub(crate) fn inspect_commit_ancestry(&self, start: CommitId) -> CommitAncestryInspection {
+        let mut visited_commits = BTreeSet::new();
+        let mut reachable_commits = BTreeSet::new();
+        let mut authoring_branches = BTreeSet::new();
+        let mut selected_commit_available = false;
+        let mut stack = vec![start];
+        let mut node_visits = 0;
+        let mut catalog_probes = 0;
+        let mut parent_edge_visits = 0;
+        while let Some(commit_id) = stack.pop() {
+            node_visits += 1;
+            if !visited_commits.insert(commit_id) {
+                continue;
+            }
+            catalog_probes += 1;
+            if let Some(envelope) = self.runtime.history.canonical_envelope(commit_id) {
+                reachable_commits.insert(commit_id);
+                selected_commit_available |= commit_id == start;
+                authoring_branches.insert(envelope.commit.branch_id.clone());
+                parent_edge_visits += envelope.commit.parents.len();
+                stack.extend(envelope.commit.parents.iter().copied());
+            }
+        }
+        CommitAncestryInspection {
+            reachable_commits,
+            authoring_branches,
+            selected_commit_available,
+            node_visits,
+            catalog_probes,
+            parent_edge_visits,
+        }
+    }
+
+    pub(crate) fn classify_commit_in_ancestry(
+        &self,
+        inspection: &CommitAncestryInspection,
+        requested_commit: CommitId,
+    ) -> CommitAncestryClassification {
+        let posture = if !inspection.selected_commit_available {
+            CommitAncestryPosture::SelectedCommitUnavailable
+        } else if inspection.reachable_commits.contains(&requested_commit) {
+            CommitAncestryPosture::Reachable
+        } else if self
+            .runtime
+            .history
+            .canonical_envelope(requested_commit)
+            .is_some()
+        {
+            CommitAncestryPosture::Unreachable
+        } else {
+            CommitAncestryPosture::RequestedCommitUnavailable
+        };
+        CommitAncestryClassification {
+            posture,
+            traversal_work: inspection.total_work(),
+        }
+    }
+
     /// Convenience wrapper over the runtime's current common-ancestor
     /// selection rule for two branch heads.
     ///
     /// The underlying selection rule is `max_commit_id_common_ancestor`, which
     /// intersects both ancestor sets and chooses the maximum `CommitId`.
-    pub fn latest_common_ancestor_between_branches(
+    #[cfg(test)]
+    pub(crate) fn latest_common_ancestor_between_branches(
         &self,
         left_branch: &BranchId,
         right_branch: &BranchId,
@@ -28,7 +146,71 @@ impl<'runtime> HistoryAccess<'runtime> {
         self.max_commit_id_common_ancestor(left, right)
     }
 
-    pub fn can_merge_branch_into(
+    /// Selects the common ancestor from two exact owner observations.  Raw
+    /// branch names are intentionally not a production currentness input.
+    pub(crate) fn latest_common_ancestor_between_bindings(
+        &self,
+        left_binding: &AdmittedRelationalBranchBasis,
+        right_binding: &AdmittedRelationalBranchBasis,
+    ) -> Option<CommitId> {
+        let left = self.bound_head_commit_id(left_binding)?;
+        let right = self.bound_head_commit_id(right_binding)?;
+        self.max_commit_id_common_ancestor(left, right)
+    }
+
+    /// Inspect merge overlap from owner-issued branch bindings. Raw branch
+    /// names remain a diagnostic/test vocabulary and cannot select current
+    /// heads for production planning.
+    pub(crate) fn inspect_merge_from_bindings(
+        &self,
+        source_binding: &AdmittedRelationalBranchBasis,
+        target_binding: &AdmittedRelationalBranchBasis,
+    ) -> Option<MergeInspection> {
+        let source_branch = source_binding.identity().branch_id().clone();
+        let target_branch = target_binding.identity().branch_id().clone();
+        let source_head_id = self.bound_head_commit_id(source_binding)?;
+        let target_head_id = self.bound_head_commit_id(target_binding)?;
+        let source_head = self
+            .runtime
+            .history
+            .canonical_envelope(source_head_id)
+            .map(|envelope| envelope.commit.clone())?;
+        let target_head = self
+            .runtime
+            .history
+            .canonical_envelope(target_head_id)
+            .map(|envelope| envelope.commit.clone())?;
+        let merge_base =
+            self.max_commit_id_common_ancestor(source_head.commit_id, target_head.commit_id);
+        let source_only_commits =
+            self.branch_unique_commit_closure_by_commit_id_order(source_head.commit_id, merge_base);
+        let target_only_commits =
+            self.branch_unique_commit_closure_by_commit_id_order(target_head.commit_id, merge_base);
+        let conflicting_records = self.merge_conflicts_between(
+            source_only_commits.as_slice(),
+            target_only_commits.as_slice(),
+        );
+        Some(MergeInspection {
+            source_branch,
+            target_branch,
+            source_head: Some(source_head),
+            target_head: Some(target_head),
+            merge_base,
+            source_only_commits,
+            target_only_commits,
+            can_merge: merge_base.is_some() && conflicting_records.is_empty(),
+            conflicting_records,
+        })
+    }
+
+    fn bound_head_commit_id(&self, binding: &AdmittedRelationalBranchBasis) -> Option<CommitId> {
+        self.runtime
+            .admitted_branch_basis_commit(binding)
+            .map(|identity| identity.commit_id())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn can_merge_branch_into(
         &self,
         source_branch: &BranchId,
         target_branch: &BranchId,
@@ -43,15 +225,16 @@ impl<'runtime> HistoryAccess<'runtime> {
             .is_some()
     }
 
-    pub fn inspect_merge(
+    #[cfg(test)]
+    pub(crate) fn inspect_merge(
         &self,
         source_branch: &BranchId,
         target_branch: &BranchId,
     ) -> MergeInspection {
         // This remains a history substrate helper. New merge-semantic planning
         // should land in `crate::merge`, not grow richer semantics here.
-        let source_head = self.branch_head(source_branch).cloned();
-        let target_head = self.branch_head(target_branch).cloned();
+        let source_head = self.branch_head(source_branch);
+        let target_head = self.branch_head(target_branch);
         let merge_base =
             source_head
                 .as_ref()
@@ -109,20 +292,11 @@ impl<'runtime> HistoryAccess<'runtime> {
     }
 
     pub(super) fn ancestor_set(&self, start: CommitId) -> BTreeSet<CommitId> {
-        let mut seen = BTreeSet::new();
-        let mut stack = vec![start];
-        while let Some(commit_id) = stack.pop() {
-            if !seen.insert(commit_id) {
-                continue;
-            }
-            if let Some(node) = self.runtime.history.commit_graph.get(&commit_id) {
-                stack.extend(node.commit.parents.iter().copied());
-            }
-        }
+        let closure = self.inspect_commit_ancestry(start);
         self.runtime
             .performance_access()
-            .count_merge_history_ancestry_traversal(seen.len());
-        seen
+            .count_merge_history_ancestry_traversal(closure.total_work());
+        closure.reachable_commits
     }
 
     /// Returns the branch-local ancestor closure for `head` after removing the
@@ -154,7 +328,7 @@ impl<'runtime> HistoryAccess<'runtime> {
     fn commit_record_set(&self, commits: &[CommitId]) -> BTreeSet<MergeConflictRecord> {
         commits
             .iter()
-            .filter_map(|commit_id| self.runtime.history.commit_envelopes.get(commit_id))
+            .filter_map(|commit_id| self.runtime.history.canonical_envelope(*commit_id))
             .flat_map(|envelope| envelope.touched_record_refs().into_iter())
             .map(|record_ref| match record_ref {
                 crate::transactions::data::RecordRef::Entity(entity_id) => {

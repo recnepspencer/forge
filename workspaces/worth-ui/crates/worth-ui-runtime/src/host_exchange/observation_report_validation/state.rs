@@ -16,7 +16,6 @@ const TERMINAL_FRAME_IDENTITY_LIMIT: usize = 64;
 
 #[derive(Clone)]
 pub(super) struct UiHostObservationPartition {
-    pub(super) last_sequence: Option<UiHostObservationSequence>,
     pub(super) reports: VecDeque<UiRetainedHostObservationReport>,
     pub(super) byte_count: usize,
     pub(super) recent_batches: VecDeque<UiHostObservationBatchFingerprint>,
@@ -44,6 +43,7 @@ pub(super) struct UiHostObservationBatchFingerprint {
 
 pub struct UiHostObservationReportValidation {
     pub(super) capacity: UiHostObservationCapacity,
+    pub(super) last_sequence: Option<UiHostObservationSequence>,
     pub(super) partitions: BTreeMap<UiSurfaceBindingGeneration, UiHostObservationPartition>,
     pub(super) global_reports: usize,
     pub(super) global_bytes: usize,
@@ -71,6 +71,7 @@ impl UiHostObservationReportValidation {
     pub fn new(capacity: UiHostObservationCapacity) -> Self {
         Self {
             capacity,
+            last_sequence: None,
             partitions: BTreeMap::new(),
             global_reports: 0,
             global_bytes: 0,
@@ -129,6 +130,18 @@ impl UiHostObservationReportValidation {
         }
     }
 
+    pub(crate) fn record_presented_frame(&mut self, frame: UiMountedFrameIdentity) {
+        self.rejected_frames.remove(&frame);
+        self.rejected_order.retain(|candidate| *candidate != frame);
+        self.never_presented_frames.remove(&frame);
+        self.never_presented_order
+            .retain(|candidate| *candidate != frame);
+        self.indeterminate_frames
+            .retain(|(candidate, _)| *candidate != frame);
+        self.indeterminate_order
+            .retain(|(candidate, _)| *candidate != frame);
+    }
+
     pub(super) fn is_indeterminate(
         &self,
         frame: UiMountedFrameIdentity,
@@ -139,6 +152,7 @@ impl UiHostObservationReportValidation {
 
     pub(crate) fn shutdown(&mut self) {
         self.shutdown = true;
+        self.last_sequence = None;
         self.partitions.clear();
         self.observation_bases.clear();
         self.quarantine.clear();
@@ -201,7 +215,6 @@ pub(super) const fn quarantine_entry_structural_bytes() -> usize {
 impl UiHostObservationPartition {
     pub(super) fn empty() -> Self {
         Self {
-            last_sequence: None,
             reports: VecDeque::new(),
             byte_count: 0,
             recent_batches: VecDeque::new(),
@@ -251,5 +264,26 @@ fn remember_terminal(
             .pop_front()
             .expect("over-limit terminal frame queue is non-empty");
         set.remove(&forgotten);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::UiHostObservationReportValidation;
+
+    #[test]
+    fn successful_retry_clears_prior_terminal_frame_classification() {
+        let frame = worth_ui_host_contract::UiMountedFrameIdentity::mint_unbound().unwrap();
+        let binding = worth_ui_host_contract::UiSurfaceBindingGeneration::mint_unbound().unwrap();
+        let mut validation = UiHostObservationReportValidation::default();
+
+        validation.record_rejected_frame(frame);
+        validation.record_never_presented_frame(frame);
+        validation.record_indeterminate_frame(frame, &[binding]);
+        validation.record_presented_frame(frame);
+
+        assert!(!validation.is_rejected(frame));
+        assert!(!validation.is_never_presented(frame));
+        assert!(!validation.is_indeterminate(frame, binding));
     }
 }

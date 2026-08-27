@@ -38,7 +38,7 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
     let target_b = create_entity(&mut runtime, "target-b");
     let accepted = create_relation_outcome(&mut runtime, source, target_a, "accepted");
     let relation = changed_relations(&accepted)[0];
-    let latest_commit_before = runtime.history().latest_commit().cloned();
+    let latest_commit_before = runtime.history().latest_commit();
     let latest_patch_before = runtime.publication().latest_patch().unwrap().position;
     let main_digest_before = relation_aspect_history_digest_on_branch(
         &runtime,
@@ -47,7 +47,7 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
         None,
     );
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("illegal-overflow").push(MutationIntent::Create(
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
@@ -60,7 +60,7 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
             }),
         )),
     );
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(error.code(), DiagnosticCode::RelationCardinalityViolation);
@@ -68,12 +68,15 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
         TransactionCommitError::Publication { .. } => {
             panic!("expected relation-integrity conflict, got publication error")
         }
+        TransactionCommitError::Preparation { error, .. } => {
+            panic!("expected relation-integrity conflict, got preparation error: {error:?}")
+        }
+        TransactionCommitError::PerformedButDurabilityDeferred { .. } => {
+            panic!("relation-integrity denial must happen before movement")
+        }
     }
 
-    assert_eq!(
-        runtime.history().latest_commit().cloned(),
-        latest_commit_before
-    );
+    assert_eq!(runtime.history().latest_commit(), latest_commit_before);
     assert_eq!(
         runtime.publication().latest_patch().unwrap().position,
         latest_patch_before
@@ -123,7 +126,6 @@ fn durability_contract_failure_missing_authoritative_parent_closure_is_explicit(
     let child_envelope = runtime
         .replay()
         .canonical_commit_envelope(child.commit.commit_id)
-        .cloned()
         .unwrap();
     let corrupt_plan = RecoveryPlan::new(
         runtime.config().clone(),
@@ -140,7 +142,14 @@ fn durability_contract_failure_missing_authoritative_parent_closure_is_explicit(
             }),
         None,
         None,
-        vec![child_envelope],
+        vec![
+            crate::durability::migration::ReadmittedCanonicalCommit::exact(
+                crate::history::data::PositionedCanonicalCommit::for_test(
+                    child.patch_position(),
+                    std::sync::Arc::new(child_envelope),
+                ),
+            ),
+        ],
         RecoveryCursor {
             checkpoint_id: None,
             segment_ids: Vec::new(),

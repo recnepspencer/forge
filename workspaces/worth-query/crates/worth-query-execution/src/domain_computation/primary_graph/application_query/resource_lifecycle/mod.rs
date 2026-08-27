@@ -5,7 +5,8 @@ mod result_buffer_registry;
 pub(in crate::domain_computation::primary_graph::application_query) use basis_registry::WorthQueryApplicationBasisLease;
 pub(in crate::domain_computation::primary_graph) use basis_registry::WorthQueryApplicationBasisRegistry;
 pub use basis_registry::{
-    WorthQueryApplicationBasisObservation, WorthQueryApplicationBasisObserver,
+    WorthQueryApplicationBasisIdentity, WorthQueryApplicationBasisObservation,
+    WorthQueryApplicationBasisObserver, WorthQueryApplicationBasisReleaseReceipt,
 };
 pub use result_buffer_registry::{
     WorthQueryApplicationResultBufferEvidence, WorthQueryApplicationResultBufferObservation,

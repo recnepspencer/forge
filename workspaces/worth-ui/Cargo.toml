@@ -2,8 +2,6 @@
 resolver = "2"
 members = [
     "apps/platform-pulse",
-    "crates/worth-ui-theme",
-    "crates/worth-ui-components",
     "crates/worth-ui-dsl",
     "crates/worth-ui-runtime",
     "crates/worth-ui-inspection",
@@ -14,7 +12,6 @@ members = [
     "crates/worth-ui-host-headless",
     "crates/worth-ui-retained-order",
     "crates/worth-ui-native-platform",
-    "crates/worth-ui-host-egui",
     "crates/worth-ui-certification",
     "crates/worth-ui-test-support",
     "crates/worth-ui",
@@ -35,8 +32,6 @@ worth-relational = { path = "../../crates/worth-relational" }
 worth-runtime-bridge = { path = "../../crates/worth-runtime-bridge" }
 worth-signal = { path = "../../crates/worth-signal" }
 
-worth-ui-theme = { path = "crates/worth-ui-theme" }
-worth-ui-components = { path = "crates/worth-ui-components" }
 worth-ui-dsl = { path = "crates/worth-ui-dsl" }
 worth-ui-runtime = { path = "crates/worth-ui-runtime" }
 worth-ui-inspection = { path = "crates/worth-ui-inspection" }
@@ -47,16 +42,12 @@ worth-ui-host-native = { path = "crates/worth-ui-host-native" }
 worth-ui-host-headless = { path = "crates/worth-ui-host-headless" }
 worth-ui-retained-order = { path = "crates/worth-ui-retained-order" }
 worth-ui-native-platform = { path = "crates/worth-ui-native-platform" }
-worth-ui-host-egui = { path = "crates/worth-ui-host-egui" }
 worth-ui-certification = { path = "crates/worth-ui-certification" }
 worth-ui-test-support = { path = "crates/worth-ui-test-support" }
 worth-ui = { path = "crates/worth-ui" }
 
 serde = { version = "1", features = ["derive", "rc"] }
 serde_json = "1.0"
-egui = "=0.35.0"
-eframe = { version = "=0.35.0", default-features = false, features = ["default_fonts"] }
-egui_extras = { version = "=0.35.0", features = ["svg", "image"] }
 notify = "8.2.0"
 uiautomation = { version = "=0.25.0", default-features = false, features = ["control", "input", "screenshot"] }
 winsafe = { version = "=0.0.28", default-features = false }

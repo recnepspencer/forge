@@ -50,10 +50,19 @@ pub(super) fn update_entity_status_on_branch(
     status: &str,
     branch: &str,
 ) {
-    let mut txn = runtime.begin_transaction(crate::facade::transactions::TransactionOptions {
-        target_branch: Some(BranchId(branch.to_string())),
-        ..crate::facade::transactions::TransactionOptions::default()
-    });
+    let mut txn = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_branch(
+                &runtime,
+                BranchId(branch.to_string()),
+            );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(
         crate::facade::transactions::WorkerIntentBatch::new(format!("status-{branch}")).push(
             crate::facade::transactions::MutationIntent::Entity(
@@ -70,7 +79,7 @@ pub(super) fn update_entity_status_on_branch(
             ),
         ),
     );
-    txn.commit().expect("update status");
+    txn.commit(runtime).expect("update status");
 }
 
 pub(super) fn published_merge_authority(

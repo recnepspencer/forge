@@ -1,5 +1,0 @@
-error[E0599]: no method named `admit_completion` found for struct `WorthQueryStartedDirectConvergenceIteration` in the current scope
- --> tests/ui/installed_domain/convergence_epoch/legacy_receipt_cannot_advance.rs:8:21
-  |
-8 |     let _ = started.admit_completion(receipt);
-  |                     ^^^^^^^^^^^^^^^^ method not found in `WorthQueryStartedDirectConvergenceIteration`

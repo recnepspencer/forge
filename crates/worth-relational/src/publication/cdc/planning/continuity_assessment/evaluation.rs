@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::history::data::CanonicalCommitEnvelope;
+use crate::history::data::PositionedCanonicalCommit;
 use crate::publication::cdc::data::{
     NormalizedContinuationProof, SubscriberBoundaryAssessment, SubscriberContinuationAssessment,
     SubscriberContinuationSummary, SubscriberContractDeclaration, SubscriberStreamFailure,
@@ -15,7 +15,7 @@ use super::normalized_proof::compose_normalized_proof;
 
 pub(crate) fn assess_subscriber_continuity(
     runtime: &RelationalRuntime,
-    selected_envelopes: &[CanonicalCommitEnvelope],
+    selected_envelopes: &[PositionedCanonicalCommit],
     subscriber_contract: &SubscriberContractDeclaration,
     prior_proof: &NormalizedContinuationProof,
     resume_basis_descriptor_semantics_version: DescriptorSemanticsVersion,
@@ -173,7 +173,7 @@ pub(crate) fn assess_subscriber_continuity(
 }
 
 fn assessed_descriptor_semantics_version(
-    selected_envelopes: &[CanonicalCommitEnvelope],
+    selected_envelopes: &[PositionedCanonicalCommit],
     resume_basis_descriptor_semantics_version: DescriptorSemanticsVersion,
 ) -> DescriptorSemanticsVersion {
     selected_envelopes

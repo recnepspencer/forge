@@ -1,7 +1,7 @@
 use crate::facade::identity::KindId;
 use crate::facade::inspection::{InspectionOrigin, InspectionScope};
 use crate::facade::transactions::{
-    EntityReference, MutationIntent, RecordRef, RelationMutationIntent, TransactionOptions,
+    EntityReference, MutationIntent, RecordRef, RelationMutationIntent,
     UpdateRelationEndpointsIntent, WorkerIntentBatch,
 };
 use crate::tests::support::*;
@@ -47,7 +47,7 @@ fn historical_neighbors_follow_scoped_relation_endpoints_after_rewire() {
     let historical_version = runtime.current_version_id();
     let historical_snapshot = runtime.visibility_authority().snapshot();
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("rewire-edge").push(MutationIntent::Relation(
             RelationMutationIntent::UpdateEndpoints(UpdateRelationEndpointsIntent {
@@ -58,7 +58,8 @@ fn historical_neighbors_follow_scoped_relation_endpoints_after_rewire() {
             }),
         )),
     );
-    txn.commit().expect("relation rewire should commit");
+    txn.commit(&mut runtime)
+        .expect("relation rewire should commit");
 
     let current_neighbors = runtime
         .inspect_what_happened()

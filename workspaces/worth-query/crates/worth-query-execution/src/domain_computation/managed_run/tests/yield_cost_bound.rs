@@ -1,3 +1,4 @@
+#[cfg(feature = "allocation-probes")]
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -137,6 +138,7 @@ fn yield_transition_work_is_invariant_to_unrelated_live_authority_width() {
 }
 
 #[test]
+#[cfg(feature = "allocation-probes")]
 fn yield_transition_allocation_count_is_width_invariant() {
     let output = std::process::Command::new(std::env::current_exe().unwrap())
         .arg("isolated_yield_transition_allocation_slope_probe")
@@ -152,6 +154,7 @@ fn yield_transition_allocation_count_is_width_invariant() {
 }
 
 #[test]
+#[cfg(feature = "allocation-probes")]
 fn isolated_yield_transition_allocation_slope_probe() {
     if std::env::var_os("WORTH_QUERY_YIELD_ALLOCATION_PROBE").is_none() {
         return;
@@ -163,6 +166,7 @@ fn isolated_yield_transition_allocation_slope_probe() {
 }
 
 #[test]
+#[cfg(feature = "allocation-probes")]
 fn workflow_yield_transition_allocation_is_unrelated_authority_invariant() {
     let output = std::process::Command::new(std::env::current_exe().unwrap())
         .arg("isolated_workflow_yield_transition_allocation_slope_probe")
@@ -178,6 +182,7 @@ fn workflow_yield_transition_allocation_is_unrelated_authority_invariant() {
 }
 
 #[test]
+#[cfg(feature = "allocation-probes")]
 fn isolated_workflow_yield_transition_allocation_slope_probe() {
     if std::env::var_os("WORTH_QUERY_WORKFLOW_YIELD_ALLOCATION_PROBE").is_none() {
         return;
@@ -208,6 +213,7 @@ fn execute_target(unrelated_width: usize) -> YieldCostEvidence {
     evidence
 }
 
+#[cfg(feature = "allocation-probes")]
 fn measured_workflow_target(unrelated_width: usize) -> stats_alloc::Stats {
     let (paused, unrelated) = prepared_workflow_target(unrelated_width);
     let region = stats_alloc::Region::new(&stats_alloc::INSTRUMENTED_SYSTEM);
@@ -228,6 +234,7 @@ fn measured_workflow_target(unrelated_width: usize) -> stats_alloc::Stats {
     stats
 }
 
+#[cfg(feature = "allocation-probes")]
 fn measured_target(unrelated_width: usize) -> stats_alloc::Stats {
     let (paused, unrelated, _, _) = prepared_target(unrelated_width);
     let region = stats_alloc::Region::new(&stats_alloc::INSTRUMENTED_SYSTEM);
@@ -278,6 +285,7 @@ fn prepared_target(
     (paused, unrelated, suspension_count, retained_probe_count)
 }
 
+#[cfg(feature = "allocation-probes")]
 fn prepared_workflow_target(
     unrelated_width: usize,
 ) -> (
@@ -373,6 +381,7 @@ fn expected_direct_yield_counters() -> crate::domain_computation::WorthQueryYiel
     counters
 }
 
+#[cfg(feature = "allocation-probes")]
 fn expected_workflow_yield_counters() -> crate::domain_computation::WorthQueryYieldTransitionCounters
 {
     let mut counters = expected_direct_yield_counters();

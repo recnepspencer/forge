@@ -66,6 +66,13 @@ impl UiGraphConsumedFactIndex {
         self.basis
     }
 
+    pub(crate) fn lookup_retained(
+        &self,
+        fact: &UiProducedFact,
+    ) -> Result<UiGraphFactLookupReceipt, UiGraphFactLookupDenial> {
+        self.lookup(self.basis, fact)
+    }
+
     pub(crate) fn lookup(
         &self,
         requested_basis: UiGraphFactIndexBasis,

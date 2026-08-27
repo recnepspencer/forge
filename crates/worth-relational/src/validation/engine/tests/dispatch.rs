@@ -49,7 +49,10 @@ fn engine_marks_unrelated_commit_boundary_rules_not_applicable() {
         ))],
     };
 
-    let results = runtime.validation().commit_boundary(&plan);
+    let results =
+        crate::validation::invariant_access::test_support::evaluate_main_commit_boundary_plan(
+            &runtime, &plan,
+        );
 
     assert!(results.results().is_empty());
 }

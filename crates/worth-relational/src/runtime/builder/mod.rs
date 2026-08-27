@@ -99,14 +99,6 @@ impl RelationalRuntimeBuilder {
         self
     }
 
-    pub fn commit_authority(
-        mut self,
-        commit_authority: crate::config::data::CommitAuthorityContract,
-    ) -> Self {
-        self.overrides.execution.commit_authority = Some(commit_authority);
-        self
-    }
-
     pub fn durability_mode(mut self, durability_mode: DurabilityMode) -> Self {
         self.overrides.durability.mode = Some(durability_mode);
         self

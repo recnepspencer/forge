@@ -2,6 +2,9 @@
 
 mod application;
 mod application_driver;
+mod application_runtime;
+#[cfg(any(test, feature = "certification-support"))]
+pub(crate) use application_driver::shutdown_observation::map_shutdown_attempts;
 pub(crate) mod authorized_native_host;
 mod native_platform_binding;
 mod outcome;
@@ -19,6 +22,15 @@ pub use application::{
     UiNativeApplicationBuilder, UiNativeApplicationDefinition, UiNativeApplicationPreparation,
     UiNativeApplicationPreparationDenial, UiNativeApplicationPreparationDenialCause,
     UiNativeApplicationPreparationOutcome, UiPreparedNativeApplication,
+};
+pub use application_runtime::{
+    UiNativeApplicationObservationProgress, UiNativeApplicationPhysicalProgress,
+    UiNativeApplicationReadinessOwnerCount, UiNativeApplicationReadinessOwnerCountDenial,
+    UiNativeApplicationReadinessPort, UiNativeApplicationReadinessSignalDenial,
+    UiNativeApplicationReadinessSignalDisposition, UiNativeApplicationRuntime,
+    UiNativeApplicationRuntimeActivationStopped, UiNativeApplicationRuntimeCloseIncomplete,
+    UiNativeApplicationRuntimeClosed, UiNativeApplicationRuntimeDirective,
+    UiNativeApplicationRuntimeProgressStopped,
 };
 pub use outcome::{
     UiNativePlatformCloseReceipt, UiNativePlatformOutcome, UiNativePlatformStopReason,
@@ -45,4 +57,9 @@ pub use worth_ui_host_native::{
     UiNativePhysicalSignalSettlementClass, UiNativePhysicalSignalTransitionObservation,
     UiNativePhysicalSignalWorkClass, UiNativePresentationObservation, UiNativePresentationWorkKind,
     UiNativeQualificationPlan, UiNativeQualificationPlanDenial, UiNativeRetainedFrameObservation,
+};
+pub use worth_ui_host_native::{
+    UiNativeClientVisualCoordinateOrientation, UiNativeClientVisualCoordinateRounding,
+    UiNativeClientVisualPixelColorSpace, UiNativeClientVisualSnapshotObservation,
+    UiNativeClientVisualSnapshotRelation,
 };

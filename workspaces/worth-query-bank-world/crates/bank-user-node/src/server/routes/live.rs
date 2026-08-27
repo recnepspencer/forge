@@ -270,7 +270,12 @@ fn typed_event(event: BankHttpAccountActivityEvent) -> Bytes {
 }
 
 #[cfg(test)]
+#[path = "live/exact_basis_shape_tests.rs"]
+mod exact_basis_shape_tests;
+
+#[cfg(test)]
 mod tests {
+    use super::exact_basis_shape_tests::update_event;
     use super::*;
 
     #[tokio::test]
@@ -363,11 +368,5 @@ mod tests {
             terminal_receiver.try_recv(),
             Err(oneshot::error::TryRecvError::Empty)
         ));
-    }
-
-    fn update_event(request_id: &str) -> Bytes {
-        Bytes::from(format!(
-            "event: bank_account_activity\ndata: {{\"event\":\"update\",\"request_id\":\"{request_id}\",\"activity\":{{\"account\":\"fixture:100\",\"entries\":[]}},\"publication\":{{\"query_identity\":\"query\",\"parameter_binding_identity\":\"binding\",\"basis\":{{\"runtime_instance\":1,\"branch\":\"ordinary\",\"snapshot\":1,\"lease\":1,\"version\":1,\"posture\":\"current\"}},\"capability_purpose\":\"account_activity_review\",\"disclosure\":{{\"posture\":\"public\",\"omission\":\"no_omission\",\"decision_count\":0,\"disclosed_value_count\":0,\"omitted_value_count\":0,\"authorization_decision_fact_count\":0}}}}}}\n\n"
-        ))
     }
 }

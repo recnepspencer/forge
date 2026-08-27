@@ -1,3 +1,4 @@
+use super::WorthQueryApplicationBasisIdentity;
 use worth_foundational::facade::CanonicalDigestId;
 use worth_query_admission::facade::application_query::WorthQueryApplicationQueryLane;
 use worth_query_installation::facade::{
@@ -5,7 +6,6 @@ use worth_query_installation::facade::{
 };
 use worth_relational::facade::identity::VersionId;
 use worth_relational::facade::indexes::DerivedIndexGenerationId;
-use worth_relational::facade::runtime::RelationalExecutionBasisIdentity;
 
 use super::read_execution::NonLiveKernelReceiptEvidence;
 use super::WorthQueryApplicationResultBufferEvidence;
@@ -27,7 +27,7 @@ pub struct WorthQueryApplicationQueryAccessReceipt {
     parameter_binding_identity: CanonicalDigestId,
     graph_authority_identity: String,
     provider_identity: String,
-    basis_identity: RelationalExecutionBasisIdentity,
+    basis_identity: WorthQueryApplicationBasisIdentity,
     basis_version: VersionId,
     basis_posture: WorthQueryApplicationQueryBasisPosture,
     lane: WorthQueryApplicationQueryLane,
@@ -63,7 +63,7 @@ pub(super) struct WorthQueryApplicationQueryAccessReceiptParts {
     pub parameter_binding_identity: CanonicalDigestId,
     pub graph_authority_identity: String,
     pub provider_identity: String,
-    pub basis_identity: RelationalExecutionBasisIdentity,
+    pub basis_identity: WorthQueryApplicationBasisIdentity,
     pub basis_version: VersionId,
     pub basis_posture: WorthQueryApplicationQueryBasisPosture,
     pub lane: WorthQueryApplicationQueryLane,
@@ -102,7 +102,7 @@ pub(super) struct WorthQueryApplicationQueryReceiptIdentity {
 }
 
 pub(super) struct WorthQueryApplicationQueryReceiptBasis {
-    pub identity: RelationalExecutionBasisIdentity,
+    pub identity: WorthQueryApplicationBasisIdentity,
     pub version: VersionId,
     pub posture: WorthQueryApplicationQueryBasisPosture,
     pub lane: WorthQueryApplicationQueryLane,
@@ -175,7 +175,7 @@ impl WorthQueryApplicationQueryAccessReceipt {
         &self.provider_identity
     }
 
-    pub const fn basis_identity(&self) -> &RelationalExecutionBasisIdentity {
+    pub const fn basis_identity(&self) -> &WorthQueryApplicationBasisIdentity {
         &self.basis_identity
     }
 

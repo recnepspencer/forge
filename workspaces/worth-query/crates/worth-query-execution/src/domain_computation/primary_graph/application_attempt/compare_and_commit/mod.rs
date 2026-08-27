@@ -4,10 +4,11 @@ mod commit_outcome;
 mod commit_receipt;
 
 pub use commit_outcome::{
-    WorthQueryApplicationCommitDenial, WorthQueryApplicationCommitDenialKind,
-    WorthQueryApplicationCommitDenialStage, WorthQueryApplicationCommitOutcome,
-    WorthQueryApplicationCommitRecoveryKind, WorthQueryApplicationStaleAttempt,
-    WorthQueryApplicationUnresolvedCommitEvidence,
+    WorthQueryApplicationCommitDeferred, WorthQueryApplicationCommitDenial,
+    WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
+    WorthQueryApplicationCommitOutcome, WorthQueryApplicationCommitRecoveryKind,
+    WorthQueryApplicationSettlementDeferred, WorthQueryApplicationSettlementNextAction,
+    WorthQueryApplicationStaleAttempt, WorthQueryApplicationUnresolvedCommitEvidence,
 };
 pub use commit_receipt::{
     WorthQueryApplicationCommitPublicationExternalEffect,

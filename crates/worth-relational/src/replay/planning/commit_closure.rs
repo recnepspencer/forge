@@ -10,7 +10,7 @@ pub(in crate::replay) fn load_replay_envelope(
     source: &impl CommitEnvelopeSource,
     commit_id: CommitId,
 ) -> Option<CanonicalCommitEnvelope> {
-    source.commit_envelope(commit_id).cloned()
+    source.canonical_envelope_owned(commit_id)
 }
 
 pub(in crate::replay) fn replay_commit_closure_by_commit_id_order(
@@ -47,7 +47,7 @@ fn visit_replay_commit_closure(
     if ordered.contains(&commit_id) {
         return Ok(());
     }
-    let Some(envelope) = history.commit_envelope(commit_id) else {
+    let Some(envelope) = history.canonical_envelope_owned(commit_id) else {
         return Err(ReplayFailureClass::MissingAuthoritativeParentClosure);
     };
     if !visiting.insert(commit_id) {

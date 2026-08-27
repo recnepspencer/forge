@@ -14,21 +14,6 @@ pub struct MergedCommitPlan {
     pub merged_intents: Vec<MutationIntent>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum LoweredCommitPlan {
-    Mutation(MergedCommitPlan),
-    Strategy(crate::commit_strategies::data::LoweredStrategyCommitPlan),
-}
-
-impl LoweredCommitPlan {
-    pub fn merged_plan(&self) -> &MergedCommitPlan {
-        match self {
-            Self::Mutation(plan) => plan,
-            Self::Strategy(plan) => plan.merged_plan(),
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MergeExecutionStructuralSummary {
     pub executed_record_count: usize,

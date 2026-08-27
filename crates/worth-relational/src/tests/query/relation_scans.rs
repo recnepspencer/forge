@@ -51,17 +51,17 @@ fn relation_kind_scans_return_only_visible_relations_of_that_kind() {
     let r1 = create_relation(&mut runtime, left, right, "r1");
     let r2 = create_relation(&mut runtime, right, third, "r2");
     let deleted = {
-        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
         txn.push_batch(
             WorkerIntentBatch::new("delete-r1").push(MutationIntent::Relation(
                 RelationMutationIntent::Delete(DeleteRelationIntent { relation_id: r1 }),
             )),
         );
-        txn.commit().unwrap()
+        txn.commit(&mut runtime).unwrap()
     };
     let visible = runtime
         .read_truth()
-        .project_version(deleted.version_id)
+        .project_historical_version(deleted.version_id)
         .relations::<EdgeProjection>();
 
     assert_eq!(visible.len(), 1);
@@ -79,7 +79,7 @@ fn relation_kind_scans_are_deterministic_across_equivalent_insert_order() {
     let _ = create_relation(&mut runtime_a, a_right, a_third, "r2");
     let scan_a = runtime_a
         .read_truth()
-        .project_version(runtime_a.current_version_id())
+        .project_historical_version(runtime_a.current_version_id())
         .relations::<EdgeProjection>();
 
     let mut runtime_b =
@@ -91,7 +91,7 @@ fn relation_kind_scans_are_deterministic_across_equivalent_insert_order() {
     let _ = create_relation(&mut runtime_b, b_left, b_right, "r1");
     let scan_b = runtime_b
         .read_truth()
-        .project_version(runtime_b.current_version_id())
+        .project_historical_version(runtime_b.current_version_id())
         .relations::<EdgeProjection>();
 
     assert_eq!(scan_a.len(), scan_b.len());
@@ -121,11 +121,11 @@ fn all_authoritative_relation_records_use_canonical_relation_order_not_creation_
 
     let projected = runtime
         .read_truth()
-        .project_version(runtime.current_version_id())
+        .project_historical_version(runtime.current_version_id())
         .relations::<EdgeProjection>();
     let all_records = runtime
         .read_truth()
-        .project_version(runtime.current_version_id())
+        .project_historical_version(runtime.current_version_id())
         .all_authoritative_relation_records();
 
     assert_eq!(

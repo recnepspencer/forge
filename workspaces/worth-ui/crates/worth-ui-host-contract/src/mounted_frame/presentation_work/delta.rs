@@ -44,6 +44,7 @@ impl UiMountedPresentationDelta {
                 binding: input.binding,
                 content: input.content,
                 baseline: input.baseline,
+                receipt_affinity: None,
             },
         );
         Self {
@@ -60,6 +61,15 @@ impl UiMountedPresentationDelta {
 
     pub const fn affinity(&self) -> UiMountedPresentationAffinity {
         self.affinity
+    }
+
+    #[doc(hidden)]
+    pub const fn with_successor_receipt_affinity(
+        mut self,
+        affinity: Option<crate::UiMountedNodeReceiptAffinity>,
+    ) -> Self {
+        self.affinity = self.affinity.with_receipt_affinity(affinity);
+        self
     }
 
     pub fn changes(&self) -> &[UiMountedPaintCommandChange] {

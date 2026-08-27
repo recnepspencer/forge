@@ -10,8 +10,7 @@ use crate::identity::data::{KindId, PartitionId};
 use crate::schema::data::{EndpointKindContractDeclaration, RelationIntegrityDeclarations};
 use crate::transactions::data::EntityReference;
 use crate::transactions::data::{
-    CreateIntent, EntitySpec, MergedCommitPlan, MutationIntent, RelationSpec, TransactionOptions,
-    WorkerIntentBatch,
+    CreateIntent, EntitySpec, MergedCommitPlan, MutationIntent, RelationSpec, WorkerIntentBatch,
 };
 use crate::validation::data::InvariantPlanContract;
 use crate::validation::engine::{
@@ -82,13 +81,13 @@ pub(super) fn relation_integrity_runtime() -> crate::runtime::RelationalRuntime 
 }
 
 pub(super) fn create_relation_of_kind(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    mut runtime: &mut crate::runtime::RelationalRuntime,
     kind_id: KindId,
     source: crate::identity::data::EntityId,
     target: crate::identity::data::EntityId,
     client_key: &str,
 ) -> crate::identity::data::RelationId {
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new(format!("relation-{client_key}")).push(MutationIntent::Create(
             CreateIntent::Relation(RelationSpec {
@@ -101,7 +100,7 @@ pub(super) fn create_relation_of_kind(
             }),
         )),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
     outcome
         .changed_records
         .iter()
@@ -113,10 +112,10 @@ pub(super) fn create_relation_of_kind(
 }
 
 pub(super) fn create_entity(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    mut runtime: &mut crate::runtime::RelationalRuntime,
     name: &str,
 ) -> crate::identity::data::EntityId {
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new(format!("entity-{name}")).push(MutationIntent::Create(
             CreateIntent::Entity(EntitySpec {
@@ -127,7 +126,7 @@ pub(super) fn create_entity(
             }),
         )),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
     outcome
         .changed_records
         .iter()

@@ -15,7 +15,6 @@ const CLASSES: [&str; 7] = [
 #[test]
 #[ignore = "requires the serialized Windows 11 DX12 desktop"]
 fn every_derived_state_reconstructs_in_a_fresh_product_world() {
-    let mut observations = Vec::with_capacity(CLASSES.len());
     let portfolio_deadline = Instant::now() + Duration::from_secs(510);
     for class in CLASSES {
         let started = Instant::now();
@@ -49,22 +48,5 @@ fn every_derived_state_reconstructs_in_a_fresh_product_world() {
             "phase5-reconstruction class={class} elapsed_ms={}",
             started.elapsed().as_millis()
         );
-        observations.push(evidence);
     }
-    let worlds = observations.len();
-    let reconstructions = observations
-        .iter()
-        .map(|row| row["reconstructed_frames"].as_u64().unwrap())
-        .sum::<u64>();
-    let presentations = observations
-        .iter()
-        .map(|row| row["retained_frames"].as_array().unwrap().len())
-        .sum::<usize>();
-    println!(
-        "WORTH_UI_PHASE5_RECONSTRUCTION={}",
-        serde_json::Value::Array(observations)
-    );
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P5-TEXT-RECONSTRUCTION-01\":{reconstructions}}}");
-    println!("WORTH_UI_LEDGER_PRESENTATIONS={presentations}");
-    println!("WORTH_UI_LEDGER_WORLD={worlds}");
 }

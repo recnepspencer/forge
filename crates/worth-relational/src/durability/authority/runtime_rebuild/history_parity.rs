@@ -9,44 +9,78 @@ use super::super::super::derived_index_artifacts::apply_envelope_derived_index_a
 
 pub(super) fn apply_authoritative_commit_artifacts(
     runtime: &mut RelationalRuntime,
-    envelope: &CanonicalCommitEnvelope,
-) {
+    positioned: &crate::history::data::PositionedCanonicalCommit,
+    allow_reconstructed_replacement: bool,
+    advance_branch_currentness: bool,
+) -> Result<(), DurabilityError> {
+    let envelope = positioned.envelope();
+    let history_before = runtime.history.clone();
+    if runtime
+        .history
+        .commit_envelopes
+        .get(&envelope.commit.commit_id)
+        .is_some_and(|existing| existing.as_ref() != envelope)
+        && !allow_reconstructed_replacement
+    {
+        return Err(DurabilityError::new(
+            RecoveryFailureClass::CorruptCheckpoint,
+            format!(
+                "recovery commit envelope conflicts for commit {}",
+                envelope.commit.commit_id.0
+            ),
+        ));
+    }
+    if runtime
+        .history
+        .commit_catalog
+        .get(envelope.commit.commit_id)
+        .is_some_and(|existing| existing.envelope().as_ref() != envelope)
+        && !allow_reconstructed_replacement
+    {
+        return Err(DurabilityError::new(
+            RecoveryFailureClass::CorruptCheckpoint,
+            format!(
+                "recovery commit artifact conflicts for commit {}",
+                envelope.commit.commit_id.0
+            ),
+        ));
+    }
     runtime.history.commit_graph.insert(
         envelope.commit.commit_id,
         VersionNode {
             commit: envelope.commit.clone(),
         },
     );
-    runtime.history.branch_heads.insert(
-        envelope.branch_context.clone(),
-        Some(envelope.commit.clone()),
-    );
+    let canonical = runtime
+        .history
+        .commit_envelopes
+        .get(&envelope.commit.commit_id)
+        .cloned()
+        .unwrap_or_else(|| Arc::clone(positioned.canonical_arc()));
     runtime
         .history
         .commit_envelopes
-        .insert(envelope.commit.commit_id, Arc::new(envelope.clone()));
+        .insert(envelope.commit.commit_id, Arc::clone(&canonical));
     runtime
         .history
         .patch_stream_index
-        .insert(envelope.patch.position, envelope.commit.commit_id);
-
-    if !envelope.lineage_events().is_empty() {
-        for event in envelope.lineage_events() {
-            if let Some(existing) = runtime
-                .lineage
-                .events
-                .iter_mut()
-                .find(|candidate| candidate.event_id == event.event_id)
-            {
-                *existing = event.clone();
-            } else {
-                runtime.lineage.events.push(event.clone());
-            }
-        }
-        runtime.lineage.events.sort_by_key(|event| event.event_id);
+        .insert(positioned.position(), envelope.commit.commit_id);
+    let result = runtime
+        .history
+        .record_recovered_commit(
+            canonical.as_ref(),
+            allow_reconstructed_replacement,
+            advance_branch_currentness,
+            &runtime.services.symbols,
+        )
+        .map_err(|detail| DurabilityError::new(RecoveryFailureClass::CorruptCheckpoint, detail));
+    if let Err(error) = result {
+        runtime.history = history_before;
+        return Err(error);
     }
 
     apply_envelope_derived_index_artifacts(runtime, envelope);
+    Ok(())
 }
 
 pub(super) fn validate_recovered_history_parity(
@@ -75,20 +109,109 @@ pub(super) fn validate_recovered_history_parity(
                 .len()
                 .max(recovered_envelope.commit.ordered_parents().len()),
         );
-    if durable_envelope.commit.ordered_parents() != recovered_envelope.commit.ordered_parents()
-        || durable_envelope.merge_parent_branches != recovered_envelope.merge_parent_branches
-        || durable_envelope.merge_base_commits != recovered_envelope.merge_base_commits
-    {
+    let drifted_axes = canonical_effect_drift(durable_envelope, &recovered_envelope);
+    if !drifted_axes.is_empty() {
         return Err(DurabilityError::new(
             RecoveryFailureClass::ReplayFailure,
             format!(
-                "recovered durable history parity drifted for commit {}",
-                durable_envelope.commit.commit_id.0
+                "recovered durable canonical effect drifted for commit {} on {}",
+                durable_envelope.commit.commit_id.0,
+                drifted_axes.join(", ")
             ),
         )
         .with_history_drift_class(HistoryDriftClass::DurabilityParityDrift));
     }
     Ok(())
+}
+
+fn canonical_effect_drift(
+    durable: &CanonicalCommitEnvelope,
+    replayed: &CanonicalCommitEnvelope,
+) -> Vec<&'static str> {
+    let mut drifted = Vec::new();
+    macro_rules! compare {
+        ($field:ident) => {
+            if durable.$field != replayed.$field {
+                drifted.push(stringify!($field));
+            }
+        };
+    }
+    compare!(commit);
+    compare!(branch_context);
+    if !branch_cell_checkpoint_truth_matches(
+        durable.branch_cell_checkpoint.as_ref(),
+        replayed.branch_cell_checkpoint.as_ref(),
+    ) {
+        drifted.push("branch_cell_checkpoint");
+    }
+    compare!(authority_kind);
+    compare!(merge_execution_authority);
+    compare!(merge_parent_branches);
+    compare!(merge_base_commits);
+    compare!(schema_version);
+    compare!(schema_authority);
+    if durable.merged_plan.merged_intents != replayed.merged_plan.merged_intents {
+        drifted.push("merged_plan");
+    }
+    if durable.record_allocations() != replayed.record_allocations() {
+        drifted.push("record_allocations");
+    }
+    compare!(patch);
+    if durable.published_lineage() != replayed.published_lineage() {
+        drifted.push("lineage");
+    }
+    compare!(schema_transition);
+    compare!(schema_continuation_descriptor);
+    compare!(schema_reconciliation_descriptor);
+    compare!(descriptor_semantics_version);
+    drifted
+}
+
+fn branch_cell_checkpoint_truth_matches(
+    durable: Option<&crate::branch::RelationalBranchCellCheckpoint>,
+    replayed: Option<&crate::branch::RelationalBranchCellCheckpoint>,
+) -> bool {
+    match (durable, replayed) {
+        (Some(durable), Some(replayed)) => {
+            durable.branch_id == replayed.branch_id
+                && branch_observation_truth_matches(&durable.observation, &replayed.observation)
+                && durable.truth_version == replayed.truth_version
+                && match (
+                    durable.fork_provenance.as_ref(),
+                    replayed.fork_provenance.as_ref(),
+                ) {
+                    (Some(durable), Some(replayed)) => {
+                        branch_observation_truth_matches(durable, replayed)
+                    }
+                    (None, None) => true,
+                    _ => false,
+                }
+                && durable.fork_source_branch_id == replayed.fork_source_branch_id
+        }
+        (None, None) => true,
+        _ => false,
+    }
+}
+
+fn branch_observation_truth_matches(
+    durable: &crate::branch::RelationalBranchReferenceObservation,
+    replayed: &crate::branch::RelationalBranchReferenceObservation,
+) -> bool {
+    use worth_foundational::FoundationalBranchTarget;
+
+    if durable.generation() != replayed.generation() {
+        return false;
+    }
+    match (durable.target(), replayed.target()) {
+        (FoundationalBranchTarget::Empty, FoundationalBranchTarget::Empty) => true,
+        (FoundationalBranchTarget::Basis(durable), FoundationalBranchTarget::Basis(replayed)) => {
+            durable.selected_commit_id() == replayed.selected_commit_id()
+                && durable.version_id() == replayed.version_id()
+                && durable.parent_commit_ids() == replayed.parent_commit_ids()
+                && durable.roots() == replayed.roots()
+        }
+        _ => false,
+    }
 }
 
 pub(super) fn validate_expected_recovery_parent_shape(
@@ -99,11 +222,17 @@ pub(super) fn validate_expected_recovery_parent_shape(
     let observed_parents = ordered_parents.as_slice();
     let current_branch_head = runtime
         .history
-        .branch_heads
-        .get(&envelope.branch_context)
-        .and_then(|head| head.as_ref())
-        .map(|head| head.commit_id);
-    let admitted_target_head = current_branch_head.or_else(|| observed_parents.first().copied());
+        .branch_cell(&envelope.branch_context)
+        .and_then(|cell| match cell.observation().target() {
+            worth_foundational::FoundationalBranchTarget::Basis(target) => {
+                Some(crate::history::data::CommitId(target.selected_commit_id()))
+            }
+            worth_foundational::FoundationalBranchTarget::Empty => None,
+        });
+    // The branch-reference cell is the only currentness authority.  An empty
+    // cell is an explicit empty target, not permission to infer a head from
+    // the envelope's parent list.
+    let admitted_target_head = current_branch_head;
 
     if envelope.merge_parent_branches.is_empty() {
         let expected = admitted_target_head.into_iter().collect::<Vec<_>>();
@@ -127,10 +256,13 @@ pub(super) fn validate_expected_recovery_parent_shape(
     for branch in &envelope.merge_parent_branches {
         let branch_head = runtime
             .history
-            .branch_heads
-            .get(branch)
-            .and_then(|head| head.as_ref())
-            .map(|head| head.commit_id)
+            .branch_cell(branch)
+            .and_then(|cell| match cell.observation().target() {
+                worth_foundational::FoundationalBranchTarget::Basis(target) => {
+                    Some(crate::history::data::CommitId(target.selected_commit_id()))
+                }
+                worth_foundational::FoundationalBranchTarget::Empty => None,
+            })
             .ok_or_else(|| {
                 DurabilityError::new(
                     RecoveryFailureClass::ReplayFailure,

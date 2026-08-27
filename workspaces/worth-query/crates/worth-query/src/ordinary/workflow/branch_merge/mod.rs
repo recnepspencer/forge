@@ -10,8 +10,9 @@ pub use declaration::{
     WorthQueryBranchMergeDeclarationStop,
 };
 pub use outcome::{
-    WorthQueryBranchMergeAftermath, WorthQueryBranchMergeCompletion,
-    WorthQueryBranchMergeNextAction, WorthQueryBranchMergeOutcome, WorthQueryBranchMergeStop,
+    WorthQueryBranchMergeAftermath, WorthQueryBranchMergeCompletion, WorthQueryBranchMergeDeferred,
+    WorthQueryBranchMergeNextAction, WorthQueryBranchMergeOutcome,
+    WorthQueryBranchMergeSettlementDeferred, WorthQueryBranchMergeStop,
     WorthQueryBranchMergeStopSource,
 };
 

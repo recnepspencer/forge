@@ -6,6 +6,7 @@ use crate::facade::replay::{
 };
 use crate::facade::runtime::RelationalRuntime;
 use crate::runtime::RecoveryOutcome;
+use worth_foundational::FoundationalBranchTarget;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct ReplayProbe {
@@ -77,11 +78,13 @@ pub(crate) fn capture_recovery_probe(
             .map(|commit| commit.commit_id.0),
         branch_heads: runtime
             .history()
-            .branches()
+            .branch_cells_snapshot()
             .into_iter()
-            .filter_map(|head| {
-                head.head
-                    .map(|commit| (head.branch_id.0, commit.commit_id.0))
+            .filter_map(|cell| {
+                let FoundationalBranchTarget::Basis(target) = cell.observation.target() else {
+                    return None;
+                };
+                Some((cell.branch_id.0, target.selected_commit_id()))
             })
             .collect(),
         recovered_commits: outcome.recovered_commits,

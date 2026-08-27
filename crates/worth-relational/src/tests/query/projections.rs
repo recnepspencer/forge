@@ -76,7 +76,7 @@ fn entity_projections_collapse_kind_and_partition_threading() {
     let right = create_entity_in_partition(&mut runtime, "right-a", PartitionId(11));
     let view = runtime
         .read_truth()
-        .project_version(runtime.current_version_id());
+        .project_historical_version(runtime.current_version_id());
 
     let projected = view.entities::<NamedEntityProjection>();
     let scoped = view.entities_in::<NamedEntityProjection>(PartitionId(7));
@@ -148,7 +148,7 @@ fn projection_record_refuses_aspect_reads_outside_declared_scope() {
 
     let projected = runtime
         .read_truth()
-        .project_version(runtime.current_version_id())
+        .project_historical_version(runtime.current_version_id())
         .entities::<EmptyScopeProjection>();
 
     assert_eq!(projected[0].entity_id, entity_id);
@@ -162,7 +162,7 @@ fn dynamic_projection_scope_reads_aspects_without_raw_record_escape() {
     let entity_id = create_entity(&mut runtime, "scope-carried");
     let view = runtime
         .read_truth()
-        .project_version(runtime.current_version_id());
+        .project_historical_version(runtime.current_version_id());
     let name_key = AspectKey::new("name").unwrap();
 
     let projected = view.entity_records_with_projection_scope(
@@ -206,7 +206,7 @@ fn projection_raw_record_escape_hatches_preserve_full_visible_record_sets() {
     let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
     let relation = create_relation(&mut runtime, left, right, "r0");
     let version_id = runtime.current_version_id();
-    let view = runtime.read_truth().project_version(version_id);
+    let view = runtime.read_truth().project_historical_version(version_id);
     let read = runtime.read_truth().read_version(version_id);
 
     assert_eq!(
@@ -235,6 +235,6 @@ fn projection_rejects_undeclared_required_aspects() {
     create_entity_outcome(&mut runtime, "visible");
     let _ = runtime
         .read_truth()
-        .project_version(runtime.current_version_id())
+        .project_historical_version(runtime.current_version_id())
         .entities::<UndeclaredAspectProjection>();
 }

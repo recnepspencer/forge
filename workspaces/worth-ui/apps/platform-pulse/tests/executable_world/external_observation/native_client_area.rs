@@ -14,6 +14,7 @@ pub(crate) struct ProcessBoundNativeClientAreaObservation {
     process_id: u32,
     window: NativeWindowIdentity,
     bounds: NativeClientAreaBounds,
+    dpi: u32,
     window_lookup_count: u32,
 }
 
@@ -39,6 +40,13 @@ pub(crate) struct NativeClientPixelPoint {
 pub(crate) struct NormalNativeCloseRequestObservation {
     process_id: u32,
     request_count: u32,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct NativeWindowVisibilityTransitionObservation {
+    minimized_observations: u32,
+    restored_observations: u32,
+    restored_client: ProcessBoundNativeClientAreaObservation,
 }
 
 impl NativeClientAreaBounds {
@@ -81,12 +89,14 @@ impl ProcessBoundNativeClientAreaObservation {
         process_id: u32,
         window: NativeWindowIdentity,
         bounds: NativeClientAreaBounds,
+        dpi: u32,
         window_lookup_count: u32,
     ) -> Self {
         Self {
             process_id,
             window,
             bounds,
+            dpi,
             window_lookup_count,
         }
     }
@@ -97,6 +107,10 @@ impl ProcessBoundNativeClientAreaObservation {
 
     pub(crate) fn bounds(self) -> NativeClientAreaBounds {
         self.bounds
+    }
+
+    pub(crate) fn dpi(self) -> u32 {
+        self.dpi
     }
 
     pub(crate) fn window(self) -> NativeWindowIdentity {
@@ -146,6 +160,11 @@ impl NativeClientPixelCapture {
 
     pub(crate) fn capture_count(&self) -> u32 {
         self.capture_count
+    }
+
+    pub(crate) fn with_capture_count(mut self, capture_count: u32) -> Self {
+        self.capture_count = capture_count;
+        self
     }
 }
 
@@ -198,5 +217,27 @@ impl NormalNativeCloseRequestObservation {
 
     pub(crate) fn request_count(self) -> u32 {
         self.request_count
+    }
+}
+
+impl NativeWindowVisibilityTransitionObservation {
+    pub(crate) fn observed(restored_client: ProcessBoundNativeClientAreaObservation) -> Self {
+        Self {
+            minimized_observations: 1,
+            restored_observations: 1,
+            restored_client,
+        }
+    }
+
+    pub(crate) const fn minimized_observations(self) -> u32 {
+        self.minimized_observations
+    }
+
+    pub(crate) const fn restored_observations(self) -> u32 {
+        self.restored_observations
+    }
+
+    pub(crate) const fn restored_client(self) -> ProcessBoundNativeClientAreaObservation {
+        self.restored_client
     }
 }

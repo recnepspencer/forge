@@ -1,4 +1,4 @@
-//! Certification-triggered host surface-basis succession through graphics ownership.
+//! Certification-triggered presentation-surface basis succession.
 
 use winit::event_loop::ActiveEventLoop;
 
@@ -22,28 +22,44 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
         let replacement = {
             let mut state = self.shared.borrow_mut();
             let UiNativeHostState {
-                graphics,
+                device,
+                presentation_surface,
                 resources,
                 window,
                 ..
             } = &mut *state;
-            graphics
-                .as_mut()
+            device
+                .as_ref()
+                .zip(presentation_surface.as_mut())
                 .zip(window.as_ref())
-                .map_or(Err(()), |(graphics, window)| {
-                    let current_scale = graphics.scale_factor;
-                    let current_extent = graphics.extent();
+                .map_or(Err(()), |((device, surface), window)| {
+                    let current_scale = surface.state().scale_factor();
+                    let current_extent = surface.state().extent();
                     let (scale, extent) =
                         successor_basis(current_scale, current_extent, successor.change())?;
                     window.request_client_physical_size(extent);
-                    graphics.rebind_scale(scale, extent, resources)
+                    crate::native::lifecycle::rebind_surface_scale(
+                        device, surface, scale, extent, resources,
+                    )
                 })
         };
         if replacement != Ok(true) {
             self.fail(event_loop, UiNativeEventLoopRunDenial::GraphicsPreparation);
             return true;
         }
-        self.commit_readiness(event_loop);
+        let cause = match successor.change() {
+            crate::qualification::UiNativeQualificationSurfaceBasisChange::ClientPhysicalWidthDelta(_) => {
+                crate::native::UiNativeRecoveryCause::Resize
+            }
+            crate::qualification::UiNativeQualificationSurfaceBasisChange::DpiScaleMultiplierMilli(_) => {
+                crate::native::UiNativeRecoveryCause::Dpi
+            }
+        };
+        {
+            let mut state = self.shared.borrow_mut();
+            state.require_surface_reconstruction(cause);
+        }
+        self.commit_visible_surface_readiness(event_loop);
         false
     }
 

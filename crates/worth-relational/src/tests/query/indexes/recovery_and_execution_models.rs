@@ -205,9 +205,9 @@ fn derived_index_contract_entity_field_equals_is_stable_across_execution_models(
     }
 
     let (serial_runtime, serial_snapshot) =
-        build_runtime(RelationalExecutionModel::SerialAuthority);
+        build_runtime(RelationalExecutionModel::SingleLaneExecution);
     let (staged_runtime, staged_snapshot) =
-        build_runtime(RelationalExecutionModel::StagedParallelPreparation);
+        build_runtime(RelationalExecutionModel::ParallelPreparation);
 
     let serial_context = serial_runtime
         .read_truth()
@@ -331,9 +331,9 @@ fn derived_index_contract_staged_parallel_generation_matches_serial_reference() 
     }
 
     let (mut serial_runtime, serial_commit_id, index_ids) =
-        build_runtime(RelationalExecutionModel::SerialAuthority);
+        build_runtime(RelationalExecutionModel::SingleLaneExecution);
     let (mut staged_runtime, staged_commit_id, staged_index_ids) =
-        build_runtime(RelationalExecutionModel::StagedParallelPreparation);
+        build_runtime(RelationalExecutionModel::ParallelPreparation);
 
     serial_runtime.performance_access().reset_counters();
     staged_runtime.performance_access().reset_counters();

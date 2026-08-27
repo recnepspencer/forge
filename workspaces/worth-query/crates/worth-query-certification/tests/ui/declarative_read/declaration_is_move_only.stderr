@@ -1,5 +1,0 @@
-error[E0599]: no method named `clone` found for struct `WorthQueryReadDeclaration` in the current scope
- --> tests/ui/declarative_read/declaration_is_move_only.rs:4:29
-  |
-4 |     let _copy = declaration.clone();
-  |                             ^^^^^ method not found in `WorthQueryReadDeclaration`

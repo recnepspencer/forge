@@ -3,7 +3,6 @@ use super::*;
 use crate::identity::data::{KindId, PartitionId, VersionId};
 use crate::merge::data::VisibleMergeRecordKind;
 use crate::schema::data::{KindResolution, SchemaId, SchemaVersionId};
-use crate::snapshots::data::SnapshotHandle;
 
 #[test]
 fn ancestor_entity_basis_resolves_by_lineage_when_record_id_changed() {
@@ -74,8 +73,16 @@ fn read_view(
     entities: Vec<EntityReadRecord>,
     relations: Vec<RelationReadRecord>,
 ) -> RelationalReadView {
+    let mut runtime =
+        crate::runtime::RelationalRuntime::new(crate::runtime::RelationalRuntimeConfig::default());
+    let identity = runtime.main_branch_identity();
+    let (_, basis) = runtime.observe_branch(&identity).unwrap();
+    let snapshot = runtime
+        .snapshots()
+        .snapshot_for_observation(&basis.observation())
+        .unwrap();
     RelationalReadView {
-        snapshot: SnapshotHandle::new(1, 1, crate::history::data::BranchId("main".into())),
+        snapshot,
         entities,
         relations,
     }

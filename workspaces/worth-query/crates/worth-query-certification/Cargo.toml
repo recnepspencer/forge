@@ -4,7 +4,7 @@ autotests = false
 edition.workspace = true
 version.workspace = true
 license.workspace = true
-description = "Cold compiler and hostile certification for WORTH Query."
+description = "Bounded hostile and replay certification for WORTH Query."
 publish = false
 
 [dependencies]
@@ -12,7 +12,6 @@ worth-query-host.workspace = true
 worth-query-replay.workspace = true
 
 [dev-dependencies]
-trybuild.workspace = true
 worth-foundational.workspace = true
 worth-query.workspace = true
 worth-query-decl.workspace = true
@@ -26,30 +25,6 @@ worth-signal.workspace = true
 [[test]]
 name = "composition_guards"
 path = "tests/composition_guards.rs"
-
-[[test]]
-name = "compile_certification"
-path = "tests/compile_certification.rs"
-
-[[test]]
-name = "managed_run_compile_fail"
-path = "tests/managed_run_compile_fail.rs"
-
-[[test]]
-name = "convergence_epoch_compile_fail"
-path = "tests/convergence_epoch_compile_fail.rs"
-
-[[test]]
-name = "application_schema_compile_fail"
-path = "tests/application_schema_compile_fail.rs"
-
-[[test]]
-name = "mutation_precondition_compile_fail"
-path = "tests/mutation_precondition_compile_fail.rs"
-
-[[test]]
-name = "application_aftermath_compile_fail"
-path = "tests/application_aftermath_compile_fail.rs"
 
 [[test]]
 name = "installed_audience_journey"

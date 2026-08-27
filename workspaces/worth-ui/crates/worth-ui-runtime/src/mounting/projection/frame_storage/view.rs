@@ -148,9 +148,14 @@ impl UiMountedProjectionFrame {
         &self,
         surface: UiMountedProjectionSurface,
     ) -> Result<UiMountedSemanticTextViewRows, UiMountedProjectionDenial> {
-        let rows =
-            self.mechanics
-                .semantic_text_for(&self.semantic, surface.surface, surface.binding);
+        let rows = self.mechanics.semantic_text_for(
+            &self.semantic,
+            surface.surface,
+            surface.binding,
+            self.content_generation,
+            self.frame,
+            &self.receipt_basis,
+        )?;
         let mut references = UiMountedSemanticTextReferenceIndex::new();
         for (index, row) in rows.iter().enumerate() {
             let reference = u16::try_from(index)
@@ -168,9 +173,13 @@ impl UiMountedProjectionFrame {
         &self,
         surface: UiMountedProjectionSurface,
     ) -> Result<UiMountedFilledRectViewRows, UiMountedProjectionDenial> {
-        let rows =
-            self.mechanics
-                .filled_rects_for(&self.semantic, surface.surface, surface.binding);
+        let rows = self.mechanics.filled_rects_for(
+            &self.semantic,
+            surface.surface,
+            surface.binding,
+            self.frame,
+            &self.receipt_basis,
+        )?;
         let references = rows
             .iter()
             .enumerate()
@@ -192,9 +201,13 @@ impl UiMountedProjectionFrame {
         &self,
         surface: UiMountedProjectionSurface,
     ) -> Result<UiMountedHitTestViewRows, UiMountedProjectionDenial> {
-        let rows = self
-            .mechanics
-            .hit_tests_for(&self.semantic, surface.surface, surface.binding);
+        let rows = self.mechanics.hit_tests_for(
+            &self.semantic,
+            surface.surface,
+            surface.binding,
+            self.frame,
+            &self.receipt_basis,
+        )?;
         let references = rows
             .iter()
             .enumerate()

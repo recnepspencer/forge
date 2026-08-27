@@ -211,9 +211,6 @@ fn authored_application_stack_and_emoji_fallback_cross_mounted_headless_consumer
         1,
         "the complete ZWJ emoji must stay one grapheme"
     );
-    println!(
-        "WORTH_UI_LEDGER_COUNTERS={{\"P4-MEASUREMENT-IDENTITY-01\":1,\"P4-ACCESSIBILITY-GEOMETRY-01\":1}}"
-    );
 }
 
 fn style(families: [worth_ui::facade::app::UiQualifiedFontFamilyIdentity; 2]) -> UiTextStyle {

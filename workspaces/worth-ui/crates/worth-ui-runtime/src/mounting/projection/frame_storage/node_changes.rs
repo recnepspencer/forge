@@ -1,8 +1,9 @@
 use worth_ui_host_contract::{
     UiMountedAccessibilityProjection, UiMountedDiagnosticProjection, UiMountedOmissionReason,
     UiMountedPaintCommand, UiMountedParticipationStatus, UiMountedPresentationNodeChange,
-    UiMountedPresentationNodePaint, UiMountedPresentationNodeState,
-    UiMountedPresentationNodeStateInput, UiMountedPreviewProjection,
+    UiMountedPresentationNodeHitTest, UiMountedPresentationNodePaint,
+    UiMountedPresentationNodeState, UiMountedPresentationNodeStateInput,
+    UiMountedPreviewProjection,
 };
 
 use super::{UiMountedProjectionFrame, UiMountedProjectionNodeRecord, UiMountedProjectionSurface};
@@ -10,6 +11,7 @@ use super::{UiMountedProjectionFrame, UiMountedProjectionNodeRecord, UiMountedPr
 impl UiMountedProjectionFrame {
     pub(in crate::mounting) fn presentation_node_changes(
         &self,
+        changed_instances: &[worth_ui_host_contract::UiMountedInstanceIdentity],
         surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
         binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
     ) -> Vec<UiMountedPresentationNodeChange> {
@@ -20,16 +22,15 @@ impl UiMountedProjectionFrame {
         else {
             return Vec::new();
         };
-        self.changed_instances
+        changed_instances
             .iter()
-            .filter(|instance| !self.has_precise_command_delta(**instance))
             .filter_map(|instance| match self.semantic.nodes.get(instance) {
                 Some(node) if node.receipt.semantic_surface() == surface.surface => {
                     Some(UiMountedPresentationNodeChange::Upsert(
                         self.presentation_node_state(node, surface),
                     ))
                 }
-                Some(_) => None,
+                Some(_) => Some(UiMountedPresentationNodeChange::Remove(*instance)),
                 None => Some(UiMountedPresentationNodeChange::Remove(*instance)),
             })
             .collect()
@@ -61,10 +62,35 @@ impl UiMountedProjectionFrame {
             allocation: receipt.allocation(),
             preview: self.presentation_preview(receipt.mounted_instance()),
             paint: self.presentation_node_paint(node, surface),
+            hit_test: self.presentation_node_hit_test(receipt.mounted_instance(), surface),
             accessibility,
             motion: receipt.motion(),
             diagnostic: self.presentation_diagnostic(node, surface),
         })
+    }
+
+    fn presentation_node_hit_test(
+        &self,
+        instance: worth_ui_host_contract::UiMountedInstanceIdentity,
+        surface: UiMountedProjectionSurface,
+    ) -> UiMountedPresentationNodeHitTest {
+        self.mechanics
+            .hit_test_for_instance(
+                instance,
+                surface.surface,
+                surface.binding,
+                self.frame,
+                &self.receipt_basis,
+            )
+            .expect("prepared hit-test mechanics remain attributable")
+            .map_or_else(
+                || {
+                    UiMountedPresentationNodeHitTest::Omitted(
+                        UiMountedOmissionReason::NotProducedByExecutedLane,
+                    )
+                },
+                UiMountedPresentationNodeHitTest::Region,
+            )
     }
 
     fn presentation_preview(

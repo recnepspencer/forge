@@ -1,4 +1,4 @@
-use crate::history::data::CommitReference;
+use crate::history::data::RelationalCommitReceipt;
 use crate::identity::data::VersionId;
 use crate::publication::bundle::{PublicationBundle, PublicationStatus};
 use crate::publication::PublicationAuthority;
@@ -29,9 +29,9 @@ impl<'runtime> PublicationAuthority<'runtime> {
 
     pub(crate) fn assemble_publication_bundle(
         &mut self,
-        commit_reference: CommitReference,
+        commit_reference: RelationalCommitReceipt,
         version_id: VersionId,
-        patch: crate::publication::patch::data::PublishedAuthoritativePatchEnvelope,
+        patch: crate::publication::patch::data::CanonicalAuthoritativePatch,
         diagnostics_summary: crate::diagnostics::data::RelationalDiagnosticArtifact,
     ) -> PublicationArtifacts {
         let snapshot_id = self.runtime.visibility.allocate_snapshot_id();
@@ -42,39 +42,59 @@ impl<'runtime> PublicationAuthority<'runtime> {
             version_id,
             read_policy: SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
         };
-        let replay = RelationalReplayRecord {
-            schema_version: ReplaySchemaVersion(1),
-            commit_id: commit_reference.commit_id,
-            version_id,
-            snapshot_id,
-            patch: patch.clone(),
-            schema_authority: self.runtime.config.schema.registry.authority_snapshot(),
-        };
-        let bundle = PublicationBundle {
+        PublicationArtifacts {
             commit: commit_reference,
             snapshot,
             diagnostics_summary,
             patch,
-            replay,
-            status: PublicationStatus::Published,
-        };
-        PublicationArtifacts { bundle }
+            schema_authority: self.runtime.config.schema.registry.authority_snapshot(),
+        }
     }
 
     pub(crate) fn publish_artifacts(
         &mut self,
         version_id: VersionId,
         artifacts: PublicationArtifacts,
+        patch_position: crate::publication::patch::data::PatchStreamPosition,
     ) -> SnapshotId {
-        let PublicationArtifacts { bundle } = artifacts;
+        let PublicationArtifacts {
+            commit,
+            snapshot,
+            diagnostics_summary,
+            patch,
+            schema_authority,
+        } = artifacts;
+        let patch =
+            crate::publication::patch::data::PublishedAuthoritativePatchEnvelope::from_canonical(
+                patch_position,
+                &patch,
+            );
+        let replay = RelationalReplayRecord {
+            schema_version: ReplaySchemaVersion(1),
+            commit_id: commit.commit_id,
+            version_id,
+            snapshot_id: snapshot.snapshot_id,
+            patch: patch.clone(),
+            schema_authority,
+        };
+        let bundle = PublicationBundle {
+            commit,
+            snapshot,
+            diagnostics_summary,
+            patch,
+            replay,
+            status: PublicationStatus::Published,
+        };
         let snapshot_id = bundle.snapshot.snapshot_id;
+        let basis = crate::visibility::snapshot_states::VisibilitySnapshotBasis::capture_current(
+            self.runtime,
+            &bundle.snapshot.branch_id,
+            version_id,
+        )
+        .expect("published snapshot is bound to the installed complete branch root");
         self.runtime.visibility.insert_published_handle(
             snapshot_id,
-            crate::runtime::SnapshotHandleBinding::new(
-                bundle.snapshot.branch_id.clone(),
-                version_id,
-                bundle.snapshot.read_policy,
-            ),
+            crate::runtime::SnapshotHandleBinding::new(basis, bundle.snapshot.read_policy),
         );
         self.push_diagnostic_artifact(bundle.diagnostics_summary.clone());
         self.runtime.publication.replace_latest_bundle(bundle);

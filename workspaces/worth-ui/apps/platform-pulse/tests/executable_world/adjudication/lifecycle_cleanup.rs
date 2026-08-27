@@ -17,6 +17,7 @@ pub(crate) struct ExecutableLifecycleCleanupEvidence {
     shutdown_envelope: PlatformPulseLifecycleObservationEnvelope,
     shutdown: PlatformPulseShutdownCompleted,
     lifecycle_measurement: LifecycleStreamMeasurement,
+    lifecycle_envelopes: Vec<PlatformPulseLifecycleObservationEnvelope>,
     successful_exit: SuccessfulPlatformPulseExit,
     installation_cleanup: PulseInstallationCleanupEvidence,
 }
@@ -26,6 +27,7 @@ pub(crate) struct CausalLifecycleCleanupObservationSet {
     close_request: NormalNativeCloseRequestObservation,
     shutdown_envelope: PlatformPulseLifecycleObservationEnvelope,
     lifecycle_measurement: LifecycleStreamMeasurement,
+    lifecycle_envelopes: Vec<PlatformPulseLifecycleObservationEnvelope>,
 }
 
 pub(crate) struct ExecutableLifecycleCleanupObservationSet {
@@ -41,6 +43,10 @@ pub(crate) enum ExecutableLifecycleCleanupFailure {
     HostSessionNotReleased,
     QueryWatcherNotJoined,
     PendingQueryObservations(u64),
+    IntentWatcherNotJoined,
+    PendingIntentInputs(u64),
+    IntentResourcesNotEmpty,
+    QueryCloseIncomplete,
     QueryResidue {
         owner_terminal: bool,
         sources: u64,
@@ -81,6 +87,18 @@ impl fmt::Display for ExecutableLifecycleCleanupFailure {
             }
             Self::PendingQueryObservations(count) => {
                 write!(formatter, "{count} Query source observation(s) remained queued")
+            }
+            Self::IntentWatcherNotJoined => {
+                formatter.write_str("intent input watcher worker was not joined")
+            }
+            Self::PendingIntentInputs(count) => {
+                write!(formatter, "{count} intent input observation(s) remained queued")
+            }
+            Self::IntentResourcesNotEmpty => {
+                formatter.write_str("runtime intent resources were not empty at shutdown")
+            }
+            Self::QueryCloseIncomplete => {
+                formatter.write_str("runtime Query close was incomplete at shutdown")
             }
             Self::QueryResidue {
                 owner_terminal,
@@ -143,6 +161,7 @@ pub(crate) fn adjudicate_lifecycle_cleanup(
     if !shutdown.host_session_released() {
         return Err(ExecutableLifecycleCleanupFailure::HostSessionNotReleased);
     }
+    require_zero_intent_residue(shutdown)?;
     require_zero_query_residue(shutdown)?;
     if shutdown.mounted_shutdown_attempt_count() != 0 {
         return Err(
@@ -163,6 +182,7 @@ pub(crate) fn adjudicate_lifecycle_cleanup(
         shutdown_envelope: causal.shutdown_envelope,
         shutdown,
         lifecycle_measurement: causal.lifecycle_measurement,
+        lifecycle_envelopes: causal.lifecycle_envelopes,
         successful_exit,
         installation_cleanup,
     })
@@ -171,6 +191,9 @@ pub(crate) fn adjudicate_lifecycle_cleanup(
 fn require_zero_query_residue(
     shutdown: PlatformPulseShutdownCompleted,
 ) -> Result<(), ExecutableLifecycleCleanupFailure> {
+    if !shutdown.query_close_complete() {
+        return Err(ExecutableLifecycleCleanupFailure::QueryCloseIncomplete);
+    }
     if !shutdown.query_watcher_joined() {
         return Err(ExecutableLifecycleCleanupFailure::QueryWatcherNotJoined);
     }
@@ -197,6 +220,23 @@ fn require_zero_query_residue(
             retained_projections: counts.4,
             projection_receipts: counts.5,
         });
+    }
+    Ok(())
+}
+
+fn require_zero_intent_residue(
+    shutdown: PlatformPulseShutdownCompleted,
+) -> Result<(), ExecutableLifecycleCleanupFailure> {
+    if !shutdown.intent_watcher_joined() {
+        return Err(ExecutableLifecycleCleanupFailure::IntentWatcherNotJoined);
+    }
+    if shutdown.pending_intent_input_count() != 0 {
+        return Err(ExecutableLifecycleCleanupFailure::PendingIntentInputs(
+            shutdown.pending_intent_input_count(),
+        ));
+    }
+    if !shutdown.intent_resources_empty() {
+        return Err(ExecutableLifecycleCleanupFailure::IntentResourcesNotEmpty);
     }
     Ok(())
 }
@@ -239,12 +279,14 @@ impl CausalLifecycleCleanupObservationSet {
         close_request: NormalNativeCloseRequestObservation,
         shutdown_envelope: PlatformPulseLifecycleObservationEnvelope,
         lifecycle_measurement: LifecycleStreamMeasurement,
+        lifecycle_envelopes: Vec<PlatformPulseLifecycleObservationEnvelope>,
     ) -> Self {
         Self {
             process_id,
             close_request,
             shutdown_envelope,
             lifecycle_measurement,
+            lifecycle_envelopes,
         }
     }
 
@@ -262,6 +304,10 @@ impl CausalLifecycleCleanupObservationSet {
 }
 
 impl ExecutableLifecycleCleanupEvidence {
+    pub(crate) fn close_request(&self) -> NormalNativeCloseRequestObservation {
+        self.close_request
+    }
+
     pub(crate) fn close_request_count(&self) -> u32 {
         self.close_request.request_count()
     }
@@ -278,11 +324,19 @@ impl ExecutableLifecycleCleanupEvidence {
         self.lifecycle_measurement
     }
 
+    pub(crate) fn lifecycle_envelopes(&self) -> &[PlatformPulseLifecycleObservationEnvelope] {
+        &self.lifecycle_envelopes
+    }
+
     pub(crate) fn successful_exit(&self) -> SuccessfulPlatformPulseExit {
         self.successful_exit
     }
 
     pub(crate) fn installation_removed(&self) -> bool {
         self.installation_cleanup.removed_owned_root()
+    }
+
+    pub(crate) fn installation_cleanup(&self) -> PulseInstallationCleanupEvidence {
+        self.installation_cleanup
     }
 }

@@ -13,7 +13,38 @@ use crate::schema::data::{
     SymmetryContractDeclaration, SymmetryMode,
 };
 use crate::symbols::data::ClientKey;
+use crate::transactions::data::MergedCommitPlan;
 use crate::transactions::data::{EntitySpec, MutationIntent};
+use crate::validation::engine::InvariantExecutionResult;
+
+pub(crate) fn evaluate_main_commit_boundary_plan(
+    runtime: &RelationalRuntime,
+    plan: &MergedCommitPlan,
+) -> InvariantExecutionResult {
+    let selected = selected_main_branch_state(runtime);
+    runtime
+        .validation()
+        .commit_boundary_for_selected_branch_plan(&selected, plan)
+}
+
+pub(crate) fn evaluate_main_graph_composition_plan(
+    runtime: &RelationalRuntime,
+    plan: &MergedCommitPlan,
+) -> InvariantExecutionResult {
+    let selected = selected_main_branch_state(runtime);
+    runtime
+        .validation()
+        .graph_composition_for_selected_branch_plan(&selected, plan)
+}
+
+fn selected_main_branch_state(
+    runtime: &RelationalRuntime,
+) -> crate::branch::SelectedRelationalBranchState {
+    let context = crate::tests::support::test_owner_transaction_validation_input_for_main(runtime);
+    runtime
+        .selected_branch_state(context.basis())
+        .expect("owner-admitted main basis selects its exact branch state")
+}
 
 pub(super) fn runtime_with_invariants(
     invariant_catalog: InvariantCatalog,
@@ -160,8 +191,16 @@ pub(super) fn create_entity(
     runtime: &mut RelationalRuntime,
     name: &str,
 ) -> crate::identity::data::EntityId {
-    let mut txn =
-        runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
+    let mut txn = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime);
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(
         crate::facade::transactions::WorkerIntentBatch::new(name)
             .push(MutationIntent::Create(
@@ -174,7 +213,7 @@ pub(super) fn create_entity(
             ))
             .into(),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(runtime).unwrap();
     match outcome.changed_records[0] {
         crate::facade::transactions::RecordRef::Entity(entity_id) => entity_id,
         _ => panic!("expected entity"),

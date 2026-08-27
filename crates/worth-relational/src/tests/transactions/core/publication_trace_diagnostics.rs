@@ -100,7 +100,7 @@ fn aspect_evaluation_trace_retains_unchanged_bindings_for_auditability() {
         ..AspectSchemaFixture::default()
     };
     let mut runtime = fixture.build_runtime();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("create").push(MutationIntent::Create(CreateIntent::Entity(
             crate::transactions::data::EntitySpec {
@@ -122,10 +122,10 @@ fn aspect_evaluation_trace_retains_unchanged_bindings_for_auditability() {
             },
         ))),
     );
-    let created = txn.commit().unwrap();
+    let created = txn.commit(&mut runtime).unwrap();
     let entity = changed_entities(&created)[0];
 
-    let mut update_txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut update_txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     update_txn.push_batch(
         WorkerIntentBatch::new("update-name-only").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -145,7 +145,7 @@ fn aspect_evaluation_trace_retains_unchanged_bindings_for_auditability() {
             }),
         )),
     );
-    let result = update_txn.commit().unwrap();
+    let result = update_txn.commit(&mut runtime).unwrap();
     let trace = &result.aspect_evaluation_traces()[0];
     let status_key = AspectKey::new("status").unwrap();
     let status_row = trace

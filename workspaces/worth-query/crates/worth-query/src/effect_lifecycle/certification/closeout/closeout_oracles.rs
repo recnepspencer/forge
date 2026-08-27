@@ -60,10 +60,12 @@ fn scalar_mutation_oracle_digest() -> String {
     let branch = "closeout-oracle-branch";
     let mut runtime = relational_runtime_with_intent_strategy();
     let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(BranchId(branch.to_string()), &BranchId("main".to_string()))
-        .expect("closeout oracle branch should be created");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId(branch.to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("closeout oracle branch should be created");
     let raw = raw_mutation_effect_with_binding(
         runtime_workflow_binding_for_branch(branch_snapshot_identity(&runtime, branch), branch),
         entity_id,
@@ -97,10 +99,12 @@ fn batch_mutation_oracle_digest() -> String {
     let mut runtime = relational_runtime_with_intent_strategy();
     let left = create_entity(&mut runtime, "left", BranchId("main".to_string()));
     let right = create_entity(&mut runtime, "right", BranchId("main".to_string()));
-    runtime
-        .history_authority()
-        .create_branch(BranchId(branch.to_string()), &BranchId("main".to_string()))
-        .expect("closeout oracle batch branch should be created");
+    crate::runtime::fork_branch_from_exact_source(
+        &mut runtime,
+        BranchId(branch.to_string()),
+        &BranchId("main".to_string()),
+    )
+    .expect("closeout oracle batch branch should be created");
     let binding =
         runtime_workflow_binding_for_branch(branch_snapshot_identity(&runtime, branch), branch);
     let executed = effect_batch()

@@ -13,8 +13,7 @@ fn same_runtime_foreign_bridge_adapter_denies_before_lower_authority_admission()
         .expect("exact operation should start");
     let context = causal_fixture::source_profile_substitution_context();
     let request = WorthQueryManagedTruthReadRequest::new(
-        context.version_id,
-        context.branch.clone(),
+        context.descriptor.clone(),
         worth_runtime_bridge::facade::SnapshotReadPacket::new(vec![]),
     );
 
@@ -33,8 +32,7 @@ fn same_runtime_foreign_bridge_adapter_denies_before_lower_authority_admission()
 
     let attempt = rejection.into_resource_attempt();
     let request = WorthQueryManagedTruthReadRequest::new(
-        context.version_id,
-        context.branch,
+        context.descriptor,
         worth_runtime_bridge::facade::SnapshotReadPacket::new(vec![]),
     );
     let admitted = runtime

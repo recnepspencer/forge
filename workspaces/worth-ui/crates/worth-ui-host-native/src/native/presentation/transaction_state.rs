@@ -310,7 +310,7 @@ pub(crate) fn settle_port_result(
             release_reserved(resources, owners);
             Ok(observation)
         }
-        Err(UiNativePresentationPortFailure::SurfaceUnavailable) => {
+        Err(UiNativePresentationPortFailure::Surface(surface_failure)) => {
             let settled = physical_signal.reconcile(owners.physical_token.observe(
                 crate::native::physical_work_signal::UiNativePhysicalSignalStatus::RejectedBeforeEffects,
             ));
@@ -319,9 +319,31 @@ pub(crate) fn settle_port_result(
                 crate::native::physical_work_signal::UiNativePhysicalSignalSettlement::Rejected
             ));
             release_reserved(resources, owners);
-            Err(UiNativePresentationFailure::BeforeEffects(
-                UiHostSurfacePresentationDenial::AdapterDeclined,
-            ))
+            match crate::native::lifecycle::UiNativeLifecycleOrchestrator::classify_surface_failure(
+                surface_failure,
+            ) {
+                super::UiNativeSurfaceFailureDisposition::ReconstructionRequired(recovery) => {
+                    Err(UiNativePresentationFailure::RecoveryRequired {
+                        denial: UiHostSurfacePresentationDenial::ReconstructionRequired,
+                        cause: recovery.cause(),
+                    })
+                }
+                super::UiNativeSurfaceFailureDisposition::RetryAfterTimeout => {
+                    Err(UiNativePresentationFailure::BeforeEffects(
+                        UiHostSurfacePresentationDenial::ExternalTimeout,
+                    ))
+                }
+                super::UiNativeSurfaceFailureDisposition::WaitForVisibility => {
+                    Err(UiNativePresentationFailure::BeforeEffects(
+                        UiHostSurfacePresentationDenial::SurfaceOccluded,
+                    ))
+                }
+                super::UiNativeSurfaceFailureDisposition::ValidationRejected => {
+                    Err(UiNativePresentationFailure::BeforeEffects(
+                        UiHostSurfacePresentationDenial::ExternalValidationFailed,
+                    ))
+                }
+            }
         }
         Err(UiNativePresentationPortFailure::ReadbackUnsettled(external)) => {
             let settled = physical_signal.reconcile(owners.physical_token.observe(

@@ -1,6 +1,5 @@
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::history::data::BranchId;
 use crate::identity::data::VersionId;
@@ -103,16 +102,11 @@ impl SnapshotHandles {
         Some(binding)
     }
 
-    pub(crate) fn published_version(&self, snapshot_id: SnapshotId) -> Option<VersionId> {
-        self.published
-            .get(&snapshot_id)
-            .map(|binding| binding.version_id)
-    }
-
     pub(crate) fn published_versions(&self) -> impl Iterator<Item = VersionId> + '_ {
         self.published.values().map(|binding| binding.version_id)
     }
 
+    #[cfg(test)]
     pub(crate) fn retains_published_version(&self, version_id: VersionId) -> bool {
         self.published
             .values()
@@ -147,145 +141,25 @@ pub(crate) struct SnapshotHandleBinding {
     pub(crate) branch_id: BranchId,
     pub(crate) version_id: VersionId,
     pub(crate) read_policy: SnapshotReadPolicy,
+    pub(crate) basis: crate::visibility::snapshot_states::VisibilitySnapshotBasis,
 }
 
 impl SnapshotHandleBinding {
     pub(crate) fn new(
-        branch_id: BranchId,
-        version_id: VersionId,
+        basis: crate::visibility::snapshot_states::VisibilitySnapshotBasis,
         read_policy: SnapshotReadPolicy,
     ) -> Self {
         Self {
-            branch_id,
-            version_id,
+            branch_id: basis.branch_id().clone(),
+            version_id: basis.version_id(),
             read_policy,
+            basis,
         }
     }
 }
 
 impl Clone for SnapshotHandleBinding {
     fn clone(&self) -> Self {
-        Self::new(self.branch_id.clone(), self.version_id, self.read_policy)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct ExecutionBasisBinding {
-    pub(crate) branch_id: BranchId,
-    pub(crate) version_id: VersionId,
-    pub(crate) read_policy: SnapshotReadPolicy,
-    lease_ordinal: u64,
-}
-
-#[derive(Debug)]
-pub(crate) struct ExecutionBasisRegistry {
-    state: Mutex<ExecutionBasisRegistryState>,
-    next_lease_ordinal: AtomicU64,
-}
-
-#[derive(Debug, Default)]
-struct ExecutionBasisRegistryState {
-    bindings: BTreeMap<SnapshotId, ExecutionBasisBinding>,
-    version_ref_counts: BTreeMap<VersionId, usize>,
-}
-
-impl ExecutionBasisRegistry {
-    pub(crate) fn new() -> Arc<Self> {
-        Arc::new(Self {
-            state: Mutex::new(ExecutionBasisRegistryState::default()),
-            next_lease_ordinal: AtomicU64::new(1),
-        })
-    }
-
-    pub(crate) fn admit(
-        &self,
-        snapshot_id: SnapshotId,
-        branch_id: BranchId,
-        version_id: VersionId,
-        read_policy: SnapshotReadPolicy,
-    ) -> u64 {
-        let lease_ordinal = self.next_lease_ordinal.fetch_add(1, Ordering::Relaxed);
-        let mut state = self.lock_state();
-        state.bindings.insert(
-            snapshot_id,
-            ExecutionBasisBinding {
-                branch_id,
-                version_id,
-                read_policy,
-                lease_ordinal,
-            },
-        );
-        *state.version_ref_counts.entry(version_id).or_default() += 1;
-        lease_ordinal
-    }
-
-    pub(crate) fn binding(&self, snapshot_id: SnapshotId) -> Option<ExecutionBasisBinding> {
-        self.lock_state().bindings.get(&snapshot_id).cloned()
-    }
-
-    pub(crate) fn retains(
-        &self,
-        snapshot_id: SnapshotId,
-        branch_id: &BranchId,
-        version_id: VersionId,
-        read_policy: SnapshotReadPolicy,
-        lease_ordinal: u64,
-    ) -> bool {
-        self.binding(snapshot_id).is_some_and(|binding| {
-            binding.version_id == version_id
-                && &binding.branch_id == branch_id
-                && binding.read_policy == read_policy
-                && binding.lease_ordinal == lease_ordinal
-        })
-    }
-
-    pub(crate) fn retains_identity(&self, snapshot_id: SnapshotId, lease_ordinal: u64) -> bool {
-        self.binding(snapshot_id)
-            .is_some_and(|binding| binding.lease_ordinal == lease_ordinal)
-    }
-
-    pub(crate) fn release(&self, snapshot_id: SnapshotId, lease_ordinal: u64) -> bool {
-        let mut state = self.lock_state();
-        if state
-            .bindings
-            .get(&snapshot_id)
-            .is_none_or(|binding| binding.lease_ordinal != lease_ordinal)
-        {
-            return false;
-        }
-        let binding = state
-            .bindings
-            .remove(&snapshot_id)
-            .expect("checked execution basis binding must remain present");
-        let remove_version = state
-            .version_ref_counts
-            .get_mut(&binding.version_id)
-            .is_some_and(|count| {
-                *count -= 1;
-                *count == 0
-            });
-        if remove_version {
-            state.version_ref_counts.remove(&binding.version_id);
-        }
-        true
-    }
-
-    pub(crate) fn oldest_version(&self) -> Option<VersionId> {
-        self.lock_state()
-            .version_ref_counts
-            .first_key_value()
-            .map(|(version_id, _count)| *version_id)
-    }
-
-    pub(crate) fn retains_version(&self, version_id: VersionId) -> bool {
-        self.lock_state()
-            .version_ref_counts
-            .contains_key(&version_id)
-    }
-
-    fn lock_state(&self) -> MutexGuard<'_, ExecutionBasisRegistryState> {
-        self.state
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+        Self::new(self.basis.clone(), self.read_policy)
     }
 }

@@ -3,7 +3,7 @@
 use worth_foundational::facade::{BoundaryProtocolIdentity, BoundaryProtocolVersion};
 use worth_query_declaration::facade::application_schema::ApplicationExternalEffectProtocol;
 use worth_query_installation::facade::InstalledExternalEffectContract;
-use worth_relational::facade::transactions::{RecordRef, TransactionOptions, WorkerIntentBatch};
+use worth_relational::facade::transactions::{RecordRef, WorkerIntentBatch};
 
 use super::{
     WorthQueryCommittedDispatchOutboxBindingDenial, WorthQueryCommittedDispatchOutboxResolution,
@@ -77,11 +77,23 @@ fn commit_only_other_outbox() -> (
     )
     .expect("committed outbox create binds");
     let committed = provider.graph.with_runtime_mut(|runtime| {
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction = {
+            let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
+            runtime
+                .begin_branch_transaction(
+                    &transaction_validation_input,
+                    worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                )
+                .expect("owner-admitted transaction context")
+        };
         transaction.push_batch(
             WorkerIntentBatch::new("outbox-resolution-owner-proof").push(committed_intent),
         );
-        transaction.commit().expect("the other outbox commits")
+        transaction
+            .commit(runtime)
+            .expect("the other outbox commits")
     });
     (requested, committed_pending, committed)
 }

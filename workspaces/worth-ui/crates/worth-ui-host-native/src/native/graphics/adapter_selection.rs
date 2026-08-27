@@ -46,3 +46,85 @@ fn selection_key(candidate: &AdapterCandidate) -> (u8, u32, u32, &str, &str) {
         &candidate.driver_info,
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{select_eligible_adapter, AdapterCandidate};
+
+    #[test]
+    fn selection_returns_the_exact_qualified_candidate_and_rejects_substitutes() {
+        let mut qualified = wgpu::Limits::downlevel_defaults();
+        qualified.max_texture_dimension_2d = 16_384;
+        let mut too_small = qualified.clone();
+        too_small.max_texture_dimension_2d = 8_192;
+        let candidates = vec![
+            (
+                candidate(true, wgpu::DeviceType::Cpu, qualified.clone(), 0),
+                0,
+            ),
+            (
+                candidate(true, wgpu::DeviceType::DiscreteGpu, too_small, 1),
+                1,
+            ),
+            (
+                candidate(false, wgpu::DeviceType::DiscreteGpu, qualified.clone(), 2),
+                2,
+            ),
+            (
+                candidate(true, wgpu::DeviceType::IntegratedGpu, qualified.clone(), 3),
+                3,
+            ),
+            (
+                candidate(true, wgpu::DeviceType::DiscreteGpu, qualified, 4),
+                4,
+            ),
+        ];
+        let (_, adapter) = select_eligible_adapter(candidates).unwrap();
+        assert_eq!(adapter, 4);
+    }
+
+    #[test]
+    fn tie_break_uses_the_complete_frozen_observation_key() {
+        let mut limits = wgpu::Limits::downlevel_defaults();
+        limits.max_texture_dimension_2d = 16_384;
+        let candidates = vec![
+            (ranked_candidate(&limits, (2, 1, "a", "a")), "vendor"),
+            (ranked_candidate(&limits, (1, 5, "a", "a")), "device"),
+            (ranked_candidate(&limits, (1, 4, "z", "a")), "name"),
+            (ranked_candidate(&limits, (1, 4, "a", "z")), "driver"),
+            (ranked_candidate(&limits, (1, 4, "a", "a")), "exact"),
+        ];
+        let (_, selected) = select_eligible_adapter(candidates).unwrap();
+        assert_eq!(selected, "exact");
+    }
+
+    fn candidate(
+        surface_supported: bool,
+        device_type: wgpu::DeviceType,
+        limits: wgpu::Limits,
+        device: u32,
+    ) -> AdapterCandidate {
+        AdapterCandidate {
+            surface_supported,
+            device_type,
+            limits,
+            vendor: 1,
+            device,
+            name: format!("candidate-{device}"),
+            driver_info: String::new(),
+        }
+    }
+
+    fn ranked_candidate(limits: &wgpu::Limits, key: (u32, u32, &str, &str)) -> AdapterCandidate {
+        let (vendor, device, name, driver_info) = key;
+        AdapterCandidate {
+            surface_supported: true,
+            device_type: wgpu::DeviceType::DiscreteGpu,
+            limits: limits.clone(),
+            vendor,
+            device,
+            name: name.to_owned(),
+            driver_info: driver_info.to_owned(),
+        }
+    }
+}

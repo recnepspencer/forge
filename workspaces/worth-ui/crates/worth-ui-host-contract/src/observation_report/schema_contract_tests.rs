@@ -65,7 +65,7 @@ fn batch_for_epoch(
         loss: UiHostObservationLoss::Complete,
         reports: vec![UiHostObservationReport::new(
             sequence,
-            UiHostObservationTimeBasis::HostMonotonicTick(1),
+            UiHostObservationTimeBasis::HostMonotonicMillis(1),
             UiHostObservationPayload::Focus { focused: true },
         )],
     })

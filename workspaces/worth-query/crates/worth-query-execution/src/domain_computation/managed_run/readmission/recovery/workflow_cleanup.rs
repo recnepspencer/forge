@@ -1,4 +1,4 @@
-use worth_relational::facade::runtime::RelationalExecutionBasisReleaseReceipt;
+use crate::domain_computation::managed_run::WorthQueryManagedRelationalObservationReleaseReceipt;
 use worth_runtime_bridge::facade::{
     BridgeExecutionBasisFinalizationReceipt, BridgeExecutionBasisReadmissionCleanupOutcome,
     BridgeExecutionBasisReadmissionRecoveryRequired,
@@ -64,7 +64,7 @@ struct WorthQueryWorkflowReadmissionPartialCleanupReceipt {
     checkpoint_release: WorthQueryProviderCheckpointReleaseEvidence,
     restored_execution_release: Option<WorthQueryProviderExecutionReleaseEvidence>,
     bridge: Option<BridgeExecutionBasisFinalizationReceipt>,
-    relational: RelationalExecutionBasisReleaseReceipt,
+    relational: WorthQueryManagedRelationalObservationReleaseReceipt,
     artifact_evidence: WorthQueryWorkflowArtifactRegistryEvidence,
     generation_rollback: Option<WorthQueryArtifactGenerationRollbackEvidence>,
     run_counters: WorthQueryManagedRunCounters,

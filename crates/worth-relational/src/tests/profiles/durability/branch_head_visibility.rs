@@ -18,7 +18,7 @@ fn branch_head_visibility_updates_incrementally_under_branch_churn() {
     let entity = changed_entities(&base)[0];
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("analysis".to_string()),
             &BranchId("main".to_string()),
         )
@@ -55,7 +55,7 @@ fn branch_head_protection_can_be_lazy_without_populating_visibility_cache() {
     let entity = changed_entities(&base)[0];
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("analysis".to_string()),
             &BranchId("main".to_string()),
         )
@@ -70,6 +70,6 @@ fn branch_head_protection_can_be_lazy_without_populating_visibility_cache() {
 
     let _ = runtime.read_truth().read_version(base.version_id);
     let warmed_stats = runtime.storage_access().storage_stats();
-    assert_eq!(warmed_stats.cached_visibility_version_count, 1);
+    assert_eq!(warmed_stats.cached_visibility_version_count, 0);
     assert_eq!(warmed_stats.protected_visibility_version_count, 2);
 }

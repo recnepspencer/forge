@@ -4,11 +4,11 @@ use crate::facade::runtime::RelationalRuntime;
 use crate::facade::snapshots::SnapshotHandle;
 use crate::facade::transactions::{
     DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent, MutationIntent,
-    RelationMutationIntent, ReplaceEntityIntent, TransactionOptions, WorkerIntentBatch,
+    RelationMutationIntent, ReplaceEntityIntent, WorkerIntentBatch,
 };
 use crate::tests::harness::scenario::operation::ScenarioOperation;
 use crate::tests::harness::scenario::seed::DeterministicGenerator;
-use crate::tests::support::{create_relation_in_partition, update_entity_on_branch, KindId};
+use crate::tests::support::{create_relation_in_partition, try_update_entity_on_branch, KindId};
 
 use super::{scenario_branch_main, ActiveRelation};
 
@@ -44,7 +44,7 @@ pub(super) fn apply_operation(
             let branch = branches[(*branch_slot).min(branches.len() - 1)].clone();
             let name = format!("seed-{seed}-update-{step}-{name_counter}");
             *name_counter += 1;
-            let _ = update_entity_on_branch(runtime, entities[index], &name, branch);
+            let _ = try_update_entity_on_branch(runtime, entities[index], &name, branch);
         }
         ScenarioOperation::ReplaceEntity {
             entity_slot,
@@ -132,7 +132,7 @@ pub(super) fn apply_operation(
 }
 
 fn replace_entity_through_authoritative_patch(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     entities: &mut Vec<EntityId>,
     relations: &mut Vec<ActiveRelation>,
     entity_slot: usize,
@@ -150,10 +150,8 @@ fn replace_entity_through_authoritative_patch(
     let branch = branches[branch_slot.min(branches.len() - 1)].clone();
     let name = format!("seed-{seed}-replace-{step}-{name_counter}");
     *name_counter += 1;
-    let mut txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(branch),
-        ..TransactionOptions::default()
-    });
+    let mut txn =
+        crate::tests::support::test_owner_begin_transaction_for_branch(&mut runtime, branch);
     txn.push_batch(
         WorkerIntentBatch::new("replace").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -173,7 +171,7 @@ fn replace_entity_through_authoritative_patch(
             }),
         )),
     );
-    if let Ok(outcome) = txn.commit() {
+    if let Ok(outcome) = txn.commit(&mut runtime) {
         if let Some(replacement) = crate::tests::support::changed_entities(&outcome).last() {
             entities[index] = *replacement;
         }
@@ -234,7 +232,7 @@ fn release_snapshot(
 }
 
 fn delete_relation(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     entities: &mut Vec<EntityId>,
     relations: &mut Vec<ActiveRelation>,
     relation_slot: usize,
@@ -244,7 +242,7 @@ fn delete_relation(
     }
     let index = relation_slot.min(relations.len() - 1);
     let relation = relations.swap_remove(index);
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("delete-relation").push(MutationIntent::Relation(
             RelationMutationIntent::Delete(DeleteRelationIntent {
@@ -252,12 +250,12 @@ fn delete_relation(
             }),
         )),
     );
-    txn.commit().unwrap();
+    txn.commit(&mut runtime).unwrap();
     refresh_live_world(runtime, entities, relations);
 }
 
 fn delete_entity(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     entities: &mut Vec<EntityId>,
     relations: &mut Vec<ActiveRelation>,
     branches: &[BranchId],
@@ -270,16 +268,14 @@ fn delete_entity(
     let index = entity_slot.min(entities.len() - 1);
     let deleted = entities[index];
     let branch = branches[branch_slot.min(branches.len() - 1)].clone();
-    let mut txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(branch),
-        ..TransactionOptions::default()
-    });
+    let mut txn =
+        crate::tests::support::test_owner_begin_transaction_for_branch(&mut runtime, branch);
     txn.push_batch(
         WorkerIntentBatch::new("delete-entity").push(MutationIntent::Entity(
             EntityMutationIntent::Delete(DeleteEntityIntent { entity_id: deleted }),
         )),
     );
-    if txn.commit().is_ok() {
+    if txn.commit(&mut runtime).is_ok() {
         entities.swap_remove(index);
         relations.retain(|relation| relation.source != deleted && relation.target != deleted);
         refresh_live_world(runtime, entities, relations);
@@ -305,7 +301,7 @@ fn create_branch(
     let branch = BranchId(branch_name);
     if runtime
         .history_authority()
-        .create_branch(branch.clone(), &from_branch)
+        .fork_branch_from(branch.clone(), &from_branch)
         .is_ok()
     {
         branches.push(branch);
@@ -324,12 +320,12 @@ fn merge_branch_into_main(
     }
     let branch = branches[branch_slot.min(branches.len() - 1)].clone();
     if branch.0 != "main" {
-        let txn = runtime.begin_transaction(TransactionOptions {
-            target_branch: Some(scenario_branch_main()),
-            merge_parent_branches: vec![branch],
-            ..TransactionOptions::default()
-        });
-        if txn.commit().is_ok() {
+        let txn = crate::tests::support::test_owner_begin_merge_transaction(
+            runtime,
+            scenario_branch_main(),
+            vec![branch],
+        );
+        if txn.commit(runtime).is_ok() {
             refresh_live_world(runtime, entities, relations);
         }
     }

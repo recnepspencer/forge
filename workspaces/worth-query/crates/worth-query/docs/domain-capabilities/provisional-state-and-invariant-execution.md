@@ -86,9 +86,18 @@ identity.
 For an installed application operation, the proposal inherits the same typed
 branch and branch-qualified basis that entered obligation selection and the
 managed session. A snapshot or version from another branch is foreign even if
-its numeric version is equal. Successful invariant progression seals a real
-Relational validated candidate; the application-operation provider consumes
-that candidate inside compare-and-commit before publication can exist.
+its numeric version is equal. Successful invariant progression seals the
+evidence needed for a real Relational validated proposal. The
+application-operation provider consumes that proposal to prepare an opaque
+Relational commit candidate before compare-and-publish.
+
+That prepared candidate is runtime-affine, branch-bound, and single-use. Its
+fallible validation and materialization are complete, but preparation is still
+pre-effect: the live branch reference has not moved. The candidate has no
+publication method and exposes no mutable root or reference cell. Only the
+owning Relational publication port can consume it. Explicit discard, stale
+comparison, denial, or a losing publication attempt releases its retained
+reservations; caller code cannot clone or retry the candidate.
 
 `admit_invariant_progression` requires one exact receipt for every installed
 invariant slot. Blocking requirements need passed receipts. Advisory
@@ -107,7 +116,9 @@ lower effects from fresh decision authority
   -> load exact state for each installed invariant
   -> execute each registered validator
   -> admit the complete exact receipt set
-  -> explicitly discard, or retain progression for a later supported boundary
+  -> explicitly discard, or let the installed operation prepare one opaque
+     branch-bound candidate
+  -> owner compare-and-publish consumes that candidate exactly once
 ```
 
 Every provisional stage has a consuming discard. Provider failures and panics
@@ -152,6 +163,10 @@ A real operation with multiple installed invariants executes every slot and
 passes the complete receipt collection. One successful validator is
 insufficient when more requirements are installed.
 
+The shown `discard()` remains pre-commit cleanup. A higher application
+operation that continues instead hands the validated proposal to the
+Relational owner. It never receives a candidate API that can self-publish.
+
 ## How It Relates To Other Features
 
 - [Provider Sessions And Decision Read-Sets](./provider-sessions-and-decision-read-sets.md)
@@ -187,6 +202,9 @@ state or authoritative graph.
 - Treating staged provider state as committed graph truth.
 - Reading the proposal through the ordinary authoritative read lane.
 - Publishing candidate or decision evidence as approval.
+- Inspecting, cloning, retaining after consumption, or adding a publication
+  method to an opaque prepared Relational candidate.
+- Treating candidate preparation as performed branch movement.
 - Reusing a fresh read-set for another session or proposal generation.
 - Treating invariant selection or provider support as execution.
 - Running validators without an admitted state-load plan.
@@ -199,7 +217,8 @@ state or authoritative graph.
 - Proposed state is non-authoritative.
 - This low-level provisional-state feature does not expose commit. The higher
   installed application-operation progression consumes its sealed validated
-  candidate through provider compare-and-commit.
+  proposal, prepares the opaque candidate, and consumes it through owner
+  compare-and-publish.
 - Multi-owner consequences require the higher installed-operation boundary to
   declare correction semantics and co-commit any external dispatch intent.
 - Invariant progression proves only the exact proposal and attempt generation

@@ -4,8 +4,7 @@ use crate::history::data::{BranchId, CommitId};
 /// Runtime-bound permission to append one exact canonical commit envelope.
 ///
 /// The authority is intentionally non-cloneable. Its only constructors consume
-/// sealed admissions minted by the typed commit publication lane or the typed
-/// lineage-promotion lane.
+/// sealed admissions minted by the typed commit publication lane.
 pub(crate) struct DurableAppendAuthority {
     runtime_instance_id: u64,
     commit_id: CommitId,
@@ -16,16 +15,6 @@ impl DurableAppendAuthority {
     pub(crate) fn from_commit(
         admission: crate::authority::commit::CommitDurableAppendAdmission,
     ) -> Self {
-        let (runtime_instance_id, commit_id, branch_id) = admission.into_parts();
-        Self {
-            runtime_instance_id,
-            commit_id,
-            branch_id,
-        }
-    }
-
-    #[cfg(test)]
-    pub(crate) fn from_lineage(admission: crate::lineage::LineageDurableAppendAdmission) -> Self {
         let (runtime_instance_id, commit_id, branch_id) = admission.into_parts();
         Self {
             runtime_instance_id,
@@ -71,6 +60,10 @@ mod tests {
         let mut source = runtime_with_test_schema();
         let committed = create_entity_outcome(&mut source, "durable-authority-source");
         let envelope = committed.envelope().clone();
+        let positioned = crate::history::data::PositionedCanonicalCommit::for_test(
+            committed.patch_position(),
+            std::sync::Arc::new(envelope.clone()),
+        );
         let authority = DurableAppendAuthority {
             runtime_instance_id: source.runtime_instance_id(),
             commit_id: envelope.commit.commit_id,
@@ -81,7 +74,7 @@ mod tests {
 
         let error = foreign
             .durability_authority()
-            .append_commit(authority, &envelope)
+            .append_commit(authority, &positioned)
             .expect_err("runtime-affine durable append authority must reject a foreign runtime");
 
         assert_eq!(

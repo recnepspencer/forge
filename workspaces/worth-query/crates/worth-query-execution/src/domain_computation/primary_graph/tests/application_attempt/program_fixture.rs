@@ -1,5 +1,9 @@
 use worth_query_declaration::facade::application_schema::TypedMutationPreconditions;
 
+use super::super::fixture::{
+    MutationFreeEmitInput, MutationFreeEmitOperation, MutationFreeExternalEffect,
+    MutationFreeNotice,
+};
 use super::{AccountStatus, TouchAccountOperation};
 use crate::domain_computation::primary_graph::{
     WorthQueryApplicationEffectProgram, WorthQueryApplicationEntityIdentity,
@@ -14,6 +18,60 @@ type World = super::super::fixture::AuthorizationWorld;
 type Preconditions = TypedMutationPreconditions<Schema, TouchAccountOperation, Account>;
 pub(super) type Program =
     WorthQueryApplicationEffectProgram<Schema, TouchAccountOperation, Input, Account>;
+pub(super) type MutationFreeProgram = WorthQueryApplicationEffectProgram<
+    Schema,
+    MutationFreeEmitOperation,
+    MutationFreeEmitInput,
+    Account,
+>;
+
+pub(super) fn admitted_mutation_free_program(
+    world: &World,
+    principal: &WorthQueryAuthenticatedPrincipal<Schema, Principal, u64>,
+    account: &WorthQueryApplicationEntityIdentity<Schema, Account>,
+    request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
+) -> MutationFreeProgram {
+    let operation = world
+        .application
+        .installed_schema()
+        .installed_operation(MutationFreeEmitOperation::reference())
+        .unwrap();
+    assert!(operation
+        .contracts()
+        .invariant_execution()
+        .requirements()
+        .is_empty());
+    let admission = world
+        .application
+        .authorize_operation(
+            principal,
+            account,
+            &operation,
+            TypedMutationPreconditions::new(),
+            request,
+        )
+        .unwrap();
+    let (_, projection, _) = world
+        .invariant
+        .project_admitted_operation(&admission, |_, _| {})
+        .unwrap()
+        .into_parts();
+    let reads = world
+        .application
+        .begin_projected_application_read_attempt(admission, projection)
+        .unwrap();
+    let mut effects = reads
+        .complete_projected_dependencies()
+        .unwrap()
+        .begin_effect_program();
+    effects
+        .emit_external(
+            MutationFreeExternalEffect::reference(),
+            MutationFreeNotice("mutation-free".to_owned()),
+        )
+        .unwrap();
+    effects.finish().unwrap()
+}
 
 pub(super) fn admitted_program(
     world: &World,

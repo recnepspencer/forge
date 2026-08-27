@@ -10,38 +10,16 @@ fn perf_replay_recovery_matrix() {
         "durable_replay_lineage_basis",
         || {
             let mut runtime = persisted_runtime_with_test_schema();
-            let first = create_entity_outcome(&mut runtime, "source");
+            create_entity_outcome(&mut runtime, "source");
             let second = create_entity_outcome(&mut runtime, "target");
-            let first_lineage = runtime
-                .lineage_access()
-                .for_record(changed_entities(&first)[0])
-                .expect("first lineage")
-                .lineage_id;
-            let second_lineage = runtime
-                .lineage_access()
-                .for_record(changed_entities(&second)[0])
-                .expect("second lineage")
-                .lineage_id;
-            let candidate = runtime.lineage_authority().record_correspondence_candidate(
-                BranchId("main".to_string()),
-                vec![first_lineage],
-                vec![second_lineage],
-                "perf-lineage-replay",
-            );
-            let promotion = runtime
-                .lineage_authority()
-                .promote_correspondence(candidate.candidate_id, second.commit.clone())
-                .expect("promote correspondence");
-            let promoted_commit_id = promotion
-                .promoted_commit_id()
-                .expect("metadata-only promotion commit");
+            let replay_commit_id = second.commit.commit_id;
 
             runtime.performance_access().reset_counters();
             let replay_started_at = Instant::now();
             let outcome = runtime
                 .replay_authority()
                 .replay_commit(RelationalReplayRequest {
-                    commit_id: promoted_commit_id,
+                    commit_id: replay_commit_id,
                     branch_id: BranchId("main".to_string()),
                     execution_mode: ReplayExecutionMode::SerialDeterministic,
                     verification_mode: ReplayVerificationMode::NormalRecoveryVerification,
@@ -95,33 +73,13 @@ fn perf_replay_recovery_matrix() {
     let checkpoint_recovery_samples =
         capture_perf_samples(suite, "checkpoint_recover_suffix_replay", || {
             let mut runtime = persisted_runtime_with_test_schema();
-            let first = create_entity_outcome(&mut runtime, "source");
-            let second = create_entity_outcome(&mut runtime, "target");
-            let first_lineage = runtime
-                .lineage_access()
-                .for_record(changed_entities(&first)[0])
-                .expect("first lineage")
-                .lineage_id;
-            let second_lineage = runtime
-                .lineage_access()
-                .for_record(changed_entities(&second)[0])
-                .expect("second lineage")
-                .lineage_id;
+            create_entity_outcome(&mut runtime, "source");
             runtime
                 .durability_authority()
                 .checkpoint()
                 .expect("checkpoint");
-            let candidate = runtime.lineage_authority().record_correspondence_candidate(
-                BranchId("main".to_string()),
-                vec![first_lineage],
-                vec![second_lineage],
-                "perf-recovery-promotion",
-            );
-            let promoted = runtime
-                .lineage_authority()
-                .promote_correspondence(candidate.candidate_id, second.commit.clone())
-                .expect("promote correspondence");
-            let promoted_commit_id = promoted.promoted_commit_id().expect("promotion commit id");
+            let second = create_entity_outcome(&mut runtime, "target");
+            let tail_commit_id = second.commit.commit_id;
 
             let recovery_plan = runtime.durability().recovery_plan(
                 crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
@@ -139,7 +97,7 @@ fn perf_replay_recovery_matrix() {
             let replay = recovered
                 .replay_authority()
                 .replay_commit(RelationalReplayRequest {
-                    commit_id: promoted_commit_id,
+                    commit_id: tail_commit_id,
                     branch_id: BranchId("main".to_string()),
                     execution_mode: ReplayExecutionMode::SerialDeterministic,
                     verification_mode: ReplayVerificationMode::NormalRecoveryVerification,

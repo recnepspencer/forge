@@ -44,8 +44,8 @@ pub(super) struct StrategyReplayMismatchEvidence {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct StrategyBranchHeadEvidence {
-    pub(super) main: Option<CommitReference>,
-    pub(super) feature: Option<CommitReference>,
+    pub(super) main: Option<RelationalCommitReceipt>,
+    pub(super) feature: Option<RelationalCommitReceipt>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

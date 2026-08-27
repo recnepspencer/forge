@@ -103,6 +103,12 @@ minimum roadmap labels:
 These were added because the codebase standard is closer to runtime
 certification than to feature-only completion.
 
+The deterministic seeded, checkpoint-window, dependency-graph, and
+snapshot-stability proofs remain in the ordinary test lane. The full
+rewrite-storm and thousand-step matrices retain their original workloads in
+the daily/manual scheduled relational-certification lane and run explicitly
+with `--ignored --exact`.
+
 ## Explicit Deferrals
 
 Milestone 1 intentionally does not include:

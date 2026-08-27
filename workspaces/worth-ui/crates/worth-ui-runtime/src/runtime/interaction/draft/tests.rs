@@ -333,7 +333,7 @@ fn sequence(value: u64) -> UiHostObservationSequence {
 }
 
 fn monotonic_time(value: u64) -> UiHostObservationTimeBasis {
-    UiHostObservationTimeBasis::HostMonotonicTick(value)
+    UiHostObservationTimeBasis::HostMonotonicMillis(value)
 }
 
 fn append_text(

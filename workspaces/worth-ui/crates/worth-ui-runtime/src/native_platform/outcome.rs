@@ -4,6 +4,7 @@ pub enum UiNativePlatformStopReason {
     WindowCreation,
     GraphicsPreparation,
     ApplicationDriver,
+    PresentationDeadlineExpired,
     EventLoopRun,
     IncompleteCleanup,
 }
@@ -93,6 +94,12 @@ impl UiNativePlatformCloseReceipt {
         &self,
     ) -> Option<&worth_ui_host_native::UiNativeClientShutdownObservation> {
         self.report.client_shutdown()
+    }
+
+    pub fn visual_snapshot(
+        &self,
+    ) -> Option<&worth_ui_host_native::UiNativeClientVisualSnapshotObservation> {
+        self.report.client_shutdown()?.visual_snapshot()
     }
 
     pub const fn peak_census(&self) -> worth_ui_host_native::UiNativeResourceCensus {
@@ -189,6 +196,9 @@ impl UiNativePlatformStopReport {
             }
             worth_ui_host_native::UiNativeEventLoopRunDenial::ApplicationDriver => {
                 UiNativePlatformStopReason::ApplicationDriver
+            }
+            worth_ui_host_native::UiNativeEventLoopRunDenial::PresentationDeadlineExpired => {
+                UiNativePlatformStopReason::PresentationDeadlineExpired
             }
             worth_ui_host_native::UiNativeEventLoopRunDenial::EventLoopRun => {
                 UiNativePlatformStopReason::EventLoopRun

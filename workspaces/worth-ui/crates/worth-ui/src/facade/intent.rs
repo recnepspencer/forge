@@ -64,7 +64,7 @@ pub use worth_ui_runtime::facade::intent::{
     UiPreparedIntentPayload, UiResolvedConfirmationIntentRoute, UiResolvedProductIntentRoute,
     UiRuntimeServiceDefinitionDestination, UiSemanticInteractionFamily,
     UiTransitionDefinitionDestination, WorthUiCollectionChangeConsequence,
-    UI_INTENT_ADMISSION_CAPACITY, UI_INTENT_CONFIRMATION_TTL_TICKS,
+    UI_INTENT_ADMISSION_CAPACITY, UI_INTENT_CONFIRMATION_TTL_MILLIS,
     UI_INTENT_MAXIMUM_APPLICATION_ATTEMPTS, UI_INTENT_MAXIMUM_DESTINATION_ATTEMPTS,
     UI_INTENT_MAXIMUM_INTENT_ATTEMPTS, UI_INTENT_MAXIMUM_PROVIDER_ATTEMPTS,
     UI_INTENT_MAXIMUM_RETAINED_PAYLOAD_BYTES, UI_INTENT_PAYLOAD_FIELD_LIMIT,

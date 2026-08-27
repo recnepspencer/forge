@@ -52,6 +52,10 @@ impl UiNativeLifecycleWorld {
             node_receipt: UiMountedNodeReceiptIdentity::mint_unbound().expect("node receipt"),
             recipient: None,
         };
+        world
+            .protocol
+            .register_session(HOST_SESSION)
+            .expect("runtime opens the native host session before lifecycle work");
         world.protocol.install_initial_profile(1.0, [800, 600]);
         world.compile_state(state);
         assert_eq!(world.protocol.phase(), state);
@@ -75,7 +79,6 @@ impl UiNativeLifecycleWorld {
                 self.begin_profile_transition(1.5, [0, 0])
             }
             UiNativeLifecycleEvent::CompletePresentation => self.complete_presentation(),
-            UiNativeLifecycleEvent::Close => self.close(),
             input => self.window_input(input),
         };
         observe(transition)
@@ -89,13 +92,8 @@ impl UiNativeLifecycleWorld {
         self.protocol.report()
     }
 
-    pub(super) fn complete_unissued_successor(&mut self) -> UiNativeLifecycleObservation {
-        observe(self.protocol.complete_pending_presentation(
-            UiMountedFrameIdentity::mint_unbound().expect("mutant frame"),
-            self.binding,
-            UiHostPresentationEpoch::issued_by_host(self.generation + 1),
-            PENDING_COMPLETION,
-        ))
+    pub(super) fn request_close(&mut self) -> UiNativeLifecycleObservation {
+        observe(self.protocol.request_close())
     }
 
     fn compile_state(&mut self, state: UiNativeLifecycleState) {
@@ -272,21 +270,6 @@ impl UiNativeLifecycleWorld {
             11,
             (event == UiNativeLifecycleEvent::Button).then_some(PhysicalPosition::new(12.0, 24.0)),
         )
-    }
-
-    fn close(&mut self) -> UiNativeLifecycleTransition {
-        if !self.protocol.has_retained_observations()
-            && matches!(
-                self.protocol.phase(),
-                UiNativeLifecycleState::Presented
-                    | UiNativeLifecycleState::SuccessorInFlight
-                    | UiNativeLifecycleState::ProfileTransition
-            )
-        {
-            let retained = self.window_input(UiNativeLifecycleEvent::Pointer);
-            debug_assert_eq!(retained.effect(), UiNativeLifecycleEffect::Retained);
-        }
-        self.protocol.request_close()
     }
 
     fn install_current_recipient(&mut self) {

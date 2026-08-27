@@ -16,6 +16,7 @@ mod idempotency;
 mod invariant_execution;
 mod mutation_work;
 mod provisional_state;
+mod publication_recovery;
 mod resource_support;
 mod session_commit;
 mod session_lifecycle;
@@ -45,6 +46,7 @@ pub(in crate::domain_computation) use session_commit::WorthQueryCommittedDispatc
 pub(crate) use session_commit::WorthQueryRetainedPreImageSeal;
 pub(super) use session_commit::{
     WorthQueryCommittedDispatchOutboxBindingDenial, WorthQueryCommittedDispatchOutboxReceiptSeal,
+    WorthQueryRetainedApplicationCommitBasis,
 };
 
 pub(super) struct WorthQueryPrimaryGraphProvider {
@@ -55,6 +57,7 @@ pub(super) struct WorthQueryPrimaryGraphProvider {
     attempts: Mutex<application_attempt_state::WorthQueryPrimaryGraphApplicationAttemptStore>,
     application_attempt_work: application_attempt_work::WorthQueryApplicationAttemptWorkLedger,
     completed_commit_evidence: Mutex<session_commit::WorthQueryCompletedCommitEvidenceStore>,
+    receipt_basis_retention: Mutex<session_commit::WorthQueryReceiptBasisRetentionStore>,
     conditional_commit_journal:
         Mutex<conditional_commit_journal::WorthQueryConditionalCommitJournal>,
     conditional_maintenance_failure: Mutex<Option<String>>,
@@ -85,6 +88,7 @@ impl WorthQueryPrimaryGraphProvider {
             completed_commit_evidence: Mutex::new(
                 session_commit::WorthQueryCompletedCommitEvidenceStore::default(),
             ),
+            receipt_basis_retention: Mutex::new(Default::default()),
             conditional_commit_journal: Mutex::new(Default::default()),
             conditional_maintenance_failure: Mutex::new(None),
             fault_port,
@@ -118,7 +122,7 @@ impl WorthQueryPrimaryGraphProvider {
 
     pub(in crate::domain_computation::primary_graph) fn record_conditional_commit(
         &self,
-        commit: &worth_relational::facade::history::CommitReference,
+        commit: &worth_relational::facade::history::RelationalCommitReceipt,
         records: impl IntoIterator<Item = worth_relational::facade::transactions::RecordRef>,
     ) -> std::collections::BTreeSet<worth_relational::facade::identity::KindId> {
         let records = records.into_iter().collect::<Vec<_>>();
@@ -316,9 +320,16 @@ impl WorthQueryPrimaryGraphProvider {
         self.take_fault(fault_port::WorthQueryPrimaryGraphFault::FailedIndexPublication)
     }
 
+    #[cfg(feature = "test-primary-graph-faults")]
+    pub(super) fn fail_next_index_publication_for_test(&self) {
+        assert!(self
+            .fault_port
+            .schedule_for_test(fault_port::WorthQueryPrimaryGraphFault::FailedIndexPublication));
+    }
+
     pub(super) fn observe_completed_application(
         &self,
-        commit: &worth_relational::facade::history::CommitReference,
+        commit: &worth_relational::facade::history::RelationalCommitReceipt,
     ) -> Option<WorthQueryPrimaryGraphCommittedApplication> {
         self.completed_commit_evidence
             .lock()
@@ -334,6 +345,30 @@ impl WorthQueryPrimaryGraphProvider {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
             .observe_session(session)
+    }
+
+    pub(in crate::domain_computation::primary_graph) fn retained_application_commit_basis(
+        &self,
+        commit: &worth_relational::facade::history::RelationalCommitReceipt,
+    ) -> Option<WorthQueryRetainedApplicationCommitBasis> {
+        self.completed_commit_evidence
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .observe(commit)?;
+        self.receipt_basis_retention
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .acquire(commit.commit_id)
+    }
+
+    #[cfg(test)]
+    pub(in crate::domain_computation::primary_graph) fn retained_receipt_basis_count(
+        &self,
+    ) -> usize {
+        self.receipt_basis_retention
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .retained_count()
     }
 
     pub(super) fn take_skipped_invariant_owner_execution(&self) -> bool {

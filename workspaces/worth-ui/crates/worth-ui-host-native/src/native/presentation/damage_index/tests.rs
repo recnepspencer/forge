@@ -49,7 +49,6 @@ fn sparse_and_same_center_adversaries_use_exact_two_dimensional_pruning() {
         assert_eq!(query.high_water_records, 4_096);
     }
     assert_same_center_zero_result();
-    println!("WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-DAMAGE-INDEX-01\":\"full-retained-scan\"}}");
 }
 
 #[test]
@@ -111,10 +110,6 @@ fn maximum_overlap_stores_and_probes_each_command_once() {
     assert_eq!(query.stored_records, 2_048);
     assert_eq!(query.high_water_records, 2_048);
     assert!(query.hierarchy_height <= 16);
-    println!(
-        "WORTH_UI_LEDGER_COUNTERS={{\"P3-DAMAGE-INDEX-01\":{}}}",
-        query.stored_records
-    );
 }
 
 #[test]

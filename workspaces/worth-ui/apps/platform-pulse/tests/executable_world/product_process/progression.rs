@@ -7,11 +7,8 @@ use crate::adjudication::{
     ExecutableVisualTraceEvidence,
 };
 use crate::external_observation::PlatformPulseLifecycleStream;
-use crate::failure_teardown::{
-    report_without_owned_resources, teardown_installed_world, NativeBoundFailureWorldResources,
-    PulseExecutableWorldFailure, PulseExecutableWorldFailureReport, UnboundFailureWorldResources,
-};
-use crate::installation::{CanonicalPlatformPulse, IsolatedPulseInstallation};
+use crate::failure_teardown::{NativeBoundFailureWorldResources, UnboundFailureWorldResources};
+use crate::installation::IsolatedPulseInstallation;
 use crate::native_platform::{WindowsNativePlatform, WindowsProcessBoundNativeClientArea};
 use crate::source_delta::{
     AppliedPulseSourceDelta, CanonicalBlueRecoverySourceDelta, GreenPulseSourceDelta,
@@ -20,7 +17,7 @@ use crate::source_delta::{
 };
 use std::time::{Duration, Instant};
 
-use super::{CargoBuiltPlatformPulse, LivePlatformPulseProcess};
+use super::LivePlatformPulseProcess;
 
 mod final_recovery_evidence;
 
@@ -188,47 +185,6 @@ pub(crate) struct FinalRecovered {
 
 pub(crate) struct Closed {
     pub(super) evidence: ExecutableLifecycleCleanupEvidence,
-}
-
-impl PulseExecutableWorld<Installed> {
-    pub(crate) fn install(
-        canonical: CanonicalPlatformPulse,
-    ) -> Result<Self, PulseExecutableWorldFailureReport> {
-        let installation = IsolatedPulseInstallation::install(canonical).map_err(|failure| {
-            report_without_owned_resources(PulseExecutableWorldFailure::Installation(failure))
-        })?;
-        Ok(Self {
-            state: Installed { installation },
-        })
-    }
-
-    pub(crate) fn launch(
-        self,
-        binary: CargoBuiltPlatformPulse,
-    ) -> Result<PulseExecutableWorld<AwaitingFirstFrame>, PulseExecutableWorldFailureReport> {
-        let installation = self.state.installation;
-        let launch = match binary.launch(
-            installation.source_root(),
-            installation.source_root(),
-            installation.source_root(),
-        ) {
-            Ok(launch) => launch,
-            Err(failure) => {
-                return Err(teardown_installed_world(
-                    PulseExecutableWorldFailure::Launch(failure),
-                    installation,
-                ))
-            }
-        };
-        Ok(PulseExecutableWorld {
-            state: AwaitingFirstFrame {
-                installation,
-                process: launch.process,
-                lifecycle: launch.lifecycle,
-                launch_started: launch.launch_started,
-            },
-        })
-    }
 }
 
 impl PulseExecutableWorld<Published<InitialBlue>> {

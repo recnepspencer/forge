@@ -69,7 +69,7 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
     let relation = changed_relations(&relation_outcome)[0];
     let _retained = delete_entity(&mut runtime, source);
     let replace_outcome = {
-        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
         txn.push_batch(
             WorkerIntentBatch::new("replace-anchor").push(MutationIntent::Entity(
                 EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -87,7 +87,7 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
                 }),
             )),
         );
-        txn.commit().unwrap()
+        txn.commit(&mut runtime).unwrap()
     };
     runtime.durability_authority().checkpoint().unwrap();
 
@@ -185,16 +185,25 @@ fn hostile_commit_replay_equivalence_test() {
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut transition_txn =
-        runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
-            schema_transition_for_subscriber_impact(
-                SchemaVersionId(2),
-                SchemaSubscriberImpact::ConsumableSurfaceChanged,
-            ),
-            Some(SchemaReconciliationPolicy::PreserveInformation),
-        ));
+    let mut transition_txn = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+                .with_schema_transition(
+                    schema_transition_for_subscriber_impact(
+                        SchemaVersionId(2),
+                        SchemaSubscriberImpact::ConsumableSurfaceChanged,
+                    ),
+                    Some(SchemaReconciliationPolicy::PreserveInformation),
+                );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     transition_txn.push_batch(batch_create("after-boundary"));
-    let _transition_outcome = transition_txn.commit().unwrap();
+    let _transition_outcome = transition_txn.commit(&mut runtime).unwrap();
 
     let merge = merge_commit_from_branches(
         &mut runtime,
@@ -219,7 +228,6 @@ fn hostile_commit_replay_equivalence_test() {
     let original_envelope = runtime
         .replay()
         .canonical_commit_envelope(merge.commit.commit_id)
-        .cloned()
         .unwrap();
     let replay = runtime
         .replay_authority()
@@ -234,14 +242,10 @@ fn hostile_commit_replay_equivalence_test() {
         "hostile replay mismatch: {replay:#?}"
     );
 
-    let original_main_branch_head = runtime
-        .history()
-        .branch_head(&BranchId("main".to_string()))
-        .cloned();
+    let original_main_branch_head = runtime.history().branch_head(&BranchId("main".to_string()));
     let original_feature_branch_head = runtime
         .history()
-        .branch_head(&BranchId("feature".to_string()))
-        .cloned();
+        .branch_head(&BranchId("feature".to_string()));
 
     let recovery_plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
@@ -276,7 +280,6 @@ fn hostile_commit_replay_equivalence_test() {
     let recovered_envelope = recovered
         .replay()
         .canonical_commit_envelope(merge.commit.commit_id)
-        .cloned()
         .unwrap();
     let recovered_replay = recovered
         .replay_authority()
@@ -307,14 +310,12 @@ fn hostile_commit_replay_equivalence_test() {
         recovered
             .history()
             .branch_head(&BranchId("main".to_string()))
-            .cloned()
     );
     assert_eq!(
         original_feature_branch_head,
         recovered
             .history()
             .branch_head(&BranchId("feature".to_string()))
-            .cloned()
     );
     assert_eq!(original_inspection, recovered_inspection);
     let recovered_counters = recovered.performance_access().counters();

@@ -86,7 +86,10 @@ mod tests {
             .partitions
             .get_mut(&PartitionId::main())
             .expect("main partition");
-        let versions = &mut partition.entity_arena.aspect_versions[entity.slot_index()];
+        let versions = partition
+            .entity_arena
+            .aspect_versions_at_mut(entity.slot_index())
+            .expect("test entity aspect version slot is materialized");
         versions.clear();
         versions.insert(crate::symbols::data::Symbol(41), 7);
 

@@ -21,9 +21,11 @@ fn complete_projection_retains_current_paint_after_incremental_projection_commit
     };
     let mut state = UiApplicationPresentationState {
         rows: HashMap::from([(Box::<str>::from("component:test"), row)]),
-        token_values: BTreeMap::from([(token.clone(), color.clone())]),
+        token_values: Arc::new(BTreeMap::from([(token.clone(), color.clone())])),
         resolved_targets: BTreeMap::from([(token.clone(), token.clone())]),
         mutable_token_revisions: BTreeMap::from([(token.clone(), 1)]),
+        theme_revision: 0,
+        pending_theme_graph_nodes: Default::default(),
     };
 
     let incremental = state.project().expect("current row projects incrementally");
@@ -49,4 +51,63 @@ fn complete_projection_retains_current_paint_after_incremental_projection_commit
             .and_then(|formatting| formatting.token_value(&token)),
         Some(&color)
     );
+}
+
+#[test]
+fn theme_update_is_transactional_and_fans_out_to_alias_consumers() {
+    let root = crate::capability::ThemeTokenId::new("theme.test.root").expect("root token");
+    let alias = crate::capability::ThemeTokenId::new("theme.test.alias").expect("alias token");
+    let initial = crate::capability::ThemeTokenValue::color(
+        crate::capability::ThemeColorValue::hex("#2f81f7").expect("initial color"),
+    );
+    let successor = crate::capability::ThemeTokenValue::color(
+        crate::capability::ThemeColorValue::hex("#3fb950").expect("successor color"),
+    );
+    let node = crate::graph::UiGraphNodeIdentity::new(91_002);
+    let row = UiApplicationSemanticTextRow {
+        graph_node: Some(node),
+        value: Some(Arc::from("current text")),
+        contract: crate::capability::ComponentSemanticTextContract::body_default(alias.clone(), 1),
+        semantic_revision: 1,
+        presentation_revision: 2,
+        projected_presentation_revision: Some(2),
+    };
+    let mut state = UiApplicationPresentationState {
+        rows: HashMap::from([(Box::<str>::from("component:test"), row)]),
+        token_values: Arc::new(BTreeMap::from([
+            (root.clone(), initial.clone()),
+            (alias.clone(), initial),
+        ])),
+        resolved_targets: BTreeMap::from([
+            (root.clone(), root.clone()),
+            (alias.clone(), root.clone()),
+        ]),
+        mutable_token_revisions: BTreeMap::from([(root.clone(), 0)]),
+        theme_revision: 0,
+        pending_theme_graph_nodes: Default::default(),
+    };
+
+    let change =
+        crate::facade::entry::UiNativeThemeTokenValueChange::new(root.clone(), successor.clone())
+            .expect("valid successor");
+    let update = state
+        .prepare_theme_values(&[change.clone()])
+        .expect("current revision prepares");
+    assert_eq!(update.changed_tokens(), &[alias.clone(), root.clone()]);
+    state
+        .commit_theme_values(update, [node])
+        .expect("prepared transaction commits");
+
+    assert_eq!(state.token_values.get(&root), Some(&successor));
+    assert_eq!(state.token_values.get(&alias), Some(&successor));
+    assert_eq!(state.mutable_token_revisions.get(&root), Some(&1));
+    assert_eq!(state.theme_revision, 1);
+    assert_eq!(state.rows["component:test"].presentation_revision, 3);
+    assert!(state.pending_theme_graph_nodes.contains(&node));
+
+    let before_values = Arc::clone(&state.token_values);
+    let before_revisions = state.mutable_token_revisions.clone();
+    assert!(state.prepare_theme_values(&[change]).is_err());
+    assert!(Arc::ptr_eq(&before_values, &state.token_values));
+    assert_eq!(state.mutable_token_revisions, before_revisions);
 }

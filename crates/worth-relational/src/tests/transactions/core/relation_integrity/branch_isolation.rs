@@ -10,19 +10,15 @@ fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_lea
     let accepted = create_relation_outcome(&mut runtime, source, target_a, "accepted");
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
         .unwrap();
-    let main_head_before = runtime
-        .history()
-        .branch_head(&BranchId("main".to_string()))
-        .cloned();
+    let main_head_before = runtime.history().branch_head(&BranchId("main".to_string()));
     let feature_head_before = runtime
         .history()
-        .branch_head(&BranchId("feature".to_string()))
-        .cloned();
+        .branch_head(&BranchId("feature".to_string()));
     let main_digest_before = relation_aspect_history_digest_on_branch(
         &runtime,
         &BranchId("main".to_string()),
@@ -42,10 +38,10 @@ fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_lea
         .unwrap()
         .position;
 
-    let mut txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(BranchId("feature".to_string())),
-        ..TransactionOptions::default()
-    });
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
+        &mut runtime,
+        BranchId("feature".to_string()),
+    );
     txn.push_batch(WorkerIntentBatch::new("illegal-feature-relation").push(
         MutationIntent::Create(CreateIntent::Relation(
             crate::transactions::data::RelationSpec {
@@ -59,7 +55,7 @@ fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_lea
         )),
     ));
 
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(error.code(), DiagnosticCode::RelationCardinalityViolation);
@@ -69,13 +65,13 @@ fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_lea
 
     assert_eq!(
         runtime.history().branch_head(&BranchId("main".to_string())),
-        main_head_before.as_ref()
+        main_head_before
     );
     assert_eq!(
         runtime
             .history()
             .branch_head(&BranchId("feature".to_string())),
-        feature_head_before.as_ref()
+        feature_head_before
     );
     assert_eq!(
         relation_aspect_history_digest_on_branch(

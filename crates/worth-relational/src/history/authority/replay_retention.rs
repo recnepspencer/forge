@@ -3,10 +3,11 @@ use crate::diagnostics::data::{
     RelationalDiagnosticsEntry,
 };
 use crate::identity::data::VersionId;
-use crate::storage::overlay::SnapshotState;
 use crate::visibility::cache_state::{
-    bump_replay_ref, cached_state_for_version, ensure_state, evict_cache_if_needed,
+    bump_replay_ref, cached_historical_state_for_version, ensure_historical_state,
+    evict_cache_if_needed, historical_basis_for_retained_version,
 };
+use crate::visibility::snapshot_states::SnapshotState;
 
 use super::HistoryAuthority;
 
@@ -36,7 +37,10 @@ impl<'runtime> HistoryAuthority<'runtime> {
         {
             return false;
         }
-        let state = ensure_state(self.runtime, version_id, false);
+        let Ok(basis) = historical_basis_for_retained_version(self.runtime, version_id) else {
+            return false;
+        };
+        let state = ensure_historical_state(self.runtime, basis, false);
         self.runtime.visibility_pins().pin_replay_state(&state);
         if self
             .runtime
@@ -88,7 +92,7 @@ impl<'runtime> HistoryAuthority<'runtime> {
             }
             return true;
         }
-        let Some(state) = cached_state_for_version(self.runtime, version_id) else {
+        let Some(state) = cached_historical_state_for_version(self.runtime, version_id) else {
             return false;
         };
         self.runtime.visibility_pins().unpin_replay_state(&state);

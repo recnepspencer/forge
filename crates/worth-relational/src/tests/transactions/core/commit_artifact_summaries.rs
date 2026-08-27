@@ -180,7 +180,7 @@ fn commit_returns_envelope_with_patch_diagnostics_invariants_and_complexity() {
         result.outcome().commit.commit_id,
         result.envelope().commit.commit_id
     );
-    assert_eq!(result.patch_position(), result.envelope().patch.position);
+    assert_eq!(result.patch_position(), result.publication().patch_position);
     assert_eq!(result.final_snapshot_id(), result.snapshot.snapshot_id);
     assert_eq!(result.merge_parent_count(), 0);
 }

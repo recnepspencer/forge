@@ -56,9 +56,9 @@ fn one_surface_partition_cannot_evict_another_surfaces_lossless_input() {
     );
     let right = batch(
         source(&isolated.session, right_binding, &right_basis),
-        (1, 1),
+        (65, 65),
         UiHostObservationLoss::Complete,
-        vec![report(1, keyboard(1), &right_basis)],
+        vec![report(65, keyboard(65), &right_basis)],
     );
     assert!(matches!(
         isolated.session.validate_host_observation_batch(right),
@@ -66,9 +66,9 @@ fn one_surface_partition_cannot_evict_another_surfaces_lossless_input() {
     ));
     let overflow = batch(
         source(&isolated.session, left_binding, &left_basis),
-        (65, 65),
+        (66, 66),
         UiHostObservationLoss::Complete,
-        vec![report(65, keyboard(65), &left_basis)],
+        vec![report(66, keyboard(66), &left_basis)],
     );
     assert_eq!(
         isolated.session.validate_host_observation_batch(overflow),
@@ -90,8 +90,11 @@ fn global_count_and_byte_budgets_deny_without_partial_cross_partition_retention(
 
 fn assert_global_report_count_budget() {
     let mut world = multi_surface_observation_world("observation-global-report-budget", 9);
+    let mut next_sequence = 1;
     for (binding, basis) in world.surfaces.iter().take(8) {
-        for sequence in 1..=64 {
+        for _ in 0..64 {
+            let sequence = next_sequence;
+            next_sequence += 1;
             let raw = batch(
                 source(&world.session, *binding, basis),
                 (sequence, sequence),
@@ -118,9 +121,9 @@ fn assert_global_report_count_budget() {
     let (binding, basis) = world.surfaces[8];
     let denied = batch(
         source(&world.session, binding, &basis),
-        (1, 1),
+        (next_sequence, next_sequence),
         UiHostObservationLoss::Complete,
-        vec![report(1, keyboard(1), &basis)],
+        vec![report(next_sequence, keyboard(next_sequence), &basis)],
     );
     assert_eq!(
         world.session.validate_host_observation_batch(denied),
@@ -135,12 +138,13 @@ fn assert_global_report_count_budget() {
 
 fn assert_global_byte_budget() {
     let mut world = multi_surface_observation_world("observation-global-byte-budget", 9);
-    for (binding, basis) in world.surfaces.iter().take(8) {
+    for (index, (binding, basis)) in world.surfaces.iter().take(8).enumerate() {
+        let sequence = u64::try_from(index).unwrap() + 1;
         let raw = batch(
             source(&world.session, *binding, basis),
-            (1, 1),
+            (sequence, sequence),
             UiHostObservationLoss::Complete,
-            vec![report(1, text_composition(1), basis)],
+            vec![report(sequence, text_composition(sequence), basis)],
         );
         assert!(matches!(
             world.session.validate_host_observation_batch(raw),
@@ -153,9 +157,9 @@ fn assert_global_byte_budget() {
     let (binding, basis) = world.surfaces[8];
     let denied = batch(
         source(&world.session, binding, &basis),
-        (1, 1),
+        (9, 9),
         UiHostObservationLoss::Complete,
-        vec![report(1, text_composition(1), &basis)],
+        vec![report(9, text_composition(9), &basis)],
     );
     assert_eq!(
         world.session.validate_host_observation_batch(denied),

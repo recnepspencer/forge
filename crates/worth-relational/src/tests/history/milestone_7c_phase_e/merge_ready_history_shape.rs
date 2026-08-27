@@ -10,7 +10,6 @@ fn execute_prepared_merge_produces_merge_ready_history_shape() {
     let envelope = runtime
         .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)
-        .cloned()
         .expect("canonical merge envelope");
     let merge_authority = envelope
         .merge_execution_authority

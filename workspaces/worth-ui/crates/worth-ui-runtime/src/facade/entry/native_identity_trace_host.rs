@@ -45,7 +45,7 @@ impl WorthUiMeasurementHostAdapter for NativeIdentityTraceHost {
 
 impl WorthUiOperationalHostAdapter for NativeIdentityTraceHost {
     fn operational_host_contract(&self) -> WorthUiHostContract {
-        WorthUiHostContract::egui()
+        WorthUiHostContract::native()
     }
 
     fn operational_capability_report(&self) -> WorthUiHostCapabilityReport {
@@ -154,28 +154,31 @@ impl WorthUiOperationalHostAdapter for NativeIdentityTraceHost {
 }
 
 fn performed_effects(view: &UiMountedFrameConsumptionView<'_>) -> Vec<UiMountedEffectFamily> {
-    let painted = match view.presentation_work() {
+    match view.presentation_work() {
         worth_ui_host_contract::UiMountedPresentationWorkView::Initial(initial) => {
-            !initial.commands().is_empty()
-                || initial.projection().nodes().iter().any(|node| {
-                    matches!(
-                        node.preview(),
-                        worth_ui_host_contract::UiMountedPreviewProjection::Resize { .. }
-                    )
-                })
+            initial_effects(initial.projection())
         }
         worth_ui_host_contract::UiMountedPresentationWorkView::Delta(delta) => {
-            !delta.changes().is_empty() || !delta.order().is_empty() || !delta.damage().is_empty()
+            (!delta.changes().is_empty() || !delta.order().is_empty() || !delta.damage().is_empty())
+                .then_some(UiMountedEffectFamily::NativePaint)
+                .into_iter()
+                .collect()
         }
         worth_ui_host_contract::UiMountedPresentationWorkView::Reconstruction(work) => {
-            !work.commands().is_empty()
+            initial_effects(work.projection())
         }
-        worth_ui_host_contract::UiMountedPresentationWorkView::Unchanged(_) => false,
-    };
-    painted
-        .then_some(UiMountedEffectFamily::NativePaint)
-        .into_iter()
-        .collect()
+        worth_ui_host_contract::UiMountedPresentationWorkView::Unchanged(_) => Vec::new(),
+    }
+}
+
+fn initial_effects(
+    projection: &worth_ui_host_contract::UiMountedProjectionView,
+) -> Vec<UiMountedEffectFamily> {
+    let mut effects = projection.authored_native_effects().to_vec();
+    effects.push(UiMountedEffectFamily::NativePaint);
+    effects.sort_unstable();
+    effects.dedup();
+    effects
 }
 
 impl NativeIdentityTraceHost {

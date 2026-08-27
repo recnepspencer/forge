@@ -25,10 +25,14 @@ mod provider_step_admission;
 mod provider_work;
 mod readmission;
 mod recovery_registry;
+mod relational_observation;
 mod retained_graph_execution;
 mod run_affinity;
 pub(in crate::domain_computation) use direct_graph_execution::WorthQueryCompletedDirectEvidenceOwner;
 pub(in crate::domain_computation) use readmission::WorthQueryDirectReadmissionTransitionPermit;
+pub(in crate::domain_computation) use relational_observation::{
+    WorthQueryManagedRelationalObservation, WorthQueryManagedRelationalObservationReleaseReceipt,
+};
 
 mod safe_point_observation;
 mod semantic_basis;

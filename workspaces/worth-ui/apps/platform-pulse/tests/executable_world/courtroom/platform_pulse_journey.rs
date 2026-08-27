@@ -1,10 +1,10 @@
 use std::time::{Duration, Instant};
 
 use crate::adjudication::ExpectedNativeColor;
-use crate::installation::CanonicalPlatformPulse;
+use crate::installation::{CanonicalPlatformPulse, PulseInstallationPath};
 use crate::product_process::{
     AwaitingFirstFrame, AwaitingPreservation, AwaitingRecovery, AwaitingReplacement,
-    AwaitingSchemaStop, AwaitingStatusRecovery, CargoBuiltPlatformPulse, Closed, FinalRecovered,
+    AwaitingSchemaStop, AwaitingStatusRecovery, CargoBuiltPlatformPulse, FinalRecovered,
     FirstCurrent, GreenSuccessor, IdentityTraced, InitialBlue, Installed, NativeInputReached,
     OverlayCleared, OverlayPublished, PreservedPredecessor, Published, PulseExecutableWorld,
     RecoveredBlue, SchemaStopped, SecondCurrent, SnapshotCaptured,
@@ -16,14 +16,14 @@ use crate::source_delta::{
 };
 
 use super::journey_cost::{JourneyCostInputs, PlatformPulseJourneyCost};
-use super::platform_pulse_cleanup::close_recovered;
-use super::platform_pulse_input::reach_native_input;
-
+mod native_cutover;
 mod open;
 
+pub(super) use native_cutover::CompletedPulseNativeCutoverRun;
 pub(super) use open::complete_open;
 
 const TRANSITION_DEADLINE: Duration = Duration::from_secs(5);
+const NATIVE_INITIALIZATION_DEADLINE: Duration = Duration::from_secs(15);
 
 pub(super) struct PlatformPulseJourneyDeltas {
     canonical: CanonicalPlatformPulse,
@@ -32,11 +32,6 @@ pub(super) struct PlatformPulseJourneyDeltas {
     recovery: CanonicalBlueRecoverySourceDelta,
     revision_schema: RevisionSchemaSourceDelta,
     status_schema_recovery: StatusSchemaRecoverySourceDelta,
-}
-
-pub(super) struct CompletedPlatformPulseJourney {
-    closed: PulseExecutableWorld<Closed>,
-    cost: PlatformPulseJourneyCost,
 }
 
 impl PlatformPulseJourneyDeltas {
@@ -53,44 +48,57 @@ impl PlatformPulseJourneyDeltas {
     }
 }
 
-pub(super) fn complete(deltas: PlatformPulseJourneyDeltas) -> CompletedPlatformPulseJourney {
-    complete_open(deltas).close()
+pub(super) fn complete_native(
+    deltas: PlatformPulseJourneyDeltas,
+    manifest: &crate::source_delta::PulseCausalActionManifest,
+    installation_path: &PulseInstallationPath,
+) -> CompletedPulseNativeCutoverRun {
+    native_cutover::complete(deltas, manifest, installation_path)
 }
 
 fn publish_visual_identity(
     initial: PulseExecutableWorld<Published<FirstCurrent>>,
+    mut cursor: Option<&mut crate::source_delta::PulseCausalActionCursor<'_>>,
 ) -> (
     PulseExecutableWorld<Published<OverlayCleared<FirstCurrent>>>,
     u32,
 ) {
+    advance_visual(&mut cursor, "begin-await-snapshot");
     let snapshot: PulseExecutableWorld<Published<SnapshotCaptured<FirstCurrent>>> = initial
         .await_visual_snapshot(Instant::now() + TRANSITION_DEADLINE)
         .unwrap_or_else(|failure| panic!("capture exact first-frame snapshot: {failure}"));
+    advance_visual(&mut cursor, "observe-snapshot");
     assert_ne!(snapshot.evidence().snapshot().affinity().frame(), 0);
     assert!(
         snapshot.evidence().snapshot().pixels().byte_count()
             <= worth_ui_platform_pulse::visual_identity_pulse::PLATFORM_PULSE_MAXIMUM_PIXEL_BYTES
     );
 
+    advance_visual(&mut cursor, "begin-await-identity-trace");
     let trace: PulseExecutableWorld<Published<IdentityTraced<FirstCurrent>>> = snapshot
         .await_identity_trace(Instant::now() + TRANSITION_DEADLINE)
         .unwrap_or_else(|failure| panic!("trace target and background identity: {failure}"));
+    advance_visual(&mut cursor, "observe-identity-trace");
     assert_eq!(
         trace.evidence().trace().target().hit().authored_semantic_name(),
         worth_ui_platform_pulse::visual_identity_pulse::PLATFORM_PULSE_IDENTITY_TARGET_AUTHORED_NAME
     );
 
+    advance_visual(&mut cursor, "begin-await-overlay-publication");
     let overlay: PulseExecutableWorld<Published<OverlayPublished<FirstCurrent>>> = trace
         .await_overlay_published(Instant::now() + TRANSITION_DEADLINE)
         .unwrap_or_else(|failure| panic!("publish visible mounted identity overlay: {failure}"));
+    advance_visual(&mut cursor, "observe-overlay");
     let (matching, sampled) = overlay.evidence().border_ratio();
     assert_eq!(overlay.evidence().sequence(), 11);
     assert!(matching * 4 >= sampled * 3);
     let overlay_captures = overlay.evidence().capture_count();
 
+    advance_visual(&mut cursor, "begin-await-overlay-clear");
     let cleared = overlay
         .await_overlay_cleared(Instant::now() + TRANSITION_DEADLINE)
         .unwrap_or_else(|failure| panic!("clear overlay and restore native pixels: {failure}"));
+    advance_visual(&mut cursor, "observe-overlay-clear");
     assert_ne!(
         cleared.evidence().clear().cleared_frame(),
         cleared.evidence().clear().published_frame()
@@ -98,6 +106,17 @@ fn publish_visual_identity(
     assert_eq!(cleared.evidence().sequence(), 12);
     let captures = overlay_captures + cleared.evidence().capture_count();
     (cleared, captures)
+}
+
+fn advance_visual(
+    cursor: &mut Option<&mut crate::source_delta::PulseCausalActionCursor<'_>>,
+    action: &'static str,
+) {
+    if let Some(cursor) = cursor.as_deref_mut() {
+        cursor
+            .advance(action)
+            .unwrap_or_else(|failure| panic!("advance visual causal action: {failure}"));
+    }
 }
 
 fn publish_first_current(
@@ -136,28 +155,23 @@ fn publish_second_current(
     current
 }
 
-impl CompletedPlatformPulseJourney {
-    pub(super) fn closed(&self) -> &PulseExecutableWorld<Closed> {
-        &self.closed
-    }
-
-    pub(super) fn cost(&self) -> PlatformPulseJourneyCost {
-        self.cost
-    }
-}
-
 fn launch_initial(
     canonical: CanonicalPlatformPulse,
+    first_frame_deadline: Duration,
+    installation_path: Option<&PulseInstallationPath>,
 ) -> PulseExecutableWorld<Published<InitialBlue>> {
-    let installed: PulseExecutableWorld<Installed> = PulseExecutableWorld::install(canonical)
-        .unwrap_or_else(|failure| panic!("install exact canonical source: {failure}"));
+    let installed: PulseExecutableWorld<Installed> = match installation_path {
+        Some(path) => PulseExecutableWorld::install_at(canonical, path),
+        None => PulseExecutableWorld::install(canonical),
+    }
+    .unwrap_or_else(|failure| panic!("install exact canonical source: {failure}"));
     let binary = CargoBuiltPlatformPulse::exact()
         .unwrap_or_else(|failure| panic!("resolve exact Cargo executable: {failure}"));
     let awaiting: PulseExecutableWorld<AwaitingFirstFrame> = installed
         .launch(binary)
         .unwrap_or_else(|failure| panic!("launch exact product process: {failure}"));
     let published = awaiting
-        .await_first_frame(Instant::now() + TRANSITION_DEADLINE)
+        .await_first_frame(Instant::now() + first_frame_deadline)
         .unwrap_or_else(|failure| {
             panic!("causal first publication plus independent native pixels: {failure}")
         });
@@ -270,7 +284,7 @@ fn recover_blue(
     assert_ne!(evidence.replacement().active_generation(), prior_generation);
     assert_eq!(evidence.expected_color(), ExpectedNativeColor::Blue);
     assert!(evidence.liveness().liveness_checks() >= 2);
-    assert_eq!(evidence.capture_count(), 1);
+    assert!(evidence.capture_count() >= 2);
     assert!(evidence.matching_color_samples() * 4 >= evidence.sampled_pixels() * 3);
     recovered
 }

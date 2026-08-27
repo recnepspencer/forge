@@ -15,8 +15,6 @@ pub(crate) enum WorthServerQueryDependencyBindingKind {
         transport_class: WorthServerTransportClass,
         operation: fn() -> WorthServerQueryHandoffOperation,
     },
-    ConsumerKitBoundaryAudit,
-    StaticTestOnly,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -236,23 +234,6 @@ pub(crate) fn covered_paths() -> Vec<WorthServerQueryDependencyCoveredPath> {
             },
             required_query_families: LIVE_FAMILIES,
         },
-        WorthServerQueryDependencyCoveredPath {
-            row_id: "server.consumer-boundary-audit",
-            path_kind: WorthServerQueryDependencyAuditPathKind::ServerConsumerBoundaryAudit,
-            runtime_readiness:
-                WorthServerQueryDependencyRuntimeReadiness::QueryNineEightConsumerKitClosureReady,
-            ordinary_path: true,
-            binding_kind: WorthServerQueryDependencyBindingKind::ConsumerKitBoundaryAudit,
-            required_query_families: &[],
-        },
-        WorthServerQueryDependencyCoveredPath {
-            row_id: "tests.support.query-handoff-runtime",
-            path_kind: WorthServerQueryDependencyAuditPathKind::CertificationTestBackendSupport,
-            runtime_readiness: WorthServerQueryDependencyRuntimeReadiness::StaticTestOnly,
-            ordinary_path: false,
-            binding_kind: WorthServerQueryDependencyBindingKind::StaticTestOnly,
-            required_query_families: &[],
-        },
     ]
 }
 
@@ -278,12 +259,6 @@ impl WorthServerQueryDependencyCoveredPath {
             WorthServerQueryDependencyBindingKind::QueryHandoff { surface_family, .. } => {
                 surface_family
             }
-            WorthServerQueryDependencyBindingKind::StaticTestOnly => {
-                WorthServerSurfaceFamily::WorthNative
-            }
-            WorthServerQueryDependencyBindingKind::ConsumerKitBoundaryAudit => {
-                WorthServerSurfaceFamily::WorthNative
-            }
         }
     }
 
@@ -292,24 +267,12 @@ impl WorthServerQueryDependencyCoveredPath {
             WorthServerQueryDependencyBindingKind::QueryHandoff {
                 transport_class, ..
             } => transport_class,
-            WorthServerQueryDependencyBindingKind::StaticTestOnly => {
-                WorthServerTransportClass::WorthNativeInProcess
-            }
-            WorthServerQueryDependencyBindingKind::ConsumerKitBoundaryAudit => {
-                WorthServerTransportClass::WorthNativeInProcess
-            }
         }
     }
 
     pub(crate) fn operation(&self) -> WorthServerQueryHandoffOperation {
         match self.binding_kind {
             WorthServerQueryDependencyBindingKind::QueryHandoff { operation, .. } => operation(),
-            WorthServerQueryDependencyBindingKind::StaticTestOnly => {
-                WorthServerQueryHandoffOperation::query_read("unused")
-            }
-            WorthServerQueryDependencyBindingKind::ConsumerKitBoundaryAudit => {
-                WorthServerQueryHandoffOperation::query_read("unused")
-            }
         }
     }
 }

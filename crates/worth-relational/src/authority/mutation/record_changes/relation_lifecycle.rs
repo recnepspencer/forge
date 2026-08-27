@@ -18,8 +18,10 @@ pub(in crate::authority::mutation) fn retain_relation_dangling_for_audit(
 
     state.mark_relation_slot_touched(relation_id.partition_id, slot);
     let partition = state.get_partition_mut(relation_id.partition_id);
-    partition.relation_arena.lifecycle[slot] = RecordLifecycleState::RetainedDanglingForAudit;
-    let _ = version_id;
+    partition.relation_arena.retire(slot, version_id);
+    partition
+        .relation_arena
+        .set_lifecycle_for_slot(slot, RecordLifecycleState::RetainedDanglingForAudit);
     partition.relation_arena.live_bitset.set(slot, true);
     partition.relation_arena.reclaimable_bitset.set(slot, false);
 
@@ -50,7 +52,10 @@ pub(in crate::authority::mutation) fn delete_relation(
     let snapshot = relation_mutation_snapshot(state, relation_id);
     let partition = state.get_partition_mut(relation_id.partition_id);
     partition.relation_arena.retire(slot, version_id);
-    partition.relation_arena.lifecycle[slot] = deletion_retention_lifecycle(partition, slot);
+    let lifecycle = deletion_retention_lifecycle(partition, slot);
+    partition
+        .relation_arena
+        .set_lifecycle_for_slot(slot, lifecycle);
 
     let Some(snapshot) = snapshot else {
         return;

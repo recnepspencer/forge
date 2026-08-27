@@ -1,6 +1,7 @@
 use worth_query::facade::runtime::{
     WorthQueryRuntimeDownstreamDeliveryContract, WorthQueryWorkspace,
 };
+use worth_query_host::facade::primary_graph::WorthQueryPrimaryGraphApplicationReadinessSnapshot;
 
 use crate::{
     WorthServerCompatibilityPreparedRequest, WorthServerOperationAdmissionPosture,
@@ -19,8 +20,18 @@ use super::{
 pub struct WorthServerOperationQuerySupportContext<'a> {
     prepared_kind: WorthServerPreparedQueryHandoffKind,
     operation: &'a WorthServerQueryHandoffOperation,
-    workspace: &'a WorthQueryWorkspace,
-    downstream_delivery_contract: &'a WorthQueryRuntimeDownstreamDeliveryContract,
+    source: WorthServerOperationQuerySupportSource<'a>,
+}
+
+#[derive(Clone)]
+enum WorthServerOperationQuerySupportSource<'a> {
+    Workspace {
+        workspace: &'a WorthQueryWorkspace,
+        downstream_delivery_contract: &'a WorthQueryRuntimeDownstreamDeliveryContract,
+    },
+    PrimaryGraphApplication {
+        readiness: &'a WorthQueryPrimaryGraphApplicationReadinessSnapshot,
+    },
 }
 
 impl<'a> WorthServerOperationQuerySupportContext<'a> {
@@ -33,8 +44,22 @@ impl<'a> WorthServerOperationQuerySupportContext<'a> {
         Self {
             prepared_kind,
             operation,
-            workspace,
-            downstream_delivery_contract,
+            source: WorthServerOperationQuerySupportSource::Workspace {
+                workspace,
+                downstream_delivery_contract,
+            },
+        }
+    }
+
+    pub(crate) fn for_primary_graph_application(
+        prepared_kind: WorthServerPreparedQueryHandoffKind,
+        operation: &'a WorthServerQueryHandoffOperation,
+        readiness: &'a WorthQueryPrimaryGraphApplicationReadinessSnapshot,
+    ) -> Self {
+        Self {
+            prepared_kind,
+            operation,
+            source: WorthServerOperationQuerySupportSource::PrimaryGraphApplication { readiness },
         }
     }
 }
@@ -101,17 +126,25 @@ impl WorthServerOperationReadinessFacade {
                     "operation requires query support composition before planning",
                 )
             })?;
-            Some(query_support::derive_query_support_posture(
-                context.prepared_kind,
-                context.operation,
-                context.workspace,
-                context.downstream_delivery_contract,
-                operation_admission
-                    .authorization_proof()
-                    .admission()
-                    .request_context()
-                    .diagnostics_profile(),
-            )?)
+            Some(match context.source {
+                WorthServerOperationQuerySupportSource::Workspace {
+                    workspace,
+                    downstream_delivery_contract,
+                } => query_support::derive_query_support_posture(
+                    context.prepared_kind,
+                    context.operation,
+                    workspace,
+                    downstream_delivery_contract,
+                    operation_admission
+                        .authorization_proof()
+                        .admission()
+                        .request_context()
+                        .diagnostics_profile(),
+                )?,
+                WorthServerOperationQuerySupportSource::PrimaryGraphApplication { readiness } => {
+                    query_support::derive_primary_graph_application_support_posture(readiness)
+                }
+            })
         } else {
             None
         };
@@ -218,7 +251,9 @@ impl WorthServerOperationReadinessFacade {
 fn dependency_relation(operation_admission: &WorthServerOperationAdmissionPosture) -> &'static str {
     match operation_admission.authority_metadata() {
         crate::WorthServerOperationAuthorityMetadata::SharedReadOnly { basis_kind, .. }
-            if basis_kind == "query-shared-read-basis" || basis_kind == "query-derived" =>
+            if basis_kind == "query-shared-read-basis"
+                || basis_kind == "query-derived"
+                || basis_kind == "primary-graph-application" =>
         {
             "query-dependent"
         }

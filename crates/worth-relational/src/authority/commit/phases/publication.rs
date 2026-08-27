@@ -1,25 +1,22 @@
 use crate::authority::commit::phases::schema_continuity::validate_schema_continuity_publication;
-use crate::capabilities::{
-    DiagnosticArtifactSink, DurabilityWrite, PublicationPolicySource, SchemaSource,
-    SchemaVersionSource,
-};
+use crate::capabilities::{DiagnosticArtifactSink, DurabilityWrite, PublicationPolicySource};
 use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsScope, RelationalDiagnosticFields, RelationalDiagnosticValue,
 };
-use crate::history::data::{BranchId, CommitId, CommitReference};
+use crate::history::data::{BranchId, CommitId, RelationalCommitReceipt};
 use crate::history::data::{CanonicalCommitAuthorityKind, CanonicalCommitEnvelope};
 use crate::indexes::data::DerivedIndexArtifacts;
 use crate::lineage::data::LineageFinalizationArtifact;
 use crate::publication::bundle::PublicationStage;
 use crate::publication::data::PublicationError;
-use crate::publication::patch::data::PublishedAuthoritativePatchEnvelope;
+use crate::publication::patch::data::CanonicalAuthoritativePatch;
 use crate::transactions::data::{
     MergedCommitPlan, PublishedMergeExecutionAuthority, RecordRef, TransactionCommitError,
 };
 
 pub(crate) fn enforce_patch_budget(
     runtime: &mut (impl DiagnosticArtifactSink + PublicationPolicySource),
-    patch: &PublishedAuthoritativePatchEnvelope,
+    patch: &CanonicalAuthoritativePatch,
 ) -> Result<(), TransactionCommitError> {
     let max_patch_records_per_commit = runtime.max_patch_records_per_commit();
     if patch.authoritative_record_patches.len() > max_patch_records_per_commit {
@@ -42,7 +39,7 @@ pub(crate) fn enforce_patch_budget(
 
 pub(crate) fn canonical_commit_envelope(
     runtime: &mut crate::runtime::RelationalRuntime,
-    commit_reference: &CommitReference,
+    commit_reference: &RelationalCommitReceipt,
     branch_id: &BranchId,
     authority_kind: CanonicalCommitAuthorityKind,
     strategy_artifacts: Option<crate::commit_strategies::data::StrategyCommitArtifactBundle>,
@@ -50,7 +47,7 @@ pub(crate) fn canonical_commit_envelope(
     merge_parent_branches: &[BranchId],
     merge_base_commits: &[CommitId],
     merged_plan: &MergedCommitPlan,
-    patch: crate::publication::patch::data::PublishedAuthoritativePatchEnvelope,
+    patch: CanonicalAuthoritativePatch,
     diagnostics_summary: crate::diagnostics::data::RelationalDiagnosticArtifact,
     lineage_artifact: LineageFinalizationArtifact,
     derived_index_artifacts: DerivedIndexArtifacts,
@@ -75,7 +72,7 @@ pub(crate) fn canonical_commit_envelope(
             "lineage artifact branch scope mismatch",
         )));
     }
-    let envelope = CanonicalCommitEnvelope::new(
+    let mut envelope = CanonicalCommitEnvelope::new(
         commit_reference.clone(),
         published_lineage.branch_id().clone(),
         authority_kind,
@@ -83,8 +80,8 @@ pub(crate) fn canonical_commit_envelope(
         merge_execution_authority,
         merge_parent_branches.to_vec(),
         merge_base_commits.to_vec(),
-        runtime.primary_schema_version_id(),
-        runtime.schema_registry().authority_snapshot(),
+        schema_continuity.target_schema_version(),
+        schema_continuity.target_schema_authority().clone(),
         merged_plan.clone(),
         patch,
         diagnostics_summary,
@@ -95,6 +92,10 @@ pub(crate) fn canonical_commit_envelope(
         schema_continuity.schema_reconciliation_descriptor.clone(),
         schema_continuity.descriptor_semantics_version,
     );
+    envelope.branch_cell_checkpoint = runtime
+        .history
+        .branch_cell(branch_id)
+        .map(crate::branch::RelationalBranchReferenceCell::checkpoint);
     validate_schema_continuity_publication(runtime, branch_id, schema_continuity, &envelope)?;
     Ok(envelope)
 }
@@ -102,12 +103,11 @@ pub(crate) fn canonical_commit_envelope(
 pub(crate) fn append_durable_commit(
     runtime: &mut (impl DiagnosticArtifactSink + DurabilityWrite),
     append_authority: crate::durability::authority::DurableAppendAuthority,
-    canonical_commit_envelope: &CanonicalCommitEnvelope,
+    positioned_commit: &crate::history::data::PositionedCanonicalCommit,
 ) -> Result<(), TransactionCommitError> {
     let commit_id = append_authority.commit_id();
     let branch_id = append_authority.branch_id().clone();
-    if let Err(error) = runtime.append_durable_envelope(append_authority, canonical_commit_envelope)
-    {
+    if let Err(error) = runtime.append_durable_envelope(append_authority, positioned_commit) {
         runtime.emit_failure_diagnostic(
             DiagnosticsScope::History,
             DiagnosticCode::DurableAppendFailed,
@@ -115,7 +115,7 @@ pub(crate) fn append_durable_commit(
             durable_append_failure_fields(commit_id, &branch_id),
         );
         return Err(TransactionCommitError::publication(PublicationError::new(
-            PublicationStage::Visibility,
+            PublicationStage::DurableAppend,
             error.detail,
         )));
     }

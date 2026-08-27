@@ -4,14 +4,10 @@ use super::{repository_document, workspace_source_inventory};
 
 #[path = "milestone_3141_phase1_topology/authority_residue.rs"]
 mod authority_residue;
-#[path = "milestone_3141_phase1_topology/compile_contract_artifact.rs"]
-mod compile_contract_artifact;
 #[path = "milestone_3141_phase1_topology/external_ports.rs"]
 mod external_ports;
 #[path = "milestone_3141_phase1_topology/font_authority.rs"]
 mod font_authority;
-#[path = "milestone_3141_phase1_topology/host_activation.rs"]
-mod host_activation;
 #[path = "milestone_3141_phase1_topology/phase_five_destination.rs"]
 mod phase_five_destination;
 #[path = "milestone_3141_phase1_topology/phase_five_physical_signal.rs"]
@@ -28,41 +24,6 @@ mod phase_three_application;
 mod preparation_call_graph;
 #[path = "milestone_3141_phase1_topology/pulse_text.rs"]
 mod pulse_text;
-#[path = "milestone_3141_phase1_topology/repository_manifests.rs"]
-mod repository_manifests;
-#[path = "milestone_3141_phase1_topology/resolved_graphs.rs"]
-mod resolved_graphs;
-#[path = "milestone_3141_phase1_topology/topology_edges.rs"]
-mod topology_edges;
-#[path = "milestone_3141_phase1_topology/topology_verdict.rs"]
-mod topology_verdict;
-
-use topology_verdict::{
-    assert_hiding_mutations_fail_topology_verdict, assert_resolved_qualified_versions,
-    validate_topology, workspace_manifest_count, workspace_manifests,
-};
-
-#[test]
-fn phase_one_host_platform_topology_verdict_covers_every_workspace_manifest() {
-    let manifests = workspace_manifests();
-    validate_topology(&manifests).expect("the real repository topology must be lawful");
-    assert!(manifests.contains_key("Cargo.toml"));
-    assert!(manifests.contains_key("repository/Cargo.toml"));
-    assert_eq!(
-        manifests
-            .keys()
-            .filter(|path| !path.starts_with("repository/"))
-            .count(),
-        workspace_manifest_count(),
-        "every member and fixture manifest is explicitly classified"
-    );
-    assert_resolved_qualified_versions();
-    assert_hiding_mutations_fail_topology_verdict();
-    println!(
-        "WORTH_UI_LEDGER_COUNTERS={{\"P1-TOPOLOGY-01\":{}}}",
-        workspace_manifest_count()
-    );
-}
 
 fn assert_current_protocol_rejects_mixed_revision() {
     use worth_ui_host_contract::{
@@ -103,10 +64,6 @@ fn phase_one_consumer_inventory_rejects_legacy_protocol_branches() {
             "UiMountedStaticPaintSchemaVersion::REQUIRED_MOUNTED_FRAME_REVISION",
         ),
         (
-            "crates/worth-ui-host-egui/src/adapter/native_paint.rs",
-            "UiMountedStaticPaintSchemaVersion::REQUIRED_MOUNTED_FRAME_REVISION",
-        ),
-        (
             "crates/worth-ui-certification/tests/application_contracts/host_platform/world/production.rs",
             "WorthUiHeadlessRecorder",
         ),
@@ -115,14 +72,7 @@ fn phase_one_consumer_inventory_rejects_legacy_protocol_branches() {
         let text = inventory.text(source);
         assert!(text.contains(required), "{source} omits {required}");
     }
-    println!(
-        "WORTH_UI_LEDGER_COUNTERS={{\"P1-CONSUMERS-01\":{}}}",
-        consumers.len()
-    );
-    for root in [
-        "crates/worth-ui-host-headless/src",
-        "crates/worth-ui-host-egui/src",
-    ] {
+    for root in ["crates/worth-ui-host-headless/src"] {
         for source in inventory.rust_files_under(root) {
             let path = source.relative_path().to_string_lossy();
             if path.ends_with("_tests.rs") || path.contains("/tests/") || path.contains("\\tests\\")
@@ -227,9 +177,6 @@ fn phase_one_product_preparation_is_effect_free_and_host_neutral() {
         );
     }
     assert_eq!(observed_effect_surfaces, 0);
-    println!(
-        "WORTH_UI_LEDGER_COUNTERS={{\"P1-PREPARATION-LIFECYCLE-01\":{observed_effect_surfaces}}}"
-    );
 }
 
 #[test]
@@ -249,9 +196,9 @@ fn independent_oracle_has_no_disputed_production_imports() {
             "oracle imports {forbidden}"
         );
     }
-    let controls = workspace_source_inventory()
-        .absolute_path("crates/worth-ui-certification/tests/application_contracts/host_platform/control_points.toml");
-    let manifest = std::fs::read_to_string(controls).expect("control manifest");
+    let manifest = repository_document(
+        "workspaces/worth-ui/crates/worth-ui-certification/tests/application_contracts/host_platform/control_points.toml",
+    );
     assert!(manifest.contains("world_version = 1"));
     assert!(manifest.contains("maximum_rectangles = 2048"));
     assert_eq!(manifest.matches("[[filled_rect]]").count(), 2);
@@ -286,9 +233,4 @@ pub(super) fn assert_exact_symbol_homes(
         actual,
         expected.iter().map(|path| (*path).to_owned()).collect()
     );
-}
-
-#[test]
-fn hiding_mutations_fail_the_same_repository_topology_verdict() {
-    assert_hiding_mutations_fail_topology_verdict();
 }

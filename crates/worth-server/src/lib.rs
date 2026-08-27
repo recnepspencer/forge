@@ -219,12 +219,10 @@ pub use query_dependency_audit::{
     WorthServerQueryDependencyAudit, WorthServerQueryDependencyAuditFacade,
     WorthServerQueryDependencyAuditPathKind, WorthServerQueryDependencyAuditProvenance,
     WorthServerQueryDependencyAuditReceipt, WorthServerQueryDependencyAuditRow,
-    WorthServerQueryDependencyAuditRowId, WorthServerQueryDependencyBoundaryAuditProvenance,
-    WorthServerQueryDependencyClosurePosture, WorthServerQueryDependencyConsumerKitPosture,
-    WorthServerQueryDependencyCoveredPathInventory, WorthServerQueryDependencyRuntimeReadiness,
-    WorthServerQueryDependencyScopePosture, WorthServerQueryDependencySupportPinProvenance,
-    WorthServerQueryDependencySupportPosture,
-    WorthServerQueryDependencyTestBackendResidueProvenance,
+    WorthServerQueryDependencyAuditRowId, WorthServerQueryDependencyClosurePosture,
+    WorthServerQueryDependencyConsumerKitPosture, WorthServerQueryDependencyCoveredPathInventory,
+    WorthServerQueryDependencyRuntimeReadiness, WorthServerQueryDependencyScopePosture,
+    WorthServerQueryDependencySupportPinProvenance, WorthServerQueryDependencySupportPosture,
 };
 pub use query_handoff::{
     WorthServerQueryHandoff, WorthServerQueryHandoffDeferred, WorthServerQueryHandoffDenial,
@@ -312,13 +310,13 @@ pub use surfaces::{
 pub use transport::{
     WorthServerAdmittedTransportCaller, WorthServerDeclaredRoute, WorthServerOperationRouter,
     WorthServerOperationalRoute, WorthServerOperationalRouteKind,
-    WorthServerOperationalRouteOutcome, WorthServerProjectedRouter, WorthServerRouteAssembly,
-    WorthServerRouteAssemblyError, WorthServerRouteBranchTarget, WorthServerRouteExecutionBridge,
-    WorthServerRouteExecutionOutcome, WorthServerRouteInventory, WorthServerRouteInventoryRow,
-    WorthServerRouteTransportRequest, WorthServerTransportCallerAdmissionRequest,
-    WorthServerTransportCallerDenial, WorthServerTransportCallerVerification,
-    WorthServerTransportCallerVerifier, WorthServerTransportDenial, WorthServerTransportDenialCode,
-    WorthServerVerifiedTransportCaller,
+    WorthServerOperationalRouteOutcome, WorthServerProjectedRouter, WorthServerQueryRequestScope,
+    WorthServerRouteAssembly, WorthServerRouteAssemblyError, WorthServerRouteBranchTarget,
+    WorthServerRouteExecutionBridge, WorthServerRouteExecutionOutcome, WorthServerRouteInventory,
+    WorthServerRouteInventoryRow, WorthServerRouteTransportRequest,
+    WorthServerTransportCallerAdmissionRequest, WorthServerTransportCallerDenial,
+    WorthServerTransportCallerVerification, WorthServerTransportCallerVerifier,
+    WorthServerTransportDenial, WorthServerTransportDenialCode, WorthServerVerifiedTransportCaller,
 };
 pub use worth_native::{
     WorthServerDirectAsyncResultState, WorthServerDirectContextArtifact,

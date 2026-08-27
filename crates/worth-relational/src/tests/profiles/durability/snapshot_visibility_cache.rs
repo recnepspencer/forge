@@ -109,7 +109,8 @@ fn unprotected_active_snapshots_can_use_recent_cache_when_enabled() {
     assert_eq!(stats.protected_visibility_version_count, 0);
     assert_eq!(stats.recent_visibility_cache_count, 1);
     assert_eq!(stats.cached_visibility_version_count, 1);
-    assert!(counters.visibility_cache_miss_reconstructions >= 1);
+    assert!(counters.visibility_exact_state_materializations >= 1);
+    assert_eq!(counters.visibility_cache_miss_reconstructions, 0);
     assert!(counters.visibility_cache_hits >= 1);
 }
 

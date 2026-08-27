@@ -51,17 +51,19 @@ impl<T> FoundationalMergeVerdict<T> {
         self.candidate.target_branch()
     }
 
-    pub fn fork_basis(&self) -> &crate::transitions::FoundationalBranchForkBasis {
+    pub fn fork_basis(&self) -> &crate::transitions::FoundationalBranchCandidateForkBasis {
         self.candidate.staged_branch().fork_basis()
     }
 
-    pub fn observation_basis(&self) -> crate::transitions::FoundationalBranchObservationBasis {
+    pub fn observation_basis(
+        &self,
+    ) -> crate::transitions::FoundationalBranchCandidateObservationBasis {
         self.candidate.staged_branch().observation_basis()
     }
 
     pub fn comparison_basis(
         &self,
-    ) -> Option<&crate::transitions::FoundationalBranchComparisonBasis> {
+    ) -> Option<&crate::transitions::FoundationalBranchCandidateComparisonBasis> {
         self.candidate.staged_branch().comparison_basis()
     }
 

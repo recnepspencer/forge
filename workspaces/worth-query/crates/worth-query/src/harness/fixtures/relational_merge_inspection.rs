@@ -1,4 +1,3 @@
-use worth_foundational::facade::AspectKey;
 use worth_relational::facade::config::{
     CascadeDeletePolicy, CrossContextPolicy, RelationalRuntimeProfile,
 };
@@ -10,21 +9,17 @@ use worth_relational::facade::merge::{
 };
 use worth_relational::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
 use worth_relational::facade::schema::{
-    DeclaredAspectContractBinding, EntityKindRegistration, KindAspectContractDeclarations,
-    RelationIntegrityDeclarations, RelationKindRegistration, RelationalSchemaRegistry, SchemaId,
-    SchemaVersionId,
+    EntityKindRegistration, KindAspectContractDeclarations, RelationIntegrityDeclarations,
+    RelationKindRegistration, RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 use worth_relational::facade::symbols::ClientKey;
 use worth_relational::facade::transactions::{
     CommitResult, CreateIntent, DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent,
     EntityReference, EntitySpec, MutationIntent, RecordRef, RelationMutationIntent, RelationSpec,
-    TransactionOptions, UpdateEntityFieldsIntent, WorkerIntentBatch,
+    UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 
-use crate::aspect_field_authoring::{
-    entity_string_field_aspect, relation_source_endpoint_aspect, relation_string_field_aspect,
-    relation_target_endpoint_aspect, single_native_string_aspect_field_patch,
-};
+use crate::aspect_field_authoring::single_native_string_aspect_field_patch;
 
 const TARGET_BRANCH: &str = "main";
 const SOURCE_BRANCH: &str = "candidate";
@@ -129,13 +124,16 @@ pub fn topology_region_conflict_inspection_artifact() -> RelationalMergeInspecti
 }
 
 fn inspect_execution_surface(runtime: &RelationalRuntime) -> RelationalMergeInspectionArtifact {
-    runtime
-        .merge()
-        .inspect_execution_surface(MergePlanningRequest::new(
+    let request = runtime
+        .bind_merge_planning_request(MergePlanningRequest::new(
             BranchId(TARGET_BRANCH.to_string()),
             BranchId(SOURCE_BRANCH.to_string()),
             MergeIntent::ReconcileIntoTarget,
         ))
+        .expect("merge inspection branches should be owner-bound");
+    runtime
+        .merge()
+        .inspect_execution_surface(request)
         .expect("relational merge inspection should succeed")
 }
 
@@ -155,7 +153,7 @@ fn runtime_with_topology_merge_registry() -> RelationalRuntime {
 }
 
 fn default_merge_registry() -> RelationalSchemaRegistry {
-    let name_key = aspect_key("name");
+    let name_key = crate::aspect_field_authoring::aspect_key("name").expect("valid aspect key");
     RelationalSchemaRegistry::new()
         .register_entity_kind(EntityKindRegistration {
             kind_id: KindId(1),
@@ -163,7 +161,8 @@ fn default_merge_registry() -> RelationalSchemaRegistry {
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
             aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
-                entity_field_aspect("name", "name"),
+                crate::aspect_field_authoring::entity_string_field_aspect("name", "name")
+                    .expect("entity field aspect"),
             ])
             .with_identity_declarations(vec![
                 IdentityBasisDeclaration {
@@ -196,7 +195,7 @@ fn default_merge_registry() -> RelationalSchemaRegistry {
 }
 
 fn topology_merge_registry() -> RelationalSchemaRegistry {
-    let label_key = aspect_key("label");
+    let label_key = crate::aspect_field_authoring::aspect_key("label").expect("valid aspect key");
     RelationalSchemaRegistry::new()
         .register_entity_kind(EntityKindRegistration {
             kind_id: KindId(1),
@@ -204,7 +203,8 @@ fn topology_merge_registry() -> RelationalSchemaRegistry {
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
             aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
-                entity_field_aspect("name", "name"),
+                crate::aspect_field_authoring::entity_string_field_aspect("name", "name")
+                    .expect("entity field aspect"),
             ]),
         })
         .and_then(|registry| {
@@ -216,9 +216,12 @@ fn topology_merge_registry() -> RelationalSchemaRegistry {
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_contract_declarations: KindAspectContractDeclarations::new(vec![
-                    relation_field_aspect("label", "label"),
-                    relation_source_aspect(),
-                    relation_target_aspect(),
+                    crate::aspect_field_authoring::relation_string_field_aspect("label", "label")
+                        .expect("relation field aspect"),
+                    crate::aspect_field_authoring::relation_source_endpoint_aspect("source")
+                        .expect("relation source aspect"),
+                    crate::aspect_field_authoring::relation_target_endpoint_aspect("target")
+                        .expect("relation target aspect"),
                 ])
                 .with_identity_declarations(vec![IdentityBasisDeclaration {
                     scope: IdentityBasisScope::AspectKey(label_key.clone()),
@@ -231,13 +234,12 @@ fn topology_merge_registry() -> RelationalSchemaRegistry {
 }
 
 fn create_branch_from_main(runtime: &mut RelationalRuntime, branch_name: &str) {
-    runtime
-        .history_authority()
-        .create_branch(
-            BranchId(branch_name.to_string()),
-            &BranchId(TARGET_BRANCH.to_string()),
-        )
-        .expect("branch creation should succeed");
+    crate::runtime::fork_branch_from_exact_source(
+        runtime,
+        BranchId(branch_name.to_string()),
+        &BranchId(TARGET_BRANCH.to_string()),
+    )
+    .expect("branch creation should succeed");
 }
 
 fn create_entity_on_branch(
@@ -253,10 +255,7 @@ fn commit_entity_create(
     name: &str,
     branch_id: BranchId,
 ) -> CommitResult {
-    let mut txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(branch_id),
-        ..TransactionOptions::default()
-    });
+    let mut txn = begin_branch_transaction(runtime, &branch_id);
     txn.push_batch(
         WorkerIntentBatch::new(format!("create-{name}")).push(MutationIntent::Create(
             CreateIntent::Entity(EntitySpec {
@@ -268,7 +267,7 @@ fn commit_entity_create(
             }),
         )),
     );
-    txn.commit().expect("entity create should commit")
+    txn.commit(runtime).expect("entity create should commit")
 }
 
 fn update_entity_on_branch(
@@ -277,10 +276,7 @@ fn update_entity_on_branch(
     name: &str,
     branch_id: BranchId,
 ) {
-    let mut txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(branch_id),
-        ..TransactionOptions::default()
-    });
+    let mut txn = begin_branch_transaction(runtime, &branch_id);
     txn.push_batch(
         WorkerIntentBatch::new("update-entity").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -290,7 +286,7 @@ fn update_entity_on_branch(
             }),
         )),
     );
-    txn.commit().expect("entity update should commit");
+    txn.commit(runtime).expect("entity update should commit");
 }
 
 fn delete_entity_on_branch(
@@ -298,16 +294,13 @@ fn delete_entity_on_branch(
     entity_id: EntityId,
     branch_id: BranchId,
 ) {
-    let mut txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(branch_id),
-        ..TransactionOptions::default()
-    });
+    let mut txn = begin_branch_transaction(runtime, &branch_id);
     txn.push_batch(
         WorkerIntentBatch::new("delete-entity").push(MutationIntent::Entity(
             EntityMutationIntent::Delete(DeleteEntityIntent { entity_id }),
         )),
     );
-    txn.commit().expect("entity delete should commit");
+    txn.commit(runtime).expect("entity delete should commit");
 }
 
 fn create_relation_on_branch(
@@ -318,10 +311,7 @@ fn create_relation_on_branch(
     label: &str,
     branch_id: BranchId,
 ) -> RelationId {
-    let mut txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(branch_id),
-        ..TransactionOptions::default()
-    });
+    let mut txn = begin_branch_transaction(runtime, &branch_id);
     txn.push_batch(
         WorkerIntentBatch::new("create-relation").push(MutationIntent::Create(
             CreateIntent::Relation(RelationSpec {
@@ -335,7 +325,7 @@ fn create_relation_on_branch(
             }),
         )),
     );
-    changed_relations(&txn.commit().expect("relation create should commit"))[0]
+    changed_relations(&txn.commit(runtime).expect("relation create should commit"))[0]
 }
 
 fn delete_relation_on_branch(
@@ -343,16 +333,28 @@ fn delete_relation_on_branch(
     relation_id: RelationId,
     branch_id: BranchId,
 ) {
-    let mut txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(branch_id),
-        ..TransactionOptions::default()
-    });
+    let mut txn = begin_branch_transaction(runtime, &branch_id);
     txn.push_batch(
         WorkerIntentBatch::new("delete-relation").push(MutationIntent::Relation(
             RelationMutationIntent::Delete(DeleteRelationIntent { relation_id }),
         )),
     );
-    txn.commit().expect("relation delete should commit");
+    txn.commit(runtime).expect("relation delete should commit");
+}
+
+fn begin_branch_transaction(
+    runtime: &RelationalRuntime,
+    branch_id: &BranchId,
+) -> worth_relational::facade::mvcc::BranchBoundRelationalTransaction {
+    let context = runtime
+        .admit_named_branch_basis(branch_id)
+        .expect("branch context");
+    runtime
+        .begin_branch_transaction(
+            &context,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted branch basis")
 }
 
 fn changed_entities(outcome: &CommitResult) -> Vec<EntityId> {
@@ -365,7 +367,6 @@ fn changed_entities(outcome: &CommitResult) -> Vec<EntityId> {
         })
         .collect()
 }
-
 fn changed_relations(outcome: &CommitResult) -> Vec<RelationId> {
     outcome
         .changed_records
@@ -375,24 +376,4 @@ fn changed_relations(outcome: &CommitResult) -> Vec<RelationId> {
             RecordRef::Entity(_) => None,
         })
         .collect()
-}
-
-fn aspect_key(name: &str) -> AspectKey {
-    crate::aspect_field_authoring::aspect_key(name).expect("valid aspect key")
-}
-
-fn entity_field_aspect(name: &str, field: &str) -> DeclaredAspectContractBinding {
-    entity_string_field_aspect(name, field).expect("entity field aspect")
-}
-
-fn relation_field_aspect(name: &str, field: &str) -> DeclaredAspectContractBinding {
-    relation_string_field_aspect(name, field).expect("relation field aspect")
-}
-
-fn relation_source_aspect() -> DeclaredAspectContractBinding {
-    relation_source_endpoint_aspect("source").expect("relation source aspect")
-}
-
-fn relation_target_aspect() -> DeclaredAspectContractBinding {
-    relation_target_endpoint_aspect("target").expect("relation target aspect")
 }

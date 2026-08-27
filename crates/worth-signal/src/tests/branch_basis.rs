@@ -1,7 +1,6 @@
-use worth_proof::{AuthorityWitness, TransitionOutcome};
+use worth_proof::TransitionOutcome;
 
 use crate::facade::*;
-use crate::logic::transaction::SignalBranchBasisReadmissionAuthority;
 
 #[test]
 fn branch_basis_digest_survives_snapshot_restore_on_same_branch() {
@@ -167,8 +166,7 @@ fn branch_basis_trust_boundary_bridge_and_readmission_preserve_identity_digest()
         other => panic!("expected tracked snapshot basis, got {other:?}"),
     };
     let bridged = bridge_signal_branch_basis_trust_boundary(basis.clone());
-    let authority =
-        AuthorityWitness::from_authority_marker(SignalBranchBasisReadmissionAuthority::new());
+    let authority = crate::branch::mint_signal_branch_authority();
 
     let readmitted =
         bridged.readmit_with_authority(basis.strong_basis().value().clone(), authority);
@@ -227,4 +225,30 @@ fn branch_basis_snapshot_lane_rejects_untracked_snapshot_without_side_effects() 
         1
     );
     assert_eq!(runtime.telemetry().transaction.branch_basis_denial_count, 1);
+}
+
+#[test]
+fn canonical_runtime_basis_is_foundational_and_forkable_without_head_tuple() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let source = runtime.current_branch();
+    let basis = runtime
+        .observe_signal_branch_basis(source.clone())
+        .expect("live Signal branch should lower to an admitted canonical basis");
+    let observation = basis.observation();
+    assert!(observation.branch_id().as_str().starts_with("signal/"));
+    assert!(observation.target().as_basis().is_some());
+    assert_eq!(observation.generation().get(), 0);
+
+    let forked = runtime
+        .fork_signal_branch("canonical-feature", &basis)
+        .expect("canonical basis should authorize one owner fork");
+    assert_eq!(forked.parent_branch_id, Some(source.id));
+
+    let shared = basis.clone();
+    let second = runtime
+        .fork_signal_branch("canonical-feature-2", &shared)
+        .expect("cloned canonical basis should remain cheaply shareable");
+    assert_eq!(second.parent_branch_id, Some(source.id));
 }

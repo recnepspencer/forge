@@ -16,13 +16,13 @@ fn durability_contract_recovery_rebuilds_branch_heads_and_latest_commit() {
         recovered
             .history()
             .branch_head(&BranchId("feature".to_string())),
-        Some(&feature.commit)
+        Some(feature.commit.clone())
     );
     assert_eq!(
         recovered
             .history()
             .branch_head(&BranchId("main".to_string())),
-        Some(&main.commit)
+        Some(main.commit.clone())
     );
 }
 
@@ -44,7 +44,6 @@ fn durability_contract_recovery_preserves_aspect_bearing_patch_truth_and_history
     let expected_envelope = runtime
         .replay()
         .canonical_commit_envelope(updated.commit.commit_id)
-        .cloned()
         .unwrap();
     let (outcome, recovered) = checkpoint_and_recover_with(&mut runtime, || {
         persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations)
@@ -175,7 +174,7 @@ fn durability_contract_recovery_preserves_branch_local_endpoint_deletion_retirem
     let relation = changed_relations(&relation_outcome)[0];
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -266,10 +265,7 @@ fn durability_contract_recovery_preserves_branch_local_endpoint_deletion_retirem
         crate::facade::inspection::HistoricalInspectionMode::RetainedOnly,
     );
 
-    assert_eq!(
-        outcome.latest_commit,
-        runtime.history().latest_commit().cloned()
-    );
+    assert_eq!(outcome.latest_commit, runtime.history().latest_commit());
     assert_eq!(expected_main_digest, recovered_main_digest);
     assert_eq!(expected_feature_digest, recovered_feature_digest);
     assert_eq!(expected_main_inspection, recovered_main_inspection);

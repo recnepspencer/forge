@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::history::data::{BranchId, CommitId, CommitReference, HistoryDriftClass};
+use crate::history::data::{BranchId, CommitId, HistoryDriftClass, RelationalCommitReceipt};
 use crate::identity::data::VersionId;
 use crate::storage::data::{EntityReadRecord, RelationReadRecord};
 
@@ -79,7 +79,7 @@ pub struct RelationalReplayRequest {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RelationalReplayOutcome {
     pub requested: RelationalReplayRequest,
-    pub commit: Option<CommitReference>,
+    pub commit: Option<RelationalCommitReceipt>,
     pub reconstructed_commit_closure: Vec<CommitId>,
     pub snapshot_version: Option<VersionId>,
     pub lineage_authority_basis: Option<ReplayLineageAuthorityBasis>,

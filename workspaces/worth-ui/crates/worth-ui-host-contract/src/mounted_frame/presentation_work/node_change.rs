@@ -7,6 +7,7 @@ pub struct UiMountedPresentationNodeState {
     allocation: crate::UiMountedAllocationProjection,
     preview: crate::UiMountedPreviewProjection,
     paint: UiMountedPresentationNodePaint,
+    hit_test: UiMountedPresentationNodeHitTest,
     accessibility: crate::UiMountedAccessibilityProjection,
     motion: crate::UiMountedMotionProjection,
     diagnostic: crate::UiMountedDiagnosticProjection,
@@ -16,6 +17,12 @@ pub struct UiMountedPresentationNodeState {
 pub enum UiMountedPresentationNodePaint {
     Command(crate::UiMountedPaintCommandIdentity),
     CountOnlyBatch(u16),
+    Omitted(crate::UiMountedOmissionReason),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum UiMountedPresentationNodeHitTest {
+    Region(crate::UiMountedHitTestMechanic),
     Omitted(crate::UiMountedOmissionReason),
 }
 
@@ -34,6 +41,7 @@ pub struct UiMountedPresentationNodeStateInput {
     pub allocation: crate::UiMountedAllocationProjection,
     pub preview: crate::UiMountedPreviewProjection,
     pub paint: UiMountedPresentationNodePaint,
+    pub hit_test: UiMountedPresentationNodeHitTest,
     pub accessibility: crate::UiMountedAccessibilityProjection,
     pub motion: crate::UiMountedMotionProjection,
     pub diagnostic: crate::UiMountedDiagnosticProjection,
@@ -50,6 +58,7 @@ impl UiMountedPresentationNodeState {
             allocation: input.allocation,
             preview: input.preview,
             paint: input.paint,
+            hit_test: input.hit_test,
             accessibility: input.accessibility,
             motion: input.motion,
             diagnostic: input.diagnostic,
@@ -82,6 +91,10 @@ impl UiMountedPresentationNodeState {
 
     pub const fn paint(self) -> UiMountedPresentationNodePaint {
         self.paint
+    }
+
+    pub const fn hit_test(self) -> UiMountedPresentationNodeHitTest {
+        self.hit_test
     }
 
     pub const fn accessibility(self) -> crate::UiMountedAccessibilityProjection {

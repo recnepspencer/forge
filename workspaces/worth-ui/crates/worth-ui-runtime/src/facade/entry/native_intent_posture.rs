@@ -5,8 +5,9 @@ use super::{
 
 mod execution;
 
+pub(in crate::facade::entry) use execution::DetachedNativeIntentPostureInFlight;
 use execution::{
-    NativeIntentPostureInFlight, NativeIntentPostureIndeterminate,
+    NativeIntentPostureInFlight, NativeIntentPostureIndeterminate, NativeIntentPostureRejected,
     PreparedNativeIntentPostureRebind,
 };
 
@@ -14,6 +15,7 @@ pub enum WorthUiNativeIntentPosturePublicationOutcome<'session> {
     Stopped(WorthUiNativeIntentPosturePublicationStop),
     Published(crate::runtime::rebind::UiRebindReceipt),
     InFlight(WorthUiNativeIntentPosturePublicationCompletion<'session>),
+    RejectedBeforeEffects(WorthUiNativeIntentPosturePublicationRetry<'session>),
     Indeterminate(WorthUiNativeIntentPosturePublicationRecovery<'session>),
     InternalDefect(crate::runtime::rebind::UiRebindInternalDefectOutcome),
 }
@@ -28,8 +30,26 @@ pub struct WorthUiNativeIntentPosturePublicationRecovery<'session> {
     state: Option<Box<NativeIntentPostureIndeterminate<'session>>>,
 }
 
+#[derive(Debug)]
 pub struct WorthUiNativeIntentPosturePublicationStop {
     reason: crate::runtime::intent_execution::UiIntentConsequenceStopReason,
+}
+
+#[must_use = "rejected posture publication retains an exact prepared retry"]
+pub struct WorthUiNativeIntentPosturePublicationRetry<'session> {
+    state: Option<Box<NativeIntentPostureRejected<'session>>>,
+}
+
+#[derive(Debug)]
+pub enum WorthUiNativeManagedIntentPosturePublicationDenial {
+    ManagedRebindAlreadyInFlight,
+    ManagedRebindSessionMismatch,
+}
+
+pub enum WorthUiNativeManagedIntentPosturePublicationOutcome {
+    Published(crate::runtime::rebind::UiRebindReceipt),
+    Pending,
+    Stopped(super::native_managed_rebind::WorthUiNativeManagedRebindStop),
 }
 
 struct NativeIntentPostureTransfer {
@@ -50,6 +70,45 @@ impl WorthUiNativeApplicationShell {
             crate::runtime::rebind::UiRebindExecutionPolicy::ordinary(),
             crate::runtime::rebind::UiRebindExecutionRequest::new(now_tick),
         )
+    }
+
+    /// Begin posture publication through the shell-owned native physical-progress lane.
+    pub fn begin_managed_native_intent_posture_publication(
+        &mut self,
+        posture: WorthUiNativeIntentPosture,
+        now_tick: u64,
+    ) -> Result<
+        WorthUiNativeManagedIntentPosturePublicationOutcome,
+        WorthUiNativeManagedIntentPosturePublicationDenial,
+    > {
+        if self.pending_managed_rebind.is_some() {
+            return Err(
+                WorthUiNativeManagedIntentPosturePublicationDenial::ManagedRebindAlreadyInFlight,
+            );
+        }
+        let outcome = self.publish_native_intent_posture(posture, now_tick);
+        match super::native_managed_rebind::normalize_managed_intent_posture(outcome) {
+            super::native_managed_rebind::ManagedIntentPostureNormalization::Published(receipt) => {
+                Ok(WorthUiNativeManagedIntentPosturePublicationOutcome::Published(receipt))
+            }
+            super::native_managed_rebind::ManagedIntentPostureNormalization::Pending(pending) => {
+                if pending.session_identity() != self.session.session_identity() {
+                    return Err(
+                        WorthUiNativeManagedIntentPosturePublicationDenial::
+                            ManagedRebindSessionMismatch,
+                    );
+                }
+                self.pending_managed_rebind = Some(
+                    super::native_managed_rebind::WorthUiNativePendingManagedRebind::IntentPosture(
+                        pending,
+                    ),
+                );
+                Ok(WorthUiNativeManagedIntentPosturePublicationOutcome::Pending)
+            }
+            super::native_managed_rebind::ManagedIntentPostureNormalization::Stopped(stop) => {
+                Ok(WorthUiNativeManagedIntentPosturePublicationOutcome::Stopped(stop))
+            }
+        }
     }
 }
 
@@ -185,6 +244,15 @@ impl WorthUiActiveApplicationSession {
 impl WorthUiNativeIntentPosturePublicationStop {
     pub const fn reason(&self) -> &crate::runtime::intent_execution::UiIntentConsequenceStopReason {
         &self.reason
+    }
+}
+
+impl WorthUiNativeIntentPosturePublicationStop {
+    pub(super) fn host_rejected(rejection_count: usize) -> Self {
+        Self {
+            reason: crate::runtime::intent_execution::UiIntentConsequenceStopReason::
+                HostRejectedBeforeEffects { rejection_count },
+        }
     }
 }
 

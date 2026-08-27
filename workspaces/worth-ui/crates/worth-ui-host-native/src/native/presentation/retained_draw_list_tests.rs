@@ -41,6 +41,7 @@ fn unchanged_advances_exact_affinity_without_draw_order_or_damage_work() {
     let identity = initial.commands()[0].identity();
     let mut retained = UiNativeRetainedDrawList::initial(&initial, &[]).unwrap();
     let successor = UiMountedFrameIdentity::mint_unbound().unwrap();
+    let successor_receipts = UiMountedNodeReceiptIssuer::mint_for(successor).unwrap();
     let unchanged =
         UiMountedPresentationUnchanged::from_inert_mechanics(UiMountedPresentationUnchangedInput {
             predecessor: frame,
@@ -50,11 +51,20 @@ fn unchanged_advances_exact_affinity_without_draw_order_or_damage_work() {
             content: world.content,
             baseline: world.requirement.baseline(),
             production_cost: Default::default(),
-        });
+        })
+        .with_successor_receipt_affinity(Some(successor_receipts.receipt_affinity()));
     retained.apply_unchanged(&unchanged).unwrap();
     assert_eq!(retained.frame, successor);
     assert_eq!(retained.command(identity), Some(&initial.commands()[0]));
     assert_eq!(retained.order.ordered().count(), 1);
+    assert_eq!(
+        retained.realized_regions().unwrap()[0].mounted_receipt(),
+        successor_receipts.receipt_for(world.first)
+    );
+    assert_eq!(
+        retained.top_paint_attribution().unwrap().1.node_receipt,
+        successor_receipts.receipt_for(world.first)
+    );
 }
 
 #[test]
@@ -85,9 +95,6 @@ fn stale_delta_denies_without_mutating_retained_commands() {
         Err(UiNativeRetainedDrawListDenial::AffinityMismatch)
     ));
     assert_eq!(retained.command(identity), Some(&initial.commands()[0]));
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-STALE-DELTA-01\":\"stale-affinity-acceptance\"}}"
-    );
 }
 
 pub(in crate::native::presentation) struct DrawListWorld {

@@ -235,13 +235,6 @@ fn mixed_bidi_native_runs_keep_logical_paint_ownership() {
         .visual_runs()
         .iter()
         .any(|run| !run.bidi_level().is_multiple_of(2)));
-    println!(
-        "WORTH_UI_LEDGER_CASES={{\"P5-TEXT-SPAN-PAINT-01\":[\"mixed-bidi-logical-ranges\",\"two-logical-foregrounds\",\"native-glyph-run-attribution\",\"paint-only-layout-reuse\",\"paint-only-raster-key-reuse\",\"affected-command-locality\"]}}"
-    );
-    println!(
-        "WORTH_UI_LEDGER_COUNTERS={{\"P5-TEXT-SPAN-PAINT-01\":{}}}",
-        mechanic.foregrounds().len()
-    );
 }
 
 #[test]
@@ -268,12 +261,6 @@ fn single_color_and_logical_order_mutants_disagree_with_native_runs() {
     logical_order.sort_by_key(|(range, _)| range.start());
     assert_ne!(observed, single_color);
     assert_ne!(observed, logical_order);
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CASES={{\"P5-TEXT-SPAN-PAINT-01\":[\"single-color\",\"logical-order-rendering\"]}}"
-    );
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P5-TEXT-SPAN-PAINT-01\":\"single-color-or-visual-order-or-layout-regen\"}}"
-    );
 }
 
 fn mixed_bidi_paint_world() -> (

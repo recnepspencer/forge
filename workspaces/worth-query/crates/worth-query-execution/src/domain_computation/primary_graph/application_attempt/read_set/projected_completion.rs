@@ -119,11 +119,11 @@ impl<Schema, Operation, Input, Scope>
                         entity,
                     )
                 })?;
-                let value = self
+                let observation = self
                     .lease
                     .handle()
                     .with_runtime(|runtime| {
-                        super::super::observation::observe_field_value(
+                        super::super::observation::observe_field(
                             runtime,
                             self.lease.snapshot(),
                             *entity_id,
@@ -137,15 +137,32 @@ impl<Schema, Operation, Input, Scope>
                             entity,
                         )
                     })?;
-                Ok((
-                    read_scope,
-                    WorthQueryApplicationObservedFact::Field {
+                let fact = match observation {
+                    super::super::observation::WorthQueryApplicationFieldObservation::Present(
+                        value,
+                    ) => WorthQueryApplicationObservedFact::Field {
                         entity_id: *entity_id,
                         kind,
                         locator: locator.clone(),
                         value,
                     },
-                ))
+                    super::super::observation::WorthQueryApplicationFieldObservation::Absent
+                        if self.layout.field_is_optional(entity, locator) =>
+                    {
+                        WorthQueryApplicationObservedFact::AbsentField {
+                            entity_id: *entity_id,
+                            kind,
+                            locator: locator.clone(),
+                        }
+                    }
+                    super::super::observation::WorthQueryApplicationFieldObservation::Absent => {
+                        return Err(denial(
+                            WorthQueryApplicationAttemptDenialKind::MissingAuthoritativeFact,
+                            entity,
+                        ));
+                    }
+                };
+                Ok((read_scope, fact))
             }
             WorthQueryApplicationFactKey::Relation { relation, from, to } => {
                 let layout = self.layout.relation(relation).ok_or_else(|| {

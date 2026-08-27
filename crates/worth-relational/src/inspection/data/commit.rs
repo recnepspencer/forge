@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::history::data::{BranchId, CommitReference};
+use crate::history::data::{BranchId, RelationalCommitReceipt};
 use crate::indexes::data::DerivedIndexArtifacts;
 use crate::lineage::data::{LineageArtifactCounters, LineageDigestBasis, LineageEventRecord};
 use crate::transactions::data::RecordRef;
@@ -10,7 +10,7 @@ use super::{InspectionAccessPath, InspectionOrigin};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CommitInspection {
-    pub commit: CommitReference,
+    pub commit: RelationalCommitReceipt,
     pub changed_records: Vec<RecordRef>,
     pub lineage_event_ids: Vec<u64>,
     pub lineage_events: Vec<LineageEventRecord>,
@@ -31,7 +31,7 @@ pub struct RecentCommitInspectionRequest {
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[must_use]
 pub struct RecentCommitInspectionWindow {
-    pub branch_head: Option<CommitReference>,
+    pub branch_head: Option<RelationalCommitReceipt>,
     pub commits: Vec<CommitInspection>,
     pub origin: InspectionOrigin,
     pub access_path: InspectionAccessPath,

@@ -1,4 +1,5 @@
 use super::*;
+use worth_foundational::{FoundationalBranchReferenceObservation, FoundationalBranchTarget};
 
 #[test]
 fn durability_contract_checkpoint_tail_recovery_preserves_post_checkpoint_commits() {
@@ -18,7 +19,7 @@ fn durability_contract_checkpoint_tail_recovery_preserves_post_checkpoint_commit
         recovered
             .history()
             .branch_head(&BranchId("main".to_string())),
-        Some(&later.commit)
+        Some(later.commit.clone())
     );
     assert_eq!(
         recovered
@@ -28,6 +29,119 @@ fn durability_contract_checkpoint_tail_recovery_preserves_post_checkpoint_commit
             .commit
             .commit_id,
         main.commit.commit_id
+    );
+}
+
+#[test]
+fn durability_contract_recovery_fails_closed_without_exact_branch_cells() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&mut runtime, "branch-cell-required");
+    runtime.durability_authority().checkpoint().unwrap();
+    let mut plan = runtime.durability().recovery_plan(
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+    );
+    plan.checkpoint
+        .as_mut()
+        .expect("checkpoint is selected")
+        .branch_cells
+        .clear();
+
+    let mut recovered = persisted_runtime_with_test_schema();
+    let error = recovered
+        .durability_authority()
+        .recover(plan)
+        .expect_err("recovery must not synthesize branch cells from legacy heads");
+    assert_eq!(error.class, RecoveryFailureClass::CorruptCheckpoint);
+    assert!(error
+        .detail
+        .contains("durable checkpoint omitted exact branch-cell state"));
+    assert_eq!(recovered.history().immutable_commit_count(), 0);
+    assert!(recovered
+        .history()
+        .branch_head(&BranchId("main".to_owned()))
+        .is_none());
+}
+
+#[test]
+fn durability_contract_recovery_rejects_branch_cell_target_without_catalog_artifact() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&mut runtime, "branch-cell-artifact-required");
+    runtime.durability_authority().checkpoint().unwrap();
+    let mut plan = runtime.durability().recovery_plan(
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+    );
+    let checkpoint = plan.checkpoint.as_mut().expect("checkpoint is selected");
+    let main_cell = checkpoint
+        .branch_cells
+        .iter_mut()
+        .find(|cell| cell.branch_id == BranchId("main".to_owned()))
+        .expect("main branch cell is checkpointed");
+    let target = crate::branch::RelationalBranchTarget::new(
+        main_cell.runtime_instance_id,
+        u64::MAX,
+        u64::MAX,
+        Vec::new(),
+        crate::branch::RelationalBranchRootDescriptor::new([9; 32], [8; 32]),
+    );
+    main_cell.observation = FoundationalBranchReferenceObservation::new(
+        main_cell.observation.branch_id().clone(),
+        FoundationalBranchTarget::basis(target),
+        main_cell.observation.generation(),
+    );
+
+    let mut recovered = persisted_runtime_with_test_schema();
+    let error = recovered
+        .durability_authority()
+        .recover(plan)
+        .expect_err("recovery must reject a branch target with no immutable artifact");
+    assert_eq!(error.class, RecoveryFailureClass::CorruptCheckpoint);
+    assert!(error.detail.contains("references missing commit artifact"));
+    assert_eq!(recovered.history().immutable_commit_count(), 0);
+    assert!(recovered
+        .history()
+        .branch_head(&BranchId("main".to_owned()))
+        .is_none());
+}
+
+#[test]
+fn durability_contract_recovery_rejects_tail_checkpoint_drift_before_mutation() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    let _first = create_entity_outcome(&mut runtime, "checkpoint-basis");
+    runtime.durability_authority().checkpoint().unwrap();
+    let second = create_entity_outcome(&mut runtime, "tail-commit");
+    let mut plan = runtime.durability().recovery_plan(
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+    );
+    let tail = plan
+        .tail_log
+        .iter_mut()
+        .map(|commit| commit.envelope_mut_for_test())
+        .find(|envelope| envelope.commit.commit_id == second.commit.commit_id)
+        .expect("tail contains the post-checkpoint commit");
+    let checkpoint = tail
+        .branch_cell_checkpoint
+        .as_mut()
+        .expect("tail envelope carries its exact pre-commit branch cell");
+    checkpoint.truth_version = crate::branch::RelationalBranchVersion::new(
+        checkpoint.truth_version.as_u64().saturating_add(1),
+    );
+
+    let mut recovered = persisted_runtime_with_test_schema();
+    let error = recovered
+        .durability_authority()
+        .recover(plan)
+        .expect_err("recovery must reject a mismatching existing branch checkpoint");
+    assert_eq!(error.class, RecoveryFailureClass::CorruptCheckpoint);
+    assert!(error
+        .detail
+        .contains("recovery branch-cell state conflicts"));
+    assert!(recovered.history().immutable_commit_count() <= 1);
+    assert_ne!(
+        recovered
+            .history()
+            .branch_head(&BranchId("main".to_owned()))
+            .map(|head| head.commit_id),
+        Some(second.commit.commit_id)
     );
 }
 
@@ -66,43 +180,22 @@ fn durability_contract_checkpoint_recovers_index_metadata() {
 }
 
 #[test]
-fn durability_contract_checkpoint_recovers_lineage_metadata() {
+fn durability_contract_checkpoint_recovers_lineage_authority() {
     let mut runtime = persisted_runtime_with_test_schema();
     let first = create_entity_outcome(&mut runtime, "first");
     let second = create_entity_outcome(&mut runtime, "second");
+    let first_entity = changed_entities(&first)[0];
+    let second_entity = changed_entities(&second)[0];
     let first_lineage = runtime
         .lineage_access()
-        .for_record(changed_entities(&first)[0])
+        .for_record(first_entity)
         .unwrap()
         .lineage_id;
     let second_lineage = runtime
         .lineage_access()
-        .for_record(changed_entities(&second)[0])
+        .for_record(second_entity)
         .unwrap()
         .lineage_id;
-    let candidate = runtime.lineage_authority().record_correspondence_candidate(
-        BranchId("main".to_string()),
-        vec![first_lineage],
-        vec![second_lineage],
-        "recover-me",
-    );
-    runtime
-        .lineage_authority()
-        .promote_correspondence(candidate.candidate_id, second.commit.clone())
-        .unwrap();
-    let rejected_candidate = runtime.lineage_authority().record_correspondence_candidate(
-        BranchId("main".to_string()),
-        vec![LineageId(999)],
-        vec![LineageId(1000)],
-        "reject-me",
-    );
-    let rejected_resolution = runtime
-        .lineage_authority()
-        .promote_correspondence(rejected_candidate.candidate_id, second.commit.clone());
-    assert_eq!(
-        rejected_resolution,
-        Err(CorrespondencePromotionRejectionClass::MissingLineageReference)
-    );
     let checkpoint = runtime.durability_authority().checkpoint().unwrap();
     assert_eq!(
         checkpoint
@@ -144,14 +237,6 @@ fn durability_contract_checkpoint_recovers_lineage_metadata() {
         checkpoint.lineage.counters().node_count,
         checkpoint.lineage.nodes().len()
     );
-    assert_eq!(
-        checkpoint.lineage.counters().correspondence_candidate_count,
-        checkpoint.lineage.correspondence_candidates().len()
-    );
-    assert_eq!(
-        checkpoint.lineage.counters().rejected_decision_count,
-        checkpoint.lineage.rejected_decisions().len()
-    );
     let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
@@ -166,24 +251,27 @@ fn durability_contract_checkpoint_recovers_lineage_metadata() {
         });
 
     assert_eq!(graph.nodes.len(), 2);
+    assert_eq!(graph.events.len(), 2);
     assert!(graph
         .events
         .iter()
-        .any(|event| event.kind == LineageEventKind::Correspond));
-    assert!(graph
-        .correspondence_candidates
-        .iter()
-        .any(|entry| entry.candidate_id == candidate.candidate_id));
-    assert!(recovered
-        .lineage_access()
-        .rejected_decisions_snapshot()
-        .iter()
-        .any(|decision| {
-            decision.kind == LineageDecisionKind::CorrespondencePromotionRejected
-                && decision.candidate_id == Some(rejected_candidate.candidate_id)
-                && decision.rejection_class
-                    == Some(CorrespondencePromotionRejectionClass::MissingLineageReference)
-        }));
+        .all(|event| event.kind == LineageEventKind::Create));
+    assert_eq!(
+        recovered
+            .lineage_access()
+            .for_record(first_entity)
+            .unwrap()
+            .lineage_id(),
+        first_lineage
+    );
+    assert_eq!(
+        recovered
+            .lineage_access()
+            .for_record(second_entity)
+            .unwrap()
+            .lineage_id(),
+        second_lineage
+    );
 }
 
 #[test]
@@ -218,7 +306,7 @@ fn durability_contract_corrupt_latest_checkpoint_falls_back_to_prior_valid_check
         recovered
             .history()
             .branch_head(&BranchId("main".to_string())),
-        Some(&second.commit)
+        Some(second.commit.clone())
     );
     assert!(recovered
         .replay()

@@ -1,7 +1,7 @@
 use worth_foundational::{
     foundational_branch_candidate, foundational_merge, BoundaryEpoch, BoundaryHandle,
     CanonicalDigestId, EquivalenceBasisId, FoundationalBranchCandidateId,
-    FoundationalBranchForkBasis, FoundationalBranchId, FoundationalBranchObservationBasis,
+    FoundationalBranchCandidateForkBasis, FoundationalBranchId, FoundationalBranchCandidateObservationBasis,
     FoundationalMergeBaseSelectionBasis, FoundationalMergeBasis, FoundationalMergeIntent,
     FoundationalMergeStructuralSummary, FoundationalStrategyBasis,
     FoundationalTransitionBasisFamily, FoundationalTransitionBasisIdentity,
@@ -17,11 +17,11 @@ fn main() {
     let source = foundational_branch_candidate()
         .on_branch(FoundationalBranchId::new("feature/geometry").unwrap())
         .with_candidate_id(FoundationalBranchCandidateId::new(BoundaryHandle::new(7)))
-        .from_fork_basis(FoundationalBranchForkBasis::new(
+        .from_fork_basis(FoundationalBranchCandidateForkBasis::new(
             FoundationalBranchId::new("main").unwrap(),
             BoundaryEpoch::new(4),
         ))
-        .under_observation_basis(FoundationalBranchObservationBasis::new(
+        .under_observation_basis(FoundationalBranchCandidateObservationBasis::new(
             EquivalenceBasisId::new(31),
             BoundaryEpoch::new(5),
         ))

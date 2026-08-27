@@ -2,7 +2,7 @@ use worth_relational::facade::identity::PartitionId;
 use worth_relational::facade::symbols::ClientKey;
 use worth_relational::facade::transactions::{
     AspectFieldPatch, CreateIntent, EntityReference, MutationIntent, RelationSpec,
-    TransactionOptions, WorkerIntentBatch,
+    WorkerIntentBatch,
 };
 
 use super::super::super::application_attempt::authenticated_principal;
@@ -89,7 +89,17 @@ fn add_approver_conflict(world: &super::super::super::fixture::AuthorizationWorl
         .kind;
     let handle = graph.integration_handle();
     handle.with_runtime_mut(|runtime| {
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction = {
+            let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
+            runtime
+                .begin_branch_transaction(
+                    &transaction_validation_input,
+                    worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                )
+                .expect("owner-admitted transaction context")
+        };
         transaction.push_batch(WorkerIntentBatch::new("add-approver-conflict").push(
             MutationIntent::Create(CreateIntent::Relation(RelationSpec {
                 partition_id: PartitionId::main(),
@@ -100,7 +110,7 @@ fn add_approver_conflict(world: &super::super::super::fixture::AuthorizationWorl
                 fields: AspectFieldPatch::default(),
             })),
         ));
-        transaction.commit().unwrap();
+        transaction.commit(runtime).unwrap();
         handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }

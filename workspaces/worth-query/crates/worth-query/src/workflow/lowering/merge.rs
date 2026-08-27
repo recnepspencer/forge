@@ -78,11 +78,11 @@ pub(crate) fn lower_merge_workflow_declaration(
     let freshness_binding = merge_freshness_binding(declaration.binding());
     ensure_merge_freshness_policy(declaration.request().freshness_policy(), &freshness_binding)?;
     let staleness_class = merge_staleness_class(&freshness_binding);
-    let merge_request = MergeExecutionRequest {
-        target_branch: input.target_branch().clone(),
-        source_branch: input.source_branch().clone(),
-        merge_intent: MergeIntent::ReconcileIntoTarget,
-    };
+    let merge_request = MergeExecutionRequest::new(
+        input.target_branch().clone(),
+        input.source_branch().clone(),
+        MergeIntent::ReconcileIntoTarget,
+    );
     let lowering_identity =
         merge_lowering_identity(declaration, &input, &freshness_binding, &staleness_class);
 

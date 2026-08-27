@@ -10,57 +10,52 @@ impl UiNativeApplicationProgramProgress {
         program_frame: usize,
         authority: worth_ui_host_native::UiNativePhysicalPresentationCorrelation,
     ) -> Result<(), ()> {
-        for _ in 0..2 {
-            self.next_completion_tick = self.next_completion_tick.saturating_add(1);
-            let outcome =
-                shell.reconstruct_current_presentation(u64::MAX, self.next_completion_tick)?;
-            let progress = self.retain_or_attribute(
-                shell,
-                outcome,
-                program_frame,
-                None,
-                Some(UiNativeProgramReconstructionAuthority::Physical(authority)),
-                false,
-            )?;
-            match progress {
-                FrameProgress::Retained => return Ok(()),
-                FrameProgress::Settled => {
-                    self.physical_recovery
-                        .commit_settlement(authority)
-                        .map_err(|_| ())?;
-                    return self.advance(shell);
-                }
-                FrameProgress::RetryRequired => {}
-                FrameProgress::Failed => return Err(()),
-            }
+        let authority = UiNativeProgramReconstructionAuthority::Physical(authority);
+        let progress = self.attempt_reconstruction(shell, program_frame, authority)?;
+        if self.settle_reconstruction_attempt(program_frame, authority, progress)? {
+            self.advance(shell)?;
         }
-        Err(())
+        Ok(())
     }
 
-    pub(super) fn resume_host_reconstruction(
+    fn attempt_reconstruction(
         &mut self,
         shell: &mut WorthUiNativeApplicationShell,
         program_frame: usize,
-    ) -> Result<(), ()> {
-        for _ in 0..2 {
-            self.next_completion_tick = self.next_completion_tick.saturating_add(1);
-            let outcome =
-                shell.reconstruct_current_presentation(u64::MAX, self.next_completion_tick)?;
-            match self.retain_or_attribute(
-                shell,
-                outcome,
-                program_frame,
-                None,
-                Some(UiNativeProgramReconstructionAuthority::HostRequired),
-                false,
-            )? {
-                FrameProgress::Retained => return Ok(()),
-                FrameProgress::Settled => return self.advance(shell),
-                FrameProgress::RetryRequired => {}
-                FrameProgress::Failed => return Err(()),
+        authority: UiNativeProgramReconstructionAuthority,
+    ) -> Result<FrameProgress, ()> {
+        self.next_completion_tick = self.next_completion_tick.saturating_add(1);
+        let outcome = shell
+            .reconstruct_current_presentation(u64::MAX, self.next_completion_tick)
+            .map_err(|_| ())?;
+        self.retain_or_attribute(shell, outcome, program_frame, None, Some(authority), false)
+    }
+
+    fn settle_reconstruction_attempt(
+        &mut self,
+        _program_frame: usize,
+        authority: UiNativeProgramReconstructionAuthority,
+        progress: FrameProgress,
+    ) -> Result<bool, ()> {
+        match progress {
+            FrameProgress::Retained => Ok(false),
+            FrameProgress::Settled => {
+                if let UiNativeProgramReconstructionAuthority::Physical(correlation) = authority {
+                    self.physical_recovery
+                        .commit_settlement(correlation)
+                        .map_err(|_| ())?;
+                }
+                Ok(true)
             }
+            FrameProgress::RetryRequired(retry_readiness) => {
+                let _ = retry_readiness;
+                if self.pending_retry.is_none() {
+                    return Err(());
+                }
+                Ok(false)
+            }
+            FrameProgress::Failed => Err(()),
         }
-        Err(())
     }
 }
 

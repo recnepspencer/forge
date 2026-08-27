@@ -12,6 +12,18 @@ pub(crate) struct WorthUiMountedContentRebindInFlight<'session> {
     publication: WorthUiMountedContentPublication,
 }
 
+pub(crate) struct WorthUiDetachedPreparedMountedContentRebind {
+    session_identity: crate::facade::WorthUiActiveApplicationSessionIdentity,
+    frame: crate::mounting::UiPreparedMountedFrame,
+    publication: WorthUiMountedContentPublication,
+}
+
+pub(crate) struct WorthUiDetachedMountedContentRebindInFlight {
+    session_identity: crate::facade::WorthUiActiveApplicationSessionIdentity,
+    mounted: crate::mounting::UiMountedPresentationInFlight,
+    publication: WorthUiMountedContentPublication,
+}
+
 pub(crate) struct WorthUiMountedContentRebindIndeterminate<'session> {
     session: &'session mut WorthUiActiveApplicationSession,
     frame: crate::mounting::UiMountedIndeterminateFrame,
@@ -79,6 +91,19 @@ impl<'session> WorthUiPreparedMountedContentRebind<'session> {
         &self.frame
     }
 
+    pub(crate) fn detach(self: Box<Self>) -> WorthUiDetachedPreparedMountedContentRebind {
+        let Self {
+            session,
+            frame,
+            publication,
+        } = *self;
+        WorthUiDetachedPreparedMountedContentRebind {
+            session_identity: session.session_identity(),
+            frame,
+            publication,
+        }
+    }
+
     pub(crate) fn present(
         self: Box<Self>,
         deadline: worth_ui_host_contract::UiPresentationDeadline,
@@ -103,6 +128,19 @@ impl<'session> WorthUiMountedContentRebindInFlight<'session> {
         self.mounted.deadline()
     }
 
+    pub(crate) fn detach(self: Box<Self>) -> WorthUiDetachedMountedContentRebindInFlight {
+        let Self {
+            session,
+            mounted,
+            publication,
+        } = *self;
+        WorthUiDetachedMountedContentRebindInFlight {
+            session_identity: session.session_identity(),
+            mounted,
+            publication,
+        }
+    }
+
     pub(crate) fn complete(
         self: Box<Self>,
         now: u64,
@@ -124,6 +162,101 @@ impl<'session> WorthUiMountedContentRebindInFlight<'session> {
         } = *self;
         let outcome = session.supersede_mounted_presentation(mounted);
         finish(session, outcome, publication)
+    }
+}
+
+impl WorthUiDetachedPreparedMountedContentRebind {
+    pub(crate) const fn session_identity(
+        &self,
+    ) -> crate::facade::WorthUiActiveApplicationSessionIdentity {
+        self.session_identity
+    }
+
+    pub(crate) fn attach<'session>(
+        self,
+        session: &'session mut WorthUiActiveApplicationSession,
+    ) -> Box<WorthUiPreparedMountedContentRebind<'session>> {
+        Box::new(WorthUiPreparedMountedContentRebind {
+            session,
+            frame: self.frame,
+            publication: self.publication,
+        })
+    }
+
+    pub(crate) fn rebase<'session>(
+        self,
+        session: &'session mut WorthUiActiveApplicationSession,
+        semantic_content: crate::mounting::UiMountedSemanticContentInput,
+    ) -> Result<
+        Box<WorthUiPreparedMountedContentRebind<'session>>,
+        crate::runtime::rebind::UiRebindPreparationDenial,
+    > {
+        let completion = session.execute_framework_turn(|_| {}).map_err(|_| {
+            crate::runtime::rebind::UiRebindPreparationDenial::FrameBoundaryUnavailable
+        })?;
+        let execution = completion.into_execution().map_err(|_| {
+            crate::runtime::rebind::UiRebindPreparationDenial::FrameBoundaryUnavailable
+        })?;
+        let theme_values = execution.presentation.theme_values_source();
+        let frame = execution
+            .prepare_mounted_frame_with_content_internal(
+                crate::mounting::UiMountedFrameRequest::all_bound_surfaces(),
+                semantic_content,
+                theme_values,
+            )
+            .map_err(|denial| {
+                crate::runtime::rebind::UiRebindPreparationDenial::ContentMountedPreparation(
+                    Box::new(denial),
+                )
+            })?;
+        Ok(Box::new(WorthUiPreparedMountedContentRebind {
+            session,
+            frame,
+            publication: self.publication,
+        }))
+    }
+}
+
+impl WorthUiDetachedMountedContentRebindInFlight {
+    pub(crate) fn session_identity(
+        &self,
+    ) -> crate::facade::WorthUiActiveApplicationSessionIdentity {
+        self.session_identity
+    }
+
+    pub(crate) fn attempt(&self) -> worth_ui_host_contract::UiMountedPresentationAttemptIdentity {
+        self.mounted.attempt()
+    }
+
+    pub(crate) fn awaits_progress_class(
+        &self,
+        class: worth_ui_host_contract::UiHostPresentationProgressClass,
+    ) -> bool {
+        self.mounted.awaits_progress_class(class)
+    }
+
+    pub(crate) fn pending_bindings(
+        &self,
+    ) -> impl ExactSizeIterator<Item = worth_ui_host_contract::UiSurfaceBindingGeneration> + '_
+    {
+        self.mounted.pending_bindings()
+    }
+
+    pub(crate) fn complete<'session>(
+        self,
+        session: &'session mut WorthUiActiveApplicationSession,
+        now: u64,
+    ) -> WorthUiMountedContentRebindOutcome<'session> {
+        let outcome = session.complete_mounted_presentation(self.mounted, now);
+        finish(session, outcome, self.publication)
+    }
+
+    pub(crate) fn cancel<'session>(
+        self,
+        session: &'session mut WorthUiActiveApplicationSession,
+    ) -> WorthUiMountedContentRebindOutcome<'session> {
+        let outcome = session.cancel_mounted_presentation(self.mounted);
+        finish(session, outcome, self.publication)
     }
 }
 

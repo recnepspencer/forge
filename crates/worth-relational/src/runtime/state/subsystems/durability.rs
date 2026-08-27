@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
 use crate::durability::data::{DurableCheckpoint, DurableStore};
-use crate::history::data::CanonicalCommitEnvelope;
-use crate::history::data::CommitId;
+use crate::history::data::{CommitId, PositionedCanonicalCommit};
 use crate::runtime::state::subsystems::RuntimeSubsystem;
 use crate::runtime::RelationalRuntimeConfig;
 
@@ -14,11 +13,13 @@ pub(crate) struct CheckpointEnvelopeLocation {
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct DurabilitySubsystem {
-    pub(crate) log: Vec<CanonicalCommitEnvelope>,
+    pub(crate) log: Vec<PositionedCanonicalCommit>,
     pub(crate) checkpoints: Vec<DurableCheckpoint>,
     pub(crate) log_commit_index: HashMap<CommitId, usize>,
     pub(crate) checkpoint_commit_index: HashMap<CommitId, CheckpointEnvelopeLocation>,
     pub(crate) store: Option<DurableStore>,
+    #[cfg(any(test, feature = "test-durability-faults"))]
+    pub(crate) fail_next_append: bool,
 }
 
 impl DurabilitySubsystem {
@@ -38,20 +39,22 @@ impl DurabilitySubsystem {
                     segments: Vec::new(),
                     checkpoints: Vec::new(),
                 }),
+            #[cfg(any(test, feature = "test-durability-faults"))]
+            fail_next_append: false,
         }
     }
 
-    pub(crate) fn push_log_envelope(&mut self, envelope: CanonicalCommitEnvelope) {
-        let commit_id = envelope.commit.commit_id;
+    pub(crate) fn push_log_envelope(&mut self, commit: PositionedCanonicalCommit) {
+        let commit_id = commit.envelope().commit.commit_id;
         self.log_commit_index.insert(commit_id, self.log.len());
-        self.log.push(envelope);
+        self.log.push(commit);
     }
 
     pub(crate) fn push_checkpoint(&mut self, checkpoint: DurableCheckpoint) {
         let checkpoint_index = self.checkpoints.len();
         for (envelope_index, envelope) in checkpoint.envelopes.iter().enumerate() {
             self.checkpoint_commit_index.insert(
-                envelope.commit.commit_id,
+                envelope.envelope().commit.commit_id,
                 CheckpointEnvelopeLocation {
                     checkpoint_index,
                     envelope_index,
@@ -61,7 +64,7 @@ impl DurabilitySubsystem {
         self.checkpoints.push(checkpoint);
     }
 
-    pub(crate) fn set_log(&mut self, log: Vec<CanonicalCommitEnvelope>) {
+    pub(crate) fn set_log(&mut self, log: Vec<PositionedCanonicalCommit>) {
         self.log = log;
         self.rebuild_log_commit_index();
     }
@@ -70,14 +73,15 @@ impl DurabilitySubsystem {
         self.log_commit_index.clear();
         for (index, envelope) in self.log.iter().enumerate() {
             self.log_commit_index
-                .insert(envelope.commit.commit_id, index);
+                .insert(envelope.envelope().commit.commit_id, index);
         }
     }
 
     #[cfg(test)]
     pub(crate) fn remove_log_commit(&mut self, commit_id: CommitId) -> bool {
         let before = self.log.len();
-        self.log.retain(|entry| entry.commit.commit_id != commit_id);
+        self.log
+            .retain(|entry| entry.envelope().commit.commit_id != commit_id);
         let changed = before != self.log.len();
         if changed {
             self.rebuild_log_commit_index();
@@ -96,7 +100,7 @@ impl DurabilitySubsystem {
     pub(crate) fn durable_log_envelope(
         &self,
         commit_id: CommitId,
-    ) -> Option<&CanonicalCommitEnvelope> {
+    ) -> Option<&PositionedCanonicalCommit> {
         self.log_commit_index
             .get(&commit_id)
             .and_then(|index| self.log.get(*index))
@@ -105,7 +109,7 @@ impl DurabilitySubsystem {
     pub(crate) fn checkpoint_envelope(
         &self,
         commit_id: CommitId,
-    ) -> Option<&CanonicalCommitEnvelope> {
+    ) -> Option<&PositionedCanonicalCommit> {
         let location = self.checkpoint_commit_index.get(&commit_id)?;
         self.checkpoints
             .get(location.checkpoint_index)

@@ -10,7 +10,7 @@ use crate::facade::merge::{
 };
 use crate::facade::transactions::{
     DeleteEntityIntent, EntityMutationIntent, MutationIntent, TransactionCommitError,
-    TransactionId, TransactionOptions, WorkerIntentBatch,
+    TransactionId, WorkerIntentBatch,
 };
 use crate::tests::support::{
     create_branch_from_main, create_entity, create_entity_outcome_on_branch, delete_entity,
@@ -264,14 +264,14 @@ fn branch_local_delete_allowance_does_not_make_same_branch_stale_delete_legal() 
     let mut runtime = persisted_runtime_with_test_schema();
     let entity = create_entity(&mut runtime, "shared");
     delete_entity(&mut runtime, entity);
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("stale-delete").push(MutationIntent::Entity(
             EntityMutationIntent::Delete(DeleteEntityIntent { entity_id: entity }),
         )),
     );
 
-    match txn.commit() {
+    match txn.commit(&mut runtime) {
         Err(TransactionCommitError::Conflict { error, .. }) => {
             assert_eq!(
                 error.code(),

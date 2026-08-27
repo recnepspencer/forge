@@ -1,3 +1,4 @@
+mod capture;
 mod derived_state_reconstruction;
 mod event_loop;
 mod graphics;
@@ -5,6 +6,7 @@ mod host_state;
 #[cfg(test)]
 mod host_state_lifecycle_tests;
 mod input;
+mod lifecycle;
 mod lifecycle_protocol;
 mod mechanics_adapter;
 mod observation;
@@ -14,38 +16,48 @@ mod presentation;
 mod readiness;
 #[cfg(feature = "certification-support")]
 mod readiness_certification;
-mod resource_census;
-mod resource_ownership;
-mod resource_registry;
 mod text_atlas;
 
+#[cfg(feature = "certification-support")]
+pub use capture::{UiNativeCaptureExternalObservation, UiNativeCaptureProtocolWorld};
 pub use derived_state_reconstruction::{
     UiNativeDerivedStateLossClass, UiNativeDerivedStateReconstructionObservation,
 };
+#[cfg(feature = "certification-support")]
 pub use event_loop::{
-    UiNativeClientAuthoredMountedInstanceObservation, UiNativeClientConditionalOutcome,
-    UiNativeClientDerivedStateLossClass, UiNativeClientDerivedStateReconstructionObservation,
+    certify_client_close_with_queued_readiness, UiNativeQueuedReadinessCloseCertification,
+};
+pub use event_loop::{
+    UiNativeApplicationReadinessGrant, UiNativeApplicationReadinessOwnerCount,
+    UiNativeApplicationReadinessOwnerCountDenial, UiNativeClientAuthoredMountedInstanceObservation,
+    UiNativeClientConditionalOutcome, UiNativeClientDerivedStateLossClass,
+    UiNativeClientDerivedStateReconstructionObservation,
     UiNativeClientObservationIngressObservation, UiNativeClientPresentationAttribution,
     UiNativeClientPresentationMechanicIdentityObservation,
     UiNativeClientPresentationSemanticChange,
     UiNativeClientPresentationSemanticFrontierObservation,
     UiNativeClientPresentationSemanticSubscriberObservation,
     UiNativeClientPresentationTransitionKind, UiNativeClientPresentationTransitionObservation,
-    UiNativeClientResourceObservation, UiNativeClientShutdownObservation,
-    UiNativeClientTextPresentationWorkObservation, UiNativeEventLoopCleanup,
-    UiNativeEventLoopClient, UiNativeEventLoopClientCleanup, UiNativeEventLoopClientClose,
-    UiNativeEventLoopDirective, UiNativeEventLoopRunDenial, UiNativeEventLoopRunReport,
-    UiNativeEventLoopStopReport, UiNativeEventLoopThreadPosture, UiNativeObservationReadinessGrant,
+    UiNativeClientResourceObservation, UiNativeClientShutdownAttemptDisposition,
+    UiNativeClientShutdownAttemptObservation, UiNativeClientShutdownObservation,
+    UiNativeClientTextPresentationWorkObservation, UiNativeClientVisualCoordinateOrientation,
+    UiNativeClientVisualCoordinateRounding, UiNativeClientVisualPixelColorSpace,
+    UiNativeClientVisualSnapshotInput, UiNativeClientVisualSnapshotObservation,
+    UiNativeClientVisualSnapshotRelation, UiNativeEventLoopCleanup, UiNativeEventLoopClient,
+    UiNativeEventLoopClientCleanup, UiNativeEventLoopClientClose, UiNativeEventLoopDirective,
+    UiNativeEventLoopRunDenial, UiNativeEventLoopRunReport,
+    UiNativeEventLoopShutdownOverlapObservation, UiNativeEventLoopStopReport,
+    UiNativeEventLoopThreadPosture, UiNativeInputReachability, UiNativeObservationReadinessGrant,
     UiNativePhysicalPresentationCorrelation, UiNativePhysicalProgressClass,
     UiNativePhysicalProgressGrant, UiNativeReadinessGrant, WorthUiNativeEventLoop,
 };
 #[cfg(test)]
 pub(crate) use graphics::QUALIFIED_DX12_PRESENTATION_SYSTEM;
 pub(crate) use graphics::{
-    UiNativeGraphics, UiNativeGraphicsPort, UiNativeOwnedGraphics, UiWgpuNativeGraphicsPort,
+    UiNativeDeviceGeneration, UiNativeGraphicsRecovery, UiNativeOwnedDevice,
 };
-pub use host_state::UiNativeEffectPosture;
 pub(crate) use host_state::UiNativeHostState;
+pub use host_state::{UiNativeEffectPosture, UiNativePresentationEffectPhase};
 #[cfg(feature = "certification-support")]
 pub use input::{UiNativeInputObservationContract, UiNativeInputObservationContractDisposition};
 pub(crate) use input::{
@@ -54,7 +66,23 @@ pub(crate) use input::{
 };
 pub use input::{
     UiNativeInputObservationEventFamily, UiNativeInputObservationReport,
-    UiNativeInputObservationStop, UiNativePointerButtonObservation,
+    UiNativeInputObservationStop, UiNativePointerButtonObservation, UiNativeScrollDeltaObservation,
+};
+pub use lifecycle::UiNativeResourceCensus;
+pub(crate) use lifecycle::{
+    prepare_external_recovery, UiNativeLifecycleDirective, UiNativeOwnedResource,
+    UiNativePresentationAccess, UiNativePresentationRetryFinalization,
+    UiNativePresentationRetryWake, UiNativeRecoveryCause, UiNativeRecoveryLineage,
+    UiNativeRecoveryRegistry, UiNativeRecoveryRequirement, UiNativeResourceClass,
+    UiNativeResourceOwner, UiNativeResourceRegistry, UiNativeShutdownPhase,
+    UiNativeSurfaceBasisTransition,
+};
+#[cfg(feature = "certification-support")]
+pub use lifecycle::{
+    UiNativeLifecycleProtocolReport, UiNativeLifecycleProtocolSchedule,
+    UiNativeLifecycleProtocolWorld, UiNativeProtocolCloseDisposition, UiNativeProtocolClosePoint,
+    UiNativeProtocolNextAction, UiNativeProtocolPredecessor, UiNativeProtocolReadback,
+    UiNativeProtocolResourceCensus, UiNativeProtocolSurfaceTransition,
 };
 pub use lifecycle_protocol::{
     UiNativeLifecycleEffect, UiNativeLifecyclePhase, UiNativeLifecycleProtocol,
@@ -74,15 +102,22 @@ pub use physical_work_signal::{
 pub(crate) use platform::UiNativePointerInputPort;
 #[cfg(test)]
 pub(crate) use presentation::GPU_WAIT_DEADLINE;
-pub(crate) use presentation::{UiNativePendingPresentation, UiNativeRetainedDrawList};
+#[cfg(feature = "certification-support")]
+pub use presentation::{
+    classify_presentation_fault, UiNativePresentationFault, UiNativePresentationFaultDisposition,
+    UiNativePresentationRecoveryClass,
+};
+pub(crate) use presentation::{
+    UiNativeOwnedPresentationSurface, UiNativePendingPresentation, UiNativeRetainedDrawList,
+};
+pub use readiness::{
+    UiNativeApplicationReadinessPort, UiNativeApplicationReadinessSignalDenial,
+    UiNativeApplicationReadinessSignalDisposition,
+};
 pub(crate) use readiness::{UiNativeReadinessRegistry, UiNativeReadyOwner, UiNativeReadyWork};
 #[cfg(feature = "certification-support")]
 pub use readiness_certification::{
     UiNativeReadinessContract, UiNativeReadinessContractOutcome, UiNativeReadinessContractWork,
 };
-pub use resource_census::UiNativeResourceCensus;
-pub(crate) use resource_census::UiNativeResourceClass;
-pub(crate) use resource_ownership::UiNativeOwnedResource;
-pub(crate) use resource_registry::{UiNativeResourceOwner, UiNativeResourceRegistry};
 pub use text_atlas::UiNativeTextAtlasPlanObservation;
 pub use text_atlas::UiNativeTextPinObservation;

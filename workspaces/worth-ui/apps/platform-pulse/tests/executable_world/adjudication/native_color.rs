@@ -1,14 +1,10 @@
 use std::fmt;
 
 use crate::external_observation::{NativeClientPixelCapture, NativeClientPixelPoint};
-use worth_ui_platform_pulse::visual_identity_pulse::{
-    PLATFORM_PULSE_BACKGROUND_LOGICAL_POINT, PLATFORM_PULSE_CANONICAL_LOGICAL_EXTENT,
-    PLATFORM_PULSE_TARGET_LOGICAL_POINT, PLATFORM_PULSE_TARGET_RGB,
-};
 
-const EXPECTED_BLUE: [u8; 3] = [0x2f, 0x81, 0xf7];
-const EXPECTED_GREEN: [u8; 3] = [0x3f, 0xb9, 0x50];
-const CHANNEL_TOLERANCE: u8 = 12;
+use super::platform_pulse_control_points::{
+    checked_in, PlatformPulseControlPointManifest, PlatformPulseControlPointManifestFailure,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum ExpectedNativeColor {
@@ -25,6 +21,7 @@ pub(crate) struct NativeColorVerdict {
 
 #[derive(Debug)]
 pub(crate) enum NativeColorFailure {
+    ControlPointManifest(PlatformPulseControlPointManifestFailure),
     InsufficientPixelSamples,
     ExpectedColorNotVisible {
         expected: ExpectedNativeColor,
@@ -53,7 +50,8 @@ pub(crate) fn adjudicate_native_color(
     pixels: &NativeClientPixelCapture,
     expected: ExpectedNativeColor,
 ) -> Result<NativeColorVerdict, NativeColorFailure> {
-    let samples = samples(pixels, expected);
+    let manifest = checked_in().map_err(NativeColorFailure::ControlPointManifest)?;
+    let samples = samples(pixels, expected, &manifest);
     let sampled_pixels = samples.len();
     let matching_samples = samples
         .iter()
@@ -69,16 +67,22 @@ pub(crate) fn adjudicate_native_color(
             samples: samples.into_boxed_slice(),
         });
     }
-    let target_point = scaled_point(pixels, PLATFORM_PULSE_TARGET_LOGICAL_POINT);
+    let target_point = scaled_point(
+        pixels,
+        manifest.target_logical_point(),
+        manifest.logical_client_extent(),
+    );
     let target_rgba = pixel_at(pixels, target_point);
     let target_point_visible = target_rgba.is_some_and(|rgba| {
         rgba[..3]
             .iter()
-            .zip(PLATFORM_PULSE_TARGET_RGB)
-            .all(|(&observed, expected)| observed.abs_diff(expected) <= CHANNEL_TOLERANCE)
+            .zip(manifest.target_rgba())
+            .all(|(&observed, expected)| {
+                observed.abs_diff(expected) <= manifest.channel_tolerance()
+            })
     });
     if !target_point_visible {
-        let target_summary = target_pixel_summary(pixels);
+        let target_summary = target_pixel_summary(pixels, &manifest);
         return Err(NativeColorFailure::ExpectedTargetNotVisible {
             point: target_point,
             rgba: target_rgba,
@@ -98,7 +102,8 @@ pub(crate) fn adjudicate_native_background_point(
     pixels: &NativeClientPixelCapture,
     expected: ExpectedNativeColor,
 ) -> Result<NativeClientPixelPoint, NativeColorFailure> {
-    let expected_rgb = expected.rgb();
+    let manifest = checked_in().map_err(NativeColorFailure::ControlPointManifest)?;
+    let expected_rgb = expected.rgb(&manifest);
     let mut interior = Vec::new();
     for y in 1..pixels.height().saturating_sub(1) {
         for x in 1..pixels.width().saturating_sub(1) {
@@ -109,7 +114,7 @@ pub(crate) fn adjudicate_native_background_point(
                             .iter()
                             .zip(expected_rgb)
                             .all(|(&observed, expected)| {
-                                observed.abs_diff(expected) <= CHANNEL_TOLERANCE
+                                observed.abs_diff(expected) <= manifest.channel_tolerance()
                             })
                     })
                 })
@@ -132,15 +137,20 @@ struct TargetPixelSummary {
     bounds: Option<([u32; 2], [u32; 2])>,
 }
 
-fn target_pixel_summary(pixels: &NativeClientPixelCapture) -> TargetPixelSummary {
+fn target_pixel_summary(
+    pixels: &NativeClientPixelCapture,
+    manifest: &PlatformPulseControlPointManifest,
+) -> TargetPixelSummary {
     let mut matching_pixels = 0;
     let mut minimum = [u32::MAX, u32::MAX];
     let mut maximum = [0, 0];
     for (index, rgba) in pixels.rgba().chunks_exact(4).enumerate() {
         let matches = rgba[..3]
             .iter()
-            .zip(PLATFORM_PULSE_TARGET_RGB)
-            .all(|(&observed, expected)| observed.abs_diff(expected) <= CHANNEL_TOLERANCE);
+            .zip(manifest.target_rgba())
+            .all(|(&observed, expected)| {
+                observed.abs_diff(expected) <= manifest.channel_tolerance()
+            });
         if !matches {
             continue;
         }
@@ -159,33 +169,42 @@ fn target_pixel_summary(pixels: &NativeClientPixelCapture) -> TargetPixelSummary
 fn samples(
     pixels: &NativeClientPixelCapture,
     expected: ExpectedNativeColor,
+    manifest: &PlatformPulseControlPointManifest,
 ) -> Vec<NativePixelSampleObservation> {
     let width = pixels.width() as usize;
     let height = pixels.height() as usize;
     let xs = [
-        scaled_point(pixels, PLATFORM_PULSE_BACKGROUND_LOGICAL_POINT)[0] as usize,
+        scaled_point(
+            pixels,
+            manifest.background_logical_point(),
+            manifest.logical_client_extent(),
+        )[0] as usize,
         width / 5,
         width.saturating_mul(9) / 10,
     ];
     let ys = [
-        scaled_point(pixels, PLATFORM_PULSE_BACKGROUND_LOGICAL_POINT)[1] as usize,
+        scaled_point(
+            pixels,
+            manifest.background_logical_point(),
+            manifest.logical_client_extent(),
+        )[1] as usize,
         height.saturating_mul(5) / 6,
         height.saturating_mul(11) / 12,
     ];
-    let expected_rgb = match expected {
-        ExpectedNativeColor::Blue => EXPECTED_BLUE,
-        ExpectedNativeColor::Green => EXPECTED_GREEN,
-    };
+    let expected_rgb = expected.rgb(manifest);
     let mut samples = Vec::with_capacity(9);
     for y in ys {
         for x in xs {
             let offset = (y * width + x) * 4;
             if let Some(pixel) = pixels.rgba().get(offset..offset + 4) {
                 let rgba = [pixel[0], pixel[1], pixel[2], pixel[3]];
-                let matches_expected_color = rgba[..3]
-                    .iter()
-                    .zip(expected_rgb)
-                    .all(|(&observed, expected)| observed.abs_diff(expected) <= CHANNEL_TOLERANCE);
+                let matches_expected_color =
+                    rgba[..3]
+                        .iter()
+                        .zip(expected_rgb)
+                        .all(|(&observed, expected)| {
+                            observed.abs_diff(expected) <= manifest.channel_tolerance()
+                        });
                 samples.push(NativePixelSampleObservation {
                     x,
                     y,
@@ -198,14 +217,16 @@ fn samples(
     samples
 }
 
-fn scaled_point(pixels: &NativeClientPixelCapture, logical: [u32; 2]) -> [u32; 2] {
+fn scaled_point(
+    pixels: &NativeClientPixelCapture,
+    logical: [u32; 2],
+    logical_extent: [u32; 2],
+) -> [u32; 2] {
     [
-        ((u64::from(logical[0]) * u64::from(pixels.width())
-            + u64::from(PLATFORM_PULSE_CANONICAL_LOGICAL_EXTENT[0] / 2))
-            / u64::from(PLATFORM_PULSE_CANONICAL_LOGICAL_EXTENT[0])) as u32,
-        ((u64::from(logical[1]) * u64::from(pixels.height())
-            + u64::from(PLATFORM_PULSE_CANONICAL_LOGICAL_EXTENT[1] / 2))
-            / u64::from(PLATFORM_PULSE_CANONICAL_LOGICAL_EXTENT[1])) as u32,
+        ((u64::from(logical[0]) * u64::from(pixels.width()) + u64::from(logical_extent[0] / 2))
+            / u64::from(logical_extent[0])) as u32,
+        ((u64::from(logical[1]) * u64::from(pixels.height()) + u64::from(logical_extent[1] / 2))
+            / u64::from(logical_extent[1])) as u32,
     ]
 }
 
@@ -233,10 +254,10 @@ impl NativeColorVerdict {
 }
 
 impl ExpectedNativeColor {
-    fn rgb(self) -> [u8; 3] {
+    fn rgb(self, manifest: &PlatformPulseControlPointManifest) -> [u8; 3] {
         match self {
-            Self::Blue => EXPECTED_BLUE,
-            Self::Green => EXPECTED_GREEN,
+            Self::Blue => manifest.blue_rgba()[..3].try_into().expect("RGB prefix"),
+            Self::Green => manifest.green_rgba()[..3].try_into().expect("RGB prefix"),
         }
     }
 }
@@ -244,6 +265,9 @@ impl ExpectedNativeColor {
 impl fmt::Display for NativeColorFailure {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::ControlPointManifest(failure) => {
+                write!(formatter, "test-owned control-point manifest: {failure:?}")
+            }
             Self::InsufficientPixelSamples => {
                 formatter.write_str("native client capture yielded fewer than nine samples")
             }

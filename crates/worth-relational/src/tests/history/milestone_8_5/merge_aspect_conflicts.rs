@@ -2,9 +2,9 @@ use super::*;
 
 pub(super) fn certify_overlapping_aspect_strategy_conflict(
     mut runtime: &mut RelationalRuntime,
+    aspect_overlap_entity: crate::facade::identity::EntityId,
     aspect_overlap_branch: &BranchId,
 ) {
-    let aspect_overlap_entity = create_entity(&mut runtime, "aspect-overlap");
     let _aspect_overlap_main_commit = execute_strategy_commit(
         &mut runtime,
         AspectFieldReconciliationInput {
@@ -66,9 +66,9 @@ pub(super) fn certify_overlapping_aspect_strategy_conflict(
 
 pub(super) fn certify_disjoint_aspect_strategy_truth(
     mut runtime: &mut RelationalRuntime,
+    aspect_disjoint_entity: crate::facade::identity::EntityId,
     aspect_disjoint_branch: &BranchId,
 ) {
-    let aspect_disjoint_entity = create_entity(&mut runtime, "aspect-disjoint");
     let _aspect_disjoint_main_commit = execute_strategy_commit(
         &mut runtime,
         AspectFieldReconciliationInput {

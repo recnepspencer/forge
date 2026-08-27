@@ -1,21 +1,20 @@
 use worth_foundational::facade::{
     AspectBinding, AspectIdentity, AspectKey, AuthoritativeAspectChangeKind, ScalarAspectType,
 };
-use worth_proof::TransitionOutcome;
 use worth_runtime_bridge::facade::TruthDeltaSurfaceKind;
 
 use crate::config::data::CascadeDeletePolicy;
 use crate::facade::schema::DeclaredAspectContractBinding;
 use crate::facade::transactions::{
-    CreateIntent, EntityMutationIntent, EntitySpec, MutationIntent, TransactionOptions,
-    UpdateEntityFieldsIntent, WorkerIntentBatch,
+    CreateIntent, EntityMutationIntent, EntitySpec, MutationIntent, UpdateEntityFieldsIntent,
+    WorkerIntentBatch,
 };
 use crate::tests::support::{
     aspect_key, changed_entities, create_entity_outcome, create_relation_outcome,
     entity_summary_struct_aspect, field_key, string_aspect_field_patch, AspectSchemaFixture,
 };
 
-use super::support::runtime_with_test_schema;
+use super::support::{bridge_envelopes_at_current_observation, runtime_with_test_schema};
 
 #[test]
 fn real_entity_and_relation_transactions_preserve_semantic_binding_surfaces() {
@@ -30,17 +29,10 @@ fn real_entity_and_relation_transactions_preserve_semantic_binding_surfaces() {
         .unwrap()
         .commit
         .commit_id;
-    let publication = match runtime.publish_commit_for_bridge(commit, "model") {
-        TransitionOutcome::Success(publication) => publication,
-        TransitionOutcome::Denied(reason) => panic!("relation publication denied: {reason:?}"),
-        TransitionOutcome::Deferred(reason) => panic!("relation publication deferred: {reason:?}"),
-        TransitionOutcome::Stale(reason) => panic!("relation publication stale: {reason:?}"),
-        TransitionOutcome::RebindRequired(reason) => {
-            panic!("relation publication rebind: {reason:?}")
-        }
-        TransitionOutcome::Failed(reason) => panic!("relation publication failed: {reason:?}"),
-    };
-    let items = publication.bridge_envelope().patch_body().canonical_items();
+    let envelope = bridge_envelopes_at_current_observation(runtime, [commit])
+        .pop()
+        .expect("relation publication");
+    let items = envelope.patch_body().canonical_items();
 
     assert_semantic_item(
         items,
@@ -82,7 +74,7 @@ fn real_entity_transaction_preserves_field_lifecycle_and_structural_surfaces() {
         structural_binding("facet", 93, AspectBinding::StructuralFacet),
     ]);
     let mut runtime = fixture.build_runtime();
-    let mut creation = runtime.begin_transaction(TransactionOptions::default());
+    let mut creation = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     creation.push_batch(
         WorkerIntentBatch::new("structural-create").push(MutationIntent::Create(
             CreateIntent::Entity(EntitySpec {
@@ -96,7 +88,9 @@ fn real_entity_transaction_preserves_field_lifecycle_and_structural_surfaces() {
             }),
         )),
     );
-    let created = creation.commit().expect("real structural create");
+    let created = creation
+        .commit(&mut runtime)
+        .expect("real structural create");
     let entity = changed_entities(&created)[0];
     let structural_commit = runtime
         .publication()
@@ -104,12 +98,29 @@ fn real_entity_transaction_preserves_field_lifecycle_and_structural_surfaces() {
         .unwrap()
         .commit
         .commit_id;
-    let TransitionOutcome::Success(publication) =
-        runtime.publish_commit_for_bridge(structural_commit, "model")
-    else {
-        panic!("real structural transaction must publish");
-    };
-    let items = publication.bridge_envelope().patch_body().canonical_items();
+    let mut transaction =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    transaction.push_batch(WorkerIntentBatch::new("summary-field-update").push(
+        MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+            UpdateEntityFieldsIntent {
+                entity_id: entity,
+                fields: string_aspect_field_patch([
+                    (aspect_key("summary"), field_key("title"), "solid"),
+                    (aspect_key("summary"), field_key("status"), "ready"),
+                ]),
+            },
+        )),
+    ));
+    let field_commit = transaction
+        .commit(&mut runtime)
+        .expect("real struct-field update")
+        .commit
+        .commit_id;
+    let mut envelopes =
+        bridge_envelopes_at_current_observation(runtime, [structural_commit, field_commit]);
+    let field_publication = envelopes.pop().expect("field publication");
+    let structural_publication = envelopes.pop().expect("structural publication");
+    let items = structural_publication.patch_body().canonical_items();
 
     assert_semantic_item(
         items,
@@ -135,36 +146,8 @@ fn real_entity_transaction_preserves_field_lifecycle_and_structural_surfaces() {
         AuthoritativeAspectChangeKind::StructuralCreate,
         TruthDeltaSurfaceKind::EntityFacet,
     );
-
-    let mut transaction = runtime.begin_transaction(TransactionOptions::default());
-    transaction.push_batch(WorkerIntentBatch::new("summary-field-update").push(
-        MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-            UpdateEntityFieldsIntent {
-                entity_id: entity,
-                fields: string_aspect_field_patch([
-                    (aspect_key("summary"), field_key("title"), "solid"),
-                    (aspect_key("summary"), field_key("status"), "ready"),
-                ]),
-            },
-        )),
-    ));
-    transaction.commit().expect("real struct-field update");
-    let field_commit = runtime
-        .publication()
-        .latest_bundle()
-        .unwrap()
-        .commit
-        .commit_id;
-    let TransitionOutcome::Success(field_publication) =
-        runtime.publish_commit_for_bridge(field_commit, "model")
-    else {
-        panic!("real field transaction must publish");
-    };
     assert_semantic_item(
-        field_publication
-            .bridge_envelope()
-            .patch_body()
-            .canonical_items(),
+        field_publication.patch_body().canonical_items(),
         &AspectBinding::EntityField {
             field: field_key("summary"),
         },

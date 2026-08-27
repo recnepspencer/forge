@@ -4,7 +4,7 @@ use super::{ComplexityContract, ComplexityStatus};
 pub const COMPLEXITY_CONTRACTS: &[ComplexityContract] = &[
     ComplexityContract {
         id: "runtime.partition_local_commit",
-        function_path: "authority/commit/pipeline/transaction_entrypoint.rs::RelationalTransaction::commit",
+        function_path: "mvcc/transaction/commit.rs::RelationalRuntime::commit_branch_transaction",
         declared_time_complexity: "O(touched_partitions + changed_records + touched_partition_clone_on_write)",
         budget_summary: "Commit/apply must report the number of partitions touched so partition-aware IDs do not degrade into global work by accident.",
         status: ComplexityStatus::Verified,
@@ -143,24 +143,8 @@ pub const COMPLEXITY_CONTRACTS: &[ComplexityContract] = &[
         proof_tests: &["tests::complexity::contracts::commit_budgets::complexity_budget_bulk_mutation_admission_remains_side_effect_free_until_commit"],
     },
     ComplexityContract {
-        id: "runtime.lineage.correspondence_validation",
-        function_path: "lineage/logic/authority/candidate_validation.rs::LineageAuthority::validate_candidate",
-        declared_time_complexity: "O(candidate_source_width + candidate_target_width)",
-        budget_summary: "Correspondence validation must remain candidate-local: endpoint duplication, overlap, and existence checks may scale with the candidate width, but not with whole-branch lineage breadth.",
-        status: ComplexityStatus::Verified,
-        proof_tests: &["tests::complexity::contracts::lineage_budgets::complexity_budget_lineage_candidate_validation_reports_candidate_widths"],
-    },
-    ComplexityContract {
-        id: "runtime.lineage.promotion_plan_lowering",
-        function_path: "lineage/logic/authority/promotion_planning.rs::{promotion_eligible_candidate,lower_promotion_plan}",
-        declared_time_complexity: "O(validated_candidate_width)",
-        budget_summary: "Promotion planning must consume already-validated branch-scoped candidates and produce a monomorphic lowered plan without rediscovering whole-branch legality.",
-        status: ComplexityStatus::Verified,
-        proof_tests: &["tests::complexity::contracts::lineage_budgets::complexity_budget_lineage_promotion_planning_reports_candidate_widths"],
-    },
-    ComplexityContract {
         id: "runtime.lineage.finalization",
-        function_path: "lineage/logic/authority/{commit_finalization.rs,promotion_execution.rs}",
+        function_path: "lineage/logic/authority/commit_finalization.rs",
         declared_time_complexity: "O(changed_authoritative_entity_records + finalized_lineage_event_batch_width + lineage_decision_log_width)",
         budget_summary: "Lineage finalization must produce exactly one canonical event batch and decision log per authority boundary, and publication must measure the published lineage artifact width directly.",
         status: ComplexityStatus::Verified,
@@ -193,7 +177,7 @@ pub const COMPLEXITY_CONTRACTS: &[ComplexityContract] = &[
     ComplexityContract {
         id: "runtime.lineage.graph_snapshot",
         function_path: "lineage/logic/access/graph.rs::LineageAccess::graph",
-        declared_time_complexity: "O(branch_scoped_visible_nodes + branch_scoped_lineage_events + branch_scoped_correspondence_candidates)",
+        declared_time_complexity: "O(branch_scoped_visible_nodes + branch_scoped_lineage_events)",
         budget_summary: "Graph snapshot reads must expose node, event, and candidate breadth explicitly and preserve canonical branch-scoped ordering in the returned snapshot.",
         status: ComplexityStatus::Verified,
         proof_tests: &["tests::complexity::contracts::lineage_budgets::complexity_budget_lineage_graph_snapshot_reports_full_breadth"],

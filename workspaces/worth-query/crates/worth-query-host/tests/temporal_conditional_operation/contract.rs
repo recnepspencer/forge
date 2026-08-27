@@ -162,7 +162,7 @@ fn gate_contract() -> AspectContract {
     };
     AspectContract::struct_aspect(
         AspectKey::new("IntentFacts").unwrap(),
-        AspectIdentity(3),
+        AspectIdentity(0x9161_1044),
         AspectContractRevision(1),
         StructAspectShape::new([
             required("IntentDueField", ScalarAspectType::UInt64),

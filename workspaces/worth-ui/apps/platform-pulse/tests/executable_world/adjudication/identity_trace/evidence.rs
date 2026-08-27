@@ -1,7 +1,7 @@
 use super::{
     float_pair, project_axis, ExecutableVisualComparisonEvidence, ExecutableVisualIdentityFailure,
     ExecutableVisualRetirementEvidence, ExecutableVisualSnapshotEvidence,
-    ExecutableVisualTraceEvidence, PLATFORM_PULSE_CANONICAL_LOGICAL_EXTENT, TARGET_LOGICAL_INSET,
+    ExecutableVisualTraceEvidence,
 };
 use worth_ui_platform_pulse::observation_contract::{
     PlatformPulseVisualComparison, PlatformPulseVisualPointTrace,
@@ -36,9 +36,13 @@ impl ExecutableVisualSnapshotEvidence {
     pub(crate) fn expected_target_region(
         &self,
     ) -> Result<[u32; 4], ExecutableVisualIdentityFailure> {
-        let logical_right = PLATFORM_PULSE_CANONICAL_LOGICAL_EXTENT[0] - TARGET_LOGICAL_INSET[0];
-        let logical_bottom = PLATFORM_PULSE_CANONICAL_LOGICAL_EXTENT[1] - TARGET_LOGICAL_INSET[1];
-        let [left, top] = self.project_logical_point(TARGET_LOGICAL_INSET)?;
+        let manifest = super::super::platform_pulse_control_points::checked_in()
+            .map_err(ExecutableVisualIdentityFailure::ControlPointManifest)?;
+        let extent = manifest.logical_client_extent();
+        let inset = manifest.target_region_inset();
+        let logical_right = extent[0] - inset[0];
+        let logical_bottom = extent[1] - inset[1];
+        let [left, top] = self.project_logical_point(inset)?;
         let [right, bottom] = self.project_logical_point([logical_right, logical_bottom])?;
         Ok([left, top, right, bottom])
     }

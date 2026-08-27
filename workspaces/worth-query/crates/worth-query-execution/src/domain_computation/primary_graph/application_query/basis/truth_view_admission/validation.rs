@@ -11,32 +11,6 @@ use crate::domain_computation::primary_graph::{
     WorthQueryPrimaryGraphApplicationRuntime,
 };
 
-impl<Schema> WorthQueryPrimaryGraphApplicationRuntime<Schema>
-where
-    Schema: ApplicationSchema,
-{
-    pub(super) fn ensure_truth_view_indexes(
-        &self,
-        version: worth_relational::facade::identity::VersionId,
-    ) -> Result<(), WorthQueryApplicationQueryAdmissionDenial> {
-        let graph = self.runtime.primary_graph().ok_or_else(|| {
-            denial(
-                WorthQueryApplicationQueryAdmissionDenialKind::RuntimeSupportUnavailable,
-                "primary graph",
-            )
-        })?;
-        let handle = graph.integration_handle();
-        handle
-            .with_runtime_mut(|runtime| handle.ensure_primary_indexes_for_version(runtime, version))
-            .map_err(|detail| {
-                denial(
-                    WorthQueryApplicationQueryAdmissionDenialKind::RuntimeSupportUnavailable,
-                    detail,
-                )
-            })
-    }
-}
-
 pub(super) fn validate_preview_session<Schema>(
     application: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
     session: &WorthQueryApplicationPreviewSession<Schema>,

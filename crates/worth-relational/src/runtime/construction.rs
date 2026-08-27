@@ -6,13 +6,23 @@ use crate::commit_strategies::{
 };
 use crate::runtime::{
     CommitStrategiesSubsystem, DurabilitySubsystem, HistorySubsystem, IndexingSubsystem,
-    LineageSubsystem, PublicationSubsystem, RuntimeServices, RuntimeSubsystem,
-    SchemaContractRuntimeSubsystem, VisibilitySubsystem,
+    LineageSubsystem, PublicationSubsystem, RecordIdentitySubsystem, RuntimeServices,
+    RuntimeSubsystem, SchemaContractRuntimeSubsystem, VisibilitySubsystem,
 };
 use crate::validation::data::CustomInvariantRegistration;
 use crate::validation::FrozenCustomInvariantRegistry;
 
 use super::RelationalRuntime;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RelationalRuntimeForkDenial {
+    PublicationInFlight,
+    PerformedPublicationRequiresSettlement {
+        commit_id: crate::history::data::CommitId,
+    },
+    IdentityCapacityExhausted,
+    CanonicalInventoryInvalid,
+}
 
 #[derive(Debug, Default)]
 pub(crate) struct RuntimeExtensions {
@@ -121,14 +131,18 @@ impl RelationalRuntime {
         config: super::RelationalRuntimeConfig,
         extensions: RuntimeExtensions,
     ) -> Self {
+        let services = extensions.build_runtime_services();
+        let mut history = <HistorySubsystem as RuntimeSubsystem>::new(&config.history.main_branch);
+        history.set_runtime_instance_id(services.runtime_instance_id());
         Self {
             schema_contract_runtime: extensions.build_schema_contract_runtime_subsystem(&config),
             commit_strategies: extensions.build_commit_strategy_subsystem(&config),
-            history: <HistorySubsystem as RuntimeSubsystem>::new(&config.history.main_branch),
+            history,
             indexes: <IndexingSubsystem as RuntimeSubsystem>::new(&()),
             lineage: <LineageSubsystem as RuntimeSubsystem>::new(&()),
             durability: <DurabilitySubsystem as RuntimeSubsystem>::new(&config),
-            services: extensions.build_runtime_services(),
+            record_identity: <RecordIdentitySubsystem as RuntimeSubsystem>::new(&()),
+            services,
             partitions: BTreeMap::new(),
             visibility: <VisibilitySubsystem as RuntimeSubsystem>::new(&config),
             publication: extensions.build_publication_subsystem(),
@@ -136,19 +150,24 @@ impl RelationalRuntime {
         }
     }
 
-    pub fn fork(&self) -> Self {
-        Self {
+    pub fn fork(&self) -> Result<Self, RelationalRuntimeForkDenial> {
+        let mut history = self.history.fork_snapshot()?;
+        let services = RuntimeSubsystem::fork(&self.services);
+        let runtime_instance_id = services.runtime_instance_id();
+        history.bind_fork_runtime(runtime_instance_id);
+        Ok(Self {
             config: self.config.clone(),
             schema_contract_runtime: RuntimeSubsystem::fork(&self.schema_contract_runtime),
             commit_strategies: RuntimeSubsystem::fork(&self.commit_strategies),
             partitions: self.partitions.clone(),
             visibility: RuntimeSubsystem::fork(&self.visibility),
             publication: RuntimeSubsystem::fork(&self.publication),
-            history: RuntimeSubsystem::fork(&self.history),
+            history,
             indexes: RuntimeSubsystem::fork(&self.indexes),
             lineage: RuntimeSubsystem::fork(&self.lineage),
             durability: RuntimeSubsystem::fork(&self.durability),
-            services: RuntimeSubsystem::fork(&self.services),
-        }
+            record_identity: RuntimeSubsystem::fork(&self.record_identity),
+            services,
+        })
     }
 }

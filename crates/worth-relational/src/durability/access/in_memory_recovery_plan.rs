@@ -30,7 +30,7 @@ pub(super) fn in_memory_recovery_plan(
     );
     let restore_authoritative_envelope_commit_ids = tail_log
         .iter()
-        .map(|entry| entry.commit.commit_id)
+        .map(|entry| entry.envelope().commit.commit_id)
         .collect();
 
     RecoveryPlan::new(
@@ -60,14 +60,26 @@ pub(super) fn in_memory_recovery_plan(
 fn tail_log_after_in_memory_checkpoint(
     runtime: &RelationalRuntime,
     checkpoint: Option<&crate::durability::data::DurableCheckpoint>,
-) -> Vec<crate::history::data::CanonicalCommitEnvelope> {
-    match checkpoint.and_then(|checkpoint| checkpoint.coverage.up_to_commit.as_ref()) {
-        Some(up_to_commit) => runtime
+) -> Vec<crate::durability::migration::ReadmittedCanonicalCommit> {
+    match checkpoint.and_then(|checkpoint| {
+        checkpoint
+            .envelopes
+            .iter()
+            .map(crate::history::data::PositionedCanonicalCommit::position)
+            .max()
+    }) {
+        Some(up_to_position) => runtime
             .durable_log()
             .iter()
-            .filter(|entry| entry.commit.commit_id > up_to_commit.commit_id)
+            .filter(|entry| entry.position() > up_to_position)
             .cloned()
+            .map(crate::durability::migration::ReadmittedCanonicalCommit::exact)
             .collect(),
-        None => runtime.durable_log().to_vec(),
+        None => runtime
+            .durable_log()
+            .iter()
+            .cloned()
+            .map(crate::durability::migration::ReadmittedCanonicalCommit::exact)
+            .collect(),
     }
 }

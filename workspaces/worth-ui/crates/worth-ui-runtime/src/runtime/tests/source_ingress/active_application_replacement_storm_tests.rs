@@ -10,7 +10,8 @@ use crate::runtime::{
 const STORM_STEP_COUNT: usize = 1_000;
 
 #[test]
-fn active_application_storm_never_exposes_mixed_generation_truth() {
+#[ignore = "long replacement storms run in hostile certification"]
+fn long_replacement_storm_never_exposes_mixed_generation_truth() {
     let mut session = source_backed_component_session();
     let host_session = session.host_session_identity();
     let mut active_component = "workspace.component.active_session_current";

@@ -1,3 +1,6 @@
+use crate::domain_computation::primary_graph::{
+    WorthQueryApplicationBasisIdentity, WorthQueryApplicationBasisReleaseReceipt,
+};
 use worth_query_admission::{
     facade::{
         graph_obligation::WorthQueryGraphWorkPlanIdentity,
@@ -8,8 +11,6 @@ use worth_query_admission::{
 use worth_query_installation::facade::{
     ApplicationSchemaBindingIdentity, WorthQueryInstalledGraphObligationSetIdentity,
 };
-use worth_relational::facade::runtime::RelationalExecutionBasisIdentity;
-use worth_relational::facade::runtime::RelationalExecutionBasisReleaseReceipt;
 
 use super::{
     WorthQueryGraphReadDependencyEvidence, WorthQueryGraphWorkManagedRunIdentity,
@@ -23,8 +24,8 @@ pub struct WorthQueryGraphReadCompletion {
     plan: WorthQueryGraphWorkPlanIdentity,
     binding: ApplicationSchemaBindingIdentity,
     obligation: WorthQueryInstalledGraphObligationSetIdentity,
-    basis: RelationalExecutionBasisIdentity,
-    basis_release: RelationalExecutionBasisReleaseReceipt,
+    basis: WorthQueryApplicationBasisIdentity,
+    basis_release: WorthQueryApplicationBasisReleaseReceipt,
     review: WorthQueryGraphReadPlanReview,
     dependencies: WorthQueryGraphReadDependencyEvidence,
     release: WorthQueryExecutionCapacityReleaseReceipt,
@@ -36,8 +37,8 @@ pub(super) struct WorthQueryGraphReadCompletionParts {
     pub plan: WorthQueryGraphWorkPlanIdentity,
     pub binding: ApplicationSchemaBindingIdentity,
     pub obligation: WorthQueryInstalledGraphObligationSetIdentity,
-    pub basis: RelationalExecutionBasisIdentity,
-    pub basis_release: RelationalExecutionBasisReleaseReceipt,
+    pub basis: WorthQueryApplicationBasisIdentity,
+    pub basis_release: WorthQueryApplicationBasisReleaseReceipt,
     pub review: WorthQueryGraphReadPlanReview,
     pub dependencies: WorthQueryGraphReadDependencyEvidence,
     pub release: WorthQueryExecutionCapacityReleaseReceipt,
@@ -79,11 +80,11 @@ impl WorthQueryGraphReadCompletion {
         &self.obligation
     }
 
-    pub const fn basis_identity(&self) -> &RelationalExecutionBasisIdentity {
+    pub const fn basis_identity(&self) -> &WorthQueryApplicationBasisIdentity {
         &self.basis
     }
 
-    pub const fn basis_release(&self) -> &RelationalExecutionBasisReleaseReceipt {
+    pub const fn basis_release(&self) -> &WorthQueryApplicationBasisReleaseReceipt {
         &self.basis_release
     }
 

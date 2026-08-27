@@ -7,6 +7,9 @@ pub enum WorthServerQuerySupportPosture {
     ProductIndependent {
         label: String,
     },
+    PrimaryGraphApplicationSupported {
+        basis_token: String,
+    },
     QueryReadSupported {
         family_contract: WorthQueryRuntimePublicApiFamilyContract,
     },
@@ -53,7 +56,7 @@ impl WorthServerQuerySupportPosture {
         &self,
     ) -> worth_query::facade::runtime::WorthQueryLowerRuntimeSupportPosture {
         match self {
-            Self::ProductIndependent { .. } => {
+            Self::ProductIndependent { .. } | Self::PrimaryGraphApplicationSupported { .. } => {
                 worth_query::facade::runtime::WorthQueryLowerRuntimeSupportPosture::Forbidden
             }
             Self::DownstreamDeliverySupported {
@@ -81,7 +84,7 @@ impl WorthServerQuerySupportPosture {
         &self,
     ) -> worth_query::facade::runtime::WorthQueryLowerRuntimeSupportPosture {
         match self {
-            Self::ProductIndependent { .. } => {
+            Self::ProductIndependent { .. } | Self::PrimaryGraphApplicationSupported { .. } => {
                 worth_query::facade::runtime::WorthQueryLowerRuntimeSupportPosture::Forbidden
             }
             Self::DownstreamDeliverySupported {
@@ -109,6 +112,9 @@ impl WorthServerQuerySupportPosture {
         match self {
             Self::ProductIndependent { label } => {
                 format!("product-independent:{label}")
+            }
+            Self::PrimaryGraphApplicationSupported { basis_token } => {
+                format!("primary-graph-application-supported:{basis_token}")
             }
             Self::QueryReadSupported { family_contract } => {
                 format!("query-read-supported:{}", family_contract.contract_digest())

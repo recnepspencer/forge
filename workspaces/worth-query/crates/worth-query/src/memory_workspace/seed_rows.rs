@@ -2,10 +2,7 @@ use worth_foundational::facade::{AspectValue, InternedString};
 use worth_relational::facade::{
     identity::PartitionId,
     symbols::ClientKey,
-    transactions::{
-        CreateIntent, EntityAspectCreateIntent, MutationIntent, TransactionOptions,
-        WorkerIntentBatch,
-    },
+    transactions::{CreateIntent, EntityAspectCreateIntent, MutationIntent, WorkerIntentBatch},
 };
 
 use super::{WorthQueryCommitIdentity, WorthQueryMemoryWorkspace, WorthQueryWorkspaceError};
@@ -45,12 +42,20 @@ impl WorthQueryMemoryWorkspace {
                 )))
             },
         );
+        let options = self
+            .runtime
+            .admit_main_branch_basis()
+            .expect("memory workspace main branch remains owner-admissible");
         let mut transaction = self
             .runtime
-            .begin_transaction(TransactionOptions::default());
+            .begin_branch_transaction(
+                &options,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context");
         transaction.push_batch(batch);
         let result = transaction
-            .commit()
+            .commit(&mut self.runtime)
             .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
         self.next_client_key = next_key;
         Ok(WorthQueryCommitIdentity::from_runtime_receipt_commit(

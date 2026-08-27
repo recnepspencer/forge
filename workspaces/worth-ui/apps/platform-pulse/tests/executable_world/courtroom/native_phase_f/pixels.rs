@@ -250,9 +250,6 @@ fn compositor_edges_and_unrelated_bright_pixels_cannot_satisfy_the_authored_text
         1,
         2,
     ));
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P5-TEXT-PIXELS-01\":\"transcript-pixel-mismatch\"}}"
-    );
 }
 
 fn paint_pixel(rgba: &mut [u8], width: usize, x: usize, y: usize, pixel: [u8; 4]) {

@@ -39,5 +39,4 @@ fn unchanged_successor_carries_zero_command_order_and_damage_work() {
         unchanged.affinity().baseline(),
         world.requirement.baseline()
     );
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P1-PRODUCER-COST-01\":0}}");
 }

@@ -18,7 +18,7 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
         SchemaVersionId(1),
     );
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     let savepoint_a = txn.create_savepoint();
     txn.push_batch(batch_create("surviving-a"));
     txn.push_batch(
@@ -107,7 +107,7 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
             },
         )),
     ));
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
 
     assert!(rollback_b.has_effects());
     assert!(rollback_a.has_effects());

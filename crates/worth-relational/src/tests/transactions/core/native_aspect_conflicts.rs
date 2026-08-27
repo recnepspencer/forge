@@ -26,7 +26,8 @@ fn native_same_record_updates_conflict_before_truth_or_publication_changes() {
         };
         let second = entity_patch_intent(entity, second_patch);
 
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction =
+            crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
         let batches = if reverse_order {
             [("second", second), ("first", first)]
         } else {
@@ -37,7 +38,7 @@ fn native_same_record_updates_conflict_before_truth_or_publication_changes() {
         }
 
         let error = transaction
-            .commit()
+            .commit(&mut runtime)
             .expect_err("same-record updates must conflict");
         assert!(matches!(
             error,
@@ -78,18 +79,44 @@ fn native_create_merge_is_stable_across_batch_permutations() {
     let mut runtime_a =
         runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     let contract_a = entity_name_contract(&runtime_a);
-    let mut transaction_a = runtime_a.begin_transaction(TransactionOptions::default());
+    let mut transaction_a = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime_a);
+        runtime_a
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     transaction_a.push_batch(native_create_batch("zeta", &contract_a));
     transaction_a.push_batch(native_create_batch("alpha", &contract_a));
-    let intents_a = transaction_a.merged_plan().unwrap().merged_intents.clone();
+    let intents_a = transaction_a
+        .merged_plan(&mut runtime_a)
+        .unwrap()
+        .merged_intents
+        .clone();
 
     let mut runtime_b =
         runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     let contract_b = entity_name_contract(&runtime_b);
-    let mut transaction_b = runtime_b.begin_transaction(TransactionOptions::default());
+    let mut transaction_b = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime_b);
+        runtime_b
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     transaction_b.push_batch(native_create_batch("alpha", &contract_b));
     transaction_b.push_batch(native_create_batch("zeta", &contract_b));
-    let intents_b = transaction_b.merged_plan().unwrap().merged_intents.clone();
+    let intents_b = transaction_b
+        .merged_plan(&mut runtime_b)
+        .unwrap()
+        .merged_intents
+        .clone();
 
     assert_eq!(intents_a, intents_b);
     assert_eq!(intents_a.len(), 2);
@@ -112,14 +139,15 @@ fn compatibility_and_native_scalar_authoring_publish_identical_patch_meaning() {
         runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     let native_entity = create_entity(&mut native_runtime, "before");
     let contract = entity_name_contract(&native_runtime);
-    let mut transaction = native_runtime.begin_transaction(TransactionOptions::default());
+    let mut transaction =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut native_runtime);
     transaction.push_batch(
         WorkerIntentBatch::new("native-equivalent").push(entity_patch_intent(
             native_entity,
             whole_set(&contract, "after"),
         )),
     );
-    let native = transaction.commit().unwrap();
+    let native = transaction.commit(&mut native_runtime).unwrap();
 
     assert_eq!(
         compatibility.patch()[0].authoritative_patch,
@@ -150,12 +178,13 @@ fn compatibility_and_native_updates_on_one_target_have_one_conflict_law() {
         },
     ));
     let native = entity_patch_intent(entity, whole_set(&contract, "native"));
-    let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+    let mut transaction =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     transaction.push_batch(WorkerIntentBatch::new("compatibility").push(compatibility));
     transaction.push_batch(WorkerIntentBatch::new("native").push(native));
 
     assert!(matches!(
-        transaction.commit(),
+        transaction.commit(&mut runtime),
         Err(TransactionCommitError::Conflict {
             error: CommitConflict {
                 class: ConflictClass::ConflictingIntent { .. },
@@ -183,7 +212,8 @@ fn mixed_native_entity_and_relation_updates_share_one_atomic_commit() {
         .unwrap()
         .contract_for(&aspect_key("label"))
         .unwrap();
-    let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+    let mut transaction =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     transaction.push_batch(WorkerIntentBatch::new("entity").push(entity_patch_intent(
         source,
         whole_set(&entity_contract, "source-after"),
@@ -197,16 +227,18 @@ fn mixed_native_entity_and_relation_updates_share_one_atomic_commit() {
         )),
     );
 
-    let committed = transaction.commit().unwrap();
+    let committed = transaction.commit(&mut runtime).unwrap();
     assert_eq!(committed.patch().len(), 2);
-    assert!(committed
-        .patch()
-        .iter()
-        .any(|record| record.authoritative_changed_aspects() == vec![aspect_key("name")]));
-    assert!(committed
-        .patch()
-        .iter()
-        .any(|record| record.authoritative_changed_aspects() == vec![aspect_key("label")]));
+    assert!(committed.patch().iter().any(
+        |record: &crate::publication::patch::data::PublishedAuthoritativeRecordPatch| {
+            record.authoritative_changed_aspects() == vec![aspect_key("name")]
+        }
+    ));
+    assert!(committed.patch().iter().any(
+        |record: &crate::publication::patch::data::PublishedAuthoritativeRecordPatch| {
+            record.authoritative_changed_aspects() == vec![aspect_key("label")]
+        }
+    ));
 }
 
 fn native_create_batch(

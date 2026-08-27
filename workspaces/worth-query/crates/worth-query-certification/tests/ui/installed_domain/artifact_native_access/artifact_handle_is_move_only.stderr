@@ -1,5 +1,0 @@
-error[E0599]: no method named `clone` found for struct `WorthQueryMoveOnlyArtifactHandle` in the current scope
- --> tests/ui/installed_domain/artifact_native_access/artifact_handle_is_move_only.rs:4:24
-  |
-4 |     let _copy = handle.clone();
-  |                        ^^^^^ method not found in `WorthQueryMoveOnlyArtifactHandle`

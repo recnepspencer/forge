@@ -124,29 +124,6 @@ pub(super) fn prepare<I: UiIntent>(
     prepare_with_host::<I, _>(input, projection, facts, host)
 }
 
-pub(super) fn launch_native<I: UiIntent>(
-    input: WorthUiRustAuthoredArtifactInput,
-    projection: PayloadProjectionRegistration,
-    facts: PayloadApplicationFacts,
-) -> PayloadWorld {
-    let context = egui::Context::default();
-    let _ = context.run_ui(egui::RawInput::default(), |_| {});
-    let host = worth_ui_host_egui::WorthUiHostEgui::new(context);
-    let projection_slot = projection_slot(&projection);
-    let application = prepare_with_host::<I, _>(input, projection, facts, host.clone())
-        .expect("native payload world compiles through production application preparation");
-    let component_nodes = component_graph_nodes(&application);
-    let session = launch_mounted_components(
-        application,
-        component_nodes,
-        UiHostSurfacePresentationMode::NativeDisplay,
-    );
-    PayloadWorld {
-        interaction: InteractionWorld::from_native_session(session, host),
-        projection_slot,
-    }
-}
-
 fn prepare_with_host<I, Host>(
     input: WorthUiRustAuthoredArtifactInput,
     projection: PayloadProjectionRegistration,

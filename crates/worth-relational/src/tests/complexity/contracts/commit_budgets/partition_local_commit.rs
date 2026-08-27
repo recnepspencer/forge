@@ -46,7 +46,7 @@ fn complexity_budget_commit_topology_inference_distinguishes_flat_and_graph_muta
 fn complexity_budget_bulk_create_reserves_partition_local_capacity() {
     let mut runtime = runtime_with_test_schema();
     runtime.performance_access().reset_counters();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("bulk-entities").push(MutationIntent::Create(
             CreateIntent::BulkEntities(BulkEntityCreateIntent {
@@ -77,7 +77,7 @@ fn complexity_budget_bulk_create_reserves_partition_local_capacity() {
             }),
         )),
     );
-    let _ = txn.commit().unwrap();
+    let _ = txn.commit(&mut runtime).unwrap();
     let counters = runtime.performance_access().counters();
 
     assert_eq!(counters.bulk_entity_slots_reserved, 3);

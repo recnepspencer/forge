@@ -35,12 +35,24 @@ pub(super) fn compile_bound_executable_plan(
         parent_order.as_ref(),
         record_plans.as_ref(),
     );
+    let (target_reference, target_truth_version) = runtime
+        .history()
+        .branch_reference_state(request.target_branch())
+        .expect("merge planning must retain the target branch cell");
+    let (source_reference, source_truth_version) = runtime
+        .history()
+        .branch_reference_state(request.source_branch())
+        .expect("merge planning must retain the source branch cell");
 
     let binding = MergeExecutionAuthorityBinding {
         request: request.clone(),
         runtime_instance_id: RuntimeInstanceId(runtime.runtime_instance_id()),
         target_head_commit_id: execution_ready.basis.target_head.commit_id,
         source_head_commit_id: execution_ready.basis.source_head.commit_id,
+        target_reference,
+        source_reference,
+        target_truth_version,
+        source_truth_version,
         merge_base_commit_id: execution_ready.basis.merge_base.commit.commit_id,
         schema_snapshot_digest: crate::merge::data::schema_snapshot_digest(
             &execution_ready.schema_snapshot,

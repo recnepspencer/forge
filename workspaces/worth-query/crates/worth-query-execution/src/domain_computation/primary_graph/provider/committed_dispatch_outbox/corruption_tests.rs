@@ -7,9 +7,10 @@ use worth_foundational::facade::{
 };
 use worth_query_declaration::facade::application_schema::ApplicationExternalEffectProtocol;
 use worth_query_installation::facade::InstalledExternalEffectContract;
+use worth_relational::facade::mvcc::BranchBoundRelationalTransaction;
 use worth_relational::facade::transactions::{
     AspectFieldPatch, CreateIntent, CreatedEntityRef, DeleteEntityIntent, EntityMutationIntent,
-    EntitySpec, MutationIntent, RecordRef, RelationalTransaction, WorkerIntentBatch,
+    EntitySpec, MutationIntent, RecordRef, WorkerIntentBatch,
 };
 
 use super::*;
@@ -73,14 +74,23 @@ fn a_committed_record_of_another_kind_denies_before_projection() {
             WorthQueryApplicationCommitOutcomeIdentity::mint().unwrap(),
             0,
         );
-        let mut transaction: RelationalTransaction<'_> =
-            runtime.begin_transaction(Default::default());
+        let mut transaction: BranchBoundRelationalTransaction ={
+    let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
+    runtime
+        .begin_branch_transaction(
+            &transaction_validation_input,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context")
+};
         transaction.push_batch(
             WorkerIntentBatch::new("wrong-kind-outbox-owner-test")
                 .push(outbox_intent)
                 .push(idempotency_intent),
         );
-        let committed = transaction.commit().unwrap();
+        let committed = transaction.commit(runtime).unwrap();
         let correct = WorthQueryCommittedDispatchOutboxBinding::fixture_from_commit(
             provider.graph.layout.provider_dispatch_outbox(),
             Some(pending.record()),
@@ -95,11 +105,9 @@ fn a_committed_record_of_another_kind_denies_before_projection() {
             .unwrap()
             .clone();
         let binding = WorthQueryCommittedDispatchOutboxBinding::fixture(record.clone(), wrong_ref);
-        let snapshot = runtime
-            .snapshots()
-            .snapshot_for_branch(&primary_relational_branch_id())
+        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(runtime, &primary_relational_branch_id())
             .unwrap();
-        let runtime_id = snapshot.runtime_instance_id;
+        let runtime_id = snapshot.runtime_instance_id();
         runtime.snapshots().release_snapshot(&snapshot);
         (binding, committed.outcome().commit.clone(), runtime_id)
     });
@@ -121,9 +129,19 @@ fn a_deleted_record_is_non_visible_at_the_requested_commit_without_binding_fallb
             Some(&record),
         )
         .unwrap();
-        let mut create: RelationalTransaction<'_> = runtime.begin_transaction(Default::default());
+        let mut create: BranchBoundRelationalTransaction ={
+    let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
+    runtime
+        .begin_branch_transaction(
+            &transaction_validation_input,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context")
+};
         create.push_batch(WorkerIntentBatch::new("live-outbox-before-delete").push(intent));
-        let created = create.commit().unwrap();
+        let created = create.commit(runtime).unwrap();
         let binding = WorthQueryCommittedDispatchOutboxBinding::fixture_from_commit(
             provider.graph.layout.provider_dispatch_outbox(),
             Some(pending.record()),
@@ -134,18 +152,26 @@ fn a_deleted_record_is_non_visible_at_the_requested_commit_without_binding_fallb
         let RecordRef::Entity(entity_id) = binding.record_ref().clone() else {
             panic!("outbox binding is an entity")
         };
-        let mut delete: RelationalTransaction<'_> = runtime.begin_transaction(Default::default());
+        let mut delete: BranchBoundRelationalTransaction ={
+    let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
+    runtime
+        .begin_branch_transaction(
+            &transaction_validation_input,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context")
+};
         delete.push_batch(
             WorkerIntentBatch::new("delete-outbox-before-owner-read").push(MutationIntent::Entity(
                 EntityMutationIntent::Delete(DeleteEntityIntent { entity_id }),
             )),
         );
-        let deleted = delete.commit().unwrap();
-        let snapshot = runtime
-            .snapshots()
-            .snapshot_for_branch(&primary_relational_branch_id())
+        let deleted = delete.commit(runtime).unwrap();
+        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(runtime, &primary_relational_branch_id())
             .unwrap();
-        let runtime_id = snapshot.runtime_instance_id;
+        let runtime_id = snapshot.runtime_instance_id();
         runtime.snapshots().release_snapshot(&snapshot);
         (binding, deleted.outcome().commit.clone(), runtime_id)
     });
@@ -162,7 +188,7 @@ fn committed_substituted_row(
 ) -> (
     std::sync::Arc<WorthQueryPrimaryGraphProvider>,
     WorthQueryCommittedDispatchOutboxBinding,
-    worth_relational::facade::history::CommitReference,
+    worth_relational::facade::history::RelationalCommitReceipt,
     u64,
 ) {
     let world = installed_authorization_world(true);
@@ -178,14 +204,23 @@ fn committed_substituted_row(
         };
         let alternate_key = format!("corrupt-outbox-field-{field}");
         let corrupted = corrupted_spec(&layout, expected, field, replacement, &alternate_key);
-        let mut transaction: RelationalTransaction<'_> =
-            runtime.begin_transaction(Default::default());
+        let mut transaction: BranchBoundRelationalTransaction ={
+    let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
+    runtime
+        .begin_branch_transaction(
+            &transaction_validation_input,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context")
+};
         transaction.push_batch(
             WorkerIntentBatch::new("persisted-outbox-corruption-matrix")
                 .push(intent)
                 .push(MutationIntent::Create(CreateIntent::Entity(corrupted))),
         );
-        let committed = transaction.commit().unwrap();
+        let committed = transaction.commit(runtime).unwrap();
         let corrupted_id = committed
             .created_entity(&CreatedEntityRef {
                 partition_id: layout_partition(),
@@ -199,8 +234,9 @@ fn committed_substituted_row(
             pending.record().clone(),
             RecordRef::Entity(corrupted_id),
         );
-        let snapshot = runtime.snapshots().snapshot_for_branch(&branch).unwrap();
-        let runtime_id = snapshot.runtime_instance_id;
+        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(runtime, &branch)
+            .unwrap();
+        let runtime_id = snapshot.runtime_instance_id();
         runtime.snapshots().release_snapshot(&snapshot);
         (binding, committed.outcome().commit.clone(), runtime_id)
     });

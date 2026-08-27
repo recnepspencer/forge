@@ -8,7 +8,7 @@ use worth_relational::facade::schema::{
     SchemaVersionId,
 };
 use worth_relational::facade::transactions::{
-    CreateIntent, EntityMutationIntent, EntitySpec, MutationIntent, RecordRef, TransactionOptions,
+    CreateIntent, EntityMutationIntent, EntitySpec, MutationIntent, RecordRef,
     UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 use worth_relational::facade::{identity::KindId, identity::PartitionId, symbols::ClientKey};
@@ -46,10 +46,17 @@ pub(crate) fn create_entity(
     name: &str,
     branch: BranchId,
 ) -> worth_relational::facade::identity::EntityId {
-    let mut txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(branch),
-        ..TransactionOptions::default()
-    });
+    let mut txn = {
+        let transaction_validation_input = runtime
+            .admit_named_branch_basis(&branch)
+            .expect("branch binding");
+        runtime
+            .begin_branch_transaction(
+                &transaction_validation_input,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(
         WorkerIntentBatch::new(format!("create-{name}")).push(MutationIntent::Create(
             CreateIntent::Entity(EntitySpec {
@@ -61,7 +68,7 @@ pub(crate) fn create_entity(
             }),
         )),
     );
-    let outcome = txn.commit().expect("seed commit should succeed");
+    let outcome = txn.commit(runtime).expect("seed commit should succeed");
     outcome
         .changed_records
         .iter()
@@ -78,10 +85,17 @@ pub(crate) fn update_entity_name(
     name: &str,
     branch: BranchId,
 ) -> worth_relational::facade::history::CommitId {
-    let mut txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(branch),
-        ..TransactionOptions::default()
-    });
+    let mut txn = {
+        let transaction_validation_input = runtime
+            .admit_named_branch_basis(&branch)
+            .expect("branch binding");
+        runtime
+            .begin_branch_transaction(
+                &transaction_validation_input,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(
         WorkerIntentBatch::new(format!("update-{name}")).push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -91,7 +105,7 @@ pub(crate) fn update_entity_name(
             }),
         )),
     );
-    txn.commit()
+    txn.commit(runtime)
         .expect("intervening update should succeed")
         .outcome()
         .commit
@@ -159,17 +173,46 @@ pub(crate) fn branch_snapshot_identity(
     runtime: &RelationalRuntime,
     branch: &str,
 ) -> WorthQuerySnapshotIdentity {
-    let history = runtime.history();
-    let head = history
-        .branch_head(&BranchId(branch.to_string()))
-        .expect("branch snapshot fixture requires a current branch head");
-    WorthQuerySnapshotIdentity::from_bridge_snapshot_projection(
-        worth_relational::facade::bridge::bridge_snapshot_identity_for_commit(
-            head.commit_id,
-            head.version_id,
-        ),
-    )
-    .expect("relational commit must yield a relational snapshot identity")
+    crate::memory_workspace::snapshot_identity_from_branch(runtime, &BranchId(branch.to_string()))
+        .expect("branch snapshot fixture requires a current owner basis")
+}
+
+pub(crate) fn exact_branch_head_commit_id(
+    runtime: &RelationalRuntime,
+    branch: &str,
+) -> worth_relational::facade::history::CommitId {
+    let branch_id = BranchId(branch.to_string());
+    let identity = runtime
+        .branch_identity(&branch_id)
+        .expect("branch-head fixture requires a registered branch");
+    let (_, basis) = runtime
+        .observe_branch(&identity)
+        .expect("branch-head fixture requires an owner-admitted basis");
+    let observation = basis.observation();
+    runtime
+        .history()
+        .branch_head_for_observation(&observation)
+        .expect("branch-head fixture requires a local observation")
+        .expect("branch-head fixture requires a committed head")
+        .commit_id
+}
+
+pub(crate) fn exact_branch_snapshot(
+    runtime: &mut RelationalRuntime,
+    branch: &str,
+) -> worth_relational::facade::snapshots::SnapshotHandle {
+    let branch_id = BranchId(branch.to_string());
+    let identity = runtime
+        .branch_identity(&branch_id)
+        .expect("snapshot fixture requires a registered branch");
+    let (_, basis) = runtime
+        .observe_branch(&identity)
+        .expect("snapshot fixture requires an owner-admitted basis");
+    let observation = basis.observation();
+    runtime
+        .snapshots()
+        .snapshot_for_observation(&observation)
+        .expect("snapshot fixture requires an exact retained basis")
 }
 
 fn test_schema_registry() -> RelationalSchemaRegistry {

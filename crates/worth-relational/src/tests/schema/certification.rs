@@ -13,7 +13,6 @@ use crate::schema::{
     classify_schema_transition, lower_schema_transition, validate_schema_transition,
 };
 use crate::tests::support::*;
-
 fn schema_transition_for_subscriber_impact(
     target_schema_version_id: SchemaVersionId,
     subscriber_impact: SchemaSubscriberImpact,
@@ -69,15 +68,19 @@ fn schema_evolution_cdc_contract_test() {
     }
     .build_registry();
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
-        schema_transition_for_subscriber_impact(
-            SchemaVersionId(2),
-            SchemaSubscriberImpact::ConsumableSurfaceChanged,
-        ),
-        Some(SchemaReconciliationPolicy::PreserveInformation),
-    ));
+    let context = crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+        .with_schema_transition(
+            schema_transition_for_subscriber_impact(
+                SchemaVersionId(2),
+                SchemaSubscriberImpact::ConsumableSurfaceChanged,
+            ),
+            Some(SchemaReconciliationPolicy::PreserveInformation),
+        );
+    let mut txn = runtime
+        .begin_branch_transaction(context.basis(), context.intent().clone())
+        .expect("owner-admitted transaction context");
     txn.push_batch(batch_create("boundary"));
-    let committed = txn.commit().unwrap();
+    let committed = txn.commit(&mut runtime).unwrap();
 
     let live_batch = runtime
         .publication()
@@ -134,7 +137,6 @@ fn schema_evolution_cdc_contract_test() {
     let recovered_envelope = recovered
         .replay()
         .canonical_commit_envelope(committed.commit.commit_id)
-        .cloned()
         .expect("recovered canonical envelope");
     let recovered_batch = recovered
         .publication()

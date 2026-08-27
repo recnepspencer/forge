@@ -1,4 +1,4 @@
-use super::fixtures::{install_schema_version, transaction_options_for_subscriber_impact};
+use super::fixtures::{install_schema_version, transaction_validation_input_for_subscriber_impact};
 use crate::diagnostics::data::RelationalDiagnosticValue;
 use crate::publication::cdc::data::{
     SubscriberContinuationClassSet, SubscriberContractDeclaration,
@@ -14,12 +14,21 @@ fn subscriber_stream_rejects_unsupported_contract_upgrade_boundary() {
     let _first = create_entity_outcome(&mut runtime, "a");
 
     install_schema_version(&mut runtime, SchemaVersionId(2));
-    let mut txn = runtime.begin_transaction(transaction_options_for_subscriber_impact(
-        SchemaVersionId(2),
-        SchemaSubscriberImpact::ContractUpgradeRequired,
-    ));
+    let mut txn = {
+        let transaction_validation_input = transaction_validation_input_for_subscriber_impact(
+            &runtime,
+            SchemaVersionId(2),
+            SchemaSubscriberImpact::ContractUpgradeRequired,
+        );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(batch_create("b"));
-    txn.commit().unwrap();
+    txn.commit(&mut runtime).unwrap();
 
     let contract = SubscriberContractDeclaration {
         contract_id: "subscriber.contract.geometry.v1".to_string(),
@@ -63,12 +72,21 @@ fn subscriber_stream_applies_contract_upgrade_when_declared_supported() {
     let _first = create_entity_outcome(&mut runtime, "a");
 
     install_schema_version(&mut runtime, SchemaVersionId(2));
-    let mut txn = runtime.begin_transaction(transaction_options_for_subscriber_impact(
-        SchemaVersionId(2),
-        SchemaSubscriberImpact::ContractUpgradeRequired,
-    ));
+    let mut txn = {
+        let transaction_validation_input = transaction_validation_input_for_subscriber_impact(
+            &runtime,
+            SchemaVersionId(2),
+            SchemaSubscriberImpact::ContractUpgradeRequired,
+        );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(batch_create("b"));
-    txn.commit().unwrap();
+    txn.commit(&mut runtime).unwrap();
 
     let contract = SubscriberContractDeclaration {
         contract_id: "subscriber.contract.geometry.v2".to_string(),
@@ -117,12 +135,21 @@ fn subscriber_stream_rejects_renegotiation_required_boundary() {
     let _first = create_entity_outcome(&mut runtime, "a");
 
     install_schema_version(&mut runtime, SchemaVersionId(2));
-    let mut txn = runtime.begin_transaction(transaction_options_for_subscriber_impact(
-        SchemaVersionId(2),
-        SchemaSubscriberImpact::RenegotiationRequired,
-    ));
+    let mut txn = {
+        let transaction_validation_input = transaction_validation_input_for_subscriber_impact(
+            &runtime,
+            SchemaVersionId(2),
+            SchemaSubscriberImpact::RenegotiationRequired,
+        );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(batch_create("b"));
-    txn.commit().unwrap();
+    txn.commit(&mut runtime).unwrap();
 
     let error = runtime
         .publication()

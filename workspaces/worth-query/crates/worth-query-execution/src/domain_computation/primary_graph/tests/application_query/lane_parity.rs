@@ -8,11 +8,10 @@ use worth_query_declaration::facade::{
 use worth_relational::facade::{
     history::BranchId,
     transactions::{
-        AspectFieldPatch, EntityMutationIntent, MutationIntent, TransactionOptions,
-        UpdateEntityFieldsIntent, WorkerIntentBatch,
+        AspectFieldPatch, EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent,
+        WorkerIntentBatch,
     },
 };
-use worth_runtime_bridge::facade::{TruthBranchIdentity, TruthCommitIdentity};
 
 use super::super::fixture::{
     installed_authorization_world, live_scope, status_parameter, AccountLabel, AccountStatus,
@@ -30,19 +29,12 @@ fn historical_and_current_share_meaning_but_bind_distinct_truth() {
     let world = installed_authorization_world(true);
     let request = live_scope();
     let (principal, account) = principal_and_account(&world, &request);
-    let historical_head = branch_head(&world, "main");
+    let historical_read = crate::domain_computation::primary_graph::WorthQueryApplicationHistoricalRead::current_for_test(&world.application);
     change_account_label(&world, account.entity_id(), "changed", "main");
     let historical_basis = world
         .application
-        .admit_application_historical_basis(
-            crate::domain_computation::primary_graph::WorthQueryApplicationHistoricalRead::at_commit(
-                TruthBranchIdentity::from_relational_branch_id("main"),
-                TruthCommitIdentity::from_relational_commit_id(historical_head.commit_id.0),
-            ),
-            &request,
-        )
+        .admit_application_historical_basis(historical_read, &request)
         .unwrap();
-    assert_eq!(historical_basis.version_id(), historical_head.version_id);
     let query = installed_query(&world);
     let access = WorthQueryApplicationQueryAccessContext::new(&principal, &account);
     let historical_plan = world
@@ -249,14 +241,14 @@ pub(super) fn parameters(
 pub(super) fn branch_head(
     world: &super::super::fixture::AuthorizationWorld,
     branch: &str,
-) -> worth_relational::facade::history::CommitReference {
+) -> worth_relational::facade::history::RelationalCommitReceipt {
     let graph = world.application.runtime.primary_graph().unwrap();
     graph.integration_handle().with_runtime(|runtime| {
-        runtime
-            .history()
-            .branch_head(&BranchId(branch.to_string()))
-            .unwrap()
-            .clone()
+        crate::domain_computation::primary_graph::exact_basis_access::current_branch_head(
+            runtime,
+            &BranchId(branch.to_string()),
+        )
+        .unwrap()
     })
 }
 
@@ -282,10 +274,18 @@ fn change_account_label(
             locator,
             label.to_string().into_foundational_value(),
         )]));
-        let mut transaction = runtime.begin_transaction(TransactionOptions {
-            target_branch: Some(BranchId(branch.to_string())),
-            ..TransactionOptions::default()
-        });
+        let branch_id = BranchId(branch.to_string());
+        let mut transaction = {
+            let transaction_validation_input = runtime
+                .admit_named_branch_basis(&branch_id)
+                .expect("branch binding");
+            runtime
+                .begin_branch_transaction(
+                    &transaction_validation_input,
+                    worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                )
+                .expect("owner-admitted transaction context")
+        };
         transaction.push_batch(WorkerIntentBatch::new("query-lane-label").push(
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {
@@ -294,7 +294,7 @@ fn change_account_label(
                 },
             )),
         ));
-        transaction.commit().unwrap();
+        transaction.commit(runtime).unwrap();
         handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }

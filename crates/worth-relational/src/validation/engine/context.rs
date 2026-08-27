@@ -23,13 +23,14 @@ impl<'runtime> InvariantExecutionContext<'runtime> {
         runtime: &'runtime RelationalRuntime,
         observation: InvariantObservation<'runtime>,
         version_id: crate::identity::data::VersionId,
+        current_version_id: crate::identity::data::VersionId,
         merged_plan: Option<&'runtime MergedCommitPlan>,
         relation_integrity_scopes: Option<PreparedRelationIntegrityScopes>,
     ) -> Self {
         Self {
             observation,
             version_id,
-            current_version_id: runtime.current_version_id(),
+            current_version_id,
             merged_plan,
             runtime,
             relation_integrity_scopes,
@@ -37,11 +38,21 @@ impl<'runtime> InvariantExecutionContext<'runtime> {
     }
 
     pub fn state_view(&self) -> InvariantStateView<'_> {
-        InvariantStateView::new(self.observation.partition_access(), self.version_id)
+        InvariantStateView::new(
+            self.observation.committed_partition_access(),
+            self.version_id,
+        )
     }
 
     pub fn partition_access(&self) -> &dyn crate::storage::overlay::PartitionAccess {
-        self.observation.partition_access()
+        self.observation.committed_partition_access()
+    }
+
+    pub(crate) fn enforcement_state_view(&self) -> InvariantStateView<'_> {
+        InvariantStateView::new(
+            self.observation.enforcement_partition_access(),
+            self.observation.enforcement_version_id(self.version_id),
+        )
     }
 
     pub fn current_version_id(&self) -> crate::identity::data::VersionId {

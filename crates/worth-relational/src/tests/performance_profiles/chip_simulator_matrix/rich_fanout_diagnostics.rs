@@ -33,7 +33,8 @@ pub(super) fn certify_dense_fanout_compile_wave_rich_diagnostics(suite: &'static
             runtime.performance_access().reset_counters();
             let commit_started_at = Instant::now();
             let commit_outcome = {
-                let mut txn = runtime.begin_transaction(TransactionOptions::default());
+                let mut txn =
+                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
                 let mut batch = WorkerIntentBatch::new("chip-fanout-wave-rich");
                 for (index, target) in targets.iter().enumerate() {
                     batch = batch.push(MutationIntent::Create(CreateIntent::Relation(
@@ -50,7 +51,7 @@ pub(super) fn certify_dense_fanout_compile_wave_rich_diagnostics(suite: &'static
                     )));
                 }
                 txn.push_batch(batch);
-                txn.commit()
+                txn.commit(&mut runtime)
                     .expect("chip fanout relation burst commit with rich diagnostics")
             };
             let commit_micros = commit_started_at.elapsed().as_micros();

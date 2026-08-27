@@ -8,7 +8,7 @@ mod stop;
 pub use challenge::{
     UiIntentConfirmationChallenge, UiIntentConfirmationIssueOutcome,
     UiIntentConfirmationSlotIdentity, UiPendingIntentConfirmation,
-    UI_INTENT_CONFIRMATION_TTL_TICKS, UI_PENDING_INTENT_CONFIRMATION_LIMIT,
+    UI_INTENT_CONFIRMATION_TTL_MILLIS, UI_PENDING_INTENT_CONFIRMATION_LIMIT,
 };
 pub(crate) use continuation::{continue_confirmation, UiIntentConfirmationContinuationContext};
 pub use continuation::{UiConfirmedIntentCandidate, UiIntentConfirmationContinuation};

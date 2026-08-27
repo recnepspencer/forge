@@ -23,5 +23,5 @@ pub(crate) use observation::{UiNativeInputObservationDisposition, UiNativeInputO
 pub(crate) use pointer::UiNativePointerPositionWitness;
 pub use report::{
     UiNativeInputObservationEventFamily, UiNativeInputObservationReport,
-    UiNativeInputObservationStop, UiNativePointerButtonObservation,
+    UiNativeInputObservationStop, UiNativePointerButtonObservation, UiNativeScrollDeltaObservation,
 };

@@ -97,8 +97,7 @@ impl PlatformPulseLifecycleObservationStream {
 
     pub fn project_native_input_reached(
         &mut self,
-        reached: worth_ui_host_egui::UiEguiRawInputReachability,
-        posture: super::native_input::PlatformPulseNativeInputIngressPosture,
+        reached: super::native_input::PlatformPulseNativeInputReached,
     ) -> Result<
         PlatformPulseLifecycleObservationEnvelope,
         PlatformPulseLifecycleObservationProjectionDenial,
@@ -109,16 +108,16 @@ impl PlatformPulseLifecycleObservationStream {
         let keyboard_discovered = reached.keyboard_events() > 0 && !self.keyboard_input_published;
         if !pointer_discovered
             && !keyboard_discovered
-            && posture != super::native_input::PlatformPulseNativeInputIngressPosture::Stopped
+            && reached.posture()
+                != super::native_input::PlatformPulseNativeInputIngressPosture::Stopped
         {
             return Err(
                 PlatformPulseLifecycleObservationProjectionDenial::NativeInputEvidenceNotNovel,
             );
         }
-        let envelope =
-            self.next_envelope(PlatformPulseLifecycleObservation::NativeInputReached(
-                super::native_input::PlatformPulseNativeInputReached::from_egui(reached, posture),
-            ))?;
+        let envelope = self.next_envelope(
+            PlatformPulseLifecycleObservation::NativeInputReached(reached),
+        )?;
         self.pointer_input_published |= pointer_discovered;
         self.keyboard_input_published |= keyboard_discovered;
         Ok(envelope)

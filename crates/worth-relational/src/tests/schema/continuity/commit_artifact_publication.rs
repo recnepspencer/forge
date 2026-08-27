@@ -62,10 +62,20 @@ fn explicit_schema_transition_is_lowered_into_canonical_commit_artifacts() {
         )],
     };
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
-        proposed_transition,
-        Some(SchemaReconciliationPolicy::PreserveInformation),
-    ));
+    let mut txn = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+                .with_schema_transition(
+                    proposed_transition,
+                    Some(SchemaReconciliationPolicy::PreserveInformation),
+                );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(
         WorkerIntentBatch::new("schema-transition").push(MutationIntent::Create(
             CreateIntent::Entity(crate::transactions::data::EntitySpec {
@@ -80,7 +90,7 @@ fn explicit_schema_transition_is_lowered_into_canonical_commit_artifacts() {
             }),
         )),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
 
     let transition = outcome.schema_transition_summary().unwrap();
     assert_eq!(transition.changed_atom_count, 1);
@@ -94,6 +104,20 @@ fn explicit_schema_transition_is_lowered_into_canonical_commit_artifacts() {
         .envelope()
         .schema_reconciliation_descriptor
         .is_some());
+    let populated_nested_bytes = outcome
+        .envelope()
+        .allocation_inventory()
+        .authoritative_nested_bytes;
+    let mut omitted_schema_authority = outcome.envelope().clone();
+    omitted_schema_authority.schema_transition = None;
+    omitted_schema_authority.schema_continuation_descriptor = None;
+    omitted_schema_authority.schema_reconciliation_descriptor = None;
+    assert!(
+        populated_nested_bytes
+            > omitted_schema_authority
+                .allocation_inventory()
+                .authoritative_nested_bytes
+    );
     assert!(outcome.diagnostics().iter().any(|artifact| artifact.scope
         == DiagnosticsScope::Schema
         && artifact
@@ -194,10 +218,20 @@ fn schema_certification_transition_is_explained_and_counted() {
     };
 
     runtime.performance_access().reset_counters();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
-        proposed_transition,
-        Some(SchemaReconciliationPolicy::PreserveInformation),
-    ));
+    let mut txn = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+                .with_schema_transition(
+                    proposed_transition,
+                    Some(SchemaReconciliationPolicy::PreserveInformation),
+                );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     txn.push_batch(WorkerIntentBatch::new("schema-transition-certified").push(
         MutationIntent::Create(CreateIntent::Entity(
             crate::transactions::data::EntitySpec {
@@ -212,7 +246,7 @@ fn schema_certification_transition_is_explained_and_counted() {
             },
         )),
     ));
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
 
     let diagnostics = outcome.diagnostics();
     let detailed_trace = diagnostics

@@ -7,12 +7,14 @@ fn perf_commit_delta_matrix() {
 
     let narrow_samples = capture_perf_samples(suite, "single_partition_create_burst", || {
         let mut runtime = runtime_with_test_schema();
-        commit_measurement(&mut runtime, |runtime| {
-            let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        commit_measurement(&mut runtime, |mut runtime| {
+            let mut txn =
+                crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
             for index in 0..64 {
                 txn.push_batch(batch_create(&format!("perf-entity-{index}")));
             }
-            txn.commit().expect("single-partition create burst commit")
+            txn.commit(&mut runtime)
+                .expect("single-partition create burst commit")
         })
     });
     assert!(narrow_samples
@@ -51,8 +53,9 @@ fn perf_commit_delta_matrix() {
                 })
                 .collect::<Vec<_>>();
 
-            commit_measurement(&mut runtime, |runtime| {
-                let mut txn = runtime.begin_transaction(TransactionOptions::default());
+            commit_measurement(&mut runtime, |mut runtime| {
+                let mut txn =
+                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
                 let mut batch = WorkerIntentBatch::new("cross-partition-relations");
                 for (index, (source, target)) in sources.iter().zip(targets.iter()).enumerate() {
                     batch = batch.push(MutationIntent::Create(CreateIntent::Relation(
@@ -69,7 +72,8 @@ fn perf_commit_delta_matrix() {
                     )));
                 }
                 txn.push_batch(batch);
-                txn.commit().expect("cross-partition relation burst commit")
+                txn.commit(&mut runtime)
+                    .expect("cross-partition relation burst commit")
             })
         });
     assert!(cross_partition_samples
@@ -90,10 +94,12 @@ fn perf_commit_delta_matrix() {
     let persisted_single_create_samples =
         capture_perf_samples(suite, "persisted_single_entity_create", || {
             let mut runtime = persisted_runtime_with_test_schema();
-            commit_measurement(&mut runtime, |runtime| {
-                let mut txn = runtime.begin_transaction(TransactionOptions::default());
+            commit_measurement(&mut runtime, |mut runtime| {
+                let mut txn =
+                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
                 txn.push_batch(batch_create("persisted-single"));
-                txn.commit().expect("persisted single entity create")
+                txn.commit(&mut runtime)
+                    .expect("persisted single entity create")
             })
         });
     emit_metric_summaries(

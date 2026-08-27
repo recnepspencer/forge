@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use worth_ui_host_contract::{
     UiHostKeyboardModifiers, UiHostObservationPresentationBasis, UiHostObservationRetention,
-    UiHostPresentationEpoch, UiHostProtocolAgreement,
+    UiHostObservationSessionRegistrationDenial, UiHostPresentationEpoch, UiHostProtocolAgreement,
 };
 
 mod admission;
@@ -126,7 +126,6 @@ impl UiNativeInputObservationState {
         });
         self.profile = Some(profile);
         if changed {
-            self.pointer.invalidate_position();
             self.profile_requires_completion = true;
             self.profile_transition_tick = Some(event_tick);
         }
@@ -153,6 +152,13 @@ impl UiNativeInputObservationState {
             self.emit_profile_transition(),
             UiNativeInputObservationDisposition::Stopped
         )
+    }
+
+    pub(crate) fn register_session(
+        &self,
+        host_session: u64,
+    ) -> Result<(), UiHostObservationSessionRegistrationDenial> {
+        self.retention.register_session(host_session)
     }
 
     pub(crate) fn remember_pending_presentation(
@@ -307,6 +313,8 @@ impl UiNativeInputObservationState {
             last_retained_sequence: self.evidence.last_retained_sequence(),
             family_counts: self.evidence.family_counts(),
             last_pointer_button: self.evidence.last_pointer_button(),
+            last_vertical_scroll: self.evidence.last_vertical_scroll(),
+            last_horizontal_scroll: self.evidence.last_horizontal_scroll(),
             profile_transition_count: self.evidence.profile_transition_count(),
         }
     }
@@ -333,6 +341,12 @@ impl UiNativeInputObservationState {
     }
 
     pub(super) fn begin_host_session(&mut self, host_session: u64) -> bool {
+        if !self.retention.is_session_active(host_session) {
+            self.record_terminal_stop(UiNativeInputObservationStop::Retention(
+                worth_ui_host_contract::UiHostObservationRetentionDenial::InactiveSession,
+            ));
+            return false;
+        }
         match self.active_host_session {
             None => {
                 let profile = self.profile;

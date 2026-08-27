@@ -1,9 +1,12 @@
 use crate::capabilities::VisibilityPolicySource;
-use crate::runtime::{RelationalRuntime, SnapshotGuard, SnapshotHandleBinding};
+#[cfg(test)]
+use crate::runtime::SnapshotGuard;
+use crate::runtime::{RelationalRuntime, SnapshotHandleBinding};
 use crate::snapshots::data::{SnapshotHandle, SnapshotId, SnapshotReadPolicy};
+#[cfg(test)]
+use crate::visibility::cache_state::retained_state;
 use crate::visibility::cache_state::{
-    bump_active_snapshot_ref, cached_state_for_version, evict_cache_if_needed, insert_state,
-    residency_for_version, retained_state,
+    bump_active_snapshot_ref, cached_state, evict_cache_if_needed, insert_state, residency,
 };
 use crate::visibility::exact_commit_snapshot::{
     open_retained_commit_snapshot, projection_binding_denial,
@@ -11,6 +14,7 @@ use crate::visibility::exact_commit_snapshot::{
     RelationalRetainedCommitSnapshotDenial, RelationalRetainedCommitSnapshotDenialKind,
 };
 use crate::visibility::snapshot_states::build_visibility_state;
+use crate::visibility::snapshot_states::VisibilitySnapshotBasis;
 
 pub struct VisibilityAuthority<'runtime> {
     runtime: &'runtime mut RelationalRuntime,
@@ -32,22 +36,41 @@ impl<'runtime> VisibilityAuthority<'runtime> {
         version_id: crate::identity::data::VersionId,
         read_policy: SnapshotReadPolicy,
     ) -> SnapshotHandle {
+        let branch_id = crate::visibility::branch_scope::authoritative_branch_for_version(
+            self.runtime,
+            version_id,
+        );
+        self.open_active_snapshot_for_branch(version_id, branch_id, read_policy)
+            .expect("authoritative visible version has an owner-selected immutable root")
+    }
+
+    fn open_active_snapshot_for_branch(
+        &mut self,
+        version_id: crate::identity::data::VersionId,
+        branch_id: crate::history::data::BranchId,
+        read_policy: SnapshotReadPolicy,
+    ) -> Option<SnapshotHandle> {
+        let basis = VisibilitySnapshotBasis::capture_current(self.runtime, &branch_id, version_id)?;
+        Some(self.open_active_snapshot_for_basis(basis, read_policy))
+    }
+
+    fn open_active_snapshot_for_basis(
+        &mut self,
+        basis: VisibilitySnapshotBasis,
+        read_policy: SnapshotReadPolicy,
+    ) -> SnapshotHandle {
         let snapshot_id = self.runtime.visibility.allocate_snapshot_id();
         let handle = SnapshotHandle {
             runtime_instance_id: self.runtime.runtime_instance_id(),
-            branch_id: crate::visibility::branch_scope::authoritative_branch_for_version(
-                self.runtime,
-                version_id,
-            ),
+            branch_id: basis.branch_id().clone(),
             snapshot_id,
-            version_id,
+            version_id: basis.version_id(),
             read_policy,
         };
-        let first_active_snapshot =
-            residency_for_version(self.runtime, version_id).active_snapshot_refs == 0;
+        let first_active_snapshot = residency(self.runtime, &basis).active_snapshot_refs == 0;
         if first_active_snapshot {
-            let state = cached_state_for_version(self.runtime, version_id).unwrap_or_else(|| {
-                build_visibility_state(self.runtime, version_id, snapshot_id, read_policy)
+            let state = cached_state(self.runtime, &basis).unwrap_or_else(|| {
+                build_visibility_state(self.runtime, basis.clone(), snapshot_id, read_policy)
             });
             self.runtime.visibility_pins().pin_snapshot_state(&state);
             if self.runtime.protect_active_snapshots() {
@@ -56,51 +79,46 @@ impl<'runtime> VisibilityAuthority<'runtime> {
         }
         self.runtime.visibility.insert_active_handle(
             handle.snapshot_id,
-            SnapshotHandleBinding::new(
-                handle.branch_id.clone(),
-                handle.version_id,
-                handle.read_policy,
-            ),
+            SnapshotHandleBinding::new(basis.clone(), handle.read_policy),
         );
-        bump_active_snapshot_ref(self.runtime, handle.version_id, 1);
+        bump_active_snapshot_ref(self.runtime, &basis, 1);
         handle
     }
 
-    pub fn snapshot(&mut self) -> SnapshotHandle {
+    /// Open a snapshot from an owner-admitted repeatable observation.
+    ///
+    /// This path never resolves a branch name, global version, current cell,
+    /// or commit-catalog head. The selected immutable root is carried by the
+    /// observation itself.
+    pub fn snapshot_for_observation(
+        &mut self,
+        observation: &crate::mvcc::RelationalBranchObservation,
+    ) -> Result<SnapshotHandle, crate::branch::RelationalBranchBasisDenial> {
+        if observation.identity().runtime_instance_id() != self.runtime.runtime_instance_id() {
+            return Err(crate::branch::RelationalBranchBasisDenial::ForeignRuntime {
+                expected_runtime_instance_id: self.runtime.runtime_instance_id(),
+                actual_runtime_instance_id: observation.identity().runtime_instance_id(),
+            });
+        }
+        let basis = VisibilitySnapshotBasis::from_observation(observation);
+        let handle = self.open_active_snapshot_for_basis(
+            basis,
+            SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
+        );
+        self.runtime
+            .history
+            .record_snapshot_root_read(observation.identity().branch_id());
+        Ok(handle)
+    }
+
+    /// Transitional commit-selection projection used only inside Relational
+    /// while the Phase-6 exact read-basis surface is still pending.  It is
+    /// deliberately crate-private and cannot be a public currentness door.
+    pub(crate) fn snapshot(&mut self) -> SnapshotHandle {
         self.open_active_snapshot(
             self.runtime.current_version_id(),
             SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
         )
-    }
-
-    /// Opens the current immutable snapshot for one exact branch.
-    ///
-    /// This is the branch-qualified counterpart to [`Self::snapshot`]. It
-    /// refuses to infer another branch when the requested branch has no
-    /// current head or when retained version ownership disagrees.
-    pub fn snapshot_for_branch(
-        &mut self,
-        branch_id: &crate::history::data::BranchId,
-    ) -> Option<SnapshotHandle> {
-        let version_id = self
-            .runtime
-            .history()
-            .branch_head(branch_id)
-            .map(|head| head.version_id)
-            .or_else(|| {
-                (branch_id == &self.runtime.config.history.main_branch)
-                    .then(|| self.runtime.current_version_id())
-            })?;
-        let handle = self.open_active_snapshot(
-            version_id,
-            SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
-        );
-        if &handle.branch_id == branch_id {
-            Some(handle)
-        } else {
-            self.release_snapshot(&handle);
-            None
-        }
     }
 
     /// Observes the already-published snapshot for one exact canonical commit.
@@ -112,7 +130,7 @@ impl<'runtime> VisibilityAuthority<'runtime> {
     pub fn retained_snapshot_for_commit(
         &self,
         expected_runtime_instance_id: u64,
-        commit: &crate::history::data::CommitReference,
+        commit: &crate::history::data::RelationalCommitReceipt,
     ) -> Result<RelationalRetainedCommitSnapshot, RelationalRetainedCommitSnapshotDenial> {
         open_retained_commit_snapshot(self.runtime, expected_runtime_instance_id, commit)
     }
@@ -122,11 +140,11 @@ impl<'runtime> VisibilityAuthority<'runtime> {
     pub fn project_retained_entity_for_commit<T>(
         &self,
         expected_runtime_instance_id: u64,
-        commit: &crate::history::data::CommitReference,
+        commit: &crate::history::data::RelationalCommitReceipt,
         entity_id: crate::identity::data::EntityId,
         expected_kind_id: crate::identity::data::KindId,
         projection_scope: crate::visibility::materialization::read_records::ProjectionAspectScope,
-        mut project: impl FnMut(
+        project: impl FnMut(
             crate::visibility::materialization::read_records::EntityProjectionRecord<'_>,
         ) -> Option<T>,
     ) -> Result<RelationalRetainedCommitEntityProjection<T>, RelationalRetainedCommitSnapshotDenial>
@@ -147,7 +165,7 @@ impl<'runtime> VisibilityAuthority<'runtime> {
                 entity_id,
                 expected_kind_id,
                 projection_scope,
-                |record| project(record),
+                project,
             )
             .map_err(|_| {
                 RelationalRetainedCommitSnapshotDenial::new(
@@ -161,12 +179,15 @@ impl<'runtime> VisibilityAuthority<'runtime> {
         Ok(RelationalRetainedCommitEntityProjection::new(value, work))
     }
 
-    pub fn pin_snapshot(
+    #[cfg(test)]
+    pub(crate) fn pin_snapshot(
         &mut self,
         version_id: crate::identity::data::VersionId,
     ) -> Option<SnapshotGuard> {
-        retained_state(self.runtime, version_id)?;
-        let handle = self.open_active_snapshot(version_id, SnapshotReadPolicy::ImmutablePinned);
+        let state = retained_state(self.runtime, version_id)?;
+        let basis = state.basis.exact()?.clone();
+        let handle =
+            self.open_active_snapshot_for_basis(basis, SnapshotReadPolicy::ImmutablePinned);
         Some(SnapshotGuard::new(handle))
     }
 
@@ -177,20 +198,19 @@ impl<'runtime> VisibilityAuthority<'runtime> {
             .remove_active_handle(handle.snapshot_id)
         {
             let last_active_snapshot =
-                residency_for_version(self.runtime, binding.version_id).active_snapshot_refs <= 1;
+                residency(self.runtime, &binding.basis).active_snapshot_refs <= 1;
             if last_active_snapshot {
-                let state = cached_state_for_version(self.runtime, binding.version_id)
-                    .unwrap_or_else(|| {
-                        build_visibility_state(
-                            self.runtime,
-                            binding.version_id,
-                            SnapshotId(0),
-                            SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
-                        )
-                    });
+                let state = cached_state(self.runtime, &binding.basis).unwrap_or_else(|| {
+                    build_visibility_state(
+                        self.runtime,
+                        binding.basis.clone(),
+                        SnapshotId(0),
+                        SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
+                    )
+                });
                 self.runtime.visibility_pins().unpin_snapshot_state(&state);
             }
-            bump_active_snapshot_ref(self.runtime, binding.version_id, -1);
+            bump_active_snapshot_ref(self.runtime, &binding.basis, -1);
             evict_cache_if_needed(self.runtime);
             if self.runtime.config.storage.mvcc.snapshot_release_policy
                 == crate::config::data::SnapshotReleasePolicy::ReleaseOnRetentionPass
@@ -203,28 +223,5 @@ impl<'runtime> VisibilityAuthority<'runtime> {
             .visibility
             .remove_published_handle(handle.snapshot_id)
             .is_some()
-    }
-
-    pub fn admit_execution_basis(
-        &mut self,
-        branch_id: &crate::history::data::BranchId,
-        version_id: crate::identity::data::VersionId,
-    ) -> Result<
-        crate::visibility::execution_basis::RelationalExecutionBasisLease,
-        crate::visibility::execution_basis::RelationalExecutionBasisDenial,
-    > {
-        crate::visibility::execution_basis::admit_execution_basis(
-            self.runtime,
-            branch_id,
-            version_id,
-        )
-    }
-
-    pub fn execution_basis_is_live(
-        &self,
-        identity: &crate::visibility::execution_basis::RelationalExecutionBasisIdentity,
-    ) -> bool {
-        identity.runtime_instance_id() == self.runtime.runtime_instance_id()
-            && self.runtime.visibility.execution_basis_is_live(identity)
     }
 }

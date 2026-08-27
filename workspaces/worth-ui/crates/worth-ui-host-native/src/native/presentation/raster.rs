@@ -1,4 +1,4 @@
-use crate::native::UiNativeGraphics;
+use crate::native::UiNativePresentationAccess;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(super) struct UiNativeRasterBasis {
@@ -7,10 +7,10 @@ pub(super) struct UiNativeRasterBasis {
 }
 
 impl UiNativeRasterBasis {
-    pub(super) fn from_graphics(graphics: &UiNativeGraphics) -> Self {
+    pub(super) fn from_presentation_access(access: &UiNativePresentationAccess) -> Self {
         Self {
-            extent: graphics.extent(),
-            scale_factor: graphics.scale_factor as f32,
+            extent: access.extent(),
+            scale_factor: access.scale_factor() as f32,
         }
     }
 
@@ -24,6 +24,10 @@ impl UiNativeRasterBasis {
 
     pub(super) const fn extent(self) -> [u32; 2] {
         self.extent
+    }
+
+    pub(super) const fn scale_factor(self) -> f32 {
+        self.scale_factor
     }
 }
 
@@ -50,6 +54,22 @@ impl RasterRect {
     }
 }
 
+pub(super) fn raster_physical_bounds(bounds: [u32; 4], extent: [u32; 2]) -> Option<RasterRect> {
+    let [left, top, right, bottom] = bounds;
+    (left < right && top < bottom && right <= extent[0] && bottom <= extent[1]).then_some(
+        RasterRect {
+            left: left as f32 * 2.0 / extent[0] as f32 - 1.0,
+            top: 1.0 - top as f32 * 2.0 / extent[1] as f32,
+            right: right as f32 * 2.0 / extent[0] as f32 - 1.0,
+            bottom: 1.0 - bottom as f32 * 2.0 / extent[1] as f32,
+            physical_width: right - left,
+            physical_height: bottom - top,
+            physical_left: left,
+            physical_top: top,
+        },
+    )
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(super) struct RasterVertex {
     pub(super) position: [f32; 2],
@@ -65,7 +85,7 @@ pub(super) struct GlyphVertex {
 
 pub(super) fn raster_rect(
     mechanic: worth_ui_host_contract::UiMountedFilledRectMechanic,
-    graphics: &UiNativeGraphics,
+    graphics: &UiNativePresentationAccess,
 ) -> Result<RasterRect, ()> {
     let bounds = mechanic.bounds();
     let clip = mechanic.clip_bounds();
@@ -73,7 +93,7 @@ pub(super) fn raster_rect(
         [bounds.x(), bounds.y(), bounds.width(), bounds.height()],
         [clip.x(), clip.y(), clip.width(), clip.height()],
         graphics.extent(),
-        graphics.scale_factor as f32,
+        graphics.scale_factor() as f32,
     )
 }
 

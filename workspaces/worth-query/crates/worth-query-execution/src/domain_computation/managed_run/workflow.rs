@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use worth_relational::facade::runtime::RelationalExecutionBasisLease;
+use super::WorthQueryManagedRelationalObservation;
 use worth_runtime_bridge::facade::BridgeBoundExecutionBasis;
 
 use super::{
@@ -43,16 +43,16 @@ pub use terminal::{
 pub struct WorthQueryAdmittedWorkflowRun {
     affinity: WorthQueryWorkflowRunAffinity,
     bridge_basis: BridgeBoundExecutionBasis,
-    relational_basis: RelationalExecutionBasisLease,
+    relational_basis: WorthQueryManagedRelationalObservation,
     counters: WorthQueryManagedRunCounters,
 }
 
 impl WorthQueryAdmittedWorkflowRun {
-    pub(crate) fn new(
+    pub(in crate::domain_computation) fn new(
         _operation: &WorthQueryExecutionBoundOperationAuthority,
         resource_attempt: WorthQueryWorkflowExecutionResourceAttempt,
         bridge_basis: BridgeBoundExecutionBasis,
-        relational_basis: RelationalExecutionBasisLease,
+        relational_basis: WorthQueryManagedRelationalObservation,
         counters: WorthQueryManagedRunCounters,
     ) -> Self {
         Self {
@@ -134,7 +134,7 @@ impl std::fmt::Debug for WorthQueryWorkflowRunStartRejection {
 pub struct WorthQueryRunningWorkflowRun {
     affinity: WorthQueryWorkflowRunAffinity,
     bridge_basis: BridgeBoundExecutionBasis,
-    relational_basis: RelationalExecutionBasisLease,
+    relational_basis: WorthQueryManagedRelationalObservation,
     counters: WorthQueryManagedRunCounters,
     artifacts: WorthQueryWorkflowArtifactAuthority,
     provider_artifact_occurrences: Arc<WorthQueryArtifactOccurrenceLedger>,
@@ -144,7 +144,7 @@ impl WorthQueryRunningWorkflowRun {
     pub(in crate::domain_computation::managed_run) fn owner_restore_readmission(
         affinity: WorthQueryWorkflowRunAffinity,
         bridge_basis: BridgeBoundExecutionBasis,
-        relational_basis: RelationalExecutionBasisLease,
+        relational_basis: WorthQueryManagedRelationalObservation,
         counters: WorthQueryManagedRunCounters,
         artifacts: WorthQueryWorkflowArtifactAuthority,
         provider_artifact_occurrences: Arc<WorthQueryArtifactOccurrenceLedger>,

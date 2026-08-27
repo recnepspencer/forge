@@ -38,10 +38,6 @@ fn equal_layer_total_order_follows_authored_node_order_not_command_identity() {
             worth_ui_host_contract::UiMountedPaintOrderIdentity::for_command(first),
         ]
     );
-    println!(
-        "WORTH_UI_LEDGER_COUNTERS={{\"P1-ORDER-01\":{}}}",
-        initial.order().len()
-    );
 }
 
 #[test]
@@ -101,5 +97,4 @@ fn equal_layer_successor_reorder_remains_authored_when_identity_order_opposes_it
         expected[0].command().mounted_instance().diagnostic_value()
             > expected[1].command().mounted_instance().diagnostic_value()
     );
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P3-TOTAL-ORDER-01\":2}}");
 }

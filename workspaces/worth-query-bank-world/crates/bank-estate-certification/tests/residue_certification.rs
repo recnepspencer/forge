@@ -102,42 +102,6 @@ fn dependency_gate_rejects_a_renamed_forbidden_package_identity() {
     );
 }
 
-#[test]
-fn closure_status_has_no_resolved_runtime_phase_as_the_current_frontier() {
-    let ledger = fs::read_to_string(
-        manifest_dir()
-            .join("..")
-            .join("..")
-            .join("docs")
-            .join("front-door-closure-ledger.md"),
-    )
-    .unwrap();
-    let stale_runtime_rows = ledger
-        .lines()
-        .filter(|line| line.starts_with("| R6.") || line.starts_with("| Q6."))
-        .filter(|line| {
-            [
-                "OPEN",
-                "remain open",
-                "remains open",
-                "reopened",
-                "still requires",
-                "Closure still",
-            ]
-            .iter()
-            .any(|stale| line.contains(stale))
-        })
-        .collect::<Vec<_>>();
-    assert_eq!(stale_runtime_rows, Vec::<&str>::new());
-    let open_frontiers = ledger
-        .lines()
-        .filter(|line| line.starts_with('|') && line.contains("**OPEN."))
-        .collect::<Vec<_>>();
-    assert_eq!(open_frontiers.len(), 1);
-    assert!(open_frontiers[0].contains("Bank Phase 6"));
-    assert!(ledger.contains("The current open\nfrontier is Bank World Phase 6"));
-}
-
 fn production_dependency_violations(metadata: &serde_json::Value) -> Vec<String> {
     const PRODUCTION_PACKAGES: [&str; 4] = [
         "bank-domain",

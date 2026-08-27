@@ -17,8 +17,11 @@ impl<'runtime> MergeAccess<'runtime> {
         request: NormalizedRelationalMergeRequest,
     ) -> Result<HistoryScopedMergePlan, MergePlanningError> {
         let history = self.runtime.history();
+        let (target_binding, source_binding) = request
+            .owner_bindings()
+            .ok_or(MergePlanningError::UnboundBranchCurrentness)?;
         let basis = history
-            .resolve_merge_branch_basis(request.source_branch(), request.target_branch())
+            .resolve_merge_branch_basis_from_bindings(source_binding, target_binding)
             .map_err(MergePlanningError::from)?;
         let merge_base_ancestors =
             history.ancestor_closure_by_commit_id_order(basis.merge_base.commit.commit_id);
@@ -118,7 +121,7 @@ impl<'runtime> MergeAccess<'runtime> {
 }
 
 pub(super) fn branch_delta_summary(
-    head: &crate::history::data::CommitReference,
+    head: &crate::history::data::RelationalCommitReceipt,
     delta: &BranchCommitDelta,
 ) -> BranchDeltaSummary {
     let touched_entity_count = delta

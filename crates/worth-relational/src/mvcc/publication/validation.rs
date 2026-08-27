@@ -1,0 +1,97 @@
+use crate::branch::{
+    AdmittedRelationalBranchBasis, RelationalBranchReferenceCell, RelationalBranchTarget,
+};
+use crate::history::data::BranchId;
+use crate::history::data::{CanonicalCommitEnvelope, CommitId, RelationalCommitReceipt};
+use crate::runtime::RelationalRuntime;
+use worth_foundational::FoundationalBranchTarget;
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum PublicationSequence {
+    Truth,
+    RecoveryTruth,
+}
+
+pub(crate) struct PublicationRequest<'a> {
+    pub(crate) commit_id: CommitId,
+    pub(crate) commit_reference: &'a RelationalCommitReceipt,
+    pub(crate) binding: &'a AdmittedRelationalBranchBasis,
+    pub(crate) envelope: &'a CanonicalCommitEnvelope,
+    pub(crate) sequence: PublicationSequence,
+}
+
+pub(crate) struct ValidatedPublication {
+    pub(crate) branch_id: BranchId,
+    pub(crate) next_cell: RelationalBranchReferenceCell,
+}
+
+pub(crate) fn validate_publication(
+    runtime: &RelationalRuntime,
+    request: PublicationRequest<'_>,
+) -> Result<ValidatedPublication, String> {
+    let branch_id = request.binding.identity().branch_id();
+    if request.commit_reference.commit_id != request.commit_id {
+        return Err(format!(
+            "publication commit identity mismatch: expected {}, got {}",
+            request.commit_id.0, request.commit_reference.commit_id.0
+        ));
+    }
+    if request.envelope.commit != *request.commit_reference {
+        return Err("publication envelope commit identity mismatch".to_owned());
+    }
+    if &request.commit_reference.branch_id != branch_id {
+        return Err(format!(
+            "publication branch identity mismatch: expected `{}`, got `{}`",
+            branch_id.0, request.commit_reference.branch_id.0
+        ));
+    }
+    if &request.envelope.branch_context != branch_id {
+        return Err(format!(
+            "publication envelope branch context mismatch: expected `{}`, got `{}`",
+            branch_id.0, request.envelope.branch_context.0
+        ));
+    }
+    if !runtime.admitted_branch_basis_is_current(request.binding) {
+        return Err("publication owner binding is foreign or stale".to_owned());
+    }
+    if runtime.history.next_version_id.checked_add(1).is_none() {
+        return Err("version id sequence overflow".to_owned());
+    }
+    if runtime.history.next_commit_id.checked_add(1).is_none() {
+        return Err("commit id sequence overflow".to_owned());
+    }
+    let catalog_admission = match request.sequence {
+        PublicationSequence::Truth => runtime
+            .history
+            .commit_catalog
+            .validate_new_envelope(request.envelope),
+        PublicationSequence::RecoveryTruth => runtime
+            .history
+            .commit_catalog
+            .validate_envelope(request.envelope),
+    };
+    catalog_admission
+        .map_err(|denial| format!("publication catalog admission denied: {denial:?}"))?;
+    let mut cell = runtime
+        .history
+        .branch_cell(branch_id)
+        .cloned()
+        .ok_or_else(|| {
+            format!(
+                "publication cannot mint a missing branch cell `{}`",
+                branch_id.0
+            )
+        })?;
+    let roots = RelationalBranchTarget::roots_for_commit(request.commit_reference);
+    let target = RelationalBranchTarget::from_commit_receipt(
+        runtime.history.runtime_instance_id,
+        request.commit_reference,
+        roots,
+    );
+    cell.advance_truth(FoundationalBranchTarget::basis(target))
+        .map_err(|denial| format!("publication branch advance denied: {denial:?}"))?;
+    Ok(ValidatedPublication {
+        branch_id: branch_id.clone(),
+        next_cell: cell,
+    })
+}

@@ -264,7 +264,6 @@ fn replay_rebuild_denies_summary_and_packet_drift() {
     let mut envelope = runtime
         .replay()
         .canonical_commit_envelope(outcome.commit.commit.commit_id)
-        .cloned()
         .expect("canonical envelope");
     envelope
         .merge_execution_authority

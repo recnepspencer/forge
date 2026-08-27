@@ -1,7 +1,7 @@
 use worth_ui::facade::intent::{
     UiIntent, UiIntentConcurrencyScope, UiIntentConfirmationContract, UiIntentConsequenceContract,
     UiIntentDeclaration, UiIntentDefinition, UiIntentMutabilitySource, UiIntentOperabilityContract,
-    UiIntentPayloadSource, UiIntentPolicySource, UiIntentReadinessSource,
+    UiIntentPolicySource, UiIntentReadinessSource,
 };
 use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
 use worth_ui_dsl::{
@@ -12,9 +12,7 @@ use worth_ui_host_headless::{UiHeadlessRecorderCapacity, WorthUiHeadlessRecorder
 use worth_ui_runtime::facade::measurement_exchange::UiViewportExtentObservation;
 
 use super::facts::OperabilityFacts;
-use super::intent_types::{
-    EditIntent, PrimaryIntent, ProjectionIntent, SecondaryIntent, UnsupportedIntent, EDIT_FIELD,
-};
+use super::intent_types::{PrimaryIntent, SecondaryIntent, UnsupportedIntent};
 
 mod application;
 
@@ -156,84 +154,6 @@ pub(super) fn build_unsupported() -> (worth_ui::facade::app::WorthUiApp, Operabi
     (app, facts)
 }
 
-pub(super) fn build_projection(
-    registration: worth_ui_query_binding::UiScalarProjectionRegistration,
-) -> (worth_ui::facade::app::WorthUiApp, OperabilityFacts) {
-    let facts = OperabilityFacts::new();
-    let projection = registration.view().identity().clone();
-    let input = module(
-        PRIMARY_DECLARATION,
-        PRIMARY_DECLARATION,
-        WorthUiIntentInteractionFamily::Activate,
-        [projection_declaration(&projection, &facts)],
-    );
-    let app = prepare_application(
-        OperabilityApplicationInput::new(
-            input,
-            worth_ui_certification::WorthUiCertificationBeforeEffectProvider::<PrimaryIntent>::new(
-            ),
-        )
-        .with_projection(registration),
-        &facts,
-    );
-    (app, facts)
-}
-
-pub(super) fn build_edit(
-    host: worth_ui_host_egui::WorthUiHostEgui,
-) -> (worth_ui::facade::app::WorthUiApp, OperabilityFacts) {
-    let facts = OperabilityFacts::new();
-    let input = module(
-        PRIMARY_DECLARATION,
-        PRIMARY_DECLARATION,
-        WorthUiIntentInteractionFamily::EditCommit,
-        [edit_declaration(&facts)],
-    );
-    let app = FilesystemApplicationLifecycleScenario::new("phase-3-operability-edit-world")
-        .visual_identity_application_builder(host)
-        .register_intent_boolean_fact(facts.policy.clone(), true)
-        .unwrap()
-        .register_intent_boolean_fact(facts.confirmation.clone(), false)
-        .unwrap()
-        .register_intent_definition(UiIntentDefinition::<EditIntent>::application_effect())
-        .unwrap()
-        .register_intent_provider(
-            worth_ui_certification::WorthUiCertificationBeforeEffectProvider::<EditIntent>::new(),
-        )
-        .unwrap()
-        .with_rust_authored_input(input)
-        .freeze()
-        .expect("committed-draft operability world prepares");
-    (app, facts)
-}
-
-fn projection_declaration(
-    projection: &worth_ui_query_binding::WorthUiQueryViewIdentity,
-    facts: &OperabilityFacts,
-) -> worth_ui_dsl::WorthUiIntentDeclarationSpec {
-    UiIntentDeclaration::<ProjectionIntent>::activate(PRIMARY_DECLARATION)
-        .unwrap()
-        .operability_from(
-            UiIntentOperabilityContract::new(
-                CONTRACT,
-                UiIntentMutabilitySource::readonly_projection(projection),
-                UiIntentReadinessSource::projection(projection),
-                UiIntentPolicySource::application_fact(&facts.policy),
-            )
-            .unwrap(),
-        )
-        .confirmation(
-            UiIntentConfirmationContract::application_fact(
-                CONFIRMATION_POLICY,
-                &facts.confirmation,
-            )
-            .unwrap(),
-        )
-        .concurrency(UiIntentConcurrencyScope::TargetRouteSingleFlight)
-        .consequences(UiIntentConsequenceContract::none())
-        .into_dsl_spec()
-}
-
 fn scoped_input(
     layout: OccupancyLayout,
     facts: &OperabilityFacts,
@@ -254,31 +174,6 @@ fn scoped_input(
             facts,
         ),
     }
-}
-
-fn edit_declaration(facts: &OperabilityFacts) -> worth_ui_dsl::WorthUiIntentDeclarationSpec {
-    UiIntentDeclaration::<EditIntent>::edit_commit(PRIMARY_DECLARATION)
-        .unwrap()
-        .bind_payload(EDIT_FIELD, UiIntentPayloadSource::committed_draft())
-        .operability_from(
-            UiIntentOperabilityContract::new(
-                CONTRACT,
-                UiIntentMutabilitySource::committed_draft(),
-                UiIntentReadinessSource::committed_draft(),
-                UiIntentPolicySource::application_fact(&facts.policy),
-            )
-            .unwrap(),
-        )
-        .confirmation(
-            UiIntentConfirmationContract::application_fact(
-                CONFIRMATION_POLICY,
-                &facts.confirmation,
-            )
-            .unwrap(),
-        )
-        .concurrency(UiIntentConcurrencyScope::TargetRouteSingleFlight)
-        .consequences(UiIntentConsequenceContract::none())
-        .into_dsl_spec()
 }
 
 fn shared_declaration_input(

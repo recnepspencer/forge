@@ -7,7 +7,7 @@ use super::{
     UiNativeEventLoopClient, UiNativeEventLoopRunDenial, UiNativeOwnedWindow,
     UiNativeReadinessGrant,
 };
-use crate::native::{UiNativeGraphicsPort, UiNativeOwnedGraphics, UiWgpuNativeGraphicsPort};
+use crate::native::{UiNativeOwnedDevice, UiNativeOwnedPresentationSurface};
 use window_port::UiNativeWindowPort;
 
 impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
@@ -23,18 +23,18 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
             Ok(opened) => opened,
             Err(denial) => return self.fail(event_loop, denial),
         };
-        let graphics = match self.prepare_registered_graphics(&window) {
-            Ok(graphics) => graphics,
+        let (device, surface) = match self.prepare_registered_graphics(&window) {
+            Ok(owners) => owners,
             Err(denial) => {
                 window.close(&mut self.shared.borrow_mut().resources);
                 return self.fail(event_loop, denial);
             }
         };
-        self.install_surface(window, graphics, pointer_input);
+        self.install_surface(window, device, surface, pointer_input);
         let Some(directive) = self.surface_ready_directive() else {
             return self.fail(event_loop, UiNativeEventLoopRunDenial::ApplicationDriver);
         };
-        if directive::apply(&self.shared, event_loop, directive) {
+        if directive::apply(event_loop, directive) {
             return event_loop.exit();
         }
         self.commit_readiness(event_loop);
@@ -66,43 +66,53 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
     fn prepare_registered_graphics(
         &mut self,
         window: &UiNativeOwnedWindow,
-    ) -> Result<UiNativeOwnedGraphics, UiNativeEventLoopRunDenial> {
-        let prepared = UiWgpuNativeGraphicsPort::prepare(Arc::clone(window))
+    ) -> Result<(UiNativeOwnedDevice, UiNativeOwnedPresentationSurface), UiNativeEventLoopRunDenial>
+    {
+        let prepared = crate::native::graphics::prepare_platform_graphics(Arc::clone(window))
             .map_err(|_| UiNativeEventLoopRunDenial::GraphicsPreparation)?;
-        let (graphics, crossings) = prepared.into_parts();
+        let (device, surface, crossings) = prepared.into_parts();
         self.port_crossings = self.port_crossings.saturating_add(crossings);
-        UiNativeOwnedGraphics::register(graphics, &mut self.shared.borrow_mut().resources).map_err(
-            |graphics| {
-                drop(graphics);
-                UiNativeEventLoopRunDenial::IncompleteCleanup
-            },
+        crate::native::lifecycle::register_platform_owners(
+            device,
+            surface,
+            &mut self.shared.borrow_mut().resources,
         )
+        .map_err(|mechanics| {
+            drop(mechanics);
+            UiNativeEventLoopRunDenial::IncompleteCleanup
+        })
     }
 
     fn install_surface(
         &mut self,
         window: UiNativeOwnedWindow,
-        graphics: UiNativeOwnedGraphics,
+        device: UiNativeOwnedDevice,
+        surface: UiNativeOwnedPresentationSurface,
         pointer_input: Option<Box<pointer_position::UiNativePointerInputPort>>,
     ) {
-        let profile = (graphics.scale_factor, graphics.extent());
+        let profile = (surface.state().scale_factor(), surface.state().extent());
         let mut state = self.shared.borrow_mut();
-        state.graphics = Some(graphics);
+        state.device = Some(device);
+        state.presentation_surface = Some(surface);
         state.window = Some(window);
         state
-            .lifecycle_protocol
+            .lifecycle
             .install_initial_profile(profile.0, profile.1);
         self.pointer_input = pointer_input;
     }
 
     fn surface_ready_directive(&mut self) -> Option<super::UiNativeEventLoopDirective> {
-        let preparation = self.shared.borrow().graphics.as_ref().map(|graphics| {
+        let state = self.shared.borrow();
+        let surface = state.presentation_surface.as_ref()?;
+        let preparation = {
             UiNativeReadinessGrant::issued(
                 0,
-                (graphics.scale_factor * 1_000.0).round() as u32,
-                graphics.extent(),
+                surface.basis_generation(),
+                (surface.state().scale_factor() * 1_000.0).round() as u32,
+                surface.state().extent(),
             )
-        })?;
+        };
+        drop(state);
         self.client.as_mut()?.native_surface_ready(preparation).ok()
     }
 }

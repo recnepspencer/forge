@@ -5,8 +5,8 @@ use worth_relational::facade::identity::{EntityId, KindId, PartitionId, Relation
 use worth_relational::facade::symbols::ClientKey;
 use worth_relational::facade::transactions::{
     AspectFieldPatch, CreateIntent, DeleteRelationIntent, EntityMutationIntent, EntityReference,
-    MutationIntent, RelationMutationIntent, RelationSpec, TransactionOptions,
-    UpdateEntityFieldsIntent, WorkerIntentBatch,
+    MutationIntent, RelationMutationIntent, RelationSpec, UpdateEntityFieldsIntent,
+    WorkerIntentBatch,
 };
 
 use super::super::fixture::capability::CapabilityParent;
@@ -140,10 +140,11 @@ pub(super) fn relation_source(
 ) -> EntityId {
     let graph = world.application.runtime.primary_graph().unwrap();
     graph.integration_handle().with_runtime_mut(|runtime| {
-        let snapshot = runtime.snapshots().snapshot();
+        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_main_snapshot(runtime)
+            .expect("primary branch has a current snapshot");
         let source = runtime
             .read_truth()
-            .visible_relations_of_kind(kind, snapshot.version_id)
+            .visible_relations_of_kind(kind, snapshot.version_id())
             .into_iter()
             .find(|record| record.target == target)
             .unwrap()
@@ -197,10 +198,11 @@ fn current_relation(
 ) -> RelationId {
     let graph = world.application.runtime.primary_graph().unwrap();
     graph.integration_handle().with_runtime_mut(|runtime| {
-        let snapshot = runtime.snapshots().snapshot();
+        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_main_snapshot(runtime)
+            .expect("primary branch has a current snapshot");
         let relation = runtime
             .read_truth()
-            .visible_relations_of_kind(kind, snapshot.version_id)
+            .visible_relations_of_kind(kind, snapshot.version_id())
             .into_iter()
             .find(|record| record.source == source && record.target == target)
             .unwrap()
@@ -263,9 +265,19 @@ fn mutate(world: &AuthorizationWorld, build: impl FnOnce(WorkerIntentBatch) -> W
     let graph = world.application.runtime.primary_graph().unwrap();
     let handle = graph.integration_handle();
     handle.with_runtime_mut(|runtime| {
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let mut transaction = {
+            let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
+            runtime
+                .begin_branch_transaction(
+                    &transaction_validation_input,
+                    worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                )
+                .expect("owner-admitted transaction context")
+        };
         transaction.push_batch(build(WorkerIntentBatch::new("delegation-hostility")));
-        transaction.commit().unwrap();
+        transaction.commit(runtime).unwrap();
         handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }

@@ -77,6 +77,7 @@ impl WorthQueryPendingApplicationCommitReceipt {
             outcome_identity: self.provider.application_outcome_identity(),
             provider_runtime_instance_id: self.provider.runtime_instance_id(),
             commit: self.provider.commit_reference().clone(),
+            basis_descriptor: self.provider.basis_descriptor().clone(),
             changed_record_count: self.provider.changed_record_count(),
             emitted_effect_count: self.provider.emitted_effect_count(),
             mutation_work: Some(mutation_work),

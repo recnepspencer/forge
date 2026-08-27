@@ -16,11 +16,12 @@ fn perf_profile_matrix() {
             runtime.performance_access().reset_counters();
             let commit_started_at = Instant::now();
             let commit_outcome = {
-                let mut txn = runtime.begin_transaction(TransactionOptions::default());
+                let mut txn =
+                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
                 for index in 0..24 {
                     txn.push_batch(batch_create(&format!("profile-certification-{index}")));
                 }
-                txn.commit().expect("certification-core commit")
+                txn.commit(&mut runtime).expect("certification-core commit")
             };
             let commit_micros = commit_started_at.elapsed().as_micros();
 
@@ -133,11 +134,12 @@ fn perf_profile_matrix() {
             runtime.performance_access().reset_counters();
             let commit_started_at = Instant::now();
             let commit_outcome = {
-                let mut txn = runtime.begin_transaction(TransactionOptions::default());
+                let mut txn =
+                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
                 for index in 0..24 {
                     txn.push_batch(batch_create(&format!("profile-geometry-{index}")));
                 }
-                txn.commit().expect("geometry-kernel commit")
+                txn.commit(&mut runtime).expect("geometry-kernel commit")
             };
             let commit_micros = commit_started_at.elapsed().as_micros();
 
@@ -253,11 +255,12 @@ fn perf_profile_matrix() {
             runtime.performance_access().reset_counters();
             let commit_started_at = Instant::now();
             let commit_outcome = {
-                let mut txn = runtime.begin_transaction(TransactionOptions::default());
+                let mut txn =
+                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
                 for index in 0..24 {
                     txn.push_batch(batch_create(&format!("profile-zero-{index}")));
                 }
-                txn.commit()
+                txn.commit(&mut runtime)
                     .expect("zero-diagnostics certification-core commit")
             };
             let commit_micros = commit_started_at.elapsed().as_micros();

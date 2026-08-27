@@ -1,5 +1,5 @@
 use crate::facade::history::BranchId;
-use crate::tests::support::{field_key, read_entity_field};
+use crate::tests::support::{changed_entities, field_key, read_entity_field};
 
 mod persistence;
 
@@ -7,10 +7,9 @@ use super::actions::{
     build_branch_scoped_case_index, capture_world_snapshot, checkpoint_world,
     commit_case_trade_after_savepoint, compact_world_store, correct_seeded_trade_candidate,
     diverge_case_trade_on_branch, emit_trade_correction_audit_record, merge_branch_into_main,
-    open_analysis_branch, open_audit_branch, promote_case_correspondence, recover_persisted_world,
-    recover_runtime_from_plan, refresh_risk_views, register_case_book_index,
-    release_snapshot_handle, repair_seeded_failed_settlement, shock_market_on_branch,
-    stress_seeded_intraday_risk,
+    open_analysis_branch, open_audit_branch, recover_persisted_world, recover_runtime_from_plan,
+    refresh_risk_views, register_case_book_index, release_snapshot_handle,
+    repair_seeded_failed_settlement, shock_market_on_branch, stress_seeded_intraday_risk,
 };
 use super::comparisons::{compare_case_truth, compare_replay_probe};
 use super::complexity::{
@@ -25,9 +24,9 @@ use super::fixture::FintechWorld;
 use super::invariants::{
     assert_correction_case_transition, assert_cross_context_relations, assert_fixture_shape,
     assert_intraday_risk_case_transition, assert_merge_metadata_preserved,
-    assert_metadata_preserved_after_recovery, assert_named_truth_world,
-    assert_observability_overlap_stable, assert_observability_surfaces_agree,
-    assert_partitioned_aspect_state, assert_recovery_matches_truth, assert_replay_targets_branch,
+    assert_named_truth_world, assert_observability_overlap_stable,
+    assert_observability_surfaces_agree, assert_partitioned_aspect_state,
+    assert_recovery_matches_truth, assert_replay_targets_branch,
     assert_settlement_repair_case_transition, assert_snapshot_release_contract,
 };
 use super::naming::{
@@ -218,9 +217,8 @@ fn fintech_analysis_workflow_preserves_branching_snapshots_and_trade_correction(
         world
             .runtime
             .history()
-            .branch_head(&BranchId("analysis".to_string()))
-            .cloned(),
-        world.runtime.history().latest_commit().cloned()
+            .branch_head(&BranchId("analysis".to_string())),
+        world.runtime.history().latest_commit()
     );
     let post_probe = capture_case_truth_probe(
         &world,
@@ -264,9 +262,8 @@ fn fintech_intraday_risk_workflow_exposes_open_breach_on_analysis_branch() {
         world
             .runtime
             .history()
-            .branch_head(&BranchId("analysis".to_string()))
-            .cloned(),
-        world.runtime.history().latest_commit().cloned()
+            .branch_head(&BranchId("analysis".to_string())),
+        world.runtime.history().latest_commit()
     );
     assert_intraday_risk_case_transition(&baseline_probe, &post_probe);
     assert!(compare_case_truth(&post_probe, &post_replay_probe).is_empty());
@@ -300,9 +297,8 @@ fn fintech_settlement_repair_workflow_exposes_repaired_settlement_on_analysis_br
         world
             .runtime
             .history()
-            .branch_head(&BranchId("analysis".to_string()))
-            .cloned(),
-        world.runtime.history().latest_commit().cloned()
+            .branch_head(&BranchId("analysis".to_string())),
+        world.runtime.history().latest_commit()
     );
     assert_settlement_repair_case_transition(&baseline_probe, &post_probe);
 }

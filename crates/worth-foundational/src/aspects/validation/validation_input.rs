@@ -19,3 +19,12 @@ impl From<StructAspectValue> for ContractValidationInput {
         Self::Struct(value)
     }
 }
+
+impl ContractValidationInput {
+    pub fn owned_allocation_capacity_bytes(&self) -> usize {
+        match self {
+            Self::Scalar(value) => value.owned_allocation_capacity_bytes(),
+            Self::Struct(value) => value.owned_allocation_capacity_bytes(),
+        }
+    }
+}

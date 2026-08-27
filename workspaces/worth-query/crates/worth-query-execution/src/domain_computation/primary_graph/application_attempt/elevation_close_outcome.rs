@@ -142,7 +142,8 @@ pub enum WorthQueryElevationCloseOutcome {
         WorthQueryApprovedElevation,
     ),
     Aborted(WorthQueryApprovedElevation),
-    PartialEffect,
+    Deferred(super::WorthQueryApplicationCommitDeferred),
+    SettlementDeferred(super::WorthQueryApplicationSettlementDeferred),
     Indeterminate,
 }
 
@@ -169,8 +170,11 @@ pub(in crate::domain_computation::primary_graph) fn closed_outcome(
         WorthQueryApplicationCommitOutcome::Aborted => {
             WorthQueryElevationCloseOutcome::Aborted(binding.into_approved())
         }
-        WorthQueryApplicationCommitOutcome::PartialEffect(_) => {
-            WorthQueryElevationCloseOutcome::PartialEffect
+        WorthQueryApplicationCommitOutcome::Deferred(deferred) => {
+            WorthQueryElevationCloseOutcome::Deferred(deferred)
+        }
+        WorthQueryApplicationCommitOutcome::SettlementDeferred(deferred) => {
+            WorthQueryElevationCloseOutcome::SettlementDeferred(deferred)
         }
         WorthQueryApplicationCommitOutcome::Indeterminate(_) => {
             WorthQueryElevationCloseOutcome::Indeterminate

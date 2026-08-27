@@ -70,7 +70,8 @@ pub(super) fn certify_hundred_k_nodes_pseudorealistic_varied_flat_batch_wave(
             runtime.performance_access().reset_counters();
             let update_started_at = Instant::now();
             let update = {
-                let mut txn = runtime.begin_transaction(TransactionOptions::default());
+                let mut txn =
+                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
                 let mut batch = WorkerIntentBatch::new("rocketship-varied-locality-batch-wave");
                 for (index, entity) in batch_targets.iter().enumerate() {
                     batch = batch.push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
@@ -101,7 +102,7 @@ pub(super) fn certify_hundred_k_nodes_pseudorealistic_varied_flat_batch_wave(
                     )));
                 }
                 txn.push_batch(batch);
-                txn.commit()
+                txn.commit(&mut runtime)
                     .expect("rocketship varied locality batch wave commit")
             };
             let update_micros = update_started_at.elapsed().as_micros();

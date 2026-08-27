@@ -11,8 +11,6 @@ pub enum WorthServerQueryDependencyAuditPathKind {
     QueryHandoffRead,
     QueryHandoffMutation,
     QueryHandoffDownstreamDelivery,
-    ServerConsumerBoundaryAudit,
-    CertificationTestBackendSupport,
 }
 
 impl WorthServerQueryDependencyAuditPathKind {
@@ -29,8 +27,6 @@ impl WorthServerQueryDependencyAuditPathKind {
             Self::QueryHandoffRead => "query-handoff-read",
             Self::QueryHandoffMutation => "query-handoff-mutation",
             Self::QueryHandoffDownstreamDelivery => "query-handoff-downstream-delivery",
-            Self::ServerConsumerBoundaryAudit => "server-consumer-boundary-audit",
-            Self::CertificationTestBackendSupport => "certification-test-backend-support",
         }
     }
 }

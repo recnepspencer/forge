@@ -36,14 +36,6 @@ impl<'a> RuntimeSetup<'a> {
         self
     }
 
-    pub fn commit_authority(
-        &mut self,
-        commit_authority: crate::config::data::CommitAuthorityContract,
-    ) -> &mut Self {
-        self.builder.overrides.execution.commit_authority = Some(commit_authority);
-        self
-    }
-
     pub fn diagnostics(&mut self, diagnostics: RelationalDiagnosticsProfile) -> &mut Self {
         self.builder.overrides.diagnostics.profile = Some(diagnostics);
         self

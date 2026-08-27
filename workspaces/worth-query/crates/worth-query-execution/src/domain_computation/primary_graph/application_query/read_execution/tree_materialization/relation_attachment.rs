@@ -31,7 +31,7 @@ pub(super) use omitted_relation::advance_omitted_relation;
 #[allow(clippy::too_many_arguments)]
 pub(super) fn attach_relation(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
-    projection: worth_relational::facade::runtime::VisibilityProjectionView<'_>,
+    projection: &worth_relational::facade::runtime::VisibilityProjectionView<'_>,
     graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout,
     contract: &WorthQueryInstalledGraphReadContract,
     governance: &crate::domain_computation::primary_graph::application_query::disclosure::WorthQueryApplicationQueryGovernance,
@@ -171,7 +171,7 @@ pub(super) fn attach_relation(
 #[allow(clippy::too_many_arguments)]
 fn attach_ordered_relation(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
-    projection: worth_relational::facade::runtime::VisibilityProjectionView<'_>,
+    projection: &worth_relational::facade::runtime::VisibilityProjectionView<'_>,
     graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout,
     contract: &WorthQueryInstalledGraphReadContract,
     governance: &crate::domain_computation::primary_graph::application_query::disclosure::WorthQueryApplicationQueryGovernance,
@@ -247,7 +247,7 @@ fn attach_ordered_relation(
 #[allow(clippy::too_many_arguments)]
 fn attach_targeted_relation(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
-    projection: worth_relational::facade::runtime::VisibilityProjectionView<'_>,
+    projection: &worth_relational::facade::runtime::VisibilityProjectionView<'_>,
     graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout,
     contract: &WorthQueryInstalledGraphReadContract,
     governance: &crate::domain_computation::primary_graph::application_query::disclosure::WorthQueryApplicationQueryGovernance,

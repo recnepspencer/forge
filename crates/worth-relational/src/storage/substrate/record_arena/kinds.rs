@@ -27,11 +27,14 @@ pub(crate) trait RecordKind: Clone + Debug + 'static {
         version_id: VersionId,
         extra: &Self::Extra,
     ) -> Self::Meta;
+    fn metadata_owned_allocation_bytes(metadata: &Self::Meta) -> u64;
+    fn extra_owned_allocation_bytes(extra: &Self::Extra) -> u64;
 }
 
 pub(crate) trait HistoricalMetadata {
     fn effective_at(&self) -> VersionId;
     fn retired_at(&self) -> Option<VersionId>;
+    fn generation(&self) -> u32;
 }
 
 #[derive(Debug, Clone)]
@@ -78,6 +81,20 @@ impl RecordKind for EntityRecordKind {
             authoritative_aspect_state: extra.authoritative_aspect_state.clone(),
         }
     }
+
+    fn metadata_owned_allocation_bytes(metadata: &Self::Meta) -> u64 {
+        metadata
+            .authoritative_aspect_state
+            .as_ref()
+            .map_or(0, |state| state.owned_allocation_capacity_bytes() as u64)
+    }
+
+    fn extra_owned_allocation_bytes(extra: &Self::Extra) -> u64 {
+        extra
+            .authoritative_aspect_state
+            .as_ref()
+            .map_or(0, |state| state.owned_allocation_capacity_bytes() as u64)
+    }
 }
 
 impl HistoricalMetadata for VersionedEntityMetadata {
@@ -87,6 +104,10 @@ impl HistoricalMetadata for VersionedEntityMetadata {
 
     fn retired_at(&self) -> Option<VersionId> {
         self.retired_at
+    }
+
+    fn generation(&self) -> u32 {
+        self.generation
     }
 }
 
@@ -137,6 +158,20 @@ impl RecordKind for RelationRecordKind {
             authoritative_aspect_state: extra.authoritative_aspect_state.clone(),
         }
     }
+
+    fn metadata_owned_allocation_bytes(metadata: &Self::Meta) -> u64 {
+        metadata
+            .authoritative_aspect_state
+            .as_ref()
+            .map_or(0, |state| state.owned_allocation_capacity_bytes() as u64)
+    }
+
+    fn extra_owned_allocation_bytes(extra: &Self::Extra) -> u64 {
+        extra
+            .authoritative_aspect_state
+            .as_ref()
+            .map_or(0, |state| state.owned_allocation_capacity_bytes() as u64)
+    }
 }
 
 impl HistoricalMetadata for VersionedRelationMetadata {
@@ -146,6 +181,10 @@ impl HistoricalMetadata for VersionedRelationMetadata {
 
     fn retired_at(&self) -> Option<VersionId> {
         self.retired_at
+    }
+
+    fn generation(&self) -> u32 {
+        self.generation
     }
 }
 

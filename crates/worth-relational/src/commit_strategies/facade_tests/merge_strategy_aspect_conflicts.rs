@@ -68,15 +68,21 @@ fn merge_planning_distinguishes_disjoint_aspect_intent_from_strategy_intent_conf
             .commit_strategies()
             .execute(&request, &snapshot)
             .expect("aspect execution");
-        let mut authority = runtime.commit_strategies_authority();
+        let (transaction_validation_input, mut authority) =
+            crate::tests::support::test_owner_strategy_authority(&mut runtime, None);
         let lowered = authority
-            .lower_execution(&request, &execution, TransactionOptions::default())
+            .lower_execution_with_input(
+                &mut runtime,
+                &request,
+                &execution,
+                transaction_validation_input,
+            )
             .expect("lowered aspect plan");
         let validated = authority
-            .validate_lowered_plan(lowered)
+            .validate_lowered_plan(&mut runtime, lowered)
             .expect("validated aspect plan");
         authority
-            .execute_validated_commit(validated)
+            .execute_validated_commit(&mut runtime, validated)
             .expect("aspect strategy commit");
     }
 
@@ -101,22 +107,24 @@ fn merge_planning_distinguishes_disjoint_aspect_intent_from_strategy_intent_conf
             .commit_strategies()
             .execute(&request, &snapshot)
             .expect("replica execution");
-        let mut authority = runtime.commit_strategies_authority();
+        let (transaction_validation_input, mut authority) =
+            crate::tests::support::test_owner_strategy_authority(
+                &mut runtime,
+                Some(feature_branch.clone()),
+            );
         let lowered = authority
-            .lower_execution(
+            .lower_execution_with_input(
+                &mut runtime,
                 &request,
                 &execution,
-                TransactionOptions {
-                    target_branch: Some(feature_branch.clone()),
-                    ..TransactionOptions::default()
-                },
+                transaction_validation_input,
             )
             .expect("lowered replica plan");
         let validated = authority
-            .validate_lowered_plan(lowered)
+            .validate_lowered_plan(&mut runtime, lowered)
             .expect("validated replica plan");
         authority
-            .execute_validated_commit(validated)
+            .execute_validated_commit(&mut runtime, validated)
             .expect("replica strategy commit");
     }
 
@@ -211,22 +219,31 @@ fn merge_planning_classifies_same_declared_aspect_field_as_strategy_intent_confl
             .commit_strategies()
             .execute(&request, &snapshot)
             .expect("aspect execution");
+        let transaction_validation_input = branch
+            .as_ref()
+            .map(|branch| {
+                crate::tests::support::test_owner_transaction_validation_input_for_branch(
+                    &runtime,
+                    branch.clone(),
+                )
+            })
+            .unwrap_or_else(|| {
+                crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
+            });
         let mut authority = runtime.commit_strategies_authority();
         let lowered = authority
-            .lower_execution(
+            .lower_execution_with_input(
+                &mut runtime,
                 &request,
                 &execution,
-                TransactionOptions {
-                    target_branch: branch,
-                    ..TransactionOptions::default()
-                },
+                transaction_validation_input,
             )
             .expect("lowered aspect plan");
         let validated = authority
-            .validate_lowered_plan(lowered)
+            .validate_lowered_plan(&mut runtime, lowered)
             .expect("validated aspect plan");
         authority
-            .execute_validated_commit(validated)
+            .execute_validated_commit(&mut runtime, validated)
             .expect("aspect strategy commit");
     }
 

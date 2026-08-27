@@ -25,6 +25,8 @@ mod idempotency_behavior;
 mod mutation_terminal_lifecycle;
 #[path = "application_attempt/mutation_work_scale.rs"]
 mod mutation_work_scale;
+#[path = "application_attempt/optional_field_mutation.rs"]
+mod optional_field_mutation;
 #[path = "application_attempt/preimage_evidence.rs"]
 pub(in crate::domain_computation::primary_graph) mod preimage_evidence;
 #[path = "application_attempt/preimage_retention.rs"]
@@ -35,13 +37,16 @@ mod program_fixture;
 mod provider_terminal_evidence;
 #[path = "application_attempt/retry_outbox_rebind.rs"]
 mod retry_outbox_rebind;
+#[path = "application_attempt/settlement_failures.rs"]
+mod settlement_failures;
 #[path = "application_attempt/terminal_failures.rs"]
 mod terminal_failures;
 #[path = "application_attempt/touched_graph_closure.rs"]
 mod touched_graph_closure;
 
 use program_fixture::{
-    admitted_program, admitted_program_with_emit, admitted_program_with_expected_status,
+    admitted_mutation_free_program, admitted_program, admitted_program_with_emit,
+    admitted_program_with_expected_status,
 };
 
 #[test]

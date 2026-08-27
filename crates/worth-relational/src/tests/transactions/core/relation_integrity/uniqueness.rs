@@ -40,7 +40,7 @@ fn relation_integrity_commit_boundary_rejects_duplicate_normalized_symmetric_edg
 
     create_relation(&mut runtime, source, target, "forward");
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("duplicate-normalized").push(MutationIntent::Create(
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
@@ -54,7 +54,7 @@ fn relation_integrity_commit_boundary_rejects_duplicate_normalized_symmetric_edg
         )),
     );
 
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(error.code(), DiagnosticCode::RelationUniquenessViolation);

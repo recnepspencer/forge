@@ -7,7 +7,7 @@ fn transaction_inspection_never_projects_hypothetical_committed_truth() {
         .inspect_what_happened()
         .graph_summary(&current_graph_request(None, None, true));
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(batch_create("pending"));
     let staging = txn.inspect_staging();
     let during_staging = runtime
@@ -24,7 +24,7 @@ fn transaction_inspection_savepoint_rollback_scrubs_abandoned_work_and_commit_tr
     let mut runtime = runtime_with_test_schema();
     let existing = create_entity(&mut runtime, "existing");
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(batch_create("kept"));
     let savepoint = txn.create_savepoint();
     txn.push_batch(
@@ -60,7 +60,9 @@ fn transaction_inspection_savepoint_rollback_scrubs_abandoned_work_and_commit_tr
     assert_eq!(after_rollback.intent_counts.create_count, 1);
     assert_eq!(after_rollback.intent_counts.entity_mutation_count, 0);
 
-    let committed = txn.commit().expect("commit surviving staged work");
+    let committed = txn
+        .commit(&mut runtime)
+        .expect("commit surviving staged work");
     let committed_entity = changed_entities(&committed)[0];
     let commit_inspection = runtime
         .inspect_what_happened()
@@ -94,7 +96,7 @@ fn transaction_inspection_marks_lineage_affecting_intents_without_previewing_com
                 limit: 8,
             });
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("replace").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(crate::transactions::data::ReplaceEntityIntent {

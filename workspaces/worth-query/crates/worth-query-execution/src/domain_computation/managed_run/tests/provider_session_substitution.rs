@@ -95,7 +95,7 @@ impl WorthQueryProviderSessionLifecycle for TokenSubstitutionProvider {
         _session: &WorthQueryProviderSessionView<'_>,
     ) -> Result<
         crate::domain_computation::WorthQueryProviderTerminalDescription,
-        WorthQueryProviderSessionFailure,
+        crate::domain_computation::WorthQueryProviderSessionCommitStop,
     > {
         unreachable!("a substituted token must fail before commit")
     }

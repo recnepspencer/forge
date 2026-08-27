@@ -4,7 +4,6 @@ mod domain_package_installation;
 mod equivalence_report;
 mod error;
 mod installation_generation;
-mod residue_audit;
 mod schema;
 mod seed;
 mod support_profile;
@@ -18,10 +17,6 @@ pub use equivalence_report::{
 };
 pub use error::{WorthQueryTestBackendError, WorthQueryTestBackendErrorKind};
 pub use installation_generation::advance_test_workspace_domain_installation_generation;
-pub use residue_audit::{
-    query_test_backend_residue_audit, WorthQueryTestBackendResidueAudit,
-    WorthQueryTestBackendResidueFinding, WorthQueryTestBackendResidueReport,
-};
 pub use schema::WorthQueryTestBackendSchema;
 pub use seed::{WorthQueryTestSeedReceipt, WorthQueryTestSeedRow};
 pub use workspace_control::WorthQueryControlledTestWorkspace;

@@ -75,15 +75,21 @@ impl<'facts> WorthQueryProviderEffectAccumulator<'facts> {
 
 impl WorthQueryRegisteredProviderEffects {
     pub(super) fn expected_steps(&self) -> Vec<WorthQueryProvisionalEffectStep> {
-        self.lowered
+        let mut unique = Vec::new();
+        for step in self
+            .lowered
             .iter()
             .filter_map(|effect| match effect {
                 WorthQueryLoweredProviderEffect::Mutation { steps, .. } => Some(steps.as_slice()),
                 WorthQueryLoweredProviderEffect::Emission(_) => None,
             })
             .flatten()
-            .cloned()
-            .collect()
+        {
+            if !unique.contains(step) {
+                unique.push(step.clone());
+            }
+        }
+        unique
     }
 
     pub(super) const fn batch(&self) -> &WorkerIntentBatch {

@@ -287,9 +287,21 @@ fn grow_unrelated_accounts(world: &super::super::fixture::AuthorizationWorld, co
                 })))
             },
         );
-        let mut transaction = runtime.begin_transaction(Default::default());
+        let mut transaction = {
+            let transaction_validation_input = runtime
+                .admit_main_branch_basis()
+                .expect("main branch binding");
+            runtime
+                .begin_branch_transaction(
+                    &transaction_validation_input,
+                    worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+                )
+                .expect("owner-admitted transaction context")
+        };
         transaction.push_batch(batch);
-        transaction.commit().expect("unrelated population commits");
+        transaction
+            .commit(runtime)
+            .expect("unrelated population commits");
         graph.ensure_primary_indexes_current(runtime).unwrap();
     });
 }

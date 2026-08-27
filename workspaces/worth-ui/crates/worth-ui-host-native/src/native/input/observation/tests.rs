@@ -9,6 +9,8 @@ use worth_ui_host_contract::{
     UiSurfaceBindingGeneration,
 };
 
+mod scroll;
+
 const HOST_SESSION: u64 = 73;
 
 #[test]
@@ -69,7 +71,6 @@ fn completed_affinity_and_event_profile_are_carried_in_order() {
         transition_batches[0].reports()[1].payload(),
         UiHostObservationPayload::DeviceScale { micros: 1_500_000 }
     ));
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P6-INPUT-AFFINITY-01\":2}}");
 }
 
 #[test]
@@ -101,6 +102,7 @@ fn successor_presentation_takes_affinity_only_after_completion() {
 fn pending_completion_identity_is_the_only_successor_affinity_witness() {
     let mut state = UiNativeInputObservationState::new();
     state.install_initial_profile(1.0, [800, 600]);
+    state.register_session(HOST_SESSION).unwrap();
     let binding = UiSurfaceBindingGeneration::mint_unbound().unwrap();
     let completion_identity = 91;
     assert!(state.remember_pending_presentation(
@@ -141,6 +143,7 @@ fn pending_completion_identity_is_the_only_successor_affinity_witness() {
 fn abandoned_pending_identity_cannot_complete_later() {
     let mut state = UiNativeInputObservationState::new();
     state.install_initial_profile(1.0, [800, 600]);
+    state.register_session(HOST_SESSION).unwrap();
     let binding = UiSurfaceBindingGeneration::mint_unbound().unwrap();
     let completion_identity = 92;
     assert!(state.remember_pending_presentation(
@@ -200,7 +203,6 @@ fn ime_keeps_preedit_commit_and_cancel_distinct_and_converts_bytes() {
         .iter()
         .flat_map(|batch| batch.reports())
         .all(|report| !matches!(report.payload(), UiHostObservationPayload::TextInput { .. })));
-    println!("WORTH_UI_LEDGER_COUNTERS={{\"P6-IME-01\":3}}");
 }
 
 #[test]
@@ -258,6 +260,7 @@ fn releasing_a_session_resets_sequence_revision_and_pointer_witness() {
     });
     let _ = state.drain(HOST_SESSION);
     state.release_session(HOST_SESSION);
+    state.register_session(HOST_SESSION + 1).unwrap();
     state.install_initial_profile(1.0, [800, 600]);
     state.record_completed_presentation(protocol(), HOST_SESSION + 1, basis(2));
     state.observe_window_event(&WindowEvent::MouseInput {
@@ -277,6 +280,7 @@ fn releasing_a_session_resets_sequence_revision_and_pointer_witness() {
     });
     let _ = sequence_state.drain(HOST_SESSION);
     sequence_state.release_session(HOST_SESSION);
+    sequence_state.register_session(HOST_SESSION + 1).unwrap();
     sequence_state.install_initial_profile(1.0, [800, 600]);
     sequence_state.record_completed_presentation(protocol(), HOST_SESSION + 1, basis(2));
     sequence_state.observe_window_event(&WindowEvent::CursorMoved {
@@ -323,27 +327,10 @@ fn ime_disable_cancels_active_preedit_without_text_payload() {
     ));
 }
 
-#[test]
-fn line_wheel_is_rejected_without_inventing_a_host_scale() {
-    let mut state = presented_state();
-    state.observe_window_event(&WindowEvent::MouseWheel {
-        device_id: DeviceId::dummy(),
-        delta: winit::event::MouseScrollDelta::LineDelta(1.0, -2.0),
-        phase: winit::event::TouchPhase::Moved,
-    });
-    state.observe_window_event(&WindowEvent::Focused(true));
-    assert!(state.drain(HOST_SESSION).into_batches().is_empty());
-    assert_eq!(
-        state.report().terminal_stop(),
-        Some(UiNativeInputObservationStop::Unsupported(
-            UiNativeInputObservationEventFamily::Scroll,
-        ))
-    );
-}
-
 fn presented_state() -> UiNativeInputObservationState {
     let mut state = UiNativeInputObservationState::new();
     state.install_initial_profile(1.0, [800, 600]);
+    state.register_session(HOST_SESSION).unwrap();
     let presentation = basis(1);
     state.record_completed_presentation(protocol(), HOST_SESSION, presentation);
     assert!(state.install_input_recipient(draft_binding(presentation)));

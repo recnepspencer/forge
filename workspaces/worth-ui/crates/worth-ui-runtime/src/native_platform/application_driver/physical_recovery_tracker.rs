@@ -61,10 +61,17 @@ impl UiNativePhysicalRecoveryTracker {
         if !self.pending.contains(&correlation) {
             return Err(UiNativePhysicalRecoveryTrackingDenial::UnknownCorrelation);
         }
+        let attempt = correlation.attempt();
         Ok(
-            if self.pending.iter().any(|pending| {
-                *pending != correlation && pending.attempt() == correlation.attempt()
-            }) {
+            if self
+                .expected
+                .iter()
+                .any(|(expected_attempt, _)| *expected_attempt == attempt)
+                || self
+                    .pending
+                    .iter()
+                    .any(|pending| *pending != correlation && pending.attempt() == attempt)
+            {
                 UiNativePhysicalRecoverySettlement::AttemptStillPending
             } else {
                 UiNativePhysicalRecoverySettlement::AttemptReady
@@ -109,16 +116,16 @@ mod tests {
         tracker.expect(left.attempt(), left.binding()).unwrap();
         tracker.expect(right.attempt(), right.binding()).unwrap();
         tracker.observe_scheduled(left).unwrap();
-        tracker.observe_scheduled(right).unwrap();
-        assert_eq!(
-            tracker.observe_scheduled(left),
-            Err(UiNativePhysicalRecoveryTrackingDenial::DuplicateCorrelation)
-        );
         assert_eq!(
             tracker.classify_settlement(left),
             Ok(UiNativePhysicalRecoverySettlement::AttemptStillPending)
         );
         tracker.commit_settlement(left).unwrap();
+        tracker.observe_scheduled(right).unwrap();
+        assert_eq!(
+            tracker.observe_scheduled(right),
+            Err(UiNativePhysicalRecoveryTrackingDenial::DuplicateCorrelation)
+        );
         assert_eq!(
             tracker.classify_settlement(foreign),
             Err(UiNativePhysicalRecoveryTrackingDenial::UnknownCorrelation)

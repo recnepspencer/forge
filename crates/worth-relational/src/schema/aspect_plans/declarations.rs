@@ -119,7 +119,7 @@ fn canonicalize_identity_declarations(
                 }
             }
         }
-        if matches!(domain, RegistrationDomain::Relation { .. })
+        if matches!(domain, RegistrationDomain::Relation)
             && matches!(declaration.basis, IdentityBasisKind::LineageIdentity)
         {
             return Err(SchemaRegistryError::invalid_aspect_declaration(

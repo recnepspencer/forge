@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::config::data::AdjacencyPolicy;
 use crate::identity::data::PartitionId;
+use crate::storage::overlay::PartitionAccess;
 use crate::storage::substrate::{EntityArena, RelationArena};
 
 use super::super::{
@@ -60,7 +61,7 @@ impl WorkingState {
     }
 
     pub(crate) fn from_touched_partitions_with_layout_and_sparse_slots(
-        base_partitions: &BTreeMap<PartitionId, PartitionState>,
+        base_partitions: &(impl PartitionAccess + ?Sized),
         touched_partitions: impl IntoIterator<Item = PartitionId>,
         adjacency_policy: AdjacencyPolicy,
         clone_mode: PartitionCloneMode,
@@ -75,7 +76,7 @@ impl WorkingState {
                 continue;
             }
             mutation_journal.insert(partition_id, PartitionMutationJournal::default());
-            if let Some(partition) = base_partitions.get(&partition_id) {
+            if let Some(partition) = base_partitions.get_partition(partition_id) {
                 let partition_state = match (
                     clone_mode,
                     sparse_entity_slots.and_then(|slots| slots.get(&partition_id)),
@@ -152,8 +153,8 @@ impl WorkingState {
                 relation_overlay_is_sparse: false,
                 entity_arena: EntityArena::with_capacity(0),
                 relation_arena: RelationArena::with_capacity(0),
-                adjacency: Vec::new(),
-                reverse_adjacency: Vec::new(),
+                adjacency: Default::default(),
+                reverse_adjacency: Default::default(),
             })
     }
 }

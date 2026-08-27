@@ -1,6 +1,7 @@
 use super::{
     stopped, NativeIntentPostureTransfer, WorthUiNativeIntentPosturePublicationCompletion,
     WorthUiNativeIntentPosturePublicationOutcome, WorthUiNativeIntentPosturePublicationRecovery,
+    WorthUiNativeIntentPosturePublicationRetry,
 };
 use crate::facade::entry::WorthUiActiveApplicationSession;
 
@@ -22,6 +23,14 @@ struct NativeIntentPostureAdmitted<'session> {
 
 pub(super) struct NativeIntentPostureInFlight<'session> {
     admitted: NativeIntentPostureAdmitted<'session>,
+    mounted: crate::mounting::UiMountedPresentationInFlight,
+}
+
+pub(in crate::facade::entry) struct DetachedNativeIntentPostureInFlight {
+    session_identity: crate::facade::WorthUiActiveApplicationSessionIdentity,
+    plan: crate::runtime::rebind::UiRebindPlan,
+    reservation: crate::runtime::rebind::UiRebindReservation,
+    transfer: NativeIntentPostureTransfer,
     mounted: crate::mounting::UiMountedPresentationInFlight,
 }
 
@@ -93,6 +102,26 @@ impl<'session> WorthUiNativeIntentPosturePublicationCompletion<'session> {
         finish(state.admitted, outcome)
     }
 
+    pub(in crate::facade::entry) fn detach_for_native(
+        mut self,
+    ) -> DetachedNativeIntentPostureInFlight {
+        let state = self.take_state();
+        let NativeIntentPostureInFlight { admitted, mounted } = *state;
+        let NativeIntentPostureAdmitted {
+            session,
+            plan,
+            reservation,
+            transfer,
+        } = admitted;
+        DetachedNativeIntentPostureInFlight {
+            session_identity: session.session_identity(),
+            plan,
+            reservation,
+            transfer,
+            mounted,
+        }
+    }
+
     fn state(&self) -> &NativeIntentPostureInFlight<'session> {
         self.state
             .as_deref()
@@ -106,6 +135,78 @@ impl<'session> WorthUiNativeIntentPosturePublicationCompletion<'session> {
     }
 }
 
+pub(super) struct NativeIntentPostureRejected<'session> {
+    admitted: NativeIntentPostureAdmitted<'session>,
+    frame: crate::mounting::UiPreparedMountedFrame,
+    rejections: Box<[crate::mounting::UiMountedSurfacePresentationRejection]>,
+}
+
+impl DetachedNativeIntentPostureInFlight {
+    pub(in crate::facade::entry) const fn session_identity(
+        &self,
+    ) -> crate::facade::WorthUiActiveApplicationSessionIdentity {
+        self.session_identity
+    }
+
+    pub(in crate::facade::entry) fn matches_native_progress(
+        &self,
+        progress: &crate::native_platform::UiNativeApplicationPhysicalProgress,
+    ) -> bool {
+        let class = match progress.class() {
+            worth_ui_host_native::UiNativePhysicalProgressClass::Presentation => {
+                worth_ui_host_contract::UiHostPresentationProgressClass::PhysicalSurface
+            }
+            worth_ui_host_native::UiNativePhysicalProgressClass::TextAtlas => {
+                worth_ui_host_contract::UiHostPresentationProgressClass::TextAtlas
+            }
+            worth_ui_host_native::UiNativePhysicalProgressClass::PresentationRecovery => {
+                return false;
+            }
+        };
+        self.mounted.awaits_progress_class(class)
+            && progress.presentation().map_or(true, |presentation| {
+                presentation.attempt() == self.mounted.attempt()
+                    && self
+                        .mounted
+                        .pending_bindings()
+                        .any(|binding| binding == presentation.binding())
+            })
+    }
+
+    pub(in crate::facade::entry) fn complete<'session>(
+        self,
+        session: &'session mut WorthUiActiveApplicationSession,
+        now_tick: u64,
+    ) -> WorthUiNativeIntentPosturePublicationOutcome<'session> {
+        let outcome = session.complete_mounted_presentation(self.mounted, now_tick);
+        finish(
+            NativeIntentPostureAdmitted {
+                session,
+                plan: self.plan,
+                reservation: self.reservation,
+                transfer: self.transfer,
+            },
+            outcome,
+        )
+    }
+
+    pub(in crate::facade::entry) fn cancel<'session>(
+        self,
+        session: &'session mut WorthUiActiveApplicationSession,
+    ) -> WorthUiNativeIntentPosturePublicationOutcome<'session> {
+        let outcome = session.cancel_mounted_presentation(self.mounted);
+        finish(
+            NativeIntentPostureAdmitted {
+                session,
+                plan: self.plan,
+                reservation: self.reservation,
+                transfer: self.transfer,
+            },
+            outcome,
+        )
+    }
+}
+
 impl WorthUiNativeIntentPosturePublicationRecovery<'_> {
     pub fn frame(&self) -> &crate::mounting::UiMountedIndeterminateFrame {
         &self
@@ -113,6 +214,55 @@ impl WorthUiNativeIntentPosturePublicationRecovery<'_> {
             .as_deref()
             .expect("live posture recovery owns its state")
             .frame
+    }
+}
+
+impl WorthUiNativeIntentPosturePublicationRetry<'_> {
+    pub fn rejections(&self) -> &[crate::mounting::UiMountedSurfacePresentationRejection] {
+        &self
+            .state
+            .as_deref()
+            .expect("live posture retry owns its state")
+            .rejections
+    }
+}
+
+impl<'session> WorthUiNativeIntentPosturePublicationRetry<'session> {
+    pub fn retry(
+        mut self,
+        now_tick: u64,
+    ) -> WorthUiNativeIntentPosturePublicationOutcome<'session> {
+        let state = self
+            .state
+            .take()
+            .expect("live posture retry owns its state");
+        let NativeIntentPostureRejected {
+            mut admitted,
+            frame,
+            rejections: _,
+        } = *state;
+        if let Err(denial) = admitted.reservation.begin_effecting() {
+            return stopped(
+                crate::runtime::intent_execution::UiIntentConsequenceStopReason::RebindAdmission(
+                    denial,
+                ),
+            );
+        }
+        let deadline = presentation_deadline(&admitted.plan);
+        let outcome = admitted
+            .session
+            .present_prepared_mounted_frame_internal(frame, deadline, now_tick);
+        finish(admitted, outcome)
+    }
+
+    pub(in crate::facade::entry) fn into_stop(
+        mut self,
+    ) -> super::WorthUiNativeIntentPosturePublicationStop {
+        let state = self
+            .state
+            .take()
+            .expect("live posture retry owns its state");
+        super::WorthUiNativeIntentPosturePublicationStop::host_rejected(state.rejections.len())
     }
 }
 
@@ -146,7 +296,7 @@ impl Drop for WorthUiNativeIntentPosturePublicationCompletion<'_> {
 }
 
 fn finish<'session>(
-    admitted: NativeIntentPostureAdmitted<'session>,
+    mut admitted: NativeIntentPostureAdmitted<'session>,
     outcome: crate::mounting::UiMountedFrameOutcome,
 ) -> WorthUiNativeIntentPosturePublicationOutcome<'session> {
     match outcome {
@@ -158,11 +308,22 @@ fn finish<'session>(
                 },
             )
         }
-        crate::mounting::UiMountedFrameOutcome::RejectedBeforeEffects(rejected) => stopped(
-            crate::runtime::intent_execution::UiIntentConsequenceStopReason::HostRejectedBeforeEffects {
-                rejection_count: rejected.rejections().len(),
-            },
-        ),
+        crate::mounting::UiMountedFrameOutcome::RejectedBeforeEffects(rejected) => {
+            admitted
+                .reservation
+                .return_to_pending()
+                .expect("host rejection returns posture reservation to pending");
+            let (frame, rejections) = rejected.into_parts();
+            WorthUiNativeIntentPosturePublicationOutcome::RejectedBeforeEffects(
+                WorthUiNativeIntentPosturePublicationRetry {
+                    state: Some(Box::new(NativeIntentPostureRejected {
+                        admitted,
+                        frame,
+                        rejections,
+                    })),
+                },
+            )
+        }
         crate::mounting::UiMountedFrameOutcome::RetentionDenied(rejected) => stopped(
             crate::runtime::intent_execution::UiIntentConsequenceStopReason::MountedRetention(
                 rejected.denial(),
@@ -176,7 +337,10 @@ fn finish<'session>(
         crate::mounting::UiMountedFrameOutcome::PresentationIndeterminate(frame) => {
             WorthUiNativeIntentPosturePublicationOutcome::Indeterminate(
                 WorthUiNativeIntentPosturePublicationRecovery {
-                    state: Some(Box::new(NativeIntentPostureIndeterminate { admitted, frame })),
+                    state: Some(Box::new(NativeIntentPostureIndeterminate {
+                        admitted,
+                        frame,
+                    })),
                 },
             )
         }

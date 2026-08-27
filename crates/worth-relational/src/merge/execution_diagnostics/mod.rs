@@ -101,6 +101,7 @@ fn merge_execution_failure_code(error: &crate::merge::data::MergeExecutionError)
         }
         crate::merge::data::MergeExecutionError::RuntimeInstanceMismatch { .. }
         | crate::merge::data::MergeExecutionError::StaleBranchHead { .. }
+        | crate::merge::data::MergeExecutionError::StaleBranchReference { .. }
         | crate::merge::data::MergeExecutionError::SchemaSemanticDrift { .. }
         | crate::merge::data::MergeExecutionError::Compilation(_)
         | crate::merge::data::MergeExecutionError::MutationPlan(_)

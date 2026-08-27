@@ -46,7 +46,7 @@ pub(super) fn certify_lineage_branch_divergence_breadth(suite: &'static str) {
                     "right_event_count": divergence.metrics.right_event_count,
                     "left_node_count": divergence.metrics.left_node_count,
                     "right_node_count": divergence.metrics.right_node_count,
-                    "resolution_event_scans": resolution.metrics.branch_event_scan_count,
+                    "resolution_event_scans": resolution.metrics.event_visit_count,
                     "resolution_traversed_events": resolution.metrics.traversed_event_count,
                     "counters": counters,
                 }),
@@ -67,7 +67,7 @@ pub(super) fn certify_lineage_branch_divergence_breadth(suite: &'static str) {
                 && counter_u64(metrics, "lineage_branch_divergence_node_scans")
                     == metrics["left_node_count"].as_u64().unwrap_or(0)
                         + metrics["right_node_count"].as_u64().unwrap_or(0)
-                && counter_u64(metrics, "lineage_historical_resolution_branch_event_scans")
+                && counter_u64(metrics, "lineage_historical_resolution_event_visits")
                     == metrics["resolution_event_scans"].as_u64().unwrap_or(0)
                 && counter_u64(metrics, "lineage_historical_resolution_traversed_events")
                     == metrics["resolution_traversed_events"].as_u64().unwrap_or(0)

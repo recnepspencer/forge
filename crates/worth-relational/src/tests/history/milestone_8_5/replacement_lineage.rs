@@ -41,7 +41,6 @@ pub(super) fn run_replacement_strategy_certification() -> ReplacementCertificati
     let replacement_envelope = runtime
         .replay()
         .canonical_commit_envelope(replacement_commit.commit.commit_id)
-        .cloned()
         .expect("replacement envelope");
     assert!(replacement_envelope.lineage_decision_log().iter().any(
         |decision| decision.kind == crate::lineage::data::LineageDecisionKind::ReplaceAccepted
@@ -89,7 +88,6 @@ pub(super) fn run_replacement_strategy_certification() -> ReplacementCertificati
     let recovered_replacement_envelope = recovered
         .replay()
         .canonical_commit_envelope(replacement_commit.commit.commit_id)
-        .cloned()
         .expect("recovered replacement envelope");
     let recovered_replacement_replay =
         recovered

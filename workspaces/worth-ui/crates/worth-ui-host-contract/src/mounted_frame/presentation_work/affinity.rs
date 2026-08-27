@@ -6,6 +6,7 @@ pub struct UiMountedPresentationAffinity {
     binding: crate::UiSurfaceBindingGeneration,
     content: crate::UiMountedContentGeneration,
     baseline: crate::UiHostSurfaceBaselineIdentity,
+    receipt_affinity: Option<crate::UiMountedNodeReceiptAffinity>,
 }
 
 pub(super) struct UiMountedPresentationAffinityInput {
@@ -15,6 +16,7 @@ pub(super) struct UiMountedPresentationAffinityInput {
     pub binding: crate::UiSurfaceBindingGeneration,
     pub content: crate::UiMountedContentGeneration,
     pub baseline: crate::UiHostSurfaceBaselineIdentity,
+    pub receipt_affinity: Option<crate::UiMountedNodeReceiptAffinity>,
 }
 
 impl UiMountedPresentationAffinity {
@@ -26,6 +28,7 @@ impl UiMountedPresentationAffinity {
             binding: input.binding,
             content: input.content,
             baseline: input.baseline,
+            receipt_affinity: input.receipt_affinity,
         }
     }
 
@@ -51,5 +54,17 @@ impl UiMountedPresentationAffinity {
 
     pub const fn baseline(self) -> crate::UiHostSurfaceBaselineIdentity {
         self.baseline
+    }
+
+    pub const fn receipt_affinity(self) -> Option<crate::UiMountedNodeReceiptAffinity> {
+        self.receipt_affinity
+    }
+
+    pub(super) const fn with_receipt_affinity(
+        mut self,
+        receipt_affinity: Option<crate::UiMountedNodeReceiptAffinity>,
+    ) -> Self {
+        self.receipt_affinity = receipt_affinity;
+        self
     }
 }

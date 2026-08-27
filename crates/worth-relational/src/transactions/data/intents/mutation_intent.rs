@@ -116,3 +116,124 @@ pub enum MutationIntent {
     Entity(EntityMutationIntent),
     Relation(RelationMutationIntent),
 }
+
+impl MutationIntent {
+    pub(crate) fn owned_allocation_capacity_bytes(&self) -> u64 {
+        match self {
+            Self::Create(intent) => intent.owned_allocation_capacity_bytes(),
+            Self::Entity(intent) => intent.owned_allocation_capacity_bytes(),
+            Self::Relation(intent) => intent.owned_allocation_capacity_bytes(),
+        }
+    }
+}
+
+impl CreateIntent {
+    fn owned_allocation_capacity_bytes(&self) -> u64 {
+        match self {
+            Self::Entity(spec) => entity_spec_bytes(spec),
+            Self::EntityAspects(intent) => intent
+                .client_key
+                .owned_allocation_capacity_bytes()
+                .saturating_add(intent.aspect_patch.owned_allocation_capacity_bytes() as u64),
+            Self::BulkEntities(intent) => {
+                client_key_vector_bytes(&intent.client_keys, intent.client_keys.capacity())
+                    .saturating_add(field_patch_vector_bytes(
+                        &intent.field_patches,
+                        intent.field_patches.capacity(),
+                    ))
+            }
+            Self::Relation(spec) => relation_spec_bytes(spec),
+            Self::RelationAspects(intent) => intent
+                .client_key
+                .owned_allocation_capacity_bytes()
+                .saturating_add(entity_reference_bytes(&intent.source))
+                .saturating_add(entity_reference_bytes(&intent.target))
+                .saturating_add(intent.aspect_patch.owned_allocation_capacity_bytes() as u64),
+            Self::BulkRelations(intent) => {
+                client_key_vector_bytes(&intent.client_keys, intent.client_keys.capacity())
+                    .saturating_add(
+                        (intent.endpoints.capacity()
+                            * std::mem::size_of::<(EntityReference, EntityReference)>())
+                            as u64,
+                    )
+                    .saturating_add(
+                        intent
+                            .endpoints
+                            .iter()
+                            .map(|(source, target)| {
+                                entity_reference_bytes(source)
+                                    .saturating_add(entity_reference_bytes(target))
+                            })
+                            .sum(),
+                    )
+                    .saturating_add(field_patch_vector_bytes(
+                        &intent.field_patches,
+                        intent.field_patches.capacity(),
+                    ))
+            }
+        }
+    }
+}
+
+impl EntityMutationIntent {
+    fn owned_allocation_capacity_bytes(&self) -> u64 {
+        match self {
+            Self::UpdateFields(intent) => intent.fields.owned_allocation_capacity_bytes(),
+            Self::ApplyAspectPatch(intent) => {
+                intent.aspect_patch.owned_allocation_capacity_bytes() as u64
+            }
+            Self::Replace(intent) => entity_spec_bytes(&intent.replacement),
+            Self::Delete(_) => 0,
+        }
+    }
+}
+
+impl RelationMutationIntent {
+    fn owned_allocation_capacity_bytes(&self) -> u64 {
+        match self {
+            Self::UpdateEndpoints(intent) => entity_reference_bytes(&intent.source)
+                .saturating_add(entity_reference_bytes(&intent.target)),
+            Self::ApplyAspectPatch(intent) => {
+                intent.aspect_patch.owned_allocation_capacity_bytes() as u64
+            }
+            Self::Delete(_) => 0,
+        }
+    }
+}
+
+fn entity_spec_bytes(spec: &EntitySpec) -> u64 {
+    spec.client_key
+        .owned_allocation_capacity_bytes()
+        .saturating_add(spec.fields.owned_allocation_capacity_bytes())
+}
+
+fn relation_spec_bytes(spec: &RelationSpec) -> u64 {
+    spec.client_key
+        .owned_allocation_capacity_bytes()
+        .saturating_add(entity_reference_bytes(&spec.source))
+        .saturating_add(entity_reference_bytes(&spec.target))
+        .saturating_add(spec.fields.owned_allocation_capacity_bytes())
+}
+
+fn entity_reference_bytes(reference: &EntityReference) -> u64 {
+    match reference {
+        EntityReference::Existing(_) => 0,
+        EntityReference::Created(created) => created.client_key.owned_allocation_capacity_bytes(),
+    }
+}
+
+fn client_key_vector_bytes(values: &[ClientKey], capacity: usize) -> u64 {
+    (capacity * std::mem::size_of::<ClientKey>()) as u64
+        + values
+            .iter()
+            .map(ClientKey::owned_allocation_capacity_bytes)
+            .sum::<u64>()
+}
+
+fn field_patch_vector_bytes(values: &[AspectFieldPatch], capacity: usize) -> u64 {
+    (capacity * std::mem::size_of::<AspectFieldPatch>()) as u64
+        + values
+            .iter()
+            .map(AspectFieldPatch::owned_allocation_capacity_bytes)
+            .sum::<u64>()
+}

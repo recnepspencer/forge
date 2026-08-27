@@ -1,9 +1,10 @@
 use super::artifacts::FoundationalBranchCandidateArtifact;
-use super::vocabulary::{
-    FoundationalBranchCandidateId, FoundationalBranchComparisonBasis, FoundationalBranchForkBasis,
-    FoundationalBranchForkObservationBasis, FoundationalBranchId,
-    FoundationalBranchObservationBasis,
+use super::candidate::{
+    FoundationalBranchCandidateComparisonBasis, FoundationalBranchCandidateForkBasis,
+    FoundationalBranchCandidateForkObservationBasis, FoundationalBranchCandidateId,
+    FoundationalBranchCandidateObservationBasis,
 };
+use super::identity::FoundationalBranchId;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FoundationalBranchLocalConstructionDenial {
@@ -17,10 +18,10 @@ pub enum FoundationalBranchLocalConstructionDenial {
 pub struct FoundationalBranchCandidateBuilder {
     branch_id: Option<FoundationalBranchId>,
     candidate_id: Option<FoundationalBranchCandidateId>,
-    fork_basis: Option<FoundationalBranchForkBasis>,
-    observation_basis: Option<FoundationalBranchObservationBasis>,
-    fork_observation_basis: Option<FoundationalBranchForkObservationBasis>,
-    comparison_basis: Option<FoundationalBranchComparisonBasis>,
+    fork_basis: Option<FoundationalBranchCandidateForkBasis>,
+    observation_basis: Option<FoundationalBranchCandidateObservationBasis>,
+    fork_observation_basis: Option<FoundationalBranchCandidateForkObservationBasis>,
+    comparison_basis: Option<FoundationalBranchCandidateComparisonBasis>,
 }
 
 impl Default for FoundationalBranchCandidateBuilder {
@@ -51,14 +52,14 @@ impl FoundationalBranchCandidateBuilder {
         self
     }
 
-    pub fn from_fork_basis(mut self, fork_basis: FoundationalBranchForkBasis) -> Self {
+    pub fn from_fork_basis(mut self, fork_basis: FoundationalBranchCandidateForkBasis) -> Self {
         self.fork_basis = Some(fork_basis);
         self
     }
 
     pub fn under_observation_basis(
         mut self,
-        observation_basis: FoundationalBranchObservationBasis,
+        observation_basis: FoundationalBranchCandidateObservationBasis,
     ) -> Self {
         self.observation_basis = Some(observation_basis);
         self
@@ -66,7 +67,7 @@ impl FoundationalBranchCandidateBuilder {
 
     pub fn under_fork_observation_basis(
         mut self,
-        fork_observation_basis: FoundationalBranchForkObservationBasis,
+        fork_observation_basis: FoundationalBranchCandidateForkObservationBasis,
     ) -> Self {
         self.fork_observation_basis = Some(fork_observation_basis);
         self
@@ -74,7 +75,7 @@ impl FoundationalBranchCandidateBuilder {
 
     pub fn against_comparison_basis(
         mut self,
-        comparison_basis: FoundationalBranchComparisonBasis,
+        comparison_basis: FoundationalBranchCandidateComparisonBasis,
     ) -> Self {
         self.comparison_basis = Some(comparison_basis);
         self

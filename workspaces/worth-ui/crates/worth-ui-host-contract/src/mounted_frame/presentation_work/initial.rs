@@ -34,6 +34,7 @@ pub struct UiMountedPresentationInitialInput {
 impl UiMountedPresentationInitial {
     #[doc(hidden)]
     pub fn from_inert_mechanics(input: UiMountedPresentationInitialInput) -> Self {
+        let receipt_affinity = input.projection.node_receipt_affinity();
         let auxiliary =
             UiMountedPresentationAuxiliaryState::from_runtime_mounting(&input.projection);
         let affinity = UiMountedPresentationAffinity::from_runtime(
@@ -44,6 +45,7 @@ impl UiMountedPresentationInitial {
                 binding: input.binding,
                 content: input.content,
                 baseline: input.baseline,
+                receipt_affinity,
             },
         );
         Self {

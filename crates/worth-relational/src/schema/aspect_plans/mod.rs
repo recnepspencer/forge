@@ -2,6 +2,7 @@ mod declarations;
 mod lowering;
 mod merge_policy_declarations;
 mod relation_integrity;
+mod relation_integrity_lowering;
 mod revision;
 
 use smallvec::SmallVec;
@@ -14,9 +15,8 @@ use crate::schema::data::{
 
 use declarations::{canonicalize_kind_aspect_declarations, RegistrationDomain};
 use lowering::lower_binding;
-use relation_integrity::{
-    canonicalize_relation_integrity_declarations, lower_relation_integrity_plan,
-};
+use relation_integrity::canonicalize_relation_integrity_declarations;
+use relation_integrity_lowering::lower_relation_integrity_plan;
 use revision::derive_plan_revision;
 
 pub(crate) fn canonicalize_entity_registration(

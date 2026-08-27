@@ -58,7 +58,7 @@ fn entity_kind_scans_can_be_partition_scoped_without_cross_partition_leakage() {
 
     let scoped = runtime
         .read_truth()
-        .project_version(version_id)
+        .project_historical_version(version_id)
         .entities_in::<NamedEntityProjection>(PartitionId(7));
 
     assert_eq!(scoped.len(), 1);
@@ -82,11 +82,11 @@ fn entity_kind_scans_are_deterministic_across_equivalent_insert_order() {
 
     let ordered_records = ordered
         .read_truth()
-        .project_version(ordered.current_version_id())
+        .project_historical_version(ordered.current_version_id())
         .entities_in::<NamedEntityProjection>(PartitionId(3));
     let reversed_records = reversed
         .read_truth()
-        .project_version(reversed.current_version_id())
+        .project_historical_version(reversed.current_version_id())
         .entities_in::<NamedEntityProjection>(PartitionId(3));
 
     assert_eq!(
@@ -106,7 +106,7 @@ fn entity_kind_scans_are_deterministic_across_equivalent_insert_order() {
     assert_eq!(
         ordered
             .read_truth()
-            .project_version(ordered.current_version_id())
+            .project_historical_version(ordered.current_version_id())
             .entities_in::<NamedEntityProjection>(PartitionId(3))
             .iter()
             .map(|record| record.entity_id)
@@ -134,7 +134,7 @@ fn entity_kind_scans_preserve_historical_partition_visibility() {
 
     let historical = runtime
         .read_truth()
-        .project_version(historical_version)
+        .project_historical_version(historical_version)
         .entities_in::<NamedEntityProjection>(PartitionId(17));
 
     assert_eq!(historical.len(), 1);

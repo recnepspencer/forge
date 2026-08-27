@@ -1,4 +1,4 @@
-use worth_relational::facade::runtime::RelationalExecutionBasisLease;
+use super::WorthQueryManagedRelationalObservation;
 use worth_runtime_bridge::facade::BridgeBoundExecutionBasis;
 
 use super::run_affinity::WorthQueryDirectRunAffinity;
@@ -16,16 +16,16 @@ use crate::domain_computation::{
 pub struct WorthQueryAdmittedDirectRun {
     affinity: WorthQueryDirectRunAffinity,
     bridge_basis: BridgeBoundExecutionBasis,
-    relational_basis: RelationalExecutionBasisLease,
+    relational_basis: WorthQueryManagedRelationalObservation,
     counters: WorthQueryManagedRunCounters,
 }
 
 impl WorthQueryAdmittedDirectRun {
-    pub(crate) fn new(
+    pub(in crate::domain_computation) fn new(
         _operation: &WorthQueryExecutionBoundOperationAuthority,
         resource_attempt: WorthQueryDirectExecutionResourceAttempt,
         bridge_basis: BridgeBoundExecutionBasis,
-        relational_basis: RelationalExecutionBasisLease,
+        relational_basis: WorthQueryManagedRelationalObservation,
         counters: WorthQueryManagedRunCounters,
     ) -> Self {
         Self {
@@ -68,7 +68,7 @@ impl WorthQueryAdmittedDirectRun {
 pub struct WorthQueryRunningDirectRun {
     pub(super) affinity: WorthQueryDirectRunAffinity,
     pub(super) bridge_basis: BridgeBoundExecutionBasis,
-    pub(super) relational_basis: RelationalExecutionBasisLease,
+    pub(super) relational_basis: WorthQueryManagedRelationalObservation,
     pub(super) counters: WorthQueryManagedRunCounters,
 }
 

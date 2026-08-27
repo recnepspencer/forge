@@ -63,11 +63,15 @@ impl RelationalInvariantRuntime {
             profile.consumed_groups().mask();
         run_at[InvariantExecutionPoint::HarnessAudit as usize] = profile.consumed_groups().mask();
 
-        max_cost[InvariantExecutionPoint::CommitBoundary as usize] = match context.scale {
-            InvariantScale::Large => InvariantCostClass::Partition,
-            InvariantScale::Small | InvariantScale::Medium => InvariantCostClass::Global,
-        };
-        max_cost[InvariantExecutionPoint::MutationSensitive as usize] = InvariantCostClass::Touched;
+        // Commit-boundary cost is not a legality budget.  A blocking
+        // registration may be Global even when the runtime is large; request
+        // admission treats blocking registrations as required and never
+        // silently filters them by this ceiling.
+        max_cost[InvariantExecutionPoint::CommitBoundary as usize] = InvariantCostClass::Global;
+        // Global uniqueness remains a correctness check until a
+        // branch-qualified authoritative index exists. Mutation-sensitive
+        // validation therefore admits its selected-state scan explicitly.
+        max_cost[InvariantExecutionPoint::MutationSensitive as usize] = InvariantCostClass::Global;
         max_cost[graph_composition_execution_point as usize] = InvariantCostClass::Touched;
         max_cost[InvariantExecutionPoint::SnapshotPublication as usize] =
             if context.snapshot_pressure || matches!(context.scale, InvariantScale::Large) {
@@ -78,11 +82,6 @@ impl RelationalInvariantRuntime {
         max_cost[InvariantExecutionPoint::CertificationBoundary as usize] =
             InvariantCostClass::Global;
         max_cost[InvariantExecutionPoint::HarnessAudit as usize] = InvariantCostClass::Global;
-
-        if context.version_depth > 1_000 {
-            max_cost[InvariantExecutionPoint::CommitBoundary as usize] =
-                InvariantCostClass::Partition;
-        }
 
         Self {
             skip_mask: 0,
@@ -127,7 +126,7 @@ mod tests {
     use crate::validation::engine::InvariantRequestProfile;
 
     #[test]
-    fn large_runtime_context_reduces_commit_boundary_cost_ceiling() {
+    fn large_runtime_context_preserves_global_commit_boundary_ceiling() {
         let runtime = RelationalInvariantRuntime::resolve(
             InvariantRequestProfile::CommitBoundary,
             InvariantContext {
@@ -139,7 +138,7 @@ mod tests {
 
         assert_eq!(
             runtime.max_cost_at(InvariantExecutionPoint::CommitBoundary),
-            InvariantCostClass::Partition
+            InvariantCostClass::Global
         );
     }
 

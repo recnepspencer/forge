@@ -78,9 +78,9 @@ impl WorthQueryAggregateProjections {
         patches: &[PublishedAuthoritativeRecordPatch],
     ) {
         for (key, generation) in &mut self.incoming_sums {
-            if generation.version != before.version_id {
+            if generation.version != before.version_id() {
                 generation.materialized.clear();
-                generation.version = after.version_id;
+                generation.version = after.version_id();
                 continue;
             }
             let sources = affected_sources(runtime, key, before, after, patches);
@@ -93,7 +93,7 @@ impl WorthQueryAggregateProjections {
                 };
                 update_materialized_targets(&mut generation.materialized, old, new);
             }
-            generation.version = after.version_id;
+            generation.version = after.version_id();
         }
     }
 }
@@ -110,7 +110,7 @@ fn affected_sources(
     for patch in patches {
         match patch.target {
             RecordRef::Entity(entity) => {
-                for version in [before.version_id, after.version_id] {
+                for version in [before.version_id(), after.version_id()] {
                     if truth
                         .visible_entity_at_version(entity, version)
                         .is_some_and(|record| record.kind.kind_id == key.source_kind)
@@ -120,7 +120,7 @@ fn affected_sources(
                 }
             }
             RecordRef::Relation(relation) => {
-                for version in [before.version_id, after.version_id] {
+                for version in [before.version_id(), after.version_id()] {
                     if let Some(record) = truth.visible_relation_at_version(relation, version) {
                         if record.kind.kind_id == key.relation_kind {
                             sources.insert(record.source);
@@ -141,7 +141,7 @@ fn source_contributions(
 ) -> Result<BTreeMap<EntityId, i64>, ()> {
     let Some(record) = runtime
         .read_truth()
-        .visible_entity_at_version(source, snapshot.version_id)
+        .visible_entity_at_version(source, snapshot.version_id())
     else {
         return Ok(BTreeMap::new());
     };
@@ -160,7 +160,7 @@ fn source_contributions(
     let relations = runtime.read_truth().outgoing_relations_of_kind_at_version(
         source,
         key.relation_kind,
-        snapshot.version_id,
+        snapshot.version_id(),
     );
     if relations.len() > 1 {
         return Err(());
@@ -169,7 +169,7 @@ fn source_contributions(
     for relation in relations {
         if runtime
             .read_truth()
-            .visible_entity_at_version(relation.target, snapshot.version_id)
+            .visible_entity_at_version(relation.target, snapshot.version_id())
             .is_some_and(|target| target.kind.kind_id == key.target_kind)
         {
             let entry = contributions.entry(relation.target).or_insert(0_i64);

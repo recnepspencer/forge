@@ -229,17 +229,18 @@ pub(super) fn compare_replay_surfaces(
             || format!("{:?}", replayed_surface),
         );
     }
+    let expected_branch_head = Some(envelope.commit.clone());
     compare_replay_surface(
         runtime,
         verification_plan,
         mismatches,
         ReplayObservableSurface::BranchHead,
         ReplayMismatchClass::BranchHeadDrift,
-        surface_basis_for_branch_head(Some(&envelope.commit)),
+        surface_basis_for_branch_head(expected_branch_head.as_ref()),
         surface_basis_for_branch_head(replay_runtime.branch_head_ref(&request.branch_id)),
         "branch head movement differed",
-        || replay_runtime.branch_head_ref(&request.branch_id) == Some(&envelope.commit),
-        || format!("{:?}", Some(&envelope.commit)),
+        || replay_runtime.branch_head_ref(&request.branch_id) == expected_branch_head.as_ref(),
+        || format!("{:?}", expected_branch_head),
         || format!("{:?}", replay_runtime.branch_head_ref(&request.branch_id)),
     );
     if compared_surfaces.contains(&ReplayObservableSurface::Lineage) {

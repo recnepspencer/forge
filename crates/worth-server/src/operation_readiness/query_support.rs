@@ -3,6 +3,7 @@ use worth_query::facade::runtime::{
     WorthQueryRuntimeDownstreamDeliveryContract, WorthQueryRuntimeFacadeFamily,
     WorthQueryRuntimePublicApiFamilyContract, WorthQueryWorkspace,
 };
+use worth_query_host::facade::primary_graph::WorthQueryPrimaryGraphApplicationReadinessSnapshot;
 
 use crate::{
     WorthServerPreparedQueryHandoffKind, WorthServerQueryHandoffOperation,
@@ -10,6 +11,14 @@ use crate::{
 };
 
 use super::{WorthServerOperationReadinessDenial, WorthServerOperationReadinessDenialCode};
+
+pub(crate) fn derive_primary_graph_application_support_posture(
+    readiness: &WorthQueryPrimaryGraphApplicationReadinessSnapshot,
+) -> WorthServerQuerySupportPosture {
+    WorthServerQuerySupportPosture::PrimaryGraphApplicationSupported {
+        basis_token: readiness.basis_token().to_string(),
+    }
+}
 
 pub(crate) fn derive_query_support_posture(
     prepared_kind: WorthServerPreparedQueryHandoffKind,

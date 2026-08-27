@@ -29,4 +29,11 @@ impl AspectFieldLocator {
     pub fn field_path(&self) -> &CanonicalFieldPath {
         &self.field_path
     }
+
+    pub fn owned_allocation_capacity_bytes(&self) -> usize {
+        self.aspect
+            .aspect_key()
+            .owned_allocation_capacity_bytes()
+            .saturating_add(self.field_path.owned_allocation_capacity_bytes())
+    }
 }

@@ -223,22 +223,6 @@ pub(super) fn demand_uses_layout_owned_lineage_and_alpha_raster_reuses_exact_mis
     }));
 }
 
-pub(super) fn qualified_alpha_batch_family_count() -> usize {
-    let source = "W";
-    let layout = layout_for(source);
-    let demand = demand_for(
-        &layout,
-        DemandScenario {
-            source,
-            damage: &[full_damage()],
-            dpi_milli: 1_000,
-            lane: UiGlyphRasterLane::Ordinary,
-        },
-    );
-    let raster = rasterize_alpha_outline(&layout, &demand).unwrap();
-    usize::from(!raster.batch().records().is_empty())
-}
-
 #[test]
 pub(super) fn demand_keeps_whole_clusters_and_defers_color_sources() {
     for source in ["a\u{301}", "العربية", "कर्म", "\u{0378}"] {

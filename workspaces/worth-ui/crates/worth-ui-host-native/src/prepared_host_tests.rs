@@ -4,9 +4,12 @@ use std::rc::Rc;
 use winit::dpi::PhysicalPosition;
 use winit::event::{DeviceId, WindowEvent};
 use worth_ui_host_contract::{
+    UiHostApplicationGeneration, UiHostInputDraftSessionIdentity, UiHostInputRecipientBindingInput,
+    UiHostInputRecipientBindingReceipt, UiHostInputRecipientFamily, UiHostInputRecipientGeneration,
     UiHostObservationPayload, UiHostObservationPresentationBasis, UiHostPresentationEpoch,
     UiHostProtocolContract, UiHostProtocolNegotiation, UiMountedFrameIdentity,
-    UiSurfaceBindingGeneration, WorthUiHostMechanicsAdapter,
+    UiMountedInstanceIdentity, UiMountedNodeReceiptIssuer, UiSemanticSurfaceIdentity,
+    UiSurfaceBindingGeneration, UiTextProfileGeneration, WorthUiHostMechanicsAdapter,
 };
 
 use super::{
@@ -59,19 +62,20 @@ fn prepared_mechanics_delegates_retained_observation_drain() {
         binding,
         UiHostPresentationEpoch::issued_by_host(1),
     );
+    prepared
+        .register_mechanical_host_session(host_session)
+        .unwrap();
     {
         let mut state = state.borrow_mut();
-        state
-            .lifecycle_protocol
-            .install_initial_profile(1.0, [800, 600]);
+        state.lifecycle.install_initial_profile(1.0, [800, 600]);
         assert_eq!(
             state
-                .lifecycle_protocol
+                .lifecycle
                 .record_completed_presentation(protocol, host_session, basis)
                 .effect(),
             crate::native::UiNativeLifecycleEffect::PresentationCompleted
         );
-        let transition = state.lifecycle_protocol.observe_window_event_at(
+        let transition = state.lifecycle.observe_window_event_at(
             &WindowEvent::CursorMoved {
                 device_id: DeviceId::dummy(),
                 position: PhysicalPosition::new(12.0, 24.0),
@@ -95,4 +99,30 @@ fn prepared_mechanics_delegates_retained_observation_drain() {
         batches[0].reports()[0].payload(),
         UiHostObservationPayload::PointerMotion { .. }
     ));
+
+    let recipient = input_recipient(host_session, basis);
+    assert!(prepared.install_mechanical_input_recipient(recipient));
+    assert!(prepared.clear_mechanical_input_recipient(recipient));
+}
+
+fn input_recipient(
+    host_session: u64,
+    presentation: UiHostObservationPresentationBasis,
+) -> UiHostInputRecipientBindingReceipt {
+    let instance = UiMountedInstanceIdentity::mint_unbound().unwrap();
+    let node_receipt = UiMountedNodeReceiptIssuer::mint_for(presentation.frame())
+        .unwrap()
+        .receipt_for(instance);
+    UiHostInputRecipientBindingReceipt::new(UiHostInputRecipientBindingInput {
+        host_session,
+        application_generation: UiHostApplicationGeneration::new(1).unwrap(),
+        recipient_generation: UiHostInputRecipientGeneration::new(1).unwrap(),
+        family: UiHostInputRecipientFamily::Draft,
+        draft_session: Some(UiHostInputDraftSessionIdentity::new(1).unwrap()),
+        surface: UiSemanticSurfaceIdentity::mint_unbound().unwrap(),
+        binding: presentation.binding(),
+        mounted_instance: instance,
+        node_receipt,
+        text_profile: Some(UiTextProfileGeneration::new(1).unwrap()),
+    })
 }

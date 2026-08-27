@@ -70,14 +70,25 @@ pub use entry::{
     WorthUiNativeIntentConfirmationRequired, WorthUiNativeIntentIngress,
     WorthUiNativeIntentPosture, WorthUiNativeIntentPostureKind,
     WorthUiNativeIntentPosturePublicationCompletion, WorthUiNativeIntentPosturePublicationOutcome,
-    WorthUiNativeIntentPosturePublicationRecovery, WorthUiNativeIntentPosturePublicationStop,
-    WorthUiNativeIntentStop, WorthUiNativeIntentStopped, WorthUiNativeIntentTerminalPostureOutcome,
-    WorthUiNativeIntentTransition, WorthUiNativeInteractionIngressStop,
-    WorthUiNativeProjectionRebindDenial, WorthUiNativeSourceRebindDenial,
-    WorthUiPendingApplicationCutover, WorthUiPendingMountedPreview,
-    WorthUiPreparedApplicationReplacement, WorthUiPreparedMountedApplicationReplacement,
-    WorthUiPreparedMountedPreview, WorthUiReplacementCandidateSummary,
-    WorthUiReplacementPlannedCostEnvelope, WorthUiResolvedMountedPreview,
+    WorthUiNativeIntentPosturePublicationRecovery, WorthUiNativeIntentPosturePublicationRetry,
+    WorthUiNativeIntentPosturePublicationStop, WorthUiNativeIntentStop, WorthUiNativeIntentStopped,
+    WorthUiNativeIntentTerminalPostureOutcome, WorthUiNativeIntentTransition,
+    WorthUiNativeInteractionIngressStop, WorthUiNativeManagedIntentConsequencePublicationDenial,
+    WorthUiNativeManagedIntentConsequencePublicationOutcome,
+    WorthUiNativeManagedIntentPosturePublicationDenial,
+    WorthUiNativeManagedIntentPosturePublicationOutcome,
+    WorthUiNativeManagedProjectionRebindOutcome, WorthUiNativeManagedRebindDenial,
+    WorthUiNativeManagedRebindProgress, WorthUiNativeManagedRebindStop,
+    WorthUiNativeManagedSourceRebindOutcome, WorthUiNativeProjectionRebindDenial,
+    WorthUiNativeSourceRebindDenial, WorthUiPendingApplicationCutover,
+    WorthUiPendingMountedPreview, WorthUiPreparedApplicationReplacement,
+    WorthUiPreparedMountedApplicationReplacement, WorthUiPreparedMountedPreview,
+    WorthUiReplacementCandidateSummary, WorthUiReplacementPlannedCostEnvelope,
+    WorthUiResolvedMountedPreview,
+};
+pub(crate) use entry::{
+    WorthUiDetachedMountedApplicationReplacementInFlight,
+    WorthUiDetachedPreparedMountedApplicationReplacement,
 };
 pub(crate) use host_session_authority::WorthUiHostSessionActivationDenial;
 pub(crate) use host_session_authority::WorthUiHostSessionAuthority;

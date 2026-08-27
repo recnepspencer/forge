@@ -100,7 +100,7 @@ pub fn assert_primary_runtime_composition() {
     assert_reinstallation_revokes_captured_delivery();
 }
 
-pub fn assert_head_advance_denies_stale_granular_read() {
+pub fn assert_head_advance_preserves_admitted_granular_read() {
     let mut world = CourtroomWorld::publish("blocked");
     let mut query = build_primary_query_world(&world);
     world.amend_intent(1, "active", "ready");
@@ -114,15 +114,14 @@ pub fn assert_head_advance_denies_stale_granular_read() {
 
     world.amend_gate_only("blocked");
 
-    let Err(WorthQueryPrimaryGranularMaintenanceDenial::Execution(denial)) =
+    let outcome =
         maintain_primary_runtime_granular_batch(&query.live, &mut query.workspace, &binding, batch)
-    else {
-        panic!("the advanced primary head must deny the stale granular read")
-    };
-    assert!(denial.owner_delivery_retained());
-    assert_eq!(denial.work().read_calls(), 1);
-    assert_eq!(denial.work().drain_calls(), 0);
-    assert_eq!(query.observations.exact_record_reads(), reads_before);
+            .expect("the retained exact basis must survive a later primary head advance");
+    assert!(matches!(
+        outcome,
+        WorthQueryPrimaryGranularMaintenanceOutcome::Performed(_)
+    ));
+    assert_eq!(query.observations.exact_record_reads(), reads_before + 1);
 }
 
 pub fn assert_granular_receipt_uses_execution_snapshot_basis() {

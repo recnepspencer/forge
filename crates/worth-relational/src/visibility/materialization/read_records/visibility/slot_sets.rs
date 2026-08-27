@@ -4,7 +4,7 @@ use crate::storage::overlay::{PartitionAccess, PartitionState};
 use crate::storage::partition::DenseSlotBitSet;
 use crate::storage::substrate::{HistoricalMetadata, RecordArena, RecordKind};
 
-use super::visible_metadata;
+use super::{visible_metadata, visible_relation_metadata};
 
 pub(in super::super) fn entity_visible_in_partition_at_version(
     partition: &PartitionState,
@@ -23,7 +23,33 @@ pub(in super::super) fn relation_visible_in_partition_at_version(
     slot: usize,
     version_id: VersionId,
 ) -> bool {
-    record_visible_in_arena_at_version(&partition.relation_arena, slot, version_id)
+    visible_relation_metadata(partition, slot, version_id).is_some()
+}
+
+pub(in super::super) fn visible_relation_slots_in_partition_from_state(
+    runtime: &RelationalRuntime,
+    state: &(impl PartitionAccess + ?Sized),
+    partition_id: PartitionId,
+    version_id: VersionId,
+    count_scans: impl Fn(&RelationalRuntime, usize),
+) -> Option<DenseSlotBitSet> {
+    let current_version = runtime.current_version_id();
+    let partition = state.get_partition(partition_id)?;
+    let arena = &partition.relation_arena;
+    let mut visible_slots = DenseSlotBitSet::with_capacity(arena.slot_count());
+    if version_id == current_version {
+        for slot in arena.live_bitset.iter_set_slots() {
+            visible_slots.set(slot, true);
+        }
+    } else {
+        count_scans(runtime, arena.slot_count());
+        for slot in arena.occupied_slots() {
+            if visible_relation_metadata(partition, slot, version_id).is_some() {
+                visible_slots.set(slot, true);
+            }
+        }
+    }
+    (visible_slots.count_ones() > 0).then_some(visible_slots)
 }
 
 pub(in super::super) fn record_visible_in_arena_at_version<K: RecordKind>(
@@ -42,7 +68,7 @@ where
 
 pub(in super::super) fn visible_slots_in_partition_from_state<K: RecordKind>(
     runtime: &RelationalRuntime,
-    state: &impl PartitionAccess,
+    state: &(impl PartitionAccess + ?Sized),
     partition_id: PartitionId,
     version_id: VersionId,
     count_scans: impl Fn(&RelationalRuntime, usize),
@@ -60,7 +86,7 @@ where
         }
     } else {
         count_scans(runtime, arena.slot_count());
-        for slot in 0..arena.slot_count() {
+        for slot in arena.occupied_slots() {
             if record_visible_in_arena_at_version(arena, slot, version_id) {
                 visible_slots.set(slot, true);
             }

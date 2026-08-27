@@ -55,7 +55,7 @@ pub(super) fn certify_commit_query_churn_stability(suite: &'static str) {
                 .version_id;
             let final_entity_count = runtime
                 .read_truth()
-                .project_version(latest_version)
+                .project_historical_version(latest_version)
                 .all_authoritative_entity_records()
                 .len();
             let counters = runtime.performance_access().counters();

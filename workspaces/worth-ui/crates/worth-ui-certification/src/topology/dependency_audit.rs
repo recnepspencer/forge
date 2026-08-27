@@ -240,7 +240,8 @@ pub fn audit_no_cross_crate_deep_imports(inventory: &WorkspaceSourceInventory) -
         "crates/worth-ui-inspection/src",
         "crates/worth-ui-query-binding/src",
         "crates/worth-ui-host-contract/src",
-        "crates/worth-ui-host-egui/src",
+        "crates/worth-ui-host-native/src",
+        "crates/worth-ui-host-headless/src",
         "crates/worth-ui-certification/src",
     ];
     let forbidden_boundaries = [
@@ -292,7 +293,8 @@ pub fn audit_non_product_crates_route_declaration_through_worth_ui_facade(
     let crate_paths = [
         "crates/worth-ui-inspection/src",
         "crates/worth-ui-host-contract/src",
-        "crates/worth-ui-host-egui/src",
+        "crates/worth-ui-host-native/src",
+        "crates/worth-ui-host-headless/src",
         "crates/worth-ui-query-binding/src",
     ];
     let mut violations = Vec::new();
@@ -324,59 +326,46 @@ pub fn audit_non_product_crates_route_declaration_through_worth_ui_facade(
     violations
 }
 
-pub fn audit_host_egui_dependency_boundary(inventory: &WorkspaceSourceInventory) -> Vec<String> {
+pub fn audit_host_adapter_dependency_boundary(inventory: &WorkspaceSourceInventory) -> Vec<String> {
     let mut violations = Vec::new();
-    let cargo_toml = inventory.absolute_path("crates/worth-ui-host-egui/Cargo.toml");
-    let dependencies = manifests_dependencies(inventory, &cargo_toml);
-
-    for forbidden_dep in ["worth-ui", "worth-ui-runtime", "worth-ui-inspection"] {
-        if dependencies
-            .iter()
-            .any(|dependency| dependency.package == forbidden_dep)
-        {
-            violations.push(format!(
-                "worth-ui-host-egui manifest must not depend on `{forbidden_dep}`"
-            ));
+    for root in [
+        "crates/worth-ui-host-native",
+        "crates/worth-ui-host-headless",
+    ] {
+        let cargo_toml = inventory.absolute_path(&format!("{root}/Cargo.toml"));
+        if !cargo_toml.exists() {
+            continue;
         }
-    }
-
-    let rust_files = inventory
-        .rust_files_under("crates/worth-ui-host-egui/src")
-        .collect::<Vec<_>>();
-    let manifest_aliases = manifest_dependency_crate_aliases(inventory, &cargo_toml);
-
-    for file in rust_files {
-        for segments in collect_file_paths(inventory, file.absolute_path()) {
-            let normalized_segments = normalize_manifest_alias_path(&segments, &manifest_aliases);
-            if path_matches(&normalized_segments, "worth_ui_runtime", "lifecycle")
-                || path_matches(&normalized_segments, "worth_ui_runtime", "source")
-                || path_matches(&normalized_segments, "worth_ui_runtime", "host")
+        let dependencies = manifests_dependencies(inventory, &cargo_toml);
+        for forbidden_dep in ["worth-ui", "worth-ui-runtime", "worth-ui-inspection"] {
+            if dependencies
+                .iter()
+                .any(|dependency| dependency.package == forbidden_dep)
             {
                 violations.push(format!(
-                    "{} reaches worth-ui-runtime internals through structured Rust paths",
-                    file.absolute_path().display()
+                    "{root} manifest must not depend on `{forbidden_dep}`"
                 ));
             }
-            if ["facade", "query", "target", "scope", "receipt", "posture"]
-                .into_iter()
-                .any(|module| path_matches(&normalized_segments, "worth_ui_inspection", module))
-            {
-                violations.push(format!(
-                    "{} reaches worth-ui-inspection internals through structured Rust paths",
-                    file.absolute_path().display()
-                ));
-            }
-            if path_matches(&normalized_segments, "worth_ui", "runtime") {
-                violations.push(format!(
-                    "{} reaches the worth-ui shadow runtime module through structured Rust paths",
-                    file.absolute_path().display()
-                ));
-            }
-            if path_starts_with(&normalized_segments, "worth_ui") {
-                violations.push(format!(
-                    "{} reaches the worth-ui product facade; host adapters must stay on host-contract-only surfaces",
-                    file.absolute_path().display()
-                ));
+        }
+        let aliases = manifest_dependency_crate_aliases(inventory, &cargo_toml);
+        for file in inventory.rust_files_under(&format!("{root}/src")) {
+            for segments in collect_file_paths(inventory, file.absolute_path()) {
+                let normalized = normalize_manifest_alias_path(&segments, &aliases);
+                if ["lifecycle", "source", "host"]
+                    .into_iter()
+                    .any(|module| path_matches(&normalized, "worth_ui_runtime", module))
+                {
+                    violations.push(format!(
+                        "{} reaches worth-ui-runtime internals through structured Rust paths",
+                        file.absolute_path().display()
+                    ));
+                }
+                if path_starts_with(&normalized, "worth_ui") {
+                    violations.push(format!(
+                        "{} reaches the worth-ui product facade; host adapters must stay on host-contract-only surfaces",
+                        file.absolute_path().display()
+                    ));
+                }
             }
         }
     }

@@ -13,3 +13,25 @@ pub(super) fn replicas_canonical_bytes(
     )
     .map(|key| key.canonical_value_bytes().to_vec())
 }
+
+pub(super) fn visible_truth_for_branch(
+    runtime: &mut RelationalRuntime,
+    branch_id: &BranchId,
+    entity: crate::facade::identity::EntityId,
+) -> KubernetesVisibleTruthEvidence {
+    let snapshot = crate::tests::support::snapshot_for_owner_branch(runtime, branch_id);
+    let read = runtime
+        .read_truth()
+        .read_snapshot(&snapshot)
+        .expect("owner-admitted branch snapshot remains readable");
+    let record = read
+        .get_entity(entity)
+        .expect("entity remains visible on certified branch");
+    let evidence = KubernetesVisibleTruthEvidence {
+        entity_name: read_entity_name(record),
+        replicas_canonical_bytes: replicas_canonical_bytes(record),
+    };
+    drop(read);
+    assert!(runtime.visibility_authority().release_snapshot(&snapshot));
+    evidence
+}

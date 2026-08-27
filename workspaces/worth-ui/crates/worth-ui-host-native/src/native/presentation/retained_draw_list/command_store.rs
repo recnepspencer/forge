@@ -45,4 +45,8 @@ impl UiNativeRetainedCommandStore {
     ) -> Option<UiMountedPaintCommand> {
         self.by_identity.remove(identity)
     }
+
+    pub(super) fn as_map(&self) -> &HashMap<UiMountedPaintCommandIdentity, UiMountedPaintCommand> {
+        &self.by_identity
+    }
 }

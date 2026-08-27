@@ -17,11 +17,11 @@ pub enum BankHttpQueryBasisPosture {
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct BankHttpQueryBasis {
     pub runtime_instance: u64,
     pub branch: String,
     pub snapshot: u64,
-    pub lease: u64,
     pub version: u64,
     pub posture: BankHttpQueryBasisPosture,
 }

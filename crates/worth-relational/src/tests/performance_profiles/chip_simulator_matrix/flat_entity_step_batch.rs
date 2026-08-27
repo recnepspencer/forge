@@ -34,7 +34,8 @@ pub(super) fn certify_flat_entity_step_batch_compile_window(suite: &'static str)
             runtime.performance_access().reset_counters();
             let update_started_at = Instant::now();
             let update = {
-                let mut txn = runtime.begin_transaction(TransactionOptions::default());
+                let mut txn =
+                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
                 let mut batch = WorkerIntentBatch::new("chip-flat-entity-step-batch");
                 for (partition_id, targets) in &partition_targets {
                     for (index, entity) in targets.iter().enumerate().take(4) {
@@ -65,7 +66,8 @@ pub(super) fn certify_flat_entity_step_batch_compile_window(suite: &'static str)
                     }
                 }
                 txn.push_batch(batch);
-                txn.commit().expect("chip flat entity step batch commit")
+                txn.commit(&mut runtime)
+                    .expect("chip flat entity step batch commit")
             };
             let update_micros = update_started_at.elapsed().as_micros();
             let phase_timing = update.execution().phase_timing.clone();

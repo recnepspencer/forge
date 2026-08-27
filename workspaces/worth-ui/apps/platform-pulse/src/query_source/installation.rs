@@ -73,7 +73,6 @@ pub(crate) fn install(
     })
 }
 
-#[cfg(feature = "executable-world")]
 pub(crate) fn install_native_presentation_async(
 ) -> Option<worth_ui::facade::query_binding::WorthUiPresentationAsyncInstallation> {
     install_native_presentation_async_plan(
@@ -87,7 +86,6 @@ pub(crate) fn install_native_presentation_async_for_transition_courtroom(
     install_native_presentation_async()
 }
 
-#[cfg(feature = "executable-world")]
 fn install_native_presentation_async_plan(
     plan: worth_ui::facade::query_binding::WorthUiPresentationAsyncHostPlan,
 ) -> Option<worth_ui::facade::query_binding::WorthUiPresentationAsyncInstallation> {

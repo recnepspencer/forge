@@ -182,6 +182,12 @@ where
             )
             .into_outcome()
         }
+        worth_ui_host_contract::UiHostCaptureObservationOutcome::ReadbackCompletionIndeterminate => {
+            UiVisualCaptureFailure::Indeterminate(
+                worth_ui_inspection::UiVisualSnapshotIndeterminate::HostCompletion,
+            )
+            .into_outcome()
+        }
         worth_ui_host_contract::UiHostCaptureObservationOutcome::Unsupported => {
             UiVisualCaptureFailure::Omitted(UiVisualSnapshotOmission::HostCapabilityUnsupported)
                 .into_outcome()

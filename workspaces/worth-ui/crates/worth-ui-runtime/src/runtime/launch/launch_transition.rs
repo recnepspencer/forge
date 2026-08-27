@@ -199,6 +199,9 @@ fn host_session_launch_denial(
         crate::facade::WorthUiHostSessionActivationDenial::MountedPresentationLease(_) => {
             WorthUiRuntimeLaunchDenial::HostMountedPresentationLease
         }
+        crate::facade::WorthUiHostSessionActivationDenial::ObservationSession(denial) => {
+            WorthUiRuntimeLaunchDenial::HostObservationSession(denial)
+        }
     }
 }
 

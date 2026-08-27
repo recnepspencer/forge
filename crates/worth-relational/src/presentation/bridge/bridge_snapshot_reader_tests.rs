@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use worth_foundational::facade::{AspectKey, AspectValue, ScalarAspectType};
 use worth_runtime_bridge::facade::{
@@ -8,28 +8,41 @@ use worth_runtime_bridge::facade::{
 use crate::config::data::CascadeDeletePolicy;
 use crate::facade::identity::PartitionId;
 use crate::facade::transactions::{
-    EntityMutationIntent, MutationIntent, ReplaceEntityIntent, TransactionOptions,
-    WorkerIntentBatch,
+    EntityMutationIntent, MutationIntent, ReplaceEntityIntent, WorkerIntentBatch,
 };
 use crate::tests::support::{
     changed_entities, create_entity_outcome, field_key, runtime_with_declared_aspect_schema,
     single_string_aspect_field_patch,
 };
 
-use super::{bridge_snapshot_identity_for_handle, RuntimeBridgeRelationalSource};
+use super::RuntimeBridgeRelationalSource;
 
 #[test]
-fn runtime_bridge_snapshot_reader_prefers_active_snapshot_binding_over_later_commit_id_collision() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "alice");
-    let active_snapshot = runtime.visibility_authority().snapshot();
-    let active_snapshot_identity = bridge_snapshot_identity_for_handle(&active_snapshot);
+fn runtime_bridge_snapshot_reader_prefers_retained_observation_over_later_commit_id_collision() {
+    let runtime = Arc::new(Mutex::new(runtime_with_test_schema()));
+    let source =
+        RuntimeBridgeRelationalSource::for_shared_graph_role(Arc::clone(&runtime), "model")
+            .expect("test graph role");
+    let created = {
+        let mut runtime = runtime.lock().expect("test runtime lock");
+        create_entity_outcome(&mut runtime, "alice")
+    };
     let active_entity_identity = active_entity_identity(&created);
+    let branch_identity = runtime
+        .lock()
+        .expect("test runtime lock")
+        .branch_identity(&created.commit.branch_id)
+        .expect("committed branch identity");
+    let (_, basis) = source
+        .observe_branch_basis(&branch_identity)
+        .expect("owner-admitted active basis");
+    let lease = source
+        .retain_branch_basis_for_bridge(&basis)
+        .expect("retained active observation");
+    let active_snapshot_identity = lease.snapshot_identity().clone();
 
-    replace_entity_after_snapshot(&mut runtime, &created);
+    replace_entity_after_snapshot(&mut runtime.lock().expect("test runtime lock"), &created);
 
-    let source = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(runtime), "model")
-        .expect("test graph role");
     let reader = source
         .open_snapshot(&active_snapshot_identity)
         .expect("active snapshot should remain bridge-readable after later commit id collision");
@@ -52,23 +65,28 @@ fn runtime_bridge_snapshot_reader_prefers_active_snapshot_binding_over_later_com
 }
 
 #[test]
-fn runtime_bridge_snapshot_reader_requires_live_execution_basis_authority() {
+fn runtime_bridge_snapshot_reader_requires_a_retained_branch_observation() {
     let mut runtime = runtime_with_test_schema();
     let created = create_entity_outcome(&mut runtime, "managed");
-    let version_id = created.version_id;
     let branch_id = created.snapshot.branch_id.clone();
+    let branch_identity = runtime
+        .branch_identity(&branch_id)
+        .expect("created branch identity is owner-issued");
     let entity_identity = active_entity_identity(&created);
     assert!(runtime.snapshots().release_snapshot(&created.snapshot));
     let source = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(runtime), "model")
         .expect("test graph role");
+    let (_, basis) = source
+        .observe_branch_basis(&branch_identity)
+        .expect("Relational owner should admit its exact branch basis");
     let lease = source
-        .admit_execution_basis(&branch_id, version_id)
-        .expect("Relational source should admit its reconstructible version");
-    let identity = bridge_snapshot_identity_for_handle(lease.snapshot_handle());
+        .retain_branch_basis_for_bridge(&basis)
+        .expect("Bridge should retain the admitted observation");
+    let identity = lease.snapshot_identity().clone();
 
     let reader = source
         .open_snapshot(&identity)
-        .expect("live execution basis should authorize Bridge snapshot access");
+        .expect("retained observation should authorize Bridge snapshot access");
     let packet = worth_runtime_bridge::facade::SnapshotReadPacket::new(vec![
         worth_runtime_bridge::facade::SnapshotReadRequest::for_relational_record(
             entity_identity,
@@ -78,7 +96,7 @@ fn runtime_bridge_snapshot_reader_requires_live_execution_basis_authority() {
     assert_eq!(
         reader
             .read_packet(&packet)
-            .expect("execution basis packet should read")
+            .expect("observation packet should read")
             .records()
             .len(),
         1
@@ -100,10 +118,10 @@ fn active_entity_identity(
 }
 
 fn replace_entity_after_snapshot(
-    runtime: &mut crate::facade::runtime::RelationalRuntime,
+    mut runtime: &mut crate::facade::runtime::RelationalRuntime,
     created: &crate::facade::transactions::CommitResult,
 ) {
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("update").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -121,7 +139,8 @@ fn replace_entity_after_snapshot(
             }),
         )),
     );
-    txn.commit().expect("second commit should publish");
+    txn.commit(&mut runtime)
+        .expect("second commit should publish");
 }
 
 fn runtime_with_test_schema() -> crate::facade::runtime::RelationalRuntime {

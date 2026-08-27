@@ -1,14 +1,23 @@
+mod branch_root_schema_images;
 mod checkpoint_images;
 mod recovery_errors;
 mod recovery_outcome;
 mod recovery_plan;
 mod store_layout;
 
+pub(crate) use branch_root_schema_images::DurableBranchRootSchemaImage;
+pub(crate) use checkpoint_images::{branch_root_image_digest, branch_root_partition_image_digest};
 pub use checkpoint_images::{
-    DurableBitSet, DurableCheckpoint, EntityCheckpointImageKind, EntityExtraImage,
-    PartitionCheckpointImage, RecordArenaCheckpointImage, RecordArenaCheckpointKind,
-    RelationCheckpointImageKind, RelationEndpointsImage, RelationExtraImage,
-    VersionedEntityMetadataImage, VersionedRelationMetadataImage,
+    DurableAdjacencyEntry, DurableBitSet, DurableBranchRootImage, DurableCheckpoint,
+    EntityCheckpointImageKind, EntityExtraImage, PartitionCheckpointImage,
+    RecordArenaCheckpointImage, RecordArenaCheckpointKind, RelationCheckpointImageKind,
+    RelationEndpointsImage, RelationExtraImage, VersionedEntityMetadataImage,
+    VersionedRelationMetadataImage,
+};
+pub(crate) use checkpoint_images::{
+    DurablePendingRecordReservation, DurableRecordGenerationClass,
+    DurableRecordGenerationHighWater, DurableRecordIdentityState, DurableRecordReservationOrigin,
+    DurableRecordSlotFrontier, DurableReusableRecordSlot,
 };
 pub use recovery_errors::{
     DurabilityError, RecoveryAuthorityContinuityMismatch, RecoveryFailureClass,

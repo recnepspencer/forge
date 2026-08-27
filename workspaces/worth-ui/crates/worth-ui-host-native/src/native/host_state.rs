@@ -1,13 +1,15 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use worth_ui_host_contract::UiHostSurfaceRegistrationRequest;
 
+use super::lifecycle::UiNativeLifecycleOrchestrator;
 use super::physical_work_signal::UiNativePhysicalSignalOwner;
 use super::text_atlas::{UiNativeTextAtlas, UiNativeTextAtlasGpuPages, UiNativeTextAtlasInFlight};
 use super::{
-    event_loop::UiNativeOwnedWindow, UiNativeOwnedGraphics, UiNativePendingPresentation,
-    UiNativePresentationObservation, UiNativeResourceCensus, UiNativeResourceOwner,
-    UiNativeResourceRegistry, UiNativeRetainedDrawList, UiNativeRetainedFrameObservation,
+    event_loop::UiNativeOwnedWindow, UiNativeOwnedDevice, UiNativeOwnedPresentationSurface,
+    UiNativePendingPresentation, UiNativePresentationAccess, UiNativePresentationObservation,
+    UiNativeResourceCensus, UiNativeResourceOwner, UiNativeResourceRegistry,
+    UiNativeRetainedDrawList, UiNativeRetainedFrameObservation,
 };
 
 pub(super) const NATIVE_OBSERVATION_HISTORY_CAPACITY: usize = 64;
@@ -33,15 +35,16 @@ pub(crate) struct UiNativeHostState {
     pub(crate) registrations: BTreeMap<u64, UiHostSurfaceRegistrationRequest>,
     pub(crate) registration_resources: BTreeMap<u64, UiNativeResourceOwner>,
     pub(crate) window: Option<UiNativeOwnedWindow>,
-    pub(crate) graphics: Option<UiNativeOwnedGraphics>,
+    pub(crate) device: Option<UiNativeOwnedDevice>,
+    pub(crate) presentation_surface: Option<UiNativeOwnedPresentationSurface>,
     pub(crate) last_presentation: Option<UiNativePresentationObservation>,
     pub(crate) retained_frame_observations: Vec<UiNativeRetainedFrameObservation>,
     pub(crate) resources: UiNativeResourceRegistry,
-    pub(crate) effect_posture: UiNativeEffectPosture,
     pub(crate) pending_presentations: Vec<UiNativePendingPresentation>,
     pub(crate) retained_draw_lists: BTreeMap<u64, UiNativeRetainedDrawList>,
     pub(crate) presentation_epochs: BTreeMap<u64, worth_ui_host_contract::UiHostPresentationEpoch>,
-    pub(crate) reconstruction_required: BTreeSet<u64>,
+    pub(crate) captures: super::capture::UiNativeCaptureState,
+    pub(crate) lifecycle: UiNativeLifecycleOrchestrator,
     pub(crate) text_atlas: UiNativeTextAtlas,
     pub(crate) text_atlas_gpu: Option<UiNativeTextAtlasGpuPages>,
     pub(crate) text_atlas_in_flight: Option<UiNativeTextAtlasInFlight>,
@@ -62,7 +65,6 @@ pub(crate) struct UiNativeHostState {
     pub(crate) text_atlas_model_frame_digests: Vec<[u8; 32]>,
     pub(crate) text_atlas_plan_observations:
         Vec<super::text_atlas::UiNativeTextAtlasPlanObservation>,
-    pub(crate) lifecycle_protocol: super::UiNativeLifecycleProtocol,
     pub(crate) observation_history_overflowed: bool,
     #[cfg(feature = "certification-support")]
     pub(crate) qualification: UiNativeQualificationState,
@@ -83,25 +85,43 @@ pub(crate) enum UiNativePendingTextContinuation {
 pub enum UiNativeEffectPosture {
     #[default]
     BeforeEffects,
+    Presentation(UiNativePresentationEffectPhase),
     PresentationIndeterminate,
     Presented,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiNativePresentationEffectPhase {
+    Prepared,
+    SurfaceAcquired,
+    Encoded,
+    Submitted,
+    PresentHandoff,
+}
+
 impl UiNativeHostState {
+    pub(crate) fn presentation_access(&self) -> Option<UiNativePresentationAccess<'_>> {
+        Some(UiNativePresentationAccess::new(
+            self.device.as_ref()?,
+            self.presentation_surface.as_ref()?,
+        ))
+    }
+
     pub(crate) fn new() -> Self {
         let mut state = Self {
             registrations: BTreeMap::new(),
             registration_resources: BTreeMap::new(),
             window: None,
-            graphics: None,
+            device: None,
+            presentation_surface: None,
             last_presentation: None,
             retained_frame_observations: Vec::new(),
             resources: UiNativeResourceRegistry::new(),
-            effect_posture: UiNativeEffectPosture::BeforeEffects,
             pending_presentations: Vec::new(),
             retained_draw_lists: BTreeMap::new(),
             presentation_epochs: BTreeMap::new(),
-            reconstruction_required: BTreeSet::new(),
+            captures: super::capture::UiNativeCaptureState::default(),
+            lifecycle: UiNativeLifecycleOrchestrator::new(),
             text_atlas: UiNativeTextAtlas::new(),
             text_atlas_gpu: None,
             text_atlas_in_flight: None,
@@ -116,7 +136,6 @@ impl UiNativeHostState {
             text_pin_frame_observations: Vec::new(),
             text_atlas_model_frame_digests: Vec::new(),
             text_atlas_plan_observations: Vec::new(),
-            lifecycle_protocol: super::UiNativeLifecycleProtocol::new(),
             observation_history_overflowed: false,
             #[cfg(feature = "certification-support")]
             qualification: UiNativeQualificationState::ordinary(),
@@ -213,57 +232,32 @@ impl UiNativeHostState {
         self.observation_history_overflowed = true;
     }
 
-    pub(crate) fn close(&mut self) -> UiNativeResourceCensus {
-        self.last_presentation = None;
-        self.lifecycle_protocol.close();
-        let _ = self.physical_signal.shutdown();
-        if self.pending_presentations.is_empty() {
-            if self
-                .text_atlas_gpu
-                .as_ref()
-                .is_some_and(|gpu| gpu.pending_count() != 0)
-                || self.text_atlas_in_flight.is_some()
-                || self.text_atlas_recovery.is_some()
-            {
-                return self
-                    .resources
-                    .current()
-                    .with_text_atlas(self.text_atlas_census())
-                    .with_physical_signal(self.physical_signal.observation())
-                    .with_host_state(self);
-            }
-            self.retained_draw_lists.clear();
-            self.presentation_epochs.clear();
-            self.reconstruction_required.clear();
-            let cleared = self.text_atlas.clear();
-            self.text_atlas_recovery = None;
-            self.text_atlas_completion = None;
-            self.text_pins_by_binding.clear();
-            self.pending_text_presentations.clear();
-            self.retained_frame_observations.clear();
-            self.text_pin_frame_counts.clear();
-            self.text_pin_frame_observations.clear();
-            self.text_atlas_model_frame_digests.clear();
-            self.text_atlas_plan_observations.clear();
-            if let Some(atlas_gpu) = self.text_atlas_gpu.take() {
-                atlas_gpu
-                    .try_close(&mut self.resources)
-                    .unwrap_or_else(|_| panic!("settled atlas pages must close"));
-            }
-            if let Some(graphics) = self.graphics.take() {
-                graphics.close(&mut self.resources);
-            }
-            if let Some(window) = self.window.take() {
-                window.close(&mut self.resources);
-            }
-            let _ = self.physical_signal.shutdown();
-            debug_assert!(cleared && self.text_atlas_census().is_zero());
-        }
+    pub(crate) fn current_resource_census(&self) -> UiNativeResourceCensus {
         self.resources
             .current()
             .with_text_atlas(self.text_atlas_census())
             .with_physical_signal(self.physical_signal.observation())
             .with_host_state(self)
+    }
+
+    pub(crate) fn require_surface_reconstruction(&mut self, cause: super::UiNativeRecoveryCause) {
+        self.captures.invalidate_all_sources();
+        let bindings = self.registrations.keys().copied().collect::<Vec<_>>();
+        self.lifecycle.require_recovery_for(bindings, cause);
+    }
+
+    pub(crate) fn observe_surface_basis_transition(
+        &mut self,
+        transition: super::UiNativeSurfaceBasisTransition,
+    ) -> super::UiNativeLifecycleDirective {
+        self.captures.invalidate_all_sources();
+        let bindings = self.registrations.keys().copied().collect::<Vec<_>>();
+        self.lifecycle
+            .observe_surface_transition(transition, bindings)
+    }
+
+    pub(crate) fn close(&mut self) -> UiNativeResourceCensus {
+        super::lifecycle::progress_shutdown(self)
     }
 
     pub(crate) fn progress_one_physical_signal_ready(&mut self) -> bool {

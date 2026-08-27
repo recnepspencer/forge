@@ -156,6 +156,7 @@ impl UiPreparedCommittedAllocationActivation {
         }
         self.ledger_commit
             .commit_once(&runtime.allocation_receipt_ledger);
+        advance_host_measurement_source(runtime, &self.plan_swap);
         runtime.last_valid = self.last_valid_successor;
         runtime.active = self.next_active;
         runtime
@@ -178,6 +179,24 @@ impl UiPreparedCommittedAllocationActivation {
             plan_swap: self.plan_swap,
             query_retirement,
             derived_index_counters,
+        }
+    }
+}
+
+fn advance_host_measurement_source(
+    runtime: &mut crate::runtime::WorthUiRuntime,
+    plan_swap: &crate::runtime::WorthUiPlanSwapReceipt,
+) {
+    let mut source = runtime.host_measurement_source.borrow_mut();
+    for receipt in plan_swap.committed_allocation().receipts() {
+        for input in receipt
+            .committed_allocation()
+            .measurement_basis()
+            .evidence_inputs()
+        {
+            if let Some(measurement) = input.as_host_measurement_result() {
+                source.advance_past(measurement);
+            }
         }
     }
 }

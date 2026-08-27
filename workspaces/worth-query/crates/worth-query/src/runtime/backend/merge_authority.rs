@@ -32,21 +32,32 @@ impl WorthQueryBackendMergeAuthority {
                 "branch merge authority requires distinct target and source branches",
             ));
         }
+        let source_identity = runtime
+            .branch_identity(&source_branch)
+            .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
+        let target_identity = runtime
+            .branch_identity(&target_branch)
+            .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
+        let (_, source_observation) = runtime
+            .observe_branch(&source_identity)
+            .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
+        let (_, target_observation) = runtime
+            .observe_branch(&target_identity)
+            .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
         let basis = runtime
             .history()
-            .resolve_merge_branch_basis(&source_branch, &target_branch)
-            .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
-        let target_snapshot_identity = WorthQuerySnapshotIdentity::from_bridge_snapshot_projection(
-            worth_relational::facade::bridge::bridge_snapshot_identity_for_commit(
-                basis.target_head().commit_id,
-                basis.target_head().version_id,
-            ),
-        )
-        .ok_or_else(|| {
-            WorthQueryWorkspaceError::new(
-                "relational merge authority returned a non-relational snapshot identity",
+            .merge_branch_basis_for_observations(
+                &source_observation.observation(),
+                &target_observation.observation(),
             )
-        })?;
+            .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
+        let target_snapshot_identity =
+            crate::memory_workspace::snapshot_identity_from_branch(runtime, &target_branch)
+                .ok_or_else(|| {
+                    WorthQueryWorkspaceError::new(
+                        "merge target branch has no exact current snapshot",
+                    )
+                })?;
         let target_head_commit_id = basis.target_head().commit_id.0;
         let source_head_commit_id = basis.source_head().commit_id.0;
         let merge_base_commit_id = basis.merge_base().commit().commit_id.0;
@@ -112,12 +123,28 @@ impl WorthQueryBackendMergeAuthority {
         &self,
         runtime: &RelationalRuntime,
     ) -> Result<(), WorthQueryWorkspaceError> {
+        let target_identity = runtime
+            .branch_identity(&self.target_branch)
+            .map_err(|_| WorthQueryWorkspaceError::new("merge target branch is missing"))?;
+        let source_identity = runtime
+            .branch_identity(&self.source_branch)
+            .map_err(|_| WorthQueryWorkspaceError::new("merge source branch is missing"))?;
+        let (_, target_basis) = runtime
+            .observe_branch(&target_identity)
+            .map_err(|_| WorthQueryWorkspaceError::new("merge target basis is unavailable"))?;
+        let (_, source_basis) = runtime
+            .observe_branch(&source_identity)
+            .map_err(|_| WorthQueryWorkspaceError::new("merge source basis is unavailable"))?;
+        let target_observation = target_basis.observation();
+        let source_observation = source_basis.observation();
         let history = runtime.history();
         let target_head = history
-            .branch_head(&self.target_branch)
+            .branch_head_for_observation(&target_observation)
+            .map_err(|_| WorthQueryWorkspaceError::new("merge target basis was rejected"))?
             .ok_or_else(|| WorthQueryWorkspaceError::new("merge target branch is missing"))?;
         let source_head = history
-            .branch_head(&self.source_branch)
+            .branch_head_for_observation(&source_observation)
+            .map_err(|_| WorthQueryWorkspaceError::new("merge source basis was rejected"))?
             .ok_or_else(|| WorthQueryWorkspaceError::new("merge source branch is missing"))?;
         if target_head.commit_id.0 != self.target_head_commit_id
             || source_head.commit_id.0 != self.source_head_commit_id

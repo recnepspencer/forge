@@ -12,7 +12,7 @@ fn aspect_traces_and_diagnostics_are_stable_across_supported_execution_models() 
             CascadeDeletePolicy::CascadeDeleteRelations,
         ))
         .diagnostics(serial_diagnostics.clone())
-        .execution_model(crate::facade::runtime::RelationalExecutionModel::SerialAuthority)
+        .execution_model(crate::facade::runtime::RelationalExecutionModel::SingleLaneExecution)
         .build();
     let mut staged = RelationalRuntimeApi::builder()
         .profile(RelationalRuntimeProfile::CertificationCore)
@@ -20,9 +20,7 @@ fn aspect_traces_and_diagnostics_are_stable_across_supported_execution_models() 
             CascadeDeletePolicy::CascadeDeleteRelations,
         ))
         .diagnostics(serial_diagnostics.clone())
-        .execution_model(
-            crate::facade::runtime::RelationalExecutionModel::StagedParallelPreparation,
-        )
+        .execution_model(crate::facade::runtime::RelationalExecutionModel::ParallelPreparation)
         .build();
     let mut post_commit = RelationalRuntimeApi::builder()
         .profile(RelationalRuntimeProfile::CertificationCore)

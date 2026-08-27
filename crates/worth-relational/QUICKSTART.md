@@ -31,16 +31,25 @@ The normal setup shape is:
 ## 2. Write truth
 
 ```rust
-use worth_relational::facade::transactions::{TransactionOptions, WorkerIntentBatch};
+use worth_relational::facade::{
+    mvcc::RelationalTransactionIntent,
+    transactions::WorkerIntentBatch,
+};
 
-let mut tx = runtime.begin_transaction(TransactionOptions::default());
+let main = runtime.main_branch_identity();
+let basis = runtime.admit_branch_basis(&main)?;
+let mut tx = runtime.begin_branch_transaction(
+    &basis,
+    RelationalTransactionIntent::ordinary(),
+)?;
 tx.push_batch(WorkerIntentBatch::new("seed"));
-let commit = tx.commit()?;
+let commit = tx.commit(&mut runtime)?;
 ```
 
 That is the default write story:
 
-- begin transaction
+- admit the exact branch basis
+- begin a branch-bound transaction
 - push batch
 - commit
 

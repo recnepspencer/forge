@@ -186,6 +186,12 @@ impl UiMountedSemanticProjection {
         self.nodes.len()
     }
 
+    pub(in crate::mounting::projection) fn mounted_instances(
+        &self,
+    ) -> impl ExactSizeIterator<Item = worth_ui_host_contract::UiMountedInstanceIdentity> + '_ {
+        self.order.iter().copied()
+    }
+
     #[cfg(test)]
     pub(in crate::mounting::projection) fn nodes_in_order(
         &self,

@@ -1,36 +1,36 @@
+use std::collections::BTreeMap;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct DenseSlotBitSet {
-    words: Vec<u64>,
+    words: BTreeMap<usize, u64>,
 }
 
 impl DenseSlotBitSet {
-    pub(crate) fn with_capacity(capacity: usize) -> Self {
+    pub(crate) fn with_capacity(_capacity: usize) -> Self {
         Self {
-            words: vec![0; capacity.div_ceil(64)],
-        }
-    }
-
-    fn ensure_capacity(&mut self, slot: usize) {
-        let required = slot / 64 + 1;
-        if self.words.len() < required {
-            self.words.resize(required, 0);
+            words: BTreeMap::new(),
         }
     }
 
     pub(crate) fn set(&mut self, slot: usize, value: bool) {
-        self.ensure_capacity(slot);
         let word = slot / 64;
         let bit = slot % 64;
         if value {
-            self.words[word] |= 1 << bit;
+            *self.words.entry(word).or_default() |= 1 << bit;
         } else {
-            self.words[word] &= !(1 << bit);
+            let remove = self.words.get_mut(&word).is_some_and(|value| {
+                *value &= !(1 << bit);
+                *value == 0
+            });
+            if remove {
+                self.words.remove(&word);
+            }
         }
     }
 
     pub(crate) fn count_ones(&self) -> usize {
         self.words
-            .iter()
+            .values()
             .map(|word| word.count_ones() as usize)
             .sum()
     }
@@ -46,7 +46,7 @@ impl DenseSlotBitSet {
         let mut total = 0usize;
 
         if start_word == end_word {
-            let Some(word) = self.words.get(start_word).copied() else {
+            let Some(word) = self.words.get(&start_word).copied() else {
                 return 0;
             };
             let lower_mask = (!0u64) << start_bit;
@@ -58,20 +58,20 @@ impl DenseSlotBitSet {
             return (word & lower_mask & upper_mask).count_ones() as usize;
         }
 
-        if let Some(word) = self.words.get(start_word).copied() {
+        if let Some(word) = self.words.get(&start_word).copied() {
             total += (word & ((!0u64) << start_bit)).count_ones() as usize;
         }
 
         for word_index in (start_word + 1)..end_word {
             total += self
                 .words
-                .get(word_index)
+                .get(&word_index)
                 .copied()
                 .unwrap_or(0)
                 .count_ones() as usize;
         }
 
-        if let Some(word) = self.words.get(end_word).copied() {
+        if let Some(word) = self.words.get(&end_word).copied() {
             let upper_mask = if end_bit == 63 {
                 !0u64
             } else {
@@ -85,7 +85,7 @@ impl DenseSlotBitSet {
 
     pub(crate) fn iter_set_slots(&self) -> Vec<usize> {
         let mut slots = Vec::new();
-        for (word_index, word) in self.words.iter().copied().enumerate() {
+        for (&word_index, &word) in &self.words {
             let mut remaining = word;
             while remaining != 0 {
                 let bit = remaining.trailing_zeros() as usize;
@@ -97,10 +97,40 @@ impl DenseSlotBitSet {
     }
 
     pub(crate) fn from_words(words: Vec<u64>) -> Self {
-        Self { words }
+        Self {
+            words: words
+                .into_iter()
+                .enumerate()
+                .filter(|(_, word)| *word != 0)
+                .collect(),
+        }
     }
 
-    pub(crate) fn words(&self) -> &[u64] {
-        &self.words
+    pub(crate) fn from_sparse_words(words: Vec<(u64, u64)>) -> Self {
+        Self {
+            words: words
+                .into_iter()
+                .filter(|(_, word)| *word != 0)
+                .map(|(index, word)| (index as usize, word))
+                .collect(),
+        }
+    }
+
+    pub(crate) fn sparse_words(&self) -> Vec<(u64, u64)> {
+        self.words
+            .iter()
+            .map(|(&index, &word)| (index as u64, word))
+            .collect()
+    }
+
+    pub(crate) fn represented_slot_capacity(&self) -> usize {
+        self.words
+            .last_key_value()
+            .map_or(0, |(&word, _)| (word + 1).saturating_mul(64))
+    }
+
+    pub(crate) fn authoritative_allocation_bytes(&self) -> u64 {
+        (self.words.len() as u64)
+            .saturating_mul((std::mem::size_of::<usize>() + std::mem::size_of::<u64>()) as u64)
     }
 }

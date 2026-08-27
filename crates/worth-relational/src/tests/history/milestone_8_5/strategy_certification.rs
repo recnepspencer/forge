@@ -5,6 +5,8 @@ pub(super) fn run_strategy_merge_certification() -> StrategyCertificationBundle 
     let recovered_root = root_path.clone();
     let mut runtime = persisted_strategy_runtime(root_path);
     let entity = create_entity(&mut runtime, "service");
+    let aspect_overlap_entity = create_entity(&mut runtime, "aspect-overlap");
+    let aspect_disjoint_entity = create_entity(&mut runtime, "aspect-disjoint");
     let feature_branch = create_branch_from_main(&mut runtime, "strategy-feature");
     let aspect_overlap_branch = create_branch_from_main(&mut runtime, "aspect-overlap-feature");
     let aspect_disjoint_branch = create_branch_from_main(&mut runtime, "aspect-disjoint-feature");
@@ -16,10 +18,12 @@ pub(super) fn run_strategy_merge_certification() -> StrategyCertificationBundle 
     );
     merge_aspect_conflicts::certify_overlapping_aspect_strategy_conflict(
         &mut runtime,
+        aspect_overlap_entity,
         &aspect_overlap_branch,
     );
     merge_aspect_conflicts::certify_disjoint_aspect_strategy_truth(
         &mut runtime,
+        aspect_disjoint_entity,
         &aspect_disjoint_branch,
     );
     let controller_sequence =

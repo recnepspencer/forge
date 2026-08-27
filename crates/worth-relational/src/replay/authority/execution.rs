@@ -1,12 +1,12 @@
+mod comparison;
 mod envelope_self_audit;
 mod surface_audit;
 
 use crate::capabilities::SchemaSource;
 use crate::history::data::{BranchId, CommitId, HistoryDriftClass};
 use crate::replay::data::{
-    CanonicalCommitEnvelope, RelationalReplayOutcome, RelationalReplayRequest,
-    ReplayAuthorityBasisKind, ReplayExecutionMode, ReplayFailureClass, ReplayLineageAuthorityBasis,
-    ReplayLineageDigestMode, ReplayMismatch, ReplayMismatchClass, ReplayObservableSurface,
+    CanonicalCommitEnvelope, RelationalReplayOutcome, RelationalReplayRequest, ReplayExecutionMode,
+    ReplayFailureClass, ReplayMismatch, ReplayMismatchClass, ReplayObservableSurface,
     ReplayVerificationLayer, ReplayVerificationMode, ReplayVerificationPlan,
 };
 use crate::runtime::RelationalRuntime;
@@ -17,13 +17,10 @@ use super::super::planning::{
     replay_recovery_plan_for_chain,
 };
 use super::continuity::validated_replay_continuity_envelope;
-use super::lineage_authority::{
-    lineage_decision_log_comparison_basis, lineage_event_batch_comparison_basis,
-    select_published_lineage_authority,
-};
 use super::strategy_replay::verify_strategy_reexecution_surface;
 use super::ReplayAuthority;
 
+use self::comparison::{replay_comparison_outcome, select_replay_lineage_authority};
 use self::envelope_self_audit::audit_retained_envelope_authority;
 use self::surface_audit::compare_replay_surfaces;
 
@@ -163,20 +160,27 @@ impl<'runtime> ReplayAuthority<'runtime> {
         );
         let runtime = match self.runtime.rebuild_runtime_from_plan(replay_plan) {
             Ok(runtime) => runtime,
-            Err(_) => {
+            Err(error) => {
                 return Err(self.fail_and_record(
                     request.clone(),
                     Some(&admission.envelope),
                     Some(&admission.commit_closure),
                     ReplayFailureClass::ObservableMismatch,
-                    None,
+                    Some(ReplayMismatch {
+                        class: ReplayMismatchClass::HistoryDrift,
+                        history_drift_class: Some(HistoryDriftClass::ReplayAuthorityDrift),
+                        surface: ReplayObservableSurface::History,
+                        verification_layer: ReplayVerificationLayer::DeepArtifactParity,
+                        detail: format!("replay recovery reconstruction failed: {}", error.detail),
+                        expected: Some("reconstructible canonical commit closure".to_owned()),
+                        observed: Some(format!("{:?}", error.class)),
+                    }),
                 ));
             }
         };
         let Some(envelope) = runtime
             .replay()
             .canonical_commit_envelope(request.commit_id)
-            .cloned()
         else {
             return Err(self.fail_and_record(
                 request.clone(),
@@ -336,60 +340,5 @@ impl<'runtime> ReplayAuthority<'runtime> {
             ReplayFailureClass::ObservableMismatch,
             Some(mismatch),
         )
-    }
-}
-
-fn select_replay_lineage_authority<'a>(
-    runtime: &'a RelationalRuntime,
-    envelope: &'a CanonicalCommitEnvelope,
-    verification_mode: ReplayVerificationMode,
-) -> Result<super::SelectedPublishedLineageAuthority<'a>, ()> {
-    let selected = select_published_lineage_authority(runtime, envelope);
-    runtime
-        .performance_access()
-        .count_replay_lineage_authority_basis(
-            selected.indexed_source,
-            selected.kind,
-            selected.artifact.digest_basis().lineage_event_count(),
-            selected.artifact.digest_basis().lineage_decision_count(),
-        );
-    if selected.kind == ReplayAuthorityBasisKind::RetainedEnvelopeCanonical
-        && verification_mode != ReplayVerificationMode::NormalRecoveryVerification
-    {
-        runtime
-            .performance_access()
-            .count_replay_lineage_authoritative_basis_rejection();
-        Err(())
-    } else {
-        Ok(selected)
-    }
-}
-
-fn replay_comparison_outcome(
-    request: RelationalReplayRequest,
-    admission: &ReplayAdmission,
-    compared_surfaces: &[ReplayObservableSurface],
-    mismatches: Vec<ReplayMismatch>,
-    selected_lineage: Option<&super::SelectedPublishedLineageAuthority<'_>>,
-) -> RelationalReplayOutcome {
-    RelationalReplayOutcome {
-        requested: request,
-        commit: Some(admission.envelope.commit.clone()),
-        reconstructed_commit_closure: admission.commit_closure.clone(),
-        snapshot_version: Some(admission.envelope.commit.version_id),
-        lineage_authority_basis: selected_lineage.map(|selected| {
-            ReplayLineageAuthorityBasis::new(
-                selected.kind,
-                admission.envelope.commit.commit_id,
-                ReplayLineageDigestMode::ExactCanonicalArtifactDigest,
-                selected.artifact.digest_basis().lineage_event_count(),
-                selected.artifact.digest_basis().lineage_decision_count(),
-                lineage_event_batch_comparison_basis(selected.artifact),
-                lineage_decision_log_comparison_basis(selected.artifact),
-            )
-        }),
-        compared_surfaces: compared_surfaces.to_vec(),
-        failure: (!mismatches.is_empty()).then_some(ReplayFailureClass::ObservableMismatch),
-        mismatches,
     }
 }

@@ -154,6 +154,10 @@ impl UiIntentConsequenceStop {
     pub fn into_recovery(self) -> UiIntentConsequenceRecovery {
         self.recovery
     }
+
+    pub(crate) fn into_parts(self) -> (UiIntentConsequenceStopReason, UiIntentConsequenceRecovery) {
+        (self.reason, self.recovery)
+    }
 }
 
 impl UiIntentConsequenceCompletionReceipt {

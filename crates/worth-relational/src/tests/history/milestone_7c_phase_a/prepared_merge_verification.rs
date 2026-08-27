@@ -53,7 +53,7 @@ fn verify_prepared_merge_execution_rejects_runtime_instance_mismatch() {
             merge_intent: MergeIntent::ReconcileIntoTarget,
         })
         .expect("prepared merge");
-    let forked = runtime.fork();
+    let forked = runtime.fork().expect("settled runtime forks");
 
     match forked.merge().verify_prepared_merge_execution(&prepared) {
         Err(MergeExecutionError::RuntimeInstanceMismatch { .. }) => {}

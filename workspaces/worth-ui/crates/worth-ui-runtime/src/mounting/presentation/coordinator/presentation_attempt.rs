@@ -142,9 +142,6 @@ mod tests {
             WorthUiHostKind::Headless
         ));
         assert!(!native_host_owns_semantic_text_boundary(
-            WorthUiHostKind::Egui
-        ));
-        assert!(!native_host_owns_semantic_text_boundary(
             WorthUiHostKind::CapabilityProbeInconclusive
         ));
         assert!(!native_host_owns_semantic_text_boundary(

@@ -23,8 +23,16 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
             return;
         };
         self.redraw_turns += 1;
+        let surface_basis_generation = self
+            .shared
+            .borrow()
+            .presentation_surface
+            .as_ref()
+            .map(|surface| surface.basis_generation())
+            .unwrap_or(0);
         let readiness = UiNativeReadinessGrant::issued(
             work.generation,
+            surface_basis_generation,
             work.scale_factor_milli,
             work.client_physical_size,
         );

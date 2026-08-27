@@ -6,6 +6,8 @@ mod contract;
 mod courtroom;
 #[path = "temporal_conditional_operation/courtroom_lifecycle.rs"]
 mod courtroom_lifecycle;
+#[path = "temporal_conditional_operation/courtroom_settlement.rs"]
+mod courtroom_settlement;
 #[path = "temporal_conditional_operation/courtroom_support.rs"]
 mod courtroom_support;
 #[path = "temporal_conditional_operation/schema.rs"]
@@ -16,6 +18,46 @@ mod world;
 use courtroom_support::observe;
 use world::CourtroomWorld;
 use worth_query_host::facade::primary_graph;
+
+#[test]
+fn application_readiness_reports_current_query_basis_without_leaking_a_lease() {
+    let world = CourtroomWorld::publish("ready");
+    let observer = world.application.application_query_basis_observer();
+    let before = observer.observe();
+
+    let readiness = world
+        .application
+        .inspect_application_readiness()
+        .expect("the published application basis should be inspectable");
+
+    assert_eq!(
+        readiness.schema_binding(),
+        &world.application.installed_schema().binding_identity()
+    );
+    assert!(readiness
+        .basis_token()
+        .starts_with("basis:query-primary-graph-v2:"));
+    let repeated = world
+        .application
+        .inspect_application_readiness()
+        .expect("repeated readiness inspection should remain available");
+    assert_eq!(
+        repeated.basis_token(),
+        readiness.basis_token(),
+        "readiness inspection must not manufacture a new optimistic basis"
+    );
+    assert_eq!(
+        world
+            .application
+            .application_basis_token(readiness.basis_identity())
+            .expect("the observed query basis should render through its owning runtime"),
+        readiness.basis_token(),
+        "a result must retain its exact observed basis instead of rediscovering head"
+    );
+    let after = observer.observe();
+    assert_eq!(after.active(), before.active());
+    assert_eq!(after.acquisitions(), before.acquisitions() + 2);
+}
 
 #[test]
 fn successor_generation_requires_fresh_typed_rebinding() {
@@ -49,6 +91,16 @@ fn reconstruction_panic_restores_runtime_owners_for_retry() {
 #[test]
 fn host_installs_and_executes_a_due_temporal_application_operation() {
     courtroom::host_installs_and_executes_due_operation();
+}
+
+#[test]
+fn temporal_wake_repairs_durable_settlement_before_exact_retirement() {
+    courtroom_settlement::temporal_wake_repairs_durable_settlement_before_exact_retirement();
+}
+
+#[test]
+fn temporal_wake_retries_query_publication_after_settlement_repair() {
+    courtroom_settlement::temporal_wake_retries_query_publication_after_settlement_repair();
 }
 
 #[test]

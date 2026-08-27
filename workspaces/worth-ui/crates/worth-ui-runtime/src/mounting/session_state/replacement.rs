@@ -43,6 +43,7 @@ pub(crate) enum UiMountedGraphReplacementPresentation {
     RejectedBeforeEffects {
         successor: UiMountedGraphReplacementSuccessor,
         frame: crate::mounting::UiPreparedMountedFrame,
+        rejections: Box<[crate::mounting::UiMountedSurfacePresentationRejection]>,
         observation: crate::mounting::UiMountedHostObservationTransition,
     },
     InFlight(UiMountedGraphReplacementInFlight),
@@ -266,9 +267,11 @@ fn settle_graph_replacement(
             let observation = crate::mounting::UiMountedHostObservationTransition::Rejected(
                 rejected.frame().canonical_core().frame(),
             );
+            let (frame, rejections) = rejected.into_parts();
             UiMountedGraphReplacementPresentation::RejectedBeforeEffects {
                 successor,
-                frame: rejected.into_frame(),
+                frame,
+                rejections,
                 observation,
             }
         }

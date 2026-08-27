@@ -14,6 +14,7 @@ mod mutation_authority_admission;
 mod native_patch;
 mod native_value_access;
 mod runtime_identity;
+pub(crate) use runtime_identity::snapshot_identity_from_branch;
 mod seed_rows;
 #[cfg(test)]
 mod tests;

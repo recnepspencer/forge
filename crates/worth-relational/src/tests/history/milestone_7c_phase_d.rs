@@ -170,8 +170,16 @@ fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_as
         .schema_registry(registry)
         .build();
 
-    let mut main_txn =
-        runtime.begin_transaction(crate::facade::transactions::TransactionOptions::default());
+    let mut main_txn = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime);
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     main_txn.push_batch(
         crate::facade::transactions::WorkerIntentBatch::new("main-seed").push(
             MutationIntent::Create(CreateIntent::Entity(
@@ -188,14 +196,22 @@ fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_as
             )),
         ),
     );
-    main_txn.commit().unwrap();
+    main_txn.commit(&mut runtime).unwrap();
 
     create_branch_from_main(&mut runtime, "feature");
-    let mut feature_txn =
-        runtime.begin_transaction(crate::facade::transactions::TransactionOptions {
-            target_branch: Some(BranchId("feature".to_string())),
-            ..crate::facade::transactions::TransactionOptions::default()
-        });
+    let mut feature_txn = {
+        let transaction_validation_input =
+            crate::tests::support::test_owner_transaction_validation_input_for_branch(
+                &runtime,
+                BranchId("feature".to_string()),
+            );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     feature_txn.push_batch(
         crate::facade::transactions::WorkerIntentBatch::new("feature-seed").push(
             MutationIntent::Create(CreateIntent::Entity(
@@ -219,7 +235,7 @@ fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_as
             )),
         ),
     );
-    feature_txn.commit().unwrap();
+    feature_txn.commit(&mut runtime).unwrap();
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {

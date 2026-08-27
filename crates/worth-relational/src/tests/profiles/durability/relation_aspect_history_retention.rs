@@ -54,11 +54,11 @@ struct DeletedAspectRelationEvidence {
 }
 
 fn create_aspect_bearing_relation(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     source: crate::facade::identity::EntityId,
     target: crate::facade::identity::EntityId,
 ) -> crate::facade::identity::RelationId {
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("aspect-bearing-relation").push(MutationIntent::Create(
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
@@ -71,25 +71,25 @@ fn create_aspect_bearing_relation(
             }),
         )),
     );
-    let created = txn.commit().unwrap();
+    let created = txn.commit(&mut runtime).unwrap();
     let relation = changed_relations(&created)[0];
     assert_eq!(runtime.relation_history_len_for_test(relation), 1);
     relation
 }
 
 fn delete_relation(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     relation: crate::facade::identity::RelationId,
 ) -> DeletedAspectRelationEvidence {
     let created_version = runtime.history().latest_commit().unwrap().version_id;
     let created_snapshot = runtime.visibility_authority().snapshot();
-    let mut delete_txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut delete_txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     delete_txn.push_batch(WorkerIntentBatch::new("delete-relation").push(
         MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
             relation_id: relation,
         })),
     ));
-    let deleted = delete_txn.commit().unwrap();
+    let deleted = delete_txn.commit(&mut runtime).unwrap();
     DeletedAspectRelationEvidence {
         created_version,
         created_snapshot,

@@ -1,7 +1,0 @@
-error[E0277]: the trait bound `WorthQueryApplicationQueryAccessReceipt: From<WorthQueryApplicationQueryPublicationReceipt>` is not satisfied
- --> tests/ui/application_aftermath/publication_query_cannot_convert_to_execution_receipt.rs:7:13
-  |
-7 |     receipt.into()
-  |             ^^^^ the trait `From<WorthQueryApplicationQueryPublicationReceipt>` is not implemented for `WorthQueryApplicationQueryAccessReceipt`
-  |
-  = note: required for `WorthQueryApplicationQueryPublicationReceipt` to implement `Into<WorthQueryApplicationQueryAccessReceipt>`

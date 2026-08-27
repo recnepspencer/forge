@@ -605,6 +605,22 @@ without inventing incompatible transaction, version, or receipt folklore.
 - hostile profile tests proving reduced-richness branch/merge reporting does
   not change authoritative commit outcomes
 
+### Query Milestone 9.17.1 Vocabulary Extension
+
+[Query Milestone 9.17.1](../WORTH-query/milestone-9.17.1.md) extends this closed
+vocabulary milestone with the exact mutable-reference grammar required by both
+Relational and Signal. The extension separates immutable target basis from
+mutable branch identity and adds generic descriptive target, reference
+generation, exact observation, fork, comparison, movement, and mismatch
+values.
+
+This is a vocabulary extension, not a reopening that moves runtime authority
+into Foundational. `TargetBasis` remains an immutable owner descriptor;
+Relational and Signal retain runtime identity, currentness, lifecycle,
+retention, admission, and movement authority. Epoch-only Milestone 5 forms
+cannot be used as compatibility constructors for an exact operational
+reference.
+
 ## Milestone 6: Diagnostics And Explanation Ontology
 
 Detailed spec: [`milestone-6.md`](milestone-6.md)

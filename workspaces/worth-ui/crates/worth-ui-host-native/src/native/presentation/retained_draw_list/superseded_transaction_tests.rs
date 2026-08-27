@@ -7,7 +7,7 @@ use crate::native::physical_work_signal::{
 use crate::native::presentation::retained_draw_list::UiNativeRetainedDeltaUndo;
 use crate::native::presentation::{
     reserve_presentation_owners, settle_port_result, UiNativePendingExternalObligation,
-    UiNativePresentationFailure, UiNativePresentationPortFailure,
+    UiNativePresentationEffects, UiNativePresentationFailure, UiNativePresentationPortFailure,
 };
 use worth_ui_host_contract::{
     UiHostProtocolContract, UiHostProtocolNegotiation, UiMountedFrameConsumptionInput,
@@ -69,11 +69,12 @@ fn refused_superseding_delta_rolls_back_to_the_last_committed_frame() {
     let second_delta = replacement_delta(&world, frame_one, one, frame_two, two);
     let (_, second_undo) = retained.stage_delta(&second_delta, &[]).unwrap();
 
-    let mut successor =
-        UiNativePendingSurfaceSettlement::Delta(UiNativePendingDeltaSettlement::new(second_undo));
+    let mut successor = UiNativePendingSurfaceSettlement::Delta(
+        UiNativePendingDeltaSettlement::new(second_undo, UiNativePresentationEffects::default()),
+    );
     if successor
         .inherit_predecessor(UiNativePendingSurfaceSettlement::Delta(
-            UiNativePendingDeltaSettlement::new(first_undo),
+            UiNativePendingDeltaSettlement::new(first_undo, UiNativePresentationEffects::default()),
         ))
         .is_err()
     {
@@ -169,16 +170,13 @@ fn superseded_then_rejected_pending_deltas_restore_host_truth_and_resources() {
         Some(&command(zero))
     );
     assert!(state.pending_presentations.is_empty());
-    assert!(state.reconstruction_required.contains(&binding));
+    assert!(state.lifecycle.recovery_required(binding));
     assert_eq!(
-        state.effect_posture,
+        state.lifecycle.effect_posture(),
         crate::native::UiNativeEffectPosture::PresentationIndeterminate
     );
     assert!(state.resources.current().is_zero());
     assert_eq!(state.physical_signal.observation().active_requests, 0);
-    println!(
-        "WORTH_UI_LEDGER_MUTATION_CONTROLS={{\"P3-TRANSACTION-01\":\"commit-before-handoff\"}}"
-    );
 }
 
 fn assert_premature_commit_mutant_loses_rollback() {
@@ -218,11 +216,13 @@ fn assert_premature_commit_mutant_loses_rollback() {
             &[],
         )
         .unwrap();
-    let mut mutant =
-        UiNativePendingSurfaceSettlement::Delta(UiNativePendingDeltaSettlement::new(second_undo));
+    let mut mutant = UiNativePendingSurfaceSettlement::Delta(UiNativePendingDeltaSettlement::new(
+        second_undo,
+        UiNativePresentationEffects::default(),
+    ));
     if mutant
         .inherit_predecessor(UiNativePendingSurfaceSettlement::Delta(
-            UiNativePendingDeltaSettlement::new(first_undo),
+            UiNativePendingDeltaSettlement::new(first_undo, UiNativePresentationEffects::default()),
         ))
         .is_err()
     {
@@ -279,7 +279,7 @@ fn pending_delta(
         panic!("an unsettled external delta must retain its physical obligation");
     };
     pending.with_settlement(UiNativePendingSurfaceSettlement::Delta(
-        UiNativePendingDeltaSettlement::new(undo),
+        UiNativePendingDeltaSettlement::new(undo, UiNativePresentationEffects::default()),
     ))
 }
 

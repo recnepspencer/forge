@@ -3,16 +3,16 @@
 ## Thesis
 
 Worth needs a first-class desktop application platform, not a collection of
-widgets around `egui`.
+widgets around a renderer.
 
-`worth-ui` is the Rust-native desktop platform layer that turns egui's fast,
-immediate interaction model into shippable, polished, inspectable, reactive,
-cross-platform desktop applications. It is not an Electron clone, not a web
-runtime in a native wrapper, and not a thin skin over egui. It is the app
-platform that supplies the shell, command system, layout, professional widgets,
-native operating-system integration, accessibility, state binding, preview
-workflows, delivery tooling, and runtime semantics that serious desktop
-software needs.
+`worth-ui` is the Rust-native desktop platform layer that turns an event-driven
+Worth-owned native host and canonical runtime meaning into shippable, polished,
+inspectable, reactive, cross-platform desktop applications. It is not an
+Electron clone, not a web runtime in a native wrapper, and not a thin skin over
+a renderer. It is the app platform that supplies the shell, command system,
+layout, professional widgets, native operating-system integration,
+accessibility, state binding, preview workflows, delivery tooling, and runtime
+semantics that serious desktop software needs.
 
 The ambition is direct:
 
@@ -23,11 +23,11 @@ The ambition is direct:
 - web developers should look at Worth UI and feel jealous of how coherent,
   typed, native, reactive, and inspectable desktop app development can be
 
-egui is the pixel and interaction loop. Worth UI is the application platform.
-Worth Query is the semantic runtime beneath product surfaces. Together they
-should make desktop apps feel lighter than Electron, more coherent than web
-frontends, more ergonomic than traditional native UI, and more truthful than
-ad hoc application state.
+The Worth native host owns the pixel, input-observation, and event loop. Worth
+UI is the application platform. Worth Query is the semantic runtime beneath
+product surfaces. Together they should make desktop apps feel lighter than
+Electron, more coherent than web frontends, more ergonomic than traditional
+native UI, and more truthful than ad hoc application state.
 
 ## What This Platform Is For
 
@@ -77,8 +77,8 @@ The technical thesis is the same across all of them:
 These are the strategic differences that make `worth-ui` more than another UI
 crate:
 
-- egui-native immediate authoring with platform-grade retained app
-  infrastructure around it
+- event-driven native presentation with platform-grade retained application
+  infrastructure above host mechanics
 - first-class application shell: windows, menus, tabs, panels, docking,
   shortcuts, status, lifecycle, and persisted workspace layouts
 - command registry as the shared action spine for menus, toolbars, shortcuts,
@@ -110,10 +110,10 @@ crate:
   command inspection, accessibility inspection, live query inspection, task
   monitoring, screenshot testing, packaging, and release
 
-The important breakthrough is not "egui with more widgets." The breakthrough
-is a desktop platform where every visible surface can be traced back to an
-application command, a declared query, a runtime artifact, a native platform
-contract, or an explicit piece of app state.
+The important breakthrough is not "a renderer with more widgets." The
+breakthrough is a desktop platform where every visible surface can be traced
+back to an application command, a declared query, a runtime artifact, a native
+platform contract, or an explicit piece of app state.
 
 ## Mission
 
@@ -136,8 +136,8 @@ It must answer these questions as native platform responsibilities:
 - How do desktop apps ship with native menus, installers, auto-update, crash
   recovery, file associations, and platform integrations without each team
   rebuilding distribution infrastructure?
-- How do egui components carry design tokens, density, focus, accessibility,
-  keyboard behavior, and test hooks consistently?
+- How do platform components carry design tokens, density, focus,
+  accessibility, keyboard behavior, and test hooks consistently?
 - How do plugins contribute commands, panels, settings, file handlers,
   inspectors, and background services through stable app extension points?
 - How do developers get the fast iteration of immediate-mode UI without losing
@@ -154,7 +154,7 @@ truthfulness, and better desktop ergonomics.
 
 | Layer | Responsibility | Owns |
 | --- | --- | --- |
-| `egui` / renderer | immediate UI and rendering core | pixels, input, frame loop, low-level interaction |
+| `worth-ui-host-contract` and `worth-ui-host-native` | host-neutral presentation contract and native mechanics | pixels, input observations, surfaces, wake causes, event loop |
 | `worth-ui` | desktop application platform | shell, commands, layout, widgets, design system, native integration, accessibility, tooling |
 | `worth-query` | semantic product runtime | declared reads, live views, view shapes, intent admission, inspection, recovery, mutation evidence |
 | `worth-runtime-bridge` | runtime coordination | patch-to-invalidation, snapshot-backed evaluation, subscriptions, causality |
@@ -168,7 +168,7 @@ truthfulness, and better desktop ergonomics.
 - application shell and lifecycle
 - window, tab, dock, panel, and workspace layout orchestration
 - command registry and desktop action binding
-- egui component system and professional widget suite
+- host-neutral component system and professional widget suite
 - design tokens, themes, density, typography, focus, and visual states
 - keyboard navigation and accessibility semantics at the UI layer
 - UI binding to Query artifacts, outcomes, live views, and runtime posture
@@ -206,8 +206,8 @@ and structured outcomes.
 
 1. The first screen of a Worth UI app should feel like a real product, not a
    demo harness.
-2. egui's immediate-mode ergonomics are a strength; platform infrastructure
-   should surround them, not erase them.
+2. Event-driven native mechanics and retained application infrastructure
+   should remain complementary rather than competing authority paths.
 3. Every user action should be expressible as a command.
 4. Every serious data surface should be able to bind to declared Query meaning.
 5. Live updates should be query-shaped, not raw event-shaped.
@@ -233,13 +233,14 @@ and structured outcomes.
 
 These are locked architectural decisions:
 
-- egui remains the foundational rendering and immediate UI substrate
-- Worth UI is an app platform layer above egui, not a fork of egui
+- the Worth-owned native host is the sole native-display platform
+- Worth UI meaning remains above host contracts and native mechanics
 - Rust defines platform capabilities; hot-reloadable UI source composes those
   capabilities
-- UI source lowers into a canonical runtime artifact before egui rendering
-- the egui frame path consumes already-lowered execution plans rather than
-  parsing, validating, or resolving UI source every frame
+- UI source lowers into a canonical runtime artifact before mounted and native
+  presentation
+- the native event path consumes owner-issued presentation work rather than
+  parsing, validating, or resolving UI source during presentation
 - failed UI reloads keep the last valid plan active and surface diagnostics
   without disturbing the running app
 - commands are first-class registry entries with stable identifiers
@@ -392,10 +393,10 @@ What this enables:
 Technical role:
 The lowered artifact should compile into frame-efficient, host-neutral execution
 plans. The active application session owns the executable plan generation; the
-egui adapter consumes admitted contacts without choosing UI meaning or plan
-strategy. The frame loop consumes compact handles, pre-resolved child ranges,
-interned IDs, command handles, component handles, style-token handles, and
-specialized plans for tables, trees, inspectors, dock areas, and canvas
+native host consumes owner-issued presentation work without choosing UI meaning
+or plan strategy. The event loop consumes compact handles, pre-resolved child
+ranges, interned IDs, command handles, component handles, style-token handles,
+and specialized plans for tables, trees, inspectors, dock areas, and canvas
 surfaces.
 
 Plan equivalence must cover complete executable meaning and remain distinct
@@ -409,7 +410,7 @@ What this enables:
 - hot reload does not become per-frame source interpretation
 - ordinary UI reloads can feel instant because parsing, validation, and
   lowering happen before the next plan swap
-- steady-state rendering remains close to egui-native cost
+- steady-state rendering remains within the qualified native-host cost
 - large surfaces can use virtualization, cached text layout, and specialized
   execution plans instead of generic tree walking where needed
 
@@ -443,7 +444,7 @@ The primary host for this pipeline is the running Worth runtime. The runtime
 owns the watched artifact inputs, active artifact, stable identity map,
 reconciliation state, diagnostics surface, and execution-plan swap boundary.
 This is what makes hot reload feel like product iteration instead of a build
-tool wrapped around `egui`.
+tool wrapped around a renderer.
 
 What this enables:
 
@@ -1338,7 +1339,7 @@ should be derivable from it.
 
 The highest-signal Worth UI programs are:
 
-- egui-based app shell and lifecycle
+- Worth-native app shell and lifecycle
 - hot-lowered UI source, canonical UI artifacts, host-neutral execution plans, and
   stable-ID state reconciliation
 - component, command, Query view, settings, icon, token, and plugin capability
@@ -1373,7 +1374,7 @@ work.
 
 ## Non-Goals
 
-- replacing egui as the low-level immediate UI substrate
+- reintroducing a third-party immediate UI substrate or host-owned UI meaning
 - turning Worth UI into a web runtime
 - copying Electron's architecture instead of competing with its product
   completeness

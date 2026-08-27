@@ -59,13 +59,17 @@ pub(super) fn assert_non_strategy_conflict(
         crate::merge::data::MergeConflictClass::StrategyIntentConflict
     );
     assert!(
-        classification.class == crate::merge::data::MergeConflictClass::ExactSharedTruth,
-        "expected benign exact-shared-truth classification during {stage}, got {:?}",
+        classification.class == crate::merge::data::MergeConflictClass::DivergentVisibleState,
+        "expected ordinary divergent-state classification during {stage}, got {:?}",
         classification.class
+    );
+    assert!(
+        classification.strategy_evidence.is_none(),
+        "narrowed non-overlapping strategy scopes must not retain conflict evidence during {stage}"
     );
 }
 
-pub(super) fn assert_exact_shared_truth(
+pub(super) fn assert_converged_strategy_overlap(
     planning: &crate::merge::data::MergePlanningArtifactCore,
     entity: crate::facade::identity::EntityId,
     stage: &str,
@@ -74,8 +78,8 @@ pub(super) fn assert_exact_shared_truth(
         panic!("missing entity classification for exact-shared-truth stage {stage}")
     });
     assert!(
-        classification.class == crate::merge::data::MergeConflictClass::ExactSharedTruth,
-        "expected exact shared truth during {stage}, got {:?}",
+        classification.class == crate::merge::data::MergeConflictClass::DivergentVisibleState,
+        "expected converged strategy overlap with ordinary non-overlapping divergence during {stage}, got {:?}",
         classification.class
     );
     assert!(

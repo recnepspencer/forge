@@ -1,9 +1,12 @@
-use super::vocabulary::{
-    candidate_state_definition, staged_state_definition, FoundationalBranchCandidateId,
-    FoundationalBranchComparisonBasis, FoundationalBranchForkBasis,
-    FoundationalBranchForkObservationBasis, FoundationalBranchId,
-    FoundationalBranchLocalStateDefinition, FoundationalBranchLocalStateKind,
-    FoundationalBranchObservationBasis,
+use super::candidate::{
+    FoundationalBranchCandidateComparisonBasis, FoundationalBranchCandidateForkBasis,
+    FoundationalBranchCandidateForkObservationBasis, FoundationalBranchCandidateId,
+    FoundationalBranchCandidateObservationBasis,
+};
+use super::identity::FoundationalBranchId;
+use super::local_state::{
+    candidate_state_definition, staged_state_definition, FoundationalBranchLocalStateDefinition,
+    FoundationalBranchLocalStateKind,
 };
 use crate::transitions::receipts::{
     FoundationalBranchCloseoutCause, FoundationalBranchDiscardReceipt,
@@ -14,10 +17,10 @@ use crate::transitions::receipts::{
 pub struct FoundationalBranchCandidateArtifact<T> {
     branch_id: FoundationalBranchId,
     candidate_id: FoundationalBranchCandidateId,
-    fork_basis: FoundationalBranchForkBasis,
-    observation_basis: FoundationalBranchObservationBasis,
-    fork_observation_basis: Option<FoundationalBranchForkObservationBasis>,
-    comparison_basis: Option<FoundationalBranchComparisonBasis>,
+    fork_basis: FoundationalBranchCandidateForkBasis,
+    observation_basis: FoundationalBranchCandidateObservationBasis,
+    fork_observation_basis: Option<FoundationalBranchCandidateForkObservationBasis>,
+    comparison_basis: Option<FoundationalBranchCandidateComparisonBasis>,
     payload: T,
 }
 
@@ -25,10 +28,10 @@ impl<T> FoundationalBranchCandidateArtifact<T> {
     pub(crate) fn new(
         branch_id: FoundationalBranchId,
         candidate_id: FoundationalBranchCandidateId,
-        fork_basis: FoundationalBranchForkBasis,
-        observation_basis: FoundationalBranchObservationBasis,
-        fork_observation_basis: Option<FoundationalBranchForkObservationBasis>,
-        comparison_basis: Option<FoundationalBranchComparisonBasis>,
+        fork_basis: FoundationalBranchCandidateForkBasis,
+        observation_basis: FoundationalBranchCandidateObservationBasis,
+        fork_observation_basis: Option<FoundationalBranchCandidateForkObservationBasis>,
+        comparison_basis: Option<FoundationalBranchCandidateComparisonBasis>,
         payload: T,
     ) -> Self {
         Self {
@@ -58,19 +61,21 @@ impl<T> FoundationalBranchCandidateArtifact<T> {
         self.candidate_id
     }
 
-    pub fn fork_basis(&self) -> &FoundationalBranchForkBasis {
+    pub fn fork_basis(&self) -> &FoundationalBranchCandidateForkBasis {
         &self.fork_basis
     }
 
-    pub const fn observation_basis(&self) -> FoundationalBranchObservationBasis {
+    pub const fn observation_basis(&self) -> FoundationalBranchCandidateObservationBasis {
         self.observation_basis
     }
 
-    pub const fn fork_observation_basis(&self) -> Option<FoundationalBranchForkObservationBasis> {
+    pub const fn fork_observation_basis(
+        &self,
+    ) -> Option<FoundationalBranchCandidateForkObservationBasis> {
         self.fork_observation_basis
     }
 
-    pub fn comparison_basis(&self) -> Option<&FoundationalBranchComparisonBasis> {
+    pub fn comparison_basis(&self) -> Option<&FoundationalBranchCandidateComparisonBasis> {
         self.comparison_basis.as_ref()
     }
 
@@ -105,10 +110,10 @@ impl<T> FoundationalBranchCandidateArtifact<T> {
 pub struct FoundationalStagedBranchArtifact<T> {
     branch_id: FoundationalBranchId,
     candidate_id: FoundationalBranchCandidateId,
-    fork_basis: FoundationalBranchForkBasis,
-    observation_basis: FoundationalBranchObservationBasis,
-    fork_observation_basis: Option<FoundationalBranchForkObservationBasis>,
-    comparison_basis: Option<FoundationalBranchComparisonBasis>,
+    fork_basis: FoundationalBranchCandidateForkBasis,
+    observation_basis: FoundationalBranchCandidateObservationBasis,
+    fork_observation_basis: Option<FoundationalBranchCandidateForkObservationBasis>,
+    comparison_basis: Option<FoundationalBranchCandidateComparisonBasis>,
     payload: T,
 }
 
@@ -116,10 +121,10 @@ impl<T> FoundationalStagedBranchArtifact<T> {
     pub(crate) fn new(
         branch_id: FoundationalBranchId,
         candidate_id: FoundationalBranchCandidateId,
-        fork_basis: FoundationalBranchForkBasis,
-        observation_basis: FoundationalBranchObservationBasis,
-        fork_observation_basis: Option<FoundationalBranchForkObservationBasis>,
-        comparison_basis: Option<FoundationalBranchComparisonBasis>,
+        fork_basis: FoundationalBranchCandidateForkBasis,
+        observation_basis: FoundationalBranchCandidateObservationBasis,
+        fork_observation_basis: Option<FoundationalBranchCandidateForkObservationBasis>,
+        comparison_basis: Option<FoundationalBranchCandidateComparisonBasis>,
         payload: T,
     ) -> Self {
         Self {
@@ -149,19 +154,21 @@ impl<T> FoundationalStagedBranchArtifact<T> {
         self.candidate_id
     }
 
-    pub fn fork_basis(&self) -> &FoundationalBranchForkBasis {
+    pub fn fork_basis(&self) -> &FoundationalBranchCandidateForkBasis {
         &self.fork_basis
     }
 
-    pub const fn observation_basis(&self) -> FoundationalBranchObservationBasis {
+    pub const fn observation_basis(&self) -> FoundationalBranchCandidateObservationBasis {
         self.observation_basis
     }
 
-    pub const fn fork_observation_basis(&self) -> Option<FoundationalBranchForkObservationBasis> {
+    pub const fn fork_observation_basis(
+        &self,
+    ) -> Option<FoundationalBranchCandidateForkObservationBasis> {
         self.fork_observation_basis
     }
 
-    pub fn comparison_basis(&self) -> Option<&FoundationalBranchComparisonBasis> {
+    pub fn comparison_basis(&self) -> Option<&FoundationalBranchCandidateComparisonBasis> {
         self.comparison_basis.as_ref()
     }
 

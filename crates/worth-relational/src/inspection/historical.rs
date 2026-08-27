@@ -6,7 +6,7 @@ use crate::inspection::data::{
     InspectionDegradation, InspectionOrigin, InspectionScope,
 };
 use crate::transactions::data::RecordRef;
-use crate::visibility::cache_state::cached_state_for_version;
+use crate::visibility::cache_state::cached_historical_state_for_version;
 
 use super::access::InspectionAccess;
 
@@ -18,7 +18,7 @@ impl<'runtime> InspectionAccess<'runtime> {
     ) -> HistoricalOpenResult {
         self.count_historical_view_open();
         let direct_available = version_id == self.runtime.current_version_id()
-            || cached_state_for_version(self.runtime, version_id).is_some();
+            || cached_historical_state_for_version(self.runtime, version_id).is_some();
         match mode {
             HistoricalInspectionMode::RetainedOnly if !direct_available => HistoricalOpenResult {
                 view: None,

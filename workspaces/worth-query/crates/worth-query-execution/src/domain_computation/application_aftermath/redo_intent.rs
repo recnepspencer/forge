@@ -16,7 +16,7 @@ use worth_proof::{
     ProofMarker,
 };
 use worth_query_installation::facade::WorthQueryCanonicalWorkEvidence;
-use worth_relational::facade::history::CommitReference;
+use worth_relational::facade::history::RelationalCommitReceipt;
 #[cfg(test)]
 use worth_relational::facade::{
     history::{BranchId, CommitId},
@@ -58,7 +58,7 @@ pub struct WorthQueryProvedUndo {
     _completion: Proof<WorthQueryUndoCompleted, WorthQueryUndoCompletionAuthority>,
     causal: Inverts<WorthQueryOriginalCommitAction, WorthQueryUndoCompletionAuthority>,
     original_operation: [u8; 32],
-    undo_commit: CommitReference,
+    undo_commit: RelationalCommitReceipt,
     principal_scope_digest: [u8; 32],
     compatibility_generation: u64,
     runtime_instance: u64,
@@ -131,7 +131,7 @@ impl WorthQueryProvedUndo {
         self.undo_commit.commit_id.0
     }
 
-    pub const fn undo_commit(&self) -> &CommitReference {
+    pub const fn undo_commit(&self) -> &RelationalCommitReceipt {
         &self.undo_commit
     }
 
@@ -185,8 +185,8 @@ impl WorthQueryRedoIntentIdentity {
 pub struct WorthQueryRedoIntent {
     identity: WorthQueryRedoIntentIdentity,
     original_operation: [u8; 32],
-    undo_commit: CommitReference,
-    bound_relational_head: CommitReference,
+    undo_commit: RelationalCommitReceipt,
+    bound_relational_head: RelationalCommitReceipt,
     principal_scope_digest: [u8; 32],
     compatibility_generation: u64,
     runtime_instance: u64,
@@ -198,7 +198,7 @@ impl WorthQueryRedoIntent {
     /// derivation time. Does not consult live chain state for validity.
     pub(crate) fn derive(
         proved: &WorthQueryProvedUndo,
-        bound_relational_head: CommitReference,
+        bound_relational_head: RelationalCommitReceipt,
     ) -> Result<Self, WorthQueryAftermathDerivationFailure> {
         let identity = derive_identity(proved, &bound_relational_head)?;
         Ok(Self {
@@ -226,12 +226,12 @@ impl WorthQueryRedoIntent {
     }
 
     /// Head recorded at derivation — descriptive binding, not a live check.
-    pub const fn undo_commit(&self) -> &CommitReference {
+    pub const fn undo_commit(&self) -> &RelationalCommitReceipt {
         &self.undo_commit
     }
 
     /// Exact Relational head recorded at derivation; descriptive, not authority.
-    pub const fn bound_relational_head(&self) -> &CommitReference {
+    pub const fn bound_relational_head(&self) -> &RelationalCommitReceipt {
         &self.bound_relational_head
     }
 
@@ -254,7 +254,7 @@ impl WorthQueryRedoIntent {
 
 fn derive_identity(
     proved: &WorthQueryProvedUndo,
-    bound_relational_head: &CommitReference,
+    bound_relational_head: &RelationalCommitReceipt,
 ) -> Result<WorthQueryRedoIntentIdentity, WorthQueryAftermathDerivationFailure> {
     let version =
         CanonicalizationRuleVersion::new(RULE_VERSION).expect("the redo-intent rule is valid");
@@ -276,7 +276,7 @@ fn derive_identity(
 
 fn redo_intent_basis_entries(
     proved: &WorthQueryProvedUndo,
-    bound_relational_head: &CommitReference,
+    bound_relational_head: &RelationalCommitReceipt,
 ) -> Vec<CanonicalBasisEntry> {
     let mut entries = vec![
         entry(
@@ -316,7 +316,7 @@ fn redo_intent_basis_entries(
 fn append_commit_reference_entries(
     entries: &mut Vec<CanonicalBasisEntry>,
     prefix: &str,
-    commit: &CommitReference,
+    commit: &RelationalCommitReceipt,
 ) {
     entries.push(unsigned_entry(
         &format!("{prefix}-commit"),
@@ -377,7 +377,7 @@ mod tests {
             compatibility_generation: 1,
             runtime_instance: 7,
         });
-        let bound = CommitReference {
+        let bound = RelationalCommitReceipt {
             commit_id: CommitId(20),
             version_id: VersionId(20),
             branch_id: BranchId("main".to_owned()),

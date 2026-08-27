@@ -1,26 +1,16 @@
 use std::collections::BTreeSet;
 
-use crate::authority::intent_merge::{
-    entity_exists_in_version_basis, relation_exists_in_version_basis,
-};
 use crate::authority::mutation::BranchLocalDeleteAllowance;
-use crate::history::data::BranchId;
-use crate::runtime::RelationalRuntime;
+use crate::branch::SelectedRelationalBranchState;
+use crate::capabilities::StorageRead;
 use crate::transactions::data::{MergedCommitPlan, MutationIntent};
 
 pub(crate) fn branch_local_delete_allowance_for_plan(
-    runtime: &RelationalRuntime,
+    selected_state: &SelectedRelationalBranchState,
+    working_state: &impl StorageRead,
     merged_plan: &MergedCommitPlan,
-    target_branch: Option<&BranchId>,
 ) -> BranchLocalDeleteAllowance {
-    let Some(branch_id) = target_branch else {
-        return BranchLocalDeleteAllowance::default();
-    };
-    let history = runtime.history();
-    let Some(branch_head) = history.branch_head(branch_id) else {
-        return BranchLocalDeleteAllowance::default();
-    };
-    let current_state = runtime.storage_access().current_state();
+    let selected_state = selected_state.state();
     let mut entity_ids = BTreeSet::new();
     let mut relation_ids = BTreeSet::new();
 
@@ -30,11 +20,10 @@ pub(crate) fn branch_local_delete_allowance_for_plan(
                 spec,
             )) => {
                 if !crate::authority::intent_merge::entity_exists_in_state(
-                    &current_state,
+                    working_state,
                     spec.entity_id,
-                ) && entity_exists_in_version_basis(
-                    runtime,
-                    branch_head.version_id,
+                ) && crate::authority::intent_merge::entity_exists_in_state(
+                    selected_state,
                     spec.entity_id,
                 ) {
                     entity_ids.insert(spec.entity_id);
@@ -45,11 +34,10 @@ pub(crate) fn branch_local_delete_allowance_for_plan(
             ) => {
                 let relation_id = spec.relation_id;
                 if !crate::authority::intent_merge::relation_exists_in_state(
-                    &current_state,
+                    working_state,
                     relation_id,
-                ) && relation_exists_in_version_basis(
-                    runtime,
-                    branch_head.version_id,
+                ) && crate::authority::intent_merge::relation_exists_in_state(
+                    selected_state,
                     relation_id,
                 ) {
                     relation_ids.insert(relation_id);
@@ -63,11 +51,10 @@ pub(crate) fn branch_local_delete_allowance_for_plan(
             ) => {
                 let relation_id = spec.relation_id;
                 if !crate::authority::intent_merge::relation_exists_in_state(
-                    &current_state,
+                    working_state,
                     relation_id,
-                ) && relation_exists_in_version_basis(
-                    runtime,
-                    branch_head.version_id,
+                ) && crate::authority::intent_merge::relation_exists_in_state(
+                    selected_state,
                     relation_id,
                 ) {
                     relation_ids.insert(relation_id);

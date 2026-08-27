@@ -8,7 +8,8 @@ use worth_query_installation::facade::{
     InstalledPreImageDemand, InstalledPreImageLocus, WorthQueryOperationGraphReadScope,
 };
 use worth_relational::facade::identity::{EntityId, KindId};
-use worth_relational::facade::transactions::{RecordRef, ValidatedMutationFootprint};
+use worth_relational::facade::mvcc::ValidatedMutationFootprint;
+use worth_relational::facade::transactions::RecordRef;
 
 use crate::domain_computation::application_aftermath::{
     demanded_field_slot, WorthQueryPreImageRetentionDenial, WorthQueryRetainedPreImage,

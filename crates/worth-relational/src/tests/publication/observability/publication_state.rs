@@ -120,7 +120,7 @@ fn publication_bundle_is_the_single_visible_commit_surface() {
     assert_eq!(outcome.publication_status, PublicationStatus::Published);
     assert_eq!(bundle.snapshot, outcome.snapshot);
     assert_eq!(bundle.commit, outcome.commit);
-    assert_eq!(bundle.commit, *runtime.history().latest_commit().unwrap());
+    assert_eq!(bundle.commit, runtime.history().latest_commit().unwrap());
     assert_eq!(bundle.patch, *runtime.publication().latest_patch().unwrap());
     assert_eq!(
         bundle.replay,
@@ -136,9 +136,9 @@ fn snapshot_audit_failure_blocks_publication() {
         )],
         ..InvariantCatalog::default()
     });
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(batch_create("blocked"));
-    let error = txn.commit().unwrap_err();
+    let error = txn.commit(&mut runtime).unwrap_err();
 
     assert!(matches!(
         error,

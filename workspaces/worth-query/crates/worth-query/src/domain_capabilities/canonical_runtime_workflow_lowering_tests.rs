@@ -87,12 +87,12 @@ fn merge_lowering_materializer_builds_preview_bound_lowering() {
     )));
 
     assert_eq!(
-        lowered.merge_request().target_branch,
-        BranchId("main".to_string())
+        lowered.merge_request().target_branch(),
+        &BranchId("main".to_string())
     );
     assert_eq!(
-        lowered.merge_request().source_branch,
-        BranchId("candidate".to_string())
+        lowered.merge_request().source_branch(),
+        &BranchId("candidate".to_string())
     );
     assert_eq!(
         lowered.freshness_binding().as_str(),

@@ -67,7 +67,7 @@ pub struct QueryComplexitySummary {
     pub authoritative_relation_records_emitted: usize,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QueryExecutionOutcome {
     pub plan: SnapshotPinnedQueryPlan,
     pub result: CanonicalQueryResult,

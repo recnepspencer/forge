@@ -1,6 +1,8 @@
 //! Public API boundary for `worth-relational`.
 #[path = "facade/authorization.rs"]
 pub mod authorization;
+#[path = "facade/branch.rs"]
+pub mod branch;
 mod runtime_validation_exports;
 pub mod config {
     pub use crate::config::data::{
@@ -8,9 +10,9 @@ pub mod config {
         CommitStrategiesConfig, CompiledLanePolicy, ConfigProvenance, ConfigProvenanceEntry,
         ConfigValueSource, CrossContextPolicy, DiagnosticsBoundary, DurabilityPolicy,
         DurableLogPolicy, DurableLogRetentionMode, MvccConfig, PublicationConfig,
-        RelationalConfigOverride, RelationalRuntimeProfile, RetentionBackend, RetentionPolicy,
-        RuntimeExecutionLane, RuntimeProfileBoundaryPolicy, SnapshotReleasePolicy,
-        StorageLayoutConfig, VisibilityCachePolicy,
+        RelationIntegrityScopeBudget, RelationalConfigOverride, RelationalRuntimeProfile,
+        RetentionBackend, RetentionPolicy, RuntimeExecutionLane, RuntimeProfileBoundaryPolicy,
+        SnapshotReleasePolicy, StorageLayoutConfig, VisibilityCachePolicy,
     };
 }
 pub mod grouped_truth {
@@ -42,7 +44,7 @@ pub mod commit_strategies {
         StrategyOutputSchemaName, StrategyPacketContract, StrategyProjectedAspectReadSet,
         StrategyReadContract, StrategyReadCostClass, StrategyReadLocalityClass,
         StrategyReadScopeClass, StrategyReplayDescriptor, StrategyRequestOrigin,
-        StrategyTraversalBasis, StrategyVisibilityReadView, ValidatedStrategyCommitPlan,
+        StrategyTraversalBasis, StrategyVisibilityReadView,
     };
     pub use crate::commit_strategies::facade::{
         CommitStrategiesAuthorityFacade, CommitStrategiesFacade,
@@ -95,13 +97,18 @@ pub mod history {
         AspectHistoryCommitSpan, AspectHistoryDigest, AspectHistoryEntry,
         AspectHistoryLineageEventSpan, AspectHistoryOrigin, AspectHistoryQueryResult,
         AspectHistoryResolutionTrace, AspectResolutionContext, BranchCreateError,
-        BranchCreateErrorClass, BranchHead, BranchId, CommitId, CommitReference,
-        CommittedVersionSummary, HistoryAspectQueryTarget, HistoryDriftClass,
-        HistoryRetentionClass, HistoryShapeClassification, LineageAspectHistory,
-        LineageAspectHistoryQueryResult, LineageAspectResolutionDigest, MergeConflictRecord,
-        MergeInspection, OrderedParentList, VersionGraphPolicy, VersionGraphSnapshot, VersionNode,
+        BranchCreateErrorClass, BranchId, CommitId, CommittedVersionSummary,
+        HistoryAspectQueryTarget, HistoryDriftClass, HistoryRetentionClass,
+        HistoryShapeClassification, LineageAspectHistory, LineageAspectHistoryQueryResult,
+        LineageAspectResolutionDigest, MergeConflictRecord, MergeInspection, OrderedParentList,
+        RelationalCommitReceipt, RelationalMergeBranchBasisDenial, VersionGraphPolicy,
     };
     pub use crate::history::{HistoryAccess, HistoryAuthority};
+    pub use crate::history::{
+        RelationalCommitArtifactDenial, RelationalCommitCatalogAppendDenial,
+        RelationalCommitCatalogEntry, RelationalCommitIdentity, RelationalCommitParentage,
+        RelationalCommitParentageDenial, RelationalCommitRootDescriptor,
+    };
 }
 
 #[path = "facade/identity.rs"]
@@ -111,39 +118,14 @@ pub mod identity_authority {
     pub use crate::identity_authority::*;
 }
 
-pub mod inspection {
-    pub use crate::inspection::data::{
-        CommitInspection, ConnectivityComponentSummary, ConnectivityInspectionBudget,
-        ConnectivityInspectionRequest, ConnectivityInspectionSummary, GraphInspectionBudget,
-        GraphInspectionRequest, GraphInspectionSummary, HistoricalAspectObservation,
-        HistoricalAvailabilityObservation, HistoricalInspectionMode, HistoricalOpenResult,
-        HistoricalRecordInspection, HistoricalRecordObservation, HistoricalRecordValue,
-        HistoricalSnapshotView, InspectionAccessPath, InspectionAvailability,
-        InspectionDegradation, InspectionOrigin, InspectionRecordClass,
-        InspectionResolutionContext, InspectionScope, KindInspectionRequest, KindInspectionSummary,
-        NeighborInspectionResult, PinStateObservation, RecentCommitInspectionRequest,
-        RecentCommitInspectionWindow, ReclaimEligibility, RecordRetentionInspection,
-        RelationalMergeSupportInspectionAbsenceKind,
-        RelationalMergeSupportInspectionCompatibilityPosture,
-        RelationalMergeSupportInspectionDenial, RelationalMergeSupportInspectionRow,
-        RelationalMergeSupportInspectionRowKind, RelationalMergeSupportInspectionSurface,
-        RelationalMergeSupportInspectionWitness, RetentionExecutionInspection,
-        RetentionInspectionRequest, RetentionInspectionSummary, RetentionStateObservation,
-        SavepointInspectionSurface, SnapshotPinInspection, StructuralIdentityComparison,
-        StructuralIdentityComparisonVerdict, StructuralIdentityEvidence,
-        StructuralIdentityQueryRequest, TransactionInspectionSurface, TransactionIntentCounts,
-    };
-    pub use crate::inspection::InspectionAccess;
-}
+#[path = "facade/inspection.rs"]
+pub mod inspection;
 
 #[path = "facade/indexes.rs"]
 pub mod indexes;
 
 pub mod lineage {
     pub use crate::lineage::data::{
-        CorrespondenceCandidate, CorrespondenceCandidateId,
-        CorrespondencePromotionExecutionFailureClass, CorrespondencePromotionOutcome,
-        CorrespondencePromotionRejectionClass, CorrespondenceResolution,
         HistoricalLineageResolution, HistoricalLineageResolutionDigestBasis,
         HistoricalLineageResolutionMetrics, HistoricalResolutionBoundednessBasis,
         HistoricalResolutionDigestMode, HistoricalResolutionRequest, HistoricalResolutionTrace,
@@ -153,7 +135,7 @@ pub mod lineage {
         LineageDivergenceSummary, LineageDivergenceTraversalBasis, LineageEventBatchDigestBasis,
         LineageEventKind, LineageEventRecord, LineageGraphDigestBasis, LineageGraphDigestMode,
         LineageGraphMetrics, LineageGraphRequest, LineageGraphSnapshot, LineageGraphTraversalBasis,
-        LineageInvariant, LineageNode, LineageResolutionStatus, RecordHistoryRequest,
+        LineageInvariant, LineageNode, RecordHistoryRequest,
     };
 }
 
@@ -189,17 +171,18 @@ pub mod merge {
         MergeResolutionClass, MergeResolvedAspectValueStrategy, MergeSchemaKindClass,
         MergeSchemaKindSemanticSnapshot, MergeSchemaSnapshotDigestBasis, MergeVisibilityEvidence,
         MergeVisibilityEvidenceKind, MergeVisibilityState, NormalizedRelationalMergeRequest,
-        PreparedMergeExecution, RelationConflictPropagation, RelationContinuityClass,
-        RelationalFoundationalMergeRequest, RelationalMergeAdmittedSurfaceRow,
-        RelationalMergeAspectPolicyWitnessRow, RelationalMergeCorrespondencePosture,
-        RelationalMergeCorrespondenceWitness, RelationalMergeCorrespondenceWitnessPosture,
-        RelationalMergeCorrespondenceWitnessRow, RelationalMergeDeletionStrategyWitnessRow,
-        RelationalMergeInspectionAdmission, RelationalMergeInspectionArtifact,
-        RelationalMergeInspectionInput, RelationalMergeInspectionRow, RelationalMergeProofPacket,
+        OwnerBoundMergeExecutionRequest, OwnerBoundMergePlanningRequest, PreparedMergeExecution,
+        RelationConflictPropagation, RelationContinuityClass, RelationalFoundationalMergeRequest,
+        RelationalMergeAdmittedSurfaceRow, RelationalMergeAspectPolicyWitnessRow,
+        RelationalMergeCorrespondencePosture, RelationalMergeCorrespondenceWitness,
+        RelationalMergeCorrespondenceWitnessPosture, RelationalMergeCorrespondenceWitnessRow,
+        RelationalMergeDeletionStrategyWitnessRow, RelationalMergeInspectionAdmission,
+        RelationalMergeInspectionArtifact, RelationalMergeInspectionInput,
+        RelationalMergeInspectionRow, RelationalMergeProofPacket,
         RelationalMergeProofPacketAdmissionPosture, RelationalMergeProofPacketCanonicalBasis,
-        RelationalMergeRequestFamily, RelationalMergeRequestNormalizationDenial,
-        RelationalMergeSchemaReconciliationPosture, RelationalMergeScope,
-        RelationalMergeStrategyWitness, RelationalMergeTopologyIntent,
+        RelationalMergeRequestBindingDenial, RelationalMergeRequestFamily,
+        RelationalMergeRequestNormalizationDenial, RelationalMergeSchemaReconciliationPosture,
+        RelationalMergeScope, RelationalMergeStrategyWitness, RelationalMergeTopologyIntent,
         RelationalMergeTopologyStrategyWitnessRow, RelationalSchemaReconciliationBasisRow,
         RelationalSchemaReconciliationCorrespondenceLinkRow, RelationalSchemaReconciliationWitness,
         RelationalSchemaReconciliationWitnessDenial, RelationalSchemaReconciliationWitnessPosture,
@@ -214,11 +197,10 @@ pub mod merge {
 pub mod runtime {
     pub use super::runtime_validation_exports::*;
     pub use crate::config::data::{
-        CommitAuthorityContract, PlanningContract, RelationalExecutionModel,
+        PlanningContract, RelationIntegrityScopeBudget, RelationalExecutionModel,
     };
     pub use crate::presentation::facade::runtime::{
         ImmutableReadContract, RelationalBoundaryContract, RelationalRuntimeApi,
-        SerializedAuthorityContract,
     };
     pub use crate::publication::{
         PostCommitConsumer, PostCommitConsumptionContext, PostCommitConsumptionFailure,
@@ -232,10 +214,11 @@ pub mod runtime {
         InvariantAccess, RelationProjectionRecord, RelationRecordProjection,
         RelationalInitialSchemaInstallation, RelationalInitialSchemaInstallationDenial,
         RelationalInitialSchemaInstallationDenialKind, RelationalInitialSchemaInstallationReceipt,
-        RelationalReplayRecord, RelationalRuntime, RelationalRuntimeConfig, ReplaySchemaVersion,
-        RuntimeComplexityCounters, SimulationAccess, SimulationAuthority, SnapshotGuard,
-        TopologyFreezeMode, VisibilityProjectionView, VisibilityReadContext,
-        VisibilityRetentionAuthority,
+        RelationalPatchPositionReservationCounters, RelationalPhase4ReferenceCostCounters,
+        RelationalReplayRecord, RelationalRuntime, RelationalRuntimeConfig,
+        RelationalRuntimeForkDenial, ReplaySchemaVersion, RuntimeComplexityCounters,
+        SimulationAccess, SimulationAuthority, SnapshotGuard, TopologyFreezeMode,
+        VisibilityProjectionView, VisibilityReadContext, VisibilityRetentionAuthority,
     };
     pub use crate::storage::data::{
         ChunkVisibilitySummary, ChunkedStorageSummary, EntityReadRecord, PartitionStorageStats,
@@ -246,12 +229,6 @@ pub mod runtime {
         RelationalRetainedCommitEntityProjection, RelationalRetainedCommitProjectionWork,
         RelationalRetainedCommitSnapshot, RelationalRetainedCommitSnapshotDenial,
         RelationalRetainedCommitSnapshotDenialKind,
-    };
-    pub use crate::visibility::execution_basis::{
-        RelationalApplicationCommitBasisDenial, RelationalApplicationCommitBasisSource,
-        RelationalExecutionBasisCounters, RelationalExecutionBasisDenial,
-        RelationalExecutionBasisDenialKind, RelationalExecutionBasisIdentity,
-        RelationalExecutionBasisLease, RelationalExecutionBasisReleaseReceipt,
     };
     pub use crate::visibility::materialization::read_records::{
         AdjacencyTruthReadLimitExceeded, BoundedAdjacencyTruthRead,
@@ -280,6 +257,7 @@ pub mod publication {
         SubscriberStreamFailureClass,
     };
     pub use crate::publication::data::{
+        DeferredPublicationSettlement, DeferredPublicationSettlementError,
         PublicationArtifactSnapshot, PublicationDiagnosticsSnapshot, PublicationError,
         PublicationObservationSnapshot,
     };
@@ -382,3 +360,6 @@ pub mod symbols {
 
 #[path = "facade/transactions.rs"]
 pub mod transactions;
+
+#[path = "facade/mvcc.rs"]
+pub mod mvcc;

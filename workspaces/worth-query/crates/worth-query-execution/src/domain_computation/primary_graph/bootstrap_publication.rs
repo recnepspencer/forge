@@ -6,7 +6,7 @@ use worth_relational::facade::indexes::{DerivedIndexBuildRequest, DerivedIndexId
 use worth_relational::facade::symbols::ClientKey;
 use worth_relational::facade::transactions::{
     AspectFieldPatch, CreateIntent, CreatedEntityRef, EntityReference, EntitySpec, MutationIntent,
-    RelationSpec, TransactionOptions, WorkerIntentBatch,
+    RelationSpec, WorkerIntentBatch,
 };
 
 use super::bootstrap::WorthQueryPrincipalBootstrapRow;
@@ -25,7 +25,15 @@ pub(super) fn commit_bootstrap_rows(
     relation_rows: Vec<WorthQueryTypedRelationBootstrapRow>,
 ) -> Result<worth_relational::facade::history::CommitId, WorthQueryPrimaryGraphInstallationDenial> {
     graph.integration_handle().with_runtime_mut(|runtime| {
-        let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+        let options = runtime
+            .admit_main_branch_basis()
+            .expect("configured main branch remains owner-admissible");
+        let mut transaction = runtime
+            .begin_branch_transaction(
+                &options,
+                worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+            )
+            .expect("owner-admitted transaction context");
         let mut batch = WorkerIntentBatch::new("application-principal-bootstrap");
         for (ordinal, row) in rows.into_iter().enumerate() {
             batch = append_principal_row(batch, ordinal, row);
@@ -38,7 +46,7 @@ pub(super) fn commit_bootstrap_rows(
         }
         transaction.push_batch(batch);
         transaction
-            .commit()
+            .commit(runtime)
             .map(|outcome| outcome.commit.commit_id)
             .map_err(|error| {
                 primary_graph_denial(

@@ -35,12 +35,12 @@ pub enum UiIntentConfirmationStopReason {
     AlreadyContinued,
     AlreadyStopped,
     MonotonicTimeRegressed {
-        issued_at: u64,
-        observed: u64,
+        issued_at_millis: u64,
+        observed_millis: u64,
     },
     Expired {
-        expires_at: u64,
-        observed: u64,
+        expires_at_millis: u64,
+        observed_millis: u64,
     },
     ApplicationWorldChanged,
     ApplicationGenerationChanged,

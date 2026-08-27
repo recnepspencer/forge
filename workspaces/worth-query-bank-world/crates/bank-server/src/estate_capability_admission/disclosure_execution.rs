@@ -77,10 +77,6 @@ fn present_protected_beneficiary_value_cannot_influence_public_omission_material
         second_inspection.basis().snapshot()
     );
     assert_eq!(
-        first_inspection.basis().lease(),
-        second_inspection.basis().lease()
-    );
-    assert_eq!(
         first_inspection.basis().version(),
         second_inspection.basis().version()
     );

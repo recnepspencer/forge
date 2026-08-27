@@ -142,7 +142,7 @@ impl MountedRouteScaleWorld {
         self.next_sequence += 1;
         let report = UiHostObservationReport::new(
             sequence,
-            UiHostObservationTimeBasis::HostMonotonicTick(sequence.value()),
+            UiHostObservationTimeBasis::HostMonotonicMillis(sequence.value()),
             UiHostObservationPayload::PointerButton {
                 pointer: UiHostPointerIdentity::new(1),
                 capture_epoch: UiHostPointerCaptureEpoch::new(1),

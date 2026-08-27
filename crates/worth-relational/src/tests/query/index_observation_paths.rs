@@ -209,7 +209,7 @@ fn derived_index_build_materializes_declared_struct_field_through_field_projecti
         ..AspectSchemaFixture::default()
     }
     .build_runtime();
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("batch-alpha").push(MutationIntent::Create(CreateIntent::Entity(
             crate::transactions::data::EntitySpec {
@@ -242,7 +242,7 @@ fn derived_index_build_materializes_declared_struct_field_through_field_projecti
             },
         ))),
     );
-    let outcome = txn.commit().expect("entity create succeeds");
+    let outcome = txn.commit(&mut runtime).expect("entity create succeeds");
     let alpha = changed_entities(&outcome)[0];
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
@@ -286,11 +286,11 @@ fn field_comparison_key(value: &str) -> AuthoritativeFieldComparisonKey {
 }
 
 fn create_entity_with_aspect_fields(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     client_key: &str,
     fields: AspectFieldPatch,
 ) -> crate::facade::identity::EntityId {
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(WorkerIntentBatch::new(format!("batch-{client_key}")).push(
         MutationIntent::Create(CreateIntent::Entity(
             crate::transactions::data::EntitySpec {
@@ -301,5 +301,5 @@ fn create_entity_with_aspect_fields(
             },
         )),
     ));
-    changed_entities(&txn.commit().expect("entity create succeeds"))[0]
+    changed_entities(&txn.commit(&mut runtime).expect("entity create succeeds"))[0]
 }

@@ -5,14 +5,19 @@ use super::{
 };
 
 mod admission;
+mod detached;
 mod outcome;
 
+pub(crate) use outcome::{
+    WorthUiDetachedMountedApplicationReplacementInFlight,
+    WorthUiDetachedPreparedMountedApplicationReplacement,
+};
 pub use outcome::{
     WorthUiMountedApplicationReplacementInFlight,
     WorthUiMountedApplicationReplacementIndeterminate, WorthUiMountedApplicationReplacementOutcome,
     WorthUiMountedReplacementAdmissionDenial, WorthUiMountedReplacementCompletionDenial,
-    WorthUiMountedReplacementPreparationOutcome, WorthUiMountedReplacementRetentionDenial,
-    WorthUiPreparedMountedApplicationReplacement,
+    WorthUiMountedReplacementHostRejection, WorthUiMountedReplacementPreparationOutcome,
+    WorthUiMountedReplacementRetentionDenial, WorthUiPreparedMountedApplicationReplacement,
 };
 
 struct WorthUiPresentedApplicationReplacement<'session> {
@@ -113,6 +118,21 @@ impl<'session> WorthUiPreparedMountedApplicationReplacement<'session> {
         &self.frame
     }
 
+    pub(crate) fn detach(self: Box<Self>) -> WorthUiDetachedPreparedMountedApplicationReplacement {
+        let Self {
+            session,
+            application,
+            mounted_successor,
+            frame,
+        } = *self;
+        WorthUiDetachedPreparedMountedApplicationReplacement {
+            session_identity: session.session_identity(),
+            application,
+            mounted_successor,
+            frame,
+        }
+    }
+
     pub fn present(
         self: Box<Self>,
         deadline: worth_ui_host_contract::UiPresentationDeadline,
@@ -209,18 +229,24 @@ impl<'session> WorthUiPreparedMountedApplicationReplacement<'session> {
             crate::mounting::UiMountedGraphReplacementPresentation::RejectedBeforeEffects {
                 successor,
                 frame,
+                rejections,
                 observation,
             } => {
                 crate::facade::entry::mounted_publication::record_mounted_observation(
                     &mut session.host_exchange,
                     observation,
                 );
-                WorthUiMountedApplicationReplacementOutcome::RejectedBeforeEffects(Box::new(Self {
-                    session,
-                    application,
-                    mounted_successor: successor,
-                    frame,
-                }))
+                WorthUiMountedApplicationReplacementOutcome::RejectedBeforeEffects(
+                    WorthUiMountedReplacementHostRejection {
+                        rejections,
+                        replacement: Box::new(Self {
+                            session,
+                            application,
+                            mounted_successor: successor,
+                            frame,
+                        }),
+                    },
+                )
             }
             crate::mounting::UiMountedGraphReplacementPresentation::InFlight(mounted) => {
                 WorthUiMountedApplicationReplacementOutcome::InFlight(Box::new(
@@ -270,6 +296,19 @@ impl<'session> WorthUiMountedApplicationReplacementInFlight<'session> {
 
     pub fn deadline(&self) -> worth_ui_host_contract::UiPresentationDeadline {
         self.mounted.handle().deadline()
+    }
+
+    pub(crate) fn detach(self: Box<Self>) -> WorthUiDetachedMountedApplicationReplacementInFlight {
+        let Self {
+            session,
+            application,
+            mounted,
+        } = *self;
+        WorthUiDetachedMountedApplicationReplacementInFlight {
+            session_identity: session.session_identity(),
+            application,
+            mounted,
+        }
     }
 
     pub fn pending_bindings(

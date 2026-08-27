@@ -25,8 +25,6 @@ pub struct FinancialQueryWorld {
         worth_query::facade::foundation::ObservationLaneWitness,
     >,
     pub collection: Option<domain::WorthQueryCollectionConsumerWindow>,
-    pub diagnostics_tier: worth_runtime_bridge::facade::BridgeDiagnosticsTier,
-    pub signal_installations: Vec<domain::WorthQueryConditionalDependencyInstallation>,
 }
 
 pub type FinancialSharedLease = domain::WorthQuerySharedLiveProjectionLease<
@@ -40,23 +38,10 @@ pub struct SharedFinancialQueryWorld {
     pub workspace: runtime::WorthQueryWorkspace,
     pub subject: FinancialSharedLease,
     pub candidate: FinancialSharedLease,
-    pub diagnostics_tier: worth_runtime_bridge::facade::BridgeDiagnosticsTier,
-    pub signal_installations: Vec<domain::WorthQueryConditionalDependencyInstallation>,
 }
 
 pub fn build_curve(host: &super::host::FinancialCourtroomWorld) -> FinancialQueryWorld {
-    build(host, FinancialQueryProfile::CurveRisk, false, None, 0, None)
-}
-
-pub fn build_opaque_curve(host: &super::host::FinancialCourtroomWorld) -> FinancialQueryWorld {
-    build(
-        host,
-        FinancialQueryProfile::CurveRisk,
-        false,
-        None,
-        0,
-        Some(("opaque-a-scope-5", "region-7")),
-    )
+    build(host, FinancialQueryProfile::CurveRisk, false, None, 0)
 }
 
 pub fn build_sibling_curve_record(
@@ -68,12 +53,11 @@ pub fn build_sibling_curve_record(
         false,
         Some(host.sibling_curve_record_identity()),
         0,
-        None,
     )
 }
 
 pub fn build_quote(host: &super::host::FinancialCourtroomWorld) -> FinancialQueryWorld {
-    build(host, FinancialQueryProfile::QuoteRisk, false, None, 0, None)
+    build(host, FinancialQueryProfile::QuoteRisk, false, None, 0)
 }
 
 pub fn build_portfolio_with_unrelated_rows(
@@ -86,7 +70,6 @@ pub fn build_portfolio_with_unrelated_rows(
         false,
         None,
         unrelated_rows,
-        None,
     )
 }
 
@@ -97,9 +80,7 @@ pub fn build_shared_curve(
         mut workspace,
         live,
         collection: _,
-        diagnostics_tier,
-        signal_installations,
-    } = build(host, FinancialQueryProfile::CurveRisk, true, None, 0, None);
+    } = build(host, FinancialQueryProfile::CurveRisk, true, None, 0);
     let candidate = settle(&mut workspace, FinancialQueryProfile::CurveRisk).into_lifecycle();
     let shared = match live.share_with(candidate, &mut workspace) {
         domain::WorthQueryProjectionSharingOutcome::Shared(shared) => shared,
@@ -136,8 +117,6 @@ pub fn build_shared_curve(
         workspace,
         subject,
         candidate,
-        diagnostics_tier,
-        signal_installations,
     }
 }
 
@@ -147,7 +126,6 @@ fn build(
     establish_sharing_baseline: bool,
     source_record: Option<worth_runtime_bridge::facade::RelationalBridgeRecordIdentityParts>,
     unrelated_portfolio_rows: usize,
-    signal_vocabulary: Option<(&str, &str)>,
 ) -> FinancialQueryWorld {
     let installation = host.application.granular_invalidation_installation();
     let record = source_record.unwrap_or_else(|| host.record_identity());
@@ -160,8 +138,8 @@ fn build(
         FinancialQueryProfile::QuoteRisk => "financial-primary-quote",
         FinancialQueryProfile::OrderedPortfolio => "financial-primary-portfolio",
     };
-    let (mapping_identity, signal_partition) =
-        signal_vocabulary.unwrap_or((default_mapping_identity, "financial-primary"));
+    let mapping_identity = default_mapping_identity;
+    let signal_partition = "financial-primary";
     let bridge = crate::query_runtime_world::runtime_bridge_for_dependencies(
         &dependencies,
         record,
@@ -169,7 +147,6 @@ fn build(
         mapping_identity,
         0,
     );
-    let diagnostics_tier = bridge.policy().diagnostics_tier();
     let mut signal = worth_signal::facade::SignalGraph::new();
     let signal_node = signal.node().build();
     let installed_signals = dependencies
@@ -190,7 +167,6 @@ fn build(
         mapping_identity,
         signal_partition,
     );
-    let signal_installations = dependency_installations.clone();
     let aspect_contracts = installation::unique_aspect_contracts(&dependencies);
     let providers =
         worth_runtime_bridge::facade::BridgeConditionalProviderSet::new().wake(EligibleProvider);
@@ -329,8 +305,6 @@ fn build(
         workspace,
         live,
         collection,
-        diagnostics_tier,
-        signal_installations,
     }
 }
 

@@ -1,4 +1,4 @@
-mod materialization;
+pub(crate) mod materialization;
 mod projection;
 mod reader;
 mod visibility;

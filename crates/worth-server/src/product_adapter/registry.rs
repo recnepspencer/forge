@@ -156,6 +156,37 @@ impl WorthServerProductAdapterRegistry {
             .and_then(|registered| registered.durable_mutation_executor.as_ref())
     }
 
+    pub(crate) fn current_primary_graph_basis(
+        &self,
+        operation_name: &str,
+    ) -> Result<Option<String>, String> {
+        let registered = self
+            .operations_by_name
+            .get(&operation_name.trim().to_ascii_lowercase())
+            .ok_or_else(|| format!("product operation `{operation_name}` is not registered"))?;
+        let declaration = &registered.declaration;
+        if declaration.basis_kind()
+            != super::WorthServerProductOperationBasisKind::PrimaryGraphApplication
+        {
+            return Ok(None);
+        }
+        let provider = declaration
+            .query_application_readiness_provider()
+            .ok_or_else(|| {
+                "primary-graph application declaration lost its readiness provider".to_string()
+            })?;
+        provider
+            .inspect_application_readiness()
+            .map(|snapshot| Some(snapshot.basis_token().to_string()))
+            .map_err(|denial| {
+                format!(
+                    "{} denied application readiness: {}",
+                    provider.provider_name(),
+                    denial.subject()
+                )
+            })
+    }
+
     pub(crate) fn coordinate_mutation_lane<T>(
         &self,
         lane_identity: &str,

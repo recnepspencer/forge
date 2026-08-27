@@ -21,9 +21,7 @@ use crate::authority::commit::preparation::planning::strategy::{
     coarse_preparation_packet_count, PreparationStrategySelection,
     TARGET_PREPARATION_ITEMS_PER_PACKET,
 };
-use crate::capabilities::{
-    SchemaVersionSource, SnapshotSource, VersionSource, VisibilityPolicySource,
-};
+use crate::capabilities::{SnapshotSource, VersionSource, VisibilityPolicySource};
 use crate::diagnostics::data::{
     DeterminismExpectation, DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope,
     RelationalDiagnosticArtifact, RelationalDiagnosticsEntry,
@@ -34,17 +32,17 @@ use crate::query::data::{
     QuerySerialReason, SnapshotPinnedQueryPlan,
 };
 use crate::runtime::{RelationalRuntime, VisibilityResidency};
-use crate::schema::data::runtime_descriptor_semantics_policy;
 use crate::snapshots::data::{SnapshotHandle, SnapshotInspectionSummary, SnapshotReadPolicy};
 use crate::storage::data::{EntityReadRecord, RelationReadRecord, RelationalReadView};
 use crate::storage::overlay::PartitionAccess;
 use crate::storage::partition::DenseSlotBitSet;
 use crate::visibility::cache_state::{
-    cached_state_for_version, reconstruct_state, residency_for_version,
+    cached_historical_state_for_version, cached_state, materialize_historical_visibility,
+    residency, residency_for_version,
 };
 use crate::visibility::snapshot_states::{
-    read_view_from_snapshot_state, resolve_snapshot_handle, resolve_snapshot_inspection,
-    resolve_snapshot_state,
+    read_view_from_snapshot_state, resolve_snapshot_basis, resolve_snapshot_handle,
+    resolve_snapshot_inspection, resolve_snapshot_state,
 };
 use rayon::prelude::*;
 use std::collections::{BTreeMap, BTreeSet};
@@ -58,7 +56,8 @@ use super::materialization::{
 };
 use super::visibility::{
     entity_slot_matches_kind_at_version, relation_slot_matches_kind_at_version,
-    slot_kind_matches_current, visible_slots_in_partition_from_state,
+    slot_kind_matches_current, visible_relation_slots_in_partition_from_state,
+    visible_slots_in_partition_from_state,
 };
 use super::ProjectionAspectFilter;
 

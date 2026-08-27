@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_query_admission::facade::graph_read_access::WorthQueryCanonicalGraphReadPlanningInput`
- --> tests/ui/application_schema/application_query_planning_input_is_not_public.rs:1:5
-  |
-1 | use worth_query_admission::facade::graph_read_access::WorthQueryCanonicalGraphReadPlanningInput;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthQueryCanonicalGraphReadPlanningInput` in `facade::graph_read_access`

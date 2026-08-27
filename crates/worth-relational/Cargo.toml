@@ -9,6 +9,9 @@ repository = "https://github.com/recnepspencer/WORTH"
 keywords = ["graph", "runtime", "transactions", "replay", "simulation"]
 categories = ["data-structures", "database-implementations", "science"]
 
+[features]
+test-durability-faults = []
+
 [dependencies]
 worth-foundational = { path = "../worth-foundational" }
 worth-proof = { path = "../worth-proof" }
@@ -18,6 +21,8 @@ rmp-serde = "1.3"
 rayon = "1"
 smallvec = "1"
 sha2 = "0.10"
+dashmap = "6"
+arc-swap = "1"
 
 [dev-dependencies]
 worth-harness.workspace = true

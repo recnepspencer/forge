@@ -106,6 +106,9 @@ pub fn support_posture_digest(posture: &WorthServerQuerySupportPosture) -> Strin
         WorthServerQuerySupportPosture::ProductIndependent { label } => {
             format!("product-independent:{label}")
         }
+        WorthServerQuerySupportPosture::PrimaryGraphApplicationSupported { basis_token } => {
+            format!("primary-graph-application-supported:{basis_token}")
+        }
         WorthServerQuerySupportPosture::QueryReadSupported { family_contract } => {
             format!("query-read-supported:{}", family_contract.contract_digest())
         }

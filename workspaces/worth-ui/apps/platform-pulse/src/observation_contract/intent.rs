@@ -91,7 +91,7 @@ pub enum PlatformPulseIntentPostureObservation {
         slot: u8,
         generation: u64,
         lineage: u64,
-        expires_at_tick: u64,
+        expires_at_millis: u64,
     },
     Completed {
         reference: PlatformPulseIntentAttemptObservationReference,
@@ -269,7 +269,7 @@ impl PlatformPulseIntentPostureObservation {
             slot: pending.slot_identity().slot(),
             generation: pending.slot_identity().generation(),
             lineage: pending.lineage().diagnostic_value(),
-            expires_at_tick: pending.expires_at_tick(),
+            expires_at_millis: pending.expires_at_millis(),
         }
     }
 

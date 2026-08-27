@@ -10,8 +10,8 @@ use xcap::Window;
 
 use crate::external_observation::{
     NativeClientPixelCapture, NativeClientPixelPoint, NativeInputDeliveryObservation,
-    NativeInputProbeKind, NativeWindowIdentity, NormalNativeCloseRequestObservation,
-    ProcessBoundNativeClientAreaObservation,
+    NativeInputProbeKind, NativeWindowIdentity, NativeWindowVisibilityTransitionObservation,
+    NormalNativeCloseRequestObservation, ProcessBoundNativeClientAreaObservation,
 };
 
 use super::contract::sealed::Sealed;
@@ -23,9 +23,11 @@ mod client_capture;
 mod environment;
 mod gdi_capture;
 mod input_delivery;
+#[cfg(test)]
+mod input_delivery_tests;
 mod input_environment;
-mod observation_readiness;
 mod process_windows;
+mod window_state;
 
 pub(super) use input_environment::WindowsInputEnvironmentDenial;
 
@@ -73,28 +75,18 @@ impl WindowsNativePlatform {
                 std::env::consts::ARCH.to_owned(),
             ));
         }
+        static WINDOWS_VERSION: OnceLock<Result<(), String>> = OnceLock::new();
+        if let Err(version) = WINDOWS_VERSION.get_or_init(qualify_windows_version) {
+            return Err(NativePlatformFailure::EnvironmentQualification(
+                version.clone(),
+            ));
+        }
         static DPI_AWARENESS: OnceLock<Result<(), String>> = OnceLock::new();
         match DPI_AWARENESS
             .get_or_init(|| win::SetProcessDPIAware().map_err(|error| error.to_string()))
         {
             Ok(()) => Ok(Self { _private: () }),
             Err(error) => Err(NativePlatformFailure::DpiAwareness(error.clone())),
-        }
-    }
-
-    pub(crate) fn observed_os_version(&self) -> Result<String, NativePlatformFailure> {
-        let output = std::process::Command::new("cmd")
-            .args(["/c", "ver"])
-            .output()
-            .map_err(|error| NativePlatformFailure::EnvironmentQualification(error.to_string()))?;
-        let version = String::from_utf8(output.stdout)
-            .map_err(|error| NativePlatformFailure::EnvironmentQualification(error.to_string()))?
-            .trim()
-            .to_owned();
-        if output.status.success() && environment::qualified_windows_11_version(&version) {
-            Ok(version)
-        } else {
-            Err(NativePlatformFailure::EnvironmentQualification(version))
         }
     }
 
@@ -136,6 +128,22 @@ impl WindowsNativePlatform {
         let gdi_capture = gdi_capture::capture_client_area(client, bound.observation.process_id())?;
         require_matching_composited_sources(&monitor_capture, &gdi_capture)?;
         Ok(monitor_capture)
+    }
+}
+
+fn qualify_windows_version() -> Result<(), String> {
+    let output = std::process::Command::new("cmd")
+        .args(["/c", "ver"])
+        .output()
+        .map_err(|error| error.to_string())?;
+    let version = String::from_utf8(output.stdout)
+        .map_err(|error| error.to_string())?
+        .trim()
+        .to_owned();
+    if output.status.success() && environment::qualified_windows_11_version(&version) {
+        Ok(())
+    } else {
+        Err(version)
     }
 }
 
@@ -186,6 +194,12 @@ impl NativePlatformContract for WindowsNativePlatform {
                         monitor_capture_region(&capture_monitor, candidate.bounds)?;
                     let capture_window =
                         client_capture::exact_window(process_id, candidate.window.ptr() as u32)?;
+                    let dpi = candidate.window.GetDpiForWindow();
+                    if dpi == 0 {
+                        return Err(NativePlatformFailure::DpiAwareness(
+                            "GetDpiForWindow returned zero".to_owned(),
+                        ));
+                    }
                     return Ok(WindowsProcessBoundNativeClientArea {
                         window: candidate.window,
                         capture_window,
@@ -193,6 +207,7 @@ impl NativePlatformContract for WindowsNativePlatform {
                             process_id,
                             window_identity,
                             candidate.bounds,
+                            dpi,
                             lookup_count,
                         ),
                     });
@@ -223,15 +238,10 @@ impl NativePlatformContract for WindowsNativePlatform {
         if client_bounds(&bound.window)? != bound.observation.bounds() {
             return Err(NativePlatformFailure::BoundClientAreaChanged);
         }
+        if bound.window.GetDpiForWindow() != bound.observation.dpi() {
+            return Err(NativePlatformFailure::BoundWindowDpiChanged);
+        }
         Ok(bound.observation)
-    }
-
-    fn await_external_observation_ready(
-        &self,
-        bound: &Self::BoundClientArea,
-        deadline: Instant,
-    ) -> Result<ProcessBoundNativeClientAreaObservation, NativePlatformFailure> {
-        observation_readiness::await_ready(self, bound, deadline)
     }
 
     fn capture_client_area(
@@ -240,6 +250,25 @@ impl NativePlatformContract for WindowsNativePlatform {
     ) -> Result<NativeClientPixelCapture, NativePlatformFailure> {
         let exposure = self.expose_bound_client_area(bound)?;
         Self::capture_exposed_client_area(exposure)
+    }
+
+    fn resize_bound_client_area(
+        &self,
+        bound: &mut Self::BoundClientArea,
+        client_physical_size: [u32; 2],
+        deadline: Instant,
+    ) -> Result<ProcessBoundNativeClientAreaObservation, NativePlatformFailure> {
+        self.observe_bound_client_area(bound)?;
+        window_state::resize(bound, client_physical_size, deadline)
+    }
+
+    fn minimize_and_restore_bound_client_area(
+        &self,
+        bound: &mut Self::BoundClientArea,
+        deadline: Instant,
+    ) -> Result<NativeWindowVisibilityTransitionObservation, NativePlatformFailure> {
+        self.observe_bound_client_area(bound)?;
+        window_state::minimize_and_restore(bound, deadline)
     }
 
     fn deliver_input_reachability_probe(
@@ -258,6 +287,14 @@ impl NativePlatformContract for WindowsNativePlatform {
     ) -> Result<NativeInputDeliveryObservation, NativePlatformFailure> {
         let observed = self.observe_bound_client_area(bound)?;
         input_delivery::deliver_pointer(&bound.window, observed, point)
+    }
+
+    fn deliver_wheel_deltas(
+        &self,
+        bound: &Self::BoundClientArea,
+    ) -> Result<(), NativePlatformFailure> {
+        let observed = self.observe_bound_client_area(bound)?;
+        input_delivery::deliver_wheel_deltas(&bound.window, observed)
     }
 
     fn move_cursor(&self, screen_point: (i32, i32)) -> Result<(), NativePlatformFailure> {

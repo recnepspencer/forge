@@ -4,9 +4,7 @@ use worth_foundational::facade::{AspectValue, CanonicalDigestId};
 use worth_query_declaration::facade::application_query::ApplicationQueryResultSlotKey;
 use worth_query_installation::facade::WorthQueryCanonicalWorkEvidence;
 use worth_query_installation::facade::WorthQueryInstalledApplicationQueryIdentity;
-use worth_relational::facade::{
-    history::BranchId, identity::EntityId, runtime::RelationalExecutionBasisIdentity,
-};
+use worth_relational::facade::{history::BranchId, identity::EntityId};
 
 use super::contract::{AdmittedDisclosureRule, WorthQueryAdmittedApplicationDisclosureContract};
 use super::influence_validation::GovernedInternalFieldRules;
@@ -171,7 +169,7 @@ pub(in crate::domain_computation) struct WorthQueryApplicationGovernanceBinding 
     session: WorthQueryGraphWorkSessionIdentity,
     managed_run: WorthQueryGraphWorkManagedRunIdentity,
     branch: BranchId,
-    basis: RelationalExecutionBasisIdentity,
+    basis: crate::domain_computation::primary_graph::WorthQueryApplicationBasisIdentity,
     provider: String,
 }
 

@@ -44,9 +44,10 @@ pub(super) use crate::facade::schema::{
 pub(super) use crate::facade::transactions::{
     AspectFieldPatch, BulkEntityCreateIntent, CommitResult, CreateIntent, DeleteEntityIntent,
     DeleteRelationIntent, EntityMutationIntent, MutationIntent, PatchVsTruthDeltaReport, RecordRef,
-    RelationMutationIntent, ReplaceEntityIntent, TransactionCommitError, TransactionOptions,
-    UpdateEntityFieldsIntent, UpdateRelationEndpointsIntent, WorkerIntentBatch,
+    RelationMutationIntent, ReplaceEntityIntent, TransactionCommitError, UpdateEntityFieldsIntent,
+    UpdateRelationEndpointsIntent, WorkerIntentBatch,
 };
+pub(super) use crate::mvcc::RelationalTransactionValidationInput;
 pub(super) use crate::publication::cdc::planning::checkpoint_for_schema_version;
 pub(super) use crate::publication::patch::data::{
     ordered_aspect_keys, PatchDetail, RecordStructuralChange,
@@ -64,7 +65,6 @@ pub(super) use worth_foundational::facade::AspectKey;
 // - `durability`: branch/recovery helpers for persisted round trips
 // - `relation_integrity`: schema fixtures and scenario helpers for milestone-4 legality work
 // - `savepoint`: hostile savepoint residue assertions for patch/subscriber surfaces
-// - `lineage`: generic lineage-specific helpers and candidate builders
 //
 // Prefer reusing these helpers before introducing new ad hoc setup in test files.
 #[path = "support/aspect_field_patches.rs"]
@@ -75,8 +75,6 @@ mod durability;
 mod history;
 #[path = "support/inspection.rs"]
 mod inspection;
-#[path = "support/lineage.rs"]
-mod lineage;
 #[path = "support/records.rs"]
 mod records;
 #[path = "support/relation_integrity.rs"]
@@ -87,17 +85,19 @@ mod runtime;
 mod savepoint;
 #[path = "support/schema.rs"]
 mod schema;
+#[path = "support/transaction_authority.rs"]
+mod transaction_authority;
 
 pub(crate) use aspect_field_patches::*;
 pub(crate) use durability::*;
 pub(crate) use history::*;
 pub(crate) use inspection::*;
-pub(crate) use lineage::*;
 pub(crate) use records::*;
 pub(crate) use relation_integrity::*;
 pub(crate) use runtime::*;
 pub(crate) use savepoint::*;
 pub(crate) use schema::*;
+pub(crate) use transaction_authority::*;
 
 pub(crate) fn diagnostic_field<'a>(
     entry: &'a crate::facade::diagnostics::RelationalDiagnosticsEntry,
@@ -246,12 +246,10 @@ pub(super) fn assert_recovered_commit_truth_matches(
     let original_envelope = original_runtime
         .replay()
         .canonical_commit_envelope(commit_id)
-        .cloned()
         .unwrap();
     let recovered_envelope = recovered_runtime
         .replay()
         .canonical_commit_envelope(commit_id)
-        .cloned()
         .unwrap();
     let original_bundle =
         capture_aspect_truth_bundle(original_runtime, entity_ids, relation_ids, lineage_ids);

@@ -45,7 +45,8 @@ fn equivalent_candidate_is_an_authority_preserving_semantic_no_op() {
 }
 
 #[test]
-fn thousands_of_equivalent_replacements_never_publish_or_change_active_truth() {
+#[ignore = "long replacement storms run in hostile certification"]
+fn long_replacement_storm_equivalent_candidates_never_publish_or_change_active_truth() {
     let mut session = source_backed_component_session();
     prime_allocation_truth(&mut session);
     let predecessor = session.inspect_runtime();

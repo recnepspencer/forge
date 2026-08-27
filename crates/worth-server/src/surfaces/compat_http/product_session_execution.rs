@@ -1,6 +1,6 @@
 use crate::{
     WorthServerCompatibilityPreparedRequest, WorthServerCompletedProductSessionCoordination,
-    WorthServerOperationRegistry, WorthServerProductSession,
+    WorthServerOperationRegistry, WorthServerProductAdapterRegistry, WorthServerProductSession,
     WorthServerProductSessionCoordinationRuntime, WorthServerProductSessionCreationRequest,
     WorthServerProductSessionDenial, WorthServerProductSessionIdentity,
     WorthServerProductSessionRegistry,
@@ -14,11 +14,13 @@ pub struct WorthServerCompatibilityProductSessionFacade {
 impl WorthServerCompatibilityProductSessionFacade {
     pub(crate) fn new(
         operation_registry: WorthServerOperationRegistry,
+        product_adapter_registry: WorthServerProductAdapterRegistry,
         product_session_registry: WorthServerProductSessionRegistry,
     ) -> Self {
         Self {
             runtime: WorthServerProductSessionCoordinationRuntime::new(
                 operation_registry,
+                product_adapter_registry,
                 product_session_registry,
             ),
         }

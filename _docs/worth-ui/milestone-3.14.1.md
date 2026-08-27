@@ -4,14 +4,19 @@
 
 Status: implementation specification for the ten-phase slice immediately
 after Milestone 3.14 and before Milestone 3.15. Phases 1-5 are implemented and
-historically reviewed. `worth-ui-body-default-v1` remains immutable Phase 1-2
+historically reviewed; Phases 6-7 were implemented and independently reviewed
+on 2026-08-23. `worth-ui-body-default-v1` remains immutable Phase 1-2
 predecessor evidence; the qualified `worth-ui-global-text-v2` profile is the
 Phase 4 authority consumed by Phase 5. A different asset, dependency, capacity,
 signature, or platform policy is a specification change rather than
 implementation discretion. Phase 5 includes atlas/physical-Signal behavior,
 the Query async-presentation lifecycle, the 4×8 locality suite, native
-reconstruction/pixels, and terminal-zero resource behavior. Phase 6 is the
-current implementation phase.
+reconstruction/pixels, and terminal-zero resource behavior. Phase 8 was
+implemented and independently reviewed on 2026-08-24. The corrected Phase 9
+implementation record and its frozen source snapshot were independently
+certified and closed on 2026-08-24. The corrected Phase 10 native-cutover
+implementation and its frozen source snapshot were independently certified and
+closed on 2026-08-24, completing Milestone 3.14.1.
 
 The detailed Phase 5 raster, atlas, native text-presentation, courtroom,
 cost, topology, and documentation contract is governed by
@@ -1627,7 +1632,13 @@ Committed successors enter additively:
 
 ### Current implementation status
 
-Phases 1-5 are implemented and historically reviewed; Phase 6 is in progress.
+Phases 1-5 are implemented and historically reviewed; Phases 6-7 were
+implemented and independently reviewed on 2026-08-23; Phase 8 was implemented
+and independently reviewed on 2026-08-24. The corrected Phase 9 implementation
+record and its frozen source snapshot were independently certified and closed
+on 2026-08-24. The corrected Phase 10 native-cutover implementation and its
+frozen source snapshot were independently certified and closed on 2026-08-24,
+completing Milestone 3.14.1.
 Their old ledger rows,
 nonces, receipts, handoffs, and artifacts are frozen and are not current QA
 state. Historical phases do not reopen. If a current change regresses an
@@ -1991,6 +2002,111 @@ predecessor until parity evidence is final-source green.
 Phase 10 may trust a migration-complete native candidate whose only remaining
 work is authority cutover and predecessor removal.
 
+#### Phase 9 closed implementation record (independently certified)
+
+The frozen candidate is migration identity `pulse-worth-native-v1` through the
+existing `worth-ui-platform-pulse` binary and public application composition.
+`PulseNativeParityWorld` runs that candidate and predecessor identity
+`pulse-egui-r4-v1` sequentially against the same checked-in causal-action
+manifest and the same installation path. The predecessor must complete
+external close and prove installation absence before a fresh native candidate
+is installed at that exact path. Both runs retain every decoded lifecycle
+envelope and compare the complete ordered variant stream through exhaustive
+typed correspondence. Stable semantic, source, receipt, interaction, intent,
+consequence, visual, and shutdown fields remain exact. Host-issued frames,
+bindings, snapshots, attempts, mounted identities, interaction sequences, and
+semantic-target digests retain their raw values and require typed bijective
+correspondence; presentation epochs retain their raw values and require an
+order-preserving correspondence that admits host-side coalescing. The complete
+named host-mechanical exclusion set is envelope run identity, product-process
+identity, confirmation-expiry timestamp, host-surface identity, native window
+origin, filesystem event-burst identity, watcher-notification multiplicity,
+native-host effect multiplicity, host input-translation multiplicity, and exit
+poll multiplicity. Every excluded raw pair remains in typed parity evidence:
+process identities must be distinct and nonzero, exit polling must be nonzero,
+translated input must retain the same family and posture, and native effects
+must remain nonzero. The grant identity is the sole differing world input and
+is adjudicated outside lifecycle correspondence. Native pointer and keyboard
+probes use counted Win32 input events, deny before effects when the target world
+is not qualified, and report every failure after `SendInput` as indeterminate
+with the delivered count. The causal manifest is consumed at each real edit,
+activation, await, successful observation, close, and shutdown boundary rather
+than replayed or batch-recorded after a completed journey.
+Shutdown carries and directly requires Query close completion, empty intent
+resources, joined watchers, and zero pending input/observation queues. Bounded
+external capture observes a stable canonical predecessor before requiring the
+schema recovery to restore those exact pixels. The product driver lives under
+`native_application`; `native_frame.rs` is only the deletion-bound
+eframe/input-translation adapter. The parity courtroom lives at
+`courtroom/host_parity.rs`, and the causal manifest owner lives at
+`source_delta/causal_action_manifest.rs`.
+
+The predecessor installs the same source, Query, intent, and visual readiness
+owners through a host-neutral application signal. A product wake causes egui
+to replay retained paint for that frame, but only a changed presentation tick
+schedules another frame; there is no continuous repaint loop. After final
+schema recovery, each real product process must remain alive for one 500 ms
+quiescent interval while producing zero lifecycle envelopes and byte-identical
+client pixels. The existing certification-owned
+`public_unchanged_is_allocation_free_and_one_instance_change_is_bounded` lane
+supplies the separate in-process companion: it issues an exact unchanged
+mounted request and requires zero allocation, zero mount mutations, zero
+adapter work, zero additional host transcripts, and one retained-instance
+reuse. The executable runner does not import certification, runtime,
+test-support, or headless-host authority to reenact that proof.
+
+External pixel and input adjudication owns the versioned literal manifest
+`platform_pulse_control_points.json`. Its logical extent, control points,
+colors, tolerances, pixel bounds, DPI, text profile, and font digest are
+test-owned oracles; executable adjudication does not import production visual
+geometry or color constants.
+
+Exactly one glyph-region rebaseline is frozen in
+`apps/platform-pulse/tests/executable_world/adjudication/glyph_region_rebaseline.json`.
+It records predecessor and successor external pixels, both renderer/font
+profiles and asset digests, dependency versions, 144 DPI, the 240×144 client
+extent, surface/color posture, and the independent Windows Graphics Capture
+boundary. Both host journeys admit that same record digest while checking
+their host-specific pixels; filled-rectangle control expectations remain
+unchanged.
+
+The Phase 10 cutover inventory is frozen to these deletion and repair owners:
+
+- remove `crates/worth-ui-host-egui`, the `eframe` Pulse shell, and all
+  `eframe`/`egui` manifest and lockfile edges;
+- remove the deletion-bound `native_frame.rs` adapter after the continuing
+  product driver is solely native, and remove any obsolete egui-era application
+  owner left by that cutover;
+- remove the isolated `crates/worth-ui-theme` and
+  `crates/worth-ui-components` egui-era crates; an asset from either crate may
+  survive only when an existing non-egui semantic owner and current consumer
+  are both proven, never by creating a speculative asset owner;
+- remove both production and courtroom `UiHostMigrationGrant` selectors,
+  make the native path unconditional, and rerun the same cumulative journey
+  without a predecessor selector;
+- remove `WorthUiHostKind::Egui`, the `legacy-egui-migration` feature and entry
+  surface, then repair exhaustive matches and certification fixtures;
+- retire the executable predecessor glyph expectation while preserving this
+  rebaseline as version history, and replace egui-specific certification with
+  native-platform or host-contract evidence; and
+- update continuing launch, lifecycle, architecture, visual-inspection, and
+  interaction documentation only after the source cutover is complete.
+
+No Phase 10 deletion was pulled into this closure. The egui path remains live
+only for the frozen parity predecessor and is not an application fallback.
+
+The final executable source passed two consecutive clean `HP-01` runs without
+an intervening source edit. Each run retained and adjudicated 75 lifecycle
+envelopes for each host, performed 25 externally counted captures per journey,
+completed one process launch and native window per host, completed external
+close and successful exit, and removed the shared installation before the
+successor install and after terminal shutdown. The
+focused library, hostile-input, correspondence, compile-contract, feature,
+test-topology, line-cap, formatting, Clippy, boundary, and generated-context
+checks are green. Independent certification of this frozen source snapshot
+completed on 2026-08-24. Phase 10 has not begun; certification does not reopen
+this implementation record or create a separate proof ledger.
+
 ### Phase 10: Native cutover, egui deletion, and final closure
 
 Make the Worth native host the sole native-display path, then delete the egui
@@ -1998,8 +2114,32 @@ host, eframe shell, migration selector, egui-era theme/component crates, old
 glyph expectations, and every dependency edge. Close `HP-05`, continuing
 documentation, exact cost budgets, exhaustive host-kind repairs, code review,
 and constitutional/recurrence gates through `HostRetirementTopologyWorld` on
-the exact post-deletion source. Rerun `PulseNativeParityWorld` natively so
+the exact post-deletion source. Rerun the complete Pulse journey natively so
 deletion cannot manufacture a green result by removing parity coverage.
+
+#### Phase 10 closure (independently certified 2026-08-24)
+
+The production application and Pulse composition now enter the Worth native
+platform unconditionally. The migration selector, legacy transition, eframe
+shell, egui host, and isolated theme/component crates are absent from the
+workspace and lockfiles. Continuing headless evidence remains contract-only;
+native lifecycle, input, capture, and cumulative Pulse evidence remain in
+their established targets.
+
+`HostRetirementTopologyWorld` discovers repository manifests, lockfiles,
+sources, documentation, deleted crate destinations, and the existing compile
+matrix dynamically. It rejects hidden or aliased retired dependencies and
+unclassified current references while explicitly distinguishing historical
+milestone records, detector source, and the negative compile twin. The
+negative twin proves that the legacy public transition is absent; the positive
+twin proves the fixed headless certification path remains lawful.
+
+Historical proof-ledger runners, obsolete phase-runner configurations, and
+test suites whose only purpose was to validate those ledgers or compare the
+deleted host were removed. They are not release authority and were not replaced
+with a new bookkeeping layer. Focused verification and all three independent
+review disciplines certified the exact frozen source snapshot, closing Phase 10
+and Milestone 3.14.1 on 2026-08-24.
 
 No phase creates a new integration-test target, executable-world target,
 binary, nested Cargo invocation, compiler session, product composition root, or
@@ -2062,8 +2202,9 @@ color atlases, level-triggered readiness, native 3.14 input observations,
 exact presented-source-target
 capture, failure/recovery lifecycle, exact resource census, the governed
 five-world test suite, independent oracles, versioned causal-action and
-control-point manifests, dual-host parity, one glyph rebaseline, final egui
-deletion, and recurrence gates described above.
+control-point manifests, the historical Phase 9 dual-host parity conclusion
+without its retired executable predecessor machinery, one glyph rebaseline,
+final egui deletion, and recurrence gates described above.
 
 Preserve all closed 3.10-3.14 guarantees, especially:
 

@@ -1,4 +1,4 @@
-use super::fixtures::{install_schema_version, transaction_options_for_subscriber_impact};
+use super::fixtures::{install_schema_version, transaction_validation_input_for_subscriber_impact};
 use crate::publication::cdc::data::{
     SubscriberContinuationClassSet, SubscriberContractDeclaration,
 };
@@ -28,20 +28,38 @@ fn latest_available_checkpoint_reflects_head_continuation_state_for_subscriber_c
     let checkpoint = first_batch.next_checkpoint.unwrap();
 
     install_schema_version(&mut runtime, SchemaVersionId(2));
-    let mut visible_txn = runtime.begin_transaction(transaction_options_for_subscriber_impact(
-        SchemaVersionId(2),
-        SchemaSubscriberImpact::ConsumableSurfaceChanged,
-    ));
+    let mut visible_txn = {
+        let transaction_validation_input = transaction_validation_input_for_subscriber_impact(
+            &runtime,
+            SchemaVersionId(2),
+            SchemaSubscriberImpact::ConsumableSurfaceChanged,
+        );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     visible_txn.push_batch(batch_create("b"));
-    visible_txn.commit().unwrap();
+    visible_txn.commit(&mut runtime).unwrap();
 
     install_schema_version(&mut runtime, SchemaVersionId(3));
-    let mut upgrade_txn = runtime.begin_transaction(transaction_options_for_subscriber_impact(
-        SchemaVersionId(3),
-        SchemaSubscriberImpact::ContractUpgradeRequired,
-    ));
+    let mut upgrade_txn = {
+        let transaction_validation_input = transaction_validation_input_for_subscriber_impact(
+            &runtime,
+            SchemaVersionId(3),
+            SchemaSubscriberImpact::ContractUpgradeRequired,
+        );
+        runtime
+            .begin_branch_transaction(
+                transaction_validation_input.basis(),
+                transaction_validation_input.intent().clone(),
+            )
+            .expect("owner-admitted transaction context")
+    };
     upgrade_txn.push_batch(batch_create("c"));
-    upgrade_txn.commit().unwrap();
+    upgrade_txn.commit(&mut runtime).unwrap();
 
     let resumed = runtime
         .publication()

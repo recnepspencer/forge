@@ -210,19 +210,20 @@ fn native_input_reaches_the_mechanics_drain_boundary_with_its_presentation_basis
         binding,
         UiHostPresentationEpoch::issued_by_host(1),
     );
+    adapter
+        .register_mechanical_host_session(host_session)
+        .unwrap();
     {
         let mut state = state.borrow_mut();
-        state
-            .lifecycle_protocol
-            .install_initial_profile(1.0, [800, 600]);
+        state.lifecycle.install_initial_profile(1.0, [800, 600]);
         assert_eq!(
             state
-                .lifecycle_protocol
+                .lifecycle
                 .record_completed_presentation(protocol, host_session, basis)
                 .effect(),
             crate::native::UiNativeLifecycleEffect::PresentationCompleted
         );
-        let transition = state.lifecycle_protocol.observe_window_event_at(
+        let transition = state.lifecycle.observe_window_event_at(
             &WindowEvent::CursorMoved {
                 device_id: DeviceId::dummy(),
                 position: PhysicalPosition::new(12.0, 24.0),

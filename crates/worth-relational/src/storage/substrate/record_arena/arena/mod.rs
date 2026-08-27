@@ -1,7 +1,11 @@
+mod allocation;
 mod merge;
 mod pinning;
+mod slot_directory;
 mod slot_lifecycle;
 mod sparse_clone;
+
+pub(crate) use slot_directory::RecordSlotDirectory;
 
 use std::collections::BTreeMap;
 
@@ -24,6 +28,7 @@ pub(crate) struct SlotInit<K: RecordKind> {
 
 #[derive(Debug, Clone)]
 pub(crate) struct RecordArena<K: RecordKind> {
+    pub(crate) slots: RecordSlotDirectory,
     pub(crate) partition_ids: Vec<PartitionId>,
     pub(crate) generations: Vec<u32>,
     pub(crate) lifecycle: Vec<RecordLifecycleState>,
@@ -39,12 +44,12 @@ pub(crate) struct RecordArena<K: RecordKind> {
     pub(crate) snapshot_pins: Vec<u32>,
     pub(crate) live_bitset: DenseSlotBitSet,
     pub(crate) reclaimable_bitset: DenseSlotBitSet,
-    pub(crate) free_list: Vec<u64>,
 }
 
 impl<K: RecordKind> RecordArena<K> {
     pub(crate) fn with_capacity(capacity: usize) -> Self {
         Self {
+            slots: RecordSlotDirectory::with_capacity(capacity),
             partition_ids: Vec::with_capacity(capacity),
             generations: Vec::with_capacity(capacity),
             lifecycle: Vec::with_capacity(capacity),
@@ -60,7 +65,6 @@ impl<K: RecordKind> RecordArena<K> {
             snapshot_pins: Vec::with_capacity(capacity),
             live_bitset: DenseSlotBitSet::with_capacity(capacity),
             reclaimable_bitset: DenseSlotBitSet::with_capacity(capacity),
-            free_list: Vec::new(),
         }
     }
 
@@ -78,7 +82,6 @@ impl<K: RecordKind> RecordArena<K> {
         self.branch_pins.reserve(additional);
         self.replay_pins.reserve(additional);
         self.snapshot_pins.reserve(additional);
-        self.free_list.reserve(additional);
     }
 
     pub(crate) fn lifecycle_counts(&self) -> LifecycleCounts {
@@ -94,27 +97,66 @@ impl<K: RecordKind> RecordArena<K> {
     }
 
     pub(crate) fn get_slot(&self, slot: usize) -> Option<SlotView<'_, K>> {
-        (slot < self.generations.len()).then(|| SlotView::new(self, slot))
+        self.slots
+            .physical_index(slot)
+            .map(|physical| SlotView::new(self, physical))
     }
 
     pub(crate) fn slot_count(&self) -> usize {
-        self.generations.len()
+        self.slots.len()
+    }
+
+    pub(crate) fn occupied_slots(&self) -> Vec<usize> {
+        self.slots.occupied_slots()
+    }
+
+    pub(crate) fn physical_index(&self, slot: usize) -> Option<usize> {
+        self.slots.physical_index(slot)
     }
 
     pub(crate) fn retired_at_for_slot(&self, slot: usize) -> Option<VersionId> {
-        self.retired_at.get(slot).copied().flatten()
+        self.physical_index(slot)
+            .and_then(|physical| self.retired_at.get(physical).copied().flatten())
     }
 
     pub(crate) fn metadata_history_at(&self, slot: usize) -> Option<&[K::Meta]> {
-        self.metadata_history.get(slot).map(Vec::as_slice)
+        self.physical_index(slot)
+            .and_then(|physical| self.metadata_history.get(physical).map(Vec::as_slice))
     }
 
     pub(crate) fn metadata_history_at_mut(&mut self, slot: usize) -> Option<&mut Vec<K::Meta>> {
-        self.metadata_history.get_mut(slot)
+        let physical = self.physical_index(slot)?;
+        self.metadata_history.get_mut(physical)
     }
 
     pub(crate) fn aspect_versions_at(&self, slot: usize) -> Option<&BTreeMap<Symbol, u64>> {
-        self.aspect_versions.get(slot)
+        self.physical_index(slot)
+            .and_then(|physical| self.aspect_versions.get(physical))
+    }
+
+    pub(crate) fn aspect_versions_at_mut(
+        &mut self,
+        slot: usize,
+    ) -> Option<&mut BTreeMap<Symbol, u64>> {
+        let physical = self.physical_index(slot)?;
+        self.aspect_versions.get_mut(physical)
+    }
+
+    pub(crate) fn extra_at(&self, slot: usize) -> Option<&K::Extra> {
+        self.physical_index(slot)
+            .and_then(|physical| self.extra.get(physical))
+    }
+
+    pub(crate) fn created_at_for_slot(&self, slot: usize) -> Option<VersionId> {
+        self.physical_index(slot)
+            .and_then(|physical| self.created_at.get(physical).copied())
+    }
+
+    /// Canonical truth/lifecycle/index bytes only. Diagnostics, retention
+    /// counters, and allocator bookkeeping have independent lifecycle lanes.
+    #[cfg(test)]
+    pub(crate) fn authoritative_allocation_bytes(&self) -> u64 {
+        self.allocation_inventory().authoritative_bytes
     }
 }
 

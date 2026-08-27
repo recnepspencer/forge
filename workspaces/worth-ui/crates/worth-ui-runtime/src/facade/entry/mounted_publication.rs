@@ -137,6 +137,14 @@ pub(super) fn finish_mounted_transition(
     transition: crate::mounting::UiMountedPublicationTransition,
 ) -> UiMountedFrameOutcome {
     let (outcome, observation) = transition.into_parts();
+    match &outcome {
+        UiMountedFrameOutcome::Published(receipt)
+        | UiMountedFrameOutcome::Unchanged(receipt)
+        | UiMountedFrameOutcome::Reconciled(receipt) => {
+            host_exchange.record_presented_frame(receipt.frame());
+        }
+        _ => {}
+    }
     if let Some(observation) = observation {
         record_mounted_observation(host_exchange, observation);
     }

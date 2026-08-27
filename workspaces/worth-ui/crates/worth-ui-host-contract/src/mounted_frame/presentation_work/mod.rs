@@ -22,8 +22,9 @@ pub use damage::UiMountedLogicalDamage;
 pub use delta::{UiMountedPresentationDelta, UiMountedPresentationDeltaInput};
 pub use initial::{UiMountedPresentationInitial, UiMountedPresentationInitialInput};
 pub use node_change::{
-    UiMountedPresentationNodeChange, UiMountedPresentationNodePaint,
-    UiMountedPresentationNodeState, UiMountedPresentationNodeStateInput,
+    UiMountedPresentationNodeChange, UiMountedPresentationNodeHitTest,
+    UiMountedPresentationNodePaint, UiMountedPresentationNodeState,
+    UiMountedPresentationNodeStateInput,
 };
 pub use paint_order::{
     UiMountedPaintOrderEdit, UiMountedPaintOrderIdentity, UiMountedPaintOrderIntegrity,

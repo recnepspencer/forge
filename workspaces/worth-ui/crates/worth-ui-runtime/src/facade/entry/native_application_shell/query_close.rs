@@ -10,7 +10,10 @@ pub(crate) struct UiNativeApplicationQueryCloseObservation {
     authored_mounted_instances:
         Box<[worth_ui_host_native::UiNativeClientAuthoredMountedInstanceObservation]>,
     client_resource_peaks: [usize; 2],
-    complete: bool,
+    mounted_shutdown_attempts: Box<[crate::mounting::UiMountedPresentationShutdownAttempt]>,
+    intent_resources_empty: bool,
+    query_close_complete: bool,
+    transition_trace_complete: bool,
 }
 
 pub(super) struct UiNativeApplicationQueryCloseInput {
@@ -25,7 +28,11 @@ pub(super) struct UiNativeApplicationQueryCloseInput {
     pub(super) authored_mounted_instances:
         Box<[worth_ui_host_native::UiNativeClientAuthoredMountedInstanceObservation]>,
     pub(super) client_resource_peaks: [usize; 2],
-    pub(super) complete: bool,
+    pub(super) mounted_shutdown_attempts:
+        Box<[crate::mounting::UiMountedPresentationShutdownAttempt]>,
+    pub(super) intent_resources_empty: bool,
+    pub(super) query_close_complete: bool,
+    pub(super) transition_trace_complete: bool,
 }
 
 impl UiNativeApplicationQueryCloseObservation {
@@ -39,7 +46,10 @@ impl UiNativeApplicationQueryCloseObservation {
             text_presentation_work_trace_complete: input.text_work_trace_complete,
             authored_mounted_instances: input.authored_mounted_instances,
             client_resource_peaks: input.client_resource_peaks,
-            complete: input.complete,
+            mounted_shutdown_attempts: input.mounted_shutdown_attempts,
+            intent_resources_empty: input.intent_resources_empty,
+            query_close_complete: input.query_close_complete,
+            transition_trace_complete: input.transition_trace_complete,
         }
     }
 
@@ -53,7 +63,10 @@ impl UiNativeApplicationQueryCloseObservation {
             text_work_trace_complete: true,
             authored_mounted_instances: Box::new([]),
             client_resource_peaks: [0, 0],
-            complete: true,
+            mounted_shutdown_attempts: Box::new([]),
+            intent_resources_empty: true,
+            query_close_complete: true,
+            transition_trace_complete: true,
         })
     }
 
@@ -67,8 +80,12 @@ impl UiNativeApplicationQueryCloseObservation {
         &self.transitions
     }
 
-    pub(crate) const fn complete(&self) -> bool {
-        self.complete
+    pub(crate) const fn query_close_complete(&self) -> bool {
+        self.query_close_complete
+    }
+
+    pub(crate) const fn transition_trace_complete(&self) -> bool {
+        self.transition_trace_complete
     }
 
     pub(crate) fn semantic_frontiers(
@@ -99,5 +116,15 @@ impl UiNativeApplicationQueryCloseObservation {
 
     pub(crate) const fn client_resource_peaks(&self) -> [usize; 2] {
         self.client_resource_peaks
+    }
+
+    pub(crate) fn mounted_shutdown_attempts(
+        &self,
+    ) -> &[crate::mounting::UiMountedPresentationShutdownAttempt] {
+        &self.mounted_shutdown_attempts
+    }
+
+    pub(crate) const fn intent_resources_empty(&self) -> bool {
+        self.intent_resources_empty
     }
 }

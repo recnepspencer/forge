@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use worth_relational::facade::runtime::RelationalExecutionBasisLease;
+use crate::domain_computation::managed_run::WorthQueryManagedRelationalObservation;
 use worth_runtime_bridge::facade::{
     BridgeExecutionBasisReadmissionOutcome, BridgeExecutionBasisReadmissionPending,
     BridgeYieldedExecutionBasis, BridgeYieldedExecutionBasisPreflight, RuntimeBridge,
@@ -30,7 +30,7 @@ struct WorthQueryDirectYieldedState {
 }
 
 struct WorthQueryDirectRetainedState {
-    relational_basis: RelationalExecutionBasisLease,
+    relational_basis: WorthQueryManagedRelationalObservation,
     run_counters: WorthQueryManagedRunCounters,
     yield_counters: WorthQueryYieldTransitionCounters,
     inspection: crate::domain_computation::WorthQueryYieldedDirectRunInspection,
@@ -44,7 +44,8 @@ struct WorthQueryDirectYieldedParts {
 
 pub(in crate::domain_computation::managed_run) struct WorthQueryDirectYieldRestoredOwner {
     pub(in crate::domain_computation::managed_run) affinity: WorthQueryDirectRunAffinity,
-    pub(in crate::domain_computation::managed_run) relational_basis: RelationalExecutionBasisLease,
+    pub(in crate::domain_computation::managed_run) relational_basis:
+        WorthQueryManagedRelationalObservation,
     pub(in crate::domain_computation::managed_run) bridge: BridgeYieldedExecutionBasis,
     pub(in crate::domain_computation::managed_run) execution:
         WorthQueryRetainedManagedGraphExecution,

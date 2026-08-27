@@ -13,7 +13,7 @@ pub use crate::aspect_wire::AspectFieldPatchCodecError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct AspectFieldPatch {
-    locators: BTreeMap<AspectFieldLocator, AspectValue>,
+    locators: Box<[(AspectFieldLocator, AspectValue)]>,
 }
 
 pub fn planned_aspect_field_locator(
@@ -40,13 +40,15 @@ pub(crate) fn validate_planned_aspect_field_locator(
 
 impl AspectFieldPatch {
     pub fn new(locators: BTreeMap<AspectFieldLocator, AspectValue>) -> Self {
-        Self { locators }
+        Self {
+            locators: locators.into_iter().collect::<Vec<_>>().into_boxed_slice(),
+        }
     }
 
     pub fn from_locator(locator: AspectFieldLocator, value: AspectValue) -> Self {
-        let mut locators = BTreeMap::new();
-        locators.insert(locator, value);
-        Self { locators }
+        Self {
+            locators: Box::new([(locator, value)]),
+        }
     }
 
     pub fn is_empty(&self) -> bool {
@@ -58,15 +60,31 @@ impl AspectFieldPatch {
     }
 
     pub fn locators(&self) -> impl Iterator<Item = &AspectFieldLocator> {
-        self.locators.keys()
+        self.locators.iter().map(|(locator, _)| locator)
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&AspectFieldLocator, &AspectValue)> {
-        self.locators.iter()
+        self.locators
+            .iter()
+            .map(|(locator, value)| (locator, value))
     }
 
     pub fn get(&self, locator: &AspectFieldLocator) -> Option<&AspectValue> {
-        self.locators.get(locator)
+        self.locators
+            .binary_search_by_key(&locator, |(candidate, _)| candidate)
+            .ok()
+            .map(|index| &self.locators[index].1)
+    }
+
+    pub(crate) fn owned_allocation_capacity_bytes(&self) -> u64 {
+        self.locators.iter().fold(
+            std::mem::size_of_val(self.locators.as_ref()) as u64,
+            |bytes, (locator, value)| {
+                bytes
+                    .saturating_add(locator.owned_allocation_capacity_bytes() as u64)
+                    .saturating_add(value.owned_allocation_capacity_bytes() as u64)
+            },
+        )
     }
 
     pub fn to_canonical_bytes(&self) -> Result<Vec<u8>, AspectFieldPatchCodecError> {

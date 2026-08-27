@@ -174,7 +174,7 @@ pub(crate) fn scalar_registration(world: &ScalarLifecycleWorld) -> UiScalarProje
         domain
             .projection_view(PROJECTION)
             .expect("Platform Pulse projection view is installed"),
-        UiProjectionFieldRequirement::declared("status").expect("static field admits"),
+        UiProjectionFieldRequirement::query_text_status(),
     )
 }
 

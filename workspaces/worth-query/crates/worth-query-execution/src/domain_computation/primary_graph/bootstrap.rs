@@ -144,7 +144,8 @@ fn map_initial_schema_installation_denial(
         RelationalInitialSchemaInstallationDenialKind::RuntimeAlreadyCommitted => {
             WorthQueryPrimaryGraphInstallationDenialKind::RelationalRuntimeAlreadyPublished
         }
-        RelationalInitialSchemaInstallationDenialKind::SchemaRejected => {
+        RelationalInitialSchemaInstallationDenialKind::SchemaRejected
+        | RelationalInitialSchemaInstallationDenialKind::BranchTransitionRejected => {
             WorthQueryPrimaryGraphInstallationDenialKind::RelationalSchemaRejected
         }
     };

@@ -11,6 +11,7 @@ mod primary_graph_runtime;
 mod receipts;
 mod snapshot_identity;
 mod source_adapter_contract;
+mod subscription_support_identity;
 mod writeback_effect_intent;
 
 pub use crate::lower_runtime_routing::{
@@ -24,10 +25,9 @@ pub use adapter_contracts::{
 };
 pub use bridge_backed::WorthQueryBridgeBackedRuntimeBackend;
 pub use contracts::{
-    runtime_subscription_support_evidence_identity, WorthQueryBackendEntityLookup,
-    WorthQueryRuntimeBackend, WorthQueryRuntimeExistingTruthVerificationAdapter,
-    WorthQueryRuntimeSchemaAdapter, WorthQueryRuntimeSnapshotIdentityAdapter,
-    WorthQueryRuntimeWriteAuthorityAdapter,
+    WorthQueryBackendEntityLookup, WorthQueryRuntimeBackend,
+    WorthQueryRuntimeExistingTruthVerificationAdapter, WorthQueryRuntimeSchemaAdapter,
+    WorthQueryRuntimeSnapshotIdentityAdapter, WorthQueryRuntimeWriteAuthorityAdapter,
 };
 pub use inspection_execution::{
     WorthQueryBackendInspectionError, WorthQueryBackendInspectionErrorKind,
@@ -51,3 +51,4 @@ pub use receipts::{
 };
 pub(in crate::runtime) use snapshot_identity::unavailable_snapshot_identity;
 pub use source_adapter_contract::WorthQueryRuntimeSourceAdapter;
+pub use subscription_support_identity::runtime_subscription_support_evidence_identity;

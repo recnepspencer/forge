@@ -13,7 +13,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         }
 
         let residency = residency_for_version(self.runtime, version_id);
-        let cached = cached_state_for_version(self.runtime, version_id).is_some();
+        let cached = cached_historical_state_for_version(self.runtime, version_id).is_some();
         let recent_window = self.runtime.recent_visibility_window();
         let protected = is_protected_for_runtime(self.runtime, &residency);
         let recent_candidate =
@@ -44,18 +44,20 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         handle: &SnapshotHandle,
     ) -> Option<RelationalDiagnosticArtifact> {
         let snapshot = resolve_snapshot_handle(self.runtime, handle)?;
+        let basis = resolve_snapshot_basis(self.runtime, handle)?;
         let version_id = snapshot.version_id;
-        let residency = residency_for_version(self.runtime, version_id);
-        let cached = cached_state_for_version(self.runtime, version_id).is_some();
+        let residency = residency(self.runtime, &basis);
+        let cached = cached_state(self.runtime, &basis).is_some();
         let recent_window = self.runtime.recent_visibility_window();
         let published_handle = self
             .runtime
             .active_snapshot_binding(handle.snapshot_id)
             .is_none();
+        let protected = is_protected_for_basis(self.runtime, &basis, &residency);
         let recent_candidate = (!self.runtime.protect_active_snapshots() || published_handle)
             && self.runtime.visibility_cache_enabled()
             && recent_window > 0
-            && !is_protected_for_runtime(self.runtime, &residency);
+            && !protected;
         let mut entries = Vec::new();
         if published_handle {
             entries.push(published_snapshot_handle_read_entry(
@@ -69,7 +71,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         }
         entries.push(snapshot_decision_entry(
             cached,
-            is_protected_for_runtime(self.runtime, &residency),
+            protected,
             recent_candidate,
             published_handle,
         ));
@@ -166,6 +168,15 @@ fn is_protected(residency: &VisibilityResidency) -> bool {
 fn is_protected_for_runtime(runtime: &RelationalRuntime, residency: &VisibilityResidency) -> bool {
     is_protected(residency)
         || (runtime.protect_active_snapshots() && residency.active_snapshot_refs > 0)
+}
+
+fn is_protected_for_basis(
+    runtime: &RelationalRuntime,
+    basis: &crate::visibility::snapshot_states::VisibilitySnapshotBasis,
+    residency: &VisibilityResidency,
+) -> bool {
+    let _ = basis;
+    is_protected_for_runtime(runtime, residency)
 }
 
 fn published_snapshot_handle_read_entry(

@@ -107,16 +107,16 @@ let platform = WorthUiNativePlatform::prepare(profile)?;
 let outcome = platform.run(Application);
 ```
 
-In Phase 1 this ends with the typed `NativeEffectsNotActivatedInPhaseOne` stop
-and a zero resource census. Later phases activate the already-owned native
-lifecycle; they do not add a second application path. Query-free applications
-do not create dummy Query work.
+Preparation is effect-free. After it succeeds, `run` enters the qualified
+native lifecycle and returns an exhaustive closed, stopped, or
+application-preparation-denied outcome. Query-free applications do not create
+dummy Query work.
 
 ## Executable Fresh-Reader Contract
 
 The following is the exact downstream program used by the compiler-contract
-matrix and the application-contract runtime suite. It uses only the ordinary
-product facade plus its concrete legacy-egui transition, branches over every
+matrix and the application-contract runtime suite. It uses the ordinary
+product facade plus the sealed certification headless transition, branches over every
 mounted outcome and start-stop family, and executes the real empty-application
 path.
 
@@ -127,8 +127,7 @@ use worth_ui::facade::app::{
     UiMountedFrameRetentionRejection, UiMountedIndeterminateFrame,
     UiMountedPresentationAdmissionRejection, UiMountedPresentationCompletionDenial,
     UiMountedPresentationInFlight, UiMountedRejectedFrame, UiMountedSupersededFrame,
-    UiPresentationDeadline, WorthUi, WorthUiLegacyEguiApplicationTransition,
-    WorthUiMountedFrameExecutionStop,
+    UiPresentationDeadline, WorthUi, WorthUiMountedFrameExecutionStop,
 };
 
 fn main() {
@@ -139,12 +138,9 @@ pub fn run() {
     let app = WorthUi::app()
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .freeze()
-        .map(|application| {
-            WorthUiLegacyEguiApplicationTransition::activate(
-                application,
-                worth_ui_host_egui::WorthUiHostEgui::new(egui::Context::default()),
-            )
-        })
+        .map(
+            worth_ui_runtime::facade::entry::WorthUiCertificationApplicationTransition::activate_headless,
+        )
         .expect("empty application preparation should succeed");
     let mut session = app.launch().expect("empty application should launch");
     let outcome = match session.execute_mounted_frame(
@@ -337,8 +333,8 @@ The process watches
 and a yellow `#f2cc60` inset target. The target occupies the half-open logical
 region `[48, 24]` through `[112, 72]`; `[80, 48]` is its inspection point and
 `[16, 16]` is the background control point. Both shapes are mounted runtime
-meaning translated through the canonical host contract; the eframe shell does
-not draw a second application-owned shape. Successful first publication prints
+meaning translated through the canonical host contract; native mechanics do
+not invent a second application-owned shape. Successful first publication prints
 `FirstFramePublished` in the `WORTH_UI_PLATFORM_PULSE_EVENT ` stream with the
 active application generation and mounted frame identity.
 
@@ -600,15 +596,15 @@ visual fields include
 The workflows have three deliberately separate claims:
 
 1. The commands above are human product-entry workflows. They run the actual
-   `main`, `eframe::run_native`, native window loop, source watcher, and public
+   `main`, Worth native window loop, source watcher, and public
    application lifecycle.
 2. The consolidated in-process integration lane proves the production
    filesystem watcher, public application shell, mounted publication,
-   replacement, denial preservation, shutdown receipts, and egui translation
+   replacement, denial preservation, shutdown receipts, and host-contract presentation
    inside the certification process:
 
    ```powershell
-   cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test application_contracts platform_pulse
+   cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test application_contracts
    ```
 
    It does not claim executable product entry or an operating-system window.

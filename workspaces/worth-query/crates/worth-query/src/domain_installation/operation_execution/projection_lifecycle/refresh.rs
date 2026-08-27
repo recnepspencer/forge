@@ -376,7 +376,7 @@ fn finish_refresh<D: 'static, O: 'static, F: 'static, L: BasisOperationLane, S>(
     workspace: &mut WorthQueryWorkspace,
     delivery: crate::ordinary::live::WorthQueryManagedLiveDelivery,
     impact: std::sync::Arc<crate::domain_installation::WorthQueryImpactDecision>,
-    mut work: WorthQueryLiveProjectionRefreshWork,
+    work: WorthQueryLiveProjectionRefreshWork,
     granular_read: Option<(
         &crate::live::WorthQueryMaintenanceScope,
         &crate::runtime::WorthQueryGranularSourceReadBasis,

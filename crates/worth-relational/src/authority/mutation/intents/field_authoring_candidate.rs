@@ -12,12 +12,12 @@ use crate::transactions::data::{
 };
 
 #[derive(Clone, Copy)]
-pub(super) enum FieldAuthoringDomain {
+pub(crate) enum FieldAuthoringDomain {
     Entity,
     Relation,
 }
 
-pub(super) fn lower(
+pub(crate) fn lower(
     fields: &AspectFieldPatch,
     purpose: PortablePatchReadmissionPurpose,
     plan: Option<&LoweredAspectContractPlan>,

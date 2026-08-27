@@ -25,6 +25,7 @@ pub trait WorthQueryPrimaryGraphSourceProjection: 'static {
         graph: &worth_query_execution::facade::integration::WorthQueryPrimaryGraphIntegrationHandle,
         target: &WorthQueryLiveArtifactTarget,
         scope: &crate::live::WorthQueryMaintenanceScope,
+        basis: &crate::runtime::WorthQueryGranularSourceReadBasis,
     ) -> Result<Vec<WorthQueryEntity>, WorthQueryWorkspaceError>;
 }
 
@@ -92,30 +93,9 @@ where
         scope: &crate::live::WorthQueryMaintenanceScope,
         basis: &crate::runtime::WorthQueryGranularSourceReadBasis,
     ) -> Result<Vec<WorthQueryEntity>, WorthQueryWorkspaceError> {
-        if !self
-            .graph
-            .retains_current_truth_basis(basis.snapshot(), basis.branch())
-        {
-            let current = self.graph.current_truth_snapshot(basis.branch());
-            return Err(WorthQueryWorkspaceError::new(
-                format!(
-                    "the primary graph advanced beyond the admitted granular read basis (admitted={:?}, current={:?})",
-                    basis.snapshot().relational_snapshot_parts(),
-                    current.as_ref().and_then(|identity| identity.relational_snapshot_parts()),
-                ),
-            ));
-        }
         let rows = self
             .projection
-            .project_granular_scope(&self.graph, target, scope)?;
-        if !self
-            .graph
-            .retains_current_truth_basis(basis.snapshot(), basis.branch())
-        {
-            return Err(WorthQueryWorkspaceError::new(
-                "the primary graph advanced while projecting the admitted granular read basis",
-            ));
-        }
+            .project_granular_scope(&self.graph, target, scope, basis)?;
         Ok(rows)
     }
 

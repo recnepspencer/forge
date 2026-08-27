@@ -73,8 +73,8 @@ That means:
 The host corollary is:
 
 ```text
-worth-ui-host-contract is the stable native-host boundary
-worth-ui-host-egui is only the first adapter implementation
+worth-ui-host-contract is the stable host boundary
+worth-ui-host-native and worth-ui-host-headless own mechanical implementations
 adapter-specific mechanics must not become runtime truth or public host law
 ```
 
@@ -218,8 +218,9 @@ that later milestones must use.
 | `worth-ui-runtime` | hot-composition truth | host mechanics |
 | `worth-ui-inspection` | inspection contracts/evidence | panel UI truth |
 | `worth-ui-query-binding` | Query consumption boundary | Query authority |
-| `worth-ui-host-contract` | native host boundary facts | egui mechanics |
-| `worth-ui-host-egui` | egui translation | UI meaning |
+| `worth-ui-host-contract` | native host boundary facts | vendor mechanics |
+| `worth-ui-host-native` | native mechanics | UI meaning |
+| `worth-ui-host-headless` | deterministic recording mechanics | UI meaning |
 | `worth-ui-certification` | anti-bypass proof | production runtime truth |
 
 ## Evidence Substrate

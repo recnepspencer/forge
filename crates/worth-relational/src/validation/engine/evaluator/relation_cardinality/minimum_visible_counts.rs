@@ -114,7 +114,7 @@ fn collect_historical_relation_counts(
     snapshot: &mut VisibleRelationCountSnapshot,
 ) {
     let state_view = context.state_view();
-    for slot in 0..partition.relation_arena.slot_count() {
+    for slot in partition.relation_arena.occupied_slots() {
         context.metrics().count_relation_slot_scans(1);
         snapshot.relation_slot_scans += 1;
         let Some(metadata) =
@@ -141,7 +141,7 @@ fn collect_historical_candidate_entities(
     snapshot: &mut VisibleRelationCountSnapshot,
 ) {
     let state_view = context.state_view();
-    for slot in 0..partition.entity_arena.slot_count() {
+    for slot in partition.entity_arena.occupied_slots() {
         context.metrics().count_entity_slot_scans(1);
         snapshot.entity_slot_scans += 1;
         let Some(metadata) =

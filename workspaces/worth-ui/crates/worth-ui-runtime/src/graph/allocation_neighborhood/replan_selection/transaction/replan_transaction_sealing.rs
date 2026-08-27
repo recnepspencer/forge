@@ -47,15 +47,11 @@ impl super::UiGraphReplanAuthority {
                 for target in &causal_target_sets {
                     let consequence =
                         super::UiHostMeasurementReplanConsequence::seal(target, measurement)?;
-                    if let Some(existing) = host_consequences.iter().find(|existing| {
+                    if let Some(existing) = host_consequences.iter_mut().find(|existing| {
                         existing.neighborhood_identity_digest()
                             == consequence.neighborhood_identity_digest()
                     }) {
-                        if existing != &consequence {
-                            return Err(
-                                super::UiReplanLocalityDenial::HostMeasurementSuccessorDenied,
-                            );
-                        }
+                        existing.admit_same_turn_successor(consequence)?;
                     } else {
                         host_consequences.push(consequence);
                     }

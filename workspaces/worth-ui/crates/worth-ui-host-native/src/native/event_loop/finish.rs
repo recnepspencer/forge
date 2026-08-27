@@ -31,10 +31,12 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
                 effect_posture: captured.effect_posture,
                 peak_census: terminal.peak_census,
                 terminal_census: terminal.terminal_census,
-                client_cleanup_complete: terminal.client_closed,
+                client_cleanup_complete: terminal.client_closed
+                    && terminal.client_resources_complete,
                 cleanup,
                 peak_text_pins: captured.peak_text_pins,
                 input_observations: captured.input_observations,
+                shutdown_overlap: terminal.shutdown_overlap,
             });
         }
         Ok(self.completed_report(UiNativeEventLoopCompletionEvidence {
@@ -61,6 +63,7 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
             text_atlas_transactions: captured.text_atlas_transactions,
             derived_state_reconstruction: captured.derived_state_reconstruction,
             client_shutdown: terminal.client_shutdown,
+            shutdown_overlap: terminal.shutdown_overlap,
         }))
     }
 
@@ -104,8 +107,8 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
             .or_else(|| {
                 self.shared
                     .borrow()
-                    .lifecycle_protocol
-                    .report()
+                    .lifecycle
+                    .input_report()
                     .terminal_stop()
                     .is_some()
                     .then_some(UiNativeEventLoopRunDenial::ApplicationDriver)

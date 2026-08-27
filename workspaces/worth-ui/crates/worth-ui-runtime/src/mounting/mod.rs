@@ -22,6 +22,7 @@ mod reuse;
 mod semantic_content;
 mod session_state;
 mod surface_binding;
+mod theme_values;
 mod visual_region_basis;
 
 pub(crate) use assembly::{binding_requirement, UiPreparedMountedFrameAdmission};
@@ -121,12 +122,13 @@ pub(crate) use session_state::{
     WorthUiMountedSessionState,
 };
 pub use surface_binding::{UiSurfaceBindingCoordinatePosture, UiSurfaceBindingProfile};
-pub(crate) use visual_region_basis::UiMountedVisualRegionBasis;
+pub(crate) use visual_region_basis::{UiMountedUnsupportedPaintBasis, UiMountedVisualRegionBasis};
 
 pub use assembly::{
     UiMountedFramePreparationDenial, UiMountedFrameReceipt, UiMountedFrameRequest,
     UiMountedSurfaceReceipt, UiPreparedMountedFrame,
 };
+pub(crate) use theme_values::UiMountedThemeValueSource;
 pub use worth_ui_host_contract::{
     UiHostSurfaceBaselineIdentity, UiHostSurfaceIdentity, UiHostSurfacePresentationMode,
     UiMountIncarnation, UiMountedFrameIdentity, UiMountedInstanceIdentity,

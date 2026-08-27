@@ -16,6 +16,7 @@ worth-query-publication = { path = "../worth-query-publication" }
 [dev-dependencies]
 worth-foundational = { path = "../../../../crates/worth-foundational" }
 worth-query-decl = { path = "../worth-query-decl" }
+worth-query-execution = { path = "../worth-query-execution", features = ["test-durability-faults", "test-primary-graph-faults"] }
 
 [lints]
 workspace = true

@@ -14,10 +14,11 @@ pub use super::allocation_frame_dispatch::{
     UiAllocationFrameGatewayOutcome, UiAllocationFrameIngressDescriptor,
     UiAllocationFrameQueryWarningPosture, UiAllocationFrameSourceFact,
     UiAllocationFrameSourceFactPosture, UiAllocationFrameSubmissionOutcome,
-    UiFrameworkTransitionPlanningCounters, UiFrameworkTransitionPlanningDenial,
-    WorthUiFrameworkTurn, WorthUiFrameworkTurnCompletion, WorthUiFrameworkTurnExecution,
-    WorthUiInteractionTurnSource, WorthUiQueryFrameIngressCounters, WorthUiQueryFrameIngressDenial,
-    WorthUiQueryFrameIngressOutcome, WorthUiQueryProjectionTurnSource,
+    UiFrameworkTransitionExecutionDenial, UiFrameworkTransitionPlanningCounters,
+    UiFrameworkTransitionPlanningDenial, WorthUiFrameworkTurn, WorthUiFrameworkTurnCompletion,
+    WorthUiFrameworkTurnExecution, WorthUiInteractionTurnSource, WorthUiQueryFrameIngressCounters,
+    WorthUiQueryFrameIngressDenial, WorthUiQueryFrameIngressOutcome,
+    WorthUiQueryProjectionTurnSource,
 };
 pub(crate) use super::allocation_frame_dispatch::{
     UiAllocationFrameQueueDisposition, UiAllocationFrameReplacementTransition,

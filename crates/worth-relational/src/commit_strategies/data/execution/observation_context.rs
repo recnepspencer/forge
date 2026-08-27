@@ -68,7 +68,7 @@ impl<'runtime> StrategyObservationContext<'runtime> {
     }
 
     pub fn visibility(&self) -> StrategyVisibilityReadView<'_, 'runtime> {
-        StrategyVisibilityReadView::new(self.projection, self.read_contract, &self.metrics)
+        StrategyVisibilityReadView::new(&self.projection, self.read_contract, &self.metrics)
     }
 
     pub(crate) fn measured_summary(&self) -> StrategyExecutionSummary {

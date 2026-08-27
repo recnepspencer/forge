@@ -23,6 +23,8 @@ mod oracle;
 mod planning;
 mod receipt;
 mod receipt_transitions;
+mod relational_execution_failure;
+mod settlement_repair;
 mod support_contract;
 mod support_matrix;
 mod support_matrix_rows;
@@ -41,7 +43,8 @@ pub use batch_admission::{
     EffectBatchIntentDraft, EffectBatchIntentDraftWithBasis,
 };
 pub use batch_execution::{
-    EffectBatchExecutionDenial, EffectBatchExecutionDenialKind, ExecutedEffectBatchPlan,
+    EffectBatchExecutionDeferred, EffectBatchExecutionDenial, EffectBatchExecutionDenialKind,
+    EffectBatchExecutionStop, EffectBatchSettlementDeferred, ExecutedEffectBatchPlan,
 };
 pub use certification::{
     certify_effect_execution_pipeline, EffectExecutionCertificationBundle,
@@ -59,7 +62,8 @@ pub use envelope::{
     EffectEnvelopePrimaryResult, EffectEnvelopeSourceRefs, SelfDescribingEffectEnvelope,
 };
 pub use execution::{
-    EffectExecutionAuthority, EffectExecutionDenial, EffectExecutionDenialKind,
+    EffectExecutionAuthority, EffectExecutionDeferred, EffectExecutionDenial,
+    EffectExecutionDenialKind, EffectExecutionSettlementDeferred, EffectExecutionStop,
     ExecutedEffectAuthorityArtifact, ExecutedEffectPlan,
 };
 pub use intent::{normalize_raw_effect_intent, RawEffectIntent};
@@ -100,6 +104,10 @@ pub use receipt_transitions::{
     EffectReceiptTransitionKind, EffectReceiptTransitionPosture, EffectReceiptTransitionRule,
     EffectReceiptTransitionRules,
 };
+pub use relational_execution_failure::{
+    RelationalEffectExecutionFailure, RelationalEffectSettlementDeferred,
+};
+pub use settlement_repair::EffectSettlementRepairError;
 pub use support_contract::{
     EffectDeferredNeighborFamily, EffectDeferredResiduePosture, EffectDeferredSupportContract,
 };

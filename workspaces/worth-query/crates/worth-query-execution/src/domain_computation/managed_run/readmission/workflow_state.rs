@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use worth_relational::facade::runtime::RelationalExecutionBasisLease;
+use crate::domain_computation::managed_run::WorthQueryManagedRelationalObservation;
 use worth_runtime_bridge::facade::{
     BridgeExecutionBasisReadmissionPending, BridgeExecutionBasisReadmissionRecoveryRequired,
     BridgeYieldedExecutionBasis, BridgeYieldedExecutionBasisPreflight,
@@ -23,7 +23,7 @@ use crate::domain_computation::artifact_owner::{
 };
 
 pub(super) struct WorthQueryWorkflowYieldedState {
-    relational_basis: RelationalExecutionBasisLease,
+    relational_basis: WorthQueryManagedRelationalObservation,
     artifacts: WorthQueryFrozenWorkflowArtifactAuthority,
     artifact_evidence: WorthQueryWorkflowArtifactRegistryEvidence,
     run_counters: WorthQueryManagedRunCounters,
@@ -77,7 +77,7 @@ pub(in crate::domain_computation::managed_run::readmission) struct WorthQueryWor
 }
 
 pub(in crate::domain_computation::managed_run) struct WorthQueryWorkflowReadmissionCommitState {
-    relational_basis: RelationalExecutionBasisLease,
+    relational_basis: WorthQueryManagedRelationalObservation,
     artifacts: WorthQueryWorkflowArtifactAuthority,
     run_counters: WorthQueryManagedRunCounters,
     provider_artifact_occurrences: Arc<WorthQueryArtifactOccurrenceLedger>,
@@ -89,7 +89,8 @@ pub(in crate::domain_computation::managed_run) struct WorthQueryWorkflowReadmiss
 
 pub(in crate::domain_computation::managed_run) struct WorthQueryWorkflowYieldRestoredOwner {
     pub(in crate::domain_computation::managed_run) affinity: WorthQueryWorkflowRunAffinity,
-    pub(in crate::domain_computation::managed_run) relational_basis: RelationalExecutionBasisLease,
+    pub(in crate::domain_computation::managed_run) relational_basis:
+        WorthQueryManagedRelationalObservation,
     pub(in crate::domain_computation::managed_run) bridge: BridgeYieldedExecutionBasis,
     pub(in crate::domain_computation::managed_run) execution:
         WorthQueryRetainedManagedGraphExecution,
@@ -166,7 +167,7 @@ impl WorthQueryWorkflowYieldedAssociation {
     #[allow(clippy::too_many_arguments)]
     pub(in crate::domain_computation::managed_run) fn owner_admit_exact_yield(
         affinity: WorthQueryWorkflowRunAffinity,
-        relational_basis: RelationalExecutionBasisLease,
+        relational_basis: WorthQueryManagedRelationalObservation,
         bridge: BridgeYieldedExecutionBasis,
         execution: WorthQueryRetainedManagedGraphExecution,
         artifacts: WorthQueryFrozenWorkflowArtifactAuthority,

@@ -6,39 +6,11 @@ impl PerformanceAccess<'_> {
         &self,
         node_count: usize,
         event_count: usize,
-        candidate_count: usize,
     ) {
         self.runtime.services.instrumentation.count(|counters| {
             counters.lineage_graph_snapshot_requests += 1;
             counters.lineage_graph_snapshot_nodes_materialized += node_count;
             counters.lineage_graph_snapshot_events_materialized += event_count;
-            counters.lineage_graph_snapshot_candidates_materialized += candidate_count;
-        });
-    }
-
-    #[cfg(test)]
-    pub(crate) fn count_lineage_candidate_validation(
-        &self,
-        recorded_width: usize,
-        validated_width: usize,
-    ) {
-        self.runtime.services.instrumentation.count(|counters| {
-            counters.lineage_recorded_candidate_width += recorded_width;
-            counters.lineage_validated_candidate_width += validated_width;
-        });
-    }
-
-    #[cfg(test)]
-    pub(crate) fn count_lineage_promotion_rejection(&self) {
-        self.runtime.services.instrumentation.count(|counters| {
-            counters.lineage_promotion_rejection_count += 1;
-        });
-    }
-
-    #[cfg(test)]
-    pub(crate) fn count_lineage_promotion_plan_lowering(&self, promotion_eligible_width: usize) {
-        self.runtime.services.instrumentation.count(|counters| {
-            counters.lineage_promotion_eligible_candidate_width += promotion_eligible_width;
         });
     }
 
@@ -65,13 +37,6 @@ impl PerformanceAccess<'_> {
     }
 
     #[cfg(test)]
-    pub(crate) fn count_lineage_promotion_accepted(&self) {
-        self.runtime.services.instrumentation.count(|counters| {
-            counters.lineage_promotion_accepted_count += 1;
-        });
-    }
-
-    #[cfg(test)]
     pub(crate) fn count_lineage_graph_snapshot_visibility_cache(&self, hit: bool) {
         self.runtime.services.instrumentation.count(|counters| {
             if hit {
@@ -84,13 +49,24 @@ impl PerformanceAccess<'_> {
 
     pub(crate) fn count_lineage_historical_resolution(
         &self,
-        branch_event_scans: usize,
+        index_probes: usize,
+        event_visits: usize,
         traversed_events: usize,
+        reachable_commit_node_visits: usize,
+        reachable_commit_parent_edge_visits: usize,
+        reachable_commit_catalog_probes: usize,
     ) {
         self.runtime.services.instrumentation.count(|counters| {
             counters.lineage_historical_resolution_requests += 1;
-            counters.lineage_historical_resolution_branch_event_scans += branch_event_scans;
+            counters.lineage_historical_resolution_index_probes += index_probes;
+            counters.lineage_historical_resolution_event_visits += event_visits;
             counters.lineage_historical_resolution_traversed_events += traversed_events;
+            counters.lineage_historical_resolution_reachable_commit_node_visits +=
+                reachable_commit_node_visits;
+            counters.lineage_historical_resolution_reachable_commit_parent_edge_visits +=
+                reachable_commit_parent_edge_visits;
+            counters.lineage_historical_resolution_reachable_commit_catalog_probes +=
+                reachable_commit_catalog_probes;
         });
     }
 

@@ -32,7 +32,7 @@ where
             .bounded_outgoing_relations_of_kind_at_version(
                 from.entity_id,
                 layout.kind,
-                self.snapshot.version_id,
+                self.snapshot.version_id(),
                 self.work_budget.remaining(),
             )
             .map_err(|limit| self.adjacency_limit_denial(limit, relation.name()))?;
@@ -76,7 +76,7 @@ where
             .bounded_incoming_relations_of_kind_at_version(
                 to.entity_id,
                 layout.kind,
-                self.snapshot.version_id,
+                self.snapshot.version_id(),
                 self.work_budget.remaining(),
             )
             .map_err(|limit| self.adjacency_limit_denial(limit, relation.name()))?;
@@ -156,7 +156,7 @@ where
         let available = self
             .runtime
             .read_truth()
-            .visible_entity_at_version(entity_id, self.snapshot.version_id)
+            .visible_entity_at_version(entity_id, self.snapshot.version_id())
             .is_some_and(|record| record.kind.kind_id == expected_kind);
         if !available {
             return Err(WorthQueryInvariantProjectionTraversalDenial::new(

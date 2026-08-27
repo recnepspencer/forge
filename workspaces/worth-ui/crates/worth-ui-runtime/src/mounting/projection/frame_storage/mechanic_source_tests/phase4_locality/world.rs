@@ -133,7 +133,7 @@ fn locality_node(
             incarnation: UiMountIncarnation::mint_unbound().unwrap(),
             plan_digest: 7,
             role: UiMountedMechanicalRole::Control,
-            participation: admitted_participation(),
+            participation: text_only_participation(),
             allocation: UiMountedAllocationProjection::Known {
                 bounds,
                 basis: UiMountedAllocationBasis::new(

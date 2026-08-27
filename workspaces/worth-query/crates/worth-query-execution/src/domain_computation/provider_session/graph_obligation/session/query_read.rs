@@ -1,4 +1,6 @@
-use worth_relational::facade::runtime::RelationalExecutionBasisIdentity;
+use crate::domain_computation::primary_graph::{
+    WorthQueryApplicationBasisIdentity, WorthQueryApplicationBasisReleaseReceipt,
+};
 
 use super::super::read_terminal::WorthQueryGraphReadCompletionParts;
 use super::{
@@ -20,7 +22,7 @@ impl WorthQueryManagedGraphWorkSession {
 
     pub(in crate::domain_computation) fn execute_query_read<T>(
         &self,
-        basis: &RelationalExecutionBasisIdentity,
+        basis: &WorthQueryApplicationBasisIdentity,
         read: impl FnOnce(
             &mut worth_relational::facade::runtime::RelationalRuntime,
             &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout,
@@ -49,7 +51,7 @@ impl WorthQueryManagedGraphWorkSession {
         self,
         proof: WorthQuerySessionGraphReadProof,
         observed: WorthQueryObservedGraphReadWork,
-        basis_release: worth_relational::facade::runtime::RelationalExecutionBasisReleaseReceipt,
+        basis_release: WorthQueryApplicationBasisReleaseReceipt,
     ) -> Result<WorthQueryGraphReadCompletion, WorthQueryManagedGraphReadDenial> {
         let WorthQueryGraphWorkBasis::Query {
             identity: basis, ..

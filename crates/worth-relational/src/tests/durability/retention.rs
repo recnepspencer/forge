@@ -21,16 +21,17 @@ fn retention_plan_reports_snapshot_pinned_records_before_release() {
         create_relation_outcome(&mut runtime, relation_source, relation_target, "r1");
     let relation_created_snapshot = runtime.visibility_authority().snapshot();
     let relation = changed_relations(&relation_created)[0];
-    let _deleted_relation =
-        {
-            let mut txn = runtime.begin_transaction(TransactionOptions::default());
-            txn.push_batch(WorkerIntentBatch::new("delete-relation").push(
-                MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
+    let _deleted_relation = {
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+        txn.push_batch(
+            WorkerIntentBatch::new("delete-relation").push(MutationIntent::Relation(
+                RelationMutationIntent::Delete(DeleteRelationIntent {
                     relation_id: relation,
-                })),
-            ));
-            txn.commit().unwrap()
-        };
+                }),
+            )),
+        );
+        txn.commit(&mut runtime).unwrap()
+    };
     let deleted_relation_snapshot = runtime.visibility_authority().snapshot();
 
     let plan = runtime.retention().inspect_plan();
@@ -91,7 +92,7 @@ fn retention_plan_reports_branch_pinned_deleted_records_when_sibling_branch_lags
         create_relation_outcome(&mut runtime, source_entity, target_entity, "r1");
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -133,7 +134,7 @@ fn retention_inspection_reports_exact_branch_pin_counts_for_lagging_deleted_reco
     let relation = changed_relations(&relation_created)[0];
     runtime
         .history_authority()
-        .create_branch(
+        .fork_branch_from(
             BranchId("feature".to_string()),
             &BranchId("main".to_string()),
         )
@@ -251,16 +252,17 @@ fn retention_plan_reports_explicit_replay_pins_for_deleted_relations_until_relea
     let target = create_entity(&mut runtime, "replay-right");
     let created = create_relation_outcome(&mut runtime, source, target, "replay-r1");
     let relation = changed_relations(&created)[0];
-    let deleted =
-        {
-            let mut txn = runtime.begin_transaction(TransactionOptions::default());
-            txn.push_batch(WorkerIntentBatch::new("delete-relation").push(
-                MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
+    let deleted = {
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+        txn.push_batch(
+            WorkerIntentBatch::new("delete-relation").push(MutationIntent::Relation(
+                RelationMutationIntent::Delete(DeleteRelationIntent {
                     relation_id: relation,
-                })),
-            ));
-            txn.commit().unwrap()
-        };
+                }),
+            )),
+        );
+        txn.commit(&mut runtime).unwrap()
+    };
 
     assert!(runtime
         .visibility_authority()

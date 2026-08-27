@@ -12,17 +12,19 @@ impl<'runtime> InvariantAccess<'runtime> {
         profile: InvariantRequestProfile,
         observation_kind: InvariantObservationKind,
         version_id: crate::identity::data::VersionId,
-        merged_plan: Option<&'runtime MergedCommitPlan>,
+        current_version_id: crate::identity::data::VersionId,
+        merged_plan: Option<&MergedCommitPlan>,
         plan_contract: Option<InvariantPlanContract>,
         applicable_groups: InvariantGroupSet,
         max_cost: InvariantCostClass,
         disposition: InvariantExecutionDisposition,
+        proposal_identity: Option<&crate::mvcc::RelationalMutationProposalIdentity>,
     ) -> InvariantExecutionMetadata {
         InvariantExecutionMetadata::new(
             profile.execution_point(),
             observation_kind,
             version_id,
-            self.runtime.current_version_id(),
+            current_version_id,
             profile.consumed_groups(),
             applicable_groups,
             max_cost,
@@ -33,6 +35,7 @@ impl<'runtime> InvariantAccess<'runtime> {
             None,
             Vec::new(),
             None,
+            proposal_identity.cloned(),
         )
     }
 }

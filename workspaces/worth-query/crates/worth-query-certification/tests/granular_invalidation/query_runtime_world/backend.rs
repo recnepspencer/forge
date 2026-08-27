@@ -31,21 +31,14 @@ impl PrimarySnapshotAdapter {
 
 impl runtime::WorthQueryRuntimeSnapshotIdentityAdapter for PrimarySnapshotAdapter {
     fn current_snapshot_identity(&self) -> foundation::WorthQuerySnapshotIdentity {
-        self.0.with_runtime(|runtime| {
-            let history = runtime.history();
-            let head = history
-                .branch_head(&worth_relational::facade::history::BranchId("main".into()))
-                .expect("the published primary graph must retain a main head");
-            foundation::WorthQuerySnapshotIdentity::from_bridge_snapshot_projection(
-                worth_runtime_bridge::facade::TruthSnapshotIdentity::from_relational_snapshot(
-                    worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts::new(
-                        head.commit_id.0,
-                        head.version_id.0,
-                    ),
-                ),
-            )
-            .expect("primary relational snapshot parts are a valid Query snapshot")
-        })
+        let branch =
+            worth_runtime_bridge::facade::TruthBranchIdentity::from_relational_branch_id("main");
+        let snapshot = self
+            .0
+            .current_truth_snapshot(&branch)
+            .expect("the published primary graph must retain its exact main Bridge head");
+        foundation::WorthQuerySnapshotIdentity::from_bridge_snapshot_projection(snapshot)
+            .expect("the primary Bridge head is a valid Query snapshot")
     }
 }
 

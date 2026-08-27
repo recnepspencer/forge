@@ -19,6 +19,7 @@ pub(crate) struct UiMountedProjectionInput<'input, 'graph> {
     pub(crate) preview: Option<UiMountedPreviewProjectionInput>,
     pub(crate) visual_overlay: Option<super::super::UiMountedVisualOverlayProjectionInput>,
     pub(crate) semantic_content: &'input super::super::UiMountedSemanticContentInput,
+    pub(crate) theme_values: &'input super::super::UiMountedThemeValueSource,
     pub(crate) font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
     pub(in crate::mounting) semantic_predecessor: Option<&'input UiMountedSemanticProjection>,
     pub(crate) capability_generation:
@@ -42,7 +43,9 @@ struct UiMountedNodeLoweringContext<'input, 'graph> {
     allocation_source: &'input crate::runtime::UiMountedAllocationProjectionSource,
     plan_digest: u64,
     semantic_content: &'input super::super::UiMountedSemanticContentInput,
+    theme_values: &'input super::super::UiMountedThemeValueSource,
     predecessor: Option<&'input UiMountedSemanticProjection>,
+    mechanics_predecessor_available: bool,
 }
 
 struct UiMountedProjectionNodeDraft {
@@ -86,7 +89,11 @@ pub(crate) fn prepare_projection(
         allocation_source: input.allocation_source,
         plan_digest: input.plan_digest,
         semantic_content: input.semantic_content,
+        theme_values: input.theme_values,
         predecessor: input.semantic_predecessor,
+        mechanics_predecessor_available: state
+            .current_projection()
+            .is_some_and(|current| current.plan_digest() == input.plan_digest),
     };
     let projection_changes = state.projection_change_snapshot();
     let delta_predecessor = state
@@ -158,6 +165,24 @@ fn build_full_projection(
     input: UiMountedFullProjectionInput<'_, '_, '_>,
 ) -> Result<UiMountedProjectionBuild, UiMountedProjectionDenial> {
     let instances = input.state.projection_instances(input.requested_surfaces);
+    let current_instances = instances
+        .iter()
+        .map(|instance| instance.identity())
+        .collect::<std::collections::BTreeSet<_>>();
+    let predecessor_instances = input
+        .lowering
+        .predecessor
+        .into_iter()
+        .flat_map(UiMountedSemanticProjection::mounted_instances)
+        .collect::<Vec<_>>();
+    let retired = predecessor_instances
+        .iter()
+        .filter(|instance| !current_instances.contains(instance))
+        .count();
+    let mut presentation_changed_instances = current_instances.iter().copied().collect::<Vec<_>>();
+    presentation_changed_instances.extend(predecessor_instances.iter().copied());
+    presentation_changed_instances.sort_unstable();
+    presentation_changed_instances.dedup();
     let nodes = instances
         .iter()
         .map(|instance| {
@@ -170,7 +195,8 @@ fn build_full_projection(
     let surfaces = projection_surfaces(input.state, input.requested_surfaces)?;
     let node_count = nodes.len();
     let surface_count = surfaces.len();
-    let work_class = if input.has_published_frame {
+    let has_predecessor = input.has_published_frame || input.lowering.predecessor.is_some();
+    let work_class = if has_predecessor {
         super::super::UiMountWorkClass::ComparisonRequired
     } else {
         super::super::UiMountWorkClass::InitialMount
@@ -184,24 +210,21 @@ fn build_full_projection(
             considered: node_count
                 .checked_mul(3)
                 .and_then(|count| count.checked_add(surface_count))
+                .and_then(|count| count.checked_add(predecessor_instances.len()))
                 .ok_or(UiMountedProjectionDenial::CostCounterOverflow)?,
             index_entries: node_count
                 .checked_mul(2)
                 .ok_or(UiMountedProjectionDenial::CostCounterOverflow)?,
             projected_instances: node_count,
             surface_instance_pairs: node_count,
-            changed_bindings: usize::from(!input.has_published_frame) * surface_count,
+            changed_bindings: usize::from(!has_predecessor) * surface_count,
             reused: 0,
-            retired: 0,
+            retired,
             coalesced: input.changes.coalesced(),
             overflowed: input.changes.overflowed(),
         },
         replaced_order_rows: node_count,
-        presentation_changed_instances: instances
-            .iter()
-            .map(|instance| instance.identity())
-            .collect::<Vec<_>>()
-            .into(),
+        presentation_changed_instances: presentation_changed_instances.into(),
     })
 }
 
@@ -244,7 +267,8 @@ impl UiMountedNodeLoweringContext<'_, '_> {
             self.allocation_source
                 .projection(instance.graph_node_identity()),
         )?;
-        let static_paint = super::static_paint::lower_static_paint_seed(self.plan, plan_index)?;
+        let static_paint =
+            super::static_paint::lower_static_paint_seed(self.plan, self.theme_values, plan_index)?;
         let predecessor = self
             .predecessor
             .and_then(|semantic| semantic.node(instance.identity()))
@@ -252,15 +276,22 @@ impl UiMountedNodeLoweringContext<'_, '_> {
         let semantic_input = self.semantic_content.get(instance.graph_node_identity());
         let semantic_text_formatting = super::semantic_text::lower_semantic_text_formatting(
             self.plan,
+            self.theme_values,
+            instance.graph_node_identity(),
             plan_index,
             semantic_input,
             predecessor,
         )?;
-        let semantic_text = super::semantic_text::lower_semantic_text_seed(
+        let mut semantic_text = super::semantic_text::lower_semantic_text_seed(
             semantic_input,
             predecessor,
             semantic_text_formatting,
         )?;
+        if !self.mechanics_predecessor_available {
+            if let Some(seed) = semantic_text.as_mut() {
+                seed.require_complete_mechanics();
+            }
+        }
         let hit_test = super::hit_test::lower_hit_test_seed(self.plan, plan_index)?;
         let participation = lower_participation(
             graph_node.participation_posture(),

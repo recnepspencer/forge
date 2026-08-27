@@ -5,11 +5,20 @@ use super::{
 /// Execution-owned identity of the settled primary truth basis that a
 /// transported invalidation batch may be read against.
 #[doc(hidden)]
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone)]
 pub struct WorthQueryGranularSourceReadBasis {
     snapshot: worth_runtime_bridge::facade::TruthSnapshotIdentity,
     branch: worth_runtime_bridge::facade::TruthBranchIdentity,
+    observation: std::sync::Arc<worth_relational::facade::bridge::RelationalBridgeObservationLease>,
 }
+
+impl PartialEq for WorthQueryGranularSourceReadBasis {
+    fn eq(&self, other: &Self) -> bool {
+        self.snapshot == other.snapshot && self.branch == other.branch
+    }
+}
+
+impl Eq for WorthQueryGranularSourceReadBasis {}
 
 impl WorthQueryGranularSourceReadBasis {
     pub fn snapshot(&self) -> &worth_runtime_bridge::facade::TruthSnapshotIdentity {
@@ -18,6 +27,13 @@ impl WorthQueryGranularSourceReadBasis {
 
     pub fn branch(&self) -> &worth_runtime_bridge::facade::TruthBranchIdentity {
         &self.branch
+    }
+
+    #[doc(hidden)]
+    pub fn retain_observation(
+        &self,
+    ) -> std::sync::Arc<worth_relational::facade::bridge::RelationalBridgeObservationLease> {
+        std::sync::Arc::clone(&self.observation)
     }
 }
 
@@ -136,10 +152,18 @@ pub(in crate::domain_computation::primary_graph) fn collect_granular_invalidatio
 ) -> WorthQueryGranularInvalidationDeliveryBatch {
     let observation = WorthQueryGranularInvalidationObservation::from_deliveries(&deliveries);
     let branch = super::super::primary_truth_branch_identity();
-    let source_read_basis = installation
+    let source_observation = installation
         .retain_primary_graph_integration_handle()
-        .current_truth_snapshot(&branch)
-        .map(|snapshot| WorthQueryGranularSourceReadBasis { snapshot, branch });
+        .retain_current_truth_observation(&super::super::primary_relational_branch_id())
+        .ok();
+    let source_read_basis =
+        source_observation
+            .as_ref()
+            .map(|observation| WorthQueryGranularSourceReadBasis {
+                snapshot: observation.snapshot_identity().clone(),
+                branch,
+                observation: std::sync::Arc::clone(observation),
+            });
     WorthQueryGranularInvalidationDeliveryBatch {
         installation,
         observation,

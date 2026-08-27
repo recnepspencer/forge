@@ -37,8 +37,8 @@ pub(crate) fn validate_intent(
     Ok(())
 }
 
-pub(crate) fn collect_created_entity_refs(
-    intents: &[MutationIntent],
+pub(crate) fn collect_created_entity_refs<'a>(
+    intents: impl IntoIterator<Item = &'a MutationIntent>,
 ) -> BTreeSet<CreatedEntityRef> {
     let mut created = BTreeSet::new();
     for intent in intents {

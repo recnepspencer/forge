@@ -24,7 +24,6 @@ pub(super) enum UiNativeLifecycleEvent {
     TextWithoutRecipient,
     TextWithStaleRecipient,
     CompletePresentation,
-    Close,
 }
 
 pub(super) fn window_event(event: UiNativeLifecycleEvent) -> WindowEvent {

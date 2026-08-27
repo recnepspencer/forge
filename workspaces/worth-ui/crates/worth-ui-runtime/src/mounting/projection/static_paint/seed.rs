@@ -10,6 +10,7 @@ pub(in crate::mounting::projection) struct UiMountedStaticPaintSeed {
 
 pub(in crate::mounting::projection) fn lower_static_paint_seed(
     plan: super::super::super::UiMountedPlanProjectionSource<'_>,
+    theme_values: &crate::mounting::UiMountedThemeValueSource,
     plan_index: Option<u32>,
 ) -> Result<Option<UiMountedStaticPaintSeed>, UiMountedProjectionDenial> {
     let Some(plan_index) = plan_index else {
@@ -27,6 +28,25 @@ pub(in crate::mounting::projection) fn lower_static_paint_seed(
     let Some(layer_semantic_order) = lower_layer_semantic_order(component, plan_index) else {
         return Ok(None);
     };
+    let token_id = component
+        .static_paint_theme_token_dependency()
+        .ok_or(UiMountedProjectionDenial::MissingStaticPaintToken)?;
+    let color = match theme_values.current_value(token_id) {
+        Some(crate::capability::ThemeTokenValue::Color(color)) => parse_rgba(color.as_str())
+            .map_err(|_| UiMountedProjectionDenial::InvalidStaticPaintColor)?,
+        None if theme_values.uses_frozen_plan() => frozen_plan_color(plan, component)?,
+        None => return Err(UiMountedProjectionDenial::MissingStaticPaintColor),
+    };
+    Ok(Some(UiMountedStaticPaintSeed {
+        color,
+        layer_semantic_order,
+    }))
+}
+
+fn frozen_plan_color(
+    plan: super::super::super::UiMountedPlanProjectionSource<'_>,
+    component: &crate::runtime::planning::execution_plan_input::WorthUiComponentPlanMeaning,
+) -> Result<UiMountedRgba8, UiMountedProjectionDenial> {
     let Some((_token_plan_index, token_meaning)) = plan
         .component_theme_token(component)
         .map_err(|_| UiMountedProjectionDenial::AmbiguousStaticPaintToken)?
@@ -41,12 +61,7 @@ pub(in crate::mounting::projection) fn lower_static_paint_seed(
     let color = token
         .resolved_color_text()
         .ok_or(UiMountedProjectionDenial::MissingStaticPaintColor)?;
-    let color =
-        parse_rgba(color).map_err(|_| UiMountedProjectionDenial::InvalidStaticPaintColor)?;
-    Ok(Some(UiMountedStaticPaintSeed {
-        color,
-        layer_semantic_order,
-    }))
+    parse_rgba(color).map_err(|_| UiMountedProjectionDenial::InvalidStaticPaintColor)
 }
 
 fn lower_layer_semantic_order(
@@ -66,7 +81,7 @@ impl UiMountedStaticPaintSeed {
     }
 
     #[cfg(test)]
-    pub(super) const fn for_test(color: UiMountedRgba8) -> Self {
+    pub(in crate::mounting::projection) const fn for_test(color: UiMountedRgba8) -> Self {
         Self {
             color,
             layer_semantic_order: 0,

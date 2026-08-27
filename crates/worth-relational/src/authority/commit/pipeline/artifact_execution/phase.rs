@@ -8,7 +8,7 @@ use crate::authority::commit::publication::assemble_patch;
 use crate::authority::mutation::MutationEffect;
 use crate::commit_strategies::data::StrategyCommitArtifactBundle;
 use crate::diagnostics::data::RelationalDiagnosticsEntry;
-use crate::history::data::{BranchId, CommitId, CommitReference};
+use crate::history::data::{BranchId, CommitId, RelationalCommitReceipt};
 use crate::identity::data::VersionId;
 use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{
@@ -19,16 +19,19 @@ use crate::transactions::data::{
 pub(super) struct ArtifactAssemblyInput<'a> {
     pub(super) working_state: &'a mut crate::storage::overlay::WorkingState,
     pub(super) effect: MutationEffect,
-    pub(super) commit_reference: &'a CommitReference,
+    pub(super) commit_reference: &'a RelationalCommitReceipt,
     pub(super) branch_id: &'a BranchId,
     pub(super) version_id: VersionId,
     pub(super) merge_parent_branches: &'a [BranchId],
     pub(super) merge_base_commits: &'a [CommitId],
     pub(super) merged_plan: &'a MergedCommitPlan,
+    pub(super) record_allocations: &'a [crate::history::data::CanonicalRecordAllocation],
     pub(super) strategy_commit_artifacts: Option<StrategyCommitArtifactBundle>,
     pub(super) merge_execution_authority: Option<PublishedMergeExecutionAuthority>,
     pub(super) schema_continuity: &'a SchemaContinuityPlan,
     pub(super) additional_diagnostics_entries: Vec<RelationalDiagnosticsEntry>,
+    pub(super) deferred_diagnostic_artifacts:
+        Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
 }
 
 pub(super) fn assemble_authoritative_publication_phase(
@@ -41,7 +44,7 @@ pub(super) fn assemble_authoritative_publication_phase(
     let phase_started = std::time::Instant::now();
     let mut effect = input.effect;
     let patch_fragments = std::mem::take(&mut effect.publication.patch_fragments);
-    let patch = assemble_patch(runtime, input.commit_reference.commit_id, patch_fragments);
+    let patch = assemble_patch(runtime, patch_fragments);
     let patch_budget_summary = CommitPatchBudgetSummary {
         patch_record_count: patch.authoritative_record_patches.len(),
         max_patch_records_per_commit: runtime
@@ -64,37 +67,26 @@ pub(super) fn assemble_authoritative_publication_phase(
             merge_parent_branches: input.merge_parent_branches,
             merge_base_commits: input.merge_base_commits,
             merged_plan: input.merged_plan,
+            record_allocations: input.record_allocations,
             strategy_artifacts: input.strategy_commit_artifacts,
             merge_execution_authority: input.merge_execution_authority,
             schema_continuity: input.schema_continuity,
             effect,
             additional_diagnostics_entries: input.additional_diagnostics_entries,
+            deferred_diagnostic_artifacts: input.deferred_diagnostic_artifacts,
         },
     )
     .map_err(|error| attach_rejection(commit_log, CommitPhase::ArtifactAssembly, error))?;
-    record_publication_phase_artifacts(runtime, commit_log, &publication);
+    record_publication_phase_artifacts(commit_log, &publication);
     commit_log.complete_phase(CommitPhase::ArtifactAssembly);
     phase_timing.artifact_assembly_micros = elapsed_micros(phase_started);
     Ok(publication)
 }
 
 fn record_publication_phase_artifacts(
-    runtime: &mut RelationalRuntime,
     commit_log: &mut CommitLog,
     publication: &PublicationPreparation,
 ) {
-    if runtime.config.diagnostics.profile.detailed_traces_enabled {
-        for trace in publication.aspect_evaluation_traces() {
-            runtime
-                .publication_authority()
-                .push_diagnostic_artifact(trace.diagnostic_artifact());
-        }
-        for trace in publication.aspect_emission_traces() {
-            runtime
-                .publication_authority()
-                .push_diagnostic_artifact(trace.diagnostic_artifact());
-        }
-    }
     let (change_summary, aspect_summary, publication_summary) = publication.summaries();
     commit_log.record_changed_records(change_summary);
     commit_log.record_aspect_summary(aspect_summary);

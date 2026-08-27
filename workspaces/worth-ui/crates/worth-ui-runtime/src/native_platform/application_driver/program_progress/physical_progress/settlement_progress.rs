@@ -63,14 +63,8 @@ impl UiNativeApplicationProgramProgress {
             (UiNativeProgramReconstructionAuthority::HostRequired, FrameProgress::Settled) => {
                 self.advance(shell)
             }
-            (
-                UiNativeProgramReconstructionAuthority::Physical(reconstruction),
-                FrameProgress::RetryRequired,
-            ) => self.resume_reconstruction(shell, completed.program_frame, reconstruction),
-            (
-                UiNativeProgramReconstructionAuthority::HostRequired,
-                FrameProgress::RetryRequired,
-            ) => self.resume_host_reconstruction(shell, completed.program_frame),
+            (_, FrameProgress::RetryRequired(_)) if self.pending_retry.is_some() => Ok(()),
+            (_, FrameProgress::RetryRequired(_)) => Err(()),
             (_, FrameProgress::Failed) => Err(()),
         }
     }
@@ -80,7 +74,7 @@ impl UiNativeApplicationProgramProgress {
         shell: &mut WorthUiNativeApplicationShell,
         completed: CompletedPhysicalProgramFrame,
     ) -> Result<(), ()> {
-        if completed.progress == FrameProgress::RetryRequired {
+        if matches!(completed.progress, FrameProgress::RetryRequired(_)) {
             self.next_frame = self.next_frame.min(completed.program_frame);
         } else if completed.progress == FrameProgress::Failed {
             return Err(());

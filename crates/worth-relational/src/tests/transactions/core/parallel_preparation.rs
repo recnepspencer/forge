@@ -4,9 +4,8 @@ use crate::tests::support::*;
 
 #[test]
 fn staged_parallel_commit_records_preparation_strategy_and_packet_counters() {
-    let mut runtime = runtime_with_test_schema_execution_model(
-        RelationalExecutionModel::StagedParallelPreparation,
-    );
+    let mut runtime =
+        runtime_with_test_schema_execution_model(RelationalExecutionModel::ParallelPreparation);
     let result = create_entity_outcome(&mut runtime, "staged");
 
     assert!(result.complexity_delta().preparation_packet_count >= 1);
@@ -32,13 +31,12 @@ fn staged_parallel_commit_records_preparation_strategy_and_packet_counters() {
         .invariant_executions()
         .iter()
         .find(|execution| {
-            execution.metadata().execution_model()
-                == RelationalExecutionModel::StagedParallelPreparation
+            execution.metadata().execution_model() == RelationalExecutionModel::ParallelPreparation
         })
         .expect("staged preparation execution");
     assert_eq!(
         staged_execution.metadata().execution_model(),
-        RelationalExecutionModel::StagedParallelPreparation
+        RelationalExecutionModel::ParallelPreparation
     );
     assert_eq!(
         staged_execution
@@ -53,7 +51,7 @@ fn staged_parallel_commit_records_preparation_strategy_and_packet_counters() {
     assert!(result.commit_log().events().iter().any(|event| matches!(
         event,
         CommitTraceEvent::InvariantEvaluated {
-            execution_model: RelationalExecutionModel::StagedParallelPreparation,
+            execution_model: RelationalExecutionModel::ParallelPreparation,
             preparation_selected_mode: Some(
                 crate::authority::commit::preparation::planning::strategy::PreparationStrategySelection::StagedParallel
             ),
@@ -65,10 +63,9 @@ fn staged_parallel_commit_records_preparation_strategy_and_packet_counters() {
 #[test]
 fn staged_parallel_patch_preparation_matches_serial_patch_surface() {
     let mut serial_runtime =
-        runtime_with_test_schema_execution_model(RelationalExecutionModel::SerialAuthority);
-    let mut staged_runtime = runtime_with_test_schema_execution_model(
-        RelationalExecutionModel::StagedParallelPreparation,
-    );
+        runtime_with_test_schema_execution_model(RelationalExecutionModel::SingleLaneExecution);
+    let mut staged_runtime =
+        runtime_with_test_schema_execution_model(RelationalExecutionModel::ParallelPreparation);
 
     let serial = create_entity_outcome(&mut serial_runtime, "patch-parity");
     let staged = create_entity_outcome(&mut staged_runtime, "patch-parity");

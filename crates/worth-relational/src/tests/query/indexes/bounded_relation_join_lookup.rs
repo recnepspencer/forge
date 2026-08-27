@@ -160,7 +160,85 @@ fn relation_join_rejects_a_candidate_with_substituted_relation_evidence() {
     );
 }
 
+#[test]
+fn exact_relation_join_uses_one_branch_root_after_both_heads_diverge() {
+    let mut runtime = runtime_with_index_field_aspects();
+    let left = create_entity(&mut runtime, "exact-left");
+    let right = create_entity(&mut runtime, "exact-right");
+    let selected = create_entity(&mut runtime, "exact-selected");
+    let (selected_left_relation, _) =
+        bind_chain(&mut runtime, left, selected, right, "exact-selected");
+    let index = register_relation_join_with_scope(&mut runtime, 85, true);
+    build_current_generation(&mut runtime, index.index_id);
+    let main_snapshot = snapshot_for_owner_branch(&mut runtime, &BranchId("main".to_owned()));
+
+    runtime
+        .history_authority()
+        .fork_branch_from(
+            BranchId("join-sibling".to_owned()),
+            &BranchId("main".to_owned()),
+        )
+        .unwrap();
+    let sibling_snapshot =
+        snapshot_for_owner_branch(&mut runtime, &BranchId("join-sibling".to_owned()));
+    create_entity_outcome_on_branch(
+        &mut runtime,
+        "sibling-after-observation",
+        BranchId("join-sibling".to_owned()),
+    );
+    delete_relation_on_branch(
+        &mut runtime,
+        selected_left_relation,
+        BranchId("main".to_owned()),
+    );
+    build_current_generation(&mut runtime, index.index_id);
+    let current_main = snapshot_for_owner_branch(&mut runtime, &BranchId("main".to_owned()));
+
+    let current_outcome = runtime
+        .index_access()
+        .execute_bounded_relation_join_lookup(
+            join_request(current_main, index.index_id, left, right, 2),
+            BoundedIndexParityMode::Certification,
+        )
+        .unwrap();
+    assert!(current_outcome.candidate_entity_ids().is_empty());
+
+    for parity in [
+        BoundedIndexParityMode::Production,
+        BoundedIndexParityMode::Certification,
+    ] {
+        let outcome = runtime
+            .index_access()
+            .execute_bounded_relation_join_lookup(
+                join_request(main_snapshot.clone(), index.index_id, left, right, 2),
+                parity,
+            )
+            .unwrap();
+        assert_eq!(outcome.candidate_entity_ids(), &[selected]);
+    }
+
+    let sibling_denial = runtime
+        .index_access()
+        .execute_bounded_relation_join_lookup(
+            join_request(sibling_snapshot, index.index_id, left, right, 2),
+            BoundedIndexParityMode::Certification,
+        )
+        .unwrap_err();
+    assert_eq!(
+        sibling_denial.kind(),
+        BoundedRelationJoinLookupDenialKind::ExactGenerationUnavailable
+    );
+}
+
 fn register_relation_join(runtime: &mut RelationalRuntime, id: u64) -> DerivedIndexDefinition {
+    register_relation_join_with_scope(runtime, id, false)
+}
+
+fn register_relation_join_with_scope(
+    runtime: &mut RelationalRuntime,
+    id: u64,
+    branch_scoped: bool,
+) -> DerivedIndexDefinition {
     runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(id),
         name: format!("relation.join.{id}"),
@@ -169,7 +247,7 @@ fn register_relation_join(runtime: &mut RelationalRuntime, id: u64) -> DerivedIn
             RelationJoinLeg::new(KindId(2), RelationJoinSharedEndpoint::Source, KindId(1)),
             KindId(1),
         )),
-        branch_scoped: false,
+        branch_scoped,
     })
 }
 

@@ -33,6 +33,8 @@ impl super::WorthUiNativeApplicationShell {
             self.rebind_native_surface_scale(self.scale_factor_milli)
                 .map_err(|()| ())?;
         }
+        self.settle_pending_native_viewport_measurements()
+            .map_err(|_| ())?;
         let request = self.session.mounted_frame_request();
         let replacement = self.pending_surface_reconciliation.unwrap_or_else(|| {
             crate::mounting::UiMountedSurfaceReconciliationBinding::new(affected, self.binding)
@@ -59,7 +61,7 @@ impl super::WorthUiNativeApplicationShell {
         if reconstructed_rasters > 0 {
             self.record_runtime_derived_state_reconstruction(reconstructed_rasters)?;
         }
-        self.pending_surface_reconciliation = None;
+        self.settle_surface_reconciliation(&outcome);
         Ok(outcome)
     }
 

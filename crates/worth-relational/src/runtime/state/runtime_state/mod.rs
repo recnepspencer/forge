@@ -1,4 +1,6 @@
+mod branch_authority;
 mod core_access;
+mod merge_authority;
 #[cfg(test)]
 mod test_support;
 
@@ -9,8 +11,8 @@ use crate::storage::overlay::PartitionState;
 
 use super::{
     CommitStrategiesSubsystem, DurabilitySubsystem, HistorySubsystem, IndexingSubsystem,
-    LineageSubsystem, PublicationSubsystem, RuntimeServices, SchemaContractRuntimeSubsystem,
-    VisibilitySubsystem,
+    LineageSubsystem, PublicationSubsystem, RecordIdentitySubsystem, RuntimeServices,
+    SchemaContractRuntimeSubsystem, VisibilitySubsystem,
 };
 
 #[derive(Debug)]
@@ -25,6 +27,7 @@ pub struct RelationalRuntime {
     pub(crate) indexes: IndexingSubsystem,
     pub(crate) lineage: LineageSubsystem,
     pub(crate) durability: DurabilitySubsystem,
+    pub(crate) record_identity: RecordIdentitySubsystem,
     pub(crate) services: RuntimeServices,
 }
 

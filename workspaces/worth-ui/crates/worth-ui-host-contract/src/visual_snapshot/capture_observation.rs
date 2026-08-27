@@ -18,11 +18,13 @@ pub struct UiHostCaptureObservation {
 }
 
 #[derive(Debug)]
+#[must_use = "capture observation may retain a pending host obligation and must be handled"]
 pub enum UiHostCaptureObservationOutcome {
     Pending,
     Captured(UiHostCaptureObservation),
     SupersededBeforeReadback,
     CaptureAffinityIndeterminate,
+    ReadbackCompletionIndeterminate,
     Unsupported,
     CapacityExceeded,
 }

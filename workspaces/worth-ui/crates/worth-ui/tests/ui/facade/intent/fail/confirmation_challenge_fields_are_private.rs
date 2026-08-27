@@ -5,8 +5,8 @@ fn forge() -> UiIntentConfirmationChallenge {
         candidate: panic!(),
         decision: panic!(),
         policy_identity: panic!(),
-        issued_at: 0,
-        expires_at: 1,
+        issued_at_millis: 0,
+        expires_at_millis: 1,
         lineage: panic!(),
         slot_identity: panic!(),
     }

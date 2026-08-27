@@ -1,7 +1,0 @@
-error: cannot construct `WorthQueryPromotedGraphIdentity` with struct literal syntax due to private fields
- --> tests/ui/lineage/promoted_graph_identity_constructor_private.rs:4:19
-  |
-4 |     let _forged = WorthQueryPromotedGraphIdentity {};
-  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |
-  = note: private field `admitted` that was not provided

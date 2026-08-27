@@ -80,7 +80,8 @@ fn perf_retention_reclaim_matrix() {
             let created = create_relation_outcome(&mut runtime, source, target, "replay-r1");
             let relation = changed_relations(&created)[0];
             let deleted = {
-                let mut txn = runtime.begin_transaction(TransactionOptions::default());
+                let mut txn =
+                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
                 txn.push_batch(WorkerIntentBatch::new("delete-relation").push(
                     MutationIntent::Relation(RelationMutationIntent::Delete(
                         DeleteRelationIntent {
@@ -88,7 +89,7 @@ fn perf_retention_reclaim_matrix() {
                         },
                     )),
                 ));
-                txn.commit().expect("delete relation")
+                txn.commit(&mut runtime).expect("delete relation")
             };
 
             assert!(runtime

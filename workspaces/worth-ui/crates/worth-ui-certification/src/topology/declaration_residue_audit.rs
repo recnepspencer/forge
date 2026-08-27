@@ -74,7 +74,8 @@ pub fn audit_non_owner_code_does_not_reopen_declaration_source(
         "crates/worth-ui-runtime/src",
         "crates/worth-ui-inspection/src",
         "crates/worth-ui-host-contract/src",
-        "crates/worth-ui-host-egui/src",
+        "crates/worth-ui-host-native/src",
+        "crates/worth-ui-host-headless/src",
     ];
     let mut violations = Vec::new();
     let files = scoped_roots
@@ -235,7 +236,8 @@ pub fn audit_host_and_inspection_layers_do_not_import_declaration_authority(
     let scoped_roots = [
         "crates/worth-ui-inspection/src",
         "crates/worth-ui-host-contract/src",
-        "crates/worth-ui-host-egui/src",
+        "crates/worth-ui-host-native/src",
+        "crates/worth-ui-host-headless/src",
     ];
     let mut violations = Vec::new();
     let files = scoped_roots

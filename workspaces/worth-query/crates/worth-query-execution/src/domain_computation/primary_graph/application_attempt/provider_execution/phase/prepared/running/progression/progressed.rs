@@ -62,13 +62,15 @@ const fn terminal_for(
     match outcome {
         WorthQueryProviderProgressionOutcome::Committed(_)
         | WorthQueryProviderProgressionOutcome::AlreadyCommitted(_)
-        | WorthQueryProviderProgressionOutcome::Stale(_) => {
+        | WorthQueryProviderProgressionOutcome::Stale(_)
+        | WorthQueryProviderProgressionOutcome::SettlementDeferred(_) => {
             WorthQueryManagedRunTerminalKind::Completed
         }
         WorthQueryProviderProgressionOutcome::Cancelled => {
             WorthQueryManagedRunTerminalKind::Cancelled
         }
         WorthQueryProviderProgressionOutcome::Denied(_)
+        | WorthQueryProviderProgressionOutcome::Deferred(_)
         | WorthQueryProviderProgressionOutcome::Aborted
         | WorthQueryProviderProgressionOutcome::Indeterminate(_) => {
             WorthQueryManagedRunTerminalKind::Failed

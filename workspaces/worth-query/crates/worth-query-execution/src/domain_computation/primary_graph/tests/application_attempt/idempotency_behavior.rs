@@ -145,23 +145,25 @@ fn idempotency_lookup_never_substitutes_another_branch_head() {
         .primary_provider
         .graph
         .with_runtime_mut(|runtime| {
-            runtime
-                .history_authority()
-                .create_branch(feature.clone(), &main)
-                .unwrap();
-            let mut transaction: worth_relational::facade::transactions::RelationalTransaction<'_> =
-                runtime.begin_transaction(
-                    worth_relational::facade::transactions::TransactionOptions {
-                        target_branch: Some(feature.clone()),
-                        ..Default::default()
-                    },
-                );
+            let (_, basis) = runtime.observe_fork_source(&main).unwrap();
+            runtime.fork_branch(feature.clone(), basis).unwrap();
+            let mut transaction: worth_relational::facade::mvcc::BranchBoundRelationalTransaction ={
+    let transaction_validation_input = runtime
+                        .admit_named_branch_basis(&feature)
+                        .expect("feature branch binding");
+    runtime
+        .begin_branch_transaction(
+            &transaction_validation_input,
+            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
+        )
+        .expect("owner-admitted transaction context")
+};
             transaction.push_batch(
                 worth_relational::facade::transactions::WorkerIntentBatch::new(
                     "feature-branch-head",
                 ),
             );
-            transaction.commit().unwrap();
+            transaction.commit(runtime).unwrap();
         });
     let WorthQueryApplicationCommitOutcome::Committed(receipt) = world
         .application

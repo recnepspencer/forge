@@ -4,10 +4,12 @@
 /// This is not read authority. The primary source adapter revalidates it
 /// against its retained graph immediately before and after projection.
 #[doc(hidden)]
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct WorthQueryGranularSourceReadBasis {
     snapshot: worth_runtime_bridge::facade::TruthSnapshotIdentity,
     branch: worth_runtime_bridge::facade::TruthBranchIdentity,
+    _observation:
+        std::sync::Arc<worth_relational::facade::bridge::RelationalBridgeObservationLease>,
 }
 
 impl WorthQueryGranularSourceReadBasis {
@@ -17,14 +19,25 @@ impl WorthQueryGranularSourceReadBasis {
         Self {
             snapshot: basis.snapshot().clone(),
             branch: basis.branch().clone(),
+            _observation: basis.retain_observation(),
         }
     }
 
-    pub(crate) fn snapshot(&self) -> &worth_runtime_bridge::facade::TruthSnapshotIdentity {
+    #[doc(hidden)]
+    pub fn snapshot(&self) -> &worth_runtime_bridge::facade::TruthSnapshotIdentity {
         &self.snapshot
     }
 
-    pub(crate) fn branch(&self) -> &worth_runtime_bridge::facade::TruthBranchIdentity {
+    #[doc(hidden)]
+    pub fn branch(&self) -> &worth_runtime_bridge::facade::TruthBranchIdentity {
         &self.branch
     }
 }
+
+impl PartialEq for WorthQueryGranularSourceReadBasis {
+    fn eq(&self, other: &Self) -> bool {
+        self.snapshot == other.snapshot && self.branch == other.branch
+    }
+}
+
+impl Eq for WorthQueryGranularSourceReadBasis {}

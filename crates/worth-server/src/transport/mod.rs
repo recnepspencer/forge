@@ -1,5 +1,6 @@
 mod axum_runtime;
 mod caller_admission;
+mod query_request_scope;
 mod route_assembly;
 
 pub(crate) use axum_runtime::serve_runtime;
@@ -10,6 +11,10 @@ pub use caller_admission::{
 };
 pub(crate) use caller_admission::{
     WorthServerTransportCallerAdmission, WorthServerTransportPrincipal,
+};
+pub use query_request_scope::WorthServerQueryRequestScope;
+pub(crate) use query_request_scope::{
+    WorthServerTransportRequestCancellation, WorthServerTransportRequestCancellationGuard,
 };
 pub(crate) use route_assembly::project_axum_router;
 pub use route_assembly::{

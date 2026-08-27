@@ -8,30 +8,48 @@ impl<'runtime> VisibilityReadContext<'runtime> {
 
     pub fn read_snapshot(&self, handle: &SnapshotHandle) -> Option<RelationalReadView> {
         let resolved = resolve_snapshot_state(self.runtime, handle)?;
-        let mut read_view = read_view_from_snapshot_state(self.runtime, &resolved.state);
-        read_view.snapshot = resolved.handle;
-        Some(read_view)
+        Some(read_view_from_snapshot_state(
+            self.runtime,
+            &resolved.state,
+            &resolved.handle,
+        ))
     }
 
     pub(crate) fn read_version(
         &self,
         version_id: crate::identity::data::VersionId,
     ) -> RelationalReadView {
-        let state = reconstruct_state(self.runtime, version_id, true).unwrap_or_else(|| {
-            build_visibility_state(
-                self.runtime,
-                version_id,
-                crate::snapshots::data::SnapshotId(0),
-                crate::snapshots::data::SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
-            )
-        });
-        read_view_from_snapshot_state(self.runtime, &state)
+        self.try_read_version(version_id)
+            .expect("internal historical read requires retained MVCC coverage")
+    }
+
+    pub(crate) fn try_read_version(
+        &self,
+        version_id: crate::identity::data::VersionId,
+    ) -> Result<RelationalReadView, crate::visibility::snapshot_states::HistoricalVisibilityDenial>
+    {
+        let state = materialize_historical_visibility(self.runtime, version_id, true).ok_or_else(
+            || {
+                crate::visibility::cache_state::historical_basis_for_retained_version(
+                    self.runtime,
+                    version_id,
+                )
+                .err()
+                .unwrap_or(
+                    crate::visibility::snapshot_states::HistoricalVisibilityDenial::CertificationReconstructionRequired,
+                )
+            },
+        )?;
+        let handle = state.handle.clone();
+        Ok(read_view_from_snapshot_state(self.runtime, &state, &handle))
     }
 
     pub fn query_plan_context(&self, handle: &SnapshotHandle) -> Option<QueryPlanContextId> {
         let snapshot = self.resolved_snapshot_handle(handle)?;
+        let basis = resolve_snapshot_basis(self.runtime, &snapshot)?;
+        let root = basis.root();
         let (schema_version, descriptor_semantics_version, evidence_basis) =
-            self.query_schema_context(snapshot.version_id)?;
+            query_schema_context_for_root(root);
         Some(QueryPlanContextId {
             runtime_instance_id: self.runtime.runtime_instance_id(),
             snapshot_id: snapshot.snapshot_id,
@@ -42,6 +60,48 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         })
     }
 
+    /// Read the immutable root carried by one owner-admitted observation.
+    pub fn read_observation(
+        &self,
+        observation: &crate::mvcc::RelationalBranchObservation,
+    ) -> Result<RelationalReadView, crate::branch::RelationalBranchBasisDenial> {
+        self.require_local_observation(observation)?;
+        let state = build_visibility_state(
+            self.runtime,
+            crate::visibility::snapshot_states::VisibilitySnapshotBasis::from_observation(
+                observation,
+            ),
+            crate::snapshots::data::SnapshotId(0),
+            crate::snapshots::data::SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
+        );
+        let handle = state.handle.clone();
+        Ok(read_view_from_snapshot_state(self.runtime, &state, &handle))
+    }
+
+    /// Schema version carried by the observation's selected canonical root.
+    pub fn observation_schema_version(
+        &self,
+        observation: &crate::mvcc::RelationalBranchObservation,
+    ) -> Result<crate::schema::data::SchemaVersionId, crate::branch::RelationalBranchBasisDenial>
+    {
+        self.require_local_observation(observation)?;
+        Ok(observation
+            .selected_root()
+            .schema_authority()
+            .schema_version())
+    }
+
+    /// Observe the schema version carried by the exact canonical snapshot
+    /// basis. This is descriptive read evidence and grants no schema or
+    /// publication authority.
+    pub fn snapshot_schema_version(
+        &self,
+        handle: &SnapshotHandle,
+    ) -> Option<crate::schema::data::SchemaVersionId> {
+        let basis = resolve_snapshot_basis(self.runtime, handle)?;
+        Some(basis.root().schema_authority().schema_version())
+    }
+
     pub(super) fn resolved_snapshot_handle(
         &self,
         handle: &SnapshotHandle,
@@ -49,38 +109,36 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         resolve_snapshot_handle(self.runtime, handle)
     }
 
-    pub(super) fn query_schema_context(
+    fn require_local_observation(
         &self,
-        version_id: crate::identity::data::VersionId,
-    ) -> Option<(
-        crate::schema::data::SchemaVersionId,
-        crate::schema::data::DescriptorSemanticsVersion,
-        QueryPlanEvidenceBasis,
-    )> {
-        if let Some(envelope) = self
-            .runtime
-            .history()
-            .commit_envelope_for_version(version_id)
-        {
-            return Some((
-                envelope.schema_version,
-                envelope.descriptor_semantics_version,
-                QueryPlanEvidenceBasis::CanonicalCommitEnvelope {
-                    commit_id: envelope.commit.commit_id,
-                },
-            ));
+        observation: &crate::mvcc::RelationalBranchObservation,
+    ) -> Result<(), crate::branch::RelationalBranchBasisDenial> {
+        if observation.identity().runtime_instance_id() != self.runtime.runtime_instance_id() {
+            return Err(crate::branch::RelationalBranchBasisDenial::ForeignRuntime {
+                expected_runtime_instance_id: self.runtime.runtime_instance_id(),
+                actual_runtime_instance_id: observation.identity().runtime_instance_id(),
+            });
         }
-
-        if version_id == self.runtime.current_version_id()
-            && self.runtime.history().latest_commit().is_none()
-        {
-            return Some((
-                self.runtime.primary_schema_version_id(),
-                runtime_descriptor_semantics_policy().current_write_version(),
-                QueryPlanEvidenceBasis::GenesisRuntimeBootstrap,
-            ));
-        }
-
-        None
+        Ok(())
     }
+}
+
+fn query_schema_context_for_root(
+    root: &crate::branch::RelationalBranchRoot,
+) -> (
+    crate::schema::data::SchemaVersionId,
+    crate::schema::data::DescriptorSemanticsVersion,
+    QueryPlanEvidenceBasis,
+) {
+    let evidence_basis = root.canonical_envelope().map_or(
+        QueryPlanEvidenceBasis::GenesisRuntimeBootstrap,
+        |envelope| QueryPlanEvidenceBasis::CanonicalCommitEnvelope {
+            commit_id: envelope.commit.commit_id,
+        },
+    );
+    (
+        root.schema_authority().schema_version(),
+        root.schema_authority().descriptor_semantics_version(),
+        evidence_basis,
+    )
 }

@@ -4,12 +4,12 @@ use super::{
     DurableCheckpointId, DurableSegmentId, RecoveryCoverage, RecoveryCursor,
     RecoveryIntegrityReport,
 };
-use crate::history::data::CommitReference;
+use crate::history::data::RelationalCommitReceipt;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RecoveryOutcome {
     pub recovered_commits: usize,
-    pub latest_commit: Option<CommitReference>,
+    pub latest_commit: Option<RelationalCommitReceipt>,
     pub restored_branches: usize,
     pub cursor: RecoveryCursor,
     pub coverage: RecoveryCoverage,

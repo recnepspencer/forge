@@ -11,6 +11,46 @@ use worth_runtime_bridge::facade::{
 
 use super::super::RuntimeBridgeRelationalSource;
 
+pub(super) fn bridge_envelopes_at_current_observation(
+    runtime: crate::runtime::RelationalRuntime,
+    commit_ids: impl IntoIterator<Item = crate::history::data::CommitId>,
+) -> Vec<BridgeCommittedPatchEnvelope> {
+    use worth_runtime_bridge::facade::{
+        CommittedPatchSource, RelationalCommittedPatchRequest, TruthCommitIdentity,
+    };
+
+    let branch = runtime
+        .publication()
+        .latest_bundle()
+        .expect("Bridge publication fixture requires a committed branch")
+        .commit
+        .branch_id
+        .clone();
+    let identity = runtime
+        .branch_identity(&branch)
+        .expect("Bridge publication fixture branch identity");
+    let source =
+        RuntimeBridgeRelationalSource::for_graph_role(std::sync::Arc::new(runtime), "model")
+            .expect("Bridge publication fixture graph role");
+    let (_, basis) = source
+        .observe_branch_basis(&identity)
+        .expect("Bridge publication fixture exact basis");
+    let _lease = source
+        .retain_branch_basis_for_bridge(&basis)
+        .expect("Bridge publication fixture retained observation");
+    commit_ids
+        .into_iter()
+        .map(|commit_id| {
+            source
+                .load_committed_patch(RelationalCommittedPatchRequest::at_snapshot(
+                    TruthCommitIdentity::from_relational_commit_id(commit_id.0),
+                    _lease.snapshot_identity().clone(),
+                ))
+                .expect("exact observed Bridge publication")
+        })
+        .collect()
+}
+
 pub(super) struct TestSink;
 
 impl InvalidationSink for TestSink {
@@ -63,6 +103,7 @@ pub(super) fn runtime_bridge_for_envelope(
         .expect("lineage publication fixture must carry one native patch item");
     let mut builder = RuntimeBridgeBuilder::new()
         .with_relational_source(source.clone())
+        .with_truth_branch_head_source(source.clone())
         .with_signal_sink(TestSink)
         .with_continuity_lineage_source(source)
         .register_mapping(exact_registration("lineage-publication-item-0", patch_item))

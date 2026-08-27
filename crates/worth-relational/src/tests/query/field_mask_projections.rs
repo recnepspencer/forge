@@ -127,7 +127,7 @@ fn entity_field_mask_projection_reads_only_declared_struct_field() {
 
     let projected = runtime
         .read_truth()
-        .project_version(runtime.current_version_id())
+        .project_historical_version(runtime.current_version_id())
         .entities::<SummaryTitleFieldProjection>();
 
     assert_eq!(projected.len(), 1);
@@ -149,7 +149,7 @@ fn whole_aspect_projection_still_reads_full_struct_aspect() {
 
     let projected = runtime
         .read_truth()
-        .project_version(runtime.current_version_id())
+        .project_historical_version(runtime.current_version_id())
         .entities::<SummaryWholeAspectProjection>();
 
     assert_eq!(projected.len(), 1);
@@ -165,7 +165,7 @@ fn scalar_aspect_rejects_field_mask_projection_at_use_boundary() {
 
     let _ = runtime
         .read_truth()
-        .project_version(runtime.current_version_id())
+        .project_historical_version(runtime.current_version_id())
         .entities::<NameFieldMaskProjection>();
 }
 
@@ -185,7 +185,7 @@ fn relation_field_mask_projection_reads_only_declared_struct_field() {
 
     let projected = runtime
         .read_truth()
-        .project_version(runtime.current_version_id())
+        .project_historical_version(runtime.current_version_id())
         .relations::<RelationSummaryTitleFieldProjection>();
 
     assert_eq!(projected.len(), 1);
@@ -252,12 +252,12 @@ fn relation_summary_struct_aspect(
 }
 
 fn create_entity_with_summary_fields(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     client_key: &str,
     summary_title: &str,
     summary_status: &str,
 ) -> EntityId {
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(WorkerIntentBatch::new(format!("batch-{client_key}")).push(
         MutationIntent::Create(CreateIntent::Entity(
             crate::transactions::data::EntitySpec {
@@ -290,18 +290,18 @@ fn create_entity_with_summary_fields(
             },
         )),
     ));
-    changed_entities(&txn.commit().unwrap())[0]
+    changed_entities(&txn.commit(&mut runtime).unwrap())[0]
 }
 
 fn create_relation_with_summary_fields(
-    runtime: &mut RelationalRuntime,
+    mut runtime: &mut RelationalRuntime,
     source: EntityId,
     target: EntityId,
     client_key: &str,
     summary_title: &str,
     summary_status: &str,
 ) {
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new(format!("relation-{client_key}")).push(MutationIntent::Create(
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
@@ -329,7 +329,7 @@ fn create_relation_with_summary_fields(
             }),
         )),
     );
-    txn.commit().unwrap();
+    txn.commit(&mut runtime).unwrap();
 }
 
 fn test_projection_contract_identity(aspect_key: &AspectKey) -> u64 {

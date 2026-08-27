@@ -9,12 +9,7 @@ pub(super) fn exact_published_generation<'a>(
     snapshot: &SnapshotHandle,
     definition: &DerivedIndexDefinition,
 ) -> Option<&'a DerivedIndexGeneration> {
-    let branch_id = runtime
-        .history
-        .commit_graph
-        .values()
-        .find(|node| node.commit.version_id == snapshot.version_id)
-        .map(|node| &node.commit.branch_id);
+    let branch_id = snapshot.branch_id();
     let schema_version = runtime
         .read_truth()
         .query_plan_context(snapshot)?
@@ -29,8 +24,6 @@ pub(super) fn exact_published_generation<'a>(
             generation.status == DerivedIndexPublicationStatus::Published
                 && generation.applicability.version_id == snapshot.version_id
                 && generation.applicability.schema_version == schema_version
-                && (!definition.branch_scoped
-                    || branch_id
-                        .is_some_and(|branch| generation.applicability.branch_id == *branch))
+                && (!definition.branch_scoped || generation.applicability.branch_id == *branch_id)
         })
 }

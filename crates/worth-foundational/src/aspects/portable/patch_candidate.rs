@@ -27,6 +27,15 @@ impl PortableRecordAspectPatch {
     pub(crate) fn into_operations(self) -> Vec<PortableAspectPatchOperation> {
         self.operations
     }
+
+    pub fn owned_allocation_capacity_bytes(&self) -> usize {
+        self.operations.iter().fold(
+            self.operations
+                .capacity()
+                .saturating_mul(std::mem::size_of::<PortableAspectPatchOperation>()),
+            |bytes, operation| bytes.saturating_add(operation.owned_allocation_capacity_bytes()),
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -54,6 +63,49 @@ impl PortableAspectPatchOperation {
             | Self::PatchFields { basis, .. } => basis,
         }
     }
+
+    fn owned_allocation_capacity_bytes(&self) -> usize {
+        let basis = self.basis().owned_allocation_capacity_bytes();
+        match self {
+            Self::SetWhole { value, .. } => {
+                basis.saturating_add(value.owned_allocation_capacity_bytes())
+            }
+            Self::ClearWhole { .. } => basis,
+            Self::PatchFields {
+                selected_fields,
+                field_sets,
+                field_clears,
+                ..
+            } => basis
+                .saturating_add(field_key_vector_bytes(
+                    selected_fields,
+                    selected_fields.capacity(),
+                ))
+                .saturating_add(
+                    field_sets.iter().fold(
+                        field_sets
+                            .capacity()
+                            .saturating_mul(std::mem::size_of::<PortableAspectFieldSet>()),
+                        |bytes, field| {
+                            bytes
+                                .saturating_add(field.field.owned_allocation_capacity_bytes())
+                                .saturating_add(field.value.owned_allocation_capacity_bytes())
+                        },
+                    ),
+                )
+                .saturating_add(field_key_vector_bytes(
+                    field_clears,
+                    field_clears.capacity(),
+                )),
+        }
+    }
+}
+
+fn field_key_vector_bytes(fields: &[FieldKey], capacity: usize) -> usize {
+    fields.iter().fold(
+        capacity.saturating_mul(std::mem::size_of::<FieldKey>()),
+        |bytes, field| bytes.saturating_add(field.owned_allocation_capacity_bytes()),
+    )
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

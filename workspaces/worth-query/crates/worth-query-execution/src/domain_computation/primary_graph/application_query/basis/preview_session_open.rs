@@ -5,7 +5,6 @@ use worth_query_admission::facade::authenticated_principal::{
     WorthQueryRequestInterruption, WorthQueryRequestScope,
 };
 use worth_query_declaration::facade::application_schema::ApplicationSchema;
-use worth_relational::facade::bridge::bridge_snapshot_identity_for_commit;
 use worth_runtime_bridge::facade::{
     BridgePreviewRetainedArtifactSchema, BridgePreviewSessionBasis,
     BridgePreviewSessionDeclaration, BridgePreviewSessionDeclarationIdentity,
@@ -17,8 +16,7 @@ use worth_runtime_bridge::facade::{
 
 use super::{WorthQueryApplicationPreviewSession, WorthQueryApplicationPreviewSessionIdentity};
 use crate::domain_computation::primary_graph::{
-    application_branch::{primary_relational_branch_id, primary_truth_branch_identity},
-    WorthQueryPrimaryGraphApplicationRuntime,
+    application_branch::primary_truth_branch_identity, WorthQueryPrimaryGraphApplicationRuntime,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -76,7 +74,8 @@ where
         WorthQueryApplicationPreviewSessionDenial,
     > {
         validate_request(request)?;
-        let (identity, bridge_request) = self.current_preview_request()?;
+        let (identity, bridge_request, source_basis, source_observation) =
+            self.current_preview_request()?;
         let handle = self
             .bridge
             .ordinary()
@@ -91,6 +90,8 @@ where
             schema_binding: self.installed_schema.binding_identity(),
             identity,
             handle: Some(handle),
+            source_basis,
+            source_observation: Some(source_observation),
             _schema: PhantomData,
         })
     }
@@ -101,20 +102,19 @@ where
         (
             WorthQueryApplicationPreviewSessionIdentity,
             BridgeSpeculativeSessionRequest,
+            worth_relational::facade::branch::AdmittedRelationalBranchBasis,
+            worth_relational::facade::bridge::RelationalBridgeObservationLease,
         ),
         WorthQueryApplicationPreviewSessionDenial,
     > {
-        let graph = self
-            .runtime
-            .primary_graph()
-            .ok_or_else(current_truth_denial)?;
-        let head = graph.integration_handle().with_runtime(|runtime| {
-            runtime
-                .history()
-                .branch_head(&primary_relational_branch_id())
-                .cloned()
-        });
-        let head = head.ok_or_else(current_truth_denial)?;
+        let (_, source_basis) = self
+            .relational_source
+            .observe_branch_basis(&self.relational_branch_identity)
+            .map_err(|_| current_truth_denial())?;
+        let source_observation = self
+            .relational_source
+            .retain_branch_basis_for_bridge(&source_basis)
+            .map_err(|_| current_truth_denial())?;
         let sequence = next_preview_sequence(&self.next_preview_session)?;
         let identity_basis = format!("{}-{sequence}", self.runtime.authority_identity().as_u64());
         let identity = WorthQueryApplicationPreviewSessionIdentity::mint(format!(
@@ -138,7 +138,7 @@ where
             BridgePreviewSessionBasis::new(
                 BridgeTruthViewSelector::branch_snapshot(
                     truth_branch,
-                    bridge_snapshot_identity_for_commit(head.commit_id, head.version_id),
+                    source_observation.snapshot_identity().clone(),
                 ),
                 BridgeSourceCapabilitySet::new(vec![
                     BridgeSourceCapability::SnapshotRead,
@@ -156,6 +156,8 @@ where
                 1,
                 0,
             ),
+            source_basis,
+            source_observation,
         ))
     }
 }

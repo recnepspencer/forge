@@ -1,7 +1,7 @@
 //! Production-path evidence that exact-field retention denial precedes commit.
 
 use worth_query_declaration::facade::application_schema::TypedMutationPreconditions;
-use worth_relational::facade::history::CommitReference;
+use worth_relational::facade::history::RelationalCommitReceipt;
 
 use super::{authenticated_principal, idempotency, live_scope, resolved_account};
 use crate::domain_computation::primary_graph::tests::fixture::{
@@ -12,7 +12,7 @@ use crate::domain_computation::primary_graph::{
     primary_relational_branch_id, WorthQueryApplicationCommitOutcome,
 };
 
-fn relational_head(world: &AuthorizationWorld) -> CommitReference {
+fn relational_head(world: &AuthorizationWorld) -> RelationalCommitReceipt {
     world
         .application
         .relational_branch_head(&primary_relational_branch_id())

@@ -88,4 +88,13 @@ impl PublishedAuthoritativeAspectChange {
             .map(|field| format!("{}:{field}", field.len()))
             .collect()
     }
+
+    pub(crate) fn owned_allocation_capacity_bytes(&self) -> u64 {
+        (self.aspect_key.owned_allocation_capacity_bytes()
+            + self.binding.owned_allocation_capacity_bytes()
+            + self
+                .field_path
+                .as_ref()
+                .map_or(0, CanonicalFieldPath::owned_allocation_capacity_bytes)) as u64
+    }
 }

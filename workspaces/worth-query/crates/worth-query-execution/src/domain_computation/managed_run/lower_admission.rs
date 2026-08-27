@@ -1,11 +1,7 @@
 use std::sync::Arc;
 
 use worth_query_installation::facade::WorthQueryExecutionResourceEnvelope;
-use worth_relational::facade::bridge::{
-    bridge_snapshot_identity_for_handle, RuntimeBridgeRelationalSource,
-};
-use worth_relational::facade::history::BranchId;
-use worth_relational::facade::runtime::RelationalExecutionBasisLease;
+use worth_relational::facade::bridge::RuntimeBridgeRelationalSource;
 use worth_runtime_bridge::facade::{
     BridgeAsyncRequestTruthViewBasis, BridgeBoundExecutionBasis, BridgeManagedExecutionIntent,
     BridgeManagedExecutionPartialEffectPosture, BridgeManagedExecutionStepContract,
@@ -13,11 +9,12 @@ use worth_runtime_bridge::facade::{
     RuntimeBridge,
 };
 
+use super::WorthQueryManagedRelationalObservation;
 use super::WorthQueryManagedTruthReadRequest;
 
 pub(in crate::domain_computation) struct WorthQueryManagedLowerExecutionBasis {
     pub bridge: BridgeBoundExecutionBasis,
-    pub relational: RelationalExecutionBasisLease,
+    pub relational: WorthQueryManagedRelationalObservation,
 }
 
 pub(in crate::domain_computation) struct WorthQueryManagedLowerBinding<'a> {
@@ -69,21 +66,29 @@ pub(in crate::domain_computation) fn admit_managed_lower_execution_basis(
             ),
         });
     }
-    let (version_id, branch, packet, replay, diagnostics, delivery) = request.into_parts();
-    let relational_branch = branch
-        .relational_branch_id()
-        .map(|branch| BranchId(branch.to_owned()))
-        .ok_or_else(|| WorthQueryManagedLowerAdmissionFailure {
-            kind: WorthQueryManagedLowerAdmissionFailureKind::RelationalBasis,
-            detail: Arc::from("managed truth branch is not a Relational branch identity"),
-        })?;
+    let (descriptor, packet, replay, diagnostics, delivery) = request.into_parts();
+    let branch = worth_runtime_bridge::facade::TruthBranchIdentity::from_relational_branch_id(
+        descriptor.branch_id().0.clone(),
+    );
     let relational_basis = relational
-        .admit_execution_basis(&relational_branch, version_id)
+        .readmit_branch_basis(&descriptor)
         .map_err(|denial| WorthQueryManagedLowerAdmissionFailure {
             kind: WorthQueryManagedLowerAdmissionFailureKind::RelationalBasis,
-            detail: Arc::from(denial.detail()),
+            detail: Arc::from(format!("{denial:?}")),
         })?;
-    let snapshot = bridge_snapshot_identity_for_handle(relational_basis.snapshot_handle());
+    let current_at_admission = relational
+        .observe_branch_basis(relational_basis.identity())
+        .is_ok_and(|(current, _)| current == descriptor);
+    let relational_basis = WorthQueryManagedRelationalObservation::retain(
+        relational,
+        relational_basis,
+        current_at_admission,
+    )
+    .map_err(|denial| WorthQueryManagedLowerAdmissionFailure {
+        kind: WorthQueryManagedLowerAdmissionFailureKind::RelationalBasis,
+        detail: Arc::from(format!("{denial:?}")),
+    })?;
+    let snapshot = relational_basis.identity().snapshot_identity().clone();
     let declaration = HistoricalEvaluationDeclaration::new(
         BridgeTruthViewSelector::branch_snapshot(branch.clone(), snapshot.clone()),
         replay,

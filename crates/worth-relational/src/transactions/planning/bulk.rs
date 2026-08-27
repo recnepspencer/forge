@@ -13,7 +13,7 @@ use crate::transactions::data::{
     WorkerIntentBatch,
 };
 
-pub(in crate::transactions) fn canonical_bulk_mutation_intents(
+pub(crate) fn canonical_bulk_mutation_intents(
     batches: &[WorkerIntentBatch],
     client_key_symbol_policy: ClientKeySymbolPolicy,
     interner: StringInterner,
@@ -27,9 +27,7 @@ pub(in crate::transactions) fn canonical_bulk_mutation_intents(
     intents
 }
 
-pub(in crate::transactions) fn bulk_mutation_scope(
-    intents: &[MutationIntent],
-) -> BulkMutationScope {
+pub(crate) fn bulk_mutation_scope(intents: &[MutationIntent]) -> BulkMutationScope {
     let mut saw_entity_create = false;
     let mut saw_relation_create = false;
     let mut saw_topology_rewrite = false;
@@ -69,9 +67,7 @@ pub(in crate::transactions) fn bulk_mutation_scope(
     }
 }
 
-pub(in crate::transactions) fn bulk_mutation_locality(
-    intents: &[MutationIntent],
-) -> BulkMutationLocalityFootprint {
+pub(crate) fn bulk_mutation_locality(intents: &[MutationIntent]) -> BulkMutationLocalityFootprint {
     let mut touched_partitions = BTreeSet::new();
     let mut cross_partition_relation_count = 0usize;
     let mut entity_target_count = 0usize;
@@ -127,9 +123,7 @@ pub(in crate::transactions) fn bulk_mutation_locality(
     }
 }
 
-pub(in crate::transactions) fn bulk_mutation_naming(
-    intents: &[MutationIntent],
-) -> BulkMutationNamingPlan {
+pub(crate) fn bulk_mutation_naming(intents: &[MutationIntent]) -> BulkMutationNamingPlan {
     let mut normalized_client_keys = Vec::new();
     for intent in intents {
         match intent {
@@ -170,9 +164,7 @@ pub(in crate::transactions) fn bulk_mutation_naming(
     }
 }
 
-pub(in crate::transactions) fn bulk_mutation_lineage(
-    intents: &[MutationIntent],
-) -> BulkMutationLineagePlan {
+pub(crate) fn bulk_mutation_lineage(intents: &[MutationIntent]) -> BulkMutationLineagePlan {
     let mut transitions = Vec::new();
     for intent in intents {
         match intent {
@@ -267,7 +259,7 @@ pub(in crate::transactions) fn bulk_mutation_lineage(
     }
 }
 
-pub(in crate::transactions) fn bulk_mutation_provenance(
+pub(crate) fn bulk_mutation_provenance(
     transaction_id: TransactionId,
     target_branch: Option<crate::history::data::BranchId>,
     batches: &[WorkerIntentBatch],

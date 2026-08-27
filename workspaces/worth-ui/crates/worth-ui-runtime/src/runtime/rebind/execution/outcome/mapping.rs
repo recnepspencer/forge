@@ -11,17 +11,17 @@ pub(crate) fn map_changed_first_attempt<'session>(
             mounted,
         } => publish_changed(plan, registration, application, mounted),
         crate::facade::WorthUiMountedApplicationReplacementOutcome::RejectedBeforeEffects(
-            replacement,
+            rejection,
         ) => {
             registration
                 .return_to_pending()
                 .expect("the executing plan vacated its pending slot");
-            UiRebindOutcome::RejectedBeforeEffects(UiRebindDenialReceipt::retry(
+            let (rejections, replacement) = rejection.into_parts();
+            UiRebindOutcome::RejectedBeforeEffects(UiRebindDenialReceipt::retry_host(
                 plan,
                 registration,
                 super::super::preparation::UiPreparedRebindKind::Changed(replacement),
-                UiRebindStoppedPhase::HostPresentation,
-                UiRebindDenialCause::HostRejectedBeforeEffects,
+                rejections,
             ))
         }
         crate::facade::WorthUiMountedApplicationReplacementOutcome::InFlight(inner) => {
@@ -61,7 +61,7 @@ pub(crate) fn map_changed_first_attempt<'session>(
 
 pub(super) fn map_changed_completion<'session>(
     plan: crate::runtime::rebind::UiRebindPlan,
-    registration: UiRebindReservation,
+    mut registration: UiRebindReservation,
     outcome: crate::facade::WorthUiMountedApplicationReplacementOutcome<'session>,
 ) -> UiRebindOutcome<'session> {
     match outcome {
@@ -82,8 +82,21 @@ pub(super) fn map_changed_completion<'session>(
                 Box::new(denial.into_in_flight()),
             ))
         }
-        crate::facade::WorthUiMountedApplicationReplacementOutcome::RejectedBeforeEffects(_)
-        | crate::facade::WorthUiMountedApplicationReplacementOutcome::RetentionDenied(_)
+        crate::facade::WorthUiMountedApplicationReplacementOutcome::RejectedBeforeEffects(
+            rejection,
+        ) => {
+            let (rejections, replacement) = rejection.into_parts();
+            registration
+                .return_to_pending()
+                .expect("completion retry returns its reservation to pending");
+            UiRebindOutcome::RejectedBeforeEffects(UiRebindDenialReceipt::retry_host(
+                plan,
+                registration,
+                super::super::preparation::UiPreparedRebindKind::Changed(replacement),
+                rejections,
+            ))
+        }
+        crate::facade::WorthUiMountedApplicationReplacementOutcome::RetentionDenied(_)
         | crate::facade::WorthUiMountedApplicationReplacementOutcome::AdmissionDenied(_) => {
             unreachable!("completion cannot return a preparation-stage outcome")
         }
@@ -97,9 +110,9 @@ pub(super) fn map_changed_cancellation<'session>(
 ) -> UiRebindOutcome<'session> {
     match outcome {
         crate::facade::WorthUiMountedApplicationReplacementOutcome::RejectedBeforeEffects(
-            replacement,
+            rejection,
         ) => {
-            drop(replacement);
+            drop(rejection);
             UiRebindOutcome::CancelledBeforeEffects(UiRebindCancellationReceipt::cancelled())
         }
         crate::facade::WorthUiMountedApplicationReplacementOutcome::PresentationIndeterminate(

@@ -29,7 +29,7 @@ pub(crate) fn derive_relation_integrity_plan_revision(
     partition_isolation_contracts: &[PartitionIsolationContractDeclaration],
     connectivity_minimum_contracts: &[ConnectivityMinimumContractDeclaration],
 ) -> RelationIntegrityPlanRevision {
-    let mut digest = RelationIntegrityRevisionDigest::default();
+    let mut digest = RelationIntegrityRevisionDigest::new();
     digest.mix_endpoint_kind_contracts(endpoint_kind_contracts);
     digest.mix_cardinality_contracts(cardinality_contracts);
     digest.mix_uniqueness_contracts(uniqueness_contracts);
@@ -45,15 +45,12 @@ struct RelationIntegrityRevisionDigest {
     hash: u128,
 }
 
-impl Default for RelationIntegrityRevisionDigest {
-    fn default() -> Self {
+impl RelationIntegrityRevisionDigest {
+    fn new() -> Self {
         Self {
             hash: 0x6c62272e07bb014262b821756295c58d,
         }
     }
-}
-
-impl RelationIntegrityRevisionDigest {
     const FNV_PRIME: u128 = 0x0000000001000000000000000000013B;
 
     fn finish(self) -> u128 {
@@ -79,12 +76,12 @@ impl RelationIntegrityRevisionDigest {
         for declaration in contracts {
             self.mix_bytes(b"cardinality");
             self.mix_string(declaration.contract_id.as_str());
-            self.mix_u64_with_absent_sentinel(declaration.source_max, u64::MAX);
-            self.mix_u64_with_absent_sentinel(declaration.target_max, u64::MAX);
-            self.mix_u64_with_absent_sentinel(declaration.pair_max, u64::MAX);
-            self.mix_u64_with_absent_sentinel(declaration.source_min, 0);
-            self.mix_u64_with_absent_sentinel(declaration.target_min, 0);
-            self.mix_u64_with_absent_sentinel(declaration.pair_min, 0);
+            self.mix_optional_u64(declaration.source_max);
+            self.mix_optional_u64(declaration.target_max);
+            self.mix_optional_u64(declaration.pair_max);
+            self.mix_optional_u64(declaration.source_min);
+            self.mix_optional_u64(declaration.target_min);
+            self.mix_optional_u64(declaration.pair_min);
             self.mix_bytes(match declaration.pair_min_semantics {
                 PairMinimumSemantics::ObservedDirectedPairs => b"observed_directed_pairs",
             });
@@ -184,11 +181,18 @@ impl RelationIntegrityRevisionDigest {
         }
     }
 
-    fn mix_u64_with_absent_sentinel(&mut self, value: Option<u64>, absent_sentinel: u64) {
-        self.mix_bytes(&value.unwrap_or(absent_sentinel).to_le_bytes());
+    fn mix_optional_u64(&mut self, value: Option<u64>) {
+        match value {
+            None => self.mix_bytes(&[0]),
+            Some(value) => {
+                self.mix_bytes(&[1]);
+                self.mix_bytes(&value.to_le_bytes());
+            }
+        }
     }
 
     fn mix_kind_ids(&mut self, kinds: &[KindId]) {
+        self.mix_bytes(&(kinds.len() as u64).to_le_bytes());
         for kind in kinds {
             self.mix_bytes(&kind.0.to_le_bytes());
         }

@@ -52,7 +52,7 @@ pub enum WorthQueryUndoDerivedRequest {
 pub struct WorthQueryUndoAdmission {
     recovery_handle: WorthQueryHeldRecoveryHandle,
     intent: WorthQueryUndoIntentIdentity,
-    original_commit: worth_relational::facade::history::CommitReference,
+    original_commit: worth_relational::facade::history::RelationalCommitReceipt,
     original_operation: [u8; 32],
     principal_scope_digest: [u8; 32],
     compatibility_generation: u64,
@@ -102,7 +102,7 @@ impl WorthQueryUndoAdmission {
 
     pub(crate) const fn original_commit(
         &self,
-    ) -> &worth_relational::facade::history::CommitReference {
+    ) -> &worth_relational::facade::history::RelationalCommitReceipt {
         &self.original_commit
     }
 

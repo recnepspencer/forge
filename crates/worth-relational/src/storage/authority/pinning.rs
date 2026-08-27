@@ -2,31 +2,11 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::identity::data::{PartitionId, RecordId, VersionId};
 use crate::storage::data::RecordLifecycleState;
-use crate::storage::overlay::{EntityWorkingSetLayout, PartitionCloneMode, WorkingState};
 use crate::storage::substrate::{PinClass, RecordKind};
 
 use super::{partition_of, slot_of, StorageAuthority};
 
 impl<'runtime> StorageAuthority<'runtime> {
-    pub(crate) fn working_state_for_touched_partitions(
-        &self,
-        touched_partitions: impl IntoIterator<Item = crate::identity::data::PartitionId>,
-        clone_mode: PartitionCloneMode,
-        entity_working_set_layout: EntityWorkingSetLayout,
-        sparse_entity_slots: Option<&BTreeMap<PartitionId, BTreeSet<usize>>>,
-        sparse_relation_overlay_partitions: Option<&BTreeSet<PartitionId>>,
-    ) -> WorkingState {
-        WorkingState::from_touched_partitions_with_layout_and_sparse_slots(
-            &self.runtime.partitions,
-            touched_partitions,
-            self.runtime.config.storage.adjacency_policy.clone(),
-            clone_mode,
-            entity_working_set_layout,
-            sparse_entity_slots,
-            sparse_relation_overlay_partitions,
-        )
-    }
-
     pub(crate) fn clear_named_pins(&mut self, class: PinClass) {
         for partition in self.runtime.partitions.values_mut() {
             partition.entity_arena.clear_named_pins(class);
@@ -89,15 +69,7 @@ impl<'runtime> StorageAuthority<'runtime> {
     ) {
         let slot = slot_of::<K>(&record_id);
         let partition_id = partition_of::<K>(&record_id);
-        let Some(partition_len) = self
-            .runtime
-            .partitions
-            .get(&partition_id)
-            .map(|partition| K::arena(partition).slot_count())
-        else {
-            return;
-        };
-        if slot >= partition_len {
+        if !self.runtime.partitions.contains_key(&partition_id) {
             return;
         }
         {
@@ -128,14 +100,9 @@ impl<'runtime> StorageAuthority<'runtime> {
         class: PinClass,
     ) {
         for (partition_id, slots) in slots_by_partition {
-            let Some(partition_len) = self
-                .runtime
-                .partitions
-                .get(partition_id)
-                .map(|partition| K::arena(partition).slot_count())
-            else {
+            if !self.runtime.partitions.contains_key(partition_id) {
                 continue;
-            };
+            }
             {
                 let partition = self
                     .runtime
@@ -146,7 +113,13 @@ impl<'runtime> StorageAuthority<'runtime> {
                 arena.increment_named_pins_bulk(slots, class);
             }
             for &slot in slots {
-                if slot >= partition_len {
+                if self
+                    .runtime
+                    .partitions
+                    .get(partition_id)
+                    .and_then(|partition| K::arena(partition).get_slot(slot))
+                    .is_none()
+                {
                     continue;
                 }
                 let retired_at = self

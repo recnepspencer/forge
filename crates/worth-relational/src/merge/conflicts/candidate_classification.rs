@@ -6,7 +6,9 @@ use crate::merge::conflicts::ancestor_record_basis::AncestorRecordBasisContext;
 use crate::merge::conflicts::aspect_evidence::aspect_conflict_evidence;
 use crate::merge::conflicts::record_state_classification::classify_record_state;
 use crate::merge::conflicts::relation_evidence::relation_conflict_evidence;
-use crate::merge::conflicts::strategy_evidence::strategy_conflict_evidence;
+use crate::merge::conflicts::strategy_evidence::{
+    overlapping_strategy_intent_diverges, strategy_conflict_evidence,
+};
 use crate::merge::conflicts::target_record_resolution::visible_target_record;
 use crate::merge::conflicts::visibility_evidence::{
     base_record_visibility_evidence, source_record_visibility_evidence,
@@ -81,7 +83,10 @@ pub(super) fn classify_candidate(
             candidate_target_record.as_ref(),
         )
     };
-    let class = if strategy_evidence.is_some() && class == MergeConflictClass::DivergentVisibleState
+    let class = if strategy_evidence
+        .as_ref()
+        .is_some_and(|evidence| overlapping_strategy_intent_diverges(evidence, &aspect_evidence))
+        && class == MergeConflictClass::DivergentVisibleState
     {
         MergeConflictClass::StrategyIntentConflict
     } else {

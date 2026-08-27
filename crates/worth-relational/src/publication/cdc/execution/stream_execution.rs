@@ -17,7 +17,7 @@ pub(crate) fn execute_subscriber_stream(
     let patches = plan
         .selected_envelopes
         .iter()
-        .map(|envelope| envelope.patch.clone())
+        .map(|commit| commit.published_patch())
         .collect::<Vec<_>>();
     let next_checkpoint = patches
         .last()
@@ -33,10 +33,7 @@ pub(crate) fn execute_subscriber_stream(
             descriptor_semantics_version,
         )
     });
-    let latest_commit_id = runtime
-        .history()
-        .latest_commit()
-        .map(|commit| commit.commit_id);
+    let latest_commit_id = runtime.history().latest_canonical_commit_id();
 
     Ok(SubscriberStreamBatch {
         resumed_from: plan.request.checkpoint().cloned(),
@@ -52,7 +49,7 @@ pub(crate) fn execute_subscriber_stream(
 
 #[cfg(test)]
 pub(crate) fn collect_crossed_boundaries(
-    selected_envelopes: &[crate::history::data::CanonicalCommitEnvelope],
+    selected_envelopes: &[crate::history::data::PositionedCanonicalCommit],
 ) -> Vec<SchemaBoundaryFingerprint> {
     let mut boundaries = Vec::new();
     let mut seen = BTreeSet::new();

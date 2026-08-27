@@ -60,6 +60,7 @@ impl UiNativeRetainedDrawList {
             baseline_rgba8: self.baseline.transparent_rgba8(),
             regions: replay_regions.into_boxed_slice(),
             counters,
+            identity_overlay_effect: false,
         })
     }
 }

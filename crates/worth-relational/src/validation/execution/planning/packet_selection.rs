@@ -3,10 +3,13 @@ use crate::runtime::RelationalRuntime;
 use crate::validation::data::CustomInvariantScopePlanner;
 use crate::validation::engine::InvariantExecutionRequest;
 
-pub(super) fn eligible_registrations<'runtime>(
+pub(super) fn eligible_registrations<'runtime, 'state>(
     runtime: &'runtime RelationalRuntime,
-    request: &'runtime InvariantExecutionRequest<'runtime>,
-) -> Vec<InvariantPacketRegistration> {
+    request: &'state InvariantExecutionRequest<'state>,
+) -> Vec<InvariantPacketRegistration>
+where
+    'runtime: 'state,
+{
     let native = runtime
         .config
         .schema
@@ -26,7 +29,6 @@ pub(super) fn eligible_registrations<'runtime>(
         .map(InvariantPacketRegistration::Native);
 
     let prepared_scope = crate::validation::data::PreparedCustomInvariantScope::capture(
-        runtime,
         request.observation(),
         request.version_id(),
         request.merged_plan(),
@@ -37,10 +39,11 @@ pub(super) fn eligible_registrations<'runtime>(
         .iter()
         .filter(|registration| request.includes_custom_registration(registration))
         .map(|registration| {
-            let mut planner = CustomInvariantScopePlanner::new(
+            let mut planner = CustomInvariantScopePlanner::new_at_current_version(
                 runtime,
                 request.observation(),
                 request.version_id(),
+                request.current_version_id(),
                 &prepared_scope,
             );
             let prepared_execution = registration

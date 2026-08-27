@@ -47,6 +47,35 @@ pub(super) fn install(
             AccountStatus::reference(),
         )
         .operation(
+            PatchAccountDraftOperation::reference()
+                .definition()
+                .no_external_effect()
+                .no_aftermath()
+                .finish(),
+        )
+        .operation_decision_fact_budget(PatchAccountDraftOperation::reference(), 2)
+        .operation_projection_work_budget(PatchAccountDraftOperation::reference(), 16)
+        .operation_requires_ability(
+            PatchAccountDraftOperation::reference(),
+            ViewAccount::reference(),
+        )
+        .operation_write(
+            PatchAccountDraftOperation::reference(),
+            AccountNote::reference(),
+        )
+        .operation_write(
+            PatchAccountDraftOperation::reference(),
+            AccountScore::reference(),
+        )
+        .operation_read_field(
+            PatchAccountDraftOperation::reference(),
+            AccountNote::reference(),
+        )
+        .operation_read_field(
+            PatchAccountDraftOperation::reference(),
+            AccountScore::reference(),
+        )
+        .operation(
             WrongFieldRetentionOperation::reference()
                 .definition()
                 .no_external_effect()
@@ -180,5 +209,24 @@ pub(super) fn install(
         .operation_unlink(
             ChangeOwnershipOperation::reference(),
             AccountOwner::reference(),
+        )
+        .operation(
+            MutationFreeEmitOperation::reference()
+                .definition()
+                .external_effect(
+                    MutationFreeExternalEffect::reference(),
+                    worth_query_installation::facade::WorthQueryExternalEffectCorrelationFamily::new(
+                        "test-mutation-free-rail",
+                    )
+                    .unwrap(),
+                )
+                .no_aftermath()
+                .finish(),
+        )
+        .operation_decision_fact_budget(MutationFreeEmitOperation::reference(), 1)
+        .operation_projection_work_budget(MutationFreeEmitOperation::reference(), 8)
+        .operation_emit(
+            MutationFreeEmitOperation::reference(),
+            MutationFreeExternalEffect::reference(),
         )
 }

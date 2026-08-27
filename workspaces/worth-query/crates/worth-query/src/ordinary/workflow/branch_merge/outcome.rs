@@ -1,7 +1,7 @@
 use crate::effect_lifecycle::{
     EffectDiagnosticsMaterialization, EffectExecutionReceipt, EffectReceiptTargetEvidence,
 };
-use crate::runtime::{WorthQueryOrdinaryMergeExecutionError, WorthQueryOrdinaryMergeFailureStage};
+use crate::runtime::WorthQueryOrdinaryMergeFailureStage;
 use crate::WorthQueryEvidenceIdentity;
 
 use crate::ordinary::workflow::{
@@ -28,6 +28,31 @@ pub enum WorthQueryBranchMergeNextAction {
     UseMatchingDeclaration,
     UseOperationalReceipt,
     InspectDenial,
+    RetryDeferredPublication,
+    RepairDeferredBranchMergeSettlement,
+}
+
+pub struct WorthQueryBranchMergeDeferred {
+    message: String,
+    counters: WorthQueryWorkflowCounters,
+}
+
+impl WorthQueryBranchMergeDeferred {
+    pub(crate) fn new(message: String, counters: WorthQueryWorkflowCounters) -> Self {
+        Self { message, counters }
+    }
+
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    pub fn counters(&self) -> &WorthQueryWorkflowCounters {
+        &self.counters
+    }
+
+    pub fn next_action(&self) -> WorthQueryBranchMergeNextAction {
+        WorthQueryBranchMergeNextAction::RetryDeferredPublication
+    }
 }
 
 pub struct WorthQueryBranchMergeStop {
@@ -85,11 +110,54 @@ impl WorthQueryBranchMergeStop {
         }
     }
 
-    pub(crate) fn from_execution(
-        error: WorthQueryOrdinaryMergeExecutionError,
+    pub(crate) fn from_execution_denial(
+        stage: WorthQueryOrdinaryMergeFailureStage,
+        message: String,
         counters: WorthQueryWorkflowCounters,
     ) -> Self {
-        Self::denied(source_for_stage(error.stage()), error.message(), counters)
+        Self {
+            source: source_for_stage(stage),
+            message,
+            counters,
+        }
+    }
+}
+
+pub struct WorthQueryBranchMergeSettlementDeferred {
+    message: String,
+    counters: WorthQueryWorkflowCounters,
+    settlement: worth_relational::facade::publication::DeferredPublicationSettlement,
+}
+
+impl WorthQueryBranchMergeSettlementDeferred {
+    pub(crate) fn new(
+        message: String,
+        settlement: worth_relational::facade::publication::DeferredPublicationSettlement,
+        counters: WorthQueryWorkflowCounters,
+    ) -> Self {
+        Self {
+            message,
+            counters: counters.settlement_deferred(),
+            settlement,
+        }
+    }
+
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    pub fn counters(&self) -> &WorthQueryWorkflowCounters {
+        &self.counters
+    }
+
+    pub(crate) fn settlement(
+        &self,
+    ) -> &worth_relational::facade::publication::DeferredPublicationSettlement {
+        &self.settlement
+    }
+
+    pub fn next_action(&self) -> WorthQueryBranchMergeNextAction {
+        WorthQueryBranchMergeNextAction::RepairDeferredBranchMergeSettlement
     }
 }
 
@@ -205,13 +273,15 @@ impl WorthQueryBranchMergeCompletion {
 pub enum WorthQueryBranchMergeOutcome {
     Completed(WorthQueryBranchMergeCompletion),
     Stopped(WorthQueryBranchMergeStop),
+    Deferred(WorthQueryBranchMergeDeferred),
+    SettlementDeferred(WorthQueryBranchMergeSettlementDeferred),
 }
 
 impl WorthQueryBranchMergeOutcome {
     pub fn completed(&self) -> Option<&WorthQueryBranchMergeCompletion> {
         match self {
             Self::Completed(completion) => Some(completion),
-            Self::Stopped(_) => None,
+            Self::Stopped(_) | Self::Deferred(_) | Self::SettlementDeferred(_) => None,
         }
     }
 
@@ -219,6 +289,21 @@ impl WorthQueryBranchMergeOutcome {
         match self {
             Self::Completed(_) => None,
             Self::Stopped(stop) => Some(stop),
+            Self::Deferred(_) | Self::SettlementDeferred(_) => None,
+        }
+    }
+
+    pub fn deferred(&self) -> Option<&WorthQueryBranchMergeDeferred> {
+        match self {
+            Self::Deferred(deferred) => Some(deferred),
+            Self::Completed(_) | Self::Stopped(_) | Self::SettlementDeferred(_) => None,
+        }
+    }
+
+    pub fn settlement_deferred(&self) -> Option<&WorthQueryBranchMergeSettlementDeferred> {
+        match self {
+            Self::Completed(_) | Self::Stopped(_) | Self::Deferred(_) => None,
+            Self::SettlementDeferred(deferred) => Some(deferred),
         }
     }
 }

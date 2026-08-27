@@ -1,4 +1,4 @@
-use worth_relational::facade::runtime::RelationalExecutionBasisLease;
+use super::WorthQueryManagedRelationalObservation;
 use worth_runtime_bridge::facade::BridgeBoundExecutionBasis;
 
 use super::semantic_basis::{
@@ -17,12 +17,12 @@ use crate::domain_computation::{
 
 impl WorthQueryExecutionRuntime {
     #[cfg(test)]
-    pub(crate) fn admit_direct_run(
+    pub(in crate::domain_computation) fn admit_direct_run(
         &self,
         operation: &WorthQueryExecutionBoundOperationAuthority,
         resource_attempt: WorthQueryDirectExecutionResourceAttempt,
         bridge_basis: BridgeBoundExecutionBasis,
-        relational_basis: RelationalExecutionBasisLease,
+        relational_basis: WorthQueryManagedRelationalObservation,
     ) -> Result<WorthQueryAdmittedDirectRun, WorthQueryManagedRunAdmissionRejection> {
         let counters = match validate_direct_run(
             self,
@@ -57,7 +57,7 @@ fn validate_direct_run(
     operation: &WorthQueryExecutionBoundOperationAuthority,
     resource_attempt: &WorthQueryDirectExecutionResourceAttempt,
     bridge_basis: &BridgeBoundExecutionBasis,
-    relational_basis: &RelationalExecutionBasisLease,
+    relational_basis: &WorthQueryManagedRelationalObservation,
 ) -> Result<WorthQueryManagedRunCounters, WorthQueryManagedRunDenial> {
     let counters = validate_direct_run_head(runtime, operation, resource_attempt)?;
     validate_direct_run_lower(
@@ -86,7 +86,7 @@ pub(super) fn validate_direct_run_lower(
     operation: &WorthQueryExecutionBoundOperationAuthority,
     resource_attempt: &WorthQueryDirectExecutionResourceAttempt,
     bridge_basis: &BridgeBoundExecutionBasis,
-    relational_basis: &RelationalExecutionBasisLease,
+    relational_basis: &WorthQueryManagedRelationalObservation,
     counters: WorthQueryManagedRunCounters,
 ) -> Result<WorthQueryManagedRunCounters, WorthQueryManagedRunDenial> {
     validate_run_lower(
@@ -125,7 +125,7 @@ pub(super) fn validate_workflow_run_lower(
     operation: &WorthQueryExecutionBoundOperationAuthority,
     resource_attempt: &WorthQueryWorkflowExecutionResourceAttempt,
     bridge_basis: &BridgeBoundExecutionBasis,
-    relational_basis: &RelationalExecutionBasisLease,
+    relational_basis: &WorthQueryManagedRelationalObservation,
     counters: WorthQueryManagedRunCounters,
 ) -> Result<WorthQueryManagedRunCounters, WorthQueryManagedRunDenial> {
     validate_run_lower(
@@ -141,7 +141,7 @@ fn validate_run_lower(
     operation: &WorthQueryExecutionBoundOperationAuthority,
     resource_attempt_identity: &str,
     bridge_basis: &BridgeBoundExecutionBasis,
-    relational_basis: &RelationalExecutionBasisLease,
+    relational_basis: &WorthQueryManagedRelationalObservation,
     mut counters: WorthQueryManagedRunCounters,
 ) -> Result<WorthQueryManagedRunCounters, WorthQueryManagedRunDenial> {
     counters.checked_bridge_intent();
@@ -165,7 +165,7 @@ pub(crate) struct WorthQueryManagedRunAdmissionRejection {
     denial: WorthQueryManagedRunDenial,
     resource_attempt: WorthQueryDirectExecutionResourceAttempt,
     bridge_basis: BridgeBoundExecutionBasis,
-    relational_basis: RelationalExecutionBasisLease,
+    relational_basis: WorthQueryManagedRelationalObservation,
 }
 
 #[cfg(test)]
@@ -253,7 +253,7 @@ fn validate_bridge_intent(
 
 fn validate_source_runtime(
     bridge: &BridgeBoundExecutionBasis,
-    relational: &RelationalExecutionBasisLease,
+    relational: &WorthQueryManagedRelationalObservation,
     counters: &WorthQueryManagedRunCounters,
 ) -> Result<(), WorthQueryManagedRunDenial> {
     let profile = bridge.authoritative_source_profile().ok_or_else(|| {
@@ -275,23 +275,10 @@ fn validate_source_runtime(
 
 fn validate_relational_snapshot(
     bridge: &BridgeBoundExecutionBasis,
-    relational: &RelationalExecutionBasisLease,
+    relational: &WorthQueryManagedRelationalObservation,
     counters: &WorthQueryManagedRunCounters,
 ) -> Result<(), WorthQueryManagedRunDenial> {
-    let parts = bridge
-        .observation()
-        .snapshot_identity()
-        .relational_snapshot_parts()
-        .ok_or_else(|| {
-            denial(
-                WorthQueryManagedRunDenialKind::NonRelationalSnapshotIdentity,
-                "managed Relational run requires a typed Relational Bridge snapshot identity",
-                counters,
-            )
-        })?;
-    if parts.snapshot_id() != relational.identity().snapshot_id().0
-        || parts.version_id() != relational.version_id().0
-    {
+    if bridge.observation().snapshot_identity() != relational.identity().snapshot_identity() {
         return Err(denial(
             WorthQueryManagedRunDenialKind::RelationalSnapshotMismatch,
             "Bridge truth observation and Relational execution lease name different snapshots",
@@ -304,7 +291,7 @@ fn validate_relational_snapshot(
 fn validate_semantic_basis(
     operation: &WorthQueryExecutionBoundOperationAuthority,
     bridge: &BridgeBoundExecutionBasis,
-    relational: &RelationalExecutionBasisLease,
+    relational: &WorthQueryManagedRelationalObservation,
     counters: &WorthQueryManagedRunCounters,
 ) -> Result<(), WorthQueryManagedRunDenial> {
     let observation = WorthQueryManagedSemanticBasisObservation {

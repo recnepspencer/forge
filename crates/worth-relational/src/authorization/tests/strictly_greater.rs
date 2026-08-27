@@ -14,8 +14,7 @@ use crate::tests::support::{
     AspectSchemaFixture,
 };
 use crate::transactions::data::{
-    EntityMutationIntent, MutationIntent, TransactionOptions, UpdateEntityFieldsIntent,
-    WorkerIntentBatch,
+    EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 
 use super::{forward_traversal, ENTITY_KIND};
@@ -155,7 +154,7 @@ fn create_comparison_entity(
 }
 
 fn write_comparison_fields(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    mut runtime: &mut crate::runtime::RelationalRuntime,
     entity: EntityId,
     remaining: Option<u64>,
     text_bound: Option<&str>,
@@ -175,7 +174,8 @@ fn write_comparison_fields(
             string_aspect_value(text_bound),
         ));
     }
-    let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+    let mut transaction =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     transaction.push_batch(WorkerIntentBatch::new("write-comparison-fields").push(
         MutationIntent::Entity(EntityMutationIntent::UpdateFields(
             UpdateEntityFieldsIntent {
@@ -185,7 +185,7 @@ fn write_comparison_fields(
         )),
     ));
     transaction
-        .commit()
+        .commit(&mut runtime)
         .expect("comparison fields must be valid for the declared fixture schema");
 }
 

@@ -2,7 +2,6 @@ use std::collections::{BTreeSet, VecDeque};
 use std::sync::Mutex;
 
 use crate::identity::data::EntityId;
-use crate::runtime::RelationalRuntime;
 
 use super::structural_views::StructuralRelationView;
 use crate::validation::data::{CustomInvariantTraversalError, TouchedStructuralSet};
@@ -118,13 +117,13 @@ pub struct BoundedStructuralTraversal<'runtime> {
 
 impl<'runtime> BoundedStructuralTraversal<'runtime> {
     pub(crate) fn new(
-        runtime: &'runtime RelationalRuntime,
+        performance: crate::performance::PerformanceAccess<'runtime>,
         relations: StructuralRelationView<'runtime>,
         touched: &TouchedStructuralSet,
     ) -> Self {
         Self {
             relations,
-            performance: runtime.performance_access(),
+            performance,
             budget: Mutex::new(TraversalBudgetSession::from_touched_scope(touched)),
         }
     }

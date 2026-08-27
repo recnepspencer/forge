@@ -7,9 +7,7 @@ fn planned_query_execution_parallelizes_profitable_multi_seed_traversal_packets(
         .schema_registry(declared_aspect_schema_registry(
             CascadeDeletePolicy::CascadeDeleteRelations,
         ))
-        .execution_model(
-            crate::facade::runtime::RelationalExecutionModel::StagedParallelPreparation,
-        )
+        .execution_model(crate::facade::runtime::RelationalExecutionModel::ParallelPreparation)
         .build();
     let seeds = vec![
         create_entity_in_partition(&mut runtime, "s0", PartitionId(7)),

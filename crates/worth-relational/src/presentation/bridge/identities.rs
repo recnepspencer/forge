@@ -67,7 +67,7 @@ pub(crate) fn parse_bridge_commit_identity(
     Ok(CommitId(commit_id))
 }
 
-fn bridge_snapshot_identity_for_binding(
+pub(crate) fn bridge_snapshot_identity_for_binding(
     snapshot_id: SnapshotId,
     version_id: VersionId,
 ) -> TruthSnapshotIdentity {

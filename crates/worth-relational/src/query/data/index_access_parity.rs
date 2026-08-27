@@ -32,7 +32,7 @@ pub enum QueryAccessPath {
     },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IndexParityVerifiedQueryOutcome {
     pub execution: QueryExecutionOutcome,
     pub access_path: QueryAccessPath,

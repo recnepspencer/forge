@@ -4,13 +4,13 @@ use std::collections::BTreeSet;
 use crate::capabilities::LineageNodeSource;
 #[cfg(test)]
 use crate::history::data::BranchId;
-use crate::identity::data::{EntityId, LineageId, VersionId};
+use crate::identity::data::{EntityId, LineageId};
 use crate::lineage::access::LineageAccess;
 #[cfg(test)]
 use crate::lineage::data::LineageEventRecord;
-use crate::lineage::data::{CorrespondenceCandidate, LineageDecisionRecord, LineageNode};
+use crate::lineage::data::LineageNode;
 #[cfg(test)]
-use crate::visibility::cache_state::cached_state_for_version;
+use crate::visibility::cache_state::cached_historical_state_for_version;
 
 impl<'runtime> LineageAccess<'runtime> {
     pub fn for_record(&self, entity_id: EntityId) -> Option<&LineageNode> {
@@ -46,7 +46,8 @@ impl<'runtime> LineageAccess<'runtime> {
         let Some(head) = history.branch_head(branch_id) else {
             return Vec::new();
         };
-        let cache_hit = cached_state_for_version(self.runtime, head.version_id).is_some();
+        let cache_hit =
+            cached_historical_state_for_version(self.runtime, head.version_id).is_some();
         let read_view = self.runtime.read_truth().read_version(head.version_id);
         self.runtime
             .performance_access()
@@ -69,26 +70,23 @@ impl<'runtime> LineageAccess<'runtime> {
         nodes
     }
 
-    pub(crate) fn correspondence_candidates_snapshot(&self) -> Vec<CorrespondenceCandidate> {
-        self.runtime.lineage.correspondence_candidates.clone()
-    }
-
-    pub(crate) fn rejected_decisions_snapshot(&self) -> Vec<LineageDecisionRecord> {
-        self.runtime.lineage.rejected_decisions.clone()
-    }
-
-    pub(crate) fn visible_entity_ids_for_lineages_at_version(
+    pub(crate) fn visible_entity_ids_for_lineages_for_observation(
         &self,
         lineage_ids: &[LineageId],
-        version_id: VersionId,
+        observation: &crate::mvcc::RelationalBranchObservation,
     ) -> Vec<EntityId> {
         let read_truth = self.runtime.read_truth();
+        let root = observation.selected_root();
         let mut entity_ids = lineage_ids
             .iter()
             .filter_map(|lineage_id| self.runtime.lineage_node(*lineage_id))
             .filter_map(|node| {
                 read_truth
-                    .authoritative_entity_record_at_version(node.entity_id(), version_id)
+                    .authoritative_entity_record_for_id_from_exact_state(
+                        root.as_ref(),
+                        root.schema_authority().registry(),
+                        node.entity_id(),
+                    )
                     .map(|_| node.entity_id())
             })
             .collect::<Vec<_>>();

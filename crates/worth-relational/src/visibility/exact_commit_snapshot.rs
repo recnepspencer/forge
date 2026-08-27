@@ -1,4 +1,4 @@
-use crate::history::data::CommitReference;
+use crate::history::data::RelationalCommitReceipt;
 use crate::runtime::RelationalRuntime;
 use crate::snapshots::data::{SnapshotHandle, SnapshotReadPolicy};
 
@@ -43,7 +43,7 @@ impl RelationalRetainedCommitSnapshotDenial {
 /// immediate use with ordinary visibility APIs.
 #[derive(Debug, Eq, PartialEq)]
 pub struct RelationalRetainedCommitSnapshot {
-    commit: CommitReference,
+    commit: RelationalCommitReceipt,
     snapshot_handle: SnapshotHandle,
     work: RelationalRetainedCommitProjectionWork,
 }
@@ -67,7 +67,7 @@ pub struct RelationalRetainedCommitEntityProjection<T> {
 }
 
 impl RelationalRetainedCommitSnapshot {
-    pub const fn commit(&self) -> &CommitReference {
+    pub const fn commit(&self) -> &RelationalCommitReceipt {
         &self.commit
     }
 
@@ -155,7 +155,7 @@ impl<T> RelationalRetainedCommitEntityProjection<T> {
 pub(crate) fn open_retained_commit_snapshot(
     runtime: &RelationalRuntime,
     expected_runtime_instance_id: u64,
-    requested_commit: &CommitReference,
+    requested_commit: &RelationalCommitReceipt,
 ) -> Result<RelationalRetainedCommitSnapshot, RelationalRetainedCommitSnapshotDenial> {
     if expected_runtime_instance_id != runtime.runtime_instance_id() {
         return Err(denial(

@@ -7,7 +7,7 @@ fn bulk_mutation_plan_normalizes_client_keys_and_tracks_locality() {
     let source = create_entity(&mut runtime, "source");
     let target = create_entity_in_partition(&mut runtime, "target", PartitionId(7));
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("bulk-plan")
             .with_partition_key("planner-main")
@@ -47,7 +47,10 @@ fn bulk_mutation_plan_normalizes_client_keys_and_tracks_locality() {
             ))),
     );
 
-    let plan = txn.plan_bulk_mutation_batch().expect("planned batch");
+    let plan = txn
+        .plan_bulk_mutation_batch(&runtime)
+        .expect("planning succeeds")
+        .expect("planned batch");
 
     assert_eq!(
         plan.scope,
@@ -78,7 +81,7 @@ fn bulk_mutation_plan_normalizes_client_keys_and_tracks_locality() {
             .naming
             .normalized_client_keys
             .iter()
-            .all(|value| value.as_symbol().is_some()));
+            .all(|value: &crate::symbols::data::ClientKey| value.as_symbol().is_some()));
     }
 }
 
@@ -89,7 +92,7 @@ fn bulk_mutation_plan_captures_lineage_and_provenance_for_topology_rewrite() {
     let peer = create_entity(&mut runtime, "peer");
     let relation = create_relation(&mut runtime, original, peer, "original-edge");
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("rewrite")
             .push(MutationIntent::Entity(EntityMutationIntent::Replace(
@@ -114,7 +117,10 @@ fn bulk_mutation_plan_captures_lineage_and_provenance_for_topology_rewrite() {
             ))),
     );
 
-    let plan = txn.plan_bulk_mutation_batch().expect("planned batch");
+    let plan = txn
+        .plan_bulk_mutation_batch(&runtime)
+        .expect("planning succeeds")
+        .expect("planned batch");
 
     assert_eq!(
         plan.scope,
@@ -149,9 +155,12 @@ fn bulk_mutation_plan_captures_lineage_and_provenance_for_topology_rewrite() {
 #[test]
 fn bulk_mutation_plan_is_absent_for_empty_staging() {
     let mut runtime = runtime_with_test_schema();
-    let txn = runtime.begin_transaction(TransactionOptions::default());
+    let txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
 
-    assert!(txn.plan_bulk_mutation_batch().is_none());
+    assert!(txn
+        .plan_bulk_mutation_batch(&runtime)
+        .expect("planning succeeds")
+        .is_none());
 }
 
 #[test]
@@ -160,7 +169,7 @@ fn bulk_mutation_commit_records_admission_counters() {
     let source = create_entity(&mut runtime, "source");
     let target = create_entity_in_partition(&mut runtime, "target", PartitionId(4));
 
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
         WorkerIntentBatch::new("bulk-counters").push(MutationIntent::Create(
             CreateIntent::BulkRelations(crate::facade::transactions::BulkRelationCreateIntent {
@@ -175,7 +184,7 @@ fn bulk_mutation_commit_records_admission_counters() {
             }),
         )),
     );
-    let outcome = txn.commit().unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
 
     assert_eq!(outcome.complexity_delta().bulk_mutation_batch_count, 1);
     assert_eq!(

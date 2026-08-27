@@ -4,30 +4,9 @@ use super::super::adapters::block_on;
 use super::super::schema::*;
 use super::{admit_identity_adapter, request_scope, CourtroomWorld};
 
-enum AmendmentWidth {
-    GateOnly,
-    Full,
-}
-
 impl CourtroomWorld {
     pub fn amend_intent(&mut self, revision: u64, lifecycle: &str, gate: &str) {
         self.supersede_intent(revision, 5, lifecycle, "payload", gate);
-    }
-
-    pub fn amend_gate_only(&mut self, gate: &str) {
-        self.commit_amendment(1, 5, "active", "payload", gate, AmendmentWidth::GateOnly);
-    }
-
-    pub fn intent_record_identity(&self) -> primary_graph::RelationalBridgeRecordIdentityParts {
-        self.application
-            .resolve_entity(
-                IntentIdentityField::reference(),
-                "intent-1".to_string(),
-                &request_scope(),
-                primary_graph::WorthQueryPrincipalResolutionMode::Certification,
-            )
-            .expect("the courtroom intent must remain exactly resolvable")
-            .relational_record_identity_parts()
     }
 
     pub fn supersede_intent(
@@ -38,7 +17,7 @@ impl CourtroomWorld {
         input: &str,
         gate: &str,
     ) {
-        self.commit_amendment(revision, due, lifecycle, input, gate, AmendmentWidth::Full);
+        self.commit_amendment(revision, due, lifecycle, input, gate);
     }
 
     fn commit_amendment(
@@ -48,7 +27,6 @@ impl CourtroomWorld {
         lifecycle: &str,
         input: &str,
         gate: &str,
-        width: AmendmentWidth,
     ) {
         let schema = self.application.installed_schema();
         let principal_binding = schema
@@ -118,24 +96,22 @@ impl CourtroomWorld {
             .unwrap()
             .begin_effect_program();
         let intent = effects.existing_entity(&intent).unwrap();
-        if matches!(width, AmendmentWidth::Full) {
-            effects
-                .write_field(&intent, IntentRevisionField::reference(), revision)
-                .unwrap();
-            effects
-                .write_field(
-                    &intent,
-                    IntentLifecycleField::reference(),
-                    lifecycle.to_string(),
-                )
-                .unwrap();
-            effects
-                .write_field(&intent, IntentDueField::reference(), due)
-                .unwrap();
-            effects
-                .write_field(&intent, IntentInputField::reference(), input.to_string())
-                .unwrap();
-        }
+        effects
+            .write_field(&intent, IntentRevisionField::reference(), revision)
+            .unwrap();
+        effects
+            .write_field(
+                &intent,
+                IntentLifecycleField::reference(),
+                lifecycle.to_string(),
+            )
+            .unwrap();
+        effects
+            .write_field(&intent, IntentDueField::reference(), due)
+            .unwrap();
+        effects
+            .write_field(&intent, IntentInputField::reference(), input.to_string())
+            .unwrap();
         effects
             .write_field(&intent, IntentGateField::reference(), gate.to_string())
             .unwrap();

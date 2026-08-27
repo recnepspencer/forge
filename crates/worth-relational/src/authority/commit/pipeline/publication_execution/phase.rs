@@ -1,10 +1,7 @@
-use super::super::artifact_execution::preparation::PublicationPreparation;
-use super::super::rejection::{attach_rejection, elapsed_micros};
+use super::super::rejection::elapsed_micros;
+use super::preparation::PreparedPublicationCompletion;
 use crate::authority::commit::phases::publication::append_durable_commit;
-use crate::authority::mutation::apply_adjacency_deltas;
-use crate::history::data::CanonicalCommitEnvelope;
-use crate::history::data::{BranchId, CommitId, CommitReference};
-use crate::identity::data::VersionId;
+use crate::history::data::{BranchId, CommitId};
 use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{
     CommitLog, CommitPhase, CommitPhaseTiming, TransactionCommitError,
@@ -16,25 +13,31 @@ mod finalization;
 use finalization::{finalize_published_commit, FinalizationInput};
 
 pub(super) struct FinalizedPublicationPhase {
-    canonical_commit_envelope: Arc<CanonicalCommitEnvelope>,
+    positioned_commit: Arc<crate::history::data::PositionedCanonicalCommit>,
     changed_records: Vec<crate::transactions::data::RecordRef>,
+    durability_error: Option<TransactionCommitError>,
 }
 
 impl FinalizedPublicationPhase {
     pub(super) fn into_parts(
         self,
     ) -> (
-        Arc<CanonicalCommitEnvelope>,
+        Arc<crate::history::data::PositionedCanonicalCommit>,
         Vec<crate::transactions::data::RecordRef>,
+        Option<TransactionCommitError>,
     ) {
-        (self.canonical_commit_envelope, self.changed_records)
+        (
+            self.positioned_commit,
+            self.changed_records,
+            self.durability_error,
+        )
     }
 }
 
 pub(super) struct DurableAppendPhaseInput<'a> {
     pub(super) commit_log: &'a mut CommitLog,
     pub(super) phase_timing: &'a mut CommitPhaseTiming,
-    pub(super) publication: &'a PublicationPreparation,
+    pub(super) positioned_commit: &'a crate::history::data::PositionedCanonicalCommit,
     pub(super) append_authority: crate::durability::authority::DurableAppendAuthority,
     pub(super) commit_id: CommitId,
     pub(super) branch_id: &'a BranchId,
@@ -47,7 +50,7 @@ pub(super) fn append_durable_commit_phase(
     let DurableAppendPhaseInput {
         commit_log,
         phase_timing,
-        publication,
+        positioned_commit,
         append_authority,
         commit_id,
         branch_id,
@@ -57,42 +60,30 @@ pub(super) fn append_durable_commit_phase(
     commit_log.record_durable_append_prepared(
         commit_id,
         &branch_id.0,
-        publication.patch_position(),
+        positioned_commit.position(),
     );
-    append_durable_commit(
-        runtime,
-        append_authority,
-        publication.canonical_commit_envelope(),
-    )
-    .map_err(|error| attach_rejection(commit_log, CommitPhase::DurableAppend, error))?;
+    append_durable_commit(runtime, append_authority, positioned_commit)
+        .map_err(|error| error.with_commit_log(commit_log.clone()))?;
     commit_log.complete_phase(CommitPhase::DurableAppend);
     phase_timing.durable_append_micros = elapsed_micros(phase_started);
     Ok(())
 }
 
-pub(super) struct FinalizePublicationPhaseInput<'a> {
-    pub(super) commit_log: &'a mut CommitLog,
-    pub(super) phase_timing: &'a mut CommitPhaseTiming,
-    pub(super) working_state: crate::storage::overlay::WorkingState,
-    pub(super) publication: PublicationPreparation,
-    pub(super) version_id: VersionId,
-    pub(super) previous_branch_head_version: Option<VersionId>,
-    pub(super) commit_id: CommitId,
-    pub(super) commit_reference: &'a CommitReference,
-    pub(super) branch_id: &'a BranchId,
-    pub(super) merge_base_commits: &'a [CommitId],
-    pub(super) merge_parent_branches: &'a [BranchId],
-}
-
 pub(super) fn finalize_publication_phase(
     runtime: &mut RelationalRuntime,
-    input: FinalizePublicationPhaseInput<'_>,
-) -> FinalizedPublicationPhase {
-    let FinalizePublicationPhaseInput {
-        commit_log,
-        phase_timing,
-        working_state,
-        publication,
+    commit_log: &mut CommitLog,
+    phase_timing: &mut CommitPhaseTiming,
+    prepared: PreparedPublicationCompletion,
+) -> Result<FinalizedPublicationPhase, TransactionCommitError> {
+    let PreparedPublicationCompletion {
+        clone_mode,
+        committed_partitions,
+        prepared_history,
+        validated_lineage_events,
+        lineage_nodes,
+        artifacts,
+        changed_records,
+        append_authority,
         version_id,
         previous_branch_head_version,
         commit_id,
@@ -100,29 +91,58 @@ pub(super) fn finalize_publication_phase(
         branch_id,
         merge_base_commits,
         merge_parent_branches,
-    } = input;
+        deferred_diagnostic_artifacts,
+    } = prepared;
+    let positioned_commit = runtime
+        .history
+        .positioned_canonical_commit(commit_id)
+        .expect("performed publication must expose its positioned canonical commit");
+    commit_log.record_publication_position(positioned_commit.position());
+    let durability_error = append_durable_commit_phase(
+        runtime,
+        DurableAppendPhaseInput {
+            commit_log,
+            phase_timing,
+            positioned_commit: positioned_commit.as_ref(),
+            append_authority,
+            commit_id,
+            branch_id: &branch_id,
+        },
+    )
+    .err();
+    runtime.lineage_authority().install_published_lineage(
+        validated_lineage_events,
+        commit_id,
+        lineage_nodes,
+    );
     commit_log.begin_phase(CommitPhase::Publication);
     let phase_started = std::time::Instant::now();
-    let (artifacts, changed_records, canonical_commit_envelope, adjacency_deltas) =
-        publication.into_finalize().into_parts();
-    let canonical_commit_envelope = Arc::new(canonical_commit_envelope);
-    let publication_phase_timing = finalize_commit_publication(
+    let mut publication_phase_timing =
+        crate::authority::commit::phases::finalize::PublicationPhaseTiming::default();
+    finalize_published_commit(
         runtime,
-        working_state,
-        FinalizeCommitInput {
+        FinalizationInput {
+            clone_mode,
+            committed_partitions,
+            prepared_history,
             changed_records: &changed_records,
             version_id,
             previous_branch_head_version,
             commit_id,
-            commit_reference,
-            canonical_commit_envelope: canonical_commit_envelope.clone(),
-            branch_id,
-            merge_base_commits,
+            commit_reference: &commit_reference,
+            branch_id: &branch_id,
+            merge_base_commits: &merge_base_commits,
             artifacts,
-            merge_parent_branches,
-            adjacency_deltas,
+            patch_position: positioned_commit.position(),
+            merge_parent_branches: &merge_parent_branches,
+            phase_timing: &mut publication_phase_timing,
         },
     );
+    for artifact in deferred_diagnostic_artifacts {
+        runtime
+            .publication_authority()
+            .push_diagnostic_artifact(artifact);
+    }
     commit_log.record_commit_published(commit_id, &commit_reference.branch_id.0);
     commit_log.complete_phase(CommitPhase::Publication);
     phase_timing.publication_micros = elapsed_micros(phase_started);
@@ -138,55 +158,9 @@ pub(super) fn finalize_publication_phase(
     phase_timing.publication_post_commit_consumer_micros =
         publication_phase_timing.post_commit_consumer_micros;
 
-    FinalizedPublicationPhase {
-        canonical_commit_envelope,
+    Ok(FinalizedPublicationPhase {
+        positioned_commit,
         changed_records,
-    }
-}
-
-struct FinalizeCommitInput<'a> {
-    changed_records: &'a [crate::transactions::data::RecordRef],
-    version_id: VersionId,
-    previous_branch_head_version: Option<VersionId>,
-    commit_id: CommitId,
-    commit_reference: &'a CommitReference,
-    canonical_commit_envelope: Arc<CanonicalCommitEnvelope>,
-    branch_id: &'a BranchId,
-    merge_base_commits: &'a [CommitId],
-    artifacts: crate::storage::overlay::PublicationArtifacts,
-    merge_parent_branches: &'a [BranchId],
-    adjacency_deltas: Vec<crate::authority::mutation::AdjacencyDelta>,
-}
-
-fn finalize_commit_publication(
-    runtime: &mut RelationalRuntime,
-    mut working_state: crate::storage::overlay::WorkingState,
-    input: FinalizeCommitInput<'_>,
-) -> crate::authority::commit::phases::finalize::PublicationPhaseTiming {
-    let mut phase_timing =
-        crate::authority::commit::phases::finalize::PublicationPhaseTiming::default();
-    let phase_started = std::time::Instant::now();
-    apply_adjacency_deltas(&mut working_state, &input.adjacency_deltas);
-    phase_timing.storage_commit_micros = phase_started.elapsed().as_micros() as u64;
-    let clone_mode = working_state.clone_mode();
-    let committed_partitions = working_state.into_partition_commits().1;
-    finalize_published_commit(
-        runtime,
-        FinalizationInput {
-            clone_mode,
-            committed_partitions,
-            changed_records: input.changed_records,
-            version_id: input.version_id,
-            previous_branch_head_version: input.previous_branch_head_version,
-            commit_id: input.commit_id,
-            commit_reference: input.commit_reference,
-            canonical_commit_envelope: input.canonical_commit_envelope,
-            branch_id: input.branch_id,
-            merge_base_commits: input.merge_base_commits,
-            artifacts: input.artifacts,
-            merge_parent_branches: input.merge_parent_branches,
-            phase_timing: &mut phase_timing,
-        },
-    );
-    phase_timing
+        durability_error,
+    })
 }

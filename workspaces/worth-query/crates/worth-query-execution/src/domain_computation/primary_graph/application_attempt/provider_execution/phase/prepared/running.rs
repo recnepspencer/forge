@@ -1,6 +1,5 @@
 use worth_query_admission::facade::basis::basis_lifecycle;
 use worth_query_installation::facade::ApplicationSchema;
-use worth_relational::facade::bridge::bridge_snapshot_identity_for_handle;
 use worth_runtime_bridge::facade::{
     BridgeDeliveryIntent, BridgeDiagnosticsTier, BridgeReplayMode, BridgeTruthViewSelector,
     HistoricalEvaluationDeclaration, SnapshotReadPacket,
@@ -85,7 +84,7 @@ where
     let attempt_basis =
         WorthQueryApplicationAttemptBasis::capture(application, &admission, snapshot)
             .map_err(|_| denied(DenialStage::ManagedRunAdmission))?;
-    let operation = bind_execution_operation(application, &admission, snapshot)?;
+    let operation = bind_execution_operation(application, &admission, &lease)?;
     let reserved = admission
         .graph_work_mut()
         .take_operation_capacity()
@@ -95,8 +94,7 @@ where
         .start_reserved_direct_resource_attempt(&operation, reserved)
         .map_err(|_| denied(DenialStage::ResourceAdmission))?;
     let read_request = WorthQueryManagedTruthReadRequest::new(
-        snapshot.version_id,
-        admission.graph_work().branch().truth().clone(),
+        lease.basis_descriptor().clone(),
         SnapshotReadPacket::new(Vec::new()),
     );
     let request_bridge = application.bridge.ordinary().fork_managed_request_lane();
@@ -128,16 +126,25 @@ where
 fn bind_execution_operation<Schema, Operation, Input, Scope>(
     application: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
     admission: &WorthQueryAdmittedApplicationOperation<Schema, Operation, Input, Scope>,
-    snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
+    lease: &WorthQueryApplicationSnapshotLease,
 ) -> Result<WorthQueryExecutionBoundOperationAuthority, WorthQueryApplicationCommitOutcome>
 where
     Schema: ApplicationSchema,
 {
+    let snapshot = lease.snapshot();
     application
         .primary_provider
         .observe_managed_application_bridge_plan();
     let branch = admission.graph_work().branch().truth().clone();
-    let bridge_snapshot = bridge_snapshot_identity_for_handle(snapshot);
+    let basis = application
+        .relational_source
+        .readmit_branch_basis(lease.basis_descriptor())
+        .map_err(|_| denied(DenialStage::BridgePlanning))?;
+    let bridge_observation = application
+        .relational_source
+        .retain_branch_basis_for_bridge(&basis)
+        .map_err(|_| denied(DenialStage::BridgePlanning))?;
+    let bridge_snapshot = bridge_observation.snapshot_identity().clone();
     application
         .bridge
         .ordinary()
@@ -151,12 +158,14 @@ where
             SnapshotReadPacket::new(Vec::new()),
         )
         .map_err(|_| denied(DenialStage::BridgePlanning))?;
+    drop(bridge_observation);
     let basis = basis_lifecycle()
         .branch_snapshot(
             admission.graph_work_branch().0.clone(),
             format!(
                 "relational-snapshot:{}:{}",
-                snapshot.snapshot_id.0, snapshot.version_id.0
+                snapshot.snapshot_id().0,
+                snapshot.version_id().0
             ),
         )
         .for_mutation_preparation()

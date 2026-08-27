@@ -63,6 +63,13 @@ impl InternedString {
             Self::Symbol(symbol) => Cow::Owned(format!("symbol:{}", symbol.0)),
         }
     }
+
+    pub(crate) fn owned_allocation_capacity_bytes(&self) -> u64 {
+        match self {
+            Self::Raw(raw) => raw.capacity() as u64,
+            Self::Symbol(_) => 0,
+        }
+    }
 }
 
 impl From<&str> for InternedString {

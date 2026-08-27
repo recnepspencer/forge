@@ -13,9 +13,8 @@ use crate::facade::history::BranchId;
 use crate::facade::replay::{RelationalReplayRequest, ReplayExecutionMode, ReplayVerificationMode};
 
 use super::super::actions::{
-    correct_seeded_trade_candidate, open_analysis_branch, promote_case_correspondence,
-    refresh_risk_views, repair_seeded_failed_settlement, shock_market_on_branch,
-    stress_seeded_intraday_risk,
+    correct_seeded_trade_candidate, open_analysis_branch, refresh_risk_views,
+    repair_seeded_failed_settlement, shock_market_on_branch, stress_seeded_intraday_risk,
 };
 use super::super::fixture::FintechWorkflowCase;
 use super::super::scenarios::{setup_world_for, FintechScenario};
@@ -38,7 +37,6 @@ impl RelationalFintechWorkflowCertificationAdapter {
         case: FintechCaseRef,
     ) -> FintechWorkflowCase {
         match case {
-            FintechCaseRef::BaselinePortfolio => session.world.baseline_portfolio_case(),
             FintechCaseRef::LateTradeCorrection => session.world.late_trade_correction_case(),
             FintechCaseRef::IntradayRisk => session.world.intraday_risk_case(),
             FintechCaseRef::FailedSettlementRepair => session.world.failed_settlement_repair_case(),
@@ -135,7 +133,6 @@ impl WorkflowCertificationAdapter for RelationalFintechWorkflowCertificationAdap
             named_branches: BTreeMap::from([("main".to_string(), BranchId("main".to_string()))]),
             named_snapshots: BTreeMap::new(),
             named_reads: BTreeMap::new(),
-            named_lineage_resolutions: BTreeMap::new(),
             named_replays: BTreeMap::new(),
             executed_steps: Vec::new(),
             checkpoints: Vec::new(),
@@ -234,29 +231,6 @@ impl WorkflowCertificationAdapter for RelationalFintechWorkflowCertificationAdap
                     (*read_alias).to_string(),
                     case_read_summary(session, workflow_case.role),
                 );
-                Ok(WorkflowStepOutcome::applied())
-            }
-            FintechWorkflowStep::PromoteCaseCorrespondence {
-                branch_alias,
-                left_case,
-                right_case,
-                resolution_alias,
-            } => {
-                let branch = session.branch(branch_alias)?;
-                let left_role = Self::case_for(session, *left_case).role;
-                let right_role = Self::case_for(session, *right_case).role;
-                let commit = session
-                    .world
-                    .runtime
-                    .history()
-                    .branch_head(&branch)
-                    .cloned()
-                    .ok_or_else(|| format!("branch `{branch_alias}` has no head commit"))?;
-                let resolution =
-                    promote_case_correspondence(&mut session.world, left_role, right_role, commit);
-                session
-                    .named_lineage_resolutions
-                    .insert((*resolution_alias).to_string(), resolution);
                 Ok(WorkflowStepOutcome::applied())
             }
             FintechWorkflowStep::CaptureReplay {

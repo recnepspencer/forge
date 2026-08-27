@@ -28,10 +28,10 @@ Executable closeout:
 
 Ordinary examples prove the public path compiles the way the docs teach it.
 
-Compile-fail boundaries prove illegal progression, illegal degradation, or
-illegal construction does not compile. Use them selectively for properties
-that truly require compiler evidence; do not mirror every runtime assertion in
-a trybuild fixture.
+Compiler-visible boundaries make illegal progression, degradation, or
+construction unrepresentable. Prove the intended public journey through the
+owning package's ordinary tests and doctests; do not mirror runtime assertions
+in a separate compiler-fixture matrix.
 
 Hostile certification proves the public, checked, proof, and raw lanes converge
 or stay distinct in the ways the spec requires.
@@ -39,8 +39,7 @@ or stay distinct in the ways the spec requires.
 ## How It Executes
 
 1. focused public examples compile the intended ordinary journeys
-2. selective compile-fail tests reject authority violations that cannot be
-   proved honestly at runtime
+2. boundary enforcement rejects illegal package and authority dependencies
 3. hostile tests compare equivalent and intentionally different surfaces
 4. certification reports summarize runtime evidence without trying to certify
    the test harness itself

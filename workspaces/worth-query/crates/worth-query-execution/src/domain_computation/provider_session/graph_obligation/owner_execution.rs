@@ -1,6 +1,6 @@
 use worth_query_admission::facade::graph_obligation::WorthQueryGraphWorkPlanIdentity;
 use worth_query_installation::facade::ApplicationSchemaBindingIdentity;
-use worth_relational::facade::runtime::{RelationalExecutionBasisIdentity, RelationalRuntime};
+use worth_relational::facade::runtime::RelationalRuntime;
 
 use crate::domain_computation::primary_graph::{
     WorthQueryPrimaryGraphIntegrationHandle, WorthQueryPrimaryGraphLayout,
@@ -43,14 +43,14 @@ pub(super) enum WorthQueryGraphReadOwnerPortDenial {
 pub(in crate::domain_computation) struct WorthQuerySessionGraphReadProof {
     pub(super) session: WorthQueryGraphWorkSessionIdentity,
     pub(super) plan: WorthQueryGraphWorkPlanIdentity,
-    pub(super) basis: RelationalExecutionBasisIdentity,
+    pub(super) basis: crate::domain_computation::primary_graph::WorthQueryApplicationBasisIdentity,
 }
 
 impl WorthQuerySessionGraphReadProof {
     pub(super) fn new(
         session: WorthQueryGraphWorkSessionIdentity,
         plan: WorthQueryGraphWorkPlanIdentity,
-        basis: RelationalExecutionBasisIdentity,
+        basis: crate::domain_computation::primary_graph::WorthQueryApplicationBasisIdentity,
     ) -> Self {
         Self {
             session,

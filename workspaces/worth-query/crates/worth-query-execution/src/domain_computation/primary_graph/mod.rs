@@ -13,8 +13,11 @@ mod denial;
 mod entity_key;
 mod entity_resolution;
 mod entity_resolution_denial;
+mod exact_basis_access;
+pub(in crate::domain_computation) use exact_basis_access::open_current_branch_snapshot;
 mod freshness;
 mod granular_invalidation;
+mod index_currency;
 mod index_refresh;
 mod invariant_projection;
 mod live_delivery;
@@ -27,6 +30,7 @@ mod resolution;
 mod resolution_denial;
 mod root;
 mod schema_layout;
+mod settlement_repair;
 mod typed_bootstrap;
 
 #[cfg(test)]
@@ -62,10 +66,12 @@ pub use application_attempt::{
     WorthQueryApplicationAttemptDenial, WorthQueryApplicationAttemptDenialKind,
     WorthQueryApplicationCommitAuthorityBinding, WorthQueryApplicationCommitDenial,
     WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
-    WorthQueryApplicationCommitOutcome, WorthQueryApplicationCommitOutcomeIdentity,
+    WorthQueryApplicationCommitDeferred, WorthQueryApplicationCommitOutcome,
+    WorthQueryApplicationCommitOutcomeIdentity,
     WorthQueryApplicationCommitPublicationExternalEffect,
     WorthQueryApplicationCommitPublicationSource, WorthQueryApplicationCommitReceipt,
-    WorthQueryApplicationCommitRecoveryKind,
+    WorthQueryApplicationCommitRecoveryKind, WorthQueryApplicationSettlementDeferred,
+    WorthQueryApplicationSettlementNextAction,
     WorthQueryApplicationCommitTerminalEvidence, WorthQueryApplicationCommitTerminalKind,
     WorthQueryApplicationEffectEntity, WorthQueryApplicationEffectProgram,
     WorthQueryApplicationEffectProgramBuilder, WorthQueryApplicationIdempotencyBinding,
@@ -84,12 +90,14 @@ pub use application_attempt::{
     WorthQueryOrdinaryApplicationRead, WorthQueryProjectedApplicationMutation,
     WorthQueryRequestedElevation, WorthQueryReviewedElevation,
 };
+pub use settlement_repair::WorthQueryApplicationSettlementRecoveryError;
 pub(in crate::domain_computation) use application_branch::primary_relational_branch_id;
 pub(in crate::domain_computation) use application_branch::primary_truth_branch_identity;
 pub use application_query::{
     WorthQueryAdmittedApplicationQueryControls, WorthQueryAdmittedApplicationQueryPlan,
     WorthQueryAdmittedDisclosedApplicationResult, WorthQueryApplicationAuthorizationWorkEvidence,
-    WorthQueryApplicationBasisObservation, WorthQueryApplicationBasisObserver,
+    WorthQueryApplicationBasisIdentity, WorthQueryApplicationBasisObservation,
+    WorthQueryApplicationBasisObserver, WorthQueryApplicationBasisReleaseReceipt,
     WorthQueryApplicationContinuationDenial, WorthQueryApplicationContinuationDenialKind,
     WorthQueryApplicationContinuationPageResult, WorthQueryApplicationDisclosed,
     WorthQueryApplicationDisclosureDecisionFact, WorthQueryApplicationDisclosureOutcome,
@@ -121,6 +129,7 @@ pub use application_query::{
     WorthQueryApplicationQueryWorkEvidence, WorthQueryApplicationResultBufferEvidence,
     WorthQueryApplicationResultBufferObservation, WorthQueryApplicationResultBufferObserver,
     WorthQueryBoundedLaneDenial, WorthQueryBoundedLaneDenialKind,
+    WorthQueryPrimaryGraphApplicationReadinessSnapshot,
 };
 pub(in crate::domain_computation) use crate::domain_computation::application_aftermath::external_effect::WorthQueryAdmittedExternalDispatchAttempt;
 pub(in crate::domain_computation) use application_runtime::WorthQueryExternalDispatchAttemptOrdinal;

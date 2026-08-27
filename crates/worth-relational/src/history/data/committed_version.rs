@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::CommitReference;
+use super::RelationalCommitReceipt;
 
 /// Ordinary-history evidence for the transaction that created a version.
 ///
@@ -9,19 +9,19 @@ use super::CommitReference;
 /// authority.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CommittedVersionSummary {
-    commit: CommitReference,
+    commit: RelationalCommitReceipt,
     changed_record_count: usize,
 }
 
 impl CommittedVersionSummary {
-    pub(crate) const fn new(commit: CommitReference, changed_record_count: usize) -> Self {
+    pub(crate) const fn new(commit: RelationalCommitReceipt, changed_record_count: usize) -> Self {
         Self {
             commit,
             changed_record_count,
         }
     }
 
-    pub const fn commit(&self) -> &CommitReference {
+    pub const fn commit(&self) -> &RelationalCommitReceipt {
         &self.commit
     }
 

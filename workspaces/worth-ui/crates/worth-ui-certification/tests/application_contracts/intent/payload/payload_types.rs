@@ -20,8 +20,6 @@ pub(super) const APPLICATION_UNSIGNED_FIELD: UiIntentPayloadField<
     ApplicationPayload,
     UiIntentUnsigned64,
 > = UiIntentPayloadField::unsigned64(2, "revision");
-pub(super) const DRAFT_FIELD: UiIntentPayloadField<DraftPayload, UiIntentText> =
-    UiIntentPayloadField::text(0, "committed_text", 16);
 pub(super) const SELECTION_FIELD: UiIntentPayloadField<SelectionPayload, UiIntentSelection> =
     UiIntentPayloadField::selection(0, "selected_status");
 pub(in crate::intent) const BUDGET_TEXT_FIELD: UiIntentPayloadField<
@@ -31,7 +29,6 @@ pub(in crate::intent) const BUDGET_TEXT_FIELD: UiIntentPayloadField<
 
 pub(super) struct QueryTextPayload;
 pub(super) struct ApplicationPayload;
-pub(super) struct DraftPayload;
 pub(super) struct SelectionPayload {
     _selection: UiIntentSelectionValue,
 }
@@ -43,7 +40,6 @@ pub(in crate::intent) struct PayloadOutcome;
 
 pub(super) struct QueryTextIntent;
 pub(super) struct ApplicationIntent;
-pub(super) struct DraftIntent;
 pub(super) struct SelectionIntent;
 pub(in crate::intent) struct BudgetTextIntent;
 pub(in crate::intent) struct WideIntent;
@@ -101,19 +97,6 @@ impl UiIntentPayload for ApplicationPayload {
                 APPLICATION_UNSIGNED_FIELD,
             ));
         }
-        Ok(Self)
-    }
-}
-
-impl UiIntentPayload for DraftPayload {
-    const SCHEMA: UiIntentSchema = UiIntentSchema::stable("phase3.payload.draft", 1);
-    const FIELDS: UiIntentPayloadFieldSet =
-        UiIntentPayloadFieldSet::new(&[DRAFT_FIELD.descriptor()]);
-
-    fn project(
-        fields: &mut UiIntentPayloadProjection<Self>,
-    ) -> Result<Self, UiIntentPayloadProjectionViolation> {
-        require_text(fields.take(DRAFT_FIELD)?, "é🦀done", DRAFT_FIELD)?;
         Ok(Self)
     }
 }
@@ -185,7 +168,6 @@ intent!(
     "phase3.intent.application",
     Activate
 );
-intent!(DraftIntent, DraftPayload, "phase3.intent.draft", EditCommit);
 intent!(
     SelectionIntent,
     SelectionPayload,

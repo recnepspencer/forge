@@ -88,7 +88,7 @@ pub(super) fn materialize_result_tree(
     let mut collection_selection = ActiveResultTreeCollectionSelection::new(collection_selection);
     let mut rows = project_nodes(
         runtime,
-        projection,
+        &projection,
         graph,
         contract,
         governance,
@@ -161,7 +161,7 @@ impl ActiveOrderedCollectionWindow {
 #[allow(clippy::too_many_arguments)]
 fn project_nodes(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
-    projection: worth_relational::facade::runtime::VisibilityProjectionView<'_>,
+    projection: &worth_relational::facade::runtime::VisibilityProjectionView<'_>,
     graph: &crate::domain_computation::primary_graph::WorthQueryPrimaryGraphLayout,
     contract: &WorthQueryInstalledGraphReadContract,
     governance: &crate::domain_computation::primary_graph::application_query::disclosure::WorthQueryApplicationQueryGovernance,

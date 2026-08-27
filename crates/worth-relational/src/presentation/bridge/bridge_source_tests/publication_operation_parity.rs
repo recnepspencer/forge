@@ -4,14 +4,14 @@ use worth_foundational::facade::{
     ContractValidationInput, PortableAspectContractBasis, PortableAspectPatchOperation,
     PortableRecordAspectPatch, ScalarAspectType, StructAspectValue,
 };
-use worth_proof::TransitionOutcome;
 use worth_runtime_bridge::facade::TruthDeltaSurfaceKind;
 
+use super::support::bridge_envelopes_at_current_observation;
 use crate::facade::identity::{KindId, PartitionId};
 use crate::facade::schema::DeclaredAspectContractBinding;
 use crate::facade::transactions::{
     ApplyEntityAspectPatchIntent, CreateIntent, EntityAspectCreateIntent, EntityMutationIntent,
-    MutationIntent, TransactionOptions, WorkerIntentBatch,
+    MutationIntent, WorkerIntentBatch,
 };
 use crate::tests::support::{
     aspect_key, changed_entities, entity_summary_struct_aspect, field_key, AspectSchemaFixture,
@@ -51,7 +51,7 @@ fn real_whole_and_field_set_clear_operations_keep_their_exact_publication_meanin
             value: ContractValidationInput::Struct(initial_summary),
         },
     ]);
-    let mut create = runtime.begin_transaction(TransactionOptions::default());
+    let mut create = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     create.push_batch(WorkerIntentBatch::new("publication-set-whole").push(
         MutationIntent::Create(CreateIntent::EntityAspects(EntityAspectCreateIntent {
             partition_id: PartitionId::main(),
@@ -60,19 +60,9 @@ fn real_whole_and_field_set_clear_operations_keep_their_exact_publication_meanin
             aspect_patch: initial,
         })),
     ));
-    let created = create.commit().unwrap();
+    let created = create.commit(&mut runtime).unwrap();
     let entity = changed_entities(&created)[0];
-    let TransitionOutcome::Success(created_publication) =
-        runtime.publish_commit_for_bridge(created.commit.commit_id, "model")
-    else {
-        panic!("real whole-set commit publishes")
-    };
-    assert_change(
-        created_publication.bridge_envelope(),
-        note.key(),
-        AuthoritativeAspectChangeKind::WholeAspectSet,
-        TruthDeltaSurfaceKind::AuthoritativeAspect,
-    );
+    let created_commit = created.commit.commit_id;
 
     let update = PortableRecordAspectPatch::new([
         PortableAspectPatchOperation::ClearWhole {
@@ -85,7 +75,8 @@ fn real_whole_and_field_set_clear_operations_keep_their_exact_publication_meanin
             field_clears: vec![field_key("status")],
         },
     ]);
-    let mut transaction = runtime.begin_transaction(TransactionOptions::default());
+    let mut transaction =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     transaction.push_batch(WorkerIntentBatch::new("publication-clear-parity").push(
         MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(
             ApplyEntityAspectPatchIntent {
@@ -94,20 +85,27 @@ fn real_whole_and_field_set_clear_operations_keep_their_exact_publication_meanin
             },
         )),
     ));
-    let updated = transaction.commit().unwrap();
-    let TransitionOutcome::Success(publication) =
-        runtime.publish_commit_for_bridge(updated.commit.commit_id, "model")
-    else {
-        panic!("real clear commit publishes")
-    };
+    let updated = transaction.commit(&mut runtime).unwrap();
+    let mut publications = bridge_envelopes_at_current_observation(
+        runtime,
+        [created_commit, updated.commit.commit_id],
+    );
+    let publication = publications.pop().expect("clear publication");
+    let created_publication = publications.pop().expect("whole-set publication");
     assert_change(
-        publication.bridge_envelope(),
+        &created_publication,
+        note.key(),
+        AuthoritativeAspectChangeKind::WholeAspectSet,
+        TruthDeltaSurfaceKind::AuthoritativeAspect,
+    );
+    assert_change(
+        &publication,
         note.key(),
         AuthoritativeAspectChangeKind::WholeAspectClear,
         TruthDeltaSurfaceKind::AuthoritativeAspect,
     );
     assert_change(
-        publication.bridge_envelope(),
+        &publication,
         summary_contract.key(),
         AuthoritativeAspectChangeKind::FieldClear,
         TruthDeltaSurfaceKind::EntityField,

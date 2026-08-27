@@ -1,7 +1,6 @@
 use worth_proof::TransitionOutcome;
-use worth_signal::facade::history::{
-    RuntimeBranchId, SignalBranchRetirementBatchRequest, SignalBranchRetirementRequest,
-};
+use worth_signal::facade::branch::AdmittedSignalBranchBasis;
+use worth_signal::facade::history::{RuntimeBranch, RuntimeBranchId, SignalBranchRetirementReason};
 
 use crate::boundary::errors::WorthSignalJsError;
 
@@ -28,17 +27,15 @@ impl RuntimeCore {
                 "retireBranches",
             )?;
             terminal_bases.push(terminal_basis);
-            native_requests.push(self.native_retirement_request(retirement)?);
+            native_requests.push(self.native_retirement_basis(retirement)?);
         }
         let plan = expect_success(
             self.runtime
-                .plan_branch_retirement_batch(SignalBranchRetirementBatchRequest::new(
-                    native_requests,
-                )),
+                .plan_signal_branch_retirement_batch(native_requests),
             "plan worker retirement batch",
         )?;
         let receipt = expect_success(
-            self.runtime.retire_branch_batch(plan),
+            self.runtime.retire_signal_branch_batch(plan),
             "retire worker branch batch",
         )?;
         let retirements = request
@@ -77,21 +74,19 @@ impl RuntimeCore {
         } else {
             None
         };
-        let mut retirement_requests = vec![self.native_retirement_request(&effect_request)?];
+        let mut retirement_requests = vec![self.native_retirement_basis(&effect_request)?];
         if let Some(dependency) = &dependency_request {
-            retirement_requests.push(self.native_retirement_request(dependency)?);
+            retirement_requests.push(self.native_retirement_basis(dependency)?);
         }
         let retirement_plan = expect_success(
             self.runtime
-                .plan_branch_retirement_batch(SignalBranchRetirementBatchRequest::new(
-                    retirement_requests,
-                )),
+                .plan_signal_branch_retirement_batch(retirement_requests),
             "plan worker effect closeout retirement batch",
         )?;
 
         let canonical_transaction =
             self.apply_transaction_to_worker_branch(request.canonical_transaction)?;
-        let retired = match self.runtime.retire_branch_batch(retirement_plan) {
+        let retired = match self.runtime.retire_signal_branch_batch(retirement_plan) {
             TransitionOutcome::Success(receipt) => receipt,
             other => panic!(
                 "prevalidated effect retirement batch must remain executable after isolated canonical transaction: {other:?}",
@@ -116,10 +111,17 @@ impl RuntimeCore {
         })
     }
 
-    fn native_retirement_request(
+    fn native_retirement_basis(
         &mut self,
         request: &WorkerRetireBranchRequest,
-    ) -> Result<SignalBranchRetirementRequest, WorthSignalJsError> {
+    ) -> Result<
+        (
+            RuntimeBranch,
+            AdmittedSignalBranchBasis,
+            SignalBranchRetirementReason,
+        ),
+        WorthSignalJsError,
+    > {
         let branch = self
             .runtime
             .branch_handle(RuntimeBranchId(request.branch_id))
@@ -128,15 +130,8 @@ impl RuntimeCore {
                     "closeoutEffectBranch references an unknown retirement branch",
                 )
             })?;
-        let native_head = expect_success(
-            self.runtime.branch_transaction_head(branch.clone()),
-            "read closing worker effect branch head",
-        )?;
-        Ok(SignalBranchRetirementRequest::new(
-            branch,
-            native_head,
-            request.reason.into(),
-        ))
+        let native_basis = self.native_branch_basis_by_id(request.branch_id)?;
+        Ok((branch, native_basis, request.reason.into()))
     }
 
     fn reclaim_worker_branch_companion_state(&mut self, branch_id: u64) {

@@ -1,5 +1,0 @@
-error[E0599]: no method named `execute` found for struct `WorthQuerySelectedInstalledInvariant<'inspection, 'run>` in the current scope
- --> tests/ui/installed_domain/managed_run/selected_invariant_cannot_execute_without_state_load.rs:4:22
-  |
-4 |     let _ = selected.execute();
-  |                      ^^^^^^^ method not found in `WorthQuerySelectedInstalledInvariant<'_, '_>`

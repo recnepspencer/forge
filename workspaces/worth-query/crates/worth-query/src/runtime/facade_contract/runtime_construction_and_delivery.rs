@@ -77,3 +77,4 @@ pub use super::state::WorthQueryRuntimeStateTarget;
 pub use super::state_snapshot::{WorthQueryRuntimeStateKind, WorthQueryRuntimeStateSnapshot};
 
 pub use super::runtime_root_state::WorthQueryRuntime;
+pub use super::settlement_repair::WorthQuerySettlementRepairError;

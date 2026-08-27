@@ -9,7 +9,7 @@ fn subscriber_stream_recovers_from_durable_canonical_envelopes_when_checkpoint_i
 
     assert!(runtime
         .history_authority()
-        .remove_commit_envelope_for_test(first.commit.commit_id));
+        .evict_commit_envelope_for_durable_recovery_test(first.commit.commit_id));
 
     let checkpoint = checkpoint_for_schema_version(PatchStreamPosition(1), SchemaVersionId(1));
     let resumed = runtime
@@ -43,10 +43,10 @@ fn subscriber_stream_reports_durable_latest_available_checkpoint_when_latest_hea
 
     assert!(runtime
         .history_authority()
-        .remove_commit_envelope_for_test(first.commit.commit_id));
+        .evict_commit_envelope_for_durable_recovery_test(first.commit.commit_id));
     assert!(runtime
         .history_authority()
-        .remove_commit_envelope_for_test(second.commit.commit_id));
+        .evict_commit_envelope_for_durable_recovery_test(second.commit.commit_id));
 
     let checkpoint = checkpoint_for_schema_version(PatchStreamPosition(1), SchemaVersionId(1));
     let resumed = runtime

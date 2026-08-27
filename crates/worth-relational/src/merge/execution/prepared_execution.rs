@@ -5,7 +5,9 @@ use crate::authority::commit::pipeline::{
 };
 use crate::merge::data::{MergeExecutionError, PreparedMergeExecution};
 use crate::runtime::RelationalRuntime;
-use crate::transactions::data::{MergeExecutionOutcome, TransactionOptions};
+use crate::transactions::data::{
+    CommitConflict, ConflictClass, MergeExecutionOutcome, TransactionCommitError,
+};
 
 pub(in crate::merge) fn execute_prepared_merge(
     runtime: &mut RelationalRuntime,
@@ -19,15 +21,56 @@ pub(in crate::merge) fn execute_prepared_merge(
         .map_err(|error| emit_failure(runtime, &prepared, error))?;
     let transaction_id = runtime.services.next_transaction_id();
     let mutation_plan = prepared.mutation_plan().bind_transaction(transaction_id);
-    let options = TransactionOptions {
-        target_branch: Some(mutation_plan.target_branch.clone()),
-        merge_parent_branches: mutation_plan
-            .merge_parent_branches
-            .iter()
-            .cloned()
-            .collect(),
-        ..TransactionOptions::default()
-    };
+    let target_identity = runtime
+        .branch_identity(&mutation_plan.target_branch)
+        .map_err(|denial| {
+            MergeExecutionError::Commit(TransactionCommitError::conflict(CommitConflict::new(
+                ConflictClass::InvalidMergeParent {
+                    detail: format!(
+                        "prepared merge target cannot issue an owner branch binding: {denial:?}"
+                    ),
+                },
+            )))
+        })?;
+    let mut options = runtime
+        .transaction_validation_input_for(&target_identity)
+        .map_err(|denial| {
+            MergeExecutionError::Commit(TransactionCommitError::conflict(CommitConflict::new(
+                ConflictClass::InvalidMergeParent {
+                    detail: format!(
+                        "prepared merge target binding was denied by the owner: {denial:?}"
+                    ),
+                },
+            )))
+        })?;
+    let parent_bindings = mutation_plan
+        .merge_parent_branches
+        .iter()
+        .map(|branch| {
+            let identity = runtime.branch_identity(branch).map_err(|denial| {
+                MergeExecutionError::Commit(TransactionCommitError::conflict(CommitConflict::new(
+                    ConflictClass::InvalidMergeParent {
+                        detail: format!(
+                            "prepared merge parent cannot issue an owner identity: {denial:?}"
+                        ),
+                    },
+                )))
+            })?;
+            runtime
+                .transaction_validation_input_for(&identity)
+                .map(|options| options.basis().clone())
+                .map_err(|denial| {
+                    MergeExecutionError::Commit(TransactionCommitError::conflict(
+                        CommitConflict::new(ConflictClass::InvalidMergeParent {
+                            detail: format!(
+                                "prepared merge parent binding was denied by the owner: {denial:?}"
+                            ),
+                        }),
+                    ))
+                })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    options = options.with_merge_parent_bases(parent_bindings);
     let execution_summary = mutation_plan.merge_execution_summary.clone();
     let structural_summary = mutation_plan.structural_summary.clone();
     let diagnostics_plan = prepared.bound_executable_plan().diagnostics_plan.clone();

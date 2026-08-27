@@ -73,7 +73,7 @@ impl WorthServerProductBasisPrecondition {
                 return Err(WorthServerOperationReadinessDenial::new(
                     WorthServerOperationReadinessDenialCode::PreconditionFailed,
                     format!(
-                        "product query-derived basis precondition `{expected_basis_digest}` did not match the bound workspace basis `{observed_basis_digest}`"
+                        "product basis precondition `{expected_basis_digest}` did not match the observed owner basis `{observed_basis_digest}`"
                     ),
                 )
                 .with_facts(
