@@ -3,8 +3,6 @@ pub enum UiMountedEffectFamily {
     RecordedProjection,
     NativePaint,
     Accessibility,
-    Focus,
-    Motion,
     Diagnostic,
     IdentityOverlay,
     CanvasSpatial,
@@ -100,20 +98,7 @@ pub enum UiHostPresentationProgressClass {
 impl<'frame> UiMountedFrameConsumptionView<'frame> {
     #[doc(hidden)]
     pub fn from_inert_mechanics(input: UiMountedFrameConsumptionInput<'frame>) -> Self {
-        let work_affinity = match input.presentation_work {
-            super::presentation_work::UiMountedPresentationWorkView::Initial(initial) => {
-                initial.affinity()
-            }
-            super::presentation_work::UiMountedPresentationWorkView::Delta(delta) => {
-                delta.affinity()
-            }
-            super::presentation_work::UiMountedPresentationWorkView::Reconstruction(work) => {
-                work.affinity()
-            }
-            super::presentation_work::UiMountedPresentationWorkView::Unchanged(unchanged) => {
-                unchanged.affinity()
-            }
-        };
+        let work_affinity = input.presentation_work.affinity();
         assert_eq!(
             (
                 work_affinity.surface(),

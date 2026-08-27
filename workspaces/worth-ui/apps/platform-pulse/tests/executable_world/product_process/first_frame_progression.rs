@@ -67,6 +67,7 @@ impl PulseExecutableWorld<AwaitingFirstFrame> {
                     installation,
                     process,
                     lifecycle,
+                    journey_started: launch_started,
                     platform: bound.platform,
                     native_client: bound.native_client,
                 },

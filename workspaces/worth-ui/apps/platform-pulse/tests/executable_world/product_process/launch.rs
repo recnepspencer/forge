@@ -1,4 +1,3 @@
-use std::fmt;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, ExitStatus, Stdio};
 use std::thread;
@@ -8,10 +7,17 @@ use crate::external_observation::PlatformPulseLifecycleStream;
 
 #[cfg(target_os = "windows")]
 use super::kill_on_close_job::KillOnCloseJob;
-use super::native_desktop_lease::NativeDesktopLease;
+#[cfg(target_os = "windows")]
+use super::native_desktop_lease::{NativeDesktopCourtroomLease, NativeDesktopLease};
 use super::output_capture::NativeProcessOutputCapture;
 
-const NATIVE_DESKTOP_LEASE_DEADLINE: Duration = Duration::from_secs(30);
+mod failure_display;
+
+// The product-world journey ceiling is 45 seconds. An adjacent honest runner
+// receives one full journey plus teardown headroom before contention is typed
+// as an environment denial.
+#[cfg(target_os = "windows")]
+const NATIVE_DESKTOP_LEASE_DEADLINE: Duration = Duration::from_secs(60);
 
 #[derive(Clone, Debug)]
 pub(crate) struct CargoBuiltPlatformPulse {
@@ -30,7 +36,10 @@ pub(crate) struct NativePhase2ProcessLaunch {
 }
 
 pub(crate) struct LivePlatformPulseProcess {
+    #[cfg(target_os = "windows")]
     _native_desktop_lease: NativeDesktopLease,
+    #[cfg(target_os = "windows")]
+    _native_desktop_courtroom: NativeDesktopCourtroomLease,
     child: Child,
     #[cfg(target_os = "windows")]
     _kill_on_close_job: KillOnCloseJob,
@@ -66,45 +75,6 @@ pub(crate) enum EmergencyPlatformPulseExitFailure {
     Deadline,
 }
 
-impl fmt::Display for PlatformPulseProcessLaunchFailure {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::CargoExecutableNotAbsolute(path) => write!(
-                formatter,
-                "Cargo executable is not absolute: {}",
-                path.display()
-            ),
-            Self::CargoExecutableMissing(path) => {
-                write!(formatter, "Cargo executable is missing: {}", path.display())
-            }
-            Self::NativeDesktopLease => {
-                formatter.write_str("exclusive native desktop lease deadline elapsed")
-            }
-            Self::Spawn(error) => write!(formatter, "spawn product process: {error}"),
-            #[cfg(target_os = "windows")]
-            Self::KillOnCloseJob(error) => write!(formatter, "contain product process: {error}"),
-            Self::MissingStdout { teardown } => {
-                write!(
-                    formatter,
-                    "product stdout was not piped; process teardown: "
-                )?;
-                format_emergency_exit_result(formatter, teardown)
-            }
-            Self::Poll(error) => write!(formatter, "poll product process: {error}"),
-        }
-    }
-}
-
-impl fmt::Display for EmergencyPlatformPulseExitFailure {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Poll(error) => write!(formatter, "poll process during teardown: {error}"),
-            Self::Terminate(error) => write!(formatter, "terminate failed process: {error}"),
-            Self::Deadline => formatter.write_str("failed-process termination deadline elapsed"),
-        }
-    }
-}
-
 impl CargoBuiltPlatformPulse {
     pub(crate) fn exact() -> Result<Self, PlatformPulseProcessLaunchFailure> {
         let executable = PathBuf::from(env!("CARGO_BIN_EXE_worth-ui-platform-pulse"));
@@ -125,20 +95,31 @@ impl CargoBuiltPlatformPulse {
         query_source_root: &Path,
         intent_source_root: &Path,
     ) -> Result<PlatformPulseProcessLaunch, PlatformPulseProcessLaunchFailure> {
+        #[cfg(target_os = "windows")]
+        let native_desktop_courtroom = NativeDesktopCourtroomLease::acquire();
+        #[cfg(target_os = "windows")]
         let desktop_wait_started = Instant::now();
+        #[cfg(target_os = "windows")]
         let desktop_deadline = desktop_wait_started
             .checked_add(NATIVE_DESKTOP_LEASE_DEADLINE)
             .ok_or(PlatformPulseProcessLaunchFailure::NativeDesktopLease)?;
+        #[cfg(target_os = "windows")]
         let native_desktop_lease = NativeDesktopLease::acquire(desktop_deadline)
             .map_err(|_| PlatformPulseProcessLaunchFailure::NativeDesktopLease)?;
         let launch_started = Instant::now();
-        let mut child = Command::new(&self.executable)
+        let native_close_evidence_path = source_root.join(super::NATIVE_CLOSE_EVIDENCE_FILE_NAME);
+        let mut command = Command::new(&self.executable);
+        let mut child = command
             .arg("--source-root")
             .arg(source_root)
             .arg("--query-source-root")
             .arg(query_source_root)
             .arg("--intent-source-root")
             .arg(intent_source_root)
+            .env(
+                super::NATIVE_CLOSE_EVIDENCE_PATH_ENVIRONMENT,
+                native_close_evidence_path,
+            )
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
@@ -147,7 +128,10 @@ impl CargoBuiltPlatformPulse {
         #[cfg(target_os = "windows")]
         let kill_on_close_job = assign_kill_on_close_job(&mut child)?;
         let mut process = LivePlatformPulseProcess {
+            #[cfg(target_os = "windows")]
             _native_desktop_lease: native_desktop_lease,
+            #[cfg(target_os = "windows")]
+            _native_desktop_courtroom: native_desktop_courtroom,
             child,
             #[cfg(target_os = "windows")]
             _kill_on_close_job: kill_on_close_job,
@@ -231,9 +215,13 @@ impl CargoBuiltPlatformPulse {
         self,
         arguments: &[&str],
     ) -> Result<NativePhase2ProcessLaunch, PlatformPulseProcessLaunchFailure> {
+        #[cfg(target_os = "windows")]
+        let native_desktop_courtroom = NativeDesktopCourtroomLease::acquire();
+        #[cfg(target_os = "windows")]
         let deadline = Instant::now()
             .checked_add(NATIVE_DESKTOP_LEASE_DEADLINE)
             .ok_or(PlatformPulseProcessLaunchFailure::NativeDesktopLease)?;
+        #[cfg(target_os = "windows")]
         let native_desktop_lease = NativeDesktopLease::acquire(deadline)
             .map_err(|_| PlatformPulseProcessLaunchFailure::NativeDesktopLease)?;
         let mut command = Command::new(&self.executable);
@@ -247,7 +235,10 @@ impl CargoBuiltPlatformPulse {
         #[cfg(target_os = "windows")]
         let kill_on_close_job = assign_kill_on_close_job(&mut child)?;
         let mut process = LivePlatformPulseProcess {
+            #[cfg(target_os = "windows")]
             _native_desktop_lease: native_desktop_lease,
+            #[cfg(target_os = "windows")]
+            _native_desktop_courtroom: native_desktop_courtroom,
             child,
             #[cfg(target_os = "windows")]
             _kill_on_close_job: kill_on_close_job,
@@ -361,20 +352,6 @@ fn emergency_exit(
         status,
         forced_termination,
         poll_count,
-    }
-}
-
-fn format_emergency_exit_result(
-    formatter: &mut fmt::Formatter<'_>,
-    result: &Result<EmergencyPlatformPulseExit, EmergencyPlatformPulseExitFailure>,
-) -> fmt::Result {
-    match result {
-        Ok(exit) => write!(
-            formatter,
-            "released(status={}, forced={}, polls={})",
-            exit.status, exit.forced_termination, exit.poll_count
-        ),
-        Err(failure) => write!(formatter, "failed({failure})"),
     }
 }
 

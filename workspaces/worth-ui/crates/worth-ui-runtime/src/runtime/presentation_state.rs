@@ -210,7 +210,7 @@ impl UiApplicationPresentationState {
                     crate::mounting::UiMountedSemanticTextValueDirective::Replace(Arc::clone(
                         value,
                     )),
-                    Arc::from("active-application-presentation"),
+                    Arc::from(" "),
                     Some(
                         crate::mounting::UiMountedSemanticTextFormattingDirective::new(
                             row.contract.clone(),

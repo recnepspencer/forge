@@ -24,6 +24,7 @@ pub struct ComponentDescriptor {
     static_paint_contract: Option<super::ComponentStaticPaintContract>,
     semantic_text_contract: Option<super::ComponentSemanticTextContract>,
     hit_test_contract: Option<super::ComponentHitTestContract>,
+    portal_child_contract: Option<super::ComponentPortalChildContract>,
 }
 
 impl ComponentDescriptor {
@@ -51,6 +52,7 @@ impl ComponentDescriptor {
             static_paint_contract: None,
             semantic_text_contract: None,
             hit_test_contract: None,
+            portal_child_contract: None,
         }
     }
 
@@ -77,6 +79,7 @@ impl ComponentDescriptor {
             static_paint_contract: None,
             semantic_text_contract: None,
             hit_test_contract: None,
+            portal_child_contract: None,
         }
     }
 
@@ -103,6 +106,7 @@ impl ComponentDescriptor {
             static_paint_contract: None,
             semantic_text_contract: None,
             hit_test_contract: None,
+            portal_child_contract: None,
         }
     }
 
@@ -198,6 +202,11 @@ impl ComponentDescriptor {
         self
     }
 
+    pub fn with_portal_child(mut self, contract: super::ComponentPortalChildContract) -> Self {
+        self.portal_child_contract = Some(contract);
+        self
+    }
+
     pub fn id(&self) -> &ComponentId {
         &self.id
     }
@@ -258,6 +267,10 @@ impl ComponentDescriptor {
 
     pub fn hit_test_contract(&self) -> Option<super::ComponentHitTestContract> {
         self.hit_test_contract
+    }
+
+    pub fn portal_child_contract(&self) -> Option<&super::ComponentPortalChildContract> {
+        self.portal_child_contract.as_ref()
     }
 
     pub(crate) fn has_conflicting_allocation_contracts(&self) -> bool {

@@ -14,14 +14,23 @@ mod command_bundle;
 mod delta_diff;
 #[path = "work_producer/effect_expectations.rs"]
 mod effect_expectations;
+#[path = "work_producer/motion_sample.rs"]
+mod motion_sample;
 #[path = "work_producer/overlay_attribution.rs"]
 mod overlay_attribution;
+#[path = "work_producer/portal_motion_groups.rs"]
+mod portal_motion_groups;
+#[path = "work_producer/projection_row_count.rs"]
+mod projection_row_count;
 #[path = "work_producer/state.rs"]
 mod state;
+#[path = "work_producer/state_rebind.rs"]
+mod state_rebind;
 #[path = "work_producer/successor_issue.rs"]
 mod successor_issue;
 pub(super) use successor_issue::SuccessorIssueRequest;
 
+pub(crate) use motion_sample::UiMountedMotionSampleWorkDenial;
 pub(crate) use state::UiMountedPresentationState;
 
 pub(super) type UiMountedPresentationCandidates =
@@ -46,10 +55,10 @@ impl UiMountedPresentationState {
         let order = self.order();
         lease.issue_initial(UiMountedPresentationInitialInput {
             successor: self.frame,
-            surface: self.surface,
-            binding: self.binding,
+            surface: self.requirement.semantic_surface(),
+            binding: self.requirement.binding(),
             content: self.content,
-            baseline: self.baseline,
+            baseline: self.requirement.baseline(),
             projection: projection.clone(),
             commands: commands.clone(),
             order: order.clone(),
@@ -84,10 +93,10 @@ impl UiMountedPresentationState {
         lease.issue_reconstruction(UiMountedPresentationReconstructionInput {
             predecessor,
             successor: self.frame,
-            surface: self.surface,
-            binding: self.binding,
+            surface: self.requirement.semantic_surface(),
+            binding: self.requirement.binding(),
             content: self.content,
-            baseline: self.baseline,
+            baseline: self.requirement.baseline(),
             projection: projection.clone(),
             commands: commands.clone(),
             order: order.clone(),
@@ -153,6 +162,12 @@ fn command_same_presentation_meaning(
             },
         ) => left.semantic_digest() == right.semantic_digest(),
         (
+            UiMountedPaintCommand::PortalOverlay { mechanic: left, .. },
+            UiMountedPaintCommand::PortalOverlay {
+                mechanic: right, ..
+            },
+        ) => left.semantic_digest() == right.semantic_digest(),
+        (
             UiMountedPaintCommand::SemanticText { mechanic: left, .. },
             UiMountedPaintCommand::SemanticText {
                 mechanic: right, ..
@@ -167,6 +182,9 @@ pub(super) fn command_visible_bounds(
 ) -> Option<worth_ui_host_contract::UiMountedCanonicalBox> {
     let (bounds, clip) = match command {
         UiMountedPaintCommand::FilledRect { mechanic, .. } => {
+            (mechanic.bounds(), mechanic.clip_bounds())
+        }
+        UiMountedPaintCommand::PortalOverlay { mechanic, .. } => {
             (mechanic.bounds(), mechanic.clip_bounds())
         }
         UiMountedPaintCommand::SemanticText { mechanic, .. } => {

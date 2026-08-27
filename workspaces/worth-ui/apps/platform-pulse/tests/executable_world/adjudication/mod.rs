@@ -13,9 +13,12 @@ mod native_input_reachability;
 #[cfg(target_os = "windows")]
 mod platform_pulse_control_points;
 #[cfg(target_os = "windows")]
+mod portal_pixels;
+#[cfg(target_os = "windows")]
 mod predecessor_preservation;
 #[cfg(target_os = "windows")]
 mod publication_identity;
+#[cfg(target_os = "windows")]
 mod query_to_pixel;
 #[cfg(target_os = "windows")]
 mod replacement_to_pixel;
@@ -23,6 +26,7 @@ mod replacement_to_pixel;
 mod schema_transition;
 #[cfg(target_os = "windows")]
 mod source_to_pixel;
+mod visual_contract_manifest;
 #[cfg(target_os = "windows")]
 mod visual_overlay_pixels;
 
@@ -39,9 +43,10 @@ pub(crate) use identity_trace::{
 #[cfg(target_os = "windows")]
 pub(crate) use intent_control_points::{
     adjudicate_action_control_point, adjudicate_confirmation_control_point,
-    adjudicate_visible_control_change, require_distinct_control_points, IntentControlPointFailure,
-    NativeControlPixelRegion, PlatformPulseActionControlPoint,
-    PlatformPulseConfirmationControlPoint, VisibleControlPixelChange,
+    adjudicate_portal_control_point, adjudicate_visible_control_change,
+    require_distinct_control_points, IntentControlPointFailure, NativeControlPixelRegion,
+    PlatformPulseActionControlPoint, PlatformPulseConfirmationControlPoint,
+    PlatformPulsePortalControlPoint, VisibleControlPixelChange,
 };
 #[cfg(target_os = "windows")]
 pub(crate) use lifecycle_cleanup::{
@@ -58,6 +63,13 @@ pub(crate) use native_input_reachability::{
     adjudicate_native_input_reachability, native_input_background_point,
     ExecutableNativeInputReachabilityEvidence, ExecutableNativeInputReachabilityFailure,
     NativeInputFamilyObservation, NativeInputReachabilityObservationSet,
+};
+#[cfg(target_os = "windows")]
+pub(crate) use portal_pixels::{
+    adjudicate_authored_portal_pixels, adjudicate_closed_portal_pixels,
+    adjudicate_open_portal_pixels, portal_action_points, portal_occupancy_point,
+    PlatformPulseAuthoredPortalPixelEvidence, PlatformPulsePortalPixelEvidence,
+    PlatformPulsePortalPixelFailure,
 };
 #[cfg(target_os = "windows")]
 pub(crate) use predecessor_preservation::{

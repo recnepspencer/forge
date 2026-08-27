@@ -108,6 +108,14 @@ impl WorthUiApp {
         &self.prepared
     }
 
+    pub(crate) fn motion_support_installed(&self) -> bool {
+        self.prepared
+            .intent_execution_bindings()
+            .runtime_service_support()
+            .posture(crate::capability::UiRuntimeServiceFamily::Motion)
+            == crate::capability::UiRuntimeServiceSupportPosture::Installed
+    }
+
     pub(crate) fn host_session_plan(
         &self,
     ) -> &crate::facade::prepared_application_authority::WorthUiHostSessionPlan {

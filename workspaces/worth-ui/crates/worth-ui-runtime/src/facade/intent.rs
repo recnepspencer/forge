@@ -33,7 +33,7 @@ pub use crate::declaration::{
 };
 pub use crate::facade::entry::{
     UiIntentConsequencePublicationCompletion, UiIntentConsequencePublicationOutcome,
-    UiIntentConsequencePublicationRecovery,
+    UiIntentConsequencePublicationReceipt, UiIntentConsequencePublicationRecovery,
 };
 pub use crate::runtime::intent::{
     UiAdmittedIntent, UiConfirmedIntentCandidate, UiInoperableIntentCandidate,
@@ -72,9 +72,9 @@ pub use crate::runtime::intent_execution::{
     UiIntentExecutionIdempotencyIdentity, UiIntentExecutionPollContext, UiIntentExecutionProvider,
     UiIntentExecutionRecovery, UiIntentExecutionRequest, UiIntentExecutionReservationDenial,
     UiIntentExecutionShutdownReport, UiIntentExecutionTransition,
-    UiIntentExecutionTransitionPosture, UiIntentPartialEffect, UiIntentProviderPoll,
-    UiIntentProviderRecoveryPoll, UiIntentProviderSettlement, UiIntentProviderStart,
-    UiIntentProviderStop, UiIntentProviderVersion, UiIntentRecoveryHandle,
+    UiIntentExecutionTransitionPosture, UiIntentPartialEffect, UiIntentPortalPlacementStopReason,
+    UiIntentProviderPoll, UiIntentProviderRecoveryPoll, UiIntentProviderSettlement,
+    UiIntentProviderStart, UiIntentProviderStop, UiIntentProviderVersion, UiIntentRecoveryHandle,
     UiIntentRecoveryProgressOutcome, UiIntentRecoveryProgressPosture,
     UiIntentRecoveryProgressReceipt, UiIntentRecoveryProgressStop,
     UI_INTENT_MAXIMUM_APPLICATION_ATTEMPTS, UI_INTENT_MAXIMUM_DESTINATION_ATTEMPTS,

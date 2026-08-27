@@ -1,6 +1,10 @@
 use super::{presented_state, HOST_SESSION};
+use winit::dpi::PhysicalPosition;
 use winit::event::{DeviceId, MouseScrollDelta, TouchPhase, WindowEvent};
-use worth_ui_host_contract::UiHostObservationPayload;
+use worth_ui_host_contract::{
+    UiHostObservationPayload, UiHostScrollDeltaPhase, UiHostScrollDeltaPrecision,
+    UiHostScrollDeltaSource,
+};
 
 #[test]
 fn qualified_line_wheel_is_canonical_and_does_not_suppress_later_input() {
@@ -13,16 +17,29 @@ fn qualified_line_wheel_is_canonical_and_does_not_suppress_later_input() {
     state.observe_window_event(&WindowEvent::Focused(true));
     let batches = state.drain(HOST_SESSION).into_batches();
     assert_eq!(batches.len(), 2);
-    assert!(matches!(
-        batches[0].reports()[0].payload(),
-        UiHostObservationPayload::ScrollDelta {
-            x_subpixels: 40_000,
-            y_subpixels: -80_000,
-        }
-    ));
+    let UiHostObservationPayload::ScrollDelta {
+        source,
+        phase,
+        precision,
+        target,
+        x_subpixels,
+        y_subpixels,
+    } = batches[0].reports()[0].payload()
+    else {
+        panic!("first batch must retain the qualified wheel event");
+    };
+    assert_eq!(*source, UiHostScrollDeltaSource::PointerWheel);
+    assert_eq!(*phase, UiHostScrollDeltaPhase::Updated);
+    assert_eq!(*precision, UiHostScrollDeltaPrecision::Line);
+    assert!(target.is_surface_fallback());
+    assert_eq!(
+        target.presentation(),
+        batches[0].canonical_core().presentation()
+    );
+    assert_eq!((*x_subpixels, *y_subpixels), (40_000, -80_000));
     assert!(matches!(
         batches[1].reports()[0].payload(),
-        UiHostObservationPayload::Focus { focused: true }
+        UiHostObservationPayload::WindowFocus { focused: true, .. }
     ));
     assert_eq!(batches[0].reports()[0].sequence().value(), 1);
     assert_eq!(batches[1].reports()[0].sequence().value(), 2);
@@ -44,4 +61,40 @@ fn qualified_line_wheel_is_canonical_and_does_not_suppress_later_input() {
         )),
         Some((1, 40_000, -80_000))
     );
+}
+
+#[test]
+fn pixel_precision_and_every_native_scroll_phase_survive_adapter_drain() {
+    for (native, expected) in [
+        (TouchPhase::Started, UiHostScrollDeltaPhase::Started),
+        (TouchPhase::Moved, UiHostScrollDeltaPhase::Updated),
+        (TouchPhase::Ended, UiHostScrollDeltaPhase::Ended),
+        (TouchPhase::Cancelled, UiHostScrollDeltaPhase::Cancelled),
+    ] {
+        let mut state = presented_state();
+        state.observe_window_event(&WindowEvent::MouseWheel {
+            device_id: DeviceId::dummy(),
+            delta: MouseScrollDelta::PixelDelta(PhysicalPosition::new(1.5, -2.5)),
+            phase: native,
+        });
+        let batches = state.drain(HOST_SESSION).into_batches();
+        let UiHostObservationPayload::ScrollDelta {
+            phase,
+            precision,
+            target,
+            x_subpixels,
+            y_subpixels,
+            ..
+        } = batches[0].reports()[0].payload()
+        else {
+            panic!("pixel wheel event must remain a scroll payload");
+        };
+        assert_eq!(*phase, expected);
+        assert_eq!(*precision, UiHostScrollDeltaPrecision::Pixel);
+        assert_eq!((*x_subpixels, *y_subpixels), (1_500, -2_500));
+        assert_eq!(
+            target.presentation(),
+            batches[0].canonical_core().presentation()
+        );
+    }
 }

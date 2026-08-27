@@ -11,6 +11,7 @@ pub(super) fn assert_receipt_coordinate_denials() {
 fn assert_out_of_range_instance() {
     let mut world = published_observation_world("observation-foreign-instance");
     let raw_report = mounted_report(
+        world.current.host_surface,
         UiMountedInstanceIdentity::mint_unbound().unwrap(),
         UiMountedNodeReceiptIdentity::mint_unbound().unwrap(),
     );
@@ -27,7 +28,7 @@ fn assert_fresh_issuer_cannot_forge_current_receipt() {
     let forged = UiMountedNodeReceiptIssuer::mint_for(world.current.frame)
         .unwrap()
         .receipt_for(world.current.instance);
-    let raw_report = mounted_report(world.current.instance, forged);
+    let raw_report = mounted_report(world.current.host_surface, world.current.instance, forged);
     let raw = mounted_batch(&world, raw_report);
     assert_denial(
         &mut world,
@@ -37,13 +38,17 @@ fn assert_fresh_issuer_cannot_forge_current_receipt() {
 }
 
 fn mounted_report(
+    surface: worth_ui_host_contract::UiHostSurfaceIdentity,
     instance: UiMountedInstanceIdentity,
     receipt: UiMountedNodeReceiptIdentity,
 ) -> UiHostObservationReport {
     UiHostObservationReport::new(
         UiHostObservationSequence::new(1),
         UiHostObservationTimeBasis::HostMonotonicMillis(1),
-        UiHostObservationPayload::Focus { focused: true },
+        UiHostObservationPayload::WindowFocus {
+            surface,
+            focused: true,
+        },
     )
     .with_mounted_basis(UiHostObservationMountedBasis::new(instance, receipt))
 }

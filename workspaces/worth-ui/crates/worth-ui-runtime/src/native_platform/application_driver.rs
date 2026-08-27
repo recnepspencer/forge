@@ -8,6 +8,8 @@ use worth_ui_host_native::{
 mod application_runtime;
 #[path = "application_driver/cleanup.rs"]
 mod cleanup;
+#[path = "application_driver/motion_readiness.rs"]
+mod motion_readiness;
 #[path = "application_driver/physical_recovery_tracker.rs"]
 mod physical_recovery_tracker;
 #[path = "application_driver/program_progress.rs"]
@@ -25,6 +27,7 @@ mod visual_snapshot;
 use cleanup::UiNativeApplicationDriverCleanup;
 #[cfg(test)]
 use cleanup::UiNativeApplicationDriverCleanupCompletion;
+use motion_readiness::UiNativeMotionReadinessLane;
 use program_progress::UiNativeApplicationProgramProgress;
 use shutdown_observation::UiNativeDriverShutdownEvidence;
 
@@ -40,6 +43,9 @@ pub(crate) struct UiNativeApplicationDriver {
     progress: UiNativeApplicationProgramProgress,
     application_runtime: Option<Box<dyn super::UiNativeApplicationRuntime>>,
     application_runtime_ports: Option<Box<[super::UiNativeApplicationReadinessPort]>>,
+    motion_support_installed: bool,
+    motion_readiness: Option<UiNativeMotionReadinessLane>,
+    last_motion_readiness_generation: u64,
     application_runtime_active: bool,
     pending_application_runtime_close: Option<super::UiNativeApplicationRuntimeCloseIncomplete>,
 }
@@ -53,6 +59,7 @@ impl UiNativeApplicationDriver {
         >,
         application_runtime: Option<Box<dyn super::UiNativeApplicationRuntime>>,
     ) -> Self {
+        let motion_support_installed = application.motion_support_installed();
         Self {
             application: Some(application),
             shell: None,
@@ -65,6 +72,9 @@ impl UiNativeApplicationDriver {
             progress: UiNativeApplicationProgramProgress::new(program, runtime_qualification),
             application_runtime,
             application_runtime_ports: None,
+            motion_support_installed,
+            motion_readiness: None,
+            last_motion_readiness_generation: 0,
             application_runtime_active: false,
             pending_application_runtime_close: None,
         }
@@ -87,6 +97,9 @@ impl UiNativeApplicationDriver {
             ),
             application_runtime: None,
             application_runtime_ports: None,
+            motion_support_installed: false,
+            motion_readiness: None,
+            last_motion_readiness_generation: 0,
             application_runtime_active: false,
             pending_application_runtime_close: None,
         }
@@ -208,6 +221,14 @@ impl UiNativeEventLoopClient for UiNativeApplicationDriver {
             return Err(());
         }
         self.last_ready_generation = grant.generation();
+        if self.application_runtime_active
+            && self
+                .shell
+                .as_ref()
+                .is_some_and(WorthUiNativeApplicationShell::native_viewport_presentation_pending)
+        {
+            return self.progress_application_runtime_viewport();
+        }
         Ok(self.next_directive())
     }
 
@@ -215,6 +236,9 @@ impl UiNativeEventLoopClient for UiNativeApplicationDriver {
         &mut self,
         grant: worth_ui_host_native::UiNativePhysicalProgressGrant,
     ) -> Result<UiNativeEventLoopDirective, ()> {
+        if self.progress_motion_physical(&grant)? {
+            return Ok(UiNativeEventLoopDirective::Continue);
+        }
         if self.application_runtime_active {
             return self
                 .progress_application_runtime_physical(grant)

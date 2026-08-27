@@ -8,6 +8,7 @@ pub enum UiInteractionStop {
 pub enum UiInteractionTransition {
     PointerPressed(super::UiPointerGesturePressReceipt),
     DraftMutation(super::UiDraftMutationReceipt),
+    DismissRequested(super::UiDismissInteraction),
     Semantic(super::UiSemanticInteraction),
     Stopped(UiInteractionStop),
 }

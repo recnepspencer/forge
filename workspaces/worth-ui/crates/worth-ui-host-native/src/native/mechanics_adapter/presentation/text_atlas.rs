@@ -30,12 +30,40 @@ pub(super) fn begin(
     if !super::presentation::glyph_run_admission::admits(view, work) {
         return UiMountedTextWorkOutcome::Terminal(super::presentation::adapter_declined());
     }
+    let live_pins = state.text_atlas.pin_observations();
+    let reconstruction_additions;
+    let reconstruction_releases;
+    let pins = if matches!(
+        view.presentation_work(),
+        worth_ui_host_contract::UiMountedPresentationWorkView::Reconstruction(_)
+    ) {
+        reconstruction_additions = work
+            .pins()
+            .additions()
+            .iter()
+            .copied()
+            .filter(|pin| !live_pins.iter().any(|live| live.matches(*pin)))
+            .collect::<Vec<_>>();
+        reconstruction_releases = work
+            .pins()
+            .releases()
+            .iter()
+            .copied()
+            .filter(|pin| live_pins.iter().any(|live| live.matches(*pin)))
+            .collect::<Vec<_>>();
+        worth_ui_host_contract::UiGlyphRasterPinTransitionView::from_text_mechanics(
+            &reconstruction_additions,
+            &reconstruction_releases,
+        )
+    } else {
+        work.pins()
+    };
     let mut rasterizer = CallbackRasterizer(work);
     let outcome = super::text_atlas::perform(
         state,
         crate::native::physical_work_signal::UiNativePhysicalPresentationBasis::from_view(view),
         work.demands(),
-        work.pins(),
+        pins,
         &mut rasterizer,
     );
     state.record_compiler_total_peak();

@@ -196,6 +196,16 @@ impl UiMountedIdentityState {
         self.current_projection.as_deref()
     }
 
+    pub(crate) fn focus_participation_snapshot(
+        &self,
+    ) -> Option<super::UiMountedFocusParticipationSnapshot> {
+        let projection = self.current_projection.as_ref()?;
+        let receipts = self.current_receipt_basis.as_ref()?;
+        Some(super::UiMountedFocusParticipationSnapshot::from_projection(
+            projection, receipts,
+        ))
+    }
+
     pub(crate) fn current_allocation_truth_revision(&self) -> Option<u64> {
         self.current_core
             .as_ref()

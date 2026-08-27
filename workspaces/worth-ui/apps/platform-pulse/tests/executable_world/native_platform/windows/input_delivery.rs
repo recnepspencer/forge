@@ -1,11 +1,11 @@
 use uiautomation::inputs::Mouse;
 use uiautomation::types::{Handle, Point};
 use uiautomation::UIAutomation;
-use winsafe::{co, HwKbMouse, HWND, KEYBDINPUT, MOUSEINPUT, POINT};
+use winsafe::{co, HwKbMouse, HWND, KEYBDINPUT, MOUSEINPUT};
 
 use crate::external_observation::{
     NativeClientPixelPoint, NativeInputDeliveryObservation, NativeInputProbeKind,
-    ProcessBoundNativeClientAreaObservation,
+    NativeKeyboardCommand, ProcessBoundNativeClientAreaObservation,
 };
 
 use super::NativePlatformFailure;
@@ -24,7 +24,38 @@ pub(super) fn deliver(
         .top()
         .checked_add_unsigned(bounds.height() / 2)
         .ok_or(NativePlatformFailure::InvalidCaptureWindowBounds)?;
-    deliver_at(window, observed, kind, (screen_x, screen_y), None)
+    deliver_at(
+        window,
+        observed,
+        kind,
+        (screen_x, screen_y),
+        None,
+        co::VK::CHAR_A,
+    )
+}
+
+pub(super) fn deliver_keyboard_command(
+    window: &HWND,
+    observed: ProcessBoundNativeClientAreaObservation,
+    command: NativeKeyboardCommand,
+) -> Result<NativeInputDeliveryObservation, NativePlatformFailure> {
+    let bounds = observed.bounds();
+    let point = (
+        bounds.left().saturating_add_unsigned(bounds.width() / 2),
+        bounds.top().saturating_add_unsigned(bounds.height() / 2),
+    );
+    let key = match command {
+        NativeKeyboardCommand::Escape => co::VK::ESCAPE,
+        NativeKeyboardCommand::Submit => co::VK::RETURN,
+    };
+    deliver_at(
+        window,
+        observed,
+        NativeInputProbeKind::Keyboard,
+        point,
+        None,
+        key,
+    )
 }
 
 pub(super) fn deliver_pointer(
@@ -53,6 +84,7 @@ pub(super) fn deliver_pointer(
         NativeInputProbeKind::Pointer,
         (screen_x, screen_y),
         Some(point.landing_tolerance()),
+        co::VK::CHAR_A,
     )
 }
 
@@ -83,7 +115,7 @@ pub(super) fn deliver_wheel_deltas(
     super::input_environment::qualify_pointer_world(window, observed.process_id(), screen_point)
         .map_err(NativePlatformFailure::InputEnvironment)?;
     move_pointer_to(screen_point)?;
-    require_point_hit_target_before_effect(window, screen_point)?;
+    super::pointer_target::require_before_effect(window, screen_point)?;
     let delivered = winsafe::SendInput(&[
         HwKbMouse::Mouse(MOUSEINPUT {
             mouseData: 120,
@@ -111,6 +143,7 @@ fn deliver_at(
     kind: NativeInputProbeKind,
     screen_point: (i32, i32),
     pointer_tolerance: Option<u32>,
+    keyboard_key: co::VK,
 ) -> Result<NativeInputDeliveryObservation, NativePlatformFailure> {
     let bounds = observed.bounds();
     let (screen_x, screen_y) = screen_point;
@@ -134,7 +167,7 @@ fn deliver_at(
     let delivered_event_count = match kind {
         NativeInputProbeKind::Pointer => {
             prime_pointer_motion(window, (screen_x, screen_y))?;
-            require_point_hit_target_before_effect(window, (screen_x, screen_y))?;
+            super::pointer_target::require_before_effect(window, (screen_x, screen_y))?;
             let delivered = winsafe::SendInput(&[
                 HwKbMouse::Mouse(MOUSEINPUT {
                     dwFlags: co::MOUSEEVENTF::LEFTDOWN,
@@ -162,11 +195,11 @@ fn deliver_at(
             }
             let delivered = winsafe::SendInput(&[
                 HwKbMouse::Kb(KEYBDINPUT {
-                    wVk: co::VK::CHAR_A,
+                    wVk: keyboard_key,
                     ..Default::default()
                 }),
                 HwKbMouse::Kb(KEYBDINPUT {
-                    wVk: co::VK::CHAR_A,
+                    wVk: keyboard_key,
                     dwFlags: co::KEYEVENTF::KEYUP,
                     ..Default::default()
                 }),
@@ -192,7 +225,7 @@ fn deliver_at(
     };
     let delivered_point = match kind {
         NativeInputProbeKind::Pointer => {
-            require_point_hit_target_after_effect(
+            super::pointer_target::require_after_effect(
                 window,
                 (screen_x, screen_y),
                 kind,
@@ -257,7 +290,7 @@ fn require_complete_delivery(
     Ok(())
 }
 
-fn post_effect_failure(
+pub(super) fn post_effect_failure(
     kind: NativeInputProbeKind,
     delivered_event_count: u32,
     detail: impl Into<String>,
@@ -286,84 +319,9 @@ fn prime_pointer_motion(
     );
     super::input_environment::actuate_and_observe_cursor(adjacent)
         .map_err(NativePlatformFailure::InputEnvironment)?;
-    require_point_hit_target_before_effect(window, adjacent)?;
+    super::pointer_target::require_before_effect(window, adjacent)?;
     super::input_environment::actuate_and_observe_cursor(screen_point)
         .map_err(NativePlatformFailure::InputEnvironment)
-}
-
-fn require_point_hit_target_before_effect(
-    window: &HWND,
-    screen_point: (i32, i32),
-) -> Result<(), NativePlatformFailure> {
-    let observed = point_root_window(screen_point);
-    classify_pointer_target(
-        window.ptr() as usize,
-        observed,
-        PointerTargetCheckPhase::BeforeEffect,
-    )
-}
-
-fn require_point_hit_target_after_effect(
-    window: &HWND,
-    screen_point: (i32, i32),
-    kind: NativeInputProbeKind,
-    delivered_event_count: u32,
-) -> Result<(), NativePlatformFailure> {
-    let observed = point_root_window(screen_point);
-    classify_pointer_target(
-        window.ptr() as usize,
-        observed,
-        PointerTargetCheckPhase::AfterEffect {
-            kind,
-            delivered_event_count,
-        },
-    )
-}
-
-fn point_root_window(screen_point: (i32, i32)) -> usize {
-    HWND::WindowFromPoint(POINT {
-        x: screen_point.0,
-        y: screen_point.1,
-    })
-    .and_then(|child| child.GetAncestor(co::GA::ROOT))
-    .map_or(0, |handle| handle.ptr() as usize)
-}
-
-#[derive(Clone, Copy)]
-pub(super) enum PointerTargetCheckPhase {
-    BeforeEffect,
-    AfterEffect {
-        kind: NativeInputProbeKind,
-        delivered_event_count: u32,
-    },
-}
-
-pub(super) fn classify_pointer_target(
-    expected_window: usize,
-    observed_window: usize,
-    phase: PointerTargetCheckPhase,
-) -> Result<(), NativePlatformFailure> {
-    if observed_window == expected_window {
-        return Ok(());
-    }
-    match phase {
-        PointerTargetCheckPhase::BeforeEffect => Err(NativePlatformFailure::InputEnvironment(
-            super::input_environment::WindowsInputEnvironmentDenial::PointerTargetMismatch {
-                target_window: expected_window,
-                hit_window: observed_window,
-            },
-        )),
-        PointerTargetCheckPhase::AfterEffect {
-            kind,
-            delivered_event_count,
-        } => Err(post_effect_failure(
-            kind,
-            delivered_event_count,
-            format!(
-                "pointer hit window {observed_window:#x} instead of bound window {expected_window:#x}"
-            ),
-        )),
-    }
 }
 
 fn input_failure(error: uiautomation::Error) -> NativePlatformFailure {

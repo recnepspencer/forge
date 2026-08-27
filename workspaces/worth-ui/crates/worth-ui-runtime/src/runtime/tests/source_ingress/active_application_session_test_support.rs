@@ -46,6 +46,30 @@ where
     })
 }
 
+pub(crate) fn source_backed_focusable_component_app_with_host<Host>(host: Host) -> WorthUiApp
+where
+    Host: crate::facade::host::WorthUiHostAdapter + 'static,
+{
+    let snapshot = component_builder_with_focus()
+        .freeze()
+        .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
+        .expect("focusable component snapshot should prepare");
+    component_builder_with_focus()
+        .with_candidate_submission(component_submission(
+            "focusable-active-session-current",
+            "workspace.component.active_session_current",
+            snapshot.capabilities(),
+        ))
+        .freeze()
+        .map(|application| {
+            crate::facade::entry::WorthUiCertificationApplicationTransition::activate_test_host(
+                application,
+                host,
+            )
+        })
+        .expect("focusable component source application should prepare")
+}
+
 pub(crate) fn source_backed_component_app_with_host_and_viewport_allocation<Host>(
     host: Host,
 ) -> WorthUiApp
@@ -154,6 +178,37 @@ fn component_builder() -> crate::facade::entry::WorthUiApplicationBuilder {
 
 fn component_builder_with_viewport_allocation() -> crate::facade::entry::WorthUiApplicationBuilder {
     component_builder_with_allocation(true)
+}
+
+fn component_builder_with_focus() -> crate::facade::entry::WorthUiApplicationBuilder {
+    let (_, _, world_profile) =
+        crate::evidence::measurement::projection::fact_test_support::display_field_projection_context(
+            "focusable-active-application-session",
+        );
+    WorthUi::app()
+        .with_change_profile(crate::runtime::rebind::UiChangeProfile::platform_pulse())
+        .with_graph_world_profile(world_profile)
+        .register_component(
+            source_backed_package_component("workspace.component.active_session_current")
+                .with_focus(crate::capability::ComponentFocusSupport::focusable()),
+        )
+        .register_component(
+            source_backed_package_component("workspace.component.active_session_candidate")
+                .with_focus(crate::capability::ComponentFocusSupport::focusable()),
+        )
+        .register_theme_token(crate::capability::ThemeTokenDescriptor::define(
+            crate::capability::ThemeTokenId::new("theme.removal_only")
+                .expect("removal-only fixture token id is valid"),
+            crate::capability::ThemeTokenFamily::text(),
+            crate::capability::ThemeTokenSource::application(),
+            crate::capability::ThemeTokenValue::color(
+                crate::capability::ThemeColorValue::hex("#101820")
+                    .expect("removal-only fixture token color is valid"),
+            ),
+        ))
+        .register_mosaic_region_kind(source_backed_package_region())
+        .register_mosaic_sizing_contract(source_backed_package_sizing())
+        .register_mosaic_state_slot(component_runtime_state_slot())
 }
 
 fn component_builder_with_allocation(

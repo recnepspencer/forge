@@ -9,6 +9,7 @@ mod intent;
 mod measurement_dependency;
 #[cfg(test)]
 mod rust_authored_declaration_fixture;
+mod service;
 mod structural_semantics;
 mod support;
 
@@ -87,6 +88,7 @@ pub use measurement_dependency::{
 };
 #[cfg(test)]
 pub(crate) use rust_authored_declaration_fixture::WorthUiRustAuthoredDeclarationFixture;
+pub(crate) use service::UiDeclaredPortalPlacementGeometry;
 pub use structural_semantics::{
     UiDeclarationContainmentIntent, UiDeclarationOrderingGuarantee,
     UiDeclarationPlanningOperatorKind, UiDeclarationRepetitionPosture,

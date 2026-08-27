@@ -1,7 +1,6 @@
 use crate::admission::{UiSupportPosture, UiSupportSnapshot};
 use crate::declaration::{
     UiDeclarationArtifact, UiDeclarationSupportRowSchemaKind, UiDeclaredPostureApplicability,
-    UiDeclaredServiceUsagePosture,
 };
 use crate::evidence::UiEvidenceAuthorityGeneration;
 use crate::graph::UiGraphSnapshot;
@@ -284,17 +283,25 @@ impl<'a> UiObligationSelectionBoundary<'a> {
             .find(|artifact| artifact.identity() == node_record.declaration_identity())?;
         let snapshot = artifact.support_snapshot().ok()?;
         let row = snapshot.row(UiDeclarationSupportRowSchemaKind::ServiceUsage)?;
-        match row.declared_service_usage_posture()? {
-            UiDeclaredServiceUsagePosture::Portal => {
+        match row.declared_service_usage_posture()?.family() {
+            crate::capability::UiRuntimeServiceFamily::Portal => {
                 Some(crate::obligations::catalog::UiObligationFamily::PortalHostRequirement)
             }
-            UiDeclaredServiceUsagePosture::FocusRouting => {
+            crate::capability::UiRuntimeServiceFamily::Focus => {
                 Some(crate::obligations::catalog::UiObligationFamily::FocusRouteRequirement)
             }
-            UiDeclaredServiceUsagePosture::Motion => {
+            crate::capability::UiRuntimeServiceFamily::Motion => {
                 Some(crate::obligations::catalog::UiObligationFamily::MotionSupportRequirement)
             }
-            UiDeclaredServiceUsagePosture::Scroll => None,
+            crate::capability::UiRuntimeServiceFamily::Scroll => {
+                Some(crate::obligations::catalog::UiObligationFamily::ScrollRoutingRequirement)
+            }
+            crate::capability::UiRuntimeServiceFamily::Selection => {
+                Some(crate::obligations::catalog::UiObligationFamily::SelectionStateRequirement)
+            }
+            crate::capability::UiRuntimeServiceFamily::CommandRouting => {
+                Some(crate::obligations::catalog::UiObligationFamily::CommandRouteRequirement)
+            }
         }
     }
 }

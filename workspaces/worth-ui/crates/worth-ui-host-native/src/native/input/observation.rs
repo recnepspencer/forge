@@ -28,6 +28,7 @@ pub(crate) enum UiNativeInputObservationDisposition {
 struct UiNativePendingPresentationContext {
     protocol: UiHostProtocolAgreement,
     host_session: u64,
+    host_surface: worth_ui_host_contract::UiHostSurfaceIdentity,
     binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
 }
 
@@ -165,6 +166,7 @@ impl UiNativeInputObservationState {
         &mut self,
         protocol: UiHostProtocolAgreement,
         host_session: u64,
+        host_surface: worth_ui_host_contract::UiHostSurfaceIdentity,
         binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
         completion_identity: u64,
     ) -> bool {
@@ -185,6 +187,7 @@ impl UiNativeInputObservationState {
             UiNativePendingPresentationContext {
                 protocol,
                 host_session,
+                host_surface,
                 binding,
             },
         );
@@ -211,7 +214,7 @@ impl UiNativeInputObservationState {
         self.record_completed_presentation(
             context.protocol,
             context.host_session,
-            UiHostObservationPresentationBasis::new(frame, binding, epoch),
+            UiHostObservationPresentationBasis::new(context.host_surface, frame, binding, epoch),
         )
     }
 

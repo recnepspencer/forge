@@ -1,6 +1,4 @@
 #[cfg(target_os = "windows")]
-mod exclusive_native_courtroom;
-#[cfg(target_os = "windows")]
 mod journey_cost;
 #[cfg(target_os = "windows")]
 mod native_cutover;
@@ -29,3 +27,5 @@ mod platform_pulse_intent;
 mod platform_pulse_journey;
 #[cfg(target_os = "windows")]
 mod platform_pulse_lifecycle;
+#[cfg(target_os = "windows")]
+mod platform_pulse_portal;

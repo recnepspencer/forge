@@ -1,6 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::{cell::RefCell, rc::Rc};
-
 use worth_ui_host_contract::{
     UiMountedPresentationAttemptIdentity, UiPresentationDeadline, UiSurfaceBindingGeneration,
 };
@@ -22,6 +21,8 @@ mod admission;
 mod cancellation;
 mod cancellation_settlement;
 mod duplicate_observation;
+mod host_truth;
+mod motion_sample;
 mod pending_completion;
 mod physical_uncertainty;
 mod presentation_attempt;
@@ -37,6 +38,9 @@ mod surface_uncertainty;
 mod text_pins;
 mod work_preparation;
 
+pub(crate) use motion_sample::{
+    UiMotionSampleCancellationOutcome, UiMotionSamplePresentationOutcome,
+};
 use presentation_attempt::{
     present_one_surface, UiMountedPresentationProgress, UiMountedPresentationStart,
 };
@@ -61,11 +65,13 @@ pub struct UiMountedPresentationCoordinator {
         Vec<worth_ui_query_binding::WorthUiPresentationRecoveryReceipt>,
     >,
     presentation_states: super::work_producer::UiMountedPresentationCandidates,
+    motion_sample_in_flight: Option<motion_sample::UiPendingMotionSamplePresentation>,
     reconstruction_bindings: BTreeSet<UiSurfaceBindingGeneration>,
     text: crate::native_platform::text_presentation::UiNativeMountedTextCoordinator,
     presentation_async:
         Option<crate::native_platform::text_presentation::UiPresentationAsyncRuntime>,
     host_truth: crate::mounting::UiMountedHostTruthCoordinator,
+    pub(super) focus_placement: super::focus_placement::UiMountedFocusPlacementState,
 }
 
 struct UiMountedPresentationSettlement<'host> {
@@ -94,10 +100,12 @@ impl Default for UiMountedPresentationCoordinator {
             unresolved_semantic_receipts: BTreeMap::new(),
             unresolved_semantic_recoveries: BTreeMap::new(),
             presentation_states: BTreeMap::new(),
+            motion_sample_in_flight: None,
             reconstruction_bindings: BTreeSet::new(),
             text: Default::default(),
             presentation_async: None,
             host_truth: Default::default(),
+            focus_placement: Default::default(),
         }
     }
 }
@@ -138,46 +146,6 @@ impl UiMountedPresentationCoordinator {
             host,
             authority,
         })
-    }
-
-    pub fn reconcile(
-        &mut self,
-        reconciliation: super::UiHostPresentationReconciliation,
-        current_frame: Option<worth_ui_host_contract::UiMountedFrameIdentity>,
-    ) -> bool {
-        self.host_truth
-            .reconcile_presentation(reconciliation, current_frame)
-    }
-
-    pub(crate) fn binding_requires_reconciliation(
-        &self,
-        binding: UiSurfaceBindingGeneration,
-    ) -> bool {
-        self.host_truth.binding_requires_reconciliation(binding)
-    }
-
-    pub(crate) fn commit_current_frame_reconciliation(
-        &mut self,
-        replacements: &[super::UiMountedSurfaceReconciliationBinding],
-    ) {
-        self.host_truth
-            .commit_current_frame_reconciliation(replacements);
-    }
-
-    pub(crate) fn reconcile_candidate_only_deregistration(
-        &mut self,
-        binding: UiSurfaceBindingGeneration,
-    ) {
-        self.host_truth
-            .reconcile_candidate_only_deregistration(binding);
-    }
-
-    pub(crate) fn has_active_attempt(&self) -> bool {
-        !self.active.borrow().is_empty()
-    }
-
-    pub(crate) fn host_truth_mut(&mut self) -> &mut crate::mounting::UiMountedHostTruthCoordinator {
-        &mut self.host_truth
     }
 
     fn present_all(

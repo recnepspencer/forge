@@ -454,8 +454,12 @@ jobs:
         run: |
           python3 scripts/ci/test_worth_ui_test_topology.py
           python3 scripts/ci/test_worth_ui_test_lane.py
+          python3 scripts/ci/test_worth_ui_native_features.py
           python3 scripts/ci/check_worth_ui_test_topology.py
           python3 scripts/ci/check_worth_ui_native_features.py
+
+      - name: Compile the Platform Pulse courtroom in its non-Windows posture
+        run: python3 scripts/ci/run_worth_ui_test_lane.py compile-only-platform
 
       - name: Check WORTH UI formatting
         run: cargo fmt --all --manifest-path workspaces/worth-ui/Cargo.toml -- --check

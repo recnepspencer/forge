@@ -62,7 +62,7 @@ impl UiPointerGestureRuntimeState {
                 capture_epoch,
                 ..
             } => self.capture_change(report.sequence(), *pointer, *capture_epoch),
-            UiHostObservationPayload::Focus { focused: false } => {
+            UiHostObservationPayload::WindowFocus { focused: false, .. } => {
                 self.focus_loss(report.sequence())
             }
             _ => Vec::new(),
@@ -115,6 +115,7 @@ impl UiPointerGestureRuntimeState {
             button: input.button,
             sequence: input.sequence,
             time_basis: input.time_basis,
+            position: input.position,
             target: target_view,
         })
     }

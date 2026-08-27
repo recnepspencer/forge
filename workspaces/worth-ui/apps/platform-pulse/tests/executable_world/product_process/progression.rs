@@ -40,6 +40,7 @@ pub(crate) struct NativeBoundExecutableWorld {
     pub(super) installation: IsolatedPulseInstallation,
     pub(super) process: LivePlatformPulseProcess,
     pub(super) lifecycle: PlatformPulseLifecycleStream,
+    pub(super) journey_started: Instant,
     pub(super) platform: WindowsNativePlatform,
     pub(super) native_client: WindowsProcessBoundNativeClientArea,
 }
@@ -323,6 +324,12 @@ impl PulseExecutableWorld<Published<SchemaStopped>> {
 impl PulseExecutableWorld<Closed> {
     pub(crate) fn evidence(&self) -> &ExecutableLifecycleCleanupEvidence {
         &self.state.evidence
+    }
+}
+
+impl<Stage> PulseExecutableWorld<Published<Stage>> {
+    pub(crate) fn native_journey_started(&self) -> Instant {
+        self.state.world.journey_started
     }
 }
 

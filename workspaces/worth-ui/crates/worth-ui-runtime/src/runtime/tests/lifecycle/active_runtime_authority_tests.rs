@@ -103,7 +103,9 @@ fn shutdown_receipt_preserves_final_frame_epoch() {
     let runtime = launch_runtime(&app, import_artifact(["app/panels/inspector.wui"]));
     let frame_epoch = runtime.frame_epoch();
 
-    let receipt = runtime.shutdown();
+    let receipt = runtime
+        .shutdown()
+        .unwrap_or_else(|recovery| panic!("shutdown blocked: {:?}", recovery.blocker()));
 
     assert_eq!(receipt.final_frame_epoch(), frame_epoch);
 }

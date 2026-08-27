@@ -5,7 +5,7 @@ use super::{
 
 mod execution;
 
-pub(in crate::facade::entry) use execution::DetachedNativeIntentPostureInFlight;
+pub(in crate::facade::entry) use execution::DetachedNativeIntentPosturePending;
 use execution::{
     NativeIntentPostureInFlight, NativeIntentPostureIndeterminate, NativeIntentPostureRejected,
     PreparedNativeIntentPostureRebind,
@@ -33,6 +33,7 @@ pub struct WorthUiNativeIntentPosturePublicationRecovery<'session> {
 #[derive(Debug)]
 pub struct WorthUiNativeIntentPosturePublicationStop {
     reason: crate::runtime::intent_execution::UiIntentConsequenceStopReason,
+    host_rejections: Box<[worth_ui_host_contract::UiHostSurfacePresentationDenial]>,
 }
 
 #[must_use = "rejected posture publication retains an exact prepared retry"]
@@ -44,6 +45,7 @@ pub struct WorthUiNativeIntentPosturePublicationRetry<'session> {
 pub enum WorthUiNativeManagedIntentPosturePublicationDenial {
     ManagedRebindAlreadyInFlight,
     ManagedRebindSessionMismatch,
+    PredecessorReconstruction,
 }
 
 pub enum WorthUiNativeManagedIntentPosturePublicationOutcome {
@@ -104,6 +106,11 @@ impl WorthUiNativeApplicationShell {
                     ),
                 );
                 Ok(WorthUiNativeManagedIntentPosturePublicationOutcome::Pending)
+            }
+            super::native_managed_rebind::ManagedIntentPostureNormalization::
+                ReconstructionRequired(retry) =>
+            {
+                self.begin_intent_posture_predecessor_reconstruction(retry)
             }
             super::native_managed_rebind::ManagedIntentPostureNormalization::Stopped(stop) => {
                 Ok(WorthUiNativeManagedIntentPosturePublicationOutcome::Stopped(stop))
@@ -223,8 +230,14 @@ impl WorthUiActiveApplicationSession {
                 denial,
             ))
         })?;
+        let portal_overlay_revision = self.portal.revision();
+        let portal_overlays = self.portal.current_mounted_projection_inputs();
         let frame = self
-            .prepare_intent_consequence_frame(plan.content().clone())
+            .prepare_intent_consequence_frame(
+                plan.content().clone(),
+                portal_overlay_revision,
+                portal_overlays,
+            )
             .map_err(|denial| {
                 crate::runtime::intent_execution::UiIntentConsequenceStopReason::Preparation(
                     Box::new(denial),
@@ -245,13 +258,22 @@ impl WorthUiNativeIntentPosturePublicationStop {
     pub const fn reason(&self) -> &crate::runtime::intent_execution::UiIntentConsequenceStopReason {
         &self.reason
     }
+
+    pub fn host_rejections(&self) -> &[worth_ui_host_contract::UiHostSurfacePresentationDenial] {
+        &self.host_rejections
+    }
 }
 
 impl WorthUiNativeIntentPosturePublicationStop {
-    pub(super) fn host_rejected(rejection_count: usize) -> Self {
+    pub(super) fn host_rejected(
+        rejections: Box<[worth_ui_host_contract::UiHostSurfacePresentationDenial]>,
+    ) -> Self {
         Self {
             reason: crate::runtime::intent_execution::UiIntentConsequenceStopReason::
-                HostRejectedBeforeEffects { rejection_count },
+                HostRejectedBeforeEffects {
+                    rejection_count: rejections.len(),
+                },
+            host_rejections: rejections,
         }
     }
 }
@@ -260,6 +282,9 @@ pub(super) fn stopped<'session>(
     reason: crate::runtime::intent_execution::UiIntentConsequenceStopReason,
 ) -> WorthUiNativeIntentPosturePublicationOutcome<'session> {
     WorthUiNativeIntentPosturePublicationOutcome::Stopped(
-        WorthUiNativeIntentPosturePublicationStop { reason },
+        WorthUiNativeIntentPosturePublicationStop {
+            reason,
+            host_rejections: Box::new([]),
+        },
     )
 }

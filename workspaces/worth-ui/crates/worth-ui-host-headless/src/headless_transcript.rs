@@ -105,16 +105,11 @@ pub(crate) struct UiHeadlessNodeMechanicInput {
 pub enum UiHeadlessUnperformedEffect {
     NativePaint {
         filled_rect_count: u32,
+        portal_overlay_count: u32,
         semantic_text_count: u32,
         preview_node_count: u32,
     },
     Accessibility {
-        node_count: u32,
-    },
-    Focus {
-        node_count: u32,
-    },
-    Motion {
         node_count: u32,
     },
     Diagnostic {
@@ -144,6 +139,7 @@ pub struct UiHeadlessMountedFrameTranscript {
     nodes: Box<[UiHeadlessNodeMechanic]>,
     clips: Box<[UiHeadlessClipMechanic]>,
     filled_rects: Box<[UiHeadlessFilledRectMechanic]>,
+    portal_overlays: Box<[worth_ui_host_contract::UiMountedPortalOverlayMechanic]>,
     semantic_text: Box<[UiHeadlessSemanticTextMechanic]>,
     paint_batches: Box<[UiHeadlessPaintBatchMechanic]>,
     paint_order: Box<[UiMountedPaintOrderIdentity]>,
@@ -160,6 +156,7 @@ pub(crate) struct UiHeadlessMountedFrameTranscriptInput {
     pub nodes: Vec<UiHeadlessNodeMechanic>,
     pub clips: Vec<UiHeadlessClipMechanic>,
     pub filled_rects: Vec<UiHeadlessFilledRectMechanic>,
+    pub portal_overlays: Vec<worth_ui_host_contract::UiMountedPortalOverlayMechanic>,
     pub semantic_text: Vec<UiHeadlessSemanticTextMechanic>,
     pub paint_batches: Vec<UiHeadlessPaintBatchMechanic>,
     pub paint_order: Vec<UiMountedPaintOrderIdentity>,
@@ -188,6 +185,7 @@ impl UiHeadlessMountedFrameTranscript {
             nodes: input.nodes.into_boxed_slice(),
             clips: input.clips.into_boxed_slice(),
             filled_rects: input.filled_rects.into_boxed_slice(),
+            portal_overlays: input.portal_overlays.into_boxed_slice(),
             semantic_text: input.semantic_text.into_boxed_slice(),
             paint_batches: input.paint_batches.into_boxed_slice(),
             paint_order: input.paint_order.into_boxed_slice(),
@@ -230,6 +228,10 @@ impl UiHeadlessMountedFrameTranscript {
 
     pub fn filled_rects(&self) -> &[UiHeadlessFilledRectMechanic] {
         &self.filled_rects
+    }
+
+    pub fn portal_overlays(&self) -> &[worth_ui_host_contract::UiMountedPortalOverlayMechanic] {
+        &self.portal_overlays
     }
 
     pub fn semantic_text(&self) -> &[UiHeadlessSemanticTextMechanic] {

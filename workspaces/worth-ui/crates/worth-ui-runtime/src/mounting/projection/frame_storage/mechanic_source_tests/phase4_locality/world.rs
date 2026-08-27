@@ -148,6 +148,10 @@ fn locality_node(
         static_paint: None,
         semantic_text: Some(UiMountedSemanticTextSeed::posture_only_for_test(text)),
         hit_test: None,
+        focus_support: crate::capability::ComponentFocusSupport::not_focusable(),
+        focus_scope: None,
+        component_id: None,
+        portal_child_owner: None,
     }
 }
 

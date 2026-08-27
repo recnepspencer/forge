@@ -9,6 +9,31 @@ use crate::runtime::{
 use super::launch_request::WorthUiRuntimeLaunchDenial;
 use super::runtime_instance::WorthUiRuntime;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthUiRuntimeShutdownBlocker {
+    ServiceOwnerSettlementPending,
+    ServiceProposalInvariant,
+}
+
+pub struct WorthUiRuntimeShutdownRecovery {
+    runtime: WorthUiRuntime,
+    blocker: WorthUiRuntimeShutdownBlocker,
+}
+
+impl WorthUiRuntimeShutdownRecovery {
+    pub const fn blocker(&self) -> WorthUiRuntimeShutdownBlocker {
+        self.blocker
+    }
+
+    pub fn into_runtime(self) -> WorthUiRuntime {
+        self.runtime
+    }
+
+    pub fn retry(self) -> Result<WorthUiRuntimeShutdownReceipt, Self> {
+        self.runtime.shutdown()
+    }
+}
+
 impl WorthUiRuntime {
     pub fn lifecycle(&self) -> WorthUiRuntimeLifecycle {
         self.active.lifecycle()
@@ -58,14 +83,32 @@ impl WorthUiRuntime {
         self.allocation_receipt_ledger.truth_revision()
     }
 
-    pub fn shutdown(mut self) -> WorthUiRuntimeShutdownReceipt {
+    pub fn shutdown(
+        mut self,
+    ) -> Result<WorthUiRuntimeShutdownReceipt, WorthUiRuntimeShutdownRecovery> {
+        let service_proposals = match self.service_proposals.shutdown_all_before_effect() {
+            Ok(receipt) => receipt,
+            Err(denial) => {
+                let blocker = match denial {
+                    crate::runtime::session::service_proposal::UiServiceProposalTeardownDenial::AwaitingOwnerSettlement(_) => {
+                        WorthUiRuntimeShutdownBlocker::ServiceOwnerSettlementPending
+                    }
+                    _ => WorthUiRuntimeShutdownBlocker::ServiceProposalInvariant,
+                };
+                return Err(WorthUiRuntimeShutdownRecovery {
+                    runtime: self,
+                    blocker,
+                });
+            }
+        };
         let queue_disposition = self.shutdown_allocation_frame_dispatcher();
         let query_retirement = self.query_binding.into_operation_live_retirement();
-        WorthUiRuntimeShutdownReceipt::new(
+        Ok(WorthUiRuntimeShutdownReceipt::new(
             self.active.frame_epoch(),
             queue_disposition,
             query_retirement,
-        )
+            service_proposals,
+        ))
     }
 
     #[cfg(test)]

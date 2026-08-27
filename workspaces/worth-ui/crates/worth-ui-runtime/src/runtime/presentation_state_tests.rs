@@ -51,6 +51,10 @@ fn complete_projection_retains_current_paint_after_incremental_projection_commit
             .and_then(|formatting| formatting.token_value(&token)),
         Some(&color)
     );
+    assert!(
+        content.posture().trim().is_empty(),
+        "application-authored copy has no synthetic user-visible posture"
+    );
 }
 
 #[test]

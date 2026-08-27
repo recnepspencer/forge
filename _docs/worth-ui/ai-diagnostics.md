@@ -2,8 +2,8 @@
 
 ## Purpose
 
-This document defines how AI inspection, human diagnostics, replay, visual
-evaluation, and runtime explanation should work in Worth UI.
+This document defines how AI inspection, human diagnostics, visual evaluation,
+runtime explanation, and certification-only replay should work in Worth UI.
 
 It is not a debug-feature wishlist, an implementation checklist, or a panel
 mockup.
@@ -13,7 +13,8 @@ Its job is to lock the architecture early enough that:
 - AI support does not become a pile of screenshots plus logs
 - the human inspector does not become a second explanation system
 - diagnostics do not become ad hoc text dumps
-- replay does not become a test-only side lane
+- replay and reconstruction remain certification-owned rather than leaking into
+  the ordinary inspection runtime
 - visual evaluation does not depend on pixel guessing when runtime geometry is
   already available
 
@@ -98,8 +99,10 @@ That distinction matters.
 
 The authority graph is where UI truth lives.
 
-The inspection substrate is how that truth becomes explainable, replayable,
-queryable, and relevant to a specific question.
+The ordinary inspection substrate is how that truth becomes explainable,
+queryable, comparable, and relevant to a specific question. Certification may
+consume versioned evidence through a separate replay boundary; ordinary
+inspection cannot reconstruct execution or mint replay authority.
 
 If the implementation creates a second graph-shaped authority system for
 inspection, it has likely crossed the boundary and started rebuilding the
@@ -126,8 +129,8 @@ every serious runtime family must ship with:
   - truth ownership
   - typed evidence artifacts
   - targeted inspection queries
-  - replay hooks where relevant
   - relevance filters
+  - certification-owned replay inputs where reconstruction is materially required
 ```
 
 This is especially important for AI.
@@ -146,7 +149,7 @@ AI sees the current frame
 -> targets a node, point, or source edit
 -> asks a typed inspection query
 -> receives a scoped evidence slice with stable identities
--> optionally replays the change through stop points
+-> compares retained before/after evidence without re-executing it
 -> patches source at the authored boundary
 -> the runtime hot reloads
 -> updated evidence proves whether the repair is correct
@@ -159,7 +162,7 @@ For humans, the same substrate should make it possible to:
 - inspect what aspects were published or consumed
 - inspect why a layout box was allocated as it was
 - inspect what Query projection the UI consumed
-- inspect why a replay widened or stayed local
+- inspect why a retained change widened or stayed local
 - inspect whether alignment, symmetry, spacing rhythm, or focus topology are
   correct
 
@@ -199,7 +202,7 @@ Milestone 3.1 specifically does not implement:
 - measurement/allocation
 - mounted receipts
 - visual snapshots
-- replay
+- certification replay
 - AI screenshot tools
 - human inspector UI
 - Query projection binding
@@ -216,12 +219,12 @@ that later milestones must use.
 | `worth-ui` | product facade | runtime internals |
 | `worth-ui-dsl` | source/semantic DSL boundary | graph truth |
 | `worth-ui-runtime` | hot-composition truth | host mechanics |
-| `worth-ui-inspection` | inspection contracts/evidence | panel UI truth |
+| `worth-ui-inspection` | ordinary inspection contracts/evidence | panel UI truth, replay, or reconstruction |
 | `worth-ui-query-binding` | Query consumption boundary | Query authority |
 | `worth-ui-host-contract` | native host boundary facts | vendor mechanics |
 | `worth-ui-host-native` | native mechanics | UI meaning |
 | `worth-ui-host-headless` | deterministic recording mechanics | UI meaning |
-| `worth-ui-certification` | anti-bypass proof | production runtime truth |
+| `worth-ui-certification` | anti-bypass proof and replay/reconstruction | production runtime truth or ordinary authority |
 
 ## Evidence Substrate
 
@@ -242,7 +245,9 @@ The inspection substrate should own typed evidence families such as:
 - diagnostic evidence
 - visual snapshot evidence
 - visual geometry and visual invariant evidence
-- replay timeline and replay-step evidence
+- retained causal timeline and before/after comparison evidence
+- certification-owned replay timeline and replay-step evidence, never ordinary
+  inspection authority
 
 In the earliest support-bearing slice, the substrate should also own support
 and closure artifacts such as:
@@ -306,7 +311,8 @@ Important indexes include:
 - changed fact -> affected rebind evidence
 - diagnostic identity -> attached evidence neighborhood
 - screen point or region -> mounted receipt identity
-- frame identity -> visible snapshot / mounted receipts / replay step
+- frame identity -> visible snapshot / mounted receipts / causal timeline entry
+- certification replay step -> versioned replay input / produced comparison evidence
 - semantic interaction input -> exact intent evidence reference
 - admission or attempt generational slot -> exact intent causal record
 
@@ -330,8 +336,9 @@ to the same reference. Its executable world supplies the independent visible
 pixel oracle.
 
 This is compact causal evidence, not the final rich neighborhood system. Lazy
-detail materialization, disclosure-controlled payload detail, arbitrary causal
-graph traversal, replay, and reconstruction remain later work. Ordinary
+detail materialization, disclosure-controlled payload detail, and arbitrary
+causal graph traversal remain later work. Replay and reconstruction remain
+certification-only work. Ordinary
 inspection cannot turn copied references, equal digests, serialized reporting
 projections, or expired records back into admission or execution authority.
 
@@ -354,7 +361,6 @@ UiInspectionQuery {
     - screenshot_region(identity)
     - diagnostic(identity)
     - frame(identity)
-    - replay_step(identity)
 
   scope:
     - declaration
@@ -372,7 +378,6 @@ UiInspectionQuery {
     - services
     - rebind
     - diagnostics
-    - replay
     - visual_geometry
 
   richness:
@@ -414,6 +419,12 @@ The companion support/reporting lane should be able to answer:
 The point is to make “not yet” machine-checkable instead of forcing clients to
 guess from missing behavior.
 
+Replay is not another `UiInspectionQuery` target or scope. Certification owns a
+separate query and result family whose inputs are versioned source, declaration,
+recorded observation, and external-evidence artifacts. Query reconstruction may
+enter that family only through `worth-query-replay`; ordinary Worth UI and
+`worth-ui-inspection` cannot depend on it.
+
 ### AI Tools
 
 The formal tool lane should support capabilities like:
@@ -437,9 +448,7 @@ The formal tool lane should support capabilities like:
 - `explain_rebind`
 - `diff_frames`
 - `list_relevant_diagnostics`
-- `start_replay`
-- `step_replay`
-- `compare_replay_points`
+- `compare_evidence_points`
 - `evaluate_alignment`
 - `evaluate_spacing`
 - `evaluate_symmetry`
@@ -450,6 +459,12 @@ The important part is not the tool count.
 The important part is that each tool must query the same evidence substrate
 instead of scraping logs, reading private host fields, or interpreting pixels
 in isolation.
+
+Certification tooling may separately expose `start_replay`, `step_replay`, and
+`compare_replay_points`. Those commands operate on a certification-owned replay
+session, never the live application's ordinary authority graph, and their
+reports cannot be submitted as application, Query, plan, rebind, or publication
+authority.
 
 Inspection receipts must be sealed but projectable.
 
@@ -533,13 +548,16 @@ changed facts, preserved identity, remount decisions, and bounded hot rebind.
 Until that contract exists, neither raw pixel diff nor local identity matching
 may be presented as semantic rebind evidence.
 
-## Replay
+## Certification Replay
 
-Replay should be a first-class runtime protocol, not a testing afterthought.
+Replay and reconstruction are certification-only protocols. The ordinary
+runtime and human inspector expose retained causal timelines, evidence
+comparison, and explanations; they do not re-execute prior authority or rebuild
+missing state. Certification replay is first-class because it has its own
+versioned inputs, resource budget, lifecycle, and non-authoritative results,
+not because it is available to ordinary application code.
 
-The AI and the human inspector both need it.
-
-Replay lets the runtime answer:
+Certification replay lets reviewers and agent tooling answer:
 
 - what changed?
 - when did the meaning diverge?
@@ -548,9 +566,9 @@ Replay lets the runtime answer:
 - why did this node preserve identity?
 - why did this node remount?
 
-### Replay Stop Points
+### Certification Replay Stop Points
 
-Replay should support meaningful stop points such as:
+The certification surface should support meaningful stop points such as:
 
 - after parse
 - after semantic lowering
@@ -576,6 +594,12 @@ That enables targeted questions like:
 - replay the failed change until the first denial point
 - compare before/after mounted receipts by aspect
 - stop at rebind planning and explain why breadth widened
+
+At the Query-binding stop, Worth UI certification may inspect the exact retained
+Query publication or projection evidence. If Query semantic replay is required,
+the certification owner must use `worth-query-replay`; it may not reconstruct a
+Query operation from UI facts, digests, reports, or mounted evidence. No replay
+result can re-enter the live application as authority.
 
 ## Relevance Filtering
 
@@ -679,8 +703,10 @@ Useful evidence views include:
 10. **Diagnostics Feed** -- typed, filterable diagnostics grouped by relevance,
    not a console.
 
-11. **Replay Timeline** -- source edits, artifacts, admissions, graph mutations,
-    observations, rebinds, mounted frames, and diagnostics.
+11. **Causal Timeline** -- retained source edits, artifacts, admissions, graph
+    mutations, observations, rebinds, mounted frames, and diagnostics. A
+    certification replay report may be projected here, but the inspector cannot
+    start replay or reconstruct execution.
 
 12. **Visual Evaluation** -- alignment groups, baselines, spacing rhythm,
     symmetry axes, visual bounds, overlays, invariant violations, and
@@ -812,7 +838,9 @@ At minimum, the AI harness should expose:
 - point and region hit testing
 - target inspection queries with scoped evidence
 - relevant-diagnostics lookup
-- replay session creation and stepping
+- retained causal-timeline comparison
+- certification replay session creation and stepping through a separate
+  certification surface
 - rebind explanation
 - frame diff by identity and aspect scope
 - execution-plan lowering, equivalence/no-op, activation, and frame-cost
@@ -824,7 +852,8 @@ The harness should be:
 - typed
 - budgeted
 - identity-backed
-- replay-capable
+- comparison-capable in ordinary inspection
+- replay-capable only through the certification boundary
 - independent of ad hoc console output
 
 ### Harness Rule
@@ -844,8 +873,9 @@ add AI/diagnostics at the end
 The right posture is:
 
 ```text
-every milestone adds the evidence, inspection, and replay surfaces for the
-runtime families it introduces
+every milestone adds the evidence and inspection surfaces for the runtime
+families it introduces, plus versioned certification replay inputs where
+reconstruction is materially required
 ```
 
 That means:
@@ -861,8 +891,11 @@ That means:
 - rebind milestones add change-diff and preservation inspection
 - visual milestones add visual-evaluation inspection
 
-This keeps inspection honest and keeps the runtime explainable while it is
-still forming.
+Here, “replay surfaces” means versioned certification inputs and cert-owned
+adapters where replay is materially required. It never means an ordinary
+runtime import or a reporting artifact that can reopen execution. This keeps
+inspection honest and the runtime explainable while preserving the ordinary
+versus reconstructive cost and authority boundary.
 
 ## Suggested Structural Boundaries
 
@@ -871,13 +904,17 @@ separate:
 
 ```text
 worth-ui-inspection
-  runtime-owned evidence/query/replay substrate
+  runtime-owned evidence/query/comparison substrate
 
 worth-ui-agent-tools
   AI-facing tool protocol over the inspection substrate
 
 worth-ui-inspector
   human-facing inspector projections over the same substrate
+
+worth-ui-certification
+  replay/reconstruction sessions over versioned certification inputs
+  optional Query replay only through worth-query-replay
 ```
 
 The key is not the exact crate count.
@@ -900,7 +937,8 @@ This architecture is only real if it can prove all of the following:
 - AI can move from screenshot region to mounted receipt identity
 - AI can move from mounted receipt identity to declaration, source, graph, and
   evidence
-- AI can replay a change to the first denial point
+- AI can compare retained evidence for a live change and, through the separate
+  certification surface, replay versioned inputs to the first denial point
 - AI can explain why a candidate was a semantic no-op, required a bounded plan
   replacement, or was denied; which exact plan generation is active; and what
   work an ordinary frame performed
@@ -909,8 +947,8 @@ This architecture is only real if it can prove all of the following:
 - visual alignment and spacing can be evaluated from runtime geometry rather
   than screenshots alone
 - the inspector consumes evidence but does not author truth
-- plan and Query inspection cannot mint handles, activate candidates, promote
-  receipts/digests into authority, or submit an executable plan
+- plan and Query inspection or replay cannot mint handles, activate candidates,
+  promote receipts/digests into authority, or submit an executable plan
 - projection evidence cannot be reassembled into a binding or fact, and lazy
   detail cannot widen Query, application, mounted, or disclosure authority
 - no explanation path requires renderer-local semantic reconstruction
@@ -924,9 +962,11 @@ not screenshots plus logs
 not devtools plus folklore
 not AI guessing from pixels
 
-but a live, replayable, semantically indexed runtime that can explain itself
-through the same declaration, graph, aspect, Query, measurement, plan,
-mounting, and service language that already defines product truth
+but a live, semantically indexed runtime that can explain itself through the
+same declaration, graph, aspect, Query, measurement, plan, mounting, and
+service language that already defines product truth
+
+with replay and reconstruction confined to certification
 ```
 
 That is the standard.

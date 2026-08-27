@@ -4,54 +4,35 @@ use super::WorthUiNativeApplicationShell;
 mod intent_consequence;
 #[path = "native_managed_rebind/intent_posture.rs"]
 mod intent_posture;
+#[path = "native_managed_rebind/intent_posture_reconstruction.rs"]
+mod intent_posture_reconstruction;
+#[path = "native_managed_rebind/model.rs"]
+mod model;
+#[path = "native_managed_rebind/portal_dismissal.rs"]
+mod portal_dismissal;
+#[path = "native_managed_rebind/predecessor_reconstruction.rs"]
+mod predecessor_reconstruction;
+#[path = "native_managed_rebind/shutdown.rs"]
+mod shutdown;
 pub(super) use intent_consequence::{
     normalize_managed_intent_consequence, ManagedIntentConsequenceNormalization,
 };
 pub(super) use intent_posture::{
     normalize_managed_intent_posture, ManagedIntentPostureNormalization,
 };
-
-#[derive(Debug)]
-pub enum WorthUiNativeManagedRebindDenial {
-    SessionMismatch,
-    PredecessorReconstruction,
-    Preparation(crate::runtime::rebind::UiRebindPreparationDenial),
-}
-
-#[derive(Debug)]
-pub enum WorthUiNativeManagedRebindStop {
-    Duplicate,
-    ObservedNoChange,
-    RejectedBeforeEffects {
-        phase: crate::runtime::rebind::UiRebindStoppedPhase,
-        cause: crate::runtime::rebind::UiRebindDenialCause,
-    },
-    CancelledBeforeEffects(crate::runtime::rebind::UiRebindStoppedPhase),
-    TimedOutBeforeEffects(crate::runtime::rebind::UiRebindStoppedPhase),
-    SupersededBeforeEffects(crate::runtime::rebind::UiRebindStoppedPhase),
-    Indeterminate,
-    PredecessorReconstructionFailed,
-    IntentPosture(super::native_intent_posture::WorthUiNativeIntentPosturePublicationStop),
-    IntentConsequence(crate::runtime::intent_execution::UiIntentConsequenceStopReason),
-    InternalDefect(crate::runtime::rebind::UiRebindInternalDefectKind),
-}
-
-pub enum WorthUiNativeManagedRebindProgress {
-    Unrelated,
-    AwaitingProgress,
-    Published(crate::runtime::rebind::UiRebindReceipt),
-    Stopped(WorthUiNativeManagedRebindStop),
-}
-
-pub(super) enum WorthUiNativePendingManagedRebind {
-    Completion(crate::runtime::rebind::UiDetachedRebindCompletion),
-    IntentPosture(super::native_intent_posture::DetachedNativeIntentPostureInFlight),
-    IntentConsequence(super::intent_consequence_publication::DetachedUiIntentConsequenceInFlight),
-    PredecessorReconstruction {
-        retry: crate::runtime::rebind::UiDetachedRebindRetry,
-        in_flight: crate::mounting::UiMountedPresentationInFlight,
-    },
-}
+pub(super) use model::WorthUiNativePendingManagedRebind;
+pub use model::{
+    WorthUiNativeManagedRebindDenial, WorthUiNativeManagedRebindProgress,
+    WorthUiNativeManagedRebindStop, WorthUiNativePredecessorRecovery,
+};
+pub(super) use portal_dismissal::UiRetainedPortalDismissalRequest;
+pub use portal_dismissal::{
+    WorthUiNativeManagedPortalDismissalOutcome, WorthUiNativePortalDismissalStop,
+};
+use predecessor_reconstruction::{
+    detach_required_predecessor_reconstruction, reconstruction_matches_progress,
+    reconstruction_settled, RequiredPredecessorReconstruction,
+};
 
 pub(super) enum ManagedRebindNormalization {
     Published(crate::runtime::rebind::UiRebindReceipt),
@@ -118,6 +99,21 @@ impl WorthUiNativeApplicationShell {
                     outcome,
                 ))
             }
+            WorthUiNativePendingManagedRebind::IntentPosturePredecessorReconstruction {
+                retry,
+                in_flight,
+            } => {
+                self.progress_intent_posture_predecessor_reconstruction(retry, in_flight, progress)
+            }
+            WorthUiNativePendingManagedRebind::IntentPosturePredecessorReconstructionDeferred(
+                retry,
+            ) => self.progress_deferred_intent_posture_predecessor_reconstruction(retry, progress),
+            WorthUiNativePendingManagedRebind::IntentPosturePredecessorIndeterminate {
+                retry,
+                frame,
+            } => self.progress_indeterminate_intent_posture_predecessor_reconstruction(
+                retry, frame, progress,
+            ),
             WorthUiNativePendingManagedRebind::IntentConsequence(pending) => {
                 if pending.session_identity() != self.session.session_identity() {
                     return Err(WorthUiNativeManagedRebindDenial::SessionMismatch);
@@ -137,6 +133,51 @@ impl WorthUiNativeApplicationShell {
                     outcome,
                 ))
             }
+            WorthUiNativePendingManagedRebind::IntentConsequenceIndeterminate(pending) => {
+                self.progress_indeterminate_intent_consequence(pending, progress)
+            }
+            WorthUiNativePendingManagedRebind::IntentConsequenceReconstruction {
+                portal,
+                resources,
+                in_flight,
+            } => self
+                .progress_intent_consequence_reconstruction(portal, resources, in_flight, progress),
+            WorthUiNativePendingManagedRebind::IntentConsequenceReconstructionDeferred {
+                portal,
+                resources,
+            } => self.progress_deferred_intent_consequence_reconstruction(portal, resources),
+            WorthUiNativePendingManagedRebind::PortalDismissal(pending) => {
+                if pending.session_identity() != self.session.session_identity() {
+                    return Err(WorthUiNativeManagedRebindDenial::SessionMismatch);
+                }
+                if !pending.matches_native_progress(progress) {
+                    self.pending_managed_rebind =
+                        Some(WorthUiNativePendingManagedRebind::PortalDismissal(pending));
+                    return Ok(WorthUiNativeManagedRebindProgress::AwaitingProgress);
+                }
+                self.managed_rebind_completion_tick =
+                    self.managed_rebind_completion_tick.saturating_add(1);
+                let outcome =
+                    pending.complete(&mut self.session, self.managed_rebind_completion_tick);
+                let progress = portal_dismissal::finish(&mut self.pending_managed_rebind, outcome);
+                if matches!(
+                    progress,
+                    WorthUiNativeManagedRebindProgress::PortalDismissed(_)
+                ) {
+                    self.retained_portal_dismissal = None;
+                }
+                Ok(progress)
+            }
+            WorthUiNativePendingManagedRebind::PortalDismissalIndeterminate(pending) => {
+                self.progress_indeterminate_portal_dismissal(pending, progress)
+            }
+            WorthUiNativePendingManagedRebind::PortalDismissalReconstruction {
+                proposal,
+                in_flight,
+            } => self.progress_portal_dismissal_reconstruction(proposal, in_flight, progress),
+            WorthUiNativePendingManagedRebind::PortalDismissalReconstructionDeferred {
+                proposal,
+            } => self.progress_deferred_portal_dismissal_reconstruction(proposal),
             WorthUiNativePendingManagedRebind::PredecessorReconstruction { retry, in_flight } => {
                 if retry.session_identity() != self.session.session_identity() {
                     return Err(WorthUiNativeManagedRebindDenial::SessionMismatch);
@@ -222,27 +263,6 @@ impl WorthUiNativeApplicationShell {
             )),
         }
     }
-
-    pub(super) fn cancel_managed_rebind_for_shutdown(&mut self) {
-        let Some(pending) = self.pending_managed_rebind.take() else {
-            return;
-        };
-        match pending {
-            WorthUiNativePendingManagedRebind::Completion(pending) => {
-                drop(pending.cancel(&mut self.session));
-            }
-            WorthUiNativePendingManagedRebind::IntentPosture(pending) => {
-                drop(pending.cancel(&mut self.session));
-            }
-            WorthUiNativePendingManagedRebind::IntentConsequence(pending) => {
-                drop(pending.cancel(&mut self.session));
-            }
-            WorthUiNativePendingManagedRebind::PredecessorReconstruction { retry, in_flight } => {
-                drop(self.session.cancel_mounted_presentation(in_flight));
-                drop(retry);
-            }
-        }
-    }
 }
 
 pub(super) fn normalize_managed_outcome(
@@ -260,12 +280,21 @@ pub(super) fn normalize_managed_outcome(
         UiRebindOutcome::ObservedNoChange(_) => {
             ManagedRebindNormalization::Stopped(WorthUiNativeManagedRebindStop::ObservedNoChange)
         }
-        UiRebindOutcome::RejectedBeforeEffects(denial) => ManagedRebindNormalization::Stopped(
-            WorthUiNativeManagedRebindStop::RejectedBeforeEffects {
-                phase: denial.stopped_phase(),
-                cause: denial.cause(),
-            },
-        ),
+        UiRebindOutcome::RejectedBeforeEffects(denial) => {
+            let host_denials = denial
+                .host_rejections()
+                .iter()
+                .map(|rejection| rejection.denial())
+                .collect::<Vec<_>>()
+                .into_boxed_slice();
+            ManagedRebindNormalization::Stopped(
+                WorthUiNativeManagedRebindStop::RejectedBeforeEffects {
+                    phase: denial.stopped_phase(),
+                    cause: denial.cause(),
+                    host_denials,
+                },
+            )
+        }
         UiRebindOutcome::CancelledBeforeEffects(receipt) => ManagedRebindNormalization::Stopped(
             WorthUiNativeManagedRebindStop::CancelledBeforeEffects(receipt.stopped_phase()),
         ),
@@ -321,60 +350,4 @@ fn retry_progressed_text_atlas_deferral<'session>(
     } else {
         crate::runtime::rebind::UiRebindOutcome::RejectedBeforeEffects(denial)
     }
-}
-
-enum RequiredPredecessorReconstruction<'session> {
-    NotRequired(crate::runtime::rebind::UiRebindOutcome<'session>),
-    Required(crate::runtime::rebind::UiDetachedRebindRetry),
-}
-
-fn detach_required_predecessor_reconstruction<'session>(
-    outcome: crate::runtime::rebind::UiRebindOutcome<'session>,
-) -> RequiredPredecessorReconstruction<'session> {
-    let crate::runtime::rebind::UiRebindOutcome::RejectedBeforeEffects(denial) = outcome else {
-        return RequiredPredecessorReconstruction::NotRequired(outcome);
-    };
-    let rejections = denial.host_rejections();
-    if !rejections.is_empty()
-        && rejections.iter().all(|rejection| {
-            rejection.denial()
-                == worth_ui_host_contract::UiHostSurfacePresentationDenial::ReconstructionRequired
-        })
-    {
-        match denial.detach_retry_for_native() {
-            Ok(retry) => RequiredPredecessorReconstruction::Required(retry),
-            Err(denial) => RequiredPredecessorReconstruction::NotRequired(
-                crate::runtime::rebind::UiRebindOutcome::RejectedBeforeEffects(denial),
-            ),
-        }
-    } else {
-        RequiredPredecessorReconstruction::NotRequired(
-            crate::runtime::rebind::UiRebindOutcome::RejectedBeforeEffects(denial),
-        )
-    }
-}
-
-fn reconstruction_matches_progress(
-    in_flight: &crate::mounting::UiMountedPresentationInFlight,
-    progress: &crate::native_platform::UiNativeApplicationPhysicalProgress,
-) -> bool {
-    progress.class() == worth_ui_host_native::UiNativePhysicalProgressClass::Presentation
-        && in_flight.awaits_progress_class(
-            worth_ui_host_contract::UiHostPresentationProgressClass::PhysicalSurface,
-        )
-        && progress.presentation().is_some_and(|presentation| {
-            presentation.attempt() == in_flight.attempt()
-                && in_flight
-                    .pending_bindings()
-                    .any(|binding| binding == presentation.binding())
-        })
-}
-
-fn reconstruction_settled(outcome: &crate::mounting::UiMountedFrameOutcome) -> bool {
-    matches!(
-        outcome,
-        crate::mounting::UiMountedFrameOutcome::Published(_)
-            | crate::mounting::UiMountedFrameOutcome::Unchanged(_)
-            | crate::mounting::UiMountedFrameOutcome::Reconciled(_)
-    )
 }

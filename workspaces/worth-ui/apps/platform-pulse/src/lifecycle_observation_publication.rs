@@ -15,6 +15,7 @@ use worth_ui_platform_pulse::observation_contract::{
     PlatformPulseLifecycleObservationStream,
 };
 
+mod focus;
 mod intent;
 mod query;
 

@@ -75,6 +75,20 @@ impl UiMountedFrameRetentionCoordinator {
         Ok(relation)
     }
 
+    pub(crate) fn update_current_presentation_epoch(
+        &mut self,
+        presentation: worth_ui_host_contract::UiHostObservationPresentationBasis,
+    ) -> Result<(), UiPresentedFrameBasisDenial> {
+        let mut authority = self.authority.borrow_mut();
+        let evidence = authority
+            .frames
+            .current
+            .as_mut()
+            .filter(|evidence| evidence.frame() == presentation.frame())
+            .ok_or(UiPresentedFrameBasisDenial::Unknown)?;
+        Rc::make_mut(evidence).update_presentation_epoch(presentation)
+    }
+
     pub(crate) fn interaction_hit_test_basis(
         &self,
         presentation: worth_ui_host_contract::UiHostObservationPresentationBasis,
@@ -118,9 +132,6 @@ impl UiMountedFrameRetentionCoordinator {
     ) -> Result<UiMountedObservationBasisLease, UiMountedObservationBasisRetentionDenial> {
         let structural_bytes = {
             let authority = self.authority.borrow();
-            if !authority.reservations.is_empty() {
-                return Err(UiMountedObservationBasisRetentionDenial::FrameTransitionInFlight);
-            }
             match authority.frame(frame) {
                 UiMountedRetainedFrameLookup::Found { evidence, .. } => evidence.structural_bytes(),
                 UiMountedRetainedFrameLookup::Expired { .. } => {

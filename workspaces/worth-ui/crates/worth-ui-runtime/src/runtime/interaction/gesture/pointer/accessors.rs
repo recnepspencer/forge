@@ -29,6 +29,10 @@ impl UiPointerGesturePressReceipt {
         self.time_basis
     }
 
+    pub const fn position(&self) -> worth_ui_host_contract::UiHostSurfacePosition {
+        self.position
+    }
+
     pub const fn target(&self) -> UiPresentedInteractionTargetView {
         self.target
     }

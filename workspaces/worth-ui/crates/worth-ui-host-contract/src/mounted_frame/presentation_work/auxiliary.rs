@@ -11,6 +11,7 @@ pub struct UiMountedPresentationAuxiliaryState {
     content: crate::UiMountedContentGeneration,
     nodes: Arc<[crate::UiMountedNodeProjectionView]>,
     filled_rects: crate::UiMountedFilledRectTable,
+    portal_overlays: crate::UiMountedPortalOverlayTable,
     semantic_text: crate::UiMountedSemanticTextTable,
     clips: crate::UiMountedClipTable,
     layers: crate::UiMountedLayerTable,
@@ -41,6 +42,7 @@ impl UiMountedPresentationAuxiliaryState {
             content: projection.content_generation(),
             nodes: projection.retained_nodes(),
             filled_rects: projection.filled_rects().clone(),
+            portal_overlays: projection.portal_overlays().clone(),
             semantic_text: projection.semantic_text().clone(),
             clips: projection.clips().clone(),
             layers: projection.layers().clone(),
@@ -62,7 +64,12 @@ impl UiMountedPresentationAuxiliaryState {
         &self,
         commands: &HashMap<UiMountedPaintCommandIdentity, UiMountedPaintCommand>,
     ) -> Result<crate::UiMountedProjectionView, UiMountedPresentationReconstructionDenial> {
-        validate_commands(commands, &self.filled_rects, &self.semantic_text)?;
+        validate_commands(
+            commands,
+            &self.filled_rects,
+            &self.portal_overlays,
+            &self.semantic_text,
+        )?;
         Ok(crate::UiMountedProjectionView::new(
             crate::UiMountedProjectionViewInput {
                 frame: self.frame,
@@ -73,6 +80,7 @@ impl UiMountedPresentationAuxiliaryState {
                 clips: self.clips.clone(),
                 layers: self.layers.clone(),
                 filled_rects: self.filled_rects.clone(),
+                portal_overlays: self.portal_overlays.clone(),
                 semantic_text: self.semantic_text.clone(),
                 hit_tests: self.hit_tests.clone(),
                 paint_batches: self.paint_batches.clone(),
@@ -107,6 +115,12 @@ impl UiMountedPresentationAuxiliaryState {
                 identity: UiMountedPaintCommandIdentity::filled_rect(&mechanic),
                 mechanic,
             })
+            .chain(self.portal_overlays.rows().iter().copied().map(|mechanic| {
+                UiMountedPaintCommand::PortalOverlay {
+                    identity: UiMountedPaintCommandIdentity::portal_overlay(&mechanic),
+                    mechanic,
+                }
+            }))
             .chain(self.semantic_text.rows().iter().cloned().map(|mechanic| {
                 UiMountedPaintCommand::SemanticText {
                     identity: UiMountedPaintCommandIdentity::semantic_text(&mechanic),
@@ -125,6 +139,7 @@ impl UiMountedPresentationAuxiliaryState {
             && same_nodes(&self.nodes, &other.nodes)
             && self.clips == other.clips
             && self.layers == other.layers
+            && self.portal_overlays == other.portal_overlays
             && same_hit_tests(&self.hit_tests, &other.hit_tests)
             && self.paint_batches == other.paint_batches
             && self.spatial_batches == other.spatial_batches
@@ -181,17 +196,34 @@ impl UiMountedPresentationAuxiliaryState {
     pub fn paint_batch_count(&self) -> usize {
         self.paint_batches.rows().len()
     }
+
+    pub fn node_receipt_for(
+        &self,
+        mounted_instance: crate::UiMountedInstanceIdentity,
+    ) -> Option<crate::UiMountedNodeReceiptIdentity> {
+        self.nodes
+            .iter()
+            .find(|node| node.mounted_instance() == mounted_instance)
+            .map(crate::UiMountedNodeProjectionView::node_receipt)
+    }
 }
 
 fn validate_commands(
     commands: &HashMap<UiMountedPaintCommandIdentity, UiMountedPaintCommand>,
     filled_rects: &crate::UiMountedFilledRectTable,
+    portal_overlays: &crate::UiMountedPortalOverlayTable,
     semantic_text: &crate::UiMountedSemanticTextTable,
 ) -> Result<(), UiMountedPresentationReconstructionDenial> {
     let expected = filled_rects
         .rows()
         .iter()
         .map(UiMountedPaintCommandIdentity::filled_rect)
+        .chain(
+            portal_overlays
+                .rows()
+                .iter()
+                .map(UiMountedPaintCommandIdentity::portal_overlay),
+        )
         .chain(
             semantic_text
                 .rows()
@@ -205,6 +237,9 @@ fn validate_commands(
             let derived = match command {
                 UiMountedPaintCommand::FilledRect { mechanic, .. } => {
                     UiMountedPaintCommandIdentity::filled_rect(mechanic)
+                }
+                UiMountedPaintCommand::PortalOverlay { mechanic, .. } => {
+                    UiMountedPaintCommandIdentity::portal_overlay(mechanic)
                 }
                 UiMountedPaintCommand::SemanticText { mechanic, .. } => {
                     UiMountedPaintCommandIdentity::semantic_text(mechanic)
@@ -226,6 +261,7 @@ fn same_nodes(
     left.len() == right.len()
         && left.iter().zip(right).all(|(left, right)| {
             left.mounted_instance() == right.mounted_instance()
+                && left.authored_position() == right.authored_position()
                 && left.role() == right.role()
                 && left.participation() == right.participation()
                 && left.allocation() == right.allocation()
@@ -237,6 +273,7 @@ fn same_nodes(
                 && left.diagnostic() == right.diagnostic()
                 && left.drawables() == right.drawables()
                 && left.semantic_text() == right.semantic_text()
+                && left.portal_presentation() == right.portal_presentation()
         })
 }
 

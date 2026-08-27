@@ -61,7 +61,7 @@ impl UiDraftRuntimeState {
             UiHostObservationPayload::ImeComposition { revision, phase } => {
                 self.process_ime(context, *revision, phase)
             }
-            UiHostObservationPayload::Focus { focused: false } => self
+            UiHostObservationPayload::WindowFocus { focused: false, .. } => self
                 .cancel_all(UiLocalInputStopReason::FocusLost)
                 .into_iter()
                 .map(UiDraftProcessingOutcome::Stopped)
@@ -80,9 +80,8 @@ impl UiDraftRuntimeState {
         let UiHostKeyTransition::Pressed { repeat: false } = transition else {
             return Vec::new();
         };
-        let active = match self.validate_active(context) {
-            Some(active) => active,
-            None => return self.missing_or_invalid_active(context),
+        let Some(active) = self.validate_active(context) else {
+            return self.missing_or_invalid_active(context);
         };
         match active {
             UiValidatedActiveRecipient::Activation(target) if activation_key(key) => {
@@ -113,6 +112,17 @@ impl UiDraftRuntimeState {
                             modifiers,
                         },
                     )),
+                )]
+            }
+            UiValidatedActiveRecipient::Activation(_) | UiValidatedActiveRecipient::Submit(_)
+                if key == UiHostKey::Escape =>
+            {
+                vec![UiDraftProcessingOutcome::DismissRequested(
+                    crate::runtime::interaction::UiDismissInteraction::escape(
+                        context.core.presentation(),
+                        context.sequence,
+                        context.time_basis,
+                    ),
                 )]
             }
             UiValidatedActiveRecipient::Draft(session) if key == UiHostKey::Escape => self

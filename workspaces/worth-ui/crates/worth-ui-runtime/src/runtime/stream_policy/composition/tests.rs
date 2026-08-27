@@ -121,6 +121,32 @@ fn input_budget_is_a_reachable_typed_denial() {
 }
 
 #[test]
+fn viewport_budget_matches_the_complete_bounded_source_courtroom() {
+    let admitted = [UiAllocationStreamFamily::ViewportObservation; 64];
+    let mut admitted_counters = crate::evidence::UiAllocationStreamPolicyPayloadCounters::default();
+    let UiAllocationStreamCommitDecision::Commit(receipt) =
+        resolve_stream_families(&admitted, &mut admitted_counters)
+    else {
+        panic!("every source in the bounded allocation courtroom must be admissible");
+    };
+    assert_eq!(receipt.policy.budget().ingress_window(), 64);
+    assert_eq!(receipt.policy.budget().max_committed_receipts(), 64);
+    assert_eq!(receipt.policy.budget().max_invalidation_targets(), 128);
+
+    let denied = [UiAllocationStreamFamily::ViewportObservation; 65];
+    let mut denied_counters = crate::evidence::UiAllocationStreamPolicyPayloadCounters::default();
+    assert_eq!(
+        resolve_stream_families(&denied, &mut denied_counters),
+        UiAllocationStreamCommitDecision::Denied(
+            UiAllocationStreamCompositionDenial::InputBudgetExceeded {
+                admitted: 65,
+                allowed: 64,
+            },
+        )
+    );
+}
+
+#[test]
 fn preview_and_terminal_resize_preserve_a_distinct_composed_lane() {
     let mut counters = crate::evidence::UiAllocationStreamPolicyPayloadCounters::default();
     let UiAllocationStreamCommitDecision::Commit(receipt) = resolve_stream_families(

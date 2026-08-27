@@ -7,6 +7,7 @@ mod component_hit_test_clip_contract;
 mod component_hit_test_contract;
 mod component_hit_test_inset;
 mod component_hit_test_order;
+mod component_portal_child_contract;
 mod component_prop_schema;
 mod component_registration;
 mod component_registry;
@@ -16,7 +17,9 @@ mod component_semantic_text_span_contract;
 mod component_state_ownership;
 mod component_static_paint_contract;
 mod component_static_paint_order;
+mod component_viewport_axis_placement;
 mod component_viewport_inset;
+mod component_viewport_region;
 mod frozen_component_capabilities;
 
 pub(crate) use component_accepted_registration_proof::ComponentAcceptedRegistrationProof;
@@ -27,6 +30,7 @@ pub use component_hit_test_clip_contract::ComponentHitTestClipContract;
 pub use component_hit_test_contract::ComponentHitTestContract;
 pub use component_hit_test_inset::ComponentHitTestInset;
 pub use component_hit_test_order::ComponentHitTestOrder;
+pub use component_portal_child_contract::ComponentPortalChildContract;
 pub use component_prop_schema::ComponentPropSchema;
 pub(crate) use component_registry::ComponentRegistry;
 pub use component_rendering_contracts::{
@@ -42,5 +46,7 @@ pub use component_semantic_text_span_contract::ComponentSemanticTextSpanContract
 pub use component_state_ownership::ComponentStateOwnership;
 pub use component_static_paint_contract::ComponentStaticPaintContract;
 pub use component_static_paint_order::ComponentStaticPaintOrder;
+pub use component_viewport_axis_placement::ComponentViewportAxisPlacement;
 pub use component_viewport_inset::ComponentViewportInset;
+pub use component_viewport_region::ComponentViewportRegion;
 pub use frozen_component_capabilities::FrozenComponentCapabilities;

@@ -99,7 +99,20 @@ impl WorthUiActiveApplicationSession {
         crate::runtime::rebind::UiPreparedRebind<'_>,
         crate::runtime::rebind::UiRebindPreparationDenial,
     > {
-        let semantic_content = plan.content().clone();
+        let mut semantic_content = plan.content().clone();
+        let presentation = self.presentation.project().map_err(|denial| {
+            crate::runtime::rebind::UiRebindPreparationDenial::ContentMountedPreparation(Box::new(
+                denial,
+            ))
+        })?;
+        semantic_content
+            .merge_application_presentation(presentation.content())
+            .map_err(|denial| {
+                crate::runtime::rebind::UiRebindPreparationDenial::ContentMountedPreparation(
+                    Box::new(crate::mounting::UiMountedFramePreparationDenial::Projection(denial)),
+                )
+            })?;
+        let frame_request = self.current_portal_rebind_frame_request();
         let frame = {
             let completion = self.execute_framework_turn(|_| {}).map_err(|_| {
                 crate::runtime::rebind::UiRebindPreparationDenial::FrameBoundaryUnavailable
@@ -110,7 +123,7 @@ impl WorthUiActiveApplicationSession {
             let theme_values = execution.presentation.theme_values_source();
             execution
                 .prepare_mounted_frame_with_content_internal(
-                    crate::mounting::UiMountedFrameRequest::all_bound_surfaces(),
+                    frame_request,
                     semantic_content,
                     theme_values,
                 )
@@ -120,6 +133,7 @@ impl WorthUiActiveApplicationSession {
                     )
                 })?
         };
+        self.presentation.commit(&presentation);
         let content =
             Box::new(crate::facade::entry::WorthUiPreparedMountedContentRebind::new(self, frame));
         Ok(crate::runtime::rebind::UiPreparedRebind::content(
@@ -139,6 +153,7 @@ impl WorthUiActiveApplicationSession {
         crate::runtime::rebind::UiRebindPreparationDenial,
     > {
         let semantic_content = plan.content().clone();
+        let frame_request = self.current_portal_rebind_frame_request();
         let frame = {
             let completion = self.execute_framework_turn(|_| {}).map_err(|_| {
                 crate::runtime::rebind::UiRebindPreparationDenial::FrameBoundaryUnavailable
@@ -149,7 +164,7 @@ impl WorthUiActiveApplicationSession {
             let theme_values = execution.presentation.theme_values_source();
             execution
                 .prepare_mounted_frame_with_content_internal(
-                    crate::mounting::UiMountedFrameRequest::all_bound_surfaces(),
+                    frame_request,
                     semantic_content,
                     theme_values,
                 )
@@ -215,7 +230,7 @@ impl WorthUiActiveApplicationSession {
                 boundary,
                 None,
                 semantic_content,
-                crate::mounting::UiMountedFrameRequest::all_bound_surfaces(),
+                self.current_portal_rebind_frame_request(),
             )
             .map_err(|denial| match denial {
                 crate::facade::WorthUiApplicationCutoverDenial::MountedFrame(denial) => {
@@ -236,5 +251,9 @@ impl WorthUiActiveApplicationSession {
             reservation,
             replacement,
         ))
+    }
+
+    fn current_portal_rebind_frame_request(&self) -> crate::mounting::UiMountedFrameRequest {
+        self.mounted_frame_request()
     }
 }

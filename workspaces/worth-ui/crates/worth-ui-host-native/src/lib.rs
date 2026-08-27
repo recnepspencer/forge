@@ -13,7 +13,9 @@ pub use native::{
 };
 #[cfg(feature = "certification-support")]
 pub use native::{
-    classify_presentation_fault, UiNativePresentationFault, UiNativePresentationFaultDisposition,
+    certify_portal_sample_replay, classify_presentation_fault,
+    UiNativePortalSampleReplayCertification, UiNativePortalSampleReplayCertificationDenial,
+    UiNativePresentationFault, UiNativePresentationFaultDisposition,
     UiNativePresentationRecoveryClass,
 };
 pub use native::{
@@ -47,9 +49,9 @@ pub use native::{
     UiNativePhysicalSignalSettlementClass, UiNativePhysicalSignalTransitionObservation,
     UiNativePhysicalSignalWorkClass, UiNativePointerButtonObservation,
     UiNativePresentationEffectPhase, UiNativePresentationObservation, UiNativePresentationWorkKind,
-    UiNativeReadinessGrant, UiNativeResourceCensus, UiNativeRetainedFrameObservation,
-    UiNativeScrollDeltaObservation, UiNativeTextAtlasPlanObservation, UiNativeTextPinObservation,
-    WorthUiNativeEventLoop,
+    UiNativeReadinessGrant, UiNativeReducedMotionPosture, UiNativeResourceCensus,
+    UiNativeRetainedFrameObservation, UiNativeScrollDeltaObservation,
+    UiNativeTextAtlasPlanObservation, UiNativeTextPinObservation, WorthUiNativeEventLoop,
 };
 #[cfg(feature = "certification-support")]
 pub use native::{UiNativeCaptureExternalObservation, UiNativeCaptureProtocolWorld};

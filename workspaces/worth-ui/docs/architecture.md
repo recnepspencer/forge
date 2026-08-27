@@ -6,6 +6,22 @@ framework chooses and binds the host exactly once.
 The platform keeps parsing, semantic observation, consequence planning,
 runtime state, publication, and native mechanics in their owning layers.
 
+Cross-family service work uses a session-owned, non-publishing proposal
+compiler. It carries coherence, budgets, occupancy, cancellation, sealed owner
+references, and publication-result acknowledgements only. Family successors
+remain with family owners, atomic semantic/mounted publication remains with the
+existing publication path, and physical settlement remains with presentation
+and host-truth owners.
+
+Proposal occupancy is indexed by active application generation and semantic
+surface, then keyed by service family and owner scope. Ordinary reserve work
+does not walk sibling semantic neighborhoods; a scalar live count guards the
+bounded table. The exact generation-and-surface index shape is compile-tested;
+the zero unrelated-neighborhood counter is not accepted as its own oracle. The
+before-effect window closes only when the first sealed owner witness is
+accepted. Runtime shutdown abandons still-open work, returns a typed recoverable
+blocker for witnessed owner work, and never treats silence as terminal success.
+
 ## Source To Mounted Flow
 
 ```text
@@ -71,10 +87,12 @@ product action crosses that boundary separately and returns an owner-issued
 consequence receipt.
 
 Application effects use the exact registered `UiIntentExecutionProvider<I>`.
-UI transitions use their typed transition destination. Runtime-service
-destinations remain typed unsupported until Milestone 3.15 installs their
-service-specific providers. All three reuse the same upstream semantic
-interaction and admission contracts.
+UI transitions use their typed transition destination. Milestone 3.15 freezes
+distinct portal, focus, motion, command-routing, scroll, and selection
+destinations. A destination remains behaviorally unsupported until its ordered
+3.15 owner phase installs the service-specific provider; the compiler-visible
+owner axis is not itself a capability claim. All three reuse the same upstream
+semantic interaction and admission contracts.
 
 ## Authority Owners
 
@@ -84,9 +102,11 @@ interaction and admission contracts.
 - `worth-ui-runtime` owns active application, observation, rebind planning,
   semantic interaction, intent admission and managed execution, mounted
   publication, host exchange, recovery, and runtime inspection.
-- `worth-ui-query-binding` translates installed Worth Query authority into
-  shape-specific Worth UI registrations, observations, and affine facts.
-  Runtime consumes those UI facts and does not recreate Query.
+- `worth-ui-query-binding` translates installed Worth Query audience products
+  into shape-specific Worth UI registrations, observations, and affine facts.
+  Application declarations enter through `worth-query-decl`; hosted
+  progression enters through `worth-query-host`. Runtime consumes the resulting
+  UI facts and does not recreate Query.
 - `worth-ui-host-contract` defines inert host capabilities, mounted input, and
   mechanical outcomes, including exact affinity, total order, logical damage,
   transparent surface baseline, and structural/physical cost vocabulary.
@@ -95,7 +115,9 @@ interaction and admission contracts.
 - `worth-ui-native-platform` owns the move-only native platform binding and
   effect-free application preparation, then exclusively enters the qualified
   native event loop after preparation succeeds.
-- `worth-ui-certification` proves boundaries; it is not an application API.
+- `worth-ui-certification` proves boundaries and may consume
+  `worth-query-replay` when Query reconstruction is required; neither is an
+  ordinary application API.
 
 An identity or digest can explain what happened. It cannot launch an
 application, execute a plan, publish a frame, or reconstruct authority.
@@ -106,14 +128,26 @@ application, execute a plan, publish a frame, or reconstruct authority.
 application code
 -> worth-ui facade
 -> worth-ui-runtime
--> worth-ui-query-binding -> worth-query
+-> worth-ui-query-binding
 -> worth-ui-host-contract <- native/headless mechanics
+
+application Query entry
+-> worth-query-decl / worth-query-host
+-> installed Query audience product
+-> worth-ui-query-binding
 ```
 
 The arrows do not permit every lower layer to import every peer. Authored
-meaning flows from DSL to runtime. Query crosses only through the binding
-crate. Runtime sends sealed mounted mechanics to the host contract. Host
-consumers depend on the host contract and never on runtime internals.
+meaning flows from DSL to runtime. Query crosses through its audience facades
+and then the binding crate. Runtime sends sealed mounted mechanics to the host
+contract. Host consumers depend on the host contract and never on runtime
+internals.
+
+The current raw `worth-query` dependency in `worth-ui-query-binding` is a
+temporarily admitted predecessor edge, not this destination contract. New work
+must not widen it; the binding owner must remove the remaining raw-engine
+imports so `worth-query-decl` and `worth-query-host` are its only ordinary
+Query audiences before broader Query-facing capabilities land.
 
 The ordinary host lane is receipt-keyed work, not a complete projection:
 
@@ -136,6 +170,7 @@ Projection fact flow is deliberately one-way:
 
 ```text
 Query owner
+-> worth-query-decl / worth-query-host audience boundary
 -> worth-ui-query-binding
 -> owner-specific UI observation
 -> ordinary rebind planning
@@ -188,10 +223,16 @@ and authored composition extend their semantic owner and feed the existing
 observation/planning/publication progression. They must not add a universal
 event bag, a second executor, or a host-adapter semantic lane.
 
+Runtime service routing remains UI authority. A routed command may request a
+separately admitted Query application operation, but its UI receipt cannot
+authorize that operation. Undo and redo remain unsupported until their owning
+operation runtime publishes governed history and execution capability.
+
 See [Runtime subsystems](./runtime-subsystems.md),
 [Authored composition](./authored-composition.md),
 [Interaction and intents](./interaction-and-intents.md),
 [Native host platform](./native-host-platform.md),
 [Application lifecycle](./application-lifecycle.md),
 [Hot rebind](./hot-rebind.md), and
-[Application inspection](./inspection.md).
+[Application inspection](./inspection.md). Query integration follows the
+[Worth Query AI README](../../worth-query/crates/worth-query/docs/AI_README.md).

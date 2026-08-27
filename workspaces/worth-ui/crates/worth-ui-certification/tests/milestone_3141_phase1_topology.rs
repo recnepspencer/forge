@@ -29,10 +29,11 @@ fn assert_current_protocol_rejects_mixed_revision() {
     use worth_ui_host_contract::{
         UiHostMeasurementSchemaVersion, UiHostObservationSchemaVersion, UiHostProtocolContract,
         UiHostProtocolDenial, UiHostProtocolIdentity, UiHostProtocolNegotiation,
-        UiHostProtocolVersion, UiMountedFrameSchemaVersion, UiMountedPresentationSchemaVersion,
+        UiHostProtocolVersion, UiHostSolicitedEffectSchemaVersion, UiMountedFrameSchemaVersion,
+        UiMountedPresentationSchemaVersion,
     };
     let current = UiHostProtocolContract::current();
-    assert_eq!(current.protocol().revision(), 5);
+    assert_eq!(current.protocol().revision(), 6);
     let mixed = UiHostProtocolContract::new(
         UiHostProtocolIdentity::worth_ui(),
         UiHostProtocolVersion::new(3),
@@ -40,6 +41,7 @@ fn assert_current_protocol_rejects_mixed_revision() {
         UiMountedPresentationSchemaVersion::new(4),
         UiHostObservationSchemaVersion::new(6),
         UiHostMeasurementSchemaVersion::new(4),
+        UiHostSolicitedEffectSchemaVersion::new(1),
     );
     assert_eq!(
         mixed.negotiate(),

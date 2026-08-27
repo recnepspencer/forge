@@ -86,6 +86,25 @@ pub trait WorthUiHostMechanicsAdapter: crate::WorthUiMeasurementHostAdapter {
         crate::UiHostCaptureCancellationOutcome::ReadbackMayHaveBegun
     }
 
+    fn perform_focus_placement(
+        &self,
+        request: crate::UiHostFocusPlacementRequest,
+    ) -> crate::UiHostFocusPlacementAcknowledgement {
+        crate::UiHostFocusPlacementAcknowledgement::settled(
+            request,
+            crate::UiHostFocusPlacementDisposition::RejectedBeforeEffect(
+                crate::UiHostFocusPlacementRejection::Unsupported,
+            ),
+        )
+    }
+
+    fn perform_focus_placement_cancellation(
+        &self,
+        _request: crate::UiHostFocusPlacementRequest,
+    ) -> crate::UiHostSolicitedEffectCancellationOutcome {
+        crate::UiHostSolicitedEffectCancellationOutcome::EffectAlreadyIssued
+    }
+
     fn perform_mounted_surface_presentation(
         &self,
         _view: &crate::UiMountedFrameConsumptionView<'_>,

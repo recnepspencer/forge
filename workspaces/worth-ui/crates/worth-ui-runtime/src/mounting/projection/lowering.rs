@@ -1,14 +1,13 @@
-use super::frame_storage::{
-    UiMountedProjectionNodeRecord, UiMountedProjectionSurface, UiMountedSemanticProjection,
-};
+use super::frame_storage::{UiMountedProjectionSurface, UiMountedSemanticProjection};
 use super::geometry::lower_allocation;
 use super::mechanical_role::mechanical_role;
-use super::node_receipt::UiMountedNodeReceiptInput;
 use super::participation::lower_participation;
 use super::prepared_projection::{UiPreparedMountedProjection, UiPreparedMountedProjectionInput};
-use super::{UiMountedNodeReceipt, UiMountedProjectionDenial};
+use super::UiMountedProjectionDenial;
 
 mod delta;
+#[path = "lowering/node_draft.rs"]
+mod node_draft;
 
 pub(crate) struct UiMountedProjectionInput<'input, 'graph> {
     pub(crate) graph: crate::graph::UiGraphAuthority<'graph>,
@@ -18,6 +17,7 @@ pub(crate) struct UiMountedProjectionInput<'input, 'graph> {
     pub(crate) requested_surfaces: &'input [worth_ui_host_contract::UiSemanticSurfaceIdentity],
     pub(crate) preview: Option<UiMountedPreviewProjectionInput>,
     pub(crate) visual_overlay: Option<super::super::UiMountedVisualOverlayProjectionInput>,
+    pub(crate) portal_overlays: std::rc::Rc<[super::super::UiMountedPortalOverlayProjectionInput]>,
     pub(crate) semantic_content: &'input super::super::UiMountedSemanticContentInput,
     pub(crate) theme_values: &'input super::super::UiMountedThemeValueSource,
     pub(crate) font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
@@ -61,6 +61,10 @@ struct UiMountedProjectionNodeDraft {
     static_paint: Option<super::static_paint::UiMountedStaticPaintSeed>,
     semantic_text: Option<super::semantic_text::UiMountedSemanticTextSeed>,
     hit_test: Option<super::hit_test::UiMountedHitTestSeed>,
+    focus_support: crate::capability::ComponentFocusSupport,
+    focus_scope: Option<super::UiMountedFocusScope>,
+    component_id: Option<crate::capability::ComponentId>,
+    portal_child_owner: Option<crate::capability::ComponentId>,
 }
 
 struct UiMountedFullProjectionInput<'basis, 'input, 'graph> {
@@ -104,6 +108,9 @@ pub(crate) fn prepare_projection(
                 .semantic_projection()
                 .supports_surfaces(input.requested_surfaces)
         });
+    let portal_changed_instances =
+        portal_changed_instances(delta_predecessor, input.portal_overlays.as_ref());
+    let portal_overlays_changed = !portal_changed_instances.is_empty();
     let delta = match (delta_predecessor, input.allocation_source.delta()) {
         (
             Some(current),
@@ -131,6 +138,18 @@ pub(crate) fn prepare_projection(
     build
         .semantic
         .apply_projection_inputs(input.semantic_content);
+    if !portal_changed_instances.is_empty() {
+        let mut changed = build.presentation_changed_instances.to_vec();
+        changed.extend(
+            build
+                .semantic
+                .portal_children_for_owners(&portal_changed_instances),
+        );
+        changed.extend(portal_changed_instances);
+        changed.sort_unstable();
+        changed.dedup();
+        build.presentation_changed_instances = changed.into();
+    }
     let counters = begin_build_counters(build.cost, build.replaced_order_rows)?;
     Ok(UiPreparedMountedProjection::new(
         UiPreparedMountedProjectionInput {
@@ -138,14 +157,33 @@ pub(crate) fn prepare_projection(
             semantic: build.semantic,
             preview: input.preview,
             visual_overlay: input.visual_overlay,
+            portal_overlays: input.portal_overlays,
             projection_changes,
             presentation_changed_instances: build.presentation_changed_instances,
+            portal_overlays_changed,
             counters,
             capability_generation: input.capability_generation,
             capability_profile_digest: input.capability_profile_digest,
             font_collection: input.font_collection,
         },
     ))
+}
+
+fn portal_changed_instances(
+    predecessor: Option<&super::UiMountedProjectionFrame>,
+    successor: &[super::super::UiMountedPortalOverlayProjectionInput],
+) -> Vec<worth_ui_host_contract::UiMountedInstanceIdentity> {
+    let predecessor = predecessor
+        .map(super::UiMountedProjectionFrame::portal_overlay_inputs)
+        .unwrap_or(&[]);
+    if predecessor == successor {
+        return Vec::new();
+    }
+    predecessor
+        .iter()
+        .chain(successor)
+        .map(|overlay| overlay.owner())
+        .collect()
 }
 
 fn begin_build_counters(
@@ -282,6 +320,18 @@ impl UiMountedNodeLoweringContext<'_, '_> {
             semantic_input,
             predecessor,
         )?;
+        if semantic_text_formatting.is_none() && (semantic_input.is_some() || predecessor.is_some())
+        {
+            return Err(UiMountedProjectionDenial::MissingSemanticTextFormatting {
+                graph_node: instance.graph_node_identity(),
+                plan_index_available: plan_index.is_some(),
+                predecessor_available: predecessor.is_some(),
+                semantic_input_available: semantic_input.is_some(),
+                theme_value_changed: self
+                    .theme_values
+                    .changes_graph_node(instance.graph_node_identity()),
+            });
+        }
         let mut semantic_text = super::semantic_text::lower_semantic_text_seed(
             semantic_input,
             predecessor,
@@ -293,6 +343,34 @@ impl UiMountedNodeLoweringContext<'_, '_> {
             }
         }
         let hit_test = super::hit_test::lower_hit_test_seed(self.plan, plan_index)?;
+        let focus_support = plan_index
+            .and_then(|index| self.plan.ordinary_meaning(index))
+            .and_then(|meaning| match meaning.as_ref() {
+                crate::runtime::planning::execution_plan_input::WorthUiPlanOrdinaryMeaning::Component(
+                    component,
+                ) => Some(component.focus_support()),
+                _ => None,
+            })
+            .unwrap_or_else(crate::capability::ComponentFocusSupport::not_focusable);
+        let focus_scope = if focus_support == crate::capability::ComponentFocusSupport::Focusable {
+            super::focus_scope::resolve(self.graph, self.plan, instance.graph_node_identity())?
+        } else {
+            None
+        };
+        let (component_id, portal_child_owner) = plan_index
+            .and_then(|index| self.plan.ordinary_meaning(index))
+            .and_then(|meaning| match meaning.as_ref() {
+                crate::runtime::planning::execution_plan_input::WorthUiPlanOrdinaryMeaning::Component(
+                    component,
+                ) => Some((
+                    component.descriptor().id().clone(),
+                    component
+                        .portal_child_owner()
+                        .cloned(),
+                )),
+                _ => None,
+            })
+            .map_or((None, None), |(component, owner)| (Some(component), owner));
         let participation = lower_participation(
             graph_node.participation_posture(),
             static_paint.is_some() || semantic_text.is_some(),
@@ -311,27 +389,10 @@ impl UiMountedNodeLoweringContext<'_, '_> {
             static_paint,
             semantic_text,
             hit_test,
+            focus_support,
+            focus_scope,
+            component_id,
+            portal_child_owner,
         })
-    }
-}
-
-impl UiMountedProjectionNodeDraft {
-    fn materialize(self) -> UiMountedProjectionNodeRecord {
-        UiMountedProjectionNodeRecord {
-            receipt: UiMountedNodeReceipt::from_input(UiMountedNodeReceiptInput {
-                mounted_instance: self.mounted_instance,
-                graph_node: self.graph_node,
-                semantic_surface: self.semantic_surface,
-                incarnation: self.incarnation,
-                plan_digest: self.plan_digest,
-                role: self.role,
-                participation: self.participation,
-                allocation: self.allocation,
-            }),
-            plan_index: self.plan_index,
-            static_paint: self.static_paint,
-            semantic_text: self.semantic_text,
-            hit_test: self.hit_test,
-        }
     }
 }

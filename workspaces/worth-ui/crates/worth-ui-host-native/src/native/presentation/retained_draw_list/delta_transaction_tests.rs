@@ -5,6 +5,9 @@ use super::super::super::{
 };
 use super::*;
 
+#[path = "delta_transaction_tests/sample_override.rs"]
+mod sample_override;
+
 struct UnsettledPresentation;
 
 impl UiNativePendingExternalObligation for UnsettledPresentation {
@@ -252,6 +255,7 @@ fn full_capacity_swap_releases_predecessor_membership_before_successor_claims() 
         initial_frame,
         world.surface,
         world.binding,
+        world.content,
         world.requirement.baseline(),
         &initial_commands,
         &initial_order,
@@ -263,6 +267,7 @@ fn full_capacity_swap_releases_predecessor_membership_before_successor_claims() 
         initial_frame,
         world.surface,
         world.binding,
+        world.content,
         world.requirement.baseline(),
         &initial_commands,
         &initial_order,
@@ -336,44 +341,4 @@ fn full_capacity_swap_releases_predecessor_membership_before_successor_claims() 
     assert_eq!(retained.commands.len(), CAPACITY);
     assert!(retained.command(removed.command()).is_none());
     assert!(retained.command(inserted_order.command()).is_some());
-}
-
-#[test]
-fn terminal_removal_retains_exact_paint_attribution_and_rollback_restores_it() {
-    let world = DrawListWorld::new();
-    let initial_frame = UiMountedFrameIdentity::mint_unbound().unwrap();
-    let mechanic = world.rect(
-        initial_frame,
-        world.first,
-        0.0,
-        UiMountedRgba8::new(20, 30, 40, 255),
-    );
-    let initial = world.initial(initial_frame, [mechanic]);
-    let removed = UiMountedPaintOrderIdentity::for_command(initial.commands()[0].identity());
-    let mut retained = UiNativeRetainedDrawList::initial(&initial, &[]).unwrap();
-    let attribution = retained.top_paint_attribution().unwrap();
-    let delta = UiMountedPresentationDelta::from_inert_mechanics(UiMountedPresentationDeltaInput {
-        predecessor: initial_frame,
-        successor: UiMountedFrameIdentity::mint_unbound().unwrap(),
-        surface: world.surface,
-        binding: world.binding,
-        content: world.content,
-        baseline: world.requirement.baseline(),
-        changes: vec![UiMountedPaintCommandChange::Remove(removed.command())],
-        nodes: Vec::new(),
-        order: vec![UiMountedPaintOrderEdit::remove(removed)],
-        order_integrity: UiMountedPaintOrderIntegrity::for_order(&[]),
-        damage: vec![UiMountedLogicalDamage::from_runtime_mounting(
-            mechanic.bounds(),
-        )],
-        auxiliary: None,
-        production_cost: Default::default(),
-    });
-
-    let (_, undo) = retained.stage_delta(&delta, &[]).unwrap();
-    assert_eq!(retained.order.ordered().count(), 0);
-    assert_eq!(retained.top_paint_attribution(), Some(attribution));
-    retained.rollback_delta(undo).unwrap();
-    assert_eq!(retained.order.ordered().collect::<Vec<_>>(), vec![removed]);
-    assert_eq!(retained.top_paint_attribution(), Some(attribution));
 }

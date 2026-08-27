@@ -146,6 +146,17 @@ fn build_plan(
                     source_rgba8: mechanic.color().channels(),
                 });
             }
+            UiMountedPaintCommand::PortalOverlay { mechanic, .. } => {
+                let rect = super::raster::raster_portal_overlay(*mechanic, graphics)
+                    .map_err(|_| malformed())?;
+                rendered_pixels = rendered_pixels
+                    .checked_add(u64::from(rect.physical_width) * u64::from(rect.physical_height))
+                    .ok_or_else(malformed)?;
+                operations.push(UiNativeRasterOperation::FilledRect {
+                    rect,
+                    source_rgba8: mechanic.color().channels(),
+                });
+            }
             UiMountedPaintCommand::SemanticText { identity, .. } => {
                 let glyphs = super::text::plan_glyph_commands(
                     retained.glyph_runs(*identity),

@@ -38,6 +38,40 @@ impl UiSubsystemConsumedFactRule {
             UiAspectFamily::Presence,
         ),
     ];
+    const COMMITTED_FOCUS: [Self; 2] = [
+        Self::new(
+            UiProducedFactFamily::CommittedFocus,
+            UiAspectFamily::Participation,
+        ),
+        Self::new(
+            UiProducedFactFamily::CommittedFocus,
+            UiAspectFamily::Appearance,
+        ),
+    ];
+    const COMMITTED_SELECTION: [Self; 2] = [
+        Self::new(
+            UiProducedFactFamily::CommittedSelection,
+            UiAspectFamily::Interaction,
+        ),
+        Self::new(
+            UiProducedFactFamily::CommittedSelection,
+            UiAspectFamily::Appearance,
+        ),
+    ];
+    const COMMITTED_MOTION_TRACK: [Self; 2] = [
+        Self::new(
+            UiProducedFactFamily::CommittedMotionTrack,
+            UiAspectFamily::Layout,
+        ),
+        Self::new(
+            UiProducedFactFamily::CommittedMotionTrack,
+            UiAspectFamily::Appearance,
+        ),
+    ];
+    const COMMITTED_COMMAND_ROUTE: [Self; 1] = [Self::new(
+        UiProducedFactFamily::CommittedCommandRoute,
+        UiAspectFamily::Interaction,
+    )];
 
     pub fn all() -> impl Iterator<Item = Self> {
         Self::HOST_VIEWPORT
@@ -47,6 +81,10 @@ impl UiSubsystemConsumedFactRule {
             .chain(Self::QUERY)
             .chain(Self::COMMITTED_SCROLL_EXTENT)
             .chain(Self::COMMITTED_PORTAL_ANCHOR)
+            .chain(Self::COMMITTED_FOCUS)
+            .chain(Self::COMMITTED_SELECTION)
+            .chain(Self::COMMITTED_MOTION_TRACK)
+            .chain(Self::COMMITTED_COMMAND_ROUTE)
     }
 
     pub fn for_fact_family(family: UiProducedFactFamily) -> &'static [Self] {
@@ -59,6 +97,10 @@ impl UiSubsystemConsumedFactRule {
             UiProducedFactFamily::IntentPosture => &[],
             UiProducedFactFamily::CommittedScrollExtent => &Self::COMMITTED_SCROLL_EXTENT,
             UiProducedFactFamily::CommittedPortalAnchor => &Self::COMMITTED_PORTAL_ANCHOR,
+            UiProducedFactFamily::CommittedFocus => &Self::COMMITTED_FOCUS,
+            UiProducedFactFamily::CommittedSelection => &Self::COMMITTED_SELECTION,
+            UiProducedFactFamily::CommittedMotionTrack => &Self::COMMITTED_MOTION_TRACK,
+            UiProducedFactFamily::CommittedCommandRoute => &Self::COMMITTED_COMMAND_ROUTE,
         }
     }
 

@@ -18,6 +18,7 @@ pub(super) fn text_node(
     UiMountedNodeProjectionView::new(UiMountedNodeProjectionViewInput {
         mounted_instance: row.mounted_instance(),
         node_receipt: row.node_receipt(),
+        authored_position: u64::try_from(index).expect("fixture authored position"),
         role: UiMountedMechanicalRole::Control,
         participation: UiMountedParticipation::new(UiMountedParticipationInput {
             paint: admitted,
@@ -43,5 +44,6 @@ pub(super) fn text_node(
             worth_ui_host_contract::UiMountedDrawableReference::SemanticText(reference),
         ],
         semantic_text: vec![reference],
+        portal_presentation: None,
     })
 }

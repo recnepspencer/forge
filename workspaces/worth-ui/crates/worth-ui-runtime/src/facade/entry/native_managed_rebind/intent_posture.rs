@@ -5,7 +5,10 @@ use super::{
 
 pub(in crate::facade::entry) enum ManagedIntentPostureNormalization {
     Published(crate::runtime::rebind::UiRebindReceipt),
-    Pending(crate::facade::entry::native_intent_posture::DetachedNativeIntentPostureInFlight),
+    Pending(crate::facade::entry::native_intent_posture::DetachedNativeIntentPosturePending),
+    ReconstructionRequired(
+        crate::facade::entry::native_intent_posture::DetachedNativeIntentPosturePending,
+    ),
     Stopped(WorthUiNativeManagedRebindStop),
 }
 
@@ -17,7 +20,36 @@ pub(in crate::facade::entry) fn normalize_managed_intent_posture(
     match outcome {
         Outcome::Published(receipt) => ManagedIntentPostureNormalization::Published(receipt),
         Outcome::InFlight(completion) => {
-            ManagedIntentPostureNormalization::Pending(completion.detach_for_native())
+            ManagedIntentPostureNormalization::Pending(
+                crate::facade::entry::native_intent_posture::DetachedNativeIntentPosturePending::
+                    InFlight(completion.detach_for_native()),
+            )
+        }
+        Outcome::RejectedBeforeEffects(retry)
+            if !retry.rejections().is_empty()
+                && retry.rejections().iter().all(|rejection| {
+                    rejection.denial()
+                        == worth_ui_host_contract::UiHostSurfacePresentationDenial::
+                            TextAtlasPresentationDeferred
+                }) =>
+        {
+            ManagedIntentPostureNormalization::Pending(
+                crate::facade::entry::native_intent_posture::DetachedNativeIntentPosturePending::
+                    TextAtlasRetry(retry.detach_for_native()),
+            )
+        }
+        Outcome::RejectedBeforeEffects(retry)
+            if !retry.rejections().is_empty()
+                && retry.rejections().iter().all(|rejection| {
+                    rejection.denial()
+                        == worth_ui_host_contract::UiHostSurfacePresentationDenial::
+                            ReconstructionRequired
+                }) =>
+        {
+            ManagedIntentPostureNormalization::ReconstructionRequired(
+                crate::facade::entry::native_intent_posture::DetachedNativeIntentPosturePending::
+                    ReconstructionRetry(retry.detach_for_native()),
+            )
         }
         Outcome::RejectedBeforeEffects(retry) => ManagedIntentPostureNormalization::Stopped(
             WorthUiNativeManagedRebindStop::IntentPosture(retry.into_stop()),
@@ -73,6 +105,11 @@ pub(super) fn finish(
         ManagedIntentPostureNormalization::Pending(completion) => {
             *pending = Some(WorthUiNativePendingManagedRebind::IntentPosture(completion));
             WorthUiNativeManagedRebindProgress::AwaitingProgress
+        }
+        ManagedIntentPostureNormalization::ReconstructionRequired(_) => {
+            WorthUiNativeManagedRebindProgress::Stopped(
+                WorthUiNativeManagedRebindStop::PredecessorReconstructionFailed,
+            )
         }
         ManagedIntentPostureNormalization::Stopped(stop) => {
             WorthUiNativeManagedRebindProgress::Stopped(stop)

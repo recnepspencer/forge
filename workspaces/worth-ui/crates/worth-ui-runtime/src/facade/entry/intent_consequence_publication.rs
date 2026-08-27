@@ -5,12 +5,29 @@ use super::{
 
 #[path = "intent_consequence_publication/managed.rs"]
 mod managed;
-pub(in crate::facade::entry) use managed::DetachedUiIntentConsequenceInFlight;
+#[path = "intent_consequence_publication/recovery.rs"]
+mod recovery;
+pub(in crate::facade::entry) use managed::{
+    DetachedUiIntentConsequenceInFlight, DetachedUiIntentConsequenceIndeterminate,
+    DetachedUiIntentConsequenceRecoveryResources,
+};
+#[path = "intent_consequence_publication/deadline.rs"]
+mod deadline;
+use deadline::presentation_deadline;
+#[path = "intent_consequence_publication/portal_settlement.rs"]
+mod portal_settlement;
+#[path = "intent_consequence_publication/receipt.rs"]
+mod receipt;
+use portal_settlement::{
+    settle_indeterminate_portal_proposal, settle_published_portal_proposal,
+    settle_rejected_portal_proposal,
+};
+pub use receipt::UiIntentConsequencePublicationReceipt;
 
 pub enum UiIntentConsequencePublicationOutcome<'session> {
     NoConsequences(crate::runtime::intent_execution::UiIntentConsequenceCompletionReceipt),
     Stopped(crate::runtime::intent_execution::UiIntentConsequenceStop),
-    Published(crate::runtime::rebind::UiRebindReceipt),
+    Published(UiIntentConsequencePublicationReceipt),
     InFlight(UiIntentConsequencePublicationCompletion<'session>),
     Indeterminate(UiIntentConsequencePublicationRecovery<'session>),
     InternalDefect(crate::runtime::rebind::UiRebindInternalDefectOutcome),
@@ -50,6 +67,7 @@ struct UiIntentConsequenceInFlight<'session> {
 struct UiIntentConsequenceIndeterminate<'session> {
     admitted: UiIntentConsequenceAdmitted<'session>,
     frame: crate::mounting::UiMountedIndeterminateFrame,
+    portal: Option<crate::runtime::session::UiIndeterminatePortalProposalTransaction>,
 }
 
 impl<'session> WorthUiPreparedIntentConsequenceRebind<'session> {
@@ -156,31 +174,6 @@ impl<'session> UiIntentConsequencePublicationCompletion<'session> {
     }
 }
 
-impl<'session> UiIntentConsequencePublicationRecovery<'session> {
-    pub fn frame(&self) -> &crate::mounting::UiMountedIndeterminateFrame {
-        &self
-            .state
-            .as_deref()
-            .expect("live consequence recovery owns its state")
-            .frame
-    }
-
-    pub fn into_session_for_shutdown(mut self) -> &'session mut WorthUiActiveApplicationSession {
-        let mut state = self
-            .state
-            .take()
-            .expect("live consequence recovery owns its state");
-        withdraw_query(&mut state.admitted);
-        state
-            .admitted
-            .session
-            .intent_execution
-            .dispose_consequence_handoff(state.admitted.transfer.consequence);
-        drop((state.admitted.plan, state.admitted.reservation, state.frame));
-        state.admitted.session
-    }
-}
-
 impl Drop for UiIntentConsequencePublicationCompletion<'_> {
     fn drop(&mut self) {
         let Some(state) = self.state.take() else {
@@ -235,35 +228,47 @@ fn finish_terminal<'session>(
     outcome: crate::mounting::UiMountedFrameOutcome,
 ) -> UiIntentConsequencePublicationOutcome<'session> {
     match outcome {
-        crate::mounting::UiMountedFrameOutcome::Published(mounted) => {
-            publish(admitted, mounted)
+        crate::mounting::UiMountedFrameOutcome::Published(mounted) => publish(admitted, mounted),
+        crate::mounting::UiMountedFrameOutcome::RejectedBeforeEffects(rejected) => {
+            settle_rejected_portal_proposal(&mut admitted);
+            stop_admitted(
+                admitted,
+                crate::runtime::intent_execution::UiIntentConsequenceStopReason::HostRejectedBeforeEffects {
+                    rejection_count: rejected.rejections().len(),
+                },
+            )
         }
-        crate::mounting::UiMountedFrameOutcome::RejectedBeforeEffects(rejected) => stop_admitted(
-            admitted,
-            crate::runtime::intent_execution::UiIntentConsequenceStopReason::HostRejectedBeforeEffects {
-                rejection_count: rejected.rejections().len(),
-            },
-        ),
-        crate::mounting::UiMountedFrameOutcome::RetentionDenied(rejected) => stop_admitted(
-            admitted,
-            crate::runtime::intent_execution::UiIntentConsequenceStopReason::MountedRetention(
-                rejected.denial(),
-            ),
-        ),
-        crate::mounting::UiMountedFrameOutcome::AdmissionDenied(rejected) => stop_admitted(
-            admitted,
-            crate::runtime::intent_execution::UiIntentConsequenceStopReason::MountedPresentation(
-                rejected.denial(),
-            ),
-        ),
+        crate::mounting::UiMountedFrameOutcome::RetentionDenied(rejected) => {
+            settle_rejected_portal_proposal(&mut admitted);
+            stop_admitted(
+                admitted,
+                crate::runtime::intent_execution::UiIntentConsequenceStopReason::MountedRetention(
+                    rejected.denial(),
+                ),
+            )
+        }
+        crate::mounting::UiMountedFrameOutcome::AdmissionDenied(rejected) => {
+            settle_rejected_portal_proposal(&mut admitted);
+            stop_admitted(
+                admitted,
+                crate::runtime::intent_execution::UiIntentConsequenceStopReason::MountedPresentation(
+                    rejected.denial(),
+                ),
+            )
+        }
         crate::mounting::UiMountedFrameOutcome::PresentationIndeterminate(frame) => {
+            let portal = settle_indeterminate_portal_proposal(&mut admitted);
             admitted
                 .reservation
                 .retain_recovery()
                 .expect("effect admission reserved consequence recovery capacity");
             UiIntentConsequencePublicationOutcome::Indeterminate(
                 UiIntentConsequencePublicationRecovery {
-                    state: Some(Box::new(UiIntentConsequenceIndeterminate { admitted, frame })),
+                    state: Some(Box::new(UiIntentConsequenceIndeterminate {
+                        admitted,
+                        frame,
+                        portal,
+                    })),
                 },
             )
         }
@@ -299,11 +304,12 @@ fn publish<'session>(
         admitted.plan.take_semantic_proof(),
         crate::runtime::rebind::UiRebindSemanticProof::NonSource
     ));
+    let focus = settle_published_portal_proposal(&mut admitted, &mounted);
     admitted
         .session
         .application
         .commit_prepared_observation_progress(admitted.transfer.observation);
-    if let Some(posture) = admitted.transfer.posture {
+    if let Some(posture) = admitted.transfer.posture.take() {
         admitted.session.intent_postures.commit(posture);
     }
     admitted
@@ -317,7 +323,9 @@ fn publish<'session>(
         generation,
         mounted,
     ) {
-        Ok(receipt) => UiIntentConsequencePublicationOutcome::Published(receipt),
+        Ok(receipt) => UiIntentConsequencePublicationOutcome::Published(
+            UiIntentConsequencePublicationReceipt::new(receipt, focus),
+        ),
         Err(defect) => UiIntentConsequencePublicationOutcome::InternalDefect(defect),
     }
 }
@@ -363,6 +371,13 @@ fn retain_stop<'session>(
     mut transfer: WorthUiIntentConsequenceRebindTransfer,
     reason: crate::runtime::intent_execution::UiIntentConsequenceStopReason,
 ) -> UiIntentConsequencePublicationOutcome<'session> {
+    if let Some(proposal) = transfer.portal_proposal.take() {
+        session.application.cancel_portal_service_proposal(
+            proposal,
+            &mut session.focus,
+            &mut session.motion,
+        );
+    }
     transfer
         .consequence
         .restore_query_from_facts(plan.into_retained_facts());
@@ -371,14 +386,4 @@ fn retain_stop<'session>(
             .intent_execution
             .retain_consequence_handoff(transfer.consequence, reason),
     )
-}
-
-fn presentation_deadline(
-    plan: &crate::runtime::rebind::UiRebindPlan,
-) -> worth_ui_host_contract::UiPresentationDeadline {
-    let tick = match plan.execution_policy().deadline() {
-        crate::runtime::rebind::UiRebindDeadlinePolicy::NoDeadline => u64::MAX,
-        crate::runtime::rebind::UiRebindDeadlinePolicy::At(deadline) => deadline.tick(),
-    };
-    worth_ui_host_contract::UiPresentationDeadline::at_tick(tick)
 }

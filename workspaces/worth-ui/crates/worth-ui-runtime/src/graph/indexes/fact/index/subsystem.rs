@@ -16,6 +16,10 @@ pub(super) struct UiGraphSubsystemFactIndex {
     query: Box<[UiGraphFactIndexEntry]>,
     committed_scroll_extent: Box<[UiGraphFactIndexEntry]>,
     committed_portal_anchor: Box<[UiGraphFactIndexEntry]>,
+    committed_focus: Box<[UiGraphFactIndexEntry]>,
+    committed_selection: Box<[UiGraphFactIndexEntry]>,
+    committed_motion_track: Box<[UiGraphFactIndexEntry]>,
+    committed_command_route: Box<[UiGraphFactIndexEntry]>,
 }
 
 impl UiGraphSubsystemFactIndex {
@@ -29,6 +33,10 @@ impl UiGraphSubsystemFactIndex {
             UiProducedFactFamily::IntentPosture => &[],
             UiProducedFactFamily::CommittedScrollExtent => &self.committed_scroll_extent,
             UiProducedFactFamily::CommittedPortalAnchor => &self.committed_portal_anchor,
+            UiProducedFactFamily::CommittedFocus => &self.committed_focus,
+            UiProducedFactFamily::CommittedSelection => &self.committed_selection,
+            UiProducedFactFamily::CommittedMotionTrack => &self.committed_motion_track,
+            UiProducedFactFamily::CommittedCommandRoute => &self.committed_command_route,
         }
     }
 }
@@ -50,6 +58,16 @@ pub(super) fn build_subsystem_index(snapshot: &UiGraphSnapshot) -> UiGraphSubsys
         committed_portal_anchor: take_family(
             &mut by_family,
             UiProducedFactFamily::CommittedPortalAnchor,
+        ),
+        committed_focus: take_family(&mut by_family, UiProducedFactFamily::CommittedFocus),
+        committed_selection: take_family(&mut by_family, UiProducedFactFamily::CommittedSelection),
+        committed_motion_track: take_family(
+            &mut by_family,
+            UiProducedFactFamily::CommittedMotionTrack,
+        ),
+        committed_command_route: take_family(
+            &mut by_family,
+            UiProducedFactFamily::CommittedCommandRoute,
         ),
     }
 }

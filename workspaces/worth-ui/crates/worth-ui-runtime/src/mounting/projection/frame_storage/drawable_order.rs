@@ -10,6 +10,7 @@ pub(super) type UiMountedDrawableReferenceIndex =
 
 pub(super) fn drawable_reference_index(
     filled_rects: &[UiMountedFilledRectMechanic],
+    portal_overlays: &[worth_ui_host_contract::UiMountedPortalOverlayMechanic],
     semantic_text: &[UiMountedSemanticTextMechanic],
 ) -> Result<UiMountedDrawableReferenceIndex, UiMountedProjectionDenial> {
     let mut sources = std::collections::BTreeMap::<_, Vec<_>>::new();
@@ -21,6 +22,17 @@ pub(super) fn drawable_reference_index(
         sources.entry(row.mounted_instance()).or_default().push((
             row.layer_semantic_order(),
             UiMountedDrawableReference::FilledRect(reference),
+        ));
+    }
+    for (index, row) in portal_overlays.iter().enumerate() {
+        let reference =
+            worth_ui_host_contract::UiMountedPortalOverlayReference::from_runtime_mounting(
+                u16::try_from(index)
+                    .map_err(|_| UiMountedProjectionDenial::PortalOverlayCapacityExceeded)?,
+            );
+        sources.entry(row.owner()).or_default().push((
+            row.layer_semantic_order(),
+            UiMountedDrawableReference::PortalOverlay(reference),
         ));
     }
     append_semantic_text_sources(&mut sources, semantic_text)?;

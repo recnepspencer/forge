@@ -5,6 +5,15 @@ use sha2::{Digest, Sha256};
 pub struct WorthUiNativeApplicationShutdownReceipt {
     mounted_shutdown_attempts: Box<[crate::mounting::UiMountedPresentationShutdownAttempt]>,
     intent_resources_empty: bool,
+    portal_closed_records: usize,
+    portal_abandoned_indeterminate_records: usize,
+    portal_final_active_records: usize,
+    motion_abandoned_staged_tracks: u16,
+    motion_terminated_active_tracks: u16,
+    motion_cancelled_exit_retentions: u16,
+    motion_final_census_is_zero: bool,
+    focus_abandoned_indeterminate_request:
+        Option<worth_ui_host_contract::UiHostFocusPlacementRequestIdentity>,
     closed_query_resources: u64,
     query_close_complete: bool,
     query_transitions: Box<[worth_ui_query_binding::WorthUiPresentationTransitionObservation]>,
@@ -59,6 +68,16 @@ impl WorthUiNativeApplicationShell {
         let authored_mounted_instances = authored_mounted_instances(&self);
         let mut runtime = self.session.shutdown();
         let intent_resources_empty = runtime.intent_resource_census().is_empty();
+        let portal_closed_records = runtime.portal_closed_records();
+        let portal_abandoned_indeterminate_records =
+            runtime.portal_abandoned_indeterminate_records();
+        let portal_final_active_records = runtime.portal_final_active_records();
+        let motion_abandoned_staged_tracks = runtime.motion_abandoned_staged_tracks();
+        let motion_terminated_active_tracks = runtime.motion_terminated_active_tracks();
+        let motion_cancelled_exit_retentions = runtime.motion_cancelled_exit_retentions();
+        let motion_final_census_is_zero = runtime.motion_final_census_is_zero();
+        let focus_abandoned_indeterminate_request =
+            runtime.focus_placement().abandoned_indeterminate_request();
         let (host_session_released, released_surface_count) = match runtime.host_session_release() {
             Some(worth_ui_host_contract::UiHostSessionReleaseOutcome::Released(receipt)) => {
                 (true, receipt.released_surface_count())
@@ -73,6 +92,14 @@ impl WorthUiNativeApplicationShell {
                 .to_vec()
                 .into_boxed_slice(),
             intent_resources_empty,
+            portal_closed_records,
+            portal_abandoned_indeterminate_records,
+            portal_final_active_records,
+            motion_abandoned_staged_tracks,
+            motion_terminated_active_tracks,
+            motion_cancelled_exit_retentions,
+            motion_final_census_is_zero,
+            focus_abandoned_indeterminate_request,
             closed_query_resources: runtime.mounted_presentation().closed_query_resources(),
             query_close_complete: runtime.mounted_presentation().query_close_complete(),
             query_transitions: runtime
@@ -124,6 +151,40 @@ impl WorthUiNativeApplicationShutdownReceipt {
 
     pub const fn intent_resources_empty(&self) -> bool {
         self.intent_resources_empty
+    }
+
+    pub const fn portal_closed_records(&self) -> usize {
+        self.portal_closed_records
+    }
+
+    pub const fn portal_abandoned_indeterminate_records(&self) -> usize {
+        self.portal_abandoned_indeterminate_records
+    }
+
+    pub const fn portal_final_active_records(&self) -> usize {
+        self.portal_final_active_records
+    }
+
+    pub const fn motion_abandoned_staged_tracks(&self) -> u16 {
+        self.motion_abandoned_staged_tracks
+    }
+
+    pub const fn motion_terminated_active_tracks(&self) -> u16 {
+        self.motion_terminated_active_tracks
+    }
+
+    pub const fn motion_cancelled_exit_retentions(&self) -> u16 {
+        self.motion_cancelled_exit_retentions
+    }
+
+    pub const fn motion_final_census_is_zero(&self) -> bool {
+        self.motion_final_census_is_zero
+    }
+
+    pub const fn focus_abandoned_indeterminate_request(
+        &self,
+    ) -> Option<worth_ui_host_contract::UiHostFocusPlacementRequestIdentity> {
+        self.focus_abandoned_indeterminate_request
     }
 
     pub const fn closed_query_resources(&self) -> u64 {

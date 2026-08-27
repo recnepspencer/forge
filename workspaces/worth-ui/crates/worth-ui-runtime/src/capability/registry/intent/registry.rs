@@ -1,5 +1,6 @@
 use crate::capability::{
-    CapabilitySupportKind, RegistrationCandidate, INTENT_DEFINITION_FAMILY_NAME,
+    CapabilitySupportKind, RegistrationCandidate, UiIntentExecutionDestination,
+    INTENT_DEFINITION_FAMILY_NAME,
 };
 
 use super::semantic_digest::UiIntentSemanticDigest;
@@ -16,6 +17,10 @@ pub enum UiIntentDefinitionRegistrationError {
     InvalidPayloadSchema {
         identity: super::UiIntentId,
         violation: UiIntentPayloadSchemaViolation,
+    },
+    IncompatibleRegistrationPath {
+        identity: super::UiIntentId,
+        destination: UiIntentExecutionDestination,
     },
 }
 
@@ -34,6 +39,13 @@ impl core::fmt::Display for UiIntentDefinitionRegistrationError {
             } => write!(
                 formatter,
                 "intent definition `{identity}` has an invalid payload schema: {violation:?}"
+            ),
+            Self::IncompatibleRegistrationPath {
+                identity,
+                destination,
+            } => write!(
+                formatter,
+                "intent definition `{identity}` cannot use this registration path for {destination:?}"
             ),
         }
     }

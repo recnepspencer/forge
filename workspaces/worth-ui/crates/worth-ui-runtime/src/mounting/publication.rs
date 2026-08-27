@@ -13,6 +13,7 @@ struct UiMountedFramePublicationReceiptInner {
     generation:
         crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
     bindings: Box<[UiSurfaceBindingGeneration]>,
+    surfaces: std::cell::RefCell<Box<[super::UiMountedSurfacePresentationReceipt]>>,
     cost: std::cell::Cell<super::UiMountCostReport>,
 }
 
@@ -68,6 +69,7 @@ impl UiMountedFrameReconciliationCandidate {
                 predecessor,
                 generation: current.generation().clone(),
                 bindings: bindings.into_boxed_slice(),
+                surfaces: std::cell::RefCell::new(Box::default()),
                 cost: std::cell::Cell::new(admission.frame().cost_report()),
             }),
         };
@@ -89,6 +91,7 @@ impl UiMountedFrameReconciliationCandidate {
         let Self { receipt, .. } = self;
         let mount_cost = retained_publication_cost(presented.receipt().cost_report());
         let presentation = presented.receipt().clone();
+        receipt.finalize_presentation(&presentation);
         receipt.finalize_cost(mount_cost);
         let (frame, reservation) = presented.into_publication_parts();
         match reservation.commit(mount_cost, presentation) {
@@ -132,6 +135,7 @@ impl UiMountedFramePublicationCandidate {
                 predecessor,
                 generation: admission.frame().generation().clone(),
                 bindings: bindings.into_boxed_slice(),
+                surfaces: std::cell::RefCell::new(Box::default()),
                 cost: std::cell::Cell::new(admission.frame().cost_report()),
             }),
         };
@@ -146,6 +150,7 @@ impl UiMountedFramePublicationCandidate {
         let Self { receipt } = self;
         let mount_cost = retained_publication_cost(presented.receipt().cost_report());
         let presentation = presented.receipt().clone();
+        receipt.finalize_presentation(&presentation);
         receipt.finalize_cost(mount_cost);
         let (frame, reservation) = presented.into_publication_parts();
         match reservation.commit(mount_cost, presentation) {
@@ -188,12 +193,44 @@ impl UiMountedFramePublicationReceipt {
         &self.inner.bindings
     }
 
+    pub(crate) fn presentation_for_surface(
+        &self,
+        semantic_surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
+    ) -> Option<worth_ui_host_contract::UiHostObservationPresentationBasis> {
+        self.inner
+            .surfaces
+            .borrow()
+            .iter()
+            .find(|surface| surface.semantic_surface() == semantic_surface)
+            .map(|surface| {
+                worth_ui_host_contract::UiHostObservationPresentationBasis::new(
+                    surface.host_surface(),
+                    self.frame(),
+                    surface.binding(),
+                    surface.epoch(),
+                )
+            })
+    }
+
+    pub(crate) fn with_surface_presentations(
+        &self,
+        consume: impl FnOnce(&[super::UiMountedSurfacePresentationReceipt]),
+    ) {
+        let surfaces = self.inner.surfaces.borrow();
+        consume(&surfaces);
+    }
+
     pub fn cost_report(&self) -> super::UiMountCostReport {
         self.inner.cost.get()
     }
 
     fn finalize_cost(&self, cost: super::UiMountCostReport) {
         self.inner.cost.set(cost);
+    }
+
+    fn finalize_presentation(&self, presentation: &super::UiMountedPresentationReceipt) {
+        debug_assert_eq!(presentation.frame(), self.frame());
+        *self.inner.surfaces.borrow_mut() = presentation.surfaces().to_vec().into_boxed_slice();
     }
 }
 

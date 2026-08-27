@@ -116,6 +116,10 @@ impl WorthUiActiveApplicationSession {
             .active_selection()
             .map(|(identity, selection)| mounted_overlay_input(identity, selection));
         crate::mounting::UiMountedFrameRequest::all_bound_surfaces()
+            .with_portal_overlays(
+                self.portal.revision(),
+                self.portal.current_mounted_projection_inputs(),
+            )
             .with_visual_overlay(self.visual_overlays.revision(), overlay)
     }
 }

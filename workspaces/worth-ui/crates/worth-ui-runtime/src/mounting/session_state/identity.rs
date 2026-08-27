@@ -228,6 +228,12 @@ impl WorthUiMountedSessionState {
         self.identity.view()
     }
 
+    pub(crate) fn focus_participation_snapshot(
+        &self,
+    ) -> Option<crate::mounting::UiMountedFocusParticipationSnapshot> {
+        self.identity.focus_participation_snapshot()
+    }
+
     fn ensure_identity_mutation_available(&self) -> Result<(), UiMountedIdentityDenial> {
         if self.has_active_presentation_attempt() {
             return Err(UiMountedIdentityDenial::PresentationInFlight);

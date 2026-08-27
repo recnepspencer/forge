@@ -51,7 +51,7 @@ pub(crate) fn adjudicate_native_color(
     expected: ExpectedNativeColor,
 ) -> Result<NativeColorVerdict, NativeColorFailure> {
     let manifest = checked_in().map_err(NativeColorFailure::ControlPointManifest)?;
-    let samples = samples(pixels, expected, &manifest);
+    let samples = signal_samples(pixels, expected, &manifest);
     let sampled_pixels = samples.len();
     let matching_samples = samples
         .iter()
@@ -166,36 +166,32 @@ fn target_pixel_summary(
     }
 }
 
-fn samples(
+fn signal_samples(
     pixels: &NativeClientPixelCapture,
     expected: ExpectedNativeColor,
     manifest: &PlatformPulseControlPointManifest,
 ) -> Vec<NativePixelSampleObservation> {
-    let width = pixels.width() as usize;
-    let height = pixels.height() as usize;
+    let point = scaled_point(
+        pixels,
+        manifest.source_signal_logical_point(),
+        manifest.logical_client_extent(),
+    );
     let xs = [
-        scaled_point(
-            pixels,
-            manifest.background_logical_point(),
-            manifest.logical_client_extent(),
-        )[0] as usize,
-        width / 5,
-        width.saturating_mul(9) / 10,
+        point[0].saturating_sub(1),
+        point[0],
+        point[0].saturating_add(1),
     ];
     let ys = [
-        scaled_point(
-            pixels,
-            manifest.background_logical_point(),
-            manifest.logical_client_extent(),
-        )[1] as usize,
-        height.saturating_mul(5) / 6,
-        height.saturating_mul(11) / 12,
+        point[1].saturating_sub(1),
+        point[1],
+        point[1].saturating_add(1),
     ];
     let expected_rgb = expected.rgb(manifest);
     let mut samples = Vec::with_capacity(9);
+    let width = pixels.width() as usize;
     for y in ys {
         for x in xs {
-            let offset = (y * width + x) * 4;
+            let offset = (y as usize * width + x as usize) * 4;
             if let Some(pixel) = pixels.rgba().get(offset..offset + 4) {
                 let rgba = [pixel[0], pixel[1], pixel[2], pixel[3]];
                 let matches_expected_color =
@@ -206,8 +202,8 @@ fn samples(
                             observed.abs_diff(expected) <= manifest.channel_tolerance()
                         });
                 samples.push(NativePixelSampleObservation {
-                    x,
-                    y,
+                    x: x as usize,
+                    y: y as usize,
                     rgba,
                     matches_expected_color,
                 });

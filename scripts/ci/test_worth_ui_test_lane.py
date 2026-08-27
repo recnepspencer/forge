@@ -27,6 +27,18 @@ class WorthUiTestLaneTests(TestCase):
         self.assertIn("--all-targets", platform)
         self.assertIn("--all-features", platform)
 
+    def test_compile_only_platform_lane_builds_the_exact_pulse_courtroom(self) -> None:
+        command = lane_runner.commands_for("compile-only-platform")[0]
+
+        self.assertIn("check", command)
+        self.assertEqual(
+            command[command.index("--target") + 1], "x86_64-unknown-linux-gnu"
+        )
+        self.assertIn("worth-ui-platform-pulse", command)
+        self.assertIn("executable-world", command)
+        self.assertIn("executable_world", command)
+        self.assertNotIn("--workspace", command)
+
     def test_filesystem_contract_reuses_the_application_contract_target(self) -> None:
         command = lane_runner.commands_for("filesystem-contract")[0]
 

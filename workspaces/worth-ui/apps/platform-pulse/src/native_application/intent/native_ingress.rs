@@ -74,8 +74,10 @@ impl PlatformPulseApplicationRuntime {
                 return;
             }
         };
-        let ingress = shell.admit_native_intent_progress(
+        let ingress = shell.admit_native_intent_progress_triplet(
             worth_ui_platform_pulse::intent::platform_pulse_action_definition(),
+            worth_ui_platform_pulse::intent::platform_pulse_open_portal_definition(),
+            worth_ui_platform_pulse::intent::platform_pulse_close_portal_definition(),
             progress,
             deadline,
         );
@@ -87,6 +89,7 @@ impl PlatformPulseApplicationRuntime {
         shell: &mut WorthUiNativeApplicationShell,
         ingress: worth_ui::facade::app::WorthUiNativeIntentIngress,
     ) {
+        let dismissals = ingress.dismissals().to_vec();
         if ingress.duplicate_batches() > 0 {
             self.fail_intent_settlement(format!(
                 "native interaction ingress duplicated {} batch(es)",
@@ -123,6 +126,11 @@ impl PlatformPulseApplicationRuntime {
                 break;
             }
             self.pending_intent_postures.push_back(prepared);
+        }
+        for dismissal in dismissals {
+            if self.terminal_error.is_some() || !self.dismiss_open_portal(shell, dismissal) {
+                break;
+            }
         }
         if self.terminal_error.is_none() {
             self.advance_pending_intent_postures(shell);
@@ -251,7 +259,7 @@ impl PlatformPulseApplicationRuntime {
             );
             return false;
         }
-        if let Err(denial) = self.visual_identity.refresh_after_content_rebind(
+        if let Err(denial) = self.visual_identity.refresh_after_presentation_replacement(
             shell,
             self.presentation_tick,
             std::time::Instant::now(),

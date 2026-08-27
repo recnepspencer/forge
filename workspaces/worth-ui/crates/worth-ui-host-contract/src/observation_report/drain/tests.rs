@@ -134,6 +134,7 @@ fn batch_from_reports(
         protocol,
         host_session,
         presentation: UiHostObservationPresentationBasis::new(
+            crate::UiHostSurfaceIdentity::mint_unbound().unwrap(),
             UiMountedFrameIdentity::mint_unbound().unwrap(),
             UiSurfaceBindingGeneration::mint_unbound().unwrap(),
             UiHostPresentationEpoch::issued_by_host(1),

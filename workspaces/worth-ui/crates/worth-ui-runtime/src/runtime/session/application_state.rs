@@ -2,6 +2,12 @@ mod change_classification;
 mod framework_turn;
 mod inspection;
 mod mounted_allocation;
+#[path = "application_state/service_proposal.rs"]
+mod service_proposal;
+pub(crate) use service_proposal::{
+    UiIndeterminatePortalProposalTransaction, UiPortalProposalPreparation,
+    UiPortalProposalPreparationDenial, UiStagedPortalProposalTransaction,
+};
 #[cfg(any(test, feature = "certification-support"))]
 mod planning;
 mod rebind_planning;
@@ -228,6 +234,15 @@ impl WorthUiApplicationSessionState {
         self.runtime.host_measurement_collector()
     }
 
+    pub(crate) fn viewport_measurement_witnesses(
+        &self,
+    ) -> Box<[crate::evidence::UiHostMeasurementAuthorityWitness]> {
+        self.runtime
+            .allocation_invalidation_index
+            .borrow()
+            .viewport_measurement_witnesses()
+    }
+
     pub(crate) fn prepare_graph_successor(
         &self,
         commit: crate::graph::UiGraphMutationCommitResult,
@@ -239,7 +254,9 @@ impl WorthUiApplicationSessionState {
     }
 
     pub(crate) fn shutdown(self) -> WorthUiRuntimeShutdownReceipt {
-        self.runtime.shutdown()
+        self.runtime
+            .shutdown()
+            .unwrap_or_else(|recovery| panic!("runtime shutdown blocked: {:?}", recovery.blocker()))
     }
 
     #[cfg(test)]

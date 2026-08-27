@@ -111,6 +111,7 @@ struct UiFrameworkIntentConsequenceHandoffMarker {
 
 struct UiPreparedIntentConsequenceBatch {
     mounted_posture: bool,
+    runtime_service: Option<crate::capability::UiIntentRuntimeServiceDestination>,
     query_collection_change: Option<worth_ui_query_binding::WorthUiCollectionChangeConsequence>,
     query_projection: Option<worth_ui_query_binding::UiProjectionObservation>,
 }

@@ -8,6 +8,8 @@ use worth_ui_host_contract::WorthUiHostContract;
 
 use super::*;
 
+mod presentation;
+
 impl WorthUiOperationalHostAdapter for ScriptedPresentationHost {
     fn operational_host_contract(&self) -> WorthUiHostContract {
         self.state.lock().unwrap().contract
@@ -39,6 +41,34 @@ impl WorthUiOperationalHostAdapter for ScriptedPresentationHost {
         Ok(self
             .observation_retention
             .drain(authority.host_session_identity()))
+    }
+
+    fn install_input_recipient(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+        binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+    ) -> bool {
+        if binding.host_session() != authority.host_session_identity() {
+            return false;
+        }
+        self.state.lock().unwrap().input_recipient = Some(binding);
+        true
+    }
+
+    fn clear_input_recipient(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+        binding: worth_ui_host_contract::UiHostInputRecipientBindingReceipt,
+    ) -> bool {
+        if binding.host_session() != authority.host_session_identity() {
+            return false;
+        }
+        let mut state = self.state.lock().unwrap();
+        if state.input_recipient != Some(binding) {
+            return false;
+        }
+        state.input_recipient = None;
+        true
     }
 
     fn measurement_environment_report(
@@ -163,53 +193,28 @@ impl WorthUiOperationalHostAdapter for ScriptedPresentationHost {
         )
     }
 
+    fn place_semantic_focus(
+        &self,
+        authority: &UiHostAdapterSessionAuthority,
+        request: worth_ui_host_contract::UiHostFocusPlacementRequest,
+    ) -> worth_ui_host_contract::UiHostFocusPlacementAcknowledgement {
+        let disposition = if request.host_session() != authority.host_session_identity() {
+            worth_ui_host_contract::UiHostFocusPlacementDisposition::RejectedBeforeEffect(
+                worth_ui_host_contract::UiHostFocusPlacementRejection::ForeignSurface,
+            )
+        } else {
+            self.state.lock().unwrap().last_focus_placement = Some(request);
+            worth_ui_host_contract::UiHostFocusPlacementDisposition::Applied
+        };
+        worth_ui_host_contract::UiHostFocusPlacementAcknowledgement::settled(request, disposition)
+    }
+
     fn present_mounted_surface(
         &self,
         authority: &UiHostAdapterSessionAuthority,
         request: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,
     ) -> UiHostSurfacePresentationOutcome {
-        if !authority.admits_mounted_presentation(request) {
-            return UiHostSurfacePresentationOutcome::RejectedBeforeEffects(
-                worth_ui_host_contract::UiHostSurfacePresentationDenial::SurfaceBindingChanged,
-            );
-        }
-        let (outcome, queued_observation, queued_measurement) = {
-            let mut state = self.state.lock().unwrap();
-            state.presentation_calls += 1;
-            state.observation_events.push("presentation-enter");
-            let start = state
-                .presentations
-                .pop_front()
-                .expect("script names every surface outcome");
-            let outcome = match start {
-                ScriptedPresentationStart::Outcome(outcome) => outcome,
-                ScriptedPresentationStart::InFlight {
-                    completions,
-                    cancellation,
-                } => {
-                    let token = request.issue_completion_token();
-                    let identity = token.diagnostic_value();
-                    state.completions.insert(identity, completions);
-                    state.cancellations.insert(identity, cancellation);
-                    state
-                        .token_sessions
-                        .insert(identity, authority.host_session_identity());
-                    UiHostSurfacePresentationOutcome::InFlight(token)
-                }
-            };
-            (
-                outcome,
-                state.queued_observation.take(),
-                state.queued_measurement.take(),
-            )
-        };
-        dispatch_queued_ingress(self, queued_observation, queued_measurement);
-        self.state
-            .lock()
-            .unwrap()
-            .observation_events
-            .push("presentation-exit");
-        outcome
+        self.present_scripted_mounted_surface(authority, request)
     }
 
     fn complete_mounted_surface(
@@ -297,34 +302,4 @@ fn clear_token_state(state: &mut ScriptedPresentationState, identity: u64) {
     state.completions.remove(&identity);
     state.cancellations.remove(&identity);
     state.token_sessions.remove(&identity);
-}
-
-fn dispatch_queued_ingress(
-    host: &ScriptedPresentationHost,
-    observation: Option<crate::facade::observation_report::UiHostObservationBatch>,
-    measurement: Option<(
-        crate::facade::measurement_exchange::WorthUiHostMeasurementIngress,
-        crate::facade::measurement_exchange::UiHostMeasurementCompletion,
-    )>,
-) {
-    if let Some(batch) = observation {
-        host.observation_retention
-            .retain(batch)
-            .expect("scripted in-call raw report fits adapter retention");
-        host.state
-            .lock()
-            .unwrap()
-            .observation_events
-            .push("observation-enqueued");
-    }
-    if let Some((ingress, completion)) = measurement {
-        ingress
-            .enqueue(completion)
-            .expect("scripted in-call measurement completion fits ingress");
-        host.state
-            .lock()
-            .unwrap()
-            .observation_events
-            .push("measurement-enqueued");
-    }
 }

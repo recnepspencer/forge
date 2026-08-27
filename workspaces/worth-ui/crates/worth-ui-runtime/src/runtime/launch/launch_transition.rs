@@ -181,6 +181,8 @@ impl WorthUiRuntime {
             durable_resize_source: Default::default(),
             scroll_offset_projection: Default::default(),
             observation: crate::runtime::observation::UiObservationRuntimeState::new(),
+            service_proposals:
+                crate::runtime::session::service_proposal::UiServiceProposalCompiler::new(),
             change_profile,
         })
     }

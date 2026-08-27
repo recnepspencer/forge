@@ -68,4 +68,8 @@ impl PlatformPulseJourneyCost {
             self.installation_removed,
         );
     }
+
+    pub(super) const fn full_journey(self) -> Duration {
+        self.full_journey
+    }
 }

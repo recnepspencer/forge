@@ -280,6 +280,7 @@ fn lane_for(work: UiMountedPresentationWorkView<'_>) -> UiGlyphRasterLane {
         UiMountedPresentationWorkView::Reconstruction(_) => UiGlyphRasterLane::Reconstruction,
         UiMountedPresentationWorkView::Initial(_)
         | UiMountedPresentationWorkView::Delta(_)
+        | UiMountedPresentationWorkView::Sample(_)
         | UiMountedPresentationWorkView::Unchanged(_) => UiGlyphRasterLane::Ordinary,
     }
 }

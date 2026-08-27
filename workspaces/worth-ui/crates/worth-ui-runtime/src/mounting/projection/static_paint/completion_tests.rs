@@ -131,6 +131,10 @@ impl CompletionFixture {
                 semantic_text: include_semantic_text
                     .then(super::super::semantic_text::UiMountedSemanticTextSeed::scalar_for_test),
                 hit_test: None,
+                focus_support: crate::capability::ComponentFocusSupport::not_focusable(),
+                focus_scope: None,
+                component_id: None,
+                portal_child_owner: None,
             }],
             vec![UiMountedProjectionSurface {
                 surface,

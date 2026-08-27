@@ -1,5 +1,6 @@
 use super::WorthUiNativeApplicationShell;
 
+mod multi_definition;
 mod posture;
 mod transition;
 
@@ -11,6 +12,7 @@ use transition::{confirmation_stop_posture, stopped, NativePostureTarget};
 #[must_use]
 pub struct WorthUiNativeIntentIngress {
     transitions: Box<[WorthUiNativeIntentTransition]>,
+    dismissals: Box<[crate::facade::interaction::UiDismissInteraction]>,
     duplicate_batches: usize,
     interaction_stops: Box<[WorthUiNativeInteractionIngressStop]>,
 }
@@ -48,6 +50,7 @@ pub enum WorthUiNativeIntentStop {
     Confirmation(crate::facade::intent::UiIntentConfirmationStop),
     Dispatch(crate::facade::intent::UiIntentExecutionDispatchStop),
     PostureIdentityExhausted,
+    DefinitionNotSelected,
 }
 
 #[must_use]
@@ -69,11 +72,21 @@ impl WorthUiNativeApplicationShell {
         I: crate::facade::intent::UiIntent,
         D: crate::facade::intent::UiIntentDefinitionDestination,
     {
+        let pending_portal_transition = self
+            .pending_managed_rebind
+            .as_ref()
+            .is_some_and(|pending| pending.carries_portal_intent_consequence());
         let outcomes = drain
             .into_batches()
             .into_vec()
             .into_iter()
-            .map(|batch| self.session.admit_host_interaction_batch(batch))
+            .map(|batch| {
+                self.session
+                    .admit_host_interaction_batch_with_portal_transition(
+                        batch,
+                        pending_portal_transition,
+                    )
+            })
             .collect::<Vec<_>>();
         self.admit_native_intent_outcomes(definition, outcomes, deadline)
     }
@@ -106,21 +119,25 @@ impl WorthUiNativeApplicationShell {
         D: crate::facade::intent::UiIntentDefinitionDestination,
     {
         let mut transitions = Vec::new();
+        let mut dismissals = Vec::new();
         let mut duplicate_batches = 0;
         let mut interaction_stops = Vec::new();
         for outcome in outcomes {
             match outcome {
                 crate::facade::interaction::UiHostInteractionIngressOutcome::Applied(receipt) => {
                     for transition in receipt.into_transitions() {
-                        if let crate::facade::interaction::UiInteractionTransition::Semantic(
-                            interaction,
-                        ) = transition
-                        {
-                            transitions.push(self.admit_native_semantic_intent(
+                        match transition {
+                            crate::facade::interaction::UiInteractionTransition::Semantic(
+                                interaction,
+                            ) => transitions.push(self.admit_native_semantic_intent(
                                 definition,
                                 interaction,
                                 deadline,
-                            ));
+                            )),
+                            crate::facade::interaction::UiInteractionTransition::DismissRequested(
+                                dismissal,
+                            ) => dismissals.push(dismissal),
+                            _ => {}
                         }
                     }
                 }
@@ -137,6 +154,7 @@ impl WorthUiNativeApplicationShell {
         }
         WorthUiNativeIntentIngress {
             transitions: transitions.into_boxed_slice(),
+            dismissals: dismissals.into_boxed_slice(),
             duplicate_batches,
             interaction_stops: interaction_stops.into_boxed_slice(),
         }
@@ -162,6 +180,19 @@ impl WorthUiNativeApplicationShell {
             Ok(route) => route,
             Err(stop) => return stopped(WorthUiNativeIntentStop::Route(stop), None),
         };
+        self.admit_native_resolved_intent(definition, route, deadline)
+    }
+
+    fn admit_native_resolved_intent<I, D>(
+        &mut self,
+        definition: crate::facade::intent::UiIntentDefinition<I, D>,
+        route: crate::facade::intent::UiIntentRouteResolution,
+        deadline: crate::facade::intent::UiIntentExecutionDeadlineBasis,
+    ) -> WorthUiNativeIntentTransition
+    where
+        I: crate::facade::intent::UiIntent,
+        D: crate::facade::intent::UiIntentDefinitionDestination,
+    {
         let (admission, target) = match route {
             crate::facade::intent::UiIntentRouteResolution::Product(route) => {
                 let target = NativePostureTarget::product(&route);
@@ -312,6 +343,10 @@ impl WorthUiNativeIntentIngress {
 
     pub fn into_transitions(self) -> Box<[WorthUiNativeIntentTransition]> {
         self.transitions
+    }
+
+    pub fn dismissals(&self) -> &[crate::facade::interaction::UiDismissInteraction] {
+        &self.dismissals
     }
 
     pub const fn duplicate_batches(&self) -> usize {

@@ -166,8 +166,6 @@ impl UiHeadlessUnperformedEffect {
         match self {
             Self::NativePaint { .. } => UiMountedEffectFamily::NativePaint,
             Self::Accessibility { .. } => UiMountedEffectFamily::Accessibility,
-            Self::Focus { .. } => UiMountedEffectFamily::Focus,
-            Self::Motion { .. } => UiMountedEffectFamily::Motion,
             Self::Diagnostic { .. } => UiMountedEffectFamily::Diagnostic,
             Self::CanvasSpatial { .. } => UiMountedEffectFamily::CanvasSpatial,
             Self::Realtime { .. } => UiMountedEffectFamily::Realtime,

@@ -71,7 +71,10 @@ fn admission_is_effect_free_duplicate_and_leaves_handoff_retryable() {
             .published_change_count(),
         1
     );
-    let retirement = runtime.shutdown().into_operation_live_retirement();
+    let retirement = runtime
+        .shutdown()
+        .unwrap_or_else(|recovery| panic!("shutdown blocked: {:?}", recovery.blocker()))
+        .into_operation_live_retirement();
     assert!(matches!(
         fixture.close_retirement(retirement),
         worth_ui_query_binding::WorthUiOperationLiveRetirementCloseOutcome::Closed(_)

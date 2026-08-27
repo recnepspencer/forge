@@ -191,6 +191,7 @@ impl WorthUiDetachedPreparedMountedContentRebind {
         Box<WorthUiPreparedMountedContentRebind<'session>>,
         crate::runtime::rebind::UiRebindPreparationDenial,
     > {
+        let frame_request = session.mounted_frame_request();
         let completion = session.execute_framework_turn(|_| {}).map_err(|_| {
             crate::runtime::rebind::UiRebindPreparationDenial::FrameBoundaryUnavailable
         })?;
@@ -200,7 +201,7 @@ impl WorthUiDetachedPreparedMountedContentRebind {
         let theme_values = execution.presentation.theme_values_source();
         let frame = execution
             .prepare_mounted_frame_with_content_internal(
-                crate::mounting::UiMountedFrameRequest::all_bound_surfaces(),
+                frame_request,
                 semantic_content,
                 theme_values,
             )

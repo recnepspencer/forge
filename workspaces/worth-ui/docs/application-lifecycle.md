@@ -614,12 +614,21 @@ The workflows have three deliberately separate claims:
    observations:
 
    ```powershell
-   cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pulse --features executable-world --test executable_world -- --nocapture
+   cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pulse --features executable-world --test executable_world -- --nocapture --test-threads=1
    ```
+
+   The single test thread is part of the native evidence contract: every
+   product launcher also enters the shared in-process/cross-process desktop
+   lease, while serialization keeps unrelated test setup from competing with
+   the one real desktop owner.
 
    On Windows this lane is executable-certified. Other platforms retain an
    explicit compile-only posture until their native adapters run in a required
-   real lane; a successful compile is not native certification.
+   real lane; a successful compile is not native certification. The Ubuntu CI
+   quality job first audits explicit Linux and Windows resolved dependency
+   graphs, then runs the named `compile-only-platform` lane. That lane checks
+   this exact package, feature, and test target for
+   `x86_64-unknown-linux-gnu` without executing the native courtroom.
 
 Product stdout prefixes each versioned JSON lifecycle envelope with
 `WORTH_UI_PLATFORM_PULSE_EVENT `. The observation-only pulse library decodes

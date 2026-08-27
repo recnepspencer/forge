@@ -108,6 +108,7 @@ fn pending_completion_identity_is_the_only_successor_affinity_witness() {
     assert!(state.remember_pending_presentation(
         protocol(),
         HOST_SESSION,
+        worth_ui_host_contract::UiHostSurfaceIdentity::mint_unbound().unwrap(),
         binding,
         completion_identity,
     ));
@@ -149,6 +150,7 @@ fn abandoned_pending_identity_cannot_complete_later() {
     assert!(state.remember_pending_presentation(
         protocol(),
         HOST_SESSION,
+        worth_ui_host_contract::UiHostSurfaceIdentity::mint_unbound().unwrap(),
         binding,
         completion_identity,
     ));
@@ -374,6 +376,7 @@ fn protocol() -> worth_ui_host_contract::UiHostProtocolAgreement {
 
 fn basis(epoch: u64) -> UiHostObservationPresentationBasis {
     UiHostObservationPresentationBasis::new(
+        worth_ui_host_contract::UiHostSurfaceIdentity::mint_unbound().unwrap(),
         UiMountedFrameIdentity::mint_unbound().unwrap(),
         UiSurfaceBindingGeneration::mint_unbound().unwrap(),
         UiHostPresentationEpoch::issued_by_host(epoch),

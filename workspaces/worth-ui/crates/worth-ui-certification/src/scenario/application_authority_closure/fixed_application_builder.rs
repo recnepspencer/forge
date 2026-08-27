@@ -213,7 +213,7 @@ impl FixedCertificationApplicationBuilder {
         Ok(Self::from_parts(builder, self.activation))
     }
 
-    pub fn register_unsupported_intent_definition<I>(
+    pub fn register_unsupported_command_intent_definition<I>(
         self,
         definition: worth_ui::facade::intent::UiIntentDefinition<
             I,
@@ -225,7 +225,23 @@ impl FixedCertificationApplicationBuilder {
     {
         let builder = self
             .builder
-            .register_unsupported_intent_definition(definition)?;
+            .register_unsupported_command_intent_definition(definition)?;
+        Ok(Self::from_parts(builder, self.activation))
+    }
+
+    pub fn register_runtime_service_intent_definition<I>(
+        self,
+        definition: worth_ui::facade::intent::UiIntentDefinition<
+            I,
+            worth_ui::facade::intent::UiRuntimeServiceDefinitionDestination,
+        >,
+    ) -> Result<Self, worth_ui::facade::intent::UiIntentDefinitionRegistrationError>
+    where
+        I: worth_ui::facade::intent::UiIntent,
+    {
+        let builder = self
+            .builder
+            .register_runtime_service_intent_definition(definition)?;
         Ok(Self::from_parts(builder, self.activation))
     }
 

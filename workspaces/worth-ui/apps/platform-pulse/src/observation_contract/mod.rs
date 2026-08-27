@@ -1,4 +1,6 @@
 mod envelope;
+mod focus;
+mod focus_projection;
 mod intent;
 mod launch;
 mod lifecycle;
@@ -24,6 +26,11 @@ pub use envelope::{
     PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION,
     PLATFORM_PULSE_LIFECYCLE_OBSERVATION_STDOUT_PREFIX,
 };
+pub use focus::{
+    PlatformPulseSemanticFocusCause, PlatformPulseSemanticFocusOutcome,
+    PlatformPulseSemanticFocusParticipant, PlatformPulseSemanticFocusPhysicalOutcome,
+    PlatformPulseSemanticFocusPublished,
+};
 pub use intent::{
     PlatformPulseIntentAdmissionTrace, PlatformPulseIntentAttemptObservationReference,
     PlatformPulseIntentCausalTraceObservation, PlatformPulseIntentEvidenceReferenceObservation,
@@ -43,11 +50,12 @@ pub use lifecycle::{
     PlatformPulseApplicationGenerationObservation, PlatformPulseFirstFramePublished,
     PlatformPulseLifecycleObservation, PlatformPulseMountedFrameObservation,
     PlatformPulseNativeRebindDenialStage, PlatformPulseNativeRebindPreparationDenial,
-    PlatformPulseProcessStarted, PlatformPulseReplacementDenialFamily,
-    PlatformPulseReplacementPreserved, PlatformPulseReplacementPublished,
-    PlatformPulseShutdownCompleted, PlatformPulseSourceSnapshotObservation,
-    PlatformPulseTerminalFailure, PlatformPulseTerminalFailureFamily,
-    PlatformPulseVisualComparison, PlatformPulseWatcherBackendObservation,
+    PlatformPulsePortalDismissed, PlatformPulseProcessStarted,
+    PlatformPulseReplacementDenialFamily, PlatformPulseReplacementPreserved,
+    PlatformPulseReplacementPublished, PlatformPulseShutdownCompleted,
+    PlatformPulseSourceSnapshotObservation, PlatformPulseTerminalFailure,
+    PlatformPulseTerminalFailureFamily, PlatformPulseVisualComparison,
+    PlatformPulseWatcherBackendObservation,
 };
 pub use native_input::{PlatformPulseNativeInputIngressPosture, PlatformPulseNativeInputReached};
 pub use projection::{

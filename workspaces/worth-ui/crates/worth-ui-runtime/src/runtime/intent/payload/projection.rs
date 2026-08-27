@@ -27,6 +27,7 @@ pub(crate) fn prepare_intent_payload(
     let basis_view =
         UiIntentInputBasisView::observe(&interaction, generation, mounted, application_facts)?;
     let definition = definitions.definition_at(declaration.definition());
+    let binding_support = execution_bindings.support_at(declaration.definition());
     let mut projection =
         PayloadProjection::new(&interaction, definition.payload_schema(), &basis_view);
     for binding in declaration.payload() {
@@ -40,6 +41,7 @@ pub(crate) fn prepare_intent_payload(
         &basis_view,
         &declaration,
         definition,
+        binding_support,
         occupancy,
     );
     let basis = basis_view.seal(UiIntentInputBasisMaterial {

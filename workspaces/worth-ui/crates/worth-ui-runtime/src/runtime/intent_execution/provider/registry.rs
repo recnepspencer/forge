@@ -9,7 +9,15 @@ use crate::capability::{
     UiIntentTransitionOutcome,
 };
 
-use super::{UiIntentExecutionProvider, UiIntentProviderVersion, UiPreparedIntentExecution};
+use super::{
+    UiIntentExecutionBindingSupport, UiIntentExecutionProvider, UiIntentProviderVersion,
+    UiPreparedIntentExecution,
+};
+
+#[path = "registry/digest.rs"]
+mod digest;
+#[path = "registry/runtime_service_support.rs"]
+mod runtime_service_support;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum UiIntentExecutionBindingPreparationDenial {
@@ -35,6 +43,7 @@ struct UiIntentExecutionBindingDescriptor {
     outcome: UiIntentSchema,
     destination: UiIntentExecutionDestination,
     provider_version: UiIntentProviderVersion,
+    support: UiIntentExecutionBindingSupport,
 }
 
 struct UiRegisteredIntentExecutionBinding {
@@ -63,7 +72,11 @@ struct UiTransitionIntentExecutionBinding<I: UiIntent> {
     intent: PhantomData<fn() -> I>,
 }
 
-struct UiUnsupportedServiceIntentExecutionBinding<I: UiIntent> {
+struct UiUnsupportedCommandIntentExecutionBinding<I: UiIntent> {
+    intent: PhantomData<fn() -> I>,
+}
+
+struct UiRuntimeServiceIntentExecutionBinding<I: UiIntent> {
     destination: UiIntentRuntimeServiceDestination,
     intent: PhantomData<fn() -> I>,
 }
@@ -84,7 +97,11 @@ impl UiIntentExecutionBindingPlan {
         I: UiIntent,
         Provider: UiIntentExecutionProvider<I>,
     {
-        let descriptor = descriptor(&definition, Provider::VERSION);
+        let descriptor = descriptor(
+            &definition,
+            Provider::VERSION,
+            UiIntentExecutionBindingSupport::Supported,
+        );
         self.push(UiRegisteredIntentExecutionBinding {
             descriptor,
             binding: Arc::new(UiApplicationIntentExecutionBinding::<I, Provider> {
@@ -107,7 +124,11 @@ impl UiIntentExecutionBindingPlan {
         else {
             unreachable!("transition definition retains its destination marker")
         };
-        let descriptor = descriptor(&definition, UiIntentProviderVersion::stable(1));
+        let descriptor = descriptor(
+            &definition,
+            UiIntentProviderVersion::stable(1),
+            UiIntentExecutionBindingSupport::Supported,
+        );
         self.push(UiRegisteredIntentExecutionBinding {
             descriptor,
             binding: Arc::new(UiTransitionIntentExecutionBinding::<I> {
@@ -117,7 +138,7 @@ impl UiIntentExecutionBindingPlan {
         })
     }
 
-    pub(crate) fn register_unsupported_service<I>(
+    pub(crate) fn register_unsupported_command<I>(
         &mut self,
         definition: UiIntentDefinition<I, crate::capability::UiRuntimeServiceDefinitionDestination>,
     ) -> Result<(), UiIntentExecutionBindingPreparationDenial>
@@ -129,10 +150,52 @@ impl UiIntentExecutionBindingPlan {
         else {
             unreachable!("runtime-service definition retains its destination marker")
         };
-        let descriptor = descriptor(&definition, UiIntentProviderVersion::stable(1));
+        debug_assert_eq!(
+            destination,
+            UiIntentRuntimeServiceDestination::InvokeCommand,
+            "command registration is prevalidated by the application builder"
+        );
+        let descriptor = descriptor(
+            &definition,
+            UiIntentProviderVersion::stable(1),
+            UiIntentExecutionBindingSupport::Unsupported,
+        );
         self.push(UiRegisteredIntentExecutionBinding {
             descriptor,
-            binding: Arc::new(UiUnsupportedServiceIntentExecutionBinding::<I> {
+            binding: Arc::new(UiUnsupportedCommandIntentExecutionBinding::<I> {
+                intent: PhantomData,
+            }),
+        })
+    }
+
+    pub(crate) fn register_portal_service<I>(
+        &mut self,
+        definition: UiIntentDefinition<I, crate::capability::UiRuntimeServiceDefinitionDestination>,
+    ) -> Result<(), UiIntentExecutionBindingPreparationDenial>
+    where
+        I: UiIntent,
+    {
+        let UiIntentExecutionDestination::RuntimeService(destination) =
+            definition.execution_destination()
+        else {
+            unreachable!("runtime-service definition retains its destination marker")
+        };
+        assert!(
+            matches!(
+                destination,
+                UiIntentRuntimeServiceDestination::OpenPortal
+                    | UiIntentRuntimeServiceDestination::ClosePortal
+            ),
+            "only portal service destinations are installed by this milestone surface"
+        );
+        let descriptor = descriptor(
+            &definition,
+            UiIntentProviderVersion::stable(1),
+            UiIntentExecutionBindingSupport::Supported,
+        );
+        self.push(UiRegisteredIntentExecutionBinding {
+            descriptor,
+            binding: Arc::new(UiRuntimeServiceIntentExecutionBinding::<I> {
                 destination,
                 intent: PhantomData,
             }),
@@ -216,30 +279,11 @@ impl FrozenIntentExecutionBindings {
         self.bindings[slot.index()].project(values)
     }
 
-    pub(crate) fn digest_basis(&self) -> u64 {
-        let mut digest = crate::capability::UiIntentSemanticDigest::new(0xd78d_852e_4a91_1c63)
-            .usize("binding-count", self.descriptors.len());
-        for descriptor in &self.descriptors {
-            digest = digest
-                .field("binding", &[])
-                .field("intent-id", descriptor.intent.as_str().as_bytes())
-                .field(
-                    "payload-schema-id",
-                    descriptor.payload.stable_identity().as_bytes(),
-                )
-                .u16("payload-schema-version", descriptor.payload.version())
-                .field(
-                    "outcome-schema-id",
-                    descriptor.outcome.stable_identity().as_bytes(),
-                )
-                .u16("outcome-schema-version", descriptor.outcome.version())
-                .field(
-                    "execution-destination",
-                    descriptor.destination.digest_basis().as_bytes(),
-                )
-                .u16("provider-version", descriptor.provider_version.get());
-        }
-        digest.finish()
+    pub(crate) fn support_at(
+        &self,
+        slot: crate::capability::UiIntentDefinitionSlot,
+    ) -> UiIntentExecutionBindingSupport {
+        self.descriptors[slot.index()].support
     }
 }
 
@@ -293,13 +337,22 @@ where
     }
 }
 
-impl<I: UiIntent> UiIntentExecutionBinding for UiUnsupportedServiceIntentExecutionBinding<I> {
+impl<I: UiIntent> UiIntentExecutionBinding for UiUnsupportedCommandIntentExecutionBinding<I> {
+    fn project(
+        &self,
+        values: Vec<UiIntentProjectedValue>,
+    ) -> Result<UiPreparedIntentExecution, UiIntentPayloadProjectionViolation> {
+        project_payload::<I>(values).map(UiPreparedIntentExecution::unsupported_command::<I>)
+    }
+}
+
+impl<I: UiIntent> UiIntentExecutionBinding for UiRuntimeServiceIntentExecutionBinding<I> {
     fn project(
         &self,
         values: Vec<UiIntentProjectedValue>,
     ) -> Result<UiPreparedIntentExecution, UiIntentPayloadProjectionViolation> {
         project_payload::<I>(values).map(|payload| {
-            UiPreparedIntentExecution::unsupported_service::<I>(payload, self.destination)
+            UiPreparedIntentExecution::runtime_service::<I>(payload, self.destination)
         })
     }
 }
@@ -307,6 +360,7 @@ impl<I: UiIntent> UiIntentExecutionBinding for UiUnsupportedServiceIntentExecuti
 fn descriptor<I: UiIntent, D: UiIntentDefinitionDestination>(
     definition: &UiIntentDefinition<I, D>,
     provider_version: UiIntentProviderVersion,
+    support: UiIntentExecutionBindingSupport,
 ) -> UiIntentExecutionBindingDescriptor {
     UiIntentExecutionBindingDescriptor {
         intent: definition.id(),
@@ -314,6 +368,7 @@ fn descriptor<I: UiIntent, D: UiIntentDefinitionDestination>(
         outcome: definition.product_outcome_schema(),
         destination: definition.execution_destination(),
         provider_version,
+        support,
     }
 }
 

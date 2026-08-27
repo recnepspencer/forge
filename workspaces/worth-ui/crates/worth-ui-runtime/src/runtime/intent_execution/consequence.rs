@@ -56,6 +56,21 @@ pub enum UiIntentConsequenceStopReason {
     Planning(Box<crate::runtime::rebind::UiRebindPlanningDenial>),
     Preparation(Box<crate::runtime::rebind::UiRebindPreparationDenial>),
     IntentPostureIdentityExhausted,
+    RuntimeServiceRequiresMountedPosture,
+    RuntimeServiceTransitionExhausted,
+    RuntimeServicePortalPlacement(UiIntentPortalPlacementStopReason),
+    RuntimeServiceProposal(Box<crate::runtime::session::UiPortalProposalPreparationDenial>),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum UiIntentPortalPlacementStopReason {
+    MissingPresentedAnchor,
+    MissingPresentedViewport,
+    IncompatibleCoordinateSpace,
+    EmptyAnchor,
+    InsufficientViewport,
+    UnknownPortalParent,
+    PortalLayerDepthExhausted,
 }
 
 #[must_use]

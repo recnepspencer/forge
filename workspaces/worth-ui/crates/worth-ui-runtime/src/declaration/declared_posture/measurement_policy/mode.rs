@@ -6,6 +6,10 @@ pub enum UiDeclaredMeasurementMode {
         horizontal_logical_points: u16,
         vertical_logical_points: u16,
     },
+    ViewportRegion {
+        horizontal: crate::capability::ComponentViewportAxisPlacement,
+        vertical: crate::capability::ComponentViewportAxisPlacement,
+    },
     FixedLogicalSize {
         width: u16,
         height: u16,

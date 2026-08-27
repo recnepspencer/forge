@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::{BTreeMap, HashSet, VecDeque};
 use std::sync::{Arc, Mutex};
 
 use crate::facade::mounted::{
@@ -51,6 +51,15 @@ struct ScriptedPresentationState {
     wrong_next_deregistration_receipt: bool,
     cancellation_calls: Vec<u64>,
     presentation_calls: usize,
+    last_presentation_correlation:
+        Option<worth_ui_host_native::UiNativePhysicalPresentationCorrelation>,
+    next_physical_presentation_sequence: u64,
+    last_focus_placement: Option<worth_ui_host_contract::UiHostFocusPlacementRequest>,
+    requested_portal_overlay_commands:
+        HashSet<worth_ui_host_contract::UiMountedPaintCommandIdentity>,
+    requested_portal_overlay_counts: Vec<usize>,
+    reconstruction_portal_overlay_counts: Vec<usize>,
+    input_recipient: Option<worth_ui_host_contract::UiHostInputRecipientBindingReceipt>,
     viewport_extent: [f32; 2],
     viewport_measurement_calls: usize,
     viewport_environment_generation: u64,
@@ -84,6 +93,13 @@ impl Default for ScriptedPresentationState {
             wrong_next_deregistration_receipt: false,
             cancellation_calls: Vec::new(),
             presentation_calls: 0,
+            last_presentation_correlation: None,
+            next_physical_presentation_sequence: 1,
+            last_focus_placement: None,
+            requested_portal_overlay_commands: HashSet::new(),
+            requested_portal_overlay_counts: Vec::new(),
+            reconstruction_portal_overlay_counts: Vec::new(),
+            input_recipient: None,
             viewport_extent: [800.0, 600.0],
             viewport_measurement_calls: 0,
             viewport_environment_generation: 1,
@@ -211,6 +227,34 @@ impl ScriptedPresentationHost {
 
     pub fn presentation_calls(&self) -> usize {
         self.state.lock().unwrap().presentation_calls
+    }
+
+    pub fn last_presentation_correlation(
+        &self,
+    ) -> Option<worth_ui_host_native::UiNativePhysicalPresentationCorrelation> {
+        self.state.lock().unwrap().last_presentation_correlation
+    }
+
+    pub fn last_focus_placement(
+        &self,
+    ) -> Option<worth_ui_host_contract::UiHostFocusPlacementRequest> {
+        self.state.lock().unwrap().last_focus_placement
+    }
+
+    pub fn reconstruction_portal_overlay_counts(&self) -> Vec<usize> {
+        self.state
+            .lock()
+            .unwrap()
+            .reconstruction_portal_overlay_counts
+            .clone()
+    }
+
+    pub fn requested_portal_overlay_counts(&self) -> Vec<usize> {
+        self.state
+            .lock()
+            .unwrap()
+            .requested_portal_overlay_counts
+            .clone()
     }
 
     pub fn set_viewport_extent(&self, extent: [f32; 2]) {

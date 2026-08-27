@@ -314,8 +314,8 @@ fn stop_on_revision_schema(
         worth_ui_platform_pulse::observation_contract::
             PlatformPulseProjectionSchemaTransitionKind::Stopped
     );
-    assert!(evidence.retained_upper_pixel_bytes() > 0);
-    assert!(evidence.changed_lower_pixel_bytes() > 0);
+    assert!(evidence.retained_control_pixel_bytes() > 0);
+    assert!(evidence.changed_posture_pixel_bytes() > 0);
     assert!(!evidence.canonical_current_restored());
     stopped
 }
@@ -345,8 +345,8 @@ fn recover_status_schema(
         worth_ui_platform_pulse::observation_contract::
             PlatformPulseProjectionSchemaTransitionKind::Recovered
     );
-    assert!(evidence.retained_upper_pixel_bytes() > 0);
-    assert!(evidence.changed_lower_pixel_bytes() > 0);
+    assert!(evidence.retained_control_pixel_bytes() > 0);
+    assert!(evidence.changed_posture_pixel_bytes() > 0);
     assert!(evidence.canonical_current_restored());
     assert_eq!(
         recovered.stopped_evidence().transition().kind(),

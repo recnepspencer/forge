@@ -132,6 +132,11 @@ impl UiMountedPresentationCommandKey {
                 slot: 0,
                 collection: None,
             },
+            UiMountedPaintCommand::PortalOverlay { mechanic, .. } => Self {
+                family: 1,
+                slot: 0,
+                collection: Some(portal_identity_digest(mechanic.portal_identity())),
+            },
             UiMountedPaintCommand::SemanticText { mechanic, .. } => {
                 let slot = match mechanic.slot() {
                     UiSemanticTextSlot::Value => 0,
@@ -141,7 +146,7 @@ impl UiMountedPresentationCommandKey {
                     UiSemanticTextSlot::Posture => u16::MAX,
                 };
                 Self {
-                    family: 1,
+                    family: 2,
                     slot,
                     collection: mechanic
                         .collection_row()
@@ -150,4 +155,12 @@ impl UiMountedPresentationCommandKey {
             }
         }
     }
+}
+
+fn portal_identity_digest(identity: u64) -> [u8; 32] {
+    let mut digest = [0_u8; 32];
+    for (index, chunk) in digest.chunks_exact_mut(8).enumerate() {
+        chunk.copy_from_slice(&identity.rotate_left((index * 13) as u32).to_le_bytes());
+    }
+    digest
 }

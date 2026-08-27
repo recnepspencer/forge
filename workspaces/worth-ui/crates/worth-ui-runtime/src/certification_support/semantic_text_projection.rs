@@ -94,6 +94,7 @@ pub fn empty_projection_for_certification() -> UiMountedProjectionView {
         clips: worth_ui_host_contract::UiMountedClipTable::produced(Vec::new()),
         layers: worth_ui_host_contract::UiMountedLayerTable::produced(Vec::new()),
         filled_rects: worth_ui_host_contract::UiMountedFilledRectTable::empty(),
+        portal_overlays: worth_ui_host_contract::UiMountedPortalOverlayTable::empty(),
         semantic_text: UiMountedSemanticTextTable::empty(),
         hit_tests: worth_ui_host_contract::UiMountedHitTestTable::empty(),
         paint_batches: UiMountedPaintBatchTable::new(Vec::new()),
@@ -214,7 +215,7 @@ fn projection(basis: SemanticTextProjectionBasis) -> UiMountedProjectionView {
     let nodes = vec![node(&basis)];
     let rows = vec![basis.row];
     let (authored_paint_commands, authored_paint_order) =
-        crate::mounting::compile_presentation_sources(&nodes, &[], &rows);
+        crate::mounting::compile_presentation_sources(&nodes, &[], &[], &rows);
     UiMountedProjectionView::new(UiMountedProjectionViewInput {
         frame: basis.frame,
         surface: basis.surface,
@@ -224,6 +225,7 @@ fn projection(basis: SemanticTextProjectionBasis) -> UiMountedProjectionView {
         clips: worth_ui_host_contract::UiMountedClipTable::produced(Vec::new()),
         layers: worth_ui_host_contract::UiMountedLayerTable::produced(Vec::new()),
         filled_rects: worth_ui_host_contract::UiMountedFilledRectTable::empty(),
+        portal_overlays: worth_ui_host_contract::UiMountedPortalOverlayTable::empty(),
         semantic_text: UiMountedSemanticTextTable::from_runtime_mounting(rows)
             .expect("one semantic row fits the mounted table"),
         hit_tests: worth_ui_host_contract::UiMountedHitTestTable::empty(),
@@ -294,6 +296,7 @@ fn node(basis: &SemanticTextProjectionBasis) -> UiMountedNodeProjectionView {
     UiMountedNodeProjectionView::new(UiMountedNodeProjectionViewInput {
         mounted_instance: basis.instance,
         node_receipt: basis.node_receipt,
+        authored_position: 0,
         role: UiMountedMechanicalRole::Control,
         participation: UiMountedParticipation::new(UiMountedParticipationInput {
             paint: if basis.paint_admitted {
@@ -326,6 +329,7 @@ fn node(basis: &SemanticTextProjectionBasis) -> UiMountedNodeProjectionView {
             .map(worth_ui_host_contract::UiMountedDrawableReference::SemanticText)
             .collect(),
         semantic_text: basis.references.clone(),
+        portal_presentation: None,
     })
 }
 

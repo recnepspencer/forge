@@ -139,10 +139,13 @@ fn indeterminate_world(
         ),
         UiMountedFrameOutcome::PresentationIndeterminate(_)
     ));
+    let host_surface =
+        session.inspect_mounted_identity().surface_bindings()[0].host_surface_identity();
     IndeterminateObservationWorld {
         session,
         binding,
         basis: PresentedObservationBasis {
+            host_surface,
             frame,
             epoch: current.epoch,
             instance,

@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use std::time::Instant;
 
 use crate::installation::{CanonicalPlatformPulse, PulseInstallationPath};
 use crate::product_process::{Closed, PulseExecutableWorld};
@@ -55,12 +54,12 @@ pub(super) fn complete(
     manifest: &PulseCausalActionManifest,
     installation_path: &PulseInstallationPath,
 ) -> CompletedPulseNativeCutoverRun {
-    let journey_started = Instant::now();
     let route_removal =
         IntentRouteRemovalSourceDelta::from_checked_in(CanonicalPlatformPulse::checked_in())
             .expect("canonical Pulse contains exactly one typed action route");
     let mut cursor = manifest.cursor();
     let open = complete_open_for_manifest(deltas, &mut cursor, manifest, installation_path);
+    let journey_started = open.recovered.native_journey_started();
     let open_source_actions = open.recovered.source_action_count();
     let first_publication = open.first_publication;
     let window_lookups = open.window_lookups;

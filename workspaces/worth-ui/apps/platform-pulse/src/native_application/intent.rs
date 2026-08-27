@@ -4,6 +4,7 @@ mod clock;
 mod evidence_index;
 mod execution;
 mod native_ingress;
+mod portal_dismissal;
 mod product_action;
 mod product_input;
 

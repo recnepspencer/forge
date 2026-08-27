@@ -23,12 +23,19 @@ impl PresentationSources {
     pub(super) fn admit(
         nodes: &[UiMountedNodeProjectionView],
         filled_rects: &super::super::UiMountedFilledRectTable,
+        portal_overlays: &super::super::UiMountedPortalOverlayTable,
         semantic_text: &super::super::UiMountedSemanticTextTable,
         commands: Vec<UiMountedPaintCommand>,
         order: Vec<UiMountedPaintOrderIdentity>,
     ) -> Self {
         let command_indices = command_indices(&commands);
-        validate_drawable_set(nodes, filled_rects, semantic_text, &command_indices);
+        validate_drawable_set(
+            nodes,
+            filled_rects,
+            portal_overlays,
+            semantic_text,
+            &command_indices,
+        );
         let commands_by_instance =
             commands_by_instance(nodes, &commands, filled_rects, semantic_text);
         let (order_predecessors, order_positions, order_integrity) =
@@ -60,6 +67,7 @@ fn command_indices(
 fn validate_drawable_set(
     nodes: &[UiMountedNodeProjectionView],
     filled_rects: &super::super::UiMountedFilledRectTable,
+    portal_overlays: &super::super::UiMountedPortalOverlayTable,
     semantic_text: &super::super::UiMountedSemanticTextTable,
     command_indices: &HashMap<UiMountedPaintCommandIdentity, usize>,
 ) {
@@ -67,7 +75,9 @@ fn validate_drawable_set(
         .iter()
         .flat_map(UiMountedNodeProjectionView::drawables)
         .copied()
-        .map(|reference| command_for(reference, filled_rects, semantic_text).identity())
+        .map(|reference| {
+            command_for(reference, filled_rects, portal_overlays, semantic_text).identity()
+        })
         .collect::<HashSet<_>>();
     assert_eq!(expected.len(), command_indices.len());
     assert!(expected
@@ -133,6 +143,7 @@ fn order_indexes(
 fn command_for(
     reference: UiMountedDrawableReference,
     filled_rects: &super::super::UiMountedFilledRectTable,
+    portal_overlays: &super::super::UiMountedPortalOverlayTable,
     semantic_text: &super::super::UiMountedSemanticTextTable,
 ) -> UiMountedPaintCommand {
     match reference {
@@ -142,6 +153,15 @@ fn command_for(
                 .expect("authored rectangle reference resolves");
             UiMountedPaintCommand::FilledRect {
                 identity: UiMountedPaintCommandIdentity::filled_rect(&mechanic),
+                mechanic,
+            }
+        }
+        UiMountedDrawableReference::PortalOverlay(reference) => {
+            let mechanic = *portal_overlays
+                .resolve(reference)
+                .expect("authored portal overlay reference resolves");
+            UiMountedPaintCommand::PortalOverlay {
+                identity: UiMountedPaintCommandIdentity::portal_overlay(&mechanic),
                 mechanic,
             }
         }
@@ -164,6 +184,12 @@ fn validate_command(command: &UiMountedPaintCommand) {
             assert_eq!(
                 *identity,
                 UiMountedPaintCommandIdentity::filled_rect(mechanic)
+            );
+        }
+        UiMountedPaintCommand::PortalOverlay { identity, mechanic } => {
+            assert_eq!(
+                *identity,
+                UiMountedPaintCommandIdentity::portal_overlay(mechanic)
             );
         }
         UiMountedPaintCommand::SemanticText { identity, mechanic } => {

@@ -8,6 +8,10 @@ pub enum UiObservationFamily {
     IntentPosture,
     CommittedScrollExtent,
     CommittedPortalAnchor,
+    CommittedFocus,
+    CommittedSelection,
+    CommittedMotionTrack,
+    CommittedCommandRoute,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -20,6 +24,10 @@ pub enum UiObservationOwner {
     IntentRuntime,
     ScrollRuntimeState,
     PortalRuntimeState,
+    FocusRuntimeState,
+    SelectionRuntimeState,
+    MotionRuntimeState,
+    CommandRoutingRuntimeState,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -92,6 +100,16 @@ impl UiObservationFamily {
             Self::CommittedPortalAnchor => {
                 crate::fact_contract::UiProducedFactOwner::PortalRuntimeState
             }
+            Self::CommittedFocus => crate::fact_contract::UiProducedFactOwner::FocusRuntimeState,
+            Self::CommittedSelection => {
+                crate::fact_contract::UiProducedFactOwner::SelectionRuntimeState
+            }
+            Self::CommittedMotionTrack => {
+                crate::fact_contract::UiProducedFactOwner::MotionRuntimeState
+            }
+            Self::CommittedCommandRoute => {
+                crate::fact_contract::UiProducedFactOwner::CommandRoutingRuntimeState
+            }
         })
     }
 
@@ -157,8 +175,36 @@ impl UiObservationFamily {
                 UiObservationResetPolicy::NoReset,
                 UiObservationCoalescingPolicy::OwnerEquivalentOnly,
             ),
+            Self::CommittedFocus => {
+                service_fact_definition(self, UiObservationOwner::FocusRuntimeState, 8)
+            }
+            Self::CommittedSelection => {
+                service_fact_definition(self, UiObservationOwner::SelectionRuntimeState, 9)
+            }
+            Self::CommittedMotionTrack => {
+                service_fact_definition(self, UiObservationOwner::MotionRuntimeState, 10)
+            }
+            Self::CommittedCommandRoute => {
+                service_fact_definition(self, UiObservationOwner::CommandRoutingRuntimeState, 11)
+            }
         }
     }
+}
+
+const fn service_fact_definition(
+    family: UiObservationFamily,
+    owner: UiObservationOwner,
+    framework_rank: u8,
+) -> UiObservationFamilyDefinition {
+    definition(
+        family,
+        owner,
+        framework_rank,
+        UiObservationDuplicatePolicy::OwnerEquivalentMayCoalesce,
+        UiObservationLossPolicy::Lossless,
+        UiObservationResetPolicy::NoReset,
+        UiObservationCoalescingPolicy::OwnerEquivalentOnly,
+    )
 }
 
 const fn host_latest_value_definition(

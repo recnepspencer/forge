@@ -59,6 +59,12 @@ pub(crate) struct UiMountedGraphReplacementCompletionRejection {
 }
 
 impl UiMountedGraphReplacementSuccessor {
+    pub(crate) fn focus_participation_snapshot(
+        &self,
+    ) -> Option<crate::mounting::UiMountedFocusParticipationSnapshot> {
+        self.identity.focus_participation_snapshot()
+    }
+
     pub(crate) fn seal_frame_reuse_contract(
         &self,
         basis: crate::mounting::UiMountedFrameReuseExternalBasis,

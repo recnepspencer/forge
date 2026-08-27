@@ -60,6 +60,31 @@ pub(in crate::observation_contract) enum PlatformPulseVisualObservationState {
 }
 
 impl PlatformPulseVisualObservationState {
+    pub(in crate::observation_contract) fn after_refreshed_snapshot(
+        self,
+        snapshot: u64,
+        observed_frame: u64,
+        observed_current: bool,
+    ) -> Result<Self, PlatformPulseLifecycleObservationProjectionDenial> {
+        let Self::AwaitingRefreshSnapshot { refresh_frame } = self else {
+            return Err(
+                PlatformPulseLifecycleObservationProjectionDenial::VisualObservationOutOfOrder,
+            );
+        };
+        if !observed_current || observed_frame < refresh_frame {
+            return Err(PlatformPulseLifecycleObservationProjectionDenial::
+                VisualRefreshSnapshotAffinityMismatch {
+                    expected_frame: refresh_frame,
+                    observed_frame,
+                    observed_current,
+                });
+        }
+        Ok(Self::Refreshed {
+            snapshot,
+            frame: observed_frame,
+        })
+    }
+
     pub(in crate::observation_contract) fn after_content_publication(
         self,
         frame: u64,

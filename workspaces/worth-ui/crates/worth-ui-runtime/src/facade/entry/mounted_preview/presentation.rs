@@ -29,6 +29,13 @@ impl<'session> WorthUiPreparedMountedPreview<'session> {
                 .mounted
                 .present_prepared_frame(ports.host_session, frame, deadline, now);
         let outcome = super::super::mounted_publication::finish_mounted_transition(
+            ports.mounted,
+            ports.focus,
+            ports.portal,
+            ports.interaction,
+            ports.host_session,
+            ports.application_session_identity,
+            &ports.generation_identity,
             ports.host_exchange,
             publication,
         );
@@ -77,6 +84,13 @@ impl<'session> WorthUiMountedPreviewInFlight<'session> {
                 .mounted
                 .complete_presentation(ports.host_session, handle.clone(), now);
         let outcome = super::super::mounted_publication::finish_mounted_transition(
+            ports.mounted,
+            ports.focus,
+            ports.portal,
+            ports.interaction,
+            ports.host_session,
+            ports.application_session_identity,
+            &ports.generation_identity,
             ports.host_exchange,
             publication,
         );

@@ -2,6 +2,7 @@ pub(in crate::intent) mod consequence;
 mod ia_08;
 pub(in crate::intent) mod lifecycle;
 mod phase4;
+mod portal_service;
 pub(in crate::intent) mod registration;
 pub(in crate::intent) mod reservation;
 

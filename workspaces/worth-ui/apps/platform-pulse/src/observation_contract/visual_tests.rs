@@ -125,6 +125,38 @@ fn in_flight_refresh_coalesces_only_monotonically_newer_content_frames() {
     );
 }
 
+#[test]
+fn refreshed_snapshot_accepts_a_current_runtime_owned_successor_after_its_initiating_frame() {
+    let awaiting =
+        PlatformPulseVisualObservationState::AwaitingRefreshSnapshot { refresh_frame: 139 };
+
+    assert_eq!(
+        awaiting.after_refreshed_snapshot(41, 144, true),
+        Ok(PlatformPulseVisualObservationState::Refreshed {
+            snapshot: 41,
+            frame: 144,
+        })
+    );
+    assert_eq!(
+        awaiting.after_refreshed_snapshot(41, 138, true),
+        Err(PlatformPulseLifecycleObservationProjectionDenial::
+            VisualRefreshSnapshotAffinityMismatch {
+                expected_frame: 139,
+                observed_frame: 138,
+                observed_current: true,
+            })
+    );
+    assert_eq!(
+        awaiting.after_refreshed_snapshot(41, 144, false),
+        Err(PlatformPulseLifecycleObservationProjectionDenial::
+            VisualRefreshSnapshotAffinityMismatch {
+                expected_frame: 139,
+                observed_frame: 144,
+                observed_current: false,
+            })
+    );
+}
+
 fn snapshot_observation() -> PlatformPulseVisualSnapshotCaptured {
     PlatformPulseVisualSnapshotCaptured {
         affinity: PlatformPulseVisualSnapshotAffinityObservation {

@@ -2,11 +2,17 @@ use super::{WorthUiActiveApplicationSession, WorthUiRuntimeShutdownReceipt};
 
 impl WorthUiActiveApplicationSession {
     pub fn shutdown(mut self) -> WorthUiRuntimeShutdownReceipt {
+        self.shutdown_portal_exit_retention();
         let rebind = self.rebind.shutdown();
         let visual_capture = self.visual_captures.shutdown();
         let visual_overlay = self.visual_overlays.shutdown();
         let previous_input = self.interaction.active_input_binding();
         let interaction = self.interaction.shutdown();
+        let focus_placement = self.mounted.shutdown_focus_placement();
+        let portal = self.portal.shutdown();
+        let _presentation_motion_tracks = self.mounted.shutdown_motion_sampling();
+        let motion = self.motion.shutdown();
+        debug_assert!(motion.final_census().is_zero());
         self.clear_displaced_input_recipient(previous_input);
         let confirmation = self.intent_confirmation.shutdown();
         let (admission, execution) = self.intent_admission.shutdown(&mut self.intent_execution);
@@ -40,6 +46,9 @@ impl WorthUiActiveApplicationSession {
             .bind_host_session_release(host_session_release)
             .bind_host_session_recovery(host_session_recovery)
             .bind_interaction(interaction)
+            .bind_focus_placement(focus_placement)
+            .bind_portal(portal)
+            .bind_motion(motion)
             .bind_intent_confirmation(confirmation)
             .bind_intent_admission(admission)
             .bind_intent_execution(execution)

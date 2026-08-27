@@ -5,11 +5,19 @@ pub(super) fn outcome_label(outcome: &UiMountedFrameOutcome) -> String {
         UiMountedFrameOutcome::Published(_) => "published".to_owned(),
         UiMountedFrameOutcome::Unchanged(_) => "unchanged".to_owned(),
         UiMountedFrameOutcome::Reconciled(_) => "reconciled".to_owned(),
-        UiMountedFrameOutcome::RejectedBeforeEffects(_) => "rejected-before-effects".to_owned(),
+        UiMountedFrameOutcome::RejectedBeforeEffects(rejected) => format!(
+            "rejected-before-effects:{:?}",
+            rejected
+                .rejections()
+                .iter()
+                .map(|rejection| rejection.denial())
+                .collect::<Vec<_>>()
+        ),
         UiMountedFrameOutcome::InFlight(_) => "in-flight".to_owned(),
-        UiMountedFrameOutcome::PresentationIndeterminate(_) => {
-            "presentation-indeterminate".to_owned()
-        }
+        UiMountedFrameOutcome::PresentationIndeterminate(frame) => format!(
+            "presentation-indeterminate:physical-recovery={}",
+            frame.report().awaits_physical_recovery()
+        ),
         UiMountedFrameOutcome::Superseded(_) => "superseded".to_owned(),
         UiMountedFrameOutcome::RetentionDenied(_) => "retention-denied".to_owned(),
         UiMountedFrameOutcome::AdmissionDenied(_) => "admission-denied".to_owned(),
@@ -29,7 +37,7 @@ pub(super) fn stop_label(
         }
         worth_ui::facade::app::WorthUiMountedFrameExecutionStop::HostMeasurementTransition(
             denial,
-        ) => host_measurement_transition_label(denial).to_owned(),
+        ) => host_measurement_transition_label(denial),
         worth_ui::facade::app::WorthUiMountedFrameExecutionStop::FrameworkTransition(_) => {
             "framework-transition".to_owned()
         }
@@ -41,39 +49,39 @@ pub(super) fn stop_label(
 
 fn host_measurement_transition_label(
     denial: &worth_ui::facade::app::UiMountedHostMeasurementTransitionDenial,
-) -> &'static str {
+) -> String {
     use worth_ui::facade::app::UiMountedHostMeasurementTransitionDenial as Denial;
     use worth_ui::facade::app::UiMountedHostMeasurementUnexpectedTransition as Unexpected;
 
     match denial {
-        Denial::AllocationReplanDenied(_) => "host-measurement:allocation-replan-denied",
-        Denial::ViewportResizeDenied(_) => "host-measurement:viewport-resize-denied",
+        Denial::AllocationReplanDenied(_) => "host-measurement:allocation-replan-denied".to_owned(),
+        Denial::ViewportResizeDenied(_) => "host-measurement:viewport-resize-denied".to_owned(),
         Denial::AllocationReplanSelectionDenied(_) => {
-            "host-measurement:allocation-replan-selection-denied"
+            "host-measurement:allocation-replan-selection-denied".to_owned()
         }
         Denial::AllocationFrameResolutionDenied(_) => {
-            "host-measurement:allocation-frame-resolution-denied"
+            "host-measurement:allocation-frame-resolution-denied".to_owned()
         }
-        Denial::AllocationInvalidationNarrowingDenied(_) => {
-            "host-measurement:allocation-invalidation-narrowing-denied"
+        Denial::AllocationInvalidationNarrowingDenied(detail) => {
+            format!("host-measurement:allocation-invalidation-narrowing-denied:{detail:?}")
         }
         Denial::FrameworkTransitionPlanningDenied(_) => {
-            "host-measurement:framework-transition-planning-denied"
+            "host-measurement:framework-transition-planning-denied".to_owned()
         }
         Denial::FrameworkTransitionExecutionDenied(_) => {
-            "host-measurement:framework-transition-execution-denied"
+            "host-measurement:framework-transition-execution-denied".to_owned()
         }
-        Denial::DispatcherDenied { .. } => "host-measurement:dispatcher-denied",
+        Denial::DispatcherDenied { .. } => "host-measurement:dispatcher-denied".to_owned(),
         Denial::UnexpectedSuccessfulTransition(transition) => match transition {
-            Unexpected::ReadyToExecute => "host-measurement:unexpected-ready-to-execute",
+            Unexpected::ReadyToExecute => "host-measurement:unexpected-ready-to-execute".to_owned(),
             Unexpected::ResizePreviewPublished => {
-                "host-measurement:unexpected-resize-preview-published"
+                "host-measurement:unexpected-resize-preview-published".to_owned()
             }
             Unexpected::DurableResizeCommitted => {
-                "host-measurement:unexpected-durable-resize-committed"
+                "host-measurement:unexpected-durable-resize-committed".to_owned()
             }
             Unexpected::DragResizePreviewPending => {
-                "host-measurement:unexpected-drag-resize-preview-pending"
+                "host-measurement:unexpected-drag-resize-preview-pending".to_owned()
             }
         },
     }

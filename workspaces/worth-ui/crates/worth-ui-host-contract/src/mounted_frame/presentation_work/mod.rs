@@ -8,6 +8,7 @@ mod initial;
 mod node_change;
 mod paint_order;
 mod reconstruction;
+mod sample;
 mod unchanged;
 
 pub use affinity::UiMountedPresentationAffinity;
@@ -31,5 +32,10 @@ pub use paint_order::{
 };
 pub use reconstruction::{
     UiMountedPresentationReconstruction, UiMountedPresentationReconstructionInput,
+};
+pub use sample::{
+    UiMountedPresentationOpacity, UiMountedPresentationSample, UiMountedPresentationSampleChange,
+    UiMountedPresentationSampleConstructionDenial, UiMountedPresentationSampleInput,
+    UiMountedPresentationTransform,
 };
 pub use unchanged::{UiMountedPresentationUnchanged, UiMountedPresentationUnchangedInput};

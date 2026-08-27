@@ -158,6 +158,9 @@ fn execution_for(
         | crate::obligations::catalog::UiObligationFamily::PortalHostRequirement
         | crate::obligations::catalog::UiObligationFamily::FocusRouteRequirement
         | crate::obligations::catalog::UiObligationFamily::MotionSupportRequirement
+        | crate::obligations::catalog::UiObligationFamily::ScrollRoutingRequirement
+        | crate::obligations::catalog::UiObligationFamily::SelectionStateRequirement
+        | crate::obligations::catalog::UiObligationFamily::CommandRouteRequirement
         | crate::obligations::catalog::UiObligationFamily::AccessibilityRequirement
         | crate::obligations::catalog::UiObligationFamily::HostCapabilityRequirement => {
             UiObligationDispatchExecution::TypedStop(UiObligationDispatchStopPosture::Deferred)

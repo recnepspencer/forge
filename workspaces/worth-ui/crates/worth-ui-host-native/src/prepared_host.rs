@@ -172,6 +172,16 @@ impl worth_ui_host_contract::WorthUiHostMechanicsAdapter for WorthUiPreparedNati
         )
     }
 
+    fn perform_focus_placement(
+        &self,
+        request: worth_ui_host_contract::UiHostFocusPlacementRequest,
+    ) -> worth_ui_host_contract::UiHostFocusPlacementAcknowledgement {
+        worth_ui_host_contract::WorthUiHostMechanicsAdapter::perform_focus_placement(
+            &self.adapter,
+            request,
+        )
+    }
+
     fn perform_mounted_surface_presentation(
         &self,
         view: &worth_ui_host_contract::UiMountedFrameConsumptionView<'_>,

@@ -121,6 +121,13 @@ impl WorthUiActiveApplicationSession {
                 .mounted
                 .present_prepared_frame(execution.host_session, frame, deadline, now);
         Ok(finish_mounted_transition(
+            execution.mounted,
+            execution.focus,
+            execution.portal,
+            execution.interaction,
+            execution.host_session,
+            execution.application_session_identity,
+            &execution.generation_identity,
             execution.host_exchange,
             transition,
         ))
@@ -159,6 +166,13 @@ impl WorthUiActiveApplicationSession {
                 .mounted
                 .present_prepared_frame(execution.host_session, frame, deadline, now);
         Ok(finish_mounted_transition(
+            execution.mounted,
+            execution.focus,
+            execution.portal,
+            execution.interaction,
+            execution.host_session,
+            execution.application_session_identity,
+            &execution.generation_identity,
             execution.host_exchange,
             transition,
         ))

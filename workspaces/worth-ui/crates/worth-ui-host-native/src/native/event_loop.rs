@@ -66,6 +66,7 @@ pub use contract::{
     UiNativeEventLoopRunReport, UiNativeEventLoopShutdownOverlapObservation,
     UiNativeEventLoopStopReport, UiNativeInputReachability, UiNativeObservationReadinessGrant,
     UiNativePhysicalProgressClass, UiNativePhysicalProgressGrant, UiNativeReadinessGrant,
+    UiNativeReducedMotionPosture,
 };
 use physical_clock::UiNativePhysicalEventClock;
 pub use presentation_correlation::UiNativePhysicalPresentationCorrelation;

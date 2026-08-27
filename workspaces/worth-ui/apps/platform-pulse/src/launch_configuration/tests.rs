@@ -107,11 +107,22 @@ fn explicit_absolute_installation_reaches_real_application_preparation() {
         ..
     } = prepared;
     let application = builder.freeze().expect("prepared application freezes");
+    assert_product_capabilities_are_fully_admitted(application.capabilities());
     let definitions = application.capabilities().intent_definitions();
-    assert_eq!(definitions.len(), 1);
+    assert_eq!(definitions.len(), 3);
     assert!(definitions
         .get(&worth_ui::facade::intent::UiIntentId::stable(
             worth_ui_platform_pulse::intent::PLATFORM_PULSE_ACTION_DEFINITION,
+        ))
+        .is_some());
+    assert!(definitions
+        .get(&worth_ui::facade::intent::UiIntentId::stable(
+            worth_ui_platform_pulse::intent::PLATFORM_PULSE_OPEN_PORTAL_DEFINITION,
+        ))
+        .is_some());
+    assert!(definitions
+        .get(&worth_ui::facade::intent::UiIntentId::stable(
+            worth_ui_platform_pulse::intent::PLATFORM_PULSE_CLOSE_PORTAL_DEFINITION,
         ))
         .is_some());
     let action_view = worth_ui::facade::query_binding::WorthUiQueryViewIdentity::new(
@@ -132,11 +143,13 @@ fn explicit_absolute_installation_reaches_real_application_preparation() {
         "effect-free preparation retains one concrete host-neutral generation"
     );
     drop(application);
-    let query_shutdown = query_lifecycle
-        .close()
-        .expect("isolated Query lifecycle closes");
-    assert!(query_shutdown.owner_terminal());
-    assert_eq!(query_shutdown.live_source_count(), 0);
+    assert!(
+        matches!(
+            query_lifecycle.close(),
+            Err(crate::query_source::PlatformPulseQueryLifecycleDenial::OwnerNotLive)
+        ),
+        "pre-frame preparation has not issued the Query live owner"
+    );
     query_watcher
         .shutdown()
         .expect("isolated Query watcher shuts down");
@@ -153,6 +166,80 @@ fn explicit_absolute_installation_reaches_real_application_preparation() {
     watcher
         .shutdown()
         .expect("isolated source watcher shuts down");
+}
+
+fn assert_product_capabilities_are_fully_admitted(
+    capabilities: &worth_ui::facade::diagnostics::CapabilitySnapshot,
+) {
+    use worth_ui::facade::declaration::{
+        ComponentId, MosaicPlacementPolicyId, MosaicRegionKindId, MosaicSizingContractId,
+        MosaicStateSlotId, SurfaceId,
+    };
+    use worth_ui_platform_pulse::product_world::{
+        PlatformPulseMosaicRegion, PlatformPulseMosaicSizing, PlatformPulseMosaicSurface,
+        PlatformPulseProductComponent, PLATFORM_PULSE_EVIDENCE_PLACEMENT,
+        PLATFORM_PULSE_FOCUSED_REGION_STATE, PLATFORM_PULSE_SERVICE_PLACEMENT,
+        PLATFORM_PULSE_STATUS_PLACEMENT,
+    };
+
+    assert_eq!(
+        capabilities.components().len(),
+        PlatformPulseProductComponent::ALL.len()
+    );
+    for component in PlatformPulseProductComponent::ALL {
+        let id = ComponentId::new(component.id()).expect("valid Pulse component identity");
+        assert!(
+            capabilities.components().get(&id).is_some(),
+            "canonical source component was rejected: {}",
+            component.id()
+        );
+    }
+
+    assert_eq!(
+        capabilities.surfaces().len(),
+        PlatformPulseMosaicSurface::ALL.len()
+    );
+    for surface in PlatformPulseMosaicSurface::ALL {
+        let id = SurfaceId::new(surface.id()).expect("valid Pulse surface identity");
+        assert!(capabilities.surfaces().get(&id).is_some());
+    }
+
+    assert_eq!(
+        capabilities.mosaic_regions().len(),
+        PlatformPulseMosaicRegion::ALL.len()
+    );
+    for region in PlatformPulseMosaicRegion::ALL {
+        let id = MosaicRegionKindId::new(region.id()).expect("valid Pulse region identity");
+        assert!(capabilities.mosaic_regions().get(&id).is_some());
+    }
+
+    assert_eq!(
+        capabilities.mosaic_sizing_contracts().len(),
+        PlatformPulseMosaicSizing::ALL.len()
+    );
+    for sizing in PlatformPulseMosaicSizing::ALL {
+        let id = MosaicSizingContractId::new(sizing.id()).expect("valid Pulse sizing identity");
+        assert!(capabilities.mosaic_sizing_contracts().get(&id).is_some());
+    }
+
+    let placement_ids = [
+        PLATFORM_PULSE_EVIDENCE_PLACEMENT,
+        PLATFORM_PULSE_SERVICE_PLACEMENT,
+        PLATFORM_PULSE_STATUS_PLACEMENT,
+    ];
+    assert_eq!(
+        capabilities.mosaic_placement_policies().len(),
+        placement_ids.len()
+    );
+    for placement in placement_ids {
+        let id = MosaicPlacementPolicyId::new(placement).expect("valid Pulse placement identity");
+        assert!(capabilities.mosaic_placement_policies().get(&id).is_some());
+    }
+
+    assert_eq!(capabilities.mosaic_state_slots().len(), 1);
+    let state = MosaicStateSlotId::new(PLATFORM_PULSE_FOCUSED_REGION_STATE)
+        .expect("valid Pulse state identity");
+    assert!(capabilities.mosaic_state_slots().get(&state).is_some());
 }
 
 #[test]

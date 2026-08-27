@@ -5,7 +5,7 @@ pub enum UiHostObservationFamily {
     PointerMotion,
     PointerButton,
     Keyboard,
-    Focus,
+    WindowFocus,
     ScrollDelta,
     Clock,
     Tick,

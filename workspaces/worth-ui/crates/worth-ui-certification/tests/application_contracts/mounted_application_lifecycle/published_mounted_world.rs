@@ -1,5 +1,5 @@
 use worth_ui::facade::app::WorthUiActiveApplicationSession;
-use worth_ui_host_contract::UiHostPresentationEpoch;
+use worth_ui_host_contract::{UiHostPresentationEpoch, UiHostSurfaceIdentity};
 use worth_ui_runtime::facade::mounted::{
     UiMountedFrameIdentity, UiMountedFrameOutcome, UiMountedInspectionReceipt,
     UiMountedInspectionRequest, UiMountedInstanceIdentity, UiMountedNodeReceiptIdentity,
@@ -15,6 +15,7 @@ use crate::mounted_host_protocol::scripted_host::{
 
 #[derive(Clone, Copy)]
 pub(crate) struct PresentedObservationBasis {
+    pub(crate) host_surface: UiHostSurfaceIdentity,
     pub(crate) frame: UiMountedFrameIdentity,
     pub(crate) epoch: UiHostPresentationEpoch,
     pub(crate) instance: UiMountedInstanceIdentity,
@@ -106,6 +107,12 @@ pub(crate) fn multi_surface_observation_world(
                 .find(|candidate| candidate.binding_generation() == binding)
                 .expect("published binding remains indexed")
                 .semantic_surface_identity();
+            let host_surface = identity
+                .surface_bindings()
+                .iter()
+                .find(|candidate| candidate.binding_generation() == binding)
+                .expect("published binding remains indexed")
+                .host_surface_identity();
             let instance = identity
                 .mounted_instances()
                 .iter()
@@ -121,6 +128,7 @@ pub(crate) fn multi_surface_observation_world(
             (
                 binding,
                 PresentedObservationBasis {
+                    host_surface,
                     frame: frame_identity,
                     epoch: scripted_presentation_epoch(),
                     instance,
@@ -153,7 +161,10 @@ pub(crate) fn publish(
         .find(|receipt| receipt.mounted_instance_identity() == instance)
         .expect("published instance has one frame-scoped receipt")
         .node_receipt_identity();
+    let host_surface =
+        session.inspect_mounted_identity().surface_bindings()[0].host_surface_identity();
     PresentedObservationBasis {
+        host_surface,
         frame: frame_identity,
         epoch: scripted_presentation_epoch(),
         instance,

@@ -40,6 +40,7 @@ fn validated_agreement_static_paint_consumes_and_mixed_contract_stops_before_con
         .unperformed_effects()
         .contains(&UiHeadlessUnperformedEffect::NativePaint {
             filled_rect_count: 1,
+            portal_overlay_count: 0,
             semantic_text_count: 0,
             preview_node_count: 0,
         }));
@@ -83,6 +84,7 @@ fn count_only_paint_remains_recordable_but_non_drawable() {
         .unperformed_effects()
         .contains(&UiHeadlessUnperformedEffect::NativePaint {
             filled_rect_count: 0,
+            portal_overlay_count: 0,
             semantic_text_count: 0,
             preview_node_count: 0,
         }));
@@ -147,6 +149,7 @@ fn mounted_frame_revision_two() -> UiHostProtocolContract {
         current.mounted_presentation(),
         current.observation(),
         current.measurement(),
+        current.solicited_effect(),
     )
 }
 
@@ -237,6 +240,7 @@ fn complete_projection(mutation: ProjectionMutation) -> UiMountedProjectionView 
         clips: worth_ui_host_contract::UiMountedClipTable::produced(Vec::new()),
         layers: worth_ui_host_contract::UiMountedLayerTable::produced(Vec::new()),
         filled_rects: UiMountedFilledRectTable::from_runtime_mounting(vec![row]).unwrap(),
+        portal_overlays: worth_ui_host_contract::UiMountedPortalOverlayTable::empty(),
         semantic_text: worth_ui_host_contract::UiMountedSemanticTextTable::empty(),
         hit_tests: worth_ui_host_contract::UiMountedHitTestTable::from_runtime_mounting(Vec::new())
             .unwrap(),
@@ -266,6 +270,7 @@ fn count_only_projection() -> UiMountedProjectionView {
     let node = UiMountedNodeProjectionView::new(UiMountedNodeProjectionViewInput {
         mounted_instance: complete.mounted_instance(),
         node_receipt: complete.node_receipt(),
+        authored_position: 0,
         role: complete.role(),
         participation: complete.participation(),
         allocation: complete.allocation(),
@@ -279,6 +284,7 @@ fn count_only_projection() -> UiMountedProjectionView {
         diagnostic: complete.diagnostic(),
         drawables: Vec::new(),
         semantic_text: Vec::new(),
+        portal_presentation: None,
     });
     UiMountedProjectionView::new(UiMountedProjectionViewInput {
         frame,
@@ -290,6 +296,7 @@ fn count_only_projection() -> UiMountedProjectionView {
         clips: worth_ui_host_contract::UiMountedClipTable::produced(Vec::new()),
         layers: worth_ui_host_contract::UiMountedLayerTable::produced(Vec::new()),
         filled_rects: UiMountedFilledRectTable::empty(),
+        portal_overlays: worth_ui_host_contract::UiMountedPortalOverlayTable::empty(),
         semantic_text: worth_ui_host_contract::UiMountedSemanticTextTable::empty(),
         hit_tests: worth_ui_host_contract::UiMountedHitTestTable::from_runtime_mounting(Vec::new())
             .unwrap(),
@@ -321,6 +328,7 @@ fn complete_node(
     UiMountedNodeProjectionView::new(UiMountedNodeProjectionViewInput {
         mounted_instance,
         node_receipt,
+        authored_position: 0,
         role: UiMountedMechanicalRole::Control,
         participation: UiMountedParticipation::new(UiMountedParticipationInput {
             paint: admitted,
@@ -347,6 +355,7 @@ fn complete_node(
             ),
         ],
         semantic_text: Vec::new(),
+        portal_presentation: None,
     })
 }
 

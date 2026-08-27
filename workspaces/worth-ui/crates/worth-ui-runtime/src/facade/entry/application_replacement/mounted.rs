@@ -7,6 +7,9 @@ use super::{
 mod admission;
 mod detached;
 mod outcome;
+#[path = "mounted/published.rs"]
+mod published;
+use published::WorthUiPresentedApplicationReplacement;
 
 pub(crate) use outcome::{
     WorthUiDetachedMountedApplicationReplacementInFlight,
@@ -19,13 +22,6 @@ pub use outcome::{
     WorthUiMountedReplacementHostRejection, WorthUiMountedReplacementPreparationOutcome,
     WorthUiMountedReplacementRetentionDenial, WorthUiPreparedMountedApplicationReplacement,
 };
-
-struct WorthUiPresentedApplicationReplacement<'session> {
-    session: &'session mut WorthUiActiveApplicationSession,
-    application: Box<WorthUiPreparedApplicationActivation>,
-    mounted_successor: crate::mounting::UiMountedGraphReplacementSuccessor,
-    mounted_receipt: crate::mounting::UiMountedFramePublicationReceipt,
-}
 
 impl WorthUiActiveApplicationSession {
     pub fn prepare_mounted_replacement(
@@ -220,12 +216,12 @@ impl<'session> WorthUiPreparedMountedApplicationReplacement<'session> {
             crate::mounting::UiMountedGraphReplacementPresentation::Published {
                 successor,
                 receipt,
-            } => publish(WorthUiPresentedApplicationReplacement {
+            } => publish(WorthUiPresentedApplicationReplacement::new(
                 session,
                 application,
-                mounted_successor: successor,
-                mounted_receipt: receipt,
-            }),
+                successor,
+                receipt,
+            )),
             crate::mounting::UiMountedGraphReplacementPresentation::RejectedBeforeEffects {
                 successor,
                 frame,
@@ -273,18 +269,6 @@ impl<'session> WorthUiPreparedMountedApplicationReplacement<'session> {
                     },
                 ))
             }
-        }
-    }
-}
-
-impl<'session> WorthUiPresentedApplicationReplacement<'session> {
-    fn commit_once(self) -> WorthUiMountedApplicationReplacementOutcome<'session> {
-        let application = self
-            .session
-            .commit_application_activation(self.application, self.mounted_successor);
-        WorthUiMountedApplicationReplacementOutcome::Published {
-            application,
-            mounted: self.mounted_receipt,
         }
     }
 }

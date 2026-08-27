@@ -375,7 +375,7 @@ fn representative_intent_app() -> worth_ui::facade::app::WorthUiApp {
         .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse())
         .register_intent_boolean_fact(fact, true)
         .expect("representative intent fact registers")
-        .register_unsupported_intent_definition(
+        .register_unsupported_command_intent_definition(
             UiIntentDefinition::<RepresentativeIntent>::runtime_service(
                 UiIntentRuntimeServiceDestination::InvokeCommand,
             ),

@@ -21,6 +21,16 @@ pub(crate) fn install_pointer_input(window: Arc<Window>) -> Option<Box<UiNativeP
     }))
 }
 
+pub(crate) fn observe_reduced_motion_posture() -> crate::native::UiNativeReducedMotionPosture {
+    let observed = windows::UI::ViewManagement::UISettings::new()
+        .and_then(|settings| settings.AnimationsEnabled());
+    match observed {
+        Ok(false) => crate::native::UiNativeReducedMotionPosture::Reduce,
+        Ok(true) => crate::native::UiNativeReducedMotionPosture::NoPreference,
+        Err(_) => crate::native::UiNativeReducedMotionPosture::Unavailable,
+    }
+}
+
 impl UiNativePointerInputPort {
     pub(crate) fn refresh_client_origin(&mut self) {
         self.client_origin = self.window.inner_position().ok();

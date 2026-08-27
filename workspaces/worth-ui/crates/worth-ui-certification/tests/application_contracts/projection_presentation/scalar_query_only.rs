@@ -154,6 +154,7 @@ fn real_query_scalar_publishes_same_generation_semantic_text_to_headless_host() 
         transcript.unperformed_effects(),
         &[UiHeadlessUnperformedEffect::NativePaint {
             filled_rect_count: 1,
+            portal_overlay_count: 0,
             semantic_text_count: 2,
             preview_node_count: 0,
         }]

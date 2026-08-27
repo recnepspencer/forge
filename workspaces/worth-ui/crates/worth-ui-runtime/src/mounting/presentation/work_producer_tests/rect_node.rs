@@ -18,6 +18,7 @@ pub(super) fn rect_node(
     UiMountedNodeProjectionView::new(UiMountedNodeProjectionViewInput {
         mounted_instance: row.mounted_instance(),
         node_receipt: row.node_receipt(),
+        authored_position: u64::try_from(index).expect("fixture authored position"),
         role: UiMountedMechanicalRole::Control,
         participation: UiMountedParticipation::new(UiMountedParticipationInput {
             paint: admitted,
@@ -41,5 +42,6 @@ pub(super) fn rect_node(
         diagnostic: worth_ui_host_contract::UiMountedDiagnosticProjection::Omitted(omitted),
         drawables: vec![worth_ui_host_contract::UiMountedDrawableReference::FilledRect(reference)],
         semantic_text: Vec::new(),
+        portal_presentation: None,
     })
 }

@@ -70,6 +70,70 @@ impl WorthUiActiveApplicationSession {
         policy: crate::runtime::rebind::UiRebindExecutionPolicy,
         execution: crate::runtime::rebind::UiRebindExecutionRequest,
     ) -> UiIntentConsequencePublicationOutcome<'_> {
+        let portal_transition = match handoff.runtime_service_destination() {
+            Some(destination) => {
+                if !handoff.includes_mounted_posture() {
+                    return self.stop_intent_consequence(
+                        handoff,
+                        UiIntentConsequenceStopReason::RuntimeServiceRequiresMountedPosture,
+                    );
+                }
+                let viewport = match self
+                    .application
+                    .mounted_viewport_bounds_for(handoff.graph_node())
+                {
+                    Ok(viewport) => viewport,
+                    Err(_) => {
+                        return self.stop_intent_consequence(
+                            handoff,
+                            UiIntentConsequenceStopReason::RuntimeServicePortalPlacement(
+                                crate::runtime::intent_execution::UiIntentPortalPlacementStopReason::IncompatibleCoordinateSpace,
+                            ),
+                        )
+                    }
+                };
+                let presented_viewport = viewport.and_then(|viewport| {
+                    crate::runtime::interaction::UiPresentedViewportGeometry::from_current_interaction(
+                        viewport,
+                        handoff.target().geometry(),
+                    )
+                });
+                let resolved_owner = self
+                    .mounted
+                    .current_portal_owner_for_child(handoff.target().mounted_instance());
+                let request = portal_service_request(
+                    &handoff,
+                    destination,
+                    presented_viewport,
+                    resolved_owner,
+                );
+                match self.portal.prepare(request) {
+                    Ok(transition) => Some(transition),
+                    Err(
+                        crate::runtime::portal::UiPortalServiceTransitionDenial::RevisionExhausted,
+                    ) => {
+                        return self.stop_intent_consequence(
+                            handoff,
+                            UiIntentConsequenceStopReason::RuntimeServiceTransitionExhausted,
+                        )
+                    }
+                    Err(crate::runtime::portal::UiPortalServiceTransitionDenial::StalePlan) => {
+                        unreachable!("portal preparation does not mutate its revision")
+                    }
+                    Err(crate::runtime::portal::UiPortalServiceTransitionDenial::Placement(
+                        denial,
+                    )) => {
+                        return self.stop_intent_consequence(
+                            handoff,
+                            UiIntentConsequenceStopReason::RuntimeServicePortalPlacement(
+                                portal_placement_stop_reason(denial),
+                            ),
+                        )
+                    }
+                }
+            }
+            None => None,
+        };
         let observed = handoff.consequence_count();
         let limit = self.application.intent_consequence_fact_capacity();
         if observed > limit {
@@ -179,6 +243,8 @@ impl WorthUiActiveApplicationSession {
             observation: observation.progress,
             posture: observation.posture,
             consequence: handoff,
+            portal_transition,
+            portal_proposal: None,
             query_reference,
         };
         match self.prepare_intent_consequence_rebind(plan, execution, transfer) {
@@ -206,6 +272,79 @@ impl WorthUiActiveApplicationSession {
     ) -> UiIntentConsequencePublicationOutcome<'_> {
         restore_query_from_facts(&mut handoff, facts);
         self.stop_intent_consequence(handoff, reason)
+    }
+}
+
+pub(super) fn portal_service_request(
+    handoff: &UiIntentConsequenceHandoff,
+    destination: crate::capability::UiIntentRuntimeServiceDestination,
+    presented_viewport: Option<crate::runtime::interaction::UiPresentedViewportGeometry>,
+    resolved_owner: Option<(
+        crate::graph::UiGraphNodeIdentity,
+        worth_ui_host_contract::UiMountedInstanceIdentity,
+    )>,
+) -> crate::runtime::portal::UiPortalServiceRequest {
+    let owner = resolved_owner.map_or_else(
+        || {
+            crate::runtime::portal::UiPortalOwnerIdentity::from_target(
+                handoff.graph_node(),
+                handoff.target(),
+            )
+        },
+        |(graph_node, mounted_instance)| {
+            crate::runtime::portal::UiPortalOwnerIdentity::from_mounted_owner(
+                graph_node,
+                mounted_instance,
+            )
+        },
+    );
+    let portal = crate::runtime::portal::UiPortalIdentity::for_owner(owner);
+    match destination {
+        crate::capability::UiIntentRuntimeServiceDestination::OpenPortal => {
+            crate::runtime::portal::UiPortalServiceRequest::open(
+                portal,
+                handoff.idempotency(),
+                handoff.target().geometry(),
+                presented_viewport,
+                handoff.target().surface(),
+            )
+        }
+        crate::capability::UiIntentRuntimeServiceDestination::ClosePortal => {
+            crate::runtime::portal::UiPortalServiceRequest::close(
+                portal,
+                handoff.idempotency(),
+                crate::runtime::portal::UiPortalDismissalCause::ExplicitOwnerRequest,
+                handoff.target().surface(),
+            )
+        }
+        crate::capability::UiIntentRuntimeServiceDestination::InvokeCommand => {
+            unreachable!("unsupported command destinations cannot produce service material")
+        }
+    }
+}
+
+fn portal_placement_stop_reason(
+    denial: crate::runtime::portal::UiPortalPlacementDenial,
+) -> crate::runtime::intent_execution::UiIntentPortalPlacementStopReason {
+    use crate::runtime::intent_execution::UiIntentPortalPlacementStopReason as Stop;
+    match denial {
+        crate::runtime::portal::UiPortalPlacementDenial::MissingPresentedAnchor => {
+            Stop::MissingPresentedAnchor
+        }
+        crate::runtime::portal::UiPortalPlacementDenial::MissingPresentedViewport => {
+            Stop::MissingPresentedViewport
+        }
+        crate::runtime::portal::UiPortalPlacementDenial::IncompatibleCoordinateSpace => {
+            Stop::IncompatibleCoordinateSpace
+        }
+        crate::runtime::portal::UiPortalPlacementDenial::EmptyAnchor => Stop::EmptyAnchor,
+        crate::runtime::portal::UiPortalPlacementDenial::InsufficientViewport => {
+            Stop::InsufficientViewport
+        }
+        crate::runtime::portal::UiPortalPlacementDenial::UnknownParent => Stop::UnknownPortalParent,
+        crate::runtime::portal::UiPortalPlacementDenial::LayerDepthExhausted => {
+            Stop::PortalLayerDepthExhausted
+        }
     }
 }
 

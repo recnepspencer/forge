@@ -25,17 +25,28 @@ pub(super) fn assert_qualified_dependencies() {
     let windows = crate_manifest["target"]["cfg(windows)"]["dependencies"]
         .as_table()
         .expect("Windows dependency declarations");
+    let linux = crate_manifest["target"]["cfg(target_os = \"linux\")"]["dependencies"]
+        .as_table()
+        .expect("Linux dependency declarations");
     for &(name, version) in QUALIFIED_DEPENDENCIES {
         assert_exact_pin(name, version, qualified, declarations, workspace);
     }
     assert_exact_pin("winsafe", "0.0.28", qualified, windows, workspace);
+    assert_exact_pin("windows", "0.61.3", qualified, windows, workspace);
     for entries in [declarations, workspace] {
         assert_dependency_features(entries, "winit", &["rwh_06"]);
         assert_dependency_features(entries, "wgpu", &["std", "parking_lot", "dx12", "wgsl"]);
     }
     assert_dependency_features(workspace, "winsafe", &[]);
     assert_dependency_features(windows, "winsafe", &["user"]);
+    assert_dependency_features(workspace, "windows", &[]);
+    assert_dependency_features(windows, "windows", &["UI_ViewManagement"]);
+    assert_dependency_features(linux, "winit", &["rwh_06", "x11"]);
     assert_eq!(qualified["winit-features"].as_str(), Some("rwh_06"));
+    assert_eq!(
+        qualified["winit-linux-features"].as_str(),
+        Some("rwh_06,x11")
+    );
     assert_eq!(
         qualified["wgpu-features"].as_str(),
         Some("std,parking_lot,dx12,wgsl")

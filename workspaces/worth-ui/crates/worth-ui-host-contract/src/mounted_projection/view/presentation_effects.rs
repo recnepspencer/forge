@@ -1,7 +1,7 @@
 use crate::{
     UiMountedEffectFamily, UiMountedNodeProjectionView, UiMountedPaintBatchTable,
-    UiMountedPaintPrimitiveKind, UiMountedPaintProjection, UiMountedParticipationStatus,
-    UiMountedRealtimeBatchTable, UiMountedSpatialBatchTable,
+    UiMountedPaintPrimitiveKind, UiMountedPaintProjection, UiMountedRealtimeBatchTable,
+    UiMountedSpatialBatchTable,
 };
 
 pub(super) fn derive(
@@ -30,16 +30,6 @@ pub(super) fn derive(
         &mut effects,
         nodes.iter().any(has_accessibility),
         UiMountedEffectFamily::Accessibility,
-    );
-    push_if(
-        &mut effects,
-        nodes.iter().any(has_focus),
-        UiMountedEffectFamily::Focus,
-    );
-    push_if(
-        &mut effects,
-        nodes.iter().any(has_motion),
-        UiMountedEffectFamily::Motion,
     );
     push_if(
         &mut effects,
@@ -90,14 +80,6 @@ fn has_accessibility(node: &UiMountedNodeProjectionView) -> bool {
         node.accessibility(),
         crate::UiMountedAccessibilityProjection::Admitted(_)
     )
-}
-
-fn has_focus(node: &UiMountedNodeProjectionView) -> bool {
-    node.participation().focus().status() == UiMountedParticipationStatus::Admitted
-}
-
-fn has_motion(node: &UiMountedNodeProjectionView) -> bool {
-    matches!(node.motion(), crate::UiMountedMotionProjection::Admitted)
 }
 
 fn has_diagnostic(node: &UiMountedNodeProjectionView) -> bool {

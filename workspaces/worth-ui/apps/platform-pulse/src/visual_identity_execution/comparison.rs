@@ -73,8 +73,20 @@ pub(super) fn poll(
                     )
                 }
                 PlatformPulseVisualCaptureResolution::RetryBefore { deadline } => {
-                    pending.capture = begin_capture_before(shell, *tick, deadline)?;
-                    Ok(PlatformPulseVisualIdentityState::Comparing(pending))
+                    match begin_capture_before(shell, *tick, deadline) {
+                        Ok(capture) => {
+                            pending.capture = capture;
+                            Ok(PlatformPulseVisualIdentityState::Comparing(pending))
+                        }
+                        Err(PlatformPulseVisualExecutionDenial::CaptureMountedFrameUnavailable(
+                            worth_ui::facade::app::UiMountedInspectionOmission::FrameTransitionInFlight,
+                        )) => Ok(PlatformPulseVisualIdentityState::AwaitingComparison {
+                            predecessor: pending.predecessor,
+                            rebind: pending.rebind,
+                            deadline,
+                        }),
+                        Err(denial) => Err(denial),
+                    }
                 }
             }
         }

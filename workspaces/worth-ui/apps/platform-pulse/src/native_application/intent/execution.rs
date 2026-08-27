@@ -16,6 +16,9 @@ use super::{
     PlatformPulsePreparedIntentPosture,
 };
 
+mod consequence_publication;
+use consequence_publication::{consequence_kind, PlatformPulseIntentConsequenceKind};
+
 enum PlatformPulseIntentTransitionContinuation {
     ContinueToConsequence,
     Finished(bool),
@@ -26,6 +29,7 @@ const MAX_PENDING_INTENT_EXECUTION_TRANSITIONS: usize = 64;
 pub(in crate::native_application) struct PlatformPulsePendingIntentConsequence {
     attempt: worth_ui::facade::intent::UiIntentExecutionAttemptIdentity,
     idempotency: worth_ui::facade::intent::UiIntentExecutionIdempotencyIdentity,
+    kind: PlatformPulseIntentConsequenceKind,
 }
 
 impl PlatformPulseApplicationRuntime {
@@ -127,6 +131,10 @@ impl PlatformPulseApplicationRuntime {
         ) {
             return true;
         }
+        let Some(kind) = consequence_kind(transition.posture()) else {
+            self.fail_intent_settlement("completed intent carried an unknown outcome schema");
+            return false;
+        };
         let Some(consequence) = transition.into_consequence() else {
             self.fail_intent_settlement("completed transition omitted its consequence handle");
             return false;
@@ -137,15 +145,15 @@ impl PlatformPulseApplicationRuntime {
             self.presentation_tick,
         );
         match outcome {
-            Ok(WorthUiNativeManagedIntentConsequencePublicationOutcome::Published(receipt)) => {
-                self.finish_action_query_publication(shell, attempt, idempotency, receipt)
-            }
+            Ok(WorthUiNativeManagedIntentConsequencePublicationOutcome::Published(receipt)) => self
+                .finish_intent_consequence_publication(shell, attempt, idempotency, kind, receipt),
             Ok(WorthUiNativeManagedIntentConsequencePublicationOutcome::Pending) => {
                 self.pending_managed_rebind = Some(
                     super::super::PlatformPulsePendingManagedRebind::IntentConsequence(
                         PlatformPulsePendingIntentConsequence {
                             attempt,
                             idempotency,
+                            kind,
                         },
                     ),
                 );
@@ -266,9 +274,15 @@ impl PlatformPulseApplicationRuntime {
         &mut self,
         shell: &mut WorthUiNativeApplicationShell,
         pending: PlatformPulsePendingIntentConsequence,
-        receipt: worth_ui::facade::rebind::UiRebindReceipt,
+        receipt: worth_ui::facade::intent::UiIntentConsequencePublicationReceipt,
     ) {
-        self.finish_action_query_publication(shell, pending.attempt, pending.idempotency, receipt);
+        self.finish_intent_consequence_publication(
+            shell,
+            pending.attempt,
+            pending.idempotency,
+            pending.kind,
+            receipt,
+        );
     }
 
     fn take_completed_query_action(

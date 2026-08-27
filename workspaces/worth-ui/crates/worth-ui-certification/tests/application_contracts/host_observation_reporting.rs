@@ -11,7 +11,7 @@ use worth_ui_runtime::facade::mounted::{
 };
 use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
 
-use super::host_observation_fixture::{batch, report, source};
+use super::host_observation_fixture::{batch, report, source, window_focus};
 use super::mounted_application_lifecycle::in_flight_presentation_world::prepared;
 use super::mounted_application_lifecycle::published_mounted_world::{
     publish, published_observation_world, published_observation_world_with_retention_budget,
@@ -128,7 +128,7 @@ fn current_retained_expired_rejected_never_presented_and_indeterminate_bases_are
         UiHostObservationLoss::Complete,
         vec![report(
             1,
-            UiHostObservationPayload::Focus { focused: true },
+            window_focus(&world.predecessor, true),
             &world.predecessor,
         )],
     );
@@ -147,7 +147,7 @@ fn current_retained_expired_rejected_never_presented_and_indeterminate_bases_are
         UiHostObservationLoss::Complete,
         vec![report(
             2,
-            UiHostObservationPayload::Focus { focused: false },
+            window_focus(&world.current, false),
             &world.current,
         )],
     );
@@ -247,6 +247,7 @@ fn assert_terminal_basis(
         )
     ));
     let basis = PresentedObservationBasis {
+        host_surface: world.current.host_surface,
         frame: frame_identity,
         epoch: world.current.epoch,
         instance: world.current.instance,
@@ -287,6 +288,7 @@ fn assert_indeterminate_quarantine() {
         UiMountedFrameOutcome::PresentationIndeterminate(_)
     ));
     let basis = PresentedObservationBasis {
+        host_surface: world.current.host_surface,
         frame: frame_identity,
         epoch: world.current.epoch,
         instance: world.current.instance,

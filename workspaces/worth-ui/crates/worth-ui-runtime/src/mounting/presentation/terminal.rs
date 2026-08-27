@@ -152,7 +152,7 @@ pub(super) fn completion_satisfies(
     )
 }
 
-fn completion_effects_satisfy(
+pub(super) fn completion_effects_satisfy(
     expected: &[worth_ui_host_contract::UiMountedEffectFamily],
     observed: &[worth_ui_host_contract::UiMountedEffectFamily],
     cost: worth_ui_host_contract::UiHostPresentationCostReport,

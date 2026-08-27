@@ -26,7 +26,11 @@ pub(super) struct UiTypedPreparedTransition<I: crate::capability::UiIntent> {
     destination: crate::capability::UiIntentTransitionDestination,
 }
 
-pub(super) struct UiTypedPreparedUnsupportedService<I: crate::capability::UiIntent> {
+pub(super) struct UiTypedPreparedUnsupportedCommand<I: crate::capability::UiIntent> {
+    payload: I::Payload,
+}
+
+pub(super) struct UiTypedPreparedRuntimeService<I: crate::capability::UiIntent> {
     payload: I::Payload,
     destination: crate::capability::UiIntentRuntimeServiceDestination,
 }
@@ -60,12 +64,18 @@ impl UiPreparedIntentExecution {
         }
     }
 
-    pub(super) fn unsupported_service<I: crate::capability::UiIntent>(
+    pub(super) fn unsupported_command<I: crate::capability::UiIntent>(payload: I::Payload) -> Self {
+        Self {
+            inner: Box::new(UiTypedPreparedUnsupportedCommand::<I> { payload }),
+        }
+    }
+
+    pub(super) fn runtime_service<I: crate::capability::UiIntent>(
         payload: I::Payload,
         destination: crate::capability::UiIntentRuntimeServiceDestination,
     ) -> Self {
         Self {
-            inner: Box::new(UiTypedPreparedUnsupportedService::<I> {
+            inner: Box::new(UiTypedPreparedRuntimeService::<I> {
                 payload,
                 destination,
             }),
@@ -177,7 +187,38 @@ where
 }
 
 impl<I: crate::capability::UiIntent> UiPreparedIntentExecutionBinding
-    for UiTypedPreparedUnsupportedService<I>
+    for UiTypedPreparedUnsupportedCommand<I>
+{
+    fn retained_payload_count(&self) -> usize {
+        let _ = &self.payload;
+        1
+    }
+
+    fn destination(&self) -> crate::capability::UiIntentExecutionDestination {
+        crate::capability::UiIntentExecutionDestination::RuntimeService(
+            crate::capability::UiIntentRuntimeServiceDestination::InvokeCommand,
+        )
+    }
+
+    fn provider_version(&self) -> super::UiIntentProviderVersion {
+        super::UiIntentProviderVersion::stable(1)
+    }
+
+    fn start(
+        self: Box<Self>,
+        _context: super::UiManagedIntentExecutionStartContext,
+    ) -> super::UiManagedIntentExecutionStart {
+        let _ = *self;
+        super::UiManagedIntentExecutionStart::Settled(
+            super::UiManagedIntentSettlement::RejectedBeforeEffect(
+                super::UiIntentProviderStop::stable("worth_ui.command_routing.unsupported"),
+            ),
+        )
+    }
+}
+
+impl<I: crate::capability::UiIntent> UiPreparedIntentExecutionBinding
+    for UiTypedPreparedRuntimeService<I>
 {
     fn retained_payload_count(&self) -> usize {
         let _ = (&self.payload, self.destination);
@@ -196,11 +237,12 @@ impl<I: crate::capability::UiIntent> UiPreparedIntentExecutionBinding
         self: Box<Self>,
         _context: super::UiManagedIntentExecutionStartContext,
     ) -> super::UiManagedIntentExecutionStart {
-        let _ = *self;
-        super::UiManagedIntentExecutionStart::Settled(
-            super::UiManagedIntentSettlement::RejectedBeforeEffect(
-                super::UiIntentProviderStop::stable("worth_ui.runtime_service.unsupported"),
-            ),
-        )
+        let Self {
+            payload: _,
+            destination,
+        } = *self;
+        super::UiManagedIntentExecutionStart::Settled(super::UiManagedIntentSettlement::Completed(
+            super::managed::runtime_service_material::<I>(destination),
+        ))
     }
 }

@@ -12,7 +12,9 @@ use worth_ui_runtime::facade::mounted::{
     UiMountedFrameOutcome, UiMountedHitTestMechanic, UiPresentationDeadline,
     UiSurfaceBindingGeneration,
 };
-use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
+use worth_ui_test_support::{
+    WorthUiMountedIdentityCertificationExt, WorthUiMountedPublicationCertificationExt,
+};
 
 use super::super::filesystem_mounted_world::{
     establish_allocation, launch_clipped_world, launch_world, prepare_frame,
@@ -133,8 +135,15 @@ impl InteractionWorld {
         self.admit(
             self.presentation,
             UiHostObservationLoss::Complete,
-            vec![UiHostObservationPayload::Focus { focused: false }],
+            vec![self.window_focus(false)],
         )
+    }
+
+    pub(super) fn window_focus(&self, focused: bool) -> UiHostObservationPayload {
+        UiHostObservationPayload::WindowFocus {
+            surface: self.presentation.host_surface(),
+            focused,
+        }
     }
 
     pub(super) fn payload_at(
@@ -297,7 +306,12 @@ fn publish(
     };
     let binding = publication.bindings()[0];
     let epoch = presented_epoch(session, publication.frame(), binding);
-    let presentation = UiHostObservationPresentationBasis::new(publication.frame(), binding, epoch);
+    let presentation = UiHostObservationPresentationBasis::new(
+        session.inspect_mounted_identity().surface_bindings()[0].host_surface_identity(),
+        publication.frame(),
+        binding,
+        epoch,
+    );
     (presentation, binding, hit_rows)
 }
 

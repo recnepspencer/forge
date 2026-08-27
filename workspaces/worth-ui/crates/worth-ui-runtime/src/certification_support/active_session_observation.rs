@@ -78,6 +78,16 @@ pub trait WorthUiActiveSessionCertificationExt {
         &self,
         fact: &UiProducedFact,
     ) -> Result<UiGraphFactLookupReceipt, UiGraphFactLookupDenial>;
+
+    fn register_and_apply_component_semantic_text(
+        &mut self,
+        changes: &[crate::facade::entry::UiNativeComponentSemanticTextChange],
+    ) -> Result<(), ()>;
+
+    fn prepare_application_presentation_frame(
+        &mut self,
+        request: crate::facade::mounted::UiMountedFrameRequest,
+    ) -> Result<crate::facade::mounted::UiPreparedMountedFrame, ()>;
 }
 
 impl WorthUiActiveSessionCertificationExt for WorthUiActiveApplicationSession {
@@ -180,5 +190,44 @@ impl WorthUiActiveSessionCertificationExt for WorthUiActiveApplicationSession {
         fact: &UiProducedFact,
     ) -> Result<UiGraphFactLookupReceipt, UiGraphFactLookupDenial> {
         WorthUiActiveApplicationSession::lookup_consumed_fact_for_certification(self, fact)
+    }
+
+    fn register_and_apply_component_semantic_text(
+        &mut self,
+        changes: &[crate::facade::entry::UiNativeComponentSemanticTextChange],
+    ) -> Result<(), ()> {
+        let graph_nodes = {
+            let graph = self.graph();
+            graph
+                .node_identities()
+                .filter_map(|identity| {
+                    let lookup = graph.lookup().graph_node(identity)?;
+                    let semantic = lookup
+                        .value()
+                        .declaration_identity()
+                        .authored_semantic_name()
+                        .to_owned();
+                    semantic
+                        .starts_with("component:")
+                        .then(|| (identity, Box::<str>::from(semantic)))
+                })
+                .collect::<Vec<_>>()
+        };
+        for (graph_node, authored_semantic_identity) in graph_nodes {
+            WorthUiActiveApplicationSession::register_application_semantic_text(
+                self,
+                authored_semantic_identity,
+                graph_node,
+            )?;
+        }
+        WorthUiActiveApplicationSession::admit_application_semantic_text(self, changes)
+    }
+
+    fn prepare_application_presentation_frame(
+        &mut self,
+        request: crate::facade::mounted::UiMountedFrameRequest,
+    ) -> Result<crate::facade::mounted::UiPreparedMountedFrame, ()> {
+        self.prepare_mounted_frame_with_application_presentation(request, |_| {})
+            .map_err(|_| ())
     }
 }

@@ -96,6 +96,22 @@ pub trait UiNativeApplicationRuntime: 'static {
         Ok((application, UiNativeApplicationRuntimeDirective::Continue))
     }
 
+    /// Progress one host-owned viewport successor after the native driver has
+    /// installed its exact physical basis in the runtime shell. The callback
+    /// carries no copied extent and is not measurement authority.
+    fn native_viewport_ready(
+        &mut self,
+        application: crate::facade::WorthUiNativeApplicationShell,
+    ) -> Result<
+        (
+            crate::facade::WorthUiNativeApplicationShell,
+            UiNativeApplicationRuntimeDirective,
+        ),
+        UiNativeApplicationRuntimeProgressStopped,
+    > {
+        Ok((application, UiNativeApplicationRuntimeDirective::Continue))
+    }
+
     fn physical_work_progressed(
         &mut self,
         application: crate::facade::WorthUiNativeApplicationShell,
@@ -121,6 +137,12 @@ impl UiNativeApplicationPhysicalProgress {
         Self { host }
     }
 
+    #[cfg(any(test, feature = "certification-support"))]
+    #[doc(hidden)]
+    pub fn from_certification(host: worth_ui_host_native::UiNativePhysicalProgressGrant) -> Self {
+        Self::from_host(host)
+    }
+
     pub(crate) fn class(&self) -> worth_ui_host_native::UiNativePhysicalProgressClass {
         self.host.class()
     }
@@ -129,6 +151,14 @@ impl UiNativeApplicationPhysicalProgress {
         &self,
     ) -> Option<worth_ui_host_native::UiNativePhysicalPresentationCorrelation> {
         self.host.presentation()
+    }
+
+    pub(crate) fn recovery_presentation(
+        &self,
+    ) -> Option<worth_ui_host_native::UiNativePhysicalPresentationCorrelation> {
+        self.host
+            .presentation()
+            .or_else(|| self.host.originating_presentation())
     }
 }
 
@@ -238,8 +268,10 @@ impl UiNativeApplicationRuntimeCloseIncomplete {
 }
 
 impl UiNativeApplicationReadinessOwnerCount {
+    pub const MAXIMUM: u8 = 5;
+
     pub const fn new(count: u8) -> Result<Self, UiNativeApplicationReadinessOwnerCountDenial> {
-        if count <= worth_ui_host_native::UiNativeApplicationReadinessOwnerCount::MAXIMUM {
+        if count <= Self::MAXIMUM {
             Ok(Self { count })
         } else {
             Err(UiNativeApplicationReadinessOwnerCountDenial::CapacityExceeded)
@@ -301,7 +333,7 @@ mod tests {
     };
 
     #[test]
-    fn runtime_owner_count_preserves_the_native_host_capacity() {
+    fn public_runtime_owner_count_preserves_five_slots_beneath_host_internal_capacity() {
         assert_eq!(UiNativeApplicationReadinessOwnerCount::none().get(), 0);
         assert_eq!(
             UiNativeApplicationReadinessOwnerCount::new(5)
@@ -312,6 +344,10 @@ mod tests {
         assert_eq!(
             UiNativeApplicationReadinessOwnerCount::new(6),
             Err(UiNativeApplicationReadinessOwnerCountDenial::CapacityExceeded)
+        );
+        assert_eq!(
+            worth_ui_host_native::UiNativeApplicationReadinessOwnerCount::MAXIMUM,
+            6
         );
     }
 }

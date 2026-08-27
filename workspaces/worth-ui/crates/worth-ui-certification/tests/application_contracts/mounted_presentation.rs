@@ -286,5 +286,6 @@ fn protocol(
         worth_ui_host_contract::UiMountedPresentationSchemaVersion::new(revision),
         worth_ui_host_contract::UiHostProtocolContract::current().observation(),
         worth_ui_host_contract::UiHostMeasurementSchemaVersion::new(revision),
+        worth_ui_host_contract::UiHostProtocolContract::current().solicited_effect(),
     )
 }

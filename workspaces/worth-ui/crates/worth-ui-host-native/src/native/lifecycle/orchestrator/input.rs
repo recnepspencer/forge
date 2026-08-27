@@ -105,12 +105,14 @@ impl super::UiNativeLifecycleOrchestrator {
         &mut self,
         protocol: UiHostProtocolAgreement,
         host_session: u64,
+        host_surface: worth_ui_host_contract::UiHostSurfaceIdentity,
         binding: UiSurfaceBindingGeneration,
         completion_identity: u64,
     ) -> UiNativeLifecycleTransition {
         self.protocol.remember_pending_presentation(
             protocol,
             host_session,
+            host_surface,
             binding,
             completion_identity,
         )

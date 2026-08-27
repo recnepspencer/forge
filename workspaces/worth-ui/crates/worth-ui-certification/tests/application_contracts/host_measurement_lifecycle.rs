@@ -9,9 +9,7 @@ use worth_ui::facade::measurement_exchange::{
     UiMeasurementEvidenceFamily, UiTextIntrinsicSizeObservation, UiTextIntrinsicSizeRequest,
 };
 use worth_ui::facade::observation_report::WorthUiHostObservationSessionExt;
-use worth_ui::facade::observation_report::{
-    UiHostObservationLoss, UiHostObservationPayload, UiHostObservationReportOutcome,
-};
+use worth_ui::facade::observation_report::{UiHostObservationLoss, UiHostObservationReportOutcome};
 use worth_ui_runtime::facade::mounted::{
     UiHostSurfacePresentationMode, UiMountedFrameRequest, UiPresentationDeadline,
 };
@@ -138,6 +136,7 @@ fn real_wui_lifecycle_closes_phase_one_through_eight_authority_seams() {
         .current_frame()
         .expect("replacement frame is current");
     let basis = PresentedObservationBasis {
+        host_surface: identity.surface_bindings()[0].host_surface_identity(),
         frame,
         epoch: presented_epoch(&session, frame, bindings[0]),
         instance,
@@ -155,7 +154,7 @@ fn real_wui_lifecycle_closes_phase_one_through_eight_authority_seams() {
         UiHostObservationLoss::Complete,
         vec![report(
             1,
-            UiHostObservationPayload::Focus { focused: true },
+            crate::host_observation_fixture::window_focus(&basis, true),
             &basis,
         )],
     );

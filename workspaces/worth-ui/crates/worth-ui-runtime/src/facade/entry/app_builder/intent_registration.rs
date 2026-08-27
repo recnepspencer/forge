@@ -32,14 +32,51 @@ impl<ChangeProfileState> WorthUiApplicationBuilder<ChangeProfileState, UiIntentW
         Ok(self)
     }
 
-    pub fn register_unsupported_intent_definition<I: UiIntent>(
+    pub fn register_unsupported_command_intent_definition<I: UiIntent>(
         mut self,
         definition: UiIntentDefinition<I, UiRuntimeServiceDefinitionDestination>,
     ) -> Result<Self, UiIntentDefinitionRegistrationError> {
+        if definition.execution_destination()
+            != crate::capability::UiIntentExecutionDestination::RuntimeService(
+                crate::capability::UiIntentRuntimeServiceDestination::InvokeCommand,
+            )
+        {
+            return Err(
+                UiIntentDefinitionRegistrationError::IncompatibleRegistrationPath {
+                    identity: definition.id(),
+                    destination: definition.execution_destination(),
+                },
+            );
+        }
         self.inner = self.inner.register_intent_definition(definition)?;
         self.intent_execution_bindings
-            .register_unsupported_service(definition)
-            .expect("accepted service definition has one fresh unsupported binding");
+            .register_unsupported_command(definition)
+            .expect("accepted command definition has one fresh unsupported binding");
+        Ok(self)
+    }
+
+    pub fn register_runtime_service_intent_definition<I: UiIntent>(
+        mut self,
+        definition: UiIntentDefinition<I, UiRuntimeServiceDefinitionDestination>,
+    ) -> Result<Self, UiIntentDefinitionRegistrationError> {
+        if !matches!(
+            definition.execution_destination(),
+            crate::capability::UiIntentExecutionDestination::RuntimeService(
+                crate::capability::UiIntentRuntimeServiceDestination::OpenPortal
+                    | crate::capability::UiIntentRuntimeServiceDestination::ClosePortal
+            )
+        ) {
+            return Err(
+                UiIntentDefinitionRegistrationError::IncompatibleRegistrationPath {
+                    identity: definition.id(),
+                    destination: definition.execution_destination(),
+                },
+            );
+        }
+        self.inner = self.inner.register_intent_definition(definition)?;
+        self.intent_execution_bindings
+            .register_portal_service(definition)
+            .expect("accepted portal definition has one fresh execution binding");
         Ok(self)
     }
 }

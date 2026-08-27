@@ -16,6 +16,7 @@ mod presentation;
 mod readiness;
 #[cfg(feature = "certification-support")]
 mod readiness_certification;
+mod solicited_effect;
 mod text_atlas;
 
 #[cfg(feature = "certification-support")]
@@ -49,7 +50,8 @@ pub use event_loop::{
     UiNativeEventLoopShutdownOverlapObservation, UiNativeEventLoopStopReport,
     UiNativeEventLoopThreadPosture, UiNativeInputReachability, UiNativeObservationReadinessGrant,
     UiNativePhysicalPresentationCorrelation, UiNativePhysicalProgressClass,
-    UiNativePhysicalProgressGrant, UiNativeReadinessGrant, WorthUiNativeEventLoop,
+    UiNativePhysicalProgressGrant, UiNativeReadinessGrant, UiNativeReducedMotionPosture,
+    WorthUiNativeEventLoop,
 };
 #[cfg(test)]
 pub(crate) use graphics::QUALIFIED_DX12_PRESENTATION_SYSTEM;
@@ -104,7 +106,9 @@ pub(crate) use platform::UiNativePointerInputPort;
 pub(crate) use presentation::GPU_WAIT_DEADLINE;
 #[cfg(feature = "certification-support")]
 pub use presentation::{
-    classify_presentation_fault, UiNativePresentationFault, UiNativePresentationFaultDisposition,
+    certify_portal_sample_replay, classify_presentation_fault,
+    UiNativePortalSampleReplayCertification, UiNativePortalSampleReplayCertificationDenial,
+    UiNativePresentationFault, UiNativePresentationFaultDisposition,
     UiNativePresentationRecoveryClass,
 };
 pub(crate) use presentation::{

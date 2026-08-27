@@ -1,4 +1,9 @@
-use super::PlatformPulseApplicationRuntime;
+use super::{
+    intent, PlatformPulseApplicationRuntime, PlatformPulsePendingManagedRebind,
+    PlatformPulseProjectionRebindDenial, PlatformPulseTerminalError,
+};
+
+mod physical_work_progress;
 
 impl PlatformPulseApplicationRuntime {
     fn install_native_readiness(
@@ -24,7 +29,7 @@ impl PlatformPulseApplicationRuntime {
     }
 
     fn advance_native_product_turn(&mut self) {
-        if self.pending_managed_rebind.is_some() {
+        if self.pending_managed_rebind.is_some() || self.pending_frame_presentation.is_some() {
             return;
         }
         if !self.prepare_content_mutations() {
@@ -116,8 +121,22 @@ impl worth_ui_native_platform::UiNativeApplicationRuntime for PlatformPulseAppli
         }
         self.shell = Some(application);
         if owner_ordinal == 0 {
-            self.publish_initial_projection();
-            self.advance_visual_identity();
+            if self.terminal_error.is_none() {
+                let copy = super::product_copy::install(
+                    self.shell
+                        .as_mut()
+                        .expect("startup retains the activated application shell"),
+                );
+                if let Err(denial) = copy {
+                    self.fail(
+                        super::PlatformPulseTerminalError::ProductCopy(denial),
+                        Ok(()),
+                    );
+                } else {
+                    self.publish_initial_projection();
+                    self.advance_visual_identity();
+                }
+            }
         } else {
             self.advance_native_product_turn();
         }
@@ -150,6 +169,23 @@ impl worth_ui_native_platform::UiNativeApplicationRuntime for PlatformPulseAppli
         Ok((self.take_runtime_shell(), directive))
     }
 
+    fn native_viewport_ready(
+        &mut self,
+        application: worth_ui::facade::app::WorthUiNativeApplicationShell,
+    ) -> Result<
+        (
+            worth_ui::facade::app::WorthUiNativeApplicationShell,
+            worth_ui_native_platform::UiNativeApplicationRuntimeDirective,
+        ),
+        worth_ui_native_platform::UiNativeApplicationRuntimeProgressStopped,
+    > {
+        self.shell = Some(application);
+        self.present();
+        self.advance_visual_identity();
+        let directive = self.native_runtime_directive();
+        Ok((self.take_runtime_shell(), directive))
+    }
+
     fn physical_work_progressed(
         &mut self,
         application: worth_ui::facade::app::WorthUiNativeApplicationShell,
@@ -161,98 +197,7 @@ impl worth_ui_native_platform::UiNativeApplicationRuntime for PlatformPulseAppli
         ),
         worth_ui_native_platform::UiNativeApplicationRuntimeProgressStopped,
     > {
-        self.shell = Some(application);
-        let mut shell = self.take_runtime_shell();
-        let managed = shell.progress_managed_rebind(&progress);
-        match managed {
-            Ok(worth_ui::facade::app::WorthUiNativeManagedRebindProgress::Published(receipt)) => {
-                match self.pending_managed_rebind.take() {
-                    Some(super::PlatformPulsePendingManagedRebind::Projection(pending)) => {
-                        self.settle_pending_projection(&mut shell, pending, receipt);
-                    }
-                    Some(super::PlatformPulsePendingManagedRebind::Source(source)) => {
-                        self.settle_pending_source_rebind(&mut shell, source, receipt);
-                    }
-                    Some(super::PlatformPulsePendingManagedRebind::IntentPosture(pending)) => {
-                        self.settle_intent_posture_publication(&mut shell, pending, receipt);
-                    }
-                    Some(super::PlatformPulsePendingManagedRebind::IntentConsequence(pending)) => {
-                        self.settle_pending_intent_consequence(&mut shell, pending, receipt);
-                    }
-                    None => self.fail(
-                        super::PlatformPulseTerminalError::NativeManagedAttribution(
-                            "physical publication had no product attribution",
-                        ),
-                        Ok(()),
-                    ),
-                }
-                self.advance_pending_intent_postures(&mut shell);
-                self.shell = Some(shell);
-                self.advance_native_product_turn();
-            }
-            Ok(worth_ui::facade::app::WorthUiNativeManagedRebindProgress::Unrelated) => {
-                self.shell = Some(shell);
-                if self.pending_managed_rebind.is_some() {
-                    self.fail(
-                        super::PlatformPulseTerminalError::NativeManagedAttribution(
-                            "product attribution outlived the shell-managed publication",
-                        ),
-                        Ok(()),
-                    );
-                } else {
-                    self.advance_visual_identity();
-                }
-            }
-            Ok(worth_ui::facade::app::WorthUiNativeManagedRebindProgress::AwaitingProgress) => {
-                self.shell = Some(shell);
-            }
-            Ok(worth_ui::facade::app::WorthUiNativeManagedRebindProgress::Stopped(stop)) => {
-                self.shell = Some(shell);
-                match self.pending_managed_rebind.take() {
-                    Some(super::PlatformPulsePendingManagedRebind::Source(_)) => self.fail(
-                        super::PlatformPulseTerminalError::NativeManagedSourceRebind(stop),
-                        Ok(()),
-                    ),
-                    Some(super::PlatformPulsePendingManagedRebind::Projection(_)) => self.fail(
-                        super::PlatformPulseTerminalError::NativeProjection(
-                            super::PlatformPulseProjectionRebindDenial::Nonpublication(stop),
-                        ),
-                        Ok(()),
-                    ),
-                    Some(super::PlatformPulsePendingManagedRebind::IntentPosture(_)) => self.fail(
-                        super::PlatformPulseTerminalError::IntentPosturePublication(
-                            super::intent::PlatformPulseIntentPosturePublicationDenial::Stopped(
-                                stop,
-                            ),
-                        ),
-                        self.publisher.intent_preparation_failure(),
-                    ),
-                    Some(super::PlatformPulsePendingManagedRebind::IntentConsequence(_)) => self
-                        .fail(
-                            super::PlatformPulseTerminalError::IntentExecution(format!(
-                                "intent consequence managed publication stopped: {stop:?}"
-                            )),
-                            self.publisher.intent_preparation_failure(),
-                        ),
-                    None => self.fail(
-                        super::PlatformPulseTerminalError::NativeManagedAttribution(
-                            "managed stop had no product attribution",
-                        ),
-                        Ok(()),
-                    ),
-                }
-            }
-            Err(denial) => {
-                self.shell = Some(shell);
-                self.pending_managed_rebind = None;
-                self.fail(
-                    super::PlatformPulseTerminalError::NativeManagedProgress(denial),
-                    Ok(()),
-                );
-            }
-        }
-        let directive = self.native_runtime_directive();
-        Ok((self.take_runtime_shell(), directive))
+        self.progress_native_physical_work(application, progress)
     }
 
     fn close(

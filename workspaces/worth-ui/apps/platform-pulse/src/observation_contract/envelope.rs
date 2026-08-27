@@ -4,7 +4,7 @@ use super::lifecycle::PlatformPulseLifecycleObservation;
 
 pub const PLATFORM_PULSE_LIFECYCLE_OBSERVATION_IDENTITY: &str =
     "worth-ui.platform-pulse.lifecycle-observation";
-pub const PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION: u16 = 9;
+pub const PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION: u16 = 10;
 pub const PLATFORM_PULSE_LIFECYCLE_OBSERVATION_STDOUT_PREFIX: &str =
     "WORTH_UI_PLATFORM_PULSE_EVENT ";
 const MAXIMUM_ENCODED_OBSERVATION_BYTES: usize = 1_048_576;
@@ -44,7 +44,7 @@ pub enum PlatformPulseLifecycleObservationCodecDenial {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PlatformPulseDecodedLifecycleObservation {
-    CompleteV9(PlatformPulseLifecycleObservationEnvelope),
+    CompleteV10(PlatformPulseLifecycleObservationEnvelope),
     InheritedLifecycleOnly(PlatformPulseInheritedLifecycleOnly),
 }
 
@@ -175,8 +175,8 @@ impl PlatformPulseLifecycleObservationEnvelope {
         }
         match probe.protocol.schema_version {
             PLATFORM_PULSE_LIFECYCLE_OBSERVATION_SCHEMA_VERSION => Self::decode_prefixed_line(line)
-                .map(PlatformPulseDecodedLifecycleObservation::CompleteV9),
-            schema_version @ 2..=8 => {
+                .map(PlatformPulseDecodedLifecycleObservation::CompleteV10),
+            schema_version @ 2..=9 => {
                 let legacy = serde_json::from_str::<PlatformPulseInheritedEnvelope>(json)
                     .map_err(|_| PlatformPulseLifecycleObservationCodecDenial::InvalidJson)?;
                 let _ = (legacy.protocol, legacy.outcome);

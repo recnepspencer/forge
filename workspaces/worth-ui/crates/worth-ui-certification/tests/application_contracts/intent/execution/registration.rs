@@ -7,12 +7,13 @@ use std::sync::{
 use worth_ui::facade::{
     app::{WorthUi, WorthUiApp, WorthUiApplicationPreparationDenial},
     intent::{
-        UiIntent, UiIntentAcceptedInteractions, UiIntentDefinition, UiIntentExecutionProvider,
-        UiIntentExecutionRequest, UiIntentId, UiIntentPayload, UiIntentPayloadFieldSet,
-        UiIntentPayloadProjection, UiIntentPayloadProjectionViolation, UiIntentProductOutcome,
-        UiIntentProviderStart, UiIntentProviderStop, UiIntentProviderVersion,
-        UiIntentRuntimeServiceDestination, UiIntentSchema, UiIntentTransitionDestination,
-        UiIntentTransitionOutcome, UiSemanticInteractionFamily,
+        UiIntent, UiIntentAcceptedInteractions, UiIntentDefinition,
+        UiIntentDefinitionRegistrationError, UiIntentExecutionDestination,
+        UiIntentExecutionProvider, UiIntentExecutionRequest, UiIntentId, UiIntentPayload,
+        UiIntentPayloadFieldSet, UiIntentPayloadProjection, UiIntentPayloadProjectionViolation,
+        UiIntentProductOutcome, UiIntentProviderStart, UiIntentProviderStop,
+        UiIntentProviderVersion, UiIntentRuntimeServiceDestination, UiIntentSchema,
+        UiIntentTransitionDestination, UiIntentTransitionOutcome, UiSemanticInteractionFamily,
     },
     rebind::UiChangeProfile,
     source::WorthUiSemanticHandoffPreparationStop,
@@ -149,9 +150,11 @@ fn destination_specific_registration_freezes_one_binding_per_definition() {
         .freeze()
         .unwrap();
     let unsupported = base_builder()
-        .register_unsupported_intent_definition(UiIntentDefinition::<AlphaIntent>::runtime_service(
-            UiIntentRuntimeServiceDestination::InvokeCommand,
-        ))
+        .register_unsupported_command_intent_definition(
+            UiIntentDefinition::<AlphaIntent>::runtime_service(
+                UiIntentRuntimeServiceDestination::InvokeCommand,
+            ),
+        )
         .unwrap()
         .freeze()
         .unwrap();
@@ -161,6 +164,47 @@ fn destination_specific_registration_freezes_one_binding_per_definition() {
         transition.generation_identity(),
         unsupported.generation_identity()
     );
+}
+
+#[test]
+fn service_registration_paths_reject_the_other_service_family_before_mutation() {
+    let command_denial =
+        match base_builder().register_unsupported_command_intent_definition(UiIntentDefinition::<
+            AlphaIntent,
+        >::runtime_service(
+            UiIntentRuntimeServiceDestination::OpenPortal,
+        )) {
+            Ok(_) => panic!("the command-only placeholder path admitted a portal definition"),
+            Err(denial) => denial,
+        };
+    assert!(matches!(
+        command_denial,
+        UiIntentDefinitionRegistrationError::IncompatibleRegistrationPath {
+            destination: UiIntentExecutionDestination::RuntimeService(
+                UiIntentRuntimeServiceDestination::OpenPortal
+            ),
+            ..
+        }
+    ));
+
+    let portal_denial =
+        match base_builder().register_runtime_service_intent_definition(UiIntentDefinition::<
+            AlphaIntent,
+        >::runtime_service(
+            UiIntentRuntimeServiceDestination::InvokeCommand,
+        )) {
+            Ok(_) => panic!("the portal path admitted the command placeholder"),
+            Err(denial) => denial,
+        };
+    assert!(matches!(
+        portal_denial,
+        UiIntentDefinitionRegistrationError::IncompatibleRegistrationPath {
+            destination: UiIntentExecutionDestination::RuntimeService(
+                UiIntentRuntimeServiceDestination::InvokeCommand
+            ),
+            ..
+        }
+    ));
 }
 
 #[test]

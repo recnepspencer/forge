@@ -1,6 +1,8 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 
-const READINESS_CAPACITY: usize = 8;
+const EVENT_LOOP_READINESS_OWNER_COUNT: usize = 3;
+const READINESS_CAPACITY: usize = EVENT_LOOP_READINESS_OWNER_COUNT
+    + crate::UiNativeApplicationReadinessOwnerCount::MAXIMUM as usize;
 
 mod application_ingress;
 

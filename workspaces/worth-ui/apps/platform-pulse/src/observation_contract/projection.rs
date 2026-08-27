@@ -57,6 +57,23 @@ pub enum PlatformPulseLifecycleObservationProjectionDenial {
     OutcomeIsNotFailure,
     VisualObservationOutOfOrder,
     VisualAffinityMismatch,
+    VisualSnapshotAffinityMismatch {
+        expected_frame: u64,
+        observed_frame: u64,
+        observed_current: bool,
+    },
+    VisualSuccessorSnapshotAffinityMismatch {
+        predecessor_snapshot: u64,
+        expected_frame: u64,
+        observed_snapshot: u64,
+        observed_frame: u64,
+        observed_current: bool,
+    },
+    VisualRefreshSnapshotAffinityMismatch {
+        expected_frame: u64,
+        observed_frame: u64,
+        observed_current: bool,
+    },
     VisualPointUnsupported,
     VisualPointIdentityMismatch,
     VisualOverlayMismatch,
@@ -70,6 +87,7 @@ pub enum PlatformPulseLifecycleObservationProjectionDenial {
     UnsupportedSchemaTransitionField,
     UnsupportedSchemaTransitionShape,
     MissingMountedPublication,
+    SemanticFocusPublicationMismatch,
     StreamTerminated,
 }
 

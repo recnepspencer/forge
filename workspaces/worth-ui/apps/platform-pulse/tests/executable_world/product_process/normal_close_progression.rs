@@ -35,6 +35,7 @@ struct NormalCloseObservationSet {
     lifecycle_measurement: crate::external_observation::LifecycleStreamMeasurement,
     lifecycle_envelopes: Vec<PlatformPulseLifecycleObservationEnvelope>,
     successful_exit: SuccessfulPlatformPulseExit,
+    native_close_evidence: super::PlatformPulseNativeCloseEvidence,
     installation_cleanup: PulseInstallationCleanupEvidence,
 }
 
@@ -62,6 +63,7 @@ impl PulseExecutableWorld<Published<FinalRecovered>> {
         );
         let evidence = adjudicate_lifecycle_cleanup(causal.join_resource_disposition(
             observations.successful_exit,
+            observations.native_close_evidence,
             observations.installation_cleanup,
         ))
         .map_err(|failure| {
@@ -97,6 +99,9 @@ impl PublishedNormalCloseWorld {
         let lifecycle_measurement = self.lifecycle.measurement();
         let lifecycle_envelopes = self.lifecycle.accepted_envelopes().to_vec();
         self.require_window_release(process_id)?;
+        let native_close_evidence =
+            super::PlatformPulseNativeCloseEvidence::read(self.installation.source_root())
+                .map_err(PulseExecutableWorldFailure::NativeCloseEvidence)?;
         let installation_cleanup = self.cleanup_installation()?;
         Ok(NormalCloseObservationSet {
             process_id,
@@ -105,6 +110,7 @@ impl PublishedNormalCloseWorld {
             lifecycle_measurement,
             lifecycle_envelopes,
             successful_exit,
+            native_close_evidence,
             installation_cleanup,
         })
     }

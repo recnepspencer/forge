@@ -52,9 +52,15 @@ domain application / product shell
 -> worth-ui-host-* adapters
 -> native host mechanics
 
-worth-ui-query-binding
--> worth-query
--> worth-runtime-bridge
+application Query entry
+-> worth-query-decl / worth-query-host
+-> installed Query audience products
+-> worth-ui-query-binding
+
+current temporary internal edge:
+worth-ui-query-binding -> worth-query
+
+worth-query -> worth-runtime-bridge
 -> worth-relational + worth-signal
 ```
 
@@ -67,10 +73,11 @@ hot rebind, diagnostics, and host boundary contracts.
 
 The host adapter owns native mechanics only.
 
-Worth Query owns domain/runtime truth, query declarations, touched graph
-authority, access planning, projection consumption, live/query state, support
-posture, basis, intent admission, async/resource posture, and lower-runtime
-routing.
+Worth Query is the application-facing composition authority. It owns query
+declarations, application-operation admission, touched graph authority, access
+planning, projection consumption, live/query state, support posture, basis,
+async/resource posture, and routing into the domain and lower runtimes that own
+their respective truth.
 
 Ordinary UI work starts at Worth UI. Ordinary domain/read/write work starts at
 Query. Use lower layers to understand semantics, not as permission to bypass
@@ -848,13 +855,17 @@ The Query analogy is direct:
 Use this category when UI state depends on domain/runtime truth.
 
 Worth UI must not become a local Query clone. It consumes Query-owned artifacts
-through admitted binding/projection lanes.
+through admitted binding/projection lanes. The destination audience boundary
+is `worth-query-decl` for declared application requirements and
+`worth-query-host` for hosted progression. `worth-query-replay` is
+certification-only and is not an ordinary UI binding dependency.
 
 The ordinary application path is:
 
 ```text
 prepare a WorthUiScalarProjectionHostPlan or another binding-owned installation
--> install its request through the Query host
+-> express the requirement through the Query declaration audience
+-> install and progress its request through the Query host audience
 -> complete installation into a shape-specific registration and initial advance
 -> register_scalar_projection(...) or register_collection_projection(...) on WorthUi::app()
 -> freeze and launch one active application session
@@ -902,7 +913,7 @@ made the binding honest, the UI runtime has already lost its proof boundary.
 
 The UI may project product-facing state from Query results, but Query remains
 the authority for query meaning, basis, projection facts, async posture, live
-state, and intent admission.
+state, and application-operation admission.
 
 Query also remains the owner of installed-domain and live-resource activation,
 maintenance, recovery, and disposal. Worth UI binds admitted references to its
@@ -912,6 +923,13 @@ subscription manager, session data cache, or local Query runtime.
 
 View shape is not UI-only sugar. It can affect planning, invalidation, live
 patch shape, delivery formatting, and binding support.
+
+Current implementation note: `worth-ui-query-binding` still carries a
+temporarily admitted raw `worth-query` dependency. That edge is predecessor
+debt, not a public application contract. New UI work must not widen it. The
+binding owner must remove the remaining raw-engine imports so
+`worth-query-decl` and `worth-query-host` are its only ordinary Query audiences
+before broader Query-facing surface work lands.
 
 Minimum binding postures:
 
@@ -1329,9 +1347,15 @@ They are:
 command declaration
 + active scope
 + operability posture
-+ intent admission
++ UI route admission
 + dispatch receipt
 ```
+
+If dispatch requests an application operation, Query admits that operation
+separately. A UI dispatch receipt cannot authorize it. Undo and redo are also
+not implied by command routing: they remain unsupported until the owning
+operation runtime publishes governed history and execution capability. Query's
+`provisional_aftermath` experiment is not that product contract.
 
 Mistakes to avoid:
 
@@ -1686,6 +1710,9 @@ worth-ui
   -> worth-ui-query-binding
   -> worth-ui-host-contract
 
+application Query entry
+  -> worth-query-decl / worth-query-host
+
 worth-ui-host-native
   -> worth-ui-host-contract
 
@@ -1695,6 +1722,7 @@ worth-ui-host-headless
 worth-ui-certification
   -> worth-ui
   -> worth-ui-host-contract
+  -> worth-query-replay when Query reconstruction is required
 
 apps/*
   -> worth-ui
@@ -1710,7 +1738,7 @@ Rules:
 ```text
 facade exposes durable product capabilities
 runtime owns UI meaning
-query binding consumes Query authority
+query binding consumes Query audience products
 host contract defines boundary facts
 host adapter owns native translation only
 apps author declarations
@@ -1921,7 +1949,7 @@ obligations
 Need data/schema/view-shaped state?
 
 ```text
-worth-ui-query-binding + worth-query projection consumption
+worth-ui-query-binding + worth-query-decl/worth-query-host audience products
 ```
 
 Need layout, resize, intrinsic sizing, scroll, or portal placement?

@@ -93,6 +93,7 @@ impl UiNativeInputObservationContract {
         &mut self,
         protocol: UiHostProtocolAgreement,
         host_session: u64,
+        host_surface: worth_ui_host_contract::UiHostSurfaceIdentity,
         binding: UiSurfaceBindingGeneration,
         completion_identity: u64,
     ) -> bool {
@@ -100,7 +101,13 @@ impl UiNativeInputObservationContract {
             return false;
         }
         self.protocol
-            .remember_pending_presentation(protocol, host_session, binding, completion_identity)
+            .remember_pending_presentation(
+                protocol,
+                host_session,
+                host_surface,
+                binding,
+                completion_identity,
+            )
             .required_action()
             == Some(UiNativeLifecycleRequiredAction::CompletePresentation)
     }

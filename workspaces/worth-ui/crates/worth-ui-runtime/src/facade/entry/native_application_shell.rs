@@ -7,14 +7,22 @@ use std::collections::HashMap;
 
 use super::native_observation_settlement::UiNativeObservationIngressSettlement;
 
+#[cfg(any(test, feature = "certification-support"))]
+#[path = "native_application_shell/certification.rs"]
+mod certification;
 #[path = "native_application_shell/component_presence.rs"]
 mod component_presence;
 #[path = "native_application_shell/launch.rs"]
 mod launch;
+#[path = "native_application_shell/motion_sampling.rs"]
+mod motion_sampling;
 #[path = "native_application_shell/presentation_attribution.rs"]
 mod presentation_attribution;
 #[path = "native_application_shell/presentation_recovery.rs"]
 mod presentation_recovery;
+pub use presentation_recovery::{
+    WorthUiNativePhysicalPresentationRecovery, WorthUiNativePresentationRecoveryDenial,
+};
 #[path = "native_application_shell/query_close.rs"]
 mod query_close;
 pub(crate) use query_close::UiNativeApplicationQueryCloseObservation;
@@ -34,13 +42,13 @@ pub struct WorthUiNativeApplicationShell {
     mounted_row_indices: HashMap<Box<str>, usize>,
     observed_viewport_basis: Option<viewport_measurement::UiNativeViewportBasis>,
     pending_viewport_basis: Option<viewport_measurement::UiNativeViewportBasis>,
-    viewport_measurement_authority:
-        Box<[super::mounted_allocation_establishment::UiNativeViewportMeasurementAuthority]>,
     pending_surface_reconciliation: Option<crate::mounting::UiMountedSurfaceReconciliationBinding>,
     runtime_derived_state_reconstruction:
         Option<worth_ui_host_native::UiNativeClientDerivedStateReconstructionObservation>,
     pub(super) pending_managed_rebind:
         Option<super::native_managed_rebind::WorthUiNativePendingManagedRebind>,
+    pub(super) retained_portal_dismissal:
+        Option<super::native_managed_rebind::UiRetainedPortalDismissalRequest>,
     pub(super) managed_rebind_completion_tick: u64,
 }
 
@@ -66,8 +74,12 @@ impl WorthUiNativeApplicationShell {
         &mut self,
         reachability: worth_ui_host_native::UiNativeInputReachability,
     ) -> UiNativeObservationIngressSettlement {
+        let pending_portal_transition = self
+            .pending_managed_rebind
+            .as_ref()
+            .is_some_and(|pending| pending.carries_portal_intent_consequence());
         self.session
-            .drain_and_admit_host_observation_batches(reachability)
+            .drain_and_admit_host_observation_batches(reachability, pending_portal_transition)
     }
 
     pub(crate) fn cancel_mounted_presentation(
@@ -85,23 +97,42 @@ impl WorthUiNativeApplicationShell {
             return Err(());
         }
         let affected = self.binding;
+        let scale_changed = self.scale_factor_milli != scale_factor_milli;
         let profile = UiSurfaceBindingProfile::new(
             scale_factor_milli,
             UiSurfaceBindingCoordinatePosture::LogicalPoints,
             1,
         )
         .map_err(|_| ())?;
-        self.binding = self
-            .session
-            .rebind_host_surface(
+        let rebind = |session: &mut WorthUiActiveApplicationSession| {
+            session.rebind_host_surface_with_interaction_receipt(
                 self.binding,
                 UiHostSurfacePresentationMode::NativeDisplay,
                 profile,
             )
-            .map_err(|_| ())?
-            .binding_generation();
+        };
+        let rebound = match rebind(&mut self.session) {
+            Ok(rebound) => rebound.binding(),
+            Err(super::UiSurfaceRebindInteractionDenial::BeforeMutation(
+                crate::mounting::UiMountedIdentityDenial::HostSurfaceTruthIndeterminate,
+            )) => {
+                if self
+                    .session
+                    .recover_indeterminate_host_surface(self.surface)
+                    .is_err()
+                {
+                    return Err(());
+                }
+                match rebind(&mut self.session) {
+                    Ok(rebound) => rebound.binding(),
+                    Err(_) => return Err(()),
+                }
+            }
+            Err(_) => return Err(()),
+        };
+        self.binding = rebound.binding_generation();
         self.scale_factor_milli = scale_factor_milli;
-        self.observe_native_viewport_binding_successor();
+        self.observe_native_viewport_binding_successor(scale_changed);
         self.pending_surface_reconciliation = Some(
             crate::mounting::UiMountedSurfaceReconciliationBinding::new(affected, self.binding),
         );

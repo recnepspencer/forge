@@ -12,7 +12,9 @@ impl UiHostObservationIntegrity {
         for value in [
             u64::from(contract.protocol().revision()),
             u64::from(contract.observation().revision()),
+            u64::from(contract.solicited_effect().revision()),
             core.host_session(),
+            core.presentation().host_surface().diagnostic_value(),
             core.binding().diagnostic_value(),
             core.frame().diagnostic_value(),
             core.presentation().epoch().diagnostic_value(),
@@ -78,6 +80,7 @@ fn fold_input_affinity(
         binding.node_receipt().diagnostic_value(),
         binding.text_profile().map_or(0, |profile| profile.get()),
         affinity.presentation().frame().diagnostic_value(),
+        affinity.presentation().host_surface().diagnostic_value(),
         affinity.presentation().binding().diagnostic_value(),
         affinity.presentation().epoch().diagnostic_value(),
     ] {

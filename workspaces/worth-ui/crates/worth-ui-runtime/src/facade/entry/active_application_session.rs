@@ -1,17 +1,33 @@
 use crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity;
-#[cfg(any(test, feature = "certification-support"))]
-use crate::runtime::WorthUiActiveRuntimeObservation;
 use crate::runtime::{WorthUiFrameworkTurn, WorthUiRuntime, WorthUiRuntimeShutdownReceipt};
 
 use super::{
     WorthUiActiveApplicationGenerationIdentity, WorthUiActiveApplicationSessionIdentity,
     WorthUiActiveFrameworkTurnCompletion, WorthUiApp,
 };
-
+#[path = "active_application_session/focus_observation.rs"]
+mod focus_observation;
+#[path = "active_application_session/motion_sampling.rs"]
+mod motion_sampling;
+#[path = "active_application_session/portal_exit_publication.rs"]
+mod portal_exit_publication;
+pub(in crate::facade::entry) use portal_exit_publication::UiPortalExitTerminalProgress;
+pub(in crate::facade::entry) use portal_exit_retention::UiPortalExitTerminalPending;
+#[path = "active_application_session/portal_exit_retention.rs"]
+mod portal_exit_retention;
+#[path = "active_application_session/portal_motion.rs"]
+mod portal_motion;
+#[path = "active_application_session/portal_observation.rs"]
+mod portal_observation;
+#[path = "active_application_session/runtime_access.rs"]
+mod runtime_access;
+#[path = "active_application_session/semantic_text_registration.rs"]
+mod semantic_text_registration;
+#[path = "active_application_session/service_proposal_observation.rs"]
+mod service_proposal_observation;
 mod shutdown;
 #[path = "active_application_session/theme_values.rs"]
 mod theme_values;
-
 /// The one ordinary owner of a running Worth UI application generation.
 pub struct WorthUiActiveApplicationSession {
     pub(super) identity: WorthUiActiveApplicationSessionIdentity,
@@ -20,6 +36,10 @@ pub struct WorthUiActiveApplicationSession {
     pub(super) mounted: crate::mounting::WorthUiMountedSessionState,
     pub(super) host_exchange: crate::host_exchange::WorthUiHostExchangeSessionState,
     pub(super) interaction: crate::runtime::interaction::UiInteractionRuntimeState,
+    pub(super) focus: crate::runtime::focus::UiFocusRuntimeState,
+    pub(super) portal: crate::runtime::portal::UiPortalRuntimeState,
+    pub(super) motion: crate::runtime::motion::UiMotionRuntimeState,
+    pub(super) portal_exit_retention: portal_exit_retention::UiPortalExitRetentionCoordinator,
     pub(super) intent_evidence: crate::inspection::intent::UiIntentEvidenceRegistry,
     pub(super) intent_application_facts: crate::runtime::intent::UiIntentApplicationFactState,
     pub(super) intent_execution: crate::runtime::intent_execution::UiIntentExecutionState,
@@ -31,6 +51,7 @@ pub struct WorthUiActiveApplicationSession {
         crate::inspection::visual_snapshot::WorthUiVisualInspectionAuthority,
     pub(super) next_visual_capture_identity: u64,
     pub(super) next_visual_overlay_identity: u64,
+    pub(super) next_portal_service_event_identity: u64,
     pub(super) visual_captures: crate::inspection::visual_snapshot::UiVisualCaptureRegistry,
     pub(super) visual_overlays: crate::inspection::visual_snapshot::UiVisualOverlayRegistry,
     pub(super) rebind: crate::runtime::rebind::UiRebindRuntimeState,
@@ -80,6 +101,14 @@ impl WorthUiActiveApplicationSession {
                 host_observation_capacity,
             ),
             interaction: crate::runtime::interaction::UiInteractionRuntimeState::new(),
+            focus: crate::runtime::focus::UiFocusRuntimeState::new_session_restore_candidate(),
+            portal: crate::runtime::portal::UiPortalRuntimeState::new(
+                crate::runtime::UiServiceStatePersistencePosture::SessionRestoreCandidate,
+            ),
+            motion: crate::runtime::motion::UiMotionRuntimeState::new(
+                crate::runtime::UiServiceStatePersistencePosture::Ephemeral,
+            ),
+            portal_exit_retention: portal_exit_retention::UiPortalExitRetentionCoordinator::new(),
             intent_evidence: crate::inspection::intent::UiIntentEvidenceRegistry::new(
                 identity.as_u64(),
             ),
@@ -92,6 +121,7 @@ impl WorthUiActiveApplicationSession {
             visual_inspection,
             next_visual_capture_identity: 1,
             next_visual_overlay_identity: 1,
+            next_portal_service_event_identity: 1_u64 << 63,
             visual_captures: crate::inspection::visual_snapshot::UiVisualCaptureRegistry::new(
                 visual_policy,
             ),
@@ -180,65 +210,6 @@ impl WorthUiActiveApplicationSession {
         self.application.graph()
     }
 
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) fn lookup_consumed_fact_for_certification(
-        &self,
-        fact: &crate::fact_contract::UiProducedFact,
-    ) -> Result<crate::graph::UiGraphFactLookupReceipt, crate::graph::UiGraphFactLookupDenial> {
-        self.application.lookup_consumed_fact(fact)
-    }
-
-    pub(crate) fn source_event_ingress(
-        &self,
-        provider: crate::runtime::WorthUiSourceProvider,
-    ) -> crate::runtime::WorthUiSourceEventIngress {
-        self.application.source_event_ingress(provider)
-    }
-
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) fn inspect_runtime(&self) -> WorthUiActiveRuntimeObservation {
-        self.application.inspect_active_runtime()
-    }
-
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) fn inspect_query_state_residue(
-        &self,
-    ) -> crate::runtime::WorthUiStateQueryResidueScan {
-        self.application.inspect_query_state_residue()
-    }
-
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) fn refresh_query_change_for_certification(
-        &mut self,
-        request: worth_ui_query_binding::WorthUiOperationLiveRefreshRequest<'_>,
-    ) -> Result<
-        worth_ui_query_binding::WorthUiOperationLiveRefreshOutcome,
-        worth_ui_query_binding::WorthUiOperationLiveRefreshError,
-    > {
-        self.application
-            .refresh_query_change_for_certification(request)
-    }
-
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) fn query_change_state_for_certification(
-        &self,
-        reference: &worth_ui_query_binding::WorthUiInstalledQueryBindingReference,
-    ) -> Result<
-        worth_ui_query_binding::WorthUiOperationLiveChangeObservation,
-        worth_ui_query_binding::WorthUiQueryViewExecutionEvidenceDenial,
-    > {
-        self.application
-            .query_change_state_for_certification(reference)
-    }
-
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) fn measurement_basis_sources_for_certification(
-        &self,
-    ) -> Box<[crate::declaration::UiDeclaredMeasurementBasisSource]> {
-        self.application
-            .measurement_basis_sources_for_certification()
-    }
-
     pub(crate) fn execute_framework_turn(
         &mut self,
         collect_sources: impl FnOnce(&mut WorthUiFrameworkTurn<'_>),
@@ -255,6 +226,7 @@ impl WorthUiActiveApplicationSession {
         let (generation_identity, visual_trace_source, graph, active_plan_digest, completion) =
             turn.into_parts();
         Ok(WorthUiActiveFrameworkTurnCompletion {
+            application_session_identity: self.identity,
             generation_identity,
             visual_trace_source,
             graph,
@@ -265,6 +237,9 @@ impl WorthUiActiveApplicationSession {
             mounted: &mut self.mounted,
             host_session: &self.host_session,
             host_exchange: &mut self.host_exchange,
+            focus: &mut self.focus,
+            portal: &mut self.portal,
+            interaction: &mut self.interaction,
             presentation: &mut self.presentation,
         })
     }
@@ -369,21 +344,5 @@ impl WorthUiActiveApplicationSession {
         &self,
     ) -> crate::facade::WorthUiHostMeasurementCapability {
         self.host_session.measurement_capability()
-    }
-
-    pub(crate) fn register_application_semantic_text(
-        &mut self,
-        authored_identity: Box<str>,
-        graph_node: crate::graph::UiGraphNodeIdentity,
-    ) -> Result<(), ()> {
-        self.presentation
-            .register_semantic_text(authored_identity, graph_node)
-    }
-
-    pub(crate) fn admit_application_semantic_text(
-        &mut self,
-        changes: &[super::UiNativeComponentSemanticTextChange],
-    ) -> Result<(), ()> {
-        self.presentation.admit_semantic_text(changes)
     }
 }

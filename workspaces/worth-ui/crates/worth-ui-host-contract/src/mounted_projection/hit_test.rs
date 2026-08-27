@@ -4,7 +4,16 @@ use crate::{
 };
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct UiMountedHitTestOrder(u32);
+enum UiMountedHitTestPresentationLayer {
+    Portal,
+    Ordinary,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct UiMountedHitTestOrder {
+    presentation_layer: UiMountedHitTestPresentationLayer,
+    rank: u32,
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiMountedHitTestReference(u32);
@@ -57,11 +66,28 @@ pub struct UiMountedHitTestTable {
 impl UiMountedHitTestOrder {
     #[doc(hidden)]
     pub const fn from_runtime_plan(rank: u32) -> Self {
-        Self(rank)
+        Self {
+            presentation_layer: UiMountedHitTestPresentationLayer::Ordinary,
+            rank,
+        }
     }
 
     pub const fn rank(self) -> u32 {
-        self.0
+        self.rank
+    }
+
+    const fn presented_within_portal(self) -> Self {
+        Self {
+            presentation_layer: UiMountedHitTestPresentationLayer::Portal,
+            rank: self.rank,
+        }
+    }
+
+    const fn presentation_layer_digest(self) -> u64 {
+        match self.presentation_layer {
+            UiMountedHitTestPresentationLayer::Portal => 1,
+            UiMountedHitTestPresentationLayer::Ordinary => 2,
+        }
     }
 }
 
@@ -135,6 +161,32 @@ impl UiMountedHitTestMechanic {
     pub const fn semantic_digest(self) -> u64 {
         self.semantic_digest
     }
+
+    #[doc(hidden)]
+    pub fn presented_within_portal(
+        self,
+        portal: super::UiMountedPortalOverlayMechanic,
+    ) -> Result<Self, UiMountedHitTestCompletionDenial> {
+        let bounds =
+            super::UiMountedCanonicalBox::canonicalize(super::UiMountedCanonicalBoxInput {
+                x: portal.bounds().x() + self.bounds.x(),
+                y: portal.bounds().y() + self.bounds.y(),
+                width: self.bounds.width(),
+                height: self.bounds.height(),
+                coordinate_space: portal.bounds().coordinate_space(),
+            })
+            .map_err(|_| UiMountedHitTestCompletionDenial::NonAreaGeometry)?;
+        Self::complete_from_runtime_mounting(UiMountedHitTestCompletionInput {
+            frame: self.frame,
+            surface: self.surface,
+            binding: self.binding,
+            mounted_instance: self.mounted_instance,
+            node_receipt: self.node_receipt,
+            bounds,
+            clip_bounds: portal.bounds(),
+            order: self.order.presented_within_portal(),
+        })
+    }
 }
 
 impl UiMountedHitTestTable {
@@ -180,6 +232,7 @@ fn semantic_digest(input: &UiMountedHitTestCompletionInput) -> u64 {
         u64::from(input.clip_bounds.y().to_bits()),
         u64::from(input.clip_bounds.width().to_bits()),
         u64::from(input.clip_bounds.height().to_bits()),
+        input.order.presentation_layer_digest(),
         u64::from(input.order.rank()),
     ]
     .into_iter()

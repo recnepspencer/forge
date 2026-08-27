@@ -9,6 +9,27 @@ use crate::observation_contract::{
 };
 
 impl PlatformPulseLifecycleObservationStream {
+    pub fn project_portal_dismissed(
+        &mut self,
+        publication: &worth_ui::facade::app::UiMountedFramePublicationReceipt,
+    ) -> Result<
+        PlatformPulseLifecycleObservationEnvelope,
+        PlatformPulseLifecycleObservationProjectionDenial,
+    > {
+        let validated = self.validate_content_publication(publication)?;
+        let next_visual_state = self
+            .visual_state
+            .after_content_publication(validated.frame().diagnostic_value())?;
+        let envelope = self.next_envelope(PlatformPulseLifecycleObservation::PortalDismissed(
+            crate::observation_contract::PlatformPulsePortalDismissed::from_publication(
+                publication,
+            ),
+        ))?;
+        self.commit_content_publication(validated);
+        self.visual_state = next_visual_state;
+        Ok(envelope)
+    }
+
     pub fn project_intent_causal_trace(
         &mut self,
         observation: PlatformPulseIntentCausalTraceObservation,

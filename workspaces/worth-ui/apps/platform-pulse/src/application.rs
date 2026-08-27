@@ -24,12 +24,17 @@ use worth_ui_platform_pulse::intent::{
     platform_pulse_action_confirmation_fact, platform_pulse_action_definition,
     platform_pulse_action_mutability_fact, platform_pulse_action_policy_fact,
     platform_pulse_action_readiness_fact, platform_pulse_action_revision_fact,
+    platform_pulse_close_portal_confirmation_fact, platform_pulse_close_portal_definition,
+    platform_pulse_close_portal_mutability_fact, platform_pulse_close_portal_policy_fact,
+    platform_pulse_close_portal_readiness_fact, platform_pulse_open_portal_definition,
     PlatformPulseActionPortOwner, PlatformPulseActionProvider, PlatformPulseExecutorGate,
     PlatformPulseIntentInputInstallation, PlatformPulseIntentInputRecord,
     PlatformPulseIntentInputWatch, PlatformPulseIntentInputWatchDenial,
 };
+mod mosaic;
 mod presentation;
 
+use mosaic::register_mosaic;
 use presentation::{register_structure, register_theme_tokens, visual_inspection_policy};
 
 pub(crate) struct PreparedPlatformPulseComposition {
@@ -178,11 +183,19 @@ fn builder(
     WorthUiApplicationBuilder<UiChangeProfileInstalled, UiIntentWiringSatisfied>,
     PlatformPulsePreparationDenial,
 > {
-    let builder = register_structure(
+    let builder = register_structure(register_mosaic(
         WorthUi::app()
             .with_change_profile(worth_ui::facade::rebind::UiChangeProfile::platform_pulse()),
-    );
+    ));
     let builder = register_theme_tokens(builder)
+        .register_intent_boolean_fact(platform_pulse_close_portal_mutability_fact(), true)
+        .map_err(PlatformPulsePreparationDenial::IntentFact)?
+        .register_intent_boolean_fact(platform_pulse_close_portal_readiness_fact(), true)
+        .map_err(PlatformPulsePreparationDenial::IntentFact)?
+        .register_intent_boolean_fact(platform_pulse_close_portal_policy_fact(), true)
+        .map_err(PlatformPulsePreparationDenial::IntentFact)?
+        .register_intent_boolean_fact(platform_pulse_close_portal_confirmation_fact(), false)
+        .map_err(PlatformPulsePreparationDenial::IntentFact)?
         .register_intent_boolean_fact(platform_pulse_action_mutability_fact(), intent.mutable())
         .map_err(PlatformPulsePreparationDenial::IntentFact)?
         .register_intent_boolean_fact(platform_pulse_action_readiness_fact(), intent.ready())
@@ -201,7 +214,11 @@ fn builder(
         .register_intent_definition(platform_pulse_action_definition())
         .map_err(PlatformPulsePreparationDenial::IntentDefinition)?
         .register_intent_provider(provider)
-        .map_err(PlatformPulsePreparationDenial::IntentProvider)?;
+        .map_err(PlatformPulsePreparationDenial::IntentProvider)?
+        .register_runtime_service_intent_definition(platform_pulse_open_portal_definition())
+        .map_err(PlatformPulsePreparationDenial::IntentDefinition)?
+        .register_runtime_service_intent_definition(platform_pulse_close_portal_definition())
+        .map_err(PlatformPulsePreparationDenial::IntentDefinition)?;
     builder
         .register_scalar_projection(registration)
         .map(|builder| builder.with_visual_inspection_policy(visual_inspection_policy()))

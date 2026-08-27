@@ -14,6 +14,19 @@ impl WorthUiApplicationSessionState {
             .projection(graph_node)
     }
 
+    pub(crate) fn mounted_viewport_bounds_for(
+        &self,
+        graph_node: crate::graph::UiGraphNodeIdentity,
+    ) -> Result<
+        Option<crate::runtime::UiCommittedViewportGeometry>,
+        crate::runtime::UiMountedAllocationProjectionDenial,
+    > {
+        self.runtime
+            .allocation_receipt_ledger
+            .mounted_projection_source(None)
+            .viewport_bounds(graph_node)
+    }
+
     pub(crate) fn measurement_policy_for(
         &self,
         declaration: &crate::declaration::UiDeclarationIdentity,

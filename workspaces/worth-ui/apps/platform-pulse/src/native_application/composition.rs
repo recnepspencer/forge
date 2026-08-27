@@ -86,6 +86,7 @@ impl super::PlatformPulseApplicationRuntime {
             intent_gate: Some(intent_gate),
             intent_action_owner: Some(intent_action_owner),
             pending_query_actions: Vec::new(),
+            pending_frame_presentation: None,
             pending_managed_rebind: None,
             pending_intent_postures: std::collections::VecDeque::new(),
             pending_intent_execution_transitions: std::collections::VecDeque::new(),

@@ -303,7 +303,7 @@ fn destination_world(destination: BuiltinDestination) -> AdmissionWorld {
             )
             .unwrap(),
         BuiltinDestination::UnsupportedService => builder
-            .register_unsupported_intent_definition(
+            .register_unsupported_command_intent_definition(
                 UiIntentDefinition::<PrimaryIntent>::runtime_service(
                     UiIntentRuntimeServiceDestination::InvokeCommand,
                 ),

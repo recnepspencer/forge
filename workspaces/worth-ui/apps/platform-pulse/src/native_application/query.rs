@@ -28,7 +28,7 @@ impl PlatformPulseApplicationRuntime {
                 return;
             }
         };
-        self.publish_query_observation(observation, true);
+        self.publish_query_observation(observation, self.initial_source.is_some());
     }
 
     pub(super) fn poll_query(&mut self) {
@@ -192,11 +192,12 @@ impl PlatformPulseApplicationRuntime {
         if evidence.posture() != PlatformPulseQueryProjectionPosture::Current {
             return Ok(());
         }
-        self.visual_identity.refresh_after_content_rebind(
-            shell,
-            self.presentation_tick,
-            std::time::Instant::now(),
-        )?;
+        self.visual_identity
+            .refresh_after_presentation_replacement(
+                shell,
+                self.presentation_tick,
+                std::time::Instant::now(),
+            )?;
         if evidence.owner_order() == 2 {
             self.visual_identity
                 .arm_after_first_frame(std::time::Instant::now())?;

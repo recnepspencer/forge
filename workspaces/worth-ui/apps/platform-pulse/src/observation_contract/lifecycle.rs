@@ -11,6 +11,8 @@ pub enum PlatformPulseLifecycleObservation {
     IntentInputAdmitted(super::intent::PlatformPulseIntentInputObservation),
     IntentExecutorStarted(super::intent::PlatformPulseIntentExecutorStartedObservation),
     IntentPosturePublished(super::intent::PlatformPulseIntentPosturePublished),
+    SemanticFocusPublished(super::focus::PlatformPulseSemanticFocusPublished),
+    PortalDismissed(PlatformPulsePortalDismissed),
     IntentCausalTrace(super::intent::PlatformPulseIntentCausalTraceObservation),
     QueryAction(super::intent::PlatformPulseQueryActionObservation),
     QueryProjectionIssued(super::query::PlatformPulseQueryProjectionEvidence),
@@ -55,6 +57,11 @@ pub struct PlatformPulseApplicationGenerationObservation {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct PlatformPulseMountedFrameObservation {
     pub(super) diagnostic_value: u64,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct PlatformPulsePortalDismissed {
+    frame: PlatformPulseMountedFrameObservation,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -208,6 +215,17 @@ accessors!(
     semantic_package_fingerprint: u64,
 );
 accessors!(PlatformPulseMountedFrameObservation, diagnostic_value: u64);
+accessors!(PlatformPulsePortalDismissed, frame: PlatformPulseMountedFrameObservation);
+
+impl PlatformPulsePortalDismissed {
+    pub(super) fn from_publication(
+        publication: &worth_ui::facade::app::UiMountedFramePublicationReceipt,
+    ) -> Self {
+        Self {
+            frame: PlatformPulseMountedFrameObservation::from_publication(publication),
+        }
+    }
+}
 
 impl PlatformPulseMountedFrameObservation {
     pub(super) fn from_publication(

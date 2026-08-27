@@ -206,6 +206,7 @@ fn native_input_reaches_the_mechanics_drain_boundary_with_its_presentation_basis
     };
     let binding = UiSurfaceBindingGeneration::mint_unbound().unwrap();
     let basis = UiHostObservationPresentationBasis::new(
+        worth_ui_host_contract::UiHostSurfaceIdentity::mint_unbound().unwrap(),
         UiMountedFrameIdentity::mint_unbound().unwrap(),
         binding,
         UiHostPresentationEpoch::issued_by_host(1),

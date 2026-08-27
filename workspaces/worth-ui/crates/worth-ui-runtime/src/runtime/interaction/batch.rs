@@ -40,6 +40,25 @@ pub struct UiInteractionShutdownReport {
 }
 
 impl UiInteractionBatchReceipt {
+    pub(crate) fn retain_service_dismissal(&mut self, dismissal: super::UiDismissInteraction) {
+        let already_retained = self.transitions.iter().any(|transition| {
+            matches!(
+                transition,
+                UiInteractionTransition::DismissRequested(retained)
+                    if retained.sequence() == dismissal.sequence()
+                        && retained.cause() == dismissal.cause()
+            )
+        });
+        if already_retained {
+            return;
+        }
+        let retained = std::mem::take(&mut self.transitions).into_vec();
+        let mut transitions = Vec::with_capacity(retained.len().saturating_add(1));
+        transitions.extend(retained);
+        transitions.push(UiInteractionTransition::DismissRequested(dismissal));
+        self.transitions = transitions.into_boxed_slice();
+    }
+
     pub const fn canonical_core(&self) -> UiHostObservationCanonicalCore {
         self.core
     }

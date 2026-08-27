@@ -3,7 +3,8 @@ use std::rc::Rc;
 use worth_ui_host_contract::{
     UiMountedPresentationDelta, UiMountedPresentationDeltaInput, UiMountedPresentationInitial,
     UiMountedPresentationInitialInput, UiMountedPresentationReconstruction,
-    UiMountedPresentationReconstructionInput, UiMountedPresentationUnchanged,
+    UiMountedPresentationReconstructionInput, UiMountedPresentationSample,
+    UiMountedPresentationSampleInput, UiMountedPresentationUnchanged,
     UiMountedPresentationUnchangedInput, UiMountedPresentationWorkView,
 };
 
@@ -19,6 +20,7 @@ enum UiMountedPresentationWorkKind {
     Initial(UiMountedPresentationInitial),
     Delta(UiMountedPresentationDelta),
     Reconstruction(UiMountedPresentationReconstruction),
+    Sample(UiMountedPresentationSample),
     Unchanged(UiMountedPresentationUnchanged),
 }
 
@@ -33,6 +35,9 @@ impl UiMountedPresentationWork {
             }
             UiMountedPresentationWorkKind::Reconstruction(reconstruction) => {
                 UiMountedPresentationWorkView::Reconstruction(reconstruction)
+            }
+            UiMountedPresentationWorkKind::Sample(sample) => {
+                UiMountedPresentationWorkView::Sample(sample)
             }
             UiMountedPresentationWorkKind::Unchanged(unchanged) => {
                 UiMountedPresentationWorkView::Unchanged(unchanged)
@@ -68,6 +73,7 @@ impl UiMountedPresentationWork {
             UiMountedPresentationWorkKind::Initial(initial) => Some(initial),
             UiMountedPresentationWorkKind::Delta(_)
             | UiMountedPresentationWorkKind::Reconstruction(_)
+            | UiMountedPresentationWorkKind::Sample(_)
             | UiMountedPresentationWorkKind::Unchanged(_) => None,
         }
     }
@@ -114,6 +120,21 @@ impl UiMountedPresentationLease {
             layout_owner: None,
             kind: UiMountedPresentationWorkKind::Reconstruction(
                 UiMountedPresentationReconstruction::from_inert_mechanics(input),
+            ),
+        }
+    }
+
+    pub(crate) fn issue_sample(
+        &self,
+        input: UiMountedPresentationSampleInput,
+    ) -> UiMountedPresentationWork {
+        super::validation::validate_sample(&input);
+        UiMountedPresentationWork {
+            authority: Rc::clone(&self.seal),
+            layout_owner: None,
+            kind: UiMountedPresentationWorkKind::Sample(
+                UiMountedPresentationSample::from_inert_mechanics(input)
+                    .expect("validated runtime sample input remains a lawful same-frame sample"),
             ),
         }
     }

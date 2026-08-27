@@ -35,7 +35,8 @@ pub use super::launch::WorthUiRuntimeFrameworkLoop;
 pub use super::launch::{
     WorthUiLastValidObservation, WorthUiPendingActivation, WorthUiRuntime,
     WorthUiRuntimeFrameEpoch, WorthUiRuntimeLaunch, WorthUiRuntimeLaunchDenial,
-    WorthUiRuntimeLifecycle, WorthUiRuntimeShutdownReceipt,
+    WorthUiRuntimeLifecycle, WorthUiRuntimeShutdownBlocker, WorthUiRuntimeShutdownReceipt,
+    WorthUiRuntimeShutdownRecovery,
 };
 
 // --- planning ---
@@ -115,8 +116,8 @@ pub use super::planning::plan_topology::{
     WorthUiPlanTopologyDenialReason, WorthUiRenderResourceRef,
 };
 pub use super::planning::query_binding::WorthUiQuerySettledFactLink;
-pub use super::portal_anchored_allocation::UiPortalActivationBindingDenial;
-pub use super::portal_anchored_allocation::{
+pub use super::portal::anchored_allocation::UiPortalActivationBindingDenial;
+pub use super::portal::anchored_allocation::{
     UiAdmittedPortalAnchorObservation, UiPortalAllocationPlanningBasis, UiPortalAnchorIdentity,
     UiPortalAnchorIdentityTransition, UiPortalAnchorSuccessorDenial,
 };

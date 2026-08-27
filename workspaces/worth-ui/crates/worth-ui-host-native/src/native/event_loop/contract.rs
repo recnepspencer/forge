@@ -15,7 +15,7 @@ mod shutdown_overlap;
 mod stop_report;
 pub use application_readiness::{
     UiNativeApplicationReadinessGrant, UiNativeApplicationReadinessOwnerCount,
-    UiNativeApplicationReadinessOwnerCountDenial,
+    UiNativeApplicationReadinessOwnerCountDenial, UiNativeReducedMotionPosture,
 };
 pub use client_derived_state::{
     UiNativeClientDerivedStateLossClass, UiNativeClientDerivedStateReconstructionObservation,
@@ -88,6 +88,7 @@ pub trait UiNativeEventLoopClient {
 pub struct UiNativePhysicalProgressGrant {
     class: UiNativePhysicalProgressClass,
     presentation: Option<super::UiNativePhysicalPresentationCorrelation>,
+    originating_presentation: Option<super::UiNativePhysicalPresentationCorrelation>,
     duplicate_presentation_observed: bool,
 }
 
@@ -100,7 +101,20 @@ impl UiNativePhysicalProgressGrant {
         Self {
             class,
             presentation,
+            originating_presentation: None,
             duplicate_presentation_observed,
+        }
+    }
+
+    pub(super) const fn issued_with_originating_presentation(
+        class: UiNativePhysicalProgressClass,
+        originating_presentation: super::UiNativePhysicalPresentationCorrelation,
+    ) -> Self {
+        Self {
+            class,
+            presentation: None,
+            originating_presentation: Some(originating_presentation),
+            duplicate_presentation_observed: false,
         }
     }
 
@@ -112,8 +126,24 @@ impl UiNativePhysicalProgressGrant {
         self.presentation
     }
 
+    pub const fn originating_presentation(
+        &self,
+    ) -> Option<super::UiNativePhysicalPresentationCorrelation> {
+        self.originating_presentation
+    }
+
     pub const fn duplicate_presentation_observed(&self) -> bool {
         self.duplicate_presentation_observed
+    }
+
+    #[cfg(feature = "certification-support")]
+    #[doc(hidden)]
+    pub const fn from_certification(
+        class: UiNativePhysicalProgressClass,
+        presentation: Option<super::UiNativePhysicalPresentationCorrelation>,
+        duplicate_presentation_observed: bool,
+    ) -> Self {
+        Self::issued(class, presentation, duplicate_presentation_observed)
     }
 }
 

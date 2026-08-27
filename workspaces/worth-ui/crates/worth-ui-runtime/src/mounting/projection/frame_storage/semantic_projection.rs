@@ -5,7 +5,7 @@ use worth_ui_host_contract::{
 use super::super::UiMountedNodeReceipt;
 
 #[derive(Clone)]
-pub(in crate::mounting::projection) struct UiMountedProjectionNodeRecord {
+pub(in crate::mounting) struct UiMountedProjectionNodeRecord {
     pub(in crate::mounting::projection) receipt: UiMountedNodeReceipt,
     pub(in crate::mounting::projection) plan_index: Option<u32>,
     pub(in crate::mounting::projection) static_paint:
@@ -14,6 +14,16 @@ pub(in crate::mounting::projection) struct UiMountedProjectionNodeRecord {
         Option<super::super::semantic_text::UiMountedSemanticTextSeed>,
     pub(in crate::mounting::projection) hit_test:
         Option<super::super::hit_test::UiMountedHitTestSeed>,
+    pub(in crate::mounting) focus_support: crate::capability::ComponentFocusSupport,
+    pub(in crate::mounting) focus_scope: Option<super::super::UiMountedFocusScope>,
+    pub(in crate::mounting::projection) component_id: Option<crate::capability::ComponentId>,
+    pub(in crate::mounting::projection) portal_child_owner: Option<crate::capability::ComponentId>,
+}
+
+impl UiMountedProjectionNodeRecord {
+    pub(in crate::mounting) const fn receipt(&self) -> &UiMountedNodeReceipt {
+        &self.receipt
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -186,6 +196,30 @@ impl UiMountedSemanticProjection {
         self.nodes.len()
     }
 
+    pub(in crate::mounting::projection) fn portal_children_for_owners(
+        &self,
+        owners: &[worth_ui_host_contract::UiMountedInstanceIdentity],
+    ) -> Vec<worth_ui_host_contract::UiMountedInstanceIdentity> {
+        let owner_components = owners
+            .iter()
+            .filter_map(|owner| self.nodes.get(owner))
+            .filter_map(|owner| owner.component_id.as_ref())
+            .collect::<std::collections::BTreeSet<_>>();
+        self.order
+            .iter()
+            .filter_map(|instance| {
+                self.nodes
+                    .get(instance)
+                    .filter(|node| {
+                        node.portal_child_owner
+                            .as_ref()
+                            .is_some_and(|owner| owner_components.contains(owner))
+                    })
+                    .map(|_| *instance)
+            })
+            .collect()
+    }
+
     pub(in crate::mounting::projection) fn mounted_instances(
         &self,
     ) -> impl ExactSizeIterator<Item = worth_ui_host_contract::UiMountedInstanceIdentity> + '_ {
@@ -209,6 +243,16 @@ impl UiMountedSemanticProjection {
     ) -> (Option<&UiMountedNodeReceipt>, usize) {
         let (record, probes) = self.nodes.get_with_probes(&mounted_instance);
         (record.map(|record| &record.receipt), probes)
+    }
+
+    pub(in crate::mounting) fn nodes_in_mounted_order(
+        &self,
+    ) -> impl ExactSizeIterator<Item = &UiMountedProjectionNodeRecord> {
+        self.order.iter().map(|instance| {
+            self.nodes
+                .get(instance)
+                .expect("mounted semantic order names an indexed node")
+        })
     }
 
     pub(in crate::mounting) fn retained_structural_bytes(&self) -> Option<usize> {

@@ -14,8 +14,6 @@ struct ConfiguredNativeSurface {
     surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
     mounted_rows: Vec<NativeMountedRow>,
     mounted_row_indices: HashMap<Box<str>, usize>,
-    viewport_measurement_authority:
-        Box<[crate::facade::entry::mounted_allocation_establishment::UiNativeViewportMeasurementAuthority]>,
 }
 
 struct NativeSurfaceConfigurationFailure {
@@ -112,10 +110,10 @@ impl WorthUiApp {
             mounted_row_indices: configured.mounted_row_indices,
             observed_viewport_basis: None,
             pending_viewport_basis: None,
-            viewport_measurement_authority: configured.viewport_measurement_authority,
             pending_surface_reconciliation: None,
             runtime_derived_state_reconstruction: None,
             pending_managed_rebind: None,
+            retained_portal_dismissal: None,
             managed_rebind_completion_tick: 0,
         })
     }
@@ -210,21 +208,19 @@ fn configure_native_surface(
             latest_mounted: mounted,
         });
     }
-    let viewport_measurement_authority =
-        session
-            .establish_native_viewport_allocation()
-            .map_err(|denial| {
-                configuration_failure(
-                    WorthUiNativeApplicationShellLaunchDenial::ViewportAllocation(denial),
-                    1,
-                )
-            })?;
+    session
+        .establish_native_viewport_allocation()
+        .map_err(|denial| {
+            configuration_failure(
+                WorthUiNativeApplicationShellLaunchDenial::ViewportAllocation(denial),
+                1,
+            )
+        })?;
     Ok(ConfiguredNativeSurface {
         binding: binding.binding_generation(),
         surface,
         mounted_rows,
         mounted_row_indices,
-        viewport_measurement_authority,
     })
 }
 

@@ -11,6 +11,7 @@ mod mosaic_state;
 mod native_capability;
 mod plugin_slot;
 mod runtime_outcome_projection;
+mod runtime_service;
 mod settings;
 mod surface;
 mod task_presentation;
@@ -35,12 +36,14 @@ pub use component::{
     ComponentAccessibilitySupport, ComponentAllocationMeasurementContract,
     ComponentCanvasSpatialContract, ComponentChildPolicy, ComponentDescriptor,
     ComponentExecutionLane, ComponentFocusSupport, ComponentHitTestClipContract,
-    ComponentHitTestContract, ComponentHitTestInset, ComponentHitTestOrder, ComponentPropSchema,
-    ComponentRealtimeOverlayContract, ComponentRealtimeOverlayContractDenial,
-    ComponentRealtimeOverlayContractDenialReason, ComponentRealtimeOverlayPriority,
-    ComponentSemanticTextContract, ComponentSemanticTextContractDenial,
-    ComponentSemanticTextSpanContract, ComponentStateOwnership, ComponentStaticPaintContract,
-    ComponentStaticPaintOrder, ComponentViewportInset, FrozenComponentCapabilities,
+    ComponentHitTestContract, ComponentHitTestInset, ComponentHitTestOrder,
+    ComponentPortalChildContract, ComponentPropSchema, ComponentRealtimeOverlayContract,
+    ComponentRealtimeOverlayContractDenial, ComponentRealtimeOverlayContractDenialReason,
+    ComponentRealtimeOverlayPriority, ComponentSemanticTextContract,
+    ComponentSemanticTextContractDenial, ComponentSemanticTextSpanContract,
+    ComponentStateOwnership, ComponentStaticPaintContract, ComponentStaticPaintOrder,
+    ComponentViewportAxisPlacement, ComponentViewportInset, ComponentViewportRegion,
+    FrozenComponentCapabilities,
 };
 pub(crate) use family_names::{
     COMMAND_FAMILY_NAME, COMMAND_PROJECTION_FAMILY_NAME, COMPONENT_FAMILY_NAME, ICON_FAMILY_NAME,
@@ -126,6 +129,9 @@ pub use runtime_outcome_projection::{
 };
 pub(crate) use runtime_outcome_projection::{
     RuntimeOutcomeProjectionAcceptedRegistrationProof, RuntimeOutcomeProjectionRegistry,
+};
+pub(crate) use runtime_service::{
+    UiRuntimeServiceFamily, UiRuntimeServiceSupport, UiRuntimeServiceSupportPosture,
 };
 pub use settings::{
     ArbitraryKeyValueSettingBag, FrozenSettingCapabilities, FrozenSettingEntry,

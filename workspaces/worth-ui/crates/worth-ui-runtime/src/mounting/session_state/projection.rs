@@ -9,6 +9,18 @@ pub(crate) struct UiMountedPaintAttribution {
 }
 
 impl WorthUiMountedSessionState {
+    pub(crate) fn current_portal_owner_for_child(
+        &self,
+        instance: worth_ui_host_contract::UiMountedInstanceIdentity,
+    ) -> Option<(
+        crate::graph::UiGraphNodeIdentity,
+        worth_ui_host_contract::UiMountedInstanceIdentity,
+    )> {
+        self.identity
+            .current_projection()?
+            .portal_owner_for_child(instance)
+    }
+
     pub(crate) fn native_paint_attribution(
         &self,
         frame: worth_ui_host_contract::UiMountedFrameIdentity,

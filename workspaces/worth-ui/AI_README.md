@@ -116,9 +116,13 @@ declarations, or parse source on a frame.
 ## Runtime Placement
 
 Place runtime work using [Runtime subsystems](./docs/runtime-subsystems.md).
-There are seven owners: application, graph, planning, mounting, observation,
-inspection, and the thin session composition root. The map includes exact
-future homes for Milestones 3.11, 3.12, 3.17, and 3.18.
+The platform owners are application, graph, planning, mounting, observation,
+inspection, the thin session composition root, and the six sibling runtime-
+service owners: portal, focus, motion, command routing, scroll, and selection.
+Service proposal compilation coordinates those owners but cannot publish,
+issue host effects, or become another service owner. See the subsystem map
+before placing state or authority; a generic `Service` bag is not a lawful
+destination.
 
 ## Verification
 

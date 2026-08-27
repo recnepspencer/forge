@@ -136,6 +136,15 @@ impl UiPreparedMountedFrame {
         self.candidate.presented_receipt_basis()
     }
 
+    pub(crate) fn focus_participation_snapshot(
+        &self,
+    ) -> crate::mounting::UiMountedFocusParticipationSnapshot {
+        crate::mounting::UiMountedFocusParticipationSnapshot::from_projection(
+            self.candidate.frame(),
+            self.presented_receipt_basis(),
+        )
+    }
+
     pub(crate) fn into_publication_parts(
         self,
     ) -> (

@@ -173,7 +173,10 @@ fn operation_live_publication_preserves_prior_truth_across_callback_unwind() {
     assert_eq!(retried.staged_change_count(), 0);
     assert_eq!(retried.admitted_change_count(), 2);
 
-    let retirement = runtime.shutdown().into_operation_live_retirement();
+    let retirement = runtime
+        .shutdown()
+        .unwrap_or_else(|recovery| panic!("shutdown blocked: {:?}", recovery.blocker()))
+        .into_operation_live_retirement();
     let closed = fixture.close_retirement(retirement);
     assert!(matches!(
         closed,
@@ -225,7 +228,10 @@ fn denied_framework_transition_does_not_publish_operation_live_change() {
     let retried = runtime.operation_live_change_observation_for_test(&reference);
     assert_eq!(retried.staged_change_count(), 0);
     assert_eq!(retried.admitted_change_count(), 1);
-    let retirement = runtime.shutdown().into_operation_live_retirement();
+    let retirement = runtime
+        .shutdown()
+        .unwrap_or_else(|recovery| panic!("shutdown blocked: {:?}", recovery.blocker()))
+        .into_operation_live_retirement();
     assert!(matches!(
         fixture.close_retirement(retirement),
         worth_ui_query_binding::WorthUiOperationLiveRetirementCloseOutcome::Closed(_)

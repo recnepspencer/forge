@@ -154,6 +154,7 @@ impl UiIntentExecutionState {
 }
 
 fn prepare(settled: UiSettledFrameworkIntentAttempt) -> UiPreparedFrameworkIntentConsequence {
+    let runtime_service = settled.outcome.runtime_service_destination();
     let consequences = settled.outcome.into_consequences();
     let (query_collection_change, query_projection) = consequences.into_parts();
     UiPreparedFrameworkIntentConsequence {
@@ -161,6 +162,7 @@ fn prepare(settled: UiSettledFrameworkIntentAttempt) -> UiPreparedFrameworkInten
         idempotency: settled.idempotency,
         consequence_lease: settled.consequence_lease,
         batch: UiPreparedIntentConsequenceBatch {
+            runtime_service,
             mounted_posture: settled
                 .basis
                 .declaration
@@ -310,6 +312,12 @@ impl UiIntentConsequenceHandoff {
         usize::from(self.batch.mounted_posture)
             + usize::from(self.batch.query_collection_change.is_some())
             + usize::from(self.batch.query_projection.is_some())
+    }
+
+    pub(crate) const fn runtime_service_destination(
+        &self,
+    ) -> Option<crate::capability::UiIntentRuntimeServiceDestination> {
+        self.batch.runtime_service
     }
 
     pub(crate) fn restore_query_from_facts(

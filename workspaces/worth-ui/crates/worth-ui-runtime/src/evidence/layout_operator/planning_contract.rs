@@ -268,6 +268,14 @@ fn measurement_mode_digest(mode: Option<UiDeclaredMeasurementMode>) -> u64 {
         }) => stable_text_digest(&format!(
             "worth-ui.operator-contract.mode.viewport-inset:{horizontal_logical_points}:{vertical_logical_points}"
         )),
+        Some(UiDeclaredMeasurementMode::ViewportRegion {
+            horizontal,
+            vertical,
+        }) => stable_text_digest(&format!(
+            "worth-ui.operator-contract.mode.viewport-region:{}:{}",
+            horizontal.digest_basis(),
+            vertical.digest_basis(),
+        )),
         Some(UiDeclaredMeasurementMode::FixedLogicalSize { width, height }) => {
             stable_text_digest(&format!(
                 "worth-ui.operator-contract.mode.fixed-logical-size:{width}:{height}"

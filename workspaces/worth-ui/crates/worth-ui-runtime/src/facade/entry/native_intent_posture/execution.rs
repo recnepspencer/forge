@@ -5,6 +5,9 @@ use super::{
 };
 use crate::facade::entry::WorthUiActiveApplicationSession;
 
+mod pending;
+pub(in crate::facade::entry) use pending::DetachedNativeIntentPosturePending;
+
 pub(super) struct PreparedNativeIntentPostureRebind<'session> {
     pub(super) session: &'session mut WorthUiActiveApplicationSession,
     pub(super) plan: crate::runtime::rebind::UiRebindPlan,
@@ -253,16 +256,6 @@ impl<'session> WorthUiNativeIntentPosturePublicationRetry<'session> {
             .session
             .present_prepared_mounted_frame_internal(frame, deadline, now_tick);
         finish(admitted, outcome)
-    }
-
-    pub(in crate::facade::entry) fn into_stop(
-        mut self,
-    ) -> super::WorthUiNativeIntentPosturePublicationStop {
-        let state = self
-            .state
-            .take()
-            .expect("live posture retry owns its state");
-        super::WorthUiNativeIntentPosturePublicationStop::host_rejected(state.rejections.len())
     }
 }
 

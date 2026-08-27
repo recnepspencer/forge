@@ -5,6 +5,8 @@ mod measurement_context;
 mod measurement_environment;
 mod measurement_request;
 mod runtime_host_contract;
+mod service_geometry;
+mod solicited_effect;
 
 pub use host_capability::WorthUiHostCapability;
 pub use host_capability_posture::WorthUiHostCapabilityPosture;
@@ -34,4 +36,17 @@ pub use measurement_request::{
 };
 pub use runtime_host_contract::{
     WorthUiHostContract, WorthUiHostKind, WorthUiMeasurementHostAdapter,
+};
+pub use service_geometry::{
+    UiHostPhysicalPixelGeometry, UiHostPhysicalPixelGeometryInput, UiHostServiceGeometryDenial,
+    UiHostSurfaceLogicalGeometry,
+};
+pub use solicited_effect::{
+    UiHostFocusPlacementAcknowledgement, UiHostFocusPlacementDisposition,
+    UiHostFocusPlacementObservation, UiHostFocusPlacementObservationDenial,
+    UiHostFocusPlacementObservationInput, UiHostFocusPlacementRejection,
+    UiHostFocusPlacementRequest, UiHostFocusPlacementRequestDenial,
+    UiHostFocusPlacementRequestIdentity, UiHostFocusPlacementRequestInput,
+    UiHostFocusPlacementTarget, UiHostSolicitedEffectCancellationOutcome,
+    UiHostSolicitedEffectOutcome,
 };

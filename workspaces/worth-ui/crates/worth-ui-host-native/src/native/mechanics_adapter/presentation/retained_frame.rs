@@ -38,6 +38,7 @@ fn retain_unchanged(
         view,
         key,
         UiNativePresentationWorkKind::Unchanged,
+        None,
         pixels,
         Default::default(),
         0,
@@ -57,6 +58,7 @@ pub(super) fn record_retained_frame(
     view: &UiMountedFrameConsumptionView<'_>,
     key: u64,
     kind: UiNativePresentationWorkKind,
+    sample_presentation_epoch: Option<worth_ui_host_contract::UiHostPresentationEpoch>,
     pixels: [[u8; 4]; 2],
     cost: UiHostPresentationCostReport,
     port_crossings: u8,
@@ -79,6 +81,7 @@ pub(super) fn record_retained_frame(
     state.record_retained_frame_observation(UiNativeRetainedFrameObservation::observed(
         view.frame().diagnostic_value(),
         kind,
+        sample_presentation_epoch,
         pixels,
         cost,
         observation.clone(),

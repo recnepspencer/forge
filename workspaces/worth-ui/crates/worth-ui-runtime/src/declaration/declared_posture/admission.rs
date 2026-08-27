@@ -134,7 +134,7 @@ fn admit_service_usage_lane(
         |claim| match claim {
             "service:portal" => Some(UiDeclaredServiceUsagePosture::Portal),
             "service:scroll" => Some(UiDeclaredServiceUsagePosture::Scroll),
-            "service:focus-routing" => Some(UiDeclaredServiceUsagePosture::FocusRouting),
+            "service:focus-routing" => Some(UiDeclaredServiceUsagePosture::Focus),
             "service:motion" => Some(UiDeclaredServiceUsagePosture::Motion),
             _ => None,
         },

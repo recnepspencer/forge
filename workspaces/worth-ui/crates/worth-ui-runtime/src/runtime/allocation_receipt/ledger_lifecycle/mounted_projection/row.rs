@@ -9,7 +9,15 @@ use worth_ui_host_contract::{
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(super) struct UiMountedAllocationProjectionRow {
     projection: Result<UiMountedAllocationProjection, UiMountedAllocationProjectionDenial>,
+    viewport_bounds:
+        Result<Option<UiCommittedViewportGeometry>, UiMountedAllocationProjectionDenial>,
 }
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct UiCommittedViewportGeometry(UiMountedCanonicalBox);
+
+// Construction admits only canonical finite committed viewport evidence.
+impl Eq for UiCommittedViewportGeometry {}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum UiMountedAllocationProjectionDenial {
@@ -21,6 +29,7 @@ impl UiMountedAllocationProjectionRow {
     pub(super) fn from_receipt(receipt: &super::UiAllocationReceipt) -> Self {
         Self {
             projection: project_receipt(receipt),
+            viewport_bounds: project_viewport_bounds(receipt),
         }
     }
 
@@ -29,6 +38,58 @@ impl UiMountedAllocationProjectionRow {
     ) -> Result<UiMountedAllocationProjection, UiMountedAllocationProjectionDenial> {
         self.projection
     }
+
+    pub(super) fn viewport_bounds(
+        self,
+    ) -> Result<Option<UiCommittedViewportGeometry>, UiMountedAllocationProjectionDenial> {
+        self.viewport_bounds
+    }
+}
+
+impl UiCommittedViewportGeometry {
+    pub(crate) const fn mounted_box(self) -> UiMountedCanonicalBox {
+        self.0
+    }
+
+    #[cfg(test)]
+    pub(crate) const fn for_test(bounds: UiMountedCanonicalBox) -> Self {
+        Self(bounds)
+    }
+}
+
+fn project_viewport_bounds(
+    receipt: &super::UiAllocationReceipt,
+) -> Result<Option<UiCommittedViewportGeometry>, UiMountedAllocationProjectionDenial> {
+    receipt
+        .committed_allocation()
+        .measurement_basis()
+        .evidence_inputs()
+        .iter()
+        .find_map(|evidence| {
+            let result = evidence.as_host_measurement_result()?;
+            let crate::evidence::UiMeasurementValue::ViewportExtent(extent) = result.value() else {
+                return None;
+            };
+            Some(
+                UiMountedCanonicalBox::canonicalize(UiMountedCanonicalBoxInput {
+                    x: 0.0,
+                    y: 0.0,
+                    width: extent.width,
+                    height: extent.height,
+                    coordinate_space: coordinate_space(result.coordinate_space()),
+                })
+                .map(UiCommittedViewportGeometry),
+            )
+        })
+        .transpose()
+        .map_err(|denial| match denial {
+            UiMountedGeometryDenial::NonFinite => {
+                UiMountedAllocationProjectionDenial::NonFiniteGeometry
+            }
+            UiMountedGeometryDenial::NegativeExtent => {
+                UiMountedAllocationProjectionDenial::NegativeExtent
+            }
+        })
 }
 
 fn project_receipt(

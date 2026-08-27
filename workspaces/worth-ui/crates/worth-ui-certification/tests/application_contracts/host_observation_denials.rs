@@ -13,7 +13,7 @@ use worth_ui_host_contract::{
 };
 use worth_ui_runtime::facade::mounted::{UiMountedFrameIdentity, UiSurfaceBindingGeneration};
 
-use super::host_observation_fixture::{batch, pointer, report, source};
+use super::host_observation_fixture::{batch, pointer, report, source, window_focus};
 use super::mounted_application_lifecycle::published_mounted_world::published_observation_world;
 
 #[path = "host_observation_denials/binding_sequence.rs"]
@@ -197,7 +197,7 @@ fn assert_reordered_sequence() {
         UiHostObservationLoss::Complete,
         vec![report(
             1,
-            UiHostObservationPayload::Focus { focused: true },
+            window_focus(&world.current, true),
             &world.current,
         )],
     );
@@ -276,6 +276,7 @@ fn core_with(
         protocol: mutation.protocol.unwrap_or(source.protocol()),
         host_session: mutation.host_session.unwrap_or(source.host_session()),
         presentation: worth_ui_host_contract::UiHostObservationPresentationBasis::new(
+            source.presentation().host_surface(),
             source.frame(),
             mutation.binding.unwrap_or(source.binding()),
             mutation
@@ -325,5 +326,6 @@ fn old_observation_contract() -> UiHostProtocolContract {
         current.mounted_presentation(),
         UiHostObservationSchemaVersion::new(5),
         current.measurement(),
+        current.solicited_effect(),
     )
 }

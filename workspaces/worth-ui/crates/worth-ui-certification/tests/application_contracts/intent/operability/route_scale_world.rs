@@ -69,6 +69,7 @@ impl MountedRouteScaleWorld {
             _ => panic!("route-scale frame must publish"),
         };
         let presentation = UiHostObservationPresentationBasis::new(
+            session.inspect_mounted_identity().surface_bindings()[0].host_surface_identity(),
             publication.frame(),
             binding,
             presented_epoch(&session, publication.frame(), binding),

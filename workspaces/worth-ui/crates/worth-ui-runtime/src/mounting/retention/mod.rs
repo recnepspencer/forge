@@ -30,7 +30,9 @@ pub(crate) use inspection_basis::{
     UiMountedFrameInspectionBasis, UiMountedFrameInspectionDenial,
     UiMountedFrameInspectionSelection, UiMountedFrameInspectionTarget,
 };
-pub(crate) use interaction_basis::UiPresentedHitTestBasis;
+#[cfg(test)]
+pub(crate) use interaction_basis::motion_sampling_hit_test_mechanic_for_test;
+pub(crate) use interaction_basis::{UiPresentedHitTestBasis, UiPresentedHitTestRow};
 pub use lease::UiMountedRetentionLease;
 pub(crate) use lease::{
     UiMountedDiagnosticRetentionLease, UiMountedObservationBasisLease, UiMountedVisualOverlayLease,

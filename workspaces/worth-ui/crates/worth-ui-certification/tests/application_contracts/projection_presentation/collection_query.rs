@@ -304,6 +304,7 @@ fn assert_collection_transcript(
         transcript.unperformed_effects(),
         &[UiHeadlessUnperformedEffect::NativePaint {
             filled_rect_count: 1,
+            portal_overlay_count: 0,
             semantic_text_count: u32::try_from(expected_values.len() + 1)
                 .expect("certification row count fits the host contract"),
             preview_node_count: 0,

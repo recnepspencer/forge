@@ -70,7 +70,7 @@ impl UiAllocationInvalidationAdmissionContext {
         candidate: crate::runtime::UiAllocationCandidate,
     ) -> Self {
         if candidate.allocation_constraint_set().is_some() {
-            match crate::runtime::scroll_owned_allocation::UiAdmittedScrollPlanningAuthority::seal(
+            match crate::runtime::scroll::allocation::UiAdmittedScrollPlanningAuthority::seal(
                 candidate.planning().basis(),
             ) {
                 Ok(planning) => self.scroll_planning = planning,
@@ -78,7 +78,7 @@ impl UiAllocationInvalidationAdmissionContext {
             }
         }
         self.portal_planning = candidate.allocation_constraint_set().and_then(|set| {
-            crate::runtime::portal_anchored_allocation::UiAdmittedPortalPlanningAuthority::seal(
+            crate::runtime::portal::anchored_allocation::UiAdmittedPortalPlanningAuthority::seal(
                 candidate.measurement_basis(),
                 candidate.allocation_neighborhood(),
                 set,
@@ -92,13 +92,13 @@ impl UiAllocationInvalidationAdmissionContext {
 
     pub(super) fn scroll_planning(
         &self,
-    ) -> Option<&crate::runtime::scroll_owned_allocation::UiAdmittedScrollPlanningAuthority> {
+    ) -> Option<&crate::runtime::scroll::allocation::UiAdmittedScrollPlanningAuthority> {
         self.scroll_planning.as_ref()
     }
 
     pub(super) fn portal_planning(
         &self,
-    ) -> Option<&crate::runtime::portal_anchored_allocation::UiAdmittedPortalPlanningAuthority>
+    ) -> Option<&crate::runtime::portal::anchored_allocation::UiAdmittedPortalPlanningAuthority>
     {
         self.portal_planning.as_ref()
     }

@@ -36,22 +36,22 @@ fn viewport_collection_input(
 }
 
 #[test]
-fn viewport_fanout_at_receipt_ceiling_commits_exactly_four_neighborhoods() {
-    let (mut runtime, _, _) = crate::runtime::tests::production_catalog_activation_test_support::runtime_with_viewport_catalog(4);
+fn viewport_fanout_at_receipt_ceiling_commits_every_bounded_neighborhood() {
+    let (mut runtime, _, _) = crate::runtime::tests::production_catalog_activation_test_support::runtime_with_viewport_catalog(64);
     let completion = submit_viewport_observation(&mut runtime, 900.0);
     let outcome = completion
         .viewport_resize_outcome()
         .expect("at-limit viewport fanout commits through the ordinary lane");
-    assert_eq!(outcome.counters().selected_neighborhoods(), 4);
-    assert_eq!(outcome.counters().committed_receipts(), 4);
+    assert_eq!(outcome.counters().selected_neighborhoods(), 64);
+    assert_eq!(outcome.counters().committed_receipts(), 64);
     assert_eq!(outcome.counters().authority_probes(), 1);
-    assert_eq!(outcome.counters().emitted_targets(), 4);
-    assert_eq!(outcome.evidence().maximum_committed_receipts(), 4);
+    assert_eq!(outcome.counters().emitted_targets(), 64);
+    assert_eq!(outcome.evidence().maximum_committed_receipts(), 64);
 }
 
 #[test]
 fn viewport_fanout_over_target_ceiling_denies_before_locality() {
-    let (mut runtime, _, _) = crate::runtime::tests::production_catalog_activation_test_support::runtime_with_viewport_catalog(9);
+    let (mut runtime, _, _) = crate::runtime::tests::production_catalog_activation_test_support::runtime_with_viewport_catalog(129);
     let committed_before = runtime.committed_allocation_scope_count_for_test();
     let completion = submit_viewport_observation(&mut runtime, 900.0);
     let crate::runtime::WorthUiFrameworkTurnCompletion::AllocationInvalidationNarrowingDenied {
@@ -64,8 +64,8 @@ fn viewport_fanout_over_target_ceiling_denies_before_locality() {
         rejection.denial(),
         crate::runtime::UiAllocationInvalidationNarrowingDenial::ViewportTargetBudgetExceeded {
             ordinal: 0,
-            attempted: 9,
-            maximum: 8,
+            attempted: 129,
+            maximum: 128,
         }
     );
     assert_eq!(rejection.counters().graph_target_lookups(), 1);
@@ -81,7 +81,7 @@ fn viewport_fanout_over_target_ceiling_denies_before_locality() {
 
 #[test]
 fn cumulative_viewport_target_ceiling_denies_the_first_excess_sample() {
-    let (mut runtime, _, _) = crate::runtime::tests::production_catalog_activation_test_support::runtime_with_viewport_catalog(2);
+    let (mut runtime, _, _) = crate::runtime::tests::production_catalog_activation_test_support::runtime_with_viewport_catalog(3);
     let committed_before = runtime.committed_allocation_scope_count_for_test();
     let report = crate::evidence::measurement::projection::fact_test_support::capability_report(77);
     let profile = crate::host::UiHostMeasurementAssumptionProfile::from_capability_report(
@@ -89,7 +89,8 @@ fn cumulative_viewport_target_ceiling_denies_the_first_excess_sample() {
     );
     let completion = runtime.execute_framework_turn(|turn| {
         turn.host_measurement(|source| {
-            for width in [800.0, 820.0, 840.0, 860.0, 880.0] {
+            for sample in 0..43 {
+                let width = 800.0 + sample as f32 * 20.0;
                 source
                     .collect_and_submit(
                         &ViewportAdapter(width),
@@ -112,15 +113,15 @@ fn cumulative_viewport_target_ceiling_denies_the_first_excess_sample() {
     assert_eq!(
         rejection.denial(),
         crate::runtime::UiAllocationInvalidationNarrowingDenial::ViewportTargetBudgetExceeded {
-            ordinal: 4,
-            attempted: 10,
-            maximum: 8,
+            ordinal: 42,
+            attempted: 129,
+            maximum: 128,
         }
     );
-    assert_eq!(rejection.counters().invalidation_visits(), 5);
-    assert_eq!(rejection.counters().authority_probes(), 5);
-    assert_eq!(rejection.counters().emitted_targets(), 8);
-    assert_eq!(rejection.counters().materialized_host_target_sets(), 4);
+    assert_eq!(rejection.counters().invalidation_visits(), 43);
+    assert_eq!(rejection.counters().authority_probes(), 43);
+    assert_eq!(rejection.counters().emitted_targets(), 126);
+    assert_eq!(rejection.counters().materialized_host_target_sets(), 42);
     assert_eq!(
         runtime.committed_allocation_scope_count_for_test(),
         committed_before
@@ -129,15 +130,15 @@ fn cumulative_viewport_target_ceiling_denies_the_first_excess_sample() {
 
 #[test]
 fn viewport_receipt_ceiling_denies_post_locality_without_ledger_mutation() {
-    let (mut runtime, _, _) = crate::runtime::tests::production_catalog_activation_test_support::runtime_with_viewport_catalog(5);
+    let (mut runtime, _, _) = crate::runtime::tests::production_catalog_activation_test_support::runtime_with_viewport_catalog(65);
     let committed_before = runtime.committed_allocation_scope_count_for_test();
     let completion = submit_viewport_observation(&mut runtime, 900.0);
     assert!(matches!(
         completion,
         crate::runtime::WorthUiFrameworkTurnCompletion::ViewportResizeDenied {
             denial: crate::runtime::UiViewportResizeDenial::ReceiptBudgetExceeded {
-                selected: 5,
-                maximum: 4,
+                selected: 65,
+                maximum: 64,
             },
             ..
         }
@@ -146,6 +147,25 @@ fn viewport_receipt_ceiling_denies_post_locality_without_ledger_mutation() {
         runtime.committed_allocation_scope_count_for_test(),
         committed_before
     );
+}
+
+#[test]
+fn viewport_fanout_remains_complete_across_separate_successor_turns() {
+    let expected = 40;
+    let (mut runtime, _, _) = crate::runtime::tests::production_catalog_activation_test_support::runtime_with_viewport_catalog(expected);
+
+    for width in [1_120.0, 960.0] {
+        let completion = submit_viewport_observation(&mut runtime, width);
+        let outcome = completion
+            .viewport_resize_outcome()
+            .expect("each viewport successor must resolve through the ordinary lane");
+        assert_eq!(
+            outcome.counters().selected_neighborhoods(),
+            expected as u16,
+            "viewport authority succession cannot lose a previously admitted neighborhood"
+        );
+        assert_eq!(outcome.counters().committed_receipts(), expected as u16);
+    }
 }
 
 fn submit_viewport_observation<'a>(
@@ -205,7 +225,7 @@ fn ordinary_viewport_churn_resolves_with_bounded_receipts_and_no_durable_mutatio
     assert_eq!(counters.authority_probes(), 4);
     assert_eq!(counters.emitted_targets(), 8);
     assert_eq!(counters.materialized_host_target_sets(), 4);
-    assert_eq!(outcome.evidence().maximum_committed_receipts(), 4);
+    assert_eq!(outcome.evidence().maximum_committed_receipts(), 64);
     assert!(counters.committed_receipts() <= outcome.evidence().maximum_committed_receipts());
 
     let evidence = outcome.evidence();
