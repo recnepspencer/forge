@@ -47,7 +47,8 @@ fn complexity_budget_relation_integrity_uniqueness_uses_adjacency_local_candidat
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         )),
-    ));
+    ))
+    .expect("test staging stays within configured resource budgets");
     let error = txn.commit(&mut runtime).unwrap_err();
     let counters = runtime.performance_access().counters();
 
@@ -80,7 +81,8 @@ fn complexity_budget_relation_integrity_symmetry_checks_only_touched_pairs() {
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let error = txn.commit(&mut runtime).unwrap_err();
     let counters = runtime.performance_access().counters();
 
@@ -106,7 +108,8 @@ fn complexity_budget_relation_integrity_endpoint_deletion_checks_only_deleted_en
         WorkerIntentBatch::new("delete-source").push(MutationIntent::Entity(
             EntityMutationIntent::Delete(DeleteEntityIntent { entity_id: source }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let error = txn.commit(&mut runtime).unwrap_err();
     let counters = runtime.performance_access().counters();
 
@@ -140,7 +143,8 @@ fn complexity_budget_relation_integrity_reuses_touched_scope_across_multiple_con
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         )),
-    ));
+    ))
+    .expect("test staging stays within configured resource budgets");
     let _error = txn.commit(&mut runtime).unwrap_err();
     let counters = runtime.performance_access().counters();
 

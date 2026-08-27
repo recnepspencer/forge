@@ -23,15 +23,26 @@ pub(super) fn snapshot_identity_from_runtime(
 pub(crate) fn snapshot_identity_from_branch(
     runtime: &worth_relational::facade::runtime::RelationalRuntime,
     branch: &worth_relational::facade::history::BranchId,
+) -> Result<
+    Option<WorthQuerySnapshotIdentity>,
+    worth_relational::facade::branch::RelationalBranchBasisDenial,
+> {
+    let identity = runtime.branch_identity(branch).map_err(|_| {
+        worth_relational::facade::branch::RelationalBranchBasisDenial::UnknownBranch(branch.clone())
+    })?;
+    let (_, basis) = runtime.observe_branch(&identity)?;
+    Ok(snapshot_identity_from_admitted_basis(&basis))
+}
+
+pub(crate) fn snapshot_identity_from_admitted_basis(
+    basis: &worth_relational::facade::branch::AdmittedRelationalBranchBasis,
 ) -> Option<WorthQuerySnapshotIdentity> {
-    let identity = runtime.branch_identity(branch).ok()?;
-    let (_, basis) = runtime.observe_branch(&identity).ok()?;
     let observation = basis.observation();
-    let history = runtime.history();
-    let head = history.branch_head_for_observation(&observation).ok()??;
-    Some(WorthQuerySnapshotIdentity::from_runtime_snapshot(
-        RelationalBridgeSnapshotIdentityParts::new(head.commit_id.0, head.version_id.0),
-    ))
+    observation.commit_id().map(|commit_id| {
+        WorthQuerySnapshotIdentity::from_runtime_snapshot(
+            RelationalBridgeSnapshotIdentityParts::new(commit_id.0, observation.version_id().0),
+        )
+    })
 }
 
 pub(super) fn entity_identity(

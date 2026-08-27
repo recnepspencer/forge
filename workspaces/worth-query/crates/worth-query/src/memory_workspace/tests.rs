@@ -36,7 +36,7 @@ fn memory_workspace_insert_aspects_tracks_changed_paths() {
         receipt.deltas[0].admitted_touched_aspects(),
         &[touch("identity.id"), touch("title.value")]
     );
-    assert_eq!(workspace.entities().len(), 1);
+    assert_eq!(workspace.entities().unwrap().len(), 1);
 }
 
 #[test]
@@ -127,11 +127,11 @@ fn memory_workspace_update_and_delete_preserve_entity_lifecycle() {
         &[touch("title.value")]
     );
     assert_eq!(
-        workspace.entities()[0].scalar_value_at(&field_path("title.value")),
+        workspace.entities().unwrap()[0].scalar_value_at(&field_path("title.value")),
         Some(&text("Updated task"))
     );
     assert_eq!(
-        workspace.entities()[0].aspect_value(
+        workspace.entities().unwrap()[0].aspect_value(
             &worth_foundational::facade::AspectKey::new("title")
                 .expect("title should be an aspect key"),
         ),
@@ -142,7 +142,7 @@ fn memory_workspace_update_and_delete_preserve_entity_lifecycle() {
         .delete(entity_identity)
         .expect("delete should succeed");
     assert_eq!(delete.deltas[0].kind, WorthQueryMutationKind::Deleted);
-    assert!(workspace.entities().is_empty());
+    assert!(workspace.entities().unwrap().is_empty());
 }
 
 #[test]
@@ -160,11 +160,11 @@ fn memory_workspace_matches_declared_aspects_with_native_touches() {
         .expect("field touch should match whole-aspect declaration natively");
 
     assert_eq!(
-        workspace.entities()[0].scalar_value_at(&field_path("title.value")),
+        workspace.entities().unwrap()[0].scalar_value_at(&field_path("title.value")),
         Some(&text("Native match"))
     );
     assert_eq!(
-        workspace.entities()[0].aspect_value(
+        workspace.entities().unwrap()[0].aspect_value(
             &worth_foundational::facade::AspectKey::new("title")
                 .expect("title should be an aspect key"),
         ),

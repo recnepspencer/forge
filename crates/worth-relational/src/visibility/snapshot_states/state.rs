@@ -14,7 +14,7 @@ use super::HistoricalVisibilityBasis;
 /// A global commit version is not sufficient because multiple owner branch
 /// references may retain that version while selecting independently moving
 /// immutable roots. Root identity is issued only by the Relational owner.
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Ord, PartialOrd)]
 struct ExactVisibilitySnapshotStateKey {
     branch_id: BranchId,
     version_id: VersionId,
@@ -22,7 +22,7 @@ struct ExactVisibilitySnapshotStateKey {
     schema_commitment: [u8; 32],
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Ord, PartialOrd)]
 struct HistoricalVisibilitySnapshotStateKey {
     branch_id: BranchId,
     version_id: VersionId,
@@ -30,10 +30,10 @@ struct HistoricalVisibilitySnapshotStateKey {
     schema_commitment: Option<[u8; 32]>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Ord, PartialOrd)]
 pub(crate) struct VisibilitySnapshotStateKey(VisibilitySnapshotStateKeyKind);
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, Ord, PartialOrd)]
 enum VisibilitySnapshotStateKeyKind {
     Exact(ExactVisibilitySnapshotStateKey),
     Historical(HistoricalVisibilitySnapshotStateKey),
@@ -82,6 +82,7 @@ impl VisibilitySnapshotStateKey {
 pub(crate) struct VisibilitySnapshotBasis {
     key: VisibilitySnapshotStateKey,
     root: Arc<RelationalBranchRoot>,
+    _retained_observation: crate::mvcc::RelationalBranchObservation,
 }
 
 impl VisibilitySnapshotBasis {
@@ -95,6 +96,7 @@ impl VisibilitySnapshotBasis {
                 root.as_ref(),
             ),
             root,
+            _retained_observation: observation.clone(),
         }
     }
 
@@ -102,31 +104,29 @@ impl VisibilitySnapshotBasis {
         runtime: &crate::runtime::RelationalRuntime,
         branch_id: &BranchId,
         version_id: VersionId,
-    ) -> Option<Self> {
-        let cell = runtime.history.branch_cell(branch_id)?;
-        let root = match cell.root() {
-            Some(root) => root,
-            None if version_id.is_zero()
-                && runtime.current_version_id().is_zero()
-                && runtime.history().latest_commit().is_none() =>
-            {
-                RelationalBranchRoot::empty_with_schema(
-                    &runtime.config.schema.registry,
-                    crate::schema::data::runtime_descriptor_semantics_policy()
-                        .current_write_version(),
-                )
-            }
-            None => return None,
-        };
-        if !root.axes().map_or(version_id.is_zero(), |axes| {
-            axes.storage_version == version_id.as_u64()
-        }) {
-            return None;
+    ) -> Result<Option<Self>, crate::branch::RelationalBranchBasisDenial> {
+        let identity = runtime
+            .branch_identity(branch_id)
+            .map_err(branch_identity_denial)?;
+        let (_, basis) = runtime.observe_branch(&identity)?;
+        let observation = basis.observation();
+        if observation.version_id() != version_id {
+            return Ok(None);
         }
-        Some(Self {
-            key: VisibilitySnapshotStateKey::exact(branch_id.clone(), version_id, root.as_ref()),
-            root,
-        })
+        Ok(Some(Self::from_observation(&observation)))
+    }
+
+    /// Best-effort selection for optional derived-state maintenance. The
+    /// retention owner records any admission denial; authoritative truth and
+    /// branch-head movement never depend on this cache-only promotion.
+    pub(crate) fn capture_current_for_optional_maintenance(
+        runtime: &crate::runtime::RelationalRuntime,
+        branch_id: &BranchId,
+        version_id: VersionId,
+    ) -> Option<Self> {
+        Self::capture_current(runtime, branch_id, version_id)
+            .ok()
+            .flatten()
     }
 
     pub(crate) fn key(&self) -> &VisibilitySnapshotStateKey {
@@ -147,6 +147,28 @@ impl VisibilitySnapshotBasis {
 
     pub(crate) fn root_id(&self) -> u64 {
         self.root.id()
+    }
+}
+
+fn branch_identity_denial(
+    denial: crate::branch::RelationalBranchIdentityDenial,
+) -> crate::branch::RelationalBranchBasisDenial {
+    match denial {
+        crate::branch::RelationalBranchIdentityDenial::ForeignRuntime {
+            expected_runtime_instance_id,
+            actual_runtime_instance_id,
+        } => crate::branch::RelationalBranchBasisDenial::ForeignRuntime {
+            expected_runtime_instance_id,
+            actual_runtime_instance_id,
+        },
+        crate::branch::RelationalBranchIdentityDenial::UnknownBranch(branch_id) => {
+            crate::branch::RelationalBranchBasisDenial::UnknownBranch(branch_id)
+        }
+        crate::branch::RelationalBranchIdentityDenial::IdentityMismatch => {
+            crate::branch::RelationalBranchBasisDenial::MixedAxis(
+                crate::branch::RelationalBranchBasisMismatchAxis::Branch,
+            )
+        }
     }
 }
 

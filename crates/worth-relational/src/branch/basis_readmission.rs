@@ -4,7 +4,7 @@ use super::{
     },
     basis_descriptor_resolution::resolve_relational_branch_basis_descriptor,
     basis_identity_validation::identity_denial,
-    basis_observation::issue_admitted_relational_branch_basis,
+    basis_observation::issue_admitted_relational_branch_basis_with_retention,
     AdmittedRelationalBranchBasis, RelationalBranchBasisDenial, RelationalBranchBasisDescriptor,
     RelationalBranchRoot,
 };
@@ -45,6 +45,19 @@ impl RelationalRuntime {
             .ok_or_else(|| {
                 RelationalBranchBasisDenial::UnknownBranch(descriptor.branch_id().clone())
             })?;
+        match branch_cell.lifecycle_posture() {
+            super::RelationalBranchLifecyclePosture::Live => {}
+            super::RelationalBranchLifecyclePosture::Archived => {
+                return Err(RelationalBranchBasisDenial::ArchivedBranch(
+                    descriptor.branch_id().clone(),
+                ));
+            }
+            super::RelationalBranchLifecyclePosture::Deleting => {
+                return Err(RelationalBranchBasisDenial::DeletingBranch(
+                    descriptor.branch_id().clone(),
+                ));
+            }
+        }
         if let Some(retained) = branch_cell.readmit_retained_basis(&descriptor) {
             return Ok(retained);
         }
@@ -72,7 +85,15 @@ impl RelationalRuntime {
             current_truth_version,
             &root,
         )?;
-        let basis = issue_admitted_relational_branch_basis(descriptor, identity, root);
+        let basis = issue_admitted_relational_branch_basis_with_retention(
+            descriptor,
+            identity,
+            root,
+            &branch_cell
+                .head_retention()
+                .binding()
+                .map_err(|_| RelationalBranchBasisDenial::UnavailableRetainedTarget)?,
+        )?;
         branch_cell.register_basis(basis)
     }
 }

@@ -47,14 +47,18 @@ fn ordinary_native_mutation_roundtrips_every_foundational_scalar_family() {
     let mut runtime = fixture.build_runtime();
     let mut transaction =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(WorkerIntentBatch::new("native-scalar-matrix").push(
-        MutationIntent::Create(CreateIntent::EntityAspects(EntityAspectCreateIntent {
-            partition_id: PartitionId::main(),
-            kind_id: KindId(1),
-            client_key: crate::symbols::data::ClientKey::raw("native-scalar-matrix"),
-            aspect_patch: patch,
-        })),
-    ));
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("native-scalar-matrix").push(MutationIntent::Create(
+                CreateIntent::EntityAspects(EntityAspectCreateIntent {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: crate::symbols::data::ClientKey::raw("native-scalar-matrix"),
+                    aspect_patch: patch,
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
 
     let committed = transaction.commit(&mut runtime).unwrap();
     let entity = changed_entities(&committed)[0];

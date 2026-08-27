@@ -32,18 +32,10 @@ use crate::runtime::{
     WorthQueryWriteCommand, WorthQueryWriteReceipt,
 };
 
-pub trait WorthQueryRuntimeBackend {
+pub trait WorthQueryRuntimeBackend:
+    super::WorthQueryMergeSnapshotOwner + super::WorthQuerySettlementRecoveryBackend
+{
     fn support_profile(&self) -> WorthQueryRuntimeSupportProfile;
-
-    fn repair_deferred_branch_merge_settlement(
-        &mut self,
-        _deferred: &crate::ordinary::workflow::WorthQueryBranchMergeSettlementDeferred,
-    ) -> Result<
-        worth_relational::facade::history::RelationalCommitReceipt,
-        crate::runtime::WorthQuerySettlementRepairError,
-    > {
-        Err(crate::runtime::WorthQuerySettlementRepairError::RelationalOwnerUnavailable)
-    }
     #[doc(hidden)]
     fn readmits_primary_graph_source(
         &self,

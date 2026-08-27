@@ -44,7 +44,10 @@ pub(crate) fn create_entity(
     runtime: &mut RelationalRuntime,
     name: &str,
 ) -> crate::facade::identity::EntityId {
-    changed_entities(&create_entity_outcome(runtime, name))[0]
+    let outcome = create_entity_outcome(runtime, name);
+    let entity = changed_entities(&outcome)[0];
+    release_test_commit_snapshot(runtime, &outcome);
+    entity
 }
 
 pub(crate) fn create_entity_in_partition(
@@ -73,8 +76,12 @@ pub(crate) fn create_entity_in_partition_on_branch(
                 fields,
             }),
         )),
-    );
-    changed_entities(&txn.commit(&mut runtime).unwrap())[0]
+    )
+    .unwrap();
+    let outcome = txn.commit(&mut runtime).unwrap();
+    let entity = changed_entities(&outcome)[0];
+    release_test_commit_snapshot(runtime, &outcome);
+    entity
 }
 
 pub(crate) fn create_entity_outcome(runtime: &mut RelationalRuntime, name: &str) -> CommitResult {
@@ -100,7 +107,7 @@ pub(crate) fn create_entity_outcome_on_branch(
                 fields,
             },
         )));
-    txn.push_batch(batch);
+    txn.push_batch(batch).unwrap();
     txn.commit(runtime).unwrap()
 }
 
@@ -139,7 +146,8 @@ pub(crate) fn delete_entity_on_branch(
         WorkerIntentBatch::new("delete").push(MutationIntent::Entity(
             EntityMutationIntent::Delete(DeleteEntityIntent { entity_id }),
         )),
-    );
+    )
+    .unwrap();
     txn.commit(runtime).unwrap()
 }
 
@@ -154,7 +162,8 @@ pub(crate) fn delete_relation_on_branch(
         WorkerIntentBatch::new("delete-relation").push(MutationIntent::Relation(
             RelationMutationIntent::Delete(DeleteRelationIntent { relation_id }),
         )),
-    );
+    )
+    .unwrap();
     txn.commit(runtime).unwrap()
 }
 
@@ -164,6 +173,15 @@ pub(crate) fn update_entity(
     name: &str,
 ) -> CommitResult {
     update_entity_on_branch(runtime, entity_id, name, BranchId("main".to_string()))
+}
+
+pub(crate) fn update_entity_and_release_snapshot(
+    runtime: &mut RelationalRuntime,
+    entity_id: crate::facade::identity::EntityId,
+    name: &str,
+) {
+    let outcome = update_entity(runtime, entity_id, name);
+    release_test_commit_snapshot(runtime, &outcome);
 }
 
 pub(crate) fn update_entity_on_branch(
@@ -189,7 +207,8 @@ pub(crate) fn try_update_entity_on_branch(
             WorkerIntentBatch::new("update").push(MutationIntent::Entity(
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent { entity_id, fields }),
             )),
-        );
+        )
+        .unwrap();
     }
     txn.commit(&mut runtime)
 }
@@ -269,9 +288,12 @@ pub(crate) fn create_relation_in_partition_on_branch(
                 fields,
             },
         ))),
-    );
+    )
+    .unwrap();
     let outcome = txn.commit(&mut runtime).unwrap();
-    changed_relations(&outcome)[0]
+    let relation = changed_relations(&outcome)[0];
+    release_test_commit_snapshot(runtime, &outcome);
+    relation
 }
 
 pub(crate) fn create_relation_outcome(
@@ -293,7 +315,8 @@ pub(crate) fn create_relation_outcome(
                 fields,
             },
         ))),
-    );
+    )
+    .unwrap();
     txn.commit(&mut runtime).unwrap()
 }
 
@@ -336,10 +359,20 @@ pub(crate) fn apply_batches(batches: Vec<WorkerIntentBatch>) -> RelationalRuntim
     let mut runtime = runtime_with_test_schema();
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     for batch in batches {
-        txn.push_batch(batch);
+        txn.push_batch(batch).unwrap();
     }
     txn.commit(&mut runtime).unwrap();
     runtime
+}
+
+pub(crate) fn release_test_commit_snapshot(
+    runtime: &mut RelationalRuntime,
+    outcome: &CommitResult,
+) {
+    runtime
+        .snapshots()
+        .release_snapshot(&outcome.snapshot)
+        .expect("test helper releases the published snapshot it does not return");
 }
 
 pub(crate) fn merge_commit_from_branches(

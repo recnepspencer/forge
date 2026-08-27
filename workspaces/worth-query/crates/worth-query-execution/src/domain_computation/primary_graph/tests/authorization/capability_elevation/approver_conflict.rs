@@ -100,17 +100,20 @@ fn add_approver_conflict(world: &super::super::super::fixture::AuthorizationWorl
                 )
                 .expect("owner-admitted transaction context")
         };
-        transaction.push_batch(WorkerIntentBatch::new("add-approver-conflict").push(
-            MutationIntent::Create(CreateIntent::Relation(RelationSpec {
-                partition_id: PartitionId::main(),
-                kind_id: relation_kind,
-                client_key: ClientKey::raw("elevation-approver-conflict-drift"),
-                source: EntityReference::Existing(approver.entity_id()),
-                target: EntityReference::Existing(account.entity_id()),
-                fields: AspectFieldPatch::default(),
-            })),
-        ));
-        transaction.commit(runtime).unwrap();
+        transaction
+            .push_batch(WorkerIntentBatch::new("add-approver-conflict").push(
+                MutationIntent::Create(CreateIntent::Relation(RelationSpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: relation_kind,
+                    client_key: ClientKey::raw("elevation-approver-conflict-drift"),
+                    source: EntityReference::Existing(approver.entity_id()),
+                    target: EntityReference::Existing(account.entity_id()),
+                    fields: AspectFieldPatch::default(),
+                })),
+            ))
+            .expect("test staging stays within configured resource budgets");
+        let committed = transaction.commit(runtime).unwrap();
+        super::super::super::fixture::release_test_commit_snapshot(runtime, &committed);
         handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }

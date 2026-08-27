@@ -89,7 +89,8 @@ fn explicit_schema_transition_is_lowered_into_canonical_commit_artifacts() {
                 ),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn.commit(&mut runtime).unwrap();
 
     let transition = outcome.schema_transition_summary().unwrap();
@@ -245,7 +246,8 @@ fn schema_certification_transition_is_explained_and_counted() {
                 ),
             },
         )),
-    ));
+    ))
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn.commit(&mut runtime).unwrap();
 
     let diagnostics = outcome.diagnostics();

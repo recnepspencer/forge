@@ -165,9 +165,9 @@ pub(crate) fn execute_query_fragment(
     }
 }
 
-pub(crate) fn execute_explicit_query_fragment_from_state(
+pub(crate) fn execute_explicit_query_fragment_from_exact_basis(
     read_context: &VisibilityReadContext<'_>,
-    snapshot_state: &crate::visibility::snapshot_states::SnapshotState,
+    basis: &crate::visibility::snapshot_states::VisibilitySnapshotBasis,
     state_access: &(dyn PartitionAccess + Sync),
     version_id: crate::identity::data::VersionId,
     packet: &PlannedQueryPacket,
@@ -186,14 +186,12 @@ pub(crate) fn execute_explicit_query_fragment_from_state(
         match target {
             crate::transactions::data::RecordRef::Entity(entity_id) => {
                 touched_partitions.insert(entity_id.partition_id);
-                let Some(pins) = snapshot_state
-                    .pinned_partitions
-                    .get(&entity_id.partition_id)
-                else {
+                let Some(partition) = basis.root().get_partition(entity_id.partition_id) else {
                     continue;
                 };
-                if pins
-                    .entity_slots
+                if partition
+                    .entity_arena
+                    .live_bitset
                     .count_ones_in_range(entity_id.slot_index(), entity_id.slot_index() + 1)
                     == 0
                 {
@@ -209,14 +207,12 @@ pub(crate) fn execute_explicit_query_fragment_from_state(
             }
             crate::transactions::data::RecordRef::Relation(relation_id) => {
                 touched_partitions.insert(relation_id.partition_id);
-                let Some(pins) = snapshot_state
-                    .pinned_partitions
-                    .get(&relation_id.partition_id)
-                else {
+                let Some(partition) = basis.root().get_partition(relation_id.partition_id) else {
                     continue;
                 };
-                if pins
-                    .relation_slots
+                if partition
+                    .relation_arena
+                    .live_bitset
                     .count_ones_in_range(relation_id.slot_index(), relation_id.slot_index() + 1)
                     == 0
                 {
@@ -227,19 +223,7 @@ pub(crate) fn execute_explicit_query_fragment_from_state(
                     *relation_id,
                     version_id,
                 ) {
-                    relations.push(if pins.retained_relation_slots.count_ones_in_range(
-                        relation_id.slot_index(),
-                        relation_id.slot_index() + 1,
-                    ) == 1
-                    {
-                        crate::storage::data::RelationReadRecord {
-                            lifecycle:
-                                crate::storage::data::RecordLifecycleState::RetainedDanglingForAudit,
-                            ..record
-                        }
-                    } else {
-                        record
-                    });
+                    relations.push(record);
                 }
             }
         }

@@ -116,6 +116,7 @@ pub struct CommitResult {
     execution: CommitExecution,
     created_entities: CommitCreatedEntityBindings,
     created_relations: CommitCreatedRelationBindings,
+    late_interruption: Option<crate::runtime::RelationalInterruptionEvent>,
 }
 
 impl Deref for CommitResult {
@@ -176,6 +177,7 @@ impl CommitResult {
             execution,
             created_entities,
             created_relations,
+            late_interruption,
         ) = seal.into_parts();
         Self {
             outcome,
@@ -187,11 +189,16 @@ impl CommitResult {
             execution,
             created_entities,
             created_relations,
+            late_interruption,
         }
     }
 
     pub fn outcome(&self) -> &CommitOutcome {
         &self.outcome
+    }
+
+    pub const fn late_interruption(&self) -> Option<crate::runtime::RelationalInterruptionEvent> {
+        self.late_interruption
     }
 
     /// Resolves the record identity Relational assigned to this exact create

@@ -86,7 +86,8 @@ impl HarnessAdapter for RelationalHarnessAdapter {
             return Ok(());
         }
         let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-        txn.push_batch(entity_fixture_batch(&fixture.fixture.entities));
+        txn.push_batch(entity_fixture_batch(&fixture.fixture.entities))
+            .expect("test staging stays within configured resource budgets");
         let outcome = txn
             .commit(&mut runtime)
             .map_err(commit_error_to_harness_error)?;
@@ -101,10 +102,12 @@ impl HarnessAdapter for RelationalHarnessAdapter {
         if !fixture.fixture.relations.is_empty() {
             let mut relation_txn =
                 crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-            relation_txn.push_batch(relation_fixture_batch(
-                &fixture.fixture.relations,
-                &entity_ids,
-            )?);
+            relation_txn
+                .push_batch(relation_fixture_batch(
+                    &fixture.fixture.relations,
+                    &entity_ids,
+                )?)
+                .expect("test staging stays within configured resource budgets");
             relation_txn
                 .commit(&mut runtime)
                 .map_err(commit_error_to_harness_error)?;
@@ -120,7 +123,8 @@ impl HarnessAdapter for RelationalHarnessAdapter {
         let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
         for operation in &batch.operations {
             let operation: WorkerIntentBatch = operation.clone();
-            txn.push_batch(operation);
+            txn.push_batch(operation)
+                .expect("test staging stays within configured resource budgets");
         }
         txn.commit(&mut runtime)
             .map_err(commit_error_to_harness_error)?;

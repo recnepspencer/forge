@@ -76,7 +76,31 @@ pub(super) fn admit_legacy_branch_from_first_parent(
             format!("legacy branch admission denied: {denial:?}"),
         )
     })?;
+    restored
+        .history
+        .install_branch_head(
+            cell.identity().clone(),
+            &cell
+                .root()
+                .expect("legacy branch admission carries its parent root"),
+            cell.head_retention(),
+        )
+        .map_err(|denial| {
+            DurabilityError::new(
+                RecoveryFailureClass::ReplayFailure,
+                format!("legacy branch head retention denied: {denial:?}"),
+            )
+        })?;
+    let recovered_head_version = match cell.observation().target() {
+        worth_foundational::FoundationalBranchTarget::Empty => None,
+        worth_foundational::FoundationalBranchTarget::Basis(target) => {
+            Some(crate::identity::data::VersionId(target.version_id()))
+        }
+    };
     restored.history.insert_branch_cell(cell);
+    restored
+        .history
+        .move_branch_head_version(None, recovered_head_version);
     Ok(())
 }
 

@@ -53,6 +53,10 @@ impl SupportSnapshotRuntimeBackend {
     }
 }
 
+impl crate::runtime::WorthQueryMergeSnapshotOwner for SupportSnapshotRuntimeBackend {}
+
+impl crate::runtime::WorthQuerySettlementRecoveryBackend for SupportSnapshotRuntimeBackend {}
+
 impl WorthQueryRuntimeBackend for SupportSnapshotRuntimeBackend {
     fn support_profile(&self) -> WorthQueryRuntimeSupportProfile {
         self.support_profile.clone()

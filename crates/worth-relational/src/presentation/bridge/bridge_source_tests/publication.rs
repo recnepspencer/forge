@@ -87,11 +87,13 @@ fn partition_source_filters_the_real_commit_and_retains_exact_partition_provenan
     };
     let mut transaction =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(
-        WorkerIntentBatch::new("partition-publication")
-            .push(entity(PartitionId::main(), "main"))
-            .push(entity(PartitionId::new(7), "secondary")),
-    );
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("partition-publication")
+                .push(entity(PartitionId::main(), "main"))
+                .push(entity(PartitionId::new(7), "secondary")),
+        )
+        .expect("test staging stays within configured resource budgets");
     let committed = transaction.commit(&mut runtime).unwrap();
     let secondary = committed
         .changed_records
@@ -262,7 +264,8 @@ fn runtime_bridge_replays_historical_commit_after_newer_publication_arrives() {
                     },
                 ),
             )),
-        );
+        )
+        .expect("test staging stays within configured resource budgets");
         txn.commit(&mut runtime)
             .expect("second commit should publish");
     }

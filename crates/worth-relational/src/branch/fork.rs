@@ -16,13 +16,20 @@ use super::RelationalBranchVersion;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RelationalForkDenial {
     SourceBranchMissing,
+    SourceArchived,
+    SourceDeleting,
     EmptySource,
     DuplicateTarget,
+    RetiredTarget,
     ForeignRuntime,
     StaleSource,
     MissingArtifact,
     InvalidTarget(BranchCreateError),
     Cell(RelationalBranchCellDenial),
+    RetentionCapacityExhausted,
+    RetentionOwnerUnavailable,
+    RetentionIdentityExhausted,
+    RetentionInvariantViolation,
 }
 
 /// Read-only evidence returned after a successful branch-reference fork.
@@ -85,6 +92,15 @@ impl RelationalRuntime {
             .branch_cell(source_branch)
             .ok_or(RelationalForkDenial::SourceBranchMissing)?;
         let source_snapshot = source_cell.atomic_snapshot();
+        match source_snapshot.lifecycle_posture() {
+            super::RelationalBranchLifecyclePosture::Live => {}
+            super::RelationalBranchLifecyclePosture::Archived => {
+                return Err(RelationalForkDenial::SourceArchived);
+            }
+            super::RelationalBranchLifecyclePosture::Deleting => {
+                return Err(RelationalForkDenial::SourceDeleting);
+            }
+        }
         let observation = source_snapshot.observation();
         let truth_version = source_snapshot.truth_version();
         self.history.phase4_costs.branch_cell_lookups = self
@@ -135,12 +151,24 @@ impl RelationalRuntime {
         if self.history.has_branch(target_branch) {
             return Err(RelationalForkDenial::DuplicateTarget);
         }
+        if self.history.branch_name_is_retired(target_branch) {
+            return Err(RelationalForkDenial::RetiredTarget);
+        }
         let (source_observation, source_truth_version, source_root) = {
             let source_cell = self
                 .history
                 .branch_cell(descriptor.source_branch())
                 .ok_or(RelationalForkDenial::SourceBranchMissing)?;
             let snapshot = source_cell.atomic_snapshot();
+            match snapshot.lifecycle_posture() {
+                super::RelationalBranchLifecyclePosture::Live => {}
+                super::RelationalBranchLifecyclePosture::Archived => {
+                    return Err(RelationalForkDenial::SourceArchived);
+                }
+                super::RelationalBranchLifecyclePosture::Deleting => {
+                    return Err(RelationalForkDenial::SourceDeleting);
+                }
+            }
             (
                 snapshot.observation(),
                 snapshot.truth_version(),
@@ -233,12 +261,6 @@ impl RelationalRuntime {
         source: ValidatedForkSource,
         target: PreparedForkTarget,
     ) -> Result<RelationalForkOutcome, RelationalForkDenial> {
-        let source_branch = source.descriptor.source_branch().clone();
-        self.history
-            .branch_cell_mut(&source_branch)
-            .expect("source branch cell remains registered")
-            .retain_head()
-            .map_err(RelationalForkDenial::Cell)?;
         let fork_materialized_authoritative_bytes = target
             .target_cell
             .root()
@@ -266,20 +288,45 @@ impl RelationalRuntime {
             .phase4_costs
             .branch_cell_contacts
             .saturating_add(1);
+        let target_root = target
+            .target_cell
+            .root()
+            .expect("prepared fork target retains its selected root");
+        self.history
+            .install_branch_head(
+                target.target_cell.identity().clone(),
+                &target_root,
+                target.target_cell.head_retention(),
+            )
+            .map_err(|denial| match denial {
+                crate::history::retention::RelationalRetentionAcquisitionDenial::CapacityExhausted => {
+                    RelationalForkDenial::RetentionCapacityExhausted
+                }
+                crate::history::retention::RelationalRetentionAcquisitionDenial::OwnerUnavailable => {
+                    RelationalForkDenial::RetentionOwnerUnavailable
+                }
+                crate::history::retention::RelationalRetentionAcquisitionDenial::IdentityExhausted => {
+                    RelationalForkDenial::RetentionIdentityExhausted
+                }
+                crate::history::retention::RelationalRetentionAcquisitionDenial::RootSetTooLarge => {
+                    RelationalForkDenial::RetentionInvariantViolation
+                }
+            })?;
         self.history.insert_branch_cell(target.target_cell);
         self.history
             .record_fork_root_acquisition(&target.target_branch);
         self.history
             .record_fork_materialization(&target.target_branch, materialization_cost);
         if let Some(source_head_version) = target.source_head_version {
+            self.history
+                .move_branch_head_version(None, Some(source_head_version));
             self.visibility_pins()
                 .move_branch_head_visibility_residency(
                     &target.target_branch,
                     None,
                     Some(source_head_version),
+                    None,
                 );
-            self.visibility_pins()
-                .pin_branch_version(source_head_version);
         }
         Ok(RelationalForkOutcome {
             target_identity: self

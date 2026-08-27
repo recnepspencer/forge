@@ -13,7 +13,7 @@ pub struct RelationalBranchReferenceState {
     branch_id: BranchId,
     observation: RelationalBranchReferenceObservation,
     truth_version: RelationalBranchVersion,
-    head_retention_obligations: u32,
+    lifecycle: super::RelationalBranchLifecyclePosture,
     fork_provenance: Option<RelationalBranchReferenceObservation>,
     fork_source_branch_id: Option<BranchId>,
 }
@@ -24,7 +24,7 @@ impl RelationalBranchReferenceState {
         branch_id: BranchId,
         observation: RelationalBranchReferenceObservation,
         truth_version: RelationalBranchVersion,
-        head_retention_obligations: u32,
+        lifecycle: super::RelationalBranchLifecyclePosture,
         fork_provenance: Option<RelationalBranchReferenceObservation>,
         fork_source_branch_id: Option<BranchId>,
     ) -> Self {
@@ -33,7 +33,7 @@ impl RelationalBranchReferenceState {
             branch_id,
             observation,
             truth_version,
-            head_retention_obligations,
+            lifecycle,
             fork_provenance,
             fork_source_branch_id,
         }
@@ -55,8 +55,8 @@ impl RelationalBranchReferenceState {
         self.truth_version
     }
 
-    pub const fn head_retention_obligations(&self) -> u32 {
-        self.head_retention_obligations
+    pub const fn lifecycle_posture(&self) -> super::RelationalBranchLifecyclePosture {
+        self.lifecycle
     }
 
     pub fn fork_provenance(&self) -> Option<&RelationalBranchReferenceObservation> {

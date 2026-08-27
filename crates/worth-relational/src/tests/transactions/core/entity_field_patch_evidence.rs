@@ -27,7 +27,8 @@ fn update_entity_fields_canonical_delta_uses_authoritative_patch_evidence() {
                 ),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn.commit(&mut runtime).unwrap();
     let patch_record = &outcome.patch()[0];
     let current_read = runtime

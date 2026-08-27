@@ -5,12 +5,14 @@ fn fork_resolves_a_port_performed_head_without_catalog_authority() {
     let mut runtime = runtime_with_test_schema();
     create_entity(&mut runtime, "fork-after-port-anchor");
     let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(batch_create("fork-after-port-write"));
+    transaction
+        .push_batch(batch_create("fork-after-port-write"))
+        .expect("test staging stays within configured resource budgets");
     let candidate = runtime
         .prepare_branch_transaction(transaction)
         .expect("port candidate prepares");
     let performed = match runtime.publication_port().compare_and_publish(candidate) {
-        worth_proof::TransitionOutcome::Success(performed) => performed,
+        crate::mvcc::RelationalPublicationOutcome::Performed(performed) => performed,
         outcome => panic!("port candidate performs: {outcome:?}"),
     };
     let commit_id = performed.canonical_commit().commit.commit_id;
@@ -28,9 +30,10 @@ fn fork_resolves_a_port_performed_head_without_catalog_authority() {
         .expect("forked basis is admitted");
     assert_eq!(fork_basis.descriptor().root_identity(), root_id);
     assert_eq!(fork_basis.observation().commit_id(), Some(commit_id));
-    runtime
+    let committed = runtime
         .settle_performed_publication(performed)
         .expect("direct publication settles after branch-fork evidence");
+    release_test_commit_snapshot(&mut runtime, &committed);
 }
 
 #[test]
@@ -63,4 +66,6 @@ fn runtime_fork_preserves_positioned_inventory_and_allocator_floor() {
     assert!(source_position < continued_position);
     assert!(source.commit.commit_id < continued.commit.commit_id);
     assert!(source.commit.version_id < continued.commit.version_id);
+    release_test_commit_snapshot(&mut runtime, &source);
+    release_test_commit_snapshot(&mut fork, &continued);
 }

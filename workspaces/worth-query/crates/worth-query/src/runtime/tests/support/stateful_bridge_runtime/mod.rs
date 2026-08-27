@@ -3,6 +3,7 @@ use super::*;
 mod backend;
 mod merge;
 mod projection_paths;
+mod settlement_recovery;
 mod state;
 mod verification;
 mod writes;

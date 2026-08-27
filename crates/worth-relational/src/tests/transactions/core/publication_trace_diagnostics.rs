@@ -121,30 +121,33 @@ fn aspect_evaluation_trace_retains_unchanged_bindings_for_auditability() {
                 ]),
             },
         ))),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let created = txn.commit(&mut runtime).unwrap();
     let entity = changed_entities(&created)[0];
 
     let mut update_txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    update_txn.push_batch(
-        WorkerIntentBatch::new("update-name-only").push(MutationIntent::Entity(
-            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
-                entity_id: entity,
-                fields: crate::tests::support::string_aspect_field_patch([
-                    (
-                        crate::tests::support::aspect_key("name"),
-                        crate::tests::support::field_key("name"),
-                        "after",
-                    ),
-                    (
-                        crate::tests::support::aspect_key("status"),
-                        crate::tests::support::field_key("status"),
-                        "stable",
-                    ),
-                ]),
-            }),
-        )),
-    );
+    update_txn
+        .push_batch(
+            WorkerIntentBatch::new("update-name-only").push(MutationIntent::Entity(
+                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
+                    entity_id: entity,
+                    fields: crate::tests::support::string_aspect_field_patch([
+                        (
+                            crate::tests::support::aspect_key("name"),
+                            crate::tests::support::field_key("name"),
+                            "after",
+                        ),
+                        (
+                            crate::tests::support::aspect_key("status"),
+                            crate::tests::support::field_key("status"),
+                            "stable",
+                        ),
+                    ]),
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     let result = update_txn.commit(&mut runtime).unwrap();
     let trace = &result.aspect_evaluation_traces()[0];
     let status_key = AspectKey::new("status").unwrap();

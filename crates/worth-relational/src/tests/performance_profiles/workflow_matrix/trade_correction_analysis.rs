@@ -50,7 +50,8 @@ pub(super) fn certify_trade_correction_analysis_round_trip(suite: &'static str) 
                         ))
                         .into(),
                     ),
-                );
+                )
+                .expect("test staging stays within configured resource budgets");
                 txn.push_batch(
                     WorkerIntentBatch::new("refresh-risk").push(
                         MutationIntent::Create(CreateIntent::Entity(
@@ -86,7 +87,8 @@ pub(super) fn certify_trade_correction_analysis_round_trip(suite: &'static str) 
                         ))
                         .into(),
                     ),
-                );
+                )
+                .expect("test staging stays within configured resource budgets");
                 txn.push_batch(
                     WorkerIntentBatch::new("emit-audit")
                         .push(MutationIntent::Create(CreateIntent::Entity(
@@ -116,7 +118,8 @@ pub(super) fn certify_trade_correction_analysis_round_trip(suite: &'static str) 
                             },
                         )))
                         .into(),
-                );
+                )
+                .expect("test staging stays within configured resource budgets");
                 txn.commit(&mut runtime)
                     .expect("analysis branch correction commit")
             };

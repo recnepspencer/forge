@@ -87,7 +87,7 @@ pub(crate) fn resolve_snapshot_state(
         return Some(ResolvedVisibilitySnapshot {
             handle: resolved_handle,
             state,
-            keeps_storage_pins: true,
+            keeps_storage_pins: false,
         });
     }
 

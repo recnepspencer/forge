@@ -22,7 +22,7 @@ fn rolled_back_illegal_relation_work_leaves_zero_cdc_and_diagnostic_residue() {
     );
 
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    let savepoint = txn.create_savepoint();
+    let savepoint = txn.create_savepoint().unwrap();
     txn.push_batch(
         WorkerIntentBatch::new("illegal-self-edge").push(MutationIntent::Create(
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
@@ -34,7 +34,8 @@ fn rolled_back_illegal_relation_work_leaves_zero_cdc_and_diagnostic_residue() {
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let rollback = txn.rollback_to_savepoint(savepoint).unwrap();
     txn.push_batch(
         WorkerIntentBatch::new("surviving-edge").push(MutationIntent::Create(
@@ -47,7 +48,8 @@ fn rolled_back_illegal_relation_work_leaves_zero_cdc_and_diagnostic_residue() {
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn.commit(&mut runtime).unwrap();
 
     assert!(rollback.has_effects());
@@ -83,12 +85,13 @@ fn rolled_back_endpoint_deletion_work_leaves_zero_cdc_and_diagnostic_residue() {
     );
 
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    let savepoint = txn.create_savepoint();
+    let savepoint = txn.create_savepoint().unwrap();
     txn.push_batch(WorkerIntentBatch::new("rolled-back-delete-source").push(
         MutationIntent::Entity(EntityMutationIntent::Delete(DeleteEntityIntent {
             entity_id: source,
         })),
-    ));
+    ))
+    .expect("test staging stays within configured resource budgets");
     let rollback = txn.rollback_to_savepoint(savepoint).unwrap();
     txn.push_batch(
         WorkerIntentBatch::new("surviving-update").push(MutationIntent::Entity(
@@ -101,7 +104,8 @@ fn rolled_back_endpoint_deletion_work_leaves_zero_cdc_and_diagnostic_residue() {
                 ),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn.commit(&mut runtime).unwrap();
 
     assert!(rollback.has_effects());

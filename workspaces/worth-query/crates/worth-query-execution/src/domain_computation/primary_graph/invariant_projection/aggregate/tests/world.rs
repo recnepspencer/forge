@@ -166,13 +166,16 @@ impl AggregateWorld {
     }
 
     pub(super) fn observe(&self) -> AggregateObservation {
-        let completed = self.authority.project(|reader| {
-            reader.summarize_exclusive_incoming(
-                AggregateContribution::reference(),
-                SourceAmount::reference(),
-                &self.target,
-            )
-        });
+        let completed = self
+            .authority
+            .project(|reader| {
+                reader.summarize_exclusive_incoming(
+                    AggregateContribution::reference(),
+                    SourceAmount::reference(),
+                    &self.target,
+                )
+            })
+            .expect("aggregate observation projection");
         let work = completed.work();
         let result = completed.output().as_ref().map_or_else(
             |denial| Err(denial.kind()),
@@ -205,6 +208,7 @@ impl AggregateWorld {
         let source = self
             .authority
             .project(|reader| reader.resolve_entity(SourceIdentity::reference(), source.to_owned()))
+            .expect("source projection")
             .output()
             .as_ref()
             .expect("source identity resolves")
@@ -236,10 +240,15 @@ impl AggregateWorld {
                     .expect("owner-admitted transaction context")
             };
             transaction
-                .push_batch(WorkerIntentBatch::new("aggregate-stale-generation").push(intent));
-            transaction
+                .push_batch(WorkerIntentBatch::new("aggregate-stale-generation").push(intent))
+                .expect("test staging stays within configured resource budgets");
+            let committed = transaction
                 .commit(runtime)
                 .expect("amount replacement commits");
+            crate::relational_snapshot_release::release_query_snapshot(
+                runtime,
+                &committed.snapshot,
+            );
         });
     }
 
@@ -304,6 +313,7 @@ impl AggregateWorld {
             .project(|reader| {
                 reader.resolve_entity(TargetIdentity::reference(), "target".to_owned())
             })
+            .expect("target projection")
             .output()
             .as_ref()
             .expect("target resolves")

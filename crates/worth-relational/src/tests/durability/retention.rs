@@ -1,13 +1,11 @@
 use crate::diagnostics::data::RelationalDiagnosticValue;
-use crate::facade::inspection::InspectionAvailability;
-use crate::facade::storage::RecordLifecycleState;
 use crate::tests::support::*;
 
 // CONTRACT: retention_plan
 // LANES: success, adversarial, recovery
 
 #[test]
-fn retention_plan_reports_snapshot_pinned_records_before_release() {
+fn retention_plan_reports_active_root_obligations_without_per_record_snapshot_pins() {
     let mut runtime = runtime_with_test_schema();
     let entity_created = create_entity_outcome(&mut runtime, "entity-pinned");
     let entity_created_snapshot = runtime.visibility_authority().snapshot();
@@ -29,7 +27,8 @@ fn retention_plan_reports_snapshot_pinned_records_before_release() {
                     relation_id: relation,
                 }),
             )),
-        );
+        )
+        .expect("test staging stays within configured resource budgets");
         txn.commit(&mut runtime).unwrap()
     };
     let deleted_relation_snapshot = runtime.visibility_authority().snapshot();
@@ -37,23 +36,38 @@ fn retention_plan_reports_snapshot_pinned_records_before_release() {
     let plan = runtime.retention().inspect_plan();
 
     assert!(plan.active_snapshot_count >= 4);
-    assert!(plan.snapshot_pinned_entities >= 1);
-    assert!(plan.snapshot_pinned_relations >= 1);
-    assert_eq!(plan.reclaimable_entities, 0);
-    assert_eq!(plan.reclaimable_relations, 0);
+    assert_eq!(plan.snapshot_pinned_entities, 0);
+    assert_eq!(plan.snapshot_pinned_relations, 0);
+    assert!(plan.reclaimable_entities >= 1);
+
+    let _maintenance = runtime.retention().run_pass();
+    let retained_entity_view = runtime
+        .read_truth()
+        .read_snapshot(&entity_created_snapshot)
+        .expect("the retained exact root remains readable after maintenance");
+    assert!(retained_entity_view.get_entity(entity).is_some());
+    let retained_relation_view = runtime
+        .read_truth()
+        .read_snapshot(&relation_created_snapshot)
+        .expect("the retained exact root remains readable after maintenance");
+    assert!(retained_relation_view.get_relation(relation).is_some());
 
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&entity_created_snapshot));
+        .release_snapshot(&entity_created_snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&deleted_entity_snapshot));
+        .release_snapshot(&deleted_entity_snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&relation_created_snapshot));
+        .release_snapshot(&relation_created_snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&deleted_relation_snapshot));
+        .release_snapshot(&deleted_relation_snapshot)
+        .is_ok());
 }
 
 #[test]
@@ -67,10 +81,12 @@ fn retention_plan_turns_deleted_records_reclaimable_after_snapshot_release() {
 
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&created_snapshot));
+        .release_snapshot(&created_snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&deleted_snapshot));
+        .release_snapshot(&deleted_snapshot)
+        .is_ok());
 
     let plan = runtime.retention().inspect_plan();
     let pass = runtime.retention().run_pass();
@@ -82,7 +98,7 @@ fn retention_plan_turns_deleted_records_reclaimable_after_snapshot_release() {
 }
 
 #[test]
-fn retention_plan_reports_branch_pinned_deleted_records_when_sibling_branch_lags() {
+fn lagging_sibling_root_survives_without_per_record_branch_pins() {
     let mut runtime = runtime_with_test_schema();
     let source = create_entity_outcome(&mut runtime, "source");
     let source_entity = changed_entities(&source)[0];
@@ -101,29 +117,41 @@ fn retention_plan_reports_branch_pinned_deleted_records_when_sibling_branch_lags
 
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&source.snapshot));
+        .release_snapshot(&source.snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&target.snapshot));
+        .release_snapshot(&target.snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&relation_created.snapshot));
+        .release_snapshot(&relation_created.snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&deleted.snapshot));
+        .release_snapshot(&deleted.snapshot)
+        .is_ok());
 
     let plan = runtime.retention().inspect_plan();
 
     assert_eq!(plan.snapshot_pinned_entities, 0);
     assert_eq!(plan.snapshot_pinned_relations, 0);
-    assert!(plan.branch_pinned_entities >= 1);
-    assert!(plan.branch_pinned_relations >= 1);
-    assert_eq!(plan.reclaimable_entities, 0);
-    assert_eq!(plan.reclaimable_relations, 0);
+    assert_eq!(plan.branch_pinned_entities, 0);
+    assert_eq!(plan.branch_pinned_relations, 0);
+    let _ = runtime.retention().run_pass();
+    let feature = runtime
+        .branch_identity(&BranchId("feature".to_owned()))
+        .unwrap();
+    let (_, feature_basis) = runtime.observe_branch(&feature).unwrap();
+    let feature_truth = runtime
+        .read_truth()
+        .read_observation(&feature_basis.observation())
+        .unwrap();
+    assert!(feature_truth.get_entity(source_entity).is_some());
 }
 
 #[test]
-fn retention_inspection_reports_exact_branch_pin_counts_for_lagging_deleted_records() {
+fn retention_inspection_keeps_legacy_branch_pin_counts_zero() {
     let mut runtime = runtime_with_test_schema();
     let source = create_entity_outcome(&mut runtime, "source");
     let source_entity = changed_entities(&source)[0];
@@ -143,16 +171,20 @@ fn retention_inspection_reports_exact_branch_pin_counts_for_lagging_deleted_reco
 
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&source.snapshot));
+        .release_snapshot(&source.snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&target.snapshot));
+        .release_snapshot(&target.snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&relation_created.snapshot));
+        .release_snapshot(&relation_created.snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&deleted.snapshot));
+        .release_snapshot(&deleted.snapshot)
+        .is_ok());
 
     let inspection = runtime.inspect_what_happened();
     let entity_retention = inspection
@@ -164,29 +196,21 @@ fn retention_inspection_reports_exact_branch_pin_counts_for_lagging_deleted_reco
 
     assert_eq!(entity_retention.pins.snapshot_pins, 0);
     assert_eq!(entity_retention.pins.replay_pins, 0);
-    assert_eq!(entity_retention.pins.branch_pins, 1);
-    assert_eq!(
-        entity_retention.state.lifecycle,
-        RecordLifecycleState::PinnedByBranch
-    );
-    assert_eq!(
-        entity_retention.historical_availability.availability,
-        InspectionAvailability::Direct
-    );
-    assert!(entity_retention.historical_availability.retained_directly);
+    assert_eq!(entity_retention.pins.branch_pins, 0);
 
     assert_eq!(relation_retention.pins.snapshot_pins, 0);
     assert_eq!(relation_retention.pins.replay_pins, 0);
-    assert_eq!(relation_retention.pins.branch_pins, 2);
-    assert_eq!(
-        relation_retention.state.lifecycle,
-        RecordLifecycleState::PinnedByBranch
-    );
-    assert_eq!(
-        relation_retention.historical_availability.availability,
-        InspectionAvailability::Direct
-    );
-    assert!(relation_retention.historical_availability.retained_directly);
+    assert_eq!(relation_retention.pins.branch_pins, 0);
+    let feature = runtime
+        .branch_identity(&BranchId("feature".to_owned()))
+        .unwrap();
+    let (_, feature_basis) = runtime.observe_branch(&feature).unwrap();
+    let feature_truth = runtime
+        .read_truth()
+        .read_observation(&feature_basis.observation())
+        .unwrap();
+    assert!(feature_truth.get_entity(source_entity).is_some());
+    assert!(feature_truth.get_relation(relation).is_some());
 }
 
 #[test]
@@ -198,10 +222,12 @@ fn retention_plan_reports_explicit_replay_pins_until_released() {
 
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&created.snapshot));
+        .release_snapshot(&created.snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&deleted.snapshot));
+        .release_snapshot(&deleted.snapshot)
+        .is_ok());
     assert!(runtime
         .history_authority()
         .retain_version_for_replay(created.version_id));
@@ -226,7 +252,8 @@ fn replay_retention_preserves_historical_live_entity_aspects_across_updates() {
 
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&created.snapshot));
+        .release_snapshot(&created.snapshot)
+        .is_ok());
     assert!(runtime
         .history_authority()
         .retain_version_for_replay(created.version_id));
@@ -260,16 +287,19 @@ fn retention_plan_reports_explicit_replay_pins_for_deleted_relations_until_relea
                     relation_id: relation,
                 }),
             )),
-        );
+        )
+        .expect("test staging stays within configured resource budgets");
         txn.commit(&mut runtime).unwrap()
     };
 
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&created.snapshot));
+        .release_snapshot(&created.snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&deleted.snapshot));
+        .release_snapshot(&deleted.snapshot)
+        .is_ok());
     assert!(runtime
         .history_authority()
         .retain_version_for_replay(created.version_id));
@@ -294,14 +324,17 @@ fn retention_plan_reports_explicit_replay_pins_for_deleted_relations_until_relea
         diagnostic_field(latest_entry, "branch_pinned_relations"),
         &RelationalDiagnosticValue::Unsigned(pinned.branch_pinned_relations as u64)
     );
-    assert!(diagnostic_unsigned_field(latest_entry, "branch_replay_overlap_relations") >= 1);
+    assert_eq!(
+        diagnostic_unsigned_field(latest_entry, "branch_replay_overlap_relations"),
+        0
+    );
 
     assert!(runtime
         .history_authority()
         .release_version_replay_retention(created.version_id));
     let released = runtime.retention().inspect_plan();
     assert_eq!(released.replay_pinned_relations, 0);
-    assert!(released.branch_pinned_relations >= 1);
+    assert_eq!(released.branch_pinned_relations, 0);
 }
 
 fn diagnostic_unsigned_field(

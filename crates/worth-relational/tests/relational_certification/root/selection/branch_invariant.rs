@@ -267,18 +267,20 @@ fn commit_relation(
             worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
         )
         .expect("owner-admitted transaction context");
-    transaction.push_batch(
-        WorkerIntentBatch::new(client_key).push(MutationIntent::Create(CreateIntent::Relation(
-            RelationSpec {
-                partition_id: PartitionId::main(),
-                kind_id: relation_kind_id(RelationKind::VesselAssignedToBerth),
-                client_key: ClientKey::raw(client_key),
-                source: EntityReference::Existing(source),
-                target: EntityReference::Existing(target),
-                fields: worth_relational::facade::transactions::AspectFieldPatch::default(),
-            },
-        ))),
-    );
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new(client_key).push(MutationIntent::Create(
+                CreateIntent::Relation(RelationSpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: relation_kind_id(RelationKind::VesselAssignedToBerth),
+                    client_key: ClientKey::raw(client_key),
+                    source: EntityReference::Existing(source),
+                    target: EntityReference::Existing(target),
+                    fields: worth_relational::facade::transactions::AspectFieldPatch::default(),
+                }),
+            )),
+        )
+        .unwrap();
     transaction.commit(runtime)
 }
 

@@ -1,6 +1,6 @@
 //! Scripted test implementation of the production provider fault port.
 
-use std::sync::atomic::{AtomicU8, Ordering};
+use std::sync::atomic::{AtomicU8, AtomicUsize, Ordering};
 
 use super::super::provider::fault_port::{
     WorthQueryPrimaryGraphFault, WorthQueryPrimaryGraphFaultPort,
@@ -9,6 +9,7 @@ use super::super::provider::fault_port::{
 #[derive(Default)]
 pub(in crate::domain_computation::primary_graph) struct PrimaryGraphFaultController {
     scheduled: AtomicU8,
+    failed_post_commit_snapshot_consumptions: AtomicUsize,
 }
 
 impl PrimaryGraphFaultController {
@@ -45,6 +46,17 @@ impl PrimaryGraphFaultController {
         self.schedule(WorthQueryPrimaryGraphFault::RelationalInvariantViolation);
     }
 
+    pub(in crate::domain_computation::primary_graph) fn fail_next_post_commit_snapshot(&self) {
+        self.schedule(WorthQueryPrimaryGraphFault::FailedPostCommitSnapshot);
+    }
+
+    pub(in crate::domain_computation::primary_graph) fn failed_post_commit_snapshot_consumption_count(
+        &self,
+    ) -> usize {
+        self.failed_post_commit_snapshot_consumptions
+            .load(Ordering::Acquire)
+    }
+
     pub(in crate::domain_computation::primary_graph) fn add_next_undeclared_application_touch(
         &self,
     ) {
@@ -66,7 +78,13 @@ impl WorthQueryPrimaryGraphFaultPort for PrimaryGraphFaultController {
                 Ordering::AcqRel,
                 Ordering::Acquire,
             ) {
-                Ok(_) => return true,
+                Ok(_) => {
+                    if matches!(fault, WorthQueryPrimaryGraphFault::FailedPostCommitSnapshot) {
+                        self.failed_post_commit_snapshot_consumptions
+                            .fetch_add(1, Ordering::AcqRel);
+                    }
+                    return true;
+                }
                 Err(observed) => scheduled = observed,
             }
         }
@@ -81,6 +99,7 @@ const fn mask(fault: WorthQueryPrimaryGraphFault) -> u8 {
         WorthQueryPrimaryGraphFault::FailedIndexPublication => 1 << 3,
         WorthQueryPrimaryGraphFault::SkippedInvariantOwnerExecution => 1 << 4,
         WorthQueryPrimaryGraphFault::RelationalInvariantViolation => 1 << 5,
+        WorthQueryPrimaryGraphFault::FailedPostCommitSnapshot => 1 << 7,
         WorthQueryPrimaryGraphFault::UndeclaredApplicationTouch => 1 << 6,
     }
 }

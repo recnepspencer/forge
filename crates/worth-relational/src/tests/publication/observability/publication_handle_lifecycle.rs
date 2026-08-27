@@ -45,7 +45,8 @@ fn publication_snapshot_handle_reads_without_becoming_a_pinned_snapshot() {
     );
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&outcome.snapshot));
+        .release_snapshot(&outcome.snapshot)
+        .is_ok());
     assert!(runtime
         .read_truth()
         .read_snapshot(&outcome.snapshot)
@@ -86,7 +87,8 @@ fn released_publication_handles_stop_counting_as_readable_runtime_state() {
 
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&first.snapshot));
+        .release_snapshot(&first.snapshot)
+        .is_ok());
     let after_first_release = runtime.storage_access().storage_stats();
     assert_eq!(after_first_release.published_snapshot_handle_count, 1);
     assert!(runtime
@@ -100,7 +102,8 @@ fn released_publication_handles_stop_counting_as_readable_runtime_state() {
 
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&second.snapshot));
+        .release_snapshot(&second.snapshot)
+        .is_ok());
     let after_second_release = runtime.storage_access().storage_stats();
     assert_eq!(after_second_release.published_snapshot_handle_count, 0);
 }
@@ -113,11 +116,32 @@ fn publication_handle_retention_is_bounded_by_policy() {
             coherent_publication_required: true,
             max_patch_records_per_commit: 4096,
             max_published_snapshot_handles: 2,
+            max_active_snapshot_handles: 4_096,
+            max_transaction_overlay_bytes: 1_048_576,
+            max_transaction_footprint_loci: 1_024,
+            max_transaction_savepoints: 8,
+            max_prepared_candidates: 8,
+            candidate_max_lifetime_millis: 30_000,
+            max_prepared_root_bytes: 268_435_456,
         })
         .build();
     let first = create_entity_outcome(&mut runtime, "first");
     let second = create_entity_outcome(&mut runtime, "second");
-    let third = create_entity_outcome(&mut runtime, "third");
+    let before = runtime.admit_main_branch_basis().unwrap();
+    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
+    transaction.push_batch(batch_create("third")).unwrap();
+    assert!(matches!(
+        transaction.commit(&mut runtime),
+        Err(
+            crate::transactions::data::TransactionCommitError::PublicationDeferred {
+                deferred:
+                    crate::mvcc::RelationalPublicationDeferred::PublishedSnapshotCapacityExhausted {
+                        maximum_handles: 2,
+                    },
+                ..
+            }
+        )
+    ));
 
     let stats = runtime.storage_access().storage_stats();
 
@@ -125,25 +149,32 @@ fn publication_handle_retention_is_bounded_by_policy() {
     assert!(runtime
         .read_truth()
         .read_snapshot(&first.snapshot)
-        .is_none());
+        .is_some());
     assert!(runtime
         .read_truth()
         .read_snapshot(&second.snapshot)
         .is_some());
-    assert!(runtime
-        .read_truth()
-        .read_snapshot(&third.snapshot)
-        .is_some());
+    assert_eq!(
+        runtime.admit_main_branch_basis().unwrap().descriptor(),
+        before.descriptor()
+    );
 }
 
 #[test]
-fn pruned_publication_handle_does_not_erase_an_admitted_observation() {
+fn published_handle_and_admitted_observation_remain_exact_until_release() {
     let mut runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .publication(PublicationConfig {
             coherent_publication_required: true,
             max_patch_records_per_commit: 4096,
-            max_published_snapshot_handles: 2,
+            max_published_snapshot_handles: 4,
+            max_active_snapshot_handles: 4_096,
+            max_transaction_overlay_bytes: 1_048_576,
+            max_transaction_footprint_loci: 1_024,
+            max_transaction_savepoints: 8,
+            max_prepared_candidates: 8,
+            candidate_max_lifetime_millis: 30_000,
+            max_prepared_root_bytes: 268_435_456,
         })
         .build();
     let first = create_entity_outcome(&mut runtime, "first");
@@ -158,7 +189,7 @@ fn pruned_publication_handle_does_not_erase_an_admitted_observation() {
     assert!(runtime
         .read_truth()
         .read_snapshot(&first.snapshot)
-        .is_none());
+        .is_some());
     let observed = runtime
         .snapshots()
         .snapshot_for_observation(&first_observation)
@@ -174,7 +205,14 @@ fn parallel_post_commit_consumption_preserves_publication_surfaces() {
         .publication(PublicationConfig {
             coherent_publication_required: true,
             max_patch_records_per_commit: 4096,
-            max_published_snapshot_handles: 2,
+            max_published_snapshot_handles: 3,
+            max_active_snapshot_handles: 4_096,
+            max_transaction_overlay_bytes: 1_048_576,
+            max_transaction_footprint_loci: 1_024,
+            max_transaction_savepoints: 8,
+            max_prepared_candidates: 8,
+            candidate_max_lifetime_millis: 30_000,
+            max_prepared_root_bytes: 268_435_456,
         })
         .execution_model(crate::facade::runtime::RelationalExecutionModel::SingleLaneExecution)
         .build();
@@ -183,7 +221,14 @@ fn parallel_post_commit_consumption_preserves_publication_surfaces() {
         .publication(PublicationConfig {
             coherent_publication_required: true,
             max_patch_records_per_commit: 4096,
-            max_published_snapshot_handles: 2,
+            max_published_snapshot_handles: 3,
+            max_active_snapshot_handles: 4_096,
+            max_transaction_overlay_bytes: 1_048_576,
+            max_transaction_footprint_loci: 1_024,
+            max_transaction_savepoints: 8,
+            max_prepared_candidates: 8,
+            candidate_max_lifetime_millis: 30_000,
+            max_prepared_root_bytes: 268_435_456,
         })
         .execution_model(
             crate::facade::runtime::RelationalExecutionModel::ParallelPostCommitConsumption,
@@ -208,7 +253,7 @@ fn parallel_post_commit_consumption_preserves_publication_surfaces() {
     assert_eq!(parallel_bundle.patch, serial_bundle.patch);
     assert_eq!(parallel_bundle.replay, serial_bundle.replay);
     assert_eq!(parallel_bundle.snapshot, parallel_third.snapshot);
-    assert_eq!(parallel_stats.published_snapshot_handle_count, 2);
+    assert_eq!(parallel_stats.published_snapshot_handle_count, 3);
     assert!(parallel
         .read_truth()
         .read_snapshot(&parallel_second.snapshot)

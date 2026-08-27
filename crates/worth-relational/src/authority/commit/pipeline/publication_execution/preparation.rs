@@ -68,6 +68,10 @@ impl PreparedPublicationPhase {
         self.record_allocations.reservation_count()
     }
 
+    pub(super) fn prepared_root(&self) -> &Arc<crate::branch::RelationalBranchRoot> {
+        self.prepared_history.root()
+    }
+
     #[cfg(test)]
     pub(super) fn materialization_counts(&self) -> (u64, u64) {
         self.prepared_history.materialization_counts()

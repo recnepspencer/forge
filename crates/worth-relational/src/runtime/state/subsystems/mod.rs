@@ -20,9 +20,9 @@ pub(crate) use commit_strategies::CommitStrategiesSubsystem;
 pub(crate) use durability::DurabilitySubsystem;
 pub use history::RelationalPatchPositionReservationCounters;
 pub(crate) use history::{
-    readmit_positioned_canonical_commit, CanonicalCheckpointAdmissionError,
-    CanonicalPositionAdmission, CanonicalPublicationRecordError, HistorySubsystem,
-    PerformedCheckpointSelection, PreparedCanonicalPublicationRoute,
+    readmit_positioned_canonical_commit, BranchHeadVersionIndexAuthority,
+    CanonicalCheckpointAdmissionError, CanonicalPositionAdmission, CanonicalPublicationRecordError,
+    HistorySubsystem, PerformedCheckpointSelection, PreparedCanonicalPublicationRoute,
     PreparedRecoveredVersionedArtifactPublication, PreparedVersionedArtifactAccelerators,
     PreparedVersionedArtifactPublication, RelationalCanonicalPublicationRoutes,
     RelationalForkMaterializationCost,
@@ -37,5 +37,6 @@ pub(crate) use record_identity::{
 pub(crate) use schema_contract_runtime::SchemaContractRuntimeSubsystem;
 pub(crate) use services::{RuntimeInstrumentation, RuntimeServices};
 pub(crate) use visibility::{
-    ReplayRetentionState, SnapshotHandleBinding, VisibilityResidency, VisibilitySubsystem,
+    PublishedSnapshotCloseout, PublishedSnapshotSlotReservation, ReplayRetentionState,
+    SnapshotHandleBinding, VisibilityResidency, VisibilitySubsystem,
 };

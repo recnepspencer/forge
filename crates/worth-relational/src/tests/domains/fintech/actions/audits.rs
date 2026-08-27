@@ -46,7 +46,8 @@ pub(crate) fn emit_case_audit_record(
                 },
             )),
         ),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     txn.commit(&mut world.runtime).unwrap()
 }
 

@@ -209,6 +209,10 @@ impl WorthQueryInMemoryTestBackend {
     }
 }
 
+impl crate::runtime::WorthQueryMergeSnapshotOwner for WorthQueryInMemoryTestBackend {}
+
+impl crate::runtime::WorthQuerySettlementRecoveryBackend for WorthQueryInMemoryTestBackend {}
+
 impl WorthQueryRuntimeBackend for WorthQueryInMemoryTestBackend {
     fn support_profile(&self) -> WorthQueryRuntimeSupportProfile {
         self.support_profile.clone()
@@ -286,7 +290,10 @@ impl WorthQueryRuntimeBackend for WorthQueryInMemoryTestBackend {
         target: &WorthQueryLiveArtifactTarget,
     ) -> Vec<WorthQueryEntity> {
         if self.view_targets_collection(target) {
-            return self.workspace.entities();
+            return self
+                .workspace
+                .entities()
+                .expect("test backend workspace truth remains readable");
         }
         Vec::new()
     }
@@ -304,6 +311,7 @@ impl WorthQueryRuntimeBackend for WorthQueryInMemoryTestBackend {
         }
         self.workspace
             .entity(identity)
+            .expect("test backend workspace lookup remains readable")
             .map(WorthQueryBackendEntityLookup::Found)
             .unwrap_or(WorthQueryBackendEntityLookup::Absent)
     }

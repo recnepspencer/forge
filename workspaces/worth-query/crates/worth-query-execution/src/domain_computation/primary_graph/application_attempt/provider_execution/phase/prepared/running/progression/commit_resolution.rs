@@ -111,12 +111,14 @@ pub(super) fn finish_authorized_compare(
             let resolved = context
                 .provider
                 .observe_completed_application_for_session(committed_session.terminal_binding())
-                .ok_or("typed provider terminal evidence could not be resolved after commit")
+                .ok_or(WorthQueryCommittedComponentResolutionDenial::Unavailable(
+                    "typed provider terminal evidence could not be resolved after commit",
+                ))
                 .and_then(|receipt| resolve_committed_components(&context, receipt));
             resolved.map_or_else(
-                |detail| {
+                |denial| {
                     WorthQueryProviderProgressionOutcome::Indeterminate(
-                        recovery_evidence::unknown_commit_recovery_evidence(detail),
+                        committed_component_recovery_evidence(denial),
                     )
                 },
                 |resolved| seal_committed_outcome(context, resolved),
@@ -127,13 +129,23 @@ pub(super) fn finish_authorized_compare(
                 stale.stale_fact_count(),
             ))
         }
-        WorthQueryProviderCompareAndCommitOutcome::Denied(_) => {
-            progression_denied(DenialStage::ProviderCommit)
+        WorthQueryProviderCompareAndCommitOutcome::Denied(denial) => {
+            provider_compare_denied(denial)
         }
         WorthQueryProviderCompareAndCommitOutcome::Deferred(deferred) => {
             WorthQueryProviderProgressionOutcome::Deferred(
                 WorthQueryApplicationCommitDeferred::from_provider_session(deferred),
             )
+        }
+        WorthQueryProviderCompareAndCommitOutcome::ControlStopped(stopped) => {
+            match stopped.kind() {
+                crate::domain_computation::WorthQueryProviderSessionControlStopKind::Cancelled => {
+                    WorthQueryProviderProgressionOutcome::Cancelled
+                }
+                crate::domain_computation::WorthQueryProviderSessionControlStopKind::TimedOut => {
+                    WorthQueryProviderProgressionOutcome::TimedOut
+                }
+            }
         }
         WorthQueryProviderCompareAndCommitOutcome::SettlementDeferred(deferred) => {
             WorthQueryProviderProgressionOutcome::SettlementDeferred(
@@ -148,6 +160,86 @@ pub(super) fn finish_authorized_compare(
             resolve_indeterminate_commit(context, failure)
         }
     }
+}
+
+fn provider_compare_denied(
+    denial: crate::domain_computation::WorthQueryProviderCompareAndCommitDenial,
+) -> WorthQueryProviderProgressionOutcome {
+    let (capacity, retention, identity, prepared_root_budget) = match denial {
+        crate::domain_computation::WorthQueryProviderCompareAndCommitDenial::ProviderSession(
+            failure,
+        ) => match failure.kind() {
+            crate::domain_computation::WorthQueryProviderSessionDenialKind::ActiveSnapshotCapacityExhausted {
+                maximum_active_snapshots,
+            } => (Some(maximum_active_snapshots), false, None, None),
+            crate::domain_computation::WorthQueryProviderSessionDenialKind::RetentionCapacityExhausted => (None, true, None, None),
+            crate::domain_computation::WorthQueryProviderSessionDenialKind::RetentionIdentityExhausted => (None, false, Some(WorthQueryCommitIdentityExhaustion::Retention), None),
+            crate::domain_computation::WorthQueryProviderSessionDenialKind::SnapshotIdentityExhausted => (None, false, Some(WorthQueryCommitIdentityExhaustion::Snapshot), None),
+            crate::domain_computation::WorthQueryProviderSessionDenialKind::CandidateIdentityExhausted => (None, false, Some(WorthQueryCommitIdentityExhaustion::Candidate), None),
+            crate::domain_computation::WorthQueryProviderSessionDenialKind::PreparedRootBudgetExhausted { maximum_bytes, required_bytes } => (None, false, None, Some((maximum_bytes, required_bytes))),
+            _ => (None, false, None, None),
+        },
+        crate::domain_computation::WorthQueryProviderCompareAndCommitDenial::DecisionReadSet(
+            failure,
+        ) => match failure.kind() {
+            crate::domain_computation::WorthQueryDecisionReadSetDenialKind::ActiveSnapshotCapacityExhausted {
+                maximum_active_snapshots,
+            } => (Some(maximum_active_snapshots), false, None, None),
+            crate::domain_computation::WorthQueryDecisionReadSetDenialKind::RetentionCapacityExhausted => {
+                (None, true, None, None)
+            }
+            crate::domain_computation::WorthQueryDecisionReadSetDenialKind::RetentionIdentityExhausted => {
+                (None, false, Some(WorthQueryCommitIdentityExhaustion::Retention), None)
+            }
+            crate::domain_computation::WorthQueryDecisionReadSetDenialKind::SnapshotIdentityExhausted => {
+                (None, false, Some(WorthQueryCommitIdentityExhaustion::Snapshot), None)
+            }
+            _ => (None, false, None, None),
+        },
+    };
+    match (capacity, retention, identity, prepared_root_budget) {
+        (Some(maximum_active_snapshots), _, _, _) => WorthQueryProviderProgressionOutcome::Denied(
+            crate::domain_computation::primary_graph::application_attempt::WorthQueryApplicationCommitDenial::active_snapshot_capacity_exhausted(
+                DenialStage::ProviderCommit,
+                maximum_active_snapshots,
+            ),
+        ),
+        (None, true, _, _) => WorthQueryProviderProgressionOutcome::Denied(
+            crate::domain_computation::primary_graph::application_attempt::WorthQueryApplicationCommitDenial::retention_capacity_exhausted(
+                DenialStage::ProviderCommit,
+            ),
+        ),
+        (None, false, Some(WorthQueryCommitIdentityExhaustion::Retention), _) => WorthQueryProviderProgressionOutcome::Denied(
+            crate::domain_computation::primary_graph::application_attempt::WorthQueryApplicationCommitDenial::retention_identity_exhausted(
+                DenialStage::ProviderCommit,
+            ),
+        ),
+        (None, false, Some(WorthQueryCommitIdentityExhaustion::Snapshot), _) => WorthQueryProviderProgressionOutcome::Denied(
+            crate::domain_computation::primary_graph::application_attempt::WorthQueryApplicationCommitDenial::snapshot_identity_exhausted(
+                DenialStage::ProviderCommit,
+            ),
+        ),
+        (None, false, Some(WorthQueryCommitIdentityExhaustion::Candidate), _) => WorthQueryProviderProgressionOutcome::Denied(
+            crate::domain_computation::primary_graph::application_attempt::WorthQueryApplicationCommitDenial::candidate_identity_exhausted(
+                DenialStage::ProviderCommit,
+            ),
+        ),
+        (None, false, None, Some((maximum_bytes, required_bytes))) => WorthQueryProviderProgressionOutcome::Denied(
+            crate::domain_computation::primary_graph::application_attempt::WorthQueryApplicationCommitDenial::prepared_root_budget_exhausted(
+                DenialStage::ProviderCommit,
+                maximum_bytes,
+                required_bytes,
+            ),
+        ),
+        (None, false, None, None) => progression_denied(DenialStage::ProviderCommit),
+    }
+}
+
+#[derive(Clone, Copy)]
+enum WorthQueryCommitIdentityExhaustion {
+    Retention,
+    Snapshot,
+    Candidate,
 }
 
 /// A commit whose answer never arrived is re-read through idempotency.
@@ -169,7 +261,9 @@ fn resolve_indeterminate_commit(
         Ok(WorthQueryProviderIdempotencyResolution::Equivalent(receipt)) => {
             match resolve_committed_components(&context, receipt) {
                 Ok(resolved) => seal_committed_outcome(context, resolved),
-                Err(_) => WorthQueryProviderProgressionOutcome::Indeterminate(evidence),
+                Err(denial) => WorthQueryProviderProgressionOutcome::Indeterminate(
+                    committed_component_recovery_evidence(denial),
+                ),
             }
         }
         Ok(WorthQueryProviderIdempotencyResolution::Absent) => {
@@ -188,24 +282,77 @@ struct WorthQueryResolvedCommitComponents {
     >,
 }
 
+fn committed_component_recovery_evidence(
+    denial: WorthQueryCommittedComponentResolutionDenial,
+) -> WorthQueryApplicationUnresolvedCommitEvidence {
+    match denial {
+        WorthQueryCommittedComponentResolutionDenial::Aftermath(
+            crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::ActiveSnapshotCapacityExhausted {
+                maximum_active_snapshots,
+            },
+        ) => recovery_evidence::typed_commit_recovery_evidence(
+            crate::domain_computation::WorthQueryProviderSessionDenialKind::ActiveSnapshotCapacityExhausted {
+                maximum_active_snapshots,
+            },
+            "committed aftermath recovery requires snapshot-capacity readmission",
+        ),
+        WorthQueryCommittedComponentResolutionDenial::Aftermath(
+            crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::Unavailable,
+        ) => recovery_evidence::unknown_commit_recovery_evidence(
+            "committed aftermath causality could not be recovered",
+        ),
+        WorthQueryCommittedComponentResolutionDenial::Aftermath(
+            crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::RetentionCapacityExhausted,
+        ) => recovery_evidence::typed_commit_recovery_evidence(
+            crate::domain_computation::WorthQueryProviderSessionDenialKind::RetentionCapacityExhausted,
+            "committed aftermath recovery requires retention-capacity readmission",
+        ),
+        WorthQueryCommittedComponentResolutionDenial::Aftermath(
+            crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::RetentionIdentityExhausted,
+        ) => recovery_evidence::typed_commit_recovery_evidence(
+            crate::domain_computation::WorthQueryProviderSessionDenialKind::RetentionIdentityExhausted,
+            "committed aftermath recovery exhausted retention identity space",
+        ),
+        WorthQueryCommittedComponentResolutionDenial::Aftermath(
+            crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::SnapshotIdentityExhausted,
+        ) => recovery_evidence::typed_commit_recovery_evidence(
+            crate::domain_computation::WorthQueryProviderSessionDenialKind::SnapshotIdentityExhausted,
+            "committed aftermath recovery exhausted snapshot identity space",
+        ),
+        WorthQueryCommittedComponentResolutionDenial::Unavailable(detail) => {
+            recovery_evidence::unknown_commit_recovery_evidence(detail)
+        }
+    }
+}
+
+enum WorthQueryCommittedComponentResolutionDenial {
+    Aftermath(crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial),
+    Unavailable(&'static str),
+}
+
 fn resolve_committed_components(
     context: &WorthQueryAuthorizedCompareContext<'_>,
     receipt: crate::domain_computation::primary_graph::provider::WorthQueryPrimaryGraphCommittedApplication,
-) -> Result<WorthQueryResolvedCommitComponents, &'static str> {
+) -> Result<WorthQueryResolvedCommitComponents, WorthQueryCommittedComponentResolutionDenial> {
     let causality = resolve_exact_committed_aftermath(
         context.provider,
         context.aftermath_causality.as_ref(),
         &receipt,
     )
-    .map_err(|()| "committed aftermath causality could not be recovered")?;
-    let projection = WorthQueryCommittedReceiptProjection::resolve(receipt)
-        .map_err(|_| "committed dispatch outbox binding was denied")?;
+    .map_err(WorthQueryCommittedComponentResolutionDenial::Aftermath)?;
+    let projection = WorthQueryCommittedReceiptProjection::resolve(receipt).map_err(|_| {
+        WorthQueryCommittedComponentResolutionDenial::Unavailable(
+            "committed dispatch outbox binding was denied",
+        )
+    })?;
     if projection
         .committed_dispatch_outbox()
         .map(|binding| binding.record())
         != context.dispatch_outbox.as_ref()
     {
-        return Err("committed dispatch outbox evidence does not match the admitted attempt");
+        return Err(WorthQueryCommittedComponentResolutionDenial::Unavailable(
+            "committed dispatch outbox evidence does not match the admitted attempt",
+        ));
     }
     Ok(WorthQueryResolvedCommitComponents {
         projection,

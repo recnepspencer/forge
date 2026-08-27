@@ -19,6 +19,7 @@ pub const RELATIONAL_BRANCH_BASIS_DESCRIPTOR_VERSION: u16 = 2;
 pub enum RelationalBranchBasisPosture {
     Live,
     Archived,
+    Deleting,
 }
 
 /// Serializable description of one exact Relational branch basis.
@@ -51,7 +52,10 @@ pub(crate) struct RelationalLiveBranchBasisDescriptorAxes {
 }
 
 impl RelationalBranchBasisDescriptor {
-    pub(crate) fn live(axes: RelationalLiveBranchBasisDescriptorAxes) -> Self {
+    pub(crate) fn with_posture(
+        axes: RelationalLiveBranchBasisDescriptorAxes,
+        posture: RelationalBranchBasisPosture,
+    ) -> Self {
         Self {
             descriptor_version: RELATIONAL_BRANCH_BASIS_DESCRIPTOR_VERSION,
             runtime_instance_id: axes.runtime_instance_id,
@@ -61,7 +65,7 @@ impl RelationalBranchBasisDescriptor {
             root_identity: axes.root_identity,
             schema_commitment: axes.schema_commitment,
             visibility_commitment: axes.visibility_commitment,
-            posture: RelationalBranchBasisPosture::Live,
+            posture,
         }
     }
 
@@ -153,6 +157,7 @@ pub(crate) struct AdmittedRelationalBranchBasisInner {
     pub(crate) root: Arc<RelationalBranchRoot>,
     pub(crate) _authority: super::RelationalBranchObservationAuthority,
     pub(crate) retention: crate::history::retention::RelationalObservationRetentionObligation,
+    pub(crate) retention_binding: crate::history::retention::RelationalBranchRetentionBinding,
     pub(super) registry_lease: OnceLock<super::basis_registry::RelationalBasisRegistryLease>,
 }
 

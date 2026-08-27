@@ -24,7 +24,8 @@ fn failed_commit_carries_attempt_log() {
                 ),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let error = txn.commit(&mut runtime).unwrap_err();
 
     assert!(!error.commit_log().events().is_empty());
@@ -48,10 +49,18 @@ fn patch_budget_failure_carries_artifact_phase_decision_trace() {
             coherent_publication_required: true,
             max_patch_records_per_commit: 0,
             max_published_snapshot_handles: 8,
+            max_active_snapshot_handles: 4_096,
+            max_transaction_overlay_bytes: 1_048_576,
+            max_transaction_footprint_loci: 1_024,
+            max_transaction_savepoints: 8,
+            max_prepared_candidates: 8,
+            candidate_max_lifetime_millis: 30_000,
+            max_prepared_root_bytes: 268_435_456,
         })
         .build();
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    txn.push_batch(batch_create("budget-fail"));
+    txn.push_batch(batch_create("budget-fail"))
+        .expect("test staging stays within configured resource budgets");
     let error = txn.commit(&mut runtime).unwrap_err();
 
     assert!(matches!(
@@ -90,7 +99,8 @@ fn stale_entity_ids_are_rejected() {
                 ),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let error = txn.commit(&mut runtime).unwrap_err();
 
     assert!(matches!(
@@ -116,7 +126,8 @@ fn unknown_entity_kind_fails_explicitly() {
                 ),
             },
         ))),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let error = txn.commit(&mut runtime).unwrap_err();
 
     assert!(matches!(
@@ -146,7 +157,8 @@ fn duplicate_relation_identity_is_rejected() {
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         ))),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let error = txn.commit(&mut runtime).unwrap_err();
 
     assert!(matches!(
@@ -160,9 +172,11 @@ fn duplicate_relation_identity_is_rejected() {
 fn savepoint_rollback_discards_inner_work_only() {
     let mut runtime = runtime_with_test_schema();
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    txn.push_batch(batch_create("outer"));
-    let savepoint = txn.create_savepoint();
-    txn.push_batch(batch_create("inner"));
+    txn.push_batch(batch_create("outer"))
+        .expect("test staging stays within configured resource budgets");
+    let savepoint = txn.create_savepoint().unwrap();
+    txn.push_batch(batch_create("inner"))
+        .expect("test staging stays within configured resource budgets");
     let rollback = txn.rollback_to_savepoint(savepoint).unwrap();
     let outcome = txn.commit(&mut runtime).unwrap();
     let read = runtime
@@ -189,7 +203,8 @@ fn snapshot_audit_failure_discards_only_touched_overlay() {
     let baseline = create_entity_outcome(&mut runtime, "baseline");
 
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    txn.push_batch(batch_create("blocked"));
+    txn.push_batch(batch_create("blocked"))
+        .expect("test staging stays within configured resource budgets");
     let error = txn.commit(&mut runtime).unwrap_err();
     let committed_read = runtime
         .read_truth()
@@ -271,8 +286,12 @@ fn merged_plan_is_stable_across_batch_order() {
             )
             .expect("owner-admitted transaction context")
     };
-    txn_a.push_batch(batch_create("b"));
-    txn_a.push_batch(batch_create("a"));
+    txn_a
+        .push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
+    txn_a
+        .push_batch(batch_create("a"))
+        .expect("test staging stays within configured resource budgets");
     let plan_a = txn_a.merged_plan(&mut runtime_a).unwrap().clone();
 
     let mut runtime_b = runtime_with_test_schema();
@@ -286,8 +305,12 @@ fn merged_plan_is_stable_across_batch_order() {
             )
             .expect("owner-admitted transaction context")
     };
-    txn_b.push_batch(batch_create("a"));
-    txn_b.push_batch(batch_create("b"));
+    txn_b
+        .push_batch(batch_create("a"))
+        .expect("test staging stays within configured resource budgets");
+    txn_b
+        .push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
     let plan_b = txn_b.merged_plan(&mut runtime_b).unwrap().clone();
 
     assert_eq!(plan_a, plan_b);

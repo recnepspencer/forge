@@ -30,24 +30,28 @@ fn native_struct_reference_and_clear_state_survive_checkpoint_readmission() {
         .unwrap();
 
     let mut initial = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    initial.push_batch(WorkerIntentBatch::new("native-entity-struct").push(
-        MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(
-            ApplyEntityAspectPatchIntent {
-                entity_id: source,
-                aspect_patch: whole_struct_set(&summary_contract, summary),
-            },
-        )),
-    ));
-    initial.push_batch(WorkerIntentBatch::new("native-relation-reference").push(
-        MutationIntent::Create(CreateIntent::RelationAspects(RelationAspectCreateIntent {
-            partition_id: PartitionId::main(),
-            kind_id: KindId(2),
-            client_key: crate::symbols::data::ClientKey::raw("native-durable-relation"),
-            source: EntityReference::Existing(source),
-            target: EntityReference::Existing(target),
-            aspect_patch: whole_scalar_set(&label_contract, "durable-edge"),
-        })),
-    ));
+    initial
+        .push_batch(
+            WorkerIntentBatch::new("native-entity-struct").push(MutationIntent::Entity(
+                EntityMutationIntent::ApplyAspectPatch(ApplyEntityAspectPatchIntent {
+                    entity_id: source,
+                    aspect_patch: whole_struct_set(&summary_contract, summary),
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
+    initial
+        .push_batch(WorkerIntentBatch::new("native-relation-reference").push(
+            MutationIntent::Create(CreateIntent::RelationAspects(RelationAspectCreateIntent {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(2),
+                client_key: crate::symbols::data::ClientKey::raw("native-durable-relation"),
+                source: EntityReference::Existing(source),
+                target: EntityReference::Existing(target),
+                aspect_patch: whole_scalar_set(&label_contract, "durable-edge"),
+            })),
+        ))
+        .expect("test staging stays within configured resource budgets");
     let initial = initial.commit(&mut runtime).unwrap();
     let relation = changed_relations(&initial)[0];
 
@@ -60,14 +64,16 @@ fn native_struct_reference_and_clear_state_survive_checkpoint_readmission() {
     }]);
     let mut clear_transaction =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    clear_transaction.push_batch(WorkerIntentBatch::new("native-field-clear").push(
-        MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(
-            ApplyEntityAspectPatchIntent {
-                entity_id: source,
-                aspect_patch: clear,
-            },
-        )),
-    ));
+    clear_transaction
+        .push_batch(
+            WorkerIntentBatch::new("native-field-clear").push(MutationIntent::Entity(
+                EntityMutationIntent::ApplyAspectPatch(ApplyEntityAspectPatchIntent {
+                    entity_id: source,
+                    aspect_patch: clear,
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     let cleared = clear_transaction.commit(&mut runtime).unwrap();
 
     let (expected_entity_state, expected_relation_state) = {

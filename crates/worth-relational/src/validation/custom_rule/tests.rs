@@ -186,7 +186,8 @@ fn touched_scope_tracks_planned_relation_endpoint_updates() {
         },
     ));
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    txn.push_batch(WorkerIntentBatch::new("rewire").push(intent.clone()));
+    txn.push_batch(WorkerIntentBatch::new("rewire").push(intent.clone()))
+        .expect("test staging stays within configured resource budgets");
     let merged_plan = MergedCommitPlan {
         transaction_id: txn.transaction_id,
         merged_intents: vec![intent],
@@ -246,7 +247,8 @@ fn touched_scope_tracks_planned_relation_endpoint_updates_to_created_entities() 
         WorkerIntentBatch::new("rewire-to-created")
             .push(create_target.clone())
             .push(update_relation.clone()),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let merged_plan = MergedCommitPlan {
         transaction_id: txn.transaction_id,
         merged_intents: vec![create_target, update_relation],
@@ -281,7 +283,8 @@ fn touched_scope_tracks_planned_relation_deletes() {
         relation_id,
     }));
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    txn.push_batch(WorkerIntentBatch::new("delete").push(intent.clone()));
+    txn.push_batch(WorkerIntentBatch::new("delete").push(intent.clone()))
+        .expect("test staging stays within configured resource budgets");
     let merged_plan = MergedCommitPlan {
         transaction_id: txn.transaction_id,
         merged_intents: vec![intent],
@@ -314,7 +317,8 @@ fn touched_scope_tracks_planned_entity_deletes() {
         DeleteEntityIntent { entity_id },
     ));
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    txn.push_batch(WorkerIntentBatch::new("delete-entity").push(intent.clone()));
+    txn.push_batch(WorkerIntentBatch::new("delete-entity").push(intent.clone()))
+        .expect("test staging stays within configured resource budgets");
     let merged_plan = MergedCommitPlan {
         transaction_id: txn.transaction_id,
         merged_intents: vec![intent],

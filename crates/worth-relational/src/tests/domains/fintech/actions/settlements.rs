@@ -61,7 +61,8 @@ pub(crate) fn repair_settlement_with_aspect_field_patches(
                 },
             )))
             .into(),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     txn.push_batch(
         WorkerIntentBatch::new("repair-cash-event")
             .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
@@ -92,7 +93,8 @@ pub(crate) fn repair_settlement_with_aspect_field_patches(
                 },
             )))
             .into(),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     txn.push_batch(
         WorkerIntentBatch::new("repair-audit-record")
             .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
@@ -118,6 +120,7 @@ pub(crate) fn repair_settlement_with_aspect_field_patches(
                 },
             )))
             .into(),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     txn.commit(&mut world.runtime).unwrap()
 }

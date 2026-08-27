@@ -27,13 +27,13 @@ pub(super) fn commit_bootstrap_rows(
     graph.integration_handle().with_runtime_mut(|runtime| {
         let options = runtime
             .admit_main_branch_basis()
-            .expect("configured main branch remains owner-admissible");
+            .map_err(map_bootstrap_basis_denial)?;
         let mut transaction = runtime
             .begin_branch_transaction(
                 &options,
                 worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
             )
-            .expect("owner-admitted transaction context");
+            .map_err(map_bootstrap_transaction_admission_denial)?;
         let mut batch = WorkerIntentBatch::new("application-principal-bootstrap");
         for (ordinal, row) in rows.into_iter().enumerate() {
             batch = append_principal_row(batch, ordinal, row);
@@ -44,20 +44,163 @@ pub(super) fn commit_bootstrap_rows(
         for row in relation_rows {
             batch = append_typed_relation(batch, row);
         }
-        transaction.push_batch(batch);
         transaction
+            .push_batch(batch)
+            .map_err(map_bootstrap_staging_denial)?;
+        let committed = transaction
             .commit(runtime)
-            .map(|outcome| outcome.commit.commit_id)
-            .map_err(|error| {
-                primary_graph_denial(
-                    WorthQueryPrimaryGraphInstallationDenialKind::RelationalCommitRejected,
-                    format!(
-                        "Relational rejected the application principal bootstrap transaction: {}",
-                        error.detail()
-                    ),
-                )
-            })
+            .map_err(map_bootstrap_commit_denial)?;
+        let commit_id = committed.commit.commit_id;
+        crate::relational_snapshot_release::release_query_snapshot(runtime, &committed.snapshot);
+        Ok(commit_id)
     })
+}
+
+fn map_bootstrap_basis_denial(
+    denial: worth_relational::facade::branch::RelationalBranchBasisDenial,
+) -> WorthQueryPrimaryGraphInstallationDenial {
+    let kind = match denial {
+        worth_relational::facade::branch::RelationalBranchBasisDenial::RetentionCapacityExhausted => {
+            WorthQueryPrimaryGraphInstallationDenialKind::RetentionCapacityExhausted
+        }
+        worth_relational::facade::branch::RelationalBranchBasisDenial::RetentionIdentityExhausted => {
+            WorthQueryPrimaryGraphInstallationDenialKind::RetentionIdentityExhausted
+        }
+        worth_relational::facade::branch::RelationalBranchBasisDenial::SnapshotIdentityExhausted => {
+            WorthQueryPrimaryGraphInstallationDenialKind::SnapshotIdentityExhausted
+        }
+        _ => WorthQueryPrimaryGraphInstallationDenialKind::RelationalCommitRejected,
+    };
+    primary_graph_denial(
+        kind,
+        format!("Relational bootstrap basis denied: {denial:?}"),
+    )
+}
+
+fn map_bootstrap_transaction_admission_denial(
+    denial: worth_relational::facade::mvcc::RelationalBranchTransactionAdmissionDenial,
+) -> WorthQueryPrimaryGraphInstallationDenial {
+    use worth_relational::facade::mvcc::RelationalBranchTransactionAdmissionDenial as Denial;
+    let kind = match denial {
+        Denial::RetentionCapacityExhausted => {
+            WorthQueryPrimaryGraphInstallationDenialKind::RetentionCapacityExhausted
+        }
+        Denial::RetentionIdentityExhausted => {
+            WorthQueryPrimaryGraphInstallationDenialKind::RetentionIdentityExhausted
+        }
+        _ => WorthQueryPrimaryGraphInstallationDenialKind::RelationalCommitRejected,
+    };
+    primary_graph_denial(
+        kind,
+        format!("Relational bootstrap transaction admission denied: {denial:?}"),
+    )
+}
+
+fn map_bootstrap_staging_denial(
+    denial: worth_relational::facade::mvcc::RelationalTransactionStagingDenial,
+) -> WorthQueryPrimaryGraphInstallationDenial {
+    use worth_relational::facade::mvcc::RelationalTransactionStagingDenial as Denial;
+    let kind = match denial {
+        Denial::OverlayCapacityExhausted {
+            maximum_bytes,
+            required_bytes,
+        } => WorthQueryPrimaryGraphInstallationDenialKind::TransactionOverlayCapacityExhausted {
+            maximum_bytes,
+            required_bytes,
+        },
+        Denial::FootprintCapacityExhausted {
+            maximum_loci,
+            required_loci,
+        } => WorthQueryPrimaryGraphInstallationDenialKind::TransactionFootprintCapacityExhausted {
+            maximum_loci,
+            required_loci,
+        },
+        Denial::SavepointCapacityExhausted { maximum_savepoints } => {
+            WorthQueryPrimaryGraphInstallationDenialKind::SavepointCapacityExhausted {
+                maximum_savepoints,
+            }
+        }
+        Denial::SavepointFootprintCapacityExhausted {
+            maximum_loci,
+            required_loci,
+        } => WorthQueryPrimaryGraphInstallationDenialKind::SavepointFootprintCapacityExhausted {
+            maximum_loci,
+            required_loci,
+        },
+        Denial::SavepointIdentityExhausted => {
+            WorthQueryPrimaryGraphInstallationDenialKind::SavepointIdentityExhausted
+        }
+    };
+    primary_graph_denial(
+        kind,
+        format!("Relational bootstrap staging denied: {denial:?}"),
+    )
+}
+
+fn map_bootstrap_commit_denial(
+    error: worth_relational::facade::transactions::TransactionCommitError,
+) -> WorthQueryPrimaryGraphInstallationDenial {
+    use worth_relational::facade::mvcc::{
+        RelationalPublicationDeferred as Deferred, RelationalPublicationFailureKind as Failure,
+    };
+    use worth_relational::facade::transactions::{
+        CommitPreparationReason, TransactionCommitError as Error,
+    };
+    let kind = match &error {
+        Error::PublicationDeferred { deferred, .. } => match deferred {
+            Deferred::PatchPositionReservationContended => {
+                WorthQueryPrimaryGraphInstallationDenialKind::PatchPositionReservationContended
+            }
+            Deferred::RetentionBackpressure => {
+                WorthQueryPrimaryGraphInstallationDenialKind::RetentionCapacityExhausted
+            }
+            Deferred::CandidateCapacityExhausted { maximum_candidates } => {
+                WorthQueryPrimaryGraphInstallationDenialKind::CandidateCapacityExhausted {
+                    maximum_candidates: *maximum_candidates,
+                }
+            }
+            Deferred::PublishedSnapshotCapacityExhausted { maximum_handles } => {
+                WorthQueryPrimaryGraphInstallationDenialKind::PublishedSnapshotCapacityExhausted {
+                    maximum_handles: *maximum_handles,
+                }
+            }
+            Deferred::CandidateLifetimeExpired { .. } => {
+                WorthQueryPrimaryGraphInstallationDenialKind::RelationalCommitRejected
+            }
+        },
+        Error::PublicationFailed { failure, .. } => match failure.kind() {
+            Failure::SnapshotIdentityExhausted => {
+                WorthQueryPrimaryGraphInstallationDenialKind::SnapshotIdentityExhausted
+            }
+            Failure::CandidateIdentityExhausted => {
+                WorthQueryPrimaryGraphInstallationDenialKind::CandidateIdentityExhausted
+            }
+            Failure::RetentionIdentityExhausted => {
+                WorthQueryPrimaryGraphInstallationDenialKind::RetentionIdentityExhausted
+            }
+            Failure::PreparedRootBudgetExhausted {
+                maximum_bytes,
+                required_bytes,
+            } => WorthQueryPrimaryGraphInstallationDenialKind::PreparedRootBudgetExhausted {
+                maximum_bytes: *maximum_bytes,
+                required_bytes: *required_bytes,
+            },
+            _ => WorthQueryPrimaryGraphInstallationDenialKind::RelationalCommitRejected,
+        },
+        Error::Preparation { error, .. }
+            if error.reason() == CommitPreparationReason::ProposalIdentityOrdinalExhausted =>
+        {
+            WorthQueryPrimaryGraphInstallationDenialKind::ProposalIdentityExhausted
+        }
+        _ => WorthQueryPrimaryGraphInstallationDenialKind::RelationalCommitRejected,
+    };
+    primary_graph_denial(
+        kind,
+        format!(
+            "Relational rejected the application principal bootstrap transaction: {}",
+            error.detail()
+        ),
+    )
 }
 
 fn append_typed_entity(

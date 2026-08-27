@@ -65,7 +65,8 @@ pub(super) fn certify_flat_entity_step_batch_compile_window(suite: &'static str)
                         ));
                     }
                 }
-                txn.push_batch(batch);
+                txn.push_batch(batch)
+                    .expect("test staging stays within configured resource budgets");
                 txn.commit(&mut runtime)
                     .expect("chip flat entity step batch commit")
             };
@@ -107,7 +108,10 @@ pub(super) fn certify_flat_entity_step_batch_compile_window(suite: &'static str)
                 )
                 .expect("chip flat batch explicit outcome");
             let explicit_query_micros = explicit_started_at.elapsed().as_micros();
-            assert!(runtime.visibility_authority().release_snapshot(&snapshot));
+            assert!(runtime
+                .visibility_authority()
+                .release_snapshot(&snapshot)
+                .is_ok());
 
             let counters = runtime.performance_access().counters();
             let (diagnostic_artifact_count, detailed_trace_entries) =

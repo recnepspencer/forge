@@ -319,7 +319,9 @@ fn stale_fork_source_denial_does_not_install_a_target_reference() {
             worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
         )
         .expect("owner-admitted transaction context");
-    transaction.push_batch(WorkerIntentBatch::new("advance-main-before-fork"));
+    transaction
+        .push_batch(WorkerIntentBatch::new("advance-main-before-fork"))
+        .unwrap();
     transaction
         .commit(&mut world.runtime)
         .expect("main truth advances");

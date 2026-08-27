@@ -117,7 +117,8 @@ fn update_entity_status_on_branch(
                 ),
             ),
         ),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     txn.commit(runtime).expect("update status");
 }
 

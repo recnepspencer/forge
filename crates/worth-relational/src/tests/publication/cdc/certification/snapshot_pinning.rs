@@ -26,10 +26,10 @@ fn cdc_certification_snapshot_pinning_is_neutral_under_rewrite_churn() {
         let right_name = format!("right-rewrite-{step}");
         let churn_name = format!("churn-{step}");
 
-        let _ = update_entity(&mut pinned_runtime, pinned_left, &left_name);
-        let _ = update_entity(&mut pinned_runtime, pinned_right, &right_name);
-        let _ = update_entity(&mut unpinned_runtime, unpinned_left, &left_name);
-        let _ = update_entity(&mut unpinned_runtime, unpinned_right, &right_name);
+        update_entity_and_release_snapshot(&mut pinned_runtime, pinned_left, &left_name);
+        update_entity_and_release_snapshot(&mut pinned_runtime, pinned_right, &right_name);
+        update_entity_and_release_snapshot(&mut unpinned_runtime, unpinned_left, &left_name);
+        update_entity_and_release_snapshot(&mut unpinned_runtime, unpinned_right, &right_name);
 
         if step % 3 == 0 {
             let partition = match step % 4 {
@@ -111,8 +111,14 @@ fn cdc_certification_snapshot_pinning_is_neutral_under_rewrite_churn() {
     );
 
     let retention = pinned_runtime.retention().inspect_plan();
-    assert!(retention.snapshot_pinned_entities >= 2);
+    assert!(retention.active_snapshot_count >= 2);
+    assert_eq!(retention.snapshot_pinned_entities, 0);
     assert!(pinned_runtime
         .visibility_authority()
-        .release_snapshot(&pinned_snapshot));
+        .release_snapshot(&pinned_snapshot)
+        .is_ok());
+    assert!(pinned_runtime
+        .visibility_authority()
+        .release_snapshot(&latest_snapshot)
+        .is_ok());
 }

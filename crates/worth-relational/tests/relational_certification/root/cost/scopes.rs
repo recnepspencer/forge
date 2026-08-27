@@ -66,7 +66,7 @@ fn phase5_selected_publication_tuple_is_stable_across_target_history_lengths() {
             publication.candidate_preparations,
             publication.publication_attempts,
         ));
-        assert_eq!(observation.branch_population_scans(), 1);
+        assert_eq!(observation.branch_population_scans(), 0);
         assert_eq!(
             observation.sharing_cost_delta().branch_population_scans,
             0,
@@ -113,8 +113,8 @@ fn phase5_selected_publication_tuple_ignores_unrelated_population_reads_and_vali
         assert_eq!(unrelated_cost.branch_cell_contacts(), 0);
         assert_eq!(
             unrelated_cost.branch_population_scans(),
-            2,
-            "two sibling publications use the separately reported reconstruction lane"
+            0,
+            "ordinary sibling publications do not enter population-wide reconstruction"
         );
         let unrelated_work = world
             .runtime
@@ -156,10 +156,10 @@ fn phase5_selected_publication_tuple_ignores_unrelated_population_reads_and_vali
         ));
         assert_eq!(
             publication.branch_cell_contacts(),
-            1,
-            "publication contacts only its selected branch reference cell"
+            2,
+            "admission and publication each contact only the selected branch reference cell"
         );
-        assert_eq!(publication.branch_population_scans(), 1);
+        assert_eq!(publication.branch_population_scans(), 0);
         assert_eq!(
             publication.sharing_cost_delta().branch_population_scans,
             0,

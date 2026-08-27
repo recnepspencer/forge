@@ -92,6 +92,10 @@ impl AdmittedCommitExecution {
         &self.validation_input
     }
 
+    pub(super) fn release_transaction_retention(&mut self) {
+        self.validation_input.release_transaction_retention();
+    }
+
     pub(super) fn take_prepared_scope(
         &mut self,
     ) -> Option<super::authority_context::PreparedAuthorityScope> {

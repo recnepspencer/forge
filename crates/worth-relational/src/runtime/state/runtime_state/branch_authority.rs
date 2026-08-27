@@ -81,18 +81,6 @@ impl RelationalRuntime {
         self.admit_branch_basis(&self.main_branch_identity())
     }
 
-    /// Resolve an explicit branch name to its owner-issued identity, then
-    /// admit that identity as an exact basis.
-    pub fn admit_named_branch_basis(
-        &self,
-        branch_id: &BranchId,
-    ) -> Result<AdmittedRelationalBranchBasis, RelationalBranchBasisDenial> {
-        let identity = self
-            .branch_identity(branch_id)
-            .map_err(identity_to_basis_denial)?;
-        self.admit_branch_basis(&identity)
-    }
-
     pub(crate) fn admitted_branch_basis_for_merge_branch(
         &self,
         branch_id: &BranchId,
@@ -229,9 +217,23 @@ fn map_basis_denial(
             expected_runtime_instance_id,
             actual_runtime_instance_id,
         },
-        RelationalBranchBasisDenial::UnknownBranch(branch)
-        | RelationalBranchBasisDenial::ArchivedBranch(branch) => {
+        RelationalBranchBasisDenial::UnknownBranch(branch) => {
             crate::merge::data::RelationalMergeRequestBindingDenial::UnknownBranch(branch)
+        }
+        RelationalBranchBasisDenial::ArchivedBranch(branch) => {
+            crate::merge::data::RelationalMergeRequestBindingDenial::ArchivedBranch(branch)
+        }
+        RelationalBranchBasisDenial::DeletingBranch(branch) => {
+            crate::merge::data::RelationalMergeRequestBindingDenial::DeletingBranch(branch)
+        }
+        RelationalBranchBasisDenial::RetentionCapacityExhausted => {
+            crate::merge::data::RelationalMergeRequestBindingDenial::RetentionCapacityExhausted
+        }
+        RelationalBranchBasisDenial::RetentionIdentityExhausted => {
+            crate::merge::data::RelationalMergeRequestBindingDenial::RetentionIdentityExhausted
+        }
+        RelationalBranchBasisDenial::SnapshotIdentityExhausted => {
+            crate::merge::data::RelationalMergeRequestBindingDenial::SnapshotIdentityExhausted
         }
         _ => crate::merge::data::RelationalMergeRequestBindingDenial::IdentityMismatch,
     }

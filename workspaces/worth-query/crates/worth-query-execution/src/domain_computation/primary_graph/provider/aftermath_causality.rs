@@ -18,6 +18,21 @@ use crate::domain_computation::application_aftermath::{
 use crate::domain_computation::primary_graph::application_attempt::WorthQueryApplicationCommitOutcomeIdentity;
 use crate::domain_computation::primary_graph::schema_layout::WorthQueryAftermathCausalityLayout;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(in crate::domain_computation) enum WorthQueryAftermathCausalityReadDenial {
+    ActiveSnapshotCapacityExhausted { maximum_active_snapshots: usize },
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
+    SnapshotIdentityExhausted,
+    Unavailable,
+}
+
+impl From<&'static str> for WorthQueryAftermathCausalityReadDenial {
+    fn from(_: &'static str) -> Self {
+        Self::Unavailable
+    }
+}
+
 pub(super) fn aftermath_causality_create_intent(
     layout: &WorthQueryAftermathCausalityLayout,
     pending: &WorthQueryPendingAftermathCausality,
@@ -60,11 +75,15 @@ impl WorthQueryPrimaryGraphProvider {
     fn branch_head(
         &self,
         branch: &worth_relational::facade::history::BranchId,
-    ) -> Option<worth_relational::facade::history::RelationalCommitReceipt> {
+    ) -> Result<
+        Option<worth_relational::facade::history::RelationalCommitReceipt>,
+        WorthQueryAftermathCausalityReadDenial,
+    > {
         self.graph.with_runtime(|runtime| {
             crate::domain_computation::primary_graph::exact_basis_access::current_branch_head(
                 runtime, branch,
             )
+            .map_err(aftermath_basis_denial)
         })
     }
 
@@ -72,14 +91,16 @@ impl WorthQueryPrimaryGraphProvider {
         &self,
         pending: &WorthQueryPendingAftermathCausality,
         outcome_identity: Option<WorthQueryApplicationCommitOutcomeIdentity>,
-    ) -> Result<Option<WorthQueryCommittedAftermathCausality>, &'static str> {
+    ) -> Result<Option<WorthQueryCommittedAftermathCausality>, WorthQueryAftermathCausalityReadDenial>
+    {
         let layout = self.graph.layout.provider_aftermath_causality().clone();
         let branch = pending.parent().branch_id.clone();
         self.graph.with_runtime_mut(|runtime| {
             self.graph
-                .ensure_primary_indexes_current_for_branch(runtime, &branch)?;
+                .ensure_primary_indexes_current_for_branch(runtime, &branch)
+                .map_err(aftermath_index_currency_denial)?;
             let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(runtime, &branch)
-                .ok_or("aftermath causality branch has no current snapshot")?;
+                .map_err(aftermath_snapshot_denial)?;
             let resolution = WorthQueryAftermathCausalityRead {
                 runtime,
                 snapshot: &snapshot,
@@ -88,8 +109,8 @@ impl WorthQueryPrimaryGraphProvider {
                 outcome_identity,
             }
             .resolve();
-            runtime.snapshots().release_snapshot(&snapshot);
-            resolution
+            crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
+            resolution.map_err(Into::into)
         })
     }
 }
@@ -98,19 +119,79 @@ impl<Schema> super::super::WorthQueryPrimaryGraphApplicationRuntime<Schema>
 where
     Schema: worth_query_installation::facade::ApplicationSchema,
 {
-    pub(crate) fn relational_branch_head(
+    pub(in crate::domain_computation) fn relational_branch_head(
         &self,
         branch: &worth_relational::facade::history::BranchId,
-    ) -> Option<worth_relational::facade::history::RelationalCommitReceipt> {
+    ) -> Result<
+        Option<worth_relational::facade::history::RelationalCommitReceipt>,
+        WorthQueryAftermathCausalityReadDenial,
+    > {
         self.primary_provider.branch_head(branch)
     }
 
-    pub(crate) fn committed_aftermath_causality(
+    pub(in crate::domain_computation) fn committed_aftermath_causality(
         &self,
         pending: &WorthQueryPendingAftermathCausality,
-    ) -> Result<Option<WorthQueryCommittedAftermathCausality>, &'static str> {
+    ) -> Result<Option<WorthQueryCommittedAftermathCausality>, WorthQueryAftermathCausalityReadDenial>
+    {
         self.primary_provider
             .resolve_aftermath_causality(pending, None)
+    }
+}
+
+fn aftermath_index_currency_denial(
+    denial: crate::domain_computation::primary_graph::index_currency::WorthQueryPrimaryIndexCurrencyDenial,
+) -> WorthQueryAftermathCausalityReadDenial {
+    match denial {
+        crate::domain_computation::primary_graph::index_currency::WorthQueryPrimaryIndexCurrencyDenial::Basis(
+            crate::domain_computation::primary_graph::WorthQueryExactBasisSnapshotDenial::RetentionCapacityExhausted,
+        ) => WorthQueryAftermathCausalityReadDenial::RetentionCapacityExhausted,
+        crate::domain_computation::primary_graph::index_currency::WorthQueryPrimaryIndexCurrencyDenial::Basis(
+            crate::domain_computation::primary_graph::WorthQueryExactBasisSnapshotDenial::RetentionIdentityExhausted,
+        ) => WorthQueryAftermathCausalityReadDenial::RetentionIdentityExhausted,
+        crate::domain_computation::primary_graph::index_currency::WorthQueryPrimaryIndexCurrencyDenial::Basis(
+            crate::domain_computation::primary_graph::WorthQueryExactBasisSnapshotDenial::SnapshotIdentityExhausted,
+        ) => WorthQueryAftermathCausalityReadDenial::SnapshotIdentityExhausted,
+        _ => WorthQueryAftermathCausalityReadDenial::Unavailable,
+    }
+}
+
+fn aftermath_snapshot_denial(
+    denial: crate::domain_computation::primary_graph::WorthQueryExactBasisSnapshotDenial,
+) -> WorthQueryAftermathCausalityReadDenial {
+    match denial {
+        crate::domain_computation::primary_graph::WorthQueryExactBasisSnapshotDenial::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots,
+        } => WorthQueryAftermathCausalityReadDenial::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots,
+        },
+        crate::domain_computation::primary_graph::WorthQueryExactBasisSnapshotDenial::RetentionCapacityExhausted => {
+            WorthQueryAftermathCausalityReadDenial::RetentionCapacityExhausted
+        }
+        crate::domain_computation::primary_graph::WorthQueryExactBasisSnapshotDenial::RetentionIdentityExhausted => {
+            WorthQueryAftermathCausalityReadDenial::RetentionIdentityExhausted
+        }
+        crate::domain_computation::primary_graph::WorthQueryExactBasisSnapshotDenial::SnapshotIdentityExhausted => {
+            WorthQueryAftermathCausalityReadDenial::SnapshotIdentityExhausted
+        }
+        _ => WorthQueryAftermathCausalityReadDenial::Unavailable,
+    }
+}
+
+fn aftermath_basis_denial(
+    denial: crate::domain_computation::primary_graph::WorthQueryExactBasisSnapshotDenial,
+) -> WorthQueryAftermathCausalityReadDenial {
+    match denial {
+        crate::domain_computation::primary_graph::WorthQueryExactBasisSnapshotDenial::RetentionCapacityExhausted => {
+            WorthQueryAftermathCausalityReadDenial::RetentionCapacityExhausted
+        }
+        crate::domain_computation::primary_graph::WorthQueryExactBasisSnapshotDenial::RetentionIdentityExhausted => {
+            WorthQueryAftermathCausalityReadDenial::RetentionIdentityExhausted
+        }
+        crate::domain_computation::primary_graph::WorthQueryExactBasisSnapshotDenial::SnapshotIdentityExhausted => {
+            WorthQueryAftermathCausalityReadDenial::SnapshotIdentityExhausted
+        }
+        _ => WorthQueryAftermathCausalityReadDenial::Unavailable,
     }
 }
 

@@ -8,28 +8,30 @@ fn bulk_create_entities_match_equivalent_singular_creates() {
     let mut bulk_runtime = runtime_with_test_schema();
     let mut bulk_txn =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut bulk_runtime);
-    bulk_txn.push_batch(WorkerIntentBatch::new("bulk").push(MutationIntent::Create(
-        CreateIntent::BulkEntities(BulkEntityCreateIntent {
-            partition_id: PartitionId::main(),
-            kind_id: KindId(1),
-            client_keys: vec![
-                crate::symbols::data::ClientKey::raw("a"),
-                crate::symbols::data::ClientKey::raw("b"),
-            ],
-            field_patches: vec![
-                single_string_aspect_field_patch(
-                    crate::tests::support::aspect_key("name"),
-                    crate::tests::support::field_key("name"),
-                    "a",
-                ),
-                single_string_aspect_field_patch(
-                    crate::tests::support::aspect_key("name"),
-                    crate::tests::support::field_key("name"),
-                    "b",
-                ),
-            ],
-        }),
-    )));
+    bulk_txn
+        .push_batch(WorkerIntentBatch::new("bulk").push(MutationIntent::Create(
+            CreateIntent::BulkEntities(BulkEntityCreateIntent {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_keys: vec![
+                    crate::symbols::data::ClientKey::raw("a"),
+                    crate::symbols::data::ClientKey::raw("b"),
+                ],
+                field_patches: vec![
+                    single_string_aspect_field_patch(
+                        crate::tests::support::aspect_key("name"),
+                        crate::tests::support::field_key("name"),
+                        "a",
+                    ),
+                    single_string_aspect_field_patch(
+                        crate::tests::support::aspect_key("name"),
+                        crate::tests::support::field_key("name"),
+                        "b",
+                    ),
+                ],
+            }),
+        )))
+        .expect("test staging stays within configured resource budgets");
     let bulk_outcome = bulk_txn.commit(&mut bulk_runtime).unwrap();
 
     let singular_runtime = apply_batches(vec![batch_create("a"), batch_create("b")]);
@@ -101,7 +103,8 @@ fn staged_parallel_bulk_entity_import_matches_serial_reference() {
                     ),
                 ],
             }),
-        )));
+        )))
+        .expect("test staging stays within configured resource budgets");
         let outcome = txn.commit(&mut runtime).unwrap();
         let read = runtime
             .read_truth()
@@ -184,7 +187,8 @@ fn cross_context_relations_respect_relation_kind_policy() {
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
 
     let error = txn.commit(&mut runtime).unwrap_err();
 

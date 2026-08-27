@@ -9,14 +9,15 @@ use worth_relational::facade::transactions::{
     WorkerIntentBatch,
 };
 
-use super::super::super::fixture::capability::{CapabilityCustodian, CapabilityGrantor};
 use super::super::super::fixture::{
     live_scope, AccountIdentity, CapabilityElevationApprover, CapabilityElevationIdentity,
     CapabilityElevationResource, CapabilityElevationStatus, CapabilityElevationStatusField,
-    CapabilityIdentity, CapabilityReviewIdentity, CapabilityReviewStatus,
-    CapabilityReviewStatusField, CapabilityReviewer,
 };
 use crate::domain_computation::primary_graph::WorthQueryPrincipalResolutionMode;
+
+pub(super) use super::review_support_mutation::{
+    complete_review_out_of_band, replace_support_grantor_with_custodian,
+};
 
 pub(super) fn set_status(
     world: &super::super::super::fixture::AuthorizationWorld,
@@ -56,15 +57,20 @@ pub(super) fn set_status(
                 )
                 .expect("owner-admitted transaction context")
         };
-        transaction.push_batch(WorkerIntentBatch::new("set-elevation-status").push(
-            MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-                UpdateEntityFieldsIntent {
-                    entity_id: elevation.entity_id(),
-                    fields,
-                },
-            )),
-        ));
-        transaction.commit(runtime).unwrap();
+        transaction
+            .push_batch(WorkerIntentBatch::new("set-elevation-status").push(
+                MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                    UpdateEntityFieldsIntent {
+                        entity_id: elevation.entity_id(),
+                        fields,
+                    },
+                )),
+            ))
+            .expect("test staging stays within configured resource budgets");
+        let committed = transaction.commit(runtime).unwrap();
+        crate::domain_computation::primary_graph::tests::fixture::release_test_commit_snapshot(
+            runtime, &committed,
+        );
         handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }
@@ -102,17 +108,24 @@ pub(super) fn add_self_approver(
                 )
                 .expect("owner-admitted transaction context")
         };
-        transaction.push_batch(WorkerIntentBatch::new("add-self-approver").push(
-            MutationIntent::Create(CreateIntent::Relation(RelationSpec {
-                partition_id: PartitionId::main(),
-                kind_id: relation_kind,
-                client_key: ClientKey::raw("elevation-self-approver"),
-                source: EntityReference::Existing(requester),
-                target: EntityReference::Existing(elevation.entity_id()),
-                fields: AspectFieldPatch::default(),
-            })),
-        ));
-        transaction.commit(runtime).unwrap();
+        transaction
+            .push_batch(
+                WorkerIntentBatch::new("add-self-approver").push(MutationIntent::Create(
+                    CreateIntent::Relation(RelationSpec {
+                        partition_id: PartitionId::main(),
+                        kind_id: relation_kind,
+                        client_key: ClientKey::raw("elevation-self-approver"),
+                        source: EntityReference::Existing(requester),
+                        target: EntityReference::Existing(elevation.entity_id()),
+                        fields: AspectFieldPatch::default(),
+                    }),
+                )),
+            )
+            .expect("test staging stays within configured resource budgets");
+        let committed = transaction.commit(runtime).unwrap();
+        crate::domain_computation::primary_graph::tests::fixture::release_test_commit_snapshot(
+            runtime, &committed,
+        );
         handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }
@@ -160,7 +173,7 @@ pub(super) fn replace_elevation_resource(
             .find(|record| record.source == elevation.entity_id())
             .expect("the elevation has one current direct resource")
             .relation_id;
-        runtime.snapshots().release_snapshot(&snapshot);
+        crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
         let mut batch = WorkerIntentBatch::new("replace-elevation-resource").push(
             MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
                 relation_id: relation,
@@ -178,7 +191,7 @@ pub(super) fn replace_elevation_resource(
                 },
             )));
         }
-        let mut transaction ={
+        let mut transaction = {
     let transaction_validation_input = runtime
                 .admit_main_branch_basis()
                 .expect("main branch binding");
@@ -189,8 +202,11 @@ pub(super) fn replace_elevation_resource(
         )
         .expect("owner-admitted transaction context")
 };
-        transaction.push_batch(batch);
-        transaction.commit(runtime).unwrap();
+        transaction.push_batch(batch).expect("test staging stays within configured resource budgets");
+        let committed = transaction.commit(runtime).unwrap();
+        crate::domain_computation::primary_graph::tests::fixture::release_test_commit_snapshot(
+            runtime, &committed,
+        );
         handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }
@@ -237,153 +253,22 @@ pub(super) fn add_elevation_resource(
                 )
                 .expect("owner-admitted transaction context")
         };
-        transaction.push_batch(WorkerIntentBatch::new("add-elevation-resource").push(
-            MutationIntent::Create(CreateIntent::Relation(RelationSpec {
-                partition_id: PartitionId::main(),
-                kind_id: relation_kind,
-                client_key: ClientKey::raw("additional-elevation-resource"),
-                source: EntityReference::Existing(elevation.entity_id()),
-                target: EntityReference::Existing(account.entity_id()),
-                fields: AspectFieldPatch::default(),
-            })),
-        ));
-        transaction.commit(runtime).unwrap();
-        handle.ensure_primary_indexes_current(runtime).unwrap();
-    });
-}
-
-pub(super) fn complete_review_out_of_band(
-    world: &super::super::super::fixture::AuthorizationWorld,
-    reviewer: EntityId,
-) {
-    let review = world
-        .application
-        .resolve_entity(
-            CapabilityReviewIdentity::reference(),
-            "review-2".to_owned(),
-            &live_scope(),
-            WorthQueryPrincipalResolutionMode::Ordinary,
-        )
-        .unwrap();
-    let field = CapabilityReviewStatusField::reference();
-    let graph = world.application.runtime.primary_graph().unwrap();
-    let locator = graph
-        .layout()
-        .field_locator(field.entity(), field.aspect(), field.field())
-        .unwrap()
-        .clone();
-    let relation_kind = graph
-        .layout()
-        .relation(CapabilityReviewer::reference().name())
-        .unwrap()
-        .kind;
-    let handle = graph.integration_handle();
-    handle.with_runtime_mut(|runtime| {
-        let fields = AspectFieldPatch::from(BTreeMap::from([(
-            locator,
-            CapabilityReviewStatus::Completed.into_foundational_value(),
-        )]));
-        let mut transaction = {
-            let transaction_validation_input = runtime
-                .admit_main_branch_basis()
-                .expect("main branch binding");
-            runtime
-                .begin_branch_transaction(
-                    &transaction_validation_input,
-                    worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
-                )
-                .expect("owner-admitted transaction context")
-        };
-        transaction.push_batch(
-            WorkerIntentBatch::new("complete-review-out-of-band")
-                .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-                    UpdateEntityFieldsIntent {
-                        entity_id: review.entity_id(),
-                        fields,
-                    },
-                )))
-                .push(MutationIntent::Create(CreateIntent::Relation(
-                    RelationSpec {
-                        partition_id: PartitionId::main(),
-                        kind_id: relation_kind,
-                        client_key: ClientKey::raw("out-of-band-reviewer"),
-                        source: EntityReference::Existing(reviewer),
-                        target: EntityReference::Existing(review.entity_id()),
-                        fields: AspectFieldPatch::default(),
-                    },
-                ))),
+        transaction
+            .push_batch(WorkerIntentBatch::new("add-elevation-resource").push(
+                MutationIntent::Create(CreateIntent::Relation(RelationSpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: relation_kind,
+                    client_key: ClientKey::raw("additional-elevation-resource"),
+                    source: EntityReference::Existing(elevation.entity_id()),
+                    target: EntityReference::Existing(account.entity_id()),
+                    fields: AspectFieldPatch::default(),
+                })),
+            ))
+            .expect("test staging stays within configured resource budgets");
+        let committed = transaction.commit(runtime).unwrap();
+        crate::domain_computation::primary_graph::tests::fixture::release_test_commit_snapshot(
+            runtime, &committed,
         );
-        transaction.commit(runtime).unwrap();
-        handle.ensure_primary_indexes_current(runtime).unwrap();
-    });
-}
-
-pub(super) fn replace_support_grantor_with_custodian(
-    world: &super::super::super::fixture::AuthorizationWorld,
-    principal: EntityId,
-) {
-    let grant = world
-        .application
-        .resolve_entity(
-            CapabilityIdentity::reference(),
-            "capability-1".to_owned(),
-            &live_scope(),
-            WorthQueryPrincipalResolutionMode::Ordinary,
-        )
-        .unwrap();
-    let graph = world.application.runtime.primary_graph().unwrap();
-    let grantor_kind = graph
-        .layout()
-        .relation(CapabilityGrantor::reference().name())
-        .unwrap()
-        .kind;
-    let custodian_kind = graph
-        .layout()
-        .relation(CapabilityCustodian::reference().name())
-        .unwrap()
-        .kind;
-    let handle = graph.integration_handle();
-    handle.with_runtime_mut(|runtime| {
-        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_main_snapshot(runtime)
-            .expect("primary branch has a current snapshot");
-        let grantor = runtime
-            .read_truth()
-            .visible_relations_of_kind(grantor_kind, snapshot.version_id())
-            .into_iter()
-            .find(|record| record.source == principal && record.target == grant.entity_id())
-            .expect("the request support has one current grantor path")
-            .relation_id;
-        runtime.snapshots().release_snapshot(&snapshot);
-        let mut transaction ={
-    let transaction_validation_input = runtime
-                .admit_main_branch_basis()
-                .expect("main branch binding");
-    runtime
-        .begin_branch_transaction(
-            &transaction_validation_input,
-            worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
-        )
-        .expect("owner-admitted transaction context")
-};
-        transaction.push_batch(
-            WorkerIntentBatch::new("replace-elevation-support-policy-path")
-                .push(MutationIntent::Relation(RelationMutationIntent::Delete(
-                    DeleteRelationIntent {
-                        relation_id: grantor,
-                    },
-                )))
-                .push(MutationIntent::Create(CreateIntent::Relation(
-                    RelationSpec {
-                        partition_id: PartitionId::main(),
-                        kind_id: custodian_kind,
-                        client_key: ClientKey::raw("capability-1-custodian"),
-                        source: EntityReference::Existing(principal),
-                        target: EntityReference::Existing(grant.entity_id()),
-                        fields: AspectFieldPatch::default(),
-                    },
-                ))),
-        );
-        transaction.commit(runtime).unwrap();
         handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }

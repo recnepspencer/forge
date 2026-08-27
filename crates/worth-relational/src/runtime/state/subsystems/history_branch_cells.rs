@@ -13,6 +13,23 @@ use crate::history::data::{BranchId, CommitId};
 use super::{history_recovery_validation, HistorySubsystem};
 
 impl HistorySubsystem {
+    pub(crate) fn rebuild_branch_head_version_index(&mut self) {
+        let versions = self
+            .branch_cells
+            .values()
+            .filter_map(|cell| match cell.observation().target() {
+                FoundationalBranchTarget::Empty => None,
+                FoundationalBranchTarget::Basis(target) => {
+                    Some(crate::identity::data::VersionId(target.version_id()))
+                }
+            })
+            .collect::<Vec<_>>();
+        self.branch_head_versions = Default::default();
+        for version in versions {
+            self.branch_head_versions.move_head(None, Some(version));
+        }
+    }
+
     pub(crate) fn transition_empty_branches_to_initial_schema(
         &mut self,
         registry: &crate::schema::data::RelationalSchemaRegistry,
@@ -22,7 +39,7 @@ impl HistorySubsystem {
         let transitioned = existing
             .iter()
             .map(|(branch_id, cell)| {
-                let mut candidate = cell.clone();
+                let mut candidate = cell.clone_for_head_replacement();
                 if matches!(
                     candidate.observation().target(),
                     FoundationalBranchTarget::Empty
@@ -39,7 +56,40 @@ impl HistorySubsystem {
             .collect::<Result<BTreeMap<_, _>, RelationalBranchCellDenial>>();
         match transitioned {
             Ok(cells) => {
+                let reservations = cells
+                    .values()
+                    .filter(|cell| {
+                        matches!(cell.observation().target(), FoundationalBranchTarget::Empty)
+                    })
+                    .map(|cell| {
+                        let previous_root = existing
+                            .get(cell.identity().branch_id())
+                            .and_then(RelationalBranchReferenceCell::root)
+                            .expect("live empty branch retains its pre-transition root");
+                        let next_root = cell
+                            .root()
+                            .expect("transitioned empty branch retains its schema root");
+                        self.reserve_branch_head_retirement(
+                            cell.identity(),
+                            &previous_root,
+                            cell.head_retention(),
+                        )
+                        .map(|reservation| (reservation, previous_root, next_root))
+                        .map_err(branch_head_retirement_denial)
+                    })
+                    .collect::<Result<Vec<_>, _>>();
+                let reservations = match reservations {
+                    Ok(reservations) => reservations,
+                    Err(denial) => {
+                        self.branch_cells.restore_all(existing);
+                        return Err(denial);
+                    }
+                };
                 self.branch_cells.restore_all(cells);
+                for (mut reservation, previous_root, next_root) in reservations {
+                    reservation.transfer_head(&previous_root, &next_root);
+                    reservation.replace_head(previous_root);
+                }
                 Ok(())
             }
             Err(denial) => {
@@ -55,6 +105,7 @@ impl HistorySubsystem {
         expected_branch_id: &BranchId,
         recovered_root: Option<Arc<crate::branch::RelationalBranchRoot>>,
         recovered_provenance_root: Option<Arc<crate::branch::RelationalBranchRoot>>,
+        schema_registry: &crate::schema::data::RelationalSchemaRegistry,
         symbols: &crate::symbols::data::StringInterner,
     ) -> Result<(), String> {
         if let Some(FoundationalBranchTarget::Basis(target)) = checkpoint
@@ -73,7 +124,10 @@ impl HistorySubsystem {
             )?;
         }
         let readmission_root = match checkpoint.observation.target() {
-            FoundationalBranchTarget::Empty => None,
+            FoundationalBranchTarget::Empty => Some(RelationalBranchRoot::empty_with_schema(
+                schema_registry,
+                crate::schema::data::runtime_descriptor_semantics_policy().current_write_version(),
+            )),
             FoundationalBranchTarget::Basis(target) => {
                 let commit_id = CommitId(target.selected_commit_id());
                 Some(
@@ -137,7 +191,23 @@ impl HistorySubsystem {
             }
             return Ok(());
         }
+        let installed_root = cell
+            .root()
+            .ok_or_else(|| "recovered branch head has no owner root".to_owned())?;
+        self.install_branch_head(
+            cell.identity().clone(),
+            &installed_root,
+            cell.head_retention(),
+        )
+        .map_err(|denial| format!("recovered branch head retention denied: {denial:?}"))?;
+        let recovered_head_version = match cell.observation().target() {
+            FoundationalBranchTarget::Empty => None,
+            FoundationalBranchTarget::Basis(target) => {
+                Some(crate::identity::data::VersionId(target.version_id()))
+            }
+        };
         self.insert_branch_cell(cell);
+        self.move_branch_head_version(None, recovered_head_version);
         Ok(())
     }
 
@@ -152,15 +222,33 @@ impl HistorySubsystem {
         self.record_branch_population_scan();
         let mut roots = BTreeMap::new();
         for cell in self.branch_cells.values() {
-            let Some(root) = cell.root() else {
-                continue;
-            };
-            let commit_id = root.commit_id().ok_or_else(|| {
+            let root = cell.root().ok_or_else(|| {
                 format!(
-                    "committed branch `{}` has a root without commit identity",
+                    "live branch `{}` has no complete owner root",
                     cell.identity().branch_id().0
                 )
             })?;
+            let commit_id = match cell.observation().target() {
+                FoundationalBranchTarget::Empty => {
+                    if root.id() != 0 || root.descriptor().is_some() {
+                        return Err(format!(
+                            "empty branch `{}` carries a committed root",
+                            cell.identity().branch_id().0
+                        ));
+                    }
+                    continue;
+                }
+                FoundationalBranchTarget::Basis(target) => {
+                    let commit_id = CommitId(target.selected_commit_id());
+                    if root.commit_id() != Some(commit_id) {
+                        return Err(format!(
+                            "committed branch `{}` root identity disagrees with its target",
+                            cell.identity().branch_id().0
+                        ));
+                    }
+                    commit_id
+                }
+            };
             if let Some(existing) = roots.get(&commit_id) {
                 if !Arc::ptr_eq(existing, &root) {
                     return Err(format!(
@@ -198,5 +286,24 @@ impl HistorySubsystem {
 
     pub(super) fn record_branch_population_scan(&self) {
         self.branch_population_scans.fetch_add(1, Ordering::Relaxed);
+    }
+}
+
+fn branch_head_retirement_denial(
+    denial: crate::history::retention::RelationalRetentionAcquisitionDenial,
+) -> RelationalBranchCellDenial {
+    match denial {
+        crate::history::retention::RelationalRetentionAcquisitionDenial::CapacityExhausted => {
+            RelationalBranchCellDenial::RetentionCapacityExhausted
+        }
+        crate::history::retention::RelationalRetentionAcquisitionDenial::IdentityExhausted => {
+            RelationalBranchCellDenial::RetentionIdentityExhausted
+        }
+        crate::history::retention::RelationalRetentionAcquisitionDenial::OwnerUnavailable => {
+            RelationalBranchCellDenial::RetentionOwnerUnavailable
+        }
+        crate::history::retention::RelationalRetentionAcquisitionDenial::RootSetTooLarge => {
+            RelationalBranchCellDenial::RetentionRootSetTooLarge
+        }
     }
 }

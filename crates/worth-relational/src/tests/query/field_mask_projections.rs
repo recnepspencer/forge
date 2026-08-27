@@ -289,7 +289,8 @@ fn create_entity_with_summary_fields(
                 ])),
             },
         )),
-    ));
+    ))
+    .expect("test staging stays within configured resource budgets");
     changed_entities(&txn.commit(&mut runtime).unwrap())[0]
 }
 
@@ -328,7 +329,8 @@ fn create_relation_with_summary_fields(
                 ])),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     txn.commit(&mut runtime).unwrap();
 }
 

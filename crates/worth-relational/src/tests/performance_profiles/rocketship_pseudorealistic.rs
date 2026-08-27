@@ -77,7 +77,8 @@ pub(super) fn seed_pseudorealistic_rocketship_world(
         for intent in bulk_entity_create_intents(&entity_specs) {
             batch = batch.push(intent);
         }
-        txn.push_batch(batch);
+        txn.push_batch(batch)
+            .expect("test staging stays within configured resource budgets");
         txn.commit(&mut runtime)
             .expect("pseudorealistic rocketship entity seed commit")
     };
@@ -229,7 +230,8 @@ pub(super) fn seed_pseudorealistic_rocketship_world(
             for intent in bulk_relation_create_intents(relation_chunk) {
                 batch = batch.push(intent);
             }
-            txn.push_batch(batch);
+            txn.push_batch(batch)
+                .expect("test staging stays within configured resource budgets");
             txn.commit(&mut runtime)
                 .expect("pseudorealistic rocketship relation seed commit chunk")
         };
@@ -336,7 +338,10 @@ pub(super) fn rebuild_pseudorealistic_entity_order(
         ordered[start + ordinal] = Some(record.entity_id);
     }
 
-    let released = runtime.visibility_authority().release_snapshot(&snapshot);
+    let released = runtime
+        .visibility_authority()
+        .release_snapshot(&snapshot)
+        .is_ok();
     assert!(
         released,
         "pseudorealistic entity reorder snapshot should release"

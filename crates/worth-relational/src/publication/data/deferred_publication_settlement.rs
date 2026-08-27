@@ -15,6 +15,7 @@ pub struct DeferredPublicationSettlement {
     runtime_instance_id: u64,
     positioned: Arc<PositionedCanonicalCommit>,
     performed_result: Arc<crate::transactions::data::CommitResult>,
+    snapshot_closeout: crate::runtime::PublishedSnapshotCloseout,
 }
 
 impl DeferredPublicationSettlement {
@@ -22,11 +23,13 @@ impl DeferredPublicationSettlement {
         runtime_instance_id: u64,
         positioned: Arc<PositionedCanonicalCommit>,
         performed_result: crate::transactions::data::CommitResult,
+        snapshot_closeout: crate::runtime::PublishedSnapshotCloseout,
     ) -> Self {
         Self {
             runtime_instance_id,
             positioned,
             performed_result: Arc::new(performed_result),
+            snapshot_closeout,
         }
     }
 
@@ -52,10 +55,17 @@ impl DeferredPublicationSettlement {
     pub(crate) fn positioned(&self) -> &Arc<PositionedCanonicalCommit> {
         &self.positioned
     }
+
+    pub(crate) fn close_published_snapshot(&self) {
+        self.snapshot_closeout.close();
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DeferredPublicationSettlementError {
+    RecoveryUnavailable {
+        commit_id: crate::history::data::CommitId,
+    },
     ForeignRuntime {
         expected_runtime_instance_id: u64,
         actual_runtime_instance_id: u64,

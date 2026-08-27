@@ -5,6 +5,8 @@ mod construction;
 mod durability_fault_injection;
 mod guided;
 mod initial_schema_installation;
+mod interruption_counters;
+mod operation_control;
 mod state;
 
 pub use crate::config::data::RelationalRuntimeConfig;
@@ -31,6 +33,11 @@ pub use initial_schema_installation::{
     RelationalInitialSchemaInstallation, RelationalInitialSchemaInstallationDenial,
     RelationalInitialSchemaInstallationDenialKind, RelationalInitialSchemaInstallationReceipt,
 };
+pub use interruption_counters::RelationalInterruptionCostCounters;
+pub use operation_control::{
+    RelationalCancellationSource, RelationalCancellationToken, RelationalInterruptionBoundary,
+    RelationalInterruptionEvent, RelationalOperationControl, RelationalOperationInterruption,
+};
 pub use state::{
     RelationalBranchSharingCostCounters, RelationalPatchPositionReservationCounters,
     RelationalPhase4ReferenceCostCounters,
@@ -41,14 +48,16 @@ pub use construction::RelationalRuntimeForkDenial;
 pub(crate) use construction::RuntimeExtensions;
 pub use state::RelationalRuntime;
 pub(crate) use state::{
-    readmit_positioned_canonical_commit, CanonicalCheckpointAdmissionError,
-    CanonicalPositionAdmission, CanonicalPublicationRecordError, CommitStrategiesSubsystem,
-    DurabilitySubsystem, HistorySubsystem, IndexingSubsystem, LineageSubsystem,
-    PendingRecordAllocations, PerformedCheckpointSelection, PreparedCanonicalPublicationRoute,
-    PreparedRecoveredVersionedArtifactPublication, PreparedVersionedArtifactAccelerators,
-    PreparedVersionedArtifactPublication, PublicationSubsystem, ReclaimedRecordSlot,
-    RecordIdentitySubsystem, RelationalCanonicalPublicationRoutes,
-    RelationalForkMaterializationCost, ReplayRetentionState, RuntimeInstrumentation,
+    readmit_positioned_canonical_commit, BranchHeadVersionIndexAuthority,
+    CanonicalCheckpointAdmissionError, CanonicalPositionAdmission, CanonicalPublicationRecordError,
+    CommitStrategiesSubsystem, DurabilitySubsystem, HistorySubsystem, IndexingSubsystem,
+    LineageSubsystem, PendingRecordAllocations, PerformedCheckpointSelection,
+    PreparedCanonicalPublicationRoute, PreparedRecoveredVersionedArtifactPublication,
+    PreparedVersionedArtifactAccelerators, PreparedVersionedArtifactPublication,
+    PublicationSubsystem, PublishedSnapshotCloseout, PublishedSnapshotSlotReservation,
+    ReclaimedRecordSlot, RecordIdentitySubsystem, RelationalCandidateRegistrationDenial,
+    RelationalCanonicalPublicationRoutes, RelationalForkMaterializationCost,
+    RelationalRuntimePublicationBinding, ReplayRetentionState, RuntimeInstrumentation,
     RuntimeServices, RuntimeSubsystem, SchemaContractRuntimeSubsystem, SnapshotHandleBinding,
     ValidatedLineageEventBatch, VisibilityResidency, VisibilitySubsystem,
 };

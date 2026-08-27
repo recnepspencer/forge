@@ -1,25 +1,20 @@
 use crate::authority::commit::preparation::planning::strategy::PreparationStrategySelection;
 use rayon::prelude::*;
 
-use super::super::query_fragment_work::execute_explicit_query_fragment_from_state;
+use super::super::query_fragment_work::execute_explicit_query_fragment_from_exact_basis;
 use super::super::query_packetization::PacketizedQueryWork;
 use super::super::{SnapshotPinnedQueryPlan, VisibilityReadContext};
 use crate::storage::overlay::PartitionAccess;
 
-pub(in crate::visibility::materialization::read_records::reader) fn execute_explicit_query_fragments_from_snapshot_state(
+pub(in crate::visibility::materialization::read_records::reader) fn execute_explicit_query_fragments_from_exact_basis(
     reader: &VisibilityReadContext<'_>,
     plan: &SnapshotPinnedQueryPlan,
     packets: &[PacketizedQueryWork],
-    snapshot_state: &crate::visibility::snapshot_states::SnapshotState,
+    basis: &crate::visibility::snapshot_states::VisibilitySnapshotBasis,
     strategy: PreparationStrategySelection,
 ) -> Option<Vec<crate::query::data::QueryWorkerFragment>> {
-    let empty_state = std::collections::BTreeMap::new();
-    let state_access: &(dyn PartitionAccess + Sync) = snapshot_state
-        .basis
-        .root()
-        .map(|root| root.as_ref() as &(dyn PartitionAccess + Sync))
-        .unwrap_or(&empty_state);
-    let version_id = snapshot_state.handle.version_id;
+    let state_access: &(dyn PartitionAccess + Sync) = basis.root().as_ref();
+    let version_id = basis.version_id();
     match strategy {
         PreparationStrategySelection::Serial => {
             reader
@@ -30,9 +25,9 @@ pub(in crate::visibility::materialization::read_records::reader) fn execute_expl
                 .iter()
                 .enumerate()
                 .map(|(ordinal, packet)| {
-                    execute_explicit_query_fragment_from_state(
+                    execute_explicit_query_fragment_from_exact_basis(
                         reader,
-                        snapshot_state,
+                        basis,
                         state_access,
                         version_id,
                         &plan.packet,
@@ -58,9 +53,9 @@ pub(in crate::visibility::materialization::read_records::reader) fn execute_expl
                     bucket
                         .into_iter()
                         .map(|(ordinal, packet)| {
-                            execute_explicit_query_fragment_from_state(
+                            execute_explicit_query_fragment_from_exact_basis(
                                 reader,
-                                snapshot_state,
+                                basis,
                                 state_access,
                                 version_id,
                                 &plan.packet,

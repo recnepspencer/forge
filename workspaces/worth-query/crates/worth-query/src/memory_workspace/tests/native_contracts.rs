@@ -28,10 +28,10 @@ fn optional_native_contract_supports_clear() {
         )
         .unwrap();
 
-    assert!(workspace.entities()[0]
+    assert!(workspace.entities().unwrap()[0]
         .aspect_value(contract.key())
         .is_none());
-    assert!(workspace.entities()[0]
+    assert!(workspace.entities().unwrap()[0]
         .scalar_value_at(&field_path("note.value"))
         .is_none());
 }
@@ -60,7 +60,7 @@ fn unrelated_installed_contract_does_not_require_a_local_mapping() {
         .expect("the locally mapped contract should remain usable");
 
     assert_eq!(
-        workspace.entities()[0].aspect_value(title.key()),
+        workspace.entities().unwrap()[0].aspect_value(title.key()),
         Some(&text("Mapped title"))
     );
 }
@@ -125,7 +125,8 @@ fn native_contract_preserves_struct_field_semantics() {
         )
         .unwrap();
 
-    let entity = &workspace.entities()[0];
+    let entities = workspace.entities().unwrap();
+    let entity = &entities[0];
     let summary = entity.struct_aspect_value(contract.key()).unwrap();
     assert!(summary.get(&FieldKey::new("status").unwrap()).is_none());
     assert_eq!(

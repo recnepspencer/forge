@@ -41,7 +41,8 @@ fn runtime_bridge_lineage_source_resolves_real_relational_history() {
                 },
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     txn.commit(&mut runtime).expect("replace should commit");
     let latest_bundle = runtime
         .publication()
@@ -249,7 +250,8 @@ fn replace_entity(
                 },
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn.commit(runtime).expect("replacement should commit");
     changed_entities(&outcome)[0]
 }

@@ -222,7 +222,7 @@ fn commit_branch_batch_result(
             worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
         )
         .expect("owner-admitted transaction context");
-    transaction.push_batch(batch);
+    transaction.push_batch(batch).unwrap();
     transaction
         .commit(runtime)
         .expect("branch batch commits through production publication")

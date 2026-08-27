@@ -8,7 +8,8 @@ fn client_key_symbol_policy_interns_client_keys_before_merge() {
         .client_key_symbol_policy(ClientKeySymbolPolicy::RequireInterned)
         .build();
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    txn.push_batch(batch_create("intern-me"));
+    txn.push_batch(batch_create("intern-me"))
+        .expect("test staging stays within configured resource budgets");
     let plan = txn.merged_plan(&mut runtime).unwrap().clone();
 
     match &plan.merged_intents[0] {

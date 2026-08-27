@@ -26,7 +26,9 @@ fn subscriber_stream_mixed_boundaries_choose_strongest_supported_outcome_and_tra
             )
             .expect("owner-admitted transaction context")
     };
-    visible_txn.push_batch(batch_create("b"));
+    visible_txn
+        .push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
     visible_txn.commit(&mut runtime).unwrap();
 
     install_schema_version(&mut runtime, SchemaVersionId(3));
@@ -43,7 +45,9 @@ fn subscriber_stream_mixed_boundaries_choose_strongest_supported_outcome_and_tra
             )
             .expect("owner-admitted transaction context")
     };
-    upgrade_txn.push_batch(batch_create("c"));
+    upgrade_txn
+        .push_batch(batch_create("c"))
+        .expect("test staging stays within configured resource budgets");
     upgrade_txn.commit(&mut runtime).unwrap();
 
     let contract = SubscriberContractDeclaration {
@@ -108,7 +112,9 @@ fn resumed_subscriber_stream_mixed_boundaries_choose_strongest_supported_outcome
             )
             .expect("owner-admitted transaction context")
     };
-    visible_txn.push_batch(batch_create("b"));
+    visible_txn
+        .push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
     visible_txn.commit(&mut runtime).unwrap();
 
     install_schema_version(&mut runtime, SchemaVersionId(3));
@@ -125,7 +131,9 @@ fn resumed_subscriber_stream_mixed_boundaries_choose_strongest_supported_outcome
             )
             .expect("owner-admitted transaction context")
     };
-    upgrade_txn.push_batch(batch_create("c"));
+    upgrade_txn
+        .push_batch(batch_create("c"))
+        .expect("test staging stays within configured resource budgets");
     upgrade_txn.commit(&mut runtime).unwrap();
 
     let resumed = runtime

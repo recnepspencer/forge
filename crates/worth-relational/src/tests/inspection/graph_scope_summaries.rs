@@ -155,7 +155,8 @@ fn snapshot_graph_summary_fails_closed_when_snapshot_handle_is_unavailable() {
     let created = create_entity_outcome(&mut runtime, "alpha");
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&created.snapshot));
+        .release_snapshot(&created.snapshot)
+        .is_ok());
 
     let summary = runtime
         .inspect_what_happened()

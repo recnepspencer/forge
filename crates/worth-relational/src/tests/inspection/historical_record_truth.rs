@@ -30,7 +30,8 @@ fn historical_record_inspection_and_transaction_staging_are_read_only() {
         .contains(&crate::facade::transactions::RecordRef::Entity(created)));
 
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    txn.push_batch(batch_create("pending"));
+    txn.push_batch(batch_create("pending"))
+        .expect("test staging stays within configured resource budgets");
     let staging = txn.inspect_staging();
     assert_eq!(staging.batch_count, 1);
     assert!(staging.touched_records.is_empty());
@@ -111,10 +112,12 @@ fn adjacency_truth_uses_the_explicit_version_instead_of_current_head() {
     assert_eq!(historical_incoming.len(), 1);
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&first.snapshot));
+        .release_snapshot(&first.snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&second.snapshot));
+        .release_snapshot(&second.snapshot)
+        .is_ok());
 }
 
 #[test]
@@ -124,10 +127,12 @@ fn historical_open_fails_closed_without_retained_state_and_reconstructs_canonica
     let later = create_entity_outcome(&mut runtime, "later");
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&created.snapshot));
+        .release_snapshot(&created.snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&later.snapshot));
+        .release_snapshot(&later.snapshot)
+        .is_ok());
 
     let retained_only = runtime
         .inspect_what_happened()
@@ -166,7 +171,8 @@ fn historical_record_inspection_keeps_subresults_separate_when_retained_only_blo
     let _updated = create_entity_outcome(&mut runtime, "later");
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&created.snapshot));
+        .release_snapshot(&created.snapshot)
+        .is_ok());
 
     let inspection = runtime.inspect_what_happened().inspect_historical_record(
         &BranchId("main".to_string()),
@@ -231,7 +237,8 @@ fn historical_inspection_matrix_keeps_entity_and_relation_subresults_honest_acro
     let _later = create_entity_outcome(&mut runtime, "later");
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&relation_outcome.snapshot));
+        .release_snapshot(&relation_outcome.snapshot)
+        .is_ok());
 
     let entity_retained = runtime.inspect_what_happened().inspect_historical_record(
         &BranchId("main".to_string()),

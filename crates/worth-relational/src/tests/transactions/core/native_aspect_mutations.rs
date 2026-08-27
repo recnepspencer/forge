@@ -158,14 +158,16 @@ fn stale_native_contract_basis_denies_without_mutating_truth() {
     }]);
     let mut transaction =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(WorkerIntentBatch::new("stale-native-basis").push(
-        MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(
-            ApplyEntityAspectPatchIntent {
-                entity_id: entity,
-                aspect_patch: stale,
-            },
-        )),
-    ));
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("stale-native-basis").push(MutationIntent::Entity(
+                EntityMutationIntent::ApplyAspectPatch(ApplyEntityAspectPatchIntent {
+                    entity_id: entity,
+                    aspect_patch: stale,
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     let error = transaction
         .commit(&mut runtime)
         .expect_err("stale basis must deny");
@@ -179,12 +181,7 @@ fn stale_native_contract_basis_denies_without_mutating_truth() {
             ..
         }
     ));
-    let latest = runtime
-        .publication()
-        .latest_bundle()
-        .unwrap()
-        .snapshot
-        .clone();
+    let latest = runtime.visibility_authority().snapshot();
     let read = runtime.read_truth().read_snapshot(&latest).unwrap();
     let value = read
         .get_entity(entity)
@@ -199,6 +196,8 @@ fn stale_native_contract_basis_denies_without_mutating_truth() {
         ContractValidatedAspectValueView::Scalar(AspectValue::String(value))
             if value == &"before".into()
     ));
+    drop(read);
+    runtime.snapshots().release_snapshot(&latest).unwrap();
 }
 
 #[test]
@@ -236,14 +235,18 @@ fn commit_entity_create(
 ) -> CommitResult {
     let mut transaction =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(WorkerIntentBatch::new("native-entity-create").push(
-        MutationIntent::Create(CreateIntent::EntityAspects(EntityAspectCreateIntent {
-            partition_id: PartitionId::main(),
-            kind_id: KindId(1),
-            client_key: crate::symbols::data::ClientKey::raw("native-entity"),
-            aspect_patch,
-        })),
-    ));
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("native-entity-create").push(MutationIntent::Create(
+                CreateIntent::EntityAspects(EntityAspectCreateIntent {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: crate::symbols::data::ClientKey::raw("native-entity"),
+                    aspect_patch,
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     transaction.commit(&mut runtime).unwrap()
 }
 
@@ -254,14 +257,16 @@ fn commit_entity_patch(
 ) -> CommitResult {
     let mut transaction =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(WorkerIntentBatch::new("native-entity-patch").push(
-        MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(
-            ApplyEntityAspectPatchIntent {
-                entity_id,
-                aspect_patch,
-            },
-        )),
-    ));
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("native-entity-patch").push(MutationIntent::Entity(
+                EntityMutationIntent::ApplyAspectPatch(ApplyEntityAspectPatchIntent {
+                    entity_id,
+                    aspect_patch,
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     transaction.commit(&mut runtime).unwrap()
 }
 
@@ -273,16 +278,20 @@ fn commit_relation_create(
 ) -> CommitResult {
     let mut transaction =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(WorkerIntentBatch::new("native-relation-create").push(
-        MutationIntent::Create(CreateIntent::RelationAspects(RelationAspectCreateIntent {
-            partition_id: PartitionId::main(),
-            kind_id: KindId(2),
-            client_key: crate::symbols::data::ClientKey::raw("native-relation"),
-            source: EntityReference::Existing(source),
-            target: EntityReference::Existing(target),
-            aspect_patch,
-        })),
-    ));
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("native-relation-create").push(MutationIntent::Create(
+                CreateIntent::RelationAspects(RelationAspectCreateIntent {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(2),
+                    client_key: crate::symbols::data::ClientKey::raw("native-relation"),
+                    source: EntityReference::Existing(source),
+                    target: EntityReference::Existing(target),
+                    aspect_patch,
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     transaction.commit(&mut runtime).unwrap()
 }
 
@@ -293,14 +302,16 @@ fn commit_relation_patch(
 ) -> CommitResult {
     let mut transaction =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(WorkerIntentBatch::new("native-relation-patch").push(
-        MutationIntent::Relation(RelationMutationIntent::ApplyAspectPatch(
-            ApplyRelationAspectPatchIntent {
-                relation_id,
-                aspect_patch,
-            },
-        )),
-    ));
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("native-relation-patch").push(MutationIntent::Relation(
+                RelationMutationIntent::ApplyAspectPatch(ApplyRelationAspectPatchIntent {
+                    relation_id,
+                    aspect_patch,
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     transaction.commit(&mut runtime).unwrap()
 }
 

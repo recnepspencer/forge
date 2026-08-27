@@ -21,14 +21,9 @@ pub use evidence::{
 };
 
 #[derive(Clone, Debug, PartialEq)]
-enum EffectExecutionReceiptArtifact {
-    Scalar(ExecutedEffectPlan),
-    Batch(ExecutedEffectBatchPlan),
-}
-
-#[derive(Clone, Debug, PartialEq)]
 pub struct EffectExecutionReceipt {
-    artifact: EffectExecutionReceiptArtifact,
+    target_evidence: EffectReceiptTargetEvidence,
+    write_count: usize,
     receipt_family: EffectReceiptArtifactKind,
     declared_effect_family: EffectFamily,
     authority_lane: EffectAuthorityLane,
@@ -40,7 +35,7 @@ pub struct EffectExecutionReceipt {
 }
 
 impl EffectExecutionReceipt {
-    pub(super) fn from_scalar(executed: ExecutedEffectPlan) -> Self {
+    pub(super) fn from_scalar(executed: &ExecutedEffectPlan) -> Self {
         let receipt_family = match executed.artifact() {
             ExecutedEffectAuthorityArtifact::Writeback { .. } => {
                 EffectReceiptArtifactKind::WorthQueryWriteReceipt
@@ -81,8 +76,10 @@ impl EffectExecutionReceipt {
             &receipt_identity,
         );
         let counters = executed.counters().clone();
+        let target_evidence = scalar_target_evidence(executed);
         Self {
-            artifact: EffectExecutionReceiptArtifact::Scalar(executed),
+            target_evidence,
+            write_count: 1,
             receipt_family,
             declared_effect_family,
             authority_lane,
@@ -94,7 +91,7 @@ impl EffectExecutionReceipt {
         }
     }
 
-    pub(super) fn from_batch(executed: ExecutedEffectBatchPlan) -> Self {
+    pub(super) fn from_batch(executed: &ExecutedEffectBatchPlan) -> Self {
         let receipt_family = EffectReceiptArtifactKind::WorthQueryBatchWriteReceipt;
         let declared_effect_family = EffectFamily::Mutation;
         let authority_lane = executed.authority_lane();
@@ -122,8 +119,17 @@ impl EffectExecutionReceipt {
             &receipt_identity,
         );
         let counters = executed.counters().clone();
+        let aggregate = executed
+            .aggregate_mutation()
+            .expect("phase 5 batch receipts remain mutation-only");
+        let target_evidence = EffectReceiptTargetEvidence::BatchMutation {
+            commit_id: aggregate.outcome().commit.commit_id.0,
+            version_id: aggregate.outcome().commit.version_id.0,
+            component_count: executed.components().len(),
+        };
         Self {
-            artifact: EffectExecutionReceiptArtifact::Batch(executed),
+            target_evidence,
+            write_count: executed.components().len(),
             receipt_family,
             declared_effect_family,
             authority_lane,
@@ -176,10 +182,7 @@ impl EffectExecutionReceipt {
     }
 
     pub fn write_count(&self) -> usize {
-        match &self.artifact {
-            EffectExecutionReceiptArtifact::Scalar(_) => 1,
-            EffectExecutionReceiptArtifact::Batch(executed) => executed.components().len(),
-        }
+        self.write_count
     }
 
     pub fn effect_envelope(&self) -> SelfDescribingEffectEnvelope {
@@ -199,53 +202,44 @@ impl EffectExecutionReceipt {
     }
 
     pub fn target_evidence(&self) -> EffectReceiptTargetEvidence {
-        match &self.artifact {
-            EffectExecutionReceiptArtifact::Scalar(executed) => match executed.artifact() {
-                ExecutedEffectAuthorityArtifact::Mutation(result) => {
-                    EffectReceiptTargetEvidence::MutationCommit {
-                        commit_id: result.outcome().commit.commit_id.0,
-                        version_id: result.outcome().commit.version_id.0,
-                    }
-                }
-                ExecutedEffectAuthorityArtifact::Merge(result) => {
-                    EffectReceiptTargetEvidence::MergeCommit {
-                        commit_id: result.commit.outcome().commit.commit_id.0,
-                        version_id: result.commit.outcome().commit.version_id.0,
-                    }
-                }
-                ExecutedEffectAuthorityArtifact::Writeback { execution } => {
-                    EffectReceiptTargetEvidence::Writeback {
-                        outcome_identity: writeback_bridge_evidence_identity(
-                            "outcome",
-                            execution.outcome(),
-                        ),
-                        authority_receipt_identity: writeback_bridge_receipt_evidence_identity(
-                            "authority_receipt",
-                            execution.authority_receipt(),
-                        ),
-                        execution_receipt_identity:
-                            writeback_bridge_execution_receipt_evidence_identity(
-                                "execution_receipt",
-                                execution.execution_receipt(),
-                            ),
-                    }
-                }
-            },
-            EffectExecutionReceiptArtifact::Batch(executed) => {
-                let aggregate = executed
-                    .aggregate_mutation()
-                    .expect("phase 5 batch receipts remain mutation-only");
-                EffectReceiptTargetEvidence::BatchMutation {
-                    commit_id: aggregate.outcome().commit.commit_id.0,
-                    version_id: aggregate.outcome().commit.version_id.0,
-                    component_count: executed.components().len(),
-                }
-            }
-        }
+        self.target_evidence.clone()
     }
 
     pub fn lowered_for_reporting(&self) -> &str {
         self.decision_trace.lowered_for_reporting()
+    }
+}
+
+fn scalar_target_evidence(executed: &ExecutedEffectPlan) -> EffectReceiptTargetEvidence {
+    match executed.artifact() {
+        ExecutedEffectAuthorityArtifact::Mutation(result) => {
+            EffectReceiptTargetEvidence::MutationCommit {
+                commit_id: result.outcome().commit.commit_id.0,
+                version_id: result.outcome().commit.version_id.0,
+            }
+        }
+        ExecutedEffectAuthorityArtifact::Merge(result) => {
+            EffectReceiptTargetEvidence::MergeCommit {
+                commit_id: result.commit.outcome().commit.commit_id.0,
+                version_id: result.commit.outcome().commit.version_id.0,
+            }
+        }
+        ExecutedEffectAuthorityArtifact::Writeback { execution } => {
+            EffectReceiptTargetEvidence::Writeback {
+                outcome_identity: writeback_bridge_evidence_identity(
+                    "outcome",
+                    execution.outcome(),
+                ),
+                authority_receipt_identity: writeback_bridge_receipt_evidence_identity(
+                    "authority_receipt",
+                    execution.authority_receipt(),
+                ),
+                execution_receipt_identity: writeback_bridge_execution_receipt_evidence_identity(
+                    "execution_receipt",
+                    execution.execution_receipt(),
+                ),
+            }
+        }
     }
 }
 

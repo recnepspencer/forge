@@ -8,7 +8,8 @@ fn transaction_inspection_never_projects_hypothetical_committed_truth() {
         .graph_summary(&current_graph_request(None, None, true));
 
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    txn.push_batch(batch_create("pending"));
+    txn.push_batch(batch_create("pending"))
+        .expect("test staging stays within configured resource budgets");
     let staging = txn.inspect_staging();
     let during_staging = runtime
         .inspect_what_happened()
@@ -25,8 +26,9 @@ fn transaction_inspection_savepoint_rollback_scrubs_abandoned_work_and_commit_tr
     let existing = create_entity(&mut runtime, "existing");
 
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    txn.push_batch(batch_create("kept"));
-    let savepoint = txn.create_savepoint();
+    txn.push_batch(batch_create("kept"))
+        .expect("test staging stays within configured resource budgets");
+    let savepoint = txn.create_savepoint().unwrap();
     txn.push_batch(
         WorkerIntentBatch::new("abandoned-update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -38,8 +40,10 @@ fn transaction_inspection_savepoint_rollback_scrubs_abandoned_work_and_commit_tr
                 ),
             }),
         )),
-    );
-    txn.push_batch(batch_create("abandoned"));
+    )
+    .expect("test staging stays within configured resource budgets");
+    txn.push_batch(batch_create("abandoned"))
+        .expect("test staging stays within configured resource budgets");
 
     let before_rollback = txn.inspect_staging();
     assert_eq!(before_rollback.batch_count, 3);
@@ -113,7 +117,8 @@ fn transaction_inspection_marks_lineage_affecting_intents_without_previewing_com
                 },
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
 
     let staging = txn.inspect_staging();
     assert!(staging.contains_lineage_affecting_intents);

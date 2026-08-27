@@ -76,7 +76,9 @@ fn recovery_rejects_a_schema_carrier_swapped_between_exact_roots() {
             )
             .expect("owner-admitted transaction context")
     };
-    transaction.push_batch(batch_create("schema-v2"));
+    transaction
+        .push_batch(batch_create("schema-v2"))
+        .expect("test staging stays within configured resource budgets");
     transaction
         .commit(&mut runtime)
         .expect("schema transition commits");
@@ -175,7 +177,9 @@ fn recovered_exact_roots_interpret_records_with_their_own_schema_contracts() {
             )
             .expect("owner-admitted transaction context")
     };
-    transaction.push_batch(batch_create("new-contract"));
+    transaction
+        .push_batch(batch_create("new-contract"))
+        .expect("test staging stays within configured resource budgets");
     let new = transaction
         .commit(&mut runtime)
         .expect("v2 schema transition commits");
@@ -296,18 +300,20 @@ fn recovered_exact_roots_interpret_records_with_their_own_schema_contracts() {
         &mut recovered,
         BranchId("legacy-schema".to_owned()),
     );
-    v2_meaning_on_v1_root.push_batch(WorkerIntentBatch::new("v2-meaning-on-v1-root").push(
-        MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-            UpdateEntityFieldsIntent {
-                entity_id: old_entity,
-                fields: single_string_aspect_field_patch(
-                    aspect_key("display"),
-                    field_key("display"),
-                    "not-admitted-by-v1",
-                ),
-            },
-        )),
-    ));
+    v2_meaning_on_v1_root
+        .push_batch(
+            WorkerIntentBatch::new("v2-meaning-on-v1-root").push(MutationIntent::Entity(
+                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
+                    entity_id: old_entity,
+                    fields: single_string_aspect_field_patch(
+                        aspect_key("display"),
+                        field_key("display"),
+                        "not-admitted-by-v1",
+                    ),
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     let denial = v2_meaning_on_v1_root
         .commit(&mut recovered)
         .expect_err("a retained v1 root must deny v2-only meaning");

@@ -182,7 +182,8 @@ fn commit_publication_stage_rejects_sources_without_required_connectivity() {
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         ))),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
 
     let error = txn
         .commit(&mut runtime)
@@ -206,13 +207,15 @@ fn minimum_cardinality_current_version_scans_only_live_slots() {
         create_relation_of_kind(&mut runtime, KindId(2), source, retired_target, "retired");
     create_relation_of_kind(&mut runtime, KindId(2), source, target, "live");
     let mut delete_txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    delete_txn.push_batch(
-        WorkerIntentBatch::new("delete-retired").push(MutationIntent::Relation(
-            RelationMutationIntent::Delete(DeleteRelationIntent {
-                relation_id: retired_relation,
-            }),
-        )),
-    );
+    delete_txn
+        .push_batch(
+            WorkerIntentBatch::new("delete-retired").push(MutationIntent::Relation(
+                RelationMutationIntent::Delete(DeleteRelationIntent {
+                    relation_id: retired_relation,
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     delete_txn.commit(&mut runtime).expect("retire relation");
 
     runtime.performance_access().reset_counters();

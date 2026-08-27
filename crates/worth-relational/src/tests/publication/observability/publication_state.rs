@@ -137,7 +137,8 @@ fn snapshot_audit_failure_blocks_publication() {
         ..InvariantCatalog::default()
     });
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    txn.push_batch(batch_create("blocked"));
+    txn.push_batch(batch_create("blocked"))
+        .expect("test staging stays within configured resource budgets");
     let error = txn.commit(&mut runtime).unwrap_err();
 
     assert!(matches!(

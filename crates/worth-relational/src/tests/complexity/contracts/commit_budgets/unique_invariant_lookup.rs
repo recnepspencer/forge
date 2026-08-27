@@ -12,7 +12,8 @@ fn complexity_budget_unique_entity_invariant_scans_the_selected_state() {
     let _other = create_entity(&mut runtime, "other");
     runtime
         .index_authority()
-        .rebuild_unique_entity_aspect_field_indexes();
+        .rebuild_unique_entity_aspect_field_indexes()
+        .expect("main-branch unique index rebuild admits its exact basis");
 
     runtime.performance_access().reset_counters();
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
@@ -27,7 +28,8 @@ fn complexity_budget_unique_entity_invariant_scans_the_selected_state() {
                 ),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let error = txn.commit(&mut runtime).unwrap_err();
     let counters = runtime.performance_access().counters();
 
@@ -58,7 +60,8 @@ fn complexity_budget_commit_boundary_unique_invariant_applies_the_selected_plan(
     let _other = create_entity(&mut runtime, "other");
     runtime
         .index_authority()
-        .rebuild_unique_entity_aspect_field_indexes();
+        .rebuild_unique_entity_aspect_field_indexes()
+        .expect("main-branch unique index rebuild admits its exact basis");
 
     runtime.performance_access().reset_counters();
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
@@ -73,7 +76,8 @@ fn complexity_budget_commit_boundary_unique_invariant_applies_the_selected_plan(
                 ),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let error = txn.commit(&mut runtime).unwrap_err();
     let counters = runtime.performance_access().counters();
 

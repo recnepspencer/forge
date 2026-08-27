@@ -75,7 +75,7 @@ pub(crate) fn validate_publication(
     let mut cell = runtime
         .history
         .branch_cell(branch_id)
-        .cloned()
+        .map(RelationalBranchReferenceCell::clone_for_head_replacement)
         .ok_or_else(|| {
             format!(
                 "publication cannot mint a missing branch cell `{}`",

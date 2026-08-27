@@ -99,7 +99,8 @@ pub(super) fn create_relation_of_kind(
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn.commit(&mut runtime).unwrap();
     outcome
         .changed_records
@@ -125,7 +126,8 @@ pub(super) fn create_entity(
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn.commit(&mut runtime).unwrap();
     outcome
         .changed_records

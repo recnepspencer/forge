@@ -213,6 +213,27 @@ where
             .current_truth_snapshot(&super::primary_truth_branch_identity())
     }
 
+    /// Inspects the real Relational snapshot count and current branch basis.
+    #[doc(hidden)]
+    #[cfg(feature = "test-primary-graph-faults")]
+    pub fn relational_snapshot_state_for_test(
+        &self,
+    ) -> (
+        usize,
+        worth_relational::facade::branch::RelationalBranchBasisDescriptor,
+    ) {
+        self.primary_provider.graph.with_runtime_mut(|runtime| {
+            let active = runtime.retention().inspect_plan().active_snapshot_count;
+            let identity = runtime
+                .branch_identity(self.relational_branch_identity.branch_id())
+                .expect("the application branch remains owner registered");
+            let (_, basis) = runtime
+                .observe_branch(&identity)
+                .expect("the application branch remains owner observable");
+            (active, basis.descriptor().clone())
+        })
+    }
+
     #[cfg(test)]
     pub(crate) fn fail_next_durable_append_for_test(&self) {
         self.primary_provider

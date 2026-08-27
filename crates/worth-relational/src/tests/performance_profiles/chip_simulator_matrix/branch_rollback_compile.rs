@@ -66,7 +66,7 @@ pub(super) fn certify_branch_rollback_compile_step_window(suite: &'static str) {
                     )
                     .expect("owner-admitted transaction context")
             };
-            let savepoint = txn.create_savepoint();
+            let savepoint = txn.create_savepoint().unwrap();
             let mut transient_batch = WorkerIntentBatch::new("chip-transient-fanout");
             for (index, target) in transient_targets.iter().enumerate() {
                 transient_batch = transient_batch.push(MutationIntent::Create(
@@ -82,7 +82,8 @@ pub(super) fn certify_branch_rollback_compile_step_window(suite: &'static str) {
                     }),
                 ));
             }
-            txn.push_batch(transient_batch);
+            txn.push_batch(transient_batch)
+                .expect("test staging stays within configured resource budgets");
 
             let rollback_started_at = Instant::now();
             let rollback = txn
@@ -116,7 +117,8 @@ pub(super) fn certify_branch_rollback_compile_step_window(suite: &'static str) {
                     ))
                     .into(),
                 ),
-            );
+            )
+            .expect("test staging stays within configured resource budgets");
             let commit_started_at = Instant::now();
             let commit_outcome = txn.commit(&mut runtime).expect("chip branch step commit");
             let commit_micros = commit_started_at.elapsed().as_micros();

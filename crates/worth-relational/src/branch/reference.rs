@@ -22,16 +22,16 @@ pub(crate) struct RelationalBranchReferenceCell {
     pub(super) state: Arc<Mutex<RelationalBranchReferenceMutableState>>,
     pub(super) basis_registry: super::RelationalBranchBasisRegistry,
     pub(super) coordination: Arc<super::coordination::RelationalBranchCoordinationCell>,
+    pub(super) head_retention: Arc<crate::history::retention::RelationalBranchHeadRetentionCell>,
 }
-
 #[derive(Debug, Clone)]
 pub(crate) struct RelationalBranchReferenceMutableState {
-    observation: RelationalBranchReferenceObservation,
+    pub(super) observation: RelationalBranchReferenceObservation,
     truth_version: RelationalBranchVersion,
-    head_retention_obligations: u32,
+    pub(super) lifecycle: super::RelationalBranchLifecyclePosture,
     fork_provenance: Option<RelationalBranchReferenceObservation>,
     fork_source_branch_id: Option<BranchId>,
-    root: Option<Arc<super::RelationalBranchRoot>>,
+    pub(super) root: Option<Arc<super::RelationalBranchRoot>>,
 }
 
 impl RelationalBranchReferenceMutableState {
@@ -43,15 +43,23 @@ impl RelationalBranchReferenceMutableState {
             .as_ref()
             .is_some_and(|current| Arc::ptr_eq(current, expected))
     }
+
+    pub(crate) const fn lifecycle_posture(&self) -> super::RelationalBranchLifecyclePosture {
+        self.lifecycle
+    }
 }
 
-impl Clone for RelationalBranchReferenceCell {
-    fn clone(&self) -> Self {
+impl RelationalBranchReferenceCell {
+    pub(crate) fn detached_owner_snapshot(&self) -> Self {
         Self {
             identity: self.identity.clone(),
             state: Arc::new(Mutex::new(self.state_snapshot())),
-            basis_registry: self.basis_registry.clone(),
-            coordination: Arc::clone(&self.coordination),
+            basis_registry: super::RelationalBranchBasisRegistry::default(),
+            coordination: super::coordination::RelationalBranchCoordinationCell::fresh(
+                self.identity.runtime_instance_id(),
+                self.identity.branch_id(),
+            ),
+            head_retention: crate::history::retention::RelationalBranchHeadRetentionCell::fresh(),
         }
     }
 }
@@ -60,7 +68,10 @@ impl Clone for RelationalBranchReferenceCell {
 pub enum RelationalBranchCellDenial {
     GenerationOverflow,
     TruthVersionOverflow,
-    RetentionOverflow,
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
+    RetentionOwnerUnavailable,
+    RetentionRootSetTooLarge,
     RuntimeInstanceMismatch,
     BranchIdentityMismatch,
     CheckpointRuntimeMismatch,
@@ -69,22 +80,17 @@ pub enum RelationalBranchCellDenial {
     CheckpointRootReadmissionRequired,
 }
 
-/// Exact durable image of one owner branch cell. This is intentionally a
-/// checkpoint DTO rather than the live cell: restoring it must validate the
-/// runtime-affine identity and never synthesize currentness from a legacy
-/// branch-head projection.
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub(crate) struct RelationalBranchCellCheckpoint {
-    pub(crate) runtime_instance_id: u64,
-    pub(crate) branch_id: BranchId,
-    pub(crate) observation: RelationalBranchReferenceObservation,
-    pub(crate) truth_version: RelationalBranchVersion,
-    pub(crate) head_retention_obligations: u32,
-    pub(crate) fork_provenance: Option<RelationalBranchReferenceObservation>,
-    pub(crate) fork_source_branch_id: Option<BranchId>,
-}
-
 impl RelationalBranchReferenceCell {
+    pub(crate) fn clone_for_head_replacement(&self) -> Self {
+        Self {
+            identity: self.identity.clone(),
+            state: Arc::new(Mutex::new(self.state_snapshot())),
+            basis_registry: self.basis_registry.clone(),
+            coordination: Arc::clone(&self.coordination),
+            head_retention: Arc::clone(&self.head_retention),
+        }
+    }
+
     /// Detach one exact image of every mutable branch-reference axis.
     ///
     /// Public observations and fork admission must derive reference, truth,
@@ -95,6 +101,7 @@ impl RelationalBranchReferenceCell {
             state: Arc::new(Mutex::new(self.state_snapshot())),
             basis_registry: self.basis_registry.clone(),
             coordination: Arc::clone(&self.coordination),
+            head_retention: crate::history::retention::RelationalBranchHeadRetentionCell::fresh(),
         }
     }
 
@@ -113,7 +120,7 @@ impl RelationalBranchReferenceCell {
             state: Arc::new(Mutex::new(RelationalBranchReferenceMutableState {
                 observation,
                 truth_version: RelationalBranchVersion::initial(),
-                head_retention_obligations: 0,
+                lifecycle: super::RelationalBranchLifecyclePosture::Live,
                 fork_provenance: None,
                 fork_source_branch_id: None,
                 root: None,
@@ -123,6 +130,7 @@ impl RelationalBranchReferenceCell {
                 runtime_instance_id,
                 &branch_id,
             ),
+            head_retention: crate::history::retention::RelationalBranchHeadRetentionCell::fresh(),
         })
     }
 
@@ -166,7 +174,7 @@ impl RelationalBranchReferenceCell {
             state: Arc::new(Mutex::new(RelationalBranchReferenceMutableState {
                 observation,
                 truth_version: RelationalBranchVersion::initial(),
-                head_retention_obligations: 1,
+                lifecycle: super::RelationalBranchLifecyclePosture::Live,
                 fork_provenance: Some(source.clone()),
                 fork_source_branch_id: Some(source_branch_id),
                 root: Some(source_root),
@@ -176,6 +184,7 @@ impl RelationalBranchReferenceCell {
                 runtime_instance_id,
                 &branch_id,
             ),
+            head_retention: crate::history::retention::RelationalBranchHeadRetentionCell::fresh(),
         })
     }
 
@@ -233,7 +242,7 @@ impl RelationalBranchReferenceCell {
             state: Arc::new(Mutex::new(RelationalBranchReferenceMutableState {
                 observation,
                 truth_version: state.truth_version,
-                head_retention_obligations: state.head_retention_obligations,
+                lifecycle: state.lifecycle,
                 fork_provenance,
                 fork_source_branch_id: state.fork_source_branch_id,
                 root: state.root,
@@ -243,6 +252,7 @@ impl RelationalBranchReferenceCell {
                 runtime_instance_id,
                 self.identity.branch_id(),
             ),
+            head_retention: crate::history::retention::RelationalBranchHeadRetentionCell::fresh(),
         })
     }
 
@@ -257,7 +267,6 @@ impl RelationalBranchReferenceCell {
             branch_id: self.identity.branch_id().clone(),
             observation: state.observation,
             truth_version: state.truth_version,
-            head_retention_obligations: state.head_retention_obligations,
             fork_provenance: state.fork_provenance,
             fork_source_branch_id: state.fork_source_branch_id,
         }
@@ -270,7 +279,7 @@ impl RelationalBranchReferenceCell {
             self.identity.branch_id().clone(),
             state.observation,
             state.truth_version,
-            state.head_retention_obligations,
+            state.lifecycle,
             state.fork_provenance,
             state.fork_source_branch_id,
         )
@@ -282,6 +291,10 @@ impl RelationalBranchReferenceCell {
 
     pub(crate) fn truth_version(&self) -> RelationalBranchVersion {
         self.state_snapshot().truth_version
+    }
+
+    pub(crate) fn lifecycle_posture(&self) -> super::RelationalBranchLifecyclePosture {
+        self.state_snapshot().lifecycle
     }
 
     pub(crate) fn fork_provenance(&self) -> Option<RelationalBranchReferenceObservation> {
@@ -368,9 +381,8 @@ mod tests;
 
 #[path = "reference_checkpoint.rs"]
 mod checkpoint;
+pub(crate) use checkpoint::RelationalBranchCellCheckpoint;
 #[path = "reference_coordination_access.rs"]
 mod coordination_access;
-#[path = "reference_head_retention.rs"]
-mod head_retention;
 #[path = "reference_root_access.rs"]
 mod root_access;

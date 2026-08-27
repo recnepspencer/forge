@@ -5,6 +5,10 @@ use crate::workflow::{
 use crate::{WorthQueryEvidenceIdentity, WorthQueryEvidenceScope, WorthQueryEvidenceTag};
 
 use super::batch_admission::AdmittedEffectBatch;
+use super::batch_artifact_metrics::{
+    lowered_batch_artifact_executor_rediscovery_count, lowered_batch_artifact_identity,
+    lowered_batch_artifact_width,
+};
 use super::batch_execution::{
     EffectBatchExecutionDeferred, EffectBatchExecutionDenial, EffectBatchExecutionStop,
     EffectBatchSettlementDeferred, ExecutedEffectBatchPlan,
@@ -237,9 +241,16 @@ impl LoweredEffectBatchExecutionPlan {
         &self.counters
     }
 
-    pub fn execute_with(
+    pub(crate) fn execute_with(
         self,
         mut authority: EffectExecutionAuthority<'_>,
+    ) -> Result<ExecutedEffectBatchPlan, EffectBatchExecutionStop> {
+        self.execute_with_authority(&mut authority)
+    }
+
+    fn execute_with_authority(
+        self,
+        authority: &mut EffectExecutionAuthority<'_>,
     ) -> Result<ExecutedEffectBatchPlan, EffectBatchExecutionStop> {
         let lowered = self.clone();
         let Self {
@@ -269,14 +280,27 @@ impl LoweredEffectBatchExecutionPlan {
                 let aggregate_commit =
                     match execute_lowered_mutation_batch(runtime, batch.declarations()) {
                         Ok(commit) => commit,
-                        Err(super::RelationalEffectExecutionFailure::Deferred { message }) => {
+                        Err(super::RelationalEffectExecutionFailure::Deferred {
+                            kind,
+                            message,
+                        }) => {
                             return Err(EffectBatchExecutionStop::Deferred(
-                                EffectBatchExecutionDeferred::new(&lowered, message),
+                                EffectBatchExecutionDeferred::new(&lowered, kind, message),
                             ));
                         }
                         Err(super::RelationalEffectExecutionFailure::Denied { kind, message }) => {
                             return Err(EffectBatchExecutionStop::Denied(
                                 EffectBatchExecutionDenial::aggregate(kind, message),
+                            ));
+                        }
+                        Err(super::RelationalEffectExecutionFailure::ControlStopped {
+                            kind,
+                            message,
+                        }) => {
+                            return Err(EffectBatchExecutionStop::ControlStopped(
+                                super::EffectBatchExecutionControlStopped::new(
+                                    &lowered, kind, message,
+                                ),
                             ));
                         }
                         Err(super::RelationalEffectExecutionFailure::SettlementDeferred(
@@ -314,10 +338,12 @@ impl LoweredEffectBatchExecutionPlan {
 
     pub fn execute_receipt_with(
         self,
-        authority: EffectExecutionAuthority<'_>,
+        mut authority: EffectExecutionAuthority<'_>,
     ) -> Result<EffectExecutionReceipt, EffectBatchExecutionStop> {
-        self.execute_with(authority)
-            .map(|executed| executed.receipt())
+        let executed = self.execute_with_authority(&mut authority)?;
+        let receipt = executed.receipt();
+        super::receipt_snapshot_release::release_batch(&mut authority, &executed);
+        Ok(receipt)
     }
 }
 
@@ -346,36 +372,4 @@ fn lower_batch_mutation_component(
             error,
         )
     })
-}
-
-fn lowered_batch_artifact_identity(
-    artifact: &LoweredEffectBatchExecutionArtifact,
-) -> &WorthQueryEvidenceIdentity {
-    match artifact {
-        LoweredEffectBatchExecutionArtifact::RelationalMutation(batch) => {
-            batch.batch_mutation_identity()
-        }
-    }
-}
-
-fn lowered_batch_artifact_width(artifact: &LoweredEffectBatchExecutionArtifact) -> usize {
-    match artifact {
-        LoweredEffectBatchExecutionArtifact::RelationalMutation(batch) => batch
-            .declarations()
-            .iter()
-            .map(|declaration| declaration.counters().workflow_lowering_width())
-            .sum(),
-    }
-}
-
-fn lowered_batch_artifact_executor_rediscovery_count(
-    artifact: &LoweredEffectBatchExecutionArtifact,
-) -> usize {
-    match artifact {
-        LoweredEffectBatchExecutionArtifact::RelationalMutation(batch) => batch
-            .declarations()
-            .iter()
-            .map(|declaration| declaration.counters().workflow_executor_rediscovery_count())
-            .sum(),
-    }
 }

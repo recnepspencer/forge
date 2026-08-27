@@ -12,6 +12,7 @@ use crate::runtime::{
 use crate::validation::data::CustomInvariantRegistration;
 use crate::validation::FrozenCustomInvariantRegistry;
 
+use super::state::RelationalRuntimePublicationOwner;
 use super::RelationalRuntime;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -134,6 +135,13 @@ impl RelationalRuntime {
         let services = extensions.build_runtime_services();
         let mut history = <HistorySubsystem as RuntimeSubsystem>::new(&config.history.main_branch);
         history.set_runtime_instance_id(services.runtime_instance_id());
+        let initial_root = crate::branch::RelationalBranchRoot::empty_with_schema(
+            &config.schema.registry,
+            crate::schema::data::runtime_descriptor_semantics_policy().current_write_version(),
+        );
+        history
+            .install_branch_root(&config.history.main_branch, initial_root)
+            .expect("the configured main branch fits the initial retention budget");
         Self {
             schema_contract_runtime: extensions.build_schema_contract_runtime_subsystem(&config),
             commit_strategies: extensions.build_commit_strategy_subsystem(&config),
@@ -143,6 +151,7 @@ impl RelationalRuntime {
             durability: <DurabilitySubsystem as RuntimeSubsystem>::new(&config),
             record_identity: <RecordIdentitySubsystem as RuntimeSubsystem>::new(&()),
             services,
+            publication_owner: RelationalRuntimePublicationOwner::new(),
             partitions: BTreeMap::new(),
             visibility: <VisibilitySubsystem as RuntimeSubsystem>::new(&config),
             publication: extensions.build_publication_subsystem(),
@@ -155,11 +164,15 @@ impl RelationalRuntime {
         let services = RuntimeSubsystem::fork(&self.services);
         let runtime_instance_id = services.runtime_instance_id();
         history.bind_fork_runtime(runtime_instance_id);
+        let mut partitions = self.partitions.clone();
+        for partition in partitions.values_mut() {
+            partition.clear_runtime_pin_counters();
+        }
         Ok(Self {
             config: self.config.clone(),
             schema_contract_runtime: RuntimeSubsystem::fork(&self.schema_contract_runtime),
             commit_strategies: RuntimeSubsystem::fork(&self.commit_strategies),
-            partitions: self.partitions.clone(),
+            partitions,
             visibility: RuntimeSubsystem::fork(&self.visibility),
             publication: RuntimeSubsystem::fork(&self.publication),
             history,
@@ -168,6 +181,7 @@ impl RelationalRuntime {
             durability: RuntimeSubsystem::fork(&self.durability),
             record_identity: RuntimeSubsystem::fork(&self.record_identity),
             services,
+            publication_owner: RelationalRuntimePublicationOwner::new(),
         })
     }
 }

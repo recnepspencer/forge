@@ -1,18 +1,14 @@
-use crate::branch::RelationalBranchReferenceCell;
 use crate::facade::history::BranchId;
 use crate::identity::data::VersionId;
-use crate::tests::support::{create_entity_outcome, runtime_with_test_schema};
+use crate::tests::support::{create_entity, install_empty_test_branch, runtime_with_test_schema};
 
 #[test]
 fn empty_branch_validation_uses_local_zero_after_unrelated_main_progress() {
     let mut runtime = runtime_with_test_schema();
     let empty_branch = BranchId("empty-validation".to_owned());
-    runtime.history.insert_branch_cell(
-        RelationalBranchReferenceCell::empty(runtime.runtime_instance_id(), empty_branch.clone())
-            .expect("test empty branch identity is valid"),
-    );
+    install_empty_test_branch(&mut runtime, empty_branch.clone());
 
-    create_entity_outcome(&mut runtime, "main-progress");
+    create_entity(&mut runtime, "main-progress");
     let identity = runtime
         .branch_identity(&empty_branch)
         .expect("empty branch remains owner-registered");

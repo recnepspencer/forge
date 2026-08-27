@@ -8,12 +8,22 @@ use super::{RelationalBranchCellCheckpoint, RelationalBranchReferenceCell};
 ///
 /// This registry is the only map that may insert or rebind live cells. The
 /// immutable commit catalog is a sibling owner and cannot mint a cell.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub(crate) struct RelationalBranchReferenceRegistry {
     cells: HashMap<BranchId, RelationalBranchReferenceCell>,
 }
 
 impl RelationalBranchReferenceRegistry {
+    pub(crate) fn detached_owner_snapshot(&self) -> Self {
+        Self {
+            cells: self
+                .cells
+                .iter()
+                .map(|(branch_id, cell)| (branch_id.clone(), cell.detached_owner_snapshot()))
+                .collect(),
+        }
+    }
+
     pub(crate) fn from_main(main: RelationalBranchReferenceCell) -> Self {
         let branch_id = main.identity().branch_id().clone();
         Self {
@@ -34,6 +44,10 @@ impl RelationalBranchReferenceRegistry {
 
     pub(crate) fn insert(&mut self, cell: RelationalBranchReferenceCell) {
         self.cells.insert(cell.identity().branch_id().clone(), cell);
+    }
+
+    pub(crate) fn remove(&mut self, branch_id: &BranchId) -> Option<RelationalBranchReferenceCell> {
+        self.cells.remove(branch_id)
     }
 
     pub(crate) fn contains(&self, branch_id: &BranchId) -> bool {

@@ -2,6 +2,24 @@ use super::*;
 use worth_foundational::{FoundationalBranchReferenceObservation, FoundationalBranchTarget};
 
 #[test]
+fn durability_contract_empty_checkpoint_restores_a_live_retained_head() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    runtime.durability_authority().checkpoint().unwrap();
+    let plan = runtime.durability().recovery_plan(
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+    );
+    let mut recovered = persisted_runtime_with_test_schema();
+    recovered.durability_authority().recover(plan).unwrap();
+
+    let identity = recovered.main_branch_identity();
+    let (_, basis) = recovered
+        .observe_branch(&identity)
+        .expect("an empty recovered branch still has a complete owner root");
+    assert_eq!(basis.observation().selected_root_identity(), 0);
+    assert_eq!(recovered.retention_cost_counters().head_installs, 1);
+}
+
+#[test]
 fn durability_contract_checkpoint_tail_recovery_preserves_post_checkpoint_commits() {
     let mut runtime = persisted_runtime_with_test_schema();
     let main = create_entity_outcome(&mut runtime, "main-a");
@@ -29,6 +47,36 @@ fn durability_contract_checkpoint_tail_recovery_preserves_post_checkpoint_commit
             .commit
             .commit_id,
         main.commit.commit_id
+    );
+}
+
+#[test]
+fn durability_tail_replay_releases_each_commit_snapshot_beyond_live_capacity() {
+    let mut runtime = persisted_runtime_with_test_schema_profile(
+        crate::facade::config::RelationalRuntimeProfile::AiWorkflow,
+    );
+    create_entity(&mut runtime, "replay-capacity-checkpoint");
+    runtime.durability_authority().checkpoint().unwrap();
+    for index in 0..70 {
+        create_entity(&mut runtime, &format!("replay-capacity-tail-{index}"));
+    }
+    let plan = runtime.durability().recovery_plan(
+        crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
+    );
+    let mut recovered = persisted_runtime_with_test_schema_profile(
+        crate::facade::config::RelationalRuntimeProfile::AiWorkflow,
+    );
+
+    let outcome = recovered.durability_authority().recover(plan).unwrap();
+
+    assert_eq!(outcome.recovered_commits, 71);
+    assert_eq!(
+        recovered
+            .storage_access()
+            .storage_stats()
+            .published_snapshot_handle_count,
+        0,
+        "replay closeout must not consume the live published-snapshot budget"
     );
 }
 

@@ -42,7 +42,8 @@ fn historical_lineage_resolution_follows_replace_events() {
                 },
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn.commit(&mut runtime).unwrap();
     let resolution =
         runtime
@@ -107,21 +108,25 @@ fn failed_durable_append_cannot_misreport_a_performed_owner_commit() {
 
     runtime.durability.fail_next_append = true;
     let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(WorkerIntentBatch::new("failed-replacement").push(
-        MutationIntent::Entity(EntityMutationIntent::Replace(ReplaceEntityIntent {
-            entity_id: entity,
-            replacement: crate::transactions::data::EntitySpec {
-                partition_id: PartitionId::main(),
-                kind_id: KindId(1),
-                client_key: crate::symbols::data::ClientKey::raw("failed-successor"),
-                fields: single_string_aspect_field_patch(
-                    aspect_key("name"),
-                    field_key("name"),
-                    "failed-successor",
-                ),
-            },
-        })),
-    ));
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("failed-replacement").push(MutationIntent::Entity(
+                EntityMutationIntent::Replace(ReplaceEntityIntent {
+                    entity_id: entity,
+                    replacement: crate::transactions::data::EntitySpec {
+                        partition_id: PartitionId::main(),
+                        kind_id: KindId(1),
+                        client_key: crate::symbols::data::ClientKey::raw("failed-successor"),
+                        fields: single_string_aspect_field_patch(
+                            aspect_key("name"),
+                            field_key("name"),
+                            "failed-successor",
+                        ),
+                    },
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     let durability_deferred = transaction
         .commit(&mut runtime)
         .expect_err("an unacknowledged performed movement is a typed error");
@@ -197,7 +202,8 @@ fn historical_lineage_resolution_does_not_scan_unrelated_branch_events() {
                 },
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let _ = txn.commit(&mut runtime).unwrap();
 
     let total_branch_events = runtime
@@ -252,7 +258,8 @@ fn lineage_aspect_history_keeps_origin_events_and_marks_resolution_context() {
                 },
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let replacement = txn.commit(&mut runtime).unwrap();
     let history = runtime
         .lineage_access()

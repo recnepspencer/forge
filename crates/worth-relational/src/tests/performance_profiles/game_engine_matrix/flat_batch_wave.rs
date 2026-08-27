@@ -68,7 +68,8 @@ pub(super) fn certify_flat_entity_batch_region_wave(suite: &'static str) {
                         },
                     )));
                 }
-                txn.push_batch(batch);
+                txn.push_batch(batch)
+                    .expect("test staging stays within configured resource budgets");
                 txn.commit(&mut runtime)
                     .expect("scene batch flat entity wave commit")
             };
@@ -97,7 +98,10 @@ pub(super) fn certify_flat_entity_batch_region_wave(suite: &'static str) {
                 )
                 .expect("scene batch explicit outcome");
             let explicit_micros = explicit_started_at.elapsed().as_micros();
-            assert!(runtime.visibility_authority().release_snapshot(&snapshot));
+            assert!(runtime
+                .visibility_authority()
+                .release_snapshot(&snapshot)
+                .is_ok());
 
             measurement_with_elapsed(update_micros + explicit_micros, || {
                 perf_metrics!({

@@ -1,4 +1,3 @@
-use std::convert::Infallible;
 use std::sync::Arc;
 
 use crate::branch::{AdmittedRelationalBranchBasis, RelationalBranchBasisDescriptor};
@@ -44,6 +43,9 @@ pub struct PerformedRelationalCommit {
         PerformedRelationalCommitData,
     >,
     completion: crate::authority::commit::pipeline::PreparedCommitPublicationCompletion,
+    settlement_retention: crate::history::retention::RelationalPerformedSettlementObligation,
+    control: crate::runtime::RelationalOperationControl,
+    late_interruption: Option<crate::runtime::RelationalInterruptionEvent>,
 }
 
 impl std::fmt::Debug for PerformedRelationalCommit {
@@ -73,6 +75,8 @@ impl PerformedRelationalCommit {
         positioned_commit: Arc<PositionedCanonicalCommit>,
         next_basis: AdmittedRelationalBranchBasis,
         completion: crate::authority::commit::pipeline::PreparedCommitPublicationCompletion,
+        settlement_retention: crate::history::retention::RelationalPerformedSettlementObligation,
+        control: crate::runtime::RelationalOperationControl,
     ) -> Self {
         Self {
             performed: worth_proof::Performed::record(
@@ -83,6 +87,9 @@ impl PerformedRelationalCommit {
                 },
             ),
             completion,
+            settlement_retention,
+            control,
+            late_interruption: None,
         }
     }
 
@@ -104,12 +111,16 @@ impl PerformedRelationalCommit {
         Arc<PositionedCanonicalCommit>,
         AdmittedRelationalBranchBasis,
         crate::authority::commit::pipeline::PreparedCommitPublicationCompletion,
+        crate::history::retention::RelationalPerformedSettlementObligation,
+        crate::runtime::RelationalOperationControl,
     ) {
         let outcome = self.performed.into_outcome();
         (
             outcome.positioned_commit,
             outcome.next_basis,
             self.completion,
+            self.settlement_retention,
+            self.control,
         )
     }
 
@@ -119,6 +130,17 @@ impl PerformedRelationalCommit {
 
     pub const fn durability_posture(&self) -> RelationalPublicationDurabilityPosture {
         RelationalPublicationDurabilityPosture::OwnerAcknowledgementDeferred
+    }
+
+    pub const fn late_interruption(&self) -> Option<crate::runtime::RelationalInterruptionEvent> {
+        self.late_interruption
+    }
+
+    pub(crate) fn record_late_interruption(
+        &mut self,
+        interruption: crate::runtime::RelationalInterruptionEvent,
+    ) {
+        self.late_interruption = Some(interruption);
     }
 }
 
@@ -147,6 +169,9 @@ impl StaleRelationalBranchObservation {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RelationalPublicationDenial {
+    OwnerUnavailable {
+        runtime_instance_id: u64,
+    },
     ForeignRuntime {
         expected_runtime_instance_id: u64,
         actual_runtime_instance_id: u64,
@@ -154,21 +179,33 @@ pub enum RelationalPublicationDenial {
     OwnerMismatch,
     BranchUnavailable,
     Archived,
+    Deleting,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RelationalPublicationDeferred {
-    CancelledBeforeCriticalSection,
     PatchPositionReservationContended,
+    RetentionBackpressure,
+    CandidateLifetimeExpired { maximum_lifetime_millis: u64 },
+    CandidateCapacityExhausted { maximum_candidates: usize },
+    PublishedSnapshotCapacityExhausted { maximum_handles: usize },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RelationalPublicationFailureKind {
+    SnapshotIdentityExhausted,
+    CandidateIdentityExhausted,
+    PreparedRootBudgetExhausted {
+        maximum_bytes: u64,
+        required_bytes: u64,
+    },
     PreparedRootMismatch,
     PreparedBasisDescriptor(crate::branch::RelationalBranchBasisDenial),
     NextBasisAdmission(crate::branch::RelationalBranchBasisDenial),
     BranchObservation(crate::branch::RelationalBranchBasisDenial),
     PatchPositionCapacityExhausted,
+    RetentionIdentityExhausted,
+    RetentionOwner,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -194,11 +231,39 @@ impl RelationalPublicationFailure {
     }
 }
 
-pub type RelationalPublicationOutcome = worth_proof::TransitionOutcome<
-    PerformedRelationalCommit,
-    RelationalPublicationDenial,
-    RelationalPublicationDeferred,
-    StaleRelationalBranchObservation,
-    Infallible,
-    RelationalPublicationFailure,
->;
+#[derive(Debug)]
+#[must_use = "publication outcomes carry performed work or a typed terminal posture"]
+pub enum RelationalPublicationOutcome {
+    Performed(PerformedRelationalCommit),
+    Stale(StaleRelationalBranchObservation),
+    Denied(RelationalPublicationDenial),
+    Interrupted(crate::runtime::RelationalInterruptionEvent),
+    Deferred(RelationalPublicationDeferred),
+    Failed(RelationalPublicationFailure),
+}
+
+impl RelationalPublicationOutcome {
+    pub(crate) fn performed(performed: PerformedRelationalCommit) -> Self {
+        Self::Performed(performed)
+    }
+
+    pub(crate) fn stale(stale: StaleRelationalBranchObservation) -> Self {
+        Self::Stale(stale)
+    }
+
+    pub(crate) fn denied(denial: RelationalPublicationDenial) -> Self {
+        Self::Denied(denial)
+    }
+
+    pub(crate) fn interrupted(interruption: crate::runtime::RelationalInterruptionEvent) -> Self {
+        Self::Interrupted(interruption)
+    }
+
+    pub(crate) fn deferred(deferred: RelationalPublicationDeferred) -> Self {
+        Self::Deferred(deferred)
+    }
+
+    pub(crate) fn failed(failure: RelationalPublicationFailure) -> Self {
+        Self::Failed(failure)
+    }
+}

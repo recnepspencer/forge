@@ -47,7 +47,10 @@ impl VisibleTruthSummary {
         relations.sort();
 
         drop(read);
-        assert!(runtime.visibility_authority().release_snapshot(&snapshot));
+        assert!(runtime
+            .visibility_authority()
+            .release_snapshot(&snapshot)
+            .is_ok());
 
         Self {
             entity_names,

@@ -83,8 +83,8 @@ fn replace_grantor_with_custodian(
             .find(|record| record.source == principal && record.target == grant.entity_id())
             .expect("the admitted capability has one current grantor path")
             .relation_id;
-        runtime.snapshots().release_snapshot(&snapshot);
-        let mut transaction ={
+        crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
+        let mut transaction = {
     let transaction_validation_input = runtime
                 .admit_main_branch_basis()
                 .expect("main branch binding");
@@ -112,8 +112,11 @@ fn replace_grantor_with_custodian(
                         fields: AspectFieldPatch::default(),
                     },
                 ))),
+        ).expect("test staging stays within configured resource budgets");
+        let committed = transaction.commit(runtime).unwrap();
+        crate::domain_computation::primary_graph::tests::fixture::release_test_commit_snapshot(
+            runtime, &committed,
         );
-        transaction.commit(runtime).unwrap();
         handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }

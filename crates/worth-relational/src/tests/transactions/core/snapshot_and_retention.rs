@@ -10,11 +10,13 @@ fn entity_slot_reuse_increments_generation() {
     let entity_a = changed_entities(&create_outcome)[0];
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&create_outcome.snapshot));
+        .release_snapshot(&create_outcome.snapshot)
+        .is_ok());
     let delete_outcome = delete_entity(&mut runtime, entity_a);
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&delete_outcome.snapshot));
+        .release_snapshot(&delete_outcome.snapshot)
+        .is_ok());
     let retention = runtime.retention().run_pass();
     let entity_b = create_entity(&mut runtime, "second");
 
@@ -40,6 +42,43 @@ fn snapshot_reads_are_immutable_after_later_mutation() {
 
     assert!(read.get_entity(first).is_some());
     assert_eq!(read.entities().len(), 1);
+}
+
+#[test]
+fn snapshot_release_rejects_colliding_foreign_ids_and_double_release() {
+    let mut first = runtime_with_test_schema();
+    let mut second = runtime_with_test_schema();
+    let (_, first_basis) = first.observe_branch(&first.main_branch_identity()).unwrap();
+    let (_, second_basis) = second
+        .observe_branch(&second.main_branch_identity())
+        .unwrap();
+    let first_snapshot = first
+        .snapshots()
+        .snapshot_for_observation(&first_basis.observation())
+        .unwrap();
+    let second_snapshot = second
+        .snapshots()
+        .snapshot_for_observation(&second_basis.observation())
+        .unwrap();
+    assert_eq!(first_snapshot.snapshot_id(), second_snapshot.snapshot_id());
+
+    assert!(matches!(
+        first.snapshots().release_snapshot(&second_snapshot),
+        Err(crate::visibility::RelationalSnapshotReleaseDenial::ForeignRuntime { .. })
+    ));
+    assert!(first
+        .read_truth()
+        .inspect_snapshot(&first_snapshot)
+        .is_some());
+    assert!(first.snapshots().release_snapshot(&first_snapshot).is_ok());
+    assert_eq!(
+        first.snapshots().release_snapshot(&first_snapshot),
+        Err(crate::visibility::RelationalSnapshotReleaseDenial::UnknownSnapshot)
+    );
+    assert!(second
+        .snapshots()
+        .release_snapshot(&second_snapshot)
+        .is_ok());
 }
 
 #[test]
@@ -79,10 +118,12 @@ fn historical_reads_preserve_generation_and_aspects_after_slot_reuse() {
     let deleted = delete_entity(&mut runtime, original);
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&created.snapshot));
+        .release_snapshot(&created.snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&deleted.snapshot));
+        .release_snapshot(&deleted.snapshot)
+        .is_ok());
     let _ = runtime.retention().run_pass();
     let replacement = create_entity(&mut runtime, "after");
 
@@ -141,7 +182,7 @@ fn profile_resolution_and_provenance_are_explicit() {
 }
 
 #[test]
-fn snapshot_pins_block_reclaim_until_release() {
+fn snapshot_root_obligation_survives_substrate_reclaim_until_release() {
     let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::AiWorkflow);
     let create_outcome = create_entity_outcome(&mut runtime, "pinned");
     let create_snapshot = runtime.visibility_authority().snapshot();
@@ -150,19 +191,33 @@ fn snapshot_pins_block_reclaim_until_release() {
     let delete_snapshot = runtime.visibility_authority().snapshot();
     let first_retention = runtime.retention().run_pass();
 
-    assert_eq!(first_retention.entity_reclaimed, 0);
-    assert_eq!(runtime.storage_access().storage_stats().deleted_entities, 1);
+    assert!(first_retention.entity_reclaimed <= 1);
+    assert_eq!(
+        runtime
+            .storage_access()
+            .storage_stats()
+            .reusable_entity_slots,
+        1
+    );
     assert_eq!(first_retention.entity_chunks_scanned, 1);
+    assert!(runtime
+        .read_truth()
+        .read_snapshot(&create_snapshot)
+        .unwrap()
+        .get_entity(entity)
+        .is_some());
 
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&create_snapshot));
+        .release_snapshot(&create_snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&delete_snapshot));
+        .release_snapshot(&delete_snapshot)
+        .is_ok());
     let second_retention = runtime.retention().run_pass();
 
-    assert!(second_retention.entity_reclaimed <= 1);
+    assert_eq!(second_retention.entity_reclaimed, 0);
     assert_eq!(
         runtime
             .storage_access()
@@ -206,10 +261,12 @@ fn epoch_retention_backend_preserves_snapshot_visibility_until_release() {
 
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&create_snapshot));
+        .release_snapshot(&create_snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&delete_snapshot));
+        .release_snapshot(&delete_snapshot)
+        .is_ok());
     let second_retention = runtime.retention().run_pass();
 
     assert!(second_retention.entity_reclaimed <= 1);
@@ -245,12 +302,14 @@ fn external_basis_retention_keeps_observed_truth_until_independent_release() {
     drop(basis);
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&created.snapshot));
+        .release_snapshot(&created.snapshot)
+        .is_ok());
 
     let deleted = delete_entity(&mut runtime, entity);
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&deleted.snapshot));
+        .release_snapshot(&deleted.snapshot)
+        .is_ok());
     let retained = runtime.retention().run_pass();
 
     assert!(retained.entity_reclaimed <= 1);
@@ -267,7 +326,10 @@ fn external_basis_retention_keeps_observed_truth_until_independent_release() {
         .and_then(|read| read.get_entity(entity).cloned())
         .is_some());
 
-    assert!(runtime.snapshots().release_snapshot(&retained_snapshot));
+    assert!(runtime
+        .snapshots()
+        .release_snapshot(&retained_snapshot)
+        .is_ok());
     drop(readmitted);
     let receipt = runtime.release_component_basis(external).unwrap();
     assert_eq!(receipt.descriptor(), &descriptor);

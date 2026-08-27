@@ -17,7 +17,9 @@ fn truth_sequence_overflow_is_rejected_before_publication_effects() {
     runtime.history.next_commit_id = u64::MAX;
     runtime.history.next_version_id = u64::MAX;
     let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(batch_create("overflow-denial"));
+    transaction
+        .push_batch(batch_create("overflow-denial"))
+        .expect("test staging stays within configured resource budgets");
     let error = transaction
         .commit(&mut runtime)
         .expect_err("sequence overflow must be a typed publication denial");

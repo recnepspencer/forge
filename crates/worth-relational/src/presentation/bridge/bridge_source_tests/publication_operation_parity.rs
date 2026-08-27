@@ -52,14 +52,18 @@ fn real_whole_and_field_set_clear_operations_keep_their_exact_publication_meanin
         },
     ]);
     let mut create = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    create.push_batch(WorkerIntentBatch::new("publication-set-whole").push(
-        MutationIntent::Create(CreateIntent::EntityAspects(EntityAspectCreateIntent {
-            partition_id: PartitionId::main(),
-            kind_id: KindId(1),
-            client_key: crate::facade::symbols::ClientKey::raw("publication-parity"),
-            aspect_patch: initial,
-        })),
-    ));
+    create
+        .push_batch(
+            WorkerIntentBatch::new("publication-set-whole").push(MutationIntent::Create(
+                CreateIntent::EntityAspects(EntityAspectCreateIntent {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: crate::facade::symbols::ClientKey::raw("publication-parity"),
+                    aspect_patch: initial,
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     let created = create.commit(&mut runtime).unwrap();
     let entity = changed_entities(&created)[0];
     let created_commit = created.commit.commit_id;
@@ -77,14 +81,16 @@ fn real_whole_and_field_set_clear_operations_keep_their_exact_publication_meanin
     ]);
     let mut transaction =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(WorkerIntentBatch::new("publication-clear-parity").push(
-        MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(
-            ApplyEntityAspectPatchIntent {
-                entity_id: entity,
-                aspect_patch: update,
-            },
-        )),
-    ));
+    transaction
+        .push_batch(WorkerIntentBatch::new("publication-clear-parity").push(
+            MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(
+                ApplyEntityAspectPatchIntent {
+                    entity_id: entity,
+                    aspect_patch: update,
+                },
+            )),
+        ))
+        .expect("test staging stays within configured resource budgets");
     let updated = transaction.commit(&mut runtime).unwrap();
     let mut publications = bridge_envelopes_at_current_observation(
         runtime,

@@ -12,6 +12,10 @@ pub enum RelationalInitialSchemaInstallationDenialKind {
     RuntimeAlreadyCommitted,
     SchemaRejected,
     BranchTransitionRejected,
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
+    RetentionOwnerUnavailable,
+    RetentionRootSetTooLarge,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -131,8 +135,39 @@ fn schema_denial(error: SchemaRegistryError) -> RelationalInitialSchemaInstallat
 fn branch_transition_denial(
     denial: crate::branch::RelationalBranchCellDenial,
 ) -> RelationalInitialSchemaInstallationDenial {
+    let kind = match denial {
+        crate::branch::RelationalBranchCellDenial::RetentionCapacityExhausted => {
+            RelationalInitialSchemaInstallationDenialKind::RetentionCapacityExhausted
+        }
+        crate::branch::RelationalBranchCellDenial::RetentionIdentityExhausted => {
+            RelationalInitialSchemaInstallationDenialKind::RetentionIdentityExhausted
+        }
+        crate::branch::RelationalBranchCellDenial::RetentionOwnerUnavailable => {
+            RelationalInitialSchemaInstallationDenialKind::RetentionOwnerUnavailable
+        }
+        crate::branch::RelationalBranchCellDenial::RetentionRootSetTooLarge => {
+            RelationalInitialSchemaInstallationDenialKind::RetentionRootSetTooLarge
+        }
+        _ => RelationalInitialSchemaInstallationDenialKind::BranchTransitionRejected,
+    };
     RelationalInitialSchemaInstallationDenial::new(
-        RelationalInitialSchemaInstallationDenialKind::BranchTransitionRejected,
+        kind,
         format!("empty branch schema transition failed: {denial:?}"),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn initial_schema_transition_preserves_retention_identity_exhaustion() {
+        assert_eq!(
+            branch_transition_denial(
+                crate::branch::RelationalBranchCellDenial::RetentionIdentityExhausted,
+            )
+            .kind(),
+            RelationalInitialSchemaInstallationDenialKind::RetentionIdentityExhausted,
+        );
+    }
 }

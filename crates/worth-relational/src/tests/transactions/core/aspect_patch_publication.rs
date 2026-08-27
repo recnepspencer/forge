@@ -21,7 +21,8 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
                 )]),
             },
         ))),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let created = txn.commit(&mut runtime).unwrap();
     let entity = changed_entities(&created)[0];
     let created_patch = &created.patch()[0];
@@ -57,7 +58,8 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
                     )]),
                 }),
             )),
-        );
+        )
+        .expect("test staging stays within configured resource budgets");
         txn.commit(&mut runtime).unwrap()
     };
     let updated_patch = &updated.patch()[0];
@@ -105,7 +107,8 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
                     ),
                 },
             )),
-        ));
+        ))
+        .expect("test staging stays within configured resource budgets");
         txn.commit(&mut runtime).unwrap()
     };
     assert_eq!(

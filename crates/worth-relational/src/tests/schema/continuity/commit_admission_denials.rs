@@ -25,7 +25,8 @@ fn ordinary_commit_keeps_the_admitted_branch_root_schema_when_live_registry_drif
                 ),
             },
         ))),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let committed = txn
         .commit(&mut runtime)
         .expect("ambient registry drift cannot reinterpret an admitted branch root");
@@ -90,7 +91,8 @@ fn declared_schema_transition_rejects_wrong_source_basis() {
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("b"));
+    txn.push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
     let error = txn.commit(&mut runtime).unwrap_err();
 
     match error {
@@ -158,7 +160,8 @@ fn declared_schema_transition_rejects_wrong_target_basis() {
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("b"));
+    txn.push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
     let error = txn.commit(&mut runtime).unwrap_err();
 
     match error {
@@ -302,7 +305,8 @@ fn declared_type_continuity_denied_schema_transition_reports_specific_conflict_c
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("b"));
+    txn.push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
     let error = txn.commit(&mut runtime).unwrap_err();
 
     match error {

@@ -204,7 +204,8 @@ pub(super) fn create_named_entity_on_branch(
                 fields: string_aspect_field_patch(fields),
             },
         )),
-    ));
+    ))
+    .expect("test staging stays within configured resource budgets");
     txn.commit(&mut runtime).expect("seed entity");
 }
 

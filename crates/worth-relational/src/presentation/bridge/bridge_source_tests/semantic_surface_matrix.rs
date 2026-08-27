@@ -75,19 +75,21 @@ fn real_entity_transaction_preserves_field_lifecycle_and_structural_surfaces() {
     ]);
     let mut runtime = fixture.build_runtime();
     let mut creation = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    creation.push_batch(
-        WorkerIntentBatch::new("structural-create").push(MutationIntent::Create(
-            CreateIntent::Entity(EntitySpec {
-                partition_id: crate::facade::identity::PartitionId::main(),
-                kind_id: crate::facade::identity::KindId(1),
-                client_key: crate::symbols::data::ClientKey::raw("solid"),
-                fields: string_aspect_field_patch([
-                    (aspect_key("name"), field_key("name"), "solid"),
-                    (aspect_key("summary"), field_key("title"), "solid"),
-                ]),
-            }),
-        )),
-    );
+    creation
+        .push_batch(
+            WorkerIntentBatch::new("structural-create").push(MutationIntent::Create(
+                CreateIntent::Entity(EntitySpec {
+                    partition_id: crate::facade::identity::PartitionId::main(),
+                    kind_id: crate::facade::identity::KindId(1),
+                    client_key: crate::symbols::data::ClientKey::raw("solid"),
+                    fields: string_aspect_field_patch([
+                        (aspect_key("name"), field_key("name"), "solid"),
+                        (aspect_key("summary"), field_key("title"), "solid"),
+                    ]),
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     let created = creation
         .commit(&mut runtime)
         .expect("real structural create");
@@ -100,17 +102,19 @@ fn real_entity_transaction_preserves_field_lifecycle_and_structural_surfaces() {
         .commit_id;
     let mut transaction =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(WorkerIntentBatch::new("summary-field-update").push(
-        MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-            UpdateEntityFieldsIntent {
-                entity_id: entity,
-                fields: string_aspect_field_patch([
-                    (aspect_key("summary"), field_key("title"), "solid"),
-                    (aspect_key("summary"), field_key("status"), "ready"),
-                ]),
-            },
-        )),
-    ));
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("summary-field-update").push(MutationIntent::Entity(
+                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
+                    entity_id: entity,
+                    fields: string_aspect_field_patch([
+                        (aspect_key("summary"), field_key("title"), "solid"),
+                        (aspect_key("summary"), field_key("status"), "ready"),
+                    ]),
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     let field_commit = transaction
         .commit(&mut runtime)
         .expect("real struct-field update")

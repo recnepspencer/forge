@@ -163,7 +163,8 @@ pub(super) fn seed_rocketship_world(
         for intent in bulk_entity_create_intents(&entity_specs) {
             batch = batch.push(intent);
         }
-        txn.push_batch(batch);
+        txn.push_batch(batch)
+            .expect("test staging stays within configured resource budgets");
         txn.commit(&mut runtime)
             .expect("rocketship entity seed commit")
     };
@@ -214,7 +215,8 @@ pub(super) fn seed_rocketship_world(
             for intent in bulk_relation_create_intents(relation_chunk) {
                 batch = batch.push(intent);
             }
-            txn.push_batch(batch);
+            txn.push_batch(batch)
+                .expect("test staging stays within configured resource budgets");
             txn.commit(&mut runtime)
                 .expect("rocketship relation seed commit chunk")
         };

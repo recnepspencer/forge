@@ -11,20 +11,27 @@ use super::{RelationalBasisRetentionReason, RelationalExternalRetentionTerminalA
 /// must be consumed by release or dropped; it exposes no read or mutation
 /// capability itself.
 #[derive(Debug)]
-pub struct RelationalComponentBasisRetentionLease {
+pub struct RelationalBranchRetentionLease {
     observation: Option<RelationalBranchObservation>,
+    obligation: Option<super::RelationalExternalBasisRetentionObligation>,
     terminal_accounting: Arc<RelationalExternalRetentionTerminalAccounting>,
 }
 
-impl RelationalComponentBasisRetentionLease {
+impl RelationalBranchRetentionLease {
     pub(crate) fn new(
         observation: RelationalBranchObservation,
+        binding: &super::RelationalBranchRetentionBinding,
         terminal_accounting: Arc<RelationalExternalRetentionTerminalAccounting>,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, super::RelationalRetentionAcquisitionDenial> {
+        let obligation = super::RelationalExternalBasisRetentionObligation::acquire(
+            binding,
+            Arc::clone(observation.selected_root()),
+        )?;
+        Ok(Self {
             observation: Some(observation),
+            obligation: Some(obligation),
             terminal_accounting,
-        }
+        })
     }
 
     pub fn identity(&self) -> &RelationalBranchIdentity {
@@ -45,21 +52,45 @@ impl RelationalComponentBasisRetentionLease {
         RelationalBasisRetentionReason::ExternalComponentBasis
     }
 
-    pub fn release(mut self) -> RelationalComponentBasisRetentionReleaseReceipt {
+    pub fn release(mut self) -> RelationalBranchRetentionReleaseReceipt {
         let observation = self
             .observation
             .take()
             .expect("retention lease can be released only once");
+        let outcome = self
+            .obligation
+            .take()
+            .expect("live retention lease carries its owner obligation")
+            .release();
         self.terminal_accounting.record_explicit_release();
-        RelationalComponentBasisRetentionReleaseReceipt {
+        RelationalBranchRetentionReleaseReceipt {
             descriptor: observation.descriptor().clone(),
+            outcome,
         }
+    }
+
+    pub(crate) fn owner_relationship(
+        &self,
+        binding: &super::RelationalBranchRetentionBinding,
+    ) -> super::RelationalRetentionOwnerRelationship {
+        self.obligation
+            .as_ref()
+            .map(|obligation| obligation.owner_relationship(binding))
+            .unwrap_or(super::RelationalRetentionOwnerRelationship::OwnerUnavailable)
+    }
+
+    pub(crate) fn admitted_basis(&self) -> crate::branch::AdmittedRelationalBranchBasis {
+        self.observation
+            .as_ref()
+            .expect("live retention lease carries its observation")
+            .admitted_basis()
     }
 }
 
-impl Drop for RelationalComponentBasisRetentionLease {
+impl Drop for RelationalBranchRetentionLease {
     fn drop(&mut self) {
         if self.observation.take().is_some() {
+            self.obligation.take();
             self.terminal_accounting.record_dropped_release();
         }
     }
@@ -67,15 +98,15 @@ impl Drop for RelationalComponentBasisRetentionLease {
 
 /// A denied release that preserves the still-live external obligation.
 #[derive(Debug)]
-pub struct RelationalComponentBasisRetentionReleaseDenial {
+pub struct RelationalBranchRetentionReleaseDenial {
     denial: crate::branch::RelationalBranchBasisDenial,
-    lease: RelationalComponentBasisRetentionLease,
+    lease: RelationalBranchRetentionLease,
 }
 
-impl RelationalComponentBasisRetentionReleaseDenial {
+impl RelationalBranchRetentionReleaseDenial {
     pub(crate) fn new(
         denial: crate::branch::RelationalBranchBasisDenial,
-        lease: RelationalComponentBasisRetentionLease,
+        lease: RelationalBranchRetentionLease,
     ) -> Self {
         Self { denial, lease }
     }
@@ -84,23 +115,36 @@ impl RelationalComponentBasisRetentionReleaseDenial {
         &self.denial
     }
 
-    pub fn lease(&self) -> &RelationalComponentBasisRetentionLease {
+    pub fn lease(&self) -> &RelationalBranchRetentionLease {
         &self.lease
     }
 
-    pub fn into_lease(self) -> RelationalComponentBasisRetentionLease {
+    pub fn into_lease(self) -> RelationalBranchRetentionLease {
         self.lease
     }
 }
 
 /// Evidence that one explicit external retention obligation was consumed.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RelationalComponentBasisRetentionReleaseReceipt {
-    descriptor: RelationalBranchBasisDescriptor,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RelationalBranchRetentionTerminalOutcome {
+    Released,
+    OwnerUnavailable,
 }
 
-impl RelationalComponentBasisRetentionReleaseReceipt {
+/// Evidence that one explicit external retention obligation reached one
+/// terminal path.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RelationalBranchRetentionReleaseReceipt {
+    descriptor: RelationalBranchBasisDescriptor,
+    outcome: RelationalBranchRetentionTerminalOutcome,
+}
+
+impl RelationalBranchRetentionReleaseReceipt {
     pub fn descriptor(&self) -> &RelationalBranchBasisDescriptor {
         &self.descriptor
+    }
+
+    pub const fn outcome(&self) -> RelationalBranchRetentionTerminalOutcome {
+        self.outcome
     }
 }

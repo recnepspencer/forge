@@ -43,6 +43,11 @@ impl RelationalRuntime {
         )>,
         strategy: Option<StrategyProposalDecoration>,
     ) -> Result<ValidatedRelationalProposal, TransactionCommitError> {
+        require_not_interrupted(
+            &transaction.control,
+            &transaction.basis.inner.retention_binding,
+            crate::mvcc::RelationalInterruptionBoundary::ProposalValidation,
+        )?;
         let complexity_before = self.performance_access().complexity_counters_snapshot();
         let batch_count = transaction.batches().len();
         let basis = transaction.basis.clone();
@@ -72,6 +77,11 @@ impl RelationalRuntime {
             ),
             None => prepare_working_state_scope(self, &mut transaction)?,
         };
+        require_not_interrupted(
+            &transaction.control,
+            &transaction.basis.inner.retention_binding,
+            crate::mvcc::RelationalInterruptionBoundary::ProposalValidation,
+        )?;
         let transaction_id = transaction.transaction_id;
         let validation_input =
             super::RelationalTransactionValidationInput::from_transaction(&transaction);
@@ -132,6 +142,11 @@ impl RelationalRuntime {
                 complexity_before,
                 complexity_after,
             );
+        require_not_interrupted(
+            &transaction.control,
+            &transaction.basis.inner.retention_binding,
+            crate::mvcc::RelationalInterruptionBoundary::ProposalValidation,
+        )?;
         Ok(ValidatedRelationalProposal {
             mutation_authority: transaction.mutation_authority,
             transaction_id,
@@ -156,5 +171,19 @@ impl RelationalRuntime {
             strategy_bulk_mutation_batch,
             validation_complexity_delta,
         })
+    }
+}
+
+fn require_not_interrupted(
+    control: &crate::mvcc::RelationalOperationControl,
+    retention_binding: &crate::history::retention::RelationalBranchRetentionBinding,
+    boundary: crate::mvcc::RelationalInterruptionBoundary,
+) -> Result<(), TransactionCommitError> {
+    match control.observe(boundary) {
+        Some(interruption) => {
+            retention_binding.record_interruption(interruption);
+            Err(TransactionCommitError::interrupted(interruption))
+        }
+        None => Ok(()),
     }
 }

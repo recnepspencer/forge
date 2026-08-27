@@ -83,7 +83,9 @@ fn missing_owner_binding_is_typed_and_cannot_fall_back_to_a_raw_id() {
             worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
         )
         .expect("owner-admitted transaction context");
-    transaction.push_batch(WorkerIntentBatch::new("missing-owner-binding"));
+    transaction
+        .push_batch(WorkerIntentBatch::new("missing-owner-binding"))
+        .unwrap();
     let commit = transaction
         .commit(&mut owner)
         .expect("the public no-op commit supplies a real empty correspondence");
@@ -353,7 +355,8 @@ fn observation_rejects_missing_snapshot_and_unbound_record_identities() {
     assert!(missing_snapshot
         .runtime
         .snapshots()
-        .release_snapshot(&released_snapshot));
+        .release_snapshot(&released_snapshot)
+        .is_ok());
     let missing_error = super::world::supply_chain::observe_supply_chain_snapshot(
         &missing_snapshot.program,
         &missing_snapshot.handles,
@@ -384,12 +387,7 @@ fn observation_rejects_missing_snapshot_and_unbound_record_identities() {
 
     let mut unknown_relation =
         compile_supply_chain_baseline(court_program()).expect("Court world compiles");
-    let relation_key = *unknown_relation
-        .handles
-        .relations
-        .keys()
-        .next()
-        .expect("Court has a relation");
+    let relation_key = *unknown_relation.handles.relations.keys().next().unwrap();
     unknown_relation.handles.relations.remove(&relation_key);
     let relation_error = super::world::supply_chain::observe_supply_chain(&unknown_relation)
         .expect_err("an unbound production relation must not be ignored");

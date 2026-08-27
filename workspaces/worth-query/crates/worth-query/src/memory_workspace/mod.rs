@@ -5,6 +5,7 @@ use worth_relational::facade::runtime::RelationalRuntime;
 use worth_runtime_bridge::facade::BridgeMutationAuthorityBundle;
 
 mod atomic_batch;
+mod commit_snapshot_closeout;
 mod entity_native_replacement;
 #[cfg(test)]
 mod entity_native_replacement_tests;
@@ -14,10 +15,13 @@ mod mutation_authority_admission;
 mod native_patch;
 mod native_value_access;
 mod runtime_identity;
-pub(crate) use runtime_identity::snapshot_identity_from_branch;
+pub(crate) use runtime_identity::{
+    snapshot_identity_from_admitted_basis, snapshot_identity_from_branch,
+};
 mod seed_rows;
 #[cfg(test)]
 mod tests;
+mod transaction_denial;
 mod truth_identity_admission;
 mod workspace;
 mod workspace_schema;
@@ -342,6 +346,39 @@ pub enum WorthQueryWorkspaceErrorKind {
     UnsupportedWriteFamily,
     EmptySchema,
     BatchAtomicityUnsupported,
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
+    SnapshotIdentityExhausted,
+    TransactionOverlayCapacityExhausted {
+        maximum_bytes: u64,
+        required_bytes: u64,
+    },
+    TransactionFootprintCapacityExhausted {
+        maximum_loci: usize,
+        required_loci: usize,
+    },
+    SavepointCapacityExhausted {
+        maximum_savepoints: usize,
+    },
+    SavepointFootprintCapacityExhausted {
+        maximum_loci: usize,
+        required_loci: usize,
+    },
+    SavepointIdentityExhausted,
+    CandidateCapacityExhausted {
+        maximum_candidates: usize,
+    },
+    PublishedSnapshotCapacityExhausted {
+        maximum_handles: usize,
+    },
+    CandidateIdentityExhausted,
+    PreparedRootBudgetExhausted {
+        maximum_bytes: u64,
+        required_bytes: u64,
+    },
+    PatchPositionReservationContended,
+    ProposalIdentityExhausted,
+    RelationalBasisUnavailable,
 }
 
 pub struct WorthQueryMemoryWorkspace {

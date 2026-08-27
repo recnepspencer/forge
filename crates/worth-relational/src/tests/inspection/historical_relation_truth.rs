@@ -11,7 +11,8 @@ fn historical_relation_inspection_keeps_direct_commit_history_when_retained_only
     let _later = create_entity_outcome(&mut runtime, "later");
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&relation_outcome.snapshot));
+        .release_snapshot(&relation_outcome.snapshot)
+        .is_ok());
 
     let inspection = runtime.inspect_what_happened().inspect_historical_record(
         &BranchId("main".to_string()),
@@ -63,7 +64,8 @@ fn historical_relation_inspection_reconstructs_record_truth_without_inventing_li
     let _later = create_entity_outcome(&mut runtime, "later");
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&relation_outcome.snapshot));
+        .release_snapshot(&relation_outcome.snapshot)
+        .is_ok());
 
     let inspection = runtime.inspect_what_happened().inspect_historical_record(
         &BranchId("main".to_string()),

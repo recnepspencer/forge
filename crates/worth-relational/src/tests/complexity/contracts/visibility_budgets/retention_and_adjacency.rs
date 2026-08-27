@@ -9,16 +9,19 @@ fn complexity_budget_live_history_trimming_is_touched_record_bounded() {
     let entity_b = changed_entities(&create_b)[0];
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&create_a.snapshot));
+        .release_snapshot(&create_a.snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&create_b.snapshot));
+        .release_snapshot(&create_b.snapshot)
+        .is_ok());
 
     runtime.performance_access().reset_counters();
     let update_a1 = update_entity(&mut runtime, entity_a, "a-1");
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&update_a1.snapshot));
+        .release_snapshot(&update_a1.snapshot)
+        .is_ok());
     let _ = update_entity(&mut runtime, entity_a, "a-2");
     let counters = runtime.performance_access().counters();
 

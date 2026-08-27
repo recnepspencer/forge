@@ -13,7 +13,10 @@ pub(crate) fn read_view_from_snapshot_state(
     debug_assert_eq!(state.basis.version_id(), handle.version_id);
     let (entities, relations) = match &state.basis {
         SnapshotStateBasis::Exact(basis) => {
-            debug_assert_eq!(state.basis.root_version(), Some(state.handle.version_id));
+            debug_assert!(match state.basis.root_version() {
+                Some(root_version) => root_version == state.handle.version_id,
+                None => state.handle.version_id.is_zero(),
+            });
             materialize_exact(runtime, state, basis.root().as_ref())
         }
         SnapshotStateBasis::Historical(basis) => {

@@ -54,7 +54,10 @@ fn admitted_observation_opens_its_selected_root_after_branch_movement() {
     let identity = runtime.main_branch_identity();
     let (_, basis) = runtime.observe_branch(&identity).unwrap();
     let observation = basis.observation();
-    assert!(runtime.snapshots().release_snapshot(&first.snapshot));
+    assert!(runtime
+        .snapshots()
+        .release_snapshot(&first.snapshot)
+        .is_ok());
 
     let second = crate::tests::support::create_entity_outcome(&mut runtime, "later");
     let observed = runtime
@@ -65,8 +68,11 @@ fn admitted_observation_opens_its_selected_root_after_branch_movement() {
     assert_eq!(observed.version_id, first_version);
     assert_eq!(observed.branch_id, *identity.branch_id());
     assert!(runtime.read_truth().read_snapshot(&observed).is_some());
-    assert!(runtime.snapshots().release_snapshot(&observed));
-    assert!(runtime.snapshots().release_snapshot(&second.snapshot));
+    assert!(runtime.snapshots().release_snapshot(&observed).is_ok());
+    assert!(runtime
+        .snapshots()
+        .release_snapshot(&second.snapshot)
+        .is_ok());
 }
 
 #[test]

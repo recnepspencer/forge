@@ -11,6 +11,12 @@
 /// enum exists so preparation failures are not `&'static str` (Gate 8.6 residue).
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryAftermathDerivationFailure {
+    /// The Relational owner could not retain the exact current branch basis.
+    RetentionCapacityExhausted,
+    /// The Relational owner permanently exhausted retention identity space.
+    RetentionIdentityExhausted,
+    /// The Relational owner permanently exhausted snapshot identity space.
+    SnapshotIdentityExhausted,
     /// Canonical basis sequence rejected the prepared entries.
     BasisRejected,
     /// Digest preparation rejected the ready sequence under budget.

@@ -75,7 +75,7 @@ fn ordinary_branch_merge_preserves_settlement_from_its_real_backend_path() {
         deferred.next_action(),
         WorthQueryBranchMergeNextAction::RepairDeferredBranchMergeSettlement
     );
-    let settlement = deferred.settlement().clone();
+    let commit_id = deferred.commit_id();
     assert_eq!(
         deferred.counters().lower_runtime_execution_attempt_count(),
         1
@@ -99,14 +99,15 @@ fn ordinary_branch_merge_preserves_settlement_from_its_real_backend_path() {
             }
         ))
     ));
+    drop(outcome);
 
     let repaired = workspace
-        .repair_deferred_branch_merge_settlement(deferred)
-        .expect("public workspace owner repairs settlement");
+        .repair_pending_branch_merge_settlement(commit_id)
+        .expect("public workspace owner repairs settlement after the token is dropped");
     let repeated = workspace
-        .repair_deferred_branch_merge_settlement(deferred)
+        .repair_pending_branch_merge_settlement(commit_id)
         .expect("public workspace settlement repair is idempotent");
-    assert_eq!(repaired.commit_id, settlement.commit().commit_id);
+    assert_eq!(repaired.commit_id, commit_id);
     assert_eq!(repeated, repaired);
     assert_eq!(
         probe.main_entity_count(),
@@ -281,6 +282,9 @@ fn run_merge(
         }
         crate::ordinary::workflow::WorthQueryBranchMergeOutcome::Deferred(deferred) => {
             panic!("branch merge deferred: {}", deferred.message())
+        }
+        crate::ordinary::workflow::WorthQueryBranchMergeOutcome::ControlStopped(stopped) => {
+            panic!("branch merge control stopped: {}", stopped.message())
         }
         crate::ordinary::workflow::WorthQueryBranchMergeOutcome::SettlementDeferred(deferred) => {
             panic!("branch merge requires settlement: {}", deferred.message())

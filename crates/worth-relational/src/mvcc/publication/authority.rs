@@ -86,10 +86,10 @@ impl PreparedRecoveredRelationalPublication {
         self,
         runtime: &mut RelationalRuntime,
         positioned: &crate::history::data::PositionedCanonicalCommit,
-    ) {
+    ) -> Result<(), String> {
         runtime
             .history
-            .install_prepared_recovered_versioned_artifact(self.publication, positioned);
+            .install_prepared_recovered_versioned_artifact(self.publication, positioned)
     }
 }
 

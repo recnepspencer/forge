@@ -116,7 +116,8 @@ fn replica_convergence_strategy_noops_when_authoritative_replicas_match() {
                 ),
             ),
         ),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     txn.commit(&mut runtime).expect("seed replicas");
     let request = runtime
         .commit_strategies()

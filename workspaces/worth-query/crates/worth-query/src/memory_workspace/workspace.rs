@@ -142,24 +142,30 @@ impl WorthQueryMemoryWorkspace {
         let options = self
             .runtime
             .admit_main_branch_basis()
-            .expect("memory workspace main branch remains owner-admissible");
+            .map_err(super::transaction_denial::basis)?;
         let mut txn = self
             .runtime
             .begin_branch_transaction(
                 &options,
                 worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
             )
-            .expect("owner-admitted transaction context");
+            .map_err(super::transaction_denial::admission)?;
         txn.push_batch(
             WorkerIntentBatch::new("query-memory-delete").push(MutationIntent::Entity(
                 EntityMutationIntent::Delete(DeleteEntityIntent { entity_id }),
             )),
-        );
+        )
+        .map_err(super::transaction_denial::staging)?;
         let result = txn
             .commit(&mut self.runtime)
-            .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
+            .map_err(super::transaction_denial::commit)?;
+        let published_snapshot = result.snapshot.clone();
         let mut receipt =
             self.receipt_from_commit(result, WorthQueryMutationKind::Deleted, Vec::new());
+        super::commit_snapshot_closeout::release_commit_snapshot(
+            &mut self.runtime,
+            &published_snapshot,
+        );
         if receipt.deltas.is_empty() {
             receipt
                 .deltas
@@ -173,38 +179,41 @@ impl WorthQueryMemoryWorkspace {
         Ok(receipt)
     }
 
-    pub fn entities(&self) -> Vec<WorthQueryEntity> {
-        let Some(basis) = self.current_main_basis() else {
-            return Vec::new();
-        };
+    pub fn entities(&self) -> Result<Vec<WorthQueryEntity>, WorthQueryWorkspaceError> {
+        let basis = self.current_main_basis()?;
         let projection_scope = self.workspace_projection_scope();
-        let Ok(view) = self
+        let view = self
             .runtime
             .read_truth()
             .project_observation(&basis.observation())
-        else {
-            return Vec::new();
-        };
-        view.entity_records_with_projection_scope(self.kind_id, projection_scope, |record| {
-            let (aspect_values, struct_aspect_values, native_field_values) =
-                self.aspect_projection_from_projection_record(record);
-            Some(WorthQueryEntity::from_aspect_projection(
-                super::runtime_identity::entity_identity(record.entity_id()),
-                aspect_values,
-                struct_aspect_values,
-                native_field_values,
-            ))
-        })
+            .map_err(|_| workspace_basis_unavailable("workspace entity collection"))?;
+        Ok(
+            view.entity_records_with_projection_scope(self.kind_id, projection_scope, |record| {
+                let (aspect_values, struct_aspect_values, native_field_values) =
+                    self.aspect_projection_from_projection_record(record);
+                Some(WorthQueryEntity::from_aspect_projection(
+                    super::runtime_identity::entity_identity(record.entity_id()),
+                    aspect_values,
+                    struct_aspect_values,
+                    native_field_values,
+                ))
+            }),
+        )
     }
 
-    pub(crate) fn entity(&self, identity: &WorthQueryEntityIdentity) -> Option<WorthQueryEntity> {
-        let entity_id = super::runtime_identity::entity_id_from_identity(identity.clone()).ok()?;
+    pub(crate) fn entity(
+        &self,
+        identity: &WorthQueryEntityIdentity,
+    ) -> Result<Option<WorthQueryEntity>, WorthQueryWorkspaceError> {
+        let entity_id = super::runtime_identity::entity_id_from_identity(identity.clone())
+            .map_err(|_| WorthQueryWorkspaceError::new("entity identity is malformed"))?;
         let basis = self.current_main_basis()?;
         let projection_scope = self.workspace_projection_scope();
-        self.runtime
+        Ok(self
+            .runtime
             .read_truth()
             .project_observation(&basis.observation())
-            .ok()?
+            .map_err(|_| workspace_basis_unavailable("workspace entity lookup"))?
             .entity_record_with_projection_scope(entity_id, projection_scope, |record| {
                 let (aspect_values, struct_aspect_values, native_field_values) =
                     self.aspect_projection_from_projection_record(record);
@@ -214,7 +223,7 @@ impl WorthQueryMemoryWorkspace {
                     struct_aspect_values,
                     native_field_values,
                 ))
-            })
+            }))
     }
 
     pub fn snapshot_identity(&self) -> WorthQuerySnapshotIdentity {
@@ -225,9 +234,7 @@ impl WorthQueryMemoryWorkspace {
         &self,
         entity_id: EntityId,
     ) -> Result<(), WorthQueryWorkspaceError> {
-        let Some(basis) = self.current_main_basis() else {
-            return Err(WorthQueryWorkspaceError::new("entity not found"));
-        };
+        let basis = self.current_main_basis()?;
         self.runtime
             .read_truth()
             .project_observation(&basis.observation())
@@ -241,11 +248,14 @@ impl WorthQueryMemoryWorkspace {
 
     fn current_main_basis(
         &self,
-    ) -> Option<worth_relational::facade::branch::AdmittedRelationalBranchBasis> {
+    ) -> Result<
+        worth_relational::facade::branch::AdmittedRelationalBranchBasis,
+        WorthQueryWorkspaceError,
+    > {
         let identity = self.runtime.main_branch_identity();
         self.runtime
             .observe_branch(&identity)
-            .ok()
+            .map_err(super::transaction_denial::basis)
             .map(|(_, basis)| basis)
     }
 
@@ -330,6 +340,13 @@ impl WorthQueryMemoryWorkspace {
             &self.kind_name,
         )
     }
+}
+
+fn workspace_basis_unavailable(subject: &str) -> WorthQueryWorkspaceError {
+    WorthQueryWorkspaceError::with_kind(
+        super::WorthQueryWorkspaceErrorKind::RelationalBasisUnavailable,
+        format!("{subject} basis is unavailable"),
+    )
 }
 
 fn memory_runtime_builder(

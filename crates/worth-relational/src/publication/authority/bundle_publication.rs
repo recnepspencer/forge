@@ -7,34 +7,23 @@ use crate::snapshots::data::{SnapshotHandle, SnapshotId, SnapshotReadPolicy};
 use crate::storage::overlay::PublicationArtifacts;
 
 impl<'runtime> PublicationAuthority<'runtime> {
-    pub(crate) fn prune_published_snapshot_handles_if_needed(&mut self) {
-        let limit = self
-            .runtime
-            .config
-            .publication
-            .policy
-            .max_published_snapshot_handles
-            .max(1);
-        while self.runtime.visibility.published_snapshot_handle_count() > limit {
-            let Some(oldest_snapshot_id) = self.runtime.visibility.oldest_published_snapshot_id()
-            else {
-                break;
-            };
-            let _ = self
-                .runtime
-                .visibility
-                .remove_published_handle(oldest_snapshot_id);
-        }
-    }
-
     pub(crate) fn assemble_publication_bundle(
         &mut self,
         commit_reference: RelationalCommitReceipt,
         version_id: VersionId,
         patch: crate::publication::patch::data::CanonicalAuthoritativePatch,
         diagnostics_summary: crate::diagnostics::data::RelationalDiagnosticArtifact,
-    ) -> PublicationArtifacts {
-        let snapshot_id = self.runtime.visibility.allocate_snapshot_id();
+    ) -> Result<PublicationArtifacts, crate::mvcc::RelationalPublicationFailure> {
+        let snapshot_id = self
+            .runtime
+            .visibility
+            .allocate_snapshot_id()
+            .ok_or_else(|| {
+                crate::mvcc::RelationalPublicationFailure::new(
+                    crate::mvcc::RelationalPublicationFailureKind::SnapshotIdentityExhausted,
+                    "snapshot identity space is exhausted",
+                )
+            })?;
         let snapshot = SnapshotHandle {
             runtime_instance_id: self.runtime.runtime_instance_id(),
             branch_id: commit_reference.branch_id.clone(),
@@ -42,13 +31,13 @@ impl<'runtime> PublicationAuthority<'runtime> {
             version_id,
             read_policy: SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
         };
-        PublicationArtifacts {
+        Ok(PublicationArtifacts {
             commit: commit_reference,
             snapshot,
             diagnostics_summary,
             patch,
             schema_authority: self.runtime.config.schema.registry.authority_snapshot(),
-        }
+        })
     }
 
     pub(crate) fn publish_artifacts(
@@ -56,6 +45,8 @@ impl<'runtime> PublicationAuthority<'runtime> {
         version_id: VersionId,
         artifacts: PublicationArtifacts,
         patch_position: crate::publication::patch::data::PatchStreamPosition,
+        basis: crate::visibility::snapshot_states::VisibilitySnapshotBasis,
+        published_snapshot_slot: crate::runtime::PublishedSnapshotSlotReservation,
     ) -> SnapshotId {
         let PublicationArtifacts {
             commit,
@@ -86,19 +77,13 @@ impl<'runtime> PublicationAuthority<'runtime> {
             status: PublicationStatus::Published,
         };
         let snapshot_id = bundle.snapshot.snapshot_id;
-        let basis = crate::visibility::snapshot_states::VisibilitySnapshotBasis::capture_current(
-            self.runtime,
-            &bundle.snapshot.branch_id,
-            version_id,
-        )
-        .expect("published snapshot is bound to the installed complete branch root");
         self.runtime.visibility.insert_published_handle(
             snapshot_id,
             crate::runtime::SnapshotHandleBinding::new(basis, bundle.snapshot.read_policy),
         );
+        published_snapshot_slot.install();
         self.push_diagnostic_artifact(bundle.diagnostics_summary.clone());
         self.runtime.publication.replace_latest_bundle(bundle);
-        self.prune_published_snapshot_handles_if_needed();
         snapshot_id
     }
 }

@@ -20,7 +20,8 @@ fn relation_endpoint_update_preserves_relation_identity_and_rewrites_endpoints()
                 target: EntityReference::Existing(new_target),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn
         .commit(&mut runtime)
         .expect("relation update should commit");
@@ -70,7 +71,8 @@ fn relation_endpoint_update_rejects_duplicate_relation_identity() {
                 target: EntityReference::Existing(right),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let error = txn
         .commit(&mut runtime)
         .expect_err("duplicate relation identity should deny");
@@ -115,7 +117,8 @@ fn relation_endpoint_update_accepts_same_batch_created_target() {
                     target: EntityReference::Created(created_target.clone()),
                 }),
             )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn
         .commit(&mut runtime)
         .expect("relation update to same-batch created target should commit");
@@ -173,7 +176,8 @@ fn relation_endpoint_update_to_same_batch_created_target_survives_old_target_ret
                     entity_id: old_target,
                 },
             ))),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn
         .commit(&mut runtime)
         .expect("moved relation should survive retirement of its old endpoint");
@@ -242,7 +246,8 @@ fn relation_endpoint_update_to_same_batch_created_source_survives_old_source_ret
                     entity_id: old_source,
                 },
             ))),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn
         .commit(&mut runtime)
         .expect("moved relation should survive retirement of its old source");

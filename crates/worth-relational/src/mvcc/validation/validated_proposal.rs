@@ -122,11 +122,12 @@ pub(crate) struct StrategyProposalDecoration {
 
 #[cfg(test)]
 mod tests {
+    use crate::mvcc::RelationalBranchTransactionAdmissionDenial;
     use crate::tests::support::{create_entity, runtime_with_test_schema};
     use crate::transactions::data::{CommitConflict, ConflictClass, TransactionCommitError};
 
     #[test]
-    fn stale_owner_binding_is_rejected_during_validation() {
+    fn stale_owner_binding_is_rejected_during_transaction_admission() {
         let mut runtime = runtime_with_test_schema();
         let identity = runtime.main_branch_identity();
         let stale_options = runtime
@@ -134,24 +135,12 @@ mod tests {
             .expect("main branch owner binding");
         let _ = create_entity(&mut runtime, "head-advance");
 
-        let transaction = runtime
-            .begin_branch_transaction(stale_options.basis(), stale_options.intent().clone())
-            .expect("stale basis still belongs to the same runtime");
-        let denied = match transaction.validate(&mut runtime) {
-            Err(denied) => denied,
-            Ok(_) => panic!("Relational must reject a stale expected head"),
-        };
-
-        assert!(matches!(
-            denied,
-            TransactionCommitError::Conflict {
-                error: CommitConflict {
-                    class: ConflictClass::StaleValidationBasis { .. },
-                    ..
-                },
-                ..
-            }
-        ));
+        assert_eq!(
+            runtime
+                .begin_branch_transaction(stale_options.basis(), stale_options.intent().clone())
+                .unwrap_err(),
+            RelationalBranchTransactionAdmissionDenial::StaleBasis
+        );
     }
 
     #[test]

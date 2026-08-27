@@ -121,21 +121,27 @@ impl WorthQueryRuntimeWriteAuthorityAdapter for CommittingWriteAuthority {
                 )
                 .expect("owner-admitted transaction context")
         };
-        transaction.push_batch(
-            WorkerIntentBatch::new("ordinary-query-shared-root-proof").push(
-                MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-                    partition_id: PartitionId::main(),
-                    kind_id: HOST_SENTINEL_KIND,
-                    client_key: ClientKey::raw("ordinary-query-write"),
-                    fields: AspectFieldPatch::default(),
-                })),
-            ),
-        );
-        transaction.commit(runtime).map_err(|error| {
+        transaction
+            .push_batch(
+                WorkerIntentBatch::new("ordinary-query-shared-root-proof").push(
+                    MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                        partition_id: PartitionId::main(),
+                        kind_id: HOST_SENTINEL_KIND,
+                        client_key: ClientKey::raw("ordinary-query-write"),
+                        fields: AspectFieldPatch::default(),
+                    })),
+                ),
+            )
+            .expect("test staging stays within configured resource budgets");
+        let committed = transaction.commit(runtime).map_err(|error| {
             WorthQueryWorkspaceError::new(format!(
                 "ordinary Query write could not commit to the shared graph: {error:?}"
             ))
         })?;
+        runtime
+            .snapshots()
+            .release_snapshot(&committed.snapshot)
+            .expect("ordinary Query write snapshot should close exactly once");
 
         let mut receipt_authority = TestWriteAuthority;
         receipt_authority.write(bridge, Some(runtime), mutation)

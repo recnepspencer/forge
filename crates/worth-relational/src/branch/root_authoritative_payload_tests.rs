@@ -71,7 +71,9 @@ fn schema_transition_descriptors_are_each_bound_into_the_committed_root() {
     let mut transaction = runtime
         .begin_branch_transaction(input.basis(), input.intent().clone())
         .expect("schema transition transaction binds");
-    transaction.push_batch(batch_create("schema-after"));
+    transaction
+        .push_batch(batch_create("schema-after"))
+        .expect("test staging stays within configured resource budgets");
     let outcome = transaction
         .commit(&mut runtime)
         .expect("schema transition commits");

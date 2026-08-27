@@ -14,6 +14,7 @@ pub struct WorthQueryProviderSessionSettlementDeferred {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryPerformedPublicationFailure {
+    kind: super::WorthQueryProviderSessionDenialKind,
     stage: WorthQueryProviderSessionProtocolStage,
     detail: String,
     counters: WorthQueryProviderSessionProtocolCounters,
@@ -21,9 +22,19 @@ pub struct WorthQueryPerformedPublicationFailure {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorthQueryProviderSessionCommitDeferred {
+    kind: WorthQueryProviderSessionCommitDeferredKind,
     stage: WorthQueryProviderSessionProtocolStage,
     detail: String,
     counters: WorthQueryProviderSessionProtocolCounters,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthQueryProviderSessionCommitDeferredKind {
+    RetentionCapacityExhausted,
+    PatchPositionReservationContended,
+    CandidateLifetimeExpired { maximum_lifetime_millis: u64 },
+    CandidateCapacityExhausted { maximum_candidates: usize },
+    PublishedSnapshotCapacityExhausted { maximum_handles: usize },
 }
 
 impl WorthQueryProviderSessionSettlementDeferred {
@@ -67,6 +78,7 @@ impl WorthQueryProviderSessionSettlementDeferred {
         failure: &WorthQueryProviderSessionFailure,
     ) -> Self {
         self.publication_failure = Some(WorthQueryPerformedPublicationFailure {
+            kind: failure.kind(),
             stage: failure.stage(),
             detail: failure.detail().to_owned(),
             counters: failure.counters(),
@@ -86,6 +98,10 @@ impl WorthQueryProviderSessionSettlementDeferred {
 }
 
 impl WorthQueryPerformedPublicationFailure {
+    pub const fn kind(&self) -> super::WorthQueryProviderSessionDenialKind {
+        self.kind
+    }
+
     pub const fn stage(&self) -> WorthQueryProviderSessionProtocolStage {
         self.stage
     }
@@ -100,12 +116,20 @@ impl WorthQueryPerformedPublicationFailure {
 }
 
 impl WorthQueryProviderSessionCommitDeferred {
-    pub(in crate::domain_computation) fn new(detail: impl Into<String>) -> Self {
+    pub(in crate::domain_computation) fn new(
+        kind: WorthQueryProviderSessionCommitDeferredKind,
+        detail: impl Into<String>,
+    ) -> Self {
         Self {
+            kind,
             stage: WorthQueryProviderSessionProtocolStage::Commit,
             detail: detail.into(),
             counters: WorthQueryProviderSessionProtocolCounters::default(),
         }
+    }
+
+    pub const fn kind(&self) -> WorthQueryProviderSessionCommitDeferredKind {
+        self.kind
     }
 
     pub const fn stage(&self) -> WorthQueryProviderSessionProtocolStage {
@@ -135,6 +159,7 @@ impl WorthQueryProviderSessionCommitDeferred {
 pub enum WorthQueryProviderSessionCommitStop {
     Denied(WorthQueryProviderSessionFailure),
     Deferred(WorthQueryProviderSessionCommitDeferred),
+    ControlStopped(super::WorthQueryProviderSessionCommitControlStopped),
     SettlementDeferred(WorthQueryProviderSessionSettlementDeferred),
 }
 

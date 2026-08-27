@@ -21,11 +21,34 @@ fn geometry_profile_does_not_force_retention_pass_on_each_commit() {
 
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&created.snapshot));
+        .release_snapshot(&created.snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&deleted.snapshot));
+        .release_snapshot(&deleted.snapshot)
+        .is_ok());
 
     let plan = runtime.retention().inspect_plan();
     assert!(plan.reclaimable_entities >= 1);
+}
+
+#[test]
+fn ai_profile_commit_and_release_only_make_reclamation_eligible() {
+    let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::AiWorkflow);
+    let entity = create_entity(&mut runtime, "ai-retention");
+    runtime.performance_access().reset_counters();
+
+    let deleted = delete_entity(&mut runtime, entity);
+    runtime
+        .snapshots()
+        .release_snapshot(&deleted.snapshot)
+        .unwrap();
+    let ordinary = runtime.performance_access().counters();
+    assert_eq!(ordinary.retention_entity_slots_scanned, 0);
+    assert_eq!(ordinary.retention_relation_slots_scanned, 0);
+
+    let maintenance = runtime.retention().run_pass();
+    assert!(maintenance.entity_chunks_scanned > 0);
+    let after_maintenance = runtime.performance_access().counters();
+    assert!(after_maintenance.retention_entity_slots_scanned > 0);
 }

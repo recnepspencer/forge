@@ -5,6 +5,7 @@ use worth_query_installation::facade::{
 };
 
 use super::{WorthQueryTemporalOperationExecution, WorthQueryTemporalOperationInvoker};
+use crate::domain_computation::primary_graph::conditional_operation::application_operation_reentry::WorthQueryTemporalReentryDenial;
 use crate::domain_computation::primary_graph::{
     WorthQueryApplicationEntityIdentity, WorthQueryApplicationOperationInvariantProjectionReader,
     WorthQueryPrimaryGraphApplicationRuntime, WorthQueryPrincipalResolutionMode,
@@ -88,7 +89,7 @@ where
         record_identity: &worth_foundational::facade::AspectValue,
         revision: u64,
         request: &worth_query_admission::facade::authenticated_principal::WorthQueryRequestScope,
-    ) -> Result<Option<WorthQueryCurrentTemporalIntent<Schema, IntentEntity, IdentityValue, RevisionValue>>, String>
+    ) -> Result<Option<WorthQueryCurrentTemporalIntent<Schema, IntentEntity, IdentityValue, RevisionValue>>, WorthQueryTemporalReentryDenial>
     where
         Schema: ApplicationSchema,
         IdentityField: OperationReads<Operation>,
@@ -107,12 +108,13 @@ where
                 request,
                 WorthQueryPrincipalResolutionMode::Ordinary,
             )
-            .map_err(|denial| denial.to_string())?;
+            .map_err(WorthQueryTemporalReentryDenial::from_entity)?;
         let expected_revision = RevisionValue::from_revision(revision)
             .ok_or_else(|| "temporal intent revision cannot be represented".to_string())?;
         let current = self.invariant.project_operation::<Operation, _>(|reader| {
             self.observe_current_intent(reader, identity_value.clone(), &expected_revision)
-        });
+        })
+        .map_err(WorthQueryTemporalReentryDenial::from_invariant)?;
         Ok(current.output().is_ok().then_some(WorthQueryCurrentTemporalIntent {
             identity_value,
             entity,

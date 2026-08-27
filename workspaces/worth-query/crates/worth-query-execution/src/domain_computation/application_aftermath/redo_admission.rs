@@ -34,6 +34,18 @@ where
     ) -> Result<WorthQueryRedoIntent, WorthQueryAftermathDerivationFailure> {
         let head = self
             .relational_branch_head(&proved.undo_commit().branch_id)
+            .map_err(|denial| match denial {
+                crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::RetentionCapacityExhausted => {
+                    WorthQueryAftermathDerivationFailure::RetentionCapacityExhausted
+                }
+                crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::RetentionIdentityExhausted => {
+                    WorthQueryAftermathDerivationFailure::RetentionIdentityExhausted
+                }
+                crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::SnapshotIdentityExhausted => {
+                    WorthQueryAftermathDerivationFailure::SnapshotIdentityExhausted
+                }
+                _ => WorthQueryAftermathDerivationFailure::BasisRejected,
+            })?
             .filter(|head| head == proved.undo_commit())
             .ok_or(WorthQueryAftermathDerivationFailure::BasisRejected)?;
         WorthQueryRedoIntent::derive(proved, head)
@@ -52,12 +64,42 @@ where
         let (recovery, (current_head, prior_redo)) = recovery.admit_deriving(|_| {
             let current_head = self
                 .relational_branch_head(&intent.bound_relational_head().branch_id)
+                .map_err(|denial| match denial {
+                    crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::RetentionCapacityExhausted => {
+                        WorthQueryRedoDenial::retention_capacity_exhausted()
+                    }
+                    crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::RetentionIdentityExhausted => {
+                        WorthQueryRedoDenial::retention_identity_exhausted()
+                    }
+                    crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::SnapshotIdentityExhausted => {
+                        WorthQueryRedoDenial::snapshot_identity_exhausted()
+                    }
+                    _ => WorthQueryRedoDenial::stale(),
+                })?
                 .ok_or_else(WorthQueryRedoDenial::stale)?;
             let pending =
                 WorthQueryPendingAftermathCausality::redo_of(intent.undo_commit().clone());
             let prior_redo = self
                 .committed_aftermath_causality(&pending)
-                .map_err(|_| WorthQueryRedoDenial::stale())?
+                .map_err(|denial| match denial {
+                    crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::ActiveSnapshotCapacityExhausted {
+                        maximum_active_snapshots,
+                    } => WorthQueryRedoDenial::active_snapshot_capacity_exhausted(
+                        maximum_active_snapshots,
+                    ),
+                    crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::Unavailable => {
+                        WorthQueryRedoDenial::stale()
+                    }
+                    crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::RetentionCapacityExhausted => {
+                        WorthQueryRedoDenial::retention_capacity_exhausted()
+                    }
+                    crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::RetentionIdentityExhausted => {
+                        WorthQueryRedoDenial::retention_identity_exhausted()
+                    }
+                    crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::SnapshotIdentityExhausted => {
+                        WorthQueryRedoDenial::snapshot_identity_exhausted()
+                    }
+                })?
                 .map_or(WorthQueryPriorRedoObservation::Absent, |_| {
                     WorthQueryPriorRedoObservation::Committed
                 });

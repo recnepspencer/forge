@@ -291,9 +291,40 @@ where
                 &receipt,
             ) {
                 Ok(causality) => causality,
-                Err(()) => {
+                Err(crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::ActiveSnapshotCapacityExhausted {
+                    maximum_active_snapshots,
+                }) => {
+                    return Some(WorthQueryApplicationCommitOutcome::Denied(
+                        WorthQueryApplicationCommitDenial::active_snapshot_capacity_exhausted(
+                            DenialStage::Idempotency,
+                            maximum_active_snapshots,
+                        ),
+                    ))
+                }
+                Err(crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::Unavailable) => {
                     return Some(WorthQueryApplicationCommitOutcome::Denied(
                         WorthQueryApplicationCommitDenial::idempotency_intent_drift(),
+                    ))
+                }
+                Err(crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::RetentionCapacityExhausted) => {
+                    return Some(WorthQueryApplicationCommitOutcome::Denied(
+                        WorthQueryApplicationCommitDenial::retention_capacity_exhausted(
+                            DenialStage::Idempotency,
+                        ),
+                    ))
+                }
+                Err(crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::RetentionIdentityExhausted) => {
+                    return Some(WorthQueryApplicationCommitOutcome::Denied(
+                        WorthQueryApplicationCommitDenial::retention_identity_exhausted(
+                            DenialStage::Idempotency,
+                        ),
+                    ))
+                }
+                Err(crate::domain_computation::primary_graph::WorthQueryAftermathCausalityReadDenial::SnapshotIdentityExhausted) => {
+                    return Some(WorthQueryApplicationCommitOutcome::Denied(
+                        WorthQueryApplicationCommitDenial::snapshot_identity_exhausted(
+                            DenialStage::Idempotency,
+                        ),
                     ))
                 }
             };
@@ -317,7 +348,38 @@ where
                 WorthQueryApplicationCommitDenial::idempotency_intent_drift(),
             ))
         }
-        Ok(Err(_)) => Some(denied(DenialStage::Idempotency)),
+        Ok(Err(crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolutionDenial::ActiveSnapshotCapacityExhausted {
+            maximum_active_snapshots,
+        })) => Some(WorthQueryApplicationCommitOutcome::Denied(
+            WorthQueryApplicationCommitDenial::active_snapshot_capacity_exhausted(
+                DenialStage::Idempotency,
+                maximum_active_snapshots,
+            ),
+        )),
+        Ok(Err(crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolutionDenial::Unavailable)) => {
+            Some(denied(DenialStage::Idempotency))
+        }
+        Ok(Err(crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolutionDenial::RetentionCapacityExhausted)) => {
+            Some(WorthQueryApplicationCommitOutcome::Denied(
+                WorthQueryApplicationCommitDenial::retention_capacity_exhausted(
+                    DenialStage::Idempotency,
+                ),
+            ))
+        }
+        Ok(Err(crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolutionDenial::RetentionIdentityExhausted)) => {
+            Some(WorthQueryApplicationCommitOutcome::Denied(
+                WorthQueryApplicationCommitDenial::retention_identity_exhausted(
+                    DenialStage::Idempotency,
+                ),
+            ))
+        }
+        Ok(Err(crate::domain_computation::primary_graph::provider::WorthQueryProviderIdempotencyResolutionDenial::SnapshotIdentityExhausted)) => {
+            Some(WorthQueryApplicationCommitOutcome::Denied(
+                WorthQueryApplicationCommitDenial::snapshot_identity_exhausted(
+                    DenialStage::Idempotency,
+                ),
+            ))
+        }
     }
 }
 

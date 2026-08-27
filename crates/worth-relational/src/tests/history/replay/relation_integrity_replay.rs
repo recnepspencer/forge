@@ -121,7 +121,8 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
                     fields: crate::transactions::data::AspectFieldPatch::default(),
                 },
             )),
-        ));
+        ))
+        .expect("test staging stays within configured resource budgets");
         txn.commit(&mut runtime).unwrap()
     };
     let feature_head_before_reject = runtime
@@ -132,18 +133,20 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
         &mut runtime,
         BranchId("feature".to_string()),
     );
-    rejected_txn.push_batch(WorkerIntentBatch::new("rejected-feature-relation").push(
-        MutationIntent::Create(CreateIntent::Relation(
-            crate::transactions::data::RelationSpec {
-                partition_id: PartitionId::main(),
-                kind_id: KindId(2),
-                client_key: crate::symbols::data::ClientKey::raw("feature-rejected"),
-                source: crate::transactions::data::EntityReference::Existing(source),
-                target: crate::transactions::data::EntityReference::Existing(target_b),
-                fields: crate::transactions::data::AspectFieldPatch::default(),
-            },
-        )),
-    ));
+    rejected_txn
+        .push_batch(WorkerIntentBatch::new("rejected-feature-relation").push(
+            MutationIntent::Create(CreateIntent::Relation(
+                crate::transactions::data::RelationSpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(2),
+                    client_key: crate::symbols::data::ClientKey::raw("feature-rejected"),
+                    source: crate::transactions::data::EntityReference::Existing(source),
+                    target: crate::transactions::data::EntityReference::Existing(target_b),
+                    fields: crate::transactions::data::AspectFieldPatch::default(),
+                },
+            )),
+        ))
+        .expect("test staging stays within configured resource budgets");
     let rejected = rejected_txn.commit(&mut runtime).unwrap_err();
 
     match rejected {

@@ -145,17 +145,19 @@ fn create_relation_of_kind(
 ) {
     let mut transaction =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(
-        WorkerIntentBatch::new("unrelated-kind").push(MutationIntent::Create(
-            CreateIntent::Relation(RelationSpec {
-                partition_id: PartitionId::main(),
-                kind_id,
-                client_key: crate::symbols::data::ClientKey::raw("unrelated-kind"),
-                source: EntityReference::Existing(source),
-                target: EntityReference::Existing(target),
-                fields: AspectFieldPatch::default(),
-            }),
-        )),
-    );
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("unrelated-kind").push(MutationIntent::Create(
+                CreateIntent::Relation(RelationSpec {
+                    partition_id: PartitionId::main(),
+                    kind_id,
+                    client_key: crate::symbols::data::ClientKey::raw("unrelated-kind"),
+                    source: EntityReference::Existing(source),
+                    target: EntityReference::Existing(target),
+                    fields: AspectFieldPatch::default(),
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     transaction.commit(&mut runtime).unwrap();
 }

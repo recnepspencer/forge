@@ -41,7 +41,9 @@ fn latest_available_checkpoint_reflects_head_continuation_state_for_subscriber_c
             )
             .expect("owner-admitted transaction context")
     };
-    visible_txn.push_batch(batch_create("b"));
+    visible_txn
+        .push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
     visible_txn.commit(&mut runtime).unwrap();
 
     install_schema_version(&mut runtime, SchemaVersionId(3));
@@ -58,7 +60,9 @@ fn latest_available_checkpoint_reflects_head_continuation_state_for_subscriber_c
             )
             .expect("owner-admitted transaction context")
     };
-    upgrade_txn.push_batch(batch_create("c"));
+    upgrade_txn
+        .push_batch(batch_create("c"))
+        .expect("test staging stays within configured resource budgets");
     upgrade_txn.commit(&mut runtime).unwrap();
 
     let resumed = runtime

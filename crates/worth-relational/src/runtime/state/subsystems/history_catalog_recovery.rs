@@ -114,30 +114,88 @@ impl HistorySubsystem {
     ) -> Result<(), String> {
         let mut roots = additional_roots.clone();
         let mut cells = self.branch_cells.take_all();
-        for cell in cells.values_mut() {
-            let Some(root) = cell.root() else {
-                continue;
-            };
-            let commit_id = root
-                .commit_id()
-                .ok_or_else(|| "live recovery root has no commit identity".to_owned())?;
-            let canonical = self
-                .commit_envelopes
-                .get(&commit_id)
-                .cloned()
-                .ok_or_else(|| format!("live recovery root `{}` has no envelope", commit_id.0))?;
-            let canonical_root = if let Some(existing) = roots.get(&commit_id) {
-                Arc::clone(existing)
-            } else if root.links_envelope(&canonical) {
-                root
-            } else {
-                root.relink_canonical_envelope(canonical.clone(), symbols)
-                    .map_err(|denial| {
-                        format!("recovery root canonical relink denied: {denial:?}")
-                    })?
-            };
-            cell.install_root(Arc::clone(&canonical_root));
-            roots.insert(commit_id, canonical_root);
+        let replacements = (|| {
+            let mut replacements = Vec::new();
+            for cell in cells.values() {
+                let Some(root) = cell.root() else {
+                    continue;
+                };
+                if matches!(
+                    cell.observation().target(),
+                    worth_foundational::FoundationalBranchTarget::Empty
+                ) {
+                    if root.id() != 0 || root.descriptor().is_some() {
+                        return Err("empty recovery branch carries a committed root".to_owned());
+                    }
+                    continue;
+                }
+                let commit_id = root
+                    .commit_id()
+                    .ok_or_else(|| "live recovery root has no commit identity".to_owned())?;
+                let canonical =
+                    self.commit_envelopes
+                        .get(&commit_id)
+                        .cloned()
+                        .ok_or_else(|| {
+                            format!("live recovery root `{}` has no envelope", commit_id.0)
+                        })?;
+                let canonical_root = if let Some(existing) = roots.get(&commit_id) {
+                    Arc::clone(existing)
+                } else if root.links_envelope(&canonical) {
+                    Arc::clone(&root)
+                } else {
+                    root.relink_canonical_envelope(canonical, symbols)
+                        .map_err(|denial| {
+                            format!("recovery root canonical relink denied: {denial:?}")
+                        })?
+                };
+                if !Arc::ptr_eq(&root, &canonical_root) {
+                    replacements.push((
+                        cell.identity().branch_id().clone(),
+                        root,
+                        Arc::clone(&canonical_root),
+                    ));
+                }
+                roots.insert(commit_id, canonical_root);
+            }
+            Ok::<_, String>(replacements)
+        })();
+        let replacements = match replacements {
+            Ok(replacements) => replacements,
+            Err(error) => {
+                self.branch_cells.restore_all(cells);
+                return Err(error);
+            }
+        };
+        let reservations = replacements
+            .into_iter()
+            .map(|(branch_id, previous_root, next_root)| {
+                let cell = cells
+                    .get(&branch_id)
+                    .expect("planned recovery branch remains in detached registry");
+                self.reserve_branch_head_retirement(
+                    cell.identity(),
+                    &previous_root,
+                    cell.head_retention(),
+                )
+                .map(|reservation| (branch_id, reservation, previous_root, next_root))
+                .map_err(|denial| format!("recovery root replacement retention denied: {denial:?}"))
+            })
+            .collect::<Result<Vec<_>, _>>();
+        let reservations = match reservations {
+            Ok(reservations) => reservations,
+            Err(error) => {
+                self.branch_cells.restore_all(cells);
+                return Err(error);
+            }
+        };
+        for (branch_id, mut reservation, previous_root, next_root) in reservations {
+            cells
+                .get_mut(&branch_id)
+                .expect("reserved recovery branch remains in detached registry")
+                .install_root(Arc::clone(&next_root));
+            reservation.transfer_head(&previous_root, &next_root);
+            reservation.replace_head(previous_root);
         }
         self.branch_cells.restore_all(cells);
         let mut catalog = RelationalCommitCatalog::default();
@@ -179,16 +237,56 @@ impl HistorySubsystem {
                 .map_err(|denial| format!("recovery root descriptor denied: {denial:?}"))?
         };
         let mut cells = self.branch_cells.take_all();
-        for cell in cells.values_mut() {
-            if cell.root().and_then(|root| root.commit_id()) == Some(commit_id) {
-                cell.install_root(Arc::clone(&canonical_root));
+        let reservations = cells
+            .values()
+            .filter_map(|cell| {
+                let previous_root = cell.root()?;
+                (previous_root.commit_id() == Some(commit_id)
+                    && !Arc::ptr_eq(&previous_root, &canonical_root))
+                .then_some((cell, previous_root))
+            })
+            .map(|(cell, previous_root)| {
+                self.reserve_branch_head_retirement(
+                    cell.identity(),
+                    &previous_root,
+                    cell.head_retention(),
+                )
+                .map(|reservation| {
+                    (
+                        cell.identity().branch_id().clone(),
+                        reservation,
+                        previous_root,
+                    )
+                })
+                .map_err(|denial| format!("recovery root replacement retention denied: {denial:?}"))
+            })
+            .collect::<Result<Vec<_>, _>>();
+        let reservations = match reservations {
+            Ok(reservations) => reservations,
+            Err(error) => {
+                self.branch_cells.restore_all(cells);
+                return Err(error);
             }
+        };
+        for (branch_id, mut reservation, previous_root) in reservations {
+            cells
+                .get_mut(&branch_id)
+                .expect("reserved recovery branch remains in detached registry")
+                .install_root(Arc::clone(&canonical_root));
+            reservation.transfer_head(&previous_root, &canonical_root);
+            reservation.replace_head(previous_root);
         }
         self.branch_cells.restore_all(cells);
-        let mut recovered_roots = self.commit_catalog.linked_roots();
+        let descriptors = self
+            .commit_catalog
+            .snapshot()
+            .into_iter()
+            .map(|artifact| (artifact.commit_id(), artifact.roots().clone()))
+            .collect();
+        let mut recovered_roots = std::collections::BTreeMap::new();
         recovered_roots.insert(commit_id, Arc::clone(&canonical_root));
         self.rebuild_catalog_with_live_roots_and_descriptors(
-            &std::collections::BTreeMap::new(),
+            &descriptors,
             &recovered_roots,
             symbols,
         )?;

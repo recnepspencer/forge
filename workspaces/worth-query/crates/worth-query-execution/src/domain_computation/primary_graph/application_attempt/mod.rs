@@ -31,6 +31,9 @@ mod read_phase;
 mod read_scope;
 mod read_set;
 pub(super) mod snapshot_lease;
+pub(in crate::domain_computation) use snapshot_lease::{
+    WorthQueryApplicationSnapshotLease, WorthQueryApplicationSnapshotLeaseDenial,
+};
 
 pub use capability_revocation_program::WorthQueryCapabilityRevocationProgram;
 pub use commit_authority_binding::WorthQueryApplicationCommitAuthorityBinding;
@@ -40,9 +43,10 @@ pub use commit_terminal::{
     WorthQueryApplicationCommitTerminalEvidence, WorthQueryApplicationCommitTerminalKind,
 };
 pub use compare_and_commit::{
-    WorthQueryApplicationCommitDeferred, WorthQueryApplicationCommitDenial,
-    WorthQueryApplicationCommitDenialKind, WorthQueryApplicationCommitDenialStage,
-    WorthQueryApplicationCommitOutcome, WorthQueryApplicationCommitPublicationExternalEffect,
+    WorthQueryApplicationCommitDeferred, WorthQueryApplicationCommitDeferredKind,
+    WorthQueryApplicationCommitDenial, WorthQueryApplicationCommitDenialKind,
+    WorthQueryApplicationCommitDenialStage, WorthQueryApplicationCommitOutcome,
+    WorthQueryApplicationCommitPublicationExternalEffect,
     WorthQueryApplicationCommitPublicationSource, WorthQueryApplicationCommitReceipt,
     WorthQueryApplicationCommitRecoveryKind, WorthQueryApplicationSettlementDeferred,
     WorthQueryApplicationSettlementNextAction, WorthQueryApplicationStaleAttempt,
@@ -111,4 +115,3 @@ pub use read_set::{
     WorthQueryApplicationReadAttempt, WorthQueryCompleteApplicationReadSet,
     WorthQueryObservedApplicationRelation,
 };
-pub(in crate::domain_computation) use snapshot_lease::WorthQueryApplicationSnapshotLease;

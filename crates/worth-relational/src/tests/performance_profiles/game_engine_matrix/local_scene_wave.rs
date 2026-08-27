@@ -79,7 +79,10 @@ pub(super) fn certify_local_scene_graph_propagation_wave(suite: &'static str) {
                 )
                 .expect("scene local explicit outcome");
             let explicit_micros = explicit_started_at.elapsed().as_micros();
-            assert!(runtime.visibility_authority().release_snapshot(&snapshot));
+            assert!(runtime
+                .visibility_authority()
+                .release_snapshot(&snapshot)
+                .is_ok());
 
             let affected_sources = (propagation.result.entities.len()
                 + explicit.result.entities.len())

@@ -259,10 +259,13 @@ fn mutate_field(
                 )
                 .expect("owner-admitted transaction context")
         };
-        transaction.push_batch(WorkerIntentBatch::new(batch).push(MutationIntent::Entity(
-            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent { entity_id, fields }),
-        )));
-        transaction.commit(runtime).unwrap();
+        transaction
+            .push_batch(WorkerIntentBatch::new(batch).push(MutationIntent::Entity(
+                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent { entity_id, fields }),
+            )))
+            .expect("test staging stays within configured resource budgets");
+        let committed = transaction.commit(runtime).unwrap();
+        crate::relational_snapshot_release::release_query_snapshot(runtime, &committed.snapshot);
         handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }

@@ -91,13 +91,11 @@ impl RelationalCommitCatalog {
         {
             return Ok(());
         }
-        let linked_root = self
-            .entries
-            .get(&commit_id)
-            .and_then(|existing| existing.linked_root())
-            .filter(|root| root.links_envelope(&envelope));
-        let artifact = match linked_root {
-            Some(root) => RelationalCommitArtifact::from_envelope_with_root(envelope, root)?,
+        let artifact = match self.entries.get(&commit_id) {
+            Some(existing) => RelationalCommitArtifact::from_envelope_with_descriptor(
+                envelope,
+                existing.roots().clone(),
+            )?,
             None => RelationalCommitArtifact::from_envelope(envelope)?,
         };
         self.materializations.fetch_add(1, Ordering::Relaxed);
@@ -191,17 +189,6 @@ impl RelationalCommitCatalog {
 
     pub(crate) fn get(&self, commit_id: CommitId) -> Option<&Arc<RelationalCommitArtifact>> {
         self.entries.get(&commit_id)
-    }
-
-    pub(crate) fn linked_roots(
-        &self,
-    ) -> BTreeMap<CommitId, Arc<crate::branch::RelationalBranchRoot>> {
-        self.entries
-            .iter()
-            .filter_map(|(&commit_id, artifact)| {
-                artifact.linked_root().map(|root| (commit_id, root))
-            })
-            .collect()
     }
 
     pub(crate) fn len(&self) -> usize {

@@ -19,7 +19,8 @@ fn unique_entity_aspect_field_index_refresh_rewrites_name_membership_after_entit
 
     runtime
         .index_authority()
-        .rebuild_unique_entity_aspect_field_indexes();
+        .rebuild_unique_entity_aspect_field_indexes()
+        .expect("main-branch unique index rebuild admits its exact basis");
     update_entity(&mut runtime, beta, "gamma");
 
     let index_access = runtime.index_access();
@@ -126,7 +127,8 @@ fn unique_entity_aspect_field_index_keeps_same_field_key_separate_by_aspect_loca
 
     runtime
         .index_authority()
-        .rebuild_unique_entity_aspect_field_indexes();
+        .rebuild_unique_entity_aspect_field_indexes()
+        .expect("main-branch unique index rebuild admits its exact basis");
     let index_access = runtime.index_access();
     let legal_entries = index_access
         .entity_unique_field_entries(&aspect_field_locator(legal_name, name_field.clone()))
@@ -241,7 +243,8 @@ fn derived_index_build_materializes_declared_struct_field_through_field_projecti
                 ])),
             },
         ))),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn.commit(&mut runtime).expect("entity create succeeds");
     let alpha = changed_entities(&outcome)[0];
     let index = runtime.index_authority().register(DerivedIndexDefinition {
@@ -300,6 +303,7 @@ fn create_entity_with_aspect_fields(
                 fields,
             },
         )),
-    ));
+    ))
+    .expect("test staging stays within configured resource budgets");
     changed_entities(&txn.commit(&mut runtime).expect("entity create succeeds"))[0]
 }

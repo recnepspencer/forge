@@ -1,5 +1,5 @@
+use super::detached_branch_footprint_assertion::assert_detached_branch_footprint;
 use crate::facade::history::BranchId;
-use crate::facade::mvcc::{RelationalTransactionReadLocus, RelationalTransactionWriteLocus};
 use crate::facade::transactions::{
     CreateIntent, CreatedEntityRef, EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent,
     WorkerIntentBatch,
@@ -19,36 +19,48 @@ fn branch_transactions_are_detached_and_overlays_do_not_cross() {
     let maintenance_created = created_entity("maintenance-write");
     let storm_batch = batch_create("storm-write");
     let storm_expected = create_intent(&storm_batch);
-    storm.push_batch(storm_batch);
+    storm
+        .push_batch(storm_batch)
+        .expect("test staging stays within configured resource budgets");
     let maintenance_batch = batch_create("maintenance-write");
     let maintenance_expected = create_intent(&maintenance_batch);
-    maintenance.push_batch(maintenance_batch);
+    maintenance
+        .push_batch(maintenance_batch)
+        .expect("test staging stays within configured resource budgets");
 
     assert_eq!(
         storm
             .read_created_entity(&storm_created)
+            .expect("read footprint fits")
             .expect("storm observes its exact staged create")
             .cloned()
             .collect::<Vec<_>>(),
         vec![storm_expected]
     );
-    assert!(storm.read_created_entity(&maintenance_created).is_none());
+    assert!(storm
+        .read_created_entity(&maintenance_created)
+        .unwrap()
+        .is_none());
     assert_eq!(
         maintenance
             .read_created_entity(&maintenance_created)
+            .expect("read footprint fits")
             .expect("maintenance observes its exact staged create")
             .cloned()
             .collect::<Vec<_>>(),
         vec![maintenance_expected]
     );
-    assert!(maintenance.read_created_entity(&storm_created).is_none());
-    assert_footprint(
+    assert!(maintenance
+        .read_created_entity(&storm_created)
+        .unwrap()
+        .is_none());
+    assert_detached_branch_footprint(
         &storm_basis,
         storm.footprint(),
         &storm_created,
         &maintenance_created,
     );
-    assert_footprint(
+    assert_detached_branch_footprint(
         &maintenance_basis,
         maintenance.footprint(),
         &maintenance_created,
@@ -78,7 +90,9 @@ fn validated_proposal_complexity_excludes_intervening_sibling_commit_work() {
     fork_from_main(&mut runtime, "sibling");
 
     let (_, mut candidate) = begin_on(&runtime, "candidate");
-    candidate.push_batch(batch_create("candidate-only"));
+    candidate
+        .push_batch(batch_create("candidate-only"))
+        .expect("test staging stays within configured resource budgets");
     let proposal = candidate
         .validate(&mut runtime)
         .expect("candidate validation succeeds before sibling work");
@@ -147,7 +161,9 @@ fn stale_transaction_reads_remain_on_the_admitted_root_and_commit_has_no_effect(
         Some("basis-value".into())
     );
 
-    transaction.push_batch(update_batch(entity, "stale-write"));
+    transaction
+        .push_batch(update_batch(entity, "stale-write"))
+        .expect("test staging stays within configured resource budgets");
     assert_eq!(
         transaction
             .read_entity(entity)
@@ -222,7 +238,9 @@ fn stale_transaction_denies_before_interning_new_client_keys() {
     let reference_cost_before = runtime.phase4_reference_cost_counters();
     let complexity_before = runtime.performance_access().counters();
 
-    transaction.push_batch(batch_create("must-not-be-interned"));
+    transaction
+        .push_batch(batch_create("must-not-be-interned"))
+        .expect("test staging stays within configured resource budgets");
     let error = transaction
         .commit(&mut runtime)
         .expect_err("stale currentness is checked before normalization");
@@ -267,17 +285,26 @@ fn savepoint_rollback_restores_overlay_footprint_and_cached_plan() {
         MutationIntent::Entity(intent) => intent.clone(),
         other => panic!("expected retained entity mutation, got {other:?}"),
     };
-    transaction.push_batch(retained_batch);
-    let savepoint = transaction.create_savepoint();
+    transaction
+        .push_batch(retained_batch)
+        .expect("test staging stays within configured resource budgets");
+    let savepoint = transaction.create_savepoint().unwrap();
     let expected_footprint = transaction.footprint().clone();
 
     transaction
         .read_entity(rolled_back)
         .expect("rolled-back read projects");
-    transaction.push_batch(update_batch(rolled_back, "discarded-write"));
+    transaction
+        .push_batch(update_batch(rolled_back, "discarded-write"))
+        .expect("test staging stays within configured resource budgets");
     let discarded_create = created_entity("discarded-create");
-    transaction.push_batch(batch_create("discarded-create"));
-    assert!(transaction.read_created_entity(&discarded_create).is_some());
+    transaction
+        .push_batch(batch_create("discarded-create"))
+        .expect("test staging stays within configured resource budgets");
+    assert!(transaction
+        .read_created_entity(&discarded_create)
+        .unwrap()
+        .is_some());
     assert_eq!(
         transaction
             .merged_plan(&mut runtime)
@@ -296,7 +323,10 @@ fn savepoint_rollback_restores_overlay_footprint_and_cached_plan() {
         .expect("post-rollback read projects")
         .staged_mutations()
         .is_empty());
-    assert!(transaction.read_created_entity(&discarded_create).is_none());
+    assert!(transaction
+        .read_created_entity(&discarded_create)
+        .unwrap()
+        .is_none());
     assert_eq!(
         transaction
             .read_entity(retained)
@@ -359,37 +389,6 @@ fn update_batch(entity_id: crate::facade::identity::EntityId, name: &str) -> Wor
             fields: name_field_patch(name),
         }),
     ))
-}
-
-fn assert_footprint(
-    basis: &crate::facade::branch::AdmittedRelationalBranchBasis,
-    footprint: &crate::facade::mvcc::RelationalTransactionFootprint,
-    created: &CreatedEntityRef,
-    absent_created: &CreatedEntityRef,
-) {
-    assert_eq!(footprint.branch(), basis.identity().branch_id());
-    assert_eq!(footprint.reference(), basis.reference());
-    assert_eq!(
-        footprint
-            .reads()
-            .cloned()
-            .collect::<std::collections::BTreeSet<_>>(),
-        [created, absent_created]
-            .into_iter()
-            .cloned()
-            .map(RelationalTransactionReadLocus::CreatedEntity)
-            .collect()
-    );
-    assert_eq!(
-        footprint.writes().cloned().collect::<Vec<_>>(),
-        vec![RelationalTransactionWriteLocus::CreatedEntity(
-            created.clone()
-        )]
-    );
-    assert_eq!(
-        footprint.write_partitions().copied().collect::<Vec<_>>(),
-        vec![created.partition_id]
-    );
 }
 
 fn create_intent(batch: &WorkerIntentBatch) -> CreateIntent {

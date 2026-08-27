@@ -31,7 +31,8 @@ fn invariant_failure_artifact_preserves_specific_code_localization_and_proof_bou
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         ))),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let error = txn.commit(&mut runtime).unwrap_err();
     let diagnostics = runtime.publication().diagnostics();
     let artifact = diagnostics
@@ -131,7 +132,8 @@ fn invariant_diagnostics_trace_proof_boundary_for_relation_integrity_execution()
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         ))),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     txn.push_batch(
         WorkerIntentBatch::new("paired-inverse").push(MutationIntent::Create(
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
@@ -143,7 +145,8 @@ fn invariant_diagnostics_trace_proof_boundary_for_relation_integrity_execution()
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     txn.commit(&mut runtime).unwrap();
 
     let diagnostics = runtime.publication().diagnostics();
@@ -227,7 +230,8 @@ fn collect_all_invariant_failures_emits_multiple_relation_integrity_entries_for_
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         ))),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let _error = txn.commit(&mut runtime).unwrap_err();
 
     let diagnostics = runtime.publication().diagnostics();

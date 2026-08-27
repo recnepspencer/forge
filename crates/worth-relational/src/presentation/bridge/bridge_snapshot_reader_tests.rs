@@ -73,7 +73,10 @@ fn runtime_bridge_snapshot_reader_requires_a_retained_branch_observation() {
         .branch_identity(&branch_id)
         .expect("created branch identity is owner-issued");
     let entity_identity = active_entity_identity(&created);
-    assert!(runtime.snapshots().release_snapshot(&created.snapshot));
+    assert!(runtime
+        .snapshots()
+        .release_snapshot(&created.snapshot)
+        .is_ok());
     let source = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(runtime), "model")
         .expect("test graph role");
     let (_, basis) = source
@@ -138,7 +141,8 @@ fn replace_entity_after_snapshot(
                 },
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     txn.commit(&mut runtime)
         .expect("second commit should publish");
 }

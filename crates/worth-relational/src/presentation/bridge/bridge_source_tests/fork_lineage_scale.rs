@@ -129,20 +129,22 @@ fn create_entity_on_branch(
     let key = format!("owner-scale-entity-{ordinal}");
     let mut transaction =
         crate::tests::support::test_owner_begin_transaction_for_branch(runtime, branch);
-    transaction.push_batch(
-        WorkerIntentBatch::new(key.clone()).push(MutationIntent::Create(CreateIntent::Entity(
-            EntitySpec {
-                partition_id: PartitionId::main(),
-                kind_id: crate::facade::identity::KindId(1),
-                client_key: crate::symbols::data::ClientKey::raw(&key),
-                fields: crate::tests::support::single_string_aspect_field_patch(
-                    crate::tests::support::aspect_key("name"),
-                    crate::tests::support::field_key("name"),
-                    &key,
-                ),
-            },
-        ))),
-    );
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new(key.clone()).push(MutationIntent::Create(CreateIntent::Entity(
+                EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: crate::facade::identity::KindId(1),
+                    client_key: crate::symbols::data::ClientKey::raw(&key),
+                    fields: crate::tests::support::single_string_aspect_field_patch(
+                        crate::tests::support::aspect_key("name"),
+                        crate::tests::support::field_key("name"),
+                        &key,
+                    ),
+                },
+            ))),
+        )
+        .expect("test staging stays within configured resource budgets");
     transaction
         .commit(runtime)
         .expect("owner-created scale commit");

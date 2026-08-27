@@ -226,10 +226,12 @@ fn commit_status_update(
             worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
         )
         .expect("owner-admitted transaction context");
-    transaction.push_batch(WorkerIntentBatch::new("phase5-proposed-status").push(
-        MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-            UpdateEntityFieldsIntent { entity_id, fields },
-        )),
-    ));
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("phase5-proposed-status").push(MutationIntent::Entity(
+                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent { entity_id, fields }),
+            )),
+        )
+        .unwrap();
     transaction.commit(runtime)
 }

@@ -3,7 +3,8 @@
 use super::account_seed::{bind_account, AccountSeedSpec};
 pub(super) use super::authorization_world_installation::AuthorizationWorld;
 use super::authorization_world_installation::{
-    install_authorization_world, AuthorizationWorldSpec, CapabilityGrantPopulation,
+    install_authorization_world, install_authorization_world_with_relational_runtime,
+    AuthorizationWorldSpec, CapabilityGrantPopulation,
 };
 use super::*;
 
@@ -103,6 +104,33 @@ pub(in crate::domain_computation::primary_graph) fn installed_authorization_worl
         resources,
         ..standard_spec()
     })
+}
+
+pub(in crate::domain_computation::primary_graph) fn installed_authorization_world_with_active_snapshot_limit(
+    maximum_active_snapshots: usize,
+) -> AuthorizationWorld {
+    let relational = worth_relational::facade::runtime::RelationalRuntimeApi::builder()
+        .profile(worth_relational::facade::config::RelationalRuntimeProfile::AiWorkflow)
+        .publication(worth_relational::facade::config::PublicationConfig {
+            coherent_publication_required: true,
+            max_patch_records_per_commit: 4_096,
+            max_published_snapshot_handles: 256,
+            max_active_snapshot_handles: maximum_active_snapshots,
+            max_transaction_overlay_bytes: 268_435_456,
+            max_transaction_footprint_loci: 262_144,
+            max_transaction_savepoints: 4_096,
+            max_prepared_candidates: 1_024,
+            candidate_max_lifetime_millis: 30_000,
+            max_prepared_root_bytes: 268_435_456,
+        })
+        .build();
+    install_authorization_world_with_relational_runtime(
+        AuthorizationWorldSpec {
+            owner_bindings: PRINCIPAL_ZERO_ACCOUNTS,
+            ..standard_spec()
+        },
+        relational,
+    )
 }
 
 pub(in crate::domain_computation::primary_graph) fn installed_two_principal_authorization_world(

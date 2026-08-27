@@ -50,7 +50,24 @@ struct PreparedAuthorizationWorld {
 }
 
 pub(super) fn install_authorization_world(spec: AuthorizationWorldSpec<'_>) -> AuthorizationWorld {
-    let mut prepared = prepare_authorization_world(spec.resources);
+    let mut prepared = prepare_authorization_world(spec.resources, None);
+    populate_authorization_world(&mut prepared, &spec);
+    publish_authorization_world(prepared)
+}
+
+pub(super) fn install_authorization_world_with_relational_runtime(
+    spec: AuthorizationWorldSpec<'_>,
+    relational: worth_relational::facade::runtime::RelationalRuntime,
+) -> AuthorizationWorld {
+    let mut prepared = prepare_authorization_world(spec.resources, Some(relational));
+    populate_authorization_world(&mut prepared, &spec);
+    publish_authorization_world(prepared)
+}
+
+fn populate_authorization_world(
+    prepared: &mut PreparedAuthorizationWorld,
+    spec: &AuthorizationWorldSpec<'_>,
+) {
     bind_principals(
         &mut prepared.bootstrap,
         &prepared.binding,
@@ -63,11 +80,11 @@ pub(super) fn install_authorization_world(spec: AuthorizationWorldSpec<'_>) -> A
     );
     bind_authorization_relations(&mut prepared.bootstrap, spec.owner_bindings, spec.blocked);
     bind_capability_population(&mut prepared.bootstrap, spec.capability_grants);
-    publish_authorization_world(prepared)
 }
 
 fn prepare_authorization_world(
     resources: WorthQueryApplicationQueryResourceProfile,
+    relational: Option<worth_relational::facade::runtime::RelationalRuntime>,
 ) -> PreparedAuthorizationWorld {
     let declaration = IdentityExecutionSchema::declaration().unwrap();
     let admitted = WorthQueryInstallationAdmissionProfile::new("support", "configuration")
@@ -85,7 +102,12 @@ fn prepare_authorization_world(
     let binding = schema
         .principal_binding(IdentityBinding::reference())
         .unwrap();
-    let bootstrap = authority.prepare_primary_graph(&runtime, &schema).unwrap();
+    let bootstrap = match relational {
+        Some(relational) => authority
+            .prepare_primary_graph_with_relational_runtime(&runtime, &schema, relational)
+            .unwrap(),
+        None => authority.prepare_primary_graph(&runtime, &schema).unwrap(),
+    };
     PreparedAuthorizationWorld {
         runtime,
         authority,

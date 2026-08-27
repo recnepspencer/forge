@@ -32,6 +32,19 @@ mod invariant_oracle_expectations;
 mod invariant_proposed_state;
 #[path = "relational_certification/invariants/selected_state/structural_selection.rs"]
 mod invariant_structural_selection;
+#[path = "relational_certification/invariants/uniqueness/assertion.rs"]
+mod invariant_uniqueness_assertion;
+#[path = "relational_certification/mvcc/archive_retention.rs"]
+mod mvcc_archive_retention;
+#[path = "relational_certification/mvcc/branch_fork_fixture.rs"]
+mod mvcc_branch_fork_fixture;
+#[path = "relational_certification/mvcc/cancellation.rs"]
+mod mvcc_cancellation;
+#[cfg(feature = "test-operation-control")]
+#[path = "relational_certification/mvcc/cancellation_publication_boundaries.rs"]
+mod mvcc_cancellation_publication_boundaries;
+#[path = "relational_certification/mvcc/retention.rs"]
+mod mvcc_retention;
 #[path = "relational_certification/observation_contracts.rs"]
 mod observation_contracts;
 #[path = "relational_certification/oracle_ancestry.rs"]

@@ -169,7 +169,9 @@ fn production_commit_root_capture_sabotage_precedes_durable_append_and_all_effec
 
     runtime.history.sabotage_next_root_capture();
     let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(batch_create("root-capture-production-sabotage"));
+    transaction
+        .push_batch(batch_create("root-capture-production-sabotage"))
+        .expect("test staging stays within configured resource budgets");
     let error = transaction
         .commit(&mut runtime)
         .expect_err("the test-only root court must reject the real commit path");

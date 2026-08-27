@@ -1,39 +1,10 @@
-use std::collections::BTreeMap;
-
 use crate::runtime::RelationalRuntime;
 use crate::snapshots::data::{SnapshotHandle, SnapshotId, SnapshotReadPolicy};
-use crate::storage::overlay::{PartitionAccess, SnapshotPartitionPins};
+use crate::storage::overlay::PartitionAccess;
 use crate::storage::partition::DenseSlotBitSet;
 
 use super::pin_assembly::{assemble_snapshot_state, SelectedRelationSlots};
 use super::{SnapshotState, SnapshotStateBasis, VisibilitySnapshotBasis};
-
-pub(crate) fn build_partition_pins_for_version(
-    runtime: &RelationalRuntime,
-    version_id: crate::identity::data::VersionId,
-) -> BTreeMap<crate::identity::data::PartitionId, SnapshotPartitionPins> {
-    let branch_id =
-        crate::visibility::branch_scope::authoritative_branch_for_version(runtime, version_id);
-    build_partition_pins_for_branch_head(runtime, &branch_id, version_id)
-}
-
-pub(crate) fn build_partition_pins_for_branch_head(
-    runtime: &RelationalRuntime,
-    branch_id: &crate::history::data::BranchId,
-    version_id: crate::identity::data::VersionId,
-) -> BTreeMap<crate::identity::data::PartitionId, SnapshotPartitionPins> {
-    let Some(basis) = VisibilitySnapshotBasis::capture_current(runtime, branch_id, version_id)
-    else {
-        return BTreeMap::new();
-    };
-    build_visibility_state(
-        runtime,
-        basis,
-        SnapshotId(0),
-        SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
-    )
-    .pinned_partitions
-}
 
 pub(crate) fn build_visibility_state(
     runtime: &RelationalRuntime,

@@ -161,12 +161,12 @@ fn observation_opens_the_same_snapshot_after_reference_movement() {
 #[test]
 fn external_pin_retains_once_and_release_consumes_the_obligation() {
     let mut runtime = crate::tests::support::runtime_with_test_schema();
-    crate::tests::support::create_entity_outcome(&mut runtime, "external-pin-before");
+    crate::tests::support::create_entity(&mut runtime, "external-pin-before");
     let identity = runtime.main_branch_identity();
     let (descriptor, basis) = runtime.observe_branch(&identity).unwrap();
     let lease = runtime.retain_component_basis(&basis).unwrap();
     drop(basis);
-    crate::tests::support::create_entity_outcome(&mut runtime, "external-pin-after");
+    crate::tests::support::create_entity(&mut runtime, "external-pin-after");
 
     let readmitted = runtime.readmit_branch_basis(&descriptor).unwrap();
     drop(readmitted);
@@ -179,13 +179,35 @@ fn external_pin_retains_once_and_release_consumes_the_obligation() {
 }
 
 #[test]
+fn reset_retention_owner_reports_unavailable_readmission_and_terminal_release() {
+    let mut runtime = crate::tests::support::runtime_with_test_schema();
+    crate::tests::support::create_entity(&mut runtime, "owner-reset-before");
+    let identity = runtime.main_branch_identity();
+    let (descriptor, basis) = runtime.observe_branch(&identity).unwrap();
+    let lease = runtime.retain_component_basis(&basis).unwrap();
+    drop(basis);
+
+    runtime.set_retention_capacity_for_test(128, 128);
+
+    assert!(matches!(
+        runtime.readmit_retained_branch_basis(&descriptor, &lease),
+        Err(RelationalBranchBasisDenial::UnavailableRetainedTarget)
+    ));
+    let receipt = runtime.release_component_basis(lease).unwrap();
+    assert_eq!(
+        receipt.outcome(),
+        crate::history::retention::RelationalBranchRetentionTerminalOutcome::OwnerUnavailable
+    );
+}
+
+#[test]
 fn superseded_unretained_descriptor_denies_without_reconstructing_authority() {
     let mut runtime = crate::tests::support::runtime_with_test_schema();
-    crate::tests::support::create_entity_outcome(&mut runtime, "stale-before");
+    crate::tests::support::create_entity(&mut runtime, "stale-before");
     let identity = runtime.main_branch_identity();
     let (descriptor, basis) = runtime.observe_branch(&identity).unwrap();
     drop(basis);
-    crate::tests::support::create_entity_outcome(&mut runtime, "stale-after");
+    crate::tests::support::create_entity(&mut runtime, "stale-after");
 
     let before = runtime.branch_basis_cost_counters();
     assert!(matches!(

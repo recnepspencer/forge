@@ -89,15 +89,18 @@ fn change_account_status(
                 )
                 .expect("owner-admitted transaction context")
         };
-        transaction.push_batch(WorkerIntentBatch::new("stale-query-scope").push(
-            MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-                UpdateEntityFieldsIntent {
-                    entity_id: account,
-                    fields,
-                },
-            )),
-        ));
-        transaction.commit(runtime).unwrap();
+        transaction
+            .push_batch(
+                WorkerIntentBatch::new("stale-query-scope").push(MutationIntent::Entity(
+                    EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
+                        entity_id: account,
+                        fields,
+                    }),
+                )),
+            )
+            .expect("test staging stays within configured resource budgets");
+        let committed = transaction.commit(runtime).unwrap();
+        super::super::fixture::release_test_commit_snapshot(runtime, &committed);
         handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }

@@ -93,9 +93,11 @@ fn publication_cannot_mint_a_missing_branch_cell() {
             worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
         )
         .expect("owner-admitted transaction context");
-    transaction.push_batch(
-        worth_relational::facade::transactions::WorkerIntentBatch::new("cannot-create-ghost"),
-    );
+    transaction
+        .push_batch(
+            worth_relational::facade::transactions::WorkerIntentBatch::new("cannot-create-ghost"),
+        )
+        .unwrap();
     transaction
         .commit(&mut world.runtime)
         .expect("main publication still advances the admitted main cell");

@@ -213,11 +213,20 @@ where
     let relational_source = graph.relational_bridge_source();
     graph
         .bind_current_truth_head(&super::super::application_branch::primary_relational_branch_id())
-        .map_err(|detail| {
-            WorthQueryPrimaryGraphInstallationDenial::new(
-                WorthQueryPrimaryGraphInstallationDenialKind::RelationalSchemaRejected,
-                detail,
-            )
+        .map_err(|denial| {
+            let kind = match denial {
+                worth_relational::facade::branch::RelationalBranchBasisDenial::RetentionCapacityExhausted => {
+                    WorthQueryPrimaryGraphInstallationDenialKind::RetentionCapacityExhausted
+                }
+                worth_relational::facade::branch::RelationalBranchBasisDenial::RetentionIdentityExhausted => {
+                    WorthQueryPrimaryGraphInstallationDenialKind::RetentionIdentityExhausted
+                }
+                worth_relational::facade::branch::RelationalBranchBasisDenial::SnapshotIdentityExhausted => {
+                    WorthQueryPrimaryGraphInstallationDenialKind::SnapshotIdentityExhausted
+                }
+                _ => WorthQueryPrimaryGraphInstallationDenialKind::RelationalSchemaRejected,
+            };
+            WorthQueryPrimaryGraphInstallationDenial::new(kind, format!("{denial:?}"))
         })?;
     let relational_branch_identity = graph.with_runtime(|runtime| {
         runtime

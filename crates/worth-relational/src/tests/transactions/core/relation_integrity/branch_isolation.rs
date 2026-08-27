@@ -53,7 +53,8 @@ fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_lea
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         )),
-    ));
+    ))
+    .expect("test staging stays within configured resource budgets");
 
     let error = txn.commit(&mut runtime).unwrap_err();
     match error {

@@ -29,7 +29,8 @@ fn durable_recovery_and_schema_mismatch_test() {
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("main-b"));
+    txn.push_batch(batch_create("main-b"))
+        .expect("test staging stays within configured resource budgets");
     let transitioned = txn.commit(&mut runtime).unwrap();
 
     let plan = runtime.durability().recovery_plan(

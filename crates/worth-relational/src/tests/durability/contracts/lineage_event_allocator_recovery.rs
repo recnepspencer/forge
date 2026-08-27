@@ -67,7 +67,9 @@ fn failed_durable_append_blocks_descendants_and_recovers_last_checkpoint() {
     let published_event_count = runtime.lineage.events().count();
     runtime.durability.fail_next_append = true;
     let mut failed = test_owner_begin_transaction_for_main(&mut runtime);
-    failed.push_batch(batch_create("lineage-gap-abandoned"));
+    failed
+        .push_batch(batch_create("lineage-gap-abandoned"))
+        .expect("test staging stays within configured resource budgets");
     let durability_deferred = failed
         .commit(&mut runtime)
         .expect_err("performed movement without durable acknowledgement is typed");
@@ -93,7 +95,9 @@ fn failed_durable_append_blocks_descendants_and_recovers_last_checkpoint() {
     );
 
     let mut child = test_owner_begin_transaction_for_main(&mut runtime);
-    child.push_batch(batch_create("lineage-gap-tail"));
+    child
+        .push_batch(batch_create("lineage-gap-tail"))
+        .expect("test staging stays within configured resource budgets");
     let child_denial = child
         .commit(&mut runtime)
         .expect_err("an unsettled performed parent denies descendants");
@@ -138,8 +142,12 @@ fn multi_event_reservation_exhaustion_denies_before_public_effects() {
     runtime.lineage.next_event_id = u64::MAX - 1;
 
     let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(batch_create("reservation-exhaustion-first"));
-    transaction.push_batch(batch_create("reservation-exhaustion-second"));
+    transaction
+        .push_batch(batch_create("reservation-exhaustion-first"))
+        .expect("test staging stays within configured resource budgets");
+    transaction
+        .push_batch(batch_create("reservation-exhaustion-second"))
+        .expect("test staging stays within configured resource budgets");
     let error = transaction
         .commit(&mut runtime)
         .expect_err("two-event reservation must deny at the allocator boundary");

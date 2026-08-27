@@ -14,7 +14,7 @@ pub(super) fn apply_authoritative_commit_artifacts(
     advance_branch_currentness: bool,
 ) -> Result<(), DurabilityError> {
     let envelope = positioned.envelope();
-    let history_before = runtime.history.clone();
+    let history_before = runtime.history.detached_owner_snapshot();
     if runtime
         .history
         .commit_envelopes
@@ -75,7 +75,9 @@ pub(super) fn apply_authoritative_commit_artifacts(
         )
         .map_err(|detail| DurabilityError::new(RecoveryFailureClass::CorruptCheckpoint, detail));
     if let Err(error) = result {
-        runtime.history = history_before;
+        runtime
+            .history
+            .restore_detached_recovery_snapshot(history_before);
         return Err(error);
     }
 

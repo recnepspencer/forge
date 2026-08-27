@@ -26,8 +26,11 @@ fn current_branch_snapshot_never_substitutes_another_branch_head() {
         runtime.history().branch_head(&feature).unwrap().version_id
     );
     assert_ne!(main_snapshot.snapshot_id, feature_snapshot.snapshot_id);
-    assert!(runtime.snapshots().release_snapshot(&main_snapshot));
-    assert!(runtime.snapshots().release_snapshot(&feature_snapshot));
+    assert!(runtime.snapshots().release_snapshot(&main_snapshot).is_ok());
+    assert!(runtime
+        .snapshots()
+        .release_snapshot(&feature_snapshot)
+        .is_ok());
     assert!(runtime
         .branch_identity(&BranchId("missing".to_owned()))
         .is_err());

@@ -163,22 +163,24 @@ fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports
         &mut runtime,
         BranchId("feature".to_string()),
     );
-    feature_txn.push_batch(WorkerIntentBatch::new("feature-relation").push(
-        MutationIntent::Create(CreateIntent::Relation(
-            crate::transactions::data::RelationSpec {
-                partition_id: PartitionId::main(),
-                kind_id: KindId(2),
-                client_key: crate::symbols::data::ClientKey::raw("edge"),
-                source: crate::transactions::data::EntityReference::Existing(
-                    changed_entities(&feature_source)[0],
-                ),
-                target: crate::transactions::data::EntityReference::Existing(
-                    changed_entities(&feature_target)[0],
-                ),
-                fields: crate::transactions::data::AspectFieldPatch::default(),
-            },
-        )),
-    ));
+    feature_txn
+        .push_batch(
+            WorkerIntentBatch::new("feature-relation").push(MutationIntent::Create(
+                CreateIntent::Relation(crate::transactions::data::RelationSpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(2),
+                    client_key: crate::symbols::data::ClientKey::raw("edge"),
+                    source: crate::transactions::data::EntityReference::Existing(
+                        changed_entities(&feature_source)[0],
+                    ),
+                    target: crate::transactions::data::EntityReference::Existing(
+                        changed_entities(&feature_target)[0],
+                    ),
+                    fields: crate::transactions::data::AspectFieldPatch::default(),
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     let feature_relation = feature_txn.commit(&mut runtime).expect("feature relation");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(1),

@@ -184,12 +184,15 @@ fn prepare_authoritative_publication(
     runtime: &mut crate::runtime::RelationalRuntime,
     input: PublicationAuthorityInput<'_>,
 ) -> Result<PreparedPublicationAuthority, TransactionCommitError> {
-    let artifacts = runtime.publication_authority().assemble_publication_bundle(
-        input.commit_reference.clone(),
-        input.version_id,
-        input.patch.clone(),
-        input.diagnostics_summary.clone(),
-    );
+    let artifacts = runtime
+        .publication_authority()
+        .assemble_publication_bundle(
+            input.commit_reference.clone(),
+            input.version_id,
+            input.patch.clone(),
+            input.diagnostics_summary.clone(),
+        )
+        .map_err(TransactionCommitError::publication_failed)?;
     let prepared_lineage = runtime
         .lineage_authority()
         .ensure_lineage_for_commit(

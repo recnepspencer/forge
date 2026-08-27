@@ -37,7 +37,8 @@ fn cdc_certification_schema_boundary_continuation_is_explained_and_counted() {
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("after-boundary"));
+    txn.push_batch(batch_create("after-boundary"))
+        .expect("test staging stays within configured resource budgets");
     txn.commit(&mut runtime).unwrap();
 
     runtime.performance_access().reset_counters();
@@ -97,7 +98,9 @@ fn diff_cdc_truth_parity_test() {
             )
             .expect("owner-admitted transaction context")
     };
-    txn_v2.push_batch(batch_create("after-v2"));
+    txn_v2
+        .push_batch(batch_create("after-v2"))
+        .expect("test staging stays within configured resource budgets");
     txn_v2.commit(&mut runtime).unwrap();
 
     runtime.config.schema.registry = AspectSchemaFixture {
@@ -124,7 +127,9 @@ fn diff_cdc_truth_parity_test() {
             )
             .expect("owner-admitted transaction context")
     };
-    txn_v3.push_batch(batch_create("after-v3"));
+    txn_v3
+        .push_batch(batch_create("after-v3"))
+        .expect("test staging stays within configured resource budgets");
     txn_v3.commit(&mut runtime).unwrap();
 
     runtime.performance_access().reset_counters();

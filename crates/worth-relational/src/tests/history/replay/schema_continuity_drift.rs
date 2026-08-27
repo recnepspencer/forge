@@ -52,7 +52,8 @@ fn replay_contract_reports_schema_continuation_descriptor_drift_when_envelope_is
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("b"));
+    txn.push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
     let outcome = txn.commit(&mut runtime).unwrap();
 
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(
@@ -138,7 +139,8 @@ fn replay_contract_audit_mode_confirms_schema_continuation_descriptor_drift_at_d
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("b"));
+    txn.push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
     let outcome = txn.commit(&mut runtime).unwrap();
 
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(
@@ -224,7 +226,8 @@ fn replay_certification_audit_drift_is_explained_and_counted() {
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("b"));
+    txn.push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
     let outcome = txn.commit(&mut runtime).unwrap();
 
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(
@@ -335,7 +338,8 @@ fn replay_contract_reports_schema_lineage_drift_at_summary_layer_when_digest_is_
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("b"));
+    txn.push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
     let outcome = txn.commit(&mut runtime).unwrap();
 
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(

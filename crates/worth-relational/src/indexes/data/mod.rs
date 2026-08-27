@@ -170,4 +170,6 @@ pub struct DerivedIndexBuildOutcome {
     pub source_commit_id: CommitId,
     pub generations: Vec<DerivedIndexGeneration>,
     pub failed_indexes: Vec<DerivedIndexId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub basis_denial: Option<crate::branch::RelationalBranchBasisDenial>,
 }

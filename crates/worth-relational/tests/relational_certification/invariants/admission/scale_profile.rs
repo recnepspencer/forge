@@ -11,6 +11,7 @@ use super::world::supply_chain::{
     entity_kind_id, head_for_supply_chain_branch, CompiledSupplyChainProgram, EntityKind,
     SupplyChainScale, SupplyChainWorldDefinition,
 };
+use crate::invariant_uniqueness_assertion::assert_unique_conflict;
 use scale_snapshot_observation::{current_snapshot_version, live_record_count, vessel_call_signs};
 use worth_foundational::facade::{AspectKey, AspectValue, FieldKey, InternedString};
 use worth_relational::facade::history::BranchId;
@@ -20,9 +21,8 @@ use worth_relational::facade::runtime::{
     InvariantRegistration, InvariantReportedRule, InvariantRule, RelationalRuntime,
 };
 use worth_relational::facade::transactions::{
-    planned_single_field_locator, AspectFieldPatch, CommitConflict, ConflictClass, CreateIntent,
-    EntitySpec, InvariantViolationFields, MutationIntent, TransactionCommitError,
-    WorkerIntentBatch,
+    planned_single_field_locator, AspectFieldPatch, CreateIntent, EntitySpec, MutationIntent,
+    TransactionCommitError, WorkerIntentBatch,
 };
 
 const COMMIT_PROBE_ID: &str = "phase5.large.commit-boundary";
@@ -294,16 +294,18 @@ fn commit_vessel(
             worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
         )
         .expect("owner-admitted transaction context");
-    transaction.push_batch(
-        WorkerIntentBatch::new(client_key).push(MutationIntent::Create(CreateIntent::Entity(
-            EntitySpec {
-                partition_id: PartitionId::main(),
-                kind_id: entity_kind_id(EntityKind::Vessel),
-                client_key: worth_relational::facade::symbols::ClientKey::raw(client_key),
-                fields: vessel_fields(call_sign),
-            },
-        ))),
-    );
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new(client_key).push(MutationIntent::Create(CreateIntent::Entity(
+                EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: entity_kind_id(EntityKind::Vessel),
+                    client_key: worth_relational::facade::symbols::ClientKey::raw(client_key),
+                    fields: vessel_fields(call_sign),
+                },
+            ))),
+        )
+        .unwrap();
     transaction.commit(runtime)
 }
 
@@ -320,14 +322,20 @@ fn graph_execution(runtime: &mut RelationalRuntime, branch: &BranchId) -> Invari
             worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
         )
         .expect("owner-admitted transaction context");
-    transaction.push_batch(WorkerIntentBatch::new("large-graph-plan").push(
-        MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-            partition_id: PartitionId::main(),
-            kind_id: entity_kind_id(EntityKind::Vessel),
-            client_key: worth_relational::facade::symbols::ClientKey::raw("large-graph-plan"),
-            fields: vessel_fields("GRAPH-PLAN"),
-        })),
-    ));
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("large-graph-plan").push(MutationIntent::Create(
+                CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: entity_kind_id(EntityKind::Vessel),
+                    client_key: worth_relational::facade::symbols::ClientKey::raw(
+                        "large-graph-plan",
+                    ),
+                    fields: vessel_fields("GRAPH-PLAN"),
+                }),
+            )),
+        )
+        .unwrap();
     transaction
         .graph_composition_plan(runtime)
         .expect("the real Scale graph plan is branch-bound and owner-prepared")
@@ -364,33 +372,4 @@ fn vessel_fields(call_sign: &str) -> AspectFieldPatch {
         AspectValue::String(InternedString::Raw("Open".to_owned())),
     );
     AspectFieldPatch::new(fields)
-}
-
-fn assert_unique_conflict(error: TransactionCommitError, value: &str) {
-    let TransactionCommitError::Conflict { error, .. } = error else {
-        panic!("expected invariant conflict, got {error:?}");
-    };
-    let CommitConflict { class, .. } = error;
-    let ConflictClass::InvariantViolation {
-        fields:
-            InvariantViolationFields::UniqueEntityField {
-                field_locator,
-                value: observed,
-            },
-        ..
-    } = class
-    else {
-        panic!("expected typed unique field conflict, got {class:?}");
-    };
-    assert_eq!(
-        field_locator,
-        planned_single_field_locator(
-            AspectKey::new("call_sign").expect("call-sign aspect"),
-            FieldKey::new("call_sign").expect("call-sign field"),
-        )
-    );
-    assert_eq!(
-        observed,
-        AspectValue::String(InternedString::Raw(value.to_owned()))
-    );
 }

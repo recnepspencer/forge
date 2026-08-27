@@ -32,6 +32,9 @@ pub(super) fn visible_truth_for_branch(
         replicas_canonical_bytes: replicas_canonical_bytes(record),
     };
     drop(read);
-    assert!(runtime.visibility_authority().release_snapshot(&snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&snapshot)
+        .is_ok());
     evidence
 }

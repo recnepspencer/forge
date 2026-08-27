@@ -100,6 +100,7 @@ pub(crate) fn protect_branch_head_state(
     runtime: &RelationalRuntime,
     basis: &VisibilitySnapshotBasis,
 ) {
+    runtime.visibility.track_branch_head_state(basis.key());
     bump_visibility_ref(runtime, basis.key(), |residency| {
         residency.branch_head_refs += 1;
     });
@@ -246,7 +247,9 @@ pub(crate) fn retained_state(
         return retained_state_for_basis(runtime, binding.basis);
     }
     let branch_id = crate::visibility::branch_scope::branch_for_version(runtime, version_id)?;
-    if let Some(basis) = VisibilitySnapshotBasis::capture_current(runtime, &branch_id, version_id) {
+    if let Some(basis) = VisibilitySnapshotBasis::capture_current_for_optional_maintenance(
+        runtime, &branch_id, version_id,
+    ) {
         return retained_state_for_basis(runtime, basis);
     }
     let basis = historical_basis_for_retained_version(runtime, version_id).ok()?;

@@ -76,7 +76,8 @@ fn complexity_budget_bulk_create_reserves_partition_local_capacity() {
                 ],
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let _ = txn.commit(&mut runtime).unwrap();
     let counters = runtime.performance_access().counters();
 

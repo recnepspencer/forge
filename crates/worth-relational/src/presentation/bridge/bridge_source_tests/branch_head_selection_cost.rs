@@ -5,7 +5,7 @@ use worth_runtime_bridge::facade::{
     TruthBranchIdentity, TruthCommitIdentity,
 };
 
-use crate::tests::support::create_entity_outcome;
+use crate::tests::support::{create_entity, create_entity_outcome, release_test_commit_snapshot};
 
 use super::super::RuntimeBridgeRelationalSource;
 use super::support::runtime_with_test_schema;
@@ -14,8 +14,10 @@ use super::support::runtime_with_test_schema;
 fn exact_selection_is_constant_and_historical_selection_uses_exact_ancestry() {
     let runtime = Arc::new(Mutex::new(runtime_with_test_schema()));
     let ancestor = create_entity_outcome(&mut runtime.lock().unwrap(), "deep-head-ancestor");
+    let ancestor_commit_id = ancestor.commit.commit_id;
+    release_test_commit_snapshot(&mut runtime.lock().unwrap(), &ancestor);
     for ordinal in 1..=255 {
-        create_entity_outcome(
+        create_entity(
             &mut runtime.lock().unwrap(),
             &format!("deep-head-history-{ordinal}"),
         );
@@ -52,7 +54,7 @@ fn exact_selection_is_constant_and_historical_selection_uses_exact_ancestry() {
 
     source
         .load_committed_patch(RelationalCommittedPatchRequest::on_branch(
-            TruthCommitIdentity::from_relational_commit_id(ancestor.commit.commit_id.0),
+            TruthCommitIdentity::from_relational_commit_id(ancestor_commit_id.0),
             branch.clone(),
         ))
         .expect("visible historical ancestor");
@@ -64,9 +66,11 @@ fn exact_selection_is_constant_and_historical_selection_uses_exact_ancestry() {
     );
 
     let future = create_entity_outcome(&mut runtime.lock().unwrap(), "future-after-bound-head");
+    let future_commit_id = future.commit.commit_id;
+    release_test_commit_snapshot(&mut runtime.lock().unwrap(), &future);
     let denial = source
         .load_committed_patch(RelationalCommittedPatchRequest::on_branch(
-            TruthCommitIdentity::from_relational_commit_id(future.commit.commit_id.0),
+            TruthCommitIdentity::from_relational_commit_id(future_commit_id.0),
             branch,
         ))
         .expect_err("a commit beyond the bound head is unreachable");
@@ -77,5 +81,5 @@ fn exact_selection_is_constant_and_historical_selection_uses_exact_ancestry() {
         after_denial.bridge_observation_commit_ancestry_visits,
         ancestry_work * 2
     );
-    assert!(head_commit < future.commit.commit_id);
+    assert!(head_commit < future_commit_id);
 }

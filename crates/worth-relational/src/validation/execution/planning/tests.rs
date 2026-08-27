@@ -110,7 +110,8 @@ fn create_entity(
             }))
             .into(),
         ),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn.commit(&mut runtime).unwrap();
     outcome
         .changed_records
@@ -139,7 +140,8 @@ fn planner_packets_only_include_relation_integrity_registrations_authorized_by_p
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         ))),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let plan = txn.merged_plan(&mut runtime).unwrap().clone();
 
     let request = request_for_plan(&runtime, &plan);
@@ -176,7 +178,8 @@ fn planner_proof_boundary_reports_partition_scoped_relation_integrity_packets() 
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         ))),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let plan = txn.merged_plan(&mut runtime).unwrap().clone();
 
     let request = request_for_plan(&runtime, &plan);

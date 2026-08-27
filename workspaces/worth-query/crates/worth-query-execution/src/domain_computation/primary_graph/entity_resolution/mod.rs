@@ -197,7 +197,26 @@ where
         let installed = graph.retain_entity_resolution_context();
         let result = graph.integration_handle().with_runtime_mut(|relational| {
             let snapshot = super::exact_basis_access::open_current_main_snapshot(relational)
-                .expect("installed primary graph retains an exact main-branch basis");
+                .map_err(|basis_denial| {
+                    let kind = match basis_denial {
+                        super::WorthQueryExactBasisSnapshotDenial::ActiveSnapshotCapacityExhausted {
+                            maximum_active_snapshots,
+                        } => WorthQueryEntityResolutionDenialKind::ActiveSnapshotCapacityExhausted {
+                            maximum_active_snapshots,
+                        },
+                        super::WorthQueryExactBasisSnapshotDenial::RetentionCapacityExhausted => {
+                            WorthQueryEntityResolutionDenialKind::RetentionCapacityExhausted
+                        }
+                        super::WorthQueryExactBasisSnapshotDenial::RetentionIdentityExhausted => {
+                            WorthQueryEntityResolutionDenialKind::RetentionIdentityExhausted
+                        }
+                        super::WorthQueryExactBasisSnapshotDenial::SnapshotIdentityExhausted => {
+                            WorthQueryEntityResolutionDenialKind::SnapshotIdentityExhausted
+                        }
+                        _ => WorthQueryEntityResolutionDenialKind::ForeignResolutionTruth,
+                    };
+                    entity_denial(kind, field.field())
+                })?;
             let result = installed
                 .at_snapshot(relational, &snapshot, mode)
                 .and_then(|truth| {
@@ -208,7 +227,7 @@ where
                         value.into_foundational_value(),
                     )
                 });
-            relational.snapshots().release_snapshot(&snapshot);
+            crate::relational_snapshot_release::release_query_snapshot(relational, &snapshot);
             result
         })?;
         admit_request(scope, field.field())?;

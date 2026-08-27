@@ -212,7 +212,9 @@ fn relation_summary_patch(
 fn commit_intent(mut runtime: &mut crate::runtime::RelationalRuntime, intent: MutationIntent) {
     let mut transaction =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(WorkerIntentBatch::new("footprint-setup").push(intent));
+    transaction
+        .push_batch(WorkerIntentBatch::new("footprint-setup").push(intent))
+        .expect("test staging stays within configured resource budgets");
     transaction
         .commit(&mut runtime)
         .expect("fixture state commits");

@@ -52,14 +52,16 @@ fn unique_entity_aspect_field_rejects_entity_aspect_create() {
 
     let create = |runtime: &mut crate::runtime::RelationalRuntime, key: &str| {
         let mut transaction = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
-        transaction.push_batch(WorkerIntentBatch::new(key).push(MutationIntent::Create(
-            CreateIntent::EntityAspects(EntityAspectCreateIntent {
-                partition_id: PartitionId::main(),
-                kind_id: KindId(1),
-                client_key: ClientKey::raw(key),
-                aspect_patch: patch.clone(),
-            }),
-        )));
+        transaction
+            .push_batch(WorkerIntentBatch::new(key).push(MutationIntent::Create(
+                CreateIntent::EntityAspects(EntityAspectCreateIntent {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: ClientKey::raw(key),
+                    aspect_patch: patch.clone(),
+                }),
+            )))
+            .expect("test staging stays within configured resource budgets");
         transaction.commit(runtime)
     };
 
@@ -103,14 +105,16 @@ fn unique_entity_aspect_field_rejects_entity_aspect_patch() {
     let before = runtime_marker(&mut runtime);
     let mut transaction =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(
-        WorkerIntentBatch::new("duplicate-patch").push(MutationIntent::Entity(
-            EntityMutationIntent::ApplyAspectPatch(ApplyEntityAspectPatchIntent {
-                entity_id: second_id,
-                aspect_patch: patch,
-            }),
-        )),
-    );
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("duplicate-patch").push(MutationIntent::Entity(
+                EntityMutationIntent::ApplyAspectPatch(ApplyEntityAspectPatchIntent {
+                    entity_id: second_id,
+                    aspect_patch: patch,
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
 
     let error = transaction.commit(&mut runtime).unwrap_err();
     assert_unique_entity_field_conflict(error, "shared-title");

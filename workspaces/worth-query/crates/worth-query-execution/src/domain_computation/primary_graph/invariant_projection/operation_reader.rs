@@ -19,9 +19,9 @@ use super::{
     WorthQueryApplicationInvariantProjectionReader,
     WorthQueryApplicationInvariantProjectionSnapshot, WorthQueryCompletedInvariantProjection,
     WorthQueryInvariantAggregateDenial, WorthQueryInvariantEntityIdentity,
-    WorthQueryInvariantMutationTarget, WorthQueryInvariantProjectionTraversalDenial,
-    WorthQueryInvariantProjectionWork, WorthQueryInvariantRelation,
-    WorthQueryOperationProjectionDenial,
+    WorthQueryInvariantMutationTarget, WorthQueryInvariantProjectionDenial,
+    WorthQueryInvariantProjectionTraversalDenial, WorthQueryInvariantProjectionWork,
+    WorthQueryInvariantRelation, WorthQueryOperationProjectionDenial,
 };
 use crate::domain_computation::authorization::WorthQueryOperationAdmissionIdentity;
 use crate::domain_computation::primary_graph::{
@@ -90,7 +90,10 @@ where
         projection: impl FnOnce(
             &mut WorthQueryApplicationOperationInvariantProjectionReader<'_, '_, Schema, Operation>,
         ) -> Output,
-    ) -> WorthQueryInspectedOperationInvariantProjection<Operation, Output> {
+    ) -> Result<
+        WorthQueryInspectedOperationInvariantProjection<Operation, Output>,
+        WorthQueryInvariantProjectionDenial,
+    > {
         let completed = self.project(|reader| {
             let mut decision_facts = BTreeSet::new();
             let mut operation_reader = WorthQueryApplicationOperationInvariantProjectionReader {
@@ -101,14 +104,14 @@ where
             };
             let output = projection(&mut operation_reader);
             (output, decision_facts)
-        });
+        })?;
         let ((output, _), snapshot, work) = completed.into_parts();
         drop(snapshot);
-        WorthQueryInspectedOperationInvariantProjection {
+        Ok(WorthQueryInspectedOperationInvariantProjection {
             output,
             work,
             _operation: PhantomData,
-        }
+        })
     }
 
     pub fn project_admitted_operation<Operation, Input, Scope, Output>(
@@ -152,8 +155,8 @@ where
                     (output, decision_facts)
                 },
             )
-            .map_err(|_| {
-                WorthQueryOperationProjectionDenial::work_budget_exceeded(admission.operation())
+            .map_err(|denial| {
+                WorthQueryOperationProjectionDenial::from_invariant(denial, admission.operation())
             })?;
         Ok(WorthQueryCompletedOperationInvariantProjection {
             completed,

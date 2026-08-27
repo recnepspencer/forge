@@ -91,11 +91,25 @@ where
                     request,
                     WorthQueryPrincipalResolutionMode::Ordinary,
                 )
-                .map_err(|denial| {
-                    reconstruction_denial(
+                .map_err(|denial| match denial.kind() {
+                    crate::domain_computation::primary_graph::WorthQueryEntityResolutionDenialKind::ActiveSnapshotCapacityExhausted {
+                        maximum_active_snapshots,
+                    } => super::snapshot_capacity_reconstruction_denial(
+                        maximum_active_snapshots,
+                    ),
+                    crate::domain_computation::primary_graph::WorthQueryEntityResolutionDenialKind::RetentionCapacityExhausted => {
+                        super::retention_capacity_reconstruction_denial()
+                    }
+                    crate::domain_computation::primary_graph::WorthQueryEntityResolutionDenialKind::RetentionIdentityExhausted => {
+                        super::retention_identity_reconstruction_denial()
+                    }
+                    crate::domain_computation::primary_graph::WorthQueryEntityResolutionDenialKind::SnapshotIdentityExhausted => {
+                        super::snapshot_identity_reconstruction_denial()
+                    }
+                    _ => reconstruction_denial(
                         WorthQueryConditionalRuntimeInstallationDenialKind::ReconstructionIntent,
                         format!("{:?}: {}", denial.kind(), denial.subject()),
-                    )
+                    ),
                 })?;
             let entity = record.entity_id();
             let source_record =

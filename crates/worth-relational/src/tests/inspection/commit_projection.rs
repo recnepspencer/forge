@@ -70,18 +70,20 @@ fn merge_commit_inspection_stays_envelope_projected() {
         &mut runtime,
         BranchId("feature".to_string()),
     );
-    feature_txn.push_batch(
-        WorkerIntentBatch::new("feature-update").push(MutationIntent::Entity(
-            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
-                entity_id: entity,
-                fields: crate::tests::support::single_string_aspect_field_patch(
-                    crate::tests::support::aspect_key("name"),
-                    crate::tests::support::field_key("name"),
-                    "feature",
-                ),
-            }),
-        )),
-    );
+    feature_txn
+        .push_batch(
+            WorkerIntentBatch::new("feature-update").push(MutationIntent::Entity(
+                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
+                    entity_id: entity,
+                    fields: crate::tests::support::single_string_aspect_field_patch(
+                        crate::tests::support::aspect_key("name"),
+                        crate::tests::support::field_key("name"),
+                        "feature",
+                    ),
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     feature_txn.commit(&mut runtime).expect("feature update");
 
     let merge = merge_commit_from_branches(

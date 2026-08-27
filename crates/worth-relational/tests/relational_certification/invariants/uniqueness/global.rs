@@ -1,3 +1,4 @@
+use crate::invariant_uniqueness_assertion::assert_unique_conflict;
 use std::collections::BTreeMap;
 
 use super::world::supply_chain::{
@@ -15,9 +16,8 @@ use worth_relational::facade::runtime::{
     RelationalRuntime,
 };
 use worth_relational::facade::transactions::{
-    planned_single_field_locator, AspectFieldPatch, CommitConflict, ConflictClass, CreateIntent,
-    EntitySpec, InvariantViolationFields, MutationIntent, TransactionCommitError,
-    WorkerIntentBatch,
+    planned_single_field_locator, AspectFieldPatch, CreateIntent, EntitySpec, MutationIntent,
+    TransactionCommitError, WorkerIntentBatch,
 };
 use worth_relational::facade::{history::BranchId, identity::PartitionId, symbols::ClientKey};
 
@@ -279,16 +279,18 @@ fn push_vessel(
     transaction: &mut worth_relational::facade::mvcc::BranchBoundRelationalTransaction,
     client_key: &str,
 ) {
-    transaction.push_batch(
-        WorkerIntentBatch::new(client_key).push(MutationIntent::Create(CreateIntent::Entity(
-            EntitySpec {
-                partition_id: PartitionId::main(),
-                kind_id: entity_kind_id(EntityKind::Vessel),
-                client_key: ClientKey::raw(client_key),
-                fields: vessel_fields(DIVERGENT_CALL_SIGN),
-            },
-        ))),
-    );
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new(client_key).push(MutationIntent::Create(CreateIntent::Entity(
+                EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: entity_kind_id(EntityKind::Vessel),
+                    client_key: ClientKey::raw(client_key),
+                    fields: vessel_fields(DIVERGENT_CALL_SIGN),
+                },
+            ))),
+        )
+        .unwrap();
 }
 
 fn vessel_fields(call_sign: &str) -> AspectFieldPatch {
@@ -373,28 +375,4 @@ fn current_snapshot_version(runtime: &mut RelationalRuntime, branch: &BranchId) 
     snapshot_for_supply_chain_identity(runtime, &identity)
         .version_id()
         .0
-}
-fn assert_unique_conflict(error: TransactionCommitError, value: &str) {
-    let TransactionCommitError::Conflict { error, .. } = error else {
-        panic!("expected invariant conflict, got {error:?}");
-    };
-    let CommitConflict { class, .. } = error;
-    let ConflictClass::InvariantViolation {
-        fields:
-            InvariantViolationFields::UniqueEntityField {
-                field_locator,
-                value: observed,
-            },
-        ..
-    } = class
-    else {
-        panic!("expected typed unique field conflict, got {class:?}");
-    };
-    let expected = planned_single_field_locator(
-        AspectKey::new("call_sign").expect("call-sign aspect"),
-        FieldKey::new("call_sign").expect("call-sign field"),
-    );
-    assert_eq!(field_locator, expected);
-    let expected_value = AspectValue::String(InternedString::Raw(value.into()));
-    assert_eq!(observed, expected_value);
 }

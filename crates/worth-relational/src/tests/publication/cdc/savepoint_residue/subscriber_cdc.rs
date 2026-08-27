@@ -8,9 +8,11 @@ fn savepoint_abandoned_work_never_appears_in_subscriber_cdc() {
     let checkpoint = checkpoint_for_schema_version(anchor.patch_position(), SchemaVersionId(1));
 
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    txn.push_batch(batch_create("surviving"));
-    let savepoint = txn.create_savepoint();
-    txn.push_batch(batch_create("abandoned"));
+    txn.push_batch(batch_create("surviving"))
+        .expect("test staging stays within configured resource budgets");
+    let savepoint = txn.create_savepoint().unwrap();
+    txn.push_batch(batch_create("abandoned"))
+        .expect("test staging stays within configured resource budgets");
     txn.push_batch(
         WorkerIntentBatch::new("abandoned-update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -22,7 +24,8 @@ fn savepoint_abandoned_work_never_appears_in_subscriber_cdc() {
                 ),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let rollback = txn.rollback_to_savepoint(savepoint).unwrap();
     txn.push_batch(
         WorkerIntentBatch::new("survived-update").push(MutationIntent::Entity(
@@ -35,7 +38,8 @@ fn savepoint_abandoned_work_never_appears_in_subscriber_cdc() {
                 ),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn.commit(&mut runtime).unwrap();
 
     assert!(rollback.summary().has_discarded_entity_creation());

@@ -64,7 +64,10 @@ pub(crate) fn managed_admission_context() -> CausalManagedAdmissionContext {
     let committed = create_fixture_entity(&mut runtime);
     let identity = runtime.main_branch_identity();
     let (descriptor, basis) = runtime.observe_branch(&identity).unwrap();
-    assert!(runtime.snapshots().release_snapshot(&committed.snapshot));
+    assert!(runtime
+        .snapshots()
+        .release_snapshot(&committed.snapshot)
+        .is_ok());
     let relational = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(runtime), "model")
         .expect("model should be a valid graph role");
     let registration = relational.retain_branch_basis_for_bridge(&basis).unwrap();
@@ -84,7 +87,10 @@ pub(super) fn source_profile_substitution_context() -> SourceProfileSubstitution
     let committed = create_fixture_entity(&mut runtime);
     let identity = runtime.main_branch_identity();
     let (descriptor, basis) = runtime.observe_branch(&identity).unwrap();
-    assert!(runtime.snapshots().release_snapshot(&committed.snapshot));
+    assert!(runtime
+        .snapshots()
+        .release_snapshot(&committed.snapshot)
+        .is_ok());
     let relational = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(runtime), "model")
         .expect("model should be a valid graph role");
     let registration = relational.retain_branch_basis_for_bridge(&basis).unwrap();
@@ -183,7 +189,10 @@ fn relational_source_and_lease(
     let substitute_basis = runtime
         .readmit_branch_basis(bridge_basis.descriptor())
         .unwrap();
-    assert!(runtime.snapshots().release_snapshot(&committed.snapshot));
+    assert!(runtime
+        .snapshots()
+        .release_snapshot(&committed.snapshot)
+        .is_ok());
     let source = RuntimeBridgeRelationalSource::for_graph_role(Arc::new(runtime), "model")
         .expect("model should be a valid graph role");
     let bridge_basis = WorthQueryManagedRelationalObservation::retain(&source, bridge_basis, true)
@@ -231,14 +240,18 @@ fn create_fixture_entity(
             )
             .expect("owner-admitted transaction context")
     };
-    transaction.push_batch(WorkerIntentBatch::new("managed-run-fixture").push(
-        MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-            partition_id: PartitionId::main(),
-            kind_id: KindId(1),
-            client_key: ClientKey::raw("managed-run-entity"),
-            fields: AspectFieldPatch::new(BTreeMap::new()),
-        })),
-    ));
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("managed-run-fixture").push(MutationIntent::Create(
+                CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: ClientKey::raw("managed-run-entity"),
+                    fields: AspectFieldPatch::new(BTreeMap::new()),
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     transaction
         .commit(runtime)
         .expect("managed-run fixture entity should commit")

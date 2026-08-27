@@ -13,6 +13,8 @@ pub struct WorthQueryBackendMergeAuthority {
     target_branch: BranchId,
     source_branch: BranchId,
     target_snapshot_identity: WorthQuerySnapshotIdentity,
+    target_basis_descriptor: worth_relational::facade::branch::RelationalBranchBasisDescriptor,
+    source_basis_descriptor: worth_relational::facade::branch::RelationalBranchBasisDescriptor,
     target_head_commit_id: u64,
     source_head_commit_id: u64,
     merge_base_commit_id: u64,
@@ -40,10 +42,12 @@ impl WorthQueryBackendMergeAuthority {
             .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
         let (_, source_observation) = runtime
             .observe_branch(&source_identity)
-            .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
+            .map_err(|denial| merge_basis_denial("source", denial))?;
         let (_, target_observation) = runtime
             .observe_branch(&target_identity)
-            .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
+            .map_err(|denial| merge_basis_denial("target", denial))?;
+        let source_basis_descriptor = source_observation.descriptor().clone();
+        let target_basis_descriptor = target_observation.descriptor().clone();
         let basis = runtime
             .history()
             .merge_branch_basis_for_observations(
@@ -52,7 +56,7 @@ impl WorthQueryBackendMergeAuthority {
             )
             .map_err(|error| WorthQueryWorkspaceError::new(format!("{error:?}")))?;
         let target_snapshot_identity =
-            crate::memory_workspace::snapshot_identity_from_branch(runtime, &target_branch)
+            crate::memory_workspace::snapshot_identity_from_admitted_basis(&target_observation)
                 .ok_or_else(|| {
                     WorthQueryWorkspaceError::new(
                         "merge target branch has no exact current snapshot",
@@ -65,7 +69,7 @@ impl WorthQueryBackendMergeAuthority {
             WorthQueryEvidenceIdentity::compose(WorthQueryEvidenceScope::WorkflowContextBinding)
                 .field_shape(
                     WorthQueryEvidenceTag::new("identity_family"),
-                    "backend_merge_authority_v1",
+                    "backend_merge_authority_v2",
                 )
                 .field_shape(
                     WorthQueryEvidenceTag::new("target_branch"),
@@ -91,11 +95,21 @@ impl WorthQueryBackendMergeAuthority {
                     WorthQueryEvidenceTag::new("target_snapshot"),
                     &target_snapshot_identity.evidence_identity(),
                 )
+                .field_shape(
+                    WorthQueryEvidenceTag::new("target_basis"),
+                    format!("{target_basis_descriptor:?}"),
+                )
+                .field_shape(
+                    WorthQueryEvidenceTag::new("source_basis"),
+                    format!("{source_basis_descriptor:?}"),
+                )
                 .seal();
         Ok(Self {
             target_branch,
             source_branch,
             target_snapshot_identity,
+            target_basis_descriptor,
+            source_basis_descriptor,
             target_head_commit_id,
             source_head_commit_id,
             merge_base_commit_id,
@@ -131,28 +145,39 @@ impl WorthQueryBackendMergeAuthority {
             .map_err(|_| WorthQueryWorkspaceError::new("merge source branch is missing"))?;
         let (_, target_basis) = runtime
             .observe_branch(&target_identity)
-            .map_err(|_| WorthQueryWorkspaceError::new("merge target basis is unavailable"))?;
+            .map_err(|denial| merge_basis_denial("target", denial))?;
         let (_, source_basis) = runtime
             .observe_branch(&source_identity)
-            .map_err(|_| WorthQueryWorkspaceError::new("merge source basis is unavailable"))?;
-        let target_observation = target_basis.observation();
-        let source_observation = source_basis.observation();
-        let history = runtime.history();
-        let target_head = history
-            .branch_head_for_observation(&target_observation)
-            .map_err(|_| WorthQueryWorkspaceError::new("merge target basis was rejected"))?
-            .ok_or_else(|| WorthQueryWorkspaceError::new("merge target branch is missing"))?;
-        let source_head = history
-            .branch_head_for_observation(&source_observation)
-            .map_err(|_| WorthQueryWorkspaceError::new("merge source basis was rejected"))?
-            .ok_or_else(|| WorthQueryWorkspaceError::new("merge source branch is missing"))?;
-        if target_head.commit_id.0 != self.target_head_commit_id
-            || source_head.commit_id.0 != self.source_head_commit_id
+            .map_err(|denial| merge_basis_denial("source", denial))?;
+        if target_basis.descriptor() != &self.target_basis_descriptor
+            || source_basis.descriptor() != &self.source_basis_descriptor
         {
             return Err(WorthQueryWorkspaceError::new(
-                "branch merge authority is stale against the current target/source basis",
+                "branch merge authority is stale against the current target/source basis axes",
             ));
         }
         Ok(())
     }
+}
+
+fn merge_basis_denial(
+    role: &str,
+    denial: worth_relational::facade::branch::RelationalBranchBasisDenial,
+) -> WorthQueryWorkspaceError {
+    let kind = match denial {
+        worth_relational::facade::branch::RelationalBranchBasisDenial::RetentionCapacityExhausted => {
+            crate::memory_workspace::WorthQueryWorkspaceErrorKind::RetentionCapacityExhausted
+        }
+        worth_relational::facade::branch::RelationalBranchBasisDenial::RetentionIdentityExhausted => {
+            crate::memory_workspace::WorthQueryWorkspaceErrorKind::RetentionIdentityExhausted
+        }
+        worth_relational::facade::branch::RelationalBranchBasisDenial::SnapshotIdentityExhausted => {
+            crate::memory_workspace::WorthQueryWorkspaceErrorKind::SnapshotIdentityExhausted
+        }
+        _ => crate::memory_workspace::WorthQueryWorkspaceErrorKind::RelationalBasisUnavailable,
+    };
+    WorthQueryWorkspaceError::with_kind(
+        kind,
+        format!("merge {role} current basis observation failed: {denial:?}"),
+    )
 }

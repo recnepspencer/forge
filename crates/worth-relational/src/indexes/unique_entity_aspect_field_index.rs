@@ -32,29 +32,30 @@ pub(crate) fn refresh_unique_entity_aspect_field_index_for_records(
     write_unique_entity_aspect_field_index_entries(runtime, refreshed_values);
 }
 
-pub(crate) fn rebuild_unique_entity_aspect_field_indexes(runtime: &mut RelationalRuntime) {
-    runtime.indexes.entity_unique_aspect_field_index.clear();
+pub(crate) fn rebuild_unique_entity_aspect_field_indexes(
+    runtime: &mut RelationalRuntime,
+) -> Result<(), crate::branch::RelationalBranchBasisDenial> {
     let tracked_fields = tracked_unique_entity_aspect_fields(runtime);
     if tracked_fields.is_empty() {
-        return;
+        runtime.indexes.entity_unique_aspect_field_index.clear();
+        return Ok(());
     }
-    let Some(branch_id) = runtime.history().latest_commit().and_then(|commit| {
-        runtime
-            .history()
-            .commit_envelope(commit.commit_id)
-            .map(|envelope| envelope.branch_context.clone())
-    }) else {
-        return;
+    let branch_id = runtime.config.history.main_branch.clone();
+    let Some(head) = runtime.history().branch_head(&branch_id) else {
+        runtime.indexes.entity_unique_aspect_field_index.clear();
+        return Ok(());
     };
-    let Some(projection) = runtime
+    let projection = runtime
         .read_truth()
-        .project_branch_head(&branch_id, runtime.current_version_id())
-    else {
-        return;
+        .project_branch_head(&branch_id, head.version_id)?;
+    let Some(projection) = projection else {
+        return Ok(());
     };
     let rebuilt_values =
         collect_all_unique_entity_aspect_field_entries(&projection, &tracked_fields);
+    runtime.indexes.entity_unique_aspect_field_index.clear();
     write_unique_entity_aspect_field_index_entries(runtime, rebuilt_values);
+    Ok(())
 }
 
 fn remove_changed_entities_from_unique_entity_aspect_field_index(

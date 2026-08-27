@@ -219,6 +219,34 @@ impl WorthQueryBridgeBackedRuntimeBackend {
             }
         }
     }
+
+    pub(super) fn release_backend_merge_snapshot(
+        &mut self,
+        snapshot: &worth_relational::facade::snapshots::SnapshotHandle,
+    ) {
+        match self.primary_graph_runtime.clone() {
+            Some(primary_graph) => {
+                primary_graph
+                    .execute_mutation(|runtime| {
+                        runtime
+                            .snapshots()
+                            .release_snapshot(snapshot)
+                            .expect("ordinary merge closes its exact primary-graph snapshot once");
+                        Ok::<_, std::convert::Infallible>(())
+                    })
+                    .expect("snapshot closeout does not invalidate primary-graph indexes")
+                    .expect("snapshot closeout is infallible");
+            }
+            None => {
+                self.relational_runtime
+                    .as_mut()
+                    .expect("a backend that executed a merge retains its relational runtime")
+                    .snapshots()
+                    .release_snapshot(snapshot)
+                    .expect("ordinary merge closes its exact relational snapshot once");
+            }
+        }
+    }
 }
 
 fn primary_graph_refresh_workspace_error(

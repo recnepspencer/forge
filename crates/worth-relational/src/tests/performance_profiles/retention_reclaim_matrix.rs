@@ -16,10 +16,12 @@ fn perf_retention_reclaim_matrix() {
 
             assert!(runtime
                 .visibility_authority()
-                .release_snapshot(&created_snapshot));
+                .release_snapshot(&created_snapshot)
+                .is_ok());
             assert!(runtime
                 .visibility_authority()
-                .release_snapshot(&deleted_snapshot));
+                .release_snapshot(&deleted_snapshot)
+                .is_ok());
 
             runtime.performance_access().reset_counters();
             let inspect_started_at = Instant::now();
@@ -88,16 +90,19 @@ fn perf_retention_reclaim_matrix() {
                             relation_id: relation,
                         },
                     )),
-                ));
+                ))
+                .expect("test staging stays within configured resource budgets");
                 txn.commit(&mut runtime).expect("delete relation")
             };
 
             assert!(runtime
                 .visibility_authority()
-                .release_snapshot(&created.snapshot));
+                .release_snapshot(&created.snapshot)
+                .is_ok());
             assert!(runtime
                 .visibility_authority()
-                .release_snapshot(&deleted.snapshot));
+                .release_snapshot(&deleted.snapshot)
+                .is_ok());
             assert!(runtime
                 .history_authority()
                 .retain_version_for_replay(created.version_id));

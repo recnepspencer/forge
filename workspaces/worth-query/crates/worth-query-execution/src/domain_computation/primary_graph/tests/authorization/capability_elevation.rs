@@ -43,6 +43,8 @@ mod request_commit_revalidation;
 mod request_support;
 #[path = "capability_elevation/request_transition.rs"]
 mod request_transition;
+#[path = "capability_elevation/review_support_mutation.rs"]
+mod review_support_mutation;
 #[path = "capability_elevation/review_transition.rs"]
 mod review_transition;
 #[path = "capability_elevation/terminal_lifecycle_support.rs"]

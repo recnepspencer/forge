@@ -6,6 +6,7 @@ use worth_query_installation::facade::{
 };
 
 use super::isolate_invoker;
+use super::WorthQueryTemporalReentryDenial;
 use crate::domain_computation::authorization::WorthQueryAdmittedApplicationOperation;
 use crate::domain_computation::primary_graph::conditional_operation::{
     operation_invocation::{
@@ -61,7 +62,7 @@ where
         candidate: &WorthQueryTemporalIntentCandidate<Clock, Input>,
         fresh: &WorthQueryFreshTemporalOperationAccess<Schema, Principal, PrincipalIdentity, Scope>,
         current: &WorthQueryCurrentTemporalIntent<Schema, IntentEntity, IdentityValue, RevisionValue>,
-    ) -> Result<Option<WorthQueryAdmittedTemporalProjection<Schema, Operation, Input, Scope, Invoker::Projection>>, String>
+    ) -> Result<Option<WorthQueryAdmittedTemporalProjection<Schema, Operation, Input, Scope, Invoker::Projection>>, WorthQueryTemporalReentryDenial>
     where
         PrincipalIdentity: worth_query_installation::facade::TypedApplicationIdentityValue,
     {
@@ -78,7 +79,7 @@ where
                 preconditions,
                 &fresh.request,
             )
-            .map_err(|denial| denial.to_string())?;
+            .map_err(WorthQueryTemporalReentryDenial::from_authorization)?;
         let projected = isolate_invoker(|| {
             self.invariant.project_admitted_operation(
                 &admission,
@@ -97,7 +98,7 @@ where
             )
         })
         .map_err(|detail| format!("temporal operation projection failed: {detail}"))?
-        .map_err(|denial| denial.to_string())?;
+        .map_err(WorthQueryTemporalReentryDenial::from_projection)?;
         let ((host_projection, current_intent), projection, _) = projected.into_parts();
         if current_intent.is_err() {
             return Ok(None);

@@ -176,10 +176,8 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
             .historical_reconstruction_fence_version(published_version);
         let oldest_branch_head_version = self
             .runtime
-            .history()
-            .branch_head_versions()
-            .into_iter()
-            .min()
+            .history
+            .oldest_branch_head_version()
             .unwrap_or(published_version);
         let oldest_pinned_version =
             oldest_visibility_retained_version.min(oldest_branch_head_version);

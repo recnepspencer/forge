@@ -55,14 +55,14 @@ where
             let snapshot = crate::domain_computation::primary_graph::open_current_branch_snapshot(
                 runtime, &branch,
             )
-            .ok_or_else(inconsistent_authorization)?;
+            .map_err(|denial| super::exact_basis_snapshot_denial(denial, &operation))?;
             let current = validate_retained_currentness(
                 authorization,
                 runtime,
                 &snapshot,
                 self.authorization.bridge(),
             );
-            runtime.snapshots().release_snapshot(&snapshot);
+            crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
             current
         })
     }
@@ -206,14 +206,16 @@ where
             let snapshot = crate::domain_computation::primary_graph::open_current_branch_snapshot(
                 runtime, branch,
             )
-            .ok_or_else(inconsistent_authorization)?;
+            .map_err(|denial| {
+                super::exact_basis_snapshot_denial(denial, "observed commit authorization")
+            })?;
             let current = validate_observed_currentness(
                 observed,
                 runtime,
                 &snapshot,
                 self.authorization.bridge(),
             );
-            runtime.snapshots().release_snapshot(&snapshot);
+            crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
             current
         })
     }
@@ -235,7 +237,9 @@ where
             let snapshot = crate::domain_computation::primary_graph::open_current_branch_snapshot(
                 runtime, branch,
             )
-            .ok_or_else(inconsistent_authorization)?;
+            .map_err(|denial| {
+                super::exact_basis_snapshot_denial(denial, "capability commit authorization")
+            })?;
             let principal_current = capability
                 .principal()
                 .remains_current_in(runtime, &snapshot);
@@ -266,7 +270,7 @@ where
             let result = result.and_then(|()| {
                 self.readmit_capability_commit_support(capability.supporting(), runtime, &snapshot)
             });
-            runtime.snapshots().release_snapshot(&snapshot);
+            crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
             result
         })
     }

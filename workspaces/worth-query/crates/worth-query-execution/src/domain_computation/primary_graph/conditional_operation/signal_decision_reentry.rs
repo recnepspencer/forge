@@ -10,39 +10,93 @@ use crate::domain_computation::primary_graph::{
 
 pub(in crate::domain_computation::primary_graph) struct WorthQueryConditionalTruthBasis {
     _lease: WorthQueryApplicationSnapshotLease,
-    _observation: worth_relational::facade::bridge::RelationalBridgeObservationLease,
+    observation: std::sync::Arc<worth_relational::facade::bridge::RelationalBridgeObservationLease>,
     _branch: TruthBranchIdentity,
     snapshot: TruthSnapshotIdentity,
     branch_projection: worth_runtime_bridge::facade::BridgeIdentityEvidence,
     snapshot_projection: worth_runtime_bridge::facade::BridgeIdentityEvidence,
 }
 
+pub(super) enum WorthQueryConditionalTruthBasisDenial {
+    ActiveSnapshotCapacityExhausted { maximum_active_snapshots: usize },
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
+    SnapshotIdentityExhausted,
+    RuntimeRejected(&'static str),
+}
+
 impl WorthQueryConditionalTruthBasis {
     pub(super) fn acquire(
         runtime: &crate::domain_computation::execution_runtime::WorthQueryExecutionRuntime,
-    ) -> Result<Self, &'static str> {
-        let graph = runtime
-            .primary_graph()
-            .ok_or("conditional execution lost the installed primary graph")?;
+    ) -> Result<Self, WorthQueryConditionalTruthBasisDenial> {
+        let graph = runtime.primary_graph().ok_or(
+            WorthQueryConditionalTruthBasisDenial::RuntimeRejected(
+                "conditional execution lost the installed primary graph",
+            ),
+        )?;
         let integration = graph.integration_handle();
         let lease = WorthQueryApplicationSnapshotLease::acquire(
             integration.clone(),
             graph.retain_layout(),
             &primary_relational_branch_id(),
         )
-        .ok_or("conditional execution could not pin the primary branch head")?;
+        .map_err(|denial| match denial {
+            crate::domain_computation::primary_graph::WorthQueryApplicationSnapshotLeaseDenial::ActiveSnapshotCapacityExhausted {
+                maximum_active_snapshots,
+            } => WorthQueryConditionalTruthBasisDenial::ActiveSnapshotCapacityExhausted {
+                maximum_active_snapshots,
+            },
+            crate::domain_computation::primary_graph::WorthQueryApplicationSnapshotLeaseDenial::RetentionCapacityExhausted => {
+                WorthQueryConditionalTruthBasisDenial::RetentionCapacityExhausted
+            }
+            crate::domain_computation::primary_graph::WorthQueryApplicationSnapshotLeaseDenial::RetentionIdentityExhausted => {
+                WorthQueryConditionalTruthBasisDenial::RetentionIdentityExhausted
+            }
+            crate::domain_computation::primary_graph::WorthQueryApplicationSnapshotLeaseDenial::SnapshotIdentityExhausted => {
+                WorthQueryConditionalTruthBasisDenial::SnapshotIdentityExhausted
+            }
+            _ => WorthQueryConditionalTruthBasisDenial::RuntimeRejected(
+                "conditional execution could not pin the primary branch head",
+            ),
+        })?;
         let source = integration.relational_bridge_source();
         let basis = source
             .readmit_branch_basis(lease.basis_descriptor())
-            .map_err(|_| "conditional execution could not readmit its exact primary basis")?;
-        let observation = source
-            .retain_branch_basis_for_bridge(&basis)
-            .map_err(|_| "conditional execution could not bind its exact Bridge observation")?;
+            .map_err(|denial| match denial {
+                worth_relational::facade::branch::RelationalBranchBasisDenial::RetentionCapacityExhausted => {
+                    WorthQueryConditionalTruthBasisDenial::RetentionCapacityExhausted
+                }
+                worth_relational::facade::branch::RelationalBranchBasisDenial::RetentionIdentityExhausted => {
+                    WorthQueryConditionalTruthBasisDenial::RetentionIdentityExhausted
+                }
+                worth_relational::facade::branch::RelationalBranchBasisDenial::SnapshotIdentityExhausted => {
+                    WorthQueryConditionalTruthBasisDenial::SnapshotIdentityExhausted
+                }
+                _ => WorthQueryConditionalTruthBasisDenial::RuntimeRejected(
+                    "conditional execution could not readmit its exact primary basis",
+                ),
+            })?;
+        let observation = source.retain_branch_basis_for_bridge(&basis).map_err(|denial| {
+            match denial {
+                worth_relational::facade::branch::RelationalBranchBasisDenial::RetentionCapacityExhausted => {
+                    WorthQueryConditionalTruthBasisDenial::RetentionCapacityExhausted
+                }
+                worth_relational::facade::branch::RelationalBranchBasisDenial::RetentionIdentityExhausted => {
+                    WorthQueryConditionalTruthBasisDenial::RetentionIdentityExhausted
+                }
+                worth_relational::facade::branch::RelationalBranchBasisDenial::SnapshotIdentityExhausted => {
+                    WorthQueryConditionalTruthBasisDenial::SnapshotIdentityExhausted
+                }
+                _ => WorthQueryConditionalTruthBasisDenial::RuntimeRejected(
+                    "conditional execution could not bind its exact Bridge observation",
+                ),
+            }
+        })?;
         let snapshot = observation.snapshot_identity().clone();
         let branch = primary_truth_branch_identity();
         Ok(Self {
             _lease: lease,
-            _observation: observation,
+            observation: std::sync::Arc::new(observation),
             branch_projection: branch.bridge_admission_evidence(),
             snapshot_projection: snapshot.bridge_admission_evidence(),
             _branch: branch,
@@ -52,6 +106,16 @@ impl WorthQueryConditionalTruthBasis {
 
     pub(super) fn snapshot(&self) -> &TruthSnapshotIdentity {
         &self.snapshot
+    }
+
+    pub(super) fn granular_source_read_basis(
+        &self,
+    ) -> crate::domain_computation::primary_graph::WorthQueryGranularSourceReadBasis {
+        crate::domain_computation::primary_graph::WorthQueryGranularSourceReadBasis::new(
+            self.snapshot.clone(),
+            self._branch.clone(),
+            std::sync::Arc::clone(&self.observation),
+        )
     }
 
     fn snapshot_projection(&self) -> &str {
@@ -68,6 +132,18 @@ pub(super) enum WorthQueryRetainedConditionalDecision {
     Suppressed(BridgeConditionalDecisionEvidence),
     Deferred(BridgeConditionalDecisionEvidence),
     OperationRetryable(BridgeConditionalDecisionEvidence, String),
+    OperationBackpressured(
+        BridgeConditionalDecisionEvidence,
+        WorthQueryOperationBackpressureCause,
+    ),
+    OperationControlStopped(
+        BridgeConditionalDecisionEvidence,
+        super::application_operation_reentry::WorthQueryTemporalControlStop,
+    ),
+    OperationTerminalFailure(
+        BridgeConditionalDecisionEvidence,
+        super::application_operation_reentry::WorthQueryTemporalTerminalFailure,
+    ),
     OperationSettlementDeferred(
         BridgeConditionalDecisionEvidence,
         crate::domain_computation::primary_graph::WorthQueryApplicationSettlementDeferred,
@@ -76,6 +152,17 @@ pub(super) enum WorthQueryRetainedConditionalDecision {
     OperationCommitted(BridgeConditionalDecisionEvidence),
     OperationAlreadyCommitted(BridgeConditionalDecisionEvidence),
     Failed(String),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum WorthQueryOperationBackpressureCause {
+    ActiveSnapshotCapacityExhausted {
+        maximum_active_snapshots: usize,
+    },
+    RetentionCapacityExhausted,
+    ProviderCommit(
+        crate::domain_computation::primary_graph::WorthQueryApplicationCommitDeferredKind,
+    ),
 }
 
 pub(super) struct WorthQueryRetainedConditionalWake {
@@ -115,6 +202,21 @@ pub(super) fn retained_decision_counts(
             WorthQueryRetainedConditionalDecision::Deferred(evidence) => {
                 let _decision = evidence.signal().class();
                 counts.deferred += 1;
+            }
+            WorthQueryRetainedConditionalDecision::OperationBackpressured(evidence, cause) => {
+                let _decision = evidence.signal().class();
+                let _typed_backpressure_cause = cause;
+                counts.deferred += 1;
+            }
+            WorthQueryRetainedConditionalDecision::OperationControlStopped(evidence, cause) => {
+                let _decision = evidence.signal().class();
+                let _typed_control_stop = cause;
+                counts.failed += 1;
+            }
+            WorthQueryRetainedConditionalDecision::OperationTerminalFailure(evidence, cause) => {
+                let _decision = evidence.signal().class();
+                let _typed_terminal_failure = cause;
+                counts.failed += 1;
             }
             WorthQueryRetainedConditionalDecision::OperationRetryable(evidence, detail)
             | WorthQueryRetainedConditionalDecision::OperationIndeterminate(evidence, detail) => {

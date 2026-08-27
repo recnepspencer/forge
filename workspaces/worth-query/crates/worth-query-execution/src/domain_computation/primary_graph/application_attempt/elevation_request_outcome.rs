@@ -177,6 +177,7 @@ pub enum WorthQueryElevationRequestOutcome {
     AlreadyRequested(WorthQueryRequestedElevation),
     Stale(WorthQueryApplicationStaleAttempt),
     Cancelled,
+    TimedOut,
     Denied(WorthQueryApplicationCommitDenial),
     Aborted,
     Deferred(super::WorthQueryApplicationCommitDeferred),
@@ -205,6 +206,7 @@ pub(in crate::domain_computation::primary_graph) fn requested_outcome(
         WorthQueryApplicationCommitOutcome::Cancelled => {
             WorthQueryElevationRequestOutcome::Cancelled
         }
+        WorthQueryApplicationCommitOutcome::TimedOut => WorthQueryElevationRequestOutcome::TimedOut,
         WorthQueryApplicationCommitOutcome::Denied(denial) => {
             WorthQueryElevationRequestOutcome::Denied(denial)
         }

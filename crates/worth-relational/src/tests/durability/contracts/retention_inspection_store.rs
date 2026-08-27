@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn durability_contract_recovery_rebuilds_branch_pinned_retention_from_branch_heads() {
+fn durability_contract_recovery_rebuilds_branch_head_root_obligations() {
     let mut runtime = persisted_runtime_with_test_schema();
     let source = create_entity_outcome(&mut runtime, "source");
     let source_entity = changed_entities(&source)[0];
@@ -25,10 +25,21 @@ fn durability_contract_recovery_rebuilds_branch_pinned_retention_from_branch_hea
 
     let retention = recovered.retention().inspect_plan();
     assert_eq!(retention.active_snapshot_count, 0);
-    assert!(retention.branch_pinned_entities >= 1);
-    assert!(retention.branch_pinned_relations >= 1);
-    assert_eq!(retention.reclaimable_entities, 0);
-    assert_eq!(retention.reclaimable_relations, 0);
+    assert_eq!(retention.branch_pinned_entities, 0);
+    assert_eq!(retention.branch_pinned_relations, 0);
+    let feature = recovered
+        .branch_identity(&BranchId("feature".to_owned()))
+        .unwrap();
+    let (_, feature_basis) = recovered.observe_branch(&feature).unwrap();
+    let feature_truth = recovered
+        .read_truth()
+        .read_observation(&feature_basis.observation())
+        .unwrap();
+    assert!(feature_truth.get_entity(source_entity).is_some());
+    assert!(feature_truth
+        .relations()
+        .iter()
+        .any(|relation| { relation.source == source_entity && relation.target == target_entity }));
 }
 
 #[test]
@@ -60,7 +71,8 @@ fn durability_contract_recovery_preserves_inspection_truth_bundle() {
                     ),
                 }),
             )),
-        );
+        )
+        .expect("test staging stays within configured resource budgets");
         txn.commit(&mut runtime).unwrap()
     };
     runtime.durability_authority().checkpoint().unwrap();
@@ -87,7 +99,7 @@ fn durability_contract_recovery_preserves_inspection_truth_bundle() {
 }
 
 #[test]
-fn durability_contract_live_branch_pin_counts_match_branch_head_membership() {
+fn durability_contract_branch_heads_do_not_mutate_legacy_record_pins() {
     let mut runtime = persisted_runtime_with_test_schema();
     let created = create_entity_outcome(&mut runtime, "source");
     let entity = changed_entities(&created)[0];
@@ -98,7 +110,7 @@ fn durability_contract_live_branch_pin_counts_match_branch_head_membership() {
             .expect("entity retention after create")
             .pins
             .branch_pins,
-        1
+        0
     );
 
     runtime
@@ -115,7 +127,7 @@ fn durability_contract_live_branch_pin_counts_match_branch_head_membership() {
             .expect("entity retention after branch create")
             .pins
             .branch_pins,
-        2
+        0
     );
 
     update_entity(&mut runtime, entity, "main");
@@ -126,7 +138,7 @@ fn durability_contract_live_branch_pin_counts_match_branch_head_membership() {
             .expect("entity retention after main update")
             .pins
             .branch_pins,
-        2
+        0
     );
 
     update_entity_on_branch(
@@ -142,7 +154,7 @@ fn durability_contract_live_branch_pin_counts_match_branch_head_membership() {
             .expect("entity retention after feature update")
             .pins
             .branch_pins,
-        2
+        0
     );
 }
 
@@ -160,7 +172,8 @@ fn invalid_store_path_does_not_relabel_performed_in_memory_publication() {
         .build();
 
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    txn.push_batch(batch_create("fail-closed"));
+    txn.push_batch(batch_create("fail-closed"))
+        .expect("test staging stays within configured resource budgets");
     let durability_deferred = txn
         .commit(&mut runtime)
         .expect_err("the performed movement is not falsely acknowledged as durable");
@@ -215,5 +228,5 @@ fn invalid_store_path_does_not_relabel_performed_in_memory_publication() {
             .commit_id,
         performed_commit.commit_id
     );
-    assert_eq!(runtime.retention().inspect_plan().branch_pinned_entities, 1);
+    assert_eq!(runtime.retention().inspect_plan().branch_pinned_entities, 0);
 }

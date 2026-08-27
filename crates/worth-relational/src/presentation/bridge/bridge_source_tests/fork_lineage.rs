@@ -153,7 +153,8 @@ pub(super) fn replace_entity_on_branch(
                 },
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn.commit(runtime).expect("replacement should commit");
     changed_entities(&outcome)[0]
 }

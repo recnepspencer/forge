@@ -10,7 +10,7 @@ use std::time::Duration;
 #[test]
 fn installed_invariant_projection_reads_one_pinned_typed_graph_snapshot() {
     let world = installed_authorization_world(true);
-    let snapshot = world.invariant.snapshot();
+    let snapshot = world.invariant.snapshot().expect("invariant snapshot");
     let accounts = snapshot.entities(Account::reference());
     let principals = snapshot.entities(Principal::reference());
     let owners = snapshot.relations(AccountOwner::reference());
@@ -38,8 +38,8 @@ fn installed_invariant_projection_reads_one_pinned_typed_graph_snapshot() {
 fn independently_installed_graphs_mint_distinct_projection_identities() {
     let first = installed_authorization_world(true);
     let second = installed_authorization_world(true);
-    let first_snapshot = first.invariant.snapshot();
-    let second_snapshot = second.invariant.snapshot();
+    let first_snapshot = first.invariant.snapshot().expect("first snapshot");
+    let second_snapshot = second.invariant.snapshot().expect("second snapshot");
     let first_account = first_snapshot.entities(Account::reference()).remove(0);
     let second_account = second_snapshot.entities(Account::reference()).remove(0);
 
@@ -54,30 +54,33 @@ fn independently_installed_graphs_mint_distinct_projection_identities() {
 #[test]
 fn locked_projection_uses_indexes_and_directional_adjacency_without_graph_scans() {
     let world = installed_authorization_world(true);
-    let completed = world.invariant.project(|reader| {
-        let principal = reader
-            .resolve_entity(PrincipalIdentityField::reference(), 1_u64)
-            .unwrap();
-        let owned = reader
-            .relations_from(AccountOwner::reference(), &principal)
-            .unwrap();
-        let open = reader
-            .resolve_entity(AccountStatus::reference(), "open".to_string())
-            .unwrap();
-        let owners = reader
-            .relations_to(AccountOwner::reference(), &open)
-            .unwrap();
-        let mut statuses = owned
-            .iter()
-            .map(|relation| {
-                reader
-                    .field(relation.to(), AccountStatus::reference())
-                    .unwrap()
-            })
-            .collect::<Vec<String>>();
-        statuses.sort();
-        (owned.len(), owners.len(), statuses)
-    });
+    let completed = world
+        .invariant
+        .project(|reader| {
+            let principal = reader
+                .resolve_entity(PrincipalIdentityField::reference(), 1_u64)
+                .unwrap();
+            let owned = reader
+                .relations_from(AccountOwner::reference(), &principal)
+                .unwrap();
+            let open = reader
+                .resolve_entity(AccountStatus::reference(), "open".to_string())
+                .unwrap();
+            let owners = reader
+                .relations_to(AccountOwner::reference(), &open)
+                .unwrap();
+            let mut statuses = owned
+                .iter()
+                .map(|relation| {
+                    reader
+                        .field(relation.to(), AccountStatus::reference())
+                        .unwrap()
+                })
+                .collect::<Vec<String>>();
+            statuses.sort();
+            (owned.len(), owners.len(), statuses)
+        })
+        .expect("invariant projection");
 
     assert_eq!(
         completed.output(),
@@ -97,12 +100,15 @@ fn locked_projection_uses_indexes_and_directional_adjacency_without_graph_scans(
 #[test]
 fn optional_locked_resolution_distinguishes_absence_from_ambiguity_and_counts_work() {
     let world = installed_authorization_world(true);
-    let completed = world.invariant.project(|reader| {
-        reader
-            .resolve_optional_entity(AccountStatus::reference(), "missing".to_string())
-            .unwrap()
-            .is_none()
-    });
+    let completed = world
+        .invariant
+        .project(|reader| {
+            reader
+                .resolve_optional_entity(AccountStatus::reference(), "missing".to_string())
+                .unwrap()
+                .is_none()
+        })
+        .expect("optional invariant projection");
 
     assert_eq!(completed.output(), &true);
     assert_eq!(completed.work().equality_lookups(), 1);
@@ -115,14 +121,17 @@ fn panicking_projection_releases_its_snapshot_without_poisoning_the_graph() {
     let world = installed_authorization_world(true);
     let baseline = world.invariant.active_snapshot_count();
     let panic = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        world
+        let _ = world
             .invariant
             .project::<()>(|_| panic!("hostile projector"));
     }));
 
     assert!(panic.is_err());
     assert_eq!(world.invariant.active_snapshot_count(), baseline);
-    let completed = world.invariant.project(|reader| reader.version());
+    let completed = world
+        .invariant
+        .project(|reader| reader.version())
+        .expect("projection after hostile projector");
     assert!(!completed.output().is_zero());
 }
 

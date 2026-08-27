@@ -69,7 +69,8 @@ fn validated_strategy_proposal_keeps_its_unique_version_across_unrelated_sibling
                 fields: strategy_name_and_replicas_patch("main-before-fork", 1),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     seed.commit(&mut runtime).expect("pre-fork main commit");
     let (_, basis) = runtime
         .observe_fork_source(&BranchId("main".to_owned()))
@@ -99,14 +100,18 @@ fn validated_strategy_proposal_keeps_its_unique_version_across_unrelated_sibling
     let validated_version = validated.proposal_identity().proposed_version_id();
 
     let mut sibling = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    sibling.push_batch(WorkerIntentBatch::new("main-after-validation").push(
-        MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-            partition_id: PartitionId(1),
-            kind_id: KindId(1),
-            client_key: ClientKey::from("main-after-validation"),
-            fields: strategy_name_and_replicas_patch("main-after-validation", 1),
-        })),
-    ));
+    sibling
+        .push_batch(
+            WorkerIntentBatch::new("main-after-validation").push(MutationIntent::Create(
+                CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId(1),
+                    kind_id: KindId(1),
+                    client_key: ClientKey::from("main-after-validation"),
+                    fields: strategy_name_and_replicas_patch("main-after-validation", 1),
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     sibling
         .commit(&mut runtime)
         .expect("unrelated sibling commit");
@@ -208,14 +213,16 @@ fn validate_lowered_plan_rejects_stale_basis_with_zero_residue() {
     };
     let mut intervening =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    intervening.push_batch(WorkerIntentBatch::new("advance-before-validation").push(
-        MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-            partition_id: PartitionId(1),
-            kind_id: KindId(1),
-            client_key: ClientKey::from("advance-before-validation"),
-            fields: strategy_name_and_replicas_patch("advance-before-validation", 1),
-        })),
-    ));
+    intervening
+        .push_batch(WorkerIntentBatch::new("advance-before-validation").push(
+            MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                partition_id: PartitionId(1),
+                kind_id: KindId(1),
+                client_key: ClientKey::from("advance-before-validation"),
+                fields: strategy_name_and_replicas_patch("advance-before-validation", 1),
+            })),
+        ))
+        .expect("test staging stays within configured resource budgets");
     intervening
         .commit(&mut runtime)
         .expect("intervening commit advances the exact branch");
@@ -284,14 +291,18 @@ fn execute_validated_commit_rejects_stale_validation_basis_after_intervening_com
 
     let mut ordinary_txn =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    ordinary_txn.push_batch(WorkerIntentBatch::new("ordinary-create").push(
-        MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-            partition_id: PartitionId(1),
-            kind_id: KindId(1),
-            client_key: ClientKey::from("ordinary-a"),
-            fields: strategy_name_and_replicas_patch("ordinary-a", 1),
-        })),
-    ));
+    ordinary_txn
+        .push_batch(
+            WorkerIntentBatch::new("ordinary-create").push(MutationIntent::Create(
+                CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId(1),
+                    kind_id: KindId(1),
+                    client_key: ClientKey::from("ordinary-a"),
+                    fields: strategy_name_and_replicas_patch("ordinary-a", 1),
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     ordinary_txn
         .commit(&mut runtime)
         .expect("ordinary commit succeeds");

@@ -1,10 +1,12 @@
 pub use crate::branch::{
     relational_branch_observation, AdmittedRelationalBranchBasis,
-    AdmittedRelationalForkSourceBasis, RelationalBranchBasisCostCounters,
-    RelationalBranchBasisDenial, RelationalBranchBasisDescriptor,
-    RelationalBranchBasisMismatchAxis, RelationalBranchBasisPosture, RelationalBranchCellDenial,
-    RelationalBranchComparisonBasis, RelationalBranchForkBasis, RelationalBranchIdentity,
-    RelationalBranchIdentityDenial, RelationalBranchMutationAuthority,
+    AdmittedRelationalForkSourceBasis, ArchivedRelationalBranch, DeletedRelationalBranch,
+    RelationalBranchArchiveDenial, RelationalBranchBasisCostCounters, RelationalBranchBasisDenial,
+    RelationalBranchBasisDescriptor, RelationalBranchBasisMismatchAxis,
+    RelationalBranchBasisPosture, RelationalBranchCellDenial, RelationalBranchComparisonBasis,
+    RelationalBranchDeleteDenial, RelationalBranchDeletionOutcome, RelationalBranchDeletionPending,
+    RelationalBranchForkBasis, RelationalBranchIdentity, RelationalBranchIdentityDenial,
+    RelationalBranchLifecyclePosture, RelationalBranchMutationAuthority,
     RelationalBranchMutationAuthorityMarker, RelationalBranchObservationAuthority,
     RelationalBranchObservationAuthorityMarker, RelationalBranchObservationConstructionDenial,
     RelationalBranchReferenceObservation, RelationalBranchReferenceState,
@@ -15,8 +17,8 @@ pub use crate::branch::{
     RELATIONAL_BRANCH_BASIS_DESCRIPTOR_VERSION,
 };
 pub use crate::history::retention::{
-    RelationalBasisRetentionReason, RelationalComponentBasisRetentionLease,
-    RelationalComponentBasisRetentionReleaseDenial,
-    RelationalComponentBasisRetentionReleaseReceipt,
+    RelationalBasisRetentionReason, RelationalBranchRetentionLease,
+    RelationalBranchRetentionReleaseDenial, RelationalBranchRetentionReleaseReceipt,
+    RelationalBranchRetentionTerminalOutcome, RelationalBranchRootReclamationOutcome,
 };
 pub use crate::mvcc::RelationalBranchObservation;

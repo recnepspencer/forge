@@ -17,7 +17,8 @@ fn native_same_record_updates_conflict_before_truth_or_publication_changes() {
             runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
         let entity = create_entity(&mut runtime, "before");
         let contract = entity_name_contract(&runtime);
-        let before_bundle = runtime.publication().latest_bundle().unwrap().clone();
+        let before_snapshot = runtime.visibility_authority().snapshot();
+        let before_patch = runtime.publication().latest_bundle().unwrap().patch.clone();
         let first = entity_patch_intent(entity, whole_set(&contract, "first"));
         let second_patch = if clear_second {
             whole_clear(&contract)
@@ -34,7 +35,9 @@ fn native_same_record_updates_conflict_before_truth_or_publication_changes() {
             [("first", first), ("second", second)]
         };
         for (label, intent) in batches {
-            transaction.push_batch(WorkerIntentBatch::new(label).push(intent));
+            transaction
+                .push_batch(WorkerIntentBatch::new(label).push(intent))
+                .expect("test staging stays within configured resource budgets");
         }
 
         let error = transaction
@@ -50,13 +53,14 @@ fn native_same_record_updates_conflict_before_truth_or_publication_changes() {
                 ..
             }
         ));
-        let after_bundle = runtime.publication().latest_bundle().unwrap().clone();
-        assert_eq!(after_bundle.snapshot, before_bundle.snapshot);
-        assert_eq!(after_bundle.patch, before_bundle.patch);
+        let after_snapshot = runtime.visibility_authority().snapshot();
+        let after_patch = runtime.publication().latest_bundle().unwrap().patch.clone();
+        assert_eq!(after_snapshot.version_id, before_snapshot.version_id);
+        assert_eq!(after_patch, before_patch);
 
         let read = runtime
             .read_truth()
-            .read_snapshot(&after_bundle.snapshot)
+            .read_snapshot(&after_snapshot)
             .expect("unchanged snapshot");
         let value = read
             .get_entity(entity)
@@ -71,6 +75,15 @@ fn native_same_record_updates_conflict_before_truth_or_publication_changes() {
             ContractValidatedAspectValueView::Scalar(AspectValue::String(value))
                 if value == &"before".into()
         ));
+        drop(read);
+        runtime
+            .snapshots()
+            .release_snapshot(&before_snapshot)
+            .unwrap();
+        runtime
+            .snapshots()
+            .release_snapshot(&after_snapshot)
+            .unwrap();
     }
 }
 
@@ -89,8 +102,12 @@ fn native_create_merge_is_stable_across_batch_permutations() {
             )
             .expect("owner-admitted transaction context")
     };
-    transaction_a.push_batch(native_create_batch("zeta", &contract_a));
-    transaction_a.push_batch(native_create_batch("alpha", &contract_a));
+    transaction_a
+        .push_batch(native_create_batch("zeta", &contract_a))
+        .expect("test staging stays within configured resource budgets");
+    transaction_a
+        .push_batch(native_create_batch("alpha", &contract_a))
+        .expect("test staging stays within configured resource budgets");
     let intents_a = transaction_a
         .merged_plan(&mut runtime_a)
         .unwrap()
@@ -110,8 +127,12 @@ fn native_create_merge_is_stable_across_batch_permutations() {
             )
             .expect("owner-admitted transaction context")
     };
-    transaction_b.push_batch(native_create_batch("alpha", &contract_b));
-    transaction_b.push_batch(native_create_batch("zeta", &contract_b));
+    transaction_b
+        .push_batch(native_create_batch("alpha", &contract_b))
+        .expect("test staging stays within configured resource budgets");
+    transaction_b
+        .push_batch(native_create_batch("zeta", &contract_b))
+        .expect("test staging stays within configured resource budgets");
     let intents_b = transaction_b
         .merged_plan(&mut runtime_b)
         .unwrap()
@@ -141,12 +162,14 @@ fn compatibility_and_native_scalar_authoring_publish_identical_patch_meaning() {
     let contract = entity_name_contract(&native_runtime);
     let mut transaction =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut native_runtime);
-    transaction.push_batch(
-        WorkerIntentBatch::new("native-equivalent").push(entity_patch_intent(
-            native_entity,
-            whole_set(&contract, "after"),
-        )),
-    );
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("native-equivalent").push(entity_patch_intent(
+                native_entity,
+                whole_set(&contract, "after"),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     let native = transaction.commit(&mut native_runtime).unwrap();
 
     assert_eq!(
@@ -180,8 +203,12 @@ fn compatibility_and_native_updates_on_one_target_have_one_conflict_law() {
     let native = entity_patch_intent(entity, whole_set(&contract, "native"));
     let mut transaction =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(WorkerIntentBatch::new("compatibility").push(compatibility));
-    transaction.push_batch(WorkerIntentBatch::new("native").push(native));
+    transaction
+        .push_batch(WorkerIntentBatch::new("compatibility").push(compatibility))
+        .expect("test staging stays within configured resource budgets");
+    transaction
+        .push_batch(WorkerIntentBatch::new("native").push(native))
+        .expect("test staging stays within configured resource budgets");
 
     assert!(matches!(
         transaction.commit(&mut runtime),
@@ -214,18 +241,22 @@ fn mixed_native_entity_and_relation_updates_share_one_atomic_commit() {
         .unwrap();
     let mut transaction =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(WorkerIntentBatch::new("entity").push(entity_patch_intent(
-        source,
-        whole_set(&entity_contract, "source-after"),
-    )));
-    transaction.push_batch(
-        WorkerIntentBatch::new("relation").push(MutationIntent::Relation(
-            RelationMutationIntent::ApplyAspectPatch(ApplyRelationAspectPatchIntent {
-                relation_id: relation,
-                aspect_patch: whole_set(&relation_contract, "relation-after"),
-            }),
-        )),
-    );
+    transaction
+        .push_batch(WorkerIntentBatch::new("entity").push(entity_patch_intent(
+            source,
+            whole_set(&entity_contract, "source-after"),
+        )))
+        .expect("test staging stays within configured resource budgets");
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("relation").push(MutationIntent::Relation(
+                RelationMutationIntent::ApplyAspectPatch(ApplyRelationAspectPatchIntent {
+                    relation_id: relation,
+                    aspect_patch: whole_set(&relation_contract, "relation-after"),
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
 
     let committed = transaction.commit(&mut runtime).unwrap();
     assert_eq!(committed.patch().len(), 2);

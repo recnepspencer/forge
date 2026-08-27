@@ -1,13 +1,10 @@
 mod branch_head_residency;
-mod branch_pins;
 mod replay_pins;
 mod snapshot_state_pins;
-#[cfg(test)]
-mod tests;
 
 use crate::runtime::RelationalRuntime;
 use crate::storage::substrate::PinClass as SubstratePinClass;
-use crate::storage::substrate::{EntityRecordKind, PinClass, RecordKind, RelationRecordKind};
+use crate::storage::substrate::{EntityRecordKind, RecordKind, RelationRecordKind};
 use crate::visibility::snapshot_states::SnapshotState;
 
 pub(crate) struct VisibilityPinAuthority<'runtime> {

@@ -20,17 +20,15 @@ impl WorthQueryObservedApplicationFactBasis {
     pub(in crate::domain_computation::primary_graph::provider) fn remains_equal_in(
         &self,
         runtime: &mut worth_relational::facade::runtime::RelationalRuntime,
-    ) -> bool {
-        let Some(snapshot) = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(
+    ) -> Result<bool, crate::domain_computation::primary_graph::WorthQueryExactBasisSnapshotDenial>
+    {
+        let snapshot = crate::domain_computation::primary_graph::exact_basis_access::open_current_branch_snapshot(
             runtime,
             &self.branch,
-        )
-        else {
-            return false;
-        };
+        )?;
         let fresh = self.fact.remains_equal_in(runtime, &snapshot);
-        runtime.snapshots().release_snapshot(&snapshot);
-        fresh
+        crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
+        Ok(fresh)
     }
 }
 
@@ -50,7 +48,10 @@ impl WorthQueryApplicationIdempotencyBasis {
     pub(in crate::domain_computation::primary_graph::provider) fn resolve(
         self,
         provider: &super::super::WorthQueryPrimaryGraphProvider,
-    ) -> Result<super::super::WorthQueryProviderIdempotencyResolution, &'static str> {
+    ) -> Result<
+        super::super::WorthQueryProviderIdempotencyResolution,
+        super::super::WorthQueryProviderIdempotencyResolutionDenial,
+    > {
         provider.resolve_idempotency_binding(self.binding, &self.branch)
     }
 }

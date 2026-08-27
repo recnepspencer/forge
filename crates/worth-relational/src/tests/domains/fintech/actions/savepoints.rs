@@ -15,7 +15,7 @@ pub(crate) fn rollback_case_trade_after_savepoint(
         &mut world.runtime,
         branch_id,
     );
-    let savepoint = txn.create_savepoint();
+    let savepoint = txn.create_savepoint().unwrap();
     txn.push_batch(
         WorkerIntentBatch::new("temporary-case-trade-correction")
             .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
@@ -66,7 +66,8 @@ pub(crate) fn rollback_case_trade_after_savepoint(
                 },
             )))
             .into(),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     txn.rollback_to_savepoint(savepoint).unwrap()
 }
 
@@ -79,7 +80,7 @@ pub(crate) fn commit_case_trade_after_savepoint(
         &mut world.runtime,
         branch_id,
     );
-    let _savepoint = txn.create_savepoint();
+    let _savepoint = txn.create_savepoint().unwrap();
     txn.push_batch(
         WorkerIntentBatch::new("saved-case-trade-correction").push(
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(
@@ -131,6 +132,7 @@ pub(crate) fn commit_case_trade_after_savepoint(
             ))
             .into(),
         ),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     txn.commit(&mut world.runtime).unwrap()
 }

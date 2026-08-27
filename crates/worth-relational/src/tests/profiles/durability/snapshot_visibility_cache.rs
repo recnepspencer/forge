@@ -71,12 +71,15 @@ fn explicit_snapshots_can_skip_cache_protection_and_still_read_until_release() {
         read_entity_field(read.get_entity(entity).unwrap(), field_key("name")),
         Some("first".into())
     );
-    assert_eq!(inspection.pinned_entity_count, 1);
+    assert_eq!(inspection.pinned_entity_count, 0);
     assert_eq!(stats.snapshot_count, 1);
     assert_eq!(stats.cached_visibility_version_count, 0);
     assert_eq!(stats.protected_visibility_version_count, 0);
 
-    assert!(runtime.visibility_authority().release_snapshot(&snapshot));
+    assert!(runtime
+        .visibility_authority()
+        .release_snapshot(&snapshot)
+        .is_ok());
     assert!(runtime.read_truth().read_snapshot(&snapshot).is_none());
 }
 

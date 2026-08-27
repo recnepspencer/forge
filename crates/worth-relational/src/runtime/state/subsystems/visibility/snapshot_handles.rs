@@ -1,5 +1,6 @@
-use std::collections::BTreeMap;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex, Weak};
 
 use crate::history::data::BranchId;
 use crate::identity::data::VersionId;
@@ -7,28 +8,181 @@ use crate::snapshots::data::{SnapshotId, SnapshotReadPolicy};
 
 #[derive(Debug, Default)]
 pub(crate) struct SnapshotHandles {
-    active: BTreeMap<SnapshotId, SnapshotHandleBinding>,
-    published: BTreeMap<SnapshotId, SnapshotHandleBinding>,
-    published_by_version: BTreeMap<VersionId, SnapshotId>,
+    active: HashMap<SnapshotId, SnapshotHandleBinding>,
+    published: Arc<Mutex<PublishedSnapshotHandles>>,
     next_snapshot_id: AtomicU64,
+    active_key_lookups: AtomicU64,
+    active_mutations: AtomicU64,
+}
+
+#[derive(Debug, Default)]
+struct PublishedSnapshotHandles {
+    by_id: HashMap<SnapshotId, SnapshotHandleBinding>,
+    by_version: HashMap<VersionId, SnapshotId>,
+    key_lookups: u64,
+    mutations: u64,
+}
+
+#[cfg(test)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) struct SnapshotHandleRegistryCostCounters {
+    pub(crate) active_entries: u64,
+    pub(crate) active_key_lookups: u64,
+    pub(crate) active_mutations: u64,
+    pub(crate) published_entries: u64,
+    pub(crate) published_key_lookups: u64,
+    pub(crate) published_mutations: u64,
+}
+
+#[derive(Debug)]
+pub(crate) struct PublishedSnapshotCapacityOwner {
+    maximum_handles: usize,
+    occupied_handles: AtomicUsize,
+}
+
+impl PublishedSnapshotCapacityOwner {
+    pub(crate) fn new(maximum_handles: usize) -> Arc<Self> {
+        Arc::new(Self {
+            maximum_handles,
+            occupied_handles: AtomicUsize::new(0),
+        })
+    }
+
+    pub(crate) fn reserve(self: &Arc<Self>) -> Result<PublishedSnapshotSlotReservation, usize> {
+        let mut occupied = self.occupied_handles.load(Ordering::Acquire);
+        loop {
+            if occupied >= self.maximum_handles {
+                return Err(self.maximum_handles);
+            }
+            match self.occupied_handles.compare_exchange_weak(
+                occupied,
+                occupied + 1,
+                Ordering::AcqRel,
+                Ordering::Acquire,
+            ) {
+                Ok(_) => {
+                    return Ok(PublishedSnapshotSlotReservation {
+                        owner: Arc::clone(self),
+                        releases_on_drop: true,
+                    });
+                }
+                Err(observed) => occupied = observed,
+            }
+        }
+    }
+
+    pub(crate) const fn maximum_handles(&self) -> usize {
+        self.maximum_handles
+    }
+
+    pub(crate) fn release(&self) {
+        let previous = self.occupied_handles.fetch_sub(1, Ordering::AcqRel);
+        debug_assert!(previous > 0, "published snapshot capacity underflow");
+    }
+}
+
+#[derive(Debug)]
+#[must_use = "published snapshot capacity reservations must be installed or released"]
+pub(crate) struct PublishedSnapshotSlotReservation {
+    owner: Arc<PublishedSnapshotCapacityOwner>,
+    releases_on_drop: bool,
+}
+
+impl PublishedSnapshotSlotReservation {
+    pub(crate) fn install(mut self) {
+        self.releases_on_drop = false;
+    }
+}
+
+impl Drop for PublishedSnapshotSlotReservation {
+    fn drop(&mut self) {
+        if self.releases_on_drop {
+            self.owner.release();
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct PublishedSnapshotCloseout {
+    inner: Arc<PublishedSnapshotCloseoutInner>,
+}
+
+#[derive(Debug)]
+struct PublishedSnapshotCloseoutInner {
+    handles: Weak<Mutex<PublishedSnapshotHandles>>,
+    capacity: Arc<PublishedSnapshotCapacityOwner>,
+    snapshot_id: SnapshotId,
+}
+
+impl PublishedSnapshotCloseout {
+    fn new(
+        handles: &Arc<Mutex<PublishedSnapshotHandles>>,
+        capacity: Arc<PublishedSnapshotCapacityOwner>,
+        snapshot_id: SnapshotId,
+    ) -> Self {
+        Self {
+            inner: Arc::new(PublishedSnapshotCloseoutInner {
+                handles: Arc::downgrade(handles),
+                capacity,
+                snapshot_id,
+            }),
+        }
+    }
+
+    pub(crate) fn close(&self) {
+        self.inner.close();
+    }
+}
+
+impl PartialEq for PublishedSnapshotCloseout {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.inner, &other.inner)
+    }
+}
+
+impl Eq for PublishedSnapshotCloseout {}
+
+impl PublishedSnapshotCloseoutInner {
+    fn close(&self) {
+        let Some(handles) = self.handles.upgrade() else {
+            return;
+        };
+        let removed = remove_published_handle(
+            &mut handles
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner()),
+            self.snapshot_id,
+        );
+        if removed.is_some() {
+            self.capacity.release();
+        }
+    }
+}
+
+impl Drop for PublishedSnapshotCloseoutInner {
+    fn drop(&mut self) {
+        self.close();
+    }
 }
 
 impl SnapshotHandles {
     pub(crate) fn new() -> Self {
         Self {
-            active: BTreeMap::new(),
-            published: BTreeMap::new(),
-            published_by_version: BTreeMap::new(),
+            active: HashMap::new(),
+            published: Arc::new(Mutex::new(PublishedSnapshotHandles::default())),
             next_snapshot_id: AtomicU64::new(1),
+            active_key_lookups: AtomicU64::new(0),
+            active_mutations: AtomicU64::new(0),
         }
     }
 
     pub(crate) fn fork(&self) -> Self {
         Self {
-            active: self.active.clone(),
-            published: self.published.clone(),
-            published_by_version: self.published_by_version.clone(),
-            next_snapshot_id: AtomicU64::new(self.next_snapshot_id.load(Ordering::Relaxed)),
+            active: HashMap::new(),
+            published: Arc::new(Mutex::new(PublishedSnapshotHandles::default())),
+            next_snapshot_id: AtomicU64::new(1),
+            active_key_lookups: AtomicU64::new(0),
+            active_mutations: AtomicU64::new(0),
         }
     }
 
@@ -37,11 +191,16 @@ impl SnapshotHandles {
     }
 
     pub(crate) fn published_count(&self) -> usize {
-        self.published.len()
+        self.lock_published().by_id.len()
     }
 
-    pub(crate) fn next_snapshot_id(&self) -> SnapshotId {
-        SnapshotId(self.next_snapshot_id.fetch_add(1, Ordering::Relaxed))
+    pub(crate) fn next_snapshot_id(&self) -> Option<SnapshotId> {
+        self.next_snapshot_id
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| {
+                (current != 0).then(|| current.checked_add(1).unwrap_or(0))
+            })
+            .ok()
+            .map(SnapshotId)
     }
 
     pub(crate) fn insert_active(
@@ -49,6 +208,12 @@ impl SnapshotHandles {
         snapshot_id: SnapshotId,
         binding: SnapshotHandleBinding,
     ) {
+        assert!(
+            !self.active.contains_key(&snapshot_id),
+            "snapshot identity allocator collided with a live active handle"
+        );
+        self.active_key_lookups.fetch_add(1, Ordering::Relaxed);
+        self.active_mutations.fetch_add(1, Ordering::Relaxed);
         self.active.insert(snapshot_id, binding);
     }
 
@@ -56,15 +221,22 @@ impl SnapshotHandles {
         &mut self,
         snapshot_id: SnapshotId,
     ) -> Option<SnapshotHandleBinding> {
-        self.active.remove(&snapshot_id)
+        self.active_key_lookups.fetch_add(1, Ordering::Relaxed);
+        let removed = self.active.remove(&snapshot_id);
+        if removed.is_some() {
+            self.active_mutations.fetch_add(1, Ordering::Relaxed);
+        }
+        removed
     }
 
     pub(crate) fn active_binding(&self, snapshot_id: SnapshotId) -> Option<&SnapshotHandleBinding> {
+        self.active_key_lookups.fetch_add(1, Ordering::Relaxed);
         self.active.get(&snapshot_id)
     }
 
     pub(crate) fn is_known_snapshot(&self, snapshot_id: SnapshotId) -> bool {
-        self.active.contains_key(&snapshot_id) || self.published.contains_key(&snapshot_id)
+        self.active.contains_key(&snapshot_id)
+            || self.lock_published().by_id.contains_key(&snapshot_id)
     }
 
     pub(crate) fn active_versions(&self) -> impl Iterator<Item = VersionId> + '_ {
@@ -76,39 +248,43 @@ impl SnapshotHandles {
         snapshot_id: SnapshotId,
         binding: SnapshotHandleBinding,
     ) {
+        let mut published = self.lock_published();
         let version_id = binding.version_id;
-        if let Some(previous) = self.published.insert(snapshot_id, binding) {
-            if self.published_by_version.get(&previous.version_id) == Some(&snapshot_id) {
-                self.published_by_version.remove(&previous.version_id);
-            }
-        }
-        if let Some(displaced_snapshot_id) =
-            self.published_by_version.insert(version_id, snapshot_id)
-        {
-            if displaced_snapshot_id != snapshot_id {
-                self.published.remove(&displaced_snapshot_id);
-            }
-        }
+        assert!(
+            !published.by_id.contains_key(&snapshot_id),
+            "snapshot identity allocator collided with a live published handle"
+        );
+        assert!(
+            !published.by_version.contains_key(&version_id),
+            "one published snapshot already owns this exact version"
+        );
+        published.key_lookups = published.key_lookups.saturating_add(2);
+        published.mutations = published.mutations.saturating_add(2);
+        let previous_binding = published.by_id.insert(snapshot_id, binding);
+        let previous_snapshot = published.by_version.insert(version_id, snapshot_id);
+        debug_assert!(previous_binding.is_none());
+        debug_assert!(previous_snapshot.is_none());
     }
 
     pub(crate) fn remove_published(
         &mut self,
         snapshot_id: SnapshotId,
     ) -> Option<SnapshotHandleBinding> {
-        let binding = self.published.remove(&snapshot_id)?;
-        if self.published_by_version.get(&binding.version_id) == Some(&snapshot_id) {
-            self.published_by_version.remove(&binding.version_id);
-        }
-        Some(binding)
+        remove_published_handle(&mut self.lock_published(), snapshot_id)
     }
 
-    pub(crate) fn published_versions(&self) -> impl Iterator<Item = VersionId> + '_ {
-        self.published.values().map(|binding| binding.version_id)
+    pub(crate) fn published_versions(&self) -> Vec<VersionId> {
+        self.lock_published()
+            .by_id
+            .values()
+            .map(|binding| binding.version_id)
+            .collect()
     }
 
     #[cfg(test)]
     pub(crate) fn retains_published_version(&self, version_id: VersionId) -> bool {
-        self.published
+        self.lock_published()
+            .by_id
             .values()
             .any(|binding| binding.version_id == version_id)
     }
@@ -116,24 +292,68 @@ impl SnapshotHandles {
     pub(crate) fn published_binding(
         &self,
         snapshot_id: SnapshotId,
-    ) -> Option<&SnapshotHandleBinding> {
-        self.published.get(&snapshot_id)
+    ) -> Option<SnapshotHandleBinding> {
+        self.lock_published().by_id.get(&snapshot_id).cloned()
     }
 
     pub(crate) fn published_binding_for_version(
         &self,
         version_id: VersionId,
     ) -> Option<(SnapshotId, SnapshotHandleBinding)> {
-        let snapshot_id = *self.published_by_version.get(&version_id)?;
-        self.published
+        let published = self.lock_published();
+        let snapshot_id = *published.by_version.get(&version_id)?;
+        published
+            .by_id
             .get(&snapshot_id)
             .cloned()
             .map(|binding| (snapshot_id, binding))
     }
 
-    pub(crate) fn oldest_published_snapshot_id(&self) -> Option<SnapshotId> {
-        self.published.keys().next().copied()
+    pub(crate) fn published_closeout(
+        &self,
+        capacity: Arc<PublishedSnapshotCapacityOwner>,
+        snapshot_id: SnapshotId,
+    ) -> Option<PublishedSnapshotCloseout> {
+        self.lock_published()
+            .by_id
+            .contains_key(&snapshot_id)
+            .then(|| PublishedSnapshotCloseout::new(&self.published, capacity, snapshot_id))
     }
+
+    fn lock_published(&self) -> std::sync::MutexGuard<'_, PublishedSnapshotHandles> {
+        self.published
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn registry_cost_counters(&self) -> SnapshotHandleRegistryCostCounters {
+        let published = self.lock_published();
+        SnapshotHandleRegistryCostCounters {
+            active_entries: self.active.len() as u64,
+            active_key_lookups: self.active_key_lookups.load(Ordering::Relaxed),
+            active_mutations: self.active_mutations.load(Ordering::Relaxed),
+            published_entries: published.by_id.len() as u64,
+            published_key_lookups: published.key_lookups,
+            published_mutations: published.mutations,
+        }
+    }
+}
+
+fn remove_published_handle(
+    published: &mut PublishedSnapshotHandles,
+    snapshot_id: SnapshotId,
+) -> Option<SnapshotHandleBinding> {
+    published.key_lookups = published.key_lookups.saturating_add(1);
+    let binding = published.by_id.remove(&snapshot_id)?;
+    published.mutations = published.mutations.saturating_add(1);
+    published.key_lookups = published.key_lookups.saturating_add(1);
+    if published.by_version.get(&binding.version_id) == Some(&snapshot_id) {
+        published.key_lookups = published.key_lookups.saturating_add(1);
+        published.mutations = published.mutations.saturating_add(1);
+        published.by_version.remove(&binding.version_id);
+    }
+    Some(binding)
 }
 
 #[derive(Debug)]
@@ -155,6 +375,13 @@ impl SnapshotHandleBinding {
             read_policy,
             basis,
         }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn for_registry_scale_test(&self, version_id: VersionId) -> Self {
+        let mut binding = self.clone();
+        binding.version_id = version_id;
+        binding
     }
 }
 

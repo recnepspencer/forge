@@ -27,6 +27,7 @@ pub use authorization_sources::{
     WorthQueryGovernedTemporalOperationAuthorization, WorthQueryGovernedTemporalQueryAuthorization,
     WorthQueryPublicTemporalOperationAuthorization, WorthQueryPublicTemporalQueryAuthorization,
     WorthQueryTemporalOperationAuthorization, WorthQueryTemporalQueryAuthorization,
+    WorthQueryTemporalQueryAuthorizationDenial,
 };
 pub use clock_observation::{
     WorthQueryConditionalClockObservationDenial, WorthQueryConditionalClockObservationDenialKind,
@@ -35,8 +36,8 @@ pub use clock_observation::{
     WorthQueryConditionalClockObservationReceipt,
 };
 pub use execution_provenance::{
-    WorthQueryConditionalExecutionProvenance, WorthQueryConditionalExecutionTerminal,
-    WorthQueryConditionalSignalDecision,
+    WorthQueryConditionalExecutionCause, WorthQueryConditionalExecutionProvenance,
+    WorthQueryConditionalExecutionTerminal, WorthQueryConditionalSignalDecision,
 };
 pub use inspection::WorthQueryConditionalRuntimeInspection;
 pub(in crate::domain_computation::primary_graph) use installation::WorthQueryPendingConditionalOperation;

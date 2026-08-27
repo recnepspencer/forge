@@ -94,13 +94,18 @@ fn v1_ordering_runtime() -> (RelationalRuntime, RelatedOrderingFixture) {
     let v1_commit = create_relation_outcome(&mut runtime, parent, alpha, "owns-alpha");
     create_branch_from_main(&mut runtime, "v1-ordering");
     let index = register_related_ordering_index(&mut runtime);
-    let v1_build = runtime
-        .index_authority()
-        .build_for_commit(DerivedIndexBuildRequest {
+    let v1_branch = runtime
+        .branch_identity(&BranchId("v1-ordering".to_owned()))
+        .unwrap();
+    let (_, v1_basis) = runtime.observe_branch(&v1_branch).unwrap();
+    let v1_build = runtime.index_authority().build_for_basis(
+        DerivedIndexBuildRequest {
             source_commit_id: v1_commit.commit.commit_id,
             branch_id: BranchId("v1-ordering".to_owned()),
             index_ids: vec![index.index_id],
-        });
+        },
+        &v1_basis,
+    );
     assert!(v1_build.failed_indexes.is_empty());
 
     (
@@ -143,7 +148,9 @@ fn transition_checkpoint_and_recover(
             )
             .expect("owner-admitted transaction context")
     };
-    transaction.push_batch(batch_create("v2-current"));
+    transaction
+        .push_batch(batch_create("v2-current"))
+        .expect("test staging stays within configured resource budgets");
     let v2_commit = transaction
         .commit(&mut runtime)
         .expect("v2 schema transition commits");

@@ -114,9 +114,9 @@ fn cdc_certification_explicit_dependency_graph_resume_is_exact() {
     );
 
     for step in 0..48 {
-        let _ = update_entity(&mut runtime, target, &format!("target-b-{step}"));
+        update_entity_and_release_snapshot(&mut runtime, target, &format!("target-b-{step}"));
         if step % 4 == 0 {
-            let _ = update_entity(&mut runtime, source, &format!("source-a-{step}"));
+            update_entity_and_release_snapshot(&mut runtime, source, &format!("source-a-{step}"));
         }
         if step % 6 == 0 {
             let _ = create_entity_in_partition(
@@ -153,7 +153,7 @@ fn cdc_certification_rewrite_storm_preserves_exact_suffix_under_tiny_windows() {
     );
 
     for step in 1..=profile.steps() {
-        let _ = update_entity(&mut runtime, entity, &format!("rewrite-storm-{step}"));
+        update_entity_and_release_snapshot(&mut runtime, entity, &format!("rewrite-storm-{step}"));
         if step % 16 == 0 {
             let partition = match step % 4 {
                 0 => PartitionId(7),

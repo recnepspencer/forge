@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 #[cfg(test)]
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -18,6 +18,8 @@ use crate::publication::patch::data::PatchStreamPosition;
 mod canonical_publication_routes;
 #[path = "history_branch_cells.rs"]
 mod history_branch_cells;
+#[path = "history_branch_lifecycle.rs"]
+mod history_branch_lifecycle;
 #[path = "history_canonical_routes.rs"]
 mod history_canonical_routes;
 #[path = "history_catalog_recovery.rs"]
@@ -28,6 +30,9 @@ mod history_construction;
 mod history_cost_recording;
 #[path = "history_costs.rs"]
 mod history_costs;
+#[path = "history_head_versions.rs"]
+mod history_head_versions;
+pub(crate) use history_head_versions::BranchHeadVersionIndexAuthority;
 #[path = "history_publication.rs"]
 mod history_publication;
 #[path = "history_recovery.rs"]
@@ -36,6 +41,8 @@ mod history_recovery;
 mod history_recovery_lineage;
 #[path = "history_recovery_validation.rs"]
 mod history_recovery_validation;
+#[path = "history_retention.rs"]
+mod history_retention;
 #[path = "history_root_capture.rs"]
 mod history_root_capture;
 pub use canonical_publication_routes::RelationalPatchPositionReservationCounters;
@@ -66,7 +73,7 @@ pub struct RelationalPhase4ReferenceCostCounters {
     pub branch_population_scans: u64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub(crate) struct HistorySubsystem {
     pub(crate) runtime_instance_id: u64,
     pub(crate) main_branch: BranchId,
@@ -75,14 +82,17 @@ pub(crate) struct HistorySubsystem {
     pub(crate) phase4_costs: RelationalPhase4ReferenceCostCounters,
     pub(crate) sharing_costs: RelationalBranchSharingCostCounters,
     branch_sharing_costs:
-        BTreeMap<crate::branch::RelationalBranchIdentity, RelationalBranchSharingCostCounters>,
+        HashMap<crate::branch::RelationalBranchIdentity, RelationalBranchSharingCostCounters>,
     root_identity_issuer: RelationalBranchRootIdentityIssuer,
     /// Population-wide reference traversal is deliberately hidden behind
     /// named diagnostics/checkpoint methods.  Keeping the counter separate
     /// lets those shared-`&self` methods record a scan without making the
     /// operational counters interior-mutable.
     branch_population_scans: Arc<AtomicU64>,
+    branch_head_versions: history_head_versions::BranchHeadVersionIndexAuthority,
     basis_registry_metrics: Arc<RelationalBranchBasisRegistryMetrics>,
+    retention_owner: crate::history::retention::RelationalBranchRetentionOwner,
+    retired_branch_names: std::collections::HashSet<BranchId>,
     #[cfg(test)]
     root_capture_sabotage: Arc<AtomicBool>,
     /// Durable recovery/diagnostic sidecar. Currentness and fork identity
@@ -113,10 +123,13 @@ impl HistorySubsystem {
             commit_catalog: RelationalCommitCatalog::default(),
             phase4_costs: RelationalPhase4ReferenceCostCounters::default(),
             sharing_costs: RelationalBranchSharingCostCounters::default(),
-            branch_sharing_costs: BTreeMap::new(),
+            branch_sharing_costs: HashMap::new(),
             root_identity_issuer: RelationalBranchRootIdentityIssuer::default(),
             branch_population_scans: Arc::new(AtomicU64::new(0)),
+            branch_head_versions: Default::default(),
             basis_registry_metrics,
+            retention_owner: crate::history::retention::RelationalBranchRetentionOwner::new(0),
+            retired_branch_names: std::collections::HashSet::new(),
             #[cfg(test)]
             root_capture_sabotage: Arc::new(AtomicBool::new(false)),
             commit_graph: BTreeMap::new(),
@@ -149,6 +162,22 @@ impl HistorySubsystem {
 
     pub(crate) fn current_version_id(&self) -> VersionId {
         VersionId(self.next_version_id.saturating_sub(1))
+    }
+
+    pub(crate) fn move_branch_head_version(
+        &self,
+        previous: Option<VersionId>,
+        next: Option<VersionId>,
+    ) {
+        self.branch_head_versions.move_head(previous, next);
+    }
+
+    pub(crate) fn oldest_branch_head_version(&self) -> Option<VersionId> {
+        self.branch_head_versions.oldest()
+    }
+
+    pub(crate) fn branch_head_version_index(&self) -> BranchHeadVersionIndexAuthority {
+        self.branch_head_versions.clone()
     }
 
     pub(crate) fn prepare_recovery_sequence(&mut self, commit_id: CommitId, version_id: VersionId) {
@@ -201,6 +230,7 @@ impl HistorySubsystem {
                 })
                 .collect(),
         );
+        self.reset_retention_owner(runtime_instance_id);
     }
 
     pub(crate) fn fork_snapshot(
@@ -218,7 +248,7 @@ impl HistorySubsystem {
             );
         }
         let positioned = self.canonical_publication_routes.performed_snapshot();
-        let mut fork = self.clone();
+        let mut fork = self.detached_owner_snapshot();
         if let Some(maximum) = positioned
             .iter()
             .map(|commit| commit.envelope().commit.commit_id.0)
@@ -257,6 +287,7 @@ impl HistorySubsystem {
         self.sharing_costs = RelationalBranchSharingCostCounters::default();
         self.branch_sharing_costs.clear();
         self.branch_population_scans = Arc::new(AtomicU64::new(0));
+        self.retired_branch_names.clear();
     }
 
     pub(crate) fn branch_cell(

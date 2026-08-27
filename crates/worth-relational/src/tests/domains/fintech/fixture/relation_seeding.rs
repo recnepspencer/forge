@@ -207,7 +207,8 @@ where
                 field_patches,
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     changed_relations(&txn.commit(&mut runtime).unwrap())
 }
 

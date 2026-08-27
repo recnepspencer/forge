@@ -107,6 +107,7 @@ pub enum WorthQueryMandatoryReviewOutcome {
     AlreadyReviewed(WorthQueryReviewedElevation),
     Stale(WorthQueryApplicationStaleAttempt, WorthQueryMandatoryReview),
     Cancelled(WorthQueryMandatoryReview),
+    TimedOut,
     Denied(WorthQueryApplicationCommitDenial, WorthQueryMandatoryReview),
     Aborted(WorthQueryMandatoryReview),
     Deferred(super::WorthQueryApplicationCommitDeferred),
@@ -131,6 +132,7 @@ pub(in crate::domain_computation::primary_graph) fn reviewed_outcome(
         WorthQueryApplicationCommitOutcome::Cancelled => {
             WorthQueryMandatoryReviewOutcome::Cancelled(binding.into_mandatory())
         }
+        WorthQueryApplicationCommitOutcome::TimedOut => WorthQueryMandatoryReviewOutcome::TimedOut,
         WorthQueryApplicationCommitOutcome::Denied(denial) => {
             WorthQueryMandatoryReviewOutcome::Denied(denial, binding.into_mandatory())
         }

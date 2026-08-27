@@ -239,7 +239,8 @@ fn create_entity_with_aspect_fields_on_branch(
                 fields: aspect_fields_with_identity_name(client_key, fields),
             },
         )),
-    ));
+    ))
+    .expect("test staging stays within configured resource budgets");
     changed_entities(&txn.commit(&mut runtime).unwrap())[0]
 }
 
@@ -266,7 +267,8 @@ fn update_entity_aspect_fields_on_branch(
                 fields: aspect_fields_with_identity_name(&stable_name, fields),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     txn.commit(&mut runtime).unwrap();
 }
 

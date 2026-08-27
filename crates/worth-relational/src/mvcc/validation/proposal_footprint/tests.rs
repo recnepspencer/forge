@@ -181,7 +181,9 @@ fn validate(
     );
     let mut transaction =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(batch);
+    transaction
+        .push_batch(batch)
+        .expect("test staging stays within configured resource budgets");
     transaction
         .validate(&mut runtime)
         .expect("owner validates fixture mutation")

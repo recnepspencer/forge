@@ -49,7 +49,8 @@ fn update_entity_fields_applies_struct_contract_field_patch() {
                 ),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn.commit(&mut runtime).unwrap();
     let patch_record = &outcome.patch()[0];
     let current_read = runtime
@@ -195,6 +196,7 @@ pub(super) fn create_entity_with_summary_fields(
             client_key: crate::symbols::data::ClientKey::raw(client_key),
             fields: crate::transactions::data::AspectFieldPatch::new(fields),
         })),
-    ));
+    ))
+    .expect("test staging stays within configured resource budgets");
     changed_entities(&txn.commit(&mut runtime).unwrap())[0]
 }

@@ -152,6 +152,7 @@ pub(super) fn prepare_commit_publication_execution(
 pub(crate) fn publish_commit_execution(
     runtime: &mut crate::runtime::RelationalRuntime,
     prepared: PreparedCommitPublicationCompletion,
+    published_snapshot_basis: crate::visibility::snapshot_states::VisibilitySnapshotBasis,
 ) -> Result<
     (
         PublishedCommitExecution,
@@ -171,10 +172,18 @@ pub(crate) fn publish_commit_execution(
         publication_snapshot,
         aspect_evaluation_traces,
         aspect_emission_traces,
+        published_snapshot_slot,
     } = prepared;
     let finalized = {
         let (_, _, _, _, commit_log, phase_timing) = admitted.phase_view().into_parts();
-        finalize_publication_phase(runtime, commit_log, phase_timing, publication)?
+        finalize_publication_phase(
+            runtime,
+            commit_log,
+            phase_timing,
+            publication,
+            published_snapshot_basis,
+            published_snapshot_slot,
+        )?
     };
     let (positioned_commit, changed_records, durability_error) = finalized.into_parts();
     let patch_position = positioned_commit.position();
@@ -264,6 +273,7 @@ pub(crate) struct PreparedCommitPublicationCompletion {
     aspect_evaluation_traces: Vec<crate::transactions::data::AspectEvaluationTrace>,
     aspect_emission_traces:
         Vec<super::artifact_execution::preparation::PreparedAspectEmissionTrace>,
+    published_snapshot_slot: crate::runtime::PublishedSnapshotSlotReservation,
 }
 
 impl PreparedCommitPublicationExecution {
@@ -271,8 +281,17 @@ impl PreparedCommitPublicationExecution {
         self.publication.reservation_count()
     }
 
+    pub(crate) fn prepared_root(&self) -> &std::sync::Arc<crate::branch::RelationalBranchRoot> {
+        self.publication.prepared_root()
+    }
+
+    pub(crate) fn release_transaction_retention(&mut self) {
+        self.admitted.release_transaction_retention();
+    }
+
     pub(crate) fn split(
         self,
+        published_snapshot_slot: crate::runtime::PublishedSnapshotSlotReservation,
     ) -> (
         crate::mvcc::PreparedCanonicalBranchMovement,
         PreparedCommitPublicationCompletion,
@@ -290,6 +309,7 @@ impl PreparedCommitPublicationExecution {
             publication_snapshot: self.publication_snapshot,
             aspect_evaluation_traces: self.aspect_evaluation_traces,
             aspect_emission_traces: self.aspect_emission_traces,
+            published_snapshot_slot,
         };
         (movement, completion)
     }

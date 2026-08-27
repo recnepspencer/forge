@@ -386,7 +386,9 @@ pub(crate) fn commit_branch_batch(
             worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
         )
         .expect("owner-admitted transaction context");
-    transaction.push_batch(batch);
+    transaction
+        .push_batch(batch)
+        .expect("Supply Chain mutation staging fits its configured transaction budget");
     transaction
         .commit(runtime)
         .expect("Supply Chain mutation commits through production publication");

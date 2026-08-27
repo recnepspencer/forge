@@ -269,7 +269,8 @@ fn branch_local_delete_allowance_does_not_make_same_branch_stale_delete_legal() 
         WorkerIntentBatch::new("stale-delete").push(MutationIntent::Entity(
             EntityMutationIntent::Delete(DeleteEntityIntent { entity_id: entity }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
 
     match txn.commit(&mut runtime) {
         Err(TransactionCommitError::Conflict { error, .. }) => {

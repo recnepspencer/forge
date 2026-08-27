@@ -73,6 +73,16 @@ impl WorthQueryPrimaryGraphApplicationAttempt {
         self.idempotency
     }
 
+    pub(in crate::domain_computation::primary_graph) const fn outcome_identity(
+        &self,
+    ) -> WorthQueryApplicationCommitOutcomeIdentity {
+        self.outcome_identity
+    }
+
+    pub(in crate::domain_computation::primary_graph) fn emitted_effect_count(&self) -> usize {
+        self.effects.emissions().len()
+    }
+
     pub(in crate::domain_computation::primary_graph) fn decision_fact_count(&self) -> usize {
         self.decision_facts.decision_fact_count()
     }

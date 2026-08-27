@@ -74,6 +74,8 @@ pub(super) fn finalize_publication_phase(
     commit_log: &mut CommitLog,
     phase_timing: &mut CommitPhaseTiming,
     prepared: PreparedPublicationCompletion,
+    published_snapshot_basis: crate::visibility::snapshot_states::VisibilitySnapshotBasis,
+    published_snapshot_slot: crate::runtime::PublishedSnapshotSlotReservation,
 ) -> Result<FinalizedPublicationPhase, TransactionCommitError> {
     let PreparedPublicationCompletion {
         clone_mode,
@@ -136,6 +138,8 @@ pub(super) fn finalize_publication_phase(
             patch_position: positioned_commit.position(),
             merge_parent_branches: &merge_parent_branches,
             phase_timing: &mut publication_phase_timing,
+            published_snapshot_basis,
+            published_snapshot_slot,
         },
     );
     for artifact in deferred_diagnostic_artifacts {

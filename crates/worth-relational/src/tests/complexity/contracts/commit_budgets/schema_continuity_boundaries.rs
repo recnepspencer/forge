@@ -31,7 +31,8 @@ fn complexity_budget_schema_transition_classification_is_changed_atom_bounded() 
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("b"));
+    txn.push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
     txn.commit(&mut runtime).unwrap();
     let counters = runtime.performance_access().counters();
 
@@ -72,7 +73,8 @@ fn complexity_budget_subscriber_resume_continuity_is_boundary_local() {
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("b"));
+    txn.push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
     txn.commit(&mut runtime).unwrap();
 
     runtime.performance_access().reset_counters();
@@ -120,7 +122,8 @@ fn complexity_budget_milestone5_closeout_keeps_schema_cdc_and_recovery_boundary_
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("after-boundary"));
+    txn.push_batch(batch_create("after-boundary"))
+        .expect("test staging stays within configured resource budgets");
     let transitioned = txn.commit(&mut runtime).unwrap();
     let schema_counters = runtime.performance_access().counters();
 

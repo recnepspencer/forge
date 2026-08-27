@@ -118,7 +118,9 @@ fn sibling_strategy_target_denies_before_normalization_with_zero_residue() {
     fork_from_main(&mut runtime, "strategy-storm");
     fork_from_main(&mut runtime, "strategy-maintenance");
     let mut storm = begin_on(&runtime, "strategy-storm");
-    storm.push_batch(create_batch("storm-only-strategy-entity"));
+    storm
+        .push_batch(create_batch("storm-only-strategy-entity"))
+        .expect("test staging stays within configured resource budgets");
     let storm_outcome = storm.commit(&mut runtime).expect("storm create commits");
     let storm_only = storm_outcome
         .changed_records

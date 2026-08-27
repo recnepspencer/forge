@@ -57,7 +57,8 @@ fn same_commit_graph_creation_allows_relation_to_target_created_entities() {
                     fields: crate::transactions::data::AspectFieldPatch::default(),
                 },
             ))),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
 
     let outcome = txn
         .commit(&mut runtime)
@@ -143,7 +144,8 @@ fn bulk_relation_create_can_target_same_commit_created_entities() {
                     field_patches: vec![crate::transactions::data::AspectFieldPatch::default()],
                 },
             ))),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
 
     let outcome = txn
         .commit(&mut runtime)
@@ -226,7 +228,8 @@ fn relation_aspect_create_records_exact_owner_correspondence() {
                     aspect_patch: PortableRecordAspectPatch::new([]),
                 },
             ))),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
 
     let outcome = txn
         .commit(&mut runtime)
@@ -273,7 +276,8 @@ fn relation_create_rejects_created_entity_refs_missing_from_same_commit() {
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
 
     let error = txn
         .commit(&mut runtime)

@@ -19,7 +19,8 @@ fn perf_profile_matrix() {
                 let mut txn =
                     crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
                 for index in 0..24 {
-                    txn.push_batch(batch_create(&format!("profile-certification-{index}")));
+                    txn.push_batch(batch_create(&format!("profile-certification-{index}")))
+                        .expect("test staging stays within configured resource budgets");
                 }
                 txn.commit(&mut runtime).expect("certification-core commit")
             };
@@ -137,7 +138,8 @@ fn perf_profile_matrix() {
                 let mut txn =
                     crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
                 for index in 0..24 {
-                    txn.push_batch(batch_create(&format!("profile-geometry-{index}")));
+                    txn.push_batch(batch_create(&format!("profile-geometry-{index}")))
+                        .expect("test staging stays within configured resource budgets");
                 }
                 txn.commit(&mut runtime).expect("geometry-kernel commit")
             };
@@ -258,7 +260,8 @@ fn perf_profile_matrix() {
                 let mut txn =
                     crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
                 for index in 0..24 {
-                    txn.push_batch(batch_create(&format!("profile-zero-{index}")));
+                    txn.push_batch(batch_create(&format!("profile-zero-{index}")))
+                        .expect("test staging stays within configured resource budgets");
                 }
                 txn.commit(&mut runtime)
                     .expect("zero-diagnostics certification-core commit")

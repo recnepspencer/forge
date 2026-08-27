@@ -52,7 +52,8 @@ fn relation_integrity_commit_boundary_rejects_duplicate_normalized_symmetric_edg
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
 
     let error = txn.commit(&mut runtime).unwrap_err();
     match error {

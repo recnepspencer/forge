@@ -11,7 +11,8 @@ use super::work::WorthQueryInvariantProjectionWorkBudget;
 use super::{
     WorthQueryApplicationInvariantProjectionAuthority,
     WorthQueryApplicationInvariantProjectionSnapshot, WorthQueryInvariantEntityIdentity,
-    WorthQueryInvariantProjectionWork, WorthQueryRealizedProjectionScope,
+    WorthQueryInvariantProjectionDenial, WorthQueryInvariantProjectionWork,
+    WorthQueryRealizedProjectionScope,
 };
 use crate::domain_computation::primary_graph::{
     WorthQueryEntityResolutionDenial, WorthQueryEntityResolutionDenialKind,
@@ -38,8 +39,6 @@ pub struct WorthQueryCompletedInvariantProjection<Schema, Output> {
     work: WorthQueryInvariantProjectionWork,
 }
 
-pub(super) struct WorthQueryInvariantProjectionWorkLimitExceeded;
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryInvariantProjectionTraversalDenialKind {
     RelationNotInstalled,
@@ -64,14 +63,14 @@ where
         projection: impl FnOnce(
             &mut WorthQueryApplicationInvariantProjectionReader<'_, Schema>,
         ) -> Output,
-    ) -> WorthQueryCompletedInvariantProjection<Schema, Output> {
-        match self.project_with_work_budget(
+    ) -> Result<
+        WorthQueryCompletedInvariantProjection<Schema, Output>,
+        WorthQueryInvariantProjectionDenial,
+    > {
+        self.project_with_work_budget(
             WorthQueryInvariantProjectionWorkBudget::unbounded(),
             projection,
-        ) {
-            Ok(completed) => completed,
-            Err(_) => unreachable!("an unbounded invariant projection cannot exhaust work"),
-        }
+        )
     }
 
     pub(super) fn project_bounded<Output>(
@@ -82,7 +81,7 @@ where
         ) -> Output,
     ) -> Result<
         WorthQueryCompletedInvariantProjection<Schema, Output>,
-        WorthQueryInvariantProjectionWorkLimitExceeded,
+        WorthQueryInvariantProjectionDenial,
     > {
         self.project_with_work_budget(
             WorthQueryInvariantProjectionWorkBudget::bounded(maximum_work),
@@ -98,18 +97,21 @@ where
         ) -> Output,
     ) -> Result<
         WorthQueryCompletedInvariantProjection<Schema, Output>,
-        WorthQueryInvariantProjectionWorkLimitExceeded,
+        WorthQueryInvariantProjectionDenial,
     > {
-        let projected = self.graph.with_runtime_mut(|runtime| {
+        let (basis, snapshot) = self.graph.with_runtime_mut(|runtime| {
             let identity = runtime.main_branch_identity();
             let (_, basis) = runtime
                 .observe_branch(&identity)
-                .expect("installed primary graph retains an exact main-branch basis");
+                .map_err(super::admission_denial::from_branch_basis_denial)?;
             let snapshot = runtime
                 .snapshots()
                 .snapshot_for_observation(&basis.observation())
-                .expect("the admitted invariant basis opens its exact snapshot");
-            let projected = catch_unwind(AssertUnwindSafe(|| {
+                .map_err(super::admission_denial::from_snapshot_admission_denial)?;
+            Ok((basis, snapshot))
+        })?;
+        let projected = self.graph.with_runtime_mut(|runtime| {
+            catch_unwind(AssertUnwindSafe(|| {
                 let mut reader = WorthQueryApplicationInvariantProjectionReader {
                     runtime,
                     layout: &self.layout,
@@ -129,27 +131,23 @@ where
                     reader.realized_scope,
                     reader.work_budget.exceeded(),
                 )
-            }));
-            match projected {
-                Ok((output, work, realized_scope, exceeded)) => {
-                    if exceeded {
-                        let _ = runtime.snapshots().release_snapshot(&snapshot);
-                        Ok(Err(WorthQueryInvariantProjectionWorkLimitExceeded))
-                    } else {
-                        Ok(Ok((output, basis, snapshot, work, realized_scope)))
-                    }
-                }
-                Err(payload) => {
-                    let _ = runtime.snapshots().release_snapshot(&snapshot);
-                    Err(payload)
-                }
-            }
+            }))
         });
-        let (output, basis, snapshot, work, realized_scope) = match projected {
-            Ok(Ok(completed)) => completed,
-            Ok(Err(denial)) => return Err(denial),
-            Err(payload) => resume_unwind(payload),
+        let (output, work, realized_scope, exceeded) = match projected {
+            Ok(completed) => completed,
+            Err(payload) => {
+                self.graph.with_runtime_mut(|runtime| {
+                    crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
+                });
+                resume_unwind(payload)
+            }
         };
+        if exceeded {
+            self.graph.with_runtime_mut(|runtime| {
+                crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
+            });
+            return Err(WorthQueryInvariantProjectionDenial::work_budget_exceeded());
+        }
         Ok(WorthQueryCompletedInvariantProjection {
             output,
             snapshot: WorthQueryApplicationInvariantProjectionSnapshot {

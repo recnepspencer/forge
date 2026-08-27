@@ -26,7 +26,8 @@ fn subscriber_stream_reports_crossed_schema_boundary_from_in_memory_history() {
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("b"));
+    txn.push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
     txn.commit(&mut runtime).unwrap();
 
     let batch = runtime
@@ -82,7 +83,8 @@ fn subscriber_stream_treats_unconsumed_boundary_as_unchanged() {
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("b"));
+    txn.push_batch(batch_create("b"))
+        .expect("test staging stays within configured resource budgets");
     txn.commit(&mut runtime).unwrap();
 
     let contract = SubscriberContractDeclaration {

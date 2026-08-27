@@ -149,7 +149,7 @@ pub(super) fn relation_source(
             .find(|record| record.target == target)
             .unwrap()
             .source;
-        runtime.snapshots().release_snapshot(&snapshot);
+        crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
         source
     })
 }
@@ -207,7 +207,7 @@ fn current_relation(
             .find(|record| record.source == source && record.target == target)
             .unwrap()
             .relation_id;
-        runtime.snapshots().release_snapshot(&snapshot);
+        crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
         relation
     })
 }
@@ -276,8 +276,13 @@ fn mutate(world: &AuthorizationWorld, build: impl FnOnce(WorkerIntentBatch) -> W
                 )
                 .expect("owner-admitted transaction context")
         };
-        transaction.push_batch(build(WorkerIntentBatch::new("delegation-hostility")));
-        transaction.commit(runtime).unwrap();
+        transaction
+            .push_batch(build(WorkerIntentBatch::new("delegation-hostility")))
+            .expect("test staging stays within configured resource budgets");
+        let committed = transaction.commit(runtime).unwrap();
+        crate::domain_computation::primary_graph::tests::fixture::release_test_commit_snapshot(
+            runtime, &committed,
+        );
         handle.ensure_primary_indexes_current(runtime).unwrap();
     });
 }

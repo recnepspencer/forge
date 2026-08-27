@@ -34,7 +34,9 @@ fn owner_issues_transaction_context_from_exact_main_identity() {
             )
             .expect("owner-admitted transaction context")
     };
-    transaction.push_batch(WorkerIntentBatch::new("owner-issued-options"));
+    transaction
+        .push_batch(WorkerIntentBatch::new("owner-issued-options"))
+        .unwrap();
     let result = transaction
         .commit(&mut world.runtime)
         .expect("owner-issued context routes through the ordinary commit authority");
@@ -173,7 +175,9 @@ fn unrelated_branch_progress_is_not_staled_by_main_branch_movement() {
             )
             .expect("owner-admitted transaction context")
     };
-    main_transaction.push_batch(WorkerIntentBatch::new("advance-main-only"));
+    main_transaction
+        .push_batch(WorkerIntentBatch::new("advance-main-only"))
+        .unwrap();
     main_transaction
         .commit(&mut world.runtime)
         .expect("main branch movement succeeds independently");
@@ -227,7 +231,9 @@ fn source_movement_cannot_mutate_a_forked_target_reference() {
             )
             .expect("owner-admitted transaction context")
     };
-    advance.push_batch(WorkerIntentBatch::new("advance-source-after-fork"));
+    advance
+        .push_batch(WorkerIntentBatch::new("advance-source-after-fork"))
+        .unwrap();
     advance
         .commit(&mut world.runtime)
         .expect("source movement succeeds after the fork");

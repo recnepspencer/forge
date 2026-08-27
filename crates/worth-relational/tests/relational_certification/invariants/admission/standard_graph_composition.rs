@@ -11,13 +11,14 @@ use super::world::supply_chain::{
 use worth_foundational::facade::{AspectKey, AspectValue, FieldKey, InternedString};
 use worth_relational::facade::history::BranchId;
 use worth_relational::facade::identity::{EntityId, PartitionId};
+use worth_relational::facade::mvcc::RelationalBranchTransactionAdmissionDenial;
 use worth_relational::facade::runtime::{
     InvariantCatalog, InvariantCostClass, InvariantExecutionPoint, InvariantExecutionResult,
     InvariantReportedRule, InvariantVerdict, RelationalRuntime,
 };
 use worth_relational::facade::transactions::{
-    planned_single_field_locator, AspectFieldPatch, ConflictClass, CreateIntent, EntitySpec,
-    MutationIntent, RecordRef, WorkerIntentBatch,
+    planned_single_field_locator, AspectFieldPatch, CreateIntent, EntitySpec, MutationIntent,
+    RecordRef, WorkerIntentBatch,
 };
 
 const COMMIT_PROBE_ID: &str = "phase5.common.commit-boundary";
@@ -130,18 +131,16 @@ fn assert_graph_binding_stales_after_child_diverges(
     let child_identity = runtime.branch_identity(child).unwrap();
     let stale_options = runtime.admit_branch_basis(&child_identity).unwrap();
     commit_graph_entity(runtime, child, "child-divergence");
-    let mut stale = runtime
+    let denied = runtime
         .begin_branch_transaction(
             &stale_options,
             worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
         )
-        .expect("owner-admitted transaction context");
-    stale.push_batch(graph_entity_batch("stale-child-plan"));
-    let denied = stale.graph_composition_plan(runtime).unwrap_err();
-    assert!(matches!(
-        denied.class,
-        ConflictClass::StaleValidationBasis { .. }
-    ));
+        .unwrap_err();
+    assert_eq!(
+        denied,
+        RelationalBranchTransactionAdmissionDenial::StaleBasis
+    );
 }
 
 fn custom_execution<'a>(
@@ -215,7 +214,9 @@ fn graph_execution(runtime: &mut RelationalRuntime, branch: &BranchId) -> Invari
             worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
         )
         .expect("owner-admitted transaction context");
-    transaction.push_batch(graph_entity_batch("common-graph-plan"));
+    transaction
+        .push_batch(graph_entity_batch("common-graph-plan"))
+        .unwrap();
     transaction
         .graph_composition_plan(runtime)
         .expect("the Standard graph plan is branch-bound and owner-prepared")
@@ -234,7 +235,9 @@ fn commit_graph_entity(
             worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
         )
         .expect("owner-admitted transaction context");
-    transaction.push_batch(graph_entity_batch(client_key));
+    transaction
+        .push_batch(graph_entity_batch(client_key))
+        .unwrap();
     let commit = transaction
         .commit(runtime)
         .expect("branch divergence commits");

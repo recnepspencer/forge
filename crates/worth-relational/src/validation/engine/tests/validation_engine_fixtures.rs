@@ -206,7 +206,8 @@ pub(super) fn create_entity_of_kind(
             }))
             .into(),
         ),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn
         .commit(&mut runtime)
         .expect("entity creation must succeed");
@@ -239,7 +240,8 @@ pub(super) fn create_relation_of_kind(
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn
         .commit(&mut runtime)
         .expect("relation creation must succeed");
@@ -334,6 +336,7 @@ pub(super) fn commit_entity_with_summary(
                 ),
             ]),
         })),
-    ));
+    ))
+    .expect("test staging stays within configured resource budgets");
     txn.commit(&mut runtime)
 }

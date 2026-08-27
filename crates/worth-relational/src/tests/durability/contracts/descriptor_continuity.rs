@@ -165,7 +165,8 @@ fn durability_contract_failure_descriptor_canonical_basis_version_mismatch_is_ex
             )
             .expect("owner-admitted transaction context")
     };
-    txn.push_batch(batch_create("transitioned"));
+    txn.push_batch(batch_create("transitioned"))
+        .expect("test staging stays within configured resource budgets");
     txn.commit(&mut runtime).unwrap();
 
     let segment_path = runtime

@@ -59,7 +59,8 @@ pub(crate) fn diverge_case_trade_on_branch(
                 ]),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     txn.commit(&mut world.runtime).unwrap()
 }
 

@@ -93,39 +93,43 @@ fn aspect_history_projection_filter_matches_field_level_patch_locus() {
     }
     .build_runtime();
     let mut create_txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    create_txn.push_batch(
-        WorkerIntentBatch::new("summary-history").push(MutationIntent::Create(
-            CreateIntent::Entity(crate::transactions::data::EntitySpec {
-                partition_id: PartitionId::main(),
-                kind_id: KindId(1),
-                client_key: crate::symbols::data::ClientKey::raw("summary-record"),
-                fields: AspectFieldPatch::new(std::collections::BTreeMap::from([(
-                    crate::transactions::data::planned_single_field_locator(
-                        aspect_key("summary"),
-                        field_key("title"),
-                    ),
-                    string_aspect_value("title v1"),
-                )])),
-            }),
-        )),
-    );
+    create_txn
+        .push_batch(
+            WorkerIntentBatch::new("summary-history").push(MutationIntent::Create(
+                CreateIntent::Entity(crate::transactions::data::EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: crate::symbols::data::ClientKey::raw("summary-record"),
+                    fields: AspectFieldPatch::new(std::collections::BTreeMap::from([(
+                        crate::transactions::data::planned_single_field_locator(
+                            aspect_key("summary"),
+                            field_key("title"),
+                        ),
+                        string_aspect_value("title v1"),
+                    )])),
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     let created = create_txn.commit(&mut runtime).unwrap();
     let entity = changed_entities(&created)[0];
     let mut update_txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    update_txn.push_batch(WorkerIntentBatch::new("summary-history-update").push(
-        MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-            UpdateEntityFieldsIntent {
-                entity_id: entity,
-                fields: AspectFieldPatch::from_locator(
-                    crate::transactions::data::planned_single_field_locator(
-                        aspect_key("summary"),
-                        field_key("status"),
+    update_txn
+        .push_batch(
+            WorkerIntentBatch::new("summary-history-update").push(MutationIntent::Entity(
+                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
+                    entity_id: entity,
+                    fields: AspectFieldPatch::from_locator(
+                        crate::transactions::data::planned_single_field_locator(
+                            aspect_key("summary"),
+                            field_key("status"),
+                        ),
+                        string_aspect_value("ready"),
                     ),
-                    string_aspect_value("ready"),
-                ),
-            },
-        )),
-    ));
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     update_txn.commit(&mut runtime).unwrap();
 
     let status_filter = ProjectionAspectFilter::new(

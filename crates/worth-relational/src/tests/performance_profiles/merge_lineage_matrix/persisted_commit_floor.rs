@@ -28,7 +28,8 @@ pub(super) fn certify_merge_execution_vs_persisted_commit_floor(suite: &'static 
                     ))
                     .into(),
                 ),
-            );
+            )
+            .expect("test staging stays within configured resource budgets");
             let _feature_only =
                 changed_entities(&txn.commit(&mut merge_runtime).expect("feature create"))[0];
 
@@ -55,7 +56,8 @@ pub(super) fn certify_merge_execution_vs_persisted_commit_floor(suite: &'static 
                 let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(
                     &mut control_runtime,
                 );
-                txn.push_batch(batch_create("control-single"));
+                txn.push_batch(batch_create("control-single"))
+                    .expect("test staging stays within configured resource budgets");
                 txn.commit(&mut control_runtime)
                     .expect("control persisted single create")
             };

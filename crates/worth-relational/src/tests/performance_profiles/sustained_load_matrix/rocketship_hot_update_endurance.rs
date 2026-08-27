@@ -72,7 +72,10 @@ pub(super) fn certify_rocketship_hot_update_endurance(suite: &'static str) {
                         )
                         .expect("rocketship endurance explicit query outcome");
                     max_query_micros = max_query_micros.max(query_started_at.elapsed().as_micros());
-                    assert!(runtime.visibility_authority().release_snapshot(&snapshot));
+                    assert!(runtime
+                        .visibility_authority()
+                        .release_snapshot(&snapshot)
+                        .is_ok());
                 }
             }
 

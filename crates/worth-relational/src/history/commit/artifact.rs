@@ -1,4 +1,4 @@
-use std::sync::{Arc, Weak};
+use std::sync::Arc;
 
 use crate::history::data::{CanonicalCommitEnvelope, CommitId};
 use crate::identity::data::VersionId;
@@ -17,9 +17,6 @@ pub(crate) struct RelationalCommitArtifact {
     identity: RelationalCommitIdentity,
     parentage: RelationalCommitParentage,
     roots: RelationalCommitRootDescriptor,
-    /// Non-owning linkage to the branch root. The branch reference cell owns
-    /// the live root; the catalog must not pin every ancestor forever.
-    branch_root: Option<Weak<crate::branch::RelationalBranchRoot>>,
     envelope: Arc<CanonicalCommitEnvelope>,
     canonical_payload: Arc<[u8]>,
 }
@@ -96,7 +93,6 @@ impl RelationalCommitArtifact {
                     &envelope.schema_authority,
                 ),
             ),
-            branch_root: None,
             envelope,
             canonical_payload,
         })
@@ -114,7 +110,6 @@ impl RelationalCommitArtifact {
             .descriptor()
             .cloned()
             .ok_or(RelationalCommitArtifactDenial::RootLinkage)?;
-        artifact.branch_root = Some(Arc::downgrade(&branch_root));
         Ok(artifact)
     }
 
@@ -197,18 +192,7 @@ impl RelationalCommitArtifact {
     }
 
     pub(crate) fn links_root(&self, root: &Arc<crate::branch::RelationalBranchRoot>) -> bool {
-        self.branch_root
-            .as_ref()
-            .and_then(Weak::upgrade)
-            .is_some_and(|linked| {
-                Arc::ptr_eq(&linked, root)
-                    && root.descriptor() == Some(&self.roots)
-                    && root.links_envelope(&self.envelope)
-            })
-    }
-
-    pub(crate) fn linked_root(&self) -> Option<Arc<crate::branch::RelationalBranchRoot>> {
-        self.branch_root.as_ref().and_then(Weak::upgrade)
+        root.descriptor() == Some(&self.roots) && root.links_envelope(&self.envelope)
     }
 
     pub(crate) fn commit_id(&self) -> CommitId {

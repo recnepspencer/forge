@@ -106,24 +106,8 @@ pub(super) fn validate_branch_target_artifact(
             != target.parent_commit_ids()
         || artifact.roots() != target.roots()
     {
-        let root_shape = artifact.linked_root().map(|root| {
-            root.partition_ids()
-                .into_iter()
-                .filter_map(|partition_id| {
-                    root.partition_state(partition_id).map(|partition| {
-                        (
-                            partition_id,
-                            partition.entity_arena.generations.clone(),
-                            partition.entity_arena.lifecycle.clone(),
-                            partition.relation_arena.generations.clone(),
-                            partition.relation_arena.lifecycle.clone(),
-                        )
-                    })
-                })
-                .collect::<Vec<_>>()
-        });
         return Err(format!(
-            "branch cell `{}` target does not match immutable commit artifact `{}`: target version/parents/roots = {}/{:?}/{:?}, artifact = {}/{:?}/{:?}, root shape = {:?}",
+            "branch cell `{}` target does not match immutable commit artifact `{}`: target version/parents/roots = {}/{:?}/{:?}, artifact = {}/{:?}/{:?}",
             branch_id.0,
             selected_commit_id.0,
             target.version_id(),
@@ -132,7 +116,6 @@ pub(super) fn validate_branch_target_artifact(
             artifact.version_id().0,
             artifact.parentage().as_slice(),
             artifact.roots(),
-            root_shape,
         ));
     }
     Ok(())

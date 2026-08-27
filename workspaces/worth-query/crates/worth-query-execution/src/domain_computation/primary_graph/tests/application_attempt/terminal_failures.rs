@@ -157,6 +157,7 @@ fn causal_fact_survives_index_publication_failure_via_relational_owner_read() {
     let parent = world
         .application
         .relational_branch_head(&branch)
+        .expect("fixture branch-head observation is admitted")
         .expect("fixture has an authoritative branch head");
     let pending = WorthQueryPendingAftermathCausality::undo_of(parent.clone());
 
@@ -200,6 +201,7 @@ fn idempotency_without_the_claimed_causal_fact_is_not_equivalent() {
     let parent = world
         .application
         .relational_branch_head(&branch)
+        .expect("fixture branch-head observation is admitted")
         .expect("fixture head");
     assert!(matches!(
         world

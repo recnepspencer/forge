@@ -13,6 +13,7 @@ mod coordination;
 mod fork;
 mod fork_source_basis;
 mod identity;
+mod lifecycle;
 mod reference;
 mod reference_publication_cell;
 mod reference_state;
@@ -42,7 +43,9 @@ pub use basis::{
 };
 pub use basis_counters::RelationalBranchBasisCostCounters;
 pub use basis_denial::{RelationalBranchBasisDenial, RelationalBranchBasisMismatchAxis};
-pub(crate) use basis_observation::{descriptor_for_cell, issue_admitted_relational_branch_basis};
+pub(crate) use basis_observation::{
+    descriptor_for_cell, issue_admitted_relational_branch_basis_with_retention,
+};
 pub(crate) use basis_registry::{
     RelationalBranchBasisRegistry, RelationalBranchBasisRegistryMetrics,
 };
@@ -50,6 +53,11 @@ pub use coordination::RelationalBranchCoordinationCellId;
 pub use fork::{RelationalForkDenial, RelationalForkOutcome};
 pub use fork_source_basis::{AdmittedRelationalForkSourceBasis, RelationalForkSourceDescriptor};
 pub use identity::{RelationalBranchIdentity, RelationalBranchIdentityDenial};
+pub use lifecycle::{
+    ArchivedRelationalBranch, DeletedRelationalBranch, RelationalBranchArchiveDenial,
+    RelationalBranchDeleteDenial, RelationalBranchDeletionOutcome, RelationalBranchDeletionPending,
+    RelationalBranchLifecyclePosture,
+};
 pub use reference::RelationalBranchCellDenial;
 pub use reference::{
     relational_branch_observation, RelationalBranchComparisonBasis, RelationalBranchForkBasis,

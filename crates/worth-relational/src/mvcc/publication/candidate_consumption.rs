@@ -2,6 +2,10 @@ use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{CommitResult, TransactionCommitError};
 
 impl RelationalRuntime {
+    pub fn reap_expired_prepared_candidates(&mut self) -> usize {
+        self.publication_binding().reap_expired_candidates()
+    }
+
     pub fn discard_prepared_candidate(
         &mut self,
         candidate: crate::mvcc::PreparedRelationalCommitCandidate,

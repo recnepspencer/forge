@@ -27,7 +27,8 @@ fn complexity_budget_preparation_packetization_is_chunked_for_broad_deltas() {
                     .collect(),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn.commit(&mut runtime).unwrap();
     let counters = runtime.performance_access().counters();
 

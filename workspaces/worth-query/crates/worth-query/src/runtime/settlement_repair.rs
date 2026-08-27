@@ -45,6 +45,14 @@ impl WorthQueryRuntime {
         self.backend
             .repair_deferred_branch_merge_settlement(deferred)
     }
+
+    pub fn repair_pending_branch_merge_settlement(
+        &mut self,
+        commit_id: worth_relational::facade::history::CommitId,
+    ) -> Result<RelationalCommitReceipt, WorthQuerySettlementRepairError> {
+        self.backend
+            .repair_pending_branch_merge_settlement(commit_id)
+    }
 }
 
 impl WorthQueryWorkspace {
@@ -54,5 +62,13 @@ impl WorthQueryWorkspace {
     ) -> Result<RelationalCommitReceipt, WorthQuerySettlementRepairError> {
         self.runtime
             .repair_deferred_branch_merge_settlement(deferred)
+    }
+
+    pub fn repair_pending_branch_merge_settlement(
+        &mut self,
+        commit_id: worth_relational::facade::history::CommitId,
+    ) -> Result<RelationalCommitReceipt, WorthQuerySettlementRepairError> {
+        self.runtime
+            .repair_pending_branch_merge_settlement(commit_id)
     }
 }

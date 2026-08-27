@@ -43,6 +43,10 @@ pub(super) fn rebuild_runtime_from_plan(
     if let Some(checkpoint) = &plan.checkpoint {
         restore_checkpoint_state(&mut restored, checkpoint)?;
     }
+    // Tail replay performs ordinary compare-and-publish cutovers. Seed its
+    // fixed-depth current-head index from the exact restored branch cells
+    // before the first replayed movement tries to retire a prior head.
+    restored.history.rebuild_branch_head_version_index();
 
     refresh_checkpoint_counters(&mut restored)?;
     clear_recovery_partition_pins(&mut restored);
@@ -114,7 +118,7 @@ pub(super) fn rebuild_runtime_from_plan(
     refresh_checkpoint_counters(&mut restored)?;
     restored.durability.set_log(finalized_tail);
 
-    finalize_restored_runtime(&mut restored, original_durability_mode);
+    finalize_restored_runtime(&mut restored, original_durability_mode)?;
     recovered_roots.finish();
     Ok((restored, plan))
 }

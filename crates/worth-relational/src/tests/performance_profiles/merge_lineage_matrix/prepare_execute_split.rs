@@ -28,7 +28,8 @@ pub(super) fn certify_merge_prepare_vs_execute_feature_adoption(suite: &'static 
                     ))
                     .into(),
                 ),
-            );
+            )
+            .expect("test staging stays within configured resource budgets");
             let _feature_only =
                 changed_entities(&txn.commit(&mut runtime).expect("feature create"))[0];
 

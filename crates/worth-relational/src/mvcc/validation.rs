@@ -42,6 +42,9 @@ pub(crate) struct RelationalTransactionValidationInput {
     schema_authority_input: Option<crate::schema::SchemaContinuityAuthorityInput>,
     schema_authority: std::sync::Arc<RelationalBranchRootSchemaAuthority>,
     footprint: crate::mvcc::RelationalTransactionFootprint,
+    retention:
+        Option<std::sync::Arc<crate::history::retention::RelationalTransactionRetentionObligation>>,
+    control: crate::mvcc::RelationalOperationControl,
 }
 
 impl PartialEq for RelationalTransactionValidationInput {
@@ -68,6 +71,8 @@ impl RelationalTransactionValidationInput {
             schema_authority_input: transaction.schema_authority_input.clone(),
             schema_authority: std::sync::Arc::clone(&transaction.schema_authority),
             footprint: transaction.footprint.clone(),
+            retention: Some(std::sync::Arc::clone(&transaction.retention)),
+            control: transaction.control.clone(),
         }
     }
 
@@ -79,6 +84,8 @@ impl RelationalTransactionValidationInput {
             schema_authority_input: None,
             schema_authority: basis.inner.root.retained_schema_authority(),
             footprint: crate::mvcc::RelationalTransactionFootprint::for_basis(basis),
+            retention: None,
+            control: crate::mvcc::RelationalOperationControl::uninterrupted(),
         }
     }
 
@@ -162,5 +169,17 @@ impl RelationalTransactionValidationInput {
         debug_assert_eq!(transaction.intent, self.intent);
         transaction.merge_parent_bases = self.merge_parent_bases;
         transaction.schema_authority_input = self.schema_authority_input;
+        if let Some(retention) = self.retention {
+            transaction.retention = retention;
+        }
+        transaction.control = self.control;
+    }
+
+    pub(crate) fn release_transaction_retention(&mut self) {
+        self.retention = None;
+    }
+
+    pub(crate) fn control(&self) -> &crate::mvcc::RelationalOperationControl {
+        &self.control
     }
 }

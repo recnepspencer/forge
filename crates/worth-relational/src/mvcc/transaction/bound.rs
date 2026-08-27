@@ -17,11 +17,19 @@ pub struct BranchBoundRelationalTransaction {
     pub(crate) schema_authority_input: Option<crate::schema::SchemaContinuityAuthorityInput>,
     pub(crate) schema_authority: std::sync::Arc<crate::branch::RelationalBranchRootSchemaAuthority>,
     pub(crate) overlay: DetachedRelationalTransactionOverlay,
+    pub(crate) overlay_bytes: u64,
+    pub(crate) maximum_overlay_bytes: u64,
+    pub(crate) maximum_footprint_loci: usize,
+    pub(crate) maximum_savepoints: usize,
+    pub(crate) savepoint_footprint_loci: usize,
     pub(crate) footprint: RelationalTransactionFootprint,
     pub(crate) savepoints: Vec<super::RelationalTransactionSavepoint>,
     pub(crate) next_savepoint_ordinal: u64,
     pub(crate) last_merged_plan: Option<MergedCommitPlan>,
     pub(crate) client_key_symbol_policy: crate::symbols::data::ClientKeySymbolPolicy,
+    pub(crate) retention:
+        std::sync::Arc<crate::history::retention::RelationalTransactionRetentionObligation>,
+    pub(crate) control: crate::mvcc::RelationalOperationControl,
 }
 
 impl BranchBoundRelationalTransaction {
@@ -37,9 +45,27 @@ impl BranchBoundRelationalTransaction {
         &self.footprint
     }
 
-    pub fn push_batch(&mut self, batch: WorkerIntentBatch) {
+    pub fn push_batch(
+        &mut self,
+        batch: WorkerIntentBatch,
+    ) -> Result<(), super::RelationalTransactionStagingDenial> {
+        let required_bytes = self
+            .overlay_bytes
+            .saturating_add(batch.resident_capacity_bytes());
+        if required_bytes > self.maximum_overlay_bytes {
+            return Err(
+                super::RelationalTransactionStagingDenial::OverlayCapacityExhausted {
+                    maximum_bytes: self.maximum_overlay_bytes,
+                    required_bytes,
+                },
+            );
+        }
+        self.footprint
+            .admit_staged_writes(&batch, self.maximum_footprint_loci)?;
         self.overlay.stage(batch, &mut self.footprint);
+        self.overlay_bytes = required_bytes;
         self.last_merged_plan = None;
+        Ok(())
     }
 
     pub(crate) fn batches(&self) -> &[WorkerIntentBatch] {

@@ -4,7 +4,10 @@ mod snapshot_handles;
 
 pub(crate) use cache::{VisibilityCache, VisibilityResidency};
 pub(crate) use replay_retention::{ReplayRetentionIndex, ReplayRetentionState};
-pub(crate) use snapshot_handles::{SnapshotHandleBinding, SnapshotHandles};
+pub(crate) use snapshot_handles::{
+    PublishedSnapshotCapacityOwner, PublishedSnapshotCloseout, PublishedSnapshotSlotReservation,
+    SnapshotHandleBinding, SnapshotHandles,
+};
 
 use crate::runtime::state::subsystems::RuntimeSubsystem;
 use crate::runtime::RelationalRuntimeConfig;
@@ -15,6 +18,7 @@ pub(crate) struct VisibilitySubsystem {
     pub(crate) handles: SnapshotHandles,
     pub(crate) cache: VisibilityCache,
     pub(crate) replay_retention: ReplayRetentionIndex,
+    published_snapshot_capacity: std::sync::Arc<PublishedSnapshotCapacityOwner>,
 }
 
 impl VisibilitySubsystem {
@@ -23,6 +27,9 @@ impl VisibilitySubsystem {
             handles: SnapshotHandles::new(),
             cache: VisibilityCache::new(config),
             replay_retention: ReplayRetentionIndex::new(),
+            published_snapshot_capacity: PublishedSnapshotCapacityOwner::new(
+                config.publication.policy.max_published_snapshot_handles,
+            ),
         }
     }
 }
@@ -39,20 +46,41 @@ impl RuntimeSubsystem for VisibilitySubsystem {
             handles: self.handles.fork(),
             cache: self.cache.fork(),
             replay_retention: self.replay_retention.fork(),
+            published_snapshot_capacity: PublishedSnapshotCapacityOwner::new(
+                self.published_snapshot_capacity.maximum_handles(),
+            ),
         }
     }
 }
 
 impl VisibilitySubsystem {
+    pub(crate) fn reserve_published_snapshot_slot(
+        &self,
+    ) -> Result<PublishedSnapshotSlotReservation, usize> {
+        self.published_snapshot_capacity.reserve()
+    }
+
     pub(crate) fn active_snapshot_count(&self) -> usize {
         self.handles.active_count()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn snapshot_handle_registry_cost_counters(
+        &self,
+    ) -> snapshot_handles::SnapshotHandleRegistryCostCounters {
+        self.handles.registry_cost_counters()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn visibility_cache_cost_counters(&self) -> cache::VisibilityCacheCostCounters {
+        self.cache.cost_counters()
     }
 
     pub(crate) fn published_snapshot_handle_count(&self) -> usize {
         self.handles.published_count()
     }
 
-    pub(crate) fn allocate_snapshot_id(&self) -> SnapshotId {
+    pub(crate) fn allocate_snapshot_id(&self) -> Option<SnapshotId> {
         self.handles.next_snapshot_id()
     }
 
@@ -115,6 +143,7 @@ impl VisibilitySubsystem {
         let retention_fence = self.retention_fence_version(published_version);
         self.handles
             .published_versions()
+            .into_iter()
             .min()
             .map_or(retention_fence, |version| version.min(retention_fence))
     }
@@ -131,14 +160,18 @@ impl VisibilitySubsystem {
         &mut self,
         snapshot_id: SnapshotId,
     ) -> Option<SnapshotHandleBinding> {
-        self.handles.remove_published(snapshot_id)
+        let removed = self.handles.remove_published(snapshot_id);
+        if removed.is_some() {
+            self.published_snapshot_capacity.release();
+        }
+        removed
     }
 
     pub(crate) fn published_snapshot_binding(
         &self,
         snapshot_id: SnapshotId,
     ) -> Option<SnapshotHandleBinding> {
-        self.handles.published_binding(snapshot_id).cloned()
+        self.handles.published_binding(snapshot_id)
     }
 
     pub(crate) fn published_snapshot_binding_for_version(
@@ -148,8 +181,14 @@ impl VisibilitySubsystem {
         self.handles.published_binding_for_version(version_id)
     }
 
-    pub(crate) fn oldest_published_snapshot_id(&self) -> Option<SnapshotId> {
-        self.handles.oldest_published_snapshot_id()
+    pub(crate) fn published_snapshot_closeout(
+        &self,
+        snapshot_id: SnapshotId,
+    ) -> Option<PublishedSnapshotCloseout> {
+        self.handles.published_closeout(
+            std::sync::Arc::clone(&self.published_snapshot_capacity),
+            snapshot_id,
+        )
     }
 
     pub(crate) fn cached_visibility_version_count(&self) -> usize {
@@ -173,6 +212,20 @@ impl VisibilitySubsystem {
         &self,
     ) -> Vec<crate::visibility::snapshot_states::VisibilitySnapshotStateKey> {
         self.cache.tracked_branch_head_states()
+    }
+
+    pub(crate) fn track_branch_head_state(
+        &self,
+        key: &crate::visibility::snapshot_states::VisibilitySnapshotStateKey,
+    ) {
+        self.cache.track_branch_head_state(key);
+    }
+
+    pub(crate) fn untrack_branch_head_state(
+        &self,
+        branch_id: &crate::history::data::BranchId,
+    ) -> Option<crate::visibility::snapshot_states::VisibilitySnapshotStateKey> {
+        self.cache.untrack_branch_head_state(branch_id)
     }
 
     pub(crate) fn clear_branch_head_residency(

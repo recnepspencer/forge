@@ -1,6 +1,12 @@
 use super::RelationalRuntime;
 
 impl RelationalRuntime {
+    pub(crate) fn retention_cost_counters(
+        &self,
+    ) -> crate::history::retention::RelationalRetentionCostCounters {
+        self.history.retention_cost_counters()
+    }
+
     pub fn config(&self) -> &crate::runtime::RelationalRuntimeConfig {
         &self.config
     }

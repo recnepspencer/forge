@@ -2,6 +2,10 @@ use crate::history::data::BranchId;
 
 use super::HistorySubsystem;
 use crate::runtime::RuntimeSubsystem;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
+
+use super::{RelationalBranchBasisRegistryMetrics, RelationalCanonicalPublicationRoutes};
 
 impl RuntimeSubsystem for HistorySubsystem {
     type Config = BranchId;
@@ -11,6 +15,64 @@ impl RuntimeSubsystem for HistorySubsystem {
     }
 
     fn fork(&self) -> Self {
-        self.clone()
+        self.detached_owner_snapshot()
+    }
+}
+
+impl HistorySubsystem {
+    pub(crate) fn detached_owner_snapshot(&self) -> Self {
+        let basis_registry_metrics = Arc::new(RelationalBranchBasisRegistryMetrics::default());
+        let mut branch_cells = self.branch_cells.detached_owner_snapshot();
+        let mut cells = branch_cells.take_all();
+        for cell in cells.values_mut() {
+            cell.bind_basis_registry_metrics(Arc::clone(&basis_registry_metrics));
+        }
+        branch_cells.restore_all(cells);
+        let canonical_publication_routes =
+            Arc::new(RelationalCanonicalPublicationRoutes::default());
+        for positioned in self.canonical_publication_routes.performed_snapshot() {
+            canonical_publication_routes
+                .install_recovered(positioned)
+                .expect("owner canonical inventory is valid when detached");
+        }
+        let mut snapshot = Self {
+            runtime_instance_id: self.runtime_instance_id,
+            main_branch: self.main_branch.clone(),
+            branch_cells,
+            commit_catalog: self.commit_catalog.clone(),
+            phase4_costs: self.phase4_costs,
+            sharing_costs: self.sharing_costs,
+            branch_sharing_costs: self.branch_sharing_costs.clone(),
+            root_identity_issuer: self.root_identity_issuer.clone(),
+            branch_population_scans: Arc::new(AtomicU64::new(
+                self.branch_population_scans.load(Ordering::Relaxed),
+            )),
+            branch_head_versions: self.branch_head_versions.detached(),
+            basis_registry_metrics,
+            retention_owner: crate::history::retention::RelationalBranchRetentionOwner::new(
+                self.runtime_instance_id,
+            ),
+            retired_branch_names: self.retired_branch_names.clone(),
+            #[cfg(test)]
+            root_capture_sabotage: Arc::clone(&self.root_capture_sabotage),
+            commit_graph: self.commit_graph.clone(),
+            commit_envelopes: self.commit_envelopes.clone(),
+            patch_stream_index: self.patch_stream_index.clone(),
+            next_commit_id: self.next_commit_id,
+            next_version_id: self.next_version_id,
+            commit_identity_allocator: Arc::new(AtomicU64::new(
+                self.commit_identity_allocator.load(Ordering::Relaxed),
+            )),
+            version_identity_allocator: Arc::new(AtomicU64::new(
+                self.version_identity_allocator.load(Ordering::Relaxed),
+            )),
+            canonical_publication_routes,
+        };
+        snapshot.reset_retention_owner(snapshot.runtime_instance_id);
+        snapshot
+    }
+
+    pub(crate) fn restore_detached_recovery_snapshot(&mut self, snapshot: Self) {
+        *self = snapshot;
     }
 }

@@ -19,13 +19,8 @@ fn fintech_persisted_workflow_recovers_checkpoint_tail_and_keeps_queryable_portf
         capture_recovery_probe(&recovered, &outcome)
     };
 
-    let (recovered, outcome) = recover_persisted_world(&world).unwrap();
-    let recovered_snapshot = recovered
-        .publication()
-        .latest_bundle()
-        .unwrap()
-        .snapshot
-        .clone();
+    let (mut recovered, outcome) = recover_persisted_world(&world).unwrap();
+    let recovered_snapshot = recovered.visibility_authority().snapshot();
     let packet = {
         let context = recovered
             .read_truth()
@@ -57,6 +52,10 @@ fn fintech_persisted_workflow_recovers_checkpoint_tail_and_keeps_queryable_portf
         ProbeStage::PostMutation,
     );
     let recovery_probe = capture_recovery_probe(&recovered, &outcome);
+    recovered
+        .snapshots()
+        .release_snapshot(&recovered_snapshot)
+        .unwrap();
 
     assert_eq!(result.entities.len(), 3);
     assert_eq!(

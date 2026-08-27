@@ -59,7 +59,8 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let error = txn.commit(&mut runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
@@ -70,6 +71,14 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
         }
         TransactionCommitError::Preparation { error, .. } => {
             panic!("expected relation-integrity conflict, got preparation error: {error:?}")
+        }
+        TransactionCommitError::Interrupted { interruption, .. } => {
+            panic!("expected relation-integrity conflict, got interruption: {interruption:?}")
+        }
+        TransactionCommitError::PublicationDenied { .. }
+        | TransactionCommitError::PublicationDeferred { .. }
+        | TransactionCommitError::PublicationFailed { .. } => {
+            panic!("expected relation-integrity conflict, got typed publication outcome")
         }
         TransactionCommitError::PerformedButDurabilityDeferred { .. } => {
             panic!("relation-integrity denial must happen before movement")

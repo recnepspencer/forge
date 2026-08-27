@@ -36,14 +36,16 @@ fn pinned_snapshot_observation_does_not_select_a_later_head() {
             )
             .expect("owner-admitted transaction context")
     };
-    transaction.push_batch(WorkerIntentBatch::new("latest-head-twin").push(
-        MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-            UpdateEntityFieldsIntent {
-                entity_id: port_id,
-                fields: worth_relational::facade::transactions::AspectFieldPatch::new(fields),
-            },
-        )),
-    ));
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("latest-head-twin").push(MutationIntent::Entity(
+                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
+                    entity_id: port_id,
+                    fields: worth_relational::facade::transactions::AspectFieldPatch::new(fields),
+                }),
+            )),
+        )
+        .unwrap();
     transaction
         .commit(&mut world.runtime)
         .expect("later head update commits through the public facade");

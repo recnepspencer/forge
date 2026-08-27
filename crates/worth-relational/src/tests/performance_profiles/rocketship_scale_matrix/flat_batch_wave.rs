@@ -84,7 +84,8 @@ pub(super) fn certify_hundred_k_nodes_pseudorealistic_flat_batch_wave(
                         },
                     )));
                 }
-                txn.push_batch(batch);
+                txn.push_batch(batch)
+                    .expect("test staging stays within configured resource budgets");
                 txn.commit(&mut runtime)
                     .expect("rocketship flat entity batch wave commit")
             };
@@ -115,7 +116,10 @@ pub(super) fn certify_hundred_k_nodes_pseudorealistic_flat_batch_wave(
                 )
                 .expect("rocketship flat batch explicit outcome");
             let explicit_query_micros = explicit_started_at.elapsed().as_micros();
-            assert!(runtime.visibility_authority().release_snapshot(&snapshot));
+            assert!(runtime
+                .visibility_authority()
+                .release_snapshot(&snapshot)
+                .is_ok());
 
             let counters = runtime.performance_access().counters();
             let (diagnostic_artifact_count, detailed_trace_entries) =

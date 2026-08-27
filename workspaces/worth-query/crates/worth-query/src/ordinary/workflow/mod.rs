@@ -9,12 +9,12 @@ mod writeback;
 pub use branch_merge::{
     branch_merge, declare_branch_merge, WorthQueryBranchMergeAftermath,
     WorthQueryBranchMergeCompletion, WorthQueryBranchMergeContext,
-    WorthQueryBranchMergeContextStop, WorthQueryBranchMergeDeclaration,
-    WorthQueryBranchMergeDeclarationDenialKind, WorthQueryBranchMergeDeclarationIdentity,
-    WorthQueryBranchMergeDeclarationStop, WorthQueryBranchMergeDeferred,
-    WorthQueryBranchMergeNextAction, WorthQueryBranchMergeOutcome, WorthQueryBranchMergeRequest,
-    WorthQueryBranchMergeSettlementDeferred, WorthQueryBranchMergeStop,
-    WorthQueryBranchMergeStopSource,
+    WorthQueryBranchMergeContextStop, WorthQueryBranchMergeControlStopped,
+    WorthQueryBranchMergeDeclaration, WorthQueryBranchMergeDeclarationDenialKind,
+    WorthQueryBranchMergeDeclarationIdentity, WorthQueryBranchMergeDeclarationStop,
+    WorthQueryBranchMergeDeferred, WorthQueryBranchMergeNextAction, WorthQueryBranchMergeOutcome,
+    WorthQueryBranchMergeRequest, WorthQueryBranchMergeSettlementDeferred,
+    WorthQueryBranchMergeStop, WorthQueryBranchMergeStopSource,
 };
 pub use context::{preview, WorthQueryWorkflowContext, WorthQueryWorkflowContextStop};
 pub use declaration::{

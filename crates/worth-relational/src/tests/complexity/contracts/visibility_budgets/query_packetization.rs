@@ -41,6 +41,13 @@ fn complexity_budget_query_packetization_reports_serial_shape_for_narrow_reads()
         crate::facade::runtime::RelationalExecutionModel::ParallelPreparation,
     );
     let entity = create_entity(&mut runtime, "single");
+    for partition in 20..84 {
+        let _ = create_entity_in_partition(
+            &mut runtime,
+            &format!("unrelated-{partition}"),
+            PartitionId(partition),
+        );
+    }
     let snapshot = runtime.visibility_authority().snapshot();
 
     runtime.performance_access().reset_counters();
@@ -62,4 +69,7 @@ fn complexity_budget_query_packetization_reports_serial_shape_for_narrow_reads()
     assert_eq!(counters.query_parallel_legal_count, 1);
     assert_eq!(counters.query_parallel_profitable_count, 0);
     assert_eq!(counters.query_serial_strategy_count, 1);
+    assert_eq!(counters.visibility_exact_state_materializations, 0);
+    assert_eq!(counters.visibility_entity_slot_scans, 0);
+    assert_eq!(counters.visibility_relation_slot_scans, 0);
 }

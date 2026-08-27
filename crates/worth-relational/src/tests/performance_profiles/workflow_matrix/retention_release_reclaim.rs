@@ -14,10 +14,12 @@ pub(super) fn certify_retention_release_reclaim_round_trip(suite: &'static str) 
 
             assert!(runtime
                 .visibility_authority()
-                .release_snapshot(&created_snapshot));
+                .release_snapshot(&created_snapshot)
+                .is_ok());
             assert!(runtime
                 .visibility_authority()
-                .release_snapshot(&deleted_snapshot));
+                .release_snapshot(&deleted_snapshot)
+                .is_ok());
 
             runtime.performance_access().reset_counters();
             let inspect_started_at = Instant::now();

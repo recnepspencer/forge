@@ -68,7 +68,9 @@ fn foreign_runtime_validated_proposal_denial_preserves_exact_target_state() {
 fn foreign_runtime_discard_denies_without_public_residue_and_disposes_candidate() {
     let mut runtime_a = runtime_with_test_schema();
     let mut transaction = test_owner_begin_transaction_for_main(&mut runtime_a);
-    transaction.push_batch(batch_create("prepared-owner-affinity"));
+    transaction
+        .push_batch(batch_create("prepared-owner-affinity"))
+        .expect("test staging stays within configured resource budgets");
     let candidate = runtime_a
         .prepare_branch_transaction(transaction)
         .expect("the source owner prepares its own candidate");
@@ -107,20 +109,28 @@ fn stage_raw_entity_relation_graph(
     let target_key = format!("{prefix}-target");
     let source = created_entity(&source_key);
     let target = created_entity(&target_key);
-    transaction.push_batch(batch_create(&source_key));
-    transaction.push_batch(batch_create(&target_key));
-    transaction.push_batch(
-        WorkerIntentBatch::new(format!("{prefix}-relation-batch")).push(MutationIntent::Create(
-            CreateIntent::Relation(RelationSpec {
-                partition_id: crate::facade::identity::PartitionId::main(),
-                kind_id: crate::facade::identity::KindId(2),
-                client_key: crate::facade::symbols::ClientKey::raw(format!("{prefix}-relation")),
-                source: EntityReference::Created(source),
-                target: EntityReference::Created(target),
-                fields: Default::default(),
-            }),
-        )),
-    );
+    transaction
+        .push_batch(batch_create(&source_key))
+        .expect("test staging stays within configured resource budgets");
+    transaction
+        .push_batch(batch_create(&target_key))
+        .expect("test staging stays within configured resource budgets");
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new(format!("{prefix}-relation-batch")).push(
+                MutationIntent::Create(CreateIntent::Relation(RelationSpec {
+                    partition_id: crate::facade::identity::PartitionId::main(),
+                    kind_id: crate::facade::identity::KindId(2),
+                    client_key: crate::facade::symbols::ClientKey::raw(format!(
+                        "{prefix}-relation"
+                    )),
+                    source: EntityReference::Created(source),
+                    target: EntityReference::Created(target),
+                    fields: Default::default(),
+                })),
+            ),
+        )
+        .expect("test staging stays within configured resource budgets");
 }
 
 fn created_entity(client_key: &str) -> crate::facade::transactions::CreatedEntityRef {

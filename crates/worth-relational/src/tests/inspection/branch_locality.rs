@@ -35,7 +35,8 @@ fn historical_inspection_stays_branch_local_under_divergence_and_reclaim_pressur
                     ),
                 }),
             )),
-        );
+        )
+        .expect("test staging stays within configured resource budgets");
         txn.commit(&mut runtime).expect("main update")
     };
     let feature_update = {
@@ -54,19 +55,23 @@ fn historical_inspection_stays_branch_local_under_divergence_and_reclaim_pressur
                     ),
                 }),
             )),
-        );
+        )
+        .expect("test staging stays within configured resource budgets");
         txn.commit(&mut runtime).expect("feature update")
     };
 
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&created.snapshot));
+        .release_snapshot(&created.snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&main_update.snapshot));
+        .release_snapshot(&main_update.snapshot)
+        .is_ok());
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&feature_update.snapshot));
+        .release_snapshot(&feature_update.snapshot)
+        .is_ok());
 
     let retained_only = runtime
         .inspect_what_happened()
@@ -148,7 +153,8 @@ fn recent_commit_inspection_and_branch_head_reads_stay_branch_local() {
                     ),
                 }),
             )),
-        );
+        )
+        .expect("test staging stays within configured resource budgets");
         txn.commit(&mut runtime).expect("main update")
     };
     let feature_update = {
@@ -167,7 +173,8 @@ fn recent_commit_inspection_and_branch_head_reads_stay_branch_local() {
                     ),
                 }),
             )),
-        );
+        )
+        .expect("test staging stays within configured resource budgets");
         txn.commit(&mut runtime).expect("feature update")
     };
 

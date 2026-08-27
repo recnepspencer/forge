@@ -294,7 +294,7 @@ where
         runtime: &WorthQueryPrimaryGraphApplicationRuntime<Schema>,
     ) -> Result<
         WorthQueryFreshTemporalOperationAccess<Schema, Principal, PrincipalIdentity, Scope>,
-        String,
+        super::application_operation_reentry::WorthQueryTemporalReentryDenial,
     >
     where
         Schema: worth_query_installation::facade::ApplicationSchema,
@@ -311,7 +311,7 @@ where
                 &request,
                 WorthQueryPrincipalResolutionMode::Ordinary,
             )
-            .map_err(|denial| denial.to_string())?;
+            .map_err(super::application_operation_reentry::WorthQueryTemporalReentryDenial::from_principal)?;
         let scope = runtime
             .resolve_entity(
                 self.scope_field,
@@ -319,7 +319,9 @@ where
                 &request,
                 WorthQueryPrincipalResolutionMode::Ordinary,
             )
-            .map_err(|denial| denial.to_string())?;
+            .map_err(
+                super::application_operation_reentry::WorthQueryTemporalReentryDenial::from_entity,
+            )?;
         Ok(WorthQueryFreshTemporalOperationAccess {
             principal,
             scope,

@@ -24,7 +24,9 @@ pub(crate) fn lower_execution(
         .iter()
         .cloned()
     {
-        transaction.push_batch(worker_batch);
+        transaction
+            .push_batch(worker_batch)
+            .map_err(|denial| StrategyLoweringError::mutation_conflict(denial.into_conflict()))?;
     }
     transaction
         .validate_staged_branch_locality(selected_branch_state.state(), &runtime.services.symbols)
@@ -39,7 +41,8 @@ pub(crate) fn lower_execution(
         .map_err(StrategyLoweringError::mutation_conflict)?;
     transaction
         .footprint
-        .derive_validation_dependencies(&merged_plan);
+        .derive_validation_dependencies(&merged_plan, transaction.maximum_footprint_loci)
+        .map_err(|denial| StrategyLoweringError::mutation_conflict(denial.into_conflict()))?;
     let lowering_provenance =
         StrategyLoweringProvenance::from_request_and_execution(request, execution);
     let lowering_summary = build_lowering_summary(execution, bulk_mutation_batch.as_ref());
@@ -76,6 +79,9 @@ pub(crate) fn strategy_transaction_admission_error(
                 detail: "strategy transaction basis identity is inconsistent".to_owned(),
             }
         }
+        denial => StrategyLoweringError::RequestExecutionMismatch {
+            detail: format!("strategy transaction admission denied: {denial:?}"),
+        },
     }
 }
 
@@ -294,8 +300,11 @@ mod tests {
             .clear_root_for_test();
         let symbols_before = runtime.services.symbols.clone();
         let symbol_table_before = runtime.config().identity.symbol_table.clone();
+        let child_identity = runtime
+            .branch_identity(&child)
+            .expect("child identity remains owner-issued");
         let denial = runtime
-            .admit_named_branch_basis(&child)
+            .admit_branch_basis(&child_identity)
             .expect_err("a committed branch without its exact root cannot mint authority");
 
         assert_eq!(

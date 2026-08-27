@@ -212,7 +212,8 @@ pub(super) fn create_entity(
                 }),
             ))
             .into(),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     let outcome = txn.commit(runtime).unwrap();
     match outcome.changed_records[0] {
         crate::facade::transactions::RecordRef::Entity(entity_id) => entity_id,

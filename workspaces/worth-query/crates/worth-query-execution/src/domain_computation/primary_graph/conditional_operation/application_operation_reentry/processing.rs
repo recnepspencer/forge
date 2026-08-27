@@ -192,9 +192,51 @@ where
                     counts.indeterminate += 1;
                     continue;
                 }
+                WorthQuerySettlementReentry::SnapshotBackpressured(
+                    deferred,
+                    maximum_active_snapshots,
+                ) => {
+                    wake.decision =
+                        WorthQueryRetainedConditionalDecision::OperationSettlementDeferred(
+                            evidence, deferred,
+                        );
+                    counts.snapshot_capacity_backpressure = Some(maximum_active_snapshots);
+                    continue;
+                }
+                WorthQuerySettlementReentry::RetentionBackpressured(deferred) => {
+                    wake.decision =
+                        WorthQueryRetainedConditionalDecision::OperationSettlementDeferred(
+                            evidence, deferred,
+                        );
+                    counts.retention_capacity_backpressure = true;
+                    continue;
+                }
+                WorthQuerySettlementReentry::RetentionIdentityExhausted => {
+                    wake.decision =
+                        WorthQueryRetainedConditionalDecision::OperationTerminalFailure(
+                            evidence,
+                            super::WorthQueryTemporalTerminalFailure::ApplicationCommit(
+                                crate::domain_computation::primary_graph::WorthQueryApplicationCommitDenialKind::RetentionIdentityExhausted,
+                            ),
+                        );
+                    counts.failed += 1;
+                    continue;
+                }
+                WorthQuerySettlementReentry::SnapshotIdentityExhausted => {
+                    wake.decision =
+                        WorthQueryRetainedConditionalDecision::OperationTerminalFailure(
+                            evidence,
+                            super::WorthQueryTemporalTerminalFailure::ApplicationCommit(
+                                crate::domain_computation::primary_graph::WorthQueryApplicationCommitDenialKind::SnapshotIdentityExhausted,
+                            ),
+                        );
+                    counts.failed += 1;
+                    continue;
+                }
             },
             WorthQueryRetainedConditionalDecision::Eligible(evidence)
             | WorthQueryRetainedConditionalDecision::OperationRetryable(evidence, _)
+            | WorthQueryRetainedConditionalDecision::OperationBackpressured(evidence, _)
             | WorthQueryRetainedConditionalDecision::OperationIndeterminate(evidence, _) => {
                 evidence
             }
@@ -296,11 +338,53 @@ fn apply_reentry_outcome<Clock, Input>(
                 WorthQueryRetainedConditionalDecision::OperationRetryable(evidence, detail);
             counts.failed += 1;
         }
+        WorthQueryTemporalReentryOutcome::SnapshotCapacityBackpressured {
+            maximum_active_snapshots,
+        } => {
+            wake.decision = WorthQueryRetainedConditionalDecision::OperationBackpressured(
+                evidence,
+                super::super::signal_decision_reentry::WorthQueryOperationBackpressureCause::ActiveSnapshotCapacityExhausted {
+                    maximum_active_snapshots,
+                },
+            );
+            counts.snapshot_capacity_backpressure = Some(maximum_active_snapshots);
+        }
+        WorthQueryTemporalReentryOutcome::RetentionCapacityBackpressured => {
+            wake.decision = WorthQueryRetainedConditionalDecision::OperationBackpressured(
+                evidence,
+                super::super::signal_decision_reentry::WorthQueryOperationBackpressureCause::RetentionCapacityExhausted,
+            );
+            counts.retention_capacity_backpressure = true;
+        }
+        WorthQueryTemporalReentryOutcome::TerminalFailure(kind) => {
+            wake.decision =
+                WorthQueryRetainedConditionalDecision::OperationTerminalFailure(evidence, kind);
+            counts.failed += 1;
+        }
+        WorthQueryTemporalReentryOutcome::ProviderCommitBackpressured(deferred) => {
+            super::provider_commit_deferred::apply_provider_commit_deferred(
+                wake, evidence, deferred, counts,
+            );
+        }
+        WorthQueryTemporalReentryOutcome::ControlStopped(cause) => {
+            wake.decision =
+                WorthQueryRetainedConditionalDecision::OperationControlStopped(evidence, cause);
+            counts.failed += 1;
+        }
         WorthQueryTemporalReentryOutcome::SettlementDeferred(deferred) => {
             wake.decision = WorthQueryRetainedConditionalDecision::OperationSettlementDeferred(
                 evidence, deferred,
             );
             counts.indeterminate += 1;
+        }
+        WorthQueryTemporalReentryOutcome::SettlementSnapshotCapacityBackpressured {
+            deferred,
+            maximum_active_snapshots,
+        } => {
+            wake.decision = WorthQueryRetainedConditionalDecision::OperationSettlementDeferred(
+                evidence, deferred,
+            );
+            counts.snapshot_capacity_backpressure = Some(maximum_active_snapshots);
         }
         WorthQueryTemporalReentryOutcome::Indeterminate(detail) => {
             wake.decision =

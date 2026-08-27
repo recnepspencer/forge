@@ -42,6 +42,8 @@ fn receipt() -> ErasedClockObservationReceipt {
         already_committed_operation_count: 1,
         failed_operation_count: 3,
         indeterminate_operation_count: 1,
+        snapshot_capacity_backpressure: Some(17),
+        retention_capacity_backpressure: false,
         execution_provenance: Vec::new(),
         granular_invalidations: Vec::new(),
     }
@@ -50,7 +52,7 @@ fn receipt() -> ErasedClockObservationReceipt {
 #[test]
 fn typed_receipt_preserves_query_owned_clock_and_work_evidence() {
     let installation = granular_installation();
-    let mut receipt = receipt().typed::<TestClock>(installation.clone());
+    let mut receipt = receipt().typed::<TestClock>(installation.clone(), None);
 
     assert_eq!(receipt.sequence(), 7);
     assert_eq!(receipt.observed_time().nanoseconds(), 41);
@@ -67,6 +69,7 @@ fn typed_receipt_preserves_query_owned_clock_and_work_evidence() {
     assert_eq!(receipt.already_committed_operation_count(), 1);
     assert_eq!(receipt.failed_operation_count(), 3);
     assert_eq!(receipt.indeterminate_operation_count(), 1);
+    assert_eq!(receipt.snapshot_capacity_backpressure(), Some(17));
     let granular = receipt.take_granular_invalidation_batch();
     assert!(installation.admits_batch(&granular));
     assert!(granular.is_empty());
@@ -78,31 +81,31 @@ fn typed_receipt_preserves_query_owned_clock_and_work_evidence() {
 fn erased_postures_map_without_lower_runtime_evidence() {
     assert!(matches!(
         ErasedClockObservationOutcome::Accepted(receipt())
-            .typed::<TestClock>(granular_installation()),
+            .typed::<TestClock>(granular_installation(), None),
         WorthQueryConditionalClockObservationOutcome::Accepted(_)
     ));
     assert!(matches!(
         ErasedClockObservationOutcome::Duplicate(receipt())
-            .typed::<TestClock>(granular_installation()),
+            .typed::<TestClock>(granular_installation(), None),
         WorthQueryConditionalClockObservationOutcome::Duplicate(_)
     ));
     assert!(matches!(
-        ErasedClockObservationOutcome::Stale.typed::<TestClock>(granular_installation()),
+        ErasedClockObservationOutcome::Stale.typed::<TestClock>(granular_installation(), None),
         WorthQueryConditionalClockObservationOutcome::Stale
     ));
     assert!(matches!(
-        ErasedClockObservationOutcome::Reordered.typed::<TestClock>(granular_installation()),
+        ErasedClockObservationOutcome::Reordered.typed::<TestClock>(granular_installation(), None),
         WorthQueryConditionalClockObservationOutcome::Reordered
     ));
     assert!(matches!(
-        ErasedClockObservationOutcome::Closed.typed::<TestClock>(granular_installation()),
+        ErasedClockObservationOutcome::Closed.typed::<TestClock>(granular_installation(), None),
         WorthQueryConditionalClockObservationOutcome::Closed
     ));
     let failed = ErasedClockObservationOutcome::Failed {
         kind: WorthQueryConditionalClockObservationFailureKind::ObservationFailed,
         detail: "clock read failed".to_string(),
     }
-    .typed::<TestClock>(granular_installation());
+    .typed::<TestClock>(granular_installation(), None);
     let WorthQueryConditionalClockObservationOutcome::Failed(failed) = failed else {
         panic!("provider failure must remain a Query-owned failure posture");
     };

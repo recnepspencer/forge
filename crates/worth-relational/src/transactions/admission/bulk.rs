@@ -220,7 +220,8 @@ mod tests {
                 client_keys: vec![ClientKey::raw("raw-key")],
                 field_patches: vec![crate::tests::support::name_field_patch("raw")],
             }),
-        )));
+        )))
+        .expect("test staging stays within configured resource budgets");
 
         let mut planned = txn
             .plan_bulk_mutation_batch(&runtime)
@@ -263,7 +264,8 @@ mod tests {
                     },
                 }),
             )),
-        );
+        )
+        .expect("test staging stays within configured resource budgets");
 
         let mut planned = txn
             .plan_bulk_mutation_batch(&runtime)
@@ -303,7 +305,8 @@ mod tests {
                     field_patches: vec![crate::tests::support::relation_label_field_patch("edge")],
                 }),
             )),
-        );
+        )
+        .expect("test staging stays within configured resource budgets");
 
         let mut planned = txn
             .plan_bulk_mutation_batch(&runtime)
@@ -338,7 +341,8 @@ mod tests {
                 client_keys: vec![ClientKey::raw("raw-key")],
                 field_patches: vec![crate::tests::support::name_field_patch("raw")],
             }),
-        )));
+        )))
+        .expect("test staging stays within configured resource budgets");
 
         let admitted = txn
             .admit_naming_stable_bulk_mutation_batch(&runtime)

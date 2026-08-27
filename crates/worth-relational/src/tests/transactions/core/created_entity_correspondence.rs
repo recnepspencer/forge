@@ -19,21 +19,23 @@ fn committed_create_references_resolve_their_own_distinct_persisted_meanings() {
     };
     let mut transaction =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(
-        WorkerIntentBatch::new("created-reference-correspondence")
-            .push(MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-                partition_id,
-                kind_id,
-                client_key: first.client_key.clone(),
-                fields: name_field_patch("first-persisted-meaning"),
-            })))
-            .push(MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-                partition_id,
-                kind_id,
-                client_key: second.client_key.clone(),
-                fields: name_field_patch("second-persisted-meaning"),
-            }))),
-    );
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("created-reference-correspondence")
+                .push(MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                    partition_id,
+                    kind_id,
+                    client_key: first.client_key.clone(),
+                    fields: name_field_patch("first-persisted-meaning"),
+                })))
+                .push(MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                    partition_id,
+                    kind_id,
+                    client_key: second.client_key.clone(),
+                    fields: name_field_patch("second-persisted-meaning"),
+                }))),
+        )
+        .expect("test staging stays within configured resource budgets");
     let committed = transaction
         .commit(&mut runtime)
         .expect("both creates commit");

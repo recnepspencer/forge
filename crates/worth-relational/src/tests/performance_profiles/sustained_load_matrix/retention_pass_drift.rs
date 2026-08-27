@@ -20,10 +20,12 @@ pub(super) fn certify_retention_pass_drift_stability(suite: &'static str) {
                 let deleted = delete_entity(&mut runtime, entity);
                 assert!(runtime
                     .visibility_authority()
-                    .release_snapshot(&created.snapshot));
+                    .release_snapshot(&created.snapshot)
+                    .is_ok());
                 assert!(runtime
                     .visibility_authority()
-                    .release_snapshot(&deleted.snapshot));
+                    .release_snapshot(&deleted.snapshot)
+                    .is_ok());
 
                 let inspect_started_at = Instant::now();
                 let plan = runtime.retention().inspect_plan();

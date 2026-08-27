@@ -120,7 +120,8 @@ pub(super) fn certify_hundred_k_nodes_pseudorealistic_mixed_entity_relation_batc
                 for intent in bulk_relation_create_intents(&relation_specs) {
                     batch = batch.push(intent);
                 }
-                txn.push_batch(batch);
+                txn.push_batch(batch)
+                    .expect("test staging stays within configured resource budgets");
                 txn.commit(&mut runtime)
                     .expect("rocketship mixed entity plus relation batch wave commit")
             };
@@ -152,7 +153,10 @@ pub(super) fn certify_hundred_k_nodes_pseudorealistic_mixed_entity_relation_batc
                 )
                 .expect("rocketship mixed batch explicit outcome");
             let explicit_query_micros = explicit_started_at.elapsed().as_micros();
-            assert!(runtime.visibility_authority().release_snapshot(&snapshot));
+            assert!(runtime
+                .visibility_authority()
+                .release_snapshot(&snapshot)
+                .is_ok());
 
             let counters = runtime.performance_access().counters();
             let (diagnostic_artifact_count, detailed_trace_entries) =

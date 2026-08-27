@@ -338,6 +338,10 @@ pub mod snapshots {
     pub use crate::snapshots::data::{
         SnapshotHandle, SnapshotId, SnapshotInspectionSummary, SnapshotReadPolicy,
     };
+    pub use crate::visibility::{
+        RelationalSnapshotAdmissionDenial, RelationalSnapshotReleaseDenial,
+        RelationalSnapshotReleaseReceipt,
+    };
 }
 
 pub mod visibility {

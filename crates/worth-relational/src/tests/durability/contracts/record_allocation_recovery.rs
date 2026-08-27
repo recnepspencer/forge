@@ -9,11 +9,13 @@ fn tail_replay_consumes_canonical_reused_record_allocation() {
     let original = changed_entities(&created)[0];
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&created.snapshot));
+        .release_snapshot(&created.snapshot)
+        .is_ok());
     let deleted = delete_entity(&mut runtime, original);
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&deleted.snapshot));
+        .release_snapshot(&deleted.snapshot)
+        .is_ok());
     assert!(runtime.retention().run_pass().entity_reclaimed <= 1);
     assert_eq!(
         runtime
@@ -110,11 +112,13 @@ fn recovery_returns_orphaned_reclaimed_reservation_to_reuse() {
     let original = changed_entities(&created)[0];
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&created.snapshot));
+        .release_snapshot(&created.snapshot)
+        .is_ok());
     let deleted = delete_entity(&mut runtime, original);
     assert!(runtime
         .visibility_authority()
-        .release_snapshot(&deleted.snapshot));
+        .release_snapshot(&deleted.snapshot)
+        .is_ok());
     runtime.retention().run_pass();
     let mut pending = runtime.record_identity.begin_allocations();
     let reservation = pending

@@ -62,11 +62,12 @@ fn subscriber_cdc_is_snapshot_stable_under_hot_rewrite_pressure() {
     );
 
     let retention = pinned_runtime.retention().inspect_plan();
-    assert!(retention.snapshot_pinned_entities >= 1);
+    assert_eq!(retention.snapshot_pinned_entities, 0);
 
     assert!(pinned_runtime
         .visibility_authority()
-        .release_snapshot(&pinned_snapshot));
+        .release_snapshot(&pinned_snapshot)
+        .is_ok());
     let released = pinned_runtime.retention().inspect_plan();
     assert_eq!(released.snapshot_pinned_entities, 0);
 }

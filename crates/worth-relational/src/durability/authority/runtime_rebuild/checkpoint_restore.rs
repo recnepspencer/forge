@@ -104,7 +104,7 @@ fn prepare_history(
     branch_roots: &branch_root_images::RestoredBranchRootImages,
     symbols: &crate::symbols::data::StringInterner,
 ) -> Result<HistorySubsystem, DurabilityError> {
-    let mut history = restored.history.clone();
+    let mut history = restored.history.detached_owner_snapshot();
     history.commit_envelopes = checkpoint
         .envelopes
         .iter()
@@ -157,6 +157,7 @@ fn prepare_history(
             &checkpoint.branch_cells,
             &branch_roots.partitions,
             &branch_roots.schema_authorities,
+            &restored.config.schema.registry,
             symbols,
         )
         .map_err(|detail| {
@@ -229,14 +230,21 @@ pub(super) fn clear_recovery_partition_pins(restored: &mut RelationalRuntime) {
 pub(super) fn finalize_restored_runtime(
     restored: &mut RelationalRuntime,
     original_durability_mode: DurabilityMode,
-) {
+) -> Result<(), crate::durability::data::DurabilityError> {
     restored.config.durability.policy.mode = original_durability_mode;
     restored
         .index_authority()
-        .rebuild_unique_entity_aspect_field_indexes();
-    restored.visibility_pins().rebuild_branch_pins_from_heads();
+        .rebuild_unique_entity_aspect_field_indexes()
+        .map_err(|denial| {
+            crate::durability::data::DurabilityError::new(
+                crate::durability::data::RecoveryFailureClass::ReplayFailure,
+                format!("recovered unique-index basis admission failed: {denial:?}"),
+            )
+        })?;
+    restored.history.rebuild_branch_head_version_index();
     restored.visibility.cache.clear();
     restored
         .visibility_pins()
         .rebuild_branch_head_visibility_residency();
+    Ok(())
 }

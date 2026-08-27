@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, VecDeque};
 use std::sync::Arc;
 
 use worth_relational::facade::branch::{
-    RelationalBranchBasisDescriptor, RelationalComponentBasisRetentionLease,
+    RelationalBranchBasisDescriptor, RelationalBranchRetentionLease,
 };
 use worth_relational::facade::history::CommitId;
 
@@ -12,11 +12,11 @@ const RETAINED_RECEIPT_BASIS_LIMIT: usize = 64;
 
 #[derive(Clone)]
 pub(in crate::domain_computation::primary_graph) struct WorthQueryRetainedApplicationCommitBasis {
-    lease: Arc<RelationalComponentBasisRetentionLease>,
+    lease: Arc<RelationalBranchRetentionLease>,
 }
 
 impl WorthQueryRetainedApplicationCommitBasis {
-    fn new(lease: RelationalComponentBasisRetentionLease) -> Self {
+    fn new(lease: RelationalBranchRetentionLease) -> Self {
         Self {
             lease: Arc::new(lease),
         }
@@ -24,7 +24,7 @@ impl WorthQueryRetainedApplicationCommitBasis {
 
     #[cfg(test)]
     pub(in crate::domain_computation::primary_graph) fn for_test(
-        lease: RelationalComponentBasisRetentionLease,
+        lease: RelationalBranchRetentionLease,
     ) -> Self {
         Self::new(lease)
     }
@@ -33,6 +33,12 @@ impl WorthQueryRetainedApplicationCommitBasis {
         &self,
     ) -> &RelationalBranchBasisDescriptor {
         self.lease.descriptor()
+    }
+
+    pub(in crate::domain_computation::primary_graph) fn lease(
+        &self,
+    ) -> &RelationalBranchRetentionLease {
+        &self.lease
     }
 }
 
@@ -63,7 +69,7 @@ impl WorthQueryReceiptBasisRetentionStore {
     pub(in crate::domain_computation::primary_graph::provider) fn retain(
         &mut self,
         commit: CommitId,
-        lease: RelationalComponentBasisRetentionLease,
+        lease: RelationalBranchRetentionLease,
     ) {
         let retention = WorthQueryRetainedApplicationCommitBasis::new(lease);
         assert!(

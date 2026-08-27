@@ -11,6 +11,7 @@ categories = ["data-structures", "database-implementations", "science"]
 
 [features]
 test-durability-faults = []
+test-operation-control = []
 
 [dependencies]
 worth-foundational = { path = "../worth-foundational" }
@@ -22,6 +23,7 @@ rayon = "1"
 smallvec = "1"
 sha2 = "0.10"
 dashmap = "6"
+crossbeam-queue = "0.3"
 arc-swap = "1"
 
 [dev-dependencies]

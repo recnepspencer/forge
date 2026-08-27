@@ -4,7 +4,6 @@ use worth_foundational::facade::{
     AspectBinding, AspectContract, AspectFieldLocator, AspectValue, CanonicalF64,
     CanonicalFieldPath, FieldKey, LocatorAuthority, ScalarAspectType,
 };
-use worth_relational::facade::branch::AdmittedRelationalBranchBasis;
 use worth_relational::facade::bridge::RuntimeBridgeRelationalSource;
 use worth_relational::facade::identity::{KindId, PartitionId};
 use worth_relational::facade::mvcc::{
@@ -21,23 +20,23 @@ use worth_relational::facade::transactions::{
     UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 use worth_runtime_bridge::facade::{
-    AspectKeySelector, BridgeAspectRegistration, BridgeAspectRegistrationId,
-    BridgeAuthoritativeSourceProfile, BridgeCommittedPatchEnvelope, BridgeDeliveryReceipt,
+    AspectKeySelector, BridgeAspectRegistration, BridgeAspectRegistrationId, BridgeDeliveryReceipt,
     BridgeMappingId, BridgeMappingRegistration, BridgeSemanticCorrespondenceRegistration,
-    BridgeSemanticLocality, CoarseRoutingMode, CommittedPatchSource, InvalidationSink,
-    MappingSelector, RelationalBridgeSourceError, RelationalCommittedPatchRequest, RuntimeBridge,
-    RuntimeBridgeBuilder, SignalBridgeSinkError, SignalInvalidationScope, SliceWideningPolicy,
-    SnapshotReadContract, SnapshotReadSource, SubscriptionSliceKind, TruthCommitIdentity,
-    TruthDeltaSurfaceKind, TruthPatchScope, TruthPatchTargetSelector, TruthSnapshotIdentity,
-    TruthSnapshotReader,
+    BridgeSemanticLocality, CoarseRoutingMode, InvalidationSink, MappingSelector,
+    RelationalCommittedPatchRequest, RuntimeBridge, RuntimeBridgeBuilder, SignalBridgeSinkError,
+    SignalInvalidationScope, SliceWideningPolicy, SnapshotReadContract, SubscriptionSliceKind,
+    TruthCommitIdentity, TruthDeltaSurfaceKind, TruthPatchScope, TruthPatchTargetSelector,
 };
 
+mod commit_snapshot_closeout;
 mod delivery_patch;
+mod retained_relational_source;
 pub(super) mod versioned_snapshot;
 pub(crate) use delivery_patch::{
     conditional_runtime_bridge_with_change, conditional_runtime_bridge_with_repeated_value_changes,
 };
 
+use retained_relational_source::RetainedRelationalSource;
 use versioned_snapshot::VersionedFixtureSnapshotSource;
 
 struct CorrespondenceSink;
@@ -83,17 +82,19 @@ pub(crate) fn correspondence_bridge(
         CanonicalFieldPath::single(field.clone()),
     );
     let mut create = begin_main_transaction(&relational);
-    create.push_batch(WorkerIntentBatch::new("create-conditional-entity").push(
-        MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-            partition_id: PartitionId::main(),
-            kind_id: KindId(1),
-            client_key: ClientKey::raw("conditional-entity"),
-            fields: AspectFieldPatch::new(BTreeMap::from([(
-                locator.clone(),
-                AspectValue::String("before".into()),
-            )])),
-        })),
-    ));
+    create
+        .push_batch(WorkerIntentBatch::new("create-conditional-entity").push(
+            MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_key: ClientKey::raw("conditional-entity"),
+                fields: AspectFieldPatch::new(BTreeMap::from([(
+                    locator.clone(),
+                    AspectValue::String("before".into()),
+                )])),
+            })),
+        ))
+        .expect("test staging stays within configured resource budgets");
     let created = create
         .commit(&mut relational)
         .expect("conditional entity should commit");
@@ -105,19 +106,22 @@ pub(crate) fn correspondence_bridge(
             RecordRef::Relation(_) => None,
         })
         .expect("create commit should retain its entity identity");
+    commit_snapshot_closeout::release_commit_snapshot(&mut relational, &created);
 
     let mut update = begin_main_transaction(&relational);
-    update.push_batch(WorkerIntentBatch::new("update-conditional-identity").push(
-        MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-            UpdateEntityFieldsIntent {
-                entity_id: entity,
-                fields: AspectFieldPatch::from_locator(
-                    locator,
-                    AspectValue::String("after".into()),
-                ),
-            },
-        )),
-    ));
+    update
+        .push_batch(WorkerIntentBatch::new("update-conditional-identity").push(
+            MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                UpdateEntityFieldsIntent {
+                    entity_id: entity,
+                    fields: AspectFieldPatch::from_locator(
+                        locator,
+                        AspectValue::String("after".into()),
+                    ),
+                },
+            )),
+        ))
+        .expect("test staging stays within configured resource budgets");
     let updated = update
         .commit(&mut relational)
         .expect("conditional identity field should commit");
@@ -130,6 +134,7 @@ pub(crate) fn correspondence_bridge(
     let request = RelationalCommittedPatchRequest::new(
         TruthCommitIdentity::from_relational_commit_id(updated.commit.commit_id.0),
     );
+    commit_snapshot_closeout::release_commit_snapshot(&mut relational, &updated);
     let source = match dependency.locality() {
         BridgeSemanticLocality::SourcePartition(role) => {
             RuntimeBridgeRelationalSource::for_graph_partition(
@@ -295,68 +300,6 @@ fn build_bridge(
         None => builder.build(),
     }
     .expect("conditional correspondence bridge should build")
-}
-
-struct RetainedRelationalSource {
-    source: RuntimeBridgeRelationalSource,
-    _observations: Vec<worth_relational::facade::bridge::RelationalBridgeObservationLease>,
-}
-
-impl RetainedRelationalSource {
-    fn new(
-        source: RuntimeBridgeRelationalSource,
-        retained_bases: Vec<AdmittedRelationalBranchBasis>,
-    ) -> (
-        Self,
-        Vec<worth_runtime_bridge::facade::RelationalBridgeSnapshotIdentityParts>,
-    ) {
-        let observations: Vec<_> = retained_bases
-            .iter()
-            .map(|basis| {
-                source
-                    .retain_branch_basis_for_bridge(basis)
-                    .expect("fixture Bridge observation should retain")
-            })
-            .collect();
-        let snapshots = observations
-            .iter()
-            .map(|observation| {
-                observation
-                    .snapshot_identity()
-                    .relational_snapshot_parts()
-                    .expect("Relational Bridge observation identity")
-            })
-            .collect();
-        (
-            Self {
-                source,
-                _observations: observations,
-            },
-            snapshots,
-        )
-    }
-}
-
-impl CommittedPatchSource for RetainedRelationalSource {
-    fn authoritative_source_profile(&self) -> Option<BridgeAuthoritativeSourceProfile> {
-        CommittedPatchSource::authoritative_source_profile(&self.source)
-    }
-
-    fn load_committed_patch(
-        &self,
-        request: RelationalCommittedPatchRequest,
-    ) -> Result<BridgeCommittedPatchEnvelope, RelationalBridgeSourceError> {
-        self.source.load_committed_patch(request)
-    }
-}
-
-impl SnapshotReadSource for RetainedRelationalSource {
-    fn open_snapshot(
-        &self,
-        identity: &TruthSnapshotIdentity,
-    ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
-        self.source.open_snapshot(identity)
-    }
 }
 
 fn begin_main_transaction(runtime: &RelationalRuntime) -> BranchBoundRelationalTransaction {

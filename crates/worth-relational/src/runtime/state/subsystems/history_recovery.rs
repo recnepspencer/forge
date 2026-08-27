@@ -24,6 +24,7 @@ impl HistorySubsystem {
             CommitId,
             Arc<crate::branch::RelationalBranchRootSchemaAuthority>,
         >,
+        schema_registry: &crate::schema::data::RelationalSchemaRegistry,
         symbols: &crate::symbols::data::StringInterner,
     ) -> Result<(), String> {
         if checkpoints.is_empty() {
@@ -36,7 +37,13 @@ impl HistorySubsystem {
         > = std::collections::BTreeMap::new();
         for checkpoint in checkpoints.iter().cloned() {
             let root = match checkpoint.observation.target() {
-                FoundationalBranchTarget::Empty => None,
+                FoundationalBranchTarget::Empty => {
+                    Some(crate::branch::RelationalBranchRoot::empty_with_schema(
+                        schema_registry,
+                        crate::schema::data::runtime_descriptor_semantics_policy()
+                            .current_write_version(),
+                    ))
+                }
                 FoundationalBranchTarget::Basis(target) => {
                     let commit_id = CommitId(target.selected_commit_id());
                     validate_branch_target_envelope(
@@ -114,7 +121,14 @@ impl HistorySubsystem {
             return Err("durable checkpoint omitted the configured main branch cell".to_owned());
         }
         self.branch_cells.restore_all(cells);
+        self.retired_branch_names.clear();
         self.rebuild_catalog_with_checkpoint_targets(checkpoints, symbols)?;
+        self.try_reset_retention_owner(self.runtime_instance_id)
+            .map_err(|denial| {
+                format!(
+                    "durable branch-head retention admission denied during recovery: {denial:?}"
+                )
+            })?;
         for cell in self.branch_cells.values() {
             validate_recovered_branch_cell(self, cell)?;
         }

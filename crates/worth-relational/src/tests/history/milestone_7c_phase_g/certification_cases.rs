@@ -81,27 +81,29 @@ pub(super) fn certify_prefer_richer_merge_execution() -> MergeExecutionCertifica
         &mut runtime,
         BranchId("feature".to_string()),
     );
-    feature_txn.push_batch(
-        WorkerIntentBatch::new("feature-seed").push(MutationIntent::Create(CreateIntent::Entity(
-            crate::transactions::data::EntitySpec {
-                partition_id: PartitionId::main(),
-                kind_id: KindId(1),
-                client_key: crate::symbols::data::ClientKey::raw("feature-shared"),
-                fields: crate::tests::support::string_aspect_field_patch([
-                    (
-                        crate::tests::support::aspect_key("name"),
-                        crate::tests::support::field_key("name"),
-                        "shared-name",
-                    ),
-                    (
-                        crate::tests::support::aspect_key("status"),
-                        crate::tests::support::field_key("status"),
-                        "active",
-                    ),
-                ]),
-            },
-        ))),
-    );
+    feature_txn
+        .push_batch(
+            WorkerIntentBatch::new("feature-seed").push(MutationIntent::Create(
+                CreateIntent::Entity(crate::transactions::data::EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: crate::symbols::data::ClientKey::raw("feature-shared"),
+                    fields: crate::tests::support::string_aspect_field_patch([
+                        (
+                            crate::tests::support::aspect_key("name"),
+                            crate::tests::support::field_key("name"),
+                            "shared-name",
+                        ),
+                        (
+                            crate::tests::support::aspect_key("status"),
+                            crate::tests::support::field_key("status"),
+                            "active",
+                        ),
+                    ]),
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     feature_txn
         .commit(&mut runtime)
         .expect("feature branch seed");

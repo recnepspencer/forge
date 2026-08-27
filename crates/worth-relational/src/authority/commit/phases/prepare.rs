@@ -169,7 +169,8 @@ pub(crate) fn prepare_working_state_scope(
     phase_timing.draft_conflict_detection_micros = merged_plan_timing.conflict_detection_micros;
     transaction
         .footprint
-        .derive_validation_dependencies(&merged_plan);
+        .derive_validation_dependencies(&merged_plan, transaction.maximum_footprint_loci)
+        .map_err(|denial| TransactionCommitError::conflict(denial.into_conflict()))?;
     let (structural_summary, working_state, prepare_phase_timing) =
         prepare_authoritative_working_state_scope_for_base(
             runtime,

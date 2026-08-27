@@ -1,7 +1,7 @@
 //! Ordinary installed-operation authorization evidence.
 
 use std::cell::Cell;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 
 use super::super::fixture::{
     installed_authorization_world, live_scope, AccountLabel, AccountStatus, TouchAccountOperation,
@@ -284,7 +284,8 @@ fn cancelled_request_cannot_reuse_otherwise_current_authority() {
 fn admitted_operation_retains_expiry_and_cancellation_authority() {
     let world = installed_authorization_world(true);
     let request = live_scope();
-    let external = world.authenticate("alice", Duration::from_millis(20), &request);
+    let external = world.authenticate("alice", Duration::from_secs(1), &request);
+    let authentication_expires_at = external.expires_at();
     let principal = world
         .application
         .resolve_authenticated_principal(
@@ -319,7 +320,10 @@ fn admitted_operation_retains_expiry_and_cancellation_authority() {
         )
         .unwrap();
     assert!(expiring.validate_current_authority().is_ok());
-    std::thread::sleep(Duration::from_millis(30));
+    let until_expiry = authentication_expires_at
+        .duration_since(SystemTime::now())
+        .unwrap_or_default();
+    std::thread::sleep(until_expiry + Duration::from_millis(10));
     assert_eq!(
         expiring.validate_current_authority().unwrap_err().kind(),
         WorthQueryOperationAuthorizationDenialKind::ExpiredAuthentication

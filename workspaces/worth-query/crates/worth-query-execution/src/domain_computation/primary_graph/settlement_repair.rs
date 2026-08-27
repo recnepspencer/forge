@@ -2,6 +2,10 @@
 pub enum WorthQueryApplicationSettlementRecoveryError {
     Durability(worth_relational::facade::publication::DeferredPublicationSettlementError),
     Publication(&'static str),
+    ActiveSnapshotCapacityExhausted { maximum_active_snapshots: usize },
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
+    SnapshotIdentityExhausted,
     IdempotencyAbsent,
     IdempotencyDrift,
 }

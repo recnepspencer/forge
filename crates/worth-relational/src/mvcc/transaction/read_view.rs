@@ -71,9 +71,13 @@ impl super::BranchBoundRelationalTransaction {
         entity_id: EntityId,
     ) -> Result<RelationalTransactionEntityRead, CommitConflict> {
         self.footprint
-            .record_read(super::RelationalTransactionReadLocus::Existing(
-                crate::transactions::data::RecordRef::Entity(entity_id),
-            ));
+            .admit_read(
+                super::RelationalTransactionReadLocus::Existing(
+                    crate::transactions::data::RecordRef::Entity(entity_id),
+                ),
+                self.maximum_footprint_loci,
+            )
+            .map_err(super::RelationalTransactionStagingDenial::into_conflict)?;
         let root = self.basis.inner.root.as_ref();
         let base = root.partition_state(entity_id.partition_id).and_then(|partition| {
             crate::visibility::materialization::read_records::materialization::materialize_current_authoritative_entity_record(
@@ -105,9 +109,13 @@ impl super::BranchBoundRelationalTransaction {
         relation_id: RelationId,
     ) -> Result<RelationalTransactionRelationRead, CommitConflict> {
         self.footprint
-            .record_read(super::RelationalTransactionReadLocus::Existing(
-                crate::transactions::data::RecordRef::Relation(relation_id),
-            ));
+            .admit_read(
+                super::RelationalTransactionReadLocus::Existing(
+                    crate::transactions::data::RecordRef::Relation(relation_id),
+                ),
+                self.maximum_footprint_loci,
+            )
+            .map_err(super::RelationalTransactionStagingDenial::into_conflict)?;
         let root = self.basis.inner.root.as_ref();
         let base = root.partition_state(relation_id.partition_id).and_then(|partition| {
             crate::visibility::materialization::read_records::materialization::materialize_current_authoritative_relation_record(
@@ -136,24 +144,30 @@ impl super::BranchBoundRelationalTransaction {
     pub fn read_created_entity<'a>(
         &'a mut self,
         entity: &CreatedEntityRef,
-    ) -> Option<impl ExactSizeIterator<Item = &'a CreateIntent> + 'a> {
+    ) -> Result<
+        Option<impl ExactSizeIterator<Item = &'a CreateIntent> + 'a>,
+        super::RelationalTransactionStagingDenial,
+    > {
         let entity = self.overlay.canonical_created_entity_ref(entity);
-        self.footprint
-            .record_read(super::RelationalTransactionReadLocus::CreatedEntity(
-                entity.clone(),
-            ));
-        self.overlay.created_entity(&entity)
+        self.footprint.admit_read(
+            super::RelationalTransactionReadLocus::CreatedEntity(entity.clone()),
+            self.maximum_footprint_loci,
+        )?;
+        Ok(self.overlay.created_entity(&entity))
     }
 
     pub fn read_created_relation<'a>(
         &'a mut self,
         relation: &CreatedRelationRef,
-    ) -> Option<impl ExactSizeIterator<Item = &'a CreateIntent> + 'a> {
+    ) -> Result<
+        Option<impl ExactSizeIterator<Item = &'a CreateIntent> + 'a>,
+        super::RelationalTransactionStagingDenial,
+    > {
         let relation = self.overlay.canonical_created_relation_ref(relation);
-        self.footprint
-            .record_read(super::RelationalTransactionReadLocus::CreatedRelation(
-                relation.clone(),
-            ));
-        self.overlay.created_relation(&relation)
+        self.footprint.admit_read(
+            super::RelationalTransactionReadLocus::CreatedRelation(relation.clone()),
+            self.maximum_footprint_loci,
+        )?;
+        Ok(self.overlay.created_relation(&relation))
     }
 }

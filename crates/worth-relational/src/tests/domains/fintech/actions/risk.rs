@@ -44,7 +44,8 @@ pub(crate) fn shock_market_on_branch(
                     ]),
                 },
             )),
-        ));
+        ))
+        .expect("test staging stays within configured resource budgets");
     }
     txn.commit(&mut world.runtime).unwrap()
 }
@@ -86,7 +87,8 @@ pub(crate) fn refresh_risk_views(world: &mut FintechWorld, branch_id: BranchId) 
                 ))
                 .into(),
             ),
-        );
+        )
+        .expect("test staging stays within configured resource budgets");
     }
     txn.commit(&mut world.runtime).unwrap()
 }
@@ -135,7 +137,8 @@ pub(crate) fn stress_seeded_intraday_risk(
                 },
             )))
             .into(),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     txn.push_batch(
         WorkerIntentBatch::new("stress-intraday-risk")
             .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
@@ -171,7 +174,8 @@ pub(crate) fn stress_seeded_intraday_risk(
                 },
             )))
             .into(),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     txn.push_batch(
         WorkerIntentBatch::new("stress-intraday-limit")
             .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
@@ -202,7 +206,8 @@ pub(crate) fn stress_seeded_intraday_risk(
                 },
             )))
             .into(),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     txn.push_batch(
         WorkerIntentBatch::new("stress-intraday-breach")
             .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
@@ -233,6 +238,7 @@ pub(crate) fn stress_seeded_intraday_risk(
                 },
             )))
             .into(),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     txn.commit(&mut world.runtime).unwrap()
 }

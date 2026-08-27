@@ -333,15 +333,6 @@ impl<'runtime> HistoryAccess<'runtime> {
         }
     }
 
-    pub(crate) fn branch_head_versions(&self) -> Vec<crate::identity::data::VersionId> {
-        self.runtime
-            .history
-            .branch_ids_snapshot()
-            .into_iter()
-            .filter_map(|branch_id| self.branch_head(&branch_id).map(|head| head.version_id))
-            .collect()
-    }
-
     pub(super) fn branch_commit_envelopes(
         &self,
         branch_id: &BranchId,

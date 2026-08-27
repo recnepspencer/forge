@@ -33,13 +33,58 @@ pub enum WorthQueryBranchMergeNextAction {
 }
 
 pub struct WorthQueryBranchMergeDeferred {
+    kind: crate::effect_lifecycle::EffectExecutionDeferredKind,
     message: String,
     counters: WorthQueryWorkflowCounters,
 }
 
+pub struct WorthQueryBranchMergeControlStopped {
+    kind: crate::effect_lifecycle::EffectExecutionControlStopKind,
+    message: String,
+    counters: WorthQueryWorkflowCounters,
+}
+
+impl WorthQueryBranchMergeControlStopped {
+    pub(crate) fn new(
+        kind: crate::effect_lifecycle::EffectExecutionControlStopKind,
+        message: String,
+        counters: WorthQueryWorkflowCounters,
+    ) -> Self {
+        Self {
+            kind,
+            message,
+            counters,
+        }
+    }
+
+    pub const fn kind(&self) -> crate::effect_lifecycle::EffectExecutionControlStopKind {
+        self.kind
+    }
+
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    pub fn counters(&self) -> &WorthQueryWorkflowCounters {
+        &self.counters
+    }
+}
+
 impl WorthQueryBranchMergeDeferred {
-    pub(crate) fn new(message: String, counters: WorthQueryWorkflowCounters) -> Self {
-        Self { message, counters }
+    pub(crate) fn new(
+        kind: crate::effect_lifecycle::EffectExecutionDeferredKind,
+        message: String,
+        counters: WorthQueryWorkflowCounters,
+    ) -> Self {
+        Self {
+            kind,
+            message,
+            counters,
+        }
+    }
+
+    pub const fn kind(&self) -> crate::effect_lifecycle::EffectExecutionDeferredKind {
+        self.kind
     }
 
     pub fn message(&self) -> &str {
@@ -57,6 +102,7 @@ impl WorthQueryBranchMergeDeferred {
 
 pub struct WorthQueryBranchMergeStop {
     source: WorthQueryBranchMergeStopSource,
+    effect_kind: Option<crate::effect_lifecycle::EffectExecutionDenialKind>,
     message: String,
     counters: WorthQueryWorkflowCounters,
 }
@@ -68,6 +114,10 @@ impl WorthQueryBranchMergeStop {
 
     pub fn message(&self) -> &str {
         &self.message
+    }
+
+    pub const fn effect_kind(&self) -> Option<crate::effect_lifecycle::EffectExecutionDenialKind> {
+        self.effect_kind
     }
 
     pub fn counters(&self) -> &WorthQueryWorkflowCounters {
@@ -105,6 +155,7 @@ impl WorthQueryBranchMergeStop {
     ) -> Self {
         Self {
             source,
+            effect_kind: None,
             message: message.into(),
             counters,
         }
@@ -112,11 +163,13 @@ impl WorthQueryBranchMergeStop {
 
     pub(crate) fn from_execution_denial(
         stage: WorthQueryOrdinaryMergeFailureStage,
+        effect_kind: Option<crate::effect_lifecycle::EffectExecutionDenialKind>,
         message: String,
         counters: WorthQueryWorkflowCounters,
     ) -> Self {
         Self {
             source: source_for_stage(stage),
+            effect_kind,
             message,
             counters,
         }
@@ -158,6 +211,10 @@ impl WorthQueryBranchMergeSettlementDeferred {
 
     pub fn next_action(&self) -> WorthQueryBranchMergeNextAction {
         WorthQueryBranchMergeNextAction::RepairDeferredBranchMergeSettlement
+    }
+
+    pub fn commit_id(&self) -> worth_relational::facade::history::CommitId {
+        self.settlement.commit().commit_id
     }
 }
 
@@ -274,6 +331,7 @@ pub enum WorthQueryBranchMergeOutcome {
     Completed(WorthQueryBranchMergeCompletion),
     Stopped(WorthQueryBranchMergeStop),
     Deferred(WorthQueryBranchMergeDeferred),
+    ControlStopped(WorthQueryBranchMergeControlStopped),
     SettlementDeferred(WorthQueryBranchMergeSettlementDeferred),
 }
 
@@ -281,7 +339,10 @@ impl WorthQueryBranchMergeOutcome {
     pub fn completed(&self) -> Option<&WorthQueryBranchMergeCompletion> {
         match self {
             Self::Completed(completion) => Some(completion),
-            Self::Stopped(_) | Self::Deferred(_) | Self::SettlementDeferred(_) => None,
+            Self::Stopped(_)
+            | Self::Deferred(_)
+            | Self::ControlStopped(_)
+            | Self::SettlementDeferred(_) => None,
         }
     }
 
@@ -289,20 +350,35 @@ impl WorthQueryBranchMergeOutcome {
         match self {
             Self::Completed(_) => None,
             Self::Stopped(stop) => Some(stop),
-            Self::Deferred(_) | Self::SettlementDeferred(_) => None,
+            Self::Deferred(_) | Self::ControlStopped(_) | Self::SettlementDeferred(_) => None,
         }
     }
 
     pub fn deferred(&self) -> Option<&WorthQueryBranchMergeDeferred> {
         match self {
             Self::Deferred(deferred) => Some(deferred),
-            Self::Completed(_) | Self::Stopped(_) | Self::SettlementDeferred(_) => None,
+            Self::Completed(_)
+            | Self::Stopped(_)
+            | Self::ControlStopped(_)
+            | Self::SettlementDeferred(_) => None,
+        }
+    }
+
+    pub fn control_stopped(&self) -> Option<&WorthQueryBranchMergeControlStopped> {
+        match self {
+            Self::ControlStopped(stopped) => Some(stopped),
+            Self::Completed(_)
+            | Self::Stopped(_)
+            | Self::Deferred(_)
+            | Self::SettlementDeferred(_) => None,
         }
     }
 
     pub fn settlement_deferred(&self) -> Option<&WorthQueryBranchMergeSettlementDeferred> {
         match self {
-            Self::Completed(_) | Self::Stopped(_) | Self::Deferred(_) => None,
+            Self::Completed(_) | Self::Stopped(_) | Self::Deferred(_) | Self::ControlStopped(_) => {
+                None
+            }
             Self::SettlementDeferred(deferred) => Some(deferred),
         }
     }

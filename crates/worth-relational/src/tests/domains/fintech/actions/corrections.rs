@@ -55,7 +55,8 @@ pub(crate) fn correct_trade_with_replacement(
                 },
             )))
             .into(),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
     txn.commit(&mut world.runtime).unwrap()
 }
 

@@ -104,6 +104,14 @@ impl WorthQuerySessionPrepareOutcome<'_> {
                 self.counters,
             )),
             Ok(Err(
+                super::super::super::super::WorthQueryProviderSessionCommitStop::ControlStopped(
+                    stopped,
+                ),
+            )) => WorthQuerySessionCommitOrAbortOutcome::CommitControlStopped(stopped.at_stage(
+                WorthQueryProviderSessionProtocolStage::Commit,
+                self.counters,
+            )),
+            Ok(Err(
                 super::super::super::super::WorthQueryProviderSessionCommitStop::SettlementDeferred(
                     deferred,
                 ),

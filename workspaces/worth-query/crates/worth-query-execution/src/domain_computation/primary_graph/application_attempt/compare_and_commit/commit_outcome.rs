@@ -1,6 +1,6 @@
 //! Compare-and-commit outcome and denial taxonomy.
 
-use super::super::WorthQueryApplicationIdempotencyBinding;
+use super::{super::WorthQueryApplicationIdempotencyBinding, WorthQueryApplicationCommitDeferred};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WorthQueryApplicationStaleAttempt {
@@ -20,6 +20,17 @@ impl WorthQueryApplicationStaleAttempt {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthQueryApplicationCommitDenialKind {
     ProviderRejected,
+    ActiveSnapshotCapacityExhausted {
+        maximum_active_snapshots: usize,
+    },
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
+    SnapshotIdentityExhausted,
+    CandidateIdentityExhausted,
+    PreparedRootBudgetExhausted {
+        maximum_bytes: u64,
+        required_bytes: u64,
+    },
     IdempotencyIntentDrift,
     ElevationTransitionRequired,
     ElevationRequestProgramMismatch,
@@ -68,6 +79,68 @@ impl WorthQueryApplicationCommitDenial {
     ) -> Self {
         Self {
             kind: WorthQueryApplicationCommitDenialKind::ProviderRejected,
+            stage,
+        }
+    }
+
+    pub(in super::super) const fn active_snapshot_capacity_exhausted(
+        stage: WorthQueryApplicationCommitDenialStage,
+        maximum_active_snapshots: usize,
+    ) -> Self {
+        Self {
+            kind: WorthQueryApplicationCommitDenialKind::ActiveSnapshotCapacityExhausted {
+                maximum_active_snapshots,
+            },
+            stage,
+        }
+    }
+
+    pub(in super::super) const fn retention_capacity_exhausted(
+        stage: WorthQueryApplicationCommitDenialStage,
+    ) -> Self {
+        Self {
+            kind: WorthQueryApplicationCommitDenialKind::RetentionCapacityExhausted,
+            stage,
+        }
+    }
+
+    pub(in super::super) const fn snapshot_identity_exhausted(
+        stage: WorthQueryApplicationCommitDenialStage,
+    ) -> Self {
+        Self {
+            kind: WorthQueryApplicationCommitDenialKind::SnapshotIdentityExhausted,
+            stage,
+        }
+    }
+
+    pub(in super::super) const fn retention_identity_exhausted(
+        stage: WorthQueryApplicationCommitDenialStage,
+    ) -> Self {
+        Self {
+            kind: WorthQueryApplicationCommitDenialKind::RetentionIdentityExhausted,
+            stage,
+        }
+    }
+
+    pub(in super::super) const fn candidate_identity_exhausted(
+        stage: WorthQueryApplicationCommitDenialStage,
+    ) -> Self {
+        Self {
+            kind: WorthQueryApplicationCommitDenialKind::CandidateIdentityExhausted,
+            stage,
+        }
+    }
+
+    pub(in super::super) const fn prepared_root_budget_exhausted(
+        stage: WorthQueryApplicationCommitDenialStage,
+        maximum_bytes: u64,
+        required_bytes: u64,
+    ) -> Self {
+        Self {
+            kind: WorthQueryApplicationCommitDenialKind::PreparedRootBudgetExhausted {
+                maximum_bytes,
+                required_bytes,
+            },
             stage,
         }
     }
@@ -135,48 +208,12 @@ pub enum WorthQueryApplicationCommitOutcome {
     AlreadyCommitted(super::WorthQueryApplicationCommitReceipt),
     Stale(WorthQueryApplicationStaleAttempt),
     Cancelled,
+    TimedOut,
     Denied(WorthQueryApplicationCommitDenial),
     Aborted,
     Deferred(WorthQueryApplicationCommitDeferred),
     SettlementDeferred(WorthQueryApplicationSettlementDeferred),
     Indeterminate(WorthQueryApplicationUnresolvedCommitEvidence),
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WorthQueryApplicationCommitDeferred {
-    stage: crate::domain_computation::provider_session::WorthQueryProviderSessionProtocolStage,
-    detail: String,
-    counters:
-        crate::domain_computation::provider_session::WorthQueryProviderSessionProtocolCounters,
-}
-
-impl WorthQueryApplicationCommitDeferred {
-    pub(in crate::domain_computation::primary_graph) fn from_provider_session(
-        deferred: crate::domain_computation::provider_session::WorthQueryProviderSessionCommitDeferred,
-    ) -> Self {
-        Self {
-            stage: deferred.stage(),
-            detail: deferred.detail().to_owned(),
-            counters: deferred.counters(),
-        }
-    }
-
-    pub const fn stage(
-        &self,
-    ) -> crate::domain_computation::provider_session::WorthQueryProviderSessionProtocolStage {
-        self.stage
-    }
-
-    pub fn detail(&self) -> &str {
-        &self.detail
-    }
-
-    pub const fn counters(
-        &self,
-    ) -> crate::domain_computation::provider_session::WorthQueryProviderSessionProtocolCounters
-    {
-        self.counters
-    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -266,6 +303,10 @@ impl WorthQueryApplicationSettlementDeferred {
 
     pub const fn next_action(&self) -> WorthQueryApplicationSettlementNextAction {
         WorthQueryApplicationSettlementNextAction::RecoverDeferredApplicationSettlement
+    }
+
+    pub fn commit_id(&self) -> worth_relational::facade::history::CommitId {
+        self.settlement.commit().commit_id
     }
 
     pub(in crate::domain_computation::primary_graph) const fn requires_idempotency_readmission(

@@ -299,6 +299,17 @@ impl RelationalBranchRoot {
             .unwrap_or_default()
     }
 
+    pub(crate) fn reclaimable_unique_authoritative_bytes(&self) -> u64 {
+        let mut bytes = std::mem::size_of::<Self>() as u64;
+        bytes = bytes.saturating_add(
+            RelationalPersistentRegionSet::reclaimable_unique_authoritative_bytes(&self.regions),
+        );
+        if Arc::strong_count(&self.schema_authority) == 1 {
+            bytes = bytes.saturating_add(self.schema_authority.authoritative_allocation_bytes());
+        }
+        bytes
+    }
+
     pub(crate) fn links_envelope(&self, envelope: &Arc<CanonicalCommitEnvelope>) -> bool {
         self.committed.as_ref().is_some_and(|root| {
             Arc::ptr_eq(&root.canonical_envelope, envelope)

@@ -298,10 +298,13 @@ fn grow_unrelated_accounts(world: &super::super::fixture::AuthorizationWorld, co
                 )
                 .expect("owner-admitted transaction context")
         };
-        transaction.push_batch(batch);
         transaction
+            .push_batch(batch)
+            .expect("test staging stays within configured resource budgets");
+        let committed = transaction
             .commit(runtime)
             .expect("unrelated population commits");
+        super::super::fixture::release_test_commit_snapshot(runtime, &committed);
         graph.ensure_primary_indexes_current(runtime).unwrap();
     });
 }

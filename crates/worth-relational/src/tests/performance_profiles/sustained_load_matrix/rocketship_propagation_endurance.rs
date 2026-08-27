@@ -116,7 +116,10 @@ pub(super) fn certify_rocketship_propagation_endurance(suite: &'static str) {
                     .expect("rocketship endurance explicit broad outcome");
                 let explicit_query_micros = explicit_started_at.elapsed().as_micros();
                 total_explicit_query_micros += explicit_query_micros;
-                assert!(runtime.visibility_authority().release_snapshot(&snapshot));
+                assert!(runtime
+                    .visibility_authority()
+                    .release_snapshot(&snapshot)
+                    .is_ok());
 
                 let cycle_micros = update_micros + propagation_micros + explicit_query_micros;
                 cycle_samples.push(cycle_micros);

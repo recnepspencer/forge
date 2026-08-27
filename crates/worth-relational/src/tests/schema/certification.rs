@@ -79,7 +79,8 @@ fn schema_evolution_cdc_contract_test() {
     let mut txn = runtime
         .begin_branch_transaction(context.basis(), context.intent().clone())
         .expect("owner-admitted transaction context");
-    txn.push_batch(batch_create("boundary"));
+    txn.push_batch(batch_create("boundary"))
+        .expect("test staging stays within configured resource budgets");
     let committed = txn.commit(&mut runtime).unwrap();
 
     let live_batch = runtime

@@ -85,7 +85,9 @@ fn validate(
         WorkerIntentBatch::push,
     );
     let mut transaction = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
-    transaction.push_batch(batch);
+    transaction
+        .push_batch(batch)
+        .expect("test staging stays within configured resource budgets");
     transaction
         .validate(runtime)
         .expect("owner validates touch projection fixture")

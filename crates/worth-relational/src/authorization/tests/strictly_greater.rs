@@ -176,14 +176,16 @@ fn write_comparison_fields(
     }
     let mut transaction =
         crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-    transaction.push_batch(WorkerIntentBatch::new("write-comparison-fields").push(
-        MutationIntent::Entity(EntityMutationIntent::UpdateFields(
-            UpdateEntityFieldsIntent {
-                entity_id: entity,
-                fields: aspect_field_patch_from_values(values),
-            },
-        )),
-    ));
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("write-comparison-fields").push(MutationIntent::Entity(
+                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
+                    entity_id: entity,
+                    fields: aspect_field_patch_from_values(values),
+                }),
+            )),
+        )
+        .expect("test staging stays within configured resource budgets");
     transaction
         .commit(&mut runtime)
         .expect("comparison fields must be valid for the declared fixture schema");

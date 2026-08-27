@@ -50,7 +50,8 @@ fn relation_integrity_commit_boundary_requires_paired_inverse_edge() {
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         ))),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
 
     let error = txn.commit(&mut runtime).unwrap_err();
     match error {
@@ -140,7 +141,8 @@ fn relation_integrity_commit_boundary_requires_canonical_undirected_ordering() {
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
 
     let error = txn.commit(&mut runtime).unwrap_err();
     match error {
@@ -203,7 +205,8 @@ fn relation_integrity_commit_boundary_prohibits_inverse_duplication() {
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         ))),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
 
     let error = txn.commit(&mut runtime).unwrap_err();
     match error {
@@ -264,7 +267,8 @@ fn relation_integrity_commit_boundary_requires_paired_twin_edge() {
                 fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
-    );
+    )
+    .expect("test staging stays within configured resource budgets");
 
     let error = txn.commit(&mut runtime).unwrap_err();
     match error {

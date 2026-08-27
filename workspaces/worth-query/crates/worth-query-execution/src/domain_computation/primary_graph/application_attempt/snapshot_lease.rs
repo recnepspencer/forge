@@ -2,6 +2,17 @@ use worth_relational::facade::snapshots::SnapshotHandle;
 
 use super::super::WorthQueryPrimaryGraphIntegrationHandle;
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(in crate::domain_computation) enum WorthQueryApplicationSnapshotLeaseDenial {
+    BranchIdentityUnavailable,
+    BranchObservationUnavailable,
+    ForeignRuntime,
+    ActiveSnapshotCapacityExhausted { maximum_active_snapshots: usize },
+    SnapshotIdentityExhausted,
+    RetentionCapacityExhausted,
+    RetentionIdentityExhausted,
+}
+
 pub(in crate::domain_computation) struct WorthQueryApplicationSnapshotLease {
     handle: WorthQueryPrimaryGraphIntegrationHandle,
     snapshot: Option<SnapshotHandle>,
@@ -14,17 +25,42 @@ impl WorthQueryApplicationSnapshotLease {
         handle: WorthQueryPrimaryGraphIntegrationHandle,
         layout: std::sync::Arc<super::super::schema_layout::WorthQueryPrimaryGraphLayout>,
         branch: &worth_relational::facade::history::BranchId,
-    ) -> Option<Self> {
+    ) -> Result<Self, WorthQueryApplicationSnapshotLeaseDenial> {
         let (basis, snapshot) = handle.with_runtime_mut(|runtime| {
-            let identity = runtime.branch_identity(branch).ok()?;
-            let (_, basis) = runtime.observe_branch(&identity).ok()?;
+            let identity = runtime.branch_identity(branch).map_err(|_| {
+                WorthQueryApplicationSnapshotLeaseDenial::BranchIdentityUnavailable
+            })?;
+            let (_, basis) = runtime.observe_branch(&identity).map_err(|denial| match denial {
+                worth_relational::facade::branch::RelationalBranchBasisDenial::RetentionCapacityExhausted => {
+                    WorthQueryApplicationSnapshotLeaseDenial::RetentionCapacityExhausted
+                }
+                worth_relational::facade::branch::RelationalBranchBasisDenial::RetentionIdentityExhausted => {
+                    WorthQueryApplicationSnapshotLeaseDenial::RetentionIdentityExhausted
+                }
+                worth_relational::facade::branch::RelationalBranchBasisDenial::SnapshotIdentityExhausted => {
+                    WorthQueryApplicationSnapshotLeaseDenial::SnapshotIdentityExhausted
+                }
+                _ => WorthQueryApplicationSnapshotLeaseDenial::BranchObservationUnavailable,
+            })?;
             let snapshot = runtime
                 .snapshots()
                 .snapshot_for_observation(&basis.observation())
-                .ok()?;
-            Some((basis, snapshot))
+                .map_err(|denial| match denial {
+                    worth_relational::facade::snapshots::RelationalSnapshotAdmissionDenial::ForeignRuntime { .. } => {
+                        WorthQueryApplicationSnapshotLeaseDenial::ForeignRuntime
+                    }
+                    worth_relational::facade::snapshots::RelationalSnapshotAdmissionDenial::ActiveSnapshotCapacityExhausted {
+                        maximum_active_snapshots,
+                    } => WorthQueryApplicationSnapshotLeaseDenial::ActiveSnapshotCapacityExhausted {
+                        maximum_active_snapshots,
+                    },
+                    worth_relational::facade::snapshots::RelationalSnapshotAdmissionDenial::SnapshotIdentityExhausted => {
+                        WorthQueryApplicationSnapshotLeaseDenial::SnapshotIdentityExhausted
+                    }
+                })?;
+            Ok((basis, snapshot))
         })?;
-        Some(Self {
+        Ok(Self {
             handle,
             snapshot: Some(snapshot),
             basis,
@@ -73,10 +109,13 @@ impl WorthQueryApplicationSnapshotLease {
     }
 
     pub(in crate::domain_computation) fn release(mut self) -> bool {
-        self.snapshot.take().is_some_and(|snapshot| {
-            self.handle
-                .with_runtime_mut(|runtime| runtime.snapshots().release_snapshot(&snapshot))
-        })
+        let Some(snapshot) = self.snapshot.take() else {
+            return false;
+        };
+        self.handle.with_runtime_mut(|runtime| {
+            crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
+        });
+        true
     }
 }
 
@@ -84,7 +123,7 @@ impl Drop for WorthQueryApplicationSnapshotLease {
     fn drop(&mut self) {
         if let Some(snapshot) = self.snapshot.take() {
             self.handle.with_runtime_mut(|runtime| {
-                runtime.snapshots().release_snapshot(&snapshot);
+                crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
             });
         }
     }

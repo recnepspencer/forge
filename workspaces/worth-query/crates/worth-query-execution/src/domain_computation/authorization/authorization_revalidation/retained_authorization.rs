@@ -53,14 +53,19 @@ where
             let snapshot = crate::domain_computation::primary_graph::open_current_branch_snapshot(
                 runtime, branch,
             )
-            .ok_or_else(inconsistent_authorization)?;
+            .map_err(|denial| {
+                super::super::exact_basis_snapshot_denial(
+                    denial,
+                    "retained conventional authorization",
+                )
+            })?;
             let current = validate_retained_currentness(
                 authorization,
                 runtime,
                 &snapshot,
                 self.authorization.bridge(),
             );
-            runtime.snapshots().release_snapshot(&snapshot);
+            crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
             current
         })
     }
@@ -82,7 +87,12 @@ where
             let snapshot = crate::domain_computation::primary_graph::open_current_branch_snapshot(
                 runtime, branch,
             )
-            .ok_or_else(inconsistent_authorization)?;
+            .map_err(|denial| {
+                super::super::exact_basis_snapshot_denial(
+                    denial,
+                    "retained capability authorization",
+                )
+            })?;
             let primary = self.validate_retained_capability_observation(
                 capability, installed, &sample, runtime, &snapshot,
             );
@@ -93,7 +103,7 @@ where
                     &snapshot,
                 )
             });
-            runtime.snapshots().release_snapshot(&snapshot);
+            crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
             result
         })
     }

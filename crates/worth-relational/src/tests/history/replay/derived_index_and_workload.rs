@@ -86,7 +86,8 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
                     },
                 }),
             )),
-        );
+        )
+        .expect("test staging stays within configured resource budgets");
         txn.commit(&mut runtime).unwrap()
     };
     runtime.durability_authority().checkpoint().unwrap();
@@ -202,7 +203,9 @@ fn hostile_commit_replay_equivalence_test() {
             )
             .expect("owner-admitted transaction context")
     };
-    transition_txn.push_batch(batch_create("after-boundary"));
+    transition_txn
+        .push_batch(batch_create("after-boundary"))
+        .expect("test staging stays within configured resource budgets");
     let _transition_outcome = transition_txn.commit(&mut runtime).unwrap();
 
     let merge = merge_commit_from_branches(
