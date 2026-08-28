@@ -69,7 +69,7 @@ where
             active_merge_participants: BTreeSet::new(),
             branch_head_generations: BTreeMap::new(),
             branch_restore_snapshot_ids: BTreeMap::new(),
-            retention: SignalBranchRetentionRegistry::default(),
+            retention: SignalBranchRetentionRegistry::new(0),
             next_node_index: 0,
             next_snapshot_id: 0,
             next_branch_id: 1,
@@ -97,6 +97,7 @@ where
             live_branch_catalog,
             branch_head_generations,
             branch_restore_snapshot_ids,
+            retention: SignalBranchRetentionRegistry::new(owner_runtime_instance_id),
             ..Self::new()
         }
     }

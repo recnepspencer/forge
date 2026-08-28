@@ -1,6 +1,7 @@
 use crate::branch::{
-    SignalBranchAdmissionLease, SignalBranchRetentionAcquisitionDenial, SignalBranchRetentionLease,
-    SignalBranchRetentionReleaseOutcome,
+    SignalBranchAdmissionLease, SignalBranchBasisDescriptor,
+    SignalBranchRetentionAcquisitionDenial, SignalBranchRetentionBinding,
+    SignalBranchRetentionLease, SignalBranchRetentionTerminalCounts,
 };
 use crate::state::SignalBranchId;
 
@@ -19,21 +20,22 @@ where
         self.retention.acquire_admitted(branch_id)
     }
 
+    /// Open one external obligation over the exact target the descriptor names.
     pub fn acquire_retention(
         &self,
-        runtime_instance_id: String,
-        branch_id: SignalBranchId,
+        descriptor: SignalBranchBasisDescriptor,
     ) -> Result<SignalBranchRetentionLease, SignalBranchRetentionAcquisitionDenial> {
-        self.retention
-            .acquire_external(runtime_instance_id, branch_id)
+        self.retention.acquire_external(descriptor)
     }
 
-    pub fn release_retention(
-        &self,
-        runtime_instance_id: &str,
-        lease: SignalBranchRetentionLease,
-    ) -> SignalBranchRetentionReleaseOutcome {
-        self.retention.release_external(runtime_instance_id, lease)
+    /// A narrow, cloneable binding used to decide how a presented obligation
+    /// relates to this owner. It grants no retention capability itself.
+    pub fn retention_binding(&self) -> SignalBranchRetentionBinding {
+        self.retention.binding()
+    }
+
+    pub fn retention_terminal_counts(&self) -> SignalBranchRetentionTerminalCounts {
+        self.retention.terminal_counts()
     }
 
     pub fn branch_admitted_retention_count(&self, branch_id: SignalBranchId) -> u32 {

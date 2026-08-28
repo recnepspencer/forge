@@ -5,8 +5,7 @@ use worth_proof::TransitionOutcome;
 use worth_signal::facade::branch::{
     SignalBranchAdvanceDenial, SignalBranchBasisCompatibilityDenial,
     SignalBranchBasisReadmissionDenial, SignalBranchForkOperationDenial,
-    SignalBranchRetentionAcquisitionDenial, SignalBranchRetentionReleaseDenial,
-    SignalBranchRetentionReleaseOutcome, SignalBranchTarget,
+    SignalBranchRetentionReleaseDenial, SignalBranchRetentionReleaseOutcome, SignalBranchTarget,
     SIGNAL_BRANCH_BASIS_DESCRIPTOR_SCHEMA_VERSION,
 };
 use worth_signal::facade::runtime::SignalBranchRetirementDenial;
@@ -179,9 +178,25 @@ fn advance_moves_generation_and_stales_the_previous_descriptor() {
         runtime.readmit_signal_branch_basis(descriptor),
         Err(SignalBranchBasisReadmissionDenial::ReferenceMismatch { .. })
     ));
+
+    // Ordinary readmission is a statement about the branch's current state, so
+    // it must refuse a superseded descriptor. An exact component obligation is
+    // a statement about one immutable target, so staleness alone must not deny
+    // it: the runtime still holds that target, and the caller still needs it.
+    let superseded_lease = runtime
+        .retain_signal_component_basis(&before)
+        .expect("an exact obligation over a superseded basis stays legitimate");
+    assert_eq!(
+        superseded_lease.retained_target(),
+        before
+            .observation()
+            .target()
+            .as_basis()
+            .expect("an owner observation carries a basis target")
+    );
     assert!(matches!(
-        runtime.retain_signal_component_basis(&before),
-        Err(SignalBranchRetentionAcquisitionDenial::StaleBasis { .. })
+        runtime.release_signal_component_basis(superseded_lease),
+        SignalBranchRetentionReleaseOutcome::Released(_)
     ));
 }
 
@@ -264,8 +279,8 @@ fn stale_fork_and_failed_advance_are_typed_no_movement_outcomes() {
 
 #[test]
 fn foreign_runtime_cannot_release_an_owner_lease() {
-    let mut owner = runtime();
-    let mut foreign = runtime();
+    let owner = runtime();
+    let foreign = runtime();
     let basis = owner
         .observe_signal_branch_basis(owner.current_branch())
         .expect("owner observation should succeed");

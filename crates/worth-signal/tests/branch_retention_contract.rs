@@ -16,7 +16,7 @@ fn runtime() -> SignalRuntime<(), (), (), (), ()> {
 fn retention_capacity_denies_before_unbounded_growth() {
     const INDEPENDENT_SAFETY_CEILING: usize = 4_096;
 
-    let mut runtime = runtime();
+    let runtime = runtime();
     let basis = runtime
         .observe_signal_branch_basis(runtime.current_branch())
         .expect("owner observation should succeed");

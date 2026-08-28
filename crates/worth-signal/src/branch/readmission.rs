@@ -53,6 +53,32 @@ pub enum SignalBranchBasisReadmissionDenial {
     },
 }
 
+/// Why one readmission through a live external retention obligation failed.
+///
+/// This is the vocabulary of exact readmission. It has no currentness axis on
+/// purpose: the obligation names an exact immutable target, and readmitting it
+/// is legitimate long after the branch has moved on.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SignalBranchRetainedReadmissionDenial {
+    /// The obligation was issued by a different live Signal owner.
+    ForeignRetention,
+    /// The obligation no longer retains anything, or its owner is gone.
+    UnavailableRetainedTarget,
+    /// The descriptor is not the one this obligation retains.
+    DescriptorMismatch,
+    UnsupportedDescriptorVersion {
+        observed: u16,
+        supported: u16,
+    },
+    LifecycleMismatch,
+    /// The retained target no longer satisfies exact admission.
+    UnavailableExactTarget(SignalBranchRetentionAcquisitionDenial),
+    UnavailableRetention {
+        maximum_active_leases: usize,
+    },
+    RetentionIdentityExhausted,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SignalBranchBasisCompatibilityDenial {
     OwnerMismatch,

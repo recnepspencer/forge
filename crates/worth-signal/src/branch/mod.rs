@@ -39,18 +39,22 @@ pub use lifecycle::{
 pub use merge::{SignalBranchMergeDenial, SignalBranchMergeOutcome};
 pub use readmission::{
     SignalBranchBasisCompatibilityDenial, SignalBranchBasisObservationDenial,
-    SignalBranchBasisReadmissionDenial,
+    SignalBranchBasisReadmissionDenial, SignalBranchRetainedReadmissionDenial,
 };
 pub use reference::{
     signal_branch_observation, SignalBranchComparisonBasis, SignalBranchForkBasis,
     SignalBranchObservation, SignalBranchObservationConstructionDenial,
 };
 pub use restoration::SignalBranchRestoreDenial;
-pub(crate) use retention::{SignalBranchAdmissionLease, SignalBranchRetentionRegistry};
+pub(crate) use retention::{
+    SignalBranchAdmissionLease, SignalBranchRetentionBinding,
+    SignalBranchRetentionOwnerRelationship, SignalBranchRetentionRegistry,
+};
 pub use retention::{
     SignalBranchRetentionAcquisitionDenial, SignalBranchRetentionLease,
-    SignalBranchRetentionReleaseDenial, SignalBranchRetentionReleaseOutcome,
-    SignalBranchRetentionReleaseReceipt,
+    SignalBranchRetentionOwnerPosture, SignalBranchRetentionReleaseDenial,
+    SignalBranchRetentionReleaseOutcome, SignalBranchRetentionReleaseReceipt,
+    SignalBranchRetentionTerminalCounts, SignalBranchRetentionTerminalOutcome,
 };
 pub use snapshot_capture::{
     AdmittedSignalBranchSnapshot, SignalBranchSnapshotCaptureDenial,

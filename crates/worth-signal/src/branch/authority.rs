@@ -56,7 +56,7 @@ mod tests {
         let admitted = crate::branch::basis::admit_signal_branch_observation(
             reference.clone(),
             crate::state::SignalBranchId(1),
-            crate::branch::SignalBranchRetentionRegistry::default()
+            crate::branch::SignalBranchRetentionRegistry::new(0)
                 .acquire_admitted(crate::state::SignalBranchId(1))
                 .expect("test admission retention should be available"),
         );
