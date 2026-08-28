@@ -33,4 +33,8 @@ impl UiNativePointerInputPort {
     ) -> Option<winit::dpi::PhysicalPosition<f64>> {
         None
     }
+
+    pub(crate) fn take_scroll_position(&mut self) -> Option<winit::dpi::PhysicalPosition<f64>> {
+        None
+    }
 }

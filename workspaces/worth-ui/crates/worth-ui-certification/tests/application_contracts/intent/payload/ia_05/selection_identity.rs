@@ -1,3 +1,8 @@
+use super::super::payload_types::{SelectionIntent, SELECTION_FIELD};
+use super::super::world::{
+    launch, routed_input, PayloadApplicationFacts, PayloadProjectionRegistration, PayloadWorld,
+    DECLARATION,
+};
 use worth_query::facade::runtime::WorthQueryWorkspace;
 use worth_ui::facade::intent::{
     UiIntentDeclaration, UiIntentInputOwnerRevision, UiIntentPayloadSource, UiIntentSelection,
@@ -13,19 +18,13 @@ use worth_ui_query_binding::{
     WorthUiQueryWorkspaceExt,
 };
 
-use super::super::payload_types::{SelectionIntent, SELECTION_FIELD};
-use super::super::world::{
-    launch, routed_input, PayloadApplicationFacts, PayloadProjectionRegistration, PayloadWorld,
-    DECLARATION,
-};
-
 #[test]
 fn ia_05_selection_uses_exact_query_identity_and_rejects_the_stale_reorder_revision() {
     let (mut query, entities) =
-        worth_ui_query_binding::certification::seeded_collection_projection_workspace(
+        worth_ui_query_binding::certification::seeded_collection_projection_workspace_with_item_keys(
             vec![
-                ("pulse.alpha".to_owned(), "Alpha".to_owned()),
-                ("pulse.bravo".to_owned(), "Bravo".to_owned()),
+                ("pulse.alpha".to_owned(), "Alpha".to_owned(), 315_050),
+                ("pulse.bravo".to_owned(), "Bravo".to_owned(), 315_051),
             ],
             worth_ui_query_binding::certification::WorthUiCollectionProjectionSeedPosture::Complete,
         );
@@ -179,7 +178,9 @@ fn assert_selection_payload(
     assert_eq!(revision.revision(), expected_option.owner_revision());
 }
 
-fn collection_registration(query: &WorthQueryWorkspace) -> UiCollectionProjectionRegistration {
+pub(super) fn collection_registration(
+    query: &WorthQueryWorkspace,
+) -> UiCollectionProjectionRegistration {
     let domain = query.worth_ui().expect("Worth UI Query domain installed");
     UiCollectionProjectionRegistration::text(
         domain
@@ -191,18 +192,19 @@ fn collection_registration(query: &WorthQueryWorkspace) -> UiCollectionProjectio
         false,
     )
     .expect("identity-preserving collection registration")
+    .with_unsigned64_application_item_key_field(UiProjectionFieldRequirement::collection_item_key())
 }
 
-fn open_collection(
+pub(super) fn open_collection(
     registration: &UiCollectionProjectionRegistration,
     query: &mut WorthQueryWorkspace,
 ) -> (
     UiLiveCollectionProjection,
     UiCollectionProjectionFactReceipt,
 ) {
-    let UiCollectionProjectionBindingAdmission::Ready(binding) = registration.clone().admit(query)
-    else {
-        panic!("real collection binding admits")
+    let binding = match registration.clone().admit(query) {
+        UiCollectionProjectionBindingAdmission::Ready(binding) => binding,
+        admission => panic!("real collection binding admits: {admission:?}"),
     };
     let budget = UiCollectionProjectionBudget::new(2, 2, 0, 1024).unwrap();
     let UiCollectionProjectionOpenOutcome::Opened(opened) = binding.open(budget, query) else {
@@ -225,7 +227,7 @@ fn refresh_collection(
     }
 }
 
-fn publish_collection(
+pub(super) fn publish_collection(
     world: &mut PayloadWorld,
     fact: UiCollectionProjectionFactReceipt,
     request: u64,

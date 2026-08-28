@@ -61,6 +61,11 @@ impl WorthUiActiveApplicationSession {
                     || self.portal.topmost_presentation().is_some())
                 .then(|| portal_escape_dismissal(batch.reports(), core.presentation()))
                 .flatten();
+                let scroll_observations = batch
+                    .reports()
+                    .iter()
+                    .filter_map(|report| self.observe_scroll_payload(report.report().payload()))
+                    .collect();
                 for report in batch.reports() {
                     self.focus
                         .observe_host_payload(report.report().payload(), core.presentation());
@@ -80,6 +85,7 @@ impl WorthUiActiveApplicationSession {
                     .max();
                 let generation = self.active_generation_identity();
                 let mut receipt = self.interaction.ingest(batch, &self.mounted, &generation);
+                receipt.retain_scroll_observations(scroll_observations);
                 if let Some(dismissal) = portal_escape {
                     receipt.retain_service_dismissal(dismissal);
                 }

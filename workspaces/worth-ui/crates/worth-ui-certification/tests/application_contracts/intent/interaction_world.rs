@@ -8,6 +8,10 @@ use worth_ui::facade::observation_report::{
     UiHostPointerCaptureEpoch, UiHostPointerIdentity, UiHostProtocolContract,
     UiHostProtocolNegotiation, UiHostSurfacePosition, UI_HOST_SURFACE_POSITION_SUBPIXELS_PER_UNIT,
 };
+use worth_ui_host_contract::{
+    UiHostScrollDeltaPhase, UiHostScrollDeltaPrecision, UiHostScrollDeltaSource,
+    UiHostScrollDeltaTargetAffinity,
+};
 use worth_ui_runtime::facade::mounted::{
     UiMountedFrameOutcome, UiMountedHitTestMechanic, UiPresentationDeadline,
     UiSurfaceBindingGeneration,
@@ -136,6 +140,28 @@ impl InteractionWorld {
             self.presentation,
             UiHostObservationLoss::Complete,
             vec![self.window_focus(false)],
+        )
+    }
+
+    pub(super) fn scroll(
+        &mut self,
+        point: [i64; 2],
+        block_subpixels: i64,
+    ) -> UiHostInteractionIngressOutcome {
+        self.admit(
+            self.presentation,
+            UiHostObservationLoss::Complete,
+            vec![UiHostObservationPayload::ScrollDelta {
+                source: UiHostScrollDeltaSource::PointerWheel,
+                phase: UiHostScrollDeltaPhase::Updated,
+                precision: UiHostScrollDeltaPrecision::Pixel,
+                target: UiHostScrollDeltaTargetAffinity::exact_coordinate(
+                    self.presentation,
+                    position(point),
+                ),
+                x_subpixels: 0,
+                y_subpixels: block_subpixels,
+            }],
         )
     }
 

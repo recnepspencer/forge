@@ -115,10 +115,11 @@ impl UiStagedFocusServiceProposal {
 
     pub(in crate::runtime) fn resolution_receipt(
         &self,
+        reveal_refinement: bool,
     ) -> crate::runtime::session::service_proposal::UiServiceProposalStageReceipt {
         crate::runtime::session::service_proposal::UiServiceProposalStageReceipt::focus_resolution(
             self.proposal,
-            false,
+            reveal_refinement,
         )
     }
 }

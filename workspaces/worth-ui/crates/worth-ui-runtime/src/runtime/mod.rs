@@ -16,6 +16,8 @@ pub use allocation_catalog_successor::{
     UiAllocationCatalogDeltaClosureDenial, UiAllocationCatalogSuccessorReceipt,
 };
 mod allocation_receipt;
+mod application_item;
+pub(crate) use application_item::{UiApplicationItemKey, UiApplicationItemKeyFamily};
 mod drag_resize;
 pub(crate) mod execution;
 pub(crate) mod exports;
@@ -64,13 +66,12 @@ mod viewport_resize;
 
 pub use drag_resize::*;
 pub use scroll::allocation::{
-    UiActivatedScrollOwner, UiActivatedScrollProjectionTarget, UiProjectedScrollOffset,
-    UiProjectedScrollOffsetDenial, UiProjectedScrollOffsetOutcome, UiScrollContractAdmissionDenial,
+    UiActivatedScrollOwner, UiActivatedScrollProjectionTarget, UiScrollContractAdmissionDenial,
     UiScrollOffsetAllocationPosture, UiScrollReceiptActivationKey, UiScrollVirtualizationPosture,
 };
 pub(crate) use scroll::allocation::{
     UiAdmittedScrollExtentSource, UiAdmittedScrollOwnedContract, UiAdmittedScrollPlanningAuthority,
-    UiAdmittedScrollQuerySource, UiScrollOffsetProjectionLedger, UiScrollProjectionOwnerIdentity,
+    UiAdmittedScrollQuerySource, UiScrollProjectionOwnerIdentity,
 };
 
 pub(crate) use allocation_frame_dispatch::UiPendingMountedPreviewTransition;

@@ -86,6 +86,7 @@ impl UiIntentExecutionState {
                 target: candidate.target(),
                 generation: candidate.generation().clone(),
                 declaration: Arc::clone(candidate.declaration_reference()),
+                selection_option: candidate.selection_option().cloned(),
             },
         })
     }

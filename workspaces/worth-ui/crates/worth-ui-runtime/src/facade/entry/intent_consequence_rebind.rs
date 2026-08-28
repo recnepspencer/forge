@@ -62,6 +62,25 @@ impl WorthUiActiveApplicationSession {
             });
         let portal_preparation = match transfer.portal_transition.take() {
             Some(transition) => {
+                let declared_selection = match self
+                    .application
+                    .declared_selection_for_intent_target(
+                        &transfer.consequence,
+                        &self.mounted,
+                        &self.selection,
+                    ) {
+                    Ok(selection) => selection,
+                    Err(denial) => {
+                        drop(reservation);
+                        return Err(self.retain_intent_consequence_service_proposal_stop(
+                            crate::runtime::session::UiPortalProposalPreparationDenial::SelectionMapping(
+                                denial,
+                            ),
+                            plan,
+                            transfer,
+                        ));
+                    }
+                };
                 let motion_request = self.prepare_portal_motion_request(&transition).map_err(
                     crate::runtime::session::UiPortalProposalPreparationDenial::MotionRequest,
                 );
@@ -78,6 +97,8 @@ impl WorthUiActiveApplicationSession {
                     &transfer.consequence,
                     transition,
                     generation,
+                    declared_selection,
+                    &self.selection,
                     &mut self.motion,
                     motion_request,
                 ) {
@@ -107,11 +128,15 @@ impl WorthUiActiveApplicationSession {
                 return Err(self.retain_intent_consequence_preparation_stop(denial, plan, transfer));
             }
         };
+        let scroll_incarnation = self.scroll_owner_incarnation();
         transfer.portal_proposal = match portal_preparation {
             Some(preparation) => match self.application.bind_portal_service_proposal_frame(
                 preparation,
                 &frame,
+                &self.mounted,
                 &mut self.focus,
+                &self.scroll,
+                scroll_incarnation,
                 &mut self.motion,
             ) {
                 Ok(proposal) => Some(proposal),

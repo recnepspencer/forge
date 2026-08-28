@@ -34,8 +34,6 @@ pub struct WorthUiRuntimeFrameworkLoop {
     pub(crate) host_plan_binding: crate::facade::WorthUiHostPlanBinding,
     pub(crate) durable_resize_source:
         crate::runtime::replacement::reconciliation::WorthUiDurableResizeSourceAuthority,
-    pub(crate) scroll_offset_projection:
-        crate::runtime::scroll::allocation::UiScrollOffsetProjectionLedger,
     pub(crate) observation: crate::runtime::observation::UiObservationRuntimeState,
     pub(in crate::runtime) service_proposals:
         crate::runtime::session::service_proposal::UiServiceProposalCompiler,

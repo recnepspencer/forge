@@ -30,6 +30,7 @@ pub(super) struct UiReservedIntentConsequenceBasis {
     pub(super) target: crate::runtime::interaction::UiPresentedInteractionTargetView,
     pub(super) generation: crate::runtime::WorthUiActiveApplicationGenerationIdentity,
     pub(super) declaration: Arc<crate::declaration::UiCanonicalIntentDeclaration>,
+    pub(super) selection_option: Option<worth_ui_query_binding::UiProjectionOptionReference>,
 }
 
 #[derive(Clone)]
@@ -40,6 +41,7 @@ pub(super) struct UiIntentConsequenceBasis {
         crate::runtime::interaction::targeting::UiIntentExecutionTargetAffinity,
     pub(super) generation: crate::runtime::WorthUiActiveApplicationGenerationIdentity,
     pub(super) declaration: Arc<crate::declaration::UiCanonicalIntentDeclaration>,
+    pub(super) selection_option: Option<worth_ui_query_binding::UiProjectionOptionReference>,
 }
 
 impl UiReservedIntentExecutionReservation {
@@ -52,6 +54,7 @@ impl UiReservedIntentExecutionReservation {
             target,
             generation,
             declaration,
+            selection_option,
         } = self.consequence_basis;
         UiActiveIntentExecutionReservation {
             core: self.core,
@@ -61,6 +64,7 @@ impl UiReservedIntentExecutionReservation {
                 target_affinity,
                 generation,
                 declaration,
+                selection_option,
             },
         }
     }

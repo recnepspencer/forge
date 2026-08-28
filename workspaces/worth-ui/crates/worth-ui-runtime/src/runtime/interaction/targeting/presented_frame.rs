@@ -146,7 +146,7 @@ fn contains(bounds: worth_ui_host_contract::UiMountedCanonicalBox, point: [f32; 
         && point[1] < bounds.y() + bounds.height()
 }
 
-pub(super) fn map_current_affinity_denial(
+pub(crate) fn map_current_affinity_denial(
     denial: crate::mounting::UiCurrentHitTargetAffinityDenial,
 ) -> UiInteractionTargetingDenial {
     match denial {

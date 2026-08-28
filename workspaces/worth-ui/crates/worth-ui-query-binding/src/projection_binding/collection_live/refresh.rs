@@ -42,7 +42,8 @@ impl UiLiveCollectionProjection {
             crate::projection_consumption::UiCollectionDerivationContext {
                 binding: &self.binding,
                 consumer: &self.consumer,
-                accesses: &self.accesses,
+                text_accesses: &self.text_accesses,
+                application_item_key_access: self.application_item_key_access.as_ref(),
                 budget: self.budget,
             },
             &receipt,

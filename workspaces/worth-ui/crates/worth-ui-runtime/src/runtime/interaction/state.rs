@@ -112,6 +112,7 @@ impl UiInteractionRuntimeState {
             transitions: transitions.into_boxed_slice(),
             ignored_reports,
             state: self.snapshot(),
+            scroll_observations: Box::new([]),
         }
     }
 

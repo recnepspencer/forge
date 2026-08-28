@@ -57,6 +57,20 @@ impl super::UiFocusRuntimeState {
         Ok(())
     }
 
+    pub(in crate::runtime) fn staged_portal_reveal_requirement(
+        &self,
+        proposal: crate::runtime::session::service_proposal::UiServiceProposalIdentity,
+    ) -> Result<
+        Option<crate::runtime::session::service_proposal::UiFocusRevealRequirement>,
+        crate::runtime::focus::UiPortalFocusTransitionDenial,
+    > {
+        let transition = self
+            .pending_portal
+            .get(&proposal)
+            .ok_or(crate::runtime::focus::UiPortalFocusTransitionDenial::UnknownProposal)?;
+        Ok(transition.next().map(|focus| focus.reveal_requirement()))
+    }
+
     pub(in crate::runtime) fn commit_portal_proposal(
         &mut self,
         proposal: crate::runtime::session::service_proposal::UiServiceProposalIdentity,

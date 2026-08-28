@@ -287,6 +287,16 @@ impl UiIntentConsequenceHandoff {
         self.basis.target
     }
 
+    pub(crate) fn interaction_family(&self) -> crate::capability::UiSemanticInteractionFamily {
+        self.basis.declaration.interaction()
+    }
+
+    pub(crate) fn selection_option(
+        &self,
+    ) -> Option<&worth_ui_query_binding::UiProjectionOptionReference> {
+        self.basis.selection_option.as_ref()
+    }
+
     pub(crate) fn take_query_consequence(
         &mut self,
     ) -> Option<worth_ui_query_binding::WorthUiCollectionChangeConsequence> {

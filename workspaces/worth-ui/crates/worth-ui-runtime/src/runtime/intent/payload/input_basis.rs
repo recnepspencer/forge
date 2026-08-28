@@ -87,6 +87,17 @@ impl UiIntentInputBasis {
         self.interaction.time_basis()
     }
 
+    pub(crate) fn selection_option(
+        &self,
+    ) -> Option<&worth_ui_query_binding::UiProjectionOptionReference> {
+        match &self.interaction {
+            crate::runtime::interaction::UiSemanticInteraction::SelectionCommit(selection) => {
+                Some(selection.option())
+            }
+            _ => None,
+        }
+    }
+
     pub(crate) fn payload_inputs_are_current(
         &self,
         mounted: &crate::mounting::WorthUiMountedSessionState,

@@ -1,15 +1,21 @@
+use worth_ui::facade::source::WorthUiFilesystemSourceProvider;
 use worth_ui_host_contract::{UiMountedInstanceIdentity, UiSemanticSurfaceIdentity};
 use worth_ui_runtime::facade::mounted::{
-    UiMountedFrameOutcome, UiMountedFrameRequest, UiMountedIdentityDenial, UiPresentationDeadline,
+    UiHostSurfacePresentationMode, UiMountedFrameOutcome, UiMountedFrameRequest,
+    UiMountedIdentityDenial, UiPresentationDeadline,
 };
 use worth_ui_test_support::WorthUiMountedIdentityCertificationExt;
 use worth_ui_test_support::WorthUiMountedPublicationCertificationExt;
+use worth_ui_test_support::WorthUiServiceStateCertificationExt;
 
+use worth_ui_certification::scenario::filesystem_application_lifecycle::FilesystemApplicationLifecycleScenario;
+
+use super::filesystem_contract_workspace::FilesystemContractWorkspace;
 use super::mounted_application_lifecycle::in_flight_presentation_world::{
     mounted_session, prepared as prepared_frame,
 };
 use super::mounted_application_lifecycle::known_empty_surface_world::{
-    active_session, first_node, registered_surface,
+    active_session, first_node, profile, registered_surface,
 };
 use super::mounted_host_protocol::scripted_host::ScriptedPresentationHost;
 use super::mounted_publication::{replacement_workspace, stage_replacement};
@@ -190,6 +196,116 @@ fn application_replacement_advances_the_world_and_preserves_uninterrupted_mounts
     );
     drop(cutover);
     workspace.close();
+}
+
+#[test]
+fn application_replacement_retires_one_removed_scroll_neighborhood_and_retains_its_sibling() {
+    let host = ScriptedPresentationHost::default();
+    let initial_workspace = replacement_workspace("mounted-replacement-retirement-initial");
+    let initial_snapshot = WorthUiFilesystemSourceProvider::new(initial_workspace.root())
+        .read()
+        .expect("two-component predecessor source settles");
+    let scenario = FilesystemApplicationLifecycleScenario::new("mounted replacement retirement");
+    let capabilities = scenario.capability_application();
+    let initial_submission = initial_snapshot
+        .attempt_candidate_for_certification(capabilities.capabilities())
+        .expect("two-component predecessor lowers");
+    let mut session = scenario
+        .prepare_application_with_host(initial_submission, host.clone())
+        .launch()
+        .expect("two-component predecessor launches");
+    let nodes = session
+        .graph()
+        .node_identities()
+        .map(|identity| {
+            session
+                .mounted_graph_node(identity)
+                .expect("active graph node has a mounted handle")
+        })
+        .collect::<Vec<_>>();
+    assert!(
+        nodes.len() > 1,
+        "the predecessor has multiple mount neighborhoods"
+    );
+    let predecessor_neighborhoods = nodes.len();
+    let surface = session.create_semantic_surface().unwrap();
+    session
+        .register_host_surface(
+            surface,
+            UiHostSurfacePresentationMode::RecordOnly,
+            profile(1),
+        )
+        .unwrap();
+    for node in nodes {
+        session.mount_instance(node, surface).unwrap();
+    }
+    host.push_presented();
+    let initial_frame = prepared_frame(&mut session);
+    assert!(matches!(
+        session.present_prepared_mounted_frame(
+            initial_frame,
+            UiPresentationDeadline::at_tick(10),
+            0,
+        ),
+        UiMountedFrameOutcome::Published(_)
+    ));
+    let scroll_before = session.inspect_scroll_runtime_for_certification();
+    assert_eq!(
+        scroll_before.ownership_instances(),
+        predecessor_neighborhoods,
+        "mount-time ownership discovery installs every predecessor catalog record"
+    );
+
+    let workspace = FilesystemContractWorkspace::new("mounted-replacement-retirement");
+    workspace.write(
+        "app/main.wui",
+        &FilesystemApplicationLifecycleScenario::ordinary_execution_source_text(),
+    );
+    let (pending, catalog, boundary) = stage_replacement(&workspace, &mut session);
+    let prepared = match session
+        .prepare_mounted_replacement(
+            pending,
+            catalog,
+            boundary,
+            None,
+            UiMountedFrameRequest::all_bound_surfaces(),
+        )
+        .unwrap()
+    {
+        worth_ui::facade::app::WorthUiMountedReplacementPreparationOutcome::Prepared(value) => {
+            value
+        }
+        _ => panic!("removing one predecessor component requires activation"),
+    };
+    host.push_presented();
+    assert!(matches!(
+        prepared.present(UiPresentationDeadline::at_tick(20), 1),
+        worth_ui::facade::app::WorthUiMountedApplicationReplacementOutcome::Published { .. }
+    ));
+
+    let successor_neighborhoods = session.inspect_mounted_identity().mounted_instances().len();
+    assert!(
+        successor_neighborhoods > 0 && successor_neighborhoods < predecessor_neighborhoods,
+        "the successor retains a sibling while removing at least one neighborhood"
+    );
+    let scroll = session.inspect_scroll_runtime_for_certification();
+    assert_eq!(
+        (scroll.ownership_instances(), scroll.owners()),
+        (successor_neighborhoods, 0),
+        "the prepared successor retires exactly the removed mounted ownership records"
+    );
+    assert_eq!(
+        scroll.ownership_resolutions(),
+        scroll_before.ownership_resolutions()
+            + u64::try_from(successor_neighborhoods).expect("bounded mounted count"),
+        "replacement discovery revisits only retained successor neighborhoods"
+    );
+    assert_eq!(
+        scroll.ownership_incarnations().len(),
+        successor_neighborhoods
+    );
+    workspace.close();
+    initial_workspace.close();
 }
 
 pub(super) fn incarnation(

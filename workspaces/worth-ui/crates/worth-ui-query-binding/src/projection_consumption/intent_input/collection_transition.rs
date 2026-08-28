@@ -30,9 +30,19 @@ struct UiCollectionProjectionInputPatch {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum UiCollectionProjectionInputChange {
-    Insert(UiProjectionInputCollectionRow),
-    Remove(super::UiCollectionProjectionRowReference),
-    Move(super::UiCollectionProjectionRowReference),
+    Insert {
+        row: UiProjectionInputCollectionRow,
+        at: usize,
+    },
+    Remove {
+        row: super::UiCollectionProjectionRowReference,
+        from: usize,
+    },
+    Move {
+        row: super::UiCollectionProjectionRowReference,
+        from: usize,
+        to: usize,
+    },
     Regroup(super::UiCollectionProjectionRowReference),
     Update(UiProjectionInputCollectionRow),
     WindowShift,
@@ -96,12 +106,14 @@ impl UiCollectionProjectionInputPatch {
         let mut work = UiProjectionInputTransitionWork::default();
         for change in &self.changes {
             let mutation = match change {
-                UiCollectionProjectionInputChange::Insert(row) => catalog.insert(row.clone()),
-                UiCollectionProjectionInputChange::Remove(row) => {
-                    catalog.remove(row.query_identity())
+                UiCollectionProjectionInputChange::Insert { row, at } => {
+                    catalog.insert(row.clone(), *at)
                 }
-                UiCollectionProjectionInputChange::Move(row) => {
-                    catalog.require(row.query_identity())
+                UiCollectionProjectionInputChange::Remove { row, from } => {
+                    catalog.remove(row.query_identity(), *from)
+                }
+                UiCollectionProjectionInputChange::Move { row, from, to } => {
+                    catalog.move_row(row.query_identity(), *from, *to)
                 }
                 UiCollectionProjectionInputChange::Regroup(row) => {
                     catalog.require(row.query_identity())
@@ -235,14 +247,21 @@ fn prepare_changes(
     let mut prepared = Vec::with_capacity(changes.len());
     for change in changes {
         let next = match change {
-            super::UiCollectionProjectionChange::Insert { row, .. } => changed_rows
+            super::UiCollectionProjectionChange::Insert { row, at } => changed_rows
                 .remove(&UiProjectionOptionKey::new(row.query_identity().clone()))
-                .map(UiCollectionProjectionInputChange::Insert),
-            super::UiCollectionProjectionChange::Remove { row, .. } => {
-                Some(UiCollectionProjectionInputChange::Remove(row.clone()))
+                .map(|row| UiCollectionProjectionInputChange::Insert { row, at: *at }),
+            super::UiCollectionProjectionChange::Remove { row, from } => {
+                Some(UiCollectionProjectionInputChange::Remove {
+                    row: row.clone(),
+                    from: *from,
+                })
             }
-            super::UiCollectionProjectionChange::Move { row, .. } => {
-                Some(UiCollectionProjectionInputChange::Move(row.clone()))
+            super::UiCollectionProjectionChange::Move { row, from, to } => {
+                Some(UiCollectionProjectionInputChange::Move {
+                    row: row.clone(),
+                    from: *from,
+                    to: *to,
+                })
             }
             super::UiCollectionProjectionChange::Regroup { row, .. } => {
                 Some(UiCollectionProjectionInputChange::Regroup(row.clone()))

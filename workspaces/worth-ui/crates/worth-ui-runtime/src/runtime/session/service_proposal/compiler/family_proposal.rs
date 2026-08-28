@@ -48,6 +48,32 @@ impl UiServiceFamilyProposal {
         }
     }
 
+    pub(in crate::runtime) const fn scroll(
+        scope: super::super::UiServiceProposalOccupancyScopeIdentity,
+    ) -> Self {
+        Self {
+            family: crate::capability::UiRuntimeServiceFamily::Scroll,
+            scope,
+            requirements: 1,
+            fact_references: 1,
+            mounted_work_references: 0,
+            conflict_policy: super::super::UiServiceProposalConflictPolicy::RejectOccupied,
+        }
+    }
+
+    pub(in crate::runtime) const fn selection(
+        scope: super::super::UiServiceProposalOccupancyScopeIdentity,
+    ) -> Self {
+        Self {
+            family: crate::capability::UiRuntimeServiceFamily::Selection,
+            scope,
+            requirements: 1,
+            fact_references: 1,
+            mounted_work_references: 0,
+            conflict_policy: super::super::UiServiceProposalConflictPolicy::RejectOccupied,
+        }
+    }
+
     #[cfg(test)]
     pub(in crate::runtime) fn recorded_fixture(
         family: crate::capability::UiRuntimeServiceFamily,

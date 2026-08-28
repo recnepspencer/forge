@@ -26,6 +26,8 @@ impl super::WorthUiApplicationSessionState {
                     teardown,
                     &transaction.portal,
                     &transaction.focus,
+                    &transaction.scroll,
+                    transaction.selection.as_ref(),
                     motion_scope,
                     crate::runtime::session::service_proposal::UiServiceProposalTerminalReason::CancelledBeforePublication,
                 );
@@ -38,6 +40,9 @@ impl super::WorthUiApplicationSessionState {
             settlement,
             transition: transaction.portal.into_transition(),
             focus: transaction.focus,
+            scroll: transaction.scroll,
+            staged_reveal: transaction.staged_reveal,
+            selection: transaction.selection,
             motion: transaction.motion,
             prepared_frame: transaction.prepared_frame,
             publication,
@@ -51,6 +56,8 @@ impl super::WorthUiApplicationSessionState {
         publication: crate::runtime::session::service_proposal::UiServiceProposalPublicationReceipt,
         scope: crate::runtime::session::service_proposal::UiServiceProposalOccupancyScopeIdentity,
         focus_scope: crate::runtime::session::service_proposal::UiServiceProposalOccupancyScopeIdentity,
+        scroll_scope: crate::runtime::session::service_proposal::UiServiceProposalOccupancyScopeIdentity,
+        selection: Option<&crate::runtime::selection::UiStagedDeclaredSelectionTransition>,
         motion_scope: Option<
             crate::runtime::session::service_proposal::UiServiceProposalOccupancyScopeIdentity,
         >,
@@ -73,6 +80,24 @@ impl super::WorthUiApplicationSessionState {
             .service_proposals
             .acknowledge_owner(&mut settlement, focus_acknowledgement)
             .expect("exact Focus owner acknowledgement matches its publication");
+        let scroll_acknowledgement = crate::runtime::session::service_proposal::UiServiceProposalOwnerAcknowledgement::from_family_owner(
+            publication,
+            crate::capability::UiRuntimeServiceFamily::Scroll,
+            scroll_scope,
+        );
+        self.runtime
+            .service_proposals
+            .acknowledge_owner(&mut settlement, scroll_acknowledgement)
+            .expect("exact Scroll owner acknowledgement matches its publication");
+        if let Some(selection) = selection {
+            self.runtime
+                .service_proposals
+                .acknowledge_owner(
+                    &mut settlement,
+                    selection.settlement_acknowledgement(publication),
+                )
+                .expect("exact Selection owner acknowledgement matches its publication");
+        }
         if let Some(motion_scope) = motion_scope {
             let motion_acknowledgement = crate::runtime::session::service_proposal::UiServiceProposalOwnerAcknowledgement::from_family_owner(
                 publication,
@@ -96,6 +121,8 @@ impl super::WorthUiApplicationSessionState {
         mounted: &crate::mounting::UiMountedFramePublicationReceipt,
         portal: &mut crate::runtime::portal::UiPortalRuntimeState,
         focus: &mut crate::runtime::focus::UiFocusRuntimeState,
+        scroll_state: &mut crate::runtime::scroll::UiScrollRuntimeState,
+        selection_state: &mut crate::runtime::selection::UiSelectionRuntimeState,
         motion_state: &mut crate::runtime::motion::UiMotionRuntimeState,
     ) -> Result<
         (
@@ -111,8 +138,18 @@ impl super::WorthUiApplicationSessionState {
         let publication = transaction.accepted_publication(mounted)?;
         let settlement =
             self.begin_portal_proposal_settlement(transaction, publication, focus, motion_state)?;
-        let (settlement, transition, focus_owner, motion_owner, frame, publication, scope) =
-            settlement.into_parts();
+        let (
+            settlement,
+            transition,
+            focus_owner,
+            scroll_owner,
+            staged_reveal,
+            selection_owner,
+            motion_owner,
+            frame,
+            publication,
+            scope,
+        ) = settlement.into_parts();
         focus
             .validate_portal_proposal(focus_owner.proposal(), frame)
             .expect("exclusive Focus proposal retains exact prepared successor");
@@ -140,6 +177,9 @@ impl super::WorthUiApplicationSessionState {
         let focus_transition = focus
             .commit_portal_proposal(focus_owner.proposal(), frame)
             .expect("exclusive Focus proposal retains exact prepared successor");
+        if let Some(staged_reveal) = staged_reveal {
+            staged_reveal.commit(scroll_state);
+        }
         let motion_exit_retention = motion_commit.and_then(|commit| commit.exit_retention());
         let (_, portal_exit_retention) = portal
             .commit_published_with_exit_retention(transition, motion_exit_retention.is_some())
@@ -154,8 +194,13 @@ impl super::WorthUiApplicationSessionState {
             publication,
             scope,
             focus_owner.scope(),
+            scroll_owner.scope(),
+            selection_owner.as_ref(),
             motion_scope,
         );
+        if let Some(selection_owner) = selection_owner {
+            selection_owner.commit(selection_state);
+        }
         Ok((focus_transition, motion_commit, exit_retention))
     }
 
@@ -210,6 +255,8 @@ impl super::WorthUiApplicationSessionState {
             teardown,
             &transaction.portal,
             &transaction.focus,
+            &transaction.scroll,
+            transaction.selection.as_ref(),
             motion_scope,
             crate::runtime::session::service_proposal::UiServiceProposalTerminalReason::AbandonedAtShutdown,
         );
@@ -237,6 +284,8 @@ impl super::WorthUiApplicationSessionState {
             teardown,
             &transaction.portal,
             &transaction.focus,
+            &transaction.scroll,
+            transaction.selection.as_ref(),
             motion_scope,
             crate::runtime::session::service_proposal::UiServiceProposalTerminalReason::RecoveryDisposed,
         );
@@ -251,9 +300,20 @@ impl super::WorthUiApplicationSessionState {
         let publication = transaction.rejected_publication();
         let settlement =
             self.begin_portal_proposal_settlement(transaction, publication, focus, motion_state)?;
-        let (settlement, transition, focus_owner, motion_owner, _frame, publication, scope) =
-            settlement.into_parts();
+        let (
+            settlement,
+            transition,
+            focus_owner,
+            scroll_owner,
+            staged_reveal,
+            selection_owner,
+            motion_owner,
+            _frame,
+            publication,
+            scope,
+        ) = settlement.into_parts();
         drop(transition);
+        drop(staged_reveal);
         focus
             .discard_portal_proposal(focus_owner.proposal())
             .expect("rejected publication discards its exact Focus successor");
@@ -266,6 +326,8 @@ impl super::WorthUiApplicationSessionState {
             publication,
             scope,
             focus_owner.scope(),
+            scroll_owner.scope(),
+            selection_owner.as_ref(),
             motion_scope,
         );
         Ok(())

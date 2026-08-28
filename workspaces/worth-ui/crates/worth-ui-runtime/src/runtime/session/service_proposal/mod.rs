@@ -1,6 +1,7 @@
 mod cancellation;
 mod census;
 mod compiler;
+mod coordination;
 mod occupancy;
 mod participation;
 mod request_basis;
@@ -27,6 +28,9 @@ pub(in crate::runtime) use compiler::{
     UiServiceProposalStagingDenial, UiServiceProposalTeardown, UiServiceProposalTeardownDenial,
     UiServiceProposalTerminalOwnerOutcome, UiServiceProposalTerminalReason,
     UiServiceProposalTerminalReceipt,
+};
+pub(in crate::runtime) use coordination::{
+    UiDeclaredFocusSelectionAction, UiFocusRevealRequirement, UiSelectionInvocationCause,
 };
 pub(in crate::runtime) use occupancy::{
     UiServiceProposalConflictDisposition, UiServiceProposalConflictPolicy,

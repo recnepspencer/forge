@@ -2,9 +2,9 @@ use super::publication_observation::WorthUiApplicationPublicationPreparation;
 use super::*;
 use crate::facade::WorthUiActiveApplicationSession;
 
-struct WorthUiCutoverGenerationBasis {
-    prior: WorthUiPreparedApplicationGenerationIdentity,
-    active: WorthUiPreparedApplicationGenerationIdentity,
+pub(super) struct WorthUiCutoverGenerationBasis {
+    pub(super) prior: WorthUiPreparedApplicationGenerationIdentity,
+    pub(super) active: WorthUiPreparedApplicationGenerationIdentity,
 }
 
 struct WorthUiPreparedCutoverEvidence {
@@ -15,6 +15,9 @@ struct WorthUiPreparedCutoverEvidence {
     runtime_basis: crate::runtime::session::WorthUiRuntimePublicationBasis,
     host_session: crate::facade::WorthUiHostSessionIdentity,
     font_collection: std::sync::Arc<worth_ui_text::UiGlobalFontCollection>,
+    candidate_graph: crate::graph::UiGraphSnapshot,
+    candidate_application_authority:
+        crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
 }
 
 struct WorthUiCutoverPreparationInput {
@@ -69,7 +72,10 @@ impl WorthUiActiveApplicationSession {
                         &candidate_graph,
                     ))
                     .map_err(WorthUiApplicationCutoverDenial::MountedIdentity)?;
-                let receipt = self.commit_application_activation(activation, next_mounted);
+                let scroll = self.prepare_scroll_replacement(&activation, &next_mounted, None);
+                let selection = self.prepare_selection_replacement(&next_mounted, false);
+                let receipt =
+                    self.commit_application_activation(activation, next_mounted, scroll, selection);
                 Ok(WorthUiApplicationReplacementOutcome::Activated(Box::new(
                     receipt,
                 )))
@@ -84,6 +90,9 @@ impl WorthUiActiveApplicationSession {
         boundary: crate::runtime::WorthUiFrameBoundary,
         lane_parity_report: Option<crate::runtime::WorthUiLaneParityReport>,
     ) -> Result<WorthUiPreparedApplicationCutoverOutcome, WorthUiApplicationCutoverDenial> {
+        let candidate_graph = pending.next_app.graph_snapshot().clone();
+        let candidate_application_authority =
+            pending.next_app.prepared_authority().lowering_authority();
         if self.mounted.has_active_presentation_attempt() {
             return Err(WorthUiApplicationCutoverDenial::MountedPresentationInFlight);
         }
@@ -114,6 +123,8 @@ impl WorthUiActiveApplicationSession {
             runtime_basis: self.application.runtime_publication_basis(),
             host_session: self.host_session.identity(),
             font_collection: prepared_catalog.font_collection,
+            candidate_graph,
+            candidate_application_authority,
         };
         match prepared_catalog.prepared.into_activation() {
             Err(receipt) => Ok(seal_semantic_no_op(evidence, receipt)),
@@ -165,34 +176,12 @@ impl WorthUiActiveApplicationSession {
         })
     }
 
-    fn validate_cutover_generation_basis(
-        &self,
-        pending: &WorthUiPendingApplicationCutover,
-        admitted_delta: &crate::graph::UiAdmittedAllocationCatalogDelta,
-    ) -> Result<WorthUiCutoverGenerationBasis, WorthUiApplicationCutoverDenial> {
-        if !pending.basis.admits_catalog_delta(admitted_delta) {
-            return Err(WorthUiApplicationCutoverDenial::PreparedApplicationGraphMismatch);
-        }
-        let candidate_authority = pending.pending_activation.candidate_application_authority();
-        let active = candidate_authority.generation_identity().clone();
-        debug_assert_eq!(pending.basis.next_generation(), &active);
-        debug_assert_eq!(pending.next_app.generation_identity(), &active);
-        if !pending
-            .basis
-            .admits_application_authority(candidate_authority)
-        {
-            return Err(WorthUiApplicationCutoverDenial::PreparedApplicationAuthorityMismatch);
-        }
-        Ok(WorthUiCutoverGenerationBasis {
-            prior: self.generation_identity().clone(),
-            active,
-        })
-    }
-
     pub(super) fn commit_application_activation(
         &mut self,
         mut prepared: Box<WorthUiPreparedApplicationActivation>,
         mounted_successor: crate::mounting::UiMountedGraphReplacementSuccessor,
+        scroll: super::scroll_replacement::UiPreparedScrollReplacement,
+        selection: super::selection_replacement::UiPreparedSelectionReplacement,
     ) -> WorthUiApplicationCutoverReceipt {
         let transition = prepared
             .transition
@@ -216,6 +205,8 @@ impl WorthUiActiveApplicationSession {
             &mut self.intent_execution,
             crate::runtime::intent::UiIntentAdmissionCancellationReason::ApplicationRebound,
         );
+        self.scroll = scroll.into_state();
+        self.selection = selection.into_state();
         self.mounted
             .commit_graph_replacement_successor(mounted_successor);
         self.cancel_all_interactions(
@@ -368,6 +359,8 @@ fn seal_prepared_activation(
             publication: Box::new(publication),
             visual_trace_source: evidence.visual_trace_source,
             font_collection: evidence.font_collection,
+            candidate_graph: evidence.candidate_graph,
+            candidate_application_authority: evidence.candidate_application_authority,
             reload_cost,
             transition: Some(WorthUiApplicationCutoverTransition::Prepared(activation)),
         },

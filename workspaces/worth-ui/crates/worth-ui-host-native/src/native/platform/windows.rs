@@ -47,6 +47,12 @@ impl UiNativePointerInputPort {
         let client_origin = self.client_origin?;
         Some(decode_client_position(message_position, client_origin))
     }
+
+    pub(crate) fn take_scroll_position(&mut self) -> Option<PhysicalPosition<f64>> {
+        let message_position = winsafe::GetMessagePos();
+        let client_origin = self.client_origin?;
+        Some(decode_client_position(message_position, client_origin))
+    }
 }
 
 fn decode_client_position(

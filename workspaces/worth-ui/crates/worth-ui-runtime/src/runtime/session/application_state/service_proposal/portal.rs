@@ -1,53 +1,5 @@
 use super::super::WorthUiApplicationSessionState;
-
-#[must_use = "portal proposal preparation retains compiler occupancy until staged or cancelled"]
-pub(crate) struct UiPortalProposalPreparation {
-    staging: crate::runtime::session::service_proposal::UiServiceProposalStaging,
-    portal: crate::runtime::portal::UiStagedPortalServiceProposal,
-    focus: crate::runtime::focus::UiStagedFocusServiceProposal,
-    motion: Option<crate::runtime::motion::UiStagedMotionServiceProposal>,
-}
-
-#[must_use = "a staged portal proposal must settle with existing publication"]
-pub(crate) struct UiStagedPortalProposalTransaction {
-    pub(super) batch: crate::runtime::session::service_proposal::UiServiceProposalStagedBatch,
-    pub(super) portal: crate::runtime::portal::UiStagedPortalServiceProposal,
-    pub(super) focus: crate::runtime::focus::UiStagedFocusServiceProposal,
-    pub(super) motion: Option<crate::runtime::motion::UiDerivedMotionServiceProposal>,
-    pub(super) prepared_frame: worth_ui_host_contract::UiMountedFrameIdentity,
-}
-
-pub(super) struct UiPortalProposalSettlement {
-    pub(super) settlement: crate::runtime::session::service_proposal::UiServiceProposalSettlement,
-    pub(super) transition: crate::runtime::portal::UiPreparedPortalServiceTransition,
-    pub(super) focus: crate::runtime::focus::UiStagedFocusServiceProposal,
-    pub(super) motion: Option<crate::runtime::motion::UiDerivedMotionServiceProposal>,
-    pub(super) prepared_frame: worth_ui_host_contract::UiMountedFrameIdentity,
-    pub(super) publication:
-        crate::runtime::session::service_proposal::UiServiceProposalPublicationReceipt,
-    pub(super) scope:
-        crate::runtime::session::service_proposal::UiServiceProposalOccupancyScopeIdentity,
-}
-
-#[must_use = "indeterminate portal and Focus successors must settle from presentation truth or shutdown"]
-pub(crate) struct UiIndeterminatePortalProposalTransaction {
-    pub(super) transaction: UiStagedPortalProposalTransaction,
-}
-
-#[derive(Debug)]
-pub(crate) enum UiPortalProposalPreparationDenial {
-    RequestBasis(crate::runtime::session::service_proposal::UiServiceRequestBasisDenial),
-    Demand(crate::runtime::session::service_proposal::UiServiceProposalDemandConstructionDenial),
-    Preflight(crate::runtime::session::service_proposal::UiServiceProposalPreflightDenial),
-    Reservation(crate::runtime::session::service_proposal::UiServiceProposalReservationDenial),
-    Staging(crate::runtime::session::service_proposal::UiServiceProposalStagingDenial),
-    Publication(crate::runtime::session::service_proposal::UiServiceProposalPublicationDenial),
-    Focus(crate::runtime::focus::UiPortalFocusTransitionDenial),
-    MotionRequest(crate::runtime::motion::UiMotionTransitionRequestDenial),
-    Motion(crate::runtime::motion::UiMotionStagingDenial),
-    MountedFrameMismatch,
-    Coalesced,
-}
+use super::{UiPortalProposalPreparation, UiPortalProposalPreparationDenial};
 
 impl WorthUiApplicationSessionState {
     pub(crate) fn begin_portal_service_proposal(
@@ -55,6 +7,8 @@ impl WorthUiApplicationSessionState {
         handoff: &crate::runtime::intent_execution::UiIntentConsequenceHandoff,
         transition: crate::runtime::portal::UiPreparedPortalServiceTransition,
         application: crate::runtime::intent::WorthUiActiveApplicationGenerationIdentity,
+        declared_selection: Option<crate::runtime::selection::UiDeclaredSelectionBinding>,
+        selection_state: &crate::runtime::selection::UiSelectionRuntimeState,
         motion_state: &mut crate::runtime::motion::UiMotionRuntimeState,
         motion_request: Option<crate::runtime::motion::UiMotionTransitionRequest>,
     ) -> Result<UiPortalProposalPreparation, UiPortalProposalPreparationDenial> {
@@ -65,6 +19,7 @@ impl WorthUiApplicationSessionState {
         self.begin_portal_service_proposal_from_request(
             request,
             transition,
+            declared_selection.map(|binding| (binding, selection_state)),
             motion_state,
             motion_request,
         )
@@ -85,6 +40,7 @@ impl WorthUiApplicationSessionState {
         self.begin_portal_service_proposal_from_request(
             request,
             transition,
+            None,
             motion_state,
             motion_request,
         )
@@ -104,13 +60,23 @@ impl WorthUiApplicationSessionState {
             &transition, retention, presentation, application
         )
         .map_err(UiPortalProposalPreparationDenial::RequestBasis)?;
-        self.begin_portal_service_proposal_from_request(request, transition, motion_state, None)
+        self.begin_portal_service_proposal_from_request(
+            request,
+            transition,
+            None,
+            motion_state,
+            None,
+        )
     }
 
     fn begin_portal_service_proposal_from_request<Authority>(
         &mut self,
         request: crate::runtime::session::service_proposal::UiServiceRequestBasis<Authority>,
         transition: crate::runtime::portal::UiPreparedPortalServiceTransition,
+        declared_selection: Option<(
+            crate::runtime::selection::UiDeclaredSelectionBinding,
+            &crate::runtime::selection::UiSelectionRuntimeState,
+        )>,
         motion_state: &mut crate::runtime::motion::UiMotionRuntimeState,
         motion_request: Option<crate::runtime::motion::UiMotionTransitionRequest>,
     ) -> Result<UiPortalProposalPreparation, UiPortalProposalPreparationDenial>
@@ -140,7 +106,21 @@ impl WorthUiApplicationSessionState {
         let focus_family = crate::runtime::focus::UiStagedFocusServiceProposal::family_proposal(
             &focus_requirement,
         );
-        let mut family_proposals = vec![portal_family, focus_family];
+        let scroll_family = crate::runtime::scroll::UiStagedScrollServiceProposal::family_proposal(
+            portal_family.scope(),
+        );
+        let initial_reveal =
+            crate::runtime::session::service_proposal::UiFocusRevealRequirement::new(
+                focus_requirement.owner(),
+            );
+        let mut family_proposals = vec![portal_family, focus_family, scroll_family];
+        if let Some((selection, _)) = declared_selection.as_ref() {
+            family_proposals.push(
+                crate::runtime::selection::UiStagedSelectionServiceProposal::family_proposal(
+                    selection.action(),
+                ),
+            );
+        }
         if let Some(request) = motion_request.as_ref() {
             family_proposals.push(
                 crate::runtime::motion::UiStagedMotionServiceProposal::family_proposal(request),
@@ -185,6 +165,32 @@ impl WorthUiApplicationSessionState {
             proposal,
             focus_requirement,
         );
+        let scroll = crate::runtime::scroll::UiStagedScrollServiceProposal::prepare(
+            proposal,
+            portal_family.scope(),
+            initial_reveal,
+        );
+        let selection = match declared_selection {
+            Some((binding, selection_state)) => {
+                let (action, registration) = binding.into_parts();
+                match crate::runtime::selection::UiStagedDeclaredSelectionTransition::prepare(
+                    proposal,
+                    action,
+                    registration,
+                    selection_state,
+                ) {
+                    Ok(selection) => Some(selection),
+                    Err(denial) => {
+                        self.runtime
+                            .service_proposals
+                            .cancel_before_effect(reservation)
+                            .expect("reserved proposal remains cancellable before owner staging");
+                        return Err(UiPortalProposalPreparationDenial::Selection(denial));
+                    }
+                }
+            }
+            None => None,
+        };
         let motion = match motion_request {
             Some(request) => match motion_state.stage(proposal, request) {
                 Ok(motion) => Some(motion),
@@ -212,7 +218,31 @@ impl WorthUiApplicationSessionState {
             .service_proposals
             .advance_staging(&mut staging, portal.stage_receipt())
         {
-            self.cancel_portal_staging(staging, &portal, &focus, motion_state, motion);
+            self.cancel_portal_staging(
+                staging,
+                &portal,
+                &focus,
+                &scroll,
+                selection.as_ref(),
+                motion_state,
+                motion,
+            );
+            return Err(UiPortalProposalPreparationDenial::Staging(denial));
+        }
+        if let Err(denial) = self
+            .runtime
+            .service_proposals
+            .advance_staging(&mut staging, scroll.family_stage_receipt())
+        {
+            self.cancel_portal_staging(
+                staging,
+                &portal,
+                &focus,
+                &scroll,
+                selection.as_ref(),
+                motion_state,
+                motion,
+            );
             return Err(UiPortalProposalPreparationDenial::Staging(denial));
         }
         if let Err(denial) = self
@@ -220,8 +250,36 @@ impl WorthUiApplicationSessionState {
             .service_proposals
             .advance_staging(&mut staging, focus.family_stage_receipt())
         {
-            self.cancel_portal_staging(staging, &portal, &focus, motion_state, motion);
+            self.cancel_portal_staging(
+                staging,
+                &portal,
+                &focus,
+                &scroll,
+                selection.as_ref(),
+                motion_state,
+                motion,
+            );
             return Err(UiPortalProposalPreparationDenial::Staging(denial));
+        }
+        if let Some(receipt) = selection.as_ref().map(
+            crate::runtime::selection::UiStagedDeclaredSelectionTransition::family_stage_receipt,
+        ) {
+            if let Err(denial) = self
+                .runtime
+                .service_proposals
+                .advance_staging(&mut staging, receipt)
+            {
+                self.cancel_portal_staging(
+                    staging,
+                    &portal,
+                    &focus,
+                    &scroll,
+                    selection.as_ref(),
+                    motion_state,
+                    motion,
+                );
+                return Err(UiPortalProposalPreparationDenial::Staging(denial));
+            }
         }
         if let Some(receipt) = motion
             .as_ref()
@@ -232,7 +290,15 @@ impl WorthUiApplicationSessionState {
                 .service_proposals
                 .advance_staging(&mut staging, receipt)
             {
-                self.cancel_portal_staging(staging, &portal, &focus, motion_state, motion);
+                self.cancel_portal_staging(
+                    staging,
+                    &portal,
+                    &focus,
+                    &scroll,
+                    selection.as_ref(),
+                    motion_state,
+                    motion,
+                );
                 return Err(UiPortalProposalPreparationDenial::Staging(denial));
             }
         }
@@ -240,161 +306,9 @@ impl WorthUiApplicationSessionState {
             staging,
             portal,
             focus,
+            scroll,
+            selection,
             motion,
         })
-    }
-
-    pub(crate) fn bind_portal_service_proposal_frame(
-        &mut self,
-        mut preparation: UiPortalProposalPreparation,
-        frame: &crate::mounting::UiPreparedMountedFrame,
-        focus: &mut crate::runtime::focus::UiFocusRuntimeState,
-        motion_state: &mut crate::runtime::motion::UiMotionRuntimeState,
-    ) -> Result<UiStagedPortalProposalTransaction, UiPortalProposalPreparationDenial> {
-        if let Err(denial) =
-            focus.stage_portal_proposal(&preparation.focus, frame.focus_participation_snapshot())
-        {
-            self.cancel_portal_staging(
-                preparation.staging,
-                &preparation.portal,
-                &preparation.focus,
-                motion_state,
-                preparation.motion,
-            );
-            return Err(UiPortalProposalPreparationDenial::Focus(denial));
-        }
-        let receipt = crate::runtime::session::service_proposal::UiServiceProposalStageReceipt::existing_preparation(
-            preparation.staging.identity(),
-        );
-        if let Err(denial) = self
-            .runtime
-            .service_proposals
-            .advance_staging(&mut preparation.staging, receipt)
-        {
-            focus
-                .discard_portal_proposal(preparation.focus.proposal())
-                .expect("Focus owner discards the exact proposal staged above");
-            self.cancel_portal_staging(
-                preparation.staging,
-                &preparation.portal,
-                &preparation.focus,
-                motion_state,
-                preparation.motion,
-            );
-            return Err(UiPortalProposalPreparationDenial::Staging(denial));
-        }
-        if let Err(denial) = self.runtime.service_proposals.advance_staging(
-            &mut preparation.staging,
-            preparation.focus.resolution_receipt(),
-        ) {
-            focus
-                .discard_portal_proposal(preparation.focus.proposal())
-                .expect("Focus owner discards the exact resolved proposal");
-            self.cancel_portal_staging(
-                preparation.staging,
-                &preparation.portal,
-                &preparation.focus,
-                motion_state,
-                preparation.motion,
-            );
-            return Err(UiPortalProposalPreparationDenial::Staging(denial));
-        }
-        let motion = preparation
-            .motion
-            .map(|motion| motion_state.derive(motion, frame.canonical_core().frame()));
-        if let Some(receipt) = motion
-            .as_ref()
-            .map(crate::runtime::motion::UiDerivedMotionServiceProposal::derivation_receipt)
-        {
-            if let Err(denial) = self
-                .runtime
-                .service_proposals
-                .advance_staging(&mut preparation.staging, receipt)
-            {
-                focus
-                    .discard_portal_proposal(preparation.focus.proposal())
-                    .expect("Focus owner discards the exact Motion derivation candidate");
-                if let Some(motion) = motion {
-                    motion_state.discard_derived(motion);
-                }
-                self.cancel_portal_staging(
-                    preparation.staging,
-                    &preparation.portal,
-                    &preparation.focus,
-                    motion_state,
-                    None,
-                );
-                return Err(UiPortalProposalPreparationDenial::Staging(denial));
-            }
-        }
-        match self
-            .runtime
-            .service_proposals
-            .finish_staging(preparation.staging)
-        {
-            Ok(batch) => Ok(UiStagedPortalProposalTransaction {
-                batch,
-                portal: preparation.portal,
-                focus: preparation.focus,
-                motion,
-                prepared_frame: frame.canonical_core().frame(),
-            }),
-            Err((staging, denial)) => {
-                focus
-                    .discard_portal_proposal(preparation.focus.proposal())
-                    .expect("Focus owner discards the exact complete staging candidate");
-                if let Some(motion) = motion {
-                    motion_state.discard_derived(motion);
-                }
-                self.cancel_portal_staging(
-                    staging,
-                    &preparation.portal,
-                    &preparation.focus,
-                    motion_state,
-                    None,
-                );
-                Err(UiPortalProposalPreparationDenial::Staging(denial))
-            }
-        }
-    }
-
-    pub(crate) fn cancel_portal_service_proposal(
-        &mut self,
-        transaction: UiStagedPortalProposalTransaction,
-        focus: &mut crate::runtime::focus::UiFocusRuntimeState,
-        motion_state: &mut crate::runtime::motion::UiMotionRuntimeState,
-    ) {
-        focus
-            .discard_portal_proposal(transaction.focus.proposal())
-            .expect("cancelled transaction retains its exact Focus proposal");
-        let motion_scope = transaction.motion.as_ref().map(|motion| motion.scope());
-        if let Some(motion) = transaction.motion {
-            motion_state.discard_derived(motion);
-        }
-        let teardown = self
-            .runtime
-            .service_proposals
-            .cancel_staged(transaction.batch);
-        self.finish_portal_teardown(
-            teardown,
-            &transaction.portal,
-            &transaction.focus,
-            motion_scope,
-            crate::runtime::session::service_proposal::UiServiceProposalTerminalReason::CancelledBeforePublication,
-        );
-    }
-
-    pub(crate) fn cancel_portal_service_proposal_preparation(
-        &mut self,
-        preparation: UiPortalProposalPreparation,
-        motion_state: &mut crate::runtime::motion::UiMotionRuntimeState,
-    ) {
-        self.cancel_portal_staging(
-            preparation.staging,
-            &preparation.portal,
-            &preparation.focus,
-            motion_state,
-            preparation.motion,
-        );
     }
 }

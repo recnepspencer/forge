@@ -59,6 +59,10 @@ pub(crate) struct UiMountedGraphReplacementCompletionRejection {
 }
 
 impl UiMountedGraphReplacementSuccessor {
+    pub(crate) fn identity_view(&self) -> crate::mounting::UiMountedIdentityView {
+        self.identity.view()
+    }
+
     pub(crate) fn focus_participation_snapshot(
         &self,
     ) -> Option<crate::mounting::UiMountedFocusParticipationSnapshot> {

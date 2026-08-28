@@ -5,7 +5,6 @@ mod handles;
 #[path = "portal_dismissal/receipt.rs"]
 mod receipt;
 pub use receipt::UiPortalDismissalPublicationReceipt;
-
 pub(crate) enum UiPortalDismissalPublicationOutcome<'session> {
     Ignored,
     Published(UiPortalDismissalPublicationReceipt),
@@ -197,10 +196,14 @@ impl WorthUiActiveApplicationSession {
                 );
             }
         };
+        let scroll_incarnation = self.scroll_owner_incarnation();
         let proposal = match self.application.bind_portal_service_proposal_frame(
             preparation,
             &frame,
+            &self.mounted,
             &mut self.focus,
+            &self.scroll,
+            scroll_incarnation,
             &mut self.motion,
         ) {
             Ok(proposal) => proposal,
@@ -272,6 +275,8 @@ fn finish<'session>(
                     &mounted,
                     &mut admitted.session.portal,
                     &mut admitted.session.focus,
+                    &mut admitted.session.scroll,
+                    &mut admitted.session.selection,
                     &mut admitted.session.motion,
                 )
                 .expect("published dismissal retains exact service proposal");

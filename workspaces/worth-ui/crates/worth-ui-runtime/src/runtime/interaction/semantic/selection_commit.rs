@@ -90,6 +90,17 @@ impl UiSelectionCommitInteraction {
 }
 
 impl UiSelectionCommitStop {
+    pub(crate) fn after_validation(
+        interaction: UiSelectionCommitInteraction,
+        reason: UiSelectionCommitStopReason,
+    ) -> Self {
+        Self {
+            activation: Box::new(interaction.activation),
+            option: interaction.option,
+            reason,
+        }
+    }
+
     pub const fn activation(&self) -> &super::UiActivateInteraction {
         &self.activation
     }

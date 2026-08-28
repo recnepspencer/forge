@@ -13,6 +13,8 @@ impl WorthUiActiveApplicationSession {
         let _presentation_motion_tracks = self.mounted.shutdown_motion_sampling();
         let motion = self.motion.shutdown();
         debug_assert!(motion.final_census().is_zero());
+        let scroll_owners_released = self.scroll.shutdown();
+        let selection_owners_released = self.selection.shutdown();
         self.clear_displaced_input_recipient(previous_input);
         let confirmation = self.intent_confirmation.shutdown();
         let (admission, execution) = self.intent_admission.shutdown(&mut self.intent_execution);
@@ -49,6 +51,8 @@ impl WorthUiActiveApplicationSession {
             .bind_focus_placement(focus_placement)
             .bind_portal(portal)
             .bind_motion(motion)
+            .bind_scroll_owners_released(scroll_owners_released)
+            .bind_selection_owners_released(selection_owners_released)
             .bind_intent_confirmation(confirmation)
             .bind_intent_admission(admission)
             .bind_intent_execution(execution)

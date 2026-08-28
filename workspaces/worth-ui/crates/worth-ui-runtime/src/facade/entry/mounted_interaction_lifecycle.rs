@@ -44,7 +44,18 @@ impl WorthUiActiveApplicationSession {
         &mut self,
         identity: UiMountedInstanceIdentity,
     ) -> Result<UiInteractionLifecycleSettlementReceipt, UiMountedIdentityDenial> {
+        let service_basis = self.mounted.current_mounted_identity_basis(identity);
         self.mounted.unmount_instance(identity)?;
+        self.scroll.retire_mounted_instance(identity);
+        if let Some(basis) = service_basis {
+            self.selection.retire_mounted_owner(
+                basis.semantic_surface_identity(),
+                basis.graph_node_identity(),
+                crate::runtime::selection::UiSelectionOwnerIncarnation::from_mount_incarnation(
+                    basis.mount_incarnation(),
+                ),
+            );
+        }
         self.intent_confirmation.cancel_instance(
             identity,
             crate::runtime::intent::UiIntentConfirmationCancellationReason::MountedInstanceRemoved,

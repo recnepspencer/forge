@@ -8,10 +8,7 @@ use super::{
     UiNativeEventLoopApplication, UiNativeEventLoopClient, UiNativeEventLoopDirective,
     UiNativeEventLoopRunDenial, UiNativeObservationReadinessGrant,
 };
-use crate::native::{
-    UiNativeHostState, UiNativeLifecycleEffect, UiNativeLifecycleRequiredAction,
-    UiNativePointerPositionWitness,
-};
+use crate::native::{UiNativeHostState, UiNativeLifecycleEffect, UiNativeLifecycleRequiredAction};
 
 impl<Client: UiNativeEventLoopClient>
     ApplicationHandler<crate::native::readiness::UiNativeApplicationWake>
@@ -296,21 +293,8 @@ impl<Client: UiNativeEventLoopClient> UiNativeEventLoopApplication<Client> {
                 event,
             );
         let event_tick = self.physical_clock.current_tick();
-        let pointer_witness = match event {
-            WindowEvent::Moved(_) => {
-                if let Some(input) = self.pointer_input.as_mut() {
-                    input.refresh_client_origin();
-                }
-                UiNativePointerPositionWitness::Unavailable
-            }
-            WindowEvent::MouseInput { state, button, .. } => self
-                .pointer_input
-                .as_mut()
-                .and_then(|input| input.take_button_position(*button, *state))
-                .map(UiNativePointerPositionWitness::EventTime)
-                .unwrap_or(UiNativePointerPositionWitness::Unavailable),
-            _ => UiNativePointerPositionWitness::Unavailable,
-        };
+        let pointer_witness =
+            super::pointer_position::event_pointer_witness(&mut self.pointer_input, event);
         let disposition = self
             .shared
             .borrow_mut()

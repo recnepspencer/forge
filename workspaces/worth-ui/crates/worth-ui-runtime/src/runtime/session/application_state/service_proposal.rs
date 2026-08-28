@@ -1,14 +1,23 @@
 use super::WorthUiApplicationSessionState;
 
+#[path = "service_proposal/focus_reveal.rs"]
+mod focus_reveal;
 #[path = "service_proposal/portal.rs"]
 mod portal;
+#[path = "service_proposal/portal_cancellation.rs"]
+mod portal_cancellation;
+#[path = "service_proposal/portal_frame_binding.rs"]
+mod portal_frame_binding;
+#[path = "service_proposal/portal_types.rs"]
+mod portal_types;
 #[path = "service_proposal/settlement.rs"]
 mod settlement;
 #[path = "service_proposal/terminal.rs"]
 mod terminal;
 
-use portal::UiPortalProposalSettlement;
-pub(crate) use portal::{
+pub(crate) use focus_reveal::{UiFocusRevealStagingDenial, UiStagedFocusReveal};
+use portal_types::UiPortalProposalSettlement;
+pub(crate) use portal_types::{
     UiIndeterminatePortalProposalTransaction, UiPortalProposalPreparation,
     UiPortalProposalPreparationDenial, UiStagedPortalProposalTransaction,
 };

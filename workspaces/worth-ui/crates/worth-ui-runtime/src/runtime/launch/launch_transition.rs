@@ -179,7 +179,6 @@ impl WorthUiRuntime {
             host_observation_generation: Some(host_plan_binding.observation_generation()),
             host_plan_binding,
             durable_resize_source: Default::default(),
-            scroll_offset_projection: Default::default(),
             observation: crate::runtime::observation::UiObservationRuntimeState::new(),
             service_proposals:
                 crate::runtime::session::service_proposal::UiServiceProposalCompiler::new(),

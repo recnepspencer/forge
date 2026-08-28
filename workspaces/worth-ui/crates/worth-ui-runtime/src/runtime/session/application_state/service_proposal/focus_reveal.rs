@@ -1,0 +1,196 @@
+#[must_use = "a staged focus reveal must commit with or be discarded by its proposal"]
+pub(crate) struct UiStagedFocusReveal {
+    registrations: Vec<crate::runtime::scroll::UiScrollOwnerRegistration>,
+    anchor: crate::runtime::scroll::UiScrollAnchor,
+    request: crate::runtime::scroll::UiScrollProgrammaticRevealRequest,
+    receipt: crate::runtime::scroll::UiScrollRouteReceipt,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum UiFocusRevealStagingDenial {
+    Ownership(crate::runtime::scroll::UiScrollOwnershipResolutionDenial),
+    Bounds(crate::runtime::scroll::UiScrollBoundsResolutionDenial),
+    GeometryOutOfRange,
+    Route(crate::runtime::scroll::UiScrollRouteDenial),
+}
+
+impl super::super::WorthUiApplicationSessionState {
+    pub(crate) fn stage_focus_reveal(
+        &self,
+        requirement: crate::runtime::session::service_proposal::UiFocusRevealRequirement,
+        mounted: &crate::mounting::WorthUiMountedSessionState,
+        scroll: &crate::runtime::scroll::UiScrollRuntimeState,
+        surface_incarnation: crate::runtime::scroll::UiScrollOwnerIncarnation,
+    ) -> Result<Option<UiStagedFocusReveal>, UiFocusRevealStagingDenial> {
+        let Some(target) = mounted.current_mounted_identity_basis(requirement.target()) else {
+            return Ok(None);
+        };
+        let chain = scroll
+            .ownership_chain(requirement.target())
+            .map_err(UiFocusRevealStagingDenial::Ownership)?;
+        if chain.owners().is_empty() {
+            return Ok(None);
+        }
+        let Some(publication) = mounted.current_publication() else {
+            return Ok(None);
+        };
+        let Some(presentation) =
+            publication.presentation_for_surface(target.semantic_surface_identity())
+        else {
+            return Ok(None);
+        };
+        let Ok(hit_test) = mounted.interaction_hit_test_basis(presentation) else {
+            return Ok(None);
+        };
+        let Some(row) = hit_test
+            .rows()
+            .iter()
+            .copied()
+            .find(|row| row.mounted_instance() == requirement.target())
+        else {
+            return Ok(None);
+        };
+        let mounted_incarnation =
+            crate::runtime::scroll::UiScrollOwnerIncarnation::from_mount_incarnation(
+                target.mount_incarnation(),
+            );
+        let anchor = crate::runtime::scroll::UiScrollAnchor::new(
+            crate::runtime::scroll::UiScrollAnchorIdentity::mounted(requirement.target()),
+            presentation.binding(),
+            signed_subpixels(row.bounds().x())?.max(0),
+            signed_subpixels(row.bounds().y())?.max(0),
+        )
+        .ok_or(UiFocusRevealStagingDenial::GeometryOutOfRange)?;
+        let mut successor = scroll.clone();
+        let mut entries = Vec::with_capacity(chain.owners().len());
+        let mut registrations = Vec::with_capacity(chain.owners().len());
+        for owner in chain.owners().iter().copied() {
+            let incarnation = match owner {
+                crate::runtime::scroll::UiScrollOwnerIdentity::Region { .. } => mounted_incarnation,
+                crate::runtime::scroll::UiScrollOwnerIdentity::Surface(_)
+                | crate::runtime::scroll::UiScrollOwnerIdentity::Viewport(_) => surface_incarnation,
+            };
+            let bounds = self
+                .scroll_bounds_for(owner, target.graph_node_identity())
+                .map_err(UiFocusRevealStagingDenial::Bounds)?;
+            let registration = crate::runtime::scroll::UiScrollOwnerRegistration::new(
+                owner,
+                incarnation,
+                axes_for(bounds),
+                bounds,
+                crate::runtime::scroll::UiScrollOffset::origin(),
+            );
+            successor
+                .reconcile_rebind(crate::runtime::scroll::UiScrollRebindRequest::new(
+                    registration,
+                    Some(anchor),
+                    crate::runtime::scroll::UiScrollAnchorPolicy::Rebase,
+                ))
+                .map_err(UiFocusRevealStagingDenial::Route)?;
+            registrations.push(registration);
+            entries.push(crate::runtime::scroll::UiScrollChainEntry::new(
+                owner,
+                incarnation,
+            ));
+        }
+        let target_bounds = row.bounds();
+        let viewport_bounds = row.clip_bounds();
+        let target_inline = interval(
+            target_bounds.x(),
+            target_bounds.width(),
+            viewport_bounds.x(),
+        )?;
+        let target_block = interval(
+            target_bounds.y(),
+            target_bounds.height(),
+            viewport_bounds.y(),
+        )?;
+        let viewport = crate::runtime::scroll::UiScrollViewportExtent::new(
+            positive_subpixels(viewport_bounds.width())?,
+            positive_subpixels(viewport_bounds.height())?,
+        )
+        .ok_or(UiFocusRevealStagingDenial::GeometryOutOfRange)?;
+        let request = crate::runtime::scroll::UiScrollProgrammaticRevealRequest::new(
+            entries,
+            crate::runtime::scroll::UiScrollRevealTarget::new(target_inline, target_block),
+            viewport,
+            crate::runtime::scroll::UiScrollRevealAlignment::Nearest,
+        )
+        .map_err(UiFocusRevealStagingDenial::Route)?;
+        let receipt = successor
+            .reveal(request.clone())
+            .map_err(UiFocusRevealStagingDenial::Route)?;
+        Ok(Some(UiStagedFocusReveal {
+            registrations,
+            anchor,
+            request,
+            receipt,
+        }))
+    }
+}
+
+impl UiStagedFocusReveal {
+    pub(crate) const fn receipt(&self) -> &crate::runtime::scroll::UiScrollRouteReceipt {
+        &self.receipt
+    }
+
+    pub(crate) fn commit(self, state: &mut crate::runtime::scroll::UiScrollRuntimeState) {
+        for registration in self.registrations {
+            state
+                .reconcile_rebind(crate::runtime::scroll::UiScrollRebindRequest::new(
+                    registration,
+                    Some(self.anchor),
+                    crate::runtime::scroll::UiScrollAnchorPolicy::Rebase,
+                ))
+                .expect("staged focus reveal retains its exact current Scroll owner");
+        }
+        state
+            .reveal(self.request)
+            .expect("staged focus reveal rebases against current Scroll truth");
+    }
+}
+
+fn axes_for(
+    bounds: crate::runtime::scroll::UiScrollBounds,
+) -> crate::runtime::scroll::UiScrollAxes {
+    match (
+        bounds.max_inline_subpixels() > 0,
+        bounds.max_block_subpixels() > 0,
+    ) {
+        (true, false) => crate::runtime::scroll::UiScrollAxes::Inline,
+        (false, true) => crate::runtime::scroll::UiScrollAxes::Block,
+        (true, true) | (false, false) => crate::runtime::scroll::UiScrollAxes::Both,
+    }
+}
+
+fn interval(
+    start: f32,
+    extent: f32,
+    viewport_start: f32,
+) -> Result<crate::runtime::scroll::UiScrollRevealInterval, UiFocusRevealStagingDenial> {
+    let start = signed_subpixels(start)?
+        .checked_sub(signed_subpixels(viewport_start)?)
+        .ok_or(UiFocusRevealStagingDenial::GeometryOutOfRange)?
+        .max(0);
+    let end = start.saturating_add(positive_subpixels(extent)?);
+    crate::runtime::scroll::UiScrollRevealInterval::new(start, end)
+        .ok_or(UiFocusRevealStagingDenial::GeometryOutOfRange)
+}
+
+fn signed_subpixels(value: f32) -> Result<i64, UiFocusRevealStagingDenial> {
+    let scaled = f64::from(value)
+        * worth_ui_host_contract::UI_HOST_SURFACE_POSITION_SUBPIXELS_PER_UNIT as f64;
+    if !scaled.is_finite() || scaled < i64::MIN as f64 || scaled > i64::MAX as f64 {
+        return Err(UiFocusRevealStagingDenial::GeometryOutOfRange);
+    }
+    Ok(scaled.round() as i64)
+}
+
+fn positive_subpixels(value: f32) -> Result<i64, UiFocusRevealStagingDenial> {
+    let value = signed_subpixels(value)?;
+    if value <= 0 {
+        Err(UiFocusRevealStagingDenial::GeometryOutOfRange)
+    } else {
+        Ok(value)
+    }
+}

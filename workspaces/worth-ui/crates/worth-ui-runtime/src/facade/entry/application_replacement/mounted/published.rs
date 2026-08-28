@@ -9,6 +9,8 @@ pub(super) struct WorthUiPresentedApplicationReplacement<'session> {
     mounted_successor: crate::mounting::UiMountedGraphReplacementSuccessor,
     mounted_receipt: crate::mounting::UiMountedFramePublicationReceipt,
     focus: crate::runtime::focus::UiPreparedFocusMountedReconciliation,
+    scroll: super::super::scroll_replacement::UiPreparedScrollReplacement,
+    selection: super::super::selection_replacement::UiPreparedSelectionReplacement,
 }
 
 impl<'session> WorthUiPresentedApplicationReplacement<'session> {
@@ -25,19 +27,30 @@ impl<'session> WorthUiPresentedApplicationReplacement<'session> {
             .focus
             .prepare_mounted_reconciliation(&snapshot)
             .expect("mounted Focus participation fits bounded counters");
+        let scroll = session.prepare_scroll_replacement(
+            &application,
+            &mounted_successor,
+            Some(&mounted_receipt),
+        );
+        let selection = session.prepare_selection_replacement(&mounted_successor, true);
         Self {
             session,
             application,
             mounted_successor,
             mounted_receipt,
             focus,
+            scroll,
+            selection,
         }
     }
 
     pub(super) fn commit_once(self) -> WorthUiMountedApplicationReplacementOutcome<'session> {
-        let application = self
-            .session
-            .commit_application_activation(self.application, self.mounted_successor);
+        let application = self.session.commit_application_activation(
+            self.application,
+            self.mounted_successor,
+            self.scroll,
+            self.selection,
+        );
         self.session
             .reconcile_prepared_focus_after_published_frame(self.focus, &self.mounted_receipt);
         WorthUiMountedApplicationReplacementOutcome::Published {

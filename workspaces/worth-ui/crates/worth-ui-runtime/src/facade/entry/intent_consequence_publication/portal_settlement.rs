@@ -13,6 +13,8 @@ pub(super) fn settle_published_portal_proposal(
             mounted,
             &mut admitted.session.portal,
             &mut admitted.session.focus,
+            &mut admitted.session.scroll,
+            &mut admitted.session.selection,
             &mut admitted.session.motion,
         )
         .expect("exact staged portal proposal accepts its publication receipt");

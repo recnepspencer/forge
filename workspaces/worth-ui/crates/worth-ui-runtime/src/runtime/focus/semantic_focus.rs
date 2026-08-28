@@ -33,6 +33,14 @@ impl UiSemanticKeyboardFocus {
         )
     }
 
+    pub(in crate::runtime) const fn reveal_requirement(
+        self,
+    ) -> crate::runtime::session::service_proposal::UiFocusRevealRequirement {
+        crate::runtime::session::service_proposal::UiFocusRevealRequirement::new(
+            self.participant().mounted_instance(),
+        )
+    }
+
     pub(super) const fn exact_participant(self) -> super::UiFocusParticipant {
         self.participant
     }

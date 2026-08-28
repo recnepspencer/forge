@@ -83,13 +83,13 @@ fn shutdown_cancels_in_flight_terminal_portal_proposal_without_motion_owner_leak
             .entries(),
         [
             ("proposals", 1),
-            ("occupancy_leases", 2),
+            ("occupancy_leases", 3),
             ("cancellation_records", 1),
-            ("stage_receipts", 4),
-            ("live_occupancies", 2),
+            ("stage_receipts", 5),
+            ("live_occupancies", 3),
             ("live_cancellations", 1),
         ],
-        "terminal closure compiles Portal plus Focus and no second Motion owner"
+        "terminal closure compiles Portal, Focus, and its one Scroll reveal without a second Motion owner"
     );
 
     let shutdown = world.session.shutdown();

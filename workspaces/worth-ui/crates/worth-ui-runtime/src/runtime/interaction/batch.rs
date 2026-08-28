@@ -12,6 +12,7 @@ pub struct UiInteractionBatchReceipt {
     pub(super) transitions: Box<[UiInteractionTransition]>,
     pub(super) ignored_reports: usize,
     pub(super) state: UiInteractionStateSnapshot,
+    pub(super) scroll_observations: Box<[crate::runtime::scroll::UiHostScrollObservationOutcome]>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -40,6 +41,19 @@ pub struct UiInteractionShutdownReport {
 }
 
 impl UiInteractionBatchReceipt {
+    pub(crate) fn retain_scroll_observations(
+        &mut self,
+        observations: Vec<crate::runtime::scroll::UiHostScrollObservationOutcome>,
+    ) {
+        self.scroll_observations = observations.into_boxed_slice();
+    }
+
+    pub(crate) fn scroll_observations(
+        &self,
+    ) -> &[crate::runtime::scroll::UiHostScrollObservationOutcome] {
+        &self.scroll_observations
+    }
+
     pub(crate) fn retain_service_dismissal(&mut self, dismissal: super::UiDismissInteraction) {
         let already_retained = self.transitions.iter().any(|transition| {
             matches!(

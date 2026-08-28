@@ -263,7 +263,7 @@ fn assert_query_owner_succession(
     let mut first_successor_denial = None;
     let mut second_successor_owner = None;
     let completion = runtime.execute_framework_turn(|turn| {
-        turn.scroll_offset(|source| {
+        turn.scroll_extent(|source| {
             first_successor_denial = source
                 .acquire_settled_query_owner(predecessor_query, predecessor_allocation)
                 .err();

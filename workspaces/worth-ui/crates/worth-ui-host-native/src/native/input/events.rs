@@ -41,7 +41,7 @@ impl UiNativeInputObservationState {
         event_focus::observe(self, event)
             .or_else(|| event_pointer::observe(self, event, pointer_witness))
             .or_else(|| event_keyboard::observe(self, event))
-            .or_else(|| event_scroll::observe(self, event))
+            .or_else(|| event_scroll::observe(self, event, pointer_witness))
             .or_else(|| event_ime::observe(self, event))
             .unwrap_or(UiNativeInputObservationDisposition::Ignored)
     }

@@ -130,7 +130,7 @@ impl WorthUiActiveApplicationSession {
         transition: crate::mounting::UiMountedPublicationTransition,
     ) -> UiMountedFrameOutcome {
         let active_generation = self.active_generation_identity();
-        finish_mounted_transition_with_ports(
+        let outcome = finish_mounted_transition_with_ports(
             UiMountedPublicationSettlementPorts {
                 mounted: &mut self.mounted,
                 focus: &mut self.focus,
@@ -141,7 +141,14 @@ impl WorthUiActiveApplicationSession {
                 host_exchange: &mut self.host_exchange,
             },
             transition,
-        )
+        );
+        if matches!(
+            outcome,
+            UiMountedFrameOutcome::Published(_) | UiMountedFrameOutcome::Reconciled(_)
+        ) {
+            self.reconcile_service_state_after_mounted_publication();
+        }
+        outcome
     }
 
     pub(super) fn reconcile_focus_after_published_frame(

@@ -37,6 +37,14 @@ impl super::WorthUiRuntimeShutdownReceipt {
         self.motion.final_census().is_zero()
     }
 
+    pub const fn scroll_owners_released(&self) -> usize {
+        self.scroll_owners_released
+    }
+
+    pub const fn selection_owners_released(&self) -> usize {
+        self.selection_owners_released
+    }
+
     pub(crate) fn bind_rebind(
         mut self,
         report: crate::runtime::rebind::UiRebindShutdownReport,
@@ -66,6 +74,16 @@ impl super::WorthUiRuntimeShutdownReceipt {
         report: crate::runtime::motion::UiMotionShutdownReport,
     ) -> Self {
         self.motion = report;
+        self
+    }
+
+    pub(crate) fn bind_scroll_owners_released(mut self, released: usize) -> Self {
+        self.scroll_owners_released = released;
+        self
+    }
+
+    pub(crate) fn bind_selection_owners_released(mut self, released: usize) -> Self {
+        self.selection_owners_released = released;
         self
     }
 }

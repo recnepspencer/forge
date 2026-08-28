@@ -28,7 +28,7 @@ pub(crate) fn collection_text_projection_definition() -> domain::WorthQueryDomai
 
 fn semantic_closure() -> domain::WorthQueryDomainOperationSemanticClosure {
     let identity = native_projection("identity");
-    let projection = native_projection("query_text");
+    let projection = native_projection("collection_item");
     domain::WorthQueryDomainOperationSemanticClosure {
         parameters: domain::WorthQueryOperationParameterContract::NotRequired,
         native_projection: projection.clone(),
@@ -53,7 +53,7 @@ fn semantic_closure() -> domain::WorthQueryDomainOperationSemanticClosure {
                 role: "collection-text".into(),
                 participation: domain::WorthQueryOperationGraphParticipation::PrimaryLogicalGraph,
                 access: domain::WorthQueryOperationGraphAccess::Project,
-                semantic_reads: vec![identity, projection],
+                semantic_reads: vec![identity, projection.clone()],
             }],
         },
         decision_facts: domain::WorthQueryOperationDecisionFactContract::NotRequired,
@@ -99,7 +99,8 @@ fn canonical_bundle() -> worth_query_decl::facade::canonicalization::CanonicalQu
             .expect("static projection root must admit"),
     )
     .project(selector("identity", "id"))
-    .project(selector("query_text", "status"))
+    .project(selector("collection_item", "status"))
+    .project(selector("collection_item", "key"))
     .order_by(
         OrderingSelector::ascending("identity", "id")
             .expect("static collection ordering must admit"),
@@ -109,7 +110,16 @@ fn canonical_bundle() -> worth_query_decl::facade::canonicalization::CanonicalQu
     .into_raw();
     let shape = CollectionResultShapeBuilder::new()
         .field(result_field("identity", "id", "identity.id"))
-        .field(result_field("query_text", "status", "query_text.status"))
+        .field(result_field(
+            "collection_item",
+            "status",
+            "collection_item.status",
+        ))
+        .field(result_field(
+            "collection_item",
+            "key",
+            "collection_item.key",
+        ))
         .build()
         .expect("static collection text result shape must admit")
         .into_raw();

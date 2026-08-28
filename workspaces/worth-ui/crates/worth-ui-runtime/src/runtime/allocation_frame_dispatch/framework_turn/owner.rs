@@ -27,7 +27,7 @@ pub struct WorthUiResizePreviewTurnSource<'turn> {
     pub(super) runtime: &'turn mut WorthUiRuntime,
 }
 
-pub struct WorthUiScrollOffsetTurnSource<'turn> {
+pub struct WorthUiScrollExtentTurnSource<'turn> {
     pub(super) runtime: &'turn mut WorthUiRuntime,
 }
 

@@ -6,12 +6,13 @@ use worth_ui_host_contract::{
 
 use super::{
     pointer, UiNativeInputObservationDisposition, UiNativeInputObservationEventFamily,
-    UiNativeInputObservationState, UiNativeInputObservationStop,
+    UiNativeInputObservationState, UiNativeInputObservationStop, UiNativePointerPositionWitness,
 };
 
 pub(super) fn observe(
     state: &mut UiNativeInputObservationState,
     event: &WindowEvent,
+    pointer_witness: UiNativePointerPositionWitness,
 ) -> Option<UiNativeInputObservationDisposition> {
     let WindowEvent::MouseWheel { delta, phase, .. } = event else {
         return None;
@@ -62,11 +63,34 @@ pub(super) fn observe(
     let Some((_, _, presentation)) = state.completed else {
         return Some(state.rejection_disposition());
     };
+    let target =
+        match pointer_witness {
+            UiNativePointerPositionWitness::EventTime(position) => {
+                match pointer::logical_position(position, profile.scale_factor) {
+                    Ok(position) => {
+                        UiHostScrollDeltaTargetAffinity::exact_coordinate(presentation, position)
+                    }
+                    Err(pointer::UiNativePointerCoordinateDenial::NotFinite) => {
+                        return Some(state.terminal_disposition(
+                            UiNativeInputObservationStop::CoordinateNotFinite,
+                        ));
+                    }
+                    Err(pointer::UiNativePointerCoordinateDenial::OutOfRange) => {
+                        return Some(state.terminal_disposition(
+                            UiNativeInputObservationStop::CoordinateOutOfRange,
+                        ));
+                    }
+                }
+            }
+            UiNativePointerPositionWitness::Unavailable => {
+                UiHostScrollDeltaTargetAffinity::presented_surface_fallback(presentation)
+            }
+        };
     Some(state.emit_payloads([UiHostObservationPayload::ScrollDelta {
         source: UiHostScrollDeltaSource::PointerWheel,
         phase: scroll_phase(*phase),
         precision,
-        target: UiHostScrollDeltaTargetAffinity::presented_surface_fallback(presentation),
+        target,
         x_subpixels,
         y_subpixels,
     }]))

@@ -13,6 +13,7 @@ pub(super) type Link = Option<Arc<Node>>;
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub(super) struct UiProjectionInputCollectionCatalog {
     root: Link,
+    order: Arc<[UiProjectionOptionKey]>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -40,7 +41,11 @@ impl UiProjectionInputCollectionCatalog {
     ) -> Result<(Self, UiProjectionInputTransitionWork), ()> {
         let mut catalog = Self::default();
         let mut work = UiProjectionInputTransitionWork::default();
+        let mut order = Vec::new();
         for row in rows {
+            order.push(UiProjectionOptionKey::new(
+                row.row().query_identity().clone(),
+            ));
             let (next, previous, mutation) = insert(catalog.root, row);
             if previous.is_some() {
                 return Err(());
@@ -48,6 +53,7 @@ impl UiProjectionInputCollectionCatalog {
             catalog.root = Some(next);
             work.record_replaced_row(mutation)?;
         }
+        catalog.order = order.into();
         Ok((catalog, work))
     }
 
@@ -72,12 +78,20 @@ impl UiProjectionInputCollectionCatalog {
     pub(super) fn insert(
         &mut self,
         row: UiProjectionInputCollectionRow,
+        at: usize,
     ) -> Result<UiProjectionInputTransitionWork, ()> {
+        if at > self.order.len() {
+            return Err(());
+        }
+        let key = UiProjectionOptionKey::new(row.row().query_identity().clone());
         let (root, previous, mutation) = insert(self.root.take(), row);
         if previous.is_some() {
             return Err(());
         }
         self.root = Some(root);
+        let mut order = self.order.to_vec();
+        order.insert(at, key);
+        self.order = order.into();
         Ok(mutation)
     }
 
@@ -96,6 +110,7 @@ impl UiProjectionInputCollectionCatalog {
     pub(super) fn remove(
         &mut self,
         identity: &WorthQueryEvidenceIdentity,
+        _from: usize,
     ) -> Result<UiProjectionInputTransitionWork, ()> {
         let key = UiProjectionOptionKey::new(identity.clone());
         let mut work = UiProjectionInputTransitionWork::default();
@@ -104,7 +119,35 @@ impl UiProjectionInputCollectionCatalog {
             return Err(());
         }
         self.root = root;
+        let mut order = self.order.to_vec();
+        let actual = order
+            .iter()
+            .position(|candidate| candidate == &key)
+            .ok_or(())?;
+        order.remove(actual);
+        self.order = order.into();
         Ok(work)
+    }
+
+    pub(super) fn move_row(
+        &mut self,
+        identity: &WorthQueryEvidenceIdentity,
+        _from: usize,
+        to: usize,
+    ) -> Result<UiProjectionInputTransitionWork, ()> {
+        let key = UiProjectionOptionKey::new(identity.clone());
+        if to >= self.order.len() {
+            return Err(());
+        }
+        let mut order = self.order.to_vec();
+        let actual = order
+            .iter()
+            .position(|candidate| candidate == &key)
+            .ok_or(())?;
+        let moved = order.remove(actual);
+        order.insert(to, moved);
+        self.order = order.into();
+        self.require(identity)
     }
 
     pub(super) fn require(
@@ -117,6 +160,20 @@ impl UiProjectionInputCollectionCatalog {
         }
         Ok(UiProjectionInputTransitionWork::with_key_probes(probes))
     }
+
+    pub(super) fn ordered_stable_keys(&self) -> Box<[super::UiProjectionOptionStableKey]> {
+        self.order
+            .iter()
+            .map(UiProjectionOptionKey::stable_key)
+            .collect()
+    }
+
+    pub(super) fn ordered_application_item_keys(&self) -> Option<Box<[core::num::NonZeroU64]>> {
+        self.order
+            .iter()
+            .map(|key| self.row(&key.identity).0?.application_item_key())
+            .collect()
+    }
 }
 
 impl UiProjectionOptionKey {
@@ -124,6 +181,10 @@ impl UiProjectionOptionKey {
         Self {
             identity: Arc::new(identity),
         }
+    }
+
+    pub(super) fn stable_key(&self) -> super::UiProjectionOptionStableKey {
+        super::UiProjectionOptionStableKey::from_query_identity(&self.identity)
     }
 }
 

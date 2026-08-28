@@ -77,6 +77,41 @@ impl UiServiceProducedFactReference {
             scope,
         }
     }
+
+    pub(in crate::runtime) fn for_scroll_proposal(
+        proposal: super::UiServiceProposalIdentity,
+        scope: super::super::UiServiceProposalOccupancyScopeIdentity,
+    ) -> Self {
+        Self::for_family(
+            proposal,
+            crate::capability::UiRuntimeServiceFamily::Scroll,
+            scope,
+        )
+    }
+
+    pub(in crate::runtime) fn for_selection_proposal(
+        proposal: super::UiServiceProposalIdentity,
+        scope: super::super::UiServiceProposalOccupancyScopeIdentity,
+    ) -> Self {
+        Self::for_family(
+            proposal,
+            crate::capability::UiRuntimeServiceFamily::Selection,
+            scope,
+        )
+    }
+
+    fn for_family(
+        proposal: super::UiServiceProposalIdentity,
+        family: crate::capability::UiRuntimeServiceFamily,
+        scope: super::super::UiServiceProposalOccupancyScopeIdentity,
+    ) -> Self {
+        Self {
+            identity: NonZeroU64::new(proposal.diagnostic_value())
+                .expect("proposal identity is derived from a non-zero request identity"),
+            family,
+            scope,
+        }
+    }
 }
 
 impl UiServiceMountedWorkReference {

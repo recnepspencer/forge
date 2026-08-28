@@ -21,10 +21,16 @@ mod portal_motion;
 mod portal_observation;
 #[path = "active_application_session/runtime_access.rs"]
 mod runtime_access;
+#[path = "active_application_session/scroll_observation.rs"]
+mod scroll_observation;
 #[path = "active_application_session/semantic_text_registration.rs"]
 mod semantic_text_registration;
 #[path = "active_application_session/service_proposal_observation.rs"]
 mod service_proposal_observation;
+#[path = "active_application_session/service_state_observation.rs"]
+mod service_state_observation;
+#[path = "active_application_session/service_state_reconciliation.rs"]
+mod service_state_reconciliation;
 mod shutdown;
 #[path = "active_application_session/theme_values.rs"]
 mod theme_values;
@@ -39,6 +45,8 @@ pub struct WorthUiActiveApplicationSession {
     pub(super) focus: crate::runtime::focus::UiFocusRuntimeState,
     pub(super) portal: crate::runtime::portal::UiPortalRuntimeState,
     pub(super) motion: crate::runtime::motion::UiMotionRuntimeState,
+    pub(super) scroll: crate::runtime::scroll::UiScrollRuntimeState,
+    pub(super) selection: crate::runtime::selection::UiSelectionRuntimeState,
     pub(super) portal_exit_retention: portal_exit_retention::UiPortalExitRetentionCoordinator,
     pub(super) intent_evidence: crate::inspection::intent::UiIntentEvidenceRegistry,
     pub(super) intent_application_facts: crate::runtime::intent::UiIntentApplicationFactState,
@@ -108,6 +116,9 @@ impl WorthUiActiveApplicationSession {
             motion: crate::runtime::motion::UiMotionRuntimeState::new(
                 crate::runtime::UiServiceStatePersistencePosture::Ephemeral,
             ),
+            scroll: crate::runtime::scroll::UiScrollRuntimeState::new_session_restore_candidate(),
+            selection:
+                crate::runtime::selection::UiSelectionRuntimeState::new_session_restore_candidate(),
             portal_exit_retention: portal_exit_retention::UiPortalExitRetentionCoordinator::new(),
             intent_evidence: crate::inspection::intent::UiIntentEvidenceRegistry::new(
                 identity.as_u64(),
@@ -132,6 +143,13 @@ impl WorthUiActiveApplicationSession {
 
     pub fn session_identity(&self) -> WorthUiActiveApplicationSessionIdentity {
         self.identity
+    }
+
+    pub(super) fn scroll_owner_incarnation(
+        &self,
+    ) -> crate::runtime::scroll::UiScrollOwnerIncarnation {
+        crate::runtime::scroll::UiScrollOwnerIncarnation::new(self.identity.as_u64())
+            .expect("active session identity is nonzero")
     }
 
     pub fn generation_identity(&self) -> &WorthUiPreparedApplicationGenerationIdentity {

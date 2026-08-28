@@ -262,10 +262,14 @@ impl super::WorthUiActiveApplicationSession {
                 return self.retain_portal_exit_retry(track);
             }
         };
+        let scroll_incarnation = self.scroll_owner_incarnation();
         let proposal = match self.application.bind_portal_service_proposal_frame(
             preparation,
             &frame,
+            &self.mounted,
             &mut self.focus,
+            &self.scroll,
+            scroll_incarnation,
             &mut self.motion,
         ) {
             Ok(proposal) => proposal,

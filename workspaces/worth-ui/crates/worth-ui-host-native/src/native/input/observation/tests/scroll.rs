@@ -1,10 +1,36 @@
 use super::{presented_state, HOST_SESSION};
+use crate::native::UiNativePointerPositionWitness;
 use winit::dpi::PhysicalPosition;
 use winit::event::{DeviceId, MouseScrollDelta, TouchPhase, WindowEvent};
 use worth_ui_host_contract::{
     UiHostObservationPayload, UiHostScrollDeltaPhase, UiHostScrollDeltaPrecision,
     UiHostScrollDeltaSource,
 };
+
+#[test]
+fn event_time_pointer_witness_targets_the_exact_presented_coordinate() {
+    let mut state = presented_state();
+    state.observe_window_event_at_with_pointer_witness(
+        &WindowEvent::MouseWheel {
+            device_id: DeviceId::dummy(),
+            delta: MouseScrollDelta::PixelDelta(PhysicalPosition::new(0.0, 3.25)),
+            phase: TouchPhase::Moved,
+        },
+        7,
+        UiNativePointerPositionWitness::EventTime(PhysicalPosition::new(12.5, 24.25)),
+    );
+    let batches = state.drain(HOST_SESSION).into_batches();
+    let UiHostObservationPayload::ScrollDelta { target, .. } = batches[0].reports()[0].payload()
+    else {
+        panic!("wheel event must remain a scroll payload");
+    };
+    let position = target.position().expect("event-time coordinate target");
+    assert_eq!(
+        (position.x_subpixels(), position.y_subpixels()),
+        (12_500, 24_250)
+    );
+    assert!(!target.is_surface_fallback());
+}
 
 #[test]
 fn qualified_line_wheel_is_canonical_and_does_not_suppress_later_input() {

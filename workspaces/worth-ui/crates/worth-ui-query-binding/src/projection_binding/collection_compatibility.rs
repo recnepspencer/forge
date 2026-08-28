@@ -126,6 +126,12 @@ fn requirement_stop(
             "the collection replacement selects different fields",
         ));
     }
+    if predecessor.application_item_key_field() != candidate.application_item_key_field() {
+        return Some((
+            UiProjectionBindingStopKind::SchemaMismatch,
+            "the collection replacement changes the application item-key field",
+        ));
+    }
     if predecessor.requires_complete_result() != candidate.requires_complete_result()
         || predecessor.permits_continuation() != candidate.permits_continuation()
     {
@@ -200,9 +206,13 @@ fn native_request_stop(
 ) -> (UiProjectionBindingStopKind, String) {
     use crate::application_binding::WorthUiCollectionTextNativeRequestDenial as Denial;
     match denial {
-        Denial::NativeFamilyMismatch => (
+        Denial::TextNativeFamilyMismatch => (
             UiProjectionBindingStopKind::NativeFamilyMismatch,
             "Query collection native value family changed".to_owned(),
+        ),
+        Denial::ApplicationItemKeyNativeFamilyMismatch => (
+            UiProjectionBindingStopKind::NativeFamilyMismatch,
+            "Query application item-key native family changed".to_owned(),
         ),
         Denial::ProjectionRequest(_) | Denial::SelectionMismatch(_) => (
             UiProjectionBindingStopKind::SchemaMismatch,

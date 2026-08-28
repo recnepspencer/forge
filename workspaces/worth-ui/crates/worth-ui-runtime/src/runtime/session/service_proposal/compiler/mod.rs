@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod conflict_tests;
+#[cfg(test)]
+mod coordination_tests;
 mod dependency;
 #[cfg(test)]
 mod evidence;

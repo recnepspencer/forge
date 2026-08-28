@@ -47,22 +47,29 @@ impl UiCollectionProjectionRowReference {
     pub fn query_identity(&self) -> &WorthQueryEvidenceIdentity {
         &self.query_row_identity
     }
+
+    pub fn stable_key(&self) -> super::UiProjectionOptionStableKey {
+        super::UiProjectionOptionStableKey::from_query_identity(&self.query_row_identity)
+    }
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct UiCollectionProjectionTextRow {
     row: UiCollectionProjectionRowReference,
     selected_values: Box<[UiNativeTextValue]>,
+    application_item_key: Option<core::num::NonZeroU64>,
 }
 
 impl UiCollectionProjectionTextRow {
     pub(crate) fn admitted(
         row: UiCollectionProjectionRowReference,
         selected_values: impl Into<Box<[UiNativeTextValue]>>,
+        application_item_key: Option<core::num::NonZeroU64>,
     ) -> Self {
         Self {
             row,
             selected_values: selected_values.into(),
+            application_item_key,
         }
     }
 
@@ -72,6 +79,10 @@ impl UiCollectionProjectionTextRow {
 
     pub fn selected_values(&self) -> &[UiNativeTextValue] {
         &self.selected_values
+    }
+
+    pub fn application_item_key(&self) -> Option<core::num::NonZeroU64> {
+        self.application_item_key
     }
 }
 

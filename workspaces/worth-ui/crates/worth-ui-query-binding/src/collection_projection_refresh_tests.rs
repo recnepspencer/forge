@@ -167,6 +167,7 @@ fn intent_input_catalog_applies_exact_query_patch_family_without_rebuilding_rows
     let (mut live, snapshot) = open_with_snapshot(&mut workspace, 8);
     let slot = UiProjectionInputSlot::from_index(0).expect("slot zero is representable");
     let alpha_row = present(&snapshot).rows()[0].row().clone();
+    let bravo_row = present(&snapshot).rows()[1].row().clone();
     let mut input = snapshot.intent_input_transition(slot).apply(None);
     assert_collection_input(&input, 2, 2, 0);
     let original_alpha = collection_input(&input)
@@ -188,11 +189,22 @@ fn intent_input_catalog_applies_exact_query_patch_family_without_rebuilding_rows
 
     let between = insert_collection_status(&mut workspace, "pulse.between", "Between");
     let insert = applied(&mut live, &mut workspace);
+    let between_row = present(insert.fact()).rows()[0].row().clone();
     input = insert
         .fact()
         .intent_input_transition(slot)
         .apply(Some(&input));
     assert_collection_input(&input, 3, 0, insert.fact().changes().len());
+    assert_eq!(
+        collection_input(&input).current_option_keys().as_deref(),
+        Some(
+            &[
+                alpha_row.stable_key(),
+                between_row.stable_key(),
+                bravo_row.stable_key(),
+            ][..]
+        )
+    );
 
     workspace.delete(between).expect("delete inserted row");
     let remove = applied(&mut live, &mut workspace);
@@ -201,6 +213,10 @@ fn intent_input_catalog_applies_exact_query_patch_family_without_rebuilding_rows
         .intent_input_transition(slot)
         .apply(Some(&input));
     assert_collection_input(&input, 2, 0, remove.fact().changes().len());
+    assert_eq!(
+        collection_input(&input).current_option_keys().as_deref(),
+        Some(&[alpha_row.stable_key(), bravo_row.stable_key()][..])
+    );
 
     update_identity(&mut workspace, alpha, "pulse.zulu");
     let moved = applied(&mut live, &mut workspace);
@@ -221,6 +237,10 @@ fn intent_input_catalog_applies_exact_query_patch_family_without_rebuilding_rows
     assert_ne!(
         current_alpha.owner_revision(),
         original_alpha.owner_revision()
+    );
+    assert_eq!(
+        moved_input.current_option_keys().as_deref(),
+        Some(&[bravo_row.stable_key(), alpha_row.stable_key()][..])
     );
 }
 

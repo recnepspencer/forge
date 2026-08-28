@@ -77,6 +77,35 @@ pub fn seeded_collection_projection_workspace(
     (workspace, entities)
 }
 
+pub fn seeded_collection_projection_workspace_with_item_keys(
+    rows: Vec<(String, String, u64)>,
+    posture: WorthUiCollectionProjectionSeedPosture,
+) -> (
+    worth_query::facade::runtime::WorthQueryWorkspace,
+    Vec<worth_query::facade::foundation::WorthQueryEntityIdentity>,
+) {
+    let identities = rows
+        .iter()
+        .map(|(identity, _, _)| identity.clone())
+        .collect::<Vec<_>>();
+    let (workspace, seed) =
+        crate::scalar_text_projection_fixture::seeded_collection_projection_workspace_with_item_keys(
+            rows,
+            posture == WorthUiCollectionProjectionSeedPosture::Partial,
+            posture != WorthUiCollectionProjectionSeedPosture::ResetOnly,
+            false,
+        );
+    let entities = identities
+        .iter()
+        .map(|identity| {
+            seed.entity(identity)
+                .expect("every authored projection seed has a Query entity")
+                .clone()
+        })
+        .collect();
+    (workspace, entities)
+}
+
 pub fn seeded_mixed_projection_workspace(
     rows: Vec<(String, String)>,
 ) -> (
@@ -139,13 +168,23 @@ pub fn update_projection_status_batch(
             worth_query::facade::runtime::WorthQueryMutationBatchBuilder::new(),
             |batch, (entity, status)| {
                 batch.update(entity, |row| {
-                    row.set_aspect(
-                        worth_query::facade::runtime::WorthQueryAspectTouch::from_authoring_ingress_text(
-                            "query_text.status",
+                    row
+                        .set_aspect(
+                            worth_query::facade::runtime::WorthQueryAspectTouch::from_authoring_ingress_text(
+                                "query_text.status",
+                            )
+                            .expect("projection status touch"),
+                            worth_query::facade::runtime::WorthQueryAuthoredAspectValue::string(
+                                status.clone(),
+                            ),
                         )
-                        .expect("projection status touch"),
-                        worth_query::facade::runtime::WorthQueryAuthoredAspectValue::string(status),
-                    )
+                        .set_aspect(
+                            worth_query::facade::runtime::WorthQueryAspectTouch::from_authoring_ingress_text(
+                                "collection_item.status",
+                            )
+                            .expect("collection status touch"),
+                            worth_query::facade::runtime::WorthQueryAuthoredAspectValue::string(status),
+                        )
                 })
             },
         )

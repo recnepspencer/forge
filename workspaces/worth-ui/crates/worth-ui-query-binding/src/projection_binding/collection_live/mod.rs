@@ -108,7 +108,9 @@ pub struct UiLiveCollectionProjection {
     reference: crate::application_binding::WorthUiInstalledCollectionTextOperationReference,
     lease: QueryLease,
     consumer: collection::WorthQueryCollectionConsumerWindow,
-    accesses: Box<[crate::application_binding::WorthUiCollectionTextNativeAccess]>,
+    text_accesses: Box<[crate::application_binding::WorthUiCollectionTextNativeAccess]>,
+    application_item_key_access:
+        Option<crate::application_binding::WorthUiCollectionTextNativeAccess>,
     budget: crate::UiCollectionProjectionBudget,
 }
 

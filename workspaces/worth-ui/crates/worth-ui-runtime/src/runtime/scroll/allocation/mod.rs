@@ -12,9 +12,6 @@ pub(crate) use contract::{
 };
 pub use contract::{UiScrollOffsetAllocationPosture, UiScrollVirtualizationPosture};
 pub(crate) use planning_authority::UiAdmittedScrollPlanningAuthority;
-pub use projection::{
-    UiActivatedScrollOwner, UiActivatedScrollProjectionTarget, UiProjectedScrollOffset,
-    UiProjectedScrollOffsetDenial, UiProjectedScrollOffsetOutcome,
-};
-pub(crate) use projection::{UiScrollOffsetProjectionLedger, UiScrollProjectionOwnerIdentity};
+pub(crate) use projection::UiScrollProjectionOwnerIdentity;
+pub use projection::{UiActivatedScrollOwner, UiActivatedScrollProjectionTarget};
 pub use receipt_activation_key::UiScrollReceiptActivationKey;

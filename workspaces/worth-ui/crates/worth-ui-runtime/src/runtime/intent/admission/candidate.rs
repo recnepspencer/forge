@@ -200,6 +200,12 @@ impl UiCurrentIntentAdmissionCandidate {
         self.prepared.declaration_reference()
     }
 
+    pub(crate) fn selection_option(
+        &self,
+    ) -> Option<&worth_ui_query_binding::UiProjectionOptionReference> {
+        self.prepared.payload().selection_option()
+    }
+
     pub(crate) fn execution_reservation_basis(
         &self,
     ) -> crate::runtime::intent_execution::UiIntentExecutionReservationBasis {

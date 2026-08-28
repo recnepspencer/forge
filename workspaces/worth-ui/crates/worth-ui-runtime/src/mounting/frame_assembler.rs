@@ -80,6 +80,19 @@ impl UiMountedPlanProjectionSource<'_> {
         }
     }
 
+    pub(crate) fn ordinary_meaning_for_identity(
+        self,
+        identity: &str,
+    ) -> Option<(
+        u32,
+        std::rc::Rc<crate::runtime::planning::execution_plan_input::WorthUiPlanOrdinaryMeaning>,
+    )> {
+        match self {
+            Self::Executed(plan) => plan.mounted_projection_ordinary_meaning_for_identity(identity),
+            Self::PreviewOnly => None,
+        }
+    }
+
     pub(crate) fn component_theme_token(
         self,
         component: &crate::runtime::planning::execution_plan_input::WorthUiComponentPlanMeaning,

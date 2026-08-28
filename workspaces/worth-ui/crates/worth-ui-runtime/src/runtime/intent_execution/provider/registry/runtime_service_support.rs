@@ -16,6 +16,8 @@ impl super::FrozenIntentExecutionBindings {
                     support = support
                         .with_installed(crate::capability::UiRuntimeServiceFamily::Portal)
                         .with_installed(crate::capability::UiRuntimeServiceFamily::Focus)
+                        .with_installed(crate::capability::UiRuntimeServiceFamily::Scroll)
+                        .with_installed(crate::capability::UiRuntimeServiceFamily::Selection)
                         .with_installed(crate::capability::UiRuntimeServiceFamily::Motion);
                 }
                 crate::capability::UiIntentRuntimeServiceDestination::InvokeCommand => {

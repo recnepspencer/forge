@@ -30,6 +30,7 @@ use super::world::{
 use crate::projection_lifecycle::support::ScalarLifecycleWorld;
 
 mod selection_identity;
+mod selection_portal_coordination;
 
 #[test]
 fn ia_05_zero_one_and_sixty_four_fields_follow_declared_width_not_world_width() {

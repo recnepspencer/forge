@@ -9,6 +9,26 @@ pub(crate) struct UiMountedPaintAttribution {
 }
 
 impl WorthUiMountedSessionState {
+    pub(crate) fn current_mounted_identity_basis(
+        &self,
+        instance: worth_ui_host_contract::UiMountedInstanceIdentity,
+    ) -> Option<crate::mounting::UiMountedIdentityBasis> {
+        self.identity
+            .projection_instance(instance)
+            .map(|view| view.basis().clone())
+    }
+
+    pub(crate) fn current_surface_for_binding(
+        &self,
+        binding: worth_ui_host_contract::UiSurfaceBindingGeneration,
+    ) -> Option<worth_ui_host_contract::UiSemanticSurfaceIdentity> {
+        self.identity
+            .current_projection()?
+            .view_for(binding)
+            .ok()
+            .map(|view| view.surface())
+    }
+
     pub(crate) fn current_portal_owner_for_child(
         &self,
         instance: worth_ui_host_contract::UiMountedInstanceIdentity,

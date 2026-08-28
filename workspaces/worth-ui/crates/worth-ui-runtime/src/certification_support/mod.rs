@@ -30,9 +30,11 @@ mod presentation_mechanics;
 mod rebind_identity_lifecycle;
 mod runtime_launch;
 mod scripted_presentation_host;
+mod scroll_observation;
 mod semantic_text_projection;
 mod semantic_text_resolver;
 mod service_proposal_observation;
+mod service_state_observation;
 mod shutdown_attempt_observation;
 mod touch_origin;
 mod touch_origin_source;
@@ -120,6 +122,10 @@ pub use scripted_presentation_host::{
     presented_completion, recorded_effects, scripted_presentation_epoch, ScriptedPresentationHost,
     ScriptedSurfaceCompletion,
 };
+pub use scroll_observation::{
+    UiScrollObservationCertificationDenial, UiScrollObservationCertificationOutcome,
+    WorthUiScrollObservationCertificationExt,
+};
 pub use semantic_text_projection::{
     empty_projection_for_certification, semantic_text_projection_for_certification,
     semantic_text_projection_for_certification_with_capability,
@@ -131,6 +137,10 @@ pub use semantic_text_resolver::{
 };
 pub use service_proposal_observation::{
     UiServiceProposalCertificationSnapshot, WorthUiServiceProposalCertificationExt,
+};
+pub use service_state_observation::{
+    UiScrollOwnerGeometryCertificationRow, UiScrollRuntimeCertificationSnapshot,
+    UiSelectionRuntimeCertificationSnapshot, WorthUiServiceStateCertificationExt,
 };
 pub use shutdown_attempt_observation::native_shutdown_attempt_observations_for_certification;
 pub use touch_origin::{
