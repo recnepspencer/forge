@@ -17,7 +17,15 @@ fn native_observation_ready_path_drains_through_runtime_interaction_owner() {
         .expect("native shell should launch");
 
     let first = published(shell.present_frame(100, 1), "first");
-    assert_eq!(shell.session.focus.participant_count_for_test(), 1);
+    assert_eq!(
+        shell
+            .session
+            .focus
+            .as_ref()
+            .expect("focusable fixture installs Focus")
+            .participant_count_for_test(),
+        1
+    );
     let binding = *first.bindings().first().expect("native binding");
     let host_surface = shell.session.mounted.view().surface_bindings()[0].host_surface_identity();
     let batch = focus_batch(
@@ -39,7 +47,12 @@ fn native_observation_ready_path_drains_through_runtime_interaction_owner() {
         &outcomes[0],
         crate::facade::interaction::UiHostInteractionIngressOutcome::Applied(_)
     ));
-    assert!(shell.session.focus.window_is_focused_for_test());
+    assert!(shell
+        .session
+        .focus
+        .as_ref()
+        .expect("focusable fixture installs Focus")
+        .window_is_focused_for_test());
 
     let shutdown = shell.shutdown();
     assert!(shutdown.host_session_released());

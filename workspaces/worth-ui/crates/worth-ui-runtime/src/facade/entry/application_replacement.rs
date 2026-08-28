@@ -13,12 +13,14 @@ mod cutover;
 mod cutover_generation;
 mod mounted;
 mod mounted_frame;
+mod prepared_activation_access;
 mod publication_observation;
 mod rebind_preparation;
 mod receipt;
 mod retry;
 mod scroll_replacement;
 mod selection_replacement;
+mod service_installation_reconciliation;
 
 pub use candidate::{WorthUiReplacementCandidateSummary, WorthUiReplacementPlannedCostEnvelope};
 pub(crate) use mounted::{
@@ -126,6 +128,7 @@ pub(super) struct WorthUiPreparedApplicationActivation {
     candidate_graph: crate::graph::UiGraphSnapshot,
     candidate_application_authority:
         crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
+    candidate_service_policy_plan: crate::declaration::UiNormalizedServicePolicyPlan,
     reload_cost: Result<
         crate::runtime::WorthUiReloadLoweringCounterReceipt,
         crate::runtime::WorthUiReloadCounterBoundaryDenial,

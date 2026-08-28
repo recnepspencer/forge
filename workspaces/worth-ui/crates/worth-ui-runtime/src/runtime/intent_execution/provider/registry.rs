@@ -72,10 +72,6 @@ struct UiTransitionIntentExecutionBinding<I: UiIntent> {
     intent: PhantomData<fn() -> I>,
 }
 
-struct UiUnsupportedCommandIntentExecutionBinding<I: UiIntent> {
-    intent: PhantomData<fn() -> I>,
-}
-
 struct UiRuntimeServiceIntentExecutionBinding<I: UiIntent> {
     destination: UiIntentRuntimeServiceDestination,
     intent: PhantomData<fn() -> I>,
@@ -138,7 +134,7 @@ impl UiIntentExecutionBindingPlan {
         })
     }
 
-    pub(crate) fn register_unsupported_command<I>(
+    pub(crate) fn register_runtime_service<I>(
         &mut self,
         definition: UiIntentDefinition<I, crate::capability::UiRuntimeServiceDefinitionDestination>,
     ) -> Result<(), UiIntentExecutionBindingPreparationDenial>
@@ -150,44 +146,6 @@ impl UiIntentExecutionBindingPlan {
         else {
             unreachable!("runtime-service definition retains its destination marker")
         };
-        debug_assert_eq!(
-            destination,
-            UiIntentRuntimeServiceDestination::InvokeCommand,
-            "command registration is prevalidated by the application builder"
-        );
-        let descriptor = descriptor(
-            &definition,
-            UiIntentProviderVersion::stable(1),
-            UiIntentExecutionBindingSupport::Unsupported,
-        );
-        self.push(UiRegisteredIntentExecutionBinding {
-            descriptor,
-            binding: Arc::new(UiUnsupportedCommandIntentExecutionBinding::<I> {
-                intent: PhantomData,
-            }),
-        })
-    }
-
-    pub(crate) fn register_portal_service<I>(
-        &mut self,
-        definition: UiIntentDefinition<I, crate::capability::UiRuntimeServiceDefinitionDestination>,
-    ) -> Result<(), UiIntentExecutionBindingPreparationDenial>
-    where
-        I: UiIntent,
-    {
-        let UiIntentExecutionDestination::RuntimeService(destination) =
-            definition.execution_destination()
-        else {
-            unreachable!("runtime-service definition retains its destination marker")
-        };
-        assert!(
-            matches!(
-                destination,
-                UiIntentRuntimeServiceDestination::OpenPortal
-                    | UiIntentRuntimeServiceDestination::ClosePortal
-            ),
-            "only portal service destinations are installed by this milestone surface"
-        );
         let descriptor = descriptor(
             &definition,
             UiIntentProviderVersion::stable(1),
@@ -334,15 +292,6 @@ where
     ) -> Result<UiPreparedIntentExecution, UiIntentPayloadProjectionViolation> {
         project_payload::<I>(values)
             .map(|payload| UiPreparedIntentExecution::transition::<I>(payload, self.destination))
-    }
-}
-
-impl<I: UiIntent> UiIntentExecutionBinding for UiUnsupportedCommandIntentExecutionBinding<I> {
-    fn project(
-        &self,
-        values: Vec<UiIntentProjectedValue>,
-    ) -> Result<UiPreparedIntentExecution, UiIntentPayloadProjectionViolation> {
-        project_payload::<I>(values).map(UiPreparedIntentExecution::unsupported_command::<I>)
     }
 }
 

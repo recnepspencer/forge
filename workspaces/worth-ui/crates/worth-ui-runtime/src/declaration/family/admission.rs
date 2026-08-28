@@ -160,6 +160,9 @@ pub(crate) fn admit_declaration_family(
                 UiDiagnosticSurfaceDeclarationFamily::new(),
             ))
         }
+        UiDslSemanticFamily::RuntimeService => {
+            unreachable!("sealed runtime-service declarations use service handoff admission")
+        }
     }
 }
 

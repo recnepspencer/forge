@@ -117,6 +117,13 @@ impl UiIntentEvidenceRegistry {
         self.input_index.get(&input).copied()
     }
 
+    pub(crate) fn reference_for_optional_input(
+        &self,
+        input: Option<UiIntentInteractionEvidenceInput>,
+    ) -> Option<UiIntentEvidenceReference> {
+        input.and_then(|input| self.reference_for_input(input))
+    }
+
     pub(crate) fn record_admission(
         &mut self,
         prefix: crate::runtime::intent::UiIntentCausalTraceAdmissionPrefix,

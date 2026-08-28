@@ -4,6 +4,8 @@ use crate::runtime::focus::{
     UiFocusTraversalDirection,
 };
 
+#[path = "state_tests/policy_defaults.rs"]
+mod policy_defaults;
 #[path = "state_tests/prepared_reconciliation.rs"]
 mod prepared_reconciliation;
 

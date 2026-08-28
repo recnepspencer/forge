@@ -61,6 +61,24 @@ impl WorthUiServiceStateCertificationExt for crate::facade::WorthUiActiveApplica
 }
 
 impl UiScrollRuntimeCertificationSnapshot {
+    pub(crate) fn uninstalled() -> Self {
+        Self::new(
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            Box::new([]),
+            Box::new([]),
+            Box::new([]),
+        )
+    }
+
     pub(crate) fn new(
         owners: usize,
         ownership_instances: usize,
@@ -180,6 +198,10 @@ impl UiScrollOwnerGeometryCertificationRow {
 }
 
 impl UiSelectionRuntimeCertificationSnapshot {
+    pub(crate) fn uninstalled() -> Self {
+        Self::new(0, 0, 0, 0, 0, 0, 0, Box::new([]))
+    }
+
     pub(crate) const fn new(
         owners: usize,
         available_catalog_owners: usize,

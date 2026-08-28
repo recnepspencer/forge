@@ -46,15 +46,25 @@ impl WorthUiActiveApplicationSession {
     ) -> Result<UiInteractionLifecycleSettlementReceipt, UiMountedIdentityDenial> {
         let service_basis = self.mounted.current_mounted_identity_basis(identity);
         self.mounted.unmount_instance(identity)?;
-        self.scroll.retire_mounted_instance(identity);
-        if let Some(basis) = service_basis {
-            self.selection.retire_mounted_owner(
-                basis.semantic_surface_identity(),
-                basis.graph_node_identity(),
-                crate::runtime::selection::UiSelectionOwnerIncarnation::from_mount_incarnation(
-                    basis.mount_incarnation(),
-                ),
-            );
+        if self.scroll.is_installed() {
+            self.scroll
+                .as_mut()
+                .expect("Scroll installation was checked above")
+                .retire_mounted_instance(identity);
+        }
+        if self.selection.is_installed() {
+            if let Some(basis) = service_basis {
+                self.selection
+                    .as_mut()
+                    .expect("Selection installation was checked above")
+                    .retire_mounted_owner(
+                    basis.semantic_surface_identity(),
+                    basis.graph_node_identity(),
+                    crate::runtime::selection::UiSelectionOwnerIncarnation::from_mount_incarnation(
+                        basis.mount_incarnation(),
+                    ),
+                );
+            }
         }
         self.intent_confirmation.cancel_instance(
             identity,

@@ -23,6 +23,8 @@ pub(crate) struct WorthUiApplicationPreparationInput {
     pub(crate) intent_application_facts: crate::declaration::UiIntentApplicationFactPlan,
     pub(crate) intent_execution_bindings:
         crate::runtime::intent_execution::FrozenIntentExecutionBindings,
+    pub(crate) service_policy_defaults: crate::declaration::UiServicePolicyDefaults,
+    pub(crate) service_policy_plan: crate::declaration::UiNormalizedServicePolicyPlan,
     pub(crate) change_profile: crate::runtime::rebind::UiChangeProfile,
 }
 
@@ -39,6 +41,8 @@ pub(crate) fn prepare_application_authority(
         query_binding_plan,
         intent_application_facts,
         intent_execution_bindings,
+        service_policy_defaults,
+        service_policy_plan,
         change_profile,
     } = input;
     let capability_snapshot = Rc::new(capability_snapshot);
@@ -87,6 +91,8 @@ pub(crate) fn prepare_application_authority(
             query_binding_plan,
             intent_application_facts,
             intent_execution_bindings,
+            service_policy_defaults,
+            service_policy_plan,
             visual_inspection_policy,
             runtime_instance_basis_admissions,
             measurement_inspection_evidence: retained_measurement_inspection_evidence,
@@ -147,6 +153,21 @@ pub(crate) fn prepare_successor_application_authority(
         measurement_inspection_evidence.clone(),
         worth_ui_inspection::RUNTIME_INSPECTION_SCOPE_INVENTORY,
     );
+    let service_policy_plan = crate::declaration::UiNormalizedServicePolicyPlan::normalize(
+        current.service_policy_defaults(),
+        semantic_handoff.authored_service_policy_defaults(),
+        current
+            .intent_execution_bindings()
+            .runtime_service_support()
+            .union(semantic_handoff.runtime_service_support())
+            .union(current.capabilities().commands().runtime_service_support())
+            .union(
+                current
+                    .capabilities()
+                    .mosaic_regions()
+                    .runtime_service_support(),
+            ),
+    );
     let authority =
         WorthUiPreparedApplicationAuthority::seal(WorthUiPreparedApplicationAuthorityInput {
             capability_snapshot: current.capability_authority(),
@@ -164,6 +185,8 @@ pub(crate) fn prepare_successor_application_authority(
             query_binding_plan: current.query_binding_plan().clone(),
             intent_application_facts: current.intent_application_fact_plan().clone(),
             intent_execution_bindings: current.intent_execution_bindings().clone(),
+            service_policy_defaults: current.service_policy_defaults(),
+            service_policy_plan,
             visual_inspection_policy: current.visual_inspection_policy(),
             runtime_instance_basis_admissions: admissions.to_vec().into_boxed_slice(),
             measurement_inspection_evidence,

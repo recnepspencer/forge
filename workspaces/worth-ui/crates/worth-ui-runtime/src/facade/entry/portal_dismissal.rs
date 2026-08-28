@@ -1,5 +1,7 @@
 use super::WorthUiActiveApplicationSession;
 
+#[path = "portal_dismissal/completion.rs"]
+mod completion;
 #[path = "portal_dismissal/handles.rs"]
 mod handles;
 #[path = "portal_dismissal/receipt.rs"]
@@ -68,7 +70,9 @@ impl WorthUiActiveApplicationSession {
     pub(crate) fn topmost_portal_presentation_for_certification(
         &self,
     ) -> Option<worth_ui_host_contract::UiHostObservationPresentationBasis> {
-        self.portal.topmost_presentation()
+        self.portal
+            .as_ref()
+            .and_then(crate::runtime::portal::UiPortalRuntimeState::topmost_presentation)
     }
 
     pub(crate) fn publish_portal_dismissal(
@@ -76,6 +80,14 @@ impl WorthUiActiveApplicationSession {
         interaction: crate::facade::interaction::UiDismissInteraction,
         now_tick: u64,
     ) -> UiPortalDismissalPublicationOutcome<'_> {
+        if !self.portal.is_installed() {
+            return UiPortalDismissalPublicationOutcome::Ignored;
+        }
+        if !self.focus.is_installed() || !self.motion.is_installed() {
+            return UiPortalDismissalPublicationOutcome::Stopped(
+                UiPortalDismissalPublicationStop::Proposal,
+            );
+        }
         let lineage = self.next_portal_service_event_identity;
         self.next_portal_service_event_identity = match lineage.checked_add(1) {
             Some(next) => next,
@@ -112,7 +124,12 @@ impl WorthUiActiveApplicationSession {
             trigger,
             crate::runtime::portal::UiPortalDismissalTrigger::OutsidePress { .. }
         ) {
-            match self.portal.dismissal_target_identity(trigger) {
+            match self
+                .portal
+                .as_ref()
+                .expect("Portal installation was checked above")
+                .dismissal_target_identity(trigger)
+            {
                 Some(portal) => match self.mounted.committed_motion_geometry_for_instance(
                     portal.owner().mounted_instance_identity(),
                     interaction.presentation(),
@@ -131,6 +148,8 @@ impl WorthUiActiveApplicationSession {
         };
         let dismissal = match self
             .portal
+            .as_ref()
+            .expect("Portal installation was checked above")
             .prepare_dismissal(trigger, sampled_bounds, idempotency)
         {
             Ok(crate::runtime::portal::UiPortalDismissalPreparation::Ignored(_)) => {
@@ -159,6 +178,8 @@ impl WorthUiActiveApplicationSession {
         let revision = transition.successor_revision();
         let overlays = self
             .portal
+            .as_ref()
+            .expect("Portal installation was checked above")
             .mounted_projection_inputs(&transition, transition.closes_portal());
         let motion_request = match self.prepare_portal_motion_request(&transition) {
             Ok(request) => request,
@@ -172,7 +193,9 @@ impl WorthUiActiveApplicationSession {
             transition,
             presentation,
             self.active_generation_identity(),
-            &mut self.motion,
+            self.motion
+                .as_mut()
+                .expect("Motion installation was checked above"),
             motion_request,
         ) {
             Ok(preparation) => preparation,
@@ -189,8 +212,12 @@ impl WorthUiActiveApplicationSession {
         ) {
             Ok(frame) => frame,
             Err(_) => {
-                self.application
-                    .cancel_portal_service_proposal_preparation(preparation, &mut self.motion);
+                self.application.cancel_portal_service_proposal_preparation(
+                    preparation,
+                    self.motion
+                        .as_mut()
+                        .expect("Motion installation was checked above"),
+                );
                 return UiPortalDismissalPublicationOutcome::Stopped(
                     UiPortalDismissalPublicationStop::Preparation,
                 );
@@ -201,10 +228,14 @@ impl WorthUiActiveApplicationSession {
             preparation,
             &frame,
             &self.mounted,
-            &mut self.focus,
-            &self.scroll,
+            self.focus
+                .as_mut()
+                .expect("Focus installation was checked above"),
+            self.scroll.as_ref(),
             scroll_incarnation,
-            &mut self.motion,
+            self.motion
+                .as_mut()
+                .expect("Motion installation was checked above"),
         ) {
             Ok(proposal) => proposal,
             Err(_) => {
@@ -218,7 +249,7 @@ impl WorthUiActiveApplicationSession {
             worth_ui_host_contract::UiPresentationDeadline::at_tick(u64::MAX),
             now_tick,
         );
-        finish(
+        completion::finish(
             UiPortalDismissalAdmitted {
                 session: self,
                 proposal: Some(proposal),
@@ -258,143 +289,16 @@ fn dismissal_trigger(
     }
 }
 
-fn finish<'session>(
-    mut admitted: UiPortalDismissalAdmitted<'session>,
-    outcome: crate::mounting::UiMountedFrameOutcome,
-) -> UiPortalDismissalPublicationOutcome<'session> {
-    match outcome {
-        crate::mounting::UiMountedFrameOutcome::Published(mounted) => {
-            let (focus, motion, exit_retention) = admitted
-                .session
-                .application
-                .settle_published_portal_service_proposal(
-                    admitted
-                        .proposal
-                        .take()
-                        .expect("published dismissal retains proposal"),
-                    &mounted,
-                    &mut admitted.session.portal,
-                    &mut admitted.session.focus,
-                    &mut admitted.session.scroll,
-                    &mut admitted.session.selection,
-                    &mut admitted.session.motion,
-                )
-                .expect("published dismissal retains exact service proposal");
-            admitted
-                .session
-                .rebind_portal_after_current_published_frame();
-            let focus = admitted
-                .session
-                .place_committed_semantic_focus(focus, &mounted)
-                .expect("dismissal focus restoration retains exact mounted basis");
-            admitted
-                .session
-                .install_portal_exit_retention(exit_retention);
-            admitted.session.install_committed_motion(motion);
-            UiPortalDismissalPublicationOutcome::Published(
-                UiPortalDismissalPublicationReceipt::new(mounted, focus),
-            )
-        }
-        crate::mounting::UiMountedFrameOutcome::InFlight(mounted) => {
-            UiPortalDismissalPublicationOutcome::InFlight(UiPortalDismissalPublicationCompletion {
-                state: Some(Box::new(UiPortalDismissalInFlight { admitted, mounted })),
-            })
-        }
-        crate::mounting::UiMountedFrameOutcome::PresentationIndeterminate(frame) => {
-            let proposal = admitted
-                .session
-                .application
-                .settle_indeterminate_portal_service_proposal(
-                    admitted
-                        .proposal
-                        .take()
-                        .expect("indeterminate dismissal retains proposal"),
-                    &mut admitted.session.portal,
-                    &mut admitted.session.focus,
-                    &mut admitted.session.motion,
-                )
-                .expect("indeterminate dismissal retains exact service proposal");
-            UiPortalDismissalPublicationOutcome::Indeterminate(
-                UiPortalDismissalPublicationRecovery {
-                    state: Some(Box::new(UiPortalDismissalIndeterminate {
-                        session: admitted.session,
-                        frame,
-                        proposal,
-                    })),
-                },
-            )
-        }
-        crate::mounting::UiMountedFrameOutcome::RejectedBeforeEffects(_) => {
-            settle_rejected(&mut admitted);
-            UiPortalDismissalPublicationOutcome::Stopped(
-                UiPortalDismissalPublicationStop::HostRejectedBeforeEffects,
-            )
-        }
-        crate::mounting::UiMountedFrameOutcome::RetentionDenied(_) => {
-            settle_rejected(&mut admitted);
-            UiPortalDismissalPublicationOutcome::Stopped(
-                UiPortalDismissalPublicationStop::MountedRetention,
-            )
-        }
-        crate::mounting::UiMountedFrameOutcome::AdmissionDenied(_) => {
-            settle_rejected(&mut admitted);
-            UiPortalDismissalPublicationOutcome::Stopped(
-                UiPortalDismissalPublicationStop::MountedPresentation,
-            )
-        }
-        crate::mounting::UiMountedFrameOutcome::Superseded(_) => {
-            cancel(admitted);
-            UiPortalDismissalPublicationOutcome::Stopped(
-                UiPortalDismissalPublicationStop::Superseded,
-            )
-        }
-        crate::mounting::UiMountedFrameOutcome::CompletionDenied(_) => {
-            panic!("exact dismissal completion authority became unknown")
-        }
-        crate::mounting::UiMountedFrameOutcome::Unchanged(_)
-        | crate::mounting::UiMountedFrameOutcome::Reconciled(_) => {
-            unreachable!("portal dismissal always changes mounted overlay work")
-        }
-    }
-}
-
 pub(in crate::facade::entry) fn finish_detached_portal_proposal<'session>(
     session: &'session mut WorthUiActiveApplicationSession,
     proposal: crate::runtime::session::UiStagedPortalProposalTransaction,
     outcome: crate::mounting::UiMountedFrameOutcome,
 ) -> UiPortalDismissalPublicationOutcome<'session> {
-    finish(
+    completion::finish(
         UiPortalDismissalAdmitted {
             session,
             proposal: Some(proposal),
         },
         outcome,
     )
-}
-
-fn settle_rejected(admitted: &mut UiPortalDismissalAdmitted<'_>) {
-    let proposal = admitted
-        .proposal
-        .take()
-        .expect("rejected dismissal retains proposal");
-    admitted
-        .session
-        .application
-        .settle_rejected_portal_service_proposal(
-            proposal,
-            &mut admitted.session.focus,
-            &mut admitted.session.motion,
-        )
-        .expect("before-effect dismissal rejection retains exact proposal");
-}
-
-fn cancel(mut admitted: UiPortalDismissalAdmitted<'_>) {
-    admitted.session.application.cancel_portal_service_proposal(
-        admitted
-            .proposal
-            .take()
-            .expect("cancelled dismissal retains proposal"),
-        &mut admitted.session.focus,
-        &mut admitted.session.motion,
-    );
 }

@@ -34,6 +34,8 @@ pub(crate) struct WorthUiPreparedApplicationAuthorityInput {
     pub(crate) intent_application_facts: crate::declaration::UiIntentApplicationFactPlan,
     pub(crate) intent_execution_bindings:
         crate::runtime::intent_execution::FrozenIntentExecutionBindings,
+    pub(crate) service_policy_defaults: crate::declaration::UiServicePolicyDefaults,
+    pub(crate) service_policy_plan: crate::declaration::UiNormalizedServicePolicyPlan,
     pub(crate) visual_inspection_policy: worth_ui_inspection::UiVisualInspectionPolicy,
     pub(crate) runtime_instance_basis_admissions:
         Box<[crate::graph::UiRuntimeInstanceBasisAdmission]>,
@@ -71,6 +73,8 @@ pub struct WorthUiPreparedApplicationAuthority {
     query_binding_plan: worth_ui_query_binding::WorthUiQueryBindingPlan,
     intent_application_facts: crate::declaration::UiIntentApplicationFactPlan,
     intent_execution_bindings: crate::runtime::intent_execution::FrozenIntentExecutionBindings,
+    service_policy_defaults: crate::declaration::UiServicePolicyDefaults,
+    service_policy_plan: crate::declaration::UiNormalizedServicePolicyPlan,
     visual_inspection_policy: worth_ui_inspection::UiVisualInspectionPolicy,
     runtime_instance_basis_admissions: Box<[crate::graph::UiRuntimeInstanceBasisAdmission]>,
     measurement_inspection_evidence:
@@ -95,6 +99,8 @@ impl WorthUiPreparedApplicationAuthority {
             query_binding_plan,
             intent_application_facts,
             intent_execution_bindings,
+            service_policy_defaults,
+            service_policy_plan,
             visual_inspection_policy,
             runtime_instance_basis_admissions,
             measurement_inspection_evidence,
@@ -147,6 +153,8 @@ impl WorthUiPreparedApplicationAuthority {
             query_binding_plan,
             intent_application_facts,
             intent_execution_bindings,
+            service_policy_defaults,
+            service_policy_plan,
             visual_inspection_policy,
             runtime_instance_basis_admissions,
             measurement_inspection_evidence,
@@ -236,6 +244,16 @@ impl WorthUiPreparedApplicationAuthority {
         &self,
     ) -> &crate::runtime::intent_execution::FrozenIntentExecutionBindings {
         &self.intent_execution_bindings
+    }
+
+    pub const fn service_policy_plan(&self) -> crate::declaration::UiNormalizedServicePolicyPlan {
+        self.service_policy_plan
+    }
+
+    pub(crate) const fn service_policy_defaults(
+        &self,
+    ) -> crate::declaration::UiServicePolicyDefaults {
+        self.service_policy_defaults
     }
 
     pub(crate) fn lowering_authority(&self) -> WorthUiPreparedApplicationLoweringAuthority {

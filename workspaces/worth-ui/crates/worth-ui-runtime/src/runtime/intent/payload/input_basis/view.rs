@@ -8,22 +8,19 @@ pub(crate) struct UiIntentInputBasisView<'state> {
 
 impl<'state> UiIntentInputBasisView<'state> {
     pub(crate) fn observe(
-        interaction: &crate::runtime::interaction::UiSemanticInteraction,
+        source: &super::super::super::routing::UiIntentProductInputSource,
         generation: &'state crate::runtime::WorthUiActiveApplicationGenerationIdentity,
         mounted: &'state crate::mounting::WorthUiMountedSessionState,
         application_facts: &'state super::super::UiIntentApplicationFactState,
     ) -> Result<Self, super::super::UiIntentPayloadStop> {
-        if interaction.generation() != generation {
+        if source.generation() != generation {
             return Err(super::super::UiIntentPayloadStop::ApplicationGenerationChanged);
         }
         if mounted.has_active_presentation_attempt() {
             return Err(super::super::UiIntentPayloadStop::PublicationTransitionInFlight);
         }
-        crate::runtime::interaction::targeting::require_current_target(
-            mounted,
-            interaction.target(),
-        )
-        .map_err(super::super::UiIntentPayloadStop::Targeting)?;
+        crate::runtime::interaction::targeting::require_current_target(mounted, source.target())
+            .map_err(super::super::UiIntentPayloadStop::Targeting)?;
         let publication_frame = mounted
             .view()
             .current_frame()
@@ -31,7 +28,7 @@ impl<'state> UiIntentInputBasisView<'state> {
         Ok(Self {
             generation,
             publication_frame,
-            target: interaction.target(),
+            target: source.target(),
             mounted,
             application_facts,
         })
@@ -72,7 +69,7 @@ impl<'state> UiIntentInputBasisView<'state> {
             generation: self.generation.clone(),
             publication_frame: self.publication_frame,
             target: self.target,
-            interaction: material.interaction,
+            source: material.source,
             query_inputs: material.query_inputs,
             application_inputs: material.application_inputs,
             owner_revisions: material.owner_revisions,

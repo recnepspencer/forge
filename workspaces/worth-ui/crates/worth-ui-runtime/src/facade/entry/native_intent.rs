@@ -3,6 +3,8 @@ use super::WorthUiNativeApplicationShell;
 mod multi_definition;
 mod posture;
 mod transition;
+#[path = "native_intent/transition_access.rs"]
+mod transition_access;
 
 pub use posture::{WorthUiNativeIntentPosture, WorthUiNativeIntentPostureKind};
 use transition::{confirmation_stop_posture, stopped, NativePostureTarget};
@@ -125,7 +127,15 @@ impl WorthUiNativeApplicationShell {
         for outcome in outcomes {
             match outcome {
                 crate::facade::interaction::UiHostInteractionIngressOutcome::Applied(receipt) => {
-                    for transition in receipt.into_transitions() {
+                    let (interaction_transitions, command_routes) = receipt.into_routing_parts();
+                    for route in command_routes {
+                        if let crate::runtime::UiCommandRoutingOutcome::Routed(route) = route {
+                            transitions.push(
+                                self.admit_native_command_intent(definition, route, deadline),
+                            );
+                        }
+                    }
+                    for transition in interaction_transitions {
                         match transition {
                             crate::facade::interaction::UiInteractionTransition::Semantic(
                                 interaction,
@@ -176,6 +186,25 @@ impl WorthUiNativeApplicationShell {
     {
         let route = match self.session.resolve_intent_route(
             crate::facade::intent::UiIntentRouteSource::mounted_interaction(interaction),
+        ) {
+            Ok(route) => route,
+            Err(stop) => return stopped(WorthUiNativeIntentStop::Route(stop), None),
+        };
+        self.admit_native_resolved_intent(definition, route, deadline)
+    }
+
+    fn admit_native_command_intent<I, D>(
+        &mut self,
+        definition: crate::facade::intent::UiIntentDefinition<I, D>,
+        receipt: crate::runtime::UiCommandRouteReceipt,
+        deadline: crate::facade::intent::UiIntentExecutionDeadlineBasis,
+    ) -> WorthUiNativeIntentTransition
+    where
+        I: crate::facade::intent::UiIntent,
+        D: crate::facade::intent::UiIntentDefinitionDestination,
+    {
+        let route = match self.session.resolve_intent_route(
+            crate::facade::intent::UiIntentRouteSource::command_route(receipt),
         ) {
             Ok(route) => route,
             Err(stop) => return stopped(WorthUiNativeIntentStop::Route(stop), None),
@@ -333,62 +362,5 @@ impl WorthUiNativeApplicationShell {
             kind,
         )?;
         Some(WorthUiNativeIntentPosture::new(observation, commit, kind))
-    }
-}
-
-impl WorthUiNativeIntentIngress {
-    pub fn transitions(&self) -> &[WorthUiNativeIntentTransition] {
-        &self.transitions
-    }
-
-    pub fn into_transitions(self) -> Box<[WorthUiNativeIntentTransition]> {
-        self.transitions
-    }
-
-    pub fn dismissals(&self) -> &[crate::facade::interaction::UiDismissInteraction] {
-        &self.dismissals
-    }
-
-    pub const fn duplicate_batches(&self) -> usize {
-        self.duplicate_batches
-    }
-
-    pub fn interaction_stops(&self) -> &[WorthUiNativeInteractionIngressStop] {
-        &self.interaction_stops
-    }
-}
-
-impl WorthUiNativeIntentAttemptPrepared {
-    pub const fn dispatch(&self) -> crate::facade::intent::UiIntentExecutionDispatchReceipt {
-        self.dispatch
-    }
-
-    pub fn into_posture(self) -> WorthUiNativeIntentPosture {
-        self.posture
-    }
-}
-
-impl WorthUiNativeIntentConfirmationRequired {
-    pub const fn pending(&self) -> &crate::facade::intent::UiPendingIntentConfirmation {
-        &self.pending
-    }
-
-    pub fn into_parts(
-        self,
-    ) -> (
-        crate::facade::intent::UiPendingIntentConfirmation,
-        WorthUiNativeIntentPosture,
-    ) {
-        (self.pending, self.posture)
-    }
-}
-
-impl WorthUiNativeIntentStopped {
-    pub const fn stop(&self) -> &WorthUiNativeIntentStop {
-        &self.stop
-    }
-
-    pub fn into_parts(self) -> (WorthUiNativeIntentStop, Option<WorthUiNativeIntentPosture>) {
-        (self.stop, self.posture)
     }
 }

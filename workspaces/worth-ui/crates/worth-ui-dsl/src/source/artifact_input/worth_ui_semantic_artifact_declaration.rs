@@ -17,6 +17,7 @@ pub struct WorthUiSemanticArtifactDeclaration {
     posture_tokens: Vec<UiDslPostureToken>,
     support_tokens: Vec<UiDslSupportToken>,
     intent: Option<crate::WorthUiIntentDeclarationMeaning>,
+    service: Option<crate::WorthUiServiceDeclarationMeaning>,
 }
 
 impl WorthUiSemanticArtifactDeclaration {
@@ -30,6 +31,7 @@ impl WorthUiSemanticArtifactDeclaration {
             posture_tokens: Vec::new(),
             support_tokens: Vec::new(),
             intent: None,
+            service: None,
         }
     }
 
@@ -90,6 +92,18 @@ impl WorthUiSemanticArtifactDeclaration {
         self.intent.as_ref()
     }
 
+    pub fn service_declaration(&self) -> Option<&crate::WorthUiServiceDeclarationMeaning> {
+        self.service.as_ref()
+    }
+
+    pub(crate) fn with_service_declaration(
+        mut self,
+        service: crate::WorthUiServiceDeclarationMeaning,
+    ) -> Self {
+        self.service = Some(service);
+        self
+    }
+
     pub(crate) fn with_intent_declaration(
         mut self,
         intent: crate::WorthUiIntentDeclarationMeaning,
@@ -120,6 +134,9 @@ impl WorthUiSemanticArtifactDeclaration {
         fold_values(digest, &self.support_tokens);
         if let Some(intent) = &self.intent {
             intent.fold_source_revision(digest);
+        }
+        if let Some(service) = &self.service {
+            fold_text(digest, &service.canonical_text());
         }
     }
 }

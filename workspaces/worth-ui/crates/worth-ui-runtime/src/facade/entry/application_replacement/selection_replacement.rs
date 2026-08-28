@@ -1,22 +1,43 @@
 use super::WorthUiActiveApplicationSession;
 
 pub(super) struct UiPreparedSelectionReplacement(
-    crate::runtime::selection::UiSelectionRuntimeState,
+    Option<crate::runtime::selection::UiSelectionRuntimeState>,
 );
 
 impl UiPreparedSelectionReplacement {
-    pub(super) fn into_state(self) -> crate::runtime::selection::UiSelectionRuntimeState {
-        self.0
+    pub(super) fn into_state(
+        self,
+    ) -> crate::runtime::UiRuntimeServiceInstallation<
+        crate::runtime::selection::UiSelectionRuntimeState,
+    > {
+        crate::runtime::UiRuntimeServiceInstallation::from_optional(self.0)
     }
 }
 
 impl WorthUiActiveApplicationSession {
     pub(super) fn prepare_selection_replacement(
         &self,
+        application: &super::WorthUiPreparedApplicationActivation,
         successor: &crate::mounting::UiMountedGraphReplacementSuccessor,
         publication_is_current: bool,
     ) -> UiPreparedSelectionReplacement {
-        let mut selection = self.selection.clone();
+        if application
+            .candidate_service_policy_plan()
+            .selection()
+            .is_none()
+        {
+            return UiPreparedSelectionReplacement(None);
+        }
+        let policy = application
+            .candidate_service_policy_plan()
+            .selection()
+            .expect("installed Selection carries normalized policy");
+        let mut selection = self.selection.as_ref().cloned().unwrap_or_else(|| {
+            crate::runtime::selection::UiSelectionRuntimeState::new_session_restore_candidate_with_policy(
+                policy,
+            )
+        });
+        selection.apply_policy(policy);
         let predecessor = self.mounted.view();
         let successor_view = successor.identity_view();
         for prior in predecessor.mounted_instances() {
@@ -40,7 +61,7 @@ impl WorthUiActiveApplicationSession {
         } else {
             selection.suspend_projection_catalogs();
         }
-        UiPreparedSelectionReplacement(selection)
+        UiPreparedSelectionReplacement(Some(selection))
     }
 }
 

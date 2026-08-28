@@ -13,6 +13,13 @@ pub struct WorthUiSemanticHandoffEvidence {
     projection_requirements: Box<[WorthUiAuthoredProjectionRequirement]>,
     projection_contents: Box<[WorthUiProjectionContentEdge]>,
     intent_material: crate::declaration::WorthUiAuthoredIntentMaterial,
+    service_declarations: Box<[WorthUiAuthoredServiceDeclaration]>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorthUiAuthoredServiceDeclaration {
+    meaning: worth_ui_dsl::WorthUiServiceDeclarationMeaning,
+    provenance: worth_ui_dsl::WorthUiArtifactInputProvenance,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -47,6 +54,13 @@ impl WorthUiSemanticHandoffEvidence {
                 .collect(),
             projection_contents: projection_contents(package),
             intent_material: Default::default(),
+            service_declarations: package
+                .service_declarations()
+                .map(|(meaning, provenance)| WorthUiAuthoredServiceDeclaration {
+                    meaning: meaning.clone(),
+                    provenance: provenance.clone(),
+                })
+                .collect(),
         }
     }
 
@@ -81,6 +95,17 @@ impl WorthUiSemanticHandoffEvidence {
         &self.intent_material
     }
 
+    pub fn service_declarations(&self) -> &[WorthUiAuthoredServiceDeclaration] {
+        &self.service_declarations
+    }
+
+    pub(crate) fn runtime_service_support(&self) -> crate::capability::UiRuntimeServiceSupport {
+        self.service_declarations.iter().fold(
+            self.intent_material.runtime_service_support(),
+            |support, declaration| support.union(declaration.runtime_service_support()),
+        )
+    }
+
     pub fn projection_requirement(
         &self,
         identity: &worth_ui_query_binding::WorthUiQueryViewIdentity,
@@ -88,6 +113,57 @@ impl WorthUiSemanticHandoffEvidence {
         self.projection_requirements
             .iter()
             .find(|requirement| requirement.view_identity() == identity)
+    }
+}
+
+impl WorthUiAuthoredServiceDeclaration {
+    pub fn meaning(&self) -> &worth_ui_dsl::WorthUiServiceDeclarationMeaning {
+        &self.meaning
+    }
+
+    pub fn provenance(&self) -> &worth_ui_dsl::WorthUiArtifactInputProvenance {
+        &self.provenance
+    }
+
+    pub fn identity(&self) -> &str {
+        service_identity(&self.meaning)
+    }
+
+    fn runtime_service_support(&self) -> crate::capability::UiRuntimeServiceSupport {
+        use crate::capability::UiRuntimeServiceFamily as Family;
+        let support = crate::capability::UiRuntimeServiceSupport::none_installed();
+        match self.meaning {
+            worth_ui_dsl::WorthUiServiceDeclarationMeaning::Portal(_) => support
+                .with_installed(Family::Portal)
+                .with_installed(Family::Focus)
+                .with_installed(Family::Motion),
+            worth_ui_dsl::WorthUiServiceDeclarationMeaning::Focus(_) => {
+                support.with_installed(Family::Focus)
+            }
+            worth_ui_dsl::WorthUiServiceDeclarationMeaning::Motion(_) => {
+                support.with_installed(Family::Motion)
+            }
+            worth_ui_dsl::WorthUiServiceDeclarationMeaning::Command(_) => {
+                support.with_installed(Family::CommandRouting)
+            }
+            worth_ui_dsl::WorthUiServiceDeclarationMeaning::Scroll(_) => {
+                support.with_installed(Family::Scroll)
+            }
+            worth_ui_dsl::WorthUiServiceDeclarationMeaning::Selection(_) => {
+                support.with_installed(Family::Selection)
+            }
+        }
+    }
+}
+
+fn service_identity(meaning: &worth_ui_dsl::WorthUiServiceDeclarationMeaning) -> &str {
+    match meaning {
+        worth_ui_dsl::WorthUiServiceDeclarationMeaning::Portal(value) => value.identity(),
+        worth_ui_dsl::WorthUiServiceDeclarationMeaning::Focus(value) => value.identity(),
+        worth_ui_dsl::WorthUiServiceDeclarationMeaning::Motion(value) => value.identity(),
+        worth_ui_dsl::WorthUiServiceDeclarationMeaning::Command(value) => value.identity(),
+        worth_ui_dsl::WorthUiServiceDeclarationMeaning::Scroll(value) => value.identity(),
+        worth_ui_dsl::WorthUiServiceDeclarationMeaning::Selection(value) => value.identity(),
     }
 }
 

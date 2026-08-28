@@ -30,6 +30,15 @@ pub(crate) enum UiIntentCatalogResolvedRoute {
     },
 }
 
+pub(crate) enum UiIntentCatalogCommandRoute {
+    Resolved {
+        declaration: Arc<UiCanonicalIntentDeclaration>,
+    },
+    Ambiguous {
+        candidates: usize,
+    },
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UiIntentCatalogMetrics {
     definitions: usize,
@@ -43,6 +52,7 @@ pub(crate) struct UiIntentCatalog {
     product_routes: Box<[UiIntentRouteBinding]>,
     confirmation_routes: Box<[UiIntentConfirmationRouteBinding]>,
     product_index: HashMap<RouteKey, usize>,
+    command_index: HashMap<crate::capability::UiIntentId, Box<[u32]>>,
     confirmation_index: HashMap<RouteKey, usize>,
     definition_count: usize,
 }
@@ -90,6 +100,28 @@ impl UiIntentCatalog {
                 UiIntentRouteResolutionCost::confirmation_route(),
             )
         })
+    }
+
+    pub(crate) fn lookup_command(
+        &self,
+        intent: crate::capability::UiIntentId,
+    ) -> Option<(UiIntentCatalogCommandRoute, UiIntentRouteResolutionCost)> {
+        let indexes = self.command_index.get(&intent)?;
+        if indexes.len() != 1 {
+            return Some((
+                UiIntentCatalogCommandRoute::Ambiguous {
+                    candidates: indexes.len(),
+                },
+                UiIntentRouteResolutionCost::command_route(indexes.len()),
+            ));
+        }
+        let declaration_index = indexes[0];
+        Some((
+            UiIntentCatalogCommandRoute::Resolved {
+                declaration: Arc::clone(&self.declarations[declaration_index as usize]),
+            },
+            UiIntentRouteResolutionCost::command_route(1),
+        ))
     }
 
     pub(crate) fn metrics(&self) -> UiIntentCatalogMetrics {

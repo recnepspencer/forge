@@ -51,7 +51,12 @@ pub(super) fn command_descriptor_basis(descriptor: &CommandDescriptor) -> String
         descriptor.label().to_owned(),
         option_text_basis(descriptor.description()),
         option_id_basis(descriptor.icon().map(|icon| icon.as_str())),
-        option_text_basis(descriptor.default_shortcut_reference()),
+        option_digest_basis(
+            descriptor
+                .default_shortcut()
+                .map(|shortcut| shortcut.digest_basis()),
+        ),
+        option_digest_basis(descriptor.route().map(|route| route.digest_basis())),
         descriptor.category().as_str().to_owned(),
         option_id_basis(
             descriptor

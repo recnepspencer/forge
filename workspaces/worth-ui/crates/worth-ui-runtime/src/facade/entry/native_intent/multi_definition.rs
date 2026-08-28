@@ -27,7 +27,15 @@ impl super::super::WorthUiNativeApplicationShell {
         for outcome in outcomes {
             match outcome {
                 crate::facade::interaction::UiHostInteractionIngressOutcome::Applied(receipt) => {
-                    for transition in receipt.into_transitions() {
+                    let (interaction_transitions, command_routes) = receipt.into_routing_parts();
+                    for route in command_routes {
+                        if let crate::runtime::UiCommandRoutingOutcome::Routed(route) = route {
+                            transitions.push(
+                                self.admit_triplet_command(first, second, third, route, deadline),
+                            );
+                        }
+                    }
+                    for transition in interaction_transitions {
                         match transition {
                             crate::facade::interaction::UiInteractionTransition::Semantic(
                                 interaction,
@@ -89,6 +97,50 @@ impl super::super::WorthUiNativeApplicationShell {
             Ok(route) => route,
             Err(stop) => return stopped(WorthUiNativeIntentStop::Route(stop), None),
         };
+        self.admit_triplet_route(first, second, third, route, deadline)
+    }
+
+    fn admit_triplet_command<I1, D1, I2, D2, I3, D3>(
+        &mut self,
+        first: crate::facade::intent::UiIntentDefinition<I1, D1>,
+        second: crate::facade::intent::UiIntentDefinition<I2, D2>,
+        third: crate::facade::intent::UiIntentDefinition<I3, D3>,
+        receipt: crate::runtime::UiCommandRouteReceipt,
+        deadline: crate::facade::intent::UiIntentExecutionDeadlineBasis,
+    ) -> WorthUiNativeIntentTransition
+    where
+        I1: crate::facade::intent::UiIntent,
+        D1: crate::facade::intent::UiIntentDefinitionDestination,
+        I2: crate::facade::intent::UiIntent,
+        D2: crate::facade::intent::UiIntentDefinitionDestination,
+        I3: crate::facade::intent::UiIntent,
+        D3: crate::facade::intent::UiIntentDefinitionDestination,
+    {
+        let route = match self.session.resolve_intent_route(
+            crate::facade::intent::UiIntentRouteSource::command_route(receipt),
+        ) {
+            Ok(route) => route,
+            Err(stop) => return stopped(WorthUiNativeIntentStop::Route(stop), None),
+        };
+        self.admit_triplet_route(first, second, third, route, deadline)
+    }
+
+    fn admit_triplet_route<I1, D1, I2, D2, I3, D3>(
+        &mut self,
+        first: crate::facade::intent::UiIntentDefinition<I1, D1>,
+        second: crate::facade::intent::UiIntentDefinition<I2, D2>,
+        third: crate::facade::intent::UiIntentDefinition<I3, D3>,
+        route: crate::facade::intent::UiIntentRouteResolution,
+        deadline: crate::facade::intent::UiIntentExecutionDeadlineBasis,
+    ) -> WorthUiNativeIntentTransition
+    where
+        I1: crate::facade::intent::UiIntent,
+        D1: crate::facade::intent::UiIntentDefinitionDestination,
+        I2: crate::facade::intent::UiIntent,
+        D2: crate::facade::intent::UiIntentDefinitionDestination,
+        I3: crate::facade::intent::UiIntent,
+        D3: crate::facade::intent::UiIntentDefinitionDestination,
+    {
         let definition = match &route {
             crate::facade::intent::UiIntentRouteResolution::Product(route) => route.definition_id(),
             crate::facade::intent::UiIntentRouteResolution::Confirmation(route) => {
@@ -127,7 +179,14 @@ impl super::super::WorthUiNativeApplicationShell {
         for outcome in outcomes {
             match outcome {
                 crate::facade::interaction::UiHostInteractionIngressOutcome::Applied(receipt) => {
-                    for transition in receipt.into_transitions() {
+                    let (interaction_transitions, command_routes) = receipt.into_routing_parts();
+                    for route in command_routes {
+                        if let crate::runtime::UiCommandRoutingOutcome::Routed(route) = route {
+                            transitions
+                                .push(self.admit_pair_command(first, second, route, deadline));
+                        }
+                    }
+                    for transition in interaction_transitions {
                         match transition {
                             crate::facade::interaction::UiInteractionTransition::Semantic(
                                 interaction,
@@ -185,6 +244,44 @@ impl super::super::WorthUiNativeApplicationShell {
             Ok(route) => route,
             Err(stop) => return stopped(WorthUiNativeIntentStop::Route(stop), None),
         };
+        self.admit_pair_route(first, second, route, deadline)
+    }
+
+    fn admit_pair_command<I1, D1, I2, D2>(
+        &mut self,
+        first: crate::facade::intent::UiIntentDefinition<I1, D1>,
+        second: crate::facade::intent::UiIntentDefinition<I2, D2>,
+        receipt: crate::runtime::UiCommandRouteReceipt,
+        deadline: crate::facade::intent::UiIntentExecutionDeadlineBasis,
+    ) -> WorthUiNativeIntentTransition
+    where
+        I1: crate::facade::intent::UiIntent,
+        D1: crate::facade::intent::UiIntentDefinitionDestination,
+        I2: crate::facade::intent::UiIntent,
+        D2: crate::facade::intent::UiIntentDefinitionDestination,
+    {
+        let route = match self.session.resolve_intent_route(
+            crate::facade::intent::UiIntentRouteSource::command_route(receipt),
+        ) {
+            Ok(route) => route,
+            Err(stop) => return stopped(WorthUiNativeIntentStop::Route(stop), None),
+        };
+        self.admit_pair_route(first, second, route, deadline)
+    }
+
+    fn admit_pair_route<I1, D1, I2, D2>(
+        &mut self,
+        first: crate::facade::intent::UiIntentDefinition<I1, D1>,
+        second: crate::facade::intent::UiIntentDefinition<I2, D2>,
+        route: crate::facade::intent::UiIntentRouteResolution,
+        deadline: crate::facade::intent::UiIntentExecutionDeadlineBasis,
+    ) -> WorthUiNativeIntentTransition
+    where
+        I1: crate::facade::intent::UiIntent,
+        D1: crate::facade::intent::UiIntentDefinitionDestination,
+        I2: crate::facade::intent::UiIntent,
+        D2: crate::facade::intent::UiIntentDefinitionDestination,
+    {
         let definition = match &route {
             crate::facade::intent::UiIntentRouteResolution::Product(route) => route.definition_id(),
             crate::facade::intent::UiIntentRouteResolution::Confirmation(route) => {

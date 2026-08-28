@@ -87,6 +87,9 @@ impl UiIntentExecutionState {
                 generation: candidate.generation().clone(),
                 declaration: Arc::clone(candidate.declaration_reference()),
                 selection_option: candidate.selection_option().cloned(),
+                command_route: candidate
+                    .command_route_receipt()
+                    .map(crate::runtime::UiCommandRouteReceipt::evidence),
             },
         })
     }

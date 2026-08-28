@@ -8,6 +8,7 @@ mod portal_proposal;
 /// Sole owner of semantic keyboard focus for one active application session.
 pub(crate) struct UiFocusRuntimeState {
     persistence: crate::runtime::UiServiceStatePersistencePosture,
+    policy: crate::declaration::UiFocusPolicy,
     pub(super) participants: BTreeMap<super::UiFocusScopeIdentity, Vec<super::UiFocusParticipant>>,
     pub(super) participant_index:
         BTreeMap<super::UiFocusParticipantIdentity, (super::UiFocusScopeIdentity, usize)>,
@@ -26,14 +27,34 @@ pub(crate) struct UiFocusRuntimeState {
 
 impl UiFocusRuntimeState {
     pub(crate) const fn new_session_restore_candidate() -> Self {
-        Self::new(crate::runtime::UiServiceStatePersistencePosture::SessionRestoreCandidate)
+        Self::new_with_policy(
+            crate::runtime::UiServiceStatePersistencePosture::SessionRestoreCandidate,
+            crate::declaration::UiFocusPolicy::workbench(),
+        )
+    }
+
+    pub(crate) const fn new_session_restore_candidate_with_policy(
+        policy: crate::declaration::UiFocusPolicy,
+    ) -> Self {
+        Self::new_with_policy(
+            crate::runtime::UiServiceStatePersistencePosture::SessionRestoreCandidate,
+            policy,
+        )
     }
 
     pub(in crate::runtime) const fn new(
         persistence: crate::runtime::UiServiceStatePersistencePosture,
     ) -> Self {
+        Self::new_with_policy(persistence, crate::declaration::UiFocusPolicy::workbench())
+    }
+
+    const fn new_with_policy(
+        persistence: crate::runtime::UiServiceStatePersistencePosture,
+        policy: crate::declaration::UiFocusPolicy,
+    ) -> Self {
         Self {
             persistence,
+            policy,
             participants: BTreeMap::new(),
             participant_index: BTreeMap::new(),
             current: None,
@@ -44,6 +65,25 @@ impl UiFocusRuntimeState {
             portal_restorations: BTreeMap::new(),
             revision: 0,
         }
+    }
+
+    pub(crate) fn apply_policy(&mut self, policy: crate::declaration::UiFocusPolicy) {
+        self.policy = policy;
+    }
+
+    pub(crate) fn shutdown(&mut self) -> usize {
+        let released = self.participant_index.len()
+            + self.pending_portal.len()
+            + self.portal_restorations.len()
+            + usize::from(self.current.is_some())
+            + usize::from(self.active_descendant.is_some());
+        self.participants.clear();
+        self.participant_index.clear();
+        self.current = None;
+        self.active_descendant = None;
+        self.pending_portal.clear();
+        self.portal_restorations.clear();
+        released
     }
 
     pub(in crate::runtime) const fn persistence(

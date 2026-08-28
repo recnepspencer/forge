@@ -62,7 +62,7 @@ impl UiFocusInspectionSnapshot {
     pub(in crate::runtime) const fn participant_count(self) -> usize {
         self.participant_count
     }
-    pub(in crate::runtime) const fn revision(self) -> u64 {
+    pub(crate) const fn revision(self) -> u64 {
         self.revision
     }
 }

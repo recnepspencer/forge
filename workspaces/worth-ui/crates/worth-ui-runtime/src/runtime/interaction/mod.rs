@@ -38,6 +38,7 @@ pub use service_event::{UiDismissInteraction, UiDismissInteractionCause};
 pub use settlement::UiInteractionLifecycleSettlementReceipt;
 pub use snapshot::{UiInteractionLifecycleCounters, UiInteractionStateSnapshot};
 pub use source::UiIntentRouteSource;
+pub(crate) use source::UiIntentRouteSourceMaterial;
 pub(crate) use state::{UiInteractionLifecycleStopReason, UiInteractionRuntimeState};
 pub use targeting::{
     UiInteractionTargetingDenial, UiPresentedInteractionTarget, UiPresentedInteractionTargetView,

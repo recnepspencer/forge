@@ -93,8 +93,10 @@ impl super::WorthUiActiveApplicationSession {
         &mut self,
         request: crate::mounting::presentation::motion_sampling::UiPresentationMotionTerminalRequest,
     ) {
-        let terminal = self
-            .motion
+        let Some(motion) = self.motion.as_mut() else {
+            return;
+        };
+        let terminal = motion
             .terminalize(request.track(), request.cause())
             .expect("presentation terminal request names the current committed Motion track");
         self.portal_exit_retention
@@ -117,7 +119,7 @@ impl super::WorthUiActiveApplicationSession {
             active,
             retained,
             last_tick,
-            self.motion.publication_count(),
+            self.motion.as_ref().map_or(0, |motion| motion.publication_count()),
             sample.and_then(|sample| sample.geometry().map(|geometry| geometry.components())),
             sample.map(|sample| sample.opacity()),
             sample.map(|sample| sample.hit_test_visible()),

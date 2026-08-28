@@ -33,6 +33,7 @@ mod scripted_presentation_host;
 mod scroll_observation;
 mod semantic_text_projection;
 mod semantic_text_resolver;
+mod service_installation_observation;
 mod service_proposal_observation;
 mod service_state_observation;
 mod shutdown_attempt_observation;
@@ -134,6 +135,10 @@ pub use semantic_text_projection::{
 };
 pub use semantic_text_resolver::{
     semantic_text_layout_resolver_for_certification, UiCertificationQualifiedTextResolver,
+};
+pub use service_installation_observation::{
+    UiRuntimeServiceInstallationCertificationSnapshot,
+    WorthUiRuntimeServiceInstallationCertificationExt,
 };
 pub use service_proposal_observation::{
     UiServiceProposalCertificationSnapshot, WorthUiServiceProposalCertificationExt,

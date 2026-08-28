@@ -19,6 +19,8 @@ pub enum UiInteractionTargetingDenial {
     IncompatibleHitTestCoordinateSpace { row: UiMountedCoordinateSpace },
     NoTarget { hit_test_rows_considered: usize },
     AmbiguousHitTestOrder { rank: u32 },
+    GraphTargetNotPresented,
+    AmbiguousGraphTarget { candidates: usize },
     SurfaceNoLongerBound,
     BindingNoLongerCurrent,
     MountedInstanceNoLongerCurrent,
@@ -104,6 +106,76 @@ pub(crate) fn resolve_presented_focus_target(
         )
         .view(),
     ))
+}
+
+pub(crate) fn resolve_presented_graph_target(
+    mounted: &crate::mounting::WorthUiMountedSessionState,
+    presentation: UiHostObservationPresentationBasis,
+    graph_node: crate::graph::UiGraphNodeIdentity,
+) -> Result<UiPresentedInteractionTargetView, UiInteractionTargetingDenial> {
+    let basis = mounted
+        .interaction_hit_test_basis(presentation)
+        .map_err(map_presentation_denial)?;
+    let relation = map_relation(basis.relation());
+    let mut selected = None;
+    let mut candidates = 0usize;
+    for row in basis.rows().iter().copied() {
+        let current = mounted
+            .admit_current_hit_target(row.mounted())
+            .map_err(map_current_affinity_denial)?;
+        let affinity = mounted
+            .admit_current_interaction_affinity(
+                crate::mounting::UiMountedInteractionAffinityInput {
+                    surface: current.row().surface(),
+                    binding: current.row().binding(),
+                    mounted_instance: current.row().mounted_instance(),
+                    node_receipt: current.row().node_receipt(),
+                },
+            )
+            .map_err(map_current_affinity_denial)?;
+        if affinity.graph_node() != graph_node {
+            continue;
+        }
+        candidates = candidates.saturating_add(1);
+        if selected.is_some() {
+            return Err(UiInteractionTargetingDenial::AmbiguousGraphTarget { candidates });
+        }
+        selected = Some(seal_target(
+            presentation,
+            relation,
+            current,
+            row,
+            basis.rows().len(),
+        ));
+    }
+    selected
+        .map(|target| target.view())
+        .ok_or(UiInteractionTargetingDenial::GraphTargetNotPresented)
+}
+
+pub(crate) fn resolve_presented_surface_target(
+    mounted: &crate::mounting::WorthUiMountedSessionState,
+    presentation: UiHostObservationPresentationBasis,
+) -> Result<UiPresentedInteractionTargetView, UiInteractionTargetingDenial> {
+    let basis = mounted
+        .interaction_hit_test_basis(presentation)
+        .map_err(map_presentation_denial)?;
+    let row = basis
+        .rows()
+        .first()
+        .copied()
+        .ok_or(UiInteractionTargetingDenial::GraphTargetNotPresented)?;
+    let current = mounted
+        .admit_current_hit_target(row.mounted())
+        .map_err(map_current_affinity_denial)?;
+    Ok(seal_target(
+        presentation,
+        map_relation(basis.relation()),
+        current,
+        row,
+        basis.rows().len(),
+    )
+    .view())
 }
 
 pub(crate) fn require_current_presentation(

@@ -4,6 +4,9 @@ mod anchor_access;
 #[cfg(any(test, feature = "certification-support"))]
 mod certification;
 mod ownership_catalog;
+mod reconciliation;
+
+use reconciliation::reconcile_owner_record;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct UiScrollOwnerRecord {
@@ -26,6 +29,7 @@ struct UiScrollOwnershipCatalogRecord {
 #[derive(Clone)]
 pub(crate) struct UiScrollRuntimeState {
     persistence: crate::runtime::UiServiceStatePersistencePosture,
+    policy: crate::declaration::UiScrollPolicy,
     owners: BTreeMap<super::UiScrollOwnerIdentity, UiScrollOwnerRecord>,
     ownership_catalog:
         BTreeMap<worth_ui_host_contract::UiMountedInstanceIdentity, UiScrollOwnershipCatalogRecord>,
@@ -39,14 +43,36 @@ pub(crate) struct UiScrollRuntimeState {
 
 impl UiScrollRuntimeState {
     pub(crate) const fn new_session_restore_candidate() -> Self {
-        Self::new(crate::runtime::UiServiceStatePersistencePosture::SessionRestoreCandidate)
+        Self::new_session_restore_candidate_with_policy(
+            crate::declaration::UiScrollPolicy::nested_region(),
+        )
+    }
+
+    pub(crate) const fn new_session_restore_candidate_with_policy(
+        policy: crate::declaration::UiScrollPolicy,
+    ) -> Self {
+        Self::new_with_policy(
+            crate::runtime::UiServiceStatePersistencePosture::SessionRestoreCandidate,
+            policy,
+        )
     }
 
     pub(in crate::runtime) const fn new(
         persistence: crate::runtime::UiServiceStatePersistencePosture,
     ) -> Self {
+        Self::new_with_policy(
+            persistence,
+            crate::declaration::UiScrollPolicy::nested_region(),
+        )
+    }
+
+    const fn new_with_policy(
+        persistence: crate::runtime::UiServiceStatePersistencePosture,
+        policy: crate::declaration::UiScrollPolicy,
+    ) -> Self {
         Self {
             persistence,
+            policy,
             owners: BTreeMap::new(),
             ownership_catalog: BTreeMap::new(),
             ownership_references: BTreeMap::new(),
@@ -56,6 +82,10 @@ impl UiScrollRuntimeState {
             ownership_plan_nodes_visited: 0,
             revision: 0,
         }
+    }
+
+    pub(crate) fn apply_policy(&mut self, policy: crate::declaration::UiScrollPolicy) {
+        self.policy = policy;
     }
 
     pub(in crate::runtime) const fn persistence(
@@ -134,6 +164,18 @@ impl UiScrollRuntimeState {
         &mut self,
         request: super::UiScrollRebindRequest,
     ) -> Result<super::UiScrollAnchorReconciliationReceipt, super::UiScrollRouteDenial> {
+        let request = if matches!(
+            self.policy.anchor_behavior(),
+            crate::declaration::UiScrollAnchorBehavior::ClampOffset
+        ) {
+            super::UiScrollRebindRequest::new(
+                request.registration(),
+                request.successor_anchor(),
+                super::UiScrollAnchorPolicy::Clamp,
+            )
+        } else {
+            request
+        };
         let registration = request.registration();
         if !registration
             .bounds()
@@ -224,7 +266,7 @@ impl UiScrollRuntimeState {
                 current,
                 consumed,
             ));
-            if remainder.is_zero() {
+            if remainder.is_zero() || !self.policy.bubbles_remainder() {
                 break;
             }
         }
@@ -291,96 +333,4 @@ impl UiScrollRuntimeState {
         }
         Ok(record)
     }
-}
-
-fn reconcile_owner_record(
-    previous: Option<UiScrollOwnerRecord>,
-    registration: super::UiScrollOwnerRegistration,
-    successor_anchor: Option<super::UiScrollAnchor>,
-    policy: super::UiScrollAnchorPolicy,
-) -> (
-    super::UiScrollAnchorReconciliationOutcome,
-    super::UiScrollOffset,
-    Option<super::UiScrollAnchor>,
-) {
-    let Some(previous) = previous else {
-        return (
-            super::UiScrollAnchorReconciliationOutcome::Replaced,
-            registration.initial_offset(),
-            successor_anchor,
-        );
-    };
-    match policy {
-        super::UiScrollAnchorPolicy::Preserve
-            if previous.incarnation == registration.incarnation()
-                && previous
-                    .anchor
-                    .zip(successor_anchor)
-                    .is_some_and(|(old, new)| old.exact_basis(new)) =>
-        {
-            let offset = registration.bounds().clamp(previous.offset);
-            let outcome = if offset == previous.offset {
-                super::UiScrollAnchorReconciliationOutcome::Preserved
-            } else {
-                super::UiScrollAnchorReconciliationOutcome::Clamped
-            };
-            (outcome, offset, successor_anchor)
-        }
-        super::UiScrollAnchorPolicy::Rebase => match previous.anchor.zip(successor_anchor) {
-            Some((old, new)) if old.same_identity(new) => {
-                let offset = registration
-                    .bounds()
-                    .clamp(rebased_offset(previous.offset, old, new));
-                (
-                    super::UiScrollAnchorReconciliationOutcome::Rebased,
-                    offset,
-                    successor_anchor,
-                )
-            }
-            _ => dropped(registration),
-        },
-        super::UiScrollAnchorPolicy::Clamp => (
-            super::UiScrollAnchorReconciliationOutcome::Clamped,
-            registration.bounds().clamp(previous.offset),
-            successor_anchor.or(previous.anchor),
-        ),
-        super::UiScrollAnchorPolicy::Replace => (
-            super::UiScrollAnchorReconciliationOutcome::Replaced,
-            registration.initial_offset(),
-            successor_anchor,
-        ),
-        super::UiScrollAnchorPolicy::Preserve | super::UiScrollAnchorPolicy::Drop => {
-            dropped(registration)
-        }
-    }
-}
-
-fn dropped(
-    registration: super::UiScrollOwnerRegistration,
-) -> (
-    super::UiScrollAnchorReconciliationOutcome,
-    super::UiScrollOffset,
-    Option<super::UiScrollAnchor>,
-) {
-    (
-        super::UiScrollAnchorReconciliationOutcome::Dropped,
-        registration.initial_offset(),
-        None,
-    )
-}
-
-fn rebased_offset(
-    offset: super::UiScrollOffset,
-    old: super::UiScrollAnchor,
-    new: super::UiScrollAnchor,
-) -> super::UiScrollOffset {
-    let inline = i128::from(offset.inline_subpixels()) + i128::from(new.inline_subpixels())
-        - i128::from(old.inline_subpixels());
-    let block = i128::from(offset.block_subpixels()) + i128::from(new.block_subpixels())
-        - i128::from(old.block_subpixels());
-    super::UiScrollOffset::new(clamp_nonnegative(inline), clamp_nonnegative(block)).unwrap()
-}
-
-fn clamp_nonnegative(value: i128) -> i64 {
-    value.clamp(0, i128::from(i64::MAX)) as i64
 }

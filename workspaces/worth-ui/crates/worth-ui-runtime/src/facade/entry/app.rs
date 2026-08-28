@@ -109,11 +109,15 @@ impl WorthUiApp {
     }
 
     pub(crate) fn motion_support_installed(&self) -> bool {
+        self.prepared.service_policy_plan().motion().is_some()
+    }
+
+    pub(crate) const fn runtime_service_support(
+        &self,
+    ) -> crate::capability::UiRuntimeServiceSupport {
         self.prepared
-            .intent_execution_bindings()
+            .service_policy_plan()
             .runtime_service_support()
-            .posture(crate::capability::UiRuntimeServiceFamily::Motion)
-            == crate::capability::UiRuntimeServiceSupportPosture::Installed
     }
 
     pub(crate) fn host_session_plan(
@@ -131,6 +135,10 @@ impl WorthUiApp {
     /// Inspect the immutable capability snapshot owned by this app.
     pub fn capabilities(&self) -> &CapabilitySnapshot {
         self.prepared.capabilities()
+    }
+
+    pub const fn service_policy_plan(&self) -> crate::declaration::UiNormalizedServicePolicyPlan {
+        self.prepared.service_policy_plan()
     }
 
     /// Resolve the compact installed-operation reference retained for one

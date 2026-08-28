@@ -2,25 +2,47 @@ use super::super::WorthUiActiveApplicationSession;
 
 impl WorthUiActiveApplicationSession {
     pub(crate) fn reconcile_service_state_after_mounted_publication(&mut self) {
-        if !self.scroll.has_mounted_ownership() && !self.selection.has_projection_catalog_owners() {
-            return;
+        if self
+            .scroll
+            .as_ref()
+            .is_some_and(|scroll| scroll.has_mounted_ownership())
+        {
+            self.reconcile_published_scroll_owners();
         }
-        self.reconcile_published_scroll_owners();
-        self.reconcile_published_selection_catalogs();
+        if self
+            .selection
+            .as_ref()
+            .is_some_and(|selection| selection.has_projection_catalog_owners())
+        {
+            self.reconcile_published_selection_catalogs();
+        }
     }
 
     fn reconcile_published_scroll_owners(&mut self) {
         let mut shared_owners = std::collections::BTreeMap::new();
-        let mounted_instances = self.scroll.ownership_instances();
+        let mounted_instances = self
+            .scroll
+            .as_ref()
+            .expect("mounted Scroll ownership was checked above")
+            .ownership_instances();
         for mounted_instance in mounted_instances {
             let Some(target) = self
                 .mounted
                 .current_mounted_identity_basis(mounted_instance)
             else {
-                self.scroll.retire_mounted_instance(mounted_instance);
+                self.scroll
+                    .as_mut()
+                    .expect("mounted Scroll ownership was checked above")
+                    .retire_mounted_instance(mounted_instance);
                 continue;
             };
-            let chain = match self.scroll.ownership_chain(mounted_instance).cloned() {
+            let chain = match self
+                .scroll
+                .as_ref()
+                .expect("mounted Scroll ownership was checked above")
+                .ownership_chain(mounted_instance)
+                .cloned()
+            {
                 Ok(chain) => chain,
                 Err(_) => {
                     let incarnation =
@@ -28,12 +50,20 @@ impl WorthUiActiveApplicationSession {
                             target.mount_incarnation(),
                         );
                     self.application.install_scroll_ownership(
-                        &mut self.scroll,
+                        self.scroll
+                            .as_mut()
+                            .expect("mounted Scroll ownership was checked above"),
                         mounted_instance,
                         incarnation,
                         &target,
                     );
-                    let Ok(chain) = self.scroll.ownership_chain(mounted_instance).cloned() else {
+                    let Ok(chain) = self
+                        .scroll
+                        .as_ref()
+                        .expect("mounted Scroll ownership was checked above")
+                        .ownership_chain(mounted_instance)
+                        .cloned()
+                    else {
                         continue;
                     };
                     chain
@@ -72,6 +102,8 @@ impl WorthUiActiveApplicationSession {
             }
             if registrations.len() != chain.owners().len() {
                 self.scroll
+                    .as_mut()
+                    .expect("mounted Scroll ownership was checked above")
                     .suspend_mounted_instance(mounted_instance, mounted_incarnation);
                 continue;
             }
@@ -84,6 +116,8 @@ impl WorthUiActiveApplicationSession {
                             crate::runtime::scroll::UiScrollAnchorPolicy::Clamp
                         };
                         self.scroll
+                            .as_mut()
+                            .expect("mounted Scroll ownership was checked above")
                             .reconcile_rebind(crate::runtime::scroll::UiScrollRebindRequest::new(
                                 registration,
                                 anchor,
@@ -115,13 +149,22 @@ impl WorthUiActiveApplicationSession {
         }
         for pending in shared_owners.into_values() {
             pending
-                .reconcile(&mut self.scroll)
+                .reconcile(
+                    self.scroll
+                        .as_mut()
+                        .expect("mounted Scroll ownership was checked above"),
+                )
                 .expect("published allocation produces valid shared Scroll owner reconciliation");
         }
     }
 
     fn reconcile_published_selection_catalogs(&mut self) {
-        for family in self.selection.projection_families().iter().copied() {
+        let families = self
+            .selection
+            .as_ref()
+            .expect("Selection catalog ownership was checked above")
+            .projection_families();
+        for family in families.iter().copied() {
             let Some(slot) = family.projection_input_slot() else {
                 continue;
             };
@@ -129,22 +172,33 @@ impl WorthUiActiveApplicationSession {
                 collection,
             )) = self.mounted.current_projection_input(slot)
             else {
-                self.selection.retire_family(family);
+                self.selection
+                    .as_mut()
+                    .expect("Selection catalog ownership was checked above")
+                    .retire_family(family);
                 continue;
             };
             if collection.posture() != worth_ui_query_binding::UiProjectionInputPosture::Current {
-                self.selection.retire_family(family);
+                self.selection
+                    .as_mut()
+                    .expect("Selection catalog ownership was checked above")
+                    .retire_family(family);
                 continue;
             }
             let revision = collection.revision().observation_order();
             if !self
                 .selection
+                .as_ref()
+                .expect("Selection catalog ownership was checked above")
                 .family_requires_catalog_reconciliation(family, revision)
             {
                 continue;
             }
             let Some(keys) = collection.current_application_item_keys() else {
-                self.selection.retire_family(family);
+                self.selection
+                    .as_mut()
+                    .expect("Selection catalog ownership was checked above")
+                    .retire_family(family);
                 continue;
             };
             let posture = match collection.completeness() {
@@ -155,11 +209,16 @@ impl WorthUiActiveApplicationSession {
                     crate::runtime::selection::UiSelectionCatalogPosture::Partial
                 }
                 None => {
-                    self.selection.retire_family(family);
+                    self.selection
+                        .as_mut()
+                        .expect("Selection catalog ownership was checked above")
+                        .retire_family(family);
                     continue;
                 }
             };
             self.selection
+                .as_mut()
+                .expect("Selection catalog ownership was checked above")
                 .reconcile_projection_catalog(family, revision, &keys, posture)
                 .expect("published collection retains a valid Selection catalog");
         }

@@ -55,7 +55,7 @@ where
         .map(crate::facade::entry::WorthUiCertificationApplicationTransition::activate_builder_host)
         .expect("focusable component snapshot should prepare");
     component_builder_with_focus()
-        .with_candidate_submission(component_submission(
+        .with_candidate_submission(focus_component_submission(
             "focusable-active-session-current",
             "workspace.component.active_session_current",
             snapshot.capabilities(),
@@ -324,6 +324,23 @@ fn component_submission(
             "app/main.wui",
             format!(
                 "component {component_id} {{ region workspace.region.primary {{ sizing workspace.sizing.mosaic_support; }} }}"
+            ),
+        ),
+        [WorthUiWatcherEvent::provider_revision(source_name)],
+        capabilities,
+    )
+}
+
+fn focus_component_submission(
+    source_name: &str,
+    component_id: &str,
+    capabilities: &crate::capability::CapabilitySnapshot,
+) -> WorthUiWatchedCandidateSubmission {
+    lower_file_submission(
+        WorthUiSourceProvider::in_memory(source_name).with_file(
+            "app/main.wui",
+            format!(
+                "component {component_id} {{ region workspace.region.primary {{ sizing workspace.sizing.mosaic_support; }} }}\nfocus workspace.focus.main {{ scope workbench; restore; reveal; }}"
             ),
         ),
         [WorthUiWatcherEvent::provider_revision(source_name)],

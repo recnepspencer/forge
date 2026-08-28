@@ -71,7 +71,19 @@ impl WorthUiActiveApplicationSession {
         execution: crate::runtime::rebind::UiRebindExecutionRequest,
     ) -> UiIntentConsequencePublicationOutcome<'_> {
         let portal_transition = match handoff.runtime_service_destination() {
-            Some(destination) => {
+            Some(crate::capability::UiIntentRuntimeServiceDestination::InvokeCommand) => {
+                if handoff.command_route().is_none() {
+                    return self.stop_intent_consequence(
+                        handoff,
+                        UiIntentConsequenceStopReason::RuntimeServiceCommandRouteMissing,
+                    );
+                }
+                None
+            }
+            Some(
+                destination @ (crate::capability::UiIntentRuntimeServiceDestination::OpenPortal
+                | crate::capability::UiIntentRuntimeServiceDestination::ClosePortal),
+            ) => {
                 if !handoff.includes_mounted_posture() {
                     return self.stop_intent_consequence(
                         handoff,
@@ -107,7 +119,15 @@ impl WorthUiActiveApplicationSession {
                     presented_viewport,
                     resolved_owner,
                 );
-                match self.portal.prepare(request) {
+                let Some(portal) = self.portal.as_ref() else {
+                    return self.stop_intent_consequence(
+                        handoff,
+                        UiIntentConsequenceStopReason::RuntimeServiceOwnerUnavailable(
+                            crate::capability::UiRuntimeServiceFamily::Portal,
+                        ),
+                    );
+                };
+                match portal.prepare(request) {
                     Ok(transition) => Some(transition),
                     Err(
                         crate::runtime::portal::UiPortalServiceTransitionDenial::RevisionExhausted,
@@ -318,7 +338,7 @@ pub(super) fn portal_service_request(
             )
         }
         crate::capability::UiIntentRuntimeServiceDestination::InvokeCommand => {
-            unreachable!("unsupported command destinations cannot produce service material")
+            unreachable!("command consequences never construct mounted portal service requests")
         }
     }
 }

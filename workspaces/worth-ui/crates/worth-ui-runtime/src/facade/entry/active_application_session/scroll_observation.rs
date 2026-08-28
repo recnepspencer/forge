@@ -43,8 +43,12 @@ impl WorthUiActiveApplicationSession {
         y_subpixels: i64,
     ) -> Result<crate::runtime::scroll::UiScrollRouteReceipt, UiHostScrollObservationDenial> {
         let (mounted_instance, mounted) = self.resolve_scroll_target(target)?;
-        let chain = self
+        let surface_incarnation = self.scroll_owner_incarnation();
+        let scroll = self
             .scroll
+            .as_mut()
+            .ok_or(UiHostScrollObservationDenial::NoDeclaredScrollOwner)?;
+        let chain = scroll
             .ownership_chain(mounted_instance)
             .map_err(UiHostScrollObservationDenial::Ownership)?;
         if chain.owners().is_empty() {
@@ -59,9 +63,7 @@ impl WorthUiActiveApplicationSession {
             let incarnation = match owner {
                 crate::runtime::scroll::UiScrollOwnerIdentity::Region { .. } => mounted_incarnation,
                 crate::runtime::scroll::UiScrollOwnerIdentity::Surface(_)
-                | crate::runtime::scroll::UiScrollOwnerIdentity::Viewport(_) => {
-                    self.scroll_owner_incarnation()
-                }
+                | crate::runtime::scroll::UiScrollOwnerIdentity::Viewport(_) => surface_incarnation,
             };
             entries.push(crate::runtime::scroll::UiScrollChainEntry::new(
                 owner,
@@ -90,7 +92,7 @@ impl WorthUiActiveApplicationSession {
             },
         )
         .map_err(UiHostScrollObservationDenial::Route)?;
-        self.scroll
+        scroll
             .route(request)
             .map_err(UiHostScrollObservationDenial::Route)
     }

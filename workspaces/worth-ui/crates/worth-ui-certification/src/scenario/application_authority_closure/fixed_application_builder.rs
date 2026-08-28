@@ -64,6 +64,13 @@ impl FixedCertificationApplicationBuilder {
         self.map_builder(|builder| builder.register_surface(descriptor))
     }
 
+    pub fn register_command(
+        self,
+        descriptor: worth_ui::facade::declaration::CommandDescriptor,
+    ) -> Self {
+        self.map_builder(|builder| builder.register_command(descriptor))
+    }
+
     pub fn register_mosaic_region_kind(
         self,
         descriptor: worth_ui::facade::declaration::MosaicRegionKindDescriptor,
@@ -111,6 +118,20 @@ impl FixedCertificationApplicationBuilder {
         policy: worth_ui::facade::inspection::UiVisualInspectionPolicy,
     ) -> Self {
         self.map_builder(|builder| builder.with_visual_inspection_policy(policy))
+    }
+
+    pub fn with_command_routing_policy_defaults(
+        self,
+        policy: worth_ui::facade::service::UiCommandRoutingPolicy,
+    ) -> Self {
+        self.map_builder(|builder| builder.with_command_routing_policy_defaults(policy))
+    }
+
+    pub fn with_selection_policy_defaults(
+        self,
+        policy: worth_ui::facade::service::UiSelectionPolicy,
+    ) -> Self {
+        self.map_builder(|builder| builder.with_selection_policy_defaults(policy))
     }
 
     pub fn with_runtime_instance_basis_admissions(
@@ -210,22 +231,6 @@ impl FixedCertificationApplicationBuilder {
         let builder = self
             .builder
             .register_intent_transition_definition(definition)?;
-        Ok(Self::from_parts(builder, self.activation))
-    }
-
-    pub fn register_unsupported_command_intent_definition<I>(
-        self,
-        definition: worth_ui::facade::intent::UiIntentDefinition<
-            I,
-            worth_ui::facade::intent::UiRuntimeServiceDefinitionDestination,
-        >,
-    ) -> Result<Self, worth_ui::facade::intent::UiIntentDefinitionRegistrationError>
-    where
-        I: worth_ui::facade::intent::UiIntent,
-    {
-        let builder = self
-            .builder
-            .register_unsupported_command_intent_definition(definition)?;
         Ok(Self::from_parts(builder, self.activation))
     }
 

@@ -56,8 +56,8 @@ struct WorthUiMountedPreviewPorts<'session> {
         crate::facade::prepared_application_authority::WorthUiPreparedApplicationGenerationIdentity,
     host_session: &'session crate::facade::WorthUiHostSessionAuthority,
     mounted: &'session mut crate::mounting::WorthUiMountedSessionState,
-    focus: &'session mut crate::runtime::focus::UiFocusRuntimeState,
-    portal: &'session mut crate::runtime::portal::UiPortalRuntimeState,
+    focus: Option<&'session mut crate::runtime::focus::UiFocusRuntimeState>,
+    portal: Option<&'session mut crate::runtime::portal::UiPortalRuntimeState>,
     interaction: &'session mut crate::runtime::interaction::UiInteractionRuntimeState,
     host_exchange: &'session mut crate::host_exchange::WorthUiHostExchangeSessionState,
 }

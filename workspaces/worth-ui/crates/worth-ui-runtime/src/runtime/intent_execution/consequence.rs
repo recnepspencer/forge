@@ -57,6 +57,8 @@ pub enum UiIntentConsequenceStopReason {
     Preparation(Box<crate::runtime::rebind::UiRebindPreparationDenial>),
     IntentPostureIdentityExhausted,
     RuntimeServiceRequiresMountedPosture,
+    RuntimeServiceCommandRouteMissing,
+    RuntimeServiceOwnerUnavailable(crate::capability::UiRuntimeServiceFamily),
     RuntimeServiceTransitionExhausted,
     RuntimeServicePortalPlacement(UiIntentPortalPlacementStopReason),
     RuntimeServiceProposal(Box<crate::runtime::session::UiPortalProposalPreparationDenial>),

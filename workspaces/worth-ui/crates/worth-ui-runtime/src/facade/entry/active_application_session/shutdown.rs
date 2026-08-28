@@ -9,12 +9,32 @@ impl WorthUiActiveApplicationSession {
         let previous_input = self.interaction.active_input_binding();
         let interaction = self.interaction.shutdown();
         let focus_placement = self.mounted.shutdown_focus_placement();
-        let portal = self.portal.shutdown();
+        let _focus_resources_released = self
+            .focus
+            .as_mut()
+            .map_or(0, crate::runtime::focus::UiFocusRuntimeState::shutdown);
+        let portal = self.portal.as_mut().map_or_else(
+            crate::runtime::portal::UiPortalShutdownReport::default,
+            crate::runtime::portal::UiPortalRuntimeState::shutdown,
+        );
         let _presentation_motion_tracks = self.mounted.shutdown_motion_sampling();
-        let motion = self.motion.shutdown();
+        let motion = self.motion.as_mut().map_or_else(
+            crate::runtime::motion::UiMotionShutdownReport::default,
+            crate::runtime::motion::UiMotionRuntimeState::shutdown,
+        );
         debug_assert!(motion.final_census().is_zero());
-        let scroll_owners_released = self.scroll.shutdown();
-        let selection_owners_released = self.selection.shutdown();
+        let scroll_owners_released = self
+            .scroll
+            .as_mut()
+            .map_or(0, crate::runtime::scroll::UiScrollRuntimeState::shutdown);
+        let selection_owners_released = self.selection.as_mut().map_or(
+            0,
+            crate::runtime::selection::UiSelectionRuntimeState::shutdown,
+        );
+        let command_routes_released = self.command_routing.as_mut().map_or(
+            0,
+            crate::runtime::command_routing::UiCommandRoutingRuntimeState::shutdown,
+        );
         self.clear_displaced_input_recipient(previous_input);
         let confirmation = self.intent_confirmation.shutdown();
         let (admission, execution) = self.intent_admission.shutdown(&mut self.intent_execution);
@@ -53,6 +73,7 @@ impl WorthUiActiveApplicationSession {
             .bind_motion(motion)
             .bind_scroll_owners_released(scroll_owners_released)
             .bind_selection_owners_released(selection_owners_released)
+            .bind_command_routes_released(command_routes_released)
             .bind_intent_confirmation(confirmation)
             .bind_intent_admission(admission)
             .bind_intent_execution(execution)

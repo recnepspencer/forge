@@ -55,7 +55,7 @@ pub use family::{
 pub(crate) use inspection::{UiDeclarationAuthoredEvidenceIndex, UiDeclarationEvidenceRecord};
 pub(crate) use intent::{
     prepare_authored_intent_material, UiCanonicalIntentDeclaration, UiIntentCatalog,
-    UiIntentCatalogResolvedRoute, UiIntentCatalogSemanticComparison,
+    UiIntentCatalogCommandRoute, UiIntentCatalogResolvedRoute, UiIntentCatalogSemanticComparison,
     UiResolvedIntentApplicationSource, UiResolvedIntentConfirmationContract,
     UiResolvedIntentConfirmationSource, UiResolvedIntentMutabilitySource,
     UiResolvedIntentPayloadBinding, UiResolvedIntentPayloadSource,
@@ -89,6 +89,12 @@ pub use measurement_dependency::{
 #[cfg(test)]
 pub(crate) use rust_authored_declaration_fixture::WorthUiRustAuthoredDeclarationFixture;
 pub(crate) use service::UiDeclaredPortalPlacementGeometry;
+pub(crate) use service::UiServicePolicyDefaults;
+pub use service::{
+    UiCommandRoutingPolicy, UiFocusPolicy, UiFocusScopePolicy, UiMotionPolicy,
+    UiNormalizedServicePolicyPlan, UiPortalPolicy, UiPortalPolicyKind, UiReducedMotionBehavior,
+    UiScrollAnchorBehavior, UiScrollPolicy, UiSelectionMode, UiSelectionPolicy,
+};
 pub use structural_semantics::{
     UiDeclarationContainmentIntent, UiDeclarationOrderingGuarantee,
     UiDeclarationPlanningOperatorKind, UiDeclarationRepetitionPosture,

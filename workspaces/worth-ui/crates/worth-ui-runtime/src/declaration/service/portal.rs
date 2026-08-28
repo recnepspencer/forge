@@ -71,3 +71,108 @@ impl UiDeclaredPortalPlacementGeometry {
         self.viewport_margin
     }
 }
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum UiPortalPolicyKind {
+    Dropdown,
+    Popover,
+    ModalDialog,
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct UiPortalPolicy {
+    kind: UiPortalPolicyKind,
+    restore_focus: bool,
+    dismiss_on_escape: bool,
+    dismiss_on_outside_press: bool,
+    dismiss_on_accepted_selection: bool,
+    dismiss_on_anchor_loss: bool,
+}
+
+impl UiPortalPolicy {
+    pub const fn dropdown() -> Self {
+        Self::new(UiPortalPolicyKind::Dropdown, true, true, true)
+    }
+
+    pub const fn popover() -> Self {
+        Self::new(UiPortalPolicyKind::Popover, true, true, true)
+    }
+
+    pub const fn modal_dialog() -> Self {
+        Self::new(UiPortalPolicyKind::ModalDialog, true, true, false)
+    }
+
+    const fn new(
+        kind: UiPortalPolicyKind,
+        restore_focus: bool,
+        dismiss_on_escape: bool,
+        dismiss_on_outside_press: bool,
+    ) -> Self {
+        Self {
+            kind,
+            restore_focus,
+            dismiss_on_escape,
+            dismiss_on_outside_press,
+            dismiss_on_accepted_selection: true,
+            dismiss_on_anchor_loss: true,
+        }
+    }
+
+    pub const fn with_focus_restoration(mut self, enabled: bool) -> Self {
+        self.restore_focus = enabled;
+        self
+    }
+
+    pub const fn with_outside_press_dismissal(mut self, enabled: bool) -> Self {
+        self.dismiss_on_outside_press = enabled;
+        self
+    }
+
+    pub const fn with_escape_dismissal(mut self, enabled: bool) -> Self {
+        self.dismiss_on_escape = enabled;
+        self
+    }
+
+    pub const fn with_accepted_selection_dismissal(mut self, enabled: bool) -> Self {
+        self.dismiss_on_accepted_selection = enabled;
+        self
+    }
+
+    pub const fn with_anchor_loss_dismissal(mut self, enabled: bool) -> Self {
+        self.dismiss_on_anchor_loss = enabled;
+        self
+    }
+
+    pub const fn kind(self) -> UiPortalPolicyKind {
+        self.kind
+    }
+
+    pub const fn restores_focus(self) -> bool {
+        self.restore_focus
+    }
+
+    pub const fn dismisses_on_escape(self) -> bool {
+        self.dismiss_on_escape
+    }
+
+    pub const fn dismisses_on_outside_press(self) -> bool {
+        self.dismiss_on_outside_press
+    }
+
+    pub const fn dismisses_on_accepted_selection(self) -> bool {
+        self.dismiss_on_accepted_selection
+    }
+
+    pub const fn dismisses_on_anchor_loss(self) -> bool {
+        self.dismiss_on_anchor_loss
+    }
+
+    pub(crate) const fn digest_basis(self) -> u64 {
+        self.kind as u64
+            | (self.restore_focus as u64) << 8
+            | (self.dismiss_on_escape as u64) << 9
+            | (self.dismiss_on_outside_press as u64) << 10
+            | (self.dismiss_on_accepted_selection as u64) << 11
+            | (self.dismiss_on_anchor_loss as u64) << 12
+    }
+}

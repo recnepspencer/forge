@@ -31,6 +31,7 @@ pub enum WorthUiDslCompileDiagnosticCode {
     InvalidProjectionDeclaration,
     UnknownProjectionContent,
     InvalidIntentDeclaration,
+    InvalidServiceDeclaration,
     InvalidRustAuthoredModulePath,
     DuplicateRustAuthoredModuleIdentity,
 }

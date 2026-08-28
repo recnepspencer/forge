@@ -16,7 +16,9 @@ impl WorthUiActiveApplicationSession {
         reachability: worth_ui_host_native::UiNativeInputReachability,
         pending_portal_transition: bool,
     ) -> UiNativeObservationIngressSettlement {
-        self.complete_motion_sample_presentation();
+        if self.motion.is_installed() {
+            self.complete_motion_sample_presentation();
+        }
         let drain = match self.host_session.drain_observations() {
             Ok(drain) => drain,
             Err(denial) => {
@@ -57,19 +59,36 @@ impl WorthUiActiveApplicationSession {
         let binding = core.binding();
         let outcome = match self.validate_host_observation_batch(batch) {
             UiHostObservationReportOutcome::Validated(batch) => {
-                let portal_escape = (pending_portal_transition
-                    || self.portal.topmost_presentation().is_some())
-                .then(|| portal_escape_dismissal(batch.reports(), core.presentation()))
-                .flatten();
-                let scroll_observations = batch
+                let portal_escape = self
+                    .portal
+                    .as_ref()
+                    .is_some_and(|portal| {
+                        pending_portal_transition || portal.topmost_presentation().is_some()
+                    })
+                    .then(|| portal_escape_dismissal(batch.reports(), core.presentation()))
+                    .flatten();
+                let scroll_observations = if self.scroll.is_installed() {
+                    batch
+                        .reports()
+                        .iter()
+                        .filter_map(|report| self.observe_scroll_payload(report.report().payload()))
+                        .collect()
+                } else {
+                    Vec::new()
+                };
+                let command_routes = batch
                     .reports()
                     .iter()
-                    .filter_map(|report| self.observe_scroll_payload(report.report().payload()))
+                    .filter_map(|report| {
+                        if let Some(focus) = self.focus.as_mut() {
+                            focus.observe_host_payload(
+                                report.report().payload(),
+                                core.presentation(),
+                            );
+                        }
+                        self.observe_command_report(report.report(), core.presentation())
+                    })
                     .collect();
-                for report in batch.reports() {
-                    self.focus
-                        .observe_host_payload(report.report().payload(), core.presentation());
-                }
                 let motion_tick = batch
                     .reports()
                     .iter()
@@ -86,13 +105,15 @@ impl WorthUiActiveApplicationSession {
                 let generation = self.active_generation_identity();
                 let mut receipt = self.interaction.ingest(batch, &self.mounted, &generation);
                 receipt.retain_scroll_observations(scroll_observations);
+                receipt.retain_command_routes(command_routes);
                 if let Some(dismissal) = portal_escape {
                     receipt.retain_service_dismissal(dismissal);
                 }
                 self.intent_evidence
                     .retain_transitions(receipt.transitions());
-                if let Some(tick) = motion_tick.filter(|_| self.mounted.has_active_motion_samples())
-                {
+                if let Some(tick) = motion_tick.filter(|_| {
+                    self.motion.is_installed() && self.mounted.has_active_motion_samples()
+                }) {
                     if let Ok(prepared) = self.prepare_motion_tick(tick, core.presentation()) {
                         self.present_prepared_motion_tick(prepared, core.presentation());
                     }

@@ -113,6 +113,7 @@ impl UiInteractionRuntimeState {
             ignored_reports,
             state: self.snapshot(),
             scroll_observations: Box::new([]),
+            command_routes: Box::new([]),
         }
     }
 

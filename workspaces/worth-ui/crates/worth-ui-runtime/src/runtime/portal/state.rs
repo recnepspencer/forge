@@ -9,6 +9,7 @@ pub(crate) use shutdown::UiPortalShutdownReport;
 
 pub(crate) struct UiPortalRuntimeState {
     persistence: crate::runtime::UiServiceStatePersistencePosture,
+    pub(super) policy: crate::declaration::UiPortalPolicy,
     pub(super) records: BTreeMap<super::UiPortalIdentity, UiPortalRecord>,
     admitted_requests: u64,
     idempotent_requests: u64,
@@ -26,13 +27,25 @@ pub(super) struct UiPortalRecord {
 
 impl UiPortalRuntimeState {
     pub(crate) fn new(persistence: crate::runtime::UiServiceStatePersistencePosture) -> Self {
+        Self::new_with_policy(persistence, crate::declaration::UiPortalPolicy::dropdown())
+    }
+
+    pub(crate) fn new_with_policy(
+        persistence: crate::runtime::UiServiceStatePersistencePosture,
+        policy: crate::declaration::UiPortalPolicy,
+    ) -> Self {
         Self {
             persistence,
+            policy,
             records: BTreeMap::new(),
             admitted_requests: 0,
             idempotent_requests: 0,
             revision: 0,
         }
+    }
+
+    pub(crate) fn apply_policy(&mut self, policy: crate::declaration::UiPortalPolicy) {
+        self.policy = policy;
     }
 
     pub(crate) const fn persistence(&self) -> crate::runtime::UiServiceStatePersistencePosture {
@@ -44,6 +57,7 @@ impl UiPortalRuntimeState {
         request: super::UiPortalServiceRequest,
     ) -> Result<super::UiPreparedPortalServiceTransition, super::UiPortalServiceTransitionDenial>
     {
+        let request = request.with_policy(self.policy);
         let committed_revision = self
             .revision
             .checked_add(1)
@@ -294,6 +308,15 @@ impl UiPortalRuntimeState {
             .values()
             .filter(|record| record.posture != super::UiPortalLifecyclePosture::Closed)
             .count()
+    }
+
+    pub(crate) fn active_graph_nodes(
+        &self,
+    ) -> impl Iterator<Item = crate::graph::UiGraphNodeIdentity> + '_ {
+        self.records.iter().filter_map(|(identity, record)| {
+            (record.posture != super::UiPortalLifecyclePosture::Closed)
+                .then(|| identity.owner().graph_node())
+        })
     }
 
     pub(crate) fn posture_count(&self, posture: super::UiPortalLifecyclePosture) -> usize {

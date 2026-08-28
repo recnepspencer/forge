@@ -26,7 +26,7 @@ impl super::WorthUiApplicationSessionState {
                     teardown,
                     &transaction.portal,
                     &transaction.focus,
-                    &transaction.scroll,
+                    transaction.scroll.as_ref(),
                     transaction.selection.as_ref(),
                     motion_scope,
                     crate::runtime::session::service_proposal::UiServiceProposalTerminalReason::CancelledBeforePublication,
@@ -56,7 +56,9 @@ impl super::WorthUiApplicationSessionState {
         publication: crate::runtime::session::service_proposal::UiServiceProposalPublicationReceipt,
         scope: crate::runtime::session::service_proposal::UiServiceProposalOccupancyScopeIdentity,
         focus_scope: crate::runtime::session::service_proposal::UiServiceProposalOccupancyScopeIdentity,
-        scroll_scope: crate::runtime::session::service_proposal::UiServiceProposalOccupancyScopeIdentity,
+        scroll_scope: Option<
+            crate::runtime::session::service_proposal::UiServiceProposalOccupancyScopeIdentity,
+        >,
         selection: Option<&crate::runtime::selection::UiStagedDeclaredSelectionTransition>,
         motion_scope: Option<
             crate::runtime::session::service_proposal::UiServiceProposalOccupancyScopeIdentity,
@@ -80,15 +82,17 @@ impl super::WorthUiApplicationSessionState {
             .service_proposals
             .acknowledge_owner(&mut settlement, focus_acknowledgement)
             .expect("exact Focus owner acknowledgement matches its publication");
-        let scroll_acknowledgement = crate::runtime::session::service_proposal::UiServiceProposalOwnerAcknowledgement::from_family_owner(
-            publication,
-            crate::capability::UiRuntimeServiceFamily::Scroll,
-            scroll_scope,
-        );
-        self.runtime
-            .service_proposals
-            .acknowledge_owner(&mut settlement, scroll_acknowledgement)
-            .expect("exact Scroll owner acknowledgement matches its publication");
+        if let Some(scroll_scope) = scroll_scope {
+            let scroll_acknowledgement = crate::runtime::session::service_proposal::UiServiceProposalOwnerAcknowledgement::from_family_owner(
+                publication,
+                crate::capability::UiRuntimeServiceFamily::Scroll,
+                scroll_scope,
+            );
+            self.runtime
+                .service_proposals
+                .acknowledge_owner(&mut settlement, scroll_acknowledgement)
+                .expect("exact Scroll owner acknowledgement matches its publication");
+        }
         if let Some(selection) = selection {
             self.runtime
                 .service_proposals
@@ -121,8 +125,8 @@ impl super::WorthUiApplicationSessionState {
         mounted: &crate::mounting::UiMountedFramePublicationReceipt,
         portal: &mut crate::runtime::portal::UiPortalRuntimeState,
         focus: &mut crate::runtime::focus::UiFocusRuntimeState,
-        scroll_state: &mut crate::runtime::scroll::UiScrollRuntimeState,
-        selection_state: &mut crate::runtime::selection::UiSelectionRuntimeState,
+        scroll_state: Option<&mut crate::runtime::scroll::UiScrollRuntimeState>,
+        selection_state: Option<&mut crate::runtime::selection::UiSelectionRuntimeState>,
         motion_state: &mut crate::runtime::motion::UiMotionRuntimeState,
     ) -> Result<
         (
@@ -178,7 +182,8 @@ impl super::WorthUiApplicationSessionState {
             .commit_portal_proposal(focus_owner.proposal(), frame)
             .expect("exclusive Focus proposal retains exact prepared successor");
         if let Some(staged_reveal) = staged_reveal {
-            staged_reveal.commit(scroll_state);
+            staged_reveal
+                .commit(scroll_state.expect("a staged reveal retains its installed Scroll owner"));
         }
         let motion_exit_retention = motion_commit.and_then(|commit| commit.exit_retention());
         let (_, portal_exit_retention) = portal
@@ -194,12 +199,14 @@ impl super::WorthUiApplicationSessionState {
             publication,
             scope,
             focus_owner.scope(),
-            scroll_owner.scope(),
+            scroll_owner.as_ref().map(|scroll| scroll.scope()),
             selection_owner.as_ref(),
             motion_scope,
         );
         if let Some(selection_owner) = selection_owner {
-            selection_owner.commit(selection_state);
+            selection_owner.commit(
+                selection_state.expect("a staged Selection proposal retains its installed owner"),
+            );
         }
         Ok((focus_transition, motion_commit, exit_retention))
     }
@@ -255,7 +262,7 @@ impl super::WorthUiApplicationSessionState {
             teardown,
             &transaction.portal,
             &transaction.focus,
-            &transaction.scroll,
+            transaction.scroll.as_ref(),
             transaction.selection.as_ref(),
             motion_scope,
             crate::runtime::session::service_proposal::UiServiceProposalTerminalReason::AbandonedAtShutdown,
@@ -284,7 +291,7 @@ impl super::WorthUiApplicationSessionState {
             teardown,
             &transaction.portal,
             &transaction.focus,
-            &transaction.scroll,
+            transaction.scroll.as_ref(),
             transaction.selection.as_ref(),
             motion_scope,
             crate::runtime::session::service_proposal::UiServiceProposalTerminalReason::RecoveryDisposed,
@@ -326,7 +333,7 @@ impl super::WorthUiApplicationSessionState {
             publication,
             scope,
             focus_owner.scope(),
-            scroll_owner.scope(),
+            scroll_owner.as_ref().map(|scroll| scroll.scope()),
             selection_owner.as_ref(),
             motion_scope,
         );

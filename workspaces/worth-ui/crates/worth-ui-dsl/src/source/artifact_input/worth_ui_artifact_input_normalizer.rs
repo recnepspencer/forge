@@ -93,5 +93,6 @@ fn body_atom_key(body_atom: &crate::source::WorthUiArtifactInputBodyAtom) -> Str
         crate::source::WorthUiArtifactInputBodyAtom::RightBrace => "}".to_owned(),
         crate::source::WorthUiArtifactInputBodyAtom::Semicolon => ";".to_owned(),
         crate::source::WorthUiArtifactInputBodyAtom::Equals => "=".to_owned(),
+        crate::source::WorthUiArtifactInputBodyAtom::Plus => "+".to_owned(),
     }
 }

@@ -18,6 +18,7 @@ pub(in crate::runtime) enum UiMotionCommitDenial {
 /// committed track copies and cannot mutate this table.
 pub(crate) struct UiMotionRuntimeState {
     persistence: crate::runtime::UiServiceStatePersistencePosture,
+    policy: crate::declaration::UiMotionPolicy,
     next_track_identity: u64,
     tracks: BTreeMap<super::UiMotionTargetIdentity, super::UiCommittedMotionTrack>,
     exit_retentions: BTreeMap<super::UiMotionTrackIdentity, super::UiMotionExitRetentionReceipt>,
@@ -28,8 +29,19 @@ pub(crate) struct UiMotionRuntimeState {
 
 impl UiMotionRuntimeState {
     pub(crate) const fn new(persistence: crate::runtime::UiServiceStatePersistencePosture) -> Self {
+        Self::new_with_policy(
+            persistence,
+            crate::declaration::UiMotionPolicy::system_respecting(),
+        )
+    }
+
+    pub(crate) const fn new_with_policy(
+        persistence: crate::runtime::UiServiceStatePersistencePosture,
+        policy: crate::declaration::UiMotionPolicy,
+    ) -> Self {
         Self {
             persistence,
+            policy,
             next_track_identity: 1,
             tracks: BTreeMap::new(),
             exit_retentions: BTreeMap::new(),
@@ -37,6 +49,10 @@ impl UiMotionRuntimeState {
             publication_sequence: 0,
             last_fact: None,
         }
+    }
+
+    pub(crate) fn apply_policy(&mut self, policy: crate::declaration::UiMotionPolicy) {
+        self.policy = policy;
     }
 
     pub(in crate::runtime) const fn persistence(
@@ -50,6 +66,7 @@ impl UiMotionRuntimeState {
         proposal: crate::runtime::session::service_proposal::UiServiceProposalIdentity,
         request: super::UiMotionTransitionRequest,
     ) -> Result<super::UiStagedMotionServiceProposal, UiMotionStagingDenial> {
+        let request = request.with_policy(self.policy);
         self.census
             .stage()
             .map_err(|_| UiMotionStagingDenial::CapacityExceeded)?;

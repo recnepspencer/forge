@@ -20,6 +20,10 @@ impl WorthUiFocusRuntimeCertificationExt for crate::facade::WorthUiActiveApplica
 }
 
 impl UiFocusRuntimeCertificationSnapshot {
+    pub(crate) const fn uninstalled() -> Self {
+        Self::new(None, None, 0, 0, 0)
+    }
+
     pub(crate) const fn new(
         current_participant: Option<u64>,
         active_descendant: Option<u64>,

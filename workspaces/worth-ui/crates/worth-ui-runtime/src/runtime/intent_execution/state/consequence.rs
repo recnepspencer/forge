@@ -228,6 +228,18 @@ fn require_current(
         .target_affinity
         .require_current(current.mounted)
         .map_err(UiIntentConsequenceStopReason::TargetChanged)?;
+    if let Some(command_route) = basis.command_route.as_ref() {
+        return match current
+            .catalog
+            .lookup_command(command_route.destination().intent())
+        {
+            Some((
+                crate::declaration::UiIntentCatalogCommandRoute::Resolved { declaration },
+                _,
+            )) if declaration.as_ref() == basis.declaration.as_ref() => Ok(()),
+            _ => Err(UiIntentConsequenceStopReason::ProductRouteChanged),
+        };
+    }
     match current
         .catalog
         .lookup(basis.graph_node, basis.declaration.interaction())
@@ -328,6 +340,12 @@ impl UiIntentConsequenceHandoff {
         &self,
     ) -> Option<crate::capability::UiIntentRuntimeServiceDestination> {
         self.batch.runtime_service
+    }
+
+    pub(crate) const fn command_route(
+        &self,
+    ) -> Option<&crate::runtime::command_routing::UiCommandRouteEvidence> {
+        self.basis.command_route.as_ref()
     }
 
     pub(crate) fn restore_query_from_facts(

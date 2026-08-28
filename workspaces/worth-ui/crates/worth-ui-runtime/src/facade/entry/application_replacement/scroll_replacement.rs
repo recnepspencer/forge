@@ -1,10 +1,13 @@
 use super::{WorthUiActiveApplicationSession, WorthUiPreparedApplicationActivation};
 
-pub(super) struct UiPreparedScrollReplacement(crate::runtime::scroll::UiScrollRuntimeState);
+pub(super) struct UiPreparedScrollReplacement(Option<crate::runtime::scroll::UiScrollRuntimeState>);
 
 impl UiPreparedScrollReplacement {
-    pub(super) fn into_state(self) -> crate::runtime::scroll::UiScrollRuntimeState {
-        self.0
+    pub(super) fn into_state(
+        self,
+    ) -> crate::runtime::UiRuntimeServiceInstallation<crate::runtime::scroll::UiScrollRuntimeState>
+    {
+        crate::runtime::UiRuntimeServiceInstallation::from_optional(self.0)
     }
 }
 
@@ -15,7 +18,23 @@ impl WorthUiActiveApplicationSession {
         successor: &crate::mounting::UiMountedGraphReplacementSuccessor,
         publication: Option<&crate::mounting::UiMountedFramePublicationReceipt>,
     ) -> UiPreparedScrollReplacement {
-        let mut scroll = self.scroll.clone();
+        if application
+            .candidate_service_policy_plan()
+            .scroll()
+            .is_none()
+        {
+            return UiPreparedScrollReplacement(None);
+        }
+        let policy = application
+            .candidate_service_policy_plan()
+            .scroll()
+            .expect("installed Scroll carries normalized policy");
+        let mut scroll = self.scroll.as_ref().cloned().unwrap_or_else(|| {
+            crate::runtime::scroll::UiScrollRuntimeState::new_session_restore_candidate_with_policy(
+                policy,
+            )
+        });
+        scroll.apply_policy(policy);
         let predecessor = self.mounted.view();
         let successor_view = successor.identity_view();
         for prior in predecessor.mounted_instances() {
@@ -35,7 +54,7 @@ impl WorthUiActiveApplicationSession {
             &self.mounted,
             self.scroll_owner_incarnation(),
         );
-        UiPreparedScrollReplacement(scroll)
+        UiPreparedScrollReplacement(Some(scroll))
     }
 }
 

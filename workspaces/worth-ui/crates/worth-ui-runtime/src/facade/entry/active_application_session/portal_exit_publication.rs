@@ -41,7 +41,11 @@ impl super::WorthUiActiveApplicationSession {
                             .portal_exit_retention
                             .remove(track)
                             .expect("published shutdown closure retains exact coordination");
-                        assert!(self.motion.release_exit_retention(retention.motion()));
+                        assert!(self
+                            .motion
+                            .as_mut()
+                            .expect("retained exit track retains Motion installation")
+                            .release_exit_retention(retention.motion()));
                     }
                     UiNormalizedPortalExitTerminalOutcome::Indeterminate(recovery) => {
                         let (frame, proposal) = recovery.into_parts();
@@ -49,8 +53,12 @@ impl super::WorthUiActiveApplicationSession {
                         self.application
                             .abandon_indeterminate_portal_service_proposal_for_shutdown(
                                 proposal,
-                                &mut self.focus,
-                                &mut self.motion,
+                                self.focus
+                                    .as_mut()
+                                    .expect("indeterminate exit retains Focus installation"),
+                                self.motion
+                                    .as_mut()
+                                    .expect("indeterminate exit retains Motion installation"),
                             );
                     }
                     UiNormalizedPortalExitTerminalOutcome::Stopped => {}
@@ -65,8 +73,12 @@ impl super::WorthUiActiveApplicationSession {
                 self.application
                     .abandon_indeterminate_portal_service_proposal_for_shutdown(
                         proposal,
-                        &mut self.focus,
-                        &mut self.motion,
+                        self.focus
+                            .as_mut()
+                            .expect("indeterminate exit retains Focus installation"),
+                        self.motion
+                            .as_mut()
+                            .expect("indeterminate exit retains Motion installation"),
                     );
             }
             Some(UiPortalExitTerminalPending::Reconstruction {
@@ -78,8 +90,12 @@ impl super::WorthUiActiveApplicationSession {
                 self.application
                     .abandon_indeterminate_portal_service_proposal_for_shutdown(
                         proposal,
-                        &mut self.focus,
-                        &mut self.motion,
+                        self.focus
+                            .as_mut()
+                            .expect("indeterminate exit retains Focus installation"),
+                        self.motion
+                            .as_mut()
+                            .expect("indeterminate exit retains Motion installation"),
                     );
             }
         }
@@ -196,8 +212,12 @@ impl super::WorthUiActiveApplicationSession {
                 self.application
                     .settle_indeterminate_portal_service_proposal_to_predecessor(
                         proposal,
-                        &mut self.focus,
-                        &mut self.motion,
+                        self.focus
+                            .as_mut()
+                            .expect("indeterminate exit retains Focus installation"),
+                        self.motion
+                            .as_mut()
+                            .expect("indeterminate exit retains Motion installation"),
                     );
                 self.retain_portal_exit_retry(track)
             }
@@ -216,7 +236,11 @@ impl super::WorthUiActiveApplicationSession {
             return UiPortalExitTerminalProgress::Idle;
         };
         let portal_retention = retention.portal();
-        let Some(presentation) = self.portal.exit_retention_presentation(portal_retention) else {
+        let Some(presentation) = self
+            .portal
+            .as_ref()
+            .and_then(|portal| portal.exit_retention_presentation(portal_retention))
+        else {
             return self.retain_portal_exit_retry(track);
         };
         let lineage = self.next_portal_service_event_identity;
@@ -231,13 +255,19 @@ impl super::WorthUiActiveApplicationSession {
             );
         let transition = match self
             .portal
+            .as_ref()
+            .expect("retained portal exit retains Portal installation")
             .prepare_exit_terminal(portal_retention, idempotency)
         {
             Ok(transition) => transition,
             Err(_) => return self.retain_portal_exit_retry(track),
         };
         let revision = transition.successor_revision();
-        let overlays = self.portal.mounted_projection_inputs(&transition, false);
+        let overlays = self
+            .portal
+            .as_ref()
+            .expect("retained portal exit retains Portal installation")
+            .mounted_projection_inputs(&transition, false);
         let preparation = match self
             .application
             .begin_portal_exit_terminal_service_proposal(
@@ -245,7 +275,9 @@ impl super::WorthUiActiveApplicationSession {
                 portal_retention,
                 presentation,
                 self.active_generation_identity(),
-                &mut self.motion,
+                self.motion
+                    .as_mut()
+                    .expect("retained portal exit retains Motion installation"),
             ) {
             Ok(preparation) => preparation,
             Err(_) => return self.retain_portal_exit_retry(track),
@@ -257,8 +289,12 @@ impl super::WorthUiActiveApplicationSession {
         ) {
             Ok(frame) => frame,
             Err(_) => {
-                self.application
-                    .cancel_portal_service_proposal_preparation(preparation, &mut self.motion);
+                self.application.cancel_portal_service_proposal_preparation(
+                    preparation,
+                    self.motion
+                        .as_mut()
+                        .expect("retained portal exit retains Motion installation"),
+                );
                 return self.retain_portal_exit_retry(track);
             }
         };
@@ -267,10 +303,14 @@ impl super::WorthUiActiveApplicationSession {
             preparation,
             &frame,
             &self.mounted,
-            &mut self.focus,
-            &self.scroll,
+            self.focus
+                .as_mut()
+                .expect("retained portal exit retains Focus installation"),
+            self.scroll.as_ref(),
             scroll_incarnation,
-            &mut self.motion,
+            self.motion
+                .as_mut()
+                .expect("retained portal exit retains Motion installation"),
         ) {
             Ok(proposal) => proposal,
             Err(_) => return self.retain_portal_exit_retry(track),
@@ -299,7 +339,11 @@ impl super::WorthUiActiveApplicationSession {
                     .portal_exit_retention
                     .remove(track)
                     .expect("published terminal closure retains exact coordination");
-                assert!(self.motion.release_exit_retention(retention.motion()));
+                assert!(self
+                    .motion
+                    .as_mut()
+                    .expect("retained exit track retains Motion installation")
+                    .release_exit_retention(retention.motion()));
                 assert!(self.mounted.retire_terminal_motion_sample(track));
                 UiPortalExitTerminalProgress::Published
             }

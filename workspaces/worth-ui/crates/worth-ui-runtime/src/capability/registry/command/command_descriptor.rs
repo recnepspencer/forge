@@ -1,6 +1,9 @@
-use crate::capability::{CommandId, CommandProjectionId, IconId};
+use crate::capability::{CommandId, CommandProjectionId, IconId, UiIntent};
 
-use super::CommandCategory;
+use super::{
+    CommandCategory, UiCommandRouteDeclaration, UiCommandRouteDestination,
+    UiCommandShortcutSequence,
+};
 
 /// Declarative command capability supplied by an application.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -9,7 +12,8 @@ pub struct CommandDescriptor {
     label: String,
     description: Option<String>,
     icon: Option<IconId>,
-    default_shortcut_reference: Option<String>,
+    default_shortcut: Option<UiCommandShortcutSequence>,
+    route: Option<UiCommandRouteDeclaration>,
     category: CommandCategory,
     projection_eligibility: Option<CommandProjectionId>,
 }
@@ -21,7 +25,8 @@ impl CommandDescriptor {
             label: label.into(),
             description: None,
             icon: None,
-            default_shortcut_reference: None,
+            default_shortcut: None,
+            route: None,
             category: CommandCategory::Application,
             projection_eligibility: None,
         }
@@ -37,11 +42,20 @@ impl CommandDescriptor {
         self
     }
 
-    pub fn with_default_shortcut_reference(
-        mut self,
-        default_shortcut_reference: impl Into<String>,
-    ) -> Self {
-        self.default_shortcut_reference = Some(default_shortcut_reference.into());
+    pub fn with_default_shortcut(mut self, default_shortcut: UiCommandShortcutSequence) -> Self {
+        self.default_shortcut = Some(default_shortcut);
+        self
+    }
+
+    pub fn with_route(mut self, route: UiCommandRouteDeclaration) -> Self {
+        self.route = Some(route);
+        self
+    }
+
+    pub fn with_intent_destination<I: UiIntent>(mut self) -> Self {
+        self.route = Some(UiCommandRouteDeclaration::new(
+            UiCommandRouteDestination::for_intent::<I>(),
+        ));
         self
     }
 
@@ -74,8 +88,12 @@ impl CommandDescriptor {
         self.icon.as_ref()
     }
 
-    pub fn default_shortcut_reference(&self) -> Option<&str> {
-        self.default_shortcut_reference.as_deref()
+    pub fn default_shortcut(&self) -> Option<UiCommandShortcutSequence> {
+        self.default_shortcut
+    }
+
+    pub fn route(&self) -> Option<UiCommandRouteDeclaration> {
+        self.route
     }
 
     pub fn category(&self) -> CommandCategory {

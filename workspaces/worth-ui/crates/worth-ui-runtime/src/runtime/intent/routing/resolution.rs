@@ -10,7 +10,23 @@ pub(crate) fn resolve_intent_route(
     mounted: &crate::mounting::WorthUiMountedSessionState,
     source: crate::runtime::interaction::UiIntentRouteSource,
 ) -> Result<UiIntentRouteResolution, UiIntentRouteResolutionStop> {
-    let interaction = source.into_mounted_interaction();
+    match source.into_kind() {
+        crate::runtime::interaction::UiIntentRouteSourceMaterial::MountedInteraction(
+            interaction,
+        ) => resolve_mounted(catalog, definitions, generation, mounted, interaction),
+        crate::runtime::interaction::UiIntentRouteSourceMaterial::CommandRoute(receipt) => {
+            resolve_command(catalog, definitions, generation, mounted, receipt)
+        }
+    }
+}
+
+fn resolve_mounted(
+    catalog: &crate::declaration::UiIntentCatalog,
+    definitions: &crate::capability::FrozenIntentDefinitionCapabilities,
+    generation: &crate::runtime::WorthUiActiveApplicationGenerationIdentity,
+    mounted: &crate::mounting::WorthUiMountedSessionState,
+    interaction: crate::runtime::interaction::UiSemanticInteraction,
+) -> Result<UiIntentRouteResolution, UiIntentRouteResolutionStop> {
     if interaction.generation() != generation {
         return Err(UiIntentRouteResolutionStop::ApplicationGenerationChanged);
     }
@@ -34,7 +50,7 @@ pub(crate) fn resolve_intent_route(
                     interaction: route.interaction(),
                     definition_id: definitions.definition_at(declaration.definition()).id(),
                     declaration,
-                    source: interaction,
+                    source: super::UiIntentProductInputSource::mounted(interaction),
                     cost,
                 },
             ))
@@ -51,4 +67,69 @@ pub(crate) fn resolve_intent_route(
             ))
         }
     })
+}
+
+fn resolve_command(
+    catalog: &crate::declaration::UiIntentCatalog,
+    definitions: &crate::capability::FrozenIntentDefinitionCapabilities,
+    generation: &crate::runtime::WorthUiActiveApplicationGenerationIdentity,
+    mounted: &crate::mounting::WorthUiMountedSessionState,
+    receipt: crate::runtime::UiCommandRouteReceipt,
+) -> Result<UiIntentRouteResolution, UiIntentRouteResolutionStop> {
+    if receipt.application() != generation {
+        return Err(UiIntentRouteResolutionStop::ApplicationGenerationChanged);
+    }
+    let presentation = receipt
+        .presentation()
+        .ok_or(UiIntentRouteResolutionStop::CommandInvocationBasisMissing)?;
+    if receipt.sequence().is_none() || receipt.time_basis().is_none() {
+        return Err(UiIntentRouteResolutionStop::CommandInvocationBasisMissing);
+    }
+    let intent = receipt.destination().intent();
+    let (resolved, cost) = catalog
+        .lookup_command(intent)
+        .ok_or(UiIntentRouteResolutionStop::CommandDestinationUnrouted { intent })?;
+    let declaration = match resolved {
+        crate::declaration::UiIntentCatalogCommandRoute::Resolved { declaration } => declaration,
+        crate::declaration::UiIntentCatalogCommandRoute::Ambiguous { candidates } => {
+            return Err(UiIntentRouteResolutionStop::CommandDestinationAmbiguous {
+                intent,
+                candidates,
+            })
+        }
+    };
+    let target = if let Some(focused) = receipt
+        .focused_target()
+        .or_else(|| receipt.invocation_target())
+    {
+        let target = crate::runtime::interaction::targeting::resolve_presented_focus_target(
+            mounted,
+            presentation,
+            focused,
+        )
+        .map_err(UiIntentRouteResolutionStop::Targeting)?
+        .ok_or(UiIntentRouteResolutionStop::Targeting(
+            crate::runtime::interaction::UiInteractionTargetingDenial::GraphTargetNotPresented,
+        ))?;
+        target
+    } else {
+        crate::runtime::interaction::targeting::resolve_presented_surface_target(
+            mounted,
+            presentation,
+        )
+        .map_err(UiIntentRouteResolutionStop::Targeting)?
+    };
+    let graph_node = crate::runtime::interaction::targeting::admit_current_target(mounted, target)
+        .map_err(UiIntentRouteResolutionStop::Targeting)?
+        .graph_node();
+    Ok(UiIntentRouteResolution::Product(
+        UiResolvedProductIntentRoute::new(super::UiResolvedProductIntentRouteInput {
+            graph_node,
+            interaction: declaration.interaction(),
+            definition_id: definitions.definition_at(declaration.definition()).id(),
+            declaration,
+            source: super::UiIntentProductInputSource::command(receipt, target),
+            cost,
+        }),
+    ))
 }

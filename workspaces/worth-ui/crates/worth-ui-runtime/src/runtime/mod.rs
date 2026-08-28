@@ -39,6 +39,11 @@ pub(crate) use launch::{
     WorthUiInitialMountedCatalogPreparationDenial, WorthUiMountedAllocationActivationBasis,
 };
 pub(crate) mod command_routing;
+pub use command_routing::{
+    UiCommandAmbiguity, UiCommandInvocationOrigin, UiCommandPrefixReceipt, UiCommandRouteLoss,
+    UiCommandRouteLossReason, UiCommandRouteReceipt, UiCommandRoutingOutcome,
+    UiCommandRoutingSuppression,
+};
 pub(crate) mod focus;
 mod measurement;
 pub(crate) mod motion;
@@ -51,7 +56,9 @@ pub(crate) mod rebind;
 pub mod replacement;
 pub(crate) mod scroll;
 pub(crate) mod selection;
+mod service_installation;
 mod service_state_persistence;
+pub(crate) use service_installation::UiRuntimeServiceInstallation;
 pub(crate) use service_state_persistence::UiServiceStatePersistencePosture;
 pub(crate) mod session;
 mod source_ingress;

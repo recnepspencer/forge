@@ -5,6 +5,10 @@ use super::{
     WorthUiActiveApplicationGenerationIdentity, WorthUiActiveApplicationSessionIdentity,
     WorthUiActiveFrameworkTurnCompletion, WorthUiApp,
 };
+#[path = "active_application_session/command_context.rs"]
+mod command_context;
+#[path = "active_application_session/command_observation.rs"]
+mod command_observation;
 #[path = "active_application_session/focus_observation.rs"]
 mod focus_observation;
 #[path = "active_application_session/motion_sampling.rs"]
@@ -13,6 +17,9 @@ mod motion_sampling;
 mod portal_exit_publication;
 pub(in crate::facade::entry) use portal_exit_publication::UiPortalExitTerminalProgress;
 pub(in crate::facade::entry) use portal_exit_retention::UiPortalExitTerminalPending;
+#[cfg(any(test, feature = "certification-support"))]
+#[path = "active_application_session/plan_observation.rs"]
+mod plan_observation;
 #[path = "active_application_session/portal_exit_retention.rs"]
 mod portal_exit_retention;
 #[path = "active_application_session/portal_motion.rs"]
@@ -25,6 +32,8 @@ mod runtime_access;
 mod scroll_observation;
 #[path = "active_application_session/semantic_text_registration.rs"]
 mod semantic_text_registration;
+#[path = "active_application_session/service_installation_observation.rs"]
+mod service_installation_observation;
 #[path = "active_application_session/service_proposal_observation.rs"]
 mod service_proposal_observation;
 #[path = "active_application_session/service_state_observation.rs"]
@@ -42,11 +51,21 @@ pub struct WorthUiActiveApplicationSession {
     pub(super) mounted: crate::mounting::WorthUiMountedSessionState,
     pub(super) host_exchange: crate::host_exchange::WorthUiHostExchangeSessionState,
     pub(super) interaction: crate::runtime::interaction::UiInteractionRuntimeState,
-    pub(super) focus: crate::runtime::focus::UiFocusRuntimeState,
-    pub(super) portal: crate::runtime::portal::UiPortalRuntimeState,
-    pub(super) motion: crate::runtime::motion::UiMotionRuntimeState,
-    pub(super) scroll: crate::runtime::scroll::UiScrollRuntimeState,
-    pub(super) selection: crate::runtime::selection::UiSelectionRuntimeState,
+    pub(super) focus:
+        crate::runtime::UiRuntimeServiceInstallation<crate::runtime::focus::UiFocusRuntimeState>,
+    pub(super) portal:
+        crate::runtime::UiRuntimeServiceInstallation<crate::runtime::portal::UiPortalRuntimeState>,
+    pub(super) motion:
+        crate::runtime::UiRuntimeServiceInstallation<crate::runtime::motion::UiMotionRuntimeState>,
+    pub(super) scroll:
+        crate::runtime::UiRuntimeServiceInstallation<crate::runtime::scroll::UiScrollRuntimeState>,
+    pub(super) selection: crate::runtime::UiRuntimeServiceInstallation<
+        crate::runtime::selection::UiSelectionRuntimeState,
+    >,
+    pub(super) command_routing: crate::runtime::UiRuntimeServiceInstallation<
+        crate::runtime::command_routing::UiCommandRoutingRuntimeState,
+    >,
+    pub(super) ime_composing: bool,
     pub(super) portal_exit_retention: portal_exit_retention::UiPortalExitRetentionCoordinator,
     pub(super) intent_evidence: crate::inspection::intent::UiIntentEvidenceRegistry,
     pub(super) intent_application_facts: crate::runtime::intent::UiIntentApplicationFactState,
@@ -87,6 +106,16 @@ impl WorthUiActiveApplicationSession {
             crate::runtime::presentation_state::UiApplicationPresentationState::activate(
                 app.capabilities(),
             );
+        let service_policy_plan = app.service_policy_plan();
+        let command_routing = crate::runtime::UiRuntimeServiceInstallation::from_optional(
+            service_policy_plan.command_routing().map(|policy| {
+                crate::runtime::command_routing::UiCommandRoutingRuntimeState::new(
+                    crate::runtime::UiServiceStatePersistencePosture::Ephemeral,
+                    app.capabilities().commands(),
+                    policy,
+                )
+            }),
+        );
         let application =
             crate::runtime::session::WorthUiApplicationSessionState::new(app, runtime);
         let mounted = crate::mounting::WorthUiMountedSessionState::new(
@@ -109,16 +138,46 @@ impl WorthUiActiveApplicationSession {
                 host_observation_capacity,
             ),
             interaction: crate::runtime::interaction::UiInteractionRuntimeState::new(),
-            focus: crate::runtime::focus::UiFocusRuntimeState::new_session_restore_candidate(),
-            portal: crate::runtime::portal::UiPortalRuntimeState::new(
-                crate::runtime::UiServiceStatePersistencePosture::SessionRestoreCandidate,
+            focus: crate::runtime::UiRuntimeServiceInstallation::from_optional(
+                service_policy_plan.focus().map(|policy| {
+                    let restoration = service_policy_plan
+                        .portal()
+                        .is_none_or(crate::declaration::UiPortalPolicy::restores_focus);
+                    crate::runtime::focus::UiFocusRuntimeState::new_session_restore_candidate_with_policy(
+                        policy.with_scope_restoration(
+                            policy.restores_on_scope_close() && restoration,
+                        ),
+                    )
+                }),
             ),
-            motion: crate::runtime::motion::UiMotionRuntimeState::new(
-                crate::runtime::UiServiceStatePersistencePosture::Ephemeral,
+            portal: crate::runtime::UiRuntimeServiceInstallation::from_optional(
+                service_policy_plan.portal().map(|policy| {
+                    crate::runtime::portal::UiPortalRuntimeState::new_with_policy(
+                        crate::runtime::UiServiceStatePersistencePosture::SessionRestoreCandidate,
+                        policy,
+                    )
+                }),
             ),
-            scroll: crate::runtime::scroll::UiScrollRuntimeState::new_session_restore_candidate(),
-            selection:
-                crate::runtime::selection::UiSelectionRuntimeState::new_session_restore_candidate(),
+            motion: crate::runtime::UiRuntimeServiceInstallation::from_optional(
+                service_policy_plan.motion().map(|policy| {
+                    crate::runtime::motion::UiMotionRuntimeState::new_with_policy(
+                        crate::runtime::UiServiceStatePersistencePosture::Ephemeral,
+                        policy,
+                    )
+                }),
+            ),
+            scroll: crate::runtime::UiRuntimeServiceInstallation::from_optional(
+                service_policy_plan.scroll().map(
+                    crate::runtime::scroll::UiScrollRuntimeState::new_session_restore_candidate_with_policy,
+                ),
+            ),
+            selection: crate::runtime::UiRuntimeServiceInstallation::from_optional(
+                service_policy_plan.selection().map(
+                    crate::runtime::selection::UiSelectionRuntimeState::new_session_restore_candidate_with_policy,
+                ),
+            ),
+            command_routing,
+            ime_composing: false,
             portal_exit_retention: portal_exit_retention::UiPortalExitRetentionCoordinator::new(),
             intent_evidence: crate::inspection::intent::UiIntentEvidenceRegistry::new(
                 identity.as_u64(),
@@ -255,103 +314,11 @@ impl WorthUiActiveApplicationSession {
             mounted: &mut self.mounted,
             host_session: &self.host_session,
             host_exchange: &mut self.host_exchange,
-            focus: &mut self.focus,
-            portal: &mut self.portal,
+            focus: self.focus.as_mut(),
+            portal: self.portal.as_mut(),
             interaction: &mut self.interaction,
             presentation: &mut self.presentation,
         })
-    }
-
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) fn ordinary_plan_availability(
-        &self,
-    ) -> crate::runtime::WorthUiOrdinaryPlanAvailability {
-        self.application.ordinary_plan_availability()
-    }
-
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) fn virtualized_plan_availability(
-        &self,
-    ) -> crate::runtime::WorthUiVirtualizedPlanAvailability {
-        self.application.virtualized_plan_availability()
-    }
-
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) fn query_fact_link(
-        &self,
-        binding_id: &str,
-    ) -> Option<crate::runtime::WorthUiQueryLaneFactLink> {
-        self.application.query_fact_link(binding_id)
-    }
-
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) fn canvas_spatial_plan_availability(
-        &self,
-    ) -> crate::runtime::WorthUiCanvasSpatialPlanAvailability {
-        self.application.canvas_spatial_plan_availability()
-    }
-
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) fn first_canvas_spatial_handle(&self) -> Option<crate::runtime::WorthUiLaneHandle> {
-        self.application.first_canvas_spatial_handle()
-    }
-
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) fn inspect_canvas_spatial_target(
-        &self,
-        handle: crate::runtime::WorthUiLaneHandle,
-    ) -> Result<
-        crate::runtime::WorthUiCanvasSpatialTargetSummary,
-        crate::runtime::WorthUiCanvasSpatialInspectionDenial,
-    > {
-        self.application.inspect_canvas_spatial_target(handle)
-    }
-
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) fn realtime_plan_availability(
-        &self,
-    ) -> crate::runtime::WorthUiRealtimePlanAvailability {
-        self.application.realtime_plan_availability()
-    }
-
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) fn first_realtime_renderer_surface(
-        &self,
-    ) -> Option<crate::runtime::WorthUiRendererSurfaceHandle> {
-        self.application.first_realtime_renderer_surface()
-    }
-
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) fn inspect_realtime_target(
-        &self,
-        handle: crate::runtime::WorthUiRendererSurfaceHandle,
-    ) -> Result<
-        crate::runtime::WorthUiRealtimeTargetSummary,
-        crate::runtime::WorthUiRealtimeInspectionDenial,
-    > {
-        self.application.inspect_realtime_target(handle)
-    }
-
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) fn inspect_virtualized_plan(
-        &self,
-        request: crate::runtime::WorthUiVirtualizedPlanSummaryRequest,
-    ) -> Result<
-        crate::runtime::WorthUiVirtualizedPlanSummary,
-        crate::runtime::WorthUiVirtualizedPlanSummaryDenial,
-    > {
-        self.application.inspect_virtualized_plan(request)
-    }
-
-    #[cfg(any(test, feature = "certification-support"))]
-    pub(crate) fn inspect_ordinary_plan(
-        &self,
-        request: crate::runtime::WorthUiOrdinaryPlanSummaryRequest,
-    ) -> Result<
-        crate::runtime::WorthUiOrdinaryPlanSummary,
-        crate::runtime::WorthUiOrdinaryPlanSummaryDenial,
-    > {
-        self.application.inspect_ordinary_plan(request)
     }
 
     pub fn host_session_identity(&self) -> crate::facade::WorthUiHostSessionIdentity {

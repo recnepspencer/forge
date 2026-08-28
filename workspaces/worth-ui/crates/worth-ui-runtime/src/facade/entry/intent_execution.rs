@@ -31,6 +31,7 @@ impl WorthUiActiveApplicationSession {
     ) -> crate::facade::intent::UiIntentExecutionDispatchOutcome {
         let admission = admitted.slot_identity();
         let generation = self.active_generation_identity();
+        let command_contexts = self.all_current_command_routing_contexts();
         let prepared = self.application.prepared_authority();
         let context = crate::runtime::intent::UiIntentAdmissionCurrentnessContext {
             catalog: prepared.intent_catalog(),
@@ -38,6 +39,7 @@ impl WorthUiActiveApplicationSession {
             generation: &generation,
             mounted: &self.mounted,
             application_facts: &self.intent_application_facts,
+            command_contexts,
         };
         match self.intent_execution.dispatch(
             admitted,

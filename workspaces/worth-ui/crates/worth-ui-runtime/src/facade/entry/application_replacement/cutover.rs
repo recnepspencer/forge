@@ -1,4 +1,7 @@
 use super::publication_observation::WorthUiApplicationPublicationPreparation;
+use super::service_installation_reconciliation::{
+    reconcile_focus_installation, reconcile_motion_installation, reconcile_portal_installation,
+};
 use super::*;
 use crate::facade::WorthUiActiveApplicationSession;
 
@@ -18,6 +21,7 @@ struct WorthUiPreparedCutoverEvidence {
     candidate_graph: crate::graph::UiGraphSnapshot,
     candidate_application_authority:
         crate::facade::prepared_application_authority::WorthUiPreparedApplicationLoweringAuthority,
+    candidate_service_policy_plan: crate::declaration::UiNormalizedServicePolicyPlan,
 }
 
 struct WorthUiCutoverPreparationInput {
@@ -73,7 +77,8 @@ impl WorthUiActiveApplicationSession {
                     ))
                     .map_err(WorthUiApplicationCutoverDenial::MountedIdentity)?;
                 let scroll = self.prepare_scroll_replacement(&activation, &next_mounted, None);
-                let selection = self.prepare_selection_replacement(&next_mounted, false);
+                let selection =
+                    self.prepare_selection_replacement(&activation, &next_mounted, false);
                 let receipt =
                     self.commit_application_activation(activation, next_mounted, scroll, selection);
                 Ok(WorthUiApplicationReplacementOutcome::Activated(Box::new(
@@ -93,6 +98,8 @@ impl WorthUiActiveApplicationSession {
         let candidate_graph = pending.next_app.graph_snapshot().clone();
         let candidate_application_authority =
             pending.next_app.prepared_authority().lowering_authority();
+        let candidate_service_policy_plan =
+            pending.next_app.prepared_authority().service_policy_plan();
         if self.mounted.has_active_presentation_attempt() {
             return Err(WorthUiApplicationCutoverDenial::MountedPresentationInFlight);
         }
@@ -125,6 +132,7 @@ impl WorthUiActiveApplicationSession {
             font_collection: prepared_catalog.font_collection,
             candidate_graph,
             candidate_application_authority,
+            candidate_service_policy_plan,
         };
         match prepared_catalog.prepared.into_activation() {
             Err(receipt) => Ok(seal_semantic_no_op(evidence, receipt)),
@@ -194,6 +202,34 @@ impl WorthUiActiveApplicationSession {
             }
         };
         let publication = self.application.commit_application_activation(activation);
+        let service_policy_plan = self.application.prepared_authority().service_policy_plan();
+        if let Some(command_routing) = self.command_routing.as_mut() {
+            command_routing.shutdown();
+        }
+        self.command_routing = crate::runtime::UiRuntimeServiceInstallation::from_optional(
+            self.application
+                .prepared_authority()
+                .service_policy_plan()
+                .command_routing()
+                .map(|policy| {
+                    crate::runtime::command_routing::UiCommandRoutingRuntimeState::new(
+                        crate::runtime::UiServiceStatePersistencePosture::Ephemeral,
+                        self.application.capabilities().commands(),
+                        policy,
+                    )
+                }),
+        );
+        reconcile_focus_installation(
+            &mut self.focus,
+            service_policy_plan.focus().map(|policy| {
+                let restoration = service_policy_plan
+                    .portal()
+                    .is_none_or(crate::declaration::UiPortalPolicy::restores_focus);
+                policy.with_scope_restoration(policy.restores_on_scope_close() && restoration)
+            }),
+        );
+        reconcile_portal_installation(&mut self.portal, service_policy_plan.portal());
+        reconcile_motion_installation(&mut self.motion, service_policy_plan.motion());
         self.intent_application_facts =
             crate::runtime::intent::UiIntentApplicationFactState::activate(
                 self.application.intent_application_fact_plan(),
@@ -205,8 +241,22 @@ impl WorthUiActiveApplicationSession {
             &mut self.intent_execution,
             crate::runtime::intent::UiIntentAdmissionCancellationReason::ApplicationRebound,
         );
-        self.scroll = scroll.into_state();
-        self.selection = selection.into_state();
+        let scroll = scroll.into_state();
+        if !scroll.is_installed() {
+            let _ = self
+                .scroll
+                .as_mut()
+                .map(crate::runtime::scroll::UiScrollRuntimeState::shutdown);
+        }
+        self.scroll = scroll;
+        let selection = selection.into_state();
+        if !selection.is_installed() {
+            let _ = self
+                .selection
+                .as_mut()
+                .map(crate::runtime::selection::UiSelectionRuntimeState::shutdown);
+        }
+        self.selection = selection;
         self.mounted
             .commit_graph_replacement_successor(mounted_successor);
         self.cancel_all_interactions(
@@ -249,52 +299,6 @@ impl WorthUiActiveApplicationSession {
             self.application.into_runtime_for_test(),
             pending.pending_activation,
         )
-    }
-}
-
-impl WorthUiPreparedApplicationActivation {
-    pub(super) fn visual_trace_source(
-        &self,
-    ) -> crate::facade::prepared_application_authority::WorthUiPreparedVisualTraceSource {
-        self.visual_trace_source.clone()
-    }
-
-    pub(super) fn candidate_plan(&self) -> &crate::runtime::WorthUiActiveExecutionPlan {
-        self.prepared_transition().candidate_plan()
-    }
-
-    pub(super) fn candidate_query_binding(
-        &self,
-    ) -> &worth_ui_query_binding::WorthUiRuntimeQueryBinding {
-        self.prepared_transition().candidate_query_binding()
-    }
-
-    pub(super) fn candidate_allocation_catalog(
-        &self,
-    ) -> crate::runtime::UiMountedAllocationProjectionCatalog {
-        self.prepared_transition().candidate_allocation_catalog()
-    }
-
-    pub(super) fn candidate_plan_digest(&self) -> u64 {
-        self.prepared_transition().candidate_plan_digest()
-    }
-
-    pub(super) fn candidate_allocation_truth_revision(&self) -> u64 {
-        self.prepared_transition()
-            .candidate_allocation_truth_revision()
-    }
-
-    fn prepared_transition(&self) -> &crate::runtime::WorthUiPreparedApplicationPlanSwap {
-        match self
-            .transition
-            .as_ref()
-            .expect("prepared application transition is present")
-        {
-            WorthUiApplicationCutoverTransition::Prepared(activation) => activation,
-            WorthUiApplicationCutoverTransition::Committed { .. } => {
-                unreachable!("prepared application transition cannot already be committed")
-            }
-        }
     }
 }
 
@@ -361,6 +365,7 @@ fn seal_prepared_activation(
             font_collection: evidence.font_collection,
             candidate_graph: evidence.candidate_graph,
             candidate_application_authority: evidence.candidate_application_authority,
+            candidate_service_policy_plan: evidence.candidate_service_policy_plan,
             reload_cost,
             transition: Some(WorthUiApplicationCutoverTransition::Prepared(activation)),
         },

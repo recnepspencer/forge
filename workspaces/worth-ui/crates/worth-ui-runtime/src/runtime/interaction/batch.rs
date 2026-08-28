@@ -13,6 +13,7 @@ pub struct UiInteractionBatchReceipt {
     pub(super) ignored_reports: usize,
     pub(super) state: UiInteractionStateSnapshot,
     pub(super) scroll_observations: Box<[crate::runtime::scroll::UiHostScrollObservationOutcome]>,
+    pub(super) command_routes: Box<[crate::runtime::UiCommandRoutingOutcome]>,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -52,6 +53,26 @@ impl UiInteractionBatchReceipt {
         &self,
     ) -> &[crate::runtime::scroll::UiHostScrollObservationOutcome] {
         &self.scroll_observations
+    }
+
+    pub(crate) fn retain_command_routes(
+        &mut self,
+        routes: Vec<crate::runtime::UiCommandRoutingOutcome>,
+    ) {
+        self.command_routes = routes.into_boxed_slice();
+    }
+
+    pub fn command_routes(&self) -> &[crate::runtime::UiCommandRoutingOutcome] {
+        &self.command_routes
+    }
+
+    pub(crate) fn into_routing_parts(
+        self,
+    ) -> (
+        Box<[UiInteractionTransition]>,
+        Box<[crate::runtime::UiCommandRoutingOutcome]>,
+    ) {
+        (self.transitions, self.command_routes)
     }
 
     pub(crate) fn retain_service_dismissal(&mut self, dismissal: super::UiDismissInteraction) {

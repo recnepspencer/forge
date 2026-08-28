@@ -30,4 +30,19 @@ impl UiRuntimeServiceSupport {
     ) -> UiRuntimeServiceSupportPosture {
         self.postures[family.index()]
     }
+
+    #[must_use]
+    pub(crate) const fn union(mut self, other: Self) -> Self {
+        let mut index = 0;
+        while index < self.postures.len() {
+            if matches!(
+                other.postures[index],
+                UiRuntimeServiceSupportPosture::Installed
+            ) {
+                self.postures[index] = UiRuntimeServiceSupportPosture::Installed;
+            }
+            index += 1;
+        }
+        self
+    }
 }

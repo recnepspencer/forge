@@ -11,11 +11,23 @@ pub(super) fn settle_published_portal_proposal(
         .settle_published_portal_service_proposal(
             transaction,
             mounted,
-            &mut admitted.session.portal,
-            &mut admitted.session.focus,
-            &mut admitted.session.scroll,
-            &mut admitted.session.selection,
-            &mut admitted.session.motion,
+            admitted
+                .session
+                .portal
+                .as_mut()
+                .expect("staged proposal retains Portal installation"),
+            admitted
+                .session
+                .focus
+                .as_mut()
+                .expect("staged proposal retains Focus installation"),
+            admitted.session.scroll.as_mut(),
+            admitted.session.selection.as_mut(),
+            admitted
+                .session
+                .motion
+                .as_mut()
+                .expect("staged proposal retains Motion installation"),
         )
         .expect("exact staged portal proposal accepts its publication receipt");
     admitted
@@ -44,9 +56,21 @@ pub(super) fn settle_indeterminate_portal_proposal(
             .application
             .settle_indeterminate_portal_service_proposal(
                 transaction,
-                &mut admitted.session.portal,
-                &mut admitted.session.focus,
-                &mut admitted.session.motion,
+                admitted
+                    .session
+                    .portal
+                    .as_mut()
+                    .expect("staged proposal retains Portal installation"),
+                admitted
+                    .session
+                    .focus
+                    .as_mut()
+                    .expect("staged proposal retains Focus installation"),
+                admitted
+                    .session
+                    .motion
+                    .as_mut()
+                    .expect("staged proposal retains Motion installation"),
             )
             .expect("indeterminate physical settlement retains exact semantic proposal"),
     )
@@ -63,8 +87,16 @@ pub(super) fn settle_rejected_portal_proposal(
         .application
         .settle_rejected_portal_service_proposal(
             transaction,
-            &mut admitted.session.focus,
-            &mut admitted.session.motion,
+            admitted
+                .session
+                .focus
+                .as_mut()
+                .expect("staged proposal retains Focus installation"),
+            admitted
+                .session
+                .motion
+                .as_mut()
+                .expect("staged proposal retains Motion installation"),
         )
         .expect("before-effect rejection retains exact semantic proposal");
 }

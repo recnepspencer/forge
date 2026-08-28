@@ -106,7 +106,7 @@ impl WorthUiApplicationSessionState {
         let registration = crate::runtime::selection::UiSelectionRegistration::new(
             owner,
             incarnation,
-            crate::runtime::selection::UiSelectionPolicy::Single,
+            selection.default_owner_policy(),
             catalog,
             catalog_posture,
         )

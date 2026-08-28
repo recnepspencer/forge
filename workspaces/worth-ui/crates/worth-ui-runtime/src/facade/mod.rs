@@ -35,6 +35,7 @@ pub mod rebind;
 pub mod registry;
 mod retained_obligation_registry;
 pub mod runtime_handoff;
+pub mod service;
 pub mod source_ingress;
 pub mod text;
 

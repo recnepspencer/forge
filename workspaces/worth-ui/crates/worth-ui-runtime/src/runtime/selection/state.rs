@@ -1,6 +1,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 mod lifecycle;
+mod record;
+
+use record::empty_record;
+pub(super) use record::validate_catalog;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct UiSelectionOwnerRecord {
@@ -21,6 +25,7 @@ pub(super) struct UiSelectionOwnerRecord {
 #[derive(Clone)]
 pub(crate) struct UiSelectionRuntimeState {
     persistence: crate::runtime::UiServiceStatePersistencePosture,
+    policy: crate::declaration::UiSelectionPolicy,
     owners: BTreeMap<super::UiSelectionOwnerIdentity, UiSelectionOwnerRecord>,
     revision: u64,
     requests: u64,
@@ -42,8 +47,17 @@ pub(crate) struct UiSelectionRuntimeState {
 
 impl UiSelectionRuntimeState {
     pub(crate) const fn new_session_restore_candidate() -> Self {
+        Self::new_session_restore_candidate_with_policy(
+            crate::declaration::UiSelectionPolicy::single(),
+        )
+    }
+
+    pub(crate) const fn new_session_restore_candidate_with_policy(
+        policy: crate::declaration::UiSelectionPolicy,
+    ) -> Self {
         Self {
             persistence: crate::runtime::UiServiceStatePersistencePosture::SessionRestoreCandidate,
+            policy,
             owners: BTreeMap::new(),
             revision: 0,
             requests: 0,
@@ -51,6 +65,20 @@ impl UiSelectionRuntimeState {
             catalog_keys_reconciled: 0,
             mounted_owners: BTreeMap::new(),
             family_owners: BTreeMap::new(),
+        }
+    }
+
+    pub(crate) fn apply_policy(&mut self, policy: crate::declaration::UiSelectionPolicy) {
+        self.policy = policy;
+    }
+
+    pub(crate) const fn default_owner_policy(&self) -> super::UiSelectionPolicy {
+        match self.policy.mode() {
+            crate::declaration::UiSelectionMode::Single => super::UiSelectionPolicy::Single,
+            crate::declaration::UiSelectionMode::Multiple => super::UiSelectionPolicy::Multiple,
+            crate::declaration::UiSelectionMode::Range => {
+                super::UiSelectionPolicy::MultipleWithRange
+            }
         }
     }
 
@@ -103,7 +131,8 @@ impl UiSelectionRuntimeState {
                 .collect::<Vec<_>>();
             let complete =
                 registration.catalog_posture() == super::UiSelectionCatalogPosture::Complete;
-            let removed = if complete {
+            let remove_missing = complete || !self.policy.preserves_stable_keys();
+            let removed = if remove_missing {
                 for key in &missing {
                     record.selected.remove(key);
                 }
@@ -132,7 +161,7 @@ impl UiSelectionRuntimeState {
             (
                 order_changed,
                 removed,
-                if complete { 0 } else { missing.len() },
+                if remove_missing { 0 } else { missing.len() },
                 record.selected.len(),
             )
         };
@@ -172,6 +201,7 @@ impl UiSelectionRuntimeState {
         let incarnation = registration.incarnation();
         let mut staged = Self {
             persistence: self.persistence,
+            policy: self.policy,
             owners: self
                 .owners
                 .get(&owner)
@@ -259,6 +289,22 @@ impl UiSelectionRuntimeState {
         self.candidates_visited
     }
 
+    pub(crate) fn compact_posture_for(
+        &self,
+        surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
+        graph_node: crate::graph::UiGraphNodeIdentity,
+        incarnation: super::UiSelectionOwnerIncarnation,
+    ) -> Option<(usize, u64)> {
+        let owners = self
+            .mounted_owners
+            .get(&(surface, graph_node, incarnation))?;
+        if owners.len() != 1 {
+            return None;
+        }
+        let record = self.owners.get(owners.first()?)?;
+        Some((record.selected.len(), self.revision))
+    }
+
     #[cfg(any(test, feature = "certification-support"))]
     pub(crate) fn inspect_for_certification(
         &self,
@@ -340,38 +386,4 @@ impl UiSelectionRuntimeState {
             self.family_owners.remove(&family);
         }
     }
-}
-
-fn empty_record(registration: &super::UiSelectionRegistration) -> UiSelectionOwnerRecord {
-    UiSelectionOwnerRecord {
-        incarnation: registration.incarnation(),
-        policy: registration.policy(),
-        catalog: std::sync::Arc::from([]),
-        catalog_positions: std::sync::Arc::new(BTreeMap::new()),
-        catalog_posture: registration.catalog_posture(),
-        catalog_revision: registration.catalog_revision(),
-        catalog_available: true,
-        selected: BTreeSet::new(),
-        anchor: None,
-        cursor: None,
-    }
-}
-
-pub(super) fn validate_catalog(
-    owner: super::UiSelectionOwnerIdentity,
-    catalog: &[super::UiSelectionStableKey],
-) -> Result<BTreeMap<super::UiSelectionStableKey, usize>, super::UiSelectionRequestDenial> {
-    if catalog.len() > super::model::UI_SELECTION_CATALOG_LIMIT {
-        return Err(super::UiSelectionRequestDenial::CatalogCapacityExceeded);
-    }
-    let mut positions = BTreeMap::new();
-    for (index, key) in catalog.iter().copied().enumerate() {
-        if key.family() != owner.item_key_family() {
-            return Err(super::UiSelectionRequestDenial::ForeignItemKeyFamily);
-        }
-        if positions.insert(key, index).is_some() {
-            return Err(super::UiSelectionRequestDenial::DuplicateCatalogKey);
-        }
-    }
-    Ok(positions)
 }

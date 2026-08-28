@@ -44,42 +44,45 @@ impl WorthUiActiveApplicationSession {
         };
         let semantic_content = plan.content().clone();
         let generation = self.active_generation_identity();
-        let (portal_overlay_revision, portal_overlays) = transfer
-            .portal_transition
-            .as_ref()
-            .map(|transition| {
-                (
-                    transition.successor_revision(),
-                    self.portal
-                        .mounted_projection_inputs(transition, transition.closes_portal()),
-                )
-            })
-            .unwrap_or_else(|| {
-                (
-                    self.portal.revision(),
-                    self.portal.current_mounted_projection_inputs(),
-                )
-            });
+        let (portal_overlay_revision, portal_overlays) = match transfer.portal_transition.as_ref() {
+            Some(transition) => (
+                transition.successor_revision(),
+                self.portal
+                    .as_ref()
+                    .expect("a prepared Portal transition retains its installed owner")
+                    .mounted_projection_inputs(transition, transition.closes_portal()),
+            ),
+            None => self.portal.as_ref().map_or_else(
+                || (0, Vec::new()),
+                |portal| {
+                    (
+                        portal.revision(),
+                        portal.current_mounted_projection_inputs(),
+                    )
+                },
+            ),
+        };
         let portal_preparation = match transfer.portal_transition.take() {
             Some(transition) => {
-                let declared_selection = match self
-                    .application
-                    .declared_selection_for_intent_target(
+                let declared_selection = match self.selection.as_ref() {
+                    Some(selection) => match self.application.declared_selection_for_intent_target(
                         &transfer.consequence,
                         &self.mounted,
-                        &self.selection,
+                        selection,
                     ) {
-                    Ok(selection) => selection,
-                    Err(denial) => {
-                        drop(reservation);
-                        return Err(self.retain_intent_consequence_service_proposal_stop(
-                            crate::runtime::session::UiPortalProposalPreparationDenial::SelectionMapping(
-                                denial,
-                            ),
-                            plan,
-                            transfer,
-                        ));
-                    }
+                        Ok(selection) => selection,
+                        Err(denial) => {
+                            drop(reservation);
+                            return Err(self.retain_intent_consequence_service_proposal_stop(
+                                crate::runtime::session::UiPortalProposalPreparationDenial::SelectionMapping(
+                                    denial,
+                                ),
+                                plan,
+                                transfer,
+                            ));
+                        }
+                    },
+                    None => None,
                 };
                 let motion_request = self.prepare_portal_motion_request(&transition).map_err(
                     crate::runtime::session::UiPortalProposalPreparationDenial::MotionRequest,
@@ -98,8 +101,10 @@ impl WorthUiActiveApplicationSession {
                     transition,
                     generation,
                     declared_selection,
-                    &self.selection,
-                    &mut self.motion,
+                    self.selection.as_ref(),
+                    self.motion
+                        .as_mut()
+                        .expect("a prepared Portal transition retains Motion installation"),
                     motion_request,
                 ) {
                     Ok(preparation) => Some(preparation),
@@ -121,8 +126,12 @@ impl WorthUiActiveApplicationSession {
             Ok(frame) => frame,
             Err(denial) => {
                 if let Some(preparation) = portal_preparation {
-                    self.application
-                        .cancel_portal_service_proposal_preparation(preparation, &mut self.motion);
+                    self.application.cancel_portal_service_proposal_preparation(
+                        preparation,
+                        self.motion
+                            .as_mut()
+                            .expect("a staged Portal proposal retains Motion installation"),
+                    );
                 }
                 drop(reservation);
                 return Err(self.retain_intent_consequence_preparation_stop(denial, plan, transfer));
@@ -134,10 +143,14 @@ impl WorthUiActiveApplicationSession {
                 preparation,
                 &frame,
                 &self.mounted,
-                &mut self.focus,
-                &self.scroll,
+                self.focus
+                    .as_mut()
+                    .expect("a staged Portal proposal retains Focus installation"),
+                self.scroll.as_ref(),
                 scroll_incarnation,
-                &mut self.motion,
+                self.motion
+                    .as_mut()
+                    .expect("a staged Portal proposal retains Motion installation"),
             ) {
                 Ok(proposal) => Some(proposal),
                 Err(denial) => {

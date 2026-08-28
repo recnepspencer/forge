@@ -12,6 +12,9 @@ pub struct WorthUiNativeApplicationShutdownReceipt {
     motion_terminated_active_tracks: u16,
     motion_cancelled_exit_retentions: u16,
     motion_final_census_is_zero: bool,
+    command_routes_released: usize,
+    scroll_owners_released: usize,
+    selection_owners_released: usize,
     focus_abandoned_indeterminate_request:
         Option<worth_ui_host_contract::UiHostFocusPlacementRequestIdentity>,
     closed_query_resources: u64,
@@ -76,6 +79,9 @@ impl WorthUiNativeApplicationShell {
         let motion_terminated_active_tracks = runtime.motion_terminated_active_tracks();
         let motion_cancelled_exit_retentions = runtime.motion_cancelled_exit_retentions();
         let motion_final_census_is_zero = runtime.motion_final_census_is_zero();
+        let command_routes_released = runtime.command_routes_released();
+        let scroll_owners_released = runtime.scroll_owners_released();
+        let selection_owners_released = runtime.selection_owners_released();
         let focus_abandoned_indeterminate_request =
             runtime.focus_placement().abandoned_indeterminate_request();
         let (host_session_released, released_surface_count) = match runtime.host_session_release() {
@@ -99,6 +105,9 @@ impl WorthUiNativeApplicationShell {
             motion_terminated_active_tracks,
             motion_cancelled_exit_retentions,
             motion_final_census_is_zero,
+            command_routes_released,
+            scroll_owners_released,
+            selection_owners_released,
             focus_abandoned_indeterminate_request,
             closed_query_resources: runtime.mounted_presentation().closed_query_resources(),
             query_close_complete: runtime.mounted_presentation().query_close_complete(),
@@ -179,6 +188,18 @@ impl WorthUiNativeApplicationShutdownReceipt {
 
     pub const fn motion_final_census_is_zero(&self) -> bool {
         self.motion_final_census_is_zero
+    }
+
+    pub const fn command_routes_released(&self) -> usize {
+        self.command_routes_released
+    }
+
+    pub const fn scroll_owners_released(&self) -> usize {
+        self.scroll_owners_released
+    }
+
+    pub const fn selection_owners_released(&self) -> usize {
+        self.selection_owners_released
     }
 
     pub const fn focus_abandoned_indeterminate_request(

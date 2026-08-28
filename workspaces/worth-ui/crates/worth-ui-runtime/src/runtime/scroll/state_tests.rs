@@ -96,6 +96,54 @@ fn nested_route_consumes_at_inner_bound_then_bubbles_exact_remainder() {
 }
 
 #[test]
+fn disabled_remainder_bubbling_stops_at_the_inner_owner() {
+    let surface = surface();
+    let inner =
+        UiScrollOwnerIdentity::region(surface, crate::graph::UiGraphNodeIdentity::new(2), 12);
+    let outer = UiScrollOwnerIdentity::viewport(surface);
+    let mut state = UiScrollRuntimeState::new_session_restore_candidate_with_policy(
+        crate::declaration::UiScrollPolicy::nested_region().with_remainder_bubbling(false),
+    );
+    register(
+        &mut state,
+        inner,
+        incarnation(1),
+        UiScrollAxes::Block,
+        bounds(0, 100),
+        UiScrollOffset::new(0, 90).unwrap(),
+    );
+    register(
+        &mut state,
+        outer,
+        incarnation(2),
+        UiScrollAxes::Block,
+        bounds(0, 500),
+        UiScrollOffset::origin(),
+    );
+
+    let receipt = state
+        .route(
+            UiScrollDeltaRequest::new(
+                vec![
+                    UiScrollChainEntry::new(inner, incarnation(1)),
+                    UiScrollChainEntry::new(outer, incarnation(2)),
+                ],
+                UiScrollDelta::new(0, 35),
+                host_cause(),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+    assert_eq!(receipt.owners_visited(), 1);
+    assert_eq!(receipt.remainder(), UiScrollDelta::new(0, 25));
+    assert_eq!(
+        state.offset(outer, incarnation(2)).unwrap(),
+        UiScrollOffset::origin()
+    );
+}
+
+#[test]
 fn declared_axes_pass_unaccepted_delta_without_loss() {
     let surface = surface();
     let inner =

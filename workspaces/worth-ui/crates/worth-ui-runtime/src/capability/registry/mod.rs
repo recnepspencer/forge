@@ -20,7 +20,15 @@ mod view_binding;
 
 pub(crate) use command::CommandAcceptedRegistrationProof;
 pub(crate) use command::CommandRegistry;
-pub use command::{CommandCategory, CommandDescriptor, FrozenCommandCapabilities};
+pub use command::{
+    CommandCategory, CommandDescriptor, FrozenCommandCapabilities, UiCommandContextConsumption,
+    UiCommandKeyCode, UiCommandLogicalKey, UiCommandModifierSet, UiCommandPhysicalKey,
+    UiCommandRegistrationGeneration, UiCommandRegistrationOwner,
+    UiCommandRegistrationOwnerIdentity, UiCommandRepeatPolicy, UiCommandRouteDeclaration,
+    UiCommandRouteDestination, UiCommandRoutePriority, UiCommandRouteScope,
+    UiCommandRouteScopeIdentity, UiCommandShortcutKey, UiCommandShortcutPlatform,
+    UiCommandShortcutSequence, UiCommandShortcutStroke, UiCommandTextInputPolicy,
+};
 pub(crate) use command_projection::{
     CommandProjectionAcceptedRegistrationProof, CommandProjectionRegistry,
 };

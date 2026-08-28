@@ -143,6 +143,19 @@ impl WorthUiAuthoredIntentMaterial {
     pub(crate) fn routes(&self) -> &[WorthUiAuthoredIntentRoute] {
         &self.routes
     }
+
+    pub(crate) fn runtime_service_support(&self) -> crate::capability::UiRuntimeServiceSupport {
+        let selection_declared = self.declarations.iter().any(|declaration| {
+            declaration.interaction()
+                == worth_ui_dsl::WorthUiIntentInteractionFamily::SelectionCommit
+        });
+        if selection_declared {
+            crate::capability::UiRuntimeServiceSupport::none_installed()
+                .with_installed(crate::capability::UiRuntimeServiceFamily::Selection)
+        } else {
+            crate::capability::UiRuntimeServiceSupport::none_installed()
+        }
+    }
 }
 
 impl WorthUiAuthoredIntentDeclaration {

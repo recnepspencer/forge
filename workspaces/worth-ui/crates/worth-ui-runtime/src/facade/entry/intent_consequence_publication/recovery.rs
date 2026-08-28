@@ -42,8 +42,18 @@ impl<'session> UiIntentConsequencePublicationRecovery<'session> {
                 .application
                 .abandon_indeterminate_portal_service_proposal_for_shutdown(
                     portal,
-                    &mut state.admitted.session.focus,
-                    &mut state.admitted.session.motion,
+                    state
+                        .admitted
+                        .session
+                        .focus
+                        .as_mut()
+                        .expect("indeterminate proposal retains Focus installation"),
+                    state
+                        .admitted
+                        .session
+                        .motion
+                        .as_mut()
+                        .expect("indeterminate proposal retains Motion installation"),
                 );
         }
         withdraw_query(&mut state.admitted);
@@ -69,8 +79,18 @@ impl Drop for UiIntentConsequencePublicationRecovery<'_> {
                 .application
                 .dispose_indeterminate_portal_service_proposal(
                     portal,
-                    &mut state.admitted.session.focus,
-                    &mut state.admitted.session.motion,
+                    state
+                        .admitted
+                        .session
+                        .focus
+                        .as_mut()
+                        .expect("indeterminate proposal retains Focus installation"),
+                    state
+                        .admitted
+                        .session
+                        .motion
+                        .as_mut()
+                        .expect("indeterminate proposal retains Motion installation"),
                 );
         }
         withdraw_query(&mut state.admitted);

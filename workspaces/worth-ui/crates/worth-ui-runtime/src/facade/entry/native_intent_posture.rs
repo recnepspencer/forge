@@ -230,8 +230,10 @@ impl WorthUiActiveApplicationSession {
                 denial,
             ))
         })?;
-        let portal_overlay_revision = self.portal.revision();
-        let portal_overlays = self.portal.current_mounted_projection_inputs();
+        let (portal_overlay_revision, portal_overlays) = self.portal.as_ref().map_or_else(
+            || (0, Vec::new()),
+            |owner| (owner.revision(), owner.current_mounted_projection_inputs()),
+        );
         let frame = self
             .prepare_intent_consequence_frame(
                 plan.content().clone(),

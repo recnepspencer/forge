@@ -9,6 +9,7 @@ pub(crate) struct UiPortalServiceRequest {
     semantic_surface: worth_ui_host_contract::UiSemanticSurfaceIdentity,
     parent: Option<super::UiPortalIdentity>,
     shielding: super::UiPortalInputShielding,
+    shielding_uses_policy_default: bool,
 }
 
 // Presented viewport boxes are canonical finite geometry, so equality is reflexive.
@@ -40,6 +41,7 @@ impl UiPortalServiceRequest {
             semantic_surface,
             parent: None,
             shielding: super::UiPortalInputShielding::ContentBounds,
+            shielding_uses_policy_default: true,
         }
     }
 
@@ -64,6 +66,7 @@ impl UiPortalServiceRequest {
             semantic_surface,
             parent: Some(parent),
             shielding,
+            shielding_uses_policy_default: false,
         }
     }
 
@@ -83,6 +86,7 @@ impl UiPortalServiceRequest {
             semantic_surface,
             parent: None,
             shielding: super::UiPortalInputShielding::ContentBounds,
+            shielding_uses_policy_default: false,
         }
     }
 
@@ -130,5 +134,22 @@ impl UiPortalServiceRequest {
 
     pub(crate) const fn shielding(self) -> super::UiPortalInputShielding {
         self.shielding
+    }
+
+    pub(super) const fn with_policy(mut self, policy: crate::declaration::UiPortalPolicy) -> Self {
+        if matches!(self.operation, UiPortalServiceOperation::Open)
+            && self.shielding_uses_policy_default
+        {
+            self.shielding = match policy.kind() {
+                crate::declaration::UiPortalPolicyKind::ModalDialog => {
+                    super::UiPortalInputShielding::ModalSurface
+                }
+                crate::declaration::UiPortalPolicyKind::Dropdown
+                | crate::declaration::UiPortalPolicyKind::Popover => {
+                    super::UiPortalInputShielding::ContentBounds
+                }
+            };
+        }
+        self
     }
 }

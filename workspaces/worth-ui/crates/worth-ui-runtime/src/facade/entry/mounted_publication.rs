@@ -133,8 +133,8 @@ impl WorthUiActiveApplicationSession {
         let outcome = finish_mounted_transition_with_ports(
             UiMountedPublicationSettlementPorts {
                 mounted: &mut self.mounted,
-                focus: &mut self.focus,
-                portal: &mut self.portal,
+                focus: self.focus.as_mut(),
+                portal: self.portal.as_mut(),
                 interaction: &mut self.interaction,
                 host_session: &self.host_session,
                 active_generation,
@@ -159,8 +159,8 @@ impl WorthUiActiveApplicationSession {
         reconcile_focus_after_published_frame_with_ports(
             &mut UiMountedPublicationSettlementPorts {
                 mounted: &mut self.mounted,
-                focus: &mut self.focus,
-                portal: &mut self.portal,
+                focus: self.focus.as_mut(),
+                portal: self.portal.as_mut(),
                 interaction: &mut self.interaction,
                 host_session: &self.host_session,
                 active_generation,
@@ -178,16 +178,20 @@ impl WorthUiActiveApplicationSession {
         let active_generation = self.active_generation_identity();
         let mut ports = UiMountedPublicationSettlementPorts {
             mounted: &mut self.mounted,
-            focus: &mut self.focus,
-            portal: &mut self.portal,
+            focus: self.focus.as_mut(),
+            portal: self.portal.as_mut(),
             interaction: &mut self.interaction,
             host_session: &self.host_session,
             active_generation,
             host_exchange: &mut self.host_exchange,
         };
-        rebind_portal_after_published_frame(ports.portal, publication);
-        let transition = ports
-            .focus
+        if let Some(portal) = ports.portal.as_deref_mut() {
+            rebind_portal_after_published_frame(portal, publication);
+        }
+        let Some(focus) = ports.focus.as_deref_mut() else {
+            return;
+        };
+        let transition = focus
             .commit_mounted_reconciliation(prepared)
             .expect("prepared Focus reconciliation retains bounded counters")
             .transition();
@@ -199,14 +203,19 @@ impl WorthUiActiveApplicationSession {
             .mounted
             .current_publication()
             .expect("Portal settlement retains the just-published frame");
-        rebind_portal_after_published_frame(&mut self.portal, publication);
+        rebind_portal_after_published_frame(
+            self.portal
+                .as_mut()
+                .expect("Portal-specific rebind requires installed Portal support"),
+            publication,
+        );
     }
 }
 
 struct UiMountedPublicationSettlementPorts<'a> {
     mounted: &'a mut crate::mounting::WorthUiMountedSessionState,
-    focus: &'a mut crate::runtime::focus::UiFocusRuntimeState,
-    portal: &'a mut crate::runtime::portal::UiPortalRuntimeState,
+    focus: Option<&'a mut crate::runtime::focus::UiFocusRuntimeState>,
+    portal: Option<&'a mut crate::runtime::portal::UiPortalRuntimeState>,
     interaction: &'a mut crate::runtime::interaction::UiInteractionRuntimeState,
     host_session: &'a crate::facade::WorthUiHostSessionAuthority,
     active_generation: crate::runtime::WorthUiActiveApplicationGenerationIdentity,
@@ -215,8 +224,8 @@ struct UiMountedPublicationSettlementPorts<'a> {
 
 pub(super) fn finish_mounted_transition(
     mounted: &mut crate::mounting::WorthUiMountedSessionState,
-    focus: &mut crate::runtime::focus::UiFocusRuntimeState,
-    portal: &mut crate::runtime::portal::UiPortalRuntimeState,
+    focus: Option<&mut crate::runtime::focus::UiFocusRuntimeState>,
+    portal: Option<&mut crate::runtime::portal::UiPortalRuntimeState>,
     interaction: &mut crate::runtime::interaction::UiInteractionRuntimeState,
     host_session: &crate::facade::WorthUiHostSessionAuthority,
     application_session: crate::facade::WorthUiActiveApplicationSessionIdentity,
@@ -266,12 +275,16 @@ fn reconcile_focus_after_published_frame_with_ports(
     ports: &mut UiMountedPublicationSettlementPorts<'_>,
     publication: &crate::mounting::UiMountedFramePublicationReceipt,
 ) {
-    rebind_portal_after_published_frame(ports.portal, publication);
+    if let Some(portal) = ports.portal.as_deref_mut() {
+        rebind_portal_after_published_frame(portal, publication);
+    }
+    let Some(focus) = ports.focus.as_deref_mut() else {
+        return;
+    };
     let Some(snapshot) = ports.mounted.focus_participation_snapshot() else {
         return;
     };
-    let transition = ports
-        .focus
+    let transition = focus
         .reconcile_mounted_participation(&snapshot)
         .expect("mounted participant bounds fit the focus owner counters")
         .transition();
@@ -291,7 +304,10 @@ fn place_reconciled_focus(
     };
     super::focus_placement::ports::UiFocusPlacementPorts::new(
         ports.mounted,
-        ports.focus,
+        ports
+            .focus
+            .as_deref_mut()
+            .expect("focus placement requires installed Focus support"),
         ports.interaction,
         ports.host_session,
         ports.active_generation.clone(),

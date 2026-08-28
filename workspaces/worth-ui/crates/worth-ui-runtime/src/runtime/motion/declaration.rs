@@ -140,6 +140,18 @@ impl UiMotionDeclaration {
         self.decorative
     }
 
+    pub(super) const fn with_policy(mut self, policy: crate::declaration::UiMotionPolicy) -> Self {
+        if self.decorative
+            && matches!(
+                policy.decorative_reduced_motion(),
+                crate::declaration::UiReducedMotionBehavior::PreserveSemanticTransition
+            )
+        {
+            self.decorative = false;
+        }
+        self
+    }
+
     #[cfg(test)]
     pub(crate) const fn with_interruption(
         mut self,
@@ -174,6 +186,21 @@ mod tests {
         assert_eq!(
             UiMotionDeclaration::portal_exit().fill(),
             UiMotionFillPolicy::ExitRetention
+        );
+    }
+
+    #[test]
+    fn public_decorative_policy_changes_reduced_motion_treatment() {
+        let declaration = UiMotionDeclaration::portal_entrance().with_policy(
+            crate::declaration::UiMotionPolicy::system_respecting().with_decorative_reduced_motion(
+                crate::declaration::UiReducedMotionBehavior::PreserveSemanticTransition,
+            ),
+        );
+
+        assert!(!declaration.decorative());
+        assert_eq!(
+            declaration.reduced_motion(),
+            UiMotionReducedMotionPolicy::SystemRespecting
         );
     }
 }

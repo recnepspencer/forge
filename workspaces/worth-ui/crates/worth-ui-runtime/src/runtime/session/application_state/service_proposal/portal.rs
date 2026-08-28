@@ -8,7 +8,7 @@ impl WorthUiApplicationSessionState {
         transition: crate::runtime::portal::UiPreparedPortalServiceTransition,
         application: crate::runtime::intent::WorthUiActiveApplicationGenerationIdentity,
         declared_selection: Option<crate::runtime::selection::UiDeclaredSelectionBinding>,
-        selection_state: &crate::runtime::selection::UiSelectionRuntimeState,
+        selection_state: Option<&crate::runtime::selection::UiSelectionRuntimeState>,
         motion_state: &mut crate::runtime::motion::UiMotionRuntimeState,
         motion_request: Option<crate::runtime::motion::UiMotionTransitionRequest>,
     ) -> Result<UiPortalProposalPreparation, UiPortalProposalPreparationDenial> {
@@ -19,7 +19,7 @@ impl WorthUiApplicationSessionState {
         self.begin_portal_service_proposal_from_request(
             request,
             transition,
-            declared_selection.map(|binding| (binding, selection_state)),
+            declared_selection.zip(selection_state),
             motion_state,
             motion_request,
         )
@@ -106,14 +106,21 @@ impl WorthUiApplicationSessionState {
         let focus_family = crate::runtime::focus::UiStagedFocusServiceProposal::family_proposal(
             &focus_requirement,
         );
-        let scroll_family = crate::runtime::scroll::UiStagedScrollServiceProposal::family_proposal(
-            portal_family.scope(),
-        );
-        let initial_reveal =
-            crate::runtime::session::service_proposal::UiFocusRevealRequirement::new(
-                focus_requirement.owner(),
-            );
-        let mut family_proposals = vec![portal_family, focus_family, scroll_family];
+        let focus_owner = focus_requirement.owner();
+        let scroll_supported = self
+            .app
+            .runtime_service_support()
+            .posture(crate::capability::UiRuntimeServiceFamily::Scroll)
+            == crate::capability::UiRuntimeServiceSupportPosture::Installed;
+        let scroll_family = scroll_supported.then(|| {
+            crate::runtime::scroll::UiStagedScrollServiceProposal::family_proposal(
+                portal_family.scope(),
+            )
+        });
+        let mut family_proposals = vec![portal_family, focus_family];
+        if let Some(scroll_family) = scroll_family {
+            family_proposals.push(scroll_family);
+        }
         if let Some((selection, _)) = declared_selection.as_ref() {
             family_proposals.push(
                 crate::runtime::selection::UiStagedSelectionServiceProposal::family_proposal(
@@ -133,11 +140,7 @@ impl WorthUiApplicationSessionState {
             )
             .map_err(UiPortalProposalPreparationDenial::Demand)?;
         let proposal = candidate.identity();
-        let support = self
-            .app
-            .prepared_authority()
-            .intent_execution_bindings()
-            .runtime_service_support();
+        let support = self.app.runtime_service_support();
         let preflighted = self
             .runtime
             .service_proposals
@@ -165,11 +168,15 @@ impl WorthUiApplicationSessionState {
             proposal,
             focus_requirement,
         );
-        let scroll = crate::runtime::scroll::UiStagedScrollServiceProposal::prepare(
-            proposal,
-            portal_family.scope(),
-            initial_reveal,
-        );
+        let scroll = scroll_supported.then(|| {
+            crate::runtime::scroll::UiStagedScrollServiceProposal::prepare(
+                proposal,
+                portal_family.scope(),
+                crate::runtime::session::service_proposal::UiFocusRevealRequirement::new(
+                    focus_owner,
+                ),
+            )
+        });
         let selection = match declared_selection {
             Some((binding, selection_state)) => {
                 let (action, registration) = binding.into_parts();
@@ -222,28 +229,30 @@ impl WorthUiApplicationSessionState {
                 staging,
                 &portal,
                 &focus,
-                &scroll,
+                scroll.as_ref(),
                 selection.as_ref(),
                 motion_state,
                 motion,
             );
             return Err(UiPortalProposalPreparationDenial::Staging(denial));
         }
-        if let Err(denial) = self
-            .runtime
-            .service_proposals
-            .advance_staging(&mut staging, scroll.family_stage_receipt())
-        {
-            self.cancel_portal_staging(
-                staging,
-                &portal,
-                &focus,
-                &scroll,
-                selection.as_ref(),
-                motion_state,
-                motion,
-            );
-            return Err(UiPortalProposalPreparationDenial::Staging(denial));
+        if let Some(scroll) = scroll.as_ref() {
+            if let Err(denial) = self
+                .runtime
+                .service_proposals
+                .advance_staging(&mut staging, scroll.family_stage_receipt())
+            {
+                self.cancel_portal_staging(
+                    staging,
+                    &portal,
+                    &focus,
+                    Some(scroll),
+                    selection.as_ref(),
+                    motion_state,
+                    motion,
+                );
+                return Err(UiPortalProposalPreparationDenial::Staging(denial));
+            }
         }
         if let Err(denial) = self
             .runtime
@@ -254,7 +263,7 @@ impl WorthUiApplicationSessionState {
                 staging,
                 &portal,
                 &focus,
-                &scroll,
+                scroll.as_ref(),
                 selection.as_ref(),
                 motion_state,
                 motion,
@@ -273,7 +282,7 @@ impl WorthUiApplicationSessionState {
                     staging,
                     &portal,
                     &focus,
-                    &scroll,
+                    scroll.as_ref(),
                     selection.as_ref(),
                     motion_state,
                     motion,
@@ -294,7 +303,7 @@ impl WorthUiApplicationSessionState {
                     staging,
                     &portal,
                     &focus,
-                    &scroll,
+                    scroll.as_ref(),
                     selection.as_ref(),
                     motion_state,
                     motion,

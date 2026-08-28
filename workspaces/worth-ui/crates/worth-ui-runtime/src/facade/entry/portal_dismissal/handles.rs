@@ -1,3 +1,4 @@
+use super::completion::finish;
 use super::*;
 
 impl UiPortalDismissalPublicationCompletion<'_> {
@@ -175,8 +176,16 @@ impl<'session> UiPortalDismissalPublicationRecovery<'session> {
             .application
             .abandon_indeterminate_portal_service_proposal_for_shutdown(
                 state.proposal,
-                &mut state.session.focus,
-                &mut state.session.motion,
+                state
+                    .session
+                    .focus
+                    .as_mut()
+                    .expect("retained proposal owns Focus"),
+                state
+                    .session
+                    .motion
+                    .as_mut()
+                    .expect("retained proposal owns Motion"),
             );
         state.session
     }
@@ -206,8 +215,16 @@ impl Drop for UiPortalDismissalPublicationRecovery<'_> {
             .application
             .dispose_indeterminate_portal_service_proposal(
                 state.proposal,
-                &mut state.session.focus,
-                &mut state.session.motion,
+                state
+                    .session
+                    .focus
+                    .as_mut()
+                    .expect("retained proposal owns Focus"),
+                state
+                    .session
+                    .motion
+                    .as_mut()
+                    .expect("retained proposal owns Motion"),
             );
     }
 }

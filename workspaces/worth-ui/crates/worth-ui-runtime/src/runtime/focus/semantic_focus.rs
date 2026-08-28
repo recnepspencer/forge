@@ -26,6 +26,10 @@ impl UiSemanticKeyboardFocus {
         self.participant.incarnation()
     }
 
+    pub(crate) const fn graph_node(self) -> crate::graph::UiGraphNodeIdentity {
+        self.participant.graph_node()
+    }
+
     pub(crate) const fn mounted_target(self) -> worth_ui_host_contract::UiHostFocusPlacementTarget {
         worth_ui_host_contract::UiHostFocusPlacementTarget::new(
             self.participant.identity().mounted_instance(),

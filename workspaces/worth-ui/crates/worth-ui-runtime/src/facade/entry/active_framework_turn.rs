@@ -24,8 +24,8 @@ pub struct WorthUiActiveFrameworkTurnCompletion<'session> {
     pub(super) mounted: &'session mut crate::mounting::WorthUiMountedSessionState,
     pub(super) host_session: &'session crate::facade::WorthUiHostSessionAuthority,
     pub(super) host_exchange: &'session mut crate::host_exchange::WorthUiHostExchangeSessionState,
-    pub(super) focus: &'session mut crate::runtime::focus::UiFocusRuntimeState,
-    pub(super) portal: &'session mut crate::runtime::portal::UiPortalRuntimeState,
+    pub(super) focus: Option<&'session mut crate::runtime::focus::UiFocusRuntimeState>,
+    pub(super) portal: Option<&'session mut crate::runtime::portal::UiPortalRuntimeState>,
     pub(super) interaction: &'session mut crate::runtime::interaction::UiInteractionRuntimeState,
     pub(super) presentation:
         &'session mut crate::runtime::presentation_state::UiApplicationPresentationState,
@@ -44,8 +44,8 @@ pub struct WorthUiActiveFrameworkTurnExecution<'session> {
     pub(super) mounted: &'session mut crate::mounting::WorthUiMountedSessionState,
     pub(super) host_session: &'session crate::facade::WorthUiHostSessionAuthority,
     pub(super) host_exchange: &'session mut crate::host_exchange::WorthUiHostExchangeSessionState,
-    pub(super) focus: &'session mut crate::runtime::focus::UiFocusRuntimeState,
-    pub(super) portal: &'session mut crate::runtime::portal::UiPortalRuntimeState,
+    pub(super) focus: Option<&'session mut crate::runtime::focus::UiFocusRuntimeState>,
+    pub(super) portal: Option<&'session mut crate::runtime::portal::UiPortalRuntimeState>,
     pub(super) interaction: &'session mut crate::runtime::interaction::UiInteractionRuntimeState,
     pub(super) presentation:
         &'session mut crate::runtime::presentation_state::UiApplicationPresentationState,

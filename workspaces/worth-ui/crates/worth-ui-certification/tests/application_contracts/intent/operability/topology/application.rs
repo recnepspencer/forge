@@ -67,7 +67,7 @@ where
         .unwrap();
     let builder = if input.unsupported {
         builder
-            .register_unsupported_command_intent_definition(
+            .register_runtime_service_intent_definition(
                 UiIntentDefinition::<UnsupportedIntent>::runtime_service(
                     UiIntentRuntimeServiceDestination::InvokeCommand,
                 ),

@@ -16,13 +16,11 @@ impl super::FrozenIntentExecutionBindings {
                     support = support
                         .with_installed(crate::capability::UiRuntimeServiceFamily::Portal)
                         .with_installed(crate::capability::UiRuntimeServiceFamily::Focus)
-                        .with_installed(crate::capability::UiRuntimeServiceFamily::Scroll)
-                        .with_installed(crate::capability::UiRuntimeServiceFamily::Selection)
                         .with_installed(crate::capability::UiRuntimeServiceFamily::Motion);
                 }
                 crate::capability::UiIntentRuntimeServiceDestination::InvokeCommand => {
-                    support = support
-                        .with_installed(crate::capability::UiRuntimeServiceFamily::CommandRouting);
+                    // The destination consumes a route receipt; routable command
+                    // capabilities install the owner that can issue one.
                 }
             }
         }

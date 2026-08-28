@@ -21,7 +21,7 @@ impl<'session> WorthUiPreparedMountedPreview<'session> {
             frame,
             transition,
             planning_counters,
-            ports,
+            mut ports,
         } = self;
         let before = transition.preview().capture_isolation_basis();
         let publication =
@@ -30,8 +30,8 @@ impl<'session> WorthUiPreparedMountedPreview<'session> {
                 .present_prepared_frame(ports.host_session, frame, deadline, now);
         let outcome = super::super::mounted_publication::finish_mounted_transition(
             ports.mounted,
-            ports.focus,
-            ports.portal,
+            ports.focus.as_deref_mut(),
+            ports.portal.as_deref_mut(),
             ports.interaction,
             ports.host_session,
             ports.application_session_identity,
@@ -77,7 +77,7 @@ impl<'session> WorthUiMountedPreviewInFlight<'session> {
             before,
             transition,
             planning_counters,
-            ports,
+            mut ports,
         } = *self;
         let publication =
             ports
@@ -85,8 +85,8 @@ impl<'session> WorthUiMountedPreviewInFlight<'session> {
                 .complete_presentation(ports.host_session, handle.clone(), now);
         let outcome = super::super::mounted_publication::finish_mounted_transition(
             ports.mounted,
-            ports.focus,
-            ports.portal,
+            ports.focus.as_deref_mut(),
+            ports.portal.as_deref_mut(),
             ports.interaction,
             ports.host_session,
             ports.application_session_identity,

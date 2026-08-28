@@ -4,7 +4,7 @@ impl super::WorthUiApplicationSessionState {
         staging: crate::runtime::session::service_proposal::UiServiceProposalStaging,
         portal: &crate::runtime::portal::UiStagedPortalServiceProposal,
         focus: &crate::runtime::focus::UiStagedFocusServiceProposal,
-        scroll: &crate::runtime::scroll::UiStagedScrollServiceProposal,
+        scroll: Option<&crate::runtime::scroll::UiStagedScrollServiceProposal>,
         selection: Option<&crate::runtime::selection::UiStagedDeclaredSelectionTransition>,
         motion_state: &mut crate::runtime::motion::UiMotionRuntimeState,
         motion: Option<crate::runtime::motion::UiStagedMotionServiceProposal>,
@@ -30,7 +30,7 @@ impl super::WorthUiApplicationSessionState {
         mut teardown: crate::runtime::session::service_proposal::UiServiceProposalTeardown,
         portal: &crate::runtime::portal::UiStagedPortalServiceProposal,
         focus: &crate::runtime::focus::UiStagedFocusServiceProposal,
-        scroll: &crate::runtime::scroll::UiStagedScrollServiceProposal,
+        scroll: Option<&crate::runtime::scroll::UiStagedScrollServiceProposal>,
         selection: Option<&crate::runtime::selection::UiStagedDeclaredSelectionTransition>,
         motion_scope: Option<
             crate::runtime::session::service_proposal::UiServiceProposalOccupancyScopeIdentity,
@@ -57,16 +57,18 @@ impl super::WorthUiApplicationSessionState {
             .service_proposals
             .acknowledge_terminal_owner(&mut teardown, focus_outcome)
             .expect("exact Focus staging teardown matches its owner");
-        let scroll_outcome = crate::runtime::session::service_proposal::UiServiceProposalTerminalOwnerOutcome::from_family_owner(
-            teardown.proposal(),
-            crate::capability::UiRuntimeServiceFamily::Scroll,
-            scroll.scope(),
-            reason,
-        );
-        self.runtime
-            .service_proposals
-            .acknowledge_terminal_owner(&mut teardown, scroll_outcome)
-            .expect("exact Scroll staging teardown matches its owner");
+        if let Some(scroll) = scroll {
+            let scroll_outcome = crate::runtime::session::service_proposal::UiServiceProposalTerminalOwnerOutcome::from_family_owner(
+                teardown.proposal(),
+                crate::capability::UiRuntimeServiceFamily::Scroll,
+                scroll.scope(),
+                reason,
+            );
+            self.runtime
+                .service_proposals
+                .acknowledge_terminal_owner(&mut teardown, scroll_outcome)
+                .expect("exact Scroll staging teardown matches its owner");
+        }
         if let Some(selection) = selection {
             let selection_outcome = selection.terminal_outcome(reason);
             self.runtime
@@ -144,7 +146,7 @@ impl super::UiPortalProposalSettlement {
         crate::runtime::session::service_proposal::UiServiceProposalSettlement,
         crate::runtime::portal::UiPreparedPortalServiceTransition,
         crate::runtime::focus::UiStagedFocusServiceProposal,
-        crate::runtime::scroll::UiStagedScrollServiceProposal,
+        Option<crate::runtime::scroll::UiStagedScrollServiceProposal>,
         Option<super::UiStagedFocusReveal>,
         Option<crate::runtime::selection::UiStagedDeclaredSelectionTransition>,
         Option<crate::runtime::motion::UiDerivedMotionServiceProposal>,

@@ -135,6 +135,10 @@ fn map_stop(
 }
 
 impl UiPortalRuntimeCertificationSnapshot {
+    pub(crate) const fn uninstalled() -> Self {
+        Self::new(0, 0, 0, 0, 0, 0, 0, 0)
+    }
+
     pub(crate) const fn new(
         active_portals: usize,
         open_portals: usize,

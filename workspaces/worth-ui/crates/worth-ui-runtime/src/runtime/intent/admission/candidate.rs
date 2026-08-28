@@ -98,6 +98,12 @@ impl UiPreparedIntentAdmissionCandidate {
         self.payload.input_basis().target()
     }
 
+    pub(crate) const fn command_route_receipt(
+        &self,
+    ) -> Option<&crate::runtime::UiCommandRouteReceipt> {
+        self.payload.command_route_receipt()
+    }
+
     pub(crate) const fn graph_node(&self) -> crate::graph::UiGraphNodeIdentity {
         self.payload.graph_node()
     }
@@ -204,6 +210,12 @@ impl UiCurrentIntentAdmissionCandidate {
         &self,
     ) -> Option<&worth_ui_query_binding::UiProjectionOptionReference> {
         self.prepared.payload().selection_option()
+    }
+
+    pub(crate) const fn command_route_receipt(
+        &self,
+    ) -> Option<&crate::runtime::UiCommandRouteReceipt> {
+        self.prepared.command_route_receipt()
     }
 
     pub(crate) fn execution_reservation_basis(

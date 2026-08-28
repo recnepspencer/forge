@@ -52,6 +52,57 @@ fn single_multiple_and_range_actions_emit_compact_stable_key_deltas() {
 }
 
 #[test]
+fn range_default_and_disabled_key_preservation_change_owner_behavior() {
+    let owner = owner();
+    let keys = (41..=43).map(key).collect::<Vec<_>>();
+    let policy = crate::declaration::UiSelectionPolicy::range().with_stable_key_preservation(false);
+    let mut state = UiSelectionRuntimeState::new_session_restore_candidate_with_policy(policy);
+    assert_eq!(
+        state.default_owner_policy(),
+        UiSelectionPolicy::MultipleWithRange
+    );
+    state
+        .synchronize(registration(
+            owner,
+            state.default_owner_policy(),
+            keys.clone(),
+            UiSelectionCatalogPosture::Complete,
+        ))
+        .unwrap();
+    state
+        .apply(
+            owner,
+            incarnation(),
+            UiSelectionRequest::SelectSingle(keys[0]),
+        )
+        .unwrap();
+    state
+        .apply(
+            owner,
+            incarnation(),
+            UiSelectionRequest::SelectRange {
+                target: keys[2],
+                extend: false,
+            },
+        )
+        .expect("range default admits range selection");
+
+    let reconciliation = state
+        .synchronize(registration(
+            owner,
+            state.default_owner_policy(),
+            keys[1..].to_vec(),
+            UiSelectionCatalogPosture::Partial,
+        ))
+        .unwrap();
+    assert_eq!(reconciliation.delta().removed(), &[keys[0]]);
+    assert_eq!(
+        reconciliation.missing_keys_preserved_for_partial_catalog(),
+        0
+    );
+}
+
+#[test]
 fn extending_a_range_preserves_the_predecessor_selection() {
     let owner = owner();
     let keys = (20..=25).map(key).collect::<Vec<_>>();

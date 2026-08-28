@@ -121,6 +121,16 @@ fn parse_next_declaration(
         Some(WorthUiSourceTokenKind::KeywordToken) => {
             parse_token_declaration(module_id, source_length, stream)
         }
+        Some(WorthUiSourceTokenKind::Identifier(keyword))
+            if service_block_kind(keyword).is_some() =>
+        {
+            parse_block_declaration(
+                module_id,
+                source_length,
+                stream,
+                service_block_kind(keyword).expect("guarded service keyword"),
+            )
+        }
         Some(_) => Err(unexpected_token_diagnostic(
             stream.next().expect("peeked token should exist"),
             "expected a top-level declaration keyword",
@@ -192,6 +202,12 @@ fn parse_block_declaration(
         BlockKind::Component => WorthUiParsedSourceDeclaration::Component(declaration),
         BlockKind::Control => WorthUiParsedSourceDeclaration::Control(declaration),
         BlockKind::Intent => WorthUiParsedSourceDeclaration::Intent(declaration),
+        BlockKind::Portal => WorthUiParsedSourceDeclaration::Portal(declaration),
+        BlockKind::Focus => WorthUiParsedSourceDeclaration::Focus(declaration),
+        BlockKind::Motion => WorthUiParsedSourceDeclaration::Motion(declaration),
+        BlockKind::Command => WorthUiParsedSourceDeclaration::Command(declaration),
+        BlockKind::Scroll => WorthUiParsedSourceDeclaration::Scroll(declaration),
+        BlockKind::Selection => WorthUiParsedSourceDeclaration::Selection(declaration),
         BlockKind::Surface => WorthUiParsedSourceDeclaration::Surface(declaration),
         BlockKind::Binding => WorthUiParsedSourceDeclaration::Binding(declaration),
         BlockKind::QueryScalar => WorthUiParsedSourceDeclaration::QueryScalar(declaration),
@@ -307,8 +323,26 @@ enum BlockKind {
     Component,
     Control,
     Intent,
+    Portal,
+    Focus,
+    Motion,
+    Command,
+    Scroll,
+    Selection,
     Surface,
     Binding,
     QueryScalar,
     QueryCollection,
+}
+
+fn service_block_kind(keyword: &str) -> Option<BlockKind> {
+    Some(match keyword {
+        "portal" => BlockKind::Portal,
+        "focus" => BlockKind::Focus,
+        "motion" => BlockKind::Motion,
+        "command" => BlockKind::Command,
+        "scroll" => BlockKind::Scroll,
+        "selection" => BlockKind::Selection,
+        _ => return None,
+    })
 }

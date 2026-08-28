@@ -117,6 +117,11 @@ impl UiMotionSemanticGeometry {
 }
 
 impl UiMotionTransitionRequest {
+    pub(super) const fn with_policy(mut self, policy: crate::declaration::UiMotionPolicy) -> Self {
+        self.declaration = self.declaration.with_policy(policy);
+        self
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn from_family_transition(
         target: UiMotionTargetIdentity,

@@ -31,6 +31,7 @@ pub(super) struct UiReservedIntentConsequenceBasis {
     pub(super) generation: crate::runtime::WorthUiActiveApplicationGenerationIdentity,
     pub(super) declaration: Arc<crate::declaration::UiCanonicalIntentDeclaration>,
     pub(super) selection_option: Option<worth_ui_query_binding::UiProjectionOptionReference>,
+    pub(super) command_route: Option<crate::runtime::command_routing::UiCommandRouteEvidence>,
 }
 
 #[derive(Clone)]
@@ -42,6 +43,7 @@ pub(super) struct UiIntentConsequenceBasis {
     pub(super) generation: crate::runtime::WorthUiActiveApplicationGenerationIdentity,
     pub(super) declaration: Arc<crate::declaration::UiCanonicalIntentDeclaration>,
     pub(super) selection_option: Option<worth_ui_query_binding::UiProjectionOptionReference>,
+    pub(super) command_route: Option<crate::runtime::command_routing::UiCommandRouteEvidence>,
 }
 
 impl UiReservedIntentExecutionReservation {
@@ -55,6 +57,7 @@ impl UiReservedIntentExecutionReservation {
             generation,
             declaration,
             selection_option,
+            command_route,
         } = self.consequence_basis;
         UiActiveIntentExecutionReservation {
             core: self.core,
@@ -65,6 +68,7 @@ impl UiReservedIntentExecutionReservation {
                 generation,
                 declaration,
                 selection_option,
+                command_route,
             },
         }
     }

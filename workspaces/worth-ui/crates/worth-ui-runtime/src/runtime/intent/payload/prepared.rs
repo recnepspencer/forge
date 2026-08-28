@@ -72,7 +72,13 @@ impl UiPreparedIntentPayload {
         self.basis.selection_option()
     }
 
-    pub(crate) const fn interaction_time_basis(
+    pub(crate) const fn command_route_receipt(
+        &self,
+    ) -> Option<&crate::runtime::UiCommandRouteReceipt> {
+        self.basis.command_route_receipt()
+    }
+
+    pub(crate) fn interaction_time_basis(
         &self,
     ) -> worth_ui_host_contract::UiHostObservationTimeBasis {
         self.basis.interaction_time_basis()

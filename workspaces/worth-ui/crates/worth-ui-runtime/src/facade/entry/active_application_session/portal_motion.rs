@@ -15,7 +15,11 @@ impl super::WorthUiActiveApplicationSession {
             portal.owner().mounted_instance_identity(),
             portal.diagnostic_value(),
         );
-        let predecessor = self.portal.placement(portal).map(|value| value.prepared());
+        let predecessor = self
+            .portal
+            .as_ref()
+            .and_then(|owner| owner.placement(portal))
+            .map(|value| value.prepared());
         let successor = transition.placement();
         let presentation = predecessor
             .map(crate::runtime::portal::UiPreparedPortalPlacement::presentation)

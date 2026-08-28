@@ -90,6 +90,9 @@ fn family_spec(family: UiDslSemanticFamily, declaration_index: usize) -> UiDslSe
             UiDslSourceProvenance::file_authored("app/family_matrix.wui", declaration_index),
         )
         .with_structural_token(UiDslStructuralToken::new("diagnostic-surface:lint")),
+        UiDslSemanticFamily::RuntimeService => {
+            panic!("runtime-service declarations use service handoff admission")
+        }
     }
 }
 

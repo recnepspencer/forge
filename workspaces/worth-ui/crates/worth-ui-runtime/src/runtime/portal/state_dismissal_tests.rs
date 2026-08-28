@@ -152,3 +152,59 @@ fn outside_press_respects_bounds_and_duplicate_dismissal_coalesces() {
     ));
     assert_eq!(state.revision(), revision);
 }
+
+#[test]
+fn modal_policy_shields_input_and_disables_outside_press_dismissal() {
+    let mut state = super::UiPortalRuntimeState::new_with_policy(
+        crate::runtime::UiServiceStatePersistencePosture::SessionRestoreCandidate,
+        crate::declaration::UiPortalPolicy::modal_dialog(),
+    );
+    let portal = portal(281, 291);
+    let opened = state.prepare(open_request(portal, 301)).unwrap();
+    assert_eq!(
+        opened.placement().unwrap().shielding(),
+        UiPortalInputShielding::ModalSurface
+    );
+    state.commit_published(opened).unwrap();
+
+    assert!(matches!(
+        state
+            .prepare_dismissal(
+                UiPortalDismissalTrigger::OutsidePress {
+                    viewport_point_bits: [0.0_f32.to_bits(), 0.0_f32.to_bits()],
+                },
+                None,
+                idempotency(302),
+            )
+            .unwrap(),
+        UiPortalDismissalPreparation::Ignored(UiPortalDismissalIgnoreReason::NoMatchingPortal)
+    ));
+    assert_eq!(state.active_count(), 1);
+}
+
+#[test]
+fn accepted_selection_and_anchor_loss_respect_the_declared_policy() {
+    let policy = crate::declaration::UiPortalPolicy::dropdown()
+        .with_accepted_selection_dismissal(false)
+        .with_anchor_loss_dismissal(false);
+    let mut state = super::UiPortalRuntimeState::new_with_policy(
+        crate::runtime::UiServiceStatePersistencePosture::SessionRestoreCandidate,
+        policy,
+    );
+    let portal = portal(311, 321);
+    let opened = state.prepare(open_request(portal, 331)).unwrap();
+    state.commit_published(opened).unwrap();
+
+    for trigger in [
+        UiPortalDismissalTrigger::AcceptedSelection,
+        UiPortalDismissalTrigger::AnchorLoss(portal),
+    ] {
+        assert!(matches!(
+            state
+                .prepare_dismissal(trigger, None, idempotency(332))
+                .unwrap(),
+            UiPortalDismissalPreparation::Ignored(UiPortalDismissalIgnoreReason::NoMatchingPortal)
+        ));
+    }
+    assert_eq!(state.active_count(), 1);
+}

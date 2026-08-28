@@ -2,6 +2,7 @@
 pub(crate) enum UiPortalDismissalTrigger {
     Escape,
     OutsidePress { viewport_point_bits: [u32; 2] },
+    AcceptedSelection,
     AnchorLoss(super::UiPortalIdentity),
 }
 
@@ -30,6 +31,21 @@ impl super::UiPortalRuntimeState {
         sampled_bounds: Option<worth_ui_host_contract::UiMountedCanonicalBox>,
         idempotency: crate::runtime::intent_execution::UiIntentExecutionIdempotencyIdentity,
     ) -> Result<UiPortalDismissalPreparation, super::UiPortalServiceTransitionDenial> {
+        let admitted_by_policy = match trigger {
+            UiPortalDismissalTrigger::Escape => self.policy.dismisses_on_escape(),
+            UiPortalDismissalTrigger::OutsidePress { .. } => {
+                self.policy.dismisses_on_outside_press()
+            }
+            UiPortalDismissalTrigger::AcceptedSelection => {
+                self.policy.dismisses_on_accepted_selection()
+            }
+            UiPortalDismissalTrigger::AnchorLoss(_) => self.policy.dismisses_on_anchor_loss(),
+        };
+        if !admitted_by_policy {
+            return Ok(UiPortalDismissalPreparation::Ignored(
+                UiPortalDismissalIgnoreReason::NoMatchingPortal,
+            ));
+        }
         let Some((portal, record)) = self.dismissal_target(trigger) else {
             return Ok(UiPortalDismissalPreparation::Ignored(
                 UiPortalDismissalIgnoreReason::NoMatchingPortal,
@@ -56,6 +72,9 @@ impl super::UiPortalRuntimeState {
             UiPortalDismissalTrigger::Escape => super::UiPortalDismissalCause::Escape,
             UiPortalDismissalTrigger::OutsidePress { .. } => {
                 super::UiPortalDismissalCause::OutsidePress
+            }
+            UiPortalDismissalTrigger::AcceptedSelection => {
+                super::UiPortalDismissalCause::AcceptedSelection
             }
             UiPortalDismissalTrigger::AnchorLoss(_) => super::UiPortalDismissalCause::AnchorLoss,
         };
@@ -101,7 +120,8 @@ impl super::UiPortalRuntimeState {
                     **portal == anchor || self.portal_descends_from(**portal, anchor)
                 }
                 UiPortalDismissalTrigger::Escape
-                | UiPortalDismissalTrigger::OutsidePress { .. } => true,
+                | UiPortalDismissalTrigger::OutsidePress { .. }
+                | UiPortalDismissalTrigger::AcceptedSelection => true,
             })
             .max_by_key(|(portal, record)| {
                 (

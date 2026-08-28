@@ -53,6 +53,9 @@ fn lower_declaration(view: WorthUiSemanticDeclarationView<'_>) -> Option<Lowerin
             structural_spec("binding", block, provenance.clone())
         }
         WorthUiSemanticDeclaration::SemanticArtifact(artifact) => {
+            if artifact.declaration().service_declaration().is_some() {
+                return None;
+            }
             semantic_artifact_spec(artifact, provenance.clone())
         }
         WorthUiSemanticDeclaration::Import(_)

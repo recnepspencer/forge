@@ -9,7 +9,11 @@ impl super::UiFocusRuntimeState {
         }
         let requirement = owner.requirement();
         let ordered = crate::runtime::focus::rebind::focusable_participants(&snapshot);
-        let restoration = self.restoration_token();
+        let restoration = self
+            .policy
+            .restores_on_scope_close()
+            .then(|| self.restoration_token())
+            .flatten();
         let next = if requirement.opening() {
             initial_portal_target(&ordered, &self.participant_index, requirement.owner())
         } else {
@@ -17,7 +21,7 @@ impl super::UiFocusRuntimeState {
                 .portal_restorations
                 .get(&requirement.boundary())
                 .copied();
-            match retained {
+            match retained.filter(|_| self.policy.restores_on_scope_close()) {
                 Some(restoration) => restoration_target(&ordered, restoration),
                 None => current_target(&ordered, self.current),
             }
@@ -68,7 +72,11 @@ impl super::UiFocusRuntimeState {
             .pending_portal
             .get(&proposal)
             .ok_or(crate::runtime::focus::UiPortalFocusTransitionDenial::UnknownProposal)?;
-        Ok(transition.next().map(|focus| focus.reveal_requirement()))
+        Ok(self
+            .policy
+            .reveals_focused_target()
+            .then(|| transition.next().map(|focus| focus.reveal_requirement()))
+            .flatten())
     }
 
     pub(in crate::runtime) fn commit_portal_proposal(

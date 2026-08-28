@@ -38,6 +38,7 @@ pub enum UiDslSemanticFamily {
     QueryBinding,
     Intent,
     DiagnosticSurface,
+    RuntimeService,
 }
 
 impl UiDslSemanticFamily {
@@ -52,6 +53,7 @@ impl UiDslSemanticFamily {
             Self::QueryBinding => "query-binding",
             Self::Intent => "intent",
             Self::DiagnosticSurface => "diagnostic-surface",
+            Self::RuntimeService => "runtime-service",
         }
     }
 }

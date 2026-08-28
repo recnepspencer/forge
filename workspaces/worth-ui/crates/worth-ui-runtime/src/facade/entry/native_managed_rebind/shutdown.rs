@@ -41,8 +41,14 @@ impl WorthUiNativeApplicationShell {
                         .application
                         .abandon_indeterminate_portal_service_proposal_for_shutdown(
                             portal,
-                            &mut self.session.focus,
-                            &mut self.session.motion,
+                            self.session
+                                .focus
+                                .as_mut()
+                                .expect("retained proposal owns Focus"),
+                            self.session
+                                .motion
+                                .as_mut()
+                                .expect("retained proposal owns Motion"),
                         );
                 }
                 resources.abandon_for_shutdown(&mut self.session);
@@ -58,8 +64,14 @@ impl WorthUiNativeApplicationShell {
                         .application
                         .abandon_indeterminate_portal_service_proposal_for_shutdown(
                             portal,
-                            &mut self.session.focus,
-                            &mut self.session.motion,
+                            self.session
+                                .focus
+                                .as_mut()
+                                .expect("retained proposal owns Focus"),
+                            self.session
+                                .motion
+                                .as_mut()
+                                .expect("retained proposal owns Motion"),
                         );
                 }
                 resources.abandon_for_shutdown(&mut self.session);
@@ -73,8 +85,14 @@ impl WorthUiNativeApplicationShell {
                         .application
                         .abandon_indeterminate_portal_service_proposal_for_shutdown(
                             portal,
-                            &mut self.session.focus,
-                            &mut self.session.motion,
+                            self.session
+                                .focus
+                                .as_mut()
+                                .expect("retained proposal owns Focus"),
+                            self.session
+                                .motion
+                                .as_mut()
+                                .expect("retained proposal owns Motion"),
                         );
                 }
                 resources.abandon_for_shutdown(&mut self.session);
@@ -89,8 +107,14 @@ impl WorthUiNativeApplicationShell {
                     .application
                     .abandon_indeterminate_portal_service_proposal_for_shutdown(
                         proposal,
-                        &mut self.session.focus,
-                        &mut self.session.motion,
+                        self.session
+                            .focus
+                            .as_mut()
+                            .expect("retained proposal owns Focus"),
+                        self.session
+                            .motion
+                            .as_mut()
+                            .expect("retained proposal owns Motion"),
                     );
             }
             WorthUiNativePendingManagedRebind::PortalDismissalReconstruction {
@@ -102,8 +126,14 @@ impl WorthUiNativeApplicationShell {
                     .application
                     .abandon_indeterminate_portal_service_proposal_for_shutdown(
                         proposal,
-                        &mut self.session.focus,
-                        &mut self.session.motion,
+                        self.session
+                            .focus
+                            .as_mut()
+                            .expect("retained proposal owns Focus"),
+                        self.session
+                            .motion
+                            .as_mut()
+                            .expect("retained proposal owns Motion"),
                     );
             }
             WorthUiNativePendingManagedRebind::PortalDismissalReconstructionDeferred {
@@ -113,8 +143,14 @@ impl WorthUiNativeApplicationShell {
                 .application
                 .abandon_indeterminate_portal_service_proposal_for_shutdown(
                     proposal,
-                    &mut self.session.focus,
-                    &mut self.session.motion,
+                    self.session
+                        .focus
+                        .as_mut()
+                        .expect("retained proposal owns Focus"),
+                    self.session
+                        .motion
+                        .as_mut()
+                        .expect("retained proposal owns Motion"),
                 ),
             WorthUiNativePendingManagedRebind::PredecessorReconstruction { retry, in_flight } => {
                 drop(self.session.cancel_mounted_presentation(in_flight));

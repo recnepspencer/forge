@@ -5,7 +5,7 @@ use worth_ui::facade::{
         UiIntentExecutionDispatchOutcome, UiIntentExecutionReservationDenial,
         UiIntentExecutionTransition, UiIntentExecutionTransitionPosture,
         UiIntentOperabilityOutcome, UiIntentRecoveryProgressOutcome,
-        UiIntentRecoveryProgressPosture, UiIntentRuntimeServiceDestination, UiIntentSupportPosture,
+        UiIntentRecoveryProgressPosture, UiIntentRuntimeServiceDestination,
         UiIntentTransitionDestination,
     },
     rebind::{UiRebindExecutionPolicy, UiRebindExecutionRequest},
@@ -71,30 +71,25 @@ fn prove_destination_selection() {
     ));
     assert_eq!(execution_census(&transition), [0, 0, 0, 1]);
     assert_shutdown_zero(transition);
-
-    let mut unsupported = destination_world(BuiltinDestination::UnsupportedService);
-    let outcome = unsupported.evaluate(0);
-    let UiIntentOperabilityOutcome::Inoperable(ref decision) = outcome else {
-        panic!("an explicitly unsupported runtime service cannot become operable")
-    };
-    assert_eq!(
-        decision.decision().support(),
-        UiIntentSupportPosture::Unsupported
-    );
-    assert!(matches!(
-        unsupported.session.admit_intent(
-            UiIntentDefinition::<PrimaryIntent>::runtime_service(
-                UiIntentRuntimeServiceDestination::InvokeCommand,
-            ),
-            outcome,
+    let mut command = destination_world(BuiltinDestination::CommandService);
+    let outcome = command.evaluate(0);
+    assert!(matches!(outcome, UiIntentOperabilityOutcome::Operable(_)));
+    let stopped = match command.session.admit_intent(
+        UiIntentDefinition::<PrimaryIntent>::runtime_service(
+            UiIntentRuntimeServiceDestination::InvokeCommand,
         ),
-        UiIntentAdmissionDecision::Stopped(ref stop)
-            if matches!(stop.reason(), UiIntentAdmissionStopReason::Inoperable(_))
+        outcome,
+    ) {
+        UiIntentAdmissionDecision::Stopped(stopped) => stopped,
+        _ => panic!("InvokeCommand without a route receipt must fail before execution"),
+    };
+    assert!(matches!(
+        stopped.reason(),
+        UiIntentAdmissionStopReason::CommandRouteRequired
     ));
-    assert_eq!(execution_census(&unsupported), [0, 0, 0, 0]);
-    assert_shutdown_zero(unsupported);
+    assert_eq!(execution_census(&command), [0, 0, 0, 0]);
+    assert_shutdown_zero(command);
 }
-
 fn prove_reservation_scope() {
     prove_capacity_denial(
         capacity(1, 16),
@@ -131,7 +126,6 @@ fn prove_capacity_denial(
     assert_eq!(execution_census(&world), [0, 0, 0, 0]);
     assert_shutdown_zero(world);
 }
-
 fn prove_terminal_matrix() {
     let (provider, observation) = ScriptedProvider::new([
         ExecutionScript::rejected(),
@@ -209,7 +203,6 @@ fn prove_terminal_matrix() {
     assert_eq!(shutdown.intent_admission().active_after(), 0);
     assert_eq!(observation.counts(), [7, 7, 1, 2, 6, 2, 1]);
 }
-
 fn prove_timeout_retry() {
     let (provider, observation) =
         ScriptedProvider::new([ExecutionScript::running([AttemptStep::Completed])]);
@@ -234,7 +227,6 @@ fn prove_timeout_retry() {
     assert_shutdown_zero(world);
     assert_eq!(observation.counts()[4..7], [1, 0, 1]);
 }
-
 fn prove_separate_domain_admission() {
     let mut world = ConsequenceWorld::launch(UiIntentConsequenceContract::query_collection_change(
         query_identity(),
@@ -267,11 +259,10 @@ fn prove_separate_domain_admission() {
         worth_ui_query_binding::WorthUiOperationLiveRetirementCloseOutcome::Closed(_)
     ));
 }
-
 #[derive(Clone, Copy)]
 enum BuiltinDestination {
     Transition,
-    UnsupportedService,
+    CommandService,
 }
 
 fn destination_world(destination: BuiltinDestination) -> AdmissionWorld {
@@ -302,8 +293,8 @@ fn destination_world(destination: BuiltinDestination) -> AdmissionWorld {
                 ),
             )
             .unwrap(),
-        BuiltinDestination::UnsupportedService => builder
-            .register_unsupported_command_intent_definition(
+        BuiltinDestination::CommandService => builder
+            .register_runtime_service_intent_definition(
                 UiIntentDefinition::<PrimaryIntent>::runtime_service(
                     UiIntentRuntimeServiceDestination::InvokeCommand,
                 ),

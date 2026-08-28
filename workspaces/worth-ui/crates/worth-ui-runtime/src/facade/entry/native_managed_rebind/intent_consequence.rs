@@ -191,8 +191,14 @@ impl super::super::WorthUiNativeApplicationShell {
                         .application
                         .settle_indeterminate_portal_service_proposal_to_predecessor(
                             portal,
-                            &mut self.session.focus,
-                            &mut self.session.motion,
+                            self.session
+                                .focus
+                                .as_mut()
+                                .expect("indeterminate proposal retains Focus installation"),
+                            self.session
+                                .motion
+                                .as_mut()
+                                .expect("indeterminate proposal retains Motion installation"),
                         );
                 }
                 resources.settle_predecessor(&mut self.session);

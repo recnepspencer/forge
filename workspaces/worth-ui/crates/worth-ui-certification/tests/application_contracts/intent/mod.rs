@@ -1,4 +1,5 @@
 mod admission;
+mod command_routing;
 mod confirmation;
 mod cost;
 mod declaration;

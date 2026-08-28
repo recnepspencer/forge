@@ -1,5 +1,6 @@
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum UiFocusPlacementExecutionDenial {
+    OwnerUnavailable,
     IdentityExhausted,
     MountedFrameUnavailable,
     ForeignPublishedFrame,
@@ -13,6 +14,7 @@ pub(crate) enum UiFocusPlacementExecutionDenial {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UiFocusPlacementReconciliationExecutionDenial {
+    OwnerUnavailable,
     Host(crate::mounting::UiFocusHostPlacementReconciliationDenial),
     RecipientInstallation,
 }
@@ -24,9 +26,12 @@ impl super::WorthUiActiveApplicationSession {
         publication: &crate::mounting::UiMountedFramePublicationReceipt,
     ) -> Result<UiSemanticFocusPublicationReceipt, UiFocusPlacementExecutionDenial> {
         let active_generation = self.active_generation_identity();
+        let Some(focus) = self.focus.as_mut() else {
+            return Err(UiFocusPlacementExecutionDenial::OwnerUnavailable);
+        };
         let host_placement = ports::UiFocusPlacementPorts::new(
             &mut self.mounted,
-            &mut self.focus,
+            focus,
             &mut self.interaction,
             &self.host_session,
             active_generation,
@@ -47,9 +52,12 @@ impl super::WorthUiActiveApplicationSession {
         UiFocusPlacementReconciliationExecutionDenial,
     > {
         let active_generation = self.active_generation_identity();
+        let Some(focus) = self.focus.as_mut() else {
+            return Err(UiFocusPlacementReconciliationExecutionDenial::OwnerUnavailable);
+        };
         ports::UiFocusPlacementPorts::new(
             &mut self.mounted,
-            &mut self.focus,
+            focus,
             &mut self.interaction,
             &self.host_session,
             active_generation,

@@ -16,7 +16,7 @@ impl WorthUiActiveApplicationSession {
     > {
         let evidence_reference = self
             .intent_evidence
-            .reference_for_input(source.evidence_input());
+            .reference_for_optional_input(source.evidence_input());
         let generation = self.active_generation_identity();
         crate::runtime::intent::resolve_intent_route(
             self.application.prepared_authority().intent_catalog(),

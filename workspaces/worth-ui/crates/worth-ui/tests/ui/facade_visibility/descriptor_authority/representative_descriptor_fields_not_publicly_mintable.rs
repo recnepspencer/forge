@@ -8,7 +8,8 @@ fn main() {
         label: String::from("Save"),
         description: None,
         icon: None,
-        default_shortcut_reference: None,
+        default_shortcut: None,
+        route: None,
         category: CommandCategory::Application,
         projection_eligibility: None,
     };

@@ -16,6 +16,7 @@ use worth_ui::facade::intent::{
     UiIntentPolicySource, UiIntentReadinessSource, UiIntentRuntimeServiceDestination, UiIntentText,
     UiIntentUnsigned64,
 };
+use worth_ui::facade::service::UiSelectionPolicy;
 use worth_ui_certification::scenario::application_authority_closure::fixed_host::FixedCertificationHostBinding;
 use worth_ui_dsl::{
     WorthUiIntentInteractionFamily, WorthUiIntentInteractionRoute,
@@ -171,13 +172,19 @@ pub(in crate::intent) fn launch_scroll_portal<I: UiIntent>(
         .register_runtime_service_intent_definition(UiIntentDefinition::<I>::runtime_service(
             UiIntentRuntimeServiceDestination::OpenPortal,
         ))
-        .expect("typed selection portal definition registers");
+        .expect("typed selection portal definition registers")
+        .with_selection_policy_defaults(UiSelectionPolicy::multiple());
     let builder = register_projection(builder, projection);
     let builder = register_facts(builder, facts);
     let application = builder
         .with_rust_authored_input(input)
         .freeze()
         .expect("selection portal world compiles through production preparation");
+    assert_eq!(
+        application.service_policy_plan().selection(),
+        Some(UiSelectionPolicy::multiple()),
+        "SelectionCommit declarations demand the owner and preserve public policy defaults"
+    );
     launch_prepared(application, projection_slot)
 }
 

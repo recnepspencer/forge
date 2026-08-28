@@ -40,9 +40,10 @@ pub use revision::WorthUiSourcePackageRevision;
 use semantic_handoff_preparation::prepare_semantic_handoff;
 pub(crate) use semantic_handoff_preparation::WorthUiPreparedDeclarationMaterial;
 pub use semantic_handoff_preparation::{
-    WorthUiAuthoredProjectionRequirement, WorthUiProjectionContentEdge,
-    WorthUiSemanticHandoffEvidence, WorthUiSemanticHandoffPreparationDenial,
-    WorthUiSemanticHandoffPreparationStop,
+    WorthUiAuthoredProjectionRequirement, WorthUiAuthoredServiceDeclaration,
+    WorthUiProjectionContentEdge, WorthUiSemanticHandoffEvidence,
+    WorthUiSemanticHandoffPreparationDenial, WorthUiSemanticHandoffPreparationStop,
+    WorthUiServiceDeclarationAdmissionCause,
 };
 pub use source_event_ingress::{WorthUiSourceEventIngress, WorthUiSourceEventIngressSession};
 #[cfg(test)]

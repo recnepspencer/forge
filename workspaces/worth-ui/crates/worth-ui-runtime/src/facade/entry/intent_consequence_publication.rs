@@ -374,8 +374,14 @@ fn retain_stop<'session>(
     if let Some(proposal) = transfer.portal_proposal.take() {
         session.application.cancel_portal_service_proposal(
             proposal,
-            &mut session.focus,
-            &mut session.motion,
+            session
+                .focus
+                .as_mut()
+                .expect("staged proposal retains Focus installation"),
+            session
+                .motion
+                .as_mut()
+                .expect("staged proposal retains Motion installation"),
         );
     }
     transfer

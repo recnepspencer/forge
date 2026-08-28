@@ -1,12 +1,29 @@
 use super::WorthUiSemanticHandoffEvidence;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorthUiServiceDeclarationAdmissionCause {
+    DuplicateIdentity,
+    ConflictingFamilyPolicy,
+    InvalidCommandIdentity,
+    CommandNotRegistered,
+    CommandShortcutMissing,
+    CommandShortcutMismatch,
+    CommandRouteMissing,
+    CommandScopeMismatch,
+    CommandScopeBindingMismatch,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WorthUiSemanticHandoffPreparationStop {
     UnsupportedProtocol,
     CapabilityResolution,
     RuntimeStructuralAdmission,
     DeclarationProjection,
     IntentDeclaration,
+    ServiceDeclaration {
+        declaration_index: usize,
+        cause: WorthUiServiceDeclarationAdmissionCause,
+    },
     BindingAdmission,
     IdentitySeeding,
     CanonicalAssembly,
