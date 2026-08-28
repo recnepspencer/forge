@@ -6,13 +6,14 @@ pub mod cdc;
 pub mod data;
 pub mod patch;
 
-pub(crate) use access::publication_failure_diagnostic;
+pub(crate) use access::invariant_failure_diagnostic;
 pub use access::{
     PublicationArtifactsAccess, PublicationDiagnosticsAccess, PublicationPatchStreamAccess,
     PublicationSubscriberStreamAccess, PublicationSurface,
 };
 pub(crate) use authority::production_post_commit_consumer;
 pub use authority::PublicationAuthority;
+pub(crate) use authority::PublicationPreparationAuthority;
 pub use authority::{
     PostCommitConsumer, PostCommitConsumptionContext, PostCommitConsumptionFailure,
 };

@@ -71,7 +71,7 @@ pub(super) fn apply_authoritative_commit_artifacts(
             canonical.as_ref(),
             allow_reconstructed_replacement,
             advance_branch_currentness,
-            &runtime.services.symbols,
+            &runtime.services.symbols.interner_snapshot(),
         )
         .map_err(|detail| DurabilityError::new(RecoveryFailureClass::CorruptCheckpoint, detail));
     if let Err(error) = result {

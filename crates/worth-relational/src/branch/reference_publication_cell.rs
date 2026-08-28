@@ -16,6 +16,7 @@ pub(crate) struct RelationalBranchPublicationCell {
     basis_registry: super::RelationalBranchBasisRegistry,
     coordination: Arc<super::coordination::RelationalBranchCoordinationCell>,
     head_retention: Arc<crate::history::retention::RelationalBranchHeadRetentionCell>,
+    sharing_costs: super::RelationalBranchSharingCostCell,
 }
 
 pub(crate) struct RelationalBranchPublicationStateGuard<'cell> {
@@ -31,6 +32,7 @@ impl RelationalBranchReferenceCell {
             basis_registry: self.basis_registry.clone(),
             coordination: Arc::clone(&self.coordination),
             head_retention: Arc::clone(&self.head_retention),
+            sharing_costs: self.sharing_costs.clone(),
         }
     }
 }
@@ -95,9 +97,28 @@ impl RelationalBranchPublicationCell {
     ) -> Result<super::AdmittedRelationalBranchBasis, super::RelationalBranchBasisDenial> {
         self.basis_registry.register(basis)
     }
+
+    pub(crate) fn record_sharing_cost(
+        &self,
+        update: impl FnOnce(&mut crate::runtime::RelationalBranchSharingCostCounters),
+    ) {
+        self.sharing_costs.record(update);
+    }
+
+    pub(crate) fn sharing_costs(&self) -> crate::runtime::RelationalBranchSharingCostCounters {
+        self.sharing_costs.snapshot()
+    }
 }
 
 impl RelationalBranchPublicationStateGuard<'_> {
+    pub(crate) fn observation(&self) -> &super::RelationalBranchReferenceObservation {
+        &self.state.observation
+    }
+
+    pub(crate) fn truth_version(&self) -> super::RelationalBranchVersion {
+        self.state.truth_version
+    }
+
     pub(crate) fn lifecycle_posture(&self) -> super::RelationalBranchLifecyclePosture {
         self.state.lifecycle_posture()
     }
@@ -120,6 +141,7 @@ impl RelationalBranchPublicationStateGuard<'_> {
             basis_registry: self.cell.basis_registry.clone(),
             coordination: Arc::clone(&self.cell.coordination),
             head_retention: crate::history::retention::RelationalBranchHeadRetentionCell::fresh(),
+            sharing_costs: self.cell.sharing_costs.detached_owner_snapshot(),
         }
     }
 

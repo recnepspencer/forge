@@ -5,11 +5,13 @@ fn replay_contract_reports_schema_continuation_descriptor_drift_when_envelope_is
     let mut runtime = runtime_with_test_schema();
     let _first = create_entity_outcome(&mut runtime, "a");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::default()
+        }
+        .build_registry(),
+    );
 
     let proposed_transition = ProposedSchemaTransition {
         source_schema_id: SchemaId("test".to_string()),
@@ -92,11 +94,13 @@ fn replay_contract_audit_mode_confirms_schema_continuation_descriptor_drift_at_d
     let mut runtime = runtime_with_test_schema();
     let _first = create_entity_outcome(&mut runtime, "a");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::default()
+        }
+        .build_registry(),
+    );
 
     let proposed_transition = ProposedSchemaTransition {
         source_schema_id: SchemaId("test".to_string()),
@@ -179,11 +183,13 @@ fn replay_certification_audit_drift_is_explained_and_counted() {
     let mut runtime = runtime_with_test_schema();
     let _first = create_entity_outcome(&mut runtime, "a");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::default()
+        }
+        .build_registry(),
+    );
 
     let proposed_transition = ProposedSchemaTransition {
         source_schema_id: SchemaId("test".to_string()),
@@ -291,11 +297,13 @@ fn replay_contract_reports_schema_lineage_drift_at_summary_layer_when_digest_is_
     let mut runtime = runtime_with_test_schema();
     let _first = create_entity_outcome(&mut runtime, "a");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::default()
+        }
+        .build_registry(),
+    );
 
     let proposed_transition = ProposedSchemaTransition {
         source_schema_id: SchemaId("test".to_string()),

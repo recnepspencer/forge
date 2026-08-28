@@ -1,8 +1,7 @@
 use std::collections::BTreeSet;
 
 use crate::capabilities::{SchemaSource, StorageRead};
-use crate::identity::data::VersionId;
-use crate::runtime::{RelationalRuntime, RuntimeInstrumentation};
+use crate::runtime::RuntimeInstrumentation;
 use crate::transactions::data::{
     CommitConflict, ConflictClass, CreatedEntityRef, UpdateRelationEndpointsIntent,
 };
@@ -13,16 +12,14 @@ use super::relation_target_admission::validate_existing_relation_target;
 use super::schema_relation_admission::require_registered_relation_kind;
 
 pub(super) fn validate_relation_endpoint_update_intent(
-    runtime: &RelationalRuntime,
     state: &impl StorageRead,
     schema_source: &impl SchemaSource,
     default_cross_context_policy: crate::config::data::CrossContextPolicy,
     instrumentation: &RuntimeInstrumentation,
-    branch_basis_version_id: Option<VersionId>,
     created_entities: &BTreeSet<CreatedEntityRef>,
     spec: &UpdateRelationEndpointsIntent,
 ) -> Result<(), CommitConflict> {
-    validate_existing_relation_target(runtime, state, branch_basis_version_id, spec.relation_id)?;
+    validate_existing_relation_target(state, spec.relation_id)?;
     let relation_registration = require_registered_relation_kind(schema_source, spec.kind_id)?;
     validate_relation_endpoint_primitives(
         state,

@@ -6,6 +6,8 @@ mod observation;
 mod policy;
 mod profile;
 mod request;
+mod runtime_view;
+pub(crate) use runtime_view::InvariantRuntimeView;
 mod result;
 pub(crate) mod state_view;
 #[cfg(test)]

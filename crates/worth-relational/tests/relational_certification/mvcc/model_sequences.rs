@@ -32,7 +32,7 @@ fn all_declared_supply_chain_deltas_match_oracle_and_isolate_cost() {
         fork_from_main(&mut world.runtime, branch.clone());
     }
     let identities = all_identities(&world.runtime, &scenarios);
-    let shared = world.runtime.inspect_branch_sharing(&identities).unwrap();
+    let shared = world.runtime.observe_branch_sharing(&identities).unwrap();
     assert_eq!(shared.branch_count(), 9);
     assert_eq!(shared.unique_root_count(), 1);
     assert_eq!(shared.fork_materialized_authoritative_bytes(), 0);
@@ -141,7 +141,7 @@ fn all_declared_supply_chain_deltas_match_oracle_and_isolate_cost() {
 
     assert_v1_sibling_progressed_after_v2_transition(&mut world, &rewire_before);
 
-    let final_sharing = world.runtime.inspect_branch_sharing(&identities).unwrap();
+    let final_sharing = world.runtime.observe_branch_sharing(&identities).unwrap();
     assert_eq!(final_sharing.unique_root_count(), 9);
     assert_eq!(final_sharing.unique_canonical_commit_artifacts(), 9);
     assert_eq!(final_sharing.fork_materialized_authoritative_bytes(), 0);

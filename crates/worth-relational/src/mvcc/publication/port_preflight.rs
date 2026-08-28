@@ -77,6 +77,7 @@ impl PreparedCanonicalBranchMovement {
             next_descriptor,
             movement.next_cell.identity().clone(),
             Arc::clone(&movement.root),
+            publication_cell.clone(),
             &retention_binding,
         );
         let next_basis = match next_basis.and_then(|basis| publication_cell.register_basis(basis)) {
@@ -146,7 +147,6 @@ impl PreparedCanonicalBranchMovement {
         Ok(PreparedBranchPublicationPreflight {
             movement,
             expected,
-            expected_root,
             publication_cell,
             next_state,
             next_basis,

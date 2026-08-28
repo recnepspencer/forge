@@ -134,7 +134,7 @@ fn transition_checkpoint_and_recover(
         )
     }
     .build_registry();
-    runtime.config.schema.registry = v2_registry.clone();
+    runtime.set_schema_registry_for_test(v2_registry.clone());
     let mut transaction = {
         let transaction_validation_input =
             test_owner_transaction_validation_input_for_main(&runtime).with_schema_transition(

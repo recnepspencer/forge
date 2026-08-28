@@ -14,7 +14,7 @@ use super::sharing::{
 /// Owner inventory used to cross-examine the derived sharing summary.
 ///
 /// Entries come directly from root, partition, and canonical-artifact owners;
-/// this artifact does not call or reuse `inspect_branch_sharing`.
+/// this artifact does not call or reuse `observe_branch_sharing`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RelationalOwnerAllocationLedgerObservation {
     authoritative_allocations: Vec<RelationalAuthoritativeAllocationObservation>,

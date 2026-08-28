@@ -22,7 +22,7 @@ impl RuntimeSubsystem for HistorySubsystem {
 impl HistorySubsystem {
     pub(crate) fn detached_owner_snapshot(&self) -> Self {
         let basis_registry_metrics = Arc::new(RelationalBranchBasisRegistryMetrics::default());
-        let mut branch_cells = self.branch_cells.detached_owner_snapshot();
+        let branch_cells = self.branch_cells.detached_owner_snapshot();
         let mut cells = branch_cells.take_all();
         for cell in cells.values_mut() {
             cell.bind_basis_registry_metrics(Arc::clone(&basis_registry_metrics));
@@ -40,10 +40,8 @@ impl HistorySubsystem {
             main_branch: self.main_branch.clone(),
             branch_cells,
             commit_catalog: self.commit_catalog.clone(),
-            phase4_costs: self.phase4_costs,
-            sharing_costs: self.sharing_costs,
-            branch_sharing_costs: self.branch_sharing_costs.clone(),
-            root_identity_issuer: self.root_identity_issuer.clone(),
+            phase4_costs: self.phase4_costs.detached_owner_snapshot(),
+            root_identity_issuer: self.root_identity_issuer.detached_owner_snapshot(),
             branch_population_scans: Arc::new(AtomicU64::new(
                 self.branch_population_scans.load(Ordering::Relaxed),
             )),
@@ -52,7 +50,6 @@ impl HistorySubsystem {
             retention_owner: crate::history::retention::RelationalBranchRetentionOwner::new(
                 self.runtime_instance_id,
             ),
-            retired_branch_names: self.retired_branch_names.clone(),
             #[cfg(test)]
             root_capture_sabotage: Arc::clone(&self.root_capture_sabotage),
             commit_graph: self.commit_graph.clone(),

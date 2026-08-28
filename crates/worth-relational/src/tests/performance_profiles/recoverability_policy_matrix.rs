@@ -125,8 +125,10 @@ fn perf_recoverability_policy_matrix() {
             let mut runtime = persisted_runtime_with_test_schema_profile(
                 RelationalRuntimeProfile::ChipSimulation,
             );
-            runtime.config.diagnostics.profile.detailed_traces_enabled = false;
-            runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
+            runtime.configure_diagnostics_for_test(|profile| {
+                profile.detailed_traces_enabled = false;
+                profile.max_entries_per_artifact = 0;
+            });
 
             let source =
                 create_entity_in_partition(&mut runtime, "policy-chip-source", PartitionId(7));

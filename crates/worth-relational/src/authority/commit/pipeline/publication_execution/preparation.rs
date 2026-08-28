@@ -6,7 +6,7 @@ use crate::history::data::{BranchId, CommitId, RelationalCommitReceipt};
 use crate::identity::data::VersionId;
 use crate::publication::bundle::PublicationStage;
 use crate::publication::data::PublicationError;
-use crate::runtime::RelationalRuntime;
+use crate::runtime::RelationalPreparationRuntime;
 use crate::transactions::data::{CommitLog, TransactionCommitError};
 
 pub(super) struct PreparedPublicationPhase {
@@ -130,7 +130,7 @@ pub(super) struct PreparePublicationPhaseInput<'a> {
 }
 
 pub(super) fn prepare_publication_phase(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalPreparationRuntime,
     input: PreparePublicationPhaseInput<'_>,
 ) -> Result<PreparedPublicationPhase, TransactionCommitError> {
     let PreparePublicationPhaseInput {
@@ -202,11 +202,14 @@ pub(super) fn prepare_publication_phase(
             .with_commit_log(commit_log.clone())
         })?;
     let append_authority = crate::durability::authority::DurableAppendAuthority::from_commit(
-        super::CommitDurableAppendAdmission::new(runtime, commit_id, &branch_id),
+        super::CommitDurableAppendAdmission::new(
+            runtime.runtime_instance_id(),
+            commit_id,
+            &branch_id,
+        ),
     );
-    let validated_lineage_events = runtime
-        .lineage
-        .validate_live_event_batch(canonical_commit_envelope.lineage_events())
+    runtime
+        .validate_reserved_lineage_events(canonical_commit_envelope.lineage_events())
         .map_err(|detail| {
             TransactionCommitError::publication(PublicationError::new(
                 PublicationStage::BundleAssembly,
@@ -214,6 +217,9 @@ pub(super) fn prepare_publication_phase(
             ))
             .with_commit_log(commit_log.clone())
         })?;
+    let validated_lineage_events = crate::runtime::ValidatedLineageEventBatch::from_reserved(
+        canonical_commit_envelope.lineage_events().to_vec(),
+    );
     let canonical_publication_route = runtime
         .history
         .reserve_canonical_publication_route(

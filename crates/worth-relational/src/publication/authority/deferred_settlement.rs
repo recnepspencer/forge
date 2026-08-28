@@ -12,6 +12,7 @@ impl RelationalRuntime {
         &mut self,
         performed: crate::mvcc::PerformedRelationalCommit,
     ) -> Result<CommitResult, TransactionCommitError> {
+        let diagnostic_capture = self.publication.diagnostics.begin_operation_capture();
         let late_interruption = performed.late_interruption();
         let (positioned, next_basis, completion, candidate_retention, control) =
             performed.into_settlement_parts();
@@ -20,8 +21,9 @@ impl RelationalRuntime {
             crate::visibility::snapshot_states::VisibilitySnapshotBasis::from_observation(
                 &next_basis.observation(),
             );
-        let (published, durability_error) =
+        let (mut published, durability_error) =
             publish_commit_execution(self, completion, published_snapshot_basis)?;
+        published.append_diagnostics(diagnostic_capture.finish());
         let late_interruption = late_interruption.or_else(|| {
             let event = control.observe(crate::runtime::RelationalInterruptionBoundary::Settlement);
             if let Some(event) = event {
@@ -92,7 +94,7 @@ impl RelationalRuntime {
             }
         } else {
             let admission = CommitDurableAppendAdmission::new(
-                self,
+                self.runtime_instance_id(),
                 commit_id,
                 &positioned.envelope().commit.branch_id,
             );

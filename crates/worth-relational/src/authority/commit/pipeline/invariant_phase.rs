@@ -1,11 +1,11 @@
 use super::rejection::{attach_rejection, elapsed_micros};
 use crate::identity::data::VersionId;
-use crate::runtime::RelationalRuntime;
+use crate::runtime::RelationalPreparationRuntime;
 use crate::transactions::data::{CommitLog, CommitPhase, CommitPhaseTiming, MergedCommitPlan};
 use crate::validation::engine::InvariantExecutionResult;
 
 pub(super) fn enforce_commit_boundary_phase(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalPreparationRuntime,
     commit_log: &mut CommitLog,
     phase_timing: &mut CommitPhaseTiming,
     selected_branch_state: &crate::branch::SelectedRelationalBranchState,
@@ -37,7 +37,7 @@ pub(super) fn enforce_commit_boundary_phase(
 }
 
 pub(super) fn enforce_snapshot_publication_phase(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalPreparationRuntime,
     commit_log: &mut CommitLog,
     phase_timing: &mut CommitPhaseTiming,
     selected_branch_state: &crate::branch::SelectedRelationalBranchState,

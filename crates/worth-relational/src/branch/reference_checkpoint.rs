@@ -25,7 +25,7 @@ impl RelationalBranchReferenceCell {
     /// storage owner's content-backed target. Generation/truth progression
     /// was already checked and advanced by `advance_truth`.
     pub(crate) fn replace_truth_target(
-        &mut self,
+        &self,
         target: FoundationalBranchTarget<super::RelationalBranchTarget>,
     ) {
         if let FoundationalBranchTarget::Basis(target) = &target {
@@ -103,6 +103,7 @@ impl RelationalBranchReferenceCell {
                 &checkpoint.branch_id,
             ),
             head_retention: crate::history::retention::RelationalBranchHeadRetentionCell::fresh(),
+            sharing_costs: crate::branch::RelationalBranchSharingCostCell::default(),
         };
         cell.rebind_runtime(expected_runtime_instance_id)
             .map_err(|denial| match denial {

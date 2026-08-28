@@ -142,6 +142,34 @@ fn initial_schema_installation_retains_existing_kinds_and_rejects_duplicates() {
 }
 
 #[test]
+fn held_preparation_port_observes_atomic_initial_schema_replacement() {
+    let mut runtime = RelationalRuntimeApi::builder().build();
+    let preparation = runtime.preparation_port();
+    install_entity_kind(&mut runtime, KindId(7), "held-port-installed");
+    let mut transaction =
+        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    transaction
+        .push_batch(
+            WorkerIntentBatch::new("held-port-schema").push(MutationIntent::Create(
+                CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(7),
+                    client_key: ClientKey::raw("held-port-entity"),
+                    fields: Default::default(),
+                }),
+            )),
+        )
+        .expect("post-installation transaction stages");
+
+    let candidate = preparation
+        .prepare_branch_transaction(transaction)
+        .expect("held port validates against the atomically replaced schema world");
+    preparation
+        .discard_prepared_candidate(candidate)
+        .expect("held port discards through the same live owner");
+}
+
+#[test]
 fn initial_schema_authority_closes_after_first_commit() {
     let mut runtime = RelationalRuntimeApi::builder()
         .schema_registry(

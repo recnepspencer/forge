@@ -1,6 +1,6 @@
 use crate::authority::commit::structural_summary::CommitStructuralSummary;
 use crate::branch::SelectedRelationalBranchState;
-use crate::runtime::RelationalRuntime;
+use crate::runtime::RelationalPreparationRuntime;
 use crate::storage::overlay::summarize_entity_chunk_plan;
 use crate::storage::overlay::EntityWorkingSetLayout;
 use crate::storage::overlay::PartitionAccess;
@@ -143,7 +143,7 @@ fn sparse_relation_overlay_partitions_for_plan(
 }
 
 pub(crate) fn prepare_working_state_scope(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalPreparationRuntime,
     transaction: &mut crate::mvcc::BranchBoundRelationalTransaction,
 ) -> Result<PreparedWorkingStateScope, TransactionCommitError> {
     transaction
@@ -151,8 +151,12 @@ pub(crate) fn prepare_working_state_scope(
         .map_err(TransactionCommitError::conflict)?;
     let selected_branch_state =
         SelectedRelationalBranchState::from_admitted_basis(&transaction.basis);
-    transaction
-        .validate_staged_branch_locality(selected_branch_state.state(), &runtime.services.symbols)
+    runtime
+        .services
+        .symbols
+        .with_read(|symbols| {
+            transaction.validate_staged_branch_locality(selected_branch_state.state(), symbols)
+        })
         .map_err(TransactionCommitError::conflict)?;
     let mut phase_timing = CommitPhaseTiming::default();
     let normalization_started = Instant::now();
@@ -196,7 +200,7 @@ pub(crate) fn prepare_working_state_scope(
 }
 
 pub(crate) fn prepare_lowered_working_state_scope(
-    runtime: &RelationalRuntime,
+    runtime: &RelationalPreparationRuntime,
     transaction: &crate::mvcc::BranchBoundRelationalTransaction,
     selected_branch_state: SelectedRelationalBranchState,
     merged_plan: MergedCommitPlan,
@@ -222,7 +226,7 @@ pub(crate) fn prepare_lowered_working_state_scope(
 }
 
 pub(crate) fn prepare_authoritative_working_state_scope_for_base(
-    runtime: &RelationalRuntime,
+    runtime: &RelationalPreparationRuntime,
     base_state: &impl PartitionAccess,
     merged_plan: &MergedCommitPlan,
     merge_parent_count: usize,
@@ -322,7 +326,7 @@ pub(crate) fn prepare_authoritative_working_state_scope_for_base(
 }
 
 pub(crate) fn record_preparation_counters(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     working_state: &WorkingState,
     structural_summary: &CommitStructuralSummary,
 ) {
@@ -339,7 +343,7 @@ pub(crate) fn record_preparation_counters(
 }
 
 pub(crate) fn record_mutation_counters(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     working_state: &WorkingState,
 ) {
     let mut counters = runtime

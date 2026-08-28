@@ -132,6 +132,33 @@ impl RelationalBranchRetentionBinding {
         })
     }
 
+    pub(crate) fn install_head(
+        &self,
+        identity: RelationalBranchIdentity,
+        root: &Arc<RelationalBranchRoot>,
+    ) -> Result<super::RelationalHeadRetentionObligation, RelationalRetentionAcquisitionDenial>
+    {
+        let owner = self
+            .owner
+            .upgrade()
+            .ok_or(RelationalRetentionAcquisitionDenial::OwnerUnavailable)?;
+        if identity.runtime_instance_id() != owner.runtime_instance_id {
+            return Err(RelationalRetentionAcquisitionDenial::OwnerUnavailable);
+        }
+        super::owner::reserve_live_head_capacity(&owner)?;
+        owner
+            .live_head_count
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        owner
+            .head_install_count
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        Ok(super::RelationalHeadRetentionObligation::new(
+            &owner,
+            identity,
+            Arc::clone(root),
+        ))
+    }
+
     pub(crate) fn active_operation_count(
         &self,
         identity: &RelationalBranchIdentity,

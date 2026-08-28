@@ -67,7 +67,7 @@ impl<'runtime> VisibilityPinAuthority<'runtime> {
             if let Some(basis) = next_basis
                 .filter(|basis| basis.branch_id() == branch_id && basis.version_id() == version_id)
             {
-                protect_branch_head_state(self.runtime, &basis);
+                protect_branch_head_state(self.runtime, basis);
                 self.runtime.services.instrumentation.count(|counters| {
                     counters.visibility_cache_branch_head_promotions += 1;
                 });

@@ -1,7 +1,7 @@
+use crate::capabilities::{DiagnosticArtifactSink, RuntimeConfigSource};
 use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
 };
-use crate::runtime::RelationalRuntime;
 use crate::validation::engine::InvariantExecutionResult;
 
 use super::diagnostic_projection::{
@@ -9,16 +9,21 @@ use super::diagnostic_projection::{
     proof_boundary_trace_diagnostic_fields, serial_preparation_diagnostic_fields,
 };
 
-pub(super) fn emit_preparation_diagnostics(
-    runtime: &mut RelationalRuntime,
+pub(crate) fn emit_preparation_diagnostics(
+    runtime: &(impl DiagnosticArtifactSink + RuntimeConfigSource),
     result: &InvariantExecutionResult,
 ) {
-    if runtime.config.diagnostics.profile.should_capture_artifact(
-        DiagnosticsScope::Invariant,
-        DiagnosticsArtifactKind::DetailedTrace,
-    ) {
+    if runtime
+        .runtime_config()
+        .diagnostics
+        .profile
+        .should_capture_artifact(
+            DiagnosticsScope::Invariant,
+            DiagnosticsArtifactKind::DetailedTrace,
+        )
+    {
         if let Some(proof_boundary) = result.proof_boundary_artifact() {
-            runtime.publication_authority().push_bounded_diagnostic(
+            runtime.push_diagnostic_entries(
                 DiagnosticsScope::Invariant,
                 DiagnosticsArtifactKind::DetailedTrace,
                 vec![RelationalDiagnosticsEntry::new(
@@ -37,7 +42,7 @@ pub(super) fn emit_preparation_diagnostics(
             .filter_map(custom_invariant_trace_entry)
             .collect::<Vec<_>>();
         if !custom_trace_entries.is_empty() {
-            runtime.publication_authority().push_bounded_diagnostic(
+            runtime.push_diagnostic_entries(
                 DiagnosticsScope::Invariant,
                 DiagnosticsArtifactKind::DetailedTrace,
                 custom_trace_entries,
@@ -69,7 +74,7 @@ pub(super) fn emit_preparation_diagnostics(
         ));
     }
 
-    runtime.publication_authority().push_bounded_diagnostic(
+    runtime.push_diagnostic_entries(
         DiagnosticsScope::Invariant,
         DiagnosticsArtifactKind::DetailedTrace,
         entries,

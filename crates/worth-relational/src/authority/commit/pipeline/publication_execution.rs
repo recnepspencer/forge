@@ -17,12 +17,12 @@ pub(crate) struct CommitDurableAppendAdmission {
 
 impl CommitDurableAppendAdmission {
     pub(crate) fn new(
-        runtime: &crate::runtime::RelationalRuntime,
+        runtime_instance_id: u64,
         commit_id: crate::history::data::CommitId,
         branch_id: &crate::history::data::BranchId,
     ) -> Self {
         Self {
-            runtime_instance_id: runtime.runtime_instance_id(),
+            runtime_instance_id,
             commit_id,
             branch_id: branch_id.clone(),
         }
@@ -93,7 +93,7 @@ impl PublishedCommitExecution {
 }
 
 pub(super) fn prepare_commit_publication_execution(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     assembled: AssembledCommitExecution,
 ) -> Result<PreparedCommitPublicationExecution, crate::transactions::data::TransactionCommitError> {
     let (
@@ -226,7 +226,7 @@ pub(crate) fn publish_commit_execution(
 }
 
 fn publish_prepared_trace_diagnostics(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     evaluation_traces: &[crate::transactions::data::AspectEvaluationTrace],
     emission_traces: &[crate::transactions::data::AspectEmissionTrace],
 ) {
@@ -234,14 +234,10 @@ fn publish_prepared_trace_diagnostics(
         return;
     }
     for trace in evaluation_traces {
-        runtime
-            .publication_authority()
-            .push_diagnostic_artifact(trace.diagnostic_artifact());
+        runtime.push_preparation_diagnostic_artifact(trace.diagnostic_artifact());
     }
     for trace in emission_traces {
-        runtime
-            .publication_authority()
-            .push_diagnostic_artifact(trace.diagnostic_artifact());
+        runtime.push_preparation_diagnostic_artifact(trace.diagnostic_artifact());
     }
 }
 
@@ -289,6 +285,13 @@ impl PreparedCommitPublicationExecution {
         self.admitted.release_transaction_retention();
     }
 
+    pub(crate) fn append_diagnostics(
+        &mut self,
+        diagnostics: Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
+    ) {
+        self.admitted.append_diagnostics(diagnostics);
+    }
+
     pub(crate) fn split(
         self,
         published_snapshot_slot: crate::runtime::PublishedSnapshotSlotReservation,
@@ -317,5 +320,14 @@ impl PreparedCommitPublicationExecution {
     #[cfg(test)]
     pub(crate) fn materialization_counts(&self) -> (u64, u64) {
         self.publication.materialization_counts()
+    }
+}
+
+impl PublishedCommitExecution {
+    pub(crate) fn append_diagnostics(
+        &mut self,
+        diagnostics: Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
+    ) {
+        self.admitted.append_diagnostics(diagnostics);
     }
 }

@@ -12,7 +12,7 @@ pub(crate) fn validate_lowered_plan(
 ) -> Result<ValidatedRelationalProposal, TransactionCommitError> {
     lowered
         .transaction()
-        .ensure_current_basis(runtime)
+        .ensure_current_basis_for_runtime(runtime)
         .map_err(TransactionCommitError::conflict)?;
     let descriptor = runtime
         .commit_strategy_registry()

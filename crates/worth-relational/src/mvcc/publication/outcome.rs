@@ -202,6 +202,7 @@ pub enum RelationalPublicationFailureKind {
     PreparedRootMismatch,
     PreparedBasisDescriptor(crate::branch::RelationalBranchBasisDenial),
     NextBasisAdmission(crate::branch::RelationalBranchBasisDenial),
+    SelectedRootUnavailable,
     BranchObservation(crate::branch::RelationalBranchBasisDenial),
     PatchPositionCapacityExhausted,
     RetentionIdentityExhausted,

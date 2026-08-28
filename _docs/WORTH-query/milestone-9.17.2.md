@@ -7,12 +7,15 @@
 ## Goal And Roadmap Placement
 
 Consume the exact owner-basis and branch-local MVCC contracts from Milestone
-9.17.1 and establish one Runtime Bridge-owned product branch as a mutable
+9.17.1 as corrected by Milestone 9.17.1.1, and establish one Runtime
+Bridge-owned product branch as a mutable
 reference to an immutable single-parent composite runtime-world commit. Each
 commit names the exact Relational and Signal bases that constitute one product
 world. Bridge alone coordinates owner results and moves product currentness.
 
-Milestone 9.17.1 owns component truth and produces exact owner bases. This
+Milestone 9.17.1 owns component truth and produces exact owner bases. Milestone
+9.17.1.1 closes owner-port concurrency, settlement recovery, exact Signal
+retention, and terminal lease lifecycle before composition begins. This
 milestone owns composition truth but does not publish the public Query branch
 workflow. Milestone 9.17.3 carries performed composite authority through Query.
 
@@ -58,8 +61,10 @@ internals, reconstruct a basis from representation, or mutate owner state.
 
 ## Current Boundary
 
-After 9.17.1, Relational and Signal can each issue exact admitted bases, retain
-them for named obligations, and perform owner-local advancement. Runtime Bridge
+After 9.17.1.1, Relational and Signal can each issue exact admitted bases,
+retain current or historical exact targets for named obligations, perform
+owner-local advancement through independently borrowable services, and recover
+Relational settlement after performed-capability loss. Runtime Bridge
 already owns cross-runtime correspondence and lowering, but it lacks:
 
 - an immutable composite commit identity and parentage contract;

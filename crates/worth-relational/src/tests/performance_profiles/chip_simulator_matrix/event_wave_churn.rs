@@ -5,8 +5,10 @@ pub(super) fn certify_event_wave_compile_churn_window(suite: &'static str) {
         capture_perf_samples(suite, "event_wave_compile_churn_window", || {
             let mut runtime =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
-            runtime.config.diagnostics.profile.detailed_traces_enabled = false;
-            runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
+            runtime.configure_diagnostics_for_test(|profile| {
+                profile.detailed_traces_enabled = false;
+                profile.max_entries_per_artifact = 0;
+            });
             let source = create_entity_in_partition(&mut runtime, "event-driver", PartitionId(7));
             let sinks = (0..16)
                 .map(|index| {

@@ -43,7 +43,10 @@ pub(super) fn resolve_sharing_scope<'runtime>(
             .get(commit_id)
             .ok_or(RelationalBranchSharingInspectionDenial::RootUnavailable)?;
         if verified_roots.insert(root.id())
-            && (!root.is_complete(&runtime.services.symbols)
+            && (!runtime
+                .services
+                .symbols
+                .with_read(|symbols| root.is_complete(symbols))
                 || !artifact.links_root(&root)
                 || root.axes().is_none())
         {

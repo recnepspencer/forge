@@ -89,6 +89,7 @@ impl RelationalRuntime {
             descriptor,
             identity,
             root,
+            branch_cell.publication_cell(),
             &branch_cell
                 .head_retention()
                 .binding()

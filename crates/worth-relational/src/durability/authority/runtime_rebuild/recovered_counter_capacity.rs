@@ -10,7 +10,11 @@ pub(super) fn prepare_recovery_lineage_sequence(
         .first()
         .map(|event| event.event_id())
     {
-        restored.lineage.next_event_id = first_event_id;
+        let next_lineage_id = restored.lineage.identity_allocator.frontiers().0;
+        restored
+            .lineage
+            .identity_allocator
+            .set_frontiers(next_lineage_id, first_event_id);
     }
     if let Some(first_created_lineage_id) = envelope
         .lineage_events()
@@ -18,7 +22,11 @@ pub(super) fn prepare_recovery_lineage_sequence(
         .find(|event| event.kind() == crate::lineage::data::LineageEventKind::Create)
         .and_then(|event| event.targets().first())
     {
-        restored.lineage.next_lineage_id = first_created_lineage_id.0;
+        let next_event_id = restored.lineage.identity_allocator.frontiers().1;
+        restored
+            .lineage
+            .identity_allocator
+            .set_frontiers(first_created_lineage_id.0, next_event_id);
     }
 }
 
@@ -92,8 +100,10 @@ pub(super) fn refresh_checkpoint_counters(
     restored
         .history
         .install_recovered_sequence_floor(next_commit_id, next_version_id);
-    restored.lineage.next_lineage_id = next_lineage_id;
-    restored.lineage.next_event_id = next_event_id;
+    restored
+        .lineage
+        .identity_allocator
+        .set_frontiers(next_lineage_id, next_event_id);
     Ok(())
 }
 

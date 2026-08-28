@@ -15,7 +15,7 @@ use crate::transactions::data::{
 };
 
 pub(crate) fn enforce_patch_budget(
-    runtime: &mut (impl DiagnosticArtifactSink + PublicationPolicySource),
+    runtime: &(impl DiagnosticArtifactSink + PublicationPolicySource),
     patch: &CanonicalAuthoritativePatch,
 ) -> Result<(), TransactionCommitError> {
     let max_patch_records_per_commit = runtime.max_patch_records_per_commit();
@@ -38,7 +38,7 @@ pub(crate) fn enforce_patch_budget(
 }
 
 pub(crate) fn canonical_commit_envelope(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     commit_reference: &RelationalCommitReceipt,
     branch_id: &BranchId,
     authority_kind: CanonicalCommitAuthorityKind,
@@ -95,7 +95,7 @@ pub(crate) fn canonical_commit_envelope(
     envelope.branch_cell_checkpoint = runtime
         .history
         .branch_cell(branch_id)
-        .map(crate::branch::RelationalBranchReferenceCell::checkpoint);
+        .map(|cell| cell.checkpoint());
     validate_schema_continuity_publication(runtime, branch_id, schema_continuity, &envelope)?;
     Ok(envelope)
 }

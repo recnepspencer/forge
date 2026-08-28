@@ -61,6 +61,8 @@ pub struct RelationalOperationControl {
     post_linearization_pause: Option<RelationalPostLinearizationPause>,
     #[cfg(any(test, feature = "test-operation-control"))]
     critical_section_pause: Option<RelationalCriticalSectionPause>,
+    #[cfg(any(test, feature = "test-operation-control"))]
+    boundary_pause: Option<RelationalBoundaryPause>,
 }
 
 #[cfg(any(test, feature = "test-operation-control"))]
@@ -84,6 +86,15 @@ struct RelationalPostLinearizationPause {
 struct RelationalCriticalSectionPause {
     reached: Arc<std::sync::Barrier>,
     release: Arc<std::sync::Barrier>,
+}
+
+#[cfg(any(test, feature = "test-operation-control"))]
+#[derive(Debug, Clone)]
+struct RelationalBoundaryPause {
+    boundary: RelationalInterruptionBoundary,
+    reached: Arc<std::sync::Barrier>,
+    release: Arc<std::sync::Barrier>,
+    used: Arc<AtomicBool>,
 }
 
 impl RelationalCancellationSource {
@@ -125,6 +136,18 @@ impl RelationalOperationControl {
         &self,
         boundary: RelationalInterruptionBoundary,
     ) -> Option<RelationalInterruptionEvent> {
+        #[cfg(any(test, feature = "test-operation-control"))]
+        if let Some(pause) = &self.boundary_pause {
+            if pause.boundary == boundary
+                && pause
+                    .used
+                    .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+                    .is_ok()
+            {
+                pause.reached.wait();
+                pause.release.wait();
+            }
+        }
         #[cfg(any(test, feature = "test-operation-control"))]
         if let Some(injected) = &self.injected_interruption {
             if injected.boundary == boundary
@@ -198,6 +221,22 @@ impl RelationalOperationControl {
             pause.release.wait();
         }
     }
+
+    #[cfg(any(test, feature = "test-operation-control"))]
+    pub fn with_boundary_pause(
+        mut self,
+        boundary: RelationalInterruptionBoundary,
+        reached: Arc<std::sync::Barrier>,
+        release: Arc<std::sync::Barrier>,
+    ) -> Self {
+        self.boundary_pause = Some(RelationalBoundaryPause {
+            boundary,
+            reached,
+            release,
+            used: Arc::new(AtomicBool::new(false)),
+        });
+        self
+    }
 }
 
 impl From<RelationalCancellationToken> for RelationalOperationControl {
@@ -211,6 +250,8 @@ impl From<RelationalCancellationToken> for RelationalOperationControl {
             post_linearization_pause: None,
             #[cfg(any(test, feature = "test-operation-control"))]
             critical_section_pause: None,
+            #[cfg(any(test, feature = "test-operation-control"))]
+            boundary_pause: None,
         }
     }
 }

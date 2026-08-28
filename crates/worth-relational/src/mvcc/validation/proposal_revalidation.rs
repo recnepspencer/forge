@@ -1,12 +1,12 @@
-use crate::runtime::RelationalRuntime;
+use crate::runtime::RelationalPreparationRuntime;
 use crate::transactions::data::{CommitConflict, ConflictClass, TransactionCommitError};
 
 use super::proposal_invariants::stale_validated_proposal;
 use super::validated_proposal::ValidatedRelationalProposal;
 
-impl RelationalRuntime {
+impl RelationalPreparationRuntime {
     pub(crate) fn revalidate_proposal_for_publication(
-        &mut self,
+        &self,
         candidate: ValidatedRelationalProposal,
     ) -> Result<ValidatedRelationalProposal, TransactionCommitError> {
         self.ensure_validated_proposal_branch_is_current(&candidate)?;
@@ -26,7 +26,7 @@ impl RelationalRuntime {
                 },
             )));
         }
-        if !self.admitted_branch_basis_is_current(binding) {
+        if !binding.is_current() {
             return Err(stale_validated_proposal(
                 "validated mutation branch binding is no longer current",
             ));

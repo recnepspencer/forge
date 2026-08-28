@@ -1,13 +1,29 @@
 use crate::history::data::RelationalCommitReceipt;
 use crate::identity::data::LineageId;
-use crate::lineage::authority::LineageAuthority;
+use crate::lineage::authority::{LineageAuthority, LineagePreparationAuthority};
 use crate::lineage::data::{
     LineageDecisionKind, LineageDecisionRecord, LineageEventKind, LineageEventRecord,
 };
 
 impl<'runtime> LineageAuthority<'runtime> {
-    pub(super) fn prepare_authoritative_lineage_event(
+    pub(crate) fn install_published_lineage(
         &mut self,
+        events: crate::runtime::ValidatedLineageEventBatch,
+        publication_commit_id: crate::history::data::CommitId,
+        new_nodes: impl IntoIterator<Item = crate::lineage::data::LineageNode>,
+    ) {
+        for node in new_nodes {
+            self.runtime.lineage.record_node(node);
+        }
+        self.runtime
+            .lineage
+            .install_validated_event_batch(events, publication_commit_id);
+    }
+}
+
+impl<'runtime> LineagePreparationAuthority<'runtime> {
+    pub(super) fn prepare_authoritative_lineage_event(
+        &self,
         event_id: u64,
         commit: &RelationalCommitReceipt,
         kind: LineageEventKind,
@@ -22,20 +38,6 @@ impl<'runtime> LineageAuthority<'runtime> {
             sources,
             targets,
         }
-    }
-
-    pub(crate) fn install_published_lineage(
-        &mut self,
-        events: crate::runtime::ValidatedLineageEventBatch,
-        publication_commit_id: crate::history::data::CommitId,
-        new_nodes: impl IntoIterator<Item = crate::lineage::data::LineageNode>,
-    ) {
-        for node in new_nodes {
-            self.runtime.lineage.record_node(node);
-        }
-        self.runtime
-            .lineage
-            .install_validated_event_batch(events, publication_commit_id);
     }
 
     pub(super) fn accepted_decision_record(

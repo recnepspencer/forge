@@ -8,8 +8,10 @@ pub(super) fn certify_geometry_hot_commit_vs_replay_reconstruction(suite: &'stat
             let mut runtime = persisted_runtime_with_test_schema_profile(
                 RelationalRuntimeProfile::GeometryKernel,
             );
-            runtime.config.diagnostics.profile.detailed_traces_enabled = false;
-            runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
+            runtime.configure_diagnostics_for_test(|profile| {
+                profile.detailed_traces_enabled = false;
+                profile.max_entries_per_artifact = 0;
+            });
 
             let source = create_entity_outcome(&mut runtime, "hot-cold-geometry-source");
             let middle = create_entity_outcome(&mut runtime, "hot-cold-geometry-middle");

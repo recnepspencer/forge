@@ -14,7 +14,7 @@ struct CommitResultMaterial {
     phase_timing: crate::transactions::data::CommitPhaseTiming,
     commit_log: crate::transactions::data::CommitLog,
     strategy_artifacts: Option<crate::commit_strategies::data::StrategyCommitArtifactBundle>,
-    diagnostics_start: usize,
+    diagnostics: Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
     complexity_before: crate::performance::data::RuntimeComplexityCounters,
     prior_complexity_delta: crate::performance::data::RuntimeComplexityCounters,
     public_structural_summary: crate::transactions::data::CommitStructuralSummary,
@@ -81,10 +81,7 @@ pub(crate) fn assemble_commit_result(
 ) -> CommitResult {
     let material = CommitResultMaterial::from_published(published);
     let complexity_after = runtime.performance_access().complexity_counters_snapshot();
-    let diagnostics = runtime
-        .publication()
-        .diagnostic_access()
-        .artifacts_since(material.diagnostics_start);
+    let diagnostics = material.diagnostics.clone();
     material.assemble(diagnostics, complexity_after, late_interruption)
 }
 
@@ -110,7 +107,7 @@ impl CommitResultMaterial {
             phase_timing,
             commit_log,
             strategy_artifacts,
-            diagnostics_start,
+            diagnostics,
             complexity_before,
             prior_complexity_delta,
         ) = admitted.into_result_parts();
@@ -119,7 +116,7 @@ impl CommitResultMaterial {
             phase_timing,
             commit_log,
             strategy_artifacts,
-            diagnostics_start,
+            diagnostics,
             complexity_before,
             prior_complexity_delta,
             public_structural_summary,

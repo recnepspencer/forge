@@ -5,11 +5,13 @@ fn ordinary_commit_keeps_the_admitted_branch_root_schema_when_live_registry_drif
     let mut runtime = runtime_with_test_schema();
     let _first = create_entity_outcome(&mut runtime, "a");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::default()
+        }
+        .build_registry(),
+    );
 
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
     txn.push_batch(
@@ -46,11 +48,13 @@ fn declared_schema_transition_rejects_wrong_source_basis() {
     let mut runtime = runtime_with_test_schema();
     let _first = create_entity_outcome(&mut runtime, "a");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::default()
+        }
+        .build_registry(),
+    );
 
     let proposed_transition = ProposedSchemaTransition {
         source_schema_id: SchemaId("wrong".to_string()),
@@ -115,11 +119,13 @@ fn declared_schema_transition_rejects_wrong_target_basis() {
     let mut runtime = runtime_with_test_schema();
     let _first = create_entity_outcome(&mut runtime, "a");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::default()
+        }
+        .build_registry(),
+    );
 
     let proposed_transition = ProposedSchemaTransition {
         source_schema_id: SchemaId("test".to_string()),
@@ -257,11 +263,13 @@ fn declared_type_continuity_denied_schema_transition_reports_specific_conflict_c
     let mut runtime = runtime_with_test_schema();
     let _first = create_entity_outcome(&mut runtime, "a");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::default()
+        }
+        .build_registry(),
+    );
 
     let proposed_transition = ProposedSchemaTransition {
         source_schema_id: SchemaId("test".to_string()),

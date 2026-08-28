@@ -25,11 +25,13 @@ fn explicit_schema_transition_is_lowered_into_canonical_commit_artifacts() {
     let mut runtime = runtime_with_test_schema();
     let _first = create_entity_outcome(&mut runtime, "a");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::default()
+        }
+        .build_registry(),
+    );
 
     let proposed_transition = ProposedSchemaTransition {
         source_schema_id: SchemaId("test".to_string()),
@@ -181,11 +183,13 @@ fn schema_certification_transition_is_explained_and_counted() {
     let mut runtime = runtime_with_test_schema();
     let _first = create_entity_outcome(&mut runtime, "a");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::default()
+        }
+        .build_registry(),
+    );
 
     let proposed_transition = ProposedSchemaTransition {
         source_schema_id: SchemaId("test".to_string()),

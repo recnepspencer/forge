@@ -106,6 +106,7 @@ impl HistorySubsystem {
         let heads = self
             .branch_cells
             .values()
+            .into_iter()
             .filter_map(|cell| {
                 cell.root().map(|root| {
                     (

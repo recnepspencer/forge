@@ -11,10 +11,10 @@ pub(crate) fn lower_execution(
     mut transaction: crate::mvcc::BranchBoundRelationalTransaction,
 ) -> Result<LoweredStrategyCommitPlan, StrategyLoweringError> {
     validate_execution_binding(request, execution)?;
-
     transaction
-        .ensure_current_basis(runtime)
+        .ensure_current_basis_for_runtime(runtime)
         .map_err(StrategyLoweringError::mutation_conflict)?;
+    let preparation = runtime.preparation_runtime_snapshot();
     let selected_branch_state = runtime
         .selected_branch_state(transaction.basis())
         .map_err(StrategyLoweringError::preparation)?;
@@ -28,16 +28,20 @@ pub(crate) fn lower_execution(
             .push_batch(worker_batch)
             .map_err(|denial| StrategyLoweringError::mutation_conflict(denial.into_conflict()))?;
     }
-    transaction
-        .validate_staged_branch_locality(selected_branch_state.state(), &runtime.services.symbols)
+    runtime
+        .services
+        .symbols
+        .with_read(|symbols| {
+            transaction.validate_staged_branch_locality(selected_branch_state.state(), symbols)
+        })
         .map_err(StrategyLoweringError::mutation_conflict)?;
 
     let bulk_mutation_batch = transaction
         .admit_provenance_complete_bulk_mutation_batch(runtime)
         .map_err(StrategyLoweringError::mutation_conflict)?;
-    let intents = transaction.normalized_intents_for_merge(runtime);
+    let intents = transaction.normalized_intents_for_merge(&preparation);
     let merged_plan = transaction
-        .build_merged_plan_for_state(runtime, selected_branch_state.state(), intents)
+        .build_merged_plan_for_state(&preparation, selected_branch_state.state(), intents)
         .map_err(StrategyLoweringError::mutation_conflict)?;
     transaction
         .footprint

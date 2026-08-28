@@ -70,9 +70,10 @@ The independently governed Milestone 9.16.2 portable-package interstitial also
 closes before Milestone 9.17. It establishes stable package identities, typed
 decomposition, fresh reconstruction, and a neutral archive without adding
 application-state persistence. The Milestone 9.17 sequence remains in memory:
-9.17.1 adds exact component bases and Relational branch-local MVCC, 9.17.2 adds
-Runtime Bridge composite history/publication, and 9.17.3 completes Query
-carriage and performed-publication-gated live-runtime dispatch.
+9.17.1 adds exact component bases and Relational branch-local MVCC, corrective
+9.17.1.1 closes owner-port concurrency and lifecycle, 9.17.2 adds Runtime
+Bridge composite history/publication, and 9.17.3 completes Query carriage and
+performed-publication-gated live-runtime dispatch.
 Milestone 9.18 accepts tree-based semantic undo/redo over that completed
 composite history.
 Advanced access and computation begin in Milestone 9.19 and must use the same
@@ -3162,8 +3163,9 @@ Milestone 9.16 still has one ordinary installed branch and does not implement
 multiple branch heads, branch-local version allocation, concurrent writers on
 different branches, branch creation, merge, rebase, or branch-local inversion.
 Exact Relational/Signal component bases and Relational branch-local MVCC begin
-in Milestone 9.17.1, composite product-branch creation begins in 9.17.2, and
-the ordinary Query lane closes in 9.17.3; tree-based semantic
+in Milestone 9.17.1, their corrected owner-port handoff closes in 9.17.1.1,
+composite product-branch creation begins in 9.17.2, and the ordinary Query lane
+closes in 9.17.3; tree-based semantic
 reversal and reapplication begin in Milestone 9.18. Semantic merge, rebase,
 multi-parent publication, offline synchronization, and distributed recovery
 remain in the cross-runtime merging-and-branching roadmap. The prohibition on

@@ -172,7 +172,7 @@ fn verify_prepared_merge_execution_rejects_schema_semantic_drift() {
             })
         })
         .unwrap();
-    runtime.config.schema.registry = drifted_registry;
+    runtime.set_schema_registry_for_test(drifted_registry);
 
     match runtime.merge().verify_prepared_merge_execution(&prepared) {
         Err(MergeExecutionError::SchemaSemanticDrift { .. }) => {}

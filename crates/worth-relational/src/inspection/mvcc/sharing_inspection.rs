@@ -6,7 +6,7 @@ use super::scope::resolve_sharing_scope;
 use super::*;
 
 impl RelationalRuntime {
-    pub fn inspect_branch_sharing(
+    pub fn observe_branch_sharing(
         &self,
         branches: &[RelationalBranchIdentity],
     ) -> Result<RelationalBranchSharingObservation, RelationalBranchSharingInspectionDenial> {

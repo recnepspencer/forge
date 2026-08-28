@@ -14,6 +14,7 @@ pub(crate) fn issue_admitted_relational_branch_basis_with_retention(
     descriptor: RelationalBranchBasisDescriptor,
     identity: RelationalBranchIdentity,
     root: Arc<RelationalBranchRoot>,
+    publication_cell: super::RelationalBranchPublicationCell,
     retention_binding: &crate::history::retention::RelationalBranchRetentionBinding,
 ) -> Result<AdmittedRelationalBranchBasis, RelationalBranchBasisDenial> {
     let retention = crate::history::retention::RelationalObservationRetentionObligation::acquire(
@@ -29,6 +30,7 @@ pub(crate) fn issue_admitted_relational_branch_basis_with_retention(
             _authority: issue_relational_branch_observation_authority(),
             retention,
             retention_binding: retention_binding.clone(),
+            publication_cell,
             registry_lease: std::sync::OnceLock::new(),
         }),
     })
@@ -64,7 +66,7 @@ impl RelationalRuntime {
         RelationalBranchBasisDenial,
     > {
         require_local_branch_identity(self, identity)?;
-        let (descriptor, root, retention_binding) = {
+        let (descriptor, root, publication_cell, retention_binding) = {
             let cell = self
                 .history
                 .branch_cell(identity.branch_id())
@@ -97,13 +99,14 @@ impl RelationalRuntime {
                 .head_retention()
                 .binding()
                 .map_err(map_retention_denial)?;
-            (descriptor, root, retention_binding)
+            (descriptor, root, cell.publication_cell(), retention_binding)
         };
         require_not_interrupted(control, &retention_binding)?;
         let basis = issue_admitted_relational_branch_basis_with_retention(
             descriptor.clone(),
             identity.clone(),
             root,
+            publication_cell,
             &retention_binding,
         )?;
         require_not_interrupted(control, &retention_binding)?;

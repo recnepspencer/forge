@@ -66,7 +66,7 @@ impl crate::runtime::RelationalRuntime {
                 return Err(RelationalBranchTransactionAdmissionDenial::Deleting);
             }
         }
-        if !self.admitted_branch_basis_is_current(basis) {
+        if !basis.is_current() {
             return Err(RelationalBranchTransactionAdmissionDenial::StaleBasis);
         }
         match control.observe(crate::mvcc::RelationalInterruptionBoundary::TransactionAdmission) {

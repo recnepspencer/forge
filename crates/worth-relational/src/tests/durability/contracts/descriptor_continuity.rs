@@ -141,13 +141,15 @@ fn durability_contract_failure_descriptor_canonical_basis_version_mismatch_is_ex
     let mut runtime = persisted_runtime_with_test_schema();
     let _ = create_entity_outcome(&mut runtime, "main-a");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::with_default_declared_aspects(
-            CascadeDeletePolicy::CascadeDeleteRelations,
-        )
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::with_default_declared_aspects(
+                CascadeDeletePolicy::CascadeDeleteRelations,
+            )
+        }
+        .build_registry(),
+    );
     let mut txn = {
         let transaction_validation_input =
             crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)

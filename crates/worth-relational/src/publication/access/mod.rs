@@ -20,7 +20,7 @@ use crate::publication::patch::data::{
 use crate::runtime::RelationalReplayRecord;
 use crate::runtime::RelationalRuntime;
 
-pub(crate) use failure_diagnostics::publication_failure_diagnostic;
+pub(crate) use failure_diagnostics::invariant_failure_diagnostic;
 
 pub struct PublicationSurface<'runtime> {
     runtime: &'runtime RelationalRuntime,
@@ -93,7 +93,7 @@ impl<'runtime> PublicationSurface<'runtime> {
         self.diagnostic_access().facade()
     }
 
-    pub fn diagnostic_artifacts(&self) -> &[RelationalDiagnosticArtifact] {
+    pub fn diagnostic_artifacts(&self) -> Vec<RelationalDiagnosticArtifact> {
         self.runtime.publication_diagnostics()
     }
 

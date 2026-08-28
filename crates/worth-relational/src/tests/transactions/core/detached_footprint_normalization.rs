@@ -59,12 +59,12 @@ fn require_interned_normalizes_plan_and_created_footprint_to_identical_symbols()
         .clone();
     let normalized_source = normalized_entity(
         &merged_intents,
-        &runtime.services.symbols,
+        &runtime.services.symbols.interner_snapshot(),
         "normalized-source",
     );
     let normalized_target = normalized_entity(
         &merged_intents,
-        &runtime.services.symbols,
+        &runtime.services.symbols.interner_snapshot(),
         "normalized-target",
     );
     let normalized_relation = normalized_relation(&merged_intents);
@@ -95,7 +95,10 @@ fn require_interned_normalizes_plan_and_created_footprint_to_identical_symbols()
         (&normalized_relation.client_key, "normalized-relation"),
     ] {
         let symbol = key.as_symbol().expect("RequireInterned emits symbols");
-        assert_eq!(runtime.services.symbols.resolve(symbol), Some(expected));
+        assert_eq!(
+            runtime.services.symbols.resolve(symbol).as_deref(),
+            Some(expected)
+        );
         assert!(runtime
             .config()
             .identity

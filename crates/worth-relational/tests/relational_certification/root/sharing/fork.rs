@@ -14,7 +14,7 @@ fn phase5_fork_observation_reports_shared_root_and_distinct_cells() {
         branch_identity(&world.runtime, "storm"),
         branch_identity(&world.runtime, "maintenance"),
     ];
-    let observation = world.runtime.inspect_branch_sharing(&identities).unwrap();
+    let observation = world.runtime.observe_branch_sharing(&identities).unwrap();
     assert_eq!(
         observation.inspection_version(),
         worth_relational::facade::inspection::RELATIONAL_SHARING_INSPECTION_VERSION
@@ -83,7 +83,7 @@ fn standard_fanout_samples(fanouts: &[u32]) -> Vec<ForkFanoutSample> {
         branches.push(branch_identity(&world.runtime, &name));
         let fanout = ordinal + 1;
         if fanouts.contains(&fanout) {
-            let observation = world.runtime.inspect_branch_sharing(&branches).unwrap();
+            let observation = world.runtime.observe_branch_sharing(&branches).unwrap();
             assert_standard_fanout_observation(&observation, fanout, branches.len());
             samples.push(ForkFanoutSample {
                 log2_fanout: f64::from(fanout).log2(),

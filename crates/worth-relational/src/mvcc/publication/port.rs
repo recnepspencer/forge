@@ -15,6 +15,7 @@ use crate::branch::{
 #[derive(Debug, Clone)]
 pub struct RelationalPublicationPort {
     runtime_instance_id: u64,
+    owner_binding: crate::runtime::RelationalRuntimeOwnerBinding,
     publication_binding: crate::runtime::RelationalRuntimePublicationBinding,
     branch_head_versions: crate::runtime::BranchHeadVersionIndexAuthority,
 }
@@ -29,7 +30,6 @@ pub(crate) struct PreparedCanonicalBranchMovement {
 struct PreparedBranchPublicationPreflight {
     movement: PreparedCanonicalBranchMovement,
     expected: RelationalBranchBasisDescriptor,
-    expected_root: Arc<RelationalBranchRoot>,
     publication_cell: RelationalBranchPublicationCell,
     next_state: crate::branch::RelationalBranchReferenceMutableState,
     next_basis: crate::branch::AdmittedRelationalBranchBasis,
@@ -45,11 +45,13 @@ struct PreparedBranchPublicationPreflight {
 impl RelationalPublicationPort {
     pub(crate) fn new(
         runtime_instance_id: u64,
+        owner_binding: crate::runtime::RelationalRuntimeOwnerBinding,
         publication_binding: crate::runtime::RelationalRuntimePublicationBinding,
         branch_head_versions: crate::runtime::BranchHeadVersionIndexAuthority,
     ) -> Self {
         Self {
             runtime_instance_id,
+            owner_binding,
             publication_binding,
             branch_head_versions,
         }
@@ -69,7 +71,7 @@ impl RelationalPublicationPort {
                 },
             );
         }
-        let Some(_owner_publication) = self.publication_binding.admit() else {
+        let Some(_owner_operation) = self.owner_binding.admit() else {
             return RelationalPublicationOutcome::denied(
                 RelationalPublicationDenial::OwnerUnavailable {
                     runtime_instance_id: self.runtime_instance_id,
@@ -137,6 +139,7 @@ impl crate::runtime::RelationalRuntime {
     pub fn publication_port(&self) -> RelationalPublicationPort {
         RelationalPublicationPort::new(
             self.runtime_instance_id(),
+            self.owner_binding(),
             self.publication_binding(),
             self.history.branch_head_version_index(),
         )

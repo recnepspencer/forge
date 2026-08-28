@@ -10,7 +10,7 @@ use crate::commit_strategies::data::StrategyCommitArtifactBundle;
 use crate::diagnostics::data::RelationalDiagnosticsEntry;
 use crate::history::data::{BranchId, CommitId, RelationalCommitReceipt};
 use crate::identity::data::VersionId;
-use crate::runtime::RelationalRuntime;
+use crate::runtime::RelationalPreparationRuntime;
 use crate::transactions::data::{
     CommitLog, CommitPatchBudgetSummary, CommitPhase, CommitPhaseTiming, MergedCommitPlan,
     PublishedMergeExecutionAuthority, TransactionCommitError,
@@ -35,7 +35,7 @@ pub(super) struct ArtifactAssemblyInput<'a> {
 }
 
 pub(super) fn assemble_authoritative_publication_phase(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalPreparationRuntime,
     commit_log: &mut CommitLog,
     phase_timing: &mut CommitPhaseTiming,
     input: ArtifactAssemblyInput<'_>,

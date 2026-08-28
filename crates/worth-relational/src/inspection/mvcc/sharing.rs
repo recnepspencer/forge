@@ -276,6 +276,13 @@ impl RelationalBranchSharingObservation {
     pub const fn unique_optional_cache_bytes(&self) -> u64 {
         self.unique_optional_cache_bytes
     }
+    /// Shallow inline bytes occupied by the live branch reference-state values
+    /// selected for this observation.
+    ///
+    /// This is exactly `branch_count * size_of::<RelationalBranchReferenceState>()`.
+    /// It excludes branch-map and allocator capacity, synchronization objects,
+    /// heap-reachable storage, selected or retained roots, and diagnostics. It
+    /// is therefore not a total resident-memory measurement for the branches.
     pub const fn branch_metadata_bytes(&self) -> u64 {
         self.branch_metadata_bytes
     }

@@ -10,7 +10,7 @@ use super::snapshot_validation::validate_snapshot_publication;
 use crate::transactions::data::{CommitResult, TransactionCommitError};
 
 pub(crate) fn prepare_authoritative_commit(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     context: AuthoritativeCommitContext,
 ) -> Result<crate::mvcc::PreparedRelationalCommitCandidate, TransactionCommitError> {
     let runtime_instance_id = runtime.runtime_instance_id();
@@ -38,6 +38,7 @@ pub(crate) fn prepare_authoritative_commit(
         .branch_cell(&branch_id)
         .expect("admitted commit branch remains registered")
         .publication_cell();
+    let diagnostic_capture = runtime.diagnostics.begin_operation_capture();
     let admitted = admit_commit_execution(runtime, context)?;
     let prepared = prepare_commit_execution(runtime, admitted)?;
     let boundary_validated = validate_commit_boundary(runtime, prepared)?;
@@ -46,6 +47,7 @@ pub(crate) fn prepare_authoritative_commit(
     let snapshot_validated = validate_snapshot_publication(runtime, history_bound)?;
     let assembled = assemble_commit_artifacts(runtime, snapshot_validated)?;
     let mut prepared = prepare_commit_publication_execution(runtime, assembled)?;
+    prepared.append_diagnostics(diagnostic_capture.finish());
     if let Some(interruption) =
         control.observe(crate::mvcc::RelationalInterruptionBoundary::CandidatePreparation)
     {
@@ -68,16 +70,16 @@ pub(crate) fn prepare_authoritative_commit(
             ),
         ));
     }
-    let published_snapshot_slot = runtime
-        .visibility
-        .reserve_published_snapshot_slot()
-        .map_err(|maximum_handles| {
-            TransactionCommitError::publication_deferred(
+    let published_snapshot_slot =
+        runtime
+            .reserve_published_snapshot_slot()
+            .map_err(|maximum_handles| {
+                TransactionCommitError::publication_deferred(
                 crate::mvcc::RelationalPublicationDeferred::PublishedSnapshotCapacityExhausted {
                     maximum_handles,
                 },
             )
-        })?;
+            })?;
     let candidate_retention =
         crate::history::retention::RelationalCandidateRetentionObligation::acquire(
             &retention_binding,
@@ -189,7 +191,7 @@ pub(crate) fn publish_prepared_authoritative_commit(
 }
 
 fn require_parent_publication_settled(
-    runtime: &crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     expected_root: &std::sync::Arc<crate::branch::RelationalBranchRoot>,
 ) -> Result<(), TransactionCommitError> {
     let Some(parent) = expected_root.canonical_envelope() else {
@@ -216,6 +218,7 @@ pub(crate) fn execute_authoritative_commit(
     runtime: &mut crate::runtime::RelationalRuntime,
     context: AuthoritativeCommitContext,
 ) -> Result<CommitResult, TransactionCommitError> {
-    let candidate = prepare_authoritative_commit(runtime, context)?;
+    let preparation = runtime.preparation_runtime_snapshot();
+    let candidate = prepare_authoritative_commit(&preparation, context)?;
     publish_prepared_authoritative_commit(runtime, candidate)
 }

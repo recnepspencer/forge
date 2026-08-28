@@ -63,7 +63,7 @@ fn prepare_symbols(
     restored: &RelationalRuntime,
     checkpoint: &DurableCheckpoint,
 ) -> crate::symbols::data::StringInterner {
-    let mut symbols = restored.services.symbols.clone();
+    let mut symbols = restored.services.symbols.interner_snapshot();
     symbols.restore_snapshot(checkpoint.symbol_table.clone());
     symbols
 }
@@ -108,7 +108,6 @@ fn prepare_history(
     history.commit_envelopes = checkpoint
         .envelopes
         .iter()
-        .cloned()
         .map(|commit| {
             (
                 commit.envelope().commit.commit_id,
@@ -141,7 +140,6 @@ fn prepare_history(
     history.commit_graph = checkpoint
         .envelopes
         .iter()
-        .cloned()
         .map(|envelope| {
             (
                 envelope.commit.commit_id,
@@ -211,7 +209,7 @@ fn prepare_indexes(checkpoint: &DurableCheckpoint) -> IndexingSubsystem {
 }
 
 fn install_checkpoint_state(restored: &mut RelationalRuntime, prepared: PreparedCheckpointState) {
-    restored.services.symbols = prepared.symbols;
+    restored.services.symbols.replace(prepared.symbols);
     restored.record_identity = prepared.record_identity;
     restored.partitions = prepared.partitions;
     restored.history = prepared.history;

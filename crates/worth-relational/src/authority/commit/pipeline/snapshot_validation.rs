@@ -64,7 +64,7 @@ impl SnapshotValidatedCommitExecution {
 }
 
 pub(super) fn validate_snapshot_publication(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     mut history_bound: HistoryBoundCommitExecution,
 ) -> Result<SnapshotValidatedCommitExecution, crate::transactions::data::TransactionCommitError> {
     enforce_snapshot_invariant(runtime, &mut history_bound)?;
@@ -72,7 +72,7 @@ pub(super) fn validate_snapshot_publication(
 }
 
 fn enforce_snapshot_invariant(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     history_bound: &mut HistoryBoundCommitExecution,
 ) -> Result<(), crate::transactions::data::TransactionCommitError> {
     let mutated = history_bound.mutated_mut();

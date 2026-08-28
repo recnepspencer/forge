@@ -50,18 +50,15 @@ impl PreparedBranchPublicationPreflight {
                 },
             );
         }
-        match self
+        if let Some(event) = self
             .control
             .observe(crate::mvcc::RelationalInterruptionBoundary::BeforeCriticalSection)
         {
-            Some(event) => {
-                self.next_basis
-                    .inner
-                    .retention_binding
-                    .record_interruption(event);
-                return RelationalPublicationOutcome::interrupted(event);
-            }
-            None => {}
+            self.next_basis
+                .inner
+                .retention_binding
+                .record_interruption(event);
+            return RelationalPublicationOutcome::interrupted(event);
         }
         #[cfg(any(test, feature = "test-operation-control"))]
         self.control.pause_inside_critical_section();
@@ -76,7 +73,12 @@ impl PreparedBranchPublicationPreflight {
             }
         }
         let observed_cell = publication_state.snapshot_cell();
-        let observed_root = observed_cell.root().unwrap_or(self.expected_root);
+        let Some(observed_root) = observed_cell.root() else {
+            return RelationalPublicationOutcome::failed(RelationalPublicationFailure::new(
+                RelationalPublicationFailureKind::SelectedRootUnavailable,
+                "selected branch root is unavailable before publication movement",
+            ));
+        };
         let observed = match crate::branch::descriptor_for_cell(&observed_cell, &observed_root) {
             Ok(descriptor) => descriptor,
             Err(denial) => {

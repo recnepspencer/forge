@@ -7,7 +7,7 @@ const RETIRED_BUNDLE_BACKLOG_LIMIT: usize = 8;
 
 #[derive(Debug, Clone)]
 pub(crate) struct PublicationSubsystem {
-    pub(crate) diagnostics: Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
+    pub(crate) diagnostics: super::publication_diagnostics::RelationalDiagnosticArtifactStore,
     pub(crate) latest_bundle: Option<PublicationBundle<RelationalReplayRecord>>,
     retired_bundles: VecDeque<PublicationBundle<RelationalReplayRecord>>,
     pub(crate) post_commit_consumer: std::sync::Arc<dyn crate::publication::PostCommitConsumer>,
@@ -16,7 +16,7 @@ pub(crate) struct PublicationSubsystem {
 impl Default for PublicationSubsystem {
     fn default() -> Self {
         Self {
-            diagnostics: Vec::new(),
+            diagnostics: Default::default(),
             latest_bundle: None,
             retired_bundles: VecDeque::new(),
             post_commit_consumer: crate::publication::production_post_commit_consumer(),
@@ -47,7 +47,7 @@ impl RuntimeSubsystem for PublicationSubsystem {
 
     fn fork(&self) -> Self {
         Self {
-            diagnostics: self.diagnostics.clone(),
+            diagnostics: self.diagnostics.detached_owner_snapshot(),
             latest_bundle: self.latest_bundle.clone(),
             retired_bundles: VecDeque::new(),
             post_commit_consumer: std::sync::Arc::clone(&self.post_commit_consumer),

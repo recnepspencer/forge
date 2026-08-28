@@ -45,6 +45,8 @@ mod mvcc_cancellation;
 mod mvcc_cancellation_publication_boundaries;
 #[path = "relational_certification/mvcc/model_sequences.rs"]
 mod mvcc_model_sequences;
+#[path = "relational_certification/mvcc/preparation_owner.rs"]
+mod mvcc_preparation_owner;
 #[path = "relational_certification/mvcc/retention.rs"]
 mod mvcc_retention;
 #[path = "relational_certification/mvcc/seeded_model.rs"]

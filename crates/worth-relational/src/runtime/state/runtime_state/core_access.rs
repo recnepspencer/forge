@@ -7,8 +7,12 @@ impl RelationalRuntime {
         self.history.retention_cost_counters()
     }
 
-    pub fn config(&self) -> &crate::runtime::RelationalRuntimeConfig {
-        &self.config
+    /// Capture the runtime's current public configuration, including symbols
+    /// admitted concurrently through shared preparation ports.
+    pub fn config(&self) -> crate::runtime::RelationalRuntimeConfig {
+        let mut snapshot = self.config.clone();
+        snapshot.identity.symbol_table = self.services.symbols.configuration_snapshot();
+        snapshot
     }
 
     pub fn commit_strategy_registry(

@@ -5,13 +5,15 @@ fn complexity_budget_schema_transition_classification_is_changed_atom_bounded() 
     let mut runtime = runtime_with_test_schema();
     let _ = create_entity_outcome(&mut runtime, "anchor");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::with_default_declared_aspects(
-            CascadeDeletePolicy::CascadeDeleteRelations,
-        )
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::with_default_declared_aspects(
+                CascadeDeletePolicy::CascadeDeleteRelations,
+            )
+        }
+        .build_registry(),
+    );
 
     runtime.performance_access().reset_counters();
     let mut txn = {
@@ -49,13 +51,15 @@ fn complexity_budget_subscriber_resume_continuity_is_boundary_local() {
     let mut runtime = runtime_with_test_schema();
     let _ = create_entity_outcome(&mut runtime, "anchor");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::with_default_declared_aspects(
-            CascadeDeletePolicy::CascadeDeleteRelations,
-        )
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::with_default_declared_aspects(
+                CascadeDeletePolicy::CascadeDeleteRelations,
+            )
+        }
+        .build_registry(),
+    );
     let mut txn = {
         let transaction_validation_input =
             crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
@@ -96,13 +100,15 @@ fn complexity_budget_milestone5_closeout_keeps_schema_cdc_and_recovery_boundary_
     let baseline_checkpoint =
         checkpoint_for_schema_version(baseline.patch_position(), SchemaVersionId(1));
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::with_default_declared_aspects(
-            CascadeDeletePolicy::CascadeDeleteRelations,
-        )
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::with_default_declared_aspects(
+                CascadeDeletePolicy::CascadeDeleteRelations,
+            )
+        }
+        .build_registry(),
+    );
 
     runtime.performance_access().reset_counters();
     let mut txn = {

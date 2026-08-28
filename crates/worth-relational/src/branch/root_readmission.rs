@@ -57,6 +57,14 @@ impl RelationalBranchRoot {
         Ok(Arc::new(Self {
             id: root_id,
             regions,
+            entity_slot_count: partitions
+                .values()
+                .map(|partition| partition.entity_arena.slot_count())
+                .sum(),
+            relation_slot_count: partitions
+                .values()
+                .map(|partition| partition.relation_arena.slot_count())
+                .sum(),
             content_accumulator,
             schema_authority,
             committed: Some(RelationalCommittedBranchRoot {
@@ -139,6 +147,8 @@ impl RelationalBranchRoot {
         Arc::new(Self {
             id: self.id,
             regions: Arc::clone(&self.regions),
+            entity_slot_count: self.entity_slot_count,
+            relation_slot_count: self.relation_slot_count,
             content_accumulator: self.content_accumulator,
             schema_authority: Arc::clone(&self.schema_authority),
             committed: Some(committed),

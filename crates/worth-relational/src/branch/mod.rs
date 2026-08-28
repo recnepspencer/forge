@@ -11,6 +11,7 @@ mod basis_registry;
 mod basis_retention;
 mod coordination;
 mod fork;
+mod fork_port;
 mod fork_source_basis;
 mod identity;
 mod lifecycle;
@@ -25,6 +26,7 @@ mod root_region;
 mod root_regions;
 mod root_runtime_access;
 mod root_selection;
+mod sharing_cost_cell;
 mod target;
 mod version;
 
@@ -33,8 +35,8 @@ pub(crate) use authority::issue_relational_branch_publication_authority;
 pub use authority::{
     RelationalBranchMutationAuthority, RelationalBranchMutationAuthorityMarker,
     RelationalBranchObservationAuthority, RelationalBranchObservationAuthorityMarker,
-    RelationalBranchPublicationAuthorityMarker, RelationalForkSourceAuthority,
-    RelationalForkSourceAuthorityMarker,
+    RelationalBranchPublicationAuthority, RelationalBranchPublicationAuthorityMarker,
+    RelationalForkSourceAuthority, RelationalForkSourceAuthorityMarker,
 };
 pub(crate) use basis::AdmittedRelationalBranchBasisInner;
 pub use basis::{
@@ -51,6 +53,7 @@ pub(crate) use basis_registry::{
 };
 pub use coordination::RelationalBranchCoordinationCellId;
 pub use fork::{RelationalForkDenial, RelationalForkOutcome};
+pub use fork_port::RelationalForkPort;
 pub use fork_source_basis::{AdmittedRelationalForkSourceBasis, RelationalForkSourceDescriptor};
 pub use identity::{RelationalBranchIdentity, RelationalBranchIdentityDenial};
 pub use lifecycle::{
@@ -69,7 +72,10 @@ pub(crate) use reference::{
 };
 pub(crate) use reference_publication_cell::RelationalBranchPublicationCell;
 pub use reference_state::RelationalBranchReferenceState;
-pub(crate) use registry::RelationalBranchReferenceRegistry;
+pub(crate) use registry::{
+    RelationalBranchReferenceRegistry, RelationalForkTargetReservation,
+    RelationalForkTargetReservationDenial,
+};
 pub use root::RelationalRootCorrectnessIndex;
 pub(crate) use root::{
     PreparedRelationalBranchRootCapture, RelationalBranchRoot, RelationalBranchRootCaptureDenial,
@@ -81,6 +87,7 @@ pub(crate) use root_regions::{
     RelationalPersistentRegionAllocationKind, RelationalPersistentRegionSet,
 };
 pub(crate) use root_selection::SelectedRelationalBranchState;
+pub(crate) use sharing_cost_cell::RelationalBranchSharingCostCell;
 pub use target::{RelationalBranchRootDescriptor, RelationalBranchTarget};
 pub use version::RelationalBranchVersion;
 

@@ -15,7 +15,7 @@ pub(crate) fn apply_perf_diagnostics_policy(
     runtime: &mut RelationalRuntime,
     policy: PerfDiagnosticsPolicy,
 ) {
-    runtime.config.diagnostics.profile = match policy {
+    let profile = match policy {
         PerfDiagnosticsPolicy::GeometryOperationalHotPath => {
             RelationalDiagnosticsProfile::geometry_operational_hot_path()
         }
@@ -29,6 +29,7 @@ pub(crate) fn apply_perf_diagnostics_policy(
             RelationalDiagnosticsProfile::chip_rich_certification()
         }
     };
+    runtime.configure_diagnostics_for_test(|configured| *configured = profile);
 }
 
 pub(crate) fn runtime_with_test_schema() -> RelationalRuntime {

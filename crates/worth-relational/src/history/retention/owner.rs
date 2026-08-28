@@ -25,13 +25,13 @@ pub(crate) struct RelationalBranchRetentionOwner {
 
 #[derive(Debug)]
 pub(super) struct RelationalBranchRetentionOwnerInner {
-    runtime_instance_id: u64,
+    pub(super) runtime_instance_id: u64,
     max_live_root_obligations: usize,
     max_retired_branch_roots: usize,
     pub(super) live_head_count: AtomicUsize,
     live_retention_count: AtomicUsize,
     pub(super) ordinary_counters: RelationalRetentionAtomicCounters,
-    head_install_count: AtomicU64,
+    pub(super) head_install_count: AtomicU64,
     pub(super) head_transfer_count: AtomicU64,
     pub(super) next_retirement_generation: AtomicU64,
     pub(super) retirement_slot_count: AtomicUsize,
@@ -208,6 +208,12 @@ fn reserve_live_retention_capacity(
             Err(observed) => current = observed,
         }
     }
+}
+
+pub(super) fn reserve_live_head_capacity(
+    owner: &RelationalBranchRetentionOwnerInner,
+) -> Result<(), RelationalRetentionAcquisitionDenial> {
+    reserve_live_retention_capacity(owner)
 }
 
 pub(super) fn reserve_retirement_slot(

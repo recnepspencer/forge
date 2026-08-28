@@ -57,13 +57,15 @@ fn merge_execution_authority_is_bound_into_the_committed_root() {
 fn schema_transition_descriptors_are_each_bound_into_the_committed_root() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity_outcome(&mut runtime, "schema-before");
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::with_default_declared_aspects(
-            CascadeDeletePolicy::CascadeDeleteRelations,
-        )
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::with_default_declared_aspects(
+                CascadeDeletePolicy::CascadeDeleteRelations,
+            )
+        }
+        .build_registry(),
+    );
     let input = test_owner_transaction_validation_input_for_main(&runtime).with_schema_transition(
         schema_transition(),
         Some(crate::schema::data::SchemaReconciliationPolicy::PreserveInformation),
@@ -119,7 +121,10 @@ fn assert_axis_mutation_rejected(
     axis: &str,
 ) {
     let denial = root
-        .relink_canonical_envelope(Arc::new(mutant), &runtime.services.symbols)
+        .relink_canonical_envelope(
+            Arc::new(mutant),
+            &runtime.services.symbols.interner_snapshot(),
+        )
         .expect_err("authoritative payload mutation cannot relink");
     assert!(
         matches!(

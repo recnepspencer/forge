@@ -11,39 +11,16 @@ impl RelationalRuntime {
     }
 
     pub fn prepare_branch_transaction(
-        &mut self,
+        &self,
         transaction: crate::mvcc::BranchBoundRelationalTransaction,
     ) -> Result<crate::mvcc::PreparedRelationalCommitCandidate, TransactionCommitError> {
-        let proposal = self
-            .validate_branch_transaction(transaction)
-            .map_err(attach_validation_rejection)?;
-        self.prepare_validated_proposal(proposal)
+        self.preparation_port()
+            .prepare_branch_transaction(transaction)
     }
-}
 
-fn attach_validation_rejection(error: TransactionCommitError) -> TransactionCommitError {
-    let mut commit_log = crate::transactions::data::CommitLog::new();
-    let phase = crate::transactions::data::CommitPhase::DraftPreparation;
-    commit_log.begin_phase(phase);
-    match &error {
-        TransactionCommitError::Conflict { error, .. } => {
-            commit_log.record_rejection(phase, Some(error.code()), None, error.detail());
-        }
-        TransactionCommitError::Publication { error, .. } => {
-            commit_log.record_rejection(phase, None, Some(error.stage), error.detail.clone());
-        }
-        TransactionCommitError::Preparation { error, .. } => {
-            commit_log.record_rejection(phase, Some(error.code()), None, error.detail());
-        }
-        TransactionCommitError::Interrupted { .. } => {
-            commit_log.record_rejection(phase, None, None, error.detail());
-        }
-        TransactionCommitError::PublicationDenied { .. }
-        | TransactionCommitError::PublicationDeferred { .. }
-        | TransactionCommitError::PublicationFailed { .. } => {
-            commit_log.record_rejection(phase, None, None, error.detail());
-        }
-        TransactionCommitError::PerformedButDurabilityDeferred { .. } => {}
+    pub fn preparation_port(&self) -> crate::mvcc::RelationalPreparationPort {
+        crate::mvcc::RelationalPreparationPort::new(
+            crate::runtime::RelationalPreparationOwnerBinding::from_runtime(self),
+        )
     }
-    error.with_commit_log(commit_log)
 }

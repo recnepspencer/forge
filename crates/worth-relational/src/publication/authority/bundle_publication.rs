@@ -1,30 +1,26 @@
 use crate::history::data::RelationalCommitReceipt;
 use crate::identity::data::VersionId;
 use crate::publication::bundle::{PublicationBundle, PublicationStatus};
-use crate::publication::PublicationAuthority;
+use crate::publication::{PublicationAuthority, PublicationPreparationAuthority};
 use crate::runtime::{RelationalReplayRecord, ReplaySchemaVersion};
 use crate::snapshots::data::{SnapshotHandle, SnapshotId, SnapshotReadPolicy};
 use crate::storage::overlay::PublicationArtifacts;
 
-impl<'runtime> PublicationAuthority<'runtime> {
+impl<'runtime> PublicationPreparationAuthority<'runtime> {
     pub(crate) fn assemble_publication_bundle(
-        &mut self,
+        &self,
         commit_reference: RelationalCommitReceipt,
         version_id: VersionId,
         patch: crate::publication::patch::data::CanonicalAuthoritativePatch,
         diagnostics_summary: crate::diagnostics::data::RelationalDiagnosticArtifact,
         schema_authority: crate::schema::data::SchemaAuthoritySnapshot,
     ) -> Result<PublicationArtifacts, crate::mvcc::RelationalPublicationFailure> {
-        let snapshot_id = self
-            .runtime
-            .visibility
-            .allocate_snapshot_id()
-            .ok_or_else(|| {
-                crate::mvcc::RelationalPublicationFailure::new(
-                    crate::mvcc::RelationalPublicationFailureKind::SnapshotIdentityExhausted,
-                    "snapshot identity space is exhausted",
-                )
-            })?;
+        let snapshot_id = self.runtime.allocate_snapshot_id().ok_or_else(|| {
+            crate::mvcc::RelationalPublicationFailure::new(
+                crate::mvcc::RelationalPublicationFailureKind::SnapshotIdentityExhausted,
+                "snapshot identity space is exhausted",
+            )
+        })?;
         let snapshot = SnapshotHandle {
             runtime_instance_id: self.runtime.runtime_instance_id(),
             branch_id: commit_reference.branch_id.clone(),
@@ -40,7 +36,9 @@ impl<'runtime> PublicationAuthority<'runtime> {
             schema_authority,
         })
     }
+}
 
+impl<'runtime> PublicationAuthority<'runtime> {
     pub(crate) fn publish_artifacts(
         &mut self,
         version_id: VersionId,

@@ -71,8 +71,9 @@ fn schema_continuity_publication_rejects_incomplete_canonical_bundle() {
         schema_reconciliation_descriptor: None,
     };
 
+    let preparation = runtime.preparation_runtime_snapshot();
     let error = validate_schema_continuity_publication(
-        &mut runtime,
+        &preparation,
         &BranchId("main".to_string()),
         &plan,
         &envelope,
@@ -163,8 +164,9 @@ fn schema_continuity_publication_rejects_descriptor_semantics_mismatch() {
         schema_reconciliation_descriptor: Some(transition.reconciliation_descriptor.clone()),
     };
 
+    let preparation = runtime.preparation_runtime_snapshot();
     let error = validate_schema_continuity_publication(
-        &mut runtime,
+        &preparation,
         &BranchId("main".to_string()),
         &plan,
         &envelope,

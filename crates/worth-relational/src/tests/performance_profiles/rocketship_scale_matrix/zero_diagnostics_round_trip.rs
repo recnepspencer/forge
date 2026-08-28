@@ -19,8 +19,10 @@ pub(super) fn certify_hundred_k_nodes_zero_diagnostics_narrow_round_trip(
                 .publication
                 .policy
                 .max_patch_records_per_commit = node_count * 2;
-            runtime.config.diagnostics.profile.detailed_traces_enabled = false;
-            runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
+            runtime.configure_diagnostics_for_test(|profile| {
+                profile.detailed_traces_enabled = false;
+                profile.max_entries_per_artifact = 0;
+            });
             let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
             let seeded = seed_rocketship_world(&mut runtime, node_count);
 

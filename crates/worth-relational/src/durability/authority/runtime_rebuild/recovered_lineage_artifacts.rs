@@ -177,12 +177,10 @@ pub(super) fn reconcile_recovered_lineage_artifacts(
     restored
         .lineage
         .replace_events(events_by_id.into_values().collect());
-    if let Some(next_event_id) = next_event_id {
-        restored.lineage.next_event_id = restored.lineage.next_event_id.max(next_event_id);
-    }
-    if let Some(next_lineage_id) = next_lineage_id {
-        restored.lineage.next_lineage_id = restored.lineage.next_lineage_id.max(next_lineage_id);
-    }
+    restored
+        .lineage
+        .identity_allocator
+        .advance_to(next_lineage_id, next_event_id);
     Ok(())
 }
 

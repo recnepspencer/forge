@@ -6,14 +6,14 @@ use crate::publication::PublicationAuthority;
 use crate::runtime::RelationalRuntime;
 
 pub(crate) struct DiagnosticArtifactBuilder<'runtime> {
-    runtime: &'runtime mut RelationalRuntime,
+    runtime: &'runtime RelationalRuntime,
     scope: DiagnosticsScope,
     kind: DiagnosticsArtifactKind,
     entries: Vec<RelationalDiagnosticsEntry>,
 }
 
 fn emit_filtered_artifact(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     artifact: RelationalDiagnosticArtifact,
 ) -> RelationalDiagnosticArtifact {
     let profile = &runtime.config.diagnostics.profile;
@@ -34,7 +34,7 @@ fn emit_filtered_artifact(
 }
 
 impl<'runtime> DiagnosticArtifactBuilder<'runtime> {
-    fn new(runtime: &'runtime mut RelationalRuntime, scope: DiagnosticsScope) -> Self {
+    fn new(runtime: &'runtime RelationalRuntime, scope: DiagnosticsScope) -> Self {
         Self {
             runtime,
             scope,
@@ -103,6 +103,32 @@ impl<'runtime> DiagnosticArtifactBuilder<'runtime> {
                 self.kind,
                 DeterminismExpectation::Required,
                 self.entries,
+            ),
+        )
+    }
+}
+
+impl RelationalRuntime {
+    pub(crate) fn push_preparation_diagnostic_artifact(
+        &self,
+        artifact: RelationalDiagnosticArtifact,
+    ) {
+        let _ = emit_filtered_artifact(self, artifact);
+    }
+
+    pub(crate) fn push_bounded_preparation_diagnostic(
+        &self,
+        scope: DiagnosticsScope,
+        kind: DiagnosticsArtifactKind,
+        entries: Vec<RelationalDiagnosticsEntry>,
+    ) -> RelationalDiagnosticArtifact {
+        emit_filtered_artifact(
+            self,
+            RelationalDiagnosticArtifact::new(
+                scope,
+                kind,
+                DeterminismExpectation::Required,
+                entries,
             ),
         )
     }

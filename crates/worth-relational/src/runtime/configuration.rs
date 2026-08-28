@@ -6,5 +6,6 @@ impl RelationalRuntime {
         execution_model: crate::config::data::RelationalExecutionModel,
     ) {
         self.config.execution.execution_model = execution_model;
+        self.synchronize_preparation_configuration();
     }
 }

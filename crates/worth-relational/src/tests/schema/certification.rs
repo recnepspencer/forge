@@ -62,11 +62,12 @@ fn schema_evolution_cdc_contract_test() {
     let baseline_checkpoint =
         checkpoint_for_schema_version(baseline.patch_position(), SchemaVersionId(1));
 
-    runtime.config.schema.registry = AspectSchemaFixture {
+    let schema_v2 = AspectSchemaFixture {
         schema_version_id: SchemaVersionId(2),
         ..AspectSchemaFixture::default()
     }
     .build_registry();
+    runtime.set_schema_registry_for_test(schema_v2);
 
     let context = crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
         .with_schema_transition(

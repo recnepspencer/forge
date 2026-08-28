@@ -247,7 +247,7 @@ fn sharing(
     branches: &[RelationalBranchIdentity],
 ) -> RelationalBranchSharingObservation {
     runtime
-        .inspect_branch_sharing(branches)
+        .observe_branch_sharing(branches)
         .expect("owner-bound sharing inspection succeeds")
 }
 

@@ -92,7 +92,7 @@ impl RelationalInitialSchemaInstallation<'_> {
     {
         let merged = self
             .runtime
-            .config()
+            .config
             .schema
             .registry
             .clone()
@@ -104,15 +104,10 @@ impl RelationalInitialSchemaInstallation<'_> {
             .map_err(branch_transition_denial)?;
         self.runtime.config.schema.registry = merged;
         rebuild_schema_contract_runtime(self.runtime);
+        self.runtime.synchronize_preparation_configuration();
         Ok(RelationalInitialSchemaInstallationReceipt {
-            retained_entity_kind_count: self.runtime.config().schema.registry.entity_kinds.len(),
-            retained_relation_kind_count: self
-                .runtime
-                .config()
-                .schema
-                .registry
-                .relation_kinds
-                .len(),
+            retained_entity_kind_count: self.runtime.config.schema.registry.entity_kinds.len(),
+            retained_relation_kind_count: self.runtime.config.schema.registry.relation_kinds.len(),
         })
     }
 }
@@ -120,7 +115,7 @@ impl RelationalInitialSchemaInstallation<'_> {
 fn rebuild_schema_contract_runtime(runtime: &mut RelationalRuntime) {
     let custom_invariant_registries =
         std::mem::take(&mut runtime.schema_contract_runtime.custom_invariant_registries);
-    let mut rebuilt = <SchemaContractRuntimeSubsystem as RuntimeSubsystem>::new(runtime.config());
+    let mut rebuilt = <SchemaContractRuntimeSubsystem as RuntimeSubsystem>::new(&runtime.config);
     rebuilt.custom_invariant_registries = custom_invariant_registries;
     runtime.schema_contract_runtime = rebuilt;
 }

@@ -26,8 +26,8 @@ pub(crate) use transaction::commit_plan::bulk_reservations_for_plan;
 pub(crate) use transaction::RelationalTransactionSavepoint;
 pub use transaction::{
     BranchBoundRelationalTransaction, RelationalBranchTransactionAdmissionDenial,
-    RelationalTransactionEntityRead, RelationalTransactionFootprint, RelationalTransactionIntent,
-    RelationalTransactionReadLocus, RelationalTransactionRelationRead,
+    RelationalPreparationPort, RelationalTransactionEntityRead, RelationalTransactionFootprint,
+    RelationalTransactionIntent, RelationalTransactionReadLocus, RelationalTransactionRelationRead,
     RelationalTransactionRelationValue, RelationalTransactionStagingDenial,
     RelationalTransactionWriteLocus,
 };

@@ -150,7 +150,7 @@ fn authoritative_merge_execution_certification_rejects_schema_semantic_drift_aft
             merge_intent: MergeIntent::ReconcileIntoTarget,
         })
         .expect("prepared merge execution");
-    runtime.config.schema.registry = drifted_schema_registry();
+    runtime.set_schema_registry_for_test(drifted_schema_registry());
 
     match runtime.execute_prepared_merge(prepared) {
         Err(MergeExecutionError::SchemaSemanticDrift { .. }) => {}

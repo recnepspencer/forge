@@ -255,7 +255,7 @@ struct RuntimeState {
 impl RuntimeState {
     fn capture(runtime: &crate::runtime::RelationalRuntime) -> Self {
         Self {
-            symbols: runtime.services.symbols.clone(),
+            symbols: runtime.services.symbols.interner_snapshot(),
             configured_symbols: runtime.config().identity.symbol_table.clone(),
             branch_cells: runtime.history().branch_cells_snapshot(),
             catalog: runtime.history().commit_envelopes_snapshot(),
@@ -265,7 +265,7 @@ impl RuntimeState {
     }
 
     fn assert_unchanged(&self, runtime: &crate::runtime::RelationalRuntime) {
-        assert_eq!(runtime.services.symbols, self.symbols);
+        assert_eq!(runtime.services.symbols.interner_snapshot(), self.symbols);
         assert_eq!(
             runtime.config().identity.symbol_table,
             self.configured_symbols

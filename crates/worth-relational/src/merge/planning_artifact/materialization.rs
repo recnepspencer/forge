@@ -1,3 +1,4 @@
+use crate::capabilities::RuntimeConfigSource;
 use crate::merge::data::{LoweredMergePlan, MergePlanningArtifactCore};
 use crate::runtime::RelationalRuntime;
 
@@ -17,7 +18,7 @@ pub(crate) fn materialize_planning_artifact(
         .read_truth()
         .read_version(plan.basis.target_head.version_id);
     let schema_snapshot = merge_schema_snapshot(
-        &runtime.config().schema.registry,
+        &runtime.runtime_config().schema.registry,
         plan.source_records.as_ref(),
         &target_view,
         plan.target_delta.touched_records.as_ref(),

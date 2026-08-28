@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 #[cfg(test)]
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -30,9 +30,15 @@ mod history_construction;
 mod history_cost_recording;
 #[path = "history_costs.rs"]
 mod history_costs;
+#[path = "history_fork_binding.rs"]
+mod history_fork_binding;
 #[path = "history_head_versions.rs"]
 mod history_head_versions;
+pub(crate) use history_fork_binding::RelationalForkOwnerBinding;
+#[path = "history_preparation_binding.rs"]
+mod history_preparation_binding;
 pub(crate) use history_head_versions::BranchHeadVersionIndexAuthority;
+pub(crate) use history_preparation_binding::RelationalPreparationHistory;
 #[path = "history_publication.rs"]
 mod history_publication;
 #[path = "history_recovery.rs"]
@@ -53,6 +59,7 @@ pub(crate) use canonical_publication_routes::{
 };
 pub use history_costs::RelationalBranchSharingCostCounters;
 pub(crate) use history_costs::RelationalForkMaterializationCost;
+pub(crate) use history_costs::RelationalPhase4ReferenceCostOwner;
 pub(crate) use history_publication::PreparedRecoveredVersionedArtifactPublication;
 pub(crate) use history_publication::PreparedVersionedArtifactAccelerators;
 pub(crate) use history_publication::PreparedVersionedArtifactPublication;
@@ -79,10 +86,7 @@ pub(crate) struct HistorySubsystem {
     pub(crate) main_branch: BranchId,
     branch_cells: RelationalBranchReferenceRegistry,
     pub(crate) commit_catalog: RelationalCommitCatalog,
-    pub(crate) phase4_costs: RelationalPhase4ReferenceCostCounters,
-    pub(crate) sharing_costs: RelationalBranchSharingCostCounters,
-    branch_sharing_costs:
-        HashMap<crate::branch::RelationalBranchIdentity, RelationalBranchSharingCostCounters>,
+    pub(crate) phase4_costs: RelationalPhase4ReferenceCostOwner,
     root_identity_issuer: RelationalBranchRootIdentityIssuer,
     /// Population-wide reference traversal is deliberately hidden behind
     /// named diagnostics/checkpoint methods.  Keeping the counter separate
@@ -92,7 +96,6 @@ pub(crate) struct HistorySubsystem {
     branch_head_versions: history_head_versions::BranchHeadVersionIndexAuthority,
     basis_registry_metrics: Arc<RelationalBranchBasisRegistryMetrics>,
     retention_owner: crate::history::retention::RelationalBranchRetentionOwner,
-    retired_branch_names: std::collections::HashSet<BranchId>,
     #[cfg(test)]
     root_capture_sabotage: Arc<AtomicBool>,
     /// Durable recovery/diagnostic sidecar. Currentness and fork identity
@@ -111,6 +114,30 @@ pub(crate) struct HistorySubsystem {
 }
 
 impl HistorySubsystem {
+    pub(crate) fn fork_binding(&self) -> RelationalForkOwnerBinding {
+        RelationalForkOwnerBinding::new(
+            self.branch_cells.clone(),
+            self.phase4_costs.clone(),
+            self.branch_head_versions.clone(),
+            self.retention_owner.binding(),
+            Arc::clone(&self.basis_registry_metrics),
+        )
+    }
+
+    pub(crate) fn preparation_binding(&self) -> RelationalPreparationHistory {
+        RelationalPreparationHistory::new(
+            self.branch_cells.clone(),
+            Arc::clone(&self.commit_identity_allocator),
+            Arc::clone(&self.version_identity_allocator),
+            self.next_commit_id,
+            self.next_version_id,
+            Arc::clone(&self.canonical_publication_routes),
+            self.root_identity_issuer.clone(),
+            #[cfg(test)]
+            Arc::clone(&self.root_capture_sabotage),
+        )
+    }
+
     pub(super) fn build_with_main_branch(main_branch: BranchId) -> Self {
         let basis_registry_metrics = Arc::new(RelationalBranchBasisRegistryMetrics::default());
         let mut main_cell = RelationalBranchReferenceCell::empty(0, main_branch.clone())
@@ -121,15 +148,12 @@ impl HistorySubsystem {
             main_branch: main_branch.clone(),
             branch_cells: RelationalBranchReferenceRegistry::from_main(main_cell),
             commit_catalog: RelationalCommitCatalog::default(),
-            phase4_costs: RelationalPhase4ReferenceCostCounters::default(),
-            sharing_costs: RelationalBranchSharingCostCounters::default(),
-            branch_sharing_costs: HashMap::new(),
+            phase4_costs: RelationalPhase4ReferenceCostOwner::default(),
             root_identity_issuer: RelationalBranchRootIdentityIssuer::default(),
             branch_population_scans: Arc::new(AtomicU64::new(0)),
             branch_head_versions: Default::default(),
             basis_registry_metrics,
             retention_owner: crate::history::retention::RelationalBranchRetentionOwner::new(0),
-            retired_branch_names: std::collections::HashSet::new(),
             #[cfg(test)]
             root_capture_sabotage: Arc::new(AtomicBool::new(false)),
             commit_graph: BTreeMap::new(),
@@ -150,14 +174,6 @@ impl HistorySubsystem {
     #[cfg(test)]
     pub(crate) fn preview_next_version_id(&self) -> VersionId {
         VersionId(self.next_version_id)
-    }
-
-    pub(crate) fn reserve_commit_id(&self) -> Option<CommitId> {
-        reserve_identity(&self.commit_identity_allocator, self.next_commit_id).map(CommitId)
-    }
-
-    pub(crate) fn reserve_version_id(&self) -> Option<VersionId> {
-        reserve_identity(&self.version_identity_allocator, self.next_version_id).map(VersionId)
     }
 
     pub(crate) fn current_version_id(&self) -> VersionId {
@@ -283,22 +299,21 @@ impl HistorySubsystem {
 
     pub(crate) fn bind_fork_runtime(&mut self, runtime_instance_id: u64) {
         self.set_runtime_instance_id(runtime_instance_id);
-        self.phase4_costs = RelationalPhase4ReferenceCostCounters::default();
-        self.sharing_costs = RelationalBranchSharingCostCounters::default();
-        self.branch_sharing_costs.clear();
+        self.phase4_costs = RelationalPhase4ReferenceCostOwner::default();
         self.branch_population_scans = Arc::new(AtomicU64::new(0));
-        self.retired_branch_names.clear();
+        self.branch_cells.clear_retired_names();
     }
 
     pub(crate) fn branch_cell(
         &self,
         branch_id: &BranchId,
-    ) -> Option<&RelationalBranchReferenceCell> {
+    ) -> Option<RelationalBranchReferenceCell> {
         self.branch_cells.get(branch_id)
     }
 
     pub(crate) fn phase4_costs(&self) -> RelationalPhase4ReferenceCostCounters {
-        let mut costs = self.phase4_costs;
+        let mut costs = self.phase4_costs.snapshot();
+        costs.catalog_lookups = self.commit_catalog.lookup_count();
         costs.artifact_clones = self.history_materialization_count();
         costs.branch_population_scans = self.branch_population_scans.load(Ordering::Relaxed);
         costs
@@ -317,13 +332,13 @@ impl HistorySubsystem {
     }
 
     pub(crate) fn branch_cell_mut(
-        &mut self,
+        &self,
         branch_id: &BranchId,
-    ) -> Option<&mut RelationalBranchReferenceCell> {
-        self.branch_cells.get_mut(branch_id)
+    ) -> Option<RelationalBranchReferenceCell> {
+        self.branch_cells.get(branch_id)
     }
 
-    pub(crate) fn insert_branch_cell(&mut self, mut cell: RelationalBranchReferenceCell) {
+    pub(crate) fn insert_branch_cell(&self, mut cell: RelationalBranchReferenceCell) {
         cell.bind_basis_registry_metrics(Arc::clone(&self.basis_registry_metrics));
         self.branch_cells.insert(cell);
     }

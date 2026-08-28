@@ -57,7 +57,7 @@ fn execute_prepared_merge_publishes_ordered_multi_parent_commit_through_canonica
 #[test]
 fn execute_prepared_merge_preserves_reserved_summary_when_optional_diagnostics_budget_is_zero() {
     let mut runtime = persisted_runtime_with_test_schema();
-    runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
+    runtime.configure_diagnostics_for_test(|profile| profile.max_entries_per_artifact = 0);
     create_entity_outcome(&mut runtime, "root");
     create_branch_from_main(&mut runtime, "feature");
     create_entity_outcome_on_branch(

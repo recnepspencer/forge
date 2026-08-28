@@ -89,7 +89,7 @@ fn admit_carried_branch_checkpoint(
             recovered_root,
             recovered_provenance_root,
             &restored.config.schema.registry,
-            &restored.services.symbols,
+            &restored.services.symbols.interner_snapshot(),
         )
         .map_err(|detail| DurabilityError::new(RecoveryFailureClass::CorruptCheckpoint, detail))
 }

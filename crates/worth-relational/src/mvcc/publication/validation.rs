@@ -25,10 +25,7 @@ pub(crate) struct ValidatedPublication {
     pub(crate) next_cell: RelationalBranchReferenceCell,
 }
 
-pub(crate) fn validate_publication(
-    runtime: &RelationalRuntime,
-    request: PublicationRequest<'_>,
-) -> Result<ValidatedPublication, String> {
+fn validate_publication_identity(request: &PublicationRequest<'_>) -> Result<(), String> {
     let branch_id = request.binding.identity().branch_id();
     if request.commit_reference.commit_id != request.commit_id {
         return Err(format!(
@@ -51,15 +48,30 @@ pub(crate) fn validate_publication(
             branch_id.0, request.envelope.branch_context.0
         ));
     }
-    if !runtime.admitted_branch_basis_is_current(request.binding) {
+    if !request.binding.is_current() {
         return Err("publication owner binding is foreign or stale".to_owned());
     }
-    if runtime.history.next_version_id.checked_add(1).is_none() {
+    if request
+        .commit_reference
+        .version_id
+        .0
+        .checked_add(1)
+        .is_none()
+    {
         return Err("version id sequence overflow".to_owned());
     }
-    if runtime.history.next_commit_id.checked_add(1).is_none() {
+    if request.commit_id.0.checked_add(1).is_none() {
         return Err("commit id sequence overflow".to_owned());
     }
+    Ok(())
+}
+
+pub(crate) fn validate_publication(
+    runtime: &RelationalRuntime,
+    request: PublicationRequest<'_>,
+) -> Result<ValidatedPublication, String> {
+    let branch_id = request.binding.identity().branch_id();
+    validate_publication_identity(&request)?;
     let catalog_admission = match request.sequence {
         PublicationSequence::Truth => runtime
             .history
@@ -72,10 +84,10 @@ pub(crate) fn validate_publication(
     };
     catalog_admission
         .map_err(|denial| format!("publication catalog admission denied: {denial:?}"))?;
-    let mut cell = runtime
+    let cell = runtime
         .history
         .branch_cell(branch_id)
-        .map(RelationalBranchReferenceCell::clone_for_head_replacement)
+        .map(|cell| cell.clone_for_head_replacement())
         .ok_or_else(|| {
             format!(
                 "publication cannot mint a missing branch cell `{}`",
@@ -85,6 +97,44 @@ pub(crate) fn validate_publication(
     let roots = RelationalBranchTarget::roots_for_commit(request.commit_reference);
     let target = RelationalBranchTarget::from_commit_receipt(
         runtime.history.runtime_instance_id,
+        request.commit_reference,
+        roots,
+    );
+    cell.advance_truth(FoundationalBranchTarget::basis(target))
+        .map_err(|denial| format!("publication branch advance denied: {denial:?}"))?;
+    Ok(ValidatedPublication {
+        branch_id: branch_id.clone(),
+        next_cell: cell,
+    })
+}
+
+pub(crate) fn validate_prepared_publication(
+    runtime: &crate::runtime::RelationalPreparationRuntime,
+    request: PublicationRequest<'_>,
+) -> Result<ValidatedPublication, String> {
+    let branch_id = request.binding.identity().branch_id();
+    validate_publication_identity(&request)?;
+    match request.sequence {
+        PublicationSequence::Truth => runtime
+            .history
+            .validate_new_publication_envelope(request.envelope),
+        PublicationSequence::RecoveryTruth => runtime
+            .history
+            .validate_recovery_publication_envelope(request.envelope),
+    }?;
+    let cell = runtime
+        .history
+        .branch_cell(branch_id)
+        .map(|cell| cell.clone_for_head_replacement())
+        .ok_or_else(|| {
+            format!(
+                "publication cannot mint a missing branch cell `{}`",
+                branch_id.0
+            )
+        })?;
+    let roots = RelationalBranchTarget::roots_for_commit(request.commit_reference);
+    let target = RelationalBranchTarget::from_commit_receipt(
+        runtime.runtime_instance_id(),
         request.commit_reference,
         roots,
     );

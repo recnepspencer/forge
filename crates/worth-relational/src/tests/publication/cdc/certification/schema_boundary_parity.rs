@@ -13,13 +13,15 @@ fn cdc_certification_schema_boundary_continuation_is_explained_and_counted() {
     let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
     let _ = create_entity_outcome(&mut runtime, "anchor");
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::with_default_declared_aspects(
-            CascadeDeletePolicy::CascadeDeleteRelations,
-        )
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::with_default_declared_aspects(
+                CascadeDeletePolicy::CascadeDeleteRelations,
+            )
+        }
+        .build_registry(),
+    );
     let mut txn = {
         let transaction_validation_input =
             crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
@@ -74,13 +76,15 @@ fn diff_cdc_truth_parity_test() {
     let baseline_checkpoint =
         checkpoint_for_schema_version(baseline.patch_position(), SchemaVersionId(1));
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::with_default_declared_aspects(
-            CascadeDeletePolicy::CascadeDeleteRelations,
-        )
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::with_default_declared_aspects(
+                CascadeDeletePolicy::CascadeDeleteRelations,
+            )
+        }
+        .build_registry(),
+    );
     let mut txn_v2 = {
         let transaction_validation_input =
             crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
@@ -103,13 +107,15 @@ fn diff_cdc_truth_parity_test() {
         .expect("test staging stays within configured resource budgets");
     txn_v2.commit(&mut runtime).unwrap();
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(3),
-        ..AspectSchemaFixture::with_default_declared_aspects(
-            CascadeDeletePolicy::CascadeDeleteRelations,
-        )
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(3),
+            ..AspectSchemaFixture::with_default_declared_aspects(
+                CascadeDeletePolicy::CascadeDeleteRelations,
+            )
+        }
+        .build_registry(),
+    );
     let mut txn_v3 = {
         let transaction_validation_input =
             crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)

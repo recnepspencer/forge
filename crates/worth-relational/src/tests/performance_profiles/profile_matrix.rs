@@ -250,8 +250,10 @@ fn perf_profile_matrix() {
         || {
             let mut runtime =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::CertificationCore);
-            runtime.config.diagnostics.profile.detailed_traces_enabled = false;
-            runtime.config.diagnostics.profile.max_entries_per_artifact = 0;
+            runtime.configure_diagnostics_for_test(|profile| {
+                profile.detailed_traces_enabled = false;
+                profile.max_entries_per_artifact = 0;
+            });
             let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
 
             runtime.performance_access().reset_counters();

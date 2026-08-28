@@ -72,7 +72,7 @@ fn prove_named_delta_cow(branch: &str, label: BranchLabel, delta: DeltaId) {
         .unwrap();
     let selected_before = world
         .runtime
-        .inspect_branch_sharing(std::slice::from_ref(&selected))
+        .observe_branch_sharing(std::slice::from_ref(&selected))
         .unwrap();
     let before_regions = selected_before
         .region_locators()

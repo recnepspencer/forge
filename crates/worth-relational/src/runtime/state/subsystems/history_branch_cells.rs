@@ -17,6 +17,7 @@ impl HistorySubsystem {
         let versions = self
             .branch_cells
             .values()
+            .into_iter()
             .filter_map(|cell| match cell.observation().target() {
                 FoundationalBranchTarget::Empty => None,
                 FoundationalBranchTarget::Basis(target) => {
@@ -299,7 +300,7 @@ impl HistorySubsystem {
 
     pub(crate) fn branch_ids_snapshot(&self) -> Vec<BranchId> {
         self.record_branch_population_scan();
-        let mut branch_ids = self.branch_cells.keys().cloned().collect::<Vec<_>>();
+        let mut branch_ids = self.branch_cells.keys();
         branch_ids.sort();
         branch_ids
     }

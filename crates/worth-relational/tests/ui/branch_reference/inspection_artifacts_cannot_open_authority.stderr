@@ -7,7 +7,7 @@ error[E0308]: mismatched types
    |                     arguments to this method are incorrect
    |
 note: method defined here
-  --> src/branch/fork.rs
+  --> src/branch/fork_runtime_adapters.rs
    |
    |     pub fn fork_branch(
    |            ^^^^^^^^^^^

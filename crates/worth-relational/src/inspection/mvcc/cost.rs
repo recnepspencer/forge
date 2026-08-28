@@ -151,7 +151,7 @@ impl RelationalRuntime {
         &self,
         scope: &RelationalMvccCostScope,
     ) -> Result<RelationalMvccCostObservation, RelationalBranchSharingInspectionDenial> {
-        let sharing = self.inspect_branch_sharing(scope.branches())?;
+        let sharing = self.observe_branch_sharing(scope.branches())?;
         let counters = self.observe_mvcc_counters(scope)?;
         Ok(RelationalMvccCostObservation { sharing, counters })
     }
@@ -209,11 +209,10 @@ fn validate_counter_scope(
         if !seen.insert(identity) {
             return Err(RelationalBranchSharingInspectionDenial::DuplicateBranch);
         }
-        if !runtime
-            .history
-            .branch_cell(identity.branch_id())
-            .is_some_and(|cell| cell.identity() == identity)
-        {
+        let Some(cell) = runtime.history.branch_cell(identity.branch_id()) else {
+            return Err(RelationalBranchSharingInspectionDenial::UnknownBranch);
+        };
+        if cell.identity() != identity {
             return Err(RelationalBranchSharingInspectionDenial::UnknownBranch);
         }
     }

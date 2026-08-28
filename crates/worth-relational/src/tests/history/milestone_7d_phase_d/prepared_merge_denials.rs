@@ -60,7 +60,7 @@ fn deleted_on_both_sides_prepared_merge_rejects_schema_semantic_drift() {
             merge_intent: MergeIntent::ReconcileIntoTarget,
         })
         .expect("prepared merge");
-    runtime.config.schema.registry = drifted_schema_registry();
+    runtime.set_schema_registry_for_test(drifted_schema_registry());
 
     match runtime.execute_prepared_merge(prepared) {
         Err(MergeExecutionError::SchemaSemanticDrift { .. }) => {}

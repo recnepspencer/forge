@@ -8,7 +8,7 @@ fn empty_cell() -> RelationalBranchReferenceCell {
 
 #[test]
 fn metadata_movement_advances_generation_without_truth_version() {
-    let mut cell = empty_cell();
+    let cell = empty_cell();
     cell.advance_metadata().expect("generation can advance");
     assert_eq!(cell.observation().generation().get(), 1);
     assert_eq!(cell.truth_version(), RelationalBranchVersion::initial());
@@ -17,7 +17,7 @@ fn metadata_movement_advances_generation_without_truth_version() {
 
 #[test]
 fn truth_movement_advances_generation_and_branch_local_version() {
-    let mut cell = empty_cell();
+    let cell = empty_cell();
     cell.advance_truth(FoundationalBranchTarget::empty())
         .expect("truth movement can advance");
     assert_eq!(cell.observation().generation().get(), 1);
@@ -26,7 +26,7 @@ fn truth_movement_advances_generation_and_branch_local_version() {
 
 #[test]
 fn truth_version_overflow_denies_before_reference_effect() {
-    let mut cell = empty_cell();
+    let cell = empty_cell();
     cell.state().truth_version = RelationalBranchVersion::new(u64::MAX);
     let observation_before = cell.observation();
     assert_eq!(
@@ -38,7 +38,7 @@ fn truth_version_overflow_denies_before_reference_effect() {
 
 #[test]
 fn generation_overflow_denies_before_truth_effect() {
-    let mut cell = empty_cell();
+    let cell = empty_cell();
     let branch_id = cell.observation().branch_id().clone();
     cell.state().observation = RelationalBranchReferenceObservation::new(
         branch_id,
@@ -55,7 +55,7 @@ fn generation_overflow_denies_before_truth_effect() {
 
 #[test]
 fn metadata_generation_overflow_denies_before_reference_effect() {
-    let mut cell = empty_cell();
+    let cell = empty_cell();
     let branch_id = cell.observation().branch_id().clone();
     cell.state().observation = RelationalBranchReferenceObservation::new(
         branch_id,

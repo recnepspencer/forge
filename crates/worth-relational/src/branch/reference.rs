@@ -23,11 +23,25 @@ pub(crate) struct RelationalBranchReferenceCell {
     pub(super) basis_registry: super::RelationalBranchBasisRegistry,
     pub(super) coordination: Arc<super::coordination::RelationalBranchCoordinationCell>,
     pub(super) head_retention: Arc<crate::history::retention::RelationalBranchHeadRetentionCell>,
+    pub(super) sharing_costs: super::RelationalBranchSharingCostCell,
+}
+
+impl Clone for RelationalBranchReferenceCell {
+    fn clone(&self) -> Self {
+        Self {
+            identity: self.identity.clone(),
+            state: Arc::clone(&self.state),
+            basis_registry: self.basis_registry.clone(),
+            coordination: Arc::clone(&self.coordination),
+            head_retention: Arc::clone(&self.head_retention),
+            sharing_costs: self.sharing_costs.clone(),
+        }
+    }
 }
 #[derive(Debug, Clone)]
 pub(crate) struct RelationalBranchReferenceMutableState {
     pub(super) observation: RelationalBranchReferenceObservation,
-    truth_version: RelationalBranchVersion,
+    pub(super) truth_version: RelationalBranchVersion,
     pub(super) lifecycle: super::RelationalBranchLifecyclePosture,
     fork_provenance: Option<RelationalBranchReferenceObservation>,
     fork_source_branch_id: Option<BranchId>,
@@ -60,6 +74,7 @@ impl RelationalBranchReferenceCell {
                 self.identity.branch_id(),
             ),
             head_retention: crate::history::retention::RelationalBranchHeadRetentionCell::fresh(),
+            sharing_costs: self.sharing_costs.detached_owner_snapshot(),
         }
     }
 }
@@ -88,6 +103,7 @@ impl RelationalBranchReferenceCell {
             basis_registry: self.basis_registry.clone(),
             coordination: Arc::clone(&self.coordination),
             head_retention: Arc::clone(&self.head_retention),
+            sharing_costs: self.sharing_costs.clone(),
         }
     }
 
@@ -102,6 +118,7 @@ impl RelationalBranchReferenceCell {
             basis_registry: self.basis_registry.clone(),
             coordination: Arc::clone(&self.coordination),
             head_retention: crate::history::retention::RelationalBranchHeadRetentionCell::fresh(),
+            sharing_costs: super::RelationalBranchSharingCostCell::default(),
         }
     }
 
@@ -131,6 +148,7 @@ impl RelationalBranchReferenceCell {
                 &branch_id,
             ),
             head_retention: crate::history::retention::RelationalBranchHeadRetentionCell::fresh(),
+            sharing_costs: super::RelationalBranchSharingCostCell::default(),
         })
     }
 
@@ -185,74 +203,7 @@ impl RelationalBranchReferenceCell {
                 &branch_id,
             ),
             head_retention: crate::history::retention::RelationalBranchHeadRetentionCell::fresh(),
-        })
-    }
-
-    pub(crate) fn rebind_runtime(
-        &self,
-        runtime_instance_id: u64,
-    ) -> Result<Self, RelationalBranchObservationConstructionDenial> {
-        let state = self.state_snapshot();
-        let target = match state.observation.target() {
-            FoundationalBranchTarget::Empty => FoundationalBranchTarget::empty(),
-            FoundationalBranchTarget::Basis(target) => FoundationalBranchTarget::basis(
-                target.rebind_runtime_instance_id(runtime_instance_id),
-            ),
-        };
-        let observation = relational_branch_observation(
-            runtime_instance_id,
-            self.identity.branch_id().0.as_str(),
-            target,
-            state.observation.generation(),
-        )?;
-        let fork_provenance = match (
-            state.fork_provenance.as_ref(),
-            state.fork_source_branch_id.as_ref(),
-        ) {
-            (None, None) => Ok(None),
-            (Some(source), Some(source_branch_id)) => {
-                let expected_branch_id = format!(
-                    "relational/{}/{}",
-                    self.identity.runtime_instance_id(),
-                    source_branch_id.0
-                );
-                if source.branch_id().as_str() != expected_branch_id {
-                    return Err(
-                        RelationalBranchObservationConstructionDenial::ForkProvenanceMismatch,
-                    );
-                }
-                let target = match source.target() {
-                    FoundationalBranchTarget::Empty => FoundationalBranchTarget::empty(),
-                    FoundationalBranchTarget::Basis(target) => FoundationalBranchTarget::basis(
-                        target.rebind_runtime_instance_id(runtime_instance_id),
-                    ),
-                };
-                relational_branch_observation(
-                    runtime_instance_id,
-                    &source_branch_id.0,
-                    target,
-                    source.generation(),
-                )
-                .map(Some)
-            }
-            _ => return Err(RelationalBranchObservationConstructionDenial::ForkProvenanceMismatch),
-        }?;
-        Ok(Self {
-            identity: self.identity.rebind(runtime_instance_id),
-            state: Arc::new(Mutex::new(RelationalBranchReferenceMutableState {
-                observation,
-                truth_version: state.truth_version,
-                lifecycle: state.lifecycle,
-                fork_provenance,
-                fork_source_branch_id: state.fork_source_branch_id,
-                root: state.root,
-            })),
-            basis_registry: super::RelationalBranchBasisRegistry::default(),
-            coordination: super::coordination::RelationalBranchCoordinationCell::fresh(
-                runtime_instance_id,
-                self.identity.branch_id(),
-            ),
-            head_retention: crate::history::retention::RelationalBranchHeadRetentionCell::fresh(),
+            sharing_costs: super::RelationalBranchSharingCostCell::default(),
         })
     }
 
@@ -305,12 +256,12 @@ impl RelationalBranchReferenceCell {
         self.state_snapshot().fork_source_branch_id
     }
 
-    pub(crate) fn advance_metadata(&mut self) -> Result<(), RelationalBranchCellDenial> {
+    pub(crate) fn advance_metadata(&self) -> Result<(), RelationalBranchCellDenial> {
         self.advance_metadata_to(self.observation().target().clone())
     }
 
     pub(crate) fn advance_metadata_to(
-        &mut self,
+        &self,
         target: FoundationalBranchTarget<RelationalBranchTarget>,
     ) -> Result<(), RelationalBranchCellDenial> {
         if let FoundationalBranchTarget::Basis(target) = &target {
@@ -332,7 +283,7 @@ impl RelationalBranchReferenceCell {
     }
 
     pub(crate) fn advance_truth(
-        &mut self,
+        &self,
         target: FoundationalBranchTarget<RelationalBranchTarget>,
     ) -> Result<(), RelationalBranchCellDenial> {
         let mut state = self.state();
@@ -386,3 +337,5 @@ pub(crate) use checkpoint::RelationalBranchCellCheckpoint;
 mod coordination_access;
 #[path = "reference_root_access.rs"]
 mod root_access;
+#[path = "reference_runtime_rebinding.rs"]
+mod runtime_rebinding;

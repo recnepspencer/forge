@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, RwLock, RwLockReadGuard, Weak};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex, Weak};
 
 /// Drop-governed publication authority owned directly by one runtime.
 #[derive(Debug)]
@@ -16,8 +16,6 @@ pub(crate) struct RelationalRuntimePublicationBinding {
 
 #[derive(Debug)]
 pub(super) struct RelationalRuntimePublicationLifecycle {
-    accepting_publication: AtomicBool,
-    in_flight: RwLock<()>,
     next_candidate_id: AtomicU64,
     candidates: Mutex<HashMap<u64, RegisteredCandidate>>,
     pub(super) deferred_settlements: Mutex<
@@ -39,17 +37,11 @@ pub(crate) enum RelationalCandidateRegistrationDenial {
     IdentityExhausted,
 }
 
-pub(crate) struct AdmittedRelationalRuntimePublication<'lifecycle> {
-    _in_flight: RwLockReadGuard<'lifecycle, ()>,
-}
-
 impl RelationalRuntimePublicationOwner {
     pub(in crate::runtime) fn new() -> Self {
         Self {
             binding: RelationalRuntimePublicationBinding {
                 lifecycle: Arc::new(RelationalRuntimePublicationLifecycle {
-                    accepting_publication: AtomicBool::new(true),
-                    in_flight: RwLock::new(()),
                     next_candidate_id: AtomicU64::new(1),
                     candidates: Mutex::new(HashMap::new()),
                     deferred_settlements: Mutex::new(HashMap::new()),
@@ -63,17 +55,6 @@ impl RelationalRuntimePublicationOwner {
     }
 
     pub(super) fn close(&self) {
-        self.binding
-            .lifecycle
-            .accepting_publication
-            .store(false, Ordering::Release);
-        drop(
-            self.binding
-                .lifecycle
-                .in_flight
-                .write()
-                .unwrap_or_else(|poisoned| poisoned.into_inner()),
-        );
         self.binding.clear_deferred_settlements();
     }
 }
@@ -155,23 +136,6 @@ impl RelationalRuntimePublicationBinding {
 
     pub(crate) fn belongs_to_same_owner(&self, other: &Self) -> bool {
         Arc::ptr_eq(&self.lifecycle, &other.lifecycle)
-    }
-
-    pub(crate) fn admit(&self) -> Option<AdmittedRelationalRuntimePublication<'_>> {
-        if !self.lifecycle.accepting_publication.load(Ordering::Acquire) {
-            return None;
-        }
-        let in_flight = self
-            .lifecycle
-            .in_flight
-            .read()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        if !self.lifecycle.accepting_publication.load(Ordering::Acquire) {
-            return None;
-        }
-        Some(AdmittedRelationalRuntimePublication {
-            _in_flight: in_flight,
-        })
     }
 }
 

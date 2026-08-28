@@ -50,7 +50,7 @@ impl SchemaContinuityPlan {
 }
 
 pub(crate) fn resolve_schema_continuity(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     branch_id: &crate::history::data::BranchId,
     options: &crate::mvcc::RelationalTransactionValidationInput,
 ) -> Result<SchemaContinuityPlan, TransactionCommitError> {
@@ -60,7 +60,19 @@ pub(crate) fn resolve_schema_continuity(
         options.proposed_schema_transition(),
     ) {
         (Some(input), _) => input.clone(),
-        (None, Some(_)) => crate::schema::SchemaContinuityAuthorityInput::from_runtime(runtime),
+        (None, Some(_)) => crate::schema::SchemaContinuityAuthorityInput::from_shared_registry(
+            std::sync::Arc::new(runtime.config.schema.registry.clone()),
+            runtime
+                .config
+                .schema
+                .descriptor_semantics_policy
+                .current_write_version(),
+            runtime
+                .config
+                .schema
+                .descriptor_canonical_basis_policy
+                .current_write_version(),
+        ),
         (None, None) => crate::schema::SchemaContinuityAuthorityInput::from_shared_registry(
             options.schema_authority().registry_arc(),
             options.schema_authority().descriptor_semantics_version(),
@@ -77,11 +89,12 @@ pub(crate) fn resolve_schema_continuity(
     let current_schema_version = authority_input.target_schema_version();
     let current_schema_authority = authority_input.target_schema_authority().clone();
     let current_schema_basis = authority_input.target_schema_basis();
-    let previous_head = {
-        let history = runtime.history();
-        history.branch_head(branch_id)
-    };
-    let Some(previous_head) = previous_head else {
+    let previous_envelope = runtime
+        .history
+        .branch_cell(branch_id)
+        .and_then(|cell| cell.root())
+        .and_then(|root| root.canonical_envelope().cloned());
+    let Some(previous_envelope) = previous_envelope.as_ref() else {
         if let Some(proposed_transition) = options.proposed_schema_transition() {
             return materialize_declared_transition(
                 runtime,
@@ -98,14 +111,6 @@ pub(crate) fn resolve_schema_continuity(
         }
         return Ok(SchemaContinuityPlan::current(&authority_input));
     };
-    let previous_envelope = {
-        let history = runtime.history();
-        history.commit_envelope(previous_head.commit_id)
-    };
-    let Some(previous_envelope) = previous_envelope.as_ref() else {
-        return Ok(SchemaContinuityPlan::current(&authority_input));
-    };
-
     if !descriptor_policy.supports(previous_envelope.descriptor_semantics_version) {
         runtime
             .performance_access()
@@ -156,7 +161,7 @@ pub(crate) fn resolve_schema_continuity(
 }
 
 fn materialize_declared_transition(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     proposed_transition: crate::schema::data::ProposedSchemaTransition,
     policy: Option<crate::schema::data::SchemaReconciliationPolicy>,
     descriptor_semantics_version: DescriptorSemanticsVersion,
@@ -340,7 +345,7 @@ fn schema_continuity_plan_from_lowered(
 }
 
 fn schema_continuity_conflict(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     branch_id: &crate::history::data::BranchId,
     proposed_transition: Option<&crate::schema::data::ProposedSchemaTransition>,
     previous_envelope: Option<&crate::history::data::CanonicalCommitEnvelope>,
@@ -358,7 +363,7 @@ fn schema_continuity_conflict(
 }
 
 pub(crate) fn validate_schema_continuity_publication(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     branch_id: &crate::history::data::BranchId,
     _plan: &SchemaContinuityPlan,
     envelope: &CanonicalCommitEnvelope,

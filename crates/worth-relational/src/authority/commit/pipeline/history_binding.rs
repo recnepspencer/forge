@@ -44,7 +44,7 @@ impl HistoryBoundCommitExecution {
 }
 
 pub(super) fn bind_commit_history(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     mut mutated: MutatedCommitExecution,
 ) -> Result<HistoryBoundCommitExecution, crate::transactions::data::TransactionCommitError> {
     let version_id = mutated.version_id();

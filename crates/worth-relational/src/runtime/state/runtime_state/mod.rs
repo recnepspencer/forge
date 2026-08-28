@@ -1,6 +1,9 @@
 mod branch_authority;
 mod core_access;
 mod merge_authority;
+mod owner_lifecycle;
+mod preparation_configuration;
+mod preparation_runtime;
 mod publication_lifecycle;
 mod publication_recovery;
 #[cfg(test)]
@@ -17,6 +20,14 @@ use super::{
     SchemaContractRuntimeSubsystem, VisibilitySubsystem,
 };
 
+pub(in crate::runtime) use owner_lifecycle::RelationalRuntimeOwner;
+pub(crate) use owner_lifecycle::{
+    AdmittedRelationalRuntimeOperation, RelationalRuntimeOwnerBinding,
+};
+pub(crate) use preparation_configuration::RelationalPreparationConfigurationBinding;
+pub(in crate::runtime) use preparation_configuration::RelationalPreparationConfigurationOwner;
+pub(crate) use preparation_runtime::RelationalPreparationOwnerBinding;
+pub(crate) use preparation_runtime::RelationalPreparationRuntime;
 pub(in crate::runtime) use publication_lifecycle::RelationalRuntimePublicationOwner;
 pub(crate) use publication_lifecycle::{
     RelationalCandidateRegistrationDenial, RelationalRuntimePublicationBinding,
@@ -36,17 +47,39 @@ pub struct RelationalRuntime {
     pub(crate) durability: DurabilitySubsystem,
     pub(crate) record_identity: RecordIdentitySubsystem,
     pub(crate) services: RuntimeServices,
+    pub(in crate::runtime) preparation_configuration: RelationalPreparationConfigurationOwner,
+    pub(in crate::runtime) owner_lifecycle: RelationalRuntimeOwner,
     pub(in crate::runtime) publication_owner: RelationalRuntimePublicationOwner,
 }
 
 impl Drop for RelationalRuntime {
     fn drop(&mut self) {
+        self.owner_lifecycle.close();
         self.publication_owner.close();
         crate::indexes::purge_index_query_scratch_hints(self.runtime_instance_id());
     }
 }
 
 impl RelationalRuntime {
+    pub(crate) fn synchronize_preparation_configuration(&self) {
+        self.preparation_configuration
+            .synchronize(&self.config, &self.schema_contract_runtime);
+    }
+
+    pub(crate) fn preparation_configuration_binding(
+        &self,
+    ) -> RelationalPreparationConfigurationBinding {
+        self.preparation_configuration.binding()
+    }
+
+    pub(crate) fn preparation_runtime_snapshot(&self) -> RelationalPreparationRuntime {
+        RelationalPreparationOwnerBinding::from_runtime(self).runtime_snapshot()
+    }
+
+    pub(crate) fn owner_binding(&self) -> RelationalRuntimeOwnerBinding {
+        self.owner_lifecycle.binding()
+    }
+
     pub(crate) fn publication_binding(&self) -> RelationalRuntimePublicationBinding {
         self.publication_owner.binding()
     }

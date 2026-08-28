@@ -9,14 +9,13 @@ mod resolution_indexes;
 
 use resolution_indexes::LineageResolutionIndexes;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug)]
 pub(crate) struct LineageSubsystem {
     pub(crate) nodes: BTreeMap<crate::identity::data::LineageId, LineageNode>,
     published_events: Vec<PublishedLineageEvent>,
     published_event_ids: BTreeSet<u64>,
     resolution_indexes: LineageResolutionIndexes,
-    pub(crate) next_lineage_id: u64,
-    pub(crate) next_event_id: u64,
+    pub(crate) identity_allocator: super::LineageIdentityAllocator,
 }
 
 #[derive(Debug, Clone)]
@@ -29,6 +28,12 @@ pub(crate) struct ValidatedLineageEventBatch {
     events: Vec<LineageEventRecord>,
 }
 
+impl ValidatedLineageEventBatch {
+    pub(crate) fn from_reserved(events: Vec<LineageEventRecord>) -> Self {
+        Self { events }
+    }
+}
+
 impl LineageSubsystem {
     fn empty() -> Self {
         Self {
@@ -36,8 +41,7 @@ impl LineageSubsystem {
             published_events: Vec::new(),
             published_event_ids: BTreeSet::new(),
             resolution_indexes: LineageResolutionIndexes::default(),
-            next_lineage_id: 1,
-            next_event_id: 1,
+            identity_allocator: super::LineageIdentityAllocator::new(),
         }
     }
 
@@ -52,36 +56,6 @@ impl LineageSubsystem {
             event,
             publication_commit_id,
         });
-    }
-
-    pub(crate) fn validate_live_event_batch(
-        &self,
-        events: &[LineageEventRecord],
-    ) -> Result<ValidatedLineageEventBatch, String> {
-        let mut previous_event_id = None;
-        for event in events {
-            if previous_event_id.is_some_and(|previous| event.event_id() <= previous) {
-                return Err(
-                    "live lineage event ids must advance within their reserved batch".to_owned(),
-                );
-            }
-            if event.event_id() >= self.next_event_id {
-                return Err(format!(
-                    "live lineage event {} was not reserved by this allocator",
-                    event.event_id()
-                ));
-            }
-            if self.published_event_ids.contains(&event.event_id()) {
-                return Err(format!(
-                    "live lineage event id {} was already published",
-                    event.event_id()
-                ));
-            }
-            previous_event_id = Some(event.event_id());
-        }
-        Ok(ValidatedLineageEventBatch {
-            events: events.to_vec(),
-        })
     }
 
     pub(crate) fn install_validated_event_batch(
@@ -125,9 +99,7 @@ impl LineageSubsystem {
         for event in events.iter().cloned() {
             self.record_event(event, publication_commit_id);
         }
-        if let Some(next_event_id) = next_event_id {
-            self.next_event_id = self.next_event_id.max(next_event_id);
-        }
+        self.identity_allocator.advance_to(None, next_event_id);
         Ok(())
     }
 
@@ -251,6 +223,30 @@ impl RuntimeSubsystem for LineageSubsystem {
     }
 
     fn fork(&self) -> Self {
-        self.clone()
+        Self {
+            nodes: self.nodes.clone(),
+            published_events: self.published_events.clone(),
+            published_event_ids: self.published_event_ids.clone(),
+            resolution_indexes: self.resolution_indexes.clone(),
+            identity_allocator: self.identity_allocator.detached(),
+        }
+    }
+}
+
+impl Default for LineageSubsystem {
+    fn default() -> Self {
+        Self::empty()
+    }
+}
+
+impl Clone for LineageSubsystem {
+    fn clone(&self) -> Self {
+        Self {
+            nodes: self.nodes.clone(),
+            published_events: self.published_events.clone(),
+            published_event_ids: self.published_event_ids.clone(),
+            resolution_indexes: self.resolution_indexes.clone(),
+            identity_allocator: self.identity_allocator.detached(),
+        }
     }
 }

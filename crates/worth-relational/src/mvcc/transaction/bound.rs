@@ -84,7 +84,7 @@ impl BranchBoundRelationalTransaction {
 
     pub fn validate(
         self,
-        runtime: &mut crate::runtime::RelationalRuntime,
+        runtime: &crate::runtime::RelationalRuntime,
     ) -> Result<
         crate::mvcc::ValidatedRelationalProposal,
         crate::transactions::data::TransactionCommitError,

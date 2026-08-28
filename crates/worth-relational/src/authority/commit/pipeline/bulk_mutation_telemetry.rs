@@ -1,4 +1,4 @@
-use crate::runtime::RelationalRuntime;
+use crate::runtime::RelationalPreparationRuntime;
 use crate::transactions::data::{
     BulkMutationLocalityFootprint, CreateIntent, EntityMutationIntent, MergedCommitPlan,
     MutationIntent, ProvenanceCompleteBulkMutationBatch, RelationMutationIntent,
@@ -40,7 +40,7 @@ pub(super) fn telemetry_from_strategy_batch(
 }
 
 pub(super) fn record_bulk_mutation_telemetry(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalPreparationRuntime,
     telemetry: &BulkMutationPlanTelemetry,
 ) {
     runtime.performance_access().count_bulk_mutation_plan(

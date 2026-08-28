@@ -20,24 +20,6 @@ pub(crate) struct SchemaContinuityAuthorityInput {
 }
 
 impl SchemaContinuityAuthorityInput {
-    pub(crate) fn from_runtime(runtime: &crate::runtime::RelationalRuntime) -> Self {
-        use crate::capabilities::SchemaSource;
-
-        Self::from_registry(
-            runtime.schema_registry().clone(),
-            runtime
-                .config
-                .schema
-                .descriptor_semantics_policy
-                .current_write_version(),
-            runtime
-                .config
-                .schema
-                .descriptor_canonical_basis_policy
-                .current_write_version(),
-        )
-    }
-
     pub(crate) fn from_registry(
         target_schema_registry: crate::schema::data::RelationalSchemaRegistry,
         descriptor_semantics_version: DescriptorSemanticsVersion,

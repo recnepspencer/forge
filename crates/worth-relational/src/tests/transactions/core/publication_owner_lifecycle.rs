@@ -67,7 +67,7 @@ fn runtime_drop_waits_for_admitted_publication_to_leave_linearization() {
     let branch_gate = std::sync::Arc::clone(publication_cell.coordination());
     let held_branch_gate = branch_gate.enter();
     let port = runtime.publication_port();
-    let shutdown_observer = runtime.publication_binding();
+    let shutdown_observer = runtime.owner_binding();
 
     let publisher = std::thread::spawn(move || port.compare_and_publish(candidate));
     let publication_deadline = std::time::Instant::now() + std::time::Duration::from_secs(1);

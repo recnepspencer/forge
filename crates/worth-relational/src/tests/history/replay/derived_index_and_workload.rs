@@ -181,11 +181,13 @@ fn hostile_commit_replay_equivalence_test() {
         BranchId("feature".to_string()),
     );
 
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::default()
+        }
+        .build_registry(),
+    );
     let mut transition_txn = {
         let transaction_validation_input =
             crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)

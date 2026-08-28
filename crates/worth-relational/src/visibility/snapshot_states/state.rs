@@ -51,6 +51,14 @@ impl VisibilitySnapshotStateKey {
         ))
     }
 
+    pub(crate) fn for_root(
+        branch_id: BranchId,
+        version_id: VersionId,
+        root: &RelationalBranchRoot,
+    ) -> Self {
+        Self::exact(branch_id, version_id, root)
+    }
+
     pub(crate) fn historical(basis: &HistoricalVisibilityBasis) -> Self {
         Self(VisibilitySnapshotStateKeyKind::Historical(
             HistoricalVisibilitySnapshotStateKey {

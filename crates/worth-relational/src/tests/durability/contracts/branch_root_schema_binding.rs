@@ -52,13 +52,15 @@ fn recovery_rejects_a_schema_carrier_swapped_between_exact_roots() {
         persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
     create_entity_outcome(&mut runtime, "schema-v1");
     create_branch_from_main(&mut runtime, "legacy");
-    runtime.config.schema.registry = AspectSchemaFixture {
-        schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::with_default_declared_aspects(
-            CascadeDeletePolicy::CascadeDeleteRelations,
-        )
-    }
-    .build_registry();
+    runtime.set_schema_registry_for_test(
+        AspectSchemaFixture {
+            schema_version_id: SchemaVersionId(2),
+            ..AspectSchemaFixture::with_default_declared_aspects(
+                CascadeDeletePolicy::CascadeDeleteRelations,
+            )
+        }
+        .build_registry(),
+    );
     let mut transaction = {
         let transaction_validation_input =
             crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)
@@ -159,7 +161,7 @@ fn recovered_exact_roots_interpret_records_with_their_own_schema_contracts() {
         )
     }
     .build_registry();
-    runtime.config.schema.registry = v2_registry.clone();
+    runtime.set_schema_registry_for_test(v2_registry.clone());
     let mut transaction = {
         let transaction_validation_input =
             crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime)

@@ -14,8 +14,9 @@ fn ordinary_continuity_reuses_registry_allocation_at_small_and_large_schema_scal
         let prior_authority_id = prior_root.schema_authority().allocation_id();
         let options = test_owner_transaction_validation_input_for_main(&runtime);
 
+        let preparation = runtime.preparation_runtime_snapshot();
         let plan = crate::authority::commit::phases::schema_continuity::resolve_schema_continuity(
-            &mut runtime,
+            &preparation,
             &BranchId("main".to_owned()),
             &options,
         )

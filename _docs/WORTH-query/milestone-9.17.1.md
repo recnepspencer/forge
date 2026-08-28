@@ -1,9 +1,11 @@
 # Milestone 9.17.1: Exact Owner Bases And Relational Branch-Local MVCC
 
 Status: Closed on 2026-08-28. Phases 1-13 are implemented, independently
-reviewed, and verified. Milestone 9.17.2 must consume the frozen Relational and
-Signal owner-component ports; it may not recreate component currentness,
-retention, mutation, or publication authority in Runtime Bridge.
+reviewed, and verified. Milestone 9.17.1.1 is the required corrective
+prerequisite discovered after closure; Milestone 9.17.2 must consume that
+corrected Relational and Signal owner-component surface and may not recreate
+component currentness, retention, mutation, publication, or settlement
+authority in Runtime Bridge.
 
 ## Goal
 
@@ -1987,7 +1989,10 @@ conflict policy, multi-parent commits, or merge publication.
 
 ## Exact Handoff To Milestone 9.17.2
 
-9.17.2 receives only these public owner capabilities:
+Milestone 9.17.1.1 corrects the concurrency, settlement, retention, lifecycle,
+facade, evidence, and documentation mechanics of this handoff without changing
+its owner boundaries. After that correction closes, 9.17.2 receives only these
+public owner capabilities:
 
 - obtain or readmit an owner-issued exact component-basis descriptor;
 - retain and release that exact basis for a named external composition

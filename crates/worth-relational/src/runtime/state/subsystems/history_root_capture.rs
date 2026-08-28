@@ -62,12 +62,4 @@ impl HistorySubsystem {
             symbols,
         )
     }
-
-    pub(crate) fn validate_branch_root_capture(
-        &self,
-        touched_regions: usize,
-    ) -> Result<(), RelationalBranchRootCaptureDenial> {
-        self.root_identity_issuer
-            .validate_capture_capacity(touched_regions)
-    }
 }

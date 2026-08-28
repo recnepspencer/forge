@@ -16,16 +16,25 @@ use crate::snapshots::data::SnapshotId;
 #[derive(Debug)]
 pub(crate) struct VisibilitySubsystem {
     pub(crate) handles: SnapshotHandles,
-    pub(crate) cache: VisibilityCache,
+    pub(crate) cache: std::sync::Arc<VisibilityCache>,
     pub(crate) replay_retention: ReplayRetentionIndex,
     published_snapshot_capacity: std::sync::Arc<PublishedSnapshotCapacityOwner>,
 }
 
 impl VisibilitySubsystem {
+    pub(crate) fn snapshot_identity_binding(&self) -> std::sync::Arc<std::sync::atomic::AtomicU64> {
+        self.handles.snapshot_identity_binding()
+    }
+
+    pub(crate) fn published_snapshot_capacity_binding(
+        &self,
+    ) -> std::sync::Arc<PublishedSnapshotCapacityOwner> {
+        std::sync::Arc::clone(&self.published_snapshot_capacity)
+    }
     fn build_from_config(config: &RelationalRuntimeConfig) -> Self {
         Self {
             handles: SnapshotHandles::new(),
-            cache: VisibilityCache::new(config),
+            cache: std::sync::Arc::new(VisibilityCache::new(config)),
             replay_retention: ReplayRetentionIndex::new(),
             published_snapshot_capacity: PublishedSnapshotCapacityOwner::new(
                 config.publication.policy.max_published_snapshot_handles,
@@ -44,7 +53,7 @@ impl RuntimeSubsystem for VisibilitySubsystem {
     fn fork(&self) -> Self {
         Self {
             handles: self.handles.fork(),
-            cache: self.cache.fork(),
+            cache: std::sync::Arc::new(self.cache.fork()),
             replay_retention: self.replay_retention.fork(),
             published_snapshot_capacity: PublishedSnapshotCapacityOwner::new(
                 self.published_snapshot_capacity.maximum_handles(),
@@ -54,10 +63,8 @@ impl RuntimeSubsystem for VisibilitySubsystem {
 }
 
 impl VisibilitySubsystem {
-    pub(crate) fn reserve_published_snapshot_slot(
-        &self,
-    ) -> Result<PublishedSnapshotSlotReservation, usize> {
-        self.published_snapshot_capacity.reserve()
+    pub(crate) fn cache_binding(&self) -> std::sync::Arc<VisibilityCache> {
+        std::sync::Arc::clone(&self.cache)
     }
 
     pub(crate) fn active_snapshot_count(&self) -> usize {

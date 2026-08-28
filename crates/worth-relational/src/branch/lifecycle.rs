@@ -133,7 +133,7 @@ impl crate::runtime::RelationalRuntime {
             .history
             .branch_cell(identity.branch_id())
             .filter(|cell| cell.identity() == identity)
-            .map(super::RelationalBranchReferenceCell::publication_cell)
+            .map(|cell| cell.publication_cell())
             .ok_or_else(|| {
                 RelationalBranchArchiveDenial::UnknownBranch(identity.branch_id().clone())
             })?;
@@ -174,7 +174,7 @@ impl crate::runtime::RelationalRuntime {
             .history
             .branch_cell(identity.branch_id())
             .filter(|cell| cell.identity() == identity)
-            .map(super::RelationalBranchReferenceCell::publication_cell)
+            .map(|cell| cell.publication_cell())
             .ok_or_else(|| {
                 RelationalBranchDeleteDenial::UnknownBranch(identity.branch_id().clone())
             })?;

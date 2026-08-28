@@ -366,10 +366,12 @@ cross-feature proof gates before final certification:
   typed export, bounded reconstruction with fresh Query validation, and a
   deterministic neutral release archive without introducing application-state
   persistence or a physical runtime
-- the `Milestone 9.17` umbrella closes through `9.17.1`, `9.17.2`, and
-  `9.17.3`: first exact in-memory owner component bases and Relational branch-
-  local MVCC, then Runtime Bridge composite history/currentness, then complete
-  Query carriage, facade cutover, and hostile certification
+- the `Milestone 9.17` umbrella closes through `9.17.1`, corrective
+  `9.17.1.1`, `9.17.2`, and `9.17.3`: first exact in-memory owner component
+  bases and Relational branch-local MVCC, then independently borrowable
+  Relational ports plus lifecycle-total owner settlement and retention, then Runtime Bridge composite
+  history/currentness, then complete Query carriage, facade cutover, and
+  hostile certification
 - `Milestone 9.18` accepts tree-based semantic undo and redo as freshly
   admitted composite-history operations over exact source world commits and
   target product-branch heads; it replaces the provisional linear Phase 8
@@ -402,7 +404,8 @@ contracts required by physical integration:
   `Milestone 9.13` -> `Milestone 9.13.1` -> `Milestone 9.13.2` ->
   `Milestone 9.14` -> `Milestone 9.15` -> `Milestone 9.16` ->
   `Milestone 9.16.1.1` -> `Milestone 9.16.2` ->
-  `Milestone 9.17.1` -> `Milestone 9.17.2` -> `Milestone 9.17.3` ->
+  `Milestone 9.17.1` -> `Milestone 9.17.1.1` -> `Milestone 9.17.2` ->
+  `Milestone 9.17.3` ->
   `Milestone 9.18` -> `Milestone 9.19` ->
   `Milestone 9.20` -> `Milestone 9.21` -> `Milestone 9.22` ->
   `Milestone 13`
@@ -4919,8 +4922,9 @@ Disclosure and every later capability phase must consume the canonical
 session-bound decision and may not create another selector, planner, executor,
 or receipt path. Every later 9.16 phase carries the admitted branch unchanged;
   per-Relational-branch MVCC and concurrent independent-branch writers begin in
-  9.17.1; composite product branches begin in 9.17.2 and become the public
-  Query lane in 9.17.3. Phase 7.3 also inherits the
+  9.17.1; their corrective owner-port handoff closes in 9.17.1.1; composite
+  product branches begin in 9.17.2 and become the public Query lane in 9.17.3.
+  Phase 7.3 also inherits the
   existing Phase 6 query identity, parameter, basis,
 continuation, history, preview, live, result, and publication contracts; 9.16.1
 changes their graph authority path without deleting or redefining those
@@ -5105,6 +5109,9 @@ authority boundary into:
 
 - [Milestone 9.17.1](./milestone-9.17.1.md): owner component bases and
   Relational branch-local MVCC;
+- [Milestone 9.17.1.1](./milestone-9.17.1.1.md): corrective owner-port
+  concurrency, settlement recovery, exact retention, lifecycle, facade, and
+  evidence closure;
 - [Milestone 9.17.2](./milestone-9.17.2.md): composite runtime-world history
   and coordinated publication; and
 - [Milestone 9.17.3](./milestone-9.17.3.md): Query product-branch carriage,
@@ -5140,6 +5147,26 @@ controlled independent-branch progress, one-winner same-reference races, exact
 owner admission, bounded lifecycle, Signal zero-work basis reuse, and no
 composite product claim.
 
+#### Milestone 9.17.1.1: Owner-Port Concurrency And Lifecycle Closure
+
+Status: Proposed corrective prerequisite for 9.17.2. Milestone 9.17.1 remains
+closed and historical. Independent post-closure review found that the current
+owner handoff still requires exclusive Relational runtime borrowing around
+preparation and settlement, can lose the only recoverable performed-settlement
+state, rejects exact historical Signal retention as stale, and can leak a
+dropped Signal external lease. It also found a missing concrete facade export,
+unexecuted scheduled and feature-gated evidence, an untested contention outcome,
+and owner documentation that does not match the implemented lifecycle.
+
+This corrective milestone replaces those seams with independently borrowable
+Relational preparation, fork, publication, and settlement services; installs
+bounded runtime-owned settlement recovery before component movement;
+retains exact Signal targets independently of currentness; makes ordinary lease
+drop terminal; and closes the facade, defensive failure, executable example,
+CI, cost-scope, naming, and documentation contracts. Runtime Bridge 9.17.2 may
+consume only this corrected owner surface and may not repair it in the
+composition layer.
+
 #### Milestone 9.17.2: Composite Runtime-World History And Coordinated Publication
 
 Runtime Bridge admits exact component correspondence, immutable single-parent
@@ -5172,6 +5199,12 @@ runtime. Its closure closes the umbrella and unlocks 9.18.
   detached transactions, exact-head conflicts, atomic branch roots, retention,
   prepared candidates, performed owner commits, and concurrent independent-
   branch progress without an ordinary global lock
+- 9.17.1.1 then ships independently borrowable Relational preparation, fork,
+  publication, and settlement services; pre-effect bounded settlement
+  recovery; exact non-current Signal retention; terminal external-lease drop;
+  the complete concrete publication authority facade; typed defensive
+  publication failure; and real contention, cancellation-feature, scheduled-
+  scale, executable-example, documentation, and cost-scope evidence
 - 9.17.2 ships Runtime Bridge-owned exact component correspondence, immutable
   single-parent composite commits, product branch references, retention,
   explicit reuse/fork posture, and coordinated compare-and-publish with no
@@ -5216,6 +5249,11 @@ The final 9.17.3 court proves the same facts through the real Query composition
 root, public facade, failed-composite outbox ineligibility, default/admitted
 parallel lanes, compiler denials, exact counters, executable docs, and exact-
 zero legacy residue.
+The 9.17.1.1 correction court first proves simultaneous Relational preparation
+and settlement are expressible without exclusive runtime borrowing, performed
+settlement survives capability loss, a historical exact Signal basis remains
+retainable, lease drop releases its obligation, and every documented feature or
+scheduled proof executes under its real compiled name.
 
 The authoritative named suites are `Owner Component Basis And Relational
 Branch-Local MVCC Certification`, `Composite Runtime-World History And
@@ -5654,7 +5692,7 @@ answer is "store-gated" or "shared with another subsystem."
 | Authenticated ordinary Query front door | Milestone 9.16 | Schema-derived typed references, installed application queries and Query-owned continuations, Authentik principal proof, capability/purpose/disclosure/conflict/elevation authority, Milestone 9.10-bound filter/sort/traversal access plans, touched-graph admission, double-entry and estate effects, provider compare-and-commit, actionable recovery, accepted aftermath/external-effect publication, ordinary read/mutation/workflow/history/live facades, host-installed conditional providers and named clocks, reconstructible temporal wakes, cross-process HTTP adaptation, and explicitly provisional linear undo/redo implementation evidence | Authentication cannot imply authorization; roles cannot imply unconstrained capability; entity visibility cannot imply field disclosure; break-glass cannot become superuser or self-benefit authority; policy composes through Relational facts, runtime-bridge lowering, Signal decision evidence, and Query admission; application queries cannot bypass graph-read planning or fabricate no-N+1 proof; host predicates cannot return raw Signal decisions; hosts cannot own Signal graphs or temporal schedulers; wake eligibility cannot imply application-operation authority; cursors carry no authority; compensation preserves history; provisional undo/redo owns no canonical history; concurrent money movement commits once or returns an honest outcome | Milestone 9.16 OIDC, capability/touched-graph, conflict-of-interest, disclosure, break-glass, canonical-query/cursor/basis, graph-access/no-N+1, accounting, concurrency, idempotency, recovery, aftermath, conditional host/reinstall, live-revocation, cross-process consumer, facade, residue, and certification-only replay parity; Milestone 9.18 for tree-based undo/redo product acceptance |
 | Installed graph contract integrity repair | Milestone 9.16.1.1 | Declaration-owned application aspect identity/revision; installed native schema catalog; typed entity/projection/relation reads; typed create/delete/write/link/unlink touches; typed reconciliation and correlation-family inspection | Installed operation inspection, graph-obligation selection, execution lowering, performed-evidence comparison, Host adoption, and successor package export consume one exact typed contract; no empty semantic-read posture, structured touch grammar, application contract reconstruction, or aftermath summary survives | Focused owner, Host-consumer, compile-boundary, and execution integration tests plus required repository checks |
 | Portable Query packages and fresh readmission | Milestone 9.16.2 | Stable identities and declaration-minted references extending the 9.16.1.1 application aspect/correlation identities; complete typed package records; bounded reconstruction and fresh Query validation; deterministic neutral archive; host-owned release envelope and signing boundary | Records, bytes, checksums, signatures, repositories, filenames, and release names remain descriptive; only fresh Query validation against independently expected identity can recover package meaning; no application state, provider, secret, proof, handle, callback, or physical topology enters the archive; warm execution performs no package work | Identity/provenance compiler evidence; exact export/reconstruction equality; record omission/duplication/reorder/cross-splice mutants; archive golden vectors, corruption, compatibility, and budget courts; same-name coexistence; release-tool, facade, docs, boundary, and residue certification |
-| In-memory composite runtime branching and branch-local MVCC | Milestone 9.17 umbrella: 9.17.1 owner bases/MVCC, 9.17.2 composite history/publication, 9.17.3 Query carriage/outbox gate/facade/certification | Owner-issued Relational/Signal bases; branch-local MVCC; Runtime Bridge-owned correspondence, single-parent composite commits, and product-head comparison; Query-carried product-world affinity; live-runtime outbox admission bound to performed composite publication | Branch identities remain distinct; unrelated branches progress; partial preparation never becomes product-current; an owner-local outbox never dispatches after failed composite publication; application worlds remain memory-resident and no temporary physical-runtime abstraction is introduced | 9.17.1 owner-basis and independent-progress courts + 9.17.2 product-head comparison/no-half-publication courts + 9.17.3 end-to-end shared-basis, component-divergence, same-head-race, substitution, lifecycle, outbox-gating, facade, compiler, docs, residue, and later cross-runtime semantic merge suites |
+| In-memory composite runtime branching and branch-local MVCC | Milestone 9.17 umbrella: 9.17.1 owner bases/MVCC, 9.17.1.1 owner-port concurrency/lifecycle correction, 9.17.2 composite history/publication, 9.17.3 Query carriage/outbox gate/facade/certification | Owner-issued Relational/Signal bases; independently borrowable Relational preparation/fork/publication/settlement services; lifecycle-total owner settlement and retention; branch-local MVCC; Runtime Bridge-owned correspondence, single-parent composite commits, and product-head comparison; Query-carried product-world affinity; live-runtime outbox admission bound to performed composite publication | Branch identities remain distinct; unrelated branches progress through preparation, publication, and settlement; lost capabilities do not strand owner state; exact residency is independent of currentness; partial preparation never becomes product-current; an owner-local outbox never dispatches after failed composite publication; application worlds remain memory-resident and no temporary physical-runtime abstraction is introduced | 9.17.1 owner-basis and publication-locality courts + 9.17.1.1 preparation/settlement independence, capability-loss recovery, exact-retention, lease-terminal, contention, feature, scheduled-proof, facade, and docs courts + 9.17.2 product-head comparison/no-half-publication courts + 9.17.3 end-to-end shared-basis, component-divergence, same-head-race, substitution, lifecycle, outbox-gating, facade, compiler, docs, residue, and later cross-runtime semantic merge suites |
 | Tree-based semantic undo and redo | Milestone 9.18 | Exact source composite commit and target product branch/head, explicit per-component correction posture, installed inverse/compensation/reconciliation/reapplication contracts, applicability against intervening history, fresh Query admission, owner-local preparation, Runtime Bridge coordinated publication, correction causality, and typed next actions | Reversal and reapplication create new composite commits; unchanged components retain exact bases; Signal reconciliation remains Signal-owned; history and alternatives remain intact; copied receipts and prior authority open no door; stale/conflicting divergence is typed before effects; external effects retain honest compensation/irreversibility posture; Query owns no history head | Milestone 9.18 composite-divergence, stale-head, component-basis, Signal-reconciliation, authority, compensation, external-effect, partial-preparation, zero-ordinary-work, facade, documentation, and residue certification + later cross-runtime merge/rebase/recovery suites |
 | Managed advanced access and verified footprints | Milestone 9.19 | Installed-query-bound search and access products, Milestone 9.10 requirement/inventory/plan extensions, lifecycle products, coverage/membership witnesses, exact refinement, and verified realized footprints | Search preserves capability, purpose, exact composite product-world basis, disclosure, cursor, recovery, and aftermath; membership remains complete under negative-space change; protected candidates do not leak; footprints narrow but never widen authority | Milestone 9.19 bank/geometry search, disclosure, no-N+1, membership, footprint, lifecycle, memory, alternate-provider, facade/docs, and prohibition certification + Milestone 13 parity |
 | Correlated paths and set execution | Milestone 9.20 | Typed heterogeneous path programs, admitted provider lowering, complete path dependencies, installed conflict relations, verified partitions, provider set operations, canonical reductions, and structural-cost evidence | Paths remain bounded and schema-typed; correlated reads consume one admitted graph plan; partitions are complete and conflict-free; bulk work is truly set-oriented; planning is not quadratic; unauthorized members are not processed or leaked | Milestone 9.20 chip/geometry/bank interpreter, no-N+1, partition-parity, slope, authority, facade/docs, and prohibition certification + Milestone 13 parity |
@@ -5763,6 +5801,7 @@ must gain a row in the same patch or the roadmap is incomplete.
 - [milestone-9.16.2.md](./milestone-9.16.2.md)
 - [milestone-9.17.md](./milestone-9.17.md)
 - [milestone-9.17.1.md](./milestone-9.17.1.md)
+- [milestone-9.17.1.1.md](./milestone-9.17.1.1.md)
 - [milestone-9.17.2.md](./milestone-9.17.2.md)
 - [milestone-9.17.3.md](./milestone-9.17.3.md)
 - [milestone-9.18.md](./milestone-9.18.md)

@@ -111,6 +111,8 @@ struct RelationalCommittedBranchRoot {
 pub(crate) struct RelationalBranchRoot {
     id: u64,
     regions: Arc<RelationalPersistentRegionSet>,
+    entity_slot_count: usize,
+    relation_slot_count: usize,
     content_accumulator: [u8; 32],
     schema_authority: Arc<RelationalBranchRootSchemaAuthority>,
     committed: Option<RelationalCommittedBranchRoot>,
@@ -148,11 +150,13 @@ impl RelationalBranchRootState {
 impl RelationalBranchRoot {
     #[cfg(test)]
     pub(crate) fn empty() -> Arc<Self> {
-        let mut issuer = RelationalBranchRootIdentityIssuer::default();
+        let issuer = RelationalBranchRootIdentityIssuer::default();
         Arc::new(Self {
             id: 0,
-            regions: RelationalPersistentRegionSet::initial(0, BTreeMap::new(), &mut issuer)
+            regions: RelationalPersistentRegionSet::initial(0, BTreeMap::new(), &issuer)
                 .expect("empty test root has reachability capacity"),
+            entity_slot_count: 0,
+            relation_slot_count: 0,
             content_accumulator: [0; 32],
             schema_authority: RelationalBranchRootSchemaAuthority::empty(),
             committed: None,
@@ -163,15 +167,17 @@ impl RelationalBranchRoot {
         registry: &crate::schema::data::RelationalSchemaRegistry,
         descriptor_semantics_version: crate::schema::data::DescriptorSemanticsVersion,
     ) -> Arc<Self> {
-        let mut issuer = RelationalBranchRootIdentityIssuer::default();
+        let issuer = RelationalBranchRootIdentityIssuer::default();
         let expected = registry.authority_snapshot();
         let schema_authority_id = issuer
             .issue_schema_authority_id()
             .expect("empty root has schema authority capacity");
         Arc::new(Self {
             id: 0,
-            regions: RelationalPersistentRegionSet::initial(0, BTreeMap::new(), &mut issuer)
+            regions: RelationalPersistentRegionSet::initial(0, BTreeMap::new(), &issuer)
                 .expect("empty root has reachability capacity"),
+            entity_slot_count: 0,
+            relation_slot_count: 0,
             content_accumulator: [0; 32],
             schema_authority: RelationalBranchRootSchemaAuthority::capture(
                 schema_authority_id,
@@ -205,6 +211,14 @@ impl RelationalBranchRoot {
     }
     pub(crate) const fn id(&self) -> u64 {
         self.id
+    }
+
+    pub(crate) const fn entity_slot_count(&self) -> usize {
+        self.entity_slot_count
+    }
+
+    pub(crate) const fn relation_slot_count(&self) -> usize {
+        self.relation_slot_count
     }
 
     pub(crate) fn descriptor(&self) -> Option<&RelationalBranchRootDescriptor> {

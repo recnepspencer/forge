@@ -39,7 +39,7 @@ impl crate::mvcc::BranchBoundRelationalTransaction {
         ),
         CommitConflict,
     > {
-        self.ensure_current_basis(runtime)?;
+        self.ensure_current_basis_for_runtime(runtime)?;
         let selected_state = SelectedRelationalBranchState::from_admitted_basis(&self.basis);
         let merged_plan = self.merged_plan(runtime)?.clone();
         Ok((selected_state, merged_plan))

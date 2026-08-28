@@ -78,7 +78,7 @@ fn candidate_that_expires_while_waiting_for_coordination_does_not_move_reference
             max_transaction_footprint_loci: 1_024,
             max_transaction_savepoints: 8,
             max_prepared_candidates: 1,
-            candidate_max_lifetime_millis: 25,
+            candidate_max_lifetime_millis: 1_000,
             max_prepared_root_bytes: 268_435_456,
         })
         .build();
@@ -96,14 +96,14 @@ fn candidate_that_expires_while_waiting_for_coordination_does_not_move_reference
         std::thread::yield_now();
     }
     assert_eq!(coordination.wait_count(), 1);
-    std::thread::sleep(std::time::Duration::from_millis(50));
+    std::thread::sleep(std::time::Duration::from_millis(1_100));
     drop(held_coordination);
 
     assert!(matches!(
         publisher.join().unwrap(),
         crate::mvcc::RelationalPublicationOutcome::Deferred(
             crate::mvcc::RelationalPublicationDeferred::CandidateLifetimeExpired {
-                maximum_lifetime_millis: 25,
+                maximum_lifetime_millis: 1_000,
             }
         )
     ));

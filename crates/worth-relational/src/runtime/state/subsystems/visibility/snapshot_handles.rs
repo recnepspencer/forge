@@ -10,7 +10,7 @@ use crate::snapshots::data::{SnapshotId, SnapshotReadPolicy};
 pub(crate) struct SnapshotHandles {
     active: HashMap<SnapshotId, SnapshotHandleBinding>,
     published: Arc<Mutex<PublishedSnapshotHandles>>,
-    next_snapshot_id: AtomicU64,
+    next_snapshot_id: Arc<AtomicU64>,
     active_key_lookups: AtomicU64,
     active_mutations: AtomicU64,
 }
@@ -73,6 +73,10 @@ impl PublishedSnapshotCapacityOwner {
 
     pub(crate) const fn maximum_handles(&self) -> usize {
         self.maximum_handles
+    }
+
+    pub(crate) fn occupied_handles(&self) -> usize {
+        self.occupied_handles.load(Ordering::Acquire)
     }
 
     pub(crate) fn release(&self) {
@@ -166,11 +170,15 @@ impl Drop for PublishedSnapshotCloseoutInner {
 }
 
 impl SnapshotHandles {
+    pub(crate) fn snapshot_identity_binding(&self) -> Arc<AtomicU64> {
+        Arc::clone(&self.next_snapshot_id)
+    }
+
     pub(crate) fn new() -> Self {
         Self {
             active: HashMap::new(),
             published: Arc::new(Mutex::new(PublishedSnapshotHandles::default())),
-            next_snapshot_id: AtomicU64::new(1),
+            next_snapshot_id: Arc::new(AtomicU64::new(1)),
             active_key_lookups: AtomicU64::new(0),
             active_mutations: AtomicU64::new(0),
         }
@@ -180,7 +188,7 @@ impl SnapshotHandles {
         Self {
             active: HashMap::new(),
             published: Arc::new(Mutex::new(PublishedSnapshotHandles::default())),
-            next_snapshot_id: AtomicU64::new(1),
+            next_snapshot_id: Arc::new(AtomicU64::new(1)),
             active_key_lookups: AtomicU64::new(0),
             active_mutations: AtomicU64::new(0),
         }

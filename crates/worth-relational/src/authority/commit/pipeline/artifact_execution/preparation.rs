@@ -57,7 +57,7 @@ pub(super) struct PublicationPreparationInput<'a> {
 }
 
 pub(super) fn prepare_publication_artifacts(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     input: PublicationPreparationInput<'_>,
 ) -> Result<PublicationPreparation, TransactionCommitError> {
     let PublicationPreparationInput {
@@ -126,7 +126,7 @@ struct PublicationTraceCapture {
 }
 
 fn capture_publication_traces(
-    runtime: &crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     patch: &CanonicalAuthoritativePatch,
     canonical_deltas: &[crate::authority::mutation::CanonicalRecordAspectDelta],
 ) -> PublicationTraceCapture {
@@ -183,11 +183,11 @@ struct PreparedPublicationAuthority {
 }
 
 fn prepare_authoritative_publication(
-    runtime: &mut crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalPreparationRuntime,
     input: PublicationAuthorityInput<'_>,
 ) -> Result<PreparedPublicationAuthority, TransactionCommitError> {
     let artifacts = runtime
-        .publication_authority()
+        .publication_preparation_authority()
         .assemble_publication_bundle(
             input.commit_reference.clone(),
             input.version_id,
@@ -197,7 +197,7 @@ fn prepare_authoritative_publication(
         )
         .map_err(TransactionCommitError::publication_failed)?;
     let prepared_lineage = runtime
-        .lineage_authority()
+        .lineage_preparation_authority()
         .ensure_lineage_for_commit(
             input.working_state,
             input.commit_reference,

@@ -121,7 +121,7 @@ impl HistorySubsystem {
             return Err("durable checkpoint omitted the configured main branch cell".to_owned());
         }
         self.branch_cells.restore_all(cells);
-        self.retired_branch_names.clear();
+        self.branch_cells.clear_retired_names();
         self.rebuild_catalog_with_checkpoint_targets(checkpoints, symbols)?;
         self.try_reset_retention_owner(self.runtime_instance_id)
             .map_err(|denial| {
@@ -130,7 +130,7 @@ impl HistorySubsystem {
                 )
             })?;
         for cell in self.branch_cells.values() {
-            validate_recovered_branch_cell(self, cell)?;
+            validate_recovered_branch_cell(self, &cell)?;
         }
         Ok(())
     }

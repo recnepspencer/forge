@@ -2,7 +2,7 @@ use crate::authority::commit::phases::prepare::{
     prepare_lowered_working_state_scope, prepare_working_state_scope, PreparedWorkingStateScope,
 };
 use crate::authority::commit::phases::proposed_invariant_state::prepare_proposed_invariant_state;
-use crate::runtime::RelationalRuntime;
+use crate::runtime::{RelationalPreparationRuntime, RelationalRuntime};
 use crate::transactions::data::{
     CommitConflict, CommitValidation, ConflictClass, TransactionCommitError,
 };
@@ -12,16 +12,16 @@ use super::validated_proposal::{
     RelationalMutationInvariantEvidence, StrategyProposalDecoration, ValidatedRelationalProposal,
 };
 
-impl RelationalRuntime {
+impl RelationalPreparationRuntime {
     pub fn validate_branch_transaction(
-        &mut self,
+        &self,
         transaction: crate::mvcc::BranchBoundRelationalTransaction,
     ) -> Result<ValidatedRelationalProposal, TransactionCommitError> {
         self.validate_branch_transaction_source(transaction, None, None)
     }
 
     pub(crate) fn validate_lowered_strategy_proposal(
-        &mut self,
+        &self,
         transaction: crate::mvcc::BranchBoundRelationalTransaction,
         selected_branch_state: crate::branch::SelectedRelationalBranchState,
         merged_plan: crate::transactions::data::MergedCommitPlan,
@@ -35,7 +35,7 @@ impl RelationalRuntime {
     }
 
     fn validate_branch_transaction_source(
-        &mut self,
+        &self,
         mut transaction: crate::mvcc::BranchBoundRelationalTransaction,
         lowered: Option<(
             crate::branch::SelectedRelationalBranchState,
@@ -61,7 +61,7 @@ impl RelationalRuntime {
             )));
         }
         self.history.record_transaction_validation_attempt(&branch);
-        if !self.admitted_branch_basis_is_current(&basis) {
+        if !basis.is_current() {
             return Err(stale_validated_proposal(
                 "transaction basis is no longer current",
             ));
@@ -171,6 +171,32 @@ impl RelationalRuntime {
             strategy_bulk_mutation_batch,
             validation_complexity_delta,
         })
+    }
+}
+
+impl RelationalRuntime {
+    pub fn validate_branch_transaction(
+        &self,
+        transaction: crate::mvcc::BranchBoundRelationalTransaction,
+    ) -> Result<ValidatedRelationalProposal, TransactionCommitError> {
+        self.preparation_runtime_snapshot()
+            .validate_branch_transaction(transaction)
+    }
+
+    pub(crate) fn validate_lowered_strategy_proposal(
+        &self,
+        transaction: crate::mvcc::BranchBoundRelationalTransaction,
+        selected_branch_state: crate::branch::SelectedRelationalBranchState,
+        merged_plan: crate::transactions::data::MergedCommitPlan,
+        strategy: StrategyProposalDecoration,
+    ) -> Result<ValidatedRelationalProposal, TransactionCommitError> {
+        self.preparation_runtime_snapshot()
+            .validate_lowered_strategy_proposal(
+                transaction,
+                selected_branch_state,
+                merged_plan,
+                strategy,
+            )
     }
 }
 

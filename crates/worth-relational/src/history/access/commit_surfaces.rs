@@ -128,7 +128,6 @@ impl<'runtime> HistoryAccess<'runtime> {
         version_id: crate::identity::data::VersionId,
     ) -> Option<CommittedVersionSummary> {
         self.commit_envelope_for_version(version_id)
-            .map(|envelope| envelope.clone())
             .or_else(|| {
                 self.runtime
                     .history

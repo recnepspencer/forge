@@ -3,16 +3,20 @@
 ## Governing Role
 
 Milestone 9.17 is the governing umbrella for the ordinary composite product-
-branch foundation. It is implemented through three authority-aligned
+branch foundation. It is implemented through four authority-aligned
 submilestones:
 
 1. [Milestone 9.17.1](./milestone-9.17.1.md) first establishes the causal
    Supply Chain certification world and independent semantic oracle, then exact
    owner-issued component bases and real Relational branch-local MVCC with
    branch isolation and structural sharing.
-2. [Milestone 9.17.2](./milestone-9.17.2.md) establishes Runtime Bridge-owned
+2. [Milestone 9.17.1.1](./milestone-9.17.1.1.md) corrects the owner-port
+   concurrency, performed-settlement recovery, exact Signal retention,
+   facade, evidence-lane, and documentation defects discovered after 9.17.1
+   closure without reopening its historical phase record.
+3. [Milestone 9.17.2](./milestone-9.17.2.md) establishes Runtime Bridge-owned
    in-memory composite runtime-world history and coordinated publication.
-3. [Milestone 9.17.3](./milestone-9.17.3.md) carries that authority through
+4. [Milestone 9.17.3](./milestone-9.17.3.md) carries that authority through
    Query, gates existing-outbox eligibility on performed composite publication,
    cuts the public facade over, and certifies the product boundary.
 
@@ -20,15 +24,18 @@ The dependency order is strict:
 
 ```text
 9.17.1 owner component bases and Relational MVCC
-    -> 9.17.2 composite history and coordinated publication
-        -> 9.17.3 Query carriage, facade, and certification
-            -> 9.18 tree-based semantic undo and redo
+    -> 9.17.1.1 owner-port concurrency and lifecycle closure
+        -> 9.17.2 composite history and coordinated publication
+            -> 9.17.3 Query carriage, facade, and certification
+                -> 9.18 tree-based semantic undo and redo
 ```
 
-This split is not three interpretations of one feature. Each submilestone owns
-one distinct authority boundary and reaches a useful, independently reviewable
-completion state. Milestone 9.17 closes only when all three close and the
-cumulative courtroom passes through the real public Query composition root.
+This partition is not four interpretations of one feature. The three product
+steps own distinct authority boundaries; corrective 9.17.1.1 closes the
+owner-facing concurrency and lifecycle contract without adding a new owner.
+Each reaches a useful, independently reviewable completion state. Milestone
+9.17 closes only when all four close and the cumulative courtroom passes
+through the real public Query composition root.
 
 ## Goal
 
@@ -248,12 +255,13 @@ publication, or Query-restamped authority must fail this courtroom.
 | Submilestone | Sole governing outcome | Primary owner | Explicit exclusion |
 | --- | --- | --- | --- |
 | [9.17.1](./milestone-9.17.1.md) | Causal merge-ready Relational certification world, exact component basis contracts, and structurally shared concurrent Relational branch-local MVCC | Relational and Signal, each for its own basis; Relational certification for the world/oracle | No merge behavior, composite product branch, persistence, or public Query workflow |
+| [9.17.1.1](./milestone-9.17.1.1.md) | Independently borrowable Relational owner services, pre-effect recoverable Relational settlement, exact non-current Signal retention, terminal lease lifecycle, and executable owner evidence | Relational and Signal, each for its own component contract and lifecycle | No composite history, Query carriage, persistence, or reinterpretation of historical 9.17.1 phases |
 | [9.17.2](./milestone-9.17.2.md) | Memory-resident immutable composite history, product branch references, and coordinated compare-and-publish | Runtime Bridge | No Query-owned history, persistence, or public facade cutover |
 | [9.17.3](./milestone-9.17.3.md) | End-to-end Query carriage, live-runtime existing-outbox composite gating, public branch facade, lifecycle docs, and hostile certification | Query as audience/admission facade and certification owner | No new component, composition, or physical-storage authority |
 
 No submilestone may claim the next submilestone's product. In particular,
-9.17.1 does not ship a product branch, 9.17.2 does not claim public Query
-completion, and 9.17.3 does not repair missing owner-local MVCC or Bridge
+9.17.1 and 9.17.1.1 do not ship a product branch, 9.17.2 does not claim public
+Query completion, and 9.17.3 does not repair missing owner-local MVCC or Bridge
 history with facade glue.
 
 ## Governing Destination Topology
@@ -373,6 +381,8 @@ explicit Store or cross-runtime work.
   submilestone;
 - each submilestone owns its current boundary, courtroom, decision lock,
   destination topology, phase plan, proof obligations, and handoff;
+- 9.17.1.1 corrects the owner-facing Relational and Signal guides and evidence
+  commands before Runtime Bridge may consume them;
 - public Query branch documentation lands only in 9.17.3 after the real facade
   exists;
 - `worth-foundational` and `worth-proof` docs are linked where their shared
@@ -389,6 +399,11 @@ Milestone 9.17 closes only when:
   independent oracle, exact component bases, no branch crossover, shared immutable ancestry
   without copied truth, and independent Relational branch progress without a
   global ordinary commit coordinator;
+- 9.17.1.1 proves that Relational preparation, fork, publication, and settlement
+  are independently borrowable; performed settlement survives capability loss;
+  non-current exact Signal bases remain retainable; lease drop is terminal;
+  and the facade, docs, feature lane, scheduled proofs, and contention court
+  execute the same contract;
 - 9.17.2 proves exact composite correspondence, immutable single-parent
   history, product branch references, retention, product-head comparison, and
   no-half-publication compare-and-publish;

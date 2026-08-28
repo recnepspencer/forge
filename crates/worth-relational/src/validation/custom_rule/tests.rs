@@ -38,8 +38,9 @@ fn custom_scope_planner_preserves_owner_selected_current_version() {
     let observation = InvariantObservation::committed(runtime.storage_access().current_state());
     let prepared_scope = prepared_scope(&runtime, &observation, None);
     let selected_version = crate::identity::data::VersionId(77);
+    let view = crate::validation::engine::InvariantRuntimeView::from_runtime(&runtime);
     let planner = CustomInvariantScopePlanner::new_at_current_version(
-        &runtime,
+        &view,
         &observation,
         selected_version,
         selected_version,
@@ -147,8 +148,9 @@ fn traversal_budget_is_session_wide() {
         .build();
     let observation = InvariantObservation::committed(runtime.storage_access().current_state());
     let prepared_scope = prepared_scope(&runtime, &observation, None);
+    let view = crate::validation::engine::InvariantRuntimeView::from_runtime(&runtime);
     let context = CustomInvariantExecutionContext::new(
-        &runtime,
+        &view,
         &observation,
         runtime.current_version_id(),
         runtime.current_version_id(),

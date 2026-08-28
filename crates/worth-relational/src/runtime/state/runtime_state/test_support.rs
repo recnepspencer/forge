@@ -1,6 +1,22 @@
 use super::RelationalRuntime;
 
 impl RelationalRuntime {
+    pub(crate) fn configure_diagnostics_for_test(
+        &mut self,
+        configure: impl FnOnce(&mut crate::diagnostics::data::RelationalDiagnosticsProfile),
+    ) {
+        configure(&mut self.config.diagnostics.profile);
+        self.synchronize_preparation_configuration();
+    }
+
+    pub(crate) fn set_schema_registry_for_test(
+        &mut self,
+        registry: crate::schema::data::RelationalSchemaRegistry,
+    ) {
+        self.config.schema.registry = registry;
+        self.synchronize_preparation_configuration();
+    }
+
     pub(crate) fn set_entity_structural_identity_for_test(
         &mut self,
         entity_id: crate::identity::data::EntityId,

@@ -60,7 +60,7 @@ fn phase5_checkpoint_preserves_shared_and_rewired_root_shape() {
         .branch_identity(&BranchId("rewire".to_owned()))
         .expect("rewire identity is reissued");
     let sharing = recovered
-        .inspect_branch_sharing(&[
+        .observe_branch_sharing(&[
             recovered.main_branch_identity(),
             storm.clone(),
             rewire.clone(),

@@ -11,9 +11,25 @@ pub struct PublicationAuthority<'runtime> {
     pub(super) runtime: &'runtime mut RelationalRuntime,
 }
 
+pub(crate) struct PublicationPreparationAuthority<'runtime> {
+    pub(super) runtime: &'runtime crate::runtime::RelationalPreparationRuntime,
+}
+
 impl RelationalRuntime {
     pub(crate) fn publication_authority(&mut self) -> PublicationAuthority<'_> {
         PublicationAuthority::new(self)
+    }
+}
+
+impl crate::runtime::RelationalPreparationRuntime {
+    pub(crate) fn publication_preparation_authority(&self) -> PublicationPreparationAuthority<'_> {
+        PublicationPreparationAuthority::new(self)
+    }
+}
+
+impl<'runtime> PublicationPreparationAuthority<'runtime> {
+    pub(crate) fn new(runtime: &'runtime crate::runtime::RelationalPreparationRuntime) -> Self {
+        Self { runtime }
     }
 }
 

@@ -38,6 +38,46 @@ fn publication_rejects_envelope_identity_drift_before_any_effect() {
 }
 
 #[test]
+fn prepared_publication_rejects_an_existing_envelope_before_any_effect() {
+    let mut runtime = runtime_with_test_schema();
+    let committed = create_entity_outcome(&mut runtime, "duplicate-catalog-envelope");
+    let identity = runtime
+        .branch_identity(&BranchId("main".to_owned()))
+        .expect("main identity");
+    let binding = runtime
+        .admitted_branch_basis_for_identity(&identity)
+        .expect("main binding");
+    let selected_branch_state = runtime
+        .selected_branch_state(&binding)
+        .expect("current binding selects its committed root");
+    let schema_registry = runtime.config.schema.registry.clone();
+    let before_cells = runtime.history.branch_cells_snapshot();
+    let before_catalog = runtime.history.commit_catalog.len();
+    let preparation_runtime = runtime.preparation_runtime_snapshot();
+    let delta = crate::storage::RelationalPublishedPartitionDelta::from_committed_partitions(
+        &std::collections::BTreeMap::new(),
+    );
+
+    let error = preparation_runtime
+        .mvcc_publication_authority()
+        .prepare_commit(
+            committed.commit.commit_id,
+            committed.commit.clone(),
+            &binding,
+            &selected_branch_state,
+            delta,
+            std::sync::Arc::clone(&committed.publication().envelope),
+            &schema_registry,
+        )
+        .err()
+        .expect("an existing envelope must fail the real prepared-publication court");
+
+    assert!(error.contains("DuplicateCommit"));
+    assert_eq!(runtime.history.branch_cells_snapshot(), before_cells);
+    assert_eq!(runtime.history.commit_catalog.len(), before_catalog);
+}
+
+#[test]
 fn root_capture_sabotage_leaves_storage_index_history_and_reference_unchanged() {
     let mut runtime = runtime_with_test_schema();
     let committed = create_entity_outcome(&mut runtime, "root-capture-sabotage");
@@ -79,7 +119,7 @@ fn root_capture_sabotage_leaves_storage_index_history_and_reference_unchanged() 
             (
                 *id,
                 partition
-                    .authoritative_content_digest(&runtime.services.symbols)
+                    .authoritative_content_digest(&runtime.services.symbols.interner_snapshot())
                     .expect("installed storage symbols resolve"),
             )
         })
@@ -98,7 +138,8 @@ fn root_capture_sabotage_leaves_storage_index_history_and_reference_unchanged() 
         .selected_branch_state(&binding)
         .expect("current binding must select a root");
     let schema_registry = runtime.config.schema.registry.clone();
-    let error = runtime
+    let preparation_runtime = runtime.preparation_runtime_snapshot();
+    let error = preparation_runtime
         .mvcc_publication_authority()
         .prepare_commit(
             commit_id,
@@ -119,7 +160,7 @@ fn root_capture_sabotage_leaves_storage_index_history_and_reference_unchanged() 
             (
                 *id,
                 partition
-                    .authoritative_content_digest(&runtime.services.symbols)
+                    .authoritative_content_digest(&runtime.services.symbols.interner_snapshot())
                     .expect("failed preparation cannot corrupt installed storage"),
             )
         })
@@ -153,7 +194,7 @@ fn production_commit_root_capture_sabotage_precedes_durable_append_and_all_effec
             (
                 *id,
                 partition
-                    .authoritative_content_digest(&runtime.services.symbols)
+                    .authoritative_content_digest(&runtime.services.symbols.interner_snapshot())
                     .expect("installed storage symbols resolve"),
             )
         })
@@ -186,7 +227,7 @@ fn production_commit_root_capture_sabotage_precedes_durable_append_and_all_effec
             (
                 *id,
                 partition
-                    .authoritative_content_digest(&runtime.services.symbols)
+                    .authoritative_content_digest(&runtime.services.symbols.interner_snapshot())
                     .expect("failed publication cannot corrupt installed storage"),
             )
         })
