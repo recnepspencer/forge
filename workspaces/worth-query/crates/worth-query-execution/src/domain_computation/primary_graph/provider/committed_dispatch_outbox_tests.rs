@@ -154,7 +154,7 @@ fn every_later_valid_field_substitution_leaves_exact_commit_truth_unchanged() {
                 outbox_field_locator(provider.graph.layout.provider_dispatch_outbox(), field);
             let mut transaction = {
                 let transaction_validation_input = runtime
-                    .admit_main_branch_basis()
+                    .admit_branch_basis(&runtime.main_branch_identity())
                     .expect("main branch binding");
                 runtime
                     .begin_branch_transaction(
@@ -203,7 +203,7 @@ fn later_deletion_cannot_erase_exact_commit_truth() {
     provider.graph.with_runtime_mut(|runtime| {
         let mut transaction = {
             let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
             runtime
                 .begin_branch_transaction(
@@ -288,7 +288,7 @@ fn unrelated_identical_row_cannot_make_owner_mapping_ambiguous() {
         };
         let mut transaction: BranchBoundRelationalTransaction = {
             let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
             runtime
                 .begin_branch_transaction(
@@ -354,7 +354,7 @@ fn another_committed_record_ref_cannot_substitute_for_the_bound_outbox() {
             };
             let mut transaction = {
                 let transaction_validation_input = runtime
-                    .admit_main_branch_basis()
+                    .admit_branch_basis(&runtime.main_branch_identity())
                     .expect("main branch binding");
                 runtime
                     .begin_branch_transaction(

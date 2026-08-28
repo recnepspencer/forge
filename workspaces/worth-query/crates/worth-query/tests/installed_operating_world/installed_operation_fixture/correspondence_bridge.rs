@@ -303,8 +303,9 @@ fn build_bridge(
 }
 
 fn begin_main_transaction(runtime: &RelationalRuntime) -> BranchBoundRelationalTransaction {
+    let main_identity = runtime.main_branch_identity();
     let context = runtime
-        .admit_main_branch_basis()
+        .admit_branch_basis(&main_identity)
         .expect("main branch context");
     runtime
         .begin_branch_transaction(&context, RelationalTransactionIntent::ordinary())

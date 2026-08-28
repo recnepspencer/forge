@@ -86,7 +86,7 @@ pub(in crate::domain_computation) fn commit_distinct_records_and_admit_fixture(
             };
             let mut transaction: BranchBoundRelationalTransaction = {
     let transaction_validation_input = runtime
-                    .admit_main_branch_basis()
+                    .admit_branch_basis(&runtime.main_branch_identity())
                     .expect("main branch binding");
     runtime
         .begin_branch_transaction(
@@ -161,7 +161,7 @@ pub(in crate::domain_computation::primary_graph) fn commit_and_observe_fixture(
         .expect("declared fixture outbox binds a create intent");
         let mut transaction: BranchBoundRelationalTransaction = {
     let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
     runtime
         .begin_branch_transaction(

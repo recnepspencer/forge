@@ -18,7 +18,7 @@ fn expired_candidate_is_typed_deferred_before_reference_movement() {
             max_prepared_root_bytes: 268_435_456,
         })
         .build();
-    let before = runtime.admit_main_branch_basis().unwrap();
+    let before = crate::tests::support::test_owner_main_basis(&runtime).unwrap();
     let cost_scope = crate::facade::inspection::RelationalMvccCostScope::capture(
         &runtime,
         vec![runtime.main_branch_identity()],
@@ -44,7 +44,9 @@ fn expired_candidate_is_typed_deferred_before_reference_movement() {
         )
     ));
     assert_eq!(
-        runtime.admit_main_branch_basis().unwrap().descriptor(),
+        crate::tests::support::test_owner_main_basis(&runtime)
+            .unwrap()
+            .descriptor(),
         before.descriptor()
     );
     assert_eq!(
@@ -80,12 +82,12 @@ fn candidate_that_expires_while_waiting_for_coordination_does_not_move_reference
             max_prepared_root_bytes: 268_435_456,
         })
         .build();
-    let basis = runtime.admit_main_branch_basis().unwrap();
+    let basis = crate::tests::support::test_owner_main_basis(&runtime).unwrap();
     let candidate = prepared_write(&mut runtime, &basis, "waited-expiry").unwrap();
     let publication_cell = candidate.publication_cell_for_test();
     let coordination = std::sync::Arc::clone(publication_cell.coordination());
     let held_coordination = coordination.enter();
-    let before = runtime.admit_main_branch_basis().unwrap();
+    let before = crate::tests::support::test_owner_main_basis(&runtime).unwrap();
     let port = runtime.publication_port();
 
     let publisher = std::thread::spawn(move || port.compare_and_publish(candidate));
@@ -106,7 +108,9 @@ fn candidate_that_expires_while_waiting_for_coordination_does_not_move_reference
         )
     ));
     assert_eq!(
-        runtime.admit_main_branch_basis().unwrap().descriptor(),
+        crate::tests::support::test_owner_main_basis(&runtime)
+            .unwrap()
+            .descriptor(),
         before.descriptor()
     );
     assert_eq!(
@@ -121,7 +125,7 @@ fn candidate_that_expires_while_waiting_for_coordination_does_not_move_reference
 fn foreign_publication_port_denies_before_reference_movement() {
     let mut source = runtime_with_test_schema();
     create_entity(&mut source, "foreign-port-anchor");
-    let before = source.admit_main_branch_basis().expect("source basis");
+    let before = crate::tests::support::test_owner_main_basis(&source).expect("source basis");
     let commit_count_before = source.history().immutable_commit_count();
     let mut transaction = source
         .begin_branch_transaction(
@@ -150,8 +154,7 @@ fn foreign_publication_port_denies_before_reference_movement() {
         outcome => panic!("foreign port must return its typed denial: {outcome:?}"),
     }
     assert_eq!(
-        source
-            .admit_main_branch_basis()
+        crate::tests::support::test_owner_main_basis(&source)
             .expect("source basis remains current")
             .descriptor(),
         before.descriptor()
@@ -180,7 +183,7 @@ fn candidate_population_exhaustion_is_typed_and_released_by_discard() {
             max_prepared_root_bytes: 268_435_456,
         })
         .build();
-    let basis = runtime.admit_main_branch_basis().unwrap();
+    let basis = crate::tests::support::test_owner_main_basis(&runtime).unwrap();
     let first = prepared_write(&mut runtime, &basis, "candidate-one").unwrap();
 
     assert!(matches!(

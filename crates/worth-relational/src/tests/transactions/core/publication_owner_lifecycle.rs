@@ -4,9 +4,8 @@ use crate::tests::support::*;
 fn publication_port_denies_candidate_after_owner_drop() {
     let mut runtime = runtime_with_test_schema();
     create_entity(&mut runtime, "owner-drop-anchor");
-    let basis = runtime
-        .admit_main_branch_basis()
-        .expect("main basis is admitted");
+    let basis =
+        crate::tests::support::test_owner_main_basis(&runtime).expect("main basis is admitted");
     let mut transaction = runtime
         .begin_branch_transaction(&basis, crate::mvcc::RelationalTransactionIntent::ordinary())
         .expect("transaction binds while its owner is live");
@@ -53,9 +52,8 @@ fn publication_port_denies_candidate_after_owner_drop() {
 fn runtime_drop_waits_for_admitted_publication_to_leave_linearization() {
     let mut runtime = runtime_with_test_schema();
     create_entity(&mut runtime, "in-flight-drop-anchor");
-    let basis = runtime
-        .admit_main_branch_basis()
-        .expect("main basis is admitted");
+    let basis =
+        crate::tests::support::test_owner_main_basis(&runtime).expect("main basis is admitted");
     let mut transaction = runtime
         .begin_branch_transaction(&basis, crate::mvcc::RelationalTransactionIntent::ordinary())
         .expect("transaction binds while its owner is live");

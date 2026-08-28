@@ -28,8 +28,9 @@ fn main_basis(
 ) -> AdmittedRelationalBranchBasis {
     let identity = runtime.main_branch_identity();
     runtime
-        .admit_branch_basis(&identity)
-        .expect("configured main branch must remain owner-admissible")
+        .observe_branch(&identity)
+        .map(|(_, basis)| basis)
+        .expect("configured main branch must remain owner-observable")
 }
 
 pub fn demo_schema_registry() -> RelationalSchemaRegistry {
@@ -89,7 +90,8 @@ pub fn create_entity(
                 fields: string_field_patch(aspect_key("name"), field_key("name"), name),
             }),
         )),
-    );
+    )
+    .expect("example entity batch must stage");
     let outcome = tx.commit(runtime).expect("entity commit");
     let entity_id = changed_entity(&outcome).expect("created entity id");
     (outcome, entity_id)
@@ -135,7 +137,8 @@ pub fn update_entity_on_branch(
                 fields: string_field_patch(aspect_key("name"), field_key("name"), name),
             }),
         )),
-    );
+    )
+    .expect("example update batch must stage");
     tx.commit(runtime).expect("update commit")
 }
 
@@ -156,7 +159,8 @@ pub fn delete_entity(
         WorkerIntentBatch::new("delete-entity").push(MutationIntent::Entity(
             EntityMutationIntent::Delete(DeleteEntityIntent { entity_id }),
         )),
-    );
+    )
+    .expect("example delete batch must stage");
     tx.commit(runtime).expect("delete entity commit")
 }
 
@@ -189,7 +193,8 @@ pub fn create_relation(
                 fields: string_field_patch(aspect_key("label"), field_key("label"), label),
             }),
         )),
-    );
+    )
+    .expect("example relation batch must stage");
     let outcome = tx.commit(runtime).expect("relation commit");
     let relation_id = changed_relation(&outcome).expect("created relation id");
     (outcome, relation_id)

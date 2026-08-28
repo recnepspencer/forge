@@ -2,6 +2,15 @@ use super::{BranchId, RelationalRuntime, RelationalTransactionValidationInput};
 use crate::facade::commit_strategies::CommitStrategiesAuthorityFacade;
 use crate::mvcc::BranchBoundRelationalTransaction;
 
+/// Observe the configured main identity explicitly and return its owner basis.
+pub(crate) fn test_owner_main_basis(
+    runtime: &RelationalRuntime,
+) -> Result<crate::branch::AdmittedRelationalBranchBasis, crate::branch::RelationalBranchBasisDenial>
+{
+    let identity = runtime.main_branch_identity();
+    runtime.admit_branch_basis(&identity)
+}
+
 /// Begin a main-branch transaction after observing its admitted basis.
 ///
 /// Keeping the two borrows inside this helper preserves the same production

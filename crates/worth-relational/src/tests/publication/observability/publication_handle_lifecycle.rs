@@ -127,7 +127,7 @@ fn publication_handle_retention_is_bounded_by_policy() {
         .build();
     let first = create_entity_outcome(&mut runtime, "first");
     let second = create_entity_outcome(&mut runtime, "second");
-    let before = runtime.admit_main_branch_basis().unwrap();
+    let before = crate::tests::support::test_owner_main_basis(&runtime).unwrap();
     let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
     transaction.push_batch(batch_create("third")).unwrap();
     assert!(matches!(
@@ -155,7 +155,9 @@ fn publication_handle_retention_is_bounded_by_policy() {
         .read_snapshot(&second.snapshot)
         .is_some());
     assert_eq!(
-        runtime.admit_main_branch_basis().unwrap().descriptor(),
+        crate::tests::support::test_owner_main_basis(&runtime)
+            .unwrap()
+            .descriptor(),
         before.descriptor()
     );
 }

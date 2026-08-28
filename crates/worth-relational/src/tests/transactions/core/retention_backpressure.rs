@@ -271,7 +271,7 @@ fn prepared_root_byte_budget_denies_before_candidate_admission() {
             max_prepared_root_bytes: 0,
         })
         .build();
-    let before = runtime.admit_main_branch_basis().unwrap();
+    let before = crate::tests::support::test_owner_main_basis(&runtime).unwrap();
     let mut transaction = runtime
         .begin_branch_transaction(&before, RelationalTransactionIntent::ordinary())
         .unwrap();
@@ -293,7 +293,9 @@ fn prepared_root_byte_budget_denies_before_candidate_admission() {
         )
     ));
     assert_eq!(
-        runtime.admit_main_branch_basis().unwrap().descriptor(),
+        crate::tests::support::test_owner_main_basis(&runtime)
+            .unwrap()
+            .descriptor(),
         before.descriptor()
     );
     assert_eq!(

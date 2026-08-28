@@ -48,7 +48,7 @@ pub(super) fn set_status(
         )]));
         let mut transaction = {
             let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
             runtime
                 .begin_branch_transaction(
@@ -99,7 +99,7 @@ pub(super) fn add_self_approver(
     handle.with_runtime_mut(|runtime| {
         let mut transaction = {
             let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
             runtime
                 .begin_branch_transaction(
@@ -193,7 +193,7 @@ pub(super) fn replace_elevation_resource(
         }
         let mut transaction = {
     let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
     runtime
         .begin_branch_transaction(
@@ -244,7 +244,7 @@ pub(super) fn add_elevation_resource(
     handle.with_runtime_mut(|runtime| {
         let mut transaction = {
             let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
             runtime
                 .begin_branch_transaction(

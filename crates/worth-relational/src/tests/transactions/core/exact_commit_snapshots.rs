@@ -119,7 +119,7 @@ fn exact_commit_snapshot_capacity_defers_movement_until_explicit_release() {
         .build();
     let first = create_entity_outcome(&mut runtime, "first");
     let version_before = runtime.current_version_id();
-    let basis = runtime.admit_main_branch_basis().unwrap();
+    let basis = crate::tests::support::test_owner_main_basis(&runtime).unwrap();
     let mut transaction = runtime
         .begin_branch_transaction(
             &basis,

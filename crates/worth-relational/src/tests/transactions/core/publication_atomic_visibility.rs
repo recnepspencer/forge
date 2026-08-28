@@ -7,7 +7,7 @@ use std::sync::Arc;
 fn concurrent_reference_readers_observe_only_complete_old_or_new_roots() {
     let mut runtime = runtime_with_test_schema();
     create_entity(&mut runtime, "atomic-reader-anchor");
-    let old_basis = runtime.admit_main_branch_basis().expect("old basis");
+    let old_basis = crate::tests::support::test_owner_main_basis(&runtime).expect("old basis");
     let old_root_id = old_basis.descriptor().root_identity();
 
     let mut transaction = runtime
@@ -134,7 +134,7 @@ fn concurrent_reference_readers_observe_only_complete_old_or_new_roots() {
 fn fork_and_publication_consume_complete_old_and_new_roots() {
     let mut runtime = runtime_with_test_schema();
     let old_commit = create_entity_outcome(&mut runtime, "fork-race-anchor");
-    let old_basis = runtime.admit_main_branch_basis().expect("old basis");
+    let old_basis = crate::tests::support::test_owner_main_basis(&runtime).expect("old basis");
     let old_root_id = old_basis.descriptor().root_identity();
     let (_, fork_source) = runtime
         .observe_fork_source(&BranchId("main".to_owned()))
@@ -226,7 +226,7 @@ fn fork_and_publication_consume_complete_old_and_new_roots() {
         outcome => panic!("source advances to the complete new root: {outcome:?}"),
     };
     let (runtime, successful_forks, _stale_count) = forker.join().expect("fork racer joins");
-    let new_main = runtime.admit_main_branch_basis().expect("new main basis");
+    let new_main = crate::tests::support::test_owner_main_basis(&runtime).expect("new main basis");
     assert_eq!(
         new_main.descriptor().root_identity(),
         performed.next_basis().descriptor().root_identity()

@@ -59,8 +59,9 @@ fn conditional_runtime_bridge_with_change_sequence(
         CanonicalFieldPath::single(field.clone()),
     );
     let mut create = {
+        let main_identity = relational.main_branch_identity();
         let transaction_validation_input = relational
-            .admit_main_branch_basis()
+            .admit_branch_basis(&main_identity)
             .expect("main branch binding");
         relational
             .begin_branch_transaction(
@@ -100,8 +101,9 @@ fn conditional_runtime_bridge_with_change_sequence(
         .expect("created owner-admitted branch basis");
     commit_snapshot_closeout::release_commit_snapshot(&mut relational, &created);
     let mut update = {
+        let main_identity = relational.main_branch_identity();
         let transaction_validation_input = relational
-            .admit_main_branch_basis()
+            .admit_branch_basis(&main_identity)
             .expect("main branch binding");
         relational
             .begin_branch_transaction(
@@ -131,8 +133,9 @@ fn conditional_runtime_bridge_with_change_sequence(
     commit_snapshot_closeout::release_commit_snapshot(&mut relational, &updated);
     if repeat_after_value {
         let mut repeated = {
+            let main_identity = relational.main_branch_identity();
             let transaction_validation_input = relational
-                .admit_main_branch_basis()
+                .admit_branch_basis(&main_identity)
                 .expect("main branch binding");
             relational
                 .begin_branch_transaction(

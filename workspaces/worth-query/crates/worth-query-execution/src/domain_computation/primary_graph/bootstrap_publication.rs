@@ -25,8 +25,9 @@ pub(super) fn commit_bootstrap_rows(
     relation_rows: Vec<WorthQueryTypedRelationBootstrapRow>,
 ) -> Result<worth_relational::facade::history::CommitId, WorthQueryPrimaryGraphInstallationDenial> {
     graph.integration_handle().with_runtime_mut(|runtime| {
+        let main_identity = runtime.main_branch_identity();
         let options = runtime
-            .admit_main_branch_basis()
+            .admit_branch_basis(&main_identity)
             .map_err(map_bootstrap_basis_denial)?;
         let mut transaction = runtime
             .begin_branch_transaction(

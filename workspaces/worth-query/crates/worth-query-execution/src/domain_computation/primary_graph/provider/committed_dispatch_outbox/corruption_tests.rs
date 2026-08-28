@@ -77,7 +77,7 @@ fn a_committed_record_of_another_kind_denies_before_projection() {
         );
         let mut transaction: BranchBoundRelationalTransaction = {
     let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
     runtime
         .begin_branch_transaction(
@@ -135,7 +135,7 @@ fn a_deleted_record_is_non_visible_at_the_requested_commit_without_binding_fallb
         .unwrap();
         let mut create: BranchBoundRelationalTransaction = {
     let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
     runtime
         .begin_branch_transaction(
@@ -160,7 +160,7 @@ fn a_deleted_record_is_non_visible_at_the_requested_commit_without_binding_fallb
         release_commit_snapshot(runtime, &created);
         let mut delete: BranchBoundRelationalTransaction = {
     let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
     runtime
         .begin_branch_transaction(
@@ -215,7 +215,7 @@ fn committed_substituted_row(
         let corrupted = corrupted_spec(&layout, expected, field, replacement, &alternate_key);
         let mut transaction: BranchBoundRelationalTransaction = {
     let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
     runtime
         .begin_branch_transaction(

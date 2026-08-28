@@ -190,7 +190,7 @@ fn validated_status_footprint(
         )]));
         let mut transaction = {
             let transaction_validation_input = runtime
-                .admit_main_branch_basis()
+                .admit_branch_basis(&runtime.main_branch_identity())
                 .expect("main branch binding");
             runtime
                 .begin_branch_transaction(

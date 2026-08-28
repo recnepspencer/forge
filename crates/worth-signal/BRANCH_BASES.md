@@ -245,8 +245,9 @@ fork outcome, readmission/compatibility denials, retention lease outcomes,
 linear retirement plan, and the admitted basis returned by capture, restore,
 advance, or merge. Fork, capture, restore, and advance return typed mismatch,
 retention, and no-movement outcomes rather than flattened owner strings;
-capture, restore, and advance also retain
-their explicit performed-but-basis-build category. It should treat a typed
+owner preflight acquires the retention needed to issue the successor basis, so
+basis construction after a performed canonical operation is an internal
+invariant rather than a caller-visible fallible phase. It should treat a typed
 no-movement outcome as leaving the old reference current; once Signal returns
 the new basis, that basis is the post-operation reference. Retention transfers
 through the explicit external lease object and never through a descriptor or
@@ -257,6 +258,32 @@ This port does not expose Signal graph mutation, legacy head tuples, private
 snapshot storage, or authority minting. It is the component boundary available
 to the later composite-owner work; it does not itself provide cross-owner
 atomicity.
+
+Milestone 9.17.2 may carry a `SignalBranchBasisDescriptor`, ask the Signal
+owner to readmit it, retain the resulting `AdmittedSignalBranchBasis`, compare
+two admitted bases through `validate_signal_basis_compatibility`, and consume
+the typed owner outcome from fork, capture, restore, advance, merge, retention,
+or retirement. It may not construct a basis, infer one from a snapshot ID or
+digest, call the private graph/branch manager, or publish a product reference
+as though Signal issued it.
+
+Signal's canonical branch operations are synchronous and do not expose a
+generic external cancellation token. A coordinating owner may honor
+cancellation before invoking Signal. Once the call returns a successor admitted
+basis, the Signal movement is performed and cannot be relabeled as cancelled;
+a typed denial that says no movement preserves the predecessor. Milestone
+9.17.2 must use this boundary in its own no-half-publication protocol rather
+than attempting raw Signal rollback.
+
+The integrating owner must acquire `retain_signal_component_basis` before it
+promises component residency and consume the exact lease through
+`release_signal_component_basis`. A lease keeps an immutable component state
+available but does not claim that its branch reference is still current.
+
+All Signal branch catalog state, admitted bases, stored branch snapshots, and
+retention accounting remain memory-resident. Restart durability is deferred to
+Worth Store integration; the port does not expose a serializable authority
+token or persistence promise.
 
 ## Related Docs
 

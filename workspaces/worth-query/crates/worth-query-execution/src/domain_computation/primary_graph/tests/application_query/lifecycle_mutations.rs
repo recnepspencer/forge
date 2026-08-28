@@ -26,8 +26,9 @@ pub(super) fn disable_mapping(world: &AuthorizationWorld, mapping_id: EntityId) 
             layout.status_locator,
             WorthQueryPrincipalMappingStatus::Disabled.into_foundational_value(),
         )]));
+        let main_identity = runtime.main_branch_identity();
         let basis = runtime
-            .admit_main_branch_basis()
+            .admit_branch_basis(&main_identity)
             .expect("main branch binding");
         let mut transaction = runtime
             .begin_branch_transaction(
@@ -73,8 +74,9 @@ pub(super) fn revoke_account_ownership(world: &AuthorizationWorld, account: Enti
             .expect("the admitted account has one ownership edge")
             .relation_id;
         crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
+        let main_identity = runtime.main_branch_identity();
         let basis = runtime
-            .admit_main_branch_basis()
+            .admit_branch_basis(&main_identity)
             .expect("main branch binding");
         let mut transaction = runtime
             .begin_branch_transaction(

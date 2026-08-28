@@ -29,6 +29,9 @@ Read the docs in this order if you are new to the surface:
 
 The order matters.
 
+- Exact branch references are the only shared grammar for an operational
+  owner observation. They remain descriptive until Relational or Signal
+  readmits them and issues its concrete authority.
 - Branch-local surfaces are descriptive only.
 - Merge planning and merge verdicts are still not authority.
 - Scoped merge and cherry-pick vocabulary names selected scope before any
@@ -42,3 +45,8 @@ The order matters.
 These docs are capability-first on purpose. They are not milestone notes or
 test tours. If a transition capability shipped, it should have a stable home in
 this folder.
+
+Milestone 5's epoch/equivalence candidate forms and the exact reference
+grammar are intentionally different families. There is no compatibility
+constructor from `BoundaryEpoch`, `EquivalenceBasisId`, or a staged candidate
+to an exact operational reference.

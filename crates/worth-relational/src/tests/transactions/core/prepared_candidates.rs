@@ -137,16 +137,14 @@ fn publication_port_performs_one_exact_candidate_and_reports_the_loser_stale() {
     let anchor = create_entity_outcome(&mut runtime, "publication-race-anchor");
     let anchor_commit_id = anchor.commit.commit_id;
     let commit_count_before = runtime.history().immutable_commit_count();
-    let expected = runtime
-        .admit_main_branch_basis()
+    let expected = crate::tests::support::test_owner_main_basis(&runtime)
         .expect("main basis is admitted")
         .descriptor()
         .clone();
     let visible_entity_count_before = runtime
         .read_truth()
         .read_observation(
-            &runtime
-                .admit_main_branch_basis()
+            &crate::tests::support::test_owner_main_basis(&runtime)
                 .expect("counting basis")
                 .observation(),
         )
@@ -156,7 +154,7 @@ fn publication_port_performs_one_exact_candidate_and_reports_the_loser_stale() {
 
     let mut first = runtime
         .begin_branch_transaction(
-            &runtime.admit_main_branch_basis().expect("first basis"),
+            &crate::tests::support::test_owner_main_basis(&runtime).expect("first basis"),
             crate::mvcc::RelationalTransactionIntent::ordinary(),
         )
         .expect("first transaction binds");
@@ -169,7 +167,7 @@ fn publication_port_performs_one_exact_candidate_and_reports_the_loser_stale() {
 
     let mut second = runtime
         .begin_branch_transaction(
-            &runtime.admit_main_branch_basis().expect("second basis"),
+            &crate::tests::support::test_owner_main_basis(&runtime).expect("second basis"),
             crate::mvcc::RelationalTransactionIntent::ordinary(),
         )
         .expect("second transaction binds");

@@ -23,6 +23,13 @@ That rule still governs every remaining milestone:
 
 ### Query Milestone 9.17.1 Authority-Scope Clarification
 
+Status: Closed on 2026-08-28. The executable owner flow is frozen in
+[`BRANCH_LOCAL_MVCC.md`](../../crates/worth-relational/BRANCH_LOCAL_MVCC.md),
+and the only component contract available to Milestone 9.17.2 is
+[`OWNER_COMPONENT_PORT.md`](../../crates/worth-relational/OWNER_COMPONENT_PORT.md).
+Runtime Bridge receives no Relational component mutation, currentness,
+retention, or publication authority.
+
 [Query Milestone 9.17.1](../WORTH-query/milestone-9.17.1.md) is the governing
 cutover for Relational branch-local MVCC. From that cutover onward, “serialized
 authority” in this roadmap means one exact selected branch reference has one

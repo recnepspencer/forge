@@ -5116,6 +5116,13 @@ The order is strict. The umbrella closes only after 9.17.3.
 
 #### Milestone 9.17.1: Exact Owner Bases And Relational Branch-Local MVCC
 
+Status: Closed on 2026-08-28. The executable Relational branch-local MVCC flow
+is documented in
+`crates/worth-relational/BRANCH_LOCAL_MVCC.md`; the exact 9.17.2 handoff is
+frozen in `crates/worth-relational/OWNER_COMPONENT_PORT.md` and
+`crates/worth-signal/BRANCH_BASES.md`. Runtime Bridge may compose only
+owner-issued observations, bases, retention obligations, and typed outcomes.
+
 Foundational first freezes one descriptive vocabulary that separates immutable
 target bases from mutable branch references and names exact reference
 observations, generations, forks, comparisons, and movements. Relational and

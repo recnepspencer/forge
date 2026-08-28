@@ -211,8 +211,7 @@ fn invalid_store_path_does_not_relabel_performed_in_memory_publication() {
         runtime.history().branch_head(&BranchId("main".to_owned())),
         Some(performed_commit.clone())
     );
-    let basis = runtime
-        .admit_main_branch_basis()
+    let basis = crate::tests::support::test_owner_main_basis(&runtime)
         .expect("the performed branch basis remains admissible");
     let truth = runtime
         .read_truth()

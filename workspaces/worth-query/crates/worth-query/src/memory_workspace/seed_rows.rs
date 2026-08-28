@@ -42,9 +42,10 @@ impl WorthQueryMemoryWorkspace {
                 )))
             },
         );
+        let main_identity = self.runtime.main_branch_identity();
         let options = self
             .runtime
-            .admit_main_branch_basis()
+            .admit_branch_basis(&main_identity)
             .map_err(super::transaction_denial::basis)?;
         let mut transaction = self
             .runtime

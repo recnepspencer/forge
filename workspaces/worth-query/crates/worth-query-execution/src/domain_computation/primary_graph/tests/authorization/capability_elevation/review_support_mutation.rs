@@ -47,8 +47,9 @@ pub(super) fn complete_review_out_of_band(
             locator,
             CapabilityReviewStatus::Completed.into_foundational_value(),
         )]));
+        let main_identity = runtime.main_branch_identity();
         let basis = runtime
-            .admit_main_branch_basis()
+            .admit_branch_basis(&main_identity)
             .expect("main branch binding");
         let mut transaction = runtime
             .begin_branch_transaction(
@@ -119,8 +120,9 @@ pub(super) fn replace_support_grantor_with_custodian(
             .expect("the request support has one current grantor path")
             .relation_id;
         crate::relational_snapshot_release::release_query_snapshot(runtime, &snapshot);
+        let main_identity = runtime.main_branch_identity();
         let basis = runtime
-            .admit_main_branch_basis()
+            .admit_branch_basis(&main_identity)
             .expect("main branch binding");
         let mut transaction = runtime
             .begin_branch_transaction(

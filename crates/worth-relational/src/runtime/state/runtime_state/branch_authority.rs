@@ -74,13 +74,6 @@ impl RelationalRuntime {
         self.admitted_branch_basis_for_identity(identity)
     }
 
-    /// Admit the configured main branch through its owner-issued identity.
-    pub fn admit_main_branch_basis(
-        &self,
-    ) -> Result<AdmittedRelationalBranchBasis, RelationalBranchBasisDenial> {
-        self.admit_branch_basis(&self.main_branch_identity())
-    }
-
     pub(crate) fn admitted_branch_basis_for_merge_branch(
         &self,
         branch_id: &BranchId,

@@ -1,5 +1,10 @@
 # Milestone 9.17.1: Exact Owner Bases And Relational Branch-Local MVCC
 
+Status: Closed on 2026-08-28. Phases 1-13 are implemented, independently
+reviewed, and verified. Milestone 9.17.2 must consume the frozen Relational and
+Signal owner-component ports; it may not recreate component currentness,
+retention, mutation, or publication authority in Runtime Bridge.
+
 ## Goal
 
 Establish the owner-local state model that every later product branch depends
@@ -1664,6 +1669,13 @@ publication door remains.
 
 ### Phase 10: Close Retention, Lifecycle, Cancellation, And Reclamation
 
+Status: Closed on 2026-08-27. Snapshot, observation, transaction, candidate,
+performed-settlement, and external component obligations are bounded and
+single-terminal; archive/delete and branch-name retirement preserve retained
+ancestors, post-linearization cancellation remains performed, and ordinary
+publication performs no reclamation scan. Independent QA loop, test-quality,
+code-quality, and final-gate reviews reported clean.
+
 Install typed head, observation, transaction, candidate, and external-pin
 obligations. Implement archive, delete, cancellation/timeout, and maintenance-
 lane reclamation at the exact linearization boundary. Keep every retained root,
@@ -1679,6 +1691,13 @@ foreign branch descriptor to substitute.
 
 ### Phase 11: Cut Signal Over To The Shared Reference Vocabulary
 
+Status: Closed on 2026-08-27. Signal now exposes one owner-admitted exact basis
+grammar for observation, readmission, fork, capture, restore, advance, merge,
+retention, and retirement; legacy head tuples remain private engine mechanics,
+and transported descriptors open no authority until owner readmission.
+Independent QA loop, test-quality, code-quality, and final-gate reviews
+reported clean.
+
 Adapt Signal's branch catalog, basis artifact, fork/restore, targeted
 transactions, retention, and public facade to the same Foundational reference
 grammar while retaining Signal-owned live authority and bounded in-memory
@@ -1691,6 +1710,12 @@ descriptor remains non-authoritative until Signal owner readmission.
 
 ### Phase 12: Verify Supply Chain MVCC Semantics And Cost
 
+Status: Closed on 2026-08-27. All named Supply Chain deltas execute through
+the public branch-local MVCC path against the independent oracle; seeded model,
+schema-transition replay/recovery, cancellation, retention, structural-sharing,
+and cost courts prove the ordinary and scheduled contracts. Independent QA
+loop, test-quality, code-quality, and final-gate reviews reported clean.
+
 Run causal-baseline, semantic-isolation, ancestry, independent-progress,
 same-reference, atomicity, retention, cancellation, seeded-model, structural-
 sharing, and cost-slope cases at their declared profiles. Run required
@@ -1702,6 +1727,14 @@ accepted delta trace; branch-local differences and shared history are both
 exact; and fork and write amplification meet their counters.
 
 ### Phase 13: Cutover, Documentation, And Handoff Freeze
+
+Status: Closed on 2026-08-28. Predecessor and ambient-main authority paths are
+absent from the public boundary; executable Relational owner-flow documentation
+and both component-owner ports now define the 9.17.2 handoff. The full
+Relational library, Supply Chain certification, existing Query preservation
+slices, compiler courts, formatting, line-cap, boundary, and generated-context
+lanes pass. Independent QA loop, test-quality, code-quality, and final-gate
+reviews reported clean.
 
 Delete predecessor authority paths, finish executable owner/world docs, keep
 Fintech and generic preservation suites green, run boundary/generated-context/
