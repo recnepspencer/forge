@@ -62,6 +62,7 @@ fn schema_continuity_publication_rejects_incomplete_canonical_bundle() {
     envelope.schema_continuation_descriptor = Some(transition.continuation_descriptor.clone());
     envelope.schema_reconciliation_descriptor = None;
     let plan = SchemaContinuityPlan {
+        target_schema_registry: None,
         target_schema_version: envelope.schema_version,
         target_schema_authority: envelope.schema_authority.clone(),
         descriptor_semantics_version: DescriptorSemanticsVersion::default(),
@@ -153,6 +154,7 @@ fn schema_continuity_publication_rejects_descriptor_semantics_mismatch() {
     envelope.schema_reconciliation_descriptor = Some(transition.reconciliation_descriptor.clone());
     envelope.descriptor_semantics_version = DescriptorSemanticsVersion::default();
     let plan = SchemaContinuityPlan {
+        target_schema_registry: None,
         target_schema_version: envelope.schema_version,
         target_schema_authority: envelope.schema_authority.clone(),
         descriptor_semantics_version: DescriptorSemanticsVersion::default(),

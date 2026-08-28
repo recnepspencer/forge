@@ -13,6 +13,7 @@ impl<'runtime> PublicationAuthority<'runtime> {
         version_id: VersionId,
         patch: crate::publication::patch::data::CanonicalAuthoritativePatch,
         diagnostics_summary: crate::diagnostics::data::RelationalDiagnosticArtifact,
+        schema_authority: crate::schema::data::SchemaAuthoritySnapshot,
     ) -> Result<PublicationArtifacts, crate::mvcc::RelationalPublicationFailure> {
         let snapshot_id = self
             .runtime
@@ -36,7 +37,7 @@ impl<'runtime> PublicationAuthority<'runtime> {
             snapshot,
             diagnostics_summary,
             patch,
-            schema_authority: self.runtime.config.schema.registry.authority_snapshot(),
+            schema_authority,
         })
     }
 

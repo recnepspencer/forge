@@ -1,10 +1,10 @@
 use std::collections::BTreeSet;
 use std::sync::{Arc, Mutex};
 
-use super::invariant_oracle_expectations::expected_phase5_branch;
+use super::invariant_oracle_expectations::expected_supply_chain_branch;
 use super::world::supply_chain::{
     commit_branch_batch, compare, compile_supply_chain_baseline_with_custom_invariant,
-    head_for_supply_chain_branch, lower_phase5_production_delta, observe_supply_chain,
+    head_for_supply_chain_branch, lower_supply_chain_production_delta, observe_supply_chain,
     observe_supply_chain_snapshot, relation_kind_id, snapshot_for_supply_chain_identity,
     BranchLabel, CompiledSupplyChainProgram, DeltaId, EntityKind, RelationKind, SupplyChainScale,
     SupplyChainWorldDefinition,
@@ -54,7 +54,7 @@ fn custom_invariant_structural_reads_stay_on_child_root_after_main_rewire() {
         .id;
     let baseline = observe_supply_chain(&world).expect("baseline remains observable");
     compare(
-        &expected_phase5_branch(&world.program, BranchLabel::Operating, None),
+        &expected_supply_chain_branch(&world.program, BranchLabel::Operating, None),
         &baseline,
     )
     .expect("production baseline matches the independent oracle");
@@ -114,7 +114,7 @@ fn custom_invariant_structural_reads_stay_on_child_root_after_main_rewire() {
     );
     assert_ne!(child_before.relations, main_after.relations);
 
-    let child_batch = lower_phase5_production_delta(
+    let child_batch = lower_supply_chain_production_delta(
         &mut world.runtime,
         &world.program,
         &world.handles,
@@ -136,7 +136,7 @@ fn custom_invariant_structural_reads_stay_on_child_root_after_main_rewire() {
         "medical-hold",
     );
     compare(
-        &expected_phase5_branch(
+        &expected_supply_chain_branch(
             &world.program,
             BranchLabel::MedicalHold,
             Some(DeltaId::HoldMedicalCargo),

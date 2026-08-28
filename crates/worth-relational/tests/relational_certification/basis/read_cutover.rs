@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use super::world::supply_chain::{
     certified_supply_chain_world, commit_branch_batch, fork_supply_chain_branch_from_main,
-    lower_phase5_production_delta, observe_supply_chain_observation, DeltaId, EntityRecord,
+    lower_supply_chain_production_delta, observe_supply_chain_observation, DeltaId, EntityRecord,
     SupplyChainScale,
 };
 use worth_foundational::facade::{AspectKey, AspectValue, InternedString, ScalarAspectType};
@@ -44,7 +44,7 @@ fn history_visibility_and_bridge_read_the_observation_selected_root() {
         .unwrap()
         .expect("baseline has one canonical head");
 
-    let batch = lower_phase5_production_delta(
+    let batch = lower_supply_chain_production_delta(
         &mut world.runtime,
         &world.program,
         &world.handles,
@@ -113,7 +113,7 @@ fn merge_history_resolves_from_two_exact_observations() {
 
     let storm = BranchId("storm".to_owned());
     fork_supply_chain_branch_from_main(&mut world.runtime, storm.clone());
-    let batch = lower_phase5_production_delta(
+    let batch = lower_supply_chain_production_delta(
         &mut world.runtime,
         &world.program,
         &world.handles,

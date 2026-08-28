@@ -65,19 +65,22 @@ pub(crate) use program::{
     entity_kind_id, relation_client_key, relation_kind_id, CompiledSupplyChainProgram,
     SupplyChainProgramError,
 };
+pub(crate) use program_schema::schema_registry_with_altered_port_contract;
 pub(crate) use read_footprint::DeltaReadFootprint;
 pub(crate) use relation_comparison::validate_relation_vector;
 pub(crate) use runtime_driver::{
-    commit_branch_batch, commit_main_batch, fork_supply_chain_branch_from_main,
-    head_for_supply_chain_branch, head_for_supply_chain_identity, lower_phase5_production_delta,
-    snapshot_for_supply_chain_identity, Phase5ProductionDeltaLoweringError,
+    commit_branch_batch, commit_branch_batch_with_result, commit_main_batch,
+    commit_supply_chain_delta, fork_supply_chain_branch_from_main, head_for_supply_chain_branch,
+    head_for_supply_chain_identity, lower_cargo_footprint_batch, lower_hazard_v2_batch,
+    lower_supply_chain_production_delta, snapshot_for_supply_chain_identity,
+    SupplyChainProductionDeltaLoweringError,
 };
 pub(crate) use scale::{
     CostBudgetError, CostDimension, ScaleName, SupplyChainCostInputs, SupplyChainScale,
 };
 pub(crate) use scenarios::{
-    BaselineName, BranchCreationIntent, BranchIntentError, RetentionObligationError,
-    RetentionObligationKind, SupplyChainBaseline,
+    hazard_v2_transition, BaselineName, BranchCreationIntent, BranchIntentError,
+    RetentionObligationError, RetentionObligationKind, SupplyChainBaseline,
 };
 pub(crate) use schema::{
     BookingStatus, EntityRecord, HazardClass, InspectionResult, OperatingPosture, Region,

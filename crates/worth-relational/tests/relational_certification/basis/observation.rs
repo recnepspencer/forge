@@ -2,7 +2,8 @@ use std::collections::BTreeSet;
 
 use super::world::supply_chain::{
     certified_supply_chain_world, commit_branch_batch, fork_supply_chain_branch_from_main,
-    lower_phase5_production_delta, observe_supply_chain_observation, DeltaId, SupplyChainScale,
+    lower_supply_chain_production_delta, observe_supply_chain_observation, DeltaId,
+    SupplyChainScale,
 };
 use worth_relational::facade::history::BranchId;
 
@@ -24,7 +25,7 @@ fn admitted_supply_chain_observation_is_repeatable_after_branch_moves() {
     )
     .expect("the admitted storm observation is readable");
 
-    let batch = lower_phase5_production_delta(
+    let batch = lower_supply_chain_production_delta(
         &mut world.runtime,
         &world.program,
         &world.handles,

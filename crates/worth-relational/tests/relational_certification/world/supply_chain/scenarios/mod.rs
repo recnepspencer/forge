@@ -3,6 +3,7 @@ mod empty;
 mod operating;
 mod retention_pressure;
 mod version_boundary;
+pub(crate) use version_boundary::hazard_v2_transition;
 
 use super::definition::SupplyChainWorldDefinition;
 use super::oracle::OracleBranch;

@@ -2,9 +2,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::world::supply_chain::{assert_oracle_matches, certified_supply_chain_world};
 use super::world::supply_chain::{
-    commit_branch_batch, lower_phase5_production_delta, observe_supply_chain_snapshot,
+    commit_branch_batch, lower_supply_chain_production_delta, observe_supply_chain_snapshot,
     snapshot_for_supply_chain_identity, BookingStatus, BranchLabel, DeltaId, EntityKey, EntityKind,
-    EntityRecord, Phase5ProductionDeltaLoweringError, SupplyChainScale,
+    EntityRecord, SupplyChainProductionDeltaLoweringError, SupplyChainScale,
 };
 use worth_foundational::facade::{AspectKey, AspectValue, FieldKey};
 use worth_relational::facade::history::BranchId;
@@ -25,7 +25,7 @@ fn phase5_lowering_reads_actual_branch_pre_state_instead_of_expected_oracle() {
         update_number(&world.handles, voyage, "arrival", 9_000),
     );
 
-    let batch = lower_phase5_production_delta(
+    let batch = lower_supply_chain_production_delta(
         &mut world.runtime,
         &world.program,
         &world.handles,
@@ -59,7 +59,7 @@ fn phase5_lowering_rejects_wrong_branch_and_duplicate_delta_preconditions() {
     assert_oracle_matches(&world, &baseline);
     fork(&mut world.runtime, "storm");
     assert!(matches!(
-        lower_phase5_production_delta(
+        lower_supply_chain_production_delta(
             &mut world.runtime,
             &world.program,
             &world.handles,
@@ -67,14 +67,14 @@ fn phase5_lowering_rejects_wrong_branch_and_duplicate_delta_preconditions() {
             &BTreeSet::new(),
             DeltaId::MaintainAtlasBerth,
         ),
-        Err(Phase5ProductionDeltaLoweringError::WrongBranch {
+        Err(SupplyChainProductionDeltaLoweringError::WrongBranch {
             expected: BranchLabel::Maintenance,
             observed: BranchLabel::Storm,
         })
     ));
     let previously_applied = BTreeSet::from([DeltaId::StormRerouteAurora]);
     assert!(matches!(
-        lower_phase5_production_delta(
+        lower_supply_chain_production_delta(
             &mut world.runtime,
             &world.program,
             &world.handles,
@@ -82,7 +82,7 @@ fn phase5_lowering_rejects_wrong_branch_and_duplicate_delta_preconditions() {
             &previously_applied,
             DeltaId::StormRerouteAurora,
         ),
-        Err(Phase5ProductionDeltaLoweringError::DuplicateDelta(
+        Err(SupplyChainProductionDeltaLoweringError::DuplicateDelta(
             DeltaId::StormRerouteAurora
         ))
     ));
@@ -124,7 +124,7 @@ fn maintenance_rewire_and_medical_lower_from_each_actual_branch_pre_state() {
         BranchId("medical-hold".to_owned()),
         update_text(&world.handles, cargo, "booking", "Available"),
     );
-    let batch = lower_phase5_production_delta(
+    let batch = lower_supply_chain_production_delta(
         &mut world.runtime,
         &world.program,
         &world.handles,
@@ -174,7 +174,7 @@ fn prove_number_prestate(case: NumberPrestateCase) {
         BranchId(branch.to_owned()),
         update_number(&world.handles, entity, field, prestate),
     );
-    let batch = lower_phase5_production_delta(
+    let batch = lower_supply_chain_production_delta(
         &mut world.runtime,
         &world.program,
         &world.handles,

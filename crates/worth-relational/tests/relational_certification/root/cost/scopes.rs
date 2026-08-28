@@ -1,6 +1,6 @@
 use super::world::supply_chain::{assert_oracle_matches, certified_supply_chain_world};
 use super::world::supply_chain::{
-    commit_branch_batch, lower_phase5_production_delta, snapshot_for_supply_chain_identity,
+    commit_branch_batch, lower_supply_chain_production_delta, snapshot_for_supply_chain_identity,
     DeltaId, SupplyChainScale,
 };
 use worth_relational::facade::branch::RelationalBranchIdentity;
@@ -43,7 +43,7 @@ fn phase5_selected_publication_tuple_is_stable_across_target_history_lengths() {
             .branch_identity(&branch_id)
             .expect("the branch remains owner-issued across history lengths");
         let scope = RelationalMvccCostScope::capture(&world.runtime, vec![selected]);
-        let batch = lower_phase5_production_delta(
+        let batch = lower_supply_chain_production_delta(
             &mut world.runtime,
             &world.program,
             &world.handles,
@@ -131,7 +131,7 @@ fn phase5_selected_publication_tuple_ignores_unrelated_population_reads_and_vali
         assert_eq!(unrelated_work.publication_attempts, 2);
 
         let publication_scope = RelationalMvccCostScope::capture(&world.runtime, vec![selected]);
-        let batch = lower_phase5_production_delta(
+        let batch = lower_supply_chain_production_delta(
             &mut world.runtime,
             &world.program,
             &world.handles,
@@ -206,7 +206,7 @@ fn exercise_unrelated_branch_reads_and_validation(
             .expect("unrelated branch read stays branch-qualified");
         assert_eq!(&inspection.branch_id, branch_id);
         if let Some(delta) = validation_delta {
-            let batch = lower_phase5_production_delta(
+            let batch = lower_supply_chain_production_delta(
                 &mut world.runtime,
                 &world.program,
                 &world.handles,

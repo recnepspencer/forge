@@ -186,7 +186,7 @@ fn branch_label(
         "competing-arrival" => Ok(BranchLabel::CompetingArrival),
         "inspection" => Ok(BranchLabel::Inspection),
         "rewire" => Ok(BranchLabel::Rewire),
-        "hazard-v2" => Ok(BranchLabel::HazardV2),
+        "hazard-v2" | "hazard-v2-secondary" => Ok(BranchLabel::HazardV2),
         _ => Err(ObservationError::UnknownBranch(branch_id.clone())),
     }
 }

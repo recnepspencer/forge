@@ -2,7 +2,6 @@ mod comparison;
 mod envelope_self_audit;
 mod surface_audit;
 
-use crate::capabilities::SchemaSource;
 use crate::history::data::{BranchId, CommitId, HistoryDriftClass};
 use crate::replay::data::{
     CanonicalCommitEnvelope, RelationalReplayOutcome, RelationalReplayRequest, ReplayExecutionMode,
@@ -84,15 +83,6 @@ impl<'runtime> ReplayAuthority<'runtime> {
                 Some(&envelope),
                 None,
                 ReplayFailureClass::BranchMismatch,
-                None,
-            ));
-        }
-        if envelope.schema_authority != self.runtime.schema_registry().authority_snapshot() {
-            return Err(self.fail_and_record(
-                request.clone(),
-                Some(&envelope),
-                None,
-                ReplayFailureClass::SchemaMismatch,
                 None,
             ));
         }

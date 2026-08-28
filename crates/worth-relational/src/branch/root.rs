@@ -27,6 +27,8 @@ mod owner_allocation_ledger;
 mod readmission;
 #[path = "root_schema.rs"]
 mod schema;
+#[path = "root_schema_meaning.rs"]
+mod schema_meaning;
 #[cfg(test)]
 #[path = "root_tests.rs"]
 mod tests;

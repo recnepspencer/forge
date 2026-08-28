@@ -136,6 +136,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
 
         let basis = resolve_snapshot_basis(self.runtime, &plan.snapshot)?;
         let state_access: &(dyn PartitionAccess + Sync) = basis.root().as_ref();
+        let registry = basis.root().schema_authority().registry();
         let version_id = basis.version_id();
         let fragments = match strategy {
             PreparationStrategySelection::Serial => {
@@ -150,6 +151,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                         execute_traversal_query_fragment_from_state(
                             self.runtime,
                             state_access,
+                            registry,
                             version_id,
                             &plan.packet,
                             packet,
@@ -178,6 +180,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
                                 execute_traversal_query_fragment_from_state(
                                     self.runtime,
                                     state_access,
+                                    registry,
                                     version_id,
                                     &plan.packet,
                                     packet,

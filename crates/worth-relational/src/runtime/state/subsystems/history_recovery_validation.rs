@@ -25,6 +25,30 @@ pub(super) fn branch_cell_truth_matches(
         && existing.fork_source_branch_id == incoming.fork_source_branch_id
 }
 
+/// A fresh runtime installs one empty owner cell before tail-only recovery can
+/// readmit the carried pre-first-commit checkpoint. With no recovered history,
+/// those cells carry the same empty truth even if their local truth counters
+/// were initialized through different construction paths.
+pub(super) fn empty_bootstrap_cells_are_equivalent(
+    existing: &RelationalBranchCellCheckpoint,
+    incoming: &RelationalBranchCellCheckpoint,
+) -> bool {
+    existing.runtime_instance_id == incoming.runtime_instance_id
+        && existing.branch_id == incoming.branch_id
+        && matches!(
+            existing.observation.target(),
+            FoundationalBranchTarget::Empty
+        )
+        && matches!(
+            incoming.observation.target(),
+            FoundationalBranchTarget::Empty
+        )
+        && existing.fork_provenance.is_none()
+        && incoming.fork_provenance.is_none()
+        && existing.fork_source_branch_id.is_none()
+        && incoming.fork_source_branch_id.is_none()
+}
+
 /// Validate a branch-cell checkpoint admitted while replay is extending an
 /// already restored checkpoint. Tail admission must use the same artifact and
 /// fork-provenance court as the complete checkpoint restore; structural

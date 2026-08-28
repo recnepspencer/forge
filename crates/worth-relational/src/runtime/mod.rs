@@ -7,6 +7,7 @@ mod guided;
 mod initial_schema_installation;
 mod interruption_counters;
 mod operation_control;
+mod schema_transition_admission;
 mod state;
 
 pub use crate::config::data::RelationalRuntimeConfig;
@@ -37,6 +38,9 @@ pub use interruption_counters::RelationalInterruptionCostCounters;
 pub use operation_control::{
     RelationalCancellationSource, RelationalCancellationToken, RelationalInterruptionBoundary,
     RelationalInterruptionEvent, RelationalOperationControl, RelationalOperationInterruption,
+};
+pub use schema_transition_admission::{
+    RelationalSchemaTransitionAdmissionDenial, RelationalSchemaTransitionAdmissionDenialKind,
 };
 pub use state::{
     RelationalBranchSharingCostCounters, RelationalPatchPositionReservationCounters,

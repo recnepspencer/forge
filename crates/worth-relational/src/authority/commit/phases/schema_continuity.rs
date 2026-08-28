@@ -17,6 +17,8 @@ use diagnostics::{
 
 #[derive(Debug, Clone)]
 pub(crate) struct SchemaContinuityPlan {
+    pub(crate) target_schema_registry:
+        Option<std::sync::Arc<crate::schema::data::RelationalSchemaRegistry>>,
     pub(crate) target_schema_version: crate::schema::data::SchemaVersionId,
     pub(crate) target_schema_authority: crate::schema::data::SchemaAuthoritySnapshot,
     pub(crate) descriptor_semantics_version: DescriptorSemanticsVersion,
@@ -28,6 +30,7 @@ pub(crate) struct SchemaContinuityPlan {
 impl SchemaContinuityPlan {
     pub(crate) fn current(input: &crate::schema::SchemaContinuityAuthorityInput) -> Self {
         Self {
+            target_schema_registry: input.target_schema_registry().cloned(),
             target_schema_version: input.target_schema_version(),
             target_schema_authority: input.target_schema_authority().clone(),
             descriptor_semantics_version: input.descriptor_semantics_version(),
@@ -58,9 +61,8 @@ pub(crate) fn resolve_schema_continuity(
     ) {
         (Some(input), _) => input.clone(),
         (None, Some(_)) => crate::schema::SchemaContinuityAuthorityInput::from_runtime(runtime),
-        (None, None) => crate::schema::SchemaContinuityAuthorityInput::new(
-            options.schema_authority().schema_version(),
-            options.schema_authority().registry().authority_snapshot(),
+        (None, None) => crate::schema::SchemaContinuityAuthorityInput::from_shared_registry(
+            options.schema_authority().registry_arc(),
             options.schema_authority().descriptor_semantics_version(),
             runtime
                 .config
@@ -327,6 +329,7 @@ fn schema_continuity_plan_from_lowered(
     );
 
     SchemaContinuityPlan {
+        target_schema_registry: authority_input.target_schema_registry().cloned(),
         target_schema_version: authority_input.target_schema_version(),
         target_schema_authority: authority_input.target_schema_authority().clone(),
         descriptor_semantics_version,

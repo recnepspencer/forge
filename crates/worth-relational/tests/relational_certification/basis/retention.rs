@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use super::world::supply_chain::{
     certified_supply_chain_world, commit_branch_batch, fork_supply_chain_branch_from_main,
-    lower_phase5_production_delta, DeltaId, SupplyChainScale,
+    lower_supply_chain_production_delta, DeltaId, SupplyChainScale,
 };
 use worth_relational::facade::branch::RelationalBranchBasisDenial;
 use worth_relational::facade::history::BranchId;
@@ -20,7 +20,7 @@ fn external_component_pin_is_the_last_readmission_obligation() {
     let descriptor = basis.descriptor().clone();
     let external = runtime.retain_component_basis(&basis).unwrap();
 
-    let batch = lower_phase5_production_delta(
+    let batch = lower_supply_chain_production_delta(
         &mut runtime,
         &program,
         &handles,
@@ -59,7 +59,7 @@ fn foreign_release_denial_preserves_the_owner_obligation() {
     let descriptor = basis.descriptor().clone();
     let external = runtime.retain_component_basis(&basis).unwrap();
 
-    let batch = lower_phase5_production_delta(
+    let batch = lower_supply_chain_production_delta(
         &mut runtime,
         &program,
         &handles,

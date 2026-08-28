@@ -169,6 +169,7 @@ pub(crate) fn execute_explicit_query_fragment_from_exact_basis(
     read_context: &VisibilityReadContext<'_>,
     basis: &crate::visibility::snapshot_states::VisibilitySnapshotBasis,
     state_access: &(dyn PartitionAccess + Sync),
+    registry: &crate::schema::data::RelationalSchemaRegistry,
     version_id: crate::identity::data::VersionId,
     packet: &PlannedQueryPacket,
     work: &PacketizedQueryWork,
@@ -197,11 +198,14 @@ pub(crate) fn execute_explicit_query_fragment_from_exact_basis(
                 {
                     continue;
                 }
-                if let Some(record) = read_context.authoritative_entity_record_for_id_at_version(
-                    state_access,
-                    *entity_id,
-                    version_id,
-                ) {
+                if let Some(record) = read_context
+                    .authoritative_entity_record_for_id_at_version_with_registry(
+                        state_access,
+                        registry,
+                        *entity_id,
+                        version_id,
+                    )
+                {
                     entities.push(record);
                 }
             }
@@ -218,11 +222,14 @@ pub(crate) fn execute_explicit_query_fragment_from_exact_basis(
                 {
                     continue;
                 }
-                if let Some(record) = read_context.authoritative_relation_record_for_id_at_version(
-                    state_access,
-                    *relation_id,
-                    version_id,
-                ) {
+                if let Some(record) = read_context
+                    .authoritative_relation_record_for_id_at_version_with_registry(
+                        state_access,
+                        registry,
+                        *relation_id,
+                        version_id,
+                    )
+                {
                     relations.push(record);
                 }
             }
@@ -253,6 +260,7 @@ pub(crate) fn execute_explicit_query_fragment_from_exact_basis(
 pub(crate) fn execute_traversal_query_fragment_from_state(
     runtime: &RelationalRuntime,
     state: &(dyn PartitionAccess + Sync),
+    registry: &crate::schema::data::RelationalSchemaRegistry,
     version_id: crate::identity::data::VersionId,
     packet: &PlannedQueryPacket,
     work: &PacketizedQueryWork,
@@ -266,6 +274,7 @@ pub(crate) fn execute_traversal_query_fragment_from_state(
         } => traversal_fragment(
             runtime,
             state,
+            registry,
             version_id,
             packet,
             seeds,
@@ -280,6 +289,7 @@ pub(crate) fn execute_traversal_query_fragment_from_state(
         } => traversal_fragment(
             runtime,
             state,
+            registry,
             version_id,
             packet,
             seeds,
@@ -295,6 +305,7 @@ pub(crate) fn execute_traversal_query_fragment_from_state(
         } => traversal_fragment(
             runtime,
             state,
+            registry,
             version_id,
             packet,
             seeds,

@@ -43,8 +43,12 @@ mod mvcc_cancellation;
 #[cfg(feature = "test-operation-control")]
 #[path = "relational_certification/mvcc/cancellation_publication_boundaries.rs"]
 mod mvcc_cancellation_publication_boundaries;
+#[path = "relational_certification/mvcc/model_sequences.rs"]
+mod mvcc_model_sequences;
 #[path = "relational_certification/mvcc/retention.rs"]
 mod mvcc_retention;
+#[path = "relational_certification/mvcc/seeded_model.rs"]
+mod mvcc_seeded_model;
 #[path = "relational_certification/observation_contracts.rs"]
 mod observation_contracts;
 #[path = "relational_certification/oracle_ancestry.rs"]
@@ -83,6 +87,8 @@ mod root_branch_copy_on_write;
 mod root_branch_isolation;
 #[path = "relational_certification/root/selection/traversal.rs"]
 mod root_branch_traversal_isolation;
+#[path = "relational_certification/root/cost/scale_axes.rs"]
+mod root_cost_scale_axes;
 #[path = "relational_certification/root/cost/scopes.rs"]
 mod root_cost_scopes;
 #[path = "relational_certification/root/delta/lowering_contracts.rs"]
@@ -105,6 +111,13 @@ mod root_sharing_observation;
 mod scale_invariant_admission;
 #[path = "relational_certification/schema_contracts.rs"]
 mod schema_contracts;
+#[cfg(feature = "test-operation-control")]
+#[path = "relational_certification/schema_transition_cancellation.rs"]
+mod schema_transition_cancellation;
+#[path = "relational_certification/schema_transition_replay.rs"]
+mod schema_transition_replay;
+#[path = "relational_certification/schema_transition_target.rs"]
+mod schema_transition_target;
 #[path = "relational_certification/invariants/admission/standard_graph_composition.rs"]
 mod standard_graph_composition;
 #[path = "relational_certification/trace_replay.rs"]

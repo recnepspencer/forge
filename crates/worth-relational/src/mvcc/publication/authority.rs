@@ -160,6 +160,10 @@ impl<'runtime> RelationalPublicationAuthority<'runtime> {
             .runtime
             .selected_branch_state(binding)
             .map_err(|error| error.detail())?;
+        let schema_registry = selected_branch_state
+            .root()
+            .map(|root| root.schema_authority().registry().clone())
+            .unwrap_or_else(|| self.runtime.config.schema.registry.clone());
         let prepared = self.prepare_versioned_publication(
             commit_id,
             commit_reference,
@@ -167,6 +171,7 @@ impl<'runtime> RelationalPublicationAuthority<'runtime> {
             &selected_branch_state,
             published_partition_delta,
             envelope,
+            &schema_registry,
             PublicationSequence::RecoveryTruth,
         )?;
         Ok(PreparedRecoveredRelationalPublication {
@@ -185,6 +190,7 @@ impl<'runtime> RelationalPublicationAuthority<'runtime> {
         selected_branch_state: &SelectedRelationalBranchState,
         published_partition_delta: crate::storage::RelationalPublishedPartitionDelta,
         envelope: Arc<CanonicalCommitEnvelope>,
+        schema_registry: &crate::schema::data::RelationalSchemaRegistry,
     ) -> Result<PreparedRelationalPublication, String> {
         let publication = self.prepare_versioned_publication(
             commit_id,
@@ -193,6 +199,7 @@ impl<'runtime> RelationalPublicationAuthority<'runtime> {
             selected_branch_state,
             published_partition_delta,
             envelope,
+            schema_registry,
             PublicationSequence::Truth,
         )?;
         Ok(PreparedRelationalPublication { publication })
@@ -206,6 +213,7 @@ impl<'runtime> RelationalPublicationAuthority<'runtime> {
         selected_branch_state: &SelectedRelationalBranchState,
         published_partition_delta: crate::storage::RelationalPublishedPartitionDelta,
         envelope: Arc<CanonicalCommitEnvelope>,
+        schema_registry: &crate::schema::data::RelationalSchemaRegistry,
         sequence: PublicationSequence,
     ) -> Result<crate::runtime::PreparedVersionedArtifactPublication, String> {
         let mut validated = self.validate(PublicationRequest {
@@ -224,7 +232,7 @@ impl<'runtime> RelationalPublicationAuthority<'runtime> {
                 &published_partition_delta,
                 previous_root.as_ref(),
                 Arc::clone(&envelope),
-                &self.runtime.config.schema.registry,
+                schema_registry,
                 &self.runtime.services.symbols,
             )
             .map_err(|denial| format!("branch-root capture denied: {denial:?}"))?;

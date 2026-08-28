@@ -97,6 +97,7 @@ fn root_capture_sabotage_leaves_storage_index_history_and_reference_unchanged() 
     let selected_branch_state = runtime
         .selected_branch_state(&binding)
         .expect("current binding must select a root");
+    let schema_registry = runtime.config.schema.registry.clone();
     let error = runtime
         .mvcc_publication_authority()
         .prepare_commit(
@@ -106,6 +107,7 @@ fn root_capture_sabotage_leaves_storage_index_history_and_reference_unchanged() 
             &selected_branch_state,
             delta,
             std::sync::Arc::new(future_envelope),
+            &schema_registry,
         )
         .err()
         .expect("the unresolved owner symbol sabotages root capture");

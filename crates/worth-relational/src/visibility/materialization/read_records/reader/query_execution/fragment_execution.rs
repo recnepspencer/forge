@@ -14,6 +14,7 @@ pub(in crate::visibility::materialization::read_records::reader) fn execute_expl
     strategy: PreparationStrategySelection,
 ) -> Option<Vec<crate::query::data::QueryWorkerFragment>> {
     let state_access: &(dyn PartitionAccess + Sync) = basis.root().as_ref();
+    let registry = basis.root().schema_authority().registry();
     let version_id = basis.version_id();
     match strategy {
         PreparationStrategySelection::Serial => {
@@ -29,6 +30,7 @@ pub(in crate::visibility::materialization::read_records::reader) fn execute_expl
                         reader,
                         basis,
                         state_access,
+                        registry,
                         version_id,
                         &plan.packet,
                         packet,
@@ -57,6 +59,7 @@ pub(in crate::visibility::materialization::read_records::reader) fn execute_expl
                                 reader,
                                 basis,
                                 state_access,
+                                registry,
                                 version_id,
                                 &plan.packet,
                                 packet,

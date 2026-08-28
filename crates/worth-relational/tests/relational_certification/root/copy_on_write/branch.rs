@@ -1,9 +1,9 @@
 use std::collections::BTreeSet;
 
-use super::invariant_oracle_expectations::expected_phase5_branch;
+use super::invariant_oracle_expectations::expected_supply_chain_branch;
 use super::world::supply_chain::{
     assert_oracle_matches, certified_supply_chain_world, commit_branch_batch, compare,
-    lower_phase5_production_delta, observe_supply_chain_snapshot,
+    lower_supply_chain_production_delta, observe_supply_chain_snapshot,
     snapshot_for_supply_chain_identity, BranchLabel, DeltaId, EntityKey, EntityKind,
     ExpectedSupplyChainObservation, RelationKey, RelationKind, SupplyChainScale,
 };
@@ -78,7 +78,7 @@ fn phase5_forked_topology_write_copies_only_touched_regions() {
     let main_cost_scope = RelationalMvccCostScope::capture(&world.runtime, vec![main.clone()]);
     let sibling_cost_scope =
         RelationalMvccCostScope::capture(&world.runtime, vec![sibling.clone()]);
-    let batch = lower_phase5_production_delta(
+    let batch = lower_supply_chain_production_delta(
         &mut world.runtime,
         &world.program,
         &world.handles,
@@ -261,7 +261,7 @@ fn expected_rewire_from_pure_oracle(
     world: &super::world::supply_chain::ProductionSeededSupplyChainWorld,
     delta: DeltaId,
 ) -> ExpectedSupplyChainObservation {
-    expected_phase5_branch(&world.program, BranchLabel::Rewire, Some(delta))
+    expected_supply_chain_branch(&world.program, BranchLabel::Rewire, Some(delta))
 }
 
 fn assert_rewire_matches_oracle(

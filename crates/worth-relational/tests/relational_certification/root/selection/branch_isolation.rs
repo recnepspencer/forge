@@ -1,9 +1,9 @@
 use std::collections::BTreeSet;
 
-use super::invariant_oracle_expectations::expected_phase5_branch;
+use super::invariant_oracle_expectations::expected_supply_chain_branch;
 use super::world::supply_chain::{
     assert_oracle_matches, certified_supply_chain_world, commit_branch_batch, compare,
-    lower_phase5_production_delta, observe_supply_chain_snapshot,
+    lower_supply_chain_production_delta, observe_supply_chain_snapshot,
     snapshot_for_supply_chain_identity, BranchLabel, DeltaId, ObservedSupplyChainState,
     ProductionSeededSupplyChainWorld, SupplyChainScale,
 };
@@ -70,7 +70,7 @@ fn main_advances_before_child_read_keeps_child_snapshot_on_fork_root() {
     )
     .expect("child remains semantically observable after main advances");
     compare(
-        &expected_phase5_branch(&world.program, BranchLabel::Storm, None),
+        &expected_supply_chain_branch(&world.program, BranchLabel::Storm, None),
         &observed_child,
     )
     .expect("unchanged child truth remains exactly its fork baseline");
@@ -191,7 +191,7 @@ fn phase5_named_supply_chain_deltas_keep_sibling_roots_and_work_independent() {
             .map(|(candidate, _, _)| branch_identity(&world.runtime, candidate))
             .map(|identity| RelationalMvccCostScope::capture(&world.runtime, vec![identity]))
             .collect::<Vec<_>>();
-        let batch = lower_phase5_production_delta(
+        let batch = lower_supply_chain_production_delta(
             &mut world.runtime,
             &world.program,
             &world.handles,
@@ -204,7 +204,7 @@ fn phase5_named_supply_chain_deltas_keep_sibling_roots_and_work_independent() {
 
         let observed = observe_branch(&mut world, &selected, branch);
         compare(
-            &expected_phase5_branch(&world.program, label, Some(delta)),
+            &expected_supply_chain_branch(&world.program, label, Some(delta)),
             &observed,
         )
         .expect("production branch state matches the independently authored oracle");
@@ -230,7 +230,7 @@ fn phase5_named_supply_chain_deltas_keep_sibling_roots_and_work_independent() {
         let identity = branch_identity(&world.runtime, branch);
         let observed = observe_branch(&mut world, &identity, branch);
         compare(
-            &expected_phase5_branch(&world.program, label, Some(delta)),
+            &expected_supply_chain_branch(&world.program, label, Some(delta)),
             &observed,
         )
         .expect("every sibling remains semantically isolated after all writes");
@@ -238,7 +238,7 @@ fn phase5_named_supply_chain_deltas_keep_sibling_roots_and_work_independent() {
     let main_identity = world.runtime.main_branch_identity();
     let main_observed = observe_branch(&mut world, &main_identity, "main");
     compare(
-        &expected_phase5_branch(&world.program, BranchLabel::Operating, None),
+        &expected_supply_chain_branch(&world.program, BranchLabel::Operating, None),
         &main_observed,
     )
     .expect("main semantic truth remains unchanged after all sibling writes");

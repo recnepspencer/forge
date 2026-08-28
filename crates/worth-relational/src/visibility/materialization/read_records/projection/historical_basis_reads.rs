@@ -48,13 +48,15 @@ impl<'view, 'runtime> HistoricalProjectionReader<'view, 'runtime> {
 
     pub(super) fn entity_records(&self, kind_id: KindId) -> Vec<EntityReadRecord> {
         let storage = self.storage();
+        let registry = self.registry();
         let mut records = Vec::new();
         for partition_id in storage.partition_ids() {
             records.extend(
                 self.view
                     .reader()
-                    .visible_entities_of_kind_in_partition_from_state(
+                    .visible_entities_of_kind_in_partition_from_state_with_registry(
                         &storage,
+                        registry,
                         partition_id,
                         kind_id,
                         self.view.version_id(),
@@ -67,10 +69,12 @@ impl<'view, 'runtime> HistoricalProjectionReader<'view, 'runtime> {
 
     pub(super) fn entity_record(&self, entity_id: EntityId) -> Option<EntityReadRecord> {
         let storage = self.storage();
+        let registry = self.registry();
         self.view
             .reader()
-            .authoritative_entity_record_for_id_at_version(
+            .authoritative_entity_record_for_id_at_version_with_registry(
                 &storage,
+                registry,
                 entity_id,
                 self.view.version_id(),
             )
@@ -102,10 +106,12 @@ impl<'view, 'runtime> HistoricalProjectionReader<'view, 'runtime> {
         kind_id: KindId,
     ) -> Vec<EntityReadRecord> {
         let storage = self.storage();
+        let registry = self.registry();
         self.view
             .reader()
-            .visible_entities_of_kind_in_partition_from_state(
+            .visible_entities_of_kind_in_partition_from_state_with_registry(
                 &storage,
+                registry,
                 partition_id,
                 kind_id,
                 self.view.version_id(),
@@ -114,13 +120,15 @@ impl<'view, 'runtime> HistoricalProjectionReader<'view, 'runtime> {
 
     pub(super) fn relation_records(&self, kind_id: KindId) -> Vec<RelationReadRecord> {
         let storage = self.storage();
+        let registry = self.registry();
         let mut records = Vec::new();
         for partition_id in storage.partition_ids() {
             records.extend(
                 self.view
                     .reader()
-                    .visible_relations_of_kind_in_partition_from_state(
+                    .visible_relations_of_kind_in_partition_from_state_with_registry(
                         &storage,
+                        registry,
                         partition_id,
                         kind_id,
                         self.view.version_id(),
@@ -133,10 +141,12 @@ impl<'view, 'runtime> HistoricalProjectionReader<'view, 'runtime> {
 
     pub(super) fn relation_record(&self, relation_id: RelationId) -> Option<RelationReadRecord> {
         let storage = self.storage();
+        let registry = self.registry();
         self.view
             .reader()
-            .authoritative_relation_record_for_id_at_version(
+            .authoritative_relation_record_for_id_at_version_with_registry(
                 &storage,
+                registry,
                 relation_id,
                 self.view.version_id(),
             )
@@ -171,11 +181,13 @@ impl<'view, 'runtime> HistoricalProjectionReader<'view, 'runtime> {
         kind_id: KindId,
     ) -> Vec<RelationReadRecord> {
         let storage = self.storage();
+        let registry = self.registry();
         let mut records = self
             .view
             .reader()
-            .visible_relations_of_kind_in_partition_from_state(
+            .visible_relations_of_kind_in_partition_from_state_with_registry(
                 &storage,
+                registry,
                 partition_id,
                 kind_id,
                 self.view.version_id(),
@@ -189,5 +201,13 @@ impl<'view, 'runtime> HistoricalProjectionReader<'view, 'runtime> {
             Some(root) => HistoricalProjectionStorage::Retained(root),
             None => HistoricalProjectionStorage::EmptyGenesis,
         }
+    }
+
+    fn registry(&self) -> &crate::schema::data::RelationalSchemaRegistry {
+        self.basis
+            .root()
+            .map_or(&self.view.runtime.config.schema.registry, |root| {
+                root.schema_authority().registry()
+            })
     }
 }

@@ -180,10 +180,30 @@ impl HistorySubsystem {
         }
         history_recovery_validation::validate_recovered_branch_cell(self, &cell)?;
         if let Some(existing) = self.branch_cell(&branch_id) {
-            if !history_recovery_validation::branch_cell_truth_matches(
-                &existing.checkpoint(),
-                &cell.checkpoint(),
-            ) {
+            let existing = existing.checkpoint();
+            let incoming = cell.checkpoint();
+            let pristine_bootstrap = self.commit_envelopes.is_empty()
+                && history_recovery_validation::empty_bootstrap_cells_are_equivalent(
+                    &existing, &incoming,
+                );
+            if pristine_bootstrap {
+                let previous = self.branch_cells.remove(&branch_id);
+                drop(previous);
+                let installed_root = cell
+                    .root()
+                    .ok_or_else(|| "recovered bootstrap branch has no owner root".to_owned())?;
+                self.install_branch_head(
+                    cell.identity().clone(),
+                    &installed_root,
+                    cell.head_retention(),
+                )
+                .map_err(|denial| {
+                    format!("recovered bootstrap head retention denied: {denial:?}")
+                })?;
+                self.insert_branch_cell(cell);
+                return Ok(());
+            }
+            if !history_recovery_validation::branch_cell_truth_matches(&existing, &incoming) {
                 return Err(format!(
                     "recovery branch-cell state conflicts for `{}`",
                     branch_id.0

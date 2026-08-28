@@ -53,3 +53,36 @@ fn basis_and_external_retention_work_is_counted_exactly() {
         baseline.external_retention_drop_releases
     );
 }
+
+#[test]
+fn immutable_component_basis_future_holder_fanout_is_exact_through_1024() {
+    for holder_count in [1_u64, 64, 1_024] {
+        let (world, _) = certified_supply_chain_world(SupplyChainScale::court());
+        let runtime = world.runtime;
+        let identity = runtime.main_branch_identity();
+        let (_, basis) = runtime.observe_branch(&identity).unwrap();
+        let root = basis.observation().selected_root_identity();
+        let baseline = runtime.branch_basis_cost_counters();
+        let leases = (0..holder_count)
+            .map(|_| runtime.retain_component_basis(&basis).unwrap())
+            .collect::<Vec<_>>();
+        let retained = runtime.branch_basis_cost_counters();
+        assert_eq!(basis.observation().selected_root_identity(), root);
+        assert_eq!(
+            retained.external_retention_acquires - baseline.external_retention_acquires,
+            holder_count
+        );
+        assert_eq!(
+            retained.retained_basis_registry_entries, baseline.retained_basis_registry_entries,
+            "future holders share one immutable owner basis entry"
+        );
+        for lease in leases {
+            runtime.release_component_basis(lease).unwrap();
+        }
+        let released = runtime.branch_basis_cost_counters();
+        assert_eq!(
+            released.external_retention_releases - baseline.external_retention_releases,
+            holder_count
+        );
+    }
+}

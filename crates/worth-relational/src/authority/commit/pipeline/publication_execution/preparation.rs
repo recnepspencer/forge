@@ -155,6 +155,7 @@ pub(super) fn prepare_publication_phase(
         adjacency_deltas,
         lineage_nodes,
         deferred_diagnostic_artifacts,
+        target_schema_registry,
     ) = publication.into_finalize().into_parts();
     let canonical_commit_envelope = Arc::new(canonical_commit_envelope);
     let mut working_state = working_state;
@@ -175,6 +176,13 @@ pub(super) fn prepare_publication_phase(
         crate::storage::RelationalPublishedPartitionDelta::from_committed_partitions(
             &committed_partitions,
         );
+    let publication_schema_registry = target_schema_registry
+        .or_else(|| {
+            selected_branch_state
+                .root()
+                .map(|root| root.schema_authority().registry_arc())
+        })
+        .unwrap_or_else(|| std::sync::Arc::new(runtime.config.schema.registry.clone()));
     let prepared_history = runtime
         .mvcc_publication_authority()
         .prepare_commit(
@@ -184,6 +192,7 @@ pub(super) fn prepare_publication_phase(
             &selected_branch_state,
             published_partition_delta,
             Arc::clone(&canonical_commit_envelope),
+            publication_schema_registry.as_ref(),
         )
         .map_err(|detail| {
             TransactionCommitError::publication(PublicationError::new(

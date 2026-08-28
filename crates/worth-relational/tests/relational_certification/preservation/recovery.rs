@@ -1,8 +1,9 @@
-use super::invariant_oracle_expectations::expected_phase5_branch;
+use super::invariant_oracle_expectations::expected_supply_chain_branch;
 use super::world::supply_chain::{
     assert_oracle_matches, canonical_empty_supply_chain_runtime, certified_supply_chain_world,
-    commit_branch_batch, compare, lower_phase5_production_delta, observe_supply_chain_snapshot,
-    snapshot_for_supply_chain_identity, BranchLabel, DeltaId, SupplyChainScale,
+    commit_branch_batch, compare, lower_supply_chain_production_delta,
+    observe_supply_chain_snapshot, snapshot_for_supply_chain_identity, BranchLabel, DeltaId,
+    SupplyChainScale,
 };
 use worth_relational::facade::durability::RecoveryVerificationMode;
 use worth_relational::facade::history::BranchId;
@@ -26,7 +27,7 @@ fn phase5_checkpoint_preserves_shared_and_rewired_root_shape() {
     }
 
     let delta = DeltaId::RewireAuroraPortCall;
-    let batch = lower_phase5_production_delta(
+    let batch = lower_supply_chain_production_delta(
         &mut world.runtime,
         &world.program,
         &world.handles,
@@ -70,7 +71,7 @@ fn phase5_checkpoint_preserves_shared_and_rewired_root_shape() {
 
     let rewire_observed = observe_recovered_branch(&world, &mut recovered, &rewire, "rewire");
     compare(
-        &expected_phase5_branch(&world.program, BranchLabel::Rewire, Some(delta)),
+        &expected_supply_chain_branch(&world.program, BranchLabel::Rewire, Some(delta)),
         &rewire_observed,
     )
     .expect("the rewire branch recovers exactly the independent Port3 oracle delta");

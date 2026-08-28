@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use super::world::supply_chain::{
     certified_supply_chain_world, commit_branch_batch, fork_supply_chain_branch_from_main,
-    lower_phase5_production_delta, DeltaId, SupplyChainScale,
+    lower_supply_chain_production_delta, DeltaId, SupplyChainScale,
 };
 use worth_relational::facade::branch::RelationalBranchBasisDenial;
 use worth_relational::facade::history::BranchId;
@@ -40,7 +40,7 @@ fn unretained_descriptor_cannot_follow_a_moved_reference() {
     let descriptor = basis.descriptor().clone();
     drop(basis);
 
-    let batch = lower_phase5_production_delta(
+    let batch = lower_supply_chain_production_delta(
         &mut runtime,
         &program,
         &handles,

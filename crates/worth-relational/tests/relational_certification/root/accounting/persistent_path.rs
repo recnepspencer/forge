@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use super::world::supply_chain::{assert_oracle_matches, certified_supply_chain_world};
 use super::world::supply_chain::{
-    commit_branch_batch, lower_phase5_production_delta, DeltaId, SupplyChainScale,
+    commit_branch_batch, lower_supply_chain_production_delta, DeltaId, SupplyChainScale,
 };
 use worth_relational::facade::branch::RelationalBranchIdentity;
 use worth_relational::facade::history::BranchId;
@@ -35,7 +35,7 @@ fn phase5_persistent_radix_paths_retain_untouched_owner_allocations() {
         .expect("fork identity is owner issued");
     let baseline_nodes = persistent_node_locators(&world.runtime, &identity);
     let mutation_scope = RelationalMvccCostScope::capture(&world.runtime, vec![identity.clone()]);
-    let batch = lower_phase5_production_delta(
+    let batch = lower_supply_chain_production_delta(
         &mut world.runtime,
         &world.program,
         &world.handles,
