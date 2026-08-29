@@ -1,14 +1,18 @@
 //! Production-boundary locality courts for the Relational owner phases.
 //!
-//! Each court holds one Supply Chain branch inside a real owner phase and
+//! Each court parks one Supply Chain branch inside a real owner phase and
 //! requires an unrelated branch to complete a full ordinary commit through the
-//! public facade while that pause is held. Every wait is bounded, so a
-//! reintroduced whole-runtime borrow or global lock convicts by name.
+//! public facade while that park is held. A whole-runtime exclusive borrow
+//! convicts at compile time, never here; what these courts convict is a runtime
+//! gate, a global lock or shared cell, that serializes independent branches.
+//! Preparation parks at the first `CandidatePreparation` observation near the
+//! top of the phase, so it cannot speak for a gate taken later in it;
+//! publication parks at `BeforeCriticalSection`, inside the entered phase and
+//! before the branch coordination cell, which is the stronger position.
 
 use std::collections::BTreeSet;
-use std::sync::mpsc::sync_channel;
+use std::sync::mpsc::{sync_channel, RecvTimeoutError};
 use std::sync::{Arc, Barrier};
-use std::thread::JoinHandle;
 use std::time::Duration;
 
 use super::invariant_oracle_expectations::expected_supply_chain_branch;
@@ -49,7 +53,7 @@ fn paused_supply_chain_preparation_leaves_an_unrelated_branch_commit_unblocked()
     let preparation = world.runtime.preparation_port();
     let storm_worker =
         std::thread::spawn(move || preparation.prepare_branch_transaction(storm_transaction));
-    let arrival = pause.await_arrival("candidate preparation");
+    pause.await_arrival("candidate preparation");
 
     let before = court.capture(&world.runtime);
     let committed = commit_unrelated_branch_while_paused(
@@ -61,19 +65,17 @@ fn paused_supply_chain_preparation_leaves_an_unrelated_branch_commit_unblocked()
     );
     assert!(
         !storm_worker.is_finished(),
-        "the unrelated maintenance commit did not release the paused storm branch"
+        "the storm branch must stay parked in candidate preparation for the whole unrelated commit"
     );
     before.assert_branch_locality(&court, &world.runtime, &committed);
 
     pause.open();
-    arrival.join().expect("the pause-arrival proxy joins");
     let storm_candidate = storm_worker
         .join()
         .expect("the storm preparation worker joins")
         .expect("the storm branch prepares once its owner-phase pause opens");
-    world
-        .runtime
-        .preparation_port()
+    let preparation = world.runtime.preparation_port();
+    preparation
         .discard_prepared_candidate(storm_candidate)
         .expect("the released storm candidate discards through its own owner port");
     assert_unrelated_commit_matches_oracle(&mut world, &committed);
@@ -103,7 +105,7 @@ fn paused_supply_chain_publication_leaves_an_unrelated_branch_commit_unblocked()
         .expect("the storm candidate prepares before the publication court opens");
     let publication = world.runtime.publication_port();
     let storm_worker = std::thread::spawn(move || publication.compare_and_publish(storm_candidate));
-    let arrival = pause.await_arrival("publication critical-section entry");
+    pause.await_arrival("publication critical-section entry");
 
     let before = court.capture(&world.runtime);
     let committed = commit_unrelated_branch_while_paused(
@@ -115,16 +117,12 @@ fn paused_supply_chain_publication_leaves_an_unrelated_branch_commit_unblocked()
     );
     assert!(
         !storm_worker.is_finished(),
-        "the unrelated maintenance commit did not release the paused storm branch"
+        "the storm branch must stay parked at its critical section for the whole unrelated commit"
     );
     before.assert_branch_locality(&court, &world.runtime, &committed);
 
     pause.open();
-    arrival.join().expect("the pause-arrival proxy joins");
-    let performed = match storm_worker
-        .join()
-        .expect("the storm publication worker joins")
-    {
+    let performed = match storm_worker.join().expect("the storm publisher joins") {
         RelationalPublicationOutcome::Performed(performed) => performed,
         outcome => panic!("the released storm publication must perform: {outcome:?}"),
     };
@@ -144,7 +142,7 @@ fn paused_supply_chain_publication_leaves_an_unrelated_branch_commit_unblocked()
     );
     assert_eq!(
         coordination_counters(&world.runtime, &court.storm),
-        BranchCoordinationCounters {
+        BranchCoordination {
             contacts: before.storm_coordination.contacts + 1,
             waits: before.storm_coordination.waits,
         },
@@ -163,27 +161,25 @@ struct OwnerPhaseCourtBranches {
 /// Owner-state evidence captured while the storm branch is paused.
 struct PausedCourtObservation {
     storm_reference: RelationalBranchReferenceState,
-    storm_coordination: BranchCoordinationCounters,
+    storm_coordination: BranchCoordination,
     maintenance_reference: RelationalBranchReferenceState,
     maintenance_head: RelationalCommitReceipt,
 }
 
 /// Coordination accounting the public sharing observation reports for a branch.
 #[derive(Debug, PartialEq, Eq)]
-struct BranchCoordinationCounters {
+struct BranchCoordination {
     contacts: u64,
     waits: u64,
 }
 
 impl OwnerPhaseCourtBranches {
     fn fork(world: &mut ProductionSeededSupplyChainWorld) -> Self {
-        let court = Self {
-            storm: BranchId("storm".to_owned()),
-            maintenance: BranchId("maintenance".to_owned()),
-        };
-        fork_supply_chain_branch_from_main(&mut world.runtime, court.storm.clone());
-        fork_supply_chain_branch_from_main(&mut world.runtime, court.maintenance.clone());
-        court
+        let storm = BranchId("storm".to_owned());
+        let maintenance = BranchId("maintenance".to_owned());
+        fork_supply_chain_branch_from_main(&mut world.runtime, storm.clone());
+        fork_supply_chain_branch_from_main(&mut world.runtime, maintenance.clone());
+        Self { storm, maintenance }
     }
 
     fn capture(&self, runtime: &RelationalRuntime) -> PausedCourtObservation {
@@ -197,8 +193,6 @@ impl OwnerPhaseCourtBranches {
 }
 
 impl PausedCourtObservation {
-    /// The paused branch was untouched and the unrelated branch advanced by
-    /// exactly one canonical commit.
     fn assert_branch_locality(
         &self,
         court: &OwnerPhaseCourtBranches,
@@ -235,8 +229,8 @@ impl PausedCourtObservation {
 }
 
 /// One owner-phase pause held by a worker branch. Arrival is observed through a
-/// proxy thread and a bounded channel, so a phase that never reaches its pause
-/// convicts by name instead of blocking the court on an unbounded barrier.
+/// proxy thread and a bounded channel, so a phase that never parks convicts by
+/// name instead of blocking the court on an unbounded barrier.
 struct OwnerPhasePause {
     reached: Arc<Barrier>,
     release: Arc<Barrier>,
@@ -258,7 +252,7 @@ impl OwnerPhasePause {
         )
     }
 
-    fn await_arrival(&self, phase: &str) -> JoinHandle<()> {
+    fn await_arrival(&self, phase: &str) {
         let (arrived, arrival) = sync_channel(1);
         let reached = Arc::clone(&self.reached);
         let proxy = std::thread::spawn(move || {
@@ -268,7 +262,7 @@ impl OwnerPhasePause {
         if arrival.recv_timeout(OWNER_PHASE_COURT_TIMEOUT).is_err() {
             panic!("the storm branch never reached its {phase} pause");
         }
-        proxy
+        proxy.join().expect("the pause-arrival proxy joins");
     }
 
     fn open(&self) {
@@ -277,9 +271,11 @@ impl OwnerPhasePause {
 }
 
 /// Run one full ordinary Supply Chain commit on the unrelated branch while the
-/// storm branch holds an owner-phase pause. The ordinary commit facade still
-/// takes the exclusive runtime receiver, so it runs on a bounded scoped worker;
-/// a commit that serializes releases the pause and convicts by name.
+/// storm branch holds an owner-phase park. A worker runs it so the court can
+/// bound it: only a thread outside the commit can hold the completion receiver
+/// and convict serialization by name instead of hanging. The worker is scoped
+/// because the commit facade still takes the exclusive runtime receiver the
+/// court needs back; every failing exit opens the park before scope teardown.
 fn commit_unrelated_branch_while_paused(
     world: &mut ProductionSeededSupplyChainWorld,
     court: &OwnerPhaseCourtBranches,
@@ -298,13 +294,20 @@ fn commit_unrelated_branch_while_paused(
                 .expect("the locality court still owns the completion receiver");
             committed
         });
-        if completion.recv_timeout(OWNER_PHASE_COURT_TIMEOUT).is_err() {
-            pause.open();
-            panic!("the unrelated maintenance commit serialized behind the paused storm {phase}");
+        match completion.recv_timeout(OWNER_PHASE_COURT_TIMEOUT) {
+            Ok(()) => {}
+            Err(RecvTimeoutError::Timeout) => {
+                pause.open();
+                panic!(
+                    "the unrelated maintenance commit serialized behind the paused storm {phase}"
+                );
+            }
+            Err(RecvTimeoutError::Disconnected) => pause.open(),
         }
-        committer
-            .join()
-            .expect("the unrelated maintenance committer joins")
+        match committer.join() {
+            Ok(committed) => committed,
+            Err(worker_panic) => std::panic::resume_unwind(worker_panic),
+        }
     })
 }
 
@@ -383,17 +386,14 @@ fn branch_reference_state(
         .expect("every court branch keeps a live owner reference cell")
 }
 
-fn coordination_counters(
-    runtime: &RelationalRuntime,
-    branch: &BranchId,
-) -> BranchCoordinationCounters {
+fn coordination_counters(runtime: &RelationalRuntime, branch: &BranchId) -> BranchCoordination {
     let identity = runtime
         .branch_identity(branch)
         .expect("the court branch identity is owner-issued");
     let observation = runtime
         .observe_branch_sharing(std::slice::from_ref(&identity))
         .expect("the paused court branch remains inspectable through public sharing");
-    BranchCoordinationCounters {
+    BranchCoordination {
         contacts: observation.coordination_contacts(),
         waits: observation.coordination_waits(),
     }
