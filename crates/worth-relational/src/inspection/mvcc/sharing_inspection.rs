@@ -102,14 +102,14 @@ fn partition_region_locators(
         .filter_map(|allocation| {
             let locator = allocation.locator();
             (locator.kind() == RelationalAuthoritativeAllocationKind::PartitionPayload).then(|| {
-                RelationalStorageRegionLocator {
-                    runtime_instance_id: locator.runtime_instance_id(),
-                    creation_root_id: locator.creation_owner_id(),
-                    region_id: locator.owner_id(),
-                    partition_id: locator
+                RelationalStorageRegionLocator::new(
+                    locator.runtime_instance_id(),
+                    locator.creation_owner_id(),
+                    locator.owner_id(),
+                    locator
                         .partition_id()
                         .expect("partition allocation locator"),
-                }
+                )
             })
         })
         .collect()
