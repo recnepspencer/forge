@@ -48,6 +48,9 @@ mod mvcc_model_sequences;
 #[cfg(feature = "test-operation-control")]
 #[path = "relational_certification/mvcc/owner_phase_locality.rs"]
 mod mvcc_owner_phase_locality;
+#[cfg(feature = "test-operation-control")]
+#[path = "relational_certification/mvcc/owner_phase_locality_court.rs"]
+mod mvcc_owner_phase_locality_court;
 #[path = "relational_certification/mvcc/preparation_owner.rs"]
 mod mvcc_preparation_owner;
 #[path = "relational_certification/mvcc/retention.rs"]
