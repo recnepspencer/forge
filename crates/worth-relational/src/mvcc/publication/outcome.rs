@@ -219,14 +219,14 @@ pub enum RelationalPublicationDeferred {
     /// branch. It is not capacity exhaustion either; the reservation counters
     /// record a deferral and no overflow.
     ///
-    /// The slot is taken after the exact branch-cell comparison and before the
-    /// cutover body, so this deferral is only ever reached with that comparison
-    /// already matched: the branch was exactly where this candidate expected it
-    /// at that instant, and only the reference movement did not happen. That
-    /// match is an observation, not a durable admission grant. The candidate is
-    /// consumed and its candidate slot returned, and the pre-effect
-    /// pending-settlement reservation is installed and then released on the way
-    /// out, leaving no record behind.
+    /// The slot is tested after the exact branch-cell comparison and before
+    /// the cutover body, so this deferral is only ever reached with that
+    /// comparison already matched: the branch was exactly where this candidate
+    /// expected it at that instant, and only the reference movement did not
+    /// happen. That match is an observation, not a durable admission grant. The
+    /// candidate is consumed and its candidate slot returned, and the
+    /// pre-effect pending-settlement reservation is installed and then released
+    /// on the way out, leaving no record behind.
     ///
     /// To retry, begin a fresh transaction and prepare a new candidate; this
     /// one is spent, and is neither reusable nor a rebase authority. The same
