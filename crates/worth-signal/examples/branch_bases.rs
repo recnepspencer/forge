@@ -42,6 +42,7 @@ fn owner_workflow() {
     explicit_release_returns_governed_evidence(&runtime, &superseded);
     dropping_an_obligation_releases_it(&runtime, &superseded);
     an_obligation_outlives_its_owner(runtime, superseded);
+    internal_obligations_stay_out_of_the_external_ledger();
 
     println!("branch_bases: every owner claim in BRANCH_BASES.md held.");
 }
@@ -265,6 +266,104 @@ fn an_obligation_outlives_its_owner(
     );
     assert_eq!(counts.unknown_lease_defenses(), 0);
     drop(witness);
+}
+/// `BRANCH_BASES.md`'s Real Example asserts absolute counter values rather than
+/// deltas, on a fresh runtime. Those exact numbers are only true if the
+/// obligation an admitted basis and an admitted snapshot each carry internally
+/// never reaches the external terminal ledger. The phases above deliberately
+/// assert deltas, so they cannot see that difference; this one replays the
+/// guide's walkthrough exactly — including holding the fork handle and both
+/// admitted snapshots alive across the release, the drop, and the loss of the
+/// runtime, as the guide's own bindings do — and asserts the published numbers.
+fn internal_obligations_stay_out_of_the_external_ledger() {
+    let mut runtime = ExampleRuntime::builder(SignalGraph::new())
+        .with_kernel_defaults()
+        .build();
+    let main_basis = runtime
+        .observe_signal_branch_basis(runtime.current_branch())
+        .expect("the current branch admits an owner basis");
+    let (_preview, forked) = runtime
+        .fork_signal_branch("retained-history", &main_basis)
+        .expect("an exact basis admits a fork")
+        .into_parts();
+    let (_first, superseded) = runtime
+        .capture_signal_branch_snapshot(&forked)
+        .expect("the first capture succeeds")
+        .into_parts();
+    let (_second, _current) = runtime
+        .capture_signal_branch_snapshot(&superseded)
+        .expect("the second capture succeeds")
+        .into_parts();
+
+    one_explicit_release_and_one_drop_read_as_published(&runtime, &superseded);
+    owner_loss_overlays_the_published_cause_buckets(runtime, &superseded);
+}
+
+/// The guide's first counter block: one explicit release and one drop, read as
+/// absolute totals off a runtime that has never seen any other obligation.
+fn one_explicit_release_and_one_drop_read_as_published(
+    runtime: &ExampleRuntime,
+    superseded: &AdmittedSignalBranchBasis,
+) {
+    let first = runtime
+        .retain_signal_component_basis(superseded)
+        .expect("an exact stored target stays retainable");
+    let second = runtime
+        .retain_signal_component_basis(superseded)
+        .expect("a second obligation over the same exact target is legitimate");
+
+    let receipt = match runtime.release_signal_component_basis(first) {
+        SignalBranchRetentionReleaseOutcome::Released(receipt) => receipt,
+        other => panic!("this runtime issued the obligation: {other:?}"),
+    };
+    assert_eq!(
+        receipt.outcome(),
+        SignalBranchRetentionTerminalOutcome::Released
+    );
+    assert_eq!(receipt.remaining_target_leases(), 1);
+    assert_eq!(receipt.remaining_branch_leases(), 1);
+
+    drop(second);
+    let counts = runtime.signal_component_retention_terminal_counts();
+    assert_eq!(counts.explicit_releases(), 1);
+    assert_eq!(counts.dropped_releases(), 1);
+    assert_eq!(counts.terminal_releases(), 2);
+    assert_eq!(counts.owner_loss_releases(), 0);
+    assert_eq!(counts.unknown_lease_defenses(), 0);
+}
+
+/// The guide's second counter block: one release of an orphaned obligation
+/// raises a cause bucket and the posture overlay together, so the published
+/// totals move by one, not two.
+fn owner_loss_overlays_the_published_cause_buckets(
+    runtime: ExampleRuntime,
+    superseded: &AdmittedSignalBranchBasis,
+) {
+    let orphan = runtime
+        .retain_signal_component_basis(superseded)
+        .expect("an exact stored target stays retainable");
+    let witness = runtime
+        .retain_signal_component_basis(superseded)
+        .expect("a second obligation over the same exact target is legitimate");
+    drop(runtime);
+
+    assert_eq!(
+        orphan.owner_posture(),
+        SignalBranchRetentionOwnerPosture::Lost
+    );
+    let receipt = orphan.release();
+    assert_eq!(
+        receipt.outcome(),
+        SignalBranchRetentionTerminalOutcome::OwnerUnavailable,
+        "owner loss is recorded distinctly from an ordinary release"
+    );
+
+    let counts = witness.owner_terminal_counts();
+    assert_eq!(counts.explicit_releases(), 2);
+    assert_eq!(counts.dropped_releases(), 1);
+    assert_eq!(counts.terminal_releases(), 3);
+    assert_eq!(counts.owner_loss_releases(), 1);
+    assert_eq!(counts.unknown_lease_defenses(), 0);
 }
 
 fn basis_target(basis: &AdmittedSignalBranchBasis) -> &SignalBranchTarget {
