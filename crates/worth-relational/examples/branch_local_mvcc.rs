@@ -167,10 +167,21 @@ fn publish_one_branch(
 
     for attempt in 1..=PUBLICATION_ATTEMPT_BUDGET {
         let transaction = fresh_transaction(runtime, &basis, "branch-local-mvcc-worker");
+        // Preparation is fallible before any effect, and one of the ways it
+        // refuses is bounded: it reserves this candidate's published-snapshot
+        // handle here, so an exhausted budget is reported as
+        // `PublicationDeferred { deferred: PublishedSnapshotCapacityExhausted
+        // { .. } }` and no candidate is created. This example's default
+        // budgets make that unreachable, so a refusal here is a defect report
+        // rather than a claim that preparation always succeeds.
         let candidate = services
             .preparation
             .prepare_branch_transaction(transaction)
-            .expect("preparation validates and materializes without moving the branch");
+            .expect(concat!(
+                "preparation refused before producing a candidate; the branch ",
+                "did not move, and this example models neither a bounded ",
+                "preparation refusal nor a validation denial",
+            ));
 
         match services.publication.compare_and_publish(candidate) {
             RelationalPublicationOutcome::Performed(performed) => {

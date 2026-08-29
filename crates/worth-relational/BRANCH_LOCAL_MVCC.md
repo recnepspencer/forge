@@ -114,8 +114,15 @@ so an open transaction never excludes another owner.
 
 Preparation is its own service. It performs the fallible work before effects:
 schema and invariant validation, footprint validation, canonical commit
-assembly, immutable-root materialization, and resource checks. A
-`PreparedRelationalCommitCandidate` is opaque, runtime-affine, branch-bound,
+assembly, immutable-root materialization, and resource checks. Those checks are
+where the bounded budgets are refused, before any candidate exists and before
+any effect: `prepare_branch_transaction` returns
+`Err(TransactionCommitError::PublicationDeferred { .. })` carrying
+`PublishedSnapshotCapacityExhausted { maximum_handles }`,
+`CandidateCapacityExhausted { maximum_candidates }`, or
+`RetentionBackpressure`.
+
+A `PreparedRelationalCommitCandidate` is opaque, runtime-affine, branch-bound,
 single-use, and retained. Preparing, discarding, expiring, or losing a
 candidate does not move a public reference; `discard_prepared_candidate` is the
 explicit way to consume one without publishing, and the `preparation_port`
@@ -143,8 +150,11 @@ The terminal outcomes are intentionally distinct:
   descriptors and moves nothing for this candidate.
 - `Denied` means owner, runtime, branch, or lifecycle admission failed.
 - `Interrupted` means cancellation or timeout won before linearization.
-- `Deferred` means bounded capacity, retention, reservation, or candidate
-  lifetime prevented movement.
+- `Deferred` means one bounded mechanical condition stopped this attempt:
+  `PatchPositionReservationContended`, `RetentionBackpressure`, or
+  `CandidateLifetimeExpired`. The two capacity variants of
+  `RelationalPublicationDeferred` are refused earlier, during preparation, and
+  never arrive here.
 - `Failed` means an owner invariant or required publication step failed before
   movement.
 
@@ -270,12 +280,17 @@ The owner catalog, immutable roots, branch cells, and retention accounting are
 memory-resident. Restart durability for this owner model is deferred to Worth
 Store integration.
 
-Publication reserves one published-snapshot handle *before* it moves the
-reference, bounded by `publication.policy.max_published_snapshot_handles`. When
-that bound is exhausted the attempt returns
-`Deferred(PublishedSnapshotCapacityExhausted { maximum_handles })` before
-linearization rather than after, so an exhausted handle budget never leaves a
-moved reference unsettled.
+Published-snapshot handles are bounded by
+`publication.policy.max_published_snapshot_handles`. *Preparation* reserves one
+handle for every candidate it admits, so an exhausted budget is refused there
+rather than at publication: `prepare_branch_transaction` returns
+`Err(TransactionCommitError::PublicationDeferred { .. })` carrying
+`PublishedSnapshotCapacityExhausted { maximum_handles }`, and no candidate is
+created. `compare_and_publish` cannot produce that variant, because every
+candidate it can be handed already holds its handle. An exhausted handle budget
+therefore never leaves a moved reference unsettled. The same bound limits the
+pending-settlement registry; see
+[`OWNER_COMPONENT_PORT.md`](./OWNER_COMPONENT_PORT.md#preinstalled-bounded-pending-settlement).
 
 This milestone does not provide composite Relational plus Signal currentness,
 cross-owner atomic publication, automatic rebase, semantic merge, distributed
