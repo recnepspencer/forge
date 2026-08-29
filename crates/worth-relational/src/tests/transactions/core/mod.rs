@@ -23,6 +23,7 @@ mod native_aspect_mutations;
 mod native_durability;
 mod native_value_matrix;
 mod owner_service_phase2;
+mod owner_service_phase3;
 mod parallel_preparation;
 mod patch_position_contention;
 mod pending_settlement_recovery;

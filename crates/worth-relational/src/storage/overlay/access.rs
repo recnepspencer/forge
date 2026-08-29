@@ -60,7 +60,9 @@ impl BorrowedWorkingState {
 
 impl PartitionAccess for BorrowedWorkingState {
     fn get_partition(&self, partition_id: PartitionId) -> Option<&PartitionState> {
-        self.partitions.get(&partition_id).map(std::sync::Arc::as_ref)
+        self.partitions
+            .get(&partition_id)
+            .map(std::sync::Arc::as_ref)
     }
 
     fn partition_ids(&self) -> Vec<PartitionId> {

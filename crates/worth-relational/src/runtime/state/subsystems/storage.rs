@@ -31,12 +31,6 @@ impl StorageSubsystem {
         self.partitions.write()
     }
 
-    pub(crate) fn share(&self) -> Self {
-        Self {
-            partitions: self.partitions.share(),
-        }
-    }
-
     pub(crate) fn replace(&self, partitions: PartitionMap) {
         *self.write() = partitions;
     }
@@ -77,13 +71,11 @@ impl StorageSubsystem {
 
 /// Exclusive access to one partition's authoritative state, copying it out of
 /// structural sharing only when a reader still holds the previous edition.
-pub(crate) fn partition_entry_mut<'map>(
-    partitions: &'map mut PartitionMap,
+pub(crate) fn partition_entry_mut(
+    partitions: &mut PartitionMap,
     partition_id: PartitionId,
-) -> Option<&'map mut PartitionState> {
-    partitions
-        .get_mut(&partition_id)
-        .map(|partition| Arc::make_mut(partition))
+) -> Option<&mut PartitionState> {
+    partitions.get_mut(&partition_id).map(Arc::make_mut)
 }
 
 impl RuntimeSubsystem for StorageSubsystem {

@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use crate::history::data::{CanonicalCommitEnvelope, CommitId, VersionNode};
 use crate::history::{
-    RelationalCommitArtifact, RelationalCommitCatalog,
-    RelationalCommitCatalogEnvelopeAppendDenial, RelationalCommitIdentity,
+    RelationalCommitArtifact, RelationalCommitCatalog, RelationalCommitCatalogEnvelopeAppendDenial,
+    RelationalCommitIdentity,
 };
 use crate::identity::data::VersionId;
 use crate::publication::patch::data::PatchStreamPosition;
@@ -29,11 +29,7 @@ impl HistorySubsystem {
     }
 
     pub(crate) fn latest_commit_identity(&self) -> Option<RelationalCommitIdentity> {
-        self.ledger
-            .read()
-            .commit_catalog
-            .latest_identity()
-            .cloned()
+        self.ledger.read().commit_catalog.latest_identity().cloned()
     }
 
     pub(crate) fn commit_artifact_for_version(
@@ -69,7 +65,10 @@ impl HistorySubsystem {
         &self,
         envelope: &CanonicalCommitEnvelope,
     ) -> Result<(), RelationalCommitCatalogEnvelopeAppendDenial> {
-        self.ledger.read().commit_catalog.validate_envelope(envelope)
+        self.ledger
+            .read()
+            .commit_catalog
+            .validate_envelope(envelope)
     }
 
     pub(crate) fn validate_new_catalog_envelope(
@@ -139,7 +138,11 @@ impl HistorySubsystem {
         &self,
         position: PatchStreamPosition,
     ) -> Option<CommitId> {
-        self.ledger.read().patch_stream_index.get(&position).copied()
+        self.ledger
+            .read()
+            .patch_stream_index
+            .get(&position)
+            .copied()
     }
 
     pub(crate) fn recorded_patch_positions_after(
@@ -161,10 +164,6 @@ impl HistorySubsystem {
 
     pub(crate) fn recorded_patch_position_count(&self) -> usize {
         self.ledger.read().patch_stream_index.len()
-    }
-
-    pub(crate) fn commit_graph_node(&self, commit_id: CommitId) -> Option<VersionNode> {
-        self.ledger.read().commit_graph.get(&commit_id).cloned()
     }
 
     pub(crate) fn commit_graph_len(&self) -> usize {

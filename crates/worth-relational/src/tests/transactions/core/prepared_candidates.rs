@@ -36,11 +36,11 @@ fn preparation_is_truth_effect_free_and_discard_releases_reservations() {
         runtime.history().immutable_commit_count(),
         commit_count_before
     );
-    assert_eq!(runtime.history.recorded_patch_position_count(), patch_count_before);
     assert_eq!(
-        runtime.publication().latest_bundle(),
-        bundle_before
+        runtime.history.recorded_patch_position_count(),
+        patch_count_before
     );
+    assert_eq!(runtime.publication().latest_bundle(), bundle_before);
     assert_eq!(
         runtime.publication().diagnostic_access().artifact_count(),
         diagnostics_before
@@ -65,11 +65,11 @@ fn preparation_is_truth_effect_free_and_discard_releases_reservations() {
         runtime.history().immutable_commit_count(),
         commit_count_before
     );
-    assert_eq!(runtime.history.recorded_patch_position_count(), patch_count_before);
     assert_eq!(
-        runtime.publication().latest_bundle(),
-        bundle_before
+        runtime.history.recorded_patch_position_count(),
+        patch_count_before
     );
+    assert_eq!(runtime.publication().latest_bundle(), bundle_before);
     assert_eq!(
         runtime.publication().diagnostic_access().artifact_count(),
         diagnostics_before

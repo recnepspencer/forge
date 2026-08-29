@@ -149,7 +149,7 @@ impl RelationalRuntime {
         let schema_contract_runtime = extensions.build_schema_contract_runtime_subsystem(&config);
         let preparation_configuration =
             RelationalPreparationConfigurationOwner::new(&config, &schema_contract_runtime);
-        Self {
+        Self::from_state(crate::runtime::RelationalRuntimeState {
             schema_contract_runtime,
             commit_strategies: extensions.build_commit_strategy_subsystem(&config),
             history,
@@ -165,7 +165,7 @@ impl RelationalRuntime {
             visibility: <VisibilitySubsystem as RuntimeSubsystem>::new(&config),
             publication: extensions.build_publication_subsystem(),
             config,
-        }
+        })
     }
 
     pub fn fork(&self) -> Result<Self, RelationalRuntimeForkDenial> {
@@ -177,7 +177,7 @@ impl RelationalRuntime {
         let schema_contract_runtime = RuntimeSubsystem::fork(&self.schema_contract_runtime);
         let preparation_configuration =
             RelationalPreparationConfigurationOwner::new(&config, &schema_contract_runtime);
-        Ok(Self {
+        Ok(Self::from_state(crate::runtime::RelationalRuntimeState {
             config,
             schema_contract_runtime,
             commit_strategies: RuntimeSubsystem::fork(&self.commit_strategies),
@@ -193,6 +193,6 @@ impl RelationalRuntime {
             preparation_configuration,
             owner_lifecycle: RelationalRuntimeOwner::new(),
             publication_owner: RelationalRuntimePublicationOwner::new(),
-        })
+        }))
     }
 }

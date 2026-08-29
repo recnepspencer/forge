@@ -38,14 +38,8 @@ fn publication_snapshots_are_the_outward_artifact_surface_for_latest_exports() {
         artifact_snapshot.observation,
         publication.observation_snapshot()
     );
-    assert_eq!(
-        artifact_snapshot.latest_patch,
-        publication.latest_patch()
-    );
-    assert_eq!(
-        artifact_snapshot.latest_replay,
-        publication.latest_replay()
-    );
+    assert_eq!(artifact_snapshot.latest_patch, publication.latest_patch());
+    assert_eq!(artifact_snapshot.latest_replay, publication.latest_replay());
     assert_eq!(
         diagnostics_snapshot.observation,
         publication.observation_snapshot()

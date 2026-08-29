@@ -67,10 +67,7 @@ pub(crate) fn resolve_snapshot_state(
     if handle.runtime_instance_id != runtime.runtime_instance_id() {
         return None;
     }
-    if let Some(binding) = runtime
-        .visibility
-        .active_handle_binding(handle.snapshot_id)
-    {
+    if let Some(binding) = runtime.visibility.active_handle_binding(handle.snapshot_id) {
         let resolved_handle = SnapshotHandle {
             runtime_instance_id: runtime.runtime_instance_id(),
             branch_id: binding.branch_id,

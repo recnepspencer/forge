@@ -35,8 +35,8 @@ mod history_head_versions;
 mod history_ledger;
 #[path = "history_ledger_access.rs"]
 mod history_ledger_access;
-pub(crate) use history_ledger::HistoryLedger;
 pub(crate) use history_fork_binding::RelationalForkOwnerBinding;
+pub(crate) use history_ledger::HistoryLedger;
 #[path = "history_preparation_binding.rs"]
 mod history_preparation_binding;
 pub(crate) use history_head_versions::BranchHeadVersionIndexAuthority;
@@ -280,10 +280,9 @@ impl HistorySubsystem {
                 .map(|commit| commit.envelope().commit.version_id.0)
                 .max()
             {
-                ledger.next_version_id =
-                    ledger.next_version_id.max(maximum.checked_add(1).ok_or(
-                        crate::runtime::RelationalRuntimeForkDenial::IdentityCapacityExhausted,
-                    )?);
+                ledger.next_version_id = ledger.next_version_id.max(maximum.checked_add(1).ok_or(
+                    crate::runtime::RelationalRuntimeForkDenial::IdentityCapacityExhausted,
+                )?);
             }
             (ledger.next_commit_id, ledger.next_version_id)
         };

@@ -40,10 +40,7 @@ impl PublicationSubsystem {
         self.bundles.read().latest.clone()
     }
 
-    pub(crate) fn replace_latest_bundle(
-        &self,
-        bundle: PublicationBundle<RelationalReplayRecord>,
-    ) {
+    pub(crate) fn replace_latest_bundle(&self, bundle: PublicationBundle<RelationalReplayRecord>) {
         let mut bundles = self.bundles.write();
         if let Some(previous) = bundles.latest.replace(Arc::new(bundle)) {
             bundles.retired.push_back(previous);

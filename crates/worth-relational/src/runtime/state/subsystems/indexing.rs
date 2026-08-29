@@ -53,12 +53,6 @@ pub(crate) struct IndexingSubsystem {
 }
 
 impl IndexingSubsystem {
-    pub(crate) fn share(&self) -> Self {
-        Self {
-            state: self.state.share(),
-        }
-    }
-
     /// Replace the whole subsystem, for checkpoint restore.
     pub(crate) fn install(&self, state: IndexingState) {
         *self.state.write() = state;
@@ -68,15 +62,26 @@ impl IndexingSubsystem {
         self.state.read().clone()
     }
 
-    pub(crate) fn definition(&self, index_id: DerivedIndexId) -> Option<Arc<DerivedIndexDefinition>> {
+    pub(crate) fn definition(
+        &self,
+        index_id: DerivedIndexId,
+    ) -> Option<Arc<DerivedIndexDefinition>> {
         self.state.read().definitions.get(&index_id).map(Arc::clone)
     }
 
     pub(crate) fn definitions(&self) -> Vec<Arc<DerivedIndexDefinition>> {
-        self.state.read().definitions.values().map(Arc::clone).collect()
+        self.state
+            .read()
+            .definitions
+            .values()
+            .map(Arc::clone)
+            .collect()
     }
 
-    pub(crate) fn generations_for(&self, index_id: DerivedIndexId) -> Vec<Arc<DerivedIndexGeneration>> {
+    pub(crate) fn generations_for(
+        &self,
+        index_id: DerivedIndexId,
+    ) -> Vec<Arc<DerivedIndexGeneration>> {
         self.state
             .read()
             .generations
@@ -139,7 +144,10 @@ impl IndexingSubsystem {
         }
     }
 
-    pub(crate) fn derived_artifacts_for_commit(&self, commit_id: CommitId) -> DerivedIndexArtifacts {
+    pub(crate) fn derived_artifacts_for_commit(
+        &self,
+        commit_id: CommitId,
+    ) -> DerivedIndexArtifacts {
         DerivedIndexArtifacts::new(
             self.state
                 .read()
@@ -153,7 +161,10 @@ impl IndexingSubsystem {
     }
 
     /// Read the unique aspect field index without letting the guard escape.
-    pub(crate) fn with_unique_index<R>(&self, read: impl FnOnce(&UniqueEntityAspectFieldIndex) -> R) -> R {
+    pub(crate) fn with_unique_index<R>(
+        &self,
+        read: impl FnOnce(&UniqueEntityAspectFieldIndex) -> R,
+    ) -> R {
         read(&self.state.read().entity_unique_aspect_field_index)
     }
 

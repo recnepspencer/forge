@@ -58,7 +58,8 @@ impl StorageAuthority<'_> {
     ) -> bool {
         {
             let mut partitions = self.runtime.partitions.write();
-            let Some(partition) = crate::runtime::partition_entry_mut(&mut partitions, partition_id)
+            let Some(partition) =
+                crate::runtime::partition_entry_mut(&mut partitions, partition_id)
             else {
                 return false;
             };
@@ -88,7 +89,8 @@ impl StorageAuthority<'_> {
         let mut total_trimmed = 0usize;
         let mut partitions = self.runtime.partitions.write();
         for (partition_id, slots) in slots_by_partition {
-            let Some(partition) = crate::runtime::partition_entry_mut(&mut partitions, partition_id)
+            let Some(partition) =
+                crate::runtime::partition_entry_mut(&mut partitions, partition_id)
             else {
                 continue;
             };

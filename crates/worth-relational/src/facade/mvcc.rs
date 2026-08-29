@@ -19,6 +19,7 @@ pub use crate::mvcc::{
     ValidatedMutationFootprintWork, ValidatedMutationTouch, ValidatedMutationTouchProjectionError,
     ValidatedMutationTouchProjectionWork, ValidatedMutationTouches, ValidatedRelationalProposal,
 };
+pub use crate::publication::RelationalSettlementPort;
 pub use crate::transactions::data::{
     CommitConflict, CommitResult, ConflictClass, TransactionCommitError, WorkerIntentBatch,
 };

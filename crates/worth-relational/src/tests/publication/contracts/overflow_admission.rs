@@ -36,8 +36,14 @@ fn truth_sequence_overflow_is_rejected_before_publication_effects() {
     assert_eq!(runtime.history.branch_cells_snapshot(), before_cells);
     assert_eq!(runtime.history.catalog_len(), before_catalog);
     assert_eq!(runtime.history.commit_graph_len(), before_graph);
-    assert_eq!(runtime.history.recorded_commit_envelope_count(), before_envelopes);
-    assert_eq!(runtime.history.recorded_patch_position_count(), before_patch_index);
+    assert_eq!(
+        runtime.history.recorded_commit_envelope_count(),
+        before_envelopes
+    );
+    assert_eq!(
+        runtime.history.recorded_patch_position_count(),
+        before_patch_index
+    );
     let after_slots: usize = runtime
         .partitions
         .read()

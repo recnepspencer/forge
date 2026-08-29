@@ -17,12 +17,6 @@ pub(crate) struct DurabilitySubsystem {
 }
 
 impl DurabilitySubsystem {
-    pub(crate) fn share(&self) -> Self {
-        Self {
-            state: self.state.share(),
-        }
-    }
-
     pub(crate) fn push_log_envelope(&self, commit: PositionedCanonicalCommit) {
         self.state.write().push_log_envelope(commit);
     }

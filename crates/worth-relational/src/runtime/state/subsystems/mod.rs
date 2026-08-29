@@ -21,7 +21,7 @@ pub(crate) trait RuntimeSubsystem: Sized {
 }
 
 pub(crate) use commit_strategies::CommitStrategiesSubsystem;
-pub(crate) use durability::{DurabilityState, DurabilitySubsystem};
+pub(crate) use durability::DurabilitySubsystem;
 pub use history::RelationalPatchPositionReservationCounters;
 pub(crate) use history::{
     readmit_positioned_canonical_commit, BranchHeadVersionIndexAuthority,

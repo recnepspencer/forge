@@ -1,9 +1,6 @@
 use super::*;
 
-pub(crate) fn create_branch_from_main(
-    runtime: &RelationalRuntime,
-    branch_name: &str,
-) -> BranchId {
+pub(crate) fn create_branch_from_main(runtime: &RelationalRuntime, branch_name: &str) -> BranchId {
     let branch_id = BranchId(branch_name.to_string());
     runtime
         .history_authority()

@@ -105,14 +105,17 @@ fn prepare_related_lookup<'request>(
     request: &'request BoundedRelatedEntityOrderedLookupRequest,
 ) -> Result<PreparedRelatedLookup<'request>, BoundedRelatedEntityOrderedLookupDenial> {
     let contract = resolve_related_lookup_contract(runtime, request)?;
-    let generation =
-        super::generation_selection::exact_published_generation(runtime, snapshot, &contract.definition)
-            .ok_or_else(|| {
-                denial(
-                    BoundedRelatedEntityOrderedLookupDenialKind::ExactGenerationUnavailable,
-                    request,
-                )
-            })?;
+    let generation = super::generation_selection::exact_published_generation(
+        runtime,
+        snapshot,
+        &contract.definition,
+    )
+    .ok_or_else(|| {
+        denial(
+            BoundedRelatedEntityOrderedLookupDenialKind::ExactGenerationUnavailable,
+            request,
+        )
+    })?;
     if request
         .expected_generation()
         .is_some_and(|expected| expected != generation.generation_id)

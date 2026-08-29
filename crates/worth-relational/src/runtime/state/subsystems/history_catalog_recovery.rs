@@ -308,13 +308,17 @@ impl HistorySubsystem {
             }
             self.rebuild_catalog_with_live_roots(symbols)?;
         } else if catalog_artifact.is_none() {
-            self.with_ledger_mut(|ledger| ledger.commit_catalog.append_envelope(Arc::new(envelope.clone())))
-                .map_err(|denial| {
-                    format!(
-                        "recovery commit artifact could not be admitted for commit {}: {denial:?}",
-                        envelope.commit.commit_id.0
-                    )
-                })?;
+            self.with_ledger_mut(|ledger| {
+                ledger
+                    .commit_catalog
+                    .append_envelope(Arc::new(envelope.clone()))
+            })
+            .map_err(|denial| {
+                format!(
+                    "recovery commit artifact could not be admitted for commit {}: {denial:?}",
+                    envelope.commit.commit_id.0
+                )
+            })?;
         }
         self.require_recovered_branch(&envelope.branch_context)?;
         if !advance_branch_currentness {

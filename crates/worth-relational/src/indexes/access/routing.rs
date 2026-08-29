@@ -164,7 +164,12 @@ fn candidate_generation_for_packet(
             .flat_map(|definition| runtime.indexes.generations_for(definition.index_id))
             .max_by(|left, right| {
                 generation_preference(runtime, left.as_ref(), packet, branch_id)
-                    .cmp(&generation_preference(runtime, right.as_ref(), packet, branch_id))
+                    .cmp(&generation_preference(
+                        runtime,
+                        right.as_ref(),
+                        packet,
+                        branch_id,
+                    ))
                     .then_with(|| left.generation_id.cmp(&right.generation_id))
             }),
         QueryScope::RelationFieldEquals { field_locator, .. }
@@ -182,7 +187,12 @@ fn candidate_generation_for_packet(
             .flat_map(|definition| runtime.indexes.generations_for(definition.index_id))
             .max_by(|left, right| {
                 generation_preference(runtime, left.as_ref(), packet, branch_id)
-                    .cmp(&generation_preference(runtime, right.as_ref(), packet, branch_id))
+                    .cmp(&generation_preference(
+                        runtime,
+                        right.as_ref(),
+                        packet,
+                        branch_id,
+                    ))
                     .then_with(|| left.generation_id.cmp(&right.generation_id))
             }),
         _ => None,
@@ -224,12 +234,13 @@ fn generation_preference(
     packet: &PlannedQueryPacket,
     branch_id: &BranchId,
 ) -> (bool, bool, bool, bool, crate::identity::data::VersionId) {
-    let branch_applicable = runtime
-        .indexes
-        .definition(generation.index_id)
-        .is_none_or(|definition| {
-            !definition.branch_scoped || generation.applicability.branch_id == *branch_id
-        });
+    let branch_applicable =
+        runtime
+            .indexes
+            .definition(generation.index_id)
+            .is_none_or(|definition| {
+                !definition.branch_scoped || generation.applicability.branch_id == *branch_id
+            });
     let version_applicable = generation.applicability.version_id == packet.context_id.version_id;
     let schema_applicable =
         generation.applicability.schema_version == packet.context_id.schema_version;

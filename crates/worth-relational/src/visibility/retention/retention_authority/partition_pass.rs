@@ -6,8 +6,7 @@ use crate::storage::substrate::{
     EntityRecordKind, HistoricalMetadata, RecordKind, RelationRecordKind,
 };
 
-type RefreshRetention =
-    fn(&RelationalRuntime, PartitionId, usize, Option<VersionId>, VersionId);
+type RefreshRetention = fn(&RelationalRuntime, PartitionId, usize, Option<VersionId>, VersionId);
 
 #[derive(Default)]
 pub(super) struct RetentionCounts {

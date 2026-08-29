@@ -18,12 +18,6 @@ pub(crate) struct LineageSubsystem {
 }
 
 impl LineageSubsystem {
-    pub(crate) fn share(&self) -> Self {
-        Self {
-            state: self.state.share(),
-        }
-    }
-
     /// Replace the whole subsystem, for checkpoint restore.
     pub(crate) fn install(&self, state: LineageState) {
         *self.state.write() = state;
@@ -70,15 +64,11 @@ impl LineageSubsystem {
 
     /// The highest lineage event identity currently published, for recovery floors.
     pub(crate) fn maximum_event_id(&self) -> Option<u64> {
-        self.state.read().events().map(|event| event.event_id()).max()
-    }
-
-    /// Replace the published nodes wholesale, for checkpoint restore.
-    pub(crate) fn install_nodes(&self, nodes: impl IntoIterator<Item = LineageNode>) {
-        self.state.write().nodes = nodes
-            .into_iter()
-            .map(|node| (node.lineage_id(), node))
-            .collect();
+        self.state
+            .read()
+            .events()
+            .map(|event| event.event_id())
+            .max()
     }
 
     pub(crate) fn install_validated_event_batch(
@@ -133,11 +123,9 @@ impl LineageSubsystem {
         lineage_ids: &BTreeSet<LineageId>,
         sources_only: bool,
     ) -> (BTreeSet<usize>, usize) {
-        self.state.read().branch_event_positions_for_lineages(
-            branch_ids,
-            lineage_ids,
-            sources_only,
-        )
+        self.state
+            .read()
+            .branch_event_positions_for_lineages(branch_ids, lineage_ids, sources_only)
     }
 
     pub(crate) fn indexed_lineage_for_entity(

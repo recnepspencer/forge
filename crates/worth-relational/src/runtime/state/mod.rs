@@ -2,6 +2,7 @@ mod runtime_state;
 mod subsystems;
 
 pub use runtime_state::RelationalRuntime;
+pub(crate) use runtime_state::RelationalRuntimeState;
 pub(crate) use runtime_state::{
     AdmittedRelationalRuntimeOperation, RelationalCandidateRegistrationDenial,
     RelationalPreparationConfigurationBinding, RelationalPreparationOwnerBinding,
@@ -20,9 +21,9 @@ pub(in crate::runtime) use runtime_state::{
 pub(crate) use subsystems::{
     partition_entry_mut, readmit_positioned_canonical_commit, BranchHeadVersionIndexAuthority,
     CanonicalCheckpointAdmissionError, CanonicalPositionAdmission, CanonicalPublicationRecordError,
-    CommitStrategiesSubsystem, DurabilityState, DurabilitySubsystem, HistorySubsystem, IndexingState, IndexingSubsystem,
-    LineageIdentityAllocator, LineageState, LineageSubsystem, PendingRecordAllocations,
-    PerformedCheckpointSelection, PreparedCanonicalPublicationRoute,
+    CommitStrategiesSubsystem, DurabilitySubsystem, HistorySubsystem, IndexingState,
+    IndexingSubsystem, LineageIdentityAllocator, LineageState, LineageSubsystem,
+    PendingRecordAllocations, PerformedCheckpointSelection, PreparedCanonicalPublicationRoute,
     PreparedRecoveredVersionedArtifactPublication, PreparedVersionedArtifactAccelerators,
     PreparedVersionedArtifactPublication, PublicationSubsystem, PublishedSnapshotCapacityOwner,
     PublishedSnapshotCloseout, PublishedSnapshotSlotReservation, ReclaimedRecordSlot,
@@ -30,8 +31,8 @@ pub(crate) use subsystems::{
     RelationalDiagnosticArtifactStore, RelationalForkMaterializationCost,
     RelationalForkOwnerBinding, RelationalPreparationHistory, ReplayRetentionState,
     RuntimeInstrumentation, RuntimeServices, RuntimeSubsystem, SchemaContractRuntimeSubsystem,
-    SnapshotHandleBinding, StorageSubsystem, ValidatedLineageEventBatch,
-    VisibilityResidency, VisibilitySubsystem,
+    SnapshotHandleBinding, StorageSubsystem, ValidatedLineageEventBatch, VisibilityResidency,
+    VisibilitySubsystem,
 };
 pub use subsystems::{
     RelationalBranchSharingCostCounters, RelationalPatchPositionReservationCounters,

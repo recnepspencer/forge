@@ -264,11 +264,7 @@ impl SnapshotHandles {
             .collect()
     }
 
-    pub(crate) fn insert_published(
-        &self,
-        snapshot_id: SnapshotId,
-        binding: SnapshotHandleBinding,
-    ) {
+    pub(crate) fn insert_published(&self, snapshot_id: SnapshotId, binding: SnapshotHandleBinding) {
         let mut published = self.lock_published();
         let version_id = binding.version_id;
         assert!(

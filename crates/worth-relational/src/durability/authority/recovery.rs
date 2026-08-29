@@ -62,7 +62,7 @@ fn publish_recovered_runtime(
     material: RecoveredRuntimeMaterial,
 ) -> RuntimeRecoveryOutcome {
     let RecoveredRuntimeMaterial {
-        mut restored,
+        restored,
         plan,
         admission,
     } = material;

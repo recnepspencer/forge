@@ -16,7 +16,10 @@ pub(super) fn execute_partition_publication(
     }
 }
 
-fn execute_partition(authority: &StorageAuthority<'_>, mut publication: PlannedPartitionPublication) {
+fn execute_partition(
+    authority: &StorageAuthority<'_>,
+    mut publication: PlannedPartitionPublication,
+) {
     let mut partitions = authority.runtime.partitions.write();
     match publication.strategy {
         PartitionPublicationStrategy::MissingPartition { entity_layout } => {

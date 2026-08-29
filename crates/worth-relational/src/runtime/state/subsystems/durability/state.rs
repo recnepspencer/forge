@@ -34,18 +34,13 @@ impl DurabilityState {
             checkpoints: Vec::new(),
             log_commit_index: HashMap::new(),
             checkpoint_commit_index: HashMap::new(),
-            store: config
-                .durability
-                .policy
-                .store_layout
-                .clone()
-                .map(|layout| {
-                    Arc::new(DurableStore {
-                        layout,
-                        segments: Vec::new(),
-                        checkpoints: Vec::new(),
-                    })
-                }),
+            store: config.durability.policy.store_layout.clone().map(|layout| {
+                Arc::new(DurableStore {
+                    layout,
+                    segments: Vec::new(),
+                    checkpoints: Vec::new(),
+                })
+            }),
             #[cfg(any(test, feature = "test-durability-faults"))]
             fail_next_append: false,
         }

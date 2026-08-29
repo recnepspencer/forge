@@ -56,7 +56,11 @@ impl CompiledArtifactStore {
         &self,
         compiled_artifact_id: u64,
     ) -> Option<Arc<CompiledExecutionArtifact>> {
-        self.artifacts.read().by_id.get(&compiled_artifact_id).cloned()
+        self.artifacts
+            .read()
+            .by_id
+            .get(&compiled_artifact_id)
+            .cloned()
     }
 
     pub(crate) fn next_compiled_artifact_id(&self) -> u64 {

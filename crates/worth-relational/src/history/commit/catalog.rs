@@ -252,11 +252,4 @@ impl RelationalCommitCatalog {
     pub(crate) fn snapshot(&self) -> Vec<Arc<RelationalCommitArtifact>> {
         self.entries.values().cloned().collect()
     }
-
-    pub(crate) fn envelope_refs(&self) -> Vec<&crate::history::data::CanonicalCommitEnvelope> {
-        self.entries
-            .values()
-            .map(|artifact| artifact.envelope().as_ref())
-            .collect()
-    }
 }

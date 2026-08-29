@@ -5,10 +5,7 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         &self,
         entity_id: crate::identity::data::EntityId,
     ) -> Option<Vec<(AspectKey, u64)>> {
-        let partition = self
-            .runtime
-            .partitions
-            .partition(entity_id.partition_id)?;
+        let partition = self.runtime.partitions.partition(entity_id.partition_id)?;
         let slot = entity_id.slot_index();
         let slot_view = partition.entity_arena.get_slot(slot)?;
         if slot_view.generation() != entity_id.generation_value()

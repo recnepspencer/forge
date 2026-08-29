@@ -144,10 +144,7 @@ impl<'runtime> IndexAuthority<'runtime> {
         self.runtime.indexes.register_definition(definition)
     }
 
-    pub fn build_for_commit(
-        &self,
-        request: DerivedIndexBuildRequest,
-    ) -> DerivedIndexBuildOutcome {
+    pub fn build_for_commit(&self, request: DerivedIndexBuildRequest) -> DerivedIndexBuildOutcome {
         let mut generations = Vec::new();
         let mut failed_indexes = Vec::new();
         let Some((version_id, source_branch_id)) =

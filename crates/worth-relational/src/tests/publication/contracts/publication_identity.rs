@@ -176,8 +176,14 @@ fn root_capture_sabotage_leaves_storage_index_history_and_reference_unchanged() 
     );
     assert_eq!(runtime.history.branch_cells_snapshot(), before_cells);
     assert_eq!(runtime.history.catalog_len(), before_catalog);
-    assert_eq!(runtime.history.recorded_commit_envelope_count(), before_envelopes);
-    assert_eq!(runtime.history.recorded_patch_position_count(), before_patch_index);
+    assert_eq!(
+        runtime.history.recorded_commit_envelope_count(),
+        before_envelopes
+    );
+    assert_eq!(
+        runtime.history.recorded_patch_position_count(),
+        before_patch_index
+    );
     assert_eq!(runtime.history.reserved_sequence_floors(), before_sequences);
 }
 
@@ -237,8 +243,14 @@ fn production_commit_root_capture_sabotage_precedes_durable_append_and_all_effec
     assert_eq!(runtime.history.branch_cells_snapshot(), before_cells);
     assert_eq!(runtime.history.catalog_len(), before_catalog);
     assert_eq!(runtime.durable_log().len(), before_durable);
-    assert_eq!(runtime.history.recorded_commit_envelope_count(), before_envelopes);
-    assert_eq!(runtime.history.recorded_patch_position_count(), before_patch_index);
+    assert_eq!(
+        runtime.history.recorded_commit_envelope_count(),
+        before_envelopes
+    );
+    assert_eq!(
+        runtime.history.recorded_patch_position_count(),
+        before_patch_index
+    );
     assert_eq!(runtime.history.reserved_sequence_floors(), before_sequences);
 }
 

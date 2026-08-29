@@ -365,10 +365,7 @@ pub(crate) fn apply_batches(batches: Vec<WorkerIntentBatch>) -> RelationalRuntim
     runtime
 }
 
-pub(crate) fn release_test_commit_snapshot(
-    runtime: &RelationalRuntime,
-    outcome: &CommitResult,
-) {
+pub(crate) fn release_test_commit_snapshot(runtime: &RelationalRuntime, outcome: &CommitResult) {
     runtime
         .snapshots()
         .release_snapshot(&outcome.snapshot)

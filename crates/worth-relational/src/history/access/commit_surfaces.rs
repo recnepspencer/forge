@@ -99,9 +99,7 @@ impl<'runtime> HistoryAccess<'runtime> {
                         self.runtime
                             .history
                             .recorded_commit_at_patch_position(position)
-                            .and_then(|commit_id| {
-                                self.runtime.history.commit_artifact(commit_id)
-                            })
+                            .and_then(|commit_id| self.runtime.history.commit_artifact(commit_id))
                             .map(|artifact| artifact.envelope().commit.clone())
                     })
             })

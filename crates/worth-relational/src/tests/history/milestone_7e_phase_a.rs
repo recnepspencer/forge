@@ -233,7 +233,11 @@ fn graft_disconnected_branch_head(runtime: &RelationalRuntime, branch_id: &Branc
 
     runtime
         .history
-        .with_ledger_mut(|ledger| ledger.commit_catalog.append_envelope(Arc::new(envelope.clone())))
+        .with_ledger_mut(|ledger| {
+            ledger
+                .commit_catalog
+                .append_envelope(Arc::new(envelope.clone()))
+        })
         .expect("disconnected artifact id is unique");
     let mut branch_cell =
         RelationalBranchReferenceCell::empty(runtime.runtime_instance_id(), branch_id.clone())

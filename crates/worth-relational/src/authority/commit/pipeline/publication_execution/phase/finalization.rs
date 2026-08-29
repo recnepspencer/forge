@@ -156,7 +156,7 @@ fn run_retention(
     timing: &mut crate::authority::commit::phases::finalize::PublicationPhaseTiming,
 ) {
     let started = std::time::Instant::now();
-    let mut retention = runtime.retention();
+    let retention = runtime.retention();
     retention.reconcile_changed_record_states(changed_records, version_id);
     retention.trim_live_history_for_records(changed_records, version_id);
     timing.retention_trim_micros = started.elapsed().as_micros() as u64;

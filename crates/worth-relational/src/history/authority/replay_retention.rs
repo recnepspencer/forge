@@ -12,10 +12,7 @@ use crate::visibility::snapshot_states::SnapshotState;
 use super::HistoryAuthority;
 
 impl<'runtime> HistoryAuthority<'runtime> {
-    pub fn retain_version_for_replay(
-        &self,
-        version_id: crate::identity::data::VersionId,
-    ) -> bool {
+    pub fn retain_version_for_replay(&self, version_id: crate::identity::data::VersionId) -> bool {
         if self
             .runtime
             .visibility
