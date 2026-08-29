@@ -231,8 +231,12 @@ pub(crate) fn join_paused_worker<T>(
 /// storm branch holds an owner-phase park. A worker runs it so the court can
 /// bound it: only a thread outside the commit can hold the completion receiver
 /// and convict serialization by name instead of hanging. The worker is scoped
-/// because the commit facade still takes the exclusive runtime receiver the
-/// court needs back; every failing exit opens the park before scope teardown.
+/// because it borrows the court-owned world in place: `std::thread::scope` is
+/// what lets that borrow cross the spawn without manufacturing `'static`
+/// ownership of the runtime. The `&mut` below is the supply-chain driver
+/// helper's own signature, not a demand of the commit facade, which takes a
+/// shared receiver. Scope teardown joins, so every failing exit opens the park
+/// before it returns.
 pub(crate) fn commit_unrelated_branch_while_paused(
     world: &mut ProductionSeededSupplyChainWorld,
     court: &OwnerPhaseCourtBranches,
