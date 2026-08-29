@@ -274,8 +274,8 @@ impl OwnerPhasePause {
 /// storm branch holds an owner-phase park. A worker runs it so the court can
 /// bound it: only a thread outside the commit can hold the completion receiver
 /// and convict serialization by name instead of hanging. The worker is scoped
-/// because the commit facade still takes the exclusive runtime receiver the
-/// court needs back; every failing exit opens the park before scope teardown.
+/// so the borrow it carries ends with the court's own frame; every failing exit
+/// opens the park before scope teardown.
 fn commit_unrelated_branch_while_paused(
     world: &mut ProductionSeededSupplyChainWorld,
     court: &OwnerPhaseCourtBranches,
@@ -286,7 +286,7 @@ fn commit_unrelated_branch_while_paused(
     let (finished, completion) = sync_channel(1);
     let branch = court.maintenance.clone();
     std::thread::scope(|scope| {
-        let runtime = &mut world.runtime;
+        let runtime = &world.runtime;
         let committer = scope.spawn(move || {
             let committed = commit_branch_batch_with_result(runtime, branch, batch);
             finished
