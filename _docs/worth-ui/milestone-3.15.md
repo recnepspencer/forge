@@ -2,8 +2,24 @@
 
 ## Status and Placement
 
-Status: Proposed. This document is the governing design for Milestone 3.15.
-Implementation has not begun.
+Status: Closed on 2026-08-29. Phases 1 through 7 are complete. This document
+remains the governing design and acceptance contract for Milestone 3.15.
+
+The integrated closeout source is `df9fc00908`. Native `RS-01`, protocol
+`RS-07`, the scheduled `RS-10` scale courtroom, public-facade and DSL
+contracts, the focused Pulse suites, formatting, dirty-set line caps, boundary
+checks, generated context checks, and documentation-link validation passed on
+that source. A product/design review of real native captures at the required
+960-by-600 and 1120-by-700 logical client sizes gave a defensible yes to the
+contemporary Linear-or-Notion quality bar: the shipped dark mosaic has a clear
+hierarchy, restrained palette, deliberate spacing, contained typography, and
+coherent truthful service regions. The automated visual contracts remain the
+structural oracle; this recorded judgment is the separate aesthetic gate they
+cannot replace.
+
+The later `Current Boundary and Exact Gap` section records the predecessor
+boundary frozen when this design was authored. It is historical design input,
+not a description of the present repository.
 
 Milestone 3.14 closed the path from native human input to one exactly admitted
 intent attempt and typed consequences. Milestone 3.15 adds the cross-cutting UI

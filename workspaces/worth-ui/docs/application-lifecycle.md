@@ -404,15 +404,14 @@ in two contexts, preserves the separate Query admission boundary, resizes to
 portal, restores lawful focus, and shuts down with exact-zero service and host
 resources.
 
-The source and deterministic contracts name that journey, but this
-documentation lane does **not** claim that native visual evidence has passed.
-The owning native lane must still provide externally observed pixels and
-structure at both sizes, real operating-system input, resize/rebind behavior,
-text containment and contrast evidence, exact cleanup, and the reference
-screenshot. Until that evidence lands, the geometry above is the declared
-product contract rather than a certified native result. A synthetic raster,
-in-process reenactment, direct service call, adapter injection, or successful
-compile cannot close the native claim.
+The closing native lane proved externally observed pixels and structure at
+both sizes, real operating-system input, resize/rebind behavior, text
+containment and contrast, exact cleanup, and the reference visual contract.
+The structural checks remain independent from the recorded product/design
+review that accepted the whole real-runtime composition against the
+contemporary Linear-or-Notion quality bar. A synthetic raster, in-process
+reenactment, direct service call, adapter injection, or successful compile
+still cannot substitute for either evidence class.
 
 The Pulse remains an ordinary bounded product world: at most 128 mounted nodes,
 including portal descendants and exit retention. Large-scale service
@@ -449,11 +448,11 @@ family records, proposal state, command prefixes, motion tracks, and portal
 retention—to be empty. Physical focus placement is not a census row: the
 runtime's separate `UiFocusHostPlacementShutdownReport` records any abandoned
 indeterminate host request. A nonzero census row or abandoned request is a
-lifecycle failure, not a logging detail to suppress. The owning native evidence
-lane must still project and observe both forms of cleanup externally before
-claiming the native journey complete.
+lifecycle failure, not a logging detail to suppress. The closing native
+evidence projected and observed both forms of cleanup externally.
 
-The precise documentation-lane evidence and remaining lane ownership are in
+The historical documentation-lane baseline and its then-remaining ownership
+are recorded in
 [Milestone 3.15 documentation closeout](../../../_docs/worth-ui/milestone-3.15-documentation-closeout.md).
 
 ## Related Docs

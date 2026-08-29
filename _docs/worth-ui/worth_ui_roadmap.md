@@ -2124,6 +2124,11 @@ with their raw pairs retained.
 
 Detailed spec: [milestone-3.15.md](./milestone-3.15.md)
 
+Status: Closed on 2026-08-29. Phases 1 through 7, the six public service
+families, the native `RS-01` journey, protocol `RS-07` portfolio, scheduled
+`RS-10` scale courtroom, cumulative Platform Pulse, and separate
+product/design quality judgment are complete.
+
 This slice closes the cross-cutting service lanes at production-ready common-
 case breadth before the certification vertical slice depends on them.
 
