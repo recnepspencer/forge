@@ -279,8 +279,10 @@ mod tests;
 #[cfg(feature = "certification-support")]
 mod certification_fixture;
 
-#[cfg(all(feature = "certification-support", not(test)))]
-pub(super) use certification_fixture::fixture_service_request_coherence;
+#[cfg(feature = "certification-support")]
+pub(super) use certification_fixture::{
+    fixture_application_generation, fixture_service_request_coherence_in,
+};
 
 #[cfg(test)]
 pub(super) use tests::{

@@ -359,15 +359,24 @@ impl UiServiceProposalOccupancyTable {
         self.neighborhoods.live_count()
     }
 
-    pub(super) const fn work_counters(&self) -> UiServiceProposalOccupancyWorkCounters {
-        self.work_counters
+    pub(super) fn neighborhood_count(&self) -> usize {
+        self.neighborhoods.neighborhood_count()
     }
 
-    pub(super) fn proposal_count(&self) -> u16 {
+    /// Counters are read from the index rather than mirrored, so a sweep charged
+    /// inside the index cannot be lost on the way out.
+    pub(super) fn work_counters(&self) -> UiServiceProposalOccupancyWorkCounters {
+        UiServiceProposalOccupancyWorkCounters {
+            proposal_requirements_visited: self.work_counters.proposal_requirements_visited,
+            unrelated_neighborhoods_touched: self.neighborhoods.foreign_neighborhoods_examined(),
+        }
+    }
+
+    pub(super) fn proposal_count(&mut self) -> u16 {
         self.neighborhoods.proposal_count()
     }
 
-    pub(super) fn before_effect_summary(&self) -> (Vec<super::UiServiceProposalIdentity>, u16) {
+    pub(super) fn before_effect_summary(&mut self) -> (Vec<super::UiServiceProposalIdentity>, u16) {
         self.neighborhoods.before_effect_summary()
     }
 

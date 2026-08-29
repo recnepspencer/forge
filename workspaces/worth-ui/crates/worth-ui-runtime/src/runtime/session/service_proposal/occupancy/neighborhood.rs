@@ -9,6 +9,12 @@ type NeighborhoodIndexKey = (
 pub(super) struct UiServiceProposalOccupancyNeighborhoodIndex {
     neighborhoods: HashMap<NeighborhoodIndexKey, UiServiceProposalOccupancyNeighborhood>,
     live_records: usize,
+    /// Neighborhood entries examined outside the operation's own
+    /// `(application, semantic surface)` key. Keyed access adds nothing; only a
+    /// full sweep does. An ordinary reserve, commit, or release must therefore
+    /// leave this at zero, and any future path that replaces a keyed lookup with
+    /// a sweep becomes visible here instead of silently amplifying.
+    foreign_neighborhoods_examined: u64,
 }
 
 #[derive(Debug)]
@@ -21,7 +27,24 @@ impl UiServiceProposalOccupancyNeighborhoodIndex {
         Self {
             neighborhoods: HashMap::new(),
             live_records: 0,
+            foreign_neighborhoods_examined: 0,
         }
+    }
+
+    pub(super) const fn foreign_neighborhoods_examined(&self) -> u64 {
+        self.foreign_neighborhoods_examined
+    }
+
+    pub(super) fn neighborhood_count(&self) -> usize {
+        self.neighborhoods.len()
+    }
+
+    /// Every full sweep charges the neighborhoods it examines beyond the one an
+    /// equivalent keyed access would have touched.
+    fn charge_sweep(&mut self) {
+        self.foreign_neighborhoods_examined = self
+            .foreign_neighborhoods_examined
+            .saturating_add(self.neighborhoods.len().saturating_sub(1) as u64);
     }
 
     pub(super) fn find(
@@ -100,7 +123,8 @@ impl UiServiceProposalOccupancyNeighborhoodIndex {
             .flat_map(|neighborhood| neighborhood.records.iter())
     }
 
-    pub(super) fn proposal_count(&self) -> u16 {
+    pub(super) fn proposal_count(&mut self) -> u16 {
+        self.charge_sweep();
         let mut proposals = Vec::new();
         for record in self.all_records() {
             if !proposals.contains(&record.proposal) {
@@ -111,8 +135,9 @@ impl UiServiceProposalOccupancyNeighborhoodIndex {
     }
 
     pub(super) fn before_effect_summary(
-        &self,
+        &mut self,
     ) -> (Vec<super::super::UiServiceProposalIdentity>, u16) {
+        self.charge_sweep();
         let mut proposals = Vec::new();
         let mut leases = 0_u16;
         for record in self
@@ -131,6 +156,7 @@ impl UiServiceProposalOccupancyNeighborhoodIndex {
         &mut self,
         proposals: &[super::super::UiServiceProposalIdentity],
     ) -> u16 {
+        self.charge_sweep();
         let mut released = 0_usize;
         for neighborhood in self.neighborhoods.values_mut() {
             let before = neighborhood.records.len();

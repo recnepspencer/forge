@@ -15,6 +15,17 @@ impl super::WorthUiActiveApplicationSession {
             portal.owner().mounted_instance_identity(),
             portal.diagnostic_value(),
         );
+        // Named gate: a target whose retained exit is still settling physically
+        // cannot accept a successor track, because committing one would displace
+        // a retention its pending terminal still owns.
+        if self
+            .portal_exit_retention
+            .physical_settlement_pending_for(target)
+        {
+            return Err(
+                crate::runtime::motion::UiMotionTransitionRequestDenial::ExitRetentionAwaitingPhysicalSettlement,
+            );
+        }
         let predecessor = self
             .portal
             .as_ref()

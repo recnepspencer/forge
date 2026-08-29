@@ -101,11 +101,11 @@ fn prove_focus_selection_settlement(
     compiler
         .advance_staging(
             &mut staging,
-            UiServiceProposalStageReceipt::focus_resolution(proposal, true),
+            UiServiceProposalStageReceipt::focus_resolution(proposal, Some(scope)),
         )
         .unwrap();
     let batch = compiler.finish_staging(staging).unwrap();
-    assert!(batch.reveal_refinement());
+    assert_eq!(batch.reveal_refinement(), Some(scope));
     assert_eq!(batch.fact_references().len(), 3);
     assert_eq!(scroll.requirement(), reveal);
     assert_eq!(selection.delta().added(), &[key]);

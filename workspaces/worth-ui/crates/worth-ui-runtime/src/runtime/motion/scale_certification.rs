@@ -1,4 +1,18 @@
-pub(crate) fn motion_scale_evidence() -> (u64, u64, u64, bool) {
+/// Motion scale evidence for `RS-10`.
+///
+/// `inactive_tracks_sampled` is measured on the **same populated sampler** after
+/// its tracks complete, so it can only stay zero if inactive retention truly
+/// performs no per-frame work.
+pub(crate) struct UiMotionScaleEvidence {
+    pub(crate) active_tracks: u64,
+    pub(crate) tracks_sampled: u64,
+    pub(crate) inactive_tracks_sampled: u64,
+    pub(crate) retained_inactive_tracks: u64,
+    pub(crate) completed_terminals: u64,
+    pub(crate) terminal_resources_zero: bool,
+}
+
+pub(crate) fn motion_scale_evidence() -> UiMotionScaleEvidence {
     let frame = worth_ui_host_contract::UiMountedFrameIdentity::mint_unbound().unwrap();
     let semantic_surface =
         worth_ui_host_contract::UiSemanticSurfaceIdentity::mint_unbound().unwrap();
@@ -59,24 +73,41 @@ pub(crate) fn motion_scale_evidence() -> (u64, u64, u64, bool) {
         .expect("active motion tick prepares");
     let sampled = sampler.commit_prepared(prepared);
     let tracks_considered = sampled.cost().tracks_considered();
-    let mut inactive =
-        crate::mounting::presentation::motion_sampling::UiMountedMotionSampler::default();
-    let inactive_tick = inactive
-        .prepare_tick(1, presentation)
-        .expect("inactive tick is valid");
-    let inactive_work = inactive
+
+    // Drive every track past its declared duration so the same populated sampler
+    // still retains all sixty-four tracks while none of them remains active. A
+    // later tick must then consider zero: inactive retention costs no per-frame
+    // work. Measuring an empty sampler would prove nothing about retention.
+    let completing = sampler
+        .prepare_tick(
+            u64::from(super::UiMotionDeclaration::portal_entrance().duration_ticks()) + 2,
+            presentation,
+        )
+        .expect("completing motion tick prepares");
+    let completed = sampler.commit_prepared(completing);
+    let completed_terminals = completed.terminals().len() as u64;
+    let inactive_tick = sampler
+        .prepare_tick(
+            u64::from(super::UiMotionDeclaration::portal_entrance().duration_ticks()) + 3,
+            presentation,
+        )
+        .expect("retained inactive tick is valid");
+    let inactive_work = sampler
         .commit_prepared(inactive_tick)
         .cost()
         .tracks_considered();
+    let retained_inactive_tracks = sampler.retained_track_count() as u64;
     let active_tracks = state.census().active_tracks() as u64;
     let owner_shutdown = state.shutdown().final_census().is_zero();
     let sampler_released = sampler.shutdown() == 64;
-    (
+    UiMotionScaleEvidence {
         active_tracks,
-        tracks_considered,
-        inactive_work,
-        owner_shutdown && sampler_released,
-    )
+        tracks_sampled: tracks_considered,
+        inactive_tracks_sampled: inactive_work,
+        retained_inactive_tracks,
+        completed_terminals,
+        terminal_resources_zero: owner_shutdown && sampler_released,
+    }
 }
 
 fn geometry(components: [f32; 4]) -> Option<super::UiMotionSemanticGeometry> {

@@ -131,6 +131,8 @@ fn two_stroke_prefix_denies_context_drift_and_expiry() {
         ),
         super::UiCommandRoutingOutcome::AwaitingPrefix(_)
     ));
+    // The drifted prefix is discarded, and the stroke the caller just pressed is
+    // resolved on its own merits rather than being swallowed with it.
     assert_eq!(
         drifted.route_stroke(
             second,
@@ -140,9 +142,7 @@ fn two_stroke_prefix_denies_context_drift_and_expiry() {
                 .with_portals(Box::new([scope_identity()]), 1),
             &generation,
         ),
-        super::UiCommandRoutingOutcome::Suppressed(
-            super::UiCommandRoutingSuppression::PrefixContextChanged
-        )
+        super::UiCommandRoutingOutcome::Unmatched
     );
 
     let mut expired = state(vec![candidate(
@@ -167,10 +167,49 @@ fn two_stroke_prefix_denies_context_drift_and_expiry() {
             expiry_context.with_time_basis_for_test(1_011),
             &generation,
         ),
-        super::UiCommandRoutingOutcome::Suppressed(
-            super::UiCommandRoutingSuppression::PrefixExpired
-        )
+        super::UiCommandRoutingOutcome::Unmatched
     );
+}
+
+#[test]
+fn an_expired_prefix_does_not_swallow_the_next_single_stroke_command() {
+    let first = stroke(UiCommandKeyCode::K);
+    let second = stroke(UiCommandKeyCode::S);
+    let generation = generation(26);
+    let mut state = state(vec![
+        candidate(
+            "command.two.stroke",
+            UiCommandShortcutSequence::two_stroke(first, second),
+            UiCommandRouteScope::Application,
+        ),
+        candidate(
+            "command.single.stroke",
+            single(UiCommandKeyCode::S),
+            UiCommandRouteScope::Application,
+        ),
+    ]);
+    let base = context();
+
+    assert!(matches!(
+        state.route_stroke(
+            first,
+            false,
+            base.clone().with_time_basis_for_test(10),
+            &generation,
+        ),
+        super::UiCommandRoutingOutcome::AwaitingPrefix(_)
+    ));
+
+    let super::UiCommandRoutingOutcome::Routed(receipt) = state.route_stroke(
+        second,
+        false,
+        base.with_time_basis_for_test(1_011),
+        &generation,
+    ) else {
+        panic!("an expired prefix must release the stroke to its own single-stroke route");
+    };
+    assert_eq!(receipt.command().as_str(), "command.single.stroke");
+    assert_eq!(state.resource_counts().1, 0, "the prefix is released");
 }
 
 #[test]

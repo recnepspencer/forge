@@ -22,9 +22,13 @@ impl super::WorthUiActiveApplicationSession {
             return;
         };
         if let Some(displaced) = receipt.displaced_exit_retention() {
+            // `prepare_portal_motion_request` refuses a successor transition whose
+            // target still owns physically pending exit work, so any retention
+            // reaching displacement here is either unsettled or awaiting retry and
+            // is therefore removable.
             self.portal_exit_retention
                 .remove_displaced(displaced)
-                .expect("Motion interruption displaces its exact portal exit coordination");
+                .expect("the physical-settlement gate admits only removable displaced exits");
         }
         let installation = self
             .mounted

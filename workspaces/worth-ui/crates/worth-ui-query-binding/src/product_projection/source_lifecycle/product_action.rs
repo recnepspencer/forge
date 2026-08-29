@@ -50,15 +50,18 @@ pub enum WorthUiScalarProjectionActionOutcome {
     Indeterminate(WorthUiScalarProjectionActionIndeterminate),
 }
 
-/// Exact Query-side admission reason for a product projection action.
+/// Binding-local optimistic-concurrency precondition that a product projection
+/// action must satisfy **before** the owner submits any Query work. This is not
+/// a Query admission outcome: when it fires, Query is never asked. A denial that
+/// Query itself owns would arrive through the execution path instead.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum WorthUiScalarProjectionActionDenial {
+pub enum WorthUiScalarProjectionActionPreconditionDenial {
     SourceRevisionMismatch,
 }
 
 pub struct WorthUiScalarProjectionActionDenied {
     owner: WorthUiScalarProjectionActionLiveOwner,
-    denial: WorthUiScalarProjectionActionDenial,
+    denial: WorthUiScalarProjectionActionPreconditionDenial,
     active_revision: u64,
     submitted_revision: u64,
 }
@@ -189,7 +192,7 @@ impl WorthUiScalarProjectionActionLiveOwner {
                 WorthUiScalarProjectionActionDenied {
                     active_revision: self.inner.revision,
                     submitted_revision: request.source_revision,
-                    denial: WorthUiScalarProjectionActionDenial::SourceRevisionMismatch,
+                    denial: WorthUiScalarProjectionActionPreconditionDenial::SourceRevisionMismatch,
                     owner: self,
                 },
             );
@@ -247,7 +250,7 @@ impl WorthUiScalarProjectionActionEvidence {
 }
 
 impl WorthUiScalarProjectionActionDenied {
-    pub const fn denial(&self) -> WorthUiScalarProjectionActionDenial {
+    pub const fn denial(&self) -> WorthUiScalarProjectionActionPreconditionDenial {
         self.denial
     }
 

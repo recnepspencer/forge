@@ -2,10 +2,11 @@ use serde::{Deserialize, Serialize};
 
 use super::PlatformPulseIntentAttemptObservationReference;
 
-/// Audience-safe projection of the exact Query-owned action-admission denial
-/// exercised by the Pulse product scenario.
+/// Audience-safe projection of the exact binding-local precondition that stopped
+/// a Query-backed product action before any Query work was submitted. It is not
+/// a Query-owned admission denial and must not be read as one.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub enum PlatformPulseQueryAdmissionDenial {
+pub enum PlatformPulseQueryActionPreconditionDenial {
     SourceRevisionMismatch,
 }
 
@@ -23,7 +24,7 @@ pub enum PlatformPulseQueryActionObservation {
     Denied {
         reference: PlatformPulseIntentAttemptObservationReference,
         action_input_revision: u64,
-        denial: PlatformPulseQueryAdmissionDenial,
+        denial: PlatformPulseQueryActionPreconditionDenial,
         active_query_source_revision: u64,
         submitted_query_source_revision: u64,
     },
@@ -38,12 +39,12 @@ pub enum PlatformPulseQueryActionObservation {
     },
 }
 
-impl PlatformPulseQueryAdmissionDenial {
-    pub fn from_query(
-        denial: worth_ui::facade::query_binding::WorthUiScalarProjectionActionDenial,
+impl PlatformPulseQueryActionPreconditionDenial {
+    pub fn from_projection(
+        denial: worth_ui::facade::query_binding::WorthUiScalarProjectionActionPreconditionDenial,
     ) -> Self {
         match denial {
-            worth_ui::facade::query_binding::WorthUiScalarProjectionActionDenial::SourceRevisionMismatch => {
+            worth_ui::facade::query_binding::WorthUiScalarProjectionActionPreconditionDenial::SourceRevisionMismatch => {
                 Self::SourceRevisionMismatch
             }
         }
@@ -69,14 +70,14 @@ impl PlatformPulseQueryActionObservation {
     pub fn denied(
         reference: crate::intent::PlatformPulseActionAttemptReference,
         action_input_revision: crate::intent::PlatformPulseActionInputRevision,
-        denial: worth_ui::facade::query_binding::WorthUiScalarProjectionActionDenial,
+        denial: worth_ui::facade::query_binding::WorthUiScalarProjectionActionPreconditionDenial,
         active_query_source_revision: u64,
         submitted_query_source_revision: u64,
     ) -> Self {
         Self::Denied {
             reference: PlatformPulseIntentAttemptObservationReference::from_product(reference),
             action_input_revision: action_input_revision.value(),
-            denial: PlatformPulseQueryAdmissionDenial::from_query(denial),
+            denial: PlatformPulseQueryActionPreconditionDenial::from_projection(denial),
             active_query_source_revision,
             submitted_query_source_revision,
         }

@@ -50,8 +50,9 @@ pub(crate) struct PlatformPulseApplicationRuntime {
     intent_gate: Option<worth_ui_platform_pulse::intent::PlatformPulseExecutorGate>,
     intent_action_owner: Option<worth_ui_platform_pulse::intent::PlatformPulseActionPortOwner>,
     pending_query_actions: Vec<PlatformPulsePendingQueryAction>,
-    pending_query_denial_story:
-        Option<worth_ui_platform_pulse::observation_contract::PlatformPulseQueryAdmissionDenial>,
+    pending_query_denial_story: Option<
+        worth_ui_platform_pulse::observation_contract::PlatformPulseQueryActionPreconditionDenial,
+    >,
     pending_frame_presentation: Option<PlatformPulsePendingFramePresentation>,
     pending_managed_rebind: Option<PlatformPulsePendingManagedRebind>,
     pending_intent_postures: std::collections::VecDeque<intent::PlatformPulsePreparedIntentPosture>,
@@ -103,7 +104,7 @@ impl PlatformPulseApplicationRuntime {
     fn publish_query_denial_story(
         &mut self,
         shell: &mut WorthUiNativeApplicationShell,
-        denial: worth_ui_platform_pulse::observation_contract::PlatformPulseQueryAdmissionDenial,
+        denial: worth_ui_platform_pulse::observation_contract::PlatformPulseQueryActionPreconditionDenial,
     ) -> bool {
         match self.product_story.publish_query_denial(shell, denial) {
             Ok(()) => true,

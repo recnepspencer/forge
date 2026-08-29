@@ -222,12 +222,11 @@ pub(crate) fn run_headless_runtime_service_scenario() -> HeadlessRuntimeServiceE
                 && dismissed.closing_portals() == 1,
             focus_restored_to_previous: restored_focus.current_participant()
                 == focus_before.current_participant(),
-            duplicate_was_idempotent: matches!(
-                duplicate,
-                UiPortalDismissalCertificationOutcome::Ignored
-                    | UiPortalDismissalCertificationOutcome::Published
-            ) && after_duplicate.active_portals()
-                == dismissed.active_portals()
+            // The exact outcome, not a set of tolerated ones. A second dismissal
+            // cause reaching an already-closing portal republishes its close and
+            // must leave every portal posture count unchanged.
+            duplicate_was_idempotent: duplicate == UiPortalDismissalCertificationOutcome::Published
+                && after_duplicate.active_portals() == dismissed.active_portals()
                 && after_duplicate.open_portals() == dismissed.open_portals()
                 && after_duplicate.visible_portals() == dismissed.visible_portals()
                 && after_duplicate.closing_portals() == dismissed.closing_portals(),

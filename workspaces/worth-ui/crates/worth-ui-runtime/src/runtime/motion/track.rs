@@ -66,6 +66,11 @@ impl UiMotionTrackIdentity {
         NonZeroU64::new(value).map(Self)
     }
 
+    #[cfg(test)]
+    pub(crate) fn for_test(value: u64) -> Self {
+        Self(NonZeroU64::new(value).expect("test motion track identity must be non-zero"))
+    }
+
     pub(crate) const fn diagnostic_value(self) -> u64 {
         self.0.get()
     }

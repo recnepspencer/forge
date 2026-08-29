@@ -72,6 +72,7 @@ fn sixty_four_independent_neighborhoods_have_linear_local_work_and_zero_residue(
     let counters = compiler.occupancy_work_counters();
     assert_eq!(counters.proposal_requirements_visited(), 384);
     assert_eq!(counters.unrelated_neighborhoods_touched(), 0);
+    assert_eq!(compiler.live_neighborhood_count(), 64);
     assert_eq!(independent_model.len(), 64);
 
     let overflow_coherence = coherence_in_fresh_surface(&base_coherence);
@@ -102,6 +103,61 @@ fn sixty_four_independent_neighborhoods_have_linear_local_work_and_zero_residue(
     assert!(compiler.census().is_zero());
     assert_eq!(compiler.live_occupancy_count(), 0);
     assert_eq!(compiler.live_cancellation_count(), 0);
+}
+
+/// The foreign-neighborhood counter is not structurally pinned to zero: a path
+/// that sweeps the index instead of keying into its own neighborhood charges
+/// every other neighborhood it examined. Without this probe, the `RS-10`
+/// assertion that an ordinary reserve touches zero would be unfalsifiable.
+#[test]
+fn foreign_neighborhood_work_is_observable_and_not_pinned_to_zero() {
+    let mut compiler = super::UiServiceProposalCompiler::new();
+    let support = all_service_support();
+    let base = super::super::fixture_service_request_coherence(700);
+    let mut reservations = Vec::new();
+    for index in 0..3_u64 {
+        let coherence = coherence_in_fresh_surface(&base);
+        let preflighted = compiler
+            .preflight(
+                six_family_candidate(7_000 + index, index + 1, &coherence),
+                &coherence,
+                support,
+            )
+            .unwrap();
+        match compiler.reserve(preflighted).unwrap() {
+            super::UiServiceProposalReservationOutcome::Reserved(reservation) => {
+                reservations.push(reservation);
+            }
+            super::UiServiceProposalReservationOutcome::Coalesced { .. } => unreachable!(),
+        }
+    }
+
+    assert_eq!(compiler.live_neighborhood_count(), 3);
+    assert_eq!(
+        compiler
+            .occupancy_work_counters()
+            .unrelated_neighborhoods_touched(),
+        0,
+        "keyed reserves examine only their own neighborhood"
+    );
+
+    let before = compiler
+        .occupancy_work_counters()
+        .unrelated_neighborhoods_touched();
+    compiler
+        .shutdown_all_before_effect()
+        .expect("before-effect shutdown sweeps and releases every neighborhood");
+    let after = compiler
+        .occupancy_work_counters()
+        .unrelated_neighborhoods_touched();
+
+    assert!(
+        after > before,
+        "a full index sweep must move the foreign-neighborhood counter"
+    );
+    for reservation in reservations {
+        core::mem::drop(reservation);
+    }
 }
 
 fn coherence_in_fresh_surface(

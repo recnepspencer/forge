@@ -120,8 +120,17 @@ fn installed_command_family_exposes_only_its_normalized_policy() {
     drop(session.shutdown());
 }
 
+/// A portal destination demands the Scroll owner that owns its focus reveal.
+///
+/// The Focus owner may emit exactly one reveal requirement against a portal
+/// successor, and Scroll owns that decision. Installing Portal, Focus, and
+/// Motion while leaving the reveal to whichever owner a scrolling Mosaic region
+/// happened to install would compile a proposal whose reveal has no owner, no
+/// occupancy lease, and no settlement acknowledgement. The Scroll owner
+/// installed here is the reveal participant; it registers no scroll region and
+/// performs no per-frame work until one exists.
 #[test]
-fn default_focus_reveal_does_not_install_undeclared_scroll() {
+fn a_portal_destination_installs_the_scroll_owner_that_owns_its_focus_reveal() {
     let app = WorthUi::app()
         .with_change_profile(UiChangeProfile::platform_pulse())
         .register_runtime_service_intent_definition(
@@ -134,18 +143,22 @@ fn default_focus_reveal_does_not_install_undeclared_scroll() {
         .expect("portal service policy normalizes");
     let plan = app.service_policy_plan();
 
-    assert_eq!(plan.installed_family_count(), 3);
+    assert_eq!(plan.installed_family_count(), 4);
     assert!(plan.portal().is_some());
     assert!(plan.focus().is_some());
     assert!(plan.motion().is_some());
-    assert_eq!(plan.scroll(), None);
+    assert!(plan.scroll().is_some());
+    assert_eq!(plan.selection(), None);
+    assert_eq!(plan.command_routing(), None);
     let session = launch_headless(app);
     let installed = session.inspect_runtime_service_installation_for_certification();
-    assert_eq!(installed.installed_family_count(), 3);
+    assert_eq!(installed.installed_family_count(), 4);
     assert!(installed.portal());
     assert!(installed.focus());
     assert!(installed.motion());
-    assert!(!installed.scroll());
+    assert!(installed.scroll());
+    assert!(!installed.selection());
+    assert!(!installed.command_routing());
     drop(session.shutdown());
 }
 

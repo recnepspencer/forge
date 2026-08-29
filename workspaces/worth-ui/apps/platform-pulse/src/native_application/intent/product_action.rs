@@ -86,7 +86,7 @@ impl PlatformPulseApplicationRuntime {
                     submitted_query_source_revision,
                 }) => {
                     let audience_denial = worth_ui_platform_pulse::observation_contract::
-                        PlatformPulseQueryAdmissionDenial::from_query(denial);
+                        PlatformPulseQueryActionPreconditionDenial::from_projection(denial);
                     if self
                         .pending_query_denial_story
                         .replace(audience_denial)

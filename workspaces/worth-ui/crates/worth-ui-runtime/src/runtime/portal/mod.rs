@@ -19,6 +19,8 @@ mod transition;
 #[cfg(test)]
 mod state_dismissal_tests;
 #[cfg(test)]
+mod state_retention_tests;
+#[cfg(test)]
 mod state_tests;
 
 pub(crate) use dismissal::{

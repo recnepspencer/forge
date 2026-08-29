@@ -49,6 +49,10 @@ pub(crate) enum UiMotionTransitionRequestDenial {
     SurfaceChanged,
     BindingChangedWithoutRebind,
     GeometryCoordinateSpaceChanged,
+    /// This target's retained exit has issued physical work that has not
+    /// settled. A successor transition would displace that retention while its
+    /// terminal is still in flight, so the request is refused before effect.
+    ExitRetentionAwaitingPhysicalSettlement,
 }
 
 impl UiMotionTargetIdentity {

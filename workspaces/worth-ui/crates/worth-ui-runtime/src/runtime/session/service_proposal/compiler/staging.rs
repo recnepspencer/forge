@@ -5,8 +5,12 @@ pub(in crate::runtime) enum UiServiceProposalStageIssuer {
         scope: super::super::UiServiceProposalOccupancyScopeIdentity,
     },
     ExistingPreparation,
+    /// The Focus owner resolved against the assembled successor. When it emitted
+    /// its one lawful reveal refinement, the witness names the exact Scroll owner
+    /// scope that replanned for it; the compiler verifies that owner is a
+    /// participating family at that exact scope before the batch may advance.
     FocusOwner {
-        reveal_refinement: bool,
+        reveal_refinement: Option<super::super::UiServiceProposalOccupancyScopeIdentity>,
     },
     MotionOwner,
 }
@@ -30,7 +34,7 @@ pub(in crate::runtime) struct UiServiceProposalStaging {
     fact_references: Vec<super::UiServiceProducedFactReference>,
     mounted_work_references: Vec<super::UiServiceMountedWorkReference>,
     retained_receipts: u16,
-    reveal_refinement: bool,
+    reveal_refinement: Option<super::super::UiServiceProposalOccupancyScopeIdentity>,
 }
 
 #[must_use]
@@ -43,7 +47,7 @@ pub(in crate::runtime) struct UiServiceProposalStagedBatch {
     mounted_work_references: Box<[super::UiServiceMountedWorkReference]>,
     digest: u64,
     retained_receipts: u16,
-    reveal_refinement: bool,
+    reveal_refinement: Option<super::super::UiServiceProposalOccupancyScopeIdentity>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -57,6 +61,9 @@ pub(in crate::runtime) enum UiServiceProposalStagingDenial {
     NonParticipatingFamily,
     ScopeWidening,
     DuplicateFamilyWitness,
+    /// The Focus owner claimed a reveal refinement without a participating Scroll
+    /// owner at the exact staged scope, so no owner replanned for it.
+    UnbackedRevealRefinement,
     ReferenceFamilyMismatch,
     ReferenceScopeMismatch,
     ReferenceBudgetMismatch,
@@ -82,7 +89,7 @@ impl UiServiceProposalStaging {
             fact_references: Vec::new(),
             mounted_work_references: Vec::new(),
             retained_receipts: 0,
-            reveal_refinement: false,
+            reveal_refinement: None,
         }
     }
 
@@ -117,19 +124,19 @@ impl UiServiceProposalStaging {
                 }
             }
             super::UiServiceProposalStage::AssembleSuccessor => {
-                require_empty_references(&receipt)?;
+                receipt::require_empty_references(&receipt)?;
                 if receipt.issuer != UiServiceProposalStageIssuer::ExistingPreparation {
                     return Err(UiServiceProposalStagingDenial::WrongIssuer);
                 }
                 self.next_stage = self.next_owner_stage_after_assembly();
             }
             super::UiServiceProposalStage::ResolveFocusAndReveal => {
-                require_empty_references(&receipt)?;
+                receipt::require_empty_references(&receipt)?;
                 let UiServiceProposalStageIssuer::FocusOwner { reveal_refinement } = receipt.issuer
                 else {
                     return Err(UiServiceProposalStagingDenial::WrongIssuer);
                 };
-                self.reveal_refinement = reveal_refinement;
+                self.accept_reveal_refinement(reveal_refinement)?;
                 self.next_stage = if self
                     .candidate
                     .demand()
@@ -142,7 +149,7 @@ impl UiServiceProposalStaging {
                 };
             }
             super::UiServiceProposalStage::DeriveMotion => {
-                require_empty_references(&receipt)?;
+                receipt::require_empty_references(&receipt)?;
                 if receipt.issuer != UiServiceProposalStageIssuer::MotionOwner {
                     return Err(UiServiceProposalStagingDenial::WrongIssuer);
                 }
@@ -155,6 +162,15 @@ impl UiServiceProposalStaging {
             }
         }
         self.retained_receipts = retained_receipts;
+        Ok(())
+    }
+
+    fn accept_reveal_refinement(
+        &mut self,
+        reveal_refinement: Option<super::super::UiServiceProposalOccupancyScopeIdentity>,
+    ) -> Result<(), UiServiceProposalStagingDenial> {
+        self.reveal_refinement =
+            reveal_refinement::admit(&self.candidate, self.staged_families, reveal_refinement)?;
         Ok(())
     }
 
@@ -208,7 +224,7 @@ impl UiServiceProposalStaging {
         if family_proposal.scope() != scope {
             return Err(UiServiceProposalStagingDenial::ScopeWidening);
         }
-        validate_references(family, scope, &receipt)?;
+        receipt::validate_references(family, scope, &receipt)?;
         if receipt.fact_references.len() != usize::from(family_proposal.fact_references())
             || receipt.mounted_work_references.len()
                 != usize::from(family_proposal.mounted_work_references())
@@ -285,7 +301,11 @@ impl UiServiceProposalStagedBatch {
         self.digest
     }
 
-    pub(in crate::runtime) const fn reveal_refinement(&self) -> bool {
+    /// The exact Scroll owner scope that replanned for the Focus owner's one
+    /// lawful reveal refinement, when one was emitted.
+    pub(in crate::runtime) const fn reveal_refinement(
+        &self,
+    ) -> Option<super::super::UiServiceProposalOccupancyScopeIdentity> {
         self.reveal_refinement
     }
 
@@ -323,52 +343,19 @@ pub(super) struct UiServiceProposalTerminalParts {
     pub(super) owners_requiring_discard: super::super::UiServiceFamilyParticipation,
 }
 
-fn require_empty_references(
-    receipt: &UiServiceProposalStageReceipt,
-) -> Result<(), UiServiceProposalStagingDenial> {
-    if receipt.fact_references.is_empty() && receipt.mounted_work_references.is_empty() {
-        Ok(())
-    } else {
-        Err(UiServiceProposalStagingDenial::UnexpectedReferences)
-    }
-}
-
-fn validate_references(
-    family: crate::capability::UiRuntimeServiceFamily,
-    scope: super::super::UiServiceProposalOccupancyScopeIdentity,
-    receipt: &UiServiceProposalStageReceipt,
-) -> Result<(), UiServiceProposalStagingDenial> {
-    if receipt
-        .fact_references
-        .iter()
-        .any(|reference| reference.family() != family)
-        || receipt
-            .mounted_work_references
-            .iter()
-            .any(|reference| reference.family() != family)
-    {
-        return Err(UiServiceProposalStagingDenial::ReferenceFamilyMismatch);
-    }
-    if receipt
-        .fact_references
-        .iter()
-        .any(|reference| reference.scope() != scope)
-        || receipt
-            .mounted_work_references
-            .iter()
-            .any(|reference| reference.scope() != scope)
-    {
-        return Err(UiServiceProposalStagingDenial::ReferenceScopeMismatch);
-    }
-    Ok(())
-}
-
 #[path = "staging/digest.rs"]
 mod digest;
 use digest::staged_batch_digest;
 
 #[path = "staging/receipt.rs"]
 mod receipt;
+
+#[path = "staging/reveal_refinement.rs"]
+mod reveal_refinement;
+
+#[cfg(test)]
+#[path = "staging/reveal_refinement_tests.rs"]
+mod reveal_refinement_tests;
 
 #[cfg(test)]
 #[path = "staging/tests.rs"]

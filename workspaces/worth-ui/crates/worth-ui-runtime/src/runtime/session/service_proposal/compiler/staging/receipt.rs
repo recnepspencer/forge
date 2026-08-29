@@ -29,7 +29,7 @@ impl super::UiServiceProposalStageReceipt {
 
     pub(in crate::runtime) fn focus_resolution(
         proposal: super::super::UiServiceProposalIdentity,
-        reveal_refinement: bool,
+        reveal_refinement: Option<super::super::super::UiServiceProposalOccupancyScopeIdentity>,
     ) -> Self {
         Self {
             proposal,
@@ -83,4 +83,46 @@ impl super::UiServiceProposalStageReceipt {
             mounted_work_references: Box::new([]),
         }
     }
+}
+
+/// Reference validation for one staged owner witness: a witness may only carry
+/// facts and mounted work for its own family at its own staged scope.
+pub(super) fn require_empty_references(
+    receipt: &super::UiServiceProposalStageReceipt,
+) -> Result<(), super::UiServiceProposalStagingDenial> {
+    if receipt.fact_references.is_empty() && receipt.mounted_work_references.is_empty() {
+        Ok(())
+    } else {
+        Err(super::UiServiceProposalStagingDenial::UnexpectedReferences)
+    }
+}
+
+pub(super) fn validate_references(
+    family: crate::capability::UiRuntimeServiceFamily,
+    scope: super::super::super::UiServiceProposalOccupancyScopeIdentity,
+    receipt: &super::UiServiceProposalStageReceipt,
+) -> Result<(), super::UiServiceProposalStagingDenial> {
+    if receipt
+        .fact_references
+        .iter()
+        .any(|reference| reference.family() != family)
+        || receipt
+            .mounted_work_references
+            .iter()
+            .any(|reference| reference.family() != family)
+    {
+        return Err(super::UiServiceProposalStagingDenial::ReferenceFamilyMismatch);
+    }
+    if receipt
+        .fact_references
+        .iter()
+        .any(|reference| reference.scope() != scope)
+        || receipt
+            .mounted_work_references
+            .iter()
+            .any(|reference| reference.scope() != scope)
+    {
+        return Err(super::UiServiceProposalStagingDenial::ReferenceScopeMismatch);
+    }
+    Ok(())
 }

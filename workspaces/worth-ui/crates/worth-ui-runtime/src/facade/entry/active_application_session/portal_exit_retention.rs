@@ -115,8 +115,12 @@ impl UiPortalExitRetentionCoordinator {
             .as_ref()
             .is_some_and(|pending| pending.track() == motion.track())
         {
+            // Same single predicate the displacement gate reads, so a retention
+            // the gate admits is always removable here.
             match self.pending.take() {
-                Some(UiPortalExitTerminalPending::Retry(_)) => {}
+                Some(pending)
+                    if pending.physical_posture()
+                        == UiPortalExitTerminalPhysicalPosture::RetryableBeforeEffect => {}
                 Some(pending) => {
                     self.pending = Some(pending);
                     return Err(());
@@ -156,19 +160,52 @@ impl UiPortalExitRetentionCoordinator {
         self.pending.is_some() || self.next_terminal().is_some()
     }
 
+    /// True when a retained exit for this Motion target has issued physical work
+    /// that has not settled. Displacing that retention would strand the pending
+    /// terminal, so a new transition for the same target must be denied before
+    /// effect rather than committed and then discovered as unremovable.
+    pub(super) fn physical_settlement_pending_for(
+        &self,
+        target: crate::runtime::motion::UiMotionTargetIdentity,
+    ) -> bool {
+        let Some(pending) = self.pending.as_ref().filter(|pending| {
+            pending.physical_posture()
+                == UiPortalExitTerminalPhysicalPosture::AwaitingPhysicalSettlement
+        }) else {
+            return false;
+        };
+        self.retentions
+            .get(&pending.track())
+            .is_some_and(|retention| retention.motion.target() == target)
+    }
+
     pub(super) fn awaits_physical_progress(&self) -> bool {
-        matches!(
-            self.pending,
-            Some(
-                UiPortalExitTerminalPending::InFlight { .. }
-                    | UiPortalExitTerminalPending::Indeterminate { .. }
-                    | UiPortalExitTerminalPending::Reconstruction { .. }
-            )
-        )
+        self.pending.as_ref().is_some_and(|pending| {
+            pending.physical_posture()
+                == UiPortalExitTerminalPhysicalPosture::AwaitingPhysicalSettlement
+        })
     }
 }
 
+/// Whether a pending portal exit terminal still owns issued physical work. This
+/// single classification governs displacement admission, displacement removal,
+/// and host wake readiness so they cannot drift apart.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum UiPortalExitTerminalPhysicalPosture {
+    RetryableBeforeEffect,
+    AwaitingPhysicalSettlement,
+}
+
 impl UiPortalExitTerminalPending {
+    pub(super) const fn physical_posture(&self) -> UiPortalExitTerminalPhysicalPosture {
+        match self {
+            Self::Retry(_) => UiPortalExitTerminalPhysicalPosture::RetryableBeforeEffect,
+            Self::InFlight { .. } | Self::Indeterminate { .. } | Self::Reconstruction { .. } => {
+                UiPortalExitTerminalPhysicalPosture::AwaitingPhysicalSettlement
+            }
+        }
+    }
+
     pub(super) const fn track(&self) -> crate::runtime::motion::UiMotionTrackIdentity {
         match self {
             Self::Retry(track)
@@ -214,6 +251,55 @@ impl UiPortalExitTerminalPending {
             }
             Self::Retry(_) => false,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        UiPortalExitRetentionCoordinator, UiPortalExitTerminalPending,
+        UiPortalExitTerminalPhysicalPosture,
+    };
+
+    /// The classification is one exhaustive match, so a new pending variant
+    /// cannot be added without deciding whether it owns physical work. That
+    /// exhaustiveness is what keeps the displacement gate and the displacement
+    /// removal from drifting apart.
+    #[test]
+    fn only_a_retryable_pending_admits_exit_displacement() {
+        let track = crate::runtime::motion::UiMotionTrackIdentity::for_test(1);
+
+        assert_eq!(
+            UiPortalExitTerminalPending::Retry(track).physical_posture(),
+            UiPortalExitTerminalPhysicalPosture::RetryableBeforeEffect
+        );
+    }
+
+    #[test]
+    fn an_idle_coordinator_blocks_no_target_and_awaits_no_physical_work() {
+        let coordinator = UiPortalExitRetentionCoordinator::new();
+        let target = crate::runtime::motion::UiMotionTargetIdentity::from_family_owner(
+            worth_ui_host_contract::UiSemanticSurfaceIdentity::mint_unbound()
+                .expect("fixture semantic surface"),
+            worth_ui_host_contract::UiMountedInstanceIdentity::mint_unbound()
+                .expect("fixture mounted instance"),
+            7,
+        );
+
+        assert!(!coordinator.physical_settlement_pending_for(target));
+        assert!(!coordinator.awaits_physical_progress());
+        assert_eq!(coordinator.resource_counts(), (0, 0));
+    }
+
+    #[test]
+    fn a_retryable_pending_awaits_no_physical_progress() {
+        let mut coordinator = UiPortalExitRetentionCoordinator::new();
+        coordinator.retain_pending(UiPortalExitTerminalPending::Retry(
+            crate::runtime::motion::UiMotionTrackIdentity::for_test(2),
+        ));
+
+        assert!(!coordinator.awaits_physical_progress());
+        assert_eq!(coordinator.resource_counts(), (0, 1));
     }
 }
 

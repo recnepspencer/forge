@@ -1,5 +1,7 @@
 use std::collections::BTreeMap;
 
+#[path = "state/duplicate_request.rs"]
+mod duplicate_request;
 #[path = "state/mounted_projection.rs"]
 mod mounted_projection;
 #[path = "state/shutdown.rs"]
@@ -7,10 +9,21 @@ mod shutdown;
 
 pub(crate) use shutdown::UiPortalShutdownReport;
 
+#[cfg(test)]
+pub(super) const fn duplicate_request_capacity_for_test() -> usize {
+    duplicate_request::UI_PORTAL_CLOSED_REQUEST_CAPACITY
+}
+
+/// `records` holds only live portals: `Open`, `Visible`, or `Closing`. A portal
+/// that reaches `Closed` leaves the live table and keeps only its bounded
+/// duplicate-request row, so placement, dismissal, descendant, and command
+/// routing work stays proportional to the currently active portals rather than
+/// to every portal the session ever opened.
 pub(crate) struct UiPortalRuntimeState {
     persistence: crate::runtime::UiServiceStatePersistencePosture,
     pub(super) policy: crate::declaration::UiPortalPolicy,
     pub(super) records: BTreeMap<super::UiPortalIdentity, UiPortalRecord>,
+    closed_requests: duplicate_request::UiPortalClosedRequestWindow,
     admitted_requests: u64,
     idempotent_requests: u64,
     revision: u64,
@@ -39,6 +52,7 @@ impl UiPortalRuntimeState {
             persistence,
             policy,
             records: BTreeMap::new(),
+            closed_requests: duplicate_request::UiPortalClosedRequestWindow::new(),
             admitted_requests: 0,
             idempotent_requests: 0,
             revision: 0,
@@ -70,62 +84,15 @@ impl UiPortalRuntimeState {
             .and_then(|record| record.placement);
         let placement = super::UiPreparedPortalPlacement::for_request(&request, parent)
             .map_err(super::UiPortalServiceTransitionDenial::Placement)?;
-        let record = self.records.get(&request.portal());
-        let exact_request = record.is_some_and(|record| {
-            record.last_request == request.idempotency()
-                && record.semantic_surface == request.semantic_surface()
-                && match request.operation() {
-                    super::request::UiPortalServiceOperation::Open => {
-                        record.dismissal.is_none()
-                            && record.placement.map(|placement| placement.prepared()) == placement
-                    }
-                    super::request::UiPortalServiceOperation::Close(cause) => {
-                        record.dismissal == Some(cause)
-                    }
-                }
-        });
-        let idempotent = exact_request
-            && record.is_some_and(|record| {
-                matches!(
-                    (record.posture, request.operation()),
-                    (
-                        super::UiPortalLifecyclePosture::Open
-                            | super::UiPortalLifecyclePosture::Visible,
-                        super::request::UiPortalServiceOperation::Open
-                    ) | (
-                        super::UiPortalLifecyclePosture::Closing
-                            | super::UiPortalLifecyclePosture::Closed,
-                        super::request::UiPortalServiceOperation::Close(_)
-                    )
-                )
-            });
-        let (staged_posture, disposition) = if idempotent {
-            (
-                record.expect("exact request has a portal record").posture,
-                super::UiPortalServiceDisposition::Idempotent,
-            )
-        } else {
-            match request.operation() {
-                super::request::UiPortalServiceOperation::Open => (
-                    super::UiPortalLifecyclePosture::Open,
-                    super::UiPortalServiceDisposition::Opened,
-                ),
-                super::request::UiPortalServiceOperation::Close(_) => (
-                    super::UiPortalLifecyclePosture::Closing,
-                    super::UiPortalServiceDisposition::Closing,
-                ),
-            }
-        };
+        let (staged_posture, disposition) =
+            duplicate_request::classify(self.prior_request(request.portal()), &request, placement);
         let closed_descendants = match request.operation() {
             super::request::UiPortalServiceOperation::Open => Box::default(),
             super::request::UiPortalServiceOperation::Close(_) => self
                 .records
-                .iter()
-                .filter_map(|(portal, record)| {
-                    (record.posture != super::UiPortalLifecyclePosture::Closed
-                        && self.portal_descends_from(*portal, request.portal()))
-                    .then_some(*portal)
-                })
+                .keys()
+                .copied()
+                .filter(|portal| self.portal_descends_from(*portal, request.portal()))
                 .collect::<Vec<_>>()
                 .into_boxed_slice(),
         };
@@ -239,10 +206,10 @@ impl UiPortalRuntimeState {
             posture,
             super::UiPortalLifecyclePosture::Closed | super::UiPortalLifecyclePosture::Closing
         ) {
-            for descendant in transition.closed_descendants() {
-                let record = self
+            for descendant in transition.closed_descendants().iter().copied() {
+                let mut record = self
                     .records
-                    .get_mut(descendant)
+                    .remove(&descendant)
                     .expect("prepared descendant closure retains its portal record");
                 record.posture = posture;
                 record.dismissal = Some(super::UiPortalDismissalCause::ParentClosed);
@@ -250,6 +217,7 @@ impl UiPortalRuntimeState {
                 if posture == super::UiPortalLifecyclePosture::Closed {
                     record.placement = None;
                 }
+                self.retain_record(descendant, record);
             }
         }
         let placement = transition
@@ -260,8 +228,8 @@ impl UiPortalRuntimeState {
                     .then(|| self.records.get(&request.portal())?.placement)
                     .flatten()
             });
-        self.records.insert(
-            request.portal(),
+        self.retain_committed_record(
+            request,
             UiPortalRecord {
                 posture,
                 semantic_surface: request.semantic_surface(),
@@ -291,6 +259,49 @@ impl UiPortalRuntimeState {
         ))
     }
 
+    /// A terminally closed portal leaves the live table and keeps only its
+    /// bounded duplicate-request row; every other posture stays live.
+    fn retain_record(&mut self, portal: super::UiPortalIdentity, record: UiPortalRecord) {
+        if record.posture == super::UiPortalLifecyclePosture::Closed {
+            self.records.remove(&portal);
+            self.closed_requests.retain(
+                portal,
+                record.semantic_surface,
+                record.last_request,
+                record
+                    .dismissal
+                    .expect("a Closed portal record retains its dismissal cause"),
+            );
+        } else {
+            self.closed_requests.forget(portal);
+            self.records.insert(portal, record);
+        }
+    }
+
+    fn retain_committed_record(
+        &mut self,
+        request: super::UiPortalServiceRequest,
+        record: UiPortalRecord,
+    ) {
+        self.retain_record(request.portal(), record);
+    }
+
+    fn prior_request(
+        &self,
+        portal: super::UiPortalIdentity,
+    ) -> Option<duplicate_request::UiPortalPriorRequest> {
+        self.records
+            .get(&portal)
+            .map(|record| duplicate_request::UiPortalPriorRequest {
+                posture: record.posture,
+                semantic_surface: record.semantic_surface,
+                last_request: record.last_request,
+                dismissal: record.dismissal,
+                placement: record.placement,
+            })
+            .or_else(|| self.closed_requests.prior_request(portal))
+    }
+
     fn require_current(
         &self,
         transition: &super::UiPreparedPortalServiceTransition,
@@ -313,22 +324,21 @@ impl UiPortalRuntimeState {
             })
     }
 
+    /// The live table holds exactly the active portals, so this is a length
+    /// rather than a scan.
     pub(crate) fn active_count(&self) -> usize {
-        self.records
-            .values()
-            .filter(|record| record.posture != super::UiPortalLifecyclePosture::Closed)
-            .count()
+        self.records.len()
     }
 
     /// Graph nodes exposed by active Portal scopes are the Portal owner/anchor
-    /// nodes in 3.15, not child content mounted inside the Portal.
+    /// nodes in 3.15, not child content mounted inside the Portal. Bounded by
+    /// the active portals because terminal portals leave the live table.
     pub(crate) fn active_portal_owner_graph_nodes(
         &self,
     ) -> impl Iterator<Item = crate::graph::UiGraphNodeIdentity> + '_ {
-        self.records.iter().filter_map(|(identity, record)| {
-            (record.posture != super::UiPortalLifecyclePosture::Closed)
-                .then(|| identity.owner().graph_node())
-        })
+        self.records
+            .keys()
+            .map(|identity| identity.owner().graph_node())
     }
 
     pub(crate) fn posture_count(&self, posture: super::UiPortalLifecyclePosture) -> usize {
@@ -354,7 +364,18 @@ impl UiPortalRuntimeState {
         self.last_closed
     }
 
+    /// Live portal records plus the bounded duplicate-request rows retained for
+    /// terminally closed portals. Both must reach zero at shutdown.
     pub(crate) fn record_count(&self) -> usize {
+        self.records.len() + self.closed_requests.len()
+    }
+
+    #[cfg(test)]
+    pub(super) fn live_record_count(&self) -> usize {
         self.records.len()
+    }
+
+    pub(super) fn clear_closed_requests(&mut self) {
+        self.closed_requests.clear();
     }
 }

@@ -68,8 +68,6 @@ pub enum UiCommandRoutingSuppression {
     ImeComposition,
     TextEntry,
     PrefixConflict,
-    PrefixContextChanged,
-    PrefixExpired,
     PrefixBasisUnavailable,
 }
 

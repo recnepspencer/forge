@@ -129,7 +129,9 @@ The executable counterpart is
 [`service_policy_facade.rs`](../crates/worth-ui/tests/service_policy_facade.rs).
 A service owner is installed only when declarations or capabilities demand it.
 For example, an open-portal intent demands Portal plus its Focus and Motion
-requirements; a scrolling Mosaic region demands Scroll.
+requirements, and the Scroll owner that owns the focus reveal those transitions
+may emit. A scrolling Mosaic region additionally registers real scroll owners
+with it.
 
 ## Real Example
 
@@ -259,9 +261,15 @@ Common typed failures preserve the predecessor and name the rejecting owner:
   inspectable, while an indeterminate issued effect requires host-truth
   reconciliation;
 - a rebind that removes an anchor, participant, command route, scroll owner, or
-  selection key follows that family's explicit rebind law; and
+  selection key follows that family's explicit rebind law;
+- a stale two-stroke shortcut prefix is discarded rather than consuming the
+  stroke that discovered it: that stroke resolves as a fresh first stroke;
+- a portal transition whose target still owns physically pending exit work is
+  refused before effect instead of displacing that pending settlement; and
 - saturation stays bounded and observable. It does not trigger a global scan
-  or unbounded evidence retention.
+  or unbounded evidence retention. A terminally closed portal leaves the live
+  table, so dismissal, placement, and command-routing work stays proportional
+  to the currently active portals rather than to session history.
 
 ## Anti-Patterns
 

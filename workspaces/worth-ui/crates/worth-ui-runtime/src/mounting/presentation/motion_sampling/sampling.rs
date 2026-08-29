@@ -314,6 +314,12 @@ impl UiMountedMotionSampler {
         target.is_some_and(|target| self.tracks.remove(&target).is_some())
     }
 
+    /// Tracks the sampler still retains, active or not. Retention is what makes
+    /// a zero `tracks_considered` meaningful rather than vacuous.
+    pub(crate) fn retained_track_count(&self) -> usize {
+        self.tracks.len()
+    }
+
     pub(crate) fn has_active_tracks(&self) -> bool {
         self.tracks.values().any(|track| track.active)
     }

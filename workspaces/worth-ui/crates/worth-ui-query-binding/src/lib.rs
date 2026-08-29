@@ -181,10 +181,10 @@ pub use presentation_async::{
 };
 pub use product_projection::{
     WorthUiQueryHostInstallationRequest, WorthUiScalarProjectionActionAdvance,
-    WorthUiScalarProjectionActionDenial, WorthUiScalarProjectionActionDenied,
-    WorthUiScalarProjectionActionEvidence, WorthUiScalarProjectionActionExecution,
-    WorthUiScalarProjectionActionIndeterminate, WorthUiScalarProjectionActionInstallation,
-    WorthUiScalarProjectionActionLiveOwner, WorthUiScalarProjectionActionOutcome,
+    WorthUiScalarProjectionActionDenied, WorthUiScalarProjectionActionEvidence,
+    WorthUiScalarProjectionActionExecution, WorthUiScalarProjectionActionIndeterminate,
+    WorthUiScalarProjectionActionInstallation, WorthUiScalarProjectionActionLiveOwner,
+    WorthUiScalarProjectionActionOutcome, WorthUiScalarProjectionActionPreconditionDenial,
     WorthUiScalarProjectionActionPublicationCompletion, WorthUiScalarProjectionActionRequest,
     WorthUiScalarProjectionAdvance, WorthUiScalarProjectionAdvanceError,
     WorthUiScalarProjectionHostCompletion, WorthUiScalarProjectionHostPlan,

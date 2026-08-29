@@ -222,7 +222,8 @@ Pulse product facts: current source/application generation, admitted Query-
 backed status, action posture, and the latest bounded service outcome. The
 primary stage contains the real Query-backed value, the real action that opens
 the anchored portal, the actual command-context winner/loser explanation, and
-the actual separate Query audience denial. The status band reflects real
+the actual typed precondition that stopped the separate Query-backed action
+before Query was asked. The status band reflects real
 focus, portal, motion, and reduced-motion posture. A region with no admitted
 action is absent from the hit-test map; every visible interactive region must
 route through a shipped 3.14/3.15 contract.
@@ -277,9 +278,17 @@ The journey:
 4. invokes the same typed shortcut in two coherent contexts and shows the one
    lawful winner plus inspectable losing candidate;
 5. invokes one Query-backed command whose UI route succeeds and whose separate
-   Query admission is deliberately denied, then publishes the exact Query
-   audience denial type in the external Pulse observation stream, proving that
-   neither disabled UI operability nor the route receipt is Query authority;
+   Query-backed action is then deliberately stopped by the projection owner's
+   own source-revision precondition **before** any Query work is submitted,
+   then publishes that exact typed precondition in the external Pulse
+   observation stream, proving that a successful UI route and an admitted
+   route receipt carry no Query authority and do not by themselves reach
+   Query. This step deliberately does **not** claim a Query-owned admission
+   denial: the installed Query workspace surface exposes no typed
+   admission-denial outcome for this operation, so the Pulse must not
+   manufacture or locally simulate one. A real Query-originated denial becomes
+   a lawful successor claim only once the Query audience facade publishes that
+   outcome;
 6. resizes the native client area to 1120 by 700 while the portal is open, then
    hot-rebinds the external source so the anchor moves and the preferred focus
    participant disappears; the 216-pixel rail and 24-pixel outer/gutter rhythm
@@ -1515,7 +1524,8 @@ workspaces/worth-ui/apps/
       runtime_services/                   create: truthful service story only
         portal_story.rs                   create: portal/focus/motion product use
         command_story.rs                  create: winner/loser product use
-        query_denial_story.rs             create: separate Query admission use
+        query_denial_story.rs             create: separate Query-backed action
+                                                 precondition stop
       visual_composition/                 create: Pulse-private authored design
         geometry.rs                       create: reference/expanded layout
         palette.rs                        create: application token roles

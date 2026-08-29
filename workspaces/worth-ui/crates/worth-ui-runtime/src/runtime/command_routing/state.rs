@@ -87,16 +87,13 @@ impl UiCommandRoutingRuntimeState {
                 super::prefix::UiCommandPrefixCurrentness::Current => {
                     return self.resolve_second(first, stroke, repeat, context, application);
                 }
-                super::prefix::UiCommandPrefixCurrentness::ContextChanged => {
-                    return super::UiCommandRoutingOutcome::Suppressed(
-                        super::UiCommandRoutingSuppression::PrefixContextChanged,
-                    );
-                }
-                super::prefix::UiCommandPrefixCurrentness::Expired => {
-                    return super::UiCommandRoutingOutcome::Suppressed(
-                        super::UiCommandRoutingSuppression::PrefixExpired,
-                    );
-                }
+                // A prefix that is no longer current owns nothing. Discarding it
+                // must not also consume the stroke the caller just pressed: the
+                // stroke is resolved as a fresh first stroke. Only a prefix
+                // without a usable time basis stays suppressed, because a fresh
+                // resolution could not bound its own occupancy either.
+                super::prefix::UiCommandPrefixCurrentness::ContextChanged
+                | super::prefix::UiCommandPrefixCurrentness::Expired => {}
                 super::prefix::UiCommandPrefixCurrentness::BasisUnavailable => {
                     return super::UiCommandRoutingOutcome::Suppressed(
                         super::UiCommandRoutingSuppression::PrefixBasisUnavailable,

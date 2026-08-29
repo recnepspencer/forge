@@ -318,3 +318,5 @@ pass,tests/ui/facade/construction/host_binding/paint_identities_support_lawful_c
 fail,tests/ui/facade/construction/host_binding/raw_protocol_contract_cannot_enter_consumers.rs,facade_compile.rs
 pass,tests/ui/facade/construction/host_binding/native_preparation_progression_is_lawful.rs,facade_compile.rs
 pass,tests/ui/facade/construction/host_binding/known_empty_baseline_observation_is_lawful.rs,facade_compile.rs
+fail,tests/ui/facade/service/fail/proposal_compiler_is_not_a_product_surface.rs,facade_compile.rs
+fail,tests/ui/facade/service/fail/service_family_is_not_a_public_payload_enum.rs,facade_compile.rs

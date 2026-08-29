@@ -107,20 +107,17 @@ impl WorthUiApplicationSessionState {
             &focus_requirement,
         );
         let focus_owner = focus_requirement.owner();
-        let scroll_supported = self
-            .app
-            .runtime_service_support()
-            .posture(crate::capability::UiRuntimeServiceFamily::Scroll)
-            == crate::capability::UiRuntimeServiceSupportPosture::Installed;
-        let scroll_family = scroll_supported.then(|| {
-            crate::runtime::scroll::UiStagedScrollServiceProposal::family_proposal(
-                portal_family.scope(),
-            )
-        });
-        let mut family_proposals = vec![portal_family, focus_family];
-        if let Some(scroll_family) = scroll_family {
-            family_proposals.push(scroll_family);
-        }
+        // The Focus owner may emit exactly one reveal requirement against this
+        // portal's successor, and the Scroll owner owns that decision. It is
+        // therefore a compiled participant of every portal proposal, not a
+        // conditional one: a reveal that no owner staged would be a claim with
+        // no occupancy, no stage receipt, and no settlement acknowledgement.
+        // Preflight denies with `UnsupportedFamily` if a world reaches here
+        // without Scroll support rather than silently dropping the participant.
+        let scroll_family = crate::runtime::scroll::UiStagedScrollServiceProposal::family_proposal(
+            portal_family.scope(),
+        );
+        let mut family_proposals = vec![portal_family, focus_family, scroll_family];
         if let Some((selection, _)) = declared_selection.as_ref() {
             family_proposals.push(
                 crate::runtime::selection::UiStagedSelectionServiceProposal::family_proposal(
@@ -168,15 +165,11 @@ impl WorthUiApplicationSessionState {
             proposal,
             focus_requirement,
         );
-        let scroll = scroll_supported.then(|| {
-            crate::runtime::scroll::UiStagedScrollServiceProposal::prepare(
-                proposal,
-                portal_family.scope(),
-                crate::runtime::session::service_proposal::UiFocusRevealRequirement::new(
-                    focus_owner,
-                ),
-            )
-        });
+        let scroll = crate::runtime::scroll::UiStagedScrollServiceProposal::prepare(
+            proposal,
+            portal_family.scope(),
+            crate::runtime::session::service_proposal::UiFocusRevealRequirement::new(focus_owner),
+        );
         let selection = match declared_selection {
             Some((binding, selection_state)) => {
                 let (action, registration) = binding.into_parts();
@@ -213,10 +206,16 @@ impl WorthUiApplicationSessionState {
         };
         let mut staging = match self.runtime.service_proposals.begin_staging(reservation) {
             Ok(staging) => staging,
-            Err(denial) => {
+            Err((reservation, denial)) => {
                 if let Some(motion) = motion {
                     motion_state.discard_staged(motion);
                 }
+                // The reservation never entered staging, so its occupancy and
+                // cancellation records are released here rather than leaked.
+                let _ = self
+                    .runtime
+                    .service_proposals
+                    .shutdown_reservation(reservation);
                 return Err(UiPortalProposalPreparationDenial::Staging(denial));
             }
         };
@@ -229,30 +228,28 @@ impl WorthUiApplicationSessionState {
                 staging,
                 &portal,
                 &focus,
-                scroll.as_ref(),
+                &scroll,
                 selection.as_ref(),
                 motion_state,
                 motion,
             );
             return Err(UiPortalProposalPreparationDenial::Staging(denial));
         }
-        if let Some(scroll) = scroll.as_ref() {
-            if let Err(denial) = self
-                .runtime
-                .service_proposals
-                .advance_staging(&mut staging, scroll.family_stage_receipt())
-            {
-                self.cancel_portal_staging(
-                    staging,
-                    &portal,
-                    &focus,
-                    Some(scroll),
-                    selection.as_ref(),
-                    motion_state,
-                    motion,
-                );
-                return Err(UiPortalProposalPreparationDenial::Staging(denial));
-            }
+        if let Err(denial) = self
+            .runtime
+            .service_proposals
+            .advance_staging(&mut staging, scroll.family_stage_receipt())
+        {
+            self.cancel_portal_staging(
+                staging,
+                &portal,
+                &focus,
+                &scroll,
+                selection.as_ref(),
+                motion_state,
+                motion,
+            );
+            return Err(UiPortalProposalPreparationDenial::Staging(denial));
         }
         if let Err(denial) = self
             .runtime
@@ -263,7 +260,7 @@ impl WorthUiApplicationSessionState {
                 staging,
                 &portal,
                 &focus,
-                scroll.as_ref(),
+                &scroll,
                 selection.as_ref(),
                 motion_state,
                 motion,
@@ -282,7 +279,7 @@ impl WorthUiApplicationSessionState {
                     staging,
                     &portal,
                     &focus,
-                    scroll.as_ref(),
+                    &scroll,
                     selection.as_ref(),
                     motion_state,
                     motion,
@@ -303,7 +300,7 @@ impl WorthUiApplicationSessionState {
                     staging,
                     &portal,
                     &focus,
-                    scroll.as_ref(),
+                    &scroll,
                     selection.as_ref(),
                     motion_state,
                     motion,

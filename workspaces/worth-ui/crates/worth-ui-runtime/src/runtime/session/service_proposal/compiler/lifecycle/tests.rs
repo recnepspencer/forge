@@ -278,7 +278,7 @@ fn staged(
                     proposal,
                     UiServiceProposalStage::ResolveFocusAndReveal,
                     UiServiceProposalStageIssuer::FocusOwner {
-                        reveal_refinement: false,
+                        reveal_refinement: None,
                     },
                 ),
             )

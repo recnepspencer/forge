@@ -23,7 +23,7 @@ pub(crate) use receipt::{
 };
 pub(crate) use retarget::{UiMotionRetargetDisposition, UiMotionRetargetPredecessor};
 #[cfg(feature = "certification-support")]
-pub(crate) use scale_certification::motion_scale_evidence;
+pub(crate) use scale_certification::{motion_scale_evidence, UiMotionScaleEvidence};
 pub(crate) use state::UiMotionRuntimeState;
 pub(in crate::runtime) use state::{UiMotionCommitDenial, UiMotionStagingDenial};
 pub(crate) use track::{

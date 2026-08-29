@@ -29,7 +29,7 @@ pub(crate) enum PlatformPulseQueryActionOutcome {
         observation: UiProjectionObservation,
     },
     Denied {
-        denial: worth_ui::facade::query_binding::WorthUiScalarProjectionActionDenial,
+        denial: worth_ui::facade::query_binding::WorthUiScalarProjectionActionPreconditionDenial,
         active_query_source_revision: u64,
         submitted_query_source_revision: u64,
     },

@@ -24,7 +24,7 @@ fn owner_witnesses_stage_in_any_family_order_then_finish_in_fixed_order() {
         &mut staging,
         proposal,
         &[family::Portal, family::Focus],
-        true,
+        None,
     );
     let batch = compiler.finish_staging(staging).unwrap();
 
@@ -34,7 +34,7 @@ fn owner_witnesses_stage_in_any_family_order_then_finish_in_fixed_order() {
     assert_eq!(batch.mounted_work_references()[0].diagnostic_value(), 31);
     assert_eq!(batch.mounted_work_references()[1].diagnostic_value(), 32);
     assert_ne!(batch.digest(), 0);
-    assert!(batch.reveal_refinement());
+    assert_eq!(batch.reveal_refinement(), None);
     assert_eq!(compiler.census().entries()[3].1, before.entries()[3].1 + 4);
 }
 
@@ -155,7 +155,7 @@ fn fixed_non_family_stages_reject_wrong_issuer_and_repeat_refinement() {
         &mut staging,
         proposal,
         &[family::Portal],
-        false,
+        None,
     );
     assert_eq!(
         compiler.advance_staging(
@@ -164,7 +164,7 @@ fn fixed_non_family_stages_reject_wrong_issuer_and_repeat_refinement() {
                 proposal,
                 super::super::UiServiceProposalStage::ResolveFocusAndReveal,
                 UiServiceProposalStageIssuer::FocusOwner {
-                    reveal_refinement: true,
+                    reveal_refinement: None,
                 },
             ),
         ),
@@ -213,7 +213,7 @@ fn finish_owner_stages(
     staging: &mut super::UiServiceProposalStaging,
     proposal: super::super::UiServiceProposalIdentity,
     families: &[family],
-    reveal_refinement: bool,
+    reveal_refinement: Option<super::super::super::UiServiceProposalOccupancyScopeIdentity>,
 ) {
     compiler
         .advance_staging(
@@ -251,7 +251,7 @@ fn finish_owner_stages(
     }
 }
 
-fn reserved_two_family_staging(
+pub(super) fn reserved_two_family_staging(
     identity: u64,
 ) -> (
     super::super::UiServiceProposalCompiler,
@@ -271,7 +271,7 @@ fn reserved_one_family_staging(
     reserved_staging(identity, &[family::Portal])
 }
 
-fn reserved_staging(
+pub(super) fn reserved_staging(
     identity: u64,
     families: &[family],
 ) -> (
@@ -321,9 +321,9 @@ fn reserved_staging(
 }
 
 #[allow(non_camel_case_types)]
-type family = crate::capability::UiRuntimeServiceFamily;
+pub(super) type family = crate::capability::UiRuntimeServiceFamily;
 
-fn family_receipt(
+pub(super) fn family_receipt(
     proposal: super::super::UiServiceProposalIdentity,
     family: family,
     scope_value: u64,
@@ -339,7 +339,7 @@ fn family_receipt(
     )
 }
 
-fn scope(value: u64) -> super::super::super::UiServiceProposalOccupancyScopeIdentity {
+pub(super) fn scope(value: u64) -> super::super::super::UiServiceProposalOccupancyScopeIdentity {
     super::super::super::UiServiceProposalOccupancyScopeIdentity::for_test(value)
 }
 

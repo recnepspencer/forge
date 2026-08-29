@@ -399,7 +399,7 @@ their own pixels.
 
 The required native journey opens an anchored portal through an admitted
 action, places focus and samples entrance motion, resolves one typed shortcut
-in two contexts, preserves the separate Query admission boundary, resizes to
+in two contexts, preserves the separate Query-backed action boundary, resizes to
 1120 by 700, hot-rebinds while the portal is open, dismisses only the topmost
 portal, restores lawful focus, and shuts down with exact-zero service and host
 resources.

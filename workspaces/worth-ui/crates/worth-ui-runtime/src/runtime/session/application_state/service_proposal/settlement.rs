@@ -26,7 +26,7 @@ impl super::WorthUiApplicationSessionState {
                     teardown,
                     &transaction.portal,
                     &transaction.focus,
-                    transaction.scroll.as_ref(),
+                    &transaction.scroll,
                     transaction.selection.as_ref(),
                     motion_scope,
                     crate::runtime::session::service_proposal::UiServiceProposalTerminalReason::CancelledBeforePublication,
@@ -56,9 +56,7 @@ impl super::WorthUiApplicationSessionState {
         publication: crate::runtime::session::service_proposal::UiServiceProposalPublicationReceipt,
         scope: crate::runtime::session::service_proposal::UiServiceProposalOccupancyScopeIdentity,
         focus_scope: crate::runtime::session::service_proposal::UiServiceProposalOccupancyScopeIdentity,
-        scroll_scope: Option<
-            crate::runtime::session::service_proposal::UiServiceProposalOccupancyScopeIdentity,
-        >,
+        scroll_scope: crate::runtime::session::service_proposal::UiServiceProposalOccupancyScopeIdentity,
         selection: Option<&crate::runtime::selection::UiStagedDeclaredSelectionTransition>,
         motion_scope: Option<
             crate::runtime::session::service_proposal::UiServiceProposalOccupancyScopeIdentity,
@@ -82,17 +80,15 @@ impl super::WorthUiApplicationSessionState {
             .service_proposals
             .acknowledge_owner(&mut settlement, focus_acknowledgement)
             .expect("exact Focus owner acknowledgement matches its publication");
-        if let Some(scroll_scope) = scroll_scope {
-            let scroll_acknowledgement = crate::runtime::session::service_proposal::UiServiceProposalOwnerAcknowledgement::from_family_owner(
-                publication,
-                crate::capability::UiRuntimeServiceFamily::Scroll,
-                scroll_scope,
-            );
-            self.runtime
-                .service_proposals
-                .acknowledge_owner(&mut settlement, scroll_acknowledgement)
-                .expect("exact Scroll owner acknowledgement matches its publication");
-        }
+        let scroll_acknowledgement = crate::runtime::session::service_proposal::UiServiceProposalOwnerAcknowledgement::from_family_owner(
+            publication,
+            crate::capability::UiRuntimeServiceFamily::Scroll,
+            scroll_scope,
+        );
+        self.runtime
+            .service_proposals
+            .acknowledge_owner(&mut settlement, scroll_acknowledgement)
+            .expect("exact Scroll owner acknowledgement matches its publication");
         if let Some(selection) = selection {
             self.runtime
                 .service_proposals
@@ -139,6 +135,9 @@ impl super::WorthUiApplicationSessionState {
         ),
         super::UiPortalProposalPreparationDenial,
     > {
+        if !transaction.reveal_refinement_agrees() {
+            return Err(super::UiPortalProposalPreparationDenial::RevealRefinementMismatch);
+        }
         let publication = transaction.accepted_publication(mounted)?;
         let settlement =
             self.begin_portal_proposal_settlement(transaction, publication, focus, motion_state)?;
@@ -189,17 +188,24 @@ impl super::WorthUiApplicationSessionState {
         let (_, portal_exit_retention) = portal
             .commit_published_with_exit_retention(transition, motion_exit_retention.is_some())
             .expect("exclusive portal proposal retains exact portal revision");
+        // Portal mints a retention exactly when it commits `Closing`, and Motion
+        // exactly for an `ExitRetention` fill. `prepare_portal_motion_request`
+        // emits no request for an idempotent transition, and `portal_exit` is the
+        // only declaration with that fill (both pinned by focused tests), so the
+        // two decisions cannot disagree.
         let exit_retention = match (portal_exit_retention, motion_exit_retention) {
             (Some(portal), Some(motion)) => Some((portal, motion)),
             (None, None) => None,
-            _ => unreachable!("Portal and Motion settle one exit-retention decision"),
+            _ => unreachable!(
+                "Portal `Closing` and Motion `ExitRetention` are one decision per transition"
+            ),
         };
         self.finish_portal_proposal_settlement(
             settlement,
             publication,
             scope,
             focus_owner.scope(),
-            scroll_owner.as_ref().map(|scroll| scroll.scope()),
+            scroll_owner.scope(),
             selection_owner.as_ref(),
             motion_scope,
         );
@@ -262,7 +268,7 @@ impl super::WorthUiApplicationSessionState {
             teardown,
             &transaction.portal,
             &transaction.focus,
-            transaction.scroll.as_ref(),
+            &transaction.scroll,
             transaction.selection.as_ref(),
             motion_scope,
             crate::runtime::session::service_proposal::UiServiceProposalTerminalReason::AbandonedAtShutdown,
@@ -291,7 +297,7 @@ impl super::WorthUiApplicationSessionState {
             teardown,
             &transaction.portal,
             &transaction.focus,
-            transaction.scroll.as_ref(),
+            &transaction.scroll,
             transaction.selection.as_ref(),
             motion_scope,
             crate::runtime::session::service_proposal::UiServiceProposalTerminalReason::RecoveryDisposed,
@@ -333,7 +339,7 @@ impl super::WorthUiApplicationSessionState {
             publication,
             scope,
             focus_owner.scope(),
-            scroll_owner.as_ref().map(|scroll| scroll.scope()),
+            scroll_owner.scope(),
             selection_owner.as_ref(),
             motion_scope,
         );

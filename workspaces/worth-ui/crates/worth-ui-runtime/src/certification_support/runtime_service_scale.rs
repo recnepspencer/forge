@@ -11,6 +11,8 @@ pub struct UiRuntimeServiceScaleEvidence {
     focus_participants_visited: u64,
     motion_tracks_sampled: u64,
     inactive_motion_tracks_sampled: u64,
+    retained_inactive_motion_tracks: u64,
+    completed_motion_terminals: u64,
     scroll_chain_depth_visited: u64,
     selection_keys_visited: u64,
     command_candidates_resolved: u64,
@@ -24,40 +26,41 @@ pub fn runtime_service_scale_evidence() -> UiRuntimeServiceScaleEvidence {
         crate::runtime::portal::portal_scale_evidence();
     let (focus_participants, focus_participants_visited, focus_zero) =
         crate::runtime::focus::focus_scale_evidence();
-    let (active_motion_tracks, motion_tracks_sampled, inactive_motion_tracks_sampled, motion_zero) =
-        crate::runtime::motion::motion_scale_evidence();
+    let motion = crate::runtime::motion::motion_scale_evidence();
     let (scroll_owners, scroll_chain_depth_visited, scroll_zero) =
         crate::runtime::scroll::scroll_scale_evidence();
     let (selection_keys, selection_keys_visited, selection_zero) =
         crate::runtime::selection::selection_scale_evidence();
     let (commands, command_candidates_resolved, command_zero) = command_scale_evidence();
-    let (proposal_requirements_visited, unrelated_neighborhoods_touched, proposal_zero) =
-        crate::runtime::session::service_proposal::proposal_scale_evidence();
+    let proposal = crate::runtime::session::service_proposal::proposal_scale_evidence();
 
     UiRuntimeServiceScaleEvidence {
-        service_neighborhoods: 64,
+        // Read back from the live occupancy index, never restated as a literal.
+        service_neighborhoods: proposal.neighborhoods,
         commands,
         focus_participants,
         selection_keys,
         scroll_owners,
         portal_layers,
-        active_motion_tracks,
+        active_motion_tracks: motion.active_tracks,
         portal_neighborhoods_visited,
         focus_participants_visited,
-        motion_tracks_sampled,
-        inactive_motion_tracks_sampled,
+        motion_tracks_sampled: motion.tracks_sampled,
+        inactive_motion_tracks_sampled: motion.inactive_tracks_sampled,
+        retained_inactive_motion_tracks: motion.retained_inactive_tracks,
+        completed_motion_terminals: motion.completed_terminals,
         scroll_chain_depth_visited,
         selection_keys_visited,
         command_candidates_resolved,
-        proposal_requirements_visited,
-        unrelated_neighborhoods_touched,
+        proposal_requirements_visited: proposal.proposal_requirements_visited,
+        unrelated_neighborhoods_touched: proposal.unrelated_neighborhoods_touched,
         terminal_resources_zero: portal_zero
             && focus_zero
-            && motion_zero
+            && motion.terminal_resources_zero
             && scroll_zero
             && selection_zero
             && command_zero
-            && proposal_zero,
+            && proposal.terminal_census_is_zero,
     }
 }
 
@@ -180,6 +183,8 @@ impl UiRuntimeServiceScaleEvidence {
         focus_participants_visited,
         motion_tracks_sampled,
         inactive_motion_tracks_sampled,
+        retained_inactive_motion_tracks,
+        completed_motion_terminals,
         scroll_chain_depth_visited,
         selection_keys_visited,
         command_candidates_resolved,

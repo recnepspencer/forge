@@ -114,7 +114,6 @@ impl super::UiPortalRuntimeState {
     ) -> Option<(super::UiPortalIdentity, &super::state::UiPortalRecord)> {
         self.records
             .iter()
-            .filter(|(_, record)| record.posture != super::UiPortalLifecyclePosture::Closed)
             .filter(|(portal, _)| match trigger {
                 UiPortalDismissalTrigger::AnchorLoss(anchor) => {
                     **portal == anchor || self.portal_descends_from(**portal, anchor)

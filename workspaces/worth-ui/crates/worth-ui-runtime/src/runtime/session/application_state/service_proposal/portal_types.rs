@@ -3,7 +3,7 @@ pub(crate) struct UiPortalProposalPreparation {
     pub(super) staging: crate::runtime::session::service_proposal::UiServiceProposalStaging,
     pub(super) portal: crate::runtime::portal::UiStagedPortalServiceProposal,
     pub(super) focus: crate::runtime::focus::UiStagedFocusServiceProposal,
-    pub(super) scroll: Option<crate::runtime::scroll::UiStagedScrollServiceProposal>,
+    pub(super) scroll: crate::runtime::scroll::UiStagedScrollServiceProposal,
     pub(super) selection: Option<crate::runtime::selection::UiStagedDeclaredSelectionTransition>,
     pub(super) motion: Option<crate::runtime::motion::UiStagedMotionServiceProposal>,
 }
@@ -13,7 +13,7 @@ pub(crate) struct UiStagedPortalProposalTransaction {
     pub(super) batch: crate::runtime::session::service_proposal::UiServiceProposalStagedBatch,
     pub(super) portal: crate::runtime::portal::UiStagedPortalServiceProposal,
     pub(super) focus: crate::runtime::focus::UiStagedFocusServiceProposal,
-    pub(super) scroll: Option<crate::runtime::scroll::UiStagedScrollServiceProposal>,
+    pub(super) scroll: crate::runtime::scroll::UiStagedScrollServiceProposal,
     pub(super) staged_reveal: Option<super::UiStagedFocusReveal>,
     pub(super) selection: Option<crate::runtime::selection::UiStagedDeclaredSelectionTransition>,
     pub(super) motion: Option<crate::runtime::motion::UiDerivedMotionServiceProposal>,
@@ -24,7 +24,7 @@ pub(super) struct UiPortalProposalSettlement {
     pub(super) settlement: crate::runtime::session::service_proposal::UiServiceProposalSettlement,
     pub(super) transition: crate::runtime::portal::UiPreparedPortalServiceTransition,
     pub(super) focus: crate::runtime::focus::UiStagedFocusServiceProposal,
-    pub(super) scroll: Option<crate::runtime::scroll::UiStagedScrollServiceProposal>,
+    pub(super) scroll: crate::runtime::scroll::UiStagedScrollServiceProposal,
     pub(super) staged_reveal: Option<super::UiStagedFocusReveal>,
     pub(super) selection: Option<crate::runtime::selection::UiStagedDeclaredSelectionTransition>,
     pub(super) motion: Option<crate::runtime::motion::UiDerivedMotionServiceProposal>,
@@ -56,5 +56,17 @@ pub(crate) enum UiPortalProposalPreparationDenial {
     MotionRequest(crate::runtime::motion::UiMotionTransitionRequestDenial),
     Motion(crate::runtime::motion::UiMotionStagingDenial),
     MountedFrameMismatch,
+    /// The compiled batch and the Focus owner's staged reveal disagree about
+    /// whether a Scroll owner replanned, or about which owner did.
+    RevealRefinementMismatch,
     Coalesced,
+}
+
+impl UiStagedPortalProposalTransaction {
+    /// The compiled reveal witness must name exactly the Scroll owner whose
+    /// staged replan this transaction is about to commit.
+    pub(super) fn reveal_refinement_agrees(&self) -> bool {
+        let staged_scope = self.staged_reveal.as_ref().map(|_| self.scroll.scope());
+        self.batch.reveal_refinement() == staged_scope
+    }
 }

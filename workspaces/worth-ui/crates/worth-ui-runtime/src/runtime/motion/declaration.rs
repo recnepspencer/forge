@@ -189,6 +189,27 @@ mod tests {
         );
     }
 
+    /// Portal and Motion must reach one exit-retention decision per transition.
+    /// Portal mints a retention only when it commits `Closing`, and Motion mints
+    /// one only for an `ExitRetention` fill. Those agree only while `portal_exit`
+    /// is the sole declaration carrying that fill, so an opening transition can
+    /// never mint an exit retention its portal has no counterpart for.
+    #[test]
+    fn only_the_exit_declaration_retains_so_an_opening_transition_cannot_pair_alone() {
+        assert_eq!(
+            UiMotionDeclaration::portal_entrance().fill(),
+            UiMotionFillPolicy::FinalState
+        );
+        assert_eq!(
+            UiMotionDeclaration::rebind_geometry().fill(),
+            UiMotionFillPolicy::FinalState
+        );
+        assert_eq!(
+            UiMotionDeclaration::portal_exit().fill(),
+            UiMotionFillPolicy::ExitRetention
+        );
+    }
+
     #[test]
     fn public_decorative_policy_changes_reduced_motion_treatment() {
         let declaration = UiMotionDeclaration::portal_entrance().with_policy(

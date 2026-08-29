@@ -113,9 +113,13 @@ impl UiStagedFocusServiceProposal {
         )
     }
 
+    /// `reveal_refinement` names the exact Scroll owner scope that replanned for
+    /// this resolution, or `None` when Focus emitted no reveal requirement.
     pub(in crate::runtime) fn resolution_receipt(
         &self,
-        reveal_refinement: bool,
+        reveal_refinement: Option<
+            crate::runtime::session::service_proposal::UiServiceProposalOccupancyScopeIdentity,
+        >,
     ) -> crate::runtime::session::service_proposal::UiServiceProposalStageReceipt {
         crate::runtime::session::service_proposal::UiServiceProposalStageReceipt::focus_resolution(
             self.proposal,

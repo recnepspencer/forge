@@ -50,7 +50,7 @@ impl PlatformPulseProductStory {
     pub(super) fn publish_query_denial(
         &mut self,
         shell: &mut WorthUiNativeApplicationShell,
-        denial: worth_ui_platform_pulse::observation_contract::PlatformPulseQueryAdmissionDenial,
+        denial: worth_ui_platform_pulse::observation_contract::PlatformPulseQueryActionPreconditionDenial,
     ) -> Result<(), UiNativeApplicationProgramDenial> {
         let predecessor_label = self.query_denial_label.clone();
         let predecessor_body = self.query_denial.clone();

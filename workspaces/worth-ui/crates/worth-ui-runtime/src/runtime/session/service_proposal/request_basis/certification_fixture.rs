@@ -1,10 +1,14 @@
 use core::num::NonZeroU64;
 
-pub(in crate::runtime::session::service_proposal) fn fixture_service_request_coherence(
+/// One coherence inside an already-established application generation. The scale
+/// world uses this so its neighborhoods are genuinely sibling surfaces of one
+/// application rather than unrelated applications that could never interact.
+pub(in crate::runtime::session::service_proposal) fn fixture_service_request_coherence_in(
+    application: &crate::runtime::intent::WorthUiActiveApplicationGenerationIdentity,
     seed: u64,
 ) -> super::UiServiceRequestCoherence {
     worth_proof::Binding::new(super::UiServiceRequestCoherenceAxes {
-        application: fixture_application_generation(seed),
+        application: application.clone(),
         semantic_surface: worth_ui_host_contract::UiSemanticSurfaceIdentity::mint_unbound()
             .unwrap(),
         host_surface: worth_ui_host_contract::UiHostSurfaceIdentity::mint_unbound().unwrap(),
@@ -16,7 +20,7 @@ pub(in crate::runtime::session::service_proposal) fn fixture_service_request_coh
     })
 }
 
-fn fixture_application_generation(
+pub(in crate::runtime::session::service_proposal) fn fixture_application_generation(
     seed: u64,
 ) -> crate::runtime::intent::WorthUiActiveApplicationGenerationIdentity {
     use worth_ui_dsl::{

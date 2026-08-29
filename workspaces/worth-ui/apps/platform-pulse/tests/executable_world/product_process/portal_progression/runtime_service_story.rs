@@ -2,7 +2,7 @@ use worth_ui_platform_pulse::observation_contract::{
     PlatformPulseCommandTransitionInspection, PlatformPulseIntentAttemptObservationReference,
     PlatformPulseIntentExecutorGateObservation, PlatformPulseIntentOperabilityObservation,
     PlatformPulseIntentPostureObservation, PlatformPulseLifecycleObservation,
-    PlatformPulseQueryActionObservation, PlatformPulseQueryAdmissionDenial,
+    PlatformPulseQueryActionObservation, PlatformPulseQueryActionPreconditionDenial,
 };
 
 use super::{
@@ -193,7 +193,7 @@ fn await_query_denial(
                 PlatformPulseQueryActionObservation::Denied {
                     reference,
                     action_input_revision,
-                    denial: PlatformPulseQueryAdmissionDenial::SourceRevisionMismatch,
+                    denial: PlatformPulseQueryActionPreconditionDenial::SourceRevisionMismatch,
                     active_query_source_revision,
                     submitted_query_source_revision,
                 },

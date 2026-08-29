@@ -10,6 +10,8 @@ mod preflight;
 mod proposal;
 mod receipt;
 mod reservation;
+#[cfg(test)]
+mod reveal_participation_tests;
 #[cfg(feature = "certification-support")]
 mod scale_certification;
 mod settlement;
@@ -48,7 +50,7 @@ pub(in crate::runtime) use reservation::{
     UiServiceProposalReservationDenial, UiServiceProposalReservationOutcome,
 };
 #[cfg(feature = "certification-support")]
-pub(crate) use scale_certification::proposal_scale_evidence;
+pub(crate) use scale_certification::{proposal_scale_evidence, UiServiceProposalScaleEvidence};
 pub(in crate::runtime) use settlement::{
     UiServiceProposalPublicationDenial, UiServiceProposalSettlement,
     UiServiceProposalSettlementDenial,
@@ -162,13 +164,22 @@ impl UiServiceProposalCompiler {
         ))
     }
 
+    /// Returns the reservation on denial so its occupancy lease, cancellation
+    /// record, and census entries stay owned by a caller that can release them.
     pub(in crate::runtime) fn begin_staging(
         &mut self,
         reservation: UiReservedServiceProposal,
-    ) -> Result<UiServiceProposalStaging, UiServiceProposalStagingDenial> {
-        self.occupancy
+    ) -> Result<UiServiceProposalStaging, (UiReservedServiceProposal, UiServiceProposalStagingDenial)>
+    {
+        if let Err(denial) = self
+            .occupancy
             .can_release(reservation.identity(), reservation.leases())
-            .map_err(UiServiceProposalStagingDenial::Occupancy)?;
+        {
+            return Err((
+                reservation,
+                UiServiceProposalStagingDenial::Occupancy(denial),
+            ));
+        }
         Ok(UiServiceProposalStaging::new(reservation))
     }
 
@@ -215,10 +226,14 @@ impl UiServiceProposalCompiler {
         self.cancellations.live_count()
     }
 
-    pub(in crate::runtime) const fn occupancy_work_counters(
+    pub(in crate::runtime) fn occupancy_work_counters(
         &self,
     ) -> super::UiServiceProposalOccupancyWorkCounters {
         self.occupancy.work_counters()
+    }
+
+    pub(in crate::runtime) fn live_neighborhood_count(&self) -> usize {
+        self.occupancy.neighborhood_count()
     }
 }
 

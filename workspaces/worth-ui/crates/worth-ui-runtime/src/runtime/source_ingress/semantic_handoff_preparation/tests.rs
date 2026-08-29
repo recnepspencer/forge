@@ -209,10 +209,15 @@ fn service_dsl_demands_only_its_declared_owner_closure() {
     let support = evidence.runtime_service_support();
     use crate::capability::{UiRuntimeServiceFamily as Family, UiRuntimeServiceSupportPosture};
 
+    // A portal declaration closes over its focus and motion requirements and
+    // over the Scroll owner that owns the focus reveal a portal transition may
+    // emit. Nothing else is demanded: command routing stays unsupported because
+    // no declaration asked for it.
     for family in [
         Family::Portal,
         Family::Focus,
         Family::Motion,
+        Family::Scroll,
         Family::Selection,
     ] {
         assert_eq!(
@@ -220,12 +225,10 @@ fn service_dsl_demands_only_its_declared_owner_closure() {
             UiRuntimeServiceSupportPosture::Installed
         );
     }
-    for family in [Family::CommandRouting, Family::Scroll] {
-        assert_eq!(
-            support.posture(family),
-            UiRuntimeServiceSupportPosture::Unsupported
-        );
-    }
+    assert_eq!(
+        support.posture(Family::CommandRouting),
+        UiRuntimeServiceSupportPosture::Unsupported
+    );
     let builder_defaults = crate::declaration::UiServicePolicyDefaults::default()
         .with_portal(crate::declaration::UiPortalPolicy::modal_dialog())
         .with_selection(crate::declaration::UiSelectionPolicy::single());
@@ -247,7 +250,13 @@ fn service_dsl_demands_only_its_declared_owner_closure() {
         policy_plan.selection(),
         Some(crate::declaration::UiSelectionPolicy::multiple())
     );
-    assert_eq!(policy_plan.scroll(), None);
+    // The reveal owner normalizes to the canonical nested-region policy: the
+    // portal declaration demanded the owner, not a scroll policy of its own.
+    assert_eq!(
+        policy_plan.scroll(),
+        Some(crate::declaration::UiScrollPolicy::nested_region())
+    );
+    assert_eq!(policy_plan.command_routing(), None);
 }
 
 fn command_capability_app(key: UiCommandKeyCode) -> crate::facade::entry::WorthUiHostNeutralApp {

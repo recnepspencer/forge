@@ -171,10 +171,13 @@ impl WorthUiAuthoredServiceDeclaration {
         use crate::capability::UiRuntimeServiceFamily as Family;
         let support = crate::capability::UiRuntimeServiceSupport::none_installed();
         match self.meaning {
+            // A portal declaration demands its focus and motion requirements, plus
+            // the Scroll owner that owns the focus owner's one reveal decision.
             worth_ui_dsl::WorthUiServiceDeclarationMeaning::Portal(_) => support
                 .with_installed(Family::Portal)
                 .with_installed(Family::Focus)
-                .with_installed(Family::Motion),
+                .with_installed(Family::Motion)
+                .with_installed(Family::Scroll),
             worth_ui_dsl::WorthUiServiceDeclarationMeaning::Focus(_) => {
                 support.with_installed(Family::Focus)
             }

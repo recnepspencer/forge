@@ -12,7 +12,9 @@ pub use causal_trace::{
     PlatformPulseIntentPayloadTrace, PlatformPulseIntentRouteTrace, PlatformPulseIntentSourceTrace,
     PlatformPulseIntentTraceProjectionDenial,
 };
-pub use query_action::{PlatformPulseQueryActionObservation, PlatformPulseQueryAdmissionDenial};
+pub use query_action::{
+    PlatformPulseQueryActionObservation, PlatformPulseQueryActionPreconditionDenial,
+};
 pub use watcher_shutdown::PlatformPulseIntentWatcherShutdownEvidence;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]

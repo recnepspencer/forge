@@ -22,7 +22,7 @@ impl WorthUiApplicationSessionState {
                 preparation.staging,
                 &preparation.portal,
                 &preparation.focus,
-                preparation.scroll.as_ref(),
+                &preparation.scroll,
                 preparation.selection.as_ref(),
                 motion_state,
                 preparation.motion,
@@ -40,7 +40,7 @@ impl WorthUiApplicationSessionState {
                         preparation.staging,
                         &preparation.portal,
                         &preparation.focus,
-                        preparation.scroll.as_ref(),
+                        &preparation.scroll,
                         preparation.selection.as_ref(),
                         motion_state,
                         preparation.motion,
@@ -50,9 +50,11 @@ impl WorthUiApplicationSessionState {
             };
         let staged_reveal = match reveal_requirement {
             Some(requirement) => {
-                if preparation.scroll.is_none() && scroll_state.is_none() {
-                    None
-                } else if preparation.scroll.is_none() || scroll_state.is_none() {
+                // The Scroll participant is compiled into every portal proposal,
+                // so a reveal requirement always has an owner to carry it. Only a
+                // missing runtime owner is still a typed denial.
+                preparation.scroll = preparation.scroll.with_requirement(requirement);
+                let Some(scroll_state) = scroll_state else {
                     focus
                         .discard_portal_proposal(preparation.focus.proposal())
                         .expect("Focus owner discards the proposal missing its Scroll owner");
@@ -60,40 +62,34 @@ impl WorthUiApplicationSessionState {
                         preparation.staging,
                         &preparation.portal,
                         &preparation.focus,
-                        preparation.scroll.as_ref(),
+                        &preparation.scroll,
                         preparation.selection.as_ref(),
                         motion_state,
                         preparation.motion,
                     );
                     return Err(UiPortalProposalPreparationDenial::MissingScrollOwner);
-                } else {
-                    let scroll = preparation
-                        .scroll
-                        .take()
-                        .expect("Scroll presence was checked above");
-                    preparation.scroll = Some(scroll.with_requirement(requirement));
-                    match self.stage_focus_reveal(
-                        requirement,
-                        mounted,
-                        scroll_state.expect("Scroll presence was checked above"),
-                        surface_incarnation,
-                    ) {
-                        Ok(reveal) => reveal,
-                        Err(denial) => {
-                            focus
-                                .discard_portal_proposal(preparation.focus.proposal())
-                                .expect("Focus owner discards the exact failed reveal candidate");
-                            self.cancel_portal_staging(
-                                preparation.staging,
-                                &preparation.portal,
-                                &preparation.focus,
-                                preparation.scroll.as_ref(),
-                                preparation.selection.as_ref(),
-                                motion_state,
-                                preparation.motion,
-                            );
-                            return Err(UiPortalProposalPreparationDenial::Scroll(denial));
-                        }
+                };
+                match self.stage_focus_reveal(
+                    requirement,
+                    mounted,
+                    scroll_state,
+                    surface_incarnation,
+                ) {
+                    Ok(reveal) => reveal,
+                    Err(denial) => {
+                        focus
+                            .discard_portal_proposal(preparation.focus.proposal())
+                            .expect("Focus owner discards the exact failed reveal candidate");
+                        self.cancel_portal_staging(
+                            preparation.staging,
+                            &preparation.portal,
+                            &preparation.focus,
+                            &preparation.scroll,
+                            preparation.selection.as_ref(),
+                            motion_state,
+                            preparation.motion,
+                        );
+                        return Err(UiPortalProposalPreparationDenial::Scroll(denial));
                     }
                 }
             }
@@ -114,18 +110,17 @@ impl WorthUiApplicationSessionState {
                 preparation.staging,
                 &preparation.portal,
                 &preparation.focus,
-                preparation.scroll.as_ref(),
+                &preparation.scroll,
                 preparation.selection.as_ref(),
                 motion_state,
                 preparation.motion,
             );
             return Err(UiPortalProposalPreparationDenial::Staging(denial));
         }
+        let revealed_scroll_scope = staged_reveal.as_ref().map(|_| preparation.scroll.scope());
         if let Err(denial) = self.runtime.service_proposals.advance_staging(
             &mut preparation.staging,
-            preparation
-                .focus
-                .resolution_receipt(staged_reveal.is_some()),
+            preparation.focus.resolution_receipt(revealed_scroll_scope),
         ) {
             focus
                 .discard_portal_proposal(preparation.focus.proposal())
@@ -134,7 +129,7 @@ impl WorthUiApplicationSessionState {
                 preparation.staging,
                 &preparation.portal,
                 &preparation.focus,
-                preparation.scroll.as_ref(),
+                &preparation.scroll,
                 preparation.selection.as_ref(),
                 motion_state,
                 preparation.motion,
@@ -163,7 +158,7 @@ impl WorthUiApplicationSessionState {
                     preparation.staging,
                     &preparation.portal,
                     &preparation.focus,
-                    preparation.scroll.as_ref(),
+                    &preparation.scroll,
                     preparation.selection.as_ref(),
                     motion_state,
                     None,
@@ -197,7 +192,7 @@ impl WorthUiApplicationSessionState {
                     staging,
                     &preparation.portal,
                     &preparation.focus,
-                    preparation.scroll.as_ref(),
+                    &preparation.scroll,
                     preparation.selection.as_ref(),
                     motion_state,
                     None,
