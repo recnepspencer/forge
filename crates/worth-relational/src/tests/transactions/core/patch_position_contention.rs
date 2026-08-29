@@ -22,7 +22,7 @@ const PAUSE_SIGNAL_BUDGET: Duration = Duration::from_secs(30);
 /// counters are exact, and the deferred branch gives back everything it took.
 #[test]
 fn a_held_patch_position_reservation_defers_an_unrelated_branch_without_residue() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .profile(RelationalRuntimeProfile::CertificationCore)
         .schema_registry(test_schema_registry())
         .publication(PublicationConfig {
@@ -38,9 +38,9 @@ fn a_held_patch_position_reservation_defers_an_unrelated_branch_without_residue(
             max_prepared_root_bytes: 268_435_456,
         })
         .build();
-    create_entity(&mut runtime, "patch-position-contention-anchor");
-    fork_contention_branch(&mut runtime, "winner");
-    fork_contention_branch(&mut runtime, "loser");
+    create_entity(&runtime, "patch-position-contention-anchor");
+    fork_contention_branch(&runtime, "winner");
+    fork_contention_branch(&runtime, "loser");
 
     let loser_identity = runtime
         .branch_identity(&BranchId("loser".to_owned()))
@@ -55,7 +55,7 @@ fn a_held_patch_position_reservation_defers_an_unrelated_branch_without_residue(
     let (reached, reached_signal) = std::sync::mpsc::sync_channel::<()>(1);
     let release = Arc::new(RelationalPatchPositionReservationGate::default());
     let winner = prepared_write_on(
-        &mut runtime,
+        &runtime,
         "winner",
         "contention-winner",
         RelationalOperationControl::uninterrupted()
@@ -63,7 +63,7 @@ fn a_held_patch_position_reservation_defers_an_unrelated_branch_without_residue(
     );
     let winner_cell = winner.publication_cell_for_test();
     let loser = prepared_write_on(
-        &mut runtime,
+        &runtime,
         "loser",
         "contention-loser",
         RelationalOperationControl::uninterrupted(),
@@ -238,13 +238,13 @@ fn a_held_patch_position_reservation_defers_an_unrelated_branch_without_residue(
     // The candidate slot is the one residue a counter cannot fake: if the
     // deferral kept it, the second refill below would be refused instead.
     let refill = prepared_write_on(
-        &mut runtime,
+        &runtime,
         "loser",
         "post-contention-refill",
         RelationalOperationControl::uninterrupted(),
     );
     let second_refill = prepared_write_on(
-        &mut runtime,
+        &runtime,
         "winner",
         "post-contention-second-refill",
         RelationalOperationControl::uninterrupted(),
@@ -271,10 +271,10 @@ fn a_held_patch_position_reservation_defers_an_unrelated_branch_without_residue(
     );
     runtime.discard_prepared_candidate(refill).unwrap();
     runtime.discard_prepared_candidate(second_refill).unwrap();
-    release_test_commit_snapshot(&mut runtime, &settled);
+    release_test_commit_snapshot(&runtime, &settled);
 }
 
-fn fork_contention_branch(runtime: &mut RelationalRuntime, branch: &str) {
+fn fork_contention_branch(runtime: &RelationalRuntime, branch: &str) {
     let (_, source) = runtime
         .observe_fork_source(&BranchId("main".to_owned()))
         .expect("main has an exact fork source");
@@ -304,7 +304,7 @@ fn begin_contention_transaction(
 }
 
 fn prepared_write_on(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     branch: &str,
     entity: &str,
     control: RelationalOperationControl,
