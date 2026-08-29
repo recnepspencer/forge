@@ -17,8 +17,7 @@ pub(super) fn apply_authoritative_commit_artifacts(
     let history_before = runtime.history.detached_owner_snapshot();
     if runtime
         .history
-        .commit_envelopes
-        .get(&envelope.commit.commit_id)
+        .recorded_commit_envelope(envelope.commit.commit_id)
         .is_some_and(|existing| existing.as_ref() != envelope)
         && !allow_reconstructed_replacement
     {
@@ -32,8 +31,7 @@ pub(super) fn apply_authoritative_commit_artifacts(
     }
     if runtime
         .history
-        .commit_catalog
-        .get(envelope.commit.commit_id)
+        .commit_artifact(envelope.commit.commit_id)
         .is_some_and(|existing| existing.envelope().as_ref() != envelope)
         && !allow_reconstructed_replacement
     {
@@ -45,7 +43,7 @@ pub(super) fn apply_authoritative_commit_artifacts(
             ),
         ));
     }
-    runtime.history.commit_graph.insert(
+    runtime.history.insert_commit_graph_node(
         envelope.commit.commit_id,
         VersionNode {
             commit: envelope.commit.clone(),
@@ -53,18 +51,16 @@ pub(super) fn apply_authoritative_commit_artifacts(
     );
     let canonical = runtime
         .history
-        .commit_envelopes
-        .get(&envelope.commit.commit_id)
-        .cloned()
+        .recorded_commit_envelope(envelope.commit.commit_id)
         .unwrap_or_else(|| Arc::clone(positioned.canonical_arc()));
-    runtime
-        .history
-        .commit_envelopes
-        .insert(envelope.commit.commit_id, Arc::clone(&canonical));
-    runtime
-        .history
-        .patch_stream_index
-        .insert(positioned.position(), envelope.commit.commit_id);
+    runtime.history.with_ledger_mut(|ledger| {
+        ledger
+            .commit_envelopes
+            .insert(envelope.commit.commit_id, Arc::clone(&canonical));
+        ledger
+            .patch_stream_index
+            .insert(positioned.position(), envelope.commit.commit_id);
+    });
     let result = runtime
         .history
         .record_recovered_commit(

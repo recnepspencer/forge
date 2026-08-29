@@ -11,7 +11,10 @@ pub(super) fn in_memory_recovery_plan(
     runtime: &RelationalRuntime,
     verification_mode: RecoveryVerificationMode,
 ) -> RecoveryPlan {
-    let checkpoint = runtime.durable_checkpoints().last().cloned();
+    let checkpoint = runtime
+        .durable_checkpoints()
+        .last()
+        .map(|checkpoint| checkpoint.as_ref().clone());
     let tail_log = tail_log_after_in_memory_checkpoint(runtime, checkpoint.as_ref());
     let descriptor_semantics_version = descriptor_semantics_version_for_envelopes(
         checkpoint
@@ -35,7 +38,7 @@ pub(super) fn in_memory_recovery_plan(
 
     RecoveryPlan::new(
         runtime.runtime_config().clone(),
-        runtime.durable_store().cloned(),
+        runtime.durable_store().map(|store| store.as_ref().clone()),
         None,
         checkpoint,
         tail_log,
@@ -70,16 +73,22 @@ fn tail_log_after_in_memory_checkpoint(
     }) {
         Some(up_to_position) => runtime
             .durable_log()
-            .iter()
+            .into_iter()
             .filter(|entry| entry.position() > up_to_position)
-            .cloned()
-            .map(crate::durability::migration::ReadmittedCanonicalCommit::exact)
+            .map(|entry| {
+                crate::durability::migration::ReadmittedCanonicalCommit::exact(
+                    entry.as_ref().clone(),
+                )
+            })
             .collect(),
         None => runtime
             .durable_log()
-            .iter()
-            .cloned()
-            .map(crate::durability::migration::ReadmittedCanonicalCommit::exact)
+            .into_iter()
+            .map(|entry| {
+                crate::durability::migration::ReadmittedCanonicalCommit::exact(
+                    entry.as_ref().clone(),
+                )
+            })
             .collect(),
     }
 }

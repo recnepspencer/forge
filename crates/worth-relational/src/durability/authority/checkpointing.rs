@@ -79,16 +79,16 @@ impl<'runtime> DurabilityAuthority<'runtime> {
                 retained_segments: Vec::new(),
             });
         }
-        let Some(checkpoint) = self.runtime.durability.checkpoints.last() else {
+        let Some(checkpoint) = self.runtime.durability.latest_checkpoint() else {
             return Ok(CompactionOutcome {
                 removed_segments: Vec::new(),
-                retained_segments: current_segment_ids(self.runtime.durable_store()),
+                retained_segments: current_segment_ids(self.runtime.durable_store().as_deref()),
             });
         };
         let Some(up_to_commit) = checkpoint.coverage.up_to_commit.as_ref() else {
             return Ok(CompactionOutcome {
                 removed_segments: Vec::new(),
-                retained_segments: current_segment_ids(self.runtime.durable_store()),
+                retained_segments: current_segment_ids(self.runtime.durable_store().as_deref()),
             });
         };
         let mut store = ensure_loaded_store(self.runtime)?;
@@ -123,7 +123,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
             }
         });
         persist_store_manifest(&store)?;
-        self.runtime.durability.store = Some(store);
+        self.runtime.durability.set_store(Some(store));
         self.runtime
             .publication_authority()
             .push_bounded_diagnostic(
@@ -144,26 +144,23 @@ impl<'runtime> DurabilityAuthority<'runtime> {
         use crate::config::data::DurableLogRetentionMode;
 
         let policy = self.runtime.runtime_config().durability.policy.log.clone();
-        if self.runtime.durability.log.len() <= policy.max_in_memory_envelopes {
+        if self.runtime.durability.log_len() <= policy.max_in_memory_envelopes {
             return;
         }
 
         match policy.retention_mode {
             DurableLogRetentionMode::RetainAllInMemory => {}
             DurableLogRetentionMode::CompactAfterCheckpoint => {
-                if let Some(checkpoint) = self.runtime.durability.checkpoints.last() {
+                if let Some(checkpoint) = self.runtime.durability.latest_checkpoint() {
                     if let Some(commit) = checkpoint.coverage.up_to_commit.as_ref() {
-                        self.runtime
-                            .durability
-                            .log
-                            .retain(|entry| entry.commit.commit_id > commit.commit_id);
-                        self.runtime.durability.rebuild_log_commit_index();
+                        self.runtime.durability.retain_log_after(commit.commit_id);
                     }
                 }
-                if self.runtime.durability.log.len() > policy.max_in_memory_envelopes {
-                    let overflow =
-                        self.runtime.durability.log.len() - policy.max_in_memory_envelopes;
-                    self.runtime.durability.trim_log_front(overflow);
+                let log_len = self.runtime.durability.log_len();
+                if log_len > policy.max_in_memory_envelopes {
+                    self.runtime
+                        .durability
+                        .trim_log_front(log_len - policy.max_in_memory_envelopes);
                 }
             }
         }
@@ -189,7 +186,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
         let envelope = positioned.envelope();
         authority.validate(self.runtime.runtime_instance_id(), envelope)?;
         #[cfg(any(test, feature = "test-durability-faults"))]
-        if std::mem::take(&mut self.runtime.durability.fail_next_append) {
+        if self.runtime.durability.take_armed_append_failure() {
             return Err(DurabilityError::new(
                 crate::durability::data::RecoveryFailureClass::DurableIoFailure,
                 "test-injected durable append failure",
@@ -269,14 +266,14 @@ impl<'runtime> DurabilityAuthority<'runtime> {
                         integrity: DurableIntegrityStatus::Verified,
                     });
                 }
-                self.runtime.durability.store = Some(store);
+                self.runtime.durability.set_store(Some(store));
                 self.runtime
                     .durability
                     .push_log_envelope(positioned.clone());
                 let latest_commit_id = self
                     .runtime
                     .durability
-                    .log
+                    .log()
                     .last()
                     .map(|entry| entry.envelope().commit.commit_id)
                     .unwrap_or(envelope.commit.commit_id);
@@ -335,7 +332,7 @@ impl<'runtime> DurabilityAuthority<'runtime> {
         };
         store.checkpoints.push(manifest.clone());
         persist_store_manifest(&store)?;
-        self.runtime.durability.store = Some(store);
+        self.runtime.durability.set_store(Some(store));
         Ok(manifest)
     }
 }

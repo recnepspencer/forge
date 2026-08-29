@@ -4,18 +4,20 @@ use crate::tests::support::*;
 fn truth_sequence_overflow_is_rejected_before_publication_effects() {
     let mut runtime = runtime_with_test_schema();
     let before_cells = runtime.history.branch_cells_snapshot();
-    let before_catalog = runtime.history.commit_catalog.len();
-    let before_graph = runtime.history.commit_graph.len();
-    let before_envelopes = runtime.history.commit_envelopes.len();
-    let before_patch_index = runtime.history.patch_stream_index.len();
+    let before_catalog = runtime.history.catalog_len();
+    let before_graph = runtime.history.commit_graph_len();
+    let before_envelopes = runtime.history.recorded_commit_envelope_count();
+    let before_patch_index = runtime.history.recorded_patch_position_count();
     let before_slots: usize = runtime
         .partitions
+        .read()
         .values()
         .map(|partition| partition.entity_arena.slot_count())
         .sum();
 
-    runtime.history.next_commit_id = u64::MAX;
-    runtime.history.next_version_id = u64::MAX;
+    runtime
+        .history
+        .with_ledger_mut(|ledger| ledger.set_sequence(u64::MAX, u64::MAX));
     let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
     transaction
         .push_batch(batch_create("overflow-denial"))
@@ -32,12 +34,13 @@ fn truth_sequence_overflow_is_rejected_before_publication_effects() {
         other => panic!("sequence overflow escaped as an untyped error: {other:?}"),
     }
     assert_eq!(runtime.history.branch_cells_snapshot(), before_cells);
-    assert_eq!(runtime.history.commit_catalog.len(), before_catalog);
-    assert_eq!(runtime.history.commit_graph.len(), before_graph);
-    assert_eq!(runtime.history.commit_envelopes.len(), before_envelopes);
-    assert_eq!(runtime.history.patch_stream_index.len(), before_patch_index);
+    assert_eq!(runtime.history.catalog_len(), before_catalog);
+    assert_eq!(runtime.history.commit_graph_len(), before_graph);
+    assert_eq!(runtime.history.recorded_commit_envelope_count(), before_envelopes);
+    assert_eq!(runtime.history.recorded_patch_position_count(), before_patch_index);
     let after_slots: usize = runtime
         .partitions
+        .read()
         .values()
         .map(|partition| partition.entity_arena.slot_count())
         .sum();

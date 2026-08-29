@@ -45,20 +45,22 @@ impl PartitionAccess for BTreeMap<PartitionId, PartitionState> {
     }
 }
 
+/// A structurally shared read of the runtime's authoritative partitions, taken
+/// without retaining the substrate lock.
 #[derive(Debug, Clone)]
-pub(crate) struct BorrowedWorkingState<'a> {
-    partitions: &'a BTreeMap<PartitionId, PartitionState>,
+pub(crate) struct BorrowedWorkingState {
+    partitions: BTreeMap<PartitionId, std::sync::Arc<PartitionState>>,
 }
 
-impl<'a> BorrowedWorkingState<'a> {
-    pub(crate) fn new(partitions: &'a BTreeMap<PartitionId, PartitionState>) -> Self {
+impl BorrowedWorkingState {
+    pub(crate) fn new(partitions: BTreeMap<PartitionId, std::sync::Arc<PartitionState>>) -> Self {
         Self { partitions }
     }
 }
 
-impl PartitionAccess for BorrowedWorkingState<'_> {
+impl PartitionAccess for BorrowedWorkingState {
     fn get_partition(&self, partition_id: PartitionId) -> Option<&PartitionState> {
-        self.partitions.get(&partition_id)
+        self.partitions.get(&partition_id).map(std::sync::Arc::as_ref)
     }
 
     fn partition_ids(&self) -> Vec<PartitionId> {

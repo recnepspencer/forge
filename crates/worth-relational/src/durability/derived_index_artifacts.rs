@@ -9,7 +9,7 @@ pub(crate) fn checkpoint_derived_index_artifacts(
 }
 
 pub(crate) fn restore_checkpoint_derived_index_artifacts(
-    indexes: &mut crate::runtime::IndexingSubsystem,
+    indexes: &mut crate::runtime::IndexingState,
     artifacts: &DerivedIndexArtifacts,
 ) {
     for generation in artifacts.generations() {
@@ -17,7 +17,7 @@ pub(crate) fn restore_checkpoint_derived_index_artifacts(
             .generations
             .entry(generation.index_id)
             .or_default()
-            .push(generation.clone());
+            .push(std::sync::Arc::new(generation.clone()));
     }
 }
 
@@ -30,19 +30,6 @@ pub(crate) fn apply_envelope_derived_index_artifacts(
     }
 
     for generation in envelope.derived_index_artifacts().generations() {
-        let generations = runtime
-            .indexes
-            .generations
-            .entry(generation.index_id)
-            .or_default();
-        if let Some(existing) = generations
-            .iter_mut()
-            .find(|candidate| candidate.generation_id == generation.generation_id)
-        {
-            *existing = generation.clone();
-        } else {
-            generations.push(generation.clone());
-            generations.sort_by_key(|candidate| candidate.generation_id);
-        }
+        runtime.indexes.restore_generation(generation.clone());
     }
 }

@@ -75,12 +75,10 @@ pub(crate) fn validate_publication(
     let catalog_admission = match request.sequence {
         PublicationSequence::Truth => runtime
             .history
-            .commit_catalog
-            .validate_new_envelope(request.envelope),
-        PublicationSequence::RecoveryTruth => runtime
-            .history
-            .commit_catalog
-            .validate_envelope(request.envelope),
+            .validate_new_catalog_envelope(request.envelope),
+        PublicationSequence::RecoveryTruth => {
+            runtime.history.validate_catalog_envelope(request.envelope)
+        }
     };
     catalog_admission
         .map_err(|denial| format!("publication catalog admission denied: {denial:?}"))?;

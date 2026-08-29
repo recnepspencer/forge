@@ -106,7 +106,7 @@ fn failed_durable_append_cannot_misreport_a_performed_owner_commit() {
         traversal_basis: LineageGraphTraversalBasis::FullBranchGraphMaterialization,
     });
 
-    runtime.durability.fail_next_append = true;
+    runtime.durability.arm_append_failure();
     let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
     transaction
         .push_batch(

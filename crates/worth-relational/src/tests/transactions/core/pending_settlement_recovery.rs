@@ -224,7 +224,7 @@ fn durability_repair_leaves_a_live_witness_its_usable_published_snapshot() {
         .preparation_runtime_snapshot()
         .published_snapshot_count();
 
-    runtime.durability.fail_next_append = true;
+    runtime.durability.arm_append_failure();
     assert!(matches!(
         runtime
             .repair_pending_publication_settlement(commit_id)

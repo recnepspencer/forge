@@ -18,10 +18,10 @@ pub(in crate::runtime) use runtime_state::{
     RelationalRuntimePublicationOwner,
 };
 pub(crate) use subsystems::{
-    readmit_positioned_canonical_commit, BranchHeadVersionIndexAuthority,
+    partition_entry_mut, readmit_positioned_canonical_commit, BranchHeadVersionIndexAuthority,
     CanonicalCheckpointAdmissionError, CanonicalPositionAdmission, CanonicalPublicationRecordError,
-    CommitStrategiesSubsystem, DurabilitySubsystem, HistorySubsystem, IndexingSubsystem,
-    LineageIdentityAllocator, LineageSubsystem, PendingRecordAllocations,
+    CommitStrategiesSubsystem, DurabilityState, DurabilitySubsystem, HistorySubsystem, IndexingState, IndexingSubsystem,
+    LineageIdentityAllocator, LineageState, LineageSubsystem, PendingRecordAllocations,
     PerformedCheckpointSelection, PreparedCanonicalPublicationRoute,
     PreparedRecoveredVersionedArtifactPublication, PreparedVersionedArtifactAccelerators,
     PreparedVersionedArtifactPublication, PublicationSubsystem, PublishedSnapshotCapacityOwner,
@@ -30,7 +30,8 @@ pub(crate) use subsystems::{
     RelationalDiagnosticArtifactStore, RelationalForkMaterializationCost,
     RelationalForkOwnerBinding, RelationalPreparationHistory, ReplayRetentionState,
     RuntimeInstrumentation, RuntimeServices, RuntimeSubsystem, SchemaContractRuntimeSubsystem,
-    SnapshotHandleBinding, ValidatedLineageEventBatch, VisibilityResidency, VisibilitySubsystem,
+    SnapshotHandleBinding, StorageSubsystem, ValidatedLineageEventBatch,
+    VisibilityResidency, VisibilitySubsystem,
 };
 pub use subsystems::{
     RelationalBranchSharingCostCounters, RelationalPatchPositionReservationCounters,

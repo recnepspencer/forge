@@ -74,7 +74,7 @@ impl RelationalRuntime {
             }),
         );
         reject_cross_branch_target_substitution(
-            &self.history.commit_catalog,
+            &self.history,
             &snapshot,
             &descriptor,
             &current_reference,

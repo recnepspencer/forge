@@ -23,7 +23,10 @@ impl RelationalRuntime {
         structural_fingerprint: Option<crate::identity::data::StructuralFingerprint>,
         lineage_id: Option<crate::identity::data::LineageId>,
     ) -> bool {
-        let Some(partition) = self.partitions.get_mut(&entity_id.partition_id) else {
+        let mut partitions = self.partitions.write();
+        let Some(partition) =
+            crate::runtime::partition_entry_mut(&mut partitions, entity_id.partition_id)
+        else {
             return false;
         };
         if partition.entity_arena.get(&entity_id).is_none() {
@@ -45,7 +48,9 @@ impl RelationalRuntime {
         lineage_id: Option<crate::identity::data::LineageId>,
     ) -> Option<crate::identity::data::EntityId> {
         let replacement_version = crate::identity::data::VersionId(self.current_version_id().0 + 1);
-        let partition = self.partitions.get_mut(&entity_id.partition_id)?;
+        let mut partitions = self.partitions.write();
+        let partition =
+            crate::runtime::partition_entry_mut(&mut partitions, entity_id.partition_id)?;
         let arena = &mut partition.entity_arena;
         arena.get(&entity_id)?;
         let slot = entity_id.local_slot.0 as usize;
@@ -74,7 +79,8 @@ impl RelationalRuntime {
         };
         arena.live_bitset.set(slot, true);
         arena.reclaimable_bitset.set(slot, false);
-        self.history.next_version_id = replacement_version.0 + 1;
+        self.history
+            .with_ledger_mut(|ledger| ledger.next_version_id = replacement_version.0 + 1);
 
         Some(crate::identity::data::EntityId::new(
             entity_id.partition_id,
@@ -88,13 +94,13 @@ impl RelationalRuntime {
         entity_id: crate::identity::data::EntityId,
     ) -> usize {
         self.partitions
-            .get(&entity_id.partition_id)
+            .partition(entity_id.partition_id)
             .and_then(|partition| {
                 partition
                     .entity_arena
                     .metadata_history_at(entity_id.local_slot.0 as usize)
+                    .map(|history| history.len())
             })
-            .map(|history| history.len())
             .unwrap_or(0)
     }
 
@@ -103,13 +109,13 @@ impl RelationalRuntime {
         relation_id: crate::identity::data::RelationId,
     ) -> usize {
         self.partitions
-            .get(&relation_id.partition_id)
+            .partition(relation_id.partition_id)
             .and_then(|partition| {
                 partition
                     .relation_arena
                     .metadata_history_at(relation_id.local_slot.0 as usize)
+                    .map(|history| history.len())
             })
-            .map(|history| history.len())
             .unwrap_or(0)
     }
 }

@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 #[cfg(test)]
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -8,11 +7,9 @@ use crate::branch::{
     RelationalBranchBasisRegistryMetrics, RelationalBranchReferenceCell,
     RelationalBranchReferenceRegistry, RelationalBranchRootIdentityIssuer,
 };
-use crate::history::data::CanonicalCommitEnvelope;
-use crate::history::data::{BranchId, CommitId, VersionNode};
-use crate::history::RelationalCommitCatalog;
+use crate::history::data::{BranchId, CommitId};
 use crate::identity::data::VersionId;
-use crate::publication::patch::data::PatchStreamPosition;
+use crate::runtime::state::subsystems::RuntimeOwnedState;
 
 #[path = "canonical_publication_routes.rs"]
 mod canonical_publication_routes;
@@ -34,6 +31,11 @@ mod history_costs;
 mod history_fork_binding;
 #[path = "history_head_versions.rs"]
 mod history_head_versions;
+#[path = "history_ledger.rs"]
+mod history_ledger;
+#[path = "history_ledger_access.rs"]
+mod history_ledger_access;
+pub(crate) use history_ledger::HistoryLedger;
 pub(crate) use history_fork_binding::RelationalForkOwnerBinding;
 #[path = "history_preparation_binding.rs"]
 mod history_preparation_binding;
@@ -85,7 +87,6 @@ pub(crate) struct HistorySubsystem {
     pub(crate) runtime_instance_id: u64,
     pub(crate) main_branch: BranchId,
     branch_cells: RelationalBranchReferenceRegistry,
-    pub(crate) commit_catalog: RelationalCommitCatalog,
     pub(crate) phase4_costs: RelationalPhase4ReferenceCostOwner,
     root_identity_issuer: RelationalBranchRootIdentityIssuer,
     /// Population-wide reference traversal is deliberately hidden behind
@@ -98,16 +99,10 @@ pub(crate) struct HistorySubsystem {
     retention_owner: crate::history::retention::RelationalBranchRetentionOwner,
     #[cfg(test)]
     root_capture_sabotage: Arc<AtomicBool>,
-    /// Durable recovery/diagnostic sidecar. Currentness and fork identity
-    /// read the catalog, not this map.
-    pub(crate) commit_graph: BTreeMap<crate::history::data::CommitId, VersionNode>,
-    /// Durable recovery sidecar holding the same sealed envelope the catalog
-    /// already admitted. It cannot mint a branch cell or a fork basis.
-    pub(crate) commit_envelopes:
-        BTreeMap<crate::history::data::CommitId, Arc<CanonicalCommitEnvelope>>,
-    pub(crate) patch_stream_index: BTreeMap<PatchStreamPosition, crate::history::data::CommitId>,
-    pub(crate) next_commit_id: u64,
-    pub(crate) next_version_id: u64,
+    /// The commit catalog and its durable sidecars, owned behind their own
+    /// lock so publication installs a commit without demanding exclusive
+    /// access to the runtime.
+    ledger: RuntimeOwnedState<HistoryLedger>,
     commit_identity_allocator: Arc<AtomicU64>,
     version_identity_allocator: Arc<AtomicU64>,
     canonical_publication_routes: Arc<RelationalCanonicalPublicationRoutes>,
@@ -125,12 +120,13 @@ impl HistorySubsystem {
     }
 
     pub(crate) fn preparation_binding(&self) -> RelationalPreparationHistory {
+        let ledger = self.ledger.read();
         RelationalPreparationHistory::new(
             self.branch_cells.clone(),
             Arc::clone(&self.commit_identity_allocator),
             Arc::clone(&self.version_identity_allocator),
-            self.next_commit_id,
-            self.next_version_id,
+            ledger.next_commit_id,
+            ledger.next_version_id,
             Arc::clone(&self.canonical_publication_routes),
             self.root_identity_issuer.clone(),
             #[cfg(test)]
@@ -147,7 +143,6 @@ impl HistorySubsystem {
             runtime_instance_id: 0,
             main_branch: main_branch.clone(),
             branch_cells: RelationalBranchReferenceRegistry::from_main(main_cell),
-            commit_catalog: RelationalCommitCatalog::default(),
             phase4_costs: RelationalPhase4ReferenceCostOwner::default(),
             root_identity_issuer: RelationalBranchRootIdentityIssuer::default(),
             branch_population_scans: Arc::new(AtomicU64::new(0)),
@@ -156,11 +151,7 @@ impl HistorySubsystem {
             retention_owner: crate::history::retention::RelationalBranchRetentionOwner::new(0),
             #[cfg(test)]
             root_capture_sabotage: Arc::new(AtomicBool::new(false)),
-            commit_graph: BTreeMap::new(),
-            commit_envelopes: BTreeMap::new(),
-            patch_stream_index: BTreeMap::new(),
-            next_commit_id: 1,
-            next_version_id: 1,
+            ledger: RuntimeOwnedState::default(),
             commit_identity_allocator: Arc::new(AtomicU64::new(1)),
             version_identity_allocator: Arc::new(AtomicU64::new(1)),
             canonical_publication_routes: Arc::new(RelationalCanonicalPublicationRoutes::default()),
@@ -168,16 +159,16 @@ impl HistorySubsystem {
     }
 
     pub(crate) fn preview_next_commit_id(&self) -> CommitId {
-        CommitId(self.next_commit_id)
+        self.ledger.read().preview_next_commit_id()
     }
 
     #[cfg(test)]
     pub(crate) fn preview_next_version_id(&self) -> VersionId {
-        VersionId(self.next_version_id)
+        VersionId(self.ledger.read().next_version_id)
     }
 
     pub(crate) fn current_version_id(&self) -> VersionId {
-        VersionId(self.next_version_id.saturating_sub(1))
+        self.ledger.read().current_version_id()
     }
 
     pub(crate) fn move_branch_head_version(
@@ -197,8 +188,7 @@ impl HistorySubsystem {
     }
 
     pub(crate) fn prepare_recovery_sequence(&mut self, commit_id: CommitId, version_id: VersionId) {
-        self.next_commit_id = commit_id.0;
-        self.next_version_id = version_id.0;
+        self.ledger.write().set_sequence(commit_id.0, version_id.0);
         self.commit_identity_allocator = Arc::new(AtomicU64::new(commit_id.0));
         self.version_identity_allocator = Arc::new(AtomicU64::new(version_id.0));
     }
@@ -208,8 +198,9 @@ impl HistorySubsystem {
         next_commit_id: u64,
         next_version_id: u64,
     ) {
-        self.next_commit_id = next_commit_id;
-        self.next_version_id = next_version_id;
+        self.ledger
+            .write()
+            .set_sequence(next_commit_id, next_version_id);
         self.commit_identity_allocator = Arc::new(AtomicU64::new(next_commit_id));
         self.version_identity_allocator = Arc::new(AtomicU64::new(next_version_id));
     }
@@ -219,11 +210,13 @@ impl HistorySubsystem {
         commit_id: CommitId,
         version_id: VersionId,
     ) -> Result<(), &'static str> {
-        if self.next_commit_id > commit_id.0 || self.next_version_id > version_id.0 {
-            return Err("replay basis sequence has advanced beyond the committed target");
+        {
+            let mut ledger = self.ledger.write();
+            if ledger.next_commit_id > commit_id.0 || ledger.next_version_id > version_id.0 {
+                return Err("replay basis sequence has advanced beyond the committed target");
+            }
+            ledger.set_sequence(commit_id.0, version_id.0);
         }
-        self.next_commit_id = commit_id.0;
-        self.next_version_id = version_id.0;
         self.commit_identity_allocator = Arc::new(AtomicU64::new(commit_id.0));
         self.version_identity_allocator = Arc::new(AtomicU64::new(version_id.0));
         Ok(())
@@ -265,28 +258,31 @@ impl HistorySubsystem {
         }
         let positioned = self.canonical_publication_routes.performed_snapshot();
         let mut fork = self.detached_owner_snapshot();
-        if let Some(maximum) = positioned
-            .iter()
-            .map(|commit| commit.envelope().commit.commit_id.0)
-            .max()
-        {
-            fork.next_commit_id =
-                fork.next_commit_id.max(maximum.checked_add(1).ok_or(
+        let (next_commit_id, next_version_id) = {
+            let mut ledger = fork.ledger.write();
+            if let Some(maximum) = positioned
+                .iter()
+                .map(|commit| commit.envelope().commit.commit_id.0)
+                .max()
+            {
+                ledger.next_commit_id = ledger.next_commit_id.max(maximum.checked_add(1).ok_or(
                     crate::runtime::RelationalRuntimeForkDenial::IdentityCapacityExhausted,
                 )?);
-        }
-        if let Some(maximum) = positioned
-            .iter()
-            .map(|commit| commit.envelope().commit.version_id.0)
-            .max()
-        {
-            fork.next_version_id =
-                fork.next_version_id.max(maximum.checked_add(1).ok_or(
-                    crate::runtime::RelationalRuntimeForkDenial::IdentityCapacityExhausted,
-                )?);
-        }
-        fork.commit_identity_allocator = Arc::new(AtomicU64::new(fork.next_commit_id));
-        fork.version_identity_allocator = Arc::new(AtomicU64::new(fork.next_version_id));
+            }
+            if let Some(maximum) = positioned
+                .iter()
+                .map(|commit| commit.envelope().commit.version_id.0)
+                .max()
+            {
+                ledger.next_version_id =
+                    ledger.next_version_id.max(maximum.checked_add(1).ok_or(
+                        crate::runtime::RelationalRuntimeForkDenial::IdentityCapacityExhausted,
+                    )?);
+            }
+            (ledger.next_commit_id, ledger.next_version_id)
+        };
+        fork.commit_identity_allocator = Arc::new(AtomicU64::new(next_commit_id));
+        fork.version_identity_allocator = Arc::new(AtomicU64::new(next_version_id));
         let routes = Arc::new(RelationalCanonicalPublicationRoutes::default());
         for commit in positioned {
             routes.install_recovered(commit).map_err(|_| {
@@ -313,7 +309,7 @@ impl HistorySubsystem {
 
     pub(crate) fn phase4_costs(&self) -> RelationalPhase4ReferenceCostCounters {
         let mut costs = self.phase4_costs.snapshot();
-        costs.catalog_lookups = self.commit_catalog.lookup_count();
+        costs.catalog_lookups = self.ledger.read().commit_catalog.lookup_count();
         costs.artifact_clones = self.history_materialization_count();
         costs.branch_population_scans = self.branch_population_scans.load(Ordering::Relaxed);
         costs
@@ -328,7 +324,7 @@ impl HistorySubsystem {
     }
 
     fn history_materialization_count(&self) -> u64 {
-        self.commit_catalog.materialization_count()
+        self.ledger.read().commit_catalog.materialization_count()
     }
 
     pub(crate) fn branch_cell_mut(

@@ -103,12 +103,9 @@ fn derived_index_contract_relation_field_equals_reports_corrupt_generation() {
     assert!(build.failed_indexes.is_empty());
     runtime
         .indexes
-        .generations
-        .get_mut(&index.index_id)
-        .expect("relation index generations")
-        .last_mut()
-        .expect("built relation generation")
-        .status = crate::facade::indexes::DerivedIndexPublicationStatus::BuildFailed;
+        .corrupt_latest_generation(index.index_id, |generation| {
+            generation.status = crate::facade::indexes::DerivedIndexPublicationStatus::BuildFailed;
+        });
 
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime

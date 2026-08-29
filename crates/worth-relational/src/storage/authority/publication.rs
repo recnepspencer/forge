@@ -91,9 +91,9 @@ impl RelationalPublishedPartitionDelta {
     }
 }
 
-impl<'runtime> StorageAuthority<'runtime> {
+impl StorageAuthority<'_> {
     pub(crate) fn publish_branch_partition_commits(
-        &mut self,
+        &self,
         branch_id: &crate::history::data::BranchId,
         clone_mode: PartitionCloneMode,
         committed_partitions: BTreeMap<
@@ -107,7 +107,12 @@ impl<'runtime> StorageAuthority<'runtime> {
         // authority. Non-main publications install truth only in their
         // immutable branch root below the history publication boundary.
         if branch_id == &self.runtime.history.main_branch {
-            let existing_partition_ids = self.runtime.partitions.keys().copied().collect();
+            let existing_partition_ids = self
+                .runtime
+                .partitions
+                .partition_ids()
+                .into_iter()
+                .collect();
             let plan = plan::plan_partition_publication(
                 clone_mode,
                 &existing_partition_ids,

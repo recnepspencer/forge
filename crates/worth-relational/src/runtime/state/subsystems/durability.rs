@@ -1,119 +1,101 @@
-use std::collections::HashMap;
+use std::sync::Arc;
 
 use crate::durability::data::{DurableCheckpoint, DurableStore};
 use crate::history::data::{CommitId, PositionedCanonicalCommit};
-use crate::runtime::state::subsystems::RuntimeSubsystem;
+use crate::runtime::state::subsystems::{RuntimeOwnedState, RuntimeSubsystem};
 use crate::runtime::RelationalRuntimeConfig;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct CheckpointEnvelopeLocation {
-    pub(crate) checkpoint_index: usize,
-    pub(crate) envelope_index: usize,
-}
+mod state;
 
-#[derive(Debug, Clone, Default)]
+pub(crate) use state::DurabilityState;
+
+/// The runtime's durable log and checkpoint authority, owned behind its own
+/// lock so durability I/O never demands exclusive access to the runtime.
+#[derive(Debug, Default)]
 pub(crate) struct DurabilitySubsystem {
-    pub(crate) log: Vec<PositionedCanonicalCommit>,
-    pub(crate) checkpoints: Vec<DurableCheckpoint>,
-    pub(crate) log_commit_index: HashMap<CommitId, usize>,
-    pub(crate) checkpoint_commit_index: HashMap<CommitId, CheckpointEnvelopeLocation>,
-    pub(crate) store: Option<DurableStore>,
-    #[cfg(any(test, feature = "test-durability-faults"))]
-    pub(crate) fail_next_append: bool,
+    state: RuntimeOwnedState<DurabilityState>,
 }
 
 impl DurabilitySubsystem {
-    fn build_from_config(config: &RelationalRuntimeConfig) -> Self {
+    pub(crate) fn share(&self) -> Self {
         Self {
-            log: Vec::new(),
-            checkpoints: Vec::new(),
-            log_commit_index: HashMap::new(),
-            checkpoint_commit_index: HashMap::new(),
-            store: config
-                .durability
-                .policy
-                .store_layout
-                .clone()
-                .map(|layout| DurableStore {
-                    layout,
-                    segments: Vec::new(),
-                    checkpoints: Vec::new(),
-                }),
-            #[cfg(any(test, feature = "test-durability-faults"))]
-            fail_next_append: false,
+            state: self.state.share(),
         }
     }
 
-    pub(crate) fn push_log_envelope(&mut self, commit: PositionedCanonicalCommit) {
-        let commit_id = commit.envelope().commit.commit_id;
-        self.log_commit_index.insert(commit_id, self.log.len());
-        self.log.push(commit);
+    pub(crate) fn push_log_envelope(&self, commit: PositionedCanonicalCommit) {
+        self.state.write().push_log_envelope(commit);
     }
 
-    pub(crate) fn push_checkpoint(&mut self, checkpoint: DurableCheckpoint) {
-        let checkpoint_index = self.checkpoints.len();
-        for (envelope_index, envelope) in checkpoint.envelopes.iter().enumerate() {
-            self.checkpoint_commit_index.insert(
-                envelope.envelope().commit.commit_id,
-                CheckpointEnvelopeLocation {
-                    checkpoint_index,
-                    envelope_index,
-                },
-            );
-        }
-        self.checkpoints.push(checkpoint);
+    pub(crate) fn push_checkpoint(&self, checkpoint: DurableCheckpoint) {
+        self.state.write().push_checkpoint(checkpoint);
     }
 
-    pub(crate) fn set_log(&mut self, log: Vec<PositionedCanonicalCommit>) {
-        self.log = log;
-        self.rebuild_log_commit_index();
-    }
-
-    pub(crate) fn rebuild_log_commit_index(&mut self) {
-        self.log_commit_index.clear();
-        for (index, envelope) in self.log.iter().enumerate() {
-            self.log_commit_index
-                .insert(envelope.envelope().commit.commit_id, index);
-        }
+    pub(crate) fn set_log(&self, log: Vec<PositionedCanonicalCommit>) {
+        self.state.write().set_log(log);
     }
 
     #[cfg(test)]
-    pub(crate) fn remove_log_commit(&mut self, commit_id: CommitId) -> bool {
-        let before = self.log.len();
-        self.log
-            .retain(|entry| entry.envelope().commit.commit_id != commit_id);
-        let changed = before != self.log.len();
-        if changed {
-            self.rebuild_log_commit_index();
-        }
-        changed
+    pub(crate) fn remove_log_commit(&self, commit_id: CommitId) -> bool {
+        self.state.write().remove_log_commit(commit_id)
     }
 
-    pub(crate) fn trim_log_front(&mut self, count: usize) {
-        if count == 0 {
-            return;
-        }
-        self.log.drain(0..count);
-        self.rebuild_log_commit_index();
+    pub(crate) fn retain_log_after(&self, commit_id: CommitId) {
+        self.state.write().retain_log_after(commit_id);
+    }
+
+    pub(crate) fn trim_log_front(&self, count: usize) {
+        self.state.write().trim_log_front(count);
     }
 
     pub(crate) fn durable_log_envelope(
         &self,
         commit_id: CommitId,
-    ) -> Option<&PositionedCanonicalCommit> {
-        self.log_commit_index
-            .get(&commit_id)
-            .and_then(|index| self.log.get(*index))
+    ) -> Option<Arc<PositionedCanonicalCommit>> {
+        self.state.read().durable_log_envelope(commit_id)
     }
 
     pub(crate) fn checkpoint_envelope(
         &self,
         commit_id: CommitId,
-    ) -> Option<&PositionedCanonicalCommit> {
-        let location = self.checkpoint_commit_index.get(&commit_id)?;
-        self.checkpoints
-            .get(location.checkpoint_index)
-            .and_then(|checkpoint| checkpoint.envelopes.get(location.envelope_index))
+    ) -> Option<PositionedCanonicalCommit> {
+        self.state.read().checkpoint_envelope(commit_id)
+    }
+
+    /// Every durable envelope, shared rather than copied, so scans never hold
+    /// the subsystem lock while they read.
+    pub(crate) fn log(&self) -> Vec<Arc<PositionedCanonicalCommit>> {
+        self.state.read().log.clone()
+    }
+
+    pub(crate) fn log_len(&self) -> usize {
+        self.state.read().log.len()
+    }
+
+    pub(crate) fn checkpoints(&self) -> Vec<Arc<DurableCheckpoint>> {
+        self.state.read().checkpoints.clone()
+    }
+
+    pub(crate) fn latest_checkpoint(&self) -> Option<Arc<DurableCheckpoint>> {
+        self.state.read().checkpoints.last().map(Arc::clone)
+    }
+
+    pub(crate) fn store(&self) -> Option<Arc<DurableStore>> {
+        self.state.read().store.clone()
+    }
+
+    pub(crate) fn set_store(&self, store: Option<DurableStore>) {
+        self.state.write().store = store.map(Arc::new);
+    }
+
+    #[cfg(any(test, feature = "test-durability-faults"))]
+    pub(crate) fn arm_append_failure(&self) {
+        self.state.write().fail_next_append = true;
+    }
+
+    #[cfg(any(test, feature = "test-durability-faults"))]
+    pub(crate) fn take_armed_append_failure(&self) -> bool {
+        std::mem::take(&mut self.state.write().fail_next_append)
     }
 }
 
@@ -121,10 +103,14 @@ impl RuntimeSubsystem for DurabilitySubsystem {
     type Config = RelationalRuntimeConfig;
 
     fn new(config: &Self::Config) -> Self {
-        Self::build_from_config(config)
+        Self {
+            state: RuntimeOwnedState::new(DurabilityState::build_from_config(config)),
+        }
     }
 
     fn fork(&self) -> Self {
-        self.clone()
+        Self {
+            state: self.state.detached(),
+        }
     }
 }

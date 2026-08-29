@@ -5,15 +5,17 @@ use crate::runtime::RelationalReplayRecord;
 use super::PublicationArtifactsAccess;
 
 impl<'runtime> PublicationArtifactsAccess<'runtime> {
-    pub fn latest_bundle(&self) -> Option<&PublicationBundle<RelationalReplayRecord>> {
-        self.runtime.publication.latest_bundle.as_ref()
+    pub fn latest_bundle(
+        &self,
+    ) -> Option<std::sync::Arc<PublicationBundle<RelationalReplayRecord>>> {
+        self.runtime.publication.latest_bundle()
     }
 
-    pub fn latest_patch(&self) -> Option<&PublishedAuthoritativePatchEnvelope> {
-        self.latest_bundle().map(|bundle| &bundle.patch)
+    pub fn latest_patch(&self) -> Option<PublishedAuthoritativePatchEnvelope> {
+        self.latest_bundle().map(|bundle| bundle.patch.clone())
     }
 
-    pub fn latest_replay(&self) -> Option<&RelationalReplayRecord> {
-        self.latest_bundle().map(|bundle| &bundle.replay)
+    pub fn latest_replay(&self) -> Option<RelationalReplayRecord> {
+        self.latest_bundle().map(|bundle| bundle.replay.clone())
     }
 }

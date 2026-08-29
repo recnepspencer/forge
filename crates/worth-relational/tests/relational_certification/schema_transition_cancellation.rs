@@ -28,7 +28,7 @@ fn cancelled_schema_transition_leaves_no_target_or_branch_residue() {
         .publication()
         .read_patch_stream(PatchStreamRequest::default())
         .unwrap();
-    let replay_before = world.runtime.publication().latest_replay().cloned();
+    let replay_before = world.runtime.publication().latest_replay();
     let cost_scope = RelationalMvccCostScope::capture(&world.runtime, vec![identity]);
     let control = RelationalOperationControl::uninterrupted().with_injected_interruption(
         RelationalInterruptionBoundary::BeforeCriticalSection,

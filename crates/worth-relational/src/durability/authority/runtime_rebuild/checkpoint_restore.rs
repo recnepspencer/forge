@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::durability::data::{DurabilityError, DurabilityMode, DurableCheckpoint};
 use crate::history::data::VersionNode;
-use crate::runtime::{HistorySubsystem, IndexingSubsystem, LineageSubsystem, RelationalRuntime};
+use crate::runtime::{HistorySubsystem, IndexingState, LineageState, RelationalRuntime};
 
 use super::super::super::derived_index_artifacts::restore_checkpoint_derived_index_artifacts;
 use super::super::authority_continuity::validate_checkpoint_lineage_artifact;
@@ -24,8 +24,8 @@ struct PreparedCheckpointState {
         crate::storage::overlay::PartitionState,
     >,
     history: HistorySubsystem,
-    lineage: LineageSubsystem,
-    indexes: IndexingSubsystem,
+    lineage: LineageState,
+    indexes: IndexingState,
     checkpoint: DurableCheckpoint,
 }
 
@@ -105,21 +105,23 @@ fn prepare_history(
     symbols: &crate::symbols::data::StringInterner,
 ) -> Result<HistorySubsystem, DurabilityError> {
     let mut history = restored.history.detached_owner_snapshot();
-    history.commit_envelopes = checkpoint
-        .envelopes
-        .iter()
-        .map(|commit| {
-            (
-                commit.envelope().commit.commit_id,
-                Arc::clone(commit.canonical_arc()),
-            )
-        })
-        .collect();
-    history.patch_stream_index = checkpoint
-        .envelopes
-        .iter()
-        .map(|commit| (commit.position(), commit.envelope().commit.commit_id))
-        .collect();
+    history.with_ledger_mut(|ledger| {
+        ledger.commit_envelopes = checkpoint
+            .envelopes
+            .iter()
+            .map(|commit| {
+                (
+                    commit.envelope().commit.commit_id,
+                    Arc::clone(commit.canonical_arc()),
+                )
+            })
+            .collect();
+        ledger.patch_stream_index = checkpoint
+            .envelopes
+            .iter()
+            .map(|commit| (commit.position(), commit.envelope().commit.commit_id))
+            .collect();
+    });
     for commit in &checkpoint.envelopes {
         history
             .install_recovered_canonical_route(Arc::new(commit.clone()))
@@ -130,14 +132,10 @@ fn prepare_history(
                 )
             })?;
     }
-    if let Some(position) = history
-        .patch_stream_index
-        .last_key_value()
-        .map(|(position, _)| *position)
-    {
+    if let Some(position) = history.latest_recorded_patch_position() {
         history.advance_canonical_stream_floor(position);
     }
-    history.commit_graph = checkpoint
+    let commit_graph = checkpoint
         .envelopes
         .iter()
         .map(|envelope| {
@@ -149,6 +147,7 @@ fn prepare_history(
             )
         })
         .collect();
+    history.with_ledger_mut(|ledger| ledger.commit_graph = commit_graph);
     history.rebuild_catalog_from_durable_envelopes();
     history
         .restore_branch_cells(
@@ -170,8 +169,8 @@ fn prepare_history(
 fn prepare_lineage(
     restored: &RelationalRuntime,
     checkpoint: &DurableCheckpoint,
-) -> LineageSubsystem {
-    let mut lineage = restored.lineage.clone();
+) -> LineageState {
+    let mut lineage = restored.lineage.snapshot();
     lineage.nodes = checkpoint
         .lineage
         .nodes()
@@ -196,13 +195,13 @@ fn prepare_lineage(
     lineage
 }
 
-fn prepare_indexes(checkpoint: &DurableCheckpoint) -> IndexingSubsystem {
-    let mut indexes = IndexingSubsystem::default();
+fn prepare_indexes(checkpoint: &DurableCheckpoint) -> IndexingState {
+    let mut indexes = IndexingState::default();
     indexes.definitions = checkpoint
         .index_definitions
         .iter()
         .cloned()
-        .map(|definition| (definition.index_id, definition))
+        .map(|definition| (definition.index_id, std::sync::Arc::new(definition)))
         .collect();
     restore_checkpoint_derived_index_artifacts(&mut indexes, &checkpoint.derived_index_artifacts);
     indexes
@@ -211,15 +210,18 @@ fn prepare_indexes(checkpoint: &DurableCheckpoint) -> IndexingSubsystem {
 fn install_checkpoint_state(restored: &mut RelationalRuntime, prepared: PreparedCheckpointState) {
     restored.services.symbols.replace(prepared.symbols);
     restored.record_identity = prepared.record_identity;
-    restored.partitions = prepared.partitions;
+    restored
+        .partitions
+        .install_owned(prepared.partitions.into_iter());
     restored.history = prepared.history;
-    restored.lineage = prepared.lineage;
-    restored.indexes = prepared.indexes;
+    restored.lineage.install(prepared.lineage);
+    restored.indexes.install(prepared.indexes);
     restored.durability.push_checkpoint(prepared.checkpoint);
 }
 
 pub(super) fn clear_recovery_partition_pins(restored: &mut RelationalRuntime) {
-    for partition in restored.partitions.values_mut() {
+    for partition in restored.partitions.write().values_mut() {
+        let partition = std::sync::Arc::make_mut(partition);
         partition.entity_arena.clear_all_pins();
         partition.relation_arena.clear_all_pins();
     }

@@ -39,7 +39,6 @@ impl HistorySubsystem {
             runtime_instance_id: self.runtime_instance_id,
             main_branch: self.main_branch.clone(),
             branch_cells,
-            commit_catalog: self.commit_catalog.clone(),
             phase4_costs: self.phase4_costs.detached_owner_snapshot(),
             root_identity_issuer: self.root_identity_issuer.detached_owner_snapshot(),
             branch_population_scans: Arc::new(AtomicU64::new(
@@ -52,11 +51,7 @@ impl HistorySubsystem {
             ),
             #[cfg(test)]
             root_capture_sabotage: Arc::clone(&self.root_capture_sabotage),
-            commit_graph: self.commit_graph.clone(),
-            commit_envelopes: self.commit_envelopes.clone(),
-            patch_stream_index: self.patch_stream_index.clone(),
-            next_commit_id: self.next_commit_id,
-            next_version_id: self.next_version_id,
+            ledger: super::RuntimeOwnedState::new(self.ledger_snapshot()),
             commit_identity_allocator: Arc::new(AtomicU64::new(
                 self.commit_identity_allocator.load(Ordering::Relaxed),
             )),

@@ -5,12 +5,13 @@ use crate::storage::substrate::LifecycleCounts;
 pub(crate) fn partition_ids(
     runtime: &RelationalRuntime,
 ) -> Vec<crate::identity::data::PartitionId> {
-    runtime.partitions.keys().copied().collect()
+    runtime.partitions.partition_ids()
 }
 
 pub(crate) fn partition_storage_stats(runtime: &RelationalRuntime) -> Vec<PartitionStorageStats> {
     runtime
         .partitions
+        .read()
         .iter()
         .map(|(partition_id, partition)| {
             let entity_counts = partition.entity_arena.lifecycle_counts();
@@ -45,7 +46,7 @@ pub(crate) fn storage_stats(runtime: &RelationalRuntime) -> StorageStats {
     );
     let mut entity_counts = LifecycleCounts::default();
     let mut relation_counts = LifecycleCounts::default();
-    for partition in runtime.partitions.values() {
+    for partition in runtime.partitions.read().values() {
         let counts = partition.entity_arena.lifecycle_counts();
         entity_counts.live += counts.live;
         entity_counts.deleted += counts.deleted;

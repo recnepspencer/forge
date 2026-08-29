@@ -171,16 +171,14 @@ pub(super) fn reconcile_recovered_lineage_artifacts(
         .and_then(|(event_id, _)| event_id.checked_add(1));
     let next_lineage_id = restored
         .lineage
-        .nodes
-        .last_key_value()
-        .and_then(|(lineage_id, _)| lineage_id.0.checked_add(1));
+        .maximum_node_id()
+        .and_then(|lineage_id| lineage_id.checked_add(1));
     restored
         .lineage
         .replace_events(events_by_id.into_values().collect());
     restored
         .lineage
-        .identity_allocator
-        .advance_to(next_lineage_id, next_event_id);
+        .advance_identity_to(next_lineage_id, next_event_id);
     Ok(())
 }
 

@@ -11,7 +11,7 @@ impl HistorySubsystem {
         &self,
         commit_id: CommitId,
     ) -> Option<Arc<CanonicalCommitEnvelope>> {
-        if let Some(artifact) = self.commit_catalog.get(commit_id) {
+        if let Some(artifact) = self.commit_artifact(commit_id) {
             return Some(Arc::clone(artifact.envelope()));
         }
         self.canonical_publication_routes.by_commit(commit_id)

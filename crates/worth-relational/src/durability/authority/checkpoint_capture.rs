@@ -67,7 +67,7 @@ impl CapturedCheckpointBasis {
                 pending_reservations: runtime.record_identity.pending_snapshot(),
             },
             envelopes,
-            partitions: runtime.partitions.values().cloned().collect(),
+            partitions: runtime.partitions.owned_partitions(),
             aspect_contracts: runtime
                 .schema_contract_runtime
                 .aspect_contract_plans

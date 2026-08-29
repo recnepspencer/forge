@@ -105,7 +105,7 @@ pub(super) fn recover_stage_from_final_history(
     let replay_access = source.replay();
     let checkpoint = source
         .durable_checkpoints()
-        .iter()
+        .into_iter()
         .rev()
         .find(|checkpoint| {
             checkpoint
@@ -115,7 +115,7 @@ pub(super) fn recover_stage_from_final_history(
                 .map(|commit| chain.contains(&commit.commit_id))
                 .unwrap_or(false)
         })
-        .cloned();
+        .map(|checkpoint| checkpoint.as_ref().clone());
     let tail_start = checkpoint
         .as_ref()
         .and_then(|checkpoint| checkpoint.coverage.up_to_commit.as_ref())
@@ -147,7 +147,7 @@ pub(super) fn recover_stage_from_final_history(
         .unwrap_or_default();
     let plan = crate::durability::data::RecoveryPlan::new(
         source.config().clone(),
-        source.durable_store().cloned(),
+        source.durable_store().map(|store| store.as_ref().clone()),
         None,
         checkpoint,
         tail_log

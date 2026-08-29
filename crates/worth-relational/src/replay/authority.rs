@@ -21,10 +21,15 @@ struct ValidatedReplayContinuityEnvelope<'a> {
     lineage_basis: Option<DescriptorComparisonBasis>,
 }
 
-struct SelectedPublishedLineageAuthority<'a> {
+/// The published lineage artifact replay compares against, owned because a
+/// durable-log or checkpoint artifact is read out of the durability subsystem
+/// rather than borrowed from it.
+struct SelectedPublishedLineageAuthority {
     kind: ReplayAuthorityBasisKind,
+    /// `Some` exactly when the artifact came from durable storage rather than
+    /// from the envelope being audited.
     indexed_source: Option<ReplayLineageAuthorityIndexedSource>,
-    artifact: &'a crate::lineage::data::PublishedLineageArtifact,
+    artifact: crate::lineage::data::PublishedLineageArtifact,
 }
 
 impl<'runtime> ReplayAuthority<'runtime> {

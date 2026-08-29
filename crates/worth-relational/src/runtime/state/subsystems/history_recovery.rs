@@ -47,7 +47,7 @@ impl HistorySubsystem {
                 FoundationalBranchTarget::Basis(target) => {
                     let commit_id = CommitId(target.selected_commit_id());
                     validate_branch_target_envelope(
-                        &self.commit_envelopes,
+                        &self.recorded_commit_envelope_map(),
                         &checkpoint.branch_id,
                         checkpoint.observation.target(),
                     )?;
@@ -61,15 +61,12 @@ impl HistorySubsystem {
                             )
                         })?;
                         let envelope =
-                            self.commit_envelopes
-                                .get(&commit_id)
-                                .cloned()
-                                .ok_or_else(|| {
-                                    format!(
+                            self.recorded_commit_envelope(commit_id).ok_or_else(|| {
+                                format!(
                                     "durable branch cell references missing commit envelope `{}`",
                                     commit_id.0
                                 )
-                                })?;
+                            })?;
                         let schema_authority = root_schema_authorities
                             .get(&commit_id)
                             .cloned()

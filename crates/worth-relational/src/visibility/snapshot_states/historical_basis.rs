@@ -42,8 +42,7 @@ impl HistoricalVisibilityBasis {
             .ok_or(HistoricalVisibilityDenial::UnknownVersion)?;
         let commit_id = runtime
             .history
-            .commit_catalog
-            .find_by_version(version_id)
+            .commit_artifact_for_version(version_id)
             .map(|artifact| artifact.commit_id());
         if let Some(root) = commit_id
             .map(|commit_id| runtime.history.retain_historical_root(commit_id))
@@ -87,8 +86,7 @@ impl HistoricalVisibilityBasis {
         if source_version.as_u64() < version_id.as_u64() {
             let metadata_aliases_root = runtime
                 .history
-                .commit_catalog
-                .find_by_version(version_id)
+                .commit_artifact_for_version(version_id)
                 .is_some_and(|artifact| envelope_selects_root(artifact.envelope(), &root));
             if !metadata_aliases_root {
                 return Err(HistoricalVisibilityDenial::MvccIntervalUnavailable);

@@ -9,15 +9,12 @@ mod publication_settlement_registry;
 #[cfg(test)]
 mod test_support;
 
-use std::collections::BTreeMap;
-
 use crate::runtime::RelationalRuntimeConfig;
-use crate::storage::overlay::PartitionState;
 
 use super::{
     CommitStrategiesSubsystem, DurabilitySubsystem, HistorySubsystem, IndexingSubsystem,
     LineageSubsystem, PublicationSubsystem, RecordIdentitySubsystem, RuntimeServices,
-    SchemaContractRuntimeSubsystem, VisibilitySubsystem,
+    SchemaContractRuntimeSubsystem, StorageSubsystem, VisibilitySubsystem,
 };
 
 pub(in crate::runtime) use owner_lifecycle::RelationalRuntimeOwner;
@@ -44,7 +41,7 @@ pub struct RelationalRuntime {
     pub(crate) config: RelationalRuntimeConfig,
     pub(crate) schema_contract_runtime: SchemaContractRuntimeSubsystem,
     pub(crate) commit_strategies: CommitStrategiesSubsystem,
-    pub(crate) partitions: BTreeMap<crate::identity::data::PartitionId, PartitionState>,
+    pub(crate) partitions: StorageSubsystem,
     pub(crate) visibility: VisibilitySubsystem,
     pub(crate) publication: PublicationSubsystem,
     pub(crate) history: HistorySubsystem,

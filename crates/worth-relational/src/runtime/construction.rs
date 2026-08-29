@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use crate::commit_strategies::{
     data::CommitStrategyExecutionRegistration, FrozenCommitStrategyExecutorRegistry,
     FrozenCommitStrategyRegistry,
@@ -7,7 +5,7 @@ use crate::commit_strategies::{
 use crate::runtime::{
     CommitStrategiesSubsystem, DurabilitySubsystem, HistorySubsystem, IndexingSubsystem,
     LineageSubsystem, PublicationSubsystem, RecordIdentitySubsystem, RuntimeServices,
-    RuntimeSubsystem, SchemaContractRuntimeSubsystem, VisibilitySubsystem,
+    RuntimeSubsystem, SchemaContractRuntimeSubsystem, StorageSubsystem, VisibilitySubsystem,
 };
 use crate::validation::data::CustomInvariantRegistration;
 use crate::validation::FrozenCustomInvariantRegistry;
@@ -163,7 +161,7 @@ impl RelationalRuntime {
             preparation_configuration,
             owner_lifecycle: RelationalRuntimeOwner::new(),
             publication_owner: RelationalRuntimePublicationOwner::new(),
-            partitions: BTreeMap::new(),
+            partitions: <StorageSubsystem as RuntimeSubsystem>::new(&()),
             visibility: <VisibilitySubsystem as RuntimeSubsystem>::new(&config),
             publication: extensions.build_publication_subsystem(),
             config,
@@ -175,10 +173,6 @@ impl RelationalRuntime {
         let services = RuntimeSubsystem::fork(&self.services);
         let runtime_instance_id = services.runtime_instance_id();
         history.bind_fork_runtime(runtime_instance_id);
-        let mut partitions = self.partitions.clone();
-        for partition in partitions.values_mut() {
-            partition.clear_runtime_pin_counters();
-        }
         let config = self.config.clone();
         let schema_contract_runtime = RuntimeSubsystem::fork(&self.schema_contract_runtime);
         let preparation_configuration =
@@ -187,7 +181,7 @@ impl RelationalRuntime {
             config,
             schema_contract_runtime,
             commit_strategies: RuntimeSubsystem::fork(&self.commit_strategies),
-            partitions,
+            partitions: RuntimeSubsystem::fork(&self.partitions),
             visibility: RuntimeSubsystem::fork(&self.visibility),
             publication: RuntimeSubsystem::fork(&self.publication),
             history,

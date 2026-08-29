@@ -143,8 +143,8 @@ pub(super) fn capture_aspect_truth_bundle(
 ) -> AspectTruthBundle {
     AspectTruthBundle {
         visible_truth: VisibleTruthSummary::capture(runtime),
-        latest_patch: runtime.publication().artifacts().latest_patch().cloned(),
-        latest_replay: runtime.publication().artifacts().latest_replay().cloned(),
+        latest_patch: runtime.publication().artifacts().latest_patch(),
+        latest_replay: runtime.publication().artifacts().latest_replay(),
         diagnostics: runtime.publication().diagnostics(),
         entity_history_digests: entity_ids
             .iter()

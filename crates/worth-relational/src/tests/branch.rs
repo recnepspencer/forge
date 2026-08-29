@@ -6,7 +6,7 @@ use crate::tests::support::{create_entity_outcome, runtime_with_test_schema};
 fn missing_source_denial_leaves_registry_and_catalog_unchanged() {
     let mut runtime = runtime_with_test_schema();
     let before_cells = runtime.history.branch_cells_snapshot();
-    let before_catalog_count = runtime.history.commit_catalog.len();
+    let before_catalog_count = runtime.history.catalog_len();
     let missing = BranchId("missing-source".to_owned());
 
     assert!(matches!(
@@ -17,7 +17,7 @@ fn missing_source_denial_leaves_registry_and_catalog_unchanged() {
     assert_eq!(runtime.history.branch_cells_snapshot(), before_cells);
     assert_eq!(runtime.history.branch_count(), 1);
     assert_eq!(
-        runtime.history.commit_catalog.len(),
+        runtime.history.catalog_len(),
         before_catalog_count,
         "a missing source must not materialize or publish an artifact"
     );
@@ -41,7 +41,7 @@ fn root_owned_artifact_keeps_fork_available_when_catalog_accelerator_is_missing(
         .branch_cell(&source)
         .expect("source remains registered")
         .checkpoint();
-    let before_catalog_count = runtime.history.commit_catalog.len();
+    let before_catalog_count = runtime.history.catalog_len();
 
     let forked = runtime
         .fork_branch(target.clone(), basis)
@@ -57,5 +57,5 @@ fn root_owned_artifact_keeps_fork_available_when_catalog_accelerator_is_missing(
     assert_eq!(after_source.observation, before_source.observation);
     assert_eq!(after_source.truth_version, before_source.truth_version);
     assert!(runtime.history.branch_cell(&target).is_some());
-    assert_eq!(runtime.history.commit_catalog.len(), before_catalog_count);
+    assert_eq!(runtime.history.catalog_len(), before_catalog_count);
 }

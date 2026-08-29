@@ -65,15 +65,12 @@ impl PatchStreamSource for FakeHistorySource {
 }
 
 impl HistorySource for FakeHistorySource {
-    fn branch_head_ref(&self, _branch_id: &BranchId) -> Option<&RelationalCommitReceipt> {
+    fn branch_head_ref(&self, _branch_id: &BranchId) -> Option<RelationalCommitReceipt> {
         None
     }
 
-    fn authoritative_commit_envelopes(&self) -> Vec<&CanonicalCommitEnvelope> {
-        self.envelopes
-            .values()
-            .map(|envelope: &Arc<CanonicalCommitEnvelope>| envelope.as_ref())
-            .collect()
+    fn authoritative_commit_envelopes(&self) -> Vec<Arc<CanonicalCommitEnvelope>> {
+        self.envelopes.values().map(Arc::clone).collect()
     }
 }
 

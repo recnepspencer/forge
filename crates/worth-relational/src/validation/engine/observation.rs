@@ -28,12 +28,12 @@ pub(crate) struct CommittedInvariantView<'runtime> {
 
 #[derive(Clone)]
 enum CommittedInvariantState<'runtime> {
-    Runtime(BorrowedWorkingState<'runtime>),
+    Runtime(BorrowedWorkingState),
     Branch(&'runtime crate::branch::RelationalBranchRootState),
 }
 
 impl<'runtime> CommittedInvariantView<'runtime> {
-    pub(crate) fn new(state: BorrowedWorkingState<'runtime>) -> Self {
+    pub(crate) fn new(state: BorrowedWorkingState) -> Self {
         Self {
             committed: CommittedInvariantState::Runtime(state),
             enforcement: None,
@@ -122,7 +122,7 @@ pub(crate) enum InvariantObservation<'runtime> {
 }
 
 impl<'runtime> InvariantObservation<'runtime> {
-    pub(crate) fn committed(state: BorrowedWorkingState<'runtime>) -> Self {
+    pub(crate) fn committed(state: BorrowedWorkingState) -> Self {
         Self::Committed(CommittedInvariantView::new(state))
     }
 

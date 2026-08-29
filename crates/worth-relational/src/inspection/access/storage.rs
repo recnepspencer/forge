@@ -17,8 +17,8 @@ impl<'runtime> InspectionAccess<'runtime> {
     pub(crate) fn current_partition_state(
         &self,
         partition_id: PartitionId,
-    ) -> Option<&PartitionState> {
-        self.runtime.storage_access().partition_state(partition_id)
+    ) -> Option<std::sync::Arc<PartitionState>> {
+        self.runtime.partitions.partition(partition_id)
     }
 
     pub(crate) fn current_entity_slot_surface(
@@ -141,10 +141,14 @@ impl<'runtime> InspectionAccess<'runtime> {
         match scope {
             InspectionScope::Current => self
                 .runtime
-                .storage_access()
-                .partition_state(relation_id.partition_id)
-                .and_then(|partition| partition.relation_arena.get(&relation_id))
-                .and_then(|slot_view| slot_view.extra().endpoints.clone())
+                .partitions
+                .partition(relation_id.partition_id)
+                .and_then(|partition| {
+                    partition
+                        .relation_arena
+                        .get(&relation_id)
+                        .and_then(|slot_view| slot_view.extra().endpoints.clone())
+                })
                 .map(|endpoints| (endpoints.source, endpoints.target)),
             InspectionScope::Version(_) | InspectionScope::Snapshot(_) => self
                 .scoped_authoritative_relation_record(scope, relation_id)
@@ -157,12 +161,13 @@ impl<'runtime> InspectionAccess<'runtime> {
         entity_id: EntityId,
     ) -> (Option<LineageId>, Option<StructuralFingerprint>) {
         self.runtime
-            .storage_access()
-            .partition_state(entity_id.partition_id)
-            .and_then(|partition| partition.entity_arena.get(&entity_id))
-            .map(|slot_view| {
-                let extra = slot_view.extra().clone();
-                (extra.lineage_id, extra.structural_fingerprint)
+            .partitions
+            .partition(entity_id.partition_id)
+            .and_then(|partition| {
+                partition.entity_arena.get(&entity_id).map(|slot_view| {
+                    let extra = slot_view.extra().clone();
+                    (extra.lineage_id, extra.structural_fingerprint)
+                })
             })
             .unwrap_or((None, None))
     }

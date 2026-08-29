@@ -17,7 +17,7 @@ fn rootless_selected_publication_fails_before_movement_and_releases_preflight_re
         .publication()
         .read_patch_stream(crate::publication::patch::data::PatchStreamRequest::default())
         .expect("selected-root evidence reads the canonical patch stream");
-    let publication_bundle_before = runtime.publication().latest_bundle().cloned();
+    let publication_bundle_before = runtime.publication().latest_bundle();
     let durable_count_before = runtime.durability().durable_log().len();
     let retention_before = runtime.retention().inspect_plan();
     let position_reservations_before = runtime.patch_position_reservation_counters();
@@ -85,7 +85,7 @@ fn rootless_selected_publication_fails_before_movement_and_releases_preflight_re
     );
     assert_eq!(
         runtime.publication().latest_bundle(),
-        publication_bundle_before.as_ref()
+        publication_bundle_before
     );
     assert_eq!(
         runtime.durability().durable_log().len(),

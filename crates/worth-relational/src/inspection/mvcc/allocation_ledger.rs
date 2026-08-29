@@ -117,8 +117,7 @@ impl RelationalRuntime {
                 .ok_or(RelationalBranchSharingInspectionDenial::RootUnavailable)?;
             let artifact = self
                 .history
-                .commit_catalog
-                .get(commit_id)
+                .commit_artifact(commit_id)
                 .ok_or(RelationalBranchSharingInspectionDenial::RootUnavailable)?;
             canonical_payloads.insert(RelationalCanonicalPayloadObservation {
                 commit_id,
@@ -131,7 +130,7 @@ impl RelationalRuntime {
             inventory_root(
                 self.runtime_instance_id(),
                 &root,
-                artifact,
+                artifact.as_ref(),
                 derived_cache_bytes,
                 &mut authoritative_allocations,
                 &mut excluded_allocations,

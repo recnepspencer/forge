@@ -37,12 +37,12 @@ pub(crate) fn rebuild_unique_entity_aspect_field_indexes(
 ) -> Result<(), crate::branch::RelationalBranchBasisDenial> {
     let tracked_fields = tracked_unique_entity_aspect_fields(runtime);
     if tracked_fields.is_empty() {
-        runtime.indexes.entity_unique_aspect_field_index.clear();
+        runtime.indexes.clear_unique_index();
         return Ok(());
     }
     let branch_id = runtime.config.history.main_branch.clone();
     let Some(head) = runtime.history().branch_head(&branch_id) else {
-        runtime.indexes.entity_unique_aspect_field_index.clear();
+        runtime.indexes.clear_unique_index();
         return Ok(());
     };
     let projection = runtime
@@ -53,7 +53,7 @@ pub(crate) fn rebuild_unique_entity_aspect_field_indexes(
     };
     let rebuilt_values =
         collect_all_unique_entity_aspect_field_entries(&projection, &tracked_fields);
-    runtime.indexes.entity_unique_aspect_field_index.clear();
+    runtime.indexes.clear_unique_index();
     write_unique_entity_aspect_field_index_entries(runtime, rebuilt_values);
     Ok(())
 }
@@ -63,23 +63,21 @@ fn remove_changed_entities_from_unique_entity_aspect_field_index(
     changed_records: &[crate::transactions::data::RecordRef],
     tracked_fields: &BTreeSet<AspectFieldLocator>,
 ) {
-    for record in changed_records {
-        let crate::transactions::data::RecordRef::Entity(entity_id) = record else {
-            continue;
-        };
-        for field_locator in tracked_fields {
-            if let Some(values) = runtime
-                .indexes
-                .entity_unique_aspect_field_index
-                .get_mut(field_locator)
-            {
-                values.retain(|_, entity_ids| {
-                    entity_ids.remove(entity_id);
-                    !entity_ids.is_empty()
-                });
+    runtime.indexes.with_unique_index_mut(|index| {
+        for record in changed_records {
+            let crate::transactions::data::RecordRef::Entity(entity_id) = record else {
+                continue;
+            };
+            for field_locator in tracked_fields {
+                if let Some(values) = index.get_mut(field_locator) {
+                    values.retain(|_, entity_ids| {
+                        entity_ids.remove(entity_id);
+                        !entity_ids.is_empty()
+                    });
+                }
             }
         }
-    }
+    });
 }
 
 fn write_unique_entity_aspect_field_index_entries(
@@ -90,16 +88,16 @@ fn write_unique_entity_aspect_field_index_entries(
         crate::identity::data::EntityId,
     )>,
 ) {
-    for (field_locator, value, entity_id) in entries {
-        runtime
-            .indexes
-            .entity_unique_aspect_field_index
-            .entry(field_locator)
-            .or_default()
-            .entry(value)
-            .or_default()
-            .insert(entity_id);
-    }
+    runtime.indexes.with_unique_index_mut(|index| {
+        for (field_locator, value, entity_id) in entries {
+            index
+                .entry(field_locator)
+                .or_default()
+                .entry(value)
+                .or_default()
+                .insert(entity_id);
+        }
+    });
 }
 
 fn collect_all_unique_entity_aspect_field_entries(

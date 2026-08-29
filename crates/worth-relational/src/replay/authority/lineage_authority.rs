@@ -87,14 +87,14 @@ pub(super) fn lineage_decision_log_comparison_basis(
     )
 }
 
-pub(super) fn select_published_lineage_authority<'a>(
-    runtime: &'a RelationalRuntime,
-    envelope: &'a CanonicalCommitEnvelope,
-) -> SelectedPublishedLineageAuthority<'a> {
+pub(super) fn select_published_lineage_authority(
+    runtime: &RelationalRuntime,
+    envelope: &CanonicalCommitEnvelope,
+) -> SelectedPublishedLineageAuthority {
     if let Some(artifact) = runtime
         .durability
         .durable_log_envelope(envelope.commit.commit_id)
-        .map(|candidate| candidate.published_lineage())
+        .map(|candidate| candidate.published_lineage().clone())
     {
         SelectedPublishedLineageAuthority {
             kind: ReplayAuthorityBasisKind::DurableLogCanonical,
@@ -104,7 +104,7 @@ pub(super) fn select_published_lineage_authority<'a>(
     } else if let Some(artifact) = runtime
         .durability
         .checkpoint_envelope(envelope.commit.commit_id)
-        .map(|candidate| candidate.published_lineage())
+        .map(|candidate| candidate.published_lineage().clone())
     {
         SelectedPublishedLineageAuthority {
             kind: ReplayAuthorityBasisKind::DurableLogCanonical,
@@ -115,7 +115,7 @@ pub(super) fn select_published_lineage_authority<'a>(
         SelectedPublishedLineageAuthority {
             kind: ReplayAuthorityBasisKind::RetainedEnvelopeCanonical,
             indexed_source: None,
-            artifact: envelope.published_lineage(),
+            artifact: envelope.published_lineage().clone(),
         }
     }
 }

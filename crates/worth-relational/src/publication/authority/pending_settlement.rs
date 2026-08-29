@@ -244,7 +244,7 @@ impl RelationalRuntime {
         }
         if self.history.publication_requires_settlement(commit_id) {
             let durable_matches = match self.durability.durable_log_envelope(commit_id) {
-                Some(durable) => Some(durable == positioned.as_ref()),
+                Some(durable) => Some(durable.as_ref() == positioned.as_ref()),
                 None => None,
             };
             match durable_matches {

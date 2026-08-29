@@ -12,19 +12,21 @@ pub(super) fn audit_retained_envelope_authority(
     runtime: &RelationalRuntime,
     mismatches: &mut Vec<ReplayMismatch>,
     envelope: &CanonicalCommitEnvelope,
-    selected_lineage_authority: Option<&SelectedPublishedLineageAuthority<'_>>,
+    selected_lineage_authority: Option<&SelectedPublishedLineageAuthority>,
 ) {
     audit_schema_lineage_summary(runtime, mismatches, envelope);
     if envelope.has_lineage_authority() {
         audit_published_lineage_digest_basis(runtime, mismatches, envelope.published_lineage());
     }
-    if let Some(selected_lineage_authority) = selected_lineage_authority
-        .filter(|selected| !std::ptr::eq(selected.artifact, envelope.published_lineage()))
+    // A durably indexed artifact is a second authority to audit; the retained
+    // envelope's own artifact was already audited above.
+    if let Some(selected_lineage_authority) =
+        selected_lineage_authority.filter(|selected| selected.indexed_source.is_some())
     {
         audit_published_lineage_digest_basis(
             runtime,
             mismatches,
-            selected_lineage_authority.artifact,
+            &selected_lineage_authority.artifact,
         );
     }
 }

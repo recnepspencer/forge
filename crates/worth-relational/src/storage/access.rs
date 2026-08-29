@@ -5,7 +5,7 @@ use crate::storage::data::{
     ChunkDiagnostics, ChunkedStorageSummary, PartitionStorageStats, RecordLifecycleState,
     StorageStats,
 };
-use crate::storage::overlay::{BorrowedWorkingState, PartitionState};
+use crate::storage::overlay::BorrowedWorkingState;
 use crate::storage::substrate::RecordKind;
 
 pub struct StorageAccess<'runtime> {
@@ -23,20 +23,14 @@ impl<'runtime> StorageAccess<'runtime> {
         Self { runtime }
     }
 
-    pub(crate) fn current_state(&self) -> BorrowedWorkingState<'runtime> {
-        BorrowedWorkingState::new(&self.runtime.partitions)
-    }
-
-    pub(crate) fn partition_state(
-        &self,
-        partition_id: crate::identity::data::PartitionId,
-    ) -> Option<&'runtime PartitionState> {
-        self.runtime.partitions.get(&partition_id)
+    pub(crate) fn current_state(&self) -> BorrowedWorkingState {
+        BorrowedWorkingState::new(self.runtime.partitions.read())
     }
 
     pub(crate) fn entity_slot_count(&self) -> usize {
         self.runtime
             .partitions
+            .read()
             .values()
             .map(|partition| partition.entity_arena.slot_count())
             .sum()
@@ -45,6 +39,7 @@ impl<'runtime> StorageAccess<'runtime> {
     pub(crate) fn relation_slot_count(&self) -> usize {
         self.runtime
             .partitions
+            .read()
             .values()
             .map(|partition| partition.relation_arena.slot_count())
             .sum()
@@ -69,6 +64,7 @@ impl<'runtime> StorageAccess<'runtime> {
     ) -> Vec<usize> {
         self.runtime
             .partitions
+            .read()
             .get(&partition_id)
             .map(|partition| K::arena(partition).occupied_slots())
             .unwrap_or_default()
@@ -79,7 +75,8 @@ impl<'runtime> StorageAccess<'runtime> {
         partition_id: crate::identity::data::PartitionId,
         slot: usize,
     ) -> Option<RecordSlotSurface> {
-        let partition = self.runtime.partitions.get(&partition_id)?;
+        let partitions = self.runtime.partitions.read();
+        let partition = partitions.get(&partition_id)?;
         let arena = K::arena(partition);
         let slot_view = arena.get_slot(slot)?;
         Some(RecordSlotSurface {

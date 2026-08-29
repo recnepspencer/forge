@@ -36,8 +36,7 @@ impl<'runtime> SimulationAccess<'runtime> {
         let Some(commit) = self
             .runtime
             .history
-            .commit_envelopes
-            .get(&artifact.source_commit_id)
+            .recorded_commit_envelope(artifact.source_commit_id)
         else {
             return CompiledArtifactAuthorityStatus::MissingSourceCommit;
         };

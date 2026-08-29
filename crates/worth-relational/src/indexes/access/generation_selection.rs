@@ -4,11 +4,11 @@ use crate::indexes::data::{
 use crate::runtime::RelationalRuntime;
 use crate::snapshots::data::SnapshotHandle;
 
-pub(super) fn exact_published_generation<'a>(
-    runtime: &'a RelationalRuntime,
+pub(super) fn exact_published_generation(
+    runtime: &RelationalRuntime,
     snapshot: &SnapshotHandle,
     definition: &DerivedIndexDefinition,
-) -> Option<&'a DerivedIndexGeneration> {
+) -> Option<std::sync::Arc<DerivedIndexGeneration>> {
     let branch_id = snapshot.branch_id();
     let schema_version = runtime
         .read_truth()
@@ -16,9 +16,8 @@ pub(super) fn exact_published_generation<'a>(
         .schema_version;
     runtime
         .indexes
-        .generations
-        .get(&definition.index_id)?
-        .iter()
+        .generations_for(definition.index_id)
+        .into_iter()
         .rev()
         .find(|generation| {
             generation.status == DerivedIndexPublicationStatus::Published

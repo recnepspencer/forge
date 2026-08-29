@@ -54,16 +54,14 @@ fn relation_join_certification_rejects_a_missing_candidate() {
     let index = register_relation_join(&mut runtime, 84);
     build_current_generation(&mut runtime, index.index_id);
     let key = RelationJoinKey::new(left, right);
-    let generation = runtime
+    runtime
         .indexes
-        .generations
-        .get_mut(&index.index_id)
-        .and_then(|generations| generations.last_mut())
-        .unwrap();
-    let DerivedIndexEntries::RelationJoin(entries) = &mut generation.entries else {
-        panic!("relation join generation expected");
-    };
-    entries.remove(&key);
+        .corrupt_latest_generation(index.index_id, |generation| {
+            let DerivedIndexEntries::RelationJoin(entries) = &mut generation.entries else {
+                panic!("relation join generation expected");
+            };
+            entries.remove(&key);
+        });
     let snapshot = runtime.visibility_authority().snapshot();
 
     let denial = runtime
@@ -133,17 +131,18 @@ fn relation_join_rejects_a_candidate_with_substituted_relation_evidence() {
     let index = register_relation_join(&mut runtime, 83);
     build_current_generation(&mut runtime, index.index_id);
     let key = RelationJoinKey::new(left, right);
-    let generation = runtime
+    runtime
         .indexes
-        .generations
-        .get_mut(&index.index_id)
-        .and_then(|generations| generations.last_mut())
-        .unwrap();
-    let DerivedIndexEntries::RelationJoin(entries) = &mut generation.entries else {
-        panic!("relation join generation expected");
-    };
-    entries.get_mut(&key).unwrap()[0] =
-        RelationJoinEntry::new(selected, selected_left_relation, substituted_right_relation);
+        .corrupt_latest_generation(index.index_id, |generation| {
+            let DerivedIndexEntries::RelationJoin(entries) = &mut generation.entries else {
+                panic!("relation join generation expected");
+            };
+            entries.get_mut(&key).unwrap()[0] = RelationJoinEntry::new(
+                selected,
+                selected_left_relation,
+                substituted_right_relation,
+            );
+        });
     let snapshot = runtime.visibility_authority().snapshot();
 
     let denial = runtime

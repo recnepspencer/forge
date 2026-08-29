@@ -150,7 +150,7 @@ impl HistorySubsystem {
             }
         };
         history_recovery_validation::require_branch_target_artifact(
-            &self.commit_catalog,
+            self,
             expected_branch_id,
             checkpoint.observation.target(),
         )?;
@@ -162,7 +162,7 @@ impl HistorySubsystem {
             checkpoint.fork_provenance.as_ref(),
         )?;
         history_recovery_validation::validate_branch_target_artifact(
-            &self.commit_catalog,
+            self,
             expected_branch_id,
             checkpoint.observation.target(),
         )?;
@@ -183,7 +183,7 @@ impl HistorySubsystem {
         if let Some(existing) = self.branch_cell(&branch_id) {
             let existing = existing.checkpoint();
             let incoming = cell.checkpoint();
-            let pristine_bootstrap = self.commit_envelopes.is_empty()
+            let pristine_bootstrap = self.recorded_commit_envelope_count() == 0
                 && history_recovery_validation::empty_bootstrap_cells_are_equivalent(
                     &existing, &incoming,
                 );

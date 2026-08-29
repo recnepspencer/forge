@@ -54,10 +54,10 @@ pub use construction::RelationalRuntimeForkDenial;
 pub(crate) use construction::RuntimeExtensions;
 pub use state::RelationalRuntime;
 pub(crate) use state::{
-    readmit_positioned_canonical_commit, AdmittedRelationalRuntimeOperation,
+    partition_entry_mut, readmit_positioned_canonical_commit, AdmittedRelationalRuntimeOperation,
     BranchHeadVersionIndexAuthority, CanonicalCheckpointAdmissionError, CanonicalPositionAdmission,
     CanonicalPublicationRecordError, CommitStrategiesSubsystem, DurabilitySubsystem,
-    HistorySubsystem, IndexingSubsystem, LineageIdentityAllocator, LineageSubsystem,
+    HistorySubsystem, IndexingState, IndexingSubsystem, LineageIdentityAllocator, LineageState, LineageSubsystem,
     PendingRecordAllocations, PerformedCheckpointSelection, PreparedCanonicalPublicationRoute,
     PreparedRecoveredVersionedArtifactPublication, PreparedVersionedArtifactAccelerators,
     PreparedVersionedArtifactPublication, PublicationSubsystem, PublishedSnapshotCapacityOwner,
@@ -68,7 +68,7 @@ pub(crate) use state::{
     RelationalPreparationConfigurationBinding, RelationalPreparationHistory,
     RelationalPreparationOwnerBinding, RelationalPreparationRuntime, RelationalRuntimeOwnerBinding,
     RelationalRuntimePublicationBinding, ReplayRetentionState, RuntimeInstrumentation,
-    RuntimeServices, RuntimeSubsystem, SchemaContractRuntimeSubsystem, SnapshotHandleBinding,
+    RuntimeServices, RuntimeSubsystem, SchemaContractRuntimeSubsystem, SnapshotHandleBinding, StorageSubsystem,
     ValidatedLineageEventBatch, VisibilityResidency, VisibilitySubsystem,
 };
 pub(crate) use state::{

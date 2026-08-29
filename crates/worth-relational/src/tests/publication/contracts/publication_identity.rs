@@ -14,7 +14,7 @@ fn publication_rejects_envelope_identity_drift_before_any_effect() {
         .admitted_branch_basis_for_identity(&identity)
         .expect("main binding");
     let before_cells = runtime.history.branch_cells_snapshot();
-    let before_catalog = runtime.history.commit_catalog.len();
+    let before_catalog = runtime.history.catalog_len();
 
     let mut mismatched_commit = envelope.as_ref().clone();
     mismatched_commit.commit.commit_id.0 += 100;
@@ -24,7 +24,7 @@ fn publication_rejects_envelope_identity_drift_before_any_effect() {
         .expect_err("envelope commit identity drift must be denied");
     assert!(error.contains("envelope commit identity mismatch"));
     assert_eq!(runtime.history.branch_cells_snapshot(), before_cells);
-    assert_eq!(runtime.history.commit_catalog.len(), before_catalog);
+    assert_eq!(runtime.history.catalog_len(), before_catalog);
 
     let mut mismatched_branch = envelope.as_ref().clone();
     mismatched_branch.branch_context = BranchId("other".to_owned());
@@ -34,7 +34,7 @@ fn publication_rejects_envelope_identity_drift_before_any_effect() {
         .expect_err("envelope branch context drift must be denied");
     assert!(error.contains("envelope branch context mismatch"));
     assert_eq!(runtime.history.branch_cells_snapshot(), before_cells);
-    assert_eq!(runtime.history.commit_catalog.len(), before_catalog);
+    assert_eq!(runtime.history.catalog_len(), before_catalog);
 }
 
 #[test]
@@ -52,7 +52,7 @@ fn prepared_publication_rejects_an_existing_envelope_before_any_effect() {
         .expect("current binding selects its committed root");
     let schema_registry = runtime.config.schema.registry.clone();
     let before_cells = runtime.history.branch_cells_snapshot();
-    let before_catalog = runtime.history.commit_catalog.len();
+    let before_catalog = runtime.history.catalog_len();
     let preparation_runtime = runtime.preparation_runtime_snapshot();
     let delta = crate::storage::RelationalPublishedPartitionDelta::from_committed_partitions(
         &std::collections::BTreeMap::new(),
@@ -74,7 +74,7 @@ fn prepared_publication_rejects_an_existing_envelope_before_any_effect() {
 
     assert!(error.contains("DuplicateCommit"));
     assert_eq!(runtime.history.branch_cells_snapshot(), before_cells);
-    assert_eq!(runtime.history.commit_catalog.len(), before_catalog);
+    assert_eq!(runtime.history.catalog_len(), before_catalog);
 }
 
 #[test]
@@ -100,10 +100,15 @@ fn root_capture_sabotage_leaves_storage_index_history_and_reference_unchanged() 
 
     let partition_id = *runtime
         .partitions
-        .keys()
-        .next()
+        .partition_ids()
+        .first()
         .expect("the committed entity installs one partition");
-    let mut malformed_partition = runtime.partitions[&partition_id].clone();
+    let mut malformed_partition = runtime
+        .partitions
+        .partition(partition_id)
+        .expect("committed partition")
+        .as_ref()
+        .clone();
     malformed_partition.entity_arena.aspect_versions[0]
         .insert(crate::symbols::data::Symbol(u32::MAX), 1);
     let mut journal = crate::storage::overlay::PartitionMutationJournal::default();
@@ -114,6 +119,7 @@ fn root_capture_sabotage_leaves_storage_index_history_and_reference_unchanged() 
 
     let before_storage = runtime
         .partitions
+        .read()
         .iter()
         .map(|(id, partition)| {
             (
@@ -124,15 +130,12 @@ fn root_capture_sabotage_leaves_storage_index_history_and_reference_unchanged() 
             )
         })
         .collect::<Vec<_>>();
-    let before_index = runtime.indexes.entity_unique_aspect_field_index.clone();
+    let before_index = runtime.indexes.with_unique_index(Clone::clone);
     let before_cells = runtime.history.branch_cells_snapshot();
-    let before_catalog = runtime.history.commit_catalog.len();
-    let before_envelopes = runtime.history.commit_envelopes.len();
-    let before_patch_index = runtime.history.patch_stream_index.len();
-    let before_sequences = (
-        runtime.history.next_commit_id,
-        runtime.history.next_version_id,
-    );
+    let before_catalog = runtime.history.catalog_len();
+    let before_envelopes = runtime.history.recorded_commit_envelope_count();
+    let before_patch_index = runtime.history.recorded_patch_position_count();
+    let before_sequences = runtime.history.reserved_sequence_floors();
 
     let selected_branch_state = runtime
         .selected_branch_state(&binding)
@@ -155,6 +158,7 @@ fn root_capture_sabotage_leaves_storage_index_history_and_reference_unchanged() 
     assert!(error.contains("UnresolvedContentSymbol"));
     let after_storage = runtime
         .partitions
+        .read()
         .iter()
         .map(|(id, partition)| {
             (
@@ -167,20 +171,14 @@ fn root_capture_sabotage_leaves_storage_index_history_and_reference_unchanged() 
         .collect::<Vec<_>>();
     assert_eq!(after_storage, before_storage);
     assert_eq!(
-        runtime.indexes.entity_unique_aspect_field_index,
+        runtime.indexes.with_unique_index(Clone::clone),
         before_index
     );
     assert_eq!(runtime.history.branch_cells_snapshot(), before_cells);
-    assert_eq!(runtime.history.commit_catalog.len(), before_catalog);
-    assert_eq!(runtime.history.commit_envelopes.len(), before_envelopes);
-    assert_eq!(runtime.history.patch_stream_index.len(), before_patch_index);
-    assert_eq!(
-        (
-            runtime.history.next_commit_id,
-            runtime.history.next_version_id
-        ),
-        before_sequences
-    );
+    assert_eq!(runtime.history.catalog_len(), before_catalog);
+    assert_eq!(runtime.history.recorded_commit_envelope_count(), before_envelopes);
+    assert_eq!(runtime.history.recorded_patch_position_count(), before_patch_index);
+    assert_eq!(runtime.history.reserved_sequence_floors(), before_sequences);
 }
 
 #[test]
@@ -189,6 +187,7 @@ fn production_commit_root_capture_sabotage_precedes_durable_append_and_all_effec
     create_entity_outcome(&mut runtime, "root-capture-production-anchor");
     let before_storage = runtime
         .partitions
+        .read()
         .iter()
         .map(|(id, partition)| {
             (
@@ -199,16 +198,13 @@ fn production_commit_root_capture_sabotage_precedes_durable_append_and_all_effec
             )
         })
         .collect::<Vec<_>>();
-    let before_index = runtime.indexes.entity_unique_aspect_field_index.clone();
+    let before_index = runtime.indexes.with_unique_index(Clone::clone);
     let before_cells = runtime.history.branch_cells_snapshot();
-    let before_catalog = runtime.history.commit_catalog.len();
+    let before_catalog = runtime.history.catalog_len();
     let before_durable = runtime.durable_log().len();
-    let before_envelopes = runtime.history.commit_envelopes.len();
-    let before_patch_index = runtime.history.patch_stream_index.len();
-    let before_sequences = (
-        runtime.history.next_commit_id,
-        runtime.history.next_version_id,
-    );
+    let before_envelopes = runtime.history.recorded_commit_envelope_count();
+    let before_patch_index = runtime.history.recorded_patch_position_count();
+    let before_sequences = runtime.history.reserved_sequence_floors();
 
     runtime.history.sabotage_next_root_capture();
     let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
@@ -222,6 +218,7 @@ fn production_commit_root_capture_sabotage_precedes_durable_append_and_all_effec
 
     let after_storage = runtime
         .partitions
+        .read()
         .iter()
         .map(|(id, partition)| {
             (
@@ -234,21 +231,15 @@ fn production_commit_root_capture_sabotage_precedes_durable_append_and_all_effec
         .collect::<Vec<_>>();
     assert_eq!(after_storage, before_storage);
     assert_eq!(
-        runtime.indexes.entity_unique_aspect_field_index,
+        runtime.indexes.with_unique_index(Clone::clone),
         before_index
     );
     assert_eq!(runtime.history.branch_cells_snapshot(), before_cells);
-    assert_eq!(runtime.history.commit_catalog.len(), before_catalog);
+    assert_eq!(runtime.history.catalog_len(), before_catalog);
     assert_eq!(runtime.durable_log().len(), before_durable);
-    assert_eq!(runtime.history.commit_envelopes.len(), before_envelopes);
-    assert_eq!(runtime.history.patch_stream_index.len(), before_patch_index);
-    assert_eq!(
-        (
-            runtime.history.next_commit_id,
-            runtime.history.next_version_id
-        ),
-        before_sequences
-    );
+    assert_eq!(runtime.history.recorded_commit_envelope_count(), before_envelopes);
+    assert_eq!(runtime.history.recorded_patch_position_count(), before_patch_index);
+    assert_eq!(runtime.history.reserved_sequence_floors(), before_sequences);
 }
 
 #[test]

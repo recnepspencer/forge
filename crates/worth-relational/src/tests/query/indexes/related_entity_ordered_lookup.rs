@@ -22,16 +22,15 @@ fn related_ordering_certification_rejects_a_missing_candidate() {
             branch_id: BranchId("main".to_owned()),
             index_ids: vec![index.index_id],
         });
-    let generation = runtime
+    runtime
         .indexes
-        .generations
-        .get_mut(&index.index_id)
-        .and_then(|generations| generations.last_mut())
-        .unwrap();
-    let DerivedIndexEntries::RelatedEntityOrdering(entries) = &mut generation.entries else {
-        panic!("related-ordering generation expected");
-    };
-    entries.get_mut(&parent).unwrap().remove(0);
+        .corrupt_latest_generation(index.index_id, |generation| {
+            let DerivedIndexEntries::RelatedEntityOrdering(entries) = &mut generation.entries
+            else {
+                panic!("related-ordering generation expected");
+            };
+            entries.get_mut(&parent).unwrap().remove(0);
+        });
     let snapshot = runtime.visibility_authority().snapshot();
     let request = || {
         BoundedRelatedEntityOrderedLookupRequest::new(

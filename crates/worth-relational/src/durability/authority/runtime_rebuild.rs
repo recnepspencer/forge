@@ -37,7 +37,7 @@ pub(super) fn rebuild_runtime_from_plan(
     let mut restored = RelationalRuntime::new(plan.config.clone());
     let original_durability_mode = restored.config.durability.policy.mode;
     restored.config.durability.policy.mode = DurabilityMode::InMemoryCanonical;
-    restored.durability.store = None;
+    restored.durability.set_store(None);
     restored.commit_strategies.executors = plan.commit_strategy_executors.clone();
 
     if let Some(checkpoint) = &plan.checkpoint {
@@ -55,9 +55,9 @@ pub(super) fn rebuild_runtime_from_plan(
     pending_tail.sort_by_key(|commit| commit.position());
     let available_commit_ids = restored
         .history
-        .commit_envelopes
-        .keys()
-        .copied()
+        .recorded_commit_envelope_entries()
+        .into_iter()
+        .map(|(commit_id, _)| commit_id)
         .chain(
             pending_tail
                 .iter()

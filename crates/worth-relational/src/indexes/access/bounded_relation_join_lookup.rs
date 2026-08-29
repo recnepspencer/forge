@@ -37,14 +37,12 @@ impl IndexAccess<'_> {
             super::super::projected_field_values::IndexProjectionSource::exact(&projection)
                 .expect("resolved snapshot projection must carry an exact basis");
         let prepared = prepare_relation_join_lookup(runtime, &snapshot, &request)?;
-        let overflowed = prepared.indexed_entries.len() > request.candidate_limit();
-        let examined_entry_count = prepared
-            .indexed_entries
-            .len()
-            .min(request.candidate_limit());
+        let indexed_entries = prepared.indexed_entries();
+        let overflowed = indexed_entries.len() > request.candidate_limit();
+        let examined_entry_count = indexed_entries.len().min(request.candidate_limit());
         let candidate_entity_ids = prepared
             .verification
-            .verify_entries(&source, &prepared.indexed_entries[..examined_entry_count])?;
+            .verify_entries(&source, &indexed_entries[..examined_entry_count])?;
         let outcome = BoundedRelationJoinLookupOutcome::new(
             prepared.generation_id,
             candidate_entity_ids,
@@ -63,46 +61,57 @@ impl IndexAccess<'_> {
     }
 }
 
-struct PreparedRelationJoinLookup<'runtime> {
+/// The generation this lookup is pinned to, carried by shared ownership so the
+/// entries stay readable without retaining the index subsystem lock.
+struct PreparedRelationJoinLookup {
     generation_id: crate::indexes::data::DerivedIndexGenerationId,
-    indexed_entries: &'runtime [RelationJoinEntry],
+    generation: std::sync::Arc<crate::indexes::data::DerivedIndexGeneration>,
+    key: RelationJoinKey,
     verification: RelationJoinVerification,
 }
 
-fn prepare_relation_join_lookup<'runtime>(
-    runtime: &'runtime crate::runtime::RelationalRuntime,
+impl PreparedRelationJoinLookup {
+    fn indexed_entries(&self) -> &[RelationJoinEntry] {
+        let DerivedIndexEntries::RelationJoin(entries) = &self.generation.entries else {
+            return &[];
+        };
+        entries.get(&self.key).map(Vec::as_slice).unwrap_or(&[])
+    }
+}
+
+fn prepare_relation_join_lookup(
+    runtime: &crate::runtime::RelationalRuntime,
     snapshot: &crate::snapshots::data::SnapshotHandle,
     request: &BoundedRelationJoinLookupRequest,
-) -> Result<PreparedRelationJoinLookup<'runtime>, BoundedRelationJoinLookupDenial> {
+) -> Result<PreparedRelationJoinLookup, BoundedRelationJoinLookupDenial> {
     let definition = runtime
         .indexes
-        .definitions
-        .get(&request.index_id())
+        .definition(request.index_id())
         .ok_or_else(|| {
             denial(
                 BoundedRelationJoinLookupDenialKind::IndexNotInstalled,
                 request,
             )
         })?;
-    let verification = RelationJoinVerification::new(definition, request)?;
+    let verification = RelationJoinVerification::new(&definition, request)?;
     let generation =
-        super::generation_selection::exact_published_generation(runtime, snapshot, definition)
+        super::generation_selection::exact_published_generation(runtime, snapshot, &definition)
             .ok_or_else(|| {
                 denial(
                     BoundedRelationJoinLookupDenialKind::ExactGenerationUnavailable,
                     request,
                 )
             })?;
-    let DerivedIndexEntries::RelationJoin(entries) = &generation.entries else {
+    if !matches!(generation.entries, DerivedIndexEntries::RelationJoin(_)) {
         return Err(denial(
             BoundedRelationJoinLookupDenialKind::WrongIndexKind,
             request,
         ));
-    };
-    let key = RelationJoinKey::new(request.left_entity_id(), request.right_entity_id());
+    }
     Ok(PreparedRelationJoinLookup {
         generation_id: generation.generation_id,
-        indexed_entries: entries.get(&key).map(Vec::as_slice).unwrap_or(&[]),
+        key: RelationJoinKey::new(request.left_entity_id(), request.right_entity_id()),
+        generation,
         verification,
     })
 }

@@ -72,7 +72,7 @@ fn publish_recovered_runtime(
         .as_ref()
         .map(|checkpoint| checkpoint.envelopes.len())
         .unwrap_or(0);
-    restored.durability.store = plan.store.clone();
+    restored.durability.set_store(plan.store.clone());
     record_recovery_verification_counters(&restored, &plan.authority_continuity);
     restored.publication_authority().push_bounded_diagnostic(
         DiagnosticsScope::History,
@@ -91,7 +91,7 @@ fn publish_recovered_runtime(
         ],
     );
     let outcome = RuntimeRecoveryOutcome {
-        recovered_commits: restored.history.commit_envelopes.len(),
+        recovered_commits: restored.history.recorded_commit_envelope_count(),
         latest_commit: restored.history().latest_commit(),
         restored_branches: restored.history.branch_count(),
         cursor: plan.cursor,
@@ -113,8 +113,8 @@ impl RelationalRuntime {
     ) -> Result<RelationalRuntime, DurabilityError> {
         let admitted =
             admission::admit_recovery(self, plan).map_err(|rejection| rejection.into_error())?;
-        rebuild_runtime_from_plan(admitted).map(|(mut restored, plan)| {
-            restored.durability.store = plan.store;
+        rebuild_runtime_from_plan(admitted).map(|(restored, plan)| {
+            restored.durability.set_store(plan.store);
             restored
         })
     }

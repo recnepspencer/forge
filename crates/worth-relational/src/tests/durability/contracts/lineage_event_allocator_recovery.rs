@@ -61,10 +61,10 @@ fn failed_durable_append_blocks_descendants_and_recovers_last_checkpoint() {
     let mut runtime = persisted_runtime_with_test_schema();
     create_entity_outcome(&mut runtime, "lineage-gap-checkpoint");
     runtime.durability_authority().checkpoint().unwrap();
-    let (abandoned_lineage_id, abandoned_event_id) = runtime.lineage.identity_allocator.frontiers();
-    let published_node_count = runtime.lineage.nodes.len();
-    let published_event_count = runtime.lineage.events().count();
-    runtime.durability.fail_next_append = true;
+    let (abandoned_lineage_id, abandoned_event_id) = runtime.lineage.identity_frontiers();
+    let published_node_count = runtime.lineage.node_count();
+    let published_event_count = runtime.lineage.event_count();
+    runtime.durability.arm_append_failure();
     let mut failed = test_owner_begin_transaction_for_main(&mut runtime);
     failed
         .push_batch(batch_create("lineage-gap-abandoned"))
@@ -81,11 +81,11 @@ fn failed_durable_append_blocks_descendants_and_recovers_last_checkpoint() {
         .expect("deferred error carries performed receipt")
         .clone();
     assert_eq!(
-        runtime.lineage.identity_allocator.frontiers(),
+        runtime.lineage.identity_frontiers(),
         (abandoned_lineage_id + 1, abandoned_event_id + 1)
     );
-    assert_eq!(runtime.lineage.nodes.len(), published_node_count + 1);
-    assert_eq!(runtime.lineage.events().count(), published_event_count + 1);
+    assert_eq!(runtime.lineage.node_count(), published_node_count + 1);
+    assert_eq!(runtime.lineage.event_count(), published_event_count + 1);
     assert_eq!(
         runtime
             .history()
@@ -139,11 +139,10 @@ fn multi_event_reservation_exhaustion_denies_before_public_effects() {
     let baseline = create_entity_outcome(&mut runtime, "reservation-exhaustion-baseline");
     let baseline_head = baseline.commit.clone();
     let baseline_entities = runtime.storage_access().storage_stats().live_entities;
-    let (lineage_frontier, _) = runtime.lineage.identity_allocator.frontiers();
+    let (lineage_frontier, _) = runtime.lineage.identity_frontiers();
     runtime
         .lineage
-        .identity_allocator
-        .set_frontiers(lineage_frontier, u64::MAX - 1);
+        .set_identity_frontiers(lineage_frontier, u64::MAX - 1);
 
     let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
     transaction
@@ -158,7 +157,7 @@ fn multi_event_reservation_exhaustion_denies_before_public_effects() {
 
     assert!(format!("{error:?}").contains("lineage event id allocator exhausted"));
     assert_eq!(
-        runtime.lineage.identity_allocator.frontiers(),
+        runtime.lineage.identity_frontiers(),
         (lineage_frontier, u64::MAX - 1)
     );
     assert_eq!(
@@ -189,8 +188,8 @@ fn branch_local_sparse_slot_create_publishes_and_recovers_exact_lineage() {
     assert!(feature_entity.local_slot.0 > 1);
     let lineage_id = runtime
         .lineage
-        .nodes
-        .values()
+        .nodes_snapshot()
+        .into_iter()
         .find(|node| node.entity_id() == feature_entity)
         .expect("sparse logical slot has lineage")
         .lineage_id();
@@ -214,8 +213,8 @@ fn branch_local_sparse_slot_create_publishes_and_recovers_exact_lineage() {
     assert_eq!(
         recovered
             .lineage
-            .nodes
-            .values()
+            .nodes_snapshot()
+            .into_iter()
             .find(|node| node.entity_id() == feature_entity)
             .expect("recovered sparse lineage")
             .lineage_id(),

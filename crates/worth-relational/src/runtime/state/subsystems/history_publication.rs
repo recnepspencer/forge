@@ -140,32 +140,16 @@ impl HistorySubsystem {
             new_authoritative_bytes,
             recovery_readmission,
         } = prepared;
-        if recovery_readmission {
-            self.commit_catalog.install_prepared_recovery(artifact);
-        } else {
-            self.commit_catalog.install_prepared(artifact);
-        }
-        self.next_commit_id = self.next_commit_id.max(
-            commit_id
-                .0
-                .checked_add(1)
-                .expect("reserved commit id has successor"),
-        );
-        self.next_version_id = self.next_version_id.max(
-            commit_reference
-                .version_id
-                .0
-                .checked_add(1)
-                .expect("reserved version id has successor"),
-        );
+        self.with_ledger_mut(|ledger| {
+            ledger.install_published_commit(
+                commit_id,
+                commit_reference,
+                envelope,
+                artifact,
+                patch_position,
+                recovery_readmission,
+            );
+        });
         self.record_root_publication(&branch_id, &root, new_authoritative_bytes);
-        self.commit_graph.insert(
-            commit_id,
-            crate::history::data::VersionNode {
-                commit: commit_reference,
-            },
-        );
-        self.commit_envelopes.insert(commit_id, envelope);
-        self.patch_stream_index.insert(patch_position, commit_id);
     }
 }

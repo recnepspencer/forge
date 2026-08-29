@@ -34,11 +34,10 @@ fn live_lineage_allocator_exhaustion_denies_before_public_effects() {
     let mut runtime = persisted_runtime_with_test_schema();
     let baseline = create_entity_outcome(&mut runtime, "lineage-exhaustion-baseline");
     let baseline_entities = runtime.storage_access().storage_stats().live_entities;
-    let (_, event_frontier) = runtime.lineage.identity_allocator.frontiers();
+    let (_, event_frontier) = runtime.lineage.identity_frontiers();
     runtime
         .lineage
-        .identity_allocator
-        .set_frontiers(u64::MAX - 1, event_frontier);
+        .set_identity_frontiers(u64::MAX - 1, event_frontier);
 
     let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
     transaction
@@ -50,7 +49,7 @@ fn live_lineage_allocator_exhaustion_denies_before_public_effects() {
 
     assert!(format!("{error:?}").contains("lineage id allocator exhausted"));
     assert_eq!(
-        runtime.lineage.identity_allocator.frontiers(),
+        runtime.lineage.identity_frontiers(),
         (u64::MAX - 1, event_frontier)
     );
     assert_eq!(

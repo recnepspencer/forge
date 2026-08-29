@@ -224,8 +224,7 @@ fn graft_disconnected_branch_head(runtime: &mut RelationalRuntime, branch_id: &B
 
     let mut envelope = disconnected
         .history
-        .commit_envelopes
-        .get(&source_head.commit_id)
+        .recorded_commit_envelope(source_head.commit_id)
         .expect("source envelope")
         .as_ref()
         .clone();
@@ -234,8 +233,7 @@ fn graft_disconnected_branch_head(runtime: &mut RelationalRuntime, branch_id: &B
 
     runtime
         .history
-        .commit_catalog
-        .append_envelope(Arc::new(envelope.clone()))
+        .with_ledger_mut(|ledger| ledger.commit_catalog.append_envelope(Arc::new(envelope.clone())))
         .expect("disconnected artifact id is unique");
     let mut branch_cell =
         RelationalBranchReferenceCell::empty(runtime.runtime_instance_id(), branch_id.clone())
@@ -250,14 +248,15 @@ fn graft_disconnected_branch_head(runtime: &mut RelationalRuntime, branch_id: &B
         ))
         .expect("disconnected branch reference is valid");
     runtime.history.insert_branch_cell(branch_cell);
-    runtime.history.commit_graph.insert(
+    runtime.history.insert_commit_graph_node(
         orphan_head.commit_id,
         VersionNode {
             commit: orphan_head,
         },
     );
-    runtime
-        .history
-        .commit_envelopes
-        .insert(envelope.commit.commit_id, Arc::new(envelope));
+    runtime.history.with_ledger_mut(|ledger| {
+        ledger
+            .commit_envelopes
+            .insert(envelope.commit.commit_id, Arc::new(envelope))
+    });
 }

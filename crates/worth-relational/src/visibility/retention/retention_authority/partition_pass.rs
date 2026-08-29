@@ -203,9 +203,9 @@ mod tests {
             .adjust_named_pin(high_slot, PinClass::Branch)
             .unwrap() = 1;
         let adjacency_policy = runtime.config.storage.adjacency_policy.clone();
-        runtime.partitions.insert(
+        runtime.partitions.write().insert(
             partition_id,
-            PartitionState {
+            std::sync::Arc::new(PartitionState {
                 partition_id,
                 adjacency_policy,
                 relation_overlay_is_sparse: false,
@@ -213,7 +213,7 @@ mod tests {
                 relation_arena: RelationArena::with_capacity(0),
                 adjacency: Default::default(),
                 reverse_adjacency: Default::default(),
-            },
+            }),
         );
 
         let inspected = inspect_partition_retention::<EntityRecordKind>(

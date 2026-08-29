@@ -137,7 +137,7 @@ fn failed_durable_append_returns_an_idempotent_owner_repair_capability() {
     };
     let commit_id = performed.canonical_commit().commit.commit_id;
     let position = performed.patch_position();
-    runtime.durability.fail_next_append = true;
+    runtime.durability.arm_append_failure();
     let error = runtime
         .settle_performed_publication(performed)
         .expect_err("injected append fault defers settlement after performance");
@@ -213,7 +213,7 @@ fn runtime_recovers_settlement_after_external_capability_is_dropped() {
         panic!("runtime recovery candidate performs before its injected append fault");
     };
     let commit_id = performed.canonical_commit().commit.commit_id;
-    runtime.durability.fail_next_append = true;
+    runtime.durability.arm_append_failure();
     let error = runtime
         .settle_performed_publication(performed)
         .expect_err("durable append fault returns deferred settlement");

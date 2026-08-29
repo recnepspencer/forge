@@ -39,11 +39,11 @@ fn publication_snapshots_are_the_outward_artifact_surface_for_latest_exports() {
         publication.observation_snapshot()
     );
     assert_eq!(
-        artifact_snapshot.latest_patch.as_ref(),
+        artifact_snapshot.latest_patch,
         publication.latest_patch()
     );
     assert_eq!(
-        artifact_snapshot.latest_replay.as_ref(),
+        artifact_snapshot.latest_replay,
         publication.latest_replay()
     );
     assert_eq!(

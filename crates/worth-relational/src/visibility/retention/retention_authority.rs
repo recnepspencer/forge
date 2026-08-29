@@ -247,7 +247,7 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
                     let retired_at = self
                         .runtime
                         .partitions
-                        .get(&entity_id.partition_id)
+                        .partition(entity_id.partition_id)
                         .and_then(|partition| {
                             partition
                                 .entity_arena
@@ -265,7 +265,7 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
                     let retired_at = self
                         .runtime
                         .partitions
-                        .get(&relation_id.partition_id)
+                        .partition(relation_id.partition_id)
                         .and_then(|partition| {
                             partition
                                 .relation_arena

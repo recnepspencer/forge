@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use crate::branch::{RelationalBranchCellCheckpoint, RelationalBranchReferenceCell};
 use crate::history::data::{BranchId, CanonicalCommitEnvelope, CommitId};
-use crate::history::RelationalCommitCatalog;
 use worth_foundational::FoundationalBranchTarget;
 
 use super::history_recovery_lineage::{
@@ -61,7 +60,7 @@ pub(super) fn validate_recovered_branch_cell(
     let observation = cell.observation();
     let fork_source_branch_id = cell.fork_source_branch_id();
     let fork_provenance = cell.fork_provenance();
-    validate_branch_target_artifact(&history.commit_catalog, branch_id, observation.target())?;
+    validate_branch_target_artifact(history, branch_id, observation.target())?;
     validate_branch_target_lineage(
         history,
         branch_id,
@@ -85,11 +84,7 @@ pub(super) fn validate_recovered_branch_cell(
                     branch_id.0, source_branch_id.0
                 ));
             }
-            validate_branch_target_artifact(
-                &history.commit_catalog,
-                branch_id,
-                provenance.target(),
-            )?;
+            validate_branch_target_artifact(history, branch_id, provenance.target())?;
             validate_target_authoring_lineage(history, &source_branch_id, provenance.target())?;
             Ok(())
         }
@@ -106,7 +101,7 @@ pub(super) fn validate_recovered_branch_cell(
 }
 
 pub(super) fn validate_branch_target_artifact(
-    catalog: &RelationalCommitCatalog,
+    history: &HistorySubsystem,
     branch_id: &BranchId,
     target: &FoundationalBranchTarget<crate::branch::RelationalBranchTarget>,
 ) -> Result<(), String> {
@@ -114,7 +109,7 @@ pub(super) fn validate_branch_target_artifact(
         return Ok(());
     };
     let selected_commit_id = CommitId(target.selected_commit_id());
-    let artifact = catalog.get(selected_commit_id).ok_or_else(|| {
+    let artifact = history.commit_artifact(selected_commit_id).ok_or_else(|| {
         format!(
             "branch cell `{}` references missing commit artifact `{}`",
             branch_id.0, selected_commit_id.0
@@ -146,7 +141,7 @@ pub(super) fn validate_branch_target_artifact(
 }
 
 pub(super) fn require_branch_target_artifact(
-    catalog: &RelationalCommitCatalog,
+    history: &HistorySubsystem,
     branch_id: &BranchId,
     target: &FoundationalBranchTarget<crate::branch::RelationalBranchTarget>,
 ) -> Result<(), String> {
@@ -154,7 +149,7 @@ pub(super) fn require_branch_target_artifact(
         return Ok(());
     };
     let commit_id = CommitId(target.selected_commit_id());
-    if catalog.get(commit_id).is_none() {
+    if history.commit_artifact(commit_id).is_none() {
         return Err(format!(
             "branch cell `{}` references missing commit artifact `{}`",
             branch_id.0, commit_id.0

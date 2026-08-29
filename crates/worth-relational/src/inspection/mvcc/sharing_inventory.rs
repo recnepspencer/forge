@@ -21,7 +21,7 @@ pub(super) struct BranchSharingInventory {
 
 pub(super) fn inventory_sharing_scope(
     runtime: &RelationalRuntime,
-    scope: &[BranchSharingScopeEntry<'_>],
+    scope: &[BranchSharingScopeEntry],
 ) -> BranchSharingInventory {
     let mut inventory = empty_inventory(scope.len());
     for entry in scope {
@@ -47,7 +47,7 @@ fn empty_inventory(branch_count: usize) -> BranchSharingInventory {
 
 fn observe_entry(
     runtime: &RelationalRuntime,
-    entry: &BranchSharingScopeEntry<'_>,
+    entry: &BranchSharingScopeEntry,
     inventory: &mut BranchSharingInventory,
 ) {
     let first_root_observation = inventory.root_ids.insert(entry.root.id());
@@ -66,7 +66,7 @@ fn observe_entry(
     inventory.accounting.observe_branch_root(
         runtime.runtime_instance_id(),
         &entry.root,
-        entry.artifact,
+        entry.artifact.as_ref(),
         derived_cache_bytes,
     );
     inventory
@@ -80,7 +80,7 @@ fn observe_entry(
         .saturating_add(entry.coordination_waits);
 }
 
-fn observe_root(entry: &BranchSharingScopeEntry<'_>, inventory: &mut BranchSharingInventory) {
+fn observe_root(entry: &BranchSharingScopeEntry, inventory: &mut BranchSharingInventory) {
     let axes = entry.root.axes().expect("scope validates complete axes");
     inventory.reconstructed_region_count = inventory
         .reconstructed_region_count

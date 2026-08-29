@@ -88,21 +88,22 @@ impl<'runtime> VisibilityReadContext<'runtime> {
         direction: AdjacencyDirection,
         maximum_work_units: usize,
     ) -> Result<BoundedAdjacencyTruthRead, AdjacencyTruthReadLimitExceeded> {
-        let storage = self.runtime.storage_access();
         let slot = entity_id.slot_index();
         let current_version = version_id == self.runtime.current_version_id();
-        let relation_ids = storage
-            .partition_state(entity_id.partition_id)
-            .and_then(|partition| match direction {
-                AdjacencyDirection::Outgoing => partition.adjacency.get(slot),
-                AdjacencyDirection::Incoming => partition.reverse_adjacency.get(slot),
-            })
-            .map(|adjacency| {
-                if current_version {
-                    adjacency.current_kind_slice(kind_id)
+        let relation_ids = self
+            .runtime
+            .partitions
+            .partition(entity_id.partition_id)
+            .and_then(|partition| {
+                let adjacency = match direction {
+                    AdjacencyDirection::Outgoing => partition.adjacency.get(slot),
+                    AdjacencyDirection::Incoming => partition.reverse_adjacency.get(slot),
+                }?;
+                Some(if current_version {
+                    adjacency.current_kind_slice(kind_id).to_vec()
                 } else {
-                    adjacency.historical_kind_slice(kind_id)
-                }
+                    adjacency.historical_kind_slice(kind_id).to_vec()
+                })
             })
             .unwrap_or_default();
         let mut records = Vec::new();

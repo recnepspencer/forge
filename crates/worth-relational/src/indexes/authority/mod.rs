@@ -97,7 +97,7 @@ fn publish_index_generations(
             continue;
         };
         let generation = DerivedIndexGeneration {
-            generation_id: DerivedIndexGenerationId(runtime.indexes.next_generation_id),
+            generation_id: DerivedIndexGenerationId(runtime.indexes.next_generation_id()),
             index_id: result.index_id,
             source_commit_id: basis.source_commit_id,
             source_branch_id: basis.branch_id.clone(),
@@ -109,13 +109,7 @@ fn publish_index_generations(
             status: DerivedIndexPublicationStatus::Published,
             entries,
         };
-        runtime.indexes.next_generation_id += 1;
-        runtime
-            .indexes
-            .generations
-            .entry(result.index_id)
-            .or_default()
-            .push(generation.clone());
+        runtime.indexes.publish_generation(generation.clone());
         generations.push(generation);
     }
     generations
@@ -146,14 +140,8 @@ impl<'runtime> IndexAuthority<'runtime> {
         Self { runtime }
     }
 
-    pub fn register(&mut self, mut definition: DerivedIndexDefinition) -> DerivedIndexDefinition {
-        definition.index_id = DerivedIndexId(self.runtime.indexes.next_index_id);
-        self.runtime.indexes.next_index_id += 1;
-        self.runtime
-            .indexes
-            .definitions
-            .insert(definition.index_id, definition.clone());
-        definition
+    pub fn register(&mut self, definition: DerivedIndexDefinition) -> DerivedIndexDefinition {
+        self.runtime.indexes.register_definition(definition)
     }
 
     pub fn build_for_commit(
@@ -279,8 +267,7 @@ impl<'runtime> IndexAuthority<'runtime> {
     )> {
         self.runtime
             .history
-            .commit_envelopes
-            .get(&commit_id)
+            .recorded_commit_envelope(commit_id)
             .map(|commit| (commit.commit.version_id, commit.branch_context.clone()))
     }
 

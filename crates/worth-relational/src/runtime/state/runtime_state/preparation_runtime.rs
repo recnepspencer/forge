@@ -52,7 +52,7 @@ impl RelationalPreparationOwnerBinding {
             publication_owner: runtime.publication_binding(),
             snapshot_capacity: runtime.visibility.published_snapshot_capacity_binding(),
             snapshot_ids: runtime.visibility.snapshot_identity_binding(),
-            lineage_identity: runtime.lineage.identity_allocator.clone(),
+            lineage_identity: runtime.lineage.identity_allocator(),
             diagnostics: runtime.publication.diagnostics.clone(),
         }
     }

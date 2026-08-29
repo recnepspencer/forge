@@ -31,14 +31,16 @@ pub(crate) fn outgoing_relations_for_entity(
 ) -> Vec<crate::identity::data::RelationId> {
     let slot = entity_id.slot_index();
     let reader = runtime.read_truth();
-    runtime
-        .storage_access()
-        .partition_state(entity_id.partition_id)
-        .and_then(|partition| partition.adjacency.get(slot))
+    let candidates = {
+        let partitions = runtime.partitions.read();
+        partitions
+            .get(&entity_id.partition_id)
+            .and_then(|partition| partition.adjacency.get(slot))
+            .map(|relations| relations.as_slice().to_vec())
+            .unwrap_or_default()
+    };
+    candidates
         .into_iter()
-        .flat_map(|relations: &crate::storage::partition::AdjacencySet| {
-            relations.as_slice().iter().copied()
-        })
         .filter(|relation_id| reader.relation_visible_at_version(*relation_id, version_id))
         .collect()
 }
@@ -50,14 +52,16 @@ pub(crate) fn incoming_relations_for_entity(
 ) -> Vec<crate::identity::data::RelationId> {
     let slot = entity_id.slot_index();
     let reader = runtime.read_truth();
-    runtime
-        .storage_access()
-        .partition_state(entity_id.partition_id)
-        .and_then(|partition| partition.reverse_adjacency.get(slot))
+    let candidates = {
+        let partitions = runtime.partitions.read();
+        partitions
+            .get(&entity_id.partition_id)
+            .and_then(|partition| partition.reverse_adjacency.get(slot))
+            .map(|relations| relations.as_slice().to_vec())
+            .unwrap_or_default()
+    };
+    candidates
         .into_iter()
-        .flat_map(|relations: &crate::storage::partition::AdjacencySet| {
-            relations.as_slice().iter().copied()
-        })
         .filter(|relation_id| reader.relation_visible_at_version(*relation_id, version_id))
         .collect()
 }
@@ -70,12 +74,16 @@ pub(crate) fn outgoing_relations_for_entity_kind(
 ) -> Vec<crate::identity::data::RelationId> {
     let slot = entity_id.slot_index();
     let reader = runtime.read_truth();
-    runtime
-        .storage_access()
-        .partition_state(entity_id.partition_id)
-        .and_then(|partition| partition.adjacency.get(slot))
+    let candidates = {
+        let partitions = runtime.partitions.read();
+        partitions
+            .get(&entity_id.partition_id)
+            .and_then(|partition| partition.adjacency.get(slot))
+            .map(|relations| relations.current_kind_slice(kind_id).to_vec())
+            .unwrap_or_default()
+    };
+    candidates
         .into_iter()
-        .flat_map(|relations| relations.current_kind_slice(kind_id).iter().copied())
         .filter(|relation_id| reader.relation_visible_at_version(*relation_id, version_id))
         .collect()
 }
@@ -88,12 +96,16 @@ pub(crate) fn incoming_relations_for_entity_kind(
 ) -> Vec<crate::identity::data::RelationId> {
     let slot = entity_id.slot_index();
     let reader = runtime.read_truth();
-    runtime
-        .storage_access()
-        .partition_state(entity_id.partition_id)
-        .and_then(|partition| partition.reverse_adjacency.get(slot))
+    let candidates = {
+        let partitions = runtime.partitions.read();
+        partitions
+            .get(&entity_id.partition_id)
+            .and_then(|partition| partition.reverse_adjacency.get(slot))
+            .map(|relations| relations.current_kind_slice(kind_id).to_vec())
+            .unwrap_or_default()
+    };
+    candidates
         .into_iter()
-        .flat_map(|relations| relations.current_kind_slice(kind_id).iter().copied())
         .filter(|relation_id| reader.relation_visible_at_version(*relation_id, version_id))
         .collect()
 }
@@ -106,15 +118,15 @@ pub(crate) fn all_relations_for_entity(
     let slot = entity_id.slot_index();
     let reader = runtime.read_truth();
     let mut relation_ids = BTreeSet::new();
-    if let Some(partition) = runtime
-        .storage_access()
-        .partition_state(entity_id.partition_id)
     {
-        if let Some(relations) = partition.adjacency.get(slot) {
-            relation_ids.extend(relations.as_slice().iter().copied());
-        }
-        if let Some(relations) = partition.reverse_adjacency.get(slot) {
-            relation_ids.extend(relations.as_slice().iter().copied());
+        let partitions = runtime.partitions.read();
+        if let Some(partition) = partitions.get(&entity_id.partition_id) {
+            if let Some(relations) = partition.adjacency.get(slot) {
+                relation_ids.extend(relations.as_slice().iter().copied());
+            }
+            if let Some(relations) = partition.reverse_adjacency.get(slot) {
+                relation_ids.extend(relations.as_slice().iter().copied());
+            }
         }
     }
     relation_ids

@@ -13,11 +13,11 @@ use crate::lineage::data::LineageNode;
 use crate::visibility::cache_state::cached_historical_state_for_version;
 
 impl<'runtime> LineageAccess<'runtime> {
-    pub fn for_record(&self, entity_id: EntityId) -> Option<&LineageNode> {
+    pub fn for_record(&self, entity_id: EntityId) -> Option<LineageNode> {
         let lineage_id = self
             .runtime
             .partitions
-            .get(&entity_id.partition_id)?
+            .partition(entity_id.partition_id)?
             .entity_arena
             .get(&entity_id)
             .and_then(|slot_view| slot_view.extra().lineage_id)?;
@@ -33,11 +33,7 @@ impl<'runtime> LineageAccess<'runtime> {
         &self,
         branch_id: &crate::history::data::BranchId,
     ) -> Vec<LineageEventRecord> {
-        self.runtime
-            .lineage
-            .branch_events(branch_id)
-            .cloned()
-            .collect()
+        self.runtime.lineage.branch_events_snapshot(branch_id)
     }
 
     #[cfg(test)]
@@ -63,7 +59,7 @@ impl<'runtime> LineageAccess<'runtime> {
                 continue;
             };
             if seen.insert(node.lineage_id) {
-                nodes.push(node.clone());
+                nodes.push(node);
             }
         }
 

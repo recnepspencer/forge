@@ -86,10 +86,12 @@ fn stale_entity_id_does_not_materialize_reused_slot_at_current_version() {
     });
     assert_eq!(reused_generation, 2);
 
-    runtime.history.next_version_id = 4;
-    runtime.partitions.insert(
+    runtime
+        .history
+        .with_ledger_mut(|ledger| ledger.next_version_id = 4);
+    runtime.partitions.write().insert(
         partition_id,
-        PartitionState {
+        std::sync::Arc::new(PartitionState {
             partition_id,
             adjacency_policy: adjacency_policy.clone(),
             relation_overlay_is_sparse: false,
@@ -97,7 +99,7 @@ fn stale_entity_id_does_not_materialize_reused_slot_at_current_version() {
             relation_arena: crate::storage::substrate::RelationArena::with_capacity(0),
             adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
             reverse_adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
-        },
+        }),
     );
 
     let current_state = runtime.storage_access().current_state();
@@ -134,10 +136,12 @@ fn historical_entity_kind_reads_follow_visible_metadata_not_current_slot_kind() 
     });
     assert_eq!(reused_generation, 2);
 
-    runtime.history.next_version_id = 4;
-    runtime.partitions.insert(
+    runtime
+        .history
+        .with_ledger_mut(|ledger| ledger.next_version_id = 4);
+    runtime.partitions.write().insert(
         partition_id,
-        PartitionState {
+        std::sync::Arc::new(PartitionState {
             partition_id,
             adjacency_policy: adjacency_policy.clone(),
             relation_overlay_is_sparse: false,
@@ -145,7 +149,7 @@ fn historical_entity_kind_reads_follow_visible_metadata_not_current_slot_kind() 
             relation_arena: crate::storage::substrate::RelationArena::with_capacity(0),
             adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
             reverse_adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
-        },
+        }),
     );
 
     let state = runtime.storage_access().current_state();
@@ -213,10 +217,12 @@ fn historical_relation_kind_reads_follow_visible_metadata_not_current_slot_kind(
     });
     assert_eq!(reused_generation, 2);
 
-    runtime.history.next_version_id = 4;
-    runtime.partitions.insert(
+    runtime
+        .history
+        .with_ledger_mut(|ledger| ledger.next_version_id = 4);
+    runtime.partitions.write().insert(
         partition_id,
-        PartitionState {
+        std::sync::Arc::new(PartitionState {
             partition_id,
             adjacency_policy: adjacency_policy.clone(),
             relation_overlay_is_sparse: false,
@@ -224,7 +230,7 @@ fn historical_relation_kind_reads_follow_visible_metadata_not_current_slot_kind(
             relation_arena,
             adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
             reverse_adjacency: vec![AdjacencySet::new(&adjacency_policy)].into(),
-        },
+        }),
     );
 
     let state = runtime.storage_access().current_state();

@@ -8,19 +8,21 @@ use crate::runtime::RelationalRuntime;
 
 use super::RelationalBranchSharingInspectionDenial;
 
-pub(super) struct BranchSharingScopeEntry<'runtime> {
+pub(super) struct BranchSharingScopeEntry {
     pub(super) branch_id: BranchId,
     pub(super) root: Arc<RelationalBranchRoot>,
-    pub(super) artifact: &'runtime Arc<RelationalCommitArtifact>,
+    /// The branch root's immutable catalog artifact, carried by shared
+    /// ownership rather than borrowed out of the history ledger.
+    pub(super) artifact: Arc<RelationalCommitArtifact>,
     pub(super) coordination_cell: crate::branch::RelationalBranchCoordinationCellId,
     pub(super) coordination_contacts: u64,
     pub(super) coordination_waits: u64,
 }
 
-pub(super) fn resolve_sharing_scope<'runtime>(
-    runtime: &'runtime RelationalRuntime,
+pub(super) fn resolve_sharing_scope(
+    runtime: &RelationalRuntime,
     branches: &[RelationalBranchIdentity],
-) -> Result<Vec<BranchSharingScopeEntry<'runtime>>, RelationalBranchSharingInspectionDenial> {
+) -> Result<Vec<BranchSharingScopeEntry>, RelationalBranchSharingInspectionDenial> {
     let mut seen_branches = BTreeSet::new();
     let mut verified_roots = BTreeSet::new();
     let mut scope = Vec::with_capacity(branches.len());
@@ -39,8 +41,7 @@ pub(super) fn resolve_sharing_scope<'runtime>(
             .ok_or(RelationalBranchSharingInspectionDenial::RootUnavailable)?;
         let artifact = runtime
             .history
-            .commit_catalog
-            .get(commit_id)
+            .commit_artifact(commit_id)
             .ok_or(RelationalBranchSharingInspectionDenial::RootUnavailable)?;
         if verified_roots.insert(root.id())
             && (!runtime

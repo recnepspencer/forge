@@ -19,16 +19,14 @@ fn entity_field_certification_rejects_a_missing_candidate() {
         branch_scoped: false,
     });
     build_entity_field_generation(&mut runtime, index.index_id);
-    let generation = runtime
+    runtime
         .indexes
-        .generations
-        .get_mut(&index.index_id)
-        .and_then(|generations| generations.last_mut())
-        .unwrap();
-    let DerivedIndexEntries::EntityField(entries) = &mut generation.entries else {
-        panic!("entity-field generation expected");
-    };
-    entries.clear();
+        .corrupt_latest_generation(index.index_id, |generation| {
+            let DerivedIndexEntries::EntityField(entries) = &mut generation.entries else {
+                panic!("entity-field generation expected");
+            };
+            entries.clear();
+        });
     let snapshot = runtime.visibility_authority().snapshot();
     let request = || {
         entity_field_request(

@@ -107,8 +107,8 @@ pub(crate) fn assert_observability_surfaces_agree(world: &FintechWorld) {
     let diagnostics = world.runtime.publication().diagnostics();
 
     assert_eq!(bundle.commit, commit);
-    assert_eq!(bundle.patch, *patch);
-    assert_eq!(bundle.replay, *replay);
+    assert_eq!(bundle.patch, patch);
+    assert_eq!(bundle.replay, replay);
     assert!(diagnostics
         .artifacts()
         .iter()
