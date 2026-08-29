@@ -117,15 +117,15 @@ fn prepared_acyclicity_scope_rejects_visible_graphs_that_exceed_scan_budget() {
             max_scanned_relations: 16,
             max_planned_edges: 8,
         });
-    let a = create_entity_of_kind(&mut runtime, KindId(3), "a");
-    let b = create_entity_of_kind(&mut runtime, KindId(3), "b");
-    let c = create_entity_of_kind(&mut runtime, KindId(3), "c");
-    let d = create_entity_of_kind(&mut runtime, KindId(3), "d");
-    let e = create_entity_of_kind(&mut runtime, KindId(3), "e");
-    create_relation_of_kind(&mut runtime, KindId(2), a, b, "edge-ab");
-    create_relation_of_kind(&mut runtime, KindId(2), b, c, "edge-bc");
-    create_relation_of_kind(&mut runtime, KindId(2), c, d, "edge-cd");
-    create_relation_of_kind(&mut runtime, KindId(2), d, e, "edge-de");
+    let a = create_entity_of_kind(&runtime, KindId(3), "a");
+    let b = create_entity_of_kind(&runtime, KindId(3), "b");
+    let c = create_entity_of_kind(&runtime, KindId(3), "c");
+    let d = create_entity_of_kind(&runtime, KindId(3), "d");
+    let e = create_entity_of_kind(&runtime, KindId(3), "e");
+    create_relation_of_kind(&runtime, KindId(2), a, b, "edge-ab");
+    create_relation_of_kind(&runtime, KindId(2), b, c, "edge-bc");
+    create_relation_of_kind(&runtime, KindId(2), c, d, "edge-cd");
+    create_relation_of_kind(&runtime, KindId(2), d, e, "edge-de");
     runtime.configure_for_test(|config| {
         config
             .execution

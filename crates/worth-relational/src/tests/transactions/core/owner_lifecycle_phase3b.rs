@@ -19,8 +19,8 @@ const NEGATIVE_BUDGET: Duration = Duration::from_millis(100);
 /// and this court would fail on its bounded receive rather than hang.
 #[test]
 fn phase3b_owner_drop_during_off_thread_settlement_completes() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "phase3b-detached-anchor");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "phase3b-detached-anchor");
     let (reached, release, control) = settlement_pause();
     let performed = perform_write_with_control(&runtime, "main", "phase3b-detached-write", control);
     let commit_id = performed.canonical_commit().commit.commit_id;
@@ -77,8 +77,8 @@ fn phase3b_owner_drop_during_off_thread_settlement_completes() {
 /// a real result.
 #[test]
 fn phase3b_settlement_admitted_after_owner_drop_is_denied() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "phase3b-close-window-anchor");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "phase3b-close-window-anchor");
     fork_from_main(&runtime, "phase3b-paused");
     fork_from_main(&runtime, "phase3b-late");
     let (reached, release, control) = settlement_pause();
@@ -138,9 +138,9 @@ fn phase3b_settlement_admitted_after_owner_drop_is_denied() {
 #[test]
 fn phase3b_recovery_replacement_closes_the_prior_runtimes_ports() {
     let mut runtime = persisted_runtime_with_test_schema();
-    let seeded = create_entity_outcome(&mut runtime, "phase3b-recovery-anchor");
+    let seeded = create_entity_outcome(&runtime, "phase3b-recovery-anchor");
     let seeded_commit_id = seeded.commit.commit_id;
-    release_test_commit_snapshot(&mut runtime, &seeded);
+    release_test_commit_snapshot(&runtime, &seeded);
     let port = runtime.settlement_port();
     let replaced_instance_id = runtime.runtime_instance_id();
     assert_eq!(port.runtime_instance_id(), replaced_instance_id);

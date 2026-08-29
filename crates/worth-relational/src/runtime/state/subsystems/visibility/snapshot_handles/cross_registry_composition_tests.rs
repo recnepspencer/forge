@@ -18,9 +18,9 @@ struct CrossRegistryIdentities {
 /// have to consult both registries; a world with an empty registry would answer
 /// from the first lookup and prove nothing.
 fn with_cross_registry_world(proof: impl FnOnce(&RelationalRuntime, CrossRegistryIdentities)) {
-    let mut runtime = runtime_with_test_schema();
-    let published = create_entity_outcome(&mut runtime, "cross-registry-witness");
-    let active = snapshot_for_owner_branch(&mut runtime, &BranchId("main".to_owned()));
+    let runtime = runtime_with_test_schema();
+    let published = create_entity_outcome(&runtime, "cross-registry-witness");
+    let active = snapshot_for_owner_branch(&runtime, &BranchId("main".to_owned()));
     let identities = CrossRegistryIdentities {
         active: active.snapshot_id(),
         published: published.snapshot.snapshot_id(),

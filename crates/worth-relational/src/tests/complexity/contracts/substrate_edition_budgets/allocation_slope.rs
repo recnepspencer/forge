@@ -113,15 +113,15 @@ fn run_isolated_probe(probe_name: &str) {
 /// breadth around it moves.
 #[cfg(feature = "allocation-probes")]
 fn measured_bounded_read(fanout: usize, unrelated_partitions: usize) -> stats_alloc::Stats {
-    let mut runtime = runtime_with_test_schema();
-    let anchor = create_entity(&mut runtime, "anchor-0000");
+    let runtime = runtime_with_test_schema();
+    let anchor = create_entity(&runtime, "anchor-0000");
     for edge in 0..fanout {
-        let target = create_entity(&mut runtime, &format!("target-{edge:04}"));
-        let _ = create_relation(&mut runtime, anchor, target, &format!("edge-{edge:04}"));
+        let target = create_entity(&runtime, &format!("target-{edge:04}"));
+        let _ = create_relation(&runtime, anchor, target, &format!("edge-{edge:04}"));
     }
     for partition in 0..unrelated_partitions {
         let _ = create_entity_in_partition(
-            &mut runtime,
+            &runtime,
             &format!("unrelated-{partition:04}"),
             PartitionId(64 + partition as u32),
         );

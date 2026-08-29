@@ -86,7 +86,7 @@ fn relation_integrity_certification_boundary_rejects_observed_pair_below_paralle
 
 #[test]
 fn relation_integrity_certification_boundary_is_authority_owned_and_blocks_publication() {
-    let mut runtime = certification_authority_source_min_one_runtime();
+    let runtime = certification_authority_source_min_one_runtime();
     let _orphan = create_entity(&runtime, "orphan");
 
     let shared: &RelationalRuntime = &runtime;
