@@ -55,6 +55,11 @@ fn complexity_budget_forking_a_runtime_charges_the_reconstructive_lane() {
         counters.reconstructive_partitions_materialized >= 2,
         "a fork materializes every partition it detaches: {counters:?}"
     );
+    // The partition copies a fork performs belong to its own lane. If they
+    // leaked into the ordinary counters, an ordinary-lane zero elsewhere would
+    // stop meaning anything.
+    assert_eq!(counters.ordinary_partitions_copied_on_write, 0);
+    assert_eq!(counters.ordinary_partition_slots_copied_on_write, 0);
 }
 
 #[test]

@@ -154,6 +154,9 @@ jobs:
       - name: Run tests
         run: cargo test --workspace
 
+      - name: worth-relational allocation-slope lane
+        run: bash scripts/ci/check_relational_allocation_probes.sh
+
       - name: worth-relational operation-control cancellation lane
         run: >-
           bash scripts/ci/run_relational_named_test_selection.sh

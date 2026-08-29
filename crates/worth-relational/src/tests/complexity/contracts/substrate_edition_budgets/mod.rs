@@ -4,3 +4,4 @@
 mod adjacency_leasing;
 mod allocation_slope;
 mod edition_copy_lanes;
+mod partition_copy_on_write;

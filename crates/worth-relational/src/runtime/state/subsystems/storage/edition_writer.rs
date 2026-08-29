@@ -3,24 +3,29 @@ use std::sync::{Arc, RwLockWriteGuard};
 use crate::identity::data::PartitionId;
 use crate::storage::overlay::PartitionState;
 
-use super::edition_copy_lane::PartitionEditionCopyLane;
+use super::edition_copy_lane::{PartitionCopyTally, PartitionEditionCopyLane};
 use super::partition_edition::{PartitionEdition, PartitionMap};
 use crate::runtime::state::subsystems::RuntimeInstrumentation;
 
 /// Exclusive authority to install the next edition of the record substrate.
 ///
 /// The guard deliberately exposes no `DerefMut`. Every mutable entry point can
-/// copy the map spine, and a copy that reaches Theta(partitions) must not hide
-/// behind something that reads like a field access.
+/// copy, and a copy that reaches Theta(partitions) or Theta(slots) must not
+/// hide behind something that reads like a field access.
 ///
-/// The spine is copied at most once per guard, and only when a reader edition
-/// of the same map is still outstanding. When nothing observes the substrate,
-/// mutation happens in place and no copy occurs at all.
+/// Two distinct copies can happen here and both are charged. The map spine is
+/// copied at most once per guard, when a reader edition of the same map is
+/// still outstanding. Each partition reached through that spine is copied out
+/// of structural sharing the first time it is mutated while an observer still
+/// holds it -- that copy is Theta(the partition's slots) and is the larger of
+/// the two whenever a partition holds more than a handful of records. When
+/// nothing observes the substrate, mutation happens in place and neither copy
+/// occurs.
 pub(crate) struct PartitionEditionWriter<'subsystem> {
     edition: RwLockWriteGuard<'subsystem, PartitionEdition>,
     instrumentation: &'subsystem RuntimeInstrumentation,
     lane: PartitionEditionCopyLane,
-    charged: bool,
+    copies: PartitionCopyTally,
 }
 
 impl<'subsystem> PartitionEditionWriter<'subsystem> {
@@ -33,16 +38,21 @@ impl<'subsystem> PartitionEditionWriter<'subsystem> {
             edition,
             instrumentation,
             lane,
-            charged: false,
+            copies: PartitionCopyTally::default(),
         }
     }
 
     /// Exclusive access to the whole map, copying the spine once if observed.
-    pub(crate) fn map_mut(&mut self) -> &mut PartitionMap {
+    ///
+    /// This buys ownership of the pointers, not of what they point at: the
+    /// copied spine holds the same partition arcs the outstanding reader does.
+    /// It is deliberately private: a caller holding `&mut PartitionMap` could
+    /// reach `Arc::make_mut` on a partition itself, and that copy would be the
+    /// one cost on this guard nobody counted.
+    fn map_mut(&mut self) -> &mut PartitionMap {
         let (map, copied) = self.edition.map_mut();
-        if copied && !self.charged {
-            self.charged = true;
-            self.lane.charge_spine_copy(self.instrumentation);
+        if copied {
+            self.copies.record_spine_copy();
         }
         map
     }
@@ -54,11 +64,31 @@ impl<'subsystem> PartitionEditionWriter<'subsystem> {
         &mut self,
         partition_id: PartitionId,
     ) -> Option<&mut PartitionState> {
-        self.map_mut().get_mut(&partition_id).map(Arc::make_mut)
+        let Self {
+            edition, copies, ..
+        } = self;
+        let (map, spine_copied) = edition.map_mut();
+        if spine_copied {
+            copies.record_spine_copy();
+        }
+        map.get_mut(&partition_id)
+            .map(|partition| own_partition(copies, partition))
     }
 
+    /// Exclusive access to every partition, copying each one that an observer
+    /// still holds. This is Theta(all slots in the substrate) in the worst
+    /// case, which is why the copies it performs are counted individually
+    /// rather than summarized as one event.
     pub(crate) fn partitions_mut(&mut self) -> impl Iterator<Item = &mut PartitionState> {
-        self.map_mut().values_mut().map(Arc::make_mut)
+        let Self {
+            edition, copies, ..
+        } = self;
+        let (map, spine_copied) = edition.map_mut();
+        if spine_copied {
+            copies.record_spine_copy();
+        }
+        map.values_mut()
+            .map(move |partition| own_partition(copies, partition))
     }
 
     pub(crate) fn insert(&mut self, partition_id: PartitionId, partition: PartitionState) {
@@ -72,4 +102,32 @@ impl<'subsystem> PartitionEditionWriter<'subsystem> {
     pub(crate) fn install(&mut self, partitions: PartitionMap) {
         *self.edition = PartitionEdition::new(partitions);
     }
+}
+
+impl Drop for PartitionEditionWriter<'_> {
+    /// Settle once for the whole guard. Instrumentation is taken under a lock,
+    /// so charging per copied partition would put a lock acquisition on every
+    /// partition of a substrate-wide pass.
+    fn drop(&mut self) {
+        self.lane.settle(self.instrumentation, self.copies);
+    }
+}
+
+/// Take sole ownership of one partition, tallying the copy if the arc was
+/// shared.
+///
+/// The sharing test happens before the copy rather than being inferred from it,
+/// so a partition the guard already owns outright is never charged for work
+/// nobody performed.
+fn own_partition<'partition>(
+    copies: &mut PartitionCopyTally,
+    partition: &'partition mut Arc<PartitionState>,
+) -> &'partition mut PartitionState {
+    if Arc::get_mut(partition).is_none() {
+        copies.record_partition_copy(
+            partition.entity_arena.slot_count(),
+            partition.relation_arena.slot_count(),
+        );
+    }
+    Arc::make_mut(partition)
 }

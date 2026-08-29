@@ -6,6 +6,8 @@ pub struct RuntimeComplexityCounters {
     pub partition_editions_acquired: usize,
     pub adjacency_kind_slices_leased: usize,
     pub adjacency_relation_ids_copied: usize,
+    pub ordinary_partitions_copied_on_write: usize,
+    pub ordinary_partition_slots_copied_on_write: usize,
     pub partitions_cloned: usize,
     pub entity_slots_cloned: usize,
     pub relation_slots_cloned: usize,
