@@ -241,6 +241,8 @@ The inspection substrate should own typed evidence families such as:
 - mounted receipt evidence
 - host-observation evidence
 - semantic interaction and admitted-intent causal evidence
+- bounded portal, focus, motion, command-routing, scroll, selection, proposal,
+  and service-resource evidence
 - rebind and preservation evidence
 - diagnostic evidence
 - visual snapshot evidence
@@ -341,6 +343,42 @@ causal graph traversal remain later work. Replay and reconstruction remain
 certification-only work. Ordinary
 inspection cannot turn copied references, equal digests, serialized reporting
 projections, or expired records back into admission or execution authority.
+
+### Implemented runtime-service evidence
+
+Milestone 3.15 adds one compact current summary per service owner and an exact
+live resource census. The stable public questions are:
+
+- `why_portal_closed`
+- `why_focus_moved`
+- `why_focus_restoration_failed`
+- `why_motion_interrupted`
+- `why_scroll_owner`
+- `why_selection_dropped`
+- `why_command_won`
+- `runtime_service_resource_census`
+
+Each summary carries `UiRuntimeServiceInspectionSource`: the exact family,
+optional owner identity, and revision of the evidence being projected.
+`UiRuntimeServiceInspectionCost` states the owner-index lookups, retained
+records examined, projected items, and world records scanned. Command routing
+may project a bounded winner/loser explanation;
+ordinary inspection does not retain the entire candidate catalog. Portal,
+Focus, Motion, Scroll, and Selection likewise project their current bounded
+decision, not event history.
+
+The resource census covers live family records, proposal occupancy, command
+prefixes and routes, motion tracks, and portal exit retention. Physical focus
+placement is separate: `UiFocusHostPlacementShutdownReport` records an
+abandoned indeterminate request, if any. Both are disposal evidence, not cleanup
+commands. AI and human tools can identify residual work, but cannot remove it by
+dropping a projection or reconstruct operational authority from reported
+counts.
+
+These summaries are ordinary-lane evidence. Detailed protocol fault scripts,
+scale oracles, full motion samples, every scroll delta, and replay belong to
+certification or opt-in diagnostics. Tools must not scrape logs or read mutable
+owner fields when the bounded public summary answers the question.
 
 ## AI Inspection Protocol
 
@@ -446,6 +484,14 @@ The formal tool lane should support capabilities like:
 - `explain_plan_equivalence`
 - `explain_frame_cost`
 - `explain_rebind`
+- `why_portal_closed`
+- `why_focus_moved`
+- `why_focus_restoration_failed`
+- `why_motion_interrupted`
+- `why_scroll_owner`
+- `why_selection_dropped`
+- `why_command_won`
+- `runtime_service_resource_census`
 - `diff_frames`
 - `list_relevant_diagnostics`
 - `compare_evidence_points`

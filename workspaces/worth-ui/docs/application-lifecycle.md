@@ -81,27 +81,37 @@ bindings uncertain until the typed recovery path completes.
 
 ## Small Example
 
+Inside a function that returns the preparation error, a minimal Query-free
+native definition has this shape:
+
 ```rust
 use worth_ui_native_platform::{
     UiNativeApplicationDefinition, UiNativeApplicationPreparation,
     UiNativeApplicationPreparationOutcome, UiNativePlatformProfile,
     UiNativeWindowSpec, WorthUiNativePlatform,
 };
+use worth_ui::facade::rebind::UiChangeProfile;
 
 struct Application;
 
 impl UiNativeApplicationDefinition for Application {
     fn prepare(
         self,
-        preparation: UiNativeApplicationPreparation,
+        mut preparation: UiNativeApplicationPreparation,
     ) -> UiNativeApplicationPreparationOutcome {
+        if let Err(cause) = preparation
+            .builder()
+            .with_change_profile(UiChangeProfile::platform_pulse())
+        {
+            return preparation.deny(cause);
+        }
         preparation.complete()
     }
 }
 
 let profile = UiNativePlatformProfile::single_window(UiNativeWindowSpec::new(
     "WORTH UI",
-    [160, 96],
+    [960, 600],
 ));
 let platform = WorthUiNativePlatform::prepare(profile)?;
 let outcome = platform.run(Application);
@@ -116,15 +126,16 @@ dummy Query work.
 
 The following is the exact downstream program used by the compiler-contract
 matrix and the application-contract runtime suite. It uses the ordinary
-product facade plus the sealed certification headless transition, branches over every
-mounted outcome and start-stop family, and executes the real empty-application
-path.
+product facade plus the sealed certification headless transition, branches
+over every mounted outcome and start-stop family, and executes the real
+empty-application path.
 
 <!-- compile-run:ordinary-mounted-frame -->
 ```rust
 use worth_ui::facade::app::{
     UiMountedFrameOutcome, UiMountedFramePublicationReceipt, UiMountedFrameRequest,
-    UiMountedFrameRetentionRejection, UiMountedIndeterminateFrame,
+    UiMountedFrameRetentionRejection, UiMountedHostMeasurementTransitionDenial,
+    UiMountedHostMeasurementUnexpectedTransition, UiMountedIndeterminateFrame,
     UiMountedPresentationAdmissionRejection, UiMountedPresentationCompletionDenial,
     UiMountedPresentationInFlight, UiMountedRejectedFrame, UiMountedSupersededFrame,
     UiPresentationDeadline, WorthUi, WorthUiMountedFrameExecutionStop,
@@ -186,6 +197,9 @@ fn observe_stop(stop: &WorthUiMountedFrameExecutionStop<'_>) {
     match stop {
         WorthUiMountedFrameExecutionStop::PublicationLease(_) => {}
         WorthUiMountedFrameExecutionStop::HostMeasurement(_) => {}
+        WorthUiMountedFrameExecutionStop::HostMeasurementTransition(denial) => {
+            observe_host_measurement_transition(denial)
+        }
         WorthUiMountedFrameExecutionStop::FrameworkTransition(transition) => {
             let _ = transition.generation_identity();
         }
@@ -222,9 +236,34 @@ fn observe_completion_denial(_denial: &UiMountedPresentationCompletionDenial) {}
 fn observe_superseded(superseded: &UiMountedSupersededFrame) {
     let _ = superseded.cost_report();
 }
+
+fn observe_host_measurement_transition(denial: &UiMountedHostMeasurementTransitionDenial) {
+    use UiMountedHostMeasurementTransitionDenial as Denial;
+    use UiMountedHostMeasurementUnexpectedTransition as Unexpected;
+
+    match denial {
+        Denial::AllocationReplanDenied(_)
+        | Denial::ViewportResizeDenied(_)
+        | Denial::AllocationReplanSelectionDenied(_)
+        | Denial::AllocationFrameResolutionDenied(_)
+        | Denial::AllocationInvalidationNarrowingDenied(_)
+        | Denial::FrameworkTransitionPlanningDenied(_)
+        | Denial::FrameworkTransitionExecutionDenied(_)
+        | Denial::DispatcherDenied { .. } => {}
+        Denial::UnexpectedSuccessfulTransition(unexpected) => match unexpected {
+            Unexpected::ReadyToExecute
+            | Unexpected::ResizePreviewPublished
+            | Unexpected::DurableResizeCommitted
+            | Unexpected::DragResizePreviewPending => {}
+        },
+    }
+}
 ```
 
 ## Real Example
+
+This integration fragment assumes an active `session`, application input
+collector, clock, and product-specific outcome handlers:
 
 ```rust
 use worth_ui::facade::app::{
@@ -241,6 +280,12 @@ let outcome = match session.execute_mounted_frame(
     Ok(outcome) => outcome,
     Err(WorthUiMountedFrameExecutionStop::PublicationLease(denial)) => {
         return retry_after_publication_lease(denial);
+    }
+    Err(WorthUiMountedFrameExecutionStop::HostMeasurement(denial)) => {
+        return retry_after_host_measurement(denial);
+    }
+    Err(WorthUiMountedFrameExecutionStop::HostMeasurementTransition(denial)) => {
+        return preserve_predecessor(denial);
     }
     Err(WorthUiMountedFrameExecutionStop::FrameworkTransition(stop)) => {
         return report_generation_stop(stop.generation_identity());
@@ -261,6 +306,7 @@ match outcome {
     UiMountedFrameOutcome::PresentationIndeterminate(handle) => {
         require_typed_reconciliation(handle)
     }
+    UiMountedFrameOutcome::Superseded(frame) => preserve_predecessor(frame),
     UiMountedFrameOutcome::RetentionDenied(denial) => preserve_predecessor(denial),
     UiMountedFrameOutcome::AdmissionDenied(denial) => preserve_predecessor(denial),
     UiMountedFrameOutcome::CompletionDenied(denial) => preserve_predecessor(denial),
@@ -303,359 +349,119 @@ shape; it is not a substitute for a real application’s graph and host setup.
 
 ## Platform Pulse
 
-Platform Pulse is the permanent, human-visible application used to prove the
-real lifecycle as Worth UI grows. From the repository root, run:
+Platform Pulse is the permanent human-visible application for the real Worth UI
+lifecycle. The Milestone 3.15 source-level composition is a restrained desktop
+workbench with a 960-by-600 logical client area, a 24-pixel outer gutter, an
+eight-point spacing rhythm, and these reference regions:
+
+| Region | Default logical rectangle |
+| --- | --- |
+| identity masthead | 912 by 56 at `[24, 24]` |
+| evidence rail | 216 by 424 at `[24, 104]` |
+| primary service stage | 672 by 424 at `[264, 104]` |
+| truthful status band | 912 by 24 at `[24, 552]` |
+
+The checked-in source declares the Mosaic regions, Query-backed status,
+application action, portal open/close routes, typed command routes, and
+Pulse-private palette roles. The evidence rail presents product facts; it is
+not a framework inspector. The host paints and reports mechanics but does not
+own portal, focus, motion, command, scroll, selection, Query, or application
+meaning.
+
+### Launch
+
+From the repository root:
 
 ```powershell
 cargo run --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pulse
 ```
 
-That no-argument workflow uses the checked-in source root. To run the same
-product composition root against another installation, pass an existing
-absolute directory containing `main.wui`:
+The no-argument workflow uses the checked-in source and sample product inputs.
+To use another isolated installation, supply existing absolute roots:
 
 ```powershell
 $sourceRoot = (Resolve-Path workspaces/worth-ui/apps/platform-pulse/app).Path
-$queryRoot = Join-Path $env:TEMP "worth-ui-platform-pulse-query"
-$intentRoot = Join-Path $env:TEMP "worth-ui-platform-pulse-intent"
-New-Item -ItemType Directory -Force -Path $queryRoot | Out-Null
-New-Item -ItemType Directory -Force -Path $intentRoot | Out-Null
-Remove-Item -LiteralPath (Join-Path $queryRoot "platform-pulse-value.json") -ErrorAction SilentlyContinue
-Copy-Item workspaces/worth-ui/apps/platform-pulse/intent_samples/ready.json `
-  (Join-Path $intentRoot "platform-pulse-intent.json") -Force
+$queryRoot = (Resolve-Path workspaces/worth-ui/apps/platform-pulse/query_samples).Path
+$intentRoot = (Resolve-Path workspaces/worth-ui/apps/platform-pulse/intent_samples).Path
 cargo run --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pulse -- `
   --source-root $sourceRoot --query-source-root $queryRoot --intent-source-root $intentRoot
 ```
 
-The process watches
-`workspaces/worth-ui/apps/platform-pulse/app/main.wui`. On first launch, the
-160-by-96 native client area contains an admitted blue `#2f81f7` background
-and a yellow `#f2cc60` inset target. The target occupies the half-open logical
-region `[48, 24]` through `[112, 72]`; `[80, 48]` is its inspection point and
-`[16, 16]` is the background control point. Both shapes are mounted runtime
-meaning translated through the canonical host contract; native mechanics do
-not invent a second application-owned shape. Successful first publication prints
-`FirstFramePublished` in the `WORTH_UI_PLATFORM_PULSE_EVENT ` stream with the
-active application generation and mounted frame identity.
+The versioned `WORTH_UI_PLATFORM_PULSE_EVENT ` stream reports bounded product
+observations such as `FirstFramePublished`, `IntentInputAdmitted`,
+`IntentExecutorStarted`, `QueryAction`, `IntentCausalTrace`,
+`QueryProjectionIssued`, `QueryProjectionPublished`, `RebindPublished`,
+`RebindDeniedPreserving`, `VisualComparison`, and `ShutdownCompleted`.
+These envelopes are reporting data. They cannot construct authority or certify
+their own pixels.
 
-After first publication, the application captures that exact mounted frame,
-resolves both points, and temporarily publishes a magenta identity border
-around the inset target. The border remains visible for two seconds and then
-clears through another successor mounted frame. The console emits this initial
-visual sequence inside the current version-9 lifecycle protocol:
+### Milestone 3.15 Journey And Evidence Boundary
 
-```text
-VisualSnapshotCaptured
-VisualPointTrace
-VisualOverlayPublished
-VisualOverlayCleared
-```
+The required native journey opens an anchored portal through an admitted
+action, places focus and samples entrance motion, resolves one typed shortcut
+in two contexts, preserves the separate Query admission boundary, resizes to
+1120 by 700, hot-rebinds while the portal is open, dismisses only the topmost
+portal, restores lawful focus, and shuts down with exact-zero service and host
+resources.
 
-Each is a `WORTH_UI_PLATFORM_PULSE_EVENT ` prefixed JSON envelope. The snapshot
-event binds the captured pixels to snapshot, presentation-attempt, frame,
-surface, binding-generation, and presentation-epoch identity. In
-`VisualPointTrace`, inspect:
+The source and deterministic contracts name that journey, but this
+documentation lane does **not** claim that native visual evidence has passed.
+The owning native lane must still provide externally observed pixels and
+structure at both sizes, real operating-system input, resize/rebind behavior,
+text containment and contrast evidence, exact cleanup, and the reference
+screenshot. Until that evidence lands, the geometry above is the declared
+product contract rather than a certified native result. A synthetic raster,
+in-process reenactment, direct service call, adapter injection, or successful
+compile cannot close the native claim.
 
-```text
-outcome.VisualPointTrace.snapshot
-outcome.VisualPointTrace.target.hit.mounted.node_receipt
-outcome.VisualPointTrace.target.hit.authored_semantic_name
-outcome.VisualPointTrace.target.hit.source_artifact_path
-outcome.VisualPointTrace.background.hit.mounted.node_receipt
-```
+The Pulse remains an ordinary bounded product world: at most 128 mounted nodes,
+including portal descendants and exit retention. Large-scale service
+amplification belongs only to the scheduled scale courtroom. Full-frame capture
+above device scale 4 is unsupported; the largest admitted 1120-by-700 scale-4
+RGBA8 capture is bounded to 50,176,000 bytes.
 
-The target authored name is
-`component:platform.pulse.component.identity_target`. Its mounted receipt must
-differ from the background receipt. `VisualOverlayPublished.base_frame` is the
-captured frame; `published_frame` is its overlay successor.
+### Current Appearance Posture
 
-For a pretty-printed human view of the same observation stream, run:
+Canvas, raised surface, structural rule, primary/secondary text, accent,
+positive, and caution roles are application-owned tokens lowered through the
+existing paint and text contracts. They are not a public appearance system.
+Every interactive region must correspond to an admitted action. Hover,
+pressed, selected, focused, disabled, validation, icons, shadows, and rounded
+control treatment remain outside 3.15 unless an existing mounted fact already
+owns that exact meaning.
 
-```powershell
-cargo run --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pulse |
-  ForEach-Object {
-    if ($_ -like 'WORTH_UI_PLATFORM_PULSE_EVENT *') {
-      ($_ -replace '^WORTH_UI_PLATFORM_PULSE_EVENT ', '') |
-        ConvertFrom-Json |
-        ConvertTo-Json -Depth 20
-    } else {
-      $_
-    }
-  }
-```
+Milestone 3.16 may consume coherent service postures as appearance inputs. It
+may not read mutable service internals, invent a second state lane, or replace
+the Platform Pulse composition and product facts.
 
-This projection is for reading the receipt stream. It does not create visual
-truth or grant authority back to the console.
+### Inspection And Cleanup
 
-### Native Actions And Intent Postures
+Use the active session's bounded runtime-service `why_*` methods and
+`runtime_service_resource_census()` alongside the existing lifecycle,
+mounted, Query, and visual receipts. No single projection is an independent
+oracle for another production projection.
 
-The same page contains a yellow action control and, while confirmation is
-pending, a distinct purple confirmation control. Their authored route is a
-typed `activate` declaration; the native shell reports pointer observations
-and does not own a callback or product effect.
+Normal window close consumes the active application shutdown path. The public
+Pulse terminal observation reports joined source watchers and its Query,
+intent, visual, capture, and host cleanup fields. The internal application
+shutdown receipt separately requires the runtime-service census—including
+family records, proposal state, command prefixes, motion tracks, and portal
+retention—to be empty. Physical focus placement is not a census row: the
+runtime's separate `UiFocusHostPlacementShutdownReport` records any abandoned
+indeterminate host request. A nonzero census row or abandoned request is a
+lifecycle failure, not a logging detail to suppress. The owning native evidence
+lane must still project and observe both forms of cleanup externally before
+claiming the native journey complete.
 
-The third launch root watches `platform-pulse-intent.json`. It is a deliberately
-small external product boundary that controls operability and the provider
-gate. To drive it from another PowerShell window, retain the `$intentRoot` from
-the launch command and use:
-
-```powershell
-function Set-PulseIntent([int]$Revision, [string]$Operability, [string]$Gate) {
-  @{
-    protocol = "worth-ui.platform-pulse.intent-source"
-    schema_version = 1
-    revision = $Revision
-    operability = $Operability
-    executor_gate = $Gate
-  } | ConvertTo-Json | Set-Content `
-    -LiteralPath (Join-Path $intentRoot "platform-pulse-intent.json") `
-    -Encoding utf8
-}
-```
-
-With revision 1 `ready` and `held`, click the yellow action. The real native
-input crosses presented-frame targeting and produces `IntentPosturePublished`
-with `Admitted`, then `IntentExecutorStarted`; the attempt remains held. Release
-the external gate without clicking again:
-
-```powershell
-Set-PulseIntent 2 ready released
-```
-
-The existing attempt completes once. `QueryAction` reports `Executed`, the
-separate Query owner issues the fact, `IntentPosturePublished` reports
-`Completed`, and mounted text becomes `ACTION 1`. `IntentCausalTrace` ties the
-input revision, host sequence, mounted target, route, payload, operability,
-admission, attempt, Query fact, successor frame, and independently observed
-pixels together without becoming authority.
-
-The confirmation journey is intentionally freshness-sensitive:
-
-```powershell
-Set-PulseIntent 3 confirmation_required held
-```
-
-Click yellow to issue a `ConfirmationRequired` posture and reveal the purple
-control. Then change the product input before accepting it:
-
-```powershell
-Set-PulseIntent 4 confirmation_required released
-```
-
-Clicking the old purple control reports `StaleConfirmation`; it cannot execute.
-Click yellow again to obtain a fresh challenge, then click the newly published
-purple control. The admitted attempt completes and mounted text becomes
-`ACTION 4`.
-
-Denial is equally visible and effect-free. `Set-PulseIntent 5 disabled released`
-or `Set-PulseIntent 6 denied released`, followed by a yellow click, publishes
-`Denied` without starting a provider or changing Query. To prove replacement
-cancellation, set revision 7 to `ready` and `held`, click yellow, then remove
-the `interaction activate routes platform.pulse.action.route;` line from the
-identity-target component. The ordinary source rebind publishes a successor
-without that route and the predecessor attempt publishes `Cancelled`; restoring
-the checked-in source does not resurrect it.
-
-Every admitted product-input revision emits `IntentInputAdmitted`. Malformed,
-non-monotonic, missing, relative, or non-directory intent roots stop at their
-typed source or launch boundary. They do not silently retain a permissive
-boolean or reread the file on each frame.
-
-### Projected Product Data
-
-The checked-in application declares one live scalar projection:
-`platform.pulse.status`. At launch, Worth UI prepares the public Query host
-installation, the Query host installs it, and the returned scalar registration
-joins `WorthUi::app()` before freeze. With no
-`platform-pulse-value.json` in the query source root, the mounted status is
-pending and the event stream reports `QueryProjectionIssued` followed by
-`QueryProjectionPublished` with pending posture.
-
-While the process remains open, create the first external value from another
-PowerShell window:
-
-```powershell
-$queryRoot = Join-Path $env:TEMP "worth-ui-platform-pulse-query"
-'{"status":"ONLINE","revision":1}' |
-  Set-Content -LiteralPath (Join-Path $queryRoot "platform-pulse-value.json") -Encoding utf8
-```
-
-The operating-system watcher settles that file, Query issues a current native
-text observation, and the ordinary projection rebind publishes `ONLINE` as
-mounted semantic text in the same window. The event pair carries the exact
-projection/fact, application generation, mounted frame, node, presentation,
-and pixel correlation.
-
-Then replace only the external value:
-
-```powershell
-'{"status":"UPDATED-LONG","revision":2}' |
-  Set-Content -LiteralPath (Join-Path $queryRoot "platform-pulse-value.json") -Encoding utf8
-```
-
-The visible text changes through the same installation, observation, rebind,
-mount, and host path; background and authored identity controls remain fixed.
-The executable-world certification also introduces an incompatible declared
-schema, proves a typed schema stop preserves the exact predecessor value and
-pixels, restores compatibility, and observes recovery. The denial does not
-manufacture a fallback value or replace Query authority with UI state.
-
-To exercise a valid replacement, change only this line:
-
-```text
-token theme.platform_pulse.fill = "theme.platform_pulse.blue";
-```
-
-to:
-
-```text
-token theme.platform_pulse.fill = "theme.platform_pulse.green";
-```
-
-After the operating-system watcher settles the file, the held snapshot enters
-`begin_source_rebind`. Semantic classification selects the affected consumers,
-the immutable plan preserves stable authored identity for this color-only
-change, and the canonical host publishes one successor. The background becomes
-admitted green `#3fb950` while the yellow inset target remains distinct.
-`RebindPublished` reports predecessor generation, successor generation, source
-revision, planned and realized work, and mounted frame identities.
-
-The Pulse then captures the exact successor and emits `VisualComparison`.
-That comparison borrows the predecessor snapshot, successor snapshot, and
-published rebind receipt. It reports preserved identity and differing retained
-pixels without recapturing either frame. `VisualSnapshotRetired` proves that
-the predecessor snapshot was explicitly superseded and its registered resource
-was released.
-
-To see denial preservation, replace the file temporarily with:
-
-```text
-component platform.pulse.component.seed {
-```
-
-The source compiler reports a typed diagnostic through
-`RebindDeniedPreserving`. No successor publishes, and the exact green
-generation, mounted frame, window, and pixels remain current. Restore the
-checked-in source exactly:
-
-```text
-component platform.pulse.component.seed {}
-component platform.pulse.component.identity_target {
-  interaction activate routes platform.pulse.action.route;
-}
-component platform.pulse.component.projected_status {
-  content projection platform.pulse.status
-  interaction activate confirms platform.pulse.action.route;
-}
-surface platform.pulse.surface.main {}
-query_scalar platform.pulse.status {
-  view platform.pulse.status
-  field status
-  require text
-  lifecycle live
-}
-intent platform.pulse.action.route {
-  definition platform.pulse.action;
-  interaction activate;
-  payload action_input_revision application-unsigned64 platform.pulse.action.input-revision;
-  operability platform.pulse.action.operability
-    mutability-application-boolean platform.pulse.action.mutable
-    readiness-application-boolean platform.pulse.action.ready
-    policy-application-boolean platform.pulse.action.policy-allowed;
-  confirmation platform.pulse.action.confirmation
-    application-boolean platform.pulse.action.confirmation-required;
-  concurrency target-route-single-flight;
-  consequences mounted-posture-and-query platform.pulse.status;
-}
-token theme.platform_pulse.fill = "theme.platform_pulse.blue";
-token theme.platform_pulse.identity_target_fill = "theme.platform_pulse.yellow";
-token theme.platform_pulse.confirmation_fill = "theme.platform_pulse.purple";
-token theme.platform_pulse.projected_status.text = "theme.platform_pulse.white";
-```
-
-The same process and window then publish the recovered blue successor through
-the same rebind path. Close the native window normally to shut down both
-operating-system watchers, settle pending intent input, close the Query live
-owner and consumer lease, release the registered host surface, and consume the
-active application shutdown path. The terminal `ShutdownCompleted` observation
-must report joined Query and intent watchers, zero pending input, and zero live
-Query sources, attempts, resources, consumer leases, retained projections, and
-projection receipts, alongside zero live captures, snapshots, comparison
-projections, rebind handles, pixel bytes, structural bytes, pending overlays,
-published overlays, and clearing overlays. The ordinary lifecycle certification
-separately proves zero live gesture, draft, admission, confirmation, execution,
-recovery, and consequence resources from framework-owned census receipts. The
-visual fields include
-`cancelled_visual_capture_count`, `disposed_visual_snapshot_count`,
-`disposed_visual_pixel_bytes`, `disposed_visual_structural_bytes`,
-`cancelled_pending_overlay_count`, `disposed_published_overlay_count`, and
-`disposed_clearing_overlay_count`.
-
-### Current Certification Posture
-
-The workflows have three deliberately separate claims:
-
-1. The commands above are human product-entry workflows. They run the actual
-   `main`, Worth native window loop, source watcher, and public
-   application lifecycle.
-2. The consolidated in-process integration lane proves the production
-   filesystem watcher, public application shell, mounted publication,
-   replacement, denial preservation, shutdown receipts, and host-contract presentation
-   inside the certification process:
-
-   ```powershell
-   cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-certification --test application_contracts
-   ```
-
-   It does not claim executable product entry or an operating-system window.
-3. The permanent executable-world lane launches Cargo's exact pulse binary
-   against an isolated copy of the canonical source, applies edits outside the
-   child, and joins process-bound native pixels to typed product lifecycle
-   observations:
-
-   ```powershell
-   cargo test --manifest-path workspaces/worth-ui/Cargo.toml -p worth-ui-platform-pulse --features executable-world --test executable_world -- --nocapture --test-threads=1
-   ```
-
-   The single test thread is part of the native evidence contract: every
-   product launcher also enters the shared in-process/cross-process desktop
-   lease, while serialization keeps unrelated test setup from competing with
-   the one real desktop owner.
-
-   On Windows this lane is executable-certified. Other platforms retain an
-   explicit compile-only posture until their native adapters run in a required
-   real lane; a successful compile is not native certification. The Ubuntu CI
-   quality job first audits explicit Linux and Windows resolved dependency
-   graphs, then runs the named `compile-only-platform` lane. That lane checks
-   this exact package, feature, and test target for
-   `x86_64-unknown-linux-gnu` without executing the native courtroom.
-
-Product stdout prefixes each versioned JSON lifecycle envelope with
-`WORTH_UI_PLATFORM_PULSE_EVENT `. The observation-only pulse library decodes
-the stream, rejects unsupported versions, foreign runs, sequence gaps, events
-after termination, and byte/event budget overruns, and never grants product
-authority back to the runner.
-
-An uncaught executable-world failure retains a bounded diagnostic directory
-named `worth-ui-platform-pulse-failure-<pid>-<ordinal>` under the operating
-system temp directory. Its `manifest.json` records the primary failure,
-independent teardown disposition, platform posture, and accepted lifecycle
-trace; `source.wui` records the final isolated source when available. Each
-bundle is capped at 64 MiB and is retained by default for diagnosis. Expected
-hostile tests explicitly discard their bundles after asserting the contents.
-A passing run removes its sandbox, closes its native window, joins its
-lifecycle reader, leaves no child process, and creates no retained bundle.
-
-[Milestone 3.10.3](../../../_docs/worth-ui/milestone-3.10.3.md) closed this
-corrective executable-world foundation. Later Platform Pulse milestones extend
-these same human, integration, and executable lanes rather than creating a new
-composition root or universal fixture.
+The precise documentation-lane evidence and remaining lane ownership are in
+[Milestone 3.15 documentation closeout](../../../_docs/worth-ui/milestone-3.15-documentation-closeout.md).
 
 ## Related Docs
 
 - [Worth UI architecture](./architecture.md)
 - [Authored composition](./authored-composition.md)
 - [Interaction and intents](./interaction-and-intents.md)
+- [Runtime services](./runtime-services.md)
 - [Hot rebind](./hot-rebind.md)
 - [Application inspection](./inspection.md)
 - [Query-backed UI views](./query-binding.md)

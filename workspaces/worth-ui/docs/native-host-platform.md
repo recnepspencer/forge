@@ -55,21 +55,28 @@ use worth_ui_native_platform::{
     UiNativeApplicationPreparationOutcome, UiNativePlatformProfile,
     UiNativeWindowSpec, WorthUiNativePlatform,
 };
+use worth_ui::facade::rebind::UiChangeProfile;
 
 struct Application;
 
 impl UiNativeApplicationDefinition for Application {
     fn prepare(
         self,
-        preparation: UiNativeApplicationPreparation,
+        mut preparation: UiNativeApplicationPreparation,
     ) -> UiNativeApplicationPreparationOutcome {
+        if let Err(cause) = preparation
+            .builder()
+            .with_change_profile(UiChangeProfile::platform_pulse())
+        {
+            return preparation.deny(cause);
+        }
         preparation.complete()
     }
 }
 
 let profile = UiNativePlatformProfile::single_window(UiNativeWindowSpec::new(
     "WORTH UI",
-    [160, 96],
+    [960, 600],
 ));
 let prepared_platform = WorthUiNativePlatform::prepare(profile)?;
 let outcome = prepared_platform.run(Application);
@@ -82,7 +89,7 @@ a stop with retained external obligations also exposes cleanup authority.
 
 ## Presentation Contract
 
-Runtime owns presentation meaning and emits one sealed revision-4 work item:
+Runtime owns presentation meaning and emits one sealed revision-5 work item:
 
 - `Initial` carries every attributed command, stable total order, initial
   logical damage, auxiliary reconstruction state, and the surface-issued
@@ -96,6 +103,45 @@ Host mechanics retain commands by owner-issued identity. They may build
 mechanical indexes for execution, but they do not receive the complete
 projection on ordinary successor frames and do not rediscover semantic deltas.
 Candidate retained state commits only after every required surface succeeds.
+
+## Runtime-Service Mechanics
+
+Runtime services do not create a catch-all host protocol. The host contract
+keeps observations, mounted presentation, measurement, and solicited effects
+separate:
+
+- `WindowFocus` reports activation for an exact host surface. It does not move
+  or own semantic keyboard focus.
+- `UiHostFocusPlacementRequest` is the one narrow solicited service effect. It
+  binds the host session, surface, current presentation, mounted target, and
+  host logical geometry. Native and headless adapters return a typed
+  acknowledgement for that exact request.
+- `ScrollDelta` reports source, phase, precision, high-resolution x/y delta,
+  and exact coordinate, mounted-target, or current presented-surface affinity.
+  The runtime Scroll owner resolves and updates the semantic owner and offset.
+- `Tick` and the existing level-triggered readiness path wake presentation
+  sampling. They do not give the host a motion timeline or interpolation
+  authority.
+- Portal content is product-authored mounted overlay work. The host presents
+  its geometry, layer, lifecycle, and input shielding, but does not own logical
+  open/close state. An operating-system popup surface is unsupported in this
+  contract.
+
+Focus placement preserves the physical-effect boundary:
+
+```text
+runtime prepares exact request
+-> adapter issues or rejects before effect
+-> exact acknowledgement settles the request
+or unknown completion retains reconciliation authority
+-> current WindowFocus / mounted host truth reconciles
+```
+
+A timeout or missing acknowledgement is never converted to success. Shutdown
+cancels only before-effect work, retains what may have escaped, and releases
+the focus-effect record only after settlement, typed abandonment, or
+reconciliation. Neither Portal nor Motion may use this port as a generic
+service-effect escape hatch.
 
 ## Physical Work Progression
 
@@ -195,14 +241,24 @@ The checked-in qualified identities are:
 
 - text profile: `worth-ui-body-default-v1`;
 - native profile: `worth-ui-windows-dx12-v1`;
-- protocol: revision 4;
-- observation schema: revision 6;
+- host protocol: revision 6;
+- mounted frame and presentation schemas: revision 5;
+- observation schema: revision 7;
+- measurement schema: revision 5;
+- solicited-effect schema: revision 1;
 - native dependency versions: `winit 0.30.13`, `wgpu 29.0.4`,
   `rustybuzz 0.20.1`, and `swash 0.2.10`.
 
 The manifest digests are fixed by the milestone specification and verified by
 the native host qualification tests. The profile is not selected from ambient
 system fonts, an environment variable, or an adapter default.
+
+Protocol negotiation compares the protocol identity and every schema family
+before effects. Older or newer observation, measurement, presentation, or
+solicited-effect revisions produce a typed incompatibility. There is no alias
+that interprets the former ambiguous `Focus` observation as `WindowFocus`, and
+no mixed-revision fallback that silently drops scroll affinity or focus
+settlement.
 
 ## Cost And Failure Posture
 
@@ -269,3 +325,16 @@ Signal runtime, supply raw physical handles, or replace native recovery policy.
   invalidation as permission to perform native effects.
 - Do not give Signal raw WGPU handles, atlas storage ownership, or effect
   authority.
+- Do not treat `WindowFocus` as semantic keyboard focus or use focus placement
+  as a generic service command.
+- Do not create native popup state for a same-surface Portal or interpolate a
+  Motion track in the adapter.
+- Do not discard scroll source, phase, precision, target affinity, or
+  presentation basis before runtime admission.
+
+## Related Docs
+
+- [Runtime services](./runtime-services.md)
+- [Interaction and intents](./interaction-and-intents.md)
+- [Application lifecycle](./application-lifecycle.md)
+- [Worth UI architecture](./architecture.md)

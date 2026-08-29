@@ -300,6 +300,9 @@ Interpretation:
 | Portal topology | Runtime portal service |
 | Focus routing | Runtime focus service |
 | Motion/animation meaning | Runtime motion service |
+| Typed shortcut matching and command winner | Runtime command-routing service |
+| Semantic offset, nested routing, bounds, and anchoring | Runtime scroll service |
+| Stable-key set and range posture | Runtime selection service |
 | Aspect publication and subscription | UI graph + aspect indexes |
 | Hot reload | Invalidation + rebind planning |
 | Failure explanation | Typed diagnostics/evidence |
@@ -1246,7 +1249,7 @@ Mistakes to avoid:
 Runtime services are cross-cutting topology/behavior authorities. They are not
 optional convenience modules.
 
-Initial service families:
+Shipped runtime-service families:
 
 ```text
 portal
@@ -1255,27 +1258,28 @@ motion
 command-routing
 scroll
 selection
-drag
-accessibility
-async-resource-presentation
 ```
 
-A service follows the same rule:
+Each family owns its own request, state, lifecycle, rebind law, receipts, and
+cost. There is no universal service transition. Intent-origin Portal and
+Command Routing requests cross the ordinary interaction and intent admission
+path. Focus may also begin from window-focus observation or restoration;
+Motion from a clock tick, policy change, or continuation; Scroll from a delta,
+reveal, or rebind; and Selection from an admitted selection operation or
+rebind. Graph obligations, mounted receipts, and host effects participate only
+when that family's operation actually requires them.
 
-```text
-declaration
--> admission
--> graph touch
--> selected obligations
--> service plan
--> mounted receipt
--> host observations
--> service rebind
-```
+Every family still binds its declared meaning and currentness through the
+canonical graph, mounting, rebind, and host contracts. A family that needs an
+adapter-local state table or a parallel admission path is not finished.
 
-Each service must bind through the same graph/index discipline as structure and
-layout work. A service that needs ad hoc side tables in host code is not
-finished.
+Families never call one another. They emit typed requirements to the
+non-publishing proposal compiler, which validates one coherent generation,
+surface, presentation, causal basis, occupancy set, and resource budget. The
+existing application/mounted publication boundary accepts or rejects the
+whole batch. Physical settlement remains with the existing presentation and
+host-truth owners. See [Runtime services](./runtime-services.md) for the public
+facade, examples, inspection methods, and current limits.
 
 ### Portal Service
 
@@ -1297,13 +1301,10 @@ Portal examples:
 
 ```text
 dropdown
-tooltip
 context-menu
 dialog
 popover
-toast
 command-palette
-drag-preview
 ```
 
 ### Focus Service
@@ -1357,6 +1358,21 @@ not implied by command routing: they remain unsupported until the owning
 operation runtime publishes governed history and execution capability. Query's
 `provisional_aftermath` experiment is not that product contract.
 
+### Scroll Service
+
+Scroll owns the semantic offset, bounds, nested owner chain, anchor, and
+programmatic reveal result. A Query collection may supply admitted extent; it
+cannot become offset, cursor, or routing authority. Rich host scroll reports
+carry input source, phase, precision, presentation basis, and exact target
+affinity before runtime routing.
+
+### Selection Service
+
+Selection owns stable application item keys, selection mode, anchor, lead,
+ordered selected-key set where required, and rebind reconciliation. A row index
+or Query identity is not an application item key. Focus and selection move
+together only when one declared interaction produces a coherent proposal set.
+
 Mistakes to avoid:
 
 - one-off dropdown implementation
@@ -1364,6 +1380,9 @@ Mistakes to avoid:
 - animation clocks that own runtime meaning
 - keyboard shortcuts handled outside command routing
 - focus state kept only in native widget instances
+- Query cursors used as scroll offsets
+- row indexes or Query identities retained as selection identity
+- direct service-to-service calls or a generic service manager
 
 ---
 
@@ -1638,7 +1657,15 @@ crates/
       measurement/
       rebind/
       mounting/
-      services/
+      runtime/
+        portal/
+        focus/
+        motion/
+        command_routing/
+        scroll/
+        selection/
+        session/
+          service_proposal/
       diagnostics/
       inspection/
 
@@ -1820,6 +1847,7 @@ sequenceDiagram
     participant Interaction as Interaction Runtime
     participant Intent as Intent Runtime
     participant Portal as Portal Service
+    participant Proposal as Service Proposal Compiler
     participant Focus as Focus Service
     participant Measure as Measurement
     participant Mount as Mounted Receipts
@@ -1828,8 +1856,10 @@ sequenceDiagram
     Obs->>Interaction: exact presented-frame target
     Interaction->>Intent: activate routes portal request
     Intent->>Portal: admitted typed service request
-    Portal->>Focus: focus/dismissal obligations
+    Portal->>Proposal: sealed stage + focus/motion requirements
+    Proposal->>Focus: request sealed focus stage
     Portal->>Measure: portal anchor measurement
+    Proposal->>Mount: coherent owner fact/work references
     Measure->>Mount: portal mounted receipt
     Mount->>Host: portal layer frame
 ```
@@ -1971,12 +2001,14 @@ accessibility bridge?
 host-contract + host adapter
 ```
 
-Need dropdowns, dialogs, focus, animation, command routing, drag, or scroll
-coordination?
+Need portal, focus, motion, command-routing, scroll, or selection meaning?
 
 ```text
-services
+worth-ui-runtime/src/runtime/{portal,focus,motion,command_routing,scroll,selection}
 ```
+
+Need drag/resize interaction meaning? Extend its existing interaction and
+drag-resize owner; it is not a seventh runtime-service family.
 
 Need to respond to source/state/host/capability changes?
 

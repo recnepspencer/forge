@@ -87,12 +87,42 @@ product action crosses that boundary separately and returns an owner-issued
 consequence receipt.
 
 Application effects use the exact registered `UiIntentExecutionProvider<I>`.
-UI transitions use their typed transition destination. Milestone 3.15 freezes
-distinct portal, focus, motion, command-routing, scroll, and selection
-destinations. A destination remains behaviorally unsupported until its ordered
-3.15 owner phase installs the service-specific provider; the compiler-visible
-owner axis is not itself a capability claim. All three reuse the same upstream
-semantic interaction and admission contracts.
+UI transitions use their typed transition destination. Runtime-service intent
+definitions use the shipped `OpenPortal`, `ClosePortal`, or `InvokeCommand`
+destination. All three reuse the same upstream semantic interaction and
+admission contracts.
+
+## Runtime-Service Flow
+
+```text
+admitted intent, host observation, rebind, policy, or continuation
+-> exact family request basis
+-> Portal | Focus | Motion | Command Routing | Scroll | Selection owner
+-> family-owned staged successor and typed cross-owner requirements
+-> non-publishing proposal compiler for coherent multi-family work
+-> existing atomic application + mounted publication
+-> derived presentation work
+-> existing host settlement and reconciliation when an effect escapes
+```
+
+The common request basis carries identity, currentness, origin, cancellation,
+budget, and concrete origin authority. It does not erase a family request into
+a generic payload. Every family keeps its own state, lifecycle, request,
+receipt, rebind law, and cost.
+
+Portal emits Focus and Motion requirements rather than calling those owners.
+Focus may emit one Scroll reveal requirement. Command Routing reads only the
+focus and selection axes declared by the route, then emits a `CommandRoute`
+source receipt back into ordinary intent admission. The proposal compiler
+orders sealed owner stages but retains no family successor, publishes no fact,
+and issues no host effect.
+
+Motion truth and presentation sampling are deliberately separate. The Motion
+owner derives a committed track from the exact committed predecessor and a
+planning-issued prepared successor. Presentation consumes that track and Tick
+to derive the current sampled geometry. Layout and rebind use committed target
+geometry; hit testing, clipping, portal anchoring, and damage use the current
+sample.
 
 ## Authority Owners
 
@@ -101,7 +131,9 @@ semantic interaction and admission contracts.
 - `worth-ui` owns the named product facades developers import.
 - `worth-ui-runtime` owns active application, observation, rebind planning,
   semantic interaction, intent admission and managed execution, mounted
-  publication, host exchange, recovery, and runtime inspection.
+  publication, host exchange, recovery, runtime inspection, and six sibling
+  service owners. Its proposal compiler coordinates those owners without
+  becoming a seventh owner or publisher.
 - `worth-ui-query-binding` translates installed Worth Query audience products
   into shape-specific Worth UI registrations, observations, and affine facts.
   Application declarations enter through `worth-query-decl`; hosted
@@ -109,7 +141,8 @@ semantic interaction and admission contracts.
   UI facts and does not recreate Query.
 - `worth-ui-host-contract` defines inert host capabilities, mounted input, and
   mechanical outcomes, including exact affinity, total order, logical damage,
-  transparent surface baseline, and structural/physical cost vocabulary.
+  transparent surface baseline, window-focus and rich scroll observations,
+  narrow semantic-focus placement, and structural/physical cost vocabulary.
 - Native and headless host consumers perform mechanics. They never receive source, Query,
   graph, semantic-classification, or publication authority.
 - `worth-ui-native-platform` owns the move-only native platform binding and
@@ -218,17 +251,23 @@ projection receipt, or instruction to fetch product data.
 
 ## Extension Boundaries
 
-New product data, intents, portal/focus/motion/appearance facts, expressions,
+New product data, intents, appearance facts, expressions,
 and authored composition extend their semantic owner and feed the existing
 observation/planning/publication progression. They must not add a universal
 event bag, a second executor, or a host-adapter semantic lane.
+
+Portal, focus, motion, command-routing, scroll, and selection successors extend
+their existing family owner and public declaration contracts. They must not add
+service-to-service calls, mutable runtime owners to the facade, or a second
+publication/host-settlement path.
 
 Runtime service routing remains UI authority. A routed command may request a
 separately admitted Query application operation, but its UI receipt cannot
 authorize that operation. Undo and redo remain unsupported until their owning
 operation runtime publishes governed history and execution capability.
 
-See [Runtime subsystems](./runtime-subsystems.md),
+See [Runtime services](./runtime-services.md),
+[Runtime subsystems](./runtime-subsystems.md),
 [Authored composition](./authored-composition.md),
 [Interaction and intents](./interaction-and-intents.md),
 [Native host platform](./native-host-platform.md),

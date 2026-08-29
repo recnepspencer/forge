@@ -22,6 +22,7 @@ should start with [Application lifecycle](./application-lifecycle.md).
 | service proposal compilation | `UiServiceProposalIdentity` plus occupancy lease | non-authoritative cross-owner ordering, cycle/currentness/budget preflight, and cancellation posture; it owns no family successor, publication, or host settlement |
 | mounting | `WorthUiMountedSessionState` | mounted identities, frame assembly, retention, reconciliation, and mounted publication |
 | presentation producer | `UiMountedPresentationState` plus derived motion sampling | receipt-keyed retained commands, initial/delta/unchanged work, current track samples, total order, damage, and post-settlement candidate commit; it cannot mint motion-track meaning |
+| semantic-focus host effect | `UiHostFocusPlacementRequest` plus acknowledgement/reconciliation state | the narrow prepared/issued/settled-or-indeterminate physical-focus lifecycle; it cannot decide semantic focus |
 | host exchange | `WorthUiHostExchangeSessionState` | structural host reports, measurement exchange, quarantine, and transport evidence |
 | visual inspection | `WorthUiVisualInspectionAuthority` plus capture/overlay registries | grants, retained snapshots, comparison, overlays, and visual resource bounds |
 | rebind lifecycle | `UiRebindRuntimeState` | plan, receipt, completion, recovery, terminal-decision, and causal-evidence capacity |
@@ -118,6 +119,10 @@ More exactly:
 - mounting may consume application, graph, and sealed planning output;
 - the presentation producer derives host work from mounted authority; hosts do
   not rediscover deltas from a complete projection;
+- semantic-focus placement crosses one narrow solicited-effect port after the
+  Focus owner selects the semantic target. Window focus remains an unsolicited
+  observation, Portal remains mounted overlay work, and Motion adds no host
+  animation protocol;
 - host exchange may observe mounted transport but cannot publish;
 - rebind may coordinate owner-issued observation, plan, application, mounting,
   and host outcomes but does not absorb their source truth;
@@ -186,6 +191,17 @@ duplicate totals.
 - rich inspection/report materialization is explicit diagnostic cost outside
   measured executor intervals.
 
+Runtime-service owners additionally report their local candidates, affected
+records, stale denials, rebind outcomes, and live resources. The proposal
+compiler reports only proposals and requirements visited. Motion sampling
+reports active tracks, with zero inactive-track work. Scroll reports current
+chain depth, Selection reports changed keys or the explicit range, Command
+Routing reports its indexed candidate set, and Portal reports only affected
+layer/anchor neighborhoods. The scheduled scale courtroom requires
+`unrelated_neighborhoods_touched` to remain exactly zero; this documentation
+lane does not close that ignored reconstructive proof. These counters are
+owner evidence, not totals reconstructed by session composition.
+
 Saturation returns typed denial or backpressure. It must not trigger a hidden
 whole-graph scan, universal remount, or unbounded queue.
 
@@ -215,6 +231,7 @@ second data path.
 
 - [Worth UI architecture](./architecture.md)
 - [Interaction and intents](./interaction-and-intents.md)
+- [Runtime services](./runtime-services.md)
 - [Hot rebind](./hot-rebind.md)
 - [Application inspection](./inspection.md)
 - [Visual inspection](./visual-inspection.md)

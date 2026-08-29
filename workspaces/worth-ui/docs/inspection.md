@@ -30,6 +30,14 @@ posture. A completed rebind also exposes a compact terminal decision record.
 - `WorthUiApp::inspection_support_report_for(...)`
 - `WorthUiApp::expand_evidence_ref(...)`
 - `WorthUiActiveApplicationSession::lookup_intent_causal_trace(...)`
+- `WorthUiActiveApplicationSession::why_portal_closed()`
+- `WorthUiActiveApplicationSession::why_focus_moved()`
+- `WorthUiActiveApplicationSession::why_focus_restoration_failed()`
+- `WorthUiActiveApplicationSession::why_motion_interrupted()`
+- `WorthUiActiveApplicationSession::why_scroll_owner()`
+- `WorthUiActiveApplicationSession::why_selection_dropped()`
+- `WorthUiActiveApplicationSession::why_command_won()`
+- `WorthUiActiveApplicationSession::runtime_service_resource_census()`
 - `UiRebindReceipt::decision_record()`
 - `UiRebindReceipt::decision_index()`
 - `UiRebindDecisionLookup`
@@ -80,6 +88,22 @@ These records are immutable reporting data. Copying a reference, digest, trace,
 or serialized Pulse projection cannot construct an interaction, operability
 proof, admitted intent, attempt, consequence, Query fact, or mounted authority.
 
+### Runtime-service evidence
+
+Each `why_*` method projects the latest bounded evidence owned by one service
+family. Command evidence names the winning route and bounded losing candidates;
+focus distinguishes movement from failed restoration; scroll names the routed
+owner; selection explains a dropped key or range; and portal and motion report
+their terminal causes. `runtime_service_resource_census()` reports live family,
+proposal, prefix, track, and retention resources for shutdown diagnosis.
+Physical focus placement has a separate `UiFocusHostPlacementShutdownReport`;
+it is not represented as a service-census row.
+
+These methods answer current developer questions. They do not return mutable
+owners, proposal stages, command authority, semantic-focus authority, or
+retained history. `None` means no retained summary for that question, not that
+the operation succeeded.
+
 ## How It Executes
 
 ```text
@@ -101,8 +125,11 @@ use worth_ui::facade::app::WorthUi;
 use worth_ui::facade::inspection::{
     UiInspectionQuery, UiInspectionScope, UiInspectionTarget,
 };
+use worth_ui::facade::rebind::UiChangeProfile;
 
-let app = WorthUi::app().freeze()?;
+let app = WorthUi::app()
+    .with_change_profile(UiChangeProfile::platform_pulse())
+    .freeze()?;
 let query = UiInspectionQuery::new(
     UiInspectionTarget::product_root(),
     UiInspectionScope::graph(),
@@ -209,5 +236,6 @@ must not retain hidden runtime state or import replay.
 - [Application lifecycle](./application-lifecycle.md)
 - [Hot rebind](./hot-rebind.md)
 - [Runtime subsystems](./runtime-subsystems.md)
+- [Runtime services](./runtime-services.md)
 - [Visual inspection](./visual-inspection.md)
 - [Query-backed UI views](./query-binding.md)
