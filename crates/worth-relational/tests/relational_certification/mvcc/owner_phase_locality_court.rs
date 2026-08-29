@@ -8,9 +8,10 @@
 //! convict by name inside the court's budget instead of hanging the lane.
 
 use std::collections::BTreeSet;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{sync_channel, RecvTimeoutError};
 use std::sync::{Arc, Barrier};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use super::invariant_oracle_expectations::expected_supply_chain_branch;
 use super::world::supply_chain::{
@@ -28,7 +29,14 @@ use worth_relational::facade::runtime::RelationalRuntime;
 use worth_relational::facade::transactions::{CommitResult, WorkerIntentBatch};
 
 /// Bound on every court wait; it only decides how fast serialization convicts.
-pub(crate) const OWNER_PHASE_COURT_TIMEOUT: Duration = Duration::from_secs(30);
+///
+/// A whole court commits in well under a second in this memory-resident world,
+/// so this is generous headroom rather than a guess, and it keeps a convicted
+/// lane fast enough to read as a test failure instead of a stuck job.
+pub(crate) const OWNER_PHASE_COURT_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// How often a bounded join re-checks a worker it may not block on.
+const WORKER_POLL_INTERVAL: Duration = Duration::from_millis(10);
 
 /// The unrelated Supply Chain branches every locality court forks from one root.
 pub(crate) struct OwnerPhaseCourtBranches {
@@ -106,12 +114,19 @@ impl PausedCourtObservation {
     }
 }
 
-/// One owner-phase pause held by a worker branch. Arrival is observed through a
-/// proxy thread and a bounded channel, so a phase that never parks convicts by
-/// name instead of blocking the court on an unbounded barrier.
+/// One owner-phase pause held by a worker branch. Both halves are observed
+/// through a proxy thread and a bounded channel, so neither a phase that never
+/// parks nor a park nobody is waiting on can block the court on a barrier.
+///
+/// Opening is not politeness. A parked production thread holds an admitted
+/// runtime operation, and the owner close this world drops through waits while
+/// any operation is in flight. A court that panicked with its park still closed
+/// would hang in drop and print no diagnostic at all, so the park opens itself
+/// on the way out and every exit from a park is bounded.
 pub(crate) struct OwnerPhasePause {
     reached: Arc<Barrier>,
     release: Arc<Barrier>,
+    opened: AtomicBool,
 }
 
 impl OwnerPhasePause {
@@ -119,6 +134,7 @@ impl OwnerPhasePause {
         Self {
             reached: Arc::new(Barrier::new(2)),
             release: Arc::new(Barrier::new(2)),
+            opened: AtomicBool::new(false),
         }
     }
 
@@ -146,8 +162,68 @@ impl OwnerPhasePause {
         proxy.join().expect("the pause-arrival proxy joins");
     }
 
+    /// Release the park at most once. The barrier half is always waited on a
+    /// proxy thread, so a branch that parks late is still freed; `confirm` only
+    /// decides whether the court waits here for that to happen.
+    fn signal_release(&self, confirm: bool) -> bool {
+        if self.opened.swap(true, Ordering::AcqRel) {
+            return true;
+        }
+        let (released, completion) = sync_channel(1);
+        let release = Arc::clone(&self.release);
+        std::thread::spawn(move || {
+            release.wait();
+            let _ = released.send(());
+        });
+        !confirm || completion.recv_timeout(OWNER_PHASE_COURT_TIMEOUT).is_ok()
+    }
+
     pub(crate) fn open(&self) {
-        self.release.wait();
+        assert!(
+            self.signal_release(true),
+            "no branch was waiting at the owner-phase pause the court tried to open"
+        );
+    }
+}
+
+impl Drop for OwnerPhasePause {
+    /// Release a park the court left closed. Without this a failing assertion
+    /// between arrival and release would strand the parked branch, and the
+    /// owner close in this world's drop would wait on it forever, replacing the
+    /// court's own named diagnostic with a hang.
+    ///
+    /// This hands the release to a proxy and returns rather than waiting for
+    /// it. That owner close is already the synchronization point: it cannot
+    /// finish until the freed branch returns, so waiting again here would only
+    /// charge a second budget to a court that has already failed.
+    fn drop(&mut self) {
+        let _ = self.signal_release(false);
+    }
+}
+
+/// Open the park and then take the worker's result under a bound.
+///
+/// Joining a worker whose park is still closed is exactly what turns a failing
+/// court into a hang, so opening first belongs to this call rather than to the
+/// caller's discipline, and the wait itself is polled against a deadline
+/// because `JoinHandle::join` cannot be bounded.
+pub(crate) fn join_paused_worker<T>(
+    worker: std::thread::JoinHandle<T>,
+    pause: &OwnerPhasePause,
+    phase: &str,
+) -> T {
+    pause.open();
+    let deadline = Instant::now() + OWNER_PHASE_COURT_TIMEOUT;
+    while !worker.is_finished() {
+        assert!(
+            Instant::now() < deadline,
+            "the storm branch never finished its {phase} after the court opened its pause"
+        );
+        std::thread::sleep(WORKER_POLL_INTERVAL);
+    }
+    match worker.join() {
+        Ok(value) => value,
+        Err(worker_panic) => std::panic::resume_unwind(worker_panic),
     }
 }
 

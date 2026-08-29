@@ -19,8 +19,8 @@
 
 use super::mvcc_owner_phase_locality_court::{
     assert_court_commit_matches_oracle, begin_court_transaction, branch_reference_state,
-    commit_unrelated_branch_while_paused, coordination_counters, lower_court_delta,
-    BranchCoordination, OwnerPhaseCourtBranches, OwnerPhasePause,
+    commit_unrelated_branch_while_paused, coordination_counters, join_paused_worker,
+    lower_court_delta, BranchCoordination, OwnerPhaseCourtBranches, OwnerPhasePause,
 };
 use super::world::supply_chain::{
     assert_oracle_matches, certified_supply_chain_world, head_for_supply_chain_branch, BranchLabel,
@@ -65,10 +65,7 @@ fn paused_supply_chain_preparation_leaves_an_unrelated_branch_commit_unblocked()
     );
     before.assert_branch_locality(&court, &world.runtime, &committed);
 
-    pause.open();
-    let storm_candidate = storm_worker
-        .join()
-        .expect("the storm preparation worker joins")
+    let storm_candidate = join_paused_worker(storm_worker, &pause, "candidate preparation")
         .expect("the storm branch prepares once its owner-phase pause opens");
     let preparation = world.runtime.preparation_port();
     preparation
@@ -122,11 +119,11 @@ fn paused_supply_chain_publication_leaves_an_unrelated_branch_commit_unblocked()
     );
     before.assert_branch_locality(&court, &world.runtime, &committed);
 
-    pause.open();
-    let performed = match storm_worker.join().expect("the storm publisher joins") {
-        RelationalPublicationOutcome::Performed(performed) => performed,
-        outcome => panic!("the released storm publication must perform: {outcome:?}"),
-    };
+    let performed =
+        match join_paused_worker(storm_worker, &pause, "publication critical-section entry") {
+            RelationalPublicationOutcome::Performed(performed) => performed,
+            outcome => panic!("the released storm publication must perform: {outcome:?}"),
+        };
     let storm_committed = world
         .runtime
         .settle_performed_publication(performed)
@@ -250,10 +247,7 @@ fn paused_supply_chain_settlement_leaves_an_unrelated_branch_commit_unblocked() 
         DeltaId::MaintainAtlasBerth,
     );
 
-    pause.open();
-    let storm_committed = storm_worker
-        .join()
-        .expect("the storm settlement worker joins")
+    let storm_committed = join_paused_worker(storm_worker, &pause, "settlement executor")
         .expect("the storm branch settles once its owner-phase pause opens");
     assert_eq!(
         storm_committed.commit.commit_id, storm_commit_id,
