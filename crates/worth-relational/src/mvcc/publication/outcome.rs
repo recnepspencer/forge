@@ -216,16 +216,23 @@ pub enum RelationalPublicationDeferred {
     /// The reservation is one runtime-wide, nonblocking slot, held for the
     /// duration of one cutover. Contention is therefore global: a deferred
     /// publisher is turned away by that slot, never by a wait on its own
-    /// branch. It is also not capacity exhaustion, and the reservation counters
-    /// keep the two apart by recording a deferral and no overflow.
+    /// branch. It is not capacity exhaustion either; the reservation counters
+    /// record a deferral and no overflow.
     ///
-    /// The slot is tested before the cutover body runs, so no comparison and no
-    /// movement was attempted. The candidate is consumed and its candidate slot
-    /// returned, and the pre-effect pending-settlement reservation is installed
-    /// and then released on the way out, leaving no record behind.
+    /// The slot is taken after the exact branch-cell comparison and before the
+    /// cutover body, so this deferral is only ever reached with that comparison
+    /// already matched: the branch was exactly where this candidate expected it
+    /// at that instant, and only the reference movement did not happen. That
+    /// match is an observation, not a durable admission grant. The candidate is
+    /// consumed and its candidate slot returned, and the pre-effect
+    /// pending-settlement reservation is installed and then released on the way
+    /// out, leaving no record behind.
     ///
-    /// Prepare a fresh candidate and publish again. A single holder and a
-    /// bounded cutover are what make this transient.
+    /// To retry, begin a fresh transaction and prepare a new candidate; this
+    /// one is spent, and is neither reusable nor a rebase authority. The same
+    /// still-admitted expected basis may be reused, since a contended
+    /// mechanical reservation is no reason to pay for a new observation.
+    /// Ordinary comparison still returns stale if the branch moved meanwhile.
     PatchPositionReservationContended,
     /// A retention obligation could not be acquired because the owner's live
     /// root capacity or its retired branch-root capacity is full.
