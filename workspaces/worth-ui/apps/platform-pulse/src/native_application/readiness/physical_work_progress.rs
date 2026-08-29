@@ -132,6 +132,7 @@ impl PlatformPulseApplicationRuntime {
             }
             Ok(worth_ui::facade::app::WorthUiNativeManagedRebindProgress::AwaitingProgress) => {
                 self.shell = Some(shell);
+                self.advance_visual_identity();
             }
             Ok(worth_ui::facade::app::WorthUiNativeManagedRebindProgress::RecoveryBlocked(_)) => {
                 self.shell = Some(shell);

@@ -1,8 +1,9 @@
 use std::time::{Duration, Instant};
 
 use worth_ui_platform_pulse::observation_contract::{
-    PlatformPulseIntentAttemptObservationReference, PlatformPulseIntentPostureObservation,
-    PlatformPulseLifecycleObservation, PlatformPulseSemanticFocusPublished,
+    PlatformPulseFocusTransitionInspection, PlatformPulseIntentAttemptObservationReference,
+    PlatformPulseIntentPostureObservation, PlatformPulseLifecycleObservation,
+    PlatformPulseSemanticFocusPublished,
 };
 
 use crate::adjudication::{
@@ -116,7 +117,7 @@ fn complete(
     require_intent_quiet_after_occupancy_click(world)?;
     await_open_pixels(world, &baseline)?;
     let before_rebind = capture(world)?;
-    let portal_rebind = source_rebind::exercise(world, &before_rebind)?;
+    let portal_rebind = source_rebind::exercise(world, &before_rebind, first_open_focus)?;
     escape(world)?;
     let dismissed = await_portal_dismissed(world)?;
     let escape_close_focus = await_semantic_focus(world)?;
@@ -302,6 +303,10 @@ impl PlatformPulsePortalJourneyEvidence {
         ]
     }
 
+    pub(crate) const fn runtime_service_query_posture_changed_pixels(&self) -> usize {
+        self.runtime_service_pixels.query_posture_changed_pixels()
+    }
+
     pub(crate) const fn runtime_service_sequences(&self) -> [u64; 5] {
         self.runtime_service_story.sequences()
     }
@@ -313,12 +318,23 @@ impl PlatformPulsePortalJourneyEvidence {
         ]
     }
 
+    pub(crate) fn runtime_service_command_transitions(
+        &self,
+    ) -> [&worth_ui_platform_pulse::observation_contract::PlatformPulseCommandTransitionInspection; 2]
+    {
+        self.runtime_service_story.command_transitions()
+    }
+
     pub(crate) const fn expected_shutdown_sequence(&self) -> u64 {
         self.expected_shutdown_sequence
     }
 
     pub(crate) const fn focus_publications(&self) -> [PlatformPulseSemanticFocusPublished; 2] {
         [self.open_focus, self.escape_close_focus]
+    }
+
+    pub(crate) const fn focus_rebind_inspection(&self) -> PlatformPulseFocusTransitionInspection {
+        self.portal_rebind.focus_transition()
     }
 
     pub(crate) const fn portal_rebind_sequence(&self) -> u64 {

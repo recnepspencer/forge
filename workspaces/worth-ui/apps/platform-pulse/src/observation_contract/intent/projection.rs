@@ -98,6 +98,9 @@ impl PlatformPulseLifecycleObservationStream {
         &mut self,
         posture: PlatformPulseIntentPostureObservation,
         publication: &worth_ui::facade::app::UiMountedFramePublicationReceipt,
+        latest_command_transition: Option<
+            crate::observation_contract::PlatformPulseCommandTransitionInspection,
+        >,
     ) -> Result<
         PlatformPulseLifecycleObservationEnvelope,
         PlatformPulseLifecycleObservationProjectionDenial,
@@ -108,7 +111,11 @@ impl PlatformPulseLifecycleObservationStream {
             .after_content_publication(validated.frame().diagnostic_value())?;
         let envelope =
             self.next_envelope(PlatformPulseLifecycleObservation::IntentPosturePublished(
-                PlatformPulseIntentPosturePublished::new(posture, publication),
+                PlatformPulseIntentPosturePublished::new(
+                    posture,
+                    publication,
+                    latest_command_transition,
+                ),
             ))?;
         self.commit_content_publication(validated);
         self.visual_state = next_visual_state;

@@ -91,7 +91,7 @@ impl PlatformPulseApplicationRuntime {
                         );
                         return;
                     };
-                    let refresh = self.visual_identity.refresh_after_presentation_replacement(
+                    let refresh = self.visual_identity.refresh_after_viewport_replacement(
                         shell,
                         self.presentation_tick,
                         std::time::Instant::now(),

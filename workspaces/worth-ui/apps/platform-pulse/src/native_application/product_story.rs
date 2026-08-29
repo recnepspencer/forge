@@ -17,6 +17,7 @@ pub(super) struct PlatformPulseProductStory {
     status: StoryCopy,
 }
 
+#[derive(Clone)]
 struct StoryCopy {
     value: Option<String>,
     revision: u64,
@@ -51,29 +52,50 @@ impl PlatformPulseProductStory {
         shell: &mut WorthUiNativeApplicationShell,
         denial: worth_ui_platform_pulse::observation_contract::PlatformPulseQueryAdmissionDenial,
     ) -> Result<(), UiNativeApplicationProgramDenial> {
+        let predecessor_label = self.query_denial_label.clone();
+        let predecessor_body = self.query_denial.clone();
         let story = PlatformPulseQueryDenialStory::new(denial);
-        let changes = [
-            changed(
-                &mut self.query_denial,
-                story.explanation().to_owned(),
-                PlatformPulseProductComponent::QueryDenialBody,
-            ),
-            Some(text_change(
-                &mut self.query_denial_label,
-                PlatformPulseProductComponent::QueryDenialLabel,
-                story.title(),
-            )?),
-        ]
-        .into_iter()
-        .flatten()
-        .collect::<Vec<_>>();
-        apply(shell, changes)
+        let changes = match (|| {
+            Ok::<_, UiNativeApplicationProgramDenial>(
+                [
+                    changed(
+                        &mut self.query_denial,
+                        story.explanation().to_owned(),
+                        PlatformPulseProductComponent::QueryDenialBody,
+                    ),
+                    Some(text_change(
+                        &mut self.query_denial_label,
+                        PlatformPulseProductComponent::QueryDenialLabel,
+                        story.title(),
+                    )?),
+                ]
+                .into_iter()
+                .flatten()
+                .collect::<Vec<_>>(),
+            )
+        })() {
+            Ok(changes) => changes,
+            Err(denial) => {
+                self.query_denial_label = predecessor_label;
+                self.query_denial = predecessor_body;
+                return Err(denial);
+            }
+        };
+        if let Err(denial) = apply(shell, changes) {
+            self.query_denial_label = predecessor_label;
+            self.query_denial = predecessor_body;
+            return Err(denial);
+        }
+        Ok(())
     }
 
     pub(super) fn refresh_runtime(
         &mut self,
         shell: &mut WorthUiNativeApplicationShell,
     ) -> Result<(), UiNativeApplicationProgramDenial> {
+        let predecessor_command = self.command.clone();
+        let predecessor_service = self.service.clone();
+        let predecessor_status = self.status.clone();
         let census = shell.runtime_service_resource_census();
         let mut changes = Vec::new();
         if let Some(summary) = shell.why_command_won() {
@@ -121,7 +143,13 @@ impl PlatformPulseProductStory {
         ) {
             changes.push(change);
         }
-        apply(shell, changes)
+        if let Err(denial) = apply(shell, changes) {
+            self.command = predecessor_command;
+            self.service = predecessor_service;
+            self.status = predecessor_status;
+            return Err(denial);
+        }
+        Ok(())
     }
 }
 
@@ -131,10 +159,15 @@ fn publish_changed(
     text: String,
     component: PlatformPulseProductComponent,
 ) -> Result<(), UiNativeApplicationProgramDenial> {
-    apply(
+    let predecessor = retained.clone();
+    let outcome = apply(
         shell,
         changed(retained, text, component).into_iter().collect(),
-    )
+    );
+    if outcome.is_err() {
+        *retained = predecessor;
+    }
+    outcome
 }
 
 fn changed(

@@ -1,5 +1,10 @@
 use std::time::{Duration, Instant};
 
+use worth_ui_platform_pulse::observation_contract::{
+    PlatformPulseIntentInteractionFamily, PlatformPulseIntentRoutingStoppedObservation,
+    PlatformPulseLifecycleObservation,
+};
+
 use crate::external_observation::PlatformPulseLifecycleStreamFailure;
 use crate::external_observation::{NativeInputProbeKind, NativeKeyboardCommand};
 use crate::native_platform::NativePlatformContract;
@@ -44,6 +49,19 @@ pub(super) fn require_intent_quiet_after_occupancy_click(
     loop {
         match world.lifecycle.next(deadline) {
             Ok(envelope) if incidental_visual(envelope.outcome()) => {}
+            Ok(envelope)
+                if matches!(
+                    envelope.outcome(),
+                    PlatformPulseLifecycleObservation::IntentRoutingStopped(
+                        PlatformPulseIntentRoutingStoppedObservation::Unrouted {
+                            graph_node,
+                            interaction: PlatformPulseIntentInteractionFamily::Activate,
+                        },
+                    ) if *graph_node != 0
+                ) =>
+            {
+                return Ok(())
+            }
             Ok(envelope) => return Err(unexpected(envelope.outcome())),
             Err(PlatformPulseLifecycleStreamFailure::Deadline) => return Ok(()),
             Err(failure) => {

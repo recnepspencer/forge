@@ -6,7 +6,10 @@ use crate::source_watch::{PlatformPulseSourceEvent, PlatformPulseSourceWatch};
 
 impl PlatformPulseApplicationRuntime {
     pub(super) fn poll_source(&mut self) {
-        while self.terminal_error.is_none() {
+        while source_poll_admitted(
+            self.terminal_error.is_some(),
+            self.pending_managed_rebind.is_some(),
+        ) {
             let Some(event) = self
                 .source_watch
                 .as_ref()
@@ -136,6 +139,10 @@ impl PlatformPulseApplicationRuntime {
     }
 }
 
+const fn source_poll_admitted(terminal: bool, managed_rebind_pending: bool) -> bool {
+    !terminal && !managed_rebind_pending
+}
+
 enum SourceRebindPublicationFailure {
     Observation(
         crate::lifecycle_observation_publication::PlatformPulseObservationPublicationDenial,
@@ -153,8 +160,15 @@ fn publish_source_rebind(
     receipt: worth_ui::facade::rebind::UiRebindReceipt,
     presentation_tick: u64,
 ) -> Result<(), SourceRebindPublicationFailure> {
+    let latest_focus_transition = shell.why_focus_moved().filter(|summary| {
+        matches!(
+            summary.cause(),
+            worth_ui::facade::inspection::UiFocusMoveInspectionCause::RebindPreserved
+                | worth_ui::facade::inspection::UiFocusMoveInspectionCause::RebindFallback
+        )
+    });
     publisher
-        .replacement(&source, &receipt)
+        .replacement(&source, &receipt, latest_focus_transition)
         .map_err(SourceRebindPublicationFailure::Observation)?;
     visual_identity
         .compare_after_rebind(shell, receipt, presentation_tick, std::time::Instant::now())
@@ -163,4 +177,14 @@ fn publish_source_rebind(
         .publish_source(shell, source.sequence())
         .and_then(|()| product_story.refresh_runtime(shell))
         .map_err(SourceRebindPublicationFailure::ProductCopy)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn queued_source_events_wait_behind_managed_rebind_authority() {
+        assert!(super::source_poll_admitted(false, false));
+        assert!(!super::source_poll_admitted(false, true));
+        assert!(!super::source_poll_admitted(true, false));
+    }
 }

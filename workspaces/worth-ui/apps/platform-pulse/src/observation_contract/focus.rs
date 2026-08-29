@@ -45,6 +45,16 @@ pub struct PlatformPulseSemanticFocusPublished {
     revision: u64,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct PlatformPulseFocusTransitionInspection {
+    previous_mounted_instance: Option<u64>,
+    current_mounted_instance: Option<u64>,
+    cause: PlatformPulseSemanticFocusCause,
+    outcome: PlatformPulseSemanticFocusOutcome,
+    participants_visited: u32,
+    revision: u64,
+}
+
 impl PlatformPulseSemanticFocusParticipant {
     fn from_runtime(
         observation: worth_ui::facade::app::UiSemanticFocusParticipantObservation,
@@ -137,6 +147,71 @@ impl PlatformPulseSemanticFocusPublished {
 
     pub const fn revision(self) -> u64 {
         self.revision
+    }
+}
+
+impl PlatformPulseFocusTransitionInspection {
+    pub(super) fn from_runtime(
+        summary: worth_ui::facade::inspection::UiFocusMovedInspectionSummary,
+    ) -> Self {
+        Self {
+            previous_mounted_instance: summary.previous_mounted_instance(),
+            current_mounted_instance: summary.current_mounted_instance(),
+            cause: map_inspection_cause(summary.cause()),
+            outcome: map_inspection_outcome(summary.outcome()),
+            participants_visited: summary.participants_visited(),
+            revision: summary.source().revision(),
+        }
+    }
+
+    pub const fn previous_mounted_instance(self) -> Option<u64> {
+        self.previous_mounted_instance
+    }
+
+    pub const fn current_mounted_instance(self) -> Option<u64> {
+        self.current_mounted_instance
+    }
+
+    pub const fn cause(self) -> PlatformPulseSemanticFocusCause {
+        self.cause
+    }
+
+    pub const fn outcome(self) -> PlatformPulseSemanticFocusOutcome {
+        self.outcome
+    }
+
+    pub const fn participants_visited(self) -> u32 {
+        self.participants_visited
+    }
+
+    pub const fn revision(self) -> u64 {
+        self.revision
+    }
+}
+
+const fn map_inspection_cause(
+    cause: worth_ui::facade::inspection::UiFocusMoveInspectionCause,
+) -> PlatformPulseSemanticFocusCause {
+    use worth_ui::facade::inspection::UiFocusMoveInspectionCause as Cause;
+    match cause {
+        Cause::Direct => PlatformPulseSemanticFocusCause::Direct,
+        Cause::KeyboardTraversal => PlatformPulseSemanticFocusCause::KeyboardTraversal,
+        Cause::PortalInitial => PlatformPulseSemanticFocusCause::PortalInitial,
+        Cause::PortalRestoration => PlatformPulseSemanticFocusCause::PortalRestoration,
+        Cause::RebindPreserved => PlatformPulseSemanticFocusCause::RebindPreserved,
+        Cause::RebindFallback => PlatformPulseSemanticFocusCause::RebindFallback,
+    }
+}
+
+const fn map_inspection_outcome(
+    outcome: worth_ui::facade::inspection::UiFocusMoveInspectionOutcome,
+) -> PlatformPulseSemanticFocusOutcome {
+    use worth_ui::facade::inspection::UiFocusMoveInspectionOutcome as Outcome;
+    match outcome {
+        Outcome::Moved => PlatformPulseSemanticFocusOutcome::Moved,
+        Outcome::Unchanged => PlatformPulseSemanticFocusOutcome::Unchanged,
+        Outcome::Cleared => PlatformPulseSemanticFocusOutcome::Cleared,
+        Outcome::NoEligibleParticipant => PlatformPulseSemanticFocusOutcome::NoEligibleParticipant,
     }
 }
 

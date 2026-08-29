@@ -1,4 +1,5 @@
 use super::platform_pulse_control_points::{checked_in, PlatformPulseControlPointManifestFailure};
+use super::runtime_service_story_pixels::is_intentionally_mutable_story_pixel;
 use crate::external_observation::{NativeClientPixelCapture, NativeClientPixelPoint};
 
 mod authored_surface;
@@ -306,19 +307,17 @@ pub(crate) fn adjudicate_closed_portal_pixels(
         manifest.logical_client_extent(),
         [closed.width(), closed.height()],
     );
-    let mut differing = 0;
-    let mut sampled = 0;
-    let mut bounds = [u32::MAX, u32::MAX, 0, 0];
+    let mut differing: usize = 0;
+    let mut sampled: usize = 0;
     for y in region[1]..region[3] {
         for x in region[0]..region[2] {
+            if is_intentionally_mutable_story_pixel(closed, x, y) {
+                continue;
+            }
             if let (Some(before), Some(after)) = (rgba_at(baseline, x, y), rgba_at(closed, x, y)) {
                 sampled += 1;
                 if before != after {
                     differing += 1;
-                    bounds[0] = bounds[0].min(x);
-                    bounds[1] = bounds[1].min(y);
-                    bounds[2] = bounds[2].max(x);
-                    bounds[3] = bounds[3].max(y);
                 }
             }
         }

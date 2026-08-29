@@ -1,12 +1,16 @@
 use crate::external_observation::NativeClientPixelCapture;
 
 const LOGICAL_EXTENT: [u32; 2] = [960, 600];
+const QUERY_POSTURE_STORY: [u32; 4] = [680, 176, 232, 104];
 const COMMAND_STORY: [u32; 4] = [680, 392, 232, 48];
 const QUERY_DENIAL_STORY: [u32; 4] = [680, 448, 232, 76];
+const MUTABLE_STORY_REGIONS: [[u32; 4]; 3] =
+    [QUERY_POSTURE_STORY, COMMAND_STORY, QUERY_DENIAL_STORY];
 const MINIMUM_CHANGED_PIXELS: usize = 24;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct PlatformPulseRuntimeServicePixelEvidence {
+    query_posture_changed_pixels: usize,
     command_story_changed_pixels: usize,
     query_denial_story_changed_pixels: usize,
 }
@@ -31,6 +35,12 @@ pub(crate) fn adjudicate_runtime_service_story_pixels(
     {
         return Err(PlatformPulseRuntimeServicePixelFailure::CaptureMismatch);
     }
+    let query_posture_changed_pixels = require_changed(
+        baseline,
+        observed,
+        QUERY_POSTURE_STORY,
+        "platform.pulse.component.projected_status",
+    )?;
     let command_story_changed_pixels = require_changed(
         baseline,
         observed,
@@ -44,6 +54,7 @@ pub(crate) fn adjudicate_runtime_service_story_pixels(
         "platform.pulse.text.query_denial",
     )?;
     Ok(PlatformPulseRuntimeServicePixelEvidence {
+        query_posture_changed_pixels,
         command_story_changed_pixels,
         query_denial_story_changed_pixels,
     })
@@ -81,12 +92,27 @@ fn scale_rect(capture: &NativeClientPixelCapture, rect: [u32; 4]) -> [u32; 4] {
     ]
 }
 
+pub(super) fn is_intentionally_mutable_story_pixel(
+    capture: &NativeClientPixelCapture,
+    x: u32,
+    y: u32,
+) -> bool {
+    MUTABLE_STORY_REGIONS.into_iter().any(|logical| {
+        let rect = scale_rect(capture, logical);
+        x >= rect[0] && x < rect[0] + rect[2] && y >= rect[1] && y < rect[1] + rect[3]
+    })
+}
+
 fn rgba_at(capture: &NativeClientPixelCapture, x: u32, y: u32) -> &[u8] {
     let offset = ((y as usize * capture.width() as usize) + x as usize) * 4;
     &capture.rgba()[offset..offset + 4]
 }
 
 impl PlatformPulseRuntimeServicePixelEvidence {
+    pub(crate) const fn query_posture_changed_pixels(self) -> usize {
+        self.query_posture_changed_pixels
+    }
+
     pub(crate) const fn command_story_changed_pixels(self) -> usize {
         self.command_story_changed_pixels
     }
@@ -107,9 +133,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn both_independent_story_regions_must_change() {
+    fn all_independent_story_regions_must_change() {
         let baseline = capture(vec![0; 960 * 600 * 4]);
         let mut observed = baseline.rgba().to_vec();
+        paint(&mut observed, QUERY_POSTURE_STORY, [210, 150, 40, 255]);
         paint(&mut observed, COMMAND_STORY, [160, 170, 180, 255]);
         let failure = adjudicate_runtime_service_story_pixels(&baseline, &capture(observed));
         assert!(matches!(
@@ -122,15 +149,27 @@ mod tests {
     }
 
     #[test]
-    fn two_visible_story_changes_are_admitted() {
+    fn three_visible_story_changes_are_admitted() {
         let baseline = capture(vec![0; 960 * 600 * 4]);
         let mut observed = baseline.rgba().to_vec();
+        paint(&mut observed, QUERY_POSTURE_STORY, [210, 150, 40, 255]);
         paint(&mut observed, COMMAND_STORY, [160, 170, 180, 255]);
         paint(&mut observed, QUERY_DENIAL_STORY, [190, 140, 40, 255]);
         let evidence = adjudicate_runtime_service_story_pixels(&baseline, &capture(observed))
-            .expect("both product stories changed visibly");
+            .expect("all three product stories changed visibly");
+        assert!(evidence.query_posture_changed_pixels() >= MINIMUM_CHANGED_PIXELS);
         assert!(evidence.command_story_changed_pixels() >= MINIMUM_CHANGED_PIXELS);
         assert!(evidence.query_denial_story_changed_pixels() >= MINIMUM_CHANGED_PIXELS);
+    }
+
+    #[test]
+    fn story_mask_owns_only_the_intentionally_mutable_regions() {
+        let capture = capture(vec![0; 960 * 600 * 4]);
+        assert!(is_intentionally_mutable_story_pixel(&capture, 680, 176));
+        assert!(is_intentionally_mutable_story_pixel(&capture, 680, 392));
+        assert!(is_intentionally_mutable_story_pixel(&capture, 911, 523));
+        assert!(!is_intentionally_mutable_story_pixel(&capture, 679, 176));
+        assert!(!is_intentionally_mutable_story_pixel(&capture, 912, 523));
     }
 
     fn capture(rgba: Vec<u8>) -> NativeClientPixelCapture {

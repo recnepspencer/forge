@@ -1,3 +1,4 @@
+mod command;
 mod envelope;
 mod focus;
 mod focus_projection;
@@ -18,6 +19,10 @@ mod visual_projection;
 mod visual_tests;
 mod visual_value_projection;
 
+pub use command::{
+    PlatformPulseCommandLosingCandidateInspection, PlatformPulseCommandLossReasonInspection,
+    PlatformPulseCommandScopeInspection, PlatformPulseCommandTransitionInspection,
+};
 pub use envelope::{
     PlatformPulseDecodedLifecycleObservation, PlatformPulseInheritedLifecycleOnly,
     PlatformPulseLifecycleObservationCodecDenial, PlatformPulseLifecycleObservationEnvelope,
@@ -27,9 +32,9 @@ pub use envelope::{
     PLATFORM_PULSE_LIFECYCLE_OBSERVATION_STDOUT_PREFIX,
 };
 pub use focus::{
-    PlatformPulseSemanticFocusCause, PlatformPulseSemanticFocusOutcome,
-    PlatformPulseSemanticFocusParticipant, PlatformPulseSemanticFocusPhysicalOutcome,
-    PlatformPulseSemanticFocusPublished,
+    PlatformPulseFocusTransitionInspection, PlatformPulseSemanticFocusCause,
+    PlatformPulseSemanticFocusOutcome, PlatformPulseSemanticFocusParticipant,
+    PlatformPulseSemanticFocusPhysicalOutcome, PlatformPulseSemanticFocusPublished,
 };
 pub use intent::{
     PlatformPulseIntentAdmissionTrace, PlatformPulseIntentAttemptObservationReference,

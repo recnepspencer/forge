@@ -62,7 +62,11 @@ impl PlatformPulseApplicationRuntime {
             return false;
         };
         let posture = PlatformPulseIntentPostureObservation::completed(attempt, idempotency);
-        if let Err(error) = self.publisher.intent_posture_published(posture, mounted) {
+        let command_transition = super::super::latest_command_transition(shell);
+        if let Err(error) =
+            self.publisher
+                .intent_posture_published(posture, mounted, command_transition)
+        {
             self.fail(
                 PlatformPulseTerminalError::ObservationPublication,
                 Err(error),

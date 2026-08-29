@@ -1,3 +1,10 @@
+use super::super::{
+    PlatformPulseApplicationRuntime, PlatformPulsePendingQueryAction, PlatformPulseTerminalError,
+};
+use super::{
+    PlatformPulseIntentPosturePublicationDisposition, PlatformPulseIntentPostureSettlement,
+    PlatformPulsePreparedIntentPosture,
+};
 use worth_ui::facade::app::{
     WorthUiNativeApplicationShell, WorthUiNativeIntentTerminalPostureOutcome,
     WorthUiNativeManagedIntentConsequencePublicationOutcome,
@@ -7,15 +14,6 @@ use worth_ui::facade::intent::{
     UiIntentExecutionTransitionPosture,
 };
 use worth_ui_platform_pulse::observation_contract::PlatformPulseIntentPostureObservation;
-
-use super::super::{
-    PlatformPulseApplicationRuntime, PlatformPulsePendingQueryAction, PlatformPulseTerminalError,
-};
-use super::{
-    PlatformPulseIntentPosturePublicationDisposition, PlatformPulseIntentPostureSettlement,
-    PlatformPulsePreparedIntentPosture,
-};
-
 mod consequence_publication;
 use consequence_publication::consequence_kind;
 pub(in crate::native_application) use consequence_publication::PlatformPulsePendingIntentConsequence;
@@ -253,7 +251,11 @@ impl PlatformPulseApplicationRuntime {
             return false;
         }
         let posture = PlatformPulseIntentPostureObservation::completed(attempt, idempotency);
-        if let Err(error) = self.publisher.intent_posture_published(posture, mounted) {
+        let command_transition = super::latest_command_transition(shell);
+        if let Err(error) =
+            self.publisher
+                .intent_posture_published(posture, mounted, command_transition)
+        {
             self.fail(
                 PlatformPulseTerminalError::ObservationPublication,
                 Err(error),

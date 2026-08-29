@@ -14,7 +14,7 @@ pub(crate) enum PlatformPulseVisualExecutionDenial {
     MountedFrameReadinessUnavailable(UiMountedInspectionOmission),
     MountedVisualTarget,
     SnapshotAdmission(UiVisualSnapshotDenial),
-    SnapshotDeadline,
+    SnapshotDeadline(PlatformPulseVisualCapturePhase),
     SnapshotOmitted,
     SnapshotDenied(UiVisualSnapshotDenial),
     SnapshotIndeterminate,
@@ -36,6 +36,18 @@ pub(crate) enum PlatformPulseVisualExecutionDenial {
     ComparisonIncompatible(worth_ui::facade::inspection::UiVisualSnapshotComparisonIncompatibility),
     ComparisonDenied(worth_ui::facade::inspection::UiVisualSnapshotComparisonDenial),
     Observation(PlatformPulseObservationPublicationDenial),
+}
+
+#[derive(Clone, Copy, Debug)]
+pub(crate) enum PlatformPulseVisualCapturePhase {
+    Initial,
+    InitialReadiness,
+    Rebase,
+    RebaseReadiness,
+    Refresh,
+    RefreshReadiness,
+    Comparison,
+    ComparisonReadiness,
 }
 
 impl std::fmt::Display for PlatformPulseVisualExecutionDenial {

@@ -82,6 +82,8 @@ pub struct PlatformPulseReplacementPublished {
     pub(super) actual_native_effect_count: u64,
     pub(super) schema_transition:
         Option<super::schema_transition::PlatformPulseProjectionSchemaTransitionObservation>,
+    pub(super) latest_focus_transition:
+        Option<super::focus::PlatformPulseFocusTransitionInspection>,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -257,6 +259,12 @@ impl PlatformPulseReplacementPublished {
         &self,
     ) -> Option<&super::schema_transition::PlatformPulseProjectionSchemaTransitionObservation> {
         self.schema_transition.as_ref()
+    }
+
+    pub const fn latest_focus_transition(
+        &self,
+    ) -> Option<super::focus::PlatformPulseFocusTransitionInspection> {
+        self.latest_focus_transition
     }
 }
 accessors!(

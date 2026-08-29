@@ -63,13 +63,7 @@ component platform.pulse.component.portal_icon_tile {}
 component platform.pulse.component.portal_icon_text {}
 component platform.pulse.component.portal_title {}
 component platform.pulse.component.portal_body {}
-component platform.pulse.component.portal_cancel_target {
-  interaction activate routes platform.pulse.portal.cancel.route;
-}
 component platform.pulse.component.portal_cancel_label {}
-component platform.pulse.component.portal_primary_target {
-  interaction activate routes platform.pulse.action.route;
-}
 component platform.pulse.component.portal_primary_label {}
 component platform.pulse.component.confirmation_target {
   interaction activate confirms platform.pulse.action.route;

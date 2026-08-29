@@ -91,6 +91,7 @@ pub enum PlatformPulseIntentRoutingStoppedObservation {
 pub struct PlatformPulseIntentPosturePublished {
     posture: PlatformPulseIntentPostureObservation,
     frame: super::lifecycle::PlatformPulseMountedFrameObservation,
+    latest_command_transition: Option<super::command::PlatformPulseCommandTransitionInspection>,
 }
 
 impl PlatformPulseIntentInputObservation {
@@ -316,12 +317,14 @@ impl PlatformPulseIntentPosturePublished {
     pub(super) fn new(
         posture: PlatformPulseIntentPostureObservation,
         publication: &worth_ui::facade::app::UiMountedFramePublicationReceipt,
+        latest_command_transition: Option<super::command::PlatformPulseCommandTransitionInspection>,
     ) -> Self {
         Self {
             posture,
             frame: super::lifecycle::PlatformPulseMountedFrameObservation::from_publication(
                 publication,
             ),
+            latest_command_transition,
         }
     }
 
@@ -331,6 +334,12 @@ impl PlatformPulseIntentPosturePublished {
 
     pub fn frame(&self) -> super::lifecycle::PlatformPulseMountedFrameObservation {
         self.frame
+    }
+
+    pub fn latest_command_transition(
+        &self,
+    ) -> Option<&super::command::PlatformPulseCommandTransitionInspection> {
+        self.latest_command_transition.as_ref()
     }
 }
 

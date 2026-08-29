@@ -120,6 +120,15 @@ impl PlatformPulseVisualObservationState {
                     refresh_frame: frame,
                 })
             }
+            Self::AwaitingSuccessorSnapshot {
+                predecessor_snapshot,
+                predecessor_frame,
+                successor_frame,
+            } if frame >= successor_frame => Ok(Self::AwaitingRefreshRetirement {
+                snapshot: predecessor_snapshot,
+                snapshot_frame: predecessor_frame,
+                refresh_frame: frame,
+            }),
             _ => Err(PlatformPulseLifecycleObservationProjectionDenial::VisualPulseIncomplete),
         }
     }

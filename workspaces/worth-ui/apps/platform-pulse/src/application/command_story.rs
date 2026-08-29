@@ -1,7 +1,7 @@
 use worth_ui::facade::declaration::{
     CommandDescriptor, CommandId, UiCommandKeyCode, UiCommandModifierSet,
     UiCommandRouteDeclaration, UiCommandRouteDestination, UiCommandRouteScopeIdentity,
-    UiCommandShortcutSequence, UiCommandShortcutStroke,
+    UiCommandShortcutSequence, UiCommandShortcutStroke, UiCommandTextInputPolicy,
 };
 
 use super::PlatformPulsePreparationDenial;
@@ -28,20 +28,22 @@ pub(super) fn register(
     let destination = UiCommandRouteDestination::for_intent::<
         worth_ui_platform_pulse::intent::PlatformPulseAction,
     >();
+    let destination_route = || {
+        UiCommandRouteDeclaration::new(destination)
+            .with_text_input_policy(UiCommandTextInputPolicy::SuppressDuringComposition)
+    };
     let application = CommandDescriptor::new(command_id(APPLICATION_COMMAND), "Run live action")
         .with_description("Run the Pulse action from the application context")
         .with_default_shortcut(shortcut)
-        .with_route(UiCommandRouteDeclaration::new(destination));
+        .with_route(destination_route());
     let portal = CommandDescriptor::new(command_id(PORTAL_COMMAND), "Run from details")
         .with_description("Run the Pulse action from the active details Portal")
         .with_default_shortcut(shortcut)
-        .with_route(
-            UiCommandRouteDeclaration::new(destination).for_active_portal(
-                UiCommandRouteScopeIdentity::for_authored_component(
-                    "platform.pulse.component.portal_target",
-                ),
+        .with_route(destination_route().for_active_portal(
+            UiCommandRouteScopeIdentity::for_authored_component(
+                "platform.pulse.component.portal_target",
             ),
-        );
+        ));
     Ok(builder
         .register_command(application)
         .register_command(portal))

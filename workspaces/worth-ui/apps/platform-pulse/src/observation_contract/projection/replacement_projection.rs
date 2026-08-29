@@ -17,6 +17,9 @@ impl PlatformPulseLifecycleObservationStream {
         &mut self,
         source: &WorthUiSourcePackageRevision,
         receipt: &UiRebindReceipt,
+        latest_focus_transition: Option<
+            worth_ui::facade::inspection::UiFocusMovedInspectionSummary,
+        >,
     ) -> Result<
         PlatformPulseLifecycleObservationEnvelope,
         PlatformPulseLifecycleObservationProjectionDenial,
@@ -70,6 +73,9 @@ impl PlatformPulseLifecycleObservationStream {
                 successor_frame: frame,
                 actual_native_effect_count: mounted.cost_report().adapter().translated_rows(),
                 schema_transition,
+                latest_focus_transition: latest_focus_transition.map(
+                    crate::observation_contract::focus::PlatformPulseFocusTransitionInspection::from_runtime,
+                ),
             });
         let envelope = self.next_envelope(outcome)?;
         self.state = PlatformPulseObservationState::Published {

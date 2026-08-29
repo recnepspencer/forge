@@ -126,6 +126,29 @@ fn in_flight_refresh_coalesces_only_monotonically_newer_content_frames() {
 }
 
 #[test]
+fn content_replacement_interrupts_pending_comparison_without_losing_retirement_evidence() {
+    let awaiting = PlatformPulseVisualObservationState::AwaitingSuccessorSnapshot {
+        predecessor_snapshot: 17,
+        predecessor_frame: 19,
+        successor_frame: 23,
+    };
+    assert_eq!(
+        awaiting.after_content_publication(29),
+        Ok(
+            PlatformPulseVisualObservationState::AwaitingRefreshRetirement {
+                snapshot: 17,
+                snapshot_frame: 19,
+                refresh_frame: 29,
+            }
+        )
+    );
+    assert_eq!(
+        awaiting.after_content_publication(22),
+        Err(PlatformPulseLifecycleObservationProjectionDenial::VisualPulseIncomplete)
+    );
+}
+
+#[test]
 fn refreshed_snapshot_accepts_a_current_runtime_owned_successor_after_its_initiating_frame() {
     let awaiting =
         PlatformPulseVisualObservationState::AwaitingRefreshSnapshot { refresh_frame: 139 };

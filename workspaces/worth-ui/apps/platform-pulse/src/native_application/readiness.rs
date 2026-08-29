@@ -32,9 +32,6 @@ impl PlatformPulseApplicationRuntime {
         if self.pending_managed_rebind.is_some() || self.pending_frame_presentation.is_some() {
             return;
         }
-        if !self.prepare_content_mutations() {
-            return;
-        }
         let mut shell = self.take_runtime_shell();
         self.advance_pending_intent_postures(&mut shell);
         self.shell = Some(shell);
@@ -163,6 +160,8 @@ impl worth_ui_native_platform::UiNativeApplicationRuntime for PlatformPulseAppli
                     self.advance_visual_identity();
                 }
             }
+        } else if owner_ordinal == 4 {
+            self.advance_visual_identity();
         } else {
             self.advance_native_product_turn();
         }

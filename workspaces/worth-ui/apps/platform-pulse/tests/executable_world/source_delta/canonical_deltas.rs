@@ -10,7 +10,6 @@ const GREEN_TOKEN: &[u8] = b"theme.platform_pulse.green";
 const MALFORMED_SOURCE: &[u8] = b"component platform.pulse.component.seed {";
 const IDENTITY_TARGET_ROUTE_BINDING: &[u8] = b"component platform.pulse.component.identity_target {\n  interaction activate routes platform.pulse.action.route;";
 const PORTAL_PRIMARY_ROUTE_BINDING: &[u8] = b"component platform.pulse.component.portal_primary_target {\n  interaction activate routes platform.pulse.action.route;";
-const PORTAL_PRIMARY_COMPONENT: &[u8] = b"component platform.pulse.component.portal_primary_target {\n  interaction activate routes platform.pulse.action.route;\n}\n";
 const INTENT_ROUTE_BINDING: &[u8] = b"  interaction activate routes platform.pulse.action.route;";
 
 #[derive(Debug)]
@@ -30,11 +29,6 @@ pub(crate) struct CanonicalBlueRecoverySourceDelta {
 
 #[derive(Debug)]
 pub(crate) struct IntentRouteRemovalSourceDelta {
-    bytes: Box<[u8]>,
-}
-
-#[derive(Debug)]
-pub(crate) struct PortalFocusFallbackSourceDelta {
     bytes: Box<[u8]>,
 }
 
@@ -167,13 +161,13 @@ impl IntentRouteRemovalSourceDelta {
         canonical: CanonicalPlatformPulse,
     ) -> Result<Self, PulseSourceDeltaDefinitionFailure> {
         let source = canonical.source_bytes();
+        let identity_binding = token_for_source_line_endings(source, IDENTITY_TARGET_ROUTE_BINDING);
         let offsets = source
-            .windows(IDENTITY_TARGET_ROUTE_BINDING.len())
+            .windows(identity_binding.len())
             .enumerate()
             .filter_map(|(offset, candidate)| {
-                (candidate == IDENTITY_TARGET_ROUTE_BINDING).then_some(
-                    offset + IDENTITY_TARGET_ROUTE_BINDING.len() - INTENT_ROUTE_BINDING.len(),
-                )
+                (candidate == identity_binding)
+                    .then_some(offset + identity_binding.len() - INTENT_ROUTE_BINDING.len())
             })
             .collect::<Vec<_>>();
         let [offset] = offsets.as_slice() else {
@@ -207,56 +201,30 @@ impl IntentRouteRemovalSourceDelta {
     }
 }
 
-impl PortalFocusFallbackSourceDelta {
-    pub(crate) fn from_checked_in(
-        canonical: CanonicalPlatformPulse,
-    ) -> Result<Self, PulseSourceDeltaDefinitionFailure> {
-        let source = canonical.source_bytes();
-        let offsets = source
-            .windows(PORTAL_PRIMARY_COMPONENT.len())
-            .enumerate()
-            .filter_map(|(offset, candidate)| {
-                (candidate == PORTAL_PRIMARY_COMPONENT).then_some(offset)
-            })
-            .collect::<Vec<_>>();
-        let [offset] = offsets.as_slice() else {
-            return Err(match offsets.len() {
-                0 => PulseSourceDeltaDefinitionFailure::PortalPrimaryComponentMissing,
-                count => PulseSourceDeltaDefinitionFailure::PortalPrimaryComponentAmbiguous(count),
-            });
-        };
-        let mut bytes = Vec::with_capacity(source.len() - PORTAL_PRIMARY_COMPONENT.len());
-        bytes.extend_from_slice(&source[..*offset]);
-        bytes.extend_from_slice(&source[*offset + PORTAL_PRIMARY_COMPONENT.len()..]);
-        Ok(Self {
-            bytes: bytes.into_boxed_slice(),
-        })
+fn token_for_source_line_endings(source: &[u8], token: &[u8]) -> Vec<u8> {
+    if source
+        .windows(token.len())
+        .any(|candidate| candidate == token)
+    {
+        return token.to_vec();
     }
-
-    pub(crate) fn apply(
-        self,
-        installation: &IsolatedPulseInstallation,
-    ) -> Result<AppliedPulseSourceDelta<Self>, PulseSourceActionFailure> {
-        atomic_replacement::apply(
-            installation,
-            PulseSourceDeltaIdentity::PortalFocusFallback,
-            &self.bytes,
-        )
+    let mut adapted =
+        Vec::with_capacity(token.len() + token.iter().filter(|byte| **byte == b'\n').count());
+    for byte in token {
+        if *byte == b'\n' {
+            adapted.push(b'\r');
+        }
+        adapted.push(*byte);
     }
-
-    #[cfg(test)]
-    fn source_bytes(&self) -> &[u8] {
-        &self.bytes
-    }
+    adapted
 }
 
 #[cfg(test)]
 mod tests {
     use super::{
-        CanonicalBlueRecoverySourceDelta, GreenPulseSourceDelta, IntentRouteRemovalSourceDelta,
-        MalformedPulseSourceDelta, PortalFocusFallbackSourceDelta, BLUE_TOKEN, GREEN_TOKEN,
-        IDENTITY_TARGET_ROUTE_BINDING, INTENT_ROUTE_BINDING, PORTAL_PRIMARY_COMPONENT,
-        PORTAL_PRIMARY_ROUTE_BINDING,
+        token_for_source_line_endings, CanonicalBlueRecoverySourceDelta, GreenPulseSourceDelta,
+        IntentRouteRemovalSourceDelta, MalformedPulseSourceDelta, BLUE_TOKEN, GREEN_TOKEN,
+        IDENTITY_TARGET_ROUTE_BINDING, INTENT_ROUTE_BINDING, PORTAL_PRIMARY_ROUTE_BINDING,
     };
     use crate::installation::{CanonicalPlatformPulse, IsolatedPulseInstallation};
 
@@ -304,30 +272,51 @@ mod tests {
     #[test]
     fn route_removal_targets_the_identity_action_without_erasing_the_portal_action() {
         let canonical = CanonicalPlatformPulse::checked_in();
-        assert_eq!(count(canonical.source_bytes(), INTENT_ROUTE_BINDING), 2);
+        assert_eq!(count(canonical.source_bytes(), INTENT_ROUTE_BINDING), 1);
+        let portal_source = canonical.portal_primary_source_bytes();
+        assert_eq!(
+            count(
+                portal_source,
+                &token_for_source_line_endings(portal_source, PORTAL_PRIMARY_ROUTE_BINDING),
+            ),
+            1
+        );
         let removal = IntentRouteRemovalSourceDelta::from_checked_in(canonical)
             .expect("identity action route remains uniquely addressable");
-        assert_eq!(count(removal.source_bytes(), INTENT_ROUTE_BINDING), 1);
+        assert_eq!(count(removal.source_bytes(), INTENT_ROUTE_BINDING), 0);
         assert_eq!(
-            count(removal.source_bytes(), IDENTITY_TARGET_ROUTE_BINDING),
+            count(
+                removal.source_bytes(),
+                &token_for_source_line_endings(
+                    removal.source_bytes(),
+                    IDENTITY_TARGET_ROUTE_BINDING
+                ),
+            ),
             0
         );
         assert_eq!(
-            count(removal.source_bytes(), PORTAL_PRIMARY_ROUTE_BINDING),
+            count(
+                portal_source,
+                &token_for_source_line_endings(portal_source, PORTAL_PRIMARY_ROUTE_BINDING),
+            ),
             1
         );
     }
 
     #[test]
-    fn portal_focus_fallback_delta_removes_only_the_preferred_portal_participant() {
-        let canonical = CanonicalPlatformPulse::checked_in();
-        let delta = PortalFocusFallbackSourceDelta::from_checked_in(canonical)
-            .expect("portal primary component remains uniquely addressable");
-        assert_eq!(count(delta.source_bytes(), PORTAL_PRIMARY_COMPONENT), 0);
-        assert_eq!(count(delta.source_bytes(), PORTAL_PRIMARY_ROUTE_BINDING), 0);
+    fn source_tokens_preserve_lf_and_crlf_without_normalizing_the_source() {
+        let token = b"first\nsecond";
         assert_eq!(
-            count(delta.source_bytes(), IDENTITY_TARGET_ROUTE_BINDING),
-            1
+            token_for_source_line_endings(b"first\nsecond", token),
+            token
+        );
+        assert_eq!(
+            token_for_source_line_endings(b"first\r\nsecond", token),
+            b"first\r\nsecond"
+        );
+        assert_eq!(
+            token_for_source_line_endings(b"prior\r\nfirst\nsecond", token),
+            token
         );
     }
 

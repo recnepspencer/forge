@@ -1,8 +1,8 @@
 use worth_ui_platform_pulse::observation_contract::{
-    PlatformPulseIntentAttemptObservationReference, PlatformPulseIntentExecutorGateObservation,
-    PlatformPulseIntentOperabilityObservation, PlatformPulseIntentPostureObservation,
-    PlatformPulseLifecycleObservation, PlatformPulseQueryActionObservation,
-    PlatformPulseQueryAdmissionDenial,
+    PlatformPulseCommandTransitionInspection, PlatformPulseIntentAttemptObservationReference,
+    PlatformPulseIntentExecutorGateObservation, PlatformPulseIntentOperabilityObservation,
+    PlatformPulseIntentPostureObservation, PlatformPulseLifecycleObservation,
+    PlatformPulseQueryActionObservation, PlatformPulseQueryAdmissionDenial,
 };
 
 use super::{
@@ -11,7 +11,7 @@ use super::{
 };
 use crate::source_delta::{PulseSourceDeltaIdentity, QueryDenialRequestedIntentDelta};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct PlatformPulseRuntimeServiceStoryEvidence {
     input_sequence: u64,
     application_action_sequence: u64,
@@ -20,15 +20,18 @@ pub(crate) struct PlatformPulseRuntimeServiceStoryEvidence {
     portal_terminal_sequence: u64,
     active_query_source_revision: u64,
     submitted_query_source_revision: u64,
+    application_command: PlatformPulseCommandTransitionInspection,
+    portal_command: PlatformPulseCommandTransitionInspection,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub(super) struct PlatformPulseApplicationCommandEvidence {
     input_sequence: u64,
     action_sequence: u64,
     terminal_sequence: u64,
     active_query_source_revision: u64,
     submitted_query_source_revision: u64,
+    command: PlatformPulseCommandTransitionInspection,
 }
 
 pub(super) fn exercise_application(
@@ -48,7 +51,7 @@ pub(super) fn exercise_application(
         ));
     }
     let input_sequence = await_denial_input(world)?;
-    let (action_sequence, terminal_sequence, active, submitted) = invoke(world)?;
+    let (action_sequence, terminal_sequence, active, submitted, command) = invoke(world)?;
     if !(input_sequence < action_sequence && action_sequence < terminal_sequence) {
         return Err(PlatformPulsePortalJourneyFailure::RuntimeServiceEvidence(
             "application command lifecycle sequence was not causal",
@@ -60,6 +63,7 @@ pub(super) fn exercise_application(
         terminal_sequence,
         active_query_source_revision: active,
         submitted_query_source_revision: submitted,
+        command,
     })
 }
 
@@ -67,7 +71,8 @@ pub(super) fn exercise_portal(
     world: &mut NativeBoundExecutableWorld,
     application: PlatformPulseApplicationCommandEvidence,
 ) -> Result<PlatformPulseRuntimeServiceStoryEvidence, PlatformPulsePortalJourneyFailure> {
-    let (portal_action_sequence, portal_terminal_sequence, active, submitted) = invoke(world)?;
+    let (portal_action_sequence, portal_terminal_sequence, active, submitted, portal_command) =
+        invoke(world)?;
     if application.active_query_source_revision != active
         || application.submitted_query_source_revision != submitted
         || application.terminal_sequence >= portal_action_sequence
@@ -85,23 +90,29 @@ pub(super) fn exercise_portal(
         portal_terminal_sequence,
         active_query_source_revision: active,
         submitted_query_source_revision: submitted,
+        application_command: application.command,
+        portal_command,
     })
 }
 
 fn invoke(
     world: &mut NativeBoundExecutableWorld,
-) -> Result<(u64, u64, u64, u64), PlatformPulsePortalJourneyFailure> {
+) -> Result<
+    (u64, u64, u64, u64, PlatformPulseCommandTransitionInspection),
+    PlatformPulsePortalJourneyFailure,
+> {
     run_platform_command(world)?;
     let admitted = await_admitted(world)?;
     await_executor_started(world, admitted)?;
     let (action_sequence, active_query_source_revision, submitted_query_source_revision) =
         await_query_denial(world, admitted)?;
-    let terminal_sequence = await_denied_posture(world)?;
+    let (terminal_sequence, command) = await_denied_posture(world)?;
     Ok((
         action_sequence,
         terminal_sequence,
         active_query_source_revision,
         submitted_query_source_revision,
+        command,
     ))
 }
 
@@ -205,7 +216,7 @@ fn await_query_denial(
 
 fn await_denied_posture(
     world: &mut NativeBoundExecutableWorld,
-) -> Result<u64, PlatformPulsePortalJourneyFailure> {
+) -> Result<(u64, PlatformPulseCommandTransitionInspection), PlatformPulsePortalJourneyFailure> {
     loop {
         let envelope = next(world, WatchedPulseTransition::IntentPosturePublished)?;
         match envelope.outcome() {
@@ -215,7 +226,12 @@ fn await_denied_posture(
                     PlatformPulseIntentPostureObservation::Denied
                 ) && posture.frame().diagnostic_value() > 0 =>
             {
-                return Ok(envelope.sequence().value())
+                let command = posture.latest_command_transition().cloned().ok_or(
+                    PlatformPulsePortalJourneyFailure::RuntimeServiceEvidence(
+                        "typed command inspection was absent from the native command turn",
+                    ),
+                )?;
+                return Ok((envelope.sequence().value(), command));
             }
             outcome if incidental_visual(outcome) => {}
             outcome => return Err(unexpected(outcome)),
@@ -224,7 +240,7 @@ fn await_denied_posture(
 }
 
 impl PlatformPulseRuntimeServiceStoryEvidence {
-    pub(crate) const fn sequences(self) -> [u64; 5] {
+    pub(crate) const fn sequences(&self) -> [u64; 5] {
         [
             self.input_sequence,
             self.application_action_sequence,
@@ -234,11 +250,15 @@ impl PlatformPulseRuntimeServiceStoryEvidence {
         ]
     }
 
-    pub(crate) const fn active_query_source_revision(self) -> u64 {
+    pub(crate) const fn active_query_source_revision(&self) -> u64 {
         self.active_query_source_revision
     }
 
-    pub(crate) const fn submitted_query_source_revision(self) -> u64 {
+    pub(crate) const fn submitted_query_source_revision(&self) -> u64 {
         self.submitted_query_source_revision
+    }
+
+    pub(crate) fn command_transitions(&self) -> [&PlatformPulseCommandTransitionInspection; 2] {
+        [&self.application_command, &self.portal_command]
     }
 }

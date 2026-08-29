@@ -201,8 +201,6 @@ impl PlatformPulseApplicationRuntime {
         while self.terminal_error.is_none()
             && self.pending_managed_rebind.is_none()
             && self.pending_frame_presentation.is_none()
-            && self.visual_identity.content_mutation_readiness()
-                == super::super::PlatformPulseContentMutationReadiness::Ready
         {
             let Some(prepared) = self.pending_intent_postures.pop_front() else {
                 return;
@@ -270,9 +268,10 @@ impl PlatformPulseApplicationRuntime {
             self.fail_intent_settlement("intent posture receipt omitted mounted publication");
             return false;
         };
-        if let Err(error) = self
-            .publisher
-            .intent_posture_published(observation, mounted)
+        let command_transition = super::latest_command_transition(shell);
+        if let Err(error) =
+            self.publisher
+                .intent_posture_published(observation, mounted, command_transition)
         {
             self.fail(
                 super::super::PlatformPulseTerminalError::ObservationPublication,

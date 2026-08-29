@@ -7,8 +7,7 @@ use crate::lifecycle_observation_publication::{
 };
 use crate::source_watch::PlatformPulseSourceWatch;
 use crate::visual_identity_execution::{
-    PlatformPulseContentMutationReadiness, PlatformPulseVisualExecutionDenial,
-    PlatformPulseVisualIdentityExecution,
+    PlatformPulseVisualExecutionDenial, PlatformPulseVisualIdentityExecution,
 };
 
 mod composition;
@@ -137,17 +136,6 @@ impl PlatformPulseApplicationRuntime {
         if let Err(denial) = result {
             self.fail_visual_identity(denial);
         }
-    }
-
-    fn prepare_content_mutations(&mut self) -> bool {
-        if self.visual_identity.content_mutation_readiness()
-            == PlatformPulseContentMutationReadiness::DeferredForVisualComparison
-        {
-            self.advance_visual_identity();
-        }
-        self.terminal_error.is_none()
-            && self.visual_identity.content_mutation_readiness()
-                != PlatformPulseContentMutationReadiness::DeferredForVisualComparison
     }
 
     fn fail_visual_identity(&mut self, denial: PlatformPulseVisualExecutionDenial) {

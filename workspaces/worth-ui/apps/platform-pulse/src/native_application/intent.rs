@@ -1,6 +1,7 @@
 use super::{PlatformPulseApplicationRuntime, PlatformPulseTerminalError};
 
 mod clock;
+mod command_inspection;
 mod evidence_index;
 mod execution;
 mod native_ingress;
@@ -10,6 +11,7 @@ mod product_cycle;
 mod product_input;
 
 pub(super) use clock::{PlatformPulseIntentClock, PlatformPulseIntentClockDenial};
+pub(super) use command_inspection::latest_command_transition;
 pub(super) use evidence_index::PlatformPulseIntentEvidenceIndex;
 pub(super) use execution::PlatformPulsePendingIntentConsequence;
 pub(super) use native_ingress::{

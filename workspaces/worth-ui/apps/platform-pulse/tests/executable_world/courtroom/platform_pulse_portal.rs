@@ -3,7 +3,9 @@ use crate::product_process::{
     PlatformPulseNativeSampleFrameEvidence, PlatformPulsePortalJourneyEvidence,
 };
 use worth_ui_platform_pulse::observation_contract::{
-    PlatformPulseSemanticFocusCause, PlatformPulseSemanticFocusPhysicalOutcome,
+    PlatformPulseCommandLossReasonInspection, PlatformPulseCommandScopeInspection,
+    PlatformPulseSemanticFocusCause, PlatformPulseSemanticFocusOutcome,
+    PlatformPulseSemanticFocusPhysicalOutcome,
 };
 
 use super::platform_pulse_cleanup::close_recovered_at_sequence;
@@ -39,8 +41,33 @@ fn assert_runtime_service_story(evidence: &PlatformPulsePortalJourneyEvidence) {
     let [active, submitted] = evidence.runtime_service_query_revisions();
     assert_eq!(submitted, active + 1);
     let [command_pixels, query_denial_pixels] = evidence.runtime_service_changed_pixels();
+    assert!(evidence.runtime_service_query_posture_changed_pixels() >= 24);
     assert!(command_pixels >= 24);
     assert!(query_denial_pixels >= 24);
+    let [application, portal] = evidence.runtime_service_command_transitions();
+    assert_eq!(
+        application.winner(),
+        "platform.pulse.command.run.application"
+    );
+    assert_eq!(
+        application.scope(),
+        PlatformPulseCommandScopeInspection::Application
+    );
+    assert!(application.losing_candidate().is_none());
+    assert_eq!(portal.winner(), "platform.pulse.command.run.portal");
+    assert_eq!(
+        portal.scope(),
+        PlatformPulseCommandScopeInspection::ActivePortal
+    );
+    let losing = portal
+        .losing_candidate()
+        .expect("the active-Portal winner must retain the losing application candidate");
+    assert_eq!(losing.command(), "platform.pulse.command.run.application");
+    assert_eq!(
+        losing.reason(),
+        PlatformPulseCommandLossReasonInspection::LowerScopePrecedence
+    );
+    assert!(portal.revision() > application.revision());
 }
 
 fn assert_native_motion_samples(evidence: &ExecutableLifecycleCleanupEvidence) {
@@ -68,6 +95,7 @@ fn assert_native_motion_samples(evidence: &ExecutableLifecycleCleanupEvidence) {
 
 fn assert_portal_focus(evidence: &PlatformPulsePortalJourneyEvidence) {
     let [opened, escape_close] = evidence.focus_publications();
+    let fallback = evidence.focus_rebind_inspection();
     assert_eq!(
         opened.cause(),
         PlatformPulseSemanticFocusCause::PortalInitial
@@ -78,6 +106,24 @@ fn assert_portal_focus(evidence: &PlatformPulsePortalJourneyEvidence) {
     );
     assert!(opened.current().is_some());
     assert!(opened.host_request().is_some());
+    assert_eq!(
+        fallback.cause(),
+        PlatformPulseSemanticFocusCause::RebindFallback
+    );
+    assert_eq!(
+        fallback.previous_mounted_instance(),
+        opened
+            .current()
+            .map(|participant| participant.mounted_instance())
+    );
+    assert!(fallback.current_mounted_instance().is_some());
+    assert_ne!(
+        fallback.current_mounted_instance(),
+        fallback.previous_mounted_instance()
+    );
+    assert_eq!(fallback.outcome(), PlatformPulseSemanticFocusOutcome::Moved);
+    assert!(fallback.participants_visited() > 0);
+    assert!(fallback.revision() > opened.revision());
     assert_eq!(
         escape_close.cause(),
         PlatformPulseSemanticFocusCause::PortalRestoration
