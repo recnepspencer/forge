@@ -89,7 +89,7 @@ impl RelationalRuntime {
                     // Taking the retained result also takes responsibility for
                     // releasing its published snapshot.
                     RelationalSettlementResultOwner::Witness => {
-                        if let Some(closeout) = &settled.closeout {
+                        if let Some(closeout) = settled.closeout {
                             closeout.transfer_release_obligation();
                         }
                         Ok(RelationalSettlementCompletion::Repeated {
@@ -196,8 +196,9 @@ impl RelationalRuntime {
     ///
     /// Both settlement lanes reach here, and a performed witness may still be
     /// live on either of them, so the closeout is never closed here. A witness
-    /// claim takes the release obligation with the result; a retention no
-    /// caller ever claims closes when this record is dropped.
+    /// claim moves the release obligation out with the result; a retention no
+    /// caller ever claims closes when this record is dropped, which is the one
+    /// remaining release because no other party may hold this obligation.
     fn record_terminal_settlement(
         record: &Arc<PendingRelationalPublicationSettlement>,
         receipt: RelationalCommitReceipt,
@@ -207,7 +208,7 @@ impl RelationalRuntime {
     ) -> RelationalSettlementCompletion {
         match result_owner {
             RelationalSettlementResultOwner::Witness => {
-                if let Some(closeout) = &closeout {
+                if let Some(closeout) = closeout {
                     closeout.transfer_release_obligation();
                 }
                 record.record_settled(receipt.clone(), None, None);

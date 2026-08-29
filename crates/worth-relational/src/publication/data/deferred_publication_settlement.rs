@@ -10,12 +10,16 @@ use crate::publication::patch::data::PatchStreamPosition;
 /// The capability is deliberately non-serializable. Clones retain the same
 /// sealed route evidence; only the runtime that performed that route can mint
 /// one or accept it for repair.
+///
+/// It names a record the runtime owns. It carries route evidence and a lookup
+/// key, never a runtime resource obligation, so holding, cloning, or dropping
+/// it can neither release, extend, nor withhold the published snapshot of the
+/// commit it names.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeferredPublicationSettlement {
     runtime_instance_id: u64,
     positioned: Arc<PositionedCanonicalCommit>,
     performed_result: Arc<crate::transactions::data::CommitResult>,
-    snapshot_closeout: crate::runtime::PublishedSnapshotCloseout,
 }
 
 impl DeferredPublicationSettlement {
@@ -23,13 +27,11 @@ impl DeferredPublicationSettlement {
         runtime_instance_id: u64,
         positioned: Arc<PositionedCanonicalCommit>,
         performed_result: crate::transactions::data::CommitResult,
-        snapshot_closeout: crate::runtime::PublishedSnapshotCloseout,
     ) -> Self {
         Self {
             runtime_instance_id,
             positioned,
             performed_result: Arc::new(performed_result),
-            snapshot_closeout,
         }
     }
 

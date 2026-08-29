@@ -29,6 +29,10 @@ pub(crate) struct PerformedRelationalSettlement {
 
 /// Settlement whose derived completion already ran and whose only missing step
 /// is the exact durable append.
+///
+/// `snapshot_closeout` is the runtime's sole obligation for this deferral. The
+/// external carrier this record exposes is a view of the record, so it may not
+/// hold a second copy of the obligation.
 pub(crate) struct DeferredRelationalSettlement {
     pub(crate) positioned: Arc<PositionedCanonicalCommit>,
     pub(crate) performed_result: Arc<CommitResult>,
@@ -42,10 +46,10 @@ pub(crate) struct DeferredRelationalSettlement {
 /// commit result, which is exactly the repair case. Immediate settlement hands
 /// its result to the witness holder instead of copying it.
 ///
-/// `closeout` travels with `result` and is consumed by the same claim: whoever
-/// takes the commit result also takes releasing its published snapshot. If no
-/// caller ever claims it, dropping this record drops the closeout, which
-/// closes the handle rather than leaking it.
+/// `closeout` travels with `result` and moves to the same claim: whoever takes
+/// the commit result also takes releasing its published snapshot. If no caller
+/// ever claims it, dropping this record drops the closeout, which closes the
+/// handle rather than leaking it.
 pub(crate) struct SettledRelationalSettlement {
     pub(crate) receipt: RelationalCommitReceipt,
     pub(crate) result: Option<Arc<CommitResult>>,
@@ -258,7 +262,6 @@ impl PendingRelationalPublicationSettlement {
                     self.runtime_instance_id,
                     Arc::clone(&deferred.positioned),
                     deferred.performed_result.as_ref().clone(),
-                    deferred.snapshot_closeout.clone(),
                 ),
             ),
             _ => None,
