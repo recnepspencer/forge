@@ -49,7 +49,6 @@ that the owner did not already retain.
 | `DiscardedRelationalCommitCandidate` | `facade::mvcc` | Evidence that a candidate was consumed without movement |
 | `RelationalPublicationOutcome` | `facade::mvcc` | Typed result of owner compare-and-publish |
 | `PerformedRelationalCommit` | `facade::mvcc` | Non-cloneable witness of in-process component movement |
-| `CanonicalCommitEnvelope` | `facade::replay` | The one canonical commit artifact a performed movement produced |
 | `RelationalCommitReceipt` | `facade::history` | The one terminal answer for a settled commit identity |
 | `CommitResult` | `facade::mvcc` | Full settlement result, issued once to one claimant |
 | `CommitId` | `facade::history` | Owner-issued identity; a registry lookup key only |
@@ -83,10 +82,20 @@ alive. Holding one never excludes another owner operation.
 
 The runtime exposes the same authorities directly through `&self` conveniences,
 including observation, readmission, retention, transaction admission,
-preparation, fork, and settlement. Two lifecycle operations are the exception in
-this milestone: `archive_branch` and `delete_branch` take
-`&mut RelationalRuntime`. The Bridge must sequence them outside concurrent owner
-work rather than assume the shared-borrow posture of the four services.
+preparation, fork, and settlement.
+
+The shared-borrow guarantee covers those four services, not the runtime's whole
+surface. Alongside them the runtime keeps exclusive-borrow operations that take
+`&mut RelationalRuntime`, and three of them are visible to this port:
+`archive_branch`, `delete_branch`, and `run_branch_root_reclamation_pass`, whose
+`RelationalBranchRootReclamationOutcome` is re-exported through `facade::branch`.
+The Bridge must sequence archive and delete outside concurrent owner work rather
+than assume the shared-borrow posture of the four services.
+
+Reclamation is separate maintenance, not part of the handoff. The Bridge does not
+invoke `run_branch_root_reclamation_pass`; the owner runs it on its own explicit
+cold path, and it never occurs inside observation, transaction admission, or
+ordinary publication.
 
 ## Observation and readmission
 
@@ -269,12 +278,16 @@ fork-only `AdmittedRelationalForkSourceBasis` alongside its
 new reference cell, and shares the exact immutable source root by identity.
 
 `RelationalForkOutcome` is evidence: it reports source, target, and provenance
-observations, and does not mint a basis. `RelationalForkDenial` separates
-`SourceBranchMissing`, `SourceArchived`, `SourceDeleting`, `EmptySource`,
-`DuplicateTarget`, `RetiredTarget`, `StaleSource`, `ForeignRuntime`,
-`MissingArtifact`, `InvalidTarget`, `OwnerUnavailable`, and the bounded
-retention classes. A composite owner may request or record a fork but cannot
-manufacture the target cell.
+observations, and does not mint a basis. `RelationalForkDenial` is the complete
+set of sixteen: `SourceBranchMissing`, `SourceArchived`, `SourceDeleting`,
+`EmptySource`, `DuplicateTarget`, `RetiredTarget`, `ForeignRuntime`,
+`StaleSource`, `MissingArtifact`, `InvalidTarget`, `Cell`,
+`RetentionCapacityExhausted`, `RetentionOwnerUnavailable`,
+`RetentionIdentityExhausted`, `RetentionInvariantViolation`, and
+`OwnerUnavailable`. `Cell` carries a `RelationalBranchCellDenial` from the target
+reference cell itself and is neither a source refusal nor a bounded-retention
+class. A composite owner may request or record a fork but cannot manufacture the
+target cell.
 
 ## Deletion and immutable retention
 
@@ -399,7 +412,12 @@ Milestone 9.17.2 may not:
 - construct a compatibility representation of an owner artifact, or expose a
   combined component authority as though Relational issued it;
 - wrap an owner runtime in a global lock or otherwise reintroduce whole-runtime
-  exclusivity across the four shared services; or
+  exclusivity across the four shared services;
+- consume any `facade::replay` surface, including `CanonicalCommitEnvelope`,
+  `RelationalReplayRequest`, and `RelationalReplayOutcome`. Replay and
+  reconstruction are certification-only and are granted to no Bridge artifact;
+  the lawful terminal answers for a settled movement are `RelationalCommitReceipt`
+  and `CommitResult`; or
 - promise physical persistence or restart recovery for the in-memory owner.
 
 ## Memory and durability boundary
