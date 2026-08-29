@@ -277,22 +277,47 @@ cargo test -p worth-relational --test relational_certification --no-fail-fast
 ```
 
 The complete Scale admission court, maximum 4,096-fork slope, and maximum
-retained-history ceiling are scheduled so the ordinary loop stays responsive.
-Run them explicitly with:
+retained-history ceiling are `#[ignore]`d so the ordinary loop stays
+responsive. They are not optional evidence: the `WORTH Relational scheduled
+certification` job executes all three on the nightly schedule and on
+`workflow_dispatch`, each under its own step and its exact compiled name.
+
+| Scheduled proof (exact compiled name) | CI step in the `WORTH Relational scheduled certification` job |
+| --- | --- |
+| `scale_invariant_admission::large_runtime_keeps_global_enforcement_and_filters_graph_planning` | Run mandatory ignored Scale admission proof |
+| `root_fork_sharing::phase5_standard_fork_copy_slope_is_flat_through_4096_forks` | Run mandatory ignored maximum fork-slope proof |
+| `root_cost_scale_axes::selected_publication_cost_is_flat_through_documented_retention_ceiling` | Run mandatory ignored retained-history ceiling proof |
+
+Each step runs the command below verbatim, so a local reproduction and its lane
+cannot drift apart:
 
 ```text
-cargo test -p worth-relational --test relational_certification \
-  scale_invariant_admission::large_runtime_keeps_global_enforcement_and_filters_graph_planning \
-  -- --ignored --exact --nocapture --test-threads=1
+bash scripts/ci/run_relational_named_test_selection.sh \
+  --test relational_certification --exact --ignored \
+  --selection scale_invariant_admission::large_runtime_keeps_global_enforcement_and_filters_graph_planning
 
-cargo test -p worth-relational --test relational_certification \
-  root::sharing::fork::phase5_standard_fork_copy_slope_is_flat_through_4096_forks \
-  -- --ignored --exact --nocapture --test-threads=1
+bash scripts/ci/run_relational_named_test_selection.sh \
+  --test relational_certification --exact --ignored \
+  --selection root_fork_sharing::phase5_standard_fork_copy_slope_is_flat_through_4096_forks
 
-cargo test -p worth-relational --test relational_certification \
-  root::cost::scale_axes::selected_publication_cost_is_flat_through_documented_retention_ceiling \
-  -- --ignored --exact --nocapture --test-threads=1
+bash scripts/ci/run_relational_named_test_selection.sh \
+  --test relational_certification --exact --ignored \
+  --selection root_cost_scale_axes::selected_publication_cost_is_flat_through_documented_retention_ceiling
 ```
+
+Those are compiled test names, not source paths. The certification target
+declares every module with `#[path]`, so `root/sharing/fork.rs` compiles as
+`root_fork_sharing` and `root/cost/scale_axes.rs` as `root_cost_scale_axes`; a
+filter written from the directory layout selects nothing and a bare
+`cargo test` reports that as `0 passed`. The selection authority is what turns
+that into a red lane: under `--ignored` it counts what will really execute and
+fails at zero, so a renamed module, a deleted proof, or a proof that quietly
+lost its `#[ignore]` convicts here instead of passing silently. `--exact` is
+kept because `selected_publication_cost_is_flat_through_ordinary_retained_histories`
+shares the ceiling proof's prefix.
+
+The same job runs the two hostile CDC resume certifications as `--lib`
+selections through that one authority.
 
 Scale is scheduled because its production installation is the complete
 106,563-record causal world, not a reduced substitute. The scheduled test
