@@ -301,6 +301,63 @@ baseline-publication ceilings, direct GraphComposition `Touched` result and
 one-call counters, ordinary publication lowering, ordinary graph exclusion,
 and duplicate-rejection behavior.
 
+## Feature-gated evidence commands
+
+Three certification courts are compiled only under the `test-operation-control`
+feature, because they need the test-only boundary pause hook. The feature
+supplies observation and pausing only; it cannot change authority, outcome
+meaning, or production transition logic. The ordinary command above does not
+compile these courts, so each one has its own push/PR CI step that names it
+exactly:
+
+| Court | CI step in the `build-and-test` job |
+| --- | --- |
+| `mvcc_cancellation_publication_boundaries::` (2 tests) | worth-relational operation-control cancellation lane |
+| `mvcc_owner_phase_locality::…preparation…` | worth-relational operation-control preparation locality lane |
+| `mvcc_owner_phase_locality::…publication…` | worth-relational operation-control publication locality lane |
+| `schema_transition_cancellation::…` | worth-relational operation-control schema transition cancellation lane |
+
+Each step runs the command below verbatim, so a local reproduction and its lane
+cannot drift apart:
+
+```text
+bash scripts/ci/run_relational_named_test_selection.sh \
+  --test relational_certification --features test-operation-control \
+  --selection mvcc_cancellation_publication_boundaries::
+
+bash scripts/ci/run_relational_named_test_selection.sh \
+  --test relational_certification --features test-operation-control --exact \
+  --selection mvcc_owner_phase_locality::paused_supply_chain_preparation_leaves_an_unrelated_branch_commit_unblocked
+
+bash scripts/ci/run_relational_named_test_selection.sh \
+  --test relational_certification --features test-operation-control --exact \
+  --selection mvcc_owner_phase_locality::paused_supply_chain_publication_leaves_an_unrelated_branch_commit_unblocked
+
+bash scripts/ci/run_relational_named_test_selection.sh \
+  --test relational_certification --features test-operation-control --exact \
+  --selection schema_transition_cancellation::cancelled_schema_transition_leaves_no_target_or_branch_residue
+```
+
+That script is the single selection authority for named Relational lanes. Its
+preflight and its execution share one filter vector, so a lane cannot assert one
+selection and run another, and it fails the lane when the filter reaches zero
+compiled tests or only `#[ignore]`d ones. The two locality selections are
+`--exact` on purpose: a namespace filter proves only that some court ran, so a
+deleted or renamed court would keep the lane green.
+
+The locality courts park one Supply Chain branch inside a real owner phase, at
+the first `CandidatePreparation` observation and at `BeforeCriticalSection`
+respectively, and require an unrelated branch to complete a full ordinary commit
+through the public facade while that park is held. The evidence is exact zero
+coordination contact and wait deltas on the parked branch, an unchanged parked
+branch reference, a maintenance head that advances exactly one canonical commit,
+and an oracle match once both phases finish. A regression to a whole-runtime
+exclusive borrow convicts at compile time rather than here; what these courts
+convict is a runtime gate that serializes independent branches. Their reach is
+bounded accordingly: preparation parks near the top of its phase and cannot
+speak for a gate taken later in it, and **settlement locality is not yet
+covered** because the independently borrowable settlement port is later work.
+
 ## Preservation evidence
 
 Supply Chain is additive evidence. It does not replace Fintech, CAD, Chip, or
@@ -396,8 +453,10 @@ The Version Boundary lane installs Hazard Classification V2 through the public
 schema transition, executes V1/V2 acceptance and rejection cases, observes
 exact pre- and post-transition roots, and proves canonical replay and recovery
 preserve schema meaning. The controlled transition-cancellation test is gated
-by `test-operation-control`; ordinary CI does not compile its test-only pause
-hook, while the feature-enabled certification command executes it explicitly.
+by `test-operation-control`, so the ordinary certification command above does
+not compile its test-only pause hook. The push/PR operation-control lanes build
+the feature-enabled target and execute this court under its own exact named
+selection; see [Feature-gated evidence commands](#feature-gated-evidence-commands).
 
 ## Contract retained for merge certification
 
