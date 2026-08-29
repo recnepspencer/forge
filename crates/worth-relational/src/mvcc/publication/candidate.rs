@@ -17,7 +17,6 @@ pub struct PreparedRelationalCommitCandidate {
     _payload: std::sync::Arc<std::sync::Mutex<Option<CandidatePayload>>>,
     expires_at: std::time::Instant,
     pub(crate) maximum_lifetime_millis: u64,
-    maximum_published_snapshot_handles: usize,
     reservation_count: usize,
     consumed: bool,
     _not_sync: PhantomData<Cell<()>>,
@@ -46,7 +45,6 @@ pub(super) struct PreparedRelationalPublicationParts {
     pub(super) control: crate::mvcc::RelationalOperationControl,
     pub(super) expires_at: std::time::Instant,
     pub(super) maximum_lifetime_millis: u64,
-    pub(super) maximum_published_snapshot_handles: usize,
 }
 
 pub(crate) enum PreparedRelationalCandidateAdmissionStop {
@@ -69,7 +67,6 @@ impl PreparedRelationalCommitCandidate {
         control: crate::mvcc::RelationalOperationControl,
         maximum_lifetime_millis: u64,
         maximum_candidates: usize,
-        maximum_published_snapshot_handles: usize,
     ) -> Result<Self, PreparedRelationalCandidateAdmissionStop> {
         let expires_at = std::time::Instant::now()
             .checked_add(std::time::Duration::from_millis(maximum_lifetime_millis))
@@ -112,7 +109,6 @@ impl PreparedRelationalCommitCandidate {
             _payload: payload,
             expires_at,
             maximum_lifetime_millis,
-            maximum_published_snapshot_handles,
             reservation_count,
             consumed: false,
             _not_sync: PhantomData,
@@ -171,7 +167,6 @@ impl PreparedRelationalCommitCandidate {
             control: payload.control,
             expires_at: self.expires_at,
             maximum_lifetime_millis: self.maximum_lifetime_millis,
-            maximum_published_snapshot_handles: self.maximum_published_snapshot_handles,
         })
     }
 

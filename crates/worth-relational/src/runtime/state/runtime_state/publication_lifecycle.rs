@@ -134,13 +134,12 @@ impl RelationalRuntimePublicationBinding {
     }
 
     /// Install the one pending-settlement record for this attempt before the
-    /// publication critical section. Capacity exhaustion is therefore a
-    /// no-movement deferral discovered before linearization.
+    /// publication critical section, so a moved branch head is never observable
+    /// without its owner recovery record.
     pub(crate) fn reserve_pending_settlement(
         &self,
         commit_id: crate::history::data::CommitId,
         runtime_instance_id: u64,
-        maximum_handles: usize,
         reserved: super::ReservedRelationalSettlement,
     ) -> Result<
         super::RelationalPendingSettlementReservation,
@@ -150,7 +149,6 @@ impl RelationalRuntimePublicationBinding {
             &self.lifecycle.settlements,
             commit_id,
             runtime_instance_id,
-            maximum_handles,
             reserved,
         )
     }

@@ -15,7 +15,6 @@ pub(crate) use record::{
 /// before movement.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum RelationalSettlementReservationDenial {
-    CapacityExhausted { maximum_handles: usize },
     DuplicateCommitIdentity,
     OwnerUnavailable,
 }
@@ -23,7 +22,15 @@ pub(crate) enum RelationalSettlementReservationDenial {
 /// The one runtime-owned registry of pending publication settlements.
 ///
 /// Admission, lookup, transition, and removal are O(1) by owner-issued commit
-/// identity and bounded by the configured published-snapshot handle maximum.
+/// identity.
+///
+/// The registry is bounded by construction rather than by a second capacity
+/// check. Only a prepared candidate can reach admission, every prepared
+/// candidate already holds one of the `max_published_snapshot_handles` slots,
+/// and that slot stays held until the settled commit's published snapshot is
+/// released. So the record count can never exceed the configured maximum, and
+/// preparation is the one boundary that reports exhaustion.
+///
 /// The index lock below is taken only for those constant-bounded operations; it
 /// never spans branch waiting, durability I/O, derived work, or a test pause.
 #[derive(Debug, Default)]
@@ -53,7 +60,6 @@ impl RelationalPublicationSettlementRegistry {
         registry: &Arc<Self>,
         commit_id: CommitId,
         runtime_instance_id: u64,
-        maximum_handles: usize,
         reserved: ReservedRelationalSettlement,
     ) -> Result<RelationalPendingSettlementReservation, RelationalSettlementReservationDenial> {
         registry.contacts.fetch_add(1, Ordering::Relaxed);
@@ -68,11 +74,6 @@ impl RelationalPublicationSettlementRegistry {
         let mut records = registry.records();
         if records.contains_key(&commit_id) {
             return Err(RelationalSettlementReservationDenial::DuplicateCommitIdentity);
-        }
-        if records.len() >= maximum_handles {
-            return Err(RelationalSettlementReservationDenial::CapacityExhausted {
-                maximum_handles,
-            });
         }
         records.insert(commit_id, Arc::clone(&record));
         drop(records);

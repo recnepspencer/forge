@@ -1,3 +1,5 @@
+use std::sync::{Arc, Barrier};
+
 use crate::facade::history::BranchId;
 use crate::facade::mvcc::{
     PreparedRelationalCommitCandidate, RelationalInterruptionBoundary, RelationalOperationControl,
@@ -120,10 +122,12 @@ fn interrupted_publication_releases_its_pending_settlement_reservation() {
     }
 }
 
-/// Published-snapshot capacity bounds the pending registry as well. Exhausting
-/// it is a no-movement deferral, so no settlement state may survive it.
+/// Published-snapshot capacity is bounded once, at preparation. Every prepared
+/// candidate already holds one of the configured handles, so exhaustion is
+/// reported before a candidate exists and long before the pre-effect settlement
+/// reservation: the registry needs no second capacity check to stay bounded.
 #[test]
-fn published_snapshot_capacity_exhaustion_retains_no_pending_settlement() {
+fn published_snapshot_capacity_defers_at_preparation_without_reaching_settlement() {
     let mut runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .publication(PublicationConfig {
@@ -142,13 +146,16 @@ fn published_snapshot_capacity_exhaustion_retains_no_pending_settlement() {
     let first = create_entity_outcome(&mut runtime, "capacity-first");
     let second = create_entity_outcome(&mut runtime, "capacity-second");
     let before = test_owner_main_basis(&runtime).unwrap();
+    let contacts_before = runtime
+        .publication_binding()
+        .pending_settlement_contact_count();
 
     let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
     transaction
         .push_batch(batch_create("capacity-third"))
         .unwrap();
     assert!(matches!(
-        transaction.commit(&mut runtime),
+        runtime.prepare_branch_transaction(transaction),
         Err(
             crate::transactions::data::TransactionCommitError::PublicationDeferred {
                 deferred:
@@ -161,9 +168,16 @@ fn published_snapshot_capacity_exhaustion_retains_no_pending_settlement() {
     ));
 
     assert_eq!(
+        runtime
+            .publication_binding()
+            .pending_settlement_contact_count(),
+        contacts_before,
+        "capacity is refused at preparation, so settlement admission is never contacted"
+    );
+    assert_eq!(
         runtime.publication_binding().pending_settlement_count(),
         0,
-        "capacity exhaustion retains no settlement reservation"
+        "a candidate that never existed retains no settlement reservation"
     );
     assert_eq!(
         test_owner_main_basis(&runtime).unwrap().descriptor(),
@@ -172,6 +186,66 @@ fn published_snapshot_capacity_exhaustion_retains_no_pending_settlement() {
     );
     release_test_commit_snapshot(&mut runtime, &first);
     release_test_commit_snapshot(&mut runtime, &second);
+}
+
+/// The reservation is installed before the effect, not after it. Pausing at the
+/// linearization point observes a branch reference that has already moved, and
+/// its settlement record must already exist at that instant.
+#[test]
+fn the_pending_settlement_record_exists_before_the_moved_head_is_observable() {
+    let mut runtime = runtime_with_test_schema();
+    create_entity(&mut runtime, "pre-effect-install-anchor");
+    let identity = runtime.main_branch_identity();
+    let (_, basis) = runtime.observe_branch(&identity).unwrap();
+    let reached = Arc::new(Barrier::new(2));
+    let release = Arc::new(Barrier::new(2));
+    let control = RelationalOperationControl::uninterrupted()
+        .with_post_linearization_pause(Arc::clone(&reached), Arc::clone(&release));
+    let mut transaction = runtime
+        .begin_branch_transaction_with_control(
+            &basis,
+            RelationalTransactionIntent::ordinary(),
+            control,
+        )
+        .unwrap();
+    transaction
+        .push_batch(batch_create("pre-effect-install"))
+        .unwrap();
+    let candidate = runtime.prepare_branch_transaction(transaction).unwrap();
+    let reference_before = runtime
+        .branch_reference_state(&BranchId("main".to_owned()))
+        .unwrap();
+    let binding = runtime.publication_binding();
+    let port = runtime.publication_port();
+
+    let publisher = std::thread::spawn(move || port.compare_and_publish(candidate));
+    reached.wait();
+    // Both observations are taken before releasing the paused publisher, so a
+    // failing assertion cannot strand it on the barrier.
+    let reference_at_pause = runtime
+        .branch_reference_state(&BranchId("main".to_owned()))
+        .unwrap();
+    let pending_at_pause = binding.pending_settlement_count();
+    release.wait();
+
+    assert_ne!(
+        reference_at_pause, reference_before,
+        "the pause observes a branch reference that already crossed linearization"
+    );
+    assert_eq!(
+        pending_at_pause, 1,
+        "movement is never observable before the settlement record that recovers it"
+    );
+
+    let crate::mvcc::RelationalPublicationOutcome::Performed(performed) = publisher.join().unwrap()
+    else {
+        panic!("an uncontended paused candidate performs");
+    };
+    let settled = runtime
+        .settle_performed_publication(performed)
+        .expect("the paused movement settles through its installed record");
+    assert_eq!(runtime.publication_binding().pending_settlement_count(), 0);
+    release_test_commit_snapshot(&mut runtime, &settled);
 }
 
 fn prepared_main_write(

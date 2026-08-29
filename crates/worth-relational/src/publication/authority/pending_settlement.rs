@@ -171,33 +171,54 @@ impl RelationalRuntime {
         }
         self.history.mark_publication_settled(commit_id);
         let receipt = positioned.envelope().commit.clone();
-        let completion = self.record_terminal_settlement(record, receipt, committed, result_owner);
+        // A receipt-only executor keeps the published snapshot open, because a
+        // performed witness may still be live and owed this exact result.
+        let closeout = match result_owner {
+            RelationalSettlementResultOwner::Witness => None,
+            RelationalSettlementResultOwner::Runtime => self
+                .visibility
+                .published_snapshot_closeout(committed.snapshot.snapshot_id()),
+        };
+        let completion = Self::record_terminal_settlement(
+            record,
+            receipt,
+            Arc::new(committed),
+            closeout,
+            result_owner,
+        );
         self.publication_binding()
             .release_pending_settlement(record);
         Ok(completion)
     }
 
-    /// Record the one terminal answer and hand the commit result to whichever
-    /// party owns releasing its published snapshot.
+    /// Record the one terminal answer and settle who releases the published
+    /// snapshot the commit result names.
+    ///
+    /// Both settlement lanes reach here, and a performed witness may still be
+    /// live on either of them, so the closeout is never closed here. A witness
+    /// claim takes the release obligation with the result; a retention no
+    /// caller ever claims closes when this record is dropped.
     fn record_terminal_settlement(
-        &mut self,
         record: &Arc<PendingRelationalPublicationSettlement>,
         receipt: RelationalCommitReceipt,
-        committed: CommitResult,
+        committed: Arc<CommitResult>,
+        closeout: Option<crate::runtime::PublishedSnapshotCloseout>,
         result_owner: RelationalSettlementResultOwner,
     ) -> RelationalSettlementCompletion {
         match result_owner {
             RelationalSettlementResultOwner::Witness => {
+                if let Some(closeout) = &closeout {
+                    closeout.transfer_release_obligation();
+                }
                 record.record_settled(receipt.clone(), None, None);
-                RelationalSettlementCompletion::Performed { receipt, committed }
+                RelationalSettlementCompletion::Performed {
+                    receipt,
+                    committed: Arc::try_unwrap(committed)
+                        .unwrap_or_else(|shared| shared.as_ref().clone()),
+                }
             }
-            // No witness took this result, so the runtime keeps it claimable
-            // and keeps its published snapshot open for that exact claim.
             RelationalSettlementResultOwner::Runtime => {
-                let closeout = self
-                    .visibility
-                    .published_snapshot_closeout(committed.snapshot.snapshot_id());
-                record.record_settled(receipt.clone(), Some(Arc::new(committed)), closeout);
+                record.record_settled(receipt.clone(), Some(committed), closeout);
                 RelationalSettlementCompletion::Repeated {
                     receipt,
                     committed: None,
@@ -254,29 +275,16 @@ impl RelationalRuntime {
             self.history.mark_publication_settled(commit_id);
         }
         let receipt = positioned.envelope().commit.clone();
-        let completion = match result_owner {
-            // The witness holder takes the result it was always owed, so its
-            // published snapshot is released by that holder, not closed here.
-            RelationalSettlementResultOwner::Witness => {
-                deferred.snapshot_closeout.transfer_release_obligation();
-                record.record_settled(receipt.clone(), None, None);
-                RelationalSettlementCompletion::Performed {
-                    receipt,
-                    committed: Arc::try_unwrap(deferred.performed_result)
-                        .unwrap_or_else(|shared| shared.as_ref().clone()),
-                }
-            }
-            // Reaching durability deferral consumed the performed witness, so
-            // no later caller can claim this result and the handle closes now.
-            RelationalSettlementResultOwner::Runtime => {
-                deferred.snapshot_closeout.close();
-                record.record_settled(receipt.clone(), Some(deferred.performed_result), None);
-                RelationalSettlementCompletion::Repeated {
-                    receipt,
-                    committed: None,
-                }
-            }
-        };
+        // Durability deferral is reachable from commit-identity repair while a
+        // performed witness is still live, so this lane hands the closeout to
+        // the same terminal recording rule as immediate settlement.
+        let completion = Self::record_terminal_settlement(
+            record,
+            receipt,
+            deferred.performed_result,
+            Some(deferred.snapshot_closeout),
+            result_owner,
+        );
         self.publication_binding()
             .release_pending_settlement(record);
         Ok(completion)

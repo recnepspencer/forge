@@ -139,10 +139,6 @@ impl PublishedSnapshotCloseout {
         }
     }
 
-    pub(crate) fn close(&self) {
-        self.inner.close();
-    }
-
     /// Hand the release obligation to the holder of the commit result that
     /// names this snapshot. Every clone of this closeout stops closing on
     /// drop, so the handle is released once by its new owner and not here.
