@@ -4,9 +4,12 @@ This document freezes the Relational component boundary that Query Milestone
 9.17.2 may consume. It is a port over owner-issued artifacts and typed outcomes,
 not access to Relational internals and not a composite commit implementation.
 
-The complete owner mental model is in
-[`BRANCH_LOCAL_MVCC.md`](./BRANCH_LOCAL_MVCC.md). The executable publication
-flow is [`examples/branch_local_mvcc.rs`](./examples/branch_local_mvcc.rs).
+This file is the normative contract for the Runtime Bridge. The complete caller
+mental model is in [`BRANCH_LOCAL_MVCC.md`](./BRANCH_LOCAL_MVCC.md), which
+explains the model to ordinary Relational callers and does not bind the Bridge.
+The executable publication flow is
+[`examples/branch_local_mvcc.rs`](./examples/branch_local_mvcc.rs). Certification
+lanes are documented in [`TESTING_WORLDS.md`](./TESTING_WORLDS.md).
 
 ## Ownership rule
 
@@ -16,7 +19,9 @@ Relational alone owns:
 - the branch-reference catalog, lifecycle, generation, and current root;
 - schema admission, transaction validation, and immutable root construction;
 - canonical Relational commits, history, patches, snapshots, and replay input;
-- branch-local compare-and-publish and publication settlement; and
+- branch-local compare-and-publish and publication settlement;
+- the pre-effect pending-settlement registry keyed by owner-issued commit
+  identity, and the single executor that drains it; and
 - component retention and reclamation accounting.
 
 A later composite owner may hold, compare, retain, and coordinate artifacts
@@ -24,23 +29,64 @@ issued by this port. It cannot mint them, rewrite their fields, derive identity
 from a digest or version, choose a Relational head from a proxy, or mutate a
 component branch directly.
 
+An owner-issued `CommitId` is a lookup key into Relational's own registry. It is
+never reconstructible settlement authority, and holding one grants no capability
+that the owner did not already retain.
+
 ## Artifacts available to 9.17.2
 
-| Artifact | Meaning | Authority posture |
+| Artifact | Facade route | Authority posture |
 | --- | --- | --- |
-| `RelationalBranchIdentity` | One runtime-owned mutable reference identity | Selects only after owner validation |
-| `RelationalBranchBasisDescriptor` | Serializable exact target and generation | Descriptive; must be readmitted |
-| `AdmittedRelationalBranchBasis` | Exact owner admission with retained immutable root | Accepted by governed component operations |
-| `RelationalBranchObservation` | Exact read selection derived from an admitted basis | Opens owner snapshot reads, not writes |
-| `RelationalBranchRetentionLease` | External obligation preserving one exact target | Runtime-affine and single-release |
-| `PreparedRelationalCommitCandidate` | Validated, branch-bound, single-use proposed successor | May enter only its owner's publication port |
-| `RelationalPublicationOutcome` | Typed result of owner compare-and-publish | Distinguishes movement from no movement |
-| `PerformedRelationalCommit` | Non-cloneable proof of in-process component movement | Must return to the owner for settlement |
-| `RelationalForkOutcome` | Exact source/target/provenance observation after owner fork | Evidence only; does not mint a basis |
-| lifecycle outcomes | Owner result for archive or delete | Preserve pending versus completed deletion |
+| `RelationalBranchIdentity` | `facade::branch` | Selects one mutable reference only after owner validation |
+| `RelationalBranchBasisDescriptor` | `facade::branch` | Serializable exact target and generation; descriptive, must be readmitted |
+| `AdmittedRelationalBranchBasis` | `facade::branch` | Exact owner admission holding its immutable root resident |
+| `RelationalBranchObservation` | `facade::mvcc` | Exact read selection; opens owner snapshot reads, not writes |
+| `RelationalBranchBasisDenial` | `facade::branch` | Typed readmission and observation refusal |
+| `RelationalBranchRetentionLease` | `facade::branch` | External residency obligation; runtime-affine and single-terminal |
+| `RelationalBranchRetentionReleaseReceipt` | `facade::branch` | Evidence that one lease reached one terminal path |
+| `RelationalBranchRetentionReleaseDenial` | `facade::branch` | Refused release that returns the still-live lease |
+| `PreparedRelationalCommitCandidate` | `facade::mvcc` | Validated, branch-bound, single-use proposed successor |
+| `DiscardedRelationalCommitCandidate` | `facade::mvcc` | Evidence that a candidate was consumed without movement |
+| `RelationalPublicationOutcome` | `facade::mvcc` | Typed result of owner compare-and-publish |
+| `PerformedRelationalCommit` | `facade::mvcc` | Non-cloneable witness of in-process component movement |
+| `CanonicalCommitEnvelope` | `facade::replay` | The one canonical commit artifact a performed movement produced |
+| `RelationalCommitReceipt` | `facade::history` | The one terminal answer for a settled commit identity |
+| `CommitResult` | `facade::mvcc` | Full settlement result, issued once to one claimant |
+| `CommitId` | `facade::history` | Owner-issued identity; a registry lookup key only |
+| `DeferredPublicationSettlement` | `facade::publication` | Accepted external carrier for one durability-deferred route |
+| `DeferredPublicationSettlementError` | `facade::publication` | Typed repair refusal |
+| `TransactionCommitError` | `facade::mvcc` | Typed settlement and convenience-commit failure |
+| `RelationalBranchPublicationAuthority` | `facade::branch` | Concrete owner-sealed publication authority, with its own marker type |
+| `RelationalForkOutcome` and `RelationalForkDenial` | `facade::branch` | Fork evidence and typed refusal; evidence does not mint a basis |
+| `ArchivedRelationalBranch` and `RelationalBranchArchiveDenial` | `facade::branch` | Archive result and typed refusal |
+| `RelationalBranchDeletionOutcome` | `facade::branch` | Deletion result carrying completed or pending deletion |
+| `RelationalBranchDeleteDenial` | `facade::branch` | Typed deletion refusal |
+| `RelationalBranchSharingObservation` | `facade::inspection` | Read-only sharing evidence; not a currentness authority |
+| `RelationalMvccCostObservation` | `facade::inspection` | Read-only cost evidence; not a currentness authority |
 
 Canonical encodings and digests aid transport and comparison. They do not
 replace owner identity, readmission, retention, or currentness.
+
+## Owner services
+
+Relational exposes four independently borrowable owner services. Each is
+`Clone + Send + Sync`, takes `&self`, carries one runtime affinity and one
+lifecycle gate, and holds no strong reference that could keep a finished runtime
+alive. Holding one never excludes another owner operation.
+
+| Service | Facade route | Obtained from | Operations |
+| --- | --- | --- | --- |
+| `RelationalPreparationPort` | `facade::mvcc` | `preparation_port()` | `prepare_branch_transaction`, `discard_prepared_candidate` |
+| `RelationalForkPort` | `facade::branch` | `fork_port()` | `observe_fork_source`, `fork_branch` |
+| `RelationalPublicationPort` | `facade::mvcc` | `publication_port()` | `compare_and_publish` |
+| `RelationalSettlementPort` | `facade::mvcc` | `settlement_port()` | `settle_performed_publication`, `repair_deferred_publication_settlement`, `repair_pending_publication_settlement`, `retains_pending_settlement`, `runtime_instance_id` |
+
+The runtime exposes the same authorities directly through `&self` conveniences,
+including observation, readmission, retention, transaction admission,
+preparation, fork, and settlement. Two lifecycle operations are the exception in
+this milestone: `archive_branch` and `delete_branch` take
+`&mut RelationalRuntime`. The Bridge must sequence them outside concurrent owner
+work rather than assume the shared-borrow posture of the four services.
 
 ## Observation and readmission
 
@@ -51,63 +97,152 @@ process, message, or trust boundary, it returns through
 target, `readmit_retained_branch_basis` checks both the descriptor and lease
 against the same owner.
 
-Readmission can deny foreign runtime, identity mismatch, stale generation,
-wrong immutable target, unavailable or archived branch, unavailable retained
-target, and bounded retention failures. Callers must preserve these classes;
-flattening them into a generic "head changed" result destroys retry and safety
-semantics.
+`RelationalBranchBasisDenial` separates, among others,
+`UnsupportedDescriptorVersion`, `ForeignRuntime`, `UnknownBranch`,
+`ArchivedBranch`, `DeletingBranch`, `StaleReferenceGeneration`,
+`WrongImmutableTarget`, `MixedAxis`, `UnavailableRetainedTarget`,
+`RetentionCapacityExhausted`, and `OwnerFailure`. The Bridge must preserve these
+classes; flattening them into a generic "head changed" result destroys retry and
+safety semantics.
 
 ## Retention contract
 
 Before a composite artifact promises that a component basis remains usable,
-it acquires `retain_component_basis`. Ownership of the returned lease is part
-of the composite artifact's lifecycle. Exactly one of these terminal actions
-must occur:
+it acquires `retain_component_basis`. Ownership of the returned
+`RelationalBranchRetentionLease` is part of the composite artifact's lifecycle.
+Exactly one of these three terminal actions occurs, and there is no fourth:
 
-- transfer the lease into the performed successor artifact;
-- release it with `release_component_basis`;
-- return it in a typed denial when owner mismatch prevents release; or
-- let its explicit terminal accounting report owner loss.
+- `release_component_basis` consumes the lease and returns
+  `RelationalBranchRetentionReleaseReceipt`, carrying the exact `descriptor()`
+  and a `RelationalBranchRetentionTerminalOutcome` of `Released` or
+  `OwnerUnavailable`;
+- release against a runtime that does not own the lease returns
+  `RelationalBranchRetentionReleaseDenial`, which carries the typed `denial()`
+  and the still-live lease. `into_lease()` recovers it, and it remains
+  releasable by its true owner; or
+- dropping the lease performs the same owner-internal release and records
+  dropped-release accounting, but produces no receipt.
 
-A lease preserves residency, not freshness. The branch may advance while an
-older exact target remains retained. A composite owner must compare or readmit
-before treating any basis as current.
+There is no operation that transfers a lease into a performed successor
+artifact. A composite owner that needs residency past publication acquires a new
+lease from the successor basis.
 
-## Preparation and publication
+Dropped-release accounting is owner-internal instrumentation, not a public
+counter. A lease preserves residency, not freshness: the branch may advance
+while an older exact target remains retained, so a composite owner must compare
+or readmit before treating any basis as current.
+
+## Preparation, candidate consumption, and publication
 
 The component publication progression is:
 
 ```text
 admitted predecessor basis
   -> begin_branch_transaction
-  -> prepare_branch_transaction
+  -> preparation_port.prepare_branch_transaction
   -> PreparedRelationalCommitCandidate
   -> publication_port.compare_and_publish
   -> Performed | Stale | Denied | Interrupted | Deferred | Failed
-  -> settle_performed_publication, only for Performed
+  -> settlement_port.settle_performed_publication, only for Performed
 ```
 
-Preparation performs validation and immutable-root construction without
-moving the branch. The candidate is opaque and can be consumed only once.
-`compare_and_publish` is the Relational linearization point; the composite
+Preparation performs validation and immutable-root construction without moving
+the branch. It also reserves the candidate's published-snapshot handle, so that
+bounded capacity is refused here rather than at movement.
+
+`compare_and_publish` takes the candidate by value and consumes it on every
+outcome, including every no-movement outcome. There is no partially consumed
+candidate, no residue, and no reusable candidate after any result. A candidate
+the Bridge no longer intends to publish is consumed through
+`discard_prepared_candidate`, which returns `DiscardedRelationalCommitCandidate`.
+
+`compare_and_publish` is the Relational linearization point, so the composite
 owner must not infer movement from candidate creation, a reserved commit ID,
 patch bytes, or diagnostics.
 
-Outcome handling is exact:
+## Retry posture after no movement
 
-- `Performed` means the Relational reference moved. It carries the canonical
-  component commit and successor admitted basis. Cancellation reported after
-  linearization is attached to this performed evidence.
-- `Stale` means expected and observed reference observations differ and no
-  component movement was performed by this attempt.
-- `Denied`, `Interrupted`, `Deferred`, and `Failed` are no-movement results for
-  this candidate. They retain their typed owner reason.
+Every no-movement outcome leaves the branch reference where it was. A retry is a
+fresh transaction and a fresh candidate, because the consumed candidate cannot
+be resubmitted. The still-admitted `AdmittedRelationalBranchBasis` may be reused
+directly: `begin_branch_transaction` takes the basis by reference and
+revalidates it, so holding a basis across a failed attempt is lawful and no new
+observation is owed merely because the attempt did not move the branch.
 
-After `Performed`, the component owner must run
-`settle_performed_publication`. Settlement acknowledges durability posture,
-history/patch availability, and optional projection repair through the one
-canonical commit route. A composite layer cannot relabel an unsettled
-component movement as rollback or erase it because a sibling component failed.
+`RelationalPublicationDeferred::PatchPositionReservationContended` in particular
+is a loss on the runtime-wide patch-position allocator, taken before any branch
+movement and shared across branches. The losing attempt performed no movement
+and did not make this branch stale, so a same-basis retry is the correct
+response.
+
+Ordinary validation still answers when the branch really did move: admission
+returns `RelationalBranchTransactionAdmissionDenial::StaleBasis`, and comparison
+returns `RelationalPublicationOutcome::Stale` carrying complete `expected()` and
+`observed()` descriptors. The owner never silently retries, never rebases under
+a changed basis, and never returns a reusable candidate.
+
+## Preinstalled bounded pending settlement
+
+Before the publication critical section, the owner installs one pending
+settlement record in its own registry, keyed by the candidate's owner-issued
+commit identity. Installation happens ahead of movement so that no observer can
+ever see a moved branch head whose owner recovery lookup has no record.
+
+Every stale, denied, interrupted, deferred, or failed-before-movement path
+releases that exact reservation before returning. Successful movement authorizes
+the already-installed record against the exact positioned canonical commit; it
+does not create the record.
+
+Between movement and authorization the identity is addressable as work in
+progress. Repair by identity answers
+`DeferredPublicationSettlementError::SettlementInProgress`, never a missing
+record.
+
+The registry is bounded by the same published-snapshot handle budget the
+candidate already reserved at preparation. Exhaustion is reported there as
+`RelationalPublicationDeferred::PublishedSnapshotCapacityExhausted`, carrying
+`maximum_handles`, so a pending record can exist only for a candidate that
+already holds one of the configured handles. Prepared candidates are separately
+bounded by `CandidateCapacityExhausted`, carrying `maximum_candidates`. Reusing
+a commit identity that already owns a pending record is refused before any
+effect as `RelationalPublicationFailureKind::PendingSettlementIdentityConflict`.
+
+`PerformedRelationalCommit` is a non-cloneable witness and the preferred
+immediate settlement path, but it does not own recovery. Dropping it records
+capability abandonment and nothing else: it cannot remove the record, release
+the retention obligation, mark the route settled, or make repair unavailable.
+
+## Lost-capability repair
+
+Two repair routes address the same runtime-owned record, and both run through
+the one executor:
+
+- `repair_deferred_publication_settlement` accepts the exact
+  `DeferredPublicationSettlement` carrier a durability deferral produced. The
+  carrier is a view of the record, never a second registry or a compatibility
+  authority lane. It is checked against the record's retained route before any
+  effect, and a mismatch is refused as `PerformedRouteMismatch`.
+- `repair_pending_publication_settlement` addresses the same record by `CommitId`
+  when the capability holder was lost entirely.
+
+`settle_performed_publication` and both repair routes enter one per-commit
+executor gate before claiming any work. Concurrent or repeated callers therefore
+converge on one terminal receipt and never repeat a durable append or a derived
+completion. A repeated call after settlement returns the same
+`RelationalCommitReceipt`, including when the record itself has already been
+released.
+
+Both repair routes return `RelationalCommitReceipt`. Only
+`settle_performed_publication` returns the full `CommitResult`, which is issued
+once to one claimant along with responsibility for releasing its published
+snapshot.
+
+`retains_pending_settlement` reports whether this runtime still holds an
+unsettled record for an identity. It is a posture question, not a capability.
+
+When the owning runtime closes settlement admission, it drains every pending
+record exactly once. A later repair then answers
+`DeferredPublicationSettlementError::OwnerUnavailable` rather than a receipt.
 
 ## Cancellation contract
 
@@ -116,58 +251,166 @@ Before Relational linearization, cancellation or timeout returns a typed
 the critical section, movement wins: the owner returns `Performed` with
 `late_interruption` evidence, and settlement remains mandatory.
 
+Interruption reported after movement is not a no-movement path. The pending
+record survives it, so recovery by commit identity stays available even if the
+witness is then lost.
+
 This distinction is the handoff needed by coordinated publication. It prevents
 a composite owner from claiming "nothing happened" after one component has
 already moved. Milestone 9.17.2 must use its own typed prepare/compatibility/
 publication protocol to ensure no half-current product world; it may not
 simulate component rollback through raw Relational mutation.
 
-## Fork and lifecycle posture
+## Fork posture
 
-Fork consumes an owner-issued `AdmittedRelationalForkSourceBasis`, creates one
-new reference, and shares the immutable source root. A later composite owner
-may request or record this outcome but cannot manufacture the target cell.
+Fork is a separate owner transition. `observe_fork_source` issues a linear,
+fork-only `AdmittedRelationalForkSourceBasis` alongside its
+`RelationalForkSourceDescriptor`. `fork_branch` consumes that basis, creates one
+new reference cell, and shares the exact immutable source root by identity.
 
-Archive denies new ordinary work after its metadata movement. Delete forbids
-the main branch and may return `WaitingForActiveOperations` while retained
-transactions, candidates, snapshots, performed settlements, or external leases
-remain. Composite cleanup must retain this pending state and retry through the
-owner; it cannot delete owner catalog entries itself.
+`RelationalForkOutcome` is evidence: it reports source, target, and provenance
+observations, and does not mint a basis. `RelationalForkDenial` separates
+`SourceBranchMissing`, `SourceArchived`, `SourceDeleting`, `EmptySource`,
+`DuplicateTarget`, `RetiredTarget`, `StaleSource`, `ForeignRuntime`,
+`MissingArtifact`, `InvalidTarget`, `OwnerUnavailable`, and the bounded
+retention classes. A composite owner may request or record a fork but cannot
+manufacture the target cell.
+
+## Deletion and immutable retention
+
+`delete_branch` takes `&mut RelationalRuntime` and is forbidden for the main
+branch, which is refused as `RelationalBranchDeleteDenial::MainBranch`.
+
+Deletion is gated on branch-scoped active operations, and those are exactly
+three: open branch-bound transactions, prepared candidates, and performed but
+unsettled settlements. While any remain, the owner returns
+`RelationalBranchDeletionOutcome::WaitingForActiveOperations`, whose
+`RelationalBranchDeletionPending` reports `identity()` and
+`active_operation_count()`. That outcome also marks the branch `Deleting` and
+reserves its retired name, so new transaction admission is denied as `Deleting`
+and publication is denied as `RelationalPublicationDenial::Deleting`.
+
+Admitted observations, pinned snapshots, and external component-retention leases
+are not active operations and do not delay deletion. A Bridge that releases every
+lease before requesting deletion pays for a barrier the owner never required.
+
+When no active operation remains, deletion removes the mutable branch reference
+and retires that branch's head root, reporting
+`DeletedRelationalBranch::retired_root_identity()`. It retires only the removed
+head; shared ancestors survive while another branch or obligation retains them.
+
+Immutable retention is orthogonal to reference deletion. A lease, an admitted
+basis, or a snapshot taken before deletion continues to name its exact immutable
+target after the reference is gone, and that state stays resident for the
+lifetime of the obligation. Residency is not existence: once the branch is gone,
+`readmit_retained_branch_basis` still checks descriptor and lease against the
+same owner, and the retained target is not readmissible as a live branch basis.
+The Bridge may not treat retained residency as evidence that the branch still
+exists, and it must still reach every retained lease's terminal action.
+
+Archive is the separate, non-destructive posture: `archive_branch` advances
+lifecycle metadata and denies new ordinary work without retiring the root.
+
+Composite cleanup must retain the pending state and retry through the owner. It
+cannot delete owner catalog entries itself.
+
+## Exact terminal outcomes
+
+These are the complete sets the Bridge must match on.
+
+`RelationalPublicationOutcome`: `Performed`, `Stale`, `Denied`, `Interrupted`,
+`Deferred`, `Failed`.
+
+`RelationalPublicationDenial`: `OwnerUnavailable`, `ForeignRuntime`,
+`OwnerMismatch`, `BranchUnavailable`, `Archived`, `Deleting`.
+
+`RelationalPublicationDeferred`: `PatchPositionReservationContended`,
+`RetentionBackpressure`, `CandidateLifetimeExpired`,
+`CandidateCapacityExhausted`, `PublishedSnapshotCapacityExhausted`.
+
+`RelationalPublicationFailureKind`: `SnapshotIdentityExhausted`,
+`CandidateIdentityExhausted`, `PreparedRootBudgetExhausted`,
+`PreparedRootMismatch`, `PreparedBasisDescriptor`, `NextBasisAdmission`,
+`SelectedRootUnavailable`, `BranchObservation`, `PatchPositionCapacityExhausted`,
+`RetentionIdentityExhausted`, `RetentionOwner`,
+`PendingSettlementIdentityConflict`.
+
+`DeferredPublicationSettlementError`: `RecoveryUnavailable`, `ForeignRuntime`,
+`PerformedRouteMissing`, `PerformedRouteMismatch`, `SettlementInProgress`,
+`OwnerUnavailable`, `DurableAppend`.
+
+`TransactionCommitError`: `Conflict`, `Publication`, `Preparation`,
+`Interrupted`, `PublicationDenied`, `PublicationDeferred`, `PublicationFailed`,
+and `PerformedButDurabilityDeferred`. Only the last carries performed work; it
+supplies the `DeferredPublicationSettlement` carrier for repair.
+
+`RelationalBranchRetentionTerminalOutcome`: `Released`, `OwnerUnavailable`.
+
+`RelationalBranchDeletionOutcome`: `Deleted`, `WaitingForActiveOperations`.
+
+`RelationalBranchDeleteDenial`: `ForeignRuntime`, `UnknownBranch`, `MainBranch`,
+`RetentionBackpressure`, `RetentionIdentityExhausted`,
+`RetiredIdentityCapacityExhausted`, `OwnerFailure`.
+
+One current gap is stated here rather than implied: preparing a descendant of a
+commit that still requires explicit owner settlement is refused as an untyped
+`TransactionCommitError::Publication` at `PublicationStage::Visibility` with a
+detail string. There is no dedicated typed kind in this milestone, and the Bridge
+must not match a variant that does not exist.
 
 ## Allowed 9.17.2 integration
 
 Milestone 9.17.2 may:
 
+- obtain the four independently borrowable owner services from one runtime
+  through shared access;
 - carry exact Relational and Signal component descriptors in one Bridge-owned
   correspondence;
 - readmit and retain each component basis through its owner;
 - prepare component work without claiming currentness changed;
 - compare component predecessor observations with the correspondence;
-- consume typed component publication outcomes;
+- consume typed component publication and settlement outcomes;
+- recover a performed component movement by owner commit identity after
+  capability loss;
 - publish a Bridge-owned product reference only through its specified
   coordinated protocol; and
 - transfer or release every component retention obligation explicitly.
+
+## Forbidden Bridge behavior
 
 Milestone 9.17.2 may not:
 
 - construct or deserialize an admitted Relational basis;
 - select a branch through `None`, a raw name, a version, a commit ID, a digest,
   a snapshot, or an ambient `"main"` fallback;
-- accept a generic `AuthorityMarker` as component authority;
+- accept a generic `AuthorityMarker` in place of the concrete owner-sealed
+  Relational authority types;
+- retain only a branch id, or treat currentness as residency or residency as
+  currentness;
+- resubmit a consumed candidate, or treat prepared, stale, denied, deferred, or
+  interrupted work as performed;
+- infer that a no-movement outcome invalidated a still-admitted basis;
+- inspect, enumerate, mirror, or repair the owner's pending-settlement or
+  retention registries, or build a second recovery index beside them;
+- settle a component movement by editing history, or relabel an unsettled
+  movement as rollback because a sibling component failed;
 - call private root, branch-cell, history-catalog, or raw publication mutation;
 - create a second Relational currentness table inside Bridge or Query;
-- expose a combined component authority as though Relational issued it;
-- treat prepared, stale, denied, or interrupted work as performed; or
+- construct a compatibility representation of an owner artifact, or expose a
+  combined component authority as though Relational issued it;
+- wrap an owner runtime in a global lock or otherwise reintroduce whole-runtime
+  exclusivity across the four shared services; or
 - promise physical persistence or restart recovery for the in-memory owner.
 
 ## Memory and durability boundary
 
-Relational branch cells, roots, owner admission, and retention accounting are
-memory-resident. Canonical history and durability settlement remain
-Relational-owned, but restart durability for this branch-owner model is
-deferred to Worth Store integration. The composite owner must preserve this
-posture rather than inventing a serialized owner token or hidden persistence
-abstraction.
+Relational branch cells, roots, owner admission, the pending-settlement
+registry, and retention accounting are memory-resident. Canonical history and
+durability settlement remain Relational-owned, but restart durability for this
+branch-owner model is deferred to Worth Store integration. The pending-settlement
+registry makes no restart-recovery claim: it recovers a lost in-process
+capability, not a lost process. The composite owner must preserve this posture
+rather than inventing a serialized owner token or hidden persistence abstraction.
 
 Signal's corresponding port is documented in
 [`../worth-signal/BRANCH_BASES.md`](../worth-signal/BRANCH_BASES.md#owner-component-port).
