@@ -110,6 +110,8 @@ mod root_named_delta_cow;
 mod root_persistent_path_accounting;
 #[path = "relational_certification/root/copy_on_write/region_reuse.rs"]
 mod root_region_reuse;
+#[path = "relational_certification/root/sharing/metric_truth_lanes.rs"]
+mod root_sharing_metric_truth_lanes;
 #[path = "relational_certification/root/sharing/observation.rs"]
 mod root_sharing_observation;
 #[path = "relational_certification/invariants/admission/scale_profile.rs"]
