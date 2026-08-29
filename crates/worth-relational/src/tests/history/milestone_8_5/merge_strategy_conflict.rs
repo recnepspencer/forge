@@ -6,12 +6,12 @@ pub(super) struct PrimaryStrategyConflictProof {
 }
 
 pub(super) fn certify_primary_strategy_conflict(
-    mut runtime: &RelationalRuntime,
+    runtime: &RelationalRuntime,
     entity: crate::facade::identity::EntityId,
     feature_branch: &BranchId,
 ) -> PrimaryStrategyConflictProof {
     let main_commit = execute_strategy_commit(
-        &mut runtime,
+        runtime,
         IntentReconciliationInput {
             entity_id: entity,
             desired_aspect_fields: strategy_name_and_replicas_patch("service-main", 1),
@@ -25,7 +25,7 @@ pub(super) fn certify_primary_strategy_conflict(
         None,
     );
     let feature_commit = execute_strategy_commit(
-        &mut runtime,
+        runtime,
         ReplicaConvergenceInput {
             entity_id: entity,
             desired_replicas: 7,

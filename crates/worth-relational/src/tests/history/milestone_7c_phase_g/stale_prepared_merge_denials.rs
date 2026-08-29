@@ -10,14 +10,10 @@ use super::schema_fixtures::drifted_schema_registry;
 #[test]
 fn authoritative_merge_execution_certification_rejects_stale_prepared_merge_after_target_advances()
 {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "root");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "root");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -26,7 +22,7 @@ fn authoritative_merge_execution_certification_rejects_stale_prepared_merge_afte
             merge_intent: MergeIntent::ReconcileIntoTarget,
         })
         .expect("prepared merge execution");
-    create_entity(&mut runtime, "main-advance");
+    create_entity(&runtime, "main-advance");
 
     match runtime.execute_prepared_merge(prepared) {
         Err(MergeExecutionError::StaleBranchHead { branch, .. }) => {
@@ -39,14 +35,10 @@ fn authoritative_merge_execution_certification_rejects_stale_prepared_merge_afte
 #[test]
 fn authoritative_merge_execution_certification_rejects_stale_prepared_merge_after_source_advances()
 {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "root");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "root");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -55,11 +47,7 @@ fn authoritative_merge_execution_certification_rejects_stale_prepared_merge_afte
             merge_intent: MergeIntent::ReconcileIntoTarget,
         })
         .expect("prepared merge execution");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-advance",
-        BranchId("feature".to_string()),
-    );
+    create_entity_outcome_on_branch(&runtime, "feature-advance", BranchId("feature".to_string()));
 
     match runtime.execute_prepared_merge(prepared) {
         Err(MergeExecutionError::StaleBranchHead { branch, .. }) => {
@@ -71,14 +59,10 @@ fn authoritative_merge_execution_certification_rejects_stale_prepared_merge_afte
 
 #[test]
 fn authoritative_merge_execution_certification_rejects_metadata_reference_movement() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "root");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "root");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -135,13 +119,9 @@ fn authoritative_merge_execution_certification_rejects_metadata_reference_moveme
 #[test]
 fn authoritative_merge_execution_certification_rejects_schema_semantic_drift_after_planning() {
     let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "root");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    create_entity(&runtime, "root");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {

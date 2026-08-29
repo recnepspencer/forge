@@ -9,8 +9,8 @@ use super::support::runtime_with_test_schema;
 
 #[test]
 fn live_runtime_mints_publication_provenance_and_rejects_foreign_widening_authority() {
-    let mut owner = runtime_with_test_schema();
-    create_entity_outcome(&mut owner, "owner");
+    let owner = runtime_with_test_schema();
+    create_entity_outcome(&owner, "owner");
     let commit = owner
         .publication()
         .latest_bundle()

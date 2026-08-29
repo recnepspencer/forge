@@ -174,11 +174,11 @@ fn traversal_budget_is_session_wide() {
 
 #[test]
 fn touched_scope_tracks_planned_relation_endpoint_updates() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "source");
-    let old_target = create_entity(&mut runtime, "old-target");
-    let new_target = create_entity(&mut runtime, "new-target");
-    let relation_id = create_relation(&mut runtime, source, old_target, "edge");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity(&runtime, "source");
+    let old_target = create_entity(&runtime, "old-target");
+    let new_target = create_entity(&runtime, "new-target");
+    let relation_id = create_relation(&runtime, source, old_target, "edge");
     let intent = MutationIntent::Relation(RelationMutationIntent::UpdateEndpoints(
         UpdateRelationEndpointsIntent {
             relation_id,
@@ -187,7 +187,7 @@ fn touched_scope_tracks_planned_relation_endpoint_updates() {
             target: EntityReference::Existing(new_target),
         },
     ));
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(WorkerIntentBatch::new("rewire").push(intent.clone()))
         .expect("test staging stays within configured resource budgets");
     let merged_plan = MergedCommitPlan {
@@ -221,10 +221,10 @@ fn touched_scope_tracks_planned_relation_endpoint_updates() {
 
 #[test]
 fn touched_scope_tracks_planned_relation_endpoint_updates_to_created_entities() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "source");
-    let old_target = create_entity(&mut runtime, "old-target");
-    let relation_id = create_relation(&mut runtime, source, old_target, "edge");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity(&runtime, "source");
+    let old_target = create_entity(&runtime, "old-target");
+    let relation_id = create_relation(&runtime, source, old_target, "edge");
     let created_target = CreatedEntityRef {
         partition_id: crate::identity::data::PartitionId(1),
         kind_id: KindId(1),
@@ -244,7 +244,7 @@ fn touched_scope_tracks_planned_relation_endpoint_updates_to_created_entities() 
             target: EntityReference::Created(created_target.clone()),
         },
     ));
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("rewire-to-created")
             .push(create_target.clone())
@@ -277,14 +277,14 @@ fn touched_scope_tracks_planned_relation_endpoint_updates_to_created_entities() 
 
 #[test]
 fn touched_scope_tracks_planned_relation_deletes() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    let relation_id = create_relation(&mut runtime, source, target, "edge");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    let relation_id = create_relation(&runtime, source, target, "edge");
     let intent = MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
         relation_id,
     }));
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(WorkerIntentBatch::new("delete").push(intent.clone()))
         .expect("test staging stays within configured resource budgets");
     let merged_plan = MergedCommitPlan {
@@ -313,12 +313,12 @@ fn touched_scope_tracks_planned_relation_deletes() {
 
 #[test]
 fn touched_scope_tracks_planned_entity_deletes() {
-    let mut runtime = runtime_with_test_schema();
-    let entity_id = create_entity(&mut runtime, "entity");
+    let runtime = runtime_with_test_schema();
+    let entity_id = create_entity(&runtime, "entity");
     let intent = MutationIntent::Entity(crate::facade::transactions::EntityMutationIntent::Delete(
         DeleteEntityIntent { entity_id },
     ));
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(WorkerIntentBatch::new("delete-entity").push(intent.clone()))
         .expect("test staging stays within configured resource budgets");
     let merged_plan = MergedCommitPlan {

@@ -9,8 +9,8 @@ use crate::tests::support::*;
 
 #[test]
 fn cancellation_while_waiting_for_publication_coordination_denies_before_movement() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "contended-cancellation-anchor");
+    let runtime = runtime_with_test_schema();
+    create_entity(&runtime, "contended-cancellation-anchor");
     let identity = runtime.main_branch_identity();
     let (_, basis) = runtime.observe_branch(&identity).unwrap();
     let source = RelationalCancellationSource::new();
@@ -65,8 +65,8 @@ fn cancellation_while_waiting_for_publication_coordination_denies_before_movemen
 
 #[test]
 fn cancellation_inside_publication_critical_section_defers_until_performed() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "critical-cancellation-anchor");
+    let runtime = runtime_with_test_schema();
+    create_entity(&runtime, "critical-cancellation-anchor");
     let identity = runtime.main_branch_identity();
     let (_, basis) = runtime.observe_branch(&identity).unwrap();
     let source = RelationalCancellationSource::new();

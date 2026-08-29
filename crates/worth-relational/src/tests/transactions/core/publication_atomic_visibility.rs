@@ -5,8 +5,8 @@ use std::sync::Arc;
 
 #[test]
 fn concurrent_reference_readers_observe_only_complete_old_or_new_roots() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "atomic-reader-anchor");
+    let runtime = runtime_with_test_schema();
+    create_entity(&runtime, "atomic-reader-anchor");
     let old_basis = crate::tests::support::test_owner_main_basis(&runtime).expect("old basis");
     let old_root_id = old_basis.descriptor().root_identity();
 
@@ -132,8 +132,8 @@ fn concurrent_reference_readers_observe_only_complete_old_or_new_roots() {
 
 #[test]
 fn fork_and_publication_consume_complete_old_and_new_roots() {
-    let mut runtime = runtime_with_test_schema();
-    let old_commit = create_entity_outcome(&mut runtime, "fork-race-anchor");
+    let runtime = runtime_with_test_schema();
+    let old_commit = create_entity_outcome(&runtime, "fork-race-anchor");
     let old_basis = crate::tests::support::test_owner_main_basis(&runtime).expect("old basis");
     let old_root_id = old_basis.descriptor().root_identity();
     let (_, fork_source) = runtime

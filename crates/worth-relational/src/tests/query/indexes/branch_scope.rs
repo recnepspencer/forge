@@ -2,8 +2,8 @@ use super::*;
 
 #[test]
 fn derived_index_contract_success_branch_scoped_build_keeps_storage_read() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let main_outcome = create_entity_outcome(&mut runtime, "main-a");
+    let runtime = runtime_with_index_field_aspects();
+    let main_outcome = create_entity_outcome(&runtime, "main-a");
     runtime
         .history_authority()
         .fork_branch_from(
@@ -12,7 +12,7 @@ fn derived_index_contract_success_branch_scoped_build_keeps_storage_read() {
         )
         .unwrap();
     let feature_outcome =
-        create_entity_outcome_on_branch(&mut runtime, "feature-a", BranchId("feature".to_string()));
+        create_entity_outcome_on_branch(&runtime, "feature-a", BranchId("feature".to_string()));
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity.name".to_string(),
@@ -67,8 +67,8 @@ fn derived_index_contract_success_branch_scoped_build_keeps_storage_read() {
 
 #[test]
 fn derived_index_contract_unscoped_generation_is_rejected_for_unsupported_scope() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let main_outcome = create_entity_outcome(&mut runtime, "main-a");
+    let runtime = runtime_with_index_field_aspects();
+    let main_outcome = create_entity_outcome(&runtime, "main-a");
     runtime
         .history_authority()
         .fork_branch_from(
@@ -77,7 +77,7 @@ fn derived_index_contract_unscoped_generation_is_rejected_for_unsupported_scope(
         )
         .unwrap();
     let feature_outcome =
-        create_entity_outcome_on_branch(&mut runtime, "feature-a", BranchId("feature".to_string()));
+        create_entity_outcome_on_branch(&runtime, "feature-a", BranchId("feature".to_string()));
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity.name.global".to_string(),
@@ -133,11 +133,11 @@ fn derived_index_contract_unscoped_generation_is_rejected_for_unsupported_scope(
 #[test]
 fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports_unsupported_branch(
 ) {
-    let mut runtime = runtime_with_index_field_aspects();
-    let main_source = create_entity_outcome(&mut runtime, "main-source");
-    let main_target = create_entity_outcome(&mut runtime, "main-target");
+    let runtime = runtime_with_index_field_aspects();
+    let main_source = create_entity_outcome(&runtime, "main-source");
+    let main_target = create_entity_outcome(&runtime, "main-target");
     let main_relation = create_relation_outcome(
-        &mut runtime,
+        &runtime,
         changed_entities(&main_source)[0],
         changed_entities(&main_target)[0],
         "edge",
@@ -150,17 +150,17 @@ fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports
         )
         .unwrap();
     let feature_source = create_entity_outcome_on_branch(
-        &mut runtime,
+        &runtime,
         "feature-source",
         BranchId("feature".to_string()),
     );
     let feature_target = create_entity_outcome_on_branch(
-        &mut runtime,
+        &runtime,
         "feature-target",
         BranchId("feature".to_string()),
     );
     let mut feature_txn = crate::tests::support::test_owner_begin_transaction_for_branch(
-        &mut runtime,
+        &runtime,
         BranchId("feature".to_string()),
     );
     feature_txn
@@ -181,7 +181,7 @@ fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports
             )),
         )
         .expect("test staging stays within configured resource budgets");
-    let feature_relation = feature_txn.commit(&mut runtime).expect("feature relation");
+    let feature_relation = feature_txn.commit(&runtime).expect("feature relation");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(1),
         name: "relation.label.branch".to_string(),
@@ -240,8 +240,8 @@ fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports
 
 #[test]
 fn derived_index_contract_branch_scoped_generation_reports_unsupported_branch() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let main_outcome = create_entity_outcome(&mut runtime, "main-a");
+    let runtime = runtime_with_index_field_aspects();
+    let main_outcome = create_entity_outcome(&runtime, "main-a");
     runtime
         .history_authority()
         .fork_branch_from(
@@ -250,7 +250,7 @@ fn derived_index_contract_branch_scoped_generation_reports_unsupported_branch() 
         )
         .unwrap();
     let feature_outcome =
-        create_entity_outcome_on_branch(&mut runtime, "feature-a", BranchId("feature".to_string()));
+        create_entity_outcome_on_branch(&runtime, "feature-a", BranchId("feature".to_string()));
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity.name.branch".to_string(),
@@ -307,8 +307,8 @@ fn derived_index_contract_branch_scoped_generation_reports_unsupported_branch() 
 
 #[test]
 fn derived_index_contract_prefers_older_supported_generation_over_newer_unsupported_one() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let main_alpha = create_entity_outcome(&mut runtime, "alpha");
+    let runtime = runtime_with_index_field_aspects();
+    let main_alpha = create_entity_outcome(&runtime, "alpha");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity.name.lookup".to_string(),
@@ -334,7 +334,7 @@ fn derived_index_contract_prefers_older_supported_generation_over_newer_unsuppor
         )
         .unwrap();
     let feature_alpha =
-        create_entity_outcome_on_branch(&mut runtime, "alpha", BranchId("feature".to_string()));
+        create_entity_outcome_on_branch(&runtime, "alpha", BranchId("feature".to_string()));
     let feature_build = runtime
         .index_authority()
         .build_for_commit(DerivedIndexBuildRequest {

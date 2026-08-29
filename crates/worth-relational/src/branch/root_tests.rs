@@ -10,8 +10,8 @@ fn committed_root_and_envelope() -> (
     Arc<super::RelationalBranchRoot>,
     crate::history::data::CanonicalCommitEnvelope,
 ) {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let performed = create_entity_outcome(&mut runtime, "branch-root-axis-binding");
+    let runtime = persisted_runtime_with_test_schema();
+    let performed = create_entity_outcome(&runtime, "branch-root-axis-binding");
     let root = runtime
         .history
         .branch_cell(&BranchId("main".to_owned()))
@@ -27,14 +27,14 @@ fn committed_root_and_envelope() -> (
 
 #[test]
 fn publication_cost_distinguishes_new_and_reused_schema_authority() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "schema-authority-allocation-owner");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "schema-authority-allocation-owner");
     let first = runtime
         .history
         .branch_cell(&BranchId("main".to_owned()))
         .and_then(|cell| cell.root())
         .expect("first commit installs a root");
-    create_entity_outcome(&mut runtime, "schema-authority-reuse");
+    create_entity_outcome(&runtime, "schema-authority-reuse");
     let second = runtime
         .history
         .branch_cell(&BranchId("main".to_owned()))

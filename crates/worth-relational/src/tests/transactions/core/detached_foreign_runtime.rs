@@ -5,14 +5,14 @@ use crate::tests::support::*;
 
 #[test]
 fn foreign_runtime_validation_denials_precede_raw_entity_and_relation_effects() {
-    let mut runtime_a = runtime_with_test_schema();
+    let runtime_a = runtime_with_test_schema();
 
-    let mut invariant_transaction = test_owner_begin_transaction_for_main(&mut runtime_a);
+    let mut invariant_transaction = test_owner_begin_transaction_for_main(&runtime_a);
     stage_raw_entity_relation_graph(&mut invariant_transaction, "invariant");
-    let mut invariant_target = require_interned_runtime();
+    let invariant_target = require_interned_runtime();
     let invariant_target_before = TargetRuntimeState::capture(&invariant_target);
     let invariant_error = invariant_transaction
-        .commit_boundary_plan(&mut invariant_target)
+        .commit_boundary_plan(&invariant_target)
         .expect_err("invariant planning cannot cross its runtime boundary");
     assert!(matches!(
         invariant_error.class,
@@ -20,11 +20,11 @@ fn foreign_runtime_validation_denials_precede_raw_entity_and_relation_effects() 
     ));
     invariant_target_before.assert_unchanged(&invariant_target);
 
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime_a);
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime_a);
     stage_raw_entity_relation_graph(&mut transaction, "validation");
-    let mut validation_target = require_interned_runtime();
+    let validation_target = require_interned_runtime();
     let validation_target_before = TargetRuntimeState::capture(&validation_target);
-    let error = match transaction.validate(&mut validation_target) {
+    let error = match transaction.validate(&validation_target) {
         Err(error) => error,
         Ok(_) => panic!("a transaction cannot cross its runtime boundary"),
     };
@@ -41,13 +41,13 @@ fn foreign_runtime_validation_denials_precede_raw_entity_and_relation_effects() 
 
 #[test]
 fn foreign_runtime_validated_proposal_denial_preserves_exact_target_state() {
-    let mut runtime_a = runtime_with_test_schema();
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime_a);
+    let runtime_a = runtime_with_test_schema();
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime_a);
     stage_raw_entity_relation_graph(&mut transaction, "validated");
     let candidate = transaction
-        .validate(&mut runtime_a)
+        .validate(&runtime_a)
         .expect("source runtime validates its own transaction");
-    let mut runtime_b = require_interned_runtime();
+    let runtime_b = require_interned_runtime();
     let target_before = TargetRuntimeState::capture(&runtime_b);
 
     let error = runtime_b
@@ -66,8 +66,8 @@ fn foreign_runtime_validated_proposal_denial_preserves_exact_target_state() {
 
 #[test]
 fn foreign_runtime_discard_denies_without_public_residue_and_disposes_candidate() {
-    let mut runtime_a = runtime_with_test_schema();
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime_a);
+    let runtime_a = runtime_with_test_schema();
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime_a);
     transaction
         .push_batch(batch_create("prepared-owner-affinity"))
         .expect("test staging stays within configured resource budgets");
@@ -76,7 +76,7 @@ fn foreign_runtime_discard_denies_without_public_residue_and_disposes_candidate(
         .expect("the source owner prepares its own candidate");
     let source_before = TargetRuntimeState::capture(&runtime_a);
 
-    let mut runtime_b = require_interned_runtime();
+    let runtime_b = require_interned_runtime();
     let target_before = TargetRuntimeState::capture(&runtime_b);
     let error = runtime_b
         .discard_prepared_candidate(candidate)

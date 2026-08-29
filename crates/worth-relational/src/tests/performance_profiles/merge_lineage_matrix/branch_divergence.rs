@@ -3,16 +3,16 @@ use super::*;
 pub(super) fn certify_lineage_branch_divergence_breadth(suite: &'static str) {
     let lineage_divergence_samples =
         capture_perf_samples(suite, "lineage_branch_divergence_breadth", || {
-            let mut runtime = runtime_with_test_schema();
-            let created = create_entity_outcome(&mut runtime, "main");
+            let runtime = runtime_with_test_schema();
+            let created = create_entity_outcome(&runtime, "main");
             let start_lineage = runtime
                 .lineage_access()
                 .for_record(changed_entities(&created)[0])
                 .expect("start lineage")
                 .lineage_id;
-            create_branch_from_main(&mut runtime, "feature");
+            create_branch_from_main(&runtime, "feature");
             let _ = create_entity_outcome_on_branch(
-                &mut runtime,
+                &runtime,
                 "feature",
                 BranchId("feature".to_string()),
             );

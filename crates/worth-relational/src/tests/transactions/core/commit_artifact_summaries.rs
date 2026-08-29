@@ -4,8 +4,8 @@ use crate::tests::support::*;
 
 #[test]
 fn commit_log_records_structural_summary_and_phase_progress() {
-    let mut runtime = runtime_with_test_schema();
-    let outcome = create_entity_outcome(&mut runtime, "logged");
+    let runtime = runtime_with_test_schema();
+    let outcome = create_entity_outcome(&runtime, "logged");
     let structural_summary = outcome.structural_summary();
     let history_summary = outcome.history_summary().unwrap();
     let change_summary = outcome.change_summary().unwrap();
@@ -105,8 +105,8 @@ fn commit_log_records_structural_summary_and_phase_progress() {
 
 #[test]
 fn commit_returns_envelope_with_patch_diagnostics_invariants_and_complexity() {
-    let mut runtime = runtime_with_test_schema();
-    let result = create_entity_outcome(&mut runtime, "enveloped");
+    let runtime = runtime_with_test_schema();
+    let result = create_entity_outcome(&runtime, "enveloped");
     let validation_summary = result.validation_summary();
     let structural_summary = result.structural_summary();
     let change_summary = result.change_summary().unwrap();

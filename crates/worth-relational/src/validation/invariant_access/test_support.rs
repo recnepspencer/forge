@@ -193,7 +193,7 @@ pub(super) fn create_entity(
 ) -> crate::identity::data::EntityId {
     let mut txn = {
         let transaction_validation_input =
-            crate::tests::support::test_owner_transaction_validation_input_for_main(&runtime);
+            crate::tests::support::test_owner_transaction_validation_input_for_main(runtime);
         runtime
             .begin_branch_transaction(
                 transaction_validation_input.basis(),

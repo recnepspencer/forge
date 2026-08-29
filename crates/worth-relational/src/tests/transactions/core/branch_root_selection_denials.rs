@@ -19,8 +19,8 @@ fn committed_child(runtime: &crate::runtime::RelationalRuntime) -> BranchId {
 
 #[test]
 fn unavailable_committed_root_denies_before_transaction_admission() {
-    let mut runtime = runtime_with_test_schema();
-    let child = committed_child(&mut runtime);
+    let runtime = runtime_with_test_schema();
+    let child = committed_child(&runtime);
     runtime
         .history
         .branch_cell_mut(&child)
@@ -47,8 +47,8 @@ fn unavailable_committed_root_denies_before_transaction_admission() {
 
 #[test]
 fn committed_root_reference_mismatch_denies_before_transaction_admission() {
-    let mut runtime = runtime_with_test_schema();
-    let child = committed_child(&mut runtime);
+    let runtime = runtime_with_test_schema();
+    let child = committed_child(&runtime);
     runtime
         .history
         .branch_cell_mut(&child)
@@ -71,9 +71,9 @@ fn committed_root_reference_mismatch_denies_before_transaction_admission() {
 
 #[test]
 fn selected_state_shape_keeps_empty_and_committed_roots_distinct() {
-    let mut runtime = runtime_with_test_schema();
+    let runtime = runtime_with_test_schema();
     let empty = BranchId("root-selection-empty".to_owned());
-    install_empty_test_branch(&mut runtime, empty.clone());
+    install_empty_test_branch(&runtime, empty.clone());
     let empty_identity = runtime
         .branch_identity(&empty)
         .expect("empty identity remains owner-issued");

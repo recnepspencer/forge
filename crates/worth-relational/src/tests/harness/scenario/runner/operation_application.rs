@@ -138,7 +138,7 @@ pub(super) fn apply_operation(
 }
 
 fn replace_entity_through_authoritative_patch(
-    mut runtime: &RelationalRuntime,
+    runtime: &RelationalRuntime,
     entities: &mut Vec<EntityId>,
     relations: &mut Vec<ActiveRelation>,
     entity_slot: usize,
@@ -156,8 +156,7 @@ fn replace_entity_through_authoritative_patch(
     let branch = branches[branch_slot.min(branches.len() - 1)].clone();
     let name = format!("seed-{seed}-replace-{step}-{name_counter}");
     *name_counter += 1;
-    let mut txn =
-        crate::tests::support::test_owner_begin_transaction_for_branch(&mut runtime, branch);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(runtime, branch);
     txn.push_batch(
         WorkerIntentBatch::new("replace").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -178,7 +177,7 @@ fn replace_entity_through_authoritative_patch(
         )),
     )
     .expect("test staging stays within configured resource budgets");
-    if let Ok(outcome) = txn.commit(&mut runtime) {
+    if let Ok(outcome) = txn.commit(runtime) {
         if let Some(replacement) = crate::tests::support::changed_entities(&outcome).last() {
             entities[index] = *replacement;
         }
@@ -243,7 +242,7 @@ fn release_snapshot(
 }
 
 fn delete_relation(
-    mut runtime: &RelationalRuntime,
+    runtime: &RelationalRuntime,
     entities: &mut Vec<EntityId>,
     relations: &mut Vec<ActiveRelation>,
     relation_slot: usize,
@@ -253,7 +252,7 @@ fn delete_relation(
     }
     let index = relation_slot.min(relations.len() - 1);
     let relation = relations.swap_remove(index);
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
     txn.push_batch(
         WorkerIntentBatch::new("delete-relation").push(MutationIntent::Relation(
             RelationMutationIntent::Delete(DeleteRelationIntent {
@@ -262,13 +261,13 @@ fn delete_relation(
         )),
     )
     .expect("test staging stays within configured resource budgets");
-    let outcome = txn.commit(&mut runtime).unwrap();
+    let outcome = txn.commit(runtime).unwrap();
     release_test_commit_snapshot(runtime, &outcome);
     refresh_live_world(runtime, entities, relations);
 }
 
 fn delete_entity(
-    mut runtime: &RelationalRuntime,
+    runtime: &RelationalRuntime,
     entities: &mut Vec<EntityId>,
     relations: &mut Vec<ActiveRelation>,
     branches: &[BranchId],
@@ -281,15 +280,14 @@ fn delete_entity(
     let index = entity_slot.min(entities.len() - 1);
     let deleted = entities[index];
     let branch = branches[branch_slot.min(branches.len() - 1)].clone();
-    let mut txn =
-        crate::tests::support::test_owner_begin_transaction_for_branch(&mut runtime, branch);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(runtime, branch);
     txn.push_batch(
         WorkerIntentBatch::new("delete-entity").push(MutationIntent::Entity(
             EntityMutationIntent::Delete(DeleteEntityIntent { entity_id: deleted }),
         )),
     )
     .expect("test staging stays within configured resource budgets");
-    if let Ok(outcome) = txn.commit(&mut runtime) {
+    if let Ok(outcome) = txn.commit(runtime) {
         release_test_commit_snapshot(runtime, &outcome);
         entities.swap_remove(index);
         relations.retain(|relation| relation.source != deleted && relation.target != deleted);

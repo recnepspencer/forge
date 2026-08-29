@@ -4,19 +4,17 @@ use crate::tests::support::*;
 
 #[test]
 fn cdc_certification_snapshot_pinning_is_neutral_under_rewrite_churn() {
-    let mut pinned_runtime =
-        runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
-    let mut unpinned_runtime =
+    let pinned_runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
+    let unpinned_runtime =
         runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
 
-    let pinned_left =
-        create_entity_in_partition(&mut pinned_runtime, "baseline-left", PartitionId(7));
+    let pinned_left = create_entity_in_partition(&pinned_runtime, "baseline-left", PartitionId(7));
     let pinned_right =
-        create_entity_in_partition(&mut pinned_runtime, "baseline-right", PartitionId(11));
+        create_entity_in_partition(&pinned_runtime, "baseline-right", PartitionId(11));
     let unpinned_left =
-        create_entity_in_partition(&mut unpinned_runtime, "baseline-left", PartitionId(7));
+        create_entity_in_partition(&unpinned_runtime, "baseline-left", PartitionId(7));
     let unpinned_right =
-        create_entity_in_partition(&mut unpinned_runtime, "baseline-right", PartitionId(11));
+        create_entity_in_partition(&unpinned_runtime, "baseline-right", PartitionId(11));
     let baseline_checkpoint =
         checkpoint_for_schema_version(PatchStreamPosition(2), SchemaVersionId(1));
     let pinned_snapshot = pinned_runtime.visibility_authority().snapshot();
@@ -26,10 +24,10 @@ fn cdc_certification_snapshot_pinning_is_neutral_under_rewrite_churn() {
         let right_name = format!("right-rewrite-{step}");
         let churn_name = format!("churn-{step}");
 
-        update_entity_and_release_snapshot(&mut pinned_runtime, pinned_left, &left_name);
-        update_entity_and_release_snapshot(&mut pinned_runtime, pinned_right, &right_name);
-        update_entity_and_release_snapshot(&mut unpinned_runtime, unpinned_left, &left_name);
-        update_entity_and_release_snapshot(&mut unpinned_runtime, unpinned_right, &right_name);
+        update_entity_and_release_snapshot(&pinned_runtime, pinned_left, &left_name);
+        update_entity_and_release_snapshot(&pinned_runtime, pinned_right, &right_name);
+        update_entity_and_release_snapshot(&unpinned_runtime, unpinned_left, &left_name);
+        update_entity_and_release_snapshot(&unpinned_runtime, unpinned_right, &right_name);
 
         if step % 3 == 0 {
             let partition = match step % 4 {
@@ -38,8 +36,8 @@ fn cdc_certification_snapshot_pinning_is_neutral_under_rewrite_churn() {
                 2 => PartitionId(29),
                 _ => PartitionId(31),
             };
-            let _ = create_entity_in_partition(&mut pinned_runtime, &churn_name, partition);
-            let _ = create_entity_in_partition(&mut unpinned_runtime, &churn_name, partition);
+            let _ = create_entity_in_partition(&pinned_runtime, &churn_name, partition);
+            let _ = create_entity_in_partition(&unpinned_runtime, &churn_name, partition);
         }
     }
 

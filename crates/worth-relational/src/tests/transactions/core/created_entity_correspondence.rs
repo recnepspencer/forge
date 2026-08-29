@@ -4,7 +4,7 @@ use crate::tests::support::*;
 
 #[test]
 fn committed_create_references_resolve_their_own_distinct_persisted_meanings() {
-    let mut runtime = runtime_with_test_schema();
+    let runtime = runtime_with_test_schema();
     let partition_id = PartitionId::main();
     let kind_id = KindId(1);
     let first = CreatedEntityRef {
@@ -17,8 +17,7 @@ fn committed_create_references_resolve_their_own_distinct_persisted_meanings() {
         kind_id,
         client_key: ClientKey::raw("second-owner-reference"),
     };
-    let mut transaction =
-        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut transaction = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     transaction
         .push_batch(
             WorkerIntentBatch::new("created-reference-correspondence")
@@ -36,9 +35,7 @@ fn committed_create_references_resolve_their_own_distinct_persisted_meanings() {
                 }))),
         )
         .expect("test staging stays within configured resource budgets");
-    let committed = transaction
-        .commit(&mut runtime)
-        .expect("both creates commit");
+    let committed = transaction.commit(&runtime).expect("both creates commit");
     let first_id = committed
         .created_entity(&first)
         .expect("first create reference resolves");

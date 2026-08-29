@@ -5,8 +5,8 @@ use worth_foundational::FoundationalBranchTarget;
 
 #[test]
 fn metadata_only_generation_advance_stales_a_prior_fork_token() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "seed-main");
+    let runtime = runtime_with_test_schema();
+    create_entity_outcome(&runtime, "seed-main");
     let (descriptor, stale_basis) = runtime
         .observe_fork_source(&BranchId("main".to_owned()))
         .expect("seeded main has a fork source");

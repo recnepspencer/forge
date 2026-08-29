@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn ordinary_commit_keeps_the_admitted_branch_root_schema_when_live_registry_drifts() {
     let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
+    let _first = create_entity_outcome(&runtime, "a");
 
     runtime.set_schema_registry_for_test(
         AspectSchemaFixture {
@@ -13,7 +13,7 @@ fn ordinary_commit_keeps_the_admitted_branch_root_schema_when_live_registry_drif
         .build_registry(),
     );
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("schema-drift").push(MutationIntent::Create(CreateIntent::Entity(
             crate::transactions::data::EntitySpec {
@@ -30,7 +30,7 @@ fn ordinary_commit_keeps_the_admitted_branch_root_schema_when_live_registry_drif
     )
     .expect("test staging stays within configured resource budgets");
     let committed = txn
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect("ambient registry drift cannot reinterpret an admitted branch root");
 
     assert_eq!(committed.envelope().schema_version, SchemaVersionId(1));
@@ -46,7 +46,7 @@ fn ordinary_commit_keeps_the_admitted_branch_root_schema_when_live_registry_drif
 #[test]
 fn declared_schema_transition_rejects_wrong_source_basis() {
     let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
+    let _first = create_entity_outcome(&runtime, "a");
 
     runtime.set_schema_registry_for_test(
         AspectSchemaFixture {
@@ -97,7 +97,7 @@ fn declared_schema_transition_rejects_wrong_source_basis() {
     };
     txn.push_batch(batch_create("b"))
         .expect("test staging stays within configured resource budgets");
-    let error = txn.commit(&mut runtime).unwrap_err();
+    let error = txn.commit(&runtime).unwrap_err();
 
     match error {
         crate::transactions::data::TransactionCommitError::Conflict { error, .. } => {
@@ -117,7 +117,7 @@ fn declared_schema_transition_rejects_wrong_source_basis() {
 #[test]
 fn declared_schema_transition_rejects_wrong_target_basis() {
     let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
+    let _first = create_entity_outcome(&runtime, "a");
 
     runtime.set_schema_registry_for_test(
         AspectSchemaFixture {
@@ -168,7 +168,7 @@ fn declared_schema_transition_rejects_wrong_target_basis() {
     };
     txn.push_batch(batch_create("b"))
         .expect("test staging stays within configured resource budgets");
-    let error = txn.commit(&mut runtime).unwrap_err();
+    let error = txn.commit(&runtime).unwrap_err();
 
     match error {
         crate::transactions::data::TransactionCommitError::Conflict { error, .. } => {
@@ -202,7 +202,7 @@ fn declared_schema_transition_rejects_wrong_target_basis() {
 
 #[test]
 fn declared_schema_transition_requires_non_empty_runtime_basis() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(RelationalSchemaRegistry::new())
         .build();
 
@@ -244,7 +244,7 @@ fn declared_schema_transition_requires_non_empty_runtime_basis() {
             )
             .expect("owner-admitted transaction context")
     };
-    let error = txn.commit(&mut runtime).unwrap_err();
+    let error = txn.commit(&runtime).unwrap_err();
 
     match error {
         crate::transactions::data::TransactionCommitError::Conflict { error, .. } => {
@@ -261,7 +261,7 @@ fn declared_schema_transition_requires_non_empty_runtime_basis() {
 #[test]
 fn declared_type_continuity_denied_schema_transition_reports_specific_conflict_class() {
     let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
+    let _first = create_entity_outcome(&runtime, "a");
 
     runtime.set_schema_registry_for_test(
         AspectSchemaFixture {
@@ -315,7 +315,7 @@ fn declared_type_continuity_denied_schema_transition_reports_specific_conflict_c
     };
     txn.push_batch(batch_create("b"))
         .expect("test staging stays within configured resource budgets");
-    let error = txn.commit(&mut runtime).unwrap_err();
+    let error = txn.commit(&runtime).unwrap_err();
 
     match error {
         crate::transactions::data::TransactionCommitError::Conflict { error, .. } => {

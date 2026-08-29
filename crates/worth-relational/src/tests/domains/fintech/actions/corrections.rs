@@ -11,10 +11,8 @@ pub(crate) fn correct_trade_with_replacement(
     branch_id: BranchId,
     trade_id: EntityId,
 ) -> CommitResult {
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
-        &mut world.runtime,
-        branch_id,
-    );
+    let mut txn =
+        crate::tests::support::test_owner_begin_transaction_for_branch(&world.runtime, branch_id);
     txn.push_batch(
         WorkerIntentBatch::new("replace-trade")
             .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
@@ -57,7 +55,7 @@ pub(crate) fn correct_trade_with_replacement(
             .into(),
     )
     .expect("test staging stays within configured resource budgets");
-    txn.commit(&mut world.runtime).unwrap()
+    txn.commit(&world.runtime).unwrap()
 }
 
 pub(crate) fn correct_seeded_trade_candidate(

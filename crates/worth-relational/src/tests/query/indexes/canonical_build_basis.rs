@@ -2,8 +2,8 @@ use super::*;
 
 #[test]
 fn exact_basis_index_build_rejects_each_mixed_axis_without_publication() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let main = create_entity_outcome(&mut runtime, "exact-basis-main");
+    let runtime = runtime_with_index_field_aspects();
+    let main = create_entity_outcome(&runtime, "exact-basis-main");
     let actual_branch = BranchId("main".to_string());
     let claimed_sibling = BranchId("feature".to_string());
     runtime
@@ -60,13 +60,13 @@ fn exact_basis_index_build_rejects_each_mixed_axis_without_publication() {
             .latest_generation(index.index_id, &claimed_sibling)
             .is_none());
     }
-    release_test_commit_snapshot(&mut runtime, &main);
+    release_test_commit_snapshot(&runtime, &main);
 }
 
 #[test]
 fn derived_index_build_rejects_branch_claim_that_disagrees_with_source_commit() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let main = create_entity_outcome(&mut runtime, "canonical-main");
+    let runtime = runtime_with_index_field_aspects();
+    let main = create_entity_outcome(&runtime, "canonical-main");
     runtime
         .history_authority()
         .fork_branch_from(
@@ -75,7 +75,7 @@ fn derived_index_build_rejects_branch_claim_that_disagrees_with_source_commit() 
         )
         .expect("feature branch forks");
     let feature = create_entity_outcome_on_branch(
-        &mut runtime,
+        &runtime,
         "canonical-feature",
         BranchId("feature".to_string()),
     );
@@ -110,14 +110,14 @@ fn derived_index_build_rejects_branch_claim_that_disagrees_with_source_commit() 
         .index_access()
         .latest_generation(index.index_id, &BranchId("feature".to_string()))
         .is_none());
-    release_test_commit_snapshot(&mut runtime, &main);
-    release_test_commit_snapshot(&mut runtime, &feature);
+    release_test_commit_snapshot(&runtime, &main);
+    release_test_commit_snapshot(&runtime, &feature);
 }
 
 #[test]
 fn commit_index_build_returns_retention_backpressure_instead_of_panicking() {
     let mut runtime = runtime_with_index_field_aspects();
-    let main = create_entity_outcome(&mut runtime, "capacity-main");
+    let main = create_entity_outcome(&runtime, "capacity-main");
     runtime
         .history_authority()
         .fork_branch_from(
@@ -126,7 +126,7 @@ fn commit_index_build_returns_retention_backpressure_instead_of_panicking() {
         )
         .expect("feature branch forks");
     let feature = create_entity_outcome_on_branch(
-        &mut runtime,
+        &runtime,
         "capacity-feature",
         BranchId("feature".to_string()),
     );
@@ -154,6 +154,6 @@ fn commit_index_build_returns_retention_backpressure_instead_of_panicking() {
         outcome.basis_denial,
         Some(crate::facade::branch::RelationalBranchBasisDenial::RetentionCapacityExhausted,)
     );
-    release_test_commit_snapshot(&mut runtime, &main);
-    release_test_commit_snapshot(&mut runtime, &feature);
+    release_test_commit_snapshot(&runtime, &main);
+    release_test_commit_snapshot(&runtime, &feature);
 }

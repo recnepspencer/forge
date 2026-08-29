@@ -4,7 +4,7 @@ use crate::tests::support::{create_entity_outcome, runtime_with_test_schema};
 
 #[test]
 fn missing_source_denial_leaves_registry_and_catalog_unchanged() {
-    let mut runtime = runtime_with_test_schema();
+    let runtime = runtime_with_test_schema();
     let before_cells = runtime.history.branch_cells_snapshot();
     let before_catalog_count = runtime.history.catalog_len();
     let missing = BranchId("missing-source".to_owned());
@@ -25,8 +25,8 @@ fn missing_source_denial_leaves_registry_and_catalog_unchanged() {
 
 #[test]
 fn root_owned_artifact_keeps_fork_available_when_catalog_accelerator_is_missing() {
-    let mut runtime = runtime_with_test_schema();
-    let commit = create_entity_outcome(&mut runtime, "fork-source");
+    let runtime = runtime_with_test_schema();
+    let commit = create_entity_outcome(&runtime, "fork-source");
     let source = BranchId("main".to_owned());
     let target = BranchId("missing-artifact-target".to_owned());
     let (_, basis) = runtime

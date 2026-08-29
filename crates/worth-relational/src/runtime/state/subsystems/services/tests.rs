@@ -6,7 +6,7 @@ use crate::simulation::data::{CompiledExecutionArtifact, TopologyFreezeMode};
 
 #[test]
 fn runtime_services_fork_restarts_sequence_but_preserves_artifacts() {
-    let mut services = <RuntimeServices as RuntimeSubsystem>::new(&());
+    let services = <RuntimeServices as RuntimeSubsystem>::new(&());
     let first_tx = services.next_transaction_id();
     let first_runtime_id = services.runtime_instance_id();
     let artifact_id = services.store_compiled_artifact(CompiledExecutionArtifact {

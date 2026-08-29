@@ -11,24 +11,24 @@ use super::{forward_traversal, ENTITY_KIND};
 
 #[test]
 fn exact_next_hop_anchor_ignores_same_source_population() {
-    let mut runtime = runtime_with_test_schema();
-    let principal = create_entity(&mut runtime, "anchored-principal");
-    let anchor = create_entity(&mut runtime, "anchored-role");
-    let scope = create_entity(&mut runtime, "anchored-scope");
-    create_relation(&mut runtime, principal, anchor, "anchored-principal-role");
-    create_relation(&mut runtime, anchor, scope, "anchored-role-scope");
+    let runtime = runtime_with_test_schema();
+    let principal = create_entity(&runtime, "anchored-principal");
+    let anchor = create_entity(&runtime, "anchored-role");
+    let scope = create_entity(&runtime, "anchored-scope");
+    create_relation(&runtime, principal, anchor, "anchored-principal-role");
+    create_relation(&runtime, anchor, scope, "anchored-role-scope");
 
-    let baseline = observe_anchored_path(&mut runtime, principal, anchor, scope);
+    let baseline = observe_anchored_path(&runtime, principal, anchor, scope);
     for ordinal in 0..64 {
-        let unrelated = create_entity(&mut runtime, &format!("same-source-grant-{ordinal}"));
+        let unrelated = create_entity(&runtime, &format!("same-source-grant-{ordinal}"));
         create_relation(
-            &mut runtime,
+            &runtime,
             principal,
             unrelated,
             &format!("same-source-edge-{ordinal}"),
         );
     }
-    let populated = observe_anchored_path(&mut runtime, principal, anchor, scope);
+    let populated = observe_anchored_path(&runtime, principal, anchor, scope);
 
     assert_eq!(populated.counters(), baseline.counters());
     assert_eq!(
@@ -40,15 +40,15 @@ fn exact_next_hop_anchor_ignores_same_source_population() {
 
 #[test]
 fn exact_next_hop_anchor_retains_revocation_currentness() {
-    let mut runtime = runtime_with_test_schema();
-    let principal = create_entity(&mut runtime, "revoked-anchor-principal");
-    let anchor = create_entity(&mut runtime, "revoked-anchor-role");
-    let scope = create_entity(&mut runtime, "revoked-anchor-scope");
-    let exact = create_relation(&mut runtime, principal, anchor, "revoked-principal-role");
-    create_relation(&mut runtime, anchor, scope, "revoked-role-scope");
-    let admitted = observe_anchored_path(&mut runtime, principal, anchor, scope);
+    let runtime = runtime_with_test_schema();
+    let principal = create_entity(&runtime, "revoked-anchor-principal");
+    let anchor = create_entity(&runtime, "revoked-anchor-role");
+    let scope = create_entity(&runtime, "revoked-anchor-scope");
+    let exact = create_relation(&runtime, principal, anchor, "revoked-principal-role");
+    create_relation(&runtime, anchor, scope, "revoked-role-scope");
+    let admitted = observe_anchored_path(&runtime, principal, anchor, scope);
 
-    let revoked = delete_relation_on_branch(&mut runtime, exact, BranchId("main".to_owned()));
+    let revoked = delete_relation_on_branch(&runtime, exact, BranchId("main".to_owned()));
 
     assert_eq!(
         runtime.compare_authorization_observation(&admitted, revoked.snapshot.clone()),

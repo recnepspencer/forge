@@ -4,10 +4,9 @@ use worth_foundational::facade::{AspectKey, AspectValue, ContractValidatedAspect
 
 #[test]
 fn entity_patch_aspects_follow_declared_contract_targets() {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("create").push(MutationIntent::Create(CreateIntent::Entity(
             crate::transactions::data::EntitySpec {
@@ -23,7 +22,7 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
         ))),
     )
     .expect("test staging stays within configured resource budgets");
-    let created = txn.commit(&mut runtime).unwrap();
+    let created = txn.commit(&runtime).unwrap();
     let entity = changed_entities(&created)[0];
     let created_patch = &created.patch()[0];
     let created_aspect_summary = created.aspect_summary().unwrap();
@@ -46,7 +45,7 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
     assert_eq!(created_aspect_summary.changed_relation_aspect_count, 0);
 
     let updated = {
-        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
         txn.push_batch(
             WorkerIntentBatch::new("update").push(MutationIntent::Entity(
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -60,7 +59,7 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
             )),
         )
         .expect("test staging stays within configured resource budgets");
-        txn.commit(&mut runtime).unwrap()
+        txn.commit(&runtime).unwrap()
     };
     let updated_patch = &updated.patch()[0];
     let updated_aspect_summary = updated.aspect_summary().unwrap();
@@ -95,7 +94,7 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
     assert_eq!(updated_aspect_summary.changed_entity_aspect_count, 1);
 
     let idempotent_declared_update = {
-        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
         txn.push_batch(WorkerIntentBatch::new("idempotent-declared-update").push(
             MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                 UpdateEntityFieldsIntent {
@@ -109,7 +108,7 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
             )),
         ))
         .expect("test staging stays within configured resource budgets");
-        txn.commit(&mut runtime).unwrap()
+        txn.commit(&runtime).unwrap()
     };
     assert_eq!(
         idempotent_declared_update.patch()[0].authoritative_changed_aspects(),
@@ -123,7 +122,7 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
         0
     );
 
-    let deleted = delete_entity(&mut runtime, entity);
+    let deleted = delete_entity(&runtime, entity);
     let deleted_patch = &deleted.patch()[0];
     let deleted_aspect_summary = deleted.aspect_summary().unwrap();
     assert_eq!(
@@ -143,11 +142,10 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
 #[test]
 fn retained_relation_patch_only_emits_declared_lifecycle_delta_when_endpoints_and_aspects_stay_same(
 ) {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::RetainDanglingForAudit);
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    let relation_outcome = create_relation_outcome(&mut runtime, source, target, "r-audit");
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::RetainDanglingForAudit);
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    let relation_outcome = create_relation_outcome(&runtime, source, target, "r-audit");
     let relation_patch = &relation_outcome.patch()[0];
     let relation_aspect_summary = relation_outcome.aspect_summary().unwrap();
 
@@ -168,7 +166,7 @@ fn retained_relation_patch_only_emits_declared_lifecycle_delta_when_endpoints_an
     );
     assert_eq!(relation_aspect_summary.changed_relation_aspect_count, 4);
 
-    let deleted_source = delete_entity(&mut runtime, source);
+    let deleted_source = delete_entity(&runtime, source);
     let retained_relation_patch = deleted_source
         .patch()
         .iter()

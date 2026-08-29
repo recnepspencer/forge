@@ -69,11 +69,10 @@ impl EntityRecordProjection for UndeclaredAspectProjection {
 
 #[test]
 fn entity_projections_collapse_kind_and_partition_threading() {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let left = create_entity_in_partition(&mut runtime, "left-a", PartitionId(7));
-    let _other_left = create_entity_in_partition(&mut runtime, "left-b", PartitionId(7));
-    let right = create_entity_in_partition(&mut runtime, "right-a", PartitionId(11));
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let left = create_entity_in_partition(&runtime, "left-a", PartitionId(7));
+    let _other_left = create_entity_in_partition(&runtime, "left-b", PartitionId(7));
+    let right = create_entity_in_partition(&runtime, "right-a", PartitionId(11));
     let view = runtime
         .read_truth()
         .project_historical_version(runtime.current_version_id());
@@ -99,9 +98,8 @@ fn entity_projections_collapse_kind_and_partition_threading() {
 
 #[test]
 fn snapshot_projection_resolves_version_without_manual_kind_scan_parameters() {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let created = create_entity_outcome(&mut runtime, "visible");
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let created = create_entity_outcome(&runtime, "visible");
 
     let projected = runtime
         .read_truth()
@@ -142,9 +140,8 @@ fn projection_record_refuses_aspect_reads_outside_declared_scope() {
         }
     }
 
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let entity_id = create_entity(&mut runtime, "hidden-by-scope");
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let entity_id = create_entity(&runtime, "hidden-by-scope");
 
     let projected = runtime
         .read_truth()
@@ -157,9 +154,8 @@ fn projection_record_refuses_aspect_reads_outside_declared_scope() {
 
 #[test]
 fn dynamic_projection_scope_reads_aspects_without_raw_record_escape() {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let entity_id = create_entity(&mut runtime, "scope-carried");
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let entity_id = create_entity(&runtime, "scope-carried");
     let view = runtime
         .read_truth()
         .project_historical_version(runtime.current_version_id());
@@ -181,11 +177,10 @@ fn dynamic_projection_scope_reads_aspects_without_raw_record_escape() {
 
 #[test]
 fn snapshot_projection_uses_authoritative_published_binding_version() {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let created = create_entity_outcome(&mut runtime, "visible");
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let created = create_entity_outcome(&runtime, "visible");
     let entity = changed_entities(&created)[0];
-    let updated = update_entity(&mut runtime, entity, "updated");
+    let updated = update_entity(&runtime, entity, "updated");
     let mut stale_handle = updated.snapshot.clone();
     stale_handle.version_id = created.snapshot.version_id;
 
@@ -201,10 +196,10 @@ fn snapshot_projection_uses_authoritative_published_binding_version() {
 
 #[test]
 fn projection_raw_record_escape_hatches_preserve_full_visible_record_sets() {
-    let mut runtime = runtime_with_test_schema();
-    let left = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
-    let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
-    let relation = create_relation(&mut runtime, left, right, "r0");
+    let runtime = runtime_with_test_schema();
+    let left = create_entity_in_partition(&runtime, "left", PartitionId(7));
+    let right = create_entity_in_partition(&runtime, "right", PartitionId(11));
+    let relation = create_relation(&runtime, left, right, "r0");
     let version_id = runtime.current_version_id();
     let view = runtime.read_truth().project_historical_version(version_id);
     let read = runtime.read_truth().read_version(version_id);
@@ -231,8 +226,8 @@ fn projection_raw_record_escape_hatches_preserve_full_visible_record_sets() {
 #[test]
 #[should_panic(expected = "requires undeclared aspect")]
 fn projection_rejects_undeclared_required_aspects() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "visible");
+    let runtime = runtime_with_test_schema();
+    create_entity_outcome(&runtime, "visible");
     let _ = runtime
         .read_truth()
         .project_historical_version(runtime.current_version_id())

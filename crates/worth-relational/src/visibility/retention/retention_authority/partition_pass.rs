@@ -182,7 +182,7 @@ mod tests {
 
     #[test]
     fn sparse_high_slot_retention_scans_one_materialized_chunk() {
-        let mut runtime = RelationalRuntime::new(RelationalRuntimeConfig::default());
+        let runtime = RelationalRuntime::new(RelationalRuntimeConfig::default());
         let partition_id = PartitionId(7);
         let high_slot = 50_000;
         let mut entity_arena = EntityArena::with_capacity(0);
@@ -216,7 +216,7 @@ mod tests {
         );
 
         let inspected = inspect_partition_retention::<EntityRecordKind>(
-            &mut runtime,
+            &runtime,
             partition_id,
             VersionId(1),
             refresh_entity_retention_state,
@@ -225,7 +225,7 @@ mod tests {
 
         let scans = Cell::new(0);
         let outcome = run_partition_retention_pass::<EntityRecordKind>(
-            &mut runtime,
+            &runtime,
             PartitionRetentionPass {
                 class: RecordAllocationClass::Entity,
                 partition_id,

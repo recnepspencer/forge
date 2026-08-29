@@ -58,7 +58,7 @@ fn schema_transition_for_subscriber_impact(
 #[test]
 fn schema_evolution_cdc_contract_test() {
     let mut runtime = persisted_runtime_with_test_schema();
-    let baseline = create_entity_outcome(&mut runtime, "anchor");
+    let baseline = create_entity_outcome(&runtime, "anchor");
     let baseline_checkpoint =
         checkpoint_for_schema_version(baseline.patch_position(), SchemaVersionId(1));
 
@@ -82,7 +82,7 @@ fn schema_evolution_cdc_contract_test() {
         .expect("owner-admitted transaction context");
     txn.push_batch(batch_create("boundary"))
         .expect("test staging stays within configured resource budgets");
-    let committed = txn.commit(&mut runtime).unwrap();
+    let committed = txn.commit(&runtime).unwrap();
 
     let live_batch = runtime
         .publication()
@@ -119,7 +119,7 @@ fn schema_evolution_cdc_contract_test() {
     );
     let descriptor_semantics_version = committed.envelope().descriptor_semantics_version;
 
-    let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, || {
+    let (_recovery, recovered) = checkpoint_and_recover_with(&runtime, || {
         let registry = AspectSchemaFixture {
             schema_version_id: SchemaVersionId(2),
             ..AspectSchemaFixture::default()

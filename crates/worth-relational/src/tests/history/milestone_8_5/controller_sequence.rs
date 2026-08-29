@@ -6,11 +6,11 @@ pub(super) struct ControllerSequenceProof {
 }
 
 pub(super) fn certify_controller_sequence_shared_truth(
-    mut runtime: &RelationalRuntime,
+    runtime: &RelationalRuntime,
 ) -> ControllerSequenceProof {
-    let controller_sequence_entity = create_entity(&mut runtime, "controller-sequence");
+    let controller_sequence_entity = create_entity(runtime, "controller-sequence");
     let _controller_initial_intent = execute_strategy_commit(
-        &mut runtime,
+        runtime,
         IntentReconciliationInput {
             entity_id: controller_sequence_entity,
             desired_aspect_fields: strategy_name_and_replicas_patch("controller-main", 2),
@@ -24,9 +24,9 @@ pub(super) fn certify_controller_sequence_shared_truth(
         None,
     );
     let controller_sequence_branch =
-        create_branch_from_main(&mut runtime, "controller-sequence-feature");
+        create_branch_from_main(runtime, "controller-sequence-feature");
     let _controller_feature_converge = execute_strategy_commit(
-        &mut runtime,
+        runtime,
         ReplicaConvergenceInput {
             entity_id: controller_sequence_entity,
             desired_replicas: 7,
@@ -40,7 +40,7 @@ pub(super) fn certify_controller_sequence_shared_truth(
         Some(controller_sequence_branch.clone()),
     );
     let _controller_narrowed_intent = execute_strategy_commit(
-        &mut runtime,
+        runtime,
         IntentReconciliationInput {
             entity_id: controller_sequence_entity,
             desired_aspect_fields: crate::transactions::data::AspectFieldPatch::from_locator(
@@ -66,7 +66,7 @@ pub(super) fn certify_controller_sequence_shared_truth(
         None,
     );
     let controller_feature_idempotent_commit = execute_strategy_commit(
-        &mut runtime,
+        runtime,
         ReplicaConvergenceInput {
             entity_id: controller_sequence_entity,
             desired_replicas: 7,

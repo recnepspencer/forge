@@ -4,7 +4,7 @@ use std::sync::Arc;
 #[test]
 fn paused_storm_publication_does_not_contact_or_wait_on_maintenance() {
     let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "branch-local-publication-anchor");
+    create_entity(&runtime, "branch-local-publication-anchor");
     fork_publication_branch(&mut runtime, "storm");
     fork_publication_branch(&mut runtime, "maintenance");
 

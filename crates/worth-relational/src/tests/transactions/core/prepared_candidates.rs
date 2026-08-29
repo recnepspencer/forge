@@ -5,8 +5,8 @@ use std::sync::{Arc, Barrier};
 
 #[test]
 fn preparation_is_truth_effect_free_and_discard_releases_reservations() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "prepared-anchor");
+    let runtime = runtime_with_test_schema();
+    create_entity(&runtime, "prepared-anchor");
 
     let branch_cells_before = runtime.history.branch_cells_snapshot();
     let envelopes_before = runtime.history().commit_envelopes_snapshot();
@@ -19,7 +19,7 @@ fn preparation_is_truth_effect_free_and_discard_releases_reservations() {
         .history
         .sharing_costs_for_branch(&BranchId("main".to_owned()));
 
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
     transaction
         .push_batch(batch_create("prepared-discard"))
         .expect("test staging stays within configured resource budgets");
@@ -97,12 +97,12 @@ fn preparation_is_truth_effect_free_and_discard_releases_reservations() {
 
 #[test]
 fn prepared_root_materializes_exactly_the_declared_write_partitions() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity_in_partition(&mut runtime, "main-anchor", PartitionId::main());
-    create_entity_in_partition(&mut runtime, "second-anchor", PartitionId(29));
-    create_entity_in_partition(&mut runtime, "untouched-anchor", PartitionId(41));
+    let runtime = runtime_with_test_schema();
+    create_entity_in_partition(&runtime, "main-anchor", PartitionId::main());
+    create_entity_in_partition(&runtime, "second-anchor", PartitionId(29));
+    create_entity_in_partition(&runtime, "untouched-anchor", PartitionId(41));
 
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
     transaction
         .push_batch(create_batch("main-write", PartitionId::main()))
         .expect("test staging stays within configured resource budgets");
@@ -133,8 +133,8 @@ fn prepared_candidate_is_sendable_across_one_worker_boundary() {
 
 #[test]
 fn publication_port_performs_one_exact_candidate_and_reports_the_loser_stale() {
-    let mut runtime = runtime_with_test_schema();
-    let anchor = create_entity_outcome(&mut runtime, "publication-race-anchor");
+    let runtime = runtime_with_test_schema();
+    let anchor = create_entity_outcome(&runtime, "publication-race-anchor");
     let anchor_commit_id = anchor.commit.commit_id;
     let commit_count_before = runtime.history().immutable_commit_count();
     let expected = crate::tests::support::test_owner_main_basis(&runtime)

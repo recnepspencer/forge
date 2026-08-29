@@ -22,13 +22,13 @@ pub(super) fn certify_geometry_commit_bridge_medium_region_wave(suite: &'static 
                     if development_profile { 256 } else { 0 }
             });
 
-            let entities = seed_bridge_region_world(&mut relational, "bridge-medium", 24, 4);
+            let entities = seed_bridge_region_world(&relational, "bridge-medium", 24, 4);
             let updated = entities[10];
             let seeds = Arc::from([entities[8], entities[10], entities[12], entities[14]]);
             let mut bridge_runtime = build_mock_bridge_runtime(development_profile, entities.len());
 
             let relational_commit_started_at = Instant::now();
-            let update = update_entity(&mut relational, updated, "bridge-medium-updated");
+            let update = update_entity(&relational, updated, "bridge-medium-updated");
             let relational_commit_micros = relational_commit_started_at.elapsed().as_micros();
 
             let snapshot = relational.visibility_authority().snapshot();

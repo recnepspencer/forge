@@ -12,7 +12,7 @@ fn sibling_target_denial_precedes_raw_client_key_normalization_and_leaves_zero_r
         .schema_registry(test_schema_registry())
         .client_key_symbol_policy(ClientKeySymbolPolicy::RequireInterned)
         .build();
-    create_entity(&mut runtime, "shared-root");
+    create_entity(&runtime, "shared-root");
     fork_from_main(&mut runtime, "storm");
     fork_from_main(&mut runtime, "maintenance");
 
@@ -20,7 +20,7 @@ fn sibling_target_denial_precedes_raw_client_key_normalization_and_leaves_zero_r
     storm
         .push_batch(batch_create("storm-exclusive"))
         .expect("test staging stays within configured resource budgets");
-    let storm_commit = storm.commit(&mut runtime).expect("storm create commits");
+    let storm_commit = storm.commit(&runtime).expect("storm create commits");
     let storm_only = storm_commit
         .changed_records
         .iter()
@@ -47,7 +47,7 @@ fn sibling_target_denial_precedes_raw_client_key_normalization_and_leaves_zero_r
     let before = RuntimeState::capture(&runtime);
 
     let error = maintenance
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect_err("a sibling-only target is outside the admitted branch root");
 
     assert!(matches!(
@@ -60,7 +60,7 @@ fn sibling_target_denial_precedes_raw_client_key_normalization_and_leaves_zero_r
 
 #[test]
 fn unowned_created_endpoint_denial_precedes_normalization_and_leaves_zero_residue() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .client_key_symbol_policy(ClientKeySymbolPolicy::RequireInterned)
         .build();
@@ -69,7 +69,7 @@ fn unowned_created_endpoint_denial_precedes_normalization_and_leaves_zero_residu
         kind_id: KindId(1),
         client_key: ClientKey::raw("unowned-created-endpoint"),
     };
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
     transaction
         .push_batch(WorkerIntentBatch::new("unowned-created-endpoint").push(
             MutationIntent::Create(CreateIntent::Relation(RelationSpec {
@@ -85,7 +85,7 @@ fn unowned_created_endpoint_denial_precedes_normalization_and_leaves_zero_residu
     let before = RuntimeState::capture(&runtime);
 
     let error = transaction
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect_err("created endpoints must belong to the same transaction");
 
     assert!(matches!(

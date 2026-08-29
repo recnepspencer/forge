@@ -3,8 +3,8 @@ use crate::tests::support::*;
 
 #[test]
 fn publication_rejects_envelope_identity_drift_before_any_effect() {
-    let mut runtime = runtime_with_test_schema();
-    let commit = create_entity_outcome(&mut runtime, "publication-identity");
+    let runtime = runtime_with_test_schema();
+    let commit = create_entity_outcome(&runtime, "publication-identity");
     let receipt = commit.commit.clone();
     let envelope = commit.publication().envelope.clone();
     let identity = runtime
@@ -39,8 +39,8 @@ fn publication_rejects_envelope_identity_drift_before_any_effect() {
 
 #[test]
 fn prepared_publication_rejects_an_existing_envelope_before_any_effect() {
-    let mut runtime = runtime_with_test_schema();
-    let committed = create_entity_outcome(&mut runtime, "duplicate-catalog-envelope");
+    let runtime = runtime_with_test_schema();
+    let committed = create_entity_outcome(&runtime, "duplicate-catalog-envelope");
     let identity = runtime
         .branch_identity(&BranchId("main".to_owned()))
         .expect("main identity");
@@ -79,8 +79,8 @@ fn prepared_publication_rejects_an_existing_envelope_before_any_effect() {
 
 #[test]
 fn root_capture_sabotage_leaves_storage_index_history_and_reference_unchanged() {
-    let mut runtime = runtime_with_test_schema();
-    let committed = create_entity_outcome(&mut runtime, "root-capture-sabotage");
+    let runtime = runtime_with_test_schema();
+    let committed = create_entity_outcome(&runtime, "root-capture-sabotage");
     let current_receipt = committed.commit.clone();
     let identity = runtime
         .branch_identity(&BranchId("main".to_owned()))
@@ -187,8 +187,8 @@ fn root_capture_sabotage_leaves_storage_index_history_and_reference_unchanged() 
 
 #[test]
 fn production_commit_root_capture_sabotage_precedes_durable_append_and_all_effects() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "root-capture-production-anchor");
+    let runtime = runtime_with_test_schema();
+    create_entity_outcome(&runtime, "root-capture-production-anchor");
     let before_storage = runtime
         .acquire_partition_edition()
         .entries()
@@ -210,12 +210,12 @@ fn production_commit_root_capture_sabotage_precedes_durable_append_and_all_effec
     let before_sequences = runtime.history.reserved_sequence_floors();
 
     runtime.history.sabotage_next_root_capture();
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
     transaction
         .push_batch(batch_create("root-capture-production-sabotage"))
         .expect("test staging stays within configured resource budgets");
     let error = transaction
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect_err("the test-only root court must reject the real commit path");
     assert!(format!("{error:?}").contains("UnresolvedContentSymbol"));
 
@@ -252,15 +252,15 @@ fn production_commit_root_capture_sabotage_precedes_durable_append_and_all_effec
 
 #[test]
 fn new_partition_publication_reuses_every_prior_region() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "prior-main-region");
+    let runtime = runtime_with_test_schema();
+    create_entity_outcome(&runtime, "prior-main-region");
     let identity = runtime
         .branch_identity(&BranchId("main".to_owned()))
         .expect("main branch identity exists");
     let scope =
         crate::facade::inspection::RelationalMvccCostScope::capture(&runtime, vec![identity]);
 
-    create_entity_in_partition(&mut runtime, "new-partition-region", PartitionId(29));
+    create_entity_in_partition(&runtime, "new-partition-region", PartitionId(29));
     let costs = runtime
         .observe_mvcc_cost(&scope)
         .expect("main sharing remains inspectable")

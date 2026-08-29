@@ -13,16 +13,11 @@ use super::recovery_certification::certify_merge_execution_with_recovery;
 use super::schema_fixtures::{persisted_runtime_with_registry, prefer_richer_registry};
 
 pub(super) fn certify_exact_shared_merge_execution() -> MergeExecutionCertificationArtifacts {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let shared = create_entity(&mut runtime, "shared");
-    create_branch_from_main(&mut runtime, "feature");
-    update_entity(&mut runtime, shared, "same");
-    update_entity_on_branch(
-        &mut runtime,
-        shared,
-        "same",
-        BranchId("feature".to_string()),
-    );
+    let runtime = persisted_runtime_with_test_schema();
+    let shared = create_entity(&runtime, "shared");
+    create_branch_from_main(&runtime, "feature");
+    update_entity(&runtime, shared, "same");
+    update_entity_on_branch(&runtime, shared, "same", BranchId("feature".to_string()));
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -38,19 +33,15 @@ pub(super) fn certify_exact_shared_merge_execution() -> MergeExecutionCertificat
     assert_eq!(merge.structural_summary.preserved_shared_record_count, 1);
     assert_eq!(merge.structural_summary.emitted_mutation_intent_count, 0);
 
-    certify_merge_execution_with_recovery(&mut runtime, &merge, persisted_runtime_with_test_schema)
+    certify_merge_execution_with_recovery(&runtime, &merge, persisted_runtime_with_test_schema)
 }
 
 pub(super) fn certify_source_only_addition_merge_execution() -> MergeExecutionCertificationArtifacts
 {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "root");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "root");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -66,19 +57,19 @@ pub(super) fn certify_source_only_addition_merge_execution() -> MergeExecutionCe
     assert_eq!(merge.structural_summary.adopted_source_record_count, 1);
     assert_eq!(merge.structural_summary.emitted_entity_create_count, 1);
 
-    certify_merge_execution_with_recovery(&mut runtime, &merge, persisted_runtime_with_test_schema)
+    certify_merge_execution_with_recovery(&runtime, &merge, persisted_runtime_with_test_schema)
 }
 
 pub(super) fn certify_prefer_richer_merge_execution() -> MergeExecutionCertificationArtifacts {
     let store_path = unique_test_store_path("worth-relational-7c-phase-g");
     let registry = prefer_richer_registry();
-    let mut runtime = persisted_runtime_with_registry(registry.clone(), store_path.clone());
+    let runtime = persisted_runtime_with_registry(registry.clone(), store_path.clone());
 
-    let main_entity = create_entity(&mut runtime, "shared-name");
-    create_branch_from_main(&mut runtime, "feature");
+    let main_entity = create_entity(&runtime, "shared-name");
+    create_branch_from_main(&runtime, "feature");
 
     let mut feature_txn = crate::tests::support::test_owner_begin_transaction_for_branch(
-        &mut runtime,
+        &runtime,
         BranchId("feature".to_string()),
     );
     feature_txn
@@ -104,9 +95,7 @@ pub(super) fn certify_prefer_richer_merge_execution() -> MergeExecutionCertifica
             )),
         )
         .expect("test staging stays within configured resource budgets");
-    feature_txn
-        .commit(&mut runtime)
-        .expect("feature branch seed");
+    feature_txn.commit(&runtime).expect("feature branch seed");
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -134,7 +123,7 @@ pub(super) fn certify_prefer_richer_merge_execution() -> MergeExecutionCertifica
         Some("active".into())
     );
 
-    certify_merge_execution_with_recovery(&mut runtime, &merge, move || {
+    certify_merge_execution_with_recovery(&runtime, &merge, move || {
         persisted_runtime_with_registry(registry.clone(), store_path.clone())
     })
 }

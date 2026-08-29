@@ -2,13 +2,12 @@ use super::*;
 
 #[test]
 fn planned_query_execution_supports_outgoing_neighborhood_with_canonical_traversal_order() {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let a = create_entity_in_partition(&mut runtime, "a", PartitionId(7));
-    let b = create_entity_in_partition(&mut runtime, "b", PartitionId(11));
-    let c = create_entity_in_partition(&mut runtime, "c", PartitionId(13));
-    let first_relation = create_relation_in_partition(&mut runtime, a, b, "ab", PartitionId(7));
-    let second_relation = create_relation_in_partition(&mut runtime, a, c, "ac", PartitionId(13));
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let a = create_entity_in_partition(&runtime, "a", PartitionId(7));
+    let b = create_entity_in_partition(&runtime, "b", PartitionId(11));
+    let c = create_entity_in_partition(&runtime, "c", PartitionId(13));
+    let first_relation = create_relation_in_partition(&runtime, a, b, "ab", PartitionId(7));
+    let second_relation = create_relation_in_partition(&runtime, a, c, "ac", PartitionId(13));
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
         .read_truth()
@@ -62,13 +61,12 @@ fn planned_query_execution_supports_outgoing_neighborhood_with_canonical_travers
 
 #[test]
 fn planned_query_execution_supports_incoming_neighborhood_with_canonical_traversal_order() {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let a = create_entity_in_partition(&mut runtime, "a", PartitionId(7));
-    let b = create_entity_in_partition(&mut runtime, "b", PartitionId(11));
-    let c = create_entity_in_partition(&mut runtime, "c", PartitionId(13));
-    let first_relation = create_relation_in_partition(&mut runtime, a, c, "ac", PartitionId(7));
-    let second_relation = create_relation_in_partition(&mut runtime, b, c, "bc", PartitionId(11));
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let a = create_entity_in_partition(&runtime, "a", PartitionId(7));
+    let b = create_entity_in_partition(&runtime, "b", PartitionId(11));
+    let c = create_entity_in_partition(&runtime, "c", PartitionId(13));
+    let first_relation = create_relation_in_partition(&runtime, a, c, "ac", PartitionId(7));
+    let second_relation = create_relation_in_partition(&runtime, b, c, "bc", PartitionId(11));
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
         .read_truth()
@@ -121,13 +119,12 @@ fn planned_query_execution_supports_incoming_neighborhood_with_canonical_travers
 
 #[test]
 fn planned_query_execution_supports_connectivity_traversal_with_depth_bound() {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let a = create_entity_in_partition(&mut runtime, "a", PartitionId(7));
-    let b = create_entity_in_partition(&mut runtime, "b", PartitionId(11));
-    let c = create_entity_in_partition(&mut runtime, "c", PartitionId(13));
-    let first_relation = create_relation_in_partition(&mut runtime, a, b, "ab", PartitionId(7));
-    let _second_relation = create_relation_in_partition(&mut runtime, b, c, "bc", PartitionId(11));
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let a = create_entity_in_partition(&runtime, "a", PartitionId(7));
+    let b = create_entity_in_partition(&runtime, "b", PartitionId(11));
+    let c = create_entity_in_partition(&runtime, "c", PartitionId(13));
+    let first_relation = create_relation_in_partition(&runtime, a, b, "ab", PartitionId(7));
+    let _second_relation = create_relation_in_partition(&runtime, b, c, "bc", PartitionId(11));
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
         .read_truth()
@@ -183,13 +180,12 @@ fn planned_query_execution_supports_connectivity_traversal_with_depth_bound() {
 
 #[test]
 fn planned_query_execution_normalizes_traversal_seed_order_deterministically() {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let a = create_entity_in_partition(&mut runtime, "a", PartitionId(7));
-    let b = create_entity_in_partition(&mut runtime, "b", PartitionId(11));
-    let c = create_entity_in_partition(&mut runtime, "c", PartitionId(13));
-    let _first_relation = create_relation_in_partition(&mut runtime, a, c, "ac", PartitionId(7));
-    let _second_relation = create_relation_in_partition(&mut runtime, b, c, "bc", PartitionId(11));
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let a = create_entity_in_partition(&runtime, "a", PartitionId(7));
+    let b = create_entity_in_partition(&runtime, "b", PartitionId(11));
+    let c = create_entity_in_partition(&runtime, "c", PartitionId(13));
+    let _first_relation = create_relation_in_partition(&runtime, a, c, "ac", PartitionId(7));
+    let _second_relation = create_relation_in_partition(&runtime, b, c, "bc", PartitionId(11));
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
         .read_truth()

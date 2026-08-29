@@ -6,9 +6,9 @@ use crate::tests::support::*;
 
 #[test]
 fn checkpoint_reconstruction_does_not_exclude_publication_after_capture() {
-    let mut runtime = runtime_with_test_schema();
-    let baseline = create_entity_outcome(&mut runtime, "checkpoint-concurrency-anchor");
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
+    let runtime = runtime_with_test_schema();
+    let baseline = create_entity_outcome(&runtime, "checkpoint-concurrency-anchor");
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
     transaction
         .push_batch(batch_create("publication-during-checkpoint-reconstruction"))
         .expect("test staging stays within configured resource budgets");
@@ -66,7 +66,7 @@ fn checkpoint_reconstruction_does_not_exclude_publication_after_capture() {
         .send(())
         .expect("checkpoint reconstruction resumes after publication");
 
-    let (mut runtime, checkpoint) = checkpoint_thread.join().expect("checkpoint thread joins");
+    let (runtime, checkpoint) = checkpoint_thread.join().expect("checkpoint thread joins");
     let checkpoint = checkpoint.expect("the pre-publication checkpoint remains valid");
     assert_eq!(
         checkpoint

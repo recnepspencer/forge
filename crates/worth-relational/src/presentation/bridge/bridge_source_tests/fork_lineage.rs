@@ -29,7 +29,7 @@ fn assert_retained_fork_excludes_later_event(later_branch: BranchId) {
     assert_eq!(before.traversed_event_ids().len(), 1);
 
     replace_entity_on_branch(
-        &mut fixture.runtime.lock().unwrap(),
+        &fixture.runtime.lock().unwrap(),
         fixture.successor,
         &format!("later-{}-replacement", later_branch.0),
         later_branch,
@@ -67,11 +67,11 @@ impl RetainedForkFixture {
 }
 
 fn retained_fork_fixture() -> RetainedForkFixture {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "fork-source");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "fork-source");
     let entity = changed_entities(&created)[0];
     replace_entity_on_branch(
-        &mut runtime,
+        &runtime,
         entity,
         "fork-inherited-replacement",
         BranchId("main".to_owned()),

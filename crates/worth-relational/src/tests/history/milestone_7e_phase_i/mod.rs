@@ -16,12 +16,11 @@ use serde_support::{strategy_witness_payload, StrategyWitnessPayloadMutator};
 
 #[test]
 fn retained_merge_strategy_witness_preserves_exact_strategy_truth() {
-    let mut runtime =
-        runtime_with_schema_declared_entity_policy(AspectMergePolicyKind::PreferRicher);
-    let shared = create_entity(&mut runtime, "shared");
-    create_branch_from_main(&mut runtime, "feature");
-    update_entity_status_on_branch(&mut runtime, shared, "inactive", "main");
-    update_entity_status_on_branch(&mut runtime, shared, "active", "feature");
+    let runtime = runtime_with_schema_declared_entity_policy(AspectMergePolicyKind::PreferRicher);
+    let shared = create_entity(&runtime, "shared");
+    create_branch_from_main(&runtime, "feature");
+    update_entity_status_on_branch(&runtime, shared, "inactive", "main");
+    update_entity_status_on_branch(&runtime, shared, "active", "feature");
 
     let prepared = runtime
         .merge()
@@ -203,12 +202,12 @@ fn retained_merge_strategy_witness_differentiates_policy_topology_and_deletion_s
 
 #[test]
 fn retained_merge_strategy_witness_survives_prepared_execution_publication_and_recovery() {
-    let mut runtime =
+    let runtime =
         persisted_runtime_with_schema_declared_entity_policy(AspectMergePolicyKind::PreferRicher);
-    let shared = create_entity(&mut runtime, "shared");
-    create_branch_from_main(&mut runtime, "feature");
-    update_entity_status_on_branch(&mut runtime, shared, "inactive", "main");
-    update_entity_status_on_branch(&mut runtime, shared, "active", "feature");
+    let shared = create_entity(&runtime, "shared");
+    create_branch_from_main(&runtime, "feature");
+    update_entity_status_on_branch(&runtime, shared, "inactive", "main");
+    update_entity_status_on_branch(&runtime, shared, "active", "feature");
 
     let prepared = runtime
         .merge()
@@ -221,7 +220,7 @@ fn retained_merge_strategy_witness_survives_prepared_execution_publication_and_r
         .execute_prepared_merge(prepared)
         .expect("executed merge");
     let live_authority = published_merge_authority(&runtime, outcome.commit.commit.commit_id);
-    let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, || {
+    let (_recovery, recovered) = checkpoint_and_recover_with(&runtime, || {
         persisted_runtime_with_schema_declared_entity_policy(AspectMergePolicyKind::PreferRicher)
     });
     let recovered_authority =
@@ -250,12 +249,11 @@ fn retained_merge_strategy_witness_survives_prepared_execution_publication_and_r
 
 #[test]
 fn retained_merge_strategy_witness_live_authority_denies_internal_forged_strategy_truth() {
-    let mut runtime =
-        runtime_with_schema_declared_entity_policy(AspectMergePolicyKind::PreferRicher);
-    let shared = create_entity(&mut runtime, "shared");
-    create_branch_from_main(&mut runtime, "feature");
-    update_entity_status_on_branch(&mut runtime, shared, "inactive", "main");
-    update_entity_status_on_branch(&mut runtime, shared, "active", "feature");
+    let runtime = runtime_with_schema_declared_entity_policy(AspectMergePolicyKind::PreferRicher);
+    let shared = create_entity(&runtime, "shared");
+    create_branch_from_main(&runtime, "feature");
+    update_entity_status_on_branch(&runtime, shared, "inactive", "main");
+    update_entity_status_on_branch(&runtime, shared, "active", "feature");
 
     let prepared = runtime
         .merge()

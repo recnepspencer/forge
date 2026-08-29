@@ -177,7 +177,7 @@ pub(super) fn seed_relations(
 }
 
 pub(super) fn bulk_create_relations<I>(
-    mut runtime: &RelationalRuntime,
+    runtime: &RelationalRuntime,
     batch_name: &str,
     partition_id: PartitionId,
     specs: I,
@@ -196,7 +196,7 @@ where
         ));
         field_patches.push(fields);
     }
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
     txn.push_batch(
         WorkerIntentBatch::new(batch_name).push(MutationIntent::Create(
             CreateIntent::BulkRelations(BulkRelationCreateIntent {
@@ -209,7 +209,7 @@ where
         )),
     )
     .expect("test staging stays within configured resource budgets");
-    changed_relations(&txn.commit(&mut runtime).unwrap())
+    changed_relations(&txn.commit(runtime).unwrap())
 }
 
 fn relation_role_patch(role: &str) -> AspectFieldPatch {

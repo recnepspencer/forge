@@ -2,8 +2,8 @@ use super::*;
 
 #[test]
 fn historical_record_inspection_and_transaction_staging_are_read_only() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity(&mut runtime, "staged");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity(&runtime, "staged");
     let commit_id = runtime
         .history()
         .latest_commit()
@@ -29,7 +29,7 @@ fn historical_record_inspection_and_transaction_staging_are_read_only() {
         .changed_records
         .contains(&crate::facade::transactions::RecordRef::Entity(created)));
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(batch_create("pending"))
         .expect("test staging stays within configured resource budgets");
     let staging = txn.inspect_staging();
@@ -45,8 +45,8 @@ fn historical_record_inspection_and_transaction_staging_are_read_only() {
 
 #[test]
 fn historical_record_inspection_preserves_requested_branch_context() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity(&mut runtime, "branch-base");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity(&runtime, "branch-base");
     runtime
         .history_authority()
         .fork_branch_from(
@@ -81,13 +81,13 @@ fn historical_record_inspection_preserves_requested_branch_context() {
 
 #[test]
 fn adjacency_truth_uses_the_explicit_version_instead_of_current_head() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "source");
-    let first_target = create_entity(&mut runtime, "first-target");
-    let first = create_relation_outcome(&mut runtime, source, first_target, "first");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity(&runtime, "source");
+    let first_target = create_entity(&runtime, "first-target");
+    let first = create_relation_outcome(&runtime, source, first_target, "first");
     let retained_version = first.version_id;
-    let second_target = create_entity(&mut runtime, "second-target");
-    let second = create_relation_outcome(&mut runtime, source, second_target, "second");
+    let second_target = create_entity(&runtime, "second-target");
+    let second = create_relation_outcome(&runtime, source, second_target, "second");
     let relation_kind = crate::facade::identity::KindId(2);
 
     let historical = runtime.read_truth().outgoing_relations_of_kind_at_version(
@@ -122,9 +122,9 @@ fn adjacency_truth_uses_the_explicit_version_instead_of_current_head() {
 
 #[test]
 fn historical_open_fails_closed_without_retained_state_and_reconstructs_canonically_when_allowed() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "historical");
-    let later = create_entity_outcome(&mut runtime, "later");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "historical");
+    let later = create_entity_outcome(&runtime, "later");
     assert!(runtime
         .visibility_authority()
         .release_snapshot(&created.snapshot)
@@ -165,10 +165,10 @@ fn historical_open_fails_closed_without_retained_state_and_reconstructs_canonica
 
 #[test]
 fn historical_record_inspection_keeps_subresults_separate_when_retained_only_blocks_record_truth() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "historical");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "historical");
     let entity = changed_entities(&created)[0];
-    let _updated = create_entity_outcome(&mut runtime, "later");
+    let _updated = create_entity_outcome(&runtime, "later");
     assert!(runtime
         .visibility_authority()
         .release_snapshot(&created.snapshot)
@@ -219,7 +219,7 @@ fn historical_record_inspection_keeps_subresults_separate_when_retained_only_blo
 
 #[test]
 fn historical_inspection_matrix_keeps_entity_and_relation_subresults_honest_across_modes() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .visibility_cache_policy(VisibilityCachePolicy {
             enabled: true,
@@ -229,12 +229,12 @@ fn historical_inspection_matrix_keeps_entity_and_relation_subresults_honest_acro
             recent_version_window: 0,
         })
         .build();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    let relation_outcome = create_relation_outcome(&mut runtime, source, target, "matrix-rel");
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    let relation_outcome = create_relation_outcome(&runtime, source, target, "matrix-rel");
     let relation = crate::tests::support::changed_relations(&relation_outcome)[0];
     let entity_version = runtime.current_version_id();
-    let _later = create_entity_outcome(&mut runtime, "later");
+    let _later = create_entity_outcome(&runtime, "later");
     assert!(runtime
         .visibility_authority()
         .release_snapshot(&relation_outcome.snapshot)

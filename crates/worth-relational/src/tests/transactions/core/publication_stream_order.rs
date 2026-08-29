@@ -3,11 +3,11 @@ use crate::tests::support::*;
 #[test]
 fn branch_head_index_moves_at_cutover_before_reverse_settlement() {
     let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "head-index-anchor");
+    create_entity(&runtime, "head-index-anchor");
     fork_publication_branch(&mut runtime, "head-index-a");
     fork_publication_branch(&mut runtime, "head-index-b");
 
-    let mut first_transaction = test_owner_begin_transaction_for_main(&mut runtime);
+    let mut first_transaction = test_owner_begin_transaction_for_main(&runtime);
     first_transaction
         .push_batch(batch_create("head-index-first"))
         .expect("first publication stages");
@@ -43,15 +43,15 @@ fn branch_head_index_moves_at_cutover_before_reverse_settlement() {
     let committed_b = runtime
         .settle_performed_publication(branch_b)
         .expect("branch B settles first");
-    release_test_commit_snapshot(&mut runtime, &committed_b);
+    release_test_commit_snapshot(&runtime, &committed_b);
     let committed_a = runtime
         .settle_performed_publication(branch_a)
         .expect("branch A settles second");
-    release_test_commit_snapshot(&mut runtime, &committed_a);
+    release_test_commit_snapshot(&runtime, &committed_a);
     let committed_main = runtime
         .settle_performed_publication(first)
         .expect("main settles last");
-    release_test_commit_snapshot(&mut runtime, &committed_main);
+    release_test_commit_snapshot(&runtime, &committed_main);
     assert_eq!(
         runtime.history.oldest_branch_head_version(),
         Some(first_version),
@@ -62,7 +62,7 @@ fn branch_head_index_moves_at_cutover_before_reverse_settlement() {
 #[test]
 fn preparation_order_does_not_reserve_a_subscriber_stream_gap() {
     let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "stream-order-anchor");
+    create_entity(&runtime, "stream-order-anchor");
     fork_publication_branch(&mut runtime, "prepared-first");
     fork_publication_branch(&mut runtime, "published-first");
 
@@ -114,17 +114,17 @@ fn preparation_order_does_not_reserve_a_subscriber_stream_gap() {
     let committed_b = runtime
         .settle_performed_publication(published_first)
         .expect("published-first branch settles explicitly");
-    release_test_commit_snapshot(&mut runtime, &committed_b);
+    release_test_commit_snapshot(&runtime, &committed_b);
     let committed_a = runtime
         .settle_performed_publication(prepared_first)
         .expect("prepared-first branch settles explicitly");
-    release_test_commit_snapshot(&mut runtime, &committed_a);
+    release_test_commit_snapshot(&runtime, &committed_a);
 }
 
 #[test]
 fn checkpoint_tail_recovery_follows_publication_order_with_exact_reserved_identities() {
     let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "recovery-order-anchor");
+    create_entity(&runtime, "recovery-order-anchor");
     fork_publication_branch(&mut runtime, "prepared-first");
     fork_publication_branch(&mut runtime, "published-first");
 
@@ -143,7 +143,7 @@ fn checkpoint_tail_recovery_follows_publication_order_with_exact_reserved_identi
     let committed_b = runtime
         .settle_performed_publication(published_first)
         .expect("B settles before the checkpoint");
-    release_test_commit_snapshot(&mut runtime, &committed_b);
+    release_test_commit_snapshot(&runtime, &committed_b);
     runtime
         .durability_authority()
         .checkpoint()
@@ -164,7 +164,7 @@ fn checkpoint_tail_recovery_follows_publication_order_with_exact_reserved_identi
     let committed_a = runtime
         .settle_performed_publication(prepared_first)
         .expect("A settles after the checkpoint");
-    release_test_commit_snapshot(&mut runtime, &committed_a);
+    release_test_commit_snapshot(&runtime, &committed_a);
 
     let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
@@ -220,10 +220,10 @@ fn checkpoint_tail_recovery_follows_publication_order_with_exact_reserved_identi
         observed_entity_name(&recovered, "main", published_first_entity),
         None
     );
-    let continued = create_entity_outcome(&mut recovered, "recovery-order-continued");
+    let continued = create_entity_outcome(&recovered, "recovery-order-continued");
     assert!(continued.commit.commit_id > published_first_id);
     assert!(continued.patch_position() > prepared_first_position);
-    release_test_commit_snapshot(&mut recovered, &continued);
+    release_test_commit_snapshot(&recovered, &continued);
 }
 
 fn created_entity_from_performed(

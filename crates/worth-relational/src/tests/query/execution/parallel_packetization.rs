@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn planned_query_execution_parallelizes_profitable_multi_seed_traversal_packets() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .profile(RelationalRuntimeProfile::CertificationCore)
         .schema_registry(declared_aspect_schema_registry(
             CascadeDeletePolicy::CascadeDeleteRelations,
@@ -10,18 +10,18 @@ fn planned_query_execution_parallelizes_profitable_multi_seed_traversal_packets(
         .execution_model(crate::facade::runtime::RelationalExecutionModel::ParallelPreparation)
         .build();
     let seeds = vec![
-        create_entity_in_partition(&mut runtime, "s0", PartitionId(7)),
-        create_entity_in_partition(&mut runtime, "s1", PartitionId(11)),
-        create_entity_in_partition(&mut runtime, "s2", PartitionId(13)),
-        create_entity_in_partition(&mut runtime, "s3", PartitionId(17)),
-        create_entity_in_partition(&mut runtime, "s4", PartitionId(19)),
+        create_entity_in_partition(&runtime, "s0", PartitionId(7)),
+        create_entity_in_partition(&runtime, "s1", PartitionId(11)),
+        create_entity_in_partition(&runtime, "s2", PartitionId(13)),
+        create_entity_in_partition(&runtime, "s3", PartitionId(17)),
+        create_entity_in_partition(&runtime, "s4", PartitionId(19)),
     ];
     let neighbors = vec![
-        create_entity_in_partition(&mut runtime, "n0", PartitionId(23)),
-        create_entity_in_partition(&mut runtime, "n1", PartitionId(29)),
-        create_entity_in_partition(&mut runtime, "n2", PartitionId(31)),
-        create_entity_in_partition(&mut runtime, "n3", PartitionId(37)),
-        create_entity_in_partition(&mut runtime, "n4", PartitionId(41)),
+        create_entity_in_partition(&runtime, "n0", PartitionId(23)),
+        create_entity_in_partition(&runtime, "n1", PartitionId(29)),
+        create_entity_in_partition(&runtime, "n2", PartitionId(31)),
+        create_entity_in_partition(&runtime, "n3", PartitionId(37)),
+        create_entity_in_partition(&runtime, "n4", PartitionId(41)),
     ];
     let relations = seeds
         .iter()
@@ -29,7 +29,7 @@ fn planned_query_execution_parallelizes_profitable_multi_seed_traversal_packets(
         .enumerate()
         .map(|(index, (seed, neighbor))| {
             create_relation_in_partition(
-                &mut runtime,
+                &runtime,
                 *seed,
                 *neighbor,
                 &format!("edge-{index}"),

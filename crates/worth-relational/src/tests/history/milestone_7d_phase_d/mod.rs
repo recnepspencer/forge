@@ -223,13 +223,13 @@ fn create_entity_with_aspect_fields(
 }
 
 fn create_entity_with_aspect_fields_on_branch(
-    mut runtime: &mut crate::facade::runtime::RelationalRuntime,
+    runtime: &mut crate::facade::runtime::RelationalRuntime,
     client_key: &str,
     fields: crate::transactions::data::AspectFieldPatch,
     branch_id: BranchId,
 ) -> crate::facade::identity::EntityId {
     let mut txn =
-        crate::tests::support::test_owner_begin_transaction_for_branch(&mut runtime, branch_id);
+        crate::tests::support::test_owner_begin_transaction_for_branch(runtime, branch_id);
     txn.push_batch(WorkerIntentBatch::new(format!("create-{client_key}")).push(
         MutationIntent::Create(CreateIntent::Entity(
             crate::transactions::data::EntitySpec {
@@ -241,11 +241,11 @@ fn create_entity_with_aspect_fields_on_branch(
         )),
     ))
     .expect("test staging stays within configured resource budgets");
-    changed_entities(&txn.commit(&mut runtime).unwrap())[0]
+    changed_entities(&txn.commit(runtime).unwrap())[0]
 }
 
 fn update_entity_aspect_fields_on_branch(
-    mut runtime: &mut crate::facade::runtime::RelationalRuntime,
+    runtime: &mut crate::facade::runtime::RelationalRuntime,
     entity_id: crate::facade::identity::EntityId,
     fields: crate::transactions::data::AspectFieldPatch,
     branch_id: BranchId,
@@ -259,7 +259,7 @@ fn update_entity_aspect_fields_on_branch(
     )
     .to_string();
     let mut txn =
-        crate::tests::support::test_owner_begin_transaction_for_branch(&mut runtime, branch_id);
+        crate::tests::support::test_owner_begin_transaction_for_branch(runtime, branch_id);
     txn.push_batch(
         WorkerIntentBatch::new("update-aspect-fields").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -269,7 +269,7 @@ fn update_entity_aspect_fields_on_branch(
         )),
     )
     .expect("test staging stays within configured resource budgets");
-    txn.commit(&mut runtime).unwrap();
+    txn.commit(runtime).unwrap();
 }
 
 fn aspect_fields_with_identity_name(

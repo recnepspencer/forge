@@ -2,10 +2,9 @@ use super::*;
 
 #[test]
 fn planned_query_execution_supports_aspect_filtered_entity_scans_through_reducer_path() {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let left = create_entity_in_partition(&mut runtime, "left-a", PartitionId(7));
-    let right = create_entity_in_partition(&mut runtime, "right-a", PartitionId(11));
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let left = create_entity_in_partition(&runtime, "left-a", PartitionId(7));
+    let right = create_entity_in_partition(&runtime, "right-a", PartitionId(11));
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
         .read_truth()
@@ -63,8 +62,8 @@ fn planned_query_execution_aspect_filter_requires_projected_authoritative_presen
         aspect_key("status"),
         field_key("status"),
     ));
-    let mut runtime = fixture.build_runtime();
-    create_entity_in_partition(&mut runtime, "declared-without-status", PartitionId(7));
+    let runtime = fixture.build_runtime();
+    create_entity_in_partition(&runtime, "declared-without-status", PartitionId(7));
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
         .read_truth()
@@ -107,7 +106,7 @@ fn planned_query_execution_aspect_filter_requires_projected_authoritative_presen
 
 #[test]
 fn planned_query_execution_aspect_filter_supports_field_mask_presence() {
-    let mut runtime = AspectSchemaFixture {
+    let runtime = AspectSchemaFixture {
         entity_aspects: vec![
             entity_field_aspect(aspect_key("name"), field_key("name")),
             entity_summary_struct_aspect(aspect_key("summary"), field_key("summary")),
@@ -115,8 +114,8 @@ fn planned_query_execution_aspect_filter_supports_field_mask_presence() {
         ..AspectSchemaFixture::default()
     }
     .build_runtime();
-    let matched = create_entity_with_summary_title(&mut runtime, "matched", "visible-title");
-    create_entity_in_partition(&mut runtime, "missing-summary", PartitionId(7));
+    let matched = create_entity_with_summary_title(&runtime, "matched", "visible-title");
+    create_entity_in_partition(&runtime, "missing-summary", PartitionId(7));
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
         .read_truth()
@@ -166,15 +165,13 @@ fn planned_query_execution_aspect_filter_supports_field_mask_presence() {
 
 #[test]
 fn planned_query_execution_supports_aspect_filtered_relation_scans_through_reducer_path() {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let left = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
-    let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
-    let third = create_entity_in_partition(&mut runtime, "third", PartitionId(11));
-    let first_relation =
-        create_relation_in_partition(&mut runtime, left, right, "r1", PartitionId(7));
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let left = create_entity_in_partition(&runtime, "left", PartitionId(7));
+    let right = create_entity_in_partition(&runtime, "right", PartitionId(11));
+    let third = create_entity_in_partition(&runtime, "third", PartitionId(11));
+    let first_relation = create_relation_in_partition(&runtime, left, right, "r1", PartitionId(7));
     let second_relation =
-        create_relation_in_partition(&mut runtime, right, third, "r2", PartitionId(11));
+        create_relation_in_partition(&runtime, right, third, "r2", PartitionId(11));
     let snapshot = runtime.visibility_authority().snapshot();
     let context = runtime
         .read_truth()
@@ -224,11 +221,11 @@ fn planned_query_execution_supports_aspect_filtered_relation_scans_through_reduc
 }
 
 fn create_entity_with_summary_title(
-    mut runtime: &RelationalRuntime,
+    runtime: &RelationalRuntime,
     client_key: &str,
     summary_title: &str,
 ) -> crate::facade::identity::EntityId {
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
     txn.push_batch(
         WorkerIntentBatch::new(format!("summary-{client_key}")).push(MutationIntent::Create(
             CreateIntent::Entity(crate::transactions::data::EntitySpec {
@@ -255,5 +252,5 @@ fn create_entity_with_summary_title(
         )),
     )
     .expect("test staging stays within configured resource budgets");
-    changed_entities(&txn.commit(&mut runtime).unwrap())[0]
+    changed_entities(&txn.commit(runtime).unwrap())[0]
 }

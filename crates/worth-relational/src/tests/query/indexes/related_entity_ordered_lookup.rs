@@ -7,13 +7,13 @@ use crate::facade::indexes::{
 
 #[test]
 fn related_ordering_certification_rejects_a_missing_candidate() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let parent = changed_entities(&create_entity_outcome(&mut runtime, "parent"))[0];
-    let alpha = changed_entities(&create_entity_outcome(&mut runtime, "alpha"))[0];
-    let beta = changed_entities(&create_entity_outcome(&mut runtime, "beta"))[0];
-    create_relation_outcome(&mut runtime, parent, alpha, "owns-alpha");
-    create_relation_outcome(&mut runtime, parent, beta, "owns-beta");
-    let index = register_related_name_index(&mut runtime);
+    let runtime = runtime_with_index_field_aspects();
+    let parent = changed_entities(&create_entity_outcome(&runtime, "parent"))[0];
+    let alpha = changed_entities(&create_entity_outcome(&runtime, "alpha"))[0];
+    let beta = changed_entities(&create_entity_outcome(&runtime, "beta"))[0];
+    create_relation_outcome(&runtime, parent, alpha, "owns-alpha");
+    create_relation_outcome(&runtime, parent, beta, "owns-beta");
+    let index = register_related_name_index(&runtime);
     let source_commit_id = runtime.history().latest_commit().unwrap().commit_id;
     runtime
         .index_authority()
@@ -67,15 +67,15 @@ fn related_ordering_certification_rejects_a_missing_candidate() {
 
 #[test]
 fn related_entity_pages_seek_exact_order_with_identity_ties() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let parent = changed_entities(&create_entity_outcome(&mut runtime, "parent"))[0];
-    let alpha_one = changed_entities(&create_entity_outcome(&mut runtime, "alpha"))[0];
-    let beta = changed_entities(&create_entity_outcome(&mut runtime, "beta"))[0];
-    let alpha_two = changed_entities(&create_entity_outcome(&mut runtime, "alpha"))[0];
-    create_relation_outcome(&mut runtime, parent, beta, "owns");
-    create_relation_outcome(&mut runtime, parent, alpha_two, "owns");
-    create_relation_outcome(&mut runtime, parent, alpha_one, "owns");
-    let index = register_related_name_index(&mut runtime);
+    let runtime = runtime_with_index_field_aspects();
+    let parent = changed_entities(&create_entity_outcome(&runtime, "parent"))[0];
+    let alpha_one = changed_entities(&create_entity_outcome(&runtime, "alpha"))[0];
+    let beta = changed_entities(&create_entity_outcome(&runtime, "beta"))[0];
+    let alpha_two = changed_entities(&create_entity_outcome(&runtime, "alpha"))[0];
+    create_relation_outcome(&runtime, parent, beta, "owns");
+    create_relation_outcome(&runtime, parent, alpha_two, "owns");
+    create_relation_outcome(&runtime, parent, alpha_one, "owns");
+    let index = register_related_name_index(&runtime);
     let source_commit_id = runtime.history().latest_commit().unwrap().commit_id;
     let build = runtime
         .index_authority()
@@ -136,15 +136,14 @@ fn related_entity_pages_seek_exact_order_with_identity_ties() {
 
 #[test]
 fn related_entity_boundary_is_parent_and_generation_scoped() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let parent = changed_entities(&create_entity_outcome(&mut runtime, "parent"))[0];
-    let foreign_parent =
-        changed_entities(&create_entity_outcome(&mut runtime, "foreign-parent"))[0];
-    let child = changed_entities(&create_entity_outcome(&mut runtime, "alpha"))[0];
-    let later_child = changed_entities(&create_entity_outcome(&mut runtime, "beta"))[0];
-    create_relation_outcome(&mut runtime, parent, child, "owns");
-    create_relation_outcome(&mut runtime, parent, later_child, "owns");
-    let index = register_related_name_index(&mut runtime);
+    let runtime = runtime_with_index_field_aspects();
+    let parent = changed_entities(&create_entity_outcome(&runtime, "parent"))[0];
+    let foreign_parent = changed_entities(&create_entity_outcome(&runtime, "foreign-parent"))[0];
+    let child = changed_entities(&create_entity_outcome(&runtime, "alpha"))[0];
+    let later_child = changed_entities(&create_entity_outcome(&runtime, "beta"))[0];
+    create_relation_outcome(&runtime, parent, child, "owns");
+    create_relation_outcome(&runtime, parent, later_child, "owns");
+    let index = register_related_name_index(&runtime);
     let source_commit_id = runtime.history().latest_commit().unwrap().commit_id;
     runtime
         .index_authority()
@@ -194,11 +193,11 @@ fn related_entity_boundary_is_parent_and_generation_scoped() {
 
 #[test]
 fn expected_generation_mismatch_denies_before_ordered_page_access() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let parent = changed_entities(&create_entity_outcome(&mut runtime, "parent"))[0];
-    let child = changed_entities(&create_entity_outcome(&mut runtime, "alpha"))[0];
-    create_relation_outcome(&mut runtime, parent, child, "owns");
-    let index = register_related_name_index(&mut runtime);
+    let runtime = runtime_with_index_field_aspects();
+    let parent = changed_entities(&create_entity_outcome(&runtime, "parent"))[0];
+    let child = changed_entities(&create_entity_outcome(&runtime, "alpha"))[0];
+    create_relation_outcome(&runtime, parent, child, "owns");
+    let index = register_related_name_index(&runtime);
     let source_commit_id = runtime.history().latest_commit().unwrap().commit_id;
     let build = runtime
         .index_authority()
@@ -234,13 +233,13 @@ fn expected_generation_mismatch_denies_before_ordered_page_access() {
 
 #[test]
 fn related_ordering_rebuilds_retained_historical_child_values_after_update() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let parent = changed_entities(&create_entity_outcome(&mut runtime, "parent"))[0];
-    let child = changed_entities(&create_entity_outcome(&mut runtime, "historical"))[0];
-    let historical = create_relation_outcome(&mut runtime, parent, child, "owns-historical");
-    let index = register_related_name_index(&mut runtime);
+    let runtime = runtime_with_index_field_aspects();
+    let parent = changed_entities(&create_entity_outcome(&runtime, "parent"))[0];
+    let child = changed_entities(&create_entity_outcome(&runtime, "historical"))[0];
+    let historical = create_relation_outcome(&runtime, parent, child, "owns-historical");
+    let index = register_related_name_index(&runtime);
 
-    update_entity(&mut runtime, child, "current");
+    update_entity(&runtime, child, "current");
     let build = runtime
         .index_authority()
         .build_for_commit(DerivedIndexBuildRequest {

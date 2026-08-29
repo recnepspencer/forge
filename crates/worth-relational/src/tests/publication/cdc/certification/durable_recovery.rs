@@ -17,9 +17,9 @@ use crate::tests::support::*;
 
 #[test]
 fn cdc_certification_durable_recovery_matches_head_and_midstream_consumers() {
-    let mut runtime = persisted_runtime_with_test_schema();
+    let runtime = persisted_runtime_with_test_schema();
     for name in ["a", "b", "c", "d", "e", "f"] {
-        let _ = create_entity_outcome(&mut runtime, name);
+        let _ = create_entity_outcome(&runtime, name);
         if ["b", "d"].contains(&name) {
             runtime.durability_authority().checkpoint().unwrap();
         }
@@ -107,7 +107,7 @@ fn cdc_certification_persisted_seeded_matrix_survives_checkpoint_compaction_and_
 
 #[test]
 fn cdc_certification_retention_truncation_recovers_exact_suffix_from_old_checkpoint() {
-    let mut world = run_seeded_scenario(SeededScenarioConfig::persisted_geometry(
+    let world = run_seeded_scenario(SeededScenarioConfig::persisted_geometry(
         0xFACE515E,
         CertificationPressureProfile::HistoryPressure,
     ));

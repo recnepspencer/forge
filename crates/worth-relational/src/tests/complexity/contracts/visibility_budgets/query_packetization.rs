@@ -2,12 +2,12 @@ use crate::tests::support::*;
 
 #[test]
 fn complexity_budget_query_packetization_reports_parallel_shape_for_cross_partition_reads() {
-    let mut runtime = runtime_with_test_schema_execution_model(
+    let runtime = runtime_with_test_schema_execution_model(
         crate::facade::runtime::RelationalExecutionModel::ParallelPreparation,
     );
-    let left_a = create_entity_in_partition(&mut runtime, "left-a", PartitionId(7));
-    let left_b = create_entity_in_partition(&mut runtime, "left-b", PartitionId(7));
-    let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
+    let left_a = create_entity_in_partition(&runtime, "left-a", PartitionId(7));
+    let left_b = create_entity_in_partition(&runtime, "left-b", PartitionId(7));
+    let right = create_entity_in_partition(&runtime, "right", PartitionId(11));
     let snapshot = runtime.visibility_authority().snapshot();
 
     runtime.performance_access().reset_counters();
@@ -37,13 +37,13 @@ fn complexity_budget_query_packetization_reports_parallel_shape_for_cross_partit
 
 #[test]
 fn complexity_budget_query_packetization_reports_serial_shape_for_narrow_reads() {
-    let mut runtime = runtime_with_test_schema_execution_model(
+    let runtime = runtime_with_test_schema_execution_model(
         crate::facade::runtime::RelationalExecutionModel::ParallelPreparation,
     );
-    let entity = create_entity(&mut runtime, "single");
+    let entity = create_entity(&runtime, "single");
     for partition in 20..84 {
         let _ = create_entity_in_partition(
-            &mut runtime,
+            &runtime,
             &format!("unrelated-{partition}"),
             PartitionId(partition),
         );

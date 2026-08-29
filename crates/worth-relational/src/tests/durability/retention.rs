@@ -6,31 +6,30 @@ use crate::tests::support::*;
 
 #[test]
 fn retention_plan_reports_active_root_obligations_without_per_record_snapshot_pins() {
-    let mut runtime = runtime_with_test_schema();
-    let entity_created = create_entity_outcome(&mut runtime, "entity-pinned");
+    let runtime = runtime_with_test_schema();
+    let entity_created = create_entity_outcome(&runtime, "entity-pinned");
     let entity_created_snapshot = runtime.visibility_authority().snapshot();
     let entity = changed_entities(&entity_created)[0];
-    let _deleted_entity = delete_entity(&mut runtime, entity);
+    let _deleted_entity = delete_entity(&runtime, entity);
     let deleted_entity_snapshot = runtime.visibility_authority().snapshot();
 
-    let relation_source = create_entity(&mut runtime, "relation-left");
-    let relation_target = create_entity(&mut runtime, "relation-right");
+    let relation_source = create_entity(&runtime, "relation-left");
+    let relation_target = create_entity(&runtime, "relation-right");
     let relation_created =
-        create_relation_outcome(&mut runtime, relation_source, relation_target, "r1");
+        create_relation_outcome(&runtime, relation_source, relation_target, "r1");
     let relation_created_snapshot = runtime.visibility_authority().snapshot();
     let relation = changed_relations(&relation_created)[0];
-    let _deleted_relation = {
-        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-        txn.push_batch(
-            WorkerIntentBatch::new("delete-relation").push(MutationIntent::Relation(
-                RelationMutationIntent::Delete(DeleteRelationIntent {
+    let _deleted_relation =
+        {
+            let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
+            txn.push_batch(WorkerIntentBatch::new("delete-relation").push(
+                MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
                     relation_id: relation,
-                }),
-            )),
-        )
-        .expect("test staging stays within configured resource budgets");
-        txn.commit(&mut runtime).unwrap()
-    };
+                })),
+            ))
+            .expect("test staging stays within configured resource budgets");
+            txn.commit(&runtime).unwrap()
+        };
     let deleted_relation_snapshot = runtime.visibility_authority().snapshot();
 
     let plan = runtime.retention().inspect_plan();
@@ -72,11 +71,11 @@ fn retention_plan_reports_active_root_obligations_without_per_record_snapshot_pi
 
 #[test]
 fn retention_plan_turns_deleted_records_reclaimable_after_snapshot_release() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "reclaimable");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "reclaimable");
     let created_snapshot = runtime.visibility_authority().snapshot();
     let entity = changed_entities(&created)[0];
-    let _deleted = delete_entity(&mut runtime, entity);
+    let _deleted = delete_entity(&runtime, entity);
     let deleted_snapshot = runtime.visibility_authority().snapshot();
 
     assert!(runtime
@@ -99,13 +98,12 @@ fn retention_plan_turns_deleted_records_reclaimable_after_snapshot_release() {
 
 #[test]
 fn lagging_sibling_root_survives_without_per_record_branch_pins() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity_outcome(&mut runtime, "source");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity_outcome(&runtime, "source");
     let source_entity = changed_entities(&source)[0];
-    let target = create_entity_outcome(&mut runtime, "target");
+    let target = create_entity_outcome(&runtime, "target");
     let target_entity = changed_entities(&target)[0];
-    let relation_created =
-        create_relation_outcome(&mut runtime, source_entity, target_entity, "r1");
+    let relation_created = create_relation_outcome(&runtime, source_entity, target_entity, "r1");
     runtime
         .history_authority()
         .fork_branch_from(
@@ -113,7 +111,7 @@ fn lagging_sibling_root_survives_without_per_record_branch_pins() {
             &BranchId("main".to_string()),
         )
         .unwrap();
-    let deleted = delete_entity(&mut runtime, source_entity);
+    let deleted = delete_entity(&runtime, source_entity);
 
     assert!(runtime
         .visibility_authority()
@@ -152,13 +150,12 @@ fn lagging_sibling_root_survives_without_per_record_branch_pins() {
 
 #[test]
 fn retention_inspection_keeps_legacy_branch_pin_counts_zero() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity_outcome(&mut runtime, "source");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity_outcome(&runtime, "source");
     let source_entity = changed_entities(&source)[0];
-    let target = create_entity_outcome(&mut runtime, "target");
+    let target = create_entity_outcome(&runtime, "target");
     let target_entity = changed_entities(&target)[0];
-    let relation_created =
-        create_relation_outcome(&mut runtime, source_entity, target_entity, "r1");
+    let relation_created = create_relation_outcome(&runtime, source_entity, target_entity, "r1");
     let relation = changed_relations(&relation_created)[0];
     runtime
         .history_authority()
@@ -167,7 +164,7 @@ fn retention_inspection_keeps_legacy_branch_pin_counts_zero() {
             &BranchId("main".to_string()),
         )
         .unwrap();
-    let deleted = delete_entity(&mut runtime, source_entity);
+    let deleted = delete_entity(&runtime, source_entity);
 
     assert!(runtime
         .visibility_authority()
@@ -215,10 +212,10 @@ fn retention_inspection_keeps_legacy_branch_pin_counts_zero() {
 
 #[test]
 fn retention_plan_reports_explicit_replay_pins_until_released() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "replay-pinned");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "replay-pinned");
     let entity = changed_entities(&created)[0];
-    let deleted = delete_entity(&mut runtime, entity);
+    let deleted = delete_entity(&runtime, entity);
 
     assert!(runtime
         .visibility_authority()
@@ -246,8 +243,8 @@ fn retention_plan_reports_explicit_replay_pins_until_released() {
 
 #[test]
 fn replay_retention_preserves_historical_live_entity_aspects_across_updates() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "replay-history");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "replay-history");
     let entity = changed_entities(&created)[0];
 
     assert!(runtime
@@ -258,7 +255,7 @@ fn replay_retention_preserves_historical_live_entity_aspects_across_updates() {
         .history_authority()
         .retain_version_for_replay(created.version_id));
 
-    let _updated = update_entity(&mut runtime, entity, "replay-history-updated");
+    let _updated = update_entity(&runtime, entity, "replay-history-updated");
     let historical = runtime.read_truth().read_version(created.version_id);
 
     assert_eq!(historical.entities.len(), 1);
@@ -274,23 +271,22 @@ fn replay_retention_preserves_historical_live_entity_aspects_across_updates() {
 
 #[test]
 fn retention_plan_reports_explicit_replay_pins_for_deleted_relations_until_released() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "replay-left");
-    let target = create_entity(&mut runtime, "replay-right");
-    let created = create_relation_outcome(&mut runtime, source, target, "replay-r1");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity(&runtime, "replay-left");
+    let target = create_entity(&runtime, "replay-right");
+    let created = create_relation_outcome(&runtime, source, target, "replay-r1");
     let relation = changed_relations(&created)[0];
-    let deleted = {
-        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
-        txn.push_batch(
-            WorkerIntentBatch::new("delete-relation").push(MutationIntent::Relation(
-                RelationMutationIntent::Delete(DeleteRelationIntent {
+    let deleted =
+        {
+            let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
+            txn.push_batch(WorkerIntentBatch::new("delete-relation").push(
+                MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
                     relation_id: relation,
-                }),
-            )),
-        )
-        .expect("test staging stays within configured resource budgets");
-        txn.commit(&mut runtime).unwrap()
-    };
+                })),
+            ))
+            .expect("test staging stays within configured resource budgets");
+            txn.commit(&runtime).unwrap()
+        };
 
     assert!(runtime
         .visibility_authority()

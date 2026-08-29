@@ -27,7 +27,7 @@ fn rootless_selected_publication_fails_before_movement_and_releases_preflight_re
     let registry_entries_before_candidate = runtime
         .branch_basis_cost_counters()
         .retained_basis_registry_entries;
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
     transaction
         .push_batch(batch_create("selected-root-unavailable"))
         .expect("test staging stays within configured resource budgets");

@@ -9,8 +9,8 @@ fn phase2_ports_are_cloneable_sendable_and_shared_borrow_services() {
     assert_clone_send_sync::<crate::facade::mvcc::RelationalPreparationPort>();
     assert_clone_send_sync::<crate::facade::branch::RelationalForkPort>();
 
-    let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "phase2-port-anchor");
+    let runtime = runtime_with_test_schema();
+    create_entity(&runtime, "phase2-port-anchor");
     let preparation = runtime.preparation_port();
     let forking = runtime.fork_port();
     let _preparation_clone = preparation.clone();
@@ -23,8 +23,8 @@ fn phase2_ports_are_cloneable_sendable_and_shared_borrow_services() {
 
 #[test]
 fn paused_branch_preparation_does_not_block_unrelated_branch_preparation() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "phase2-preparation-anchor");
+    let runtime = runtime_with_test_schema();
+    create_entity(&runtime, "phase2-preparation-anchor");
     fork_from_main(&runtime, "paused-preparation");
     fork_from_main(&runtime, "progressing-preparation");
 
@@ -94,8 +94,8 @@ fn paused_branch_preparation_does_not_block_unrelated_branch_preparation() {
 
 #[test]
 fn paused_fork_does_not_block_an_unrelated_fork() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "phase2-fork-anchor");
+    let runtime = runtime_with_test_schema();
+    create_entity(&runtime, "phase2-fork-anchor");
     fork_from_main(&runtime, "paused-fork-source");
     fork_from_main(&runtime, "progressing-fork-source");
     let paused_source_branch = BranchId("paused-fork-source".to_owned());
@@ -147,8 +147,8 @@ fn paused_fork_does_not_block_an_unrelated_fork() {
 
 #[test]
 fn concurrent_duplicate_fork_has_one_winner_and_no_second_target() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "phase2-duplicate-fork-anchor");
+    let runtime = runtime_with_test_schema();
+    create_entity(&runtime, "phase2-duplicate-fork-anchor");
     let source_branch = BranchId("main".to_owned());
     let port = runtime.fork_port();
     let (_, first_source) = port
@@ -209,8 +209,8 @@ fn concurrent_duplicate_fork_has_one_winner_and_no_second_target() {
 
 #[test]
 fn cloned_preparation_ports_share_symbol_identity_and_public_snapshot_truth() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "phase2-symbol-sharing-anchor");
+    let runtime = runtime_with_test_schema();
+    create_entity(&runtime, "phase2-symbol-sharing-anchor");
     fork_from_main(&runtime, "symbol-sharing-a");
     fork_from_main(&runtime, "symbol-sharing-b");
     let preparation = runtime.preparation_port();
@@ -257,8 +257,8 @@ fn cloned_preparation_ports_share_symbol_identity_and_public_snapshot_truth() {
 
 #[test]
 fn phase2_ports_deny_after_their_runtime_owner_closes() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "phase2-owner-close-anchor");
+    let runtime = runtime_with_test_schema();
+    create_entity(&runtime, "phase2-owner-close-anchor");
     let mut transaction = begin_transaction(&runtime, "main");
     transaction
         .push_batch(batch_create("phase2-owner-close-write"))

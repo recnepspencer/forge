@@ -8,12 +8,12 @@ use crate::tests::support::{
 
 #[test]
 fn complexity_budget_merge_planning_reports_request_shaped_work() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let shared = create_entity(&mut runtime, "shared");
-    create_branch_from_main(&mut runtime, "feature");
-    update_entity(&mut runtime, shared, "main-value");
+    let runtime = persisted_runtime_with_test_schema();
+    let shared = create_entity(&runtime, "shared");
+    create_branch_from_main(&runtime, "feature");
+    update_entity(&runtime, shared, "main-value");
     update_entity_on_branch(
-        &mut runtime,
+        &runtime,
         shared,
         "feature-value",
         BranchId("feature".to_string()),
@@ -72,11 +72,11 @@ fn complexity_budget_merge_planning_reports_request_shaped_work() {
 
 #[test]
 fn complexity_budget_merge_execution_reports_admitted_records_and_emitted_mutations() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "main-anchor");
-    create_branch_from_main(&mut runtime, "feature");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "main-anchor");
+    create_branch_from_main(&runtime, "feature");
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
-        &mut runtime,
+        &runtime,
         BranchId("feature".to_string()),
     );
     txn.push_batch(
@@ -96,7 +96,7 @@ fn complexity_budget_merge_execution_reports_admitted_records_and_emitted_mutati
             .into(),
     )
     .expect("test staging stays within configured resource budgets");
-    let feature_only = changed_entities(&txn.commit(&mut runtime).expect("feature-only create"))[0];
+    let feature_only = changed_entities(&txn.commit(&runtime).expect("feature-only create"))[0];
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {

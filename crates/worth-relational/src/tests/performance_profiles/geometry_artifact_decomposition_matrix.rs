@@ -21,11 +21,11 @@ fn perf_geometry_artifact_decomposition_matrix() {
             });
             let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
             let seeded =
-                seed_pseudorealistic_rocketship_world(&mut runtime, node_count, query_target_count);
+                seed_pseudorealistic_rocketship_world(&runtime, node_count, query_target_count);
 
             let hot_update_started_at = Instant::now();
             let update = update_entity(
-                &mut runtime,
+                &runtime,
                 seeded.hot_update_target,
                 "rocketship-rich-artifact-update",
             );

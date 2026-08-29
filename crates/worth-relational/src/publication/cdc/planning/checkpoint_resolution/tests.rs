@@ -8,10 +8,10 @@ use crate::{
 #[test]
 fn subscriber_stream_recovers_from_durable_canonical_envelopes_when_patch_stream_index_outlives_envelope(
 ) {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let first = create_entity_outcome(&mut runtime, "a");
+    let runtime = persisted_runtime_with_test_schema();
+    let first = create_entity_outcome(&runtime, "a");
     runtime.durability_authority().checkpoint().unwrap();
-    let _second = create_entity_outcome(&mut runtime, "b");
+    let _second = create_entity_outcome(&runtime, "b");
 
     assert!(runtime
         .history_authority()

@@ -3,8 +3,8 @@ use super::*;
 #[test]
 fn ordinary_continuity_reuses_registry_allocation_at_small_and_large_schema_scale() {
     for additional_kind_count in [0_u32, 256] {
-        let mut runtime = runtime_with_registry_width(additional_kind_count);
-        create_entity_outcome(&mut runtime, "schema-allocation-basis");
+        let runtime = runtime_with_registry_width(additional_kind_count);
+        create_entity_outcome(&runtime, "schema-allocation-basis");
         let prior_root = runtime
             .history
             .branch_cell(&BranchId("main".to_owned()))
@@ -30,7 +30,7 @@ fn ordinary_continuity_reuses_registry_allocation_at_small_and_large_schema_scal
             "ordinary continuity must share the root registry allocation at width {additional_kind_count}"
         );
 
-        create_entity_outcome(&mut runtime, "schema-allocation-next");
+        create_entity_outcome(&runtime, "schema-allocation-next");
         let next_root = runtime
             .history
             .branch_cell(&BranchId("main".to_owned()))

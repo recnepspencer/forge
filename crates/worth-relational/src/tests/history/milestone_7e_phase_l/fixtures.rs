@@ -92,7 +92,7 @@ fn update_entity_status_on_branch(
     let mut txn = {
         let transaction_validation_input =
             crate::tests::support::test_owner_transaction_validation_input_for_branch(
-                &runtime,
+                runtime,
                 BranchId(branch.to_string()),
             );
         runtime

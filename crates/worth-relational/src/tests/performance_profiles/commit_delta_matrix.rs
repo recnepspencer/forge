@@ -6,15 +6,14 @@ fn perf_commit_delta_matrix() {
     let suite = "commit_delta_matrix";
 
     let narrow_samples = capture_perf_samples(suite, "single_partition_create_burst", || {
-        let mut runtime = runtime_with_test_schema();
-        commit_measurement(&mut runtime, |mut runtime| {
-            let mut txn =
-                crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+        let runtime = runtime_with_test_schema();
+        commit_measurement(&runtime, |runtime| {
+            let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
             for index in 0..64 {
                 txn.push_batch(batch_create(&format!("perf-entity-{index}")))
                     .expect("test staging stays within configured resource budgets");
             }
-            txn.commit(&mut runtime)
+            txn.commit(runtime)
                 .expect("single-partition create burst commit")
         })
     });
@@ -34,29 +33,20 @@ fn perf_commit_delta_matrix() {
 
     let cross_partition_samples =
         capture_perf_samples(suite, "cross_partition_relation_burst", || {
-            let mut runtime = runtime_with_test_schema();
+            let runtime = runtime_with_test_schema();
             let sources = (0..24)
                 .map(|index| {
-                    create_entity_in_partition(
-                        &mut runtime,
-                        &format!("src-{index}"),
-                        PartitionId(1),
-                    )
+                    create_entity_in_partition(&runtime, &format!("src-{index}"), PartitionId(1))
                 })
                 .collect::<Vec<_>>();
             let targets = (0..24)
                 .map(|index| {
-                    create_entity_in_partition(
-                        &mut runtime,
-                        &format!("dst-{index}"),
-                        PartitionId(7),
-                    )
+                    create_entity_in_partition(&runtime, &format!("dst-{index}"), PartitionId(7))
                 })
                 .collect::<Vec<_>>();
 
-            commit_measurement(&mut runtime, |mut runtime| {
-                let mut txn =
-                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+            commit_measurement(&runtime, |runtime| {
+                let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
                 let mut batch = WorkerIntentBatch::new("cross-partition-relations");
                 for (index, (source, target)) in sources.iter().zip(targets.iter()).enumerate() {
                     batch = batch.push(MutationIntent::Create(CreateIntent::Relation(
@@ -74,7 +64,7 @@ fn perf_commit_delta_matrix() {
                 }
                 txn.push_batch(batch)
                     .expect("test staging stays within configured resource budgets");
-                txn.commit(&mut runtime)
+                txn.commit(runtime)
                     .expect("cross-partition relation burst commit")
             })
         });
@@ -95,14 +85,12 @@ fn perf_commit_delta_matrix() {
 
     let persisted_single_create_samples =
         capture_perf_samples(suite, "persisted_single_entity_create", || {
-            let mut runtime = persisted_runtime_with_test_schema();
-            commit_measurement(&mut runtime, |mut runtime| {
-                let mut txn =
-                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+            let runtime = persisted_runtime_with_test_schema();
+            commit_measurement(&runtime, |runtime| {
+                let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
                 txn.push_batch(batch_create("persisted-single"))
                     .expect("test staging stays within configured resource budgets");
-                txn.commit(&mut runtime)
-                    .expect("persisted single entity create")
+                txn.commit(runtime).expect("persisted single entity create")
             })
         });
     emit_metric_summaries(

@@ -141,7 +141,7 @@ pub(super) fn snapshot_from_authority(
         .inspect_what_happened()
         .prepare_published_merge_support_inspection_witness(&authority)
         .expect("support inspection witness");
-    let canonical_basis = lower_packet(&runtime, authority.execution_summary.proof_packet());
+    let canonical_basis = lower_packet(runtime, authority.execution_summary.proof_packet());
     CollaborationTruthSnapshot {
         authority,
         support,
@@ -187,7 +187,7 @@ fn update_entity_status_on_branch(
     let mut txn = {
         let transaction_validation_input =
             crate::tests::support::test_owner_transaction_validation_input_for_branch(
-                &runtime,
+                runtime,
                 BranchId(branch.to_string()),
             );
         runtime

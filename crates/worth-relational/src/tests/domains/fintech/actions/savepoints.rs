@@ -11,10 +11,8 @@ pub(crate) fn rollback_case_trade_after_savepoint(
     branch_id: BranchId,
 ) -> RollbackOutcome {
     let case = world.late_trade_correction_case();
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
-        &mut world.runtime,
-        branch_id,
-    );
+    let mut txn =
+        crate::tests::support::test_owner_begin_transaction_for_branch(&world.runtime, branch_id);
     let savepoint = txn.create_savepoint().unwrap();
     txn.push_batch(
         WorkerIntentBatch::new("temporary-case-trade-correction")
@@ -76,10 +74,8 @@ pub(crate) fn commit_case_trade_after_savepoint(
     branch_id: BranchId,
 ) -> CommitResult {
     let case = world.late_trade_correction_case();
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
-        &mut world.runtime,
-        branch_id,
-    );
+    let mut txn =
+        crate::tests::support::test_owner_begin_transaction_for_branch(&world.runtime, branch_id);
     let _savepoint = txn.create_savepoint().unwrap();
     txn.push_batch(
         WorkerIntentBatch::new("saved-case-trade-correction").push(
@@ -134,5 +130,5 @@ pub(crate) fn commit_case_trade_after_savepoint(
         ),
     )
     .expect("test staging stays within configured resource budgets");
-    txn.commit(&mut world.runtime).unwrap()
+    txn.commit(&world.runtime).unwrap()
 }

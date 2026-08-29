@@ -6,7 +6,7 @@ use worth_relational::facade::{
 };
 
 fn main() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(RelationalSchemaRegistry::new())
         .build();
 

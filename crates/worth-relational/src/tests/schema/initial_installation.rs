@@ -146,8 +146,7 @@ fn held_preparation_port_observes_atomic_initial_schema_replacement() {
     let mut runtime = RelationalRuntimeApi::builder().build();
     let preparation = runtime.preparation_port();
     install_entity_kind(&mut runtime, KindId(7), "held-port-installed");
-    let mut transaction =
-        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut transaction = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     transaction
         .push_batch(
             WorkerIntentBatch::new("held-port-schema").push(MutationIntent::Create(
@@ -178,8 +177,7 @@ fn initial_schema_authority_closes_after_first_commit() {
                 .unwrap(),
         )
         .build();
-    let mut transaction =
-        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut transaction = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     transaction
         .push_batch(WorkerIntentBatch::new("close-schema-installation").push(
             MutationIntent::Create(CreateIntent::Entity(EntitySpec {
@@ -190,7 +188,7 @@ fn initial_schema_authority_closes_after_first_commit() {
             })),
         ))
         .unwrap();
-    transaction.commit(&mut runtime).unwrap();
+    transaction.commit(&runtime).unwrap();
 
     let denial = runtime.prepare_initial_schema_installation().unwrap_err();
     assert_eq!(

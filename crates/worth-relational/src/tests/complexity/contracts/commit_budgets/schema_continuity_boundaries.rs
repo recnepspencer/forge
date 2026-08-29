@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn complexity_budget_schema_transition_classification_is_changed_atom_bounded() {
     let mut runtime = runtime_with_test_schema();
-    let _ = create_entity_outcome(&mut runtime, "anchor");
+    let _ = create_entity_outcome(&runtime, "anchor");
 
     runtime.set_schema_registry_for_test(
         AspectSchemaFixture {
@@ -35,7 +35,7 @@ fn complexity_budget_schema_transition_classification_is_changed_atom_bounded() 
     };
     txn.push_batch(batch_create("b"))
         .expect("test staging stays within configured resource budgets");
-    txn.commit(&mut runtime).unwrap();
+    txn.commit(&runtime).unwrap();
     let counters = runtime.performance_access().counters();
 
     assert_eq!(counters.schema_transition_atoms_inspected, 1);
@@ -49,7 +49,7 @@ fn complexity_budget_schema_transition_classification_is_changed_atom_bounded() 
 #[test]
 fn complexity_budget_subscriber_resume_continuity_is_boundary_local() {
     let mut runtime = runtime_with_test_schema();
-    let _ = create_entity_outcome(&mut runtime, "anchor");
+    let _ = create_entity_outcome(&runtime, "anchor");
 
     runtime.set_schema_registry_for_test(
         AspectSchemaFixture {
@@ -79,7 +79,7 @@ fn complexity_budget_subscriber_resume_continuity_is_boundary_local() {
     };
     txn.push_batch(batch_create("b"))
         .expect("test staging stays within configured resource budgets");
-    txn.commit(&mut runtime).unwrap();
+    txn.commit(&runtime).unwrap();
 
     runtime.performance_access().reset_counters();
     let _ = runtime
@@ -96,7 +96,7 @@ fn complexity_budget_subscriber_resume_continuity_is_boundary_local() {
 #[test]
 fn complexity_budget_milestone5_closeout_keeps_schema_cdc_and_recovery_boundary_local() {
     let mut runtime = persisted_runtime_with_test_schema();
-    let baseline = create_entity_outcome(&mut runtime, "anchor");
+    let baseline = create_entity_outcome(&runtime, "anchor");
     let baseline_checkpoint =
         checkpoint_for_schema_version(baseline.patch_position(), SchemaVersionId(1));
 
@@ -130,7 +130,7 @@ fn complexity_budget_milestone5_closeout_keeps_schema_cdc_and_recovery_boundary_
     };
     txn.push_batch(batch_create("after-boundary"))
         .expect("test staging stays within configured resource budgets");
-    let transitioned = txn.commit(&mut runtime).unwrap();
+    let transitioned = txn.commit(&runtime).unwrap();
     let schema_counters = runtime.performance_access().counters();
 
     assert_eq!(schema_counters.schema_transition_atoms_inspected, 1);

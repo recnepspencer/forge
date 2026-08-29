@@ -17,8 +17,8 @@ use crate::presentation::bridge::snapshot_reading::RuntimePublicationSnapshotRea
 
 #[test]
 fn snapshot_reader_reads_published_entity_values_without_projection_surface() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "visible");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "visible");
     let published_snapshot = created.snapshot.clone();
     let published_entity = runtime
         .read_truth()
@@ -56,10 +56,10 @@ fn snapshot_reader_reads_published_entity_values_without_projection_surface() {
 
 #[test]
 fn snapshot_reader_reads_published_relation_field_aspects_from_authoritative_state() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    let created_relation = create_relation_outcome(&mut runtime, source, target, "visible-edge");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    let created_relation = create_relation_outcome(&runtime, source, target, "visible-edge");
     let relation = changed_relations(&created_relation)[0];
     let published_snapshot = created_relation.snapshot.clone();
 
@@ -92,9 +92,8 @@ fn snapshot_reader_reads_published_relation_field_aspects_from_authoritative_sta
 
 #[test]
 fn snapshot_reader_rejects_undeclared_dotted_document_paths() {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let created = create_entity_outcome(&mut runtime, "visible");
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let created = create_entity_outcome(&runtime, "visible");
     let published_snapshot = created.snapshot.clone();
     let published_entity = crate::tests::support::changed_entities(&created)[0];
 
@@ -127,8 +126,8 @@ fn snapshot_reader_rejects_undeclared_dotted_document_paths() {
 
 #[test]
 fn snapshot_reader_rejects_untyped_bridge_record_identity() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "visible");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "visible");
     let published_snapshot = created.snapshot.clone();
 
     let snapshot_identity = bridge_snapshot_identity_for_handle(&published_snapshot);
@@ -153,8 +152,8 @@ fn snapshot_reader_rejects_untyped_bridge_record_identity() {
 
 #[test]
 fn snapshot_reader_reports_missing_record_as_authoritative_absence() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "visible");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "visible");
     let published_snapshot = created.snapshot.clone();
     let snapshot_identity = bridge_snapshot_identity_for_handle(&published_snapshot);
     let reader = reader_for_current(runtime, snapshot_identity, published_snapshot.version_id);

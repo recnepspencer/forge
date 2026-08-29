@@ -2,11 +2,11 @@ use super::*;
 
 #[test]
 fn deleted_on_both_sides_merge_commit_has_replay_and_recovery_parity() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let entity = create_entity(&mut runtime, "shared");
-    create_branch_from_main(&mut runtime, "feature");
-    delete_entity(&mut runtime, entity);
-    delete_entity_on_branch(&mut runtime, entity, BranchId("feature".to_string()));
+    let runtime = persisted_runtime_with_test_schema();
+    let entity = create_entity(&runtime, "shared");
+    create_branch_from_main(&runtime, "feature");
+    delete_entity(&runtime, entity);
+    delete_entity_on_branch(&runtime, entity, BranchId("feature".to_string()));
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -38,7 +38,7 @@ fn deleted_on_both_sides_merge_commit_has_replay_and_recovery_parity() {
         .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)
         .expect("live merge envelope");
-    let live_truth = capture_aspect_truth_bundle(&mut runtime, &[entity], &[], &[]);
+    let live_truth = capture_aspect_truth_bundle(&runtime, &[entity], &[], &[]);
 
     let replay =
         runtime
@@ -55,13 +55,13 @@ fn deleted_on_both_sides_merge_commit_has_replay_and_recovery_parity() {
         "replay certification failure: {replay:?}"
     );
 
-    let (_recovery, mut recovered) =
-        checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
+    let (_recovery, recovered) =
+        checkpoint_and_recover_with(&runtime, persisted_runtime_with_test_schema);
     let recovered_envelope = recovered
         .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)
         .expect("recovered merge envelope");
-    let recovered_truth = capture_aspect_truth_bundle(&mut recovered, &[entity], &[], &[]);
+    let recovered_truth = capture_aspect_truth_bundle(&recovered, &[entity], &[], &[]);
 
     assert_eq!(live_envelope, recovered_envelope);
     assert_eq!(live_truth.visible_truth, recovered_truth.visible_truth);

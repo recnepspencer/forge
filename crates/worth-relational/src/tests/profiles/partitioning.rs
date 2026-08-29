@@ -5,9 +5,8 @@ use crate::tests::support::*;
 
 #[test]
 fn bulk_create_entities_match_equivalent_singular_creates() {
-    let mut bulk_runtime = runtime_with_test_schema();
-    let mut bulk_txn =
-        crate::tests::support::test_owner_begin_transaction_for_main(&mut bulk_runtime);
+    let bulk_runtime = runtime_with_test_schema();
+    let mut bulk_txn = crate::tests::support::test_owner_begin_transaction_for_main(&bulk_runtime);
     bulk_txn
         .push_batch(WorkerIntentBatch::new("bulk").push(MutationIntent::Create(
             CreateIntent::BulkEntities(BulkEntityCreateIntent {
@@ -32,7 +31,7 @@ fn bulk_create_entities_match_equivalent_singular_creates() {
             }),
         )))
         .expect("test staging stays within configured resource budgets");
-    let bulk_outcome = bulk_txn.commit(&mut bulk_runtime).unwrap();
+    let bulk_outcome = bulk_txn.commit(&bulk_runtime).unwrap();
 
     let singular_runtime = apply_batches(vec![batch_create("a"), batch_create("b")]);
     let bulk_read = bulk_runtime
@@ -74,8 +73,8 @@ fn staged_parallel_bulk_entity_import_matches_serial_reference() {
         crate::facade::transactions::CommitResult,
         Vec<Option<String>>,
     ) {
-        let mut runtime = runtime_with_test_schema_execution_model(execution_model);
-        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+        let runtime = runtime_with_test_schema_execution_model(execution_model);
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
         txn.push_batch(WorkerIntentBatch::new("bulk").push(MutationIntent::Create(
             CreateIntent::BulkEntities(BulkEntityCreateIntent {
                 partition_id: PartitionId::main(),
@@ -105,7 +104,7 @@ fn staged_parallel_bulk_entity_import_matches_serial_reference() {
             }),
         )))
         .expect("test staging stays within configured resource budgets");
-        let outcome = txn.commit(&mut runtime).unwrap();
+        let outcome = txn.commit(&runtime).unwrap();
         let read = runtime
             .read_truth()
             .read_snapshot(&outcome.snapshot)
@@ -131,11 +130,11 @@ fn staged_parallel_bulk_entity_import_matches_serial_reference() {
 
 #[test]
 fn cross_context_relations_preserve_partitioned_endpoints() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
-    let target = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
+    let runtime = runtime_with_test_schema();
+    let source = create_entity_in_partition(&runtime, "left", PartitionId(7));
+    let target = create_entity_in_partition(&runtime, "right", PartitionId(11));
     let relation =
-        create_relation_in_partition(&mut runtime, source, target, "bridge", PartitionId(29));
+        create_relation_in_partition(&runtime, source, target, "bridge", PartitionId(29));
     let snapshot = runtime.visibility_authority().snapshot();
     let read = runtime.read_truth().read_snapshot(&snapshot).unwrap();
     let relation_record = read.get_relation(relation).unwrap();
@@ -169,13 +168,13 @@ fn cross_context_relations_respect_relation_kind_policy() {
             })
         })
         .unwrap();
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(schema_registry)
         .cross_context_policy(CrossContextPolicy::SchemaControlled)
         .build();
-    let source = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
-    let target = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let source = create_entity_in_partition(&runtime, "left", PartitionId(7));
+    let target = create_entity_in_partition(&runtime, "right", PartitionId(11));
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("forbidden-cross-context").push(MutationIntent::Create(
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
@@ -190,7 +189,7 @@ fn cross_context_relations_respect_relation_kind_policy() {
     )
     .expect("test staging stays within configured resource budgets");
 
-    let error = txn.commit(&mut runtime).unwrap_err();
+    let error = txn.commit(&runtime).unwrap_err();
 
     assert!(matches!(
         error,
@@ -206,10 +205,10 @@ fn cross_context_relations_respect_relation_kind_policy() {
 
 #[test]
 fn partition_registry_and_stats_expose_partition_owned_state() {
-    let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
-    let left = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
-    let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
-    let _ = create_relation_in_partition(&mut runtime, left, right, "bridge", PartitionId(29));
+    let runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
+    let left = create_entity_in_partition(&runtime, "left", PartitionId(7));
+    let right = create_entity_in_partition(&runtime, "right", PartitionId(11));
+    let _ = create_relation_in_partition(&runtime, left, right, "bridge", PartitionId(29));
 
     let partition_ids = runtime.storage_access().partition_ids();
     let stats = runtime.storage_access().partition_storage_stats();

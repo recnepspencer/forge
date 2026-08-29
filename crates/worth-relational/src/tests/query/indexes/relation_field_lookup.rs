@@ -3,12 +3,12 @@ use super::*;
 #[test]
 fn derived_index_contract_relation_field_equals_executes_through_real_index_path_with_storage_parity(
 ) {
-    let mut runtime = runtime_with_index_field_aspects();
-    let source = create_entity_outcome(&mut runtime, "source");
+    let runtime = runtime_with_index_field_aspects();
+    let source = create_entity_outcome(&runtime, "source");
     let source_id = changed_entities(&source)[0];
-    let target = create_entity_outcome(&mut runtime, "target");
+    let target = create_entity_outcome(&runtime, "target");
     let target_id = changed_entities(&target)[0];
-    let relation = create_relation_outcome(&mut runtime, source_id, target_id, "edge");
+    let relation = create_relation_outcome(&runtime, source_id, target_id, "edge");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(1),
         name: "relation.label.lookup".to_string(),
@@ -76,11 +76,11 @@ fn derived_index_contract_relation_field_equals_executes_through_real_index_path
 
 #[test]
 fn derived_index_contract_relation_field_equals_reports_corrupt_generation() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let source = create_entity_outcome(&mut runtime, "source");
-    let target = create_entity_outcome(&mut runtime, "target");
+    let runtime = runtime_with_index_field_aspects();
+    let source = create_entity_outcome(&runtime, "source");
+    let target = create_entity_outcome(&runtime, "target");
     let relation = create_relation_outcome(
-        &mut runtime,
+        &runtime,
         changed_entities(&source)[0],
         changed_entities(&target)[0],
         "edge",
@@ -150,24 +150,24 @@ fn derived_index_contract_relation_field_equals_reports_corrupt_generation() {
 #[test]
 fn derived_index_contract_relation_field_any_of_executes_through_real_index_path_with_storage_parity(
 ) {
-    let mut runtime = runtime_with_index_field_aspects();
-    let source = create_entity_outcome(&mut runtime, "source");
-    let target = create_entity_outcome(&mut runtime, "target");
-    let third = create_entity_outcome(&mut runtime, "third");
+    let runtime = runtime_with_index_field_aspects();
+    let source = create_entity_outcome(&runtime, "source");
+    let target = create_entity_outcome(&runtime, "target");
+    let third = create_entity_outcome(&runtime, "third");
     let edge = create_relation_outcome(
-        &mut runtime,
+        &runtime,
         changed_entities(&source)[0],
         changed_entities(&target)[0],
         "edge",
     );
     let arc = create_relation_outcome(
-        &mut runtime,
+        &runtime,
         changed_entities(&target)[0],
         changed_entities(&third)[0],
         "arc",
     );
     let _other = create_relation_outcome(
-        &mut runtime,
+        &runtime,
         changed_entities(&third)[0],
         changed_entities(&source)[0],
         "other",
@@ -249,20 +249,15 @@ fn derived_index_contract_relation_field_any_of_executes_through_real_index_path
 
 #[test]
 fn derived_index_contract_relation_field_equals_partition_scope_keeps_bounded_parity() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let left_source = create_entity_in_partition(&mut runtime, "left-source", PartitionId(7));
-    let left_target = create_entity_in_partition(&mut runtime, "left-target", PartitionId(7));
-    let right_source = create_entity_in_partition(&mut runtime, "right-source", PartitionId(11));
-    let right_target = create_entity_in_partition(&mut runtime, "right-target", PartitionId(11));
-    let left_relation = create_relation_in_partition(
-        &mut runtime,
-        left_source,
-        left_target,
-        "edge",
-        PartitionId(7),
-    );
+    let runtime = runtime_with_index_field_aspects();
+    let left_source = create_entity_in_partition(&runtime, "left-source", PartitionId(7));
+    let left_target = create_entity_in_partition(&runtime, "left-target", PartitionId(7));
+    let right_source = create_entity_in_partition(&runtime, "right-source", PartitionId(11));
+    let right_target = create_entity_in_partition(&runtime, "right-target", PartitionId(11));
+    let left_relation =
+        create_relation_in_partition(&runtime, left_source, left_target, "edge", PartitionId(7));
     let _right_relation = create_relation_in_partition(
-        &mut runtime,
+        &runtime,
         right_source,
         right_target,
         "edge",

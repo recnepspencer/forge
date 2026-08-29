@@ -2,12 +2,12 @@ use super::*;
 
 #[test]
 fn branch_roots_with_one_schema_deduplicate_the_durable_carrier() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "schema-carrier-deduplication");
+    let runtime = persisted_runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "schema-carrier-deduplication");
     let entity = changed_entities(&created)[0];
-    create_branch_from_main(&mut runtime, "feature");
+    create_branch_from_main(&runtime, "feature");
     update_entity_on_branch(
-        &mut runtime,
+        &runtime,
         entity,
         "schema-carrier-feature-root",
         BranchId("feature".to_owned()),
@@ -50,8 +50,8 @@ fn recovery_rejects_a_tampered_branch_root_schema_carrier() {
 fn recovery_rejects_a_schema_carrier_swapped_between_exact_roots() {
     let mut runtime =
         persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    create_entity_outcome(&mut runtime, "schema-v1");
-    create_branch_from_main(&mut runtime, "legacy");
+    create_entity_outcome(&runtime, "schema-v1");
+    create_branch_from_main(&runtime, "legacy");
     runtime.set_schema_registry_for_test(
         AspectSchemaFixture {
             schema_version_id: SchemaVersionId(2),
@@ -82,7 +82,7 @@ fn recovery_rejects_a_schema_carrier_swapped_between_exact_roots() {
         .push_batch(batch_create("schema-v2"))
         .expect("test staging stays within configured resource budgets");
     transaction
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect("schema transition commits");
     runtime
         .durability_authority()
@@ -146,9 +146,9 @@ fn recovered_exact_roots_interpret_records_with_their_own_schema_contracts() {
         .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
         .durable_store_layout(store_layout)
         .build();
-    let old = create_entity_outcome(&mut runtime, "old-contract");
+    let old = create_entity_outcome(&runtime, "old-contract");
     let old_entity = changed_entities(&old)[0];
-    create_branch_from_main(&mut runtime, "legacy-schema");
+    create_branch_from_main(&runtime, "legacy-schema");
 
     let v2_registry = AspectSchemaFixture {
         schema_version_id: SchemaVersionId(2),
@@ -183,11 +183,11 @@ fn recovered_exact_roots_interpret_records_with_their_own_schema_contracts() {
         .push_batch(batch_create("new-contract"))
         .expect("test staging stays within configured resource budgets");
     let new = transaction
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect("v2 schema transition commits");
     let new_entity = changed_entities(&new)[0];
     let _legacy_before_recovery = update_entity_on_branch(
-        &mut runtime,
+        &runtime,
         old_entity,
         "legacy-v1-before-recovery",
         BranchId("legacy-schema".to_owned()),
@@ -293,13 +293,13 @@ fn recovered_exact_roots_interpret_records_with_their_own_schema_contracts() {
     .is_err());
 
     let _legacy_after_recovery = update_entity_on_branch(
-        &mut recovered,
+        &recovered,
         old_entity,
         "legacy-v1-after-recovery",
         BranchId("legacy-schema".to_owned()),
     );
     let mut v2_meaning_on_v1_root = crate::tests::support::test_owner_begin_transaction_for_branch(
-        &mut recovered,
+        &recovered,
         BranchId("legacy-schema".to_owned()),
     );
     v2_meaning_on_v1_root
@@ -317,7 +317,7 @@ fn recovered_exact_roots_interpret_records_with_their_own_schema_contracts() {
         )
         .expect("test staging stays within configured resource budgets");
     let denial = v2_meaning_on_v1_root
-        .commit(&mut recovered)
+        .commit(&recovered)
         .expect_err("a retained v1 root must deny v2-only meaning");
     assert!(matches!(
         denial,
@@ -336,8 +336,8 @@ fn recovered_exact_roots_interpret_records_with_their_own_schema_contracts() {
 }
 
 fn checkpoint_plan_with_one_root(label: &str) -> RecoveryPlan {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, label);
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, label);
     runtime
         .durability_authority()
         .checkpoint()

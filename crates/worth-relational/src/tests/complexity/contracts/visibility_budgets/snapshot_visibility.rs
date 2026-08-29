@@ -3,9 +3,9 @@ use crate::tests::support::*;
 
 #[test]
 fn complexity_budget_snapshot_visibility_state_avoids_record_materialization() {
-    let mut runtime = runtime_with_test_schema();
-    let _ = create_entity(&mut runtime, "first");
-    let _ = create_entity(&mut runtime, "second");
+    let runtime = runtime_with_test_schema();
+    let _ = create_entity(&runtime, "first");
+    let _ = create_entity(&runtime, "second");
 
     runtime.performance_access().reset_counters();
     let _snapshot = runtime.visibility_authority().snapshot();
@@ -23,15 +23,15 @@ fn complexity_budget_snapshot_visibility_state_avoids_record_materialization() {
 
 #[test]
 fn complexity_budget_snapshot_release_uses_only_the_carried_root_obligation() {
-    let mut runtime = runtime_with_test_schema();
+    let runtime = runtime_with_test_schema();
     for index in 0..6 {
-        let _ = create_entity(&mut runtime, &format!("e{index}"));
+        let _ = create_entity(&runtime, &format!("e{index}"));
     }
     let snapshot = runtime.visibility_authority().snapshot();
-    let target = create_entity(&mut runtime, "target");
+    let target = create_entity(&runtime, "target");
 
     runtime.performance_access().reset_counters();
-    let _ = update_entity(&mut runtime, target, "updated");
+    let _ = update_entity(&runtime, target, "updated");
     let after_commit = runtime.performance_access().counters();
     assert_eq!(after_commit.snapshot_pin_full_rebuilds, 0);
 
@@ -49,9 +49,9 @@ fn complexity_budget_snapshot_release_uses_only_the_carried_root_obligation() {
 
 #[test]
 fn complexity_budget_active_snapshots_share_one_constant_time_root_lease_per_version() {
-    let mut runtime = runtime_with_test_schema();
+    let runtime = runtime_with_test_schema();
     for index in 0..6 {
-        let _ = create_entity(&mut runtime, &format!("e{index}"));
+        let _ = create_entity(&runtime, &format!("e{index}"));
     }
 
     runtime.performance_access().reset_counters();
@@ -91,9 +91,9 @@ fn complexity_budget_active_snapshots_share_one_constant_time_root_lease_per_ver
 fn active_snapshot_registry_admission_and_release_work_is_population_independent() {
     let mut observed_work = Vec::new();
     for population in [1, 64, 4_096] {
-        let mut runtime = snapshot_registry_scale_runtime();
-        let _ = create_entity(&mut runtime, "scale-anchor");
-        let seed = snapshot_for_owner_branch(&mut runtime, &BranchId("main".to_owned()));
+        let runtime = snapshot_registry_scale_runtime();
+        let _ = create_entity(&runtime, "scale-anchor");
+        let seed = snapshot_for_owner_branch(&runtime, &BranchId("main".to_owned()));
         let template = runtime
             .visibility
             .handles
@@ -152,14 +152,14 @@ fn active_snapshot_registry_admission_and_release_work_is_population_independent
 fn published_snapshot_registry_admission_and_release_work_is_population_independent() {
     let mut observed_work = Vec::new();
     for population in [1, 64, 4_096] {
-        let mut runtime = snapshot_registry_scale_runtime();
-        let seed = create_entity_outcome(&mut runtime, "scale-template");
+        let runtime = snapshot_registry_scale_runtime();
+        let seed = create_entity_outcome(&runtime, "scale-template");
         let template = runtime
             .visibility
             .handles
             .published_binding(seed.snapshot.snapshot_id())
             .expect("one real publication supplies the registry binding shape");
-        release_test_commit_snapshot(&mut runtime, &seed);
+        release_test_commit_snapshot(&runtime, &seed);
         for index in 0..population {
             let snapshot_id = runtime
                 .visibility
@@ -228,10 +228,10 @@ fn snapshot_registry_scale_runtime() -> RelationalRuntime {
 
 #[test]
 fn complexity_budget_branch_creation_reuses_cached_visibility_state() {
-    let mut runtime = runtime_with_test_schema();
-    let left = create_entity(&mut runtime, "left");
-    let right = create_entity(&mut runtime, "right");
-    let _ = create_relation(&mut runtime, left, right, "r0");
+    let runtime = runtime_with_test_schema();
+    let left = create_entity(&runtime, "left");
+    let right = create_entity(&runtime, "right");
+    let _ = create_relation(&runtime, left, right, "r0");
 
     runtime.performance_access().reset_counters();
     runtime
@@ -249,13 +249,13 @@ fn complexity_budget_branch_creation_reuses_cached_visibility_state() {
 
 #[test]
 fn complexity_contract_visibility_scans_are_explicitly_measured() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    let relation_outcome = create_relation_outcome(&mut runtime, source, target, "r0");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    let relation_outcome = create_relation_outcome(&runtime, source, target, "r0");
     let snapshot = runtime.visibility_authority().snapshot();
     let historical_version = relation_outcome.version_id;
-    let current_version = create_entity_outcome(&mut runtime, "later").version_id;
+    let current_version = create_entity_outcome(&runtime, "later").version_id;
 
     runtime.performance_access().reset_counters();
     let _ = runtime.read_truth().read_snapshot(&snapshot).unwrap();

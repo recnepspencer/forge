@@ -117,9 +117,9 @@ impl RelationRecordProjection for RelationSummaryTitleFieldProjection {
 
 #[test]
 fn entity_field_mask_projection_reads_only_declared_struct_field() {
-    let mut runtime = entity_summary_projection_runtime();
+    let runtime = entity_summary_projection_runtime();
     let entity_id = create_entity_with_summary_fields(
-        &mut runtime,
+        &runtime,
         "field-mask-entity",
         "visible-title",
         "hidden-status",
@@ -139,9 +139,9 @@ fn entity_field_mask_projection_reads_only_declared_struct_field() {
 
 #[test]
 fn whole_aspect_projection_still_reads_full_struct_aspect() {
-    let mut runtime = entity_summary_projection_runtime();
+    let runtime = entity_summary_projection_runtime();
     create_entity_with_summary_fields(
-        &mut runtime,
+        &runtime,
         "whole-summary-entity",
         "whole-title",
         "whole-status",
@@ -159,9 +159,8 @@ fn whole_aspect_projection_still_reads_full_struct_aspect() {
 #[test]
 #[should_panic(expected = "projection mask rejected by aspect contract")]
 fn scalar_aspect_rejects_field_mask_projection_at_use_boundary() {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    create_entity(&mut runtime, "scalar-field-mask");
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    create_entity(&runtime, "scalar-field-mask");
 
     let _ = runtime
         .read_truth()
@@ -171,11 +170,11 @@ fn scalar_aspect_rejects_field_mask_projection_at_use_boundary() {
 
 #[test]
 fn relation_field_mask_projection_reads_only_declared_struct_field() {
-    let mut runtime = relation_summary_projection_runtime();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
+    let runtime = relation_summary_projection_runtime();
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
     create_relation_with_summary_fields(
-        &mut runtime,
+        &runtime,
         source,
         target,
         "field-mask-relation",
@@ -252,12 +251,12 @@ fn relation_summary_struct_aspect(
 }
 
 fn create_entity_with_summary_fields(
-    mut runtime: &RelationalRuntime,
+    runtime: &RelationalRuntime,
     client_key: &str,
     summary_title: &str,
     summary_status: &str,
 ) -> EntityId {
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
     txn.push_batch(WorkerIntentBatch::new(format!("batch-{client_key}")).push(
         MutationIntent::Create(CreateIntent::Entity(
             crate::transactions::data::EntitySpec {
@@ -291,18 +290,18 @@ fn create_entity_with_summary_fields(
         )),
     ))
     .expect("test staging stays within configured resource budgets");
-    changed_entities(&txn.commit(&mut runtime).unwrap())[0]
+    changed_entities(&txn.commit(runtime).unwrap())[0]
 }
 
 fn create_relation_with_summary_fields(
-    mut runtime: &RelationalRuntime,
+    runtime: &RelationalRuntime,
     source: EntityId,
     target: EntityId,
     client_key: &str,
     summary_title: &str,
     summary_status: &str,
 ) {
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
     txn.push_batch(
         WorkerIntentBatch::new(format!("relation-{client_key}")).push(MutationIntent::Create(
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
@@ -331,7 +330,7 @@ fn create_relation_with_summary_fields(
         )),
     )
     .expect("test staging stays within configured resource budgets");
-    txn.commit(&mut runtime).unwrap();
+    txn.commit(runtime).unwrap();
 }
 
 fn test_projection_contract_identity(aspect_key: &AspectKey) -> u64 {

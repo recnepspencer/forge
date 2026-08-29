@@ -10,7 +10,7 @@ use crate::tests::support::*;
 #[test]
 fn subscriber_stream_reports_crossed_schema_boundary_from_in_memory_history() {
     let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
+    let _first = create_entity_outcome(&runtime, "a");
 
     install_schema_version(&mut runtime, SchemaVersionId(2));
     let mut txn = {
@@ -28,7 +28,7 @@ fn subscriber_stream_reports_crossed_schema_boundary_from_in_memory_history() {
     };
     txn.push_batch(batch_create("b"))
         .expect("test staging stays within configured resource budgets");
-    txn.commit(&mut runtime).unwrap();
+    txn.commit(&runtime).unwrap();
 
     let batch = runtime
         .publication()
@@ -67,7 +67,7 @@ fn subscriber_stream_reports_crossed_schema_boundary_from_in_memory_history() {
 #[test]
 fn subscriber_stream_treats_unconsumed_boundary_as_unchanged() {
     let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
+    let _first = create_entity_outcome(&runtime, "a");
 
     install_schema_version(&mut runtime, SchemaVersionId(2));
     let mut txn = {
@@ -85,7 +85,7 @@ fn subscriber_stream_treats_unconsumed_boundary_as_unchanged() {
     };
     txn.push_batch(batch_create("b"))
         .expect("test staging stays within configured resource budgets");
-    txn.commit(&mut runtime).unwrap();
+    txn.commit(&runtime).unwrap();
 
     let contract = SubscriberContractDeclaration {
         contract_id: "subscriber.contract.identity-only.v1".to_string(),

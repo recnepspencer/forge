@@ -9,9 +9,9 @@ use crate::tests::support::*;
 /// Dropping it may record abandonment and nothing else.
 #[test]
 fn dropping_the_performed_witness_leaves_settlement_recoverable() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "abandoned-witness-anchor");
-    let performed = perform_main_write(&mut runtime, "abandoned-witness");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "abandoned-witness-anchor");
+    let performed = perform_main_write(&runtime, "abandoned-witness");
     let commit_id = performed.canonical_commit().commit.commit_id;
     let record = runtime
         .publication_binding()
@@ -30,7 +30,7 @@ fn dropping_the_performed_witness_leaves_settlement_recoverable() {
         1,
         "abandoning the witness may not release the obligation"
     );
-    let mut blocked = test_owner_begin_transaction_for_main(&mut runtime);
+    let mut blocked = test_owner_begin_transaction_for_main(&runtime);
     blocked
         .push_batch(batch_create("blocked-after-abandonment"))
         .unwrap();
@@ -52,19 +52,19 @@ fn dropping_the_performed_witness_leaves_settlement_recoverable() {
         "repair without a witness closes the published snapshot it opened"
     );
 
-    let child = create_entity_outcome(&mut runtime, "child-after-abandoned-witness");
+    let child = create_entity_outcome(&runtime, "child-after-abandoned-witness");
     assert_eq!(child.commit.parents, vec![commit_id]);
     assert_eq!(durable_appends(&runtime, commit_id), 1);
-    release_test_commit_snapshot(&mut runtime, &child);
+    release_test_commit_snapshot(&runtime, &child);
 }
 
 /// Terminal settlement is exactly once. Asking again returns the same receipt
 /// and appends nothing.
 #[test]
 fn repeated_terminal_settlement_returns_one_receipt_and_one_durable_append() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "repeated-settlement-anchor");
-    let performed = perform_main_write(&mut runtime, "repeated-settlement");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "repeated-settlement-anchor");
+    let performed = perform_main_write(&runtime, "repeated-settlement");
     let commit_id = performed.canonical_commit().commit.commit_id;
     let settled = runtime
         .settle_performed_publication(performed)
@@ -82,16 +82,16 @@ fn repeated_terminal_settlement_returns_one_receipt_and_one_durable_append() {
         "asking again performs no second durable effect"
     );
     assert_eq!(runtime.publication_binding().pending_settlement_count(), 0);
-    release_test_commit_snapshot(&mut runtime, &settled);
+    release_test_commit_snapshot(&runtime, &settled);
 }
 
 /// Immediate settlement and commit-identity repair share one executor gate, so
 /// whichever runs second observes the terminal answer instead of repeating it.
 #[test]
 fn repair_and_witness_settlement_execute_exactly_once() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "single-execution-anchor");
-    let performed = perform_main_write(&mut runtime, "single-execution");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "single-execution-anchor");
+    let performed = perform_main_write(&runtime, "single-execution");
     let commit_id = performed.canonical_commit().commit.commit_id;
 
     let repaired = runtime
@@ -111,19 +111,19 @@ fn repair_and_witness_settlement_execute_exactly_once() {
         "two settlement callers produce exactly one durable append"
     );
 
-    let child = create_entity_outcome(&mut runtime, "child-after-single-execution");
+    let child = create_entity_outcome(&runtime, "child-after-single-execution");
     assert_eq!(child.commit.parents, vec![commit_id]);
-    release_test_commit_snapshot(&mut runtime, &settled);
-    release_test_commit_snapshot(&mut runtime, &child);
+    release_test_commit_snapshot(&runtime, &settled);
+    release_test_commit_snapshot(&runtime, &child);
 }
 
 /// Owner loss retires every pending settlement exactly once instead of leaving
 /// an unbounded registry behind a dead runtime.
 #[test]
 fn owner_loss_retires_every_pending_settlement_exactly_once() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "owner-loss-settlement-anchor");
-    let performed = perform_main_write(&mut runtime, "owner-loss-settlement");
+    let runtime = runtime_with_test_schema();
+    create_entity(&runtime, "owner-loss-settlement-anchor");
+    let performed = perform_main_write(&runtime, "owner-loss-settlement");
     drop(performed);
     let binding = runtime.publication_binding();
     assert!(!binding.settlement_admission_is_closed());
@@ -155,8 +155,8 @@ fn interruption_after_movement_retains_its_pending_settlement() {
         RelationalOperationInterruption::Cancelled,
         RelationalOperationInterruption::TimedOut,
     ] {
-        let mut runtime = runtime_with_test_schema();
-        create_entity(&mut runtime, "post-movement-interruption-anchor");
+        let runtime = runtime_with_test_schema();
+        create_entity(&runtime, "post-movement-interruption-anchor");
         let identity = runtime.main_branch_identity();
         let (_, basis) = runtime.observe_branch(&identity).unwrap();
         let control = RelationalOperationControl::uninterrupted().with_injected_interruption(
@@ -207,7 +207,7 @@ fn interruption_after_movement_retains_its_pending_settlement() {
             .settle_performed_publication(performed)
             .expect("a late-interrupted movement remains settleable");
         assert_eq!(runtime.publication_binding().pending_settlement_count(), 0);
-        release_test_commit_snapshot(&mut runtime, &settled);
+        release_test_commit_snapshot(&runtime, &settled);
     }
 }
 
@@ -216,9 +216,9 @@ fn interruption_after_movement_retains_its_pending_settlement() {
 /// close the published snapshot that witness is still owed.
 #[test]
 fn durability_repair_leaves_a_live_witness_its_usable_published_snapshot() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "live-witness-repair-anchor");
-    let performed = perform_main_write(&mut runtime, "live-witness-repair");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "live-witness-repair-anchor");
+    let performed = perform_main_write(&runtime, "live-witness-repair");
     let commit_id = performed.canonical_commit().commit.commit_id;
     let occupied_before = runtime
         .preparation_runtime_snapshot()

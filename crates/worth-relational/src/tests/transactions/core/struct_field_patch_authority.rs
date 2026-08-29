@@ -12,7 +12,7 @@ use worth_runtime_bridge::facade::TruthDeltaSurfaceKind;
 
 #[test]
 fn update_entity_fields_applies_struct_contract_field_patch() {
-    let mut runtime = AspectSchemaFixture {
+    let runtime = AspectSchemaFixture {
         entity_aspects: vec![
             entity_field_aspect(
                 crate::tests::support::aspect_key("name"),
@@ -26,16 +26,10 @@ fn update_entity_fields_applies_struct_contract_field_patch() {
         ..AspectSchemaFixture::default()
     }
     .build_runtime();
-    let entity = create_entity_with_summary_fields(
-        &mut runtime,
-        "struct-patch",
-        "before",
-        "open",
-        true,
-        false,
-    );
+    let entity =
+        create_entity_with_summary_fields(&runtime, "struct-patch", "before", "open", true, false);
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("summary-field-patch").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -51,7 +45,7 @@ fn update_entity_fields_applies_struct_contract_field_patch() {
         )),
     )
     .expect("test staging stays within configured resource budgets");
-    let outcome = txn.commit(&mut runtime).unwrap();
+    let outcome = txn.commit(&runtime).unwrap();
     let patch_record = &outcome.patch()[0];
     let current_read = runtime
         .read_truth()
@@ -147,7 +141,7 @@ fn update_entity_fields_applies_struct_contract_field_patch() {
 }
 
 pub(super) fn create_entity_with_summary_fields(
-    mut runtime: &RelationalRuntime,
+    runtime: &RelationalRuntime,
     client_key: &str,
     summary_title: &str,
     summary_status: &str,
@@ -188,7 +182,7 @@ pub(super) fn create_entity_with_summary_fields(
             AspectValue::String("scalar-title".into()),
         );
     }
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
     txn.push_batch(WorkerIntentBatch::new(format!("batch-{client_key}")).push(
         MutationIntent::Create(CreateIntent::Entity(EntitySpec {
             partition_id: PartitionId::main(),
@@ -198,5 +192,5 @@ pub(super) fn create_entity_with_summary_fields(
         })),
     ))
     .expect("test staging stays within configured resource budgets");
-    changed_entities(&txn.commit(&mut runtime).unwrap())[0]
+    changed_entities(&txn.commit(runtime).unwrap())[0]
 }

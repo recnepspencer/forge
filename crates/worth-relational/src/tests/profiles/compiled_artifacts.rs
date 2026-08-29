@@ -4,10 +4,10 @@ use crate::tests::support::*;
 
 #[test]
 fn chip_profile_emits_dense_patch_surface_details() {
-    let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
-    let left = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
-    let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
-    let _ = create_relation_in_partition(&mut runtime, left, right, "bridge", PartitionId(29));
+    let runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
+    let left = create_entity_in_partition(&runtime, "left", PartitionId(7));
+    let right = create_entity_in_partition(&runtime, "right", PartitionId(11));
+    let _ = create_relation_in_partition(&runtime, left, right, "bridge", PartitionId(29));
     let publication = runtime.publication().artifacts();
     let patch = publication.latest_patch().unwrap();
 
@@ -19,14 +19,14 @@ fn chip_profile_emits_dense_patch_surface_details() {
 
 #[test]
 fn chip_profile_preserves_relation_traversal_with_compressed_adjacency_backend() {
-    let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
-    let source = create_entity_in_partition(&mut runtime, "source", PartitionId(7));
-    let target_a = create_entity_in_partition(&mut runtime, "target-a", PartitionId(7));
-    let target_b = create_entity_in_partition(&mut runtime, "target-b", PartitionId(9));
+    let runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
+    let source = create_entity_in_partition(&runtime, "source", PartitionId(7));
+    let target_a = create_entity_in_partition(&runtime, "target-a", PartitionId(7));
+    let target_b = create_entity_in_partition(&runtime, "target-b", PartitionId(9));
     let relation_a =
-        create_relation_in_partition(&mut runtime, source, target_a, "r-a", PartitionId(7));
+        create_relation_in_partition(&runtime, source, target_a, "r-a", PartitionId(7));
     let relation_b =
-        create_relation_in_partition(&mut runtime, source, target_b, "r-b", PartitionId(12));
+        create_relation_in_partition(&runtime, source, target_b, "r-b", PartitionId(12));
     let version_id = runtime.history().latest_commit().unwrap().version_id;
 
     assert_eq!(
@@ -49,10 +49,10 @@ fn chip_profile_preserves_relation_traversal_with_compressed_adjacency_backend()
 
 #[test]
 fn chip_profile_compiled_artifacts_are_derived_from_committed_truth() {
-    let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
-    let left = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
-    let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
-    let _ = create_relation_in_partition(&mut runtime, left, right, "bridge", PartitionId(29));
+    let runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
+    let left = create_entity_in_partition(&runtime, "left", PartitionId(7));
+    let right = create_entity_in_partition(&runtime, "right", PartitionId(11));
+    let _ = create_relation_in_partition(&runtime, left, right, "bridge", PartitionId(29));
     let commit = runtime.history().latest_commit().unwrap().clone();
 
     let artifact = runtime
@@ -76,13 +76,13 @@ fn chip_profile_compiled_artifacts_are_derived_from_committed_truth() {
 
 #[test]
 fn compiled_artifact_rejects_stale_topology_after_later_commit() {
-    let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
-    let original = create_entity_outcome(&mut runtime, "seed");
+    let runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
+    let original = create_entity_outcome(&runtime, "seed");
     let artifact = runtime
         .compiled_artifacts_authority()
         .compile_execution_artifact(original.commit.commit_id, vec![PartitionId::main()])
         .unwrap();
-    let _later = create_entity_outcome(&mut runtime, "later");
+    let _later = create_entity_outcome(&runtime, "later");
 
     assert_eq!(
         runtime
@@ -94,15 +94,15 @@ fn compiled_artifact_rejects_stale_topology_after_later_commit() {
 
 #[test]
 fn chip_profile_declared_aspect_fanout_preserves_endpoint_history_for_netlist_like_shapes() {
-    let mut runtime = runtime_with_declared_aspect_schema_profile(
+    let runtime = runtime_with_declared_aspect_schema_profile(
         RelationalRuntimeProfile::ChipSimulation,
         CascadeDeletePolicy::RetainDanglingForAudit,
     );
-    let source = create_entity_in_partition(&mut runtime, "net-src", PartitionId(7));
+    let source = create_entity_in_partition(&runtime, "net-src", PartitionId(7));
     let targets = (0..3)
         .map(|index| {
             create_entity_in_partition(
-                &mut runtime,
+                &runtime,
                 &format!("net-target-{index}"),
                 PartitionId((index + 11) as u32),
             )
@@ -113,7 +113,7 @@ fn chip_profile_declared_aspect_fanout_preserves_endpoint_history_for_netlist_li
         .enumerate()
         .map(|(index, target)| {
             create_relation_in_partition(
-                &mut runtime,
+                &runtime,
                 source,
                 *target,
                 &format!("net-edge-{index}"),
@@ -135,7 +135,7 @@ fn chip_profile_declared_aspect_fanout_preserves_endpoint_history_for_netlist_li
             ],
         )
         .unwrap();
-    let deleted = delete_entity(&mut runtime, source);
+    let deleted = delete_entity(&runtime, source);
 
     assert_eq!(
         runtime
@@ -176,14 +176,14 @@ fn chip_profile_declared_aspect_fanout_preserves_endpoint_history_for_netlist_li
 
 #[test]
 fn chip_profile_branch_local_topology_pressure_preserves_relation_history_isolation() {
-    let mut runtime = runtime_with_declared_aspect_schema_profile(
+    let runtime = runtime_with_declared_aspect_schema_profile(
         RelationalRuntimeProfile::ChipSimulation,
         CascadeDeletePolicy::RetainDanglingForAudit,
     );
-    let source = create_entity_in_partition(&mut runtime, "topo-src", PartitionId(7));
-    let target = create_entity_in_partition(&mut runtime, "topo-target", PartitionId(11));
+    let source = create_entity_in_partition(&runtime, "topo-src", PartitionId(7));
+    let target = create_entity_in_partition(&runtime, "topo-target", PartitionId(11));
     let relation =
-        create_relation_in_partition(&mut runtime, source, target, "topo-edge", PartitionId(21));
+        create_relation_in_partition(&runtime, source, target, "topo-edge", PartitionId(21));
     let main_commit = runtime.history().latest_commit().unwrap().clone();
     let main_artifact = runtime
         .compiled_artifacts_authority()
@@ -200,13 +200,13 @@ fn chip_profile_branch_local_topology_pressure_preserves_relation_history_isolat
         )
         .unwrap();
     let feature_target = create_entity_in_partition_on_branch(
-        &mut runtime,
+        &runtime,
         "topo-target-feature",
         PartitionId(13),
         BranchId("feature".to_string()),
     );
     let feature_relation = create_relation_in_partition_on_branch(
-        &mut runtime,
+        &runtime,
         source,
         feature_target,
         "topo-edge-feature",

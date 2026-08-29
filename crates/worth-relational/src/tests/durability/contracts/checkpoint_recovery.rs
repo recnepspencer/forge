@@ -3,7 +3,7 @@ use worth_foundational::{FoundationalBranchReferenceObservation, FoundationalBra
 
 #[test]
 fn durability_contract_empty_checkpoint_restores_a_live_retained_head() {
-    let mut runtime = persisted_runtime_with_test_schema();
+    let runtime = persisted_runtime_with_test_schema();
     runtime.durability_authority().checkpoint().unwrap();
     let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
@@ -21,10 +21,10 @@ fn durability_contract_empty_checkpoint_restores_a_live_retained_head() {
 
 #[test]
 fn durability_contract_checkpoint_tail_recovery_preserves_post_checkpoint_commits() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let main = create_entity_outcome(&mut runtime, "main-a");
+    let runtime = persisted_runtime_with_test_schema();
+    let main = create_entity_outcome(&runtime, "main-a");
     let _checkpoint = runtime.durability_authority().checkpoint().unwrap();
-    let later = create_entity_outcome(&mut runtime, "main-b");
+    let later = create_entity_outcome(&runtime, "main-b");
     let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
@@ -52,13 +52,13 @@ fn durability_contract_checkpoint_tail_recovery_preserves_post_checkpoint_commit
 
 #[test]
 fn durability_tail_replay_releases_each_commit_snapshot_beyond_live_capacity() {
-    let mut runtime = persisted_runtime_with_test_schema_profile(
+    let runtime = persisted_runtime_with_test_schema_profile(
         crate::facade::config::RelationalRuntimeProfile::AiWorkflow,
     );
-    create_entity(&mut runtime, "replay-capacity-checkpoint");
+    create_entity(&runtime, "replay-capacity-checkpoint");
     runtime.durability_authority().checkpoint().unwrap();
     for index in 0..70 {
-        create_entity(&mut runtime, &format!("replay-capacity-tail-{index}"));
+        create_entity(&runtime, &format!("replay-capacity-tail-{index}"));
     }
     let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
@@ -82,8 +82,8 @@ fn durability_tail_replay_releases_each_commit_snapshot_beyond_live_capacity() {
 
 #[test]
 fn durability_contract_recovery_fails_closed_without_exact_branch_cells() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "branch-cell-required");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "branch-cell-required");
     runtime.durability_authority().checkpoint().unwrap();
     let mut plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
@@ -112,8 +112,8 @@ fn durability_contract_recovery_fails_closed_without_exact_branch_cells() {
 
 #[test]
 fn durability_contract_recovery_rejects_branch_cell_target_without_catalog_artifact() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "branch-cell-artifact-required");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "branch-cell-artifact-required");
     runtime.durability_authority().checkpoint().unwrap();
     let mut plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
@@ -153,10 +153,10 @@ fn durability_contract_recovery_rejects_branch_cell_target_without_catalog_artif
 
 #[test]
 fn durability_contract_recovery_rejects_tail_checkpoint_drift_before_mutation() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "checkpoint-basis");
+    let runtime = persisted_runtime_with_test_schema();
+    let _first = create_entity_outcome(&runtime, "checkpoint-basis");
     runtime.durability_authority().checkpoint().unwrap();
-    let second = create_entity_outcome(&mut runtime, "tail-commit");
+    let second = create_entity_outcome(&runtime, "tail-commit");
     let mut plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
@@ -195,8 +195,8 @@ fn durability_contract_recovery_rejects_tail_checkpoint_drift_before_mutation() 
 
 #[test]
 fn durability_contract_checkpoint_recovers_index_metadata() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let commit = create_entity_outcome(&mut runtime, "indexed");
+    let runtime = persisted_runtime_with_test_schema();
+    let commit = create_entity_outcome(&runtime, "indexed");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity-name".to_string(),
@@ -229,9 +229,9 @@ fn durability_contract_checkpoint_recovers_index_metadata() {
 
 #[test]
 fn durability_contract_checkpoint_recovers_lineage_authority() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let first = create_entity_outcome(&mut runtime, "first");
-    let second = create_entity_outcome(&mut runtime, "second");
+    let runtime = persisted_runtime_with_test_schema();
+    let first = create_entity_outcome(&runtime, "first");
+    let second = create_entity_outcome(&runtime, "second");
     let first_entity = changed_entities(&first)[0];
     let second_entity = changed_entities(&second)[0];
     let first_lineage = runtime
@@ -324,10 +324,10 @@ fn durability_contract_checkpoint_recovers_lineage_authority() {
 
 #[test]
 fn durability_contract_corrupt_latest_checkpoint_falls_back_to_prior_valid_checkpoint() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let first = create_entity_outcome(&mut runtime, "first");
+    let runtime = persisted_runtime_with_test_schema();
+    let first = create_entity_outcome(&runtime, "first");
     runtime.durability_authority().checkpoint().unwrap();
-    let second = create_entity_outcome(&mut runtime, "second");
+    let second = create_entity_outcome(&runtime, "second");
     runtime.durability_authority().checkpoint().unwrap();
     let store = runtime
         .durability()
@@ -364,11 +364,11 @@ fn durability_contract_corrupt_latest_checkpoint_falls_back_to_prior_valid_check
 
 #[test]
 fn durability_contract_compaction_only_removes_segments_covered_by_checkpoint() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "a");
-    create_entity_outcome(&mut runtime, "b");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "a");
+    create_entity_outcome(&runtime, "b");
     runtime.durability_authority().checkpoint().unwrap();
-    create_entity_outcome(&mut runtime, "c");
+    create_entity_outcome(&runtime, "c");
     let before = runtime
         .durability()
         .recovery_plan(

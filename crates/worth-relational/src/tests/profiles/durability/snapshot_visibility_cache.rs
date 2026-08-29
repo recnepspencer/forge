@@ -3,7 +3,7 @@ use crate::tests::support::*;
 
 #[test]
 fn visibility_cache_zero_window_does_not_accumulate_unprotected_history() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .visibility_cache_policy(VisibilityCachePolicy {
             enabled: true,
@@ -14,8 +14,8 @@ fn visibility_cache_zero_window_does_not_accumulate_unprotected_history() {
         })
         .build();
 
-    let first = create_entity_outcome(&mut runtime, "first");
-    let second = create_entity_outcome(&mut runtime, "second");
+    let first = create_entity_outcome(&runtime, "first");
+    let second = create_entity_outcome(&runtime, "second");
 
     runtime.performance_access().reset_counters();
     let _ = runtime.read_truth().read_version(first.version_id);
@@ -33,7 +33,7 @@ fn visibility_cache_zero_window_does_not_accumulate_unprotected_history() {
 
 #[test]
 fn explicit_snapshots_can_skip_cache_protection_and_still_read_until_release() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .visibility_cache_policy(VisibilityCachePolicy {
             enabled: true,
@@ -44,10 +44,10 @@ fn explicit_snapshots_can_skip_cache_protection_and_still_read_until_release() {
         })
         .build();
 
-    let first = create_entity_outcome(&mut runtime, "first");
+    let first = create_entity_outcome(&runtime, "first");
     let snapshot = runtime.visibility_authority().snapshot();
     let entity = changed_entities(&first)[0];
-    let _updated = update_entity(&mut runtime, entity, "first-updated");
+    let _updated = update_entity(&runtime, entity, "first-updated");
 
     let read_path = runtime
         .read_truth()
@@ -85,7 +85,7 @@ fn explicit_snapshots_can_skip_cache_protection_and_still_read_until_release() {
 
 #[test]
 fn unprotected_active_snapshots_can_use_recent_cache_when_enabled() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .visibility_cache_policy(VisibilityCachePolicy {
             enabled: true,
@@ -96,10 +96,10 @@ fn unprotected_active_snapshots_can_use_recent_cache_when_enabled() {
         })
         .build();
 
-    let first = create_entity_outcome(&mut runtime, "first");
+    let first = create_entity_outcome(&runtime, "first");
     let snapshot = runtime.visibility_authority().snapshot();
     let entity = changed_entities(&first)[0];
-    let _updated = update_entity(&mut runtime, entity, "first-updated");
+    let _updated = update_entity(&runtime, entity, "first-updated");
 
     runtime.performance_access().reset_counters();
     let _ = runtime.read_truth().read_snapshot(&snapshot).unwrap();
@@ -119,7 +119,7 @@ fn unprotected_active_snapshots_can_use_recent_cache_when_enabled() {
 
 #[test]
 fn visibility_cache_recent_window_is_bounded_and_reports_hits() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .visibility_cache_policy(VisibilityCachePolicy {
             enabled: true,
@@ -130,11 +130,11 @@ fn visibility_cache_recent_window_is_bounded_and_reports_hits() {
         })
         .build();
 
-    let first = create_entity_outcome(&mut runtime, "first");
-    let second = create_entity_outcome(&mut runtime, "second");
-    let third = create_entity_outcome(&mut runtime, "third");
+    let first = create_entity_outcome(&runtime, "first");
+    let second = create_entity_outcome(&runtime, "second");
+    let third = create_entity_outcome(&runtime, "third");
 
-    assert_recent_version_admission_candidate(&mut runtime, first.version_id);
+    assert_recent_version_admission_candidate(&runtime, first.version_id);
 
     runtime.performance_access().reset_counters();
     let _ = runtime.read_truth().read_version(first.version_id);
@@ -149,8 +149,8 @@ fn visibility_cache_recent_window_is_bounded_and_reports_hits() {
     assert!(counters.visibility_cache_miss_reconstructions >= 2);
     assert!(counters.visibility_cache_hits >= 1);
     assert!(counters.visibility_cache_recent_evictions >= 1);
-    assert_version_read_path_has_cache_hit(&mut runtime, second.version_id);
-    assert_evicted_version_is_not_cached(&mut runtime, first.version_id);
+    assert_version_read_path_has_cache_hit(&runtime, second.version_id);
+    assert_evicted_version_is_not_cached(&runtime, first.version_id);
     assert_eq!(
         third.version_id,
         runtime.history().latest_commit().unwrap().version_id
@@ -159,13 +159,13 @@ fn visibility_cache_recent_window_is_bounded_and_reports_hits() {
 
 #[test]
 fn heavy_profiles_keep_recent_visibility_cache_small_under_sustained_history_reads() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .profile(RelationalRuntimeProfile::ChipSimulation)
         .schema_registry(test_schema_registry())
         .build();
     let mut versions = Vec::new();
     for index in 0..6 {
-        versions.push(create_entity_outcome(&mut runtime, &format!("e{index}")).version_id);
+        versions.push(create_entity_outcome(&runtime, &format!("e{index}")).version_id);
     }
 
     runtime.performance_access().reset_counters();

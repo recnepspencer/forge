@@ -211,8 +211,8 @@ mod tests {
 
     #[test]
     fn naming_admission_rejects_tampered_normalized_key_plan() {
-        let mut runtime = runtime_with_test_schema();
-        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+        let runtime = runtime_with_test_schema();
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
         txn.push_batch(WorkerIntentBatch::new("bulk").push(MutationIntent::Create(
             CreateIntent::BulkEntities(BulkEntityCreateIntent {
                 partition_id: PartitionId::main(),
@@ -249,9 +249,9 @@ mod tests {
 
     #[test]
     fn lineage_admission_rejects_tampered_transition_digest() {
-        let mut runtime = runtime_with_test_schema();
-        let entity = create_entity(&mut runtime, "replace-me");
-        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+        let runtime = runtime_with_test_schema();
+        let entity = create_entity(&runtime, "replace-me");
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
         txn.push_batch(
             WorkerIntentBatch::new("rewrite").push(MutationIntent::Entity(
                 EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -288,10 +288,10 @@ mod tests {
 
     #[test]
     fn provenance_admission_rejects_tampered_worker_evidence() {
-        let mut runtime = runtime_with_test_schema();
-        let source = create_entity(&mut runtime, "source");
-        let target = create_entity(&mut runtime, "target");
-        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+        let runtime = runtime_with_test_schema();
+        let source = create_entity(&runtime, "source");
+        let target = create_entity(&runtime, "target");
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
         txn.push_batch(
             WorkerIntentBatch::new("worker-a").push(MutationIntent::Create(
                 CreateIntent::BulkRelations(BulkRelationCreateIntent {
@@ -331,9 +331,9 @@ mod tests {
 
     #[test]
     fn naming_admission_does_not_mutate_runtime_counters() {
-        let mut runtime = runtime_with_test_schema();
+        let runtime = runtime_with_test_schema();
         runtime.performance_access().reset_counters();
-        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
         txn.push_batch(WorkerIntentBatch::new("bulk").push(MutationIntent::Create(
             CreateIntent::BulkEntities(BulkEntityCreateIntent {
                 partition_id: PartitionId::main(),

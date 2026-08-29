@@ -70,8 +70,8 @@ fn phase3_settlement_port_is_a_cloneable_shared_borrow_service() {
 
     assert_clone_send_sync::<SettlementPort>();
 
-    let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "phase3-settlement-anchor");
+    let runtime = runtime_with_test_schema();
+    create_entity(&runtime, "phase3-settlement-anchor");
     let runtime_shared = &runtime;
     let settlement = runtime_shared.settlement_port();
     let cloned = settlement.clone();
@@ -89,7 +89,7 @@ fn phase3_settlement_port_is_a_cloneable_shared_borrow_service() {
         .commit_branch_transaction(transaction)
         .expect("the convenience commit path settles through a shared borrow");
     assert!(!cloned.retains_pending_settlement(committed.commit.commit_id));
-    release_test_commit_snapshot(&mut runtime, &committed);
+    release_test_commit_snapshot(&runtime, &committed);
 }
 
 /// A settlement service outlives no owner. Once the runtime is gone every
@@ -97,8 +97,8 @@ fn phase3_settlement_port_is_a_cloneable_shared_borrow_service() {
 /// addressing freed authority.
 #[test]
 fn phase3_settlement_port_denies_after_its_runtime_owner_closes() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "phase3-owner-close-anchor");
+    let runtime = runtime_with_test_schema();
+    create_entity(&runtime, "phase3-owner-close-anchor");
     let performed = perform_write(&runtime, "main", "phase3-owner-close-write");
     let commit_id = performed.canonical_commit().commit.commit_id;
     let settlement = runtime.settlement_port();
@@ -130,8 +130,8 @@ fn phase3_settlement_port_denies_after_its_runtime_owner_closes() {
 /// the terminal effect.
 #[test]
 fn phase3_settlement_port_settles_a_performed_publication_from_another_thread() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "phase3-offthread-anchor");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "phase3-offthread-anchor");
     let performed = perform_write(&runtime, "main", "phase3-offthread-write");
     let commit_id = performed.canonical_commit().commit.commit_id;
     let settlement = runtime.settlement_port();
@@ -152,10 +152,10 @@ fn phase3_settlement_port_settles_a_performed_publication_from_another_thread() 
             .commit_id,
         commit_id,
     );
-    let child = create_entity_outcome(&mut runtime, "phase3-child-after-offthread");
+    let child = create_entity_outcome(&runtime, "phase3-child-after-offthread");
     assert_eq!(child.commit.parents, vec![commit_id]);
-    release_test_commit_snapshot(&mut runtime, &settled);
-    release_test_commit_snapshot(&mut runtime, &child);
+    release_test_commit_snapshot(&runtime, &settled);
+    release_test_commit_snapshot(&runtime, &child);
 }
 
 /// Settlement holds no runtime-wide authority. A branch paused inside its own
@@ -163,8 +163,8 @@ fn phase3_settlement_port_settles_a_performed_publication_from_another_thread() 
 /// running the full convenience commit path.
 #[test]
 fn phase3_paused_settlement_does_not_block_an_unrelated_branch_commit() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "phase3-settlement-independence-anchor");
+    let runtime = runtime_with_test_schema();
+    create_entity(&runtime, "phase3-settlement-independence-anchor");
     fork_from_main(&runtime, "paused-settlement");
     fork_from_main(&runtime, "progressing-settlement");
 
@@ -229,8 +229,8 @@ fn phase3_paused_settlement_does_not_block_an_unrelated_branch_commit() {
         .expect("branch A settles after release");
     assert_eq!(paused_result.commit.commit_id, paused_commit_id);
     assert!(!settlement.retains_pending_settlement(paused_commit_id));
-    release_test_commit_snapshot(&mut runtime, &paused_result);
-    release_test_commit_snapshot(&mut runtime, &progressing_result);
+    release_test_commit_snapshot(&runtime, &paused_result);
+    release_test_commit_snapshot(&runtime, &progressing_result);
 }
 
 /// A deferred durable append is repaired through the same shared-borrow
@@ -238,8 +238,8 @@ fn phase3_paused_settlement_does_not_block_an_unrelated_branch_commit() {
 /// being borrowed exclusively.
 #[test]
 fn phase3_settlement_port_repairs_a_deferred_append_by_route_and_by_identity() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "phase3-repair-anchor");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "phase3-repair-anchor");
     let settlement = runtime.settlement_port();
 
     let performed = perform_write(&runtime, "main", "phase3-route-repair-write");
@@ -268,7 +268,7 @@ fn phase3_settlement_port_repairs_a_deferred_append_by_route_and_by_identity() {
     assert_eq!(recovered.commit_id, identity_commit_id);
     assert!(!settlement.retains_pending_settlement(identity_commit_id));
 
-    let child = create_entity_outcome(&mut runtime, "phase3-child-after-repair");
+    let child = create_entity_outcome(&runtime, "phase3-child-after-repair");
     assert_eq!(child.commit.parents, vec![identity_commit_id]);
     assert_eq!(
         runtime
@@ -283,7 +283,7 @@ fn phase3_settlement_port_repairs_a_deferred_append_by_route_and_by_identity() {
         2,
         "each repaired settlement appends exactly once",
     );
-    release_test_commit_snapshot(&mut runtime, &child);
+    release_test_commit_snapshot(&runtime, &child);
 }
 
 fn fork_from_main(runtime: &RelationalRuntime, target: &str) {

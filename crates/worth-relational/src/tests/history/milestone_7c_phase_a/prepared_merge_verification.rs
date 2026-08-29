@@ -12,14 +12,10 @@ use crate::tests::support::{
 
 #[test]
 fn verify_prepared_merge_execution_accepts_fresh_prepared_merge() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "root");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "root");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -37,14 +33,10 @@ fn verify_prepared_merge_execution_accepts_fresh_prepared_merge() {
 
 #[test]
 fn verify_prepared_merge_execution_rejects_runtime_instance_mismatch() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "root");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "root");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -63,14 +55,10 @@ fn verify_prepared_merge_execution_rejects_runtime_instance_mismatch() {
 
 #[test]
 fn verify_prepared_merge_execution_rejects_target_head_drift() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "root");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "root");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -80,7 +68,7 @@ fn verify_prepared_merge_execution_rejects_target_head_drift() {
         })
         .expect("prepared merge");
 
-    create_entity(&mut runtime, "main-advance");
+    create_entity(&runtime, "main-advance");
 
     match runtime.merge().verify_prepared_merge_execution(&prepared) {
         Err(MergeExecutionError::StaleBranchHead { branch, .. }) => {
@@ -92,14 +80,10 @@ fn verify_prepared_merge_execution_rejects_target_head_drift() {
 
 #[test]
 fn verify_prepared_merge_execution_rejects_source_head_drift() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "root");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "root");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -109,11 +93,7 @@ fn verify_prepared_merge_execution_rejects_source_head_drift() {
         })
         .expect("prepared merge");
 
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-advance",
-        BranchId("feature".to_string()),
-    );
+    create_entity_outcome_on_branch(&runtime, "feature-advance", BranchId("feature".to_string()));
 
     match runtime.merge().verify_prepared_merge_execution(&prepared) {
         Err(MergeExecutionError::StaleBranchHead { branch, .. }) => {
@@ -126,13 +106,9 @@ fn verify_prepared_merge_execution_rejects_source_head_drift() {
 #[test]
 fn verify_prepared_merge_execution_rejects_schema_semantic_drift() {
     let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "root");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    create_entity(&runtime, "root");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -182,14 +158,10 @@ fn verify_prepared_merge_execution_rejects_schema_semantic_drift() {
 
 #[test]
 fn verify_prepared_merge_execution_rejects_merge_base_drift() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "root");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "root");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
 
     let mut prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {

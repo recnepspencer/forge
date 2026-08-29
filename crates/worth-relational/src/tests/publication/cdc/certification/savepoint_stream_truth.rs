@@ -4,14 +4,14 @@ use crate::tests::support::*;
 
 #[test]
 fn cdc_certification_savepoint_abandoned_work_never_leaks_into_stream_truth() {
-    let mut runtime = runtime_with_test_schema();
-    let left = create_entity_outcome(&mut runtime, "anchor-left");
-    let right = create_entity_outcome(&mut runtime, "anchor-right");
+    let runtime = runtime_with_test_schema();
+    let left = create_entity_outcome(&runtime, "anchor-left");
+    let right = create_entity_outcome(&runtime, "anchor-right");
     let left_entity = changed_entities(&left)[0];
     let right_entity = changed_entities(&right)[0];
     let checkpoint = checkpoint_for_schema_version(right.patch_position(), SchemaVersionId(1));
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(batch_create("surviving"))
         .expect("test staging stays within configured resource budgets");
     let savepoint = txn.create_savepoint().unwrap();
@@ -70,7 +70,7 @@ fn cdc_certification_savepoint_abandoned_work_never_leaks_into_stream_truth() {
         )),
     )
     .expect("test staging stays within configured resource budgets");
-    let outcome = txn.commit(&mut runtime).unwrap();
+    let outcome = txn.commit(&runtime).unwrap();
 
     assert!(rollback.summary().has_discarded_entity_creation());
 

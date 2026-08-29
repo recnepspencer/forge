@@ -29,7 +29,7 @@ const RELATION_KIND: KindId = KindId(2);
 
 #[test]
 fn actual_snapshot_observation_mints_exact_neutral_evidence() {
-    let mut fixture = authorization_fixture();
+    let fixture = authorization_fixture();
     let snapshot = fixture.runtime.visibility_authority().snapshot();
     let plan = allow_plan(
         snapshot,
@@ -75,9 +75,9 @@ fn actual_snapshot_observation_mints_exact_neutral_evidence() {
 
 #[test]
 fn parallel_matching_paths_remain_neutral_graph_observations() {
-    let mut fixture = authorization_fixture();
+    let fixture = authorization_fixture();
     create_relation(
-        &mut fixture.runtime,
+        &fixture.runtime,
         fixture.principal,
         fixture.scope,
         "initiated-payment",
@@ -97,7 +97,7 @@ fn parallel_matching_paths_remain_neutral_graph_observations() {
 
 #[test]
 fn revocation_changes_only_new_snapshot_authority() {
-    let mut fixture = authorization_fixture();
+    let fixture = authorization_fixture();
     let before = fixture.runtime.visibility_authority().snapshot();
     let before_evidence = fixture
         .runtime
@@ -109,7 +109,7 @@ fn revocation_changes_only_new_snapshot_authority() {
         ))
         .expect("pre-revocation observation");
     let revocation = delete_relation_on_branch(
-        &mut fixture.runtime,
+        &fixture.runtime,
         fixture.role_scope_relation,
         BranchId("main".to_string()),
     );
@@ -137,7 +137,7 @@ fn revocation_changes_only_new_snapshot_authority() {
 
 #[test]
 fn foreign_runtime_is_a_typed_denial_before_graph_reads() {
-    let mut source = authorization_fixture();
+    let source = authorization_fixture();
     let foreign_snapshot = source.runtime.visibility_authority().snapshot();
     let destination = runtime_with_test_schema();
     let denial = destination
@@ -157,7 +157,7 @@ fn foreign_runtime_is_a_typed_denial_before_graph_reads() {
 
 #[test]
 fn empty_observation_plan_is_rejected_before_graph_reads() {
-    let mut fixture = authorization_fixture();
+    let fixture = authorization_fixture();
     let snapshot = fixture.runtime.visibility_authority().snapshot();
     let denial = RelationalAuthorizationObservationPlan::try_new(
         snapshot,
@@ -175,7 +175,7 @@ fn empty_observation_plan_is_rejected_before_graph_reads() {
 
 #[test]
 fn reverse_path_validation_uses_declared_relation_orientation() {
-    let mut fixture = authorization_fixture();
+    let fixture = authorization_fixture();
     let snapshot = fixture.runtime.visibility_authority().snapshot();
     let principal_kind = KindId(11);
     let scope_kind = KindId(12);
@@ -203,7 +203,7 @@ fn reverse_path_validation_uses_declared_relation_orientation() {
 
 #[test]
 fn unrelated_graph_scale_does_not_change_observation_work() {
-    let mut fixture = authorization_fixture();
+    let fixture = authorization_fixture();
     let baseline_snapshot = fixture.runtime.visibility_authority().snapshot();
     let baseline = fixture
         .runtime
@@ -215,10 +215,10 @@ fn unrelated_graph_scale_does_not_change_observation_work() {
         ))
         .expect("baseline observation");
     for index in 0..64 {
-        let left = create_entity(&mut fixture.runtime, &format!("unrelated-left-{index}"));
-        let right = create_entity(&mut fixture.runtime, &format!("unrelated-right-{index}"));
+        let left = create_entity(&fixture.runtime, &format!("unrelated-left-{index}"));
+        let right = create_entity(&fixture.runtime, &format!("unrelated-right-{index}"));
         create_relation(
-            &mut fixture.runtime,
+            &fixture.runtime,
             left,
             right,
             &format!("unrelated-edge-{index}"),
@@ -260,14 +260,14 @@ fn authorization_fixture() -> AuthorizationFixture {
     let mut unrelated_schema = unrelated_schema.build_registry();
     let unrelated_relation = unrelated_schema.relation_kinds.remove(&KindId(99)).unwrap();
     schema = schema.register_relation_kind(unrelated_relation).unwrap();
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(schema)
         .build();
-    let principal = create_entity(&mut runtime, "principal");
-    let role = create_entity(&mut runtime, "approver");
-    let scope = create_entity(&mut runtime, "payment");
-    create_relation(&mut runtime, principal, role, "principal-role");
-    let role_scope_relation = create_relation(&mut runtime, role, scope, "role-scope");
+    let principal = create_entity(&runtime, "principal");
+    let role = create_entity(&runtime, "approver");
+    let scope = create_entity(&runtime, "payment");
+    create_relation(&runtime, principal, role, "principal-role");
+    let role_scope_relation = create_relation(&runtime, role, scope, "role-scope");
     AuthorizationFixture {
         runtime,
         principal,

@@ -19,7 +19,7 @@ pub(super) fn certify_rocketship_hot_update_endurance(suite: &'static str) {
                     rocketship_endurance_node_count * 2
             });
             let seeded = seed_pseudorealistic_rocketship_world(
-                &mut runtime,
+                &runtime,
                 rocketship_endurance_node_count,
                 query_target_count,
             );
@@ -36,7 +36,7 @@ pub(super) fn certify_rocketship_hot_update_endurance(suite: &'static str) {
                 let target = seeded.traversal_seeds[index % seeded.traversal_seeds.len()];
                 let update_started_at = Instant::now();
                 let _ = update_entity(
-                    &mut runtime,
+                    &runtime,
                     target,
                     &format!("rocket.endurance.hot-loop.{index}"),
                 );

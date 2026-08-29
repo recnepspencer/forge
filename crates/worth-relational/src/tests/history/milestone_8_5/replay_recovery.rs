@@ -18,7 +18,7 @@ pub(super) fn certify_replay_recovery(
     input: StrategyReplayRecoveryInput,
 ) -> StrategyCertificationBundle {
     let StrategyReplayRecoveryInput {
-        mut runtime,
+        runtime,
         recovered_root,
         entity,
         feature_branch,
@@ -228,8 +228,8 @@ pub(super) fn certify_replay_recovery(
         strategy_surface_mismatch_present: failing_executor_mismatch_present,
     };
 
-    let (_recovery, mut recovered) =
-        checkpoint_and_recover_with(&mut runtime, || persisted_strategy_runtime(recovered_root));
+    let (_recovery, recovered) =
+        checkpoint_and_recover_with(&runtime, || persisted_strategy_runtime(recovered_root));
 
     let recovered_planning = recovered
         .merge()

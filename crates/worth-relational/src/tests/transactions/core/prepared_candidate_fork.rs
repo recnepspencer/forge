@@ -2,9 +2,9 @@ use crate::tests::support::*;
 
 #[test]
 fn fork_resolves_a_port_performed_head_without_catalog_authority() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "fork-after-port-anchor");
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
+    let runtime = runtime_with_test_schema();
+    create_entity(&runtime, "fork-after-port-anchor");
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
     transaction
         .push_batch(batch_create("fork-after-port-write"))
         .expect("test staging stays within configured resource budgets");
@@ -33,19 +33,19 @@ fn fork_resolves_a_port_performed_head_without_catalog_authority() {
     let committed = runtime
         .settle_performed_publication(performed)
         .expect("direct publication settles after branch-fork evidence");
-    release_test_commit_snapshot(&mut runtime, &committed);
+    release_test_commit_snapshot(&runtime, &committed);
 }
 
 #[test]
 fn runtime_fork_preserves_positioned_inventory_and_allocator_floor() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity_outcome(&mut runtime, "runtime-fork-source");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity_outcome(&runtime, "runtime-fork-source");
     let source_position = runtime
         .history
         .canonical_stream_position(source.commit.commit_id)
         .expect("source commit is positioned");
 
-    let mut fork = runtime.fork().expect("settled runtime forks");
+    let fork = runtime.fork().expect("settled runtime forks");
     assert_eq!(
         fork.history
             .canonical_stream_position(source.commit.commit_id),
@@ -58,7 +58,7 @@ fn runtime_fork_preserves_positioned_inventory_and_allocator_floor() {
         Some(source.commit.commit_id)
     );
 
-    let continued = create_entity_outcome(&mut fork, "runtime-fork-continuation");
+    let continued = create_entity_outcome(&fork, "runtime-fork-continuation");
     let continued_position = fork
         .history
         .canonical_stream_position(continued.commit.commit_id)
@@ -66,6 +66,6 @@ fn runtime_fork_preserves_positioned_inventory_and_allocator_floor() {
     assert!(source_position < continued_position);
     assert!(source.commit.commit_id < continued.commit.commit_id);
     assert!(source.commit.version_id < continued.commit.version_id);
-    release_test_commit_snapshot(&mut runtime, &source);
-    release_test_commit_snapshot(&mut fork, &continued);
+    release_test_commit_snapshot(&runtime, &source);
+    release_test_commit_snapshot(&fork, &continued);
 }

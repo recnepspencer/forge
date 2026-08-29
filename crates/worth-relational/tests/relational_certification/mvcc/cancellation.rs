@@ -71,7 +71,7 @@ fn cancellation_before_observation_or_transaction_acquires_no_obligation() {
 
 #[test]
 fn cancellation_during_preparation_releases_the_transaction_once() {
-    let (mut world, _) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, _) = certified_supply_chain_world(SupplyChainScale::court());
     let identity = world.runtime.main_branch_identity();
     let (_, basis) = world.runtime.observe_branch(&identity).unwrap();
     let source = RelationalCancellationSource::new();
@@ -119,7 +119,7 @@ fn cancellation_during_preparation_releases_the_transaction_once() {
 
 #[test]
 fn cancellation_after_candidate_creation_wins_before_branch_movement() {
-    let (mut world, _) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, _) = certified_supply_chain_world(SupplyChainScale::court());
     let identity = world.runtime.main_branch_identity();
     let (_, basis) = world.runtime.observe_branch(&identity).unwrap();
     let source = RelationalCancellationSource::new();
@@ -189,7 +189,7 @@ fn cancellation_after_candidate_creation_wins_before_branch_movement() {
 
 #[test]
 fn cancellation_after_snapshot_pin_preserves_and_releases_the_exact_observation() {
-    let (mut world, _) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, _) = certified_supply_chain_world(SupplyChainScale::court());
     let identity = world.runtime.main_branch_identity();
     let (_, basis) = world.runtime.observe_branch(&identity).unwrap();
     let snapshot = world
@@ -226,7 +226,7 @@ fn cancellation_after_snapshot_pin_preserves_and_releases_the_exact_observation(
 
 #[test]
 fn cancellation_after_linearization_preserves_performed_commit_and_settles_once() {
-    let (mut world, _) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, _) = certified_supply_chain_world(SupplyChainScale::court());
     let identity = world.runtime.main_branch_identity();
     let (_, basis) = world.runtime.observe_branch(&identity).unwrap();
     let source = RelationalCancellationSource::new();

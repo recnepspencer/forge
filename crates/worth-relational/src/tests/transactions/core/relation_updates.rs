@@ -4,13 +4,13 @@ use crate::transactions::data::ConflictClass;
 
 #[test]
 fn relation_endpoint_update_preserves_relation_identity_and_rewrites_endpoints() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "source");
-    let original_target = create_entity(&mut runtime, "original-target");
-    let new_target = create_entity(&mut runtime, "new-target");
-    let relation = create_relation(&mut runtime, source, original_target, "edge");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity(&runtime, "source");
+    let original_target = create_entity(&runtime, "original-target");
+    let new_target = create_entity(&runtime, "new-target");
+    let relation = create_relation(&runtime, source, original_target, "edge");
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("rewire-relation").push(MutationIntent::Relation(
             RelationMutationIntent::UpdateEndpoints(UpdateRelationEndpointsIntent {
@@ -22,9 +22,7 @@ fn relation_endpoint_update_preserves_relation_identity_and_rewrites_endpoints()
         )),
     )
     .expect("test staging stays within configured resource budgets");
-    let outcome = txn
-        .commit(&mut runtime)
-        .expect("relation update should commit");
+    let outcome = txn.commit(&runtime).expect("relation update should commit");
     let read = runtime
         .read_truth()
         .read_snapshot(&outcome.snapshot)
@@ -54,14 +52,14 @@ fn relation_endpoint_update_preserves_relation_identity_and_rewrites_endpoints()
 
 #[test]
 fn relation_endpoint_update_rejects_duplicate_relation_identity() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "source");
-    let left = create_entity(&mut runtime, "left");
-    let right = create_entity(&mut runtime, "right");
-    let first = create_relation(&mut runtime, source, left, "edge-left");
-    let _second = create_relation(&mut runtime, source, right, "edge-right");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity(&runtime, "source");
+    let left = create_entity(&runtime, "left");
+    let right = create_entity(&runtime, "right");
+    let first = create_relation(&runtime, source, left, "edge-left");
+    let _second = create_relation(&runtime, source, right, "edge-right");
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("duplicate-rewire").push(MutationIntent::Relation(
             RelationMutationIntent::UpdateEndpoints(UpdateRelationEndpointsIntent {
@@ -74,7 +72,7 @@ fn relation_endpoint_update_rejects_duplicate_relation_identity() {
     )
     .expect("test staging stays within configured resource budgets");
     let error = txn
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect_err("duplicate relation identity should deny");
 
     match error {
@@ -90,17 +88,17 @@ fn relation_endpoint_update_rejects_duplicate_relation_identity() {
 
 #[test]
 fn relation_endpoint_update_accepts_same_batch_created_target() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "source");
-    let old_target = create_entity(&mut runtime, "old-target");
-    let relation = create_relation(&mut runtime, source, old_target, "edge");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity(&runtime, "source");
+    let old_target = create_entity(&runtime, "old-target");
+    let relation = create_relation(&runtime, source, old_target, "edge");
     let created_target = CreatedEntityRef {
         partition_id: PartitionId(1),
         kind_id: KindId(1),
         client_key: crate::symbols::data::ClientKey::raw("same-batch-target"),
     };
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("rewire-to-created")
             .push(MutationIntent::Create(CreateIntent::Entity(EntitySpec {
@@ -120,7 +118,7 @@ fn relation_endpoint_update_accepts_same_batch_created_target() {
     )
     .expect("test staging stays within configured resource budgets");
     let outcome = txn
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect("relation update to same-batch created target should commit");
     let read = runtime
         .read_truth()
@@ -144,17 +142,17 @@ fn relation_endpoint_update_accepts_same_batch_created_target() {
 
 #[test]
 fn relation_endpoint_update_to_same_batch_created_target_survives_old_target_retirement() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "source");
-    let old_target = create_entity(&mut runtime, "old-target");
-    let relation = create_relation(&mut runtime, source, old_target, "edge");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity(&runtime, "source");
+    let old_target = create_entity(&runtime, "old-target");
+    let relation = create_relation(&runtime, source, old_target, "edge");
     let created_target = CreatedEntityRef {
         partition_id: PartitionId(1),
         kind_id: KindId(1),
         client_key: crate::symbols::data::ClientKey::raw("rewired-target"),
     };
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("rewire-and-retire-old-target")
             .push(MutationIntent::Create(CreateIntent::Entity(EntitySpec {
@@ -179,7 +177,7 @@ fn relation_endpoint_update_to_same_batch_created_target_survives_old_target_ret
     )
     .expect("test staging stays within configured resource budgets");
     let outcome = txn
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect("moved relation should survive retirement of its old endpoint");
     let read = runtime
         .read_truth()
@@ -214,17 +212,17 @@ fn relation_endpoint_update_to_same_batch_created_target_survives_old_target_ret
 
 #[test]
 fn relation_endpoint_update_to_same_batch_created_source_survives_old_source_retirement() {
-    let mut runtime = runtime_with_test_schema();
-    let old_source = create_entity(&mut runtime, "old-source");
-    let target = create_entity(&mut runtime, "target");
-    let relation = create_relation(&mut runtime, old_source, target, "edge");
+    let runtime = runtime_with_test_schema();
+    let old_source = create_entity(&runtime, "old-source");
+    let target = create_entity(&runtime, "target");
+    let relation = create_relation(&runtime, old_source, target, "edge");
     let created_source = CreatedEntityRef {
         partition_id: PartitionId(1),
         kind_id: KindId(1),
         client_key: crate::symbols::data::ClientKey::raw("rewired-source"),
     };
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("rewire-and-retire-old-source")
             .push(MutationIntent::Create(CreateIntent::Entity(EntitySpec {
@@ -249,7 +247,7 @@ fn relation_endpoint_update_to_same_batch_created_source_survives_old_source_ret
     )
     .expect("test staging stays within configured resource budgets");
     let outcome = txn
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect("moved relation should survive retirement of its old source");
     let read = runtime
         .read_truth()

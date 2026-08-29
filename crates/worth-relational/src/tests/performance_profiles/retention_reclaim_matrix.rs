@@ -7,11 +7,11 @@ fn perf_retention_reclaim_matrix() {
 
     let snapshot_pin_samples =
         capture_perf_samples(suite, "snapshot_release_to_reclaimable_entity", || {
-            let mut runtime = runtime_with_test_schema();
-            let created = create_entity_outcome(&mut runtime, "retained");
+            let runtime = runtime_with_test_schema();
+            let created = create_entity_outcome(&runtime, "retained");
             let created_snapshot = runtime.visibility_authority().snapshot();
             let entity = changed_entities(&created)[0];
-            let _deleted = delete_entity(&mut runtime, entity);
+            let _deleted = delete_entity(&runtime, entity);
             let deleted_snapshot = runtime.visibility_authority().snapshot();
 
             assert!(runtime
@@ -76,14 +76,14 @@ fn perf_retention_reclaim_matrix() {
 
     let replay_pin_samples =
         capture_perf_samples(suite, "replay_pin_release_deleted_relation", || {
-            let mut runtime = runtime_with_test_schema();
-            let source = create_entity(&mut runtime, "replay-left");
-            let target = create_entity(&mut runtime, "replay-right");
-            let created = create_relation_outcome(&mut runtime, source, target, "replay-r1");
+            let runtime = runtime_with_test_schema();
+            let source = create_entity(&runtime, "replay-left");
+            let target = create_entity(&runtime, "replay-right");
+            let created = create_relation_outcome(&runtime, source, target, "replay-r1");
             let relation = changed_relations(&created)[0];
             let deleted = {
                 let mut txn =
-                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+                    crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
                 txn.push_batch(WorkerIntentBatch::new("delete-relation").push(
                     MutationIntent::Relation(RelationMutationIntent::Delete(
                         DeleteRelationIntent {
@@ -92,7 +92,7 @@ fn perf_retention_reclaim_matrix() {
                     )),
                 ))
                 .expect("test staging stays within configured resource budgets");
-                txn.commit(&mut runtime).expect("delete relation")
+                txn.commit(&runtime).expect("delete relation")
             };
 
             assert!(runtime

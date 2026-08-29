@@ -227,7 +227,7 @@ mod tests {
 
     #[test]
     fn lower_execution_routes_strategy_batches_through_transaction_admission() {
-        let mut runtime = RelationalRuntimeBuilder::new()
+        let runtime = RelationalRuntimeBuilder::new()
             .schema_registry(crate::tests::support::test_schema_registry())
             .build();
         let request = canonical_request();
@@ -238,7 +238,7 @@ mod tests {
             .begin_branch_transaction_with_owner_inputs(transaction_validation_input)
             .expect("owner context opens a branch-bound transaction");
 
-        let lowered = lower_execution(&mut runtime, &request, &execution, transaction)
+        let lowered = lower_execution(&runtime, &request, &execution, transaction)
             .expect("lowered strategy plan");
 
         assert_eq!(lowered.request().strategy_id(), CommitStrategyId(41));
@@ -261,7 +261,7 @@ mod tests {
 
     #[test]
     fn lower_execution_rejects_request_execution_mismatch() {
-        let mut runtime = RelationalRuntimeBuilder::new().build();
+        let runtime = RelationalRuntimeBuilder::new().build();
         let request = canonical_request();
         let other_request = CanonicalStrategyCommitRequest::new(
             CommitStrategyId(42),
@@ -276,8 +276,7 @@ mod tests {
             .begin_branch_transaction_with_owner_inputs(transaction_validation_input)
             .expect("owner context opens a branch-bound transaction");
 
-        let error =
-            lower_execution(&mut runtime, &other_request, &execution, transaction).unwrap_err();
+        let error = lower_execution(&runtime, &other_request, &execution, transaction).unwrap_err();
 
         assert!(matches!(
             error,
@@ -287,8 +286,8 @@ mod tests {
 
     #[test]
     fn transaction_admission_denies_missing_root_before_raw_key_normalization() {
-        let mut runtime = crate::tests::support::runtime_with_test_schema();
-        crate::tests::support::create_entity_outcome(&mut runtime, "strategy-root-source");
+        let runtime = crate::tests::support::runtime_with_test_schema();
+        crate::tests::support::create_entity_outcome(&runtime, "strategy-root-source");
         let source = BranchId("main".to_owned());
         let (_, basis) = runtime
             .observe_fork_source(&source)

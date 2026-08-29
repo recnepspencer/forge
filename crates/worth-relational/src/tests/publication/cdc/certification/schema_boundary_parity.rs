@@ -11,7 +11,7 @@ use crate::tests::support::*;
 #[test]
 fn cdc_certification_schema_boundary_continuation_is_explained_and_counted() {
     let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
-    let _ = create_entity_outcome(&mut runtime, "anchor");
+    let _ = create_entity_outcome(&runtime, "anchor");
 
     runtime.set_schema_registry_for_test(
         AspectSchemaFixture {
@@ -41,7 +41,7 @@ fn cdc_certification_schema_boundary_continuation_is_explained_and_counted() {
     };
     txn.push_batch(batch_create("after-boundary"))
         .expect("test staging stays within configured resource budgets");
-    txn.commit(&mut runtime).unwrap();
+    txn.commit(&runtime).unwrap();
 
     runtime.performance_access().reset_counters();
     let batch = runtime
@@ -72,7 +72,7 @@ fn cdc_certification_schema_boundary_continuation_is_explained_and_counted() {
 #[test]
 fn diff_cdc_truth_parity_test() {
     let mut runtime = persisted_runtime_with_test_schema();
-    let baseline = create_entity_outcome(&mut runtime, "anchor");
+    let baseline = create_entity_outcome(&runtime, "anchor");
     let baseline_checkpoint =
         checkpoint_for_schema_version(baseline.patch_position(), SchemaVersionId(1));
 
@@ -105,7 +105,7 @@ fn diff_cdc_truth_parity_test() {
     txn_v2
         .push_batch(batch_create("after-v2"))
         .expect("test staging stays within configured resource budgets");
-    txn_v2.commit(&mut runtime).unwrap();
+    txn_v2.commit(&runtime).unwrap();
 
     runtime.set_schema_registry_for_test(
         AspectSchemaFixture {
@@ -136,7 +136,7 @@ fn diff_cdc_truth_parity_test() {
     txn_v3
         .push_batch(batch_create("after-v3"))
         .expect("test staging stays within configured resource budgets");
-    txn_v3.commit(&mut runtime).unwrap();
+    txn_v3.commit(&runtime).unwrap();
 
     runtime.performance_access().reset_counters();
     let live_batch = runtime
@@ -168,7 +168,7 @@ fn diff_cdc_truth_parity_test() {
         live_counters.schema_normalized_descriptor_compositions,
     );
 
-    let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, || {
+    let (_recovery, recovered) = checkpoint_and_recover_with(&runtime, || {
         let registry = AspectSchemaFixture {
             schema_version_id: SchemaVersionId(3),
             ..AspectSchemaFixture::with_default_declared_aspects(

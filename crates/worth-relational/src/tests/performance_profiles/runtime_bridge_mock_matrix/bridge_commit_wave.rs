@@ -16,20 +16,20 @@ pub(super) fn certify_geometry_commit_bridge_wave(suite: &'static str) {
                     if development_profile { 256 } else { 0 }
             });
 
-            let source = create_entity_outcome(&mut relational, "merged-geometry-source");
-            let middle = create_entity_outcome(&mut relational, "merged-geometry-middle");
-            let target = create_entity_outcome(&mut relational, "merged-geometry-target");
+            let source = create_entity_outcome(&relational, "merged-geometry-source");
+            let middle = create_entity_outcome(&relational, "merged-geometry-middle");
+            let target = create_entity_outcome(&relational, "merged-geometry-target");
             let source_entity = changed_entities(&source)[0];
             let middle_entity = changed_entities(&middle)[0];
             let target_entity = changed_entities(&target)[0];
             create_relation_outcome(
-                &mut relational,
+                &relational,
                 source_entity,
                 middle_entity,
                 "merged-geometry-link-a",
             );
             create_relation_outcome(
-                &mut relational,
+                &relational,
                 middle_entity,
                 target_entity,
                 "merged-geometry-link-b",
@@ -38,11 +38,8 @@ pub(super) fn certify_geometry_commit_bridge_wave(suite: &'static str) {
             let mut bridge_runtime = build_mock_bridge_runtime(development_profile, 4);
 
             let relational_commit_started_at = Instant::now();
-            let update = update_entity(
-                &mut relational,
-                middle_entity,
-                "merged-geometry-middle-updated",
-            );
+            let update =
+                update_entity(&relational, middle_entity, "merged-geometry-middle-updated");
             let relational_commit_micros = relational_commit_started_at.elapsed().as_micros();
 
             let snapshot = relational.visibility_authority().snapshot();

@@ -2,12 +2,12 @@ use crate::tests::support::*;
 
 #[test]
 fn savepoint_abandoned_work_never_appears_in_subscriber_cdc() {
-    let mut runtime = runtime_with_test_schema();
-    let anchor = create_entity_outcome(&mut runtime, "anchor");
+    let runtime = runtime_with_test_schema();
+    let anchor = create_entity_outcome(&runtime, "anchor");
     let anchor_entity = changed_entities(&anchor)[0];
     let checkpoint = checkpoint_for_schema_version(anchor.patch_position(), SchemaVersionId(1));
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(batch_create("surviving"))
         .expect("test staging stays within configured resource budgets");
     let savepoint = txn.create_savepoint().unwrap();
@@ -40,7 +40,7 @@ fn savepoint_abandoned_work_never_appears_in_subscriber_cdc() {
         )),
     )
     .expect("test staging stays within configured resource budgets");
-    let outcome = txn.commit(&mut runtime).unwrap();
+    let outcome = txn.commit(&runtime).unwrap();
 
     assert!(rollback.summary().has_discarded_entity_creation());
 

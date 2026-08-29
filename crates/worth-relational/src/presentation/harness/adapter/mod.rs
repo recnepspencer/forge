@@ -79,18 +79,16 @@ impl HarnessAdapter for RelationalHarnessAdapter {
 
     fn load_fixture(
         &self,
-        mut runtime: &mut Self::Runtime,
+        runtime: &mut Self::Runtime,
         fixture: &worth_harness::facade::ScenarioFixture<Self::Fixture>,
     ) -> Result<(), Self::Error> {
         if fixture.fixture.entities.is_empty() && fixture.fixture.relations.is_empty() {
             return Ok(());
         }
-        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
         txn.push_batch(entity_fixture_batch(&fixture.fixture.entities))
             .expect("test staging stays within configured resource budgets");
-        let outcome = txn
-            .commit(&mut runtime)
-            .map_err(commit_error_to_harness_error)?;
+        let outcome = txn.commit(runtime).map_err(commit_error_to_harness_error)?;
         let entity_ids = outcome
             .changed_records
             .iter()
@@ -101,7 +99,7 @@ impl HarnessAdapter for RelationalHarnessAdapter {
             .collect::<Vec<_>>();
         if !fixture.fixture.relations.is_empty() {
             let mut relation_txn =
-                crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+                crate::tests::support::test_owner_begin_transaction_for_main(runtime);
             relation_txn
                 .push_batch(relation_fixture_batch(
                     &fixture.fixture.relations,
@@ -109,7 +107,7 @@ impl HarnessAdapter for RelationalHarnessAdapter {
                 )?)
                 .expect("test staging stays within configured resource budgets");
             relation_txn
-                .commit(&mut runtime)
+                .commit(runtime)
                 .map_err(commit_error_to_harness_error)?;
         }
         Ok(())
@@ -117,17 +115,16 @@ impl HarnessAdapter for RelationalHarnessAdapter {
 
     fn apply_mutation_batch(
         &self,
-        mut runtime: &mut Self::Runtime,
+        runtime: &mut Self::Runtime,
         batch: &MutationBatch<Self::Mutation>,
     ) -> Result<(), Self::Error> {
-        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
         for operation in &batch.operations {
             let operation: WorkerIntentBatch = operation.clone();
             txn.push_batch(operation)
                 .expect("test staging stays within configured resource budgets");
         }
-        txn.commit(&mut runtime)
-            .map_err(commit_error_to_harness_error)?;
+        txn.commit(runtime).map_err(commit_error_to_harness_error)?;
         Ok(())
     }
 

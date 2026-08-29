@@ -18,11 +18,11 @@ fn main() {
 
     let read_path = runtime
         .read_truth()
-        .inspect_snapshot_read_path(&snapshot)
+        .inspect_snapshot_read_path(snapshot)
         .expect("snapshot read path");
     let snap_read = runtime
         .read_truth()
-        .read_snapshot(&snapshot)
+        .read_snapshot(snapshot)
         .expect("snapshot read");
 
     let authoritative_aspect_state = snap_read

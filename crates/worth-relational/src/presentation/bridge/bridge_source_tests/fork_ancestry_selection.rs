@@ -14,7 +14,7 @@ use super::support::{runtime_bridge_for_envelope, runtime_with_test_schema};
 #[test]
 fn advanced_fork_selects_inherited_ancestor_but_not_post_fork_source_sibling() {
     let runtime = Arc::new(Mutex::new(runtime_with_test_schema()));
-    let inherited = create_entity_outcome(&mut runtime.lock().unwrap(), "fork-ancestor");
+    let inherited = create_entity_outcome(&runtime.lock().unwrap(), "fork-ancestor");
     let feature = BranchId("feature".to_owned());
     runtime
         .lock()
@@ -22,12 +22,9 @@ fn advanced_fork_selects_inherited_ancestor_but_not_post_fork_source_sibling() {
         .history_authority()
         .fork_branch_from(feature.clone(), &BranchId("main".to_owned()))
         .unwrap();
-    let source_sibling = create_entity_outcome(&mut runtime.lock().unwrap(), "source-sibling");
-    let feature_head = create_entity_outcome_on_branch(
-        &mut runtime.lock().unwrap(),
-        "feature-head",
-        feature.clone(),
-    );
+    let source_sibling = create_entity_outcome(&runtime.lock().unwrap(), "source-sibling");
+    let feature_head =
+        create_entity_outcome_on_branch(&runtime.lock().unwrap(), "feature-head", feature.clone());
     assert!(source_sibling.commit.commit_id < feature_head.commit.commit_id);
 
     let feature_identity = runtime

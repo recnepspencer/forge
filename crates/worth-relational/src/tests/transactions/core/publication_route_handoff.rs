@@ -5,8 +5,8 @@ use crate::tests::support::*;
 
 #[test]
 fn canonical_consumers_resolve_around_the_real_root_to_route_cutover() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "handoff-anchor");
+    let runtime = runtime_with_test_schema();
+    create_entity(&runtime, "handoff-anchor");
     let identity = runtime.main_branch_identity();
     let (_, old_basis) = runtime
         .observe_branch(&identity)
@@ -18,7 +18,7 @@ fn canonical_consumers_resolve_around_the_real_root_to_route_cutover() {
         .commit
         .commit_id;
 
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
     transaction
         .push_batch(batch_create("handoff-write"))
         .expect("test staging stays within configured resource budgets");
@@ -91,7 +91,7 @@ fn canonical_consumers_resolve_around_the_real_root_to_route_cutover() {
     else {
         panic!("publication must perform through the production path");
     };
-    let (mut runtime, observed_commits) = reader.join().expect("public reader joins");
+    let (runtime, observed_commits) = reader.join().expect("public reader joins");
     let new_commit = performed.canonical_commit().commit.commit_id;
     assert_ne!(old_commit, new_commit);
     assert!(observed_commits
@@ -119,7 +119,7 @@ fn canonical_consumers_resolve_around_the_real_root_to_route_cutover() {
     let committed = runtime
         .settle_performed_publication(performed)
         .expect("performed publication settles explicitly");
-    release_test_commit_snapshot(&mut runtime, &committed);
+    release_test_commit_snapshot(&runtime, &committed);
     runtime
         .durability_authority()
         .checkpoint()

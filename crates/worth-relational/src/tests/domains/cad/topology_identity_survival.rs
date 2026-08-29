@@ -7,8 +7,8 @@ use crate::tests::support::*;
 
 #[test]
 fn topology_identity_survival_preserves_reidentification_truth_across_recovery() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "topology-source");
+    let runtime = persisted_runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "topology-source");
     let entity = changed_entities(&created)[0];
     let start_lineage = runtime
         .lineage_access()
@@ -16,7 +16,7 @@ fn topology_identity_survival_preserves_reidentification_truth_across_recovery()
         .unwrap()
         .lineage_id;
 
-    let replacement = update_entity(&mut runtime, entity, "topology-source-updated");
+    let replacement = update_entity(&runtime, entity, "topology-source-updated");
     let replaced_entity = changed_entities(&replacement)[0];
     let replacement_lineage = runtime
         .lineage_access()
@@ -77,8 +77,8 @@ fn topology_identity_survival_preserves_reidentification_truth_across_recovery()
     );
 
     assert_recovered_commit_truth_matches(
-        &mut runtime,
-        &mut recovered,
+        &runtime,
+        &recovered,
         replacement.commit.commit_id,
         &[replaced_entity],
         &[],

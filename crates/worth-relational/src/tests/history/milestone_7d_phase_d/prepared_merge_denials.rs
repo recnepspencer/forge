@@ -2,11 +2,11 @@ use super::*;
 
 #[test]
 fn deleted_on_both_sides_prepared_merge_rejects_target_head_drift() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let entity = create_entity(&mut runtime, "shared");
-    create_branch_from_main(&mut runtime, "feature");
-    delete_entity(&mut runtime, entity);
-    delete_entity_on_branch(&mut runtime, entity, BranchId("feature".to_string()));
+    let runtime = persisted_runtime_with_test_schema();
+    let entity = create_entity(&runtime, "shared");
+    create_branch_from_main(&runtime, "feature");
+    delete_entity(&runtime, entity);
+    delete_entity_on_branch(&runtime, entity, BranchId("feature".to_string()));
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -15,7 +15,7 @@ fn deleted_on_both_sides_prepared_merge_rejects_target_head_drift() {
             merge_intent: MergeIntent::ReconcileIntoTarget,
         })
         .expect("prepared merge");
-    create_entity(&mut runtime, "main-advance");
+    create_entity(&runtime, "main-advance");
 
     match runtime.execute_prepared_merge(prepared) {
         Err(MergeExecutionError::StaleBranchHead { branch, .. }) => {
@@ -48,10 +48,10 @@ fn deleted_on_both_sides_prepared_merge_rejects_target_head_drift() {
 #[test]
 fn deleted_on_both_sides_prepared_merge_rejects_schema_semantic_drift() {
     let mut runtime = persisted_runtime_with_test_schema();
-    let entity = create_entity(&mut runtime, "shared");
-    create_branch_from_main(&mut runtime, "feature");
-    delete_entity(&mut runtime, entity);
-    delete_entity_on_branch(&mut runtime, entity, BranchId("feature".to_string()));
+    let entity = create_entity(&runtime, "shared");
+    create_branch_from_main(&runtime, "feature");
+    delete_entity(&runtime, entity);
+    delete_entity_on_branch(&runtime, entity, BranchId("feature".to_string()));
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -70,11 +70,11 @@ fn deleted_on_both_sides_prepared_merge_rejects_schema_semantic_drift() {
 
 #[test]
 fn non_executable_deletion_denial_is_stable_across_recovery() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let entity = create_entity(&mut runtime, "shared");
-    create_branch_from_main(&mut runtime, "feature");
-    update_entity(&mut runtime, entity, "main-modified");
-    delete_entity_on_branch(&mut runtime, entity, BranchId("feature".to_string()));
+    let runtime = persisted_runtime_with_test_schema();
+    let entity = create_entity(&runtime, "shared");
+    create_branch_from_main(&runtime, "feature");
+    update_entity(&runtime, entity, "main-modified");
+    delete_entity_on_branch(&runtime, entity, BranchId("feature".to_string()));
 
     let live_artifact = runtime
         .merge()
@@ -101,7 +101,7 @@ fn non_executable_deletion_denial_is_stable_across_recovery() {
         .expect("live lowered index");
 
     let (_recovery, recovered) =
-        checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
+        checkpoint_and_recover_with(&runtime, persisted_runtime_with_test_schema);
     let recovered_artifact = recovered
         .merge()
         .inspect_planning_scope(

@@ -2,8 +2,8 @@ use super::*;
 
 #[test]
 fn durability_contract_failure_schema_mismatch_is_explicit() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "main-a");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "main-a");
     let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
@@ -34,8 +34,8 @@ fn durability_contract_failure_schema_mismatch_is_explicit() {
 
 #[test]
 fn durability_contract_failure_descriptor_semantics_version_mismatch_is_explicit() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "main-a");
+    let runtime = runtime_with_test_schema();
+    create_entity_outcome(&runtime, "main-a");
     let mut plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
@@ -58,8 +58,8 @@ fn durability_contract_failure_descriptor_semantics_version_mismatch_is_explicit
 
 #[test]
 fn durability_recovery_plan_preserves_explicit_verification_mode() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "main-a");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "main-a");
 
     let normal = runtime
         .durability()
@@ -80,8 +80,8 @@ fn durability_recovery_plan_preserves_explicit_verification_mode() {
 
 #[test]
 fn durability_recovery_plan_reports_descriptor_version_mismatch_before_recovery() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "main-a");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "main-a");
     runtime.performance_access().reset_counters();
     let store = runtime
         .durability()
@@ -139,7 +139,7 @@ fn durability_recovery_plan_reports_descriptor_version_mismatch_before_recovery(
 #[test]
 fn durability_contract_failure_descriptor_canonical_basis_version_mismatch_is_explicit() {
     let mut runtime = persisted_runtime_with_test_schema();
-    let _ = create_entity_outcome(&mut runtime, "main-a");
+    let _ = create_entity_outcome(&runtime, "main-a");
 
     runtime.set_schema_registry_for_test(
         AspectSchemaFixture {
@@ -169,7 +169,7 @@ fn durability_contract_failure_descriptor_canonical_basis_version_mismatch_is_ex
     };
     txn.push_batch(batch_create("transitioned"))
         .expect("test staging stays within configured resource budgets");
-    txn.commit(&mut runtime).unwrap();
+    txn.commit(&runtime).unwrap();
 
     let segment_path = runtime
         .durability()
@@ -222,8 +222,8 @@ fn durability_contract_failure_descriptor_canonical_basis_version_mismatch_is_ex
 
 #[test]
 fn durability_recovery_emits_authority_continuity_diagnostic_before_execution() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "main-a");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "main-a");
     let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
@@ -250,8 +250,8 @@ fn durability_recovery_emits_authority_continuity_diagnostic_before_execution() 
 
 #[test]
 fn durability_certification_recovery_authority_continuity_is_explained_and_counted() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "main-a");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "main-a");
     runtime.performance_access().reset_counters();
     let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,

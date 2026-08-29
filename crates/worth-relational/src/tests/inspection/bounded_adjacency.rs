@@ -2,11 +2,11 @@ use super::*;
 
 #[test]
 fn bounded_adjacency_stops_before_allocating_the_unbounded_fanout() {
-    let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "source");
+    let runtime = runtime_with_test_schema();
+    let source = create_entity(&runtime, "source");
     for ordinal in 0..64 {
-        let target = create_entity(&mut runtime, &format!("target-{ordinal}"));
-        let _ = create_relation(&mut runtime, source, target, &format!("relation-{ordinal}"));
+        let target = create_entity(&runtime, &format!("target-{ordinal}"));
+        let _ = create_relation(&runtime, source, target, &format!("relation-{ordinal}"));
     }
     let relation_kind = crate::facade::identity::KindId(2);
     let version = runtime.current_version_id();

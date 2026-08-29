@@ -9,7 +9,7 @@ pub(super) fn certify_local_scene_graph_propagation_wave(suite: &'static str) {
                 &mut runtime,
                 PerfDiagnosticsPolicy::GeometryOperationalHotPath,
             );
-            let seeded = seed_game_engine_frame_world(&mut runtime, "scene-local", 8, 24);
+            let seeded = seed_game_engine_frame_world(&runtime, "scene-local", 8, 24);
             let updated = seeded.frame_targets[3];
             let explicit_targets = seeded
                 .explicit_targets
@@ -27,7 +27,7 @@ pub(super) fn certify_local_scene_graph_propagation_wave(suite: &'static str) {
 
             runtime.performance_access().reset_counters();
             let update_started_at = Instant::now();
-            let update = update_entity(&mut runtime, updated, "scene-local-updated");
+            let update = update_entity(&runtime, updated, "scene-local-updated");
             let update_micros = update_started_at.elapsed().as_micros();
 
             let snapshot = runtime.visibility_authority().snapshot();

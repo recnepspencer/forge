@@ -91,7 +91,7 @@ proptest! {
             operations.clone(),
             RuntimeHarnessMode::InMemory(RelationalRuntimeProfile::GeometryKernel),
         );
-        let mut replay_world = run_property_scenario(
+        let replay_world = run_property_scenario(
             operations,
             RuntimeHarnessMode::InMemory(RelationalRuntimeProfile::GeometryKernel),
         );
@@ -108,9 +108,9 @@ proptest! {
             &head,
         );
 
-        let mut world_for_truth = world;
-        let truth = VisibleTruthSummary::capture(&mut world_for_truth.runtime);
-        let replay_truth = VisibleTruthSummary::capture(&mut replay_world.runtime);
+        let world_for_truth = world;
+        let truth = VisibleTruthSummary::capture(&world_for_truth.runtime);
+        let replay_truth = VisibleTruthSummary::capture(&replay_world.runtime);
         assert_visible_truth_matches(
             "property random operation matrix replay truth",
             &truth,
@@ -123,7 +123,7 @@ proptest! {
         operations in vec(arb_scenario_operation(), 16..64),
         checkpoint_seed in any::<u64>(),
     ) {
-        let mut world = run_property_scenario(
+        let world = run_property_scenario(
             operations,
             RuntimeHarnessMode::Persisted,
         );
@@ -142,8 +142,8 @@ proptest! {
         recovered.durability_recovery().recover(recovery_plan).unwrap();
         let recovered_patch_stream = collect_patch_stream_from_head(&recovered, 4096);
         prop_assert_eq!(recovered_patch_stream, head);
-        let truth = VisibleTruthSummary::capture(&mut world.runtime);
-        let recovered_truth = VisibleTruthSummary::capture(&mut recovered);
+        let truth = VisibleTruthSummary::capture(&world.runtime);
+        let recovered_truth = VisibleTruthSummary::capture(&recovered);
         assert_visible_truth_matches(
             "property persisted random operation matrix recovered truth",
             &truth,

@@ -2,8 +2,8 @@ use super::fixtures::*;
 
 #[test]
 fn diagnostics_and_replay_are_emitted_for_commit() {
-    let mut runtime = runtime_with_test_schema();
-    let _entity = create_entity(&mut runtime, "first");
+    let runtime = runtime_with_test_schema();
+    let _entity = create_entity(&runtime, "first");
     let diagnostics = runtime.publication().diagnostics();
 
     assert!(diagnostics.artifacts().iter().any(|artifact| {
@@ -33,8 +33,8 @@ fn diagnostics_and_replay_are_emitted_for_commit() {
 
 #[test]
 fn publication_diagnostics_since_fail_closes_for_stale_cursor() {
-    let mut runtime = runtime_with_test_schema();
-    let _entity = create_entity(&mut runtime, "first");
+    let runtime = runtime_with_test_schema();
+    let _entity = create_entity(&runtime, "first");
     let artifact_count = runtime.publication().diagnostic_artifact_count();
 
     assert!(runtime
@@ -45,7 +45,7 @@ fn publication_diagnostics_since_fail_closes_for_stale_cursor() {
 
 #[test]
 fn publication_observation_snapshot_tracks_latest_publication_state() {
-    let mut runtime = runtime_with_test_schema();
+    let runtime = runtime_with_test_schema();
 
     let empty = runtime.publication().observation_snapshot();
     assert_eq!(empty.latest_commit_id, None);
@@ -56,7 +56,7 @@ fn publication_observation_snapshot_tracks_latest_publication_state() {
     assert!(!empty.latest_replay_present);
     assert_eq!(empty.diagnostics_artifact_count, 0);
 
-    let created = create_entity_outcome(&mut runtime, "first");
+    let created = create_entity_outcome(&runtime, "first");
     let observed = runtime.publication().observation_snapshot();
     let publication = runtime.publication();
     let bundle = publication.latest_bundle().unwrap();
@@ -83,8 +83,8 @@ fn publication_observation_snapshot_tracks_latest_publication_state() {
 
 #[test]
 fn publication_artifact_snapshot_tracks_latest_patch_and_replay_with_observation() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "first");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "first");
 
     let snapshot = runtime.publication().artifact_snapshot();
     let publication = runtime.publication();
@@ -100,8 +100,8 @@ fn publication_artifact_snapshot_tracks_latest_patch_and_replay_with_observation
 
 #[test]
 fn publication_diagnostics_snapshot_tracks_observation_and_artifacts_together() {
-    let mut runtime = runtime_with_test_schema();
-    let _created = create_entity_outcome(&mut runtime, "first");
+    let runtime = runtime_with_test_schema();
+    let _created = create_entity_outcome(&runtime, "first");
 
     let snapshot = runtime.publication().diagnostics_snapshot();
     let publication = runtime.publication();
@@ -112,8 +112,8 @@ fn publication_diagnostics_snapshot_tracks_observation_and_artifacts_together() 
 
 #[test]
 fn publication_bundle_is_the_single_visible_commit_surface() {
-    let mut runtime = runtime_with_test_schema();
-    let outcome = create_entity_outcome(&mut runtime, "first");
+    let runtime = runtime_with_test_schema();
+    let outcome = create_entity_outcome(&runtime, "first");
     let publication = runtime.publication();
     let bundle = publication.latest_bundle().unwrap();
 
@@ -130,16 +130,16 @@ fn publication_bundle_is_the_single_visible_commit_surface() {
 
 #[test]
 fn snapshot_audit_failure_blocks_publication() {
-    let mut runtime = runtime_with_declared_aspect_schema_and_invariants(InvariantCatalog {
+    let runtime = runtime_with_declared_aspect_schema_and_invariants(InvariantCatalog {
         registrations: vec![InvariantRegistration::snapshot_publication_blocking(
             InvariantRule::MaxSnapshotEntities(0),
         )],
         ..InvariantCatalog::default()
     });
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(batch_create("blocked"))
         .expect("test staging stays within configured resource budgets");
-    let error = txn.commit(&mut runtime).unwrap_err();
+    let error = txn.commit(&runtime).unwrap_err();
 
     assert!(matches!(
         error,
@@ -151,8 +151,8 @@ fn snapshot_audit_failure_blocks_publication() {
 
 #[test]
 fn bulk_packets_are_the_primary_read_surface() {
-    let mut runtime = runtime_with_test_schema();
-    let entity = create_entity(&mut runtime, "first");
+    let runtime = runtime_with_test_schema();
+    let entity = create_entity(&runtime, "first");
     let snapshot = runtime.visibility_authority().snapshot();
     let plan = runtime
         .storage_access()

@@ -3,8 +3,8 @@ use crate::tests::support::*;
 
 #[test]
 fn branch_creation_and_branch_targeted_commits_build_a_version_graph() {
-    let mut runtime = runtime_with_test_schema();
-    let main_outcome = create_entity_outcome(&mut runtime, "main-a");
+    let runtime = runtime_with_test_schema();
+    let main_outcome = create_entity_outcome(&runtime, "main-a");
     runtime
         .history_authority()
         .fork_branch_from(
@@ -13,9 +13,9 @@ fn branch_creation_and_branch_targeted_commits_build_a_version_graph() {
         )
         .unwrap();
     let feature_outcome =
-        create_entity_outcome_on_branch(&mut runtime, "feature-a", BranchId("feature".to_string()));
+        create_entity_outcome_on_branch(&runtime, "feature-a", BranchId("feature".to_string()));
     let main_second =
-        create_entity_outcome_on_branch(&mut runtime, "main-b", BranchId("main".to_string()));
+        create_entity_outcome_on_branch(&runtime, "main-b", BranchId("main".to_string()));
     let branch_cells = runtime.history().branch_cells_snapshot();
 
     assert_eq!(
@@ -46,8 +46,8 @@ fn branch_creation_and_branch_targeted_commits_build_a_version_graph() {
 
 #[test]
 fn branch_history_helpers_expose_ancestor_and_merge_base_reasoning() {
-    let mut runtime = runtime_with_test_schema();
-    let main = create_entity_outcome(&mut runtime, "main");
+    let runtime = runtime_with_test_schema();
+    let main = create_entity_outcome(&runtime, "main");
     runtime
         .history_authority()
         .fork_branch_from(
@@ -56,7 +56,7 @@ fn branch_history_helpers_expose_ancestor_and_merge_base_reasoning() {
         )
         .unwrap();
     let feature =
-        create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
+        create_entity_outcome_on_branch(&runtime, "feature", BranchId("feature".to_string()));
     let chain = runtime
         .history()
         .ancestor_closure_by_commit_id_order(feature.commit.commit_id);
@@ -75,8 +75,8 @@ fn branch_history_helpers_expose_ancestor_and_merge_base_reasoning() {
 
 #[test]
 fn duplicate_branch_creation_is_rejected() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "main-seed");
+    let runtime = runtime_with_test_schema();
+    create_entity_outcome(&runtime, "main-seed");
     runtime
         .history_authority()
         .fork_branch_from(

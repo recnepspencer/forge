@@ -12,7 +12,7 @@ fn strategy_artifacts_are_bound_into_the_committed_root() {
         unique_test_store_path("root-strategy-artifact"),
         true,
     );
-    let entity = create_entity(&mut runtime, "strategy-before");
+    let entity = create_entity(&runtime, "strategy-before");
     let outcome = crate::commit_strategies::facade::execute_persisted_intent_strategy_commit(
         &mut runtime,
         entity,
@@ -25,17 +25,13 @@ fn strategy_artifacts_are_bound_into_the_committed_root() {
 
 #[test]
 fn merge_execution_authority_is_bound_into_the_committed_root() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "merge-main");
+    let runtime = runtime_with_test_schema();
+    create_entity_outcome(&runtime, "merge-main");
     runtime
         .history_authority()
         .fork_branch_from(BranchId("feature".to_owned()), &BranchId("main".to_owned()))
         .expect("feature branch forks");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "merge-feature",
-        BranchId("feature".to_owned()),
-    );
+    create_entity_outcome_on_branch(&runtime, "merge-feature", BranchId("feature".to_owned()));
     let prepared = runtime
         .prepare_merge_execution(crate::merge::data::MergeExecutionRequest::new(
             BranchId("main".to_owned()),
@@ -56,7 +52,7 @@ fn merge_execution_authority_is_bound_into_the_committed_root() {
 #[test]
 fn schema_transition_descriptors_are_each_bound_into_the_committed_root() {
     let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "schema-before");
+    create_entity_outcome(&runtime, "schema-before");
     runtime.set_schema_registry_for_test(
         AspectSchemaFixture {
             schema_version_id: SchemaVersionId(2),
@@ -77,7 +73,7 @@ fn schema_transition_descriptors_are_each_bound_into_the_committed_root() {
         .push_batch(batch_create("schema-after"))
         .expect("test staging stays within configured resource budgets");
     let outcome = transaction
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect("schema transition commits");
     let (root, envelope) = committed_root_and_envelope(&runtime, outcome.commit.commit_id);
 

@@ -2,14 +2,14 @@ use super::*;
 
 #[test]
 fn tail_lineage_event_allocator_exhaustion_denies_before_replay() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "checkpoint-before-tail-overflow");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "checkpoint-before-tail-overflow");
     runtime
         .durability_authority()
         .checkpoint()
         .expect("checkpoint");
-    let replay_invalid = create_entity_outcome(&mut runtime, "tail-before-overflow");
-    let allocator_exhausted = create_entity_outcome(&mut runtime, "tail-event-overflow");
+    let replay_invalid = create_entity_outcome(&runtime, "tail-before-overflow");
+    let allocator_exhausted = create_entity_outcome(&runtime, "tail-event-overflow");
     let mut plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
@@ -58,19 +58,19 @@ fn tail_lineage_event_allocator_exhaustion_denies_before_replay() {
 
 #[test]
 fn failed_durable_append_blocks_descendants_and_recovers_last_checkpoint() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "lineage-gap-checkpoint");
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "lineage-gap-checkpoint");
     runtime.durability_authority().checkpoint().unwrap();
     let (abandoned_lineage_id, abandoned_event_id) = runtime.lineage.identity_frontiers();
     let published_node_count = runtime.lineage.node_count();
     let published_event_count = runtime.lineage.event_count();
     runtime.durability.arm_append_failure();
-    let mut failed = test_owner_begin_transaction_for_main(&mut runtime);
+    let mut failed = test_owner_begin_transaction_for_main(&runtime);
     failed
         .push_batch(batch_create("lineage-gap-abandoned"))
         .expect("test staging stays within configured resource budgets");
     let durability_deferred = failed
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect_err("performed movement without durable acknowledgement is typed");
     assert!(matches!(
         durability_deferred,
@@ -95,12 +95,12 @@ fn failed_durable_append_blocks_descendants_and_recovers_last_checkpoint() {
         performed_commit.commit_id
     );
 
-    let mut child = test_owner_begin_transaction_for_main(&mut runtime);
+    let mut child = test_owner_begin_transaction_for_main(&runtime);
     child
         .push_batch(batch_create("lineage-gap-tail"))
         .expect("test staging stays within configured resource budgets");
     let child_denial = child
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect_err("an unsettled performed parent denies descendants");
     assert!(child_denial
         .detail()
@@ -135,8 +135,8 @@ fn failed_durable_append_blocks_descendants_and_recovers_last_checkpoint() {
 
 #[test]
 fn multi_event_reservation_exhaustion_denies_before_public_effects() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let baseline = create_entity_outcome(&mut runtime, "reservation-exhaustion-baseline");
+    let runtime = persisted_runtime_with_test_schema();
+    let baseline = create_entity_outcome(&runtime, "reservation-exhaustion-baseline");
     let baseline_head = baseline.commit.clone();
     let baseline_entities = runtime.storage_access().storage_stats().live_entities;
     let (lineage_frontier, _) = runtime.lineage.identity_frontiers();
@@ -144,7 +144,7 @@ fn multi_event_reservation_exhaustion_denies_before_public_effects() {
         .lineage
         .set_identity_frontiers(lineage_frontier, u64::MAX - 1);
 
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
     transaction
         .push_batch(batch_create("reservation-exhaustion-first"))
         .expect("test staging stays within configured resource budgets");
@@ -152,7 +152,7 @@ fn multi_event_reservation_exhaustion_denies_before_public_effects() {
         .push_batch(batch_create("reservation-exhaustion-second"))
         .expect("test staging stays within configured resource budgets");
     let error = transaction
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect_err("two-event reservation must deny at the allocator boundary");
 
     assert!(format!("{error:?}").contains("lineage event id allocator exhausted"));
@@ -175,15 +175,12 @@ fn multi_event_reservation_exhaustion_denies_before_public_effects() {
 
 #[test]
 fn branch_local_sparse_slot_create_publishes_and_recovers_exact_lineage() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity_outcome(&mut runtime, "sparse-slot-shared-root");
-    let feature = create_branch_from_main(&mut runtime, "sparse-slot-feature");
-    create_entity_outcome(&mut runtime, "sparse-slot-main-divergence");
-    let feature_create = create_entity_outcome_on_branch(
-        &mut runtime,
-        "sparse-slot-feature-create",
-        feature.clone(),
-    );
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&runtime, "sparse-slot-shared-root");
+    let feature = create_branch_from_main(&runtime, "sparse-slot-feature");
+    create_entity_outcome(&runtime, "sparse-slot-main-divergence");
+    let feature_create =
+        create_entity_outcome_on_branch(&runtime, "sparse-slot-feature-create", feature.clone());
     let feature_entity = changed_entities(&feature_create)[0];
     assert!(feature_entity.local_slot.0 > 1);
     let lineage_id = runtime

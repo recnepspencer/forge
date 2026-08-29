@@ -2,8 +2,8 @@ use super::fixtures::*;
 
 #[test]
 fn publication_snapshot_handle_reads_without_becoming_a_pinned_snapshot() {
-    let mut runtime = runtime_with_test_schema();
-    let outcome = create_entity_outcome(&mut runtime, "first");
+    let runtime = runtime_with_test_schema();
+    let outcome = create_entity_outcome(&runtime, "first");
 
     let retention = runtime.retention().inspect_plan();
     let read = runtime
@@ -55,9 +55,9 @@ fn publication_snapshot_handle_reads_without_becoming_a_pinned_snapshot() {
 
 #[test]
 fn publication_snapshot_reads_use_authoritative_published_binding_version() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "first");
-    let updated = update_entity(&mut runtime, changed_entities(&created)[0], "second");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "first");
+    let updated = update_entity(&runtime, changed_entities(&created)[0], "second");
     let mut stale_handle = updated.snapshot.clone();
     stale_handle.version_id = created.snapshot.version_id;
 
@@ -78,9 +78,9 @@ fn publication_snapshot_reads_use_authoritative_published_binding_version() {
 
 #[test]
 fn released_publication_handles_stop_counting_as_readable_runtime_state() {
-    let mut runtime = runtime_with_test_schema();
-    let first = create_entity_outcome(&mut runtime, "first");
-    let second = create_entity_outcome(&mut runtime, "second");
+    let runtime = runtime_with_test_schema();
+    let first = create_entity_outcome(&runtime, "first");
+    let second = create_entity_outcome(&runtime, "second");
 
     let before = runtime.storage_access().storage_stats();
     assert_eq!(before.published_snapshot_handle_count, 2);
@@ -110,7 +110,7 @@ fn released_publication_handles_stop_counting_as_readable_runtime_state() {
 
 #[test]
 fn publication_handle_retention_is_bounded_by_policy() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .publication(PublicationConfig {
             coherent_publication_required: true,
@@ -125,13 +125,13 @@ fn publication_handle_retention_is_bounded_by_policy() {
             max_prepared_root_bytes: 268_435_456,
         })
         .build();
-    let first = create_entity_outcome(&mut runtime, "first");
-    let second = create_entity_outcome(&mut runtime, "second");
+    let first = create_entity_outcome(&runtime, "first");
+    let second = create_entity_outcome(&runtime, "second");
     let before = crate::tests::support::test_owner_main_basis(&runtime).unwrap();
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
     transaction.push_batch(batch_create("third")).unwrap();
     assert!(matches!(
-        transaction.commit(&mut runtime),
+        transaction.commit(&runtime),
         Err(
             crate::transactions::data::TransactionCommitError::PublicationDeferred {
                 deferred:
@@ -164,7 +164,7 @@ fn publication_handle_retention_is_bounded_by_policy() {
 
 #[test]
 fn published_handle_and_admitted_observation_remain_exact_until_release() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .publication(PublicationConfig {
             coherent_publication_required: true,
@@ -179,14 +179,14 @@ fn published_handle_and_admitted_observation_remain_exact_until_release() {
             max_prepared_root_bytes: 268_435_456,
         })
         .build();
-    let first = create_entity_outcome(&mut runtime, "first");
+    let first = create_entity_outcome(&runtime, "first");
     let identity = runtime.main_branch_identity();
     let (_, first_basis) = runtime.observe_branch(&identity).unwrap();
     let first_observation = first_basis.observation();
     let entity = changed_entities(&first)[0];
-    update_entity(&mut runtime, entity, "second");
-    update_entity(&mut runtime, entity, "third");
-    update_entity(&mut runtime, entity, "fourth");
+    update_entity(&runtime, entity, "second");
+    update_entity(&runtime, entity, "third");
+    update_entity(&runtime, entity, "fourth");
 
     assert!(runtime
         .read_truth()
@@ -202,7 +202,7 @@ fn published_handle_and_admitted_observation_remain_exact_until_release() {
 
 #[test]
 fn parallel_post_commit_consumption_preserves_publication_surfaces() {
-    let mut serial = RelationalRuntimeApi::builder()
+    let serial = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .publication(PublicationConfig {
             coherent_publication_required: true,
@@ -218,7 +218,7 @@ fn parallel_post_commit_consumption_preserves_publication_surfaces() {
         })
         .execution_model(crate::facade::runtime::RelationalExecutionModel::SingleLaneExecution)
         .build();
-    let mut parallel = RelationalRuntimeApi::builder()
+    let parallel = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .publication(PublicationConfig {
             coherent_publication_required: true,
@@ -237,14 +237,14 @@ fn parallel_post_commit_consumption_preserves_publication_surfaces() {
         )
         .build();
 
-    let _ = create_entity_outcome(&mut serial, "first");
-    let _serial_second = create_entity_outcome(&mut serial, "second");
-    let _serial_third = create_entity_outcome(&mut serial, "third");
+    let _ = create_entity_outcome(&serial, "first");
+    let _serial_second = create_entity_outcome(&serial, "second");
+    let _serial_third = create_entity_outcome(&serial, "third");
 
     parallel.performance_access().reset_counters();
-    let _ = create_entity_outcome(&mut parallel, "first");
-    let parallel_second = create_entity_outcome(&mut parallel, "second");
-    let parallel_third = create_entity_outcome(&mut parallel, "third");
+    let _ = create_entity_outcome(&parallel, "first");
+    let parallel_second = create_entity_outcome(&parallel, "second");
+    let parallel_third = create_entity_outcome(&parallel, "third");
 
     let serial_bundle = serial.publication().latest_bundle().unwrap().clone();
     let parallel_bundle = parallel.publication().latest_bundle().unwrap().clone();

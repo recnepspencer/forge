@@ -30,9 +30,9 @@ fn shared_source_retains_the_live_runtime_authority_and_observes_later_commits()
     );
 
     let committed = {
-        let mut runtime = runtime.lock().expect("test runtime lock");
+        let runtime = runtime.lock().expect("test runtime lock");
         let mut transaction =
-            crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+            crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
         transaction
             .push_batch(WorkerIntentBatch::new("shared-authority-create").push(
                 MutationIntent::Create(CreateIntent::Entity(EntitySpec {
@@ -48,7 +48,7 @@ fn shared_source_retains_the_live_runtime_authority_and_observes_later_commits()
             ))
             .expect("test staging stays within configured resource budgets");
         transaction
-            .commit(&mut runtime)
+            .commit(&runtime)
             .expect("real shared-runtime commit")
     };
     let entity = committed

@@ -26,8 +26,8 @@ const TEXT_BOUND_FIELD: &str = "text-bound";
 
 #[test]
 fn strictly_greater_predicate_observes_the_open_numeric_boundary() {
-    let mut runtime = comparison_runtime();
-    let scope = create_entity(&mut runtime, "predicate-scope");
+    let runtime = comparison_runtime();
+    let scope = create_entity(&runtime, "predicate-scope");
     let cases = [
         ("greater", Some(5), AspectValue::UInt64(4), true),
         ("equal", Some(4), AspectValue::UInt64(4), false),
@@ -37,15 +37,15 @@ fn strictly_greater_predicate_observes_the_open_numeric_boundary() {
     ];
 
     for (case, observed, expected, should_match) in cases {
-        let principal = create_comparison_entity(&mut runtime, case, observed, None);
+        let principal = create_comparison_entity(&runtime, case, observed, None);
         create_relation(
-            &mut runtime,
+            &runtime,
             principal,
             scope,
             &format!("{case}-predicate-scope"),
         );
 
-        let evidence = observe_predicate(&mut runtime, principal, scope, expected);
+        let evidence = observe_predicate(&runtime, principal, scope, expected);
 
         assert_eq!(
             evidence.paths()[0].matched(),
@@ -62,7 +62,7 @@ fn strictly_greater_predicate_observes_the_open_numeric_boundary() {
 
 #[test]
 fn strictly_greater_field_constraint_compares_one_complete_witness() {
-    let mut runtime = comparison_runtime();
+    let runtime = comparison_runtime();
     let cases = [
         ("greater", Some(5), Some(4), None, true),
         ("equal", Some(4), Some(4), None, false),
@@ -73,15 +73,11 @@ fn strictly_greater_field_constraint_compares_one_complete_witness() {
 
     for (case, left_number, right_number, right_text, should_match) in cases {
         let principal =
-            create_comparison_entity(&mut runtime, &format!("{case}-left"), left_number, None);
-        let scope = create_comparison_entity(
-            &mut runtime,
-            &format!("{case}-right"),
-            right_number,
-            right_text,
-        );
+            create_comparison_entity(&runtime, &format!("{case}-left"), left_number, None);
+        let scope =
+            create_comparison_entity(&runtime, &format!("{case}-right"), right_number, right_text);
         create_relation(
-            &mut runtime,
+            &runtime,
             principal,
             scope,
             &format!("{case}-field-constraint"),
@@ -92,7 +88,7 @@ fn strictly_greater_field_constraint_compares_one_complete_witness() {
         } else {
             remaining_field()
         };
-        let evidence = observe_field_constraint(&mut runtime, principal, scope, right_field);
+        let evidence = observe_field_constraint(&runtime, principal, scope, right_field);
 
         assert_eq!(
             evidence.paths()[0].matched(),
@@ -109,22 +105,22 @@ fn strictly_greater_field_constraint_compares_one_complete_witness() {
 
 #[test]
 fn strictly_greater_observation_stales_when_the_governing_field_reaches_equality() {
-    let mut runtime = comparison_runtime();
-    let principal = create_comparison_entity(&mut runtime, "drifting-principal", Some(5), None);
-    let scope = create_entity(&mut runtime, "drift-scope");
-    create_relation(&mut runtime, principal, scope, "drift-predicate-scope");
-    let admitted = observe_predicate(&mut runtime, principal, scope, AspectValue::UInt64(4));
+    let runtime = comparison_runtime();
+    let principal = create_comparison_entity(&runtime, "drifting-principal", Some(5), None);
+    let scope = create_entity(&runtime, "drift-scope");
+    create_relation(&runtime, principal, scope, "drift-predicate-scope");
+    let admitted = observe_predicate(&runtime, principal, scope, AspectValue::UInt64(4));
     assert!(admitted.paths()[0].matched());
     assert_eq!(admitted.counters(), predicate_counters(true));
 
-    write_comparison_fields(&mut runtime, principal, Some(4), None);
+    write_comparison_fields(&runtime, principal, Some(4), None);
     let current = runtime.visibility_authority().snapshot();
 
     assert_eq!(
         runtime.compare_authorization_observation(&admitted, current),
         RelationalAuthorizationObservationFreshness::Stale
     );
-    let denied = observe_predicate(&mut runtime, principal, scope, AspectValue::UInt64(4));
+    let denied = observe_predicate(&runtime, principal, scope, AspectValue::UInt64(4));
     assert!(!denied.paths()[0].matched());
     assert_eq!(denied.counters(), predicate_counters(false));
 }
@@ -154,7 +150,7 @@ fn create_comparison_entity(
 }
 
 fn write_comparison_fields(
-    mut runtime: &crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     entity: EntityId,
     remaining: Option<u64>,
     text_bound: Option<&str>,
@@ -174,8 +170,7 @@ fn write_comparison_fields(
             string_aspect_value(text_bound),
         ));
     }
-    let mut transaction =
-        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut transaction = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
     transaction
         .push_batch(
             WorkerIntentBatch::new("write-comparison-fields").push(MutationIntent::Entity(
@@ -187,7 +182,7 @@ fn write_comparison_fields(
         )
         .expect("test staging stays within configured resource budgets");
     transaction
-        .commit(&mut runtime)
+        .commit(runtime)
         .expect("comparison fields must be valid for the declared fixture schema");
 }
 

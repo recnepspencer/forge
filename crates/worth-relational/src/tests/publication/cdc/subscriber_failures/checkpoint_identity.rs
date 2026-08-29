@@ -3,8 +3,8 @@ use crate::tests::support::*;
 
 #[test]
 fn subscriber_stream_rejects_schema_unsupported_checkpoint() {
-    let mut runtime = runtime_with_test_schema();
-    let _ = create_entity_outcome(&mut runtime, "anchor");
+    let runtime = runtime_with_test_schema();
+    let _ = create_entity_outcome(&runtime, "anchor");
 
     let mismatched_checkpoint =
         checkpoint_for_schema_version(PatchStreamPosition(1), SchemaVersionId(99));
@@ -41,8 +41,8 @@ fn subscriber_stream_rejects_checkpoint_without_history_or_durable_coverage() {
 
 #[test]
 fn subscriber_stream_rejects_checkpoint_with_mismatched_contract_identity() {
-    let mut runtime = runtime_with_test_schema();
-    let _ = create_entity_outcome(&mut runtime, "anchor");
+    let runtime = runtime_with_test_schema();
+    let _ = create_entity_outcome(&runtime, "anchor");
 
     let batch = runtime
         .publication()

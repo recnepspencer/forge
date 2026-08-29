@@ -3,13 +3,13 @@ use super::*;
 pub(super) fn certify_retention_release_reclaim_round_trip(suite: &'static str) {
     let retention_samples =
         capture_perf_samples(suite, "retention_release_reclaim_round_trip", || {
-            let mut runtime = runtime_with_test_schema();
+            let runtime = runtime_with_test_schema();
             let survivor =
-                create_entity_in_partition(&mut runtime, "retention-survivor", PartitionId(10));
-            let deleted_created = create_entity_outcome(&mut runtime, "retention-deleted");
+                create_entity_in_partition(&runtime, "retention-survivor", PartitionId(10));
+            let deleted_created = create_entity_outcome(&runtime, "retention-deleted");
             let created_snapshot = runtime.visibility_authority().snapshot();
             let deleted_entity = changed_entities(&deleted_created)[0];
-            let deleted_commit = delete_entity(&mut runtime, deleted_entity);
+            let deleted_commit = delete_entity(&runtime, deleted_entity);
             let deleted_snapshot = runtime.visibility_authority().snapshot();
 
             assert!(runtime

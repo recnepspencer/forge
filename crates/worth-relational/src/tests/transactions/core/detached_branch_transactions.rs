@@ -9,7 +9,7 @@ use crate::tests::support::*;
 #[test]
 fn branch_transactions_are_detached_and_overlays_do_not_cross() {
     let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "fork-source");
+    create_entity(&runtime, "fork-source");
     fork_from_main(&mut runtime, "storm");
     fork_from_main(&mut runtime, "maintenance");
 
@@ -67,12 +67,10 @@ fn branch_transactions_are_detached_and_overlays_do_not_cross() {
         &storm_created,
     );
 
-    create_entity(&mut runtime, "unrelated-main-work");
-    let storm_commit = storm
-        .commit(&mut runtime)
-        .expect("storm commits independently");
+    create_entity(&runtime, "unrelated-main-work");
+    let storm_commit = storm.commit(&runtime).expect("storm commits independently");
     let maintenance_commit = maintenance
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect("maintenance commits independently");
     assert_eq!(storm_commit.commit.branch_id, BranchId("storm".into()));
     assert_eq!(
@@ -84,8 +82,8 @@ fn branch_transactions_are_detached_and_overlays_do_not_cross() {
 #[test]
 fn validated_proposal_complexity_excludes_intervening_sibling_commit_work() {
     let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "relation-source");
-    let target = create_entity(&mut runtime, "relation-target");
+    let source = create_entity(&runtime, "relation-source");
+    let target = create_entity(&runtime, "relation-target");
     fork_from_main(&mut runtime, "candidate");
     fork_from_main(&mut runtime, "sibling");
 
@@ -94,12 +92,12 @@ fn validated_proposal_complexity_excludes_intervening_sibling_commit_work() {
         .push_batch(batch_create("candidate-only"))
         .expect("test staging stays within configured resource budgets");
     let proposal = candidate
-        .validate(&mut runtime)
+        .validate(&runtime)
         .expect("candidate validation succeeds before sibling work");
 
     let counters_before_sibling = runtime.performance_access().counters();
     create_relation_in_partition_on_branch(
-        &mut runtime,
+        &runtime,
         source,
         target,
         "sibling-relation",
@@ -141,8 +139,8 @@ fn validated_proposal_complexity_excludes_intervening_sibling_commit_work() {
 
 #[test]
 fn stale_transaction_reads_remain_on_the_admitted_root_and_commit_has_no_effect() {
-    let mut runtime = runtime_with_test_schema();
-    let entity = create_entity(&mut runtime, "basis-value");
+    let runtime = runtime_with_test_schema();
+    let entity = create_entity(&runtime, "basis-value");
     let (_, mut transaction) = begin_on(&runtime, "main");
 
     let before = transaction
@@ -152,7 +150,7 @@ fn stale_transaction_reads_remain_on_the_admitted_root_and_commit_has_no_effect(
         before.base().and_then(read_entity_name),
         Some("basis-value".into())
     );
-    update_entity(&mut runtime, entity, "current-value");
+    update_entity(&runtime, entity, "current-value");
     let after_movement = transaction
         .read_entity(entity)
         .expect("detached basis read projects");
@@ -180,7 +178,7 @@ fn stale_transaction_reads_remain_on_the_admitted_root_and_commit_has_no_effect(
     let reference_cost_before = runtime.phase4_reference_cost_counters();
     let complexity_before = runtime.performance_access().counters();
     let error = transaction
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect_err("complete-reference movement stales the old basis");
     assert!(matches!(
         error,
@@ -224,13 +222,13 @@ fn stale_transaction_reads_remain_on_the_admitted_root_and_commit_has_no_effect(
 
 #[test]
 fn stale_transaction_denies_before_interning_new_client_keys() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .client_key_symbol_policy(ClientKeySymbolPolicy::RequireInterned)
         .build();
-    create_entity(&mut runtime, "stale-symbol-basis");
+    create_entity(&runtime, "stale-symbol-basis");
     let (_, mut transaction) = begin_on(&runtime, "main");
-    create_entity(&mut runtime, "stale-symbol-advance");
+    create_entity(&runtime, "stale-symbol-advance");
     let symbols_before = runtime.services.symbols.clone();
     let symbol_table_before = runtime.config().identity.symbol_table.clone();
     let branch_cells_before = runtime.history().branch_cells_snapshot();
@@ -242,7 +240,7 @@ fn stale_transaction_denies_before_interning_new_client_keys() {
         .push_batch(batch_create("must-not-be-interned"))
         .expect("test staging stays within configured resource budgets");
     let error = transaction
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect_err("stale currentness is checked before normalization");
 
     assert!(matches!(
@@ -272,9 +270,9 @@ fn stale_transaction_denies_before_interning_new_client_keys() {
 
 #[test]
 fn savepoint_rollback_restores_overlay_footprint_and_cached_plan() {
-    let mut runtime = runtime_with_test_schema();
-    let retained = create_entity(&mut runtime, "retained");
-    let rolled_back = create_entity(&mut runtime, "rolled-back");
+    let runtime = runtime_with_test_schema();
+    let retained = create_entity(&runtime, "retained");
+    let rolled_back = create_entity(&runtime, "rolled-back");
     let (_, mut transaction) = begin_on(&runtime, "main");
     transaction
         .read_entity(retained)
@@ -307,7 +305,7 @@ fn savepoint_rollback_restores_overlay_footprint_and_cached_plan() {
         .is_some());
     assert_eq!(
         transaction
-            .merged_plan(&mut runtime)
+            .merged_plan(&runtime)
             .expect("pre-rollback plan includes staged work")
             .merged_intents
             .len(),
@@ -336,7 +334,7 @@ fn savepoint_rollback_restores_overlay_footprint_and_cached_plan() {
     );
     assert_eq!(
         transaction
-            .merged_plan(&mut runtime)
+            .merged_plan(&runtime)
             .expect("post-rollback plan is rebuilt from retained batches")
             .merged_intents,
         vec![retained_intent]

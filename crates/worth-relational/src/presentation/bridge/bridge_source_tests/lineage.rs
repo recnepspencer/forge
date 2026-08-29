@@ -20,11 +20,11 @@ use super::support::{runtime_bridge_for_envelope, runtime_with_test_schema};
 
 #[test]
 fn runtime_bridge_lineage_source_resolves_real_relational_history() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "source");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "source");
     let entity = changed_entities(&created)[0];
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("replace").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -43,7 +43,7 @@ fn runtime_bridge_lineage_source_resolves_real_relational_history() {
         )),
     )
     .expect("test staging stays within configured resource budgets");
-    txn.commit(&mut runtime).expect("replace should commit");
+    txn.commit(&runtime).expect("replace should commit");
     let latest_bundle = runtime
         .publication()
         .latest_bundle()
@@ -137,7 +137,7 @@ fn retained_lineage_observation_excludes_later_same_branch_replacement() {
     );
 
     replace_entity(
-        &mut fixture.runtime.lock().unwrap(),
+        &fixture.runtime.lock().unwrap(),
         fixture.successor,
         "later-replacement",
     );
@@ -180,10 +180,10 @@ struct RetainedLineageFixture {
 }
 
 fn retained_lineage_fixture() -> RetainedLineageFixture {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "source");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "source");
     let entity = changed_entities(&created)[0];
-    replace_entity(&mut runtime, entity, "replacement");
+    replace_entity(&runtime, entity, "replacement");
     let bundle = runtime
         .publication()
         .latest_bundle()

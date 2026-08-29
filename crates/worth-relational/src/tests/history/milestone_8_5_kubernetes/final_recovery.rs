@@ -23,7 +23,7 @@ pub(super) fn certify_final_recovery(
     input: FinalRecoveryCertificationInput,
 ) -> KubernetesIntentCertificationBundle {
     let FinalRecoveryCertificationInput {
-        mut runtime,
+        runtime,
         recovered_root,
         entity,
         main_branch,
@@ -41,7 +41,7 @@ pub(super) fn certify_final_recovery(
         live_bundle,
     } = input;
 
-    let mut recovered = recover_stage(&mut runtime, recovered_root);
+    let recovered = recover_stage(&runtime, recovered_root);
     let recovered_overlap_from_final = recover_stage_from_final_history(
         &recovered,
         unique_test_store_path("worth-relational-m8-5-kubernetes-style-final-overlap"),
@@ -111,22 +111,22 @@ pub(super) fn certify_final_recovery(
     );
 
     let recovered_broad_intent_replay = replay_commit(
-        &mut recovered,
+        &recovered,
         broad_intent_commit.commit.commit_id,
         main_branch.clone(),
     );
     let recovered_first_converge_replay = replay_commit(
-        &mut recovered,
+        &recovered,
         first_converge_commit.commit.commit_id,
         controller_branch.clone(),
     );
     let recovered_rebroadened_intent_replay = replay_commit(
-        &mut recovered,
+        &recovered,
         rebroadened_intent_commit.commit.commit_id,
         main_branch.clone(),
     );
     let recovered_revalidation_replay = replay_commit(
-        &mut recovered,
+        &recovered,
         revalidation_commit.commit.commit_id,
         controller_branch.clone(),
     );
@@ -191,8 +191,8 @@ pub(super) fn certify_final_recovery(
     );
     assert_eq!(
         KubernetesBranchVisibleTruthEvidence {
-            main: visible_truth_for_branch(&mut recovered, &main_branch, entity),
-            controller: visible_truth_for_branch(&mut recovered, &controller_branch, entity),
+            main: visible_truth_for_branch(&recovered, &main_branch, entity),
+            controller: visible_truth_for_branch(&recovered, &controller_branch, entity),
         },
         live_bundle.visible_truth
     );

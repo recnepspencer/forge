@@ -13,15 +13,14 @@ pub(super) fn certify_flat_entity_step_batch_compile_window(suite: &'static str)
             });
             let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
 
-            let _source =
-                create_entity_in_partition(&mut runtime, "chip-batch-driver", PartitionId(7));
+            let _source = create_entity_in_partition(&runtime, "chip-batch-driver", PartitionId(7));
             let mut partition_targets = BTreeMap::new();
             for partition_offset in 0..8u32 {
                 let partition_id = PartitionId(11 + partition_offset * 2);
                 let targets = (0..8)
                     .map(|index| {
                         create_entity_in_partition(
-                            &mut runtime,
+                            &runtime,
                             &format!("chip-batch-sink-{}-{index}", partition_id.0),
                             partition_id,
                         )
@@ -37,7 +36,7 @@ pub(super) fn certify_flat_entity_step_batch_compile_window(suite: &'static str)
             let update_started_at = Instant::now();
             let update = {
                 let mut txn =
-                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+                    crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
                 let mut batch = WorkerIntentBatch::new("chip-flat-entity-step-batch");
                 for (partition_id, targets) in &partition_targets {
                     for (index, entity) in targets.iter().enumerate().take(4) {
@@ -69,7 +68,7 @@ pub(super) fn certify_flat_entity_step_batch_compile_window(suite: &'static str)
                 }
                 txn.push_batch(batch)
                     .expect("test staging stays within configured resource budgets");
-                txn.commit(&mut runtime)
+                txn.commit(&runtime)
                     .expect("chip flat entity step batch commit")
             };
             let update_micros = update_started_at.elapsed().as_micros();

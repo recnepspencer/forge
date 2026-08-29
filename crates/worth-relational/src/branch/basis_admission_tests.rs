@@ -116,11 +116,11 @@ fn repeated_observation_shares_one_registry_entry_and_final_drop_removes_it() {
 
 #[test]
 fn retained_basis_readmits_after_owner_publication_moves_the_reference() {
-    let mut runtime = crate::tests::support::runtime_with_test_schema();
-    crate::tests::support::create_entity_outcome(&mut runtime, "retained-basis-before");
+    let runtime = crate::tests::support::runtime_with_test_schema();
+    crate::tests::support::create_entity_outcome(&runtime, "retained-basis-before");
     let identity = runtime.main_branch_identity();
     let (descriptor, retained) = runtime.observe_branch(&identity).unwrap();
-    crate::tests::support::create_entity_outcome(&mut runtime, "retained-basis-after");
+    crate::tests::support::create_entity_outcome(&runtime, "retained-basis-after");
     let (current_descriptor, current) = runtime.observe_branch(&identity).unwrap();
 
     let readmitted = runtime.readmit_branch_basis(&descriptor).unwrap();
@@ -138,8 +138,8 @@ fn retained_basis_readmits_after_owner_publication_moves_the_reference() {
 
 #[test]
 fn observation_opens_the_same_snapshot_after_reference_movement() {
-    let mut runtime = crate::tests::support::runtime_with_test_schema();
-    crate::tests::support::create_entity_outcome(&mut runtime, "snapshot-before-movement");
+    let runtime = crate::tests::support::runtime_with_test_schema();
+    crate::tests::support::create_entity_outcome(&runtime, "snapshot-before-movement");
     let identity = runtime.main_branch_identity();
     let (_, basis) = runtime.observe_branch(&identity).unwrap();
     let observation = basis.observation();
@@ -147,7 +147,7 @@ fn observation_opens_the_same_snapshot_after_reference_movement() {
         .snapshots()
         .snapshot_for_observation(&observation)
         .unwrap();
-    crate::tests::support::create_entity_outcome(&mut runtime, "snapshot-after-movement");
+    crate::tests::support::create_entity_outcome(&runtime, "snapshot-after-movement");
     let after = runtime
         .snapshots()
         .snapshot_for_observation(&observation)
@@ -160,13 +160,13 @@ fn observation_opens_the_same_snapshot_after_reference_movement() {
 
 #[test]
 fn external_pin_retains_once_and_release_consumes_the_obligation() {
-    let mut runtime = crate::tests::support::runtime_with_test_schema();
-    crate::tests::support::create_entity(&mut runtime, "external-pin-before");
+    let runtime = crate::tests::support::runtime_with_test_schema();
+    crate::tests::support::create_entity(&runtime, "external-pin-before");
     let identity = runtime.main_branch_identity();
     let (descriptor, basis) = runtime.observe_branch(&identity).unwrap();
     let lease = runtime.retain_component_basis(&basis).unwrap();
     drop(basis);
-    crate::tests::support::create_entity(&mut runtime, "external-pin-after");
+    crate::tests::support::create_entity(&runtime, "external-pin-after");
 
     let readmitted = runtime.readmit_branch_basis(&descriptor).unwrap();
     drop(readmitted);
@@ -181,7 +181,7 @@ fn external_pin_retains_once_and_release_consumes_the_obligation() {
 #[test]
 fn reset_retention_owner_reports_unavailable_readmission_and_terminal_release() {
     let mut runtime = crate::tests::support::runtime_with_test_schema();
-    crate::tests::support::create_entity(&mut runtime, "owner-reset-before");
+    crate::tests::support::create_entity(&runtime, "owner-reset-before");
     let identity = runtime.main_branch_identity();
     let (descriptor, basis) = runtime.observe_branch(&identity).unwrap();
     let lease = runtime.retain_component_basis(&basis).unwrap();
@@ -202,12 +202,12 @@ fn reset_retention_owner_reports_unavailable_readmission_and_terminal_release() 
 
 #[test]
 fn superseded_unretained_descriptor_denies_without_reconstructing_authority() {
-    let mut runtime = crate::tests::support::runtime_with_test_schema();
-    crate::tests::support::create_entity(&mut runtime, "stale-before");
+    let runtime = crate::tests::support::runtime_with_test_schema();
+    crate::tests::support::create_entity(&runtime, "stale-before");
     let identity = runtime.main_branch_identity();
     let (descriptor, basis) = runtime.observe_branch(&identity).unwrap();
     drop(basis);
-    crate::tests::support::create_entity(&mut runtime, "stale-after");
+    crate::tests::support::create_entity(&runtime, "stale-after");
 
     let before = runtime.branch_basis_cost_counters();
     assert!(matches!(
@@ -265,8 +265,8 @@ fn archived_and_unsupported_descriptors_deny_distinctly() {
 
 #[test]
 fn malformed_truth_and_root_identity_substitutions_deny_distinctly() {
-    let mut runtime = crate::tests::support::runtime_with_test_schema();
-    crate::tests::support::create_entity_outcome(&mut runtime, "phase6-axis-basis");
+    let runtime = crate::tests::support::runtime_with_test_schema();
+    crate::tests::support::create_entity_outcome(&runtime, "phase6-axis-basis");
     let identity = runtime.main_branch_identity();
     let (descriptor, basis) = runtime.observe_branch(&identity).unwrap();
     drop(basis);
@@ -305,8 +305,8 @@ fn malformed_truth_and_root_identity_substitutions_deny_distinctly() {
 
 #[test]
 fn schema_and_visibility_commitment_substitutions_deny_distinctly() {
-    let mut runtime = crate::tests::support::runtime_with_test_schema();
-    crate::tests::support::create_entity_outcome(&mut runtime, "phase6-commitment-basis");
+    let runtime = crate::tests::support::runtime_with_test_schema();
+    crate::tests::support::create_entity_outcome(&runtime, "phase6-commitment-basis");
     let identity = runtime.main_branch_identity();
     let (descriptor, basis) = runtime.observe_branch(&identity).unwrap();
     drop(basis);
@@ -338,14 +338,14 @@ fn schema_and_visibility_commitment_substitutions_deny_distinctly() {
 
 #[test]
 fn cross_branch_immutable_target_substitution_denies_distinctly() {
-    let mut runtime = crate::tests::support::runtime_with_test_schema();
-    crate::tests::support::create_entity_outcome(&mut runtime, "phase6-main-basis");
+    let runtime = crate::tests::support::runtime_with_test_schema();
+    crate::tests::support::create_entity_outcome(&runtime, "phase6-main-basis");
     runtime
         .history_authority()
         .fork_branch_from(BranchId("feature".to_owned()), &BranchId("main".to_owned()))
         .unwrap();
     crate::tests::support::create_entity_outcome_on_branch(
-        &mut runtime,
+        &runtime,
         "phase6-feature-basis",
         BranchId("feature".to_owned()),
     );

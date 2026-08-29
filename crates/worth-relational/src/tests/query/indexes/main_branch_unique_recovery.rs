@@ -4,13 +4,13 @@ use crate::validation::data::{InvariantCatalog, InvariantRegistration, Invariant
 
 #[test]
 fn unique_index_rebuild_uses_main_head_when_a_feature_commit_is_globally_newer() {
-    let mut runtime = runtime_with_declared_aspect_schema_and_invariants(InvariantCatalog {
+    let runtime = runtime_with_declared_aspect_schema_and_invariants(InvariantCatalog {
         registrations: vec![InvariantRegistration::mutation_sensitive_blocking(
             InvariantRule::unique_entity_aspect_field(aspect_key("name"), field_key("name")),
         )],
         ..InvariantCatalog::default()
     });
-    let main_entity = create_entity(&mut runtime, "main-only");
+    let main_entity = create_entity(&runtime, "main-only");
     runtime
         .history_authority()
         .fork_branch_from(
@@ -18,11 +18,8 @@ fn unique_index_rebuild_uses_main_head_when_a_feature_commit_is_globally_newer()
             &BranchId("main".to_string()),
         )
         .expect("feature branch forks");
-    let feature_outcome = create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    let feature_outcome =
+        create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
     let feature_entity = changed_entities(&feature_outcome)[0];
 
     runtime
@@ -44,7 +41,7 @@ fn unique_index_rebuild_uses_main_head_when_a_feature_commit_is_globally_newer()
     );
     assert!(!entries.contains_key(&comparison_key("feature-only")));
     assert_ne!(main_entity, feature_entity);
-    release_test_commit_snapshot(&mut runtime, &feature_outcome);
+    release_test_commit_snapshot(&runtime, &feature_outcome);
 }
 
 fn comparison_key(value: &str) -> AuthoritativeFieldComparisonKey {

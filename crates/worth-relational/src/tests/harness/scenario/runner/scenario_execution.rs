@@ -44,7 +44,7 @@ pub(crate) fn run_seeded_scenario(config: SeededScenarioConfig) -> SeededScenari
             &config,
         );
         apply_operation(
-            &mut runtime,
+            &runtime,
             &mut entities,
             &mut snapshots,
             &mut relations,
@@ -96,7 +96,7 @@ pub(crate) fn run_property_scenario(
 
     for (step, operation) in operations.iter().enumerate() {
         apply_operation(
-            &mut runtime,
+            &runtime,
             &mut entities,
             &mut snapshots,
             &mut relations,

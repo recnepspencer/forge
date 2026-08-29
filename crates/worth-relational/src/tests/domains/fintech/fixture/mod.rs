@@ -261,7 +261,7 @@ impl FintechWorld {
     }
 
     pub(super) fn create_analysis_branch(&mut self) -> BranchId {
-        create_analysis_branch(&mut self.runtime)
+        create_analysis_branch(&self.runtime)
     }
 
     fn build(scale: FintechScale, persisted: bool) -> Self {
@@ -276,11 +276,11 @@ impl FintechWorld {
                     segment_commit_capacity: 2,
                 });
         }
-        let mut runtime = builder.build();
+        let runtime = builder.build();
         let case_seeds = seeded_trade_cases(scale);
-        let seeded = seed_entities(&mut runtime, &case_seeds);
+        let seeded = seed_entities(&runtime, &case_seeds);
         let workflow_cases = build_workflow_cases(&case_seeds, &seeded);
-        let relations = seed_relations(&mut runtime, &case_seeds, &seeded, &workflow_cases);
+        let relations = seed_relations(&runtime, &case_seeds, &seeded, &workflow_cases);
         let casebook = build_casebook(&workflow_cases);
 
         Self {

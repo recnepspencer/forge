@@ -35,12 +35,12 @@ fn relation_integrity_commit_boundary_rejects_forbidden_self_edge() {
             })
         })
         .unwrap();
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(schema)
         .build();
-    let entity = create_entity(&mut runtime, "self");
+    let entity = create_entity(&runtime, "self");
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("relation").push(MutationIntent::Create(CreateIntent::Relation(
             crate::transactions::data::RelationSpec {
@@ -55,7 +55,7 @@ fn relation_integrity_commit_boundary_rejects_forbidden_self_edge() {
     )
     .expect("test staging stays within configured resource budgets");
 
-    let error = txn.commit(&mut runtime).unwrap_err();
+    let error = txn.commit(&runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(error.code(), DiagnosticCode::RelationEndpointKindViolation);

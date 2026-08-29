@@ -3,16 +3,16 @@ use super::*;
 #[test]
 fn topology_endpoint_divergence_denial_is_stable_across_recovery() {
     let store_path = unique_test_store_path("worth-relational-7d-topology");
-    let mut runtime = persisted_runtime_with_topology_identity_registry(store_path.clone());
-    let source = create_entity(&mut runtime, "source");
-    let target_a = create_entity(&mut runtime, "target-a");
-    let target_b = create_entity(&mut runtime, "target-b");
+    let runtime = persisted_runtime_with_topology_identity_registry(store_path.clone());
+    let source = create_entity(&runtime, "source");
+    let target_a = create_entity(&runtime, "target-a");
+    let target_b = create_entity(&runtime, "target-b");
     let relation =
-        crate::tests::support::create_relation(&mut runtime, source, target_a, "shared-edge");
-    create_branch_from_main(&mut runtime, "feature");
-    delete_relation_on_branch(&mut runtime, relation, BranchId("feature".to_string()));
+        crate::tests::support::create_relation(&runtime, source, target_a, "shared-edge");
+    create_branch_from_main(&runtime, "feature");
+    delete_relation_on_branch(&runtime, relation, BranchId("feature".to_string()));
     create_relation_in_partition_on_branch(
-        &mut runtime,
+        &runtime,
         source,
         target_b,
         "shared-edge",
@@ -65,7 +65,7 @@ fn topology_endpoint_divergence_denial_is_stable_across_recovery() {
         })
         .expect("live topology index");
 
-    let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, move || {
+    let (_recovery, recovered) = checkpoint_and_recover_with(&runtime, move || {
         persisted_runtime_with_topology_identity_registry(store_path.clone())
     });
     let recovered_artifact = recovered
@@ -165,32 +165,24 @@ fn topology_endpoint_divergence_denial_is_stable_across_recovery() {
 
 #[test]
 fn disjoint_rewire_neighborhoods_do_not_escalate_to_topology_region_conflict() {
-    let mut runtime = persisted_runtime_with_topology_identity_registry(unique_test_store_path(
+    let runtime = persisted_runtime_with_topology_identity_registry(unique_test_store_path(
         "worth-relational-7d-topology-disjoint-rewires",
     ));
-    let source_left = create_entity(&mut runtime, "source-left");
-    let target_left = create_entity(&mut runtime, "target-left");
-    let target_left_rewired = create_entity(&mut runtime, "target-left-rewired");
-    let source_right = create_entity(&mut runtime, "source-right");
-    let target_right = create_entity(&mut runtime, "target-right");
-    let target_right_rewired = create_entity(&mut runtime, "target-right-rewired");
+    let source_left = create_entity(&runtime, "source-left");
+    let target_left = create_entity(&runtime, "target-left");
+    let target_left_rewired = create_entity(&runtime, "target-left-rewired");
+    let source_right = create_entity(&runtime, "source-right");
+    let target_right = create_entity(&runtime, "target-right");
+    let target_right_rewired = create_entity(&runtime, "target-right-rewired");
     let relation_left =
-        crate::tests::support::create_relation(&mut runtime, source_left, target_left, "edge-left");
-    let relation_right = crate::tests::support::create_relation(
-        &mut runtime,
-        source_right,
-        target_right,
-        "edge-right",
-    );
-    create_branch_from_main(&mut runtime, "feature");
-    delete_relation_on_branch(&mut runtime, relation_left, BranchId("feature".to_string()));
-    delete_relation_on_branch(
-        &mut runtime,
-        relation_right,
-        BranchId("feature".to_string()),
-    );
+        crate::tests::support::create_relation(&runtime, source_left, target_left, "edge-left");
+    let relation_right =
+        crate::tests::support::create_relation(&runtime, source_right, target_right, "edge-right");
+    create_branch_from_main(&runtime, "feature");
+    delete_relation_on_branch(&runtime, relation_left, BranchId("feature".to_string()));
+    delete_relation_on_branch(&runtime, relation_right, BranchId("feature".to_string()));
     create_relation_in_partition_on_branch(
-        &mut runtime,
+        &runtime,
         source_left,
         target_left_rewired,
         "edge-left",
@@ -199,7 +191,7 @@ fn disjoint_rewire_neighborhoods_do_not_escalate_to_topology_region_conflict() {
         BranchId("feature".to_string()),
     );
     create_relation_in_partition_on_branch(
-        &mut runtime,
+        &runtime,
         source_right,
         target_right_rewired,
         "edge-right",
@@ -281,21 +273,21 @@ fn disjoint_rewire_neighborhoods_do_not_escalate_to_topology_region_conflict() {
 
 #[test]
 fn unrelated_relation_additions_do_not_inflate_topology_region_detection_counters() {
-    let mut runtime = persisted_runtime_with_topology_identity_registry(unique_test_store_path(
+    let runtime = persisted_runtime_with_topology_identity_registry(unique_test_store_path(
         "worth-relational-7d-topology-unrelated-breadth",
     ));
-    let source = create_entity(&mut runtime, "source");
-    let target_a = create_entity(&mut runtime, "target-a");
-    let target_b = create_entity(&mut runtime, "target-b");
-    let unrelated_source = create_entity(&mut runtime, "unrelated-source");
-    let unrelated_target_a = create_entity(&mut runtime, "unrelated-target-a");
-    let unrelated_target_b = create_entity(&mut runtime, "unrelated-target-b");
+    let source = create_entity(&runtime, "source");
+    let target_a = create_entity(&runtime, "target-a");
+    let target_b = create_entity(&runtime, "target-b");
+    let unrelated_source = create_entity(&runtime, "unrelated-source");
+    let unrelated_target_a = create_entity(&runtime, "unrelated-target-a");
+    let unrelated_target_b = create_entity(&runtime, "unrelated-target-b");
     let relation =
-        crate::tests::support::create_relation(&mut runtime, source, target_a, "shared-edge");
-    create_branch_from_main(&mut runtime, "feature");
-    delete_relation_on_branch(&mut runtime, relation, BranchId("feature".to_string()));
+        crate::tests::support::create_relation(&runtime, source, target_a, "shared-edge");
+    create_branch_from_main(&runtime, "feature");
+    delete_relation_on_branch(&runtime, relation, BranchId("feature".to_string()));
     create_relation_in_partition_on_branch(
-        &mut runtime,
+        &runtime,
         source,
         target_b,
         "shared-edge",
@@ -304,7 +296,7 @@ fn unrelated_relation_additions_do_not_inflate_topology_region_detection_counter
         BranchId("feature".to_string()),
     );
     create_relation_in_partition_on_branch(
-        &mut runtime,
+        &runtime,
         unrelated_source,
         unrelated_target_a,
         "unrelated-a",
@@ -313,7 +305,7 @@ fn unrelated_relation_additions_do_not_inflate_topology_region_detection_counter
         BranchId("feature".to_string()),
     );
     create_relation_in_partition_on_branch(
-        &mut runtime,
+        &runtime,
         unrelated_source,
         unrelated_target_b,
         "unrelated-b",

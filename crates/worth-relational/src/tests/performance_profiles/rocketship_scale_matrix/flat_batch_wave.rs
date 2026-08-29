@@ -23,7 +23,7 @@ pub(super) fn certify_hundred_k_nodes_pseudorealistic_flat_batch_wave(
             });
             let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
             let seeded =
-                seed_pseudorealistic_rocketship_world(&mut runtime, node_count, query_target_count);
+                seed_pseudorealistic_rocketship_world(&runtime, node_count, query_target_count);
 
             let mut partition_targets = BTreeMap::new();
             for entity in &seeded.entities {
@@ -52,7 +52,7 @@ pub(super) fn certify_hundred_k_nodes_pseudorealistic_flat_batch_wave(
             let update_started_at = Instant::now();
             let update = {
                 let mut txn =
-                    crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+                    crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
                 let mut batch = WorkerIntentBatch::new("rocketship-flat-entity-batch-wave");
                 for (index, entity) in batch_targets.iter().enumerate() {
                     batch = batch.push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
@@ -84,7 +84,7 @@ pub(super) fn certify_hundred_k_nodes_pseudorealistic_flat_batch_wave(
                 }
                 txn.push_batch(batch)
                     .expect("test staging stays within configured resource budgets");
-                txn.commit(&mut runtime)
+                txn.commit(&runtime)
                     .expect("rocketship flat entity batch wave commit")
             };
             let update_micros = update_started_at.elapsed().as_micros();

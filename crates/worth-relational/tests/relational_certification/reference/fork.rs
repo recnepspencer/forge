@@ -132,7 +132,7 @@ fn supply_chain_fork_shares_one_source_artifact_and_starts_a_new_reference_line(
 
 #[test]
 fn source_observation_is_foreign_after_runtime_clone() {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &expected);
     let (_, source_basis) = world
         .runtime
@@ -323,7 +323,7 @@ fn stale_fork_source_denial_does_not_install_a_target_reference() {
         .push_batch(WorkerIntentBatch::new("advance-main-before-fork"))
         .unwrap();
     transaction
-        .commit(&mut world.runtime)
+        .commit(&world.runtime)
         .expect("main truth advances");
     let catalog_after_advance = world.runtime.history().immutable_commit_count();
     let before = capture_reference_evidence(

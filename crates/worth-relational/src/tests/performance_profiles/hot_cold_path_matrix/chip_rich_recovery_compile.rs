@@ -14,15 +14,12 @@ pub(super) fn certify_chip_rich_compile_hot_vs_recovery_compile(suite: &'static 
             );
             let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
 
-            let source = create_entity_in_partition(
-                &mut runtime,
-                "chip-rich-hot-cold-source",
-                PartitionId(7),
-            );
+            let source =
+                create_entity_in_partition(&runtime, "chip-rich-hot-cold-source", PartitionId(7));
             let sinks = (0..8)
                 .map(|index| {
                     create_entity_in_partition(
-                        &mut runtime,
+                        &runtime,
                         &format!("chip-rich-hot-cold-sink-{index}"),
                         if index % 2 == 0 {
                             PartitionId(11)
@@ -34,7 +31,7 @@ pub(super) fn certify_chip_rich_compile_hot_vs_recovery_compile(suite: &'static 
                 .collect::<Vec<_>>();
             for (index, sink) in sinks.iter().enumerate() {
                 create_relation_in_partition(
-                    &mut runtime,
+                    &runtime,
                     source,
                     *sink,
                     &format!("chip-rich-hot-cold-link-{index}"),
@@ -44,7 +41,7 @@ pub(super) fn certify_chip_rich_compile_hot_vs_recovery_compile(suite: &'static 
 
             runtime.performance_access().reset_counters();
             let hot_commit_started_at = Instant::now();
-            let hot_commit = update_entity(&mut runtime, source, "chip-rich-hot-cold-updated");
+            let hot_commit = update_entity(&runtime, source, "chip-rich-hot-cold-updated");
             let hot_commit_micros = hot_commit_started_at.elapsed().as_micros();
             let latest_commit = runtime
                 .history()

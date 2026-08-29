@@ -2,16 +2,15 @@ use super::*;
 
 #[test]
 fn checkpoint_rebuilds_current_and_historical_adjacency_kind_buckets() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    let created = create_relation_outcome(&mut runtime, source, target, "checkpoint-relation");
+    let runtime = persisted_runtime_with_test_schema();
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    let created = create_relation_outcome(&runtime, source, target, "checkpoint-relation");
     let relation = changed_relations(&created)[0];
     let historical_version = created.version_id;
-    let _deleted = delete_relation_on_branch(&mut runtime, relation, BranchId("main".to_string()));
+    let _deleted = delete_relation_on_branch(&runtime, relation, BranchId("main".to_string()));
 
-    let (_, recovered) =
-        checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
+    let (_, recovered) = checkpoint_and_recover_with(&runtime, persisted_runtime_with_test_schema);
     let relation_kind = crate::facade::identity::KindId(2);
     let historical = recovered
         .read_truth()

@@ -3,10 +3,10 @@ use crate::tests::support::*;
 
 #[test]
 fn fieldless_entity_create_commits_with_absent_authoritative_aspect_state() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .build();
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("opaque").push(MutationIntent::Create(CreateIntent::Entity(
             crate::transactions::data::EntitySpec {
@@ -18,7 +18,7 @@ fn fieldless_entity_create_commits_with_absent_authoritative_aspect_state() {
         ))),
     )
     .expect("test staging stays within configured resource budgets");
-    let outcome = txn.commit(&mut runtime).unwrap();
+    let outcome = txn.commit(&runtime).unwrap();
     let read = runtime
         .read_truth()
         .read_snapshot(&outcome.snapshot)
@@ -51,15 +51,14 @@ fn authoritative_field_patches_are_order_independent_in_patch_output() {
         ..AspectSchemaFixture::default()
     }
     .build_registry();
-    let mut left_runtime = RelationalRuntimeApi::builder()
+    let left_runtime = RelationalRuntimeApi::builder()
         .schema_registry(order_independent_schema.clone())
         .build();
-    let mut right_runtime = RelationalRuntimeApi::builder()
+    let right_runtime = RelationalRuntimeApi::builder()
         .schema_registry(order_independent_schema)
         .build();
 
-    let mut left_txn =
-        crate::tests::support::test_owner_begin_transaction_for_main(&mut left_runtime);
+    let mut left_txn = crate::tests::support::test_owner_begin_transaction_for_main(&left_runtime);
     left_txn
         .push_batch(
             WorkerIntentBatch::new("left-field-patch").push(MutationIntent::Create(
@@ -83,10 +82,10 @@ fn authoritative_field_patches_are_order_independent_in_patch_output() {
             )),
         )
         .expect("test staging stays within configured resource budgets");
-    left_txn.commit(&mut left_runtime).unwrap();
+    left_txn.commit(&left_runtime).unwrap();
 
     let mut right_txn =
-        crate::tests::support::test_owner_begin_transaction_for_main(&mut right_runtime);
+        crate::tests::support::test_owner_begin_transaction_for_main(&right_runtime);
     right_txn
         .push_batch(
             WorkerIntentBatch::new("right-field-patch").push(MutationIntent::Create(
@@ -110,7 +109,7 @@ fn authoritative_field_patches_are_order_independent_in_patch_output() {
             )),
         )
         .expect("test staging stays within configured resource budgets");
-    right_txn.commit(&mut right_runtime).unwrap();
+    right_txn.commit(&right_runtime).unwrap();
 
     assert_eq!(
         left_runtime.publication().artifacts().latest_patch(),

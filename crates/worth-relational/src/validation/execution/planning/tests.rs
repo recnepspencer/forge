@@ -96,10 +96,10 @@ fn request_for_plan<'runtime>(
 }
 
 fn create_entity(
-    mut runtime: &crate::runtime::RelationalRuntime,
+    runtime: &crate::runtime::RelationalRuntime,
     name: &str,
 ) -> crate::identity::data::EntityId {
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
     txn.push_batch(
         WorkerIntentBatch::new(format!("entity-{name}")).push(
             MutationIntent::Create(CreateIntent::Entity(EntitySpec {
@@ -112,7 +112,7 @@ fn create_entity(
         ),
     )
     .expect("test staging stays within configured resource budgets");
-    let outcome = txn.commit(&mut runtime).unwrap();
+    let outcome = txn.commit(runtime).unwrap();
     outcome
         .changed_records
         .iter()
@@ -125,10 +125,10 @@ fn create_entity(
 
 #[test]
 fn planner_packets_only_include_relation_integrity_registrations_authorized_by_plan_scope() {
-    let mut runtime = relation_runtime();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let runtime = relation_runtime();
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("planned").push(MutationIntent::Create(CreateIntent::Relation(
             RelationSpec {
@@ -142,7 +142,7 @@ fn planner_packets_only_include_relation_integrity_registrations_authorized_by_p
         ))),
     )
     .expect("test staging stays within configured resource budgets");
-    let plan = txn.merged_plan(&mut runtime).unwrap().clone();
+    let plan = txn.merged_plan(&runtime).unwrap().clone();
 
     let request = request_for_plan(&runtime, &plan);
     let view = crate::validation::engine::InvariantRuntimeView::from_runtime(&runtime);
@@ -164,10 +164,10 @@ fn planner_packets_only_include_relation_integrity_registrations_authorized_by_p
 
 #[test]
 fn planner_proof_boundary_reports_partition_scoped_relation_integrity_packets() {
-    let mut runtime = relation_runtime();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let runtime = relation_runtime();
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("planned").push(MutationIntent::Create(CreateIntent::Relation(
             RelationSpec {
@@ -181,7 +181,7 @@ fn planner_proof_boundary_reports_partition_scoped_relation_integrity_packets() 
         ))),
     )
     .expect("test staging stays within configured resource budgets");
-    let plan = txn.merged_plan(&mut runtime).unwrap().clone();
+    let plan = txn.merged_plan(&runtime).unwrap().clone();
 
     let request = request_for_plan(&runtime, &plan);
     let view = crate::validation::engine::InvariantRuntimeView::from_runtime(&runtime);

@@ -4,8 +4,8 @@ use crate::tests::support::*;
 
 #[test]
 fn subscriber_stream_rejects_checkpoint_with_inconsistent_continuation_summary() {
-    let mut runtime = runtime_with_test_schema();
-    let _ = create_entity_outcome(&mut runtime, "anchor");
+    let runtime = runtime_with_test_schema();
+    let _ = create_entity_outcome(&runtime, "anchor");
 
     let batch = runtime
         .publication()

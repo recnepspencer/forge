@@ -42,11 +42,11 @@ fn tagged_record_ids_preserve_storage_identity() {
 
 #[test]
 fn relational_error_wraps_authority_failures_with_context() {
-    let mut runtime = runtime_with_test_schema();
-    let entity = create_entity(&mut runtime, "first");
-    delete_entity(&mut runtime, entity);
+    let runtime = runtime_with_test_schema();
+    let entity = create_entity(&runtime, "first");
+    delete_entity(&runtime, entity);
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("stale-update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -60,7 +60,7 @@ fn relational_error_wraps_authority_failures_with_context() {
         )),
     )
     .expect("test staging stays within configured resource budgets");
-    let transaction_error = txn.commit(&mut runtime).unwrap_err();
+    let transaction_error = txn.commit(&runtime).unwrap_err();
     let wrapped: RelationalError = transaction_error.into();
     assert!(matches!(wrapped, RelationalError::Transaction(_)));
     assert_eq!(

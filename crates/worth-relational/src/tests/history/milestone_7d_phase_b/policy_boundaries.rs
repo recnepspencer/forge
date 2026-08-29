@@ -13,10 +13,10 @@ use super::fixtures::runtime_with_name_merge_policy;
 
 #[test]
 fn lowered_plan_carries_explicit_manual_resolution_policy_boundary_for_generic_denial() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let entity = create_entity(&mut runtime, "shared");
-    create_branch_from_main(&mut runtime, "feature");
-    delete_entity_on_branch(&mut runtime, entity, BranchId("feature".to_string()));
+    let runtime = persisted_runtime_with_test_schema();
+    let entity = create_entity(&runtime, "shared");
+    create_branch_from_main(&runtime, "feature");
+    delete_entity_on_branch(&runtime, entity, BranchId("feature".to_string()));
 
     let artifact = runtime
         .merge()
@@ -56,12 +56,12 @@ fn lowered_plan_carries_explicit_manual_resolution_policy_boundary_for_generic_d
 
 #[test]
 fn lowered_plan_carries_explicit_hard_reject_policy_boundary_for_fail_on_conflict() {
-    let mut runtime = runtime_with_name_merge_policy(AspectMergePolicyKind::FailOnConflict);
-    let entity = create_entity(&mut runtime, "shared");
-    create_branch_from_main(&mut runtime, "feature");
-    update_entity(&mut runtime, entity, "main-name");
+    let runtime = runtime_with_name_merge_policy(AspectMergePolicyKind::FailOnConflict);
+    let entity = create_entity(&runtime, "shared");
+    create_branch_from_main(&runtime, "feature");
+    update_entity(&runtime, entity, "main-name");
     update_entity_on_branch(
-        &mut runtime,
+        &runtime,
         entity,
         "feature-name",
         BranchId("feature".to_string()),

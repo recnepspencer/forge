@@ -12,7 +12,7 @@ use worth_relational::facade::publication::PatchStreamRequest;
 
 #[test]
 fn cancelled_schema_transition_leaves_no_target_or_branch_residue() {
-    let (mut world, _) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, _) = certified_supply_chain_world(SupplyChainScale::court());
     let branch = BranchId("hazard-v2".to_owned());
     let (_, source) = world
         .runtime
@@ -78,10 +78,7 @@ fn cancelled_schema_transition_leaves_no_target_or_branch_residue() {
             .unwrap(),
         stream_before
     );
-    assert_eq!(
-        world.runtime.publication().latest_replay(),
-        replay_before.as_ref()
-    );
+    assert_eq!(world.runtime.publication().latest_replay(), replay_before);
     let cost = world.runtime.observe_mvcc_counters(&cost_scope).unwrap();
     assert_eq!(cost.retention_cost_delta().candidate_releases, 1);
 

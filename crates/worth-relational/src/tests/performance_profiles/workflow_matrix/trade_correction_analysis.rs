@@ -3,16 +3,16 @@ use super::*;
 pub(super) fn certify_trade_correction_analysis_round_trip(suite: &'static str) {
     let trade_correction_samples =
         capture_perf_samples(suite, "trade_correction_analysis_round_trip", || {
-            let mut runtime = persisted_runtime_with_test_schema();
+            let runtime = persisted_runtime_with_test_schema();
             let account =
-                create_entity_in_partition(&mut runtime, "portfolio-account", PartitionId(10));
-            create_branch_from_main(&mut runtime, "analysis");
+                create_entity_in_partition(&runtime, "portfolio-account", PartitionId(10));
+            create_branch_from_main(&runtime, "analysis");
 
             runtime.performance_access().reset_counters();
             let analysis_commit_started_at = Instant::now();
             let analysis_commit = {
                 let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
-                    &mut runtime,
+                    &runtime,
                     BranchId("analysis".to_string()),
                 );
                 txn.push_batch(
@@ -120,7 +120,7 @@ pub(super) fn certify_trade_correction_analysis_round_trip(suite: &'static str) 
                         .into(),
                 )
                 .expect("test staging stays within configured resource budgets");
-                txn.commit(&mut runtime)
+                txn.commit(&runtime)
                     .expect("analysis branch correction commit")
             };
             let analysis_commit_micros = analysis_commit_started_at.elapsed().as_micros();

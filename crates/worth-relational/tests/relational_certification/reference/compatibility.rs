@@ -99,7 +99,7 @@ fn publication_cannot_mint_a_missing_branch_cell() {
         )
         .unwrap();
     transaction
-        .commit(&mut world.runtime)
+        .commit(&world.runtime)
         .expect("main publication still advances the admitted main cell");
     let after = capture_reference_evidence(
         &mut world.runtime,

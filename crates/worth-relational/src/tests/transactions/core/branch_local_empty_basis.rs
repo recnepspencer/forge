@@ -4,11 +4,11 @@ use crate::tests::support::{create_entity, install_empty_test_branch, runtime_wi
 
 #[test]
 fn empty_branch_validation_uses_local_zero_after_unrelated_main_progress() {
-    let mut runtime = runtime_with_test_schema();
+    let runtime = runtime_with_test_schema();
     let empty_branch = BranchId("empty-validation".to_owned());
-    install_empty_test_branch(&mut runtime, empty_branch.clone());
+    install_empty_test_branch(&runtime, empty_branch.clone());
 
-    create_entity(&mut runtime, "main-progress");
+    create_entity(&runtime, "main-progress");
     let identity = runtime
         .branch_identity(&empty_branch)
         .expect("empty branch remains owner-registered");
@@ -24,7 +24,7 @@ fn empty_branch_validation_uses_local_zero_after_unrelated_main_progress() {
             .expect("owner-admitted transaction context")
     };
     let validated = transaction
-        .validate(&mut runtime)
+        .validate(&runtime)
         .expect("empty branch validation should use its local basis");
 
     assert_eq!(validated.validated_against_version, VersionId(0));

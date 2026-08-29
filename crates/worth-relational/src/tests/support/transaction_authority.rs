@@ -88,8 +88,8 @@ pub(crate) fn test_owner_strategy_authority(
     CommitStrategiesAuthorityFacade,
 ) {
     let options = target_branch
-        .map(|branch| test_owner_transaction_validation_input_for_branch(&*runtime, branch))
-        .unwrap_or_else(|| test_owner_transaction_validation_input_for_main(&*runtime));
+        .map(|branch| test_owner_transaction_validation_input_for_branch(runtime, branch))
+        .unwrap_or_else(|| test_owner_transaction_validation_input_for_main(runtime));
     let authority = runtime.commit_strategies_authority();
     (options, authority)
 }

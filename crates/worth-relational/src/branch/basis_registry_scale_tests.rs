@@ -1,8 +1,8 @@
 use crate::history::data::BranchId;
 fn prove_registry_lookup_work_is_population_independent(branch_population: usize) {
-    let mut runtime = crate::tests::support::runtime_with_test_schema();
-    crate::tests::support::create_entity(&mut runtime, "basis-scale-root");
-    populate_branches(&mut runtime, branch_population);
+    let runtime = crate::tests::support::runtime_with_test_schema();
+    crate::tests::support::create_entity(&runtime, "basis-scale-root");
+    populate_branches(&runtime, branch_population);
     let (target, retained) = retain_one_basis_per_branch(&runtime, branch_population);
     let after = prove_single_readmission_is_fixed_work(&runtime, &target, branch_population);
     drop(retained);
@@ -108,16 +108,16 @@ fn retained_basis_registry_cost_is_fixed_at_one_sixty_four_and_four_thousand_nin
 #[test]
 fn ordinary_publication_does_not_scan_branch_or_branch_head_populations() {
     for branch_population in [64, 4_096] {
-        let mut runtime = crate::tests::support::runtime_with_test_schema();
-        crate::tests::support::create_entity(&mut runtime, "publication-scan-root");
-        populate_branches(&mut runtime, branch_population);
+        let runtime = crate::tests::support::runtime_with_test_schema();
+        crate::tests::support::create_entity(&runtime, "publication-scan-root");
+        populate_branches(&runtime, branch_population);
         let branch_scans_before = runtime
             .phase4_reference_cost_counters()
             .branch_population_scans;
         let visibility_before = runtime.visibility.visibility_cache_cost_counters();
 
         crate::tests::support::create_entity(
-            &mut runtime,
+            &runtime,
             &format!("publication-scan-{branch_population}"),
         );
 

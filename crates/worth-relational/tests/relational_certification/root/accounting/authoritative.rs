@@ -10,7 +10,7 @@ use worth_relational::facade::inspection::{
 
 #[test]
 fn phase5_full_authoritative_accounting_deduplicates_one_shared_envelope_and_root() {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &expected);
     let mut identities = vec![world.runtime.main_branch_identity()];
     for branch_name in ["storm-accounting", "maintenance-accounting"] {

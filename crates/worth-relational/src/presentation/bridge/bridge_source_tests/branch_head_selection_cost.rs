@@ -13,12 +13,12 @@ use super::support::runtime_with_test_schema;
 #[test]
 fn exact_selection_is_constant_and_historical_selection_uses_exact_ancestry() {
     let runtime = Arc::new(Mutex::new(runtime_with_test_schema()));
-    let ancestor = create_entity_outcome(&mut runtime.lock().unwrap(), "deep-head-ancestor");
+    let ancestor = create_entity_outcome(&runtime.lock().unwrap(), "deep-head-ancestor");
     let ancestor_commit_id = ancestor.commit.commit_id;
-    release_test_commit_snapshot(&mut runtime.lock().unwrap(), &ancestor);
+    release_test_commit_snapshot(&runtime.lock().unwrap(), &ancestor);
     for ordinal in 1..=255 {
         create_entity(
-            &mut runtime.lock().unwrap(),
+            &runtime.lock().unwrap(),
             &format!("deep-head-history-{ordinal}"),
         );
     }
@@ -65,9 +65,9 @@ fn exact_selection_is_constant_and_historical_selection_uses_exact_ancestry() {
         ancestry_work
     );
 
-    let future = create_entity_outcome(&mut runtime.lock().unwrap(), "future-after-bound-head");
+    let future = create_entity_outcome(&runtime.lock().unwrap(), "future-after-bound-head");
     let future_commit_id = future.commit.commit_id;
-    release_test_commit_snapshot(&mut runtime.lock().unwrap(), &future);
+    release_test_commit_snapshot(&runtime.lock().unwrap(), &future);
     let denial = source
         .load_committed_patch(RelationalCommittedPatchRequest::on_branch(
             TruthCommitIdentity::from_relational_commit_id(future_commit_id.0),

@@ -44,9 +44,8 @@ fn ordinary_native_mutation_roundtrips_every_foundational_scalar_family() {
                 value: ContractValidationInput::Scalar(value.clone()),
             }
         }));
-    let mut runtime = fixture.build_runtime();
-    let mut transaction =
-        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let runtime = fixture.build_runtime();
+    let mut transaction = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     transaction
         .push_batch(
             WorkerIntentBatch::new("native-scalar-matrix").push(MutationIntent::Create(
@@ -60,7 +59,7 @@ fn ordinary_native_mutation_roundtrips_every_foundational_scalar_family() {
         )
         .expect("test staging stays within configured resource budgets");
 
-    let committed = transaction.commit(&mut runtime).unwrap();
+    let committed = transaction.commit(&runtime).unwrap();
     let entity = changed_entities(&committed)[0];
     {
         let read = runtime
@@ -80,7 +79,7 @@ fn ordinary_native_mutation_roundtrips_every_foundational_scalar_family() {
     }
     let recovery_fixture = fixture.clone();
     let (_, recovered) =
-        checkpoint_and_recover_with(&mut runtime, move || recovery_fixture.build_runtime());
+        checkpoint_and_recover_with(&runtime, move || recovery_fixture.build_runtime());
     let read = recovered.read_truth().read_version(committed.version_id);
     assert_scalar_state(
         read.get_entity(entity)

@@ -22,7 +22,7 @@ fn real_whole_and_field_set_clear_operations_keep_their_exact_publication_meanin
     let note = optional_note_contract();
     let summary = entity_summary_struct_aspect(aspect_key("summary"), field_key("summary"));
     let summary_contract = summary.contract.clone();
-    let mut runtime = AspectSchemaFixture {
+    let runtime = AspectSchemaFixture {
         entity_aspects: vec![
             DeclaredAspectContractBinding {
                 binding: AspectBinding::EntityField {
@@ -51,7 +51,7 @@ fn real_whole_and_field_set_clear_operations_keep_their_exact_publication_meanin
             value: ContractValidationInput::Struct(initial_summary),
         },
     ]);
-    let mut create = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut create = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     create
         .push_batch(
             WorkerIntentBatch::new("publication-set-whole").push(MutationIntent::Create(
@@ -64,7 +64,7 @@ fn real_whole_and_field_set_clear_operations_keep_their_exact_publication_meanin
             )),
         )
         .expect("test staging stays within configured resource budgets");
-    let created = create.commit(&mut runtime).unwrap();
+    let created = create.commit(&runtime).unwrap();
     let entity = changed_entities(&created)[0];
     let created_commit = created.commit.commit_id;
 
@@ -79,8 +79,7 @@ fn real_whole_and_field_set_clear_operations_keep_their_exact_publication_meanin
             field_clears: vec![field_key("status")],
         },
     ]);
-    let mut transaction =
-        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut transaction = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     transaction
         .push_batch(WorkerIntentBatch::new("publication-clear-parity").push(
             MutationIntent::Entity(EntityMutationIntent::ApplyAspectPatch(
@@ -91,7 +90,7 @@ fn real_whole_and_field_set_clear_operations_keep_their_exact_publication_meanin
             )),
         ))
         .expect("test staging stays within configured resource budgets");
-    let updated = transaction.commit(&mut runtime).unwrap();
+    let updated = transaction.commit(&runtime).unwrap();
     let mut publications = bridge_envelopes_at_current_observation(
         runtime,
         [created_commit, updated.commit.commit_id],

@@ -172,8 +172,8 @@ fn prepared_acyclicity_scope_rejects_visible_graphs_that_exceed_scan_budget() {
 
 #[test]
 fn commit_publication_stage_rejects_sources_without_required_connectivity() {
-    let mut runtime = runtime_with_acyclicity_and_connectivity();
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let runtime = runtime_with_acyclicity_and_connectivity();
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("node-a").push(MutationIntent::Create(CreateIntent::Entity(
             EntitySpec {
@@ -187,7 +187,7 @@ fn commit_publication_stage_rejects_sources_without_required_connectivity() {
     .expect("test staging stays within configured resource budgets");
 
     let error = txn
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect_err("connectivity publication failure");
     match error {
         crate::facade::transactions::TransactionCommitError::Publication { error, .. } => {
@@ -200,14 +200,14 @@ fn commit_publication_stage_rejects_sources_without_required_connectivity() {
 
 #[test]
 fn minimum_cardinality_current_version_scans_only_live_slots() {
-    let mut runtime = runtime_with_cardinality_minimum();
-    let source = create_entity_of_kind(&mut runtime, KindId(1), "source");
-    let target = create_entity_of_kind(&mut runtime, KindId(1), "target");
-    let retired_target = create_entity_of_kind(&mut runtime, KindId(1), "retired-target");
+    let runtime = runtime_with_cardinality_minimum();
+    let source = create_entity_of_kind(&runtime, KindId(1), "source");
+    let target = create_entity_of_kind(&runtime, KindId(1), "target");
+    let retired_target = create_entity_of_kind(&runtime, KindId(1), "retired-target");
     let retired_relation =
-        create_relation_of_kind(&mut runtime, KindId(2), source, retired_target, "retired");
-    create_relation_of_kind(&mut runtime, KindId(2), source, target, "live");
-    let mut delete_txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+        create_relation_of_kind(&runtime, KindId(2), source, retired_target, "retired");
+    create_relation_of_kind(&runtime, KindId(2), source, target, "live");
+    let mut delete_txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     delete_txn
         .push_batch(
             WorkerIntentBatch::new("delete-retired").push(MutationIntent::Relation(
@@ -217,7 +217,7 @@ fn minimum_cardinality_current_version_scans_only_live_slots() {
             )),
         )
         .expect("test staging stays within configured resource budgets");
-    delete_txn.commit(&mut runtime).expect("retire relation");
+    delete_txn.commit(&runtime).expect("retire relation");
 
     runtime.performance_access().reset_counters();
     let _results = InvariantEngine::new(&runtime).execute(

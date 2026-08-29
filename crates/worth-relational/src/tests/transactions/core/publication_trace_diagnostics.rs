@@ -7,9 +7,8 @@ use worth_foundational::facade::AspectKey;
 
 #[test]
 fn commit_publication_exposes_aspect_evaluation_and_emission_traces() {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let result = create_entity_outcome(&mut runtime, "traced");
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let result = create_entity_outcome(&runtime, "traced");
     let evaluation_traces = result.aspect_evaluation_traces();
     let emission_traces = result.aspect_emission_traces();
     let patch_vs_truth = assert_patch_truth_invariants(&result);
@@ -55,14 +54,14 @@ fn detailed_trace_profile_emits_commit_side_aspect_trace_diagnostics() {
         detailed_traces_enabled: true,
         ..RelationalDiagnosticsProfile::default()
     };
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .profile(RelationalRuntimeProfile::CertificationCore)
         .schema_registry(declared_aspect_schema_registry(
             CascadeDeletePolicy::CascadeDeleteRelations,
         ))
         .diagnostics(diagnostics)
         .build();
-    let result = create_entity_outcome(&mut runtime, "diagnostic-traced");
+    let result = create_entity_outcome(&runtime, "diagnostic-traced");
 
     assert!(result.diagnostics().iter().any(|artifact| {
         artifact.scope == DiagnosticsScope::Transaction
@@ -99,8 +98,8 @@ fn aspect_evaluation_trace_retains_unchanged_bindings_for_auditability() {
         relation_aspects: vec![relation_source_aspect(), relation_target_aspect()],
         ..AspectSchemaFixture::default()
     };
-    let mut runtime = fixture.build_runtime();
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let runtime = fixture.build_runtime();
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("create").push(MutationIntent::Create(CreateIntent::Entity(
             crate::transactions::data::EntitySpec {
@@ -123,10 +122,10 @@ fn aspect_evaluation_trace_retains_unchanged_bindings_for_auditability() {
         ))),
     )
     .expect("test staging stays within configured resource budgets");
-    let created = txn.commit(&mut runtime).unwrap();
+    let created = txn.commit(&runtime).unwrap();
     let entity = changed_entities(&created)[0];
 
-    let mut update_txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut update_txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     update_txn
         .push_batch(
             WorkerIntentBatch::new("update-name-only").push(MutationIntent::Entity(
@@ -148,7 +147,7 @@ fn aspect_evaluation_trace_retains_unchanged_bindings_for_auditability() {
             )),
         )
         .expect("test staging stays within configured resource budgets");
-    let result = update_txn.commit(&mut runtime).unwrap();
+    let result = update_txn.commit(&runtime).unwrap();
     let trace = &result.aspect_evaluation_traces()[0];
     let status_key = AspectKey::new("status").unwrap();
     let status_row = trace

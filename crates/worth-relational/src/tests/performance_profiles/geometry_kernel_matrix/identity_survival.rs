@@ -5,10 +5,10 @@ pub(super) fn certify_topology_identity_survival_recovery_round_trip(suite: &'st
         suite,
         "topology_identity_survival_recovery_round_trip",
         || {
-            let mut runtime = persisted_runtime_with_test_schema_profile(
+            let runtime = persisted_runtime_with_test_schema_profile(
                 RelationalRuntimeProfile::GeometryKernel,
             );
-            let created = create_entity_outcome(&mut runtime, "topology-source");
+            let created = create_entity_outcome(&runtime, "topology-source");
             let entity = changed_entities(&created)[0];
             let start_lineage = runtime
                 .lineage_access()
@@ -17,7 +17,7 @@ pub(super) fn certify_topology_identity_survival_recovery_round_trip(suite: &'st
                 .lineage_id;
 
             let update_started_at = Instant::now();
-            let replacement = update_entity(&mut runtime, entity, "topology-source-updated");
+            let replacement = update_entity(&runtime, entity, "topology-source-updated");
             let update_commit_micros = update_started_at.elapsed().as_micros();
             let replaced_entity = changed_entities(&replacement)[0];
             let replacement_lineage = runtime

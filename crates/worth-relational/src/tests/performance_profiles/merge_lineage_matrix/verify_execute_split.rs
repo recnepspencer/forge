@@ -5,11 +5,11 @@ pub(super) fn certify_merge_verify_vs_execute_feature_adoption(suite: &'static s
         suite,
         "merge_verify_vs_execute_feature_adoption",
         || {
-            let mut runtime = persisted_runtime_with_test_schema();
-            create_entity(&mut runtime, "main-anchor");
-            create_branch_from_main(&mut runtime, "feature");
+            let runtime = persisted_runtime_with_test_schema();
+            create_entity(&runtime, "main-anchor");
+            create_branch_from_main(&runtime, "feature");
             let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
-                &mut runtime,
+                &runtime,
                 BranchId("feature".to_string()),
             );
             txn.push_batch(
@@ -30,8 +30,7 @@ pub(super) fn certify_merge_verify_vs_execute_feature_adoption(suite: &'static s
                 ),
             )
             .expect("test staging stays within configured resource budgets");
-            let _feature_only =
-                changed_entities(&txn.commit(&mut runtime).expect("feature create"))[0];
+            let _feature_only = changed_entities(&txn.commit(&runtime).expect("feature create"))[0];
 
             let prepared = runtime
                 .prepare_merge_execution(MergeExecutionRequest {

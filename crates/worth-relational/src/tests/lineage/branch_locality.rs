@@ -7,8 +7,8 @@ use crate::tests::support::*;
 
 #[test]
 fn lineage_branch_divergence_is_queryable() {
-    let mut runtime = runtime_with_test_schema();
-    let _main = create_entity_outcome(&mut runtime, "main");
+    let runtime = runtime_with_test_schema();
+    let _main = create_entity_outcome(&runtime, "main");
     runtime
         .history_authority()
         .fork_branch_from(
@@ -17,7 +17,7 @@ fn lineage_branch_divergence_is_queryable() {
         )
         .unwrap();
     let _feature =
-        create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
+        create_entity_outcome_on_branch(&runtime, "feature", BranchId("feature".to_string()));
     let divergence =
         runtime
             .lineage_access()

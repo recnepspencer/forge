@@ -192,7 +192,7 @@ fn maintenance_reclaims_a_deleted_unique_root_only_after_last_pin_release() {
         .runtime
         .begin_branch_transaction(&initial_basis, RelationalTransactionIntent::ordinary())
         .unwrap();
-    let committed = transaction.commit(&mut world.runtime).unwrap();
+    let committed = transaction.commit(&world.runtime).unwrap();
     drop(initial_basis);
 
     let (_, current_basis) = world.runtime.observe_branch(&identity).unwrap();
@@ -241,7 +241,7 @@ fn exact_snapshot_carries_its_observation_obligation_until_release() {
         .runtime
         .begin_branch_transaction(&initial_basis, RelationalTransactionIntent::ordinary())
         .unwrap();
-    let committed = transaction.commit(&mut world.runtime).unwrap();
+    let committed = transaction.commit(&world.runtime).unwrap();
     drop(initial_basis);
     assert!(world
         .runtime

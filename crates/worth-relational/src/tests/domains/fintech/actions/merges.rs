@@ -12,10 +12,8 @@ pub(crate) fn diverge_case_trade_on_branch(
     notional: i64,
 ) -> CommitResult {
     let case = world.workflow_case(case_role);
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
-        &mut world.runtime,
-        branch_id,
-    );
+    let mut txn =
+        crate::tests::support::test_owner_begin_transaction_for_branch(&world.runtime, branch_id);
     txn.push_batch(
         WorkerIntentBatch::new("diverge-case-trade").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -61,7 +59,7 @@ pub(crate) fn diverge_case_trade_on_branch(
         )),
     )
     .expect("test staging stays within configured resource budgets");
-    txn.commit(&mut world.runtime).unwrap()
+    txn.commit(&world.runtime).unwrap()
 }
 
 pub(crate) fn merge_branch_into_main(
@@ -69,9 +67,9 @@ pub(crate) fn merge_branch_into_main(
     merge_parent_branch: BranchId,
 ) -> CommitResult {
     let txn = crate::tests::support::test_owner_begin_merge_transaction(
-        &mut world.runtime,
+        &world.runtime,
         BranchId("main".to_string()),
         vec![merge_parent_branch],
     );
-    txn.commit(&mut world.runtime).unwrap()
+    txn.commit(&world.runtime).unwrap()
 }

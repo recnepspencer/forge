@@ -2,7 +2,7 @@ use crate::tests::support::*;
 
 #[test]
 fn truth_sequence_overflow_is_rejected_before_publication_effects() {
-    let mut runtime = runtime_with_test_schema();
+    let runtime = runtime_with_test_schema();
     let before_cells = runtime.history.branch_cells_snapshot();
     let before_catalog = runtime.history.catalog_len();
     let before_graph = runtime.history.commit_graph_len();
@@ -17,12 +17,12 @@ fn truth_sequence_overflow_is_rejected_before_publication_effects() {
     runtime
         .history
         .with_ledger_mut(|ledger| ledger.set_sequence(u64::MAX, u64::MAX));
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
     transaction
         .push_batch(batch_create("overflow-denial"))
         .expect("test staging stays within configured resource budgets");
     let error = transaction
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect_err("sequence overflow must be a typed publication denial");
 
     match &error {

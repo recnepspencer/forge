@@ -15,12 +15,12 @@ use crate::tests::support::{
 use worth_foundational::facade::AspectKey;
 
 fn inspect_recovered_merge_planning_artifact() -> crate::facade::merge::MergePlanningArtifactCore {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let shared = create_entity(&mut runtime, "shared");
-    create_branch_from_main(&mut runtime, "feature");
-    update_entity(&mut runtime, shared, "shared-main");
+    let runtime = persisted_runtime_with_test_schema();
+    let shared = create_entity(&runtime, "shared");
+    create_branch_from_main(&runtime, "feature");
+    update_entity(&runtime, shared, "shared-main");
     update_entity_on_branch(
-        &mut runtime,
+        &runtime,
         shared,
         "shared-feature",
         BranchId("feature".to_string()),
@@ -36,7 +36,7 @@ fn inspect_recovered_merge_planning_artifact() -> crate::facade::merge::MergePla
         .expect("live merge planning artifact");
 
     let (_recovery, recovered) =
-        checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
+        checkpoint_and_recover_with(&runtime, persisted_runtime_with_test_schema);
     let recovered_artifact = recovered
         .merge()
         .inspect_planning_scope(crate::merge::data::MergePlanningRequest::new(

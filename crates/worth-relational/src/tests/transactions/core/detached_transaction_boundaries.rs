@@ -10,10 +10,10 @@ use crate::tests::support::*;
 #[test]
 fn relation_overlays_and_validation_footprints_stay_exact_basis_local() {
     let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "relation-source");
-    let target = create_entity(&mut runtime, "relation-target");
-    let alternate_target = create_entity(&mut runtime, "alternate-relation-target");
-    let relation = create_relation(&mut runtime, source, target, "root-edge");
+    let source = create_entity(&runtime, "relation-source");
+    let target = create_entity(&runtime, "relation-target");
+    let alternate_target = create_entity(&runtime, "alternate-relation-target");
+    let relation = create_relation(&runtime, source, target, "root-edge");
     fork_from_main(&mut runtime, "storm");
     fork_from_main(&mut runtime, "maintenance");
 
@@ -105,10 +105,10 @@ fn relation_overlays_and_validation_footprints_stay_exact_basis_local() {
         .is_none());
 
     let storm = storm
-        .validate(&mut runtime)
+        .validate(&runtime)
         .expect("storm relation overlay validates against its root");
     let maintenance = maintenance
-        .validate(&mut runtime)
+        .validate(&runtime)
         .expect("maintenance relation overlay validates against its root");
     assert_eq!(storm.footprint().basis(), storm_basis.descriptor());
     assert_eq!(

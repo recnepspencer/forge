@@ -3,7 +3,7 @@ use crate::tests::support::*;
 
 #[test]
 fn active_snapshot_capacity_denies_before_handle_or_pin_admission() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .profile(RelationalRuntimeProfile::AiWorkflow)
         .schema_registry(test_schema_registry())
         .publication(PublicationConfig {

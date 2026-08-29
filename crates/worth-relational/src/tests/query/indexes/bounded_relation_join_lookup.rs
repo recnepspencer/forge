@@ -7,19 +7,19 @@ use crate::facade::indexes::{
 
 #[test]
 fn relation_join_isolates_both_exact_endpoints_and_certifies_storage_parity() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let left = create_entity(&mut runtime, "left");
-    let right = create_entity(&mut runtime, "right");
-    let other_left = create_entity(&mut runtime, "other-left");
-    let other_right = create_entity(&mut runtime, "other-right");
-    let selected = create_entity(&mut runtime, "selected");
-    let same_left = create_entity(&mut runtime, "same-left");
-    let same_right = create_entity(&mut runtime, "same-right");
-    bind_chain(&mut runtime, left, selected, right, "selected");
-    bind_chain(&mut runtime, left, same_left, other_right, "same-left");
-    bind_chain(&mut runtime, other_left, same_right, right, "same-right");
-    let index = register_relation_join(&mut runtime, 81);
-    build_current_generation(&mut runtime, index.index_id);
+    let runtime = runtime_with_index_field_aspects();
+    let left = create_entity(&runtime, "left");
+    let right = create_entity(&runtime, "right");
+    let other_left = create_entity(&runtime, "other-left");
+    let other_right = create_entity(&runtime, "other-right");
+    let selected = create_entity(&runtime, "selected");
+    let same_left = create_entity(&runtime, "same-left");
+    let same_right = create_entity(&runtime, "same-right");
+    bind_chain(&runtime, left, selected, right, "selected");
+    bind_chain(&runtime, left, same_left, other_right, "same-left");
+    bind_chain(&runtime, other_left, same_right, right, "same-right");
+    let index = register_relation_join(&runtime, 81);
+    build_current_generation(&runtime, index.index_id);
     let snapshot = runtime.visibility_authority().snapshot();
     let request = || join_request(snapshot.clone(), index.index_id, left, right, 2);
 
@@ -46,13 +46,13 @@ fn relation_join_isolates_both_exact_endpoints_and_certifies_storage_parity() {
 
 #[test]
 fn relation_join_certification_rejects_a_missing_candidate() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let left = create_entity(&mut runtime, "left");
-    let right = create_entity(&mut runtime, "right");
-    let selected = create_entity(&mut runtime, "selected");
-    bind_chain(&mut runtime, left, selected, right, "selected");
-    let index = register_relation_join(&mut runtime, 84);
-    build_current_generation(&mut runtime, index.index_id);
+    let runtime = runtime_with_index_field_aspects();
+    let left = create_entity(&runtime, "left");
+    let right = create_entity(&runtime, "right");
+    let selected = create_entity(&runtime, "selected");
+    bind_chain(&runtime, left, selected, right, "selected");
+    let index = register_relation_join(&runtime, 84);
+    build_current_generation(&runtime, index.index_id);
     let key = RelationJoinKey::new(left, right);
     runtime
         .indexes
@@ -80,16 +80,16 @@ fn relation_join_certification_rejects_a_missing_candidate() {
 
 #[test]
 fn relation_join_requires_an_exact_generation_and_reports_bounded_overflow() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let left = create_entity(&mut runtime, "left");
-    let right = create_entity(&mut runtime, "right");
-    let first = create_entity(&mut runtime, "first");
-    bind_chain(&mut runtime, left, first, right, "first");
-    let index = register_relation_join(&mut runtime, 82);
-    build_current_generation(&mut runtime, index.index_id);
+    let runtime = runtime_with_index_field_aspects();
+    let left = create_entity(&runtime, "left");
+    let right = create_entity(&runtime, "right");
+    let first = create_entity(&runtime, "first");
+    bind_chain(&runtime, left, first, right, "first");
+    let index = register_relation_join(&runtime, 82);
+    build_current_generation(&runtime, index.index_id);
 
-    let second = create_entity(&mut runtime, "second");
-    bind_chain(&mut runtime, left, second, right, "second");
+    let second = create_entity(&runtime, "second");
+    bind_chain(&runtime, left, second, right, "second");
     let current = runtime.visibility_authority().snapshot();
     let missing = runtime
         .index_access()
@@ -103,7 +103,7 @@ fn relation_join_requires_an_exact_generation_and_reports_bounded_overflow() {
         BoundedRelationJoinLookupDenialKind::ExactGenerationUnavailable
     );
 
-    build_current_generation(&mut runtime, index.index_id);
+    build_current_generation(&runtime, index.index_id);
     let bounded = runtime
         .index_access()
         .execute_bounded_relation_join_lookup(
@@ -118,18 +118,18 @@ fn relation_join_requires_an_exact_generation_and_reports_bounded_overflow() {
 
 #[test]
 fn relation_join_rejects_a_candidate_with_substituted_relation_evidence() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let left = create_entity(&mut runtime, "left");
-    let right = create_entity(&mut runtime, "right");
-    let selected = create_entity(&mut runtime, "selected");
-    let other_left = create_entity(&mut runtime, "other-left");
-    let other_right = create_entity(&mut runtime, "other-right");
-    let other_shared = create_entity(&mut runtime, "other-shared");
-    let (selected_left_relation, _) = bind_chain(&mut runtime, left, selected, right, "selected");
+    let runtime = runtime_with_index_field_aspects();
+    let left = create_entity(&runtime, "left");
+    let right = create_entity(&runtime, "right");
+    let selected = create_entity(&runtime, "selected");
+    let other_left = create_entity(&runtime, "other-left");
+    let other_right = create_entity(&runtime, "other-right");
+    let other_shared = create_entity(&runtime, "other-shared");
+    let (selected_left_relation, _) = bind_chain(&runtime, left, selected, right, "selected");
     let (_, substituted_right_relation) =
-        bind_chain(&mut runtime, other_left, other_shared, other_right, "other");
-    let index = register_relation_join(&mut runtime, 83);
-    build_current_generation(&mut runtime, index.index_id);
+        bind_chain(&runtime, other_left, other_shared, other_right, "other");
+    let index = register_relation_join(&runtime, 83);
+    build_current_generation(&runtime, index.index_id);
     let key = RelationJoinKey::new(left, right);
     runtime
         .indexes
@@ -161,15 +161,14 @@ fn relation_join_rejects_a_candidate_with_substituted_relation_evidence() {
 
 #[test]
 fn exact_relation_join_uses_one_branch_root_after_both_heads_diverge() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let left = create_entity(&mut runtime, "exact-left");
-    let right = create_entity(&mut runtime, "exact-right");
-    let selected = create_entity(&mut runtime, "exact-selected");
-    let (selected_left_relation, _) =
-        bind_chain(&mut runtime, left, selected, right, "exact-selected");
-    let index = register_relation_join_with_scope(&mut runtime, 85, true);
-    build_current_generation(&mut runtime, index.index_id);
-    let main_snapshot = snapshot_for_owner_branch(&mut runtime, &BranchId("main".to_owned()));
+    let runtime = runtime_with_index_field_aspects();
+    let left = create_entity(&runtime, "exact-left");
+    let right = create_entity(&runtime, "exact-right");
+    let selected = create_entity(&runtime, "exact-selected");
+    let (selected_left_relation, _) = bind_chain(&runtime, left, selected, right, "exact-selected");
+    let index = register_relation_join_with_scope(&runtime, 85, true);
+    build_current_generation(&runtime, index.index_id);
+    let main_snapshot = snapshot_for_owner_branch(&runtime, &BranchId("main".to_owned()));
 
     runtime
         .history_authority()
@@ -179,19 +178,19 @@ fn exact_relation_join_uses_one_branch_root_after_both_heads_diverge() {
         )
         .unwrap();
     let sibling_snapshot =
-        snapshot_for_owner_branch(&mut runtime, &BranchId("join-sibling".to_owned()));
+        snapshot_for_owner_branch(&runtime, &BranchId("join-sibling".to_owned()));
     create_entity_outcome_on_branch(
-        &mut runtime,
+        &runtime,
         "sibling-after-observation",
         BranchId("join-sibling".to_owned()),
     );
     delete_relation_on_branch(
-        &mut runtime,
+        &runtime,
         selected_left_relation,
         BranchId("main".to_owned()),
     );
-    build_current_generation(&mut runtime, index.index_id);
-    let current_main = snapshot_for_owner_branch(&mut runtime, &BranchId("main".to_owned()));
+    build_current_generation(&runtime, index.index_id);
+    let current_main = snapshot_for_owner_branch(&runtime, &BranchId("main".to_owned()));
 
     let current_outcome = runtime
         .index_access()

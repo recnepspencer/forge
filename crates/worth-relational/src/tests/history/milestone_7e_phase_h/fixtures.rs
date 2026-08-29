@@ -181,7 +181,7 @@ pub(super) fn runtime_with_relation_identity_registry(
 }
 
 pub(super) fn create_named_entity_on_branch(
-    mut runtime: &RelationalRuntime,
+    runtime: &RelationalRuntime,
     client_key: &str,
     name: &str,
     status: Option<&str>,
@@ -192,7 +192,7 @@ pub(super) fn create_named_entity_on_branch(
         fields.push((aspect_key("status"), field_key("status"), status));
     }
     let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
-        &mut runtime,
+        runtime,
         BranchId(branch.to_string()),
     );
     txn.push_batch(WorkerIntentBatch::new(format!("seed-{client_key}")).push(
@@ -206,7 +206,7 @@ pub(super) fn create_named_entity_on_branch(
         )),
     ))
     .expect("test staging stays within configured resource budgets");
-    txn.commit(&mut runtime).expect("seed entity");
+    txn.commit(runtime).expect("seed entity");
 }
 
 pub(super) fn merge_request() -> MergeExecutionRequest {

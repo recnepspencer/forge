@@ -4,8 +4,8 @@ use crate::tests::support::*;
 
 #[test]
 fn overlay_byte_exhaustion_rejects_without_partial_staging() {
-    let mut runtime = runtime_with_limits(0, 8, 8);
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
+    let runtime = runtime_with_limits(0, 8, 8);
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
 
     assert!(matches!(
         transaction.push_batch(batch_create("overlay-red-control")),
@@ -20,8 +20,8 @@ fn overlay_byte_exhaustion_rejects_without_partial_staging() {
 
 #[test]
 fn footprint_exhaustion_rejects_without_overlay_or_index_residue() {
-    let mut runtime = runtime_with_limits(1_048_576, 0, 8);
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
+    let runtime = runtime_with_limits(1_048_576, 0, 8);
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
 
     assert_eq!(
         transaction.push_batch(batch_create("footprint-red-control")),
@@ -38,8 +38,8 @@ fn footprint_exhaustion_rejects_without_overlay_or_index_residue() {
 
 #[test]
 fn savepoint_exhaustion_rejects_without_transaction_or_footprint_residue() {
-    let mut runtime = runtime_with_limits(1_048_576, 8, 1);
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
+    let runtime = runtime_with_limits(1_048_576, 8, 1);
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
     transaction
         .push_batch(batch_create("savepoint-budget-write"))
         .unwrap();
@@ -62,8 +62,8 @@ fn savepoint_exhaustion_rejects_without_transaction_or_footprint_residue() {
 
 #[test]
 fn cumulative_savepoint_footprints_deny_before_an_unbounded_clone() {
-    let mut runtime = runtime_with_limits(1_048_576, 2, 8);
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
+    let runtime = runtime_with_limits(1_048_576, 2, 8);
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
     transaction
         .push_batch(batch_create("savepoint-footprint-write"))
         .unwrap();

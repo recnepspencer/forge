@@ -2,8 +2,8 @@ use super::*;
 
 #[test]
 fn schema_continuity_publication_rejects_incomplete_canonical_bundle() {
-    let mut runtime = runtime_with_test_schema();
-    let outcome = create_entity_outcome(&mut runtime, "a");
+    let runtime = runtime_with_test_schema();
+    let outcome = create_entity_outcome(&runtime, "a");
     let mut envelope = outcome.envelope().clone();
     let fingerprint = SchemaBoundaryFingerprint::new([13_u8; 32]);
     let transition = SchemaTransitionArtifact::new(
@@ -94,8 +94,8 @@ fn schema_continuity_publication_rejects_incomplete_canonical_bundle() {
 
 #[test]
 fn schema_continuity_publication_rejects_descriptor_semantics_mismatch() {
-    let mut runtime = runtime_with_test_schema();
-    let outcome = create_entity_outcome(&mut runtime, "a");
+    let runtime = runtime_with_test_schema();
+    let outcome = create_entity_outcome(&runtime, "a");
     let fingerprint = SchemaBoundaryFingerprint::new([17_u8; 32]);
     let transition = SchemaTransitionArtifact::new(
         SchemaId("test".to_string()),
@@ -187,8 +187,8 @@ fn schema_continuity_publication_rejects_descriptor_semantics_mismatch() {
 
 #[test]
 fn shared_continuity_bundle_validator_reports_boundary_fingerprint_mismatch() {
-    let mut runtime = runtime_with_test_schema();
-    let outcome = create_entity_outcome(&mut runtime, "a");
+    let runtime = runtime_with_test_schema();
+    let outcome = create_entity_outcome(&runtime, "a");
     let fingerprint = SchemaBoundaryFingerprint::new([23_u8; 32]);
     let bridge_fingerprint = SchemaBoundaryFingerprint::new([24_u8; 32]);
     let transition = SchemaTransitionArtifact::new(

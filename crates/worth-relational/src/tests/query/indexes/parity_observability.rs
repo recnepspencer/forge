@@ -2,8 +2,8 @@ use super::*;
 
 #[test]
 fn derived_index_contract_failure_unknown_index_keeps_truth_reads_correct() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let outcome = create_entity_outcome(&mut runtime, "main-a");
+    let runtime = runtime_with_index_field_aspects();
+    let outcome = create_entity_outcome(&runtime, "main-a");
     let snapshot = runtime.visibility_authority().snapshot();
     let storage_only = execute_explicit_query(
         &runtime,
@@ -55,8 +55,8 @@ fn derived_index_contract_failure_unknown_index_keeps_truth_reads_correct() {
 
 #[test]
 fn derived_index_contract_certification_mode_emits_stable_parity_digest() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let outcome = create_entity_outcome(&mut runtime, "main-a");
+    let runtime = runtime_with_index_field_aspects();
+    let outcome = create_entity_outcome(&runtime, "main-a");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity.name.global".to_string(),
@@ -105,8 +105,8 @@ fn derived_index_contract_certification_mode_emits_stable_parity_digest() {
 
 #[test]
 fn derived_index_contract_sampled_parity_is_bounded_and_deterministic() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let alpha = create_entity_outcome(&mut runtime, "alpha");
+    let runtime = runtime_with_index_field_aspects();
+    let alpha = create_entity_outcome(&runtime, "alpha");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(9),
         name: "entity.name.sampled".to_string(),
@@ -210,10 +210,10 @@ fn derived_index_contract_sampled_parity_is_bounded_and_deterministic() {
 fn derived_index_contract_runtime_drop_releases_index_scratch_hints() {
     let runtime_id;
     {
-        let mut runtime = runtime_with_index_field_aspects();
+        let runtime = runtime_with_index_field_aspects();
         runtime_id = runtime.runtime_instance_id();
-        let _alpha_a = create_entity_outcome(&mut runtime, "alpha");
-        let _alpha_b = create_entity_outcome(&mut runtime, "alpha");
+        let _alpha_a = create_entity_outcome(&runtime, "alpha");
+        let _alpha_b = create_entity_outcome(&runtime, "alpha");
         let index = runtime.index_authority().register(DerivedIndexDefinition {
             index_id: DerivedIndexId(77),
             name: "entity.name.drop-release".to_string(),
@@ -285,8 +285,8 @@ fn derived_index_contract_runtime_drop_releases_index_scratch_hints() {
 
 #[test]
 fn derived_index_contract_index_counters_track_attempts_paths_and_rejections() {
-    let mut runtime = runtime_with_index_field_aspects();
-    let alpha = create_entity_outcome(&mut runtime, "alpha");
+    let runtime = runtime_with_index_field_aspects();
+    let alpha = create_entity_outcome(&runtime, "alpha");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity.name.lookup".to_string(),

@@ -2,13 +2,12 @@ use crate::tests::support::*;
 
 #[test]
 fn subscriber_cdc_is_snapshot_stable_under_hot_rewrite_pressure() {
-    let mut pinned_runtime =
-        runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
-    let mut unpinned_runtime =
+    let pinned_runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
+    let unpinned_runtime =
         runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
 
-    let baseline_pinned = create_entity_outcome(&mut pinned_runtime, "baseline");
-    let baseline_unpinned = create_entity_outcome(&mut unpinned_runtime, "baseline");
+    let baseline_pinned = create_entity_outcome(&pinned_runtime, "baseline");
+    let baseline_unpinned = create_entity_outcome(&unpinned_runtime, "baseline");
     let pinned_entity = changed_entities(&baseline_pinned)[0];
     let unpinned_entity = changed_entities(&baseline_unpinned)[0];
     let pinned_snapshot = pinned_runtime.visibility_authority().snapshot();
@@ -16,14 +15,14 @@ fn subscriber_cdc_is_snapshot_stable_under_hot_rewrite_pressure() {
     let rewrite_names = ["rewrite-1", "rewrite-2", "rewrite-3", "rewrite-4"];
     let mut pinned_latest = baseline_pinned.clone();
     for name in rewrite_names {
-        pinned_latest = update_entity(&mut pinned_runtime, pinned_entity, name);
-        let _ = update_entity(&mut unpinned_runtime, unpinned_entity, name);
+        pinned_latest = update_entity(&pinned_runtime, pinned_entity, name);
+        let _ = update_entity(&unpinned_runtime, unpinned_entity, name);
     }
 
     let churn_names = ["churn-a", "churn-b", "churn-c"];
     for churn in churn_names {
-        let _ = create_entity_outcome(&mut pinned_runtime, churn);
-        let _ = create_entity_outcome(&mut unpinned_runtime, churn);
+        let _ = create_entity_outcome(&pinned_runtime, churn);
+        let _ = create_entity_outcome(&unpinned_runtime, churn);
     }
 
     let checkpoint =

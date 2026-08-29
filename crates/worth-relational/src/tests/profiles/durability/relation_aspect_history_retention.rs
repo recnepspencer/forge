@@ -3,7 +3,7 @@ use crate::tests::support::*;
 
 #[test]
 fn retained_root_preserves_relation_aspect_history_without_record_pins() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .mvcc(MvccConfig {
             track_visibility_metadata: true,
@@ -13,15 +13,15 @@ fn retained_root_preserves_relation_aspect_history_without_record_pins() {
             retention_backend: RetentionBackend::PinTrackedRetention,
         })
         .build();
-    let source_outcome = create_entity_outcome(&mut runtime, "source");
-    let target_outcome = create_entity_outcome(&mut runtime, "target");
+    let source_outcome = create_entity_outcome(&runtime, "source");
+    let target_outcome = create_entity_outcome(&runtime, "target");
     let source = changed_entities(&source_outcome)[0];
     let target = changed_entities(&target_outcome)[0];
-    let relation = create_aspect_bearing_relation(&mut runtime, source, target);
+    let relation = create_aspect_bearing_relation(&runtime, source, target);
     let identity = runtime.main_branch_identity();
     let (_, retained_basis) = runtime.observe_branch(&identity).unwrap();
 
-    let deleted = delete_relation(&mut runtime, relation);
+    let deleted = delete_relation(&runtime, relation);
     runtime
         .visibility_authority()
         .release_snapshot(&source_outcome.snapshot)
@@ -66,11 +66,11 @@ struct DeletedAspectRelationEvidence {
 }
 
 fn create_aspect_bearing_relation(
-    mut runtime: &RelationalRuntime,
+    runtime: &RelationalRuntime,
     source: crate::facade::identity::EntityId,
     target: crate::facade::identity::EntityId,
 ) -> crate::facade::identity::RelationId {
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
     txn.push_batch(
         WorkerIntentBatch::new("aspect-bearing-relation").push(MutationIntent::Create(
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
@@ -84,7 +84,7 @@ fn create_aspect_bearing_relation(
         )),
     )
     .expect("test staging stays within configured resource budgets");
-    let created = txn.commit(&mut runtime).unwrap();
+    let created = txn.commit(runtime).unwrap();
     let relation = changed_relations(&created)[0];
     assert_eq!(runtime.relation_history_len_for_test(relation), 1);
     release_test_commit_snapshot(runtime, &created);
@@ -92,11 +92,11 @@ fn create_aspect_bearing_relation(
 }
 
 fn delete_relation(
-    mut runtime: &RelationalRuntime,
+    runtime: &RelationalRuntime,
     relation: crate::facade::identity::RelationId,
 ) -> DeletedAspectRelationEvidence {
     let created_snapshot = runtime.visibility_authority().snapshot();
-    let mut delete_txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut delete_txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
     delete_txn
         .push_batch(
             WorkerIntentBatch::new("delete-relation").push(MutationIntent::Relation(
@@ -106,7 +106,7 @@ fn delete_relation(
             )),
         )
         .expect("test staging stays within configured resource budgets");
-    let deleted = delete_txn.commit(&mut runtime).unwrap();
+    let deleted = delete_txn.commit(runtime).unwrap();
     DeletedAspectRelationEvidence {
         created_snapshot,
         deleted_snapshot: deleted.snapshot.clone(),

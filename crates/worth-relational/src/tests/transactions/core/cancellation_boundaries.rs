@@ -13,8 +13,8 @@ use crate::tests::support::*;
 #[test]
 fn admission_interruptions_after_retention_acquisition_release_exactly_once() {
     for interruption in interruption_twins() {
-        let mut runtime = runtime_with_test_schema();
-        create_entity(&mut runtime, "admission-interruption-anchor");
+        let runtime = runtime_with_test_schema();
+        create_entity(&runtime, "admission-interruption-anchor");
         let identity = runtime.main_branch_identity();
         let reference_before = runtime
             .branch_reference_state(&BranchId("main".to_owned()))
@@ -109,8 +109,8 @@ fn preparation_interruptions_leave_no_candidate_or_publication_residue() {
         (RelationalInterruptionBoundary::CandidatePreparation, 3),
     ] {
         for interruption in interruption_twins() {
-            let mut runtime = runtime_with_test_schema();
-            create_entity(&mut runtime, "preparation-interruption-anchor");
+            let runtime = runtime_with_test_schema();
+            create_entity(&runtime, "preparation-interruption-anchor");
             let identity = runtime.main_branch_identity();
             let (_, basis) = runtime.observe_branch(&identity).unwrap();
             let control = injected_control(boundary, interruption, trigger_on_visit);
@@ -125,7 +125,7 @@ fn preparation_interruptions_leave_no_candidate_or_publication_residue() {
                 .push_batch(batch_create("interrupted-preparation"))
                 .unwrap();
             let residue_before =
-                CancellationResidueSnapshot::capture(&mut runtime, &BranchId("main".to_owned()));
+                CancellationResidueSnapshot::capture(&runtime, &BranchId("main".to_owned()));
             let position_before = runtime.patch_position_reservation_counters();
             let cost_scope = RelationalMvccCostScope::capture(&runtime, vec![identity]);
 
@@ -140,7 +140,7 @@ fn preparation_interruptions_leave_no_candidate_or_publication_residue() {
             assert_eq!(event.interruption(), interruption);
             assert_eq!(event.boundary(), boundary);
             assert_eq!(
-                CancellationResidueSnapshot::capture(&mut runtime, &BranchId("main".to_owned())),
+                CancellationResidueSnapshot::capture(&runtime, &BranchId("main".to_owned())),
                 residue_before,
             );
             assert_eq!(
@@ -167,13 +167,13 @@ fn pre_effect_publication_interruptions_preserve_every_owner_surface() {
         RelationalInterruptionBoundary::BeforeCriticalSection,
     ] {
         for interruption in interruption_twins() {
-            let mut runtime = runtime_with_test_schema();
-            create_entity(&mut runtime, "publication-interruption-anchor");
+            let runtime = runtime_with_test_schema();
+            create_entity(&runtime, "publication-interruption-anchor");
             let identity = runtime.main_branch_identity();
             let (_, basis) = runtime.observe_branch(&identity).unwrap();
             let control = injected_control(boundary, interruption, 1);
             let residue_before =
-                CancellationResidueSnapshot::capture(&mut runtime, &BranchId("main".to_owned()));
+                CancellationResidueSnapshot::capture(&runtime, &BranchId("main".to_owned()));
             let mut transaction = runtime
                 .begin_branch_transaction_with_control(
                     &basis,
@@ -196,7 +196,7 @@ fn pre_effect_publication_interruptions_preserve_every_owner_surface() {
             assert_eq!(event.interruption(), interruption);
             assert_eq!(event.boundary(), boundary);
             assert_eq!(
-                CancellationResidueSnapshot::capture(&mut runtime, &BranchId("main".to_owned())),
+                CancellationResidueSnapshot::capture(&runtime, &BranchId("main".to_owned())),
                 residue_before,
             );
             assert_eq!(
@@ -217,8 +217,8 @@ fn performed_and_settlement_boundaries_report_both_late_interruption_reasons() {
         RelationalInterruptionBoundary::Settlement,
     ] {
         for interruption in interruption_twins() {
-            let mut runtime = runtime_with_test_schema();
-            create_entity(&mut runtime, "late-interruption-anchor");
+            let runtime = runtime_with_test_schema();
+            create_entity(&runtime, "late-interruption-anchor");
             let identity = runtime.main_branch_identity();
             let (_, basis) = runtime.observe_branch(&identity).unwrap();
             let control = injected_control(boundary, interruption, 1);
@@ -264,15 +264,15 @@ fn performed_and_settlement_boundaries_report_both_late_interruption_reasons() {
             assert_eq!(event.boundary(), boundary);
             let cost = runtime.observe_mvcc_counters(&cost_scope).unwrap();
             assert_interruption_count(&cost, boundary, interruption);
-            release_test_commit_snapshot(&mut runtime, &committed);
+            release_test_commit_snapshot(&runtime, &committed);
         }
     }
 }
 
 #[test]
 fn cancellation_after_linearization_returns_the_performed_commit() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "late-cancellation-anchor");
+    let runtime = runtime_with_test_schema();
+    create_entity(&runtime, "late-cancellation-anchor");
     let identity = runtime.main_branch_identity();
     let (_, basis) = runtime.observe_branch(&identity).unwrap();
     let source = RelationalCancellationSource::new();
@@ -326,7 +326,7 @@ fn cancellation_after_linearization_returns_the_performed_commit() {
     let committed = runtime
         .settle_performed_publication(performed)
         .expect("performed publication remains settleable after late cancellation");
-    release_test_commit_snapshot(&mut runtime, &committed);
+    release_test_commit_snapshot(&runtime, &committed);
 }
 
 fn interruption_twins() -> [RelationalOperationInterruption; 2] {

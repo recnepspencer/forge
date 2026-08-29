@@ -13,7 +13,7 @@ macro_rules! assert_target_state_unchanged {
 
 #[test]
 fn validate_lowered_plan_denies_foreign_runtime_before_missing_strategy_lookup() {
-    let mut runtime_a = RelationalRuntimeBuilder::new()
+    let runtime_a = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_schema_registry())
         .commit_strategy(strategy_registration())
         .build();
@@ -21,12 +21,12 @@ fn validate_lowered_plan_denies_foreign_runtime_before_missing_strategy_lookup()
     let execution = execution_draft(&request);
     let lowered = {
         let (validation_input, mut authority) =
-            crate::tests::support::test_owner_strategy_authority(&mut runtime_a, None);
+            crate::tests::support::test_owner_strategy_authority(&runtime_a, None);
         authority
-            .lower_execution_with_input(&mut runtime_a, &request, &execution, validation_input)
+            .lower_execution_with_input(&runtime_a, &request, &execution, validation_input)
             .expect("source runtime lowers its strategy plan")
     };
-    let mut runtime_b = RelationalRuntimeBuilder::new()
+    let runtime_b = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_schema_registry())
         .build();
     let symbols_before = runtime_b.services.symbols.clone();
@@ -37,7 +37,7 @@ fn validate_lowered_plan_denies_foreign_runtime_before_missing_strategy_lookup()
     let complexity_before = runtime_b.performance_access().counters();
 
     let error = CommitStrategiesAuthorityFacade::new()
-        .validate_lowered_plan(&mut runtime_b, lowered)
+        .validate_lowered_plan(&runtime_b, lowered)
         .expect_err("lowered strategy authority cannot cross runtimes");
 
     assert!(matches!(
@@ -61,7 +61,7 @@ fn validate_lowered_plan_denies_foreign_runtime_before_missing_strategy_lookup()
 
 #[test]
 fn execute_validated_commit_preserves_foreign_runtime_taxonomy_and_target_state() {
-    let mut runtime_a = RelationalRuntimeBuilder::new()
+    let runtime_a = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_schema_registry())
         .commit_strategy(strategy_registration())
         .build();
@@ -69,15 +69,15 @@ fn execute_validated_commit_preserves_foreign_runtime_taxonomy_and_target_state(
     let execution = execution_draft(&request);
     let validated = {
         let (validation_input, mut authority) =
-            crate::tests::support::test_owner_strategy_authority(&mut runtime_a, None);
+            crate::tests::support::test_owner_strategy_authority(&runtime_a, None);
         let lowered = authority
-            .lower_execution_with_input(&mut runtime_a, &request, &execution, validation_input)
+            .lower_execution_with_input(&runtime_a, &request, &execution, validation_input)
             .expect("source runtime lowers its strategy plan");
         authority
-            .validate_lowered_plan(&mut runtime_a, lowered)
+            .validate_lowered_plan(&runtime_a, lowered)
             .expect("source runtime validates its strategy plan")
     };
-    let mut runtime_b = RelationalRuntimeBuilder::new()
+    let runtime_b = RelationalRuntimeBuilder::new()
         .schema_registry(strategy_schema_registry())
         .commit_strategy(strategy_registration())
         .build();
@@ -89,7 +89,7 @@ fn execute_validated_commit_preserves_foreign_runtime_taxonomy_and_target_state(
     let complexity_before = runtime_b.performance_access().counters();
 
     let error = CommitStrategiesAuthorityFacade::new()
-        .execute_validated_commit(&mut runtime_b, validated)
+        .execute_validated_commit(&runtime_b, validated)
         .expect_err("validated strategy authority cannot cross runtimes");
 
     assert!(matches!(

@@ -15,9 +15,9 @@ fn native_struct_reference_and_clear_state_survive_checkpoint_readmission() {
         CascadeDeletePolicy::CascadeDeleteRelations,
     );
     fixture.entity_aspects.push(summary_binding);
-    let mut runtime = fixture.build_runtime();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
+    let runtime = fixture.build_runtime();
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
     let summary = StructAspectValue::new([
         (field_key("title"), AspectValue::String("durable".into())),
         (field_key("status"), AspectValue::String("transient".into())),
@@ -29,7 +29,7 @@ fn native_struct_reference_and_clear_state_survive_checkpoint_readmission() {
         .contract_for(&aspect_key("label"))
         .unwrap();
 
-    let mut initial = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut initial = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     initial
         .push_batch(
             WorkerIntentBatch::new("native-entity-struct").push(MutationIntent::Entity(
@@ -52,7 +52,7 @@ fn native_struct_reference_and_clear_state_survive_checkpoint_readmission() {
             })),
         ))
         .expect("test staging stays within configured resource budgets");
-    let initial = initial.commit(&mut runtime).unwrap();
+    let initial = initial.commit(&runtime).unwrap();
     let relation = changed_relations(&initial)[0];
 
     let status = field_key("status");
@@ -63,7 +63,7 @@ fn native_struct_reference_and_clear_state_survive_checkpoint_readmission() {
         field_clears: vec![status],
     }]);
     let mut clear_transaction =
-        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+        crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     clear_transaction
         .push_batch(
             WorkerIntentBatch::new("native-field-clear").push(MutationIntent::Entity(
@@ -74,7 +74,7 @@ fn native_struct_reference_and_clear_state_survive_checkpoint_readmission() {
             )),
         )
         .expect("test staging stays within configured resource budgets");
-    let cleared = clear_transaction.commit(&mut runtime).unwrap();
+    let cleared = clear_transaction.commit(&runtime).unwrap();
 
     let (expected_entity_state, expected_relation_state) = {
         let read = runtime
@@ -94,7 +94,7 @@ fn native_struct_reference_and_clear_state_survive_checkpoint_readmission() {
     };
     let recovery_fixture = fixture.clone();
     let (_, recovered) =
-        checkpoint_and_recover_with(&mut runtime, move || recovery_fixture.build_runtime());
+        checkpoint_and_recover_with(&runtime, move || recovery_fixture.build_runtime());
     let read = recovered.read_truth().read_version(cleared.version_id);
 
     assert_eq!(

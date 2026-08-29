@@ -11,10 +11,10 @@ use crate::tests::support::*;
 /// move, so a stale attempt must give back the exact reservation it installed.
 #[test]
 fn stale_publication_releases_its_pending_settlement_reservation() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "stale-reservation-anchor");
-    let loser = prepared_main_write(&mut runtime, "stale-loser");
-    let winner = prepared_main_write(&mut runtime, "stale-winner");
+    let runtime = runtime_with_test_schema();
+    create_entity(&runtime, "stale-reservation-anchor");
+    let loser = prepared_main_write(&runtime, "stale-loser");
+    let winner = prepared_main_write(&runtime, "stale-winner");
 
     let crate::mvcc::RelationalPublicationOutcome::Performed(performed) =
         runtime.publication_port().compare_and_publish(winner)
@@ -62,7 +62,7 @@ fn stale_publication_releases_its_pending_settlement_reservation() {
             > contacts_before,
         "the stale attempt did reach the registry before releasing"
     );
-    release_test_commit_snapshot(&mut runtime, &settled);
+    release_test_commit_snapshot(&runtime, &settled);
 }
 
 /// Interruption between the pre-effect reservation and the linearization point
@@ -73,8 +73,8 @@ fn interrupted_publication_releases_its_pending_settlement_reservation() {
         RelationalOperationInterruption::Cancelled,
         RelationalOperationInterruption::TimedOut,
     ] {
-        let mut runtime = runtime_with_test_schema();
-        create_entity(&mut runtime, "interrupted-reservation-anchor");
+        let runtime = runtime_with_test_schema();
+        create_entity(&runtime, "interrupted-reservation-anchor");
         let identity = runtime.main_branch_identity();
         let (_, basis) = runtime.observe_branch(&identity).unwrap();
         let control = RelationalOperationControl::uninterrupted().with_injected_interruption(
@@ -128,7 +128,7 @@ fn interrupted_publication_releases_its_pending_settlement_reservation() {
 /// reservation: the registry needs no second capacity check to stay bounded.
 #[test]
 fn published_snapshot_capacity_defers_at_preparation_without_reaching_settlement() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .publication(PublicationConfig {
             coherent_publication_required: true,
@@ -143,14 +143,14 @@ fn published_snapshot_capacity_defers_at_preparation_without_reaching_settlement
             max_prepared_root_bytes: 268_435_456,
         })
         .build();
-    let first = create_entity_outcome(&mut runtime, "capacity-first");
-    let second = create_entity_outcome(&mut runtime, "capacity-second");
+    let first = create_entity_outcome(&runtime, "capacity-first");
+    let second = create_entity_outcome(&runtime, "capacity-second");
     let before = test_owner_main_basis(&runtime).unwrap();
     let contacts_before = runtime
         .publication_binding()
         .pending_settlement_contact_count();
 
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
     transaction
         .push_batch(batch_create("capacity-third"))
         .unwrap();
@@ -184,8 +184,8 @@ fn published_snapshot_capacity_defers_at_preparation_without_reaching_settlement
         before.descriptor(),
         "capacity exhaustion performs no movement"
     );
-    release_test_commit_snapshot(&mut runtime, &first);
-    release_test_commit_snapshot(&mut runtime, &second);
+    release_test_commit_snapshot(&runtime, &first);
+    release_test_commit_snapshot(&runtime, &second);
 }
 
 /// The reservation is installed before the effect, not after it. Pausing at the
@@ -193,8 +193,8 @@ fn published_snapshot_capacity_defers_at_preparation_without_reaching_settlement
 /// its settlement record must already exist at that instant.
 #[test]
 fn the_pending_settlement_record_exists_before_the_moved_head_is_observable() {
-    let mut runtime = runtime_with_test_schema();
-    create_entity(&mut runtime, "pre-effect-install-anchor");
+    let runtime = runtime_with_test_schema();
+    create_entity(&runtime, "pre-effect-install-anchor");
     let identity = runtime.main_branch_identity();
     let (_, basis) = runtime.observe_branch(&identity).unwrap();
     let reached = Arc::new(Barrier::new(2));
@@ -245,7 +245,7 @@ fn the_pending_settlement_record_exists_before_the_moved_head_is_observable() {
         .settle_performed_publication(performed)
         .expect("the paused movement settles through its installed record");
     assert_eq!(runtime.publication_binding().pending_settlement_count(), 0);
-    release_test_commit_snapshot(&mut runtime, &settled);
+    release_test_commit_snapshot(&runtime, &settled);
 }
 
 fn prepared_main_write(

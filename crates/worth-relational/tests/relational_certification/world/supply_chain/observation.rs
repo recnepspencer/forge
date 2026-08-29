@@ -128,8 +128,8 @@ fn assemble_observation(
     schema: super::schema::SchemaVersion,
     view: &RelationalReadView,
 ) -> Result<ObservedSupplyChainState, ObservationError> {
-    let entities = observe_entities(program, handles, &view)?;
-    let relations = observe_relations(handles, &view)?;
+    let entities = observe_entities(program, handles, view)?;
+    let relations = observe_relations(handles, view)?;
     let branch = branch_label(branch_id)?;
     let parent = runtime
         .branch_reference_state(branch_id)

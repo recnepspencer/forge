@@ -12,9 +12,9 @@ use crate::transactions::data::{
 
 #[test]
 fn request_excludes_unrelated_relation_kind_registrations_for_relation_create() {
-    let mut runtime = relation_integrity_runtime();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
+    let runtime = relation_integrity_runtime();
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
     let plan = MergedCommitPlan {
         transaction_id: TransactionId(11),
         merged_intents: vec![MutationIntent::Create(CreateIntent::Relation(
@@ -43,19 +43,13 @@ fn request_excludes_unrelated_relation_kind_registrations_for_relation_create() 
 
 #[test]
 fn request_excludes_unrelated_relation_kind_registrations_for_entity_delete() {
-    let mut runtime = relation_integrity_runtime();
-    let anchor = create_entity(&mut runtime, "anchor");
-    let target = create_entity(&mut runtime, "target");
-    let isolated_a = create_entity(&mut runtime, "isolated-a");
-    let isolated_b = create_entity(&mut runtime, "isolated-b");
-    create_relation_of_kind(&mut runtime, KindId(2), anchor, target, "adjacent-kind2");
-    create_relation_of_kind(
-        &mut runtime,
-        KindId(3),
-        isolated_a,
-        isolated_b,
-        "remote-kind3",
-    );
+    let runtime = relation_integrity_runtime();
+    let anchor = create_entity(&runtime, "anchor");
+    let target = create_entity(&runtime, "target");
+    let isolated_a = create_entity(&runtime, "isolated-a");
+    let isolated_b = create_entity(&runtime, "isolated-b");
+    create_relation_of_kind(&runtime, KindId(2), anchor, target, "adjacent-kind2");
+    create_relation_of_kind(&runtime, KindId(3), isolated_a, isolated_b, "remote-kind3");
 
     let plan = MergedCommitPlan {
         transaction_id: TransactionId(12),
@@ -78,19 +72,13 @@ fn request_excludes_unrelated_relation_kind_registrations_for_entity_delete() {
 
 #[test]
 fn request_excludes_unrelated_relation_kind_registrations_for_entity_replace() {
-    let mut runtime = relation_integrity_runtime();
-    let anchor = create_entity(&mut runtime, "anchor");
-    let target = create_entity(&mut runtime, "target");
-    let isolated_a = create_entity(&mut runtime, "isolated-a");
-    let isolated_b = create_entity(&mut runtime, "isolated-b");
-    create_relation_of_kind(&mut runtime, KindId(2), anchor, target, "adjacent-kind2");
-    create_relation_of_kind(
-        &mut runtime,
-        KindId(3),
-        isolated_a,
-        isolated_b,
-        "remote-kind3",
-    );
+    let runtime = relation_integrity_runtime();
+    let anchor = create_entity(&runtime, "anchor");
+    let target = create_entity(&runtime, "target");
+    let isolated_a = create_entity(&runtime, "isolated-a");
+    let isolated_b = create_entity(&runtime, "isolated-b");
+    create_relation_of_kind(&runtime, KindId(2), anchor, target, "adjacent-kind2");
+    create_relation_of_kind(&runtime, KindId(3), isolated_a, isolated_b, "remote-kind3");
 
     let plan = MergedCommitPlan {
         transaction_id: TransactionId(13),
@@ -121,10 +109,10 @@ fn request_excludes_unrelated_relation_kind_registrations_for_entity_replace() {
 
 #[test]
 fn request_includes_deleted_relation_kind_scope_for_delete_only_commits() {
-    let mut runtime = relation_integrity_runtime();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    let relation_id = create_relation_of_kind(&mut runtime, KindId(2), source, target, "edge");
+    let runtime = relation_integrity_runtime();
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    let relation_id = create_relation_of_kind(&runtime, KindId(2), source, target, "edge");
 
     let plan = MergedCommitPlan {
         transaction_id: TransactionId(14),

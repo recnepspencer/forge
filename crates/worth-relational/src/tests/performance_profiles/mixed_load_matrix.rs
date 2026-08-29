@@ -7,13 +7,13 @@ fn perf_mixed_load_matrix() {
 
     let snapshot_version_pressure_samples =
         capture_perf_samples(suite, "concurrent_snapshot_version_read_pressure", || {
-            let mut runtime =
+            let runtime =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
-            let created = create_entity_outcome(&mut runtime, "baseline");
+            let created = create_entity_outcome(&runtime, "baseline");
             let created_version_id = created.version_id;
             let entity = changed_entities(&created)[0];
             let explicit_snapshot = runtime.visibility_authority().snapshot();
-            let updated = update_entity(&mut runtime, entity, "mutated");
+            let updated = update_entity(&runtime, entity, "mutated");
 
             let serial_snapshot_name = {
                 let read = runtime
@@ -128,26 +128,26 @@ fn perf_mixed_load_matrix() {
 
     let relation_index_pressure_samples =
         capture_perf_samples(suite, "concurrent_relation_index_parity_pressure", || {
-            let mut runtime = runtime_with_test_schema_execution_model(
+            let runtime = runtime_with_test_schema_execution_model(
                 crate::facade::runtime::RelationalExecutionModel::ParallelPreparation,
             );
-            let source = create_entity_outcome(&mut runtime, "source");
+            let source = create_entity_outcome(&runtime, "source");
             let source_id = changed_entities(&source)[0];
             let targets = [
-                create_entity_in_partition(&mut runtime, "r0", PartitionId(7)),
-                create_entity_in_partition(&mut runtime, "r1", PartitionId(11)),
-                create_entity_in_partition(&mut runtime, "r2", PartitionId(13)),
+                create_entity_in_partition(&runtime, "r0", PartitionId(7)),
+                create_entity_in_partition(&runtime, "r1", PartitionId(11)),
+                create_entity_in_partition(&runtime, "r2", PartitionId(13)),
             ];
             for (index, target) in targets.into_iter().enumerate() {
                 create_relation_in_partition(
-                    &mut runtime,
+                    &runtime,
                     source_id,
                     target,
                     if index < 2 { "fast" } else { "slow" },
                     PartitionId(23 + index as u32),
                 );
             }
-            let commit = create_entity_outcome(&mut runtime, "anchor");
+            let commit = create_entity_outcome(&runtime, "anchor");
             let relation_index = runtime.index_authority().register(DerivedIndexDefinition {
                 index_id: DerivedIndexId(0),
                 name: "relation.name".to_string(),

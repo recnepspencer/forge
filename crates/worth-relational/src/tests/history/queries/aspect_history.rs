@@ -2,11 +2,10 @@ use crate::tests::support::*;
 
 #[test]
 fn record_local_aspect_history_reads_committed_patch_truth() {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let created = create_entity_outcome(&mut runtime, "before");
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let created = create_entity_outcome(&runtime, "before");
     let entity = changed_entities(&created)[0];
-    let updated = update_entity(&mut runtime, entity, "after");
+    let updated = update_entity(&runtime, entity, "after");
     let history =
         runtime
             .history()
@@ -84,7 +83,7 @@ fn record_local_aspect_history_reads_committed_patch_truth() {
 
 #[test]
 fn aspect_history_projection_filter_matches_field_level_patch_locus() {
-    let mut runtime = AspectSchemaFixture {
+    let runtime = AspectSchemaFixture {
         entity_aspects: vec![
             entity_summary_struct_aspect(aspect_key("summary"), field_key("summary")),
             lifecycle_aspect(),
@@ -92,7 +91,7 @@ fn aspect_history_projection_filter_matches_field_level_patch_locus() {
         ..AspectSchemaFixture::default()
     }
     .build_runtime();
-    let mut create_txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut create_txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     create_txn
         .push_batch(
             WorkerIntentBatch::new("summary-history").push(MutationIntent::Create(
@@ -111,9 +110,9 @@ fn aspect_history_projection_filter_matches_field_level_patch_locus() {
             )),
         )
         .expect("test staging stays within configured resource budgets");
-    let created = create_txn.commit(&mut runtime).unwrap();
+    let created = create_txn.commit(&runtime).unwrap();
     let entity = changed_entities(&created)[0];
-    let mut update_txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut update_txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     update_txn
         .push_batch(
             WorkerIntentBatch::new("summary-history-update").push(MutationIntent::Entity(
@@ -130,7 +129,7 @@ fn aspect_history_projection_filter_matches_field_level_patch_locus() {
             )),
         )
         .expect("test staging stays within configured resource budgets");
-    update_txn.commit(&mut runtime).unwrap();
+    update_txn.commit(&runtime).unwrap();
 
     let status_filter = ProjectionAspectFilter::new(
         ProjectionAspectFilterMode::All,
@@ -162,13 +161,13 @@ fn aspect_history_projection_filter_matches_field_level_patch_locus() {
 
 #[test]
 fn bulk_like_aspect_history_filters_and_query_packets_stay_stable_after_recovery() {
-    let mut runtime =
+    let runtime =
         persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::RetainDanglingForAudit);
-    let hub = create_entity(&mut runtime, "hub");
+    let hub = create_entity(&runtime, "hub");
     let leaves = (0..8)
         .map(|index| {
             create_entity_in_partition(
-                &mut runtime,
+                &runtime,
                 &format!("leaf-{index}"),
                 PartitionId((index % 3 + 7) as u32),
             )
@@ -179,7 +178,7 @@ fn bulk_like_aspect_history_filters_and_query_packets_stay_stable_after_recovery
         .enumerate()
         .map(|(index, leaf)| {
             create_relation_in_partition(
-                &mut runtime,
+                &runtime,
                 hub,
                 *leaf,
                 &format!("edge-{index}"),
@@ -188,7 +187,7 @@ fn bulk_like_aspect_history_filters_and_query_packets_stay_stable_after_recovery
         })
         .collect::<Vec<_>>();
     for (index, leaf) in leaves.iter().enumerate() {
-        let _ = update_entity(&mut runtime, *leaf, &format!("leaf-{index}-updated"));
+        let _ = update_entity(&runtime, *leaf, &format!("leaf-{index}-updated"));
     }
     let snapshot = runtime.visibility_authority().snapshot();
     let planned_packet = runtime
@@ -220,7 +219,7 @@ fn bulk_like_aspect_history_filters_and_query_packets_stay_stable_after_recovery
     .result;
     let name_filter = all_aspect_filter(["name"]);
     let endpoints_filter = all_aspect_filter(["source", "target"]);
-    let delete_outcome = delete_entity(&mut runtime, hub);
+    let delete_outcome = delete_entity(&runtime, hub);
     let expected_entity_digests = leaves
         .iter()
         .map(|entity| entity_aspect_history_digest(&runtime, *entity, Some(&name_filter)))

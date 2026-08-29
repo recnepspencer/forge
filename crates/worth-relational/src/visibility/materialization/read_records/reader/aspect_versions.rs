@@ -76,9 +76,9 @@ mod tests {
 
     #[test]
     fn unresolved_symbolic_aspect_versions_are_not_exposed_as_foundational_keys() {
-        let mut runtime =
+        let runtime =
             runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-        let entity = create_entity(&mut runtime, "alpha");
+        let entity = create_entity(&runtime, "alpha");
         {
             let mut writer = runtime.edit_partitions();
             let partition = writer

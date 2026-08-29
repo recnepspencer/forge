@@ -18,7 +18,7 @@ use worth_relational::facade::transactions::planned_single_field_locator;
 #[test]
 fn populated_derived_index_cache_stays_outside_owner_authority_accounting() {
     let empty_cache_growth = empty_entity_field_cache_growth();
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &expected);
     let main_branch = BranchId("main".to_owned());
     let main_identity = world.runtime.main_branch_identity();
@@ -121,7 +121,7 @@ fn populated_derived_index_cache_stays_outside_owner_authority_accounting() {
 }
 
 fn empty_entity_field_cache_growth() -> u64 {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &expected);
     let main_branch = BranchId("main".to_owned());
     let main_identity = world.runtime.main_branch_identity();

@@ -2,8 +2,8 @@ use crate::tests::support::*;
 
 #[test]
 fn latest_bundle_remains_a_convenience_surface_not_the_subscriber_contract() {
-    let mut runtime = runtime_with_test_schema();
-    let _ = create_entity_outcome(&mut runtime, "anchor");
+    let runtime = runtime_with_test_schema();
+    let _ = create_entity_outcome(&runtime, "anchor");
 
     let publication = runtime.publication();
     let bundle = publication.latest_bundle().unwrap();
@@ -27,8 +27,8 @@ fn latest_bundle_remains_a_convenience_surface_not_the_subscriber_contract() {
 
 #[test]
 fn publication_snapshots_are_the_outward_artifact_surface_for_latest_exports() {
-    let mut runtime = runtime_with_test_schema();
-    let _ = create_entity_outcome(&mut runtime, "anchor");
+    let runtime = runtime_with_test_schema();
+    let _ = create_entity_outcome(&runtime, "anchor");
 
     let publication = runtime.publication();
     let artifact_snapshot = publication.artifact_snapshot();

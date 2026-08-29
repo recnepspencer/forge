@@ -1,7 +1,7 @@
 use super::*;
 
 pub(super) fn seed_pseudorealistic_rocketship_world(
-    mut runtime: &RelationalRuntime,
+    runtime: &RelationalRuntime,
     node_count: usize,
     query_target_count: usize,
 ) -> RocketshipPseudoRealisticSeedOutcome {
@@ -14,7 +14,7 @@ pub(super) fn seed_pseudorealistic_rocketship_world(
 
     let entity_commit_started_at = Instant::now();
     let entity_outcome = {
-        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+        let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
         let mut batch = WorkerIntentBatch::new("rocketship-pseudorealistic-entities");
         let mut entity_specs = Vec::with_capacity(node_count);
         for (layout_index, layout) in ROCKETSHIP_SUBSYSTEM_LAYOUTS.iter().enumerate() {
@@ -79,7 +79,7 @@ pub(super) fn seed_pseudorealistic_rocketship_world(
         }
         txn.push_batch(batch)
             .expect("test staging stays within configured resource budgets");
-        txn.commit(&mut runtime)
+        txn.commit(runtime)
             .expect("pseudorealistic rocketship entity seed commit")
     };
     let entity_commit_micros = entity_commit_started_at.elapsed().as_micros();
@@ -222,8 +222,7 @@ pub(super) fn seed_pseudorealistic_rocketship_world(
     {
         let relation_commit_started_at = Instant::now();
         let outcome = {
-            let mut txn =
-                crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+            let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
             let mut batch = WorkerIntentBatch::new(format!(
                 "rocketship-pseudorealistic-relations-bulk-{chunk_index}"
             ));
@@ -232,7 +231,7 @@ pub(super) fn seed_pseudorealistic_rocketship_world(
             }
             txn.push_batch(batch)
                 .expect("test staging stays within configured resource budgets");
-            txn.commit(&mut runtime)
+            txn.commit(runtime)
                 .expect("pseudorealistic rocketship relation seed commit chunk")
         };
         relation_commit_micros += relation_commit_started_at.elapsed().as_micros();

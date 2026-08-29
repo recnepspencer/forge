@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn replay_contract_reports_schema_continuation_descriptor_drift_when_envelope_is_tampered() {
     let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
+    let _first = create_entity_outcome(&runtime, "a");
 
     runtime.set_schema_registry_for_test(
         AspectSchemaFixture {
@@ -56,7 +56,7 @@ fn replay_contract_reports_schema_continuation_descriptor_drift_when_envelope_is
     };
     txn.push_batch(batch_create("b"))
         .expect("test staging stays within configured resource budgets");
-    let outcome = txn.commit(&mut runtime).unwrap();
+    let outcome = txn.commit(&runtime).unwrap();
 
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(
         outcome.commit.commit_id,
@@ -92,7 +92,7 @@ fn replay_contract_reports_schema_continuation_descriptor_drift_when_envelope_is
 #[test]
 fn replay_contract_audit_mode_confirms_schema_continuation_descriptor_drift_at_deep_layer() {
     let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
+    let _first = create_entity_outcome(&runtime, "a");
 
     runtime.set_schema_registry_for_test(
         AspectSchemaFixture {
@@ -145,7 +145,7 @@ fn replay_contract_audit_mode_confirms_schema_continuation_descriptor_drift_at_d
     };
     txn.push_batch(batch_create("b"))
         .expect("test staging stays within configured resource budgets");
-    let outcome = txn.commit(&mut runtime).unwrap();
+    let outcome = txn.commit(&runtime).unwrap();
 
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(
         outcome.commit.commit_id,
@@ -181,7 +181,7 @@ fn replay_contract_audit_mode_confirms_schema_continuation_descriptor_drift_at_d
 #[test]
 fn replay_certification_audit_drift_is_explained_and_counted() {
     let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
+    let _first = create_entity_outcome(&runtime, "a");
 
     runtime.set_schema_registry_for_test(
         AspectSchemaFixture {
@@ -234,7 +234,7 @@ fn replay_certification_audit_drift_is_explained_and_counted() {
     };
     txn.push_batch(batch_create("b"))
         .expect("test staging stays within configured resource budgets");
-    let outcome = txn.commit(&mut runtime).unwrap();
+    let outcome = txn.commit(&runtime).unwrap();
 
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(
         outcome.commit.commit_id,
@@ -295,7 +295,7 @@ fn replay_certification_audit_drift_is_explained_and_counted() {
 #[test]
 fn replay_contract_reports_schema_lineage_drift_at_summary_layer_when_digest_is_unavailable() {
     let mut runtime = runtime_with_test_schema();
-    let _first = create_entity_outcome(&mut runtime, "a");
+    let _first = create_entity_outcome(&runtime, "a");
 
     runtime.set_schema_registry_for_test(
         AspectSchemaFixture {
@@ -348,7 +348,7 @@ fn replay_contract_reports_schema_lineage_drift_at_summary_layer_when_digest_is_
     };
     txn.push_batch(batch_create("b"))
         .expect("test staging stays within configured resource budgets");
-    let outcome = txn.commit(&mut runtime).unwrap();
+    let outcome = txn.commit(&runtime).unwrap();
 
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(
         outcome.commit.commit_id,

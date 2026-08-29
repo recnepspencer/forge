@@ -24,8 +24,8 @@ fn runtime_bridge_snapshot_reader_prefers_retained_observation_over_later_commit
         RuntimeBridgeRelationalSource::for_shared_graph_role(Arc::clone(&runtime), "model")
             .expect("test graph role");
     let created = {
-        let mut runtime = runtime.lock().expect("test runtime lock");
-        create_entity_outcome(&mut runtime, "alice")
+        let runtime = runtime.lock().expect("test runtime lock");
+        create_entity_outcome(&runtime, "alice")
     };
     let active_entity_identity = active_entity_identity(&created);
     let branch_identity = runtime
@@ -66,8 +66,8 @@ fn runtime_bridge_snapshot_reader_prefers_retained_observation_over_later_commit
 
 #[test]
 fn runtime_bridge_snapshot_reader_requires_a_retained_branch_observation() {
-    let mut runtime = runtime_with_test_schema();
-    let created = create_entity_outcome(&mut runtime, "managed");
+    let runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&runtime, "managed");
     let branch_id = created.snapshot.branch_id.clone();
     let branch_identity = runtime
         .branch_identity(&branch_id)
@@ -121,10 +121,10 @@ fn active_entity_identity(
 }
 
 fn replace_entity_after_snapshot(
-    mut runtime: &mut crate::facade::runtime::RelationalRuntime,
+    runtime: &mut crate::facade::runtime::RelationalRuntime,
     created: &crate::facade::transactions::CommitResult,
 ) {
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(runtime);
     txn.push_batch(
         WorkerIntentBatch::new("update").push(MutationIntent::Entity(
             EntityMutationIntent::Replace(ReplaceEntityIntent {
@@ -143,8 +143,7 @@ fn replace_entity_after_snapshot(
         )),
     )
     .expect("test staging stays within configured resource budgets");
-    txn.commit(&mut runtime)
-        .expect("second commit should publish");
+    txn.commit(runtime).expect("second commit should publish");
 }
 
 fn runtime_with_test_schema() -> crate::facade::runtime::RelationalRuntime {

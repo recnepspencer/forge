@@ -38,12 +38,12 @@ where
         "replay certification failure: {replay:?}"
     );
 
-    let (_recovery, mut recovered) = checkpoint_and_recover_with(runtime, recovered_factory);
+    let (_recovery, recovered) = checkpoint_and_recover_with(runtime, recovered_factory);
     let recovered_envelope = recovered
         .replay()
         .canonical_commit_envelope(merge.commit.commit.commit_id)
         .expect("recovered merge envelope");
-    let recovered_truth_bundle = capture_aspect_truth_bundle(&mut recovered, &[], &[], &[]);
+    let recovered_truth_bundle = capture_aspect_truth_bundle(&recovered, &[], &[], &[]);
 
     let recovery_envelope_matches = envelope == recovered_envelope;
     let recovery_truth_matches = truth_bundle.visible_truth == recovered_truth_bundle.visible_truth;

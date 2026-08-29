@@ -74,8 +74,8 @@ fn retained_merge_proof_packet_preserves_exact_authority_truth() {
 
 #[test]
 fn published_merge_outcome_retains_proof_packet_as_authority() {
-    let mut runtime = merge_ready_runtime();
-    let outcome = execute_merge(&mut runtime);
+    let runtime = merge_ready_runtime();
+    let outcome = execute_merge(&runtime);
     let summary_packet = outcome.execution_summary.proof_packet().clone();
     let live_authority = published_merge_authority(&runtime, outcome.commit.commit.commit_id);
 
@@ -234,12 +234,12 @@ fn proof_packet_deserialization_rejects_forged_retained_truth() {
 
 #[test]
 fn merge_proof_packet_survives_publication_and_recovery_without_drift() {
-    let mut runtime = merge_ready_runtime();
-    let outcome = execute_merge(&mut runtime);
+    let runtime = merge_ready_runtime();
+    let outcome = execute_merge(&runtime);
     let live_packet = outcome.execution_summary.proof_packet.clone();
     let live_authority = published_merge_authority(&runtime, outcome.commit.commit.commit_id);
     let (_recovery, recovered) =
-        checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
+        checkpoint_and_recover_with(&runtime, persisted_runtime_with_test_schema);
     let recovered_authority =
         published_merge_authority(&recovered, outcome.commit.commit.commit_id);
 
@@ -259,8 +259,8 @@ fn merge_proof_packet_survives_publication_and_recovery_without_drift() {
 
 #[test]
 fn replay_rebuild_denies_summary_and_packet_drift() {
-    let mut runtime = merge_ready_runtime();
-    let outcome = execute_merge(&mut runtime);
+    let runtime = merge_ready_runtime();
+    let outcome = execute_merge(&runtime);
     let mut envelope = runtime
         .replay()
         .canonical_commit_envelope(outcome.commit.commit.commit_id)
@@ -300,14 +300,10 @@ fn replay_rebuild_denies_summary_and_packet_drift() {
 }
 
 fn merge_ready_runtime() -> RelationalRuntime {
-    let mut runtime = persisted_runtime_with_test_schema();
-    create_entity(&mut runtime, "root");
-    create_branch_from_main(&mut runtime, "feature");
-    create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-only",
-        BranchId("feature".to_string()),
-    );
+    let runtime = persisted_runtime_with_test_schema();
+    create_entity(&runtime, "root");
+    create_branch_from_main(&runtime, "feature");
+    create_entity_outcome_on_branch(&runtime, "feature-only", BranchId("feature".to_string()));
     runtime
 }
 

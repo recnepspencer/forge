@@ -266,7 +266,7 @@ fn two_v1_siblings_transition_independently_and_retained_v1_truth_stays_exact() 
 
 #[test]
 fn stale_schema_transition_basis_cannot_install_target_authority() {
-    let (mut world, _) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, _) = certified_supply_chain_world(SupplyChainScale::court());
     let identity = world.runtime.main_branch_identity();
     let basis = world.runtime.admit_branch_basis(&identity).unwrap();
     let ordinary = world
@@ -276,7 +276,7 @@ fn stale_schema_transition_basis_cannot_install_target_authority() {
             worth_relational::facade::mvcc::RelationalTransactionIntent::ordinary(),
         )
         .unwrap();
-    let committed = ordinary.commit(&mut world.runtime).unwrap();
+    let committed = ordinary.commit(&world.runtime).unwrap();
     world
         .runtime
         .snapshots()

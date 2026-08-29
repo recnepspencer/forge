@@ -34,7 +34,7 @@ pub(super) fn verify_strategy_reexecution_surface(
     ) else {
         return;
     };
-    let Some(mut basis_runtime) = rebuild_strategy_basis_runtime(
+    let Some(basis_runtime) = rebuild_strategy_basis_runtime(
         runtime,
         envelope,
         expected_artifacts,
@@ -44,13 +44,12 @@ pub(super) fn verify_strategy_reexecution_surface(
     ) else {
         return;
     };
-    let Some(execution) =
-        execute_strategy_replay(&mut basis_runtime, expected_artifacts, mismatches)
+    let Some(execution) = execute_strategy_replay(&basis_runtime, expected_artifacts, mismatches)
     else {
         return;
     };
     let Some(observed) = lower_strategy_replay(
-        &mut basis_runtime,
+        &basis_runtime,
         envelope,
         expected_artifacts,
         &execution,
@@ -165,7 +164,7 @@ fn rebuild_strategy_basis_runtime(
         basis_commits,
         verification_mode,
     );
-    let mut basis_runtime = match runtime.rebuild_runtime_from_plan(basis_plan) {
+    let basis_runtime = match runtime.rebuild_runtime_from_plan(basis_plan) {
         Ok(runtime) => runtime,
         Err(error) => {
             mismatches.push(strategy_mismatch(
@@ -181,7 +180,7 @@ fn rebuild_strategy_basis_runtime(
         }
     };
     if let Err(detail) =
-        ensure_strategy_replay_basis_branch(&mut basis_runtime, envelope, expected_artifacts)
+        ensure_strategy_replay_basis_branch(&basis_runtime, envelope, expected_artifacts)
     {
         mismatches.push(strategy_mismatch(
             ReplayMismatchClass::StrategyExecutorUnavailable,

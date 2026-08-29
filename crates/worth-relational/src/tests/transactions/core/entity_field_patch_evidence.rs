@@ -9,11 +9,10 @@ use worth_foundational::facade::{
 
 #[test]
 fn update_entity_fields_canonical_delta_uses_authoritative_patch_evidence() {
-    let mut runtime =
-        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let entity = create_entity(&mut runtime, "before");
+    let runtime = runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let entity = create_entity(&runtime, "before");
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("field-patch").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
@@ -29,7 +28,7 @@ fn update_entity_fields_canonical_delta_uses_authoritative_patch_evidence() {
         )),
     )
     .expect("test staging stays within configured resource budgets");
-    let outcome = txn.commit(&mut runtime).unwrap();
+    let outcome = txn.commit(&runtime).unwrap();
     let patch_record = &outcome.patch()[0];
     let current_read = runtime
         .read_truth()

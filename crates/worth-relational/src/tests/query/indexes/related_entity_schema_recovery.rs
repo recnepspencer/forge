@@ -13,7 +13,7 @@ use crate::facade::schema::{
 #[test]
 fn recovered_related_ordering_uses_each_exact_roots_schema_contract() {
     let (runtime, fixture) = v1_ordering_runtime();
-    let mut recovered = transition_checkpoint_and_recover(runtime, fixture.index_id);
+    let recovered = transition_checkpoint_and_recover(runtime, fixture.index_id);
     let RelatedOrderingFixture {
         parent,
         alpha,
@@ -82,18 +82,18 @@ fn v1_ordering_runtime() -> (RelationalRuntime, RelatedOrderingFixture) {
         root_path: unique_test_store_path("related-ordering-schema-carrier"),
         segment_commit_capacity: 2,
     };
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(v1_registry)
         .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
         .durable_store_layout(store_layout)
         .build();
-    let parent = changed_entities(&create_entity_outcome(&mut runtime, "parent"))[0];
-    let alpha = changed_entities(&create_entity_outcome(&mut runtime, "alpha"))[0];
-    let beta = changed_entities(&create_entity_outcome(&mut runtime, "beta"))[0];
-    create_relation_outcome(&mut runtime, parent, beta, "owns-beta");
-    let v1_commit = create_relation_outcome(&mut runtime, parent, alpha, "owns-alpha");
-    create_branch_from_main(&mut runtime, "v1-ordering");
-    let index = register_related_ordering_index(&mut runtime);
+    let parent = changed_entities(&create_entity_outcome(&runtime, "parent"))[0];
+    let alpha = changed_entities(&create_entity_outcome(&runtime, "alpha"))[0];
+    let beta = changed_entities(&create_entity_outcome(&runtime, "beta"))[0];
+    create_relation_outcome(&runtime, parent, beta, "owns-beta");
+    let v1_commit = create_relation_outcome(&runtime, parent, alpha, "owns-alpha");
+    create_branch_from_main(&runtime, "v1-ordering");
+    let index = register_related_ordering_index(&runtime);
     let v1_branch = runtime
         .branch_identity(&BranchId("v1-ordering".to_owned()))
         .unwrap();
@@ -152,7 +152,7 @@ fn transition_checkpoint_and_recover(
         .push_batch(batch_create("v2-current"))
         .expect("test staging stays within configured resource budgets");
     let v2_commit = transaction
-        .commit(&mut runtime)
+        .commit(&runtime)
         .expect("v2 schema transition commits");
     let v2_build = runtime
         .index_authority()

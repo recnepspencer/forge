@@ -7,11 +7,11 @@ use crate::tests::support::*;
 
 #[test]
 fn require_interned_normalizes_plan_and_created_footprint_to_identical_symbols() {
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .client_key_symbol_policy(ClientKeySymbolPolicy::RequireInterned)
         .build();
-    let mut transaction = test_owner_begin_transaction_for_main(&mut runtime);
+    let mut transaction = test_owner_begin_transaction_for_main(&runtime);
     let raw_source = created_entity("normalized-source");
     let raw_target = created_entity("normalized-target");
     let raw_relation = CreatedRelationRef {
@@ -53,7 +53,7 @@ fn require_interned_normalizes_plan_and_created_footprint_to_identical_symbols()
         .is_some());
 
     let merged_intents = transaction
-        .merged_plan(&mut runtime)
+        .merged_plan(&runtime)
         .expect("raw created graph normalizes")
         .merged_intents
         .clone();

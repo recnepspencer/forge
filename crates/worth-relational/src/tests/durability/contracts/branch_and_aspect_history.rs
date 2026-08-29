@@ -2,13 +2,13 @@ use super::*;
 
 #[test]
 fn durability_contract_recovery_rebuilds_branch_heads_and_latest_commit() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let main = create_entity_outcome(&mut runtime, "main-a");
-    create_branch_from_main(&mut runtime, "feature");
+    let runtime = persisted_runtime_with_test_schema();
+    let main = create_entity_outcome(&runtime, "main-a");
+    create_branch_from_main(&runtime, "feature");
     let feature =
-        create_entity_outcome_on_branch(&mut runtime, "feature-a", BranchId("feature".to_string()));
+        create_entity_outcome_on_branch(&runtime, "feature-a", BranchId("feature".to_string()));
     let (outcome, recovered) =
-        checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
+        checkpoint_and_recover_with(&runtime, persisted_runtime_with_test_schema);
 
     assert_eq!(outcome.recovered_commits, 2);
     assert_eq!(outcome.latest_commit, Some(feature.commit.clone()));
@@ -28,11 +28,11 @@ fn durability_contract_recovery_rebuilds_branch_heads_and_latest_commit() {
 
 #[test]
 fn durability_contract_recovery_preserves_aspect_bearing_patch_truth_and_history() {
-    let mut runtime =
+    let runtime =
         persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let created = create_entity_outcome(&mut runtime, "before");
+    let created = create_entity_outcome(&runtime, "before");
     let entity = changed_entities(&created)[0];
-    let updated = update_entity(&mut runtime, entity, "after");
+    let updated = update_entity(&runtime, entity, "after");
     let expected_history =
         runtime
             .history()
@@ -45,7 +45,7 @@ fn durability_contract_recovery_preserves_aspect_bearing_patch_truth_and_history
         .replay()
         .canonical_commit_envelope(updated.commit.commit_id)
         .unwrap();
-    let (outcome, recovered) = checkpoint_and_recover_with(&mut runtime, || {
+    let (outcome, recovered) = checkpoint_and_recover_with(&runtime, || {
         persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations)
     });
 
@@ -78,13 +78,13 @@ fn durability_contract_recovery_preserves_aspect_bearing_patch_truth_and_history
 
 #[test]
 fn durability_contract_recovery_preserves_relation_aspect_history_for_retained_audit_relations() {
-    let mut runtime =
+    let runtime =
         persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::RetainDanglingForAudit);
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    let relation_outcome = create_relation_outcome(&mut runtime, source, target, "r-audit");
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    let relation_outcome = create_relation_outcome(&runtime, source, target, "r-audit");
     let relation = changed_relations(&relation_outcome)[0];
-    let deleted = delete_entity(&mut runtime, source);
+    let deleted = delete_entity(&runtime, source);
     let expected_history =
         runtime
             .history()
@@ -93,7 +93,7 @@ fn durability_contract_recovery_preserves_relation_aspect_history_for_retained_a
         .history()
         .relation_aspect_history_with_trace(&BranchId("main".to_string()), relation, None)
         .aspect_history_digest();
-    let (outcome, recovered) = checkpoint_and_recover_with(&mut runtime, || {
+    let (outcome, recovered) = checkpoint_and_recover_with(&runtime, || {
         persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::RetainDanglingForAudit)
     });
 
@@ -162,15 +162,15 @@ fn durability_contract_recovery_preserves_branch_local_endpoint_deletion_retirem
         root_path: unique_test_store_path("worth-relational-endpoint-retirement-recovery"),
         segment_commit_capacity: 2,
     };
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(registry.clone())
         .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
         .durable_store_layout(store_layout.clone())
         .cascade_delete_policy(CascadeDeletePolicy::RetainDanglingForAudit)
         .build();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    let relation_outcome = create_relation_outcome(&mut runtime, source, target, "retained");
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    let relation_outcome = create_relation_outcome(&runtime, source, target, "retained");
     let relation = changed_relations(&relation_outcome)[0];
     runtime
         .history_authority()
@@ -179,9 +179,9 @@ fn durability_contract_recovery_preserves_branch_local_endpoint_deletion_retirem
             &BranchId("main".to_string()),
         )
         .unwrap();
-    let _main_delete = delete_entity(&mut runtime, source);
+    let _main_delete = delete_entity(&runtime, source);
     let _feature_update = update_entity_on_branch(
-        &mut runtime,
+        &runtime,
         target,
         "feature-target",
         BranchId("feature".to_string()),

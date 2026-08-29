@@ -21,7 +21,7 @@ use crate::tests::support::{
 fn prepared_merge_promoted_to_deleted_on_both_sides(
     runtime: &mut crate::facade::runtime::RelationalRuntime,
 ) -> crate::facade::merge::PreparedMergeExecution {
-    create_entity(&mut *runtime, "root");
+    create_entity(&*runtime, "root");
     create_branch_from_main(runtime, "feature");
     create_entity_outcome_on_branch(runtime, "feature-only", BranchId("feature".to_string()));
 
@@ -221,11 +221,11 @@ fn promoted_deleted_on_both_sides_executes_through_authoritative_merge_publicati
 #[test]
 fn real_feature_branch_delete_after_main_delete_is_authorable_and_classifies_as_deleted_on_both_sides(
 ) {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let entity = create_entity(&mut runtime, "shared");
-    create_branch_from_main(&mut runtime, "feature");
-    delete_entity(&mut runtime, entity);
-    delete_entity_on_branch(&mut runtime, entity, BranchId("feature".to_string()));
+    let runtime = persisted_runtime_with_test_schema();
+    let entity = create_entity(&runtime, "shared");
+    create_branch_from_main(&runtime, "feature");
+    delete_entity(&runtime, entity);
+    delete_entity_on_branch(&runtime, entity, BranchId("feature".to_string()));
 
     let artifact = runtime
         .merge()
@@ -261,10 +261,10 @@ fn real_feature_branch_delete_after_main_delete_is_authorable_and_classifies_as_
 
 #[test]
 fn branch_local_delete_allowance_does_not_make_same_branch_stale_delete_legal() {
-    let mut runtime = persisted_runtime_with_test_schema();
-    let entity = create_entity(&mut runtime, "shared");
-    delete_entity(&mut runtime, entity);
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let runtime = persisted_runtime_with_test_schema();
+    let entity = create_entity(&runtime, "shared");
+    delete_entity(&runtime, entity);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("stale-delete").push(MutationIntent::Entity(
             EntityMutationIntent::Delete(DeleteEntityIntent { entity_id: entity }),
@@ -272,7 +272,7 @@ fn branch_local_delete_allowance_does_not_make_same_branch_stale_delete_legal() 
     )
     .expect("test staging stays within configured resource budgets");
 
-    match txn.commit(&mut runtime) {
+    match txn.commit(&runtime) {
         Err(TransactionCommitError::Conflict { error, .. }) => {
             assert_eq!(
                 error.code(),

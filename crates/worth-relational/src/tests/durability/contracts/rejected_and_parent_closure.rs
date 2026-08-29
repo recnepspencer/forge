@@ -28,15 +28,15 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
         root_path: unique_test_store_path("worth-relational-rejected-relation-integrity-recovery"),
         segment_commit_capacity: 2,
     };
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(fixture.build_registry())
         .durability_mode(DurabilityMode::PersistedSegmentedLocalFs)
         .durable_store_layout(store_layout.clone())
         .build();
-    let source = create_entity(&mut runtime, "source");
-    let target_a = create_entity(&mut runtime, "target-a");
-    let target_b = create_entity(&mut runtime, "target-b");
-    let accepted = create_relation_outcome(&mut runtime, source, target_a, "accepted");
+    let source = create_entity(&runtime, "source");
+    let target_a = create_entity(&runtime, "target-a");
+    let target_b = create_entity(&runtime, "target-b");
+    let accepted = create_relation_outcome(&runtime, source, target_a, "accepted");
     let relation = changed_relations(&accepted)[0];
     let latest_commit_before = runtime.history().latest_commit();
     let latest_patch_before = runtime.publication().latest_patch().unwrap().position;
@@ -47,7 +47,7 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
         None,
     );
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("illegal-overflow").push(MutationIntent::Create(
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
@@ -61,7 +61,7 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
         )),
     )
     .expect("test staging stays within configured resource budgets");
-    let error = txn.commit(&mut runtime).unwrap_err();
+    let error = txn.commit(&runtime).unwrap_err();
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(error.code(), DiagnosticCode::RelationCardinalityViolation);
@@ -129,9 +129,9 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
 
 #[test]
 fn durability_contract_failure_missing_authoritative_parent_closure_is_explicit() {
-    let mut runtime = runtime_with_test_schema();
-    let parent = create_entity_outcome(&mut runtime, "main-a");
-    let child = create_entity_outcome(&mut runtime, "main-b");
+    let runtime = runtime_with_test_schema();
+    let parent = create_entity_outcome(&runtime, "main-a");
+    let child = create_entity_outcome(&runtime, "main-b");
     let child_envelope = runtime
         .replay()
         .canonical_commit_envelope(child.commit.commit_id)

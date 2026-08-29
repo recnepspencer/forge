@@ -2,7 +2,7 @@ use super::fixtures::*;
 
 #[test]
 fn invariant_failure_artifact_preserves_specific_code_localization_and_proof_boundary() {
-    let mut runtime = RelationIntegritySchemaFixture {
+    let runtime = RelationIntegritySchemaFixture {
         relation_integrity: RelationIntegrityDeclarations::new(
             Vec::new(),
             Vec::new(),
@@ -16,10 +16,10 @@ fn invariant_failure_artifact_preserves_specific_code_localization_and_proof_bou
         ..RelationIntegritySchemaFixture::default()
     }
     .build_runtime();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("one-way").push(MutationIntent::Create(CreateIntent::Relation(
             crate::transactions::data::RelationSpec {
@@ -33,7 +33,7 @@ fn invariant_failure_artifact_preserves_specific_code_localization_and_proof_bou
         ))),
     )
     .expect("test staging stays within configured resource budgets");
-    let error = txn.commit(&mut runtime).unwrap_err();
+    let error = txn.commit(&runtime).unwrap_err();
     let diagnostics = runtime.publication().diagnostics();
     let artifact = diagnostics
         .by_scope(DiagnosticsScope::Invariant)
@@ -104,7 +104,7 @@ fn invariant_failure_artifact_preserves_specific_code_localization_and_proof_bou
 
 #[test]
 fn invariant_diagnostics_trace_proof_boundary_for_relation_integrity_execution() {
-    let mut runtime = RelationIntegritySchemaFixture {
+    let runtime = RelationIntegritySchemaFixture {
         relation_integrity: RelationIntegrityDeclarations::new(
             Vec::new(),
             Vec::new(),
@@ -118,9 +118,9 @@ fn invariant_diagnostics_trace_proof_boundary_for_relation_integrity_execution()
         ..RelationIntegritySchemaFixture::default()
     }
     .build_runtime();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let source = create_entity(&runtime, "source");
+    let target = create_entity(&runtime, "target");
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("paired").push(MutationIntent::Create(CreateIntent::Relation(
             crate::transactions::data::RelationSpec {
@@ -147,7 +147,7 @@ fn invariant_diagnostics_trace_proof_boundary_for_relation_integrity_execution()
         )),
     )
     .expect("test staging stays within configured resource budgets");
-    txn.commit(&mut runtime).unwrap();
+    txn.commit(&runtime).unwrap();
 
     let diagnostics = runtime.publication().diagnostics();
     let entry = diagnostics
@@ -191,7 +191,7 @@ fn collect_all_invariant_failures_emits_multiple_relation_integrity_entries_for_
         collect_all_invariant_failures: true,
         ..RelationalDiagnosticsProfile::default()
     };
-    let mut runtime = RelationalRuntimeApi::builder()
+    let runtime = RelationalRuntimeApi::builder()
         .schema_registry(
             RelationIntegritySchemaFixture {
                 relation_integrity: RelationIntegrityDeclarations::new(
@@ -216,9 +216,9 @@ fn collect_all_invariant_failures_emits_multiple_relation_integrity_entries_for_
         )
         .diagnostics(diagnostics)
         .build();
-    let source = create_entity(&mut runtime, "source");
+    let source = create_entity(&runtime, "source");
 
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let mut txn = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     txn.push_batch(
         WorkerIntentBatch::new("self-edge").push(MutationIntent::Create(CreateIntent::Relation(
             crate::transactions::data::RelationSpec {
@@ -232,7 +232,7 @@ fn collect_all_invariant_failures_emits_multiple_relation_integrity_entries_for_
         ))),
     )
     .expect("test staging stays within configured resource budgets");
-    let _error = txn.commit(&mut runtime).unwrap_err();
+    let _error = txn.commit(&runtime).unwrap_err();
 
     let diagnostics = runtime.publication().diagnostics();
     let failure_artifact = diagnostics

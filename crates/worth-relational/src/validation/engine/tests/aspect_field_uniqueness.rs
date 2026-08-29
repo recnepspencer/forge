@@ -17,24 +17,24 @@ use worth_foundational::facade::{
 
 #[test]
 fn unique_entity_aspect_field_invariant_rejects_duplicate_struct_field_projection() {
-    let mut runtime = runtime_with_summary_title_uniqueness();
-    commit_entity_with_summary(&mut runtime, "alpha", "shared-title", "open")
+    let runtime = runtime_with_summary_title_uniqueness();
+    commit_entity_with_summary(&runtime, "alpha", "shared-title", "open")
         .expect("first summary entity");
 
-    let before = runtime_marker(&mut runtime);
-    let duplicate = commit_entity_with_summary(&mut runtime, "beta", "shared-title", "closed");
+    let before = runtime_marker(&runtime);
+    let duplicate = commit_entity_with_summary(&runtime, "beta", "shared-title", "closed");
 
     assert_unique_entity_field_conflict(duplicate.unwrap_err(), "shared-title");
-    assert_runtime_marker_unchanged(&mut runtime, before);
+    assert_runtime_marker_unchanged(&runtime, before);
 }
 
 #[test]
 fn unique_entity_aspect_field_invariant_ignores_sibling_struct_field_values() {
-    let mut runtime = runtime_with_summary_title_uniqueness();
-    commit_entity_with_summary(&mut runtime, "alpha", "alpha-title", "shared-status")
+    let runtime = runtime_with_summary_title_uniqueness();
+    commit_entity_with_summary(&runtime, "alpha", "alpha-title", "shared-status")
         .expect("first summary entity");
     let distinct_title =
-        commit_entity_with_summary(&mut runtime, "beta", "beta-title", "shared-status");
+        commit_entity_with_summary(&runtime, "beta", "beta-title", "shared-status");
 
     assert!(distinct_title.is_ok());
 }
@@ -71,19 +71,19 @@ fn unique_entity_aspect_field_rejects_entity_aspect_create() {
         1,
         "first entity must remain in the selected runtime state"
     );
-    let before = runtime_marker(&mut runtime);
+    let before = runtime_marker(&runtime);
     let duplicate = create(&mut runtime, "duplicate");
     assert_unique_entity_field_conflict(duplicate.unwrap_err(), "shared-title");
-    assert_runtime_marker_unchanged(&mut runtime, before);
+    assert_runtime_marker_unchanged(&runtime, before);
     assert_eq!(runtime.storage_access().entity_slot_count(), 1);
 }
 
 #[test]
 fn unique_entity_aspect_field_rejects_entity_aspect_patch() {
-    let mut runtime = runtime_with_summary_title_commit_boundary_uniqueness();
-    commit_entity_with_summary(&mut runtime, "first", "shared-title", "open")
+    let runtime = runtime_with_summary_title_commit_boundary_uniqueness();
+    commit_entity_with_summary(&runtime, "first", "shared-title", "open")
         .expect("first summary entity");
-    let second = commit_entity_with_summary(&mut runtime, "second", "second-title", "open")
+    let second = commit_entity_with_summary(&runtime, "second", "second-title", "open")
         .expect("second summary entity");
     let second_id = second
         .changed_records
@@ -102,9 +102,8 @@ fn unique_entity_aspect_field_rejects_entity_aspect_patch() {
         "shared-title",
         "closed",
     );
-    let before = runtime_marker(&mut runtime);
-    let mut transaction =
-        crate::tests::support::test_owner_begin_transaction_for_main(&mut runtime);
+    let before = runtime_marker(&runtime);
+    let mut transaction = crate::tests::support::test_owner_begin_transaction_for_main(&runtime);
     transaction
         .push_batch(
             WorkerIntentBatch::new("duplicate-patch").push(MutationIntent::Entity(
@@ -116,10 +115,10 @@ fn unique_entity_aspect_field_rejects_entity_aspect_patch() {
         )
         .expect("test staging stays within configured resource budgets");
 
-    let error = transaction.commit(&mut runtime).unwrap_err();
+    let error = transaction.commit(&runtime).unwrap_err();
     assert_unique_entity_field_conflict(error, "shared-title");
-    assert_runtime_marker_unchanged(&mut runtime, before);
-    assert_entity_summary(&mut runtime, second_id, "second-title", "open");
+    assert_runtime_marker_unchanged(&runtime, before);
+    assert_entity_summary(&runtime, second_id, "second-title", "open");
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

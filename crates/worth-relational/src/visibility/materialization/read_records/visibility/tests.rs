@@ -64,7 +64,7 @@ fn visibility_regression_runtime() -> RelationalRuntime {
 
 #[test]
 fn stale_entity_id_does_not_materialize_reused_slot_at_current_version() {
-    let mut runtime = RelationalRuntime::new(RelationalRuntimeConfig::default());
+    let runtime = RelationalRuntime::new(RelationalRuntimeConfig::default());
     let partition_id = PartitionId(7);
     let adjacency_policy = runtime.config.storage.adjacency_policy.clone();
     let mut entity_arena = crate::storage::substrate::EntityArena::with_capacity(1);
@@ -115,7 +115,7 @@ fn stale_entity_id_does_not_materialize_reused_slot_at_current_version() {
 
 #[test]
 fn historical_entity_kind_reads_follow_visible_metadata_not_current_slot_kind() {
-    let mut runtime = visibility_regression_runtime();
+    let runtime = visibility_regression_runtime();
     let partition_id = PartitionId(7);
     let adjacency_policy = runtime.config.storage.adjacency_policy.clone();
     let mut entity_arena = crate::storage::substrate::EntityArena::with_capacity(1);
@@ -181,7 +181,7 @@ fn historical_entity_kind_reads_follow_visible_metadata_not_current_slot_kind() 
 
 #[test]
 fn historical_relation_kind_reads_follow_visible_metadata_not_current_slot_kind() {
-    let mut runtime = visibility_regression_runtime();
+    let runtime = visibility_regression_runtime();
     let partition_id = PartitionId(9);
     let adjacency_policy = runtime.config.storage.adjacency_policy.clone();
     let mut relation_arena = crate::storage::substrate::RelationArena::with_capacity(1);

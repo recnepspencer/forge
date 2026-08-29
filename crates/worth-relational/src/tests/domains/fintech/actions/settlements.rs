@@ -27,10 +27,8 @@ pub(crate) fn repair_settlement_with_aspect_field_patches(
     cash_event_id: EntityId,
     audit_record_id: EntityId,
 ) -> CommitResult {
-    let mut txn = crate::tests::support::test_owner_begin_transaction_for_branch(
-        &mut world.runtime,
-        branch_id,
-    );
+    let mut txn =
+        crate::tests::support::test_owner_begin_transaction_for_branch(&world.runtime, branch_id);
     txn.push_batch(
         WorkerIntentBatch::new("repair-settlement")
             .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
@@ -122,5 +120,5 @@ pub(crate) fn repair_settlement_with_aspect_field_patches(
             .into(),
     )
     .expect("test staging stays within configured resource budgets");
-    txn.commit(&mut world.runtime).unwrap()
+    txn.commit(&world.runtime).unwrap()
 }
