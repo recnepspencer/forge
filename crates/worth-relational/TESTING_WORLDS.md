@@ -303,19 +303,28 @@ and duplicate-rejection behavior.
 
 ## Feature-gated evidence commands
 
+Two features hold evidence out of the ordinary command above.
+
 Three certification courts are compiled only under the `test-operation-control`
 feature, because they need the test-only boundary pause hook. The feature
 supplies observation and pausing only; it cannot change authority, outcome
-meaning, or production transition logic. The ordinary command above does not
-compile these courts, so each one has its own push/PR CI step that names it
-exactly:
+meaning, or production transition logic.
 
-| Court | CI step in the `build-and-test` job |
-| --- | --- |
-| `mvcc_cancellation_publication_boundaries::` (2 tests) | worth-relational operation-control cancellation lane |
-| `mvcc_owner_phase_locality::…preparation…` | worth-relational operation-control preparation locality lane |
-| `mvcc_owner_phase_locality::…publication…` | worth-relational operation-control publication locality lane |
-| `schema_transition_cancellation::…` | worth-relational operation-control schema transition cancellation lane |
+The allocation-slope court is compiled only under `allocation-probes`, which
+installs a counting global allocator. An ordinary run must not pay for that
+instrumentation, so without the feature the court does not exist rather than
+being skipped.
+
+The ordinary command compiles neither family, so each court has its own push/PR
+CI step that names it exactly:
+
+| Court | Gating feature | CI step in the `build-and-test` job |
+| --- | --- | --- |
+| `mvcc_cancellation_publication_boundaries::` (2 tests) | `test-operation-control` | worth-relational operation-control cancellation lane |
+| `mvcc_owner_phase_locality::…preparation…` | `test-operation-control` | worth-relational operation-control preparation locality lane |
+| `mvcc_owner_phase_locality::…publication…` | `test-operation-control` | worth-relational operation-control publication locality lane |
+| `schema_transition_cancellation::…` | `test-operation-control` | worth-relational operation-control schema transition cancellation lane |
+| `substrate_edition_budgets::allocation_slope::` (4 tests) | `allocation-probes` | worth-relational allocation-slope lane |
 
 Each step runs the command below verbatim, so a local reproduction and its lane
 cannot drift apart:
@@ -336,7 +345,13 @@ bash scripts/ci/run_relational_named_test_selection.sh \
 bash scripts/ci/run_relational_named_test_selection.sh \
   --test relational_certification --features test-operation-control --exact \
   --selection schema_transition_cancellation::cancelled_schema_transition_leaves_no_target_or_branch_residue
+
+bash scripts/ci/check_relational_allocation_probes.sh
 ```
+
+The allocation lane keeps a wrapper because its declaration is long, not because
+it is a second engine: `check_relational_allocation_probes.sh` names the four
+tests it requires and then `exec`s the same selection authority.
 
 That script is the single selection authority for named Relational lanes. Its
 preflight and its execution share one filter vector, so a lane cannot assert one
@@ -344,6 +359,15 @@ selection and run another, and it fails the lane when the filter reaches zero
 compiled tests or only `#[ignore]`d ones. The two locality selections are
 `--exact` on purpose: a namespace filter proves only that some court ran, so a
 deleted or renamed court would keep the lane green.
+
+Reaching one executable test is the floor, and it is not enough for a lane whose
+claim depends on a known set of tests running together. Such a lane declares
+that set with repeated `--expect-name`, and the authority then requires the
+declared names to be exactly the executable ones. The allocation-slope lane
+needs that: its two driver tests re-execute the test binary with the probe gate
+set, and its two isolated probes return immediately and pass when that gate is
+absent, so deleting a driver would leave a selection that still lists tests,
+still executes them, and still measures no slope at all.
 
 The locality courts park one Supply Chain branch inside a real owner phase, at
 the first `CandidatePreparation` observation and at `BeforeCriticalSection`

@@ -15,9 +15,17 @@ set -euo pipefail
 # the full listing to count what will really run. Under --ignored the listing is
 # already exactly the set that executes.
 #
+# "At least one executable test" is the right floor for a family selection, but
+# it is too weak for a lane whose claim depends on a known set of tests running
+# together. Such a lane declares that set with repeated --expect-name. Every
+# declared name must then answer to an executable test, and no undeclared test
+# may join the selection, so a rename, a deletion or a new #[ignore] turns the
+# lane red instead of quietly shrinking what it proves.
+#
 # Usage:
 #   run_relational_named_test_selection.sh (--lib | --test <target>) \
-#     --selection <filter> [--exact] [--ignored] [--features <list>]
+#     --selection <filter> [--exact] [--ignored] [--features <list>] \
+#     [--expect-name <exact test path>]...
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
@@ -28,6 +36,7 @@ FEATURE_ARGS=()
 SELECTION_FILTER_ARGS=()
 HARNESS_FILTER_ARGS=()
 IGNORED_PROBE_ARGS=()
+EXPECTED_NAMES=()
 SELECTION=""
 TARGET_LABEL=""
 FEATURE_LABEL="<none>"
@@ -61,6 +70,11 @@ parse_selection_request() {
       --selection)
         [[ $# -ge 2 ]] || fail_usage "--selection requires a test filter"
         SELECTION="$2"
+        shift 2
+        ;;
+      --expect-name)
+        [[ $# -ge 2 ]] || fail_usage "--expect-name requires an exact test path"
+        EXPECTED_NAMES+=("$2")
         shift 2
         ;;
       --exact)
@@ -99,7 +113,7 @@ parse_selection_request() {
 
 fail_usage() {
   echo "FAIL: $1" >&2
-  echo "Usage: $(basename "${BASH_SOURCE[0]}") (--lib | --test <target>) --selection <filter> [--exact] [--ignored] [--features <list>]" >&2
+  echo "Usage: $(basename "${BASH_SOURCE[0]}") (--lib | --test <target>) --selection <filter> [--exact] [--ignored] [--features <list>] [--expect-name <exact test path>]..." >&2
   exit 2
 }
 
@@ -137,15 +151,75 @@ EOF
   exit 1
 }
 
-count_listed_tests() {
+report_roster_drift() {
+  local executable="$1" missing="$2" undeclared="$3"
+  {
+    echo "FAIL: selection '$SELECTION' no longer matches its declared roster."
+    echo "  package   : $PACKAGE"
+    echo "  target    : $TARGET_LABEL"
+    echo "  features  : $FEATURE_LABEL"
+    echo "  posture   : $POSTURE_LABEL"
+    echo "  declared  : ${#EXPECTED_NAMES[@]} test(s)"
+    echo "  executable: $executable test(s)"
+    if [[ -n "$missing" ]]; then
+      echo "Declared tests no executable test answers to:"
+      sed 's/^/  - /' <<<"$missing"
+    fi
+    if [[ -n "$undeclared" ]]; then
+      echo "Executable tests the declaration does not name ($(count_names "$undeclared")):"
+      sed 's/^/  + /' <<<"$undeclared"
+    fi
+    cat <<EOF
+This lane's claim depends on the declared tests running together, so a renamed,
+deleted, newly #[ignore]d or newly added test has to be reflected in the
+declaration rather than silently changing what the lane proves. Enumerate the
+real names and postures with:
+  cargo test -p $PACKAGE $TARGET_LABEL -- --list
+  cargo test -p $PACKAGE $TARGET_LABEL -- --list --ignored
+EOF
+  } >&2
+  exit 1
+}
+
+# Emits one bare test path per line for the given harness filter vector.
+list_selected_tests() {
   cargo test -p "$PACKAGE" "${CARGO_TARGET_ARGS[@]}" "${FEATURE_ARGS[@]}" \
-    -- --list "$@" | grep -cE '^[A-Za-z0-9_:]+: test$' || true
+    -- --list "$@" | sed -n 's/^\([A-Za-z0-9_:]\+\): test$/\1/p' || true
+}
+
+count_names() {
+  grep -c . <<<"$1" || true
+}
+
+assert_roster_is_exact() {
+  local executable_names="$1" executable="$2"
+  local missing="" undeclared="" name
+
+  for name in "${EXPECTED_NAMES[@]}"; do
+    grep -qxF -- "$name" <<<"$executable_names" || missing+="$name"$'\n'
+  done
+
+  while IFS= read -r name; do
+    [[ -n "$name" ]] || continue
+    printf '%s\n' "${EXPECTED_NAMES[@]}" | grep -qxF -- "$name" \
+      || undeclared+="$name"$'\n'
+  done <<<"$executable_names"
+
+  if [[ -n "$missing" || -n "$undeclared" ]]; then
+    report_roster_drift "$executable" "${missing%$'\n'}" "${undeclared%$'\n'}"
+  fi
+
+  echo "[relational-selection] the ${#EXPECTED_NAMES[@]} declared test(s) are exactly the executable set"
 }
 
 assert_selection_is_executable() {
+  local selected_names ignored_names executable_names="" name
   local selected ignored_selected executable
 
-  selected="$(count_listed_tests "${HARNESS_FILTER_ARGS[@]}")"
+  # Captured once per posture. The roster check reads these same listings rather
+  # than asking cargo again, so it cannot observe a different selection.
+  selected_names="$(list_selected_tests "${HARNESS_FILTER_ARGS[@]}")"
+  selected="$(count_names "$selected_names")"
 
   if [[ "$selected" -eq 0 ]]; then
     report_empty_selection
@@ -154,16 +228,28 @@ assert_selection_is_executable() {
   if [[ -n "$IGNORED_POSTURE" ]]; then
     # Under --ignored the listing is already exactly the set that executes.
     executable="$selected"
+    executable_names="$selected_names"
   else
-    ignored_selected="$(count_listed_tests "${IGNORED_PROBE_ARGS[@]}")"
+    ignored_names="$(list_selected_tests "${IGNORED_PROBE_ARGS[@]}")"
+    ignored_selected="$(count_names "$ignored_names")"
     executable=$(( selected - ignored_selected ))
 
     if [[ "$executable" -le 0 ]]; then
       report_non_executable_selection "$selected"
     fi
+
+    while IFS= read -r name; do
+      [[ -n "$name" ]] || continue
+      grep -qxF -- "$name" <<<"$ignored_names" || executable_names+="$name"$'\n'
+    done <<<"$selected_names"
+    executable_names="${executable_names%$'\n'}"
   fi
 
   echo "[relational-selection] '$SELECTION' selects $executable executable test(s) under $TARGET_LABEL"
+
+  if [[ ${#EXPECTED_NAMES[@]} -gt 0 ]]; then
+    assert_roster_is_exact "$executable_names" "$executable"
+  fi
 }
 
 execute_named_selection() {
