@@ -154,6 +154,13 @@ jobs:
       - name: Run tests
         run: cargo test --workspace
 
+      - name: worth-relational operation-control cancellation lane
+        run: >-
+          bash scripts/ci/run_relational_named_test_selection.sh
+          --test relational_certification
+          --features test-operation-control
+          --selection mvcc_cancellation_publication_boundaries::
+
       - name: Run WORTH Query ordinary tests
         run: cargo test --manifest-path workspaces/worth-query/Cargo.toml --workspace --exclude worth-query-certification --exclude worth-query-replay
 
@@ -202,21 +209,33 @@ jobs:
 
       - name: Run mandatory ignored Scale admission proof
         run: >-
-          cargo test -p worth-relational --test relational_certification
-          scale_invariant_admission::large_runtime_keeps_global_enforcement_and_filters_graph_planning
-          -- --ignored --exact --nocapture --test-threads=1
+          bash scripts/ci/run_relational_named_test_selection.sh
+          --test relational_certification --exact --ignored
+          --selection scale_invariant_admission::large_runtime_keeps_global_enforcement_and_filters_graph_planning
+
+      - name: Run mandatory ignored maximum fork-slope proof
+        run: >-
+          bash scripts/ci/run_relational_named_test_selection.sh
+          --test relational_certification --exact --ignored
+          --selection root_fork_sharing::phase5_standard_fork_copy_slope_is_flat_through_4096_forks
+
+      - name: Run mandatory ignored retained-history ceiling proof
+        run: >-
+          bash scripts/ci/run_relational_named_test_selection.sh
+          --test relational_certification --exact --ignored
+          --selection root_cost_scale_axes::selected_publication_cost_is_flat_through_documented_retention_ceiling
 
       - name: Run hostile CDC rewrite-storm certification
         run: >-
-          cargo test -p worth-relational --lib
-          tests::publication::cdc::certification::seeded_resume::cdc_certification_rewrite_storm_preserves_exact_suffix_under_tiny_windows
-          -- --ignored --exact --nocapture --test-threads=1
+          bash scripts/ci/run_relational_named_test_selection.sh
+          --lib --exact --ignored
+          --selection tests::publication::cdc::certification::seeded_resume::cdc_certification_rewrite_storm_preserves_exact_suffix_under_tiny_windows
 
       - name: Run hostile CDC thousand-step certification
         run: >-
-          cargo test -p worth-relational --lib
-          tests::publication::cdc::certification::seeded_resume::cdc_certification_thousand_step_random_resume_matrix_converges
-          -- --ignored --exact --nocapture --test-threads=1
+          bash scripts/ci/run_relational_named_test_selection.sh
+          --lib --exact --ignored
+          --selection tests::publication::cdc::certification::seeded_resume::cdc_certification_thousand_step_random_resume_matrix_converges
 
   worth-query-cold-certification:
     name: WORTH Query scheduled cold certification
