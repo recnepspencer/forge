@@ -107,10 +107,17 @@ impl PreparedBranchPublicationPreflight {
         let retired_root = std::cell::RefCell::new(None);
         let head_retirement = &mut self.head_retirement;
         let next_root = &self.movement.root;
+        #[cfg(any(test, feature = "test-operation-control"))]
+        let reservation_pause = self.control.clone();
         let positioned_commit = match self
             .movement
             .canonical_publication_route
             .record_performed_with_cutover(self.publication_cell.clone(), || {
+                // The cutover is the only orchestration this port runs while the
+                // global patch-position reservation is held, so this is where a
+                // concurrent publisher can be made to meet it.
+                #[cfg(any(test, feature = "test-operation-control"))]
+                reservation_pause.pause_holding_patch_position_reservation();
                 let previous_root = publication_state.replace_with(self.next_state);
                 head_retirement.transfer_head(&previous_root, next_root);
                 self.branch_head_versions

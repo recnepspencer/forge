@@ -35,6 +35,8 @@ pub use initial_schema_installation::{
     RelationalInitialSchemaInstallationDenialKind, RelationalInitialSchemaInstallationReceipt,
 };
 pub use interruption_counters::RelationalInterruptionCostCounters;
+#[cfg(any(test, feature = "test-operation-control"))]
+pub use operation_control::RelationalPatchPositionReservationGate;
 pub use operation_control::{
     RelationalCancellationSource, RelationalCancellationToken, RelationalInterruptionBoundary,
     RelationalInterruptionEvent, RelationalOperationControl, RelationalOperationInterruption,
