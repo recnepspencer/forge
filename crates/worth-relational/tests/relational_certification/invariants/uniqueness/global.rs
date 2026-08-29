@@ -234,7 +234,7 @@ fn semantic_uniqueness_oracle_rejects_duplicate_without_mutating_branch() {
 }
 
 fn commit_vessel(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     branch: BranchId,
     client_key: &str,
 ) -> Result<worth_relational::facade::transactions::CommitResult, TransactionCommitError> {
@@ -255,7 +255,7 @@ fn commit_vessel(
 }
 
 fn commit_two_vessels(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     branch: BranchId,
 ) -> Result<worth_relational::facade::transactions::CommitResult, TransactionCommitError> {
     let identity = runtime
@@ -322,7 +322,7 @@ fn insert_string(
     );
 }
 
-fn vessel_call_signs(runtime: &mut RelationalRuntime, branch: &BranchId) -> Vec<String> {
+fn vessel_call_signs(runtime: &RelationalRuntime, branch: &BranchId) -> Vec<String> {
     let identity = runtime
         .branch_identity(branch)
         .expect("branch identity is owner-issued");
@@ -368,7 +368,7 @@ fn assert_unique_execution(commit: &worth_relational::facade::transactions::Comm
     assert!(observed, "commit must record native uniqueness execution");
 }
 
-fn current_snapshot_version(runtime: &mut RelationalRuntime, branch: &BranchId) -> u64 {
+fn current_snapshot_version(runtime: &RelationalRuntime, branch: &BranchId) -> u64 {
     let identity = runtime
         .branch_identity(branch)
         .expect("branch identity is owner-issued");

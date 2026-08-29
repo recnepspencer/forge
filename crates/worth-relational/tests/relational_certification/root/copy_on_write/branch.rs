@@ -227,7 +227,7 @@ fn phase5_forked_topology_write_copies_only_touched_regions() {
     }
 }
 
-fn fork_from_main(runtime: &mut RelationalRuntime, branch: &str) {
+fn fork_from_main(runtime: &RelationalRuntime, branch: &str) {
     let (_, source) = runtime
         .observe_fork_source(&BranchId("main".to_owned()))
         .expect("main remains a fork source");

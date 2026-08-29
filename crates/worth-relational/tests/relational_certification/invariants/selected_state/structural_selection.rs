@@ -188,7 +188,7 @@ fn custom_invariant_structural_reads_stay_on_child_root_after_main_rewire() {
 
 fn observe_branch_snapshot(
     program: &CompiledSupplyChainProgram,
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     handles: &super::world::supply_chain::SupplyChainSemanticHandles,
     branch: &str,
 ) -> super::world::supply_chain::ObservedSupplyChainState {
@@ -206,7 +206,7 @@ fn observe_branch_snapshot(
 }
 
 fn commit_branch_batch_result(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     branch_id: BranchId,
     batch: WorkerIntentBatch,
 ) -> worth_relational::facade::transactions::CommitResult {

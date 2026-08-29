@@ -66,7 +66,7 @@ fn main() {
 }
 
 pub fn create_entity(
-    runtime: &mut worth_relational::facade::runtime::RelationalRuntime,
+    runtime: &worth_relational::facade::runtime::RelationalRuntime,
     name: &str,
 ) -> (
     worth_relational::facade::transactions::CommitResult,
@@ -98,7 +98,7 @@ pub fn create_entity(
 }
 
 pub fn update_entity(
-    runtime: &mut worth_relational::facade::runtime::RelationalRuntime,
+    runtime: &worth_relational::facade::runtime::RelationalRuntime,
     entity_id: EntityId,
     name: &str,
 ) -> worth_relational::facade::transactions::CommitResult {
@@ -106,7 +106,7 @@ pub fn update_entity(
 }
 
 pub fn update_entity_on_branch(
-    runtime: &mut worth_relational::facade::runtime::RelationalRuntime,
+    runtime: &worth_relational::facade::runtime::RelationalRuntime,
     entity_id: EntityId,
     name: &str,
     target_branch: Option<BranchId>,
@@ -143,7 +143,7 @@ pub fn update_entity_on_branch(
 }
 
 pub fn delete_entity(
-    runtime: &mut worth_relational::facade::runtime::RelationalRuntime,
+    runtime: &worth_relational::facade::runtime::RelationalRuntime,
     entity_id: EntityId,
 ) -> worth_relational::facade::transactions::CommitResult {
     let mut tx = {
@@ -165,7 +165,7 @@ pub fn delete_entity(
 }
 
 pub fn create_relation(
-    runtime: &mut worth_relational::facade::runtime::RelationalRuntime,
+    runtime: &worth_relational::facade::runtime::RelationalRuntime,
     source: EntityId,
     target: EntityId,
     label: &str,

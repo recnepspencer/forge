@@ -69,7 +69,7 @@ fn phase5_checkpoint_preserves_shared_and_rewired_root_shape() {
     assert_eq!(sharing.unique_root_count(), 2);
     assert_eq!(sharing.unique_canonical_commit_artifacts(), 2);
 
-    let rewire_observed = observe_recovered_branch(&world, &mut recovered, &rewire, "rewire");
+    let rewire_observed = observe_recovered_branch(&world, &recovered, &rewire, "rewire");
     compare(
         &expected_supply_chain_branch(&world.program, BranchLabel::Rewire, Some(delta)),
         &rewire_observed,
@@ -79,7 +79,7 @@ fn phase5_checkpoint_preserves_shared_and_rewired_root_shape() {
 
 fn observe_recovered_branch(
     world: &super::world::supply_chain::ProductionSeededSupplyChainWorld,
-    recovered: &mut worth_relational::facade::runtime::RelationalRuntime,
+    recovered: &worth_relational::facade::runtime::RelationalRuntime,
     identity: &worth_relational::facade::branch::RelationalBranchIdentity,
     label: &str,
 ) -> super::world::supply_chain::ObservedSupplyChainState {

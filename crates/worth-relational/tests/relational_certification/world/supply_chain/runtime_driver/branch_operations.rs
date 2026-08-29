@@ -7,14 +7,11 @@ use worth_relational::facade::runtime::RelationalRuntime;
 use worth_relational::facade::snapshots::SnapshotHandle;
 use worth_relational::facade::transactions::{CommitResult, WorkerIntentBatch};
 
-pub(crate) fn commit_main_batch(runtime: &mut RelationalRuntime, batch: WorkerIntentBatch) {
+pub(crate) fn commit_main_batch(runtime: &RelationalRuntime, batch: WorkerIntentBatch) {
     commit_branch_batch(runtime, BranchId("main".to_owned()), batch);
 }
 
-pub(crate) fn fork_supply_chain_branch_from_main(
-    runtime: &mut RelationalRuntime,
-    branch_id: BranchId,
-) {
+pub(crate) fn fork_supply_chain_branch_from_main(runtime: &RelationalRuntime, branch_id: BranchId) {
     let (_, source) = runtime
         .observe_fork_source(&BranchId("main".to_owned()))
         .expect("main remains an admitted fork source");
@@ -24,7 +21,7 @@ pub(crate) fn fork_supply_chain_branch_from_main(
 }
 
 pub(crate) fn snapshot_for_supply_chain_identity(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     identity: &RelationalBranchIdentity,
 ) -> SnapshotHandle {
     let (_, basis) = runtime
@@ -61,7 +58,7 @@ pub(crate) fn head_for_supply_chain_branch(
 }
 
 pub(crate) fn commit_branch_batch(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     branch_id: BranchId,
     batch: WorkerIntentBatch,
 ) {
@@ -69,7 +66,7 @@ pub(crate) fn commit_branch_batch(
 }
 
 pub(crate) fn commit_branch_batch_with_result(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     branch_id: BranchId,
     batch: WorkerIntentBatch,
 ) -> CommitResult {
@@ -82,7 +79,7 @@ pub(crate) fn commit_branch_batch_with_result(
 }
 
 pub(crate) fn commit_supply_chain_delta(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     program: &CompiledSupplyChainProgram,
     branch_id: BranchId,
     delta: DeltaId,
@@ -119,7 +116,7 @@ pub(crate) fn commit_supply_chain_delta(
 }
 
 fn commit_batch_with_intent(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     branch_id: BranchId,
     batch: WorkerIntentBatch,
     intent: worth_relational::facade::mvcc::RelationalTransactionIntent,

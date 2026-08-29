@@ -124,10 +124,7 @@ fn graph_planning_uses_child_basis_after_main_diverges_and_rejects_stale_binding
     assert_graph_binding_stales_after_child_diverges(&mut world.runtime, &child);
 }
 
-fn assert_graph_binding_stales_after_child_diverges(
-    runtime: &mut RelationalRuntime,
-    child: &BranchId,
-) {
+fn assert_graph_binding_stales_after_child_diverges(runtime: &RelationalRuntime, child: &BranchId) {
     let child_identity = runtime.branch_identity(child).unwrap();
     let stale_options = runtime.admit_branch_basis(&child_identity).unwrap();
     commit_graph_entity(runtime, child, "child-divergence");
@@ -201,7 +198,7 @@ fn custom_rule_verdict<'a>(
         .verdict
 }
 
-fn graph_execution(runtime: &mut RelationalRuntime, branch: &BranchId) -> InvariantExecutionResult {
+fn graph_execution(runtime: &RelationalRuntime, branch: &BranchId) -> InvariantExecutionResult {
     let identity = runtime
         .branch_identity(branch)
         .expect("branch identity is owner-issued");
@@ -223,7 +220,7 @@ fn graph_execution(runtime: &mut RelationalRuntime, branch: &BranchId) -> Invari
 }
 
 fn commit_graph_entity(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     branch: &BranchId,
     client_key: &str,
 ) -> EntityId {

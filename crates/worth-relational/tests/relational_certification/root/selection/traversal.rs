@@ -70,7 +70,7 @@ fn assert_ancestor_edge_is_visible(
     assert!(incoming.relations.contains(&edge.ancestor_tuple()));
 }
 
-fn publish_main_rewire(runtime: &mut RelationalRuntime, edge: &EdgeMovement) {
+fn publish_main_rewire(runtime: &RelationalRuntime, edge: &EdgeMovement) {
     let intent = UpdateRelationEndpointsIntent {
         relation_id: edge.relation_id,
         kind_id: edge.kind_id,
@@ -257,7 +257,7 @@ fn traversal_packet(
     }
 }
 
-fn fork_from_main(runtime: &mut RelationalRuntime, branch: &str) -> SnapshotHandle {
+fn fork_from_main(runtime: &RelationalRuntime, branch: &str) -> SnapshotHandle {
     let (_, source) = runtime
         .observe_fork_source(&BranchId("main".to_owned()))
         .expect("main remains forkable");
@@ -267,7 +267,7 @@ fn fork_from_main(runtime: &mut RelationalRuntime, branch: &str) -> SnapshotHand
     current_snapshot(runtime, branch)
 }
 
-fn current_snapshot(runtime: &mut RelationalRuntime, branch: &str) -> SnapshotHandle {
+fn current_snapshot(runtime: &RelationalRuntime, branch: &str) -> SnapshotHandle {
     let identity = runtime
         .branch_identity(&BranchId(branch.to_owned()))
         .expect("branch identity is owner-issued");

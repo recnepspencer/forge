@@ -270,7 +270,7 @@ fn all_identities(
 }
 
 fn fork_from_main(
-    runtime: &mut worth_relational::facade::runtime::RelationalRuntime,
+    runtime: &worth_relational::facade::runtime::RelationalRuntime,
     branch: BranchId,
 ) {
     let (_, source) = runtime

@@ -180,7 +180,7 @@ fn assert_status(state: Option<&AuthoritativeRecordAspectState>, expected: &str)
 }
 
 fn assert_snapshot_status(
-    runtime: &mut worth_relational::facade::runtime::RelationalRuntime,
+    runtime: &worth_relational::facade::runtime::RelationalRuntime,
     branch: &BranchId,
     entity_id: EntityId,
     expected: &str,
@@ -202,7 +202,7 @@ fn assert_snapshot_status(
 }
 
 fn commit_status_update(
-    runtime: &mut worth_relational::facade::runtime::RelationalRuntime,
+    runtime: &worth_relational::facade::runtime::RelationalRuntime,
     branch: BranchId,
     entity_id: EntityId,
 ) -> Result<worth_relational::facade::transactions::CommitResult, TransactionCommitError> {

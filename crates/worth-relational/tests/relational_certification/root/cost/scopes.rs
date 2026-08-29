@@ -220,7 +220,7 @@ fn exercise_unrelated_branch_reads_and_validation(
     }
 }
 
-fn fork(runtime: &mut worth_relational::facade::runtime::RelationalRuntime, name: &str) {
+fn fork(runtime: &worth_relational::facade::runtime::RelationalRuntime, name: &str) {
     let (_, source_basis) = runtime
         .observe_fork_source(&BranchId("main".to_owned()))
         .unwrap();

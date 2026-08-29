@@ -149,7 +149,7 @@ fn fitted_slope(samples: &[ForkFanoutSample]) -> f64 {
     covariance / variance
 }
 
-fn fork_from_main(runtime: &mut worth_relational::facade::runtime::RelationalRuntime, name: &str) {
+fn fork_from_main(runtime: &worth_relational::facade::runtime::RelationalRuntime, name: &str) {
     let (_, source_basis) = runtime
         .observe_fork_source(&BranchId("main".to_owned()))
         .expect("main remains forkable");

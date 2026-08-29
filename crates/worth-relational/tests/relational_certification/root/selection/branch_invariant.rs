@@ -249,7 +249,7 @@ impl CustomInvariantRule for BranchVersionProbeRule {
 }
 
 fn commit_relation(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     branch_id: BranchId,
     source: EntityId,
     target: EntityId,

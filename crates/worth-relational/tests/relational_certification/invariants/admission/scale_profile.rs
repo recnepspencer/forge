@@ -186,7 +186,7 @@ fn large_runtime_keeps_global_enforcement_and_filters_graph_planning() {
     );
 }
 
-fn assert_scale_fork_shares_complete_authority(runtime: &mut RelationalRuntime) {
+fn assert_scale_fork_shares_complete_authority(runtime: &RelationalRuntime) {
     let main = BranchId("main".to_owned());
     let (_, source) = runtime
         .observe_fork_source(&main)
@@ -277,7 +277,7 @@ fn contains_native_uniqueness(
 }
 
 fn commit_vessel(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     branch: BranchId,
     client_key: &str,
     call_sign: &str,
@@ -309,7 +309,7 @@ fn commit_vessel(
     transaction.commit(runtime)
 }
 
-fn graph_execution(runtime: &mut RelationalRuntime, branch: &BranchId) -> InvariantExecutionResult {
+fn graph_execution(runtime: &RelationalRuntime, branch: &BranchId) -> InvariantExecutionResult {
     let identity = runtime
         .branch_identity(branch)
         .expect("branch identity is owner-issued");

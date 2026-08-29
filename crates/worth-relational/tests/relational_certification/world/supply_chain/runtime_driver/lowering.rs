@@ -33,7 +33,7 @@ pub(crate) enum SupplyChainProductionDeltaLoweringError {
 /// Lowers semantic intent from the selected branch's actual public owner
 /// observation. Expected oracle state never enters this path.
 pub(crate) fn lower_supply_chain_production_delta(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     program: &crate::world::supply_chain::CompiledSupplyChainProgram,
     handles: &SupplyChainSemanticHandles,
     branch_id: &BranchId,

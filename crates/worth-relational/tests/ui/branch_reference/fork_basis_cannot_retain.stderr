@@ -1,8 +1,8 @@
 warning: unreachable statement
  --> tests/ui/branch_reference/fork_basis_cannot_retain.rs:6:5
   |
-5 |     let runtime: &mut RelationalRuntime = todo!();
-  |                                           ------- any code following this expression is unreachable
+5 |     let runtime: &RelationalRuntime = todo!();
+  |                                       ------- any code following this expression is unreachable
 6 |     let basis: AdmittedRelationalForkSourceBasis = todo!();
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
   |

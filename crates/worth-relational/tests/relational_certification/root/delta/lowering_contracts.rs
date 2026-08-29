@@ -190,7 +190,7 @@ fn prove_number_prestate(case: NumberPrestateCase) {
     );
 }
 
-fn fork(runtime: &mut worth_relational::facade::runtime::RelationalRuntime, branch: &str) {
+fn fork(runtime: &worth_relational::facade::runtime::RelationalRuntime, branch: &str) {
     let (_, source) = runtime
         .observe_fork_source(&BranchId("main".to_owned()))
         .unwrap();

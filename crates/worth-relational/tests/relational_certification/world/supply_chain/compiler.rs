@@ -194,7 +194,7 @@ fn compile_supply_chain_baseline_with_limits_and_catalog_and_custom_invariants(
         .install(program.schema_registry().clone())
         .map_err(SupplyChainCompilationError::SchemaInstallation)?;
 
-    let commit_result = commit_definition(&mut runtime, &program)?;
+    let commit_result = commit_definition(&runtime, &program)?;
     let identity = runtime.main_branch_identity();
     let (_, basis) = runtime
         .observe_branch(&identity)
@@ -218,7 +218,7 @@ fn compile_supply_chain_baseline_with_limits_and_catalog_and_custom_invariants(
 }
 
 fn commit_definition(
-    runtime: &mut RelationalRuntime,
+    runtime: &RelationalRuntime,
     program: &CompiledSupplyChainProgram,
 ) -> Result<worth_relational::facade::transactions::CommitResult, SupplyChainCompilationError> {
     if program.entity_specs().is_empty() && program.relation_specs().is_empty() {
