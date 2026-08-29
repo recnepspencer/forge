@@ -66,12 +66,12 @@ pub(crate) use state::{
     PublishedSnapshotSlotReservation, ReclaimedRecordSlot, RecordIdentitySubsystem,
     RelationalCandidateRegistrationDenial, RelationalCanonicalPublicationRoutes,
     RelationalDiagnosticArtifactStore, RelationalForkMaterializationCost,
-    RelationalForkOwnerBinding, RelationalPreparationConfigurationBinding,
-    RelationalPreparationHistory, RelationalPreparationOwnerBinding, RelationalPreparationRuntime,
-    RelationalRuntimeOwnerBinding, RelationalRuntimePublicationBinding, ReplayRetentionState,
-    RuntimeInstrumentation, RuntimeServices, RuntimeSubsystem, SchemaContractRuntimeSubsystem,
-    SnapshotHandleBinding, StorageSubsystem, ValidatedLineageEventBatch, VisibilityResidency,
-    VisibilitySubsystem,
+    RelationalForkOwnerBinding, RelationalPreparationHistory, RelationalPreparationOwnerBinding,
+    RelationalPreparationRuntime, RelationalRuntimeConfigurationBinding,
+    RelationalRuntimeConfigurationSnapshot, RelationalRuntimeOwnerBinding,
+    RelationalRuntimePublicationBinding, ReplayRetentionState, RuntimeInstrumentation,
+    RuntimeServices, RuntimeSubsystem, SchemaContractRuntimeSubsystem, SnapshotHandleBinding,
+    StorageSubsystem, ValidatedLineageEventBatch, VisibilityResidency, VisibilitySubsystem,
 };
 pub(crate) use state::{
     DeferredRelationalSettlement, PendingRelationalPublicationSettlement,

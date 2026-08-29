@@ -11,8 +11,7 @@ use crate::validation::data::CustomInvariantRegistration;
 use crate::validation::FrozenCustomInvariantRegistry;
 
 use super::state::{
-    RelationalPreparationConfigurationOwner, RelationalRuntimeOwner,
-    RelationalRuntimePublicationOwner,
+    RelationalRuntimeConfiguration, RelationalRuntimeOwner, RelationalRuntimePublicationOwner,
 };
 use super::RelationalRuntime;
 
@@ -147,24 +146,23 @@ impl RelationalRuntime {
             .install_branch_root(&config.history.main_branch, initial_root)
             .expect("the configured main branch fits the initial retention budget");
         let schema_contract_runtime = extensions.build_schema_contract_runtime_subsystem(&config);
-        let preparation_configuration =
-            RelationalPreparationConfigurationOwner::new(&config, &schema_contract_runtime);
+        let commit_strategies = extensions.build_commit_strategy_subsystem(&config);
+        let durability = <DurabilitySubsystem as RuntimeSubsystem>::new(&config);
+        let visibility = <VisibilitySubsystem as RuntimeSubsystem>::new(&config);
         Self::from_state(crate::runtime::RelationalRuntimeState {
-            schema_contract_runtime,
-            commit_strategies: extensions.build_commit_strategy_subsystem(&config),
+            commit_strategies,
             history,
             indexes: <IndexingSubsystem as RuntimeSubsystem>::new(&()),
             lineage: <LineageSubsystem as RuntimeSubsystem>::new(&()),
-            durability: <DurabilitySubsystem as RuntimeSubsystem>::new(&config),
+            durability,
             record_identity: <RecordIdentitySubsystem as RuntimeSubsystem>::new(&()),
             services,
-            preparation_configuration,
             owner_lifecycle: RelationalRuntimeOwner::new(),
             publication_owner: RelationalRuntimePublicationOwner::new(),
             partitions: <StorageSubsystem as RuntimeSubsystem>::new(&()),
-            visibility: <VisibilitySubsystem as RuntimeSubsystem>::new(&config),
+            visibility,
             publication: extensions.build_publication_subsystem(),
-            config,
+            configuration: RelationalRuntimeConfiguration::new(config, schema_contract_runtime),
         })
     }
 
@@ -173,13 +171,10 @@ impl RelationalRuntime {
         let services = RuntimeSubsystem::fork(&self.services);
         let runtime_instance_id = services.runtime_instance_id();
         history.bind_fork_runtime(runtime_instance_id);
-        let config = self.config.clone();
-        let schema_contract_runtime = RuntimeSubsystem::fork(&self.schema_contract_runtime);
-        let preparation_configuration =
-            RelationalPreparationConfigurationOwner::new(&config, &schema_contract_runtime);
+        let config = self.config.as_ref().clone();
+        let schema_contract_runtime = RuntimeSubsystem::fork(self.schema_contract_runtime.as_ref());
         Ok(Self::from_state(crate::runtime::RelationalRuntimeState {
-            config,
-            schema_contract_runtime,
+            configuration: RelationalRuntimeConfiguration::new(config, schema_contract_runtime),
             commit_strategies: RuntimeSubsystem::fork(&self.commit_strategies),
             partitions: RuntimeSubsystem::fork(&self.partitions),
             visibility: RuntimeSubsystem::fork(&self.visibility),
@@ -190,7 +185,6 @@ impl RelationalRuntime {
             durability: RuntimeSubsystem::fork(&self.durability),
             record_identity: RuntimeSubsystem::fork(&self.record_identity),
             services,
-            preparation_configuration,
             owner_lifecycle: RelationalRuntimeOwner::new(),
             publication_owner: RelationalRuntimePublicationOwner::new(),
         }))

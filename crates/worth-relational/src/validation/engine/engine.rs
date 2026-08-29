@@ -15,7 +15,9 @@ pub(crate) struct InvariantEngine<'runtime> {
 
 impl<'runtime> InvariantEngine<'runtime> {
     pub(crate) fn from_view(runtime: &InvariantRuntimeView<'runtime>) -> Self {
-        Self { runtime: *runtime }
+        Self {
+            runtime: runtime.clone(),
+        }
     }
 
     #[cfg(test)]

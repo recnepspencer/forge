@@ -8,16 +8,13 @@ pub(super) fn certify_geometry_commit_bridge_wave(suite: &'static str) {
         let samples = capture_perf_samples(suite, case, || {
             let mut relational =
                 runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
-            relational
-                .config
-                .diagnostics
-                .profile
-                .detailed_traces_enabled = development_profile;
-            relational
-                .config
-                .diagnostics
-                .profile
-                .max_entries_per_artifact = if development_profile { 256 } else { 0 };
+            relational.configure_for_test(|config| {
+                config.diagnostics.profile.detailed_traces_enabled = development_profile
+            });
+            relational.configure_for_test(|config| {
+                config.diagnostics.profile.max_entries_per_artifact =
+                    if development_profile { 256 } else { 0 }
+            });
 
             let source = create_entity_outcome(&mut relational, "merged-geometry-source");
             let middle = create_entity_outcome(&mut relational, "merged-geometry-middle");

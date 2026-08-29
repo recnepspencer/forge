@@ -1,28 +1,31 @@
 mod branch_authority;
+mod close_authority;
+mod configuration;
 mod core_access;
 mod merge_authority;
 mod owner_lifecycle;
-mod preparation_configuration;
 mod preparation_runtime;
 mod publication_lifecycle;
 mod publication_settlement_registry;
+mod tenure;
 #[cfg(test)]
 mod test_support;
-
-use crate::runtime::RelationalRuntimeConfig;
 
 use super::{
     CommitStrategiesSubsystem, DurabilitySubsystem, HistorySubsystem, IndexingSubsystem,
     LineageSubsystem, PublicationSubsystem, RecordIdentitySubsystem, RuntimeServices,
-    SchemaContractRuntimeSubsystem, StorageSubsystem, VisibilitySubsystem,
+    StorageSubsystem, VisibilitySubsystem,
 };
 
+pub(in crate::runtime) use close_authority::RelationalRuntimeCloseAuthority;
+pub(crate) use configuration::{
+    RelationalRuntimeConfiguration, RelationalRuntimeConfigurationBinding,
+    RelationalRuntimeConfigurationSnapshot,
+};
 pub(in crate::runtime) use owner_lifecycle::RelationalRuntimeOwner;
 pub(crate) use owner_lifecycle::{
     AdmittedRelationalRuntimeOperation, RelationalRuntimeOwnerBinding,
 };
-pub(crate) use preparation_configuration::RelationalPreparationConfigurationBinding;
-pub(in crate::runtime) use preparation_configuration::RelationalPreparationConfigurationOwner;
 pub(crate) use preparation_runtime::RelationalPreparationOwnerBinding;
 pub(crate) use preparation_runtime::RelationalPreparationRuntime;
 pub(in crate::runtime) use publication_lifecycle::RelationalRuntimePublicationOwner;
@@ -35,6 +38,7 @@ pub(crate) use publication_settlement_registry::{
     RelationalPublicationSettlementRegistry, RelationalSettlementClaim,
     RelationalSettlementReservationDenial, ReservedRelationalSettlement,
 };
+pub(in crate::runtime) use tenure::RelationalRuntimeTenure;
 
 /// Every subsystem one relational runtime owns.
 ///
@@ -45,8 +49,9 @@ pub(crate) use publication_settlement_registry::{
 /// owner is gone.
 #[derive(Debug)]
 pub struct RelationalRuntimeState {
-    pub(crate) config: RelationalRuntimeConfig,
-    pub(crate) schema_contract_runtime: SchemaContractRuntimeSubsystem,
+    /// The one authority for this runtime's configuration and the schema
+    /// contract runtime derived from it.
+    pub(crate) configuration: RelationalRuntimeConfiguration,
     pub(crate) commit_strategies: CommitStrategiesSubsystem,
     pub(crate) partitions: StorageSubsystem,
     pub(crate) visibility: VisibilitySubsystem,
@@ -57,41 +62,108 @@ pub struct RelationalRuntimeState {
     pub(crate) durability: DurabilitySubsystem,
     pub(crate) record_identity: RecordIdentitySubsystem,
     pub(crate) services: RuntimeServices,
-    pub(in crate::runtime) preparation_configuration: RelationalPreparationConfigurationOwner,
     pub(in crate::runtime) owner_lifecycle: RelationalRuntimeOwner,
     pub(in crate::runtime) publication_owner: RelationalRuntimePublicationOwner,
 }
 
-/// The owner handle callers hold.
+/// A handle onto one relational runtime, together with the tenure that entitles
+/// it to exist.
 ///
-/// It is the sole lasting strong owner of its state, so dropping it closes the
-/// runtime's lifecycles and invalidates every service bound to that state. A
-/// service that is mid-operation holds a transient strong handle, which keeps
-/// the state alive exactly until that operation returns.
+/// The owner's handle carries close authority, so finishing the runtime is an
+/// owner lifecycle event on the owner's own thread. A service that is
+/// mid-operation receives a handle carrying its admission instead, which keeps
+/// the state alive for exactly that operation and closes nothing.
 #[derive(Debug)]
 pub struct RelationalRuntime {
+    /// The configuration in force for this handle, and the schema contract
+    /// runtime lowered from it.
+    ///
+    /// The one authority is [`RelationalRuntimeState::configuration`]; this is
+    /// a read of it taken when the handle was made, not a second copy of the
+    /// truth. An owner refreshes it in the same call that installs a change, so
+    /// it can never answer from a configuration it has already replaced. A
+    /// handle admitted for one operation keeps what was in force when it was
+    /// admitted, so that operation never sees the registry and the contract
+    /// runtime lowered from it disagree.
+    pub(crate) config: std::sync::Arc<crate::runtime::RelationalRuntimeConfig>,
+    pub(crate) schema_contract_runtime: std::sync::Arc<super::SchemaContractRuntimeSubsystem>,
     state: std::sync::Arc<RelationalRuntimeState>,
+    tenure: RelationalRuntimeTenure,
 }
 
 impl RelationalRuntime {
     pub(in crate::runtime) fn from_state(state: RelationalRuntimeState) -> Self {
+        let close = RelationalRuntimeCloseAuthority::new(
+            state.services.runtime_instance_id(),
+            state.owner_lifecycle.binding(),
+            state.publication_owner.binding(),
+        );
+        let installed = state.configuration.snapshot();
         Self {
+            config: installed.config,
+            schema_contract_runtime: installed.schema_contract_runtime,
             state: std::sync::Arc::new(state),
+            tenure: RelationalRuntimeTenure::Owner(close),
         }
     }
 
-    /// Rebind an owner handle onto state a service already holds.
+    /// A handle for one admitted operation against state the owner still holds.
     ///
-    /// This does not create a second owner: the state's own lifecycles close
-    /// exactly once, when the last handle to it goes away.
-    pub(crate) fn from_shared(state: std::sync::Arc<RelationalRuntimeState>) -> Self {
-        Self { state }
+    /// The admission is carried by the handle, so the operation cannot outlive
+    /// its admission and the handle cannot close the runtime it borrows.
+    pub(crate) fn admitted(
+        state: std::sync::Arc<RelationalRuntimeState>,
+        operation: AdmittedRelationalRuntimeOperation,
+    ) -> Self {
+        let installed = state.configuration.snapshot();
+        Self {
+            config: installed.config,
+            schema_contract_runtime: installed.schema_contract_runtime,
+            state,
+            tenure: RelationalRuntimeTenure::Admitted(operation),
+        }
+    }
+
+    /// Install a configuration change and take up its result.
+    ///
+    /// The exclusive handle is what entitles the change, and this one call both
+    /// installs it in the runtime's single configuration authority and refreshes
+    /// what this handle reads. Reconfiguration has no other route, so no owner
+    /// can install a change and go on answering from the configuration it
+    /// replaced.
+    pub(in crate::runtime) fn reconfigure(
+        &mut self,
+        install: impl FnOnce(&RelationalRuntimeConfiguration),
+    ) {
+        install(&self.state.configuration);
+        let installed = self.state.configuration.snapshot();
+        self.config = installed.config;
+        self.schema_contract_runtime = installed.schema_contract_runtime;
     }
 
     /// A weak binding to this runtime's exact state, for a service that must
     /// outlive its owner and deny once the owner is gone.
     pub(crate) fn state_binding(&self) -> std::sync::Weak<RelationalRuntimeState> {
         std::sync::Arc::downgrade(&self.state)
+    }
+}
+
+impl Drop for RelationalRuntime {
+    /// Finish an owner before it releases anything its close depends on.
+    ///
+    /// A type's own `Drop` runs before any of its fields, so by the time the
+    /// state, the configuration snapshot and the tenure are released, admission
+    /// has already stopped and every admitted operation has already returned.
+    /// The close therefore never depends on which field is declared first, and
+    /// never runs against a half-released runtime.
+    ///
+    /// An operation handle reaches this too, and does nothing: it carries an
+    /// admission rather than close authority, so releasing it is exactly what
+    /// lets a waiting owner finish.
+    fn drop(&mut self) {
+        if let Some(close) = self.tenure.close_authority() {
+            close.close();
+        }
     }
 }
 
@@ -103,37 +175,34 @@ impl std::ops::Deref for RelationalRuntime {
     }
 }
 
-impl std::ops::DerefMut for RelationalRuntime {
-    /// Exclusive access to the owned state.
-    ///
-    /// Only reconfiguration, construction, and recovery need this. It is
-    /// reachable because services bind weakly, so the owner is the only lasting
-    /// strong handle; an operation in flight through a service holds the state
-    /// transiently and no exclusive runtime borrow can exist at that moment.
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        std::sync::Arc::get_mut(&mut self.state)
-            .expect("the runtime owner is the only lasting strong handle to its state")
+impl RelationalRuntime {
+    /// Whether this handle is the owner's, and so carries the authority that
+    /// closes the runtime when it is dropped.
+    pub(crate) const fn is_owner(&self) -> bool {
+        self.tenure.close_authority().is_some()
     }
-}
 
-impl Drop for RelationalRuntimeState {
-    fn drop(&mut self) {
-        self.owner_lifecycle.close();
-        self.publication_owner.close();
-        crate::indexes::purge_index_query_scratch_hints(self.services.runtime_instance_id());
+    /// Exclusive access to state that has never been shared with a service.
+    ///
+    /// Construction and recovery rebuild a runtime from a plan before any
+    /// service can bind to it, so they still hold the only handle and may
+    /// install whole subsystems into it. This does not claim that an exclusive
+    /// runtime borrow proves exclusive state access: an operation handle is
+    /// refused outright, once any service holds a binding the answer is `None`,
+    /// and live reconfiguration goes through [`Self::reconfigure`] instead.
+    pub(crate) fn unshared_state_mut(&mut self) -> Option<&mut RelationalRuntimeState> {
+        if !self.is_owner() {
+            return None;
+        }
+        std::sync::Arc::get_mut(&mut self.state)
     }
 }
 
 impl RelationalRuntime {
-    pub(crate) fn synchronize_preparation_configuration(&self) {
-        self.preparation_configuration
-            .synchronize(&self.config, &self.schema_contract_runtime);
-    }
-
     pub(crate) fn preparation_configuration_binding(
         &self,
-    ) -> RelationalPreparationConfigurationBinding {
-        self.preparation_configuration.binding()
+    ) -> RelationalRuntimeConfigurationBinding {
+        self.configuration.binding()
     }
 
     pub(crate) fn preparation_runtime_snapshot(&self) -> RelationalPreparationRuntime {

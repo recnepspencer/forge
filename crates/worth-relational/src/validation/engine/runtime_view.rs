@@ -5,10 +5,15 @@ use crate::runtime::{
 };
 
 /// Read-only validation projection shared by the runtime and preparation port.
-#[derive(Clone, Copy)]
+///
+/// The configuration and the contract runtime lowered from it are held as the
+/// one snapshot taken when the view was made, so every question this view
+/// answers is answered against the same configuration even if the owner
+/// installs a new one meanwhile.
+#[derive(Clone)]
 pub(crate) struct InvariantRuntimeView<'a> {
-    pub(crate) config: &'a crate::runtime::RelationalRuntimeConfig,
-    pub(crate) schema_contract_runtime: &'a SchemaContractRuntimeSubsystem,
+    pub(crate) config: std::sync::Arc<crate::runtime::RelationalRuntimeConfig>,
+    pub(crate) schema_contract_runtime: std::sync::Arc<SchemaContractRuntimeSubsystem>,
     instrumentation: &'a RuntimeInstrumentation,
     #[cfg(test)]
     current_version_id: crate::identity::data::VersionId,
@@ -21,8 +26,8 @@ pub(crate) struct InvariantRuntimeView<'a> {
 impl<'a> InvariantRuntimeView<'a> {
     pub(crate) fn from_runtime(runtime: &'a RelationalRuntime) -> Self {
         Self {
-            config: &runtime.config,
-            schema_contract_runtime: &runtime.schema_contract_runtime,
+            config: std::sync::Arc::clone(&runtime.config),
+            schema_contract_runtime: std::sync::Arc::clone(&runtime.schema_contract_runtime),
             instrumentation: &runtime.services.instrumentation,
             #[cfg(test)]
             current_version_id: runtime.current_version_id(),
@@ -38,8 +43,8 @@ impl<'a> InvariantRuntimeView<'a> {
         state: &crate::branch::RelationalBranchRootState,
     ) -> Self {
         Self {
-            config: &runtime.config,
-            schema_contract_runtime: &runtime.schema_contract_runtime,
+            config: std::sync::Arc::clone(&runtime.config),
+            schema_contract_runtime: std::sync::Arc::clone(&runtime.schema_contract_runtime),
             instrumentation: &runtime.services.instrumentation,
             #[cfg(test)]
             current_version_id: runtime.current_version_id(),

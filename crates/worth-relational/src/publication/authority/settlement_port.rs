@@ -5,8 +5,8 @@ use std::sync::Weak;
 use crate::history::data::{CommitId, RelationalCommitReceipt};
 use crate::publication::data::{DeferredPublicationSettlement, DeferredPublicationSettlementError};
 use crate::runtime::{
-    AdmittedRelationalRuntimeOperation, RelationalRuntime, RelationalRuntimeOwnerBinding,
-    RelationalRuntimePublicationBinding, RelationalRuntimeState,
+    RelationalRuntime, RelationalRuntimeOwnerBinding, RelationalRuntimePublicationBinding,
+    RelationalRuntimeState,
 };
 use crate::transactions::data::{CommitResult, TransactionCommitError};
 
@@ -63,7 +63,7 @@ impl RelationalSettlementPort {
                 },
             ));
         };
-        owner.runtime.settle_performed_publication(performed)
+        owner.settle_performed_publication(performed)
     }
 
     /// Retry the one missing durable append for an exact performed route.
@@ -74,9 +74,7 @@ impl RelationalSettlementPort {
         let Some(owner) = self.owner() else {
             return Err(self.owner_unavailable());
         };
-        owner
-            .runtime
-            .repair_deferred_publication_settlement(settlement)
+        owner.repair_deferred_publication_settlement(settlement)
     }
 
     /// Retry a performed publication this runtime retains, addressed by commit
@@ -89,9 +87,7 @@ impl RelationalSettlementPort {
         let Some(owner) = self.owner() else {
             return Err(self.owner_unavailable());
         };
-        owner
-            .runtime
-            .repair_pending_publication_settlement(commit_id)
+        owner.repair_pending_publication_settlement(commit_id)
     }
 
     /// Whether this runtime still retains an unsettled record for the identity.
@@ -101,19 +97,20 @@ impl RelationalSettlementPort {
             .is_some()
     }
 
-    /// A transient owner handle for one settlement operation.
+    /// A handle for one admitted settlement operation.
     ///
-    /// Upgrading keeps the state alive for exactly as long as the operation
-    /// runs, so a concurrent owner drop cannot tear the state out from under a
-    /// settlement already in flight. The lifecycle gate is consulted first so a
-    /// closed owner denies before any work begins.
-    fn owner(&self) -> Option<AdmittedSettlementOwner> {
+    /// The lifecycle gate is consulted first, so a runtime that has stopped
+    /// accepting work denies before any state is reached. The handle then
+    /// carries that exact admission for the whole operation, which is what
+    /// keeps the owner from finishing its close while work is outstanding, and
+    /// keeps the state alive for exactly that long. It carries no close
+    /// authority, so completing here can never close the runtime it borrowed.
+    fn owner(&self) -> Option<RelationalRuntime> {
         let operation = self.lifecycle.admit()?;
-        let runtime = RelationalRuntime::from_shared(self.state.upgrade()?);
-        Some(AdmittedSettlementOwner {
-            runtime,
-            _operation: operation,
-        })
+        Some(RelationalRuntime::admitted(
+            self.state.upgrade()?,
+            operation,
+        ))
     }
 
     fn owner_unavailable(&self) -> DeferredPublicationSettlementError {
@@ -133,14 +130,4 @@ impl RelationalRuntime {
             self.state_binding(),
         )
     }
-}
-
-/// One admitted settlement operation and the owner handle it runs against.
-///
-/// Both are held for the whole operation: the admission keeps the owner from
-/// finishing its close while work is outstanding, and the handle keeps the
-/// state alive for exactly that long.
-struct AdmittedSettlementOwner {
-    runtime: RelationalRuntime,
-    _operation: AdmittedRelationalRuntimeOperation,
 }

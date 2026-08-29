@@ -1,4 +1,7 @@
-use crate::runtime::{RelationalRuntime, RuntimeSubsystem, SchemaContractRuntimeSubsystem};
+use crate::runtime::{
+    RelationalRuntime, RelationalRuntimeConfigurationSnapshot, RuntimeSubsystem,
+    SchemaContractRuntimeSubsystem,
+};
 use crate::schema::data::{RelationalSchemaRegistry, SchemaRegistryError};
 
 /// Move-only authority to extend an uncommitted runtime's initial schema.
@@ -90,8 +93,8 @@ impl RelationalInitialSchemaInstallation<'_> {
         additions: RelationalSchemaRegistry,
     ) -> Result<RelationalInitialSchemaInstallationReceipt, RelationalInitialSchemaInstallationDenial>
     {
-        let merged = self
-            .runtime
+        let installed = self.runtime.configuration.snapshot();
+        let merged = installed
             .config
             .schema
             .registry
@@ -102,22 +105,37 @@ impl RelationalInitialSchemaInstallation<'_> {
             .history
             .transition_empty_branches_to_initial_schema(&merged)
             .map_err(branch_transition_denial)?;
-        self.runtime.config.schema.registry = merged;
-        rebuild_schema_contract_runtime(self.runtime);
-        self.runtime.synchronize_preparation_configuration();
+        let retained_entity_kind_count = merged.entity_kinds.len();
+        let retained_relation_kind_count = merged.relation_kinds.len();
+        // The registry and the contract runtime lowered from it are installed as
+        // one change, so no concurrently bound service can observe the new
+        // registry against the old contract runtime.
+        let rebuilt = rebuilt_schema_contract_runtime(&installed, merged.clone());
+        self.runtime.reconfigure(|configuration| {
+            configuration.install_initial_schema(merged, rebuilt);
+        });
         Ok(RelationalInitialSchemaInstallationReceipt {
-            retained_entity_kind_count: self.runtime.config.schema.registry.entity_kinds.len(),
-            retained_relation_kind_count: self.runtime.config.schema.registry.relation_kinds.len(),
+            retained_entity_kind_count,
+            retained_relation_kind_count,
         })
     }
 }
 
-fn rebuild_schema_contract_runtime(runtime: &mut RelationalRuntime) {
-    let custom_invariant_registries =
-        std::mem::take(&mut runtime.schema_contract_runtime.custom_invariant_registries);
-    let mut rebuilt = <SchemaContractRuntimeSubsystem as RuntimeSubsystem>::new(&runtime.config);
-    rebuilt.custom_invariant_registries = custom_invariant_registries;
-    runtime.schema_contract_runtime = rebuilt;
+/// Lower the merged registry into a fresh contract runtime, keeping the custom
+/// invariant registries the installed one already carries.
+fn rebuilt_schema_contract_runtime(
+    installed: &RelationalRuntimeConfigurationSnapshot,
+    merged: RelationalSchemaRegistry,
+) -> SchemaContractRuntimeSubsystem {
+    let mut config = installed.config.as_ref().clone();
+    config.schema.registry = merged;
+    let mut rebuilt = <SchemaContractRuntimeSubsystem as RuntimeSubsystem>::new(&config);
+    rebuilt.custom_invariant_registries.clone_from(
+        &installed
+            .schema_contract_runtime
+            .custom_invariant_registries,
+    );
+    rebuilt
 }
 
 fn schema_denial(error: SchemaRegistryError) -> RelationalInitialSchemaInstallationDenial {

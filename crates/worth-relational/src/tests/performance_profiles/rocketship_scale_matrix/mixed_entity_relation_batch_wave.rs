@@ -18,11 +18,9 @@ pub(super) fn certify_hundred_k_nodes_pseudorealistic_mixed_entity_relation_batc
                 &mut runtime,
                 PerfDiagnosticsPolicy::GeometryOperationalHotPath,
             );
-            runtime
-                .config
-                .publication
-                .policy
-                .max_patch_records_per_commit = node_count * 2;
+            runtime.configure_for_test(|config| {
+                config.publication.policy.max_patch_records_per_commit = node_count * 2
+            });
             let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
             let seeded =
                 seed_pseudorealistic_rocketship_world(&mut runtime, node_count, query_target_count);

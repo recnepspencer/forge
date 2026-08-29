@@ -4,16 +4,16 @@ use crate::branch::{AdmittedRelationalBranchBasis, SelectedRelationalBranchState
 use crate::performance::PerformanceAccess;
 use crate::runtime::{
     PublishedSnapshotCapacityOwner, PublishedSnapshotSlotReservation, RecordIdentitySubsystem,
-    RelationalPreparationConfigurationBinding, RelationalPreparationHistory,
-    RelationalRuntimeConfig, RelationalRuntimeOwnerBinding, RelationalRuntimePublicationBinding,
-    RuntimeServices, SchemaContractRuntimeSubsystem,
+    RelationalPreparationHistory, RelationalRuntimeConfig, RelationalRuntimeConfigurationBinding,
+    RelationalRuntimeOwnerBinding, RelationalRuntimePublicationBinding, RuntimeServices,
+    SchemaContractRuntimeSubsystem,
 };
 
 /// Cloneable owner binding. Configuration truth is captured per operation so
 /// held ports observe atomic schema/configuration replacement.
 #[derive(Debug, Clone)]
 pub(crate) struct RelationalPreparationOwnerBinding {
-    configuration: RelationalPreparationConfigurationBinding,
+    configuration: RelationalRuntimeConfigurationBinding,
     history: RelationalPreparationHistory,
     record_identity: RecordIdentitySubsystem,
     services: RuntimeServices,

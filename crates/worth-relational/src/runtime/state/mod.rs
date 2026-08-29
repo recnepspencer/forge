@@ -5,8 +5,9 @@ pub use runtime_state::RelationalRuntime;
 pub(crate) use runtime_state::RelationalRuntimeState;
 pub(crate) use runtime_state::{
     AdmittedRelationalRuntimeOperation, RelationalCandidateRegistrationDenial,
-    RelationalPreparationConfigurationBinding, RelationalPreparationOwnerBinding,
-    RelationalPreparationRuntime, RelationalRuntimeOwnerBinding,
+    RelationalPreparationOwnerBinding, RelationalPreparationRuntime,
+    RelationalRuntimeConfiguration, RelationalRuntimeConfigurationBinding,
+    RelationalRuntimeConfigurationSnapshot, RelationalRuntimeOwnerBinding,
     RelationalRuntimePublicationBinding,
 };
 pub(crate) use runtime_state::{
@@ -15,8 +16,7 @@ pub(crate) use runtime_state::{
     RelationalSettlementClaim, RelationalSettlementReservationDenial, ReservedRelationalSettlement,
 };
 pub(in crate::runtime) use runtime_state::{
-    RelationalPreparationConfigurationOwner, RelationalRuntimeOwner,
-    RelationalRuntimePublicationOwner,
+    RelationalRuntimeOwner, RelationalRuntimePublicationOwner,
 };
 pub(crate) use subsystems::{
     partition_entry_mut, readmit_positioned_canonical_commit, BranchHeadVersionIndexAuthority,

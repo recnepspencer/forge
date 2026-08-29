@@ -22,6 +22,7 @@ struct RelationalRuntimeLifecycle {
     close_ready: Condvar,
 }
 
+#[derive(Debug)]
 pub(crate) struct AdmittedRelationalRuntimeOperation {
     lifecycle: Arc<RelationalRuntimeLifecycle>,
 }
@@ -43,27 +44,32 @@ impl RelationalRuntimeOwner {
     pub(super) fn binding(&self) -> RelationalRuntimeOwnerBinding {
         self.binding.clone()
     }
+}
 
-    pub(super) fn close(&self) {
-        self.binding
-            .lifecycle
+impl RelationalRuntimeOwnerBinding {
+    /// Stop admitting operations and wait for the admitted ones to return.
+    ///
+    /// This is owner authority, so it stays reachable only inside the runtime
+    /// module tree: a narrow service carries this binding to admit work and can
+    /// never use it to close the runtime it borrows.
+    pub(in crate::runtime) fn close(&self) {
+        self.lifecycle
             .accepting_operations
             .store(false, Ordering::Release);
-        let lifecycle = &self.binding.lifecycle;
-        let mut wait = lifecycle
+        let mut wait = self
+            .lifecycle
             .close_wait
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        while lifecycle.in_flight.load(Ordering::Acquire) != 0 {
-            wait = lifecycle
+        while self.lifecycle.in_flight.load(Ordering::Acquire) != 0 {
+            wait = self
+                .lifecycle
                 .close_ready
                 .wait(wait)
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
         }
     }
-}
 
-impl RelationalRuntimeOwnerBinding {
     pub(crate) fn admit(&self) -> Option<AdmittedRelationalRuntimeOperation> {
         if !self.lifecycle.accepting_operations.load(Ordering::Acquire) {
             return None;

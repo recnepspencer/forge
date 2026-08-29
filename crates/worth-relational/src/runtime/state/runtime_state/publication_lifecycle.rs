@@ -48,13 +48,16 @@ impl RelationalRuntimePublicationOwner {
     pub(super) fn binding(&self) -> RelationalRuntimePublicationBinding {
         self.binding.clone()
     }
-
-    pub(super) fn close(&self) {
-        self.binding.lifecycle.settlements.close();
-    }
 }
 
 impl RelationalRuntimePublicationBinding {
+    /// Close settlement admission and resolve remaining retention with typed
+    /// owner-loss accounting. Owner authority, so it stays inside the runtime
+    /// module tree even though the binding itself is carried by services.
+    pub(in crate::runtime) fn close(&self) {
+        self.lifecycle.settlements.close();
+    }
+
     pub(crate) fn register_candidate(
         &self,
         expires_at: std::time::Instant,

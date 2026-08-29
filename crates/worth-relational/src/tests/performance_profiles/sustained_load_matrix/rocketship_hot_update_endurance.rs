@@ -14,11 +14,10 @@ pub(super) fn certify_rocketship_hot_update_endurance(suite: &'static str) {
                 &mut runtime,
                 PerfDiagnosticsPolicy::GeometryOperationalHotPath,
             );
-            runtime
-                .config
-                .publication
-                .policy
-                .max_patch_records_per_commit = rocketship_endurance_node_count * 2;
+            runtime.configure_for_test(|config| {
+                config.publication.policy.max_patch_records_per_commit =
+                    rocketship_endurance_node_count * 2
+            });
             let seeded = seed_pseudorealistic_rocketship_world(
                 &mut runtime,
                 rocketship_endurance_node_count,

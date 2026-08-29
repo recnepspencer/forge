@@ -39,6 +39,29 @@ fn phase3_settlement_receivers_take_a_shared_borrow() {
         SettlementPort::repair_pending_publication_settlement;
 }
 
+/// Owner authority keeps its exclusive receiver and the services a runtime
+/// issues keep their shared one. Coercing each to a function pointer fails to
+/// compile the moment either side takes the other's receiver.
+#[test]
+fn phase3b_owner_authority_and_owner_services_keep_their_receivers() {
+    let _execution_model: fn(
+        &mut RelationalRuntime,
+        crate::config::data::RelationalExecutionModel,
+    ) = RelationalRuntime::set_execution_model;
+    let _initial_schema: fn(
+        &mut RelationalRuntime,
+    ) -> Result<
+        crate::runtime::RelationalInitialSchemaInstallation<'_>,
+        crate::runtime::RelationalInitialSchemaInstallationDenial,
+    > = RelationalRuntime::prepare_initial_schema_installation;
+    let _settlement_service: fn(&RelationalRuntime) -> SettlementPort =
+        RelationalRuntime::settlement_port;
+    let _publication_service: fn(&RelationalRuntime) -> crate::mvcc::RelationalPublicationPort =
+        RelationalRuntime::publication_port;
+    let _configuration: fn(&RelationalRuntime) -> crate::runtime::RelationalRuntimeConfig =
+        RelationalRuntime::config;
+}
+
 /// The settlement service is an independently borrowable, cloneable owner
 /// service, and the whole convenience commit path runs through a shared borrow.
 #[test]

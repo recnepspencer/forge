@@ -71,7 +71,7 @@ pub(super) fn apply_authoritative_commit_artifacts(
         )
         .map_err(|detail| DurabilityError::new(RecoveryFailureClass::CorruptCheckpoint, detail));
     if let Err(error) = result {
-        runtime
+        super::unshared_state(runtime)?
             .history
             .restore_detached_recovery_snapshot(history_before);
         return Err(error);

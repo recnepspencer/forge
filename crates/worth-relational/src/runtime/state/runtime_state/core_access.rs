@@ -10,7 +10,7 @@ impl RelationalRuntime {
     /// Capture the runtime's current public configuration, including symbols
     /// admitted concurrently through shared preparation ports.
     pub fn config(&self) -> crate::runtime::RelationalRuntimeConfig {
-        let mut snapshot = self.config.clone();
+        let mut snapshot = self.config.as_ref().clone();
         snapshot.identity.symbol_table = self.services.symbols.configuration_snapshot();
         snapshot
     }

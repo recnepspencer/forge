@@ -34,7 +34,7 @@ pub(super) fn restore_checkpoint_state(
     checkpoint: &DurableCheckpoint,
 ) -> Result<(), DurabilityError> {
     let prepared = prepare_checkpoint_state(restored, checkpoint)?;
-    install_checkpoint_state(restored, prepared);
+    install_checkpoint_state(super::unshared_state(restored)?, prepared);
     Ok(())
 }
 
@@ -207,7 +207,10 @@ fn prepare_indexes(checkpoint: &DurableCheckpoint) -> IndexingState {
     indexes
 }
 
-fn install_checkpoint_state(restored: &mut RelationalRuntime, prepared: PreparedCheckpointState) {
+fn install_checkpoint_state(
+    restored: &mut crate::runtime::RelationalRuntimeState,
+    prepared: PreparedCheckpointState,
+) {
     restored.services.symbols.replace(prepared.symbols);
     restored.record_identity = prepared.record_identity;
     restored
@@ -231,7 +234,7 @@ pub(super) fn finalize_restored_runtime(
     restored: &mut RelationalRuntime,
     original_durability_mode: DurabilityMode,
 ) -> Result<(), crate::durability::data::DurabilityError> {
-    restored.config.durability.policy.mode = original_durability_mode;
+    restored.set_durability_mode(original_durability_mode);
     restored
         .index_authority()
         .rebuild_unique_entity_aspect_field_indexes()

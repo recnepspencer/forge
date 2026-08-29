@@ -158,9 +158,12 @@ impl crate::runtime::RelationalRuntime {
         max_live_root_obligations: usize,
         max_retired_branch_roots: usize,
     ) {
-        self.history.reset_retention_owner_with_test_limits(
-            max_live_root_obligations,
-            max_retired_branch_roots,
-        );
+        self.unshared_state_mut()
+            .expect("retention capacity test support requires the only handle to this runtime")
+            .history
+            .reset_retention_owner_with_test_limits(
+                max_live_root_obligations,
+                max_retired_branch_roots,
+            );
     }
 }

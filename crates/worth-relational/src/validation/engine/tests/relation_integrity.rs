@@ -126,11 +126,12 @@ fn prepared_acyclicity_scope_rejects_visible_graphs_that_exceed_scan_budget() {
     create_relation_of_kind(&mut runtime, KindId(2), b, c, "edge-bc");
     create_relation_of_kind(&mut runtime, KindId(2), c, d, "edge-cd");
     create_relation_of_kind(&mut runtime, KindId(2), d, e, "edge-de");
-    runtime
-        .config
-        .execution
-        .relation_integrity_scope_budget
-        .max_scanned_relations = 2;
+    runtime.configure_for_test(|config| {
+        config
+            .execution
+            .relation_integrity_scope_budget
+            .max_scanned_relations = 2
+    });
 
     let plan = MergedCommitPlan {
         transaction_id: TransactionId(19),

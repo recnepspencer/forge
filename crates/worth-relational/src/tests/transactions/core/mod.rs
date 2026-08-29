@@ -22,6 +22,8 @@ mod native_aspect_conflicts;
 mod native_aspect_mutations;
 mod native_durability;
 mod native_value_matrix;
+mod owner_configuration_phase3b;
+mod owner_lifecycle_phase3b;
 mod owner_service_phase2;
 mod owner_service_phase3;
 mod parallel_preparation;

@@ -16,11 +16,9 @@ fn perf_geometry_artifact_decomposition_matrix() {
                 ROCKETSHIP_CHUNK_SIZE,
                 ROCKETSHIP_CHUNK_SIZE,
             );
-            runtime
-                .config
-                .publication
-                .policy
-                .max_patch_records_per_commit = node_count * 4;
+            runtime.configure_for_test(|config| {
+                config.publication.policy.max_patch_records_per_commit = node_count * 4
+            });
             let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
             let seeded =
                 seed_pseudorealistic_rocketship_world(&mut runtime, node_count, query_target_count);

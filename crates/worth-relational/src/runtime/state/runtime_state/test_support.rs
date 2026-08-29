@@ -1,20 +1,34 @@
 use super::RelationalRuntime;
 
 impl RelationalRuntime {
+    /// Edit the configuration in force, the way an owner would.
+    ///
+    /// Tests that need a non-default policy go through the same single
+    /// installation route as production reconfiguration, so nothing in the test
+    /// tree can leave this handle reading a configuration it has replaced.
+    pub(crate) fn configure_for_test(
+        &mut self,
+        edit: impl FnOnce(&mut crate::runtime::RelationalRuntimeConfig),
+    ) {
+        self.reconfigure(|configuration| configuration.update(edit));
+    }
+
     pub(crate) fn configure_diagnostics_for_test(
         &mut self,
         configure: impl FnOnce(&mut crate::diagnostics::data::RelationalDiagnosticsProfile),
     ) {
-        configure(&mut self.config.diagnostics.profile);
-        self.synchronize_preparation_configuration();
+        self.reconfigure(|configuration| {
+            configuration.update(|config| configure(&mut config.diagnostics.profile));
+        });
     }
 
     pub(crate) fn set_schema_registry_for_test(
         &mut self,
         registry: crate::schema::data::RelationalSchemaRegistry,
     ) {
-        self.config.schema.registry = registry;
-        self.synchronize_preparation_configuration();
+        self.reconfigure(|configuration| {
+            configuration.update(|config| config.schema.registry = registry);
+        });
     }
 
     pub(crate) fn set_entity_structural_identity_for_test(
