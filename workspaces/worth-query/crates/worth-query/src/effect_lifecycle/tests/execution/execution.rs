@@ -104,7 +104,7 @@ fn performed_mutation_returns_settlement_deferred_without_denial_telemetry() {
         .expect("exact owner repairs the performed mutation");
     deferred
         .repair_with(EffectExecutionAuthority::relational(&mut runtime))
-        .expect("clone-shared closeout keeps repair idempotent");
+        .expect("the sole-owner pending record is gone, so a second repair removes no handle");
     assert_eq!(
         runtime
             .storage_access()
