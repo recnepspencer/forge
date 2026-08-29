@@ -24,6 +24,8 @@ mod native_durability;
 mod native_value_matrix;
 mod owner_service_phase2;
 mod parallel_preparation;
+mod pending_settlement_recovery;
+mod pending_settlement_reservation;
 mod prepared_candidate_fork;
 mod prepared_candidate_lifecycle;
 mod prepared_candidates;

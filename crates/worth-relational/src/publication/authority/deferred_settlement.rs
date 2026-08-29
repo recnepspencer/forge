@@ -1,114 +1,74 @@
-use crate::authority::commit::pipeline::{
-    assemble_commit_result, publish_commit_execution, CommitDurableAppendAdmission,
-};
+use std::sync::Arc;
+
 use crate::publication::data::{DeferredPublicationSettlement, DeferredPublicationSettlementError};
 use crate::runtime::RelationalRuntime;
 use crate::transactions::data::{CommitResult, TransactionCommitError};
 
+use super::pending_settlement::{
+    RelationalSettlementCompletion, RelationalSettlementResultOwner, RelationalSettlementStop,
+};
+
 impl RelationalRuntime {
     /// Complete durability and derived publication for a movement already
     /// performed through the independently borrowable publication port.
+    ///
+    /// The work itself was installed in the runtime's pending settlement
+    /// registry before that movement, so this is the witness holder taking its
+    /// turn at the one executor gate, not the sole owner of the work.
     pub fn settle_performed_publication(
         &mut self,
         performed: crate::mvcc::PerformedRelationalCommit,
     ) -> Result<CommitResult, TransactionCommitError> {
-        let diagnostic_capture = self.publication.diagnostics.begin_operation_capture();
-        let late_interruption = performed.late_interruption();
-        let (positioned, next_basis, completion, candidate_retention, control) =
-            performed.into_settlement_parts();
-        let commit_id = positioned.envelope().commit.commit_id;
-        let published_snapshot_basis =
-            crate::visibility::snapshot_states::VisibilitySnapshotBasis::from_observation(
-                &next_basis.observation(),
-            );
-        let (mut published, durability_error) =
-            publish_commit_execution(self, completion, published_snapshot_basis)?;
-        published.append_diagnostics(diagnostic_capture.finish());
-        let late_interruption = late_interruption.or_else(|| {
-            let event = control.observe(crate::runtime::RelationalInterruptionBoundary::Settlement);
-            if let Some(event) = event {
-                candidate_retention.record_interruption(event);
+        let (positioned, record) = performed.into_settlement_parts();
+        debug_assert_eq!(positioned.envelope().commit.commit_id, record.commit_id());
+        match self.execute_pending_settlement(&record, RelationalSettlementResultOwner::Witness) {
+            Ok(RelationalSettlementCompletion::Performed { committed, .. }) => Ok(committed),
+            Ok(RelationalSettlementCompletion::Repeated { committed, .. }) => {
+                let retained = committed.expect(
+                    "a receipt-only executor retains the commit result for its live witness",
+                );
+                Ok(Arc::try_unwrap(retained).unwrap_or_else(|shared| shared.as_ref().clone()))
             }
-            event
-        });
-        let committed = assemble_commit_result(self, published, late_interruption);
-        if let Some(error) = durability_error {
-            let snapshot_closeout = self
-                .visibility
-                .published_snapshot_closeout(committed.snapshot.snapshot_id())
-                .expect("deferred publication retains its exact published snapshot");
-            let settlement = DeferredPublicationSettlement::new(
-                self.runtime_instance_id(),
-                std::sync::Arc::clone(&positioned),
-                committed,
-                snapshot_closeout,
-            );
-            self.publication_binding()
-                .register_deferred_settlement(
-                    settlement.clone(),
-                    self.config
-                        .publication
-                        .policy
-                        .max_published_snapshot_handles,
-                )
-                .expect("published snapshot capacity bounds runtime-owned settlement recovery");
-            return Err(TransactionCommitError::performed_but_durability_deferred(
-                settlement, error,
-            ));
+            Err(RelationalSettlementStop::DurabilityDeferred { carrier, error }) => Err(
+                TransactionCommitError::performed_but_durability_deferred(carrier, error),
+            ),
+            Err(RelationalSettlementStop::Unrecoverable(Some(error))) => Err(error),
+            Err(stop) => Err(TransactionCommitError::publication(
+                crate::publication::data::PublicationError::new(
+                    crate::publication::bundle::PublicationStage::DurableAppend,
+                    format!("{:?}", stop.into_repair_error(record.commit_id())),
+                ),
+            )),
         }
-        self.history.mark_publication_settled(commit_id);
-        Ok(committed)
     }
 
     /// Retry the one missing durable append for an exact performed route.
-    /// Calling this again after success is harmless and returns the same receipt.
+    /// Calling this again after success is harmless and returns the same
+    /// receipt, because the carrier only names a record the runtime owns.
     pub fn repair_deferred_publication_settlement(
         &mut self,
         settlement: &DeferredPublicationSettlement,
     ) -> Result<crate::history::data::RelationalCommitReceipt, DeferredPublicationSettlementError>
     {
-        use DeferredPublicationSettlementError as RepairError;
-
         if settlement.runtime_instance_id() != self.runtime_instance_id() {
-            return Err(RepairError::ForeignRuntime {
+            return Err(DeferredPublicationSettlementError::ForeignRuntime {
                 expected_runtime_instance_id: settlement.runtime_instance_id(),
                 actual_runtime_instance_id: self.runtime_instance_id(),
             });
         }
         let commit_id = settlement.commit().commit_id;
-        let Some(positioned) = self.history.positioned_canonical_commit(commit_id) else {
-            return Err(RepairError::PerformedRouteMissing);
+        let Some(record) = self.publication_binding().pending_settlement(commit_id) else {
+            return self.settled_receipt_without_record(commit_id);
         };
-        if positioned.as_ref() != settlement.positioned().as_ref() {
-            return Err(RepairError::PerformedRouteMismatch);
+        if record
+            .deferred_route()
+            .is_some_and(|retained| retained.as_ref() != settlement.positioned().as_ref())
+        {
+            return Err(DeferredPublicationSettlementError::PerformedRouteMismatch);
         }
-        if !self.history.publication_requires_settlement(commit_id) {
-            self.publication_binding()
-                .release_deferred_settlement(commit_id);
-            settlement.close_published_snapshot();
-            return Ok(positioned.envelope().commit.clone());
-        }
-        if let Some(durable) = self.durability.durable_log_envelope(commit_id) {
-            if durable != positioned.as_ref() {
-                return Err(RepairError::PerformedRouteMismatch);
-            }
-        } else {
-            let admission = CommitDurableAppendAdmission::new(
-                self.runtime_instance_id(),
-                commit_id,
-                &positioned.envelope().commit.branch_id,
-            );
-            let authority =
-                crate::durability::authority::DurableAppendAuthority::from_commit(admission);
-            self.durability_authority()
-                .append_commit(authority, positioned.as_ref())
-                .map_err(RepairError::DurableAppend)?;
-        }
-        self.history.mark_publication_settled(commit_id);
-        self.publication_binding()
-            .release_deferred_settlement(commit_id);
-        settlement.close_published_snapshot();
-        Ok(positioned.envelope().commit.clone())
+        self.execute_pending_settlement(&record, RelationalSettlementResultOwner::Runtime)
+            .map(|completion| completion.receipt().clone())
+            .map_err(|stop| stop.into_repair_error(commit_id))
     }
 
     /// Retry a performed publication retained by this runtime even when the
@@ -118,16 +78,22 @@ impl RelationalRuntime {
         commit_id: crate::history::data::CommitId,
     ) -> Result<crate::history::data::RelationalCommitReceipt, DeferredPublicationSettlementError>
     {
-        if let Some(settlement) = self.publication_binding().deferred_settlement(commit_id) {
-            return self.repair_deferred_publication_settlement(&settlement);
+        let Some(record) = self.publication_binding().pending_settlement(commit_id) else {
+            if self.publication_binding().settlement_admission_is_closed() {
+                return Err(DeferredPublicationSettlementError::OwnerUnavailable {
+                    runtime_instance_id: self.runtime_instance_id(),
+                });
+            }
+            return self.settled_receipt_without_record(commit_id);
+        };
+        if record.runtime_instance_id() != self.runtime_instance_id() {
+            return Err(DeferredPublicationSettlementError::ForeignRuntime {
+                expected_runtime_instance_id: record.runtime_instance_id(),
+                actual_runtime_instance_id: self.runtime_instance_id(),
+            });
         }
-        let positioned = self
-            .history
-            .positioned_canonical_commit(commit_id)
-            .ok_or(DeferredPublicationSettlementError::RecoveryUnavailable { commit_id })?;
-        if self.history.publication_requires_settlement(commit_id) {
-            return Err(DeferredPublicationSettlementError::RecoveryUnavailable { commit_id });
-        }
-        Ok(positioned.envelope().commit.clone())
+        self.execute_pending_settlement(&record, RelationalSettlementResultOwner::Runtime)
+            .map(|completion| completion.receipt().clone())
+            .map_err(|stop| stop.into_repair_error(commit_id))
     }
 }

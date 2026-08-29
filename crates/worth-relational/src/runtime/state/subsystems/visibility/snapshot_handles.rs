@@ -1,10 +1,11 @@
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, Weak};
 
-use crate::history::data::BranchId;
 use crate::identity::data::VersionId;
-use crate::snapshots::data::{SnapshotId, SnapshotReadPolicy};
+use crate::snapshots::data::SnapshotId;
+
+use super::snapshot_handle_binding::SnapshotHandleBinding;
 
 #[derive(Debug, Default)]
 pub(crate) struct SnapshotHandles {
@@ -116,6 +117,10 @@ struct PublishedSnapshotCloseoutInner {
     handles: Weak<Mutex<PublishedSnapshotHandles>>,
     capacity: Arc<PublishedSnapshotCapacityOwner>,
     snapshot_id: SnapshotId,
+    /// Whether dropping this closeout still owes the handle a release. It is
+    /// cleared when the obligation moves to a commit-result holder, because
+    /// exactly one party may release one published handle.
+    armed: AtomicBool,
 }
 
 impl PublishedSnapshotCloseout {
@@ -129,12 +134,20 @@ impl PublishedSnapshotCloseout {
                 handles: Arc::downgrade(handles),
                 capacity,
                 snapshot_id,
+                armed: AtomicBool::new(true),
             }),
         }
     }
 
     pub(crate) fn close(&self) {
         self.inner.close();
+    }
+
+    /// Hand the release obligation to the holder of the commit result that
+    /// names this snapshot. Every clone of this closeout stops closing on
+    /// drop, so the handle is released once by its new owner and not here.
+    pub(crate) fn transfer_release_obligation(&self) {
+        self.inner.armed.store(false, Ordering::Release);
     }
 }
 
@@ -165,7 +178,9 @@ impl PublishedSnapshotCloseoutInner {
 
 impl Drop for PublishedSnapshotCloseoutInner {
     fn drop(&mut self) {
-        self.close();
+        if self.armed.load(Ordering::Acquire) {
+            self.close();
+        }
     }
 }
 
@@ -362,39 +377,4 @@ fn remove_published_handle(
         published.by_version.remove(&binding.version_id);
     }
     Some(binding)
-}
-
-#[derive(Debug)]
-pub(crate) struct SnapshotHandleBinding {
-    pub(crate) branch_id: BranchId,
-    pub(crate) version_id: VersionId,
-    pub(crate) read_policy: SnapshotReadPolicy,
-    pub(crate) basis: crate::visibility::snapshot_states::VisibilitySnapshotBasis,
-}
-
-impl SnapshotHandleBinding {
-    pub(crate) fn new(
-        basis: crate::visibility::snapshot_states::VisibilitySnapshotBasis,
-        read_policy: SnapshotReadPolicy,
-    ) -> Self {
-        Self {
-            branch_id: basis.branch_id().clone(),
-            version_id: basis.version_id(),
-            read_policy,
-            basis,
-        }
-    }
-
-    #[cfg(test)]
-    pub(crate) fn for_registry_scale_test(&self, version_id: VersionId) -> Self {
-        let mut binding = self.clone();
-        binding.version_id = version_id;
-        binding
-    }
-}
-
-impl Clone for SnapshotHandleBinding {
-    fn clone(&self) -> Self {
-        Self::new(self.basis.clone(), self.read_policy)
-    }
 }

@@ -14,6 +14,8 @@ impl PreparedCanonicalBranchMovement {
         branch_head_versions: crate::runtime::BranchHeadVersionIndexAuthority,
     ) -> Result<PreparedBranchPublicationPreflight, RelationalPublicationOutcome> {
         let PreparedRelationalPublicationParts {
+            runtime_instance_id,
+            publication_binding,
             expected,
             expected_root,
             publication_cell,
@@ -23,6 +25,7 @@ impl PreparedCanonicalBranchMovement {
             control,
             expires_at,
             maximum_lifetime_millis,
+            maximum_published_snapshot_handles,
         } = parts;
         match control.observe(crate::mvcc::RelationalInterruptionBoundary::PublicationPreflight) {
             Some(event)
@@ -144,13 +147,57 @@ impl PreparedCanonicalBranchMovement {
                 ));
             }
         };
+        // The pending settlement record is installed here, before the critical
+        // section, so no observer can ever see a moved branch head whose owner
+        // recovery lookup has no record. Every stop below this point releases
+        // the reservation by dropping it.
+        let published_snapshot_basis =
+            crate::visibility::snapshot_states::VisibilitySnapshotBasis::from_observation(
+                &next_basis.observation(),
+            );
+        let settlement_reservation = match publication_binding.reserve_pending_settlement(
+            movement.canonical_publication_route.commit_id(),
+            runtime_instance_id,
+            maximum_published_snapshot_handles,
+            crate::runtime::ReservedRelationalSettlement {
+                completion,
+                published_snapshot_basis,
+                control: control.clone(),
+            },
+        ) {
+            Ok(reservation) => reservation,
+            Err(crate::runtime::RelationalSettlementReservationDenial::CapacityExhausted {
+                maximum_handles,
+            }) => {
+                return Err(RelationalPublicationOutcome::deferred(
+                    RelationalPublicationDeferred::PublishedSnapshotCapacityExhausted {
+                        maximum_handles,
+                    },
+                ));
+            }
+            Err(crate::runtime::RelationalSettlementReservationDenial::OwnerUnavailable) => {
+                return Err(RelationalPublicationOutcome::denied(
+                    RelationalPublicationDenial::OwnerUnavailable {
+                        runtime_instance_id: expected.runtime_instance_id(),
+                    },
+                ));
+            }
+            Err(crate::runtime::RelationalSettlementReservationDenial::DuplicateCommitIdentity) => {
+                return Err(RelationalPublicationOutcome::failed(
+                    RelationalPublicationFailure::new(
+                        RelationalPublicationFailureKind::PendingSettlementIdentityConflict,
+                        "another pending settlement already owns this commit identity",
+                    ),
+                ));
+            }
+        };
         Ok(PreparedBranchPublicationPreflight {
             movement,
             expected,
             publication_cell,
             next_state,
             next_basis,
-            completion,
+            settlement_reservation,
             head_retirement,
             candidate_retention,
             control,

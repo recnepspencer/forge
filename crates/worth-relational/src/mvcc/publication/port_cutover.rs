@@ -143,24 +143,28 @@ impl PreparedBranchPublicationPreflight {
             .candidate_retention
             .into_performed_settlement(Arc::clone(&self.movement.root));
         self.movement.record_allocations.commit();
-        let mut performed = PerformedRelationalCommit::record(
-            positioned_commit,
-            self.next_basis,
-            self.completion,
-            settlement_retention,
-            self.control.clone(),
-        );
-        if let Some(interruption) = self
+        let late_interruption = self
             .control
-            .observe(crate::runtime::RelationalInterruptionBoundary::AfterLinearization)
-        {
-            performed
-                .next_basis()
+            .observe(crate::runtime::RelationalInterruptionBoundary::AfterLinearization);
+        if let Some(interruption) = late_interruption {
+            self.next_basis
                 .inner
                 .retention_binding
                 .record_interruption(interruption);
-            performed.record_late_interruption(interruption);
         }
-        RelationalPublicationOutcome::performed(performed)
+        // Authorizing the already-installed record is what disarms pre-effect
+        // cleanup. From here the commit is recoverable by identity alone, and
+        // the returned witness is only a witness.
+        let record = self.settlement_reservation.authorize(
+            Arc::clone(&positioned_commit),
+            settlement_retention,
+            late_interruption,
+        );
+        RelationalPublicationOutcome::performed(PerformedRelationalCommit::record(
+            positioned_commit,
+            self.next_basis,
+            record,
+            late_interruption,
+        ))
     }
 }

@@ -217,10 +217,10 @@ fn runtime_recovers_settlement_after_external_capability_is_dropped() {
     let error = runtime
         .settle_performed_publication(performed)
         .expect_err("durable append fault returns deferred settlement");
-    assert_eq!(runtime.publication_binding().deferred_settlement_count(), 1);
+    assert_eq!(runtime.publication_binding().pending_settlement_count(), 1);
     assert_eq!(runtime.visibility.published_snapshot_handle_count(), 1);
     drop(error);
-    assert_eq!(runtime.publication_binding().deferred_settlement_count(), 1);
+    assert_eq!(runtime.publication_binding().pending_settlement_count(), 1);
     assert_eq!(runtime.visibility.published_snapshot_handle_count(), 1);
 
     let mut blocked = test_owner_begin_transaction_for_main(&mut runtime);
@@ -237,7 +237,7 @@ fn runtime_recovers_settlement_after_external_capability_is_dropped() {
         .repair_pending_publication_settlement(commit_id)
         .expect("runtime-owned recovery survives loss of the external capability");
     assert_eq!(repaired.commit_id, commit_id);
-    assert_eq!(runtime.publication_binding().deferred_settlement_count(), 0);
+    assert_eq!(runtime.publication_binding().pending_settlement_count(), 0);
     assert_eq!(runtime.visibility.published_snapshot_handle_count(), 0);
     let child = create_entity_outcome(&mut runtime, "child-after-runtime-recovery");
     assert_eq!(child.commit.parents, vec![commit_id]);

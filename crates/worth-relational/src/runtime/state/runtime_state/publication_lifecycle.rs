@@ -18,12 +18,7 @@ pub(crate) struct RelationalRuntimePublicationBinding {
 pub(super) struct RelationalRuntimePublicationLifecycle {
     next_candidate_id: AtomicU64,
     candidates: Mutex<HashMap<u64, RegisteredCandidate>>,
-    pub(super) deferred_settlements: Mutex<
-        HashMap<
-            crate::history::data::CommitId,
-            crate::publication::data::DeferredPublicationSettlement,
-        >,
-    >,
+    pub(super) settlements: Arc<super::RelationalPublicationSettlementRegistry>,
 }
 
 #[derive(Debug)]
@@ -44,7 +39,7 @@ impl RelationalRuntimePublicationOwner {
                 lifecycle: Arc::new(RelationalRuntimePublicationLifecycle {
                     next_candidate_id: AtomicU64::new(1),
                     candidates: Mutex::new(HashMap::new()),
-                    deferred_settlements: Mutex::new(HashMap::new()),
+                    settlements: Arc::new(super::RelationalPublicationSettlementRegistry::default()),
                 }),
             },
         }
@@ -55,7 +50,7 @@ impl RelationalRuntimePublicationOwner {
     }
 
     pub(super) fn close(&self) {
-        self.binding.clear_deferred_settlements();
+        self.binding.lifecycle.settlements.close();
     }
 }
 
@@ -136,6 +131,61 @@ impl RelationalRuntimePublicationBinding {
 
     pub(crate) fn belongs_to_same_owner(&self, other: &Self) -> bool {
         Arc::ptr_eq(&self.lifecycle, &other.lifecycle)
+    }
+
+    /// Install the one pending-settlement record for this attempt before the
+    /// publication critical section. Capacity exhaustion is therefore a
+    /// no-movement deferral discovered before linearization.
+    pub(crate) fn reserve_pending_settlement(
+        &self,
+        commit_id: crate::history::data::CommitId,
+        runtime_instance_id: u64,
+        maximum_handles: usize,
+        reserved: super::ReservedRelationalSettlement,
+    ) -> Result<
+        super::RelationalPendingSettlementReservation,
+        super::RelationalSettlementReservationDenial,
+    > {
+        super::RelationalPublicationSettlementRegistry::reserve(
+            &self.lifecycle.settlements,
+            commit_id,
+            runtime_instance_id,
+            maximum_handles,
+            reserved,
+        )
+    }
+
+    pub(crate) fn pending_settlement(
+        &self,
+        commit_id: crate::history::data::CommitId,
+    ) -> Option<Arc<super::PendingRelationalPublicationSettlement>> {
+        self.lifecycle.settlements.record(commit_id)
+    }
+
+    pub(crate) fn release_pending_settlement(
+        &self,
+        record: &Arc<super::PendingRelationalPublicationSettlement>,
+    ) {
+        self.lifecycle.settlements.release(record);
+    }
+
+    pub(crate) fn settlement_admission_is_closed(&self) -> bool {
+        self.lifecycle.settlements.is_closed()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn pending_settlement_count(&self) -> usize {
+        self.lifecycle.settlements.pending_count()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn pending_settlement_contact_count(&self) -> u64 {
+        self.lifecycle.settlements.contact_count()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn pending_settlement_owner_loss_count(&self) -> u64 {
+        self.lifecycle.settlements.owner_loss_release_count()
     }
 }
 

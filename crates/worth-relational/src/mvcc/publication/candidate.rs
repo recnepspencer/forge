@@ -17,6 +17,7 @@ pub struct PreparedRelationalCommitCandidate {
     _payload: std::sync::Arc<std::sync::Mutex<Option<CandidatePayload>>>,
     expires_at: std::time::Instant,
     pub(crate) maximum_lifetime_millis: u64,
+    maximum_published_snapshot_handles: usize,
     reservation_count: usize,
     consumed: bool,
     _not_sync: PhantomData<Cell<()>>,
@@ -33,6 +34,8 @@ pub(crate) struct CandidatePayload {
 }
 
 pub(super) struct PreparedRelationalPublicationParts {
+    pub(super) runtime_instance_id: u64,
+    pub(super) publication_binding: crate::runtime::RelationalRuntimePublicationBinding,
     pub(super) expected: crate::branch::RelationalBranchBasisDescriptor,
     pub(super) expected_root: std::sync::Arc<crate::branch::RelationalBranchRoot>,
     pub(super) publication_cell: crate::branch::RelationalBranchPublicationCell,
@@ -43,6 +46,7 @@ pub(super) struct PreparedRelationalPublicationParts {
     pub(super) control: crate::mvcc::RelationalOperationControl,
     pub(super) expires_at: std::time::Instant,
     pub(super) maximum_lifetime_millis: u64,
+    pub(super) maximum_published_snapshot_handles: usize,
 }
 
 pub(crate) enum PreparedRelationalCandidateAdmissionStop {
@@ -65,6 +69,7 @@ impl PreparedRelationalCommitCandidate {
         control: crate::mvcc::RelationalOperationControl,
         maximum_lifetime_millis: u64,
         maximum_candidates: usize,
+        maximum_published_snapshot_handles: usize,
     ) -> Result<Self, PreparedRelationalCandidateAdmissionStop> {
         let expires_at = std::time::Instant::now()
             .checked_add(std::time::Duration::from_millis(maximum_lifetime_millis))
@@ -107,6 +112,7 @@ impl PreparedRelationalCommitCandidate {
             _payload: payload,
             expires_at,
             maximum_lifetime_millis,
+            maximum_published_snapshot_handles,
             reservation_count,
             consumed: false,
             _not_sync: PhantomData,
@@ -154,6 +160,8 @@ impl PreparedRelationalCommitCandidate {
         self.consumed = true;
         let (movement, completion) = payload.execution.split(payload.published_snapshot_slot);
         Ok(PreparedRelationalPublicationParts {
+            runtime_instance_id: self.runtime_instance_id,
+            publication_binding: self.publication_binding.clone(),
             expected: payload.expected_basis,
             expected_root: payload.expected_root,
             publication_cell: payload.publication_cell,
@@ -163,6 +171,7 @@ impl PreparedRelationalCommitCandidate {
             control: payload.control,
             expires_at: self.expires_at,
             maximum_lifetime_millis: self.maximum_lifetime_millis,
+            maximum_published_snapshot_handles: self.maximum_published_snapshot_handles,
         })
     }
 

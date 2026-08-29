@@ -259,6 +259,13 @@ impl RelationalCanonicalPublicationRoutes {
 }
 
 impl PreparedCanonicalPublicationRoute {
+    /// Owner-issued commit identity of the candidate this route publishes.
+    /// Settlement is keyed by it before movement, so it must be readable
+    /// without waiting for the route to perform.
+    pub(crate) fn commit_id(&self) -> CommitId {
+        self.route.envelope.commit.commit_id
+    }
+
     pub(crate) fn enter_publication(&self) -> RwLockReadGuard<'_, ()> {
         self.routes
             .lifecycle

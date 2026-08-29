@@ -33,7 +33,7 @@ struct PreparedBranchPublicationPreflight {
     publication_cell: RelationalBranchPublicationCell,
     next_state: crate::branch::RelationalBranchReferenceMutableState,
     next_basis: crate::branch::AdmittedRelationalBranchBasis,
-    completion: crate::authority::commit::pipeline::PreparedCommitPublicationCompletion,
+    settlement_reservation: crate::runtime::RelationalPendingSettlementReservation,
     head_retirement: crate::history::retention::RelationalHeadRetirementReservation,
     candidate_retention: crate::history::retention::RelationalCandidateRetentionObligation,
     control: crate::mvcc::RelationalOperationControl,

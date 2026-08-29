@@ -8,6 +8,11 @@ pub(crate) use runtime_state::{
     RelationalPreparationRuntime, RelationalRuntimeOwnerBinding,
     RelationalRuntimePublicationBinding,
 };
+pub(crate) use runtime_state::{
+    DeferredRelationalSettlement, PendingRelationalPublicationSettlement,
+    PerformedRelationalSettlement, RelationalPendingSettlementReservation,
+    RelationalSettlementClaim, RelationalSettlementReservationDenial, ReservedRelationalSettlement,
+};
 pub(in crate::runtime) use runtime_state::{
     RelationalPreparationConfigurationOwner, RelationalRuntimeOwner,
     RelationalRuntimePublicationOwner,

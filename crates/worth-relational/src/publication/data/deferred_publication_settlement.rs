@@ -55,10 +55,6 @@ impl DeferredPublicationSettlement {
     pub(crate) fn positioned(&self) -> &Arc<PositionedCanonicalCommit> {
         &self.positioned
     }
-
-    pub(crate) fn close_published_snapshot(&self) {
-        self.snapshot_closeout.close();
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -72,5 +68,14 @@ pub enum DeferredPublicationSettlementError {
     },
     PerformedRouteMissing,
     PerformedRouteMismatch,
+    /// The owner-issued identity is retained, but movement has not authorized
+    /// its reservation yet, so there is no performed work to repair.
+    SettlementInProgress {
+        commit_id: crate::history::data::CommitId,
+    },
+    /// The owning runtime closed settlement admission.
+    OwnerUnavailable {
+        runtime_instance_id: u64,
+    },
     DurableAppend(DurabilityError),
 }

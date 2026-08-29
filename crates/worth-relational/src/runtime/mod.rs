@@ -69,3 +69,8 @@ pub(crate) use state::{
     RuntimeServices, RuntimeSubsystem, SchemaContractRuntimeSubsystem, SnapshotHandleBinding,
     ValidatedLineageEventBatch, VisibilityResidency, VisibilitySubsystem,
 };
+pub(crate) use state::{
+    DeferredRelationalSettlement, PendingRelationalPublicationSettlement,
+    PerformedRelationalSettlement, RelationalPendingSettlementReservation,
+    RelationalSettlementClaim, RelationalSettlementReservationDenial, ReservedRelationalSettlement,
+};

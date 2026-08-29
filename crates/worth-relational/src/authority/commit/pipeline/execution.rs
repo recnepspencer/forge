@@ -140,6 +140,11 @@ pub(crate) fn prepare_authoritative_commit(
             .policy
             .candidate_max_lifetime_millis,
         runtime.config.publication.policy.max_prepared_candidates,
+        runtime
+            .config
+            .publication
+            .policy
+            .max_published_snapshot_handles,
     )
     .map_err(|stop| match stop {
         crate::mvcc::PreparedRelationalCandidateAdmissionStop::Deferred(deferred) => {

@@ -1,0 +1,241 @@
+use crate::facade::history::BranchId;
+use crate::facade::mvcc::{
+    RelationalInterruptionBoundary, RelationalOperationControl, RelationalOperationInterruption,
+    RelationalTransactionIntent,
+};
+use crate::tests::support::*;
+
+/// The performed witness is not the owner of the remaining settlement work.
+/// Dropping it may record abandonment and nothing else.
+#[test]
+fn dropping_the_performed_witness_leaves_settlement_recoverable() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    create_entity(&mut runtime, "abandoned-witness-anchor");
+    let performed = perform_main_write(&mut runtime, "abandoned-witness");
+    let commit_id = performed.canonical_commit().commit.commit_id;
+    let record = runtime
+        .publication_binding()
+        .pending_settlement(commit_id)
+        .expect("movement installed its runtime-owned settlement record");
+
+    drop(performed);
+
+    assert_eq!(
+        record.abandoned_capability_count(),
+        1,
+        "abandoning the witness is observable"
+    );
+    assert_eq!(
+        runtime.publication_binding().pending_settlement_count(),
+        1,
+        "abandoning the witness may not release the obligation"
+    );
+    let mut blocked = test_owner_begin_transaction_for_main(&mut runtime);
+    blocked
+        .push_batch(batch_create("blocked-after-abandonment"))
+        .unwrap();
+    assert!(runtime
+        .prepare_branch_transaction(blocked)
+        .unwrap_err()
+        .detail()
+        .contains("requires explicit owner settlement"));
+
+    let repaired = runtime
+        .repair_pending_publication_settlement(commit_id)
+        .expect("the runtime still owns the work its lost witness only reported");
+    assert_eq!(repaired.commit_id, commit_id);
+    assert_eq!(runtime.publication_binding().pending_settlement_count(), 0);
+    drop(record);
+    assert_eq!(
+        runtime.visibility.published_snapshot_handle_count(),
+        0,
+        "repair without a witness closes the published snapshot it opened"
+    );
+
+    let child = create_entity_outcome(&mut runtime, "child-after-abandoned-witness");
+    assert_eq!(child.commit.parents, vec![commit_id]);
+    assert_eq!(durable_appends(&runtime, commit_id), 1);
+    release_test_commit_snapshot(&mut runtime, &child);
+}
+
+/// Terminal settlement is exactly once. Asking again returns the same receipt
+/// and appends nothing.
+#[test]
+fn repeated_terminal_settlement_returns_one_receipt_and_one_durable_append() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    create_entity(&mut runtime, "repeated-settlement-anchor");
+    let performed = perform_main_write(&mut runtime, "repeated-settlement");
+    let commit_id = performed.canonical_commit().commit.commit_id;
+    let settled = runtime
+        .settle_performed_publication(performed)
+        .expect("the witness holder settles once");
+    assert_eq!(settled.commit.commit_id, commit_id);
+
+    let repeated = runtime
+        .repair_pending_publication_settlement(commit_id)
+        .expect("a settled identity answers from its terminal receipt");
+    assert_eq!(repeated.commit_id, commit_id);
+    assert_eq!(repeated, settled.commit);
+    assert_eq!(
+        durable_appends(&runtime, commit_id),
+        1,
+        "asking again performs no second durable effect"
+    );
+    assert_eq!(runtime.publication_binding().pending_settlement_count(), 0);
+    release_test_commit_snapshot(&mut runtime, &settled);
+}
+
+/// Immediate settlement and commit-identity repair share one executor gate, so
+/// whichever runs second observes the terminal answer instead of repeating it.
+#[test]
+fn repair_and_witness_settlement_execute_exactly_once() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    create_entity(&mut runtime, "single-execution-anchor");
+    let performed = perform_main_write(&mut runtime, "single-execution");
+    let commit_id = performed.canonical_commit().commit.commit_id;
+
+    let repaired = runtime
+        .repair_pending_publication_settlement(commit_id)
+        .expect("repair runs the one terminal effect while the witness is still held");
+    assert_eq!(repaired.commit_id, commit_id);
+    assert_eq!(runtime.publication_binding().pending_settlement_count(), 0);
+
+    let settled = runtime
+        .settle_performed_publication(performed)
+        .expect("the witness holder still receives its exact commit result");
+    assert_eq!(settled.commit.commit_id, commit_id);
+    assert_eq!(settled.commit, repaired);
+    assert_eq!(
+        durable_appends(&runtime, commit_id),
+        1,
+        "two settlement callers produce exactly one durable append"
+    );
+
+    let child = create_entity_outcome(&mut runtime, "child-after-single-execution");
+    assert_eq!(child.commit.parents, vec![commit_id]);
+    release_test_commit_snapshot(&mut runtime, &settled);
+    release_test_commit_snapshot(&mut runtime, &child);
+}
+
+/// Owner loss retires every pending settlement exactly once instead of leaving
+/// an unbounded registry behind a dead runtime.
+#[test]
+fn owner_loss_retires_every_pending_settlement_exactly_once() {
+    let mut runtime = runtime_with_test_schema();
+    create_entity(&mut runtime, "owner-loss-settlement-anchor");
+    let performed = perform_main_write(&mut runtime, "owner-loss-settlement");
+    drop(performed);
+    let binding = runtime.publication_binding();
+    assert!(!binding.settlement_admission_is_closed());
+    assert_eq!(binding.pending_settlement_count(), 1);
+
+    drop(runtime);
+
+    assert!(
+        binding.settlement_admission_is_closed(),
+        "a lost owner admits no further settlement"
+    );
+    assert_eq!(
+        binding.pending_settlement_count(),
+        0,
+        "owner loss drains its pending registry"
+    );
+    assert_eq!(
+        binding.pending_settlement_owner_loss_count(),
+        1,
+        "each retired pending settlement is accounted exactly once"
+    );
+}
+
+/// Interruption immediately after the linearization point is not a
+/// no-movement path, so the settlement record must survive it.
+#[test]
+fn interruption_after_movement_retains_its_pending_settlement() {
+    for interruption in [
+        RelationalOperationInterruption::Cancelled,
+        RelationalOperationInterruption::TimedOut,
+    ] {
+        let mut runtime = runtime_with_test_schema();
+        create_entity(&mut runtime, "post-movement-interruption-anchor");
+        let identity = runtime.main_branch_identity();
+        let (_, basis) = runtime.observe_branch(&identity).unwrap();
+        let control = RelationalOperationControl::uninterrupted().with_injected_interruption(
+            RelationalInterruptionBoundary::AfterLinearization,
+            interruption,
+            1,
+        );
+        let mut transaction = runtime
+            .begin_branch_transaction_with_control(
+                &basis,
+                RelationalTransactionIntent::ordinary(),
+                control,
+            )
+            .unwrap();
+        transaction
+            .push_batch(batch_create("interrupted-after-linearization"))
+            .unwrap();
+        let candidate = runtime.prepare_branch_transaction(transaction).unwrap();
+        let reference_before = runtime
+            .branch_reference_state(&BranchId("main".to_owned()))
+            .unwrap();
+
+        let crate::mvcc::RelationalPublicationOutcome::Performed(performed) =
+            runtime.publication_port().compare_and_publish(candidate)
+        else {
+            panic!("late interruption cannot erase performed movement");
+        };
+
+        assert_ne!(
+            runtime
+                .branch_reference_state(&BranchId("main".to_owned()))
+                .unwrap(),
+            reference_before,
+        );
+        assert_eq!(
+            performed
+                .late_interruption()
+                .expect("late interruption is attached to the performed witness")
+                .interruption(),
+            interruption
+        );
+        assert_eq!(
+            runtime.publication_binding().pending_settlement_count(),
+            1,
+            "movement that happened keeps its recoverable settlement record"
+        );
+        let settled = runtime
+            .settle_performed_publication(performed)
+            .expect("a late-interrupted movement remains settleable");
+        assert_eq!(runtime.publication_binding().pending_settlement_count(), 0);
+        release_test_commit_snapshot(&mut runtime, &settled);
+    }
+}
+
+fn perform_main_write(
+    runtime: &mut RelationalRuntime,
+    name: &str,
+) -> crate::mvcc::PerformedRelationalCommit {
+    let mut transaction = test_owner_begin_transaction_for_main(runtime);
+    transaction
+        .push_batch(batch_create(name))
+        .expect("test staging stays within configured resource budgets");
+    let candidate = runtime
+        .prepare_branch_transaction(transaction)
+        .expect("candidate prepares");
+    match runtime.publication_port().compare_and_publish(candidate) {
+        crate::mvcc::RelationalPublicationOutcome::Performed(performed) => performed,
+        outcome => panic!("an uncontended candidate performs: {outcome:?}"),
+    }
+}
+
+fn durable_appends(
+    runtime: &RelationalRuntime,
+    commit_id: crate::history::data::CommitId,
+) -> usize {
+    runtime
+        .durability()
+        .durable_log()
+        .iter()
+        .filter(|entry| entry.envelope().commit.commit_id == commit_id)
+        .count()
+}

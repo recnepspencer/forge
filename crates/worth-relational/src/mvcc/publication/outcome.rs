@@ -30,11 +30,14 @@ struct PerformedRelationalCommitData {
     next_basis: AdmittedRelationalBranchBasis,
 }
 
-/// Proof that one prepared candidate crossed its branch linearization point.
+/// Witness that one prepared candidate crossed its branch linearization point.
 ///
-/// This value is deliberately non-cloneable. It carries the one canonical
-/// commit artifact, owner-admitted basis, and the single-use work required to
-/// settle durability and derived projections.
+/// This value is deliberately non-cloneable, but it is not the owner of the
+/// remaining settlement work. The runtime installed that work in its pending
+/// settlement registry before the movement this value reports, so dropping the
+/// witness records capability abandonment and nothing else: the obligation,
+/// the route's settled marking, and repair availability all stay with the
+/// runtime.
 #[must_use = "performed publication must be settled by its owning runtime"]
 pub struct PerformedRelationalCommit {
     performed: worth_proof::Performed<
@@ -42,10 +45,26 @@ pub struct PerformedRelationalCommit {
         crate::branch::RelationalBranchPublicationAuthorityMarker,
         PerformedRelationalCommitData,
     >,
-    completion: crate::authority::commit::pipeline::PreparedCommitPublicationCompletion,
-    settlement_retention: crate::history::retention::RelationalPerformedSettlementObligation,
-    control: crate::runtime::RelationalOperationControl,
+    capability: PerformedSettlementCapability,
     late_interruption: Option<crate::runtime::RelationalInterruptionEvent>,
+}
+
+/// Borrowed view of the runtime-owned pending settlement record.
+///
+/// Its `Drop` is the whole reason this is a separate value: abandoning the
+/// witness must be observable without letting a partial move of the proof
+/// suppress that accounting.
+struct PerformedSettlementCapability {
+    record: Arc<crate::runtime::PendingRelationalPublicationSettlement>,
+    consumed: bool,
+}
+
+impl Drop for PerformedSettlementCapability {
+    fn drop(&mut self) {
+        if !self.consumed {
+            self.record.record_capability_abandonment();
+        }
+    }
 }
 
 impl std::fmt::Debug for PerformedRelationalCommit {
@@ -74,9 +93,8 @@ impl PerformedRelationalCommit {
     pub(crate) fn record(
         positioned_commit: Arc<PositionedCanonicalCommit>,
         next_basis: AdmittedRelationalBranchBasis,
-        completion: crate::authority::commit::pipeline::PreparedCommitPublicationCompletion,
-        settlement_retention: crate::history::retention::RelationalPerformedSettlementObligation,
-        control: crate::runtime::RelationalOperationControl,
+        record: Arc<crate::runtime::PendingRelationalPublicationSettlement>,
+        late_interruption: Option<crate::runtime::RelationalInterruptionEvent>,
     ) -> Self {
         Self {
             performed: worth_proof::Performed::record(
@@ -86,10 +104,11 @@ impl PerformedRelationalCommit {
                     next_basis,
                 },
             ),
-            completion,
-            settlement_retention,
-            control,
-            late_interruption: None,
+            capability: PerformedSettlementCapability {
+                record,
+                consumed: false,
+            },
+            late_interruption,
         }
     }
 
@@ -105,23 +124,19 @@ impl PerformedRelationalCommit {
         &self.performed.outcome().next_basis
     }
 
+    /// Surrender the witness to its owning runtime. The registry record is the
+    /// authority for what remains, so this hands back only the exact route and
+    /// the record that already holds the work.
     pub(crate) fn into_settlement_parts(
-        self,
+        mut self,
     ) -> (
         Arc<PositionedCanonicalCommit>,
-        AdmittedRelationalBranchBasis,
-        crate::authority::commit::pipeline::PreparedCommitPublicationCompletion,
-        crate::history::retention::RelationalPerformedSettlementObligation,
-        crate::runtime::RelationalOperationControl,
+        Arc<crate::runtime::PendingRelationalPublicationSettlement>,
     ) {
+        self.capability.consumed = true;
+        let record = Arc::clone(&self.capability.record);
         let outcome = self.performed.into_outcome();
-        (
-            outcome.positioned_commit,
-            outcome.next_basis,
-            self.completion,
-            self.settlement_retention,
-            self.control,
-        )
+        (outcome.positioned_commit, record)
     }
 
     pub const fn projection_posture(&self) -> RelationalPublicationProjectionPosture {
@@ -134,13 +149,6 @@ impl PerformedRelationalCommit {
 
     pub const fn late_interruption(&self) -> Option<crate::runtime::RelationalInterruptionEvent> {
         self.late_interruption
-    }
-
-    pub(crate) fn record_late_interruption(
-        &mut self,
-        interruption: crate::runtime::RelationalInterruptionEvent,
-    ) {
-        self.late_interruption = Some(interruption);
     }
 }
 
@@ -207,6 +215,10 @@ pub enum RelationalPublicationFailureKind {
     PatchPositionCapacityExhausted,
     RetentionIdentityExhausted,
     RetentionOwner,
+    /// A pending settlement record already exists for this candidate's
+    /// owner-issued commit identity, so the pre-effect reservation would have
+    /// aliased another attempt's recovery state.
+    PendingSettlementIdentityConflict,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

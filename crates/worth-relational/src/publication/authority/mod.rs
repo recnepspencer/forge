@@ -1,6 +1,7 @@
 mod bundle_publication;
 mod deferred_settlement;
 mod diagnostic_emission;
+mod pending_settlement;
 mod post_commit_consumer;
 mod post_commit_consumption;
 mod post_commit_diagnostics;

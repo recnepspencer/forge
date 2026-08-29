@@ -5,7 +5,7 @@ mod owner_lifecycle;
 mod preparation_configuration;
 mod preparation_runtime;
 mod publication_lifecycle;
-mod publication_recovery;
+mod publication_settlement_registry;
 #[cfg(test)]
 mod test_support;
 
@@ -31,6 +31,12 @@ pub(crate) use preparation_runtime::RelationalPreparationRuntime;
 pub(in crate::runtime) use publication_lifecycle::RelationalRuntimePublicationOwner;
 pub(crate) use publication_lifecycle::{
     RelationalCandidateRegistrationDenial, RelationalRuntimePublicationBinding,
+};
+pub(crate) use publication_settlement_registry::{
+    DeferredRelationalSettlement, PendingRelationalPublicationSettlement,
+    PerformedRelationalSettlement, RelationalPendingSettlementReservation,
+    RelationalPublicationSettlementRegistry, RelationalSettlementClaim,
+    RelationalSettlementReservationDenial, ReservedRelationalSettlement,
 };
 
 #[derive(Debug)]
