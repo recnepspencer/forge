@@ -35,7 +35,7 @@ impl WorthQueryPrimaryGraph {
         runtime_authority: crate::domain_computation::execution_runtime::WorthQueryRuntimeAuthorityIdentity,
         binding_identity: ApplicationSchemaBindingIdentity,
         mut layout: WorthQueryPrimaryGraphLayout,
-        mut runtime: RelationalRuntime,
+        runtime: RelationalRuntime,
     ) -> Self {
         let relational_runtime_instance_id = runtime.main_branch_identity().runtime_instance_id();
         let mut indexes_by_locator = BTreeMap::new();
