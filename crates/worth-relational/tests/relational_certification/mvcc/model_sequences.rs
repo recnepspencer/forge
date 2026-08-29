@@ -29,7 +29,7 @@ fn all_declared_supply_chain_deltas_match_oracle_and_isolate_cost() {
     ];
     let scenarios = execution_order.map(|delta| (branch_id(delta), delta));
     for (branch, _) in &scenarios {
-        fork_from_main(&mut world.runtime, branch.clone());
+        fork_from_main(&world.runtime, branch.clone());
     }
     let identities = all_identities(&world.runtime, &scenarios);
     let shared = world.runtime.observe_branch_sharing(&identities).unwrap();
@@ -64,7 +64,7 @@ fn all_declared_supply_chain_deltas_match_oracle_and_isolate_cost() {
         let unrelated_scope = RelationalMvccCostScope::capture(&world.runtime, unrelated);
 
         let batch = lower_supply_chain_production_delta(
-            &mut world.runtime,
+            &world.runtime,
             &world.program,
             &world.handles,
             &branch,
@@ -72,13 +72,8 @@ fn all_declared_supply_chain_deltas_match_oracle_and_isolate_cost() {
             delta,
         )
         .expect("the production lowerer accepts the selected branch's actual state");
-        let committed = commit_supply_chain_delta(
-            &mut world.runtime,
-            &world.program,
-            branch.clone(),
-            delta,
-            batch,
-        );
+        let committed =
+            commit_supply_chain_delta(&world.runtime, &world.program, branch.clone(), delta, batch);
         committed_deltas.push(delta);
         for (ordinal, (candidate, _)) in scenarios.iter().enumerate() {
             let after = world.runtime.branch_reference_state(candidate).unwrap();

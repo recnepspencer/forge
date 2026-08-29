@@ -13,7 +13,7 @@ use worth_relational::facade::runtime::ProjectionAspectScope;
 #[test]
 fn archive_preserves_existing_reads_and_closes_every_new_mutation_door() {
     let (mut world, _) = certified_supply_chain_world(SupplyChainScale::court());
-    let identity = fork_branch(&mut world.runtime, "storm");
+    let identity = fork_branch(&world.runtime, "storm");
     let (_, basis) = world.runtime.observe_branch(&identity).unwrap();
     let immutable_observation = basis.observation();
     let retained_commit = immutable_observation.canonical_commit().cloned();

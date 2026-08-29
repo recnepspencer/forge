@@ -188,7 +188,7 @@ fn commit_evolve_and_probe(
         .map(|event| event.delta)
         .collect::<BTreeSet<_>>();
     let batch = lower_supply_chain_production_delta(
-        &mut world.runtime,
+        &world.runtime,
         &world.program,
         &world.handles,
         branch,
@@ -197,7 +197,7 @@ fn commit_evolve_and_probe(
     )
     .unwrap_or_else(|error| trace_panic(trace, scenario_index, "lower", error));
     let committed = commit_supply_chain_delta(
-        &mut world.runtime,
+        &world.runtime,
         &world.program,
         branch.clone(),
         scenario.delta,
@@ -226,7 +226,7 @@ fn commit_evolve_and_probe(
         .unwrap_or_else(|error| trace_panic(trace, scenario_index, "snapshot release", error));
 
     let successor = commit_branch_batch_with_result(
-        &mut world.runtime,
+        &world.runtime,
         branch.clone(),
         WorkerIntentBatch::new(format!("seeded-successor-{scenario_index}")),
     );
@@ -310,7 +310,7 @@ fn run_expected_probe(
             let mut applied = prior_applied.clone();
             applied.insert(scenario.delta);
             let denial = lower_supply_chain_production_delta(
-                &mut world.runtime,
+                &world.runtime,
                 &world.program,
                 &world.handles,
                 branch,

@@ -113,7 +113,7 @@ fn branch_schema_target_admission_is_typed_and_never_moves_a_branch() {
 
 #[test]
 fn two_v1_siblings_transition_independently_and_retained_v1_truth_stays_exact() {
-    let (mut world, _) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, _) = certified_supply_chain_world(SupplyChainScale::court());
     let main_identity = world.runtime.main_branch_identity();
     let (_, main_basis) = world.runtime.observe_branch(&main_identity).unwrap();
     let retained_v1 = world
@@ -133,7 +133,7 @@ fn two_v1_siblings_transition_independently_and_retained_v1_truth_stays_exact() 
         world.runtime.fork_branch(branch.clone(), source).unwrap();
         let before = world.runtime.branch_reference_state(&branch).unwrap();
         let batch = lower_supply_chain_production_delta(
-            &mut world.runtime,
+            &world.runtime,
             &world.program,
             &world.handles,
             &branch,
@@ -142,7 +142,7 @@ fn two_v1_siblings_transition_independently_and_retained_v1_truth_stays_exact() 
         )
         .unwrap();
         let committed = commit_supply_chain_delta(
-            &mut world.runtime,
+            &world.runtime,
             &world.program,
             branch.clone(),
             DeltaId::AdoptHazardClassificationV2,

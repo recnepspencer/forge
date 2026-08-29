@@ -72,9 +72,9 @@ fn owner_issued_transaction_basis_is_denied_before_foreign_transaction_creation(
         .runtime
         .admit_branch_basis(&main_identity)
         .expect("configured main branch must remain owner-admissible");
-    let mut foreign = world.runtime.fork().expect("settled runtime forks");
+    let foreign = world.runtime.fork().expect("settled runtime forks");
     let before = capture_reference_evidence(
-        &mut foreign,
+        &foreign,
         &BranchId("main".to_owned()),
         &BranchId("foreign-target".to_owned()),
         world.commit.commit_id,
@@ -91,7 +91,7 @@ fn owner_issued_transaction_basis_is_denied_before_foreign_transaction_creation(
         RelationalBranchTransactionAdmissionDenial::ForeignRuntime { .. }
     ));
     let after = capture_reference_evidence(
-        &mut foreign,
+        &foreign,
         &BranchId("main".to_owned()),
         &BranchId("foreign-target".to_owned()),
         world.commit.commit_id,
@@ -191,7 +191,7 @@ fn unrelated_branch_progress_is_not_staled_by_main_branch_movement() {
 
 #[test]
 fn source_movement_cannot_mutate_a_forked_target_reference() {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     let (_, source_basis) = world
         .runtime
         .observe_fork_source(&BranchId("main".to_owned()))
@@ -202,7 +202,7 @@ fn source_movement_cannot_mutate_a_forked_target_reference() {
         .expect("storm fork succeeds");
 
     let before = capture_reference_evidence(
-        &mut world.runtime,
+        &world.runtime,
         &BranchId("main".to_owned()),
         &BranchId("storm".to_owned()),
         world.commit.commit_id,
@@ -239,7 +239,7 @@ fn source_movement_cannot_mutate_a_forked_target_reference() {
         .expect("source movement succeeds after the fork");
 
     let after = capture_reference_evidence(
-        &mut world.runtime,
+        &world.runtime,
         &BranchId("main".to_owned()),
         &BranchId("storm".to_owned()),
         world.commit.commit_id,
@@ -258,9 +258,9 @@ fn source_movement_cannot_mutate_a_forked_target_reference() {
 
 #[test]
 fn unknown_branch_cannot_issue_an_owner_binding() {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     let before = capture_reference_evidence(
-        &mut world.runtime,
+        &world.runtime,
         &BranchId("main".to_owned()),
         &BranchId("ghost".to_owned()),
         world.commit.commit_id,
@@ -272,7 +272,7 @@ fn unknown_branch_cannot_issue_an_owner_binding() {
             if branch == BranchId("ghost".to_owned())
     ));
     let after = capture_reference_evidence(
-        &mut world.runtime,
+        &world.runtime,
         &BranchId("main".to_owned()),
         &BranchId("ghost".to_owned()),
         world.commit.commit_id,

@@ -77,7 +77,7 @@ fn large_runtime_keeps_global_enforcement_and_filters_graph_planning() {
             program, 200_000, catalog, custom,
         )
         .expect("the real Large causal baseline commits");
-    let mut world = audit_supply_chain_baseline(world)
+    let world = audit_supply_chain_baseline(world)
         .expect("every installed Scale field, relation, schema axis, and ancestry row matches the independent oracle")
         .world;
 
@@ -99,15 +99,15 @@ fn large_runtime_keeps_global_enforcement_and_filters_graph_planning() {
     assert_eq!(graph_preparation_calls.load(Ordering::Relaxed), 0);
     assert_eq!(graph_evaluation_calls.load(Ordering::Relaxed), 0);
 
-    assert_scale_fork_shares_complete_authority(&mut world.runtime);
+    assert_scale_fork_shares_complete_authority(&world.runtime);
 
     let main = BranchId("main".to_owned());
     assert_eq!(
-        live_record_count(&mut world.runtime, &main),
+        live_record_count(&world.runtime, &main),
         causal_record_count,
         "the real Large fixture must be installed in the selected production snapshot"
     );
-    let graph_execution = graph_execution(&mut world.runtime, &main);
+    let graph_execution = graph_execution(&world.runtime, &main);
     assert_eq!(
         graph_execution.metadata().max_cost(),
         InvariantCostClass::Touched,
@@ -124,7 +124,7 @@ fn large_runtime_keeps_global_enforcement_and_filters_graph_planning() {
         graph_evaluation_calls.load(Ordering::Relaxed),
     );
     let large_follow_up = commit_vessel(
-        &mut world.runtime,
+        &world.runtime,
         main.clone(),
         "large-follow-up-vessel",
         "FOLLOW-UP",
@@ -148,22 +148,22 @@ fn large_runtime_keeps_global_enforcement_and_filters_graph_planning() {
         graph_calls_before_follow_up,
         "ordinary commit admission must not run GraphComposition probes"
     );
-    let before_values = vessel_call_signs(&mut world.runtime, &main);
+    let before_values = vessel_call_signs(&world.runtime, &main);
     let before_branch = world
         .runtime
         .branch_reference_state(&main)
         .expect("main branch reference remains observable");
     let before_head = head_for_supply_chain_branch(&world.runtime, &main).version_id;
     let before_catalog = world.runtime.history().immutable_commit_count();
-    let before_snapshot = current_snapshot_version(&mut world.runtime, &main);
+    let before_snapshot = current_snapshot_version(&world.runtime, &main);
     let duplicate = commit_vessel(
-        &mut world.runtime,
+        &world.runtime,
         main.clone(),
         "large-duplicate-vessel",
         DUPLICATE_CALL_SIGN,
     );
     assert_unique_conflict(duplicate.unwrap_err(), DUPLICATE_CALL_SIGN);
-    assert_eq!(vessel_call_signs(&mut world.runtime, &main), before_values);
+    assert_eq!(vessel_call_signs(&world.runtime, &main), before_values);
     assert_eq!(
         world
             .runtime
@@ -181,7 +181,7 @@ fn large_runtime_keeps_global_enforcement_and_filters_graph_planning() {
         before_catalog
     );
     assert_eq!(
-        current_snapshot_version(&mut world.runtime, &main),
+        current_snapshot_version(&world.runtime, &main),
         before_snapshot
     );
 }

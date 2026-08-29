@@ -17,16 +17,16 @@ use worth_relational::facade::transactions::{
 fn phase5_lowering_reads_actual_branch_pre_state_instead_of_expected_oracle() {
     let (mut world, baseline) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &baseline);
-    fork(&mut world.runtime, "storm");
+    fork(&world.runtime, "storm");
     let voyage = EntityKey::new(EntityKind::Voyage, 0);
     commit_branch_batch(
-        &mut world.runtime,
+        &world.runtime,
         BranchId("storm".to_owned()),
         update_number(&world.handles, voyage, "arrival", 9_000),
     );
 
     let batch = lower_supply_chain_production_delta(
-        &mut world.runtime,
+        &world.runtime,
         &world.program,
         &world.handles,
         &BranchId("storm".to_owned()),
@@ -34,7 +34,7 @@ fn phase5_lowering_reads_actual_branch_pre_state_instead_of_expected_oracle() {
         DeltaId::StormRerouteAurora,
     )
     .expect("actual pre-state satisfies the Storm contract");
-    commit_branch_batch(&mut world.runtime, BranchId("storm".to_owned()), batch);
+    commit_branch_batch(&world.runtime, BranchId("storm".to_owned()), batch);
 
     let observed = observe_branch(&mut world, "storm");
     let EntityRecord::Voyage(voyage) = &observed.entities[&voyage] else {
@@ -55,12 +55,12 @@ fn phase5_lowering_reads_actual_branch_pre_state_instead_of_expected_oracle() {
 
 #[test]
 fn phase5_lowering_rejects_wrong_branch_and_duplicate_delta_preconditions() {
-    let (mut world, baseline) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, baseline) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &baseline);
-    fork(&mut world.runtime, "storm");
+    fork(&world.runtime, "storm");
     assert!(matches!(
         lower_supply_chain_production_delta(
-            &mut world.runtime,
+            &world.runtime,
             &world.program,
             &world.handles,
             &BranchId("storm".to_owned()),
@@ -75,7 +75,7 @@ fn phase5_lowering_rejects_wrong_branch_and_duplicate_delta_preconditions() {
     let previously_applied = BTreeSet::from([DeltaId::StormRerouteAurora]);
     assert!(matches!(
         lower_supply_chain_production_delta(
-            &mut world.runtime,
+            &world.runtime,
             &world.program,
             &world.handles,
             &BranchId("storm".to_owned()),
@@ -117,15 +117,15 @@ fn maintenance_rewire_and_medical_lower_from_each_actual_branch_pre_state() {
 
     let (mut world, baseline) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &baseline);
-    fork(&mut world.runtime, "medical-hold");
+    fork(&world.runtime, "medical-hold");
     let cargo = EntityKey::new(EntityKind::CargoLot, 0);
     commit_branch_batch(
-        &mut world.runtime,
+        &world.runtime,
         BranchId("medical-hold".to_owned()),
         update_text(&world.handles, cargo, "booking", "Available"),
     );
     let batch = lower_supply_chain_production_delta(
-        &mut world.runtime,
+        &world.runtime,
         &world.program,
         &world.handles,
         &BranchId("medical-hold".to_owned()),
@@ -133,11 +133,7 @@ fn maintenance_rewire_and_medical_lower_from_each_actual_branch_pre_state() {
         DeltaId::HoldMedicalCargo,
     )
     .expect("Medical Hold is an absolute transition over the actual cargo row");
-    commit_branch_batch(
-        &mut world.runtime,
-        BranchId("medical-hold".to_owned()),
-        batch,
-    );
+    commit_branch_batch(&world.runtime, BranchId("medical-hold".to_owned()), batch);
     let EntityRecord::CargoLot(cargo) =
         &observe_branch(&mut world, "medical-hold").entities[&cargo]
     else {
@@ -168,14 +164,14 @@ fn prove_number_prestate(case: NumberPrestateCase) {
     } = case;
     let (mut world, baseline) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &baseline);
-    fork(&mut world.runtime, branch);
+    fork(&world.runtime, branch);
     commit_branch_batch(
-        &mut world.runtime,
+        &world.runtime,
         BranchId(branch.to_owned()),
         update_number(&world.handles, entity, field, prestate),
     );
     let batch = lower_supply_chain_production_delta(
-        &mut world.runtime,
+        &world.runtime,
         &world.program,
         &world.handles,
         &BranchId(branch.to_owned()),
@@ -183,7 +179,7 @@ fn prove_number_prestate(case: NumberPrestateCase) {
         delta,
     )
     .expect("actual branch pre-state admits its semantic delta");
-    commit_branch_batch(&mut world.runtime, BranchId(branch.to_owned()), batch);
+    commit_branch_batch(&world.runtime, BranchId(branch.to_owned()), batch);
     assert_eq!(
         observe(&observe_branch(&mut world, branch).entities[&entity]),
         expected
@@ -253,7 +249,7 @@ fn observe_branch(
         .runtime
         .branch_identity(&BranchId(branch.to_owned()))
         .unwrap();
-    let snapshot = snapshot_for_supply_chain_identity(&mut world.runtime, &identity);
+    let snapshot = snapshot_for_supply_chain_identity(&world.runtime, &identity);
     observe_supply_chain_snapshot(
         &world.program,
         &world.handles.for_snapshot(snapshot.clone()),

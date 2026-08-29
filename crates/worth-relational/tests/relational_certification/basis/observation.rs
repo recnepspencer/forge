@@ -9,9 +9,9 @@ use worth_relational::facade::history::BranchId;
 
 #[test]
 fn admitted_supply_chain_observation_is_repeatable_after_branch_moves() {
-    let (mut world, _) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, _) = certified_supply_chain_world(SupplyChainScale::court());
     let branch_id = BranchId("storm".to_owned());
-    fork_supply_chain_branch_from_main(&mut world.runtime, branch_id.clone());
+    fork_supply_chain_branch_from_main(&world.runtime, branch_id.clone());
     let identity = world.runtime.branch_identity(&branch_id).unwrap();
     let (_, basis) = world.runtime.observe_branch(&identity).unwrap();
     let observation = basis.observation();
@@ -26,7 +26,7 @@ fn admitted_supply_chain_observation_is_repeatable_after_branch_moves() {
     .expect("the admitted storm observation is readable");
 
     let batch = lower_supply_chain_production_delta(
-        &mut world.runtime,
+        &world.runtime,
         &world.program,
         &world.handles,
         &branch_id,
@@ -34,7 +34,7 @@ fn admitted_supply_chain_observation_is_repeatable_after_branch_moves() {
         DeltaId::StormRerouteAurora,
     )
     .expect("the real Supply Chain delta lowers from the admitted storm basis");
-    commit_branch_batch(&mut world.runtime, branch_id.clone(), batch);
+    commit_branch_batch(&world.runtime, branch_id.clone(), batch);
 
     let repeated = observe_supply_chain_observation(
         &world.program,

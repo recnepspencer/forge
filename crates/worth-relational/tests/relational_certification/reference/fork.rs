@@ -10,11 +10,11 @@ use worth_relational::facade::history::BranchId;
 use worth_relational::facade::transactions::WorkerIntentBatch;
 #[test]
 fn supply_chain_fork_shares_one_source_artifact_and_starts_a_new_reference_line() {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &expected);
     let source_catalog_count = world.runtime.history().immutable_commit_count();
     let before = capture_reference_evidence(
-        &mut world.runtime,
+        &world.runtime,
         &BranchId("main".to_owned()),
         &BranchId("storm".to_owned()),
         world.commit.commit_id,
@@ -116,7 +116,7 @@ fn supply_chain_fork_shares_one_source_artifact_and_starts_a_new_reference_line(
         source_catalog_count
     );
     let after = capture_reference_evidence(
-        &mut world.runtime,
+        &world.runtime,
         &BranchId("main".to_owned()),
         &BranchId("storm".to_owned()),
         world.commit.commit_id,
@@ -138,7 +138,7 @@ fn source_observation_is_foreign_after_runtime_clone() {
         .runtime
         .observe_fork_source(&BranchId("main".to_owned()))
         .expect("installed main branch has an exact fork source");
-    let mut clone = world.runtime.fork().expect("settled runtime forks");
+    let clone = world.runtime.fork().expect("settled runtime forks");
     let source_identity = world.runtime.main_branch_identity();
     let clone_identity = clone.main_branch_identity();
     assert_eq!(source_identity.branch_id(), clone_identity.branch_id());
@@ -148,7 +148,7 @@ fn source_observation_is_foreign_after_runtime_clone() {
     );
 
     let clone_before = capture_reference_evidence(
-        &mut clone,
+        &clone,
         &BranchId("main".to_owned()),
         &BranchId("clone-storm".to_owned()),
         world.commit.commit_id,
@@ -159,7 +159,7 @@ fn source_observation_is_foreign_after_runtime_clone() {
         Err(RelationalForkDenial::ForeignRuntime)
     ));
     let clone_after = capture_reference_evidence(
-        &mut clone,
+        &clone,
         &BranchId("main".to_owned()),
         &BranchId("clone-storm".to_owned()),
         world.commit.commit_id,
@@ -178,14 +178,14 @@ fn source_observation_is_foreign_after_runtime_clone() {
 
 #[test]
 fn malformed_fork_target_denies_before_reference_installation() {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &expected);
     let (_, basis) = world
         .runtime
         .observe_fork_source(&BranchId("main".to_owned()))
         .expect("main branch has a fork source");
     let before = capture_reference_evidence(
-        &mut world.runtime,
+        &world.runtime,
         &BranchId("main".to_owned()),
         &BranchId(String::new()),
         world.commit.commit_id,
@@ -201,7 +201,7 @@ fn malformed_fork_target_denies_before_reference_installation() {
         Err(RelationalBranchIdentityDenial::UnknownBranch(_))
     ));
     let after = capture_reference_evidence(
-        &mut world.runtime,
+        &world.runtime,
         &BranchId("main".to_owned()),
         &BranchId(String::new()),
         world.commit.commit_id,
@@ -212,9 +212,9 @@ fn malformed_fork_target_denies_before_reference_installation() {
 
 #[test]
 fn empty_and_duplicate_fork_denials_preserve_catalog_and_existing_reference() {
-    let mut empty_runtime = canonical_empty_supply_chain_runtime(SupplyChainScale::court());
+    let empty_runtime = canonical_empty_supply_chain_runtime(SupplyChainScale::court());
     let empty_before = capture_reference_evidence(
-        &mut empty_runtime,
+        &empty_runtime,
         &BranchId("main".to_owned()),
         &BranchId("empty-target".to_owned()),
         worth_relational::facade::history::CommitId(0),
@@ -224,7 +224,7 @@ fn empty_and_duplicate_fork_denials_preserve_catalog_and_existing_reference() {
         Err(RelationalForkDenial::EmptySource)
     ));
     let empty_after = capture_reference_evidence(
-        &mut empty_runtime,
+        &empty_runtime,
         &BranchId("main".to_owned()),
         &BranchId("empty-target".to_owned()),
         worth_relational::facade::history::CommitId(0),
@@ -240,7 +240,7 @@ fn empty_and_duplicate_fork_denials_preserve_catalog_and_existing_reference() {
         &worth_foundational::FoundationalBranchTarget::Empty
     );
 
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &expected);
     let (_, source_basis) = world
         .runtime
@@ -252,7 +252,7 @@ fn empty_and_duplicate_fork_denials_preserve_catalog_and_existing_reference() {
         .fork_branch(BranchId("storm".to_owned()), source_basis)
         .expect("first target fork succeeds");
     let before = capture_reference_evidence(
-        &mut world.runtime,
+        &world.runtime,
         &BranchId("main".to_owned()),
         &BranchId("storm".to_owned()),
         world.commit.commit_id,
@@ -290,7 +290,7 @@ fn empty_and_duplicate_fork_denials_preserve_catalog_and_existing_reference() {
         .branch_identity(&BranchId("storm".to_owned()))
         .is_ok());
     let after = capture_reference_evidence(
-        &mut world.runtime,
+        &world.runtime,
         &BranchId("main".to_owned()),
         &BranchId("storm".to_owned()),
         world.commit.commit_id,
@@ -301,7 +301,7 @@ fn empty_and_duplicate_fork_denials_preserve_catalog_and_existing_reference() {
 
 #[test]
 fn stale_fork_source_denial_does_not_install_a_target_reference() {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &expected);
     let (_, stale_basis) = world
         .runtime
@@ -327,7 +327,7 @@ fn stale_fork_source_denial_does_not_install_a_target_reference() {
         .expect("main truth advances");
     let catalog_after_advance = world.runtime.history().immutable_commit_count();
     let before = capture_reference_evidence(
-        &mut world.runtime,
+        &world.runtime,
         &BranchId("main".to_owned()),
         &BranchId("stale".to_owned()),
         world.commit.commit_id,
@@ -352,7 +352,7 @@ fn stale_fork_source_denial_does_not_install_a_target_reference() {
             if branch == BranchId("stale".to_owned())
     ));
     let after = capture_reference_evidence(
-        &mut world.runtime,
+        &world.runtime,
         &BranchId("main".to_owned()),
         &BranchId("stale".to_owned()),
         world.commit.commit_id,

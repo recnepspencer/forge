@@ -24,7 +24,7 @@ use worth_relational::facade::transactions::{
 fn main_advances_before_child_read_keeps_child_snapshot_on_fork_root() {
     let (mut world, baseline) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &baseline);
-    fork_from_main(&mut world.runtime, "storm");
+    fork_from_main(&world.runtime, "storm");
     let child = branch_identity(&world.runtime, "storm");
     let child_root_before_main_advance = world
         .runtime
@@ -45,7 +45,7 @@ fn main_advances_before_child_read_keeps_child_snapshot_on_fork_root() {
         "the adversarial world must contain distinct R1 and retained child R0 roots"
     );
 
-    let child_snapshot = snapshot_for_supply_chain_identity(&mut world.runtime, &child);
+    let child_snapshot = snapshot_for_supply_chain_identity(&world.runtime, &child);
     let child_snapshot_inspection = world
         .runtime
         .read_truth()
@@ -60,7 +60,7 @@ fn main_advances_before_child_read_keeps_child_snapshot_on_fork_root() {
         Some(child_root_before_main_advance),
         "child read must retain R0 and never select main's newer R1"
     );
-    let main_snapshot = snapshot_for_supply_chain_identity(&mut world.runtime, &main);
+    let main_snapshot = snapshot_for_supply_chain_identity(&world.runtime, &main);
     assert_child_explicit_query_uses_snapshot_root(&world, &child_snapshot, &main_snapshot);
     let observed_child = observe_supply_chain_snapshot(
         &world.program,
@@ -155,7 +155,7 @@ fn advance_main_aurora_status(world: &mut ProductionSeededSupplyChainWorld) {
     let batch = WorkerIntentBatch::new("main-advances-before-child-read").push(
         MutationIntent::Entity(EntityMutationIntent::UpdateFields(update)),
     );
-    commit_branch_batch(&mut world.runtime, BranchId("main".to_owned()), batch);
+    commit_branch_batch(&world.runtime, BranchId("main".to_owned()), batch);
 }
 
 #[test]
@@ -176,7 +176,7 @@ fn phase5_named_supply_chain_deltas_keep_sibling_roots_and_work_independent() {
         ),
     ];
     for (branch, _, _) in scenarios {
-        fork_from_main(&mut world.runtime, branch);
+        fork_from_main(&world.runtime, branch);
     }
     let main_before = world
         .runtime
@@ -192,7 +192,7 @@ fn phase5_named_supply_chain_deltas_keep_sibling_roots_and_work_independent() {
             .map(|identity| RelationalMvccCostScope::capture(&world.runtime, vec![identity]))
             .collect::<Vec<_>>();
         let batch = lower_supply_chain_production_delta(
-            &mut world.runtime,
+            &world.runtime,
             &world.program,
             &world.handles,
             &BranchId(branch.to_owned()),
@@ -200,7 +200,7 @@ fn phase5_named_supply_chain_deltas_keep_sibling_roots_and_work_independent() {
             delta,
         )
         .expect("the selected branch's actual pre-state admits its named delta");
-        commit_branch_batch(&mut world.runtime, BranchId(branch.to_owned()), batch);
+        commit_branch_batch(&world.runtime, BranchId(branch.to_owned()), batch);
 
         let observed = observe_branch(&mut world, &selected, branch);
         compare(
@@ -269,7 +269,7 @@ fn observe_branch(
     identity: &RelationalBranchIdentity,
     label: &str,
 ) -> ObservedSupplyChainState {
-    let snapshot = snapshot_for_supply_chain_identity(&mut world.runtime, identity);
+    let snapshot = snapshot_for_supply_chain_identity(&world.runtime, identity);
     observe_supply_chain_snapshot(
         &world.program,
         &world.handles.for_snapshot(snapshot.clone()),

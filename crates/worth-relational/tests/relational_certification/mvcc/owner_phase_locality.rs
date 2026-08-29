@@ -177,8 +177,8 @@ impl OwnerPhaseCourtBranches {
     fn fork(world: &mut ProductionSeededSupplyChainWorld) -> Self {
         let storm = BranchId("storm".to_owned());
         let maintenance = BranchId("maintenance".to_owned());
-        fork_supply_chain_branch_from_main(&mut world.runtime, storm.clone());
-        fork_supply_chain_branch_from_main(&mut world.runtime, maintenance.clone());
+        fork_supply_chain_branch_from_main(&world.runtime, storm.clone());
+        fork_supply_chain_branch_from_main(&world.runtime, maintenance.clone());
         Self { storm, maintenance }
     }
 
@@ -342,7 +342,7 @@ fn lower_court_delta(
     delta: DeltaId,
 ) -> WorkerIntentBatch {
     lower_supply_chain_production_delta(
-        &mut world.runtime,
+        &world.runtime,
         &world.program,
         &world.handles,
         branch,

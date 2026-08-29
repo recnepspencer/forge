@@ -57,10 +57,10 @@ fn every_supply_chain_delta_copies_its_exact_declared_partition_footprint() {
 }
 
 fn prove_named_delta_cow(branch: &str, label: BranchLabel, delta: DeltaId) {
-    let (mut world, baseline) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, baseline) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &baseline);
-    fork_from_main(&mut world.runtime, branch);
-    fork_from_main(&mut world.runtime, "cost-sibling");
+    fork_from_main(&world.runtime, branch);
+    fork_from_main(&world.runtime, "cost-sibling");
     let selected = world
         .runtime
         .branch_identity(&BranchId(branch.to_owned()))
@@ -105,7 +105,7 @@ fn prove_named_delta_cow(branch: &str, label: BranchLabel, delta: DeltaId) {
     let main_scope = RelationalMvccCostScope::capture(&world.runtime, vec![main]);
     let sibling_scope = RelationalMvccCostScope::capture(&world.runtime, vec![sibling]);
     let batch = lower_supply_chain_production_delta(
-        &mut world.runtime,
+        &world.runtime,
         &world.program,
         &world.handles,
         &BranchId(branch.to_owned()),
@@ -114,7 +114,7 @@ fn prove_named_delta_cow(branch: &str, label: BranchLabel, delta: DeltaId) {
     )
     .expect("the actual branch pre-state admits its named delta");
     commit_supply_chain_delta(
-        &mut world.runtime,
+        &world.runtime,
         &world.program,
         BranchId(branch.to_owned()),
         delta,
@@ -171,7 +171,7 @@ fn prove_named_delta_cow(branch: &str, label: BranchLabel, delta: DeltaId) {
             RelationalBranchSharingCostCounters::default()
         );
     }
-    let snapshot = snapshot_for_supply_chain_identity(&mut world.runtime, &selected);
+    let snapshot = snapshot_for_supply_chain_identity(&world.runtime, &selected);
     let observed = observe_supply_chain_snapshot(
         &world.program,
         &world.handles.for_snapshot(snapshot.clone()),

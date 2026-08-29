@@ -13,7 +13,7 @@ use worth_relational::facade::mvcc::{
 #[test]
 fn deletion_closes_admission_then_waits_for_transaction_and_candidate_operations() {
     let (mut world, _) = certified_supply_chain_world(SupplyChainScale::court());
-    let transaction_identity = fork_branch(&mut world.runtime, "deleting-transaction");
+    let transaction_identity = fork_branch(&world.runtime, "deleting-transaction");
     let (_, transaction_basis) = world.runtime.observe_branch(&transaction_identity).unwrap();
     let transaction = world
         .runtime
@@ -36,7 +36,7 @@ fn deletion_closes_admission_then_waits_for_transaction_and_candidate_operations
         .deleted()
         .is_some());
 
-    let candidate_identity = fork_branch(&mut world.runtime, "deleting-candidate");
+    let candidate_identity = fork_branch(&world.runtime, "deleting-candidate");
     let (_, candidate_basis) = world.runtime.observe_branch(&candidate_identity).unwrap();
     let candidate_transaction = world
         .runtime
@@ -74,7 +74,7 @@ fn deletion_closes_admission_then_waits_for_transaction_and_candidate_operations
 #[test]
 fn performed_publication_retains_the_branch_operation_until_settlement() {
     let (mut world, _) = certified_supply_chain_world(SupplyChainScale::court());
-    let identity = fork_branch(&mut world.runtime, "settlement-retention");
+    let identity = fork_branch(&world.runtime, "settlement-retention");
     let (_, basis) = world.runtime.observe_branch(&identity).unwrap();
     let transaction = world
         .runtime
@@ -147,7 +147,7 @@ fn performed_publication_retains_the_branch_operation_until_settlement() {
 #[test]
 fn deleted_shared_root_survives_while_the_main_head_still_owns_it() {
     let (mut world, _) = certified_supply_chain_world(SupplyChainScale::court());
-    let identity = fork_branch(&mut world.runtime, "maintenance");
+    let identity = fork_branch(&world.runtime, "maintenance");
     let (_, basis) = world.runtime.observe_branch(&identity).unwrap();
     let external = world.runtime.retain_component_basis(&basis).unwrap();
     let deleted = world
@@ -186,7 +186,7 @@ fn maintenance_reclaims_a_deleted_unique_root_only_after_last_pin_release() {
     for _ in 0..4 {
         world.runtime.run_branch_root_reclamation_pass();
     }
-    let identity = fork_branch(&mut world.runtime, "unique-maintenance");
+    let identity = fork_branch(&world.runtime, "unique-maintenance");
     let (_, initial_basis) = world.runtime.observe_branch(&identity).unwrap();
     let transaction = world
         .runtime
@@ -235,7 +235,7 @@ fn maintenance_reclaims_a_deleted_unique_root_only_after_last_pin_release() {
 #[test]
 fn exact_snapshot_carries_its_observation_obligation_until_release() {
     let (mut world, _) = certified_supply_chain_world(SupplyChainScale::court());
-    let identity = fork_branch(&mut world.runtime, "snapshot-obligation");
+    let identity = fork_branch(&world.runtime, "snapshot-obligation");
     let (_, initial_basis) = world.runtime.observe_branch(&identity).unwrap();
     let transaction = world
         .runtime

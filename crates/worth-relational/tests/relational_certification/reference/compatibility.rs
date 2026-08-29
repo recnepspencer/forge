@@ -9,9 +9,9 @@ use worth_relational::facade::history::BranchId;
 
 #[test]
 fn admitted_observation_reads_do_not_move_branch_cells() {
-    let (mut world, _) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, _) = certified_supply_chain_world(SupplyChainScale::court());
     let before = capture_reference_evidence(
-        &mut world.runtime,
+        &world.runtime,
         &BranchId("main".to_owned()),
         &BranchId("compat".to_owned()),
         world.commit.commit_id,
@@ -32,7 +32,7 @@ fn admitted_observation_reads_do_not_move_branch_cells() {
 
     let identity = world.runtime.main_branch_identity();
     let head = head_for_supply_chain_identity(&world.runtime, &identity);
-    let snapshot = snapshot_for_supply_chain_identity(&mut world.runtime, &identity);
+    let snapshot = snapshot_for_supply_chain_identity(&world.runtime, &identity);
     assert_eq!(snapshot.version_id(), head.version_id);
     let replay_version = head.version_id;
     assert!(world
@@ -41,7 +41,7 @@ fn admitted_observation_reads_do_not_move_branch_cells() {
         .retain_version_for_replay(replay_version));
 
     let after = capture_reference_evidence(
-        &mut world.runtime,
+        &world.runtime,
         &BranchId("main".to_owned()),
         &BranchId("compat".to_owned()),
         world.commit.commit_id,
@@ -70,7 +70,7 @@ fn admitted_observation_reads_do_not_move_branch_cells() {
 
 #[test]
 fn publication_cannot_mint_a_missing_branch_cell() {
-    let (mut world, _) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, _) = certified_supply_chain_world(SupplyChainScale::court());
     assert!(matches!(
         world.runtime.branch_identity(&BranchId("ghost".to_owned())),
         Err(_)
@@ -81,7 +81,7 @@ fn publication_cannot_mint_a_missing_branch_cell() {
         .admit_branch_basis(&identity)
         .expect("main remains owner-admissible");
     let before = capture_reference_evidence(
-        &mut world.runtime,
+        &world.runtime,
         &BranchId("main".to_owned()),
         &BranchId("ghost".to_owned()),
         world.commit.commit_id,
@@ -102,7 +102,7 @@ fn publication_cannot_mint_a_missing_branch_cell() {
         .commit(&world.runtime)
         .expect("main publication still advances the admitted main cell");
     let after = capture_reference_evidence(
-        &mut world.runtime,
+        &world.runtime,
         &BranchId("main".to_owned()),
         &BranchId("ghost".to_owned()),
         world.commit.commit_id,

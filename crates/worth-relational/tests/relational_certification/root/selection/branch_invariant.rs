@@ -34,7 +34,7 @@ fn supply_chain_child_commit_uses_child_root_after_main_advances() {
     .expect("Supply Chain program compiles");
     let registry = registry_with_vessel_source_cardinality(original.schema_registry());
     let program = original.with_schema_registry_for_test(registry);
-    let mut world = compile_supply_chain_baseline(program).expect("Court world compiles");
+    let world = compile_supply_chain_baseline(program).expect("Court world compiles");
 
     let source = world.handles.entities
         [&super::world::supply_chain::EntityKey::new(EntityKind::Vessel, 1)]
@@ -56,7 +56,7 @@ fn supply_chain_child_commit_uses_child_root_after_main_advances() {
         .expect("storm fork shares the Supply Chain root");
 
     let main_commit = commit_relation(
-        &mut world.runtime,
+        &world.runtime,
         BranchId("main".to_owned()),
         source,
         main_target,
@@ -68,7 +68,7 @@ fn supply_chain_child_commit_uses_child_root_after_main_advances() {
     let main_head_before_rejection =
         head_for_supply_chain_branch(&world.runtime, &BranchId("main".to_owned())).version_id;
     let rejected_main_assignment = commit_relation(
-        &mut world.runtime,
+        &world.runtime,
         BranchId("main".to_owned()),
         source,
         child_target,
@@ -83,7 +83,7 @@ fn supply_chain_child_commit_uses_child_root_after_main_advances() {
     assert_eq!(main_head_after_rejection, main_head_before_rejection);
 
     let child_commit = commit_relation(
-        &mut world.runtime,
+        &world.runtime,
         BranchId("storm".to_owned()),
         source,
         child_target,
@@ -121,7 +121,7 @@ fn supply_chain_child_custom_invariant_uses_child_selected_version() {
     .expect("Supply Chain program compiles");
     let registry = registry_with_vessel_source_cardinality(original.schema_registry());
     let program = original.with_schema_registry_for_test(registry);
-    let mut world = compile_supply_chain_baseline_with_custom_invariant(
+    let world = compile_supply_chain_baseline_with_custom_invariant(
         program,
         CustomInvariantRegistration::new(BranchVersionProbeRule)
             .expect("branch-version custom invariant registers"),
@@ -148,7 +148,7 @@ fn supply_chain_child_custom_invariant_uses_child_selected_version() {
         .expect("storm fork shares the Supply Chain root");
 
     let main_commit = commit_relation(
-        &mut world.runtime,
+        &world.runtime,
         BranchId("main".to_owned()),
         source,
         main_target,
@@ -160,7 +160,7 @@ fn supply_chain_child_custom_invariant_uses_child_selected_version() {
     assert_ne!(child_basis_version, main_commit.version_id);
 
     let child_commit = commit_relation(
-        &mut world.runtime,
+        &world.runtime,
         BranchId("storm".to_owned()),
         source,
         child_target,

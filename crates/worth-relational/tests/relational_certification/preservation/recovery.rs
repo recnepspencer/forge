@@ -13,7 +13,7 @@ use worth_relational::facade::history::BranchId;
 #[test]
 fn phase5_checkpoint_preserves_shared_and_rewired_root_shape() {
     let scale = SupplyChainScale::court();
-    let (mut world, baseline) = certified_supply_chain_world(scale);
+    let (world, baseline) = certified_supply_chain_world(scale);
     assert_oracle_matches(&world, &baseline);
     for branch in ["storm", "rewire"] {
         let (_, source) = world
@@ -28,7 +28,7 @@ fn phase5_checkpoint_preserves_shared_and_rewired_root_shape() {
 
     let delta = DeltaId::RewireAuroraPortCall;
     let batch = lower_supply_chain_production_delta(
-        &mut world.runtime,
+        &world.runtime,
         &world.program,
         &world.handles,
         &BranchId("rewire".to_owned()),
@@ -36,7 +36,7 @@ fn phase5_checkpoint_preserves_shared_and_rewired_root_shape() {
         delta,
     )
     .expect("the named Port3 topology delta observes production pre-state");
-    commit_branch_batch(&mut world.runtime, BranchId("rewire".to_owned()), batch);
+    commit_branch_batch(&world.runtime, BranchId("rewire".to_owned()), batch);
 
     world
         .runtime

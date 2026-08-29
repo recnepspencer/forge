@@ -10,15 +10,15 @@ use worth_relational::facade::transactions::WorkerIntentBatch;
 
 #[test]
 fn phase5_cost_scope_excludes_prior_target_work_and_later_sibling_work() {
-    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &expected);
-    fork(&mut world.runtime, "before-capture");
+    fork(&world.runtime, "before-capture");
     let observed_branch = world
         .runtime
         .branch_identity(&BranchId("before-capture".to_owned()))
         .expect("the owner issues the target identity after fork");
     let scope = RelationalMvccCostScope::capture(&world.runtime, vec![observed_branch]);
-    fork(&mut world.runtime, "after-capture");
+    fork(&world.runtime, "after-capture");
     let observation = world.runtime.observe_mvcc_cost(&scope).unwrap();
     assert_eq!(observation.sharing_cost_delta().shared_root_acquisitions, 0);
 }
@@ -27,13 +27,13 @@ fn phase5_cost_scope_excludes_prior_target_work_and_later_sibling_work() {
 fn phase5_selected_publication_tuple_is_stable_across_target_history_lengths() {
     let mut observed_costs = Vec::new();
     for history_len in [0, 8, 64] {
-        let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+        let (world, expected) = certified_supply_chain_world(SupplyChainScale::court());
         assert_oracle_matches(&world, &expected);
         let branch_id = BranchId("medical-hold".to_owned());
-        fork(&mut world.runtime, &branch_id.0);
+        fork(&world.runtime, &branch_id.0);
         for sequence in 0..history_len {
             commit_branch_batch(
-                &mut world.runtime,
+                &world.runtime,
                 branch_id.clone(),
                 WorkerIntentBatch::new(format!("history-{sequence}")),
             );
@@ -44,7 +44,7 @@ fn phase5_selected_publication_tuple_is_stable_across_target_history_lengths() {
             .expect("the branch remains owner-issued across history lengths");
         let scope = RelationalMvccCostScope::capture(&world.runtime, vec![selected]);
         let batch = lower_supply_chain_production_delta(
-            &mut world.runtime,
+            &world.runtime,
             &world.program,
             &world.handles,
             &branch_id,
@@ -52,7 +52,7 @@ fn phase5_selected_publication_tuple_is_stable_across_target_history_lengths() {
             DeltaId::HoldMedicalCargo,
         )
         .expect("the actual prestate admits the Medical delta");
-        commit_branch_batch(&mut world.runtime, branch_id, batch);
+        commit_branch_batch(&world.runtime, branch_id, batch);
         let observation = world.runtime.observe_mvcc_cost(&scope).unwrap();
         let publication = observation.sharing_cost_delta();
         observed_costs.push((
@@ -89,7 +89,7 @@ fn phase5_selected_publication_tuple_ignores_unrelated_population_reads_and_vali
         let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
         assert_oracle_matches(&world, &expected);
         let selected_branch = BranchId("medical-hold".to_owned());
-        fork(&mut world.runtime, &selected_branch.0);
+        fork(&world.runtime, &selected_branch.0);
         let selected = world.runtime.branch_identity(&selected_branch).unwrap();
         let unrelated_branches = fork_unrelated_branches(&mut world, unrelated_branch_count);
         let unrelated_scope =
@@ -132,7 +132,7 @@ fn phase5_selected_publication_tuple_ignores_unrelated_population_reads_and_vali
 
         let publication_scope = RelationalMvccCostScope::capture(&world.runtime, vec![selected]);
         let batch = lower_supply_chain_production_delta(
-            &mut world.runtime,
+            &world.runtime,
             &world.program,
             &world.handles,
             &selected_branch,
@@ -140,7 +140,7 @@ fn phase5_selected_publication_tuple_ignores_unrelated_population_reads_and_vali
             DeltaId::HoldMedicalCargo,
         )
         .expect("the selected branch validates after unrelated work");
-        commit_branch_batch(&mut world.runtime, selected_branch, batch);
+        commit_branch_batch(&world.runtime, selected_branch, batch);
         let publication = world.runtime.observe_mvcc_cost(&publication_scope).unwrap();
         let delta = publication.sharing_cost_delta();
         observed_costs.push((
@@ -181,7 +181,7 @@ fn fork_unrelated_branches(
                 _ => format!("unrelated-{ordinal}"),
             };
             let branch_id = BranchId(branch_name);
-            fork(&mut world.runtime, &branch_id.0);
+            fork(&world.runtime, &branch_id.0);
             let identity = world.runtime.branch_identity(&branch_id).unwrap();
             (branch_id, identity)
         })
@@ -198,7 +198,7 @@ fn exercise_unrelated_branch_reads_and_validation(
             1 => Some(DeltaId::MaintainAtlasBerth),
             _ => None,
         };
-        let snapshot = snapshot_for_supply_chain_identity(&mut world.runtime, identity);
+        let snapshot = snapshot_for_supply_chain_identity(&world.runtime, identity);
         let inspection = world
             .runtime
             .read_truth()
@@ -207,7 +207,7 @@ fn exercise_unrelated_branch_reads_and_validation(
         assert_eq!(&inspection.branch_id, branch_id);
         if let Some(delta) = validation_delta {
             let batch = lower_supply_chain_production_delta(
-                &mut world.runtime,
+                &world.runtime,
                 &world.program,
                 &world.handles,
                 branch_id,
@@ -215,7 +215,7 @@ fn exercise_unrelated_branch_reads_and_validation(
                 delta,
             )
             .expect("named unrelated branch validates its own named delta");
-            commit_branch_batch(&mut world.runtime, branch_id.clone(), batch);
+            commit_branch_batch(&world.runtime, branch_id.clone(), batch);
         }
     }
 }

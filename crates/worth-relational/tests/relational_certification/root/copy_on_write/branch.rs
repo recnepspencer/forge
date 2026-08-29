@@ -19,8 +19,8 @@ use worth_relational::facade::runtime::RelationalRuntime;
 fn phase5_forked_topology_write_copies_only_touched_regions() {
     let (mut world, baseline) = certified_supply_chain_world(SupplyChainScale::court());
     assert_oracle_matches(&world, &baseline);
-    fork_from_main(&mut world.runtime, "rewire");
-    fork_from_main(&mut world.runtime, "maintenance");
+    fork_from_main(&world.runtime, "rewire");
+    fork_from_main(&world.runtime, "maintenance");
 
     let main = world.runtime.main_branch_identity();
     let rewire = branch_identity(&world.runtime, "rewire");
@@ -79,7 +79,7 @@ fn phase5_forked_topology_write_copies_only_touched_regions() {
     let sibling_cost_scope =
         RelationalMvccCostScope::capture(&world.runtime, vec![sibling.clone()]);
     let batch = lower_supply_chain_production_delta(
-        &mut world.runtime,
+        &world.runtime,
         &world.program,
         &world.handles,
         &BranchId("rewire".to_owned()),
@@ -87,7 +87,7 @@ fn phase5_forked_topology_write_copies_only_touched_regions() {
         delta,
     )
     .expect("the actual rewire branch pre-state lowers to production intent");
-    commit_branch_batch(&mut world.runtime, BranchId("rewire".to_owned()), batch);
+    commit_branch_batch(&world.runtime, BranchId("rewire".to_owned()), batch);
 
     assert_rewire_matches_oracle(&mut world, &rewire, expected);
     let cost = world
@@ -269,7 +269,7 @@ fn assert_rewire_matches_oracle(
     rewire: &RelationalBranchIdentity,
     expected: ExpectedSupplyChainObservation,
 ) {
-    let snapshot = snapshot_for_supply_chain_identity(&mut world.runtime, rewire);
+    let snapshot = snapshot_for_supply_chain_identity(&world.runtime, rewire);
     let observed = observe_supply_chain_snapshot(
         &world.program,
         &world.handles.for_snapshot(snapshot.clone()),

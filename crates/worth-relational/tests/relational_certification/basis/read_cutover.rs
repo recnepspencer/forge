@@ -17,9 +17,9 @@ use worth_runtime_bridge::facade::{
 
 #[test]
 fn history_visibility_and_bridge_read_the_observation_selected_root() {
-    let (mut world, _) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, _) = certified_supply_chain_world(SupplyChainScale::court());
     let branch_id = BranchId("storm".to_owned());
-    fork_supply_chain_branch_from_main(&mut world.runtime, branch_id.clone());
+    fork_supply_chain_branch_from_main(&world.runtime, branch_id.clone());
     let identity = world.runtime.branch_identity(&branch_id).unwrap();
     let (_, basis) = world.runtime.observe_branch(&identity).unwrap();
     let observation = basis.observation();
@@ -45,7 +45,7 @@ fn history_visibility_and_bridge_read_the_observation_selected_root() {
         .expect("baseline has one canonical head");
 
     let batch = lower_supply_chain_production_delta(
-        &mut world.runtime,
+        &world.runtime,
         &world.program,
         &world.handles,
         &branch_id,
@@ -53,7 +53,7 @@ fn history_visibility_and_bridge_read_the_observation_selected_root() {
         DeltaId::StormRerouteAurora,
     )
     .unwrap();
-    commit_branch_batch(&mut world.runtime, branch_id, batch);
+    commit_branch_batch(&world.runtime, branch_id, batch);
 
     let (_, current_basis) = world.runtime.observe_branch(&identity).unwrap();
     let current_head = world
@@ -100,7 +100,7 @@ fn history_visibility_and_bridge_read_the_observation_selected_root() {
 
 #[test]
 fn merge_history_resolves_from_two_exact_observations() {
-    let (mut world, _) = certified_supply_chain_world(SupplyChainScale::court());
+    let (world, _) = certified_supply_chain_world(SupplyChainScale::court());
     let main_identity = world.runtime.main_branch_identity();
     let (_, main_basis) = world.runtime.observe_branch(&main_identity).unwrap();
     let main_observation = main_basis.observation();
@@ -112,9 +112,9 @@ fn merge_history_resolves_from_two_exact_observations() {
         .unwrap();
 
     let storm = BranchId("storm".to_owned());
-    fork_supply_chain_branch_from_main(&mut world.runtime, storm.clone());
+    fork_supply_chain_branch_from_main(&world.runtime, storm.clone());
     let batch = lower_supply_chain_production_delta(
-        &mut world.runtime,
+        &world.runtime,
         &world.program,
         &world.handles,
         &storm,
@@ -122,7 +122,7 @@ fn merge_history_resolves_from_two_exact_observations() {
         DeltaId::StormRerouteAurora,
     )
     .unwrap();
-    commit_branch_batch(&mut world.runtime, storm.clone(), batch);
+    commit_branch_batch(&world.runtime, storm.clone(), batch);
     let storm_identity = world.runtime.branch_identity(&storm).unwrap();
     let (_, storm_basis) = world.runtime.observe_branch(&storm_identity).unwrap();
     let storm_observation = storm_basis.observation();

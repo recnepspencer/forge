@@ -62,25 +62,20 @@ fn custom_commit_boundary_reads_the_same_transaction_proposed_aspect_state() {
         evidence: evidence.clone(),
     })
     .expect("proposed-state probe registers");
-    let mut world = compile_supply_chain_baseline_with_custom_invariant(program, registration)
+    let world = compile_supply_chain_baseline_with_custom_invariant(program, registration)
         .expect("baseline commits with the inactive proposed-state probe");
 
     let target = world.handles.aurora_voyage().id;
     assert_snapshot_status(
-        &mut world.runtime,
+        &world.runtime,
         &BranchId("main".to_owned()),
         target,
         "Planned",
     );
     evidence.set_target(target);
-    let commit = commit_status_update(&mut world.runtime, BranchId("main".to_owned()), target);
+    let commit = commit_status_update(&world.runtime, BranchId("main".to_owned()), target);
     let commit = commit.expect("custom rule sees the proposed status in both phases");
-    assert_snapshot_status(
-        &mut world.runtime,
-        &BranchId("main".to_owned()),
-        target,
-        "Held",
-    );
+    assert_snapshot_status(&world.runtime, &BranchId("main".to_owned()), target, "Held");
 
     assert_eq!(evidence.prepared(), 1);
     assert_eq!(evidence.evaluated(), 1);
