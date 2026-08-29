@@ -136,6 +136,22 @@ impl PreparedCanonicalBranchMovement {
 }
 
 impl crate::runtime::RelationalRuntime {
+    /// The independently borrowable publication service for this runtime.
+    ///
+    /// This service owns exactly one operation,
+    /// [`RelationalPublicationPort::compare_and_publish`], which is the only
+    /// path that moves a branch reference. It consumes the candidate produced
+    /// by
+    /// [`RelationalRuntime::preparation_port`](crate::runtime::RelationalRuntime::preparation_port)
+    /// and returns a typed terminal outcome rather than a `Result`, because a
+    /// branch that did not move is not always an error. `Performed` transfers
+    /// a settlement obligation to
+    /// [`RelationalRuntime::settlement_port`](crate::runtime::RelationalRuntime::settlement_port).
+    ///
+    /// Different branch cells do not share an ordinary publication lock. The
+    /// runnable owner workflow, including the caller-owned response to a
+    /// contended patch-position reservation, is
+    /// `examples/branch_local_mvcc.rs`.
     pub fn publication_port(&self) -> RelationalPublicationPort {
         RelationalPublicationPort::new(
             self.runtime_instance_id(),

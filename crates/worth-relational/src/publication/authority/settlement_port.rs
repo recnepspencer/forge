@@ -122,6 +122,21 @@ impl RelationalSettlementPort {
 
 impl RelationalRuntime {
     /// The independently borrowable settlement service for this runtime.
+    ///
+    /// Settlement is the obligation a performed publication transfers to its
+    /// caller. The service owns
+    /// [`RelationalSettlementPort::settle_performed_publication`] for the
+    /// ordinary path and the two named repair entries,
+    /// [`RelationalSettlementPort::repair_deferred_publication_settlement`] and
+    /// [`RelationalSettlementPort::repair_pending_publication_settlement`], for
+    /// the recovery lane. Dropping performed evidence without settling it is
+    /// not success.
+    ///
+    /// Like
+    /// [`RelationalRuntime::preparation_port`](crate::runtime::RelationalRuntime::preparation_port),
+    /// this service is obtained from a shared borrow and is
+    /// `Clone + Send + Sync`. The runnable owner workflow is
+    /// `examples/branch_local_mvcc.rs`.
     pub fn settlement_port(&self) -> RelationalSettlementPort {
         RelationalSettlementPort::new(
             self.runtime_instance_id(),

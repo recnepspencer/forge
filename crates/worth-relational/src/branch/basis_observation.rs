@@ -38,6 +38,44 @@ pub(crate) fn issue_admitted_relational_branch_basis_with_retention(
 
 impl RelationalRuntime {
     /// Observe and admit one exact owner branch basis from one cell snapshot.
+    ///
+    /// The pair returned is deliberately two values with different authority.
+    /// The [`RelationalBranchBasisDescriptor`] is serializable, transportable
+    /// evidence that describes an exact observed target and generation; it is
+    /// data, not permission, and must pass `readmit_branch_basis` after it
+    /// crosses a trust boundary. The [`AdmittedRelationalBranchBasis`] is the
+    /// owner-issued authority that opens governed reads and transactions here
+    /// and now.
+    ///
+    /// Reads bind to the basis's exact immutable observation, so a later
+    /// movement of this branch does not change what the snapshot sees.
+    ///
+    /// ```
+    /// use worth_relational::facade::runtime::RelationalRuntimeApi;
+    /// use worth_relational::facade::schema::RelationalSchemaRegistry;
+    ///
+    /// let runtime = RelationalRuntimeApi::builder()
+    ///     .schema_registry(RelationalSchemaRegistry::new())
+    ///     .build();
+    ///
+    /// let identity = runtime.main_branch_identity();
+    /// let (_descriptor, basis) = runtime
+    ///     .observe_branch(&identity)
+    ///     .expect("an owner-issued identity observes its own branch");
+    ///
+    /// let pinned = runtime
+    ///     .snapshots()
+    ///     .snapshot_for_observation(&basis.observation())
+    ///     .expect("an exact observation opens a pinned read");
+    /// runtime
+    ///     .snapshots()
+    ///     .release_snapshot(&pinned)
+    ///     .expect("a pinned snapshot releases exactly once");
+    /// ```
+    ///
+    /// The write progression that starts from this basis is on
+    /// [`RelationalRuntime::preparation_port`]. The runnable owner workflow is
+    /// `examples/branch_local_mvcc.rs`.
     pub fn observe_branch(
         &self,
         identity: &RelationalBranchIdentity,
