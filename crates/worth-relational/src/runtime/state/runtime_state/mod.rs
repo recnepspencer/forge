@@ -183,14 +183,27 @@ impl RelationalRuntime {
         self.tenure.close_authority().is_some()
     }
 
-    /// Exclusive access to state that has never been shared with a service.
+    /// Exclusive access to state no one else holds a handle to.
     ///
-    /// Construction and recovery rebuild a runtime from a plan before any
-    /// service can bind to it, so they still hold the only handle and may
-    /// install whole subsystems into it. This does not claim that an exclusive
-    /// runtime borrow proves exclusive state access: an operation handle is
-    /// refused outright, once any service holds a binding the answer is `None`,
-    /// and live reconfiguration goes through [`Self::reconfigure`] instead.
+    /// Recovery rebuilds a runtime from a plan before any service can bind to
+    /// it, so it still holds the only handle and may install whole subsystems
+    /// into it. The `#[cfg(test)]` retention-capacity seam uses the same door.
+    ///
+    /// This does not claim that an exclusive runtime borrow proves exclusive
+    /// state access, and the two conditions are separate. An operation handle
+    /// is refused outright by the owner check. Beyond that, [`Arc::get_mut`]
+    /// answers `Some` only while this is the sole strong handle to the state
+    /// and nothing holds a [`Weak`] one, so the answer tracks the handles that
+    /// actually exist rather than the borrow.
+    ///
+    /// Only [`Self::state_binding`] mints such a handle, and only
+    /// `RelationalSettlementPort` takes one. A live settlement port therefore
+    /// forces `None` here; the preparation, fork and publication ports clone
+    /// subsystem handles instead and do not. Live reconfiguration never comes
+    /// through here at all, and goes through [`Self::reconfigure`] instead.
+    ///
+    /// [`Arc::get_mut`]: std::sync::Arc::get_mut
+    /// [`Weak`]: std::sync::Weak
     pub(crate) fn unshared_state_mut(&mut self) -> Option<&mut RelationalRuntimeState> {
         if !self.is_owner() {
             return None;
@@ -200,9 +213,7 @@ impl RelationalRuntime {
 }
 
 impl RelationalRuntime {
-    pub(crate) fn preparation_configuration_binding(
-        &self,
-    ) -> RelationalRuntimeConfigurationBinding {
+    pub(crate) fn configuration_binding(&self) -> RelationalRuntimeConfigurationBinding {
         self.configuration.binding()
     }
 

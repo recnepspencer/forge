@@ -59,8 +59,12 @@ fn execute_partition(
     }
 }
 
-/// Take sole ownership of a partition removed from the substrate, copying only
-/// when a reader still holds the edition being replaced.
+/// Take sole ownership of a partition removed from the substrate, copying
+/// whenever any other strong reference to it still exists.
+///
+/// A reader holding the edition being replaced is the ordinary reason for that,
+/// but it is not the only one: `Arc::try_unwrap` hands back the shared value for
+/// any surviving strong reference, whatever holds it.
 fn unwrap_partition(
     partition: std::sync::Arc<crate::storage::overlay::PartitionState>,
 ) -> crate::storage::overlay::PartitionState {

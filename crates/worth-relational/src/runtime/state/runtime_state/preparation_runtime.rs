@@ -44,7 +44,7 @@ pub(crate) struct RelationalPreparationRuntime {
 impl RelationalPreparationOwnerBinding {
     pub(crate) fn from_runtime(runtime: &super::RelationalRuntime) -> Self {
         Self {
-            configuration: runtime.preparation_configuration_binding(),
+            configuration: runtime.configuration_binding(),
             history: runtime.history.preparation_binding(),
             record_identity: runtime.record_identity.clone(),
             services: runtime.services.preparation_binding(),

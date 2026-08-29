@@ -16,7 +16,9 @@ pub(in crate::runtime) enum RelationalRuntimeTenure {
     Admitted(
         #[expect(
             dead_code,
-            reason = "the admission is carried, not consulted: holding it for the whole                       operation is what defers the owner's close, and dropping the handle                       is what releases it"
+            reason = "the admission is carried, not consulted: holding it for the whole \
+                      operation is what defers the owner's close, and dropping the \
+                      handle is what releases it"
         )]
         AdmittedRelationalRuntimeOperation,
     ),
