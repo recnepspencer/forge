@@ -192,9 +192,14 @@ pub(crate) fn commit_unrelated_branch_while_paused(
     })
 }
 
-pub(crate) fn assert_unrelated_commit_matches_oracle(
+/// Compare one court commit against the independent Supply Chain oracle and
+/// then close the exact snapshot it named, so a finished court leaves no open
+/// published-snapshot handle behind.
+pub(crate) fn assert_court_commit_matches_oracle(
     world: &mut ProductionSeededSupplyChainWorld,
     committed: &CommitResult,
+    branch: BranchLabel,
+    delta: DeltaId,
 ) {
     let observed = observe_supply_chain_snapshot(
         &world.program,
@@ -202,19 +207,15 @@ pub(crate) fn assert_unrelated_commit_matches_oracle(
         &world.runtime,
         &committed.snapshot,
     )
-    .expect("the performed maintenance root is observable through its exact snapshot");
-    let expected = expected_supply_chain_branch(
-        &world.program,
-        BranchLabel::Maintenance,
-        Some(DeltaId::MaintainAtlasBerth),
-    );
+    .expect("the performed court root is observable through its exact snapshot");
+    let expected = expected_supply_chain_branch(&world.program, branch, Some(delta));
     compare(&expected, &observed)
-        .expect("the unrelated maintenance commit matches the independent Supply Chain oracle");
+        .expect("the court commit matches the independent Supply Chain oracle");
     world
         .runtime
         .snapshots()
         .release_snapshot(&committed.snapshot)
-        .expect("the exact maintenance commit snapshot closes once comparison completes");
+        .expect("the exact court commit snapshot closes once comparison completes");
 }
 
 pub(crate) fn lower_court_delta(

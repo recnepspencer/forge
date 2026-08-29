@@ -9,14 +9,22 @@
 //! top of the phase, so it cannot speak for a gate taken later in it;
 //! publication parks at `BeforeCriticalSection`, inside the entered phase and
 //! before the branch coordination cell, which is the stronger position.
+//! Settlement parks at the production `Settlement` observation inside the one
+//! settlement executor, holding an installed pending-settlement record, that
+//! record's per-commit executor gate, a published-snapshot slot, and a moved
+//! but still unsettled canonical route. Its reach stops where that park does:
+//! the durable append and derived completion already returned, so it cannot
+//! speak for a lock taken and released inside them, and the certified world is
+//! memory-resident, so no durable-I/O locality is claimed here.
 
 use super::mvcc_owner_phase_locality_court::{
-    assert_unrelated_commit_matches_oracle, begin_court_transaction, branch_reference_state,
+    assert_court_commit_matches_oracle, begin_court_transaction, branch_reference_state,
     commit_unrelated_branch_while_paused, coordination_counters, lower_court_delta,
     BranchCoordination, OwnerPhaseCourtBranches, OwnerPhasePause,
 };
 use super::world::supply_chain::{
-    assert_oracle_matches, certified_supply_chain_world, DeltaId, SupplyChainScale,
+    assert_oracle_matches, certified_supply_chain_world, head_for_supply_chain_branch, BranchLabel,
+    DeltaId, SupplyChainScale,
 };
 use worth_relational::facade::mvcc::{
     RelationalInterruptionBoundary, RelationalPublicationOutcome,
@@ -66,7 +74,12 @@ fn paused_supply_chain_preparation_leaves_an_unrelated_branch_commit_unblocked()
     preparation
         .discard_prepared_candidate(storm_candidate)
         .expect("the released storm candidate discards through its own owner port");
-    assert_unrelated_commit_matches_oracle(&mut world, &committed);
+    assert_court_commit_matches_oracle(
+        &mut world,
+        &committed,
+        BranchLabel::Maintenance,
+        DeltaId::MaintainAtlasBerth,
+    );
     assert_oracle_matches(&world, &expected);
 }
 
@@ -136,6 +149,130 @@ fn paused_supply_chain_publication_leaves_an_unrelated_branch_commit_unblocked()
         },
         "storm's own publication charges exactly one uncontended storm contact, so the zero-delta claim measures a live counter"
     );
-    assert_unrelated_commit_matches_oracle(&mut world, &committed);
+    assert_court_commit_matches_oracle(
+        &mut world,
+        &committed,
+        BranchLabel::Maintenance,
+        DeltaId::MaintainAtlasBerth,
+    );
+    assert_oracle_matches(&world, &expected);
+}
+
+#[test]
+fn paused_supply_chain_settlement_leaves_an_unrelated_branch_commit_unblocked() {
+    let (mut world, expected) = certified_supply_chain_world(SupplyChainScale::court());
+    assert_oracle_matches(&world, &expected);
+    let court = OwnerPhaseCourtBranches::fork(&mut world);
+    let storm_batch = lower_court_delta(&mut world, &court.storm, DeltaId::StormRerouteAurora);
+    let maintenance_batch =
+        lower_court_delta(&mut world, &court.maintenance, DeltaId::MaintainAtlasBerth);
+
+    let pause = OwnerPhasePause::new();
+    let storm_transaction = begin_court_transaction(
+        &world.runtime,
+        &court.storm,
+        pause.control(RelationalInterruptionBoundary::Settlement),
+        storm_batch,
+    );
+    let storm_reference_before_movement = branch_reference_state(&world.runtime, &court.storm);
+    let storm_candidate = world
+        .runtime
+        .preparation_port()
+        .prepare_branch_transaction(storm_transaction)
+        .expect("the storm candidate prepares before the settlement court opens");
+    let performed = match world
+        .runtime
+        .publication_port()
+        .compare_and_publish(storm_candidate)
+    {
+        RelationalPublicationOutcome::Performed(performed) => performed,
+        outcome => panic!("the uncontended storm candidate must perform: {outcome:?}"),
+    };
+    let storm_commit_id = performed.canonical_commit().commit.commit_id;
+
+    // Prove the park is where this court says it is before relying on it. Only
+    // a branch that already moved and still retains its runtime-owned pending
+    // record is inside settlement, so an earlier boundary firing here cannot be
+    // mistaken for the settlement executor.
+    let settlement = world.runtime.settlement_port();
+    assert_ne!(
+        branch_reference_state(&world.runtime, &court.storm),
+        storm_reference_before_movement,
+        "the storm reference moves before settlement, so the park is past publication"
+    );
+    assert!(
+        settlement.retains_pending_settlement(storm_commit_id),
+        "the moved storm route retains its runtime-owned pending settlement record"
+    );
+
+    let settling = settlement.clone();
+    let storm_worker = std::thread::spawn(move || settling.settle_performed_publication(performed));
+    pause.await_arrival("settlement executor");
+
+    let before = court.capture(&world.runtime);
+    let maintenance_before = coordination_counters(&world.runtime, &court.maintenance);
+    let committed = commit_unrelated_branch_while_paused(
+        &mut world,
+        &court,
+        maintenance_batch,
+        &pause,
+        "settlement executor",
+    );
+    assert!(
+        !storm_worker.is_finished(),
+        "the storm branch must stay parked in its settlement executor for the whole unrelated commit"
+    );
+    before.assert_branch_locality(&court, &world.runtime, &committed);
+    // The unrelated branch enters its own coordination cell exactly twice, once
+    // admitting its transaction and once for its publication critical section,
+    // and never waits. The same counter that reads zero on storm moves here in
+    // the same window, so the zero-delta storm claim measures a live counter.
+    assert_eq!(
+        coordination_counters(&world.runtime, &court.maintenance),
+        BranchCoordination {
+            contacts: maintenance_before.contacts + 2,
+            waits: maintenance_before.waits,
+        },
+        "the unrelated ordinary commit charges its own admission and cutover contacts uncontended"
+    );
+    assert!(
+        settlement.retains_pending_settlement(storm_commit_id),
+        "the parked storm record stays installed for the whole unrelated commit"
+    );
+    assert!(
+        !settlement.retains_pending_settlement(committed.commit.commit_id),
+        "the unrelated branch reserved, used, and released its own pending record while storm held its own"
+    );
+    assert_court_commit_matches_oracle(
+        &mut world,
+        &committed,
+        BranchLabel::Maintenance,
+        DeltaId::MaintainAtlasBerth,
+    );
+
+    pause.open();
+    let storm_committed = storm_worker
+        .join()
+        .expect("the storm settlement worker joins")
+        .expect("the storm branch settles once its owner-phase pause opens");
+    assert_eq!(
+        storm_committed.commit.commit_id, storm_commit_id,
+        "the released settlement finishes the exact commit identity it parked on"
+    );
+    assert_eq!(
+        head_for_supply_chain_branch(&world.runtime, &court.storm),
+        storm_committed.commit,
+        "the observed storm head is exactly the settled canonical commit"
+    );
+    assert!(
+        !settlement.retains_pending_settlement(storm_commit_id),
+        "finished settlement leaves no pending record behind"
+    );
+    assert_court_commit_matches_oracle(
+        &mut world,
+        &storm_committed,
+        BranchLabel::Storm,
+        DeltaId::StormRerouteAurora,
+    );
     assert_oracle_matches(&world, &expected);
 }
